@@ -4,17 +4,16 @@ import re
 import urllib.parse
 
 from .common import InfoExtractor
+from .youtube import YoutubeIE
 from ..utils import (
     OnDemandPagedList,
     clean_html,
-    dict_get,
     extract_attributes,
-    float_or_none,
+    ExtractorError,
     get_element_by_class,
     get_elements_by_class,
     int_or_none,
     parse_duration,
-    str_or_none,
     traverse_obj,
     urlencode_postdata,
     url_or_none,
@@ -105,6 +104,14 @@ class PromoDJBaseIE(InfoExtractor):
             playlist_links.append(f'https://promodj.com/{login}/videos')
 
         return playlist_links
+
+    def _parse_page_content(self, html):
+        for id in re.findall(r'CORE\.Player\(\'[^\']+\', \'(?:standalone|cover)\.big\', (\d+),', html):
+            yield self.url_result(f'https://promodj.com/embed/{id}/big', PromoDJEmbedIE, id)
+
+        for iframe_url in re.findall(r'<iframe[^>]+src=\"([^\"]+)\"', html):
+            if YoutubeIE.suitable(iframe_url):
+                yield self.url_result(iframe_url, YoutubeIE)
 
     def _get_playlist_page_size(self, url):
         is_default_playlist = '/groups/' not in url
@@ -210,7 +217,7 @@ class PromoDJUserMediaIE(PromoDJBaseIE):
 
 
 class PromoDJUserPagesIE(PromoDJBaseIE):
-    _VALID_URL = rf'{PromoDJBaseIE._BASE_URL_RE}/(?P<login>{PromoDJBaseIE._LOGIN_RE})/(?P<type>(pages|blog))$'
+    _VALID_URL = rf'{PromoDJBaseIE._BASE_URL_RE}/(?P<login>{PromoDJBaseIE._LOGIN_RE})/(?P<type>pages|blog)$'
     _TESTS = [{
         'url': 'https://promodj.com/djperetse/pages',
         'only_matching': True,
@@ -219,8 +226,38 @@ class PromoDJUserPagesIE(PromoDJBaseIE):
         'only_matching': True,
     }]
 
+    _PAGE_SIZE = 10
+
+    def _parse_pages(self, url, playlist_id):
+        html = self._download_webpage(url, playlist_id)
+        content_html = get_element_by_class('dj_universal', get_element_by_class('dj_bblock', html))
+        print(re.findall(r'<a href=\"([^\"]+)\">([^<]+)</a>', content_html))
+        for page_url, page_title in re.findall(r'<a href=\"([^\"]+)\">([^<]+)</a>', content_html):
+            yield self.url_result(page_url, PromoDJUserPageIE, video_title=page_title)
+
+    def _fetch_blog_page(self, url, playlist_id, page):
+        page_url = self._set_url_page(url, page + 1)
+        html = self._download_webpage(page_url, f'{playlist_id}-page-{page + 1}')
+        current_page = int(clean_html(get_element_by_class('NavigatorCurrentPage', html)) or '1')
+        if current_page != page + 1:
+            return
+
+        for a in get_elements_by_class('post_title', html):
+            if not a:
+                continue
+            if url := traverse_obj(extract_attributes(a), ('href', {url_or_none})):
+                yield self.url_result(url, PromoDJBlogPageIE)
+
     def _real_extract(self, url):
         login, type = self._match_valid_url(url).groups()
+        playlist_id = f'{login}-{type}'
+        if type == 'pages':
+            entries = self._parse_pages(url, playlist_id)
+        elif type == 'blog':
+            entries = OnDemandPagedList(
+                functools.partial(self._fetch_blog_page, url, playlist_id),
+                self._PAGE_SIZE)
+        return self.playlist_result(entries, playlist_id)
 
 
 class PromoDJUserPageIE(PromoDJBaseIE):
@@ -246,6 +283,11 @@ class PromoDJUserPageIE(PromoDJBaseIE):
 
     def _real_extract(self, url):
         login, slug = self._match_valid_url(url).groups()
+        page_id = f'{login}-{slug}'
+        html = self._download_webpage(url, page_id)
+        content_html = get_element_by_class('perfect', html)
+        return self.playlist_result(
+            self._parse_page_content(content_html), playlist_id=page_id)
 
 
 class PromoDJBlogPageIE(PromoDJBaseIE):
@@ -266,6 +308,11 @@ class PromoDJBlogPageIE(PromoDJBaseIE):
 
     def _real_extract(self, url):
         login, id, slug = self._match_valid_url(url).groups()
+        page_id = f'{login}-blog-{id}-{slug}'
+        html = self._download_webpage(url, page_id)
+        content_html = get_element_by_class('post_body', html)
+        return self.playlist_result(
+            self._parse_page_content(content_html), playlist_id=page_id)
 
 
 class PromoDJPlaylistIE(PromoDJBaseIE):
@@ -439,9 +486,20 @@ class PromoDJEmbedIE(PromoDJBaseIE):
         # video (can be only big)
         'url': 'https://promodj.com/embed/3922099/big',
         'only_matching': True,
+    }, {
+        # blocked
+        'url': 'https://promodj.com/embed/5586967/big',
+        'only_matching': True,
+    }, {
+        # deleted
+        'url': 'https://promodj.com/embed/5606804/big',
+        'only_matching': True,
     }]
 
     def _get_full_url(self, media_data, id):
+        if player_error := media_data.get('player_error'):
+            raise ExtractorError(player_error, expected=True)
+
         if media_data.get('video'):
             video_config = self._parse_json(media_data['config'], id)
             video = traverse_obj(video_config, ('playlist', 'item', 0))
