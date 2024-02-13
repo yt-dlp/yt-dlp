@@ -2,6 +2,8 @@ from .common import InfoExtractor
 
 
 class JeuxVideoIE(InfoExtractor):
+    _WORKING = False
+    _ENABLED = False
     _VALID_URL = r'https?://.*?\.jeuxvideo\.com/.*/(.*?)\.htm'
 
     _TESTS = [{
