@@ -45,7 +45,7 @@ class MagellanTVIE(InfoExtractor):
         webpage = self._download_webpage(url, video_id)
         data = traverse_obj(self._search_nextjs_data(webpage, video_id), (
             'props', 'pageProps', 'reactContext',
-            (('video', 'detail'), ('series', 'currentEpisode'))), get_all=False)
+            (('video', 'detail'), ('series', 'currentEpisode')), {dict}), get_all=False)
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(data['jwpVideoUrl'], video_id)
 
         return {
