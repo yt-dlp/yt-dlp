@@ -887,7 +887,6 @@ from .kakao import KakaoIE
 from .kaltura import KalturaIE
 from .kankanews import KankaNewsIE
 from .karaoketv import KaraoketvIE
-from .karrierevideos import KarriereVideosIE
 from .kelbyone import KelbyOneIE
 from .khanacademy import (
     KhanAcademyIE,
