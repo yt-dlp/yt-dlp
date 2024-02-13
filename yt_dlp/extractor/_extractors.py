@@ -988,7 +988,6 @@ from .lnkgo import (
     LnkGoIE,
     LnkIE,
 )
-from .localnews8 import LocalNews8IE
 from .lovehomeporn import LoveHomePornIE
 from .lrt import (
     LRTVODIE,
