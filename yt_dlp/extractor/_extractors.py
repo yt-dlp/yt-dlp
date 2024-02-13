@@ -902,7 +902,6 @@ from .kinja import KinjaEmbedIE
 from .kinopoisk import KinoPoiskIE
 from .kommunetv import KommunetvIE
 from .kompas import KompasVideoIE
-from .konserthusetplay import KonserthusetPlayIE
 from .koo import KooIE
 from .kth import KTHIE
 from .krasview import KrasViewIE
