@@ -447,7 +447,7 @@ class FacebookIE(InfoExtractor):
                                                    note='Logging in', errnote='unable to fetch login page')
             if 'Your Request Couldn' in login_results:
                 self.raise_login_required('Failed to login with credentials', method='cookies')
-            elif re.search(r'<form(.*)name="login"(.*)</form>', login_results) is not None:
+            elif re.search(r'<form[^>]*name="login"[^<]*</form>', login_results):
                 error = self._html_search_regex(
                     r'(?s)<div[^>]+class=(["\']).*?login_error_box.*?\1[^>]*><div[^>]*>.*?</div><div[^>]*>(?P<error>.+?)</div>',
                     login_results, 'login error', default=None, group='error')
@@ -495,12 +495,16 @@ class FacebookIE(InfoExtractor):
             logged_in = get_first(sjs_data, (
                 'require', ..., ..., ..., '__bbox', 'define',
                 lambda _, v: 'CurrentUserInitialData' in v, ..., 'ACCOUNT_ID'), default='0') != '0'
-            if logged_in:
-                if any(content in webpage for content in ['180 days left to appeal', 'suspended your account']):
+            if logged_in and (info := get_first(sjs_data, ('require', ..., ..., ..., '__bbox', 'require', ..., ..., ...,
+                                                           '__bbox', 'result', 'data', (('ufac_client', 'state',
+                                                                                         (('set_contact_point_state_renderer', 'title'),
+                                                                                          ('intro_state_renderer', 'header_title'))),
+                                                                                        ('epsilon_checkpoint', 'screen', 'title'))))):
+                if any(content in info for content in ['days left to appeal', 'suspended your account']):
                     raise ExtractorError('Your account is suspended', expected=True)
-                if 'send a code to confirm the mobile number you give us' in webpage:
+                if 'Enter mobile number' == info:
                     raise ExtractorError('Facebook is requiring mobile number confirmation', expected=True)
-                if 'your account has been locked' in webpage:
+                if 'your account has been locked' in info:
                     raise ExtractorError('Your account has been locked', expected=True)
 
         if props := get_first(sjs_data, (
@@ -510,9 +514,7 @@ class FacebookIE(InfoExtractor):
                 f'Content unavailable. Facebook said: {props.get("body") or props["title"]}', expected=True)
 
         def extract_metadata(webpage):
-            post_data = [self._parse_json(j, video_id, fatal=False) for j in re.findall(
-                r'data-sjs>({.*?ScheduledServerJS.*?})</script>', webpage)]
-            post = traverse_obj(post_data, (
+            post = traverse_obj(sjs_data, (
                 ..., 'require', ..., ..., ..., '__bbox', 'require', ..., ..., ..., '__bbox', 'result', 'data'), expected_type=dict) or []
             media = traverse_obj(post, (..., 'attachments', ..., lambda k, v: (
                 k == 'media' and str(v['id']) == video_id and v['__typename'] == 'Video')), expected_type=dict)
