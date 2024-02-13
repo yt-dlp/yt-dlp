@@ -667,7 +667,6 @@ from .gab import (
     GabIE,
 )
 from .gaia import GaiaIE
-from .gameinformer import GameInformerIE
 from .gamejolt import (
     GameJoltIE,
     GameJoltUserIE,
