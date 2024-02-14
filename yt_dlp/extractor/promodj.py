@@ -71,7 +71,7 @@ class PromoDJBaseIE(InfoExtractor):
         qs['page'] = page
         return parsed_url._replace(query=urllib.parse.urlencode(qs, doseq=True)).geturl()
 
-    def _fetch_page(self, url, media_types, playlist_id, page):
+    def _fetch_page(self, url, allowed_media_cats, playlist_id, page):
         page_url = self._set_url_page(url, page + 1)
         html = self._download_webpage(page_url, f'{playlist_id}-page-{page + 1}')
         current_page = int(clean_html(get_element_by_class('NavigatorCurrentPage', html)) or '1')
@@ -84,7 +84,7 @@ class PromoDJBaseIE(InfoExtractor):
                 continue
             url = url.replace('?play=1', '')
             is_video = '/videos/' in url
-            if is_video and 'video' in media_types or not is_video and 'music' in media_types:
+            if is_video and 'video' in allowed_media_cats or not is_video and 'music' in allowed_media_cats:
                 yield self.url_result(url, PromoDJIE)
 
     def _parse_playlist_links(self, html):
@@ -345,7 +345,7 @@ class PromoDJPlaylistIE(PromoDJBaseIE):
         'only_matching': True,
     }]
 
-    _MEDIA_TYPES = ['music', 'video']
+    _ALLOWED_MEDIA_CATS = ['music', 'video']
 
     def _real_extract(self, url):
         match = self._match_valid_url(url)
@@ -355,17 +355,17 @@ class PromoDJPlaylistIE(PromoDJBaseIE):
         page_size = self._get_playlist_page_size(url)
 
         entries = OnDemandPagedList(
-            functools.partial(self._fetch_page, url, self._MEDIA_TYPES, playlist_id),
+            functools.partial(self._fetch_page, url, self._ALLOWED_MEDIA_CATS, playlist_id),
             page_size)
         return self.playlist_result(entries, playlist_id=playlist_id)
 
 
 class PromoDJMusicPlaylistIE(PromoDJPlaylistIE):
-    _MEDIA_TYPES = ['music']
+    _ALLOWED_MEDIA_CATS = ['music']
 
 
 class PromoDJVideoPlaylistIE(PromoDJPlaylistIE):
-    _MEDIA_TYPES = ['video']
+    _ALLOWED_MEDIA_CATS = ['video']
 
 
 class PromoDJIE(PromoDJBaseIE):
