@@ -62,8 +62,10 @@ build = [
     "wheel",
 ]
 dev = [
-    "ruff==0.2.1",
+    "autopep8",
+    "pre-commit",
     "pytest",
+    "ruff==0.2.1",
 ]
 pyinstaller = ["pyinstaller>=6.3"]
 py2exe = ["py2exe>=0.12"]
@@ -79,6 +81,28 @@ yt-dlp = "yt_dlp:main"
 
 [project.entry-points.pyinstaller40]
 hook-dirs = "yt_dlp.__pyinstaller:get_hook_dirs"
+
+[tool.hatch.envs.default]
+dependencies = ["yt-dlp[dev]"]
+
+[tool.hatch.envs.default.scripts]
+install = "pre-commit install"
+lint = "ruff check {args:.}"
+format = "autopep8 {args:.}"
+tests = "python -m devscripts.run_tests {args}"
+tests-core = "pytest -We --tb=short --ignore=test/test_download.py {args}"
+
+[[tool.hatch.envs.default.overrides.env.TEST_ALL.matrix.value]]
+python = [
+    "3.8",
+    "3.9",
+    "3.10",
+    "3.11",
+    "3.12",
+    "pypy3.8",
+    "pypy3.9",
+    "pypy3.10",
+]
 
 [tool.hatch.build.targets.sdist]
 include = [
@@ -133,12 +157,28 @@ select = [
     "E", # pycodestyle errors
     "W", # pycodestyle warnings
     "F", # pyflakes
-    # "I", # import order
+    "I", # import order
 ]
 
 [tool.ruff.lint.per-file-ignores]
 "devscripts/lazy_load_template.py" = ["F401"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["test"]
+known-first-party = [
+    "bundle",
+    "devscripts",
+    "test",
+]
 relative-imports-order = "closest-to-furthest"
+
+[tool.autopep8]
+max_line_length = 120
+in-place = true
+recursive = true
+jobs = 0
+
+[tool.pytest.ini_options]
+addopts = "-ra -v --strict-markers"
+markers = [
+    "download",
+]
