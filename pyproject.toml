@@ -90,7 +90,6 @@ install = "pre-commit install"
 lint = "ruff check {args:.}"
 format = "autopep8 {args:.}"
 tests = "python -m devscripts.run_tests {args}"
-tests-core = "pytest -We --tb=short --ignore=test/test_download.py {args}"
 
 [[tool.hatch.envs.default.overrides.env.TEST_ALL.matrix.value]]
 python = [
