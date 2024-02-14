@@ -88,7 +88,7 @@ dependencies = ["yt-dlp[dev]"]
 [tool.hatch.envs.default.scripts]
 install = "pre-commit install"
 lint = "ruff check {args:.}"
-format = "autopep8 {args:.}"
+format = "autopep8 {args:--in-place .}"
 tests = "python -m devscripts.run_tests {args}"
 
 [[tool.hatch.envs.default.overrides.env.TEST_ALL.matrix.value]]
@@ -172,7 +172,6 @@ relative-imports-order = "closest-to-furthest"
 
 [tool.autopep8]
 max_line_length = 120
-in-place = true
 recursive = true
 jobs = 0
 

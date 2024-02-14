@@ -3,13 +3,11 @@ repos:
   hooks:
   - id: linter
     name: linter
-    entry: hatch run lint --no-fix
+    entry: hatch run lint
     language: system
     types: [python]
-    pass_filenames: false
   - id: format
     name: format
-    entry: hatch run format
+    entry: hatch run format --diff
     language: system
     types: [python]
-    pass_filenames: true
