@@ -81,11 +81,11 @@ class PromoDJBaseIE(InfoExtractor):
         if self._get_current_page(html) != page + 1:
             return
 
-        for a in get_elements_html_by_class('player_standard_tool__play', html):
+        for a in get_elements_html_by_class('player_standard_tool__comments', html):
             url = traverse_obj(extract_attributes(a), ('href', {url_or_none}))
             if not url:
                 continue
-            url = url.replace('?play=1', '')
+            url = url.replace('#comments', '')
             is_video = '/videos/' in url
             if is_video and 'video' in allowed_media_cats or not is_video and 'music' in allowed_media_cats:
                 yield self.url_result(url, PromoDJIE)
@@ -139,6 +139,7 @@ class PromoDJBaseIE(InfoExtractor):
             video = traverse_obj(
                 self._parse_json(media_data['config'], id), ('playlist', 'item', 0))
             formats = [{
+                'format_id': 'web',
                 'url': traverse_obj(video, ('play', '@url')).replace('?returnurl=1', ''),
                 **traverse_obj(media_data, {
                     'width': ('width', {int_or_none}),
@@ -162,7 +163,9 @@ class PromoDJBaseIE(InfoExtractor):
             'url': ('URL', {url_or_none}),
             'size': ('size', {int_or_none}),
         }) for source in traverse_obj(media_data, ('sources'))]
-        thumbnails = [{'url': url} for url in traverse_obj(media_data, ('coverURL', ('600', '1200', '2000'))) if url_or_none]
+        thumbnails = [{
+            'url': url,
+        } for url in traverse_obj(media_data, ('coverURL', ('600', '1200', '2000'))) if url_or_none(url)]
         return {
             'id': id,
             'title': clean_html(dict_get(media_data, ('title_html', 'title'))),
@@ -178,11 +181,13 @@ class PromoDJPageIE(PromoDJBaseIE):
     _VALID_URL = rf'{PromoDJBaseIE._BASE_URL_RE}/(?P<id>{_PAGES_RE})'
     _TESTS = [{
         'url': 'https://promodj.com/featured',
-        'only_matching': True,
-    }, {
-        # second page
-        'url': 'https://promodj.com/featured/rap?download=1&page=2',
-        'only_matching': True,
+        'info_dict': {
+            'id': 'featured',
+        },
+        'playlist_count': 40,
+        'params': {
+            'playlistend': 40,
+        },
     }, {
         # filtered
         'url': 'https://promodj.com/remixes?top=1',
@@ -196,9 +201,25 @@ class PromoDJPageIE(PromoDJBaseIE):
         'url': 'https://promodj.com/mixes?kind=mixes&styleID=&searchfor=dance',
         'only_matching': True,
     }, {
-        # no download button
+        # shop
         'url': 'https://promodj.com/shop',
-        'only_matching': True,
+        'info_dict': {
+            'id': 'shop',
+        },
+        'playlist_count': 20,
+        'params': {
+            'playlistend': 20,
+        },
+    }, {
+        # videos
+        'url': 'https://promodj.com/videos',
+        'info_dict': {
+            'id': 'videos',
+        },
+        'playlist_count': 20,
+        'params': {
+            'playlistend': 20,
+        },
     }]
 
     _PAGE_SIZE = 20
@@ -215,11 +236,25 @@ class PromoDJPageIE(PromoDJBaseIE):
 class PromoDJUserIE(PromoDJBaseIE):
     _VALID_URL = rf'{PromoDJBaseIE._BASE_URL_RE}/(?P<login>{PromoDJBaseIE._LOGIN_RE})$'
     _TESTS = [{
-        'url': 'https://promodj.com/djperetse',
-        'only_matching': True,
-    }, {
         'url': 'https://promodj.com/dj-trojan',
-        'only_matching': True,
+        'info_dict': {
+            'id': 'dj-trojan',
+        },
+        'playlist_mincount': 89,
+    }, {
+        # with default video playlist
+        'url': 'https://promodj.com/djperetse',
+        'info_dict': {
+            'id': 'djperetse',
+        },
+        'playlist_mincount': 15,
+    }, {
+        # without any playlists
+        'url': 'https://promodj.com/slim96',
+        'info_dict': {
+            'id': 'slim96',
+        },
+        'playlist_count': 0,
     }]
 
     def _real_extract(self, url):
@@ -236,15 +271,31 @@ class PromoDJUserIE(PromoDJBaseIE):
 class PromoDJUserMediaIE(PromoDJBaseIE):
     _VALID_URL = rf'{PromoDJBaseIE._BASE_URL_RE}/(?P<login>{PromoDJBaseIE._LOGIN_RE})/(?P<type>music|video)$'
     _TESTS = [{
-        'url': 'https://promodj.com/feel/music',
-        'only_matching': True,
+        'url': 'https://promodj.com/worobyev/music',
+        'info_dict': {
+            'id': 'worobyev-music',
+        },
+        'playlist_mincount': 11,
     }, {
-        'url': 'https://promodj.com/djmikis/video',
-        'only_matching': True,
+        # no music
+        'url': 'https://promodj.com/xsev71/music',
+        'info_dict': {
+            'id': 'xsev71-music',
+        },
+        'playlist_count': 0,
     }, {
-        # a user without any videos
+        'url': 'https://promodj.com/cosmonaut/video',
+        'info_dict': {
+            'id': 'cosmonaut-video',
+        },
+        'playlist_mincount': 2,
+    }, {
+        # no video
         'url': 'https://promodj.com/worobyev/video',
-        'only_matching': True,
+        'info_dict': {
+            'id': 'worobyev-video',
+        },
+        'playlist_count': 0,
     }]
 
     def _real_extract(self, url):
@@ -264,19 +315,40 @@ class PromoDJUserPagesIE(PromoDJBaseIE):
     _VALID_URL = rf'{PromoDJBaseIE._BASE_URL_RE}/(?P<login>{PromoDJBaseIE._LOGIN_RE})/(?P<type>pages|blog)$'
     _TESTS = [{
         'url': 'https://promodj.com/djperetse/pages',
-        'only_matching': True,
+        'info_dict': {
+            'id': 'djperetse-pages',
+        },
+        'playlist_count': 10,
     }, {
-        'url': 'https://promodj.com/golub/blog',
-        'only_matching': True,
+        # no pages
+        'url': 'https://promodj.com/djlosev/pages',
+        'info_dict': {
+            'id': 'djlosev-pages',
+        },
+        'playlist_count': 0,
+    }, {
+        'url': 'https://promodj.com/ivanroudyk/blog',
+        'info_dict': {
+            'id': 'ivanroudyk-blog',
+        },
+        'playlist_mincount': 37,
+    }, {
+        # no blog
+        'url': 'https://promodj.com/worobyev/blog',
+        'info_dict': {
+            'id': 'worobyev-blog',
+        },
+        'playlist_count': 0,
     }]
 
     _PAGE_SIZE = 10
 
     def _parse_pages(self, url, playlist_id):
         html = self._download_webpage(url, playlist_id)
-        content_html = get_element_by_class('dj_universal', get_element_by_class('dj_bblock', html))
-        for page_url, page_title in re.findall(r'<a href=\"([^\"]+)\">([^<]+)</a>', content_html):
-            yield self.url_result(page_url, PromoDJUserPageIE, video_title=page_title)
+        content_html = get_element_by_class('dj_content ', html)
+        if pages_html := get_element_by_class('dj_universal', content_html):
+            for page_url, page_title in re.findall(r'<a href=\"([^\"]+)\">([^<]+)</a>', pages_html):
+                yield self.url_result(page_url, PromoDJUserPageIE, video_title=page_title)
 
     def _fetch_blogs_page(self, url, playlist_id, page):
         page_url = self._set_url_page(url, page + 1)
@@ -318,7 +390,10 @@ class PromoDJUserPageIE(PromoDJBaseIE):
     _VALID_URL = rf'{PromoDJBaseIE._BASE_URL_RE}/(?P<login>{PromoDJBaseIE._LOGIN_RE})/(?P<slug>{_USER_PAGE_RE})$'
     _TESTS = [{
         'url': 'https://promodj.com/djperetse/MaxMixes',
-        'only_matching': True,
+        'info_dict': {
+            'id': 'djperetse-MaxMixes',
+        },
+        'playlist_count': 5,
     }]
 
     def _real_extract(self, url):
@@ -331,24 +406,40 @@ class PromoDJUserPageIE(PromoDJBaseIE):
 
 
 class PromoDJBlogPageIE(PromoDJBaseIE):
-    _VALID_URL = rf'{PromoDJBaseIE._BASE_URL_RE}/(?P<login>{PromoDJBaseIE._LOGIN_RE})/blog/(?P<id>\d+)(?:/(?P<slug>\w+))?'
+    _VALID_URL = rf'{PromoDJBaseIE._BASE_URL_RE}/(?P<login>{PromoDJBaseIE._LOGIN_RE})/blog/(?P<id>\d+)(?:/\w+)?'
     _TESTS = [{
         # with small and big audio players and youtube video
         'url': 'https://promodj.com/golub/blog/1163895/DJ_Andrey_Golubev_To_Depeche_Mode_with_love_part_9_special_dj_edits_mix',
-        'only_matching': True,
+        'info_dict': {
+            'id': 'golub-blog-1163895',
+        },
+        'playlist_count': 13,
     }, {
         # with audio and video
         'url': 'https://promodj.com/svetmusic/blog/1101958/SVET_I_Like_It_Extra_Sound_Recordings',
-        'only_matching': True,
+        'info_dict': {
+            'id': 'svetmusic-blog-1101958',
+        },
+        'playlist_count': 5,
     }, {
         # without any media
         'url': 'https://promodj.com/svetmusic/blog/915878/DJ_SVET_pobeditel_konkursa_Burn_City_Sound',
-        'only_matching': True,
+        'info_dict': {
+            'id': 'svetmusic-blog-915878',
+        },
+        'playlist_count': 0,
+    }, {
+        # with deleted and blocked music
+        'url': 'https://promodj.com/djperetse/blog/1048739/DJ_Peretse_i_Coca_Cola_obyavlyayut_MEGAMIX_BATTLE_2015',
+        'info_dict': {
+            'id': 'djperetse-blog-1048739',
+        },
+        'playlist_count': 29,
     }]
 
     def _real_extract(self, url):
-        login, id, slug = self._match_valid_url(url).groups()
-        page_id = f'{login}-blog-{id}-{slug}'
+        login, id = self._match_valid_url(url).groups()
+        page_id = f'{login}-blog-{id}'
         html = self._download_webpage(url, page_id)
         content_html = get_element_by_class('post_body', html)
         return self.playlist_result(
@@ -361,29 +452,57 @@ class PromoDJPlaylistIE(PromoDJBaseIE):
         rf'{PromoDJBaseIE._BASE_URL_RE}/(?P<login>{PromoDJBaseIE._LOGIN_RE})/(?P<type>groups)/(?P<id>\d+)(?:/(?P<slug>\w+))?',
     ]
     _TESTS = [{
-        # default playlist: tracks (audio)
+        # default playlist: music (with songs without player)
         'url': 'https://promodj.com/gluk/tracks',
-        'only_matching': True,
+        'info_dict': {
+            'id': 'gluk-tracks',
+        },
+        'playlist_mincount': 29,
+    }, {
+        # default playlist: with pagination
+        'url': 'https://promodj.com/gluk/mixes',
+        'info_dict': {
+            'id': 'gluk-mixes',
+        },
+        'playlist_count': 60,
+        'params': {
+            'playlistend': 60,
+        },
     }, {
         # default playlist: video
         'url': 'https://promodj.com/djperetse/videos',
-        'only_matching': True,
+        'info_dict': {
+            'id': 'djperetse-videos',
+        },
+        'playlist_mincount': 6,
     }, {
         # user playlist: audio
         'url': 'https://promodj.com/fonarev/groups/608158/Digital_Emotions_Night',
-        'only_matching': True,
+        'info_dict': {
+            'id': 'fonarev-groups-608158',
+        },
+        'playlist_mincount': 9,
     }, {
-        # two pages
+        # user playlist: with pagination
         'url': 'https://promodj.com/lavrov/groups/677132/VINYL',
-        'only_matching': True,
+        'info_dict': {
+            'id': 'lavrov-groups-677132',
+        },
+        'playlist_mincount': 33,
     }, {
         # user playlist: video
         'url': 'https://promodj.com/deeplecture/groups/672782/LAROCCA_TV',
-        'only_matching': True,
+        'info_dict': {
+            'id': 'deeplecture-groups-672782',
+        },
+        'playlist_mincount': 4,
     }, {
         # user playlist: audio and video
         'url': 'https://promodj.com/djperetse/groups/637358/Russkie_treki',
-        'only_matching': True,
+        'info_dict': {
+            'id': 'djperetse-groups-637358',
+        },
+        'playlist_mincount': 17,
     }, {
         # 900+ items
         'url': 'https://promodj.com/fonarev/groups/17350/Digital_Emotions_Podcast',
@@ -406,10 +525,12 @@ class PromoDJPlaylistIE(PromoDJBaseIE):
 
 
 class PromoDJMusicPlaylistIE(PromoDJPlaylistIE):
+    _VALID_URL = []
     _ALLOWED_MEDIA_CATS = ['music']
 
 
 class PromoDJVideoPlaylistIE(PromoDJPlaylistIE):
+    _VALID_URL = []
     _ALLOWED_MEDIA_CATS = ['video']
 
 
@@ -429,18 +550,17 @@ class PromoDJIE(PromoDJBaseIE):
             'view_count': int,
         },
     }, {
+        # samples type
         'url': 'https://promodj.com/j-factory/samples/7560171/Amedici_BW1_Intro',
-        'info_dict': {
-            'id': '7560171',
-            'ext': 'mp3',
-            'title': 'Amedici - BW1 - Intro',
-            'tags': ['Multitrack master', 'Fx'],
-            'upload_date': '20240212',
-            'timestamp': 1707748800.0,
-            'duration': 21.0,
-            'size': 838041,
-            'view_count': int,
-        },
+        'only_matching': True,
+    }, {
+        # acapellas type
+        'url': 'https://promodj.com/cosmonaut/acapellas/200970/Kosmonavt_golosovoe_ID',
+        'only_matching': True,
+    }, {
+        # realtones type
+        'url': 'https://promodj.com/plashstringer/realtones/965489/bomba_bomba',
+        'only_matching': True,
     }, {
         # music: no download links in html
         'url': 'https://promodj.com/gluk/tracks/4713922/DJ_Glyuk_Folk_ing_DJ_Steven_Smile_Remix_2005',
@@ -489,6 +609,10 @@ class PromoDJIE(PromoDJBaseIE):
         'params': {
             'skip_download': 'Link is broken',
         },
+    }, {
+        # no player (the link from html is broken but the link from API is ok)
+        'url': 'https://promodj.com/scratchin/remixes/374580/Katya_First_Perestala_DJ_Ivan_Scratchin_Mix',
+        'only_matching': True,
     }, {
         # without slug
         'url': 'https://promodj.com/djlykov/tracks/7551590',
@@ -632,7 +756,7 @@ class PromoDJIE(PromoDJBaseIE):
     _IS_PAID_RE = r'<b>Цена:</b>'
     # examples: MP3, 320 Кбит | MP4, 20157 Кбит | WAV, 1412 Кбит | AVI, 1731 Кбит | ASF, 6905 Кбит | FLAC, 1509 Кбит
     # https://regex101.com/r/2AuaxB/1
-    _FORMATS_RE = r'(?:<a\s+href=\"(?P<url>[^\"]+)\">)?\s*(?P<format>\w+), (?P<bitrate>\d+) Кбит'
+    _FORMATS_RE = r'(?:<a\s+href=\"(?P<url>[^\"]+)\">)?\s*\w+, (?P<bitrate>\d+) Кбит'
     _VIEW_COUNT_RE = r'<b>(?:Прослушиваний|Просмотров):</b>\s*(\d+)'
     # examples: 0:21 | 1:07 | 74:38
     _DURATION_RE = r'<b>Продолжительность:</b>\s*(\d+:\d{2})'
@@ -701,9 +825,10 @@ class PromoDJIE(PromoDJBaseIE):
         # size field describes best quality
         size = self._parse_ru_size(re.search(self._SIZE_RE, meta_html).groups())
         if type == 'videos':
-            for url, _, bitrate in formats_from_html:
+            for url, bitrate in formats_from_html:
                 if url_or_none(url):
                     metadata['formats'].append({
+                        'format_id': 'source',
                         'url': url,
                         'tbr': int(bitrate),
                         'size': size,
@@ -711,7 +836,7 @@ class PromoDJIE(PromoDJBaseIE):
                     })
         else:
             for i, match in enumerate(formats_from_html):
-                url, _, bitrate = match
+                url, bitrate = match
                 is_last = i == len(formats_from_html) - 1
                 if is_last:
                     metadata['formats'][0]['abr'] = int(bitrate)
@@ -726,7 +851,7 @@ class PromoDJIE(PromoDJBaseIE):
             'title': clean_html(get_element_by_class('file_title', html)),
             'view_count': int_or_none(self._search_regex(self._VIEW_COUNT_RE, meta_html, 'view_count', default=None)),
             'duration': parse_duration(self._search_regex(self._DURATION_RE, meta_html, 'duration')),
-            'timestamp': self._parse_ru_date(re.findall(self._TIMESTAMP_RE, meta_html)[0]),
+            'timestamp': self._parse_ru_date(re.search(self._TIMESTAMP_RE, meta_html).groups()),
             'tags': self._html_search_regex(self._TAGS_RE, meta_html, 'tags').split(', '),
         })
 
@@ -735,14 +860,47 @@ class PromoDJEmbedIE(PromoDJBaseIE):
     _VALID_URL = rf'{PromoDJBaseIE._BASE_URL_RE}/embed/(?P<id>\d+)/(?P<type>cover|big)'
     _TESTS = [{
         'url': 'https://promodj.com/embed/7555440/cover',
-        'only_matching': True,
+        'info_dict': {
+            'id': '7555440',
+            'ext': 'mp3',
+            'title': 'Kolya Funk - Exclusive Mix (February 2024)',
+            'tags': ['House', 'Indie Dance'],
+            'upload_date': '20240131',
+            'timestamp': 1706738400.0,
+            'duration': 3697.0,
+            'size': 148478361,
+            'view_count': int,
+        },
     }, {
         'url': 'https://promodj.com/embed/7540163/big',
-        'only_matching': True,
+        'info_dict': {
+            'id': '7540163',
+            'ext': 'mp3',
+            'title': 'Khalif - Amore (Akif Pro Remix)',
+            'tags': ['Deep House', 'Slap House'],
+            'upload_date': '20231224',
+            'timestamp': 1703418600.0,
+            'duration': 157.0,
+            'size': 8178892,
+            'view_count': int,
+        },
     }, {
         # video (can be only big)
         'url': 'https://promodj.com/embed/3922099/big',
-        'only_matching': True,
+        'info_dict': {
+            'id': '3922099',
+            'ext': 'mp4',
+            'title': 'Will I Am & Britney Spears - Scream & Shout (DJ Nejtrino & DJ Stranger Remix) Video Full HD',
+            'tags': ['Club House', 'Vocal House'],
+            'thumbnail': r're:^https?://',
+            'upload_date': '20130211',
+            'timestamp': 1360583760.0,
+            'duration': 234560,
+            'size': 309644492,
+            'view_count': int,
+            'channel_url': 'https://promodj.com/dj-stranger',
+            'channel': 'DJ Stranger',
+        },
     }, {
         # blocked
         'url': 'https://promodj.com/embed/5586967/big',
@@ -763,8 +921,36 @@ class PromoDJEmbedIE(PromoDJBaseIE):
 class PromoDJShortIE(PromoDJBaseIE):
     _VALID_URL = r'https://pdj.cc/(?P<id>\w+)'
     _TESTS = [{
+        # music
         'url': 'https://pdj.cc/fv8VD',
-        'only_matching': True,
+        'info_dict': {
+            'id': '7422493',
+            'ext': 'flac',
+            'title': 'Sasha Orbeat — Pure Love 3',
+            'tags': ['Lo-Fi', 'Downtempo'],
+            'upload_date': '20230213',
+            'timestamp': 1676306160.0,
+            'duration': 3631.0,
+            'size': 685139558,
+            'view_count': int,
+        },
+    }, {
+        # video
+        'url': 'https://pdj.cc/fvcpX',
+        'info_dict': {
+            'id': '7435905',
+            'ext': 'mp4',
+            'title': 'JULIA - DEBRI FM (guest mix 18.03.23)',
+            'tags': ['Drum & Bass'],
+            'thumbnail': r're:^https?://',
+            'upload_date': '20230321',
+            'timestamp': 1679441100.0,
+            'duration': 2329640,
+            'size': 2952790016,
+            'view_count': int,
+            'channel': 'JULIA',
+            'channel_url': 'https://promodj.com/julia-breaks',
+        },
     }]
 
     def _real_extract(self, url):
