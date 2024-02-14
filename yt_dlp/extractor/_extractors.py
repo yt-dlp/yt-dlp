@@ -1537,6 +1537,8 @@ from .promodj import (
     PromoDJUserPageIE,
     PromoDJBlogPageIE,
     PromoDJPlaylistIE,
+    PromoDJMusicPlaylistIE,
+    PromoDJVideoPlaylistIE,
     PromoDJIE,
     PromoDJEmbedIE,
     PromoDJShortIE,

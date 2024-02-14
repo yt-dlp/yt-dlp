@@ -11,7 +11,7 @@ from ..utils import (
     extract_attributes,
     ExtractorError,
     get_element_by_class,
-    get_elements_by_class,
+    get_elements_html_by_class,
     int_or_none,
     parse_duration,
     traverse_obj,
@@ -63,7 +63,7 @@ class PromoDJBaseIE(InfoExtractor):
     _BASE_URL_RE = r'https?://(?:www\.)?promodj\.com'
     _MEDIA_TYPES_RE = '|'.join(_MEDIA_TYPES)
     _NOT_PAGE_RE = '|'.join(['radio', *_PAGES])
-    _LOGIN_RE = rf'(?:(?!{_NOT_PAGE_RE}).)[\w-]+'
+    _LOGIN_RE = rf'(?:(?!{_NOT_PAGE_RE}).)[\w.-]+'
 
     def _set_url_page(self, url, page):
         parsed_url = urllib.parse.urlparse(url)
@@ -71,27 +71,25 @@ class PromoDJBaseIE(InfoExtractor):
         qs['page'] = page
         return parsed_url._replace(query=urllib.parse.urlencode(qs, doseq=True)).geturl()
 
-    def _fetch_page(self, url, parsed_media_types, playlist_id, page):
+    def _fetch_page(self, url, media_types, playlist_id, page):
         page_url = self._set_url_page(url, page + 1)
         html = self._download_webpage(page_url, f'{playlist_id}-page-{page + 1}')
         current_page = int(clean_html(get_element_by_class('NavigatorCurrentPage', html)) or '1')
         if current_page != page + 1:
             return
 
-        tracks_dump_html = get_element_by_class('tracks_dump', html)
-        for item_html in get_elements_by_class('player_standard', tracks_dump_html):
-            if 'music' in parsed_media_types:
-                a = get_element_by_class('title', item_html)
-            if 'video' in parsed_media_types and not a:
-                a = get_element_by_class('h5videoplayer_promodj_video__title', item_html)
-            if not a:
+        for a in get_elements_html_by_class('player_standard_tool__play', html):
+            url = traverse_obj(extract_attributes(a), ('href', {url_or_none}))
+            if not url:
                 continue
-            if url := traverse_obj(extract_attributes(a), ('href', {url_or_none})):
+            url = url.replace('?play=1', '')
+            is_video = '/videos/' in url
+            if is_video and 'video' in media_types or not is_video and 'music' in media_types:
                 yield self.url_result(url, PromoDJIE)
 
     def _parse_playlist_links(self, html):
         PLAYLISTS_RE = r'<a class=\"files_group_title\" href=\"([^\"]+)\">'
-        DEFAULT_VIDEO_PLAYLIST_RE = r'<h5><a href=\"https://promodj\.com/([\w-]+)/video\">Видео</a></h5>'
+        DEFAULT_VIDEO_PLAYLIST_RE = r'<h5><a href=\"https://promodj\.com/([\w.-]+)/video\">Видео</a></h5>'
 
         playlist_links = []
 
@@ -210,8 +208,8 @@ class PromoDJUserMediaIE(PromoDJBaseIE):
 
         def entries():
             for playlist_url in self._parse_playlist_links(html):
-                # TODO: parse only music or videos
-                yield self.url_result(playlist_url, PromoDJPlaylistIE)
+                ie = PromoDJMusicPlaylistIE if type == 'music' else PromoDJVideoPlaylistIE
+                yield self.url_result(playlist_url, ie)
 
         return self.playlist_result(entries(), playlist_id=page_id)
 
@@ -231,7 +229,6 @@ class PromoDJUserPagesIE(PromoDJBaseIE):
     def _parse_pages(self, url, playlist_id):
         html = self._download_webpage(url, playlist_id)
         content_html = get_element_by_class('dj_universal', get_element_by_class('dj_bblock', html))
-        print(re.findall(r'<a href=\"([^\"]+)\">([^<]+)</a>', content_html))
         for page_url, page_title in re.findall(r'<a href=\"([^\"]+)\">([^<]+)</a>', content_html):
             yield self.url_result(page_url, PromoDJUserPageIE, video_title=page_title)
 
@@ -242,9 +239,7 @@ class PromoDJUserPagesIE(PromoDJBaseIE):
         if current_page != page + 1:
             return
 
-        for a in get_elements_by_class('post_title', html):
-            if not a:
-                continue
+        for a in get_elements_html_by_class('post_title_moderated', html):
             if url := traverse_obj(extract_attributes(a), ('href', {url_or_none})):
                 yield self.url_result(url, PromoDJBlogPageIE)
 
@@ -350,6 +345,8 @@ class PromoDJPlaylistIE(PromoDJBaseIE):
         'only_matching': True,
     }]
 
+    _MEDIA_TYPES = ['music', 'video']
+
     def _real_extract(self, url):
         match = self._match_valid_url(url)
         login = match.group('login')
@@ -358,9 +355,17 @@ class PromoDJPlaylistIE(PromoDJBaseIE):
         page_size = self._get_playlist_page_size(url)
 
         entries = OnDemandPagedList(
-            functools.partial(self._fetch_page, url, ['music', 'video'], playlist_id),
+            functools.partial(self._fetch_page, url, self._MEDIA_TYPES, playlist_id),
             page_size)
         return self.playlist_result(entries, playlist_id=playlist_id)
+
+
+class PromoDJMusicPlaylistIE(PromoDJPlaylistIE):
+    _MEDIA_TYPES = ['music']
+
+
+class PromoDJVideoPlaylistIE(PromoDJPlaylistIE):
+    _MEDIA_TYPES = ['video']
 
 
 class PromoDJIE(PromoDJBaseIE):
@@ -372,8 +377,12 @@ class PromoDJIE(PromoDJBaseIE):
         'url': 'https://promodj.com/j-factory/samples/7560171/Amedici_BW1_Intro',
         'only_matching': True,
     }, {
-        # no download links in html
+        # music: no download links in html
         'url': 'https://promodj.com/gluk/tracks/4713922/DJ_Glyuk_Folk_ing_DJ_Steven_Smile_Remix_2005',
+        'only_matching': True,
+    }, {
+        # video: no download link in html
+        'url': 'https://promodj.com/psywanderer/videos/7559147/Chu_de_sa',
         'only_matching': True,
     }, {
         # no player
@@ -397,19 +406,36 @@ class PromoDJIE(PromoDJBaseIE):
     }, {
         'url': 'https://promodj.com/djperetse/videos/5868236/Fatalist_Project_feat_DJ_Peretse_Den_pobedi_Videoklip',
         'only_matching': True,
+    }, {
+        # avi
+        'url': 'https://promodj.com/djmikis/videos/5311597/Mikis_Live_SDJ_Show',
+        'only_matching': True,
+    }, {
+        # asf
+        'url': 'https://promodj.com/gigsiphonic/videos/7559341/Gigsiphonic_PODCAST_309_Extended_video_version',
+        'only_matching': True,
+    }, {
+        # not valid html
+        'url': 'https://promodj.com/martin.sehnal/videos/7555841/Martin_Sehnal_CII_33_Plus_CII_32_Clothes_on_the_peg_2_020_2_024_02_01th',
+        'only_matching': True,
     }]
 
     _IS_PAID_RE = r'<b>Цена:</b>'
-    # examples: MP3, 320 Кбит | MP4, 20157 Кбит | WAV, 1412 Кбит
-    _FORMATS_RE = r'<a\s+href=\"(?P<url>[^\"]+\.(?:mp3|mp4|wav))\">\s*(?P<format>MP3|MP4|WAV), (?P<bitrate>\d+) Кбит\s*</a>'
+    # examples: MP3, 320 Кбит | MP4, 20157 Кбит | WAV, 1412 Кбит | AVI, 1731 Кбит | ASF, 6905 Кбит
+    _FORMATS_RE = r'<a\s+href=\"(?P<url>[^\"]+)\">\s*(?P<format>\w+), (?P<bitrate>\d+) Кбит\s*</a>'
     _VIEW_COUNT_RE = r'<b>(?:Прослушиваний|Просмотров):</b>\s*(\d+)'
-    # examples: 0:21, 1:07, 74:38
-    _DURATION_RE = r'<b>Продолжительность:</b>\s*(\d{1,}:\d{2})'
-    # examples: 818.4 Кб, 12.9 Мб, 4 Гб, 1.76 Гб
-    _SIZE_RE = r'<b>Размер:</b>\s*(?P<size>\d{1,3}(?:\.\d{1,2})?)\s*(?P<unit>Кб|Мб|Гб)'
-    # examples: сегодня 2:55, вчера 23:17, 1 июня 2016 3:46
+    # examples: 0:21 | 1:07 | 74:38
+    _DURATION_RE = r'<b>Продолжительность:</b>\s*(\d+:\d{2})'
+    # examples: 818.4 Кб | 12.9 Мб | 4 Гб | 1.76 Гб | 1001.5 Мб
+    _SIZE_RE = r'<b>Размер:</b>\s*(?P<size>\d+(?:\.\d+)?)\s*(?P<unit>Кб|Мб|Гб)'
+    # examples: сегодня 2:55 | вчера 23:17 | 1 июня 2016 3:46
     _TIMESTAMP_RE = r'<b>Публикация:</b>\s*(?P<day>вчера|сегодня|\d{1,2})(?: (?P<month>[а-я]+) (?P<year>\d{4}))?\s*(?P<hours>\d{1,2}):(?P<minutes>\d{2})'
     _TAGS_RE = r'<span\s+class=\"styles\">([^\n]+)</span>'
+
+    # https://regex101.com/r/2ZkUmW/1
+    _MUSIC_DATA_REGEX = r'({\"no_preroll\":false,\"seekAny\":true,\"sources\":[^\n]+)\);'
+    # https://regex101.com/r/b9utBf/1
+    _VIDEO_DATA_REGEX = r'({\"video\":true,\"config\":[^\n]+)\);'
 
     def _parse_ru_date(self, raw_date):
         RU_MONTHS = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря']
@@ -435,20 +461,32 @@ class PromoDJIE(PromoDJBaseIE):
         size, size_unit = raw_size
         return int(float(size) * pow(1024, RU_SIZE_UNITS.index(size_unit)))
 
-    def _parse_media(self, html, id):
-        meta_html = get_element_by_class('clearfix', get_element_by_class('dj_bblock', html))
+    def _parse_media(self, html, id, type):
+        # html can be invalid
+        try:
+            meta_html = get_elements_html_by_class('dj_universal', html)[1]
+        except Exception:
+            meta_html = html
 
-        is_paid = re.search(self._IS_PAID_RE, meta_html)
         formats_from_html = re.findall(self._FORMATS_RE, meta_html)
+        has_formats = len(formats_from_html) != 0
+        is_paid = re.search(self._IS_PAID_RE, meta_html)
 
-        if is_paid or len(formats_from_html) == 0:
-            media_data_raw = self._search_regex(
-                r'({\"no_preroll\":false,\"seekAny\":true,\"sources\":[^\n]+)\);', html, 'media data')
+        if not has_formats and is_paid:
+            media_data_raw = self._search_regex(self._MUSIC_DATA_REGEX, html, 'media data')
             media_data = self._parse_json(media_data_raw, id)
             formats = [{
                 'url': source.get('URL'),
                 'size': int_or_none(source.get('size')),
             } for source in traverse_obj(media_data, ('sources')) if url_or_none(source.get('URL'))]
+        elif not has_formats and type == 'videos':
+            media_data_raw = self._search_regex(self._VIDEO_DATA_REGEX, html, 'media data')
+            media_data = self._parse_json(media_data_raw, id)
+            video_config = self._parse_json(media_data['config'], id)
+            video = traverse_obj(video_config, ('playlist', 'item', 0))
+            formats = [{
+                'url': traverse_obj(video, ('play', '@url', {url_or_none})),
+            }]
         else:
             formats = [{
                 'url': url,
@@ -462,16 +500,16 @@ class PromoDJIE(PromoDJBaseIE):
             'id': id,
             'title': clean_html(get_element_by_class('file_title', html)),
             'formats': formats,
-            'view_count': int_or_none(self._search_regex(self._VIEW_COUNT_RE, meta_html, 'view_count')),
+            'view_count': int_or_none(self._search_regex(self._VIEW_COUNT_RE, meta_html, 'view_count', default=None)),
             'duration': parse_duration(self._search_regex(self._DURATION_RE, meta_html, 'duration')),
             'timestamp': self._parse_ru_date(re.findall(self._TIMESTAMP_RE, meta_html)[0]),
             'tags': self._html_search_regex(self._TAGS_RE, meta_html, 'tags').split(', '),
         }
 
     def _real_extract(self, url):
-        id = self._match_id(url)
+        type, id = self._match_valid_url(url).groups()
         html = self._download_webpage(url, id)
-        return self._parse_media(html, id)
+        return self._parse_media(html, id, type)
 
 
 class PromoDJEmbedIE(PromoDJBaseIE):
