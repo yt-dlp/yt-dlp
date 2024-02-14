@@ -1074,7 +1074,6 @@ from .minds import (
     MindsChannelIE,
     MindsGroupIE,
 )
-from .ministrygrid import MinistryGridIE
 from .minoto import MinotoIE
 from .mirrativ import (
     MirrativIE,
@@ -1911,7 +1910,6 @@ from .tbsjp import (
     TBSJPProgramIE,
     TBSJPPlaylistIE,
 )
-from .tdslifeway import TDSLifewayIE
 from .teachable import (
     TeachableIE,
     TeachableCourseIE,
