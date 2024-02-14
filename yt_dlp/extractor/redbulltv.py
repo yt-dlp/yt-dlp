@@ -98,13 +98,13 @@ class RedBullTVIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    _PAGE_URL_REGEX = r'<meta property="og:url"\s*content="(?P<url>[^"]+)"'
-
     def _real_extract(self, url):
         video_id = self._match_id(url)
         html = self._download_webpage(url, video_id)
-        return self.url_result(
-            re.findall(self._PAGE_URL_REGEX, html)[0], RedBullIE, video_id)
+        try:
+            return self.url_result(self._og_search_url(html), RedBullIE, video_id)
+        except Exception:
+            raise ExtractorError('Failed to extract video URL', expected=True)
 
 
 class RedBullEmbedIE(RedBullBaseIE):
