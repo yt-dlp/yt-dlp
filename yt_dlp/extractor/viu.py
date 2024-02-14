@@ -315,10 +315,8 @@ class ViuOTTIE(InfoExtractor):
             }, headers={
                 'Authorization': f'Bearer {self._get_token(country_code, video_id)}'
             })
- 
-            stream_urls = traverse_obj(stream_info_json, ('data', 'stream', ('url', 'airplayurl'), lambda _, v: v))
 
-            for stream_url in stream_urls:
+            for stream_url in traverse_obj(stream_info_json, ('data', 'stream', ('url', 'airplayurl'), lambda _, v: v)):
                 fmts, subs = self._extract_m3u8_formats_and_subtitles(stream_url, video_id, fatal=False)
                 formats.extend(fmts)
                 self._merge_subtitles(subs, target=subtitles)
