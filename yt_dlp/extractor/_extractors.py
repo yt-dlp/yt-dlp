@@ -1101,7 +1101,6 @@ from .mlssoccer import MLSSoccerIE
 from .mocha import MochaVideoIE
 from .mojvideo import MojvideoIE
 from .monstercat import MonstercatIE
-from .morningstar import MorningstarIE
 from .motherless import (
     MotherlessIE,
     MotherlessGroupIE,
