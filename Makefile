@@ -38,6 +38,9 @@ MANDIR ?= $(PREFIX)/man
 SHAREDIR ?= $(PREFIX)/share
 PYTHON ?= /usr/bin/env python3
 
+# $(shell) is a no-op in BSD Make and the != variable assignment operator is not supported by GNU Make <4.0
+ERROR_MSG := $(shell if [ "`echo $(MAKE_VERSION) | head -c1`" -lt "4" ] ; then echo "GNU Make 4+ or BSD Make is required" ; fi)
+
 # set markdown input format to "markdown-smart" for pandoc version 2 and to "markdown" for pandoc prior to version 2
 MARKDOWN != if [ "`pandoc -v | head -n1 | cut -d' ' -f2 | head -c1`" -ge "2" ]; then echo markdown-smart; else echo markdown; fi
 
@@ -73,6 +76,7 @@ offlinetest: codetest
 CODE_FOLDERS != find yt_dlp -type f -name '__init__.py' -exec dirname {} \+ | grep -v '/__' | sort
 CODE_FILES != for f in $(CODE_FOLDERS) ; do echo $$f | sed 's,$$,/*.py,' ; done
 yt-dlp: $(CODE_FILES)
+	@echo $(ERROR_MSG)
 	@echo code_folders: '$(CODE_FOLDERS)'
 	@echo code_files: '$(CODE_FILES)'
 	mkdir -p zip
