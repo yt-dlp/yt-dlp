@@ -41,7 +41,7 @@ PYTHON ?= /usr/bin/env python3
 # $(shell) is a no-op in BSD Make and the != variable assignment operator is not supported by GNU Make <4.0
 ERROR_MSG := $(shell if [ "`echo $(MAKE_VERSION) | head -c1`" -lt "4" ] ; then echo "GNU Make 4+ or BSD Make is required" ; fi)
 
-# set markdown input format to "markdown-smart" for pandoc version 2 and to "markdown" for pandoc prior to version 2
+# set markdown input format to "markdown-smart" for pandoc version 2+ and to "markdown" for pandoc prior to version 2
 MARKDOWN != if [ "`pandoc -v | head -n1 | cut -d' ' -f2 | head -c1`" -ge "2" ]; then echo markdown-smart; else echo markdown; fi
 
 install: lazy-extractors yt-dlp yt-dlp.1 completions
