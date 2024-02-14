@@ -354,6 +354,7 @@ from .chingari import (
 )
 from .chzzk import (
     CHZZKLiveIE,
+    CHZZKChannelIE,
     CHZZKVideoIE,
 )
 from .cinemax import CinemaxIE

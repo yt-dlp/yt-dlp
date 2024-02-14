@@ -87,6 +87,91 @@ class CHZZKLiveIE(InfoExtractor):
         }
 
 
+def _make_vod_result(data):
+    assert isinstance(data, dict)
+    if not data.get('videoId'):
+        return
+    return {
+        '_type': 'url_transparent',
+        'id': data.get('videoId'),
+        'title': data.get('videoTitle'),
+        'url': f'https://chzzk.naver.com/video/{data.get("videoNo")}',
+        'thumbnail': data.get('thumbnailImageUrl'),
+        'timestamp': data.get('publishDateAt'),
+        'view_count': data.get('readCount'),
+        'duration': data.get('duration'),
+        'age_limit': 19 if data.get('adult') else 0,
+        'was_live': True if data.get('videoType') == 'REPLAY' else False,
+    }
+
+
+class CHZZKChannelIE(InfoExtractor):
+    IE_NAME = 'chzzk:channel'
+    _VALID_URL = r'https?://chzzk\.naver\.com/(?P<id>[\da-f]{32})'
+    _TESTS = [{
+        'note': 'Both video and replay included',
+        'url': 'https://chzzk.naver.com/68f895c59a1043bc5019b5e08c83a5c5',
+        'info_dict': {
+            'id': '68f895c59a1043bc5019b5e08c83a5c5',
+            'channel_id': '68f895c59a1043bc5019b5e08c83a5c5',
+            'description': '나는 머찐 라디유 나는 머찐 라디유' * 26 + '나는 라디유',
+            'channel': '라디유radiyu',
+            'title': '라디유radiyu',
+            'channel_is_verified': False,
+        },
+        'playlist_mincount': 4,
+    }, {
+        'note': 'Video list paging',
+        'url': 'https://chzzk.naver.com/2d4aa2f79b0a397d032c479ef1b37a67',
+        'info_dict': {
+            'id': '2d4aa2f79b0a397d032c479ef1b37a67',
+            'channel_id': '2d4aa2f79b0a397d032c479ef1b37a67',
+            'description': '',
+            'channel': '진짜후추',
+            'title': '진짜후추',
+            'channel_is_verified': False,
+        },
+        'playlist_mincount': 86,
+    }]
+
+    def _real_extract(self, url):
+        channel_id = self._match_id(url)
+        # even if channel got banned, the video list is still available. but downloading videos leads to error
+        channel_meta = self._download_json(
+            f'https://api.chzzk.naver.com/service/v1/channels/{channel_id}', channel_id,
+            note='Downloading channel info', errnote='Unable to download channel info')
+        if channel_meta.get('code') != 200:
+            raise ExtractorError('The channel is not available: %s(%s)' % (
+                channel_meta.get("message"), channel_meta.get("code")), expected=True)
+
+        channel_meta = channel_meta.get('content')
+        if not channel_meta or not channel_meta.get('channelId'):
+            raise ExtractorError('The channel does not exist', expected=True)
+
+        total_count = 0
+        videos = []
+        current_count = 0
+        while current_count <= total_count:
+            videos_page = self._download_json(
+                f'https://api.chzzk.naver.com/service/v1/channels/{channel_id}/videos', channel_meta['channelName'],
+                query={'sortType': 'LATEST', 'pagingType': 'PAGE', 'size': 18, 'videoType': '', 'page': current_count},
+                note='Downloading videos page(%s/%s)' % (current_count + 1, total_count + 1), errnote='Unable to download videos page')
+            if videos_page.get('code') != 200:
+                raise ExtractorError('Unable to download videos page: %s(%s){videos_page.get("message")}' % (
+                    videos_page.get("message"), videos_page.get("code")), expected=True)
+            videos_page = videos_page['content']
+            videos.extend(map(_make_vod_result, videos_page['data']))
+            total_count = videos_page['totalPages']
+            current_count += 1
+        if len(videos) != total_count:
+            self.to_screen('Warning: The total count of videos is not equal to the actual count: %s != %s' % (len(videos), total_count))
+
+        return self.playlist_result(
+            videos, channel_id, channel_meta['channelName'], channel_meta['channelDescription'],
+            channel=channel_meta['channelName'], channel_id=channel_id, channel_is_verified=channel_meta['verifiedMark'],
+        )
+
+
 class CHZZKVideoIE(InfoExtractor):
     IE_NAME = 'chzzk:video'
     _VALID_URL = r'https?://chzzk\.naver\.com/video/(?P<id>\d+)'
