@@ -111,9 +111,11 @@ supportedsites:
 	$(PYTHON) devscripts/make_supportedsites.py supportedsites.md
 
 README.txt: README.md
+	@echo $(ERROR_MSG)
 	pandoc -f $(MARKDOWN) -t plain README.md -o README.txt
 
 yt-dlp.1: README.md devscripts/prepare_manpage.py
+	@echo $(ERROR_MSG)
 	$(PYTHON) devscripts/prepare_manpage.py yt-dlp.1.temp.md
 	pandoc -s -f $(MARKDOWN) -t man yt-dlp.1.temp.md -o yt-dlp.1
 	rm -f yt-dlp.1.temp.md
