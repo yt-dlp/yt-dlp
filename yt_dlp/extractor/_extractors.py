@@ -1057,7 +1057,6 @@ from .meipai import MeipaiIE
 from .melonvod import MelonVODIE
 from .metacritic import MetacriticIE
 from .mgtv import MGTVIE
-from .miaopai import MiaoPaiIE
 from .microsoftstream import MicrosoftStreamIE
 from .microsoftvirtualacademy import (
     MicrosoftVirtualAcademyIE,
