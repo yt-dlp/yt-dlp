@@ -77,8 +77,8 @@ CODE_FOLDERS != find yt_dlp -type f -name '__init__.py' -exec dirname {} \+ | gr
 CODE_FILES != for f in $(CODE_FOLDERS) ; do echo $$f | sed 's,$$,/*.py,' ; done
 yt-dlp: $(CODE_FILES)
 	@echo $(ERROR_MSG)
-	@echo code_folders: '$(CODE_FOLDERS)'
-	@echo code_files: '$(CODE_FILES)'
+	@echo 'code_folders: $(CODE_FOLDERS)'
+	@echo 'code_files: $(CODE_FILES)'
 	mkdir -p zip
 	for d in $(CODE_FOLDERS) ; do \
 	  mkdir -p zip/$$d ;\
