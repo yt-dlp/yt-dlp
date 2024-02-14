@@ -74,8 +74,7 @@ class PromoDJBaseIE(InfoExtractor):
     def _fetch_page(self, url, allowed_media_cats, playlist_id, page):
         page_url = self._set_url_page(url, page + 1)
         html = self._download_webpage(page_url, f'{playlist_id}-page-{page + 1}')
-        current_page = int(clean_html(get_element_by_class('NavigatorCurrentPage', html)) or '1')
-        if current_page != page + 1:
+        if self._get_current_page(html) != page + 1:
             return
 
         for a in get_elements_html_by_class('player_standard_tool__play', html):
@@ -114,6 +113,9 @@ class PromoDJBaseIE(InfoExtractor):
     def _get_playlist_page_size(self, url):
         is_default_playlist = '/groups/' not in url
         return 30 if is_default_playlist else 20
+
+    def _get_current_page(self, html):
+        return int(clean_html(get_element_by_class('NavigatorCurrentPage', html)) or '1')
 
     def _fetch_media_data(self, ids, video_id):
         data = {}
@@ -232,11 +234,10 @@ class PromoDJUserPagesIE(PromoDJBaseIE):
         for page_url, page_title in re.findall(r'<a href=\"([^\"]+)\">([^<]+)</a>', content_html):
             yield self.url_result(page_url, PromoDJUserPageIE, video_title=page_title)
 
-    def _fetch_blog_page(self, url, playlist_id, page):
+    def _fetch_blogs_page(self, url, playlist_id, page):
         page_url = self._set_url_page(url, page + 1)
         html = self._download_webpage(page_url, f'{playlist_id}-page-{page + 1}')
-        current_page = int(clean_html(get_element_by_class('NavigatorCurrentPage', html)) or '1')
-        if current_page != page + 1:
+        if self._get_current_page(html) != page + 1:
             return
 
         for a in get_elements_html_by_class('post_title_moderated', html):
@@ -250,7 +251,7 @@ class PromoDJUserPagesIE(PromoDJBaseIE):
             entries = self._parse_pages(url, playlist_id)
         elif type == 'blog':
             entries = OnDemandPagedList(
-                functools.partial(self._fetch_blog_page, url, playlist_id),
+                functools.partial(self._fetch_blogs_page, url, playlist_id),
                 self._PAGE_SIZE)
         return self.playlist_result(entries, playlist_id)
 
@@ -472,14 +473,7 @@ class PromoDJIE(PromoDJBaseIE):
         has_formats = len(formats_from_html) != 0
         is_paid = re.search(self._IS_PAID_RE, meta_html)
 
-        if not has_formats and is_paid:
-            media_data_raw = self._search_regex(self._MUSIC_DATA_REGEX, html, 'media data')
-            media_data = self._parse_json(media_data_raw, id)
-            formats = [{
-                'url': source.get('URL'),
-                'size': int_or_none(source.get('size')),
-            } for source in traverse_obj(media_data, ('sources')) if url_or_none(source.get('URL'))]
-        elif not has_formats and type == 'videos':
+        if not has_formats and type == 'videos':
             media_data_raw = self._search_regex(self._VIDEO_DATA_REGEX, html, 'media data')
             media_data = self._parse_json(media_data_raw, id)
             video_config = self._parse_json(media_data['config'], id)
@@ -487,6 +481,13 @@ class PromoDJIE(PromoDJBaseIE):
             formats = [{
                 'url': traverse_obj(video, ('play', '@url', {url_or_none})),
             }]
+        elif not has_formats or is_paid:
+            media_data_raw = self._search_regex(self._MUSIC_DATA_REGEX, html, 'media data')
+            media_data = self._parse_json(media_data_raw, id)
+            formats = [{
+                'url': source.get('URL'),
+                'size': int_or_none(source.get('size')),
+            } for source in traverse_obj(media_data, ('sources')) if url_or_none(source.get('URL'))]
         else:
             formats = [{
                 'url': url,
@@ -558,13 +559,10 @@ class PromoDJShortIE(PromoDJBaseIE):
         'only_matching': True,
     }]
 
-    _PAGE_URL_REGEX = r'<meta property="og:url"\s*content="(?P<url>[^"]+)"'
-
     def _real_extract(self, url):
         id = self._match_id(url)
         html = self._download_webpage(url, id)
-        url = re.findall(self._PAGE_URL_REGEX, html)[0]
-        return self.url_result(url, PromoDJIE, id)
+        return self.url_result(self._og_search_url(html), PromoDJIE, id)
 
 
 class PromoDJRadioIE(PromoDJBaseIE):
