@@ -8,12 +8,17 @@ from .youtube import YoutubeIE
 from ..utils import (
     OnDemandPagedList,
     clean_html,
+    dict_get,
     extract_attributes,
     ExtractorError,
+    float_or_none,
     get_element_by_class,
     get_elements_html_by_class,
     int_or_none,
+    js_to_json,
+    merge_dicts,
     parse_duration,
+    str_or_none,
     traverse_obj,
     urlencode_postdata,
     url_or_none,
@@ -126,6 +131,44 @@ class PromoDJBaseIE(InfoExtractor):
         return self._download_json(
             'https://promodj.com/api/multi.json', video_id, data=urlencode_postdata(data),
             headers={'Content-Type': 'application/x-www-form-urlencoded'})
+
+    def _parse_media_data(self, media_data, id):
+        if player_error := media_data.get('player_error'):
+            raise ExtractorError(player_error, expected=True)
+
+        if media_data.get('video'):
+            video = traverse_obj(
+                self._parse_json(media_data['config'], id), ('playlist', 'item', 0))
+            formats = [{
+                'url': traverse_obj(video, ('play', '@url', {url_or_none})),
+                **traverse_obj(media_data, {
+                    'width': ('width', {int_or_none}),
+                    'height': ('height', {int_or_none}),
+                })
+            }]
+            return {
+                'id': id,
+                'formats': formats,
+                **traverse_obj(video, {
+                    'title': ('title', 'line', 1, 0, '$', {str_or_none}),
+                    'webpage_url': ('title', '@ico_url', {url_or_none}),
+                    'duration': ('play', '@duration', {int_or_none}),
+                    'thumbnail': ('background', '@url', {url_or_none}),
+                    'channel': ('title', 'line', 0, 0, '$', {str_or_none}),
+                    'channel_url': ('title', 'line', 0, 0, '@url', {url_or_none}),
+                })
+            }
+
+        formats = [traverse_obj(source, {
+            'url': ('URL', {url_or_none}),
+            'size': ('size', {int_or_none}),
+        }) for source in traverse_obj(media_data, ('sources'))]
+        return {
+            'id': id,
+            'title': clean_html(dict_get(media_data, ('title_html', 'title'))),
+            'formats': formats,
+            'webpage_url': traverse_obj(media_data, ('titleURL', {url_or_none}))
+        }
 
 
 class PromoDJPageIE(PromoDJBaseIE):
@@ -394,12 +437,20 @@ class PromoDJIE(PromoDJBaseIE):
         'url': 'https://promodj.com/djlykov/tracks/7551590',
         'only_matching': True,
     }, {
-        # lossless
+        # lossless wav
         'url': 'https://promodj.com/modi-glu/tracks/6081339/Modi_Glyu_Anabel',
         'only_matching': True,
     }, {
-        # paid audio
+        # lossless flac
+        'url': 'https://promodj.com/sashaorbeat/mixes/7422493/Sasha_Orbeat_Pure_Love_3',
+        'only_matching': True,
+    }, {
+        # paid lossless
         'url': 'https://promodj.com/boyko/tracks/1435682/Dj_Boyko_Katy_Queen_Nad_Oblakami',
+        'only_matching': True,
+    }, {
+        # paid lossy
+        'url': 'https://promodj.com/tesla/tracks/342938/Library_Of_Bugs',
         'only_matching': True,
     }, {
         'url': 'https://promodj.com/sergeyfedotov306/videos/7457627/V_Matrice_Sboy',
@@ -422,8 +473,9 @@ class PromoDJIE(PromoDJBaseIE):
     }]
 
     _IS_PAID_RE = r'<b>Цена:</b>'
-    # examples: MP3, 320 Кбит | MP4, 20157 Кбит | WAV, 1412 Кбит | AVI, 1731 Кбит | ASF, 6905 Кбит
-    _FORMATS_RE = r'<a\s+href=\"(?P<url>[^\"]+)\">\s*(?P<format>\w+), (?P<bitrate>\d+) Кбит\s*</a>'
+    # examples: MP3, 320 Кбит | MP4, 20157 Кбит | WAV, 1412 Кбит | AVI, 1731 Кбит | ASF, 6905 Кбит | FLAC, 1509 Кбит
+    # https://regex101.com/r/2AuaxB/1
+    _FORMATS_RE = r'(?:<a\s+href=\"(?P<url>[^\"]+)\">)?\s*(?P<format>\w+), (?P<bitrate>\d+) Кбит'
     _VIEW_COUNT_RE = r'<b>(?:Прослушиваний|Просмотров):</b>\s*(\d+)'
     # examples: 0:21 | 1:07 | 74:38
     _DURATION_RE = r'<b>Продолжительность:</b>\s*(\d+:\d{2})'
@@ -463,49 +515,50 @@ class PromoDJIE(PromoDJBaseIE):
         return int(float(size) * pow(1024, RU_SIZE_UNITS.index(size_unit)))
 
     def _parse_media(self, html, id, type):
+        # videos always have one format
+        # audios can have one or two formats
+
+        # always returns only one format
+        # if audio has two formats, returns only lossy
+        media_data = self._search_json(
+            '', html, 'media data', id,
+            contains_pattern=self._VIDEO_DATA_REGEX if type == 'videos' else self._MUSIC_DATA_REGEX,
+            transform_source=js_to_json)
+        metadata = self._parse_media_data(media_data, id)
+
         # html can be invalid
         try:
             meta_html = get_elements_html_by_class('dj_universal', html)[1]
         except Exception:
             meta_html = html
 
+        # returns one or two formats but sometimes without download links
+        # best quality always comes first
         formats_from_html = re.findall(self._FORMATS_RE, meta_html)
-        has_formats = len(formats_from_html) != 0
         is_paid = re.search(self._IS_PAID_RE, meta_html)
+        bitrate_key = 'tbr' if type == 'videos' else 'abr'
+        for i, match in enumerate(formats_from_html):
+            url, _, bitrate = match
+            is_last = i == len(formats_from_html) - 1
+            if is_last:
+                metadata['formats'][0][bitrate_key] = int(bitrate)
+            elif url_or_none(url) and not is_paid:
+                metadata['formats'].append({
+                    'url': url,
+                    bitrate_key: int(bitrate),
+                })
 
-        if not has_formats and type == 'videos':
-            media_data_raw = self._search_regex(self._VIDEO_DATA_REGEX, html, 'media data')
-            media_data = self._parse_json(media_data_raw, id)
-            video_config = self._parse_json(media_data['config'], id)
-            video = traverse_obj(video_config, ('playlist', 'item', 0))
-            formats = [{
-                'url': traverse_obj(video, ('play', '@url', {url_or_none})),
-            }]
-        elif not has_formats or is_paid:
-            media_data_raw = self._search_regex(self._MUSIC_DATA_REGEX, html, 'media data')
-            media_data = self._parse_json(media_data_raw, id)
-            formats = [{
-                'url': source.get('URL'),
-                'size': int_or_none(source.get('size')),
-            } for source in traverse_obj(media_data, ('sources')) if url_or_none(source.get('URL'))]
-        else:
-            formats = [{
-                'url': url,
-                'format': format.lower(),
-                'tbr': int(bitrate),
-            } for url, format, bitrate in formats_from_html if url_or_none(url)]
-            # size field describes best quality. best quality always comes first
-            formats[0]['size'] = self._parse_ru_size(re.findall(self._SIZE_RE, meta_html)[0])
+        # size field describes best quality
+        size = self._parse_ru_size(re.search(self._SIZE_RE, meta_html).groups())
+        metadata['formats'][-1]['size'] = size
 
-        return {
-            'id': id,
+        return merge_dicts(metadata, {
             'title': clean_html(get_element_by_class('file_title', html)),
-            'formats': formats,
             'view_count': int_or_none(self._search_regex(self._VIEW_COUNT_RE, meta_html, 'view_count', default=None)),
             'duration': parse_duration(self._search_regex(self._DURATION_RE, meta_html, 'duration')),
             'timestamp': self._parse_ru_date(re.findall(self._TIMESTAMP_RE, meta_html)[0]),
             'tags': self._html_search_regex(self._TAGS_RE, meta_html, 'tags').split(', '),
-        }
+        })
 
     def _real_extract(self, url):
         type, id = self._match_valid_url(url).groups()
@@ -535,21 +588,11 @@ class PromoDJEmbedIE(PromoDJBaseIE):
         'only_matching': True,
     }]
 
-    def _get_full_url(self, media_data, id):
-        if player_error := media_data.get('player_error'):
-            raise ExtractorError(player_error, expected=True)
-
-        if media_data.get('video'):
-            video_config = self._parse_json(media_data['config'], id)
-            video = traverse_obj(video_config, ('playlist', 'item', 0))
-            return traverse_obj(video, ('title', '@ico_url'))
-        else:
-            return media_data.get('titleURL')
-
     def _real_extract(self, url):
         id = self._match_id(url)
-        url = self._get_full_url(self._fetch_media_data([id], id)[0], id)
-        return self.url_result(url, PromoDJIE, id)
+        metadata = self._parse_media_data(
+            self._fetch_media_data([id], id)[0], id)
+        return self.url_result(metadata['webpage_url'], PromoDJIE, id)
 
 
 class PromoDJShortIE(PromoDJBaseIE):
@@ -562,7 +605,11 @@ class PromoDJShortIE(PromoDJBaseIE):
     def _real_extract(self, url):
         id = self._match_id(url)
         html = self._download_webpage(url, id)
-        return self.url_result(self._og_search_url(html), PromoDJIE, id)
+        try:
+            url = self._og_search_url(html)
+        except Exception:
+            raise ExtractorError('Unable to extract full URL')
+        return self.url_result(url, PromoDJIE, id)
 
 
 class PromoDJRadioIE(PromoDJBaseIE):
