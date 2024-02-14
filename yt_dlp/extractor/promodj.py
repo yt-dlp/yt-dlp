@@ -11,7 +11,6 @@ from ..utils import (
     dict_get,
     extract_attributes,
     ExtractorError,
-    float_or_none,
     get_element_by_class,
     get_elements_html_by_class,
     int_or_none,
@@ -126,7 +125,7 @@ class PromoDJBaseIE(InfoExtractor):
         data = {}
         for i, id in enumerate(ids):
             data[f'multi[{i}][method]'] = 'players/config'
-            data[f'multi[{i}][params][kind]'] = 'standalone.big'
+            data[f'multi[{i}][params][kind]'] = 'cover.big'
             data[f'multi[{i}][params][fileID]'] = id
         return self._download_json(
             'https://promodj.com/api/multi.json', video_id, data=urlencode_postdata(data),
@@ -140,7 +139,7 @@ class PromoDJBaseIE(InfoExtractor):
             video = traverse_obj(
                 self._parse_json(media_data['config'], id), ('playlist', 'item', 0))
             formats = [{
-                'url': traverse_obj(video, ('play', '@url', {url_or_none})),
+                'url': traverse_obj(video, ('play', '@url')).replace('?returnurl=1', ''),
                 **traverse_obj(media_data, {
                     'width': ('width', {int_or_none}),
                     'height': ('height', {int_or_none}),
@@ -163,10 +162,12 @@ class PromoDJBaseIE(InfoExtractor):
             'url': ('URL', {url_or_none}),
             'size': ('size', {int_or_none}),
         }) for source in traverse_obj(media_data, ('sources'))]
+        thumbnails = [{'url': url} for url in traverse_obj(media_data, ('coverURL', ('600', '1200', '2000'))) if url_or_none]
         return {
             'id': id,
             'title': clean_html(dict_get(media_data, ('title_html', 'title'))),
             'formats': formats,
+            'thumbnails': thumbnails,
             'webpage_url': traverse_obj(media_data, ('titleURL', {url_or_none}))
         }
 
@@ -416,60 +417,216 @@ class PromoDJIE(PromoDJBaseIE):
     _VALID_URL = rf'{PromoDJBaseIE._BASE_URL_RE}/{PromoDJBaseIE._LOGIN_RE}/(?P<type>{PromoDJBaseIE._MEDIA_TYPES_RE})/(?P<id>\d+)(?:/\w+)?',
     _TESTS = [{
         'url': 'https://promodj.com/antonpavlovsky/remixes/6259208/David_Usher_Black_Black_Heart_Anton_Pavlovsky_Cover',
-        'only_matching': True,
+        'info_dict': {
+            'id': '6259208',
+            'ext': 'mp3',
+            'title': 'David Usher - Black Black Heart (Anton Pavlovsky Cover)',
+            'tags': ['Lounge', 'Deep House'],
+            'upload_date': '20170323',
+            'timestamp': 1490258400.0,
+            'duration': 173.0,
+            'size': 7654604,
+            'view_count': int,
+        },
     }, {
         'url': 'https://promodj.com/j-factory/samples/7560171/Amedici_BW1_Intro',
-        'only_matching': True,
+        'info_dict': {
+            'id': '7560171',
+            'ext': 'mp3',
+            'title': 'Amedici - BW1 - Intro',
+            'tags': ['Multitrack master', 'Fx'],
+            'upload_date': '20240212',
+            'timestamp': 1707748800.0,
+            'duration': 21.0,
+            'size': 838041,
+            'view_count': int,
+        },
     }, {
         # music: no download links in html
         'url': 'https://promodj.com/gluk/tracks/4713922/DJ_Glyuk_Folk_ing_DJ_Steven_Smile_Remix_2005',
-        'only_matching': True,
+        'info_dict': {
+            'id': '4713922',
+            'ext': 'mp3',
+            'title': 'DJ Глюк - Folk\'ing [DJ Steven Smile Remix] (2005)',
+            'tags': ['Pumping House', 'Hard House'],
+            'upload_date': '20140404',
+            'timestamp': 1396605480.0,
+            'duration': 299.0,
+            'size': 12058624,
+            'view_count': int,
+        },
     }, {
         # video: no download link in html
         'url': 'https://promodj.com/psywanderer/videos/7559147/Chu_de_sa',
-        'only_matching': True,
+        'info_dict': {
+            'id': '7559147',
+            'ext': 'mp4',
+            'title': 'Чу де са',
+            'tags': ['Jazz-Rap', 'Jazzstep'],
+            'thumbnail': r're:^https?://',
+            'upload_date': '20240210',
+            'timestamp': 1707533820.0,
+            'duration': 388720,
+            'view_count': int,
+            'channel': 'PsyWanderer',
+            'channel_url': 'https://promodj.com/psywanderer',
+        },
     }, {
-        # no player
+        # no player (external link)
         'url': 'https://promodj.com/gluk/tracks/420310/IMpulse_Zakat',
-        'only_matching': True,
+        'info_dict': {
+            'id': '420310',
+            'ext': 'mp3',
+            'title': 'IMpulse - Закат',
+            'tags': ['House', 'Electro House'],
+            'thumbnail': r're:^https?://',
+            'upload_date': '20081024',
+            'timestamp': 1224846120.0,
+            'duration': 133.0,
+            'size': 1048576,
+            'view_count': int,
+        },
+        'params': {
+            'skip_download': 'Link is broken',
+        },
     }, {
         # without slug
         'url': 'https://promodj.com/djlykov/tracks/7551590',
-        'only_matching': True,
+        'info_dict': {
+            'id': '7551590',
+            'ext': 'mp3',
+            'title': 'Lykov - Benjamin (Radio Edit) [MOUSE-P]',
+            'tags': ['Dance Pop', 'Eurodance'],
+            'upload_date': '20240122',
+            'timestamp': 1705919280.0,
+            'duration': 233.0,
+            'size': 9332326,
+            'view_count': int,
+        },
     }, {
         # lossless wav
         'url': 'https://promodj.com/modi-glu/tracks/6081339/Modi_Glyu_Anabel',
-        'only_matching': True,
+        'info_dict': {
+            'id': '6081339',
+            'ext': 'wav',
+            'title': 'Моди Глю " Анабель"',
+            'tags': ['Chillout', 'Downtempo'],
+            'upload_date': '20161029',
+            'timestamp': 1477767780.0,
+            'duration': 236.0,
+            'size': 42257612,
+            'view_count': int,
+        },
     }, {
         # lossless flac
         'url': 'https://promodj.com/sashaorbeat/mixes/7422493/Sasha_Orbeat_Pure_Love_3',
-        'only_matching': True,
+        'info_dict': {
+            'id': '7422493',
+            'ext': 'flac',
+            'title': 'Sasha Orbeat — Pure Love 3',
+            'tags': ['Lo-Fi', 'Downtempo'],
+            'upload_date': '20230213',
+            'timestamp': 1676306160.0,
+            'duration': 3631.0,
+            'size': 685139558,
+            'view_count': int,
+        },
     }, {
         # paid lossless
         'url': 'https://promodj.com/boyko/tracks/1435682/Dj_Boyko_Katy_Queen_Nad_Oblakami',
-        'only_matching': True,
+        'info_dict': {
+            'id': '1435682',
+            'ext': 'mp3',
+            'title': 'Dj Boyko & Katy Queen - Над Облаками',
+            'tags': ['House', 'Trance'],
+            'upload_date': '20100404',
+            'timestamp': 1270376700.0,
+            'duration': 321.0,
+            'size': 56623104,
+            'view_count': int,
+        },
     }, {
         # paid lossy
         'url': 'https://promodj.com/tesla/tracks/342938/Library_Of_Bugs',
-        'only_matching': True,
+        'info_dict': {
+            'id': '342938',
+            'ext': 'mp3',
+            'title': 'Library Of Bugs',
+            'tags': ['Minimal Techno', 'Tech House'],
+            'upload_date': '20080827',
+            'timestamp': 1219841220.0,
+            'duration': 64.0,
+            'size': 2097152,
+            'view_count': int,
+        },
     }, {
-        'url': 'https://promodj.com/sergeyfedotov306/videos/7457627/V_Matrice_Sboy',
-        'only_matching': True,
-    }, {
+        # mp4
         'url': 'https://promodj.com/djperetse/videos/5868236/Fatalist_Project_feat_DJ_Peretse_Den_pobedi_Videoklip',
-        'only_matching': True,
+        'info_dict': {
+            'id': '5868236',
+            'ext': 'mp4',
+            'title': 'Fatalist Project feat. DJ Peretse - День победы (Видеоклип)',
+            'tags': ['House', 'Progressive House'],
+            'thumbnail': r're:^https?://',
+            'upload_date': '20160505',
+            'timestamp': 1462419720.0,
+            'duration': 265045,
+            'size': 165465292,
+            'view_count': int,
+            'channel': 'DJ Peretse',
+            'channel_url': 'https://promodj.com/djperetse',
+        },
     }, {
         # avi
         'url': 'https://promodj.com/djmikis/videos/5311597/Mikis_Live_SDJ_Show',
-        'only_matching': True,
+        'info_dict': {
+            'id': '5311597',
+            'ext': 'avi',
+            'title': 'Mikis Live @ SDJ Show',
+            'tags': ['Club House'],
+            'thumbnail': r're:^https?://',
+            'upload_date': '20150409',
+            'timestamp': 1428579840.0,
+            'duration': 1716240,
+            'size': 371195904,
+            'view_count': int,
+            'channel': 'MIKIS',
+            'channel_url': 'https://promodj.com/djmikis',
+        },
     }, {
         # asf
         'url': 'https://promodj.com/gigsiphonic/videos/7559341/Gigsiphonic_PODCAST_309_Extended_video_version',
-        'only_matching': True,
+        'info_dict': {
+            'id': '7559341',
+            'ext': 'asf',
+            'title': 'Gigsiphonic - PODCAST 309 (Extended video version)',
+            'tags': ['Synthwave', 'Synth-Pop'],
+            'thumbnail': r're:^https?://',
+            'upload_date': '20240210',
+            'timestamp': 1707580080.0,
+            'duration': 4309200,
+            'size': 3715146711,
+            'view_count': int,
+            'channel': 'Gigsiphonic',
+            'channel_url': 'https://promodj.com/gigsiphonic',
+        },
     }, {
         # not valid html
         'url': 'https://promodj.com/martin.sehnal/videos/7555841/Martin_Sehnal_CII_33_Plus_CII_32_Clothes_on_the_peg_2_020_2_024_02_01th',
-        'only_matching': True,
+        'info_dict': {
+            'id': '7555841',
+            'ext': 'avi',
+            'title': 'Martin Sehnal - CII 33 ( Plus CII 32 ) Clothes on the peg 2 020 ( 2 024 02. 01th ) )',
+            'tags': ['Easy Listening', 'Drum & Bass'],
+            'thumbnail': r're:^https?://',
+            'upload_date': '20240201',
+            'timestamp': 1706827560.0,
+            'duration': 30000,
+            'size': 2340757176,
+            'view_count': int,
+            'channel_url': 'https://promodj.com/martin.sehnal',
+            'channel': 'Martin Sehnal',
+        },
     }]
 
     _IS_PAID_RE = r'<b>Цена:</b>'
@@ -514,16 +671,19 @@ class PromoDJIE(PromoDJBaseIE):
         size, size_unit = raw_size
         return int(float(size) * pow(1024, RU_SIZE_UNITS.index(size_unit)))
 
-    def _parse_media(self, html, id, type):
-        # videos always have one format
-        # audios can have one or two formats
+    # music: always have lossy format (mp3), sometimes have lossless (wav or flac) format
+    # video: sometimes have source format (mp4, avi, asf), always have converted for web format (mp4)
+    def _real_extract(self, url):
+        type, id = self._match_valid_url(url).groups()
+        html = self._download_webpage(url, id)
 
-        # always returns only one format
-        # if audio has two formats, returns only lossy
+        # always returns only one format: lossy mp3 for music or converted mp4 for video
         media_data = self._search_json(
             '', html, 'media data', id,
             contains_pattern=self._VIDEO_DATA_REGEX if type == 'videos' else self._MUSIC_DATA_REGEX,
-            transform_source=js_to_json)
+            transform_source=js_to_json, fatal=False, default=None)
+        if not media_data:
+            media_data = self._fetch_media_data([id], id)[0]
         metadata = self._parse_media_data(media_data, id)
 
         # html can be invalid
@@ -532,25 +692,35 @@ class PromoDJIE(PromoDJBaseIE):
         except Exception:
             meta_html = html
 
-        # returns one or two formats but sometimes without download links
-        # best quality always comes first
+        # music: lossy format or lossless and lossy formats
+        # video: source format
+        # download links can be missing
+        # best quality format always comes first
         formats_from_html = re.findall(self._FORMATS_RE, meta_html)
         is_paid = re.search(self._IS_PAID_RE, meta_html)
-        bitrate_key = 'tbr' if type == 'videos' else 'abr'
-        for i, match in enumerate(formats_from_html):
-            url, _, bitrate = match
-            is_last = i == len(formats_from_html) - 1
-            if is_last:
-                metadata['formats'][0][bitrate_key] = int(bitrate)
-            elif url_or_none(url) and not is_paid:
-                metadata['formats'].append({
-                    'url': url,
-                    bitrate_key: int(bitrate),
-                })
-
         # size field describes best quality
         size = self._parse_ru_size(re.search(self._SIZE_RE, meta_html).groups())
-        metadata['formats'][-1]['size'] = size
+        if type == 'videos':
+            for url, _, bitrate in formats_from_html:
+                if url_or_none(url):
+                    metadata['formats'].append({
+                        'url': url,
+                        'tbr': int(bitrate),
+                        'size': size,
+                        'quality': 1,
+                    })
+        else:
+            for i, match in enumerate(formats_from_html):
+                url, _, bitrate = match
+                is_last = i == len(formats_from_html) - 1
+                if is_last:
+                    metadata['formats'][0]['abr'] = int(bitrate)
+                elif url_or_none(url) and not is_paid:
+                    metadata['formats'].append({
+                        'url': url,
+                        'abr': int(bitrate),
+                    })
+            metadata['formats'][-1]['size'] = size
 
         return merge_dicts(metadata, {
             'title': clean_html(get_element_by_class('file_title', html)),
@@ -559,11 +729,6 @@ class PromoDJIE(PromoDJBaseIE):
             'timestamp': self._parse_ru_date(re.findall(self._TIMESTAMP_RE, meta_html)[0]),
             'tags': self._html_search_regex(self._TAGS_RE, meta_html, 'tags').split(', '),
         })
-
-    def _real_extract(self, url):
-        type, id = self._match_valid_url(url).groups()
-        html = self._download_webpage(url, id)
-        return self._parse_media(html, id, type)
 
 
 class PromoDJEmbedIE(PromoDJBaseIE):
