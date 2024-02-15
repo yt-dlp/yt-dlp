@@ -155,10 +155,11 @@ class PromoDJBaseIE(InfoExtractor):
                 })
             }
 
-        formats = [traverse_obj(source, {
-            'url': ('URL', {url_or_none}),
-            'size': ('size', {int_or_none}),
-        }) for source in traverse_obj(media_data, ('sources'))]
+        formats = [{
+            'format_id': 'lossy',
+            'url': traverse_obj(source, ('URL', {url_or_none})),
+            'size': traverse_obj(source, ('size', {int_or_none})),
+        } for source in traverse_obj(media_data, ('sources'))]
         thumbnails = [{
             'url': url,
         } for url in traverse_obj(media_data, ('coverURL', ('600', '1200', '2000'))) if url_or_none(url)]
@@ -855,6 +856,7 @@ class PromoDJIE(PromoDJBaseIE):
                     metadata['formats'][0]['abr'] = int(bitrate)
                 elif url_or_none(url):
                     metadata['formats'].append({
+                        'format_id': 'lossless',
                         'url': url,
                         'abr': int(bitrate),
                     })
