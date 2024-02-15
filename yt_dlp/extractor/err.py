@@ -9,7 +9,7 @@ from ..utils.traversal import traverse_obj
 
 
 class ERRJupiterIE(InfoExtractor):
-    _VALID_URL = r'https?://jupiter(?:pluss)?\.err\.ee/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:jupiter(?:pluss)?|lasteekraan)\.err\.ee/(?P<id>\d+)'
     _TESTS = [{
         'note': 'Jupiter: Movie: siin-me-oleme',
         'url': 'https://jupiter.err.ee/1211107/siin-me-oleme',
