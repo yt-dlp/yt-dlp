@@ -65,9 +65,8 @@ class PromoDJBaseIE(InfoExtractor):
     _PAGES = ['featured', 'shop', *_MEDIA_TYPES]
 
     _BASE_URL_RE = r'https?://(?:www\.)?promodj\.com'
-    _MEDIA_TYPES_RE = '|'.join(_MEDIA_TYPES)
-    _NOT_PAGE_RE = '|'.join(['radio', *_PAGES])
-    _LOGIN_RE = rf'(?:(?!{_NOT_PAGE_RE}).)[\w.-]+'
+    _NOT_LOGIN_LIST = '|'.join(['radio', *_PAGES])
+    _LOGIN_RE = rf'(?:(?!{_NOT_LOGIN_LIST}).)[\w.-]+'
 
     def _set_url_page(self, url, page):
         parsed_url = urllib.parse.urlparse(url)
@@ -117,15 +116,15 @@ class PromoDJBaseIE(InfoExtractor):
     def _get_current_page(self, html):
         return int(clean_html(get_element_by_class('NavigatorCurrentPage', html)) or '1')
 
-    def _fetch_media_data(self, ids, video_id):
-        data = {}
-        for i, id in enumerate(ids):
-            data[f'multi[{i}][method]'] = 'players/config'
-            data[f'multi[{i}][params][kind]'] = 'cover.big'
-            data[f'multi[{i}][params][fileID]'] = id
+    def _fetch_media_data(self, id):
+        data = {
+            'multi[0][method]': 'players/config',
+            'multi[0][params][kind]': 'cover.big',
+            'multi[0][params][fileID]': id,
+        }
         return self._download_json(
-            'https://promodj.com/api/multi.json', video_id, data=urlencode_postdata(data),
-            headers={'Content-Type': 'application/x-www-form-urlencoded'})
+            'https://promodj.com/api/multi.json', id, data=urlencode_postdata(data),
+            headers={'Content-Type': 'application/x-www-form-urlencoded'})[0]
 
     def _parse_media_data(self, media_data, id):
         if player_error := media_data.get('player_error'):
@@ -173,9 +172,9 @@ class PromoDJBaseIE(InfoExtractor):
 
 
 class PromoDJPageIE(PromoDJBaseIE):
-    _PAGES_RE = '|'.join(PromoDJBaseIE._PAGES)
+    _PAGES_LIST = '|'.join(PromoDJBaseIE._PAGES)
 
-    _VALID_URL = rf'{PromoDJBaseIE._BASE_URL_RE}/(?P<id>{_PAGES_RE})'
+    _VALID_URL = rf'{PromoDJBaseIE._BASE_URL_RE}/(?P<id>{_PAGES_LIST})'
     _TESTS = [{
         'url': 'https://promodj.com/featured',
         'info_dict': {
@@ -370,7 +369,7 @@ class PromoDJUserPagesIE(PromoDJBaseIE):
 
 
 class PromoDJUserPageIE(PromoDJBaseIE):
-    _USER_PAGES = [
+    _USER_PATHS = [
         'pages',
         'music',
         'video',
@@ -382,8 +381,8 @@ class PromoDJUserPageIE(PromoDJBaseIE):
         'uenno',
         *PromoDJBaseIE._MEDIA_TYPES,
     ]
-    _NOT_USER_PAGE_RE = '|'.join(_USER_PAGES)
-    _USER_PAGE_RE = rf'(?:(?!{_NOT_USER_PAGE_RE}).)[\w-]+'
+    _NOT_USER_PAGE_LIST = '|'.join(_USER_PATHS)
+    _USER_PAGE_RE = rf'(?:(?!{_NOT_USER_PAGE_LIST}).)[\w-]+'
 
     _VALID_URL = rf'{PromoDJBaseIE._BASE_URL_RE}/(?P<login>{PromoDJBaseIE._LOGIN_RE})/(?P<slug>{_USER_PAGE_RE})$'
     _TESTS = [{
@@ -445,12 +444,11 @@ class PromoDJBlogPageIE(PromoDJBaseIE):
 
 
 class PromoDJPlaylistIE(PromoDJBaseIE):
-    _PLAYLIST_TYPES = ['uenno', *PromoDJBaseIE._MEDIA_TYPES]
-    _PLAYLIST_TYPES_RE = '|'.join(_PLAYLIST_TYPES)
+    _PLAYLIST_TYPES_LIST = '|'.join(['uenno', *PromoDJBaseIE._MEDIA_TYPES])
 
     _VALID_URL = [
-        rf'{PromoDJBaseIE._BASE_URL_RE}/(?P<login>{PromoDJBaseIE._LOGIN_RE})/(?P<type>{_PLAYLIST_TYPES_RE})$',
-        rf'{PromoDJBaseIE._BASE_URL_RE}/(?P<login>{PromoDJBaseIE._LOGIN_RE})/(?P<type>groups)/(?P<id>\d+)(?:/(?P<slug>\w+))?',
+        rf'{PromoDJBaseIE._BASE_URL_RE}/(?P<login>{PromoDJBaseIE._LOGIN_RE})/(?P<type>{_PLAYLIST_TYPES_LIST})$',
+        rf'{PromoDJBaseIE._BASE_URL_RE}/(?P<login>{PromoDJBaseIE._LOGIN_RE})/(?P<type>groups)/(?P<id>\d+)(?:/\w+)?',
     ]
     _TESTS = [{
         # default playlist: music (with songs without player)
@@ -552,7 +550,9 @@ class PromoDJVideoPlaylistIE(PromoDJPlaylistIE):
 
 
 class PromoDJIE(PromoDJBaseIE):
-    _VALID_URL = rf'{PromoDJBaseIE._BASE_URL_RE}/{PromoDJBaseIE._LOGIN_RE}/(?P<type>{PromoDJBaseIE._MEDIA_TYPES_RE})/(?P<id>\d+)(?:/\w+)?',
+    _MEDIA_TYPES_LIST = '|'.join(PromoDJBaseIE._MEDIA_TYPES)
+
+    _VALID_URL = rf'{PromoDJBaseIE._BASE_URL_RE}/{PromoDJBaseIE._LOGIN_RE}/(?P<type>{_MEDIA_TYPES_LIST})/(?P<id>\d+)(?:/\w+)?',
     _TESTS = [{
         'url': 'https://promodj.com/antonpavlovsky/remixes/6259208/David_Usher_Black_Black_Heart_Anton_Pavlovsky_Cover',
         'info_dict': {
@@ -683,7 +683,7 @@ class PromoDJIE(PromoDJBaseIE):
             'upload_date': '20100404',
             'timestamp': 1270376700.0,
             'duration': 321.0,
-            'size': 56623104,
+            'size': 5128821,
             'view_count': int,
         },
     }, {
@@ -697,7 +697,7 @@ class PromoDJIE(PromoDJBaseIE):
             'upload_date': '20080827',
             'timestamp': 1219841220.0,
             'duration': 64.0,
-            'size': 2097152,
+            'size': 1014431,
             'view_count': int,
         },
     }, {
@@ -783,9 +783,9 @@ class PromoDJIE(PromoDJBaseIE):
     _TAGS_RE = r'<span\s+class=\"styles\">([^\n]+)</span>'
 
     # https://regex101.com/r/2ZkUmW/1
-    _MUSIC_DATA_REGEX = r'({\"no_preroll\":false,\"seekAny\":true,\"sources\":[^\n]+)\);'
+    _MUSIC_DATA_RE = r'({\"no_preroll\":false,\"seekAny\":true,\"sources\":[^\n]+)\);'
     # https://regex101.com/r/b9utBf/1
-    _VIDEO_DATA_REGEX = r'({\"video\":true,\"config\":[^\n]+)\);'
+    _VIDEO_DATA_RE = r'({\"video\":true,\"config\":[^\n]+)\);'
 
     def _parse_ru_date(self, day, month, year, hours, minutes):
         RU_MONTHS = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря']
@@ -818,10 +818,10 @@ class PromoDJIE(PromoDJBaseIE):
         # always returns only one format: lossy mp3 for music or converted mp4 for video
         media_data = self._search_json(
             '', html, 'media data', id,
-            contains_pattern=self._VIDEO_DATA_REGEX if type == 'videos' else self._MUSIC_DATA_REGEX,
+            contains_pattern=self._VIDEO_DATA_RE if type == 'videos' else self._MUSIC_DATA_RE,
             transform_source=js_to_json, fatal=False, default=None)
         if not media_data:
-            media_data = self._fetch_media_data([id], id)[0]
+            media_data = self._fetch_media_data(id)
         metadata = self._parse_media_data(media_data, id)
 
         # html can be invalid
@@ -872,7 +872,7 @@ class PromoDJIE(PromoDJBaseIE):
 
 
 class PromoDJEmbedIE(PromoDJBaseIE):
-    _VALID_URL = rf'{PromoDJBaseIE._BASE_URL_RE}/embed/(?P<id>\d+)/(?P<type>cover|big)'
+    _VALID_URL = rf'{PromoDJBaseIE._BASE_URL_RE}/embed/(?P<id>\d+)/(?:cover|big)'
     _TESTS = [{
         'url': 'https://promodj.com/embed/7555440/cover',
         'info_dict': {
@@ -929,12 +929,12 @@ class PromoDJEmbedIE(PromoDJBaseIE):
     def _real_extract(self, url):
         id = self._match_id(url)
         metadata = self._parse_media_data(
-            self._fetch_media_data([id], id)[0], id)
+            self._fetch_media_data(id), id)
         return self.url_result(metadata['webpage_url'], PromoDJIE, id)
 
 
 class PromoDJShortIE(PromoDJBaseIE):
-    _VALID_URL = r'https://pdj.cc/(?P<id>\w+)'
+    _VALID_URL = r'https://(?:www\\.)?pdj.cc/(?P<id>\w+)'
     _TESTS = [{
         # music
         'url': 'https://pdj.cc/fv8VD',
