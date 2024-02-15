@@ -1,6 +1,7 @@
 from .common import InfoExtractor
 from ..utils import (
     clean_html,
+    determine_ext,
     int_or_none,
     parse_duration,
     parse_resolution,
@@ -60,6 +61,7 @@ class CCMAIE(InfoExtractor):
             'http://dinamics.ccma.cat/pvideo/media.jsp', media_id, query={
                 'media': media_type,
                 'idint': media_id,
+                'format': 'dm',
             })
 
         formats = []
@@ -68,6 +70,10 @@ class CCMAIE(InfoExtractor):
             for format_ in media_url:
                 format_url = url_or_none(format_.get('file'))
                 if not format_url:
+                    continue
+                if determine_ext(format_url) == 'mpd':
+                    formats.extend(self._extract_mpd_formats(
+                        format_url, media_id, mpd_id='dash', fatal=False))
                     continue
                 label = format_.get('label')
                 f = parse_resolution(label)
