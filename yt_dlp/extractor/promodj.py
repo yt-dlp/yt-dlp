@@ -761,7 +761,7 @@ class PromoDJIE(PromoDJBaseIE):
     # examples: 0:21 | 1:07 | 74:38
     _DURATION_RE = r'<b>Продолжительность:</b>\s*(\d+:\d{2})'
     # examples: 818.4 Кб | 12.9 Мб | 4 Гб | 1.76 Гб | 1001.5 Мб
-    _SIZE_RE = r'<b>Размер:</b>\s*(?P<size>\d+(?:\.\d+)?)\s*(?P<unit>Кб|Мб|Гб)'
+    _SIZE_RE = r'<b>Размер:</b>\s*(?P<size>\d+(?:\.\d+)?)\s*(?P<unit>Б|Кб|Мб|Гб|Тб)'
     # examples: сегодня 2:55 | вчера 23:17 | 1 июня 2016 3:46
     _TIMESTAMP_RE = r'<b>Публикация:</b>\s*(?P<day>вчера|сегодня|\d{1,2})(?: (?P<month>[а-я]+) (?P<year>\d{4}))?\s*(?P<hours>\d{1,2}):(?P<minutes>\d{2})'
     _TAGS_RE = r'<span\s+class=\"styles\">([^\n]+)</span>'
@@ -771,9 +771,8 @@ class PromoDJIE(PromoDJBaseIE):
     # https://regex101.com/r/b9utBf/1
     _VIDEO_DATA_REGEX = r'({\"video\":true,\"config\":[^\n]+)\);'
 
-    def _parse_ru_date(self, raw_date):
+    def _parse_ru_date(self, day, month, year, hours, minutes):
         RU_MONTHS = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря']
-        day, month, year, hours, minutes = raw_date
         if day == 'сегодня':
             d = datetime.date.today()
             day = d.day
@@ -790,10 +789,9 @@ class PromoDJIE(PromoDJBaseIE):
             year = int(year)
         return datetime.datetime(year, month, day, int(hours), int(minutes)).timestamp()
 
-    def _parse_ru_size(self, raw_size):
-        RU_SIZE_UNITS = ['Б', 'Кб', 'Мб', 'Гб']
-        size, size_unit = raw_size
-        return int(float(size) * pow(1024, RU_SIZE_UNITS.index(size_unit)))
+    def _parse_ru_size(self, size, unit):
+        RU_SIZE_UNITS = ['Б', 'Кб', 'Мб', 'Гб', 'Тб']
+        return int(float(size) * pow(1024, RU_SIZE_UNITS.index(unit)))
 
     # music: always have lossy format (mp3), sometimes have lossless (wav or flac) format
     # video: sometimes have source format (mp4, avi, asf), always have converted for web format (mp4)
@@ -823,7 +821,7 @@ class PromoDJIE(PromoDJBaseIE):
         formats_from_html = re.findall(self._FORMATS_RE, meta_html)
         is_paid = re.search(self._IS_PAID_RE, meta_html)
         # size field describes best quality
-        size = self._parse_ru_size(re.search(self._SIZE_RE, meta_html).groups())
+        size = self._parse_ru_size(*re.search(self._SIZE_RE, meta_html).groups())
         if type == 'videos':
             for url, bitrate in formats_from_html:
                 if url_or_none(url):
@@ -851,7 +849,7 @@ class PromoDJIE(PromoDJBaseIE):
             'title': clean_html(get_element_by_class('file_title', html)),
             'view_count': int_or_none(self._search_regex(self._VIEW_COUNT_RE, meta_html, 'view_count', default=None)),
             'duration': parse_duration(self._search_regex(self._DURATION_RE, meta_html, 'duration')),
-            'timestamp': self._parse_ru_date(re.search(self._TIMESTAMP_RE, meta_html).groups()),
+            'timestamp': self._parse_ru_date(*re.search(self._TIMESTAMP_RE, meta_html).groups()),
             'tags': self._html_search_regex(self._TAGS_RE, meta_html, 'tags').split(', '),
         })
 
