@@ -145,6 +145,31 @@ class ERRJupiterIE(InfoExtractor):
             'season_number': 0,
             'series': 'Лесные истории | Аисты',
             'series_id': '1037497',
+        }
+    }, {
+        'note': 'Lasteekraan: Pätu',
+        'url': 'https://lasteekraan.err.ee/1092243/patu',
+        'md5': 'a67eb9b9bcb3d201718c15d1638edf77',
+        'info_dict': {
+            'id': '1092243',
+            'ext': 'mp4',
+            'title': 'Pätu',
+            'alt_title': '',
+            'description': 'md5:64a7b5a80afd7042d3f8ec48c77befd9',
+            'release_date': '20230614',
+            'upload_date': '20200520',
+            'modified_date': '20200520',
+            'release_timestamp': 1686745800,
+            'timestamp': 1589975640,
+            'modified_timestamp': 1589975640,
+            'release_year': 1990,
+            'episode': 'Episode 1',
+            'episode_id': '1092243',
+            'episode_number': 1,
+            'season': 'Season 1',
+            'season_number': 1,
+            'series': 'Pätu',
+            'series_id': '1092236',
         },
     }]
 
