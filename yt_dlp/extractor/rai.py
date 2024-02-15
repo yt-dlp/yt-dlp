@@ -170,7 +170,7 @@ class RaiBaseIE(InfoExtractor):
         # Check if MP4 download is available
         try:
             self._request_webpage(
-                HEADRequest(_MP4_TMPL % (relinker_url, '*')), video_id=video_id, note='Checking MP4 availability')
+                HEADRequest(_MP4_TMPL % (relinker_url, '*')), video_id, 'Checking MP4 availability')
         except ExtractorError as e:
             self.to_screen(f'{video_id}: MP4 direct download is not available: {e.cause}')
             return []
