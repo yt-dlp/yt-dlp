@@ -41,7 +41,7 @@ PYTHON ?= /usr/bin/env python3
 # $(shell) and $(error) are no-ops in BSD Make and the != variable assignment operator is not supported by GNU Make <4.0
 VERSION_CHECK != echo supported
 VERSION_CHECK ?= $(error GNU Make 4+ or BSD Make is required)
-CHECK_VERSION := $(shell echo $(VERSION_CHECK))
+CHECK_VERSION := $(VERSION_CHECK)
 
 # set markdown input format to "markdown-smart" for pandoc version 2+ and to "markdown" for pandoc prior to version 2
 MARKDOWN != if [ "`pandoc -v | head -n1 | cut -d' ' -f2 | head -c1`" -ge "2" ]; then echo markdown-smart; else echo markdown; fi
