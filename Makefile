@@ -144,6 +144,7 @@ yt-dlp.tar.gz: all
 		--exclude '__pycache__' \
 		--exclude '.pytest_cache' \
 		--exclude '.git' \
+		--exclude 'test/testdata/sigs/player-*.js' \
 		--exclude '__pyinstaller' \
 		-- \
 		README.md supportedsites.md Changelog.md LICENSE \
