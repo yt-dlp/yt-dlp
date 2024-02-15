@@ -525,8 +525,8 @@ class PromoDJPlaylistIE(PromoDJBaseIE):
         if type == 'uenno':
             return 15
         if type == 'groups':
-            return 30
-        return 20
+            return 20
+        return 30
 
     def _real_extract(self, url):
         match = self._match_valid_url(url)
