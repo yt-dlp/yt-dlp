@@ -32,4 +32,6 @@ jobs:
     - name: Make lazy extractors
       run: python3 ./devscripts/make_lazy_extractors.py
     - name: Run ruff
-      run: ruff check . --output-format github
+      run: ruff check --output-format github .
+    - name: Run autopep8
+      run: autopep8 --diff .

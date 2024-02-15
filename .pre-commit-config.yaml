@@ -1,13 +1,8 @@
 repos:
 - repo: local
   hooks:
-  - id: linter
-    name: linter
-    entry: hatch run lint
-    language: system
-    types: [python]
-  - id: format
-    name: format
-    entry: hatch run format --diff
+  - id: check
+    name: code check
+    entry: hatch run check
     language: system
     types: [python]

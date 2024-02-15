@@ -134,9 +134,7 @@ We follow [youtube-dl's policy](https://github.com/ytdl-org/youtube-dl#can-you-a
 
 # DEVELOPER INSTRUCTIONS
 
-Most users do not need to build yt-dlp and can [download the builds](https://github.com/yt-dlp/yt-dlp/releases) or get them via [the other installation methods](README.md#installation).
-
-To quickly run yt-dlp as a developer, you don't need to build anything either. Simply execute
+Most users do not need to build yt-dlp and can [download the builds](https://github.com/yt-dlp/yt-dlp/releases) or get them via [the other installation methods](README.md#installation). Alternatively, simply execute
 
 ```shell
 $ python -m yt_dlp
@@ -159,7 +157,7 @@ To run all the available core tests, use:
 $ hatch run tests core
 ```
 
-You can also run tests for all installed python versions sequentially by setting the `TEST_ALL` variable, like so:
+You can also run tests for all installed and supported python versions sequentially by setting the `TEST_ALL` variable, like so:
 
 ```shell
 $ TEST_ALL=1 hatch run tests core
@@ -249,11 +247,10 @@ After you have ensured this site is distributing its content legally, you can fo
 1. Make sure your code follows [yt-dlp coding conventions](#yt-dlp-coding-conventions), passes [ruff](https://docs.astral.sh/ruff/tutorial/#getting-started) code checks and is properly formatted:
 
     ```shell
-    $ hatch run lint
-    $ hatch run format
+    $ hatch run check
     ```
 
-    You can use `hatch run lint --fix` to automatically fix problems.
+    You can use `hatch run lint` and `hatch run format` to automatically fix problems.
 
 1. Make sure your code works under all [Python](https://www.python.org/) versions supported by yt-dlp, namely CPython and PyPy for Python 3.8 and above. Backward compatibility is not required for even older versions of Python.
 1. When the tests pass, [add](https://git-scm.com/docs/git-add) the new files, [commit](https://git-scm.com/docs/git-commit) them and [push](https://git-scm.com/docs/git-push) the result, like this:

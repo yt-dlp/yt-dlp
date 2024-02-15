@@ -62,7 +62,7 @@ build = [
     "wheel",
 ]
 dev = [
-    "autopep8",
+    "autopep8~=2.0",
     "pre-commit",
     "pytest",
     "ruff==0.2.1",
@@ -82,27 +82,6 @@ yt-dlp = "yt_dlp:main"
 [project.entry-points.pyinstaller40]
 hook-dirs = "yt_dlp.__pyinstaller:get_hook_dirs"
 
-[tool.hatch.envs.default]
-dependencies = ["yt-dlp[dev]"]
-
-[tool.hatch.envs.default.scripts]
-install = "pre-commit install"
-lint = "ruff check {args:.}"
-format = "autopep8 {args:--in-place .}"
-tests = "python -m devscripts.run_tests {args}"
-
-[[tool.hatch.envs.default.overrides.env.TEST_ALL.matrix.value]]
-python = [
-    "3.8",
-    "3.9",
-    "3.10",
-    "3.11",
-    "3.12",
-    "pypy3.8",
-    "pypy3.9",
-    "pypy3.10",
-]
-
 [tool.hatch.build.targets.sdist]
 include = [
     "/yt_dlp",
@@ -113,7 +92,6 @@ include = [
     "/LICENSE",  # included as license
     "/pyproject.toml",  # included by default
     "/README.md",  # included as readme
-    "/setup.cfg",
     "/supportedsites.md",
 ]
 exclude = ["/yt_dlp/__pyinstaller"]
@@ -141,6 +119,31 @@ artifacts = ["/yt_dlp/extractor/lazy_extractors.py"]
 path = "yt_dlp/version.py"
 pattern = "_pkg_version = '(?P<version>[^']+)'"
 
+[tool.hatch.envs.default]
+features = ["dev"]
+
+[tool.hatch.envs.default.scripts]
+install = "pre-commit install"
+lint = "ruff check {args:.}"
+format = "autopep8 --in-place {args:.}"
+check = [
+    "ruff check --no-fix {args:.}",
+    "autopep8 --diff {args:.}",
+]
+tests = "python -m devscripts.run_tests {args}"
+
+[[tool.hatch.envs.default.overrides.env.TEST_ALL.matrix.value]]
+python = [
+    "3.8",
+    "3.9",
+    "3.10",
+    "3.11",
+    "3.12",
+    "pypy3.8",
+    "pypy3.9",
+    "pypy3.10",
+]
+
 [tool.ruff]
 required-version = "0.2.1"
 line-length = 120
@@ -156,7 +159,7 @@ select = [
     "E", # pycodestyle errors
     "W", # pycodestyle warnings
     "F", # pyflakes
-    "I", # import order
+    # "I", # import order
 ]
 
 [tool.ruff.lint.per-file-ignores]
@@ -173,7 +176,48 @@ relative-imports-order = "closest-to-furthest"
 [tool.autopep8]
 max_line_length = 120
 recursive = true
+exit-code = true
 jobs = 0
+select = [
+    "E11",
+    "E121",
+    "E122",
+    "E123",
+    "E124",
+    "E125",
+    "E126",
+    "E127",
+    "E128",
+    "E129",
+    "E131",
+    "E133",
+    "E20",
+    "E211",
+    "E22",
+    "E224",
+    "E225",
+    "E226",
+    "E227",
+    "E228",
+    "E231",
+    "E241",
+    "E242",
+    "E251",
+    "E252",
+    "E26",
+    "E265",
+    "E266",
+    "E27",
+    "E301",
+    "E302",
+    "E303",
+    "E304",
+    "E305",
+    "E306",
+    "E502",
+    "W391",
+    "W504",
+]
 
 [tool.pytest.ini_options]
 addopts = "-ra -v --strict-markers"

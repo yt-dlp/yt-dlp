@@ -32,7 +32,7 @@ def run_tests(*tests, pattern=None, ci=False):
     if pattern:
         arguments.extend(['-k', pattern])
     if run_core:
-        arguments.extend(['--ignore', 'test/test_download.py'])
+        arguments.extend(['-m', 'not download'])
     elif run_download:
         arguments.extend(['test/test_download.py'])
     else:
