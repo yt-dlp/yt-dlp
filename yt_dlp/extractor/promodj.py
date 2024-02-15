@@ -769,7 +769,6 @@ class PromoDJIE(PromoDJBaseIE):
         },
     }]
 
-    _IS_PAID_RE = r'<b>Цена:</b>'
     # examples: MP3, 320 Кбит | MP4, 20157 Кбит | WAV, 1412 Кбит | AVI, 1731 Кбит | ASF, 6905 Кбит | FLAC, 1509 Кбит
     # https://regex101.com/r/2AuaxB/1
     _FORMATS_RE = r'(?:<a\s+href=\"(?P<url>[^\"]+)\">)?\s*\w+, (?P<bitrate>\d+) Кбит'
@@ -835,7 +834,7 @@ class PromoDJIE(PromoDJBaseIE):
         # download links can be missing
         # best quality format always comes first
         formats_from_html = re.findall(self._FORMATS_RE, meta_html)
-        is_paid = re.search(self._IS_PAID_RE, meta_html)
+        is_paid = '<b>Цена:</b>' in meta_html
         # size field describes best quality
         size = self._parse_ru_size(*re.search(self._SIZE_RE, meta_html).groups())
         if type == 'videos':
@@ -848,13 +847,13 @@ class PromoDJIE(PromoDJBaseIE):
                         'size': size,
                         'quality': 1,
                     })
-        else:
+        elif not is_paid:
             for i, match in enumerate(formats_from_html):
                 url, bitrate = match
                 is_last = i == len(formats_from_html) - 1
                 if is_last:
                     metadata['formats'][0]['abr'] = int(bitrate)
-                elif url_or_none(url) and not is_paid:
+                elif url_or_none(url):
                     metadata['formats'].append({
                         'url': url,
                         'abr': int(bitrate),
