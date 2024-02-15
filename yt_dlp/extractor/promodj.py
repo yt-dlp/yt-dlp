@@ -521,10 +521,10 @@ class PromoDJPlaylistIE(PromoDJBaseIE):
 
     _ALLOWED_MEDIA_CATS = ['music', 'video']
 
-    def _get_page_size(self, url):
-        if '/uenno' in url:
+    def _get_page_size(self, type):
+        if type == 'uenno':
             return 15
-        if '/groups/' in url:
+        if type == 'groups':
             return 30
         return 20
 
@@ -536,7 +536,7 @@ class PromoDJPlaylistIE(PromoDJBaseIE):
 
         entries = OnDemandPagedList(
             functools.partial(self._fetch_page, url, self._ALLOWED_MEDIA_CATS, playlist_id),
-            self._get_page_size(url))
+            self._get_page_size(type))
         return self.playlist_result(entries, playlist_id=playlist_id)
 
 
