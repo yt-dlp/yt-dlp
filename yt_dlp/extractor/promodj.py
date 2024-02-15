@@ -136,10 +136,6 @@ class PromoDJBaseIE(InfoExtractor):
             formats = [{
                 'format_id': 'web',
                 'url': traverse_obj(video, ('play', '@url')).replace('?returnurl=1', ''),
-                **traverse_obj(media_data, {
-                    'width': ('width', {int_or_none}),
-                    'height': ('height', {int_or_none}),
-                })
             }]
             return {
                 'id': id,
