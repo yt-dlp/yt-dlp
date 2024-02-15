@@ -114,10 +114,6 @@ class PromoDJBaseIE(InfoExtractor):
             if YoutubeIE.suitable(iframe_url):
                 yield self.url_result(iframe_url, YoutubeIE)
 
-    def _get_playlist_page_size(self, url):
-        is_default_playlist = '/groups/' not in url
-        return 30 if is_default_playlist else 20
-
     def _get_current_page(self, html):
         return int(clean_html(get_element_by_class('NavigatorCurrentPage', html)) or '1')
 
@@ -382,6 +378,7 @@ class PromoDJUserPageIE(PromoDJBaseIE):
         'blog',
         'feedback',
         'contact',
+        'uenno',
         *PromoDJBaseIE._MEDIA_TYPES,
     ]
     _NOT_USER_PAGE_RE = '|'.join(_USER_PAGES)
@@ -447,8 +444,11 @@ class PromoDJBlogPageIE(PromoDJBaseIE):
 
 
 class PromoDJPlaylistIE(PromoDJBaseIE):
+    _PLAYLIST_TYPES = ['uenno', *PromoDJBaseIE._MEDIA_TYPES]
+    _PLAYLIST_TYPES_RE = '|'.join(_PLAYLIST_TYPES)
+
     _VALID_URL = [
-        rf'{PromoDJBaseIE._BASE_URL_RE}/(?P<login>{PromoDJBaseIE._LOGIN_RE})/(?P<type>{PromoDJBaseIE._MEDIA_TYPES_RE})$',
+        rf'{PromoDJBaseIE._BASE_URL_RE}/(?P<login>{PromoDJBaseIE._LOGIN_RE})/(?P<type>{_PLAYLIST_TYPES_RE})$',
         rf'{PromoDJBaseIE._BASE_URL_RE}/(?P<login>{PromoDJBaseIE._LOGIN_RE})/(?P<type>groups)/(?P<id>\d+)(?:/(?P<slug>\w+))?',
     ]
     _TESTS = [{
@@ -507,20 +507,36 @@ class PromoDJPlaylistIE(PromoDJBaseIE):
         # 900+ items
         'url': 'https://promodj.com/fonarev/groups/17350/Digital_Emotions_Podcast',
         'only_matching': True,
+    }, {
+        # user's best music and video
+        'url': 'https://promodj.com/djbaribyn/uenno',
+        'info_dict': {
+            'id': 'djbaribyn-uenno',
+        },
+        'playlist_count': 15,
+        'params': {
+            'playlistend': 15,
+        }
     }]
 
     _ALLOWED_MEDIA_CATS = ['music', 'video']
+
+    def _get_page_size(self, url):
+        if '/uenno' in url:
+            return 15
+        if '/groups/' in url:
+            return 30
+        return 20
 
     def _real_extract(self, url):
         match = self._match_valid_url(url)
         login = match.group('login')
         type = match.group('type')
         playlist_id = f'{login}-{type}' if len(match.groups()) == 2 else f'{login}-{type}-{match.group("id")}'
-        page_size = self._get_playlist_page_size(url)
 
         entries = OnDemandPagedList(
             functools.partial(self._fetch_page, url, self._ALLOWED_MEDIA_CATS, playlist_id),
-            page_size)
+            self._get_page_size(url))
         return self.playlist_result(entries, playlist_id=playlist_id)
 
 
