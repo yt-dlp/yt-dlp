@@ -74,7 +74,7 @@ offlinetest: codetest
 	$(PYTHON) -m pytest -k "not download"
 
 CODE_FOLDERS != find yt_dlp -type f -name '__init__.py' -exec dirname {} \+ | grep -v '/__' | sort
-CODE_FILES != for f in $(CODE_FOLDERS) ; do echo $$f | sed 's,$$,/*.py,' ; done
+CODE_FILES != for f in $(CODE_FOLDERS) ; do echo "$$f" | sed 's,$$,/*.py,' ; done
 yt-dlp: $(CODE_FILES)
 	@echo $(ERROR_MSG)
 	mkdir -p zip
