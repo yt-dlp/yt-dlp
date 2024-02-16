@@ -51,7 +51,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-impersonate = ["curl_cffi>=0.5.10,<0.6.0"]
+curl_cffi = ["curl_cffi>=0.5.10,<0.6.0"]
 secretstorage = [
     "cffi",
     "secretstorage",
