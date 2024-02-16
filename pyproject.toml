@@ -130,7 +130,7 @@ check = [
     "ruff check --no-fix {args:.}",
     "autopep8 --diff {args:.}",
 ]
-tests = "python -m devscripts.run_tests {args}"
+test = "python -m devscripts.run_tests {args}"
 
 [[tool.hatch.envs.default.overrides.env.TEST_ALL.matrix.value]]
 python = [

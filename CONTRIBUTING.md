@@ -134,33 +134,31 @@ We follow [youtube-dl's policy](https://github.com/ytdl-org/youtube-dl#can-you-a
 
 # DEVELOPER INSTRUCTIONS
 
-Most users do not need to build yt-dlp and can [download the builds](https://github.com/yt-dlp/yt-dlp/releases) or get them via [the other installation methods](README.md#installation). Alternatively, simply execute
+Most users do not need to build yt-dlp and can [download the builds](https://github.com/yt-dlp/yt-dlp/releases), get them via [the other installation methods](README.md#installation) or directly run it using `python -m yt_dlp`.
 
-```shell
-$ python -m yt_dlp
-```
+`yt-dlp` uses [`hatch`](<https://hatch.pypa.io>) as a project management tool.
+You can easily install it using [`pipx`](<https://pipx.pypa.io>) via `pipx install hatch`, or else via `pip` or your package manager of choice.
 
-To properly interact with `yt-dlp` as a developer, you should use [`hatch`](<https://hatch.pypa.io>) (easily installed using [`pipx`](<https://pipx.pypa.io>)).
-After installing, you can use `hatch shell` to create a shell with all dependencies as well as `yt-dlp` installed.
-
-If you plan on contributing to `yt-dlp`, run
+If you plan on contributing to `yt-dlp`, you are required to run
 
 ```shell
 $ hatch run install
 ```
 
-to prepare a full development environment and install `pre-commit`.
+before creating commits so that the pre-commit hooks are properly initialized.
+After this you can use `hatch shell` to enable a virtual environment that has development dependencies as well as `yt-dlp` installed.
 
-To run all the available core tests, use:
+Scripts can be used to run simple tasks, like linting or testing, without having to run `hatch shell` first:
 
 ```shell
-$ hatch run tests core
+$ hatch run lint
+$ hatch run format
+$ hatch run test
 ```
 
-You can also run tests for all installed and supported python versions sequentially by setting the `TEST_ALL` variable, like so:
-
+You can run scripts for all available and supported python versions sequentially by setting the `TEST_ALL` variable:
 ```shell
-$ TEST_ALL=1 hatch run tests core
+$ TEST_ALL=1 hatch run test core
 ```
 
 See item 6 of [new extractor tutorial](#adding-support-for-a-new-site) for how to run extractor specific test cases.
@@ -241,7 +239,7 @@ After you have ensured this site is distributing its content legally, you can fo
             }
     ```
 1. Add an import in [`yt_dlp/extractor/_extractors.py`](yt_dlp/extractor/_extractors.py). Note that the class name must end with `IE`.
-1. Run `hatch run tests YourExtractor`. This *may fail* at first, but you can continually re-run it until you're done. Upon failure, it will output the missing fields and/or correct values which you can copy. If you decide to add more than one test, the tests will then be named `YourExtractor`, `YourExtractor_1`, `YourExtractor_2`, etc. Note that tests with an `only_matching` key in the test's dict are not included in the count. You can also run all the tests in one go with `YourExtractor_all`
+1. Run `hatch run test YourExtractor`. This *may fail* at first, but you can continually re-run it until you're done. Upon failure, it will output the missing fields and/or correct values which you can copy. If you decide to add more than one test, the tests will then be named `YourExtractor`, `YourExtractor_1`, `YourExtractor_2`, etc. Note that tests with an `only_matching` key in the test's dict are not included in the count. You can also run all the tests in one go with `YourExtractor_all`
 1. Make sure you have at least one test for your extractor. Even if all videos covered by the extractor are expected to be inaccessible for automated testing, tests should still be added with a `skip` parameter indicating why the particular test is disabled from running.
 1. Have a look at [`yt_dlp/extractor/common.py`](yt_dlp/extractor/common.py) for possible helper methods and a [detailed description of what your extractor should and may return](yt_dlp/extractor/common.py#L119-L440). Add tests and code for as many as you want.
 1. Make sure your code follows [yt-dlp coding conventions](#yt-dlp-coding-conventions), passes [ruff](https://docs.astral.sh/ruff/tutorial/#getting-started) code checks and is properly formatted:
