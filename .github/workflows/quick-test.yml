@@ -20,8 +20,8 @@ jobs:
       run: |
         python3 -m yt_dlp -v || true
         python3 ./devscripts/run_tests.py core
-  linter:
-    name: Linter
+  check:
+    name: Code check
     if: "!contains(github.event.head_commit.message, 'ci skip all')"
     runs-on: ubuntu-latest
     steps:

@@ -124,10 +124,10 @@ features = ["dev"]
 
 [tool.hatch.envs.default.scripts]
 install = "pre-commit install"
-lint = "ruff check {args:.}"
+lint = "ruff check --fix {args:.}"
 format = "autopep8 --in-place {args:.}"
 check = [
-    "ruff check --no-fix {args:.}",
+    "ruff check {args:.}",
     "autopep8 --diff {args:.}",
 ]
 test = "python -m devscripts.run_tests {args}"
