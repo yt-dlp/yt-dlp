@@ -38,11 +38,13 @@ MANDIR ?= $(PREFIX)/man
 SHAREDIR ?= $(PREFIX)/share
 PYTHON ?= /usr/bin/env python3
 
-# set SYSCONFDIR to /etc if PREFIX=/usr or PREFIX=/usr/local
-SYSCONFDIR = $(shell if [ $(PREFIX) = /usr -o $(PREFIX) = /usr/local ]; then echo /etc; else echo $(PREFIX)/etc; fi)
+# $(shell) and $(error) are no-ops in BSD Make and the != variable assignment operator is not supported by GNU Make <4.0
+VERSION_CHECK != echo supported
+VERSION_CHECK ?= $(error GNU Make 4+ or BSD Make is required)
+CHECK_VERSION := $(VERSION_CHECK)
 
-# set markdown input format to "markdown-smart" for pandoc version 2 and to "markdown" for pandoc prior to version 2
-MARKDOWN = $(shell if [ `pandoc -v | head -n1 | cut -d" " -f2 | head -c1` = "2" ]; then echo markdown-smart; else echo markdown; fi)
+# set markdown input format to "markdown-smart" for pandoc version 2+ and to "markdown" for pandoc prior to version 2
+MARKDOWN != if [ "`pandoc -v | head -n1 | cut -d' ' -f2 | head -c1`" -ge "2" ]; then echo markdown-smart; else echo markdown; fi
 
 install: lazy-extractors yt-dlp yt-dlp.1 completions
 	mkdir -p $(DESTDIR)$(BINDIR)
@@ -73,17 +75,17 @@ test:
 offlinetest: codetest
 	$(PYTHON) -m pytest -k "not download"
 
-CODE_FOLDERS := $(shell find yt_dlp -type d -not -name '__*' -exec sh -c 'test -e "$$1"/__init__.py' sh {} \; -print)
-CODE_FILES := $(shell for f in $(CODE_FOLDERS); do echo "$$f" | awk '{gsub(/\/[^\/]+/,"/*"); print $$1"/*.py"}'; done | sort -u)
+CODE_FOLDERS != find yt_dlp -type f -name '__init__.py' -exec dirname {} \+ | grep -v '/__' | sort
+CODE_FILES != for f in $(CODE_FOLDERS) ; do echo "$$f" | sed 's,$$,/*.py,' ; done
 yt-dlp: $(CODE_FILES)
 	mkdir -p zip
 	for d in $(CODE_FOLDERS) ; do \
 	  mkdir -p zip/$$d ;\
 	  cp -pPR $$d/*.py zip/$$d/ ;\
 	done
-	cd zip ; touch -t 200001010101 $(CODE_FILES)
+	(cd zip && touch -t 200001010101 $(CODE_FILES))
 	mv zip/yt_dlp/__main__.py zip/
-	cd zip ; zip -q ../yt-dlp $(CODE_FILES) __main__.py
+	(cd zip && zip -q ../yt-dlp $(CODE_FILES) __main__.py)
 	rm -rf zip
 	echo '#!$(PYTHON)' > yt-dlp
 	cat yt-dlp.zip >> yt-dlp
@@ -127,7 +129,7 @@ completions/fish/yt-dlp.fish: $(CODE_FILES) devscripts/fish-completion.in
 	mkdir -p completions/fish
 	$(PYTHON) devscripts/fish-completion.py
 
-_EXTRACTOR_FILES = $(shell find yt_dlp/extractor -name '*.py' -and -not -name 'lazy_extractors.py')
+_EXTRACTOR_FILES != find yt_dlp/extractor -name '*.py' -and -not -name 'lazy_extractors.py'
 yt_dlp/extractor/lazy_extractors.py: devscripts/make_lazy_extractors.py devscripts/lazy_load_template.py $(_EXTRACTOR_FILES)
 	$(PYTHON) devscripts/make_lazy_extractors.py $@
 
@@ -141,6 +143,7 @@ yt-dlp.tar.gz: all
 		--exclude '__pycache__' \
 		--exclude '.pytest_cache' \
 		--exclude '.git' \
+		--exclude '__pyinstaller' \
 		-- \
 		README.md supportedsites.md Changelog.md LICENSE \
 		CONTRIBUTING.md Collaborators.md CONTRIBUTORS AUTHORS \
