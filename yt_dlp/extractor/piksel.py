@@ -32,7 +32,7 @@ class PikselIE(InfoExtractor):
             )\.jp|
             vidego\.baltimorecity\.gov
         )/v/(?:refid/(?P<refid>[^/]+)/prefid/)?(?P<id>[\w-]+)'''
-    _EMBED_REGEX = [r'<iframe[^>]+src=["\'](?P<url>(?:https?:)?//player\.piksel\.com/v/[a-z0-9]+)']
+    _EMBED_REGEX = [r'<iframe[^>]+src=["\'](?P<url>(?:https?:)?//player\.piksel\.(?:com|tech)/v/[a-z0-9]+)']
     _TESTS = [
         {
             'url': 'http://player.piksel.tech/v/ums2867l',
