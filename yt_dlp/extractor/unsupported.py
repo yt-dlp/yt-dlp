@@ -42,6 +42,13 @@ class KnownDRMIE(UnsupportedInfoExtractor):
         r'vootkids\.com',
         r'nowtv\.it/watch',
         r'tv\.apple\.com',
+        r'primevideo\.com',
+        r'hulu\.com',
+        r'resource\.inkryptvideos\.com',
+        r'joyn\.de',
+        r'amazon\.(?:\w{2}\.)?\w+/gp/video',
+        r'music\.amazon\.(?:\w{2}\.)?\w+',
+        r'(?:watch|front)\.njpwworld\.com',
     )
 
     _TESTS = [{
@@ -111,6 +118,37 @@ class KnownDRMIE(UnsupportedInfoExtractor):
         # https://github.com/yt-dlp/yt-dlp/issues/5557
         'url': 'https://tv.apple.com/it/show/loot---una-fortuna/umc.cmc.5erbujil1mpazuerhr1udnk45?ctx_brand=tvs.sbd.4000',
         'only_matching': True,
+    }, {
+        # https://github.com/yt-dlp/yt-dlp/issues/3072
+        'url': 'https://www.joyn.de/play/serien/clannad/1-1-wo-die-kirschblueten-fallen',
+        'only_matching': True,
+    }, {
+        # https://github.com/yt-dlp/yt-dlp/issues/7323
+        'url': 'https://music.amazon.co.jp/albums/B088Y368TK',
+        'only_matching': True,
+    }, {
+        # https://github.com/yt-dlp/yt-dlp/issues/7323
+        'url': 'https://www.amazon.co.jp/gp/video/detail/B09X5HBYRS/',
+        'only_matching': True,
+    }, {
+        # https://github.com/yt-dlp/yt-dlp/issues/6125
+        'url': 'https://www.primevideo.com/region/eu/detail/0H3DDB4KBJFNDCKKLHNRLRLVKQ/ref=atv_br_def_r_br_c_unkc_1_10',
+        'only_matching': True,
+    }, {
+        # https://github.com/yt-dlp/yt-dlp/issues/5740
+        'url': 'https://resource.inkryptvideos.com/v2-a83ns52/iframe/index.html#video_id=7999ea0f6e03439eb40d056258c2d736&otp=xxx',
+        'only_matching': True,
+    }, {
+        # https://github.com/yt-dlp/yt-dlp/issues/5767
+        'url': 'https://www.hulu.com/movie/anthem-6b25fac9-da2b-45a3-8e09-e4156b0471cc',
+        'only_matching': True,
+    }, {
+        # https://github.com/yt-dlp/yt-dlp/pull/8570
+        'url': 'https://watch.njpwworld.com/player/36447/series?assetType=series',
+        'only_matching': True,
+    }, {
+        'url': 'https://front.njpwworld.com/p/s_series_00563_16_bs',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
@@ -130,10 +168,18 @@ class KnownPiracyIE(UnsupportedInfoExtractor):
 
     URLS = (
         r'dood\.(?:to|watch|so|pm|wf|re)',
+        # Sites youtube-dl supports, but we won't
+        r'viewsb\.com',
+        r'filemoon\.sx',
+        r'hentai\.animestigma\.com',
+        r'thisav\.com',
     )
 
     _TESTS = [{
         'url': 'http://dood.to/e/5s1wmbdacezb',
+        'only_matching': True,
+    }, {
+        'url': 'https://thisav.com/en/terms',
         'only_matching': True,
     }]
 

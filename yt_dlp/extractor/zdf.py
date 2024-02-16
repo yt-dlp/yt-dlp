@@ -24,7 +24,7 @@ from ..utils import (
 
 class ZDFBaseIE(InfoExtractor):
     _GEO_COUNTRIES = ['DE']
-    _QUALITIES = ('auto', 'low', 'med', 'high', 'veryhigh', 'hd')
+    _QUALITIES = ('auto', 'low', 'med', 'high', 'veryhigh', 'hd', 'fhd', 'uhd')
 
     def _call_api(self, url, video_id, item, api_token=None, referrer=None):
         headers = {}
@@ -61,6 +61,9 @@ class ZDFBaseIE(InfoExtractor):
         elif mime_type == 'application/f4m+xml' or ext == 'f4m':
             new_formats = self._extract_f4m_formats(
                 update_url_query(format_url, {'hdcore': '3.7.0'}), video_id, f4m_id='hds', fatal=False)
+        elif ext == 'mpd':
+            new_formats = self._extract_mpd_formats(
+                format_url, video_id, mpd_id='dash', fatal=False)
         else:
             f = parse_codecs(meta.get('mimeCodec'))
             if not f and meta.get('type'):
@@ -174,7 +177,8 @@ class ZDFIE(ZDFBaseIE):
             'thumbnail': 'md5:e65f459f741be5455c952cd820eb188e',
             'title': 'heute journal vom 30.12.2021',
             'timestamp': 1640897100,
-        }
+        },
+        'skip': 'No longer available: "Diese Seite wurde leider nicht gefunden"',
     }, {
         'url': 'https://www.zdf.de/dokumentation/terra-x/die-magie-der-farben-von-koenigspurpur-und-jeansblau-100.html',
         'info_dict': {
@@ -189,7 +193,7 @@ class ZDFIE(ZDFBaseIE):
         },
     }, {
         'url': 'https://www.zdf.de/funk/druck-11790/funk-alles-ist-verzaubert-102.html',
-        'md5': '1b93bdec7d02fc0b703c5e7687461628',
+        'md5': '57af4423db0455a3975d2dc4578536bc',
         'info_dict': {
             'ext': 'mp4',
             'id': 'video_funk_1770473',
@@ -198,7 +202,7 @@ class ZDFIE(ZDFBaseIE):
             'title': 'Alles ist verzaubert',
             'timestamp': 1635520560,
             'upload_date': '20211029',
-            'thumbnail': 'https://www.zdf.de/assets/teaser-funk-alles-ist-verzaubert-100~1920x1080?cb=1636466431799',
+            'thumbnail': 'https://www.zdf.de/assets/teaser-funk-alles-ist-verzaubert-102~1920x1080?cb=1663848412907',
         },
     }, {
         # Same as https://www.phoenix.de/sendungen/dokumentationen/gesten-der-maechtigen-i-a-89468.html?ref=suche
@@ -241,9 +245,22 @@ class ZDFIE(ZDFBaseIE):
             'title': 'Das Geld anderer Leute',
             'description': 'md5:cb6f660850dc5eb7d1ab776ea094959d',
             'duration': 2581.0,
-            'timestamp': 1654790700,
-            'upload_date': '20220609',
+            'timestamp': 1675160100,
+            'upload_date': '20230131',
             'thumbnail': 'https://epg-image.zdf.de/fotobase-webdelivery/images/e2d7e55a-09f0-424e-ac73-6cac4dd65f35?layout=2400x1350',
+        },
+    }, {
+        'url': 'https://www.zdf.de/dokumentation/terra-x/unser-gruener-planet-wuesten-doku-100.html',
+        'info_dict': {
+            'id': '220605_dk_gruener_planet_wuesten_tex',
+            'ext': 'mp4',
+            'title': 'Unser grüner Planet - Wüsten',
+            'description': 'md5:4fc647b6f9c3796eea66f4a0baea2862',
+            'duration': 2613.0,
+            'timestamp': 1654450200,
+            'upload_date': '20220605',
+            'format_note': 'uhd, main',
+            'thumbnail': 'https://www.zdf.de/assets/saguaro-kakteen-102~3840x2160?cb=1655910690796',
         },
     }]
 
@@ -259,7 +276,7 @@ class ZDFIE(ZDFBaseIE):
             raise ExtractorError('Could not extract ptmd_path')
 
         info = self._extract_ptmd(
-            urljoin(url, ptmd_path.replace('{playerId}', 'ngplayer_2_4')), video_id, player['apiToken'], url)
+            urljoin(url, ptmd_path.replace('{playerId}', 'android_native_5')), video_id, player['apiToken'], url)
 
         thumbnails = []
         layouts = try_get(

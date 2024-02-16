@@ -2,11 +2,8 @@ import json
 import re
 
 from .common import InfoExtractor
-from ..utils import (
-    ExtractorError,
-    int_or_none,
-    qualities,
-)
+from ..dependencies import Cryptodome
+from ..utils import ExtractorError, int_or_none, qualities
 
 
 class IviIE(InfoExtractor):
@@ -94,18 +91,8 @@ class IviIE(InfoExtractor):
         for site in (353, 183):
             content_data = (data % site).encode()
             if site == 353:
-                try:
-                    from Cryptodome.Cipher import Blowfish
-                    from Cryptodome.Hash import CMAC
-                    pycryptodome_found = True
-                except ImportError:
-                    try:
-                        from Crypto.Cipher import Blowfish
-                        from Crypto.Hash import CMAC
-                        pycryptodome_found = True
-                    except ImportError:
-                        pycryptodome_found = False
-                        continue
+                if not Cryptodome.CMAC:
+                    continue
 
                 timestamp = (self._download_json(
                     self._LIGHT_URL, video_id,
@@ -118,7 +105,8 @@ class IviIE(InfoExtractor):
 
                 query = {
                     'ts': timestamp,
-                    'sign': CMAC.new(self._LIGHT_KEY, timestamp.encode() + content_data, Blowfish).hexdigest(),
+                    'sign': Cryptodome.CMAC.new(self._LIGHT_KEY, timestamp.encode() + content_data,
+                                                Cryptodome.Blowfish).hexdigest(),
                 }
             else:
                 query = {}
@@ -138,7 +126,7 @@ class IviIE(InfoExtractor):
                     extractor_msg = 'Video %s does not exist'
                 elif site == 353:
                     continue
-                elif not pycryptodome_found:
+                elif not Cryptodome.CMAC:
                     raise ExtractorError('pycryptodomex not found. Please install', expected=True)
                 elif message:
                     extractor_msg += ': ' + message

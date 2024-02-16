@@ -6,6 +6,7 @@ from ..utils import (
     parse_iso8601,
     parse_qs,
     qualities,
+    traverse_obj,
     unified_strdate,
     xpath_text
 )
@@ -92,42 +93,17 @@ class EuropaIE(InfoExtractor):
 
 class EuroParlWebstreamIE(InfoExtractor):
     _VALID_URL = r'''(?x)
-        https?://(?:multimedia|webstreaming)\.europarl\.europa\.eu/[^/#?]+/
-        (?:embed/embed\.html\?event=|(?!video)[^/#?]+/[\w-]+_)(?P<id>[\w-]+)
+        https?://multimedia\.europarl\.europa\.eu/[^/#?]+/
+        (?:(?!video)[^/#?]+/[\w-]+_)(?P<id>[\w-]+)
     '''
     _TESTS = [{
         'url': 'https://multimedia.europarl.europa.eu/pl/webstreaming/plenary-session_20220914-0900-PLENARY',
         'info_dict': {
-            'id': 'bcaa1db4-76ef-7e06-8da7-839bd0ad1dbe',
-            'ext': 'mp4',
-            'release_timestamp': 1663137900,
-            'title': 'Plenary session',
-            'release_date': '20220914',
-        },
-        'params': {
-            'skip_download': True,
-        }
-    }, {
-        'url': 'https://multimedia.europarl.europa.eu/pl/webstreaming/eu-cop27-un-climate-change-conference-in-sharm-el-sheikh-egypt-ep-delegation-meets-with-ngo-represen_20221114-1600-SPECIAL-OTHER',
-        'info_dict': {
-            'id': 'a8428de8-b9cd-6a2e-11e4-3805d9c9ff5c',
-            'ext': 'mp4',
-            'release_timestamp': 1668434400,
-            'release_date': '20221114',
-            'title': 'md5:d3550280c33cc70e0678652e3d52c028',
-        },
-        'params': {
-            'skip_download': True,
-        }
-    }, {
-        # embed webpage
-        'url': 'https://webstreaming.europarl.europa.eu/ep/embed/embed.html?event=20220914-0900-PLENARY&language=en&autoplay=true&logo=true',
-        'info_dict': {
-            'id': 'bcaa1db4-76ef-7e06-8da7-839bd0ad1dbe',
+            'id': '62388b15-d85b-4add-99aa-ba12ccf64f0d',
             'ext': 'mp4',
             'title': 'Plenary session',
+            'release_timestamp': 1663139069,
             'release_date': '20220914',
-            'release_timestamp': 1663137900,
         },
         'params': {
             'skip_download': True,
@@ -144,30 +120,54 @@ class EuroParlWebstreamIE(InfoExtractor):
             'live_status': 'is_live',
         },
         'skip': 'not live anymore'
+    }, {
+        'url': 'https://multimedia.europarl.europa.eu/en/webstreaming/committee-on-culture-and-education_20230301-1130-COMMITTEE-CULT',
+        'info_dict': {
+            'id': '7355662c-8eac-445e-4bb9-08db14b0ddd7',
+            'ext': 'mp4',
+            'release_date': '20230301',
+            'title': 'Committee on Culture and Education',
+            'release_timestamp': 1677666641,
+        }
+    }, {
+        # live stream
+        'url': 'https://multimedia.europarl.europa.eu/en/webstreaming/committee-on-environment-public-health-and-food-safety_20230524-0900-COMMITTEE-ENVI',
+        'info_dict': {
+            'id': 'e4255f56-10aa-4b3c-6530-08db56d5b0d9',
+            'ext': 'mp4',
+            'release_date': '20230524',
+            'title': r're:Committee on Environment, Public Health and Food Safety \d{4}-\d{2}-\d{2}\s\d{2}:\d{2}',
+            'release_timestamp': 1684911541,
+            'live_status': 'is_live',
+        },
+        'skip': 'Not live anymore'
     }]
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
+        webpage = self._download_webpage(url, display_id)
+
+        webpage_nextjs = self._search_nextjs_data(webpage, display_id)['props']['pageProps']
 
         json_info = self._download_json(
-            'https://vis-api.vuplay.co.uk/event/external', display_id,
+            'https://acs-api.europarl.connectedviews.eu/api/FullMeeting', display_id,
             query={
-                'player_key': 'europarl|718f822c-a48c-4841-9947-c9cb9bb1743c',
-                'external_id': display_id,
+                'api-version': 1.0,
+                'tenantId': 'bae646ca-1fc8-4363-80ba-2c04f06b4968',
+                'externalReference': display_id
             })
 
-        formats, subtitles = self._extract_mpd_formats_and_subtitles(json_info['streaming_url'], display_id)
-        fmts, subs = self._extract_m3u8_formats_and_subtitles(
-            json_info['streaming_url'].replace('.mpd', '.m3u8'), display_id)
-
-        formats.extend(fmts)
-        self._merge_subtitles(subs, target=subtitles)
+        formats, subtitles = [], {}
+        for hls_url in traverse_obj(json_info, ((('meetingVideo'), ('meetingVideos', ...)), 'hlsUrl')):
+            fmt, subs = self._extract_m3u8_formats_and_subtitles(hls_url, display_id)
+            formats.extend(fmt)
+            self._merge_subtitles(subs, target=subtitles)
 
         return {
             'id': json_info['id'],
-            'title': json_info.get('title'),
+            'title': traverse_obj(webpage_nextjs, (('mediaItem', 'title'), ('title', )), get_all=False),
             'formats': formats,
             'subtitles': subtitles,
-            'release_timestamp': parse_iso8601(json_info.get('published_start')),
-            'is_live': 'LIVE' in json_info.get('state', '')
+            'release_timestamp': parse_iso8601(json_info.get('startDateTime')),
+            'is_live': traverse_obj(webpage_nextjs, ('mediaItem', 'mediaSubType')) == 'Live'
         }

@@ -4,11 +4,12 @@ import urllib.parse
 
 from .common import InfoExtractor
 from .youtube import YoutubeBaseInfoExtractor, YoutubeIE
-from ..compat import compat_HTTPError, compat_urllib_parse_unquote
+from ..compat import compat_urllib_parse_unquote
+from ..networking import HEADRequest
+from ..networking.exceptions import HTTPError
 from ..utils import (
     KNOWN_EXTENSIONS,
     ExtractorError,
-    HEADRequest,
     bug_reports_message,
     clean_html,
     dict_get,
@@ -51,7 +52,6 @@ class ArchiveOrgIE(InfoExtractor):
             'creator': 'SRI International',
             'uploader': 'laura@archive.org',
             'thumbnail': r're:https://archive\.org/download/.*\.jpg',
-            'release_year': 1968,
             'display_id': 'XD300-23_68HighlightsAResearchCntAugHumanIntellect.cdr',
             'track': 'XD300-23 68HighlightsAResearchCntAugHumanIntellect',
 
@@ -133,7 +133,6 @@ class ArchiveOrgIE(InfoExtractor):
             'album': '1977-05-08 - Barton Hall - Cornell University',
             'release_date': '19770508',
             'display_id': 'gd1977-05-08d01t07.flac',
-            'release_year': 1977,
             'track_number': 7,
         },
     }, {
@@ -897,7 +896,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
                     video_id, note='Fetching archived video file url', expected_status=True)
             except ExtractorError as e:
                 # HTTP Error 404 is expected if the video is not saved.
-                if isinstance(e.cause, compat_HTTPError) and e.cause.code == 404:
+                if isinstance(e.cause, HTTPError) and e.cause.status == 404:
                     self.raise_no_formats(
                         'The requested video is not archived, indexed, or there is an issue with web.archive.org (try again later)', expected=True)
                 else:
@@ -924,7 +923,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
         info['thumbnails'] = self._extract_thumbnails(video_id)
 
         if urlh:
-            url = compat_urllib_parse_unquote(urlh.geturl())
+            url = compat_urllib_parse_unquote(urlh.url)
             video_file_url_qs = parse_qs(url)
             # Attempt to recover any ext & format info from playback url & response headers
             format = {'url': url, 'filesize': int_or_none(urlh.headers.get('x-archive-orig-content-length'))}

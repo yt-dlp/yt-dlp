@@ -3,15 +3,15 @@ import re
 
 from .common import InfoExtractor
 from ..utils import (
+    OnDemandPagedList,
     clean_html,
     extract_attributes,
     get_element_by_id,
     int_or_none,
     parse_count,
     parse_duration,
+    traverse_obj,
     unified_timestamp,
-    OnDemandPagedList,
-    try_get,
 )
 
 
@@ -263,19 +263,16 @@ class NewgroundsUserIE(InfoExtractor):
     def _fetch_page(self, channel_id, url, page):
         page += 1
         posts_info = self._download_json(
-            f'{url}/page/{page}', channel_id,
+            f'{url}?page={page}', channel_id,
             note=f'Downloading page {page}', headers={
                 'Accept': 'application/json, text/javascript, */*; q = 0.01',
                 'X-Requested-With': 'XMLHttpRequest',
             })
-        sequence = posts_info.get('sequence', [])
-        for year in sequence:
-            posts = try_get(posts_info, lambda x: x['years'][str(year)]['items'])
-            for post in posts:
-                path, media_id = self._search_regex(
-                    r'<a[^>]+\bhref=["\'][^"\']+((?:portal/view|audio/listen)/(\d+))[^>]+>',
-                    post, 'url', group=(1, 2))
-                yield self.url_result(f'https://www.newgrounds.com/{path}', NewgroundsIE.ie_key(), media_id)
+        for post in traverse_obj(posts_info, ('items', ..., ..., {str})):
+            path, media_id = self._search_regex(
+                r'<a[^>]+\bhref=["\'][^"\']+((?:portal/view|audio/listen)/(\d+))[^>]+>',
+                post, 'url', group=(1, 2))
+            yield self.url_result(f'https://www.newgrounds.com/{path}', NewgroundsIE.ie_key(), media_id)
 
     def _real_extract(self, url):
         channel_id = self._match_id(url)

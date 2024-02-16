@@ -76,11 +76,11 @@ class GoPlayIE(InfoExtractor):
             }
 
         api = self._download_json(
-            f'https://api.viervijfzes.be/content/{video_id}',
-            video_id, headers={'Authorization': self._id_token})
+            f'https://api.goplay.be/web/v1/videos/long-form/{video_id}',
+            video_id, headers={'Authorization': 'Bearer %s' % self._id_token})
 
         formats, subs = self._extract_m3u8_formats_and_subtitles(
-            api['video']['S'], video_id, ext='mp4', m3u8_id='HLS')
+            api['manifestUrls']['hls'], video_id, ext='mp4', m3u8_id='HLS')
 
         info_dict.update({
             'id': video_id,
@@ -383,9 +383,9 @@ class AwsIdp:
         months = [None, 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
         days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
-        time_now = datetime.datetime.utcnow()
+        time_now = datetime.datetime.now(datetime.timezone.utc)
         format_string = "{} {} {} %H:%M:%S UTC %Y".format(days[time_now.weekday()], months[time_now.month], time_now.day)
-        time_string = datetime.datetime.utcnow().strftime(format_string)
+        time_string = time_now.strftime(format_string)
         return time_string
 
     def __str__(self):

@@ -1,7 +1,13 @@
 from .common import InfoExtractor
+from ..networking import HEADRequest
 from ..utils import (
-    smuggle_url,
-    ExtractorError,
+    float_or_none,
+    int_or_none,
+    parse_duration,
+    parse_iso8601,
+    traverse_obj,
+    update_url_query,
+    url_or_none,
 )
 
 
@@ -11,7 +17,7 @@ class SBSIE(InfoExtractor):
         https?://(?:www\.)?sbs\.com\.au/(?:
             ondemand(?:
                 /video/(?:single/)?|
-                /movie/[^/]+/|
+                /(?:movie|tv-program)/[^/]+/|
                 /(?:tv|news)-series/(?:[^/]+/){3}|
                 .*?\bplay=|/watch/
             )|news/(?:embeds/)?video/
@@ -27,18 +33,21 @@ class SBSIE(InfoExtractor):
         # Original URL is handled by the generic IE which finds the iframe:
         # http://www.sbs.com.au/thefeed/blog/2014/08/21/dingo-conservation
         'url': 'http://www.sbs.com.au/ondemand/video/single/320403011771/?source=drupal&vertical=thefeed',
-        'md5': '3150cf278965eeabb5b4cea1c963fe0a',
+        'md5': '31f84a7a19b53635db63c73f8ab0c4a7',
         'info_dict': {
-            'id': '_rFBPRPO4pMR',
+            'id': '320403011771',  # '_rFBPRPO4pMR',
             'ext': 'mp4',
             'title': 'Dingo Conservation (The Feed)',
             'description': 'md5:f250a9856fca50d22dec0b5b8015f8a5',
-            'thumbnail': r're:http://.*\.jpg',
+            'thumbnail': r're:https?://.*\.jpg',
             'duration': 308,
             'timestamp': 1408613220,
             'upload_date': '20140821',
             'uploader': 'SBSC',
+            'tags': None,
+            'categories': None,
         },
+        'expected_warnings': ['Unable to download JSON metadata'],
     }, {
         'url': 'http://www.sbs.com.au/ondemand/video/320403011771/Dingo-Conservation-The-Feed',
         'only_matching': True,
@@ -70,34 +79,80 @@ class SBSIE(InfoExtractor):
     }, {
         'url': 'https://www.sbs.com.au/ondemand/tv-series/the-handmaids-tale/season-5/the-handmaids-tale-s5-ep1/2065631811776',
         'only_matching': True,
+    }, {
+        'url': 'https://www.sbs.com.au/ondemand/tv-program/autun-romes-forgotten-sister/2116212803602',
+        'only_matching': True,
     }]
+
+    _GEO_COUNTRIES = ['AU']
+    _AUS_TV_PARENTAL_GUIDELINES = {
+        'P': 0,
+        'C': 7,
+        'G': 0,
+        'PG': 0,
+        'M': 14,
+        'MA15+': 15,
+        'MAV15+': 15,
+        'R18+': 18,
+    }
+    _PLAYER_API = 'https://www.sbs.com.au/api/v3'
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        player_params = self._download_json(
-            'http://www.sbs.com.au/api/video_pdkvars/id/%s?form=json' % video_id, video_id)
+        formats, subtitles = self._extract_smil_formats_and_subtitles(
+            update_url_query(f'{self._PLAYER_API}/video_smil', {'id': video_id}), video_id)
 
-        error = player_params.get('error')
-        if error:
-            error_message = 'Sorry, The video you are looking for does not exist.'
-            video_data = error.get('results') or {}
-            error_code = error.get('errorCode')
-            if error_code == 'ComingSoon':
-                error_message = '%s is not yet available.' % video_data.get('title', '')
-            elif error_code in ('Forbidden', 'intranetAccessOnly'):
-                error_message = 'Sorry, This video cannot be accessed via this website'
-            elif error_code == 'Expired':
-                error_message = 'Sorry, %s is no longer available.' % video_data.get('title', '')
-            raise ExtractorError('%s said: %s' % (self.IE_NAME, error_message), expected=True)
+        if not formats:
+            urlh = self._request_webpage(
+                HEADRequest('https://sbs-vod-prod-01.akamaized.net/'), video_id,
+                note='Checking geo-restriction', fatal=False, expected_status=403)
+            if urlh:
+                error_reasons = urlh.headers.get_all('x-error-reason') or []
+                if 'geo-blocked' in error_reasons:
+                    self.raise_geo_restricted(countries=['AU'])
+            self.raise_no_formats('No formats are available', video_id=video_id)
 
-        urls = player_params['releaseUrls']
-        theplatform_url = (urls.get('progressive') or urls.get('html')
-                           or urls.get('standard') or player_params['relatedItemsURL'])
+        media = traverse_obj(self._download_json(
+            f'{self._PLAYER_API}/video_stream', video_id, fatal=False,
+            query={'id': video_id, 'context': 'tv'}), ('video_object', {dict})) or {}
+
+        media.update(self._download_json(
+            f'https://catalogue.pr.sbsod.com/mpx-media/{video_id}',
+            video_id, fatal=not media) or {})
+
+        # For named episodes, use the catalogue's title to set episode, rather than generic 'Episode N'.
+        if traverse_obj(media, ('partOfSeries', {dict})):
+            media['epName'] = traverse_obj(media, ('title', {str}))
 
         return {
-            '_type': 'url_transparent',
-            'ie_key': 'ThePlatform',
             'id': video_id,
-            'url': smuggle_url(self._proto_relative_url(theplatform_url), {'force_smil_url': True}),
-            'is_live': player_params.get('streamType') == 'live',
+            **traverse_obj(media, {
+                'title': ('name', {str}),
+                'description': ('description', {str}),
+                'channel': ('taxonomy', 'channel', 'name', {str}),
+                'series': ((('partOfSeries', 'name'), 'seriesTitle'), {str}),
+                'series_id': ((('partOfSeries', 'uuid'), 'seriesID'), {str}),
+                'season_number': ('seasonNumber', {int_or_none}),
+                'episode': ('epName', {str}),
+                'episode_number': ('episodeNumber', {int_or_none}),
+                'timestamp': (('datePublished', ('publication', 'startDate')), {parse_iso8601}),
+                'release_year': ('releaseYear', {int_or_none}),
+                'duration': ('duration', ({float_or_none}, {parse_duration})),
+                'is_live': ('liveStream', {bool}),
+                'age_limit': (('classificationID', 'contentRating'), {str.upper}, {
+                    lambda x: self._AUS_TV_PARENTAL_GUIDELINES.get(x)}),  # dict.get is unhashable in py3.7
+            }, get_all=False),
+            **traverse_obj(media, {
+                'categories': (('genres', ...), ('taxonomy', ('genre', 'subgenre'), 'name'), {str}),
+                'tags': (('consumerAdviceTexts', ('sbsSubCertification', 'consumerAdvice')), ..., {str}),
+                'thumbnails': ('thumbnails', lambda _, v: url_or_none(v['contentUrl']), {
+                    'id': ('name', {str}),
+                    'url': 'contentUrl',
+                    'width': ('width', {int_or_none}),
+                    'height': ('height', {int_or_none}),
+                }),
+            }),
+            'formats': formats,
+            'subtitles': subtitles,
+            'uploader': 'SBSC',
         }

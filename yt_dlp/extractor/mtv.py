@@ -1,17 +1,17 @@
 import re
+import xml.etree.ElementTree
 
 from .common import InfoExtractor
 from ..compat import compat_str
+from ..networking import HEADRequest, Request
 from ..utils import (
     ExtractorError,
+    RegexNotFoundError,
     find_xpath_attr,
     fix_xml_ampersands,
     float_or_none,
-    HEADRequest,
     int_or_none,
     join_nonempty,
-    RegexNotFoundError,
-    sanitized_Request,
     strip_or_none,
     timeconvert,
     try_get,
@@ -51,15 +51,15 @@ class MTVServicesInfoExtractor(InfoExtractor):
 
     def _extract_mobile_video_formats(self, mtvn_id):
         webpage_url = self._MOBILE_TEMPLATE % mtvn_id
-        req = sanitized_Request(webpage_url)
+        req = Request(webpage_url)
         # Otherwise we get a webpage that would execute some javascript
-        req.add_header('User-Agent', 'curl/7')
+        req.headers['User-Agent'] = 'curl/7'
         webpage = self._download_webpage(req, mtvn_id,
                                          'Downloading mobile page')
         metrics_url = unescapeHTML(self._search_regex(r'<a href="(http://metrics.+?)"', webpage, 'url'))
         req = HEADRequest(metrics_url)
         response = self._request_webpage(req, mtvn_id, 'Resolving url')
-        url = response.geturl()
+        url = response.url
         # Transform the url to get the best quality:
         url = re.sub(r'.+pxE=mp4', 'http://mtvnmobile.vo.llnwd.net/kip0/_pxn=0+_pxK=18639+_pxE=mp4', url, 1)
         return [{'url': url, 'ext': 'mp4'}]
@@ -138,7 +138,7 @@ class MTVServicesInfoExtractor(InfoExtractor):
         mediagen_doc = self._download_xml(
             mediagen_url, video_id, 'Downloading video urls', fatal=False)
 
-        if mediagen_doc is False:
+        if not isinstance(mediagen_doc, xml.etree.ElementTree.Element):
             return None
 
         item = mediagen_doc.find('./video/item')

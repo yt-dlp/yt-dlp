@@ -9,20 +9,25 @@ from .pladform import PladformIE
 from .sibnet import SibnetEmbedIE
 from .vimeo import VimeoIE
 from .youtube import YoutubeIE
-from ..compat import compat_urlparse
 from ..utils import (
     ExtractorError,
+    UserNotLive,
     clean_html,
     get_element_by_class,
+    get_element_html_by_id,
     int_or_none,
-    orderedSet,
+    join_nonempty,
+    parse_resolution,
     str_or_none,
     str_to_int,
+    try_call,
     unescapeHTML,
     unified_timestamp,
     update_url_query,
     url_or_none,
     urlencode_postdata,
+    urljoin,
+    traverse_obj,
 )
 
 
@@ -31,7 +36,7 @@ class VKBaseIE(InfoExtractor):
 
     def _download_webpage_handle(self, url_or_request, video_id, *args, fatal=True, **kwargs):
         response = super()._download_webpage_handle(url_or_request, video_id, *args, fatal=fatal, **kwargs)
-        challenge_url, cookie = response[1].geturl() if response else '', None
+        challenge_url, cookie = response[1].url if response else '', None
         if challenge_url.startswith('https://vk.com/429.html?'):
             cookie = self._get_cookies(challenge_url).get('hash429')
         if not cookie:
@@ -92,12 +97,12 @@ class VKIE(VKBaseIE):
                         (?:
                             (?:
                                 (?:(?:m|new)\.)?vk\.com/video_|
-                                (?:www\.)?daxab.com/
+                                (?:www\.)?daxab\.com/
                             )
                             ext\.php\?(?P<embed_query>.*?\boid=(?P<oid>-?\d+).*?\bid=(?P<id>\d+).*)|
                             (?:
                                 (?:(?:m|new)\.)?vk\.com/(?:.+?\?.*?z=)?(?:video|clip)|
-                                (?:www\.)?daxab.com/embed/
+                                (?:www\.)?daxab\.com/embed/
                             )
                             (?P<videoid>-?\d+_\d+)(?:.*\blist=(?P<list_id>([\da-f]+)|(ln-[\da-zA-Z]+)))?
                         )
@@ -117,7 +122,7 @@ class VKIE(VKBaseIE):
                 'upload_date': '20120212',
                 'comment_count': int,
                 'like_count': int,
-                'thumbnail': r're:https?://.+\.jpg$',
+                'thumbnail': r're:https?://.+(?:\.jpg|getVideoPreview.*)$',
             },
             'params': {'skip_download': 'm3u8'},
         },
@@ -134,7 +139,7 @@ class VKIE(VKBaseIE):
                 'upload_date': '20130720',
                 'comment_count': int,
                 'like_count': int,
-                'thumbnail': r're:https?://.+\.jpg$',
+                'thumbnail': r're:https?://.+(?:\.jpg|getVideoPreview.*)$',
             }
         },
         {
@@ -149,54 +154,9 @@ class VKIE(VKBaseIE):
                 'upload_date': '20120212',
                 'timestamp': 1329049880,
                 'uploader_id': '39545378',
-                'thumbnail': r're:https?://.+\.jpg$',
+                'thumbnail': r're:https?://.+(?:\.jpg|getVideoPreview.*)$',
             },
             'params': {'skip_download': 'm3u8'},
-        },
-        {
-            # VIDEO NOW REMOVED
-            # please update if you find a video whose URL follows the same pattern
-            'url': 'http://vk.com/video-8871596_164049491',
-            'md5': 'a590bcaf3d543576c9bd162812387666',
-            'note': 'Only available for registered users',
-            'info_dict': {
-                'id': '-8871596_164049491',
-                'ext': 'mp4',
-                'uploader': 'Триллеры',
-                'title': '► Бойцовский клуб / Fight Club 1999 [HD 720]',
-                'duration': 8352,
-                'upload_date': '20121218',
-                'view_count': int,
-            },
-            'skip': 'Removed',
-        },
-        {
-            'url': 'http://vk.com/hd_kino_mania?z=video-43215063_168067957%2F15c66b9b533119788d',
-            'info_dict': {
-                'id': '-43215063_168067957',
-                'ext': 'mp4',
-                'uploader': 'Bro Mazter',
-                'title': ' ',
-                'duration': 7291,
-                'upload_date': '20140328',
-                'uploader_id': '223413403',
-                'timestamp': 1396018030,
-            },
-            'skip': 'Requires vk account credentials',
-        },
-        {
-            'url': 'http://m.vk.com/video-43215063_169084319?list=125c627d1aa1cebb83&from=wall-43215063_2566540',
-            'md5': '0c45586baa71b7cb1d0784ee3f4e00a6',
-            'note': 'ivi.ru embed',
-            'info_dict': {
-                'id': '-43215063_169084319',
-                'ext': 'mp4',
-                'title': 'Книга Илая',
-                'duration': 6771,
-                'upload_date': '20140626',
-                'view_count': int,
-            },
-            'skip': 'Removed',
         },
         {
             'url': 'https://vk.com/video-93049196_456239755?list=ln-cBjJ7S4jYYx3ADnmDT',
@@ -211,26 +171,11 @@ class VKIE(VKBaseIE):
                 'timestamp': 1640162189,
                 'upload_date': '20211222',
                 'uploader_id': '-93049196',
-                'thumbnail': r're:https?://.+\.jpg$',
+                'thumbnail': r're:https?://.+(?:\.jpg|getVideoPreview.*)$',
             },
         },
         {
-            # video (removed?) only available with list id
-            'url': 'https://vk.com/video30481095_171201961?list=8764ae2d21f14088d4',
-            'md5': '091287af5402239a1051c37ec7b92913',
-            'info_dict': {
-                'id': '30481095_171201961',
-                'ext': 'mp4',
-                'title': 'ТюменцевВВ_09.07.2015',
-                'uploader': 'Anton Ivanov',
-                'duration': 109,
-                'upload_date': '20150709',
-                'view_count': int,
-            },
-            'skip': 'Removed',
-        },
-        {
-            # youtube embed
+            'note': 'youtube embed',
             'url': 'https://vk.com/video276849682_170681728',
             'info_dict': {
                 'id': 'V3K4mi0SYkc',
@@ -254,23 +199,45 @@ class VKIE(VKBaseIE):
                 'start_time': 0.0,
                 'categories': ['Nonprofits & Activism'],
                 'channel_url': 'https://www.youtube.com/channel/UCgzCNQ11TmR9V97ECnhi3gw',
+                'channel_follower_count': int,
                 'age_limit': 0,
             },
         },
         {
-            # dailymotion embed
-            'url': 'https://vk.com/video-37468416_456239855',
+            'note': 'dailymotion embed',
+            'url': 'https://vk.com/video-95168827_456239103?list=cca524a0f0d5557e16',
             'info_dict': {
-                'id': 'k3lz2cmXyRuJQSjGHUv',
+                'id': 'x8gfli0',
                 'ext': 'mp4',
-                'title': 'md5:d52606645c20b0ddbb21655adaa4f56f',
-                'description': 'md5:424b8e88cc873217f520e582ba28bb36',
-                'uploader': 'AniLibria.Tv',
-                'upload_date': '20160914',
-                'uploader_id': 'x1p5vl5',
-                'timestamp': 1473877246,
+                'title': 'md5:45410f60ccd4b2760da98cb5fc777d70',
+                'description': 'md5:2e71c5c9413735cfa06cf1a166f16c84',
+                'uploader': 'Movies and cinema.',
+                'upload_date': '20221218',
+                'uploader_id': 'x1jdavv',
+                'timestamp': 1671387617,
+                'age_limit': 0,
+                'duration': 2918,
+                'like_count': int,
+                'view_count': int,
+                'thumbnail': r're:https?://.+x1080$',
+                'tags': list
             },
-            'skip': 'Removed'
+        },
+        {
+            'url': 'https://vk.com/clips-74006511?z=clip-74006511_456247211',
+            'info_dict': {
+                'id': '-74006511_456247211',
+                'ext': 'mp4',
+                'comment_count': int,
+                'duration': 9,
+                'like_count': int,
+                'thumbnail': r're:https?://.+(?:\.jpg|getVideoPreview.*)$',
+                'timestamp': 1664995597,
+                'title': 'Clip by @madempress',
+                'upload_date': '20221005',
+                'uploader': 'Шальная императрица',
+                'uploader_id': '-74006511',
+            },
         },
         {
             # video key is extra_data not url\d+
@@ -288,7 +255,7 @@ class VKIE(VKBaseIE):
             'skip': 'Removed',
         },
         {
-            # finished live stream, postlive_mp4
+            'note': 'finished live stream, postlive_mp4',
             'url': 'https://vk.com/videos-387766?z=video-387766_456242764%2Fpl_-387766_-2',
             'info_dict': {
                 'id': '-387766_456242764',
@@ -552,7 +519,7 @@ class VKUserVideosIE(VKBaseIE):
     }, {
         'url': 'https://vk.com/video/playlist/-174476437_2',
         'info_dict': {
-            'id': '-174476437_2',
+            'id': '-174476437_playlist_2',
             'title': 'Анонсы'
         },
         'playlist_mincount': 108,
@@ -595,6 +562,7 @@ class VKUserVideosIE(VKBaseIE):
             page_id = self._search_regex(r'data-owner-id\s?=\s?"([^"]+)"', webpage, 'page_id')
         elif '_' in u_id:
             page_id, section = u_id.split('_', 1)
+            section = f'playlist_{section}'
         else:
             raise ExtractorError('Invalid URL', expected=True)
 
@@ -614,13 +582,13 @@ class VKWallPostIE(VKBaseIE):
         'info_dict': {
             'id': '-23538238_35',
             'title': 'Black Shadow - Wall post -23538238_35',
-            'description': 'md5:3f84b9c4f9ef499731cf1ced9998cc0c',
+            'description': 'md5:190c78f905a53e0de793d83933c6e67f',
         },
         'playlist': [{
             'md5': '5ba93864ec5b85f7ce19a9af4af080f6',
             'info_dict': {
                 'id': '135220665_111806521',
-                'ext': 'mp4',
+                'ext': 'm4a',
                 'title': 'Black Shadow - Слепое Верование',
                 'duration': 370,
                 'uploader': 'Black Shadow',
@@ -631,7 +599,7 @@ class VKWallPostIE(VKBaseIE):
             'md5': '4cc7e804579122b17ea95af7834c9233',
             'info_dict': {
                 'id': '135220665_111802303',
-                'ext': 'mp4',
+                'ext': 'm4a',
                 'title': 'Black Shadow - Война - Негасимое Бездны Пламя!',
                 'duration': 423,
                 'uploader': 'Black Shadow',
@@ -642,16 +610,15 @@ class VKWallPostIE(VKBaseIE):
         'params': {
             'skip_download': True,
         },
-        'skip': 'Requires vk account credentials',
     }, {
-        # single YouTube embed, no leading -
-        'url': 'https://vk.com/wall85155021_6319',
+        # single YouTube embed with irrelevant reaction videos
+        'url': 'https://vk.com/wall-32370614_7173954',
         'info_dict': {
-            'id': '85155021_6319',
-            'title': 'Сергей Горбунов - Wall post 85155021_6319',
+            'id': '-32370614_7173954',
+            'title': 'md5:9f93c405bbc00061d34007d78c75e3bc',
+            'description': 'md5:953b811f26fa9f21ee5856e2ea8e68fc',
         },
         'playlist_count': 1,
-        'skip': 'Requires vk account credentials',
     }, {
         # wall page URL
         'url': 'https://vk.com/wall-23538238_35',
@@ -703,39 +670,173 @@ class VKWallPostIE(VKBaseIE):
             'w': 'wall' + post_id,
         })[1]
 
-        description = clean_html(get_element_by_class('wall_post_text', webpage))
-        uploader = clean_html(get_element_by_class('author', webpage))
+        uploader = clean_html(get_element_by_class('PostHeaderTitle__authorName', webpage))
 
         entries = []
 
         for audio in re.findall(r'data-audio="([^"]+)', webpage):
             audio = self._parse_json(unescapeHTML(audio), post_id)
-            a = self._AUDIO._make(audio[:16])
-            if not a.url:
+            if not audio['url']:
                 continue
-            title = unescapeHTML(a.title)
-            performer = unescapeHTML(a.performer)
+            title = unescapeHTML(audio.get('title'))
+            artist = unescapeHTML(audio.get('artist'))
             entries.append({
-                'id': '%s_%s' % (a.owner_id, a.id),
-                'url': self._unmask_url(a.url, a.ads['vk_id']),
-                'title': '%s - %s' % (performer, title) if performer else title,
-                'thumbnails': [{'url': c_url} for c_url in a.cover_url.split(',')] if a.cover_url else None,
-                'duration': int_or_none(a.duration),
+                'id': f'{audio["owner_id"]}_{audio["id"]}',
+                'title': join_nonempty(artist, title, delim=' - '),
+                'thumbnails': try_call(lambda: [{'url': u} for u in audio['coverUrl'].split(',')]),
+                'duration': int_or_none(audio.get('duration')),
                 'uploader': uploader,
-                'artist': performer,
+                'artist': artist,
                 'track': title,
-                'ext': 'mp4',
-                'protocol': 'm3u8_native',
+                'formats': [{
+                    'url': audio['url'],
+                    'ext': 'm4a',
+                    'vcodec': 'none',
+                    'acodec': 'mp3',
+                    'container': 'm4a_dash',
+                }],
             })
 
-        for video in re.finditer(
-                r'<a[^>]+href=(["\'])(?P<url>/video(?:-?[\d_]+).*?)\1', webpage):
-            entries.append(self.url_result(
-                compat_urlparse.urljoin(url, video.group('url')), VKIE.ie_key()))
-
-        title = 'Wall post %s' % post_id
+        entries.extend(self.url_result(urljoin(url, entry), VKIE) for entry in set(re.findall(
+            r'<a[^>]+href=(?:["\'])(/video(?:-?[\d_]+)[^"\']*)',
+            get_element_html_by_id('wl_post_body', webpage))))
 
         return self.playlist_result(
-            orderedSet(entries), post_id,
-            '%s - %s' % (uploader, title) if uploader else title,
-            description)
+            entries, post_id, join_nonempty(uploader, f'Wall post {post_id}', delim=' - '),
+            clean_html(get_element_by_class('wall_post_text', webpage)))
+
+
+class VKPlayBaseIE(InfoExtractor):
+    _RESOLUTIONS = {
+        'tiny': '256x144',
+        'lowest': '426x240',
+        'low': '640x360',
+        'medium': '852x480',
+        'high': '1280x720',
+        'full_hd': '1920x1080',
+        'quad_hd': '2560x1440',
+    }
+
+    def _extract_from_initial_state(self, url, video_id, path):
+        webpage = self._download_webpage(url, video_id)
+        video_info = traverse_obj(self._search_json(
+            r'<script[^>]+\bid="initial-state"[^>]*>', webpage, 'initial state', video_id),
+            path, expected_type=dict)
+        if not video_info:
+            raise ExtractorError('Unable to extract video info from html inline initial state')
+        return video_info
+
+    def _extract_formats(self, stream_info, video_id):
+        formats = []
+        for stream in traverse_obj(stream_info, (
+                'data', 0, 'playerUrls', lambda _, v: url_or_none(v['url']) and v['type'])):
+            url = stream['url']
+            format_id = str_or_none(stream['type'])
+            if format_id in ('hls', 'live_hls', 'live_playback_hls') or '.m3u8' in url:
+                formats.extend(self._extract_m3u8_formats(url, video_id, m3u8_id=format_id, fatal=False))
+            elif format_id == 'dash':
+                formats.extend(self._extract_mpd_formats(url, video_id, mpd_id=format_id, fatal=False))
+            elif format_id in ('live_dash', 'live_playback_dash'):
+                self.write_debug(f'Not extracting unsupported format "{format_id}"')
+            else:
+                formats.append({
+                    'url': url,
+                    'ext': 'mp4',
+                    'format_id': format_id,
+                    **parse_resolution(self._RESOLUTIONS.get(format_id)),
+                })
+        return formats
+
+    def _extract_common_meta(self, stream_info):
+        return traverse_obj(stream_info, {
+            'id': ('id', {str_or_none}),
+            'title': ('title', {str}),
+            'release_timestamp': ('startTime', {int_or_none}),
+            'thumbnail': ('previewUrl', {url_or_none}),
+            'view_count': ('count', 'views', {int_or_none}),
+            'like_count': ('count', 'likes', {int_or_none}),
+            'categories': ('category', 'title', {str}, {lambda x: [x] if x else None}),
+            'uploader': (('user', ('blog', 'owner')), 'nick', {str}),
+            'uploader_id': (('user', ('blog', 'owner')), 'id', {str_or_none}),
+            'duration': ('duration', {int_or_none}),
+            'is_live': ('isOnline', {bool}),
+            'concurrent_view_count': ('count', 'viewers', {int_or_none}),
+        }, get_all=False)
+
+
+class VKPlayIE(VKPlayBaseIE):
+    _VALID_URL = r'https?://vkplay\.live/(?P<username>[^/#?]+)/record/(?P<id>[a-f0-9-]+)'
+    _TESTS = [{
+        'url': 'https://vkplay.live/zitsmann/record/f5e6e3b5-dc52-4d14-965d-0680dd2882da',
+        'info_dict': {
+            'id': 'f5e6e3b5-dc52-4d14-965d-0680dd2882da',
+            'ext': 'mp4',
+            'title': 'Atomic Heart (пробуем!) спасибо подписчику EKZO!',
+            'uploader': 'ZitsmanN',
+            'uploader_id': '13159830',
+            'release_timestamp': 1683461378,
+            'release_date': '20230507',
+            'thumbnail': r're:https://images.vkplay.live/public_video_stream/record/f5e6e3b5-dc52-4d14-965d-0680dd2882da/preview\?change_time=\d+',
+            'duration': 10608,
+            'view_count': int,
+            'like_count': int,
+            'categories': ['Atomic Heart'],
+        },
+        'params': {'skip_download': 'm3u8'},
+    }]
+
+    def _real_extract(self, url):
+        username, video_id = self._match_valid_url(url).groups()
+
+        record_info = traverse_obj(self._download_json(
+            f'https://api.vkplay.live/v1/blog/{username}/public_video_stream/record/{video_id}', video_id, fatal=False),
+            ('data', 'record', {dict}))
+        if not record_info:
+            record_info = self._extract_from_initial_state(url, video_id, ('record', 'currentRecord', 'data'))
+
+        return {
+            **self._extract_common_meta(record_info),
+            'id': video_id,
+            'formats': self._extract_formats(record_info, video_id),
+        }
+
+
+class VKPlayLiveIE(VKPlayBaseIE):
+    _VALID_URL = r'https?://vkplay\.live/(?P<id>[^/#?]+)/?(?:[#?]|$)'
+    _TESTS = [{
+        'url': 'https://vkplay.live/bayda',
+        'info_dict': {
+            'id': 'f02c321e-427b-408d-b12f-ae34e53e0ea2',
+            'ext': 'mp4',
+            'title': r're:эскапизм крута .*',
+            'uploader': 'Bayda',
+            'uploader_id': 12279401,
+            'release_timestamp': 1687209962,
+            'release_date': '20230619',
+            'thumbnail': r're:https://images.vkplay.live/public_video_stream/12279401/preview\?change_time=\d+',
+            'view_count': int,
+            'concurrent_view_count': int,
+            'like_count': int,
+            'categories': ['EVE Online'],
+            'live_status': 'is_live',
+        },
+        'skip': 'livestream',
+        'params': {'skip_download': True},
+    }]
+
+    def _real_extract(self, url):
+        username = self._match_id(url)
+
+        stream_info = self._download_json(
+            f'https://api.vkplay.live/v1/blog/{username}/public_video_stream', username, fatal=False)
+        if not stream_info:
+            stream_info = self._extract_from_initial_state(url, username, ('stream', 'stream', 'data', 'stream'))
+
+        formats = self._extract_formats(stream_info, username)
+        if not formats and not traverse_obj(stream_info, ('isOnline', {bool})):
+            raise UserNotLive(video_id=username)
+
+        return {
+            **self._extract_common_meta(stream_info),
+            'formats': formats,
+        }

@@ -10,7 +10,7 @@ from ..utils import (
 
 
 class JableIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?jable.tv/videos/(?P<id>[\w-]+)'
+    _VALID_URL = r'https?://(?:www\.)?jable\.tv/videos/(?P<id>[\w-]+)'
     _TESTS = [{
         'url': 'https://jable.tv/videos/pppd-812/',
         'md5': 'f1537283a9bc073c31ff86ca35d9b2a6',
@@ -64,7 +64,7 @@ class JableIE(InfoExtractor):
 
 
 class JablePlaylistIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?jable.tv/(?:categories|models|tags)/(?P<id>[\w-]+)'
+    _VALID_URL = r'https?://(?:www\.)?jable\.tv/(?:categories|models|tags)/(?P<id>[\w-]+)'
     _TESTS = [{
         'url': 'https://jable.tv/models/kaede-karen/',
         'info_dict': {

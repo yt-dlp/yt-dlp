@@ -22,8 +22,11 @@ class AmazonMiniTVBaseIE(InfoExtractor):
 
         resp = self._download_json(
             f'https://www.amazon.in/minitv/api/web/{"graphql" if data else "prs"}',
-            asin, note=note, headers={'Content-Type': 'application/json'},
-            data=json.dumps(data).encode() if data else None,
+            asin, note=note, headers={
+                'Content-Type': 'application/json',
+                'currentpageurl': '/',
+                'currentplatform': 'dWeb'
+            }, data=json.dumps(data).encode() if data else None,
             query=None if data else {
                 'deviceType': 'A1WMMUXPCUJL4N',
                 'contentId': asin,
@@ -46,7 +49,7 @@ class AmazonMiniTVIE(AmazonMiniTVBaseIE):
             'ext': 'mp4',
             'title': 'May I Kiss You?',
             'language': 'Hindi',
-            'thumbnail': r're:^https?://.*\.jpg$',
+            'thumbnail': r're:^https?://.*\.(?:jpg|png)$',
             'description': 'md5:a549bfc747973e04feb707833474e59d',
             'release_timestamp': 1644710400,
             'release_date': '20220213',
@@ -68,7 +71,7 @@ class AmazonMiniTVIE(AmazonMiniTVBaseIE):
             'ext': 'mp4',
             'title': 'Jahaan',
             'language': 'Hindi',
-            'thumbnail': r're:^https?://.*\.jpg',
+            'thumbnail': r're:^https?://.*\.(?:jpg|png)',
             'description': 'md5:05eb765a77bf703f322f120ec6867339',
             'release_timestamp': 1647475200,
             'release_date': '20220317',
@@ -191,7 +194,7 @@ query content($sessionIdToken: String!, $deviceLocale: String, $contentId: ID!, 
 class AmazonMiniTVSeasonIE(AmazonMiniTVBaseIE):
     IE_NAME = 'amazonminitv:season'
     _VALID_URL = r'amazonminitv:season:(?:amzn1\.dv\.gti\.)?(?P<id>[a-f0-9-]+)'
-    IE_DESC = 'Amazon MiniTV Series, "minitv:season:" prefix'
+    IE_DESC = 'Amazon MiniTV Season, "minitv:season:" prefix'
     _TESTS = [{
         'url': 'amazonminitv:season:amzn1.dv.gti.0aa996eb-6a1b-4886-a342-387fbd2f1db0',
         'playlist_mincount': 6,
@@ -250,6 +253,7 @@ query getEpisodes($sessionIdToken: String!, $clientId: String, $episodeOrSeasonI
 class AmazonMiniTVSeriesIE(AmazonMiniTVBaseIE):
     IE_NAME = 'amazonminitv:series'
     _VALID_URL = r'amazonminitv:series:(?:amzn1\.dv\.gti\.)?(?P<id>[a-f0-9-]+)'
+    IE_DESC = 'Amazon MiniTV Series, "minitv:series:" prefix'
     _TESTS = [{
         'url': 'amazonminitv:series:amzn1.dv.gti.56521d46-b040-4fd5-872e-3e70476a04b0',
         'playlist_mincount': 3,

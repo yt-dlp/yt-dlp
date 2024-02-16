@@ -60,13 +60,13 @@ class GofileIE(InfoExtractor):
         account_data = self._download_json(
             'https://api.gofile.io/createAccount', None, note='Getting a new guest account')
         self._TOKEN = account_data['data']['token']
-        self._set_cookie('gofile.io', 'accountToken', self._TOKEN)
+        self._set_cookie('.gofile.io', 'accountToken', self._TOKEN)
 
     def _entries(self, file_id):
         query_params = {
             'contentId': file_id,
             'token': self._TOKEN,
-            'websiteToken': 12345,
+            'wt': '4fd6sg89d7s6',  # From https://gofile.io/dist/js/alljs.js
         }
         password = self.get_param('videopassword')
         if password:

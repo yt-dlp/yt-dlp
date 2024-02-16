@@ -440,12 +440,14 @@ class IqIE(InfoExtractor):
         '1': 'zh_CN',
         '2': 'zh_TW',
         '3': 'en',
-        '4': 'kor',
+        '4': 'ko',
+        '5': 'ja',
         '18': 'th',
         '21': 'my',
         '23': 'vi',
         '24': 'id',
         '26': 'es',
+        '27': 'pt',
         '28': 'ar',
     }
 
@@ -497,9 +499,10 @@ class IqIE(InfoExtractor):
                     'tm': tm,
                     'qdy': 'a',
                     'qds': 0,
-                    'k_ft1': 141287244169348,
-                    'k_ft4': 34359746564,
-                    'k_ft5': 1,
+                    'k_ft1': '143486267424900',
+                    'k_ft4': '1572868',
+                    'k_ft7': '4',
+                    'k_ft5': '1',
                     'bop': JSON.stringify({
                         'version': '10.0',
                         'dfp': dfp
@@ -525,16 +528,24 @@ class IqIE(InfoExtractor):
         if player_js_cache:
             return player_js_cache
         webpack_js_url = self._proto_relative_url(self._search_regex(
-            r'<script src="((?:https?)?//stc.iqiyipic.com/_next/static/chunks/webpack-\w+\.js)"', webpage, 'webpack URL'))
+            r'<script src="((?:https?:)?//stc\.iqiyipic\.com/_next/static/chunks/webpack-\w+\.js)"', webpage, 'webpack URL'))
         webpack_js = self._download_webpage(webpack_js_url, video_id, note='Downloading webpack JS', errnote='Unable to download webpack JS')
+
         webpack_map = self._search_json(
             r'["\']\s*\+\s*', webpack_js, 'JS locations', video_id,
             contains_pattern=r'{\s*(?:\d+\s*:\s*["\'][\da-f]+["\']\s*,?\s*)+}',
             end_pattern=r'\[\w+\]\+["\']\.js', transform_source=js_to_json)
 
+        replacement_map = self._search_json(
+            r'["\']\s*\+\(\s*', webpack_js, 'replacement map', video_id,
+            contains_pattern=r'{\s*(?:\d+\s*:\s*["\'][\w.-]+["\']\s*,?\s*)+}',
+            end_pattern=r'\[\w+\]\|\|\w+\)\+["\']\.', transform_source=js_to_json,
+            fatal=False) or {}
+
         for module_index in reversed(webpack_map):
+            real_module = replacement_map.get(module_index) or module_index
             module_js = self._download_webpage(
-                f'https://stc.iqiyipic.com/_next/static/chunks/{module_index}.{webpack_map[module_index]}.js',
+                f'https://stc.iqiyipic.com/_next/static/chunks/{real_module}.{webpack_map[module_index]}.js',
                 video_id, note=f'Downloading #{module_index} module JS', errnote='Unable to download module JS', fatal=False) or ''
             if 'vms request' in module_js:
                 self.cache.store('iq', 'player_js', module_js)
@@ -585,7 +596,7 @@ class IqIE(InfoExtractor):
                     'langCode': self._get_cookie('lang', 'en_us'),
                     'deviceId': self._get_cookie('QC005', '')
                 }, fatal=False)
-            ut_list = traverse_obj(vip_data, ('data', 'all_vip', ..., 'vipType'), expected_type=str_or_none, default=[])
+            ut_list = traverse_obj(vip_data, ('data', 'all_vip', ..., 'vipType'), expected_type=str_or_none)
         else:
             ut_list = ['0']
 
@@ -617,7 +628,7 @@ class IqIE(InfoExtractor):
             self.report_warning('This preview video is limited%s' % format_field(preview_time, None, ' to %s seconds'))
 
         # TODO: Extract audio-only formats
-        for bid in set(traverse_obj(initial_format_data, ('program', 'video', ..., 'bid'), expected_type=str_or_none, default=[])):
+        for bid in set(traverse_obj(initial_format_data, ('program', 'video', ..., 'bid'), expected_type=str_or_none)):
             dash_path = dash_paths.get(bid)
             if not dash_path:
                 self.report_warning(f'Unknown format id: {bid}. It is currently not being extracted')
@@ -628,7 +639,7 @@ class IqIE(InfoExtractor):
                 fatal=False), 'data', expected_type=dict)
 
             video_format = traverse_obj(format_data, ('program', 'video', lambda _, v: str(v['bid']) == bid),
-                                        expected_type=dict, default=[], get_all=False) or {}
+                                        expected_type=dict, get_all=False) or {}
             extracted_formats = []
             if video_format.get('m3u8Url'):
                 extracted_formats.extend(self._extract_m3u8_formats(
@@ -669,7 +680,7 @@ class IqIE(InfoExtractor):
                 })
             formats.extend(extracted_formats)
 
-        for sub_format in traverse_obj(initial_format_data, ('program', 'stl', ...), expected_type=dict, default=[]):
+        for sub_format in traverse_obj(initial_format_data, ('program', 'stl', ...), expected_type=dict):
             lang = self._LID_TAGS.get(str_or_none(sub_format.get('lid')), sub_format.get('_name'))
             subtitles.setdefault(lang, []).extend([{
                 'ext': format_ext,

@@ -33,7 +33,7 @@ class CiscoWebexIE(InfoExtractor):
         if rcid:
             webpage = self._download_webpage(url, None, note='Getting video ID')
             url = self._search_regex(self._VALID_URL, webpage, 'redirection url', group='url')
-        url = self._request_webpage(url, None, note='Resolving final URL').geturl()
+        url = self._request_webpage(url, None, note='Resolving final URL').url
         mobj = self._match_valid_url(url)
         subdomain = mobj.group('subdomain')
         siteurl = mobj.group('siteurl_1') or mobj.group('siteurl_2')
