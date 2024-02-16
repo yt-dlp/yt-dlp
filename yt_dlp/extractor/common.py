@@ -2334,7 +2334,7 @@ class InfoExtractor:
         for meta in smil.findall(self._xpath_ns('./head/meta', namespace)):
             b = meta.get('base') or meta.get('httpBase')
             if b:
-                base = b
+                base = f'{b}/'
                 break
 
         formats, subtitles = [], {}
