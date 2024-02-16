@@ -34,7 +34,7 @@ def run_tests(*tests, pattern=None, ci=False):
     if run_core:
         arguments.extend(['-m', 'not download'])
     elif run_download:
-        arguments.extend(['test/test_download.py'])
+        arguments.extend(['-m', 'download'])
     else:
         arguments.extend(
             f'test/test_download.py::TestDownload::test_{test}' for test in tests)
