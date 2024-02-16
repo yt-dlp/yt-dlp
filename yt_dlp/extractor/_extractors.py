@@ -1345,7 +1345,6 @@ from .nuvid import NuvidIE
 from .nzherald import NZHeraldIE
 from .nzonscreen import NZOnScreenIE
 from .nzz import NZZIE
-from .odatv import OdaTVIE
 from .odkmedia import OnDemandChinaEpisodeIE
 from .odnoklassniki import OdnoklassnikiIE
 from .oftv import (
