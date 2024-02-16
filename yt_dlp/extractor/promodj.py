@@ -66,7 +66,7 @@ class PromoDJBaseIE(InfoExtractor):
 
     _BASE_URL_RE = r'https?://(?:www\.)?promodj\.com'
     _NOT_LOGIN_LIST = '|'.join(['radio', *_PAGES])
-    _LOGIN_RE = rf'(?:(?!{_NOT_LOGIN_LIST}).)[\w.-]+'
+    _LOGIN_RE = rf'(?!{_NOT_LOGIN_LIST})[\w.-]+'
 
     def _set_url_page(self, url, page):
         parsed_url = urllib.parse.urlparse(url)
@@ -378,7 +378,7 @@ class PromoDJUserPageIE(PromoDJBaseIE):
         *PromoDJBaseIE._MEDIA_TYPES,
     ]
     _NOT_USER_PAGE_LIST = '|'.join(_USER_PATHS)
-    _USER_PAGE_RE = rf'(?:(?!{_NOT_USER_PAGE_LIST}).)[\w-]+'
+    _USER_PAGE_RE = rf'(?!{_NOT_USER_PAGE_LIST})[\w-]+'
 
     _VALID_URL = rf'{PromoDJBaseIE._BASE_URL_RE}/(?P<login>{PromoDJBaseIE._LOGIN_RE})/(?P<slug>{_USER_PAGE_RE})$'
     _TESTS = [{
