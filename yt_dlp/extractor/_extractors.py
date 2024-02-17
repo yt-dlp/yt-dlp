@@ -1577,7 +1577,6 @@ from .raywenderlich import (
     RayWenderlichIE,
     RayWenderlichCourseIE,
 )
-from .rbmaradio import RBMARadioIE
 from .rbgtum import (
     RbgTumIE,
     RbgTumCourseIE,
