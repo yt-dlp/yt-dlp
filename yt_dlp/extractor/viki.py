@@ -60,8 +60,8 @@ class VikiBaseIE(InfoExtractor):
             self._APP_SECRET.encode('ascii'), f'{query}&t={timestamp}'.encode('ascii'), hashlib.sha1).hexdigest()
         return timestamp, sig, self._API_URL_TEMPLATE % query
 
-    def _call_api(
-            self, path, video_id, note='Downloading JSON metadata', data=None, query=None, fatal=True):
+    def _call_api(self, path, video_id, note='Downloading JSON metadata',
+                  data=None, query=None, fatal=True, relogin=True):
         if query is None:
             timestamp, sig, url = self._sign_query(path)
         else:
@@ -72,6 +72,12 @@ class VikiBaseIE(InfoExtractor):
             headers=({'x-viki-app-ver': self._APP_VERSION} if data
                      else self._stream_headers(timestamp, sig) if query is None
                      else None), expected_status=400) or {}
+
+        if relogin and self._token and resp.get('vcode') == 11:
+            self.to_screen('Cached token expired, logging in again')
+            self._perform_login(*self._get_login_info(), use_cache=False)
+            if self._token:
+                return self._call_api(path, video_id, note, data, query, fatal, False)
 
         self._raise_error(resp.get('error'), fatal)
         return resp
@@ -97,12 +103,16 @@ class VikiBaseIE(InfoExtractor):
                     self.raise_login_required(message)
                 self._raise_error(message)
 
-    def _perform_login(self, username, password):
-        self._token = self._call_api(
+    def _perform_login(self, username, password, use_cache=True):
+        cache = self.cache.load('viki', 'session_token') or {}
+        self._token = (use_cache and cache.get(username)) or self._call_api(
             'sessions.json', None, 'Logging in', fatal=False,
             data={'username': username, 'password': password}).get('token')
         if not self._token:
             self.report_warning('Login Failed: Unable to get session token')
+
+        cache[username] = self._token
+        self.cache.store('viki', 'session_token', cache)
 
     @staticmethod
     def dict_selection(dict_obj, preferred_key):
