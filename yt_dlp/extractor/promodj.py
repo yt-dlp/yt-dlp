@@ -65,8 +65,8 @@ class PromoDJBaseIE(InfoExtractor):
     _PAGES = ['featured', 'shop', *_MEDIA_TYPES]
 
     _BASE_URL_RE = r'https?://(?:www\.)?promodj\.com'
-    _NOT_LOGIN_LIST = '|'.join(['radio', *_PAGES])
-    _LOGIN_RE = rf'(?!{_NOT_LOGIN_LIST})[\w.-]+'
+    _NOT_LOGIN_LIST = '|'.join(['radio', 'embed', *_PAGES])
+    _LOGIN_RE = rf'(?!(?:{_NOT_LOGIN_LIST})(?:/|$))[\w.-]+'
 
     def _set_url_page(self, url, page):
         parsed_url = urllib.parse.urlparse(url)
@@ -247,6 +247,10 @@ class PromoDJUserIE(PromoDJBaseIE):
             'id': 'slim96',
         },
         'playlist_count': 0,
+    }, {
+        # login starts with page name
+        'url': 'https://promodj.com/radio.remix',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
@@ -288,6 +292,10 @@ class PromoDJUserMediaIE(PromoDJBaseIE):
             'id': 'worobyev-video',
         },
         'playlist_count': 0,
+    }, {
+        # login starts with page name
+        'url': 'https://promodj.com/radio.remix/music',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
@@ -378,15 +386,18 @@ class PromoDJUserPageIE(PromoDJBaseIE):
         *PromoDJBaseIE._MEDIA_TYPES,
     ]
     _NOT_USER_PAGE_LIST = '|'.join(_USER_PATHS)
-    _USER_PAGE_RE = rf'(?!{_NOT_USER_PAGE_LIST})[\w-]+'
 
-    _VALID_URL = rf'{PromoDJBaseIE._BASE_URL_RE}/(?P<login>{PromoDJBaseIE._LOGIN_RE})/(?P<slug>{_USER_PAGE_RE})$'
+    _VALID_URL = rf'{PromoDJBaseIE._BASE_URL_RE}/(?P<login>{PromoDJBaseIE._LOGIN_RE})/(?P<slug>(?!(?:{_NOT_USER_PAGE_LIST})$)[\w-]+$)'
     _TESTS = [{
         'url': 'https://promodj.com/djperetse/MaxMixes',
         'info_dict': {
             'id': 'djperetse-MaxMixes',
         },
         'playlist_count': 5,
+    }, {
+        # user page starts with media type (not a real link)
+        'url': 'https://promodj.com/djperetse/remixes-best',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
