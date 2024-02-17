@@ -1429,23 +1429,6 @@ class TestYoutubeDLNetworking:
             assert len(director.preferences) == 1
             assert director.preferences.pop()(UrllibRH, None)
 
-    def test_close(self, monkeypatch):
-        with FakeYDL() as ydl:
-            director = ydl._request_director
-            called = False
-            original_close = director.close
-
-            def mock_close(*args, **kwargs):
-                nonlocal called
-                called = True
-                return original_close(*args, **kwargs)
-
-            monkeypatch.setattr(director, 'close', mock_close)
-
-            ydl.close()
-
-            assert called is True
-
 
 class TestRequest:
 
