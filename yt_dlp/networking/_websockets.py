@@ -38,6 +38,8 @@ if websockets_version < (12, 0):
 import websockets.sync.client
 from websockets.uri import parse_uri
 
+WEBSOCKETS_LOGGERS = ('websockets.client', 'websockets.server')
+
 
 class WebsocketsResponseAdapter(WebSocketResponse):
 
@@ -90,10 +92,12 @@ class WebsocketsRH(WebSocketRequestHandler):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        for name in ('websockets.client', 'websockets.server'):
+        self.__logging_handlers = []
+        for name in WEBSOCKETS_LOGGERS:
             logger = logging.getLogger(name)
             handler = logging.StreamHandler(stream=sys.stdout)
             handler.setFormatter(logging.Formatter(f'{self.RH_NAME}: %(message)s'))
+            self.__logging_handlers.append(handler)
             logger.addHandler(handler)
             if self.verbose:
                 logger.setLevel(logging.DEBUG)
@@ -102,6 +106,13 @@ class WebsocketsRH(WebSocketRequestHandler):
         super()._check_extensions(extensions)
         extensions.pop('timeout', None)
         extensions.pop('cookiejar', None)
+
+    def close(self):
+        # Remove the logging handler that contains a reference to our logger
+        # See: https://github.com/yt-dlp/yt-dlp/issues/8922
+        for name in WEBSOCKETS_LOGGERS:
+            for handler in self.__logging_handlers:
+                logging.getLogger(name).removeHandler(handler)
 
     def _send(self, request):
         timeout = float(request.extensions.get('timeout') or self.timeout)

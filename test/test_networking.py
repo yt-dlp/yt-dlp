@@ -746,6 +746,25 @@ class TestClientCertificate:
         })
 
 
+class TestRequestHandlerMisc:
+    """Misc generic tests for request handlers, not related to request or validation testing"""
+    @pytest.mark.parametrize('handler,logger_name', [
+        ('Requests', 'urllib3'),
+        ('Websockets', 'websockets.client'),
+        ('Websockets', 'websockets.server')
+    ], indirect=['handler'])
+    def test_remove_logging_handler(self, handler, logger_name):
+        # Ensure any logging handlers, which may contain a YoutubeDL instance,
+        # are removed when we close the request handler
+        # See: https://github.com/yt-dlp/yt-dlp/issues/8922
+        logging_handlers = logging.getLogger(logger_name).handlers
+        before_count = len(logging_handlers)
+        rh = handler()
+        assert len(logging_handlers) == before_count + 1
+        rh.close()
+        assert len(logging_handlers) == before_count
+
+
 class TestUrllibRequestHandler(TestRequestHandlerBase):
     @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
     def test_file_urls(self, handler):
@@ -905,16 +924,6 @@ class TestRequestsRequestHandler(TestRequestHandlerBase):
         rh.close()
 
         assert called
-
-    def test_remove_logging_handler(self, handler):
-        # Ensure logging handler, containing YoutubeDL instance, is removed when we close the request handler
-        # https://github.com/yt-dlp/yt-dlp/issues/8922
-        logging_handlers = logging.getLogger('urllib3').handlers
-        before_count = len(logging_handlers)
-        rh = handler()
-        assert len(logging_handlers) == before_count + 1
-        rh.close()
-        assert len(logging_handlers) == before_count
 
 
 def run_validation(handler, error, req, **handler_kwargs):
