@@ -6,16 +6,17 @@ import urllib.parse
 from .common import InfoExtractor
 from .youtube import YoutubeIE
 from ..utils import (
-    OnDemandPagedList,
     clean_html,
     dict_get,
     extract_attributes,
     ExtractorError,
     get_element_by_class,
+    get_element_html_by_id,
     get_elements_html_by_class,
     int_or_none,
     js_to_json,
     merge_dicts,
+    OnDemandPagedList,
     parse_duration,
     str_or_none,
     traverse_obj,
@@ -989,19 +990,53 @@ class PromoDJRadioIE(PromoDJBaseIE):
     _VALID_URL = rf'{PromoDJBaseIE._BASE_URL_RE}/radio#(?P<id>\w+)'
     _TESTS = [{
         'url': 'https://promodj.com/radio#dubstep',
-        'only_matching': True,
+        'info_dict': {
+            'id': 'dubstep',
+            'ext': 'mp3',
+            'title': r're:^Dubstep ',
+            'description': 'Всё лучше под дабстеп',
+            'thumbnail': r're:^https?://',
+            'live_status': 'is_live',
+        },
     }, {
         'url': 'https://promodj.com/radio#oldschool',
-        'only_matching': True,
+        'info_dict': {
+            'id': 'oldschool',
+            'ext': 'mp3',
+            'title': r're:^Old-School ',
+            'description': 'То самое доброе, старое, вечное',
+            'thumbnail': r're:^https?://',
+            'live_status': 'is_live',
+        },
     }]
 
     def _real_extract(self, url):
-        id = self._match_id(url)
+        slug = self._match_id(url)
+        html = self._download_webpage(url, slug)
+        radio_span = get_element_html_by_id(f'radio_{slug}', html)
+        if not radio_span:
+            raise ExtractorError('Radio channel is offline or not exists', expected=True)
+        id = self._search_regex(r'amba="radio:(\d+)"', radio_span, 'id')
+        tooltip_html = self._download_webpage(
+            f'https://promodj.com/ajax/tooltip.html?wtf=radio:{id}', slug,
+            note='Downloading tooltip webpage')
+        title = clean_html(self._search_regex(
+            r'<h1[^>]*><b>([^<]+)</b></h1>', tooltip_html, 'title', default=None))
+        description = clean_html(self._search_regex(
+            r'<div>([^<]+)</div>', tooltip_html, 'description', default=None))
+        thumbnail = self._search_regex(
+            rf'#radio_{slug}:after {{ background-image: url\(([^)]+)\); }}',
+            html, 'thumbnail', default=None)
+
         return {
-            'id': id,
+            'id': slug,
+            'title': title,
+            'description': description,
+            'thumbnail': url_or_none(thumbnail),
             'formats': [{
-                'url': f'https://radio.promodj.com/{id}-192',
+                'url': f'https://radio.promodj.com/{slug}-192',
                 'abr': 192,
+                'ext': 'mp3',
             }],
             'is_live': True,
         }
