@@ -1608,7 +1608,6 @@ from .redgifs import (
     RedGifsUserIE,
 )
 from .redtube import RedTubeIE
-from .regiotv import RegioTVIE
 from .rentv import (
     RENTVIE,
     RENTVArticleIE,
