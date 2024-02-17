@@ -34,6 +34,9 @@ class ScreencastifyIE(InfoExtractor):
         'params': {
             'skip_download': 'm3u8',
         },
+    }, {
+        'url': 'https://app.screencastify.com/v2/watch/BQ26VbUdfbQLhKzkktOk',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
