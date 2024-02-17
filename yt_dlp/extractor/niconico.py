@@ -471,28 +471,12 @@ class NiconicoIE(InfoExtractor):
         }
 
     def _get_subtitles(self, video_id, api_data):
-        new_comments = traverse_obj(api_data, ('comment', 'nvComment'))
-        new_danmaku = self._extract_new_comments(
-            new_comments.get('server'), video_id,
-            new_comments.get('params'), new_comments.get('threadKey'))
-
-        if not new_danmaku:
-            self.report_warning(f'Failed to get comments. {bug_reports_message()}')
-            return
-
-        return {
-            'comments': [{
-                'ext': 'json',
-                'data': json.dumps(new_danmaku),
-            }],
-        }
-
-    def _extract_new_comments(self, endpoint, video_id, params, thread_key):
-        comments = self._download_json(
-            f'{endpoint}/v1/threads', video_id, data=json.dumps({
+        comments_info = traverse_obj(api_data, ('comment', 'nvComment'))
+        danmaku = traverse_obj(self._download_json(
+            f'{comments_info.get("server")}/v1/threads', video_id, data=json.dumps({
                 'additionals': {},
-                'params': params,
-                'threadKey': thread_key,
+                'params': comments_info.get('params'),
+                'threadKey': comments_info.get('threadKey'),
             }).encode(), fatal=False,
             headers={
                 'Referer': 'https://www.nicovideo.jp/',
@@ -502,8 +486,19 @@ class NiconicoIE(InfoExtractor):
                 'x-frontend-id': '6',
                 'x-frontend-version': '0',
             },
-            note='Downloading comments (new)', errnote='Failed to download comments (new)')
-        return traverse_obj(comments, ('data', 'threads', ..., 'comments', ...))
+            note='Downloading comments', errnote='Failed to download comments'),
+            ('data', 'threads', ..., 'comments', ...))
+
+        if not danmaku:
+            self.report_warning(f'Failed to get comments. {bug_reports_message()}')
+            return
+
+        return {
+            'comments': [{
+                'ext': 'json',
+                'data': json.dumps(danmaku),
+            }],
+        }
 
 
 class NiconicoPlaylistBaseIE(InfoExtractor):
