@@ -38,8 +38,6 @@ if websockets_version < (12, 0):
 import websockets.sync.client
 from websockets.uri import parse_uri
 
-WEBSOCKETS_LOGGERS = ('websockets.client', 'websockets.server')
-
 
 class WebsocketsResponseAdapter(WebSocketResponse):
 
@@ -93,7 +91,7 @@ class WebsocketsRH(WebSocketRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.__logging_handlers = {}
-        for name in WEBSOCKETS_LOGGERS:
+        for name in ('websockets.client', 'websockets.server'):
             logger = logging.getLogger(name)
             handler = logging.StreamHandler(stream=sys.stdout)
             handler.setFormatter(logging.Formatter(f'{self.RH_NAME}: %(message)s'))
