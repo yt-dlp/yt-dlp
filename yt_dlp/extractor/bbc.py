@@ -1449,6 +1449,8 @@ class BBCCoUkIPlayerPlaylistBaseIE(InfoExtractor):
         pid = self._match_id(url)
         qs = parse_qs(url)
         series_id = qs.get('seriesId', [None])[0]
+        if self.get_param('noplaylist'):
+            series_id = None
         page = qs.get('page', [None])[0]
         per_page = 36 if page else self._PAGE_SIZE
         fetch_page = functools.partial(self._fetch_page, pid, per_page, series_id)
