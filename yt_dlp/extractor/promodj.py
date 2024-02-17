@@ -155,6 +155,8 @@ class PromoDJBaseIE(InfoExtractor):
             'format_id': 'lossy',
             'url': traverse_obj(source, ('URL', {url_or_none})),
             'size': traverse_obj(source, ('size', {int_or_none})),
+            'acodec': 'mp3',
+            'vcodec': 'none',
         } for source in traverse_obj(media_data, ('sources'))]
         thumbnails = [{
             'url': url,
@@ -780,7 +782,7 @@ class PromoDJIE(PromoDJBaseIE):
 
     # examples: MP3, 320 Кбит | MP4, 20157 Кбит | WAV, 1412 Кбит | AVI, 1731 Кбит | ASF, 6905 Кбит | FLAC, 1509 Кбит
     # https://regex101.com/r/2AuaxB/1
-    _FORMATS_RE = r'(?:<a\s+href=\"(?P<url>[^\"]+)\">)?\s*\w+, (?P<bitrate>\d+) Кбит'
+    _FORMATS_RE = r'(?:<a\s+href=\"(?P<url>[^\"]+)\">)?\s*(?P<format>\w+), (?P<bitrate>\d+) Кбит'
     _VIEW_COUNT_RE = r'<b>(?:Прослушиваний|Просмотров):</b>\s*(\d+)'
     # examples: 0:21 | 1:07 | 74:38
     _DURATION_RE = r'<b>Продолжительность:</b>\s*(\d+:\d{2})'
@@ -847,18 +849,19 @@ class PromoDJIE(PromoDJBaseIE):
         # size field describes best quality
         size = self._parse_ru_size(*re.search(self._SIZE_RE, meta_html).groups())
         if type == 'videos':
-            for url, bitrate in formats_from_html:
+            for url, format, bitrate in formats_from_html:
                 if url_or_none(url):
                     metadata['formats'].append({
                         'format_id': 'source',
                         'url': url,
                         'tbr': int(bitrate),
                         'size': size,
+                        'container': format.lower(),
                         'quality': 1,
                     })
         elif not is_paid:
             for i, match in enumerate(formats_from_html):
-                url, bitrate = match
+                url, format, bitrate = match
                 is_last = i == len(formats_from_html) - 1
                 if is_last:
                     metadata['formats'][0]['abr'] = int(bitrate)
@@ -867,6 +870,8 @@ class PromoDJIE(PromoDJBaseIE):
                         'format_id': 'lossless',
                         'url': url,
                         'abr': int(bitrate),
+                        'acodec': format.lower(),
+                        'vcodec': 'none',
                     })
             metadata['formats'][-1]['size'] = size
 
@@ -1037,6 +1042,8 @@ class PromoDJRadioIE(PromoDJBaseIE):
                 'url': f'https://radio.promodj.com/{slug}-192',
                 'abr': 192,
                 'ext': 'mp3',
+                'acodec': 'mp3',
+                'vcodec': 'none',
             }],
             'is_live': True,
         }
