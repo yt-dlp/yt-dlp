@@ -920,9 +920,7 @@ class TestRequestsRequestHandler(TestRequestHandlerBase):
             return original_close(*args, **kwargs)
 
         monkeypatch.setattr(session, 'close', mock_close)
-
         rh.close()
-
         assert called
 
 
@@ -1245,7 +1243,7 @@ class TestRequestDirector:
 
         monkeypatch.setattr(director.handlers[FakeRH.RH_KEY], 'close', mock_close)
         director.close()
-        assert called is True
+        assert called
 
 
 # XXX: do we want to move this to test_YoutubeDL.py?

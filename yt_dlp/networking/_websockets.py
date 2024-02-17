@@ -92,12 +92,12 @@ class WebsocketsRH(WebSocketRequestHandler):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.__logging_handlers = []
+        self.__logging_handlers = {}
         for name in WEBSOCKETS_LOGGERS:
             logger = logging.getLogger(name)
             handler = logging.StreamHandler(stream=sys.stdout)
             handler.setFormatter(logging.Formatter(f'{self.RH_NAME}: %(message)s'))
-            self.__logging_handlers.append(handler)
+            self.__logging_handlers[name] = handler
             logger.addHandler(handler)
             if self.verbose:
                 logger.setLevel(logging.DEBUG)
@@ -110,9 +110,8 @@ class WebsocketsRH(WebSocketRequestHandler):
     def close(self):
         # Remove the logging handler that contains a reference to our logger
         # See: https://github.com/yt-dlp/yt-dlp/issues/8922
-        for name in WEBSOCKETS_LOGGERS:
-            for handler in self.__logging_handlers:
-                logging.getLogger(name).removeHandler(handler)
+        for name, handler in self.__logging_handlers.items():
+            logging.getLogger(name).removeHandler(handler)
 
     def _send(self, request):
         timeout = float(request.extensions.get('timeout') or self.timeout)
