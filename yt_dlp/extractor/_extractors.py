@@ -1733,7 +1733,6 @@ from .scte import (
     SCTECourseIE,
 )
 from .scrolller import ScrolllerIE
-from .seeker import SeekerIE
 from .sejmpl import SejmIE
 from .senalcolombia import SenalColombiaLiveIE
 from .senategov import SenateISVPIE, SenateGovIE
