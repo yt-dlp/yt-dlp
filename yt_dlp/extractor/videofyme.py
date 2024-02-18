@@ -6,6 +6,7 @@ from ..utils import (
 
 
 class VideofyMeIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.videofy\.me/.+?|p\.videofy\.me/v)/(?P<id>\d+)(&|#|$)'
     IE_NAME = 'videofy.me'
 
