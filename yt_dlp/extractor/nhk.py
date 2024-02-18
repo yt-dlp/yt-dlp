@@ -1,4 +1,5 @@
 import re
+import xml.etree.ElementTree
 
 from .common import InfoExtractor
 from ..utils import (
@@ -9,6 +10,7 @@ from ..utils import (
     join_nonempty,
     parse_duration,
     traverse_obj,
+    try_call,
     unescapeHTML,
     unified_timestamp,
     url_or_none,
@@ -541,29 +543,36 @@ class NhkRadiruIE(InfoExtractor):
 
     _api_config = None
 
-    def _extract_extended_description(self, episode_id, aa_vinfo2, aa_vinfo3):
-        service, area = aa_vinfo2.split(",")
+    def _extract_extended_description(self, episode_id, episode):
+        service, _, area = traverse_obj(episode, ('aa_vinfo2', {str}, {lambda x: (x or '').partition(',')}))
+        aa_vinfo3 = traverse_obj(episode, ('aa_vinfo3', {str}))
+        if not (service and area and aa_vinfo3):
+            return
 
-        if not self._api_config:
+        if not isinstance(self._api_config, xml.etree.ElementTree.Element):
             self._api_config = self._download_xml('https://www.nhk.or.jp/radio/config/config_web.xml',
                                                   episode_id, 'Downloading API information', fatal=False)
 
-        full_meta = self._download_json(f'https:{self._api_config.find(".//url_program_detail").text}'.format(
-                                        service=service, area=area, dateid=aa_vinfo3),
-                                        episode_id, note='Downloading extended metadata', fatal=False)
+        detail_url = try_call(
+            lambda: f'https:{self._api_config.find(".//url_program_detail").text}'.format(
+                service=service, area=area, dateid=aa_vinfo3))
+        if not detail_url:
+            return
+
+        full_meta = self._download_json(detail_url, episode_id, 'Downloading extended metadata', fatal=False)
         if not full_meta:
             return
-        return join_nonempty("subtitle", "content", "act", "music", delim="\n\n",
+        return join_nonempty('subtitle', 'content', 'act', 'music', delim='\n\n',
                              from_dict=traverse_obj(full_meta, ('list', service, 0)))
 
     def _extract_episode_info(self, headline, programme_id, series_meta):
         episode_id = f'{programme_id}_{headline["headline_id"]}'
         episode = traverse_obj(headline, ('file_list', 0, {dict}))
-        description = self._extract_extended_description(episode_id, episode.get("aa_vinfo2"),
-                                                         episode.get("aa_vinfo3"))
+        description = self._extract_extended_description(episode_id, episode)
+
         if not description:
-            self.report_warning("Couldn't get extended description, falling back to summary")
-            description = episode.get("file_title_sub")
+            self.report_warning('Couldn\'t get extended description, falling back to summary')
+            description = traverse_obj(episode, ('file_title_sub', {str}))
 
         return {
             **series_meta,
