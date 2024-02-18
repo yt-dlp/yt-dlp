@@ -507,7 +507,6 @@ class NhkRadiruIE(InfoExtractor):
     }, {
         # one with letters in the id
         'url': 'https://www.nhk.or.jp/radio/player/ondemand.html?p=F300_06_3738470',
-        'skip': 'Test fails due to extended description request failing - falls back to normal in real usage',
         'note': 'Expires on 2024-03-31',
         'info_dict': {
             'id': 'F300_06_3738470',
@@ -522,7 +521,8 @@ class NhkRadiruIE(InfoExtractor):
             'series': 'らじる文庫 by ラジオ深夜便 ',
             'release_timestamp': 1481126700,
             'upload_date': '20211101',
-        }
+        },
+        'expected_warnings': ['Unable to download JSON metadata', 'Couldn\'t get extended description'],
     }, {
         # news
         'url': 'https://www.nhk.or.jp/radio/player/ondemand.html?p=F261_01_3855109',
