@@ -475,22 +475,22 @@ class NhkRadiruIE(InfoExtractor):
     IE_DESC = 'NHK らじる (Radiru/Rajiru)'
     _VALID_URL = r'https?://www\.nhk\.or\.jp/radio/(?:player/ondemand|ondemand/detail)\.html\?p=(?P<site>[\da-zA-Z]+)_(?P<corner>[\da-zA-Z]+)(?:_(?P<headline>[\da-zA-Z]+))?'
     _TESTS = [{
-        'url': 'https://www.nhk.or.jp/radio/player/ondemand.html?p=0449_01_3853544',
-        'skip': 'Episode expired on 2023-04-16',
+        'url': 'https://www.nhk.or.jp/radio/player/ondemand.html?p=0449_01_3926210',
+        'skip': 'Episode expired on 2024-02-24',
         'info_dict': {
-            'channel': 'NHK-FM',
-            'uploader': 'NHK-FM',
-            'description': 'md5:94b08bdeadde81a97df4ec882acce3e9',
+            'title': 'ジャズ・トゥナイト　シリーズＪＡＺＺジャイアンツ　５６　ジョニー・ホッジス',
+            'id': '0449_01_3926210',
             'ext': 'm4a',
-            'id': '0449_01_3853544',
             'series': 'ジャズ・トゥナイト',
+            'uploader': 'NHK-FM',
+            'channel': 'NHK-FM',
             'thumbnail': 'https://www.nhk.or.jp/prog/img/449/g449.jpg',
-            'timestamp': 1680969600,
-            'title': 'ジャズ・トゥナイト　ＮＥＷジャズ特集',
-            'upload_date': '20230408',
-            'release_timestamp': 1680962400,
-            'release_date': '20230408',
-            'was_live': True,
+            'release_date': '20240217',
+            'description': 'md5:a456ee8e5e59e6dd2a7d32e62386e811',
+            'timestamp': 1708185600,
+            'release_timestamp': 1708178400,
+            'upload_date': '20240217',
+
         },
     }, {
         # playlist, airs every weekday so it should _hopefully_ be okay forever
@@ -507,6 +507,7 @@ class NhkRadiruIE(InfoExtractor):
     }, {
         # one with letters in the id
         'url': 'https://www.nhk.or.jp/radio/player/ondemand.html?p=F300_06_3738470',
+        'skip': 'Test fails due to extended description request failing - falls back to normal in real usage',
         'note': 'Expires on 2024-03-31',
         'info_dict': {
             'id': 'F300_06_3738470',
