@@ -2,10 +2,10 @@ from .common import InfoExtractor
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
+    UserNotLive,
     parse_iso8601,
     str_or_none,
     traverse_obj,
-    UserNotLive,
     url_or_none,
 )
 
