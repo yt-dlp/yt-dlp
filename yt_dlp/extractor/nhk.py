@@ -490,7 +490,6 @@ class NhkRadiruIE(InfoExtractor):
             'timestamp': 1708185600,
             'release_timestamp': 1708178400,
             'upload_date': '20240217',
-
         },
     }, {
         # playlist, airs every weekday so it should _hopefully_ be okay forever
@@ -522,7 +521,7 @@ class NhkRadiruIE(InfoExtractor):
             'release_timestamp': 1481126700,
             'upload_date': '20211101',
         },
-        'expected_warnings': ['Unable to download JSON metadata', 'Couldn\'t get extended description'],
+        'expected_warnings': ['Unable to download JSON metadata', 'Failed to get extended description'],
     }, {
         # news
         'url': 'https://www.nhk.or.jp/radio/player/ondemand.html?p=F261_01_3855109',
@@ -570,9 +569,8 @@ class NhkRadiruIE(InfoExtractor):
         episode_id = f'{programme_id}_{headline["headline_id"]}'
         episode = traverse_obj(headline, ('file_list', 0, {dict}))
         description = self._extract_extended_description(episode_id, episode)
-
         if not description:
-            self.report_warning('Couldn\'t get extended description, falling back to summary')
+            self.report_warning('Failed to get extended description, falling back to summary')
             description = traverse_obj(episode, ('file_title_sub', {str}))
 
         return {
