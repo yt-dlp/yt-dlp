@@ -551,8 +551,9 @@ class NhkRadiruIE(InfoExtractor):
             return
 
         if not isinstance(self._api_config, xml.etree.ElementTree.Element):
-            self._api_config = self._download_xml('https://www.nhk.or.jp/radio/config/config_web.xml',
-                                                  episode_id, 'Downloading API information', fatal=False)
+            self._api_config = self._download_xml(
+                'https://www.nhk.or.jp/radio/config/config_web.xml',
+                episode_id, 'Downloading API information', fatal=False)
 
         detail_url = try_call(
             lambda: f'https:{self._api_config.find(".//url_program_detail").text}'.format(
@@ -561,10 +562,9 @@ class NhkRadiruIE(InfoExtractor):
             return
 
         full_meta = self._download_json(detail_url, episode_id, 'Downloading extended metadata', fatal=False)
-        if not full_meta:
-            return
-        return join_nonempty('subtitle', 'content', 'act', 'music', delim='\n\n',
-                             from_dict=traverse_obj(full_meta, ('list', service, 0)))
+        return join_nonempty(
+            'subtitle', 'content', 'act', 'music', delim='\n\n',
+            from_dict=traverse_obj(full_meta, ('list', service, 0, {dict}), default={}))
 
     def _extract_episode_info(self, headline, programme_id, series_meta):
         episode_id = f'{programme_id}_{headline["headline_id"]}'
