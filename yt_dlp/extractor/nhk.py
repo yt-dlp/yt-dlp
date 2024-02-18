@@ -561,10 +561,10 @@ class NhkRadiruIE(InfoExtractor):
         if not detail_url:
             return
 
-        full_meta = self._download_json(detail_url, episode_id, 'Downloading extended metadata', fatal=False)
-        return join_nonempty(
-            'subtitle', 'content', 'act', 'music', delim='\n\n',
-            from_dict=traverse_obj(full_meta, ('list', service, 0, {dict}), default={}))
+        full_meta = traverse_obj(
+            self._download_json(detail_url, episode_id, 'Downloading extended metadata', fatal=False),
+            ('list', service, 0, {dict})) or {}
+        return join_nonempty('subtitle', 'content', 'act', 'music', delim='\n\n', from_dict=full_meta)
 
     def _extract_episode_info(self, headline, programme_id, series_meta):
         episode_id = f'{programme_id}_{headline["headline_id"]}'
