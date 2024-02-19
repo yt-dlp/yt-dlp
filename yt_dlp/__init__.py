@@ -4,7 +4,7 @@ if sys.version_info < (3, 8):
     raise ImportError(
         f'You are using an unsupported version of Python. Only Python versions 3.8 and above are supported by yt-dlp')  # noqa: F541
 
-__license__ = 'Public Domain'
+__license__ = 'The Unlicense'
 
 import collections
 import getpass
