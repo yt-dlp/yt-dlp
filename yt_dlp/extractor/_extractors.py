@@ -257,6 +257,7 @@ from .blogger import BloggerIE
 from .bloomberg import BloombergIE
 from .bokecc import BokeCCIE
 from .bongacams import BongaCamsIE
+from .boosty import BoostyIE
 from .bostonglobe import BostonGlobeIE
 from .box import BoxIE
 from .boxcast import BoxCastVideoIE
@@ -617,6 +618,7 @@ from .filmon import (
 from .filmweb import FilmwebIE
 from .firsttv import FirstTVIE
 from .fivetv import FiveTVIE
+from .flextv import FlexTVIE
 from .flickr import FlickrIE
 from .floatplane import (
     FloatplaneIE,
@@ -1352,6 +1354,12 @@ from .nytimes import (
     NYTimesIE,
     NYTimesArticleIE,
     NYTimesCookingIE,
+    NYTimesCookingRecipeIE,
+)
+from .nuum import (
+    NuumLiveIE,
+    NuumTabIE,
+    NuumMediaIE,
 )
 from .nuvid import NuvidIE
 from .nzherald import NZHeraldIE
@@ -2313,11 +2321,6 @@ from .walla import WallaIE
 from .washingtonpost import (
     WashingtonPostIE,
     WashingtonPostArticleIE,
-)
-from .wasdtv import (
-    WASDTVStreamIE,
-    WASDTVRecordIE,
-    WASDTVClipIE,
 )
 from .wat import WatIE
 from .wdr import (

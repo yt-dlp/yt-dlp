@@ -1,6 +1,7 @@
 import re
 
 from .common import InfoExtractor
+from ..networking import HEADRequest
 from ..utils import (
     clean_html,
     determine_ext,
@@ -91,7 +92,7 @@ class RaiBaseIE(InfoExtractor):
             self.raise_geo_restricted(countries=self._GEO_COUNTRIES, metadata_available=True)
 
         if not audio_only and not is_live:
-            formats.extend(self._create_http_urls(media_url, relinker_url, formats))
+            formats.extend(self._create_http_urls(media_url, relinker_url, formats, video_id))
 
         return filter_dict({
             'is_live': is_live,
@@ -99,7 +100,7 @@ class RaiBaseIE(InfoExtractor):
             'formats': formats,
         })
 
-    def _create_http_urls(self, manifest_url, relinker_url, fmts):
+    def _create_http_urls(self, manifest_url, relinker_url, fmts, video_id):
         _MANIFEST_REG = r'/(?P<id>\w+)(?:_(?P<quality>[\d\,]+))?(?:\.mp4)?(?:\.csmil)?/playlist\.m3u8'
         _MP4_TMPL = '%s&overrideUserAgentRule=mp4-%s'
         _QUALITY = {
@@ -165,6 +166,14 @@ class RaiBaseIE(InfoExtractor):
                 'acodec': 'mp4a',
                 'fps': 25,
             }
+
+        # Check if MP4 download is available
+        try:
+            self._request_webpage(
+                HEADRequest(_MP4_TMPL % (relinker_url, '*')), video_id, 'Checking MP4 availability')
+        except ExtractorError as e:
+            self.to_screen(f'{video_id}: MP4 direct download is not available: {e.cause}')
+            return []
 
         # filter out single-stream formats
         fmts = [f for f in fmts

@@ -167,8 +167,8 @@ For ease of use, a few more compat options are available:
 * `--compat-options youtube-dl`: Same as `--compat-options all,-multistreams,-playlist-match-filter,-manifest-filesize-approx`
 * `--compat-options youtube-dlc`: Same as `--compat-options all,-no-live-chat,-no-youtube-channel-redirect,-playlist-match-filter,-manifest-filesize-approx`
 * `--compat-options 2021`: Same as `--compat-options 2022,no-certifi,filename-sanitization,no-youtube-prefer-utc-upload-date`
-* `--compat-options 2022`: Same as `--compat-options 2023,playlist-match-filter,no-external-downloader-progress`
-* `--compat-options 2023`: Same as `--compat-options prefer-legacy-http-handler,manifest-filesize-approx`. Use this to enable all future compat options
+* `--compat-options 2022`: Same as `--compat-options 2023,playlist-match-filter,no-external-downloader-progress,prefer-legacy-http-handler,manifest-filesize-approx`
+* `--compat-options 2023`: Currently does nothing. Use this to enable all future compat options
 
 
 # INSTALLATION
@@ -321,19 +321,21 @@ If you do not have the necessary dependencies for a task you are attempting, yt-
 ## COMPILE
 
 ### Standalone PyInstaller Builds
-To build the standalone executable, you must have Python and `pyinstaller` (plus any of yt-dlp's [optional dependencies](#dependencies) if needed). Once you have all the necessary dependencies installed, simply run `pyinst.py`. The executable will be built for the same architecture (x86/ARM, 32/64 bit) as the Python used.
+To build the standalone executable, you must have Python and `pyinstaller` (plus any of yt-dlp's [optional dependencies](#dependencies) if needed). The executable will be built for the same architecture (x86/ARM, 32/64 bit) as the Python used. You can run the following commands:
 
-    python3 -m pip install -U pyinstaller -r requirements.txt
-    python3 devscripts/make_lazy_extractors.py
-    python3 pyinst.py
+```
+python3 devscripts/install_deps.py --include pyinstaller
+python3 devscripts/make_lazy_extractors.py
+python3 -m bundle.pyinstaller
+```
 
 On some systems, you may need to use `py` or `python` instead of `python3`.
 
-`pyinst.py` accepts any arguments that can be passed to `pyinstaller`, such as `--onefile/-F` or `--onedir/-D`, which is further [documented here](https://pyinstaller.org/en/stable/usage.html#what-to-generate).
+`bundle/pyinstaller.py` accepts any arguments that can be passed to `pyinstaller`, such as `--onefile/-F` or `--onedir/-D`, which is further [documented here](https://pyinstaller.org/en/stable/usage.html#what-to-generate).
 
 **Note**: Pyinstaller versions below 4.4 [do not support](https://github.com/pyinstaller/pyinstaller#requirements-and-tested-platforms) Python installed from the Windows store without using a virtual environment.
 
-**Important**: Running `pyinstaller` directly **without** using `pyinst.py` is **not** officially supported. This may or may not work correctly.
+**Important**: Running `pyinstaller` directly **without** using `bundle/pyinstaller.py` is **not** officially supported. This may or may not work correctly.
 
 ### Platform-independent Binary (UNIX)
 You will need the build tools `python` (3.8+), `zip`, `make` (GNU), `pandoc`\* and `pytest`\*.
@@ -346,14 +348,17 @@ You can also run `make yt-dlp` instead to compile only the binary without updati
 
 While we provide the option to build with [py2exe](https://www.py2exe.org), it is recommended to build [using PyInstaller](#standalone-pyinstaller-builds) instead since the py2exe builds **cannot contain `pycryptodomex`/`certifi` and needs VC++14** on the target computer to run.
 
-If you wish to build it anyway, install Python and py2exe, and then simply run `setup.py py2exe`
+If you wish to build it anyway, install Python (if it is not already installed) and you can run the following commands:
 
-    py -m pip install -U py2exe -r requirements.txt
-    py devscripts/make_lazy_extractors.py
-    py setup.py py2exe
+```
+py devscripts/install_deps.py --include py2exe
+py devscripts/make_lazy_extractors.py
+py -m bundle.py2exe
+```
 
 ### Related scripts
 
+* **`devscripts/install_deps.py`** - Install dependencies for yt-dlp.
 * **`devscripts/update-version.py`** - Update the version number based on current date.
 * **`devscripts/set-variant.py`** - Set the build variant of the executable.
 * **`devscripts/make_changelog.py`** - Create a markdown changelog using short commit messages and update `CONTRIBUTORS` file.
