@@ -9,6 +9,7 @@ from ..utils import (
     join_nonempty,
     parse_duration,
     traverse_obj,
+    try_call,
     unescapeHTML,
     unified_timestamp,
     url_or_none,
@@ -473,22 +474,21 @@ class NhkRadiruIE(InfoExtractor):
     IE_DESC = 'NHK らじる (Radiru/Rajiru)'
     _VALID_URL = r'https?://www\.nhk\.or\.jp/radio/(?:player/ondemand|ondemand/detail)\.html\?p=(?P<site>[\da-zA-Z]+)_(?P<corner>[\da-zA-Z]+)(?:_(?P<headline>[\da-zA-Z]+))?'
     _TESTS = [{
-        'url': 'https://www.nhk.or.jp/radio/player/ondemand.html?p=0449_01_3853544',
-        'skip': 'Episode expired on 2023-04-16',
+        'url': 'https://www.nhk.or.jp/radio/player/ondemand.html?p=0449_01_3926210',
+        'skip': 'Episode expired on 2024-02-24',
         'info_dict': {
-            'channel': 'NHK-FM',
-            'uploader': 'NHK-FM',
-            'description': 'md5:94b08bdeadde81a97df4ec882acce3e9',
+            'title': 'ジャズ・トゥナイト　シリーズＪＡＺＺジャイアンツ　５６　ジョニー・ホッジス',
+            'id': '0449_01_3926210',
             'ext': 'm4a',
-            'id': '0449_01_3853544',
             'series': 'ジャズ・トゥナイト',
+            'uploader': 'NHK-FM',
+            'channel': 'NHK-FM',
             'thumbnail': 'https://www.nhk.or.jp/prog/img/449/g449.jpg',
-            'timestamp': 1680969600,
-            'title': 'ジャズ・トゥナイト　ＮＥＷジャズ特集',
-            'upload_date': '20230408',
-            'release_timestamp': 1680962400,
-            'release_date': '20230408',
-            'was_live': True,
+            'release_date': '20240217',
+            'description': 'md5:a456ee8e5e59e6dd2a7d32e62386e811',
+            'timestamp': 1708185600,
+            'release_timestamp': 1708178400,
+            'upload_date': '20240217',
         },
     }, {
         # playlist, airs every weekday so it should _hopefully_ be okay forever
@@ -519,7 +519,8 @@ class NhkRadiruIE(InfoExtractor):
             'series': 'らじる文庫 by ラジオ深夜便 ',
             'release_timestamp': 1481126700,
             'upload_date': '20211101',
-        }
+        },
+        'expected_warnings': ['Unable to download JSON metadata', 'Failed to get extended description'],
     }, {
         # news
         'url': 'https://www.nhk.or.jp/radio/player/ondemand.html?p=F261_01_3855109',
@@ -539,9 +540,28 @@ class NhkRadiruIE(InfoExtractor):
         },
     }]
 
+    _API_URL_TMPL = None
+
+    def _extract_extended_description(self, episode_id, episode):
+        service, _, area = traverse_obj(episode, ('aa_vinfo2', {str}, {lambda x: (x or '').partition(',')}))
+        aa_vinfo3 = traverse_obj(episode, ('aa_vinfo3', {str}))
+        detail_url = try_call(
+            lambda: self._API_URL_TMPL.format(service=service, area=area, dateid=aa_vinfo3))
+        if not detail_url:
+            return
+
+        full_meta = traverse_obj(
+            self._download_json(detail_url, episode_id, 'Downloading extended metadata', fatal=False),
+            ('list', service, 0, {dict})) or {}
+        return join_nonempty('subtitle', 'content', 'act', 'music', delim='\n\n', from_dict=full_meta)
+
     def _extract_episode_info(self, headline, programme_id, series_meta):
         episode_id = f'{programme_id}_{headline["headline_id"]}'
         episode = traverse_obj(headline, ('file_list', 0, {dict}))
+        description = self._extract_extended_description(episode_id, episode)
+        if not description:
+            self.report_warning('Failed to get extended description, falling back to summary')
+            description = traverse_obj(episode, ('file_title_sub', {str}))
 
         return {
             **series_meta,
@@ -551,13 +571,20 @@ class NhkRadiruIE(InfoExtractor):
             'was_live': True,
             'series': series_meta.get('title'),
             'thumbnail': url_or_none(headline.get('headline_image')) or series_meta.get('thumbnail'),
+            'description': description,
             **traverse_obj(episode, {
                 'title': 'file_title',
-                'description': 'file_title_sub',
                 'timestamp': ('open_time', {unified_timestamp}),
                 'release_timestamp': ('aa_vinfo4', {lambda x: x.split('_')[0]}, {unified_timestamp}),
             }),
         }
+
+    def _real_initialize(self):
+        if self._API_URL_TMPL:
+            return
+        api_config = self._download_xml(
+            'https://www.nhk.or.jp/radio/config/config_web.xml', None, 'Downloading API config', fatal=False)
+        NhkRadiruIE._API_URL_TMPL = try_call(lambda: f'https:{api_config.find(".//url_program_detail").text}')
 
     def _real_extract(self, url):
         site_id, corner_id, headline_id = self._match_valid_url(url).group('site', 'corner', 'headline')
