@@ -352,7 +352,7 @@ class Updater:
 
     def query_update(self, *, _output=False) -> UpdateInfo | None:
         """Fetches info about the available update
-        @returns   UpdateInfo() if there is an update available, else None
+        @returns   An `UpdateInfo` if there is an update available, else None
         """
         if not self.requested_repo:
             self._report_error('No target repository could be determined from input')
@@ -432,7 +432,7 @@ class Updater:
 
     def update(self, update_info=NO_DEFAULT):
         """Update yt-dlp executable to the latest version
-        @param update_info  Optional[UpdateInfo()] returned by query_update()
+        @param update_info  `UpdateInfo | None` as returned by query_update()
         """
         if update_info is NO_DEFAULT:
             update_info = self.query_update(_output=True)
