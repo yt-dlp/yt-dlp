@@ -36,7 +36,8 @@ class FlexTVIE(InfoExtractor):
 
         try:
             stream_data = self._download_json(
-                f'https://api.flextv.co.kr/api/channels/{channel_id}/stream?option=all', channel_id)
+                f'https://api.flextv.co.kr/api/channels/{channel_id}/stream',
+                channel_id, query={'option': 'all'})
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError) and e.cause.status == 400:
                 raise UserNotLive(video_id=channel_id)
