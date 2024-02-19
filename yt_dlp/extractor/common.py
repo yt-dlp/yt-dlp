@@ -2383,7 +2383,7 @@ class InfoExtractor:
                     })
                 continue
 
-            src_url = src if src.startswith('http') else urllib.parse.urljoin(f'{b}/', src)
+            src_url = src if src.startswith('http') else urllib.parse.urljoin(f'{base}/', src)
             src_url = src_url.strip()
 
             if proto == 'm3u8' or src_ext == 'm3u8':
