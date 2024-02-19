@@ -19,7 +19,7 @@ class MurrtubeIE(InfoExtractor):
     _TESTS = [
         {
             "url": "https://murrtube.net/videos/inferno-x-skyler-148b6f2a-fdcc-4902-affe-9c0f41aaaca0",
-            "md5": "169f494812d9a90914b42978e73aa690",
+            "md5": "70380878a77e8565d4aea7f68b8bbb35",
             "info_dict": {
                 "id": "ca885d8456b95de529b6723b158032e11115d",
                 "ext": "mp4",
@@ -27,20 +27,20 @@ class MurrtubeIE(InfoExtractor):
                 "description": "Humping a very good slutty sheppy (roomate)",
                 "uploader": "Inferno Wolf",
                 "age_limit": 18,
+                "thumbnail": "https://storage.murrtube.net/murrtube-production/ekbs3zcfvuynnqfx72nn2tkokvsd"
             },
         },
         {
             "url": "https://murrtube.net/v/0J2Q",
-            "md5": "757e53c0795a03d53bb4ca243f851aba",
+            "md5": "31262f6ac56f0ca75e5a54a0f3fefcb6",
             "info_dict": {
                 "id": "8442998c52134968d9caa36e473e1a6bac6ca",
+                "ext": "mp4",
                 "uploader": "Hayel",
-                "title": "Who's in charge now？",
-                "description": """Fenny sneaked into my bed room and played naughty with one of my plushies. I caught him in the act and wanted to punish him. He thought he was in charge and wanted to use me instead but he wasn't prepared on my butt milking him within just a minute.
-
-Fenny: @fenny_ad (both here and on Twitter)
-Hayel on Twitter: https://twitter.com/plushmods""",
+                "title": "Who's in charge now?",
+                "description": """Fenny sneaked into my bed room and played naughty with one of my plushies. I caught him in the act and wanted to punish him. He thought he was in charge and wanted to use me instead but he wasn't prepared on my butt milking him within just a minute. Fenny: @fenny_ad (both here and on Twitter) Hayel on Twitter: https://twitter.com/plushmods""",
                 "age_limit": 18,
+                "thumbnail": "https://storage.murrtube.net/murrtube-production/fb1ojjwiucufp34ya6hxu5vfqi5s"
             }
         }
     ]
@@ -64,7 +64,7 @@ Hayel on Twitter: https://twitter.com/plushmods""",
         description = self._html_search_meta(
             'og:description', video_page, display_name='description', fatal=True)
         thumbnail = self._html_search_meta(
-            'og:image', video_page, display_name='thumbnail', fatal=True)
+            'og:image', video_page, display_name='thumbnail', fatal=True).split("?")[0]
         uploader = self._html_search_regex(
             r'<span class="pl-1 is-size-6 has-text-lighter">(.+?)</span>', video_page, 'uploader', default=None)
         return {
