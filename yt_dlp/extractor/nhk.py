@@ -1,5 +1,4 @@
 import re
-import xml.etree.ElementTree
 
 from .common import InfoExtractor
 from ..utils import (
@@ -541,22 +540,13 @@ class NhkRadiruIE(InfoExtractor):
         },
     }]
 
-    _api_config = None
+    _API_URL_TMPL = None
 
     def _extract_extended_description(self, episode_id, episode):
         service, _, area = traverse_obj(episode, ('aa_vinfo2', {str}, {lambda x: (x or '').partition(',')}))
         aa_vinfo3 = traverse_obj(episode, ('aa_vinfo3', {str}))
-        if not (service and area and aa_vinfo3):
-            return
-
-        if not isinstance(self._api_config, xml.etree.ElementTree.Element):
-            self._api_config = self._download_xml(
-                'https://www.nhk.or.jp/radio/config/config_web.xml',
-                episode_id, 'Downloading API information', fatal=False)
-
         detail_url = try_call(
-            lambda: f'https:{self._api_config.find(".//url_program_detail").text}'.format(
-                service=service, area=area, dateid=aa_vinfo3))
+            lambda: self._API_URL_TMPL.format(service=service, area=area, dateid=aa_vinfo3))
         if not detail_url:
             return
 
@@ -588,6 +578,13 @@ class NhkRadiruIE(InfoExtractor):
                 'release_timestamp': ('aa_vinfo4', {lambda x: x.split('_')[0]}, {unified_timestamp}),
             }),
         }
+
+    def _real_initialize(self):
+        if self._API_URL_TMPL:
+            return
+        api_config = self._download_xml(
+            'https://www.nhk.or.jp/radio/config/config_web.xml', None, 'Downloading API config', fatal=False)
+        NhkRadiruIE._API_URL_TMPL = try_call(lambda: f'https:{api_config.find(".//url_program_detail").text}')
 
     def _real_extract(self, url):
         site_id, corner_id, headline_id = self._match_valid_url(url).group('site', 'corner', 'headline')
