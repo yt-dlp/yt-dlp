@@ -192,7 +192,7 @@ class AppleDailyIE(NextMediaIE):  # XXX: Do not subclass from concrete IE
 
 class NextTVIE(InfoExtractor):
     _WORKING = False
-    _ENABLED = False
+    _ENABLED = None
     IE_DESC = '壹電視'
     _VALID_URL = r'https?://(?:www\.)?nexttv\.com\.tw/(?:[^/]+/)+(?P<id>\d+)'
 
