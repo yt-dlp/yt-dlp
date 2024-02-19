@@ -1001,7 +1001,7 @@ def _real_main(argv=None):
                 is_onefile = hasattr(sys, '_MEIPASS') and os.path.basename(sys._MEIPASS).startswith('_MEI')
                 if attached_processes == 1 or is_onefile and attached_processes == 2:
                     print(parser._generate_error_message(
-                        'Do not double click the executable, instead call if from a shell.\n'
+                        'Do not double-click the executable, instead call it from a command line.\n'
                         'Please read the README for further information on how to use yt-dlp: '
                         'https://github.com/yt-dlp/yt-dlp#readme'))
                     msvcrt.getch()
