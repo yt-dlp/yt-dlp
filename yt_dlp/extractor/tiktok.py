@@ -6,8 +6,8 @@ import string
 import time
 
 from .common import InfoExtractor
-from ..compat import compat_urllib_parse_unquote, compat_urllib_parse_urlparse
 from ..networking import HEADRequest
+from ..compat import compat_urllib_parse_urlparse
 from ..utils import (
     ExtractorError,
     LazyList,
@@ -15,7 +15,6 @@ from ..utils import (
     UserNotLive,
     determine_ext,
     format_field,
-    get_first,
     int_or_none,
     join_nonempty,
     merge_dicts,
@@ -112,7 +111,8 @@ class TikTokBaseIE(InfoExtractor):
                 self._WORKING_APP_VERSION = (app_version, manifest_app_version)
                 self.write_debug('Imported app version combo from extractor arguments')
             elif app_version or manifest_app_version:
-                self.report_warning('Only one of the two required version params are passed as extractor arguments', only_once=True)
+                self.report_warning('Only one of the two required version params are passed as extractor arguments',
+                                    only_once=True)
 
         if self._WORKING_APP_VERSION:
             app_version, manifest_app_version = self._WORKING_APP_VERSION
@@ -133,7 +133,8 @@ class TikTokBaseIE(InfoExtractor):
                         else:
                             self.report_warning(str(e.cause or e.msg))
                             return
-                    self.report_warning('%s. Retrying... (attempt %s of %s)' % (str(e.cause or e.msg), count, len(self._APP_VERSIONS)))
+                    self.report_warning(
+                        '%s. Retrying... (attempt %s of %s)' % (str(e.cause or e.msg), count, len(self._APP_VERSIONS)))
                     continue
                 raise e
 
@@ -151,7 +152,8 @@ class TikTokBaseIE(InfoExtractor):
         subtitles = {}
         # aweme/detail endpoint subs
         captions_info = traverse_obj(
-            aweme_detail, ('interaction_stickers', ..., 'auto_video_caption_info', 'auto_captions', ...), expected_type=dict)
+            aweme_detail, ('interaction_stickers', ..., 'auto_video_caption_info', 'auto_captions', ...),
+            expected_type=dict)
         for caption in captions_info:
             caption_url = traverse_obj(caption, ('url', 'url_list', ...), expected_type=url_or_none, get_all=False)
             if not caption_url:
@@ -242,7 +244,8 @@ class TikTokBaseIE(InfoExtractor):
                 'format_id': 'play_addr',
                 'format_note': 'Direct video',
                 'vcodec': 'h265' if traverse_obj(
-                    video_info, 'is_bytevc1', 'is_h265') else 'h264',  # TODO: Check for "direct iOS" videos, like https://www.tiktok.com/@cookierun_dev/video/7039716639834656002
+                    video_info, 'is_bytevc1', 'is_h265') else 'h264',
+                # TODO: Check for "direct iOS" videos, like https://www.tiktok.com/@cookierun_dev/video/7039716639834656002
                 'width': video_info.get('width'),
                 'height': video_info.get('height'),
             }))
@@ -307,7 +310,8 @@ class TikTokBaseIE(InfoExtractor):
         contained_music_author = traverse_obj(
             music_info, ('matched_song', 'author'), ('matched_pgc_sound', 'author'), 'author', expected_type=str)
 
-        is_generic_og_trackname = music_info.get('is_original_sound') and music_info.get('title') == 'original sound - %s' % music_info.get('owner_handle')
+        is_generic_og_trackname = music_info.get('is_original_sound') and music_info.get(
+            'title') == 'original sound - %s' % music_info.get('owner_handle')
         if is_generic_og_trackname:
             music_track, music_author = contained_music_track or 'original sound', contained_music_author
         else:
@@ -402,7 +406,7 @@ class TikTokBaseIE(InfoExtractor):
 
         thumbnails = []
         for thumb_url in traverse_obj(aweme_detail, (
-            (None, 'video'), ('thumbnail', 'cover', 'dynamicCover', 'originCover'), {url_or_none})):
+                (None, 'video'), ('thumbnail', 'cover', 'dynamicCover', 'originCover'), {url_or_none})):
             thumbnails.append({
                 'url': self._proto_relative_url(thumb_url),
                 'width': width,
@@ -786,7 +790,8 @@ class TikTokUserIE(TikTokBaseIE):
             'max_cursor': 0,
             'min_cursor': 0,
             'retry_type': 'no_retry',
-            'device_id': ''.join(random.choices(string.digits, k=19)),  # Some endpoints don't like randomized device_id, so it isn't directly set in _call_api.
+            'device_id': ''.join(random.choices(string.digits, k=19)),
+            # Some endpoints don't like randomized device_id, so it isn't directly set in _call_api.
         }
 
         for page in itertools.count(1):
@@ -819,7 +824,8 @@ class TikTokUserIE(TikTokBaseIE):
         webpage = self._download_webpage(url, user_name, headers={
             'User-Agent': 'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)'
         })
-        user_id = self._html_search_regex(r'snssdk\d*://user/profile/(\d+)', webpage, 'user ID', default=None) or user_name
+        user_id = self._html_search_regex(r'snssdk\d*://user/profile/(\d+)', webpage, 'user ID',
+                                          default=None) or user_name
 
         videos = LazyList(self._video_entries_api(webpage, user_id, user_name))
         thumbnail = traverse_obj(videos, (0, 'author', 'avatar_larger', 'url_list', 0))
@@ -1054,12 +1060,6 @@ class DouyinIE(TikTokBaseIE):
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        try:
-            return self._extract_aweme_app(video_id)
-        except ExtractorError as e:
-            e.expected = True
-            self.to_screen(f'{e}; trying with webpage')
-
         webpage = self._download_webpage("https://www.douyin.com/aweme/v1/web/aweme/detail/?aweme_id=" + video_id,
                                          video_id)
         render_data = self._parse_json(webpage, video_id, fatal=False)
@@ -1070,7 +1070,7 @@ class DouyinIE(TikTokBaseIE):
             raise ExtractorError(
                 'Fresh cookies (not necessarily logged in) are needed', expected=expected)
 
-        return self._parse_aweme_video_web(traverse_obj(render_data,'aweme_detail'), url, video_id)
+        return self._parse_aweme_video_web(traverse_obj(render_data, 'aweme_detail'), url, video_id)
 
 
 class TikTokVMIE(InfoExtractor):
@@ -1219,7 +1219,7 @@ class TikTokLiveIE(TikTokBaseIE):
 
         for quality, stream in traverse_obj(live_info, (
             'stream_url', 'live_core_sdk_data', 'pull_data', 'stream_data',
-            {parse_inner}, 'data', {dict}), default={}).items():
+                {parse_inner}, 'data', {dict}), default={}).items():
 
             sdk_params = traverse_obj(stream, ('main', 'sdk_params', {parse_inner}, {
                 'vcodec': ('VCodec', {str}),
