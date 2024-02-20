@@ -86,7 +86,6 @@ class PluginFinder(importlib.abc.MetaPathFinder):
         parts = Path(*fullname.split('.'))
         for path in orderedSet(candidate_locations, lazy=True):
             candidate = path / parts
-
             try:
                 if candidate.is_dir():
                     yield candidate
@@ -94,7 +93,7 @@ class PluginFinder(importlib.abc.MetaPathFinder):
                     if parts in dirs_in_zip(path):
                         yield candidate
             except PermissionError as e:
-                write_string(f'Permission error while accessing modules in {e.filename}: {e}\n')
+                write_string(f'Permission error while accessing modules in "{e.filename}"\n')
 
     def find_spec(self, fullname, path=None, target=None):
         if fullname not in self.packages:
@@ -142,7 +141,6 @@ def load_plugins(name, suffix):
     for finder, module_name, _ in iter_modules(name):
         if any(x.startswith('_') for x in module_name.split('.')):
             continue
-
         try:
             if sys.version_info < (3, 10) and isinstance(finder, zipimport.zipimporter):
                 # zipimporter.load_module() is deprecated in 3.10 and removed in 3.12
@@ -150,17 +148,13 @@ def load_plugins(name, suffix):
                 # See: https://docs.python.org/3/library/zipimport.html#zipimport.zipimporter.exec_module
                 module = finder.load_module(module_name)
             else:
-                # Use the recommended approach for Python >= 3.10
                 spec = finder.find_spec(module_name)
                 module = importlib.util.module_from_spec(spec)
                 sys.modules[module_name] = module
                 spec.loader.exec_module(module)
         except Exception:
-            # Handle errors specifically related to module loading
             write_string(f'Error while importing module {module_name!r}\n{traceback.format_exc(limit=-1)}')
             continue
-
-        # Update classes based on successfully loaded module
         classes.update(load_module(module, module_name, suffix))
 
     # Compat: old plugin system using __init__.py
