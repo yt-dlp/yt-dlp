@@ -280,7 +280,7 @@ class InfoExtractor:
     description:    Full video description.
     uploader:       Full name of the video uploader.
     license:        License name the video is licensed under.
-    creator:        The creator of the video.
+    creators:       List of creators of the video.
     timestamp:      UNIX timestamp of the moment the video was uploaded
     upload_date:    Video upload date in UTC (YYYYMMDD).
                     If not explicitly set, calculated from timestamp
@@ -424,16 +424,16 @@ class InfoExtractor:
     track_number:   Number of the track within an album or a disc, as an integer.
     track_id:       Id of the track (useful in case of custom indexing, e.g. 6.iii),
                     as a unicode string.
-    artist:         Artist(s) of the track.
-    genre:          Genre(s) of the track.
+    artists:        List of artists of the track.
+    composers:      List of composers of the piece.
+    genres:         List of genres of the track.
     album:          Title of the album the track belongs to.
     album_type:     Type of the album (e.g. "Demo", "Full-length", "Split", "Compilation", etc).
-    album_artist:   List of all artists appeared on the album (e.g.
-                    "Ash Borer / Fell Voices" or "Various Artists", useful for splits
-                    and compilations).
+    album_artists:  List of all artists appeared on the album.
+                    E.g. ["Ash Borer", "Fell Voices"] or ["Various Artists"].
+                    Useful for splits and compilations.
     disc_number:    Number of the disc or other physical medium the track belongs to,
                     as an integer.
-    composer:       Composer of the piece
 
     The following fields should only be set for clips that should be cut from the original video:
 
@@ -443,6 +443,18 @@ class InfoExtractor:
     The following fields should only be set for storyboards:
     rows:           Number of rows in each storyboard fragment, as an integer
     columns:        Number of columns in each storyboard fragment, as an integer
+
+    The following fields are deprecated and should not be set by new code:
+    composer:       Use "composers" instead.
+                    Composer(s) of the piece, comma-separated.
+    artist:         Use "artists" instead.
+                    Artist(s) of the track, comma-separated.
+    genre:          Use "genres" instead.
+                    Genre(s) of the track, comma-separated.
+    album_artist:   Use "album_artists" instead.
+                    All artists appeared on the album, comma-separated.
+    creator:        Use "creators" instead.
+                    The creator of the video.
 
     Unless mentioned otherwise, the fields should be Unicode strings.
 
