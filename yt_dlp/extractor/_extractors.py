@@ -1507,6 +1507,7 @@ from .polskieradio import (
     PolskieRadioPodcastIE,
     PolskieRadioPodcastListIE,
 )
+from .pomftv import PomfTVLiveIE
 from .popcorntimes import PopcorntimesIE
 from .popcorntv import PopcornTVIE
 from .porn91 import Porn91IE
