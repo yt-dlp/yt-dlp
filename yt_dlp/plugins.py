@@ -86,11 +86,15 @@ class PluginFinder(importlib.abc.MetaPathFinder):
         parts = Path(*fullname.split('.'))
         for path in orderedSet(candidate_locations, lazy=True):
             candidate = path / parts
-            if candidate.is_dir():
-                yield candidate
-            elif path.suffix in ('.zip', '.egg', '.whl') and path.is_file():
-                if parts in dirs_in_zip(path):
+
+            try:
+                if candidate.is_dir():
                     yield candidate
+                elif path.suffix in ('.zip', '.egg', '.whl') and path.is_file():
+                    if parts in dirs_in_zip(path):
+                        yield candidate
+            except PermissionError as e:
+                write_string(f'Permission error while accessing modules in {e.filename}: {e}\n')
 
     def find_spec(self, fullname, path=None, target=None):
         if fullname not in self.packages:
@@ -135,13 +139,7 @@ def load_module(module, module_name, suffix):
 def load_plugins(name, suffix):
     classes = {}
 
-    try:
-        modules = list(iter_modules(name))
-    except PermissionError as e:
-        write_string(f'Permission error while accessing modules in {name}: {e}\n')
-        return classes
-
-    for finder, module_name, _ in modules:
+    for finder, module_name, _ in iter_modules(name):
         if any(x.startswith('_') for x in module_name.split('.')):
             continue
 
