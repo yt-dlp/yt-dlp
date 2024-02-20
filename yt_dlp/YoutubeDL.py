@@ -40,7 +40,6 @@ from .networking.exceptions import (
     NoSupportingHandlers,
     RequestError,
     SSLError,
-    _CompatHTTPError,
     network_exceptions,
 )
 from .plugins import directories as plugin_directories
@@ -60,7 +59,13 @@ from .postprocessor import (
     get_postprocessor,
 )
 from .postprocessor.ffmpeg import resolve_mapping as resolve_recode_mapping
-from .update import REPOSITORY, _get_system_deprecation, _make_label, current_git_head, detect_variant
+from .update import (
+    REPOSITORY,
+    _get_system_deprecation,
+    _make_label,
+    current_git_head,
+    detect_variant,
+)
 from .utils import (
     DEFAULT_OUTTMPL,
     IDENTITY,
@@ -574,6 +579,13 @@ class YoutubeDL:
         'preference', 'language', 'language_preference', 'quality', 'source_preference', 'cookies',
         'http_headers', 'stretched_ratio', 'no_resume', 'has_drm', 'extra_param_to_segment_url', 'hls_aes', 'downloader_options',
         'page_url', 'app', 'play_path', 'tc_url', 'flash_version', 'rtmp_live', 'rtmp_conn', 'rtmp_protocol', 'rtmp_real_time'
+    }
+    _deprecated_multivalue_fields = {
+        'album_artist': 'album_artists',
+        'artist': 'artists',
+        'composer': 'composers',
+        'creator': 'creators',
+        'genre': 'genres',
     }
     _format_selection_exts = {
         'audio': set(MEDIA_EXTENSIONS.common_audio),
@@ -1179,6 +1191,7 @@ class YoutubeDL:
         MATH_FUNCTIONS = {
             '+': float.__add__,
             '-': float.__sub__,
+            '*': float.__mul__,
         }
         # Field is of the form key1.key2...
         # where keys (except first) can be string, int, slice or "{field, ...}"
@@ -1200,6 +1213,15 @@ class YoutubeDL:
                 (?:\|(?P<default>.*?))?
             )$''')
 
+        def _from_user_input(field):
+            if field == ':':
+                return ...
+            elif ':' in field:
+                return slice(*map(int_or_none, field.split(':')))
+            elif int_or_none(field) is not None:
+                return int(field)
+            return field
+
         def _traverse_infodict(fields):
             fields = [f for x in re.split(r'\.({.+?})\.?', fields)
                       for f in ([x] if x.startswith('{') else x.split('.'))]
@@ -1209,11 +1231,12 @@ class YoutubeDL:
 
             for i, f in enumerate(fields):
                 if not f.startswith('{'):
+                    fields[i] = _from_user_input(f)
                     continue
                 assert f.endswith('}'), f'No closing brace for {f} in {fields}'
-                fields[i] = {k: k.split('.') for k in f[1:-1].split(',')}
+                fields[i] = {k: list(map(_from_user_input, k.split('.'))) for k in f[1:-1].split(',')}
 
-            return traverse_obj(info_dict, fields, is_user_input=True, traverse_string=True)
+            return traverse_obj(info_dict, fields, traverse_string=True)
 
         def get_value(mdict):
             # Object traversal
@@ -2435,7 +2458,7 @@ class YoutubeDL:
                                 # for extractors with incomplete formats (audio only (soundcloud)
                                 # or video only (imgur)) best/worst will fallback to
                                 # best/worst {video,audio}-only format
-                                matches = formats
+                                matches = list(filter(lambda f: f.get('vcodec') != 'none' or f.get('acodec') != 'none', formats))
                             elif seperate_fallback and not ctx['has_merged_format']:
                                 # for compatibility with youtube-dl when there is no pre-merged format
                                 matches = list(filter(seperate_fallback, formats))
@@ -2454,9 +2477,16 @@ class YoutubeDL:
                 return selector_function(ctx_copy)
             return final_selector
 
-        stream = io.BytesIO(format_spec.encode())
+        # HACK: Python 3.12 changed the underlying parser, rendering '7_a' invalid
+        #       Prefix numbers with random letters to avoid it being classified as a number
+        #       See: https://github.com/yt-dlp/yt-dlp/pulls/8797
+        # TODO: Implement parser not reliant on tokenize.tokenize
+        prefix = ''.join(random.choices(string.ascii_letters, k=32))
+        stream = io.BytesIO(re.sub(r'\d[_\d]*', rf'{prefix}\g<0>', format_spec).encode())
         try:
-            tokens = list(_remove_unused_ops(tokenize.tokenize(stream.readline)))
+            tokens = list(_remove_unused_ops(
+                token._replace(string=token.string.replace(prefix, ''))
+                for token in tokenize.tokenize(stream.readline)))
         except tokenize.TokenError:
             raise syntax_error('Missing closing/opening brackets or parenthesis', (0, len(format_spec)))
 
@@ -2616,6 +2646,14 @@ class YoutubeDL:
         for field in ('chapter', 'season', 'episode'):
             if final and info_dict.get('%s_number' % field) is not None and not info_dict.get(field):
                 info_dict[field] = '%s %d' % (field.capitalize(), info_dict['%s_number' % field])
+
+        for old_key, new_key in self._deprecated_multivalue_fields.items():
+            if new_key in info_dict and old_key in info_dict:
+                self.deprecation_warning(f'Do not return {old_key!r} when {new_key!r} is present')
+            elif old_value := info_dict.get(old_key):
+                info_dict[new_key] = old_value.split(', ')
+            elif new_value := info_dict.get(new_key):
+                info_dict[old_key] = ', '.join(v.replace(',', '\N{FULLWIDTH COMMA}') for v in new_value)
 
     def _raise_pending_errors(self, info):
         err = info.pop('__pending_error', None)
@@ -3460,7 +3498,8 @@ class YoutubeDL:
                                      or info_dict.get('is_live') and self.params.get('hls_use_mpegts') is None,
                                      'Possible MPEG-TS in MP4 container or malformed AAC timestamps',
                                      FFmpegFixupM3u8PP)
-                        ffmpeg_fixup(info_dict.get('is_live') and downloader == 'dashsegments',
+                        ffmpeg_fixup(downloader == 'dashsegments'
+                                     and (info_dict.get('is_live') or info_dict.get('is_dash_periods')),
                                      'Possible duplicate MOOV atoms', FFmpegFixupDuplicateMoovPP)
 
                     ffmpeg_fixup(downloader == 'web_socket_fragment', 'Malformed timestamps detected', FFmpegFixupTimestampPP)
@@ -4086,8 +4125,6 @@ class YoutubeDL:
                     'SSLV3_ALERT_HANDSHAKE_FAILURE: The server may not support the current cipher list. '
                     'Try using --legacy-server-connect', cause=e) from e
             raise
-        except HTTPError as e:  # TODO: Remove in a future release
-            raise _CompatHTTPError(e) from e
 
     def build_request_director(self, handlers, preferences=None):
         logger = _YDLLogger(self)

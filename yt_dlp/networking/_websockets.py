@@ -5,20 +5,26 @@ import logging
 import ssl
 import sys
 
-from ._helper import create_connection, select_proxy, make_socks_proxy_opts, create_socks_proxy_socket
-from .common import Response, register_rh, Features
+from ._helper import (
+    create_connection,
+    create_socks_proxy_socket,
+    make_socks_proxy_opts,
+    select_proxy,
+)
+from .common import Features, Response, register_rh
 from .exceptions import (
     CertificateVerifyError,
     HTTPError,
+    ProxyError,
     RequestError,
     SSLError,
-    TransportError, ProxyError,
+    TransportError,
 )
 from .websocket import WebSocketRequestHandler, WebSocketResponse
 from ..compat import functools
 from ..dependencies import websockets
-from ..utils import int_or_none
 from ..socks import ProxyError as SocksProxyError
+from ..utils import int_or_none
 
 if not websockets:
     raise ImportError('websockets is not installed')
@@ -84,10 +90,12 @@ class WebsocketsRH(WebSocketRequestHandler):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.__logging_handlers = {}
         for name in ('websockets.client', 'websockets.server'):
             logger = logging.getLogger(name)
             handler = logging.StreamHandler(stream=sys.stdout)
             handler.setFormatter(logging.Formatter(f'{self.RH_NAME}: %(message)s'))
+            self.__logging_handlers[name] = handler
             logger.addHandler(handler)
             if self.verbose:
                 logger.setLevel(logging.DEBUG)
@@ -96,6 +104,12 @@ class WebsocketsRH(WebSocketRequestHandler):
         super()._check_extensions(extensions)
         extensions.pop('timeout', None)
         extensions.pop('cookiejar', None)
+
+    def close(self):
+        # Remove the logging handler that contains a reference to our logger
+        # See: https://github.com/yt-dlp/yt-dlp/issues/8922
+        for name, handler in self.__logging_handlers.items():
+            logging.getLogger(name).removeHandler(handler)
 
     def _send(self, request):
         timeout = float(request.extensions.get('timeout') or self.timeout)

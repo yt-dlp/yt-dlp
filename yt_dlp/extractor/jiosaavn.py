@@ -1,5 +1,6 @@
 from .common import InfoExtractor
 from ..utils import (
+    int_or_none,
     js_to_json,
     url_or_none,
     urlencode_postdata,
@@ -20,39 +21,64 @@ class JioSaavnSongIE(JioSaavnBaseIE):
     _VALID_URL = r'https?://(?:www\.)?(?:jiosaavn\.com/song/[^/?#]+/|saavn\.com/s/song/(?:[^/?#]+/){3})(?P<id>[^/?#]+)'
     _TESTS = [{
         'url': 'https://www.jiosaavn.com/song/leja-re/OQsEfQFVUXk',
-        'md5': '7b1f70de088ede3a152ea34aece4df42',
+        'md5': '3b84396d15ed9e083c3106f1fa589c04',
         'info_dict': {
             'id': 'OQsEfQFVUXk',
-            'ext': 'mp3',
+            'ext': 'mp4',
             'title': 'Leja Re',
             'album': 'Leja Re',
             'thumbnail': 'https://c.saavncdn.com/258/Leja-Re-Hindi-2018-20181124024539-500x500.jpg',
+            'duration': 205,
+            'view_count': int,
+            'release_year': 2018,
         },
     }, {
         'url': 'https://www.saavn.com/s/song/hindi/Saathiya/O-Humdum-Suniyo-Re/KAMiazoCblU',
         'only_matching': True,
     }]
 
+    _VALID_BITRATES = ('16', '32', '64', '128', '320')
+
     def _real_extract(self, url):
         audio_id = self._match_id(url)
+        extract_bitrates = self._configuration_arg('bitrate', ['128', '320'], ie_key='JioSaavn')
+        if invalid_bitrates := [br for br in extract_bitrates if br not in self._VALID_BITRATES]:
+            raise ValueError(
+                f'Invalid bitrate(s): {", ".join(invalid_bitrates)}. '
+                + f'Valid bitrates are: {", ".join(self._VALID_BITRATES)}')
+
         song_data = self._extract_initial_data(url, audio_id)['song']['song']
-        media_data = self._download_json(
-            'https://www.jiosaavn.com/api.php', audio_id, data=urlencode_postdata({
-                '__call': 'song.generateAuthToken',
-                '_format': 'json',
-                'bitrate': '128',
-                'url': song_data['encrypted_media_url'],
-            }))
+        formats = []
+        for bitrate in extract_bitrates:
+            media_data = self._download_json(
+                'https://www.jiosaavn.com/api.php', audio_id, f'Downloading format info for {bitrate}',
+                fatal=False, data=urlencode_postdata({
+                    '__call': 'song.generateAuthToken',
+                    '_format': 'json',
+                    'bitrate': bitrate,
+                    'url': song_data['encrypted_media_url'],
+                }))
+            if not media_data.get('auth_url'):
+                self.report_warning(f'Unable to extract format info for {bitrate}')
+                continue
+            formats.append({
+                'url': media_data['auth_url'],
+                'ext': media_data.get('type'),
+                'format_id': bitrate,
+                'abr': int(bitrate),
+                'vcodec': 'none',
+            })
 
         return {
             'id': audio_id,
-            'url': media_data['auth_url'],
-            'ext': media_data.get('type'),
-            'vcodec': 'none',
+            'formats': formats,
             **traverse_obj(song_data, {
                 'title': ('title', 'text'),
                 'album': ('album', 'text'),
                 'thumbnail': ('image', 0, {url_or_none}),
+                'duration': ('duration', {int_or_none}),
+                'view_count': ('play_count', {int_or_none}),
+                'release_year': ('year', {int_or_none}),
             }),
         }
 
