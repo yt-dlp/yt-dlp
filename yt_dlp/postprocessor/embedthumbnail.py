@@ -91,8 +91,10 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
         success = True
         if info['ext'] == 'mp3':
             # Method 1: Use mutagen
-            # Prioritize mutagen over ffmpeg since ffmpeg messes up the lyrics data
-            if mutagen:
+            if not mutagen:
+                self.to_screen('mutagen not was found. Falling back to ffmpeg. Lyrics may be corrupted')
+                success = False
+            else:
                 try:
                     self._report_run('mutagen', filename)
                     audio = mutagen.id3.ID3(filename)
@@ -101,12 +103,11 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
                             encoding=mutagen.id3.Encoding.UTF8, mime=f'image/{thumbnail_ext}',
                             type=mutagen.id3.PictureType.COVER_FRONT, desc='Cover (front)', data=thumbfile.read())
                     audio.save()
-                    temp_filename = filename  # Mutagen saves to the original file
+                    temp_filename = filename
                 except Exception as err:
                     self.report_warning(f'unable to embed using mutagen; {err}')
                     success = False
-            else:
-                success = False
+
             # Method 2: Use ffmpeg
             if not success:
                 options = [

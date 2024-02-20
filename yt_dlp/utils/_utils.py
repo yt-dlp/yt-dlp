@@ -3733,6 +3733,8 @@ class ISO639Utils:
     @classmethod
     def short2long(cls, code):
         """Convert language code from ISO 639-1 to ISO 639-2/T"""
+        if code in cls._lang_map.values():
+            return code
         return cls._lang_map.get(code[:2])
 
     @classmethod

@@ -1002,9 +1002,7 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
     --no-post-overwrites            Do not overwrite post-processed files
     --embed-subs                    Embed subtitles in downloaded media.
                                     Available for video (mp4, webm, mkv) and
-                                    audio (m4a, mp3, ogg, flac). Use --convert-
-                                    subtitles lrc when embedding subtitles in
-                                    audio files
+                                    "lrc" in audio (m4a, mp3, ogg, flac)
     --no-embed-subs                 Do not embed subtitles (default)
     --embed-thumbnail               Embed thumbnail in the video as cover art
     --no-embed-thumbnail            Do not embed thumbnail (default)
