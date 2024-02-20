@@ -88,10 +88,15 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
 
         mtime = os.stat(encodeFilename(filename)).st_mtime
 
+        avoid_mutagen = any(
+            opt in self.get_param('compat_opts', [])
+            for opt in ('no-embed-thumbnail-mutagen', 'embed-thumbnail-atomicparsley'))
         success = True
         if info['ext'] == 'mp3':
             # Method 1: Use mutagen
-            if not mutagen:
+            if avoid_mutagen:
+                success = False
+            elif not mutagen:
                 self.to_screen('mutagen not was found. Falling back to ffmpeg. Lyrics may be corrupted')
                 success = False
             else:
@@ -135,9 +140,8 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
             self.run_ffmpeg(filename, temp_filename, options)
 
         elif info['ext'] in ['m4a', 'mp4', 'm4v', 'mov']:
-            prefer_atomicparsley = 'embed-thumbnail-atomicparsley' in self.get_param('compat_opts', [])
             # Method 1: Use mutagen
-            if not mutagen or prefer_atomicparsley:
+            if avoid_mutagen or not mutagen:
                 success = False
             else:
                 try:
@@ -166,7 +170,7 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
                     self.to_screen('Neither mutagen nor AtomicParsley was found. Falling back to ffmpeg')
                     success = False
                 else:
-                    if not prefer_atomicparsley:
+                    if not avoid_mutagen:
                         self.to_screen('mutagen was not found. Falling back to AtomicParsley')
                     cmd = [encodeFilename(atomicparsley, True),
                            encodeFilename(filename, True),
