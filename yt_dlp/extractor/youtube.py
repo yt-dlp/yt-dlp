@@ -3725,7 +3725,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 f'(got player responses for video "{"/".join(set(skipped_clients.values()))}" instead of "{video_id}")')
             if not prs:
                 raise ExtractorError(
-                    'Recieved invalid player responses. Your IP is likely being blocked by Youtube', expected=True)
+                    'All player responses are invalid. Your IP is likely being blocked by Youtube', expected=True)
         elif not prs:
             raise ExtractorError('Failed to extract any player response')
         return prs, player_url
