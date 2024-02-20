@@ -21,7 +21,7 @@ class OpenRecBaseIE(InfoExtractor):
             if not m3u8_url:
                 continue
             yield from self._extract_m3u8_formats(
-                m3u8_url, video_id, ext='mp4', m3u8_id=name)
+                m3u8_url, video_id, ext='mp4', m3u8_id=name, headers={'Referer': 'https://www.openrec.tv/'})
 
     def _extract_movie(self, webpage, video_id, name, is_live):
         window_stores = self._extract_pagestore(webpage, video_id)
@@ -60,6 +60,7 @@ class OpenRecBaseIE(InfoExtractor):
             'uploader_id': get_first(movie_stores, ('channel', 'user', 'id')),
             'timestamp': int_or_none(get_first(movie_stores, ['publishedAt', 'time']), scale=1000) or unified_timestamp(get_first(movie_stores, 'publishedAt')),
             'is_live': is_live,
+            'http_headers': {'Referer': 'https://www.openrec.tv/'},
         }
 
 
@@ -110,7 +111,7 @@ class OpenRecCaptureIE(OpenRecBaseIE):
             raise ExtractorError('Cannot extract title')
 
         formats = self._extract_m3u8_formats(
-            capture_data.get('source'), video_id, ext='mp4')
+            capture_data.get('source'), video_id, ext='mp4', headers={'Referer': 'https://www.openrec.tv/'})
 
         return {
             'id': video_id,
@@ -121,6 +122,7 @@ class OpenRecCaptureIE(OpenRecBaseIE):
             'uploader': traverse_obj(movie_store, ('channel', 'name'), expected_type=compat_str),
             'uploader_id': traverse_obj(movie_store, ('channel', 'id'), expected_type=compat_str),
             'upload_date': unified_strdate(capture_data.get('createdAt')),
+            'http_headers': {'Referer': 'https://www.openrec.tv/'}
         }
 
 
