@@ -100,9 +100,13 @@ class TwitterBaseIE(InfoExtractor):
         if not variant_url:
             return [], {}
         elif '.m3u8' in variant_url:
-            return self._extract_m3u8_formats_and_subtitles(
+            fmts, subs = self._extract_m3u8_formats_and_subtitles(
                 variant_url, video_id, 'mp4', 'm3u8_native',
                 m3u8_id='hls', fatal=False)
+            for f in traverse_obj(fmts, lambda _, v: v['vcodec'] == 'none' and v.get('tbr') is None):
+                if mobj := re.match(r'hls-[Aa]udio-(?P<bitrate>\d{4,})', f['format_id']):
+                    f['tbr'] = int_or_none(mobj.group('bitrate'), 1000)
+            return fmts, subs
         else:
             tbr = int_or_none(dict_get(variant, ('bitrate', 'bit_rate')), 1000) or None
             f = {
