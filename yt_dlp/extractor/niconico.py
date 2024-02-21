@@ -18,12 +18,14 @@ from ..utils import (
     float_or_none,
     int_or_none,
     join_nonempty,
+    parse_bitrate,
     parse_duration,
     parse_filesize,
     parse_iso8601,
     parse_resolution,
     qualities,
     remove_start,
+    remove_end,
     str_or_none,
     traverse_obj,
     try_get,
@@ -422,6 +424,65 @@ class NiconicoIE(InfoExtractor):
             fmt = self._extract_format_for_quality(video_id, audio_quality, video_quality, protocol)
             if fmt:
                 formats.append(fmt)
+
+        dms_data = traverse_obj(api_data, ({
+            'videos': ('media', 'domand', 'videos', ..., {
+                lambda item: item['id'] if item['isAvailable'] else None
+            }),
+            'audios': ('media', 'domand', 'audios', ..., {
+                lambda item: (item['id'], {
+                    'format_id': str(parse_bitrate(item['id'])),
+                    'abr': float_or_none(item['bitRate'], scale=1000),
+                    'asr': item['samplingRate'],
+                    'acodec': 'aac',
+                    'ext': 'm4a',
+                }) if item['isAvailable'] else None
+            }),
+            'accessRightKey': ('media', 'domand', 'accessRightKey'),
+            'track_id': ('client', 'watchTrackId'),
+        }, {
+            'videos': 'videos',
+            'audios': ('audios', {lambda items: dict(items)}),
+            'accessRightKey': 'accessRightKey',
+            'track_id': 'track_id',
+        }))
+
+        dms_m3u8_url = traverse_obj(self._download_json(
+            f'https://nvapi.nicovideo.jp/v1/watch/{video_id}/access-rights/hls', video_id,
+            data=json.dumps({
+                'outputs': list(itertools.product(dms_data['videos'], dms_data['audios']))
+            }).encode(), query={'actionTrackId': dms_data['track_id']}, headers={
+                'x-access-right-key': dms_data['accessRightKey'],
+                'x-frontend-id': 6,
+                'x-frontend-version': 0,
+                'x-request-with': 'https://www.nicovideo.jp',
+            }), ('data', 'contentUrl'))
+        dms_fmts = self._extract_m3u8_formats(dms_m3u8_url, video_id)
+
+        # update audio formats
+        dms_audio_fmts = [fmt for fmt in dms_fmts if fmt['vcodec'] == 'none']
+        for i, fmt in enumerate(dms_audio_fmts):
+            format_id = remove_end(fmt['format_id'], '-%s' % fmt['format_note'])
+            dms_audio_fmts[i].update(**(traverse_obj(dms_data, ('audios', format_id, {dict})) or {}))
+
+        # remove duplicate video formats
+        dms_video_fmts = [
+            list(fmts)[0] for _, fmts in itertools.groupby(sorted([
+                fmt for fmt in dms_fmts if fmt['vcodec'] != 'none'
+            ], key=lambda fmt: fmt['tbr']), lambda fmt: fmt['url'])
+        ]
+
+        # correct video bitrate
+        min_abr = traverse_obj(min(dms_audio_fmts, key=lambda fmt: fmt['abr']), ('abr'), default=0)
+        for i, fmt in enumerate(dms_video_fmts):
+            vbr = fmt['tbr'] - min_abr
+            dms_video_fmts[i].update({
+                'format_id': str(round(vbr)),
+                'vbr': vbr,
+                'tbr': None,
+            })
+
+        formats.extend(dms_video_fmts + dms_audio_fmts)
 
         # Start extracting information
         tags = None
