@@ -426,6 +426,7 @@ class NiconicoIE(InfoExtractor):
             'vcodec': 'h264',
             'abr': float_or_none(audio_quality.get('bitRate'), 1000),
             'vbr': float_or_none(vid_quality if vid_quality > 0 else extract_video_quality(vid_qual_label), 1000),
+            'asr': float_or_none(audio_quality.get('samplingRate')),
             'height': video_quality.get('height'),
             'width': video_quality.get('width'),
             'quality': video_quality.get('qualityLevel'),
