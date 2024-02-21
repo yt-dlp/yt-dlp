@@ -533,7 +533,7 @@ class NiconicoIE(InfoExtractor):
                 parse_duration(self._html_search_meta('video:duration', webpage, 'video duration', default=None))
                 or get_video_info('duration')),
             'webpage_url': url_or_none(url) or f'https://www.nicovideo.jp/watch/{actual_video_id}',
-            'subtitles': self.extract_subtitles(actual_video_id, api_data, dmc_session_api_data),
+            'subtitles': self.extract_subtitles(actual_video_id, api_data),
         }
 
     def _get_subtitles(self, video_id, api_data):
