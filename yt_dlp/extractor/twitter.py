@@ -1390,6 +1390,7 @@ class TwitterIE(TwitterBaseIE):
             'description': description,
             'uploader': uploader,
             'timestamp': unified_timestamp(status.get('created_at')),
+            'channel_id': str_or_none(status.get('user_id_str')) or str_or_none(user.get('id_str')),
             'uploader_id': uploader_id,
             'uploader_url': format_field(uploader_id, None, 'https://twitter.com/%s'),
             'like_count': int_or_none(status.get('favorite_count')),
