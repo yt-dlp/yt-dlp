@@ -65,7 +65,7 @@ dev = [
     "autopep8~=2.0",
     "pre-commit",
     "pytest",
-    "ruff==0.2.1",
+    "ruff==0.2.*",
 ]
 pyinstaller = ["pyinstaller>=6.3"]
 py2exe = ["py2exe>=0.12"]
