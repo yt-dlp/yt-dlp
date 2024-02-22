@@ -431,7 +431,7 @@ class NiconicoIE(InfoExtractor):
             'width': video_quality.get('width'),
             'quality': video_quality.get('qualityLevel'),
             'protocol': 'niconico_dms',
-            'expected_protocol': "hls",
+            'expected_protocol': 'hls',
             'http_headers': {
                 'Origin': 'https://www.nicovideo.jp',
                 'Referer': 'https://www.nicovideo.jp/watch/' + video_id,
