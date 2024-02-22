@@ -9,7 +9,6 @@ from ..utils import (
     get_element_html_by_class,
     get_elements_by_class,
     int_or_none,
-    join_nonempty,
     parse_count,
     parse_duration,
     unescapeHTML,
@@ -57,7 +56,7 @@ class Rule34VideoIE(InfoExtractor):
                 'comment_count': int,
                 'timestamp': 1640131200,
                 'description': '',
-                'creator': 'WildeerStudio',
+                'creators': ['WildeerStudio'],
                 'upload_date': '20211222',
                 'uploader': 'CerZule',
                 'uploader_url': 'https://rule34video.com/members/36281/',
@@ -81,13 +80,13 @@ class Rule34VideoIE(InfoExtractor):
                 'quality': quality,
             })
 
-        categories, creator, uploader, uploader_url = [None] * 4
+        categories, creators, uploader, uploader_url = [None] * 4
         for col in get_elements_by_class('col', webpage):
             label = clean_html(get_element_by_class('label', col))
             if label == 'Categories:':
                 categories = list(map(clean_html, get_elements_by_class('item', col)))
             elif label == 'Artist:':
-                creator = join_nonempty(*map(clean_html, get_elements_by_class('item', col)), delim=', ')
+                creators = list(map(clean_html, get_elements_by_class('item', col)))
             elif label == 'Uploaded By:':
                 uploader = clean_html(get_element_by_class('name', col))
                 uploader_url = extract_attributes(get_element_html_by_class('name', col) or '').get('href')
@@ -115,7 +114,7 @@ class Rule34VideoIE(InfoExtractor):
             'comment_count': int_or_none(self._search_regex(
                 r'[^(]+\((\d+)\)', get_element_by_attribute('href', '#tab_comments', webpage), 'comment count', fatal=False)),
             'age_limit': 18,
-            'creator': creator,
+            'creators': creators,
             'uploader': uploader,
             'uploader_url': uploader_url,
             'categories': categories,
