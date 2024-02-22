@@ -19,7 +19,6 @@ class FrontendMastersBaseIE(InfoExtractor):
 
     _NETRC_MACHINE = 'frontendmasters'
 
-
     def _perform_login(self, username, password):
         login_page = self._download_webpage(
             self._LOGIN_URL, None, 'Downloading login page')
@@ -125,6 +124,7 @@ class FrontendMastersIE(FrontendMastersBaseIE):
         'url': 'frontendmasters:a2qogef6ba',
         'only_matching': True,
     }]
+
     def _real_extract(self, url):
         lesson_id = self._match_id(url)
 
@@ -137,16 +137,15 @@ class FrontendMastersIE(FrontendMastersBaseIE):
         if fem_auth_mod:
             headers['Cookie'] = f'fem_auth_mod={fem_auth_mod.value}'
 
-        json = self._download_json(
+        json_response = self._download_json(
             source_url,
             'Downloading source JSON', query={
                 'f': 'm3u8'
             }, headers=headers)
 
-        video_url = json.get('url')
+        m3u8_url = json_response.get('url')
 
-        formats = self._extract_m3u8_formats(video_url, lesson_id)
-
+        formats = self._extract_m3u8_formats(m3u8_url, lesson_id)
 
         subtitles = {
             'en': [{
