@@ -40,7 +40,6 @@ from .networking.exceptions import (
     NoSupportingHandlers,
     RequestError,
     SSLError,
-    _CompatHTTPError,
     network_exceptions,
 )
 from .plugins import directories as plugin_directories
@@ -580,6 +579,13 @@ class YoutubeDL:
         'preference', 'language', 'language_preference', 'quality', 'source_preference', 'cookies',
         'http_headers', 'stretched_ratio', 'no_resume', 'has_drm', 'extra_param_to_segment_url', 'hls_aes', 'downloader_options',
         'page_url', 'app', 'play_path', 'tc_url', 'flash_version', 'rtmp_live', 'rtmp_conn', 'rtmp_protocol', 'rtmp_real_time'
+    }
+    _deprecated_multivalue_fields = {
+        'album_artist': 'album_artists',
+        'artist': 'artists',
+        'composer': 'composers',
+        'creator': 'creators',
+        'genre': 'genres',
     }
     _format_selection_exts = {
         'audio': set(MEDIA_EXTENSIONS.common_audio),
@@ -2452,7 +2458,7 @@ class YoutubeDL:
                                 # for extractors with incomplete formats (audio only (soundcloud)
                                 # or video only (imgur)) best/worst will fallback to
                                 # best/worst {video,audio}-only format
-                                matches = formats
+                                matches = list(filter(lambda f: f.get('vcodec') != 'none' or f.get('acodec') != 'none', formats))
                             elif seperate_fallback and not ctx['has_merged_format']:
                                 # for compatibility with youtube-dl when there is no pre-merged format
                                 matches = list(filter(seperate_fallback, formats))
@@ -2641,15 +2647,13 @@ class YoutubeDL:
             if final and info_dict.get('%s_number' % field) is not None and not info_dict.get(field):
                 info_dict[field] = '%s %d' % (field.capitalize(), info_dict['%s_number' % field])
 
-        deprecated_multivalue_fields = {
-            'artist': 'artists',
-            'composer': 'composers',
-            'album_artist': 'album_artists',
-            'genre': 'genres',
-        }
-        for deprecated_field, new_field in deprecated_multivalue_fields.items():
-            if info_dict.get(deprecated_field):
-                info_dict[new_field] = re.split(r', ?', info_dict[deprecated_field])
+        for old_key, new_key in self._deprecated_multivalue_fields.items():
+            if new_key in info_dict and old_key in info_dict:
+                self.deprecation_warning(f'Do not return {old_key!r} when {new_key!r} is present')
+            elif old_value := info_dict.get(old_key):
+                info_dict[new_key] = old_value.split(', ')
+            elif new_value := info_dict.get(new_key):
+                info_dict[old_key] = ', '.join(v.replace(',', '\N{FULLWIDTH COMMA}') for v in new_value)
 
     def _raise_pending_errors(self, info):
         err = info.pop('__pending_error', None)
@@ -3494,7 +3498,8 @@ class YoutubeDL:
                                      or info_dict.get('is_live') and self.params.get('hls_use_mpegts') is None,
                                      'Possible MPEG-TS in MP4 container or malformed AAC timestamps',
                                      FFmpegFixupM3u8PP)
-                        ffmpeg_fixup(info_dict.get('is_live') and downloader == 'dashsegments',
+                        ffmpeg_fixup(downloader == 'dashsegments'
+                                     and (info_dict.get('is_live') or info_dict.get('is_dash_periods')),
                                      'Possible duplicate MOOV atoms', FFmpegFixupDuplicateMoovPP)
 
                     ffmpeg_fixup(downloader == 'web_socket_fragment', 'Malformed timestamps detected', FFmpegFixupTimestampPP)
@@ -4120,8 +4125,6 @@ class YoutubeDL:
                     'SSLV3_ALERT_HANDSHAKE_FAILURE: The server may not support the current cipher list. '
                     'Try using --legacy-server-connect', cause=e) from e
             raise
-        except HTTPError as e:  # TODO: Remove in a future release
-            raise _CompatHTTPError(e) from e
 
     def build_request_director(self, handlers, preferences=None):
         logger = _YDLLogger(self)

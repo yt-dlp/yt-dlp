@@ -167,7 +167,8 @@ For ease of use, a few more compat options are available:
 * `--compat-options youtube-dl`: Same as `--compat-options all,-multistreams,-playlist-match-filter,-manifest-filesize-approx`
 * `--compat-options youtube-dlc`: Same as `--compat-options all,-no-live-chat,-no-youtube-channel-redirect,-playlist-match-filter,-manifest-filesize-approx`
 * `--compat-options 2021`: Same as `--compat-options 2022,no-certifi,filename-sanitization,no-youtube-prefer-utc-upload-date`
-* `--compat-options 2022`: Same as `--compat-options playlist-match-filter,no-external-downloader-progress,prefer-legacy-http-handler,manifest-filesize-approx`. Use this to enable all future compat options
+* `--compat-options 2022`: Same as `--compat-options 2023,playlist-match-filter,no-external-downloader-progress,prefer-legacy-http-handler,manifest-filesize-approx`
+* `--compat-options 2023`: Currently does nothing. Use this to enable all future compat options
 
 
 # INSTALLATION
@@ -280,7 +281,7 @@ While all the other dependencies are optional, `ffmpeg` and `ffprobe` are highly
 
 * [**ffmpeg** and **ffprobe**](https://www.ffmpeg.org) - Required for [merging separate video and audio files](#format-selection) as well as for various [post-processing](#post-processing-options) tasks. License [depends on the build](https://www.ffmpeg.org/legal.html)
 
-    There are bugs in ffmpeg that causes various issues when used alongside yt-dlp. Since ffmpeg is such an important dependency, we provide [custom builds](https://github.com/yt-dlp/FFmpeg-Builds#ffmpeg-static-auto-builds) with patches for some of these issues at [yt-dlp/FFmpeg-Builds](https://github.com/yt-dlp/FFmpeg-Builds). See [the readme](https://github.com/yt-dlp/FFmpeg-Builds#patches-applied) for details on the specific issues solved by these builds
+    There are bugs in ffmpeg that cause various issues when used alongside yt-dlp. Since ffmpeg is such an important dependency, we provide [custom builds](https://github.com/yt-dlp/FFmpeg-Builds#ffmpeg-static-auto-builds) with patches for some of these issues at [yt-dlp/FFmpeg-Builds](https://github.com/yt-dlp/FFmpeg-Builds). See [the readme](https://github.com/yt-dlp/FFmpeg-Builds#patches-applied) for details on the specific issues solved by these builds
     
     **Important**: What you need is ffmpeg *binary*, **NOT** [the python package of the same name](https://pypi.org/project/ffmpeg)
 
@@ -320,19 +321,21 @@ If you do not have the necessary dependencies for a task you are attempting, yt-
 ## COMPILE
 
 ### Standalone PyInstaller Builds
-To build the standalone executable, you must have Python and `pyinstaller` (plus any of yt-dlp's [optional dependencies](#dependencies) if needed). Once you have all the necessary dependencies installed, simply run `pyinst.py`. The executable will be built for the same architecture (x86/ARM, 32/64 bit) as the Python used.
+To build the standalone executable, you must have Python and `pyinstaller` (plus any of yt-dlp's [optional dependencies](#dependencies) if needed). The executable will be built for the same architecture (x86/ARM, 32/64 bit) as the Python used. You can run the following commands:
 
-    python3 -m pip install -U pyinstaller -r requirements.txt
-    python3 devscripts/make_lazy_extractors.py
-    python3 pyinst.py
+```
+python3 devscripts/install_deps.py --include pyinstaller
+python3 devscripts/make_lazy_extractors.py
+python3 -m bundle.pyinstaller
+```
 
 On some systems, you may need to use `py` or `python` instead of `python3`.
 
-`pyinst.py` accepts any arguments that can be passed to `pyinstaller`, such as `--onefile/-F` or `--onedir/-D`, which is further [documented here](https://pyinstaller.org/en/stable/usage.html#what-to-generate).
+`bundle/pyinstaller.py` accepts any arguments that can be passed to `pyinstaller`, such as `--onefile/-F` or `--onedir/-D`, which is further [documented here](https://pyinstaller.org/en/stable/usage.html#what-to-generate).
 
 **Note**: Pyinstaller versions below 4.4 [do not support](https://github.com/pyinstaller/pyinstaller#requirements-and-tested-platforms) Python installed from the Windows store without using a virtual environment.
 
-**Important**: Running `pyinstaller` directly **without** using `pyinst.py` is **not** officially supported. This may or may not work correctly.
+**Important**: Running `pyinstaller` directly **without** using `bundle/pyinstaller.py` is **not** officially supported. This may or may not work correctly.
 
 ### Platform-independent Binary (UNIX)
 You will need the build tools `python` (3.8+), `zip`, `make` (GNU), `pandoc`\* and `pytest`\*.
@@ -345,14 +348,17 @@ You can also run `make yt-dlp` instead to compile only the binary without updati
 
 While we provide the option to build with [py2exe](https://www.py2exe.org), it is recommended to build [using PyInstaller](#standalone-pyinstaller-builds) instead since the py2exe builds **cannot contain `pycryptodomex`/`certifi` and needs VC++14** on the target computer to run.
 
-If you wish to build it anyway, install Python and py2exe, and then simply run `setup.py py2exe`
+If you wish to build it anyway, install Python (if it is not already installed) and you can run the following commands:
 
-    py -m pip install -U py2exe -r requirements.txt
-    py devscripts/make_lazy_extractors.py
-    py setup.py py2exe
+```
+py devscripts/install_deps.py --include py2exe
+py devscripts/make_lazy_extractors.py
+py -m bundle.py2exe
+```
 
 ### Related scripts
 
+* **`devscripts/install_deps.py`** - Install dependencies for yt-dlp.
 * **`devscripts/update-version.py`** - Update the version number based on current date.
 * **`devscripts/set-variant.py`** - Set the build variant of the executable.
 * **`devscripts/make_changelog.py`** - Create a markdown changelog using short commit messages and update `CONTRIBUTORS` file.
@@ -1305,7 +1311,8 @@ The available fields are:
  - `display_id` (string): An alternative identifier for the video
  - `uploader` (string): Full name of the video uploader
  - `license` (string): License name the video is licensed under
- - `creator` (string): The creator of the video
+ - `creators` (list): The creators of the video
+ - `creator` (string): The creators of the video; comma-separated
  - `timestamp` (numeric): UNIX timestamp of the moment the video became available
  - `upload_date` (string): Video upload date in UTC (YYYYMMDD)
  - `release_timestamp` (numeric): UNIX timestamp of the moment the video was released
@@ -1380,11 +1387,15 @@ Available for the media that is a track or a part of a music album:
  - `track_number` (numeric): Number of the track within an album or a disc
  - `track_id` (string): Id of the track
  - `artists` (list): Artist(s) of the track
- - `composers` (list): Composer(s) of the piece
+ - `artist` (string): Artist(s) of the track; comma-separated
  - `genres` (list): Genre(s) of the track
+ - `genre` (string): Genre(s) of the track; comma-separated
+ - `composers` (list): Composer(s) of the piece
+ - `composer` (string): Composer(s) of the piece; comma-separated
  - `album` (string): Title of the album the track belongs to
  - `album_type` (string): Type of the album
- - `album_artists` (list): List of all artists appeared on the album
+ - `album_artists` (list): All artists appeared on the album
+ - `album_artist` (string): All artists appeared on the album; comma-separated
  - `disc_number` (numeric): Number of the disc or other physical medium the track belongs to
 
 Available only when using `--download-sections` and for `chapter:` prefix when using `--split-chapters` for videos with internal chapters:
@@ -1762,11 +1773,11 @@ Metadata fields            | From
 `description`,  `synopsis` | `description`
 `purl`, `comment`          | `webpage_url`
 `track`                    | `track_number`
-`artist`                   | `artists`, `creator`, `uploader` or `uploader_id`
-`composer`                 | `composers`
-`genre`                    | `genres`
+`artist`                   | `artist`, `artists`, `creator`, `creators`, `uploader` or `uploader_id`
+`composer`                 | `composer` or `composers`
+`genre`                    | `genre` or `genres`
 `album`                    | `album`
-`album_artist`             | `album_artists`
+`album_artist`             | `album_artist` or `album_artists`
 `disc`                     | `disc_number`
 `show`                     | `series`
 `season_number`            | `season_number`
@@ -1889,6 +1900,9 @@ The following extractors use this feature:
 
 #### nflplusreplay
 * `type`: Type(s) of game replays to extract. Valid types are: `full_game`, `full_game_spanish`, `condensed_game` and `all_22`. You can use `all` to extract all available replay types, which is the default
+
+#### jiosaavn
+* `bitrate`: Audio bitrates to request. One or more of `16`, `32`, `64`, `128`, `320`. Default is `128,320`
 
 **Note**: These options may be changed/removed in the future without concern for backward compatibility
 

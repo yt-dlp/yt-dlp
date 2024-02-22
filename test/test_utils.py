@@ -2340,6 +2340,58 @@ Line 1
         self.assertEqual(traverse_obj(mobj, lambda k, _: k in (0, 'group')), ['0123', '3'],
                          msg='function on a `re.Match` should give group name as well')
 
+        # Test xml.etree.ElementTree.Element as input obj
+        etree = xml.etree.ElementTree.fromstring('''<?xml version="1.0"?>
+        <data>
+            <country name="Liechtenstein">
+                <rank>1</rank>
+                <year>2008</year>
+                <gdppc>141100</gdppc>
+                <neighbor name="Austria" direction="E"/>
+                <neighbor name="Switzerland" direction="W"/>
+            </country>
+            <country name="Singapore">
+                <rank>4</rank>
+                <year>2011</year>
+                <gdppc>59900</gdppc>
+                <neighbor name="Malaysia" direction="N"/>
+            </country>
+            <country name="Panama">
+                <rank>68</rank>
+                <year>2011</year>
+                <gdppc>13600</gdppc>
+                <neighbor name="Costa Rica" direction="W"/>
+                <neighbor name="Colombia" direction="E"/>
+            </country>
+        </data>''')
+        self.assertEqual(traverse_obj(etree, ''), etree,
+                         msg='empty str key should return the element itself')
+        self.assertEqual(traverse_obj(etree, 'country'), list(etree),
+                         msg='str key should lead all children with that tag name')
+        self.assertEqual(traverse_obj(etree, ...), list(etree),
+                         msg='`...` as key should return all children')
+        self.assertEqual(traverse_obj(etree, lambda _, x: x[0].text == '4'), [etree[1]],
+                         msg='function as key should get element as value')
+        self.assertEqual(traverse_obj(etree, lambda i, _: i == 1), [etree[1]],
+                         msg='function as key should get index as key')
+        self.assertEqual(traverse_obj(etree, 0), etree[0],
+                         msg='int key should return the nth child')
+        self.assertEqual(traverse_obj(etree, './/neighbor/@name'),
+                         ['Austria', 'Switzerland', 'Malaysia', 'Costa Rica', 'Colombia'],
+                         msg='`@<attribute>` at end of path should give that attribute')
+        self.assertEqual(traverse_obj(etree, '//neighbor/@fail'), [None, None, None, None, None],
+                         msg='`@<nonexistant>` at end of path should give `None`')
+        self.assertEqual(traverse_obj(etree, ('//neighbor/@', 2)), {'name': 'Malaysia', 'direction': 'N'},
+                         msg='`@` should give the full attribute dict')
+        self.assertEqual(traverse_obj(etree, '//year/text()'), ['2008', '2011', '2011'],
+                         msg='`text()` at end of path should give the inner text')
+        self.assertEqual(traverse_obj(etree, '//*[@direction]/@direction'), ['E', 'W', 'N', 'W', 'E'],
+                         msg='full python xpath features should be supported')
+        self.assertEqual(traverse_obj(etree, (0, '@name')), 'Liechtenstein',
+                         msg='special transformations should act on current element')
+        self.assertEqual(traverse_obj(etree, ('country', 0, ..., 'text()', {int_or_none})), [1, 2008, 141100],
+                         msg='special transformations should act on current element')
+
     def test_http_header_dict(self):
         headers = HTTPHeaderDict()
         headers['ytdl-test'] = b'0'

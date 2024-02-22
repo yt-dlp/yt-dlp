@@ -2068,7 +2068,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'title': 'Voyeur Girl',
                 'description': 'md5:7ae382a65843d6df2685993e90a8628f',
                 'upload_date': '20190312',
-                'artist': 'Stephen',
+                'artists': ['Stephen'],
+                'creators': ['Stephen'],
                 'track': 'Voyeur Girl',
                 'album': 'it\'s too much love to know my dear',
                 'release_date': '20190313',
@@ -2081,7 +2082,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'channel': 'Stephen',  # TODO: should be "Stephen - Topic"
                 'uploader': 'Stephen',
                 'availability': 'public',
-                'creator': 'Stephen',
                 'duration': 169,
                 'thumbnail': 'https://i.ytimg.com/vi_webp/MgNrAu2pzNs/maxresdefault.webp',
                 'age_limit': 0,
@@ -4386,7 +4386,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         release_year = release_date[:4]
                 info.update({
                     'album': mobj.group('album'.strip()),
-                    'artist': mobj.group('clean_artist') or ', '.join(a.strip() for a in mobj.group('artist').split('·')),
+                    'artists': ([a] if (a := mobj.group('clean_artist'))
+                                else [a.strip() for a in mobj.group('artist').split('·')]),
                     'track': mobj.group('track').strip(),
                     'release_date': release_date,
                     'release_year': int_or_none(release_year),
@@ -4532,7 +4533,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     if mrr_title == 'Album':
                         info['album'] = mrr_contents_text
                     elif mrr_title == 'Artist':
-                        info['artist'] = mrr_contents_text
+                        info['artists'] = [mrr_contents_text] if mrr_contents_text else None
                     elif mrr_title == 'Song':
                         info['track'] = mrr_contents_text
             owner_badges = self._extract_badges(traverse_obj(vsir, ('owner', 'videoOwnerRenderer', 'badges')))
@@ -4566,7 +4567,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     if fmt.get('protocol') == 'm3u8_native':
                         fmt['__needs_testing'] = True
 
-        for s_k, d_k in [('artist', 'creator'), ('track', 'alt_title')]:
+        for s_k, d_k in [('artists', 'creators'), ('track', 'alt_title')]:
             v = info.get(s_k)
             if v:
                 info[d_k] = v

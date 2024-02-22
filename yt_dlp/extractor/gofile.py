@@ -66,7 +66,7 @@ class GofileIE(InfoExtractor):
         query_params = {
             'contentId': file_id,
             'token': self._TOKEN,
-            'websiteToken': '7fd94ds12fds4',  # From https://gofile.io/dist/js/alljs.js
+            'wt': '4fd6sg89d7s6',  # From https://gofile.io/dist/js/alljs.js
         }
         password = self.get_param('videopassword')
         if password:
