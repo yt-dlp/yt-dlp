@@ -372,15 +372,10 @@ class NiconicoIE(InfoExtractor):
         if not audio_quality.get('isAvailable') or not video_quality.get('isAvailable'):
             return None
 
-        def extract_video_quality(video_quality):
-            return parse_filesize('%sB' % self._search_regex(
-                r'\| ([0-9]*\.?[0-9]*[MK])', video_quality, 'vbr', default=''))
-
         format_id = '-'.join(
             [remove_start(s['id'], 'archive_') for s in (video_quality, audio_quality)] + [dmc_protocol])
 
         vid_qual_label = traverse_obj(video_quality, ('metadata', 'label'))
-        vid_quality = traverse_obj(video_quality, ('metadata', 'bitrate'))
 
         return {
             'url': 'niconico_dmc:%s/%s/%s' % (video_id, video_quality['id'], audio_quality['id']),
@@ -390,7 +385,7 @@ class NiconicoIE(InfoExtractor):
             'acodec': 'aac',
             'vcodec': 'h264',
             'abr': float_or_none(traverse_obj(audio_quality, ('metadata', 'bitrate')), scale=1000),
-            'vbr': float_or_none(vid_quality if vid_quality > 0 else extract_video_quality(vid_qual_label), scale=1000),
+            'vbr': float_or_none(traverse_obj(video_quality, ('metadata', 'bitrate')), scale=1000),
             'height': traverse_obj(video_quality, ('metadata', 'resolution', 'height')),
             'width': traverse_obj(video_quality, ('metadata', 'resolution', 'width')),
             'quality': -2 if 'low' in video_quality['id'] else None,
@@ -407,15 +402,10 @@ class NiconicoIE(InfoExtractor):
         if not audio_quality.get('isAvailable') or not video_quality.get('isAvailable'):
             return None
 
-        def extract_video_quality(video_quality):
-            return parse_filesize('%sB' % self._search_regex(
-                r'\| ([0-9]*\.?[0-9]*[MK])', video_quality, 'vbr', default=''))
-
         format_id = '-'.join(
             ['dms', remove_start(video_quality.get('id'), 'video-'), remove_start(audio_quality.get('id'), 'audio-'), 'hls'])
 
         vid_qual_label = video_quality.get('label')
-        vid_quality = video_quality.get('bitRate')
 
         return {
             'url': 'niconico_dms:%s/%s/%s' % (video_id, video_quality.get('id'), audio_quality.get('id')),
@@ -425,7 +415,7 @@ class NiconicoIE(InfoExtractor):
             'acodec': 'aac',
             'vcodec': 'h264',
             'abr': float_or_none(audio_quality.get('bitRate'), scale=1000),
-            'vbr': float_or_none(vid_quality if vid_quality > 0 else extract_video_quality(vid_qual_label), scale=1000),
+            'vbr': float_or_none(video_quality.get('bitRate'), scale=1000),
             'asr': float_or_none(audio_quality.get('samplingRate')),
             'height': video_quality.get('height'),
             'width': video_quality.get('width'),
