@@ -389,8 +389,8 @@ class NiconicoIE(InfoExtractor):
             'ext': 'mp4',  # Session API are used in HTML5, which always serves mp4
             'acodec': 'aac',
             'vcodec': 'h264',
-            'abr': float_or_none(traverse_obj(audio_quality, ('metadata', 'bitrate')), 1000),
-            'vbr': float_or_none(vid_quality if vid_quality > 0 else extract_video_quality(vid_qual_label), 1000),
+            'abr': float_or_none(traverse_obj(audio_quality, ('metadata', 'bitrate')), scale=1000),
+            'vbr': float_or_none(vid_quality if vid_quality > 0 else extract_video_quality(vid_qual_label), scale=1000),
             'height': traverse_obj(video_quality, ('metadata', 'resolution', 'height')),
             'width': traverse_obj(video_quality, ('metadata', 'resolution', 'width')),
             'quality': -2 if 'low' in video_quality['id'] else None,
@@ -424,8 +424,8 @@ class NiconicoIE(InfoExtractor):
             'ext': 'mp4',  # Session API are used in HTML5, which always serves mp4
             'acodec': 'aac',
             'vcodec': 'h264',
-            'abr': float_or_none(audio_quality.get('bitRate'), 1000),
-            'vbr': float_or_none(vid_quality if vid_quality > 0 else extract_video_quality(vid_qual_label), 1000),
+            'abr': float_or_none(audio_quality.get('bitRate'), scale=1000),
+            'vbr': float_or_none(vid_quality if vid_quality > 0 else extract_video_quality(vid_qual_label), scale=1000),
             'asr': float_or_none(audio_quality.get('samplingRate')),
             'height': video_quality.get('height'),
             'width': video_quality.get('width'),
