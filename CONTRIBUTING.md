@@ -151,10 +151,11 @@ After this you can use `hatch shell` to enable a virtual environment that has de
 Scripts can be used to run simple tasks, like linting or testing, without having to run `hatch shell` first:
 
 ```shell
-$ hatch run lint
 $ hatch run format
+$ hatch run lint
 $ hatch run test
 ```
+Make sure to run `hatch run format` before `hatch run lint` since `autopep8` fixes errors that `ruff` detects but cannot fix.
 
 You can run scripts for all available and supported python versions sequentially by setting the `TEST_ALL` variable:
 ```shell
