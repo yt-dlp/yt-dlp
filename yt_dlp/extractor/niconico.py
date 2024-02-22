@@ -19,7 +19,6 @@ from ..utils import (
     int_or_none,
     join_nonempty,
     parse_duration,
-    parse_filesize,
     parse_iso8601,
     parse_resolution,
     qualities,
