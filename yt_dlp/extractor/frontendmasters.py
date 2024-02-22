@@ -19,11 +19,6 @@ class FrontendMastersBaseIE(InfoExtractor):
 
     _NETRC_MACHINE = 'frontendmasters'
 
-    _QUALITIES = {
-        'low': {'width': 480, 'height': 360},
-        'mid': {'width': 1280, 'height': 720},
-        'high': {'width': 1920, 'height': 1080}
-    }
 
     def _perform_login(self, username, password):
         login_page = self._download_webpage(
@@ -130,40 +125,32 @@ class FrontendMastersIE(FrontendMastersBaseIE):
         'url': 'frontendmasters:a2qogef6ba',
         'only_matching': True,
     }]
-
     def _real_extract(self, url):
         lesson_id = self._match_id(url)
 
-        source_url = '%s/video/%s/source' % (self._API_BASE, lesson_id)
+        source_url = f'{self._API_BASE}/video/{lesson_id}/source'
+        headers = {
+            'Referer': 'https://frontendmasters.com/',
+        }
+        cookies = self._get_cookies("https://frontendmasters.com/")
+        fem_auth_mod = cookies.get('fem_auth_mod')
+        if fem_auth_mod:
+            headers['Cookie'] = f'fem_auth_mod={fem_auth_mod.value}'
 
-        formats = []
-        for ext in ('webm', 'mp4'):
-            for quality in ('low', 'mid', 'high'):
-                resolution = self._QUALITIES[quality].copy()
-                format_id = '%s-%s' % (ext, quality)
-                format_url = self._download_json(
-                    source_url, lesson_id,
-                    'Downloading %s source JSON' % format_id, query={
-                        'f': ext,
-                        'r': resolution['height'],
-                    }, headers={
-                        'Referer': url,
-                    }, fatal=False)['url']
+        json = self._download_json(
+            source_url,
+            'Downloading source JSON', query={
+                'f': 'm3u8'
+            }, headers=headers)
 
-                if not format_url:
-                    continue
+        video_url = json.get('url')
 
-                f = resolution.copy()
-                f.update({
-                    'url': format_url,
-                    'ext': ext,
-                    'format_id': format_id,
-                })
-                formats.append(f)
+        formats = self._extract_m3u8_formats(video_url, lesson_id)
+
 
         subtitles = {
             'en': [{
-                'url': '%s/transcripts/%s.vtt' % (self._API_BASE, lesson_id),
+                'url': f'{self._API_BASE}/transcripts/{lesson_id}.vtt'
             }]
         }
 
