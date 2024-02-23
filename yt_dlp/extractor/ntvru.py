@@ -78,7 +78,8 @@ class NTVRuIE(InfoExtractor):
     }]
 
     _VIDEO_ID_REGEXES = [
-        r'<meta property="og:url" content="http://www\.ntv\.ru/video/(\d+)',
+        r'<meta property="og:url" content="https?://www\.ntv\.ru/video/(\d+)',
+        r'<meta property="og:video:(?:url|iframe)" content="https?://www\.ntv\.ru/embed/(\d+)',
         r'<video embed=[^>]+><id>(\d+)</id>',
         r'<video restriction[^>]+><key>(\d+)</key>',
     ]
