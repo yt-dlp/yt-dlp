@@ -145,7 +145,6 @@ python = [
 ]
 
 [tool.ruff]
-required-version = "0.2.1"
 line-length = 120
 
 [tool.ruff.lint]
