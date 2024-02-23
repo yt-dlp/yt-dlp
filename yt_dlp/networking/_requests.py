@@ -258,10 +258,10 @@ class RequestsRH(RequestHandler, InstanceStoreMixin):
 
         # Forward urllib3 debug messages to our logger
         logger = logging.getLogger('urllib3')
-        handler = Urllib3LoggingHandler(logger=self._logger)
-        handler.setFormatter(logging.Formatter('requests: %(message)s'))
-        handler.addFilter(Urllib3LoggingFilter())
-        logger.addHandler(handler)
+        self.__logging_handler = Urllib3LoggingHandler(logger=self._logger)
+        self.__logging_handler.setFormatter(logging.Formatter('requests: %(message)s'))
+        self.__logging_handler.addFilter(Urllib3LoggingFilter())
+        logger.addHandler(self.__logging_handler)
         # TODO: Use a logger filter to suppress pool reuse warning instead
         logger.setLevel(logging.ERROR)
 
@@ -276,6 +276,9 @@ class RequestsRH(RequestHandler, InstanceStoreMixin):
 
     def close(self):
         self._clear_instances()
+        # Remove the logging handler that contains a reference to our logger
+        # See: https://github.com/yt-dlp/yt-dlp/issues/8922
+        logging.getLogger('urllib3').removeHandler(self.__logging_handler)
 
     def _check_extensions(self, extensions):
         super()._check_extensions(extensions)

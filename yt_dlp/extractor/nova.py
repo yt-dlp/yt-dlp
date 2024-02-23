@@ -135,14 +135,15 @@ class NovaIE(InfoExtractor):
     _VALID_URL = r'https?://(?:[^.]+\.)?(?P<site>tv(?:noviny)?|tn|novaplus|vymena|fanda|krasna|doma|prask)\.nova\.cz/(?:[^/]+/)+(?P<id>[^/]+?)(?:\.html|/|$)'
     _TESTS = [{
         'url': 'http://tn.nova.cz/clanek/tajemstvi-ukryte-v-podzemi-specialni-nemocnice-v-prazske-krci.html#player_13260',
-        'md5': '249baab7d0104e186e78b0899c7d5f28',
+        'md5': 'da8f3f1fcdaf9fb0f112a32a165760a3',
         'info_dict': {
-            'id': '1757139',
-            'display_id': 'tajemstvi-ukryte-v-podzemi-specialni-nemocnice-v-prazske-krci',
+            'id': '8OvQqEvV3MW',
+            'display_id': '8OvQqEvV3MW',
             'ext': 'mp4',
             'title': 'Podzemní nemocnice v pražské Krči',
             'description': 'md5:f0a42dd239c26f61c28f19e62d20ef53',
             'thumbnail': r're:^https?://.*\.(?:jpg)',
+            'duration': 151,
         }
     }, {
         'url': 'http://fanda.nova.cz/clanek/fun-and-games/krvavy-epos-zaklinac-3-divoky-hon-vychazi-vyhrajte-ho-pro-sebe.html',
@@ -210,7 +211,7 @@ class NovaIE(InfoExtractor):
 
         # novaplus
         embed_id = self._search_regex(
-            r'<iframe[^>]+\bsrc=["\'](?:https?:)?//media\.cms\.nova\.cz/embed/([^/?#&]+)',
+            r'<iframe[^>]+\bsrc=["\'](?:https?:)?//media(?:tn)?\.cms\.nova\.cz/embed/([^/?#&"\']+)',
             webpage, 'embed url', default=None)
         if embed_id:
             return {
