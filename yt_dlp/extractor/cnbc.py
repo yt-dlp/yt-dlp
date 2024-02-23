@@ -4,7 +4,7 @@ from ..utils.traversal import traverse_obj
 
 
 class CNBCVideoIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?cnbc\.com/video/(?:[^/]+/)+(?P<id>[^./?#&]+)\.html'
+    _VALID_URL = r'https?://(?:www\.)?cnbc\.com/video/(?:[^/?#]+/)+(?P<id>[^./?#&]+)\.html'
 
     _TESTS = [{
         'url': 'https://www.cnbc.com/video/2023/12/07/mcdonalds-just-unveiled-cosmcsits-new-spinoff-brand.html',
