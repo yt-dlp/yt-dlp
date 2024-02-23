@@ -35,6 +35,7 @@ class NTVRuIE(InfoExtractor):
             'duration': 172,
             'view_count': int,
         },
+        'skip': '404 Not Found',
     }, {
         'url': 'http://www.ntv.ru/peredacha/segodnya/m23700/o232416',
         'md5': '82dbd49b38e3af1d00df16acbeab260c',
