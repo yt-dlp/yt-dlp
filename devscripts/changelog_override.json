@@ -125,6 +125,6 @@
         "action": "change",
         "when": "4ce57d3b873c2887814cbec03d029533e82f7db5",
         "short": "[ie] Support multi-period MPD streams (#6654)",
-        "authors": ["alard"]
+        "authors": ["alard", "pukkandan"]
     }
 ]
