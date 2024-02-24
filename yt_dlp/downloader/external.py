@@ -615,6 +615,8 @@ class FFmpegFD(ExternalFD):
         else:
             args += ['-f', EXT_TO_OUT_FORMATS.get(ext, ext)]
 
+        args += traverse_obj(info_dict, ('downloader_options', 'ffmpeg_args_out'), default=[])
+
         args += self._configuration_args(('_o1', '_o', ''))
 
         args = [encodeArgument(opt) for opt in args]
