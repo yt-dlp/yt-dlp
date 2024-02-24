@@ -3,16 +3,15 @@ import re
 
 from .common import InfoExtractor
 from ..utils import (
-    clean_html,
-    extract_attributes,
     ExtractorError,
+    extract_attributes,
     float_or_none,
-    get_element_by_class,
     int_or_none,
     srt_subtitles_timecode,
-    strip_or_none,
     mimetype2ext,
+    traverse_obj,
     try_get,
+    url_or_none,
     urlencode_postdata,
     urljoin,
 )
@@ -83,15 +82,29 @@ class LinkedInLearningBaseIE(LinkedInBaseIE):
 
 
 class LinkedInIE(LinkedInBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?linkedin\.com/posts/.+?(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?linkedin\.com/posts/[^/?#]+-(?P<id>\d+)-\w{4}/?(?:[?#]|$)'
     _TESTS = [{
         'url': 'https://www.linkedin.com/posts/mishalkhawaja_sendinblueviews-toronto-digitalmarketing-ugcPost-6850898786781339649-mM20',
         'info_dict': {
             'id': '6850898786781339649',
             'ext': 'mp4',
-            'title': 'Mishal K. on LinkedIn: #sendinblueviews #toronto #digitalmarketing',
-            'description': 'md5:be125430bab1c574f16aeb186a4d5b19',
-            'creator': 'Mishal K.'
+            'title': 'Mishal K. on LinkedIn: #sendinblueviews #toronto #digitalmarketing #nowhiring #sendinblue…',
+            'description': 'md5:2998a31f6f479376dd62831f53a80f71',
+            'uploader': 'Mishal K.',
+            'thumbnail': 're:^https?://media.licdn.com/dms/image/.*$',
+            'like_count': int
+        },
+    }, {
+        'url': 'https://www.linkedin.com/posts/the-mathworks_2_what-is-mathworks-cloud-center-activity-7151241570371948544-4Gu7',
+        'info_dict': {
+            'id': '7151241570371948544',
+            'ext': 'mp4',
+            'title': 'MathWorks on LinkedIn: What Is MathWorks Cloud Center?',
+            'description': 'md5:95f9d4eeb6337882fb47eefe13d7a40c',
+            'uploader': 'MathWorks',
+            'thumbnail': 're:^https?://media.licdn.com/dms/image/.*$',
+            'like_count': int,
+            'subtitles': 'mincount:1'
         },
     }]
 
@@ -99,26 +112,30 @@ class LinkedInIE(LinkedInBaseIE):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        title = self._html_extract_title(webpage)
-        description = clean_html(get_element_by_class('share-update-card__update-text', webpage))
-        like_count = int_or_none(get_element_by_class('social-counts-reactions__social-counts-numRections', webpage))
-        creator = strip_or_none(clean_html(get_element_by_class('comment__actor-name', webpage)))
-
-        sources = self._parse_json(extract_attributes(self._search_regex(r'(<video[^>]+>)', webpage, 'video'))['data-sources'], video_id)
+        video_attrs = extract_attributes(self._search_regex(r'(<video[^>]+>)', webpage, 'video'))
+        sources = self._parse_json(video_attrs['data-sources'], video_id)
         formats = [{
             'url': source['src'],
             'ext': mimetype2ext(source.get('type')),
             'tbr': float_or_none(source.get('data-bitrate'), scale=1000),
         } for source in sources]
+        subtitles = {'en': [{
+            'url': video_attrs['data-captions-url'],
+            'ext': 'vtt',
+        }]} if url_or_none(video_attrs.get('data-captions-url')) else {}
 
         return {
             'id': video_id,
             'formats': formats,
-            'title': title,
-            'like_count': like_count,
-            'creator': creator,
+            'title': self._og_search_title(webpage, default=None) or self._html_extract_title(webpage),
+            'like_count': int_or_none(self._search_regex(
+                r'\bdata-num-reactions="(\d+)"', webpage, 'reactions', default=None)),
+            'uploader': traverse_obj(
+                self._yield_json_ld(webpage, video_id),
+                (lambda _, v: v['@type'] == 'SocialMediaPosting', 'author', 'name', {str}), get_all=False),
             'thumbnail': self._og_search_thumbnail(webpage),
-            'description': description,
+            'description': self._og_search_description(webpage, default=None),
+            'subtitles': subtitles,
         }
 
 

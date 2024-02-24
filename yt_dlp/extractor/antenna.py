@@ -78,14 +78,14 @@ class Ant1NewsGrArticleIE(AntennaBaseIE):
 
     _TESTS = [{
         'url': 'https://www.ant1news.gr/afieromata/article/549468/o-tzeims-mpont-sta-meteora-oi-apeiles-kai-o-xesikomos-ton-kalogeron',
-        'md5': '294f18331bb516539d72d85a82887dcc',
+        'md5': '57eb8d12181f0fa2b14b0b138e1de9b6',
         'info_dict': {
             'id': '_xvg/m_cmbatw=',
             'ext': 'mp4',
             'title': 'md5:a93e8ecf2e4073bfdffcb38f59945411',
-            'timestamp': 1603092840,
-            'upload_date': '20201019',
-            'thumbnail': 'https://ant1media.azureedge.net/imgHandler/640/756206d2-d640-40e2-b201-3555abdfc0db.jpg',
+            'timestamp': 1666166520,
+            'upload_date': '20221019',
+            'thumbnail': 'https://ant1media.azureedge.net/imgHandler/1920/756206d2-d640-40e2-b201-3555abdfc0db.jpg',
         },
     }, {
         'url': 'https://ant1news.gr/Society/article/620286/symmoria-anilikon-dikigoros-thymaton-ithelan-na-toys-apoteleiosoyn',
@@ -117,7 +117,7 @@ class Ant1NewsGrEmbedIE(AntennaBaseIE):
     _BASE_PLAYER_URL_RE = r'(?:https?:)?//(?:[a-zA-Z0-9\-]+\.)?(?:antenna|ant1news)\.gr/templates/pages/player'
     _VALID_URL = rf'{_BASE_PLAYER_URL_RE}\?([^#]+&)?cid=(?P<id>[^#&]+)'
     _EMBED_REGEX = [rf'<iframe[^>]+?src=(?P<_q1>["\'])(?P<url>{_BASE_PLAYER_URL_RE}\?(?:(?!(?P=_q1)).)+)(?P=_q1)']
-    _API_PATH = '/news/templates/data/jsonPlayer'
+    _API_PATH = '/templates/data/jsonPlayer'
 
     _TESTS = [{
         'url': 'https://www.antenna.gr/templates/pages/player?cid=3f_li_c_az_jw_y_u=&w=670&h=377',
