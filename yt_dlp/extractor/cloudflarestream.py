@@ -6,7 +6,7 @@ from .common import InfoExtractor
 class CloudflareStreamIE(InfoExtractor):
     _SUBDOMAIN_RE = r'(?:(?:watch|iframe|customer-\w+)\.)?'
     _DOMAIN_RE = r'(?:cloudflarestream\.com|(?:videodelivery|bytehighway)\.net)'
-    _EMBED_RE = r'embed\.%s/embed/[^/]+\.js\?.*?\bvideo=' % _DOMAIN_RE
+    _EMBED_RE = rf'embed\.{_DOMAIN_RE}/embed/[^/]+\.js\?.*?\bvideo='
     _ID_RE = r'[\da-f]{32}|[\w-]+\.[\w-]+\.[\w-]+'
     _VALID_URL = rf'https?://(?:{_SUBDOMAIN_RE}{_DOMAIN_RE}/|{_EMBED_RE})(?P<id>{_ID_RE})'
     _EMBED_REGEX = [
