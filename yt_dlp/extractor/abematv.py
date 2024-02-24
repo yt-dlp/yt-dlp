@@ -53,7 +53,7 @@ class AbemaLicenseHandler(urllib.request.BaseHandler):
         # the protocol that this should really handle is 'abematv-license://'
         # abematv_license_open is just a placeholder for development purposes
         # ref. https://github.com/python/cpython/blob/f4c03484da59049eb62a9bf7777b963e2267d187/Lib/urllib/request.py#L510
-        setattr(self, 'abematv-license_open', getattr(self, 'abematv_license_open'))
+        setattr(self, 'abematv-license_open', getattr(self, 'abematv_license_open', None))
         self.ie = ie
 
     def _get_videokey_from_ticket(self, ticket):
