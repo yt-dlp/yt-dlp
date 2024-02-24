@@ -413,6 +413,16 @@ class NiconicoIE(InfoExtractor):
                     raise
                 raise ExtractorError(re.sub(r'\s+', ' ', error_msg), expected=True)
 
+        club_joined = traverse_obj(api_data, ('channel', 'viewer', 'follow', 'isFollowed', {bool}))
+        if club_joined is None:
+            fail_msg = self._html_search_regex(
+                r'<p[^>]+\bclass="fail-message"[^>]*>(?P<msg>.+)</p>',
+                webpage, 'fail message', default=None, group='msg')
+            if fail_msg:
+                self.raise_login_required(re.sub(r'\s+', ' ', fail_msg), metadata_available=True)
+        elif not club_joined:
+            self.raise_login_required('This video is for members only', metadata_available=True)
+
         formats = []
 
         def get_video_info(*items, get_first=True, **kwargs):
