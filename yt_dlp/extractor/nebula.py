@@ -374,7 +374,7 @@ class NebulaSubscriptionsIE(NebulaBaseIE):
 
 class NebulaChannelIE(NebulaBaseIE):
     IE_NAME = 'nebula:channel'
-    _VALID_URL = rf'{_BASE_URL_RE}/(?!(?:myshows|library|videos)/?)(?P<id>[\w-]+)/?(?:$|[?#])'
+    _VALID_URL = rf'{_BASE_URL_RE}/(?!myshows|library|videos)(?P<id>[\w-]+)/?(?:$|[?#])'
     _TESTS = [{
         'url': 'https://nebula.tv/tom-scott-presents-money',
         'info_dict': {
