@@ -212,7 +212,8 @@ class ViuOTTIE(InfoExtractor):
             'series_id': '35837',
             'thumbnail': 'https://prod-images.viu.com/clip_asset_v6/1165917542/1165917580/e31e9fb2dc0d38db7f6c9b4de1f62d55d5fdfb80',
 
-        }
+        },
+        'skip': 'Geo-restricted to Indonesia'
     }]
 
     _AREA_ID = {
