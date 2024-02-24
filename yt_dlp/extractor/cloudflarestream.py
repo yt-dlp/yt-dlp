@@ -8,10 +8,10 @@ class CloudflareStreamIE(InfoExtractor):
     _DOMAIN_RE = r'(?:cloudflarestream\.com|(?:videodelivery|bytehighway)\.net)'
     _EMBED_RE = r'embed\.%s/embed/[^/]+\.js\?.*?\bvideo=' % _DOMAIN_RE
     _ID_RE = r'[\da-f]{32}|[\w-]+\.[\w-]+\.[\w-]+'
-    _VALID_URL = r'https?://(?:%s%s/|%s)(?P<id>%s)' % (_SUBDOMAIN_RE, _DOMAIN_RE, _EMBED_RE, _ID_RE)
+    _VALID_URL = rf'https?://(?:{_SUBDOMAIN_RE}{_DOMAIN_RE}/|{_EMBED_RE})(?P<id>{_ID_RE})'
     _EMBED_REGEX = [
-        fr'<script[^>]+\bsrc=(["\'])(?P<url>(?:https?:)?//{_EMBED_RE}(?:{_ID_RE}).*?)\1',
-        fr'(?x)<iframe[^>]+\bsrc=["\'](?P<url>{_VALID_URL})',
+        rf'<script[^>]+\bsrc=(["\'])(?P<url>(?:https?:)?//{_EMBED_RE}(?:{_ID_RE}).*?)\1',
+        rf'<iframe[^>]+\bsrc=["\'](?P<url>https?://{_SUBDOMAIN_RE}{_DOMAIN_RE}/(?:{_ID_RE}))',
     ]
     _TESTS = [{
         'url': 'https://embed.cloudflarestream.com/embed/we4g.fla9.latest.js?video=31c9291ab41fac05471db4e73aa11717',
