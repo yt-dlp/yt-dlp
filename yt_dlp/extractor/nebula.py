@@ -114,7 +114,7 @@ class NebulaBaseIE(InfoExtractor):
 
 class NebulaIE(NebulaBaseIE):
     IE_NAME = 'nebula:video'
-    _VALID_URL = rf'{_BASE_URL_RE}/videos/(?P<id>[-\w]+)'
+    _VALID_URL = rf'{_BASE_URL_RE}/videos/(?P<id>[\w-]+)'
     _TESTS = [{
         'url': 'https://nebula.tv/videos/that-time-disney-remade-beauty-and-the-beast',
         'info_dict': {
@@ -239,7 +239,7 @@ class NebulaIE(NebulaBaseIE):
 
 class NebulaClassIE(NebulaBaseIE):
     IE_NAME = 'nebula:media'
-    _VALID_URL = rf'{_BASE_URL_RE}/(?!myshows|library|videos/)(?P<id>[-\w]+)/(?P<ep>[-\w]+)/?(?:$|[?#])'
+    _VALID_URL = rf'{_BASE_URL_RE}/(?!(?:myshows|library|videos)/)(?P<id>[\w-]+)/(?P<ep>[\w-]+)/?(?:$|[?#])'
     _TESTS = [{
         'url': 'https://nebula.tv/copyright-for-fun-and-profit/14',
         'info_dict': {
@@ -341,7 +341,7 @@ class NebulaClassIE(NebulaBaseIE):
 
 class NebulaSubscriptionsIE(NebulaBaseIE):
     IE_NAME = 'nebula:subscriptions'
-    _VALID_URL = rf'{_BASE_URL_RE}/(?P<id>myshows|library/latest-videos)'
+    _VALID_URL = rf'{_BASE_URL_RE}/(?P<id>myshows|library/latest-videos)/?(?:$|[?#])'
     _TESTS = [{
         'url': 'https://nebula.tv/myshows',
         'playlist_mincount': 1,
@@ -374,7 +374,7 @@ class NebulaSubscriptionsIE(NebulaBaseIE):
 
 class NebulaChannelIE(NebulaBaseIE):
     IE_NAME = 'nebula:channel'
-    _VALID_URL = rf'{_BASE_URL_RE}/(?!myshows|library|videos/)(?P<id>[-\w]+)/?(?:$|[?#])'
+    _VALID_URL = rf'{_BASE_URL_RE}/(?!(?:myshows|library|videos)/?)(?P<id>[\w-]+)/?(?:$|[?#])'
     _TESTS = [{
         'url': 'https://nebula.tv/tom-scott-presents-money',
         'info_dict': {
