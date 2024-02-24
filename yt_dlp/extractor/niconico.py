@@ -418,12 +418,19 @@ class NiconicoIE(InfoExtractor):
         def get_video_info(*items, get_first=True, **kwargs):
             return traverse_obj(api_data, ('video', *items), get_all=not get_first, **kwargs)
 
-        quality_info = api_data['media']['delivery']['movie']
-        session_api_data = quality_info['session']
-        for (audio_quality, video_quality, protocol) in itertools.product(quality_info['audios'], quality_info['videos'], session_api_data['protocols']):
-            fmt = self._extract_format_for_quality(video_id, audio_quality, video_quality, protocol)
-            if fmt:
-                formats.append(fmt)
+        dmc_data = traverse_obj(api_data, (
+            'media', 'delivery', 'movie', {
+                'audios': 'audios',
+                'videos': 'videos',
+                'protocols': ('session', 'protocols'),
+            }, {lambda data: data if all(key in data for key in ['audios', 'videos', 'protocols']) else None},
+        ))
+        if dmc_data:
+            for (audio_quality, video_quality, protocol) in itertools.product(
+                    dmc_data['audios'], dmc_data['videos'], dmc_data['protocols']):
+                fmt = self._extract_format_for_quality(video_id, audio_quality, video_quality, protocol)
+                if fmt:
+                    formats.append(fmt)
 
         dms_data = traverse_obj(api_data, ({
             'videos': ('media', 'domand', 'videos', ..., {
@@ -445,44 +452,48 @@ class NiconicoIE(InfoExtractor):
             'audios': ('audios', {lambda items: dict(items)}),
             'accessRightKey': 'accessRightKey',
             'track_id': 'track_id',
+        }, {
+            lambda data: data if all(key in data for key in [
+                'videos', 'audios', 'accessRightKey', 'track_id',
+            ]) else None
         }))
+        if dms_data:
+            dms_m3u8_url = traverse_obj(self._download_json(
+                f'https://nvapi.nicovideo.jp/v1/watch/{video_id}/access-rights/hls', video_id,
+                data=json.dumps({
+                    'outputs': list(itertools.product(dms_data['videos'], dms_data['audios']))
+                }).encode(), query={'actionTrackId': dms_data['track_id']}, headers={
+                    'x-access-right-key': dms_data['accessRightKey'],
+                    'x-frontend-id': 6,
+                    'x-frontend-version': 0,
+                    'x-request-with': 'https://www.nicovideo.jp',
+                }), ('data', 'contentUrl'))
+            dms_fmts = self._extract_m3u8_formats(dms_m3u8_url, video_id)
 
-        dms_m3u8_url = traverse_obj(self._download_json(
-            f'https://nvapi.nicovideo.jp/v1/watch/{video_id}/access-rights/hls', video_id,
-            data=json.dumps({
-                'outputs': list(itertools.product(dms_data['videos'], dms_data['audios']))
-            }).encode(), query={'actionTrackId': dms_data['track_id']}, headers={
-                'x-access-right-key': dms_data['accessRightKey'],
-                'x-frontend-id': 6,
-                'x-frontend-version': 0,
-                'x-request-with': 'https://www.nicovideo.jp',
-            }), ('data', 'contentUrl'))
-        dms_fmts = self._extract_m3u8_formats(dms_m3u8_url, video_id)
+            # update audio formats
+            dms_audio_fmts = [fmt for fmt in dms_fmts if fmt['vcodec'] == 'none']
+            for i, fmt in enumerate(dms_audio_fmts):
+                format_id = remove_end(fmt['format_id'], '-%s' % fmt['format_note'])
+                dms_audio_fmts[i].update(**(traverse_obj(dms_data, ('audios', format_id, {dict})) or {}))
 
-        # update audio formats
-        dms_audio_fmts = [fmt for fmt in dms_fmts if fmt['vcodec'] == 'none']
-        for i, fmt in enumerate(dms_audio_fmts):
-            format_id = remove_end(fmt['format_id'], '-%s' % fmt['format_note'])
-            dms_audio_fmts[i].update(**(traverse_obj(dms_data, ('audios', format_id, {dict})) or {}))
+            # remove duplicate video formats
+            dms_video_fmts = [
+                list(fmts)[0] for _, fmts in itertools.groupby(sorted([
+                    fmt for fmt in dms_fmts if fmt['vcodec'] != 'none'
+                ], key=lambda fmt: fmt['tbr']), lambda fmt: fmt['url'])
+            ]
 
-        # remove duplicate video formats
-        dms_video_fmts = [
-            list(fmts)[0] for _, fmts in itertools.groupby(sorted([
-                fmt for fmt in dms_fmts if fmt['vcodec'] != 'none'
-            ], key=lambda fmt: fmt['tbr']), lambda fmt: fmt['url'])
-        ]
+            # correct video bitrate
+            min_abr = traverse_obj(min(dms_audio_fmts, key=lambda fmt: fmt['abr']), ('abr'), default=0)
+            for i, fmt in enumerate(dms_video_fmts):
+                vbr = fmt['tbr'] - min_abr
+                dms_video_fmts[i].update({
+                    'format_id': str(round(vbr)),
+                    'vbr': vbr,
+                    'tbr': None,
+                })
 
-        # correct video bitrate
-        min_abr = traverse_obj(min(dms_audio_fmts, key=lambda fmt: fmt['abr']), ('abr'), default=0)
-        for i, fmt in enumerate(dms_video_fmts):
-            vbr = fmt['tbr'] - min_abr
-            dms_video_fmts[i].update({
-                'format_id': str(round(vbr)),
-                'vbr': vbr,
-                'tbr': None,
-            })
-
-        formats.extend(dms_video_fmts + dms_audio_fmts)
+            formats.extend(dms_video_fmts + dms_audio_fmts)
 
         # Start extracting information
         tags = None
