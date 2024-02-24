@@ -390,7 +390,7 @@ def create_parser():
         '--ignore-config', '--no-config',
         action='store_true', dest='ignoreconfig',
         help=(
-            'Don\'t load any more configuration files except those given by --config-locations. '
+            'Don\'t load any more configuration files except those given to --config-locations. '
             'For backward compatibility, if this option is found inside the system configuration file, the user configuration is not loaded. '
             '(Alias: --no-config)'))
     general.add_option(

@@ -323,7 +323,7 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
                                     URLs, but emits an error if this is not
                                     possible instead of searching
     --ignore-config                 Don't load any more configuration files
-                                    except those given by --config-locations.
+                                    except those given to --config-locations.
                                     For backward compatibility, if this option
                                     is found inside the system configuration
                                     file, the user configuration is not loaded.
@@ -1077,12 +1077,12 @@ Make chapter entries for, or remove various segments (sponsor,
 You can configure yt-dlp by placing any supported command line option to a configuration file. The configuration is loaded from the following locations:
 
 1. **Main Configuration**:
-    * The file given by `--config-location`
+    * The file given to `--config-location`
 1. **Portable Configuration**: (Recommended for portable installations)
     * If using a binary, `yt-dlp.conf` in the same directory as the binary
     * If running from source-code, `yt-dlp.conf` in the parent directory of `yt_dlp`
 1. **Home Configuration**:
-    * `yt-dlp.conf` in the home path given by `-P`
+    * `yt-dlp.conf` in the home path given to `-P`
     * If `-P` is not given, the current directory is searched
 1. **User Configuration**:
     * `${XDG_CONFIG_HOME}/yt-dlp.conf`
