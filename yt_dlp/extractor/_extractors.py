@@ -379,7 +379,6 @@ from .clubic import ClubicIE
 from .clyp import ClypIE
 from .cmt import CMTIE
 from .cnbc import (
-    CNBCIE,
     CNBCVideoIE,
 )
 from .cnn import (
@@ -618,6 +617,7 @@ from .filmon import (
 from .filmweb import FilmwebIE
 from .firsttv import FirstTVIE
 from .fivetv import FiveTVIE
+from .flextv import FlexTVIE
 from .flickr import FlickrIE
 from .floatplane import (
     FloatplaneIE,
