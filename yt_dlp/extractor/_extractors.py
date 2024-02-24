@@ -1638,6 +1638,10 @@ from .rentv import (
 from .restudy import RestudyIE
 from .reuters import ReutersIE
 from .reverbnation import ReverbNationIE
+from .revpro import (
+    RevProIE,
+    RevProSeasonIE
+)
 from .rheinmaintv import RheinMainTVIE
 from .rinsefm import (
     RinseFMIE,
