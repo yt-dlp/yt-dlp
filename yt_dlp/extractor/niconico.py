@@ -564,10 +564,6 @@ class NiconicoIE(InfoExtractor):
             note='Downloading comments', errnote='Failed to download comments'),
             ('data', 'threads', ..., 'comments', ...))
 
-        if not danmaku:
-            self.report_warning(f'Failed to get comments. {bug_reports_message()}')
-            return
-
         return {
             'comments': [{
                 'ext': 'json',
