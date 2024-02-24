@@ -10,7 +10,7 @@ class CloudflareStreamIE(InfoExtractor):
     _VALID_URL = r'''(?x)
                     https?://
                         (?:
-                            (?:watch\.)?%s/|
+                            (?:[\w-]+\.)?%s/|
                             %s
                         )
                         (?P<id>%s)
@@ -34,6 +34,9 @@ class CloudflareStreamIE(InfoExtractor):
         'only_matching': True,
     }, {
         'url': 'https://embed.videodelivery.net/embed/r4xu.fla9.latest.js?video=81d80727f3022488598f68d323c1ad5e',
+        'only_matching': True,
+    }, {
+        'url': 'https://customer-aw5py76sw8wyqzmh.cloudflarestream.com/2463f6d3e06fa29710a337f5f5389fd8/iframe',
         'only_matching': True,
     }]
 
