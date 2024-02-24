@@ -113,6 +113,7 @@ class NebulaBaseIE(InfoExtractor):
 
 
 class NebulaIE(NebulaBaseIE):
+    IE_NAME = 'nebula:video'
     _VALID_URL = rf'{_BASE_URL_RE}/videos/(?P<id>[-\w]+)'
     _TESTS = [{
         'url': 'https://nebula.tv/videos/that-time-disney-remade-beauty-and-the-beast',
@@ -237,7 +238,7 @@ class NebulaIE(NebulaBaseIE):
 
 
 class NebulaClassIE(NebulaBaseIE):
-    IE_NAME = 'nebula:class/podcast'
+    IE_NAME = 'nebula:media'
     _VALID_URL = rf'{_BASE_URL_RE}/(?!myshows|library|videos/)(?P<id>[-\w]+)/(?P<ep>[-\w]+)/?(?:$|[?#])'
     _TESTS = [{
         'url': 'https://nebula.tv/copyright-for-fun-and-profit/14',
