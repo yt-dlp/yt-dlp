@@ -327,7 +327,6 @@ class ViuOTTIE(InfoExtractor):
                 'id': video_id,
                 'formats': formats,
                 'subtitles': subtitles,
-                'thumbnails': json_ld.get('thumbnails'),
             },
                 traverse_obj(json_ld, {
                     'thumbnails': 'thumbnails',
