@@ -257,8 +257,7 @@ class NPOIE(InfoExtractor):
             format_urls.add(stream_url)
             if stream.get('protection') is not None or stream.get('keySystemOptions') is not None:
                 drm = True
-                if not self.get_param('allow_unplayable_formats'):
-                    continue
+                continue
             stream_type = stream.get('type')
             stream_ext = determine_ext(stream_url)
             if stream_type == 'application/dash+xml' or stream_ext == 'mpd':
