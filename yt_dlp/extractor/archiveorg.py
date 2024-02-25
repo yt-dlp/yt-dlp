@@ -300,7 +300,7 @@ class ArchiveOrgIE(InfoExtractor):
             is_logged_in = bool(self._get_cookies('https://archive.org').get('logged-in-sig'))
             if extension in KNOWN_EXTENSIONS and (not f.get('private') or is_logged_in):
                 entry['formats'].append({
-                    'url': 'https://archive.org/download/' + identifier + '/' + f['name'],
+                    'url': 'https://archive.org/download/' + identifier + '/' + urllib.parse.quote(f['name']),
                     'format': f.get('format'),
                     'width': int_or_none(f.get('width')),
                     'height': int_or_none(f.get('height')),
