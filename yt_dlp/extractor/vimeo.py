@@ -122,12 +122,12 @@ class VimeoBaseInfoExtractor(InfoExtractor):
         video_data = config['video']
         video_title = video_data.get('title')
         live_event = video_data.get('live_event') or {}
-        live_status = traverse_obj(live_event, ('status', {lambda status: {
+        live_status = {
             'pending': 'is_upcoming',
             'active': 'is_live',  # TODO: is live or not?
             'started': 'is_live',
             'ended': 'post_live',
-        }.get(status)}))
+        }.get(live_event.get('status'))
         is_live = live_status == 'is_live'
         request = config.get('request') or {}
 
