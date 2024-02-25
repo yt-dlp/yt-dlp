@@ -2,7 +2,7 @@ import base64
 import calendar
 import collections
 import copy
-import datetime
+import datetime as dt
 import enum
 import hashlib
 import itertools
@@ -924,10 +924,10 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     def _parse_time_text(self, text):
         if not text:
             return
-        dt = self.extract_relative_time(text)
+        dt_ = self.extract_relative_time(text)
         timestamp = None
-        if isinstance(dt, datetime.datetime):
-            timestamp = calendar.timegm(dt.timetuple())
+        if isinstance(dt_, dt.datetime):
+            timestamp = calendar.timegm(dt_.timetuple())
 
         if timestamp is None:
             timestamp = (
@@ -4568,7 +4568,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         if upload_date and live_status not in ('is_live', 'post_live', 'is_upcoming'):
             # Newly uploaded videos' HLS formats are potentially problematic and need to be checked
-            upload_datetime = datetime_from_str(upload_date).replace(tzinfo=datetime.timezone.utc)
+            upload_datetime = datetime_from_str(upload_date).replace(tzinfo=dt.timezone.utc)
             if upload_datetime >= datetime_from_str('today-2days'):
                 for fmt in info['formats']:
                     if fmt.get('protocol') == 'm3u8_native':
