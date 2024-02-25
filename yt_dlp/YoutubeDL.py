@@ -1,7 +1,7 @@
 import collections
 import contextlib
 import copy
-import datetime
+import datetime as dt
 import errno
 import fileinput
 import http.cookiejar
@@ -2616,7 +2616,7 @@ class YoutubeDL:
                 # Working around out-of-range timestamp values (e.g. negative ones on Windows,
                 # see http://bugs.python.org/issue1646728)
                 with contextlib.suppress(ValueError, OverflowError, OSError):
-                    upload_date = datetime.datetime.fromtimestamp(info_dict[ts_key], datetime.timezone.utc)
+                    upload_date = dt.datetime.fromtimestamp(info_dict[ts_key], dt.timezone.utc)
                     info_dict[date_key] = upload_date.strftime('%Y%m%d')
 
         if not info_dict.get('release_year'):
@@ -2769,7 +2769,7 @@ class YoutubeDL:
 
         get_from_start = not info_dict.get('is_live') or bool(self.params.get('live_from_start'))
         if not get_from_start:
-            info_dict['title'] += ' ' + datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
+            info_dict['title'] += ' ' + dt.datetime.now().strftime('%Y-%m-%d %H:%M')
         if info_dict.get('is_live') and formats:
             formats = [f for f in formats if bool(f.get('is_from_start')) == get_from_start]
             if get_from_start and not formats:
