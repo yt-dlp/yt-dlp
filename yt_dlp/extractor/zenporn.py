@@ -4,7 +4,6 @@ from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     determine_ext,
-    int_or_none,
     traverse_obj,
     unified_strdate,
     url_or_none,
@@ -74,7 +73,7 @@ class ZenPornIE(InfoExtractor):
 
     def _gen_info_url(self, ext_domain, extr_id, lifetime=86400):
         """ This function is a reverse engineering from the website javascript """
-        result = '/'.join(str(int_or_none(extr_id) // i * i) for i in (1_000_000, 1_000, 1))
+        result = '/'.join(str(int(extr_id) // i * i) for i in (1_000_000, 1_000, 1))
         return f'https://{ext_domain}/api/json/video/{lifetime}/{result}.json'
 
     @staticmethod
