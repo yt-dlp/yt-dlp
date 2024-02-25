@@ -62,21 +62,21 @@ class AltCensoredChannelIE(InfoExtractor):
             'title': 'Virginie Vota',
             'id': 'UCFPTO55xxHqFqkzRZHu4kcw',
         },
-        'playlist_count': 85
+        'playlist_count': 85,
     }, {
         'url': 'https://altcensored.com/channel/UC9CcJ96HKMWn0LZlcxlpFTw',
         'info_dict': {
             'title': 'yukikaze775',
             'id': 'UC9CcJ96HKMWn0LZlcxlpFTw',
         },
-        'playlist_count': 4
+        'playlist_count': 4,
     }, {
         'url': 'https://altcensored.com/channel/UCfYbb7nga6-icsFWWgS-kWw',
         'info_dict': {
             'title': 'Mister Metokur',
             'id': 'UCfYbb7nga6-icsFWWgS-kWw',
         },
-        'playlist_count': 121
+        'playlist_count': 121,
     }]
 
     def _real_extract(self, url):
