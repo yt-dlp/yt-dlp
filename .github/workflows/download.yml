@@ -11,11 +11,11 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: 3.9
     - name: Install test requirements
-      run: pip install pytest -r requirements.txt
+      run: python3 ./devscripts/install_deps.py --include dev
     - name: Run tests
       continue-on-error: true
       run: python3 ./devscripts/run_tests.py download
@@ -38,11 +38,11 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install test requirements
-      run: pip install pytest -r requirements.txt
+      run: python3 ./devscripts/install_deps.py --include dev
     - name: Run tests
       continue-on-error: true
       run: python3 ./devscripts/run_tests.py download
