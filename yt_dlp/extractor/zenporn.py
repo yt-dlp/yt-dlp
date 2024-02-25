@@ -1,10 +1,13 @@
+import base64
+import binascii
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     determine_ext,
     int_or_none,
     traverse_obj,
-    unified_strdate
+    unified_strdate,
+    url_or_none,
 )
 
 
@@ -71,81 +74,55 @@ class ZenPornIE(InfoExtractor):
 
     def _gen_info_url(self, ext_domain, extr_id, lifetime=86400):
         """ This function is a reverse engineering from the website javascript """
-        extr_id = int_or_none(extr_id)
-        if extr_id is None:
-            raise ExtractorError('Unable to generate the `gen_info_url`')
-        result = '/'.join(str(extr_id // i * i) for i in (1_000_000, 1_000, 1))
+        result = '/'.join(str(int_or_none(extr_id) // i * i) for i in (1_000_000, 1_000, 1))
         return f'https://{ext_domain}/api/json/video/{lifetime}/{result}.json'
 
-    def _decode_video_url(self, ext_domain, encoded_url):
+    @staticmethod
+    def _decode_video_url(encoded_url):
         """ This function is a reverse engineering from the website javascript """
-        cust_char_set = 'АВСDЕFGHIJKLМNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.,~'
-        decoded_url = ''
-        cur_pos = 0
-
-        # Check for characters not in the custom character set and handle errors
-        if any(char not in cust_char_set for char in encoded_url):
+        # Replace lookalike characters and standardize map
+        translation = str.maketrans('АВСЕМ.,~', 'ABCEM+/=')
+        try:
+            return base64.b64decode(encoded_url.translate(translation), validate=True).decode()
+        except (binascii.Error, ValueError):
             return None
 
-        # Filter out characters not in the custom character set
-        encoded_url = ''.join(char for char in encoded_url if char in cust_char_set)
-
-        while cur_pos < len(encoded_url):
-            o = cust_char_set.index(encoded_url[cur_pos])
-            i = cust_char_set.index(encoded_url[cur_pos + 1])
-            s = cust_char_set.index(encoded_url[cur_pos + 2])
-            a = cust_char_set.index(encoded_url[cur_pos + 3])
-
-            o = (o << 2) | (i >> 4)
-            i = ((i & 15) << 4) | (s >> 2)
-            l = ((s & 3) << 6) | a
-
-            decoded_url += chr(o)
-            if s != 64:
-                decoded_url += chr(i)
-            if a != 64:
-                decoded_url += chr(l)
-
-            cur_pos += 4
-
-        return f'https://{ext_domain}{decoded_url}'
-
     def _real_extract(self, url):
-
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
         ext_domain, extr_id = self._search_regex(
-            r'https:\/\/(?P<ext_domain>[\w.-]+\.\w{3})\/embed\/(?P<extr_id>\d+)\/',
-            webpage, 'embed_info', group=('ext_domain', 'extr_id'))
+            r'https://(?P<ext_domain>[\w.-]+\.\w{3})/embed/(?P<extr_id>\d+)/',
+            webpage, 'embed info', group=('ext_domain', 'extr_id'), fatal=True)
 
-        info_json = self._download_json(self._gen_info_url(ext_domain, extr_id),
-                                        video_id, note="Downloading JSON metadata for the video info.")
-        if not info_json:
-            raise ExtractorError('Unable to retrieve the video info.')
+        info_json = self._download_json(
+            self._gen_info_url(ext_domain, extr_id), video_id,
+            note='Downloading video info JSON', fatal=True)
 
-        video_json = self._download_json(f'https://{ext_domain}/api/videofile.php?video_id={extr_id}&lifetime=8640000',
-                                         video_id, note="Downloading JSON metadata for the video location.")
-        if not video_json:
-            raise ExtractorError('Unable to retrieve the the video location.')
+        video_json = self._download_json(
+            f'https://{ext_domain}/api/videofile.php', video_id, query={
+                'video_id': extr_id,
+                'lifetime': 8640000,
+            }, note='Downloading video metadata JSON', fatal=True)
 
-        encoded_url = video_json[0].get('video_url')
-        if not encoded_url:
-            raise ExtractorError('Unable to retrieve the `encoded_url` value.')
+        encoded_url = video_json[0]['video_url']
 
-        download_url = self._decode_video_url(ext_domain, encoded_url)
-        if not download_url:
-            raise ExtractorError('Unable to retrieve the ``download_url``.')
+        decoded_url = self._decode_video_url(encoded_url)
+        if not decoded_url:
+            raise ExtractorError('Unable to decode the video url')
 
         return {
             'id': video_id,
             'extr_id': extr_id,
-            'ext': determine_ext(video_json[0].get('format')),
-            'title': traverse_obj(info_json, ('video', 'title')),
-            'description': traverse_obj(info_json, ('video', 'description')),
-            'thumbnail': traverse_obj(info_json, ('video', 'thumb')),
-            'post_date': unified_strdate(traverse_obj(info_json, ('video', 'post_date'))),
-            'uploader': traverse_obj(info_json, ('video', 'user', 'username')),
-            'url': download_url,
-            'age_limit': 18
+            'ext': traverse_obj(
+                video_json, (..., 'format', {determine_ext}), get_all=False),
+            'url': f'https://{ext_domain}{decoded_url}',
+            'age_limit': 18,
+            **traverse_obj(info_json, ('video', {
+                'title': ('title', {str}),
+                'description': ('description', {str}),
+                'thumbnail': ('thumb', {url_or_none}),
+                'post_date': ('post_date', {unified_strdate}),
+                'uploader': ('user', 'username', {str}),
+            })),
         }
