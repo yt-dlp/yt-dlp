@@ -533,6 +533,7 @@ from .disney import DisneyIE
 from .dispeak import DigitallySpeakingIE
 from .dropbox import DropboxIE
 from .dropout import (
+    DropoutShowIE,
     DropoutSeasonIE,
     DropoutIE
 )
