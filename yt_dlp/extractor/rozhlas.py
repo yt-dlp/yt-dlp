@@ -322,7 +322,7 @@ class MujRozhlasIE(RozhlasBaseIE):
 
         entity = info['siteEntityBundle']
 
-        if entity == 'episode':
+        if entity in ('episode', 'serialPart'):
             return self._extract_audio_entry(self._call_api(
                 'episodes', info['contentId'], 'episode info API JSON'))
 
