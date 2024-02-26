@@ -75,7 +75,7 @@ class MicrosoftEmbedIE(InfoExtractor):
 
 class MicrosoftMediusBaseIE(InfoExtractor):
     @staticmethod
-    def _sub_to_dict(self, subtitle_list):
+    def _sub_to_dict(subtitle_list):
         subtitles = {}
         for sub in subtitle_list:
             subtitles.setdefault(sub.pop('tag', None) or 'unknown', []).append(sub)
