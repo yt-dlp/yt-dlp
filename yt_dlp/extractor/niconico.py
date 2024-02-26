@@ -565,11 +565,11 @@ class NiconicoIE(InfoExtractor):
 
     def _get_subtitles(self, video_id, api_data):
         comments_info = traverse_obj(api_data, ('comment', 'nvComment', {dict})) or {}
-        if not comments_info:
+        if not comments_info.get('server'):
             return
 
         danmaku = traverse_obj(self._download_json(
-            f'{comments_info.get("server")}/v1/threads', video_id, data=json.dumps({
+            f'{comments_info["server"]}/v1/threads', video_id, data=json.dumps({
                 'additionals': {},
                 'params': comments_info.get('params'),
                 'threadKey': comments_info.get('threadKey'),
