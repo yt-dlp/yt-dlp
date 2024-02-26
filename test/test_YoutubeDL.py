@@ -941,7 +941,7 @@ class TestYoutubeDL(unittest.TestCase):
         def get_videos(filter_=None):
             ydl = YDL({'match_filter': filter_, 'simulate': True})
             for v in videos:
-                ydl.process_ie_result(v, download=True)
+                ydl.process_ie_result(v.copy(), download=True)
             return [v['id'] for v in ydl.downloaded_info_dicts]
 
         res = get_videos()
