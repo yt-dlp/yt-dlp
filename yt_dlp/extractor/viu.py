@@ -295,6 +295,9 @@ class ViuOTTIE(InfoExtractor):
             next_js_data = self._search_nextjs_data(webpage, video_id)['props']
             runtime_info = next_js_data['initialState']['app']['runtimeInfo']
 
+            # Weird thing happen if i insert technilacally geo-blocked content like
+            # like https://www.viu.com/ott/sg/en/vod/108599/The-Beauty-Inside in ID region,
+            # it still download. Maybe API not affected by geo-block?
             product_detail_json = traverse_obj(
                 next_js_data, ('pageProps', 'fallback', lambda k, v: v if re.match(r'@"PRODUCT_DETAIL"[^:]+', k) else None),
                 get_all=False)
