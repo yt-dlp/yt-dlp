@@ -6,17 +6,17 @@ import urllib.parse
 from .common import InfoExtractor
 from .youtube import YoutubeIE
 from ..utils import (
+    ExtractorError,
+    OnDemandPagedList,
     clean_html,
     dict_get,
     extract_attributes,
-    ExtractorError,
     get_element_by_class,
     get_element_html_by_id,
     get_elements_html_by_class,
     int_or_none,
     js_to_json,
     merge_dicts,
-    OnDemandPagedList,
     parse_duration,
     str_or_none,
     traverse_obj,
