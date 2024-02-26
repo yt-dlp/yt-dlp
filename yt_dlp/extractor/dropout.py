@@ -207,6 +207,7 @@ class DropoutSeasonIE(InfoExtractor):
             OnDemandPagedList(functools.partial(self._fetch_page, url, season_id), self._PAGE_SIZE),
             f'{season_id}-season-{season_num}', f'{season_title} - Season {season_num}')
 
+
 class DropoutShowIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?dropout\.tv/(?P<id>[^\/$&?#]+)/?$'
     _TEST = {
