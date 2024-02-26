@@ -247,17 +247,17 @@ class MujRozhlasIE(RozhlasBaseIE):
         'url': 'https://www.mujrozhlas.cz/vykopavky/ach-jo-zase-teleci-rizek-je-mnohem-min-cesky-nez-jsme-si-mysleli',
         'md5': '6f8fd68663e64936623e67c152a669e0',
         'info_dict': {
-            'id': '10739193',
+            'id': '10787730',
             'ext': 'mp3',
             'title': 'Ach jo, zase to telecí! Řízek je mnohem míň český, než jsme si mysleli',
             'description': 'md5:db7141e9caaedc9041ec7cefb9a62908',
             'timestamp': 1684915200,
-            'modified_timestamp': 1684922446,
+            'modified_timestamp': 1687550432,
             'series': 'Vykopávky',
             'thumbnail': 'https://portal.rozhlas.cz/sites/default/files/images/84377046610af6ddc54d910b1dd7a22b.jpg',
             'channel_id': 'radio-wave',
             'upload_date': '20230524',
-            'modified_date': '20230524',
+            'modified_date': '20230623',
         },
     }, {
         # serial extraction
