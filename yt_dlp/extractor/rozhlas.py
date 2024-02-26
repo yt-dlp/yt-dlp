@@ -277,6 +277,27 @@ class MujRozhlasIE(RozhlasBaseIE):
             'title': 'Nespavci',
             'description': 'md5:c430adcbf9e2b9eac88b745881e814dc',
         },
+    }, {
+        # serialPart
+        'url': 'https://www.mujrozhlas.cz/povidka/gustavo-adolfo-becquer-hora-duchu',
+        'info_dict': {
+            'id': '8889035',
+            'ext': 'm4a',
+            'title': 'Gustavo Adolfo Bécquer: Hora duchů',
+            'description': 'md5:343a15257b376c276e210b78e900ffea',
+            'chapter': 'Hora duchů a Polibek – dva tajemné příběhy Gustava Adolfa Bécquera',
+            'thumbnail': 'https://portal.rozhlas.cz/sites/default/files/images/2adfe1387fb140634be725c1ccf26214.jpg',
+            'timestamp': 1708173000,
+            'episode': 'Episode 1',
+            'episode_number': 1,
+            'is_dash_periods': True,
+            'series': 'Povídka',
+            'modified_date': '20240217',
+            'upload_date': '20240217',
+            'modified_timestamp': 1708173198,
+            'channel_id': 'vltava',
+        },
+        'params': {'skip_download': 'dash'},
     }]
 
     def _call_api(self, path, item_id, msg='API JSON'):
