@@ -19,7 +19,6 @@ from ..utils import (
     join_nonempty,
     parse_bitrate,
     parse_duration,
-    parse_filesize,
     parse_iso8601,
     parse_resolution,
     qualities,
@@ -366,15 +365,10 @@ class NiconicoIE(InfoExtractor):
         if not audio_quality.get('isAvailable') or not video_quality.get('isAvailable'):
             return None
 
-        def extract_video_quality(video_quality):
-            return parse_filesize('%sB' % self._search_regex(
-                r'\| ([0-9]*\.?[0-9]*[MK])', video_quality, 'vbr', default=''))
-
         format_id = '-'.join(
             [remove_start(s['id'], 'archive_') for s in (video_quality, audio_quality)] + [dmc_protocol])
 
         vid_qual_label = traverse_obj(video_quality, ('metadata', 'label'))
-        vid_quality = traverse_obj(video_quality, ('metadata', 'bitrate'))
 
         return {
             'url': 'niconico_dmc:%s/%s/%s' % (video_id, video_quality['id'], audio_quality['id']),
@@ -383,8 +377,9 @@ class NiconicoIE(InfoExtractor):
             'ext': 'mp4',  # Session API are used in HTML5, which always serves mp4
             'acodec': 'aac',
             'vcodec': 'h264',
-            'abr': float_or_none(traverse_obj(audio_quality, ('metadata', 'bitrate')), 1000),
-            'vbr': float_or_none(vid_quality if vid_quality > 0 else extract_video_quality(vid_qual_label), 1000),
+            'abr': float_or_none(traverse_obj(audio_quality, ('metadata', 'bitrate')), scale=1000),
+            'vbr': float_or_none(traverse_obj(video_quality, ('metadata', 'bitrate')), scale=1000),
+            'asr': int_or_none(traverse_obj(audio_quality, ('metadata', 'samplingRate'))),
             'height': traverse_obj(video_quality, ('metadata', 'resolution', 'height')),
             'width': traverse_obj(video_quality, ('metadata', 'resolution', 'width')),
             'quality': -2 if 'low' in video_quality['id'] else None,
@@ -439,14 +434,12 @@ class NiconicoIE(InfoExtractor):
         def get_video_info(*items, get_first=True, **kwargs):
             return traverse_obj(api_data, ('video', *items), get_all=not get_first, **kwargs)
 
-        dmc_data = traverse_obj(api_data, (
-            'media', 'delivery', 'movie', {
-                'audios': 'audios',
-                'videos': 'videos',
-                'protocols': ('session', 'protocols'),
-            }, {lambda data: data if all(key in data for key in ['audios', 'videos', 'protocols']) else None},
-        ))
-        if dmc_data:
+        dmc_data = traverse_obj(api_data, ('media', 'delivery', 'movie', {
+            'audios': ('audios', ..., {dict}),
+            'videos': ('videos', ..., {dict}),
+            'protocols': ('session', 'protocols', ..., {str}),
+        }))
+        if len(dmc_data) == 3:
             for (audio_quality, video_quality, protocol) in itertools.product(
                     dmc_data['audios'], dmc_data['videos'], dmc_data['protocols']):
                 fmt = self._extract_format_for_quality(video_id, audio_quality, video_quality, protocol)
