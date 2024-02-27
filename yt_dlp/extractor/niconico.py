@@ -446,36 +446,19 @@ class NiconicoIE(InfoExtractor):
                 if fmt:
                     formats.append(fmt)
 
+        # Getting all audio formats results in extracting duplicate video formats.
+        # Duplicate ones will be filtered out later.
         dms_data = traverse_obj(api_data, ({
-            'videos': ('media', 'domand', 'videos', ..., {
-                lambda item: item['id'] if item['isAvailable'] else None
-            }),
-            'audios': ('media', 'domand', 'audios', ..., {
-                lambda item: (item['id'], {
-                    'format_id': str(parse_bitrate(item['id'])),
-                    'abr': float_or_none(item['bitRate'], scale=1000),
-                    'asr': item['samplingRate'],
-                    'acodec': 'aac',
-                    'ext': 'm4a',
-                }) if item['isAvailable'] else None
-            }),
-            'accessRightKey': ('media', 'domand', 'accessRightKey'),
-            'track_id': ('client', 'watchTrackId'),
-        }, {
-            'videos': 'videos',
-            'audios': ('audios', {lambda items: dict(items)}),
-            'accessRightKey': 'accessRightKey',
-            'track_id': 'track_id',
-        }, {
-            lambda data: data if all(key in data for key in [
-                'videos', 'audios', 'accessRightKey', 'track_id',
-            ]) else None
+            'video_ids': ('media', 'domand', 'videos', lambda _, v: v['isAvailable'], 'id', {str}),
+            'audio_ids': ('media', 'domand', 'audios', lambda _, v: v['isAvailable'], 'id', {str}),
+            'accessRightKey': ('media', 'domand', 'accessRightKey', {str}),
+            'track_id': ('client', 'watchTrackId', {str}),
         }))
-        if dms_data:
+        if len(dms_data) == 4:
             dms_m3u8_url = traverse_obj(self._download_json(
                 f'https://nvapi.nicovideo.jp/v1/watch/{video_id}/access-rights/hls', video_id,
                 data=json.dumps({
-                    'outputs': list(itertools.product(dms_data['videos'], dms_data['audios']))
+                    'outputs': list(itertools.product(dms_data['video_ids'], dms_data['audio_ids']))
                 }).encode(), query={'actionTrackId': dms_data['track_id']}, headers={
                     'x-access-right-key': dms_data['accessRightKey'],
                     'x-frontend-id': 6,
@@ -485,19 +468,30 @@ class NiconicoIE(InfoExtractor):
             dms_fmts = self._extract_m3u8_formats(dms_m3u8_url, video_id)
 
             # update audio formats
-            dms_audio_fmts = [fmt for fmt in dms_fmts if fmt['vcodec'] == 'none']
-            for i, fmt in enumerate(dms_audio_fmts):
-                format_id = remove_end(fmt['format_id'], '-%s' % fmt['format_note'])
-                dms_audio_fmts[i].update(**(traverse_obj(dms_data, ('audios', format_id, {dict})) or {}))
+            dms_audio_info = dict(traverse_obj(api_data, (
+                'media', 'domand', 'audios', lambda _, v: v['isAvailable'], {
+                    lambda item: (item['id'], {
+                        'format_id': str(parse_bitrate(item['id'])),
+                        'abr': float_or_none(item['bitRate'], scale=1000),
+                        'asr': item['samplingRate'],
+                        'acodec': 'aac',
+                        'ext': 'm4a',
+                    })
+                },
+            )))
+            dms_audio_fmts = traverse_obj(dms_fmts, (lambda _, v: v['vcodec'] == 'none', {
+                lambda fmt: dict(fmt, **traverse_obj(
+                    dms_audio_info, (remove_end(fmt['format_id'], '-%s' % fmt['format_note']), {dict})
+                ))
+            }))
 
-            # remove duplicate video formats
+            # First, pick out the non-duplicate video format with the minimal tbr.
             dms_video_fmts = [
                 list(fmts)[0] for _, fmts in itertools.groupby(sorted([
                     fmt for fmt in dms_fmts if fmt['vcodec'] != 'none'
                 ], key=lambda fmt: fmt['tbr']), lambda fmt: fmt['url'])
             ]
-
-            # correct video bitrate
+            # Then, correct the bitrate of all videos by minusing the minimal audio bitrate.
             min_abr = traverse_obj(min(dms_audio_fmts, key=lambda fmt: fmt['abr']), ('abr'), default=0)
             for i, fmt in enumerate(dms_video_fmts):
                 vbr = fmt['tbr'] - min_abr
