@@ -40,7 +40,7 @@ class CHZZKLiveIE(InfoExtractor):
             note='Downloading channel info', errnote='Unable to download channel info')['content']
 
         if live_detail.get('status') == 'CLOSE':
-            raise UserNotLive()
+            raise UserNotLive(video_id=channel_id)
 
         live_playback = self._parse_json(live_detail['livePlaybackJson'], channel_id)
 
