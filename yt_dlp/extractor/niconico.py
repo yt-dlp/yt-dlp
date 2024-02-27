@@ -172,6 +172,9 @@ class NiconicoIE(InfoExtractor):
 
     _VALID_URL = r'https?://(?:(?:www\.|secure\.|sp\.)?nicovideo\.jp/watch|nico\.ms)/(?P<id>(?:[a-z]{2})?[0-9]+)'
     _NETRC_MACHINE = 'niconico'
+    _COMMENT_API_ENDPOINTS = (
+        'https://nvcomment.nicovideo.jp/legacy/api.json',
+        'https://nmsg.nicovideo.jp/api.json',)
     _API_HEADERS = {
         'X-Frontend-ID': '6',
         'X-Frontend-Version': '0',
@@ -348,7 +351,7 @@ class NiconicoIE(InfoExtractor):
 
         return info_dict, heartbeat_info_dict
 
-    def _extract_format_for_quality(self, video_id, audio_quality, video_quality, dmc_protocol):
+    def _extract_dmc_format_for_quality(self, video_id, audio_quality, video_quality, dmc_protocol):
 
         if not audio_quality.get('isAvailable') or not video_quality.get('isAvailable'):
             return None
@@ -377,6 +380,41 @@ class NiconicoIE(InfoExtractor):
             'quality': -2 if 'low' in video_quality['id'] else None,
             'protocol': 'niconico_dmc',
             'expected_protocol': dmc_protocol,  # XXX: This is not a documented field
+            'http_headers': {
+                'Origin': 'https://www.nicovideo.jp',
+                'Referer': 'https://www.nicovideo.jp/watch/' + video_id,
+            }
+        }
+
+    def _extract_dms_format_for_quality(self, video_id, audio_quality, video_quality):
+
+        if not audio_quality.get('isAvailable') or not video_quality.get('isAvailable'):
+            return None
+
+        def extract_video_quality(video_quality):
+            return parse_filesize('%sB' % self._search_regex(
+                r'\| ([0-9]*\.?[0-9]*[MK])', video_quality, 'vbr', default=''))
+
+        format_id = '-'.join(
+            ['dms', remove_start(video_quality['id'], 'video-'), remove_start(audio_quality['id'], 'audio-'), 'hls'])
+
+        vid_qual_label = video_quality['label']
+        vid_quality = video_quality['bitRate']
+
+        return {
+            'url': 'niconico_dms:%s/%s/%s' % (video_id, video_quality['id'], audio_quality['id']),
+            'format_id': format_id,
+            'format_note': join_nonempty('DMS', vid_qual_label, 'hls', delim=' '),
+            'ext': 'mp4',  # Session API are used in HTML5, which always serves mp4
+            'acodec': 'aac',
+            'vcodec': 'h264',
+            'abr': float_or_none(audio_quality['bitRate'], 1000),
+            'vbr': float_or_none(vid_quality if vid_quality > 0 else extract_video_quality(vid_qual_label), 1000),
+            'height': video_quality["height"],
+            'width': video_quality["width"],
+            'quality': video_quality["qualityLevel"],
+            'protocol': 'niconico_dms',
+            'expected_protocol': "hls",
             'http_headers': {
                 'Origin': 'https://www.nicovideo.jp',
                 'Referer': 'https://www.nicovideo.jp/watch/' + video_id,
@@ -416,10 +454,15 @@ class NiconicoIE(InfoExtractor):
         def get_video_info(*items, get_first=True, **kwargs):
             return traverse_obj(api_data, ('video', *items), get_all=not get_first, **kwargs)
 
-        quality_info = api_data['media']['delivery']['movie']
-        session_api_data = quality_info['session']
-        for (audio_quality, video_quality, protocol) in itertools.product(quality_info['audios'], quality_info['videos'], session_api_data['protocols']):
-            fmt = self._extract_format_for_quality(video_id, audio_quality, video_quality, protocol)
+        dmc_quality_info = api_data['media']['delivery']['movie']
+        dmc_session_api_data = dmc_quality_info['session']
+        for (audio_quality, video_quality, protocol) in itertools.product(dmc_quality_info['audios'], dmc_quality_info['videos'], dmc_session_api_data['protocols']):
+            fmt = self._extract_dmc_format_for_quality(video_id, audio_quality, video_quality, protocol)
+            if fmt:
+                formats.append(fmt)
+        dms_quality_info = api_data['media']['domand']
+        for (audio_quality, video_quality) in itertools.product(dms_quality_info['audios'], dms_quality_info['videos']):
+            fmt = self._extract_dms_format_for_quality(video_id, audio_quality, video_quality)
             if fmt:
                 formats.append(fmt)
 
@@ -467,16 +510,93 @@ class NiconicoIE(InfoExtractor):
                 parse_duration(self._html_search_meta('video:duration', webpage, 'video duration', default=None))
                 or get_video_info('duration')),
             'webpage_url': url_or_none(url) or f'https://www.nicovideo.jp/watch/{video_id}',
-            'subtitles': self.extract_subtitles(video_id, api_data),
+            'subtitles': self.extract_subtitles(video_id, api_data, dmc_session_api_data),
         }
 
-    def _get_subtitles(self, video_id, api_data):
-        comments_info = traverse_obj(api_data, ('comment', 'nvComment', {dict})) or {}
-        danmaku = traverse_obj(self._download_json(
-            f'{comments_info.get("server")}/v1/threads', video_id, data=json.dumps({
+    def _get_subtitles(self, video_id, api_data, session_api_data):
+        comment_user_key = traverse_obj(api_data, ('comment', 'keys', 'userKey'))
+        user_id_str = session_api_data.get('serviceUserId')
+
+        thread_ids = traverse_obj(api_data, ('comment', 'threads', lambda _, v: v['isActive']))
+        legacy_danmaku = self._extract_legacy_comments(video_id, thread_ids, user_id_str, comment_user_key) or []
+
+        new_comments = traverse_obj(api_data, ('comment', 'nvComment'))
+        new_danmaku = self._extract_new_comments(
+            new_comments.get('server'), video_id,
+            new_comments.get('params'), new_comments.get('threadKey'))
+
+        if not legacy_danmaku and not new_danmaku:
+            self.report_warning(f'Failed to get comments. {bug_reports_message()}')
+            return
+
+        return {
+            'comments': [{
+                'ext': 'json',
+                'data': json.dumps(legacy_danmaku + new_danmaku),
+            }],
+        }
+
+    def _extract_legacy_comments(self, video_id, threads, user_id, user_key):
+        auth_data = {
+            'user_id': user_id,
+            'userkey': user_key,
+        } if user_id and user_key else {'user_id': ''}
+
+        api_url = traverse_obj(threads, (..., 'server'), get_all=False)
+
+        # Request Start
+        post_data = [{'ping': {'content': 'rs:0'}}]
+        for i, thread in enumerate(threads):
+            thread_id = thread['id']
+            thread_fork = thread['fork']
+            # Post Start (2N)
+            post_data.append({'ping': {'content': f'ps:{i * 2}'}})
+            post_data.append({'thread': {
+                'fork': thread_fork,
+                'language': 0,
+                'nicoru': 3,
+                'scores': 1,
+                'thread': thread_id,
+                'version': '20090904',
+                'with_global': 1,
+                **auth_data,
+            }})
+            # Post Final (2N)
+            post_data.append({'ping': {'content': f'pf:{i * 2}'}})
+
+            # Post Start (2N+1)
+            post_data.append({'ping': {'content': f'ps:{i * 2 + 1}'}})
+            post_data.append({'thread_leaves': {
+                # format is '<bottom of minute range>-<top of minute range>:<comments per minute>,<total last comments'
+                # unfortunately NND limits (deletes?) comment returns this way, so you're only able to grab the last 1000 per language
+                'content': '0-999999:999999,999999,nicoru:999999',
+                'fork': thread_fork,
+                'language': 0,
+                'nicoru': 3,
+                'scores': 1,
+                'thread': thread_id,
+                **auth_data,
+            }})
+            # Post Final (2N+1)
+            post_data.append({'ping': {'content': f'pf:{i * 2 + 1}'}})
+        # Request Final
+        post_data.append({'ping': {'content': 'rf:0'}})
+
+        return self._download_json(
+            f'{api_url}/api.json', video_id, data=json.dumps(post_data).encode(), fatal=False,
+            headers={
+                'Referer': f'https://www.nicovideo.jp/watch/{video_id}',
+                'Origin': 'https://www.nicovideo.jp',
+                'Content-Type': 'text/plain;charset=UTF-8',
+            },
+            note='Downloading comments', errnote=f'Failed to access endpoint {api_url}')
+
+    def _extract_new_comments(self, endpoint, video_id, params, thread_key):
+        comments = self._download_json(
+            f'{endpoint}/v1/threads', video_id, data=json.dumps({
                 'additionals': {},
-                'params': comments_info.get('params'),
-                'threadKey': comments_info.get('threadKey'),
+                'params': params,
+                'threadKey': thread_key,
             }).encode(), fatal=False,
             headers={
                 'Referer': 'https://www.nicovideo.jp/',
@@ -486,19 +606,8 @@ class NiconicoIE(InfoExtractor):
                 'x-frontend-id': '6',
                 'x-frontend-version': '0',
             },
-            note='Downloading comments', errnote='Failed to download comments'),
-            ('data', 'threads', ..., 'comments', ...))
-
-        if not danmaku:
-            self.report_warning(f'Failed to get comments. {bug_reports_message()}')
-            return
-
-        return {
-            'comments': [{
-                'ext': 'json',
-                'data': json.dumps(danmaku),
-            }],
-        }
+            note='Downloading comments (new)', errnote='Failed to download comments (new)')
+        return traverse_obj(comments, ('data', 'threads', ..., 'comments', ...))
 
 
 class NiconicoPlaylistBaseIE(InfoExtractor):
