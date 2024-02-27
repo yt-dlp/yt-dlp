@@ -468,12 +468,12 @@ def create_parser():
             'allowed_values': {
                 'filename', 'filename-sanitization', 'format-sort', 'abort-on-error', 'format-spec', 'no-playlist-metafiles',
                 'multistreams', 'no-live-chat', 'playlist-index', 'list-formats', 'no-direct-merge', 'playlist-match-filter',
-                'no-attach-info-json', 'no-embed-thumbnail-mutagen', 'no-external-downloader-progress',
+                'no-attach-info-json', 'avoid-mutagen', 'no-external-downloader-progress',
                 'embed-metadata', 'seperate-video-versions', 'no-clean-infojson', 'no-keep-subs', 'no-certifi',
                 'no-youtube-channel-redirect', 'no-youtube-unavailable-videos', 'no-youtube-prefer-utc-upload-date',
                 'prefer-legacy-http-handler', 'manifest-filesize-approx'
             }, 'aliases': {
-                'embed-thumbnail-atomicparsley': ['no-embed-thumbnail-mutagen'],  # compat
+                'embed-thumbnail-atomicparsley': ['avoid-mutagen'],  # compat
                 'youtube-dl': ['all', '-multistreams', '-playlist-match-filter', '-manifest-filesize-approx'],
                 'youtube-dlc': ['all', '-no-youtube-channel-redirect', '-no-live-chat', '-playlist-match-filter', '-manifest-filesize-approx'],
                 '2021': ['2022', 'no-certifi', 'filename-sanitization', 'no-youtube-prefer-utc-upload-date'],

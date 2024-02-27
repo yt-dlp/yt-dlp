@@ -150,7 +150,7 @@ Some of yt-dlp's default options are different from that of youtube-dl and youtu
 * Unavailable videos are also listed for YouTube playlists. Use `--compat-options no-youtube-unavailable-videos` to remove this
 * The upload dates extracted from YouTube are in UTC [when available](https://github.com/yt-dlp/yt-dlp/blob/89e4d86171c7b7c997c77d4714542e0383bf0db0/yt_dlp/extractor/youtube.py#L3898-L3900). Use `--compat-options no-youtube-prefer-utc-upload-date` to prefer the non-UTC upload date.
 * If `ffmpeg` is used as the downloader, the downloading and merging of formats happen in a single step when possible. Use `--compat-options no-direct-merge` to revert this
-* Thumbnail embedding in `mp4`/`mp3` are done with `mutagen` if possible. Use `--compat-options no-embed-thumbnail-mutagen` to force the use of `ffmpeg`/`AtomicParsley` instead
+* Thumbnail embedding in `mp4`/`mp3` are done with `mutagen` if possible. Use `--compat-options avoid-mutagen` to force the use of `ffmpeg`/`AtomicParsley` instead
 * Some internal metadata such as filenames are removed by default from the infojson. Use `--no-clean-infojson` or `--compat-options no-clean-infojson` to revert this
 * When `--embed-subs` and `--write-subs` are used together, the subtitles are written to disk and also embedded in the media file. You can use just `--embed-subs` to embed the subs and automatically delete the separate file. See [#630 (comment)](https://github.com/yt-dlp/yt-dlp/issues/630#issuecomment-893659460) for more info. `--compat-options no-keep-subs` can be used to revert this
 * `certifi` will be used for SSL root certificates, if installed. If you want to use system certificates (e.g. self-signed), use `--compat-options no-certifi`

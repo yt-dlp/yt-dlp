@@ -90,7 +90,7 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
 
         avoid_mutagen = any(
             opt in self.get_param('compat_opts', [])
-            for opt in ('no-embed-thumbnail-mutagen', 'embed-thumbnail-atomicparsley'))
+            for opt in ('avoid-mutagen', 'embed-thumbnail-atomicparsley'))
         success = True
         if info['ext'] == 'mp3':
             # Method 1: Use mutagen
