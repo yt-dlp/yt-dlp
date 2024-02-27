@@ -1,8 +1,7 @@
 import re
 from dataclasses import dataclass
-from typing import TypeAlias
 
-Seconds: TypeAlias = float
+Seconds = float
 
 
 @dataclass
