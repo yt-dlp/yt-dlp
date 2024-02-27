@@ -33,6 +33,7 @@ from ..utils import (
     variadic,
     write_json_file,
 )
+from ..utils.subtitles import Subtitle, parse_lrc
 
 EXT_TO_OUT_FORMATS = {
     'aac': 'adts',
@@ -683,27 +684,15 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
                 with open(sub['filepath'], encoding='utf-8') as f:
                     sub['data'] = f.read()
 
-        def totime(time):
-            time = time.split(":")
-            return int((int(time[0])*60 + float(time[1]))*1000)
-        def convert_lrc_to_sylt(lrc):
-            lrc = lrc.split("\n")
-            lrc = [i.strip() for i in lrc]
-            lrc = [i for i in lrc if i]
-            lrc = [i for i in lrc if i[-1] != "]"]
-            lrc = [i.split("]") for i in lrc]
-            lrc = [[i[0][1:], i[1]] for i in lrc]
-            lrc = [(i[1], totime(i[0])) for i in lrc]
-            return lrc
         if ext == 'mp3':
             metadata = mutagen.id3.ID3(filename)
             for lang, sub in subtitles.items():
                 metadata.add(mutagen.id3.SYLT(
-                    encoding=mutagen.id3.Encoding.UTF8,
+                    encoding=mutagen.id3.Encoding.UTF8, format=2, type=1,
                     lang=ISO639Utils.short2long(lang) or 'und',
-                    format=2,
-                    type=1,
-                    text=convert_lrc_to_sylt(sub['data'])))
+                    text=[(line.text, int(line.start * 1000))
+                          for line in parse_lrc(sub['data'])
+                          if isinstance(line, Subtitle)]))
         else:
             metadata = mutagen.File(filename)
             metadata['©lyr' if ext == 'm4a' else 'lyrics'] = [sub['data'] for sub in subtitles.values()]
