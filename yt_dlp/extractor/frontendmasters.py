@@ -19,6 +19,21 @@ class FrontendMastersBaseIE(InfoExtractor):
 
     _NETRC_MACHINE = 'frontendmasters'
 
+    def _get_subtitles(self, lesson_data, course_data):
+        captions_base = "https://captions.frontendmasters.com/assets/courses/"
+        lesson_slug = lesson_data.get('slug')
+        lesson_index = lesson_data.get('index')
+        date_published = course_data.get('datePublished')
+        course_slug = course_data.get('slug')
+
+        subtitles_url = f'{captions_base}{date_published}-{course_slug}/{lesson_index}-{lesson_slug}.vtt'
+
+        return {
+            'en': [{
+                'url': subtitles_url
+            }]
+        }
+
     def _perform_login(self, username, password):
         login_page = self._download_webpage(
             self._LOGIN_URL, None, 'Downloading login page')
@@ -69,7 +84,7 @@ class FrontendMastersPageBaseIE(FrontendMastersBaseIE):
         return chapters
 
     @staticmethod
-    def _extract_lesson(chapters, lesson_id, lesson):
+    def _extract_lesson(chapters, lesson_id, lesson, subtitles):
         title = lesson.get('title') or lesson_id
         display_id = lesson.get('slug')
         description = lesson.get('description')
@@ -106,6 +121,7 @@ class FrontendMastersPageBaseIE(FrontendMastersBaseIE):
             'duration': duration,
             'chapter': chapter,
             'chapter_number': chapter_number,
+            'subtitles': subtitles
         }
 
 
@@ -147,17 +163,10 @@ class FrontendMastersIE(FrontendMastersBaseIE):
 
         formats = self._extract_m3u8_formats(m3u8_url, lesson_id)
 
-        subtitles = {
-            'en': [{
-                'url': f'{self._API_BASE}/transcripts/{lesson_id}.vtt'
-            }]
-        }
-
         return {
             'id': lesson_id,
             'title': lesson_id,
             'formats': formats,
-            'subtitles': subtitles
         }
 
 
@@ -192,8 +201,9 @@ class FrontendMastersLessonIE(FrontendMastersPageBaseIE):
             for video_id, data in course['lessonData'].items()
             if data.get('slug') == lesson_name)
 
+        subtitles = self.extract_subtitles(lesson, course)
         chapters = self._extract_chapters(course)
-        return self._extract_lesson(chapters, lesson_id, lesson)
+        return self._extract_lesson(chapters, lesson_id, lesson, subtitles)
 
 
 class FrontendMastersCourseIE(FrontendMastersPageBaseIE):
@@ -228,9 +238,10 @@ class FrontendMastersCourseIE(FrontendMastersPageBaseIE):
         for lesson in lessons:
             lesson_name = lesson.get('slug')
             lesson_id = lesson.get('hash') or lesson.get('statsId')
+            subtitles = self.extract_subtitles(lesson, course)
             if not lesson_id or not lesson_name:
                 continue
-            entries.append(self._extract_lesson(chapters, lesson_id, lesson))
+            entries.append(self._extract_lesson(chapters, lesson_id, lesson, subtitles))
 
         title = course.get('title')
         description = course.get('description')
