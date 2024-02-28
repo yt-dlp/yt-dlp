@@ -37,13 +37,6 @@ class TikTokBaseIE(InfoExtractor):
     _UPLOADER_URL_FORMAT = 'https://www.tiktok.com/@%s'
     _WEBPAGE_HOST = 'https://www.tiktok.com/'
     QUALITIES = ('360p', '540p', '720p', '1080p')
-    RESOLUTION_MAP = {
-        1080: 1920,
-        720: 1280,
-        576: 1024,
-        540: 960,
-        360: 640,
-    }
 
     @property
     def _API_HOSTNAME(self):
@@ -257,7 +250,7 @@ class TikTokBaseIE(InfoExtractor):
         if video_info.get('download_addr'):
             download_addr = video_info['download_addr']
             download_width = int_or_none(download_addr.get('width'))
-            download_height = self.RESOLUTION_MAP.get(download_width)  # download_addr['height'] is inaccurate
+            download_height = try_call(lambda: int(download_width / 0.5625))  # download_addr['height'] is wrong
             formats.extend(extract_addr(download_addr, {
                 'format_id': 'download_addr',
                 'format_note': 'Download video%s' % (', watermarked' if video_info.get('has_watermark') else ''),
