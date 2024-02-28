@@ -1036,10 +1036,6 @@ class DouyinIE(TikTokBaseIE):
             'thumbnail': r're:https?://.+\.jpe?g',
         },
     }]
-    _APP_VERSIONS = [('23.3.0', '230300')]
-    _APP_NAME = 'aweme'
-    _AID = 1128
-    _API_HOSTNAME = 'aweme.snssdk.com'
     _UPLOADER_URL_FORMAT = 'https://www.douyin.com/user/%s'
     _WEBPAGE_HOST = 'https://www.douyin.com/'
 
