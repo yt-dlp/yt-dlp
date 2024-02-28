@@ -48,17 +48,15 @@ class VimeoBaseInfoExtractor(InfoExtractor):
         return url, data, headers
 
     def _perform_login(self, username, password):
-        webpage = self._download_webpage(
-            self._LOGIN_URL, None, 'Downloading login page')
-        token, vuid = self._extract_xsrft_and_vuid(webpage)
+        viewer = self._download_json('https://vimeo.com/_next/viewer', None, 'Downloading login token')
         data = {
             'action': 'login',
             'email': username,
             'password': password,
             'service': 'vimeo',
-            'token': token,
+            'token': viewer['xsrft'],
         }
-        self._set_vimeo_cookie('vuid', vuid)
+        self._set_vimeo_cookie('vuid', viewer['vuid'])
         try:
             self._download_webpage(
                 self._LOGIN_URL, None, 'Logging in',
