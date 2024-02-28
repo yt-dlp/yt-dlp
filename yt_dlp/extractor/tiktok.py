@@ -37,6 +37,13 @@ class TikTokBaseIE(InfoExtractor):
     _UPLOADER_URL_FORMAT = 'https://www.tiktok.com/@%s'
     _WEBPAGE_HOST = 'https://www.tiktok.com/'
     QUALITIES = ('360p', '540p', '720p', '1080p')
+    RESOLUTION_MAP = {
+        1080: 1920,
+        720: 1280,
+        576: 1024,
+        540: 960,
+        360: 640,
+    }
 
     @property
     def _API_HOSTNAME(self):
@@ -218,8 +225,8 @@ class TikTokBaseIE(InfoExtractor):
         def extract_addr(addr, add_meta={}):
             parsed_meta, res = parse_url_key(addr.get('url_key', ''))
             if res:
-                known_resolutions.setdefault(res, {}).setdefault('height', add_meta.get('height') or addr.get('height'))
-                known_resolutions[res].setdefault('width', add_meta.get('width') or addr.get('width'))
+                known_resolutions.setdefault(res, {}).setdefault('height', int_or_none(addr.get('height')))
+                known_resolutions[res].setdefault('width', int_or_none(addr.get('width')))
                 parsed_meta.update(known_resolutions.get(res, {}))
                 add_meta.setdefault('height', int_or_none(res[:-1]))
             return [{
@@ -236,22 +243,27 @@ class TikTokBaseIE(InfoExtractor):
 
         # Hack: Add direct video links first to prioritize them when removing duplicate formats
         formats = []
+        width = int_or_none(video_info.get('width'))
+        height = int_or_none(video_info.get('height'))
         if video_info.get('play_addr'):
             formats.extend(extract_addr(video_info['play_addr'], {
                 'format_id': 'play_addr',
                 'format_note': 'Direct video',
                 'vcodec': 'h265' if traverse_obj(
                     video_info, 'is_bytevc1', 'is_h265') else 'h264',  # TODO: Check for "direct iOS" videos, like https://www.tiktok.com/@cookierun_dev/video/7039716639834656002
-                'width': video_info.get('width'),
-                'height': video_info.get('height'),
+                'width': width,
+                'height': height,
             }))
         if video_info.get('download_addr'):
-            formats.extend(extract_addr(video_info['download_addr'], {
+            download_addr = video_info['download_addr']
+            download_width = int_or_none(download_addr.get('width'))
+            download_height = self.RESOLUTION_MAP.get(download_width)
+            formats.extend(extract_addr(download_addr, {
                 'format_id': 'download_addr',
                 'format_note': 'Download video%s' % (', watermarked' if video_info.get('has_watermark') else ''),
                 'vcodec': 'h264',
-                'width': video_info.get('width'),
-                'height': video_info.get('height'),
+                'width': download_width or width,
+                'height': download_height or height,
                 'preference': -2 if video_info.get('has_watermark') else -1,
             }))
         if video_info.get('play_addr_h264'):
