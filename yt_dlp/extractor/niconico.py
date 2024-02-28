@@ -385,6 +385,7 @@ class NiconicoIE(InfoExtractor):
             'vcodec': 'h264',
             'abr': float_or_none(traverse_obj(audio_quality, ('metadata', 'bitrate')), scale=1000),
             'vbr': float_or_none(traverse_obj(video_quality, ('metadata', 'bitrate')), scale=1000),
+            'asr': int_or_none(traverse_obj(audio_quality, ('metadata', 'samplingRate'))),
             'height': traverse_obj(video_quality, ('metadata', 'resolution', 'height')),
             'width': traverse_obj(video_quality, ('metadata', 'resolution', 'width')),
             'quality': -2 if 'low' in video_quality['id'] else None,
