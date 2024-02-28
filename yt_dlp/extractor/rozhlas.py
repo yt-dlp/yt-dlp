@@ -290,7 +290,6 @@ class MujRozhlasIE(RozhlasBaseIE):
             'timestamp': 1708173000,
             'episode': 'Episode 1',
             'episode_number': 1,
-            'is_dash_periods': True,
             'series': 'Povídka',
             'modified_date': '20240217',
             'upload_date': '20240217',
