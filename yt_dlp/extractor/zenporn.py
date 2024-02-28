@@ -7,7 +7,6 @@ from ..utils.traversal import traverse_obj
 
 
 class ZenPornIE(InfoExtractor):
-    IE_DESC = 'ZenPorn'
     _VALID_URL = r'https?://(?:www\.)?zenporn\.com/video/(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://zenporn.com/video/15627016/desi-bhabi-ki-chudai',
@@ -21,7 +20,7 @@ class ZenPornIE(InfoExtractor):
             'thumbnail': 'md5:2fc044a19bab450fef8f1931e7920a18',
             'upload_date': '20230925',
             'uploader': 'md5:9fae59847f1f58d1da8f2772016c12f3',
-            'age_limit': 18
+            'age_limit': 18,
         }
     }, {
         'url': 'https://zenporn.com/video/15570701',
@@ -35,7 +34,7 @@ class ZenPornIE(InfoExtractor):
             'thumbnail': 'https://mstn.nv7s.com/contents/videos_screenshots/2297000/2297875/480x270/1.jpg',
             'upload_date': '20230921',
             'uploader': 'Lois Clarke',
-            'age_limit': 18
+            'age_limit': 18,
         }
     }, {
         'url': 'https://zenporn.com/video/8531117/amateur-students-having-a-fuck-fest-at-club/',
@@ -49,7 +48,7 @@ class ZenPornIE(InfoExtractor):
             'thumbnail': 'https://tn.txxx.tube/contents/videos_screenshots/12791000/12791908/288x162/1.jpg',
             'upload_date': '20191005',
             'uploader': 'Jackopenass',
-            'age_limit': 18
+            'age_limit': 18,
         }
     }, {
         'url': 'https://zenporn.com/video/15872038/glad-you-came/',
@@ -63,7 +62,7 @@ class ZenPornIE(InfoExtractor):
             'thumbnail': 'https://vpim.m3pd.com/contents/videos_screenshots/111000/111585/480x270/1.jpg',
             'upload_date': '20231024',
             'uploader': 'Martin Rudenko',
-            'age_limit': 18
+            'age_limit': 18,
         }
     }]
 
