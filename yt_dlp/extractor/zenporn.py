@@ -1,13 +1,9 @@
 import base64
 import binascii
+
 from .common import InfoExtractor
-from ..utils import (
-    ExtractorError,
-    determine_ext,
-    traverse_obj,
-    unified_strdate,
-    url_or_none,
-)
+from ..utils import ExtractorError, determine_ext, unified_strdate, url_or_none
+from ..utils.traversal import traverse_obj
 
 
 class ZenPornIE(InfoExtractor):
@@ -87,30 +83,29 @@ class ZenPornIE(InfoExtractor):
             return None
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
-        webpage = self._download_webpage(url, video_id)
+        display_id = self._match_id(url)
+        webpage = self._download_webpage(url, display_id)
 
-        ext_domain, extr_id = self._search_regex(
+        ext_domain, video_id = self._search_regex(
             r'https://(?P<ext_domain>[\w.-]+\.\w{3})/embed/(?P<extr_id>\d+)/',
             webpage, 'embed info', group=('ext_domain', 'extr_id'))
 
         info_json = self._download_json(
-            self._gen_info_url(ext_domain, extr_id), video_id,
-            note='Downloading video info JSON')
+            self._gen_info_url(ext_domain, video_id), video_id, fatal=False)
 
         video_json = self._download_json(
             f'https://{ext_domain}/api/videofile.php', video_id, query={
-                'video_id': extr_id,
+                'video_id': video_id,
                 'lifetime': 8640000,
-            }, note='Downloading video metadata JSON')
+            }, note='Downloading video file JSON', errnote='Failed to download video file JSON')
 
         decoded_url = self._decode_video_url(video_json[0]['video_url'])
         if not decoded_url:
             raise ExtractorError('Unable to decode the video url')
 
         return {
-            'id': extr_id,
-            'display_id': video_id,
+            'id': video_id,
+            'display_id': display_id,
             'ext': traverse_obj(video_json, (0, 'format', {determine_ext})),
             'url': f'https://{ext_domain}{decoded_url}',
             'age_limit': 18,
