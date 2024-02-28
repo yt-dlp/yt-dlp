@@ -249,14 +249,13 @@ class TikTokBaseIE(InfoExtractor):
             }))
         if video_info.get('download_addr'):
             download_addr = video_info['download_addr']
-            download_width = int_or_none(download_addr.get('width'))
-            download_height = try_call(lambda: int(download_width / 0.5625))  # download_addr['height'] is wrong
+            dl_width = int_or_none(download_addr.get('width'))
             formats.extend(extract_addr(download_addr, {
                 'format_id': 'download_addr',
                 'format_note': 'Download video%s' % (', watermarked' if video_info.get('has_watermark') else ''),
                 'vcodec': 'h264',
-                'width': download_width or width,
-                'height': download_height or height,
+                'width': dl_width or width,
+                'height': try_call(lambda: int(dl_width / 0.5625)) or height,  # download_addr['height'] is wrong
                 'preference': -2 if video_info.get('has_watermark') else -1,
             }))
         if video_info.get('play_addr_h264'):
