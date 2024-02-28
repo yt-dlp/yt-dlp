@@ -257,7 +257,7 @@ class TikTokBaseIE(InfoExtractor):
         if video_info.get('download_addr'):
             download_addr = video_info['download_addr']
             download_width = int_or_none(download_addr.get('width'))
-            download_height = self.RESOLUTION_MAP.get(download_width)
+            download_height = self.RESOLUTION_MAP.get(download_width)  # download_addr['height'] is inaccurate
             formats.extend(extract_addr(download_addr, {
                 'format_id': 'download_addr',
                 'format_note': 'Download video%s' % (', watermarked' if video_info.get('has_watermark') else ''),
