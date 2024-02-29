@@ -6,7 +6,7 @@ import string
 import time
 
 from .common import InfoExtractor
-from ..compat import compat_urllib_parse_unquote, compat_urllib_parse_urlparse
+from ..compat import compat_urllib_parse_urlparse
 from ..networking import HEADRequest
 from ..utils import (
     ExtractorError,
@@ -15,7 +15,6 @@ from ..utils import (
     UserNotLive,
     determine_ext,
     format_field,
-    get_first,
     int_or_none,
     join_nonempty,
     merge_dicts,
@@ -219,8 +218,8 @@ class TikTokBaseIE(InfoExtractor):
         def extract_addr(addr, add_meta={}):
             parsed_meta, res = parse_url_key(addr.get('url_key', ''))
             if res:
-                known_resolutions.setdefault(res, {}).setdefault('height', add_meta.get('height') or addr.get('height'))
-                known_resolutions[res].setdefault('width', add_meta.get('width') or addr.get('width'))
+                known_resolutions.setdefault(res, {}).setdefault('height', int_or_none(addr.get('height')))
+                known_resolutions[res].setdefault('width', int_or_none(addr.get('width')))
                 parsed_meta.update(known_resolutions.get(res, {}))
                 add_meta.setdefault('height', int_or_none(res[:-1]))
             return [{
@@ -237,22 +236,26 @@ class TikTokBaseIE(InfoExtractor):
 
         # Hack: Add direct video links first to prioritize them when removing duplicate formats
         formats = []
+        width = int_or_none(video_info.get('width'))
+        height = int_or_none(video_info.get('height'))
         if video_info.get('play_addr'):
             formats.extend(extract_addr(video_info['play_addr'], {
                 'format_id': 'play_addr',
                 'format_note': 'Direct video',
                 'vcodec': 'h265' if traverse_obj(
                     video_info, 'is_bytevc1', 'is_h265') else 'h264',  # TODO: Check for "direct iOS" videos, like https://www.tiktok.com/@cookierun_dev/video/7039716639834656002
-                'width': video_info.get('width'),
-                'height': video_info.get('height'),
+                'width': width,
+                'height': height,
             }))
         if video_info.get('download_addr'):
-            formats.extend(extract_addr(video_info['download_addr'], {
+            download_addr = video_info['download_addr']
+            dl_width = int_or_none(download_addr.get('width'))
+            formats.extend(extract_addr(download_addr, {
                 'format_id': 'download_addr',
                 'format_note': 'Download video%s' % (', watermarked' if video_info.get('has_watermark') else ''),
                 'vcodec': 'h264',
-                'width': video_info.get('width'),
-                'height': video_info.get('height'),
+                'width': dl_width or width,
+                'height': try_call(lambda: int(dl_width / 0.5625)) or height,  # download_addr['height'] is wrong
                 'preference': -2 if video_info.get('has_watermark') else -1,
             }))
         if video_info.get('play_addr_h264'):
@@ -315,9 +318,6 @@ class TikTokBaseIE(InfoExtractor):
 
         return {
             'id': aweme_id,
-            'extractor_key': TikTokIE.ie_key(),
-            'extractor': TikTokIE.IE_NAME,
-            'webpage_url': self._create_url(author_info.get('uid'), aweme_id),
             **traverse_obj(aweme_detail, {
                 'title': ('desc', {str}),
                 'description': ('desc', {str}),
@@ -921,20 +921,23 @@ class DouyinIE(TikTokBaseIE):
     _VALID_URL = r'https?://(?:www\.)?douyin\.com/video/(?P<id>[0-9]+)'
     _TESTS = [{
         'url': 'https://www.douyin.com/video/6961737553342991651',
-        'md5': 'a97db7e3e67eb57bf40735c022ffa228',
+        'md5': '9ecce7bc5b302601018ecb2871c63a75',
         'info_dict': {
             'id': '6961737553342991651',
             'ext': 'mp4',
             'title': '#杨超越  小小水手带你去远航❤️',
             'description': '#杨超越  小小水手带你去远航❤️',
+            'uploader': '6897520xka',
             'uploader_id': '110403406559',
             'uploader_url': 'https://www.douyin.com/user/MS4wLjABAAAAEKnfa654JAJ_N5lgZDQluwsxmY0lhfmEYNQBBkwGG98',
             'channel_id': 'MS4wLjABAAAAEKnfa654JAJ_N5lgZDQluwsxmY0lhfmEYNQBBkwGG98',
             'creator': '杨超越',
-            'duration': 19782,
+            'creators': ['杨超越'],
+            'duration': 19,
             'timestamp': 1620905839,
             'upload_date': '20210513',
             'track': '@杨超越创作的原声',
+            'artists': ['杨超越'],
             'view_count': int,
             'like_count': int,
             'repost_count': int,
@@ -943,20 +946,23 @@ class DouyinIE(TikTokBaseIE):
         },
     }, {
         'url': 'https://www.douyin.com/video/6982497745948921092',
-        'md5': '34a87ebff3833357733da3fe17e37c0e',
+        'md5': '15c5e660b7048af3707304e3cc02bbb5',
         'info_dict': {
             'id': '6982497745948921092',
             'ext': 'mp4',
             'title': '这个夏日和小羊@杨超越 一起遇见白色幻想',
             'description': '这个夏日和小羊@杨超越 一起遇见白色幻想',
+            'uploader': '0731chaoyue',
             'uploader_id': '408654318141572',
             'uploader_url': 'https://www.douyin.com/user/MS4wLjABAAAAZJpnglcjW2f_CMVcnqA_6oVBXKWMpH0F8LIHuUu8-lA',
             'channel_id': 'MS4wLjABAAAAZJpnglcjW2f_CMVcnqA_6oVBXKWMpH0F8LIHuUu8-lA',
             'creator': '杨超越工作室',
-            'duration': 42479,
+            'creators': ['杨超越工作室'],
+            'duration': 42,
             'timestamp': 1625739481,
             'upload_date': '20210708',
             'track': '@杨超越工作室创作的原声',
+            'artists': ['杨超越工作室'],
             'view_count': int,
             'like_count': int,
             'repost_count': int,
@@ -965,20 +971,23 @@ class DouyinIE(TikTokBaseIE):
         },
     }, {
         'url': 'https://www.douyin.com/video/6953975910773099811',
-        'md5': 'dde3302460f19db59c47060ff013b902',
+        'md5': '0e6443758b8355db9a3c34864a4276be',
         'info_dict': {
             'id': '6953975910773099811',
             'ext': 'mp4',
             'title': '#一起看海  出现在你的夏日里',
             'description': '#一起看海  出现在你的夏日里',
+            'uploader': '6897520xka',
             'uploader_id': '110403406559',
             'uploader_url': 'https://www.douyin.com/user/MS4wLjABAAAAEKnfa654JAJ_N5lgZDQluwsxmY0lhfmEYNQBBkwGG98',
             'channel_id': 'MS4wLjABAAAAEKnfa654JAJ_N5lgZDQluwsxmY0lhfmEYNQBBkwGG98',
             'creator': '杨超越',
-            'duration': 17343,
+            'creators': ['杨超越'],
+            'duration': 17,
             'timestamp': 1619098692,
             'upload_date': '20210422',
             'track': '@杨超越创作的原声',
+            'artists': ['杨超越'],
             'view_count': int,
             'like_count': int,
             'repost_count': int,
@@ -1004,20 +1013,23 @@ class DouyinIE(TikTokBaseIE):
         'skip': 'No longer available',
     }, {
         'url': 'https://www.douyin.com/video/6963263655114722595',
-        'md5': 'cf9f11f0ec45d131445ec2f06766e122',
+        'md5': '1440bcf59d8700f8e014da073a4dfea8',
         'info_dict': {
             'id': '6963263655114722595',
             'ext': 'mp4',
             'title': '#哪个爱豆的105度最甜 换个角度看看我哈哈',
             'description': '#哪个爱豆的105度最甜 换个角度看看我哈哈',
+            'uploader': '6897520xka',
             'uploader_id': '110403406559',
             'uploader_url': 'https://www.douyin.com/user/MS4wLjABAAAAEKnfa654JAJ_N5lgZDQluwsxmY0lhfmEYNQBBkwGG98',
             'channel_id': 'MS4wLjABAAAAEKnfa654JAJ_N5lgZDQluwsxmY0lhfmEYNQBBkwGG98',
             'creator': '杨超越',
-            'duration': 15115,
+            'creators': ['杨超越'],
+            'duration': 15,
             'timestamp': 1621261163,
             'upload_date': '20210517',
             'track': '@杨超越创作的原声',
+            'artists': ['杨超越'],
             'view_count': int,
             'like_count': int,
             'repost_count': int,
@@ -1025,34 +1037,23 @@ class DouyinIE(TikTokBaseIE):
             'thumbnail': r're:https?://.+\.jpe?g',
         },
     }]
-    _APP_VERSIONS = [('23.3.0', '230300')]
-    _APP_NAME = 'aweme'
-    _AID = 1128
-    _API_HOSTNAME = 'aweme.snssdk.com'
     _UPLOADER_URL_FORMAT = 'https://www.douyin.com/user/%s'
     _WEBPAGE_HOST = 'https://www.douyin.com/'
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        try:
-            return self._extract_aweme_app(video_id)
-        except ExtractorError as e:
-            e.expected = True
-            self.to_screen(f'{e}; trying with webpage')
-
-        webpage = self._download_webpage(url, video_id)
-        render_data = self._search_json(
-            r'<script [^>]*\bid=[\'"]RENDER_DATA[\'"][^>]*>', webpage, 'render data', video_id,
-            contains_pattern=r'%7B(?s:.+)%7D', fatal=False, transform_source=compat_urllib_parse_unquote)
-        if not render_data:
+        detail = traverse_obj(self._download_json(
+            'https://www.douyin.com/aweme/v1/web/aweme/detail/', video_id,
+            'Downloading web detail JSON', 'Failed to download web detail JSON',
+            query={'aweme_id': video_id}, fatal=False), ('aweme_detail', {dict}))
+        if not detail:
             # TODO: Run verification challenge code to generate signature cookies
-            cookies = self._get_cookies(self._WEBPAGE_HOST)
-            expected = not cookies.get('s_v_web_id') or not cookies.get('ttwid')
             raise ExtractorError(
-                'Fresh cookies (not necessarily logged in) are needed', expected=expected)
+                'Fresh cookies (not necessarily logged in) are needed',
+                expected=not self._get_cookies(self._WEBPAGE_HOST).get('s_v_web_id'))
 
-        return self._parse_aweme_video_web(get_first(render_data, ('aweme', 'detail')), url, video_id)
+        return self._parse_aweme_video_app(detail)
 
 
 class TikTokVMIE(InfoExtractor):

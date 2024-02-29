@@ -67,7 +67,10 @@ class CineverseIE(CineverseBaseIE):
         html = self._download_webpage(url, video_id)
         idetails = self._search_nextjs_data(html, video_id)['props']['pageProps']['idetails']
 
-        if idetails.get('err_code') == 1200:
+        err_code = idetails.get('err_code')
+        if err_code == 1002:
+            self.raise_login_required()
+        elif err_code == 1200:
             self.raise_geo_restricted(
                 'This video is not available from your location due to geo restriction. '
                 'You may be able to bypass it by using the /details/ page instead of the /watch/ page',
