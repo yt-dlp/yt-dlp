@@ -3640,15 +3640,28 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         return orderedSet(requested_clients)
 
+    def _invalid_player_response(self, pr, video_id):
+        # YouTube may return a different video player response than expected.
+        # See: https://github.com/TeamNewPipe/NewPipe/issues/8713
+        if (pr_id := traverse_obj(pr, ('videoDetails', 'videoId'))) != video_id:
+            return pr_id
+
     def _extract_player_responses(self, clients, video_id, webpage, master_ytcfg, smuggled_data):
         initial_pr = None
         if webpage:
             initial_pr = self._search_json(
                 self._YT_INITIAL_PLAYER_RESPONSE_RE, webpage, 'initial player response', video_id, fatal=False)
 
+        prs = []
+        if initial_pr and not self._invalid_player_response(initial_pr, video_id):
+            # Android player_response does not have microFormats which are needed for
+            # extraction of some data. So we return the initial_pr with formats
+            # stripped out even if not requested by the user
+            # See: https://github.com/yt-dlp/yt-dlp/issues/501
+            prs.append({**initial_pr, 'streamingData': None})
+
         all_clients = set(clients)
         clients = clients[::-1]
-        prs = []
 
         def append_client(*client_names):
             """ Append the first client name that exists but not already used """
@@ -3660,18 +3673,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         all_clients.add(actual_client)
                         return
 
-        # Android player_response does not have microFormats which are needed for
-        # extraction of some data. So we return the initial_pr with formats
-        # stripped out even if not requested by the user
-        # See: https://github.com/yt-dlp/yt-dlp/issues/501
-        if initial_pr:
-            pr = dict(initial_pr)
-            pr['streamingData'] = None
-            prs.append(pr)
-
-        last_error = None
         tried_iframe_fallback = False
         player_url = None
+        skipped_clients = {}
         while clients:
             client, base_client, variant = _split_innertube_client(clients.pop())
             player_ytcfg = master_ytcfg if client == 'web' else {}
@@ -3692,26 +3696,19 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 pr = initial_pr if client == 'web' and initial_pr else self._extract_player_response(
                     client, video_id, player_ytcfg or master_ytcfg, player_ytcfg, player_url if require_js_player else None, initial_pr, smuggled_data)
             except ExtractorError as e:
-                if last_error:
-                    self.report_warning(last_error)
-                last_error = e
+                self.report_warning(e)
                 continue
 
-            if pr:
-                # YouTube may return a different video player response than expected.
-                # See: https://github.com/TeamNewPipe/NewPipe/issues/8713
-                pr_video_id = traverse_obj(pr, ('videoDetails', 'videoId'))
-                if pr_video_id and pr_video_id != video_id:
-                    self.report_warning(
-                        f'Skipping player response from {client} client (got player response for video "{pr_video_id}" instead of "{video_id}")' + bug_reports_message())
-                else:
-                    # Save client name for introspection later
-                    name = short_client_name(client)
-                    sd = traverse_obj(pr, ('streamingData', {dict})) or {}
-                    sd[STREAMING_DATA_CLIENT_NAME] = name
-                    for f in traverse_obj(sd, (('formats', 'adaptiveFormats'), ..., {dict})):
-                        f[STREAMING_DATA_CLIENT_NAME] = name
-                    prs.append(pr)
+            if pr_id := self._invalid_player_response(pr, video_id):
+                skipped_clients[client] = pr_id
+            elif pr:
+                # Save client name for introspection later
+                name = short_client_name(client)
+                sd = traverse_obj(pr, ('streamingData', {dict})) or {}
+                sd[STREAMING_DATA_CLIENT_NAME] = name
+                for f in traverse_obj(sd, (('formats', 'adaptiveFormats'), ..., {dict})):
+                    f[STREAMING_DATA_CLIENT_NAME] = name
+                prs.append(pr)
 
             # creator clients can bypass AGE_VERIFICATION_REQUIRED if logged in
             if variant == 'embedded' and self._is_unplayable(pr) and self.is_authenticated:
@@ -3722,10 +3719,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 elif not variant:
                     append_client(f'tv_embedded.{base_client}', f'{base_client}_embedded')
 
-        if last_error:
-            if not len(prs):
-                raise last_error
-            self.report_warning(last_error)
+        if skipped_clients:
+            self.report_warning(
+                f'Skipping player responses from {"/".join(skipped_clients)} clients '
+                f'(got player responses for video "{"/".join(set(skipped_clients.values()))}" instead of "{video_id}")')
+            if not prs:
+                raise ExtractorError(
+                    'All player responses are invalid. Your IP is likely being blocked by Youtube', expected=True)
+        elif not prs:
+            raise ExtractorError('Failed to extract any player response')
         return prs, player_url
 
     def _needs_live_processing(self, live_status, duration):
