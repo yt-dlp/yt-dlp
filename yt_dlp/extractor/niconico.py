@@ -430,6 +430,7 @@ class NiconicoIE(InfoExtractor):
         # Getting all audio formats results in duplicate video formats which we filter out later
         dms_fmts = self._extract_m3u8_formats(dms_m3u8_url, video_id)
 
+        # m3u8 extraction does not provide audio bitrates, so extract from the API data and fix
         for audio_fmt in traverse_obj(dms_fmts, lambda _, v: v['vcodec'] == 'none'):
             fmt_id = remove_end(audio_fmt['format_id'], f'-{audio_fmt.get("format_note")}')
             yield {
