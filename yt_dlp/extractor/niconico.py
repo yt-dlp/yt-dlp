@@ -394,16 +394,14 @@ class NiconicoIE(InfoExtractor):
         }
 
     def _yield_dmc_formats(self, api_data, video_id):
-        dmc_data = traverse_obj(api_data, ('media', 'delivery', 'movie', {
-            'audios': ('audios', ..., {dict}),
-            'videos': ('videos', ..., {dict}),
-            'protocols': ('session', 'protocols', ..., {str}),
-        }))
-        if len(dmc_data) != 3:
+        dmc_data = traverse_obj(api_data, ('media', 'delivery', 'movie'))
+        audios = traverse_obj(dmc_data, ('audios', ..., {dict}))
+        videos = traverse_obj(dmc_data, ('videos', ..., {dict}))
+        protocols = traverse_obj(dmc_data, ('session', 'protocols', ..., {str}))
+        if not all((audios, videos, protocols)):
             return
 
-        for (audio_quality, video_quality, protocol) in itertools.product(
-                dmc_data['audios'], dmc_data['videos'], dmc_data['protocols']):
+        for (audio_quality, video_quality, protocol) in itertools.product(audios, videos, protocols):
             if fmt := self._extract_format_for_quality(video_id, audio_quality, video_quality, protocol):
                 yield fmt
 
@@ -419,7 +417,7 @@ class NiconicoIE(InfoExtractor):
         dms_m3u8_url = self._download_json(
             f'https://nvapi.nicovideo.jp/v1/watch/{video_id}/access-rights/hls', video_id,
             data=json.dumps({
-                'outputs': list(itertools.product([v['id'] for v in videos], [a['id'] for a in audios]))
+                'outputs': list(itertools.product((v['id'] for v in videos), (a['id'] for a in audios)))
             }).encode(), query={'actionTrackId': track_id}, headers={
                 'x-access-right-key': access_key,
                 'x-frontend-id': 6,
@@ -442,20 +440,15 @@ class NiconicoIE(InfoExtractor):
                 'ext': 'm4a',
             }
 
-        # First, we filter for the non-duplicate video formats with the lowest tbr
-        video_fmts = sorted([fmt for fmt in dms_fmts if fmt['vcodec'] != 'none'], key=lambda f: f['tbr'])
+        # Sort before removing dupes to keep the format dicts with the lowest tbr
+        video_fmts = sorted((fmt for fmt in dms_fmts if fmt['vcodec'] != 'none'), key=lambda f: f['tbr'])
         self._remove_duplicate_formats(video_fmts)
-        # Then, we extract the lowest abr
-        min_abr = min(traverse_obj(
-            audios, (..., 'bitRate', {functools.partial(float_or_none, scale=1000)}), default=[0]))
-        # Finally, we calculate the true vbr by subtracting the lowest abr
+        # Calculate the true vbr/tbr by subtracting the lowest abr
+        min_abr = min(traverse_obj(audios, (..., 'bitRate', {float_or_none})), default=0) / 1000
         for video_fmt in video_fmts:
-            vbr = video_fmt['tbr'] - min_abr
-            yield {
-                **video_fmt,
-                'format_id': f'video-{round(vbr)}',
-                'tbr': vbr,
-            }
+            video_fmt['tbr'] -= min_abr
+            video_fmt['format_id'] = f'video-{video_fmt["tbr"]:.0f}'
+            yield video_fmt
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
