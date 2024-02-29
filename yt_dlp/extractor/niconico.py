@@ -22,7 +22,6 @@ from ..utils import (
     parse_resolution,
     qualities,
     remove_start,
-    remove_end,
     str_or_none,
     traverse_obj,
     try_get,
@@ -432,10 +431,9 @@ class NiconicoIE(InfoExtractor):
 
         # m3u8 extraction does not provide audio bitrates, so extract from the API data and fix
         for audio_fmt in traverse_obj(dms_fmts, lambda _, v: v['vcodec'] == 'none'):
-            fmt_id = remove_end(audio_fmt['format_id'], f'-{audio_fmt.get("format_note")}')
             yield {
                 **audio_fmt,
-                **traverse_obj(audios, (lambda _, v: v['id'] == fmt_id, {
+                **traverse_obj(audios, (lambda _, v: audio_fmt['format_id'].startswith(v['id']), {
                     'format_id': ('id', {str}),
                     'abr': ('bitRate', {functools.partial(float_or_none, scale=1000)}),
                     'asr': ('samplingRate', {int_or_none}),
