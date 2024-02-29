@@ -29,13 +29,10 @@ class RaiBaseIE(InfoExtractor):
     _GEO_BYPASS = False
 
     def _fix_m3u8_formats(self, media_url, video_id):
-        # fixes the formats list because the website
-        # uses some malformed m3u8 manifest that needs manual fixing
-        # to properly set audio-only and video-only formats
-
         fmts = self._extract_m3u8_formats(
             media_url, video_id, 'mp4', m3u8_id='hls', fatal=False)
 
+        # Fix malformed m3u8 manifests by setting audio-only/video-only formats
         for f in fmts:
             if not f.get('acodec'):
                 f['acodec'] = 'mp4a'
