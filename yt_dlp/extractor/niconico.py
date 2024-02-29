@@ -377,11 +377,15 @@ class NiconicoIE(InfoExtractor):
             'ext': 'mp4',  # Session API are used in HTML5, which always serves mp4
             'acodec': 'aac',
             'vcodec': 'h264',
-            'abr': float_or_none(traverse_obj(audio_quality, ('metadata', 'bitrate')), scale=1000),
-            'vbr': float_or_none(traverse_obj(video_quality, ('metadata', 'bitrate')), scale=1000),
-            'asr': int_or_none(traverse_obj(audio_quality, ('metadata', 'samplingRate'))),
-            'height': traverse_obj(video_quality, ('metadata', 'resolution', 'height')),
-            'width': traverse_obj(video_quality, ('metadata', 'resolution', 'width')),
+            **traverse_obj(audio_quality, ('metadata', {
+                'abr': ('bitrate', {functools.partial(float_or_none, scale=1000)}),
+                'asr': ('samplingRate', {int_or_none}),
+            }),
+            **traverse_obj(video_quality, ('metadata', {
+                'vbr': ('bitrate', {functools.partial(float_or_none, scale=1000)}),
+                'height': ('resolution', 'height', {int_or_none}),
+                'width': ('resolution', 'width', {int_or_none}),
+            }),
             'quality': -2 if 'low' in video_quality['id'] else None,
             'protocol': 'niconico_dmc',
             'expected_protocol': dmc_protocol,  # XXX: This is not a documented field
@@ -422,7 +426,7 @@ class NiconicoIE(InfoExtractor):
         club_joined = traverse_obj(api_data, ('channel', 'viewer', 'follow', 'isFollowed', {bool}))
         if club_joined is None:
             fail_msg = self._html_search_regex(
-                r'<p[^>]+\bclass="fail-message"[^>]*>(?P<msg>.+)</p>',
+                r'<p[^>]+\bclass="fail-message"[^>]*>(?P<msg>.+?)</p>',
                 webpage, 'fail message', default=None, group='msg')
             if fail_msg:
                 self.raise_login_required(clean_html(fail_msg), metadata_available=True)
@@ -455,7 +459,7 @@ class NiconicoIE(InfoExtractor):
             'track_id': ('client', 'watchTrackId', {str}),
         }))
         if len(dms_data) == 4:
-            dms_m3u8_url = traverse_obj(self._download_json(
+            dms_m3u8_url = self._download_json(
                 f'https://nvapi.nicovideo.jp/v1/watch/{video_id}/access-rights/hls', video_id,
                 data=json.dumps({
                     'outputs': list(itertools.product(dms_data['video_ids'], dms_data['audio_ids']))
@@ -464,7 +468,7 @@ class NiconicoIE(InfoExtractor):
                     'x-frontend-id': 6,
                     'x-frontend-version': 0,
                     'x-request-with': 'https://www.nicovideo.jp',
-                }), ('data', 'contentUrl'))
+                })['data']['contentUrl']
             dms_fmts = self._extract_m3u8_formats(dms_m3u8_url, video_id)
 
             # update audio formats
