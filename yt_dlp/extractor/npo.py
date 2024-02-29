@@ -119,6 +119,9 @@ class NPOIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
+        if video_id == 'afspelen':
+            self.raise_no_formats('This URL format is not supported yet', expected=True)
+
         player_token_data = self._download_json(
             f'https://npo.nl/start/api/domain/player-token?productId={video_id}', video_id,
             'Downloading player JSON')
