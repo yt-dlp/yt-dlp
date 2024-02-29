@@ -495,10 +495,6 @@ class NiconicoIE(InfoExtractor):
         elif not club_joined:
             self.raise_login_required('This video is for members only', metadata_available=True)
 
-        formats = []
-        formats.extend(self._yield_dmc_formats(api_data, video_id))
-        formats.extend(self._yield_dms_formats(api_data, video_id))
-
         # Start extracting information
         tags = None
         if webpage:
@@ -523,7 +519,9 @@ class NiconicoIE(InfoExtractor):
             'id': video_id,
             '_api_data': api_data,
             'title': get_video_info(('originalTitle', 'title')) or self._og_search_title(webpage, default=None),
-            'formats': formats,
+            'formats': list(itertools.chain(
+                self._yield_dmc_formats(api_data, video_id),
+                self._yield_dms_formats(api_data, video_id))),
             'thumbnails': [{
                 'id': key,
                 'url': url,
