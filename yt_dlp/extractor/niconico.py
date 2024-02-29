@@ -17,7 +17,6 @@ from ..utils import (
     float_or_none,
     int_or_none,
     join_nonempty,
-    parse_bitrate,
     parse_duration,
     parse_iso8601,
     parse_resolution,
@@ -380,12 +379,12 @@ class NiconicoIE(InfoExtractor):
             **traverse_obj(audio_quality, ('metadata', {
                 'abr': ('bitrate', {functools.partial(float_or_none, scale=1000)}),
                 'asr': ('samplingRate', {int_or_none}),
-            }),
+            })),
             **traverse_obj(video_quality, ('metadata', {
                 'vbr': ('bitrate', {functools.partial(float_or_none, scale=1000)}),
                 'height': ('resolution', 'height', {int_or_none}),
                 'width': ('resolution', 'width', {int_or_none}),
-            }),
+            })),
             'quality': -2 if 'low' in video_quality['id'] else None,
             'protocol': 'niconico_dmc',
             'expected_protocol': dmc_protocol,  # XXX: This is not a documented field
@@ -394,6 +393,70 @@ class NiconicoIE(InfoExtractor):
                 'Referer': 'https://www.nicovideo.jp/watch/' + video_id,
             }
         }
+
+    def _yield_dmc_formats(self, api_data, video_id):
+        dmc_data = traverse_obj(api_data, ('media', 'delivery', 'movie', {
+            'audios': ('audios', ..., {dict}),
+            'videos': ('videos', ..., {dict}),
+            'protocols': ('session', 'protocols', ..., {str}),
+        }))
+        if len(dmc_data) != 3:
+            return
+
+        for (audio_quality, video_quality, protocol) in itertools.product(
+                dmc_data['audios'], dmc_data['videos'], dmc_data['protocols']):
+            if fmt := self._extract_format_for_quality(video_id, audio_quality, video_quality, protocol):
+                yield fmt
+
+    def _yield_dms_formats(self, api_data, video_id):
+        fmt_filter = lambda _, v: v['isAvailable'] and v['id']
+        videos = traverse_obj(api_data, ('media', 'domand', 'videos', fmt_filter))
+        audios = traverse_obj(api_data, ('media', 'domand', 'audios', fmt_filter))
+        access_key = traverse_obj(api_data, ('media', 'domand', 'accessRightKey', {str}))
+        track_id = traverse_obj(api_data, ('client', 'watchTrackId', {str}))
+        if not any((videos, audios, access_key, track_id)):
+            return
+
+        dms_m3u8_url = self._download_json(
+            f'https://nvapi.nicovideo.jp/v1/watch/{video_id}/access-rights/hls', video_id,
+            data=json.dumps({
+                'outputs': list(itertools.product([v['id'] for v in videos], [a['id'] for a in audios]))
+            }).encode(), query={'actionTrackId': track_id}, headers={
+                'x-access-right-key': access_key,
+                'x-frontend-id': 6,
+                'x-frontend-version': 0,
+                'x-request-with': 'https://www.nicovideo.jp',
+            })['data']['contentUrl']
+        # Getting all audio formats results in duplicate video formats which we filter out later
+        dms_fmts = self._extract_m3u8_formats(dms_m3u8_url, video_id)
+
+        for audio_fmt in traverse_obj(dms_fmts, lambda _, v: v['vcodec'] == 'none'):
+            fmt_id = remove_end(audio_fmt['format_id'], f'-{audio_fmt.get("format_note")}')
+            yield {
+                **audio_fmt,
+                **traverse_obj(audios, (lambda _, v: v['id'] == fmt_id, {
+                    'format_id': ('id', {str}),
+                    'abr': ('bitRate', {functools.partial(float_or_none, scale=1000)}),
+                    'asr': ('samplingRate', {int_or_none}),
+                }), get_all=False),
+                'acodec': 'aac',
+                'ext': 'm4a',
+            }
+
+        # First, we filter for the non-duplicate video formats with the lowest tbr
+        video_fmts = sorted([fmt for fmt in dms_fmts if fmt['vcodec'] != 'none'], key=lambda f: f['tbr'])
+        self._remove_duplicate_formats(video_fmts)
+        # Then, we extract the lowest abr
+        min_abr = min(traverse_obj(
+            audios, (..., 'bitRate', {functools.partial(float_or_none, scale=1000)}), default=[0]))
+        # Finally, we calculate the true vbr by subtracting the lowest abr
+        for video_fmt in video_fmts:
+            vbr = video_fmt['tbr'] - min_abr
+            yield {
+                **video_fmt,
+                'format_id': f'video-{round(vbr)}',
+                'tbr': vbr,
+            }
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -434,78 +497,8 @@ class NiconicoIE(InfoExtractor):
             self.raise_login_required('This video is for members only', metadata_available=True)
 
         formats = []
-
-        def get_video_info(*items, get_first=True, **kwargs):
-            return traverse_obj(api_data, ('video', *items), get_all=not get_first, **kwargs)
-
-        dmc_data = traverse_obj(api_data, ('media', 'delivery', 'movie', {
-            'audios': ('audios', ..., {dict}),
-            'videos': ('videos', ..., {dict}),
-            'protocols': ('session', 'protocols', ..., {str}),
-        }))
-        if len(dmc_data) == 3:
-            for (audio_quality, video_quality, protocol) in itertools.product(
-                    dmc_data['audios'], dmc_data['videos'], dmc_data['protocols']):
-                fmt = self._extract_format_for_quality(video_id, audio_quality, video_quality, protocol)
-                if fmt:
-                    formats.append(fmt)
-
-        # Getting all audio formats results in extracting duplicate video formats.
-        # Duplicate ones will be filtered out later.
-        dms_data = traverse_obj(api_data, ({
-            'video_ids': ('media', 'domand', 'videos', lambda _, v: v['isAvailable'], 'id', {str}),
-            'audio_ids': ('media', 'domand', 'audios', lambda _, v: v['isAvailable'], 'id', {str}),
-            'accessRightKey': ('media', 'domand', 'accessRightKey', {str}),
-            'track_id': ('client', 'watchTrackId', {str}),
-        }))
-        if len(dms_data) == 4:
-            dms_m3u8_url = self._download_json(
-                f'https://nvapi.nicovideo.jp/v1/watch/{video_id}/access-rights/hls', video_id,
-                data=json.dumps({
-                    'outputs': list(itertools.product(dms_data['video_ids'], dms_data['audio_ids']))
-                }).encode(), query={'actionTrackId': dms_data['track_id']}, headers={
-                    'x-access-right-key': dms_data['accessRightKey'],
-                    'x-frontend-id': 6,
-                    'x-frontend-version': 0,
-                    'x-request-with': 'https://www.nicovideo.jp',
-                })['data']['contentUrl']
-            dms_fmts = self._extract_m3u8_formats(dms_m3u8_url, video_id)
-
-            # update audio formats
-            dms_audio_info = dict(traverse_obj(api_data, (
-                'media', 'domand', 'audios', lambda _, v: v['isAvailable'], {
-                    lambda item: (item['id'], {
-                        'format_id': str(parse_bitrate(item['id'])),
-                        'abr': float_or_none(item['bitRate'], scale=1000),
-                        'asr': item['samplingRate'],
-                        'acodec': 'aac',
-                        'ext': 'm4a',
-                    })
-                },
-            )))
-            dms_audio_fmts = traverse_obj(dms_fmts, (lambda _, v: v['vcodec'] == 'none', {
-                lambda fmt: dict(fmt, **traverse_obj(
-                    dms_audio_info, (remove_end(fmt['format_id'], '-%s' % fmt['format_note']), {dict})
-                ))
-            }))
-
-            # First, pick out the non-duplicate video format with the minimal tbr.
-            dms_video_fmts = [
-                list(fmts)[0] for _, fmts in itertools.groupby(sorted([
-                    fmt for fmt in dms_fmts if fmt['vcodec'] != 'none'
-                ], key=lambda fmt: fmt['tbr']), lambda fmt: fmt['url'])
-            ]
-            # Then, correct the bitrate of all videos by minusing the minimal audio bitrate.
-            min_abr = traverse_obj(min(dms_audio_fmts, key=lambda fmt: fmt['abr']), ('abr'), default=0)
-            for i, fmt in enumerate(dms_video_fmts):
-                vbr = fmt['tbr'] - min_abr
-                dms_video_fmts[i].update({
-                    'format_id': str(round(vbr)),
-                    'vbr': vbr,
-                    'tbr': None,
-                })
-
-            formats.extend(dms_video_fmts + dms_audio_fmts)
+        formats.extend(self._yield_dmc_formats(api_data, video_id))
+        formats.extend(self._yield_dms_formats(api_data, video_id))
 
         # Start extracting information
         tags = None
@@ -523,6 +516,9 @@ class NiconicoIE(InfoExtractor):
             tags = traverse_obj(api_data, ('tag', 'items', ..., 'name'))
 
         thumb_prefs = qualities(['url', 'middleUrl', 'largeUrl', 'player', 'ogp'])
+
+        def get_video_info(*items, get_first=True, **kwargs):
+            return traverse_obj(api_data, ('video', *items), get_all=not get_first, **kwargs)
 
         return {
             'id': video_id,
