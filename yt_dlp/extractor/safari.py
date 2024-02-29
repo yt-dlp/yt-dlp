@@ -14,7 +14,7 @@ from ..utils import (
 
 
 class SafariBaseIE(InfoExtractor):
-    _LOGIN_URL = 'https://learning.oreilly.com/accounts/login/'
+    _LOGIN_URL = 'https://learning.oreilly.com/member/login/'
     _NETRC_MACHINE = 'safari'
 
     _API_BASE = 'https://learning.oreilly.com/api/v1'
@@ -24,11 +24,15 @@ class SafariBaseIE(InfoExtractor):
 
     def _perform_login(self, username, password):
         _, urlh = self._download_webpage_handle(
-            'https://learning.oreilly.com/accounts/login-check/', None,
+            'https://learning.oreilly.com/member/login/', None,
             'Downloading login page')
 
         def is_logged(urlh):
-            return 'learning.oreilly.com/home/' in urlh.url
+            url = urlh.geturl()
+            parsed_url = compat_urlparse.urlparse(url)
+            return parsed_url.hostname.endswith('learning.oreilly.com') and (
+                parsed_url.path.startswith('/home/')
+                or (parsed_url.path == '/member/login/' and not parsed_url.query))
 
         if is_logged(urlh):
             self.LOGGED_IN = True
@@ -41,7 +45,7 @@ class SafariBaseIE(InfoExtractor):
             'https://api.oreilly.com', qs['next'][0])
 
         auth, urlh = self._download_json_handle(
-            'https://www.oreilly.com/member/auth/login/', None, 'Logging in',
+            'https://www.oreilly.com/member/login/', None, 'Logging in',
             data=json.dumps({
                 'email': username,
                 'password': password,
