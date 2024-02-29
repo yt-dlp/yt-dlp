@@ -36,26 +36,22 @@ class RaiBaseIE(InfoExtractor):
         fmts = self._extract_m3u8_formats(
             media_url, video_id, 'mp4', m3u8_id='hls', fatal=False)
 
-        for idx, f in enumerate(fmts):
-            man_url = f.get('url')
-            if re.search(r'chunklist(_b\d+)*_ao(_|\.)', man_url):  # audio only
-                fmts[idx]['vcodec'] = 'none'
-                if 'acodec' not in fmts[idx]:
-                    fmts[idx]['acodec'] = 'mp4a'
-            elif re.search(r'chunklist(_b\d+)*_vo(_|\.)', man_url):  # video only
-                fmts[idx]['acodec'] = 'none'
-                if 'vcodec' not in fmts[idx]:
-                    fmts[idx]['vcodec'] = 'avc1'
-            elif re.search(r'chunklist\.m3u8', man_url):  # audio+video
-                if 'acodec' in fmts[idx] and fmts[idx]['acodec'] == 'none':
-                    fmts[idx]['acodec'] = 'mp4a'
-                if 'vcodec' in fmts[idx] and fmts[idx]['vcodec'] == 'none':
-                    fmts[idx]['vcodec'] = 'avc1'
-            else:  # audio+video
-                if 'acodec' not in fmts[idx]:
-                    fmts[idx]['acodec'] = 'mp4a'
-                if 'vcodec' not in fmts[idx]:
-                    fmts[idx]['vcodec'] = 'avc1'
+        for f in fmts:
+            if not f.get('acodec'):
+                f['acodec'] = 'mp4a'
+            if not f.get('vcodec'):
+                f['vcodec'] = 'avc1'
+            man_url = f['url']
+            if re.search(r'chunklist(?:_b\d+)*_ao[_.]', man_url):  # audio only
+                f['vcodec'] = 'none'
+            elif re.search(r'chunklist(?:_b\d+)*_vo[_.]', man_url):  # video only
+                f['acodec'] = 'none'
+            else:  # video+audio
+                if f['acodec'] == 'none':
+                    f['acodec'] = 'mp4a'
+                if f['vcodec'] == 'none':
+                    f['vcodec'] = 'avc1'
+
         return fmts
 
     def _extract_relinker_info(self, relinker_url, video_id, audio_only=False):
