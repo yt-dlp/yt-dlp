@@ -129,6 +129,7 @@ class NPOIE(InfoExtractor):
         player_token = player_token_data['token']
 
         drm = False
+        allow_unplayable = self.get_param('allow_unplayable_formats')
         format_urls = set()
         formats = []
         for profile in ('hls', 'dash'):
@@ -158,7 +159,7 @@ class NPOIE(InfoExtractor):
             if not stream_url or stream_url in format_urls:
                 continue
             format_urls.add(stream_url)
-            if stream.get('drmToken') is not None:
+            if stream.get('drmToken') and not allow_unplayable:
                 drm = True
                 continue
             stream_ext = determine_ext(stream_url)
@@ -177,9 +178,9 @@ class NPOIE(InfoExtractor):
                     'url': stream_url,
                 })
 
-        if not formats:
-            if not self.get_param('allow_unplayable_formats') and drm:
-                self.report_drm(video_id)
+        # If no suitable formats and at least one DRM stream is found, report DRM
+        if not formats and drm:
+            self.report_drm(video_id)
 
         info = {
             'id': video_id,
