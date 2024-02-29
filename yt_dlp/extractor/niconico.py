@@ -401,7 +401,7 @@ class NiconicoIE(InfoExtractor):
         if not all((audios, videos, protocols)):
             return
 
-        for (audio_quality, video_quality, protocol) in itertools.product(audios, videos, protocols):
+        for audio_quality, video_quality, protocol in itertools.product(audios, videos, protocols):
             if fmt := self._extract_format_for_quality(video_id, audio_quality, video_quality, protocol):
                 yield fmt
 
