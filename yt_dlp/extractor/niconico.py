@@ -413,7 +413,7 @@ class NiconicoIE(InfoExtractor):
         audios = traverse_obj(api_data, ('media', 'domand', 'audios', fmt_filter))
         access_key = traverse_obj(api_data, ('media', 'domand', 'accessRightKey', {str}))
         track_id = traverse_obj(api_data, ('client', 'watchTrackId', {str}))
-        if not any((videos, audios, access_key, track_id)):
+        if not all((videos, audios, access_key, track_id)):
             return
 
         dms_m3u8_url = self._download_json(
