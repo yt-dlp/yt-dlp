@@ -512,9 +512,8 @@ class NiconicoIE(InfoExtractor):
             'id': video_id,
             '_api_data': api_data,
             'title': get_video_info(('originalTitle', 'title')) or self._og_search_title(webpage, default=None),
-            'formats': list(itertools.chain(
-                self._yield_dmc_formats(api_data, video_id),
-                self._yield_dms_formats(api_data, video_id))),
+            'formats': [*self._yield_dmc_formats(api_data, video_id),
+                        *self._yield_dms_formats(api_data, video_id)],
             'thumbnails': [{
                 'id': key,
                 'url': url,
