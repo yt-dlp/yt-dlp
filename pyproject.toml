@@ -94,7 +94,6 @@ include = [
     "/setup.cfg",
     "/supportedsites.md",
 ]
-exclude = ["/yt_dlp/__pyinstaller"]
 artifacts = [
     "/yt_dlp/extractor/lazy_extractors.py",
     "/completions",
@@ -105,7 +104,6 @@ artifacts = [
 
 [tool.hatch.build.targets.wheel]
 packages = ["yt_dlp"]
-exclude = ["/yt_dlp/__pyinstaller"]
 artifacts = ["/yt_dlp/extractor/lazy_extractors.py"]
 
 [tool.hatch.build.targets.wheel.shared-data]
