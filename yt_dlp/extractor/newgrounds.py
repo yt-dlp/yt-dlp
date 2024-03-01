@@ -1,6 +1,5 @@
 import functools
 import re
-
 from .common import InfoExtractor
 from ..utils import (
     OnDemandPagedList,
@@ -12,10 +11,11 @@ from ..utils import (
     parse_duration,
     traverse_obj,
     unified_timestamp,
+    urlencode_postdata,
 )
 
-
 class NewgroundsIE(InfoExtractor):
+    _NETRC_MACHINE = 'newgrounds'
     _VALID_URL = r'https?://(?:www\.)?newgrounds\.com/(?:audio/listen|portal/view)/(?P<id>\d+)(?:/format/flash)?'
     _TESTS = [{
         'url': 'https://www.newgrounds.com/audio/listen/549479',
@@ -97,41 +97,37 @@ class NewgroundsIE(InfoExtractor):
         'a': 18,
     }
 
+    def _perform_login(self, username, password):
+            login_webpage = self._download_webpage('https://www.newgrounds.com/passport', video_id=None)
+            inputs = self._hidden_inputs(login_webpage)
+            inputs.update({'username': username, 'password': password})
+            self._request_webpage('https://www.newgrounds.com/passport', None, data=urlencode_postdata(inputs))
+
     def _real_extract(self, url):
-        media_id = self._match_id(url)
+        mobj = self._match_valid_url(url)
+        media_id = mobj.group('id') or mobj.group('embed_id')
         formats = []
         uploader = None
         webpage = self._download_webpage(url, media_id)
-
+ 
         title = self._html_extract_title(webpage)
 
-        media_url_string = self._search_regex(
-            r'"url"\s*:\s*("[^"]+"),', webpage, 'media url', default=None)
+        json_video = self._download_json('https://www.newgrounds.com/portal/video/' + media_id, media_id, headers={
+            'Accept': 'application/json',
+            'Referer': url,
+            'X-Requested-With': 'XMLHttpRequest'
+        })
 
-        if media_url_string:
-            media_url = self._parse_json(media_url_string, media_id)
-            formats = [{
-                'url': media_url,
-                'format_id': 'source',
-                'quality': 1,
-            }]
-        else:
-            json_video = self._download_json('https://www.newgrounds.com/portal/video/' + media_id, media_id, headers={
-                'Accept': 'application/json',
-                'Referer': url,
-                'X-Requested-With': 'XMLHttpRequest'
-            })
-
-            uploader = json_video.get('author')
-            media_formats = json_video.get('sources', [])
-            for media_format in media_formats:
-                media_sources = media_formats[media_format]
-                for source in media_sources:
-                    formats.append({
-                        'format_id': media_format,
-                        'quality': int_or_none(media_format[:-1]),
-                        'url': source.get('src')
-                    })
+        uploader = json_video.get('author')
+        media_formats = json_video.get('sources', [])
+        for media_format in media_formats:
+            media_sources = media_formats[media_format]
+            for source in media_sources:
+                formats.append({
+                    'format_id': media_format,
+                    'quality': int_or_none(media_format[:-1]),
+                    'url': source.get('src')
+                })
 
         if not uploader:
             uploader = self._html_search_regex(
