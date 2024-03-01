@@ -1,5 +1,6 @@
 import functools
 import re
+
 from .common import InfoExtractor
 from ..utils import (
     OnDemandPagedList,
@@ -13,6 +14,7 @@ from ..utils import (
     unified_timestamp,
     urlencode_postdata,
 )
+
 
 class NewgroundsIE(InfoExtractor):
     _NETRC_MACHINE = 'newgrounds'
