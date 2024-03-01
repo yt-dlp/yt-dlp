@@ -615,11 +615,12 @@ class TikTokIE(TikTokBaseIE):
             'title': 'md5:1d95c0b96560ca0e8a231af4172b2c0a',
             'description': 'md5:1d95c0b96560ca0e8a231af4172b2c0a',
             'creator': 'MoxyPatch',
+            'creators': ['MoxyPatch'],
             'uploader': 'moxypatch',
             'uploader_id': '7039142049363379205',
             'uploader_url': 'https://www.tiktok.com/@MS4wLjABAAAAFhqKnngMHJSsifL0w1vFOP5kn3Ndo1ODp0XuIBkNMBCkALTvwILdpu12g3pTtL4V',
             'channel_id': 'MS4wLjABAAAAFhqKnngMHJSsifL0w1vFOP5kn3Ndo1ODp0XuIBkNMBCkALTvwILdpu12g3pTtL4V',
-            'artist': 'your worst nightmare',
+            'artists': ['your worst nightmare'],
             'track': 'original sound',
             'upload_date': '20230303',
             'timestamp': 1677866781,
@@ -657,7 +658,7 @@ class TikTokIE(TikTokBaseIE):
             'comment_count': int,
             'thumbnail': r're:^https://.+\.webp',
         },
-        'params': {'format': 'bytevc1_1080p_808907-0'},
+        'skip': 'Unavailable via feed API, no formats available via web',
     }, {
         # Slideshow, audio-only m4a format
         'url': 'https://www.tiktok.com/@hara_yoimiya/video/7253412088251534594',
