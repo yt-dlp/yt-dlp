@@ -2,6 +2,7 @@ import urllib.parse
 
 from .common import InfoExtractor
 from .dailymotion import DailymotionIE
+from ..networking import HEADRequest
 from ..utils import (
     ExtractorError,
     determine_ext,
@@ -15,6 +16,7 @@ from ..utils import (
     unsmuggle_url,
     url_or_none,
 )
+from ..utils.traversal import traverse_obj
 
 
 class FranceTVBaseInfoExtractor(InfoExtractor):
@@ -43,6 +45,8 @@ class FranceTVIE(InfoExtractor):
                     )
                     '''
     _EMBED_REGEX = [r'<iframe[^>]+?src=(["\'])(?P<url>(?:https?://)?embed\.francetv\.fr/\?ue=.+?)\1']
+    _GEO_COUNTRIES = ['FR']
+    _GEO_BYPASS = False
 
     _TESTS = [{
         # without catalog
@@ -102,7 +106,7 @@ class FranceTVIE(InfoExtractor):
         for device_type in ('desktop', 'mobile'):
             dinfo = self._download_json(
                 'https://player.webservices.francetelevisions.fr/v1/videos/%s' % video_id,
-                video_id, 'Downloading %s video JSON' % device_type, query=filter_dict({
+                video_id, f'Downloading {device_type} video JSON', query=filter_dict({
                     'device_type': device_type,
                     'browser': 'chrome',
                     'domain': hostname,
@@ -111,7 +115,7 @@ class FranceTVIE(InfoExtractor):
             if not dinfo:
                 continue
 
-            video = dinfo.get('video')
+            video = traverse_obj(dinfo, ('video', {dict}))
             if video:
                 videos.append(video)
                 if duration is None:
@@ -121,7 +125,7 @@ class FranceTVIE(InfoExtractor):
                 if spritesheets is None:
                     spritesheets = video.get('spritesheets')
 
-            meta = dinfo.get('meta')
+            meta = traverse_obj(dinfo, ('meta', {dict}))
             if meta:
                 if title is None:
                     title = meta.get('title')
@@ -135,21 +139,21 @@ class FranceTVIE(InfoExtractor):
                 if timestamp is None:
                     timestamp = parse_iso8601(meta.get('broadcasted_at'))
 
-        formats = []
-        subtitles = {}
-        for video in videos:
+        formats, subtitles, video_url = [], {}, None
+        for video in traverse_obj(videos, lambda _, v: url_or_none(v['url'])):
+            video_url = video['url']
             format_id = video.get('format')
-            video_url = url_or_none(video.get('url'))
-            if not video_url:
-                continue
 
-            if video.get('workflow') == 'token-akamai':
-                if token_url := url_or_none(video.get('token')):
-                    token_json = self._download_json(
-                        token_url, video_id, f'Downloading signed {format_id} manifest URL',
-                        fatal=False, query={'format': 'json', 'url': video_url}) or {}
-                    if tokenized_url := url_or_none(token_json.get('url')):
-                        video_url = tokenized_url
+            token_url = url_or_none(video.get('token'))
+            if token_url and video.get('workflow') == 'token-akamai':
+                tokenized_url = traverse_obj(self._download_json(
+                    token_url, video_id, f'Downloading signed {format_id} manifest URL',
+                    fatal=False, query={
+                        'format': 'json',
+                        'url': video_url,
+                    }), ('url', {url_or_none}))
+                if tokenized_url:
+                    video_url = tokenized_url
 
             ext = determine_ext(video_url)
             if ext == 'f4m':
@@ -181,6 +185,13 @@ class FranceTVIE(InfoExtractor):
                     })
 
             # XXX: what is video['captions']?
+
+        if not formats and video_url:
+            urlh = self._request_webpage(
+                HEADRequest(video_url), video_id, 'Checking for geo-restriction',
+                fatal=False, expected_status=403)
+            if urlh and urlh.headers.get('x-errortype') == 'geo':
+                self.raise_geo_restricted(countries=self._GEO_COUNTRIES, metadata_available=True)
 
         for f in formats:
             if f.get('acodec') != 'none' and f.get('language') in ('qtz', 'qad'):
