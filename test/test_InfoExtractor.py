@@ -1081,7 +1081,6 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'acodec': 'none',
                     'video_ext': 'mp4',
                     'audio_ext': 'none',
-                    'vbr': 2344.0,
                 }, {
                     'format_id': '3600',
                     'url': 'https://b70cb04c54ab478189e9d8ee45637b13.msvdn.net/ostr8/podcastcdn/teche_root/YT_ITALIA_TECHE_HD_multiaudio/13834457_,1200,1800,2400,3600,5000/chunklist_b3516000_vo_slita_t64MzYwMA==.m3u8',
@@ -1095,7 +1094,6 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'acodec': 'none',
                     'video_ext': 'mp4',
                     'audio_ext': 'none',
-                    'vbr': 3516.0,
                 }, {
                     'format_id': '5000',
                     'url': 'https://b70cb04c54ab478189e9d8ee45637b13.msvdn.net/ostr8/podcastcdn/teche_root/YT_ITALIA_TECHE_HD_multiaudio/13834457_,1200,1800,2400,3600,5000/chunklist_b5210000_vo_slita_t64NTAwMA==.m3u8',
@@ -1109,7 +1107,6 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'acodec': 'none',
                     'video_ext': 'mp4',
                     'audio_ext': 'none',
-                    'vbr': 5210.0,
                 }],
                 {},
                 {'acodec': 'mp4a', 'vcodec': 'avc1'},
@@ -1166,7 +1163,6 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'acodec': 'mp4a.40.2',
                     'video_ext': 'mp4',
                     'audio_ext': 'none',
-                    'vbr': 1365.331,
                 }, {
                     'format_id': '2137',
                     'url': 'https://streamcdng18-8e7439fdb1694c8da3a0fd63e4dda518.msvdn.net/raiuno1/hls/rai1_1800/chunklist.m3u8?baseuri=%2Fraiuno1%2Fhls%2F&tstart=0&tend=1672438656&tk2=2b4cb4fd233734fe415b44d8bdb422941028f6314c0aa7088d8fed35c72edf56',
@@ -1180,7 +1176,6 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'acodec': 'mp4a.40.2',
                     'video_ext': 'mp4',
                     'audio_ext': 'none',
-                    'vbr': 2137.033,
                 }, {
                     'format_id': '2793',
                     'url': 'https://streamcdng18-8e7439fdb1694c8da3a0fd63e4dda518.msvdn.net/raiuno1/hls/rai1_2400/chunklist.m3u8?baseuri=%2Fraiuno1%2Fhls%2F&tstart=0&tend=1672438656&tk2=2b4cb4fd233734fe415b44d8bdb422941028f6314c0aa7088d8fed35c72edf56',
@@ -1194,7 +1189,6 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'acodec': 'mp4a.40.2',
                     'video_ext': 'mp4',
                     'audio_ext': 'none',
-                    'vbr': 2793.078,
                 }],
                 {},
                 {'acodec': 'mp4a', 'vcodec': 'avc1'},
