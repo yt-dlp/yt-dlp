@@ -13,6 +13,7 @@ from ..utils import (
     parse_qs,
     smuggle_url,
     unsmuggle_url,
+    url_or_none,
 )
 
 
@@ -138,18 +139,17 @@ class FranceTVIE(InfoExtractor):
         subtitles = {}
         for video in videos:
             format_id = video.get('format')
-
-            video_url = None
-            if video.get('workflow') == 'token-akamai':
-                token_url = video.get('token')
-                if token_url:
-                    token_json = self._download_json(
-                        token_url, video_id,
-                        'Downloading signed %s manifest URL' % format_id)
-                    if token_json:
-                        video_url = token_json.get('url')
+            video_url = url_or_none(video.get('url'))
             if not video_url:
-                video_url = video.get('url')
+                continue
+
+            if video.get('workflow') == 'token-akamai':
+                if token_url := url_or_none(video.get('token')):
+                    token_json = self._download_json(
+                        token_url, video_id, f'Downloading signed {format_id} manifest URL',
+                        fatal=False, query={'format': 'json', 'url': video_url}) or {}
+                    if tokenized_url := url_or_none(token_json.get('url')):
+                        video_url = tokenized_url
 
             ext = determine_ext(video_url)
             if ext == 'f4m':
