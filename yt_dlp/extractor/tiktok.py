@@ -50,7 +50,13 @@ class TikTokBaseIE(InfoExtractor):
     def _get_sigi_state(self, webpage, display_id):
         return self._search_json(
             r'<script[^>]+\bid="(?:SIGI_STATE|sigi-persisted-data)"[^>]*>', webpage,
-            'sigi state', display_id, end_pattern=r'</script>')
+            'sigi state', display_id, end_pattern=r'</script>', default={})
+
+    def _get_universal_data(self, webpage, display_id):
+        return traverse_obj(self._search_json(
+            r'<script[^>]+\bid="__UNIVERSAL_DATA_FOR_REHYDRATION__"[^>]*>', webpage,
+            'universal data', display_id, end_pattern=r'</script>', default={}),
+            ('__DEFAULT_SCOPE__', {dict})) or {}
 
     def _call_api_impl(self, ep, query, manifest_app_version, video_id, fatal=True,
                        note='Downloading API JSON', errnote='Unable to download API page'):
@@ -692,16 +698,23 @@ class TikTokIE(TikTokBaseIE):
 
         url = self._create_url(user_id, video_id)
         webpage = self._download_webpage(url, video_id, headers={'User-Agent': 'Mozilla/5.0'})
-        next_data = self._search_nextjs_data(webpage, video_id, default='{}')
-        if next_data:
-            status = traverse_obj(next_data, ('props', 'pageProps', 'statusCode'), expected_type=int) or 0
-            video_data = traverse_obj(next_data, ('props', 'pageProps', 'itemInfo', 'itemStruct'), expected_type=dict)
-        else:
-            sigi_data = self._get_sigi_state(webpage, video_id)
-            status = traverse_obj(sigi_data, ('VideoPage', 'statusCode'), expected_type=int) or 0
-            video_data = traverse_obj(sigi_data, ('ItemModule', video_id), expected_type=dict)
 
-        if status == 0:
+        if universal_data := self._get_universal_data(webpage, video_id):
+            status = traverse_obj(universal_data, ('webapp.video-detail', 'statusCode', {int})) or 0
+            video_data = traverse_obj(universal_data, ('webapp.video-detail', 'itemInfo', 'itemStruct', {dict}))
+
+        elif sigi_data := self._get_sigi_state(webpage, video_id):
+            status = traverse_obj(sigi_data, ('VideoPage', 'statusCode', {int})) or 0
+            video_data = traverse_obj(sigi_data, ('ItemModule', video_id, {dict}))
+
+        elif next_data := self._search_nextjs_data(webpage, video_id, default='{}'):
+            status = traverse_obj(next_data, ('props', 'pageProps', 'statusCode', {int})) or 0
+            video_data = traverse_obj(next_data, ('props', 'pageProps', 'itemInfo', 'itemStruct', {dict}))
+
+        else:
+            raise ExtractorError('Unable to extract webpage video data')
+
+        if video_data and status == 0:
             return self._parse_aweme_video_web(video_data, url, video_id)
         elif status == 10216:
             raise ExtractorError('This video is private', expected=True)
