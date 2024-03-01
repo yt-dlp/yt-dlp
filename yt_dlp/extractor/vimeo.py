@@ -124,7 +124,7 @@ class VimeoBaseInfoExtractor(InfoExtractor):
         live_event = video_data.get('live_event') or {}
         live_status = {
             'pending': 'is_upcoming',
-            'active': 'is_live',  # TODO: is live or not?
+            'active': 'is_upcoming',
             'started': 'is_live',
             'ended': 'post_live',
         }.get(live_event.get('status'))
