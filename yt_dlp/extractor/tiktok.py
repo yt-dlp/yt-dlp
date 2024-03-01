@@ -695,20 +695,24 @@ class TikTokIE(TikTokBaseIE):
         try:
             return self._extract_aweme_app(video_id)
         except ExtractorError as e:
+            e.expected = True
             self.report_warning(f'{e}; trying with webpage')
 
         url = self._create_url(user_id, video_id)
         webpage = self._download_webpage(url, video_id, headers={'User-Agent': 'Mozilla/5.0'})
 
         if universal_data := self._get_universal_data(webpage, video_id):
+            self.write_debug('Found universal data for rehydration')
             status = traverse_obj(universal_data, ('webapp.video-detail', 'statusCode', {int})) or 0
             video_data = traverse_obj(universal_data, ('webapp.video-detail', 'itemInfo', 'itemStruct', {dict}))
 
         elif sigi_data := self._get_sigi_state(webpage, video_id):
+            self.write_debug('Found sigi state data')
             status = traverse_obj(sigi_data, ('VideoPage', 'statusCode', {int})) or 0
             video_data = traverse_obj(sigi_data, ('ItemModule', video_id, {dict}))
 
         elif next_data := self._search_nextjs_data(webpage, video_id, default='{}'):
+            self.write_debug('Found next.js data')
             status = traverse_obj(next_data, ('props', 'pageProps', 'statusCode', {int})) or 0
             video_data = traverse_obj(next_data, ('props', 'pageProps', 'itemInfo', 'itemStruct', {dict}))
 
@@ -719,7 +723,7 @@ class TikTokIE(TikTokBaseIE):
             return self._parse_aweme_video_web(video_data, url, video_id)
         elif status == 10216:
             raise ExtractorError('This video is private', expected=True)
-        raise ExtractorError('Video not available', video_id=video_id)
+        raise ExtractorError(f'Video not available, status code {status}', video_id=video_id)
 
 
 class TikTokUserIE(TikTokBaseIE):
