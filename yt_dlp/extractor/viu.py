@@ -301,11 +301,10 @@ class ViuOTTIE(InfoExtractor):
                 next_js_data, ('pageProps', 'fallback', lambda k, v: v if re.match(r'@"PRODUCT_DETAIL"[^:]+', k) else None),
                 get_all=False)
             current_product_info = traverse_obj(product_detail_json, ('data', 'current_product'))
-            current_product_subtitle_info = current_product_info.get('subtitle')
 
             formats, subtitles = [], {}
 
-            for subtitle_info in current_product_subtitle_info:
+            for subtitle_info in current_product_info.get('subtitle') or []:
                 subtitles.setdefault(subtitle_info.get('code'), []).append({
                     'url': subtitle_info.get('url'),
                     'name': subtitle_info.get('name')
