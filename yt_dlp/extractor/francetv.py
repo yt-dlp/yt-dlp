@@ -1,21 +1,28 @@
+import urllib.parse
+
 from .common import InfoExtractor
 from .dailymotion import DailymotionIE
 from ..utils import (
     ExtractorError,
     determine_ext,
+    filter_dict,
     format_field,
     int_or_none,
     join_nonempty,
     parse_iso8601,
     parse_qs,
+    smuggle_url,
+    unsmuggle_url,
 )
 
 
 class FranceTVBaseInfoExtractor(InfoExtractor):
-    def _make_url_result(self, video_or_full_id, catalog=None):
+    def _make_url_result(self, video_or_full_id, catalog=None, url=None):
         full_id = 'francetv:%s' % video_or_full_id
         if '@' not in video_or_full_id and catalog:
             full_id += '@%s' % catalog
+        if url:
+            full_id = smuggle_url(full_id, {'origin': urllib.parse.urlparse(url).hostname})
         return self.url_result(
             full_id, ie=FranceTVIE.ie_key(),
             video_id=video_or_full_id.split('@')[0])
@@ -76,7 +83,7 @@ class FranceTVIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    def _extract_video(self, video_id, catalogue=None):
+    def _extract_video(self, video_id, catalogue=None, origin=None):
         # Videos are identified by idDiffusion so catalogue part is optional.
         # However when provided, some extra formats may be returned so we pass
         # it if available.
@@ -94,10 +101,11 @@ class FranceTVIE(InfoExtractor):
         for device_type in ('desktop', 'mobile'):
             dinfo = self._download_json(
                 'https://player.webservices.francetelevisions.fr/v1/videos/%s' % video_id,
-                video_id, 'Downloading %s video JSON' % device_type, query={
+                video_id, 'Downloading %s video JSON' % device_type, query=filter_dict({
                     'device_type': device_type,
                     'browser': 'chrome',
-                }, fatal=False)
+                    'domain': origin,
+                }), fatal=False)
 
             if not dinfo:
                 continue
@@ -213,6 +221,7 @@ class FranceTVIE(InfoExtractor):
         }
 
     def _real_extract(self, url):
+        url, smuggled_data = unsmuggle_url(url, {})
         mobj = self._match_valid_url(url)
         video_id = mobj.group('id')
         catalog = mobj.group('catalog')
@@ -224,7 +233,7 @@ class FranceTVIE(InfoExtractor):
             if not video_id:
                 raise ExtractorError('Invalid URL', expected=True)
 
-        return self._extract_video(video_id, catalog)
+        return self._extract_video(video_id, catalog, origin=smuggled_data.get('origin'))
 
 
 class FranceTVSiteIE(FranceTVBaseInfoExtractor):
@@ -314,7 +323,7 @@ class FranceTVSiteIE(FranceTVBaseInfoExtractor):
                 r'(?:href=|player\.setVideo\(\s*)"http://videos?\.francetv\.fr/video/([^@]+@[^"]+)"',
                 webpage, 'video ID').split('@')
 
-        return self._make_url_result(video_id, catalogue)
+        return self._make_url_result(video_id, catalogue, url=url)
 
 
 class FranceTVInfoIE(FranceTVBaseInfoExtractor):
@@ -405,4 +414,4 @@ class FranceTVInfoIE(FranceTVBaseInfoExtractor):
              r'(?:data-id|<figure[^<]+\bid)=["\']([\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12})'),
             webpage, 'video id')
 
-        return self._make_url_result(video_id)
+        return self._make_url_result(video_id, url=url)
