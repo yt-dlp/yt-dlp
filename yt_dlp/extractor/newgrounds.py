@@ -100,10 +100,10 @@ class NewgroundsIE(InfoExtractor):
     }
 
     def _perform_login(self, username, password):
-            login_webpage = self._download_webpage('https://www.newgrounds.com/passport', video_id=None)
-            inputs = self._hidden_inputs(login_webpage)
-            inputs.update({'username': username, 'password': password})
-            self._request_webpage('https://www.newgrounds.com/passport', None, data=urlencode_postdata(inputs))
+        login_webpage = self._download_webpage('https://www.newgrounds.com/passport', video_id=None)
+        inputs = self._hidden_inputs(login_webpage)
+        inputs.update({'username': username, 'password': password})
+        self._request_webpage('https://www.newgrounds.com/passport', None, data=urlencode_postdata(inputs))
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
@@ -111,7 +111,7 @@ class NewgroundsIE(InfoExtractor):
         formats = []
         uploader = None
         webpage = self._download_webpage(url, media_id)
- 
+
         title = self._html_extract_title(webpage)
 
         json_video = self._download_json('https://www.newgrounds.com/portal/video/' + media_id, media_id, headers={
