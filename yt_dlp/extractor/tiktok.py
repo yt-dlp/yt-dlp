@@ -318,9 +318,6 @@ class TikTokBaseIE(InfoExtractor):
 
         return {
             'id': aweme_id,
-            'extractor_key': TikTokIE.ie_key(),
-            'extractor': TikTokIE.IE_NAME,
-            'webpage_url': self._create_url(author_info.get('uid'), aweme_id),
             **traverse_obj(aweme_detail, {
                 'title': ('desc', {str}),
                 'description': ('desc', {str}),

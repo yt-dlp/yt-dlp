@@ -114,9 +114,9 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'ANDROID',
-                'clientVersion': '17.31.35',
+                'clientVersion': '18.11.34',
                 'androidSdkVersion': 30,
-                'userAgent': 'com.google.android.youtube/17.31.35 (Linux; U; Android 11) gzip'
+                'userAgent': 'com.google.android.youtube/18.11.34 (Linux; U; Android 11) gzip'
             }
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 3,
@@ -127,9 +127,9 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'ANDROID_EMBEDDED_PLAYER',
-                'clientVersion': '17.31.35',
+                'clientVersion': '18.11.34',
                 'androidSdkVersion': 30,
-                'userAgent': 'com.google.android.youtube/17.31.35 (Linux; U; Android 11) gzip'
+                'userAgent': 'com.google.android.youtube/18.11.34 (Linux; U; Android 11) gzip'
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 55,
@@ -168,9 +168,9 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'IOS',
-                'clientVersion': '17.33.2',
+                'clientVersion': '18.11.34',
                 'deviceModel': 'iPhone14,3',
-                'userAgent': 'com.google.ios.youtube/17.33.2 (iPhone14,3; U; CPU iOS 15_6 like Mac OS X)'
+                'userAgent': 'com.google.ios.youtube/18.11.34 (iPhone14,3; U; CPU iOS 15_6 like Mac OS X)'
             }
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 5,
@@ -180,9 +180,9 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'IOS_MESSAGES_EXTENSION',
-                'clientVersion': '17.33.2',
+                'clientVersion': '18.11.34',
                 'deviceModel': 'iPhone14,3',
-                'userAgent': 'com.google.ios.youtube/17.33.2 (iPhone14,3; U; CPU iOS 15_6 like Mac OS X)'
+                'userAgent': 'com.google.ios.youtube/18.11.34 (iPhone14,3; U; CPU iOS 15_6 like Mac OS X)'
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 66,
