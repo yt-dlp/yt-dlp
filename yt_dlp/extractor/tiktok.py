@@ -1196,7 +1196,7 @@ class TikTokLiveIE(TikTokBaseIE):
             url, uploader or room_id, headers={'User-Agent': 'Mozilla/5.0'}, fatal=not room_id)
 
         if webpage:
-            data = try_call(lambda: self._get_sigi_state(webpage, uploader or room_id))
+            data = self._get_sigi_state(webpage, uploader or room_id)
             room_id = (traverse_obj(data, ('UserModule', 'users', ..., 'roomId', {str_or_none}), get_all=False)
                        or self._search_regex(r'snssdk\d*://live\?room_id=(\d+)', webpage, 'room ID', default=None)
                        or room_id)
