@@ -23,7 +23,7 @@ class FranceTVBaseInfoExtractor(InfoExtractor):
         if '@' not in video_or_full_id and catalog:
             full_id += '@%s' % catalog
         if url:
-            full_id = smuggle_url(full_id, {'origin': urllib.parse.urlparse(url).hostname})
+            full_id = smuggle_url(full_id, {'hostname': urllib.parse.urlparse(url).hostname})
         return self.url_result(
             full_id, ie=FranceTVIE.ie_key(),
             video_id=video_or_full_id.split('@')[0])
@@ -84,7 +84,7 @@ class FranceTVIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    def _extract_video(self, video_id, catalogue=None, origin=None):
+    def _extract_video(self, video_id, catalogue=None, hostname=None):
         # Videos are identified by idDiffusion so catalogue part is optional.
         # However when provided, some extra formats may be returned so we pass
         # it if available.
@@ -105,7 +105,7 @@ class FranceTVIE(InfoExtractor):
                 video_id, 'Downloading %s video JSON' % device_type, query=filter_dict({
                     'device_type': device_type,
                     'browser': 'chrome',
-                    'domain': origin,
+                    'domain': hostname,
                 }), fatal=False)
 
             if not dinfo:
@@ -233,7 +233,7 @@ class FranceTVIE(InfoExtractor):
             if not video_id:
                 raise ExtractorError('Invalid URL', expected=True)
 
-        return self._extract_video(video_id, catalog, origin=smuggled_data.get('origin'))
+        return self._extract_video(video_id, catalog, hostname=smuggled_data.get('hostname'))
 
 
 class FranceTVSiteIE(FranceTVBaseInfoExtractor):
