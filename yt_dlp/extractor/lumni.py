@@ -1,5 +1,8 @@
+import urllib.parse
+
 from .common import InfoExtractor
 from .francetv import FranceTVIE
+from ..utils import smuggle_url
 
 
 class LumniIE(InfoExtractor):
@@ -21,4 +24,6 @@ class LumniIE(InfoExtractor):
         webpage = self._download_webpage(url, display_id)
         video_id = self._html_search_regex(
             r'<div[^>]+data-factoryid\s*=\s*["\']([^"\']+)', webpage, 'video id')
-        return self.url_result(f'francetv:{video_id}', FranceTVIE, video_id)
+        return self.url_result(
+            smuggle_url(f'francetv:{video_id}', {'hostname': urllib.parse.urlparse(url).hostname}),
+            FranceTVIE, video_id)
