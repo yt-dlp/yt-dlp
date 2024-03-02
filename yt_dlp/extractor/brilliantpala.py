@@ -21,10 +21,10 @@ class BrilliantpalaBaseIE(InfoExtractor):
 
     def _get_logged_in_username(self, url, video_id):
         webpage, urlh = self._download_webpage_handle(url, video_id)
-        if self._LOGIN_API == urlh.url:
+        if urlh.url.startswith(self._LOGIN_API):
             self.raise_login_required()
         return self._html_search_regex(
-            r'"username"\s*:\s*"(?P<username>[^"]+)"', webpage, 'stream page info', 'username')
+            r'"username"\s*:\s*"(?P<username>[^"]+)"', webpage, 'logged-in username')
 
     def _perform_login(self, username, password):
         login_form = self._hidden_inputs(self._download_webpage(

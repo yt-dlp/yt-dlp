@@ -196,9 +196,12 @@ class _YoutubeDLOptionParser(optparse.OptionParser):
                     raise
         return self.check_values(self.values, self.largs)
 
-    def error(self, msg):
+    def _generate_error_message(self, msg):
         msg = f'{self.get_prog_name()}: error: {str(msg).strip()}\n'
-        raise optparse.OptParseError(f'{self.get_usage()}\n{msg}' if self.usage else msg)
+        return f'{self.get_usage()}\n{msg}' if self.usage else msg
+
+    def error(self, msg):
+        raise optparse.OptParseError(self._generate_error_message(msg))
 
     def _get_args(self, args):
         return sys.argv[1:] if args is None else list(args)
@@ -471,11 +474,13 @@ def create_parser():
                 'no-attach-info-json', 'embed-thumbnail-atomicparsley', 'no-external-downloader-progress',
                 'embed-metadata', 'seperate-video-versions', 'no-clean-infojson', 'no-keep-subs', 'no-certifi',
                 'no-youtube-channel-redirect', 'no-youtube-unavailable-videos', 'no-youtube-prefer-utc-upload-date',
+                'prefer-legacy-http-handler', 'manifest-filesize-approx'
             }, 'aliases': {
-                'youtube-dl': ['all', '-multistreams', '-playlist-match-filter'],
-                'youtube-dlc': ['all', '-no-youtube-channel-redirect', '-no-live-chat', '-playlist-match-filter'],
+                'youtube-dl': ['all', '-multistreams', '-playlist-match-filter', '-manifest-filesize-approx'],
+                'youtube-dlc': ['all', '-no-youtube-channel-redirect', '-no-live-chat', '-playlist-match-filter', '-manifest-filesize-approx'],
                 '2021': ['2022', 'no-certifi', 'filename-sanitization', 'no-youtube-prefer-utc-upload-date'],
-                '2022': ['no-external-downloader-progress', 'playlist-match-filter'],
+                '2022': ['2023', 'no-external-downloader-progress', 'playlist-match-filter', 'prefer-legacy-http-handler', 'manifest-filesize-approx'],
+                '2023': [],
             }
         }, help=(
             'Options that can help keep compatibility with youtube-dl or youtube-dlc '
@@ -727,7 +732,7 @@ def create_parser():
     authentication.add_option(
         '--video-password',
         dest='videopassword', metavar='PASSWORD',
-        help='Video password (vimeo, youku)')
+        help='Video-specific password')
     authentication.add_option(
         '--ap-mso',
         dest='ap_mso', metavar='MSO',

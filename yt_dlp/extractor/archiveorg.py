@@ -52,7 +52,6 @@ class ArchiveOrgIE(InfoExtractor):
             'creator': 'SRI International',
             'uploader': 'laura@archive.org',
             'thumbnail': r're:https://archive\.org/download/.*\.jpg',
-            'release_year': 1968,
             'display_id': 'XD300-23_68HighlightsAResearchCntAugHumanIntellect.cdr',
             'track': 'XD300-23 68HighlightsAResearchCntAugHumanIntellect',
 
@@ -134,7 +133,6 @@ class ArchiveOrgIE(InfoExtractor):
             'album': '1977-05-08 - Barton Hall - Cornell University',
             'release_date': '19770508',
             'display_id': 'gd1977-05-08d01t07.flac',
-            'release_year': 1977,
             'track_number': 7,
         },
     }, {
@@ -302,7 +300,7 @@ class ArchiveOrgIE(InfoExtractor):
             is_logged_in = bool(self._get_cookies('https://archive.org').get('logged-in-sig'))
             if extension in KNOWN_EXTENSIONS and (not f.get('private') or is_logged_in):
                 entry['formats'].append({
-                    'url': 'https://archive.org/download/' + identifier + '/' + f['name'],
+                    'url': 'https://archive.org/download/' + identifier + '/' + urllib.parse.quote(f['name']),
                     'format': f.get('format'),
                     'width': int_or_none(f.get('width')),
                     'height': int_or_none(f.get('height')),

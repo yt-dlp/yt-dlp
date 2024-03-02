@@ -1,19 +1,31 @@
+import urllib.parse
+
 from .common import InfoExtractor
+from .dailymotion import DailymotionIE
+from ..networking import HEADRequest
 from ..utils import (
-    determine_ext,
     ExtractorError,
+    determine_ext,
+    filter_dict,
     format_field,
+    int_or_none,
+    join_nonempty,
     parse_iso8601,
     parse_qs,
+    smuggle_url,
+    unsmuggle_url,
+    url_or_none,
 )
-from .dailymotion import DailymotionIE
+from ..utils.traversal import traverse_obj
 
 
 class FranceTVBaseInfoExtractor(InfoExtractor):
-    def _make_url_result(self, video_or_full_id, catalog=None):
+    def _make_url_result(self, video_or_full_id, catalog=None, url=None):
         full_id = 'francetv:%s' % video_or_full_id
         if '@' not in video_or_full_id and catalog:
             full_id += '@%s' % catalog
+        if url:
+            full_id = smuggle_url(full_id, {'hostname': urllib.parse.urlparse(url).hostname})
         return self.url_result(
             full_id, ie=FranceTVIE.ie_key(),
             video_id=video_or_full_id.split('@')[0])
@@ -33,6 +45,8 @@ class FranceTVIE(InfoExtractor):
                     )
                     '''
     _EMBED_REGEX = [r'<iframe[^>]+?src=(["\'])(?P<url>(?:https?://)?embed\.francetv\.fr/\?ue=.+?)\1']
+    _GEO_COUNTRIES = ['FR']
+    _GEO_BYPASS = False
 
     _TESTS = [{
         # without catalog
@@ -74,14 +88,14 @@ class FranceTVIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    def _extract_video(self, video_id, catalogue=None):
-        # Videos are identified by idDiffusion so catalogue part is optional.
-        # However when provided, some extra formats may be returned so we pass
-        # it if available.
+    def _extract_video(self, video_id, catalogue=None, hostname=None):
+        # TODO: Investigate/remove 'catalogue'/'catalog'; it has not been used since 2021
         is_live = None
         videos = []
         title = None
         subtitle = None
+        episode_number = None
+        season_number = None
         image = None
         duration = None
         timestamp = None
@@ -90,15 +104,16 @@ class FranceTVIE(InfoExtractor):
         for device_type in ('desktop', 'mobile'):
             dinfo = self._download_json(
                 'https://player.webservices.francetelevisions.fr/v1/videos/%s' % video_id,
-                video_id, 'Downloading %s video JSON' % device_type, query={
+                video_id, f'Downloading {device_type} video JSON', query=filter_dict({
                     'device_type': device_type,
                     'browser': 'chrome',
-                }, fatal=False)
+                    'domain': hostname,
+                }), fatal=False)
 
             if not dinfo:
                 continue
 
-            video = dinfo.get('video')
+            video = traverse_obj(dinfo, ('video', {dict}))
             if video:
                 videos.append(video)
                 if duration is None:
@@ -108,11 +123,13 @@ class FranceTVIE(InfoExtractor):
                 if spritesheets is None:
                     spritesheets = video.get('spritesheets')
 
-            meta = dinfo.get('meta')
+            meta = traverse_obj(dinfo, ('meta', {dict}))
             if meta:
                 if title is None:
                     title = meta.get('title')
-                # XXX: what is meta['pre_title']?
+                # meta['pre_title'] contains season and episode number for series in format "S<ID> E<ID>"
+                season_number, episode_number = self._search_regex(
+                    r'S(\d+)\s*E(\d+)', meta.get('pre_title'), 'episode info', group=(1, 2), default=(None, None))
                 if subtitle is None:
                     subtitle = meta.get('additional_title')
                 if image is None:
@@ -120,22 +137,21 @@ class FranceTVIE(InfoExtractor):
                 if timestamp is None:
                     timestamp = parse_iso8601(meta.get('broadcasted_at'))
 
-        formats = []
-        subtitles = {}
-        for video in videos:
+        formats, subtitles, video_url = [], {}, None
+        for video in traverse_obj(videos, lambda _, v: url_or_none(v['url'])):
+            video_url = video['url']
             format_id = video.get('format')
 
-            video_url = None
-            if video.get('workflow') == 'token-akamai':
-                token_url = video.get('token')
-                if token_url:
-                    token_json = self._download_json(
-                        token_url, video_id,
-                        'Downloading signed %s manifest URL' % format_id)
-                    if token_json:
-                        video_url = token_json.get('url')
-            if not video_url:
-                video_url = video.get('url')
+            token_url = url_or_none(video.get('token'))
+            if token_url and video.get('workflow') == 'token-akamai':
+                tokenized_url = traverse_obj(self._download_json(
+                    token_url, video_id, f'Downloading signed {format_id} manifest URL',
+                    fatal=False, query={
+                        'format': 'json',
+                        'url': video_url,
+                    }), ('url', {url_or_none}))
+                if tokenized_url:
+                    video_url = tokenized_url
 
             ext = determine_ext(video_url)
             if ext == 'f4m':
@@ -168,6 +184,13 @@ class FranceTVIE(InfoExtractor):
 
             # XXX: what is video['captions']?
 
+        if not formats and video_url:
+            urlh = self._request_webpage(
+                HEADRequest(video_url), video_id, 'Checking for geo-restriction',
+                fatal=False, expected_status=403)
+            if urlh and urlh.headers.get('x-errortype') == 'geo':
+                self.raise_geo_restricted(countries=self._GEO_COUNTRIES, metadata_available=True)
+
         for f in formats:
             if f.get('acodec') != 'none' and f.get('language') in ('qtz', 'qad'):
                 f['language_preference'] = -10
@@ -191,22 +214,23 @@ class FranceTVIE(InfoExtractor):
                 } for sheet in spritesheets]
             })
 
-        if subtitle:
-            title += ' - %s' % subtitle
-        title = title.strip()
-
         return {
             'id': video_id,
-            'title': title,
+            'title': join_nonempty(title, subtitle, delim=' - ').strip(),
             'thumbnail': image,
             'duration': duration,
             'timestamp': timestamp,
             'is_live': is_live,
             'formats': formats,
             'subtitles': subtitles,
+            'episode': subtitle if episode_number else None,
+            'series': title if episode_number else None,
+            'episode_number': int_or_none(episode_number),
+            'season_number': int_or_none(season_number),
         }
 
     def _real_extract(self, url):
+        url, smuggled_data = unsmuggle_url(url, {})
         mobj = self._match_valid_url(url)
         video_id = mobj.group('id')
         catalog = mobj.group('catalog')
@@ -218,7 +242,7 @@ class FranceTVIE(InfoExtractor):
             if not video_id:
                 raise ExtractorError('Invalid URL', expected=True)
 
-        return self._extract_video(video_id, catalog)
+        return self._extract_video(video_id, catalog, hostname=smuggled_data.get('hostname'))
 
 
 class FranceTVSiteIE(FranceTVBaseInfoExtractor):
@@ -230,14 +254,31 @@ class FranceTVSiteIE(FranceTVBaseInfoExtractor):
             'id': 'ec217ecc-0733-48cf-ac06-af1347b849d1',
             'ext': 'mp4',
             'title': '13h15, le dimanche... - Les mystères de Jésus',
-            'description': 'md5:75efe8d4c0a8205e5904498ffe1e1a42',
             'timestamp': 1502623500,
+            'duration': 2580,
+            'thumbnail': r're:^https?://.*\.jpg$',
             'upload_date': '20170813',
         },
         'params': {
             'skip_download': True,
         },
         'add_ie': [FranceTVIE.ie_key()],
+    }, {
+        'url': 'https://www.france.tv/enfants/six-huit-ans/foot2rue/saison-1/3066387-duel-au-vieux-port.html',
+        'info_dict': {
+            'id': 'a9050959-eedd-4b4a-9b0d-de6eeaa73e44',
+            'ext': 'mp4',
+            'title': 'Foot2Rue - Duel au vieux port',
+            'episode': 'Duel au vieux port',
+            'series': 'Foot2Rue',
+            'episode_number': 1,
+            'season_number': 1,
+            'timestamp': 1642761360,
+            'upload_date': '20220121',
+            'season': 'Season 1',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'duration': 1441,
+        },
     }, {
         # france3
         'url': 'https://www.france.tv/france-3/des-chiffres-et-des-lettres/139063-emission-du-mardi-9-mai-2017.html',
@@ -291,7 +332,7 @@ class FranceTVSiteIE(FranceTVBaseInfoExtractor):
                 r'(?:href=|player\.setVideo\(\s*)"http://videos?\.francetv\.fr/video/([^@]+@[^"]+)"',
                 webpage, 'video ID').split('@')
 
-        return self._make_url_result(video_id, catalogue)
+        return self._make_url_result(video_id, catalogue, url=url)
 
 
 class FranceTVInfoIE(FranceTVBaseInfoExtractor):
@@ -382,4 +423,4 @@ class FranceTVInfoIE(FranceTVBaseInfoExtractor):
              r'(?:data-id|<figure[^<]+\bid)=["\']([\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12})'),
             webpage, 'video id')
 
-        return self._make_url_result(video_id)
+        return self._make_url_result(video_id, url=url)

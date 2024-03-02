@@ -1,18 +1,20 @@
+import base64
 import functools
 import re
 
 from .common import InfoExtractor
 from ..networking import HEADRequest
 from ..utils import (
+    InAdvancePagedList,
     clean_html,
     determine_ext,
     float_or_none,
-    InAdvancePagedList,
     int_or_none,
     join_nonempty,
+    make_archive_id,
+    mimetype2ext,
     orderedSet,
     remove_end,
-    make_archive_id,
     smuggle_url,
     strip_jsonp,
     try_call,
@@ -21,6 +23,7 @@ from ..utils import (
     unsmuggle_url,
     url_or_none,
 )
+from ..utils.traversal import traverse_obj
 
 
 class ORFTVthekIE(InfoExtractor):
@@ -334,6 +337,45 @@ class ORFRadioIE(InfoExtractor):
             self._entries(data, station or station2), show_id, data.get('title'), clean_html(data.get('subtitle')))
 
 
+class ORFPodcastIE(InfoExtractor):
+    IE_NAME = 'orf:podcast'
+    _STATION_RE = '|'.join(map(re.escape, (
+        'bgl', 'fm4', 'ktn', 'noe', 'oe1', 'oe3',
+        'ooe', 'sbg', 'stm', 'tir', 'tv', 'vbg', 'wie')))
+    _VALID_URL = rf'https?://sound\.orf\.at/podcast/(?P<station>{_STATION_RE})/(?P<show>[\w-]+)/(?P<id>[\w-]+)'
+    _TESTS = [{
+        'url': 'https://sound.orf.at/podcast/oe3/fruehstueck-bei-mir/nicolas-stockhammer-15102023',
+        'md5': '526a5700e03d271a1505386a8721ab9b',
+        'info_dict': {
+            'id': 'nicolas-stockhammer-15102023',
+            'ext': 'mp3',
+            'title': 'Nicolas Stockhammer (15.10.2023)',
+            'duration': 3396.0,
+            'series': 'Frühstück bei mir',
+        },
+        'skip': 'ORF podcasts are only available for a limited time'
+    }]
+
+    def _real_extract(self, url):
+        station, show, show_id = self._match_valid_url(url).group('station', 'show', 'id')
+        data = self._download_json(
+            f'https://audioapi.orf.at/radiothek/api/2.0/podcast/{station}/{show}/{show_id}', show_id)
+
+        return {
+            'id': show_id,
+            'ext': 'mp3',
+            'vcodec': 'none',
+            **traverse_obj(data, ('payload', {
+                'url': ('enclosures', 0, 'url'),
+                'ext': ('enclosures', 0, 'type', {mimetype2ext}),
+                'title': 'title',
+                'description': ('description', {clean_html}),
+                'duration': ('duration', {functools.partial(float_or_none, scale=1000)}),
+                'series': ('podcast', 'title'),
+            })),
+        }
+
+
 class ORFIPTVIE(InfoExtractor):
     IE_NAME = 'orf:iptv'
     IE_DESC = 'iptv.ORF.at'
@@ -524,3 +566,66 @@ class ORFFM4StoryIE(InfoExtractor):
             })
 
         return self.playlist_result(entries)
+
+
+class ORFONIE(InfoExtractor):
+    IE_NAME = 'orf:on'
+    _VALID_URL = r'https?://on\.orf\.at/video/(?P<id>\d{8})/(?P<slug>[\w-]+)'
+    _TESTS = [{
+        'url': 'https://on.orf.at/video/14210000/school-of-champions-48',
+        'info_dict': {
+            'id': '14210000',
+            'ext': 'mp4',
+            'duration': 2651.08,
+            'thumbnail': 'https://api-tvthek.orf.at/assets/segments/0167/98/thumb_16697671_segments_highlight_teaser.jpeg',
+            'title': 'School of Champions (4/8)',
+            'description': 'md5:d09ad279fc2e8502611e7648484b6afd',
+            'media_type': 'episode',
+            'timestamp': 1706472362,
+            'upload_date': '20240128',
+        }
+    }]
+
+    def _extract_video(self, video_id, display_id):
+        encrypted_id = base64.b64encode(f'3dSlfek03nsLKdj4Jsd{video_id}'.encode()).decode()
+        api_json = self._download_json(
+            f'https://api-tvthek.orf.at/api/v4.3/public/episode/encrypted/{encrypted_id}', display_id)
+
+        formats, subtitles = [], {}
+        for manifest_type in traverse_obj(api_json, ('sources', {dict.keys}, ...)):
+            for manifest_url in traverse_obj(api_json, ('sources', manifest_type, ..., 'src', {url_or_none})):
+                if manifest_type == 'hls':
+                    fmts, subs = self._extract_m3u8_formats_and_subtitles(
+                        manifest_url, display_id, fatal=False, m3u8_id='hls')
+                elif manifest_type == 'dash':
+                    fmts, subs = self._extract_mpd_formats_and_subtitles(
+                        manifest_url, display_id, fatal=False, mpd_id='dash')
+                else:
+                    continue
+                formats.extend(fmts)
+                self._merge_subtitles(subs, target=subtitles)
+
+        return {
+            'id': video_id,
+            'formats': formats,
+            'subtitles': subtitles,
+            **traverse_obj(api_json, {
+                'duration': ('duration_second', {float_or_none}),
+                'title': (('title', 'headline'), {str}),
+                'description': (('description', 'teaser_text'), {str}),
+                'media_type': ('video_type', {str}),
+            }, get_all=False),
+        }
+
+    def _real_extract(self, url):
+        video_id, display_id = self._match_valid_url(url).group('id', 'slug')
+        webpage = self._download_webpage(url, display_id)
+
+        return {
+            'id': video_id,
+            'title': self._html_search_meta(['og:title', 'twitter:title'], webpage, default=None),
+            'description': self._html_search_meta(
+                ['description', 'og:description', 'twitter:description'], webpage, default=None),
+            **self._search_json_ld(webpage, display_id, fatal=False),
+            **self._extract_video(video_id, display_id),
+        }

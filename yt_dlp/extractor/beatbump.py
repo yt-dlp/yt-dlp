@@ -3,14 +3,13 @@ from .youtube import YoutubeIE, YoutubeTabIE
 
 
 class BeatBumpVideoIE(InfoExtractor):
-    _VALID_URL = r'https://beatbump\.ml/listen\?id=(?P<id>[\w-]+)'
+    _VALID_URL = r'https://beatbump\.(?:ml|io)/listen\?id=(?P<id>[\w-]+)'
     _TESTS = [{
         'url': 'https://beatbump.ml/listen?id=MgNrAu2pzNs',
         'md5': '5ff3fff41d3935b9810a9731e485fe66',
         'info_dict': {
             'id': 'MgNrAu2pzNs',
             'ext': 'mp4',
-            'uploader_url': 'http://www.youtube.com/channel/UC-pWHpBjdGG69N9mM2auIAA',
             'artist': 'Stephen',
             'thumbnail': 'https://i.ytimg.com/vi_webp/MgNrAu2pzNs/maxresdefault.webp',
             'channel_url': 'https://www.youtube.com/channel/UC-pWHpBjdGG69N9mM2auIAA',
@@ -22,10 +21,9 @@ class BeatBumpVideoIE(InfoExtractor):
             'alt_title': 'Voyeur Girl',
             'view_count': int,
             'track': 'Voyeur Girl',
-            'uploader': 'Stephen - Topic',
+            'uploader': 'Stephen',
             'title': 'Voyeur Girl',
             'channel_follower_count': int,
-            'uploader_id': 'UC-pWHpBjdGG69N9mM2auIAA',
             'age_limit': 0,
             'availability': 'public',
             'live_status': 'not_live',
@@ -36,7 +34,12 @@ class BeatBumpVideoIE(InfoExtractor):
             'tags': 'count:11',
             'creator': 'Stephen',
             'channel_id': 'UC-pWHpBjdGG69N9mM2auIAA',
-        }
+            'channel_is_verified': True,
+            'heatmap': 'count:100',
+        },
+    }, {
+        'url': 'https://beatbump.io/listen?id=LDGZAprNGWo',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
@@ -45,7 +48,7 @@ class BeatBumpVideoIE(InfoExtractor):
 
 
 class BeatBumpPlaylistIE(InfoExtractor):
-    _VALID_URL = r'https://beatbump\.ml/(?:release\?id=|artist/|playlist/)(?P<id>[\w-]+)'
+    _VALID_URL = r'https://beatbump\.(?:ml|io)/(?:release\?id=|artist/|playlist/)(?P<id>[\w-]+)'
     _TESTS = [{
         'url': 'https://beatbump.ml/release?id=MPREb_gTAcphH99wE',
         'playlist_count': 50,
@@ -56,25 +59,28 @@ class BeatBumpPlaylistIE(InfoExtractor):
             'title': 'Album - Royalty Free Music Library V2 (50 Songs)',
             'description': '',
             'tags': [],
-            'modified_date': '20221223',
-        }
+            'modified_date': '20231110',
+        },
+        'expected_warnings': ['YouTube Music is not directly supported'],
     }, {
         'url': 'https://beatbump.ml/artist/UC_aEa8K-EOJ3D6gOs7HcyNg',
         'playlist_mincount': 1,
         'params': {'flatplaylist': True},
         'info_dict': {
             'id': 'UC_aEa8K-EOJ3D6gOs7HcyNg',
-            'uploader_url': 'https://www.youtube.com/channel/UC_aEa8K-EOJ3D6gOs7HcyNg',
+            'uploader_url': 'https://www.youtube.com/@NoCopyrightSounds',
             'channel_url': 'https://www.youtube.com/channel/UC_aEa8K-EOJ3D6gOs7HcyNg',
-            'uploader_id': 'UC_aEa8K-EOJ3D6gOs7HcyNg',
+            'uploader_id': '@NoCopyrightSounds',
             'channel_follower_count': int,
-            'title': 'NoCopyrightSounds - Videos',
+            'title': 'NoCopyrightSounds',
             'uploader': 'NoCopyrightSounds',
             'description': 'md5:cd4fd53d81d363d05eee6c1b478b491a',
             'channel': 'NoCopyrightSounds',
-            'tags': 'count:12',
+            'tags': 'count:65',
             'channel_id': 'UC_aEa8K-EOJ3D6gOs7HcyNg',
+            'channel_is_verified': True,
         },
+        'expected_warnings': ['YouTube Music is not directly supported'],
     }, {
         'url': 'https://beatbump.ml/playlist/VLPLRBp0Fe2GpgmgoscNFLxNyBVSFVdYmFkq',
         'playlist_mincount': 1,
@@ -84,16 +90,20 @@ class BeatBumpPlaylistIE(InfoExtractor):
             'uploader_url': 'https://www.youtube.com/@NoCopyrightSounds',
             'description': 'Providing you with copyright free / safe music for gaming, live streaming, studying and more!',
             'view_count': int,
-            'channel_url': 'https://www.youtube.com/@NoCopyrightSounds',
-            'uploader_id': 'UC_aEa8K-EOJ3D6gOs7HcyNg',
+            'channel_url': 'https://www.youtube.com/channel/UC_aEa8K-EOJ3D6gOs7HcyNg',
+            'uploader_id': '@NoCopyrightSounds',
             'title': 'NCS : All Releases 💿',
             'uploader': 'NoCopyrightSounds',
             'availability': 'public',
             'channel': 'NoCopyrightSounds',
             'tags': [],
-            'modified_date': '20221225',
+            'modified_date': '20231112',
             'channel_id': 'UC_aEa8K-EOJ3D6gOs7HcyNg',
-        }
+        },
+        'expected_warnings': ['YouTube Music is not directly supported'],
+    }, {
+        'url': 'https://beatbump.io/playlist/VLPLFCHGavqRG-q_2ZhmgU2XB2--ZY6irT1c',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):

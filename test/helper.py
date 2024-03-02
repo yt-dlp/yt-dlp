@@ -10,7 +10,7 @@ import types
 import yt_dlp.extractor
 from yt_dlp import YoutubeDL
 from yt_dlp.compat import compat_os_name
-from yt_dlp.utils import preferredencoding, write_string
+from yt_dlp.utils import preferredencoding, try_call, write_string, find_available_port
 
 if 'pytest' in sys.modules:
     import pytest
@@ -214,13 +214,22 @@ def sanitize_got_info_dict(got_dict):
 
     test_info_dict = {
         key: sanitize(key, value) for key, value in got_dict.items()
-        if value is not None and key not in IGNORED_FIELDS and not any(
-            key.startswith(f'{prefix}_') for prefix in IGNORED_PREFIXES)
+        if value is not None and key not in IGNORED_FIELDS and (
+            not any(key.startswith(f'{prefix}_') for prefix in IGNORED_PREFIXES)
+            or key == '_old_archive_ids')
     }
 
     # display_id may be generated from id
     if test_info_dict.get('display_id') == test_info_dict.get('id'):
         test_info_dict.pop('display_id')
+
+    # Remove deprecated fields
+    for old in YoutubeDL._deprecated_multivalue_fields.keys():
+        test_info_dict.pop(old, None)
+
+    # release_year may be generated from release_date
+    if try_call(lambda: test_info_dict['release_year'] == int(test_info_dict['release_date'][:4])):
+        test_info_dict.pop('release_year')
 
     # Check url for flat entries
     if got_dict.get('_type', 'video') != 'video' and got_dict.get('url'):
@@ -324,3 +333,8 @@ def http_server_port(httpd):
     else:
         sock = httpd.socket
     return sock.getsockname()[1]
+
+
+def verify_address_availability(address):
+    if find_available_port(address) is None:
+        pytest.skip(f'Unable to bind to source address {address} (address may not exist)')

@@ -1,8 +1,8 @@
-try:
-    import contextvars  # noqa: F401
-except Exception:
-    raise Exception(
-        f'You are using an unsupported version of Python. Only Python versions 3.7 and above are supported by yt-dlp')  # noqa: F541
+import sys
+
+if sys.version_info < (3, 8):
+    raise ImportError(
+        f'You are using an unsupported version of Python. Only Python versions 3.8 and above are supported by yt-dlp')  # noqa: F541
 
 __license__ = 'Public Domain'
 
@@ -12,10 +12,9 @@ import itertools
 import optparse
 import os
 import re
-import sys
 import traceback
 
-from .compat import compat_shlex_quote
+from .compat import compat_os_name, compat_shlex_quote
 from .cookies import SUPPORTED_BROWSERS, SUPPORTED_KEYRINGS
 from .downloader.external import get_external_downloader
 from .extractor import list_extractor_classes
@@ -74,14 +73,16 @@ def _exit(status=0, *args):
 
 
 def get_urls(urls, batchfile, verbose):
-    # Batch file verification
+    """
+    @param verbose      -1: quiet, 0: normal, 1: verbose
+    """
     batch_urls = []
     if batchfile is not None:
         try:
             batch_urls = read_batch_urls(
-                read_stdin('URLs') if batchfile == '-'
+                read_stdin(None if verbose == -1 else 'URLs') if batchfile == '-'
                 else open(expand_path(batchfile), encoding='utf-8', errors='ignore'))
-            if verbose:
+            if verbose == 1:
                 write_string('[debug] Batch file urls: ' + repr(batch_urls) + '\n')
         except OSError:
             _exit(f'ERROR: batch file {batchfile} could not be read')
@@ -722,7 +723,7 @@ ParsedOptions = collections.namedtuple('ParsedOptions', ('parser', 'options', 'u
 def parse_options(argv=None):
     """@returns ParsedOptions(parser, opts, urls, ydl_opts)"""
     parser, opts, urls = parseOpts(argv)
-    urls = get_urls(urls, opts.batchfile, opts.verbose)
+    urls = get_urls(urls, opts.batchfile, -1 if opts.quiet and not opts.verbose else opts.verbose)
 
     set_compat_opts(opts)
     try:
@@ -983,7 +984,28 @@ def _real_main(argv=None):
             if pre_process:
                 return ydl._download_retcode
 
-            ydl.warn_if_short_id(sys.argv[1:] if argv is None else argv)
+            args = sys.argv[1:] if argv is None else argv
+            ydl.warn_if_short_id(args)
+
+            # Show a useful error message and wait for keypress if not launched from shell on Windows
+            if not args and compat_os_name == 'nt' and getattr(sys, 'frozen', False):
+                import ctypes.wintypes
+                import msvcrt
+
+                kernel32 = ctypes.WinDLL('Kernel32')
+
+                buffer = (1 * ctypes.wintypes.DWORD)()
+                attached_processes = kernel32.GetConsoleProcessList(buffer, 1)
+                # If we only have a single process attached, then the executable was double clicked
+                # When using `pyinstaller` with `--onefile`, two processes get attached
+                is_onefile = hasattr(sys, '_MEIPASS') and os.path.basename(sys._MEIPASS).startswith('_MEI')
+                if attached_processes == 1 or is_onefile and attached_processes == 2:
+                    print(parser._generate_error_message(
+                        'Do not double-click the executable, instead call it from a command line.\n'
+                        'Please read the README for further information on how to use yt-dlp: '
+                        'https://github.com/yt-dlp/yt-dlp#readme'))
+                    msvcrt.getch()
+                    _exit(2)
             parser.error(
                 'You must provide at least one URL.\n'
                 'Type yt-dlp --help to see a list of all options.')

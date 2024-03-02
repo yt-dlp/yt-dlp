@@ -247,6 +247,8 @@ class InfoExtractor:
                                  (For internal use only)
                                  * http_chunk_size Chunk size for HTTP downloads
                                  * ffmpeg_args     Extra arguments for ffmpeg downloader
+                    * is_dash_periods  Whether the format is a result of merging
+                                 multiple DASH periods.
                     RTMP formats can also have the additional fields: page_url,
                     app, play_path, tc_url, flash_version, rtmp_live, rtmp_conn,
                     rtmp_protocol, rtmp_real_time
@@ -278,7 +280,7 @@ class InfoExtractor:
     description:    Full video description.
     uploader:       Full name of the video uploader.
     license:        License name the video is licensed under.
-    creator:        The creator of the video.
+    creators:       List of creators of the video.
     timestamp:      UNIX timestamp of the moment the video was uploaded
     upload_date:    Video upload date in UTC (YYYYMMDD).
                     If not explicitly set, calculated from timestamp
@@ -286,6 +288,9 @@ class InfoExtractor:
                     If it is not clear whether to use timestamp or this, use the former
     release_date:   The date (YYYYMMDD) when the video was released in UTC.
                     If not explicitly set, calculated from release_timestamp
+    release_year:   Year (YYYY) as integer when the video or album was released.
+                    To be used if no exact release date is known.
+                    If not explicitly set, calculated from release_date.
     modified_timestamp: UNIX timestamp of the moment the video was last modified.
     modified_date:   The date (YYYYMMDD) when the video was last modified in UTC.
                     If not explicitly set, calculated from modified_timestamp
@@ -379,6 +384,7 @@ class InfoExtractor:
                     'private', 'premium_only', 'subscriber_only', 'needs_auth',
                     'unlisted' or 'public'. Use 'InfoExtractor._availability'
                     to set it
+    media_type:     The type of media as classified by the site, e.g. "episode", "clip", "trailer"
     _old_archive_ids: A list of old archive ids needed for backward compatibility
     _format_sort_fields: A list of fields to use for sorting formats
     __post_extractor: A function to be called just before the metadata is
@@ -418,17 +424,16 @@ class InfoExtractor:
     track_number:   Number of the track within an album or a disc, as an integer.
     track_id:       Id of the track (useful in case of custom indexing, e.g. 6.iii),
                     as a unicode string.
-    artist:         Artist(s) of the track.
-    genre:          Genre(s) of the track.
+    artists:        List of artists of the track.
+    composers:      List of composers of the piece.
+    genres:         List of genres of the track.
     album:          Title of the album the track belongs to.
     album_type:     Type of the album (e.g. "Demo", "Full-length", "Split", "Compilation", etc).
-    album_artist:   List of all artists appeared on the album (e.g.
-                    "Ash Borer / Fell Voices" or "Various Artists", useful for splits
-                    and compilations).
+    album_artists:  List of all artists appeared on the album.
+                    E.g. ["Ash Borer", "Fell Voices"] or ["Various Artists"].
+                    Useful for splits and compilations.
     disc_number:    Number of the disc or other physical medium the track belongs to,
                     as an integer.
-    release_year:   Year (YYYY) when the album was released.
-    composer:       Composer of the piece
 
     The following fields should only be set for clips that should be cut from the original video:
 
@@ -438,6 +443,18 @@ class InfoExtractor:
     The following fields should only be set for storyboards:
     rows:           Number of rows in each storyboard fragment, as an integer
     columns:        Number of columns in each storyboard fragment, as an integer
+
+    The following fields are deprecated and should not be set by new code:
+    composer:       Use "composers" instead.
+                    Composer(s) of the piece, comma-separated.
+    artist:         Use "artists" instead.
+                    Artist(s) of the track, comma-separated.
+    genre:          Use "genres" instead.
+                    Genre(s) of the track, comma-separated.
+    album_artist:   Use "album_artists" instead.
+                    All artists appeared on the album, comma-separated.
+    creator:        Use "creators" instead.
+                    The creator of the video.
 
     Unless mentioned otherwise, the fields should be Unicode strings.
 
@@ -1687,7 +1704,7 @@ class InfoExtractor:
     def _search_nuxt_data(self, webpage, video_id, context_name='__NUXT__', *, fatal=True, traverse=('data', 0)):
         """Parses Nuxt.js metadata. This works as long as the function __NUXT__ invokes is a pure function"""
         rectx = re.escape(context_name)
-        FUNCTION_RE = r'\(function\((?P<arg_keys>.*?)\){(?:.*?)return\s+(?P<js>{.*?})\s*;?\s*}\((?P<arg_vals>.*?)\)'
+        FUNCTION_RE = r'\(function\((?P<arg_keys>.*?)\){.*?\breturn\s+(?P<js>{.*?})\s*;?\s*}\((?P<arg_vals>.*?)\)'
         js, arg_keys, arg_vals = self._search_regex(
             (rf'<script>\s*window\.{rectx}={FUNCTION_RE}\s*\)\s*;?\s*</script>', rf'{rectx}\(.*?{FUNCTION_RE}'),
             webpage, context_name, group=('js', 'arg_keys', 'arg_vals'),
@@ -2225,7 +2242,9 @@ class InfoExtractor:
             mpd_url, video_id,
             note='Downloading MPD VOD manifest' if note is None else note,
             errnote='Failed to download VOD manifest' if errnote is None else errnote,
-            fatal=False, data=data, headers=headers, query=query) or {}
+            fatal=False, data=data, headers=headers, query=query)
+        if not isinstance(mpd_doc, xml.etree.ElementTree.Element):
+            return None
         return int_or_none(parse_duration(mpd_doc.get('mediaPresentationDuration')))
 
     @staticmethod
@@ -2339,7 +2358,9 @@ class InfoExtractor:
         imgs_count = 0
 
         srcs = set()
-        media = smil.findall(self._xpath_ns('.//video', namespace)) + smil.findall(self._xpath_ns('.//audio', namespace))
+        media = itertools.chain.from_iterable(
+            smil.findall(self._xpath_ns(arg, namespace))
+            for arg in ['.//video', './/audio', './/media'])
         for medium in media:
             src = medium.get('src')
             if not src or src in srcs:
@@ -2523,7 +2544,11 @@ class InfoExtractor:
             self._report_ignoring_subs('DASH')
         return fmts
 
-    def _extract_mpd_formats_and_subtitles(
+    def _extract_mpd_formats_and_subtitles(self, *args, **kwargs):
+        periods = self._extract_mpd_periods(*args, **kwargs)
+        return self._merge_mpd_periods(periods)
+
+    def _extract_mpd_periods(
             self, mpd_url, video_id, mpd_id=None, note=None, errnote=None,
             fatal=True, data=None, headers={}, query={}):
 
@@ -2536,17 +2561,16 @@ class InfoExtractor:
             errnote='Failed to download MPD manifest' if errnote is None else errnote,
             fatal=fatal, data=data, headers=headers, query=query)
         if res is False:
-            return [], {}
+            return []
         mpd_doc, urlh = res
         if mpd_doc is None:
-            return [], {}
+            return []
 
         # We could have been redirected to a new url when we retrieved our mpd file.
         mpd_url = urlh.url
         mpd_base_url = base_url(mpd_url)
 
-        return self._parse_mpd_formats_and_subtitles(
-            mpd_doc, mpd_id, mpd_base_url, mpd_url)
+        return self._parse_mpd_periods(mpd_doc, mpd_id, mpd_base_url, mpd_url)
 
     def _parse_mpd_formats(self, *args, **kwargs):
         fmts, subs = self._parse_mpd_formats_and_subtitles(*args, **kwargs)
@@ -2554,8 +2578,39 @@ class InfoExtractor:
             self._report_ignoring_subs('DASH')
         return fmts
 
-    def _parse_mpd_formats_and_subtitles(
-            self, mpd_doc, mpd_id=None, mpd_base_url='', mpd_url=None):
+    def _parse_mpd_formats_and_subtitles(self, *args, **kwargs):
+        periods = self._parse_mpd_periods(*args, **kwargs)
+        return self._merge_mpd_periods(periods)
+
+    def _merge_mpd_periods(self, periods):
+        """
+        Combine all formats and subtitles from an MPD manifest into a single list,
+        by concatenate streams with similar formats.
+        """
+        formats, subtitles = {}, {}
+        for period in periods:
+            for f in period['formats']:
+                assert 'is_dash_periods' not in f, 'format already processed'
+                f['is_dash_periods'] = True
+                format_key = tuple(v for k, v in f.items() if k not in (
+                    ('format_id', 'fragments', 'manifest_stream_number')))
+                if format_key not in formats:
+                    formats[format_key] = f
+                elif 'fragments' in f:
+                    formats[format_key].setdefault('fragments', []).extend(f['fragments'])
+
+            if subtitles and period['subtitles']:
+                self.report_warning(bug_reports_message(
+                    'Found subtitles in multiple periods in the DASH manifest; '
+                    'if part of the subtitles are missing,'
+                ), only_once=True)
+
+            for sub_lang, sub_info in period['subtitles'].items():
+                subtitles.setdefault(sub_lang, []).extend(sub_info)
+
+        return list(formats.values()), subtitles
+
+    def _parse_mpd_periods(self, mpd_doc, mpd_id=None, mpd_base_url='', mpd_url=None):
         """
         Parse formats from MPD manifest.
         References:
@@ -2634,9 +2689,13 @@ class InfoExtractor:
             return ms_info
 
         mpd_duration = parse_duration(mpd_doc.get('mediaPresentationDuration'))
-        formats, subtitles = [], {}
         stream_numbers = collections.defaultdict(int)
-        for period in mpd_doc.findall(_add_ns('Period')):
+        for period_idx, period in enumerate(mpd_doc.findall(_add_ns('Period'))):
+            period_entry = {
+                'id': period.get('id', f'period-{period_idx}'),
+                'formats': [],
+                'subtitles': collections.defaultdict(list),
+            }
             period_duration = parse_duration(period.get('duration')) or mpd_duration
             period_ms_info = extract_multisegment_info(period, {
                 'start_number': 1,
@@ -2886,11 +2945,10 @@ class InfoExtractor:
                     if content_type in ('video', 'audio', 'image/jpeg'):
                         f['manifest_stream_number'] = stream_numbers[f['url']]
                         stream_numbers[f['url']] += 1
-                        formats.append(f)
+                        period_entry['formats'].append(f)
                     elif content_type == 'text':
-                        subtitles.setdefault(lang or 'und', []).append(f)
-
-        return formats, subtitles
+                        period_entry['subtitles'][lang or 'und'].append(f)
+            yield period_entry
 
     def _extract_ism_formats(self, *args, **kwargs):
         fmts, subs = self._extract_ism_formats_and_subtitles(*args, **kwargs)

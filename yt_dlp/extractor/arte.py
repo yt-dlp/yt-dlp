@@ -48,17 +48,7 @@ class ArteTVIE(ArteTVBaseIE):
     }, {
         'note': 'No alt_title',
         'url': 'https://www.arte.tv/fr/videos/110371-000-A/la-chaleur-supplice-des-arbres-de-rue/',
-        'info_dict': {
-            'id': '110371-000-A',
-            'ext': 'mp4',
-            'upload_date': '20220718',
-            'duration': 154,
-            'timestamp': 1658162460,
-            'description': 'md5:5890f36fe7dccfadb8b7c0891de54786',
-            'title': 'La chaleur, supplice des arbres de rue',
-            'thumbnail': 'https://api-cdn.arte.tv/img/v2/image/CPE2sQDtD8GLQgt8DuYHLf/940x530',
-        },
-        'params': {'skip_download': 'm3u8'}
+        'only_matching': True,
     }, {
         'url': 'https://api.arte.tv/api/player/v2/config/de/100605-013-A',
         'only_matching': True,
@@ -67,19 +57,37 @@ class ArteTVIE(ArteTVBaseIE):
         'only_matching': True,
     }, {
         'url': 'https://www.arte.tv/de/videos/110203-006-A/zaz/',
+        'only_matching': True,
+    }, {
+        'note': 'age-restricted',
+        'url': 'https://www.arte.tv/de/videos/006785-000-A/the-element-of-crime/',
         'info_dict': {
-            'id': '110203-006-A',
-            'chapters': 'count:16',
-            'description': 'md5:cf592f1df52fe52007e3f8eac813c084',
-            'alt_title': 'Zaz',
-            'title': 'Baloise Session 2022',
-            'timestamp': 1668445200,
-            'duration': 4054,
-            'thumbnail': 'https://api-cdn.arte.tv/img/v2/image/ubQjmVCGyRx3hmBuZEK9QZ/940x530',
-            'upload_date': '20221114',
+            'id': '006785-000-A',
+            'description': 'md5:c2f94fdfefc8a280e4dab68ab96ab0ba',
+            'title': 'The Element of Crime',
+            'timestamp': 1696111200,
+            'duration': 5849,
+            'thumbnail': 'https://api-cdn.arte.tv/img/v2/image/q82dTTfyuCXupPsGxXsd7B/940x530',
+            'upload_date': '20230930',
             'ext': 'mp4',
         },
-        'expected_warnings': ['geo restricted']
+    }, {
+        'url': 'https://www.arte.tv/de/videos/085374-003-A/im-hohen-norden-geboren/',
+        'info_dict': {
+            'id': '085374-003-A',
+            'ext': 'mp4',
+            'description': 'md5:ab79ec7cc472a93164415b4e4916abf9',
+            'timestamp': 1702872000,
+            'thumbnail': 'https://api-cdn.arte.tv/img/v2/image/TnyHBfPxv3v2GEY3suXGZP/940x530',
+            'duration': 2594,
+            'title': 'Die kurze Zeit der Jugend',
+            'alt_title': 'Im hohen Norden geboren',
+            'upload_date': '20231218',
+            'subtitles': {
+                'fr': 'mincount:1',
+                'fr-acc': 'mincount:1',
+            },
+        },
     }]
 
     _GEO_BYPASS = True
@@ -130,13 +138,25 @@ class ArteTVIE(ArteTVBaseIE):
         ),
     }
 
+    @staticmethod
+    def _fix_accessible_subs_locale(subs):
+        updated_subs = {}
+        for lang, sub_formats in subs.items():
+            for format in sub_formats:
+                if format.get('url', '').endswith('-MAL.m3u8'):
+                    lang += '-acc'
+                updated_subs.setdefault(lang, []).append(format)
+        return updated_subs
+
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
         video_id = mobj.group('id')
         lang = mobj.group('lang') or mobj.group('lang_2')
         langauge_code = self._LANG_MAP.get(lang)
 
-        config = self._download_json(f'{self._API_BASE}/config/{lang}/{video_id}', video_id)
+        config = self._download_json(f'{self._API_BASE}/config/{lang}/{video_id}', video_id, headers={
+            'x-validated-age': '18'
+        })
 
         geoblocking = traverse_obj(config, ('data', 'attributes', 'restriction', 'geoblocking')) or {}
         if geoblocking.get('restrictedArea'):
@@ -181,6 +201,7 @@ class ArteTVIE(ArteTVBaseIE):
                     secondary_formats.extend(fmts)
                 else:
                     formats.extend(fmts)
+                subs = self._fix_accessible_subs_locale(subs)
                 self._merge_subtitles(subs, target=subtitles)
 
             elif stream['protocol'] in ('HTTPS', 'RTMP'):

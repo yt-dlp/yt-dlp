@@ -1,8 +1,9 @@
-import re
-import json
 import base64
+import json
+import re
 import time
 import urllib.parse
+import xml.etree.ElementTree
 
 from .common import InfoExtractor
 from ..compat import (
@@ -66,6 +67,7 @@ class CBCIE(InfoExtractor):
             'uploader': 'CBCC-NEW',
             'timestamp': 255977160,
         },
+        'skip': '404 Not Found',
     }, {
         # multiple iframes
         'url': 'http://www.cbc.ca/natureofthings/blog/birds-eye-view-from-vancouvers-burrard-street-bridge-how-we-got-the-shot',
@@ -97,7 +99,7 @@ class CBCIE(InfoExtractor):
         # multiple CBC.APP.Caffeine.initInstance(...)
         'url': 'http://www.cbc.ca/news/canada/calgary/dog-indoor-exercise-winter-1.3928238',
         'info_dict': {
-            'title': 'Keep Rover active during the deep freeze with doggie pushups and other fun indoor tasks',
+            'title': 'Keep Rover active during the deep freeze with doggie pushups and other fun indoor tasks',  # FIXME
             'id': 'dog-indoor-exercise-winter-1.3928238',
             'description': 'md5:c18552e41726ee95bd75210d1ca9194c',
         },
@@ -178,6 +180,13 @@ class CBCPlayerIE(InfoExtractor):
             'thumbnail': 'http://thumbnails.cbc.ca/maven_legacy/thumbnails/sonali-karnick-220.jpg',
             'chapters': [],
             'duration': 494.811,
+            'categories': ['AudioMobile/All in a Weekend Montreal'],
+            'tags': 'count:8',
+            'location': 'Quebec',
+            'series': 'All in a Weekend Montreal',
+            'season': 'Season 2015',
+            'season_number': 2015,
+            'media_type': 'Excerpt',
         },
     }, {
         'url': 'http://www.cbc.ca/player/play/2164402062',
@@ -193,25 +202,37 @@ class CBCPlayerIE(InfoExtractor):
             'thumbnail': 'https://thumbnails.cbc.ca/maven_legacy/thumbnails/277/67/cancer_852x480_2164412612.jpg',
             'chapters': [],
             'duration': 186.867,
+            'series': 'CBC News: Windsor at 6:00',
+            'categories': ['News/Canada/Windsor'],
+            'location': 'Windsor',
+            'tags': ['cancer'],
+            'creator': 'Allison Johnson',
+            'media_type': 'Excerpt',
         },
     }, {
         # Has subtitles
         # These broadcasts expire after ~1 month, can find new test URL here:
         # https://www.cbc.ca/player/news/TV%20Shows/The%20National/Latest%20Broadcast
-        'url': 'http://www.cbc.ca/player/play/2249992771553',
-        'md5': '2f2fb675dd4f0f8a5bb7588d1b13bacd',
+        'url': 'http://www.cbc.ca/player/play/2284799043667',
+        'md5': '9b49f0839e88b6ec0b01d840cf3d42b5',
         'info_dict': {
-            'id': '2249992771553',
+            'id': '2284799043667',
             'ext': 'mp4',
-            'title': 'The National | Women’s soccer pay, Florida seawater, Swift quake',
-            'description': 'md5:adba28011a56cfa47a080ff198dad27a',
-            'timestamp': 1690596000,
-            'duration': 2716.333,
+            'title': 'The National | Hockey coach charged, Green grants, Safer drugs',
+            'description': 'md5:84ef46321c94bcf7d0159bb565d26bfa',
+            'timestamp': 1700272800,
+            'duration': 2718.833,
             'subtitles': {'eng': [{'ext': 'vtt', 'protocol': 'm3u8_native'}]},
-            'thumbnail': 'https://thumbnails.cbc.ca/maven_legacy/thumbnails/481/326/thumbnail.jpeg',
+            'thumbnail': 'https://thumbnails.cbc.ca/maven_legacy/thumbnails/907/171/thumbnail.jpeg',
             'uploader': 'CBCC-NEW',
             'chapters': 'count:5',
-            'upload_date': '20230729',
+            'upload_date': '20231118',
+            'categories': 'count:4',
+            'series': 'The National - Full Show',
+            'tags': 'count:1',
+            'creator': 'News',
+            'location': 'Canada',
+            'media_type': 'Full Program',
         },
     }]
 
@@ -386,7 +407,7 @@ class CBCGemIE(InfoExtractor):
         url = re.sub(r'(Manifest\(.*?),format=[\w-]+(.*?\))', r'\1\2', base_url)
 
         secret_xml = self._download_xml(url, video_id, note='Downloading secret XML', fatal=False)
-        if not secret_xml:
+        if not isinstance(secret_xml, xml.etree.ElementTree.Element):
             return
 
         for child in secret_xml:
@@ -476,6 +497,10 @@ class CBCGemPlaylistIE(InfoExtractor):
             'id': 'schitts-creek/s06',
             'title': 'Season 6',
             'description': 'md5:6a92104a56cbeb5818cc47884d4326a2',
+            'series': 'Schitt\'s Creek',
+            'season_number': 6,
+            'season': 'Season 6',
+            'thumbnail': 'https://images.radio-canada.ca/v1/synps-cbc/season/perso/cbc_schitts_creek_season_06_carousel_v03.jpg?impolicy=ott&im=Resize=(_Size_)&quality=75',
         },
     }, {
         'url': 'https://gem.cbc.ca/schitts-creek/s06',

@@ -1,20 +1,25 @@
+import base64
+import hashlib
+import hmac
 import itertools
+import json
 import re
-from urllib.parse import urlparse, parse_qs
+import time
+from urllib.parse import parse_qs, urlparse
 
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
-    clean_html,
     dict_get,
     int_or_none,
     join_nonempty,
     merge_dicts,
-    parse_duration,
+    parse_iso8601,
     traverse_obj,
     try_get,
     unified_timestamp,
     update_url_query,
+    url_or_none,
 )
 
 
@@ -110,6 +115,18 @@ class NaverBaseIE(InfoExtractor):
             **self.process_subtitles(video_data, get_subs),
         }
 
+    def _call_api(self, path, video_id):
+        api_endpoint = f'https://apis.naver.com/now_web2/now_web_api/v1{path}'
+        key = b'nbxvs5nwNG9QKEWK0ADjYA4JZoujF4gHcIwvoCxFTPAeamq5eemvt5IWAYXxrbYM'
+        msgpad = int(time.time() * 1000)
+        md = base64.b64encode(hmac.HMAC(
+            key, f'{api_endpoint[:255]}{msgpad}'.encode(), digestmod=hashlib.sha1).digest()).decode()
+
+        return self._download_json(api_endpoint, video_id=video_id, headers=self.geo_verification_headers(), query={
+            'msgpad': msgpad,
+            'md': md,
+        })['result']
+
 
 class NaverIE(NaverBaseIE):
     _VALID_URL = r'https?://(?:m\.)?tv(?:cast)?\.naver\.com/(?:v|embed)/(?P<id>\d+)'
@@ -125,21 +142,32 @@ class NaverIE(NaverBaseIE):
             'upload_date': '20130903',
             'uploader': '메가스터디, 합격불변의 법칙',
             'uploader_id': 'megastudy',
+            'uploader_url': 'https://tv.naver.com/megastudy',
+            'view_count': int,
+            'like_count': int,
+            'comment_count': int,
+            'duration': 2118,
+            'thumbnail': r're:^https?://.*\.jpg',
         },
     }, {
         'url': 'http://tv.naver.com/v/395837',
-        'md5': '8a38e35354d26a17f73f4e90094febd3',
+        'md5': '7791205fa89dbed2f5e3eb16d287ff05',
         'info_dict': {
             'id': '395837',
             'ext': 'mp4',
             'title': '9년이 지나도 아픈 기억, 전효성의 아버지',
-            'description': 'md5:eb6aca9d457b922e43860a2a2b1984d3',
+            'description': 'md5:c76be23e21403a6473d8119678cdb5cb',
             'timestamp': 1432030253,
             'upload_date': '20150519',
-            'uploader': '4가지쇼 시즌2',
-            'uploader_id': 'wrappinguser29',
+            'uploader': '4가지쇼',
+            'uploader_id': '4show',
+            'uploader_url': 'https://tv.naver.com/4show',
+            'view_count': int,
+            'like_count': int,
+            'comment_count': int,
+            'duration': 277,
+            'thumbnail': r're:^https?://.*\.jpg',
         },
-        'skip': 'Georestricted',
     }, {
         'url': 'http://tvcast.naver.com/v/81652',
         'only_matching': True,
@@ -147,56 +175,63 @@ class NaverIE(NaverBaseIE):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        content = self._download_json(
-            'https://tv.naver.com/api/json/v/' + video_id,
-            video_id, headers=self.geo_verification_headers())
-        player_info_json = content.get('playerInfoJson') or {}
-        current_clip = player_info_json.get('currentClip') or {}
+        data = self._call_api(f'/clips/{video_id}/play-info', video_id)
 
-        vid = current_clip.get('videoId')
-        in_key = current_clip.get('inKey')
+        vid = traverse_obj(data, ('clip', 'videoId', {str}))
+        in_key = traverse_obj(data, ('play', 'inKey', {str}))
 
         if not vid or not in_key:
-            player_auth = try_get(player_info_json, lambda x: x['playerOption']['auth'])
-            if player_auth == 'notCountry':
-                self.raise_geo_restricted(countries=['KR'])
-            elif player_auth == 'notLogin':
-                self.raise_login_required()
-            raise ExtractorError('couldn\'t extract vid and key')
+            raise ExtractorError('Unable to extract video info')
+
         info = self._extract_video_info(video_id, vid, in_key)
-        info.update({
-            'description': clean_html(current_clip.get('description')),
-            'timestamp': int_or_none(current_clip.get('firstExposureTime'), 1000),
-            'duration': parse_duration(current_clip.get('displayPlayTime')),
-            'like_count': int_or_none(current_clip.get('recommendPoint')),
-            'age_limit': 19 if current_clip.get('adult') else None,
-        })
+        info.update(traverse_obj(data, ('clip', {
+            'title': 'title',
+            'description': 'description',
+            'timestamp': ('firstExposureDatetime', {parse_iso8601}),
+            'duration': ('playTime', {int_or_none}),
+            'like_count': ('likeItCount', {int_or_none}),
+            'view_count': ('playCount', {int_or_none}),
+            'comment_count': ('commentCount', {int_or_none}),
+            'thumbnail': ('thumbnailImageUrl', {url_or_none}),
+            'uploader': 'channelName',
+            'uploader_id': 'channelId',
+            'uploader_url': ('channelUrl', {url_or_none}),
+            'age_limit': ('adultVideo', {lambda x: 19 if x else None}),
+        })))
         return info
 
 
-class NaverLiveIE(InfoExtractor):
+class NaverLiveIE(NaverBaseIE):
     IE_NAME = 'Naver:live'
     _VALID_URL = r'https?://(?:m\.)?tv(?:cast)?\.naver\.com/l/(?P<id>\d+)'
     _GEO_BYPASS = False
     _TESTS = [{
-        'url': 'https://tv.naver.com/l/52010',
+        'url': 'https://tv.naver.com/l/127062',
         'info_dict': {
-            'id': '52010',
+            'id': '127062',
             'ext': 'mp4',
-            'title': '[LIVE] 뉴스특보 : "수도권 거리두기, 2주간 2단계로 조정"',
-            'description': 'md5:df7f0c237a5ed5e786ce5c91efbeaab3',
-            'channel_id': 'NTV-ytnnews24-0',
-            'start_time': 1597026780000,
+            'live_status': 'is_live',
+            'channel': '뉴스는 YTN',
+            'channel_id': 'ytnnews24',
+            'title': 're:^대한민국 24시간 뉴스 채널 [0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}$',
+            'description': 'md5:f938b5956711beab6f882314ffadf4d5',
+            'start_time': 1677752280,
+            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)',
+            'like_count': int,
         },
     }, {
-        'url': 'https://tv.naver.com/l/51549',
+        'url': 'https://tv.naver.com/l/140535',
         'info_dict': {
-            'id': '51549',
+            'id': '140535',
             'ext': 'mp4',
-            'title': '연합뉴스TV - 코로나19 뉴스특보',
-            'description': 'md5:c655e82091bc21e413f549c0eaccc481',
-            'channel_id': 'NTV-yonhapnewstv-0',
-            'start_time': 1596406380000,
+            'live_status': 'is_live',
+            'channel': 'KBS뉴스',
+            'channel_id': 'kbsnews',
+            'start_time': 1696867320,
+            'title': 're:^언제 어디서나! KBS 뉴스 24 [0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}$',
+            'description': 'md5:6ad419c0bf2f332829bda3f79c295284',
+            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)',
+            'like_count': int,
         },
     }, {
         'url': 'https://tv.naver.com/l/54887',
@@ -205,55 +240,27 @@ class NaverLiveIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        page = self._download_webpage(url, video_id, 'Downloading Page', 'Unable to download Page')
-        secure_url = self._search_regex(r'sApiF:\s+(?:"|\')([^"\']+)', page, 'secureurl')
+        data = self._call_api(f'/live-end/normal/{video_id}/play-info?renewLastPlayDate=true', video_id)
 
-        info = self._extract_video_info(video_id, secure_url)
-        info.update({
-            'description': self._og_search_description(page)
-        })
-
-        return info
-
-    def _extract_video_info(self, video_id, url):
-        video_data = self._download_json(url, video_id, headers=self.geo_verification_headers())
-        meta = video_data.get('meta')
-        status = meta.get('status')
-
+        status = traverse_obj(data, ('live', 'liveStatus'))
         if status == 'CLOSED':
             raise ExtractorError('Stream is offline.', expected=True)
         elif status != 'OPENED':
-            raise ExtractorError('Unknown status %s' % status)
-
-        title = meta.get('title')
-        stream_list = video_data.get('streams')
-
-        if stream_list is None:
-            raise ExtractorError('Could not get stream data.', expected=True)
-
-        formats = []
-        for quality in stream_list:
-            if not quality.get('url'):
-                continue
-
-            prop = quality.get('property')
-            if prop.get('abr'):  # This abr doesn't mean Average audio bitrate.
-                continue
-
-            formats.extend(self._extract_m3u8_formats(
-                quality.get('url'), video_id, 'mp4',
-                m3u8_id=quality.get('qualityId'), live=True
-            ))
+            raise ExtractorError(f'Unknown status {status!r}')
 
         return {
             'id': video_id,
-            'title': title,
-            'formats': formats,
-            'channel_id': meta.get('channelId'),
-            'channel_url': meta.get('channelUrl'),
-            'thumbnail': meta.get('imgUrl'),
-            'start_time': meta.get('startTime'),
-            'categories': [meta.get('categoryId')],
+            'formats': self._extract_m3u8_formats(
+                traverse_obj(data, ('playbackBody', {json.loads}, 'media', 0, 'path')), video_id, live=True),
+            **traverse_obj(data, ('live', {
+                'title': 'title',
+                'channel': 'channelName',
+                'channel_id': 'channelId',
+                'description': 'description',
+                'like_count': (('likeCount', 'likeItCount'), {int_or_none}),
+                'thumbnail': ('thumbnailImageUrl', {url_or_none}),
+                'start_time': (('startTime', 'startDateTime', 'startYmdt'), {parse_iso8601}),
+            }), get_all=False),
             'is_live': True
         }
 
