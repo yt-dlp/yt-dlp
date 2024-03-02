@@ -14,11 +14,14 @@ from ..utils import (
     parse_duration,
     unified_timestamp,
     url_or_none,
+    urlencode_postdata,
+    urljoin,
 )
 from ..utils.traversal import traverse_obj
 
 
 class NewgroundsIE(InfoExtractor):
+    _NETRC_MACHINE = 'newgrounds'
     _VALID_URL = r'https?://(?:www\.)?newgrounds\.com/(?:audio/listen|portal/view)/(?P<id>\d+)(?:/format/flash)?'
     _TESTS = [{
         'url': 'https://www.newgrounds.com/audio/listen/549479',
@@ -120,6 +123,23 @@ class NewgroundsIE(InfoExtractor):
         'm': 17,
         'a': 18,
     }
+    _LOGIN_URL = 'https://www.newgrounds.com/passport'
+
+    def _perform_login(self, username, password):
+        login_webpage = self._download_webpage(self._LOGIN_URL, video_id=None)
+        login_url = urljoin(self._LOGIN_URL, self._search_regex(
+            r'<form action="([^"]+)"', login_webpage, 'login endpoint', default=None))
+        result = self._download_json(login_url, None, headers={
+            'Accept': 'application/json',
+            'Referer': self._LOGIN_URL,
+            'X-Requested-With': 'XMLHttpRequest'
+        }, data=urlencode_postdata({
+            **self._hidden_inputs(login_webpage),
+            'username': username,
+            'password': password,
+        }))
+        if errors := traverse_obj(result, ('errors', ..., {str})):
+            raise ExtractorError(', '.join(errors) or 'Unknown Error', expected=True)
 
     def _real_extract(self, url):
         media_id = self._match_id(url)
