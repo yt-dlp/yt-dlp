@@ -1,21 +1,31 @@
+import urllib.parse
+
 from .common import InfoExtractor
 from .dailymotion import DailymotionIE
+from ..networking import HEADRequest
 from ..utils import (
     ExtractorError,
     determine_ext,
+    filter_dict,
     format_field,
     int_or_none,
     join_nonempty,
     parse_iso8601,
     parse_qs,
+    smuggle_url,
+    unsmuggle_url,
+    url_or_none,
 )
+from ..utils.traversal import traverse_obj
 
 
 class FranceTVBaseInfoExtractor(InfoExtractor):
-    def _make_url_result(self, video_or_full_id, catalog=None):
+    def _make_url_result(self, video_or_full_id, catalog=None, url=None):
         full_id = 'francetv:%s' % video_or_full_id
         if '@' not in video_or_full_id and catalog:
             full_id += '@%s' % catalog
+        if url:
+            full_id = smuggle_url(full_id, {'hostname': urllib.parse.urlparse(url).hostname})
         return self.url_result(
             full_id, ie=FranceTVIE.ie_key(),
             video_id=video_or_full_id.split('@')[0])
@@ -35,6 +45,8 @@ class FranceTVIE(InfoExtractor):
                     )
                     '''
     _EMBED_REGEX = [r'<iframe[^>]+?src=(["\'])(?P<url>(?:https?://)?embed\.francetv\.fr/\?ue=.+?)\1']
+    _GEO_COUNTRIES = ['FR']
+    _GEO_BYPASS = False
 
     _TESTS = [{
         # without catalog
@@ -76,10 +88,8 @@ class FranceTVIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    def _extract_video(self, video_id, catalogue=None):
-        # Videos are identified by idDiffusion so catalogue part is optional.
-        # However when provided, some extra formats may be returned so we pass
-        # it if available.
+    def _extract_video(self, video_id, catalogue=None, hostname=None):
+        # TODO: Investigate/remove 'catalogue'/'catalog'; it has not been used since 2021
         is_live = None
         videos = []
         title = None
@@ -94,15 +104,16 @@ class FranceTVIE(InfoExtractor):
         for device_type in ('desktop', 'mobile'):
             dinfo = self._download_json(
                 'https://player.webservices.francetelevisions.fr/v1/videos/%s' % video_id,
-                video_id, 'Downloading %s video JSON' % device_type, query={
+                video_id, f'Downloading {device_type} video JSON', query=filter_dict({
                     'device_type': device_type,
                     'browser': 'chrome',
-                }, fatal=False)
+                    'domain': hostname,
+                }), fatal=False)
 
             if not dinfo:
                 continue
 
-            video = dinfo.get('video')
+            video = traverse_obj(dinfo, ('video', {dict}))
             if video:
                 videos.append(video)
                 if duration is None:
@@ -112,7 +123,7 @@ class FranceTVIE(InfoExtractor):
                 if spritesheets is None:
                     spritesheets = video.get('spritesheets')
 
-            meta = dinfo.get('meta')
+            meta = traverse_obj(dinfo, ('meta', {dict}))
             if meta:
                 if title is None:
                     title = meta.get('title')
@@ -126,22 +137,21 @@ class FranceTVIE(InfoExtractor):
                 if timestamp is None:
                     timestamp = parse_iso8601(meta.get('broadcasted_at'))
 
-        formats = []
-        subtitles = {}
-        for video in videos:
+        formats, subtitles, video_url = [], {}, None
+        for video in traverse_obj(videos, lambda _, v: url_or_none(v['url'])):
+            video_url = video['url']
             format_id = video.get('format')
 
-            video_url = None
-            if video.get('workflow') == 'token-akamai':
-                token_url = video.get('token')
-                if token_url:
-                    token_json = self._download_json(
-                        token_url, video_id,
-                        'Downloading signed %s manifest URL' % format_id)
-                    if token_json:
-                        video_url = token_json.get('url')
-            if not video_url:
-                video_url = video.get('url')
+            token_url = url_or_none(video.get('token'))
+            if token_url and video.get('workflow') == 'token-akamai':
+                tokenized_url = traverse_obj(self._download_json(
+                    token_url, video_id, f'Downloading signed {format_id} manifest URL',
+                    fatal=False, query={
+                        'format': 'json',
+                        'url': video_url,
+                    }), ('url', {url_or_none}))
+                if tokenized_url:
+                    video_url = tokenized_url
 
             ext = determine_ext(video_url)
             if ext == 'f4m':
@@ -173,6 +183,13 @@ class FranceTVIE(InfoExtractor):
                     })
 
             # XXX: what is video['captions']?
+
+        if not formats and video_url:
+            urlh = self._request_webpage(
+                HEADRequest(video_url), video_id, 'Checking for geo-restriction',
+                fatal=False, expected_status=403)
+            if urlh and urlh.headers.get('x-errortype') == 'geo':
+                self.raise_geo_restricted(countries=self._GEO_COUNTRIES, metadata_available=True)
 
         for f in formats:
             if f.get('acodec') != 'none' and f.get('language') in ('qtz', 'qad'):
@@ -213,6 +230,7 @@ class FranceTVIE(InfoExtractor):
         }
 
     def _real_extract(self, url):
+        url, smuggled_data = unsmuggle_url(url, {})
         mobj = self._match_valid_url(url)
         video_id = mobj.group('id')
         catalog = mobj.group('catalog')
@@ -224,7 +242,7 @@ class FranceTVIE(InfoExtractor):
             if not video_id:
                 raise ExtractorError('Invalid URL', expected=True)
 
-        return self._extract_video(video_id, catalog)
+        return self._extract_video(video_id, catalog, hostname=smuggled_data.get('hostname'))
 
 
 class FranceTVSiteIE(FranceTVBaseInfoExtractor):
@@ -314,7 +332,7 @@ class FranceTVSiteIE(FranceTVBaseInfoExtractor):
                 r'(?:href=|player\.setVideo\(\s*)"http://videos?\.francetv\.fr/video/([^@]+@[^"]+)"',
                 webpage, 'video ID').split('@')
 
-        return self._make_url_result(video_id, catalogue)
+        return self._make_url_result(video_id, catalogue, url=url)
 
 
 class FranceTVInfoIE(FranceTVBaseInfoExtractor):
@@ -405,4 +423,4 @@ class FranceTVInfoIE(FranceTVBaseInfoExtractor):
              r'(?:data-id|<figure[^<]+\bid)=["\']([\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12})'),
             webpage, 'video id')
 
-        return self._make_url_result(video_id)
+        return self._make_url_result(video_id, url=url)

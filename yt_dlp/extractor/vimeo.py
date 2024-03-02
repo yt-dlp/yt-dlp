@@ -21,6 +21,7 @@ from ..utils import (
     parse_qs,
     smuggle_url,
     str_or_none,
+    traverse_obj,
     try_get,
     unified_timestamp,
     unsmuggle_url,
@@ -121,7 +122,13 @@ class VimeoBaseInfoExtractor(InfoExtractor):
         video_data = config['video']
         video_title = video_data.get('title')
         live_event = video_data.get('live_event') or {}
-        is_live = live_event.get('status') == 'started'
+        live_status = {
+            'pending': 'is_upcoming',
+            'active': 'is_upcoming',
+            'started': 'is_live',
+            'ended': 'post_live',
+        }.get(live_event.get('status'))
+        is_live = live_status == 'is_live'
         request = config.get('request') or {}
 
         formats = []
@@ -230,7 +237,8 @@ class VimeoBaseInfoExtractor(InfoExtractor):
             'chapters': chapters or None,
             'formats': formats,
             'subtitles': subtitles,
-            'is_live': is_live,
+            'live_status': live_status,
+            'release_timestamp': traverse_obj(live_event, ('ingest', 'scheduled_start_time', {parse_iso8601})),
             # Note: Bitrates are completely broken. Single m3u8 may contain entries in kbps and bps
             # at the same time without actual units specified.
             '_format_sort_fields': ('quality', 'res', 'fps', 'hdr:12', 'source'),
