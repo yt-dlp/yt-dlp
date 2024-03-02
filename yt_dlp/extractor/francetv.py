@@ -89,9 +89,7 @@ class FranceTVIE(InfoExtractor):
     }]
 
     def _extract_video(self, video_id, catalogue=None, hostname=None):
-        # Videos are identified by idDiffusion so catalogue part is optional.
-        # However when provided, some extra formats may be returned so we pass
-        # it if available.
+        # TODO: Investigate/remove 'catalogue'/'catalog'; it has not been used since 2021
         is_live = None
         videos = []
         title = None
