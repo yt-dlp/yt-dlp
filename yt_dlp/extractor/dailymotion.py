@@ -399,7 +399,7 @@ class DailymotionPlaylistIE(DailymotionPlaylistBaseIE):
 
 class DailymotionSearchIE(DailymotionPlaylistBaseIE):
     IE_NAME = 'dailymotion:search'
-    _VALID_URL = r'(?:https?://)?(?:www\.)?dailymotion\.[a-z]{2,3}/search/(?P<id>[^/]+)/videos'
+    _VALID_URL = r'https?://(?:www\.)?dailymotion\.[a-z]{2,3}/search/(?P<id>[^/?#]+)/videos'
     _PAGE_SIZE = 20
     _TESTS = [{
         'url': 'http://www.dailymotion.com/search/king of turtles/videos',
@@ -409,16 +409,15 @@ class DailymotionSearchIE(DailymotionPlaylistBaseIE):
         },
         'playlist_mincount': 90,
     }]
+_SEARCH_QUERY = 'query SEARCH_QUERY( $query: String! $page: Int $limit: Int ) { search { videos( query: $query first: $limit page: $page ) { edges { node { xid } } } } } '
 
     def _call_search_api(self, term, page, note):
-        search_query = 'query SEARCH_QUERY( $query: String! $page: Int $limit: Int ) { search { videos( query: $query first: $limit page: $page ) { edges { node { xid } } } } } '
-
         if not self._HEADERS.get('Authorization'):
             self._HEADERS['Authorization'] = f'Bearer {self._get_token(term)}'
         resp = self._download_json(
             'https://graphql.api.dailymotion.com/', None, note, data=json.dumps({
                 'operationName': 'SEARCH_QUERY',
-                'query': search_query,
+                'query': self._SEARCH_QUERY,
                 'variables': {
                     'limit': 20,
                     'page': page,
@@ -446,7 +445,7 @@ class DailymotionSearchIE(DailymotionPlaylistBaseIE):
 
 class DailymotionUserIE(DailymotionPlaylistBaseIE):
     IE_NAME = 'dailymotion:user'
-    _VALID_URL = r'https?://(?:www\.)?dailymotion\.[a-z]{2,3}/(?!(?:embed|swf|#|video|playlist|search)/)(?:(?:old/)?user/)?(?P<id>[^/]+)'
+    _VALID_URL = r'https?://(?:www\.)?dailymotion\.[a-z]{2,3}/(?!(?:embed|swf|#|video|playlist|search)/)(?:(?:old/)?user/)?(?P<id>[^/?#]+)'
     _TESTS = [{
         'url': 'https://www.dailymotion.com/user/nqtv',
         'info_dict': {
