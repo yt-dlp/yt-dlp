@@ -126,10 +126,10 @@ class NewgroundsIE(InfoExtractor):
     _LOGIN_URL = 'https://www.newgrounds.com/passport'
 
     def _perform_login(self, username, password):
-        login_webpage = self._download_webpage(self._LOGIN_URL, video_id=None, note="Downloading login page")
+        login_webpage = self._download_webpage(self._LOGIN_URL, None, 'Downloading login page')
         login_url = urljoin(self._LOGIN_URL, self._search_regex(
             r'<form action="([^"]+)"', login_webpage, 'login endpoint', default=None))
-        result = self._download_json(login_url, None, headers={
+        result = self._download_json(login_url, None, 'Logging in', headers={
             'Accept': 'application/json',
             'Referer': self._LOGIN_URL,
             'X-Requested-With': 'XMLHttpRequest'
@@ -137,7 +137,7 @@ class NewgroundsIE(InfoExtractor):
             **self._hidden_inputs(login_webpage),
             'username': username,
             'password': password,
-        }), note="Logging in")
+        }))
         if errors := traverse_obj(result, ('errors', ..., {str})):
             raise ExtractorError(', '.join(errors) or 'Unknown Error', expected=True)
 
@@ -169,15 +169,13 @@ class NewgroundsIE(InfoExtractor):
 
             formats = []
             uploader = traverse_obj(json_video, ('author', {str}))
-            media_formats = traverse_obj(json_video, ('sources', {dict})) or {}
-            for format_id, sources in media_formats.items():
+            for format_id, sources in traverse_obj(json_video, ('sources', {dict.items}, ...)):
                 quality = int_or_none(format_id[:-1])
-                for url in traverse_obj(sources, (..., 'src', {url_or_none})):
-                    formats.append({
-                        'format_id': format_id,
-                        'quality': quality,
-                        'url': url,
-                    })
+                formats.extend({
+                    'format_id': format_id,
+                    'quality': quality,
+                    'url': url,
+                } for url in traverse_obj(sources, (..., 'src', {url_or_none})))
 
         if not uploader:
             uploader = self._html_search_regex(
