@@ -3,6 +3,7 @@ from ..utils import (
     ExtractorError,
     RegexNotFoundError,
     determine_ext,
+    join_nonempty,
     js_to_json,
 )
 import re
@@ -102,7 +103,7 @@ class RTPIE(InfoExtractor):
 
         webpage = self._download_webpage(url, video_id)
 
-        title = self._html_search_regex(r'<title>(.+?)</title>', webpage, 'title')
+        title = self._html_search_regex(r'<title>(.+?)</title>', webpage, 'title', default='')
 
         # Raise error if episode is unavailable
         if 'Este episódio não se encontra disponível' in title:
@@ -111,10 +112,11 @@ class RTPIE(InfoExtractor):
         # Replace irrelevant string in title
         title = re.sub(r' -  ?RTP Play - RTP', '', title)
 
-        # Check if it's a program split in parts, if so add part number to title
+        # Check if it's a program split in parts
         part = self._html_search_regex(r'section\-parts.*<span.*>(.+?)</span>.*</ul>', webpage, 'part', default=None)
-        if part is not None:
-            title = '{title} {part}'.format(title=title, part=part)
+
+        # Add program part identification to title if it exists
+        title = join_nonempty(title, part, delim=' ')
 
         try:
             # Extract f and config from page
