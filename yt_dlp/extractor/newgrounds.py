@@ -126,7 +126,7 @@ class NewgroundsIE(InfoExtractor):
     _LOGIN_URL = 'https://www.newgrounds.com/passport'
 
     def _perform_login(self, username, password):
-        login_webpage = self._download_webpage(self._LOGIN_URL, video_id=None)
+        login_webpage = self._download_webpage(self._LOGIN_URL, video_id=None, note="Downloading login page")
         login_url = urljoin(self._LOGIN_URL, self._search_regex(
             r'<form action="([^"]+)"', login_webpage, 'login endpoint', default=None))
         result = self._download_json(login_url, None, headers={
@@ -137,7 +137,7 @@ class NewgroundsIE(InfoExtractor):
             **self._hidden_inputs(login_webpage),
             'username': username,
             'password': password,
-        }))
+        }), note="Logging in")
         if errors := traverse_obj(result, ('errors', ..., {str})):
             raise ExtractorError(', '.join(errors) or 'Unknown Error', expected=True)
 
