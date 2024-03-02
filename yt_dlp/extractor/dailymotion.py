@@ -427,15 +427,15 @@ class DailymotionSearchIE(DailymotionPlaylistBaseIE):
             }).encode(), headers=self._HEADERS)
         obj = traverse_obj(resp, ('data', 'search', {dict}))
         if not obj:
-            raise ExtractorError(traverse_obj(resp, ('errors', 0, 'message'))
-                                 or 'Could not fetch search data', expected=True)
+            raise ExtractorError(
+                traverse_obj(resp, ('errors', 0, 'message', {str})) or 'Could not fetch search data')
+
         return obj
 
     def _fetch_page(self, term, page):
         page += 1
         response = self._call_search_api(term, page, f'Searching "{term}" page {page}')
-        for edge in traverse_obj(response, ('videos', 'edges', lambda _, x: x['node']['xid'])) or []:
-            xid = edge['node']['xid']
+        for xid in traverse_obj(response, ('videos', 'edges', ..., 'node', 'xid')):
             yield self.url_result(f'https://www.dailymotion.com/video/{xid}', DailymotionIE, xid)
 
     def _real_extract(self, url):
