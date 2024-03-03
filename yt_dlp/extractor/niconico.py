@@ -36,6 +36,8 @@ from ..utils import (
 class NiconicoIE(InfoExtractor):
     IE_NAME = 'niconico'
     IE_DESC = 'ニコニコ動画'
+    _GEO_COUNTRIES = ['JP']
+    _GEO_BYPASS = False
 
     _TESTS = [{
         'url': 'http://www.nicovideo.jp/watch/sm22312215',
@@ -485,7 +487,13 @@ class NiconicoIE(InfoExtractor):
         formats = [*self._yield_dmc_formats(api_data, video_id),
                    *self._yield_dms_formats(api_data, video_id)]
         if not formats:
-            if availability == 'premium_only':
+            fail_msg = clean_html(self._html_search_regex(
+                r'<p[^>]+\bclass="fail-message"[^>]*>(?P<msg>.+?)</p>',
+                webpage, 'fail message', default=None, group='msg'))
+            if fail_msg and 'された地域と同じ地域からのみ視聴できます。' in fail_msg:
+                availability = None
+                self.raise_geo_restricted(countries=self._GEO_COUNTRIES, metadata_available=True)
+            elif availability == 'premium_only':
                 self.raise_login_required('This video requires premium', metadata_available=True)
             elif availability == 'subscriber_only':
                 self.raise_login_required('This video is for members only', metadata_available=True)
