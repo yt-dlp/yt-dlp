@@ -962,8 +962,9 @@ class YoutubeDL:
 
     def close(self):
         self.save_cookies()
-        self._request_director.close()
-        del self._request_director
+        if '_request_director' in self.__dict__:
+            self._request_director.close()
+            del self._request_director
 
     def trouble(self, message=None, tb=None, is_error=True):
         """Determine action to take when a download problem appears.
