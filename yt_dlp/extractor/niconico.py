@@ -490,6 +490,8 @@ class NiconicoIE(InfoExtractor):
             fail_msg = clean_html(self._html_search_regex(
                 r'<p[^>]+\bclass="fail-message"[^>]*>(?P<msg>.+?)</p>',
                 webpage, 'fail message', default=None, group='msg'))
+            if fail_msg:
+                self.to_screen(f'Niconico said: {fail_msg}')
             if fail_msg and 'された地域と同じ地域からのみ視聴できます。' in fail_msg:
                 availability = None
                 self.raise_geo_restricted(countries=self._GEO_COUNTRIES, metadata_available=True)
