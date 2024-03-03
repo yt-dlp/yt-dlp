@@ -880,6 +880,10 @@ from .japandiet import (
     SangiinIE,
 )
 from .jeuxvideo import JeuxVideoIE
+from .jiocinema import (
+    JioCinemaIE,
+    JioVootSeriesIE,
+)
 from .jiosaavn import (
     JioSaavnSongIE,
     JioSaavnAlbumIE,
