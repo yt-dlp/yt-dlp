@@ -1901,6 +1901,7 @@ from .storyfire import (
 from .streamable import StreamableIE
 from .streamcz import StreamCZIE
 from .streamff import StreamFFIE
+from .streaminone import StreaminOneIE
 from .streetvoice import StreetVoiceIE
 from .stretchinternet import StretchInternetIE
 from .stripchat import StripchatIE
