@@ -617,6 +617,10 @@ from .filmon import (
 from .filmweb import FilmwebIE
 from .firsttv import FirstTVIE
 from .fivetv import FiveTVIE
+from .fitetv import (
+    FiteTVIE,
+    FiteTVChannelIE
+)
 from .flextv import FlexTVIE
 from .flickr import FlickrIE
 from .floatplane import (
