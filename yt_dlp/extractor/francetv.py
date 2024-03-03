@@ -218,7 +218,7 @@ class FranceTVIE(InfoExtractor):
                     # a 10×10 grid of thumbnails corresponding to approximately
                     # 2 seconds of the video; the last spritesheet may be shorter
                     'duration': 200,
-                } for sheet in spritesheets]
+                } for sheet in traverse_obj(spritesheets, (..., {url_or_none}))]
             })
 
         return {
