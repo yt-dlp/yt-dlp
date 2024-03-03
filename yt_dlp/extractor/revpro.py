@@ -20,9 +20,7 @@ from ..utils import (
 class RevProIE(InfoExtractor):
     _LOGIN_URL = 'https://www.revproondemand.com/login'
     _NETRC_MACHINE = 'revpro'
-
     _VALID_URL = r'https?://(?:www\.)?revproondemand\.com/(?:[^/]+/)*videos/(?P<id>[^/]+)/?$'
-
 
     def _get_authenticity_token(self, display_id):
         signin_page = self._download_webpage(
