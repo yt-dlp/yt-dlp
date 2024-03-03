@@ -8,8 +8,8 @@ from ..utils import (
 
 class DumpertIE(InfoExtractor):
     _VALID_URL = r'''(?x)
-        (?P<protocol>https?)://(?:(?:www|legacy)\.)?dumpert\.nl(?:
-            /(?:mediabase|embed|item)/|
+        (?P<protocol>https?)://(?:(?:www|legacy)\.)?dumpert\.nl/(?:
+            (?:mediabase|embed|item)/|
             [^#]+[?&]selectedId=
         )(?P<id>[0-9]+[/_][0-9a-zA-Z]+)'''
     _TESTS = [{
