@@ -192,8 +192,8 @@ class TestWebsSocketRequestHandlerConformance:
 
     @pytest.mark.parametrize('handler', ['Websockets'], indirect=True)
     @pytest.mark.parametrize('params,extensions', [
-        ({'timeout': 1e-100}, {}),
-        ({}, {'timeout': 1e-100}),
+        ({'timeout': sys.float_info.min}, {}),
+        ({}, {'timeout': sys.float_info.min}),
     ])
     def test_timeout(self, handler, params, extensions):
         with handler(**params) as rh:
