@@ -498,7 +498,7 @@ class NiconicoIE(InfoExtractor):
             elif availability == 'subscriber_only':
                 self.raise_login_required('This video is for members only', metadata_available=True)
             elif availability == 'needs_auth':
-                self.raise_login_required('This video is for registered users', metadata_available=False)
+                self.raise_login_required(metadata_available=False)
 
         # Start extracting information
         tags = None
