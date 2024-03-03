@@ -478,6 +478,20 @@ class NiconicoIE(InfoExtractor):
                     raise
                 raise ExtractorError(clean_html(error_msg), expected=True)
 
+        availability = self._availability(**(traverse_obj(api_data, ('payment', 'video', {
+            'needs_premium': ('isPremium', {bool}),
+            'needs_subscription': ('isAdmission', {bool}),
+        })) or {'needs_auth': True}))
+        formats = [*self._yield_dmc_formats(api_data, video_id),
+                   *self._yield_dms_formats(api_data, video_id)]
+        if not formats:
+            if availability == 'premium_only':
+                self.raise_login_required('This video requires premium', metadata_available=True)
+            elif availability == 'subscriber_only':
+                self.raise_login_required('This video is for members only', metadata_available=True)
+            elif availability == 'needs_auth':
+                self.raise_login_required('This video is for registered users', metadata_available=False)
+
         # Start extracting information
         tags = None
         if webpage:
@@ -502,8 +516,8 @@ class NiconicoIE(InfoExtractor):
             'id': video_id,
             '_api_data': api_data,
             'title': get_video_info(('originalTitle', 'title')) or self._og_search_title(webpage, default=None),
-            'formats': [*self._yield_dmc_formats(api_data, video_id),
-                        *self._yield_dms_formats(api_data, video_id)],
+            'formats': formats,
+            'availability': availability,
             'thumbnails': [{
                 'id': key,
                 'url': url,
