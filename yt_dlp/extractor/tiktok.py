@@ -50,7 +50,13 @@ class TikTokBaseIE(InfoExtractor):
     def _get_sigi_state(self, webpage, display_id):
         return self._search_json(
             r'<script[^>]+\bid="(?:SIGI_STATE|sigi-persisted-data)"[^>]*>', webpage,
-            'sigi state', display_id, end_pattern=r'</script>')
+            'sigi state', display_id, end_pattern=r'</script>', default={})
+
+    def _get_universal_data(self, webpage, display_id):
+        return traverse_obj(self._search_json(
+            r'<script[^>]+\bid="__UNIVERSAL_DATA_FOR_REHYDRATION__"[^>]*>', webpage,
+            'universal data', display_id, end_pattern=r'</script>', default={}),
+            ('__DEFAULT_SCOPE__', {dict})) or {}
 
     def _call_api_impl(self, ep, query, manifest_app_version, video_id, fatal=True,
                        note='Downloading API JSON', errnote='Unable to download API page'):
@@ -609,11 +615,12 @@ class TikTokIE(TikTokBaseIE):
             'title': 'md5:1d95c0b96560ca0e8a231af4172b2c0a',
             'description': 'md5:1d95c0b96560ca0e8a231af4172b2c0a',
             'creator': 'MoxyPatch',
+            'creators': ['MoxyPatch'],
             'uploader': 'moxypatch',
             'uploader_id': '7039142049363379205',
             'uploader_url': 'https://www.tiktok.com/@MS4wLjABAAAAFhqKnngMHJSsifL0w1vFOP5kn3Ndo1ODp0XuIBkNMBCkALTvwILdpu12g3pTtL4V',
             'channel_id': 'MS4wLjABAAAAFhqKnngMHJSsifL0w1vFOP5kn3Ndo1ODp0XuIBkNMBCkALTvwILdpu12g3pTtL4V',
-            'artist': 'your worst nightmare',
+            'artists': ['your worst nightmare'],
             'track': 'original sound',
             'upload_date': '20230303',
             'timestamp': 1677866781,
@@ -651,7 +658,7 @@ class TikTokIE(TikTokBaseIE):
             'comment_count': int,
             'thumbnail': r're:^https://.+\.webp',
         },
-        'params': {'format': 'bytevc1_1080p_808907-0'},
+        'skip': 'Unavailable via feed API, no formats available via web',
     }, {
         # Slideshow, audio-only m4a format
         'url': 'https://www.tiktok.com/@hara_yoimiya/video/7253412088251534594',
@@ -688,24 +695,35 @@ class TikTokIE(TikTokBaseIE):
         try:
             return self._extract_aweme_app(video_id)
         except ExtractorError as e:
+            e.expected = True
             self.report_warning(f'{e}; trying with webpage')
 
         url = self._create_url(user_id, video_id)
         webpage = self._download_webpage(url, video_id, headers={'User-Agent': 'Mozilla/5.0'})
-        next_data = self._search_nextjs_data(webpage, video_id, default='{}')
-        if next_data:
-            status = traverse_obj(next_data, ('props', 'pageProps', 'statusCode'), expected_type=int) or 0
-            video_data = traverse_obj(next_data, ('props', 'pageProps', 'itemInfo', 'itemStruct'), expected_type=dict)
-        else:
-            sigi_data = self._get_sigi_state(webpage, video_id)
-            status = traverse_obj(sigi_data, ('VideoPage', 'statusCode'), expected_type=int) or 0
-            video_data = traverse_obj(sigi_data, ('ItemModule', video_id), expected_type=dict)
 
-        if status == 0:
+        if universal_data := self._get_universal_data(webpage, video_id):
+            self.write_debug('Found universal data for rehydration')
+            status = traverse_obj(universal_data, ('webapp.video-detail', 'statusCode', {int})) or 0
+            video_data = traverse_obj(universal_data, ('webapp.video-detail', 'itemInfo', 'itemStruct', {dict}))
+
+        elif sigi_data := self._get_sigi_state(webpage, video_id):
+            self.write_debug('Found sigi state data')
+            status = traverse_obj(sigi_data, ('VideoPage', 'statusCode', {int})) or 0
+            video_data = traverse_obj(sigi_data, ('ItemModule', video_id, {dict}))
+
+        elif next_data := self._search_nextjs_data(webpage, video_id, default='{}'):
+            self.write_debug('Found next.js data')
+            status = traverse_obj(next_data, ('props', 'pageProps', 'statusCode', {int})) or 0
+            video_data = traverse_obj(next_data, ('props', 'pageProps', 'itemInfo', 'itemStruct', {dict}))
+
+        else:
+            raise ExtractorError('Unable to extract webpage video data')
+
+        if video_data and status == 0:
             return self._parse_aweme_video_web(video_data, url, video_id)
         elif status == 10216:
             raise ExtractorError('This video is private', expected=True)
-        raise ExtractorError('Video not available', video_id=video_id)
+        raise ExtractorError(f'Video not available, status code {status}', video_id=video_id)
 
 
 class TikTokUserIE(TikTokBaseIE):
@@ -1182,7 +1200,7 @@ class TikTokLiveIE(TikTokBaseIE):
             url, uploader or room_id, headers={'User-Agent': 'Mozilla/5.0'}, fatal=not room_id)
 
         if webpage:
-            data = try_call(lambda: self._get_sigi_state(webpage, uploader or room_id))
+            data = self._get_sigi_state(webpage, uploader or room_id)
             room_id = (traverse_obj(data, ('UserModule', 'users', ..., 'roomId', {str_or_none}), get_all=False)
                        or self._search_regex(r'snssdk\d*://live\?room_id=(\d+)', webpage, 'room ID', default=None)
                        or room_id)
