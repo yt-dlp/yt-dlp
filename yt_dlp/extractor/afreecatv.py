@@ -8,13 +8,13 @@ from ..utils import (
     date_from_str,
     determine_ext,
     int_or_none,
-    qualities,
     traverse_obj,
     unified_strdate,
     unified_timestamp,
     update_url_query,
     url_or_none,
     urlencode_postdata,
+    UserNotLive,
     xpath_text,
 )
 
@@ -347,77 +347,56 @@ class AfreecaTVLiveIE(AfreecaTVIE):  # XXX: Do not subclass from concrete IE
         },
         'skip': 'Livestream has ended',
     }, {
-        'url': 'http://play.afreeca.com/pyh3646/237852185',
+        'url': 'https://play.afreecatv.com/pyh3646/237852185',
         'only_matching': True,
     }, {
-        'url': 'http://play.afreeca.com/pyh3646',
+        'url': 'https://play.afreecatv.com/pyh3646',
         'only_matching': True,
     }]
 
     _LIVE_API_URL = 'https://live.afreecatv.com/afreeca/player_live_api.php'
 
-    _QUALITIES = ('sd', 'hd', 'hd2k', 'original')
-
     def _real_extract(self, url):
         broadcaster_id, broadcast_no = self._match_valid_url(url).group('id', 'bno')
         password = self.get_param('videopassword')
-
-        info = self._download_json(self._LIVE_API_URL, broadcaster_id, fatal=False,
-                                   data=urlencode_postdata({'bid': broadcaster_id})) or {}
-        channel_info = info.get('CHANNEL') or {}
+        info = self._download_json(self._LIVE_API_URL, broadcaster_id, data=urlencode_postdata({'bid': broadcaster_id}))
+        channel_info = info.get('CHANNEL')
         broadcaster_id = channel_info.get('BJID') or broadcaster_id
         broadcast_no = channel_info.get('BNO') or broadcast_no
         password_protected = channel_info.get('BPWD')
         if not broadcast_no:
-            raise ExtractorError(f'Unable to extract broadcast number ({broadcaster_id} may not be live)', expected=True)
+            raise UserNotLive(video_id=broadcaster_id)
+
         if password_protected == 'Y' and password is None:
             raise ExtractorError(
                 'This livestream is protected by a password, use the --video-password option',
                 expected=True)
 
-        formats = []
-        quality_key = qualities(self._QUALITIES)
-        for quality_str in self._QUALITIES:
-            params = {
-                'bno': broadcast_no,
-                'stream_type': 'common',
-                'type': 'aid',
-                'quality': quality_str,
-            }
-            if password is not None:
-                params['pwd'] = password
-            aid_response = self._download_json(
-                self._LIVE_API_URL, broadcast_no, fatal=False,
-                data=urlencode_postdata(params),
-                note=f'Downloading access token for {quality_str} stream',
-                errnote=f'Unable to download access token for {quality_str} stream')
-            aid = traverse_obj(aid_response, ('CHANNEL', 'AID'))
-            if not aid:
-                continue
+        params = {'bno': broadcast_no, 'stream_type': 'common', 'type': 'aid', 'quality': 'master', 'pwd': password}
 
-            stream_base_url = channel_info.get('RMD') or 'https://livestream-manager.afreecatv.com'
-            stream_info = self._download_json(
-                f'{stream_base_url}/broad_stream_assign.html', broadcast_no, fatal=False,
-                query={
-                    'return_type': channel_info.get('CDN', 'gcp_cdn'),
-                    'broad_key': f'{broadcast_no}-common-{quality_str}-hls',
-                },
-                note=f'Downloading metadata for {quality_str} stream',
-                errnote=f'Unable to download metadata for {quality_str} stream') or {}
+        aid_response = self._download_json(self._LIVE_API_URL, broadcast_no, data=urlencode_postdata(params),
+                                           note='Downloading access token for stream',
+                                           errnote='Unable to download access token for stream')
+        aid = traverse_obj(aid_response, ('CHANNEL', 'AID'))
+        if not aid:
+            raise ExtractorError(f'Unable to extract AID from {aid_response}', expected=False)
 
-            if stream_info.get('view_url'):
-                formats.append({
-                    'format_id': quality_str,
-                    'url': update_url_query(stream_info['view_url'], {'aid': aid}),
-                    'ext': 'mp4',
-                    'protocol': 'm3u8',
-                    'quality': quality_key(quality_str),
-                })
+        stream_base_url = channel_info.get('RMD') or 'https://livestream-manager.afreecatv.com'
+        stream_info = self._download_json(f'{stream_base_url}/broad_stream_assign.html', broadcast_no, query={
+            # works: gs_cdn_pc_app, gs_cdn_mobile_web, gs_cdn_pc_web
+            'return_type': 'gs_cdn_pc_app',
+            'broad_key': f'{broadcast_no}-common-master-hls',
+        }, note='Downloading metadata for stream', errnote='Unable to download metadata for stream')
 
-        station_info = self._download_json(
-            'https://st.afreecatv.com/api/get_station_status.php', broadcast_no,
-            query={'szBjId': broadcaster_id}, fatal=False,
-            note='Downloading channel metadata', errnote='Unable to download channel metadata') or {}
+        station_info = self._download_json('https://st.afreecatv.com/api/get_station_status.php', broadcast_no,
+                                           query={'szBjId': broadcaster_id}, note='Downloading channel metadata',
+                                           errnote='Unable to download channel metadata')
+
+        formats = self._extract_m3u8_formats(update_url_query(stream_info['view_url'], {'aid': aid}),
+                                             broadcast_no, 'mp4', m3u8_id='hls', headers={'Referer': url})
+        # Add Referer to download the segments
+        for f in formats:
+            f.setdefault('http_headers', {})['Referer'] = url
 
         return {
             'id': broadcast_no,
