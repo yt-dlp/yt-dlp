@@ -105,8 +105,8 @@ class FranceTVIE(InfoExtractor):
         # desktop+chrome returns dash; mobile+safari returns hls
         for device_type, browser in [('desktop', 'chrome'), ('mobile', 'safari')]:
             dinfo = self._download_json(
-                'https://player.webservices.francetelevisions.fr/v1/videos/%s' % video_id,
-                video_id, f'Downloading {device_type} {browser} video JSON', query=filter_dict({
+                f'https://k7.ftven.fr/videos/{video_id}', video_id,
+                f'Downloading {device_type} {browser} video JSON', query=filter_dict({
                     'device_type': device_type,
                     'browser': browser,
                     'domain': hostname,
