@@ -1,3 +1,4 @@
+import re
 import urllib.parse
 
 from .common import InfoExtractor
@@ -101,12 +102,12 @@ class FranceTVIE(InfoExtractor):
         timestamp = None
         spritesheets = None
 
-        for device_type in ('desktop', 'mobile'):
+        for device_type, browser in [('desktop', 'chrome'), ('mobile', 'safari')]:
             dinfo = self._download_json(
                 'https://player.webservices.francetelevisions.fr/v1/videos/%s' % video_id,
                 video_id, f'Downloading {device_type} video JSON', query=filter_dict({
                     'device_type': device_type,
-                    'browser': 'chrome',
+                    'browser': browser,
                     'domain': hostname,
                 }), fatal=False)
 
@@ -156,23 +157,28 @@ class FranceTVIE(InfoExtractor):
             ext = determine_ext(video_url)
             if ext == 'f4m':
                 formats.extend(self._extract_f4m_formats(
-                    video_url, video_id, f4m_id=format_id, fatal=False))
+                    video_url, video_id, f4m_id=format_id or ext, fatal=False))
             elif ext == 'm3u8':
+                format_id = format_id or 'hls'
                 fmts, subs = self._extract_m3u8_formats_and_subtitles(
-                    video_url, video_id, 'mp4',
-                    entry_protocol='m3u8_native', m3u8_id=format_id,
-                    fatal=False)
+                    video_url, video_id, 'mp4', m3u8_id=format_id, fatal=False)
+                for f in traverse_obj(fmts, lambda _, v: v['vcodec'] == 'none' and v.get('tbr') is None):
+                    if mobj := re.match(rf'{format_id}-[Aa]udio-\w+-(?P<bitrate>\d+)', f['format_id']):
+                        f.update({
+                            'tbr': int_or_none(mobj.group('bitrate')),
+                            'acodec': 'mp4a',
+                        })
                 formats.extend(fmts)
                 self._merge_subtitles(subs, target=subtitles)
             elif ext == 'mpd':
                 fmts, subs = self._extract_mpd_formats_and_subtitles(
-                    video_url, video_id, mpd_id=format_id, fatal=False)
+                    video_url, video_id, mpd_id=format_id or 'dash', fatal=False)
                 formats.extend(fmts)
                 self._merge_subtitles(subs, target=subtitles)
             elif video_url.startswith('rtmp'):
                 formats.append({
                     'url': video_url,
-                    'format_id': 'rtmp-%s' % format_id,
+                    'format_id': join_nonempty('rtmp', format_id),
                     'ext': 'flv',
                 })
             else:
@@ -227,6 +233,7 @@ class FranceTVIE(InfoExtractor):
             'series': title if episode_number else None,
             'episode_number': int_or_none(episode_number),
             'season_number': int_or_none(season_number),
+            '_format_sort_fields': ('res', 'tbr', 'proto'),  # prioritize m3u8 over dash
         }
 
     def _real_extract(self, url):
