@@ -36,6 +36,8 @@ from ..utils import (
 class NiconicoIE(InfoExtractor):
     IE_NAME = 'niconico'
     IE_DESC = 'ニコニコ動画'
+    _GEO_COUNTRIES = ['JP']
+    _GEO_BYPASS = False
 
     _TESTS = [{
         'url': 'http://www.nicovideo.jp/watch/sm22312215',
@@ -478,15 +480,27 @@ class NiconicoIE(InfoExtractor):
                     raise
                 raise ExtractorError(clean_html(error_msg), expected=True)
 
-        club_joined = traverse_obj(api_data, ('channel', 'viewer', 'follow', 'isFollowed', {bool}))
-        if club_joined is None:
-            fail_msg = self._html_search_regex(
+        availability = self._availability(**(traverse_obj(api_data, ('payment', 'video', {
+            'needs_premium': ('isPremium', {bool}),
+            'needs_subscription': ('isAdmission', {bool}),
+        })) or {'needs_auth': True}))
+        formats = [*self._yield_dmc_formats(api_data, video_id),
+                   *self._yield_dms_formats(api_data, video_id)]
+        if not formats:
+            fail_msg = clean_html(self._html_search_regex(
                 r'<p[^>]+\bclass="fail-message"[^>]*>(?P<msg>.+?)</p>',
-                webpage, 'fail message', default=None, group='msg')
+                webpage, 'fail message', default=None, group='msg'))
             if fail_msg:
-                self.raise_login_required(clean_html(fail_msg), metadata_available=True)
-        elif not club_joined:
-            self.raise_login_required('This video is for members only', metadata_available=True)
+                self.to_screen(f'Niconico said: {fail_msg}')
+            if fail_msg and 'された地域と同じ地域からのみ視聴できます。' in fail_msg:
+                availability = None
+                self.raise_geo_restricted(countries=self._GEO_COUNTRIES, metadata_available=True)
+            elif availability == 'premium_only':
+                self.raise_login_required('This video requires premium', metadata_available=True)
+            elif availability == 'subscriber_only':
+                self.raise_login_required('This video is for members only', metadata_available=True)
+            elif availability == 'needs_auth':
+                self.raise_login_required(metadata_available=False)
 
         # Start extracting information
         tags = None
@@ -512,8 +526,8 @@ class NiconicoIE(InfoExtractor):
             'id': video_id,
             '_api_data': api_data,
             'title': get_video_info(('originalTitle', 'title')) or self._og_search_title(webpage, default=None),
-            'formats': [*self._yield_dmc_formats(api_data, video_id),
-                        *self._yield_dms_formats(api_data, video_id)],
+            'formats': formats,
+            'availability': availability,
             'thumbnails': [{
                 'id': key,
                 'url': url,
