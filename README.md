@@ -218,7 +218,7 @@ Example usage:
 yt-dlp --update-to nightly
 
 # To install nightly with pip:
-python -m pip install -U --pre yt-dlp
+python -m pip install -U --pre yt-dlp[default]
 ```
 
 <!-- MANPAGE: BEGIN EXCLUDED SECTION -->
