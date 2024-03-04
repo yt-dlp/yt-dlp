@@ -379,7 +379,6 @@ from .clubic import ClubicIE
 from .clyp import ClypIE
 from .cmt import CMTIE
 from .cnbc import (
-    CNBCIE,
     CNBCVideoIE,
 )
 from .cnn import (
@@ -445,6 +444,7 @@ from .dailymail import DailyMailIE
 from .dailymotion import (
     DailymotionIE,
     DailymotionPlaylistIE,
+    DailymotionSearchIE,
     DailymotionUserIE,
 )
 from .dailywire import (
@@ -2500,6 +2500,7 @@ from .zee5 import (
     Zee5SeriesIE,
 )
 from .zeenews import ZeeNewsIE
+from .zenporn import ZenPornIE
 from .zetland import ZetlandDKArticleIE
 from .zhihu import ZhihuIE
 from .zingmp3 import (
