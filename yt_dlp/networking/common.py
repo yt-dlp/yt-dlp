@@ -68,6 +68,7 @@ class RequestDirector:
     def close(self):
         for handler in self.handlers.values():
             handler.close()
+        self.handlers = {}
 
     def add_handler(self, handler: RequestHandler):
         """Add a handler. If a handler of the same RH_KEY exists, it will overwrite it"""
