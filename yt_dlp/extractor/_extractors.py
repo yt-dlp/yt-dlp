@@ -444,6 +444,7 @@ from .dailymail import DailyMailIE
 from .dailymotion import (
     DailymotionIE,
     DailymotionPlaylistIE,
+    DailymotionSearchIE,
     DailymotionUserIE,
 )
 from .dailywire import (
