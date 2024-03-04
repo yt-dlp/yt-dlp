@@ -690,7 +690,6 @@ class YoutubeDL:
         self.params['http_headers'] = HTTPHeaderDict(std_headers, self.params.get('http_headers'))
         self._load_cookies(self.params['http_headers'].get('Cookie'))  # compat
         self.params['http_headers'].pop('Cookie', None)
-        self._request_director = self.build_request_director(_REQUEST_HANDLERS.values(), _RH_PREFERENCES)
 
         if auto_init and auto_init != 'no_verbose_header':
             self.print_debug_header()
@@ -964,6 +963,7 @@ class YoutubeDL:
     def close(self):
         self.save_cookies()
         self._request_director.close()
+        del self._request_director
 
     def trouble(self, message=None, tb=None, is_error=True):
         """Determine action to take when a download problem appears.
@@ -4159,6 +4159,10 @@ class YoutubeDL:
         if 'prefer-legacy-http-handler' in self.params['compat_opts']:
             director.preferences.add(lambda rh, _: 500 if rh.RH_KEY == 'Urllib' else 0)
         return director
+
+    @functools.cached_property
+    def _request_director(self):
+        return self.build_request_director(_REQUEST_HANDLERS.values(), _RH_PREFERENCES)
 
     def encode(self, s):
         if isinstance(s, bytes):
