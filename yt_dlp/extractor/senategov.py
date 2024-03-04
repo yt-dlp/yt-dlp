@@ -188,9 +188,9 @@ class SenateGovIE(InfoExtractor):
                              f'https://www-senate-gov-msl3archive.akamaized.net/{msl3}/{filename}_1/master.m3u8',
                              f'{stream_domain}/i/{filename}_1@{stream_num}/master.m3u8',
                              f'{stream_domain}/i/{filename}.mp4/master.m3u8']
-        for videourl in urls_alternatives:
-            formats = self._extract_m3u8_formats(videourl, display_id, ext='mp4', fatal=False)
-            if len(formats) > 0:
+        for video_url in urls_alternatives:
+            formats = self._extract_m3u8_formats(video_url, display_id, ext='mp4', fatal=False)
+            if formats:
                 break
 
         title = self._html_search_regex(
