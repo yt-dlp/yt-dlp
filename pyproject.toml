@@ -51,7 +51,8 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-curl_cffi = ["curl_cffi>=0.5.10,<0.6.0"]
+default = []
+curl_cffi = ["curl-cffi>=0.5.10,<0.6.0"]
 secretstorage = [
     "cffi",
     "secretstorage",
