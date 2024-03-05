@@ -2,7 +2,7 @@ import functools
 
 from .common import InfoExtractor
 from ..utils import (
-    ExtractorError,
+    UserNotLive,
     float_or_none,
     int_or_none,
     parse_iso8601,
@@ -40,7 +40,7 @@ class CHZZKLiveIE(InfoExtractor):
             note='Downloading channel info', errnote='Unable to download channel info')['content']
 
         if live_detail.get('status') == 'CLOSE':
-            raise ExtractorError('The channel is not currently live', expected=True)
+            raise UserNotLive(video_id=channel_id)
 
         live_playback = self._parse_json(live_detail['livePlaybackJson'], channel_id)
 
