@@ -1,16 +1,11 @@
-from .common import InfoExtractor
 from .art19 import Art19IE
-
-from ..utils import (
-    ExtractorError,
-    extract_attributes,
-    get_elements_html_by_class,
-    traverse_obj,
-)
+from .common import InfoExtractor
+from ..utils import extract_attributes, get_elements_html_by_class
+from ..utils.traversal import traverse_obj
 
 
 class RideHomeIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?ridehome\.info/show/techmeme-ride-home/(?P<id>[\w-]+)(?:/|$)'
+    _VALID_URL = r'https?://(?:www\.)?ridehome\.info/show/[\w-]+/(?P<id>[\w-]+)/?(?:$|[?#])'
     _TESTS = [{
         'url': 'https://www.ridehome.info/show/techmeme-ride-home/thu-1228-will-2024-be-the-year-apple-gets-serious-about-gaming-on-macs/',
         'md5': 'c84ea3cc96950a9ab86fe540f3edc588',
@@ -51,24 +46,33 @@ class RideHomeIE(InfoExtractor):
             'duration': 2789.38122,
             'thumbnail': r're:^https?://content\.production\.cdn\.art19\.com/images/.*\.jpeg$'
         }
+    }, {
+        'url': 'https://www.ridehome.info/show/spacecasts/big-tech-news-apples-macbook-pro-event/',
+        'md5': 'b1428530c6e03904a8271e978007fc05',
+        'info_dict': {
+            'id': 'f4780044-6c4b-4ce0-8215-8a86cc66bff7',
+            'ext': 'mp3',
+            'title': 'md5:e6c05d44d59b6577a4145ac339de5040',
+            'description': 'md5:14152f7228c8a301a77e3d6bc891b145',
+            'series': 'SpaceCasts',
+            'series_id': '8e3e837d-7fe0-4a23-8e11-894917e07e17',
+            'upload_date': '20211026',
+            'timestamp': 1635271450,
+            'modified_date': '20230502',
+            'episode_id': 'f4780044-6c4b-4ce0-8215-8a86cc66bff7',
+            'modified_timestamp': 1683057500,
+            'release_date': '20211026',
+            'release_timestamp': 1635272124,
+            'duration': 2266.30531,
+            'thumbnail': r're:^https?://content\.production\.cdn\.art19\.com/images/.*\.jpeg$'
+        }
     }]
-
-    def _entries(self, containers):
-        for container in containers:
-            yield self.url_result(container, Art19IE)
 
     def _real_extract(self, url):
         article_id = self._match_id(url)
         webpage = self._download_webpage(url, article_id)
 
-        containers = traverse_obj(
-            get_elements_html_by_class(
-                'iframeContainer', webpage), (..., {extract_attributes}, 'data-src'))
-        if not containers:
-            raise ExtractorError('Unable to extract any media containers from webpage')
-
-        # couldn't find an example with multiple containers. This is just a safeguard.
-        if len(containers) > 1:
-            return self.playlist_result(self._entries(containers), article_id)
-
-        return self.url_result(containers[0], Art19IE)
+        urls = traverse_obj(
+            get_elements_html_by_class('iframeContainer', webpage),
+            (..., {extract_attributes}, lambda k, v: k == 'data-src' and Art19IE.suitable(v)))
+        return self.playlist_from_matches(urls, article_id, ie=Art19IE)
