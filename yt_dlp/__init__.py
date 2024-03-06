@@ -1,7 +1,5 @@
 import sys
 
-from .networking.impersonate import ImpersonateTarget
-
 if sys.version_info < (3, 8):
     raise ImportError(
         f'You are using an unsupported version of Python. Only Python versions 3.8 and above are supported by yt-dlp')  # noqa: F541
@@ -21,6 +19,7 @@ from .cookies import SUPPORTED_BROWSERS, SUPPORTED_KEYRINGS
 from .downloader.external import get_external_downloader
 from .extractor import list_extractor_classes
 from .extractor.adobepass import MSO_INFO
+from .networking.impersonate import ImpersonateTarget
 from .options import parseOpts
 from .postprocessor import (
     FFmpegExtractAudioPP,
