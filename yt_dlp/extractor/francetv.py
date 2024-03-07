@@ -255,6 +255,26 @@ class FranceTVSiteIE(FranceTVBaseInfoExtractor):
             'duration': 1441,
         },
     }, {
+        # geo-restricted livestream (workflow == 'token-akamai')
+        'url': 'https://www.france.tv/france-4/direct.html',
+        'info_dict': {
+            'id': '9a6a7670-dde9-4264-adbc-55b89558594b',
+            'ext': 'mp4',
+            'title': r're:France 4 en direct .+',
+            'live_status': 'is_live',
+        },
+        'skip': 'geo-restricted livestream',
+    }, {
+        # livestream (workflow == 'dai')
+        'url': 'https://www.france.tv/france-2/direct.html',
+        'info_dict': {
+            'id': '006194ea-117d-4bcf-94a9-153d999c59ae',
+            'ext': 'mp4',
+            'title': r're:France 2 en direct .+',
+            'live_status': 'is_live',
+        },
+        'params': {'skip_download': 'livestream'},
+    }, {
         # france3
         'url': 'https://www.france.tv/france-3/des-chiffres-et-des-lettres/139063-emission-du-mardi-9-mai-2017.html',
         'only_matching': True,
@@ -269,10 +289,6 @@ class FranceTVSiteIE(FranceTVBaseInfoExtractor):
     }, {
         # franceo
         'url': 'https://www.france.tv/france-o/archipels/132249-mon-ancetre-l-esclave.html',
-        'only_matching': True,
-    }, {
-        # france2 live
-        'url': 'https://www.france.tv/france-2/direct.html',
         'only_matching': True,
     }, {
         'url': 'https://www.france.tv/documentaires/histoire/136517-argentine-les-500-bebes-voles-de-la-dictature.html',
