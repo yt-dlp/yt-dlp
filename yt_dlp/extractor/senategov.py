@@ -47,7 +47,6 @@ _COMMITTEES = {
 
 
 class SenateISVPIE(InfoExtractor):
-    _WORKING = False
     _IE_NAME = 'senate.gov:isvp'
     _VALID_URL = r'https?://(?:www\.)?senate\.gov/isvp/?\?(?P<qs>.+)'
     _EMBED_REGEX = [r"<iframe[^>]+src=['\"](?P<url>https?://www\.senate\.gov/isvp/?\?[^'\"]+)['\"]"]
@@ -141,7 +140,6 @@ class SenateISVPIE(InfoExtractor):
 
 
 class SenateGovIE(InfoExtractor):
-    _WORKING = False
     _IE_NAME = 'senate.gov'
     _VALID_URL = r'https?:\/\/(?:www\.)?(help|appropriations|judiciary|banking|armed-services|finance)\.senate\.gov'
     _TESTS = [{
