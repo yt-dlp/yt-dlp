@@ -375,7 +375,6 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'uploader_url': r're:https?://(?:www\.)?vimeo\.com/businessofsoftware',
                 'uploader_id': 'businessofsoftware',
                 'duration': 3610,
-                'description': None,
                 'thumbnail': 'https://i.vimeocdn.com/video/376682406-f34043e7b766af6bef2af81366eacd6724f3fc3173179a11a97a1e26587c9529-d_1280',
             },
             'params': {
