@@ -84,8 +84,6 @@ class ChingariIE(ChingariBaseIE):
             'uploader_id': '5f0403982c8bd344f4813f8c',
             'uploader': 'ISKCON,Inc.',
             'uploader_url': 'https://chingari.io/iskcon,inc',
-            'track': None,
-            'artist': None,
         },
         'params': {'skip_download': True}
     }]
@@ -125,8 +123,6 @@ class ChingariUserIE(ChingariBaseIE):
                 'uploader_id': '5efc4b12cca35c3d1794c2d3',
                 'uploader': 'dada (girish) dhawale',
                 'uploader_url': 'https://chingari.io/dada1023',
-                'track': None,
-                'artist': None
             },
             'params': {'skip_download': True}
         }, {
@@ -147,8 +143,6 @@ class ChingariUserIE(ChingariBaseIE):
                 'uploader_id': '5efc4b12cca35c3d1794c2d3',
                 'uploader': 'dada (girish) dhawale',
                 'uploader_url': 'https://chingari.io/dada1023',
-                'track': None,
-                'artist': None
             },
             'params': {'skip_download': True}
         }, {
@@ -169,8 +163,6 @@ class ChingariUserIE(ChingariBaseIE):
                 'uploader_id': '5efc4b12cca35c3d1794c2d3',
                 'uploader': 'dada (girish) dhawale',
                 'uploader_url': 'https://chingari.io/dada1023',
-                'track': None,
-                'artist': None
             },
             'params': {'skip_download': True}
         }],
