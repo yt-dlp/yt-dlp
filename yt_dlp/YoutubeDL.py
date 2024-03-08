@@ -3576,6 +3576,8 @@ class YoutubeDL:
                     raise
                 self.report_warning(f'The info failed to download: {e}; trying with URL {webpage_url}')
                 self.download([webpage_url])
+            except ExtractorError as e:
+                self.report_error(str(e), e.format_traceback())
         return self._download_retcode
 
     @staticmethod
