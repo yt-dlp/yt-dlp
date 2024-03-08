@@ -2,16 +2,17 @@ from .common import InfoExtractor
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
+    LazyList,
     int_or_none,
     join_nonempty,
-    LazyList,
+    parse_iso8601,
     parse_qs,
     str_or_none,
     traverse_obj,
+    update_url_query,
     url_or_none,
     urlencode_postdata,
     urljoin,
-    update_url_query,
 )
 
 
@@ -70,6 +71,7 @@ class RoosterTeethBaseIE(InfoExtractor):
             'episode_id': str_or_none(data.get('uuid')),
             'channel_id': attributes.get('channel_id'),
             'duration': int_or_none(attributes.get('length')),
+            'release_timestamp': parse_iso8601(attributes.get('original_air_date')),
             'thumbnails': thumbnails,
             'availability': self._availability(
                 needs_premium=sub_only, needs_subscription=sub_only, needs_auth=sub_only,
