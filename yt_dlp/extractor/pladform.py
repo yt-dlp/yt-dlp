@@ -35,7 +35,6 @@ class PladformIE(InfoExtractor):
             'thumbnail': str,
             'view_count': int,
             'description': str,
-            'categories': list,
             'uploader_id': '12082',
             'uploader': 'Comedy Club',
             'duration': 367,

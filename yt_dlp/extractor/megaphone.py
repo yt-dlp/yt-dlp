@@ -16,7 +16,7 @@ class MegaphoneIE(InfoExtractor):
             'title': '#97 What Kind Of Idiot Gets Phished?',
             'thumbnail': r're:^https://.*\.png.*$',
             'duration': 1998.36,
-            'creator': 'Reply All',
+            'creators': ['Reply All'],
         },
     }
 
@@ -40,7 +40,7 @@ class MegaphoneIE(InfoExtractor):
             'id': video_id,
             'thumbnail': thumbnail,
             'title': title,
-            'creator': author,
+            'creators': [author] if author else None,
             'duration': episode_data['duration'],
             'formats': formats,
         }
