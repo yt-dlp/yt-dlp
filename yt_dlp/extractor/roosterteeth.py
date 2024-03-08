@@ -131,6 +131,31 @@ class RoosterTeethIE(RoosterTeethBaseIE):
         },
         'params': {'skip_download': True},
     }, {
+        # only works with video_data['attributes']['url'] m3u8 url
+        'url': 'https://www.roosterteeth.com/watch/achievement-hunter-achievement-hunter-fatality-walkthrough-deathstroke-lex-luthor-captain-marvel-green-lantern-and-wonder-woman',
+        'info_dict': {
+            'id': '25394',
+            'ext': 'mp4',
+            'title': 'Fatality Walkthrough: Deathstroke, Lex Luthor, Captain Marvel, Green Lantern, and Wonder Woman',
+            'description': 'md5:91bb934698344fb9647b1c7351f16964',
+            'availability': 'public',
+            'thumbnail': r're:^https?://.*\.(png|jpe?g)$',
+            'episode': 'Fatality Walkthrough: Deathstroke, Lex Luthor, Captain Marvel, Green Lantern, and Wonder Woman',
+            'episode_number': 71,
+            'episode_id': 'ffaec998-464d-11e7-a302-065410f210c4',
+            'season': 'Season 2008',
+            'tags': ['Gaming'],
+            'series': 'Achievement Hunter',
+            'display_id': 'md5:4465ce4f001735f9d7a2ae529a543d31',
+            'season_id': 'ffa13340-464d-11e7-a302-065410f210c4',
+            'season_number': 2008,
+            'channel_id': '2cb2a70c-be50-46f5-93d7-84a1baabb4f7',
+            'duration': 189,
+            'release_timestamp': 1228317300,
+            'release_date': '20081203',
+        },
+        'params': {'skip_download': True},
+    }, {
         'url': 'http://achievementhunter.roosterteeth.com/episode/off-topic-the-achievement-hunter-podcast-2016-i-didn-t-think-it-would-pass-31',
         'only_matching': True,
     }, {
