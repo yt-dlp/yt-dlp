@@ -42,7 +42,6 @@ class EplusIbIE(InfoExtractor):
             'live_status': 'was_live',
             'release_date': '20210719',
             'release_timestamp': 1626703200,
-            'description': None,
         },
         'params': {
             'skip_download': True,

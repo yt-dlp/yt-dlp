@@ -267,9 +267,9 @@ class GameJoltIE(GameJoltBaseIE):
                 'id': 'dszyjnwi',
                 'ext': 'webm',
                 'title': 'gif-presentacion-mejorado-dszyjnwi',
-                'n_entries': 1,
             }
-        }]
+        }],
+        'playlist_count': 1,
     }, {
         # Multiple GIFs
         'url': 'https://gamejolt.com/p/gif-yhsqkumq',
@@ -374,7 +374,6 @@ class GameJoltGameSoundtrackIE(GameJoltBaseIE):
         'info_dict': {
             'id': '657899',
             'title': 'Friday Night Funkin\': Vs Oswald',
-            'n_entries': None,
         },
         'playlist': [{
             'info_dict': {
@@ -384,7 +383,6 @@ class GameJoltGameSoundtrackIE(GameJoltBaseIE):
                 'url': r're:^https://.+vs-oswald-menu-music\.mp3$',
                 'release_timestamp': 1635190816,
                 'release_date': '20211025',
-                'n_entries': 3,
             }
         }, {
             'info_dict': {
@@ -394,7 +392,6 @@ class GameJoltGameSoundtrackIE(GameJoltBaseIE):
                 'url': r're:^https://.+rabbit-s-luck--full-version-\.mp3$',
                 'release_timestamp': 1635190841,
                 'release_date': '20211025',
-                'n_entries': 3,
             }
         }, {
             'info_dict': {
@@ -404,9 +401,9 @@ class GameJoltGameSoundtrackIE(GameJoltBaseIE):
                 'url': r're:^https://.+last-straw\.mp3$',
                 'release_timestamp': 1635881104,
                 'release_date': '20211102',
-                'n_entries': 3,
             }
-        }]
+        }],
+        'playlist_count': 3,
     }]
 
     def _real_extract(self, url):

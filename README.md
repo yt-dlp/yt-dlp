@@ -1310,6 +1310,8 @@ The available fields are:
  - `description` (string): The description of the video
  - `display_id` (string): An alternative identifier for the video
  - `uploader` (string): Full name of the video uploader
+ - `uploader_id` (string): Nickname or id of the video uploader
+ - `uploader_url` (string): URL to the video uploader's profile
  - `license` (string): License name the video is licensed under
  - `creators` (list): The creators of the video
  - `creator` (string): The creators of the video; comma-separated
@@ -1320,9 +1322,9 @@ The available fields are:
  - `release_year` (numeric): Year (YYYY) when the video or album was released
  - `modified_timestamp` (numeric): UNIX timestamp of the moment the video was last modified
  - `modified_date` (string): The date (YYYYMMDD) when the video was last modified in UTC
- - `uploader_id` (string): Nickname or id of the video uploader
  - `channel` (string): Full name of the channel the video is uploaded on
  - `channel_id` (string): Id of the channel
+ - `channel_url` (string): URL of the channel
  - `channel_follower_count` (numeric): Number of followers of the channel
  - `channel_is_verified` (boolean): Whether the channel is verified on the platform
  - `location` (string): Physical location where the video was filmed
@@ -1362,7 +1364,10 @@ The available fields are:
  - `webpage_url_basename` (string): The basename of the webpage URL
  - `webpage_url_domain` (string): The domain of the webpage URL
  - `original_url` (string): The URL given by the user (or same as `webpage_url` for playlist entries)
- 
+ - `categories` (list): List of categories the video belongs to
+ - `tags` (list): List of tags assigned to the video
+ - `cast` (list): List of cast members
+
 All the fields in [Filtering Formats](#filtering-formats) can also be used
 
 Available for the video that belongs to some logical chapter or section:
@@ -1374,6 +1379,7 @@ Available for the video that belongs to some logical chapter or section:
 Available for the video that is an episode of some series or programme:
 
  - `series` (string): Title of the series or programme the video episode belongs to
+ - `series_id` (string): Id of the series or programme the video episode belongs to
  - `season` (string): Title of the season the video episode belongs to
  - `season_number` (numeric): Number of the season the video episode belongs to
  - `season_id` (string): Id of the season the video episode belongs to
