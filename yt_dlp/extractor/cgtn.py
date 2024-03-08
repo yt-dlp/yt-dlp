@@ -17,6 +17,7 @@ class CGTNIE(InfoExtractor):
                 'thumbnail': r're:^https?://.*\.jpg$',
                 'timestamp': 1615295940,
                 'upload_date': '20210309',
+                'categories': ['Video'],
             },
             'params': {
                 'skip_download': True
@@ -29,7 +30,7 @@ class CGTNIE(InfoExtractor):
                 'title': 'China, Indonesia vow to further deepen maritime cooperation',
                 'thumbnail': r're:^https?://.*\.png$',
                 'description': 'China and Indonesia vowed to upgrade their cooperation into the maritime sector and also for political security, economy, and cultural and people-to-people exchanges.',
-                'creator': 'CGTN',
+                'creators': ['CGTN'],
                 'categories': ['China'],
                 'timestamp': 1622950200,
                 'upload_date': '20210606',
@@ -45,8 +46,12 @@ class CGTNIE(InfoExtractor):
         webpage = self._download_webpage(url, video_id)
 
         download_url = self._html_search_regex(r'data-video ="(?P<url>.+m3u8)"', webpage, 'download_url')
-        datetime_str = self._html_search_regex(r'<span class="date">\s*(.+?)\s*</span>', webpage, 'datetime_str', fatal=False)
-        category = self._html_search_regex(r'<span class="section">\s*(.+?)\s*</span>', webpage, 'category', fatal=False)
+        datetime_str = self._html_search_regex(
+            r'<span class="date">\s*(.+?)\s*</span>', webpage, 'datetime_str', fatal=False)
+        category = self._html_search_regex(
+            r'<span class="section">\s*(.+?)\s*</span>', webpage, 'category', fatal=False)
+        author = self._search_regex(
+            r'<div class="news-author-name">\s*(.+?)\s*</div>', webpage, 'author', default=None)
 
         return {
             'id': video_id,
@@ -55,7 +60,6 @@ class CGTNIE(InfoExtractor):
             'thumbnail': self._og_search_thumbnail(webpage),
             'formats': self._extract_m3u8_formats(download_url, video_id, 'mp4', 'm3u8_native', m3u8_id='hls'),
             'categories': [category] if category else None,
-            'creator': self._html_search_regex(r'<div class="news-author-name">\s*(.+?)\s*</div>',
-                                               webpage, 'author', default=None, fatal=False),
+            'creators': [author] if author else None,
             'timestamp': try_get(unified_timestamp(datetime_str), lambda x: x - 8 * 3600),
         }
