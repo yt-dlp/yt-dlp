@@ -102,6 +102,8 @@ class RoosterTeethIE(RoosterTeethBaseIE):
             'season_id': 'ffa27d48-464d-11e7-a302-065410f210c4',
             'channel_id': '92b6bb21-91d2-4b1b-bf95-3268fa0d9939',
             'duration': 145,
+            'release_timestamp': 1462982400,
+            'release_date': '20160511',
         },
         'params': {'skip_download': True},
     }, {
@@ -124,6 +126,8 @@ class RoosterTeethIE(RoosterTeethBaseIE):
             'series': 'RWBY: World of Remnant',
             'season_number': 1,
             'duration': 216,
+            'release_timestamp': 1413489600,
+            'release_date': '20141016',
         },
         'params': {'skip_download': True},
     }, {
