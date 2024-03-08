@@ -373,7 +373,6 @@ from .clubic import ClubicIE
 from .clyp import ClypIE
 from .cmt import CMTIE
 from .cnbc import (
-    CNBCIE,
     CNBCVideoIE,
 )
 from .cnn import (
@@ -439,6 +438,7 @@ from .dailymail import DailyMailIE
 from .dailymotion import (
     DailymotionIE,
     DailymotionPlaylistIE,
+    DailymotionSearchIE,
     DailymotionUserIE,
 )
 from .dailywire import (
@@ -610,6 +610,7 @@ from .filmon import (
 from .filmweb import FilmwebIE
 from .firsttv import FirstTVIE
 from .fivetv import FiveTVIE
+from .flextv import FlexTVIE
 from .flickr import FlickrIE
 from .floatplane import (
     FloatplaneIE,
@@ -1616,6 +1617,7 @@ from .restudy import RestudyIE
 from .reuters import ReutersIE
 from .reverbnation import ReverbNationIE
 from .rheinmaintv import RheinMainTVIE
+from .ridehome import RideHomeIE
 from .rinsefm import (
     RinseFMIE,
     RinseFMArtistPlaylistIE,
@@ -2472,6 +2474,7 @@ from .zee5 import (
     Zee5SeriesIE,
 )
 from .zeenews import ZeeNewsIE
+from .zenporn import ZenPornIE
 from .zetland import ZetlandDKArticleIE
 from .zhihu import ZhihuIE
 from .zingmp3 import (

@@ -21,6 +21,7 @@ from ..utils import (
     parse_qs,
     smuggle_url,
     str_or_none,
+    traverse_obj,
     try_get,
     unified_timestamp,
     unsmuggle_url,
@@ -48,17 +49,15 @@ class VimeoBaseInfoExtractor(InfoExtractor):
         return url, data, headers
 
     def _perform_login(self, username, password):
-        webpage = self._download_webpage(
-            self._LOGIN_URL, None, 'Downloading login page')
-        token, vuid = self._extract_xsrft_and_vuid(webpage)
+        viewer = self._download_json('https://vimeo.com/_next/viewer', None, 'Downloading login token')
         data = {
             'action': 'login',
             'email': username,
             'password': password,
             'service': 'vimeo',
-            'token': token,
+            'token': viewer['xsrft'],
         }
-        self._set_vimeo_cookie('vuid', vuid)
+        self._set_vimeo_cookie('vuid', viewer['vuid'])
         try:
             self._download_webpage(
                 self._LOGIN_URL, None, 'Logging in',
@@ -123,7 +122,13 @@ class VimeoBaseInfoExtractor(InfoExtractor):
         video_data = config['video']
         video_title = video_data.get('title')
         live_event = video_data.get('live_event') or {}
-        is_live = live_event.get('status') == 'started'
+        live_status = {
+            'pending': 'is_upcoming',
+            'active': 'is_upcoming',
+            'started': 'is_live',
+            'ended': 'post_live',
+        }.get(live_event.get('status'))
+        is_live = live_status == 'is_live'
         request = config.get('request') or {}
 
         formats = []
@@ -232,7 +237,8 @@ class VimeoBaseInfoExtractor(InfoExtractor):
             'chapters': chapters or None,
             'formats': formats,
             'subtitles': subtitles,
-            'is_live': is_live,
+            'live_status': live_status,
+            'release_timestamp': traverse_obj(live_event, ('ingest', 'scheduled_start_time', {parse_iso8601})),
             # Note: Bitrates are completely broken. Single m3u8 may contain entries in kbps and bps
             # at the same time without actual units specified.
             '_format_sort_fields': ('quality', 'res', 'fps', 'hdr:12', 'source'),
@@ -369,7 +375,6 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'uploader_url': r're:https?://(?:www\.)?vimeo\.com/businessofsoftware',
                 'uploader_id': 'businessofsoftware',
                 'duration': 3610,
-                'description': None,
                 'thumbnail': 'https://i.vimeocdn.com/video/376682406-f34043e7b766af6bef2af81366eacd6724f3fc3173179a11a97a1e26587c9529-d_1280',
             },
             'params': {

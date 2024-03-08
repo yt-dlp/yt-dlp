@@ -4,6 +4,7 @@ from ..utils import (
     ExtractorError,
     int_or_none,
     parse_iso8601,
+    str_or_none,
 )
 
 
@@ -17,7 +18,7 @@ class BleacherReportIE(InfoExtractor):
             'id': '2496438',
             'ext': 'mp4',
             'title': 'FSU Stat Projections: Is Jalen Ramsey Best Defensive Player in College Football?',
-            'uploader_id': 3992341,
+            'uploader_id': '3992341',
             'description': 'CFB, ACC, Florida State',
             'timestamp': 1434380212,
             'upload_date': '20150615',
@@ -34,7 +35,7 @@ class BleacherReportIE(InfoExtractor):
             'timestamp': 1446839961,
             'uploader': 'Sean Fay',
             'description': 'md5:b1601e2314c4d8eec23b6eafe086a757',
-            'uploader_id': 6466954,
+            'uploader_id': '6466954',
             'upload_date': '20151011',
         },
         'add_ie': ['Youtube'],
@@ -59,7 +60,7 @@ class BleacherReportIE(InfoExtractor):
             'id': article_id,
             'title': article_data['title'],
             'uploader': article_data.get('author', {}).get('name'),
-            'uploader_id': article_data.get('authorId'),
+            'uploader_id': str_or_none(article_data.get('authorId')),
             'timestamp': parse_iso8601(article_data.get('createdAt')),
             'thumbnails': thumbnails,
             'comment_count': int_or_none(article_data.get('commentsCount')),

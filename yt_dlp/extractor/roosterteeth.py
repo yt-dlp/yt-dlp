@@ -2,16 +2,17 @@ from .common import InfoExtractor
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
+    LazyList,
     int_or_none,
     join_nonempty,
-    LazyList,
+    parse_iso8601,
     parse_qs,
     str_or_none,
     traverse_obj,
+    update_url_query,
     url_or_none,
     urlencode_postdata,
     urljoin,
-    update_url_query,
 )
 
 
@@ -70,6 +71,7 @@ class RoosterTeethBaseIE(InfoExtractor):
             'episode_id': str_or_none(data.get('uuid')),
             'channel_id': attributes.get('channel_id'),
             'duration': int_or_none(attributes.get('length')),
+            'release_timestamp': parse_iso8601(attributes.get('original_air_date')),
             'thumbnails': thumbnails,
             'availability': self._availability(
                 needs_premium=sub_only, needs_subscription=sub_only, needs_auth=sub_only,
@@ -91,6 +93,17 @@ class RoosterTeethIE(RoosterTeethBaseIE):
             'thumbnail': r're:^https?://.*\.png$',
             'series': 'Million Dollars, But...',
             'episode': 'Million Dollars, But... The Game Announcement',
+            'tags': ['Game Show', 'Sketch'],
+            'season_number': 2,
+            'availability': 'public',
+            'episode_number': 10,
+            'episode_id': '00374575-464e-11e7-a302-065410f210c4',
+            'season': 'Season 2',
+            'season_id': 'ffa27d48-464d-11e7-a302-065410f210c4',
+            'channel_id': '92b6bb21-91d2-4b1b-bf95-3268fa0d9939',
+            'duration': 145,
+            'release_timestamp': 1462982400,
+            'release_date': '20160511',
         },
         'params': {'skip_download': True},
     }, {
@@ -104,6 +117,42 @@ class RoosterTeethIE(RoosterTeethBaseIE):
             'channel_id': '92f780eb-ebfe-4bf5-a3b5-c6ad5460a5f1',
             'thumbnail': r're:^https?://.*\.(png|jpe?g)$',
             'ext': 'mp4',
+            'availability': 'public',
+            'episode_id': 'f8117b13-f068-499e-803e-eec9ea2dec8c',
+            'episode_number': 3,
+            'tags': ['Animation'],
+            'season_id': '4b8f0a9e-12c4-41ed-8caa-fed15a85bab8',
+            'season': 'Season 1',
+            'series': 'RWBY: World of Remnant',
+            'season_number': 1,
+            'duration': 216,
+            'release_timestamp': 1413489600,
+            'release_date': '20141016',
+        },
+        'params': {'skip_download': True},
+    }, {
+        # only works with video_data['attributes']['url'] m3u8 url
+        'url': 'https://www.roosterteeth.com/watch/achievement-hunter-achievement-hunter-fatality-walkthrough-deathstroke-lex-luthor-captain-marvel-green-lantern-and-wonder-woman',
+        'info_dict': {
+            'id': '25394',
+            'ext': 'mp4',
+            'title': 'Fatality Walkthrough: Deathstroke, Lex Luthor, Captain Marvel, Green Lantern, and Wonder Woman',
+            'description': 'md5:91bb934698344fb9647b1c7351f16964',
+            'availability': 'public',
+            'thumbnail': r're:^https?://.*\.(png|jpe?g)$',
+            'episode': 'Fatality Walkthrough: Deathstroke, Lex Luthor, Captain Marvel, Green Lantern, and Wonder Woman',
+            'episode_number': 71,
+            'episode_id': 'ffaec998-464d-11e7-a302-065410f210c4',
+            'season': 'Season 2008',
+            'tags': ['Gaming'],
+            'series': 'Achievement Hunter',
+            'display_id': 'md5:4465ce4f001735f9d7a2ae529a543d31',
+            'season_id': 'ffa13340-464d-11e7-a302-065410f210c4',
+            'season_number': 2008,
+            'channel_id': '2cb2a70c-be50-46f5-93d7-84a1baabb4f7',
+            'duration': 189,
+            'release_timestamp': 1228317300,
+            'release_date': '20081203',
         },
         'params': {'skip_download': True},
     }, {
@@ -133,10 +182,10 @@ class RoosterTeethIE(RoosterTeethBaseIE):
 
         try:
             video_data = self._download_json(
-                api_episode_url + '/videos', display_id,
-                'Downloading video JSON metadata')['data'][0]
+                api_episode_url + '/videos', display_id, 'Downloading video JSON metadata',
+                headers={'Client-Type': 'web'})['data'][0]  # web client-type yields ad-free streams
             m3u8_url = video_data['attributes']['url']
-            # XXX: additional URL at video_data['links']['download']
+            # XXX: additional ad-free URL at video_data['links']['download'] but often gives 403 errors
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError) and e.cause.status == 403:
                 if self._parse_json(e.cause.response.read().decode(), display_id).get('access') is False:

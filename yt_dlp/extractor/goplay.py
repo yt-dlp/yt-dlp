@@ -40,6 +40,22 @@ class GoPlayIE(InfoExtractor):
             'title': 'A Family for the Holidays',
         },
         'skip': 'This video is only available for registered users'
+    }, {
+        'url': 'https://www.goplay.be/video/de-mol/de-mol-s11/de-mol-s11-aflevering-1#autoplay',
+        'info_dict': {
+            'id': '03eb8f2f-153e-41cb-9805-0d3a29dab656',
+            'ext': 'mp4',
+            'title': 'S11 - Aflevering 1',
+            'episode': 'Episode 1',
+            'series': 'De Mol',
+            'season_number': 11,
+            'episode_number': 1,
+            'season': 'Season 11'
+        },
+        'params': {
+            'skip_download': True
+        },
+        'skip': 'This video is only available for registered users'
     }]
 
     _id_token = None
@@ -77,16 +93,39 @@ class GoPlayIE(InfoExtractor):
 
         api = self._download_json(
             f'https://api.goplay.be/web/v1/videos/long-form/{video_id}',
-            video_id, headers={'Authorization': 'Bearer %s' % self._id_token})
+            video_id, headers={
+                'Authorization': 'Bearer %s' % self._id_token,
+                **self.geo_verification_headers(),
+            })
 
-        formats, subs = self._extract_m3u8_formats_and_subtitles(
-            api['manifestUrls']['hls'], video_id, ext='mp4', m3u8_id='HLS')
+        if 'manifestUrls' in api:
+            formats, subtitles = self._extract_m3u8_formats_and_subtitles(
+                api['manifestUrls']['hls'], video_id, ext='mp4', m3u8_id='HLS')
+
+        else:
+            if 'ssai' not in api:
+                raise ExtractorError('expecting Google SSAI stream')
+
+            ssai_content_source_id = api['ssai']['contentSourceID']
+            ssai_video_id = api['ssai']['videoID']
+
+            dai = self._download_json(
+                f'https://dai.google.com/ondemand/dash/content/{ssai_content_source_id}/vid/{ssai_video_id}/streams',
+                video_id, data=b'{"api-key":"null"}',
+                headers={'content-type': 'application/json'})
+
+            periods = self._extract_mpd_periods(dai['stream_manifest'], video_id)
+
+            # skip pre-roll and mid-roll ads
+            periods = [p for p in periods if '-ad-' not in p['id']]
+
+            formats, subtitles = self._merge_mpd_periods(periods)
 
         info_dict.update({
             'id': video_id,
             'formats': formats,
+            'subtitles': subtitles,
         })
-
         return info_dict
 
 

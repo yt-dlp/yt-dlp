@@ -14,7 +14,7 @@ import os
 import re
 import traceback
 
-from .compat import compat_shlex_quote
+from .compat import compat_os_name, compat_shlex_quote
 from .cookies import SUPPORTED_BROWSERS, SUPPORTED_KEYRINGS
 from .downloader.external import get_external_downloader
 from .extractor import list_extractor_classes
@@ -984,7 +984,28 @@ def _real_main(argv=None):
             if pre_process:
                 return ydl._download_retcode
 
-            ydl.warn_if_short_id(sys.argv[1:] if argv is None else argv)
+            args = sys.argv[1:] if argv is None else argv
+            ydl.warn_if_short_id(args)
+
+            # Show a useful error message and wait for keypress if not launched from shell on Windows
+            if not args and compat_os_name == 'nt' and getattr(sys, 'frozen', False):
+                import ctypes.wintypes
+                import msvcrt
+
+                kernel32 = ctypes.WinDLL('Kernel32')
+
+                buffer = (1 * ctypes.wintypes.DWORD)()
+                attached_processes = kernel32.GetConsoleProcessList(buffer, 1)
+                # If we only have a single process attached, then the executable was double clicked
+                # When using `pyinstaller` with `--onefile`, two processes get attached
+                is_onefile = hasattr(sys, '_MEIPASS') and os.path.basename(sys._MEIPASS).startswith('_MEI')
+                if attached_processes == 1 or is_onefile and attached_processes == 2:
+                    print(parser._generate_error_message(
+                        'Do not double-click the executable, instead call it from a command line.\n'
+                        'Please read the README for further information on how to use yt-dlp: '
+                        'https://github.com/yt-dlp/yt-dlp#readme'))
+                    msvcrt.getch()
+                    _exit(2)
             parser.error(
                 'You must provide at least one URL.\n'
                 'Type yt-dlp --help to see a list of all options.')
