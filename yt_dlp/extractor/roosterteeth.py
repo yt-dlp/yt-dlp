@@ -152,8 +152,9 @@ class RoosterTeethIE(RoosterTeethBaseIE):
         try:
             video_data = self._download_json(
                 api_episode_url + '/videos', display_id, 'Downloading video JSON metadata',
-                headers={'Client-Type': 'web'})['data'][0]
-            m3u8_url = traverse_obj(video_data, ('links', 'download')) or traverse_obj(video_data, ('attributes', 'url'))
+                headers={'Client-Type': 'web'})['data'][0]  # web client-type yields ad-free streams
+            m3u8_url = video_data['attributes']['url']
+            # XXX: additional ad-free URL at video_data['links']['download'] but often gives 403 errors
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError) and e.cause.status == 403:
                 if self._parse_json(e.cause.response.read().decode(), display_id).get('access') is False:
