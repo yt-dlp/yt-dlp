@@ -8,7 +8,7 @@ class CrtvgIE(InfoExtractor):
         'url': 'https://www.crtvg.es/tvg/a-carta/os-caimans-do-tea-5839623',
         'md5': 'c0958d9ff90e4503a75544358758921d',
         'info_dict': {
-            'id': '5839623',
+            'id': 'os-caimans-do-tea-5839623',
             'title': 'Os caimáns do Tea',
             'ext': 'mp4',
             'description': 'md5:f71cfba21ae564f0a6f415b31de1f842',
