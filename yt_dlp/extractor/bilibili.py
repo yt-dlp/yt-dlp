@@ -1996,7 +1996,7 @@ class BiliIntlIE(BiliIntlBaseIE):
                 'title': get_element_by_class(
                     'bstar-meta__title', webpage) or self._html_search_meta('og:title', webpage),
                 'description': get_element_by_class(
-                    'bstar-meta__desc', webpage) or self._html_search_meta('og:description'),
+                    'bstar-meta__desc', webpage) or self._html_search_meta('og:description', webpage),
             }, self._search_json_ld(webpage, video_id, default={}))
 
     def _get_comments_reply(self, root_id, next_id=0, display_id=None):

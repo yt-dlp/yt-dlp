@@ -167,8 +167,8 @@ For ease of use, a few more compat options are available:
 * `--compat-options youtube-dl`: Same as `--compat-options all,-multistreams,-playlist-match-filter,-manifest-filesize-approx`
 * `--compat-options youtube-dlc`: Same as `--compat-options all,-no-live-chat,-no-youtube-channel-redirect,-playlist-match-filter,-manifest-filesize-approx`
 * `--compat-options 2021`: Same as `--compat-options 2022,no-certifi,filename-sanitization,no-youtube-prefer-utc-upload-date`
-* `--compat-options 2022`: Same as `--compat-options 2023,playlist-match-filter,no-external-downloader-progress`
-* `--compat-options 2023`: Same as `--compat-options prefer-legacy-http-handler,manifest-filesize-approx`. Use this to enable all future compat options
+* `--compat-options 2022`: Same as `--compat-options 2023,playlist-match-filter,no-external-downloader-progress,prefer-legacy-http-handler,manifest-filesize-approx`
+* `--compat-options 2023`: Currently does nothing. Use this to enable all future compat options
 
 
 # INSTALLATION
@@ -218,7 +218,7 @@ Example usage:
 yt-dlp --update-to nightly
 
 # To install nightly with pip:
-python -m pip install -U --pre yt-dlp
+python -m pip install -U --pre yt-dlp[default]
 ```
 
 <!-- MANPAGE: BEGIN EXCLUDED SECTION -->
@@ -1310,8 +1310,11 @@ The available fields are:
  - `description` (string): The description of the video
  - `display_id` (string): An alternative identifier for the video
  - `uploader` (string): Full name of the video uploader
+ - `uploader_id` (string): Nickname or id of the video uploader
+ - `uploader_url` (string): URL to the video uploader's profile
  - `license` (string): License name the video is licensed under
- - `creator` (string): The creator of the video
+ - `creators` (list): The creators of the video
+ - `creator` (string): The creators of the video; comma-separated
  - `timestamp` (numeric): UNIX timestamp of the moment the video became available
  - `upload_date` (string): Video upload date in UTC (YYYYMMDD)
  - `release_timestamp` (numeric): UNIX timestamp of the moment the video was released
@@ -1319,9 +1322,9 @@ The available fields are:
  - `release_year` (numeric): Year (YYYY) when the video or album was released
  - `modified_timestamp` (numeric): UNIX timestamp of the moment the video was last modified
  - `modified_date` (string): The date (YYYYMMDD) when the video was last modified in UTC
- - `uploader_id` (string): Nickname or id of the video uploader
  - `channel` (string): Full name of the channel the video is uploaded on
  - `channel_id` (string): Id of the channel
+ - `channel_url` (string): URL of the channel
  - `channel_follower_count` (numeric): Number of followers of the channel
  - `channel_is_verified` (boolean): Whether the channel is verified on the platform
  - `location` (string): Physical location where the video was filmed
@@ -1361,7 +1364,10 @@ The available fields are:
  - `webpage_url_basename` (string): The basename of the webpage URL
  - `webpage_url_domain` (string): The domain of the webpage URL
  - `original_url` (string): The URL given by the user (or same as `webpage_url` for playlist entries)
- 
+ - `categories` (list): List of categories the video belongs to
+ - `tags` (list): List of tags assigned to the video
+ - `cast` (list): List of cast members
+
 All the fields in [Filtering Formats](#filtering-formats) can also be used
 
 Available for the video that belongs to some logical chapter or section:
@@ -1373,6 +1379,7 @@ Available for the video that belongs to some logical chapter or section:
 Available for the video that is an episode of some series or programme:
 
  - `series` (string): Title of the series or programme the video episode belongs to
+ - `series_id` (string): Id of the series or programme the video episode belongs to
  - `season` (string): Title of the season the video episode belongs to
  - `season_number` (numeric): Number of the season the video episode belongs to
  - `season_id` (string): Id of the season the video episode belongs to
@@ -1385,11 +1392,16 @@ Available for the media that is a track or a part of a music album:
  - `track` (string): Title of the track
  - `track_number` (numeric): Number of the track within an album or a disc
  - `track_id` (string): Id of the track
- - `artist` (string): Artist(s) of the track
- - `genre` (string): Genre(s) of the track
+ - `artists` (list): Artist(s) of the track
+ - `artist` (string): Artist(s) of the track; comma-separated
+ - `genres` (list): Genre(s) of the track
+ - `genre` (string): Genre(s) of the track; comma-separated
+ - `composers` (list): Composer(s) of the piece
+ - `composer` (string): Composer(s) of the piece; comma-separated
  - `album` (string): Title of the album the track belongs to
  - `album_type` (string): Type of the album
- - `album_artist` (string): List of all artists appeared on the album
+ - `album_artists` (list): All artists appeared on the album
+ - `album_artist` (string): All artists appeared on the album; comma-separated
  - `disc_number` (numeric): Number of the disc or other physical medium the track belongs to
 
 Available only when using `--download-sections` and for `chapter:` prefix when using `--split-chapters` for videos with internal chapters:
@@ -1767,10 +1779,11 @@ Metadata fields            | From
 `description`,  `synopsis` | `description`
 `purl`, `comment`          | `webpage_url`
 `track`                    | `track_number`
-`artist`                   | `artist`, `creator`, `uploader` or `uploader_id`
-`genre`                    | `genre`
+`artist`                   | `artist`, `artists`, `creator`, `creators`, `uploader` or `uploader_id`
+`composer`                 | `composer` or `composers`
+`genre`                    | `genre` or `genres`
 `album`                    | `album`
-`album_artist`             | `album_artist`
+`album_artist`             | `album_artist` or `album_artists`
 `disc`                     | `disc_number`
 `show`                     | `series`
 `season_number`            | `season_number`

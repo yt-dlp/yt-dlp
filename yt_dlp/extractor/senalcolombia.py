@@ -3,6 +3,7 @@ from .rtvcplay import RTVCKalturaIE
 
 
 class SenalColombiaLiveIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?senalcolombia\.tv/(?P<id>senal-en-vivo)'
 
     _TESTS = [{

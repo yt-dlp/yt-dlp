@@ -13,6 +13,7 @@ from ..utils import (
 
 
 class EuropaIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://ec\.europa\.eu/avservices/(?:video/player|audio/audioDetails)\.cfm\?.*?\bref=(?P<id>[A-Za-z0-9-]+)'
     _TESTS = [{
         'url': 'http://ec.europa.eu/avservices/video/player.cfm?ref=I107758',
