@@ -7,6 +7,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import platform
+import traceback
 
 from PyInstaller.__main__ import run as run_pyinstaller
 
@@ -129,4 +130,8 @@ def windows_set_version(exe, version):
 
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except Exception:
+        print(traceback.format_exc(), file=sys.stderr)
+        sys.exit(1)

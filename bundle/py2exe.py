@@ -6,6 +6,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+import traceback
 import warnings
 
 from py2exe import freeze
@@ -20,7 +21,7 @@ def main():
         'py2exe builds do not support pycryptodomex and needs VC++14 to run. '
         'It is recommended to run "pyinst.py" to build using pyinstaller instead')
 
-    return freeze(
+    freeze(
         console=[{
             'script': './yt_dlp/__main__.py',
             'dest_base': 'yt-dlp',
@@ -56,4 +57,8 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except Exception:
+        print(traceback.format_exc(), file=sys.stderr)
+        sys.exit(1)
