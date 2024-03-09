@@ -236,7 +236,7 @@ class RoosterTeethIE(RoosterTeethBaseIE):
             formats, subtitles = self._extract_m3u8_formats_and_subtitles(
                 m3u8_url, display_id, 'mp4', 'm3u8_native', m3u8_id='hls')
         except ExtractorError as e:
-            if isinstance(e.cause, HTTPError) and e.cause.status == 403 and is_brightcove and bc_id:
+            if is_brightcove and bc_id and isinstance(e.cause, HTTPError) and e.cause.status == 403:
                 self.report_warning(
                     'Direct m3u8 URL returned HTTP Error 403; retrying with Brightcove extraction')
                 formats, subtitles = self._extract_brightcove_formats_and_subtitles(bc_id, url, m3u8_url)
