@@ -7,6 +7,7 @@ from ..utils import (
     join_nonempty,
     parse_iso8601,
     parse_qs,
+    smuggle_url,
     str_or_none,
     traverse_obj,
     update_url_query,
@@ -156,6 +157,31 @@ class RoosterTeethIE(RoosterTeethBaseIE):
         },
         'params': {'skip_download': True},
     }, {
+        # brightcove fallback extraction needed
+        'url': 'https://roosterteeth.com/watch/lets-play-2013-126',
+        'info_dict': {
+            'id': '17845',
+            'ext': 'mp4',
+            'title': 'WWE \'13',
+            'availability': 'public',
+            'series': 'Let\'s Play',
+            'episode_number': 10,
+            'season_id': 'ffa23d9c-464d-11e7-a302-065410f210c4',
+            'channel_id': '75ba87e8-06fd-4482-bad9-52a4da2c6181',
+            'episode': 'WWE \'13',
+            'episode_id': 'ffdbe55e-464d-11e7-a302-065410f210c4',
+            'thumbnail': r're:^https?://.*\.(png|jpe?g)$',
+            'tags': ['Gaming', 'Our Favorites'],
+            'description': 'md5:b4a5226d2bbcf0dafbde11a2ba27262d',
+            'display_id': 'lets-play-2013-126',
+            'season_number': 3,
+            'season': 'Season 3',
+            'release_timestamp': 1359999840,
+            'release_date': '20130204',
+        },
+        'expected_warnings': ['Direct m3u8 URL returned HTTP Error 403'],
+        'params': {'skip_download': True},
+    }, {
         'url': 'http://achievementhunter.roosterteeth.com/episode/off-topic-the-achievement-hunter-podcast-2016-i-didn-t-think-it-would-pass-31',
         'only_matching': True,
     }, {
@@ -176,6 +202,16 @@ class RoosterTeethIE(RoosterTeethBaseIE):
         'only_matching': True,
     }]
 
+    _BRIGHTCOVE_ACCOUNT_ID = '6203312018001'
+
+    def _extract_brightcove_formats_and_subtitles(self, bc_id, url, m3u8_url):
+        account_id = self._search_regex(
+            r'/accounts/(\d+)/videos/', m3u8_url, 'account id', default=self._BRIGHTCOVE_ACCOUNT_ID)
+        info = self._downloader.get_info_extractor('BrightcoveNew').extract(smuggle_url(
+            f'https://players.brightcove.net/{account_id}/default_default/index.html?videoId={bc_id}',
+            {'referrer': url}))
+        return info['formats'], info['subtitles']
+
     def _real_extract(self, url):
         display_id = self._match_id(url)
         api_episode_url = f'{self._API_BASE_URL}/watch/{display_id}'
@@ -184,8 +220,6 @@ class RoosterTeethIE(RoosterTeethBaseIE):
             video_data = self._download_json(
                 api_episode_url + '/videos', display_id, 'Downloading video JSON metadata',
                 headers={'Client-Type': 'web'})['data'][0]  # web client-type yields ad-free streams
-            m3u8_url = video_data['attributes']['url']
-            # XXX: additional ad-free URL at video_data['links']['download'] but often gives 403 errors
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError) and e.cause.status == 403:
                 if self._parse_json(e.cause.response.read().decode(), display_id).get('access') is False:
@@ -193,8 +227,21 @@ class RoosterTeethIE(RoosterTeethBaseIE):
                         '%s is only available for FIRST members' % display_id)
             raise
 
-        formats, subtitles = self._extract_m3u8_formats_and_subtitles(
-            m3u8_url, display_id, 'mp4', 'm3u8_native', m3u8_id='hls')
+        # XXX: additional ad-free URL at video_data['links']['download'] but often gives 403 errors
+        m3u8_url = video_data['attributes']['url']
+        is_brightcove = traverse_obj(video_data, ('attributes', 'encoding_pipeline')) == 'brightcove'
+        bc_id = traverse_obj(video_data, ('attributes', 'uid', {str}))
+
+        try:
+            formats, subtitles = self._extract_m3u8_formats_and_subtitles(
+                m3u8_url, display_id, 'mp4', 'm3u8_native', m3u8_id='hls')
+        except ExtractorError as e:
+            if is_brightcove and bc_id and isinstance(e.cause, HTTPError) and e.cause.status == 403:
+                self.report_warning(
+                    'Direct m3u8 URL returned HTTP Error 403; retrying with Brightcove extraction')
+                formats, subtitles = self._extract_brightcove_formats_and_subtitles(bc_id, url, m3u8_url)
+            else:
+                raise
 
         episode = self._download_json(
             api_episode_url, display_id,
