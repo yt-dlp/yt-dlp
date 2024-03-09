@@ -1,6 +1,7 @@
 import re
+
 from .common import InfoExtractor
-from ..utils import remove_end, make_archive_id
+from ..utils import make_archive_id, remove_end
 
 
 class CrtvgIE(InfoExtractor):
@@ -14,6 +15,7 @@ class CrtvgIE(InfoExtractor):
             'ext': 'mp4',
             'description': 'md5:f71cfba21ae564f0a6f415b31de1f842',
             'thumbnail': r're:^https?://.*\.(?:jpg|png)',
+            '_old_archive_ids': ['crtvg 5839623'],
         },
         'params': {'skip_download': 'm3u8'}
     }, {
