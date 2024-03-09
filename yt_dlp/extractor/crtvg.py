@@ -1,5 +1,6 @@
+import re
 from .common import InfoExtractor
-from ..utils import remove_end
+from ..utils import remove_end, make_archive_id
 
 
 class CrtvgIE(InfoExtractor):
@@ -15,8 +16,7 @@ class CrtvgIE(InfoExtractor):
             'thumbnail': r're:^https?://.*\.(?:jpg|png)',
         },
         'params': {'skip_download': 'm3u8'}
-    },
-    {
+    }, {
         'url': 'https://www.crtvg.es/tvg/a-carta/a-parabolica-love-story',
         'md5': '9a47b95a1749db7b7eb3214904624584',
         'info_dict': {
