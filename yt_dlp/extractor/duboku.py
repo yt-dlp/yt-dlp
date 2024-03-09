@@ -131,9 +131,10 @@ class DubokuIE(InfoExtractor):
         data_url = player_data.get('url')
         if not data_url:
             raise ExtractorError('Cannot find url in player_data')
-        if player_data.get('encrypt') == 1:
+        player_encrypt = player_data.get('encrypt')
+        if player_encrypt == 1:
             data_url = urllib.parse.unquote(data_url)
-        if player_data.get('encrypt') == 2:
+        elif player_encrypt == 2:
             data_url = urllib.parse.unquote(base64.b64decode(data_url).decode('ascii'))
 
         # if it is an embedded iframe, maybe it's an external source
