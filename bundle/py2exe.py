@@ -6,7 +6,6 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import traceback
 import warnings
 
 from py2exe import freeze
@@ -57,8 +56,4 @@ def main():
 
 
 if __name__ == '__main__':
-    try:
-        main()
-    except Exception:
-        print(traceback.format_exc(), file=sys.stderr)
-        sys.exit(1)
+    main()
