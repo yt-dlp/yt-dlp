@@ -1,3 +1,4 @@
+from itertools import chain
 from .common import InfoExtractor
 from ..networking.exceptions import HTTPError
 from ..utils import (
@@ -63,9 +64,9 @@ class RoosterTeethBaseIE(InfoExtractor):
             'display_id': attributes.get('slug'),
             'title': title,
             'description': traverse_obj(attributes, 'description', 'caption'),
-            'series': attributes.get('show_title'),
+            'series': traverse_obj(attributes, 'show_title', 'parent_content_title'),
             'season_number': int_or_none(attributes.get('season_number')),
-            'season_id': attributes.get('season_id'),
+            'season_id': str_or_none(attributes.get('season_id')),
             'episode': title,
             'episode_number': int_or_none(attributes.get('number')),
             'episode_id': str_or_none(data.get('uuid')),
@@ -81,7 +82,7 @@ class RoosterTeethBaseIE(InfoExtractor):
 
 
 class RoosterTeethIE(RoosterTeethBaseIE):
-    _VALID_URL = r'https?://(?:.+?\.)?roosterteeth\.com/(?:episode|watch)/(?P<id>[^/?#&]+)'
+    _VALID_URL = r'https?://(?:.+?\.)?roosterteeth\.com/(?:bonus-feature|episode|watch)/(?P<id>[^/?#&]+)'
     _TESTS = [{
         'url': 'http://roosterteeth.com/episode/million-dollars-but-season-2-million-dollars-but-the-game-announcement',
         'info_dict': {
@@ -131,6 +132,30 @@ class RoosterTeethIE(RoosterTeethBaseIE):
         },
         'params': {'skip_download': True},
     }, {
+        'url': 'https://roosterteeth.com/watch/rwby-bonus-21',
+        'info_dict': {
+            'id': '33',
+            'display_id': 'rwby-bonus-21',
+            'title': 'Volume 5 Yang Character Short',
+            'description': 'md5:8c2440bc763ea90c52cfe0a68093e1f7',
+            'episode': 'Volume 5 Yang Character Short',
+            'channel_id': '92f780eb-ebfe-4bf5-a3b5-c6ad5460a5f1',
+            'thumbnail': r're:^https?://.*\.(png|jpe?g)$',
+            'ext': 'mp4',
+            'availability': 'public',
+            'episode_id': 'f2a9f132-1fe2-44ad-8956-63d7c0267720',
+            'episode_number': 55,
+            'tags': None,
+            'season_id': None,
+            'season': None,
+            'series': 'RWBY',
+            'season_number': None,
+            'duration': 255,
+            'release_timestamp': 1507993200,
+            'release_date': '20171014',
+        },
+        'params': {'skip_download': True},
+    }, {
         # only works with video_data['attributes']['url'] m3u8 url
         'url': 'https://www.roosterteeth.com/watch/achievement-hunter-achievement-hunter-fatality-walkthrough-deathstroke-lex-luthor-captain-marvel-green-lantern-and-wonder-woman',
         'info_dict': {
@@ -173,6 +198,9 @@ class RoosterTeethIE(RoosterTeethBaseIE):
         'only_matching': True,
     }, {
         'url': 'https://roosterteeth.com/watch/million-dollars-but-season-2-million-dollars-but-the-game-announcement',
+        'only_matching': True,
+    }, {
+        'url': 'https://roosterteeth.com/bonus-feature/camp-camp-soundtrack-another-rap-song-about-foreign-cars-richie-branson',
         'only_matching': True,
     }]
 
@@ -218,6 +246,13 @@ class RoosterTeethSeriesIE(RoosterTeethBaseIE):
             'title': 'RWBY - Season 7',
         }
     }, {
+        'url': 'https://roosterteeth.com/series/the-weird-place',
+        'playlist_count': 7,
+        'info_dict': {
+            'id': 'the-weird-place',
+            'title': 'The Weird Place',
+        }
+    }, {
         'url': 'https://roosterteeth.com/series/role-initiative',
         'playlist_mincount': 16,
         'info_dict': {
@@ -235,7 +270,6 @@ class RoosterTeethSeriesIE(RoosterTeethBaseIE):
 
     def _entries(self, series_id, season_number):
         display_id = join_nonempty(series_id, season_number)
-        # TODO: extract bonus material
         for data in self._download_json(
                 f'{self._API_BASE_URL}/shows/{series_id}/seasons?order=asc&order_by', display_id)['data']:
             idx = traverse_obj(data, ('attributes', 'number'))
@@ -249,11 +283,26 @@ class RoosterTeethSeriesIE(RoosterTeethBaseIE):
                     RoosterTeethIE.ie_key(),
                     **self._extract_video_info(episode))
 
+    def _bonus_feature_entries(self, series_id):
+        display_id = join_nonempty(series_id, 'Bonus Features')
+        bonus_url = f'{self._API_BASE_URL}/shows/{series_id}/bonus_features?order=asc&order_by&per_page=1000'
+        data = self._download_json(bonus_url, display_id, 'Downloading bonus features JSON metadata')['data']
+        for episode in data:
+            yield self.url_result(
+                f'https://www.roosterteeth.com{episode["canonical_links"]["self"]}',
+                RoosterTeethIE.ie_key(),
+                **self._extract_video_info(episode))
+
     def _real_extract(self, url):
         series_id = self._match_id(url)
         season_number = traverse_obj(parse_qs(url), ('season', 0), expected_type=int_or_none)
+        print(season_number)
 
-        entries = LazyList(self._entries(series_id, season_number))
+        entries = self._entries(series_id, season_number)
+        if season_number is None:
+            entries = chain(entries, self._bonus_feature_entries(series_id))
+
+        entries = LazyList(entries)
         return self.playlist_result(
             entries,
             join_nonempty(series_id, season_number),
