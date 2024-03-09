@@ -7,6 +7,7 @@ import math
 import re
 import time
 import urllib.parse
+import uuid
 
 from .common import InfoExtractor, SearchInfoExtractor
 from ..dependencies import Cryptodome
@@ -18,6 +19,7 @@ from ..utils import (
     OnDemandPagedList,
     bool_or_none,
     clean_html,
+    determine_ext,
     filter_dict,
     float_or_none,
     format_field,
@@ -1304,6 +1306,26 @@ class BilibiliPlaylistIE(BilibiliSpaceListBaseIE):
         },
         'playlist_mincount': 513,
     }, {
+        'url': 'https://www.bilibili.com/list/1958703906?sid=547718&oid=687146339&bvid=BV1DU4y1r7tz',
+        'info_dict': {
+            'id': 'BV1DU4y1r7tz',
+            'ext': 'mp4',
+            'title': '【直播回放】8.20晚9:30 3d发布喵 2022年8月20日21点场',
+            'upload_date': '20220820',
+            'description': '',
+            'timestamp': 1661016330,
+            'uploader_id': '1958703906',
+            'uploader': '靡烟miya',
+            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+            'duration': 9552.903,
+            'tags': list,
+            'comment_count': int,
+            'view_count': int,
+            'like_count': int,
+            '_old_archive_ids': ['bilibili 687146339_part1'],
+        },
+        'params': {'noplaylist': True},
+    }, {
         'url': 'https://www.bilibili.com/medialist/play/1958703906?business=space_series&business_id=547718&desc=1',
         'info_dict': {
             'id': '5_547718',
@@ -1354,6 +1376,11 @@ class BilibiliPlaylistIE(BilibiliSpaceListBaseIE):
 
     def _real_extract(self, url):
         list_id = self._match_id(url)
+
+        bvid = traverse_obj(parse_qs(url), ('bvid', 0))
+        if not self._yes_playlist(list_id, bvid):
+            return self.url_result(f'https://www.bilibili.com/video/{bvid}', BiliBiliIE)
+
         webpage = self._download_webpage(url, list_id)
         initial_state = self._search_json(r'window\.__INITIAL_STATE__\s*=', webpage, 'initial state', list_id)
         if traverse_obj(initial_state, ('error', 'code', {int_or_none})) != 200:
@@ -1463,8 +1490,37 @@ class BiliBiliSearchIE(SearchInfoExtractor):
     IE_DESC = 'Bilibili video search'
     _MAX_RESULTS = 100000
     _SEARCH_KEY = 'bilisearch'
+    _TESTS = [{
+        'url': 'bilisearch3:靡烟 出道一年，我怎么还在等你单推的女人睡觉后开播啊',
+        'playlist_count': 3,
+        'info_dict': {
+            'id': '靡烟 出道一年，我怎么还在等你单推的女人睡觉后开播啊',
+            'title': '靡烟 出道一年，我怎么还在等你单推的女人睡觉后开播啊',
+        },
+        'playlist': [{
+            'info_dict': {
+                'id': 'BV1n44y1Q7sc',
+                'ext': 'mp4',
+                'title': '“出道一年，我怎么还在等你单推的女人睡觉后开播啊？”【一分钟了解靡烟miya】',
+                'timestamp': 1669889987,
+                'upload_date': '20221201',
+                'description': 'md5:43343c0973defff527b5a4b403b4abf9',
+                'tags': list,
+                'uploader': '靡烟miya',
+                'duration': 123.156,
+                'uploader_id': '1958703906',
+                'comment_count': int,
+                'view_count': int,
+                'like_count': int,
+                'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+                '_old_archive_ids': ['bilibili 988222410_part1'],
+            },
+        }],
+    }]
 
     def _search_results(self, query):
+        if not self._get_cookies('https://api.bilibili.com').get('buvid3'):
+            self._set_cookie('.bilibili.com', 'buvid3', f'{uuid.uuid4()}infoc')
         for page_num in itertools.count(1):
             videos = self._download_json(
                 'https://api.bilibili.com/x/web-interface/search/type', query,
@@ -1621,6 +1677,7 @@ class BiliBiliPlayerIE(InfoExtractor):
 class BiliIntlBaseIE(InfoExtractor):
     _API_URL = 'https://api.bilibili.tv/intl/gateway'
     _NETRC_MACHINE = 'biliintl'
+    _HEADERS = {'Referer': 'https://www.bilibili.com/'}
 
     def _call_api(self, endpoint, *args, **kwargs):
         json = self._download_json(self._API_URL + endpoint, *args, **kwargs)
@@ -1658,19 +1715,34 @@ class BiliIntlBaseIE(InfoExtractor):
                 'aid': aid,
             })) or {}
         subtitles = {}
-        for sub in sub_json.get('subtitles') or []:
-            sub_url = sub.get('url')
-            if not sub_url:
-                continue
-            sub_data = self._download_json(
-                sub_url, ep_id or aid, errnote='Unable to download subtitles', fatal=False,
-                note='Downloading subtitles%s' % f' for {sub["lang"]}' if sub.get('lang') else '')
-            if not sub_data:
-                continue
-            subtitles.setdefault(sub.get('lang_key', 'en'), []).append({
-                'ext': 'srt',
-                'data': self.json2srt(sub_data)
-            })
+        fetched_urls = set()
+        for sub in traverse_obj(sub_json, (('subtitles', 'video_subtitle'), ..., {dict})):
+            for url in traverse_obj(sub, ((None, 'ass', 'srt'), 'url', {url_or_none})):
+                if url in fetched_urls:
+                    continue
+                fetched_urls.add(url)
+                sub_ext = determine_ext(url)
+                sub_lang = sub.get('lang_key') or 'en'
+
+                if sub_ext == 'ass':
+                    subtitles.setdefault(sub_lang, []).append({
+                        'ext': 'ass',
+                        'url': url,
+                    })
+                elif sub_ext == 'json':
+                    sub_data = self._download_json(
+                        url, ep_id or aid, fatal=False,
+                        note=f'Downloading subtitles{format_field(sub, "lang", " for %s")} ({sub_lang})',
+                        errnote='Unable to download subtitles')
+
+                    if sub_data:
+                        subtitles.setdefault(sub_lang, []).append({
+                            'ext': 'srt',
+                            'data': self.json2srt(sub_data),
+                        })
+                else:
+                    self.report_warning('Unexpected subtitle extension', ep_id or aid)
+
         return subtitles
 
     def _get_formats(self, *, ep_id=None, aid=None):
@@ -1716,7 +1788,9 @@ class BiliIntlBaseIE(InfoExtractor):
     def _parse_video_metadata(self, video_data):
         return {
             'title': video_data.get('title_display') or video_data.get('title'),
+            'description': video_data.get('desc'),
             'thumbnail': video_data.get('cover'),
+            'timestamp': unified_timestamp(video_data.get('formatted_pub_date')),
             'episode_number': int_or_none(self._search_regex(
                 r'^E(\d+)(?:$| - )', video_data.get('title_display') or '', 'episode number', default=None)),
         }
@@ -1814,17 +1888,6 @@ class BiliIntlIE(BiliIntlBaseIE):
         },
         'skip': 'According to the copyright owner\'s request, you may only watch the video after you log in.'
     }, {
-        'url': 'https://www.bilibili.tv/en/video/2041863208',
-        'info_dict': {
-            'id': '2041863208',
-            'ext': 'mp4',
-            'timestamp': 1670874843,
-            'description': 'Scheduled for April 2023.\nStudio: ufotable',
-            'thumbnail': r're:https?://pic[-\.]bstarstatic.+/ugc/.+\.jpg$',
-            'upload_date': '20221212',
-            'title': 'Kimetsu no Yaiba Season 3 Official Trailer - Bstation',
-        },
-    }, {
         # episode comment extraction
         'url': 'https://www.bilibili.tv/en/play/34580/340317',
         'info_dict': {
@@ -1864,9 +1927,9 @@ class BiliIntlIE(BiliIntlBaseIE):
             'description': 'md5:693b6f3967fb4e7e7764ea817857c33a',
             'timestamp': 1667891924,
             'upload_date': '20221108',
-            'title': 'That Time I Got Reincarnated as a Slime: Scarlet Bond - Official Trailer 3| AnimeStan - Bstation',
+            'title': 'That Time I Got Reincarnated as a Slime: Scarlet Bond - Official Trailer 3| AnimeStan',
             'comment_count': int,
-            'thumbnail': 'https://pic.bstarstatic.com/ugc/f6c363659efd2eabe5683fbb906b1582.jpg',
+            'thumbnail': r're:https://pic\.bstarstatic\.(?:com|net)/ugc/f6c363659efd2eabe5683fbb906b1582\.jpg',
         },
         'params': {
             'getcomments': True
@@ -1929,10 +1992,12 @@ class BiliIntlIE(BiliIntlBaseIE):
 
         # XXX: webpage metadata may not accurate, it just used to not crash when video_data not found
         return merge_dicts(
-            self._parse_video_metadata(video_data), self._search_json_ld(webpage, video_id, fatal=False), {
-                'title': self._html_search_meta('og:title', webpage),
-                'description': self._html_search_meta('og:description', webpage)
-            })
+            self._parse_video_metadata(video_data), {
+                'title': get_element_by_class(
+                    'bstar-meta__title', webpage) or self._html_search_meta('og:title', webpage),
+                'description': get_element_by_class(
+                    'bstar-meta__desc', webpage) or self._html_search_meta('og:description', webpage),
+            }, self._search_json_ld(webpage, video_id, default={}))
 
     def _get_comments_reply(self, root_id, next_id=0, display_id=None):
         comment_api_raw_data = self._download_json(
@@ -2020,7 +2085,8 @@ class BiliIntlIE(BiliIntlBaseIE):
             'formats': self._get_formats(ep_id=ep_id, aid=aid),
             'subtitles': self.extract_subtitles(ep_id=ep_id, aid=aid),
             'chapters': chapters,
-            '__post_extractor': self.extract_comments(video_id, ep_id)
+            '__post_extractor': self.extract_comments(video_id, ep_id),
+            'http_headers': self._HEADERS,
         }
 
 

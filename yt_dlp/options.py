@@ -196,9 +196,12 @@ class _YoutubeDLOptionParser(optparse.OptionParser):
                     raise
         return self.check_values(self.values, self.largs)
 
-    def error(self, msg):
+    def _generate_error_message(self, msg):
         msg = f'{self.get_prog_name()}: error: {str(msg).strip()}\n'
-        raise optparse.OptParseError(f'{self.get_usage()}\n{msg}' if self.usage else msg)
+        return f'{self.get_usage()}\n{msg}' if self.usage else msg
+
+    def error(self, msg):
+        raise optparse.OptParseError(self._generate_error_message(msg))
 
     def _get_args(self, args):
         return sys.argv[1:] if args is None else list(args)
@@ -476,7 +479,8 @@ def create_parser():
                 'youtube-dl': ['all', '-multistreams', '-playlist-match-filter', '-manifest-filesize-approx'],
                 'youtube-dlc': ['all', '-no-youtube-channel-redirect', '-no-live-chat', '-playlist-match-filter', '-manifest-filesize-approx'],
                 '2021': ['2022', 'no-certifi', 'filename-sanitization', 'no-youtube-prefer-utc-upload-date'],
-                '2022': ['no-external-downloader-progress', 'playlist-match-filter', 'prefer-legacy-http-handler', 'manifest-filesize-approx'],
+                '2022': ['2023', 'no-external-downloader-progress', 'playlist-match-filter', 'prefer-legacy-http-handler', 'manifest-filesize-approx'],
+                '2023': [],
             }
         }, help=(
             'Options that can help keep compatibility with youtube-dl or youtube-dlc '

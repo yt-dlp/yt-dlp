@@ -810,7 +810,7 @@ class VKPlayLiveIE(VKPlayBaseIE):
             'ext': 'mp4',
             'title': r're:эскапизм крута .*',
             'uploader': 'Bayda',
-            'uploader_id': 12279401,
+            'uploader_id': '12279401',
             'release_timestamp': 1687209962,
             'release_date': '20230619',
             'thumbnail': r're:https://images.vkplay.live/public_video_stream/12279401/preview\?change_time=\d+',
