@@ -6,6 +6,7 @@ from ..utils import (
 
 
 class RockstarGamesIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?rockstargames\.com/videos(?:/video/|#?/?\?.*\bvideo=)(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://www.rockstargames.com/videos/video/11544/',
