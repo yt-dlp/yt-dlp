@@ -5087,7 +5087,8 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             'availability': self._extract_availability(data),
             'channel_follower_count': self._get_count(data, ('header', ..., 'subscriberCountText')),
             'description': try_get(metadata_renderer, lambda x: x.get('description', '')),
-            'tags': try_get(metadata_renderer or {}, lambda x: x.get('keywords', '').split()),
+            'tags': traverse_obj(
+                data, ('microformat', 'microformatDataRenderer', 'tags'), expected_type=list) or [],
             'thumbnails': (primary_thumbnails or playlist_thumbnails) + avatar_thumbnails + channel_banners,
         })
 
@@ -6434,6 +6435,27 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         },
         'playlist_mincount': 100,
         'expected_warnings': [r'[Uu]navailable videos (are|will be) hidden'],
+    }, {
+        'note': 'Tags containing spaces',
+        'url': 'https://www.youtube.com/channel/UC7_YxT-KID8kRbqZo7MyscQ',
+        'playlist_count': 3,
+        'info_dict': {
+            'id': 'UC7_YxT-KID8kRbqZo7MyscQ',
+            'channel': 'Markiplier',
+            'channel_id': 'UC7_YxT-KID8kRbqZo7MyscQ',
+            'title': 'Markiplier',
+            'channel_follower_count': int,
+            'description': 'md5:0c010910558658824402809750dc5d97',
+            'uploader_id': '@markiplier',
+            'uploader_url': 'https://www.youtube.com/@markiplier',
+            'uploader': 'Markiplier',
+            'channel_url': 'https://www.youtube.com/channel/UC7_YxT-KID8kRbqZo7MyscQ',
+            'channel_is_verified': True,
+            'tags': ['markiplier', 'comedy', 'gaming', 'funny videos', 'funny moments',
+                     'sketch comedy', 'laughing', 'lets play', 'challenge videos', 'hilarious',
+                     'challenges', 'sketches', 'scary games', 'funny games', 'rage games',
+                     'mark fischbach'],
+        },
     }]
 
     @classmethod
