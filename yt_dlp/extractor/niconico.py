@@ -919,17 +919,30 @@ class NiconicoLiveIE(InfoExtractor):
         'info_dict': {
             'id': 'lv339533123',
             'title': '激辛ペヤング食べます‪( ;ᯅ; )‬（歌枠オーディション参加中）',
-            'view_count': 1526,
-            'comment_count': 1772,
+            'view_count': int,
+            'comment_count': int,
             'description': '初めましてもかって言います❕\nのんびり自由に適当に暮らしてます',
             'uploader': 'もか',
             'channel': 'ゲストさんのコミュニティ',
             'channel_id': 'co5776900',
             'channel_url': 'https://com.nicovideo.jp/community/co5776900',
             'timestamp': 1670677328,
-            'is_live': True,
+            'ext': None,
+            'live_latency': 'high',
+            'live_status': 'was_live',
+            'thumbnail': r're:^https://[\w.-]+/\w+/\w+',
+            'thumbnails': list,
+            'upload_date': '20221210',
         },
-        'skip': 'livestream',
+        'params': {
+            'skip_download': True,
+            'ignore_no_formats_error': True,
+        },
+        'expected_warnings': [
+            'The live hasn\'t started yet or already ended.',
+            'No video formats found!',
+            'Requested format is not available',
+        ],
     }, {
         'url': 'https://live2.nicovideo.jp/watch/lv339533123',
         'only_matching': True,
@@ -943,36 +956,14 @@ class NiconicoLiveIE(InfoExtractor):
 
     _KNOWN_LATENCY = ('high', 'low')
 
-    def _real_extract(self, url):
-        video_id = self._match_id(url)
-        webpage, urlh = self._download_webpage_handle(f'https://live.nicovideo.jp/watch/{video_id}', video_id)
-
-        embedded_data = self._parse_json(unescapeHTML(self._search_regex(
-            r'<script\s+id="embedded-data"\s*data-props="(.+?)"', webpage, 'embedded data')), video_id)
-
-        ws_url = traverse_obj(embedded_data, ('site', 'relive', 'webSocketUrl'))
-        if not ws_url:
-            raise ExtractorError('The live hasn\'t started yet or already ended.', expected=True)
-        ws_url = update_url_query(ws_url, {
-            'frontend_id': traverse_obj(embedded_data, ('site', 'frontendId')) or '9',
-        })
-
-        hostname = remove_start(urlparse(urlh.url).hostname, 'sp.')
-        latency = try_get(self._configuration_arg('latency'), lambda x: x[0])
-        if latency not in self._KNOWN_LATENCY:
-            latency = 'high'
-
-        ws = self._request_webpage(
-            Request(ws_url, headers={'Origin': f'https://{hostname}'}),
-            video_id=video_id, note='Connecting to WebSocket server')
-
+    def _yield_formats(self, ws, video_id, latency, is_live):
         self.write_debug('[debug] Sending HLS server request')
         ws.send(json.dumps({
             'type': 'startWatching',
             'data': {
                 'stream': {
                     'quality': 'abr',
-                    'protocol': 'hls+fmp4',
+                    'protocol': 'hls',
                     'latency': latency,
                     'chasePlay': False
                 },
@@ -1007,6 +998,35 @@ class NiconicoLiveIE(InfoExtractor):
                     recv = recv[:100] + '...'
                 self.write_debug('Server said: %s' % recv)
 
+        formats = self._extract_m3u8_formats(m3u8_url, video_id, ext='mp4', live=is_live)
+        for fmt, q in zip(formats, reversed(qualities[1:])):
+            fmt.update({
+                'format_id': q,
+                'protocol': 'm3u8_niconico_live' if is_live else 'm3u8_niconico_live_timeshift',
+            })
+            yield fmt
+
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+        webpage, urlh = self._download_webpage_handle(f'https://live.nicovideo.jp/watch/{video_id}', video_id)
+
+        embedded_data = self._parse_json(unescapeHTML(self._search_regex(
+            r'<script\s+id="embedded-data"\s*data-props="(.+?)"', webpage, 'embedded data')), video_id)
+
+        ws = None
+        ws_url = traverse_obj(embedded_data, ('site', 'relive', 'webSocketUrl'))
+        if ws_url:
+            ws_url = update_url_query(ws_url, {
+                'frontend_id': traverse_obj(embedded_data, ('site', 'frontendId')) or '9',
+            })
+            hostname = remove_start(urlparse(urlh.url).hostname, 'sp.')
+
+            ws = self._request_webpage(
+                Request(ws_url, headers={'Origin': f'https://{hostname}'}),
+                video_id=video_id, note='Connecting to WebSocket server')
+        else:
+            self.raise_no_formats('The live hasn\'t started yet or already ended.', expected=True)
+
         title = traverse_obj(embedded_data, ('program', 'title')) or self._html_search_meta(
             ('og:title', 'twitter:title'), webpage, 'live title', fatal=False)
 
@@ -1031,16 +1051,15 @@ class NiconicoLiveIE(InfoExtractor):
                     **res,
                 })
 
-        formats = self._extract_m3u8_formats(m3u8_url, video_id, ext='mp4', live=True)
-        for fmt, q in zip(formats, reversed(qualities[1:])):
-            fmt.update({
-                'format_id': q,
-                'protocol': 'niconico_live',
-                'ws': ws,
-                'video_id': video_id,
-                'live_latency': latency,
-                'origin': hostname,
-            })
+        live_status = {
+            'Before': 'is_live',
+            'Open': 'was_live',
+            'End': 'was_live',
+        }.get(traverse_obj(embedded_data, ('programTimeshift', 'publication', 'status', {str})), 'is_live')
+
+        latency = try_get(self._configuration_arg('latency'), lambda x: x[0])
+        if latency not in self._KNOWN_LATENCY:
+            latency = 'high'
 
         return {
             'id': video_id,
@@ -1055,7 +1074,9 @@ class NiconicoLiveIE(InfoExtractor):
             }),
             'description': clean_html(traverse_obj(embedded_data, ('program', 'description'))),
             'timestamp': int_or_none(traverse_obj(embedded_data, ('program', 'openTime'))),
-            'is_live': True,
+            'live_status': live_status,
             'thumbnails': thumbnails,
-            'formats': formats,
+            'formats': [*self._yield_formats(ws, video_id, latency, live_status == 'is_live')] if ws else None,
+            'live_latency': latency,
+            '__ws': ws,
         }
