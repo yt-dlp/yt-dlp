@@ -9,12 +9,11 @@ from ..utils import (
     parse_qs,
     smuggle_url,
     str_or_none,
-    traverse_obj,
-    update_url_query,
     url_or_none,
     urlencode_postdata,
     urljoin,
 )
+from ..utils.traversal import traverse_obj
 
 
 class RoosterTeethBaseIE(InfoExtractor):
@@ -59,17 +58,24 @@ class RoosterTeethBaseIE(InfoExtractor):
         title = traverse_obj(attributes, 'title', 'display_title')
         sub_only = attributes.get('is_sponsors_only')
 
+        episode_id = str_or_none(data.get('uuid'))
+        video_id = str_or_none(data.get('id'))
+        if video_id and 'parent_content_id' in attributes:  # parent_content_id is a bonus-only key
+            video_id += '-bonus'  # there are collisions with bonus ids and regular ids
+        elif not video_id:
+            video_id = episode_id
+
         return {
-            'id': str(data.get('id')),
+            'id': video_id,
             'display_id': attributes.get('slug'),
             'title': title,
             'description': traverse_obj(attributes, 'description', 'caption'),
-            'series': attributes.get('show_title'),
+            'series': traverse_obj(attributes, 'show_title', 'parent_content_title'),
             'season_number': int_or_none(attributes.get('season_number')),
-            'season_id': attributes.get('season_id'),
+            'season_id': str_or_none(attributes.get('season_id')),
             'episode': title,
             'episode_number': int_or_none(attributes.get('number')),
-            'episode_id': str_or_none(data.get('uuid')),
+            'episode_id': episode_id,
             'channel_id': attributes.get('channel_id'),
             'duration': int_or_none(attributes.get('length')),
             'release_timestamp': parse_iso8601(attributes.get('original_air_date')),
@@ -82,7 +88,7 @@ class RoosterTeethBaseIE(InfoExtractor):
 
 
 class RoosterTeethIE(RoosterTeethBaseIE):
-    _VALID_URL = r'https?://(?:.+?\.)?roosterteeth\.com/(?:episode|watch)/(?P<id>[^/?#&]+)'
+    _VALID_URL = r'https?://(?:.+?\.)?roosterteeth\.com/(?:bonus-feature|episode|watch)/(?P<id>[^/?#&]+)'
     _TESTS = [{
         'url': 'http://roosterteeth.com/episode/million-dollars-but-season-2-million-dollars-but-the-game-announcement',
         'info_dict': {
@@ -129,6 +135,27 @@ class RoosterTeethIE(RoosterTeethBaseIE):
             'duration': 216,
             'release_timestamp': 1413489600,
             'release_date': '20141016',
+        },
+        'params': {'skip_download': True},
+    }, {
+        # bonus feature with /watch/ url
+        'url': 'https://roosterteeth.com/watch/rwby-bonus-21',
+        'info_dict': {
+            'id': '33-bonus',
+            'display_id': 'rwby-bonus-21',
+            'title': 'Volume 5 Yang Character Short',
+            'description': 'md5:8c2440bc763ea90c52cfe0a68093e1f7',
+            'episode': 'Volume 5 Yang Character Short',
+            'channel_id': '92f780eb-ebfe-4bf5-a3b5-c6ad5460a5f1',
+            'thumbnail': r're:^https?://.*\.(png|jpe?g)$',
+            'ext': 'mp4',
+            'availability': 'public',
+            'episode_id': 'f2a9f132-1fe2-44ad-8956-63d7c0267720',
+            'episode_number': 55,
+            'series': 'RWBY',
+            'duration': 255,
+            'release_timestamp': 1507993200,
+            'release_date': '20171014',
         },
         'params': {'skip_download': True},
     }, {
@@ -200,6 +227,9 @@ class RoosterTeethIE(RoosterTeethBaseIE):
     }, {
         'url': 'https://roosterteeth.com/watch/million-dollars-but-season-2-million-dollars-but-the-game-announcement',
         'only_matching': True,
+    }, {
+        'url': 'https://roosterteeth.com/bonus-feature/camp-camp-soundtrack-another-rap-song-about-foreign-cars-richie-branson',
+        'only_matching': True,
     }]
 
     _BRIGHTCOVE_ACCOUNT_ID = '6203312018001'
@@ -263,38 +293,53 @@ class RoosterTeethSeriesIE(RoosterTeethBaseIE):
         'info_dict': {
             'id': 'rwby-7',
             'title': 'RWBY - Season 7',
-        }
+        },
+    }, {
+        'url': 'https://roosterteeth.com/series/the-weird-place',
+        'playlist_count': 7,
+        'info_dict': {
+            'id': 'the-weird-place',
+            'title': 'The Weird Place',
+        },
     }, {
         'url': 'https://roosterteeth.com/series/role-initiative',
         'playlist_mincount': 16,
         'info_dict': {
             'id': 'role-initiative',
             'title': 'Role Initiative',
-        }
+        },
     }, {
         'url': 'https://roosterteeth.com/series/let-s-play-minecraft?season=9',
         'playlist_mincount': 50,
         'info_dict': {
             'id': 'let-s-play-minecraft-9',
             'title': 'Let\'s Play Minecraft - Season 9',
-        }
+        },
     }]
 
     def _entries(self, series_id, season_number):
         display_id = join_nonempty(series_id, season_number)
-        # TODO: extract bonus material
-        for data in self._download_json(
-                f'{self._API_BASE_URL}/shows/{series_id}/seasons?order=asc&order_by', display_id)['data']:
-            idx = traverse_obj(data, ('attributes', 'number'))
-            if season_number and idx != season_number:
-                continue
-            season_url = update_url_query(urljoin(self._API_BASE, data['links']['episodes']), {'per_page': 1000})
-            season = self._download_json(season_url, display_id, f'Downloading season {idx} JSON metadata')['data']
-            for episode in season:
+
+        def yield_episodes(data):
+            for episode in traverse_obj(data, ('data', lambda _, v: v['canonical_links']['self'])):
                 yield self.url_result(
-                    f'https://www.roosterteeth.com{episode["canonical_links"]["self"]}',
-                    RoosterTeethIE.ie_key(),
-                    **self._extract_video_info(episode))
+                    urljoin('https://www.roosterteeth.com', episode['canonical_links']['self']),
+                    RoosterTeethIE, **self._extract_video_info(episode))
+
+        series_data = self._download_json(
+            f'{self._API_BASE_URL}/shows/{series_id}/seasons?order=asc&order_by', display_id)
+        for season_data in traverse_obj(series_data, ('data', lambda _, v: v['links']['episodes'])):
+            idx = traverse_obj(season_data, ('attributes', 'number'))
+            if season_number is not None and idx != season_number:
+                continue
+            yield from yield_episodes(self._download_json(
+                urljoin(self._API_BASE, season_data['links']['episodes']), display_id,
+                f'Downloading season {idx} JSON metadata', query={'per_page': 1000}))
+
+        if season_number is None:  # extract series-level bonus features
+            yield from yield_episodes(self._download_json(
+                f'{self._API_BASE_URL}/shows/{series_id}/bonus_features?order=asc&order_by&per_page=1000',
+                display_id, 'Downloading bonus features JSON metadata', fatal=False))
 
     def _real_extract(self, url):
         series_id = self._match_id(url)
