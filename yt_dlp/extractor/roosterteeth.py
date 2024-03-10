@@ -57,8 +57,15 @@ class RoosterTeethBaseIE(InfoExtractor):
         title = traverse_obj(attributes, 'title', 'display_title')
         sub_only = attributes.get('is_sponsors_only')
 
+        episode_id = str_or_none(data.get('uuid'))
+        video_id = str_or_none(data.get('id'))
+        if video_id and 'parent_content_id' in attributes:  # parent_content_id is a bonus-only key
+            video_id = f'{video_id}-bonus'  # there are collisions with bonus ids and regular ids
+        elif not video_id:
+            video_id = episode_id
+
         return {
-            'id': str(data.get('id')),
+            'id': video_id,
             'display_id': attributes.get('slug'),
             'title': title,
             'description': traverse_obj(attributes, 'description', 'caption'),
@@ -67,7 +74,7 @@ class RoosterTeethBaseIE(InfoExtractor):
             'season_id': str_or_none(attributes.get('season_id')),
             'episode': title,
             'episode_number': int_or_none(attributes.get('number')),
-            'episode_id': str_or_none(data.get('uuid')),
+            'episode_id': episode_id,
             'channel_id': attributes.get('channel_id'),
             'duration': int_or_none(attributes.get('length')),
             'release_timestamp': parse_iso8601(attributes.get('original_air_date')),
