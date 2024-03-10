@@ -277,7 +277,6 @@ class EMPFlixIE(TNAEMPFlixBaseIE):
             'thumbnail': r're:https?://.*\.jpg$',
             'duration': 83,
             'age_limit': 18,
-            'uploader': None,
             'categories': list,
         }
     }, {

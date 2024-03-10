@@ -229,7 +229,7 @@ class RCTIPlusSeriesIE(RCTIPlusBaseIE):
             'age_limit': 2,
             'cast': ['Verrel Bramasta', 'Ranty Maria', 'Riza Syah', 'Ivan Fadilla', 'Nicole Parham', 'Dll', 'Aviv Elham'],
             'display_id': 'putri-untuk-pangeran',
-            'tag': 'count:18',
+            'tags': 'count:18',
         },
     }, {  # No episodes
         'url': 'https://www.rctiplus.com/programs/615/inews-pagi',
@@ -239,7 +239,7 @@ class RCTIPlusSeriesIE(RCTIPlusBaseIE):
             'title': 'iNews Pagi',
             'description': 'md5:f18ee3d4643cfb41c358e5a9b693ee04',
             'age_limit': 2,
-            'tag': 'count:11',
+            'tags': 'count:11',
             'display_id': 'inews-pagi',
         }
     }]
@@ -327,8 +327,8 @@ class RCTIPlusSeriesIE(RCTIPlusBaseIE):
             'age_limit': try_get(series_meta, lambda x: self._AGE_RATINGS[x['age_restriction'][0]['code']]),
             'cast': traverse_obj(series_meta, (('starring', 'creator', 'writer'), ..., 'name'),
                                  expected_type=lambda x: strip_or_none(x) or None),
-            'tag': traverse_obj(series_meta, ('tag', ..., 'name'),
-                                expected_type=lambda x: strip_or_none(x) or None),
+            'tags': traverse_obj(series_meta, ('tag', ..., 'name'),
+                                 expected_type=lambda x: strip_or_none(x) or None),
         }
         return self.playlist_result(
             self._series_entries(series_id, display_id, video_type, metadata), series_id,

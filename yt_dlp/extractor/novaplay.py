@@ -18,7 +18,6 @@ class NovaPlayIE(InfoExtractor):
                 'upload_date': '20220722',
                 'thumbnail': 'https://nbg-img.fite.tv/img/606627_460x260.jpg',
                 'description': '29 сек',
-                'view_count': False
             },
         },
         {
@@ -34,7 +33,6 @@ class NovaPlayIE(InfoExtractor):
                 'upload_date': '20220722',
                 'thumbnail': 'https://nbg-img.fite.tv/img/606609_460x260.jpg',
                 'description': '29 сек',
-                'view_count': False
             },
         }
     ]

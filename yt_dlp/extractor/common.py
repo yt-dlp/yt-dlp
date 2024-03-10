@@ -262,7 +262,7 @@ class InfoExtractor:
 
     direct:         True if a direct video file was given (must only be set by GenericIE)
     alt_title:      A secondary title of the video.
-    display_id      An alternative identifier for the video, not necessarily
+    display_id:     An alternative identifier for the video, not necessarily
                     unique, but available before title. Typically, id is
                     something like "4234987", title "Dancing naked mole rats",
                     and display_id "dancing-naked-mole-rats"

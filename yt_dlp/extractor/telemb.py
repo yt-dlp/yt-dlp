@@ -5,6 +5,7 @@ from ..utils import remove_start
 
 
 class TeleMBIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?telemb\.be/(?P<display_id>.+?)_d_(?P<id>\d+)\.html'
     _TESTS = [
         {

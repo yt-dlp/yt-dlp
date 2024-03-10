@@ -259,7 +259,7 @@ class AbemaTVIE(AbemaTVBaseIE):
             'title': 'ゆるキャン△ SEASON２ 全話一挙【無料ビデオ72時間】',
             'series': 'ゆるキャン△ SEASON２',
             'episode': 'ゆるキャン△ SEASON２ 全話一挙【無料ビデオ72時間】',
-            'series_number': 2,
+            'season_number': 2,
             'episode_number': 1,
             'description': 'md5:9c5a3172ae763278f9303922f0ea5b17',
         },
