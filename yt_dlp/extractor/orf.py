@@ -49,7 +49,6 @@ class ORFTVthekIE(InfoExtractor):
         'url': 'https://tvthek.orf.at/profile/ZIB-2/1211/ZIB-2/14121079/Umfrage-Welches-Tier-ist-Sebastian-Kurz/15083150',
         'info_dict': {
             'id': '14121079',
-            'playlist_count': 1
         },
         'playlist': [{
             'info_dict': {

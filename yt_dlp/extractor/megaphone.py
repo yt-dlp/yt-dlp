@@ -8,15 +8,15 @@ class MegaphoneIE(InfoExtractor):
     _VALID_URL = r'https://player\.megaphone\.fm/(?P<id>[A-Z0-9]+)'
     _EMBED_REGEX = [rf'<iframe[^>]*?\ssrc=["\'](?P<url>{_VALID_URL})']
     _TEST = {
-        'url': 'https://player.megaphone.fm/GLT9749789991?"',
+        'url': 'https://player.megaphone.fm/GLT9749789991',
         'md5': '4816a0de523eb3e972dc0dda2c191f96',
         'info_dict': {
             'id': 'GLT9749789991',
             'ext': 'mp3',
             'title': '#97 What Kind Of Idiot Gets Phished?',
             'thumbnail': r're:^https://.*\.png.*$',
-            'duration': 1776.26375,
-            'author': 'Reply All',
+            'duration': 1998.36,
+            'creators': ['Reply All'],
         },
     }
 
@@ -40,7 +40,7 @@ class MegaphoneIE(InfoExtractor):
             'id': video_id,
             'thumbnail': thumbnail,
             'title': title,
-            'author': author,
+            'creators': [author] if author else None,
             'duration': episode_data['duration'],
             'formats': formats,
         }

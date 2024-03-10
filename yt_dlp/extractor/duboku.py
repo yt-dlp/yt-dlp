@@ -1,4 +1,6 @@
+import base64
 import re
+import urllib.parse
 
 from .common import InfoExtractor
 from ..compat import compat_urlparse
@@ -129,11 +131,15 @@ class DubokuIE(InfoExtractor):
         data_url = player_data.get('url')
         if not data_url:
             raise ExtractorError('Cannot find url in player_data')
-        data_from = player_data.get('from')
+        player_encrypt = player_data.get('encrypt')
+        if player_encrypt == 1:
+            data_url = urllib.parse.unquote(data_url)
+        elif player_encrypt == 2:
+            data_url = urllib.parse.unquote(base64.b64decode(data_url).decode('ascii'))
 
         # if it is an embedded iframe, maybe it's an external source
         headers = {'Referer': webpage_url}
-        if data_from == 'iframe':
+        if player_data.get('from') == 'iframe':
             # use _type url_transparent to retain the meaningful details
             # of the video.
             return {

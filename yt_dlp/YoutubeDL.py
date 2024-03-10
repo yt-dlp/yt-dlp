@@ -2649,7 +2649,8 @@ class YoutubeDL:
 
         for old_key, new_key in self._deprecated_multivalue_fields.items():
             if new_key in info_dict and old_key in info_dict:
-                self.deprecation_warning(f'Do not return {old_key!r} when {new_key!r} is present')
+                if '_version' not in info_dict:  # HACK: Do not warn when using --load-info-json
+                    self.deprecation_warning(f'Do not return {old_key!r} when {new_key!r} is present')
             elif old_value := info_dict.get(old_key):
                 info_dict[new_key] = old_value.split(', ')
             elif new_value := info_dict.get(new_key):
@@ -3576,6 +3577,8 @@ class YoutubeDL:
                     raise
                 self.report_warning(f'The info failed to download: {e}; trying with URL {webpage_url}')
                 self.download([webpage_url])
+            except ExtractorError as e:
+                self.report_error(e)
         return self._download_retcode
 
     @staticmethod

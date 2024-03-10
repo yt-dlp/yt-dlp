@@ -2,16 +2,18 @@ from .common import InfoExtractor
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
+    LazyList,
     int_or_none,
     join_nonempty,
-    LazyList,
+    parse_iso8601,
     parse_qs,
+    smuggle_url,
     str_or_none,
     traverse_obj,
+    update_url_query,
     url_or_none,
     urlencode_postdata,
     urljoin,
-    update_url_query,
 )
 
 
@@ -70,6 +72,7 @@ class RoosterTeethBaseIE(InfoExtractor):
             'episode_id': str_or_none(data.get('uuid')),
             'channel_id': attributes.get('channel_id'),
             'duration': int_or_none(attributes.get('length')),
+            'release_timestamp': parse_iso8601(attributes.get('original_air_date')),
             'thumbnails': thumbnails,
             'availability': self._availability(
                 needs_premium=sub_only, needs_subscription=sub_only, needs_auth=sub_only,
@@ -91,6 +94,17 @@ class RoosterTeethIE(RoosterTeethBaseIE):
             'thumbnail': r're:^https?://.*\.png$',
             'series': 'Million Dollars, But...',
             'episode': 'Million Dollars, But... The Game Announcement',
+            'tags': ['Game Show', 'Sketch'],
+            'season_number': 2,
+            'availability': 'public',
+            'episode_number': 10,
+            'episode_id': '00374575-464e-11e7-a302-065410f210c4',
+            'season': 'Season 2',
+            'season_id': 'ffa27d48-464d-11e7-a302-065410f210c4',
+            'channel_id': '92b6bb21-91d2-4b1b-bf95-3268fa0d9939',
+            'duration': 145,
+            'release_timestamp': 1462982400,
+            'release_date': '20160511',
         },
         'params': {'skip_download': True},
     }, {
@@ -104,7 +118,68 @@ class RoosterTeethIE(RoosterTeethBaseIE):
             'channel_id': '92f780eb-ebfe-4bf5-a3b5-c6ad5460a5f1',
             'thumbnail': r're:^https?://.*\.(png|jpe?g)$',
             'ext': 'mp4',
+            'availability': 'public',
+            'episode_id': 'f8117b13-f068-499e-803e-eec9ea2dec8c',
+            'episode_number': 3,
+            'tags': ['Animation'],
+            'season_id': '4b8f0a9e-12c4-41ed-8caa-fed15a85bab8',
+            'season': 'Season 1',
+            'series': 'RWBY: World of Remnant',
+            'season_number': 1,
+            'duration': 216,
+            'release_timestamp': 1413489600,
+            'release_date': '20141016',
         },
+        'params': {'skip_download': True},
+    }, {
+        # only works with video_data['attributes']['url'] m3u8 url
+        'url': 'https://www.roosterteeth.com/watch/achievement-hunter-achievement-hunter-fatality-walkthrough-deathstroke-lex-luthor-captain-marvel-green-lantern-and-wonder-woman',
+        'info_dict': {
+            'id': '25394',
+            'ext': 'mp4',
+            'title': 'Fatality Walkthrough: Deathstroke, Lex Luthor, Captain Marvel, Green Lantern, and Wonder Woman',
+            'description': 'md5:91bb934698344fb9647b1c7351f16964',
+            'availability': 'public',
+            'thumbnail': r're:^https?://.*\.(png|jpe?g)$',
+            'episode': 'Fatality Walkthrough: Deathstroke, Lex Luthor, Captain Marvel, Green Lantern, and Wonder Woman',
+            'episode_number': 71,
+            'episode_id': 'ffaec998-464d-11e7-a302-065410f210c4',
+            'season': 'Season 2008',
+            'tags': ['Gaming'],
+            'series': 'Achievement Hunter',
+            'display_id': 'md5:4465ce4f001735f9d7a2ae529a543d31',
+            'season_id': 'ffa13340-464d-11e7-a302-065410f210c4',
+            'season_number': 2008,
+            'channel_id': '2cb2a70c-be50-46f5-93d7-84a1baabb4f7',
+            'duration': 189,
+            'release_timestamp': 1228317300,
+            'release_date': '20081203',
+        },
+        'params': {'skip_download': True},
+    }, {
+        # brightcove fallback extraction needed
+        'url': 'https://roosterteeth.com/watch/lets-play-2013-126',
+        'info_dict': {
+            'id': '17845',
+            'ext': 'mp4',
+            'title': 'WWE \'13',
+            'availability': 'public',
+            'series': 'Let\'s Play',
+            'episode_number': 10,
+            'season_id': 'ffa23d9c-464d-11e7-a302-065410f210c4',
+            'channel_id': '75ba87e8-06fd-4482-bad9-52a4da2c6181',
+            'episode': 'WWE \'13',
+            'episode_id': 'ffdbe55e-464d-11e7-a302-065410f210c4',
+            'thumbnail': r're:^https?://.*\.(png|jpe?g)$',
+            'tags': ['Gaming', 'Our Favorites'],
+            'description': 'md5:b4a5226d2bbcf0dafbde11a2ba27262d',
+            'display_id': 'lets-play-2013-126',
+            'season_number': 3,
+            'season': 'Season 3',
+            'release_timestamp': 1359999840,
+            'release_date': '20130204',
+        },
+        'expected_warnings': ['Direct m3u8 URL returned HTTP Error 403'],
         'params': {'skip_download': True},
     }, {
         'url': 'http://achievementhunter.roosterteeth.com/episode/off-topic-the-achievement-hunter-podcast-2016-i-didn-t-think-it-would-pass-31',
@@ -127,16 +202,24 @@ class RoosterTeethIE(RoosterTeethBaseIE):
         'only_matching': True,
     }]
 
+    _BRIGHTCOVE_ACCOUNT_ID = '6203312018001'
+
+    def _extract_brightcove_formats_and_subtitles(self, bc_id, url, m3u8_url):
+        account_id = self._search_regex(
+            r'/accounts/(\d+)/videos/', m3u8_url, 'account id', default=self._BRIGHTCOVE_ACCOUNT_ID)
+        info = self._downloader.get_info_extractor('BrightcoveNew').extract(smuggle_url(
+            f'https://players.brightcove.net/{account_id}/default_default/index.html?videoId={bc_id}',
+            {'referrer': url}))
+        return info['formats'], info['subtitles']
+
     def _real_extract(self, url):
         display_id = self._match_id(url)
         api_episode_url = f'{self._API_BASE_URL}/watch/{display_id}'
 
         try:
             video_data = self._download_json(
-                api_episode_url + '/videos', display_id,
-                'Downloading video JSON metadata')['data'][0]
-            m3u8_url = video_data['attributes']['url']
-            # XXX: additional URL at video_data['links']['download']
+                api_episode_url + '/videos', display_id, 'Downloading video JSON metadata',
+                headers={'Client-Type': 'web'})['data'][0]  # web client-type yields ad-free streams
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError) and e.cause.status == 403:
                 if self._parse_json(e.cause.response.read().decode(), display_id).get('access') is False:
@@ -144,8 +227,21 @@ class RoosterTeethIE(RoosterTeethBaseIE):
                         '%s is only available for FIRST members' % display_id)
             raise
 
-        formats, subtitles = self._extract_m3u8_formats_and_subtitles(
-            m3u8_url, display_id, 'mp4', 'm3u8_native', m3u8_id='hls')
+        # XXX: additional ad-free URL at video_data['links']['download'] but often gives 403 errors
+        m3u8_url = video_data['attributes']['url']
+        is_brightcove = traverse_obj(video_data, ('attributes', 'encoding_pipeline')) == 'brightcove'
+        bc_id = traverse_obj(video_data, ('attributes', 'uid', {str}))
+
+        try:
+            formats, subtitles = self._extract_m3u8_formats_and_subtitles(
+                m3u8_url, display_id, 'mp4', 'm3u8_native', m3u8_id='hls')
+        except ExtractorError as e:
+            if is_brightcove and bc_id and isinstance(e.cause, HTTPError) and e.cause.status == 403:
+                self.report_warning(
+                    'Direct m3u8 URL returned HTTP Error 403; retrying with Brightcove extraction')
+                formats, subtitles = self._extract_brightcove_formats_and_subtitles(bc_id, url, m3u8_url)
+            else:
+                raise
 
         episode = self._download_json(
             api_episode_url, display_id,
