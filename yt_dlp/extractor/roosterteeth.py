@@ -137,9 +137,10 @@ class RoosterTeethIE(RoosterTeethBaseIE):
         },
         'params': {'skip_download': True},
     }, {
+        # bonus feature with /watch/ url
         'url': 'https://roosterteeth.com/watch/rwby-bonus-21',
         'info_dict': {
-            'id': '33',
+            'id': '33-bonus',
             'display_id': 'rwby-bonus-21',
             'title': 'Volume 5 Yang Character Short',
             'description': 'md5:8c2440bc763ea90c52cfe0a68093e1f7',
@@ -245,28 +246,28 @@ class RoosterTeethSeriesIE(RoosterTeethBaseIE):
         'info_dict': {
             'id': 'rwby-7',
             'title': 'RWBY - Season 7',
-        }
+        },
     }, {
         'url': 'https://roosterteeth.com/series/the-weird-place',
         'playlist_count': 7,
         'info_dict': {
             'id': 'the-weird-place',
             'title': 'The Weird Place',
-        }
+        },
     }, {
         'url': 'https://roosterteeth.com/series/role-initiative',
         'playlist_mincount': 16,
         'info_dict': {
             'id': 'role-initiative',
             'title': 'Role Initiative',
-        }
+        },
     }, {
         'url': 'https://roosterteeth.com/series/let-s-play-minecraft?season=9',
         'playlist_mincount': 50,
         'info_dict': {
             'id': 'let-s-play-minecraft-9',
             'title': 'Let\'s Play Minecraft - Season 9',
-        }
+        },
     }]
 
     def _entries(self, series_id, season_number):
