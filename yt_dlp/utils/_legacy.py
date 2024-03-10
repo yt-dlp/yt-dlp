@@ -90,7 +90,7 @@ class WebSocketsWrapper:
         for task in to_cancel:
             task.cancel()
 
-        # XXX: "loop" is removed in python 3.10+
+        # XXX: "loop" is removed in Python 3.10+
         loop.run_until_complete(
             asyncio.gather(*to_cancel, loop=loop, return_exceptions=True))
 

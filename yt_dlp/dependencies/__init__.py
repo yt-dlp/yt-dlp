@@ -46,7 +46,7 @@ try:
     # We need to get the underlying `sqlite` version, see https://github.com/yt-dlp/yt-dlp/issues/8152
     sqlite3._yt_dlp__version = sqlite3.sqlite_version
 except ImportError:
-    # although sqlite3 is part of the standard library, it is possible to compile python without
+    # although sqlite3 is part of the standard library, it is possible to compile Python without
     # sqlite support. See: https://github.com/yt-dlp/yt-dlp/issues/544
     sqlite3 = None
 
@@ -54,7 +54,7 @@ except ImportError:
 try:
     import websockets
 except (ImportError, SyntaxError):
-    # websockets 3.10 on python 3.6 causes SyntaxError
+    # websockets 3.10 on Python 3.6 causes SyntaxError
     # See https://github.com/yt-dlp/yt-dlp/issues/2633
     websockets = None
 
