@@ -386,7 +386,7 @@ class SlidesLiveIE(InfoExtractor):
             if not line.startswith('#EXT-SL-'):
                 continue
             tag, _, value = line.partition(':')
-            key = lookup.get(tag.lstrip('#EXT-SL-'))
+            key = lookup.get(tag[8:])
             if not key:
                 continue
             m3u8_dict[key] = value

@@ -116,7 +116,7 @@ See: https://github.com/urllib3/urllib3/issues/517
 """
 
 if urllib3_version < (2, 0, 0):
-    with contextlib.suppress():
+    with contextlib.suppress(Exception):
         urllib3.util.IS_SECURETRANSPORT = urllib3.util.ssl_.IS_SECURETRANSPORT = True
 
 
