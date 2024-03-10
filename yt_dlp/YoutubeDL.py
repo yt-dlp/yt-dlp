@@ -561,7 +561,7 @@ class YoutubeDL:
 
     _NUMERIC_FIELDS = {
         'width', 'height', 'asr', 'audio_channels', 'fps',
-        'tbr', 'abr', 'vbr', 'filesize', 'filesize_approx',
+        'tbr', 'abr', 'vbr', 'nvbr', 'filesize', 'filesize_approx',
         'timestamp', 'release_timestamp',
         'duration', 'view_count', 'like_count', 'dislike_count', 'repost_count',
         'average_rating', 'comment_count', 'age_limit',
@@ -574,7 +574,7 @@ class YoutubeDL:
         # NB: Keep in sync with the docstring of extractor/common.py
         'url', 'manifest_url', 'manifest_stream_number', 'ext', 'format', 'format_id', 'format_note',
         'width', 'height', 'aspect_ratio', 'resolution', 'dynamic_range', 'tbr', 'abr', 'acodec', 'asr', 'audio_channels',
-        'vbr', 'fps', 'vcodec', 'container', 'filesize', 'filesize_approx', 'rows', 'columns',
+        'vbr', 'nvbr', 'fps', 'vcodec', 'container', 'filesize', 'filesize_approx', 'rows', 'columns',
         'player_url', 'protocol', 'fragment_base_url', 'fragments', 'is_from_start',
         'preference', 'language', 'language_preference', 'quality', 'source_preference', 'cookies',
         'http_headers', 'stretched_ratio', 'no_resume', 'has_drm', 'extra_param_to_segment_url', 'hls_aes', 'downloader_options',
@@ -2666,6 +2666,31 @@ class YoutubeDL:
         formats.sort(key=FormatSorter(
             self, info_dict.get('_format_sort_fields') or []).calculate_preference)
 
+    def _calculate_nvbr(self, format):
+        """
+        Calculate normalized vbr value for codec, from vbr and codec, normalized in H264 RIP quility
+        TODO: improvements:
+            - resolution normalized
+            - compression factor for different codec ver (no data found)
+        ref: https://www.cnx-software.com/2018/02/07/av1-open-source-video-codec-update-at-fosdem-2018-video/
+        """
+        if format.get('vcodec') is None or format.get('tbr') is None:
+            return
+        # consider reuse calculate_preference from _utils.py
+        vbr = format.get('tbr') if format.get('abr') is None else format.get('tbr') - format.get('abr')
+        codec_main = format.get('vcodec').split('.')[0]
+        if codec_main in ['vp09', 'vp9']:
+            factor = 0.72
+        elif codec_main == 'av01':
+            factor = 0.55
+        elif codec_main == 'h265':
+            factor = 0.8
+        elif codec_main == 'avc1':
+            factor = 1.0
+        else:
+            return
+        return vbr / factor
+
     def process_video_result(self, info_dict, download=True):
         assert info_dict.get('_type', 'video') == 'video'
         self._num_videos += 1
@@ -2815,6 +2840,7 @@ class YoutubeDL:
                     and not format.get('filesize') and not format.get('filesize_approx')):
                 format['filesize_approx'] = int(info_dict['duration'] * format['tbr'] * (1024 / 8))
             format['http_headers'] = self._calc_headers(collections.ChainMap(format, info_dict), load_cookies=True)
+            format['nvbr'] = self._calculate_nvbr(format)
 
         # Safeguard against old/insecure infojson when using --load-info-json
         if info_dict.get('http_headers'):
@@ -3786,6 +3812,8 @@ class YoutubeDL:
             res += 'video@'
         if fdict.get('vbr') is not None:
             res += '%4dk' % fdict['vbr']
+        if fdict.get('nvbr') is not None:
+            res += '%4dk' % fdict['nvbr']
         if fdict.get('fps') is not None:
             if res:
                 res += ', '
@@ -3870,6 +3898,7 @@ class YoutubeDL:
                 delim,
                 simplified_codec(f, 'vcodec'),
                 format_field(f, 'vbr', '\t%dk', func=round),
+                format_field(f, 'nvbr', '\t%dk', func=round),
                 simplified_codec(f, 'acodec'),
                 format_field(f, 'abr', '\t%dk', func=round),
                 format_field(f, 'asr', '\t%s', func=format_decimal_suffix),
@@ -3883,7 +3912,7 @@ class YoutubeDL:
             ] for f in formats if f.get('preference') is None or f['preference'] >= -1000]
         header_line = self._list_format_headers(
             'ID', 'EXT', 'RESOLUTION', '\tFPS', 'HDR', 'CH', delim, '\tFILESIZE', '\tTBR', 'PROTO',
-            delim, 'VCODEC', '\tVBR', 'ACODEC', '\tABR', '\tASR', 'MORE INFO')
+            delim, 'VCODEC', '\tVBR', '\tNVBR', 'ACODEC', '\tABR', '\tASR', 'MORE INFO')
 
         return render_table(
             header_line, table, hide_empty=True,
