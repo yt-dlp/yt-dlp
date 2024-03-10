@@ -11,6 +11,7 @@ import math
 import os.path
 import random
 import re
+import shlex
 import sys
 import threading
 import time
@@ -5087,8 +5088,8 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             'availability': self._extract_availability(data),
             'channel_follower_count': self._get_count(data, ('header', ..., 'subscriberCountText')),
             'description': try_get(metadata_renderer, lambda x: x.get('description', '')),
-            'tags': traverse_obj(
-                data, ('microformat', 'microformatDataRenderer', 'tags'), expected_type=list) or [],
+            'tags': (traverse_obj(data, ('microformat', 'microformatDataRenderer', 'tags', ...))
+                     or traverse_obj(metadata_renderer, ('keywords', {lambda x: x and shlex.split(x)}, ...))),
             'thumbnails': (primary_thumbnails or playlist_thumbnails) + avatar_thumbnails + channel_banners,
         })
 
