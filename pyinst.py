@@ -10,7 +10,8 @@ import warnings
 
 from bundle.pyinstaller import main
 
-warnings.warn(DeprecationWarning('`pyinst.py` is deprecated. Use `bundle.pyinstaller` instead'))
+warnings.warn(DeprecationWarning('`pyinst.py` is deprecated and will be removed in a future version. '
+                                 'Use `bundle.pyinstaller` instead'))
 
 if __name__ == '__main__':
     main()

@@ -10,14 +10,16 @@ import warnings
 
 
 if sys.argv[1:2] == ['py2exe']:
-    warnings.warn(DeprecationWarning('`setup.py py2exe` is deprecated. Use `bundle.py2exe` instead'))
+    warnings.warn(DeprecationWarning('`setup.py py2exe` is deprecated and will be removed in a future version. '
+                                     'Use `bundle.py2exe` instead'))
 
     import bundle.py2exe
 
     bundle.py2exe.main()
 
 elif 'build_lazy_extractors' in sys.argv:
-    warnings.warn(DeprecationWarning('`setup.py build_lazy_extractors` is deprecated. Use `devscripts.make_lazy_extractors.py` instead'))
+    warnings.warn(DeprecationWarning('`setup.py build_lazy_extractors` is deprecated and will be removed in a future version. '
+                                     'Use `devscripts.make_lazy_extractors` instead'))
 
     import subprocess
 
@@ -25,8 +27,10 @@ elif 'build_lazy_extractors' in sys.argv:
     print('running build_lazy_extractors')
     subprocess.run([sys.executable, 'devscripts/make_lazy_extractors.py'])
 
-print(
-    'ERROR: Building by calling `setup.py` is deprecated. '
-    'Use a build frontend like `build` instead. ',
-    'Refer to  https://build.pypa.io  for more info', file=sys.stderr)
-sys.exit(1)
+else:
+
+    print(
+        'ERROR: Building by calling `setup.py` is deprecated. '
+        'Use a build frontend like `build` instead. ',
+        'Refer to  https://build.pypa.io  for more info', file=sys.stderr)
+    sys.exit(1)
