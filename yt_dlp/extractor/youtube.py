@@ -5481,7 +5481,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'uploader_id': '@ThirstForScience',
             'channel_id': 'UCAEtajcuhQ6an9WEzY9LEMQ',
             'channel_url': 'https://www.youtube.com/channel/UCAEtajcuhQ6an9WEzY9LEMQ',
-            'tags': 'count:13',
+            'tags': 'count:12',
             'channel': 'ThirstForScience',
             'channel_follower_count': int
         }
@@ -6196,15 +6196,16 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'info_dict': {
             'id': 'UC0intLFzLaudFG-xAvUEO-A',
             'title': 'Not Just Bikes - Shorts',
-            'tags': 'count:12',
+            'tags': 'count:10',
             'channel_url': 'https://www.youtube.com/channel/UC0intLFzLaudFG-xAvUEO-A',
-            'description': 'md5:26bc55af26855a608a5cf89dfa595c8d',
+            'description': 'md5:5e82545b3a041345927a92d0585df247',
             'channel_follower_count': int,
             'channel_id': 'UC0intLFzLaudFG-xAvUEO-A',
             'channel': 'Not Just Bikes',
             'uploader_url': 'https://www.youtube.com/@NotJustBikes',
             'uploader': 'Not Just Bikes',
             'uploader_id': '@NotJustBikes',
+            'channel_is_verified': True,
         },
         'playlist_mincount': 10,
     }, {
@@ -6407,7 +6408,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'uploader_id': '@AHimitsu',
             'uploader': 'A Himitsu',
             'channel_id': 'UCgFwu-j5-xNJml2FtTrrB3A',
-            'tags': 'count:16',
+            'tags': 'count:12',
             'description': 'I make music',
             'channel_url': 'https://www.youtube.com/channel/UCgFwu-j5-xNJml2FtTrrB3A',
             'channel_follower_count': int,
