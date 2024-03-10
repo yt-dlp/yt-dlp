@@ -1,4 +1,3 @@
-from itertools import chain
 from .common import InfoExtractor
 from ..networking.exceptions import HTTPError
 from ..utils import (
@@ -9,12 +8,11 @@ from ..utils import (
     parse_iso8601,
     parse_qs,
     str_or_none,
-    traverse_obj,
-    update_url_query,
     url_or_none,
     urlencode_postdata,
     urljoin,
 )
+from ..utils.traversal import traverse_obj
 
 
 class RoosterTeethBaseIE(InfoExtractor):
@@ -270,39 +268,33 @@ class RoosterTeethSeriesIE(RoosterTeethBaseIE):
 
     def _entries(self, series_id, season_number):
         display_id = join_nonempty(series_id, season_number)
-        for data in self._download_json(
-                f'{self._API_BASE_URL}/shows/{series_id}/seasons?order=asc&order_by', display_id)['data']:
-            idx = traverse_obj(data, ('attributes', 'number'))
-            if season_number and idx != season_number:
-                continue
-            season_url = update_url_query(urljoin(self._API_BASE, data['links']['episodes']), {'per_page': 1000})
-            season = self._download_json(season_url, display_id, f'Downloading season {idx} JSON metadata')['data']
-            for episode in season:
-                yield self.url_result(
-                    f'https://www.roosterteeth.com{episode["canonical_links"]["self"]}',
-                    RoosterTeethIE.ie_key(),
-                    **self._extract_video_info(episode))
 
-    def _bonus_feature_entries(self, series_id):
-        display_id = join_nonempty(series_id, 'Bonus Features')
-        bonus_url = f'{self._API_BASE_URL}/shows/{series_id}/bonus_features?order=asc&order_by&per_page=1000'
-        data = self._download_json(bonus_url, display_id, 'Downloading bonus features JSON metadata')['data']
-        for episode in data:
-            yield self.url_result(
-                f'https://www.roosterteeth.com{episode["canonical_links"]["self"]}',
-                RoosterTeethIE.ie_key(),
-                **self._extract_video_info(episode))
+        def yield_episodes(data):
+            for episode in traverse_obj(data, ('data', lambda _, v: v['canonical_links']['self'])):
+                yield self.url_result(
+                    urljoin('https://www.roosterteeth.com', episode['canonical_links']['self']),
+                    RoosterTeethIE, **self._extract_video_info(episode))
+
+        series_data = self._download_json(
+            f'{self._API_BASE_URL}/shows/{series_id}/seasons?order=asc&order_by', display_id)
+        for season_data in traverse_obj(series_data, ('data', lambda _, v: v['links']['episodes'])):
+            idx = traverse_obj(season_data, ('attributes', 'number'))
+            if season_number is not None and idx != season_number:
+                continue
+            yield from yield_episodes(self._download_json(
+                urljoin(self._API_BASE, season_data['links']['episodes']), display_id,
+                f'Downloading season {idx} JSON metadata', query={'per_page': 1000}))
+
+        if season_number is None:  # extract series-level bonus features
+            yield from yield_episodes(self._download_json(
+                f'{self._API_BASE_URL}/shows/{series_id}/bonus_features?order=asc&order_by&per_page=1000',
+                display_id, 'Downloading bonus features JSON metadata', fatal=False))
 
     def _real_extract(self, url):
         series_id = self._match_id(url)
         season_number = traverse_obj(parse_qs(url), ('season', 0), expected_type=int_or_none)
-        print(season_number)
 
-        entries = self._entries(series_id, season_number)
-        if season_number is None:
-            entries = chain(entries, self._bonus_feature_entries(series_id))
-
-        entries = LazyList(entries)
+        entries = LazyList(self._entries(series_id, season_number))
         return self.playlist_result(
             entries,
             join_nonempty(series_id, season_number),
