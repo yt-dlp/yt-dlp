@@ -60,7 +60,7 @@ class RoosterTeethBaseIE(InfoExtractor):
         episode_id = str_or_none(data.get('uuid'))
         video_id = str_or_none(data.get('id'))
         if video_id and 'parent_content_id' in attributes:  # parent_content_id is a bonus-only key
-            video_id = f'{video_id}-bonus'  # there are collisions with bonus ids and regular ids
+            video_id += '-bonus'  # there are collisions with bonus ids and regular ids
         elif not video_id:
             video_id = episode_id
 
