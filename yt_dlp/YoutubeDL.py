@@ -1726,6 +1726,8 @@ class YoutubeDL:
 
         def check_filter():
             if _type in ("playlist", "multi_video"):
+                print("check filter for type: " + _type)
+                print("infodict here is: " + str(info_dict))
                 return
             elif _type in ("url", "url_transparent") and not try_call(
                 lambda: self.get_info_extractor(info_dict["ie_key"]).is_single_video(
