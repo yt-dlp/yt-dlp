@@ -1009,6 +1009,7 @@ class NiconicoLiveIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage, urlh = self._download_webpage_handle(f'https://live.nicovideo.jp/watch/{video_id}', video_id)
+        headers = {'Origin': 'https://' + remove_start(urlparse(urlh.url).hostname, 'sp.')}
 
         embedded_data = self._parse_json(unescapeHTML(self._search_regex(
             r'<script\s+id="embedded-data"\s*data-props="(.+?)"', webpage, 'embedded data')), video_id)
@@ -1019,11 +1020,8 @@ class NiconicoLiveIE(InfoExtractor):
             ws_url = update_url_query(ws_url, {
                 'frontend_id': traverse_obj(embedded_data, ('site', 'frontendId')) or '9',
             })
-            hostname = remove_start(urlparse(urlh.url).hostname, 'sp.')
-
             ws = self._request_webpage(
-                Request(ws_url, headers={'Origin': f'https://{hostname}'}),
-                video_id=video_id, note='Connecting to WebSocket server')
+                Request(ws_url, headers=headers), video_id, note='Connecting to WebSocket server')
         else:
             self.raise_no_formats('The live hasn\'t started yet or already ended.', expected=True)
 
@@ -1078,5 +1076,6 @@ class NiconicoLiveIE(InfoExtractor):
             'thumbnails': thumbnails,
             'formats': [*self._yield_formats(ws, video_id, latency, live_status == 'is_live')] if ws else None,
             'live_latency': latency,
+            'http_headers': headers,
             '__ws': ws,
         }

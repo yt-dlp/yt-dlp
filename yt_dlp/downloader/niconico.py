@@ -84,8 +84,7 @@ class NiconicoLiveBaseFD(FileDownloader):
 
         def communicate_ws(reconnect):
             if reconnect:
-                self.ws = self.ydl.urlopen(Request(
-                    self.ws.url, headers={'Origin': self.ws.wsw.request.headers['Origin']}))
+                self.ws = self.ydl.urlopen(Request(self.ws.url, headers=info_dict.get('http_headers')))
                 if self.ydl.params.get('verbose', False):
                     self.to_screen('[debug] Sending startWatching request')
                 self.ws.send(json.dumps({
