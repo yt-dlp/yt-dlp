@@ -5,7 +5,7 @@
  - **1tv**: Первый канал
  - **20min**
  - **23video**
- - **247sports**
+ - **247sports**: (**Currently broken**)
  - **24tv.ua**
  - **3qsdn**: 3Q SDN
  - **3sat**
@@ -17,6 +17,7 @@
  - **91porn**
  - **9c9media**
  - **9gag**: 9GAG
+ - **9News**
  - **9now.com.au**
  - **abc.net.au**
  - **abc.net.au:iview**
@@ -26,13 +27,14 @@
  - **abcotvs**: ABC Owned Television Stations
  - **abcotvs:clips**
  - **AbemaTV**: [*abematv*](## "netrc machine")
- - **AbemaTVTitle**
+ - **AbemaTVTitle**: [*abematv*](## "netrc machine")
  - **AcademicEarth:Course**
  - **acast**
  - **acast:channel**
  - **AcFunBangumi**
  - **AcFunVideo**
  - **ADN**: [*animationdigitalnetwork*](## "netrc machine") Animation Digital Network
+ - **ADNSeason**: [*animationdigitalnetwork*](## "netrc machine") Animation Digital Network
  - **AdobeConnect**
  - **adobetv**
  - **adobetv:channel**
@@ -61,6 +63,7 @@
  - **altcensored:channel**
  - **Alura**: [*alura*](## "netrc machine")
  - **AluraCourse**: [*aluracourse*](## "netrc machine")
+ - **AmadeusTV**
  - **Amara**
  - **AmazonMiniTV**
  - **amazonminitv:season**: Amazon MiniTV Season, "minitv:season:" prefix
@@ -93,11 +96,15 @@
  - **ARDMediathek**
  - **ARDMediathekCollection**
  - **Arkena**
+ - **Art19**
+ - **Art19Show**
  - **arte.sky.it**
  - **ArteTV**
  - **ArteTVCategory**
  - **ArteTVEmbed**
  - **ArteTVPlaylist**
+ - **asobichannel**: ASOBI CHANNEL
+ - **asobichannel:tag**: ASOBI CHANNEL
  - **AtresPlayer**: [*atresplayer*](## "netrc machine")
  - **AtScaleConfEvent**
  - **ATVAt**
@@ -180,13 +187,14 @@
  - **BitChute**
  - **BitChuteChannel**
  - **BlackboardCollaborate**
- - **BleacherReport**
- - **BleacherReportCMS**
+ - **BleacherReport**: (**Currently broken**)
+ - **BleacherReportCMS**: (**Currently broken**)
  - **blerp**
  - **blogger.com**
  - **Bloomberg**
  - **BokeCC**
  - **BongaCams**
+ - **Boosty**
  - **BostonGlobe**
  - **Box**
  - **BoxCastVideo**
@@ -231,8 +239,7 @@
  - **cbc.ca**
  - **cbc.ca:player**
  - **cbc.ca:​player:playlist**
- - **CBS**
- - **CBSInteractive**
+ - **CBS**: (**Currently broken**)
  - **CBSLocal**
  - **CBSLocalArticle**
  - **CBSLocalLive**
@@ -240,8 +247,8 @@
  - **cbsnews:embed**
  - **cbsnews:live**: CBS News Livestream
  - **cbsnews:livevideo**: CBS News Live Videos
- - **cbssports**
- - **cbssports:embed**
+ - **cbssports**: (**Currently broken**)
+ - **cbssports:embed**: (**Currently broken**)
  - **CCMA**
  - **CCTV**: 央视网
  - **CDA**: [*cdapl*](## "netrc machine")
@@ -251,10 +258,10 @@
  - **CharlieRose**
  - **Chaturbate**
  - **Chilloutzone**
- - **Chingari**
- - **ChingariUser**
+ - **chzzk:live**
+ - **chzzk:video**
  - **cielotv.it**
- - **Cinemax**
+ - **Cinemax**: (**Currently broken**)
  - **CinetecaMilano**
  - **Cineverse**
  - **CineverseDetails**
@@ -263,16 +270,15 @@
  - **ciscowebex**: Cisco Webex
  - **CJSW**
  - **Clipchamp**
- - **cliphunter**
  - **Clippit**
- - **ClipRs**
+ - **ClipRs**: (**Currently broken**)
  - **ClipYouEmbed**
- - **CloserToTruth**
+ - **CloserToTruth**: (**Currently broken**)
  - **CloudflareStream**
+ - **CloudyCDN**
  - **Clubic**: (**Currently broken**)
  - **Clyp**
  - **cmt.com**: (**Currently broken**)
- - **CNBC**
  - **CNBCVideo**
  - **CNN**
  - **CNNArticle**
@@ -320,6 +326,7 @@
  - **DailyMail**
  - **dailymotion**: [*dailymotion*](## "netrc machine")
  - **dailymotion:playlist**: [*dailymotion*](## "netrc machine")
+ - **dailymotion:search**: [*dailymotion*](## "netrc machine")
  - **dailymotion:user**: [*dailymotion*](## "netrc machine")
  - **DailyWire**
  - **DailyWirePodcast**
@@ -340,7 +347,6 @@
  - **DeuxM**
  - **DeuxMNews**
  - **DHM**: Filmarchiv - Deutsches Historisches Museum (**Currently broken**)
- - **Digg**
  - **DigitalConcertHall**: [*digitalconcerthall*](## "netrc machine") DigitalConcertHall extractor
  - **DigitallySpeaking**
  - **Digiteka**
@@ -373,14 +379,14 @@
  - **drtv:live**
  - **drtv:season**
  - **drtv:series**
- - **DTube**
+ - **DTube**: (**Currently broken**)
  - **duboku**: www.duboku.io
  - **duboku:list**: www.duboku.io entire series
  - **Dumpert**
  - **Duoplay**
  - **dvtv**: http://video.aktualne.cz/
- - **dw**
- - **dw:article**
+ - **dw**: (**Currently broken**)
+ - **dw:article**: (**Currently broken**)
  - **EaglePlatform**
  - **EbaumsWorld**
  - **Ebay**
@@ -391,6 +397,7 @@
  - **EinsUndEinsTVRecordings**: [*1und1tv*](## "netrc machine")
  - **Einthusan**
  - **eitb.tv**
+ - **ElementorEmbed**
  - **Elonet**
  - **ElPais**: El País
  - **ElTreceTV**: El Trece TV (Argentina)
@@ -405,6 +412,7 @@
  - **Erocast**
  - **EroProfile**: [*eroprofile*](## "netrc machine")
  - **EroProfile:album**
+ - **ERRJupiter**
  - **ertflix**: ERTFLIX videos
  - **ertflix:codename**: ERTFLIX videos by codename
  - **ertwebtv:embed**: ert.gr webtv embedded videos
@@ -412,7 +420,7 @@
  - **ESPNArticle**
  - **ESPNCricInfo**
  - **EttuTv**
- - **Europa**
+ - **Europa**: (**Currently broken**)
  - **EuroParlWebstream**
  - **EuropeanTour**
  - **Eurosport**
@@ -423,22 +431,23 @@
  - **Expressen**
  - **EyedoTV**
  - **facebook**: [*facebook*](## "netrc machine")
+ - **facebook:ads**
  - **facebook:reel**
  - **FacebookPluginsVideo**
- - **fancode:live**: [*fancode*](## "netrc machine")
- - **fancode:vod**: [*fancode*](## "netrc machine")
+ - **fancode:live**: [*fancode*](## "netrc machine") (**Currently broken**)
+ - **fancode:vod**: [*fancode*](## "netrc machine") (**Currently broken**)
  - **faz.net**
  - **fc2**: [*fc2*](## "netrc machine")
  - **fc2:embed**
  - **fc2:live**
  - **Fczenit**
  - **Fifa**
- - **Filmmodu**
  - **filmon**
  - **filmon:channel**
  - **Filmweb**
  - **FiveThirtyEight**
  - **FiveTV**
+ - **FlexTV**
  - **Flickr**
  - **Floatplane**
  - **FloatplaneChannel**
@@ -477,7 +486,6 @@
  - **Gab**
  - **GabTV**
  - **Gaia**: [*gaia*](## "netrc machine")
- - **GameInformer**
  - **GameJolt**
  - **GameJoltCommunity**
  - **GameJoltGame**
@@ -487,18 +495,19 @@
  - **GameSpot**
  - **GameStar**
  - **Gaskrank**
- - **Gazeta**
- - **GDCVault**: [*gdcvault*](## "netrc machine")
+ - **Gazeta**: (**Currently broken**)
+ - **GDCVault**: [*gdcvault*](## "netrc machine") (**Currently broken**)
  - **GediDigital**
  - **gem.cbc.ca**: [*cbcgem*](## "netrc machine")
  - **gem.cbc.ca:live**
  - **gem.cbc.ca:playlist**
  - **Genius**
  - **GeniusLyrics**
+ - **GetCourseRu**: [*getcourseru*](## "netrc machine")
+ - **GetCourseRuPlayer**
  - **Gettr**
  - **GettrStreaming**
  - **GiantBomb**
- - **Giga**
  - **GlattvisionTV**: [*glattvisiontv*](## "netrc machine")
  - **GlattvisionTVLive**: [*glattvisiontv*](## "netrc machine")
  - **GlattvisionTVRecordings**: [*glattvisiontv*](## "netrc machine")
@@ -516,7 +525,7 @@
  - **GMANetworkVideo**
  - **Go**
  - **GoDiscovery**
- - **GodTube**
+ - **GodTube**: (**Currently broken**)
  - **Gofile**
  - **Golem**
  - **goodgame:stream**
@@ -551,7 +560,7 @@
  - **HollywoodReporter**
  - **HollywoodReporterPlaylist**
  - **Holodex**
- - **HotNewHipHop**
+ - **HotNewHipHop**: (**Currently broken**)
  - **hotstar**
  - **hotstar:playlist**
  - **hotstar:season**
@@ -579,6 +588,7 @@
  - **IGNVideo**
  - **iheartradio**
  - **iheartradio:podcast**
+ - **IlPost**
  - **Iltalehti**
  - **imdb**: Internet Movie Database trailers
  - **imdb:list**: Internet Movie Database lists
@@ -592,7 +602,7 @@
  - **Instagram**: [*instagram*](## "netrc machine")
  - **instagram:story**: [*instagram*](## "netrc machine")
  - **instagram:tag**: [*instagram*](## "netrc machine") Instagram hashtag search URLs
- - **instagram:user**: [*instagram*](## "netrc machine") Instagram user profile
+ - **instagram:user**: [*instagram*](## "netrc machine") Instagram user profile (**Currently broken**)
  - **InstagramIOS**: IOS instagram:// URL
  - **Internazionale**
  - **InternetVideoArchive**
@@ -622,7 +632,7 @@
  - **JablePlaylist**
  - **Jamendo**
  - **JamendoAlbum**
- - **JeuxVideo**
+ - **JeuxVideo**: (**Currently broken**)
  - **JioSaavnAlbum**
  - **JioSaavnSong**
  - **Joj**
@@ -634,12 +644,10 @@
  - **JWPlatform**
  - **Kakao**
  - **Kaltura**
- - **Kanal2**
- - **KankaNews**
+ - **KankaNews**: (**Currently broken**)
  - **Karaoketv**
- - **KarriereVideos**
- - **Katsomo**
- - **KelbyOne**
+ - **Katsomo**: (**Currently broken**)
+ - **KelbyOne**: (**Currently broken**)
  - **Ketnet**
  - **khanacademy**
  - **khanacademy:unit**
@@ -651,18 +659,17 @@
  - **KinoPoisk**
  - **Kommunetv**
  - **KompasVideo**
- - **KonserthusetPlay**
- - **Koo**
- - **KrasView**: Красвью
+ - **Koo**: (**Currently broken**)
+ - **KrasView**: Красвью (**Currently broken**)
  - **KTH**
  - **Ku6**
- - **KUSI**
- - **kuwo:album**: 酷我音乐 - 专辑
- - **kuwo:category**: 酷我音乐 - 分类
- - **kuwo:chart**: 酷我音乐 - 排行榜
- - **kuwo:mv**: 酷我音乐 - MV
- - **kuwo:singer**: 酷我音乐 - 歌手
- - **kuwo:song**: 酷我音乐
+ - **KukuluLive**
+ - **kuwo:album**: 酷我音乐 - 专辑 (**Currently broken**)
+ - **kuwo:category**: 酷我音乐 - 分类 (**Currently broken**)
+ - **kuwo:chart**: 酷我音乐 - 排行榜 (**Currently broken**)
+ - **kuwo:mv**: 酷我音乐 - MV (**Currently broken**)
+ - **kuwo:singer**: 酷我音乐 - 歌手 (**Currently broken**)
+ - **kuwo:song**: 酷我音乐 (**Currently broken**)
  - **la7.it**
  - **la7.it:​pod:episode**
  - **la7.it:podcast**
@@ -677,7 +684,7 @@
  - **Lcp**
  - **LcpPlay**
  - **Le**: 乐视网
- - **Lecture2Go**
+ - **Lecture2Go**: (**Currently broken**)
  - **Lecturio**: [*lecturio*](## "netrc machine")
  - **LecturioCourse**: [*lecturio*](## "netrc machine")
  - **LecturioDeCourse**: [*lecturio*](## "netrc machine")
@@ -685,7 +692,7 @@
  - **LeFigaroVideoSection**
  - **LEGO**
  - **Lemonde**
- - **Lenta**
+ - **Lenta**: (**Currently broken**)
  - **LePlaylist**
  - **LetvCloud**: 乐视云
  - **Libsyn**
@@ -709,31 +716,32 @@
  - **Lnk**
  - **LnkGo**
  - **loc**: Library of Congress
- - **LocalNews8**
  - **LoveHomePorn**
  - **LRTStream**
  - **LRTVOD**
+ - **LSMLREmbed**
+ - **LSMLTVEmbed**
+ - **LSMReplay**
  - **Lumni**
  - **lynda**: [*lynda*](## "netrc machine") lynda.com videos
  - **lynda:course**: [*lynda*](## "netrc machine") lynda.com online courses
  - **maariv.co.il**
  - **MagellanTV**
- - **MagentaMusik360**
+ - **MagentaMusik**
  - **mailru**: Видео@Mail.Ru
  - **mailru:music**: Музыка@Mail.Ru
  - **mailru:​music:search**: Музыка@Mail.Ru
  - **MainStreaming**: MainStreaming Player
- - **MallTV**
  - **mangomolo:live**
  - **mangomolo:video**
  - **MangoTV**: 芒果TV
  - **ManotoTV**: Manoto TV (Episode)
  - **ManotoTVLive**: Manoto TV (Live)
  - **ManotoTVShow**: Manoto TV (Show)
- - **ManyVids**
+ - **ManyVids**: (**Currently broken**)
  - **MaoriTV**
- - **Markiza**
- - **MarkizaPage**
+ - **Markiza**: (**Currently broken**)
+ - **MarkizaPage**: (**Currently broken**)
  - **massengeschmack.tv**
  - **Masters**
  - **MatchTV**
@@ -760,7 +768,6 @@
  - **MelonVOD**
  - **Metacritic**
  - **mewatch**
- - **MiaoPai**
  - **MicrosoftEmbed**
  - **microsoftstream**: Microsoft Stream
  - **mildom**: Record ongoing live by specific user in Mildom
@@ -770,7 +777,6 @@
  - **minds**
  - **minds:channel**
  - **minds:group**
- - **MinistryGrid**
  - **Minoto**
  - **mirrativ**
  - **mirrativ:user**
@@ -793,11 +799,11 @@
  - **Mojvideo**
  - **Monstercat**
  - **MonsterSirenHypergryphMusic**
- - **Morningstar**: morningstar.com
  - **Motherless**
  - **MotherlessGallery**
  - **MotherlessGroup**
- - **Motorsport**: motorsport.com
+ - **MotherlessUploader**
+ - **Motorsport**: motorsport.com (**Currently broken**)
  - **MotorTrend**
  - **MotorTrendOnDemand**
  - **MovieFap**
@@ -808,17 +814,17 @@
  - **MSN**: (**Currently broken**)
  - **mtg**: MTG services
  - **mtv**
- - **mtv.de**
+ - **mtv.de**: (**Currently broken**)
  - **mtv.it**
  - **mtv.it:programma**
  - **mtv:video**
  - **mtvjapan**
  - **mtvservices:embedded**
- - **MTVUutisetArticle**
- - **MuenchenTV**: münchen.tv
+ - **MTVUutisetArticle**: (**Currently broken**)
+ - **MuenchenTV**: münchen.tv (**Currently broken**)
  - **MujRozhlas**
- - **Murrtube**
- - **MurrtubeUser**: Murrtube user profile
+ - **Murrtube**: (**Currently broken**)
+ - **MurrtubeUser**: Murrtube user profile (**Currently broken**)
  - **MuseAI**
  - **MuseScore**
  - **MusicdexAlbum**
@@ -827,6 +833,9 @@
  - **MusicdexSong**
  - **mva**: Microsoft Virtual Academy videos
  - **mva:course**: Microsoft Virtual Academy courses
+ - **Mx3**
+ - **Mx3Neo**
+ - **Mx3Volksmusik**
  - **Mxplayer**
  - **MxplayerShow**
  - **MySpace**
@@ -862,11 +871,11 @@
  - **ndr**: NDR.de - Norddeutscher Rundfunk
  - **ndr:embed**
  - **ndr:​embed:base**
- - **NDTV**
- - **Nebula**: [*watchnebula*](## "netrc machine")
+ - **NDTV**: (**Currently broken**)
  - **nebula:channel**: [*watchnebula*](## "netrc machine")
- - **nebula:class**: [*watchnebula*](## "netrc machine")
+ - **nebula:media**: [*watchnebula*](## "netrc machine")
  - **nebula:subscriptions**: [*watchnebula*](## "netrc machine")
+ - **nebula:video**: [*watchnebula*](## "netrc machine")
  - **NekoHacker**
  - **NerdCubedFeed**
  - **netease:album**: 网易云音乐 - 专辑
@@ -882,18 +891,19 @@
  - **Netverse**
  - **NetversePlaylist**
  - **NetverseSearch**: "netsearch:" prefix
- - **Netzkino**
- - **Newgrounds**
+ - **Netzkino**: (**Currently broken**)
+ - **Newgrounds**: [*newgrounds*](## "netrc machine")
  - **Newgrounds:playlist**
  - **Newgrounds:user**
  - **NewsPicks**
  - **Newsy**
  - **NextMedia**: 蘋果日報
  - **NextMediaActionNews**: 蘋果日報 - 動新聞
- - **NextTV**: 壹電視
+ - **NextTV**: 壹電視 (**Currently broken**)
  - **Nexx**
  - **NexxEmbed**
- - **NFB**
+ - **nfb**: nfb.ca and onf.ca films and episodes
+ - **nfb:series**: nfb.ca and onf.ca series
  - **NFHSNetwork**
  - **nfl.com**
  - **nfl.com:article**
@@ -925,11 +935,12 @@
  - **nicovideo:search**: Nico video search; "nicosearch:" prefix
  - **nicovideo:​search:date**: Nico video search, newest first; "nicosearchdate:" prefix
  - **nicovideo:search_url**: Nico video search URLs
+ - **NinaProtocol**
  - **Nintendo**
  - **Nitter**
  - **njoy**: N-JOY
  - **njoy:embed**
- - **NobelPrize**
+ - **NobelPrize**: (**Currently broken**)
  - **NoicePodcast**
  - **NonkTube**
  - **NoodleMagazine**
@@ -941,7 +952,7 @@
  - **nowness**
  - **nowness:playlist**
  - **nowness:series**
- - **Noz**
+ - **Noz**: (**Currently broken**)
  - **npo**: npo.nl, ntr.nl, omroepwnl.nl, zapp.nl and npo3.nl
  - **npo.nl:live**
  - **npo.nl:radio**
@@ -960,15 +971,18 @@
  - **NRLTV**: (**Currently broken**)
  - **ntv.ru**
  - **NubilesPorn**: [*nubiles-porn*](## "netrc machine")
+ - **nuum:live**
+ - **nuum:media**
+ - **nuum:tab**
  - **Nuvid**
  - **NYTimes**
  - **NYTimesArticle**
- - **NYTimesCooking**
+ - **NYTimesCookingGuide**
+ - **NYTimesCookingRecipe**
  - **nzherald**
  - **NZOnScreen**
  - **NZZ**
  - **ocw.mit.edu**
- - **OdaTV**
  - **Odnoklassniki**
  - **OfTV**
  - **OfTVPlaylist**
@@ -993,6 +1007,7 @@
  - **OraTV**
  - **orf:​fm4:story**: fm4.orf.at stories
  - **orf:iptv**: iptv.ORF.at
+ - **orf:on**
  - **orf:podcast**
  - **orf:radio**
  - **orf:tvthek**: ORF TVthek
@@ -1015,7 +1030,7 @@
  - **ParamountPressExpress**
  - **Parler**: Posts on parler.com
  - **parliamentlive.tv**: UK parliament videos
- - **Parlview**
+ - **Parlview**: (**Currently broken**)
  - **Patreon**
  - **PatreonCampaign**
  - **pbs**: Public Broadcasting Service (PBS) and member stations: PBS: Public Broadcasting Service, APT - Alabama Public Television (WBIQ), GPB/Georgia Public Broadcasting (WGTV), Mississippi Public Broadcasting (WMPN), Nashville Public Television (WNPT), WFSU-TV (WFSU), WSRE (WSRE), WTCI (WTCI), WPBA/Channel 30 (WPBA), Alaska Public Media (KAKM), Arizona PBS (KAET), KNME-TV/Channel 5 (KNME), Vegas PBS (KLVX), AETN/ARKANSAS ETV NETWORK (KETS), KET (WKLE), WKNO/Channel 10 (WKNO), LPB/LOUISIANA PUBLIC BROADCASTING (WLPB), OETA (KETA), Ozarks Public Television (KOZK), WSIU Public Broadcasting (WSIU), KEET TV (KEET), KIXE/Channel 9 (KIXE), KPBS San Diego (KPBS), KQED (KQED), KVIE Public Television (KVIE), PBS SoCal/KOCE (KOCE), ValleyPBS (KVPT), CONNECTICUT PUBLIC TELEVISION (WEDH), KNPB Channel 5 (KNPB), SOPTV (KSYS), Rocky Mountain PBS (KRMA), KENW-TV3 (KENW), KUED Channel 7 (KUED), Wyoming PBS (KCWC), Colorado Public Television / KBDI 12 (KBDI), KBYU-TV (KBYU), Thirteen/WNET New York (WNET), WGBH/Channel 2 (WGBH), WGBY (WGBY), NJTV Public Media NJ (WNJT), WLIW21 (WLIW), mpt/Maryland Public Television (WMPB), WETA Television and Radio (WETA), WHYY (WHYY), PBS 39 (WLVT), WVPT - Your Source for PBS and More! (WVPT), Howard University Television (WHUT), WEDU PBS (WEDU), WGCU Public Media (WGCU), WPBT2 (WPBT), WUCF TV (WUCF), WUFT/Channel 5 (WUFT), WXEL/Channel 42 (WXEL), WLRN/Channel 17 (WLRN), WUSF Public Broadcasting (WUSF), ETV (WRLK), UNC-TV (WUNC), PBS Hawaii - Oceanic Cable Channel 10 (KHET), Idaho Public Television (KAID), KSPS (KSPS), OPB (KOPB), KWSU/Channel 10 & KTNW/Channel 31 (KWSU), WILL-TV (WILL), Network Knowledge - WSEC/Springfield (WSEC), WTTW11 (WTTW), Iowa Public Television/IPTV (KDIN), Nine Network (KETC), PBS39 Fort Wayne (WFWA), WFYI Indianapolis (WFYI), Milwaukee Public Television (WMVS), WNIN (WNIN), WNIT Public Television (WNIT), WPT (WPNE), WVUT/Channel 22 (WVUT), WEIU/Channel 51 (WEIU), WQPT-TV (WQPT), WYCC PBS Chicago (WYCC), WIPB-TV (WIPB), WTIU (WTIU), CET  (WCET), ThinkTVNetwork (WPTD), WBGU-TV (WBGU), WGVU TV (WGVU), NET1 (KUON), Pioneer Public Television (KWCM), SDPB Television (KUSD), TPT (KTCA), KSMQ (KSMQ), KPTS/Channel 8 (KPTS), KTWU/Channel 11 (KTWU), East Tennessee PBS (WSJK), WCTE-TV (WCTE), WLJT, Channel 11 (WLJT), WOSU TV (WOSU), WOUB/WOUC (WOUB), WVPB (WVPB), WKYU-PBS (WKYU), KERA 13 (KERA), MPBN (WCBB), Mountain Lake PBS (WCFE), NHPTV (WENH), Vermont PBS (WETK), witf (WITF), WQED Multimedia (WQED), WMHT Educational Telecommunications (WMHT), Q-TV (WDCQ), WTVS Detroit Public TV (WTVS), CMU Public Television (WCMU), WKAR-TV (WKAR), WNMU-TV Public TV 13 (WNMU), WDSE - WRPT (WDSE), WGTE TV (WGTE), Lakeland Public Television (KAWE), KMOS-TV - Channels 6.1, 6.2 and 6.3 (KMOS), MontanaPBS (KUSM), KRWG/Channel 22 (KRWG), KACV (KACV), KCOS/Channel 13 (KCOS), WCNY/Channel 24 (WCNY), WNED (WNED), WPBS (WPBS), WSKG Public TV (WSKG), WXXI (WXXI), WPSU (WPSU), WVIA Public Media Studios (WVIA), WTVI (WTVI), Western Reserve PBS (WNEO), WVIZ/PBS ideastream (WVIZ), KCTS 9 (KCTS), Basin PBS (KPBT), KUHT / Channel 8 (KUHT), KLRN (KLRN), KLRU (KLRU), WTJX Channel 12 (WTJX), WCVE PBS (WCVE), KBTC Public Television (KBTC)
@@ -1049,19 +1064,19 @@
  - **Platzi**: [*platzi*](## "netrc machine")
  - **PlatziCourse**: [*platzi*](## "netrc machine")
  - **player.sky.it**
+ - **playeur**
  - **PlayPlusTV**: [*playplustv*](## "netrc machine")
- - **PlayStuff**
- - **PlaySuisse**
+ - **PlaySuisse**: [*playsuisse*](## "netrc machine")
  - **Playtvak**: Playtvak.cz, iDNES.cz and Lidovky.cz
  - **PlayVids**
  - **Playwire**
  - **pluralsight**: [*pluralsight*](## "netrc machine")
  - **pluralsight:course**
- - **PlutoTV**
+ - **PlutoTV**: (**Currently broken**)
  - **PodbayFM**
  - **PodbayFMChannel**
  - **Podchaser**
- - **podomatic**
+ - **podomatic**: (**Currently broken**)
  - **Pokemon**
  - **PokemonWatch**
  - **PokerGo**: [*pokergo*](## "netrc machine")
@@ -1085,15 +1100,16 @@
  - **PornHubUser**: [*pornhub*](## "netrc machine")
  - **PornHubUserVideosUpload**: [*pornhub*](## "netrc machine")
  - **Pornotube**
- - **PornoVoisines**
- - **PornoXO**
+ - **PornoVoisines**: (**Currently broken**)
+ - **PornoXO**: (**Currently broken**)
  - **PornTop**
  - **PornTube**
  - **Pr0gramm**
  - **PrankCast**
+ - **PrankCastPost**
  - **PremiershipRugby**
  - **PressTV**
- - **ProjectVeritas**
+ - **ProjectVeritas**: (**Currently broken**)
  - **prosiebensat1**: ProSiebenSat.1 Digital
  - **PRXAccount**
  - **PRXSeries**
@@ -1115,11 +1131,11 @@
  - **QuantumTVLive**: [*quantumtv*](## "netrc machine")
  - **QuantumTVRecordings**: [*quantumtv*](## "netrc machine")
  - **Qub**
- - **R7**
- - **R7Article**
+ - **R7**: (**Currently broken**)
+ - **R7Article**: (**Currently broken**)
  - **Radiko**
  - **RadikoRadio**
- - **radio.de**
+ - **radio.de**: (**Currently broken**)
  - **radiocanada**
  - **radiocanada:audiovideo**
  - **RadioComercial**
@@ -1129,7 +1145,7 @@
  - **RadioFrancePodcast**
  - **RadioFranceProfile**
  - **RadioFranceProgramSchedule**
- - **RadioJavan**
+ - **RadioJavan**: (**Currently broken**)
  - **radiokapital**
  - **radiokapital:show**
  - **RadioZetPodcast**
@@ -1151,33 +1167,34 @@
  - **RbgTum**
  - **RbgTumCourse**
  - **RbgTumNewCourse**
- - **RBMARadio**
  - **RCS**
  - **RCSEmbeds**
  - **RCSVarious**
  - **RCTIPlus**
  - **RCTIPlusSeries**
  - **RCTIPlusTV**
- - **RDS**: RDS.ca
+ - **RDS**: RDS.ca (**Currently broken**)
  - **RedBull**
  - **RedBullEmbed**
  - **RedBullTV**
  - **RedBullTVRrnContent**
+ - **redcdnlivx**
  - **Reddit**: [*reddit*](## "netrc machine")
  - **RedGifs**
  - **RedGifsSearch**: Redgifs search
  - **RedGifsUser**: Redgifs user
  - **RedTube**
- - **RegioTV**
- - **RENTV**
- - **RENTVArticle**
- - **Restudy**
- - **Reuters**
+ - **RENTV**: (**Currently broken**)
+ - **RENTVArticle**: (**Currently broken**)
+ - **Restudy**: (**Currently broken**)
+ - **Reuters**: (**Currently broken**)
  - **ReverbNation**
  - **RheinMainTV**
+ - **RideHome**
  - **RinseFM**
+ - **RinseFMArtistPlaylist**
  - **RMCDecouverte**
- - **RockstarGames**
+ - **RockstarGames**: (**Currently broken**)
  - **Rokfin**: [*rokfin*](## "netrc machine")
  - **rokfin:channel**: Rokfin Channels
  - **rokfin:search**: Rokfin Search; "rkfnsearch:" prefix
@@ -1187,7 +1204,7 @@
  - **RottenTomatoes**
  - **Rozhlas**
  - **RozhlasVltava**
- - **RTBF**: [*rtbf*](## "netrc machine")
+ - **RTBF**: [*rtbf*](## "netrc machine") (**Currently broken**)
  - **RTDocumentry**
  - **RTDocumentryPlaylist**
  - **rte**: Raidió Teilifís Éireann TV
@@ -1201,7 +1218,7 @@
  - **RTNews**
  - **RTP**
  - **RTRFM**
- - **RTS**: RTS.ch
+ - **RTS**: RTS.ch (**Currently broken**)
  - **RTVCKaltura**
  - **RTVCPlay**
  - **RTVCPlayEmbed**
@@ -1234,7 +1251,7 @@
  - **safari**: [*safari*](## "netrc machine") safaribooksonline.com online video
  - **safari:api**: [*safari*](## "netrc machine")
  - **safari:course**: [*safari*](## "netrc machine") safaribooksonline.com online courses
- - **Saitosan**
+ - **Saitosan**: (**Currently broken**)
  - **SAKTV**: [*saktv*](## "netrc machine")
  - **SAKTVLive**: [*saktv*](## "netrc machine")
  - **SAKTVRecordings**: [*saktv*](## "netrc machine")
@@ -1244,7 +1261,6 @@
  - **SampleFocus**
  - **Sangiin**: 参議院インターネット審議中継 (archive)
  - **Sapo**: SAPO Vídeos
- - **savefrom.net**
  - **SBS**: sbs.com.au
  - **sbs.co.kr**
  - **sbs.co.kr:allvod_program**
@@ -1261,13 +1277,13 @@
  - **Scrolller**
  - **SCTE**: [*scte*](## "netrc machine") (**Currently broken**)
  - **SCTECourse**: [*scte*](## "netrc machine") (**Currently broken**)
- - **Seeker**
- - **SenalColombiaLive**
+ - **sejm**
+ - **SenalColombiaLive**: (**Currently broken**)
  - **SenateGov**
  - **SenateISVP**
- - **SendtoNews**
+ - **SendtoNews**: (**Currently broken**)
  - **Servus**
- - **Sexu**
+ - **Sexu**: (**Currently broken**)
  - **SeznamZpravy**
  - **SeznamZpravyArticle**
  - **Shahid**: [*shahid*](## "netrc machine")
@@ -1289,9 +1305,9 @@
  - **sky:​news:story**
  - **sky:sports**
  - **sky:​sports:news**
- - **SkylineWebcams**
- - **skynewsarabia:article**
- - **skynewsarabia:video**
+ - **SkylineWebcams**: (**Currently broken**)
+ - **skynewsarabia:article**: (**Currently broken**)
+ - **skynewsarabia:video**: (**Currently broken**)
  - **SkyNewsAU**
  - **Slideshare**
  - **SlidesLive**
@@ -1342,7 +1358,7 @@
  - **StacommuVOD**: [*stacommu*](## "netrc machine")
  - **StagePlusVODConcert**: [*stageplus*](## "netrc machine")
  - **stanfordoc**: Stanford Open ClassRoom
- - **StarTrek**
+ - **StarTrek**: (**Currently broken**)
  - **startv**
  - **Steam**
  - **SteamCommunityBroadcast**
@@ -1353,7 +1369,6 @@
  - **StoryFireUser**
  - **Streamable**
  - **StreamCZ**
- - **StreamFF**
  - **StreetVoice**
  - **StretchInternet**
  - **Stripchat**
@@ -1367,22 +1382,21 @@
  - **SVTPlay**: SVT Play and Öppet arkiv
  - **SVTSeries**
  - **SwearnetEpisode**
- - **Syfy**
+ - **Syfy**: (**Currently broken**)
  - **SYVDK**
  - **SztvHu**
- - **t-online.de**
- - **Tagesschau**
- - **Tass**
+ - **t-online.de**: (**Currently broken**)
+ - **Tagesschau**: (**Currently broken**)
+ - **Tass**: (**Currently broken**)
  - **TBS**
  - **TBSJPEpisode**
  - **TBSJPPlaylist**
  - **TBSJPProgram**
- - **TDSLifeway**
- - **Teachable**: [*teachable*](## "netrc machine")
+ - **Teachable**: [*teachable*](## "netrc machine") (**Currently broken**)
  - **TeachableCourse**: [*teachable*](## "netrc machine")
- - **teachertube**: teachertube.com videos
- - **teachertube:​user:collection**: teachertube.com user and collection videos
- - **TeachingChannel**
+ - **teachertube**: teachertube.com videos (**Currently broken**)
+ - **teachertube:​user:collection**: teachertube.com user and collection videos (**Currently broken**)
+ - **TeachingChannel**: (**Currently broken**)
  - **Teamcoco**
  - **TeamTreeHouse**: [*teamtreehouse*](## "netrc machine")
  - **techtv.mit.edu**
@@ -1391,20 +1405,20 @@
  - **TedSeries**
  - **TedTalk**
  - **Tele13**
- - **Tele5**
+ - **Tele5**: (**Currently broken**)
  - **TeleBruxelles**
  - **TelecaribePlay**
  - **Telecinco**: telecinco.es, cuatro.com and mediaset.es
  - **Telegraaf**
  - **telegram:embed**
- - **TeleMB**
- - **Telemundo**
+ - **TeleMB**: (**Currently broken**)
+ - **Telemundo**: (**Currently broken**)
  - **TeleQuebec**
  - **TeleQuebecEmission**
  - **TeleQuebecLive**
  - **TeleQuebecSquat**
  - **TeleQuebecVideo**
- - **TeleTask**
+ - **TeleTask**: (**Currently broken**)
  - **Telewebion**
  - **Tempo**
  - **TennisTV**: [*tennistv*](## "netrc machine")
@@ -1458,6 +1472,7 @@
  - **TrovoChannelVod**: All VODs of a trovo.live channel; "trovovod:" prefix
  - **TrovoVod**
  - **TrtCocukVideo**
+ - **TrtWorld**
  - **TrueID**
  - **TruNews**
  - **Truth**
@@ -1471,7 +1486,6 @@
  - **TuneInPodcast**
  - **TuneInPodcastEpisode**
  - **TuneInStation**
- - **Turbo**
  - **tv.dfb.de**
  - **TV2**
  - **TV2Article**
@@ -1493,8 +1507,8 @@
  - **tvigle**: Интернет-телевидение Tvigle.ru
  - **TVIPlayer**
  - **tvland.com**
- - **TVN24**
- - **TVNoe**
+ - **TVN24**: (**Currently broken**)
+ - **TVNoe**: (**Currently broken**)
  - **tvopengr:embed**: tvopen.gr embedded videos
  - **tvopengr:watch**: tvopen.gr (and ethnos.gr) videos
  - **tvp**: Telewizja Polska
@@ -1527,15 +1541,15 @@
  - **UDNEmbed**: 聯合影音
  - **UFCArabia**: [*ufcarabia*](## "netrc machine")
  - **UFCTV**: [*ufctv*](## "netrc machine")
- - **ukcolumn**
+ - **ukcolumn**: (**Currently broken**)
  - **UKTVPlay**
- - **umg:de**: Universal Music Deutschland
+ - **umg:de**: Universal Music Deutschland (**Currently broken**)
  - **Unistra**
- - **Unity**
+ - **Unity**: (**Currently broken**)
  - **uol.com.br**
  - **uplynk**
  - **uplynk:preplay**
- - **Urort**: NRK P3 Urørt
+ - **Urort**: NRK P3 Urørt (**Currently broken**)
  - **URPlay**
  - **USANetwork**
  - **USAToday**
@@ -1543,13 +1557,12 @@
  - **ustream:channel**
  - **ustudio**
  - **ustudio:embed**
- - **Utreon**
- - **Varzesh3**
+ - **Varzesh3**: (**Currently broken**)
  - **Vbox7**
  - **Veo**
  - **Veoh**
  - **veoh:user**
- - **Vesti**: Вести.Ru
+ - **Vesti**: Вести.Ru (**Currently broken**)
  - **Vevo**
  - **VevoPlaylist**
  - **VGTV**: VGTV, BTTV, FTV, Aftenposten and Aftonbladet
@@ -1565,7 +1578,7 @@
  - **video.sky.it**
  - **video.sky.it:live**
  - **VideoDetective**
- - **videofy.me**
+ - **videofy.me**: (**Currently broken**)
  - **VideoKen**
  - **VideoKenCategory**
  - **VideoKenPlayer**
@@ -1601,7 +1614,8 @@
  - **ViMP:Playlist**
  - **Vine**
  - **vine:user**
- - **Viqeo**
+ - **Viously**
+ - **Viqeo**: (**Currently broken**)
  - **Viu**
  - **viu:ott**: [*viu*](## "netrc machine")
  - **viu:playlist**
@@ -1615,8 +1629,8 @@
  - **Vocaroo**
  - **VODPl**
  - **VODPlatform**
- - **voicy**
- - **voicy:channel**
+ - **voicy**: (**Currently broken**)
+ - **voicy:channel**: (**Currently broken**)
  - **VolejTV**
  - **Voot**: [*voot*](## "netrc machine") (**Currently broken**)
  - **VootSeries**: [*voot*](## "netrc machine") (**Currently broken**)
@@ -1627,7 +1641,7 @@
  - **vqq:video**
  - **VRT**: VRT NWS, Flanders News, Flandern Info and Sporza
  - **VrtNU**: [*vrtnu*](## "netrc machine") VRT MAX
- - **VTM**
+ - **VTM**: (**Currently broken**)
  - **VTXTV**: [*vtxtv*](## "netrc machine")
  - **VTXTVLive**: [*vtxtv*](## "netrc machine")
  - **VTXTVRecordings**: [*vtxtv*](## "netrc machine")
@@ -1638,9 +1652,6 @@
  - **WalyTV**: [*walytv*](## "netrc machine")
  - **WalyTVLive**: [*walytv*](## "netrc machine")
  - **WalyTVRecordings**: [*walytv*](## "netrc machine")
- - **wasdtv:clip**
- - **wasdtv:record**
- - **wasdtv:stream**
  - **washingtonpost**
  - **washingtonpost:article**
  - **wat.tv**
@@ -1658,7 +1669,7 @@
  - **Weibo**
  - **WeiboUser**
  - **WeiboVideo**
- - **WeiqiTV**: WQTV
+ - **WeiqiTV**: WQTV (**Currently broken**)
  - **wetv:episode**
  - **WeTvSeries**
  - **Weverse**: [*weverse*](## "netrc machine")
@@ -1703,8 +1714,8 @@
  - **XHamsterUser**
  - **ximalaya**: 喜马拉雅FM
  - **ximalaya:album**: 喜马拉雅FM 专辑
- - **xinpianchang**: xinpianchang.com
- - **XMinus**
+ - **xinpianchang**: xinpianchang.com (**Currently broken**)
+ - **XMinus**: (**Currently broken**)
  - **XNXX**
  - **Xstream**
  - **XVideos**
@@ -1720,8 +1731,8 @@
  - **yandexmusic:track**: Яндекс.Музыка - Трек
  - **YandexVideo**
  - **YandexVideoPreview**
- - **YapFiles**
- - **Yappy**
+ - **YapFiles**: (**Currently broken**)
+ - **Yappy**: (**Currently broken**)
  - **YappyProfile**
  - **YleAreena**
  - **YouJizz**
@@ -1762,9 +1773,11 @@
  - **ZDFChannel**
  - **Zee5**: [*zee5*](## "netrc machine")
  - **zee5:series**
- - **ZeeNews**
+ - **ZeeNews**: (**Currently broken**)
+ - **ZenPorn**
  - **ZenYandex**
  - **ZenYandexChannel**
+ - **ZetlandDKArticle**
  - **Zhihu**
  - **zingmp3**: zingmp3.vn
  - **zingmp3:album**
