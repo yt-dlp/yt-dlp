@@ -107,6 +107,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Needed for changelog
       - uses: actions/setup-python@v5
         with:
           python-version: "3.10"
@@ -134,6 +136,7 @@ jobs:
         run: |
           python devscripts/update-version.py -c "${{ inputs.channel }}" -r "${{ needs.process.outputs.origin }}" "${{ inputs.version }}"
           python devscripts/make_lazy_extractors.py
+          ./devscripts/update_changelog.sh "${{ inputs.version }}"
       - name: Build Unix platform-independent binary
         run: |
           make all tar
