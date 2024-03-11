@@ -9,7 +9,7 @@ from .common import FileDownloader
 from .external import FFmpegFD
 from ..downloader.hls import HlsFD
 from ..networking import Request
-from ..networking.exceptions import RequestError
+from ..networking.exceptions import network_exceptions
 from ..utils import (
     DownloadError,
     RetryManager,
@@ -233,7 +233,8 @@ class NiconicoLiveTimeshiftFD(NiconicoLiveBaseFD, HlsFD):
                             raise DownloadError('Unable to get playlist')
 
                         # Get all fragments
-                        media_m3u8 = ie._download_webpage(media_m3u8_url, video_id, note=False)
+                        media_m3u8 = ie._download_webpage(
+                            media_m3u8_url, video_id, note=False, errnote='Unable to download media m3u8')
                         fragment_urls = traverse_obj(media_m3u8.splitlines(), (
                             lambda _, v: not v.startswith('#'), {lambda url: urljoin(media_m3u8_url, url)}))
 
@@ -245,7 +246,7 @@ class NiconicoLiveTimeshiftFD(NiconicoLiveBaseFD, HlsFD):
                                 self._append_fragment(ctx, self._read_fragment(ctx))
                                 downloaded_duration += fragment_duration
 
-                    except (DownloadError, RequestError) as err:  # Including HTTPError and TransportError
+                    except (DownloadError, *network_exceptions) as err:
                         retry.error = err
                         continue
 
