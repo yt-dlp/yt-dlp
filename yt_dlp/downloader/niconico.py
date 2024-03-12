@@ -7,7 +7,7 @@ import time
 from . import get_suitable_downloader
 from .common import FileDownloader
 from .external import FFmpegFD
-from ..downloader.hls import HlsFD
+from ..downloader.fragment import FragmentFD
 from ..networking import Request
 from ..networking.exceptions import network_exceptions
 from ..utils import (
@@ -67,7 +67,10 @@ class NiconicoDmcFD(FileDownloader):
         return success
 
 
-class NiconicoLiveBaseFD(FileDownloader):
+class NiconicoLiveFD(FragmentFD):
+    """ Downloads niconico live/timeshift VOD """
+
+    _PER_FRAGMENT_DOWNLOAD_RATIO = 0.1
     _WEBSOCKET_RECONNECT_DELAY = 10
 
     @contextlib.contextmanager
@@ -75,8 +78,8 @@ class NiconicoLiveBaseFD(FileDownloader):
         """ Hold a WebSocket object and release it when leaving """
 
         video_id = info_dict['id']
-        live_latency = info_dict['live_latency']
-        self.ws = info_dict['__ws']
+        live_latency = info_dict['downloader_options']['live_latency']
+        self.ws = info_dict['downloader_options']['ws']
 
         self.m3u8_lock = threading.Event()
         self.m3u8_url = info_dict['manifest_url']
@@ -167,27 +170,15 @@ class NiconicoLiveBaseFD(FileDownloader):
         self.m3u8_lock.wait()
         return self.m3u8_url
 
-
-class NiconicoLiveFD(NiconicoLiveBaseFD):
-    """ Downloads niconico live without being stopped """
-
-    def real_download(self, filename, info_dict):
-        with self._ws_context(info_dict):
-            new_info_dict = info_dict.copy()
-            new_info_dict.update({
-                'protocol': 'm3u8',
-            })
-
-            return FFmpegFD(self.ydl, self.params or {}).download(filename, new_info_dict)
-
-
-class NiconicoLiveTimeshiftFD(NiconicoLiveBaseFD, HlsFD):
-    """ Downloads niconico live timeshift VOD """
-
-    _PER_FRAGMENT_DOWNLOAD_RATIO = 0.1
-
     def real_download(self, filename, info_dict):
         with self._ws_context(info_dict) as ws_context:
+            # live
+            if info_dict.get('is_live'):
+                info_dict = info_dict.copy()
+                info_dict['protocol'] = 'm3u8'
+                return FFmpegFD(self.ydl, self.params or {}).download(filename, info_dict)
+
+            # timeshift VOD
             from ..extractor.niconico import NiconicoIE
             ie = NiconicoIE(self.ydl)
 

@@ -1002,7 +1002,7 @@ class NiconicoLiveIE(InfoExtractor):
         for fmt, q in zip(formats, reversed(qualities[1:])):
             fmt.update({
                 'format_id': q,
-                'protocol': 'm3u8_niconico_live' if is_live else 'm3u8_niconico_live_timeshift',
+                'protocol': 'm3u8_niconico_live',
             })
             yield fmt
 
@@ -1075,7 +1075,9 @@ class NiconicoLiveIE(InfoExtractor):
             'live_status': live_status,
             'thumbnails': thumbnails,
             'formats': [*self._yield_formats(ws, video_id, latency, live_status == 'is_live')] if ws else None,
-            'live_latency': latency,
             'http_headers': headers,
-            '__ws': ws,
+            'downloader_options': {
+                'live_latency': latency,
+                'ws': ws,
+            },
         }
