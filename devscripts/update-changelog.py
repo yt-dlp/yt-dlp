@@ -11,6 +11,7 @@ from devscripts.utils import read_file, read_version, write_file
 
 # Always run after devscripts/update-version.py, and run before `make doc|pypi-files|tar|all`
 
+# If changing HEADER value, must apply identical change to Changelog.md in the same commit
 HEADER = '''# Changelog
 
 <!--
@@ -18,8 +19,6 @@ HEADER = '''# Changelog
 -->
 '''
 
-OLD_HEADER = HEADER  # set to old header string if changing the header
-
 if __name__ == '__main__':
-    changelog = read_file('Changelog.md')[len(OLD_HEADER):]
+    changelog = read_file('Changelog.md')[len(HEADER):]
     write_file('Changelog.md', f'{HEADER}\n### {read_version()}\n{create()}\n{changelog}')
