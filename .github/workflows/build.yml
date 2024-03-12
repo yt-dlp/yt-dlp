@@ -135,8 +135,8 @@ jobs:
       - name: Prepare
         run: |
           python devscripts/update-version.py -c "${{ inputs.channel }}" -r "${{ needs.process.outputs.origin }}" "${{ inputs.version }}"
+          python devscripts/update-changelog.py -vv
           python devscripts/make_lazy_extractors.py
-          ./devscripts/update_changelog.sh "${{ inputs.version }}"
       - name: Build Unix platform-independent binary
         run: |
           make all tar
