@@ -79,33 +79,33 @@ class NiconicoLiveFD(FragmentFD):
 
         video_id = info_dict['id']
         live_latency = info_dict['downloader_options']['live_latency']
-        self.ws = info_dict['downloader_options']['ws']
+        ws_url = info_dict['downloader_options']['ws_url']
+
+        self.ws = None
 
         self.m3u8_lock = threading.Event()
-        self.m3u8_url = info_dict['manifest_url']
-        self.m3u8_lock.set()
+        self.m3u8_url = None
 
-        def communicate_ws(reconnect):
-            if reconnect:
-                self.ws = self.ydl.urlopen(Request(self.ws.url, headers=info_dict.get('http_headers')))
-                if self.ydl.params.get('verbose', False):
-                    self.to_screen('[debug] Sending startWatching request')
-                self.ws.send(json.dumps({
-                    'type': 'startWatching',
-                    'data': {
-                        'stream': {
-                            'quality': 'abr',
-                            'protocol': 'hls',
-                            'latency': live_latency,
-                            'chasePlay': False
-                        },
-                        'room': {
-                            'protocol': 'webSocket',
-                            'commentable': True
-                        },
-                        'reconnect': True,
-                    }
-                }))
+        def communicate_ws():
+            self.ws = self.ydl.urlopen(Request(ws_url, headers=info_dict.get('http_headers')))
+            if self.ydl.params.get('verbose', False):
+                self.to_screen('[debug] Sending startWatching request')
+            self.ws.send(json.dumps({
+                'type': 'startWatching',
+                'data': {
+                    'stream': {
+                        'quality': 'abr',
+                        'protocol': 'hls',
+                        'latency': live_latency,
+                        'chasePlay': False
+                    },
+                    'room': {
+                        'protocol': 'webSocket',
+                        'commentable': True
+                    },
+                    'reconnect': True,
+                }
+            }))
             with self.ws:
                 while True:
                     recv = self.ws.recv()
@@ -136,10 +136,9 @@ class NiconicoLiveFD(FragmentFD):
         stopped = threading.Event()
 
         def ws_main():
-            reconnect = False
             while not stopped.is_set():
                 try:
-                    communicate_ws(reconnect)
+                    communicate_ws()
                     break  # Disconnected
                 except BaseException as e:  # Including TransportError
                     if stopped.is_set():
@@ -149,8 +148,6 @@ class NiconicoLiveFD(FragmentFD):
 
                     self.to_screen('[%s] %s: Connection error occured, reconnecting after %d seconds: %s' % ('niconico:live', video_id, self._WEBSOCKET_RECONNECT_DELAY, str_or_none(e)))
                     time.sleep(self._WEBSOCKET_RECONNECT_DELAY)
-
-                    reconnect = True
 
             self.m3u8_lock.set()  # Release possible locks
 

@@ -956,7 +956,10 @@ class NiconicoLiveIE(InfoExtractor):
 
     _KNOWN_LATENCY = ('high', 'low')
 
-    def _yield_formats(self, ws, video_id, latency, is_live):
+    def _yield_formats(self, ws_url, headers, latency, video_id, is_live):
+        ws = self._request_webpage(
+            Request(ws_url, headers=headers), video_id, note='Connecting to WebSocket server')
+
         self.write_debug('[debug] Sending HLS server request')
         ws.send(json.dumps({
             'type': 'startWatching',
@@ -998,6 +1001,8 @@ class NiconicoLiveIE(InfoExtractor):
                     recv = recv[:100] + '...'
                 self.write_debug('Server said: %s' % recv)
 
+        ws.close()
+
         formats = self._extract_m3u8_formats(m3u8_url, video_id, ext='mp4', live=is_live)
         for fmt, q in zip(formats, reversed(qualities[1:])):
             fmt.update({
@@ -1014,14 +1019,11 @@ class NiconicoLiveIE(InfoExtractor):
         embedded_data = self._parse_json(unescapeHTML(self._search_regex(
             r'<script\s+id="embedded-data"\s*data-props="(.+?)"', webpage, 'embedded data')), video_id)
 
-        ws = None
         ws_url = traverse_obj(embedded_data, ('site', 'relive', 'webSocketUrl'))
         if ws_url:
             ws_url = update_url_query(ws_url, {
                 'frontend_id': traverse_obj(embedded_data, ('site', 'frontendId')) or '9',
             })
-            ws = self._request_webpage(
-                Request(ws_url, headers=headers), video_id, note='Connecting to WebSocket server')
         else:
             self.raise_no_formats('The live hasn\'t started yet or already ended.', expected=True)
 
@@ -1074,10 +1076,11 @@ class NiconicoLiveIE(InfoExtractor):
             'timestamp': int_or_none(traverse_obj(embedded_data, ('program', 'openTime'))),
             'live_status': live_status,
             'thumbnails': thumbnails,
-            'formats': [*self._yield_formats(ws, video_id, latency, live_status == 'is_live')] if ws else None,
+            'formats': [*self._yield_formats(
+                ws_url, headers, latency, video_id, live_status == 'is_live')] if ws_url else None,
             'http_headers': headers,
             'downloader_options': {
                 'live_latency': latency,
-                'ws': ws,
+                'ws_url': ws_url,
             },
         }
