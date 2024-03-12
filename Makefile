@@ -164,6 +164,6 @@ AUTHORS: Changelog.md
 
 CONTRIBUTORS: Changelog.md
 	if [ -d '.git' ] && command -v git ; then \
-	  $(PYTHON) devscripts/make_changelog.py -c > /dev/null ; \
+	  $(PYTHON) devscripts/make_changelog.py -v -c > /dev/null ; \
 	fi
 	touch CONTRIBUTORS
