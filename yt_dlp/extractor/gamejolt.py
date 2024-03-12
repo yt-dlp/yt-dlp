@@ -88,7 +88,7 @@ class GameJoltBaseIE(InfoExtractor):
             'uploader_id': user_data.get('username'),
             'uploader_url': format_field(user_data, 'url', 'https://gamejolt.com%s'),
             'categories': [try_get(category, lambda x: '%s - %s' % (x['community']['name'], x['channel'].get('display_title') or x['channel']['title']))
-                           for category in post_data.get('communities' or [])],
+                           for category in post_data.get('communities') or []],
             'tags': traverse_obj(
                 lead_content, ('content', ..., 'content', ..., 'marks', ..., 'attrs', 'tag'), expected_type=str_or_none),
             'like_count': int_or_none(post_data.get('like_count')),

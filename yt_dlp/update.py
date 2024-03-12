@@ -177,19 +177,19 @@ class UpdateInfo:
     Can be created by `query_update()` or manually.
 
     Attributes:
-        tag                The release tag that will be updated to. If from query_update,
-                        the value is after API resolution and update spec processing.
-                        The only property that is required.
-        version            The actual numeric version (if available) of the binary to be updated to,
-                        after API resolution and update spec processing. (default: None)
-        requested_version  Numeric version of the binary being requested (if available),
-                        after API resolution only. (default: None)
-        commit             Commit hash (if available) of the binary to be updated to,
-                        after API resolution and update spec processing. (default: None)
-                        This value will only match the RELEASE_GIT_HEAD of prerelease builds.
-        binary_name        Filename of the binary to be updated to. (default: current binary name)
-        checksum           Expected checksum (if available) of the binary to be
-                        updated to. (default: None)
+        tag                 The release tag that will be updated to. If from query_update,
+                            the value is after API resolution and update spec processing.
+                            The only property that is required.
+        version             The actual numeric version (if available) of the binary to be updated to,
+                            after API resolution and update spec processing. (default: None)
+        requested_version   Numeric version of the binary being requested (if available),
+                            after API resolution only. (default: None)
+        commit              Commit hash (if available) of the binary to be updated to,
+                            after API resolution and update spec processing. (default: None)
+                            This value will only match the RELEASE_GIT_HEAD of prerelease builds.
+        binary_name         Filename of the binary to be updated to. (default: current binary name)
+        checksum            Expected checksum (if available) of the binary to be
+                            updated to. (default: None)
     """
     tag: str
     version: str | None = None
@@ -351,7 +351,9 @@ class Updater:
         return a == b
 
     def query_update(self, *, _output=False) -> UpdateInfo | None:
-        """Fetches and returns info about the available update"""
+        """Fetches info about the available update
+        @returns   An `UpdateInfo` if there is an update available, else None
+        """
         if not self.requested_repo:
             self._report_error('No target repository could be determined from input')
             return None
@@ -429,7 +431,9 @@ class Updater:
             checksum=checksum)
 
     def update(self, update_info=NO_DEFAULT):
-        """Update yt-dlp executable to the latest version"""
+        """Update yt-dlp executable to the latest version
+        @param update_info  `UpdateInfo | None` as returned by query_update()
+        """
         if update_info is NO_DEFAULT:
             update_info = self.query_update(_output=True)
         if not update_info:

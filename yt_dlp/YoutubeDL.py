@@ -575,7 +575,7 @@ class YoutubeDL:
         'url', 'manifest_url', 'manifest_stream_number', 'ext', 'format', 'format_id', 'format_note',
         'width', 'height', 'aspect_ratio', 'resolution', 'dynamic_range', 'tbr', 'abr', 'acodec', 'asr', 'audio_channels',
         'vbr', 'fps', 'vcodec', 'container', 'filesize', 'filesize_approx', 'rows', 'columns',
-        'player_url', 'protocol', 'fragment_base_url', 'fragments', 'is_from_start',
+        'player_url', 'protocol', 'fragment_base_url', 'fragments', 'is_from_start', 'is_dash_periods', 'request_data',
         'preference', 'language', 'language_preference', 'quality', 'source_preference', 'cookies',
         'http_headers', 'stretched_ratio', 'no_resume', 'has_drm', 'extra_param_to_segment_url', 'hls_aes', 'downloader_options',
         'page_url', 'app', 'play_path', 'tc_url', 'flash_version', 'rtmp_live', 'rtmp_conn', 'rtmp_protocol', 'rtmp_real_time'
@@ -962,8 +962,9 @@ class YoutubeDL:
 
     def close(self):
         self.save_cookies()
-        self._request_director.close()
-        del self._request_director
+        if '_request_director' in self.__dict__:
+            self._request_director.close()
+            del self._request_director
 
     def trouble(self, message=None, tb=None, is_error=True):
         """Determine action to take when a download problem appears.
@@ -2226,7 +2227,7 @@ class YoutubeDL:
             selectors = []
             current_selector = None
             for type, string_, start, _, _ in tokens:
-                # ENCODING is only defined in python 3.x
+                # ENCODING is only defined in Python 3.x
                 if type == getattr(tokenize, 'ENCODING', None):
                     continue
                 elif type in [tokenize.NAME, tokenize.NUMBER]:
