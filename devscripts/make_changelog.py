@@ -445,7 +445,7 @@ def get_new_contributors(contributors_path, commits):
     return sorted(new_contributors, key=str.casefold)
 
 
-if __name__ == '__main__':
+def create():
     import argparse
 
     parser = argparse.ArgumentParser(
@@ -500,4 +500,8 @@ if __name__ == '__main__':
             write_file(args.contributors_path, '\n'.join(new_contributors) + '\n', mode='a')
         logger.info(f'New contributors: {", ".join(new_contributors)}')
 
-    print(Changelog(commits.groups(), args.repo, args.collapsible))
+    return Changelog(commits.groups(), args.repo, args.collapsible)
+
+
+if __name__ == '__main__':
+    print(create())
