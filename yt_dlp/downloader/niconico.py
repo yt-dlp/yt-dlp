@@ -158,7 +158,8 @@ class NiconicoLiveFD(FragmentFD):
             yield self
         finally:
             stopped.set()
-            self.ws.close()
+            if self.ws:
+                self.ws.close()
             thread.join()
 
     def _master_m3u8_url(self):
