@@ -69,7 +69,7 @@ def _build_proxy_handler(name):
             self.send_response(200)
             self.send_header('Content-Type', 'text/plain; charset=utf-8')
             self.end_headers()
-            self.wfile.write('{self.proxy_name}: {self.path}'.format(self=self).encode())
+            self.wfile.write(f'{self.proxy_name}: {self.path}'.encode())
     return HTTPTestRequestHandler
 
 

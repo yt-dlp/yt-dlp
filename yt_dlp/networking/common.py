@@ -68,7 +68,7 @@ class RequestDirector:
     def close(self):
         for handler in self.handlers.values():
             handler.close()
-        self.handlers = {}
+        self.handlers.clear()
 
     def add_handler(self, handler: RequestHandler):
         """Add a handler. If a handler of the same RH_KEY exists, it will overwrite it"""
@@ -446,7 +446,7 @@ class Request:
 
     @headers.setter
     def headers(self, new_headers: Mapping):
-        """Replaces headers of the request. If not a CaseInsensitiveDict, it will be converted to one."""
+        """Replaces headers of the request. If not a HTTPHeaderDict, it will be converted to one."""
         if isinstance(new_headers, HTTPHeaderDict):
             self._headers = new_headers
         elif isinstance(new_headers, Mapping):
