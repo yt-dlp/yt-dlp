@@ -237,8 +237,13 @@ class HttpFD(FileDownloader):
 
             def retry(e):
                 close_stream()
-                ctx.resume_len = (byte_counter if ctx.tmpfilename == '-'
-                                  else os.path.getsize(encodeFilename(ctx.tmpfilename)))
+                if ctx.tmpfilename == '-':
+                    ctx.resume_len = byte_counter
+                else:
+                    try:
+                        ctx.resume_len = os.path.getsize(encodeFilename(ctx.tmpfilename))
+                    except FileNotFoundError:
+                        ctx.resume_len = 0
                 raise RetryDownload(e)
 
             while True:

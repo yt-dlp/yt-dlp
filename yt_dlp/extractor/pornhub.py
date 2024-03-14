@@ -87,8 +87,8 @@ class PornHubBaseIE(InfoExtractor):
 
         def is_logged(webpage):
             return any(re.search(p, webpage) for p in (
-                r'class=["\']signOut',
-                r'>Sign\s+[Oo]ut\s*<'))
+                r'id="profileMenuDropdown"',
+                r'class="ph-icon-logout"'))
 
         if is_logged(login_page):
             self._logged_in = True

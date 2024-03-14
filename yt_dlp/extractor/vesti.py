@@ -6,6 +6,7 @@ from .rutv import RUTVIE
 
 
 class VestiIE(InfoExtractor):
+    _WORKING = False
     IE_DESC = 'Вести.Ru'
     _VALID_URL = r'https?://(?:.+?\.)?vesti\.ru/(?P<id>.+)'
 

@@ -90,7 +90,6 @@ class RumbleEmbedIE(InfoExtractor):
             'channel_url': 'https://rumble.com/c/LofiGirl',
             'channel': 'Lofi Girl',
             'thumbnail': r're:https://.+\.jpg',
-            'duration': None,
             'uploader': 'Lofi Girl',
             'live_status': 'is_live',
         },

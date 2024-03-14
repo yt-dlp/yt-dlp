@@ -2,7 +2,7 @@ all: lazy-extractors yt-dlp doc pypi-files
 clean: clean-test clean-dist
 clean-all: clean clean-cache
 completions: completion-bash completion-fish completion-zsh
-doc: README.md CONTRIBUTING.md issuetemplates supportedsites
+doc: README.md CONTRIBUTING.md CONTRIBUTORS issuetemplates supportedsites
 ot: offlinetest
 tar: yt-dlp.tar.gz
 
@@ -17,8 +17,8 @@ pypi-files: AUTHORS Changelog.md LICENSE README.md README.txt supportedsites \
 clean-test:
 	rm -rf test/testdata/sigs/player-*.js tmp/ *.annotations.xml *.aria2 *.description *.dump *.frag \
 	*.frag.aria2 *.frag.urls *.info.json *.live_chat.json *.meta *.part* *.tmp *.temp *.unknown_video *.ytdl \
-	*.3gp *.ape *.ass *.avi *.desktop *.f4v *.flac *.flv *.gif *.jpeg *.jpg *.m4a *.m4v *.mhtml *.mkv *.mov *.mp3 \
-	*.mp4 *.mpga *.oga *.ogg *.opus *.png *.sbv *.srt *.swf *.swp *.tt *.ttml *.url *.vtt *.wav *.webloc *.webm *.webp
+	*.3gp *.ape *.ass *.avi *.desktop *.f4v *.flac *.flv *.gif *.jpeg *.jpg *.lrc *.m4a *.m4v *.mhtml *.mkv *.mov *.mp3 *.mp4 \
+	*.mpg *.mpga *.oga *.ogg *.opus *.png *.sbv *.srt *.ssa *.swf *.swp *.tt *.ttml *.url *.vtt *.wav *.webloc *.webm *.webp
 clean-dist:
 	rm -rf yt-dlp.1.temp.md yt-dlp.1 README.txt MANIFEST build/ dist/ .coverage cover/ yt-dlp.tar.gz completions/ \
 	yt_dlp/extractor/lazy_extractors.py *.spec CONTRIBUTING.md.tmp yt-dlp yt-dlp.exe yt_dlp.egg-info/ AUTHORS
@@ -37,14 +37,15 @@ BINDIR ?= $(PREFIX)/bin
 MANDIR ?= $(PREFIX)/man
 SHAREDIR ?= $(PREFIX)/share
 PYTHON ?= /usr/bin/env python3
-
-# $(shell) and $(error) are no-ops in BSD Make and the != variable assignment operator is not supported by GNU Make <4.0
-VERSION_CHECK != echo supported
-VERSION_CHECK ?= $(error GNU Make 4+ or BSD Make is required)
-CHECK_VERSION := $(VERSION_CHECK)
+GNUTAR ?= tar
 
 # set markdown input format to "markdown-smart" for pandoc version 2+ and to "markdown" for pandoc prior to version 2
-MARKDOWN != if [ "`pandoc -v | head -n1 | cut -d' ' -f2 | head -c1`" -ge "2" ]; then echo markdown-smart; else echo markdown; fi
+PANDOC_VERSION_CMD = pandoc -v 2>/dev/null | head -n1 | cut -d' ' -f2 | head -c1
+PANDOC_VERSION != $(PANDOC_VERSION_CMD)
+PANDOC_VERSION ?= $(shell $(PANDOC_VERSION_CMD))
+MARKDOWN_CMD = if [ "$(PANDOC_VERSION)" = "1" -o "$(PANDOC_VERSION)" = "0" ]; then echo markdown; else echo markdown-smart; fi
+MARKDOWN != $(MARKDOWN_CMD)
+MARKDOWN ?= $(shell $(MARKDOWN_CMD))
 
 install: lazy-extractors yt-dlp yt-dlp.1 completions
 	mkdir -p $(DESTDIR)$(BINDIR)
@@ -76,8 +77,12 @@ test:
 offlinetest: codetest
 	$(PYTHON) -m pytest -k "not download"
 
-CODE_FOLDERS != find yt_dlp -type f -name '__init__.py' -exec dirname {} \+ | grep -v '/__' | sort
-CODE_FILES != for f in $(CODE_FOLDERS) ; do echo "$$f" | sed 's,$$,/*.py,' ; done
+CODE_FOLDERS_CMD = find yt_dlp -type f -name '__init__.py' | sed 's,/__init__.py,,' | grep -v '/__' | sort
+CODE_FOLDERS != $(CODE_FOLDERS_CMD)
+CODE_FOLDERS ?= $(shell $(CODE_FOLDERS_CMD))
+CODE_FILES_CMD = for f in $(CODE_FOLDERS) ; do echo "$$f" | sed 's,$$,/*.py,' ; done
+CODE_FILES != $(CODE_FILES_CMD)
+CODE_FILES ?= $(shell $(CODE_FILES_CMD))
 yt-dlp: $(CODE_FILES)
 	mkdir -p zip
 	for d in $(CODE_FOLDERS) ; do \
@@ -130,12 +135,14 @@ completions/fish/yt-dlp.fish: $(CODE_FILES) devscripts/fish-completion.in
 	mkdir -p completions/fish
 	$(PYTHON) devscripts/fish-completion.py
 
-_EXTRACTOR_FILES != find yt_dlp/extractor -name '*.py' -and -not -name 'lazy_extractors.py'
+_EXTRACTOR_FILES_CMD = find yt_dlp/extractor -name '*.py' -and -not -name 'lazy_extractors.py'
+_EXTRACTOR_FILES != $(_EXTRACTOR_FILES_CMD)
+_EXTRACTOR_FILES ?= $(shell $(_EXTRACTOR_FILES_CMD))
 yt_dlp/extractor/lazy_extractors.py: devscripts/make_lazy_extractors.py devscripts/lazy_load_template.py $(_EXTRACTOR_FILES)
 	$(PYTHON) devscripts/make_lazy_extractors.py $@
 
 yt-dlp.tar.gz: all
-	@tar -czf yt-dlp.tar.gz --transform "s|^|yt-dlp/|" --owner 0 --group 0 \
+	@$(GNUTAR) -czf yt-dlp.tar.gz --transform "s|^|yt-dlp/|" --owner 0 --group 0 \
 		--exclude '*.DS_Store' \
 		--exclude '*.kate-swp' \
 		--exclude '*.pyc' \
@@ -144,12 +151,20 @@ yt-dlp.tar.gz: all
 		--exclude '__pycache__' \
 		--exclude '.*_cache' \
 		--exclude '.git' \
-		--exclude '__pyinstaller' \
 		-- \
 		README.md supportedsites.md Changelog.md LICENSE \
 		CONTRIBUTING.md Collaborators.md CONTRIBUTORS AUTHORS \
 		Makefile yt-dlp.1 README.txt completions .gitignore \
 		yt-dlp yt_dlp pyproject.toml devscripts test
 
-AUTHORS:
-	git shortlog -s -n HEAD | cut -f2 | sort > AUTHORS
+AUTHORS: Changelog.md
+	@if [ -d '.git' ] && command -v git > /dev/null ; then \
+	  echo 'Generating $@ from git commit history' ; \
+	  git shortlog -s -n HEAD | cut -f2 | sort > $@ ; \
+	fi
+
+CONTRIBUTORS: Changelog.md
+	@if [ -d '.git' ] && command -v git > /dev/null ; then \
+	  echo 'Updating $@ from git commit history' ; \
+	  $(PYTHON) devscripts/make_changelog.py -v -c > /dev/null ; \
+	fi

@@ -8,6 +8,7 @@ maintainers = [
     {name = "pukkandan", email = "pukkandan.ytdlp@gmail.com"},
     {name = "Grub4K", email = "contact@grub4k.xyz"},
     {name = "bashonly", email = "bashonly@protonmail.com"},
+    {name = "coletdjnz", email = "coletdjnz@protonmail.com"},
 ]
 description = "A youtube-dl fork with additional features and patches"
 readme = "README.md"
@@ -51,6 +52,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+default = []
 secretstorage = [
     "cffi",
     "secretstorage",
@@ -94,7 +96,6 @@ include = [
     "/README.md",  # included as readme
     "/supportedsites.md",
 ]
-exclude = ["/yt_dlp/__pyinstaller"]
 artifacts = [
     "/yt_dlp/extractor/lazy_extractors.py",
     "/completions",
@@ -105,7 +106,6 @@ artifacts = [
 
 [tool.hatch.build.targets.wheel]
 packages = ["yt_dlp"]
-exclude = ["/yt_dlp/__pyinstaller"]
 artifacts = ["/yt_dlp/extractor/lazy_extractors.py"]
 
 [tool.hatch.build.targets.wheel.shared-data]
