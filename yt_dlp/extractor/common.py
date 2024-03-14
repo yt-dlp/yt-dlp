@@ -747,7 +747,7 @@ class InfoExtractor:
             raise
         except ExtractorError as e:
             e.video_id = e.video_id or self.get_temp_id(url)
-            e.ie = e.ie or self.IE_NAME,
+            e.ie = e.ie or self.IE_NAME
             e.traceback = e.traceback or sys.exc_info()[2]
             raise
         except IncompleteRead as e:
@@ -1339,7 +1339,10 @@ class InfoExtractor:
         else:
             return None, None
         if not info:
-            raise netrc.NetrcParseError(f'No authenticators for {netrc_machine}')
+            self.to_screen(f'No authenticators for {netrc_machine}')
+            return None, None
+
+        self.write_debug(f'Using netrc for {netrc_machine} authentication')
         return info[0], info[2]
 
     def _get_login_info(self, username_option='username', password_option='password', netrc_machine=None):

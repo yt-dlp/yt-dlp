@@ -11,6 +11,7 @@ import math
 import os.path
 import random
 import re
+import shlex
 import sys
 import threading
 import time
@@ -114,9 +115,9 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'ANDROID',
-                'clientVersion': '18.11.34',
+                'clientVersion': '19.09.37',
                 'androidSdkVersion': 30,
-                'userAgent': 'com.google.android.youtube/18.11.34 (Linux; U; Android 11) gzip'
+                'userAgent': 'com.google.android.youtube/19.09.37 (Linux; U; Android 11) gzip'
             }
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 3,
@@ -127,9 +128,9 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'ANDROID_EMBEDDED_PLAYER',
-                'clientVersion': '18.11.34',
+                'clientVersion': '19.09.37',
                 'androidSdkVersion': 30,
-                'userAgent': 'com.google.android.youtube/18.11.34 (Linux; U; Android 11) gzip'
+                'userAgent': 'com.google.android.youtube/19.09.37 (Linux; U; Android 11) gzip'
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 55,
@@ -140,9 +141,9 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'ANDROID_MUSIC',
-                'clientVersion': '5.16.51',
+                'clientVersion': '6.42.52',
                 'androidSdkVersion': 30,
-                'userAgent': 'com.google.android.apps.youtube.music/5.16.51 (Linux; U; Android 11) gzip'
+                'userAgent': 'com.google.android.apps.youtube.music/6.42.52 (Linux; U; Android 11) gzip'
             }
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 21,
@@ -168,9 +169,9 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'IOS',
-                'clientVersion': '18.11.34',
+                'clientVersion': '19.09.3',
                 'deviceModel': 'iPhone14,3',
-                'userAgent': 'com.google.ios.youtube/18.11.34 (iPhone14,3; U; CPU iOS 15_6 like Mac OS X)'
+                'userAgent': 'com.google.ios.youtube/19.09.3 (iPhone14,3; U; CPU iOS 15_6 like Mac OS X)'
             }
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 5,
@@ -180,9 +181,9 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'IOS_MESSAGES_EXTENSION',
-                'clientVersion': '18.11.34',
+                'clientVersion': '19.09.3',
                 'deviceModel': 'iPhone14,3',
-                'userAgent': 'com.google.ios.youtube/18.11.34 (iPhone14,3; U; CPU iOS 15_6 like Mac OS X)'
+                'userAgent': 'com.google.ios.youtube/19.09.3 (iPhone14,3; U; CPU iOS 15_6 like Mac OS X)'
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 66,
@@ -193,9 +194,9 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'IOS_MUSIC',
-                'clientVersion': '5.21',
+                'clientVersion': '6.33.3',
                 'deviceModel': 'iPhone14,3',
-                'userAgent': 'com.google.ios.youtubemusic/5.21 (iPhone14,3; U; CPU iOS 15_6 like Mac OS X)'
+                'userAgent': 'com.google.ios.youtubemusic/6.33.3 (iPhone14,3; U; CPU iOS 15_6 like Mac OS X)'
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 26,
@@ -5087,7 +5088,8 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             'availability': self._extract_availability(data),
             'channel_follower_count': self._get_count(data, ('header', ..., 'subscriberCountText')),
             'description': try_get(metadata_renderer, lambda x: x.get('description', '')),
-            'tags': try_get(metadata_renderer or {}, lambda x: x.get('keywords', '').split()),
+            'tags': (traverse_obj(data, ('microformat', 'microformatDataRenderer', 'tags', ..., {str}))
+                     or traverse_obj(metadata_renderer, ('keywords', {lambda x: x and shlex.split(x)}, ...))),
             'thumbnails': (primary_thumbnails or playlist_thumbnails) + avatar_thumbnails + channel_banners,
         })
 
@@ -5420,14 +5422,14 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'playlist_mincount': 94,
         'info_dict': {
             'id': 'UCqj7Cz7revf5maW9g5pgNcg',
-            'title': 'Igor Kleiner - Playlists',
-            'description': 'md5:be97ee0f14ee314f1f002cf187166ee2',
-            'uploader': 'Igor Kleiner',
+            'title': 'Igor Kleiner Ph.D. - Playlists',
+            'description': 'md5:15d7dd9e333cb987907fcb0d604b233a',
+            'uploader': 'Igor Kleiner Ph.D.',
             'uploader_id': '@IgorDataScience',
             'uploader_url': 'https://www.youtube.com/@IgorDataScience',
-            'channel': 'Igor Kleiner',
+            'channel': 'Igor Kleiner Ph.D.',
             'channel_id': 'UCqj7Cz7revf5maW9g5pgNcg',
-            'tags': ['"критическое', 'мышление"', '"наука', 'просто"', 'математика', '"анализ', 'данных"'],
+            'tags': ['критическое мышление', 'наука просто', 'математика', 'анализ данных'],
             'channel_url': 'https://www.youtube.com/channel/UCqj7Cz7revf5maW9g5pgNcg',
             'channel_follower_count': int
         },
@@ -5437,14 +5439,14 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'playlist_mincount': 94,
         'info_dict': {
             'id': 'UCqj7Cz7revf5maW9g5pgNcg',
-            'title': 'Igor Kleiner - Playlists',
-            'description': 'md5:be97ee0f14ee314f1f002cf187166ee2',
-            'uploader': 'Igor Kleiner',
+            'title': 'Igor Kleiner Ph.D. - Playlists',
+            'description': 'md5:15d7dd9e333cb987907fcb0d604b233a',
+            'uploader': 'Igor Kleiner Ph.D.',
             'uploader_id': '@IgorDataScience',
             'uploader_url': 'https://www.youtube.com/@IgorDataScience',
-            'tags': ['"критическое', 'мышление"', '"наука', 'просто"', 'математика', '"анализ', 'данных"'],
+            'tags': ['критическое мышление', 'наука просто', 'математика', 'анализ данных'],
             'channel_id': 'UCqj7Cz7revf5maW9g5pgNcg',
-            'channel': 'Igor Kleiner',
+            'channel': 'Igor Kleiner Ph.D.',
             'channel_url': 'https://www.youtube.com/channel/UCqj7Cz7revf5maW9g5pgNcg',
             'channel_follower_count': int
         },
@@ -5455,7 +5457,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'info_dict': {
             'id': 'UCYO_jab_esuFRV4b17AJtAw',
             'title': '3Blue1Brown - Playlists',
-            'description': 'md5:e1384e8a133307dd10edee76e875d62f',
+            'description': 'md5:4d1da95432004b7ba840ebc895b6b4c9',
             'channel_url': 'https://www.youtube.com/channel/UCYO_jab_esuFRV4b17AJtAw',
             'channel': '3Blue1Brown',
             'channel_id': 'UCYO_jab_esuFRV4b17AJtAw',
@@ -5479,7 +5481,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'uploader_id': '@ThirstForScience',
             'channel_id': 'UCAEtajcuhQ6an9WEzY9LEMQ',
             'channel_url': 'https://www.youtube.com/channel/UCAEtajcuhQ6an9WEzY9LEMQ',
-            'tags': 'count:13',
+            'tags': 'count:12',
             'channel': 'ThirstForScience',
             'channel_follower_count': int
         }
@@ -5514,10 +5516,10 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'tags': [],
             'channel': 'Sergey M.',
             'description': '',
-            'modified_date': '20160902',
+            'modified_date': '20230921',
             'channel_id': 'UCmlqkdCBesrv2Lak1mF_MxA',
             'channel_url': 'https://www.youtube.com/channel/UCmlqkdCBesrv2Lak1mF_MxA',
-            'availability': 'public',
+            'availability': 'unlisted',
             'uploader_url': 'https://www.youtube.com/@sergeym.6173',
             'uploader_id': '@sergeym.6173',
             'uploader': 'Sergey M.',
@@ -5632,7 +5634,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'info_dict': {
             'id': 'UCYO_jab_esuFRV4b17AJtAw',
             'title': '3Blue1Brown - Search - linear algebra',
-            'description': 'md5:e1384e8a133307dd10edee76e875d62f',
+            'description': 'md5:4d1da95432004b7ba840ebc895b6b4c9',
             'channel_url': 'https://www.youtube.com/channel/UCYO_jab_esuFRV4b17AJtAw',
             'tags': ['Mathematics'],
             'channel': '3Blue1Brown',
@@ -5901,7 +5903,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'url': 'https://www.youtube.com/hashtag/cctv9',
         'info_dict': {
             'id': 'cctv9',
-            'title': '#cctv9',
+            'title': 'cctv9 - All',
             'tags': [],
         },
         'playlist_mincount': 300,  # not consistent but should be over 300
@@ -6179,12 +6181,13 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'channel_follower_count': int,
             'channel_id': 'UCK9V2B22uJYu3N7eR_BT9QA',
             'channel_url': 'https://www.youtube.com/channel/UCK9V2B22uJYu3N7eR_BT9QA',
-            'description': 'md5:e56b74b5bb7e9c701522162e9abfb822',
+            'description': 'md5:49809d8bf9da539bc48ed5d1f83c33f2',
             'channel': 'Polka Ch. 尾丸ポルカ',
             'tags': 'count:35',
             'uploader_url': 'https://www.youtube.com/@OmaruPolka',
             'uploader': 'Polka Ch. 尾丸ポルカ',
             'uploader_id': '@OmaruPolka',
+            'channel_is_verified': True,
         },
         'playlist_count': 3,
     }, {
@@ -6194,15 +6197,16 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'info_dict': {
             'id': 'UC0intLFzLaudFG-xAvUEO-A',
             'title': 'Not Just Bikes - Shorts',
-            'tags': 'count:12',
+            'tags': 'count:10',
             'channel_url': 'https://www.youtube.com/channel/UC0intLFzLaudFG-xAvUEO-A',
-            'description': 'md5:26bc55af26855a608a5cf89dfa595c8d',
+            'description': 'md5:5e82545b3a041345927a92d0585df247',
             'channel_follower_count': int,
             'channel_id': 'UC0intLFzLaudFG-xAvUEO-A',
             'channel': 'Not Just Bikes',
             'uploader_url': 'https://www.youtube.com/@NotJustBikes',
             'uploader': 'Not Just Bikes',
             'uploader_id': '@NotJustBikes',
+            'channel_is_verified': True,
         },
         'playlist_mincount': 10,
     }, {
@@ -6362,15 +6366,14 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
     }, {
         'url': 'https://www.youtube.com/@3blue1brown/about',
         'info_dict': {
-            'id': 'UCYO_jab_esuFRV4b17AJtAw',
+            'id': '@3blue1brown',
             'tags': ['Mathematics'],
-            'title': '3Blue1Brown - About',
+            'title': '3Blue1Brown',
             'channel_follower_count': int,
             'channel_id': 'UCYO_jab_esuFRV4b17AJtAw',
             'channel': '3Blue1Brown',
-            'view_count': int,
             'channel_url': 'https://www.youtube.com/channel/UCYO_jab_esuFRV4b17AJtAw',
-            'description': 'md5:e1384e8a133307dd10edee76e875d62f',
+            'description': 'md5:4d1da95432004b7ba840ebc895b6b4c9',
             'uploader_url': 'https://www.youtube.com/@3blue1brown',
             'uploader_id': '@3blue1brown',
             'uploader': '3Blue1Brown',
@@ -6393,7 +6396,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'channel': '99 Percent Invisible',
             'uploader_id': '@99percentinvisiblepodcast',
         },
-        'playlist_count': 1,
+        'playlist_count': 0,
     }, {
         # Releases tab, with rich entry playlistRenderers (same as Podcasts tab)
         'url': 'https://www.youtube.com/@AHimitsu/releases',
@@ -6405,7 +6408,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'uploader_id': '@AHimitsu',
             'uploader': 'A Himitsu',
             'channel_id': 'UCgFwu-j5-xNJml2FtTrrB3A',
-            'tags': 'count:16',
+            'tags': 'count:12',
             'description': 'I make music',
             'channel_url': 'https://www.youtube.com/channel/UCgFwu-j5-xNJml2FtTrrB3A',
             'channel_follower_count': int,
@@ -6429,11 +6432,32 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'uploader': 'Bangy Shorts',
             'tags': [],
             'availability': 'public',
-            'modified_date': '20230626',
+            'modified_date': r're:\d{8}',
             'title': 'Uploads from Bangy Shorts',
         },
         'playlist_mincount': 100,
         'expected_warnings': [r'[Uu]navailable videos (are|will be) hidden'],
+    }, {
+        'note': 'Tags containing spaces',
+        'url': 'https://www.youtube.com/channel/UC7_YxT-KID8kRbqZo7MyscQ',
+        'playlist_count': 3,
+        'info_dict': {
+            'id': 'UC7_YxT-KID8kRbqZo7MyscQ',
+            'channel': 'Markiplier',
+            'channel_id': 'UC7_YxT-KID8kRbqZo7MyscQ',
+            'title': 'Markiplier',
+            'channel_follower_count': int,
+            'description': 'md5:0c010910558658824402809750dc5d97',
+            'uploader_id': '@markiplier',
+            'uploader_url': 'https://www.youtube.com/@markiplier',
+            'uploader': 'Markiplier',
+            'channel_url': 'https://www.youtube.com/channel/UC7_YxT-KID8kRbqZo7MyscQ',
+            'channel_is_verified': True,
+            'tags': ['markiplier', 'comedy', 'gaming', 'funny videos', 'funny moments',
+                     'sketch comedy', 'laughing', 'lets play', 'challenge videos', 'hilarious',
+                     'challenges', 'sketches', 'scary games', 'funny games', 'rage games',
+                     'mark fischbach'],
+        },
     }]
 
     @classmethod

@@ -121,7 +121,7 @@ def _extract_firefox_cookies(profile, container, logger):
     logger.info('Extracting cookies from firefox')
     if not sqlite3:
         logger.warning('Cannot extract cookies from firefox without sqlite3 support. '
-                       'Please use a python interpreter compiled with sqlite3 support')
+                       'Please use a Python interpreter compiled with sqlite3 support')
         return YoutubeDLCookieJar()
 
     if profile is None:
@@ -264,7 +264,7 @@ def _extract_chrome_cookies(browser_name, profile, keyring, logger):
 
     if not sqlite3:
         logger.warning(f'Cannot extract cookies from {browser_name} without sqlite3 support. '
-                       'Please use a python interpreter compiled with sqlite3 support')
+                       'Please use a Python interpreter compiled with sqlite3 support')
         return YoutubeDLCookieJar()
 
     config = _get_chromium_based_browser_settings(browser_name)

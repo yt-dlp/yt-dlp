@@ -20,7 +20,7 @@ def main():
         'py2exe builds do not support pycryptodomex and needs VC++14 to run. '
         'It is recommended to run "pyinst.py" to build using pyinstaller instead')
 
-    return freeze(
+    freeze(
         console=[{
             'script': './yt_dlp/__main__.py',
             'dest_base': 'yt-dlp',
