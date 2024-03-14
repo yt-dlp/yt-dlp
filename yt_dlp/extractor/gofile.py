@@ -1,4 +1,6 @@
 import hashlib
+import requests
+import json
 
 from .common import InfoExtractor
 from ..utils import (
@@ -57,23 +59,32 @@ class GofileIE(InfoExtractor):
             self._TOKEN = token.value
             return
 
-        account_data = self._download_json(
-            'https://api.gofile.io/createAccount', None, note='Getting a new guest account')
+        print('Getting a new guest account')
+        get_account_data = requests.post('https://api.gofile.io/accounts', '{}')
+        account_data = get_account_data.json()
+        # account_data = self._download_json(get_account_data, None, note='Getting a new guest account')
         self._TOKEN = account_data['data']['token']
         self._set_cookie('.gofile.io', 'accountToken', self._TOKEN)
 
     def _entries(self, file_id):
         query_params = {
-            'contentId': file_id,
-            'token': self._TOKEN,
+            # 'contentId': file_id,
+            # 'token': self._TOKEN,
             'wt': '4fd6sg89d7s6',  # From https://gofile.io/dist/js/alljs.js
         }
         password = self.get_param('videopassword')
         if password:
             query_params['password'] = hashlib.sha256(password.encode('utf-8')).hexdigest()
-        files = self._download_json(
-            'https://api.gofile.io/getContent', file_id, note='Getting filelist', query=query_params)
-
+        get_files = self._download_webpage(
+            'https://api.gofile.io/contents/'+file_id,
+            None,
+            headers={
+                'authority': 'api.gofile.io',
+                'authorization': 'Bearer ' + self._TOKEN,
+                'referer': 'https://gofile.io/',
+                'origin': 'https://gofile.io'
+            }, query=query_params)
+        files = json.loads(get_files)
         status = files['status']
         if status == 'error-passwordRequired':
             raise ExtractorError(
@@ -82,7 +93,7 @@ class GofileIE(InfoExtractor):
             raise ExtractorError(f'{self.IE_NAME} said: status {status}', expected=True)
 
         found_files = False
-        for file in (try_get(files, lambda x: x['data']['contents'], dict) or {}).values():
+        for file in (try_get(files, lambda x: x['data']['children'], dict) or {}).values():
             file_type, file_format = file.get('mimetype').split('/', 1)
             if file_type not in ('video', 'audio') and file_format != 'vnd.mts':
                 continue
