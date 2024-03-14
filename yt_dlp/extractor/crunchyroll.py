@@ -136,7 +136,7 @@ class CrunchyrollBaseIE(InfoExtractor):
         return result
 
     def _extract_formats(self, stream_response, display_id=None):
-        requested_formats = self._configuration_arg('format') or ['adaptive_hls']
+        requested_formats = self._configuration_arg('format') or ['vo_adaptive_hls']
         available_formats = {}
         for stream_type, streams in traverse_obj(
                 stream_response, (('streams', ('data', 0)), {dict.items}, ...)):
