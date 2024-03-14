@@ -1,6 +1,4 @@
 import hashlib
-import requests
-import json
 
 from .common import InfoExtractor
 from ..utils import (
@@ -59,32 +57,21 @@ class GofileIE(InfoExtractor):
             self._TOKEN = token.value
             return
 
-        print('Getting a new guest account')
-        get_account_data = requests.post('https://api.gofile.io/accounts', '{}')
-        account_data = get_account_data.json()
-        # account_data = self._download_json(get_account_data, None, note='Getting a new guest account')
+        account_data = self._download_json(
+            'https://api.gofile.io/accounts', None, 'Getting a new guest account', data=b'{}')
         self._TOKEN = account_data['data']['token']
         self._set_cookie('.gofile.io', 'accountToken', self._TOKEN)
 
     def _entries(self, file_id):
         query_params = {
-            # 'contentId': file_id,
-            # 'token': self._TOKEN,
             'wt': '4fd6sg89d7s6',  # From https://gofile.io/dist/js/alljs.js
         }
         password = self.get_param('videopassword')
         if password:
             query_params['password'] = hashlib.sha256(password.encode('utf-8')).hexdigest()
-        get_files = self._download_webpage(
-            'https://api.gofile.io/contents/' + file_id,
-            None,
-            headers={
-                'authority': 'api.gofile.io',
-                'authorization': 'Bearer ' + self._TOKEN,
-                'referer': 'https://gofile.io/',
-                'origin': 'https://gofile.io'
-            }, query=query_params)
-        files = json.loads(get_files)
+        files = self._download_json(
+            f'https://api.gofile.io/contents/{file_id}', file_id, 'Getting filelist',
+            query=query_params, headers={'Authorization': f'Bearer {self._TOKEN}'})
         status = files['status']
         if status == 'error-passwordRequired':
             raise ExtractorError(
