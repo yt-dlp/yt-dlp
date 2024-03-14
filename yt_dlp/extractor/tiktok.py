@@ -434,9 +434,6 @@ class TikTokBaseIE(InfoExtractor):
             }),
             'channel_id': channel_id,
             'uploader_url': user_url,
-            'track': str_or_none(music_info.get('title')),
-            'album': str_or_none(music_info.get('album')) or None,
-            'artist': str_or_none(music_info.get('authorName')),
             'formats': formats,
             'thumbnails': thumbnails,
             'http_headers': {
