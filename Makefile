@@ -161,7 +161,6 @@ AUTHORS: Changelog.md
 	  echo 'Generating $@ from git commit history' ; \
 	  git shortlog -s -n HEAD | cut -f2 | sort > $@ ; \
 	fi
-	touch $@
 
 CONTRIBUTORS: Changelog.md
 	@if [ -d '.git' ] && command -v git > /dev/null ; then \
