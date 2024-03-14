@@ -21,7 +21,7 @@ class CNBCVideoIE(InfoExtractor):
             'modified_date': '20231208',
             'release_date': '20231207',
             'duration': 65,
-            'author': 'Sean Conlon',
+            'creators': ['Sean Conlon'],
             'title': 'Here\'s a first look at McDonald\'s new spinoff brand, CosMc\'s',
             'thumbnail': 'https://image.cnbcfm.com/api/v1/image/107344192-1701894812493-CosMcsskyHero_2336x1040_hero-desktop.jpg?v=1701894855',
         },
@@ -29,7 +29,7 @@ class CNBCVideoIE(InfoExtractor):
     }, {
         'url': 'https://www.cnbc.com/video/2023/12/08/jim-cramer-shares-his-take-on-seattles-tech-scene.html',
         'info_dict': {
-            'author': 'Jim Cramer',
+            'creators': ['Jim Cramer'],
             'channel': 'Mad Money with Jim Cramer',
             'description': 'md5:72925be21b952e95eba51178dddf4e3e',
             'duration': 299.0,
@@ -49,7 +49,7 @@ class CNBCVideoIE(InfoExtractor):
     }, {
         'url': 'https://www.cnbc.com/video/2023/12/08/the-epicenter-of-ai-is-in-seattle-says-jim-cramer.html',
         'info_dict': {
-            'author': 'Jim Cramer',
+            'creators': ['Jim Cramer'],
             'channel': 'Mad Money with Jim Cramer',
             'description': 'md5:72925be21b952e95eba51178dddf4e3e',
             'duration': 113.0,
@@ -86,12 +86,12 @@ class CNBCVideoIE(InfoExtractor):
                 'id': ('id', {str_or_none}),
                 'title': ('title', {str}),
                 'description': ('description', {str}),
-                'author': ('author', ..., 'name', {str}),
+                'creators': ('author', ..., 'name', {str}),
                 'timestamp': ('datePublished', {parse_iso8601}),
                 'release_timestamp': ('uploadDate', {parse_iso8601}),
                 'modified_timestamp': ('dateLastPublished', {parse_iso8601}),
                 'thumbnail': ('thumbnail', {url_or_none}),
                 'duration': ('duration', {int_or_none}),
                 'channel': ('section', 'title', {str}),
-            }, get_all=False),
+            }),
         }

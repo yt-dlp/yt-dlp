@@ -7,6 +7,7 @@ from ..utils import (
 
 
 class TVNoeIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?tvnoe\.cz/video/(?P<id>[0-9]+)'
     _TEST = {
         'url': 'http://www.tvnoe.cz/video/10362',
