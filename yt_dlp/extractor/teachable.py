@@ -99,6 +99,7 @@ class TeachableBaseIE(InfoExtractor):
 
 
 class TeachableIE(TeachableBaseIE):
+    _WORKING = False
     _VALID_URL = r'''(?x)
                     (?:
                         %shttps?://(?P<site_t>[^/]+)|

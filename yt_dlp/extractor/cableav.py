@@ -2,7 +2,7 @@ from .common import InfoExtractor
 
 
 class CableAVIE(InfoExtractor):
-    _VALID_URL = r'https://cableav\.tv/(?P<id>[a-zA-Z0-9]+)'
+    _VALID_URL = r'https?://cableav\.tv/(?P<id>[a-zA-Z0-9]+)'
     _TESTS = [{
         'url': 'https://cableav.tv/lS4iR9lWjN8/',
         'md5': '7e3fe5e49d61c4233b7f5b0f69b15e18',

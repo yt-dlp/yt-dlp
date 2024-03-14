@@ -2,6 +2,7 @@ from .common import InfoExtractor
 
 from ..utils import (
     int_or_none,
+    str_or_none,
     traverse_obj,
     try_get,
     unified_timestamp,
@@ -22,7 +23,7 @@ class BeegIE(InfoExtractor):
             'age_limit': 18,
             'upload_date': '20220131',
             'timestamp': 1643656455,
-            'display_id': 2540839,
+            'display_id': '2540839',
         }
     }, {
         'url': 'https://beeg.com/-0599050563103750?t=4-861',
@@ -36,7 +37,7 @@ class BeegIE(InfoExtractor):
             'age_limit': 18,
             'description': 'md5:b4fc879a58ae6c604f8f259155b7e3b9',
             'timestamp': 1643623200,
-            'display_id': 2569965,
+            'display_id': '2569965',
             'upload_date': '20220131',
         }
     }, {
@@ -78,7 +79,7 @@ class BeegIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'display_id': first_fact.get('id'),
+            'display_id': str_or_none(first_fact.get('id')),
             'title': traverse_obj(video, ('file', 'stuff', 'sf_name')),
             'description': traverse_obj(video, ('file', 'stuff', 'sf_story')),
             'timestamp': unified_timestamp(first_fact.get('fc_created')),

@@ -167,7 +167,7 @@ class HTTPHandler(urllib.request.AbstractHTTPHandler):
         if 300 <= resp.code < 400:
             location = resp.headers.get('Location')
             if location:
-                # As of RFC 2616 default charset is iso-8859-1 that is respected by python 3
+                # As of RFC 2616 default charset is iso-8859-1 that is respected by Python 3
                 location = location.encode('iso-8859-1').decode()
                 location_escaped = normalize_url(location)
                 if location != location_escaped:
