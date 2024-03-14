@@ -28,7 +28,7 @@ def main():
         }],
         version_info={
             'version': VERSION,
-            'description': 'A youtube-dl fork with additional features and patches',
+            'description': 'Command-line video and audio downloader for thousands of sites',
             'comments': 'Official repository: <https://github.com/yt-dlp/yt-dlp>',
             'product_name': 'yt-dlp',
             'product_version': VERSION,
