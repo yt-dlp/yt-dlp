@@ -76,7 +76,7 @@ class GofileIE(InfoExtractor):
         if password:
             query_params['password'] = hashlib.sha256(password.encode('utf-8')).hexdigest()
         get_files = self._download_webpage(
-            'https://api.gofile.io/contents/'+file_id,
+            'https://api.gofile.io/contents/' + file_id,
             None,
             headers={
                 'authority': 'api.gofile.io',
