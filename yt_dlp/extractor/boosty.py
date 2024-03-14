@@ -216,7 +216,6 @@ class BoostyIE(InfoExtractor):
                     entries.append(self.url_result(item['url'], YoutubeIE))
                 elif item_type == 'ok_video':
                     video_id = item.get('id') or post_id
-                    print(f'{item=}')
                     entries.append({
                         'id': video_id,
                         'formats': self._extract_formats(item.get('playerUrls'), video_id),
