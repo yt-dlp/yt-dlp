@@ -1,3 +1,6 @@
+import json
+from json import JSONDecodeError
+
 from .common import InfoExtractor
 from .youtube import YoutubeIE
 from ..utils import (
@@ -160,17 +163,38 @@ class BoostyIE(InfoExtractor):
                 self.report_warning(f'Unknown format type: {format_type!r}')
         return formats
 
+    def _extract_posts_from_html(self, url, post_id, webpage=None):
+        if webpage is None:
+            webpage = self._download_webpage(url, video_id=post_id)
+        initial_state_str = self._search_regex(
+            r'(?s)<script[^>]+id=[\'"]initial-state[\'"][^>]*>([^<]+)</script>',
+            webpage, 'next.js data', fatal=False)
+        try:
+            initial_state = json.loads(initial_state_str)
+            posts_list = initial_state['posts']['postsList']['data']['posts']
+        except (JSONDecodeError, KeyError):
+            self.report_warning('failed to extract posts from website')
+            return []
+        return posts_list
+
     def _real_extract(self, url):
         user, post_id = self._match_valid_url(url).group('user', 'post_id')
         post = self._download_json(
             f'https://api.boosty.to/v1/blog/{user}/post/{post_id}', post_id,
             note='Downloading post data', errnote='Unable to download post data')
+        all_posts = [post]
 
         post_title = post.get('title')
+        webpage = None
         if not post_title:
             self.report_warning('Unable to extract post title. Falling back to parsing html page')
             webpage = self._download_webpage(url, video_id=post_id)
             post_title = self._og_search_title(webpage, default=None) or self._html_extract_title(webpage)
+
+        private = bool(post.get('subscriptionLevel'))
+        if private:
+            self.report_warning('this post may require a subscription, make sure to include browser cookies')
+            all_posts.extend(self._extract_posts_from_html(url, post_id, webpage=webpage))
 
         common_metadata = {
             'title': post_title,
@@ -185,22 +209,24 @@ class BoostyIE(InfoExtractor):
             }),
         }
         entries = []
-        for item in traverse_obj(post, ('data', ..., {dict})):
-            item_type = item.get('type')
-            if item_type == 'video' and url_or_none(item.get('url')):
-                entries.append(self.url_result(item['url'], YoutubeIE))
-            elif item_type == 'ok_video':
-                video_id = item.get('id') or post_id
-                entries.append({
-                    'id': video_id,
-                    'formats': self._extract_formats(item.get('playerUrls'), video_id),
-                    **common_metadata,
-                    **traverse_obj(item, {
-                        'title': ('title', {str}),
-                        'duration': ('duration', {int_or_none}),
-                        'view_count': ('viewsCounter', {int_or_none}),
-                        'thumbnail': (('previewUrl', 'defaultPreview'), {url_or_none}),
-                    }, get_all=False)})
+        for post in all_posts:
+            for item in traverse_obj(post, ('data', ..., {dict})):
+                item_type = item.get('type')
+                if item_type == 'video' and url_or_none(item.get('url')):
+                    entries.append(self.url_result(item['url'], YoutubeIE))
+                elif item_type == 'ok_video':
+                    video_id = item.get('id') or post_id
+                    print(f'{item=}')
+                    entries.append({
+                        'id': video_id,
+                        'formats': self._extract_formats(item.get('playerUrls'), video_id),
+                        **common_metadata,
+                        **traverse_obj(item, {
+                            'title': ('title', {str}),
+                            'duration': ('duration', {int_or_none}),
+                            'view_count': ('viewsCounter', {int_or_none}),
+                            'thumbnail': (('previewUrl', 'defaultPreview'), {url_or_none}),
+                        }, get_all=False)})
 
         if not entries:
             raise ExtractorError('No videos found', expected=True)
