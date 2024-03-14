@@ -168,7 +168,7 @@ class BoostyIE(InfoExtractor):
             webpage = self._download_webpage(url, video_id=post_id)
         initial_state_str = self._search_regex(
             r'(?s)<script[^>]+id=[\'"]initial-state[\'"][^>]*>([^<]+)</script>',
-            webpage, 'next.js data', fatal=False)
+            webpage, 'initial-state', fatal=False)
         try:
             initial_state = json.loads(initial_state_str)
             posts_list = initial_state['posts']['postsList']['data']['posts']
