@@ -63,15 +63,14 @@ class GofileIE(InfoExtractor):
         self._set_cookie('.gofile.io', 'accountToken', self._TOKEN)
 
     def _entries(self, file_id):
-        query_params = {
-            'wt': '4fd6sg89d7s6',  # From https://gofile.io/dist/js/alljs.js
-        }
+        query_params = {'wt': '4fd6sg89d7s6'}  # From https://gofile.io/dist/js/alljs.js
         password = self.get_param('videopassword')
         if password:
             query_params['password'] = hashlib.sha256(password.encode('utf-8')).hexdigest()
         files = self._download_json(
             f'https://api.gofile.io/contents/{file_id}', file_id, 'Getting filelist',
             query=query_params, headers={'Authorization': f'Bearer {self._TOKEN}'})
+
         status = files['status']
         if status == 'error-passwordRequired':
             raise ExtractorError(
