@@ -350,7 +350,7 @@ class TikTokBaseIE(InfoExtractor):
             }),
             'uploader_url': user_url,
             'track': music_track,
-            'track_id': str_or_none(music_info.get('id_str')),
+            'track_id': str_or_none(music_info.get('id')),
             'album': str_or_none(music_info.get('album')) or None,
             'attributions': contained_music_info,
             'timestamp': int_or_none(aweme_detail.get('create_time')),
@@ -428,7 +428,7 @@ class TikTokBaseIE(InfoExtractor):
             }, expected_type=int_or_none),
             **traverse_obj(music_info, {
                 'track': ('title', {str}),
-                'track_id': 'id_str',
+                'track_id': ('id', {str}, {lambda x: x or None}),
                 'album': ('album', {str}, {lambda x: x or None}),
                 'artists': ('authorName', {str}, {lambda x: [x] if x else None}),
             }),
