@@ -445,7 +445,32 @@ def get_new_contributors(contributors_path, commits):
     return sorted(new_contributors, key=str.casefold)
 
 
-def create():
+def create_changelog(args):
+    logging.basicConfig(
+        datefmt='%Y-%m-%d %H-%M-%S', format='{asctime} | {levelname:<8} | {message}',
+        level=logging.WARNING - 10 * args.verbosity, style='{', stream=sys.stderr)
+
+    commits = CommitRange(None, args.commitish, args.default_author)
+
+    if not args.no_override:
+        if args.override_path.exists():
+            overrides = json.loads(read_file(args.override_path))
+            commits.apply_overrides(overrides)
+        else:
+            logger.warning(f'File {args.override_path.as_posix()} does not exist')
+
+    logger.info(f'Loaded {len(commits)} commits')
+
+    new_contributors = get_new_contributors(args.contributors_path, commits)
+    if new_contributors:
+        if args.contributors:
+            write_file(args.contributors_path, '\n'.join(new_contributors) + '\n', mode='a')
+        logger.info(f'New contributors: {", ".join(new_contributors)}')
+
+    return Changelog(commits.groups(), args.repo, args.collapsible)
+
+
+def create_parser():
     import argparse
 
     parser = argparse.ArgumentParser(
@@ -477,31 +502,9 @@ def create():
     parser.add_argument(
         '--collapsible', action='store_true',
         help='make changelog collapsible (default: %(default)s)')
-    args = parser.parse_args()
 
-    logging.basicConfig(
-        datefmt='%Y-%m-%d %H-%M-%S', format='{asctime} | {levelname:<8} | {message}',
-        level=logging.WARNING - 10 * args.verbosity, style='{', stream=sys.stderr)
-
-    commits = CommitRange(None, args.commitish, args.default_author)
-
-    if not args.no_override:
-        if args.override_path.exists():
-            overrides = json.loads(read_file(args.override_path))
-            commits.apply_overrides(overrides)
-        else:
-            logger.warning(f'File {args.override_path.as_posix()} does not exist')
-
-    logger.info(f'Loaded {len(commits)} commits')
-
-    new_contributors = get_new_contributors(args.contributors_path, commits)
-    if new_contributors:
-        if args.contributors:
-            write_file(args.contributors_path, '\n'.join(new_contributors) + '\n', mode='a')
-        logger.info(f'New contributors: {", ".join(new_contributors)}')
-
-    return Changelog(commits.groups(), args.repo, args.collapsible)
+    return parser
 
 
 if __name__ == '__main__':
-    print(create())
+    print(create_changelog(create_parser().parse_args()))
