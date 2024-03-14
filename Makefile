@@ -167,4 +167,3 @@ CONTRIBUTORS: Changelog.md
 	  echo 'Updating $@ from git commit history' ; \
 	  $(PYTHON) devscripts/make_changelog.py -v -c > /dev/null ; \
 	fi
-	touch $@
