@@ -157,13 +157,15 @@ yt-dlp.tar.gz: all
 		setup.cfg yt-dlp yt_dlp pyproject.toml devscripts test
 
 AUTHORS: Changelog.md
-	if [ -d '.git' ] && command -v git ; then \
-	  git shortlog -s -n HEAD | cut -f2 | sort > AUTHORS ; \
+	@if [ -d '.git' ] && command -v git > /dev/null ; then \
+	  echo 'Generating $@ from git commit history' ; \
+	  git shortlog -s -n HEAD | cut -f2 | sort > $@ ; \
 	fi
-	touch AUTHORS
+	touch $@
 
 CONTRIBUTORS: Changelog.md
-	if [ -d '.git' ] && command -v git ; then \
+	@if [ -d '.git' ] && command -v git > /dev/null ; then \
+	  echo 'Updating $@ from git commit history' ; \
 	  $(PYTHON) devscripts/make_changelog.py -v -c > /dev/null ; \
 	fi
-	touch CONTRIBUTORS
+	touch $@
