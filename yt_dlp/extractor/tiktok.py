@@ -41,7 +41,7 @@ class TikTokBaseIE(InfoExtractor):
     @property
     def _API_HOSTNAME(self):
         return self._configuration_arg(
-            'api_hostname', ['api16-normal-c-useast1a.tiktokv.com'], ie_key=TikTokIE)[0]
+            'api_hostname', ['api22-normal-c-useast2a.tiktokv.com'], ie_key=TikTokIE)[0]
 
     @staticmethod
     def _create_url(user_id, video_id):

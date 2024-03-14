@@ -2,7 +2,7 @@ all: lazy-extractors yt-dlp doc pypi-files
 clean: clean-test clean-dist
 clean-all: clean clean-cache
 completions: completion-bash completion-fish completion-zsh
-doc: README.md CONTRIBUTING.md issuetemplates supportedsites
+doc: README.md CONTRIBUTING.md CONTRIBUTORS issuetemplates supportedsites
 ot: offlinetest
 tar: yt-dlp.tar.gz
 
@@ -156,5 +156,14 @@ yt-dlp.tar.gz: all
 		Makefile yt-dlp.1 README.txt completions .gitignore \
 		setup.cfg yt-dlp yt_dlp pyproject.toml devscripts test
 
-AUTHORS:
-	git shortlog -s -n HEAD | cut -f2 | sort > AUTHORS
+AUTHORS: Changelog.md
+	@if [ -d '.git' ] && command -v git > /dev/null ; then \
+	  echo 'Generating $@ from git commit history' ; \
+	  git shortlog -s -n HEAD | cut -f2 | sort > $@ ; \
+	fi
+
+CONTRIBUTORS: Changelog.md
+	@if [ -d '.git' ] && command -v git > /dev/null ; then \
+	  echo 'Updating $@ from git commit history' ; \
+	  $(PYTHON) devscripts/make_changelog.py -v -c > /dev/null ; \
+	fi

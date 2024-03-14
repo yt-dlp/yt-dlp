@@ -189,13 +189,8 @@ jobs:
         if: |
           !inputs.prerelease && env.target_repo == github.repository
         run: |
+          python devscripts/update_changelog.py -vv
           make doc
-          sed '/### /Q' Changelog.md >> ./CHANGELOG
-          echo '### ${{ env.version }}' >> ./CHANGELOG
-          python ./devscripts/make_changelog.py -vv -c >> ./CHANGELOG
-          echo >> ./CHANGELOG
-          grep -Poz '(?s)### \d+\.\d+\.\d+.+' 'Changelog.md' | head -n -1 >> ./CHANGELOG
-          cat ./CHANGELOG > Changelog.md
 
       - name: Push to release
         id: push_release
@@ -266,6 +261,7 @@ jobs:
           pypi_project: ${{ needs.prepare.outputs.pypi_project }}
         run: |
           python devscripts/update-version.py -c "${{ env.channel }}" -r "${{ env.target_repo }}" -s "${{ env.suffix }}" "${{ env.version }}"
+          python devscripts/update_changelog.py -vv
           python devscripts/make_lazy_extractors.py
           sed -i -E '0,/(name = ")[^"]+(")/s//\1${{ env.pypi_project }}\2/' pyproject.toml
 
