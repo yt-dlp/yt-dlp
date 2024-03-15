@@ -70,6 +70,7 @@ dev = [
     "pytest",
 ]
 pyinstaller = ["pyinstaller>=6.3"]
+pyinstaller_macos = ["pyinstaller==5.13.2"]
 py2exe = ["py2exe>=0.12"]
 
 [project.urls]

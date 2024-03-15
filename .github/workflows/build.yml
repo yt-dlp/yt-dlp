@@ -247,7 +247,7 @@ jobs:
         run: |
           brew install coreutils
           python3 devscripts/install_deps.py --user -o --include build
-          python3 devscripts/install_deps.py --print --include pyinstaller > requirements.txt
+          python3 devscripts/install_deps.py --print --include pyinstaller_macos > requirements.txt
           # We need to ignore wheels otherwise we break universal2 builds
           python3 -m pip install -U --user --no-binary :all: -r requirements.txt
           # We need to fuse our own universal2 wheels for curl_cffi
@@ -319,7 +319,7 @@ jobs:
         run: |
           brew install coreutils
           python3 devscripts/install_deps.py --user -o --include build
-          python3 devscripts/install_deps.py --user --include pyinstaller --include curl_cffi
+          python3 devscripts/install_deps.py --user --include pyinstaller_macos --include curl_cffi
 
       - name: Prepare
         run: |
