@@ -397,7 +397,7 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
                                     direct connection
     --socket-timeout SECONDS        Time to wait before giving up, in seconds
     --source-address IP             Client-side IP address to bind to
-    --impersonate [CLIENT[:[VERSION][:[OS][:OS_VERSION]]]]
+    --impersonate CLIENT[:[VERSION][:OS[:OS_VERSION]]]
                                     Client to impersonate for requests. E.g.
                                     chrome, chrome:110, chrome::android. Pass in
                                     an empty string (--impersonate="") to
