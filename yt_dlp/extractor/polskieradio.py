@@ -471,13 +471,20 @@ class PolskieRadioPlayerIE(InfoExtractor):
     }]
 
     def _get_channel_list(self, channel_url='no_channel'):
+        webpage = self._download_webpage(self._BASE_URL, channel_url)
+        player_hash = self._search_regex(r'/main\.bundle\.js\?([a-f0-9]+)', webpage, 'player hash')
+        channel_list = self.cache.load('polskieradio-player-channel-list', player_hash)
+        if channel_list:
+            return channel_list
         player_code = self._download_webpage(
             self._PLAYER_URL, channel_url,
             note='Downloading js player')
-        return self._search_json(
+        channel_list = self._search_json(
             r''';\s*var\s[a-zA-Z_]+\s*=\s*["']anteny["']\s*,\s*[a-zA-Z_]+\s*=\s*''',
             player_code, 'channel list', channel_url, transform_source=js_to_json,
             contains_pattern=r'\[{(?s:.+)}\]')
+        self.cache.store('polskieradio-player-channel-list', player_hash, channel_list)
+        return channel_list
 
     def _real_extract(self, url):
         channel_url = self._match_id(url)
