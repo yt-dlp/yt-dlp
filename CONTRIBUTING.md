@@ -145,7 +145,7 @@ If you plan on contributing to `yt-dlp`, you are required to run
 $ hatch run install
 ```
 
-before creating commits so that the pre-commit hooks are properly initialized.
+so that required checks run automatically before a commit (using pre-commit).
 After this you can use `hatch shell` to enable a virtual environment that has development dependencies as well as `yt-dlp` installed.
 
 Scripts can be used to run simple tasks, like linting or testing, without having to run `hatch shell` first:
