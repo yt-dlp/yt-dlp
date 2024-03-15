@@ -1,3 +1,5 @@
+<!-- NOTE: USE INDENTED CODE BLOCKS, **NOT** FENCED CODE BLOCKS -->
+
 <!-- MANPAGE: BEGIN EXCLUDED SECTION -->
 <div align="center">
 
