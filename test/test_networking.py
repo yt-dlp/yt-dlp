@@ -785,21 +785,6 @@ class TestHTTPImpersonateRequestHandler(TestRequestHandlerBase):
                 assert res.status == 200
                 assert std_headers['user-agent'].lower() not in res.read().decode().lower()
 
-    @pytest.mark.parametrize('impersonate', [True, False])
-    def test_headers_blacklist(self, handler, impersonate):
-        with handler() as rh:
-            for header in rh._IMPERSONATE_HEADERS_BLACKLIST:
-                supported_target = rh.supported_targets[0]
-                res = validate_and_send(rh, Request(
-                    f'http://127.0.0.1:{self.http_port}/headers',
-                    headers={header: 'testvalue'}, extensions={'impersonate': supported_target} if impersonate else {}))
-                assert res.status == 200
-                sent_headers = res.read().decode()
-                if impersonate:
-                    assert f'{header}: testvalue'.lower() not in sent_headers.lower()
-                else:
-                    assert f'{header}: testvalue'.lower() in sent_headers.lower()
-
 
 class TestRequestHandlerMisc:
     """Misc generic tests for request handlers, not related to request or validation testing"""
@@ -994,6 +979,27 @@ class TestCurlCFFIRequestHandler(TestRequestHandlerBase):
             assert 'sec-ch-ua: "Chromium";v="110"' in res
             # Check that user agent is added over ours
             assert 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36' in res
+
+    @pytest.mark.parametrize('handler', ['CurlCFFI'], indirect=True)
+    def test_headers(self, handler):
+        with handler(headers=std_headers) as rh:
+            # Ensure curl-impersonate overrides our standard headers (usually added
+            res = validate_and_send(
+                rh, Request(f'http://127.0.0.1:{self.http_port}/headers', extensions={
+                    'impersonate': ImpersonateTarget('safari')}, headers={'x-custom': 'test', 'sec-fetch-mode': 'custom'})).read().decode().lower()
+
+            assert std_headers['user-agent'].lower() not in res
+            assert std_headers['accept-language'].lower() not in res
+            assert std_headers['sec-fetch-mode'].lower() not in res
+            # other than UA, custom headers that differ from std_headers should be kept
+            assert 'sec-fetch-mode: custom' in res
+            assert 'x-custom: test' in res
+            # but when not impersonating don't remove std_headers
+            res = validate_and_send(
+                rh, Request(f'http://127.0.0.1:{self.http_port}/headers', headers={'x-custom': 'test'})).read().decode().lower()
+            # std_headers should be present
+            for k, v in std_headers.items():
+                assert f'{k}: {v}'.lower() in res
 
     @pytest.mark.parametrize('raised,expected,match', [
         (lambda: curl_cffi.requests.errors.RequestsError(
