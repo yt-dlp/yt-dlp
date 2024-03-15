@@ -6965,7 +6965,7 @@ class YoutubeSearchIE(YoutubeTabBaseInfoExtractor, SearchInfoExtractor):
     IE_DESC = 'YouTube search'
     IE_NAME = 'youtube:search'
     _SEARCH_KEY = 'ytsearch'
-    _SEARCH_PARAMS = 'EgIQAQ%3D%3D'  # Videos only
+    _SEARCH_PARAMS = 'EgIIAfABAQ=='  # Videos only
     _TESTS = [{
         'url': 'ytsearch5:youtube-dl test video',
         'playlist_count': 5,
@@ -6980,7 +6980,7 @@ class YoutubeSearchDateIE(YoutubeTabBaseInfoExtractor, SearchInfoExtractor):
     IE_NAME = YoutubeSearchIE.IE_NAME + ':date'
     _SEARCH_KEY = 'ytsearchdate'
     IE_DESC = 'YouTube search, newest videos first'
-    _SEARCH_PARAMS = 'CAISAhAB'  # Videos only, sorted by date
+    _SEARCH_PARAMS = 'CAISAhAB8AEB'  # Videos only, sorted by date
     _TESTS = [{
         'url': 'ytsearchdate5:youtube-dl test video',
         'playlist_count': 5,
