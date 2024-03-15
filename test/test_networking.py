@@ -1633,14 +1633,14 @@ class TestYoutubeDLNetworking:
 
         with FakeYDL() as ydl:
             ydl._request_director = ydl.build_request_director(handlers)
-            assert set(ydl.get_available_impersonate_targets()) == {
+            assert set(ydl._get_available_impersonate_targets()) == {
                 (ImpersonateTarget('chrome'), 'chrome'),
                 (ImpersonateTarget('firefox'), 'firefox'),
                 (ImpersonateTarget('edge'), 'edge')
             }
-            assert ydl.impersonate_target_available(ImpersonateTarget('firefox'))
-            assert ydl.impersonate_target_available(ImpersonateTarget())
-            assert not ydl.impersonate_target_available(ImpersonateTarget('safari'))
+            assert ydl._impersonate_target_available(ImpersonateTarget('firefox'))
+            assert ydl._impersonate_target_available(ImpersonateTarget())
+            assert not ydl._impersonate_target_available(ImpersonateTarget('safari'))
 
     @pytest.mark.parametrize('proxy_key,proxy_url,expected', [
         ('http', '__noproxy__', None),

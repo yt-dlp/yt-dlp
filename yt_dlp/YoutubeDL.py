@@ -719,7 +719,7 @@ class YoutubeDL:
 
         impersonate_target = self.params.get('impersonate')
         if impersonate_target is not None:
-            if not self.impersonate_target_available(impersonate_target):
+            if not self._impersonate_target_available(impersonate_target):
                 raise YoutubeDLError(
                     f'Impersonate target "{self.params.get("impersonate")}" is not available. '
                     f'Use --list-impersonate-targets to see available targets. '
@@ -4089,15 +4089,16 @@ class YoutubeDL:
         handler = self._request_director.handlers['Urllib']
         return handler._get_instance(cookiejar=self.cookiejar, proxies=self.proxies)
 
-    def get_available_impersonate_targets(self):
+    def _get_available_impersonate_targets(self):
+        # todo(future): make available as public API
         return list(
             itertools.chain.from_iterable(
                 [[(target, rh.RH_NAME) for target in rh.supported_targets]
                  for rh in self._request_director.handlers.values()
                  if isinstance(rh, ImpersonateRequestHandler)]))
 
-    def impersonate_target_available(self, target):
-        # This assumes that all handlers that support impersonation subclass ImpersonateRequestHandler
+    def _impersonate_target_available(self, target):
+        # todo(future): make available as public API
         return any(
             rh.is_supported_target(target)
             for rh in self._request_director.handlers.values()

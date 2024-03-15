@@ -996,7 +996,7 @@ def _real_main(argv=None):
                 (ImpersonateTarget('chrome', os='android'), 'curl_cffi'),
             ]
 
-            available_targets = ydl.get_available_impersonate_targets()
+            available_targets = ydl._get_available_impersonate_targets()
 
             rows = [
                 [target.client or '-', target.version or '-', target.os or '-', target.os_vers or '-', handler]
