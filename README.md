@@ -398,7 +398,7 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
     --impersonate [CLIENT[:[VERSION][:[OS][:OS_VERSION]]]]
                                     Client to impersonate for requests. E.g.
                                     chrome, chrome:110, chrome::android. Pass in
-                                    an empty string (--impersonate "") to
+                                    an empty string (--impersonate="") to
                                     impersonate any client.
     --list-impersonate-targets      List available clients to impersonate.
     -4, --force-ipv4                Make all connections via IPv4
