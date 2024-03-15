@@ -519,7 +519,7 @@ def create_parser():
         '--impersonate',
         metavar='[CLIENT[:[VERSION][:[OS][:OS_VERSION]]]]', dest='impersonate', default=None,
         help='Client to impersonate for requests. E.g. chrome, chrome:110, chrome::android.'
-             ' Pass in an empty string (--impersonate "") to impersonate any client.',
+             ' Pass in an empty string (--impersonate="") to impersonate any client.',
     )
     network.add_option(
         '--list-impersonate-targets',
