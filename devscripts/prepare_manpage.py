@@ -43,6 +43,27 @@ def filter_excluded_sections(readme):
         '', readme)
 
 
+def convert_code_blocks(readme):
+    out = ''
+    in_code_block = False
+
+    for line in readme.split('\n'):
+        if in_code_block:
+            if line.startswith('```'):
+                in_code_block = False
+                out += '\n'
+                continue
+            out += '    ' + line + '\n'
+            continue
+        if line.startswith('```'):
+            in_code_block = True
+            out += '\n'
+            continue
+        out += line + '\n'
+
+    return out
+
+
 def move_sections(readme):
     MOVE_TAG_TEMPLATE = '<!-- MANPAGE: MOVE "%s" SECTION HERE -->'
     sections = re.findall(r'(?m)^%s$' % (
@@ -86,7 +107,7 @@ def filter_options(readme):
     return readme.replace(section, options, 1)
 
 
-TRANSFORM = compose_functions(filter_excluded_sections, move_sections, filter_options)
+TRANSFORM = compose_functions(filter_excluded_sections, convert_code_blocks, move_sections, filter_options)
 
 
 def main():
