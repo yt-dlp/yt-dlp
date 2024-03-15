@@ -127,11 +127,11 @@ File|Description
 
 The public key that can be used to verify the GPG signatures is [available here](https://github.com/yt-dlp/yt-dlp/blob/master/public.key)
 Example usage:
-```
-curl -L https://github.com/yt-dlp/yt-dlp/raw/master/public.key | gpg --import
-gpg --verify SHA2-256SUMS.sig SHA2-256SUMS
-gpg --verify SHA2-512SUMS.sig SHA2-512SUMS
-```
+
+    curl -L https://github.com/yt-dlp/yt-dlp/raw/master/public.key | gpg --import
+    gpg --verify SHA2-256SUMS.sig SHA2-256SUMS
+    gpg --verify SHA2-512SUMS.sig SHA2-512SUMS
+
 <!-- MANPAGE: END EXCLUDED SECTION -->
 
 **Note**: The manpages, shell completion (autocomplete) files etc. are available inside the [source tarball](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.tar.gz)
@@ -164,13 +164,12 @@ Example usage:
 * `yt-dlp --update-to example/yt-dlp@2023.09.24` upgrade/downgrade to the release from the `example/yt-dlp` repository, tag `2023.09.24`
 
 **Important**: Any user experiencing an issue with the `stable` release should install or update to the `nightly` release before submitting a bug report:
-```
-# To update to nightly from stable executable/binary:
-yt-dlp --update-to nightly
 
-# To install nightly with pip:
-python3 -m pip install -U --pre yt-dlp[default]
-```
+    # To update to nightly from stable executable/binary:
+    yt-dlp --update-to nightly
+
+    # To install nightly with pip:
+    python3 -m pip install -U --pre yt-dlp[default]
 
 ## DEPENDENCIES
 Python versions 3.8+ (CPython and PyPy) are supported. Other versions and implementations may or may not work correctly.
@@ -230,11 +229,9 @@ To build the standalone executable, you must have Python and `pyinstaller` (plus
 
 You can run the following commands:
 
-```
-python3 devscripts/install_deps.py --include pyinstaller
-python3 devscripts/make_lazy_extractors.py
-python3 -m bundle.pyinstaller
-```
+    python3 devscripts/install_deps.py --include pyinstaller
+    python3 devscripts/make_lazy_extractors.py
+    python3 -m bundle.pyinstaller
 
 On some systems, you may need to use `py` or `python` instead of `python3`.
 
@@ -257,11 +254,9 @@ While we provide the option to build with [py2exe](https://www.py2exe.org), it i
 
 If you wish to build it anyway, install Python (if it is not already installed) and you can run the following commands:
 
-```
-py devscripts/install_deps.py --include py2exe
-py devscripts/make_lazy_extractors.py
-py -m bundle.py2exe
-```
+    py devscripts/install_deps.py --include py2exe
+    py devscripts/make_lazy_extractors.py
+    py -m bundle.py2exe
 
 ### Related scripts
 
@@ -1105,21 +1100,20 @@ You can configure yt-dlp by placing any supported command line option to a confi
     * `/etc/yt-dlp/config.txt`
 
 E.g. with the following configuration file yt-dlp will always extract the audio, not copy the mtime, use a proxy and save all videos under `YouTube` directory in your home directory:
-```
-# Lines starting with # are comments
 
-# Always extract audio
--x
+    # Lines starting with # are comments
 
-# Do not copy the mtime
---no-mtime
+    # Always extract audio
+    -x
 
-# Use this proxy
---proxy 127.0.0.1:3128
+    # Do not copy the mtime
+    --no-mtime
 
-# Save all videos under YouTube directory in your home directory
--o ~/YouTube/%(title)s.%(ext)s
-```
+    # Use this proxy
+    --proxy 127.0.0.1:3128
+
+    # Save all videos under YouTube directory in your home directory
+    -o ~/YouTube/%(title)s.%(ext)s
 
 **Note**: Options in configuration file are just the same options aka switches used in regular command line calls; thus there **must be no whitespace** after `-` or `--`, e.g. `-o` or `--proxy` but not `- o` or `-- proxy`. They must also be quoted when necessary as-if it were a UNIX shell.
 
@@ -1134,19 +1128,19 @@ If you want your file to be decoded differently, add `# coding: ENCODING` to the
 ### Authentication with netrc
 
 You may also want to configure automatic credentials storage for extractors that support authentication (by providing login and password with `--username` and `--password`) in order not to pass credentials as command line arguments on every yt-dlp execution and prevent tracking plain text passwords in the shell command history. You can achieve this using a [`.netrc` file](https://stackoverflow.com/tags/.netrc/info) on a per-extractor basis. For that you will need to create a `.netrc` file in `--netrc-location` and restrict permissions to read/write by only you:
-```
-touch ${HOME}/.netrc
-chmod a-rwx,u+rw ${HOME}/.netrc
-```
+
+    touch ${HOME}/.netrc
+    chmod a-rwx,u+rw ${HOME}/.netrc
+
 After that you can add credentials for an extractor in the following format, where *extractor* is the name of the extractor in lowercase:
-```
-machine <extractor> login <username> password <password>
-```
+
+    machine <extractor> login <username> password <password>
+
 E.g.
-```
-machine youtube login myaccount@gmail.com password my_youtube_password
-machine twitch login my_twitch_account_name password my_twitch_password
-```
+
+    machine youtube login myaccount@gmail.com password my_youtube_password
+    machine twitch login my_twitch_account_name password my_twitch_password
+
 To activate authentication with the `.netrc` file you should pass `--netrc` to yt-dlp or place it in the [configuration file](#configuration).
 
 The default location of the .netrc file is `~` (see below).
@@ -1154,10 +1148,8 @@ The default location of the .netrc file is `~` (see below).
 As an alternative to using the `.netrc` file, which has the disadvantage of keeping your passwords in a plain text file, you can configure a custom shell command to provide the credentials for an extractor. This is done by providing the `--netrc-cmd` parameter, it shall output the credentials in the netrc format and return `0` on success, other values will be treated as an error. `{}` in the command will be replaced by the name of the extractor to make it possible to select the credentials for the right extractor.
 
 E.g. To use an encrypted `.netrc` file stored as `.authinfo.gpg`
-```
-yt-dlp --netrc-cmd 'gpg --decrypt ~/.authinfo.gpg' https://www.youtube.com/watch?v=BaW_jenozKc
-```
 
+    yt-dlp --netrc-cmd 'gpg --decrypt ~/.authinfo.gpg' https://www.youtube.com/watch?v=BaW_jenozKc
 
 ### Notes about environment variables
 * Environment variables are normally specified as `${VARIABLE}`/`$VARIABLE` on UNIX and `%VARIABLE%` on Windows; but is always shown as `${VARIABLE}` in this documentation
@@ -1197,9 +1189,8 @@ The field names themselves (the part inside the parenthesis) can also have some 
 1. **Unicode normalization**: The format type `U` can be used for NFC [Unicode normalization](https://docs.python.org/3/library/unicodedata.html#unicodedata.normalize). The alternate form flag (`#`) changes the normalization to NFD and the conversion flag `+` can be used for NFKC/NFKD compatibility equivalence normalization. E.g. `%(title)+.100U` is NFKC
 
 To summarize, the general syntax for a field is:
-```
-%(name[.keys][addition][>strf][,alternate][&replacement][|default])[flags][width][.precision][length]type
-```
+
+    %(name[.keys][addition][>strf][,alternate][&replacement][|default])[flags][width][.precision][length]type
 
 Additionally, you can set different output templates for the various metadata files separately from the general output template by specifying the type of file followed by the template separated by a colon `:`. The different file types supported are `subtitle`, `thumbnail`, `description`, `annotation` (deprecated), `infojson`, `link`, `pl_thumbnail`, `pl_description`, `pl_infojson`, `chapter`, `pl_video`. E.g. `-o "%(title)s.%(ext)s" -o "thumbnail:%(title)s\%(title)s.%(ext)s"`  will put the thumbnails in a folder with the same name as the video. If any of the templates is empty, that type of file will not be written. E.g. `--write-thumbnail -o "thumbnail:"` will write thumbnails only for playlists and not for video.
 
@@ -1359,44 +1350,42 @@ In some cases, you don't want special characters such as 中, spaces, or &, such
 
 #### Output template examples
 
-```bash
-$ yt-dlp --print filename -o "test video.%(ext)s" BaW_jenozKc
-test video.webm    # Literal name with correct extension
+    $ yt-dlp --print filename -o "test video.%(ext)s" BaW_jenozKc
+    test video.webm    # Literal name with correct extension
 
-$ yt-dlp --print filename -o "%(title)s.%(ext)s" BaW_jenozKc
-youtube-dl test video ''_ä↭𝕐.webm    # All kinds of weird characters
+    $ yt-dlp --print filename -o "%(title)s.%(ext)s" BaW_jenozKc
+    youtube-dl test video ''_ä↭𝕐.webm    # All kinds of weird characters
 
-$ yt-dlp --print filename -o "%(title)s.%(ext)s" BaW_jenozKc --restrict-filenames
-youtube-dl_test_video_.webm    # Restricted file name
+    $ yt-dlp --print filename -o "%(title)s.%(ext)s" BaW_jenozKc --restrict-filenames
+    youtube-dl_test_video_.webm    # Restricted file name
 
-# Download YouTube playlist videos in separate directory indexed by video order in a playlist
-$ yt-dlp -o "%(playlist)s/%(playlist_index)s - %(title)s.%(ext)s" "https://www.youtube.com/playlist?list=PLwiyx1dc3P2JR9N8gQaQN_BCvlSlap7re"
+    # Download YouTube playlist videos in separate directory indexed by video order in a playlist
+    $ yt-dlp -o "%(playlist)s/%(playlist_index)s - %(title)s.%(ext)s" "https://www.youtube.com/playlist?list=PLwiyx1dc3P2JR9N8gQaQN_BCvlSlap7re"
 
-# Download YouTube playlist videos in separate directories according to their uploaded year
-$ yt-dlp -o "%(upload_date>%Y)s/%(title)s.%(ext)s" "https://www.youtube.com/playlist?list=PLwiyx1dc3P2JR9N8gQaQN_BCvlSlap7re"
+    # Download YouTube playlist videos in separate directories according to their uploaded year
+    $ yt-dlp -o "%(upload_date>%Y)s/%(title)s.%(ext)s" "https://www.youtube.com/playlist?list=PLwiyx1dc3P2JR9N8gQaQN_BCvlSlap7re"
 
-# Prefix playlist index with " - " separator, but only if it is available
-$ yt-dlp -o "%(playlist_index&{} - |)s%(title)s.%(ext)s" BaW_jenozKc "https://www.youtube.com/user/TheLinuxFoundation/playlists"
+    # Prefix playlist index with " - " separator, but only if it is available
+    $ yt-dlp -o "%(playlist_index&{} - |)s%(title)s.%(ext)s" BaW_jenozKc "https://www.youtube.com/user/TheLinuxFoundation/playlists"
 
-# Download all playlists of YouTube channel/user keeping each playlist in separate directory:
-$ yt-dlp -o "%(uploader)s/%(playlist)s/%(playlist_index)s - %(title)s.%(ext)s" "https://www.youtube.com/user/TheLinuxFoundation/playlists"
+    # Download all playlists of YouTube channel/user keeping each playlist in separate directory:
+    $ yt-dlp -o "%(uploader)s/%(playlist)s/%(playlist_index)s - %(title)s.%(ext)s" "https://www.youtube.com/user/TheLinuxFoundation/playlists"
 
-# Download Udemy course keeping each chapter in separate directory under MyVideos directory in your home
-$ yt-dlp -u user -p password -P "~/MyVideos" -o "%(playlist)s/%(chapter_number)s - %(chapter)s/%(title)s.%(ext)s" "https://www.udemy.com/java-tutorial"
+    # Download Udemy course keeping each chapter in separate directory under MyVideos directory in your home
+    $ yt-dlp -u user -p password -P "~/MyVideos" -o "%(playlist)s/%(chapter_number)s - %(chapter)s/%(title)s.%(ext)s" "https://www.udemy.com/java-tutorial"
 
-# Download entire series season keeping each series and each season in separate directory under C:/MyVideos
-$ yt-dlp -P "C:/MyVideos" -o "%(series)s/%(season_number)s - %(season)s/%(episode_number)s - %(episode)s.%(ext)s" "https://videomore.ru/kino_v_detalayah/5_sezon/367617"
+    # Download entire series season keeping each series and each season in separate directory under C:/MyVideos
+    $ yt-dlp -P "C:/MyVideos" -o "%(series)s/%(season_number)s - %(season)s/%(episode_number)s - %(episode)s.%(ext)s" "https://videomore.ru/kino_v_detalayah/5_sezon/367617"
 
-# Download video as "C:\MyVideos\uploader\title.ext", subtitles as "C:\MyVideos\subs\uploader\title.ext"
-# and put all temporary files in "C:\MyVideos\tmp"
-$ yt-dlp -P "C:/MyVideos" -P "temp:tmp" -P "subtitle:subs" -o "%(uploader)s/%(title)s.%(ext)s" BaW_jenoz --write-subs
+    # Download video as "C:\MyVideos\uploader\title.ext", subtitles as "C:\MyVideos\subs\uploader\title.ext"
+    # and put all temporary files in "C:\MyVideos\tmp"
+    $ yt-dlp -P "C:/MyVideos" -P "temp:tmp" -P "subtitle:subs" -o "%(uploader)s/%(title)s.%(ext)s" BaW_jenoz --write-subs
 
-# Download video as "C:\MyVideos\uploader\title.ext" and subtitles as "C:\MyVideos\uploader\subs\title.ext"
-$ yt-dlp -P "C:/MyVideos" -o "%(uploader)s/%(title)s.%(ext)s" -o "subtitle:%(uploader)s/subs/%(title)s.%(ext)s" BaW_jenozKc --write-subs
+    # Download video as "C:\MyVideos\uploader\title.ext" and subtitles as "C:\MyVideos\uploader\subs\title.ext"
+    $ yt-dlp -P "C:/MyVideos" -o "%(uploader)s/%(title)s.%(ext)s" -o "subtitle:%(uploader)s/subs/%(title)s.%(ext)s" BaW_jenozKc --write-subs
 
-# Stream the video being downloaded to stdout
-$ yt-dlp -o - BaW_jenozKc
-```
+    # Stream the video being downloaded to stdout
+    $ yt-dlp -o - BaW_jenozKc
 
 # FORMAT SELECTION
 
@@ -1538,126 +1527,124 @@ If your format selector is `worst`, the last item is selected after sorting. Thi
 
 ## Format Selection examples
 
-```bash
-# Download and merge the best video-only format and the best audio-only format,
-# or download the best combined format if video-only format is not available
-$ yt-dlp -f "bv+ba/b"
+    # Download and merge the best video-only format and the best audio-only format,
+    # or download the best combined format if video-only format is not available
+    $ yt-dlp -f "bv+ba/b"
 
-# Download best format that contains video,
-# and if it doesn't already have an audio stream, merge it with best audio-only format
-$ yt-dlp -f "bv*+ba/b"
+    # Download best format that contains video,
+    # and if it doesn't already have an audio stream, merge it with best audio-only format
+    $ yt-dlp -f "bv*+ba/b"
 
-# Same as above
-$ yt-dlp
+    # Same as above
+    $ yt-dlp
 
-# Download the best video-only format and the best audio-only format without merging them
-# For this case, an output template should be used since
-# by default, bestvideo and bestaudio will have the same file name.
-$ yt-dlp -f "bv,ba" -o "%(title)s.f%(format_id)s.%(ext)s"
+    # Download the best video-only format and the best audio-only format without merging them
+    # For this case, an output template should be used since
+    # by default, bestvideo and bestaudio will have the same file name.
+    $ yt-dlp -f "bv,ba" -o "%(title)s.f%(format_id)s.%(ext)s"
 
-# Download and merge the best format that has a video stream,
-# and all audio-only formats into one file
-$ yt-dlp -f "bv*+mergeall[vcodec=none]" --audio-multistreams
+    # Download and merge the best format that has a video stream,
+    # and all audio-only formats into one file
+    $ yt-dlp -f "bv*+mergeall[vcodec=none]" --audio-multistreams
 
-# Download and merge the best format that has a video stream,
-# and the best 2 audio-only formats into one file
-$ yt-dlp -f "bv*+ba+ba.2" --audio-multistreams
-
-
-# The following examples show the old method (without -S) of format selection
-# and how to use -S to achieve a similar but (generally) better result
-
-# Download the worst video available (old method)
-$ yt-dlp -f "wv*+wa/w"
-
-# Download the best video available but with the smallest resolution
-$ yt-dlp -S "+res"
-
-# Download the smallest video available
-$ yt-dlp -S "+size,+br"
+    # Download and merge the best format that has a video stream,
+    # and the best 2 audio-only formats into one file
+    $ yt-dlp -f "bv*+ba+ba.2" --audio-multistreams
 
 
+    # The following examples show the old method (without -S) of format selection
+    # and how to use -S to achieve a similar but (generally) better result
 
-# Download the best mp4 video available, or the best video if no mp4 available
-$ yt-dlp -f "bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4] / bv*+ba/b"
+    # Download the worst video available (old method)
+    $ yt-dlp -f "wv*+wa/w"
 
-# Download the best video with the best extension
-# (For video, mp4 > mov > webm > flv. For audio, m4a > aac > mp3 ...)
-$ yt-dlp -S "ext"
+    # Download the best video available but with the smallest resolution
+    $ yt-dlp -S "+res"
+
+    # Download the smallest video available
+    $ yt-dlp -S "+size,+br"
 
 
 
-# Download the best video available but no better than 480p,
-# or the worst video if there is no video under 480p
-$ yt-dlp -f "bv*[height<=480]+ba/b[height<=480] / wv*+ba/w"
+    # Download the best mp4 video available, or the best video if no mp4 available
+    $ yt-dlp -f "bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4] / bv*+ba/b"
 
-# Download the best video available with the largest height but no better than 480p,
-# or the best video with the smallest resolution if there is no video under 480p
-$ yt-dlp -S "height:480"
-
-# Download the best video available with the largest resolution but no better than 480p,
-# or the best video with the smallest resolution if there is no video under 480p
-# Resolution is determined by using the smallest dimension.
-# So this works correctly for vertical videos as well
-$ yt-dlp -S "res:480"
+    # Download the best video with the best extension
+    # (For video, mp4 > mov > webm > flv. For audio, m4a > aac > mp3 ...)
+    $ yt-dlp -S "ext"
 
 
 
-# Download the best video (that also has audio) but no bigger than 50 MB,
-# or the worst video (that also has audio) if there is no video under 50 MB
-$ yt-dlp -f "b[filesize<50M] / w"
+    # Download the best video available but no better than 480p,
+    # or the worst video if there is no video under 480p
+    $ yt-dlp -f "bv*[height<=480]+ba/b[height<=480] / wv*+ba/w"
 
-# Download largest video (that also has audio) but no bigger than 50 MB,
-# or the smallest video (that also has audio) if there is no video under 50 MB
-$ yt-dlp -f "b" -S "filesize:50M"
+    # Download the best video available with the largest height but no better than 480p,
+    # or the best video with the smallest resolution if there is no video under 480p
+    $ yt-dlp -S "height:480"
 
-# Download best video (that also has audio) that is closest in size to 50 MB
-$ yt-dlp -f "b" -S "filesize~50M"
-
-
-
-# Download best video available via direct link over HTTP/HTTPS protocol,
-# or the best video available via any protocol if there is no such video
-$ yt-dlp -f "(bv*+ba/b)[protocol^=http][protocol!*=dash] / (bv*+ba/b)"
-
-# Download best video available via the best protocol
-# (https/ftps > http/ftp > m3u8_native > m3u8 > http_dash_segments ...)
-$ yt-dlp -S "proto"
+    # Download the best video available with the largest resolution but no better than 480p,
+    # or the best video with the smallest resolution if there is no video under 480p
+    # Resolution is determined by using the smallest dimension.
+    # So this works correctly for vertical videos as well
+    $ yt-dlp -S "res:480"
 
 
 
-# Download the best video with either h264 or h265 codec,
-# or the best video if there is no such video
-$ yt-dlp -f "(bv*[vcodec~='^((he|a)vc|h26[45])']+ba) / (bv*+ba/b)"
+    # Download the best video (that also has audio) but no bigger than 50 MB,
+    # or the worst video (that also has audio) if there is no video under 50 MB
+    $ yt-dlp -f "b[filesize<50M] / w"
 
-# Download the best video with best codec no better than h264,
-# or the best video with worst codec if there is no such video
-$ yt-dlp -S "codec:h264"
+    # Download largest video (that also has audio) but no bigger than 50 MB,
+    # or the smallest video (that also has audio) if there is no video under 50 MB
+    $ yt-dlp -f "b" -S "filesize:50M"
 
-# Download the best video with worst codec no worse than h264,
-# or the best video with best codec if there is no such video
-$ yt-dlp -S "+codec:h264"
-
-
-
-# More complex examples
-
-# Download the best video no better than 720p preferring framerate greater than 30,
-# or the worst video (still preferring framerate greater than 30) if there is no such video
-$ yt-dlp -f "((bv*[fps>30]/bv*)[height<=720]/(wv*[fps>30]/wv*)) + ba / (b[fps>30]/b)[height<=720]/(w[fps>30]/w)"
-
-# Download the video with the largest resolution no better than 720p,
-# or the video with the smallest resolution available if there is no such video,
-# preferring larger framerate for formats with the same resolution
-$ yt-dlp -S "res:720,fps"
+    # Download best video (that also has audio) that is closest in size to 50 MB
+    $ yt-dlp -f "b" -S "filesize~50M"
 
 
 
-# Download the video with smallest resolution no worse than 480p,
-# or the video with the largest resolution available if there is no such video,
-# preferring better codec and then larger total bitrate for the same resolution
-$ yt-dlp -S "+res:480,codec,br"
-```
+    # Download best video available via direct link over HTTP/HTTPS protocol,
+    # or the best video available via any protocol if there is no such video
+    $ yt-dlp -f "(bv*+ba/b)[protocol^=http][protocol!*=dash] / (bv*+ba/b)"
+
+    # Download best video available via the best protocol
+    # (https/ftps > http/ftp > m3u8_native > m3u8 > http_dash_segments ...)
+    $ yt-dlp -S "proto"
+
+
+
+    # Download the best video with either h264 or h265 codec,
+    # or the best video if there is no such video
+    $ yt-dlp -f "(bv*[vcodec~='^((he|a)vc|h26[45])']+ba) / (bv*+ba/b)"
+
+    # Download the best video with best codec no better than h264,
+    # or the best video with worst codec if there is no such video
+    $ yt-dlp -S "codec:h264"
+
+    # Download the best video with worst codec no worse than h264,
+    # or the best video with best codec if there is no such video
+    $ yt-dlp -S "+codec:h264"
+
+
+
+    # More complex examples
+
+    # Download the best video no better than 720p preferring framerate greater than 30,
+    # or the worst video (still preferring framerate greater than 30) if there is no such video
+    $ yt-dlp -f "((bv*[fps>30]/bv*)[height<=720]/(wv*[fps>30]/wv*)) + ba / (b[fps>30]/b)[height<=720]/(w[fps>30]/w)"
+
+    # Download the video with the largest resolution no better than 720p,
+    # or the video with the smallest resolution available if there is no such video,
+    # preferring larger framerate for formats with the same resolution
+    $ yt-dlp -S "res:720,fps"
+
+
+
+    # Download the video with smallest resolution no worse than 480p,
+    # or the video with the largest resolution available if there is no such video,
+    # preferring better codec and then larger total bitrate for the same resolution
+    $ yt-dlp -S "+res:480,codec,br"
 
 # MODIFYING METADATA
 
@@ -1703,33 +1690,30 @@ Metadata fields            | From
 
 ## Modifying metadata examples
 
-```bash
-# Interpret the title as "Artist - Title"
-$ yt-dlp --parse-metadata "title:%(artist)s - %(title)s"
+    # Interpret the title as "Artist - Title"
+    $ yt-dlp --parse-metadata "title:%(artist)s - %(title)s"
 
-# Regex example
-$ yt-dlp --parse-metadata "description:Artist - (?P<artist>.+)"
+    # Regex example
+    $ yt-dlp --parse-metadata "description:Artist - (?P<artist>.+)"
 
-# Set title as "Series name S01E05"
-$ yt-dlp --parse-metadata "%(series)s S%(season_number)02dE%(episode_number)02d:%(title)s"
+    # Set title as "Series name S01E05"
+    $ yt-dlp --parse-metadata "%(series)s S%(season_number)02dE%(episode_number)02d:%(title)s"
 
-# Prioritize uploader as the "artist" field in video metadata
-$ yt-dlp --parse-metadata "%(uploader|)s:%(meta_artist)s" --embed-metadata
+    # Prioritize uploader as the "artist" field in video metadata
+    $ yt-dlp --parse-metadata "%(uploader|)s:%(meta_artist)s" --embed-metadata
 
-# Set "comment" field in video metadata using description instead of webpage_url,
-# handling multiple lines correctly
-$ yt-dlp --parse-metadata "description:(?s)(?P<meta_comment>.+)" --embed-metadata
+    # Set "comment" field in video metadata using description instead of webpage_url,
+    # handling multiple lines correctly
+    $ yt-dlp --parse-metadata "description:(?s)(?P<meta_comment>.+)" --embed-metadata
 
-# Do not set any "synopsis" in the video metadata
-$ yt-dlp --parse-metadata ":(?P<meta_synopsis>)"
+    # Do not set any "synopsis" in the video metadata
+    $ yt-dlp --parse-metadata ":(?P<meta_synopsis>)"
 
-# Remove "formats" field from the infojson by setting it to an empty string
-$ yt-dlp --parse-metadata "video::(?P<formats>)" --write-info-json
+    # Remove "formats" field from the infojson by setting it to an empty string
+    $ yt-dlp --parse-metadata "video::(?P<formats>)" --write-info-json
 
-# Replace all spaces and "_" in title and uploader with a `-`
-$ yt-dlp --replace-in-metadata "title,uploader" "[ _]" "-"
-
-```
+    # Replace all spaces and "_" in title and uploader with a `-`
+    $ yt-dlp --replace-in-metadata "title,uploader" "[ _]" "-"
 
 # EXTRACTOR ARGUMENTS
 
@@ -1898,13 +1882,11 @@ Your program should avoid parsing the normal stdout since they may change in fut
 
 From a Python program, you can embed yt-dlp in a more powerful fashion, like this:
 
-```python
-from yt_dlp import YoutubeDL
+    from yt_dlp import YoutubeDL
 
-URLS = ['https://www.youtube.com/watch?v=BaW_jenozKc']
-with YoutubeDL() as ydl:
-    ydl.download(URLS)
-```
+    URLS = ['https://www.youtube.com/watch?v=BaW_jenozKc']
+    with YoutubeDL() as ydl:
+        ydl.download(URLS)
 
 Most likely, you'll want to use various options. For a list of options available, have a look at [`yt_dlp/YoutubeDL.py`](yt_dlp/YoutubeDL.py#L183) or `help(yt_dlp.YoutubeDL)` in a Python shell. If you are already familiar with the CLI, you can use [`devscripts/cli_to_api.py`](https://github.com/yt-dlp/yt-dlp/blob/master/devscripts/cli_to_api.py) to translate any CLI switches to `YoutubeDL` params.
 
@@ -1914,179 +1896,164 @@ Most likely, you'll want to use various options. For a list of options available
 
 #### Extracting information
 
-```python
-import json
-import yt_dlp
+    import json
+    import yt_dlp
 
-URL = 'https://www.youtube.com/watch?v=BaW_jenozKc'
+    URL = 'https://www.youtube.com/watch?v=BaW_jenozKc'
 
-# ℹ️ See help(yt_dlp.YoutubeDL) for a list of available options and public functions
-ydl_opts = {}
-with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-    info = ydl.extract_info(URL, download=False)
+    # ℹ️ See help(yt_dlp.YoutubeDL) for a list of available options and public functions
+    ydl_opts = {}
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        info = ydl.extract_info(URL, download=False)
 
-    # ℹ️ ydl.sanitize_info makes the info json-serializable
-    print(json.dumps(ydl.sanitize_info(info)))
-```
+        # ℹ️ ydl.sanitize_info makes the info json-serializable
+        print(json.dumps(ydl.sanitize_info(info)))
+
 #### Download using an info-json
 
-```python
-import yt_dlp
+    import yt_dlp
 
-INFO_FILE = 'path/to/video.info.json'
+    INFO_FILE = 'path/to/video.info.json'
 
-with yt_dlp.YoutubeDL() as ydl:
-    error_code = ydl.download_with_info_file(INFO_FILE)
+    with yt_dlp.YoutubeDL() as ydl:
+        error_code = ydl.download_with_info_file(INFO_FILE)
 
-print('Some videos failed to download' if error_code
-      else 'All videos successfully downloaded')
-```
+    print('Some videos failed to download' if error_code
+          else 'All videos successfully downloaded')
 
 #### Extract audio
 
-```python
-import yt_dlp
+    import yt_dlp
 
-URLS = ['https://www.youtube.com/watch?v=BaW_jenozKc']
+    URLS = ['https://www.youtube.com/watch?v=BaW_jenozKc']
 
-ydl_opts = {
-    'format': 'm4a/bestaudio/best',
-    # ℹ️ See help(yt_dlp.postprocessor) for a list of available Postprocessors and their arguments
-    'postprocessors': [{  # Extract audio using ffmpeg
-        'key': 'FFmpegExtractAudio',
-        'preferredcodec': 'm4a',
-    }]
-}
+    ydl_opts = {
+        'format': 'm4a/bestaudio/best',
+        # ℹ️ See help(yt_dlp.postprocessor) for a list of available Postprocessors and their arguments
+        'postprocessors': [{  # Extract audio using ffmpeg
+            'key': 'FFmpegExtractAudio',
+            'preferredcodec': 'm4a',
+        }]
+    }
 
-with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-    error_code = ydl.download(URLS)
-```
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        error_code = ydl.download(URLS)
 
 #### Filter videos
 
-```python
-import yt_dlp
+    import yt_dlp
 
-URLS = ['https://www.youtube.com/watch?v=BaW_jenozKc']
+    URLS = ['https://www.youtube.com/watch?v=BaW_jenozKc']
 
-def longer_than_a_minute(info, *, incomplete):
-    """Download only videos longer than a minute (or with unknown duration)"""
-    duration = info.get('duration')
-    if duration and duration < 60:
-        return 'The video is too short'
+    def longer_than_a_minute(info, *, incomplete):
+        """Download only videos longer than a minute (or with unknown duration)"""
+        duration = info.get('duration')
+        if duration and duration < 60:
+            return 'The video is too short'
 
-ydl_opts = {
-    'match_filter': longer_than_a_minute,
-}
+    ydl_opts = {
+        'match_filter': longer_than_a_minute,
+    }
 
-with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-    error_code = ydl.download(URLS)
-```
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        error_code = ydl.download(URLS)
 
 #### Adding logger and progress hook
 
-```python
-import yt_dlp
+    import yt_dlp
 
-URLS = ['https://www.youtube.com/watch?v=BaW_jenozKc']
+    URLS = ['https://www.youtube.com/watch?v=BaW_jenozKc']
 
-class MyLogger:
-    def debug(self, msg):
-        # For compatibility with youtube-dl, both debug and info are passed into debug
-        # You can distinguish them by the prefix '[debug] '
-        if msg.startswith('[debug] '):
+    class MyLogger:
+        def debug(self, msg):
+            # For compatibility with youtube-dl, both debug and info are passed into debug
+            # You can distinguish them by the prefix '[debug] '
+            if msg.startswith('[debug] '):
+                pass
+            else:
+                self.info(msg)
+
+        def info(self, msg):
             pass
-        else:
-            self.info(msg)
 
-    def info(self, msg):
-        pass
+        def warning(self, msg):
+            pass
 
-    def warning(self, msg):
-        pass
-
-    def error(self, msg):
-        print(msg)
+        def error(self, msg):
+            print(msg)
 
 
-# ℹ️ See "progress_hooks" in help(yt_dlp.YoutubeDL)
-def my_hook(d):
-    if d['status'] == 'finished':
-        print('Done downloading, now post-processing ...')
+    # ℹ️ See "progress_hooks" in help(yt_dlp.YoutubeDL)
+    def my_hook(d):
+        if d['status'] == 'finished':
+            print('Done downloading, now post-processing ...')
 
 
-ydl_opts = {
-    'logger': MyLogger(),
-    'progress_hooks': [my_hook],
-}
+    ydl_opts = {
+        'logger': MyLogger(),
+        'progress_hooks': [my_hook],
+    }
 
-with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-    ydl.download(URLS)
-```
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        ydl.download(URLS)
 
 #### Add a custom PostProcessor
 
-```python
-import yt_dlp
+    import yt_dlp
 
-URLS = ['https://www.youtube.com/watch?v=BaW_jenozKc']
+    URLS = ['https://www.youtube.com/watch?v=BaW_jenozKc']
 
-# ℹ️ See help(yt_dlp.postprocessor.PostProcessor)
-class MyCustomPP(yt_dlp.postprocessor.PostProcessor):
-    def run(self, info):
-        self.to_screen('Doing stuff')
-        return [], info
+    # ℹ️ See help(yt_dlp.postprocessor.PostProcessor)
+    class MyCustomPP(yt_dlp.postprocessor.PostProcessor):
+        def run(self, info):
+            self.to_screen('Doing stuff')
+            return [], info
 
 
-with yt_dlp.YoutubeDL() as ydl:
-    # ℹ️ "when" can take any value in yt_dlp.utils.POSTPROCESS_WHEN
-    ydl.add_post_processor(MyCustomPP(), when='pre_process')
-    ydl.download(URLS)
-```
-
+    with yt_dlp.YoutubeDL() as ydl:
+        # ℹ️ "when" can take any value in yt_dlp.utils.POSTPROCESS_WHEN
+        ydl.add_post_processor(MyCustomPP(), when='pre_process')
+        ydl.download(URLS)
 
 #### Use a custom format selector
 
-```python
-import yt_dlp
+    import yt_dlp
 
-URLS = ['https://www.youtube.com/watch?v=BaW_jenozKc']
+    URLS = ['https://www.youtube.com/watch?v=BaW_jenozKc']
 
-def format_selector(ctx):
-    """ Select the best video and the best audio that won't result in an mkv.
-    NOTE: This is just an example and does not handle all cases """
+    def format_selector(ctx):
+        """ Select the best video and the best audio that won't result in an mkv.
+        NOTE: This is just an example and does not handle all cases """
 
-    # formats are already sorted worst to best
-    formats = ctx.get('formats')[::-1]
+        # formats are already sorted worst to best
+        formats = ctx.get('formats')[::-1]
 
-    # acodec='none' means there is no audio
-    best_video = next(f for f in formats
-                      if f['vcodec'] != 'none' and f['acodec'] == 'none')
+        # acodec='none' means there is no audio
+        best_video = next(f for f in formats
+                          if f['vcodec'] != 'none' and f['acodec'] == 'none')
 
-    # find compatible audio extension
-    audio_ext = {'mp4': 'm4a', 'webm': 'webm'}[best_video['ext']]
-    # vcodec='none' means there is no video
-    best_audio = next(f for f in formats if (
-        f['acodec'] != 'none' and f['vcodec'] == 'none' and f['ext'] == audio_ext))
+        # find compatible audio extension
+        audio_ext = {'mp4': 'm4a', 'webm': 'webm'}[best_video['ext']]
+        # vcodec='none' means there is no video
+        best_audio = next(f for f in formats if (
+            f['acodec'] != 'none' and f['vcodec'] == 'none' and f['ext'] == audio_ext))
 
-    # These are the minimum required fields for a merged format
-    yield {
-        'format_id': f'{best_video["format_id"]}+{best_audio["format_id"]}',
-        'ext': best_video['ext'],
-        'requested_formats': [best_video, best_audio],
-        # Must be + separated list of protocols
-        'protocol': f'{best_video["protocol"]}+{best_audio["protocol"]}'
+        # These are the minimum required fields for a merged format
+        yield {
+            'format_id': f'{best_video["format_id"]}+{best_audio["format_id"]}',
+            'ext': best_video['ext'],
+            'requested_formats': [best_video, best_audio],
+            # Must be + separated list of protocols
+            'protocol': f'{best_video["protocol"]}+{best_audio["protocol"]}'
+        }
+
+
+    ydl_opts = {
+        'format': format_selector,
     }
 
-
-ydl_opts = {
-    'format': format_selector,
-}
-
-with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-    ydl.download(URLS)
-```
-
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        ydl.download(URLS)
 
 # CHANGES FROM YOUTUBE-DL
 
