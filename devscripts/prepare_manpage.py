@@ -65,9 +65,7 @@ def move_sections(readme):
 
 def filter_options(readme):
     section = re.search(r'(?sm)^# USAGE AND OPTIONS\n.+?(?=^# )', readme).group(0)
-
-    # Replace * with \*. See https://github.com/yt-dlp/yt-dlp/issues/5108
-    section_new = section.replace('*', r'\*') if section else ''
+    section_new = section.replace('*', R'\*')
 
     options = '# OPTIONS\n'
     for line in section_new.split('\n')[1:]:
