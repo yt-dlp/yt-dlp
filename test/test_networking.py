@@ -980,7 +980,6 @@ class TestCurlCFFIRequestHandler(TestRequestHandlerBase):
             # Check that user agent is added over ours
             assert 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36' in res
 
-    @pytest.mark.parametrize('handler', ['CurlCFFI'], indirect=True)
     def test_headers(self, handler):
         with handler(headers=std_headers) as rh:
             # Ensure curl-impersonate overrides our standard headers (usually added

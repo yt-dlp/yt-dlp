@@ -123,6 +123,7 @@ class ImpersonateRequestHandler(RequestHandler, ABC):
         headers = self._merge_headers(request.headers)
         if self._get_request_target(request) is not None:
             # remove all headers present in std_headers
+            # todo: change this to not depend on std_headers
             for header in std_headers:
                 if header in headers and std_headers[header] == headers[header]:
                     headers.pop(header, None)
