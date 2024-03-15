@@ -37,6 +37,7 @@ from ..networking.exceptions import (
     IncompleteRead,
     network_exceptions,
 )
+from ..networking.impersonate import ImpersonateTarget
 from ..utils import (
     IDENTITY,
     JSON_LD_RE,
@@ -817,7 +818,7 @@ class InfoExtractor:
         else:
             return err.status in variadic(expected_status)
 
-    def _create_request(self, url_or_request, data=None, headers=None, query=None):
+    def _create_request(self, url_or_request, data=None, headers=None, query=None, extensions=None):
         if isinstance(url_or_request, urllib.request.Request):
             self._downloader.deprecation_warning(
                 'Passing a urllib.request.Request to _create_request() is deprecated. '
@@ -826,10 +827,11 @@ class InfoExtractor:
         elif not isinstance(url_or_request, Request):
             url_or_request = Request(url_or_request)
 
-        url_or_request.update(data=data, headers=headers, query=query)
+        url_or_request.update(data=data, headers=headers, query=query, extensions=extensions)
         return url_or_request
 
-    def _request_webpage(self, url_or_request, video_id, note=None, errnote=None, fatal=True, data=None, headers=None, query=None, expected_status=None):
+    def _request_webpage(self, url_or_request, video_id, note=None, errnote=None, fatal=True, data=None,
+                         headers=None, query=None, expected_status=None, impersonate=None, force_impersonate=False):
         """
         Return the response handle.
 
@@ -860,8 +862,14 @@ class InfoExtractor:
             headers = (headers or {}).copy()
             headers.setdefault('X-Forwarded-For', self._x_forwarded_for_ip)
 
+        extensions = None
+        if impersonate is not None:
+            target = ImpersonateTarget.from_str(':' if impersonate is True else impersonate)
+            if force_impersonate or self._downloader._impersonate_target_available(target):
+                extensions = {'impersonate': target}
+
         try:
-            return self._downloader.urlopen(self._create_request(url_or_request, data, headers, query))
+            return self._downloader.urlopen(self._create_request(url_or_request, data, headers, query, extensions))
         except network_exceptions as err:
             if isinstance(err, HTTPError):
                 if self.__can_accept_status_code(err, expected_status):
@@ -880,13 +888,14 @@ class InfoExtractor:
                 return False
 
     def _download_webpage_handle(self, url_or_request, video_id, note=None, errnote=None, fatal=True,
-                                 encoding=None, data=None, headers={}, query={}, expected_status=None):
+                                 encoding=None, data=None, headers={}, query={}, expected_status=None,
+                                 impersonate=None, force_impersonate=False):
         """
         Return a tuple (page content as string, URL handle).
 
         Arguments:
         url_or_request -- plain text URL as a string or
-            a urllib.request.Request object
+            a yt_dlp.networking.Request object
         video_id -- Video/playlist/item identifier (string)
 
         Keyword arguments:
@@ -911,13 +920,19 @@ class InfoExtractor:
                   returning True if it should be accepted
             Note that this argument does not affect success status codes (2xx)
             which are always accepted.
+        impersonate -- the impersonate target: can be either a string in the format of
+            CLIENT[:OS] or True (bool) if any target is sufficient
+        force_impersonate -- flag to toggle whether the request should raise an error
+            if impersonation is not possible (bool, default: False)
         """
 
         # Strip hashes from the URL (#1038)
         if isinstance(url_or_request, str):
             url_or_request = url_or_request.partition('#')[0]
 
-        urlh = self._request_webpage(url_or_request, video_id, note, errnote, fatal, data=data, headers=headers, query=query, expected_status=expected_status)
+        urlh = self._request_webpage(url_or_request, video_id, note, errnote, fatal, data=data,
+                                     headers=headers, query=query, expected_status=expected_status,
+                                     impersonate=impersonate, force_impersonate=force_impersonate)
         if urlh is False:
             assert not fatal
             return False
@@ -1046,17 +1061,20 @@ class InfoExtractor:
             return getattr(ie, parser)(content, *args, **kwargs)
 
         def download_handle(self, url_or_request, video_id, note=note, errnote=errnote, transform_source=None,
-                            fatal=True, encoding=None, data=None, headers={}, query={}, expected_status=None):
+                            fatal=True, encoding=None, data=None, headers={}, query={}, expected_status=None,
+                            impersonate=None, force_impersonate=False):
             res = self._download_webpage_handle(
                 url_or_request, video_id, note=note, errnote=errnote, fatal=fatal, encoding=encoding,
-                data=data, headers=headers, query=query, expected_status=expected_status)
+                data=data, headers=headers, query=query, expected_status=expected_status,
+                impersonate=impersonate, force_impersonate=force_impersonate)
             if res is False:
                 return res
             content, urlh = res
             return parse(self, content, video_id, transform_source=transform_source, fatal=fatal, errnote=errnote), urlh
 
         def download_content(self, url_or_request, video_id, note=note, errnote=errnote, transform_source=None,
-                             fatal=True, encoding=None, data=None, headers={}, query={}, expected_status=None):
+                             fatal=True, encoding=None, data=None, headers={}, query={}, expected_status=None,
+                             impersonate=None, force_impersonate=False):
             if self.get_param('load_pages'):
                 url_or_request = self._create_request(url_or_request, data, headers, query)
                 filename = self._request_dump_filename(url_or_request.url, video_id)
@@ -1079,6 +1097,8 @@ class InfoExtractor:
                 'headers': headers,
                 'query': query,
                 'expected_status': expected_status,
+                'impersonate': impersonate,
+                'force_impersonate': force_impersonate,
             }
             if parser is None:
                 kwargs.pop('transform_source')
