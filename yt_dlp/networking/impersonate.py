@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC
 from dataclasses import dataclass, fields
-from typing import Any, Optional
+from typing import Any
 
 from .common import RequestHandler, register_preference
 from .exceptions import UnsupportedRequest
