@@ -24,10 +24,10 @@ class ImpersonateTarget:
 
     Note: None is used to indicate to match any.
     """
-    client: Optional[str] = None
-    version: Optional[str] = None
-    os: Optional[str] = None
-    os_vers: Optional[str] = None
+    client: str | None = None
+    version: str | None = None
+    os: str | None = None
+    os_vers: str | None = None
 
     def __contains__(self, target: ImpersonateTarget):
         if not isinstance(target, ImpersonateTarget):
