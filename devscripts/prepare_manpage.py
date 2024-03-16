@@ -43,25 +43,25 @@ def filter_excluded_sections(readme):
         '', readme)
 
 
+def _convert_code_blocks(readme):
+    current_code_block = None
+
+    for line in readme.splitlines(True):
+        if current_code_block:
+            if line == f'{current_code_block}\n':
+                current_code_block = None
+                yield '\n'
+            else:
+                yield f'    {line}'
+        elif line.startswith('```'):
+            current_code_block = '`' * line.count('`')
+            yield '\n'
+        else:
+            yield line
+
+
 def convert_code_blocks(readme):
-    out = ''
-    in_code_block = False
-
-    for line in readme.split('\n'):
-        if in_code_block:
-            if line.startswith('```'):
-                in_code_block = False
-                out += '\n'
-                continue
-            out += '    ' + line + '\n'
-            continue
-        if line.startswith('```'):
-            in_code_block = True
-            out += '\n'
-            continue
-        out += line + '\n'
-
-    return out
+    return ''.join(_convert_code_blocks(readme))
 
 
 def move_sections(readme):
