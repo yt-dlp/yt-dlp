@@ -64,7 +64,9 @@ def process_request(self, request):
 
 def create_websocket_server(**ws_kwargs):
     import websockets.sync.server
-    wsd = websockets.sync.server.serve(websocket_handler, '127.0.0.1', 0, process_request=process_request, open_timeout=2, **ws_kwargs)
+    wsd = websockets.sync.server.serve(
+        websocket_handler, '127.0.0.1', 0,
+        process_request=process_request, open_timeout=2, **ws_kwargs)
     ws_port = wsd.socket.getsockname()[1]
     ws_server_thread = threading.Thread(target=wsd.serve_forever)
     ws_server_thread.daemon = True
