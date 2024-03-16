@@ -100,11 +100,12 @@ def create_mtls_wss_websocket_server():
 
 def ws_validate_and_send(rh, req):
     rh.validate(req)
-    for i in range(0, 3):
+    max_tries = 3
+    for i in range(max_tries):
         try:
             return rh.send(req)
         except TransportError as e:
-            if 'connection closed during handshake' in str(e):
+            if i < (max_tries - 1) and 'connection closed during handshake' in str(e):
                 # websockets server sometimes hangs on new connections
                 continue
             raise
