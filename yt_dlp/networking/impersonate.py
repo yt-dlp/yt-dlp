@@ -111,13 +111,7 @@ class ImpersonateRequestHandler(RequestHandler, ABC):
 
     def _get_request_target(self, request):
         """Get the requested target for the request"""
-        return request.extensions.get('impersonate') or self.impersonate
-
-    def _get_mapped_request_target(self, request):
-        """Get the resolved mapped target for the request target"""
-        resolved_target = self._resolve_target(self._get_request_target(request))
-        return self._SUPPORTED_IMPERSONATE_TARGET_MAP.get(
-            resolved_target, None)
+        return self._resolve_target(request.extensions.get('impersonate') or self.impersonate)
 
     def _get_impersonate_headers(self, request):
         headers = self._merge_headers(request.headers)
