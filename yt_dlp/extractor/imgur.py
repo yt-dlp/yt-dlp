@@ -89,7 +89,7 @@ class ImgurIE(ImgurBaseIE):
             'upload_date': '20240315',
             'like_count': int,
             'dislike_count': int,
-            'duration': 56.0,
+            'duration': 56.92,
             'comment_count': int,
             'release_timestamp': 1710491255,
             'release_date': '20240315',
