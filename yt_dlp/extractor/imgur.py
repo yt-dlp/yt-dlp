@@ -76,6 +76,24 @@ class ImgurIE(ImgurBaseIE):
             'thumbnail': 'https://i.imgur.com/jxBXAMCh.jpg',
             'dislike_count': int,
         },
+    },  
+        # from https://github.com/yt-dlp/yt-dlp/issues/9458
+        {
+        'url': 'https://imgur.com/zV03bd5',
+        'add_ies': ['Imgur'],
+        'info_dict': {
+            'id': 'zV03bd5',
+            'ext': 'mp4',
+            'title': 'Ive - Liz',
+            'timestamp': 1710491255,
+            'upload_date': '20240315',
+            'like_count': int,
+            'dislike_count': int,
+            'duration': 56.0,
+            'comment_count': int,
+            'release_timestamp': 1710491255,
+            'release_date': '20240315',
+        },
     }]
 
     def _real_extract(self, url):
@@ -192,6 +210,7 @@ class ImgurIE(ImgurBaseIE):
             'id': video_id,
             'formats': formats,
             'thumbnail': url_or_none(search('thumbnailUrl')),
+            'http_headers': {'Accept': '*/*'},
         }
 
 
