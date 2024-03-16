@@ -80,6 +80,7 @@ class ImgurIE(ImgurBaseIE):
         # from https://github.com/yt-dlp/yt-dlp/issues/9458
         {
         'url': 'https://imgur.com/zV03bd5',
+        'md5': '4CB52A2B62E3C21EFF561DF0611C1E89',
         'add_ies': ['Imgur'],
         'info_dict': {
             'id': 'zV03bd5',
