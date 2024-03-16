@@ -76,7 +76,7 @@ class ImgurIE(ImgurBaseIE):
             'thumbnail': 'https://i.imgur.com/jxBXAMCh.jpg',
             'dislike_count': int,
         },
-    },  
+    },
         # from https://github.com/yt-dlp/yt-dlp/issues/9458
         {
         'url': 'https://imgur.com/zV03bd5',
