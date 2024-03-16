@@ -717,11 +717,10 @@ class YoutubeDL:
         for msg in self.params.get('_deprecation_warnings', []):
             self.deprecated_feature(msg)
 
-        impersonate_target = self.params.get('impersonate')
-        if impersonate_target is not None:
+        if impersonate_target := self.params.get('impersonate'):
             if not self._impersonate_target_available(impersonate_target):
                 raise YoutubeDLError(
-                    f'Impersonate target "{self.params.get("impersonate")}" is not available. '
+                    f'Impersonate target "{impersonate_target}" is not available. '
                     f'Use --list-impersonate-targets to see available targets. '
                     f'You may be missing dependencies required to support this target.')
 
