@@ -999,7 +999,7 @@ def _real_main(argv=None):
             available_targets = ydl._get_available_impersonate_targets()
 
             rows = [
-                [target.client or '-', target.version or '-', target.os or '-', target.os_vers or '-', handler]
+                [target.client or '-', target.version or '-', target.os or '-', target.os_ver or '-', handler]
                 for target, handler in available_targets
             ]
 
@@ -1012,7 +1012,7 @@ def _real_main(argv=None):
                         ydl._format_out(known_target.client or '-', ydl.Styles.SUPPRESS),
                         ydl._format_out(known_target.version or '-', ydl.Styles.SUPPRESS),
                         ydl._format_out(known_target.os or '-', ydl.Styles.SUPPRESS),
-                        ydl._format_out(known_target.os_vers or '-', ydl.Styles.SUPPRESS),
+                        ydl._format_out(known_target.os_ver or '-', ydl.Styles.SUPPRESS),
                         ydl._format_out(f'{known_handler} (not installed)', ydl.Styles.SUPPRESS),
                     ])
 

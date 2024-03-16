@@ -20,14 +20,14 @@ class ImpersonateTarget:
     @param client: the client to impersonate
     @param version: the client version to impersonate
     @param os: the client OS to impersonate
-    @param os_vers: the client OS version to impersonate
+    @param os_ver: the client OS version to impersonate
 
     Note: None is used to indicate to match any.
     """
     client: str | None = None
     version: str | None = None
     os: str | None = None
-    os_vers: str | None = None
+    os_ver: str | None = None
 
     def __contains__(self, target: ImpersonateTarget):
         if not isinstance(target, ImpersonateTarget):
@@ -36,12 +36,12 @@ class ImpersonateTarget:
             (self.client is None or target.client is None or self.client == target.client)
             and (self.version is None or target.version is None or self.version == target.version)
             and (self.os is None or target.os is None or self.os == target.os)
-            and (self.os_vers is None or target.os_vers is None or self.os_vers == target.os_vers)
+            and (self.os_ver is None or target.os_ver is None or self.os_ver == target.os_ver)
         )
 
     def __str__(self):
         return ':'.join(part or '' for part in (
-            self.client, self.version, self.os, self.os_vers)).rstrip(':')
+            self.client, self.version, self.os, self.os_ver)).rstrip(':')
 
     @classmethod
     def from_str(cls, target: str):
@@ -55,7 +55,7 @@ class ImpersonateRequestHandler(RequestHandler, ABC):
     This provides a method for checking the validity of the impersonate extension,
     which can be used in _check_extensions.
 
-    Impersonate targets consist of a client, version, os and os_vers.
+    Impersonate targets consist of a client, version, os and os_ver.
     See the ImpersonateTarget class for more details.
 
     The following may be defined:
