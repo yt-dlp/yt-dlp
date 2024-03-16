@@ -4090,11 +4090,12 @@ class YoutubeDL:
 
     def _get_available_impersonate_targets(self):
         # todo(future): make available as public API
-        return list(
-            itertools.chain.from_iterable(
-                [[(target, rh.RH_NAME) for target in rh.supported_targets]
-                 for rh in self._request_director.handlers.values()
-                 if isinstance(rh, ImpersonateRequestHandler)]))
+        return [
+            (target, rh.RH_NAME)
+            for rh in self._request_director.handlers.values()
+            if isinstance(rh, ImpersonateRequestHandler)
+            for target in rh.supported_targets
+        ]
 
     def _impersonate_target_available(self, target):
         # todo(future): make available as public API
