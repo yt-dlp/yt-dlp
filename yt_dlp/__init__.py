@@ -49,6 +49,7 @@ from .utils import (
     float_or_none,
     format_field,
     int_or_none,
+    join_nonempty,
     match_filter_func,
     parse_bytes,
     parse_duration,
@@ -990,36 +991,35 @@ def _real_main(argv=None):
             known_targets = [
                 # List of simplified targets we know are supported,
                 # to help users know what dependencies may be required.
-                (ImpersonateTarget('chrome'), 'curl_cffi'),
-                (ImpersonateTarget('edge'), 'curl_cffi'),
-                (ImpersonateTarget('safari'), 'curl_cffi'),
-                (ImpersonateTarget('chrome', os='android'), 'curl_cffi'),
+                (ImpersonateTarget('chrome'), 'curl_cffi', '==0.5.10'),
+                (ImpersonateTarget('edge'), 'curl_cffi', '==0.5.10'),
+                (ImpersonateTarget('safari'), 'curl_cffi', '==0.5.10'),
+                (ImpersonateTarget('chrome', os='android'), 'curl_cffi', '==0.5.10'),
             ]
 
             available_targets = ydl._get_available_impersonate_targets()
 
-            rows = [
-                [target.client or '-', target.version or '-', target.os or '-', target.os_ver or '-', handler]
-                for target, handler in available_targets
-            ]
+            def make_row(target, handler):
+                return [
+                    join_nonempty(target.client.title(), target.version, delim='-') or '-',
+                    join_nonempty((target.os or "").title(), target.os_ver, delim='-') or '-',
+                    handler,
+                ]
 
-            for known_target, known_handler in known_targets:
+            rows = [make_row(target, handler) for target, handler in available_targets]
+
+            for known_target, known_handler, req_version in known_targets:
                 if not any(
                     known_target in target and handler == known_handler
                     for target, handler in available_targets
                 ):
                     rows.append([
-                        ydl._format_out(known_target.client or '-', ydl.Styles.SUPPRESS),
-                        ydl._format_out(known_target.version or '-', ydl.Styles.SUPPRESS),
-                        ydl._format_out(known_target.os or '-', ydl.Styles.SUPPRESS),
-                        ydl._format_out(known_target.os_ver or '-', ydl.Styles.SUPPRESS),
-                        ydl._format_out(f'{known_handler} (not installed)', ydl.Styles.SUPPRESS),
+                        ydl._format_out(text, ydl.Styles.SUPPRESS)
+                        for text in make_row(known_target, f'{known_handler}{req_version or ""} (not installed)')
                     ])
 
             ydl.to_screen('[info] Available impersonate targets')
-            ydl.to_stdout(
-                render_table(['Client', 'Version', 'OS', 'OS Version', 'Source'], rows, extra_gap=1)
-            )
+            ydl.to_stdout(render_table(['Client', 'OS', 'Source'], rows, extra_gap=2, delim='-'))
             return
 
         if not actual_use:

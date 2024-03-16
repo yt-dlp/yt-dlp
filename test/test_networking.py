@@ -1944,35 +1944,23 @@ class TestResponse:
 class TestImpersonateTarget:
     @pytest.mark.parametrize('target_str,expected', [
         ('firefox', ImpersonateTarget('firefox', None, None, None)),
-        ('firefox:120', ImpersonateTarget('firefox', '120', None, None)),
-        ('firefox:120:linux', ImpersonateTarget('firefox', '120', 'linux', None)),
-        ('firefox:120:linux:5', ImpersonateTarget('firefox', '120', 'linux', '5')),
-        ('firefox:120:linux:5:::', ImpersonateTarget('firefox', '120', 'linux', '5')),
-        ('firefox::linux', ImpersonateTarget('firefox', None, 'linux', None)),
-        ('firefox:::5', ImpersonateTarget('firefox', None, None, '5')),
-        ('firefox:::', ImpersonateTarget('firefox', None, None, None)),
-        ('firefox:120::5', ImpersonateTarget('firefox', '120', None, '5')),
-        ('firefox:120:', ImpersonateTarget('firefox', '120', None, None)),
-        ('::120', ImpersonateTarget(None, None, '120', None)),
-        (':', ImpersonateTarget(None, None, None, None)),
-        (':::', ImpersonateTarget(None, None, None, None)),
+        ('firefox-120', ImpersonateTarget('firefox', '120', None, None)),
+        ('firefox-120:linux', ImpersonateTarget('firefox', '120', 'linux', None)),
+        ('firefox-120:linux-5', ImpersonateTarget('firefox', '120', 'linux', '5')),
+        ('firefox:linux', ImpersonateTarget('firefox', None, 'linux', None)),
         ('', ImpersonateTarget(None, None, None, None)),
-        ('firefox:::::::::::::::invalid:', ImpersonateTarget('firefox', None, None, None)),
     ])
     def test_target_from_str(self, target_str, expected):
         assert ImpersonateTarget.from_str(target_str) == expected
 
     @pytest.mark.parametrize('target,expected', [
         (ImpersonateTarget('firefox', None, None, None), 'firefox'),
-        (ImpersonateTarget('firefox', '120', None, None), 'firefox:120'),
-        (ImpersonateTarget('firefox', '120', 'linux', None), 'firefox:120:linux'),
-        (ImpersonateTarget('firefox', '120', 'linux', '5'), 'firefox:120:linux:5'),
-        (ImpersonateTarget('firefox', None, 'linux', None), 'firefox::linux'),
-        (ImpersonateTarget('firefox', None, None, '5'), 'firefox:::5'),
-        (ImpersonateTarget('firefox', '120', None, '5'), 'firefox:120::5'),
-        (ImpersonateTarget(None, '120', None, None), ':120'),
+        (ImpersonateTarget('firefox', '120', None, None), 'firefox-120'),
+        (ImpersonateTarget('firefox', '120', 'linux', None), 'firefox-120:linux'),
+        (ImpersonateTarget('firefox', '120', 'linux', '5'), 'firefox-120:linux-5'),
+        (ImpersonateTarget('firefox', None, 'linux', None), 'firefox:linux'),
         (ImpersonateTarget('firefox', ), 'firefox'),
-        (ImpersonateTarget('firefox', None, 'linux'), 'firefox::linux'),
+        (ImpersonateTarget('firefox', None, 'linux'), 'firefox:linux'),
         (ImpersonateTarget(None, None, None, None), ''),
     ])
     def test_str(self, target, expected):

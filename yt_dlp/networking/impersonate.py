@@ -1,13 +1,14 @@
 from __future__ import annotations
 
+import re
 from abc import ABC
-from dataclasses import dataclass, fields
+from dataclasses import dataclass
 from typing import Any
 
 from .common import RequestHandler, register_preference
 from .exceptions import UnsupportedRequest
 from ..compat.types import NoneType
-from ..utils import classproperty
+from ..utils import classproperty, join_nonempty
 from ..utils.networking import std_headers
 
 
@@ -40,12 +41,19 @@ class ImpersonateTarget:
         )
 
     def __str__(self):
-        return ':'.join(part or '' for part in (
-            self.client, self.version, self.os, self.os_ver)).rstrip(':')
+        return join_nonempty(join_nonempty(self.client, self.version),
+                             join_nonempty(self.os, self.os_ver), delim=':')
 
     @classmethod
     def from_str(cls, target: str):
-        return cls(*[v.strip() or None for v in target.split(':')][:len(fields(cls))])
+        # client, os = (target.split(':', 1) + [''])[:2]
+        # client, version = (client.split('-', 1) + [''])[:2]
+        # os, os_ver = (os.split('-', 1) + [''])[:2]
+        # return cls(client or None, version or None, os or None, os_ver or None)
+        mobj = re.fullmatch(r'(?:(\w+)(?:-(\w+))?(?::(\w+)(?:-(\w+))?)?)?', target)
+        if not mobj:
+            raise ValueError(f'Invalid impersonate target "{target}"')
+        return cls(*mobj.groups())
 
 
 class ImpersonateRequestHandler(RequestHandler, ABC):
