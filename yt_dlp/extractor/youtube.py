@@ -6973,6 +6973,13 @@ class YoutubeSearchIE(YoutubeTabBaseInfoExtractor, SearchInfoExtractor):
             'id': 'youtube-dl test video',
             'title': 'youtube-dl test video',
         }
+    }, {
+        'note': 'Suicide/self-harm search warning',
+        'url': 'ytsearch1:i hate myself and i wanna die',
+        'info_dict': {
+            'id': 'i hate myself and i wanna die',
+            'title': 'i hate myself and i wanna die',
+        }
     }]
 
 
