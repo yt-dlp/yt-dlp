@@ -132,6 +132,6 @@ class ImpersonateRequestHandler(RequestHandler, ABC):
 
 @register_preference(ImpersonateRequestHandler)
 def impersonate_preference(rh, request):
-    if request.extensions.get('impersonate') is not None or rh.impersonate is not None:
+    if request.extensions.get('impersonate') or rh.impersonate:
         return 1000
     return 0
