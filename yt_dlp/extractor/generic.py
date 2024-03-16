@@ -2394,7 +2394,6 @@ class GenericIE(InfoExtractor):
             'Referer': smuggled_data.get('referer'),
         }))
         new_url = full_response.url
-        url = urllib.parse.urlparse(url)._replace(scheme=urllib.parse.urlparse(new_url).scheme).geturl()
         if new_url != extract_basic_auth(url)[0]:
             self.report_following_redirect(new_url)
             if force_videoid:
