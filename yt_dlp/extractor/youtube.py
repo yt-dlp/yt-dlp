@@ -6976,6 +6976,7 @@ class YoutubeSearchIE(YoutubeTabBaseInfoExtractor, SearchInfoExtractor):
     }, {
         'note': 'Suicide/self-harm search warning',
         'url': 'ytsearch1:i hate myself and i wanna die',
+        'playlist_count': 1,
         'info_dict': {
             'id': 'i hate myself and i wanna die',
             'title': 'i hate myself and i wanna die',
