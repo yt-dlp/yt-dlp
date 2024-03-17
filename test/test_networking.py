@@ -1950,6 +1950,8 @@ class TestImpersonateTarget:
         ('abc:xyz', ImpersonateTarget('abc', None, 'xyz', None)),
         ('abc:', ImpersonateTarget('abc', None, None, None)),
         ('abc-120:', ImpersonateTarget('abc', '120', None, None)),
+        (':xyz', ImpersonateTarget(None, None, 'xyz', None)),
+        (':xyz-6.5', ImpersonateTarget(None, None, 'xyz', '6.5')),
         (':', ImpersonateTarget(None, None, None, None)),
         ('', ImpersonateTarget(None, None, None, None)),
     ])
@@ -1973,6 +1975,7 @@ class TestImpersonateTarget:
         (ImpersonateTarget('abc', '120', None, None), 'abc-120'),
         (ImpersonateTarget('abc', '120', 'xyz', None), 'abc-120:xyz'),
         (ImpersonateTarget('abc', None, 'xyz'), 'abc:xyz'),
+        (ImpersonateTarget(None, None, 'xyz', '6.5'), ':xyz-6.5'),
         (ImpersonateTarget('abc', ), 'abc'),
         (ImpersonateTarget(None, None, None, None), ''),
     ])

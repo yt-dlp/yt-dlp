@@ -21,14 +21,21 @@ class ImpersonateTarget:
     @param client: the client to impersonate
     @param version: the client version to impersonate
     @param os: the client OS to impersonate
-    @param os_ver: the client OS version to impersonate
+    @param os_version: the client OS version to impersonate
 
     Note: None is used to indicate to match any.
+
     """
     client: str | None = None
     version: str | None = None
     os: str | None = None
-    os_ver: str | None = None
+    os_version: str | None = None
+
+    def __post_init__(self):
+        if self.version and not self.client:
+            raise ValueError('client is required if version is set')
+        if self.os_version and not self.os:
+            raise ValueError('os is required if os_version is set')
 
     def __contains__(self, target: ImpersonateTarget):
         if not isinstance(target, ImpersonateTarget):
@@ -37,23 +44,18 @@ class ImpersonateTarget:
             (self.client is None or target.client is None or self.client == target.client)
             and (self.version is None or target.version is None or self.version == target.version)
             and (self.os is None or target.os is None or self.os == target.os)
-            and (self.os_ver is None or target.os_ver is None or self.os_ver == target.os_ver)
+            and (self.os_version is None or target.os_version is None or self.os_version == target.os_version)
         )
 
     def __str__(self):
-        return join_nonempty(join_nonempty(self.client, self.version),
-                             join_nonempty(self.os, self.os_ver), delim=':')
+        return f'{join_nonempty(self.client, self.version)}:{join_nonempty(self.os, self.os_version)}'.rstrip(':')
 
     @classmethod
     def from_str(cls, target: str):
-        # client, os = (target.split(':', 1) + [''])[:2]
-        # client, version = (client.split('-', 1) + [''])[:2]
-        # os, os_ver = (os.split('-', 1) + [''])[:2]
-        # return cls(client or None, version or None, os or None, os_ver or None)
-        mobj = re.fullmatch(r'(?:(\w+)(?:-(\w+))?(?::(\w+)(?:-(\w+))?)?)?', target)
+        mobj = re.fullmatch(r'(?:(?P<client>[^:-]+)(?:-(?P<version>[^:-]+))?)?(?::(?:(?P<os>[^:-]+)(?:-(?P<os_version>[^:-]+))?)?)?', target)
         if not mobj:
             raise ValueError(f'Invalid impersonate target "{target}"')
-        return cls(*mobj.groups())
+        return cls(**mobj.groupdict())
 
 
 class ImpersonateRequestHandler(RequestHandler, ABC):
