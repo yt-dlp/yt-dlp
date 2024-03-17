@@ -994,7 +994,6 @@ def _real_main(argv=None):
                 (ImpersonateTarget('chrome'), 'curl_cffi', '==0.5.10'),
                 (ImpersonateTarget('edge'), 'curl_cffi', '==0.5.10'),
                 (ImpersonateTarget('safari'), 'curl_cffi', '==0.5.10'),
-                (ImpersonateTarget('chrome', os='android'), 'curl_cffi', '==0.5.10'),
             ]
 
             available_targets = ydl._get_available_impersonate_targets()

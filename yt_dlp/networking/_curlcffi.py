@@ -30,7 +30,6 @@ if curl_cffi is None:
 curl_cffi_version = tuple(int_or_none(x, default=0) for x in curl_cffi.__version__.split('.'))
 
 if curl_cffi_version != (0, 5, 10):
-    curl_cffi._yt_dlp__version = f'{curl_cffi.__version__} (unsupported)'
     raise ImportError('Only curl_cffi 0.5.10 is supported')
 
 import curl_cffi.requests
