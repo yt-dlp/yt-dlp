@@ -42,6 +42,7 @@ from .networking.exceptions import (
     SSLError,
     network_exceptions,
 )
+from .networking.impersonate import ImpersonateRequestHandler
 from .plugins import directories as plugin_directories
 from .postprocessor import _PLUGIN_CLASSES as plugin_pps
 from .postprocessor import (
@@ -99,6 +100,7 @@ from .utils import (
     SameFileError,
     UnavailableVideoError,
     UserNotLive,
+    YoutubeDLError,
     age_restricted,
     args_to_str,
     bug_reports_message,
@@ -402,6 +404,8 @@ class YoutubeDL:
                        - "detect_or_warn": check whether we can do anything
                                            about it, warn otherwise (default)
     source_address:    Client-side IP address to bind to.
+    impersonate:       Client to impersonate for requests.
+                       An ImpersonateTarget (from yt_dlp.networking.impersonate)
     sleep_interval_requests: Number of seconds to sleep between requests
                        during extraction
     sleep_interval:    Number of seconds to sleep before each download when
@@ -712,6 +716,13 @@ class YoutubeDL:
             self.report_warning(msg)
         for msg in self.params.get('_deprecation_warnings', []):
             self.deprecated_feature(msg)
+
+        if impersonate_target := self.params.get('impersonate'):
+            if not self._impersonate_target_available(impersonate_target):
+                raise YoutubeDLError(
+                    f'Impersonate target "{impersonate_target}" is not available. '
+                    f'Use --list-impersonate-targets to see available targets. '
+                    f'You may be missing dependencies required to support this target.')
 
         if 'list-formats' in self.params['compat_opts']:
             self.params['listformats_table'] = False
@@ -4077,6 +4088,22 @@ class YoutubeDL:
         handler = self._request_director.handlers['Urllib']
         return handler._get_instance(cookiejar=self.cookiejar, proxies=self.proxies)
 
+    def _get_available_impersonate_targets(self):
+        # todo(future): make available as public API
+        return [
+            (target, rh.RH_NAME)
+            for rh in self._request_director.handlers.values()
+            if isinstance(rh, ImpersonateRequestHandler)
+            for target in rh.supported_targets
+        ]
+
+    def _impersonate_target_available(self, target):
+        # todo(future): make available as public API
+        return any(
+            rh.is_supported_target(target)
+            for rh in self._request_director.handlers.values()
+            if isinstance(rh, ImpersonateRequestHandler))
+
     def urlopen(self, req):
         """ Start an HTTP download """
         if isinstance(req, str):
@@ -4108,9 +4135,13 @@ class YoutubeDL:
                     raise RequestError(
                         'file:// URLs are disabled by default in yt-dlp for security reasons. '
                         'Use --enable-file-urls to enable at your own risk.', cause=ue) from ue
-                if 'unsupported proxy type: "https"' in ue.msg.lower():
+                if (
+                    'unsupported proxy type: "https"' in ue.msg.lower()
+                    and 'requests' not in self._request_director.handlers
+                    and 'curl_cffi' not in self._request_director.handlers
+                ):
                     raise RequestError(
-                        'To use an HTTPS proxy for this request, one of the following dependencies needs to be installed: requests')
+                        'To use an HTTPS proxy for this request, one of the following dependencies needs to be installed: requests, curl_cffi')
 
                 elif (
                     re.match(r'unsupported url scheme: "wss?"', ue.msg.lower())
@@ -4120,6 +4151,13 @@ class YoutubeDL:
                         'This request requires WebSocket support. '
                         'Ensure one of the following dependencies are installed: websockets',
                         cause=ue) from ue
+
+                elif re.match(r'unsupported (?:extensions: impersonate|impersonate target)', ue.msg.lower()):
+                    raise RequestError(
+                        f'Impersonate target "{req.extensions["impersonate"]}" is not available.'
+                        f' See --list-impersonate-targets for available targets.'
+                        f' This request requires browser impersonation, however you may be missing dependencies'
+                        f' required to support this target.')
             raise
         except SSLError as e:
             if 'UNSAFE_LEGACY_RENEGOTIATION_DISABLED' in str(e):
@@ -4152,6 +4190,7 @@ class YoutubeDL:
                     'timeout': 'socket_timeout',
                     'legacy_ssl_support': 'legacyserverconnect',
                     'enable_file_urls': 'enable_file_urls',
+                    'impersonate': 'impersonate',
                     'client_cert': {
                         'client_certificate': 'client_certificate',
                         'client_certificate_key': 'client_certificate_key',

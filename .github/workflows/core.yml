@@ -53,7 +53,7 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install test requirements
-      run: python3 ./devscripts/install_deps.py --include dev
+      run: python3 ./devscripts/install_deps.py --include dev --include curl_cffi
     - name: Run tests
       continue-on-error: False
       run: |
