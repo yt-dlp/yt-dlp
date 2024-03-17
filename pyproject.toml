@@ -53,6 +53,7 @@ dependencies = [
 
 [project.optional-dependencies]
 default = []
+curl_cffi = ["curl-cffi==0.5.10; implementation_name=='cpython'"]
 secretstorage = [
     "cffi",
     "secretstorage",
@@ -69,6 +70,7 @@ dev = [
     "pytest",
 ]
 pyinstaller = ["pyinstaller>=6.3"]
+pyinstaller_macos = ["pyinstaller==5.13.2"]  # needed for curl_cffi builds
 py2exe = ["py2exe>=0.12"]
 
 [project.urls]
