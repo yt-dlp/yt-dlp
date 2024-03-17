@@ -405,7 +405,7 @@ class YoutubeDL:
                                            about it, warn otherwise (default)
     source_address:    Client-side IP address to bind to.
     impersonate:       Client to impersonate for requests.
-                        An ImpersonateTarget (from yt_dlp.networking.impersonate)
+                       An ImpersonateTarget (from yt_dlp.networking.impersonate)
     sleep_interval_requests: Number of seconds to sleep between requests
                        during extraction
     sleep_interval:    Number of seconds to sleep before each download when
