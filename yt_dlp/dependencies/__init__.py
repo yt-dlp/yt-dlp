@@ -76,8 +76,6 @@ else:
 
 try:
     import curl_cffi
-    if curl_cffi.__version__ != '0.5.10':
-        curl_cffi._yt_dlp__version = f'{curl_cffi.__version__} (unsupported)'
 except ImportError:
     curl_cffi = None
 
