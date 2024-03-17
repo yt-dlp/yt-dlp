@@ -247,9 +247,25 @@ jobs:
         run: |
           brew install coreutils
           python3 devscripts/install_deps.py --user -o --include build
-          python3 devscripts/install_deps.py --print --include pyinstaller > requirements.txt
+          python3 devscripts/install_deps.py --print --include pyinstaller_macos > requirements.txt
           # We need to ignore wheels otherwise we break universal2 builds
           python3 -m pip install -U --user --no-binary :all: -r requirements.txt
+          # We need to fuse our own universal2 wheels for curl_cffi
+          python3 -m pip install -U --user delocate
+          mkdir curl_cffi_whls curl_cffi_universal2
+          python3 devscripts/install_deps.py --print -o --include curl_cffi > requirements.txt
+          for platform in "macosx_11_0_arm64" "macosx_11_0_x86_64"; do
+            python3 -m pip download \
+              --only-binary=:all: \
+              --platform "${platform}" \
+              --pre -d curl_cffi_whls \
+              -r requirements.txt
+          done
+          python3 -m delocate.cmd.delocate_fuse curl_cffi_whls/curl_cffi*.whl -w curl_cffi_universal2
+          python3 -m delocate.cmd.delocate_fuse curl_cffi_whls/cffi*.whl -w curl_cffi_universal2
+          cd curl_cffi_universal2
+          for wheel in *cffi*.whl; do mv -n -- "${wheel}" "${wheel/x86_64/universal2}"; done
+          python3 -m pip install -U --user *cffi*.whl
 
       - name: Prepare
         run: |
@@ -303,7 +319,7 @@ jobs:
         run: |
           brew install coreutils
           python3 devscripts/install_deps.py --user -o --include build
-          python3 devscripts/install_deps.py --user --include pyinstaller
+          python3 devscripts/install_deps.py --user --include pyinstaller_macos --include curl_cffi
 
       - name: Prepare
         run: |
@@ -345,7 +361,7 @@ jobs:
       - name: Install Requirements
         run: | # Custom pyinstaller built with https://github.com/yt-dlp/pyinstaller-builds
           python devscripts/install_deps.py -o --include build
-          python devscripts/install_deps.py --include py2exe
+          python devscripts/install_deps.py --include py2exe --include curl_cffi
           python -m pip install -U "https://yt-dlp.github.io/Pyinstaller-Builds/x86_64/pyinstaller-5.8.0-py3-none-any.whl"
 
       - name: Prepare
