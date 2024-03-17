@@ -199,6 +199,7 @@ While all the other dependencies are optional, `ffmpeg` and `ffprobe` are highly
 #### Impersonation
 
 The following provide support for impersonating browser requests. This may be required for some sites that employ TLS fingerprinting. 
+
 * [**curl_cffi**](https://github.com/yifeikong/curl_cffi) (recommended) - Python binding for [curl-impersonate](https://github.com/lwthiker/curl-impersonate). Provides impersonation targets for Chrome, Edge and Safari. Licensed under [MIT](https://github.com/yifeikong/curl_cffi/blob/main/LICENSE)
   * Can be installed with the `curl_cffi` group, e.g. `pip install yt-dlp[default,curl_cffi]`
   * Only included in `yt-dlp.exe`, `yt-dlp_macos` and `yt-dlp_macos_legacy` builds
