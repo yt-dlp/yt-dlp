@@ -771,7 +771,6 @@ class InstagramLiveIE(InstagramBaseIE):
             ('require', ..., ..., ..., '__bbox', 'define', ..., ..., 'appId', {int}),
             ('require', ..., ..., ..., '__bbox', 'define', ..., ..., 'APP_ID', {str}),
             ('require', ..., ..., ..., '__bbox', 'define', ..., ..., 'app_id', {str}),
-            ('require', ..., ..., ..., '__bbox', 'define', ..., ..., 'appId', {int}),
             get_all=False)
         if not app_id:
             raise ExtractorError('Missing "app_id" in metadata')
