@@ -1585,7 +1585,7 @@ class TestYoutubeDLNetworking:
                         pass
 
                     _SUPPORTED_URL_SCHEMES = ('http',)
-                    _SUPPORTED_IMPERSONATE_TARGET_MAP = {ImpersonateTarget('firefox',): 'test'}
+                    _SUPPORTED_IMPERSONATE_TARGET_MAP = {ImpersonateTarget('abc',): 'test'}
                     _SUPPORTED_PROXY_SCHEMES = None
 
                 super().__init__(*args, **kwargs)
@@ -1612,21 +1612,21 @@ class TestYoutubeDLNetworking:
                 pass
 
             _SUPPORTED_URL_SCHEMES = ('http',)
-            _SUPPORTED_IMPERSONATE_TARGET_MAP = {ImpersonateTarget('firefox'): 'test'}
+            _SUPPORTED_IMPERSONATE_TARGET_MAP = {ImpersonateTarget('abc'): 'test'}
 
         # Bypass the check on initialize
         brh = FakeYDL.build_request_director
         monkeypatch.setattr(FakeYDL, 'build_request_director', lambda cls, handlers, preferences=None: brh(cls, handlers=[IRH]))
 
         with FakeYDL({
-            'impersonate': ImpersonateTarget('firefox', None, None, None)
+            'impersonate': ImpersonateTarget('abc', None, None, None)
         }) as ydl:
             rh = self.build_handler(ydl, IRH)
-            assert rh.impersonate == ImpersonateTarget('firefox', None, None, None)
+            assert rh.impersonate == ImpersonateTarget('abc', None, None, None)
 
     def test_get_impersonate_targets(self):
         handlers = []
-        for target_client in ('firefox', 'chrome', 'edge'):
+        for target_client in ('abc', 'xyz', 'asd'):
             class TestRH(ImpersonateRequestHandler):
                 def _send(self, request: Request):
                     pass
@@ -1639,13 +1639,13 @@ class TestYoutubeDLNetworking:
         with FakeYDL() as ydl:
             ydl._request_director = ydl.build_request_director(handlers)
             assert set(ydl._get_available_impersonate_targets()) == {
-                (ImpersonateTarget('chrome'), 'chrome'),
-                (ImpersonateTarget('firefox'), 'firefox'),
-                (ImpersonateTarget('edge'), 'edge')
+                (ImpersonateTarget('xyz'), 'xyz'),
+                (ImpersonateTarget('abc'), 'abc'),
+                (ImpersonateTarget('asd'), 'asd')
             }
-            assert ydl._impersonate_target_available(ImpersonateTarget('firefox'))
+            assert ydl._impersonate_target_available(ImpersonateTarget('abc'))
             assert ydl._impersonate_target_available(ImpersonateTarget())
-            assert not ydl._impersonate_target_available(ImpersonateTarget('safari'))
+            assert not ydl._impersonate_target_available(ImpersonateTarget('zxy'))
 
     @pytest.mark.parametrize('proxy_key,proxy_url,expected', [
         ('http', '__noproxy__', None),
@@ -1943,37 +1943,62 @@ class TestResponse:
 
 class TestImpersonateTarget:
     @pytest.mark.parametrize('target_str,expected', [
-        ('firefox', ImpersonateTarget('firefox', None, None, None)),
-        ('firefox-120', ImpersonateTarget('firefox', '120', None, None)),
-        ('firefox-120:linux', ImpersonateTarget('firefox', '120', 'linux', None)),
-        ('firefox-120:linux-5', ImpersonateTarget('firefox', '120', 'linux', '5')),
-        ('firefox:linux', ImpersonateTarget('firefox', None, 'linux', None)),
+        ('abc', ImpersonateTarget('abc', None, None, None)),
+        ('abc-120_esr', ImpersonateTarget('abc', '120_esr', None, None)),
+        ('abc-120:xyz', ImpersonateTarget('abc', '120', 'xyz', None)),
+        ('abc-120:xyz-5.6', ImpersonateTarget('abc', '120', 'xyz', '5.6')),
+        ('abc:xyz', ImpersonateTarget('abc', None, 'xyz', None)),
+        ('abc:', ImpersonateTarget('abc', None, None, None)),
+        ('abc-120:', ImpersonateTarget('abc', '120', None, None)),
+        (':', ImpersonateTarget(None, None, None, None)),
         ('', ImpersonateTarget(None, None, None, None)),
     ])
     def test_target_from_str(self, target_str, expected):
         assert ImpersonateTarget.from_str(target_str) == expected
 
+    @pytest.mark.parametrize('target_str', [
+        '-120', ':-12.0', '-12:-12', '-:-',
+        '::', 'a-c-d:', 'a-c-d:e-f-g', 'a:b:'
+    ])
+    def test_target_from_invalid_str(self, target_str):
+        with pytest.raises(ValueError):
+            ImpersonateTarget.from_str(target_str)
+
     @pytest.mark.parametrize('target,expected', [
-        (ImpersonateTarget('firefox', None, None, None), 'firefox'),
-        (ImpersonateTarget('firefox', '120', None, None), 'firefox-120'),
-        (ImpersonateTarget('firefox', '120', 'linux', None), 'firefox-120:linux'),
-        (ImpersonateTarget('firefox', '120', 'linux', '5'), 'firefox-120:linux-5'),
-        (ImpersonateTarget('firefox', None, 'linux', None), 'firefox:linux'),
-        (ImpersonateTarget('firefox', ), 'firefox'),
-        (ImpersonateTarget('firefox', None, 'linux'), 'firefox:linux'),
+        (ImpersonateTarget('abc', None, None, None), 'abc'),
+        (ImpersonateTarget('abc', '120', None, None), 'abc-120'),
+        (ImpersonateTarget('abc', '120', 'xyz', None), 'abc-120:xyz'),
+        (ImpersonateTarget('abc', '120', 'xyz', '5'), 'abc-120:xyz-5'),
+        (ImpersonateTarget('abc', None, 'xyz', None), 'abc:xyz'),
+        (ImpersonateTarget('abc', '120', None, None), 'abc-120'),
+        (ImpersonateTarget('abc', '120', 'xyz', None), 'abc-120:xyz'),
+        (ImpersonateTarget('abc', None, 'xyz'), 'abc:xyz'),
+        (ImpersonateTarget('abc', ), 'abc'),
         (ImpersonateTarget(None, None, None, None), ''),
     ])
     def test_str(self, target, expected):
         assert str(target) == expected
 
+    @pytest.mark.parametrize('args', [
+        ('abc', None, None, '5'),
+        ('abc', '120', None, '5'),
+        (None, '120', None, None),
+        (None, '120', None, '5'),
+        (None, None, None, '5'),
+        (None, '120', 'xyz', '5'),
+    ])
+    def test_invalid_impersonate_target(self, args):
+        with pytest.raises(ValueError):
+            ImpersonateTarget(*args)
+
     @pytest.mark.parametrize('target1,target2,is_in,is_eq', [
-        (ImpersonateTarget('firefox', None, None, None), ImpersonateTarget('firefox', None, None, None), True, True),
-        (ImpersonateTarget('firefox', None, None, None), ImpersonateTarget('firefox', '120', None, None), True, False),
-        (ImpersonateTarget('firefox', None, 'linux', 'test'), ImpersonateTarget('firefox', '120', 'linux', None), True, False),
-        (ImpersonateTarget('firefox', '121', 'linux', 'test'), ImpersonateTarget('firefox', '120', 'linux', 'test'), False, False),
-        (ImpersonateTarget('firefox'), ImpersonateTarget('firefox', '120', 'linux', 'test'), True, False),
-        (ImpersonateTarget('firefox', '120', 'linux', 'test'), ImpersonateTarget('firefox'), True, False),
-        (ImpersonateTarget(), ImpersonateTarget('firefox', '120', 'linux'), True, False),
+        (ImpersonateTarget('abc', None, None, None), ImpersonateTarget('abc', None, None, None), True, True),
+        (ImpersonateTarget('abc', None, None, None), ImpersonateTarget('abc', '120', None, None), True, False),
+        (ImpersonateTarget('abc', None, 'xyz', 'test'), ImpersonateTarget('abc', '120', 'xyz', None), True, False),
+        (ImpersonateTarget('abc', '121', 'xyz', 'test'), ImpersonateTarget('abc', '120', 'xyz', 'test'), False, False),
+        (ImpersonateTarget('abc'), ImpersonateTarget('abc', '120', 'xyz', 'test'), True, False),
+        (ImpersonateTarget('abc', '120', 'xyz', 'test'), ImpersonateTarget('abc'), True, False),
+        (ImpersonateTarget(), ImpersonateTarget('abc', '120', 'xyz'), True, False),
         (ImpersonateTarget(), ImpersonateTarget(), True, True),
     ])
     def test_impersonate_target_in(self, target1, target2, is_in, is_eq):
