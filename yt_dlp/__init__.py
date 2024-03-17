@@ -991,9 +991,9 @@ def _real_main(argv=None):
             known_targets = [
                 # List of simplified targets we know are supported,
                 # to help users know what dependencies may be required.
-                (ImpersonateTarget('chrome'), 'curl_cffi', '==0.5.10'),
-                (ImpersonateTarget('edge'), 'curl_cffi', '==0.5.10'),
-                (ImpersonateTarget('safari'), 'curl_cffi', '==0.5.10'),
+                (ImpersonateTarget('chrome'), 'curl_cffi'),
+                (ImpersonateTarget('edge'), 'curl_cffi'),
+                (ImpersonateTarget('safari'), 'curl_cffi'),
             ]
 
             available_targets = ydl._get_available_impersonate_targets()
@@ -1007,14 +1007,14 @@ def _real_main(argv=None):
 
             rows = [make_row(target, handler) for target, handler in available_targets]
 
-            for known_target, known_handler, req_version in known_targets:
+            for known_target, known_handler in known_targets:
                 if not any(
                     known_target in target and handler == known_handler
                     for target, handler in available_targets
                 ):
                     rows.append([
                         ydl._format_out(text, ydl.Styles.SUPPRESS)
-                        for text in make_row(known_target, f'{known_handler}{req_version or ""} (not installed)')
+                        for text in make_row(known_target, f'{known_handler} (not available)')
                     ])
 
             ydl.to_screen('[info] Available impersonate targets')
