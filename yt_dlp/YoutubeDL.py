@@ -1779,6 +1779,11 @@ class YoutubeDL:
                 'extractor': ie.IE_NAME,
                 'extractor_key': ie.ie_key(),
             })
+        for f in traverse_obj(ie_result, 'formats', default=[]):
+            self.add_extra_info(f, {
+                'filesize_approx': traverse_obj(f, 'filesize_approx', 'filesize',
+                                                default=try_call(lambda: int(ie_result['duration'] * f['tbr'] * (1024 / 8))))
+            })
 
     def process_ie_result(self, ie_result, download=True, extra_info=None):
         """
@@ -3874,9 +3879,7 @@ class YoutubeDL:
                 format_field(f, 'audio_channels', '\t%s'),
                 delim, (
                     format_field(f, 'filesize', ' \t%s', func=format_bytes)
-                    or format_field(f, 'filesize_approx', '≈\t%s', func=format_bytes)
-                    or format_field(try_call(lambda: format_bytes(int(info_dict['duration'] * f['tbr'] * (1024 / 8)))),
-                                    None, self._format_out('~\t%s', self.Styles.SUPPRESS))),
+                    or format_field(f, 'filesize_approx', '~\t%s', func=format_bytes)),
                 format_field(f, 'tbr', '\t%dk', func=round),
                 shorten_protocol_name(f.get('protocol', '')),
                 delim,
