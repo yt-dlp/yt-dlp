@@ -3834,7 +3834,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                             video_id=video_id, only_once=True)
                     throttled = True
 
-            tbr = float_or_none(fmt.get('averageBitrate') or fmt.get('bitrate'), 1000)
+            tbr = float_or_none(fmt.get('averageBitrate') or fmt.get('bitrate'), 1024)
             language_preference = (
                 10 if audio_track.get('audioIsDefault') and 10
                 else -10 if 'descriptive' in (audio_track.get('displayName') or '').lower() and -10
