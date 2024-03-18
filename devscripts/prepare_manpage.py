@@ -24,7 +24,7 @@ PREFIX = r'''%yt-dlp(1)
 
 # NAME
 
-yt\-dlp \- Command\-line video and audio downloader for thousands of sites
+yt\-dlp \- A feature\-rich command\-line audio/video downloader
 
 # SYNOPSIS
 
