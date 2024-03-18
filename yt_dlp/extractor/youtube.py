@@ -6965,7 +6965,7 @@ class YoutubeSearchIE(YoutubeTabBaseInfoExtractor, SearchInfoExtractor):
     IE_DESC = 'YouTube search'
     IE_NAME = 'youtube:search'
     _SEARCH_KEY = 'ytsearch'
-    _SEARCH_PARAMS = 'EgIIAfABAQ=='  # Videos only
+    _SEARCH_PARAMS = 'EgIQAfABAQ=='  # Videos only
     _TESTS = [{
         'url': 'ytsearch5:youtube-dl test video',
         'playlist_count': 5,
