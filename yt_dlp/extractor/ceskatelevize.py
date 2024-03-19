@@ -51,7 +51,7 @@ class CeskaTelevizeIE(InfoExtractor):
         'url': 'http://www.ceskatelevize.cz/ivysilani/zive/ct4/',
         'only_matching': True,
         'info_dict': {
-            'id': 402,
+            'id': '402',
             'ext': 'mp4',
             'title': r're:^ČT Sport \d{4}-\d{2}-\d{2} \d{2}:\d{2}$',
             'is_live': True,

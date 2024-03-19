@@ -7,6 +7,7 @@ from ..utils import remove_start, smuggle_url, urlencode_postdata
 
 
 class GDCVaultIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?gdcvault\.com/play/(?P<id>\d+)(?:/(?P<name>[\w-]+))?'
     _NETRC_MACHINE = 'gdcvault'
     _TESTS = [

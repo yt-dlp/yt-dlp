@@ -11,6 +11,7 @@ from ..utils import (
     ExtractorError,
     InAdvancePagedList,
     int_or_none,
+    remove_start,
     traverse_obj,
     update_url_query,
     url_or_none,
@@ -39,11 +40,11 @@ class VideoKenBaseIE(InfoExtractor):
         if not video_url and not video_id:
             return
         elif not video_url or 'embed/sign-in' in video_url:
-            video_url = f'https://slideslive.com/embed/{video_id.lstrip("slideslive-")}'
+            video_url = f'https://slideslive.com/embed/{remove_start(video_id, "slideslive-")}'
         if url_or_none(referer):
             return update_url_query(video_url, {
                 'embed_parent_url': referer,
-                'embed_container_origin': f'https://{urllib.parse.urlparse(referer).netloc}',
+                'embed_container_origin': f'https://{urllib.parse.urlparse(referer).hostname}',
             })
         return video_url
 
@@ -57,12 +58,12 @@ class VideoKenBaseIE(InfoExtractor):
                 video_url = video_id
                 ie_key = 'Youtube'
             else:
-                video_url = traverse_obj(video, 'embed_url', 'embeddableurl')
-                if urllib.parse.urlparse(video_url).netloc == 'slideslive.com':
+                video_url = traverse_obj(video, 'embed_url', 'embeddableurl', expected_type=url_or_none)
+                if not video_url:
+                    continue
+                elif urllib.parse.urlparse(video_url).hostname == 'slideslive.com':
                     ie_key = SlidesLiveIE
                     video_url = self._create_slideslive_url(video_url, video_id, url)
-            if not video_url:
-                continue
             yield self.url_result(video_url, ie_key, video_id)
 
 
@@ -178,7 +179,7 @@ class VideoKenIE(VideoKenBaseIE):
             return self.url_result(
                 self._create_slideslive_url(None, video_id, url), SlidesLiveIE, video_id)
         elif re.match(r'^[\w-]{11}$', video_id):
-            self.url_result(video_id, 'Youtube', video_id)
+            return self.url_result(video_id, 'Youtube', video_id)
         else:
             raise ExtractorError('Unable to extract without VideoKen API response')
 
