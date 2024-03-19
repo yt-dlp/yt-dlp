@@ -80,12 +80,12 @@ on:
         default: true
         type: boolean
       origin:
-        description: .
+        description: Origin
         required: false
-        default: ''
+        default: 'current repo'
         type: choice
         options:
-        - ''
+        - 'current repo'
 
 permissions:
   contents: read
@@ -99,7 +99,7 @@ jobs:
       - name: Process origin
         id: process_origin
         run: |
-          echo "origin=${{ inputs.origin || github.repository }}" >> "$GITHUB_OUTPUT"
+          echo "origin=${{ inputs.origin == 'current repo' && github.repository || inputs.origin }}" | tee "$GITHUB_OUTPUT"
 
   unix:
     needs: process
@@ -107,10 +107,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
+        with:
+          fetch-depth: 0  # Needed for changelog
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.10"
-      - uses: conda-incubator/setup-miniconda@v2
+      - uses: conda-incubator/setup-miniconda@v3
         with:
           miniforge-variant: Mambaforge
           use-mamba: true
@@ -121,20 +123,19 @@ jobs:
       - name: Install Requirements
         run: |
           sudo apt -y install zip pandoc man sed
-          reqs=$(mktemp)
-          cat > "$reqs" << EOF
+          cat > ./requirements.txt << EOF
           python=3.10.*
-          pyinstaller
-          cffi
           brotli-python
-          secretstorage
           EOF
-          sed -E '/^(brotli|secretstorage).*/d' requirements.txt >> "$reqs"
-          mamba create -n build --file "$reqs"
+          python devscripts/install_deps.py --print \
+            --exclude brotli --exclude brotlicffi \
+            --include secretstorage --include pyinstaller >> ./requirements.txt
+          mamba create -n build --file ./requirements.txt
 
       - name: Prepare
         run: |
           python devscripts/update-version.py -c "${{ inputs.channel }}" -r "${{ needs.process.outputs.origin }}" "${{ inputs.version }}"
+          python devscripts/update_changelog.py -vv
           python devscripts/make_lazy_extractors.py
       - name: Build Unix platform-independent binary
         run: |
@@ -144,9 +145,9 @@ jobs:
         run: |
           unset LD_LIBRARY_PATH  # Harmful; set by setup-python
           conda activate build
-          python pyinst.py --onedir
+          python -m bundle.pyinstaller --onedir
           (cd ./dist/yt-dlp_linux && zip -r ../yt-dlp_linux.zip .)
-          python pyinst.py
+          python -m bundle.pyinstaller
           mv ./dist/yt-dlp_linux ./yt-dlp_linux
           mv ./dist/yt-dlp_linux.zip ./yt-dlp_linux.zip
 
@@ -164,13 +165,15 @@ jobs:
           done
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
+          name: build-bin-${{ github.job }}
           path: |
             yt-dlp
             yt-dlp.tar.gz
             yt-dlp_linux
             yt-dlp_linux.zip
+          compression-level: 0
 
   linux_arm:
     needs: process
@@ -201,17 +204,18 @@ jobs:
           dockerRunArgs: --volume "${PWD}/repo:/repo"
           install: | # Installing Python 3.10 from the Deadsnakes repo raises errors
             apt update
-            apt -y install zlib1g-dev python3.8 python3.8-dev python3.8-distutils python3-pip
+            apt -y install zlib1g-dev libffi-dev python3.8 python3.8-dev python3.8-distutils python3-pip
             python3.8 -m pip install -U pip setuptools wheel
-            # Cannot access requirements.txt from the repo directory at this stage
-            python3.8 -m pip install -U Pyinstaller mutagen pycryptodomex websockets brotli certifi secretstorage
+            # Cannot access any files from the repo directory at this stage
+            python3.8 -m pip install -U Pyinstaller mutagen pycryptodomex websockets brotli certifi secretstorage cffi
 
           run: |
             cd repo
-            python3.8 -m pip install -U Pyinstaller secretstorage -r requirements.txt  # Cached version may be out of date
+            python3.8 devscripts/install_deps.py -o --include build
+            python3.8 devscripts/install_deps.py --include pyinstaller --include secretstorage  # Cached version may be out of date
             python3.8 devscripts/update-version.py -c "${{ inputs.channel }}" -r "${{ needs.process.outputs.origin }}" "${{ inputs.version }}"
             python3.8 devscripts/make_lazy_extractors.py
-            python3.8 pyinst.py
+            python3.8 -m bundle.pyinstaller
 
             if ${{ vars.UPDATE_TO_VERIFICATION && 'true' || 'false' }}; then
               arch="${{ (matrix.architecture == 'armv7' && 'armv7l') || matrix.architecture }}"
@@ -224,10 +228,12 @@ jobs:
             fi
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
+          name: build-bin-linux_${{ matrix.architecture }}
           path: | # run-on-arch-action designates armv7l as armv7
             repo/dist/yt-dlp_linux_${{ (matrix.architecture == 'armv7' && 'armv7l') || matrix.architecture }}
+          compression-level: 0
 
   macos:
     needs: process
@@ -240,9 +246,26 @@ jobs:
       - name: Install Requirements
         run: |
           brew install coreutils
-          python3 -m pip install -U --user pip setuptools wheel
+          python3 devscripts/install_deps.py --user -o --include build
+          python3 devscripts/install_deps.py --print --include pyinstaller_macos > requirements.txt
           # We need to ignore wheels otherwise we break universal2 builds
-          python3 -m pip install -U --user --no-binary :all: Pyinstaller -r requirements.txt
+          python3 -m pip install -U --user --no-binary :all: -r requirements.txt
+          # We need to fuse our own universal2 wheels for curl_cffi
+          python3 -m pip install -U --user delocate
+          mkdir curl_cffi_whls curl_cffi_universal2
+          python3 devscripts/install_deps.py --print -o --include curl_cffi > requirements.txt
+          for platform in "macosx_11_0_arm64" "macosx_11_0_x86_64"; do
+            python3 -m pip download \
+              --only-binary=:all: \
+              --platform "${platform}" \
+              --pre -d curl_cffi_whls \
+              -r requirements.txt
+          done
+          python3 -m delocate.cmd.delocate_fuse curl_cffi_whls/curl_cffi*.whl -w curl_cffi_universal2
+          python3 -m delocate.cmd.delocate_fuse curl_cffi_whls/cffi*.whl -w curl_cffi_universal2
+          cd curl_cffi_universal2
+          for wheel in *cffi*.whl; do mv -n -- "${wheel}" "${wheel/x86_64/universal2}"; done
+          python3 -m pip install -U --user *cffi*.whl
 
       - name: Prepare
         run: |
@@ -250,9 +273,9 @@ jobs:
           python3 devscripts/make_lazy_extractors.py
       - name: Build
         run: |
-          python3 pyinst.py --target-architecture universal2 --onedir
+          python3 -m bundle.pyinstaller --target-architecture universal2 --onedir
           (cd ./dist/yt-dlp_macos && zip -r ../yt-dlp_macos.zip .)
-          python3 pyinst.py --target-architecture universal2
+          python3 -m bundle.pyinstaller --target-architecture universal2
 
       - name: Verify --update-to
         if: vars.UPDATE_TO_VERIFICATION
@@ -265,11 +288,13 @@ jobs:
           [[ "$version" != "$downgraded_version" ]]
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
+          name: build-bin-${{ github.job }}
           path: |
             dist/yt-dlp_macos
             dist/yt-dlp_macos.zip
+          compression-level: 0
 
   macos_legacy:
     needs: process
@@ -293,8 +318,8 @@ jobs:
       - name: Install Requirements
         run: |
           brew install coreutils
-          python3 -m pip install -U --user pip setuptools wheel
-          python3 -m pip install -U --user Pyinstaller -r requirements.txt
+          python3 devscripts/install_deps.py --user -o --include build
+          python3 devscripts/install_deps.py --user --include pyinstaller_macos --include curl_cffi
 
       - name: Prepare
         run: |
@@ -302,7 +327,7 @@ jobs:
           python3 devscripts/make_lazy_extractors.py
       - name: Build
         run: |
-          python3 pyinst.py
+          python3 -m bundle.pyinstaller
           mv dist/yt-dlp_macos dist/yt-dlp_macos_legacy
 
       - name: Verify --update-to
@@ -316,10 +341,12 @@ jobs:
           [[ "$version" != "$downgraded_version" ]]
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
+          name: build-bin-${{ github.job }}
           path: |
             dist/yt-dlp_macos_legacy
+          compression-level: 0
 
   windows:
     needs: process
@@ -328,13 +355,14 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with: # 3.8 is used for Win7 support
           python-version: "3.8"
       - name: Install Requirements
         run: | # Custom pyinstaller built with https://github.com/yt-dlp/pyinstaller-builds
-          python -m pip install -U pip setuptools wheel py2exe
-          pip install -U "https://yt-dlp.github.io/Pyinstaller-Builds/x86_64/pyinstaller-5.8.0-py3-none-any.whl" -r requirements.txt
+          python devscripts/install_deps.py -o --include build
+          python devscripts/install_deps.py --include py2exe --include curl_cffi
+          python -m pip install -U "https://yt-dlp.github.io/Pyinstaller-Builds/x86_64/pyinstaller-5.8.0-py3-none-any.whl"
 
       - name: Prepare
         run: |
@@ -342,10 +370,10 @@ jobs:
           python devscripts/make_lazy_extractors.py
       - name: Build
         run: |
-          python setup.py py2exe
+          python -m bundle.py2exe
           Move-Item ./dist/yt-dlp.exe ./dist/yt-dlp_min.exe
-          python pyinst.py
-          python pyinst.py --onedir
+          python -m bundle.pyinstaller
+          python -m bundle.pyinstaller --onedir
           Compress-Archive -Path ./dist/yt-dlp/* -DestinationPath ./dist/yt-dlp_win.zip
 
       - name: Verify --update-to
@@ -362,12 +390,14 @@ jobs:
           }
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
+          name: build-bin-${{ github.job }}
           path: |
             dist/yt-dlp.exe
             dist/yt-dlp_min.exe
             dist/yt-dlp_win.zip
+          compression-level: 0
 
   windows32:
     needs: process
@@ -376,14 +406,15 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.8"
           architecture: "x86"
       - name: Install Requirements
         run: |
-          python -m pip install -U pip setuptools wheel
-          pip install -U "https://yt-dlp.github.io/Pyinstaller-Builds/i686/pyinstaller-5.8.0-py3-none-any.whl" -r requirements.txt
+          python devscripts/install_deps.py -o --include build
+          python devscripts/install_deps.py
+          python -m pip install -U "https://yt-dlp.github.io/Pyinstaller-Builds/i686/pyinstaller-5.8.0-py3-none-any.whl"
 
       - name: Prepare
         run: |
@@ -391,7 +422,7 @@ jobs:
           python devscripts/make_lazy_extractors.py
       - name: Build
         run: |
-          python pyinst.py
+          python -m bundle.pyinstaller
 
       - name: Verify --update-to
         if: vars.UPDATE_TO_VERIFICATION
@@ -407,10 +438,12 @@ jobs:
           }
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
+          name: build-bin-${{ github.job }}
           path: |
             dist/yt-dlp_x86.exe
+          compression-level: 0
 
   meta_files:
     if: inputs.meta_files && always() && !cancelled()
@@ -424,7 +457,11 @@ jobs:
       - windows32
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifact
+          pattern: build-bin-*
+          merge-multiple: true
 
       - name: Make SHA2-SUMS files
         run: |
@@ -459,8 +496,11 @@ jobs:
           done
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
+          name: build-${{ github.job }}
           path: |
-            SHA*SUMS*
             _update_spec
+            SHA*SUMS*
+          compression-level: 0
+          overwrite: true

@@ -28,12 +28,24 @@ class MagellanTVIE(InfoExtractor):
             'tags': ['Investigation', 'True Crime', 'Justice', 'Europe'],
         },
         'params': {'skip_download': 'm3u8'},
+    }, {
+        'url': 'https://www.magellantv.com/watch/celebration-nation',
+        'info_dict': {
+            'id': 'celebration-nation',
+            'ext': 'mp4',
+            'tags': ['Art & Culture', 'Human Interest', 'Anthropology', 'China', 'History'],
+            'duration': 2640.0,
+            'title': 'Ancestors',
+        },
+        'params': {'skip_download': 'm3u8'},
     }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
-        data = self._search_nextjs_data(webpage, video_id)['props']['pageProps']['reactContext']['video']['detail']
+        data = traverse_obj(self._search_nextjs_data(webpage, video_id), (
+            'props', 'pageProps', 'reactContext',
+            (('video', 'detail'), ('series', 'currentEpisode')), {dict}), get_all=False)
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(data['jwpVideoUrl'], video_id)
 
         return {

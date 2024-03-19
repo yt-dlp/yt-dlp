@@ -317,16 +317,25 @@ class BBCCoUkIE(InfoExtractor):
 
     def _download_media_selector(self, programme_id):
         last_exception = None
+        formats, subtitles = [], {}
         for media_set in self._MEDIA_SETS:
             try:
-                return self._download_media_selector_url(
+                fmts, subs = self._download_media_selector_url(
                     self._MEDIA_SELECTOR_URL_TEMPL % (media_set, programme_id), programme_id)
+                formats.extend(fmts)
+                if subs:
+                    self._merge_subtitles(subs, target=subtitles)
             except BBCCoUkIE.MediaSelectionError as e:
                 if e.id in ('notukerror', 'geolocation', 'selectionunavailable'):
                     last_exception = e
                     continue
                 self._raise_extractor_error(e)
-        self._raise_extractor_error(last_exception)
+        if last_exception:
+            if formats or subtitles:
+                self.report_warning(f'{self.IE_NAME} returned error: {last_exception.id}')
+            else:
+                self._raise_extractor_error(last_exception)
+        return formats, subtitles
 
     def _download_media_selector_url(self, url, programme_id=None):
         media_selection = self._download_json(
@@ -1188,7 +1197,7 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
         if initial_data is None:
             initial_data = self._search_regex(
                 r'window\.__INITIAL_DATA__\s*=\s*({.+?})\s*;', webpage,
-                'preload state', default={})
+                'preload state', default='{}')
         else:
             initial_data = self._parse_json(initial_data or '"{}"', playlist_id, fatal=False)
         initial_data = self._parse_json(initial_data, playlist_id, fatal=False)

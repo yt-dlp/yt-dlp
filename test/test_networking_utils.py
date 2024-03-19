@@ -8,13 +8,9 @@ import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import contextlib
 import io
-import platform
 import random
 import ssl
-import urllib.error
-import warnings
 
 from yt_dlp.cookies import YoutubeDLCookieJar
 from yt_dlp.dependencies import certifi
@@ -30,7 +26,6 @@ from yt_dlp.networking._helper import (
 from yt_dlp.networking.exceptions import (
     HTTPError,
     IncompleteRead,
-    _CompatHTTPError,
 )
 from yt_dlp.socks import ProxyType
 from yt_dlp.utils.networking import HTTPHeaderDict
@@ -179,11 +174,10 @@ class TestNetworkingExceptions:
     def create_response(status):
         return Response(fp=io.BytesIO(b'test'), url='http://example.com', headers={'tesT': 'test'}, status=status)
 
-    @pytest.mark.parametrize('http_error_class', [HTTPError, lambda r: _CompatHTTPError(HTTPError(r))])
-    def test_http_error(self, http_error_class):
+    def test_http_error(self):
 
         response = self.create_response(403)
-        error = http_error_class(response)
+        error = HTTPError(response)
 
         assert error.status == 403
         assert str(error) == error.msg == 'HTTP Error 403: Forbidden'
@@ -194,79 +188,11 @@ class TestNetworkingExceptions:
         assert data == b'test'
         assert repr(error) == '<HTTPError 403: Forbidden>'
 
-    @pytest.mark.parametrize('http_error_class', [HTTPError, lambda *args, **kwargs: _CompatHTTPError(HTTPError(*args, **kwargs))])
-    def test_redirect_http_error(self, http_error_class):
+    def test_redirect_http_error(self):
         response = self.create_response(301)
-        error = http_error_class(response, redirect_loop=True)
+        error = HTTPError(response, redirect_loop=True)
         assert str(error) == error.msg == 'HTTP Error 301: Moved Permanently (redirect loop detected)'
         assert error.reason == 'Moved Permanently'
-
-    def test_compat_http_error(self):
-        response = self.create_response(403)
-        error = _CompatHTTPError(HTTPError(response))
-        assert isinstance(error, HTTPError)
-        assert isinstance(error, urllib.error.HTTPError)
-
-        @contextlib.contextmanager
-        def raises_deprecation_warning():
-            with warnings.catch_warnings(record=True) as w:
-                warnings.simplefilter('always')
-                yield
-
-                if len(w) == 0:
-                    pytest.fail('Did not raise DeprecationWarning')
-                if len(w) > 1:
-                    pytest.fail(f'Raised multiple warnings: {w}')
-
-                if not issubclass(w[-1].category, DeprecationWarning):
-                    pytest.fail(f'Expected DeprecationWarning, got {w[-1].category}')
-                w.clear()
-
-        with raises_deprecation_warning():
-            assert error.code == 403
-
-        with raises_deprecation_warning():
-            assert error.getcode() == 403
-
-        with raises_deprecation_warning():
-            assert error.hdrs is error.response.headers
-
-        with raises_deprecation_warning():
-            assert error.info() is error.response.headers
-
-        with raises_deprecation_warning():
-            assert error.headers is error.response.headers
-
-        with raises_deprecation_warning():
-            assert error.filename == error.response.url
-
-        with raises_deprecation_warning():
-            assert error.url == error.response.url
-
-        with raises_deprecation_warning():
-            assert error.geturl() == error.response.url
-
-        # Passthrough file operations
-        with raises_deprecation_warning():
-            assert error.read() == b'test'
-
-        with raises_deprecation_warning():
-            assert not error.closed
-
-        with raises_deprecation_warning():
-            # Technically Response operations are also passed through, which should not be used.
-            assert error.get_header('test') == 'test'
-
-        # Should not raise a warning
-        error.close()
-
-    @pytest.mark.skipif(
-        platform.python_implementation() == 'PyPy', reason='garbage collector works differently in pypy')
-    def test_compat_http_error_autoclose(self):
-        # Compat HTTPError should not autoclose response
-        response = self.create_response(403)
-        _CompatHTTPError(HTTPError(response))
-        assert not response.closed
 
     def test_incomplete_read_error(self):
         error = IncompleteRead(4, 3, cause='test')

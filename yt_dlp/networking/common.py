@@ -68,6 +68,7 @@ class RequestDirector:
     def close(self):
         for handler in self.handlers.values():
             handler.close()
+        self.handlers.clear()
 
     def add_handler(self, handler: RequestHandler):
         """Add a handler. If a handler of the same RH_KEY exists, it will overwrite it"""
@@ -254,6 +255,15 @@ class RequestHandler(abc.ABC):
 
     def _merge_headers(self, request_headers):
         return HTTPHeaderDict(self.headers, request_headers)
+
+    def _calculate_timeout(self, request):
+        return float(request.extensions.get('timeout') or self.timeout)
+
+    def _get_cookiejar(self, request):
+        return request.extensions.get('cookiejar') or self.cookiejar
+
+    def _get_proxies(self, request):
+        return (request.proxies or self.proxies).copy()
 
     def _check_url_scheme(self, request: Request):
         scheme = urllib.parse.urlparse(request.url).scheme.lower()
@@ -445,7 +455,7 @@ class Request:
 
     @headers.setter
     def headers(self, new_headers: Mapping):
-        """Replaces headers of the request. If not a CaseInsensitiveDict, it will be converted to one."""
+        """Replaces headers of the request. If not a HTTPHeaderDict, it will be converted to one."""
         if isinstance(new_headers, HTTPHeaderDict):
             self._headers = new_headers
         elif isinstance(new_headers, Mapping):
@@ -490,7 +500,7 @@ class Response(io.IOBase):
 
     def __init__(
             self,
-            fp: typing.IO,
+            fp: io.IOBase,
             url: str,
             headers: Mapping[str, str],
             status: int = 200,

@@ -83,7 +83,6 @@ class DamtomoRecordIE(DamtomoBaseIE):
         'info_dict': {
             'id': '27376862',
             'title': 'イカSUMMER [良音]',
-            'description': None,
             'uploader': 'ＮＡＮＡ',
             'uploader_id': 'MzAyMDExNTY',
             'upload_date': '20210721',

@@ -9,11 +9,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import re
 
-from devscripts.utils import (
-    get_filename_args,
-    read_file,
-    write_file,
-)
+from devscripts.utils import get_filename_args, read_file, write_file
 
 VERBOSE_TMPL = '''
   - type: checkboxes
