@@ -245,7 +245,6 @@ class ABCIViewIE(InfoExtractor):
             'episode_id': 'NC2203H039S00',
             'season_number': 2022,
             'season': 'Season 2022',
-            'episode_number': None,
             'episode': 'Locking Up Kids',
             'thumbnail': 'https://cdn.iview.abc.net.au/thumbs/i/nc/NC2203H039S00_636d8a0944a22_1920.jpg',
             'timestamp': 1668460497,
@@ -271,8 +270,6 @@ class ABCIViewIE(InfoExtractor):
             'episode_id': 'RF2004Q043S00',
             'season_number': 2021,
             'season': 'Season 2021',
-            'episode_number': None,
-            'episode': None,
             'thumbnail': 'https://cdn.iview.abc.net.au/thumbs/i/rf/RF2004Q043S00_61a950639dbc0_1920.jpg',
             'timestamp': 1638710705,
 

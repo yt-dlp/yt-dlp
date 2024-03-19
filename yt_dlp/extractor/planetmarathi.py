@@ -20,7 +20,6 @@ class PlanetMarathiIE(InfoExtractor):
                 'title': 'ek unad divas',
                 'alt_title': 'चित्रपट',
                 'description': 'md5:41c7ed6b041c2fea9820a3f3125bd881',
-                'season_number': None,
                 'episode_number': 1,
                 'duration': 5539,
                 'upload_date': '20210829',
