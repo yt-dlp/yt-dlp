@@ -7,18 +7,16 @@ from ..utils.traversal import traverse_obj
 
 class SharePointIE(InfoExtractor):
     _VALID_URL = r'https?://[\w-]+\.sharepoint\.com/:v:/g/(?:[^/?#]+/){2}(?P<id>[^/?#]+)'
-    _TESTS = [
-        {
-            'url': 'https://lut-my.sharepoint.com/:v:/g/personal/juha_eerola_student_lab_fi/EUrAmrktb4ZMhUcY9J2PqMEBD_9x_l0DyYWVgAvp-TTOMw?e=ZpQOOw',
-            'info_dict': {
-                'id': 'EUrAmrktb4ZMhUcY9J2PqMEBD_9x_l0DyYWVgAvp-TTOMw',
-                'ext': 'unknown_video',
-                'title': 'CmvpJST.mp4',
-                'duration': 54.567,
-            },
-            'params': {'skip_download': 'm3u8'},
+    _TESTS = [{
+        'url': 'https://lut-my.sharepoint.com/:v:/g/personal/juha_eerola_student_lab_fi/EUrAmrktb4ZMhUcY9J2PqMEBD_9x_l0DyYWVgAvp-TTOMw?e=ZpQOOw',
+        'info_dict': {
+            'id': 'EUrAmrktb4ZMhUcY9J2PqMEBD_9x_l0DyYWVgAvp-TTOMw',
+            'ext': 'unknown_video',
+            'title': 'CmvpJST.mp4',
+            'duration': 54.567,
         },
-    ]
+        'params': {'skip_download': 'm3u8'},
+    }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
