@@ -9,13 +9,11 @@ from urllib.parse import (
 )
 
 from .common import InfoExtractor
-from ..utils import (
-    traverse_obj,
-)
+from ..utils.traversal import traverse_obj
 
 
 class SharePointIE(InfoExtractor):
-    _VALID_URL = r'https?://[^.]+\.sharepoint\.com/:v:/g/(?:[^/]+/){2}(?P<id>[^/?#]+)'
+    _VALID_URL = r'https?://[\w-]+\.sharepoint\.com/:v:/g/(?:[^/?#]+/){2}(?P<id>[^/?#]+)'
 
     _TESTS = [
         {
@@ -56,7 +54,7 @@ class SharePointIE(InfoExtractor):
         hls_formats.extend(self._extract_m3u8_formats(
             f'{base_media_url}&format=hls-vnext', video_id, m3u8_id='hls-vnext', fatal=False))
         for hls_format in hls_formats:
-            hls_format['preference'] = -2
+            hls_format['quality'] = -2
         formats = self._extract_mpd_formats(
             f'{base_media_url}&format=dash', video_id, mpd_id='dash', fatal=False)
         formats.extend(hls_formats)
