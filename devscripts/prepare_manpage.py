@@ -48,13 +48,13 @@ def _convert_code_blocks(readme):
 
     for line in readme.splitlines(True):
         if current_code_block:
-            if line == f'{current_code_block}\n':
+            if line == current_code_block:
                 current_code_block = None
                 yield '\n'
             else:
                 yield f'    {line}'
         elif line.startswith('```'):
-            current_code_block = '`' * line.count('`')
+            current_code_block = line.count('`') * '`' + '\n'
             yield '\n'
         else:
             yield line
