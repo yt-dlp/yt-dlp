@@ -1,10 +1,10 @@
 from .common import InfoExtractor
-from datetime import datetime
-from yt_dlp.utils.traversal import traverse_obj
+from ..utils import int_or_none, parse_iso8601
+from ..utils.traversal import traverse_obj
 
 
 class LoomIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?loom\.com/share/(?P<id>[a-z0-9]+)'
+    _VALID_URL = r'https?://(?:www\.)?loom\.com/share/(?P<id>[\da-f]+)'
     _TESTS = [{
         'url': 'https://www.loom.com/share/43d05f362f734614a2e81b4694a3a523',
         'md5': '2b0d36e4999c39fabdb617188f21ea1e',
@@ -26,37 +26,24 @@ class LoomIE(InfoExtractor):
             'upload_date': '20200826',
         }
     }]
-
-    def fetch_loom_download_url(self, id):
-        json = self._download_json(f"https://www.loom.com/api/campaigns/sessions/{id}/transcoded-url", video_id=id, data=b'')
-        return json["url"]
-
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
-
-        json = self._search_json(start_pattern=r'window\.loomSSRVideo\s*=', string=webpage, name="Json from Loom Webpage", video_id=video_id)
-        videourl = self.fetch_loom_download_url(video_id)
-        ext = self._search_regex(r'([a-zA-Z0-9]+)(?=\?)', videourl, 'ext', fatal=False)
-
-        date_string = json.get('createdAt')
-        date = datetime.strptime(date_string, "%Y-%m-%dT%H:%M:%S.%fZ").strftime("%Y%m%d")
-
-        formats = []
-        formats.append({
-            'url': videourl,
-            'width': traverse_obj(json, ('video_properties', 'width')),
-            'height': traverse_obj(json, ('video_properties', 'height')),
-            'ext': ext,
-            'filesize': traverse_obj(json, ('video_properties', 'byte_size')),
-        })
+        metadata = self._search_json(
+            r'window\.loomSSRVideo\s*=', webpage, 'metadata', video_id, fatal=False)
 
         return {
             'id': video_id,
-            'title': json.get('name'),
-            'uploader': json.get('owner_full_name'),
-            'upload_date': date,
-            'formats': formats,
-            # 'view_count': json["total_views"], # View Count is always changing so don't know how to test this.
-            # TODO more properties (see yt_dlp/extractor/common.py)
+            'url': self._download_json(
+                f'https://www.loom.com/api/campaigns/sessions/{video_id}/transcoded-url',
+                video_id, 'Downloading video url',  data=b'')['url']
+            **traverse_obj(metadata, {
+                'title': ('name', {str}),
+                'uploader': ('owner_full_name', {str}),
+                'timestamp': ('createdAt', {parse_iso8601}),
+                'view_count': ('total_views', {int_or_none}),
+                'width': ('video_properties', 'width', {int_or_none}),
+                'height': ('video_properties', 'height', {int_or_none}),
+                'filesize': ('video_properties', 'byte_size', {int_or_none}),
+            }),
         }
