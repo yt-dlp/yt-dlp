@@ -38,11 +38,23 @@ class TelecaribePlayIE(InfoExtractor):
         'params': {
             'skip_download': 'Livestream',
         }
+    }, {
+        'url': 'https://www.play.telecaribe.co/liveplus',
+        'info_dict': {
+            'id': 'liveplus',
+            'title': r're:^Señal en vivo Plus',
+            'live_status': 'is_live',
+            'ext': 'mp4',
+        },
+        'params': {
+            'skip_download': 'Livestream',
+        },
+        'skip': 'Geo-restricted to Colombia',
     }]
 
     def _download_player_webpage(self, webpage, display_id):
         page_id = self._search_regex(
-            (r'window.firstPageId\s*=\s*["\']([^"\']+)', r'<div[^>]+id\s*=\s*"pageBackground_([^"]+)'),
+            (r'window\.firstPageId\s*=\s*["\']([^"\']+)', r'<div[^>]+id\s*=\s*"pageBackground_([^"]+)'),
             webpage, 'page_id')
 
         props = self._download_json(self._search_regex(
@@ -59,14 +71,16 @@ class TelecaribePlayIE(InfoExtractor):
         webpage = self._download_webpage(url, display_id)
         player = self._download_player_webpage(webpage, display_id)
 
-        if display_id != 'live':
+        livestream_url = self._search_regex(
+            r'(?:let|const|var)\s+source\s*=\s*["\']([^"\']+)', player, 'm3u8 url', default=None)
+
+        if not livestream_url:
             return self.playlist_from_matches(
                 re.findall(r'<a[^>]+href\s*=\s*"([^"]+\.mp4)', player), display_id,
                 self._get_clean_title(self._og_search_title(webpage)))
 
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
-            self._search_regex(r'(?:let|const|var)\s+source\s*=\s*["\']([^"\']+)', player, 'm3u8 url'),
-            display_id, 'mp4')
+            livestream_url, display_id, 'mp4', live=True)
 
         return {
             'id': display_id,

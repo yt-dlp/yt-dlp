@@ -5,6 +5,7 @@ from ..utils import unified_strdate
 
 
 class UrortIE(InfoExtractor):
+    _WORKING = False
     IE_DESC = 'NRK P3 Urørt'
     _VALID_URL = r'https?://(?:www\.)?urort\.p3\.no/#!/Band/(?P<id>[^/]+)$'
 

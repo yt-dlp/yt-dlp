@@ -6,6 +6,7 @@ from ..utils import (
 
 
 class SyfyIE(AdobePassIE):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?syfy\.com/(?:[^/]+/)?videos/(?P<id>[^/?#]+)'
     _TESTS = [{
         'url': 'http://www.syfy.com/theinternetruinedmylife/videos/the-internet-ruined-my-life-season-1-trailer',
@@ -23,6 +24,7 @@ class SyfyIE(AdobePassIE):
             'skip_download': True,
         },
         'add_ie': ['ThePlatform'],
+        'skip': 'Redirects to main page',
     }]
 
     def _real_extract(self, url):

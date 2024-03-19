@@ -3,7 +3,7 @@ import re
 import string
 
 from .common import InfoExtractor
-from ..compat import compat_HTTPError
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     determine_ext,
@@ -46,8 +46,8 @@ class FunimationBaseIE(InfoExtractor):
                 }))
             FunimationBaseIE._TOKEN = data['token']
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 401:
-                error = self._parse_json(e.cause.read().decode(), None)['error']
+            if isinstance(e.cause, HTTPError) and e.cause.status == 401:
+                error = self._parse_json(e.cause.response.read().decode(), None)['error']
                 raise ExtractorError(error, expected=True)
             raise
 
@@ -301,7 +301,7 @@ class FunimationShowIE(FunimationBaseIE):
     _TESTS = [{
         'url': 'https://www.funimation.com/en/shows/sk8-the-infinity',
         'info_dict': {
-            'id': 1315000,
+            'id': '1315000',
             'title': 'SK8 the Infinity'
         },
         'playlist_count': 13,
@@ -312,7 +312,7 @@ class FunimationShowIE(FunimationBaseIE):
         # without lang code
         'url': 'https://www.funimation.com/shows/ouran-high-school-host-club/',
         'info_dict': {
-            'id': 39643,
+            'id': '39643',
             'title': 'Ouran High School Host Club'
         },
         'playlist_count': 26,
@@ -339,7 +339,7 @@ class FunimationShowIE(FunimationBaseIE):
 
         return {
             '_type': 'playlist',
-            'id': show_info['id'],
+            'id': str_or_none(show_info['id']),
             'title': show_info['name'],
             'entries': orderedSet(
                 self.url_result(

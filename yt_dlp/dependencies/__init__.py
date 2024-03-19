@@ -43,19 +43,28 @@ except Exception as _err:
 
 try:
     import sqlite3
+    # We need to get the underlying `sqlite` version, see https://github.com/yt-dlp/yt-dlp/issues/8152
+    sqlite3._yt_dlp__version = sqlite3.sqlite_version
 except ImportError:
-    # although sqlite3 is part of the standard library, it is possible to compile python without
+    # although sqlite3 is part of the standard library, it is possible to compile Python without
     # sqlite support. See: https://github.com/yt-dlp/yt-dlp/issues/544
     sqlite3 = None
 
 
 try:
     import websockets
-except (ImportError, SyntaxError):
-    # websockets 3.10 on python 3.6 causes SyntaxError
-    # See https://github.com/yt-dlp/yt-dlp/issues/2633
+except ImportError:
     websockets = None
 
+try:
+    import urllib3
+except ImportError:
+    urllib3 = None
+
+try:
+    import requests
+except ImportError:
+    requests = None
 
 try:
     import xattr  # xattr or pyxattr
@@ -65,6 +74,10 @@ else:
     if hasattr(xattr, 'set'):  # pyxattr
         xattr._yt_dlp__identifier = 'pyxattr'
 
+try:
+    import curl_cffi
+except ImportError:
+    curl_cffi = None
 
 from . import Cryptodome
 

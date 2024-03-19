@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..utils import int_or_none, traverse_obj
+from ..utils import ExtractorError, int_or_none, traverse_obj
 
 
 class SwearnetEpisodeIE(InfoExtractor):
@@ -51,7 +51,13 @@ class SwearnetEpisodeIE(InfoExtractor):
         display_id, season_number, episode_number = self._match_valid_url(url).group('id', 'season_num', 'episode_num')
         webpage = self._download_webpage(url, display_id)
 
-        external_id = self._search_regex(r'externalid\s*=\s*"([^"]+)', webpage, 'externalid')
+        try:
+            external_id = self._search_regex(r'externalid\s*=\s*"([^"]+)', webpage, 'externalid')
+        except ExtractorError:
+            if 'Upgrade Now' in webpage:
+                self.raise_login_required()
+            raise
+
         json_data = self._download_json(
             f'https://play.vidyard.com/player/{external_id}.json', display_id)['payload']['chapters'][0]
 

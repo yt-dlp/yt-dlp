@@ -12,6 +12,7 @@ from ..utils import (
 
 
 class SendtoNewsIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://embed\.sendtonews\.com/player2/embedplayer\.php\?.*\bSC=(?P<id>[0-9A-Za-z-]+)'
 
     _TEST = {

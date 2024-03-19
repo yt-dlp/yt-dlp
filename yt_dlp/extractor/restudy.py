@@ -2,6 +2,7 @@ from .common import InfoExtractor
 
 
 class RestudyIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:(?:www|portal)\.)?restudy\.dk/video/[^/]+/id/(?P<id>[0-9]+)'
     _TESTS = [{
         'url': 'https://www.restudy.dk/video/play/id/1637',

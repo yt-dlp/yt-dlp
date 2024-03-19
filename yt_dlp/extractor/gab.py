@@ -19,7 +19,6 @@ class GabTVIE(InfoExtractor):
             'id': '61217eacea5665de450d0488',
             'ext': 'mp4',
             'title': 'WHY WAS AMERICA IN AFGHANISTAN - AMERICA FIRST AGAINST AMERICAN OLIGARCHY',
-            'description': None,
             'uploader': 'Wurzelroot',
             'uploader_id': '608fb0a85738fd1974984f7d',
             'thumbnail': 'https://tv.gab.com/image/61217eacea5665de450d0488',

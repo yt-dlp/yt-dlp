@@ -107,14 +107,14 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
                 options.extend(['-map', '-0:%d' % old_stream])
                 new_stream -= 1
             options.extend([
-                '-attach', thumbnail_filename,
+                '-attach', self._ffmpeg_filename_argument(thumbnail_filename),
                 '-metadata:s:%d' % new_stream, 'mimetype=%s' % mimetype,
                 '-metadata:s:%d' % new_stream, 'filename=cover.%s' % thumbnail_ext])
 
             self._report_run('ffmpeg', filename)
             self.run_ffmpeg(filename, temp_filename, options)
 
-        elif info['ext'] in ['m4a', 'mp4', 'mov']:
+        elif info['ext'] in ['m4a', 'mp4', 'm4v', 'mov']:
             prefer_atomicparsley = 'embed-thumbnail-atomicparsley' in self.get_param('compat_opts', [])
             # Method 1: Use mutagen
             if not mutagen or prefer_atomicparsley:
@@ -190,7 +190,7 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
 
         elif info['ext'] in ['ogg', 'opus', 'flac']:
             if not mutagen:
-                raise EmbedThumbnailPPError('module mutagen was not found. Please install using `python -m pip install mutagen`')
+                raise EmbedThumbnailPPError('module mutagen was not found. Please install using `python3 -m pip install mutagen`')
 
             self._report_run('mutagen', filename)
             f = {'opus': OggOpus, 'flac': FLAC, 'ogg': OggVorbis}[info['ext']](filename)
@@ -213,7 +213,7 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
             temp_filename = filename
 
         else:
-            raise EmbedThumbnailPPError('Supported filetypes for thumbnail embedding are: mp3, mkv/mka, ogg/opus/flac, m4a/mp4/mov')
+            raise EmbedThumbnailPPError('Supported filetypes for thumbnail embedding are: mp3, mkv/mka, ogg/opus/flac, m4a/mp4/m4v/mov')
 
         if success and temp_filename != filename:
             os.replace(temp_filename, filename)

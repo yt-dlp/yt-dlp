@@ -55,9 +55,9 @@ class OpencastBaseIE(InfoExtractor):
             transport = track.get('transport')
 
             if transport == 'DASH' or ext == 'mpd':
-                formats.extend(self._extract_mpd_formats_and_subtitles(href, video_id, mpd_id='dash', fatal=False))
+                formats.extend(self._extract_mpd_formats(href, video_id, mpd_id='dash', fatal=False))
             elif transport == 'HLS' or ext == 'm3u8':
-                formats.extend(self._extract_m3u8_formats_and_subtitles(
+                formats.extend(self._extract_m3u8_formats(
                     href, video_id, m3u8_id='hls', entry_protocol='m3u8_native', fatal=False))
             elif transport == 'HDS' or ext == 'f4m':
                 formats.extend(self._extract_f4m_formats(href, video_id, f4m_id='hds', fatal=False))

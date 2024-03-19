@@ -49,32 +49,38 @@ class TestCookies(unittest.TestCase):
         """ based on https://chromium.googlesource.com/chromium/src/+/refs/heads/main/base/nix/xdg_util_unittest.cc """
         test_cases = [
             ({}, _LinuxDesktopEnvironment.OTHER),
+            ({'DESKTOP_SESSION': 'my_custom_de'}, _LinuxDesktopEnvironment.OTHER),
+            ({'XDG_CURRENT_DESKTOP': 'my_custom_de'}, _LinuxDesktopEnvironment.OTHER),
 
             ({'DESKTOP_SESSION': 'gnome'}, _LinuxDesktopEnvironment.GNOME),
             ({'DESKTOP_SESSION': 'mate'}, _LinuxDesktopEnvironment.GNOME),
-            ({'DESKTOP_SESSION': 'kde4'}, _LinuxDesktopEnvironment.KDE),
-            ({'DESKTOP_SESSION': 'kde'}, _LinuxDesktopEnvironment.KDE),
+            ({'DESKTOP_SESSION': 'kde4'}, _LinuxDesktopEnvironment.KDE4),
+            ({'DESKTOP_SESSION': 'kde'}, _LinuxDesktopEnvironment.KDE3),
             ({'DESKTOP_SESSION': 'xfce'}, _LinuxDesktopEnvironment.XFCE),
 
             ({'GNOME_DESKTOP_SESSION_ID': 1}, _LinuxDesktopEnvironment.GNOME),
-            ({'KDE_FULL_SESSION': 1}, _LinuxDesktopEnvironment.KDE),
+            ({'KDE_FULL_SESSION': 1}, _LinuxDesktopEnvironment.KDE3),
+            ({'KDE_FULL_SESSION': 1, 'DESKTOP_SESSION': 'kde4'}, _LinuxDesktopEnvironment.KDE4),
 
             ({'XDG_CURRENT_DESKTOP': 'X-Cinnamon'}, _LinuxDesktopEnvironment.CINNAMON),
+            ({'XDG_CURRENT_DESKTOP': 'Deepin'}, _LinuxDesktopEnvironment.DEEPIN),
             ({'XDG_CURRENT_DESKTOP': 'GNOME'}, _LinuxDesktopEnvironment.GNOME),
             ({'XDG_CURRENT_DESKTOP': 'GNOME:GNOME-Classic'}, _LinuxDesktopEnvironment.GNOME),
             ({'XDG_CURRENT_DESKTOP': 'GNOME : GNOME-Classic'}, _LinuxDesktopEnvironment.GNOME),
 
             ({'XDG_CURRENT_DESKTOP': 'Unity', 'DESKTOP_SESSION': 'gnome-fallback'}, _LinuxDesktopEnvironment.GNOME),
-            ({'XDG_CURRENT_DESKTOP': 'KDE', 'KDE_SESSION_VERSION': '5'}, _LinuxDesktopEnvironment.KDE),
-            ({'XDG_CURRENT_DESKTOP': 'KDE'}, _LinuxDesktopEnvironment.KDE),
+            ({'XDG_CURRENT_DESKTOP': 'KDE', 'KDE_SESSION_VERSION': '5'}, _LinuxDesktopEnvironment.KDE5),
+            ({'XDG_CURRENT_DESKTOP': 'KDE', 'KDE_SESSION_VERSION': '6'}, _LinuxDesktopEnvironment.KDE6),
+            ({'XDG_CURRENT_DESKTOP': 'KDE'}, _LinuxDesktopEnvironment.KDE4),
             ({'XDG_CURRENT_DESKTOP': 'Pantheon'}, _LinuxDesktopEnvironment.PANTHEON),
+            ({'XDG_CURRENT_DESKTOP': 'UKUI'}, _LinuxDesktopEnvironment.UKUI),
             ({'XDG_CURRENT_DESKTOP': 'Unity'}, _LinuxDesktopEnvironment.UNITY),
             ({'XDG_CURRENT_DESKTOP': 'Unity:Unity7'}, _LinuxDesktopEnvironment.UNITY),
             ({'XDG_CURRENT_DESKTOP': 'Unity:Unity8'}, _LinuxDesktopEnvironment.UNITY),
         ]
 
         for env, expected_desktop_environment in test_cases:
-            self.assertEqual(_get_linux_desktop_environment(env), expected_desktop_environment)
+            self.assertEqual(_get_linux_desktop_environment(env, Logger()), expected_desktop_environment)
 
     def test_chrome_cookie_decryptor_linux_derive_key(self):
         key = LinuxChromeCookieDecryptor.derive_key(b'abc')

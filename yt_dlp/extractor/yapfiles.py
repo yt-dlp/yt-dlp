@@ -8,6 +8,7 @@ from ..utils import (
 
 
 class YapFilesIE(InfoExtractor):
+    _WORKING = False
     _YAPFILES_URL = r'//(?:(?:www|api)\.)?yapfiles\.ru/get_player/*\?.*?\bv=(?P<id>\w+)'
     _VALID_URL = r'https?:%s' % _YAPFILES_URL
     _EMBED_REGEX = [rf'<iframe\b[^>]+\bsrc=(["\'])(?P<url>(?:https?:)?{_YAPFILES_URL}.*?)\1']

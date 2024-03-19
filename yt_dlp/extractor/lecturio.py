@@ -25,7 +25,7 @@ class LecturioBaseIE(InfoExtractor):
             self._LOGIN_URL, None, 'Downloading login popup')
 
         def is_logged(url_handle):
-            return self._LOGIN_URL not in url_handle.geturl()
+            return self._LOGIN_URL not in url_handle.url
 
         # Already logged in
         if is_logged(urlh):
@@ -57,8 +57,8 @@ class LecturioIE(LecturioBaseIE):
     _VALID_URL = r'''(?x)
                     https://
                         (?:
-                            app\.lecturio\.com/([^/]+/(?P<nt>[^/?#&]+)\.lecture|(?:\#/)?lecture/c/\d+/(?P<id>\d+))|
-                            (?:www\.)?lecturio\.de/[^/]+/(?P<nt_de>[^/?#&]+)\.vortrag
+                            app\.lecturio\.com/([^/?#]+/(?P<nt>[^/?#&]+)\.lecture|(?:\#/)?lecture/c/\d+/(?P<id>\d+))|
+                            (?:www\.)?lecturio\.de/(?:[^/?#]+/)+(?P<nt_de>[^/?#&]+)\.vortrag
                         )
                     '''
     _TESTS = [{
@@ -72,6 +72,9 @@ class LecturioIE(LecturioBaseIE):
         'skip': 'Requires lecturio account credentials',
     }, {
         'url': 'https://www.lecturio.de/jura/oeffentliches-recht-staatsexamen.vortrag',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.lecturio.de/jura/oeffentliches-recht-at-1-staatsexamen/oeffentliches-recht-staatsexamen.vortrag',
         'only_matching': True,
     }, {
         'url': 'https://app.lecturio.com/#/lecture/c/6434/39634',
@@ -169,7 +172,7 @@ class LecturioIE(LecturioBaseIE):
 
 
 class LecturioCourseIE(LecturioBaseIE):
-    _VALID_URL = r'https://app\.lecturio\.com/(?:[^/]+/(?P<nt>[^/?#&]+)\.course|(?:#/)?course/c/(?P<id>\d+))'
+    _VALID_URL = r'https?://app\.lecturio\.com/(?:[^/]+/(?P<nt>[^/?#&]+)\.course|(?:#/)?course/c/(?P<id>\d+))'
     _TESTS = [{
         'url': 'https://app.lecturio.com/medical-courses/microbiology-introduction.course#/',
         'info_dict': {
@@ -206,7 +209,7 @@ class LecturioCourseIE(LecturioBaseIE):
 
 
 class LecturioDeCourseIE(LecturioBaseIE):
-    _VALID_URL = r'https://(?:www\.)?lecturio\.de/[^/]+/(?P<id>[^/?#&]+)\.kurs'
+    _VALID_URL = r'https?://(?:www\.)?lecturio\.de/[^/]+/(?P<id>[^/?#&]+)\.kurs'
     _TEST = {
         'url': 'https://www.lecturio.de/jura/grundrechte.kurs',
         'only_matching': True,

@@ -45,7 +45,7 @@ class CybraryBaseIE(InfoExtractor):
 
 
 class CybraryIE(CybraryBaseIE):
-    _VALID_URL = r'https?://app.cybrary.it/immersive/(?P<enrollment>[0-9]+)/activity/(?P<id>[0-9]+)'
+    _VALID_URL = r'https?://app\.cybrary\.it/immersive/(?P<enrollment>[0-9]+)/activity/(?P<id>[0-9]+)'
     _TESTS = [{
         'url': 'https://app.cybrary.it/immersive/12487950/activity/63102',
         'md5': '9ae12d37e555cb2ed554223a71a701d0',
@@ -105,16 +105,16 @@ class CybraryIE(CybraryBaseIE):
             'chapter': module.get('title'),
             'chapter_id': str_or_none(module.get('id')),
             'title': activity.get('title'),
-            'url': smuggle_url(f'https://player.vimeo.com/video/{vimeo_id}', {'http_headers': {'Referer': 'https://api.cybrary.it'}})
+            'url': smuggle_url(f'https://player.vimeo.com/video/{vimeo_id}', {'referer': 'https://api.cybrary.it'})
         }
 
 
 class CybraryCourseIE(CybraryBaseIE):
-    _VALID_URL = r'https://app.cybrary.it/browse/course/(?P<id>[\w-]+)/?(?:$|[#?])'
+    _VALID_URL = r'https?://app\.cybrary\.it/browse/course/(?P<id>[\w-]+)/?(?:$|[#?])'
     _TESTS = [{
         'url': 'https://app.cybrary.it/browse/course/az-500-microsoft-azure-security-technologies',
         'info_dict': {
-            'id': 898,
+            'id': '898',
             'title': 'AZ-500: Microsoft Azure Security Technologies',
             'description': 'md5:69549d379c0fc1dec92926d4e8b6fbd4'
         },
@@ -122,7 +122,7 @@ class CybraryCourseIE(CybraryBaseIE):
     }, {
         'url': 'https://app.cybrary.it/browse/course/cybrary-orientation',
         'info_dict': {
-            'id': 1245,
+            'id': '1245',
             'title': 'Cybrary Orientation',
             'description': 'md5:9e69ff66b32fe78744e0ad4babe2e88e'
         },

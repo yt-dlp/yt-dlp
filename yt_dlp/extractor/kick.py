@@ -1,7 +1,6 @@
 from .common import InfoExtractor
-
+from ..networking import HEADRequest
 from ..utils import (
-    HEADRequest,
     UserNotLive,
     float_or_none,
     merge_dicts,
@@ -14,7 +13,7 @@ from ..utils import (
 
 class KickBaseIE(InfoExtractor):
     def _real_initialize(self):
-        self._request_webpage(HEADRequest('https://kick.com/'), None, 'Setting up session')
+        self._request_webpage(HEADRequest('https://kick.com/'), None, 'Setting up session', fatal=False)
         xsrf_token = self._get_cookies('https://kick.com/').get('XSRF-TOKEN')
         if not xsrf_token:
             self.write_debug('kick.com did not set XSRF-TOKEN cookie')
@@ -30,7 +29,7 @@ class KickBaseIE(InfoExtractor):
 
 
 class KickIE(KickBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?kick\.com/(?!(?:video|categories|search|auth)(?:[/?#]|$))(?P<id>[\w_]+)'
+    _VALID_URL = r'https?://(?:www\.)?kick\.com/(?!(?:video|categories|search|auth)(?:[/?#]|$))(?P<id>[\w-]+)'
     _TESTS = [{
         'url': 'https://kick.com/yuppy',
         'info_dict': {

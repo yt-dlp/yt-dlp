@@ -81,7 +81,7 @@ class IPrimaIE(InfoExtractor):
             note='Logging in')
 
         # a profile may need to be selected first, even when there is only a single one
-        if '/profile-select' in login_handle.geturl():
+        if '/profile-select' in login_handle.url:
             profile_id = self._search_regex(
                 r'data-identifier\s*=\s*["\']?(\w+)', profile_select_html, 'profile id')
 
@@ -89,7 +89,7 @@ class IPrimaIE(InfoExtractor):
                 f'{self._AUTH_ROOT}/user/profile-select-perform/{profile_id}', None,
                 query={'continueUrl': '/user/login?redirect_uri=/user/'}, note='Selecting profile')
 
-        code = traverse_obj(login_handle.geturl(), ({parse_qs}, 'code', 0))
+        code = traverse_obj(login_handle.url, ({parse_qs}, 'code', 0))
         if not code:
             raise ExtractorError('Login failed', expected=True)
 
@@ -134,9 +134,16 @@ class IPrimaIE(InfoExtractor):
         ), webpage, 'real id', group='id', default=None)
 
         if not video_id:
-            nuxt_data = self._search_nuxt_data(webpage, video_id, traverse='data')
+            nuxt_data = self._search_nuxt_data(webpage, video_id, traverse='data', fatal=False)
             video_id = traverse_obj(
                 nuxt_data, (..., 'content', 'additionals', 'videoPlayId', {str}), get_all=False)
+
+        if not video_id:
+            nuxt_data = self._search_json(
+                r'<script[^>]+\bid=["\']__NUXT_DATA__["\'][^>]*>',
+                webpage, 'nuxt data', None, end_pattern=r'</script>', contains_pattern=r'\[(?s:.+)\]')
+
+            video_id = traverse_obj(nuxt_data, lambda _, v: re.fullmatch(r'p\d+', v), get_all=False)
 
         if not video_id:
             self.raise_no_formats('Unable to extract video ID from webpage')
