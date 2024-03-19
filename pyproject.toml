@@ -10,7 +10,7 @@ maintainers = [
     {name = "bashonly", email = "bashonly@protonmail.com"},
     {name = "coletdjnz", email = "coletdjnz@protonmail.com"},
 ]
-description = "A youtube-dl fork with additional features and patches"
+description = "A feature-rich command-line audio/video downloader"
 readme = "README.md"
 requires-python = ">=3.8"
 keywords = [
