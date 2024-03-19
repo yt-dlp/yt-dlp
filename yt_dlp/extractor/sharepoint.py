@@ -36,13 +36,12 @@ class SharePointIE(InfoExtractor):
 
         # The player is configured with a number of options that are then added to the format URLs,
         # but we always get all formats back no matter what options we send
-        formats = []
+        formats = self._extract_mpd_formats(
+            base_media_url, video_id, mpd_id='dash', query={'format': 'dash'}, fatal=False)
         for hls_type in ('hls', 'hls-vnext'):
             formats.extend(self._extract_m3u8_formats(
                 base_media_url, video_id, m3u8_id=hls_type,
                 query={'format': hls_type}, fatal=False, quality=-2))
-        formats.extend(self._extract_mpd_formats(
-            base_media_url, video_id, mpd_id='dash', query={'format': 'dash'}, fatal=False))
 
         return {
             'id': video_id,
