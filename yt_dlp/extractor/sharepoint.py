@@ -39,9 +39,8 @@ class SharePointIE(InfoExtractor):
         formats = []
         for hls_type in ('hls', 'hls-vnext'):
             formats.extend(self._extract_m3u8_formats(
-                base_media_url, video_id, m3u8_id=hls_type, query={'format': hls_type}, fatal=False))
-        for hls_format in formats:
-            hls_format['quality'] = -2
+                base_media_url, video_id, m3u8_id=hls_type,
+                query={'format': hls_type}, fatal=False, quality=-2))
         formats.extend(self._extract_mpd_formats(
             base_media_url, video_id, mpd_id='dash', query={'format': 'dash'}, fatal=False))
 
