@@ -1,10 +1,5 @@
 from .common import InfoExtractor
-from ..utils import (
-    int_or_none,
-    parse_iso8601,
-    str_or_none,
-    url_or_none,
-)
+from ..utils import int_or_none, parse_iso8601, str_or_none
 from ..utils.traversal import traverse_obj
 
 
@@ -46,7 +41,7 @@ class LoomIE(InfoExtractor):
             (lambda k, _: k.endswith(f'Video:{video_id}'), {dict}), get_all=False)
         video_url = self._download_json(
             f'https://www.loom.com/api/campaigns/sessions/{video_id}/transcoded-url',
-            video_id, 'Downloading video url',  data=b'')['url']
+            video_id, 'Downloading video url', data=b'')['url']
 
         return {
             'id': video_id,
