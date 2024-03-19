@@ -26,17 +26,19 @@ class LoomIE(InfoExtractor):
             'upload_date': '20200826',
         }
     }]
+
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
         metadata = self._search_json(
             r'window\.loomSSRVideo\s*=', webpage, 'metadata', video_id, fatal=False)
+        video_url = self._download_json(
+            f'https://www.loom.com/api/campaigns/sessions/{video_id}/transcoded-url',
+            video_id, 'Downloading video url',  data=b'')['url']
 
         return {
             'id': video_id,
-            'url': self._download_json(
-                f'https://www.loom.com/api/campaigns/sessions/{video_id}/transcoded-url',
-                video_id, 'Downloading video url',  data=b'')['url']
+            'url': video_url,
             **traverse_obj(metadata, {
                 'title': ('name', {str}),
                 'uploader': ('owner_full_name', {str}),
