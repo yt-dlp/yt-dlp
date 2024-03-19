@@ -90,10 +90,12 @@ class WebsocketsRH(WebSocketRequestHandler):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.__logging_handlers = {}
         for name in ('websockets.client', 'websockets.server'):
             logger = logging.getLogger(name)
             handler = logging.StreamHandler(stream=sys.stdout)
             handler.setFormatter(logging.Formatter(f'{self.RH_NAME}: %(message)s'))
+            self.__logging_handlers[name] = handler
             logger.addHandler(handler)
             if self.verbose:
                 logger.setLevel(logging.DEBUG)
@@ -103,11 +105,17 @@ class WebsocketsRH(WebSocketRequestHandler):
         extensions.pop('timeout', None)
         extensions.pop('cookiejar', None)
 
+    def close(self):
+        # Remove the logging handler that contains a reference to our logger
+        # See: https://github.com/yt-dlp/yt-dlp/issues/8922
+        for name, handler in self.__logging_handlers.items():
+            logging.getLogger(name).removeHandler(handler)
+
     def _send(self, request):
-        timeout = float(request.extensions.get('timeout') or self.timeout)
+        timeout = self._calculate_timeout(request)
         headers = self._merge_headers(request.headers)
         if 'cookie' not in headers:
-            cookiejar = request.extensions.get('cookiejar') or self.cookiejar
+            cookiejar = self._get_cookiejar(request)
             cookie_header = cookiejar.get_cookie_header(request.url)
             if cookie_header:
                 headers['cookie'] = cookie_header
@@ -117,7 +125,7 @@ class WebsocketsRH(WebSocketRequestHandler):
             'source_address': (self.source_address, 0) if self.source_address else None,
             'timeout': timeout
         }
-        proxy = select_proxy(request.url, request.proxies or self.proxies or {})
+        proxy = select_proxy(request.url, self._get_proxies(request))
         try:
             if proxy:
                 socks_proxy_options = make_socks_proxy_opts(proxy)

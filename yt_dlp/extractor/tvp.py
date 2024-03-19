@@ -21,7 +21,7 @@ from ..utils import (
 class TVPIE(InfoExtractor):
     IE_NAME = 'tvp'
     IE_DESC = 'Telewizja Polska'
-    _VALID_URL = r'https?://(?:[^/]+\.)?(?:tvp(?:parlament)?\.(?:pl|info)|tvpworld\.com|swipeto\.pl)/(?:(?!\d+/)[^/]+/)*(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:[^/]+\.)?(?:tvp(?:parlament)?\.(?:pl|info)|tvpworld\.com|swipeto\.pl)/(?:(?!\d+/)[^/]+/)*(?P<id>\d+)(?:[/?#]|$)'
 
     _TESTS = [{
         # TVPlayer 2 in js wrapper
@@ -514,7 +514,7 @@ class TVPVODBaseIE(InfoExtractor):
 
 class TVPVODVideoIE(TVPVODBaseIE):
     IE_NAME = 'tvp:vod'
-    _VALID_URL = r'https?://vod\.tvp\.pl/[a-z\d-]+,\d+/[a-z\d-]+(?<!-odcinki)(?:-odcinki,\d+/odcinek-\d+,S\d+E\d+)?,(?P<id>\d+)(?:\?[^#]+)?(?:#.+)?$'
+    _VALID_URL = r'https?://vod\.tvp\.pl/(?P<category>[a-z\d-]+,\d+)/[a-z\d-]+(?<!-odcinki)(?:-odcinki,\d+/odcinek-\d+,S\d+E\d+)?,(?P<id>\d+)/?(?:[?#]|$)'
 
     _TESTS = [{
         'url': 'https://vod.tvp.pl/dla-dzieci,24/laboratorium-alchemika-odcinki,309338/odcinek-24,S01E24,311357',
@@ -560,12 +560,23 @@ class TVPVODVideoIE(TVPVODBaseIE):
             'thumbnail': 're:https?://.+',
         },
         'params': {'skip_download': 'm3u8'},
+    }, {
+        'url': 'https://vod.tvp.pl/live,1/tvp-world,399731',
+        'info_dict': {
+            'id': '399731',
+            'ext': 'mp4',
+            'title': r're:TVP WORLD \d{4}-\d{2}-\d{2} \d{2}:\d{2}',
+            'live_status': 'is_live',
+            'thumbnail': 're:https?://.+',
+        },
     }]
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
+        category, video_id = self._match_valid_url(url).group('category', 'id')
 
-        info_dict = self._parse_video(self._call_api(f'vods/{video_id}', video_id), with_url=False)
+        is_live = category == 'live,1'
+        entity = 'lives' if is_live else 'vods'
+        info_dict = self._parse_video(self._call_api(f'{entity}/{video_id}', video_id), with_url=False)
 
         playlist = self._call_api(f'{video_id}/videos/playlist', video_id, query={'videoType': 'MOVIE'})
 
@@ -581,6 +592,8 @@ class TVPVODVideoIE(TVPVODBaseIE):
                 'url': sub['url'],
                 'ext': 'ttml',
             })
+
+        info_dict['is_live'] = is_live
 
         return info_dict
 

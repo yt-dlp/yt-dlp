@@ -35,6 +35,7 @@ from .compat_utils import passthrough_module
 from ..dependencies import brotli as compat_brotli  # noqa: F401
 from ..dependencies import websockets as compat_websockets  # noqa: F401
 from ..dependencies.Cryptodome import AES as compat_pycrypto_AES  # noqa: F401
+from ..networking.exceptions import HTTPError as compat_HTTPError  # noqa: F401
 
 passthrough_module(__name__, '...utils', ('WINDOWS_VT_MODE', 'windows_enable_vt_mode'))
 
@@ -70,7 +71,6 @@ compat_html_parser_HTMLParseError = compat_HTMLParseError
 compat_HTMLParser = compat_html_parser_HTMLParser = html.parser.HTMLParser
 compat_http_client = http.client
 compat_http_server = http.server
-compat_HTTPError = urllib.error.HTTPError
 compat_input = input
 compat_integer_types = (int, )
 compat_itertools_count = itertools.count
@@ -88,7 +88,7 @@ compat_struct_unpack = struct.unpack
 compat_subprocess_get_DEVNULL = lambda: subprocess.DEVNULL
 compat_tokenize_tokenize = tokenize.tokenize
 compat_urllib_error = urllib.error
-compat_urllib_HTTPError = urllib.error.HTTPError
+compat_urllib_HTTPError = compat_HTTPError
 compat_urllib_parse = urllib.parse
 compat_urllib_parse_parse_qs = urllib.parse.parse_qs
 compat_urllib_parse_quote = urllib.parse.quote
