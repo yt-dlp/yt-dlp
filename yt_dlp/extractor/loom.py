@@ -20,7 +20,7 @@ from ..utils.traversal import traverse_obj
 
 class LoomIE(InfoExtractor):
     IE_NAME = 'loom'
-    _VALID_URL = r'https?://(?:www\.)?loom\.com/share/(?P<id>[\da-f]{32})'
+    _VALID_URL = r'https?://(?:www\.)?loom\.com/(?:share|embed)/(?P<id>[\da-f]{32})'
     _TESTS = [{
         # m3u8 raw-url, mp4 transcoded-url, cdn url == raw-url, json subs only
         'url': 'https://www.loom.com/share/43d05f362f734614a2e81b4694a3a523',
@@ -80,6 +80,20 @@ class LoomIE(InfoExtractor):
         # password-protected, password is not known
         'url': 'https://www.loom.com/share/84a25cc18f8c416db5ed595469f2bc13',
         'expected_exception': 'ExtractorError',
+    }, {
+        # embed, transcoded-url endpoint sends empty JSON response
+        'url': 'https://www.loom.com/embed/ddcf1c1ad21f451ea7468b1e33917e4e',
+        'md5': '8488817242a0db1cb2ad0ea522553cf6',
+        'info_dict': {
+            'id': 'ddcf1c1ad21f451ea7468b1e33917e4e',
+            'ext': 'mp4',
+            'title': 'CF Reset User\'s Password',
+            'uploader': 'Aimee Heintz',
+            'upload_date': '20220707',
+            'timestamp': 1657216459,
+            'duration': 181,
+        },
+        'expected_warnings': ['Failed to parse JSON'],
     }]
 
     _GRAPHQL_VARIABLES = {
@@ -173,7 +187,7 @@ class LoomIE(InfoExtractor):
         # TODO: Investigate how to send video password POST data
         return traverse_obj(self._download_json(
             f'https://www.loom.com/api/campaigns/sessions/{video_id}/{endpoint}', video_id,
-            f'Downloading {endpoint} JSON', f'Failed to download {endpoint} JSON', data=b''),
+            f'Downloading {endpoint} JSON', f'Failed to download {endpoint} JSON', data=b'', fatal=False),
             ('url', {url_or_none}))
 
     def _extract_formats(self, video_id, metadata, gql_data):
