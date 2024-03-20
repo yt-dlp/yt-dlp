@@ -325,10 +325,10 @@ class LoomIE(InfoExtractor):
         transcoded_url = self._call_url_api('transcoded-url', video_id)
         formats.extend(get_formats(transcoded_url, 'transcoded', quality=-1))  # transcoded quality
 
-        # cdn_url is usually a dupe, but the raw-url/transcoded-url endpoints could return errors
         cdn_url = get_first(gql_data, ('data', 'getVideo', 'nullableRawCdnUrl', 'url', {url_or_none}))
-        if cdn_url and update_url(cdn_url, query=None) not in [
-                update_url(url, query=None) for url in filter(None, [raw_url, transcoded_url])]:
+        # cdn_url is usually a dupe, but the raw-url/transcoded-url endpoints could return errors
+        valid_urls = [update_url(url, query=None) for url in (raw_url, transcoded_url) if url]
+        if cdn_url and update_url(cdn_url, query=None) not in valid_urls:
             formats.extend(get_formats(cdn_url, 'cdn', quality=0))  # could be original or transcoded
 
         return formats
