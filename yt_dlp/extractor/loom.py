@@ -24,7 +24,7 @@ class LoomIE(InfoExtractor):
     _TESTS = [{
         # m3u8 raw-url, mp4 transcoded-url, cdn url == raw-url, json subs only
         'url': 'https://www.loom.com/share/43d05f362f734614a2e81b4694a3a523',
-        'md5': 'b634746a8503e7090d18459a76dde674',
+        'md5': 'bfc2d7e9c2e0eb4813212230794b6f42',
         'info_dict': {
             'id': '43d05f362f734614a2e81b4694a3a523',
             'ext': 'mp4',
@@ -50,7 +50,7 @@ class LoomIE(InfoExtractor):
     }, {
         # m3u8 raw-url, mp4 transcoded-url, cdn url == raw-url, vtt sub and json subs
         'url': 'https://www.loom.com/share/9458bcbf79784162aa62ffb8dd66201b',
-        'md5': 'c1cfdbb656ed512d09382b5f69fdcea4',
+        'md5': '51737ec002969dd28344db4d60b9cbbb',
         'info_dict': {
             'id': '9458bcbf79784162aa62ffb8dd66201b',
             'ext': 'mp4',
@@ -193,6 +193,8 @@ class LoomIE(InfoExtractor):
             query = urllib.parse.urlparse(format_url).query
 
             if ext == 'm3u8':
+                # Extract pre-merged HLS formats to avoid buggy parsing of metadata in split playlists
+                format_url = format_url.replace('-split.m3u8', '.m3u8')
                 m3u8_formats = self._extract_m3u8_formats(
                     format_url, video_id, 'mp4', m3u8_id=f'hls-{format_id}', fatal=False, quality=quality)
                 for fmt in m3u8_formats:
