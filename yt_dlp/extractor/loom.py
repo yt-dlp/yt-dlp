@@ -21,6 +21,7 @@ from ..utils.traversal import traverse_obj
 class LoomIE(InfoExtractor):
     IE_NAME = 'loom'
     _VALID_URL = r'https?://(?:www\.)?loom\.com/(?:share|embed)/(?P<id>[\da-f]{32})'
+    _EMBED_REGEX = [rf'<iframe[^>]+\bsrc=["\'](?P<url>{_VALID_URL})']
     _TESTS = [{
         # m3u8 raw-url, mp4 transcoded-url, cdn url == raw-url, json subs only
         'url': 'https://www.loom.com/share/43d05f362f734614a2e81b4694a3a523',
@@ -104,6 +105,19 @@ class LoomIE(InfoExtractor):
             'duration': 181,
         },
         'expected_warnings': ['Failed to parse JSON'],
+    }]
+    _WEBPAGE_TESTS = [{
+        'url': 'https://www.loom.com/community/e1229802a8694a09909e8ba0fbb6d073-pg',
+        'md5': 'ec838cd01b576cf0386f32e1ae424609',
+        'info_dict': {
+            'id': 'e1229802a8694a09909e8ba0fbb6d073',
+            'ext': 'mp4',
+            'title': 'Rexie Jane Cimafranca - Founder\'s Presentation',
+            'uploader': 'Rexie Cimafranca',
+            'upload_date': '20230213',
+            'duration': 247,
+            'timestamp': 1676274030,
+        },
     }]
 
     _GRAPHQL_VARIABLES = {
