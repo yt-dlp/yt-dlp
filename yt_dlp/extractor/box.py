@@ -44,19 +44,18 @@ class BoxIE(InfoExtractor):
         shared_name, file_id = self._match_valid_url(url).groups()
         webpage = self._download_webpage(url, file_id or shared_name)
 
-        if file_id is None:
-            post_stream_data = self._parse_json(self._search_regex(
-                r'Box\.postStreamData\s*=\s*({.+?});', webpage, 'Box post-stream data'),
-                file_id)
-            shared_item = post_stream_data.get('/app-api/enduserapp/shared-item')
+        if not file_id:
+            post_stream_data = self._search_json(
+                r'Box\.postStreamData\s*=', webpage, 'Box post-stream data', shared_name)
+            shared_item = traverse_obj(
+                post_stream_data, ('/app-api/enduserapp/shared-item', {dict})) or {}
             if shared_item.get('itemType') != 'file':
-                raise ExtractorError('Resource is not a file')
+                raise ExtractorError('The requested resource is not a file', expected=True)
 
-            file_id = str(shared_item.get('itemID'))
+            file_id = str(shared_item['itemID'])
 
-        request_token = self._parse_json(self._search_regex(
-            r'Box\.config\s*=\s*({.+?});', webpage,
-            'Box config'), file_id)['requestToken']
+        request_token = self._search_json(
+            r'Box\.config\s*=', webpage, 'Box config', file_id)['requestToken']
         access_token = self._download_json(
             'https://app.box.com/app-api/enduserapp/elements/tokens', file_id,
             'Downloading token JSON metadata',
