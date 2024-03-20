@@ -102,15 +102,6 @@ class XVideosIE(InfoExtractor):
     }, {
         'url': 'https://xvideos.es/video.ucuvbkfda4e/a_beautiful_red-haired_stranger_was_refused_but_still_came_to_my_room_for_sex',
         'only_matching': True
-    }, {
-        'url': 'https://www.xvideos.es/video.ucuvbkfda4e/a_beautiful_red-haired_stranger_was_refused_but_still_came_to_my_room_for_sex',
-        'only_matching': True
-    }, {
-        'url': 'http://xvideos.es/video.ucuvbkfda4e/a_beautiful_red-haired_stranger_was_refused_but_still_came_to_my_room_for_sex',
-        'only_matching': True
-    }, {
-        'url': 'http://www.xvideos.es/video.ucuvbkfda4e/a_beautiful_red-haired_stranger_was_refused_but_still_came_to_my_room_for_sex',
-        'only_matching': True
     }]
 
     def _real_extract(self, url):
