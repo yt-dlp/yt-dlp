@@ -15,12 +15,12 @@ class XVideosIE(InfoExtractor):
     _VALID_URL = r'''(?x)
                     https?://
                         (?:
-                            (?:[^/]+\.)?xvideos2?\.com/video|
-                            (?:www\.)?xvideos\.es/video|
+                            (?:[^/]+\.)?xvideos2?\.com/video\.?|
+                            (?:www\.)?xvideos\.es/video\.?|
                             (?:www|flashservice)\.xvideos\.com/embedframe/|
                             static-hw\.xvideos\.com/swf/xv-player\.swf\?.*?\bid_video=
                         )
-                        (?P<id>[0-9]+)
+                        (?P<id>[0-9a-z]+)
                     '''
     _TESTS = [{
         'url': 'https://www.xvideos.com/video4588838/motorcycle_guy_cucks_influencer_steals_his_gf',
