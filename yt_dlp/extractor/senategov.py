@@ -176,10 +176,11 @@ class SenateGovIE(InfoExtractor):
     def _real_extract(self, url):
         display_id = self._generic_id(url)
         webpage = self._download_webpage(url, display_id)
-        parse_info = parse_qs(self._search_regex(
+        iframe_src = self._search_regex(
             (r'<iframe class="[^>"]*streaminghearing[^>"]*"\s[^>]*\bsrc="([^">]*)',
              r'<iframe title="[^>"]*[^>"]*"\s[^>]*\bsrc="([^">]*)'),
-            webpage, 'hearing URL'))
+            webpage, 'hearing URL').replace('&amp;', '&')
+        parse_info = parse_qs(iframe_src)
         comm = parse_info['comm'][-1]
         stream_num, stream_domain, stream_id, msl3 = _COMMITTEES[comm]
         filename = parse_info['filename'][-1]
