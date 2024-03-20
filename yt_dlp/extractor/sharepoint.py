@@ -9,7 +9,7 @@ from ..utils.traversal import traverse_obj
 class SharePointIE(InfoExtractor):
     _BASE_URL_RE = r'https?://[\w-]+\.sharepoint\.com/'
     _VALID_URL = [
-        rf'{_BASE_URL_RE}:v:/(?:g|s)/(?:[^/?#]+/)*(?P<id>[^/?#]{{46}})/?(?:$|[?#])',
+        rf'{_BASE_URL_RE}:v:/[a-z]/(?:[^/?#]+/)*(?P<id>[^/?#]{{46}})/?(?:$|[?#])',
         rf'{_BASE_URL_RE}(?!:v:)(?:[^/?#]+/)*stream\.aspx\?(?:[^#]+&)?id=(?P<id>[^&#]+)',
     ]
     _TESTS = [{
@@ -52,6 +52,12 @@ class SharePointIE(InfoExtractor):
         'only_matching': True,
     }, {
         'url': 'https://uskudaredutr-my.sharepoint.com/:v:/g/personal/songul_turkaydin_uskudar_edu_tr/EbTf-VRUIbtGuIN73tx1MuwBCHBOmNcWNqSLw61Fd2_o0g?e=n5Vkof',
+        'only_matching': True,
+    }, {
+        'url': 'https://epam-my.sharepoint.com/:v:/p/dzmitry_tamashevich/Ec4ZOs-rATZHjFYZWVxjczEB649FCoYFKDV_x3RxZiWAGA?e=4hswgA',
+        'only_matching': True,
+    }, {
+        'url': 'https://microsoft.sharepoint.com/:v:/t/MicrosoftSPARKRecordings-MSFTInternal/EWCyeqByVWBAt8wDvNZdV-UB0BvU5YVbKm0UHgdrUlI6dg?e=QbPck6',
         'only_matching': True,
     }]
 
