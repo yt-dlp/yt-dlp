@@ -1,11 +1,11 @@
 import json
 import textwrap
 import urllib.parse
+import uuid
 
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
-    bug_reports_message,
     determine_ext,
     filter_dict,
     get_first,
@@ -77,9 +77,19 @@ class LoomIE(InfoExtractor):
         },
         'params': {'skip_download': 'dash'},
     }, {
-        # password-protected, password is not known
-        'url': 'https://www.loom.com/share/84a25cc18f8c416db5ed595469f2bc13',
-        'expected_exception': 'ExtractorError',
+        # password-protected
+        'url': 'https://www.loom.com/share/50e26e8aeb7940189dff5630f95ce1f4',
+        'md5': '5cc7655e7d55d281d203f8ffd14771f7',
+        'info_dict': {
+            'id': '50e26e8aeb7940189dff5630f95ce1f4',
+            'ext': 'mp4',
+            'title': 'iOS Mobile Upload',
+            'uploader': 'Simon Curran',
+            'upload_date': '20200520',
+            'timestamp': 1590000123,
+            'duration': 35,
+        },
+        'params': {'videopassword': 'seniorinfants2'},
     }, {
         # embed, transcoded-url endpoint sends empty JSON response
         'url': 'https://www.loom.com/embed/ddcf1c1ad21f451ea7468b1e33917e4e',
@@ -102,9 +112,63 @@ class LoomIE(InfoExtractor):
         },
     }
     _GRAPHQL_QUERIES = {
-        'CheckPassword': textwrap.dedent('''\
-            query CheckPassword($videoId: ID!, $password: String!) {
-              isValid: checkPassword(videoId: $videoId, password: $password)
+        'GetVideoSSR': textwrap.dedent('''\
+            query GetVideoSSR($videoId: ID!, $password: String) {
+              getVideo(id: $videoId, password: $password) {
+                __typename
+                ... on PrivateVideo {
+                  id
+                  status
+                  message
+                  __typename
+                }
+                ... on VideoPasswordMissingOrIncorrect {
+                  id
+                  message
+                  __typename
+                }
+                ... on RegularUserVideo {
+                  id
+                  __typename
+                  createdAt
+                  description
+                  download_enabled
+                  folder_id
+                  is_protected
+                  needs_password
+                  owner {
+                    display_name
+                    __typename
+                  }
+                  privacy
+                  s3_id
+                  name
+                  video_properties {
+                    avgBitRate
+                    client
+                    camera_enabled
+                    client_version
+                    duration
+                    durationMs
+                    format
+                    height
+                    microphone_enabled
+                    os
+                    os_version
+                    recordingClient
+                    recording_type
+                    recording_version
+                    screen_type
+                    tab_audio
+                    trim_duration
+                    width
+                    __typename
+                  }
+                  playable_duration
+                  source_duration
+                  visibility
+                }
+              }
             }\n'''),
         'GetVideoSource': textwrap.dedent('''\
             query GetVideoSource($videoId: ID!, $password: String, $acceptableMimes: [CloudfrontVideoAcceptableMime]) {
@@ -168,7 +232,7 @@ class LoomIE(InfoExtractor):
         return self._download_json(
             'https://www.loom.com/graphql', video_id, note or 'Downloading GraphQL JSON',
             errnote or 'Failed to download GraphQL JSON', headers={
-                'Accept': '*/*',
+                'Accept': 'application/json',
                 'Content-Type': 'application/json',
                 'x-loom-request-source': f'loom_web_{self._APOLLO_GRAPHQL_VERSION}',
                 'apollographql-client-name': 'web',
@@ -184,11 +248,17 @@ class LoomIE(InfoExtractor):
             } for operation_name in variadic(operations)], separators=(',', ':')).encode())
 
     def _call_url_api(self, endpoint, video_id):
-        # TODO: Investigate how to send video password POST data
-        return traverse_obj(self._download_json(
+        response = self._download_json(
             f'https://www.loom.com/api/campaigns/sessions/{video_id}/{endpoint}', video_id,
-            f'Downloading {endpoint} JSON', f'Failed to download {endpoint} JSON', data=b'', fatal=False),
-            ('url', {url_or_none}))
+            f'Downloading {endpoint} JSON', f'Failed to download {endpoint} JSON', fatal=False,
+            headers={'Accept': 'application/json', 'Content-Type': 'application/json'},
+            data=json.dumps({
+                'anonID': str(uuid.uuid4()),
+                'deviceID': None,
+                'force_original': False,  # HTTP error 401 if True
+                'password': self.get_param('videopassword'),
+            }, separators=(',', ':')).encode())
+        return traverse_obj(response, ('url', {url_or_none}))
 
     def _extract_formats(self, video_id, metadata, gql_data):
         formats = []
@@ -197,7 +267,7 @@ class LoomIE(InfoExtractor):
             'width': ('width', {int_or_none}),
             'height': ('height', {int_or_none}),
         }))
-        if True not in traverse_obj(metadata, ('video_properties', ('microphone_enabled', 'recordInternalAudio'))):
+        if traverse_obj(metadata, ('video_properties', 'microphone_enabled')) is False:
             video_properties['acodec'] = 'none'
 
         def get_formats(format_url, format_id, quality):
@@ -241,9 +311,9 @@ class LoomIE(InfoExtractor):
         formats.extend(get_formats(raw_url, 'raw', quality=1))  # original quality
 
         transcoded_url = self._call_url_api('transcoded-url', video_id)
-        formats.extend(get_formats(transcoded_url, 'transcoded', quality=-1))  # transcode quality
+        formats.extend(get_formats(transcoded_url, 'transcoded', quality=-1))  # transcoded quality
 
-        # cdn_url is usually a dupe, but currently is the only way we can extract pw-protected formats
+        # cdn_url is usually a dupe, but the raw-url/transcoded-url endpoints could return errors
         cdn_url = get_first(gql_data, ('data', 'getVideo', 'nullableRawCdnUrl', 'url', {url_or_none}))
         if cdn_url and update_url(cdn_url, query=None) not in [
                 update_url(url, query=None) for url in filter(None, [raw_url, transcoded_url])]:
@@ -253,26 +323,17 @@ class LoomIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        webpage = self._download_webpage(url, video_id)
-        page_data = self._search_json(
-            r'window\.__APOLLO_STATE__\s*=', webpage, 'metadata', video_id, fatal=False)
+        metadata = get_first(
+            self._call_graphql_api('GetVideoSSR', video_id, 'Downloading GraphQL metadata JSON'),
+            ('data', 'getVideo', {dict})) or {}
 
-        if traverse_obj(page_data, (f'VideoPasswordMissingOrIncorrect:{video_id}', 'message')):
+        if metadata.get('__typename') == 'VideoPasswordMissingOrIncorrect':
             if not self.get_param('videopassword'):
                 raise ExtractorError(
                     'This video is password-protected, use the --video-password option', expected=True)
-            if not get_first(
-                    self._call_graphql_api('CheckPassword', video_id, 'Checking video password'),
-                    ('data', 'isValid', {bool})):
-                raise ExtractorError('Invalid video password', expected=True)
-            # TODO: Investigate how to re-request password-protected webpage to get metadata
-            self.report_warning(
-                'Password-protected videos are not yet fully supported '
-                + f'and will be missing some formats and metadata{bug_reports_message()}')
+            raise ExtractorError('Invalid video password', expected=True)
 
         gql_data = self._call_graphql_api(['FetchChapters', 'FetchVideoTranscript', 'GetVideoSource'], video_id)
-        metadata = traverse_obj(page_data, (
-            lambda k, _: k.endswith(f'Video:{video_id}'), {dict}), get_all=False)
         duration = traverse_obj(metadata, ('video_properties', 'duration', {int_or_none}))
 
         return {
