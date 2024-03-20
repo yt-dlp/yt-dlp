@@ -276,13 +276,11 @@ class LoomIE(InfoExtractor):
 
     def _extract_formats(self, video_id, metadata, gql_data):
         formats = []
-
         video_properties = traverse_obj(metadata, ('video_properties', {
             'width': ('width', {int_or_none}),
             'height': ('height', {int_or_none}),
+            'acodec': ('microphone_enabled', {lambda x: 'none' if x is False else None}),
         }))
-        if traverse_obj(metadata, ('video_properties', 'microphone_enabled')) is False:
-            video_properties['acodec'] = 'none'
 
         def get_formats(format_url, format_id, quality):
             if not format_url:
