@@ -100,12 +100,6 @@ class XVideosIE(InfoExtractor):
         'url': 'http://static-hw.xvideos.com/swf/xv-player.swf?id_video=ucuvbkfda4e',
         'only_matching': True,
     }, {
-        'url': 'http://xvideos.com/video.ucuvbkfda4e/a_beautiful_red-haired_stranger_was_refused_but_still_came_to_my_room_for_sex',
-        'only_matching': True
-    }, {
-        'url': 'https://xvideos.com/video.ucuvbkfda4e/a_beautiful_red-haired_stranger_was_refused_but_still_came_to_my_room_for_sex',
-        'only_matching': True
-    }, {
         'url': 'https://xvideos.es/video.ucuvbkfda4e/a_beautiful_red-haired_stranger_was_refused_but_still_came_to_my_room_for_sex',
         'only_matching': True
     }, {
@@ -116,24 +110,6 @@ class XVideosIE(InfoExtractor):
         'only_matching': True
     }, {
         'url': 'http://www.xvideos.es/video.ucuvbkfda4e/a_beautiful_red-haired_stranger_was_refused_but_still_came_to_my_room_for_sex',
-        'only_matching': True
-    }, {
-        'url': 'http://fr.xvideos.com/video.ucuvbkfda4e/a_beautiful_red-haired_stranger_was_refused_but_still_came_to_my_room_for_sex',
-        'only_matching': True
-    }, {
-        'url': 'https://fr.xvideos.com/video.ucuvbkfda4e/a_beautiful_red-haired_stranger_was_refused_but_still_came_to_my_room_for_sex',
-        'only_matching': True
-    }, {
-        'url': 'http://it.xvideos.com/video.ucuvbkfda4e/a_beautiful_red-haired_stranger_was_refused_but_still_came_to_my_room_for_sex',
-        'only_matching': True
-    }, {
-        'url': 'https://it.xvideos.com/video.ucuvbkfda4e/a_beautiful_red-haired_stranger_was_refused_but_still_came_to_my_room_for_sex',
-        'only_matching': True
-    }, {
-        'url': 'http://de.xvideos.com/video.ucuvbkfda4e/a_beautiful_red-haired_stranger_was_refused_but_still_came_to_my_room_for_sex',
-        'only_matching': True
-    }, {
-        'url': 'https://de.xvideos.com/video.ucuvbkfda4e/a_beautiful_red-haired_stranger_was_refused_but_still_came_to_my_room_for_sex',
         'only_matching': True
     }]
 
