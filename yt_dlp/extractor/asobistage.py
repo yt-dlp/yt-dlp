@@ -3,7 +3,9 @@ import functools
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
+    str_or_none,
     traverse_obj,
+    url_or_none,
     urljoin,
 )
 
@@ -40,10 +42,41 @@ class AsobiStageIE(InfoExtractor):
         'only_matching': True,
     }]
 
+    def _check_login(self, video_id):
+        check_login_json = self._download_json(
+            'https://asobistage-api.asobistore.jp/api/v1/check_login', video_id, expected_status=(400),
+            note='Checking login status', errnote='Unable to check login status')
+        error = traverse_obj(check_login_json, ('payload', 'error_message'), ('error'), get_all=False)
+
+        if not error:
+            return
+        elif error == 'notlogin':
+            self.raise_login_required(metadata_available=False)
+        else:
+            raise ExtractorError(f'Unknown error: {error}')
+
+    def _get_token(self, video_id):
+        return self._search_regex(r'\"([^"]+)\"', self._download_webpage(
+            'https://asobistage-api.asobistore.jp/api/v1/vspf/token', video_id,
+            note='Getting token', errnote='Unable to get token'),
+            name="token")
+
+    def _get_owned_tickets(self, video_id):
+        for url, name in [
+            ('https://asobistage-api.asobistore.jp/api/v1/purchase_history/list', 'ticket purchase history'),
+            ('https://asobistage-api.asobistore.jp/api/v1/serialcode/list', 'redemption history'),
+        ]:
+            for id in traverse_obj(self._download_json(
+                    url, video_id, note=f'Downloading {name}', errnote=f'Unable to download {name}'),
+                    ('payload', 'value', ..., 'digital_product_id', {str})):
+                yield id
+
     def _real_extract(self, url):
         video_id = self._match_id(url)
         video_type_name = self._match_valid_url(url).group('type')
         webpage = self._download_webpage(url, video_id)
+
+        self._check_login(video_id)
 
         video_type_id, live_status = {
             'archive': ['archives', 'was_live'],
@@ -52,36 +85,33 @@ class AsobiStageIE(InfoExtractor):
         if not video_type_id:
             raise ExtractorError('Unknown video type')
 
-        event_data = traverse_obj(self._search_nextjs_data(webpage, video_id), {
-            'event': ('query', 'event'),
-            'slug': ('query', 'player_slug'),
-            'title': ('props', 'pageProps', 'eventCMSData', 'event_name'),
-            'thumbnail': ('props', 'pageProps', 'eventCMSData', 'event_thumbnail_image'),
-        })
-        if not event_data.get('event') or not event_data.get('slug'):
+        event_data = self._search_nextjs_data(webpage, video_id)
+        event_id = traverse_obj(event_data, ('query', 'event', {str}))
+        event_slug = traverse_obj(event_data, ('query', 'player_slug', {str}))
+        event_title = traverse_obj(event_data, ('props', 'pageProps', 'eventCMSData', 'event_name', {str}))
+        if not all((event_id, event_slug, event_title)):
             raise ExtractorError('Unable to get required event data')
-
-        thumbnails = []
-        if event_data.get('thumbnail'):
-            thumbnails.append({'id': 'main', 'url': event_data['thumbnail']})
 
         channel_list_url = functools.reduce(urljoin, [
             self._search_regex(
                 r'"(?P<url>https://asobistage\.asobistore\.jp/cdn/[^/]+/)', webpage,
                 'cdn endpoint url', group=('url')),
-            'events/', f'{event_data["event"]}/', f'{video_type_id}.json'])
+            'events/', f'{event_id}/', f'{video_type_id}.json'])
         channels_json = self._download_json(
             channel_list_url, video_id, fatal=False,
             note='Getting channel list', errnote='Unable to get channel list')
-        channel_ids = traverse_obj(channels_json, (
-            video_type_id, lambda _, v: v['broadcast_slug'] == event_data['slug'], 'channels',
-            lambda _, v: v['chennel_vspf_id'] != '00000', 'chennel_vspf_id'))
+        available_channels = traverse_obj(channels_json, (
+            video_type_id, lambda _, v: v['broadcast_slug'] == event_slug, 'channels',
+            lambda _, v: v['chennel_vspf_id'] != '00000', {dict}))
 
-        token = self._search_regex(
-            r'\"([^"]+)\"', self._download_webpage(
-                'https://asobistage-api.asobistore.jp/api/v1/vspf/token', video_id,
-                note='Getting token', errnote='Unable to get token'),
-            name="token")
+        owned_tickets = set(self._get_owned_tickets(video_id))
+        if not owned_tickets.intersection(traverse_obj(
+                available_channels, (..., 'viewrights', ..., 'tickets', ..., 'digital_product_id', {str_or_none}))):
+            raise ExtractorError('No valid ticket for this event', expected=True)
+
+        channel_ids = traverse_obj(available_channels, (..., 'chennel_vspf_id', {str}))
+
+        token = self._get_token(video_id)
 
         entries = []
         for channel_id in channel_ids:
@@ -119,12 +149,12 @@ class AsobiStageIE(InfoExtractor):
                 'live_status': live_status,
                 'thumbnail': channel_data.get('thumbnail'),
             })
-            thumbnails.append({'id': channel_id, 'url': channel_data.get('thumbnail')})
 
         return {
             '_type': 'playlist',
             'id': video_id,
-            'title': event_data.get('title'),
+            'title': event_title,
             'entries': entries,
-            'thumbnails': thumbnails,
+            'thumbnail': traverse_obj(
+                event_data, ('props', 'pageProps', 'eventCMSData', 'event_thumbnail_image', {url_or_none})),
         }
