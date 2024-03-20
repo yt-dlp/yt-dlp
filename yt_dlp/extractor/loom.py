@@ -34,7 +34,7 @@ class LoomIE(InfoExtractor):
             'upload_date': '20220328',
             'timestamp': 1648454238,
             'duration': 27,
-        }
+        },
     }, {
         # webm raw-url, mp4 transcoded-url, cdn url == transcoded-url, no subs
         'url': 'https://www.loom.com/share/c43a642f815f4378b6f80a889bb73d8d',
@@ -47,7 +47,7 @@ class LoomIE(InfoExtractor):
             'upload_date': '20200826',
             'timestamp': 1598480716,
             'duration': 20,
-        }
+        },
     }, {
         # m3u8 raw-url, mp4 transcoded-url, cdn url == raw-url, vtt sub and json subs
         'url': 'https://www.loom.com/share/9458bcbf79784162aa62ffb8dd66201b',
