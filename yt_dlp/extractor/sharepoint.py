@@ -56,7 +56,7 @@ class SharePointIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        display_id = urllib.parse.unquote_plus(self._match_id(url))
+        display_id = urllib.parse.unquote(self._match_id(url))
         webpage, urlh = self._download_webpage_handle(url, display_id)
         if urllib.parse.urlparse(urlh.url).hostname == 'login.microsoftonline.com':
             self.raise_login_required(
