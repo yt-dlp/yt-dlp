@@ -90,7 +90,7 @@ class XVideosIE(InfoExtractor):
     }, {
         'url': 'https://de.xvideos.com/video4588838/biker_takes_his_girl',
         'only_matching': True
-    },     {
+    }, {
         'url': 'https://flashservice.xvideos.com/embedframe/ucuvbkfda4e',
         'only_matching': True,
     }, {
