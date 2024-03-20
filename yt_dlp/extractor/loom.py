@@ -366,7 +366,7 @@ class LoomIE(InfoExtractor):
                 'description': ('description', {str}),
                 'uploader': ('owner', 'display_name', {str}),
                 'timestamp': ('createdAt', {parse_iso8601}),
-            }, get_all=False),
+            }),
         }
 
 
