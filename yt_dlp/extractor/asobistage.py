@@ -9,7 +9,7 @@ from ..utils import (
 
 
 class AsobiStageIE(InfoExtractor):
-    IE_DESC = 'ASOBISTAGE (アソビステージ) is a Japanese live-streaming platform owned by Bandai Namco Entertainment Inc.'
+    IE_DESC = 'ASOBISTAGE (アソビステージ)'
     _VALID_URL = r'https://asobistage\.asobistore\.jp/event/(?P<id>\w+/(?P<type>\w+)/\w+)(?:[?#]|$)'
     _TESTS = [{
         'url': 'https://asobistage.asobistore.jp/event/315passionhour_2022summer/archive/frame',
