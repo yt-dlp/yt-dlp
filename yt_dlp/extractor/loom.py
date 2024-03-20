@@ -257,8 +257,6 @@ class LoomIE(InfoExtractor):
                 + f'and will be missing some formats and metadata{bug_reports_message()}')
 
         gql_data = self._call_graphql_api(['FetchChapters', 'FetchVideoTranscript', 'GetVideoSource'], video_id)
-        chapters_str = get_first(gql_data, ('data', 'fetchVideoChapters', 'content', {str}))
-
         metadata = traverse_obj(page_data, (
             lambda k, _: k.endswith(f'Video:{video_id}'), {dict}), get_all=False)
         duration = traverse_obj(metadata, ('video_properties', 'duration', {int_or_none}))
@@ -266,7 +264,8 @@ class LoomIE(InfoExtractor):
         return {
             'id': video_id,
             'duration': duration,
-            'chapters': self._extract_chapters_from_description(chapters_str, duration) or None,
+            'chapters': self._extract_chapters_from_description(
+                get_first(gql_data, ('data', 'fetchVideoChapters', 'content', {str})), duration) or None,
             'formats': self._extract_formats(video_id, metadata, gql_data),
             'subtitles': filter_dict({
                 'en': traverse_obj(gql_data, (
