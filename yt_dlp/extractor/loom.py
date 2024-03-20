@@ -198,21 +198,21 @@ class LoomIE(InfoExtractor):
                 m3u8_formats = self._extract_m3u8_formats(
                     format_url, video_id, 'mp4', m3u8_id=f'hls-{format_id}', fatal=False, quality=quality)
                 for fmt in m3u8_formats:
-                    fmt.update({
+                    yield {
+                        **fmt,
                         'url': update_url(fmt['url'], query=query),
                         'extra_param_to_segment_url': query,
-                    })
-                yield from m3u8_formats
+                    }
 
             elif ext == 'mpd':
                 dash_formats = self._extract_mpd_formats(
                     format_url, video_id, mpd_id=f'dash-{format_id}', fatal=False)
                 for fmt in dash_formats:
-                    fmt.update({
+                    yield {
+                        **fmt,
                         'extra_param_to_segment_url': query,
                         'quality': quality,
-                    })
-                yield from dash_formats
+                    }
 
             else:
                 yield {
