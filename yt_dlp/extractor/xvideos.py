@@ -23,27 +23,27 @@ class XVideosIE(InfoExtractor):
                         (?P<id>[0-9a-z]+)
                     '''
     _TESTS = [{
-        'url': 'https://www.xvideos.com/video4588838/motorcycle_guy_cucks_influencer_steals_his_gf',
-        'md5': '14cea69fcb84db54293b1e971466c2e1',
+        'url': 'http://xvideos.com/video.ucuvbkfda4e/a_beautiful_red-haired_stranger_was_refused_but_still_came_to_my_room_for_sex',
+        'md5': '396255a900a6bddb3e98985f0b86c3fd',
         'info_dict': {
-            'id': '4588838',
+            'id': 'ucuvbkfda4e',
             'ext': 'mp4',
-            'title': 'Motorcycle Guy Cucks Influencer, Steals his GF',
-            'duration': 108,
+            'title': 'A Beautiful Red-Haired Stranger Was Refused, But Still Came To My Room For Sex',
+            'duration': 1238,
             'age_limit': 18,
-            'thumbnail': r're:^https://img-hw.xvideos-cdn.com/.+\.jpg',
+            'thumbnail': r're:^https://cdn\d+-pic.xvideos-cdn.com/.+\.jpg',
         }
     }, {
         # Broken HLS formats
         'url': 'https://www.xvideos.com/video65982001/what_s_her_name',
-        'md5': 'b82d7d7ef7d65a84b1fa6965f81f95a5',
+        'md5': '56742808292c8fa1418e4538c262c58b',
         'info_dict': {
             'id': '65982001',
             'ext': 'mp4',
             'title': 'what\'s her name?',
             'duration': 120,
             'age_limit': 18,
-            'thumbnail': r're:^https://img-hw.xvideos-cdn.com/.+\.jpg',
+            'thumbnail': r're:^https://cdn\d+-pic.xvideos-cdn.com/.+\.jpg',
         }
     }, {
         'url': 'https://flashservice.xvideos.com/embedframe/4588838',
