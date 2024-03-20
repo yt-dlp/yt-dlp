@@ -112,10 +112,10 @@ class WebsocketsRH(WebSocketRequestHandler):
             logging.getLogger(name).removeHandler(handler)
 
     def _send(self, request):
-        timeout = float(request.extensions.get('timeout') or self.timeout)
+        timeout = self._calculate_timeout(request)
         headers = self._merge_headers(request.headers)
         if 'cookie' not in headers:
-            cookiejar = request.extensions.get('cookiejar') or self.cookiejar
+            cookiejar = self._get_cookiejar(request)
             cookie_header = cookiejar.get_cookie_header(request.url)
             if cookie_header:
                 headers['cookie'] = cookie_header
@@ -125,7 +125,7 @@ class WebsocketsRH(WebSocketRequestHandler):
             'source_address': (self.source_address, 0) if self.source_address else None,
             'timeout': timeout
         }
-        proxy = select_proxy(request.url, request.proxies or self.proxies or {})
+        proxy = select_proxy(request.url, self._get_proxies(request))
         try:
             if proxy:
                 socks_proxy_options = make_socks_proxy_opts(proxy)

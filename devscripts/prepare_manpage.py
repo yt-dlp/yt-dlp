@@ -24,7 +24,7 @@ PREFIX = r'''%yt-dlp(1)
 
 # NAME
 
-yt\-dlp \- A youtube-dl fork with additional features and patches
+yt\-dlp \- A feature\-rich command\-line audio/video downloader
 
 # SYNOPSIS
 

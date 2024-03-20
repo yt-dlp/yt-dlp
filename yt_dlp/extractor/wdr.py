@@ -324,7 +324,6 @@ class WDRElefantIE(InfoExtractor):
             'title': 'Wippe',
             'id': 'mdb-1198320',
             'ext': 'mp4',
-            'age_limit': None,
             'upload_date': '20071003'
         },
     }
