@@ -13,7 +13,7 @@ from ..utils import (
 
 
 class CamFMShowIE(InfoExtractor):
-    _VALID_URL = r'https://(?:www\.)?camfm\.co\.uk/shows/(?P<id>[^/]+)'
+    _VALID_URL = r'https?://(?:www\.)?camfm\.co\.uk/shows/(?P<id>[^/]+)'
     _TESTS = [{
         'playlist_mincount': 5,
         'url': 'https://camfm.co.uk/shows/soul-mining/',
@@ -42,7 +42,7 @@ class CamFMShowIE(InfoExtractor):
 
 
 class CamFMEpisodeIE(InfoExtractor):
-    _VALID_URL = r'https://(?:www\.)?camfm\.co\.uk/player/(?P<id>[^/]+)'
+    _VALID_URL = r'https?://(?:www\.)?camfm\.co\.uk/player/(?P<id>[^/]+)'
     _TESTS = [{
         'url': 'https://camfm.co.uk/player/43336',
         'skip': 'Episode will expire - don\'t actually know when, but it will go eventually',
