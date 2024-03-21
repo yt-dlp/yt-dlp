@@ -37,6 +37,8 @@ class AsobiStageIE(InfoExtractor):
         'only_matching': True,
     }]
 
+    _TOKEN = ''
+
     def _check_login(self, video_id):
         check_login_json = self._download_json(
             'https://asobistage-api.asobistore.jp/api/v1/check_login', video_id, expected_status=(400),
@@ -50,12 +52,6 @@ class AsobiStageIE(InfoExtractor):
         else:
             raise ExtractorError(f'Unknown error: {error!r}')
 
-    def _get_token(self, video_id):
-        return self._search_regex(r'\"([^"]+)\"', self._download_webpage(
-            'https://asobistage-api.asobistore.jp/api/v1/vspf/token', video_id,
-            note='Getting token', errnote='Unable to get token'),
-            name="token")
-
     def _get_owned_tickets(self, video_id):
         for url, name in [
             ('https://asobistage-api.asobistore.jp/api/v1/purchase_history/list', 'ticket purchase history'),
@@ -64,6 +60,11 @@ class AsobiStageIE(InfoExtractor):
             yield from traverse_obj(self._download_json(
                 url, video_id, note=f'Downloading {name}', errnote=f'Unable to download {name}'),
                 ('payload', 'value', ..., 'digital_product_id', {str}))
+
+    def _real_initialize(self):
+        self._TOKEN = self._download_json(
+            'https://asobistage-api.asobistore.jp/api/v1/vspf/token', None,
+            note='Getting token', errnote='Unable to get token')
 
     def _real_extract(self, url):
         video_id, video_type_name = self._match_valid_url(url).group('id', 'type')
@@ -104,8 +105,6 @@ class AsobiStageIE(InfoExtractor):
 
         channel_ids = traverse_obj(available_channels, (..., 'chennel_vspf_id', {str}))
 
-        token = self._get_token(video_id)
-
         entries = []
         for channel_id in channel_ids:
             channel_data = {}
@@ -114,7 +113,7 @@ class AsobiStageIE(InfoExtractor):
                 channel_json = self._download_json(
                     f'https://survapi.channel.or.jp/proxy/v1/contents/{channel_id}/get_by_cuid', f'{video_id}/{channel_id}',
                     note='Getting archive channel info', errnote='Unable to get archive channel info',
-                    headers={'Authorization': f'Bearer {token}'})
+                    headers={'Authorization': f'Bearer {self._TOKEN}'})
                 channel_data = traverse_obj(channel_json, ('ex_content', {
                     'm3u8_url': 'streaming_url',
                     'title': 'title',
@@ -124,7 +123,7 @@ class AsobiStageIE(InfoExtractor):
                 channel_json = self._download_json(
                     f'https://survapi.channel.or.jp/ex/events/{channel_id}', f'{video_id}/{channel_id}',
                     note='Getting live channel info', errnote='Unable to get live channel info',
-                    headers={'Authorization': f'Bearer {token}'}, query={'embed': 'channel'})
+                    headers={'Authorization': f'Bearer {self._TOKEN}'}, query={'embed': 'channel'})
                 channel_data = traverse_obj(channel_json, ('data', {
                     'm3u8_url': ('Channel', 'Custom_live_url'),
                     'title': 'Name',
