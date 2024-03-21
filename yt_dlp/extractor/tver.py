@@ -45,8 +45,29 @@ class TVerIE(InfoExtractor):
         self._PLATFORM_UID = traverse_obj(create_response, ('result', 'platform_uid'))
         self._PLATFORM_TOKEN = traverse_obj(create_response, ('result', 'platform_token'))
 
+    def _entries(self, series_id):
+        season_json = self._download_json(f'https://service-api.tver.jp/api/v1/callSeriesSeasons/{series_id}', series_id, headers={'x-tver-platform-type': 'web'})
+        seasons = traverse_obj(season_json, ('result', 'contents', lambda _, s: s['type'] == 'season', 'content', 'id'), default=[])
+        for season_id in seasons:
+            episode_json = self._download_json(
+                f'https://platform-api.tver.jp/service/api/v1/callSeasonEpisodes/{season_id}',
+                season_id,
+                headers={'x-tver-platform-type': 'web'},
+                query={
+                    'platform_uid': self._PLATFORM_UID,
+                    'platform_token': self._PLATFORM_TOKEN,
+                },
+            )
+            episodes = traverse_obj(episode_json, ('result', 'contents', lambda _, e: e['type'] == 'episode', 'content', 'id'), default=[])
+            for video_id in episodes:
+                yield self.url_result(f'https://tver.jp/episodes/{video_id}', TVerIE, video_id)
+
     def _real_extract(self, url):
         video_id, video_type = self._match_valid_url(url).group('id', 'type')
+
+        if video_type == 'series':
+            return self.playlist_result(self._entries(video_id), video_id)
+
         if video_type not in {'series', 'episodes'}:
             webpage = self._download_webpage(url, video_id, note='Resolving to new URL')
             video_id = self._match_id(self._search_regex(
