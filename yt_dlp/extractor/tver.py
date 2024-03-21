@@ -21,6 +21,8 @@ class TVerIE(InfoExtractor):
             'episode': '売り場席巻のチーズSP＆財前直見×森泉親子の脱東京暮らし密着！',
             'alt_title': '売り場席巻のチーズSP＆財前直見×森泉親子の脱東京暮らし密着！',
             'channel': 'テレビ朝日',
+            'id': 'ep83nf3w4p',
+            'ext': 'mp4',
         },
         'add_ie': ['BrightcoveNew'],
     }, {
@@ -28,6 +30,9 @@ class TVerIE(InfoExtractor):
         'only_matching': True,
     }, {
         'url': 'https://tver.jp/lp/f0033031',
+        'only_matching': True,
+    }, {
+        'url': 'https://tver.jp/series/srkq2shp9d',
         'only_matching': True,
     }]
     BRIGHTCOVE_URL_TEMPLATE = 'http://players.brightcove.net/%s/default_default/index.html?videoId=%s'
