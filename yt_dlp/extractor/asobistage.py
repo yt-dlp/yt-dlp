@@ -1,7 +1,5 @@
-import functools
-
 from .common import InfoExtractor
-from ..utils import ExtractorError, str_or_none, url_or_none, urljoin
+from ..utils import ExtractorError, str_or_none, url_or_none
 from ..utils.traversal import traverse_obj
 
 
@@ -94,8 +92,9 @@ class AsobiStageIE(InfoExtractor):
             lambda _, v: v['chennel_vspf_id'] != '00000', {dict}))
 
         owned_tickets = set(self._get_owned_tickets(video_id))
-        if not owned_tickets.intersection(traverse_obj(
-                available_channels, (..., 'viewrights', ..., 'tickets', ..., 'digital_product_id', {str_or_none}))):
+        available_tickets = traverse_obj(
+            available_channels, (..., 'viewrights', ..., 'tickets', ..., 'digital_product_id', {str_or_none}))
+        if not owned_tickets.intersection(available_tickets):
             raise ExtractorError('No valid ticket for this event', expected=True)
 
         channel_ids = traverse_obj(available_channels, (..., 'chennel_vspf_id', {str}))
