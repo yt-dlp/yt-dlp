@@ -86,14 +86,9 @@ class AsobiStageIE(InfoExtractor):
         if not all((event_id, event_slug, event_title)):
             raise ExtractorError('Unable to get required event data')
 
-        channel_list_url = functools.reduce(urljoin, [
-            self._search_regex(
-                r'"(?P<url>https://asobistage\.asobistore\.jp/cdn/[^/]+/)', webpage,
-                'cdn endpoint url', group=('url')),
-            'events/', f'{event_id}/', f'{video_type_id}.json'])
         channels_json = self._download_json(
-            channel_list_url, video_id, fatal=False,
-            note='Getting channel list', errnote='Unable to get channel list')
+            f'https://asobistage.asobistore.jp/cdn/v101/events/{event_id}/{video_type_id}.json', video_id,
+            fatal=False, note='Getting channel list', errnote='Unable to get channel list')
         available_channels = traverse_obj(channels_json, (
             video_type_id, lambda _, v: v['broadcast_slug'] == event_slug, 'channels',
             lambda _, v: v['chennel_vspf_id'] != '00000', {dict}))
