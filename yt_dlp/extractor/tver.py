@@ -65,11 +65,13 @@ class TVerIE(InfoExtractor):
         episode_content = traverse_obj(
             episode_info, ('result', 'episode', 'content')) or {}
 
+        version = str_or_none(episode_content.get('version')) or '5'
         video_info = self._download_json(
             f'https://statics.tver.jp/content/episode/{video_id}.json', video_id,
             query={
-                'v': str_or_none(episode_content.get('version')) or '5',
-            }, headers={
+                'v': version,
+            },
+            headers={
                 'Origin': 'https://tver.jp',
                 'Referer': 'https://tver.jp/',
             })
@@ -88,6 +90,21 @@ class TVerIE(InfoExtractor):
         provider = str_or_none(episode_content.get('productionProviderName'))
         onair_label = str_or_none(episode_content.get('broadcastDateLabel'))
 
+        thumbnails = [
+            {
+                'id': quality,
+                'url': f'https://statics.tver.jp/images/content/thumbnail/episode/{quality}/{video_id}.jpg?v={version}',
+                'width': width,
+                'height': height,
+            }
+            for quality, width, height in [
+                ('small', 480, 270),
+                ('medium', 640, 360),
+                ('large', 960, 540),
+                ('xlarge', 1280, 720),
+            ]
+        ]
+
         return {
             '_type': 'url_transparent',
             'title': title,
@@ -97,6 +114,7 @@ class TVerIE(InfoExtractor):
             'alt_title': join_nonempty(title, provider, onair_label, delim=' '),
             'channel': provider,
             'description': str_or_none(video_info.get('description')),
+            'thumbnails': thumbnails,
             'url': smuggle_url(
                 self.BRIGHTCOVE_URL_TEMPLATE % (p_id, r_id), {'geo_countries': ['JP']}),
             'ie_key': 'BrightcoveNew',
