@@ -1,13 +1,8 @@
 import functools
 
 from .common import InfoExtractor
-from ..utils import (
-    ExtractorError,
-    str_or_none,
-    traverse_obj,
-    url_or_none,
-    urljoin,
-)
+from ..utils import ExtractorError, str_or_none, url_or_none, urljoin
+from ..utils.traversal import traverse_obj
 
 
 class AsobiStageIE(InfoExtractor):
@@ -51,9 +46,9 @@ class AsobiStageIE(InfoExtractor):
         if not error:
             return
         elif error == 'notlogin':
-            self.raise_login_required(metadata_available=False)
+            self.raise_login_required()
         else:
-            raise ExtractorError(f'Unknown error: {error}')
+            raise ExtractorError(f'Unknown error: {error!r}')
 
     def _get_token(self, video_id):
         return self._search_regex(r'\"([^"]+)\"', self._download_webpage(
@@ -66,22 +61,20 @@ class AsobiStageIE(InfoExtractor):
             ('https://asobistage-api.asobistore.jp/api/v1/purchase_history/list', 'ticket purchase history'),
             ('https://asobistage-api.asobistore.jp/api/v1/serialcode/list', 'redemption history'),
         ]:
-            for id in traverse_obj(self._download_json(
-                    url, video_id, note=f'Downloading {name}', errnote=f'Unable to download {name}'),
-                    ('payload', 'value', ..., 'digital_product_id', {str})):
-                yield id
+            yield from traverse_obj(self._download_json(
+                url, video_id, note=f'Downloading {name}', errnote=f'Unable to download {name}'),
+                ('payload', 'value', ..., 'digital_product_id', {str}))
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
-        video_type_name = self._match_valid_url(url).group('type')
-        webpage = self._download_webpage(url, video_id)
-
+        video_id, video_type_name = self._match_valid_url(url).group('id', 'type')
         self._check_login(video_id)
 
-        video_type_id, live_status = {
-            'archive': ['archives', 'was_live'],
-            'player': ['broadcasts', 'is_live'],
-        }.get(video_type_name) or [None, None]
+        webpage = self._download_webpage(url, video_id)
+
+        video_type_id = {
+            'archive': 'archives',
+            'player': 'broadcasts',
+        }.get(video_type_name)
         if not video_type_id:
             raise ExtractorError('Unknown video type')
 
@@ -146,7 +139,7 @@ class AsobiStageIE(InfoExtractor):
                 'id': channel_id,
                 'title': channel_data.get('title'),
                 'formats': self._extract_m3u8_formats(m3u8_url, video_id=f'{video_id}/{channel_id}', fatal=False),
-                'live_status': live_status,
+                'is_live': video_type_id == 'broadcasts',
                 'thumbnail': channel_data.get('thumbnail'),
             })
 
