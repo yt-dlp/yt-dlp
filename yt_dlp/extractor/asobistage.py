@@ -132,7 +132,7 @@ class AsobiStageIE(InfoExtractor):
             entries.append({
                 'id': channel_id,
                 'title': channel_data.get('title'),
-                'formats': self._extract_m3u8_formats(m3u8_url, video_id=f'{video_id}/{channel_id}'),
+                'formats': self._extract_m3u8_formats(m3u8_url, video_id=f'{video_id}/{channel_id}', fatal=False),
                 'is_live': video_type_id == 'broadcasts',
                 'thumbnail': channel_data.get('thumbnail'),
             })
