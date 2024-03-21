@@ -1,4 +1,5 @@
 import json
+
 from .common import InfoExtractor
 from ..utils import (
     extract_attributes,
@@ -10,7 +11,7 @@ from ..utils.traversal import traverse_obj
 
 
 class FathomIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?fathom\.video/share/(?P<id>[^/?#&]+?)'
+    _VALID_URL = r'https?://(?:www\.)?fathom\.video/share/(?P<id>[^/?#&]+)'
     _TESTS = [{
         'url': 'https://fathom.video/share/G9mkjkspnohVVZ_L5nrsoPycyWcB8y7s',
         'md5': '0decd5343b8f30ae268625e79a02b60f',
@@ -38,10 +39,8 @@ class FathomIE(InfoExtractor):
     def _real_extract(self, url):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
-
         props = traverse_obj(
             get_element_html_by_id('app', webpage), ({extract_attributes}, 'data-page', {json.loads}, 'props'))
-
         video_id = str(props['call']['id'])
 
         return {
