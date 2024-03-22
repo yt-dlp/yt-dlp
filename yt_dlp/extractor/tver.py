@@ -21,6 +21,8 @@ class TVerIE(InfoExtractor):
             'episode': '売り場席巻のチーズSP＆財前直見×森泉親子の脱東京暮らし密着！',
             'alt_title': '売り場席巻のチーズSP＆財前直見×森泉親子の脱東京暮らし密着！',
             'channel': 'テレビ朝日',
+            'id': 'ep83nf3w4p',
+            'ext': 'mp4',
         },
         'add_ie': ['BrightcoveNew'],
     }, {
@@ -28,6 +30,9 @@ class TVerIE(InfoExtractor):
         'only_matching': True,
     }, {
         'url': 'https://tver.jp/lp/f0033031',
+        'only_matching': True,
+    }, {
+        'url': 'https://tver.jp/series/srkq2shp9d',
         'only_matching': True,
     }]
     BRIGHTCOVE_URL_TEMPLATE = 'http://players.brightcove.net/%s/default_default/index.html?videoId=%s'
@@ -45,8 +50,29 @@ class TVerIE(InfoExtractor):
         self._PLATFORM_UID = traverse_obj(create_response, ('result', 'platform_uid'))
         self._PLATFORM_TOKEN = traverse_obj(create_response, ('result', 'platform_token'))
 
+    def _entries(self, series_id):
+        season_json = self._download_json(f'https://service-api.tver.jp/api/v1/callSeriesSeasons/{series_id}', series_id, headers={'x-tver-platform-type': 'web'})
+        seasons = traverse_obj(season_json, ('result', 'contents', lambda _, s: s['type'] == 'season', 'content', 'id'), default=[])
+        for season_id in seasons:
+            episode_json = self._download_json(
+                f'https://platform-api.tver.jp/service/api/v1/callSeasonEpisodes/{season_id}',
+                season_id,
+                headers={'x-tver-platform-type': 'web'},
+                query={
+                    'platform_uid': self._PLATFORM_UID,
+                    'platform_token': self._PLATFORM_TOKEN,
+                },
+            )
+            episodes = traverse_obj(episode_json, ('result', 'contents', lambda _, e: e['type'] == 'episode', 'content', 'id'), default=[])
+            for video_id in episodes:
+                yield self.url_result(f'https://tver.jp/episodes/{video_id}', TVerIE, video_id)
+
     def _real_extract(self, url):
         video_id, video_type = self._match_valid_url(url).group('id', 'type')
+
+        if video_type == 'series':
+            return self.playlist_result(self._entries(video_id), video_id)
+
         if video_type not in {'series', 'episodes'}:
             webpage = self._download_webpage(url, video_id, note='Resolving to new URL')
             video_id = self._match_id(self._search_regex(
@@ -65,11 +91,13 @@ class TVerIE(InfoExtractor):
         episode_content = traverse_obj(
             episode_info, ('result', 'episode', 'content')) or {}
 
+        version = str_or_none(episode_content.get('version')) or '5'
         video_info = self._download_json(
             f'https://statics.tver.jp/content/episode/{video_id}.json', video_id,
             query={
-                'v': str_or_none(episode_content.get('version')) or '5',
-            }, headers={
+                'v': version,
+            },
+            headers={
                 'Origin': 'https://tver.jp',
                 'Referer': 'https://tver.jp/',
             })
@@ -88,6 +116,21 @@ class TVerIE(InfoExtractor):
         provider = str_or_none(episode_content.get('productionProviderName'))
         onair_label = str_or_none(episode_content.get('broadcastDateLabel'))
 
+        thumbnails = [
+            {
+                'id': quality,
+                'url': f'https://statics.tver.jp/images/content/thumbnail/episode/{quality}/{video_id}.jpg?v={version}',
+                'width': width,
+                'height': height,
+            }
+            for quality, width, height in [
+                ('small', 480, 270),
+                ('medium', 640, 360),
+                ('large', 960, 540),
+                ('xlarge', 1280, 720),
+            ]
+        ]
+
         return {
             '_type': 'url_transparent',
             'title': title,
@@ -97,6 +140,7 @@ class TVerIE(InfoExtractor):
             'alt_title': join_nonempty(title, provider, onair_label, delim=' '),
             'channel': provider,
             'description': str_or_none(video_info.get('description')),
+            'thumbnails': thumbnails,
             'url': smuggle_url(
                 self.BRIGHTCOVE_URL_TEMPLATE % (p_id, r_id), {'geo_countries': ['JP']}),
             'ie_key': 'BrightcoveNew',
