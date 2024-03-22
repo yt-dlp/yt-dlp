@@ -5,7 +5,7 @@ from ..utils.traversal import traverse_obj
 
 class AsobiStageIE(InfoExtractor):
     IE_DESC = 'ASOBISTAGE (アソビステージ)'
-    _VALID_URL = r'https?://asobistage\.asobistore\.jp/event/(?P<id>\w+/(?P<type>\w+)/\w+)(?:[?#]|$)'
+    _VALID_URL = r'https?://asobistage\.asobistore\.jp/event/(?P<id>\w+/(?P<type>archive|player)/\w+)(?:[?#]|$)'
     _TESTS = [{
         'url': 'https://asobistage.asobistore.jp/event/315passionhour_2022summer/archive/frame',
         'info_dict': {
@@ -66,7 +66,6 @@ class AsobiStageIE(InfoExtractor):
     def _real_extract(self, url):
         video_id, video_type_name = self._match_valid_url(url).group('id', 'type')
         self._check_login(video_id)
-
         webpage = self._download_webpage(url, video_id)
 
         video_type_id = {
