@@ -98,11 +98,12 @@ class AsobiStageIE(InfoExtractor):
 
         entries = []
         for channel_id in traverse_obj(available_channels, (..., 'chennel_vspf_id', {str})):
+            entry_id = f'{video_id}/{channel_id}'
             channel_data = {}
 
             if video_type_name == 'archive':
                 channel_json = self._download_json(
-                    f'https://survapi.channel.or.jp/proxy/v1/contents/{channel_id}/get_by_cuid', f'{video_id}/{channel_id}',
+                    f'https://survapi.channel.or.jp/proxy/v1/contents/{channel_id}/get_by_cuid', entry_id,
                     note='Getting archive channel info', errnote='Unable to get archive channel info',
                     headers={'Authorization': f'Bearer {self._TOKEN}'})
                 channel_data = traverse_obj(channel_json, ('ex_content', {
@@ -112,7 +113,7 @@ class AsobiStageIE(InfoExtractor):
                 }))
             elif video_type_name == 'player':
                 channel_json = self._download_json(
-                    f'https://survapi.channel.or.jp/ex/events/{channel_id}', f'{video_id}/{channel_id}',
+                    f'https://survapi.channel.or.jp/ex/events/{channel_id}', entry_id,
                     note='Getting live channel info', errnote='Unable to get live channel info',
                     headers={'Authorization': f'Bearer {self._TOKEN}'}, query={'embed': 'channel'})
                 channel_data = traverse_obj(channel_json, ('data', {
@@ -123,13 +124,13 @@ class AsobiStageIE(InfoExtractor):
 
             m3u8_url = channel_data.get('m3u8_url')
             if not m3u8_url:
-                self.report_warning('Unable to get channel m3u8 url', video_id)
+                self.report_warning('Unable to get channel m3u8 url', entry_id)
                 continue
 
             entries.append({
-                'id': channel_id,
+                'id': entry_id,
                 'title': channel_data.get('title'),
-                'formats': self._extract_m3u8_formats(m3u8_url, video_id=f'{video_id}/{channel_id}', fatal=False),
+                'formats': self._extract_m3u8_formats(m3u8_url, entry_id, fatal=False),
                 'is_live': video_type_id == 'broadcasts',
                 'thumbnail': channel_data.get('thumbnail'),
             })
