@@ -45,7 +45,7 @@ from websockets.uri import parse_uri
 # where the recv events handler thread tries to use these attributes before they are defined [2].
 # 1: https://github.com/python-websockets/websockets/blame/de768cf65e7e2b1a3b67854fb9e08816a5ff7050/src/websockets/sync/connection.py#L93
 # 2: "AttributeError: 'ClientConnection' object has no attribute 'recv_events_exc'. Did you mean: 'recv_events'?"
-import websockets.sync.connection  # isort: skip
+import websockets.sync.connection  # isort: split
 with contextlib.suppress(Exception):
     # > 12.0
     websockets.sync.connection.Connection.recv_exc = None
