@@ -71,9 +71,7 @@ class AsobiStageIE(InfoExtractor):
         video_type_id = {
             'archive': 'archives',
             'player': 'broadcasts',
-        }.get(video_type_name)
-        if not video_type_id:
-            raise ExtractorError('Unknown video type')
+        }[video_type_name]
 
         event_data = self._search_nextjs_data(webpage, video_id)
         event_id = traverse_obj(event_data, ('query', 'event', {str}))
