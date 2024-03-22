@@ -129,11 +129,6 @@ class AsobiStageIE(InfoExtractor):
                 'thumbnail': channel_data.get('thumbnail'),
             })
 
-        return {
-            '_type': 'playlist',
-            'id': video_id,
-            'title': event_title,
-            'entries': entries,
-            'thumbnail': traverse_obj(
-                event_data, ('props', 'pageProps', 'eventCMSData', 'event_thumbnail_image', {url_or_none})),
-        }
+        return self.playlist_result(
+            entries, video_id, event_title, thumbnail=traverse_obj(
+                event_data, ('props', 'pageProps', 'eventCMSData', 'event_thumbnail_image', {url_or_none})))
