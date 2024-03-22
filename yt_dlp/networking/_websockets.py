@@ -39,7 +39,7 @@ if websockets_version < (12, 0):
 import websockets.sync.client
 from websockets.uri import parse_uri
 
-with contextlib.suppress(AttributeError):
+with contextlib.suppress(Exception):
     # In websockets Connection, recv_exc and recv_events_exc are defined
     # after the recv events handler thread is started [1].
     # On our CI using PyPy, in some cases a race condition may occur
