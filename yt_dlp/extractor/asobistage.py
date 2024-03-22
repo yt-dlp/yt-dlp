@@ -5,7 +5,7 @@ from ..utils.traversal import traverse_obj
 
 class AsobiStageIE(InfoExtractor):
     IE_DESC = 'ASOBISTAGE (アソビステージ)'
-    _VALID_URL = r'https://asobistage\.asobistore\.jp/event/(?P<id>\w+/(?P<type>\w+)/\w+)(?:[?#]|$)'
+    _VALID_URL = r'https?://asobistage\.asobistore\.jp/event/(?P<id>\w+/(?P<type>\w+)/\w+)(?:[?#]|$)'
     _TESTS = [{
         'url': 'https://asobistage.asobistore.jp/event/315passionhour_2022summer/archive/frame',
         'info_dict': {
@@ -97,10 +97,8 @@ class AsobiStageIE(InfoExtractor):
         if not owned_tickets.intersection(available_tickets):
             raise ExtractorError('No valid ticket for this event', expected=True)
 
-        channel_ids = traverse_obj(available_channels, (..., 'chennel_vspf_id', {str}))
-
         entries = []
-        for channel_id in channel_ids:
+        for channel_id in traverse_obj(available_channels, (..., 'chennel_vspf_id', {str})):
             channel_data = {}
 
             if video_type_name == 'archive':
