@@ -122,15 +122,10 @@ class AsobiStageIE(InfoExtractor):
                     'thumbnail': 'Poster_url',
                 }))
 
-            m3u8_url = channel_data.get('m3u8_url')
-            if not m3u8_url:
-                self.report_warning('Unable to get channel m3u8 url', entry_id)
-                continue
-
             entries.append({
                 'id': entry_id,
                 'title': channel_data.get('title'),
-                'formats': self._extract_m3u8_formats(m3u8_url, entry_id, fatal=False),
+                'formats': self._extract_m3u8_formats(channel_data.get('m3u8_url'), entry_id, fatal=False),
                 'is_live': video_type_id == 'broadcasts',
                 'thumbnail': channel_data.get('thumbnail'),
             })
