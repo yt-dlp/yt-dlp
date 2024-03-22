@@ -41,7 +41,7 @@ class AsobiStageIE(InfoExtractor):
         check_login_json = self._download_json(
             'https://asobistage-api.asobistore.jp/api/v1/check_login', video_id, expected_status=400,
             note='Checking login status', errnote='Unable to check login status')
-        error = traverse_obj(check_login_json, ('payload', 'error_message'), ('error'), get_all=False)
+        error = traverse_obj(check_login_json, ('payload', 'error_message'), ('error'), expected_type=str)
 
         if not error:
             return
