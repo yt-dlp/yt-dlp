@@ -35,11 +35,11 @@ class AsobiStageIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    _TOKEN = ''
+    _TOKEN = None
 
     def _check_login(self, video_id):
         check_login_json = self._download_json(
-            'https://asobistage-api.asobistore.jp/api/v1/check_login', video_id, expected_status=(400),
+            'https://asobistage-api.asobistore.jp/api/v1/check_login', video_id, expected_status=400,
             note='Checking login status', errnote='Unable to check login status')
         error = traverse_obj(check_login_json, ('payload', 'error_message'), ('error'), get_all=False)
 
@@ -47,8 +47,7 @@ class AsobiStageIE(InfoExtractor):
             return
         elif error == 'notlogin':
             self.raise_login_required()
-        else:
-            raise ExtractorError(f'Unknown error: {error!r}')
+        raise ExtractorError(f'Unknown error: {error!r}')
 
     def _get_owned_tickets(self, video_id):
         for url, name in [
