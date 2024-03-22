@@ -59,14 +59,18 @@ class InstagramBaseIE(InfoExtractor):
             self._LOGIN_URL, None, note='Downloading login webpage', errnote='Failed to download login webpage')
 
         shared_data = self._parse_json(self._search_regex(
-            r'window\._sharedData\s*=\s*({.+?});', login_webpage, 'shared data', default='{}'), None)
+            r'\["XIGSharedData",\s*\[\],\s*({.+?}),\d+\]', login_webpage, 'shared data', default='{}'), None)
+        if shared_data.get('native', {}).get('config', {}).get('csrf_token'):
+            shared_data = shared_data['native']
+        else:
+            shared_data = json.loads(shared_data.get('raw', '{}'))
 
         login = self._download_json(
             f'{self._LOGIN_URL}/ajax/', None, note='Logging in', headers={
                 **self._API_HEADERS,
                 'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRFToken': shared_data['config']['csrf_token'],
-                'X-Instagram-AJAX': shared_data['rollout_hash'],
+                'X-CSRFToken': shared_data.get('config', {}).get('csrf_token'),
+                'X-Instagram-AJAX': shared_data.get('rollout_hash'),
                 'Referer': 'https://www.instagram.com/',
             }, data=urlencode_postdata({
                 'enc_password': f'#PWD_INSTAGRAM_BROWSER:0:{int(time.time())}:{password}',
