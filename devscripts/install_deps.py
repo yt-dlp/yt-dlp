@@ -19,7 +19,7 @@ def parse_args():
     parser.add_argument(
         'input', nargs='?', metavar='TOMLFILE', default='pyproject.toml', help='Input file (default: %(default)s)')
     parser.add_argument(
-        '-e', '--exclude', metavar='REQUIREMENT', action='append', help='Exclude a required dependency')
+        '-e', '--exclude', metavar='DEPENDENCY', action='append', help='Exclude a dependency')
     parser.add_argument(
         '-i', '--include', metavar='GROUP', action='append', help='Include an optional dependency group')
     parser.add_argument(
@@ -33,21 +33,28 @@ def parse_args():
 
 def main():
     args = parse_args()
-    toml_data = parse_toml(read_file(args.input))
-    deps = toml_data['project']['dependencies']
-    targets = deps.copy() if not args.only_optional else []
+    project_table = parse_toml(read_file(args.input))['project']
+    optional_groups = project_table['optional-dependencies']
+    excludes = args.exclude or []
 
-    for exclude in args.exclude or []:
-        for dep in deps:
-            simplified_dep = re.match(r'[\w-]+', dep)[0]
-            if dep in targets and (exclude.lower() == simplified_dep.lower() or exclude == dep):
-                targets.remove(dep)
+    deps = []
+    if not args.only_optional:  # `-o` should exclude 'dependencies' and the 'default' group
+        deps.extend(project_table['dependencies'])
+        if 'default' not in excludes:  # `--exclude default` should exclude entire 'default' group
+            deps.extend(optional_groups['default'])
 
-    optional_deps = toml_data['project']['optional-dependencies']
-    for include in args.include or []:
-        group = optional_deps.get(include)
-        if group:
-            targets.extend(group)
+    def name(dependency):
+        return re.match(r'[\w-]+', dependency)[0].lower()
+
+    target_map = {name(dep): dep for dep in deps}
+
+    for include in filter(None, map(optional_groups.get, args.include or [])):
+        target_map.update(zip(map(name, include), include))
+
+    for exclude in map(name, excludes):
+        target_map.pop(exclude, None)
+
+    targets = list(target_map.values())
 
     if args.print:
         for target in targets:

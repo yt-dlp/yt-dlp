@@ -21,8 +21,6 @@ class TVerIE(InfoExtractor):
             'episode': '売り場席巻のチーズSP＆財前直見×森泉親子の脱東京暮らし密着！',
             'alt_title': '売り場席巻のチーズSP＆財前直見×森泉親子の脱東京暮らし密着！',
             'channel': 'テレビ朝日',
-            'onair_label': '5月3日(火)放送分',
-            'ext_title': '家事ヤロウ!!! 売り場席巻のチーズSP＆財前直見×森泉親子の脱東京暮らし密着！ テレビ朝日 5月3日(火)放送分',
         },
         'add_ie': ['BrightcoveNew'],
     }, {

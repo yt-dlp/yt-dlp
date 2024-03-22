@@ -7,6 +7,7 @@ from ..utils import (
 
 
 class ProjectVeritasIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?projectveritas\.com/(?P<type>news|video)/(?P<id>[^/?#]+)'
     _TESTS = [{
         'url': 'https://www.projectveritas.com/news/exclusive-inside-the-new-york-and-new-jersey-hospitals-battling-coronavirus/',

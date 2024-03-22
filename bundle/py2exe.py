@@ -20,7 +20,7 @@ def main():
         'py2exe builds do not support pycryptodomex and needs VC++14 to run. '
         'It is recommended to run "pyinst.py" to build using pyinstaller instead')
 
-    return freeze(
+    freeze(
         console=[{
             'script': './yt_dlp/__main__.py',
             'dest_base': 'yt-dlp',
@@ -28,7 +28,7 @@ def main():
         }],
         version_info={
             'version': VERSION,
-            'description': 'A youtube-dl fork with additional features and patches',
+            'description': 'A feature-rich command-line audio/video downloader',
             'comments': 'Official repository: <https://github.com/yt-dlp/yt-dlp>',
             'product_name': 'yt-dlp',
             'product_version': VERSION,
