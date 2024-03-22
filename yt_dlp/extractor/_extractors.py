@@ -1651,6 +1651,7 @@ from .rtlnl import (
     RTLLuRadioIE,
 )
 from .rtl2 import RTL2IE
+from .rtlplus_podcast import RtlPlusPodcastExtractorIE
 from .rtnews import (
     RTNewsIE,
     RTDocumentryIE,
