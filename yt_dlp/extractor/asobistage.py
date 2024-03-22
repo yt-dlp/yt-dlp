@@ -126,7 +126,7 @@ class AsobiStageIE(InfoExtractor):
                 'title': channel_data.get('title'),
                 'formats': self._extract_m3u8_formats(channel_data.get('m3u8_url'), entry_id, fatal=False),
                 'is_live': video_type_id == 'broadcasts',
-                'thumbnail': channel_data.get('thumbnail'),
+                'thumbnail': url_or_none(channel_data.get('thumbnail')),
             })
 
         return self.playlist_result(
