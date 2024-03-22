@@ -1,164 +1,78 @@
-import functools
-import json
-
+import re
 from .common import InfoExtractor
 from ..utils import (
-    ExtractorError,
-    OnDemandPagedList,
-    determine_ext,
-    int_or_none,
-    try_get,
+    urlencode_postdata,
+    extract_attributes
 )
 
 
 class MurrtubeIE(InfoExtractor):
-    _WORKING = False
     _VALID_URL = r'''(?x)
                         (?:
                             murrtube:|
-                            https?://murrtube\.net/videos/(?P<slug>[a-z0-9\-]+)\-
+                            https?://murrtube\.net/v/|
+                            https?://murrtube\.net/videos/(?P<slug>[a-z0-9\-]+?)\-
                         )
-                        (?P<id>[a-f0-9]{8}\-[a-f0-9]{4}\-[a-f0-9]{4}\-[a-f0-9]{4}\-[a-f0-9]{12})
+                        (?P<id>[A-Z0-9]{4}|[a-f0-9]{8}\-[a-f0-9]{4}\-[a-f0-9]{4}\-[a-f0-9]{4}\-[a-f0-9]{12})
                     '''
-    _TEST = {
-        'url': 'https://murrtube.net/videos/inferno-x-skyler-148b6f2a-fdcc-4902-affe-9c0f41aaaca0',
-        'md5': '169f494812d9a90914b42978e73aa690',
-        'info_dict': {
-            'id': '148b6f2a-fdcc-4902-affe-9c0f41aaaca0',
-            'ext': 'mp4',
-            'title': 'Inferno X Skyler',
-            'description': 'Humping a very good slutty sheppy (roomate)',
-            'thumbnail': r're:^https?://.*\.jpg$',
-            'duration': 284,
-            'uploader': 'Inferno Wolf',
-            'age_limit': 18,
-            'comment_count': int,
-            'view_count': int,
-            'like_count': int,
-            'tags': ['hump', 'breed', 'Fursuit', 'murrsuit', 'bareback'],
-        }
-    }
 
-    def _download_gql(self, video_id, op, note=None, fatal=True):
-        result = self._download_json(
-            'https://murrtube.net/graphql',
-            video_id, note, data=json.dumps(op).encode(), fatal=fatal,
-            headers={'Content-Type': 'application/json'})
-        return result['data']
+    _TESTS = [
+        {
+            "url": "https://murrtube.net/videos/inferno-x-skyler-148b6f2a-fdcc-4902-affe-9c0f41aaaca0",
+            "md5": "70380878a77e8565d4aea7f68b8bbb35",
+            "info_dict": {
+                "id": "ca885d8456b95de529b6723b158032e11115d",
+                "ext": "mp4",
+                "title": "Inferno X Skyler",
+                "description": "Humping a very good slutty sheppy (roomate)",
+                "uploader": "Inferno Wolf",
+                "age_limit": 18,
+                "thumbnail": "https://storage.murrtube.net/murrtube-production/ekbs3zcfvuynnqfx72nn2tkokvsd"
+            },
+        },
+        {
+            "url": "https://murrtube.net/v/0J2Q",
+            "md5": "31262f6ac56f0ca75e5a54a0f3fefcb6",
+            "info_dict": {
+                "id": "8442998c52134968d9caa36e473e1a6bac6ca",
+                "ext": "mp4",
+                "uploader": "Hayel",
+                "title": "Who's in charge now?",
+                "description": """Fenny sneaked into my bed room and played naughty with one of my plushies. I caught him in the act and wanted to punish him. He thought he was in charge and wanted to use me instead but he wasn't prepared on my butt milking him within just a minute. Fenny: @fenny_ad (both here and on Twitter) Hayel on Twitter: https://twitter.com/plushmods""",
+                "age_limit": 18,
+                "thumbnail": "https://storage.murrtube.net/murrtube-production/fb1ojjwiucufp34ya6hxu5vfqi5s"
+            }
+        }
+    ]
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
-        data = self._download_gql(video_id, {
-            'operationName': 'Medium',
-            'variables': {
-                'id': video_id,
-            },
-            'query': '''\
-query Medium($id: ID!) {
-  medium(id: $id) {
-    title
-    description
-    key
-    duration
-    commentsCount
-    likesCount
-    viewsCount
-    thumbnailKey
-    tagList
-    user {
-      name
-      __typename
-    }
-    __typename
-  }
-}'''})
-        meta = data['medium']
-
-        storage_url = 'https://storage.murrtube.net/murrtube/'
-        format_url = storage_url + meta.get('key', '')
-        thumbnail = storage_url + meta.get('thumbnailKey', '')
-
-        if determine_ext(format_url) == 'm3u8':
-            formats = self._extract_m3u8_formats(
-                format_url, video_id, 'mp4', entry_protocol='m3u8_native', fatal=False)
-        else:
-            formats = [{'url': format_url}]
-
+        video_id = self._match_valid_url(url)
+        # TODO: This part could be smarter (Set and store age cookie?)
+        video_page = self._download_webpage(
+            'https://murrtube.net', None, note='Getting session token')
+        data = self._hidden_inputs(video_page)
+        self._download_webpage(
+            'https://murrtube.net/accept_age_check', None, 'Set age cookie', data=urlencode_postdata(data))
+        video_page = self._download_webpage(url, None)
+        video_attrs = extract_attributes(self._search_regex(r'(<video[^>]+>)', video_page, 'video'))
+        playlist = video_attrs['data-url'].split('?')[0]
+        matches = re.compile(r'https://storage.murrtube.net/murrtube-production/.+/(?P<id>.+)/index.m3u8').match(playlist).groupdict()
+        video_id = matches['id']
+        formats = self._extract_m3u8_formats(playlist, video_id, 'mp4', entry_protocol='m3u8_native', fatal=False)
+        title = self._html_search_meta(
+            'og:title', video_page, display_name='title', fatal=True)[:-11]
+        description = self._html_search_meta(
+            'og:description', video_page, display_name='description', fatal=True)
+        thumbnail = self._html_search_meta(
+            'og:image', video_page, display_name='thumbnail', fatal=True).split("?")[0]
+        uploader = self._html_search_regex(
+            r'<span class="pl-1 is-size-6 has-text-lighter">(.+?)</span>', video_page, 'uploader', default=None)
         return {
             'id': video_id,
-            'title': meta.get('title'),
-            'description': meta.get('description'),
-            'formats': formats,
-            'thumbnail': thumbnail,
-            'duration': int_or_none(meta.get('duration')),
-            'uploader': try_get(meta, lambda x: x['user']['name']),
-            'view_count': meta.get('viewsCount'),
-            'like_count': meta.get('likesCount'),
-            'comment_count': meta.get('commentsCount'),
-            'tags': meta.get('tagList'),
+            'title': title,
             'age_limit': 18,
+            'formats': formats,
+            'description': description,
+            'thumbnail': thumbnail,
+            'uploader': uploader,
         }
-
-
-class MurrtubeUserIE(MurrtubeIE):  # XXX: Do not subclass from concrete IE
-    _WORKING = False
-    IE_DESC = 'Murrtube user profile'
-    _VALID_URL = r'https?://murrtube\.net/(?P<id>[^/]+)$'
-    _TEST = {
-        'url': 'https://murrtube.net/stormy',
-        'info_dict': {
-            'id': 'stormy',
-        },
-        'playlist_mincount': 27,
-    }
-    _PAGE_SIZE = 10
-
-    def _fetch_page(self, username, user_id, page):
-        data = self._download_gql(username, {
-            'operationName': 'Media',
-            'variables': {
-                'limit': self._PAGE_SIZE,
-                'offset': page * self._PAGE_SIZE,
-                'sort': 'latest',
-                'userId': user_id,
-            },
-            'query': '''\
-query Media($q: String, $sort: String, $userId: ID, $offset: Int!, $limit: Int!) {
-  media(q: $q, sort: $sort, userId: $userId, offset: $offset, limit: $limit) {
-    id
-    __typename
-  }
-}'''},
-            'Downloading page {0}'.format(page + 1))
-        if data is None:
-            raise ExtractorError(f'Failed to retrieve video list for page {page + 1}')
-
-        media = data['media']
-
-        for entry in media:
-            yield self.url_result('murrtube:{0}'.format(entry['id']), MurrtubeIE.ie_key())
-
-    def _real_extract(self, url):
-        username = self._match_id(url)
-        data = self._download_gql(username, {
-            'operationName': 'User',
-            'variables': {
-                'id': username,
-            },
-            'query': '''\
-query User($id: ID!) {
-  user(id: $id) {
-    id
-    __typename
-  }
-}'''},
-            'Downloading user info')
-        if data is None:
-            raise ExtractorError('Failed to fetch user info')
-
-        user = data['user']
-
-        entries = OnDemandPagedList(functools.partial(
-            self._fetch_page, username, user.get('id')), self._PAGE_SIZE)
-
-        return self.playlist_result(entries, username)
