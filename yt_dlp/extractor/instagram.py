@@ -8,6 +8,7 @@ from .common import InfoExtractor
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
+    UserNotLive,
     decode_base_n,
     encode_base_n,
     filter_dict,
@@ -733,3 +734,59 @@ class InstagramStoryIE(InstagramBaseIE):
                     **filter_dict(highlight_data),
                 })
         return self.playlist_result(info_data, playlist_id=story_id, playlist_title=story_title)
+
+
+class InstagramLiveIE(InstagramBaseIE):
+    _VALID_URL = r'https?://(?:www\.)?instagram\.com/(?P<user>[^/]+)/live(?:/|/(?P<id>\d+))?'
+    IE_NAME = 'instagram:live'
+
+    _TESTS = [{
+        'url': 'https://www.instagram.com/answer/live/42',
+        'only_matching': True,
+    }]
+
+    def _real_extract(self, url):
+        username, video_id = self._match_valid_url(url).groups()
+        video_id = video_id or username
+
+        metadata_str = self._html_search_regex(
+            r'data-sjs>({.*?ScheduledServerJS.*?target_user_id.*?})</script>',
+            self._download_webpage(url, video_id), 'live metadata', default=None)
+        if not metadata_str:
+            raise UserNotLive(video_id=video_id)
+
+        metadata = self._parse_json(metadata_str, video_id)
+
+        target_user_id = traverse_obj(
+            metadata,
+            ('require', ..., ..., ..., '__bbox', 'require', ..., ..., ..., 'rootView', 'props', 'target_user_id', {str}),
+            ('require', ..., ..., ..., '__bbox', 'require', ..., ..., ..., 'hostableView', 'props', 'target_user_id', {str}),
+            get_all=False)
+        if not target_user_id:
+            raise ExtractorError('Missing "target_user_id" in metadata')
+
+        app_id = traverse_obj(
+            metadata,
+            ('require', ..., ..., ..., '__bbox', 'define', ..., ..., 'customHeaders', 'X-IG-App-ID', {str}),
+            ('require', ..., ..., ..., '__bbox', 'define', ..., ..., 'appId', {int}),
+            ('require', ..., ..., ..., '__bbox', 'define', ..., ..., 'APP_ID', {str}),
+            ('require', ..., ..., ..., '__bbox', 'define', ..., ..., 'app_id', {str}),
+            get_all=False)
+        if not app_id:
+            raise ExtractorError('Missing "app_id" in metadata')
+
+        web_info_json = self._download_json(
+            'https://www.instagram.com/api/v1/live/web_info/', video_id,
+            query={'target_user_id': target_user_id}, headers={'x-ig-app-id': app_id},
+            note='Downloading web_info', errnote='Unable to download web_info')
+
+        video_id = traverse_obj(web_info_json, ('id'))
+
+        return {
+            'id': video_id,
+            'formats': self._extract_mpd_formats(
+                traverse_obj(web_info_json, ('dash_abr_playback_url', {url_or_none})), video_id),
+            'uploader': traverse_obj(web_info_json, ('broadcast_owner', 'full_name')),
+            'uploader_id': username,
+            'live_status': 'is_live',
+        }
