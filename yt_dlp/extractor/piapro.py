@@ -88,25 +88,19 @@ class PiaproIE(InfoExtractor):
         if category_id not in ('1', '2', '21', '22', '23', '24', '25'):
             raise ExtractorError('The URL does not contain audio.', expected=True)
 
-        str_duration, str_filesize = self._search_regex(
-            r'サイズ：</span>(.+?)/\(([0-9,]+?[KMG]?B)）', webpage, 'duration and size',
-            group=(1, 2), default=(None, None))
-        str_viewcount = self._search_regex(r'閲覧数：</span>([0-9,]+)\s+', webpage, 'view count', fatal=False)
+        str_duration = self._search_regex(r'長さ：\s*(.+?)</p>', webpage, 'duration')
+        str_filesize = self._search_regex(r'サイズ：\s*([0-9.]+?[KMG]?B)', webpage, 'size')
+        str_viewcount = self._search_regex(r'閲覧数：\s*([0-9,]+)\s*</p>', webpage, 'view count', fatal=False)
 
-        uploader_id, uploader = self._search_regex(
-            r'<a\s+class="cd_user-name"\s+href="/(.*)">([^<]+)さん<', webpage, 'uploader',
-            group=(1, 2), default=(None, None))
-        content_id = self._search_regex(r'contentId\:\'(.+)\'', webpage, 'content ID')
-        create_date = self._search_regex(r'createDate\:\'(.+)\'', webpage, 'timestamp')
+        uploader_id = self._search_regex(r'<div\s+class="contents_creator">\s*<a\s+href="/(.*)"', webpage, 'uploader_id')
+        uploader = self._search_regex(r'class="contents_creator_txt">(.*)</p', webpage, 'uploader')
 
-        player_webpage = self._download_webpage(
-            f'https://piapro.jp/html5_player_popup/?id={content_id}&cdate={create_date}',
-            video_id, note='Downloading player webpage')
+        create_date = self._search_regex(r'投稿日：\s*(.+)</p>', webpage, 'timestamp')
 
         return {
             'id': video_id,
-            'title': self._html_search_regex(r'<h1\s+class="cd_works-title">(.+?)</h1>', webpage, 'title', fatal=False),
-            'description': self._html_search_regex(r'(?s)<p\s+class="cd_dtl_cap">(.+?)</p>\s*<div', webpage, 'description', fatal=False),
+            'title': self._html_search_regex(r'<h1\s+class="contents_title">(.+?)</h1>', webpage, 'title', fatal=False),
+            'description': self._html_search_regex(r'(?s)<div\s+class="contents_description">(.+?)</div>\s*<div', webpage, 'description', fatal=False),
             'uploader': uploader,
             'uploader_id': uploader_id,
             'timestamp': unified_timestamp(create_date, False),
@@ -115,7 +109,7 @@ class PiaproIE(InfoExtractor):
             'thumbnail': self._html_search_meta('twitter:image', webpage),
 
             'filesize_approx': parse_filesize(str_filesize.replace(',', '')),
-            'url': self._search_regex(r'mp3:\s*\'(.*?)\'\}', player_webpage, 'url'),
+            'url': self._search_regex(r'\"url\":\s*\"(.*?)\"', webpage, 'url'),
             'ext': 'mp3',
             'vcodec': 'none',
         }
