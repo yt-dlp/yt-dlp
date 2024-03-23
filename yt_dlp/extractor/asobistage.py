@@ -1,11 +1,13 @@
+import functools
+
 from .common import InfoExtractor
-from ..utils import ExtractorError, str_or_none, url_or_none
+from ..utils import str_or_none, url_or_none
 from ..utils.traversal import traverse_obj
 
 
 class AsobiStageIE(InfoExtractor):
     IE_DESC = 'ASOBISTAGE (アソビステージ)'
-    _VALID_URL = r'https?://asobistage\.asobistore\.jp/event/(?P<id>\w+/(?P<type>archive|player)/\w+)(?:[?#]|$)'
+    _VALID_URL = r'https?://asobistage\.asobistore\.jp/event/(?P<id>(?P<event>\w+)/(?P<type>archive|player)/(?P<slug>\w+))(?:[?#]|$)'
     _TESTS = [{
         'url': 'https://asobistage.asobistore.jp/event/315passionhour_2022summer/archive/frame',
         'info_dict': {
@@ -16,7 +18,7 @@ class AsobiStageIE(InfoExtractor):
         'playlist_count': 1,
         'playlist': [{
             'info_dict': {
-                'id': '315passionhour_2022summer/archive/frame/edff52f2',
+                'id': 'edff52f2',
                 'ext': 'mp4',
                 'title': '315passion_FRAME_only',
                 'thumbnail': r're:^https?://[\w.-]+/\w+/\w+',
@@ -32,7 +34,7 @@ class AsobiStageIE(InfoExtractor):
         'playlist_count': 1,
         'playlist': [{
             'info_dict': {
-                'id': 'idolmaster_idolworld2023_goods/archive/live/3aef7110',
+                'id': '3aef7110',
                 'ext': 'mp4',
                 'title': 'asobistore_station_1020_serverREC',
                 'thumbnail': r're:^https?://[\w.-]+/\w+/\w+',
@@ -43,98 +45,106 @@ class AsobiStageIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    _TOKEN = None
+    _API_HOST = 'https://asobistage-api.asobistore.jp'
+    _TOKEN_HEADER = None
+    _is_logged_in = False
 
-    def _check_login(self, video_id):
-        check_login_json = self._download_json(
-            'https://asobistage-api.asobistore.jp/api/v1/check_login', video_id, expected_status=400,
-            note='Checking login status', errnote='Unable to check login status')
-        error = traverse_obj(check_login_json, ('payload', 'error_message'), ('error'), expected_type=str)
+    @functools.cached_property
+    def _owned_tickets(self):
+        owned_tickets = set()
+        if not self._is_logged_in:
+            return owned_tickets
 
-        if not error:
-            return
-        elif error == 'notlogin':
-            self.raise_login_required()
-        raise ExtractorError(f'Unknown error: {error!r}')
-
-    def _get_owned_tickets(self, video_id):
-        for url, name in [
-            ('https://asobistage-api.asobistore.jp/api/v1/purchase_history/list', 'ticket purchase history'),
-            ('https://asobistage-api.asobistore.jp/api/v1/serialcode/list', 'redemption history'),
+        for path, name in [
+            ('api/v1/purchase_history/list', 'ticket purchase history'),
+            ('api/v1/serialcode/list', 'redemption history'),
         ]:
-            yield from traverse_obj(self._download_json(
-                url, video_id, note=f'Downloading {name}', errnote=f'Unable to download {name}'),
-                ('payload', 'value', ..., 'digital_product_id', {str}))
+            response = self._download_json(
+                f'{self._API_HOST}/{path}', None, f'Downloading {name}',
+                f'Unable to download {name}', expected_status=400)
+            if traverse_obj(response, ('payload', 'error_message'), ('error')) == 'notlogin':
+                self._is_logged_in = False
+                break
+            owned_tickets.update(
+                traverse_obj(response, ('payload', 'value', ..., 'digital_product_id', {str_or_none})))
+
+        return owned_tickets
+
+    def _get_available_channel_id(self, channel):
+        channel_id = traverse_obj(channel, ('chennel_vspf_id', {str}))
+        # if rights_type_id == 6, then 'No conditions (no login required - non-members are OK)'
+        if traverse_obj(channel, ('viewrights', lambda _, v: v['rights_type_id'] == 6)):
+            return channel_id
+        available_tickets = traverse_obj(channel, (
+            'viewrights', ..., ('tickets', 'serialcodes'), ..., 'digital_product_id', {str_or_none}))
+        if not self._owned_tickets.intersection(available_tickets):
+            self.report_warning(
+                f'You are not a ticketholder for "{channel.get("channel_name") or channel_id}"')
+            return
+        return channel_id
 
     def _real_initialize(self):
-        self._TOKEN = self._download_json(
-            'https://asobistage-api.asobistore.jp/api/v1/vspf/token', None,
-            note='Getting token', errnote='Unable to get token')
+        if self._get_cookies(self._API_HOST):
+            self._is_logged_in = True
+        token = self._download_json(
+            f'{self._API_HOST}/api/v1/vspf/token', None, 'Getting token', 'Unable to get token')
+        self._TOKEN_HEADER = {'Authorization': f'Bearer {token}'}
 
     def _real_extract(self, url):
-        video_id, video_type_name = self._match_valid_url(url).group('id', 'type')
-        self._check_login(video_id)
+        video_id, event, type_, slug = self._match_valid_url(url).group('id', 'event', 'type', 'slug')
+        video_type = {'archive': 'archives', 'player': 'broadcasts'}[type_]
         webpage = self._download_webpage(url, video_id)
+        event_data = traverse_obj(
+            self._search_nextjs_data(webpage, video_id, default='{}'),
+            ('props', 'pageProps', 'eventCMSData', {
+                'title': ('event_name', {str}),
+                'thumbnail': ('event_thumbnail_image', {url_or_none}),
+            }))
 
-        video_type_id = {
-            'archive': 'archives',
-            'player': 'broadcasts',
-        }[video_type_name]
-
-        event_data = self._search_nextjs_data(webpage, video_id)
-        event_id = traverse_obj(event_data, ('query', 'event', {str}))
-        event_slug = traverse_obj(event_data, ('query', 'player_slug', {str}))
-        event_title = traverse_obj(event_data, ('props', 'pageProps', 'eventCMSData', 'event_name', {str}))
-        if not all((event_id, event_slug, event_title)):
-            raise ExtractorError('Unable to get required event data')
-
-        channels_json = self._download_json(
-            f'https://asobistage.asobistore.jp/cdn/v101/events/{event_id}/{video_type_id}.json', video_id,
-            fatal=False, note='Getting channel list', errnote='Unable to get channel list')
-        available_channels = traverse_obj(channels_json, (
-            video_type_id, lambda _, v: v['broadcast_slug'] == event_slug, 'channels',
-            lambda _, v: v['chennel_vspf_id'] != '00000', {dict}))
-
-        owned_tickets = set(self._get_owned_tickets(video_id))
-        available_tickets = traverse_obj(
-            available_channels, (..., 'viewrights', ..., 'tickets', ..., 'digital_product_id', {str_or_none}))
-        if not owned_tickets.intersection(available_tickets):
-            raise ExtractorError('No valid ticket for this event', expected=True)
+        available_channels = traverse_obj(self._download_json(
+            f'https://asobistage.asobistore.jp/cdn/v101/events/{event}/{video_type}.json',
+            video_id, 'Getting channel list', 'Unable to get channel list'), (
+            video_type, lambda _, v: v['broadcast_slug'] == slug,
+            'channels', lambda _, v: v['chennel_vspf_id'] != '00000'))
 
         entries = []
-        for channel_id in traverse_obj(available_channels, (..., 'chennel_vspf_id', {str})):
-            entry_id = f'{video_id}/{channel_id}'
+        for channel_id in traverse_obj(available_channels, (..., {self._get_available_channel_id})):
             channel_data = {}
 
-            if video_type_name == 'archive':
+            if video_type == 'archives':
                 channel_json = self._download_json(
-                    f'https://survapi.channel.or.jp/proxy/v1/contents/{channel_id}/get_by_cuid', entry_id,
-                    note='Getting archive channel info', errnote='Unable to get archive channel info',
-                    headers={'Authorization': f'Bearer {self._TOKEN}'})
+                    f'https://survapi.channel.or.jp/proxy/v1/contents/{channel_id}/get_by_cuid', channel_id,
+                    'Getting archive channel info', 'Unable to get archive channel info', fatal=False,
+                    headers=self._TOKEN_HEADER)
                 channel_data = traverse_obj(channel_json, ('ex_content', {
                     'm3u8_url': 'streaming_url',
                     'title': 'title',
                     'thumbnail': ('thumbnail', 'url'),
                 }))
-            elif video_type_name == 'player':
+            elif video_type == 'broadcasts':
                 channel_json = self._download_json(
-                    f'https://survapi.channel.or.jp/ex/events/{channel_id}', entry_id,
-                    note='Getting live channel info', errnote='Unable to get live channel info',
-                    headers={'Authorization': f'Bearer {self._TOKEN}'}, query={'embed': 'channel'})
+                    f'https://survapi.channel.or.jp/ex/events/{channel_id}', channel_id,
+                    'Getting live channel info', 'Unable to get live channel info', fatal=False,
+                    headers=self._TOKEN_HEADER, query={'embed': 'channel'})
                 channel_data = traverse_obj(channel_json, ('data', {
                     'm3u8_url': ('Channel', 'Custom_live_url'),
                     'title': 'Name',
                     'thumbnail': 'Poster_url',
                 }))
 
+            if not url_or_none(channel_data.get('m3u8_url')):
+                self.report_warning(f'Skipping "{video_id}/{channel_id}", m3u8 URL not found')
+                continue
+
             entries.append({
-                'id': entry_id,
+                'id': channel_id,
                 'title': channel_data.get('title'),
-                'formats': self._extract_m3u8_formats(channel_data.get('m3u8_url'), entry_id, fatal=False),
-                'is_live': video_type_id == 'broadcasts',
+                'formats': self._extract_m3u8_formats(channel_data['m3u8_url'], channel_id, fatal=False),
+                'is_live': video_type == 'broadcasts',
                 'thumbnail': url_or_none(channel_data.get('thumbnail')),
             })
 
-        return self.playlist_result(
-            entries, video_id, event_title, thumbnail=traverse_obj(
-                event_data, ('props', 'pageProps', 'eventCMSData', 'event_thumbnail_image', {url_or_none})))
+        if not self._is_logged_in and not entries:
+            self.raise_login_required()
+
+        return self.playlist_result(entries, video_id, **event_data)
