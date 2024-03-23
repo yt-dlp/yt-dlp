@@ -29,6 +29,17 @@ class RTPIE(InfoExtractor):
         \s*\.\s*join\(\s*(?:""|'')\s*\)\s*\)\s*\)
     ''')
 
+    __HEADERS = {
+        'Referer': 'https://www.rtp.pt/',
+        'Origin': 'https://www.rtp.pt',
+        'Accept': '*/*',
+        'Accept-Language': 'pt,en-US;q=0.7,en;q=0.3',
+        'Sec-Fetch-Dest': 'empty',
+        'Sec-Fetch-Mode': 'cors',
+        'Sec-Fetch-Site': 'same-site',
+        'Sec-GPC': '1',
+    }
+
     def __unobfuscate(self, data, *, video_id):
         if data.startswith('{'):
             data = self._RX_OBFUSCATION.sub(
@@ -65,11 +76,12 @@ class RTPIE(InfoExtractor):
             f_hls = f.get('hls')
             if f_hls is not None:
                 formats.extend(self._extract_m3u8_formats(
-                    f_hls, video_id, 'mp4', 'm3u8_native', m3u8_id='hls'))
+                    f_hls, video_id, 'mp4', 'm3u8_native', m3u8_id='hls', headers=self.__HEADERS))
 
             f_dash = f.get('dash')
             if f_dash is not None:
-                formats.extend(self._extract_mpd_formats(f_dash, video_id, mpd_id='dash'))
+                formats.extend(self._extract_mpd_formats(
+                    f_dash, video_id, mpd_id='dash', headers=self.__HEADERS))
         else:
             formats.append({
                 'format_id': 'f',
@@ -94,4 +106,5 @@ class RTPIE(InfoExtractor):
             'description': self._html_search_meta(['description', 'twitter:description'], webpage),
             'thumbnail': config.get('poster') or self._og_search_thumbnail(webpage),
             'subtitles': subtitles,
+            'http_headers': self.__HEADERS,
         }
