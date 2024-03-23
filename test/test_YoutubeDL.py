@@ -846,6 +846,15 @@ class TestYoutubeDL(unittest.TestCase):
         # test('%(foo|)s.%(ext)s', ('.mp4', '_.mp4'))  # fixme
         # test('%(foo|)s', ('', '_'))  # fixme
 
+        # Trim filename
+        test('%(id)s.%(filesize)s.%(ext)s', ('1234.1024.mp4', '123.mp4'), trim_file_name=3)
+        test(
+            '%(id)s.%(filesize)s.%(ext)s',
+            ('1234.1024.info.json', '123.info.json'),
+            info=dict(self.outtmpl_info, ext='info.json'), trim_file_name=3
+        )
+        test('12 34.%(filesize)s.%(ext)s', ('12 34.1024.mp4', '12 .mp4'), trim_file_name=3)
+
         # Environment variable expansion for prepare_filename
         os.environ['__yt_dlp_var'] = 'expanded'
         envvar = '%__yt_dlp_var%' if compat_os_name == 'nt' else '$__yt_dlp_var'
