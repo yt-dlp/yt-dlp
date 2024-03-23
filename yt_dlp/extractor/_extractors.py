@@ -2154,6 +2154,7 @@ from .dlive import (
 )
 from .drooble import DroobleIE
 from .umg import UMGDeIE
+from .underline import UnderlineIE
 from .unistra import UnistraIE
 from .unity import UnityIE
 from .unsupported import KnownDRMIE, KnownPiracyIE
