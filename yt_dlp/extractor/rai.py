@@ -10,6 +10,7 @@ from ..utils import (
     GeoRestrictedError,
     int_or_none,
     join_nonempty,
+    make_archive_id,
     parse_duration,
     remove_start,
     strip_or_none,
@@ -250,7 +251,10 @@ class RaiBaseIE(InfoExtractor):
 
 
 class RaiPlayIE(RaiBaseIE):
-    _VALID_URL = rf'(?P<base>https?://(?:www\.)?raiplay\.it/.+?-(?P<id>{RaiBaseIE._UUID_RE}))\.(?:html|json)'
+    _VALID_URL = [
+        rf'(?P<base>https?://(?:www\.)?raiplay\.it/.+?-(?P<id>{RaiBaseIE._UUID_RE}))\.(?:html|json)',
+        r'(?P<base>https?://(?:www\.)?raiplay\.it/dirette/(?P<id>[^/?#&]+))',
+    ]
     _TESTS = [{
         'url': 'https://www.raiplay.it/video/2014/04/Report-del-07042014-cb27157f-9dd0-4aee-b788-b1f67643a391.html',
         'md5': '8970abf8caf8aef4696e7b1f2adfc696',
@@ -322,6 +326,25 @@ class RaiPlayIE(RaiBaseIE):
             'upload_date': '20120924',
         },
     }, {
+        # live stream
+        'url': 'https://www.raiplay.it/dirette/rainews24',
+        'info_dict': {
+            'id': 'd784ad40-e0ae-4a69-aa76-37519d238a9c',
+            'display_id': 'rainews24',
+            'ext': 'mp4',
+            'title': r're:^Diretta di Rai News 24 [0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}$',
+            'description': 'md5:4d00bcf6dc98b27c6ec480de329d1497',
+            'uploader': 'Rai News 24',
+            'creator': 'Rai News 24',
+            'is_live': True,
+            'live_status': 'is_live',
+            'upload_date': '20090502',
+            'timestamp': 1241276220,
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }, {
         'url': 'http://www.raiplay.it/video/2016/11/gazebotraindesi-efebe701-969c-4593-92f3-285f0d1ce750.html?',
         'only_matching': True,
     }, {
@@ -354,6 +377,7 @@ class RaiPlayIE(RaiBaseIE):
         return {
             'id': remove_start(media.get('id'), 'ContentItem-') or video_id,
             'display_id': video_id,
+            '_old_archive_ids': [make_archive_id('RaiPlayLive', video_id)] if not re.match(RaiBaseIE._UUID_RE, video_id) else None,
             'title': media.get('name'),
             'alt_title': strip_or_none(alt_title or None),
             'description': media.get('description'),
@@ -375,28 +399,6 @@ class RaiPlayIE(RaiBaseIE):
             'release_year': int_or_none(traverse_obj(media, ('track_info', 'edit_year'))),
             **relinker_info
         }
-
-
-class RaiPlayLiveIE(RaiPlayIE):  # XXX: Do not subclass from concrete IE
-    _VALID_URL = r'(?P<base>https?://(?:www\.)?raiplay\.it/dirette/(?P<id>[^/?#&]+))'
-    _TESTS = [{
-        'url': 'http://www.raiplay.it/dirette/rainews24',
-        'info_dict': {
-            'id': 'd784ad40-e0ae-4a69-aa76-37519d238a9c',
-            'display_id': 'rainews24',
-            'ext': 'mp4',
-            'title': 're:^Diretta di Rai News 24 [0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}$',
-            'description': 'md5:4d00bcf6dc98b27c6ec480de329d1497',
-            'uploader': 'Rai News 24',
-            'creator': 'Rai News 24',
-            'is_live': True,
-            'live_status': 'is_live',
-            'upload_date': '20090502',
-            'timestamp': 1241276220,
-            'formats': 'count:3',
-        },
-        'params': {'skip_download': True},
-    }]
 
 
 class RaiPlayPlaylistIE(InfoExtractor):
@@ -463,7 +465,10 @@ class RaiPlayPlaylistIE(InfoExtractor):
 
 
 class RaiPlaySoundIE(RaiBaseIE):
-    _VALID_URL = rf'(?P<base>https?://(?:www\.)?raiplaysound\.it/.+?-(?P<id>{RaiBaseIE._UUID_RE}))\.(?:html|json)'
+    _VALID_URL = [
+        rf'(?P<base>https?://(?:www\.)?raiplaysound\.it/.+?-(?P<id>{RaiBaseIE._UUID_RE}))\.(?:html|json)',
+        r'(?P<base>https?://(?:www\.)?raiplaysound\.it/(?P<id>[^/?#&]+)$)',
+    ]
     _TESTS = [{
         'url': 'https://www.raiplaysound.it/audio/2021/12/IL-RUGGITO-DEL-CONIGLIO-1ebae2a7-7cdb-42bb-842e-fe0d193e9707.html',
         'md5': '8970abf8caf8aef4696e7b1f2adfc696',
@@ -482,7 +487,26 @@ class RaiPlaySoundIE(RaiBaseIE):
             'timestamp': 1638346620,
             'upload_date': '20211201',
         },
-        'params': {'skip_download': True},
+        'params': {
+            'skip_download': True,
+        },
+    }, {
+        'url': 'https://www.raiplaysound.it/radio2',
+        'info_dict': {
+            'id': 'b00a50e6-f404-4af6-8f8c-ff3b9af73a44',
+            'display_id': 'radio2',
+            'ext': 'mp4',
+            'title': r're:Rai Radio 2 \d+-\d+-\d+ \d+:\d+',
+            'thumbnail': r're:https://www\.raiplaysound\.it/dl/img/.+png',
+            'uploader': 'rai radio 2',
+            'series': 'Rai Radio 2',
+            'creator': 'raiplaysound',
+            'is_live': True,
+            'live_status': 'is_live',
+        },
+        'params': {
+            'skip_download': 'live',
+        },
     }]
 
     def _real_extract(self, url):
@@ -506,6 +530,7 @@ class RaiPlaySoundIE(RaiBaseIE):
             **info,
             'id': uid or audio_id,
             'display_id': audio_id,
+            '_old_archive_ids': [make_archive_id('RaiPlaySoundLive', audio_id)] if not re.match(RaiBaseIE._UUID_RE, audio_id) else None,
             'title': traverse_obj(media, 'title', 'episode_title'),
             'alt_title': traverse_obj(media, ('track_info', 'media_name'), expected_type=strip_or_none),
             'description': media.get('description'),
@@ -519,26 +544,6 @@ class RaiPlaySoundIE(RaiBaseIE):
             'episode_number': int_or_none(media.get('episode')),
             'formats': formats,
         }
-
-
-class RaiPlaySoundLiveIE(RaiPlaySoundIE):  # XXX: Do not subclass from concrete IE
-    _VALID_URL = r'(?P<base>https?://(?:www\.)?raiplaysound\.it/(?P<id>[^/?#&]+)$)'
-    _TESTS = [{
-        'url': 'https://www.raiplaysound.it/radio2',
-        'info_dict': {
-            'id': 'b00a50e6-f404-4af6-8f8c-ff3b9af73a44',
-            'display_id': 'radio2',
-            'ext': 'mp4',
-            'title': r're:Rai Radio 2 \d+-\d+-\d+ \d+:\d+',
-            'thumbnail': r're:^https://www\.raiplaysound\.it/dl/img/.+\.png',
-            'uploader': 'rai radio 2',
-            'series': 'Rai Radio 2',
-            'creator': 'raiplaysound',
-            'is_live': True,
-            'live_status': 'is_live',
-        },
-        'params': {'skip_download': True},
-    }]
 
 
 class RaiPlaySoundPlaylistIE(InfoExtractor):
