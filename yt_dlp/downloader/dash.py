@@ -36,6 +36,8 @@ class DashSegmentsFD(FragmentFD):
                 'filename': fmt.get('filepath') or filename,
                 'live': 'is_from_start' if fmt.get('is_from_start') else fmt.get('is_live'),
                 'total_frags': fragment_count,
+                'section_start': info_dict.get('section_start'),
+                'section_end': info_dict.get('section_end'),
             }
 
             if real_downloader:
