@@ -1465,6 +1465,13 @@ from .playplustv import PlayPlusTVIE
 from .playsuisse import PlaySuisseIE
 from .playtvak import PlaytvakIE
 from .playwire import PlaywireIE
+from .plex import (
+    PlexAppIE,
+    PlexWatchEpisodeIE,
+    PlexWatchLiveIE,
+    PlexWatchMovieIE,
+    PlexWatchSeasonIE,
+)
 from .plutotv import PlutoTVIE
 from .pluralsight import (
     PluralsightIE,
