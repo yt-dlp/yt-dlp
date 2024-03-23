@@ -13,27 +13,29 @@ class FancodeVodIE(InfoExtractor):
     _WORKING = False
     IE_NAME = 'fancode:vod'
 
-    _VALID_URL = r'https?://(?:www\.)?fancode\.com/video/(?P<id>[0-9]+)\b'
+    _VALID_URL = r'https?://(?:www\.)?fancode\.com(?:/[a-zA-Z0-9].*)?/videos?/(?:(?:[^/])*?/)?(?P<id>[0-9]+)\b'
 
     _TESTS = [{
         'url': 'https://fancode.com/video/15043/match-preview-pbks-vs-mi',
+        'only_matching': True
+    }, {
+        'url': 'https://fancode.com/video/15043',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.fancode.com/cricket/videos/thriller-india-fightback-to-clinch-2wicket-win/35441',
         'params': {
             'skip_download': True,
         },
         'info_dict': {
-            'id': '6249806281001',
+            'id': '35441',
             'ext': 'mp4',
-            'title': 'Match Preview: PBKS vs MI',
-            'thumbnail': r're:^https?://.*\.jpg$',
-            "timestamp": 1619081590,
+            'title': 'Thriller! India fightback to clinch 2-wicket win',
             'view_count': int,
             'like_count': int,
-            'upload_date': '20210422',
-            'uploader_id': '6008340455001'
+            'release_timestamp': 1658702382,
+            'tags': list,
+            'release_date': '20220724'
         }
-    }, {
-        'url': 'https://fancode.com/video/15043',
-        'only_matching': True,
     }]
 
     _ACCESS_TOKEN = None
@@ -90,7 +92,7 @@ class FancodeVodIE(InfoExtractor):
 
         brightcove_user_id = '6008340455001'
         data = '''{
-            "query":"query Video($id: Int\\u0021, $filter: SegmentFilter) { media(id: $id, filter: $filter) { id contentId title contentId publishedTime totalViews totalUpvotes provider thumbnail { src } mediaSource {brightcove } duration isPremium isUserEntitled tags duration }}",
+            "query":"query Video($id: Int\\u0021, $filter: SegmentFilter) { media(id: $id, filter: $filter) { id contentId title contentId publishedTime totalViews totalUpvotes provider thumbnail { src } mediaSource {brightcove } duration isPremium source {url} isUserEntitled tags duration }}",
             "variables":{
                 "id":%s,
                 "filter":{
@@ -103,19 +105,17 @@ class FancodeVodIE(InfoExtractor):
         metadata_json = self.download_gql(video_id, data, note='Downloading metadata')
 
         media = try_get(metadata_json, lambda x: x['data']['media'], dict) or {}
+        source_url = try_get(media, lambda x: x['source']['url'])
         brightcove_video_id = try_get(media, lambda x: x['mediaSource']['brightcove'], compat_str)
 
-        if brightcove_video_id is None:
-            raise ExtractorError('Unable to extract brightcove Video ID')
+        if not brightcove_video_id and not source_url:
+            raise ExtractorError('Unable to extract Video URL')
 
         is_premium = media.get('isPremium')
 
         self._check_login_required(media.get('isUserEntitled'), is_premium)
 
-        return {
-            '_type': 'url_transparent',
-            'url': BRIGHTCOVE_URL_TEMPLATE % (brightcove_user_id, brightcove_video_id),
-            'ie_key': 'BrightcoveNew',
+        result = {
             'id': video_id,
             'title': media['title'],
             'like_count': media.get('totalUpvotes'),
@@ -124,6 +124,18 @@ class FancodeVodIE(InfoExtractor):
             'release_timestamp': parse_iso8601(media.get('publishedTime')),
             'availability': self._availability(needs_premium=is_premium),
         }
+
+        if brightcove_video_id:
+            result.update({
+                '_type': 'url_transparent',
+                'url': BRIGHTCOVE_URL_TEMPLATE % (brightcove_user_id, brightcove_video_id),
+                'ie_key': 'BrightcoveNew'
+            })
+
+        else:
+            result['formats'] = self._extract_m3u8_formats(source_url, video_id)
+
+        return result
 
 
 class FancodeLiveIE(FancodeVodIE):  # XXX: Do not subclass from concrete IE
