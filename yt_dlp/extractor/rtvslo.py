@@ -7,6 +7,8 @@ from ..utils import (
     unified_timestamp,
     url_or_none,
 )
+import re
+from urllib.parse import urlparse
 
 
 class RTVSLOIE(InfoExtractor):
@@ -14,7 +16,8 @@ class RTVSLOIE(InfoExtractor):
     _VALID_URL = r'''(?x)
         https?://(?:
             (?:365|4d)\.rtvslo.si/arhiv/[^/?#&;]+|
-            (?:www\.)?rtvslo\.si/rtv365/arhiv
+            (?:www\.)?rtvslo\.si/rtv365/arhiv|
+            (?:365|4d)\.rtvslo.si/oddaja/[^/?#&;]+|
         )/(?P<id>\d+)'''
     _GEO_COUNTRIES = ['SI']
 
@@ -88,11 +91,19 @@ class RTVSLOIE(InfoExtractor):
         }, {
             'url': 'https://4d.rtvslo.si/arhiv/dnevnik/174842550',
             'only_matching': True
+        }, {
+            'url': 'https://365.rtvslo.si/oddaja/ekipa-bled/173250997',
+            'info_dict': {
+                '_type': 'playlist',
+                'id': '173250997',
+                'title': 'Ekipa Bled',
+            },
+            'playlist_count': 18
         }
+
     ]
 
-    def _real_extract(self, url):
-        v_id = self._match_id(url)
+    def _get_video_info(self, v_id):
         meta = self._download_json(self._API_BASE.format('getRecordingDrm', v_id), v_id)['response']
 
         thumbs = [{'id': k, 'url': v, 'http_headers': {'Accept': 'image/jpeg'}}
@@ -164,3 +175,28 @@ class RTVSLOIE(InfoExtractor):
             'series': meta.get('showName'),
             'series_id': meta.get('showId'),
         }
+
+    def _get_show_urls(self, url, v_id):
+        html = self._download_webpage(url, v_id)
+        all_urls = set(re.findall(r'<a.*href=\"(/arhiv/.+)\".*aria-label=.*>', html))
+        parsed = urlparse(url)
+        res = re.findall(r'<title>(.*)</title>', html)
+        title = res[0] if len(res) != 0 else None
+        return title, [f'{parsed.scheme}://{parsed.netloc}{url}' for url in all_urls]
+
+    def _real_extract(self, url):
+        url_id = self._match_id(url)
+        if 'oddaja' in url:
+            # supplied URL is a shows homepage / like a channel or playlist
+            title, urls = self._get_show_urls(url, url_id)
+            entries = [self._get_video_info(self._match_id(url)) for url in urls]
+            entries.sort(key=lambda x: x['id'])
+            return {
+                '_type': 'playlist',
+                'id': url_id,
+                'title': title,
+                'entries': entries,
+                'playlist_count': len(urls)
+            }
+        else:
+            return self._get_video_info(url_id)
