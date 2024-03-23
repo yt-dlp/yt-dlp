@@ -34,7 +34,7 @@ class LBRYBaseIE(InfoExtractor):
         if token:
             headers['x-lbry-auth-token'] = token
         response = self._download_json(
-            'https://api.lbry.tv/api/v1/proxy',
+            'https://api.na-backend.odysee.com/api/v1/proxy',
             display_id, 'Downloading %s JSON metadata' % resource,
             headers=headers,
             data=json.dumps({
