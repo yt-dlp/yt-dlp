@@ -1,4 +1,4 @@
-from functools import partial
+import functools
 
 from .common import InfoExtractor
 from ..utils import (
@@ -50,7 +50,7 @@ class BibelTVBaseIE(InfoExtractor):
             **traverse_obj(data, {
                 'title': 'title',
                 'description': 'description',
-                'duration': ('duration', {partial(int_or_none, scale=1000)}),
+                'duration': ('duration', {functools.partial(int_or_none, scale=1000)}),
                 'timestamp': ('schedulingStart', {parse_iso8601}),
                 'season_number': 'seasonNumber',
                 'episode_number': 'episodeNumber',

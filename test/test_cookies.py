@@ -1,5 +1,5 @@
+import datetime as dt
 import unittest
-from datetime import datetime, timezone
 
 from yt_dlp import cookies
 from yt_dlp.cookies import (
@@ -138,7 +138,7 @@ class TestCookies(unittest.TestCase):
         self.assertEqual(cookie.name, 'foo')
         self.assertEqual(cookie.value, 'test%20%3Bcookie')
         self.assertFalse(cookie.secure)
-        expected_expiration = datetime(2021, 6, 18, 21, 39, 19, tzinfo=timezone.utc)
+        expected_expiration = dt.datetime(2021, 6, 18, 21, 39, 19, tzinfo=dt.timezone.utc)
         self.assertEqual(cookie.expires, int(expected_expiration.timestamp()))
 
     def test_pbkdf2_sha1(self):

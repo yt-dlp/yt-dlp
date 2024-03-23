@@ -1,5 +1,5 @@
 import re
-from uuid import uuid4
+import uuid
 
 from .common import InfoExtractor
 from ..compat import compat_str
@@ -53,7 +53,7 @@ class ZattooPlatformBaseIE(InfoExtractor):
         self._request_webpage(
             '%s/zapi/v3/session/hello' % self._host_url(), None,
             'Opening session', data=urlencode_postdata({
-                'uuid': compat_str(uuid4()),
+                'uuid': compat_str(uuid.uuid4()),
                 'lang': 'en',
                 'app_version': '1.8.2',
                 'format': 'json',

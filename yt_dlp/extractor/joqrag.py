@@ -1,4 +1,4 @@
-import datetime
+import datetime as dt
 import urllib.parse
 
 from .common import InfoExtractor
@@ -50,8 +50,8 @@ class JoqrAgIE(InfoExtractor):
 
     def _extract_start_timestamp(self, video_id, is_live):
         def extract_start_time_from(date_str):
-            dt = datetime_from_str(date_str) + datetime.timedelta(hours=9)
-            date = dt.strftime('%Y%m%d')
+            dt_ = datetime_from_str(date_str) + dt.timedelta(hours=9)
+            date = dt_.strftime('%Y%m%d')
             start_time = self._search_regex(
                 r'<h3[^>]+\bclass="dailyProgram-itemHeaderTime"[^>]*>[\s\d:]+–\s*(\d{1,2}:\d{1,2})',
                 self._download_webpage(
@@ -60,7 +60,7 @@ class JoqrAgIE(InfoExtractor):
                     errnote=f'Failed to download program list of {date}') or '',
                 'start time', default=None)
             if start_time:
-                return unified_timestamp(f'{dt.strftime("%Y/%m/%d")} {start_time} +09:00')
+                return unified_timestamp(f'{dt_.strftime("%Y/%m/%d")} {start_time} +09:00')
             return None
 
         start_timestamp = extract_start_time_from('today')
@@ -87,7 +87,7 @@ class JoqrAgIE(InfoExtractor):
             msg = 'This stream is not currently live'
             if release_timestamp:
                 msg += (' and will start at '
-                        + datetime.datetime.fromtimestamp(release_timestamp).strftime('%Y-%m-%d %H:%M:%S'))
+                        + dt.datetime.fromtimestamp(release_timestamp).strftime('%Y-%m-%d %H:%M:%S'))
             self.raise_no_formats(msg, expected=True)
         else:
             m3u8_path = self._search_regex(

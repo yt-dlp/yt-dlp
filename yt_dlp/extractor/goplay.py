@@ -1,6 +1,6 @@
 import base64
 import binascii
-import datetime
+import datetime as dt
 import hashlib
 import hmac
 import json
@@ -422,7 +422,7 @@ class AwsIdp:
         months = [None, 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
         days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
-        time_now = datetime.datetime.now(datetime.timezone.utc)
+        time_now = dt.datetime.now(dt.timezone.utc)
         format_string = "{} {} {} %H:%M:%S UTC %Y".format(days[time_now.weekday()], months[time_now.month], time_now.day)
         time_string = time_now.strftime(format_string)
         return time_string
