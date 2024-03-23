@@ -29,12 +29,12 @@ def run_tests(*tests, pattern=None, ci=False):
     arguments = ['pytest', '-Werror', '--tb=short']
     if ci:
         arguments.append('--color=yes')
+    if pattern:
+        arguments.extend(['-k', pattern])
     if run_core:
         arguments.extend(['-m', 'not download'])
     elif run_download:
         arguments.extend(['-m', 'download'])
-    elif pattern:
-        arguments.extend(['-k', pattern])
     else:
         arguments.extend(
             f'test/test_download.py::TestDownload::test_{test}' for test in tests)
@@ -46,13 +46,13 @@ def run_tests(*tests, pattern=None, ci=False):
         pass
 
     arguments = [sys.executable, '-Werror', '-m', 'unittest']
+    if pattern:
+        arguments.extend(['-k', pattern])
     if run_core:
         print('"pytest" needs to be installed to run core tests', file=sys.stderr, flush=True)
         return 1
     elif run_download:
         arguments.append('test.test_download')
-    elif pattern:
-        arguments.extend(['-k', pattern])
     else:
         arguments.extend(
             f'test.test_download.TestDownload.test_{test}' for test in tests)

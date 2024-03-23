@@ -1,0 +1,8 @@
+repos:
+- repo: local
+  hooks:
+  - id: check
+    name: code check (run  hatch run fix  if it fails)
+    entry: hatch run check
+    language: system
+    types: [python]

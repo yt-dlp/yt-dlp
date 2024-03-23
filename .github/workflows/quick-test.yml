@@ -20,16 +20,18 @@ jobs:
       run: |
         python3 -m yt_dlp -v || true
         python3 ./devscripts/run_tests.py core
-  flake8:
-    name: Linter
+  check:
+    name: Code check
     if: "!contains(github.event.head_commit.message, 'ci skip all')"
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
     - uses: actions/setup-python@v5
-    - name: Install flake8
+    - name: Install dev dependencies
       run: python3 ./devscripts/install_deps.py -o --include dev
     - name: Make lazy extractors
       run: python3 ./devscripts/make_lazy_extractors.py
-    - name: Run flake8
-      run: flake8 .
+    - name: Run ruff
+      run: ruff check --output-format github .
+    - name: Run autopep8
+      run: autopep8 --diff .

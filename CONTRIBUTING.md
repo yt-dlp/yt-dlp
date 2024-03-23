@@ -134,15 +134,33 @@ We follow [youtube-dl's policy](https://github.com/ytdl-org/youtube-dl#can-you-a
 
 # DEVELOPER INSTRUCTIONS
 
-Most users do not need to build yt-dlp and can [download the builds](https://github.com/yt-dlp/yt-dlp/releases) or get them via [the other installation methods](README.md#installation).
+Most users do not need to build yt-dlp and can [download the builds](https://github.com/yt-dlp/yt-dlp/releases), get them via [the other installation methods](README.md#installation) or directly run it using `python -m yt_dlp`.
 
-To run yt-dlp as a developer, you don't need to build anything either. Simply execute
+`yt-dlp` uses [`hatch`](<https://hatch.pypa.io>) as a project management tool.
+You can easily install it using [`pipx`](<https://pipx.pypa.io>) via `pipx install hatch`, or else via `pip` or your package manager of choice.
 
-    python3 -m yt_dlp
+If you plan on contributing to `yt-dlp`, you are required to run
 
-To run all the available core tests, use:
+```shell
+$ hatch run install
+```
 
-    python3 devscripts/run_tests.py
+so that required checks run automatically before a commit (using pre-commit).
+After this you can use `hatch shell` to enable a virtual environment that has development dependencies as well as `yt-dlp` installed.
+
+Scripts can be used to run simple tasks, like linting or testing, without having to run `hatch shell` first:
+
+```shell
+$ hatch run format
+$ hatch run lint
+$ hatch run test
+```
+Make sure to run `hatch run format` before `hatch run lint` since `autopep8` fixes errors that `ruff` detects but cannot fix.
+
+You can run scripts for all available and supported python versions sequentially by setting the `TEST_ALL` variable:
+```shell
+$ TEST_ALL=1 hatch run test core
+```
 
 See item 6 of [new extractor tutorial](#adding-support-for-a-new-site) for how to run extractor specific test cases.
 
@@ -165,12 +183,16 @@ After you have ensured this site is distributing its content legally, you can fo
 1. [Fork this repository](https://github.com/yt-dlp/yt-dlp/fork)
 1. Check out the source code with:
 
-        git clone git@github.com:YOUR_GITHUB_USERNAME/yt-dlp.git
+    ```shell
+    $ git clone git@github.com:YOUR_GITHUB_USERNAME/yt-dlp.git
+    ```
 
 1. Start a new git branch with
 
-        cd yt-dlp
-        git checkout -b yourextractor
+    ```shell
+    $ cd yt-dlp
+    $ git checkout -b yourextractor
+    ```
 
 1. Start with this simple template and save it to `yt_dlp/extractor/yourextractor.py`:
 
@@ -218,20 +240,26 @@ After you have ensured this site is distributing its content legally, you can fo
             }
     ```
 1. Add an import in [`yt_dlp/extractor/_extractors.py`](yt_dlp/extractor/_extractors.py). Note that the class name must end with `IE`.
-1. Run `python3 devscripts/run_tests.py YourExtractor`. This *may fail* at first, but you can continually re-run it until you're done. Upon failure, it will output the missing fields and/or correct values which you can copy. If you decide to add more than one test, the tests will then be named `YourExtractor`, `YourExtractor_1`, `YourExtractor_2`, etc. Note that tests with an `only_matching` key in the test's dict are not included in the count. You can also run all the tests in one go with `YourExtractor_all`
+1. Run `hatch run test YourExtractor`. This *may fail* at first, but you can continually re-run it until you're done. Upon failure, it will output the missing fields and/or correct values which you can copy. If you decide to add more than one test, the tests will then be named `YourExtractor`, `YourExtractor_1`, `YourExtractor_2`, etc. Note that tests with an `only_matching` key in the test's dict are not included in the count. You can also run all the tests in one go with `YourExtractor_all`
 1. Make sure you have at least one test for your extractor. Even if all videos covered by the extractor are expected to be inaccessible for automated testing, tests should still be added with a `skip` parameter indicating why the particular test is disabled from running.
 1. Have a look at [`yt_dlp/extractor/common.py`](yt_dlp/extractor/common.py) for possible helper methods and a [detailed description of what your extractor should and may return](yt_dlp/extractor/common.py#L119-L440). Add tests and code for as many as you want.
-1. Make sure your code follows [yt-dlp coding conventions](#yt-dlp-coding-conventions) and check the code with [flake8](https://flake8.pycqa.org/en/latest/index.html#quickstart):
+1. Make sure your code follows [yt-dlp coding conventions](#yt-dlp-coding-conventions), passes [ruff](https://docs.astral.sh/ruff/tutorial/#getting-started) code checks and is properly formatted:
 
-        $ flake8 yt_dlp/extractor/yourextractor.py
+    ```shell
+    $ hatch run check
+    ```
+
+    You can use `hatch run lint` and `hatch run format` to automatically fix problems.
 
 1. Make sure your code works under all [Python](https://www.python.org/) versions supported by yt-dlp, namely CPython and PyPy for Python 3.8 and above. Backward compatibility is not required for even older versions of Python.
 1. When the tests pass, [add](https://git-scm.com/docs/git-add) the new files, [commit](https://git-scm.com/docs/git-commit) them and [push](https://git-scm.com/docs/git-push) the result, like this:
 
-        $ git add yt_dlp/extractor/_extractors.py
-        $ git add yt_dlp/extractor/yourextractor.py
-        $ git commit -m '[yourextractor] Add extractor'
-        $ git push origin yourextractor
+    ```shell
+    $ git add yt_dlp/extractor/_extractors.py
+    $ git add yt_dlp/extractor/yourextractor.py
+    $ git commit -m '[yourextractor] Add extractor'
+    $ git push origin yourextractor
+    ```
 
 1. Finally, [create a pull request](https://help.github.com/articles/creating-a-pull-request). We'll then review and merge it.
 
