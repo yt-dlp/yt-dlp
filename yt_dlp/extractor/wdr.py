@@ -59,6 +59,7 @@ class WDRIE(InfoExtractor):
 
         formats = []
         subtitles = {}
+        seen_manifest_urls = set()
 
         # check if the metadata contains a direct URL to a file
         for kind, media in media_resource.items():
@@ -78,6 +79,10 @@ class WDRIE(InfoExtractor):
             for tag_name, medium_url in media.items():
                 if tag_name not in ('videoURL', 'audioURL'):
                     continue
+
+                if medium_url in seen_manifest_urls:
+                    continue
+                seen_manifest_urls.add(medium_url)
 
                 ext = determine_ext(medium_url)
                 if ext == 'm3u8':
