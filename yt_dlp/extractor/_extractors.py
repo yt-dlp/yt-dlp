@@ -1064,11 +1064,12 @@ from .melonvod import MelonVODIE
 from .metacritic import MetacriticIE
 from .mgtv import MGTVIE
 from .microsoftstream import MicrosoftStreamIE
-from .microsoftvirtualacademy import (
-    MicrosoftVirtualAcademyIE,
-    MicrosoftVirtualAcademyCourseIE,
+from .microsoftembed import (
+    MicrosoftEmbedIE,
+    MicrosoftMediusIE,
+    MicrosoftLearnIE,
+    MicrosoftBuildIE,
 )
-from .microsoftembed import MicrosoftEmbedIE
 from .mildom import (
     MildomIE,
     MildomVodIE,
