@@ -3,7 +3,6 @@ import re
 import uuid
 
 from .common import InfoExtractor
-from ..networking import HEADRequest
 from ..utils import (
     ExtractorError,
     OnDemandPagedList,
@@ -12,6 +11,7 @@ from ..utils import (
     join_nonempty,
     parse_age_limit,
     parse_qs,
+    str_or_none,
     unified_strdate,
     url_or_none,
 )
@@ -33,7 +33,7 @@ class OnDemandKoreaIE(InfoExtractor):
             'duration': 5486.955,
             'release_date': '20220924',
             'series': 'Ask Us Anything',
-            'series_id': 11790,
+            'series_id': '11790',
             'episode_number': 351,
             'episode': 'Jung Sung-ho, Park Seul-gi, Kim Bo-min, Yang Seung-won',
         },
@@ -48,7 +48,7 @@ class OnDemandKoreaIE(InfoExtractor):
             'duration': 1586.0,
             'release_date': '20231001',
             'series': 'Breakup Probation, A Week',
-            'series_id': 22912,
+            'series_id': '22912',
             'episode_number': 8,
             'episode': 'E08',
         },
@@ -84,15 +84,17 @@ class OnDemandKoreaIE(InfoExtractor):
         def try_geo_bypass(url):
             return traverse_obj(url, ({parse_qs}, 'stream_url', 0, {url_or_none})) or url
 
-        def try_upgrade_quality(url):
-            mod_url = re.sub(r'_720(p?)\.m3u8', r'_1080\1.m3u8', url)
-            return mod_url if mod_url != url and self._request_webpage(
-                HEADRequest(mod_url), video_id, note='Checking for higher quality format',
-                errnote='No higher quality format found', fatal=False) else url
-
         formats = []
         for m3u8_url in traverse_obj(data, (('sources', 'manifest'), ..., 'url', {url_or_none}, {try_geo_bypass})):
-            formats.extend(self._extract_m3u8_formats(try_upgrade_quality(m3u8_url), video_id, fatal=False))
+            mod_url = re.sub(r'_720(p?)\.m3u8', r'_1080\1.m3u8', m3u8_url)
+            if mod_url != m3u8_url:
+                mod_format = self._extract_m3u8_formats(
+                    mod_url, video_id, note='Checking for higher quality format',
+                    errnote='No higher quality format found', fatal=False)
+                if mod_format:
+                    formats.extend(mod_format)
+                    continue
+            formats.extend(self._extract_m3u8_formats(m3u8_url, video_id, fatal=False))
 
         subtitles = {}
         for track in traverse_obj(data, ('text_tracks', lambda _, v: url_or_none(v['url']))):
@@ -116,7 +118,7 @@ class OnDemandKoreaIE(InfoExtractor):
                 'duration': ('duration', {functools.partial(float_or_none, scale=1000)}),
                 'age_limit': ('age_rating', 'name', {lambda x: x.replace('R', '')}, {parse_age_limit}),
                 'series': ('episode', {if_series(key='program')}, 'title'),
-                'series_id': ('episode', {if_series(key='program')}, 'id'),
+                'series_id': ('episode', {if_series(key='program')}, 'id', {str_or_none}),
                 'episode': ('episode', {if_series(key='title')}),
                 'episode_number': ('episode', {if_series(key='number')}, {int_or_none}),
             }, get_all=False),

@@ -13,7 +13,7 @@ class LeFigaroVideoEmbedIE(InfoExtractor):
 
     _TESTS = [{
         'url': 'https://video.lefigaro.fr/embed/figaro/video/les-francais-ne-veulent-ils-plus-travailler-suivez-en-direct-le-club-le-figaro-idees/',
-        'md5': 'e94de44cd80818084352fcf8de1ce82c',
+        'md5': 'a0c3069b7e4c4526abf0053a7713f56f',
         'info_dict': {
             'id': 'g9j7Eovo',
             'title': 'Les Français ne veulent-ils plus travailler ? Retrouvez Le Club Le Figaro Idées',
@@ -26,7 +26,7 @@ class LeFigaroVideoEmbedIE(InfoExtractor):
         },
     }, {
         'url': 'https://video.lefigaro.fr/embed/figaro/video/intelligence-artificielle-faut-il-sen-mefier/',
-        'md5': '0b3f10332b812034b3a3eda1ef877c5f',
+        'md5': '319c662943dd777bab835cae1e2d73a5',
         'info_dict': {
             'id': 'LeAgybyc',
             'title': 'Intelligence artificielle : faut-il s’en méfier ?',
@@ -41,7 +41,7 @@ class LeFigaroVideoEmbedIE(InfoExtractor):
 
     _WEBPAGE_TESTS = [{
         'url': 'https://video.lefigaro.fr/figaro/video/suivez-en-direct-le-club-le-figaro-international-avec-philippe-gelie-9/',
-        'md5': '3972ddf2d5f8b98699f191687258e2f9',
+        'md5': '6289f9489efb969e38245f31721596fe',
         'info_dict': {
             'id': 'QChnbPYA',
             'title': 'Où en est le couple franco-allemand ? Retrouvez Le Club Le Figaro International',
@@ -55,7 +55,7 @@ class LeFigaroVideoEmbedIE(InfoExtractor):
         },
     }, {
         'url': 'https://video.lefigaro.fr/figaro/video/la-philosophe-nathalie-sarthou-lajus-est-linvitee-du-figaro-live/',
-        'md5': '3ac0a0769546ee6be41ab52caea5d9a9',
+        'md5': 'f6df814cae53e85937621599d2967520',
         'info_dict': {
             'id': 'QJzqoNbf',
             'title': 'La philosophe Nathalie Sarthou-Lajus est l’invitée du Figaro Live',
@@ -73,7 +73,8 @@ class LeFigaroVideoEmbedIE(InfoExtractor):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
 
-        player_data = self._search_nextjs_data(webpage, display_id)['props']['pageProps']['pageData']['playerData']
+        player_data = self._search_nextjs_data(
+            webpage, display_id)['props']['pageProps']['initialProps']['pageData']['playerData']
 
         return self.url_result(
             f'jwplatform:{player_data["videoId"]}', title=player_data.get('title'),

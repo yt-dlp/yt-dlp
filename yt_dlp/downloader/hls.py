@@ -369,7 +369,10 @@ class HlsFD(FragmentFD):
 
                 return output.getvalue().encode()
 
-            self.download_and_append_fragments(
-                ctx, fragments, info_dict, pack_func=pack_fragment, finish_func=fin_fragments)
+            if len(fragments) == 1:
+                self.download_and_append_fragments(ctx, fragments, info_dict)
+            else:
+                self.download_and_append_fragments(
+                    ctx, fragments, info_dict, pack_func=pack_fragment, finish_func=fin_fragments)
         else:
             return self.download_and_append_fragments(ctx, fragments, info_dict)

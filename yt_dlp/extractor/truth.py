@@ -19,7 +19,6 @@ class TruthIE(InfoExtractor):
                 'id': '108779000807761862',
                 'ext': 'qt',
                 'title': 'Truth video #108779000807761862',
-                'description': None,
                 'timestamp': 1659835827,
                 'upload_date': '20220807',
                 'uploader': 'Donald J. Trump',

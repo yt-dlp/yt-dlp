@@ -30,7 +30,8 @@ class RadioComercialIE(InfoExtractor):
             'title': 'Taylor Swift entranhando-se que nem uma espada no ventre dos fãs.',
             'release_date': '20231025',
             'thumbnail': r're:https://radiocomercial.pt/upload/[^.]+.jpg',
-            'season': 6
+            'season': 'Season 6',
+            'season_number': 6,
         }
     }, {
         'url': 'https://radiocomercial.pt/podcasts/convenca-me-num-minuto/t3/convenca-me-num-minuto-que-os-lobisomens-existem',
@@ -41,7 +42,8 @@ class RadioComercialIE(InfoExtractor):
             'title': 'Convença-me num minuto que os lobisomens existem',
             'release_date': '20231026',
             'thumbnail': r're:https://radiocomercial.pt/upload/[^.]+.jpg',
-            'season': 3
+            'season': 'Season 3',
+            'season_number': 3,
         }
     }, {
         'url': 'https://radiocomercial.pt/podcasts/inacreditavel-by-ines-castel-branco/t2/o-desastre-de-aviao',
@@ -53,7 +55,8 @@ class RadioComercialIE(InfoExtractor):
             'description': 'md5:8a82beeb372641614772baab7246245f',
             'release_date': '20231101',
             'thumbnail': r're:https://radiocomercial.pt/upload/[^.]+.jpg',
-            'season': 2
+            'season': 'Season 2',
+            'season_number': 2,
         },
         'params': {
             # inconsistant md5
@@ -68,7 +71,8 @@ class RadioComercialIE(InfoExtractor):
             'title': 'T.N.T 29 de outubro',
             'release_date': '20231029',
             'thumbnail': r're:https://radiocomercial.pt/upload/[^.]+.jpg',
-            'season': 2023
+            'season': 'Season 2023',
+            'season_number': 2023,
         }
     }]
 
@@ -82,7 +86,7 @@ class RadioComercialIE(InfoExtractor):
             'release_date': unified_strdate(get_element_by_class(
                 'date', get_element_html_by_class('descriptions', webpage) or '')),
             'thumbnail': self._og_search_thumbnail(webpage),
-            'season': int_or_none(season),
+            'season_number': int_or_none(season),
             'url': extract_attributes(get_element_html_by_class('audiofile', webpage) or '').get('href'),
         }
 

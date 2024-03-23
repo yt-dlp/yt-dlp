@@ -9,6 +9,7 @@ from ..utils import (
 
 
 class ReutersIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?reuters\.com/.*?\?.*?videoId=(?P<id>[0-9]+)'
     _TEST = {
         'url': 'http://www.reuters.com/video/2016/05/20/san-francisco-police-chief-resigns?videoId=368575562',
