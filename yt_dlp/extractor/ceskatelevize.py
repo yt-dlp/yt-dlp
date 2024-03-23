@@ -1,4 +1,5 @@
 import re
+import json
 
 from .common import InfoExtractor
 from ..compat import compat_urllib_parse_unquote, compat_urllib_parse_urlparse
@@ -8,6 +9,7 @@ from ..utils import (
     float_or_none,
     str_or_none,
     traverse_obj,
+    unescapeHTML,
     urlencode_postdata,
 )
 
@@ -19,7 +21,7 @@ USER_AGENTS = {
 class CeskaTelevizeIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?ceskatelevize\.cz/(?:ivysilani|porady|zive)/(?:[^/?#&]+/)*(?P<id>[^/#?]+)'
     _TESTS = [{
-        'url': 'http://www.ceskatelevize.cz/ivysilani/10441294653-hyde-park-civilizace/215411058090502/bonus/20641-bonus-01-en',
+        'url': 'https://www.ceskatelevize.cz/porady/10441294653-hyde-park-civilizace/bonus/20641/',
         'info_dict': {
             'id': '61924494877028507',
             'ext': 'mp4',
@@ -27,6 +29,7 @@ class CeskaTelevizeIE(InfoExtractor):
             'description': 'English Subtittles',
             'thumbnail': r're:^https?://.*\.jpg',
             'duration': 81.3,
+            'live_status': 'not_live',
         },
         'params': {
             # m3u8 download
@@ -34,13 +37,16 @@ class CeskaTelevizeIE(InfoExtractor):
         },
     }, {
         # live stream
-        'url': 'http://www.ceskatelevize.cz/zive/ct1/',
+        'url': 'https://www.ceskatelevize.cz/zive/ct1/',
+        'only_matching': True,
         'info_dict': {
-            'id': '102',
+            'id': '61924494878124436',
             'ext': 'mp4',
-            'title': r'ČT1 - živé vysílání online',
+            'title': r're:^ČT1 - živé vysílání online \d{4}-\d{2}-\d{2} \d{2}:\d{2}$',
             'description': 'Sledujte živé vysílání kanálu ČT1 online. Vybírat si můžete i z dalších kanálů České televize na kterémkoli z vašich zařízení.',
-            'is_live': True,
+            'thumbnail': r're:^https?://.*\.jpg',
+            'duration': 5373.3,
+            'live_status': 'is_live',
         },
         'params': {
             # m3u8 download
@@ -48,18 +54,19 @@ class CeskaTelevizeIE(InfoExtractor):
         },
     }, {
         # another
-        'url': 'http://www.ceskatelevize.cz/ivysilani/zive/ct4/',
+        'url': 'https://www.ceskatelevize.cz/zive/sport/',
         'only_matching': True,
         'info_dict': {
-            'id': '402',
+            'id': '422',
             'ext': 'mp4',
             'title': r're:^ČT Sport \d{4}-\d{2}-\d{2} \d{2}:\d{2}$',
-            'is_live': True,
+            'thumbnail': r're:^https?://.*\.jpg',
+            'live_status': 'is_live',
         },
-        # 'skip': 'Georestricted to Czech Republic',
-    }, {
-        'url': 'http://www.ceskatelevize.cz/ivysilani/embed/iFramePlayer.php?hash=d6a3e1370d2e4fa76296b90bad4dfc19673b641e&IDEC=217 562 22150/0004&channelID=1&width=100%25',
-        'only_matching': True,
+        'params': {
+            # m3u8 download
+            'skip_download': True,
+        },
     }, {
         # video with 18+ caution trailer
         'url': 'http://www.ceskatelevize.cz/porady/10520528904-queer/215562210900007-bogotart/',
@@ -74,6 +81,7 @@ class CeskaTelevizeIE(InfoExtractor):
                 'ext': 'mp4',
                 'title': 'Bogotart - Queer (Varování 18+)',
                 'duration': 11.9,
+                'live_status': 'not_live',
             },
         }, {
             'info_dict': {
@@ -82,6 +90,7 @@ class CeskaTelevizeIE(InfoExtractor):
                 'title': 'Bogotart - Queer (Queer)',
                 'thumbnail': r're:^https?://.*\.jpg',
                 'duration': 1558.3,
+                'live_status': 'not_live',
             },
         }],
         'params': {
@@ -91,7 +100,19 @@ class CeskaTelevizeIE(InfoExtractor):
     }, {
         # iframe embed
         'url': 'http://www.ceskatelevize.cz/porady/10614999031-neviditelni/21251212048/',
-        'only_matching': True,
+        'info_dict': {
+            'id': '61924494877628660',
+            'ext': 'mp4',
+            'title': 'Epizoda 1/13 - Neviditelní',
+            'description': 'Vypadají jako my, mluví jako my, ale mají něco navíc – gen, který jim umožňuje dýchat vodu. Aniž to tušíme, žijí mezi námi.',
+            'thumbnail': r're:^https?://.*\.jpg',
+            'duration': 3576.8,
+            'live_status': 'not_live',
+        },
+        'params': {
+            # m3u8 download
+            'skip_download': True,
+        },
     }]
 
     def _real_extract(self, url):
@@ -106,26 +127,83 @@ class CeskaTelevizeIE(InfoExtractor):
         if playlist_description:
             playlist_description = playlist_description.replace('\xa0', ' ')
 
-        type_ = 'IDEC'
+        type_ = 'episode'
+        is_live = False
         if re.search(r'(^/porady|/zive)/', parsed_url.path):
             next_data = self._search_nextjs_data(webpage, playlist_id)
             if '/zive/' in parsed_url.path:
                 idec = traverse_obj(next_data, ('props', 'pageProps', 'data', 'liveBroadcast', 'current', 'idec'), get_all=False)
+                sidp = traverse_obj(next_data, ('props', 'pageProps', 'data', 'liveBroadcast', 'current', 'showId'), get_all=False)
+                is_live = True
             else:
                 idec = traverse_obj(next_data, ('props', 'pageProps', 'data', ('show', 'mediaMeta'), 'idec'), get_all=False)
                 if not idec:
                     idec = traverse_obj(next_data, ('props', 'pageProps', 'data', 'videobonusDetail', 'bonusId'), get_all=False)
                     if idec:
                         type_ = 'bonus'
+                sidp = self._search_regex(r'https?://(?:www\.)?ceskatelevize\.cz/(?:ivysilani|porady|zive)/([0-9]+)-', url, playlist_id, default=playlist_id)
             if not idec:
                 raise ExtractorError('Failed to find IDEC id')
-            iframe_hash = self._download_webpage(
-                'https://www.ceskatelevize.cz/v-api/iframe-hash/',
-                playlist_id, note='Getting IFRAME hash')
-            query = {'hash': iframe_hash, 'origin': 'iVysilani', 'autoStart': 'true', type_: idec, }
+            sidp = sidp.rsplit('-')[0]
+            query = {'origin': 'iVysilani', 'autoStart': 'true', 'sidp': sidp, type_: idec}
             webpage = self._download_webpage(
-                'https://www.ceskatelevize.cz/ivysilani/embed/iFramePlayer.php',
+                'https://player.ceskatelevize.cz/',
                 playlist_id, note='Downloading player', query=query)
+            playlistpage_url = 'https://www.ceskatelevize.cz/ivysilani/ajax/get-client-playlist/'
+            data = {
+                'playlist[0][type]': type_,
+                'playlist[0][id]': idec,
+                'requestUrl': parsed_url.path,
+                'requestSource': 'iVysilani',
+            }
+        elif parsed_url.path == '/' and parsed_url.fragment == 'live':
+            if self._search_regex(r'(?s)<section[^>]+id=[\'"]live[\'"][^>]+data-ctcomp-data=\'([^\']+)\'[^>]*>', webpage, 'live video player', default=None):
+                # CT4
+                is_live = True
+                ctcomp_data = self._parse_json(
+                    self._search_regex(
+                        r'(?s)<section[^>]+id=[\'"]live[\'"][^>]+data-ctcomp-data=\'([^\']+)\'[^>]*>',
+                        webpage, 'ctcomp data', fatal=True),
+                    playlist_id, transform_source=unescapeHTML)
+                current_item = traverse_obj(ctcomp_data, ('items', ctcomp_data.get('currentItem'), 'items', 0, 'video', 'data', 'source', 'playlist', 0))
+                playlistpage_url = 'https://playlist.ceskatelevize.cz/'
+                data = {
+                    'contentType': 'live',
+                    'items': [{
+                        'id': current_item.get('id'),
+                        'key': current_item.get('key'),
+                        'assetId': current_item.get('assetId'),
+                        'playerType': 'dash',
+                        'date': current_item.get('date'),
+                        'requestSource': current_item.get('requestSource'),
+                        'drm': current_item.get('drm'),
+                        'quality': current_item.get('quality'),
+                    }]
+                }
+                data = {'data': json.dumps(data).encode('utf-8')}
+            else:
+                # CT24
+                is_live = True
+                lvp_url = self._search_regex(
+                    r'(?s)<div[^>]+id=[\'"]live-video-player[\'"][^>]+data-url=[\'"]([^\'"]+)[\'"][^>]*>',
+                    webpage, 'live video player', fatal=True)
+                lvp_hash = self._search_regex(
+                    r'(?s)media_ivysilani: *{ *hash *: *[\'"]([0-9a-f]+)[\'"] *}',
+                    webpage, 'live video hash', fatal=True)
+                lvp_url += '&hash=' + lvp_hash
+                webpage = self._download_webpage(unescapeHTML(lvp_url), playlist_id)
+                playlistpage = self._search_regex(
+                    r'(?s)getPlaylistUrl\((\[[^\]]+\])[,\)]',
+                    webpage, 'playlist params', fatal=True)
+                playlistpage_params = self._parse_json(playlistpage, playlist_id)[0]
+                playlistpage_url = 'https://www.ceskatelevize.cz/ivysilani/ajax/get-client-playlist/'
+                idec = playlistpage_params.get('id')
+                data = {
+                    'playlist[0][type]': playlistpage_params.get('type'),
+                    'playlist[0][id]': idec,
+                    'requestUrl': '/ivysilani/embed/iFramePlayer.php',
+                    'requestSource': 'iVysilani',
+                }
 
         NOT_AVAILABLE_STRING = 'This content is not available at your territory due to limited copyright.'
         if '%s</p>' % NOT_AVAILABLE_STRING in webpage:
@@ -133,40 +211,10 @@ class CeskaTelevizeIE(InfoExtractor):
         if any(not_found in webpage for not_found in ('Neplatný parametr pro videopřehrávač', 'IDEC nebyl nalezen', )):
             raise ExtractorError('no video with IDEC available', video_id=idec, expected=True)
 
-        type_ = None
-        episode_id = None
-
-        playlist = self._parse_json(
-            self._search_regex(
-                r'getPlaylistUrl\(\[({.+?})\]', webpage, 'playlist',
-                default='{}'), playlist_id)
-        if playlist:
-            type_ = playlist.get('type')
-            episode_id = playlist.get('id')
-
-        if not type_:
-            type_ = self._html_search_regex(
-                r'getPlaylistUrl\(\[\{"type":"(.+?)","id":".+?"\}\],',
-                webpage, 'type')
-        if not episode_id:
-            episode_id = self._html_search_regex(
-                r'getPlaylistUrl\(\[\{"type":".+?","id":"(.+?)"\}\],',
-                webpage, 'episode_id')
-
-        data = {
-            'playlist[0][type]': type_,
-            'playlist[0][id]': episode_id,
-            'requestUrl': parsed_url.path,
-            'requestSource': 'iVysilani',
-        }
-
         entries = []
 
         for user_agent in (None, USER_AGENTS['Safari']):
-            req = Request(
-                'https://www.ceskatelevize.cz/ivysilani/ajax/get-client-playlist/',
-                data=urlencode_postdata(data))
-
+            req = Request(playlistpage_url, data=urlencode_postdata(data))
             req.headers['Content-type'] = 'application/x-www-form-urlencoded'
             req.headers['x-addr'] = '127.0.0.1'
             req.headers['X-Requested-With'] = 'XMLHttpRequest'
@@ -179,25 +227,25 @@ class CeskaTelevizeIE(InfoExtractor):
             if not playlistpage:
                 continue
 
-            playlist_url = playlistpage['url']
-            if playlist_url == 'error_region':
-                raise ExtractorError(NOT_AVAILABLE_STRING, expected=True)
+            playlist_url = playlistpage.get('url')
+            if playlist_url:
+                if playlist_url == 'error_region':
+                    raise ExtractorError(NOT_AVAILABLE_STRING, expected=True)
+                req = Request(compat_urllib_parse_unquote(playlist_url))
+                req.headers['Referer'] = url
+                playlist = self._download_json(req, playlist_id, fatal=False)
+                if not playlist:
+                    continue
+                playlist = playlist.get('playlist')
+            else:
+                playlist = traverse_obj(playlistpage, ('RESULT', 'playlist'))
 
-            req = Request(compat_urllib_parse_unquote(playlist_url))
-            req.headers['Referer'] = url
-
-            playlist = self._download_json(req, playlist_id, fatal=False)
-            if not playlist:
-                continue
-
-            playlist = playlist.get('playlist')
             if not isinstance(playlist, list):
                 continue
 
             playlist_len = len(playlist)
 
             for num, item in enumerate(playlist):
-                is_live = item.get('type') == 'LIVE'
                 formats = []
                 for format_id, stream_url in item.get('streamUrls', {}).items():
                     if 'playerType=flash' in stream_url:
@@ -222,7 +270,7 @@ class CeskaTelevizeIE(InfoExtractor):
                     continue
 
                 item_id = str_or_none(item.get('id') or item['assetId'])
-                title = item['title']
+                title = item.get('title') or 'live'
 
                 duration = float_or_none(item.get('duration'))
                 thumbnail = item.get('previewImageUrl')
@@ -231,7 +279,7 @@ class CeskaTelevizeIE(InfoExtractor):
                 if item.get('type') == 'VOD':
                     subs = item.get('subtitles')
                     if subs:
-                        subtitles = self.extract_subtitles(episode_id, subs)
+                        subtitles = self.extract_subtitles(idec, subs)
 
                 if playlist_len == 1:
                     final_title = playlist_title or title
@@ -246,7 +294,7 @@ class CeskaTelevizeIE(InfoExtractor):
                     'duration': duration,
                     'formats': formats,
                     'subtitles': subtitles,
-                    'is_live': is_live,
+                    'live_status': 'is_live' if is_live else 'not_live',
                 })
 
         if len(entries) == 1:
