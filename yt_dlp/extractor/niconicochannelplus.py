@@ -36,7 +36,7 @@ class NiconicoChannelPlusBaseIE(InfoExtractor):
             note='Fetching channel list', errnote='Unable to fetch channel list',
         )['data']['content_providers']
         fanclub_id = traverse_obj(fanclub_list_json, (
-            lambda _, v: v['domain'] == f'{self._WEBPAGE_BASE_URL}/{channel_name}', 'id'),
+            lambda _, v: v['domain'] == f'{self._WEBPAGE_BASE_URL}/{channel_name}', 'id', {int_or_none}),
             get_all=False)
         if not fanclub_id:
             raise ExtractorError(f'Channel {channel_name} does not exist', expected=True)
@@ -123,7 +123,7 @@ class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
             return None
 
         token = traverse_obj(self._call_api(
-            'fanclub_groups/1/sns_login', item_id='56',
+            'fanclub_groups/1/sns_login', item_id=None,
             note='Fetching sns login info', errnote='Unable to fetch sns login info', fatal=False,
             data=json.dumps({
                 'key_cloak_user': {
@@ -135,7 +135,7 @@ class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
                 'Content-Type': 'application/json',
                 'fc_use_device': 'null',
                 'Referer': 'https://nicochannel.jp/',
-            }), ('data', 'access_token'))
+            }), ('data', 'access_token', {str_or_none}))
         return f'Bearer {token}' if token else None
 
     def _perform_login(self, mail_tel, password):
@@ -241,7 +241,7 @@ class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
             'channel': self._get_channel_base_info(fanclub_site_id).get('fanclub_site_name'),
             'channel_id': channel_id,
             'channel_url': f'{self._WEBPAGE_BASE_URL}/{channel_id}',
-            'age_limit': traverse_obj(self._get_channel_user_info(fanclub_site_id), ('content_provider', 'age_limit')),
+            'age_limit': traverse_obj(self._get_channel_user_info(fanclub_site_id), ('content_provider', 'age_limit', {int_or_none})),
             'live_status': live_status,
             'release_timestamp': unified_timestamp(release_timestamp_str),
             **traverse_obj(data_json, {
@@ -371,7 +371,7 @@ class NiconicoChannelPlusChannelBaseIE(NiconicoChannelPlusBaseIE):
             note=f'Getting channel info (page {page + 1})',
             errnote=f'Unable to get channel info (page {page + 1})')
 
-        for content_code in traverse_obj(response, ('data', 'video_pages', 'list', ..., 'content_code')):
+        for content_code in traverse_obj(response, ('data', 'video_pages', 'list', ..., 'content_code', {str_or_none})):
             # "video/{content_code}" works for both VOD and live, but "live/{content_code}" doesn't work for VOD
             yield self.url_result(
                 f'{self._WEBPAGE_BASE_URL}/{channel_name}/video/{content_code}', NiconicoChannelPlusIE)
@@ -545,9 +545,6 @@ class NiconicoChannelPlusChannelLivesIE(NiconicoChannelPlusChannelBaseIE):
             OnDemandPagedList(
                 functools.partial(
                     self._fetch_paged_channel_video_list, f'fanclub_sites/{fanclub_site_id}/live_pages',
-                    {
-                        'live_type': 4,
-                    },
-                    channel_id, f'{channel_id}/lives'),
+                    {'live_type': 4}, channel_id, f'{channel_id}/lives'),
                 self._PAGE_SIZE),
             playlist_id=f'{channel_id}-lives', playlist_title=f'{channel_name}-lives')
