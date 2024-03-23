@@ -14,7 +14,7 @@ class AENetworksBaseIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
     _BASE_URL_REGEX = r'''(?x)https?://
         (?:(?:www|play|watch)\.)?
         (?P<domain>
-            (?:history(?:vault)?|aetv|mylifetime|lifetimemovieclub)\.com|
+            (?:history(?:vault)?|aetv|mylifetime|lifetimemovieclub|aecrimecentral)\.com|
             fyi\.tv
         )/'''
     _THEPLATFORM_KEY = '43jXaGRQud'
@@ -27,6 +27,7 @@ class AENetworksBaseIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
         'fyi.tv': ('FYI', 'fyi'),
         'historyvault.com': (None, 'historyvault'),
         'biography.com': (None, 'biography'),
+        'aecrimecentral.com': ('AECRIMECENTRAL', 'crimecentral')
     }
 
     def _extract_aen_smil(self, smil_url, video_id, auth=None):
@@ -192,6 +193,9 @@ class AENetworksIE(AENetworksBaseIE):
         'only_matching': True
     }, {
         'url': 'https://play.aetv.com/shows/duck-dynasty/videos/best-of-duck-dynasty-getting-quack-in-shape',
+        'only_matching': True
+    }, {
+        'url': 'https://watch.aecrimecentral.com/shows/my-lover-my-killer/season-1/episode-6',
         'only_matching': True
     }]
 
