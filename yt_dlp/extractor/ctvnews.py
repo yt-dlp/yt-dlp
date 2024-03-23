@@ -5,10 +5,10 @@ from ..utils import orderedSet
 
 
 class CTVNewsIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:.+?\.)?ctvnews\.ca/(?:video\?(?:clip|playlist|bin)Id=|.*?)(?P<id>[0-9.]+)'
+    _VALID_URL = r'https?://(?:.+?\.)?ctvnews\.ca/(?:video\?(?:clip|playlist|bin)Id=|.*?)(?P<id>[0-9.]+)(?:$|[#?])'
     _TESTS = [{
         'url': 'http://www.ctvnews.ca/video?clipId=901995',
-        'md5': '9b8624ba66351a23e0b6e1391971f9af',
+        'md5': 'b608f466c7fa24b9666c6439d766ab7e',
         'info_dict': {
             'id': '901995',
             'ext': 'flv',
@@ -16,6 +16,14 @@ class CTVNewsIE(InfoExtractor):
             'description': 'md5:958dd3b4f5bbbf0ed4d045c790d89285',
             'timestamp': 1467286284,
             'upload_date': '20160630',
+            'categories': [],
+            'tags': [],
+            'season_id': 57981,
+            'duration': 764.631,
+            'series': 'CTV News National story',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'season': 'Season 0',
+            'season_number': 0,
         }
     }, {
         'url': 'http://www.ctvnews.ca/video?playlistId=1.2966224',
@@ -31,6 +39,13 @@ class CTVNewsIE(InfoExtractor):
             'id': '1.2876780',
         },
         'playlist_mincount': 100,
+    }, {
+        'url': 'https://www.ctvnews.ca/it-s-been-23-years-since-toronto-called-in-the-army-after-a-major-snowstorm-1.5736957',
+        'info_dict':
+        {
+            'id': '1.5736957',
+        },
+        'playlist_mincount': 6,
     }, {
         'url': 'http://www.ctvnews.ca/1.810401',
         'only_matching': True,
