@@ -459,7 +459,10 @@ class PolskieRadioPlayerIE(InfoExtractor):
         'info_dict': {
             'id': '3',
             'ext': 'm4a',
-            'title': 'Trójka',
+            'title': r're:Trójka \d{4}-\d{2}-\d{2} \d{2}:\d{2}',
+            'thumbnail': 'https://player.polskieradio.pl/images/trojka-color-logo.png',
+            'live_status': 'is_live',
+            'display_id': 'trojka',
         },
         'params': {
             'format': 'bestaudio',
@@ -468,12 +471,20 @@ class PolskieRadioPlayerIE(InfoExtractor):
     }]
 
     def _get_channel_list(self, channel_url='no_channel'):
+        webpage = self._download_webpage(self._BASE_URL, channel_url)
+        player_hash = self._search_regex(r'/main\.bundle\.js\?([a-f0-9]+)', webpage, 'player hash')
+        channel_list = self.cache.load('polskieradio-player-channel-list', player_hash)
+        if channel_list:
+            return channel_list
         player_code = self._download_webpage(
             self._PLAYER_URL, channel_url,
             note='Downloading js player')
-        channel_list = js_to_json(self._search_regex(
-            r';var r="anteny",a=(\[.+?\])},', player_code, 'channel list'))
-        return self._parse_json(channel_list, channel_url)
+        channel_list = self._search_json(
+            r''';\s*var\s[a-zA-Z_]+\s*=\s*["']anteny["']\s*,\s*[a-zA-Z_]+\s*=\s*''',
+            player_code, 'channel list', channel_url, transform_source=js_to_json,
+            contains_pattern=r'\[{(?s:.+)}\]')
+        self.cache.store('polskieradio-player-channel-list', player_hash, channel_list)
+        return channel_list
 
     def _real_extract(self, url):
         channel_url = self._match_id(url)
@@ -496,19 +507,11 @@ class PolskieRadioPlayerIE(InfoExtractor):
         if not station:
             raise ExtractorError('Station not found even though we extracted channel')
 
-        formats = []
-        for stream_url in station['Streams']:
-            stream_url = self._proto_relative_url(stream_url)
-            if stream_url.endswith('/playlist.m3u8'):
-                formats.extend(self._extract_m3u8_formats(stream_url, channel_url, live=True))
-            elif stream_url.endswith('/manifest.f4m'):
-                formats.extend(self._extract_mpd_formats(stream_url, channel_url))
-            elif stream_url.endswith('/Manifest'):
-                formats.extend(self._extract_ism_formats(stream_url, channel_url))
-            else:
-                formats.append({
-                    'url': stream_url,
-                })
+        formats = self._extract_m3u8_formats(
+            next((
+                stream_url.replace('http:', 'https:') for stream_url in station['Streams'] if stream_url.endswith('.m3u8')
+            )),
+            channel_url, live=True)
 
         return {
             'id': compat_str(channel['id']),
