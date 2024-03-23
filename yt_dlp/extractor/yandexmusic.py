@@ -1,12 +1,14 @@
 import hashlib
 import itertools
+from datetime import datetime, timezone
 
 from .common import InfoExtractor
 from ..compat import compat_str
 from ..utils import (
     ExtractorError,
-    int_or_none,
     float_or_none,
+    int_or_none,
+    traverse_obj,
     try_get,
 )
 
@@ -57,6 +59,41 @@ class YandexMusicBaseIE(InfoExtractor):
             },
             query=query)
 
+    def _extract_timestamp(self, album):
+        dt = None
+        if release_date := album.get('releaseDate'):
+            dt = datetime.fromisoformat(release_date)
+        elif year := album.get('year'):
+            dt = datetime(year, 1, 1, tzinfo=timezone.utc)
+        if dt:
+            return int(dt.timestamp())
+
+    def _extract_thumbnail(self, data):
+        if cover_uri := data.get('ogImage'):
+            thumbnail = cover_uri.replace('%%', 'orig')
+            if not thumbnail.startswith('http'):
+                thumbnail = 'https://' + thumbnail
+            return thumbnail
+
+    def _extract_artists(self, data):
+        def artist_name(artist):
+            decomposed = artist.get('decomposed')
+            if not isinstance(decomposed, list):
+                return artist['name']
+            parts = [artist['name']]
+            for element in decomposed:
+                if isinstance(element, dict) and element.get('name'):
+                    parts.append(element['name'])
+                elif isinstance(element, compat_str):
+                    parts.append(element)
+            return ''.join(parts)
+
+        artist_list = data.get('artists')
+        if artist_list and isinstance(artist_list, list):
+            artists_names = [artist_name(a) for a in artist_list if a.get('name')]
+            if artists_names:
+                return ', '.join(artists_names)
+
 
 class YandexMusicTrackIE(YandexMusicBaseIE):
     IE_NAME = 'yandexmusic:track'
@@ -76,29 +113,34 @@ class YandexMusicTrackIE(YandexMusicBaseIE):
             'album': 'md5:cd04fb13c4efeafdfa0a6a6aca36d01a',
             'album_artist': 'md5:5f54c35462c07952df33d97cfb5fc200',
             'artist': 'md5:e6fd86621825f14dc0b25db3acd68160',
-            'release_year': 2009,
+            'timestamp': 1241208000,
+            'disc_number': 1,
+            'track_number': 11,
+            'thumbnail': 're:^https://.*$',
+            'upload_date': str
         },
         # 'skip': 'Travis CI servers blocked by YandexMusic',
     }, {
         # multiple disks
-        'url': 'http://music.yandex.ru/album/3840501/track/705105',
-        'md5': '82a54e9e787301dd45aba093cf6e58c0',
+        'url': 'https://music.yandex.ru/album/19235277/track/94721644',
+        'md5': 'f239d4923c5fdbc2cc8f6c80b4fec721',
         'info_dict': {
-            'id': '705105',
+            'id': '94721644',
             'ext': 'mp3',
-            'title': 'md5:f86d4a9188279860a83000277024c1a6',
+            'title': 'Nirvana - Sliver',
             'filesize': int,
-            'duration': 239.27,
-            'track': 'md5:40f887f0666ba1aa10b835aca44807d1',
-            'album': 'md5:624f5224b14f5c88a8e812fd7fbf1873',
-            'album_artist': 'md5:dd35f2af4e8927100cbe6f5e62e1fb12',
-            'artist': 'md5:dd35f2af4e8927100cbe6f5e62e1fb12',
-            'release_year': 2016,
-            'genre': 'pop',
+            'duration': 133.49,
+            'track': 'Sliver',
+            'album': 'Nevermind',
+            'album_artist': 'Nirvana',
+            'artist': 'Nirvana',
+            'timestamp': 685659600,
             'disc_number': 2,
             'track_number': 9,
-        },
-        # 'skip': 'Travis CI servers blocked by YandexMusic',
+            'thumbnail': 're:^https://.*$',
+            'upload_date': str,
+            'genre': 'rock'
+        }
     }, {
         'url': 'http://music.yandex.com/album/540508/track/4878838',
         'only_matching': True,
@@ -124,12 +166,8 @@ class YandexMusicTrackIE(YandexMusicBaseIE):
         key = hashlib.md5(('XGRlBW9FXlekgbPrRHuSiA' + fd_data['path'][1:] + fd_data['s']).encode('utf-8')).hexdigest()
         f_url = 'http://%s/get-mp3/%s/%s?track-id=%s ' % (fd_data['host'], key, fd_data['ts'] + fd_data['path'], track['id'])
 
-        thumbnail = None
-        cover_uri = track.get('albums', [{}])[0].get('coverUri')
-        if cover_uri:
-            thumbnail = cover_uri.replace('%%', 'orig')
-            if not thumbnail.startswith('http'):
-                thumbnail = 'http://' + thumbnail
+        album = traverse_obj(track, ('albums', 0), expected_type=dict)
+        thumbnail = self._extract_thumbnail(track)
 
         track_info = {
             'id': track_id,
@@ -143,43 +181,24 @@ class YandexMusicTrackIE(YandexMusicBaseIE):
             'abr': int_or_none(download_data.get('bitrate')),
         }
 
-        def extract_artist_name(artist):
-            decomposed = artist.get('decomposed')
-            if not isinstance(decomposed, list):
-                return artist['name']
-            parts = [artist['name']]
-            for element in decomposed:
-                if isinstance(element, dict) and element.get('name'):
-                    parts.append(element['name'])
-                elif isinstance(element, compat_str):
-                    parts.append(element)
-            return ''.join(parts)
-
-        def extract_artist(artist_list):
-            if artist_list and isinstance(artist_list, list):
-                artists_names = [extract_artist_name(a) for a in artist_list if a.get('name')]
-                if artists_names:
-                    return ', '.join(artists_names)
-
         albums = track.get('albums')
         if albums and isinstance(albums, list):
             album = albums[0]
             if isinstance(album, dict):
-                year = album.get('year')
                 disc_number = int_or_none(try_get(
                     album, lambda x: x['trackPosition']['volume']))
                 track_number = int_or_none(try_get(
                     album, lambda x: x['trackPosition']['index']))
                 track_info.update({
                     'album': album.get('title'),
-                    'album_artist': extract_artist(album.get('artists')),
-                    'release_year': int_or_none(year),
+                    'album_artist': self._extract_artists(album),
+                    'timestamp': self._extract_timestamp(album),
                     'genre': album.get('genre'),
                     'disc_number': disc_number,
                     'track_number': track_number,
                 })
 
-        track_artist = extract_artist(track.get('artists'))
+        track_artist = self._extract_artists(track)
         if track_artist:
             track_info.update({
                 'artist': track_artist,
@@ -259,26 +278,23 @@ class YandexMusicAlbumIE(YandexMusicPlaylistBaseIE):
         'url': 'http://music.yandex.ru/album/540508',
         'info_dict': {
             'id': '540508',
-            'title': 'md5:7ed1c3567f28d14be9f61179116f5571',
+            'title': 'Gypsy Soul',
+            'artist': 'Carlo Ambrosio',
+            'thumbnail': 're:^https://.*$',
+            'timestamp': 1241208000,
+            'upload_date': str
         },
         'playlist_count': 50,
         # 'skip': 'Travis CI servers blocked by YandexMusic',
-    }, {
-        'url': 'https://music.yandex.ru/album/3840501',
-        'info_dict': {
-            'id': '3840501',
-            'title': 'md5:36733472cdaa7dcb1fd9473f7da8e50f',
-        },
-        'playlist_count': 33,
-        # 'skip': 'Travis CI servers blocked by YandexMusic',
-    }, {
-        # empty artists
+    }, {  # empty artists
         'url': 'https://music.yandex.ru/album/9091882',
         'info_dict': {
             'id': '9091882',
             'title': 'ТЕД на русском',
+            'thumbnail': 're:^https://.*$',
+            'artist': None,
         },
-        'playlist_count': 187,
+        'playlist_count': 166,
     }]
 
     @classmethod
@@ -296,15 +312,11 @@ class YandexMusicAlbumIE(YandexMusicPlaylistBaseIE):
 
         entries = self._build_playlist([track for volume in album['volumes'] for track in volume])
 
-        title = album['title']
-        artist = try_get(album, lambda x: x['artists'][0]['name'], compat_str)
-        if artist:
-            title = '%s - %s' % (artist, title)
-        year = album.get('year')
-        if year:
-            title += ' (%s)' % year
-
-        return self.playlist_result(entries, compat_str(album['id']), title)
+        return self.playlist_result(entries, compat_str(album['id']),
+                                    album.get('title'),
+                                    thumbnail=self._extract_thumbnail(album),
+                                    artist=self._extract_artists(album),
+                                    timestamp=self._extract_timestamp(album))
 
 
 class YandexMusicPlaylistIE(YandexMusicPlaylistBaseIE):
@@ -318,6 +330,7 @@ class YandexMusicPlaylistIE(YandexMusicPlaylistBaseIE):
             'id': '1245',
             'title': 'md5:841559b3fe2b998eca88d0d2e22a3097',
             'description': 'md5:3b9f27b0efbe53f2ee1e844d07155cc9',
+            'thumbnail': 're:^https://.*$',
         },
         'playlist_count': 5,
         # 'skip': 'Travis CI servers blocked by YandexMusic',
@@ -331,8 +344,10 @@ class YandexMusicPlaylistIE(YandexMusicPlaylistBaseIE):
         'info_dict': {
             'id': '1364',
             'title': 'md5:b3b400f997d3f878a13ae0699653f7db',
+            'thumbnail': 're:^https://.*$',
+            'description': ''
         },
-        'playlist_mincount': 437,
+        'playlist_mincount': 300,
         # 'skip': 'Travis CI servers blocked by YandexMusic',
     }]
 
@@ -357,7 +372,8 @@ class YandexMusicPlaylistIE(YandexMusicPlaylistBaseIE):
         return self.playlist_result(
             self._build_playlist(tracks),
             compat_str(playlist_id),
-            playlist.get('title'), playlist.get('description'))
+            playlist.get('title'), playlist.get('description'),
+            thumbnail=self._extract_thumbnail(playlist))
 
 
 class YandexMusicArtistBaseIE(YandexMusicPlaylistBaseIE):
@@ -396,9 +412,20 @@ class YandexMusicArtistTracksIE(YandexMusicArtistBaseIE):
         'info_dict': {
             'id': '617526',
             'title': 'md5:131aef29d45fd5a965ca613e708c040b',
+            'artist': 'Ringtone Hits',
+            'thumbnail': 're:^https://.*$',
         },
         'playlist_count': 507,
         # 'skip': 'Travis CI servers blocked by YandexMusic',
+    }, {
+        'url': 'https://music.yandex.ru/artist/9262/tracks',
+        'info_dict': {
+            'id': '9262',
+            'title': 'Nirvana - Треки',
+            'artist': 'Nirvana',
+            'thumbnail': 're:^https://.*$',
+        },
+        'playlist_count': 101
     }]
 
     _ARTIST_SORT = ''
@@ -410,10 +437,15 @@ class YandexMusicArtistTracksIE(YandexMusicArtistBaseIE):
         artist_id = mobj.group('id')
         data = self._call_artist(tld, url, artist_id)
         tracks = self._extract_tracks(data, artist_id, url, tld)
-        artist = try_get(data, lambda x: x['artist']['name'], compat_str)
-        title = '%s - %s' % (artist or artist_id, 'Треки')
+        thumbnail = None
+        artist_name = None
+        if artist := data.get('artist'):
+            artist_name = artist.get('name')
+            thumbnail = self._extract_thumbnail(artist)
+        title = '%s - %s' % (artist_name or artist_id, 'Треки')
         return self.playlist_result(
-            self._build_playlist(tracks), artist_id, title)
+            self._build_playlist(tracks), artist_id, title,
+            thumbnail=thumbnail, artist=artist_name)
 
 
 class YandexMusicArtistAlbumsIE(YandexMusicArtistBaseIE):
@@ -426,9 +458,20 @@ class YandexMusicArtistAlbumsIE(YandexMusicArtistBaseIE):
         'info_dict': {
             'id': '617526',
             'title': 'md5:55dc58d5c85699b7fb41ee926700236c',
+            'artist': 'Ringtone Hits',
+            'thumbnail': 're:^https://.*$',
         },
         'playlist_count': 8,
         # 'skip': 'Travis CI servers blocked by YandexMusic',
+    }, {  # artist with thumbnail
+        'url': 'https://music.yandex.ru/artist/9262/albums',
+        'info_dict': {
+            'id': '9262',
+            'title': 'Nirvana - Альбомы',
+            'artist': 'Nirvana',
+            'thumbnail': 're:^https://.*$',
+        },
+        'playlist_count': 15
     }]
 
     _ARTIST_SORT = 'year'
@@ -449,6 +492,11 @@ class YandexMusicArtistAlbumsIE(YandexMusicArtistBaseIE):
             entries.append(self.url_result(
                 'http://music.yandex.ru/album/%s' % album_id,
                 ie=YandexMusicAlbumIE.ie_key(), video_id=album_id))
-        artist = try_get(data, lambda x: x['artist']['name'], compat_str)
-        title = '%s - %s' % (artist or artist_id, 'Альбомы')
-        return self.playlist_result(entries, artist_id, title)
+        thumbnail = None
+        artist_name = None
+        if artist := data.get('artist'):
+            artist_name = artist.get('name')
+            thumbnail = self._extract_thumbnail(artist)
+        title = '%s - %s' % (artist_name or artist_id, 'Альбомы')
+        return self.playlist_result(entries, artist_id, title,
+                                    thumbnail=thumbnail, artist=artist_name)
