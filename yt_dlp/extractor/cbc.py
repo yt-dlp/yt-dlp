@@ -17,6 +17,7 @@ from ..utils import (
     orderedSet,
     parse_iso8601,
     smuggle_url,
+    unsmuggle_url,
     strip_or_none,
     traverse_obj,
     try_get,
@@ -284,6 +285,75 @@ class CBCPlayerPlaylistIE(InfoExtractor):
 
 class CBCGemIE(InfoExtractor):
     IE_NAME = 'gem.cbc.ca'
+    _VALID_URL = r'https?://gem\.cbc\.ca/(?:media/)?(?P<id>[0-9a-z-]+)/?(?:[?#]|$)'
+    _TESTS = [{
+        'url': 'https://gem.cbc.ca/score-a-hockey-musical',
+        'md5': 'b65141411ff8cedfd81988f936f21023',
+        'info_dict': {
+            'id': 'score-a-hockey-musical',
+            'ext': 'mp4',
+            'title': 'Score: A Hockey Musical',
+            'description': 'md5:c6f7096544fa3a2536ef2beffabd07ed',
+            'thumbnail': 'https://images.gem.cbc.ca/v1/synps-cbc/episode/perso/cbc_score_ott_program_v02.jpg?impolicy=ott&im=Resize=(_Size_)&quality=75',
+            'duration': 5432,
+            'timestamp': 1651150800,
+            'categories': ['musical'],
+            'upload_date': '20220428',
+        },
+        'params': {'format': 'bv'},
+        'skip': 'Geo-restricted to Canada',
+    }, {
+        'url': 'https://gem.cbc.ca/schitts-creek',
+        'playlist_count': 6,
+        'info_dict': {
+            'id': 'schitts-creek',
+            'title': 'Schitt\'s Creek',
+            'description': 'md5:6a92104a56cbeb5818cc47884d4326a2',
+            'thumbnail': 'https://images.gem.cbc.ca/v1/synps-cbc/show/perso/cbc_schitts_creek_ott_program_v02.jpg?impolicy=ott&im=Resize=(_Size_)&quality=75',
+            'series': 'Schitt\'s Creek',
+        },
+        'skip': 'Geo-restricted to Canada',
+    }]
+    _GEO_COUNTRIES = ['CA']
+
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+        webpage = self._download_webpage(url, video_id)
+        nextjs_data = self._search_nextjs_data(webpage, video_id)['props']['pageProps']['data']
+        if nextjs_data['contentType'] == 'Standalone':
+            # Force video ID to remove "/s01e01" that would be appended
+            url = smuggle_url('https://gem.cbc.ca/' + nextjs_data['selectedUrl'],
+                              {'id': video_id, 'standalone': True})
+            return {
+                '_type': 'url_transparent',
+                'ie_key': 'CBCGemEpisode',
+                'url': url,
+                'id': video_id,
+                'title': nextjs_data['title'],
+                'thumbnail': traverse_obj(nextjs_data, ('htmlMeta', 'og:image')),
+            }
+
+        seasons = []
+        for season in nextjs_data['structuredMetadata']['containsSeason']:
+            seasons.append({
+                '_type': 'url',
+                'ie_key': 'CBCGemPlaylist',
+                'url': season['url'],
+            })
+        return {
+            '_type': 'playlist',
+            'entries': seasons,
+            'id': video_id,
+            'title': nextjs_data['title'],
+            'description': nextjs_data.get('description'),
+            'thumbnail': traverse_obj(nextjs_data, ('htmlMeta', 'og:image')),
+            'series': nextjs_data['title'],
+            'playlist_count': traverse_obj(nextjs_data, ('structuredMetadata', 'numberOfSeasons'))
+        }
+
+
+class CBCGemEpisodeIE(InfoExtractor):
+    IE_NAME = 'gem.cbc.ca:episode'
     _VALID_URL = r'https?://gem\.cbc\.ca/(?:media/)?(?P<id>[0-9a-z-]+/s[0-9]+[a-z][0-9]+)'
     _TESTS = [{
         # This is a normal, public, TV show video
@@ -467,23 +537,29 @@ class CBCGemIE(InfoExtractor):
                 if 'descriptive' in format['format_id'].lower():
                     format['preference'] = -2
 
-        return {
-            'id': video_id,
+        _, url_data = unsmuggle_url(url, {})
+        info = {
+            # Allow overriding of video_id
+            'id': video_id if not url_data.get('id') else url_data['id'],
             'title': video_info['title'],
             'description': video_info.get('description'),
             'thumbnail': video_info.get('image'),
-            'series': video_info.get('series'),
-            'season_number': video_info.get('season'),
-            'season': f'Season {video_info.get("season")}',
-            'episode_number': video_info.get('episode'),
-            'episode': video_info.get('title'),
-            'episode_id': video_id,
             'duration': video_info.get('duration'),
             'categories': [video_info.get('category')],
             'formats': formats,
             'release_timestamp': video_info.get('airDate'),
-            'timestamp': video_info.get('availableDate'),
+            'timestamp': int(x) / 1000 if (x := video_info.get('availableDate')) else None,
         }
+        if not url_data.get('standalone'):
+            info.update({
+                'series': video_info.get('series'),
+                'season_number': video_info.get('season'),
+                'season': f'Season {video_info.get("season")}',
+                'episode_number': video_info.get('episode'),
+                'episode': video_info.get('title'),
+                'episode_id': video_id,
+            })
+        return info
 
 
 class CBCGemPlaylistIE(InfoExtractor):
@@ -524,7 +600,7 @@ class CBCGemPlaylistIE(InfoExtractor):
         for episode in season_info['assets']:
             episodes.append({
                 '_type': 'url_transparent',
-                'ie_key': 'CBCGem',
+                'ie_key': 'CBCGemEpisode',
                 'url': 'https://gem.cbc.ca/media/' + episode['id'],
                 'id': episode['id'],
                 'title': episode.get('title'),
