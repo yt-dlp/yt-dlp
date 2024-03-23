@@ -87,4 +87,5 @@ class DashSegmentsFD(FragmentFD):
                 'fragment_count': fragment.get('fragment_count'),
                 'index': i,
                 'url': fragment_url,
+                'byte_range': fragment.get('byte_range'),
             }

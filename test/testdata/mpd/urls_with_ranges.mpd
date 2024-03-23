@@ -1,0 +1,18 @@
+<?xml version="1.0" ?>
+<MPD maxSegmentDuration="PT0H0M10.000S" mediaPresentationDuration="PT0H4M1.728S" minBufferTime="PT1.500S" profiles="urn:mpeg:dash:profile:isoff-main:2011" type="static" xmlns="urn:mpeg:dash:schema:mpd:2011">
+  <Period duration="PT0H4M1.728S">
+    <AdaptationSet bitstreamSwitching="true" lang="und" maxHeight="1080" maxWidth="1920" par="16:9" segmentAlignment="true">
+      <ContentComponent contentType="video" id="1"/>
+      <Representation audioSamplingRate="44100" bandwidth="200000" codecs="avc3.42c01e,mp4a.40.2" frameRate="25" height="144" id="h264_aac_144p_m4s" mimeType="video/mp4" sar="1:1" startWithSAP="1" width="256">
+        <SegmentList duration="10000" timescale="1000">
+          <Initialization sourceURL="../vd_5999c902ea707c67d8e267a9_1503250723/h264_aac_144p_m4s/0/432f65a0.m4s" range="0-999"/>
+          <SegmentURL media="../vd_5999c902ea707c67d8e267a9_1503250723/h264_aac_144p_m4s/0/432f65a0.m4s" mediaRange="1000-99999"/>
+          <SegmentURL media="../vd_5999c902ea707c67d8e267a9_1503250723/h264_aac_144p_m4s/0/432f65a0.m4s" mediaRange="100000-199999"/>
+          <SegmentURL media="../vd_5999c902ea707c67d8e267a9_1503250723/h264_aac_144p_m4s/0/432f65a0.m4s" mediaRange="200001-299999"/>
+          <SegmentURL media="../vd_5999c902ea707c67d8e267a9_1503250723/h264_aac_144p_m4s/1/432f65a0.m4s" mediaRange="300000-399999"/>
+          <SegmentURL media="../vd_5999c902ea707c67d8e267a9_1503250723/h264_aac_144p_m4s/2/432f65a0.m4s"/>
+        </SegmentList>
+      </Representation>
+    </AdaptationSet>
+  </Period>
+</MPD>
