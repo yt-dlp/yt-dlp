@@ -16,7 +16,6 @@ from ..utils import (
     merge_dicts,
     multipart_encode,
     parse_duration,
-    random_birthday,
     traverse_obj,
     try_call,
     try_get,
@@ -63,26 +62,28 @@ class CDAIE(InfoExtractor):
             'description': 'md5:60d76b71186dcce4e0ba6d4bbdb13e1a',
             'thumbnail': r're:^https?://.*\.jpg$',
             'uploader': 'crash404',
-            'view_count': int,
             'average_rating': float,
             'duration': 137,
             'age_limit': 0,
+            'upload_date': '20160220',
+            'timestamp': 1455968218,
         }
     }, {
         # Age-restricted
-        'url': 'http://www.cda.pl/video/1273454c4',
+        'url': 'https://www.cda.pl/video/12537327dd',
         'info_dict': {
-            'id': '1273454c4',
+            'id': '12537327dd',
             'ext': 'mp4',
-            'title': 'Bronson (2008) napisy HD 1080p',
-            'description': 'md5:1b6cb18508daf2dc4e0fa4db77fec24c',
+            'title': 'Egzorcysta (Showmax) - s01e06 - Utopce',
+            'description': 'md5:0b256b7ea8f4a3f19af842500eaf49c5',
             'height': 1080,
-            'uploader': 'boniek61',
+            'uploader': 'pan-pingwin',
             'thumbnail': r're:^https?://.*\.jpg$',
-            'duration': 5554,
+            'duration': 786.0,
             'age_limit': 18,
-            'view_count': int,
             'average_rating': float,
+            'timestamp': 1669314139,
+            'upload_date': '20221124',
         },
     }, {
         'url': 'http://ebd.cda.pl/0x0/5749950c',
@@ -90,11 +91,10 @@ class CDAIE(InfoExtractor):
     }]
 
     def _download_age_confirm_page(self, url, video_id, *args, **kwargs):
-        form_data = random_birthday('rok', 'miesiac', 'dzien')
-        form_data.update({'return': url, 'module': 'video', 'module_id': video_id})
+        form_data = {'age_confirm': ''}
         data, content_type = multipart_encode(form_data)
         return self._download_webpage(
-            urljoin(url, '/a/validatebirth'), video_id, *args,
+            url, video_id, *args,
             data=data, headers={
                 'Referer': url,
                 'Content-Type': content_type,
@@ -209,7 +209,7 @@ class CDAIE(InfoExtractor):
             self.raise_geo_restricted()
 
         need_confirm_age = False
-        if self._html_search_regex(r'(<form[^>]+action="[^"]*/a/validatebirth[^"]*")',
+        if self._html_search_regex(r'(<button[^>]+name="[^"]*age_confirm[^"]*")',
                                    webpage, 'birthday validate form', default=None):
             webpage = self._download_age_confirm_page(
                 url, video_id, note='Confirming age')
@@ -222,9 +222,6 @@ class CDAIE(InfoExtractor):
             (?:<\1[^>]*>[^<]*</\1>|(?!</\1>)(?:.|\n))*?
             <(span|meta)[^>]+itemprop=(["\'])name\4[^>]*>(?P<uploader>[^<]+)</\3>
         ''', webpage, 'uploader', default=None, group='uploader')
-        view_count = self._search_regex(
-            r'Odsłony:(?:\s|&nbsp;)*([0-9]+)', webpage,
-            'view_count', default=None)
         average_rating = self._search_regex(
             (r'<(?:span|meta)[^>]+itemprop=(["\'])ratingValue\1[^>]*>(?P<rating_value>[0-9.]+)',
              r'<span[^>]+\bclass=["\']rating["\'][^>]*>(?P<rating_value>[0-9.]+)'), webpage, 'rating', fatal=False,
@@ -235,7 +232,6 @@ class CDAIE(InfoExtractor):
             'title': self._og_search_title(webpage),
             'description': self._og_search_description(webpage),
             'uploader': uploader,
-            'view_count': int_or_none(view_count),
             'average_rating': float_or_none(average_rating),
             'thumbnail': self._og_search_thumbnail(webpage),
             'formats': formats,
