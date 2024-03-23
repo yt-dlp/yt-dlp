@@ -1628,6 +1628,7 @@ from .rinsefm import (
     RinseFMArtistPlaylistIE,
 )
 from .rmcdecouverte import RMCDecouverteIE
+from .roblox import RobloxIE
 from .rockstargames import RockstarGamesIE
 from .rokfin import (
     RokfinIE,
