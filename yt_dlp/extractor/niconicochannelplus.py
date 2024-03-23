@@ -35,12 +35,11 @@ class NiconicoChannelPlusBaseIE(InfoExtractor):
             'content_providers/channels', item_id=f'channels/{channel_name}',
             note='Fetching channel list', errnote='Unable to fetch channel list',
         )['data']['content_providers']
-        fanclub_id = traverse_obj(fanclub_list_json, (
-            lambda _, v: v['domain'] == f'{self._WEBPAGE_BASE_URL}/{channel_name}', 'id', {int_or_none}),
-            get_all=False)
-        if not fanclub_id:
-            raise ExtractorError(f'Channel {channel_name} does not exist', expected=True)
-        return fanclub_id
+        if fanclub_id := traverse_obj(fanclub_list_json, (
+                lambda _, v: v['domain'] == f'{self._WEBPAGE_BASE_URL}/{channel_name}', 'id', {int_or_none}),
+                get_all=False):
+            return fanclub_id
+        raise ExtractorError(f'Channel {channel_name} does not exist', expected=True)
 
     def _get_channel_base_info(self, fanclub_site_id):
         return traverse_obj(self._call_api(
@@ -108,17 +107,16 @@ class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
 
     _LOGIN_API = 'https://auth.sheeta.com/auth/realms/FCS00001/protocol/openid-connect/auth?client_id=FCS00056&response_type=code&scope=openid&kc_idp_hint=niconico&redirect_uri=https%3A%2F%2Fnicochannel.jp%2Ftestman%2Flogin'
     _AUTH_BASE_URL = 'https://account.nicovideo.jp/'
-    _AUTH_TOKEN = {}
+    _AUTH_TOKEN = None
 
     def _get_bearer_token_by_cookies(self):
-        _, urlh = self._download_webpage_handle(
+        urlh = self._request_webpage(
             self._LOGIN_API, None, note='Getting auth status',
-            expected_status=(404), errnote='Unable to get auth status')
+            expected_status=404, errnote='Unable to get auth status')
         if not urlh.url.startswith('https://nicochannel.jp/testman/login'):
             return None
 
-        sns_login_code = traverse_obj(parse_qs(urlh.url), ('code', 0))
-        if not sns_login_code:
+        if not (sns_login_code := traverse_obj(parse_qs(urlh.url), ('code', 0))):
             self.report_warning('Unable to get sns login code')
             return None
 
@@ -149,8 +147,7 @@ class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
             return
 
         # Cookies may be also specified
-        bearer = self._get_bearer_token_by_cookies()
-        if bearer:
+        if bearer := self._get_bearer_token_by_cookies():
             self._AUTH_TOKEN = {'mail_tel_b64': None, 'bearer': bearer}
             return
 
@@ -161,7 +158,7 @@ class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
                     self._LOGIN_API, None, note='Getting login url', errnote='Unable to get login url'),
                 name='login url', group='url'))
         webpage, urlh = self._download_webpage_handle(
-            login_url, None, note='Logging in', errnote='Unable to log in', expected_status=(404),
+            login_url, None, note='Logging in', errnote='Unable to log in', expected_status=404,
             data=urlencode_postdata({
                 'mail_tel': mail_tel,
                 'password': password,
@@ -178,7 +175,7 @@ class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
             webpage, urlh = self._download_webpage_handle(
                 urljoin(self._AUTH_BASE_URL, self._search_regex(
                     r'<form[^>]+action=(["\'])(?P<url>.+?)\1', webpage, 'mfa post url', group='url')),
-                None, expected_status=(404), note='Performing MFA', errnote='Unable to complete MFA',
+                None, expected_status=404, note='Performing MFA', errnote='Unable to complete MFA',
                 headers={
                     'Content-Type': 'application/x-www-form-urlencoded',
                     'Referer': self._AUTH_BASE_URL,
@@ -194,8 +191,7 @@ class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
                 self.report_warning(f'Unable to log in: MFA challenge failed, "{err_msg}"')
                 return
 
-        bearer = self._get_bearer_token_by_cookies()
-        if bearer:
+        if bearer := self._get_bearer_token_by_cookies():
             self.cache.store(self._NETRC_MACHINE, mail_tel_b64, {
                 'bearer': bearer,
                 'timestamp': int(time_seconds()),
@@ -203,10 +199,8 @@ class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
             self._AUTH_TOKEN = {'mail_tel_b64': mail_tel_b64, 'bearer': bearer}
 
     def _real_extract(self, url):
-        if not self._AUTH_TOKEN:
-            bearer = self._get_bearer_token_by_cookies()
-            if bearer:
-                self._AUTH_TOKEN = {'mail_tel_b64': None, 'bearer': bearer}
+        if (not self._AUTH_TOKEN) and (bearer := self._get_bearer_token_by_cookies()):
+            self._AUTH_TOKEN = {'mail_tel_b64': None, 'bearer': bearer}
 
         content_code, channel_id = self._match_valid_url(url).group('code', 'channel')
         fanclub_site_id = self._find_fanclub_site_id(channel_id)
@@ -316,13 +310,13 @@ class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
                 video_allow_dvr_flg = traverse_obj(data_json, ('video', 'allow_dvr_flg'))
                 video_convert_to_vod_flg = traverse_obj(data_json, ('video', 'convert_to_vod_flg'))
 
-                self.write_debug(f'allow_dvr_flg = {video_allow_dvr_flg}, convert_to_vod_flg = {video_convert_to_vod_flg}.')
+                self.write_debug(f'{content_code}: allow_dvr_flg = {video_allow_dvr_flg}, convert_to_vod_flg = {video_convert_to_vod_flg}.')
 
                 if not (video_allow_dvr_flg and video_convert_to_vod_flg):
                     raise ExtractorError(
                         'Live was ended, there is no video for download.', video_id=content_code, expected=True)
         else:
-            raise ExtractorError(f'Unknown type: {video_type}', video_id=content_code, expected=False)
+            raise ExtractorError(f'Unknown type: {video_type!r}', video_id=content_code)
 
         self.write_debug(f'{content_code}: video_type={video_type}, live_status={live_status}')
 
@@ -344,9 +338,8 @@ class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
         except ExtractorError as e:
             if not isinstance(e.cause, HTTPError) or e.cause.status not in (401, 403, 408):
                 raise e
-            if self._AUTH_TOKEN:
-                if self._AUTH_TOKEN['mail_tel_b64']:
-                    self.cache.store(self._NETRC_MACHINE, self._AUTH_TOKEN['mail_tel_b64'], None)
+            if mail_tel_b64 := traverse_obj(self._AUTH_TOKEN, ('mail_tel_b64', {str})):
+                self.cache.store(self._NETRC_MACHINE, mail_tel_b64, None)
             self.raise_login_required(
                 msg={
                     401: 'members only content',
