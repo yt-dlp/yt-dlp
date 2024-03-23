@@ -11,6 +11,7 @@ from ..networking.exceptions import (
 )
 from ..utils import (
     ContentTooShortError,
+    FormatProgressInfos,
     RetryManager,
     ThrottledDownload,
     XAttrMetadataError,
@@ -298,11 +299,11 @@ class HttpFD(FileDownloader):
                 before = after
 
                 # Progress message
-                speed = self.calc_speed(start, now, byte_counter - ctx.resume_len)
+                speed = FormatProgressInfos.calc_speed(start, now, byte_counter - ctx.resume_len)
                 if ctx.data_len is None:
                     eta = None
                 else:
-                    eta = self.calc_eta(start, time.time(), ctx.data_len - ctx.resume_len, byte_counter - ctx.resume_len)
+                    eta = FormatProgressInfos.calc_eta(start, time.time(), ctx.data_len - ctx.resume_len, byte_counter - ctx.resume_len)
 
                 self._hook_progress({
                     'status': 'downloading',
