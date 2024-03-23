@@ -498,7 +498,11 @@ class FragmentFD(FileDownloader):
                             'fragment_filename_sanitized': frag_filename,
                             'fragment_index': frag_index,
                         })
-                        if not append_fragment(decrypt_fragment(fragment, self._read_fragment(ctx)), frag_index, ctx):
+                        decrypted_fragment = decrypt_fragment(fragment, self._read_fragment(ctx))
+                        if self.params.get('keep_fragments', False):
+                            f, _ = self.sanitize_open(ctx.get('fragment_filename_sanitized'), 'wb')
+                            f.write(decrypted_fragment)
+                        if not append_fragment(decrypted_fragment, frag_index, ctx):
                             return False
                 except KeyboardInterrupt:
                     self._finish_multiline_status()
@@ -512,8 +516,11 @@ class FragmentFD(FileDownloader):
                     break
                 try:
                     download_fragment(fragment, ctx)
-                    result = append_fragment(
-                        decrypt_fragment(fragment, self._read_fragment(ctx)), fragment['frag_index'], ctx)
+                    decrypted_fragment = decrypt_fragment(fragment, self._read_fragment(ctx))
+                    if self.params.get('keep_fragments', False):
+                        f, _ = self.sanitize_open(ctx.get('fragment_filename_sanitized'), 'wb')
+                        f.write(decrypted_fragment)
+                    result = append_fragment(decrypted_fragment, fragment['frag_index'], ctx)
                 except KeyboardInterrupt:
                     if info_dict.get('is_live'):
                         break
