@@ -871,6 +871,9 @@ from .japandiet import (
     SangiinInstructionIE,
     SangiinIE,
 )
+
+from .jditemvideo import JdItemVideoIE
+
 from .jeuxvideo import JeuxVideoIE
 from .jiosaavn import (
     JioSaavnSongIE,
