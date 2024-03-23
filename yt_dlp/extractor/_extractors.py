@@ -1539,6 +1539,7 @@ from .r7 import (
     R7ArticleIE,
 )
 from .radiko import RadikoIE, RadikoRadioIE
+from .radio4dk import Radio4DkIE
 from .radiocanada import (
     RadioCanadaIE,
     RadioCanadaAudioVideoIE,
