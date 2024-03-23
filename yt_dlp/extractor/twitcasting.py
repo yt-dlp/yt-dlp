@@ -195,6 +195,7 @@ class TwitCastingIE(InfoExtractor):
                         'source_preference': -10,
                         # TwitCasting simply sends moof atom directly over WS
                         'protocol': 'websocket_frag',
+                        'container': 'fmp4',
                     })
 
             infodict = {
