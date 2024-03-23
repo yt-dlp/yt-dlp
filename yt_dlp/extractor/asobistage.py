@@ -9,27 +9,35 @@ class AsobiStageIE(InfoExtractor):
     _TESTS = [{
         'url': 'https://asobistage.asobistore.jp/event/315passionhour_2022summer/archive/frame',
         'info_dict': {
-            'id': '315passionhour_2022summer/archive/frame/edff52f2',
-            'title': '315passion_FRAME_only',
-            'live_status': 'was_live',
+            'id': '315passionhour_2022summer/archive/frame',
+            'title': '315プロダクションプレゼンツ 315パッションアワー!!!',
             'thumbnail': r're:^https?://[\w.-]+/\w+/\w+',
         },
-        'params': {
-            'skip_download': True,
-            'ignore_no_formats_error': True,
-        },
+        'playlist_count': 1,
+        'playlist': [{
+            'info_dict': {
+                'id': '315passionhour_2022summer/archive/frame/edff52f2',
+                'ext': 'mp4',
+                'title': '315passion_FRAME_only',
+                'thumbnail': r're:^https?://[\w.-]+/\w+/\w+',
+            },
+        }],
     }, {
         'url': 'https://asobistage.asobistore.jp/event/idolmaster_idolworld2023_goods/archive/live',
         'info_dict': {
-            'id': 'idolmaster_idolworld2023_goods/archive/live/3aef7110',
-            'title': 'asobistore_station_1020_serverREC',
-            'live_status': 'was_live',
+            'id': 'idolmaster_idolworld2023_goods/archive/live',
+            'title': 'md5:378510b6e830129d505885908bd6c576',
             'thumbnail': r're:^https?://[\w.-]+/\w+/\w+',
         },
-        'params': {
-            'skip_download': True,
-            'ignore_no_formats_error': True,
-        },
+        'playlist_count': 1,
+        'playlist': [{
+            'info_dict': {
+                'id': 'idolmaster_idolworld2023_goods/archive/live/3aef7110',
+                'ext': 'mp4',
+                'title': 'asobistore_station_1020_serverREC',
+                'thumbnail': r're:^https?://[\w.-]+/\w+/\w+',
+            },
+        }],
     }, {
         'url': 'https://asobistage.asobistore.jp/event/ijigenfes_utagassen/player/day1',
         'only_matching': True,
