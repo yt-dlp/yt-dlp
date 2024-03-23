@@ -7,6 +7,7 @@ from ..utils import (
     int_or_none,
     parse_duration,
     parse_iso8601,
+    try_get,
     unescapeHTML,
     urljoin,
 )
@@ -20,7 +21,6 @@ class RTSIE(SRGSSRIE):  # XXX: Do not subclass from concrete IE
     _TESTS = [
         {
             'url': 'http://www.rts.ch/archives/tv/divers/3449373-les-enfants-terribles.html',
-            'md5': '753b877968ad8afaeddccc374d4256a5',
             'info_dict': {
                 'id': '3449373',
                 'display_id': 'les-enfants-terribles',
@@ -34,6 +34,7 @@ class RTSIE(SRGSSRIE):  # XXX: Do not subclass from concrete IE
                 'thumbnail': r're:^https?://.*\.image',
                 'view_count': int,
             },
+            'params': {'skip_download': 'm3u8'},
             'expected_warnings': ['Unable to download f4m manifest', 'Failed to download m3u8 information'],
         },
         {
@@ -43,6 +44,7 @@ class RTSIE(SRGSSRIE):  # XXX: Do not subclass from concrete IE
                 'title': 'Passe-moi les jumelles',
             },
             'playlist_mincount': 4,
+            'skip': '404 Page Not Found',
         },
         {
             'url': 'http://www.rts.ch/video/sport/hockey/5745975-1-2-kloten-fribourg-5-2-second-but-pour-gotteron-par-kwiatowski.html',
@@ -59,16 +61,12 @@ class RTSIE(SRGSSRIE):  # XXX: Do not subclass from concrete IE
                 'thumbnail': r're:^https?://.*\.image',
                 'view_count': int,
             },
-            'params': {
-                # m3u8 download
-                'skip_download': True,
-            },
+            'params': {'skip_download': 'm3u8'},
             'expected_warnings': ['Unable to download f4m manifest', 'Failed to download m3u8 information'],
             'skip': 'Blocked outside Switzerland',
         },
         {
             'url': 'http://www.rts.ch/video/info/journal-continu/5745356-londres-cachee-par-un-epais-smog.html',
-            'md5': '9bb06503773c07ce83d3cbd793cebb91',
             'info_dict': {
                 'id': '5745356',
                 'display_id': 'londres-cachee-par-un-epais-smog',
@@ -82,6 +80,7 @@ class RTSIE(SRGSSRIE):  # XXX: Do not subclass from concrete IE
                 'thumbnail': r're:^https?://.*\.image',
                 'view_count': int,
             },
+            'params': {'skip_download': 'm3u8'},
             'expected_warnings': ['Unable to download f4m manifest', 'Failed to download m3u8 information'],
         },
         {
@@ -106,6 +105,7 @@ class RTSIE(SRGSSRIE):  # XXX: Do not subclass from concrete IE
                 'title': 'Hockey: Davos décroche son 31e titre de champion de Suisse',
             },
             'playlist_mincount': 5,
+            'skip': 'Blocked outside Switzerland',
         },
         {
             'url': 'http://pages.rts.ch/emissions/passe-moi-les-jumelles/5624065-entre-ciel-et-mer.html',
@@ -155,14 +155,15 @@ class RTSIE(SRGSSRIE):  # XXX: Do not subclass from concrete IE
                 return self.playlist_result(entries, media_id, all_info.get('title'))
 
             internal_id = self._html_search_regex(
-                r'<(?:video|audio) data-id="([0-9]+)"', page,
+                r'(?:<(?:video|audio)\s+data-id\s*=\s*"|data-media-urn\s*=\s*"urn:rts:(?:video|audio):)(\d+)"', page,
                 'internal video id')
             all_info = download_json(internal_id)
+            media_id = internal_id
 
         media_type = 'video' if 'video' in all_info else 'audio'
 
         # check for errors
-        self._get_media_data('rts', media_type, media_id)
+        media_info = self._get_media_data('rts', media_type, media_id)
 
         info = all_info['video']['JSONinfo'] if 'video' in all_info else all_info['audio']
 
@@ -173,8 +174,15 @@ class RTSIE(SRGSSRIE):  # XXX: Do not subclass from concrete IE
                 r'-([0-9]+)k\.', url, 'bitrate', default=None))
 
         formats = []
+
+        def streams_from_media_data(m_data):
+            return dict(
+                (res.get('protocol', i), res['url'], )
+                for i, res in enumerate(try_get(m_data, lambda x: x['resourceList'], list), 1)
+                if try_get(res, lambda x: x['url']))
+
         streams = info.get('streams', {})
-        for format_id, format_url in streams.items():
+        for format_id, format_url in (streams_from_media_data(media_info) or streams).items():
             if format_id == 'hds_sd' and 'hds' in streams:
                 continue
             if format_id == 'hls_sd' and 'hls' in streams:
@@ -196,14 +204,14 @@ class RTSIE(SRGSSRIE):  # XXX: Do not subclass from concrete IE
                     'tbr': extract_bitrate(format_url),
                 })
 
-        download_base = 'http://rtsww%s-d.rts.ch/' % ('-a' if media_type == 'audio' else '')
+        download_base = info.get('download', 'http://rtsww%s-d.rts.ch/' % ('-a' if media_type == 'audio' else '', ))
         for media in info.get('media', []):
             media_url = media.get('url')
             if not media_url or re.match(r'https?://', media_url):
                 continue
             rate = media.get('rate')
             ext = media.get('ext') or determine_ext(media_url, 'mp4')
-            format_id = ext
+            format_id = (re.findall(r'_[A-Za-z\d]+\.', media_url) or ('_%s.' % (ext, )))[-1][1:-1]
             if rate:
                 format_id += '-%dk' % rate
             formats.append({
