@@ -41,6 +41,14 @@ class AsobiStageIE(InfoExtractor):
             },
         }],
     }, {
+        'url': 'https://asobistage.asobistore.jp/event/sidem_fclive_bpct/archive/premium_hc',
+        'playlist_count': 4,
+        'info_dict': {
+            'id': 'sidem_fclive_bpct/archive/premium_hc',
+            'title': '315 Production presents F＠NTASTIC COMBINATION LIVE ～BRAINPOWER!!～/～CONNECTIME!!!!～',
+            'thumbnail': r're:^https?://[\w.-]+/\w+/\w+',
+        },
+    }, {
         'url': 'https://asobistage.asobistore.jp/event/ijigenfes_utagassen/player/day1',
         'only_matching': True,
     }]
