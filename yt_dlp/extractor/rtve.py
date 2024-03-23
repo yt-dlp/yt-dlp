@@ -15,13 +15,13 @@ from ..utils import (
 )
 
 
-class RTVEALaCartaIE(InfoExtractor):
-    IE_NAME = 'rtve.es:alacarta'
-    IE_DESC = 'RTVE a la carta'
-    _VALID_URL = r'https?://(?:www\.)?rtve\.es/(m/)?(alacarta/videos|filmoteca)/[^/]+/[^/]+/(?P<id>\d+)'
+class RTVEPlayIE(InfoExtractor):
+    IE_NAME = 'rtve.es:play'
+    IE_DESC = 'RTVE Play'
+    _VALID_URL = r'https?://(?:www\.)?rtve\.es/(m/)?(play/videos|filmoteca)/[^/]+/[^/]+/(?P<id>\d+)'
 
     _TESTS = [{
-        'url': 'http://www.rtve.es/alacarta/videos/balonmano/o-swiss-cup-masculina-final-espana-suecia/2491869/',
+        'url': 'http://www.rtve.es/play/videos/balonmano/o-swiss-cup-masculina-final-espana-suecia/2491869/',
         'md5': '1d49b7e1ca7a7502c56a4bf1b60f1b43',
         'info_dict': {
             'id': '2491869',
@@ -33,7 +33,7 @@ class RTVEALaCartaIE(InfoExtractor):
         'expected_warnings': ['Failed to download MPD manifest', 'Failed to download m3u8 information'],
     }, {
         'note': 'Live stream',
-        'url': 'http://www.rtve.es/alacarta/videos/television/24h-live/1694255/',
+        'url': 'http://www.rtve.es/play/videos/television/24h-live/1694255/',
         'info_dict': {
             'id': '1694255',
             'ext': 'mp4',
@@ -44,7 +44,7 @@ class RTVEALaCartaIE(InfoExtractor):
             'skip_download': 'live stream',
         },
     }, {
-        'url': 'http://www.rtve.es/alacarta/videos/servir-y-proteger/servir-proteger-capitulo-104/4236788/',
+        'url': 'http://www.rtve.es/play/videos/servir-y-proteger/servir-proteger-capitulo-104/4236788/',
         'md5': 'd850f3c8731ea53952ebab489cf81cbf',
         'info_dict': {
             'id': '4236788',
@@ -54,7 +54,7 @@ class RTVEALaCartaIE(InfoExtractor):
         },
         'expected_warnings': ['Failed to download MPD manifest', 'Failed to download m3u8 information'],
     }, {
-        'url': 'http://www.rtve.es/m/alacarta/videos/cuentame-como-paso/cuentame-como-paso-t16-ultimo-minuto-nuestra-vida-capitulo-276/2969138/?media=tve',
+        'url': 'http://www.rtve.es/play/videos/cuentame-como-paso/cuentame-como-paso-t16-ultimo-minuto-nuestra-vida-capitulo-276/2969138/?media=tve',
         'only_matching': True,
     }, {
         'url': 'http://www.rtve.es/filmoteca/no-do/not-1-introduccion-primer-noticiario-espanol/1465256/',
