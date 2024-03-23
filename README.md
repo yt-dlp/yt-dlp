@@ -1933,12 +1933,12 @@ import yt_dlp
 
 URL = 'https://www.youtube.com/watch?v=BaW_jenozKc'
 
-# ℹ️ See help(yt_dlp.YoutubeDL) for a list of available options and public functions
+# See help(yt_dlp.YoutubeDL) for a list of available options and public functions
 ydl_opts = {}
 with yt_dlp.YoutubeDL(ydl_opts) as ydl:
     info = ydl.extract_info(URL, download=False)
 
-    # ℹ️ ydl.sanitize_info makes the info json-serializable
+    # ydl.sanitize_info makes the info json-serializable
     print(json.dumps(ydl.sanitize_info(info)))
 ```
 #### Download using an info-json
@@ -1964,7 +1964,7 @@ URLS = ['https://www.youtube.com/watch?v=BaW_jenozKc']
 
 ydl_opts = {
     'format': 'm4a/bestaudio/best',
-    # ℹ️ See help(yt_dlp.postprocessor) for a list of available Postprocessors and their arguments
+    # See help(yt_dlp.postprocessor) for a list of available Postprocessors and their arguments
     'postprocessors': [{  # Extract audio using ffmpeg
         'key': 'FFmpegExtractAudio',
         'preferredcodec': 'm4a',
@@ -2022,7 +2022,7 @@ class MyLogger:
         print(msg)
 
 
-# ℹ️ See "progress_hooks" in help(yt_dlp.YoutubeDL)
+# See "progress_hooks" in help(yt_dlp.YoutubeDL)
 def my_hook(d):
     if d['status'] == 'finished':
         print('Done downloading, now post-processing ...')
@@ -2044,7 +2044,7 @@ import yt_dlp
 
 URLS = ['https://www.youtube.com/watch?v=BaW_jenozKc']
 
-# ℹ️ See help(yt_dlp.postprocessor.PostProcessor)
+# See help(yt_dlp.postprocessor.PostProcessor)
 class MyCustomPP(yt_dlp.postprocessor.PostProcessor):
     def run(self, info):
         self.to_screen('Doing stuff')
@@ -2052,7 +2052,7 @@ class MyCustomPP(yt_dlp.postprocessor.PostProcessor):
 
 
 with yt_dlp.YoutubeDL() as ydl:
-    # ℹ️ "when" can take any value in yt_dlp.utils.POSTPROCESS_WHEN
+    # "when" can take any value in yt_dlp.utils.POSTPROCESS_WHEN
     ydl.add_post_processor(MyCustomPP(), when='pre_process')
     ydl.download(URLS)
 ```
