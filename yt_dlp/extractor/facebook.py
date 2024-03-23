@@ -445,7 +445,9 @@ class FacebookIE(InfoExtractor):
         try:
             login_results = self._download_webpage(request, None,
                                                    note='Logging in', errnote='unable to fetch login page')
-            if re.search(r'<form(.*)name="login"(.*)</form>', login_results) is not None:
+            if 'Your Request Couldn' in login_results:
+                self.raise_login_required('Failed to login with credentials', method='cookies')
+            elif re.search(r'<form[^>]*name="login"[^<]*</form>', login_results):
                 error = self._html_search_regex(
                     r'(?s)<div[^>]+class=(["\']).*?login_error_box.*?\1[^>]*><div[^>]*>.*?</div><div[^>]*>(?P<error>.+?)</div>',
                     login_results, 'login error', default=None, group='error')
@@ -478,13 +480,41 @@ class FacebookIE(InfoExtractor):
             return
 
     def _extract_from_url(self, url, video_id):
+        cookies = self._get_cookies(url)
+        # user passed logged-in cookies or attempted to login
+        login_data = cookies.get('c_user') and cookies.get('xs')
+        logged_in = False
+
         webpage = self._download_webpage(
             url.replace('://m.facebook.com/', '://www.facebook.com/'), video_id)
 
+        sjs_data = [self._parse_json(j, video_id, fatal=False) for j in re.findall(
+            r'data-sjs>({.*?ScheduledServerJS.*?})</script>', webpage)]
+
+        if login_data:
+            logged_in = get_first(sjs_data, (
+                'require', ..., ..., ..., '__bbox', 'define',
+                lambda _, v: 'CurrentUserInitialData' in v, ..., 'ACCOUNT_ID'), default='0') != '0'
+            if logged_in and (info := get_first(sjs_data, ('require', ..., ..., ..., '__bbox', 'require', ..., ..., ...,
+                                                           '__bbox', 'result', 'data', (('ufac_client', 'state',
+                                                                                         (('set_contact_point_state_renderer', 'title'),
+                                                                                          ('intro_state_renderer', 'header_title'))),
+                                                                                        ('epsilon_checkpoint', 'screen', 'title'))))):
+                if any(content in info for content in ['days left to appeal', 'suspended your account']):
+                    raise ExtractorError('Your account is suspended', expected=True)
+                if 'Enter mobile number' == info:
+                    raise ExtractorError('Facebook is requiring mobile number confirmation', expected=True)
+                if 'your account has been locked' in info:
+                    raise ExtractorError('Your account has been locked', expected=True)
+
+        if props := get_first(sjs_data, (
+                'require', ..., ..., ..., '__bbox', 'require', ..., ..., ..., 'rootView',
+                lambda _, v: v['title'].startswith('This content isn\'t available'))):
+            raise ExtractorError(
+                f'Content unavailable. Facebook said: {props.get("body") or props["title"]}', expected=True)
+
         def extract_metadata(webpage):
-            post_data = [self._parse_json(j, video_id, fatal=False) for j in re.findall(
-                r'data-sjs>({.*?ScheduledServerJS.*?})</script>', webpage)]
-            post = traverse_obj(post_data, (
+            post = traverse_obj(sjs_data, (
                 ..., 'require', ..., ..., ..., '__bbox', 'require', ..., ..., ..., '__bbox', 'result', 'data'), expected_type=dict) or []
             media = traverse_obj(post, (..., 'attachments', ..., lambda k, v: (
                 k == 'media' and str(v['id']) == video_id and v['__typename'] == 'Video')), expected_type=dict)
@@ -795,6 +825,10 @@ class FacebookIE(InfoExtractor):
             video_data = extract_from_jsmods_instances(tahoe_js_data)
 
         if not video_data:
+            if not login_data:
+                raise ExtractorError('Cannot parse data. Try logging in.', expected=True)
+            if not logged_in:
+                raise ExtractorError('Failed to login with provided data.', expected=True)
             raise ExtractorError('Cannot parse data')
 
         if len(video_data) > 1:
