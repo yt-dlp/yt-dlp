@@ -1,123 +1,311 @@
 import re
-
 from .common import InfoExtractor
 from ..utils import (
-    base_url,
+    clean_html,
     determine_ext,
+    get_element_by_class,
     int_or_none,
-    url_basename,
-    urljoin,
+    join_nonempty,
+    js_to_json,
+    merge_dicts,
+    mimetype2ext,
+    parse_duration,
+    traverse_obj,
+    unified_timestamp,
 )
 
 
 class GediDigitalIE(InfoExtractor):
-    _VALID_URL = r'''(?x:(?P<base_url>(?:https?:)//video\.
-        (?:
+    _VALID_URL = r'''(?x:
+        (?P<url>
+            https?://(?:www\.)?
             (?:
-                (?:espresso\.)?repubblica
-                |lastampa
+                lastampa
                 |ilsecoloxix
                 |huffingtonpost
-            )|
-            (?:
-                iltirreno
-                |messaggeroveneto
-                |ilpiccolo
-                |gazzettadimantova
-                |mattinopadova
-                |laprovinciapavese
-                |tribunatreviso
-                |nuovavenezia
-                |gazzettadimodena
-                |lanuovaferrara
-                |corrierealpi
-                |lasentinella
-            )\.gelocal
-        )\.it(?:/[^/]+){2,4}/(?P<id>\d+))(?:$|[?&].*))'''
-    _EMBED_REGEX = [rf'''(?x)
-            (?:
-                data-frame-src=|
-                <iframe[^\n]+src=
-            )
-            (["'])(?P<url>{_VALID_URL})\1''']
+                |\w+\.gelocal
+                |espresso\.repubblica
+            )\.it
+            (?:/[^/]+){1,2}(?P<date>[\d/]{12})(?P<type>audio|video|playlist)/[^/]+-
+            (?P<id>\d{5,})
+        )(?:\#(?P<trtId>([\w-]+:)+\d{5,}))?)'''
+    _EMBED_REGEX = [rf'<iframe[^>]+src=[\'"]{_VALID_URL}']
     _TESTS = [{
-        'url': 'https://video.lastampa.it/politica/il-paradosso-delle-regionali-la-lega-vince-ma-sembra-aver-perso/121559/121683',
-        'md5': '84658d7fb9e55a6e57ecc77b73137494',
+        # old video, only http mp4 available
+        'url': 'https://www.lastampa.it/politica/2020/09/22/video/il_paradosso_delle_regionali_ecco_perche_la_lega_vince_ma_sembra_aver_perso-375544/',
+        # old url: 'https://video.lastampa.it/politica/il-paradosso-delle-regionali-la-lega-vince-ma-sembra-aver-perso/121559/121683'
         'info_dict': {
-            'id': '121683',
+            'id': '375544',
             'ext': 'mp4',
             'title': 'Il paradosso delle Regionali: ecco perché la Lega vince ma sembra aver perso',
-            'description': 'md5:de7f4d6eaaaf36c153b599b10f8ce7ca',
-            'thumbnail': r're:^https://www\.repstatic\.it/video/photo/.+?-thumb-full-.+?\.jpg$',
+            'description': 'md5:56d4dc2d81923f524dd0f8247f06eeaa',
+            'thumbnail': r're:^https://www\.repstatic\.it/video/photo/.+?\.jpg',
             'duration': 125,
+            'timestamp': 1600788078,
+            'upload_date': '20200922',
+            'formats': 'count:2',
+        },
+        'params': {
+            'skip_download': True,
         },
     }, {
-        'url': 'https://video.huffingtonpost.it/embed/politica/cotticelli-non-so-cosa-mi-sia-successo-sto-cercando-di-capire-se-ho-avuto-un-malore/29312/29276?responsive=true&el=video971040871621586700',
-        'only_matching': True,
+        # new video: more formats available
+        'url': 'https://www.lastampa.it/esteri/2022/12/12/video/scandalo_qatargate_ecco_chi_sono_i_parlamentari_coinvolti_e_cosa_rischiano-12408715/?ref=LSHSTD-BH-I0-PM6-S2-T1',
+        'info_dict': {
+            'id': '12408715',
+            'ext': 'mp4',
+            'title': 'Scandalo Qatargate, ecco chi sono i parlamentari coinvolti e cosa rischiano',
+            'description': 'md5:3213071f7d82d38300c4f22d4d47dddc',
+            'thumbnail': r're:^https://www\.repstatic\.it/video/photo/.+?\.jpg',
+            'duration': 122,
+            'timestamp': 1670866318,
+            'upload_date': '20221212',
+            'formats': 'count:10',
+        },
+        'params': {
+            'skip_download': True,
+        },
     }, {
-        'url': 'https://video.espresso.repubblica.it/embed/tutti-i-video/01-ted-villa/14772/14870&width=640&height=360',
-        'only_matching': True,
+        # only audio
+        'url': 'https://ilpiccolo.gelocal.it/onepodcast/deejay/2022/12/08/audio/episodio_6_lingegnere-10858264/',
+        'info_dict': {
+            'id': 'deejay:podcast:348159',
+            'ext': 'm4a',
+            'title': 'Episodio 6: L’ingegnere',
+            'description': 'md5:ba4a655f864fb998f3fdba807ed85a66',
+            'thumbnail': r're:^https://.+?800x800\.jpg',
+            'duration': 3571,
+            'timestamp': 1670472004,
+            'upload_date': '20221208',
+            'formats': 'count:3',
+        },
+        'params': {
+            'skip_download': True,
+        },
     }, {
-        'url': 'https://video.repubblica.it/motori/record-della-pista-a-spa-francorchamps-la-pagani-huayra-roadster-bc-stupisce/367415/367963',
-        'only_matching': True,
+        # audio playlist (podcast and alike)
+        'url': 'https://www.lastampa.it/rubriche/daytime/2022/05/09/playlist/daytime-3447164',
+        'info_dict': {
+            'id': '3447164',
+            'title': 'DayTime',
+        },
+        'playlist_count_min': 100,
     }, {
-        'url': 'https://video.ilsecoloxix.it/sport/cassani-e-i-brividi-azzurri-ai-mondiali-di-imola-qui-mi-sono-innamorato-del-ciclismo-da-ragazzino-incredibile-tornarci-da-ct/66184/66267',
-        'only_matching': True,
+        # playlist with single episode selection
+        'url': 'https://www.lastampa.it/rubriche/daytime/2022/05/09/playlist/daytime-3447164#gnn:audio:5427139',
+        'info_dict': {
+            'id': 'gnn:audio:5427139',
+            'ext': 'm4a',
+            'title': 'Una legge di civiltà',
+            'description': 'md5:963f7397192d33f05b321f00f4a60e30',
+            'thumbnail': r're:^https://.+?thumb-full.+?\.jpg',
+            'duration': 322,
+            'timestamp': 1656374400,
+            'upload_date': '20220628',
+            'formats': 'count:3',
+        },
+        'params': {
+            'skip_download': True,
+        },
     }, {
-        'url': 'https://video.iltirreno.gelocal.it/sport/dentro-la-notizia-ferrari-cosa-succede-a-maranello/141059/142723',
-        'only_matching': True,
-    }, {
-        'url': 'https://video.messaggeroveneto.gelocal.it/locale/maria-giovanna-elmi-covid-vaccino/138155/139268',
-        'only_matching': True,
-    }, {
-        'url': 'https://video.ilpiccolo.gelocal.it/dossier/big-john/dinosauro-big-john-al-via-le-visite-guidate-a-trieste/135226/135751',
-        'only_matching': True,
-    }, {
-        'url': 'https://video.gazzettadimantova.gelocal.it/locale/dal-ponte-visconteo-di-valeggio-l-and-8217sos-dei-ristoratori-aprire-anche-a-cena/137310/137818',
-        'only_matching': True,
-    }, {
-        'url': 'https://video.mattinopadova.gelocal.it/dossier/coronavirus-in-veneto/covid-a-vo-un-anno-dopo-un-cuore-tricolore-per-non-dimenticare/138402/138964',
-        'only_matching': True,
-    }, {
-        'url': 'https://video.laprovinciapavese.gelocal.it/locale/mede-zona-rossa-via-alle-vaccinazioni-per-gli-over-80/137545/138120',
-        'only_matching': True,
-    }, {
-        'url': 'https://video.tribunatreviso.gelocal.it/dossier/coronavirus-in-veneto/ecco-le-prima-vaccinazioni-di-massa-nella-marca/134485/135024',
-        'only_matching': True,
-    }, {
-        'url': 'https://video.nuovavenezia.gelocal.it/locale/camion-troppo-alto-per-il-ponte-ferroviario-perde-il-carico/135734/136266',
-        'only_matching': True,
-    }, {
-        'url': 'https://video.gazzettadimodena.gelocal.it/locale/modena-scoperta-la-proteina-che-predice-il-livello-di-gravita-del-covid/139109/139796',
-        'only_matching': True,
-    }, {
-        'url': 'https://video.lanuovaferrara.gelocal.it/locale/due-bombole-di-gpl-aperte-e-abbandonate-i-vigili-bruciano-il-gas/134391/134957',
-        'only_matching': True,
-    }, {
-        'url': 'https://video.corrierealpi.gelocal.it/dossier/cortina-2021-i-mondiali-di-sci-alpino/mondiali-di-sci-il-timelapse-sulla-splendida-olympia/133760/134331',
-        'only_matching': True,
-    }, {
-        'url': 'https://video.lasentinella.gelocal.it/locale/vestigne-centra-un-auto-e-si-ribalta/138931/139466',
-        'only_matching': True,
-    }, {
-        'url': 'https://video.espresso.repubblica.it/tutti-i-video/01-ted-villa/14772',
+        # new url for video in GediDigitalLegacy
+        'url': 'https://espresso.repubblica.it/video/2020/10/08/video/festival_emergency_villa_la_buona_informazione_aiuta_la_salute_-321887259/',
         'only_matching': True,
     }]
+    _WEBPAGE_TESTS = [{
+        'url': 'https://nixxo.github.io/yt-dpl-test-pages/gedidigital-iframes.html',
+        'info_dict': {
+            'id': '12408715',
+            'ext': 'mp4',
+            'title': 'Scandalo Qatargate, ecco chi sono i parlamentari coinvolti e cosa rischiano',
+            'description': 'md5:3213071f7d82d38300c4f22d4d47dddc',
+            'thumbnail': r're:^https://www\.repstatic\.it/video/photo/.+?\.jpg',
+            'duration': 122,
+            'timestamp': 1670866318,
+            'upload_date': '20221212',
+            'formats': 'count:10',
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }]
 
-    @staticmethod
-    def _sanitize_urls(urls):
-        # add protocol if missing
-        for i, e in enumerate(urls):
-            if e.startswith('//'):
-                urls[i] = 'https:%s' % e
-        # clean iframes urls
-        for i, e in enumerate(urls):
-            urls[i] = urljoin(base_url(e), url_basename(e))
-        return urls
+    def _real_extract(self, url):
+        url, media_type, media_id, track_id = self._match_valid_url(url).group(
+            'url', 'type', 'id', 'trtId')
 
-    @classmethod
-    def _extract_embed_urls(cls, url, webpage):
-        return cls._sanitize_urls(tuple(super()._extract_embed_urls(url, webpage)))
+        webpage = self._download_webpage(url.replace('/embed/', '/'), media_id)
+
+        formats = []
+        if media_type == 'video':
+            media_data = self._search_json(
+                r'BrightcoveVideoPlayerOptions\s*=', webpage, 'media_data', media_id,
+                transform_source=lambda s: js_to_json(s.replace('\'[{', '[{').replace('}]\'', '}]')))
+            for fmt in media_data.get('videoSrc'):
+                if 'src' not in fmt or 'type' not in fmt:
+                    continue
+                ext = mimetype2ext(fmt['type'])
+                if ext == 'm3u8':
+                    formats.extend(self._extract_m3u8_formats(fmt['src'], media_id, m3u8_id='hls'))
+                elif ext == 'mp4':
+                    vbr = int_or_none(self._search_regex(
+                        r'video-rrtv-(\d+)', fmt['src'], 'vbr', default=None))
+                    formats.append({
+                        'format_id': join_nonempty('mp4', vbr),
+                        'url': fmt['src'],
+                        'vbr': vbr,
+                    })
+
+        if media_type in ('audio', 'playlist', 'podcast'):
+            # update the media_id (needed for podcasts)
+            media_id = self._search_regex(r'data=[\'"]audioSource(\d+)[\'"]', webpage, 'media_id', default=media_id)
+
+            media_data = self._search_json(
+                rf'audioSource{media_id}\s*=', webpage, 'media_data', media_id,
+                contains_pattern=r'\[(?s:.+)\];', transform_source=js_to_json)
+            if media_type == 'audio':
+                track_id = traverse_obj(media_data, (0, 'trtId'), (0, 'original_id'))
+
+            playlist_entries = []
+            for episode in media_data:
+                if track_id == traverse_obj(episode, 'trtId', 'original_id'):
+                    if episode.get('audio_url_hls'):
+                        formats.extend(self._extract_m3u8_formats(
+                            episode['audio_url_hls'], media_id, m3u8_id='audio-hls'))
+                    elif 'm3u8' == determine_ext(episode.get('audio_url')):
+                        formats.extend(self._extract_m3u8_formats(
+                            episode['audio_url'], media_id, m3u8_id='audio-hls'))
+                    elif 'mp3' == determine_ext(episode.get('audio_url')):
+                        formats.append({
+                            'format_id': 'audio-mp3',
+                            'url': episode['audio_url'],
+                            'acodec': 'mp3',
+                            'vcodec': 'none',
+                        })
+                    else:
+                        self.raise_no_formats("Audio format not recognized")
+                    media_data = episode
+                    break
+                elif not track_id:
+                    # if no specific episode is selected return a playlist
+                    playlist_entries.append(self.url_result(
+                        f'{url}#{traverse_obj(episode, "trtId", "original_id")}'))
+
+            if playlist_entries:
+                return self.playlist_result(
+                    playlist_entries, playlist_id=media_id,
+                    playlist_title=self._generic_title(url, webpage))
+
+        media_data = merge_dicts(media_data, self._search_json_ld(webpage, media_id, default={}))
+
+        return {
+            'id': track_id or media_id,
+            'title': traverse_obj(media_data, 'videoTitle', 'title'),
+            'description': (clean_html(get_element_by_class('story__summary', webpage)
+                                       or get_element_by_class('detail_summary', webpage))
+                            or media_data.get('description')),
+            'duration': int_or_none(media_data.get('videoLenght')
+                                    or parse_duration(media_data.get('duration'))
+                                    or media_data.get('duration')),
+            'thumbnail': traverse_obj(media_data, 'posterSrc', 'image', ('thumbnails', 0, 'url')),
+            'timestamp': (media_data.get('timestamp')
+                          or unified_timestamp(media_data.get('pubdate') or media_data.get('pub_date'))),
+            'formats': formats,
+        }
+
+
+class RepubblicaTVIE(GediDigitalIE):
+    _VALID_URL = r'(?P<url>https?://(?P<type>video)\.repubblica\.it(?:/[^/]+){2,4}/(?P<id>\d+))(?:\#(?P<trtId>([\w-]+:)+\d{5,}))?'
+    _EMBED_REGEX = [rf'<gdwc-video-component[^>]+data-src="{_VALID_URL}']
+    _TESTS = [{
+        'url': 'https://video.repubblica.it/metropolis/metropolis232-cavoletti-da-bruxelles-manovra-migranti-qatargate-ue-chiama-italia-ospiti-provenzano-giarrusso-e-de-giovanni-con-cuzzocrea-e-folli/434120/435073',
+        'info_dict': {
+            'id': '435073',
+            'ext': 'mp4',
+            'title': '[REP-TV] Metropolis 232 -  Cavoletti da Bruxelles  Manovra  migranti  Qatargate  Ue chiama Italia  Ospiti  Provenzano  Giarrusso e De Giovanni  Con Cuzzocrea e Folli (integrale) (434120-435073)',
+            'description': 'md5:a7ff102b51bbf46765316fad1e3d32f2',
+            'thumbnail': r're:^https://.+?thumb-full.+?\.jpg',
+            'duration': 1452,
+            'timestamp': 1671044772,
+            'upload_date': '20221214',
+            'formats': 'count:6',
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }]
+    _WEBPAGE_TESTS = [{
+        'url': 'https://genova.repubblica.it/cronaca/2022/12/22/news/genova_palazzo_ducale_fondi_pnrr_cultura-380257726/?ref=RHLF-BG-I380293053-P13-S1-T1&__vfz=medium%3Dsharebar',
+        'info_dict': {
+            'id': '434699',
+            'ext': 'mp4',
+            'title': '[REP-TV] Genova  pioggia di soldi dal Pnrr per il Palazzo Ducale e il restauro della Torre Grimaldina (434699-435663)',
+            'description': 'md5:b86313bc45c7c6967a40df16db490a84',
+            'thumbnail': r're:^https://www\.repstatic\.it/.+-thumb-full-.+\.jpg',
+            'duration': 121,
+            'upload_date': '20221222',
+            'timestamp': 1671723271,
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }]
+
+
+class RepubblicaTVPodcastIE(GediDigitalIE):
+    _VALID_URL = r'(?P<url>https?://(?:www\.)?repubblica\.it/(?P<type>podcast)/(?P<id>[\w-]+))(?:\#(?P<trtId>([\w-]+:)+\d{5,}))?'
+    _TESTS = [{
+        'url': 'https://www.repubblica.it/podcast/la-giornata',
+        'info_dict': {
+            'id': '2170',
+            'title': 'La giornata - Podcast - La Repubblica',
+        },
+        'playlist_count_min': 30,
+    }, {
+        # single episode
+        'url': 'https://www.repubblica.it/podcast/la-giornata#rep-locali:articolo:383127029',
+        'info_dict': {
+            'id': 'rep-locali:articolo:383127029',
+            'ext': 'm4a',
+            'title': 'La maternità va alla guerra',
+            'description': 'md5:38c3488ae796f28c12fa2a7c812c0583',
+            'thumbnail': r're:^https://www\.repstatic\.it/.+/img/.+\.jpg',
+            'duration': 503,
+            'timestamp': 1673481600,
+            'upload_date': '20230112',
+            'formats': 'count:3',
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }]
+
+
+class GediDigitalLegacyIE(InfoExtractor):
+    # Legacy extractor only present for accessing media via this url,
+    # it will probably be gradually eliminated like other websites
+    _VALID_URL = r'''(?x)https?://video\.
+        (?:
+            espresso\.repubblica\.it/tutti-i-video
+            |huffingtonpost\.it(?:/embed)?
+        )(?:/[^/]+){1,3}/(?P<id>\d+)(?:$|[?&].*)'''
+    _TESTS = [{
+        'url': 'https://video.espresso.repubblica.it/tutti-i-video/01-ted-villa/14772',
+        'info_dict': {
+            'id': '14772',
+            'ext': 'mp4',
+            'title': 'Festival EMERGENCY, Villa: «La buona informazione aiuta la salute»',
+            'description': 'md5:de5a05a8aeae772941aa9fe0c9702f0c',
+            'thumbnail': r're:^https://www\.repstatic\.it/video/photo/.+?-thumb-full-.+?\.jpg$',
+            'duration': 1328,
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }, {
+        'url': 'https://video.huffingtonpost.it/politica/cotticelli-non-so-cosa-mi-sia-successo-sto-cercando-di-capire-se-ho-avuto-un-malore/29312/29276',
+        'matching_only': True,
+    }]
 
     @staticmethod
     def _clean_formats(formats):
@@ -132,7 +320,7 @@ class GediDigitalIE(InfoExtractor):
         formats[:] = clean_formats
 
     def _real_extract(self, url):
-        video_id, url = self._match_valid_url(url).group('id', 'base_url')
+        video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
         title = self._html_search_meta(
             ['twitter:title', 'og:title'], webpage, fatal=True)
