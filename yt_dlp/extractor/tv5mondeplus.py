@@ -1,3 +1,4 @@
+import re
 import urllib.parse
 
 from .common import InfoExtractor
@@ -14,73 +15,69 @@ from ..utils import (
 
 class TV5MondePlusIE(InfoExtractor):
     IE_DESC = 'TV5MONDE+'
-    _VALID_URL = r'https?://(?:www\.)?(?:tv5mondeplus|revoir\.tv5monde)\.com/toutes-les-videos/[^/]+/(?P<id>[^/?#]+)'
+    _VALID_URL = r'https?://(?:www\.)?tv5monde\.com/tv/video/(?P<id>[^/?#]+)'
     _TESTS = [{
-        # movie
-        'url': 'https://revoir.tv5monde.com/toutes-les-videos/cinema/les-novices',
-        'md5': 'c86f60bf8b75436455b1b205f9745955',
+        # documentary
+        'url': 'https://www.tv5monde.com/tv/video/65931-baudouin-l-heritage-d-un-roi-baudouin-l-heritage-d-un-roi',
+        'md5': 'd2a708902d3df230a357c99701aece05',
         'info_dict': {
-            'id': 'ZX0ipMyFQq_6D4BA7b',
-            'display_id': 'les-novices',
+            'id': '3FPa7JMu21_6D4BA7b',
+            'display_id': '65931-baudouin-l-heritage-d-un-roi-baudouin-l-heritage-d-un-roi',
             'ext': 'mp4',
-            'title': 'Les novices',
-            'description': 'md5:2e7c33ba3ad48dabfcc2a956b88bde2b',
-            'upload_date': '20230821',
-            'thumbnail': 'https://revoir.tv5monde.com/uploads/media/video_thumbnail/0738/60/01e952b7ccf36b7c6007ec9131588954ab651de9.jpeg',
-            'duration': 5177,
-            'episode': 'Les novices',
+            'title': "Baudouin, l'héritage d'un roi",
+            'thumbnail': 'https://psi.tv5monde.com/upsilon-images/960x540/6f/baudouin-f49c6b0e.jpg',
+            'duration': 4842,
+            'upload_date': '20240130',
+            'episode': "Baudouin, l'héritage d'un roi",
+            'description': 'md5:78125c74a5cac06d7743a2d09126edad',
         },
     }, {
         # series episode
-        'url': 'https://revoir.tv5monde.com/toutes-les-videos/series-fictions/opj-les-dents-de-la-terre-2',
+        'url': 'https://www.tv5monde.com/tv/video/5639-allo-tribunal-vol-de-projet',
+        'md5': '64bbc2fe7e9867d97292eb02b9cd892a',
         'info_dict': {
-            'id': 'wJ0eeEPozr_6D4BA7b',
-            'display_id': 'opj-les-dents-de-la-terre-2',
+            'id': 'YAGqEEHqri_6D4BA7b',
+            'display_id': '5639-allo-tribunal-vol-de-projet',
             'ext': 'mp4',
-            'title': "OPJ - Les dents de la Terre (2)",
-            'description': 'md5:288f87fd68d993f814e66e60e5302d9d',
-            'upload_date': '20230823',
-            'series': 'OPJ',
-            'episode': 'Les dents de la Terre (2)',
-            'duration': 2877,
-            'thumbnail': 'https://dl-revoir.tv5monde.com/images/1a/5753448.jpg'
+            'title': 'Allô tribunal - Vol de projet',
+            'description': "md5:da441d0b328793dfb4059884fbee6af3",
+            'thumbnail': 'https://psi.tv5monde.com/media/image/960px/5157125.jpg',
+            'duration': 1483,
+            'upload_date': '20240205',
+            'series': 'Allô tribunal',
+            'episode': 'Vol de projet',
         },
     }, {
         # movie
-        'url': 'https://revoir.tv5monde.com/toutes-les-videos/cinema/ceux-qui-travaillent',
-        'md5': '32fa0cde16a4480d1251502a66856d5f',
+        'url': 'https://www.tv5monde.com/tv/video/47676-l-ennemi',
+        'md5': '2013bb2c4c45ec39bdd0ff1df85ee7e7',
         'info_dict': {
-            'id': 'dc57a011-ec4b-4648-2a9a-4f03f8352ed3',
-            'display_id': 'ceux-qui-travaillent',
+            'id': 'x3fWbhTPcN_6D4BA7b',
+            'display_id': '47676-l-ennemi',
             'ext': 'mp4',
-            'title': 'Ceux qui travaillent',
-            'description': 'md5:570e8bb688036ace873b2d50d24c026d',
-            'upload_date': '20210819',
+            'title': "L'ennemi",
+            'description': 'md5:8474e44ab7f2c7c8984a038b2922c69e',
+            'thumbnail': 'https://psi.tv5monde.com/upsilon-images/960x540/08/Ennemi-05b7ee31.jpg',
+            'duration': 6005,
+            'upload_date': '20240212',
+            'episode': "L'ennemi",
         },
-        'skip': 'no longer available',
     }, {
-        # series episode
-        'url': 'https://revoir.tv5monde.com/toutes-les-videos/series-fictions/vestiaires-caro-actrice',
+        # news
+        'url': 'https://www.tv5monde.com/tv/video/64797-tv5monde-le-journal-edition-du-05-02-24-11h',
+        'md5': 'aacefe2f227e9e369146dbdc1ed048b4',
         'info_dict': {
-            'id': '9e9d599e-23af-6915-843e-ecbf62e97925',
-            'display_id': 'vestiaires-caro-actrice',
+            'id': '8HnwWTv6cf_6D4BA7b',
+            'display_id': '64797-tv5monde-le-journal-edition-du-05-02-24-11h',
             'ext': 'mp4',
-            'title': "Vestiaires - Caro actrice",
-            'description': 'md5:db15d2e1976641e08377f942778058ea',
-            'upload_date': '20210819',
-            'series': "Vestiaires",
-            'episode': 'Caro actrice',
+            'title': 'TV5MONDE, le journal',
+            'description': 'md5:777dc209eaa4423b678477c36b0b04a8',
+            'thumbnail': 'https://psi.tv5monde.com/media/image/960px/6091980.jpg',
+            'duration': 862,
+            'upload_date': '20240205',
+            'series': 'TV5MONDE, le journal',
+            'episode': 'TV5MONDE, le journal',
         },
-        'params': {
-            'skip_download': True,
-        },
-        'skip': 'no longer available',
-    }, {
-        'url': 'https://revoir.tv5monde.com/toutes-les-videos/series-fictions/neuf-jours-en-hiver-neuf-jours-en-hiver',
-        'only_matching': True,
-    }, {
-        'url': 'https://revoir.tv5monde.com/toutes-les-videos/info-societe/le-journal-de-la-rts-edition-du-30-01-20-19h30',
-        'only_matching': True,
     }]
     _GEO_BYPASS = False
 
@@ -98,7 +95,6 @@ class TV5MondePlusIE(InfoExtractor):
         if ">Ce programme n'est malheureusement pas disponible pour votre zone géographique.<" in webpage:
             self.raise_geo_restricted(countries=['FR'])
 
-        title = episode = self._html_search_regex(r'<h1>([^<]+)', webpage, 'title')
         vpl_data = extract_attributes(self._search_regex(
             r'(<[^>]+class="video_player_loader"[^>]+>)',
             webpage, 'video player loader'))
@@ -151,16 +147,20 @@ class TV5MondePlusIE(InfoExtractor):
         duration = (int_or_none(try_get(metadata, lambda x: x['content']['duration']))
                     or parse_duration(self._html_search_meta('duration', webpage)))
 
+        title = episode = self._html_search_regex(r'<h1 class="main-title">([^<]+)', webpage, 'title')
+        series = self._html_search_regex(r'<p class="video-title">([^<]+)', webpage, 'title', default=None)
+        subtitle = self._html_search_regex(r'<p class="video-subtitle">([^<]+)', webpage, 'subtitle', default=None)
+        if series and subtitle:
+            title = '%s - %s' % (series, subtitle)
+            episode = subtitle
+
+        ep_summary = self._search_regex(
+            r'<div[^>]+class="ep-summary"[^>]*>(.+?)</div>', webpage,
+            'episode summary', fatal=False, flags=re.DOTALL)
+
         description = self._html_search_regex(
-            r'(?s)<div[^>]+class=["\']episode-texte[^>]+>(.+?)</div>', webpage,
-            'description', fatal=False)
-
-        series = self._html_search_regex(
-            r'<p[^>]+class=["\']episode-emission[^>]+>([^<]+)', webpage,
-            'series', default=None)
-
-        if series and series != title:
-            title = '%s - %s' % (series, title)
+            r'<p class="text">(.+?)</p>', ep_summary,
+            'description', fatal=False, flags=re.DOTALL)
 
         upload_date = self._search_regex(
             r'(?:date_publication|publish_date)["\']\s*:\s*["\'](\d{4}_\d{2}_\d{2})',
