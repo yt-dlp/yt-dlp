@@ -51,11 +51,13 @@ class TVIPlayerIE(InfoExtractor):
             'season_number': 1,
         }
     }]
+    _TOKEN = None
 
     def _real_initialize(self):
-        self.wms_auth_sign_token = self._download_webpage(
-            'https://services.iol.pt/matrix?userId=', 'wmsAuthSign',
-            note='Trying to get wmsAuthSign token')
+        if TVIPlayerIE._TOKEN is None:
+            TVIPlayerIE._TOKEN = self._download_webpage(
+                'https://services.iol.pt/matrix?userId=', 'wmsAuthSign',
+                note='Trying to get wmsAuthSign token')
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -65,7 +67,7 @@ class TVIPlayerIE(InfoExtractor):
             r'<script>\s*jsonData\s*=', webpage, 'json_data', video_id)
 
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
-            f'{json_data["videoUrl"]}?wmsAuthSign={self.wms_auth_sign_token}',
+            f'{json_data["videoUrl"]}?wmsAuthSign={TVIPlayerIE._TOKEN}',
             video_id, ext='mp4')
         return {
             'id': video_id,
