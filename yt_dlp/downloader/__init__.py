@@ -50,7 +50,7 @@ PROTOCOL_MAP = {
     'ism': IsmFD,
     'mhtml': MhtmlFD,
     'niconico_dmc': NiconicoDmcFD,
-    'niconico_live': NiconicoLiveFD,
+    'm3u8_niconico_live': NiconicoLiveFD,
     'fc2_live': FC2LiveFD,
     'websocket_frag': WebSocketFragmentFD,
     'youtube_live_chat': YoutubeLiveChatFD,
