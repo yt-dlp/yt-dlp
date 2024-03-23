@@ -922,6 +922,11 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     def _parse_time_text(self, text):
         if not text:
             return
+
+        if self._configuration_arg('approximate_date', ie_key=YoutubeTabIE):
+            self._downloader.deprecated_feature('[youtube] approximate_date extractor argument is deprecated. '
+                                                'Use approximate_metadata instead')
+
         dt = self.extract_relative_time(text)
         timestamp = None
         if isinstance(dt, datetime.datetime):
@@ -1019,6 +1024,10 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
         title = self._get_text(renderer, 'title', 'headline') or self._get_text(reel_header_renderer, 'reelTitleText')
         description = self._get_text(renderer, 'descriptionSnippet')
+        if not description and self._configuration_arg(
+                'approximate_metadata', ie_key=YoutubeTabIE):
+            snippets = traverse_obj(renderer, ('detailedMetadataSnippets',)) or []
+            description = join_nonempty(*(self._get_text(x, 'snippetText') for x in snippets), delim='') or None
 
         duration = int_or_none(renderer.get('lengthSeconds'))
         if duration is None:
@@ -1090,7 +1099,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             'uploader_url': format_field(channel_handle, None, 'https://www.youtube.com/%s', default=None),
             'thumbnails': self._extract_thumbnails(renderer, 'thumbnail'),
             'timestamp': (self._parse_time_text(time_text)
-                          if self._configuration_arg('approximate_date', ie_key=YoutubeTabIE)
+                          if self._configuration_arg('approximate_metadata', ie_key=YoutubeTabIE)
+                          or self._configuration_arg('approximate_date', ie_key=YoutubeTabIE)
                           else None),
             'release_timestamp': scheduled_timestamp,
             'availability':
@@ -6925,7 +6935,7 @@ class YoutubeNotificationsIE(YoutubeTabBaseInfoExtractor):
             rf'{re.escape(channel or "")}[^:]+: (.+)', notification_title,
             'video title', default=None)
         timestamp = (self._parse_time_text(self._get_text(notification, 'sentTimeText'))
-                     if self._configuration_arg('approximate_date', ie_key=YoutubeTabIE)
+                     if self._configuration_arg('approximate_metadata', ie_key=YoutubeTabIE)
                      else None)
         return {
             '_type': 'url',
@@ -7009,6 +7019,38 @@ class YoutubeSearchURLIE(YoutubeTabBaseInfoExtractor):
         'info_dict': {
             'id': 'youtube-dl test video',
             'title': 'youtube-dl test video',
+        }
+    }, {
+        'url': 'https://www.youtube.com/results?search_query=IaSGqQa5O-M&sp=EgIQAUICCAE%253D',
+        'playlist_mincount': 1,
+        'info_dict': {
+            'id': 'IaSGqQa5O-M',
+            'title': 'IaSGqQa5O-M'
+        },
+        'playlist': [{
+            'info_dict': {
+                '_type': 'url',
+                'id': 'IaSGqQa5O-M',
+                'title': 'Convolutions and adding random variables, visually explained',
+                'description': '0:00 - Intro quiz 2:24 - Discrete case, diagonal slices 6:49 - Discrete case, flip-and-slide 8:41 - The discrete formula 10:58\xa0...',
+                'channel_url': 'https://www.youtube.com/channel/UCYO_jab_esuFRV4b17AJtAw',
+                'uploader_url': 'https://www.youtube.com/@3blue1brown',
+                'channel_is_verified': True,
+                'view_count': int,
+                'uploader': '3Blue1Brown',
+                'ie_key': 'Youtube',
+                'uploader_id': '@3blue1brown',
+                'channel': '3Blue1Brown',
+                'url': 'https://www.youtube.com/watch?v=IaSGqQa5O-M',
+                'channel_id': 'UCYO_jab_esuFRV4b17AJtAw',
+                'duration': 1645.0,
+                'timestamp': int,
+            }
+        }],
+        'params': {
+            'extractor_args': {'youtubetab': {'approximate_metadata': ['1']}},
+            'extract_flat': True,
+            'playlist_items': '1'
         }
     }, {
         'url': 'https://www.youtube.com/results?search_query=python&sp=EgIQAg%253D%253D',
