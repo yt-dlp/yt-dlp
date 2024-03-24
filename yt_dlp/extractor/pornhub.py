@@ -219,7 +219,7 @@ class PornHubIE(PornHubBaseIE):
             'thumbnail': r're:https?://.+',
             'duration': 8173,
             'timestamp': 1612564932,
-            'age_limit': int,
+            'age_limit': 18,
             'tags': list,
             'like_count': int,
             'view_count': int,
