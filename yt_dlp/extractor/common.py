@@ -831,7 +831,7 @@ class InfoExtractor:
         return url_or_request
 
     def _request_webpage(self, url_or_request, video_id, note=None, errnote=None, fatal=True, data=None,
-                         headers=None, query=None, expected_status=None, impersonate=None, force_impersonate=False):
+                         headers=None, query=None, expected_status=None, impersonate=None, require_impersonation=False):
         """
         Return the response handle.
 
@@ -865,7 +865,7 @@ class InfoExtractor:
         extensions = None
         if impersonate is not None:
             target = ImpersonateTarget.from_str(':' if impersonate is True else impersonate)
-            if force_impersonate or self._downloader._impersonate_target_available(target):
+            if require_impersonation or self._downloader._impersonate_target_available(target):
                 extensions = {'impersonate': target}
 
         try:
@@ -889,7 +889,7 @@ class InfoExtractor:
 
     def _download_webpage_handle(self, url_or_request, video_id, note=None, errnote=None, fatal=True,
                                  encoding=None, data=None, headers={}, query={}, expected_status=None,
-                                 impersonate=None, force_impersonate=False):
+                                 impersonate=None, require_impersonation=False):
         """
         Return a tuple (page content as string, URL handle).
 
@@ -922,7 +922,7 @@ class InfoExtractor:
             which are always accepted.
         impersonate -- the impersonate target: can be either a string in the format of
             CLIENT[:OS] or True (bool) if any target is sufficient
-        force_impersonate -- flag to toggle whether the request should raise an error
+        require_impersonation -- flag to toggle whether the request should raise an error
             if impersonation is not possible (bool, default: False)
         """
 
@@ -932,7 +932,7 @@ class InfoExtractor:
 
         urlh = self._request_webpage(url_or_request, video_id, note, errnote, fatal, data=data,
                                      headers=headers, query=query, expected_status=expected_status,
-                                     impersonate=impersonate, force_impersonate=force_impersonate)
+                                     impersonate=impersonate, require_impersonation=require_impersonation)
         if urlh is False:
             assert not fatal
             return False
@@ -1062,11 +1062,11 @@ class InfoExtractor:
 
         def download_handle(self, url_or_request, video_id, note=note, errnote=errnote, transform_source=None,
                             fatal=True, encoding=None, data=None, headers={}, query={}, expected_status=None,
-                            impersonate=None, force_impersonate=False):
+                            impersonate=None, require_impersonation=False):
             res = self._download_webpage_handle(
                 url_or_request, video_id, note=note, errnote=errnote, fatal=fatal, encoding=encoding,
                 data=data, headers=headers, query=query, expected_status=expected_status,
-                impersonate=impersonate, force_impersonate=force_impersonate)
+                impersonate=impersonate, require_impersonation=require_impersonation)
             if res is False:
                 return res
             content, urlh = res
@@ -1074,7 +1074,7 @@ class InfoExtractor:
 
         def download_content(self, url_or_request, video_id, note=note, errnote=errnote, transform_source=None,
                              fatal=True, encoding=None, data=None, headers={}, query={}, expected_status=None,
-                             impersonate=None, force_impersonate=False):
+                             impersonate=None, require_impersonation=False):
             if self.get_param('load_pages'):
                 url_or_request = self._create_request(url_or_request, data, headers, query)
                 filename = self._request_dump_filename(url_or_request.url, video_id)
@@ -1098,7 +1098,7 @@ class InfoExtractor:
                 'query': query,
                 'expected_status': expected_status,
                 'impersonate': impersonate,
-                'force_impersonate': force_impersonate,
+                'require_impersonation': require_impersonation,
             }
             if parser is None:
                 kwargs.pop('transform_source')
