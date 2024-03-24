@@ -138,12 +138,13 @@ class PornHubIE(PornHubBaseIE):
     _EMBED_REGEX = [r'<iframe[^>]+?src=["\'](?P<url>(?:https?:)?//(?:www\.)?pornhub(?:premium)?\.(?:com|net|org)/embed/[\da-z]+)']
     _TESTS = [{
         'url': 'http://www.pornhub.com/view_video.php?viewkey=648719015',
-        'md5': 'a6391306d050e4547f62b3f485dd9ba9',
+        'md5': '4d4a4e9178b655776f86cf89ecaf0edf',
         'info_dict': {
             'id': '648719015',
             'ext': 'mp4',
             'title': 'Seductive Indian beauty strips down and fingers her pink pussy',
-            'uploader': 'Babes',
+            'uploader_id': str,
+            'uploader': 'BABES-COM',
             'upload_date': '20130628',
             'timestamp': 1372447216,
             'duration': 361,
@@ -155,6 +156,8 @@ class PornHubIE(PornHubBaseIE):
             'tags': list,
             'categories': list,
             'cast': list,
+            'thumbnail': str,
+            'production': list,
         },
     }, {
         # non-ASCII title
@@ -208,11 +211,23 @@ class PornHubIE(PornHubBaseIE):
         'url': 'http://www.pornhub.com/view_video.php?viewkey=ph601dc30bae19a',
         'info_dict': {
             'id': 'ph601dc30bae19a',
+            'ext': 'mp4',
             'uploader': 'Projekt Melody',
             'uploader_id': 'projekt-melody',
             'upload_date': '20210205',
             'title': '"Welcome to My Pussy Mansion" - CB Stream (02/03/21)',
             'thumbnail': r're:https?://.+',
+            'duration': 8173,
+            'timestamp': 1612564932,
+            'age_limit': 18,
+            'tags': list,
+            'like_count': int,
+            'view_count': int,
+            'categories': list,
+            'dislike_count': int,
+            'production': list,
+            'cast': list,
+            'comment_count': int,
         },
     }, {
         'url': 'http://www.pornhub.com/view_video.php?viewkey=ph557bbb6676d2d',
@@ -263,7 +278,33 @@ class PornHubIE(PornHubBaseIE):
     }, {
         'url': 'http://pornhubvybmsymdol4iibwgwtkpwmeyd6luq2gxajgjzfjvotyt5zhyd.onion/view_video.php?viewkey=ph5a9813bfa7156',
         'only_matching': True,
-    }]
+    }, {
+        # language spoken, model attributes, production
+        'url': 'https://www.pornhub.com/view_video.php?viewkey=65a6ca42725f2',
+        'info_dict': {
+            'id': '65a6ca42725f2',
+            'ext': 'mp4',
+            'title': 'Busty blonde sucks the juice out of me',
+            'uploader_id': 'egon-kowalski',
+            'cast': [],
+            'thumbnail': 'https://ei.phncdn.com/videos/202401/16/446618441/thumbs_14/(m=eaAaGwObaaaa)(mh=dIONqa8IT3Sw1RqL)5.jpg',
+            'uploader': 'Egon Kowalski',
+            'upload_date': '20240116',
+            'timestamp': 1705429963,
+            'duration': 358,
+            'view_count': int,
+            'like_count': int,
+            'dislike_count': int,
+            'comment_count': int,
+            'age_limit': 18,
+            'tags': list,
+            'categories': list,
+            'language_spoken': ['german'],
+            'model_attributes': ['tattoos', 'white', 'no piercing'],
+            'production': ['homemade'],
+        }
+    }
+    ]
 
     def _extract_count(self, pattern, webpage, name):
         return str_to_int(self._search_regex(pattern, webpage, '%s count' % name, default=None))
@@ -488,6 +529,15 @@ class PornHubIE(PornHubBaseIE):
             if div:
                 return [clean_html(x).strip() for x in re.findall(r'(?s)<a[^>]+\bhref=[^>]+>.+?</a>', div)]
 
+        def get_model_attributes():
+            model_attributes = re.findall(
+                r'<a[^>]*\bdata-label=["\']model_attributes["\'][^>]*>(.*?)<\/a>',
+                webpage,
+                re.DOTALL)
+
+            if model_attributes:
+                return [x.strip().lower() for x in model_attributes]
+
         info = self._search_json_ld(webpage, video_id, default={})
         # description provided in JSON-LD is irrelevant
         info['description'] = None
@@ -509,6 +559,9 @@ class PornHubIE(PornHubBaseIE):
             'tags': extract_list('tags'),
             'categories': extract_list('categories'),
             'cast': extract_list('pornstars'),
+            'production': extract_list('production'),
+            'language_spoken': extract_list('langSpoken'),
+            'model_attributes': get_model_attributes(),
             'subtitles': subtitles,
         }, info)
 
