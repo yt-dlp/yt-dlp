@@ -1906,6 +1906,11 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
             expected_status=TEAPOT_RESPONSE_STATUS)
         self.assertEqual(content, TEAPOT_RESPONSE_BODY)
 
+    def test_search_nextjs_data(self):
+        self.assertEqual(self.ie._search_nextjs_data('', None, fatal=False), {})
+        self.assertEqual(self.ie._search_nextjs_data('', None, default='{}'), {})
+        self.assertEqual(self.ie._search_nextjs_data('', None, default=None), None)
+
 
 if __name__ == '__main__':
     unittest.main()
