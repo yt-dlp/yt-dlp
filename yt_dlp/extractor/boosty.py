@@ -1,3 +1,5 @@
+import json
+
 from .common import InfoExtractor
 from .youtube import YoutubeIE
 from ..utils import (
@@ -8,6 +10,7 @@ from ..utils import (
     url_or_none,
 )
 from ..utils.traversal import traverse_obj
+from ..compat import compat_urllib_parse_unquote
 
 
 class BoostyIE(InfoExtractor):
@@ -162,9 +165,22 @@ class BoostyIE(InfoExtractor):
 
     def _real_extract(self, url):
         user, post_id = self._match_valid_url(url).group('user', 'post_id')
+
+        auth_cookie = self._get_cookies('https://api.boosty.to/').get('auth')
+        auth_headers = {}
+        if auth_cookie is not None:
+            try:
+                auth_data = json.loads(compat_urllib_parse_unquote(auth_cookie.value))
+                auth_headers['Authorization'] = f'Bearer {auth_data.get("accessToken")}'
+            except (json.JSONDecodeError, KeyError):
+                self.report_warning('Failed to extract token from auth cookie.')
+
         post = self._download_json(
             f'https://api.boosty.to/v1/blog/{user}/post/{post_id}', post_id,
-            note='Downloading post data', errnote='Unable to download post data')
+            note='Downloading post data', errnote='Unable to download post data', headers=auth_headers)
+
+        if not post.get('hasAccess'):
+            self.report_warning('This post requires a subscription, make sure to include your browser cookies.')
 
         post_title = post.get('title')
         if not post_title:
