@@ -862,11 +862,27 @@ class InfoExtractor:
             headers = (headers or {}).copy()
             headers.setdefault('X-Forwarded-For', self._x_forwarded_for_ip)
 
-        extensions = None
-        if impersonate is not None:
-            target = ImpersonateTarget.from_str(':' if impersonate is True else impersonate)
-            if require_impersonation or self._downloader._impersonate_target_available(target):
-                extensions = {'impersonate': target}
+        extensions, requested_targets = {}, []
+        if impersonate is True:
+            requested_targets.append(ImpersonateTarget())
+        elif isinstance(impersonate, ImpersonateTarget):
+            requested_targets.append(impersonate)
+        elif isinstance(impersonate, (str, list, tuple)):
+            requested_targets = tuple(map(ImpersonateTarget.from_str, variadic(impersonate)))
+
+        available_target = next(filter(self._downloader._impersonate_target_available, requested_targets), None)
+        if available_target:
+            extensions['impersonate'] = available_target
+        elif requested_targets:
+            message = 'The extractor is attempting impersonation, but '
+            message += (
+                'no impersonate target is available' if impersonate in (True, '', ':')
+                else f'these impersonate targets are not available: "{", ".join(map(str, requested_targets))}"')
+            info_msg = ('see  https://github.com/yt-dlp/yt-dlp#impersonation  '
+                        'for information on installing the required dependencies')
+            if require_impersonation:
+                raise ExtractorError(f'{message}; {info_msg}', expected=True)
+            self.report_warning(f'{message}; if you encounter errors, then {info_msg}', only_once=True)
 
         try:
             return self._downloader.urlopen(self._create_request(url_or_request, data, headers, query, extensions))
@@ -920,8 +936,11 @@ class InfoExtractor:
                   returning True if it should be accepted
             Note that this argument does not affect success status codes (2xx)
             which are always accepted.
-        impersonate -- the impersonate target: can be either a string in the format of
-            CLIENT[:OS] or True (bool) if any target is sufficient
+        impersonate -- the impersonate target. Can be any of the following entities:
+                - a boolean value; `True` means any impersonate target is sufficient
+                - a string in the format of CLIENT[:OS]
+                - a list or a tuple of strings in the format of CLIENT[:OS]
+                - an instance of yt_dlp.impersonate.ImpersonateTarget
         require_impersonation -- flag to toggle whether the request should raise an error
             if impersonation is not possible (bool, default: False)
         """
