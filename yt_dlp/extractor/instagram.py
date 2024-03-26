@@ -255,7 +255,7 @@ class InstagramIOSIE(InfoExtractor):
 
 
 class InstagramIE(InstagramBaseIE):
-    _VALID_URL = r'(?P<url>https?://(?:www\.)?instagram\.com(?:/[^/]+)?/(?:p|tv|reel)/(?P<id>[^/?#&]+))'
+    _VALID_URL = r'(?P<url>https?://(?:www\.)?instagram\.com(?:/[^/]+)?/(?:p|tv|reels?)/(?P<id>[^/?#&]+))'
     _EMBED_REGEX = [r'<iframe[^>]+src=(["\'])(?P<url>(?:https?:)?//(?:www\.)?instagram\.com/p/[^/]+/embed.*?)\1']
     _TESTS = [{
         'url': 'https://instagram.com/p/aye83DjauH/?foo=bar#abc',
