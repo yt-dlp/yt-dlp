@@ -10,6 +10,7 @@ from ..utils import (
 
 
 class Lecture2GoIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://lecture2go\.uni-hamburg\.de/veranstaltungen/-/v/(?P<id>\d+)'
     _TEST = {
         'url': 'https://lecture2go.uni-hamburg.de/veranstaltungen/-/v/17473',

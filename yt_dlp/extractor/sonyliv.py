@@ -1,4 +1,5 @@
 import datetime
+import itertools
 import json
 import math
 import random
@@ -12,8 +13,8 @@ from ..utils import (
     int_or_none,
     jwt_decode_hs256,
     try_call,
-    try_get,
 )
+from ..utils.traversal import traverse_obj
 
 
 class SonyLIVIE(InfoExtractor):
@@ -183,17 +184,21 @@ class SonyLIVIE(InfoExtractor):
 
 
 class SonyLIVSeriesIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?sonyliv\.com/shows/[^/?#&]+-(?P<id>\d{10})$'
+    _VALID_URL = r'https?://(?:www\.)?sonyliv\.com/shows/[^/?#&]+-(?P<id>\d{10})/?(?:$|[?#])'
     _TESTS = [{
         'url': 'https://www.sonyliv.com/shows/adaalat-1700000091',
-        'playlist_mincount': 456,
+        'playlist_mincount': 452,
         'info_dict': {
             'id': '1700000091',
         },
+    }, {
+        'url': 'https://www.sonyliv.com/shows/beyhadh-1700000007/',
+        'playlist_mincount': 358,
+        'info_dict': {
+            'id': '1700000007',
+        },
     }]
-    _API_SHOW_URL = "https://apiv2.sonyliv.com/AGL/1.9/R/ENG/WEB/IN/DL/DETAIL/{}?kids_safe=false&from=0&to=49"
-    _API_EPISODES_URL = "https://apiv2.sonyliv.com/AGL/1.4/R/ENG/WEB/IN/CONTENT/DETAIL/BUNDLE/{}?from=0&to=1000&orderBy=episodeNumber&sortOrder=asc"
-    _API_SECURITY_URL = 'https://apiv2.sonyliv.com/AGL/1.4/A/ENG/WEB/ALL/GETTOKEN'
+    _API_BASE = 'https://apiv2.sonyliv.com/AGL'
 
     def _entries(self, show_id):
         headers = {
@@ -201,19 +206,34 @@ class SonyLIVSeriesIE(InfoExtractor):
             'Referer': 'https://www.sonyliv.com',
         }
         headers['security_token'] = self._download_json(
-            self._API_SECURITY_URL, video_id=show_id, headers=headers,
-            note='Downloading security token')['resultObj']
-        seasons = try_get(
-            self._download_json(self._API_SHOW_URL.format(show_id), video_id=show_id, headers=headers),
-            lambda x: x['resultObj']['containers'][0]['containers'], list)
-        for season in seasons or []:
-            season_id = season['id']
-            episodes = try_get(
-                self._download_json(self._API_EPISODES_URL.format(season_id), video_id=season_id, headers=headers),
-                lambda x: x['resultObj']['containers'][0]['containers'], list)
-            for episode in episodes or []:
-                video_id = episode.get('id')
-                yield self.url_result('sonyliv:%s' % video_id, ie=SonyLIVIE.ie_key(), video_id=video_id)
+            f'{self._API_BASE}/1.4/A/ENG/WEB/ALL/GETTOKEN', show_id,
+            'Downloading security token', headers=headers)['resultObj']
+        seasons = traverse_obj(self._download_json(
+            f'{self._API_BASE}/1.9/R/ENG/WEB/IN/DL/DETAIL/{show_id}', show_id,
+            'Downloading series JSON', headers=headers, query={
+                'kids_safe': 'false',
+                'from': '0',
+                'to': '49',
+            }), ('resultObj', 'containers', 0, 'containers', lambda _, v: int_or_none(v['id'])))
+        for season in seasons:
+            season_id = str(season['id'])
+            note = traverse_obj(season, ('metadata', 'title', {str})) or 'season'
+            cursor = 0
+            for page_num in itertools.count(1):
+                episodes = traverse_obj(self._download_json(
+                    f'{self._API_BASE}/1.4/R/ENG/WEB/IN/CONTENT/DETAIL/BUNDLE/{season_id}',
+                    season_id, f'Downloading {note} page {page_num} JSON', headers=headers, query={
+                        'from': str(cursor),
+                        'to': str(cursor + 99),
+                        'orderBy': 'episodeNumber',
+                        'sortOrder': 'asc',
+                    }), ('resultObj', 'containers', 0, 'containers', lambda _, v: int_or_none(v['id'])))
+                if not episodes:
+                    break
+                for episode in episodes:
+                    video_id = str(episode['id'])
+                    yield self.url_result(f'sonyliv:{video_id}', SonyLIVIE, video_id)
+                cursor += 100
 
     def _real_extract(self, url):
         show_id = self._match_id(url)
