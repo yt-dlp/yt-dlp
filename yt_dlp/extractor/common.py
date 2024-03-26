@@ -862,13 +862,14 @@ class InfoExtractor:
             headers = (headers or {}).copy()
             headers.setdefault('X-Forwarded-For', self._x_forwarded_for_ip)
 
-        extensions, requested_targets = {}, []
-        if impersonate is True:
-            requested_targets.append(ImpersonateTarget())
-        elif isinstance(impersonate, ImpersonateTarget):
-            requested_targets.append(impersonate)
-        elif isinstance(impersonate, (str, list, tuple)):
-            requested_targets = tuple(map(ImpersonateTarget.from_str, variadic(impersonate)))
+        extensions = {}
+
+        if impersonate in (True, ''):
+            impersonate = ImpersonateTarget()
+        requested_targets = [
+            t if isinstance(t, ImpersonateTarget) else ImpersonateTarget.from_str(t)
+            for t in variadic(impersonate)
+        ] if impersonate else []
 
         available_target = next(filter(self._downloader._impersonate_target_available, requested_targets), None)
         if available_target:
@@ -876,8 +877,8 @@ class InfoExtractor:
         elif requested_targets:
             message = 'The extractor is attempting impersonation, but '
             message += (
-                'no impersonate target is available' if impersonate in (True, '', ':')
-                else f'these impersonate targets are not available: "{", ".join(map(str, requested_targets))}"')
+                'no impersonate target is available' if str(impersonate) in ('', ':')
+                else f'none of these impersonate targets are available: "{", ".join(map(str, requested_targets))}"')
             info_msg = ('see  https://github.com/yt-dlp/yt-dlp#impersonation  '
                         'for information on installing the required dependencies')
             if require_impersonation:
