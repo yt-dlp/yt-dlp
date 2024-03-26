@@ -938,10 +938,10 @@ class InfoExtractor:
             Note that this argument does not affect success status codes (2xx)
             which are always accepted.
         impersonate -- the impersonate target. Can be any of the following entities:
-                - a boolean value; True means any impersonate target is sufficient
-                - a string in the format of CLIENT[:OS]
-                - a list or a tuple of strings in the format of CLIENT[:OS]
                 - an instance of yt_dlp.networking.impersonate.ImpersonateTarget
+                - a string in the format of CLIENT[:OS]
+                - a list or a tuple of CLIENT[:OS] strings or ImpersonateTarget instances
+                - a boolean value; True means any impersonate target is sufficient
         require_impersonation -- flag to toggle whether the request should raise an error
             if impersonation is not possible (bool, default: False)
         """
