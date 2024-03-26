@@ -877,7 +877,7 @@ class InfoExtractor:
         elif requested_targets:
             message = 'The extractor is attempting impersonation, but '
             message += (
-                'no impersonate target is available' if str(impersonate) in ('', ':')
+                'no impersonate target is available' if not str(impersonate)
                 else f'none of these impersonate targets are available: "{", ".join(map(str, requested_targets))}"')
             info_msg = ('see  https://github.com/yt-dlp/yt-dlp#impersonation  '
                         'for information on installing the required dependencies')
