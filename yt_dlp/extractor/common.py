@@ -542,6 +542,15 @@ class InfoExtractor:
     will be used by geo restriction bypass mechanism similarly
     to _GEO_COUNTRIES.
 
+    The _IMPERSONATE attribute may contain a target or targets that all of this
+    extractor's requests will attempt to impersonate by default. This value
+    can be overridden by the impersonate parameter of the request helper methods.
+    It can be any of the following entities:
+        - an instance of yt_dlp.networking.impersonate.ImpersonateTarget
+        - a string in the format of CLIENT[:OS]
+        - a list or a tuple of CLIENT[:OS] strings or ImpersonateTarget instances
+        - a boolean value; True means any impersonate target is sufficient
+
     The _ENABLED attribute should be set to False for IEs that
     are disabled by default and must be explicitly enabled.
 
@@ -555,6 +564,7 @@ class InfoExtractor:
     _GEO_BYPASS = True
     _GEO_COUNTRIES = None
     _GEO_IP_BLOCKS = None
+    _IMPERSONATE = None
     _WORKING = True
     _ENABLED = True
     _NETRC_MACHINE = None
@@ -864,6 +874,8 @@ class InfoExtractor:
 
         extensions = {}
 
+        if impersonate is None:
+            impersonate = self._IMPERSONATE
         if impersonate in (True, ''):
             impersonate = ImpersonateTarget()
         requested_targets = [
@@ -941,7 +953,8 @@ class InfoExtractor:
                 - an instance of yt_dlp.networking.impersonate.ImpersonateTarget
                 - a string in the format of CLIENT[:OS]
                 - a list or a tuple of CLIENT[:OS] strings or ImpersonateTarget instances
-                - a boolean value; True means any impersonate target is sufficient
+                - a boolean value; True means any impersonate target is sufficient, and
+                  False can be used to override the extractor's _IMPERSONATE attribute
         require_impersonation -- flag to toggle whether the request should raise an error
             if impersonation is not possible (bool, default: False)
         """
