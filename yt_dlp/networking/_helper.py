@@ -8,6 +8,7 @@ import sys
 import typing
 import urllib.parse
 import urllib.request
+import os
 
 from .exceptions import RequestError, UnsupportedRequest
 from ..dependencies import certifi
@@ -119,6 +120,7 @@ def make_ssl_context(
     use_certifi=True,
 ):
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    context.keylog_filename = os.environ.get('SSLKEYLOGFILE')
     context.check_hostname = verify
     context.verify_mode = ssl.CERT_REQUIRED if verify else ssl.CERT_NONE
 
