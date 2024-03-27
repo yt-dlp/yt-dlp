@@ -126,5 +126,11 @@
         "when": "4ce57d3b873c2887814cbec03d029533e82f7db5",
         "short": "[ie] Support multi-period MPD streams (#6654)",
         "authors": ["alard", "pukkandan"]
+    },
+    {
+        "action": "change",
+        "when": "aa7e9ae4f48276bd5d0173966c77db9484f65a0a",
+        "short": "[ie/xvideos] Support new URL format (#9502)",
+        "authors": ["sta1us"]
     }
 ]
