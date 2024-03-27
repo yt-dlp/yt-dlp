@@ -429,7 +429,7 @@ class DagelijkseKostIE(VRTBaseIE):
 
 
 class Radio1BeIE(VRTBaseIE):
-    _VALID_URL = r'https?://radio1\.be/\w+/select/[\w-]+/(?P<display_id>[\w-]+)'
+    _VALID_URL = r'https?://radio1\.be/\w+(/[\w-]+/[\w-]+)?/(?P<display_id>[\w-]+)'
     _TESTS = [{
         'url': 'https://radio1.be/luister/select/de-ochtend/komt-n-va-volgend-jaar-op-in-wallonie',
         'info_dict': {
@@ -440,12 +440,20 @@ class Radio1BeIE(VRTBaseIE):
             'display_id': 'komt-n-va-volgend-jaar-op-in-wallonie',
             'thumbnail': r're:https?://cds\.vrt\.radio/sites/default/files/styles/article_header_desktop/public/11/select/images/belgaimage-76118692_0\.jpg'
         }
+    }, {
+        'url': 'https://radio1.be/lees/europese-unie-wil-onmiddellijke-humanitaire-pauze-en-duurzaam-staakt-het-vuren-in-gaza?view=web',
+        'info_dict': {
+            'id': 'fixme',
+            'ext': 'mp4'
+        }
     }]
 
     def _real_extract(self, url):
         display_id = self._match_valid_url(url).group('display_id')
         webpage = self._download_webpage(url, display_id)
         next_js_data = self._search_nextjs_data(webpage, display_id)['props']['pageProps']['item']
+
+        # print(traverse_obj(next_js_data, ('paragraphs', ..., 'mediaReference', {str})))
 
         formats, subtitles = self._extract_formats_and_subtitles(
             self._call_api(next_js_data['mediaReference']), display_id)
