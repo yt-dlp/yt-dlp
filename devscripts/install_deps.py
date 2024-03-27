@@ -37,24 +37,16 @@ def main():
     optional_groups = project_table['optional-dependencies']
     excludes = args.exclude or []
 
-    deps = []
+    targets = []
     if not args.only_optional:  # `-o` should exclude 'dependencies' and the 'default' group
-        deps.extend(project_table['dependencies'])
+        targets.extend(project_table['dependencies'])
         if 'default' not in excludes:  # `--exclude default` should exclude entire 'default' group
-            deps.extend(optional_groups['default'])
-
-    def name(dependency):
-        return re.match(r'[\w-]+', dependency)[0].lower()
-
-    target_map = {name(dep): dep for dep in deps}
+            targets.extend(optional_groups['default'])
 
     for include in filter(None, map(optional_groups.get, args.include or [])):
-        target_map.update(zip(map(name, include), include))
+        targets.extend(include)
 
-    for exclude in map(name, excludes):
-        target_map.pop(exclude, None)
-
-    targets = list(target_map.values())
+    targets = [t for t in targets if re.match(r'[\w-]+', t).group(0).lower() not in excludes]
 
     if args.print:
         for target in targets:
