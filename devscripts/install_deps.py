@@ -66,7 +66,31 @@ def main():
         pip_args.append('--user')
     pip_args.extend(targets)
 
-    return subprocess.call(pip_args)
+    exit_code = subprocess.call(pip_args)
+
+    if exit_code:
+        return exit_code
+
+    # if both Requests, and Niquests are there, make sure the original
+    # urllib3 is present. Requests support urllib3.future as a replacement to former urllib3.
+    # all of this can be safely removed once Requests is in an optional group, then install it after Niquests.
+    # see https://niquests.readthedocs.io/en/latest/community/faq.html#what-is-urllib3-future to learn more.
+    if ["niquests" in _ or "requests" in _ for _ in targets].count(True) == 2:
+        exit_code = subprocess.call(
+            [sys.executable, '-m', 'pip', 'uninstall', '-y', 'urllib3', 'urllib3.future']
+        )
+        if exit_code:
+            return exit_code
+        exit_code = subprocess.call(
+            [sys.executable, '-m', 'pip', 'install', '-U', 'urllib3.future']
+        )
+        if exit_code:
+            return exit_code
+        exit_code = subprocess.call(
+            [sys.executable, '-m', 'pip', 'install', '-U', 'urllib3']
+        )
+
+    return exit_code
 
 
 if __name__ == '__main__':

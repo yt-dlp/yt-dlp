@@ -35,3 +35,10 @@ except ImportError:
     pass
 except Exception as e:
     warnings.warn(f'Failed to import "curl_cffi" request handler: {e}' + bug_reports_message())
+
+try:
+    from . import _niquests
+except ImportError:
+    pass
+except Exception as e:
+    warnings.warn(f'Failed to import "niquests" request handler: {e}' + bug_reports_message())

@@ -25,7 +25,7 @@ def get_hidden_imports():
     for module in ('websockets', 'requests', 'urllib3'):
         yield from collect_submodules(module)
     # These are auto-detected, but explicitly add them just in case
-    yield from ('mutagen', 'brotli', 'certifi', 'secretstorage', 'curl_cffi')
+    yield from ('mutagen', 'brotli', 'certifi', 'secretstorage', 'curl_cffi', 'niquests', 'urllib3-future')
 
 
 hiddenimports = list(get_hidden_imports())
