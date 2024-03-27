@@ -79,6 +79,16 @@ try:
 except ImportError:
     curl_cffi = None
 
+try:
+    import niquests
+    if niquests._compat.HAS_LEGACY_URLLIB3:
+        import urllib3_future as niquests_urllib3
+    else:
+        niquests_urllib3 = urllib3
+except ImportError:
+    niquests = None
+    niquests_urllib3 = None
+
 from . import Cryptodome
 
 all_dependencies = {k: v for k, v in globals().items() if not k.startswith('_')}

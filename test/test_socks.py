@@ -142,6 +142,7 @@ class Socks5ProxyHandler(StreamRequestHandler, SocksProxyHandler):
             '!BBBBIH', SOCKS5_VERSION, self.socks_kwargs.get('reply', Socks5Reply.SUCCEEDED), 0x0, 0x1, 0x7f000001, 40000))
 
         self.request_handler_class(self.request, self.client_address, self.server, socks_info=socks_info)
+        self.server.shutdown()
 
 
 class Socks4ProxyHandler(StreamRequestHandler, SocksProxyHandler):
@@ -193,6 +194,7 @@ class Socks4ProxyHandler(StreamRequestHandler, SocksProxyHandler):
                 self.socks_kwargs.get('cd_reply', Socks4CD.REQUEST_GRANTED), 40000, 0x7f000001))
 
         self.request_handler_class(self.request, self.client_address, self.server, socks_info=socks_info)
+        self.server.shutdown()
 
 
 class IPv6ThreadingTCPServer(ThreadingTCPServer):
@@ -290,6 +292,7 @@ def ctx(request):
     'handler,ctx', [
         ('Urllib', 'http'),
         ('Requests', 'http'),
+        ('Niquests', 'http'),
         ('Websockets', 'ws'),
         ('CurlCFFI', 'http')
     ], indirect=True)
@@ -365,6 +368,7 @@ class TestSocks4Proxy:
     'handler,ctx', [
         ('Urllib', 'http'),
         ('Requests', 'http'),
+        ('Niquests', 'http'),
         ('Websockets', 'ws'),
         ('CurlCFFI', 'http')
     ], indirect=True)

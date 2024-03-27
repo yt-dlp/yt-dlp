@@ -195,6 +195,8 @@ While all the other dependencies are optional, `ffmpeg` and `ffprobe` are highly
 * [**brotli**](https://github.com/google/brotli)\* or [**brotlicffi**](https://github.com/python-hyper/brotlicffi) - [Brotli](https://en.wikipedia.org/wiki/Brotli) content encoding support. Both licensed under MIT <sup>[1](https://github.com/google/brotli/blob/master/LICENSE) [2](https://github.com/python-hyper/brotlicffi/blob/master/LICENSE) </sup>
 * [**websockets**](https://github.com/aaugustin/websockets)\* - For downloading over websocket. Licensed under [BSD-3-Clause](https://github.com/aaugustin/websockets/blob/main/LICENSE)
 * [**requests**](https://github.com/psf/requests)\* - HTTP library. For HTTPS proxy and persistent connections support. Licensed under [Apache-2.0](https://github.com/psf/requests/blob/main/LICENSE)
+* [**niquests**](https://github.com/jawah/niquests) - HTTP library as a replacement for Requests with native HTTP/2, and HTTP/3 support along with Happy Eyeballs, resiliency against TLS fingerprinting (not as effective as curl_cffi). Licensed under [Apache-2.0](https://github.com/jawah/niquests/blob/main/LICENSE)
+  * Can be installed with the `niquests` group, e.g. `pip install yt-dlp[default,niquests]`
 
 #### Impersonation
 
