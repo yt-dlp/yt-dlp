@@ -10,6 +10,8 @@ import argparse
 import re
 import subprocess
 
+from pathlib import Path
+
 from devscripts.tomlparse import parse_toml
 from devscripts.utils import read_file
 
@@ -17,17 +19,23 @@ from devscripts.utils import read_file
 def parse_args():
     parser = argparse.ArgumentParser(description='Install dependencies for yt-dlp')
     parser.add_argument(
-        'input', nargs='?', metavar='TOMLFILE', default='pyproject.toml', help='Input file (default: %(default)s)')
+        'input', nargs='?', metavar='TOMLFILE', default=Path(__file__).parent.parent / 'pyproject.toml',
+        help='Input file (default: %(default)s)')
     parser.add_argument(
-        '-e', '--exclude', metavar='DEPENDENCY', action='append', help='Exclude a dependency')
+        '-e', '--exclude', metavar='DEPENDENCY', action='append',
+        help='Exclude a dependency')
     parser.add_argument(
-        '-i', '--include', metavar='GROUP', action='append', help='Include an optional dependency group')
+        '-i', '--include', metavar='GROUP', action='append',
+        help='Include an optional dependency group')
     parser.add_argument(
-        '-o', '--only-optional', action='store_true', help='Only install optional dependencies')
+        '-o', '--only-optional', action='store_true',
+        help='Only install optional dependencies')
     parser.add_argument(
-        '-p', '--print', action='store_true', help='Only print a requirements.txt to stdout')
+        '-p', '--print', action='store_true',
+        help='Only print requirements to stdout')
     parser.add_argument(
-        '-u', '--user', action='store_true', help='Install with pip as --user')
+        '-u', '--user', action='store_true',
+        help='Install with pip as --user')
     return parser.parse_args()
 
 
