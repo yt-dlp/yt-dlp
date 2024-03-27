@@ -3,6 +3,7 @@ import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
     parse_iso8601,
     update_url_query,
     url_or_none,
@@ -11,8 +12,8 @@ from ..utils.traversal import traverse_obj
 
 
 class BoxIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:[^.]+\.)?app\.box\.com/s/(?P<shared_name>[^/?#]+)/file/(?P<id>\d+)'
-    _TEST = {
+    _VALID_URL = r'https?://(?:[^.]+\.)?app\.box\.com/s/(?P<shared_name>[^/?#]+)(?:/file/(?P<id>\d+))?'
+    _TESTS = [{
         'url': 'https://mlssoccer.app.box.com/s/0evd2o3e08l60lr4ygukepvnkord1o1x/file/510727257538',
         'md5': '1f81b2fd3960f38a40a3b8823e5fcd43',
         'info_dict': {
@@ -25,14 +26,36 @@ class BoxIE(InfoExtractor):
             'uploader_id': '235196876',
         },
         'params': {'skip_download': 'dash fragment too small'},
-    }
+    }, {
+        'url': 'https://utexas.app.box.com/s/2x6vanv85fdl8j2eqlcxmv0gp1wvps6e',
+        'info_dict': {
+            'id': '787379022466',
+            'ext': 'mp4',
+            'title': 'Webinar recording: Take the Leap!.mp4',
+            'uploader': 'Patricia Mosele',
+            'timestamp': 1615824864,
+            'upload_date': '20210315',
+            'uploader_id': '239068974',
+        },
+        'params': {'skip_download': 'dash fragment too small'},
+    }]
 
     def _real_extract(self, url):
         shared_name, file_id = self._match_valid_url(url).groups()
-        webpage = self._download_webpage(url, file_id)
-        request_token = self._parse_json(self._search_regex(
-            r'Box\.config\s*=\s*({.+?});', webpage,
-            'Box config'), file_id)['requestToken']
+        webpage = self._download_webpage(url, file_id or shared_name)
+
+        if not file_id:
+            post_stream_data = self._search_json(
+                r'Box\.postStreamData\s*=', webpage, 'Box post-stream data', shared_name)
+            shared_item = traverse_obj(
+                post_stream_data, ('/app-api/enduserapp/shared-item', {dict})) or {}
+            if shared_item.get('itemType') != 'file':
+                raise ExtractorError('The requested resource is not a file', expected=True)
+
+            file_id = str(shared_item['itemID'])
+
+        request_token = self._search_json(
+            r'Box\.config\s*=', webpage, 'Box config', file_id)['requestToken']
         access_token = self._download_json(
             'https://app.box.com/app-api/enduserapp/elements/tokens', file_id,
             'Downloading token JSON metadata',

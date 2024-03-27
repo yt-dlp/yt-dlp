@@ -264,7 +264,7 @@ class RadioFranceLiveIE(RadioFranceBaseIE):
         }
 
 
-class RadioFrancePlaylistBase(RadioFranceBaseIE):
+class RadioFrancePlaylistBaseIE(RadioFranceBaseIE):
     """Subclasses must set _METADATA_KEY"""
 
     def _call_api(self, content_id, cursor, page_num):
@@ -308,7 +308,7 @@ class RadioFrancePlaylistBase(RadioFranceBaseIE):
             })})
 
 
-class RadioFrancePodcastIE(RadioFrancePlaylistBase):
+class RadioFrancePodcastIE(RadioFrancePlaylistBaseIE):
     _VALID_URL = rf'''(?x)
         {RadioFranceBaseIE._VALID_URL_BASE}
         /(?:{RadioFranceBaseIE._STATIONS_RE})
@@ -369,7 +369,7 @@ class RadioFrancePodcastIE(RadioFrancePlaylistBase):
             note=f'Downloading page {page_num}', query={'pageCursor': cursor})
 
 
-class RadioFranceProfileIE(RadioFrancePlaylistBase):
+class RadioFranceProfileIE(RadioFrancePlaylistBaseIE):
     _VALID_URL = rf'{RadioFranceBaseIE._VALID_URL_BASE}/personnes/(?P<id>[\w-]+)'
 
     _TESTS = [{

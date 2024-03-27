@@ -558,7 +558,7 @@ class LenientJSONDecoder(json.JSONDecoder):
                     s = self._close_object(e)
                     if s is not None:
                         continue
-                raise type(e)(f'{e.msg} in {s[e.pos-10:e.pos+10]!r}', s, e.pos)
+                raise type(e)(f'{e.msg} in {s[e.pos - 10:e.pos + 10]!r}', s, e.pos)
         assert False, 'Too many attempts to decode JSON'
 
 
@@ -636,7 +636,7 @@ def sanitize_filename(s, restricted=False, is_id=NO_DEFAULT):
         elif char in '\\/|*<>':
             return '\0_'
         if restricted and (char in '!&\'()[]{}$;`^,#' or char.isspace() or ord(char) > 127):
-            return '\0_'
+            return '' if unicodedata.category(char)[0] in 'CM' else '\0_'
         return char
 
     # Replace look-alike Unicode glyphs
@@ -1379,6 +1379,9 @@ class DateRange:
     def __repr__(self):
         return f'{__name__}.{type(self).__name__}({self.start.isoformat()!r}, {self.end.isoformat()!r})'
 
+    def __str__(self):
+        return f'{self.start} to {self.end}'
+
     def __eq__(self, other):
         return (isinstance(other, DateRange)
                 and self.start == other.start and self.end == other.end)
@@ -1424,7 +1427,8 @@ def write_string(s, out=None, encoding=None):
         s = re.sub(r'([\r\n]+)', r' \1', s)
 
     enc, buffer = None, out
-    if 'b' in getattr(out, 'mode', ''):
+    # `mode` might be `None` (Ref: https://github.com/yt-dlp/yt-dlp/issues/8816)
+    if 'b' in (getattr(out, 'mode', None) or ''):
         enc = encoding or preferredencoding()
     elif hasattr(out, 'buffer'):
         buffer = out.buffer
@@ -1885,6 +1889,7 @@ def setproctitle(title):
     buf = ctypes.create_string_buffer(len(title_bytes))
     buf.value = title_bytes
     try:
+        # PR_SET_NAME = 15      Ref: /usr/include/linux/prctl.h
         libc.prctl(15, buf, 0, 0, 0)
     except AttributeError:
         return  # Strange libc, just skip this
@@ -2259,6 +2264,9 @@ class PagedList:
         if not entries:
             raise self.IndexError()
         return entries[0]
+
+    def __bool__(self):
+        return bool(self.getslice(0, 1))
 
 
 class OnDemandPagedList(PagedList):
@@ -3234,6 +3242,8 @@ def match_str(filter_str, dct, incomplete=False):
 def match_filter_func(filters, breaking_filters=None):
     if not filters and not breaking_filters:
         return None
+    repr_ = f'{match_filter_func.__module__}.{match_filter_func.__qualname__}({filters}, {breaking_filters})'
+
     breaking_filters = match_filter_func(breaking_filters) or (lambda _, __: None)
     filters = set(variadic(filters or []))
 
@@ -3241,6 +3251,7 @@ def match_filter_func(filters, breaking_filters=None):
     if interactive:
         filters.remove('-')
 
+    @function_with_repr.set_repr(repr_)
     def _match_func(info_dict, incomplete=False):
         ret = breaking_filters(info_dict, incomplete)
         if ret is not None:
@@ -4464,7 +4475,7 @@ def write_xattr(path, key, value):
            else 'xattr' if check_executable('xattr', ['-h']) else None)
     if not exe:
         raise XAttrUnavailableError(
-            'Couldn\'t find a tool to set the xattrs. Install either the python "xattr" or "pyxattr" modules or the '
+            'Couldn\'t find a tool to set the xattrs. Install either the "xattr" or "pyxattr" Python modules or the '
             + ('"xattr" binary' if sys.platform != 'linux' else 'GNU "attr" package (which contains the "setfattr" tool)'))
 
     value = value.decode()
@@ -4972,6 +4983,10 @@ class function_with_repr:
     def __call__(self, *args, **kwargs):
         return self.func(*args, **kwargs)
 
+    @classmethod
+    def set_repr(cls, repr_):
+        return functools.partial(cls, repr_=repr_)
+
     def __repr__(self):
         if self.__repr:
             return self.__repr
@@ -5070,7 +5085,7 @@ def truncate_string(s, left, right=0):
     assert left > 3 and right >= 0
     if s is None or len(s) <= left + right:
         return s
-    return f'{s[:left-3]}...{s[-right:] if right else ""}'
+    return f'{s[:left - 3]}...{s[-right:] if right else ""}'
 
 
 def orderedSet_from_options(options, alias_dict, *, use_regex=False, start=None):
