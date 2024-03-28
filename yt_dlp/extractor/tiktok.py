@@ -153,15 +153,16 @@ class TikTokBaseIE(InfoExtractor):
             real_query = self._build_api_query(query, self._WORKING_APP_IID)
             return self._call_api_impl(ep, real_query, video_id, fatal, note, errnote)
 
-        for count, iid in enumerate(self._APP_INSTALL_IDS, start=1):
+        max_tries = len(self._APP_INSTALL_IDS)
+        for count, iid in enumerate(random.choices(self._APP_INSTALL_IDS, k=max_tries), start=1):
             real_query = self._build_api_query(query, iid)
+            self.write_debug(f'iid={iid}')
             try:
                 res = self._call_api_impl(ep, real_query, video_id, fatal, note, errnote)
                 self._WORKING_APP_IID = iid
                 return res
             except ExtractorError as e:
                 if isinstance(e.cause, json.JSONDecodeError) and e.cause.pos == 0:
-                    max_tries = len(self._APP_INSTALL_IDS)
                     message = str(e.cause or e.msg)
                     if count == max_tries:
                         if fatal:
