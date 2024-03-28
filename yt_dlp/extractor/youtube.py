@@ -3603,6 +3603,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         yt_query = {
             'videoId': video_id,
         }
+        # todo: remove - deprecated/broken
+        if _split_innertube_client(client)[0] == 'android':
+            yt_query['params'] = 'CgIQBg=='
 
         pp_arg = self._configuration_arg('player_params', [None], casesense=True)[0]
         if pp_arg:
