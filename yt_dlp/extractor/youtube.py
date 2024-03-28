@@ -238,6 +238,16 @@ INNERTUBE_CLIENTS = {
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 85
     },
+    # This client has 1080p non split stream videos
+    'media_connect_frontend': {
+        'INNERTUBE_CONTEXT': {
+            'client': {
+                'clientName': 'MEDIA_CONNECT_FRONTEND',
+                'clientVersion': '0.1',
+            },
+        },
+        'INNERTUBE_CONTEXT_CLIENT_NAME': 95
+    },
 }
 
 
@@ -258,7 +268,7 @@ def build_innertube_clients():
     THIRD_PARTY = {
         'embedUrl': 'https://www.youtube.com/',  # Can be any valid URL
     }
-    BASE_CLIENTS = ('ios', 'android', 'web', 'tv', 'mweb')
+    BASE_CLIENTS = ('ios', 'android', 'web', 'tv', 'mweb', 'media_connect_frontend')
     priority = qualities(BASE_CLIENTS[::-1])
 
     for client, ytcfg in tuple(INNERTUBE_CLIENTS.items()):
@@ -3619,7 +3629,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
     def _get_requested_clients(self, url, smuggled_data):
         requested_clients = []
-        default = ['ios', 'android', 'web']
+        default = ['ios', 'android', 'web', 'media_connect_frontend']
         allowed_clients = sorted(
             (client for client in INNERTUBE_CLIENTS.keys() if client[:1] != '_'),
             key=lambda client: INNERTUBE_CLIENTS[client]['priority'], reverse=True)
