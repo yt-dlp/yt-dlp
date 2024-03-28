@@ -4,6 +4,7 @@ import random
 import re
 import string
 import time
+import uuid
 
 from .common import InfoExtractor
 from ..compat import compat_urllib_parse_urlparse
@@ -30,13 +31,18 @@ from ..utils import (
 
 
 class TikTokBaseIE(InfoExtractor):
-    _APP_VERSIONS = [('26.1.3', '260103'), ('26.1.2', '260102'), ('26.1.1', '260101'), ('25.6.2', '250602')]
+    _APP_VERSIONS = [('34.1.2', '2023401020')]
     _WORKING_APP_VERSION = None
-    _APP_NAME = 'trill'
-    _AID = 1180
+    _APP_UA = 'com.zhiliaoapp.musically'
+    _APP_NAME = 'musical_ly'
+    _AID = 0  # trill = 1180, musical_ly = 1233, universal = 0
     _UPLOADER_URL_FORMAT = 'https://www.tiktok.com/@%s'
     _WEBPAGE_HOST = 'https://www.tiktok.com/'
     QUALITIES = ('360p', '540p', '720p', '1080p')
+
+    @property
+    def _APP_INSTALL_ID(self):
+        return self._configuration_arg('iid', ['7351144126450059040'], ie_key=TikTokIE)[0]
 
     @property
     def _API_HOSTNAME(self):
@@ -67,45 +73,54 @@ class TikTokBaseIE(InfoExtractor):
         return self._download_json(
             'https://%s/aweme/v1/%s/' % (self._API_HOSTNAME, ep), video_id=video_id,
             fatal=fatal, note=note, errnote=errnote, headers={
-                'User-Agent': f'com.ss.android.ugc.{self._APP_NAME}/{manifest_app_version} (Linux; U; Android 13; en_US; Pixel 7; Build/TD1A.220804.031; Cronet/58.0.2991.0)',
+                'User-Agent': f'{self._APP_UA}/{manifest_app_version} (Linux; U; Android 13; en_US; Pixel 7; Build/TD1A.220804.031; Cronet/58.0.2991.0)',
                 'Accept': 'application/json',
             }, query=query)
 
     def _build_api_query(self, query, app_version, manifest_app_version):
         return {
             **query,
+            'device_platform': 'android',
+            'os': 'android',
+            'ssmix': 'a',
+            '_rticket': int(time.time() * 1000),
+            'cdid': str(uuid.uuid4()),
+            'channel': 'googleplay',
+            'aid': self._AID,
+            'app_name': self._APP_NAME,
+            'version_code': ''.join((f'{int(v):02d}' for v in app_version.split('.'))),
             'version_name': app_version,
-            'version_code': manifest_app_version,
-            'build_number': app_version,
             'manifest_version_code': manifest_app_version,
             'update_version_code': manifest_app_version,
-            'openudid': ''.join(random.choices('0123456789abcdef', k=16)),
-            'uuid': ''.join(random.choices(string.digits, k=16)),
-            '_rticket': int(time.time() * 1000),
-            'ts': int(time.time()),
-            'device_brand': 'Google',
-            'device_type': 'Pixel 7',
-            'device_platform': 'android',
+            'ab_version': app_version,
             'resolution': '1080*2400',
             'dpi': 420,
-            'os_version': '13',
-            'os_api': '29',
-            'carrier_region': 'US',
-            'sys_region': 'US',
-            'region': 'US',
-            'app_name': self._APP_NAME,
-            'app_language': 'en',
+            'device_type': 'Pixel 7',
+            'device_brand': 'Google',
             'language': 'en',
-            'timezone_name': 'America/New_York',
-            'timezone_offset': '-14400',
-            'channel': 'googleplay',
+            'os_api': '29',
+            'os_version': '13',
             'ac': 'wifi',
-            'mcc_mnc': '310260',
-            'is_my_cn': 0,
-            'aid': self._AID,
-            'ssmix': 'a',
-            'as': 'a1qwert123',
-            'cp': 'cbfhckdckkde1',
+            'is_pad': '0',
+            'current_region': 'US',
+            'app_type': 'normal',
+            'sys_region': 'US',
+            'last_install_time': int(time.time()) - random.randint(86400, 1123200),
+            'timezone_name': 'America/New_York',
+            'residence': 'US',
+            'app_language': 'en',
+            'timezone_offset': '-14400',
+            'host_abi': 'armeabi-v7a',
+            'locale': 'en',
+            'ac2': 'wifi5g',
+            'uoo': '1',
+            'op_region': 'US',
+            'build_number': app_version,
+            'region': 'US',
+            'ts': int(time.time()),
+            'iid': self._APP_INSTALL_ID,
+            'device_id': random.randint(7250000000000000000, 7351147085025500000),
+            'openudid': ''.join(random.choices('0123456789abcdef', k=16)),
         }
 
     def _call_api(self, ep, query, video_id, fatal=True,
