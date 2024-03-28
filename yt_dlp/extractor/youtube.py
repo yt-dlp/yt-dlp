@@ -2341,6 +2341,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'format': '17',  # 3gp format available on android
                 'extractor_args': {'youtube': {'player_client': ['android']}},
             },
+            'skip': 'android client broken',
         },
         {
             # Skip download of additional client configs (remix client config in this case)
@@ -2718,7 +2719,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'heatmap': 'count:100',
             },
             'params': {
-                'extractor_args': {'youtube': {'player_client': ['android'], 'player_skip': ['webpage']}},
+                'extractor_args': {'youtube': {'player_client': ['ios'], 'player_skip': ['webpage']}},
             },
         },
     ]
@@ -3602,8 +3603,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         yt_query = {
             'videoId': video_id,
         }
-        if _split_innertube_client(client)[0] == 'android':
-            yt_query['params'] = 'CgIQBg=='
 
         pp_arg = self._configuration_arg('player_params', [None], casesense=True)[0]
         if pp_arg:
@@ -3619,7 +3618,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
     def _get_requested_clients(self, url, smuggled_data):
         requested_clients = []
-        default = ['ios', 'android', 'web']
+        default = ['ios', 'web']
         allowed_clients = sorted(
             (client for client in INNERTUBE_CLIENTS.keys() if client[:1] != '_'),
             key=lambda client: INNERTUBE_CLIENTS[client]['priority'], reverse=True)
