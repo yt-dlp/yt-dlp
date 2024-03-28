@@ -78,7 +78,6 @@ class MixchArchiveIE(InfoExtractor):
             'ext': 'mp4',
             'title': '【特別トーク番組アーカイブス】Merm4id×燐舞曲 2nd LIVE「VERSUS」',
             'live_status': 'not_live',
-            'release_timestamp': 1701421200,
             'release_date': '20231201',
             'thumbnail': str,
         }
@@ -95,15 +94,6 @@ class MixchArchiveIE(InfoExtractor):
         if urlh.status == 401:
             self.raise_login_required(method='cookies')
 
-        release_timestamp = None
-        month, day, hour, min = self._search_regex(
-            r'(?P<month>\d{1,2})月(?P<day>\d{1,2})日\([月火水木金土日]\)(?P<hour>\d{1,2}):(?P<min>\d{1,2})',
-            traverse_obj(info_json, ('archive', 'start')), name='start datetime',
-            default=(None, None, None, None), group=('month', 'day', 'hour', 'min'))
-        if month and day and hour and min:
-            year = (datetime_from_str('today') + datetime.timedelta(hours=9)).strftime('%Y')
-            release_timestamp = unified_timestamp(f'{year}/{month}/{day} {hour}:{min} +09:00')
-
         return {
             'id': video_id,
             'title': traverse_obj(info_json, ('archive', 'title')),
@@ -111,5 +101,4 @@ class MixchArchiveIE(InfoExtractor):
                 traverse_obj(info_json, ('archive', 'archiveURL')), video_id),
             'live_status': 'not_live',
             'thumbnail': traverse_obj(info_json, ('archive', 'thumbnailURL')),
-            'release_timestamp': release_timestamp,
         }
