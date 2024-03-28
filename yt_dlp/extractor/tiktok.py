@@ -1,3 +1,4 @@
+import functools
 import itertools
 import json
 import random
@@ -37,12 +38,14 @@ class TikTokBaseIE(InfoExtractor):
         '7351153174894626592',
     ]
     _WORKING_APP_IID = None
-    _APP_UA = 'com.zhiliaoapp.musically'
-    _APP_NAME = 'musical_ly'
-    _AID = 0  # trill = 1180, musical_ly = 1233, universal = 0
+    _AID = 0  # aweme = 1128, trill = 1180, musical_ly = 1233, universal = 0
     _UPLOADER_URL_FORMAT = 'https://www.tiktok.com/@%s'
     _WEBPAGE_HOST = 'https://www.tiktok.com/'
     QUALITIES = ('360p', '540p', '720p', '1080p')
+
+    @property
+    def _APP_NAME(self):
+        return self._configuration_arg('app_name', ['musical_ly'], ie_key=TikTokIE)[0]
 
     @property
     def _APP_VERSION(self):
@@ -51,6 +54,14 @@ class TikTokBaseIE(InfoExtractor):
     @property
     def _MANIFEST_APP_VERSION(self):
         return self._configuration_arg('manifest_app_version', ['2023401020'], ie_key=TikTokIE)[0]
+
+    @functools.cached_property
+    def _APP_USER_AGENT(self):
+        if self._APP_NAME == 'musical_ly':
+            package = 'com.zhiliaoapp.musically'
+        else:  # trill, aweme
+            package = f'com.ss.android.ugc.{self._APP_NAME}'
+        return f'{package}/{self._MANIFEST_APP_VERSION} (Linux; U; Android 13; en_US; Pixel 7; Build/TD1A.220804.031; Cronet/58.0.2991.0)'
 
     @property
     def _API_HOSTNAME(self):
@@ -81,7 +92,7 @@ class TikTokBaseIE(InfoExtractor):
         return self._download_json(
             'https://%s/aweme/v1/%s/' % (self._API_HOSTNAME, ep), video_id=video_id,
             fatal=fatal, note=note, errnote=errnote, headers={
-                'User-Agent': f'{self._APP_UA}/{self._MANIFEST_APP_VERSION} (Linux; U; Android 13; en_US; Pixel 7; Build/TD1A.220804.031; Cronet/58.0.2991.0)',
+                'User-Agent': self._APP_USER_AGENT,
                 'Accept': 'application/json',
             }, query=query)
 

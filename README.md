@@ -1806,6 +1806,7 @@ The following extractors use this feature:
 
 #### tiktok
 * `iid`: Install ID of the mobile app required for API requests, e.g. `1234567890123456789`
+* `app_name`: Mobile app name to use for API requests, e.g. `trill`
 * `api_hostname`: Hostname to use for mobile API requests, e.g. `api22-normal-c-alisg.tiktokv.com`
 * `app_version`: App version to call mobile APIs with - should be set along with `manifest_app_version`, e.g. `34.1.2`
 * `manifest_app_version`: Numeric app version to call mobile APIs with, e.g. `2023401020`
