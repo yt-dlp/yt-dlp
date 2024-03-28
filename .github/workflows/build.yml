@@ -125,11 +125,12 @@ jobs:
           sudo apt -y install zip pandoc man sed
           cat > ./requirements.txt << EOF
           python=3.10.*
+          pyinstaller
           brotli-python
           EOF
           python devscripts/install_deps.py --print \
             --exclude brotli --exclude brotlicffi \
-            --include secretstorage --include pyinstaller >> ./requirements.txt
+            --include secretstorage >> ./requirements.txt
           mamba create -n build --file ./requirements.txt
 
       - name: Prepare
@@ -247,7 +248,7 @@ jobs:
         run: |
           brew install coreutils
           python3 devscripts/install_deps.py --user -o --include build
-          python3 devscripts/install_deps.py --print --include pyinstaller_macos > requirements.txt
+          python3 devscripts/install_deps.py --print --include pyinstaller > requirements.txt
           # We need to ignore wheels otherwise we break universal2 builds
           python3 -m pip install -U --user --no-binary :all: -r requirements.txt
           # We need to fuse our own universal2 wheels for curl_cffi
@@ -319,7 +320,7 @@ jobs:
         run: |
           brew install coreutils
           python3 devscripts/install_deps.py --user -o --include build
-          python3 devscripts/install_deps.py --user --include pyinstaller_macos --include curl_cffi
+          python3 devscripts/install_deps.py --user --include pyinstaller --include curl_cffi
 
       - name: Prepare
         run: |
