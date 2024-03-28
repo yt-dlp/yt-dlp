@@ -90,9 +90,9 @@ class MixchArchiveIE(InfoExtractor):
         video_id = self._match_id(url)
 
         info_json, urlh = self._download_json_handle(
-            f'https://mixch.tv/api-web/archive/{video_id}', video_id, expected_status=(401))
+            f'https://mixch.tv/api-web/archive/{video_id}', video_id, expected_status=401)
         if urlh.status == 401:
-            self.raise_login_required(method='cookies')
+            self.raise_login_required()
 
         return {
             'id': video_id,
