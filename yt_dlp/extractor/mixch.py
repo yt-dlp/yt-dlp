@@ -1,12 +1,6 @@
-import datetime
-
 from .common import InfoExtractor
-from ..utils import (
-    datetime_from_str,
-    UserNotLive,
-    traverse_obj,
-    unified_timestamp,
-)
+from ..utils import UserNotLive
+from ..utils.traversal import traverse_obj
 
 
 class MixchIE(InfoExtractor):
