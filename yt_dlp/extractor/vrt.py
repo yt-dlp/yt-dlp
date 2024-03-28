@@ -469,7 +469,7 @@ class Radio1BeIE(VRTBaseIE):
                 'subtitles': subtitles,
                 **traverse_obj(data, {
                     'title': 'title',
-                    'description': 'body'
+                    'description': ('body', {clean_html})
                 })
             })
         return entries
