@@ -2289,6 +2289,7 @@ from .vrt import (
     VrtNUIE,
     KetnetIE,
     DagelijkseKostIE,
+    Radio1BeIE
 )
 from .vtm import VTMIE
 from .medialaan import MedialaanIE

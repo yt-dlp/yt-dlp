@@ -16,6 +16,7 @@ from ..utils import (
     join_nonempty,
     jwt_encode_hs256,
     make_archive_id,
+    merge_dicts,
     parse_age_limit,
     parse_iso8601,
     str_or_none,
@@ -23,6 +24,7 @@ from ..utils import (
     traverse_obj,
     url_or_none,
     urlencode_postdata,
+    variadic
 )
 
 
@@ -425,3 +427,74 @@ class DagelijkseKostIE(VRTBaseIE):
                 ['description', 'twitter:description', 'og:description'], webpage),
             '_old_archive_ids': [make_archive_id('Canvas', video_id)],
         }
+
+
+class Radio1BeIE(VRTBaseIE):
+    _VALID_URL = r'https?://radio1\.be/\w+(/[\w-]+/[\w-]+)?/(?P<display_id>[\w-]+)'
+    _TESTS = [{
+        'url': 'https://radio1.be/luister/select/de-ochtend/komt-n-va-volgend-jaar-op-in-wallonie',
+        'info_dict': {
+            'id': 'eb6c22e9-544f-44f4-af39-cf8cccd29e22',
+            'title': 'Komt N-VA volgend jaar op in Wallonië?',
+            'display_id': 'komt-n-va-volgend-jaar-op-in-wallonie',
+            'description': 'md5:b374ea1c9302f38362df9dea1931468e',
+            'thumbnail': r're:https?://cds\.vrt\.radio/[^/#\?&]+'
+        },
+        'playlist_mincount': 1
+    }, {
+        'url': 'https://radio1.be/lees/europese-unie-wil-onmiddellijke-humanitaire-pauze-en-duurzaam-staakt-het-vuren-in-gaza?view=web',
+        'info_dict': {
+            'id': '5d47f102-dbdb-4fa0-832b-26c1870311f2',
+            'title': 'Europese Unie wil "onmiddellijke humanitaire pauze" en "duurzaam staakt-het-vuren" in Gaza',
+            'description': 'md5:1aad1fae7d39edeffde5d3e67d276b64',
+            'thumbnail': r're:https?://cds\.vrt\.radio/[^/#\?&]+',
+            'display_id': 'europese-unie-wil-onmiddellijke-humanitaire-pauze-en-duurzaam-staakt-het-vuren-in-gaza'
+        },
+        'playlist_mincount': 1
+    }]
+
+    def _extract_video_entries(self, next_js_data, display_id):
+        entries = []
+        video_data = variadic(traverse_obj(
+            next_js_data, {lambda x: x if x.get('mediaReference') else traverse_obj(x, ('paragraphs', ...))}))
+        for data in video_data:
+            media_reference = data.get('mediaReference')
+            if media_reference is None:
+                continue
+            formats, subtitles = self._extract_formats_and_subtitles(self._call_api(media_reference), display_id)
+
+            entries.append({
+                'id': media_reference,
+                'formats': formats,
+                'subtitles': subtitles,
+                **traverse_obj(data, {
+                    'title': 'title',
+                    'description': ('body', {clean_html})
+                })
+            })
+        return entries
+
+    def _real_extract(self, url):
+        display_id = self._match_valid_url(url).group('display_id')
+        webpage = self._download_webpage(url, display_id)
+        next_js_data = self._search_nextjs_data(webpage, display_id)['props']['pageProps']['item']
+
+        entries = self._extract_video_entries(next_js_data, display_id)
+        playlist_info = merge_dicts(
+            traverse_obj(next_js_data, ({
+                'id': 'id',
+                'title': 'title',
+                'description': (('description', 'content'), {clean_html}),
+            }), get_all=False),
+            {
+                'title': self._html_search_meta(['name', 'og:title', 'twitter:title'], webpage),
+                'description': self._html_search_meta(['description', 'og:description', 'twitter:description'], webpage),
+                'thumbnail': self._html_search_meta(['og:image', 'twitter:image'], webpage)
+            }
+        )
+        return self.playlist_result(
+            entries, playlist_id=playlist_info['id'], display_id=display_id, **traverse_obj(playlist_info, {
+                'thumbnail': 'thumbnail',
+                'playlist_description': 'description',
+                'playlist_title': 'title'
+            }))
