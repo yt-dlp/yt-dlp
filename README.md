@@ -1805,9 +1805,10 @@ The following extractors use this feature:
 * `max_comments`: Maximum number of comments to extract - default is `120`
 
 #### tiktok
-* `api_hostname`: Hostname to use for mobile API requests, e.g. `api-h2.tiktokv.com`
-* `app_version`: App version to call mobile APIs with - should be set along with `manifest_app_version`, e.g. `20.2.1`
-* `manifest_app_version`: Numeric app version to call mobile APIs with, e.g. `221`
+* `iid`: Install ID of the mobile app required for API requests, e.g. `1234567890123456789`
+* `api_hostname`: Hostname to use for mobile API requests, e.g. `api22-normal-c-alisg.tiktokv.com`
+* `app_version`: App version to call mobile APIs with - should be set along with `manifest_app_version`, e.g. `34.1.2`
+* `manifest_app_version`: Numeric app version to call mobile APIs with, e.g. `2023401020`
 
 #### rokfinchannel
 * `tab`: Which tab to download - one of `new`, `top`, `videos`, `podcasts`, `streams`, `stacks`
