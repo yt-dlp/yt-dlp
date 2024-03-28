@@ -465,10 +465,12 @@ class Radio1BeIE(VRTBaseIE):
 
             entries.append({
                 'id': media_reference,
-                'title': data.get('title'),
-                'description': data.get('body'),
                 'formats': formats,
                 'subtitles': subtitles,
+                **traverse_obj(data, {
+                    'title': 'title',
+                    'description': 'body'
+                })
             })
         return entries
 
