@@ -1,5 +1,6 @@
 from .common import InfoExtractor
-from ..utils import UserNotLive, traverse_obj
+from ..utils import UserNotLive
+from ..utils.traversal import traverse_obj
 
 
 class MixchIE(InfoExtractor):
@@ -60,22 +61,38 @@ class MixchArchiveIE(InfoExtractor):
         'skip': 'paid video, no DRM. expires at Jan 23',
         'info_dict': {
             'id': '421',
+            'ext': 'mp4',
             'title': '96NEKO SHOW TIME',
         }
+    }, {
+        'url': 'https://mixch.tv/archive/1213',
+        'skip': 'paid video, no DRM. expires at Dec 31, 2023',
+        'info_dict': {
+            'id': '1213',
+            'ext': 'mp4',
+            'title': '【特別トーク番組アーカイブス】Merm4id×燐舞曲 2nd LIVE「VERSUS」',
+            'live_status': 'not_live',
+            'release_date': '20231201',
+            'thumbnail': str,
+        }
+    }, {
+        'url': 'https://mixch.tv/archive/1214',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        webpage = self._download_webpage(url, video_id)
 
-        html5_videos = self._parse_html5_media_entries(
-            url, webpage.replace('video-js', 'video'), video_id, 'hls')
-        if not html5_videos:
-            self.raise_login_required(method='cookies')
-        infodict = html5_videos[0]
-        infodict.update({
+        info_json, urlh = self._download_json_handle(
+            f'https://mixch.tv/api-web/archive/{video_id}', video_id, expected_status=401)
+        if urlh.status == 401:
+            self.raise_login_required()
+
+        return {
             'id': video_id,
-            'title': self._html_search_regex(r'class="archive-title">(.+?)</', webpage, 'title')
-        })
-
-        return infodict
+            'title': traverse_obj(info_json, ('archive', 'title')),
+            'formats': self._extract_m3u8_formats(
+                traverse_obj(info_json, ('archive', 'archiveURL')), video_id),
+            'live_status': 'not_live',
+            'thumbnail': traverse_obj(info_json, ('archive', 'thumbnailURL')),
+        }
