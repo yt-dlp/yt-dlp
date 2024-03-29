@@ -24,7 +24,6 @@ from ..utils import (
     traverse_obj,
     url_or_none,
     urlencode_postdata,
-    variadic
 )
 
 
