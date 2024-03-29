@@ -2825,7 +2825,7 @@ class YoutubeDL:
             if (('manifest-filesize-approx' in self.params['compat_opts'] or not format.get('manifest_url'))
                     and info_dict.get('duration') and format.get('tbr')
                     and not format.get('filesize') and not format.get('filesize_approx')):
-                format['filesize_approx'] = int(info_dict['duration'] * format['tbr'] * (1024 / 8))
+                format['filesize_approx'] = int(info_dict['duration'] * format['tbr'] * (1000 / 8))
             format['http_headers'] = self._calc_headers(collections.ChainMap(format, info_dict), load_cookies=True)
 
         # Safeguard against old/insecure infojson when using --load-info-json
@@ -3875,7 +3875,7 @@ class YoutubeDL:
                 delim, (
                     format_field(f, 'filesize', ' \t%s', func=format_bytes)
                     or format_field(f, 'filesize_approx', '≈\t%s', func=format_bytes)
-                    or format_field(try_call(lambda: format_bytes(int(info_dict['duration'] * f['tbr'] * (1024 / 8)))),
+                    or format_field(try_call(lambda: format_bytes(int(info_dict['duration'] * f['tbr'] * (1000 / 8)))),
                                     None, self._format_out('~\t%s', self.Styles.SUPPRESS))),
                 format_field(f, 'tbr', '\t%dk', func=round),
                 shorten_protocol_name(f.get('protocol', '')),
