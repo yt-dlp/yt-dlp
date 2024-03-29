@@ -458,10 +458,9 @@ class Radio1BeIE(VRTBaseIE):
         video_data = traverse_obj(
             next_js_data, ((None, ('paragraphs', ...)), {lambda x: x if x['mediaReference'] else None}))
         for data in video_data:
-            media_reference = data.get('mediaReference')
-            if media_reference is None:
-                continue
-            formats, subtitles = self._extract_formats_and_subtitles(self._call_api(media_reference), display_id)
+            media_reference = data['mediaReference']
+            formats, subtitles = self._extract_formats_and_subtitles(
+                self._call_api(media_reference), display_id)
 
             entries.append({
                 'id': media_reference,
