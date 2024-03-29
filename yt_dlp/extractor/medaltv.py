@@ -9,7 +9,6 @@ from ..utils import (
     int_or_none,
     str_or_none,
     traverse_obj,
-    update_url_query,
 )
 
 
@@ -82,7 +81,7 @@ class MedalTVIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        webpage = self._download_webpage(update_url_query(url, {'mobilebypass': 'true'}), video_id)
+        webpage = self._download_webpage(url, video_id, query={'mobilebypass': 'true'})
 
         hydration_data = self._search_json(
             r'<script[^>]*>[^<]*\bhydrationData\s*=', webpage,

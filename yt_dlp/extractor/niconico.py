@@ -163,8 +163,6 @@ class NiconicoIE(InfoExtractor):
             'description': 'md5:15df8988e47a86f9e978af2064bf6d8e',
             'timestamp': 1341128008,
             'upload_date': '20120701',
-            'uploader': None,
-            'uploader_id': None,
             'thumbnail': r're:https?://.*',
             'duration': 5271,
             'view_count': int,

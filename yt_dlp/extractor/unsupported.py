@@ -23,7 +23,7 @@ class KnownDRMIE(UnsupportedInfoExtractor):
 
     Add to this list only if:
     * You are reasonably certain that the site uses DRM for ALL their videos
-    * Multiple users have asked about this site on github/reddit/discord
+    * Multiple users have asked about this site on github/discord
     """
 
     URLS = (
