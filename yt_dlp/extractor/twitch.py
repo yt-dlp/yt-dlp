@@ -192,7 +192,7 @@ class TwitchBaseIE(InfoExtractor):
 
     def _extract_twitch_m3u8_formats(self, video_id, token, signature):
         """Subclasses must define _M3U8_PATH"""
-        return self._extract_m3u8_formats(
+        formats = self._extract_m3u8_formats(
             f'{self._USHER_BASE}/{self._M3U8_PATH}/{video_id}.m3u8', video_id, 'mp4', query={
                 'allow_source': 'true',
                 'allow_audio_only': 'true',
@@ -205,6 +205,11 @@ class TwitchBaseIE(InfoExtractor):
                 'sig': signature,
                 'token': token,
             })
+        for fmt in formats:
+            if fmt.get('vcodec') and fmt['vcodec'].startswith('av01'):
+                fmt['downloader_options'] = {'ffmpeg_args_out': ['-f', 'mp4']}
+
+        return formats
 
 
 class TwitchVodIE(TwitchBaseIE):
