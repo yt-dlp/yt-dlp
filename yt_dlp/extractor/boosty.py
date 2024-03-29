@@ -171,7 +171,7 @@ class BoostyIE(InfoExtractor):
         if auth_cookie is not None:
             try:
                 auth_data = json.loads(compat_urllib_parse_unquote(auth_cookie.value))
-                auth_headers['Authorization'] = f'Bearer {auth_data.get("accessToken")}'
+                auth_headers['Authorization'] = f'Bearer {auth_data["accessToken"]}'
             except (json.JSONDecodeError, KeyError):
                 self.report_warning('Failed to extract token from auth cookie.')
 
