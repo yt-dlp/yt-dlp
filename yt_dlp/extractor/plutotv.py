@@ -16,6 +16,7 @@ from ..utils import (
 
 
 class PlutoTVIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'''(?x)
         https?://(?:www\.)?pluto\.tv(?:/[^/]+)?/on-demand
         /(?P<video_type>movies|series)

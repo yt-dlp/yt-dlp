@@ -11,6 +11,7 @@ import math
 import os.path
 import random
 import re
+import shlex
 import sys
 import threading
 import time
@@ -114,9 +115,9 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'ANDROID',
-                'clientVersion': '17.31.35',
+                'clientVersion': '19.09.37',
                 'androidSdkVersion': 30,
-                'userAgent': 'com.google.android.youtube/17.31.35 (Linux; U; Android 11) gzip'
+                'userAgent': 'com.google.android.youtube/19.09.37 (Linux; U; Android 11) gzip'
             }
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 3,
@@ -127,9 +128,9 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'ANDROID_EMBEDDED_PLAYER',
-                'clientVersion': '17.31.35',
+                'clientVersion': '19.09.37',
                 'androidSdkVersion': 30,
-                'userAgent': 'com.google.android.youtube/17.31.35 (Linux; U; Android 11) gzip'
+                'userAgent': 'com.google.android.youtube/19.09.37 (Linux; U; Android 11) gzip'
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 55,
@@ -140,9 +141,9 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'ANDROID_MUSIC',
-                'clientVersion': '5.16.51',
+                'clientVersion': '6.42.52',
                 'androidSdkVersion': 30,
-                'userAgent': 'com.google.android.apps.youtube.music/5.16.51 (Linux; U; Android 11) gzip'
+                'userAgent': 'com.google.android.apps.youtube.music/6.42.52 (Linux; U; Android 11) gzip'
             }
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 21,
@@ -168,9 +169,9 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'IOS',
-                'clientVersion': '17.33.2',
+                'clientVersion': '19.09.3',
                 'deviceModel': 'iPhone14,3',
-                'userAgent': 'com.google.ios.youtube/17.33.2 (iPhone14,3; U; CPU iOS 15_6 like Mac OS X)'
+                'userAgent': 'com.google.ios.youtube/19.09.3 (iPhone14,3; U; CPU iOS 15_6 like Mac OS X)'
             }
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 5,
@@ -180,9 +181,9 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'IOS_MESSAGES_EXTENSION',
-                'clientVersion': '17.33.2',
+                'clientVersion': '19.09.3',
                 'deviceModel': 'iPhone14,3',
-                'userAgent': 'com.google.ios.youtube/17.33.2 (iPhone14,3; U; CPU iOS 15_6 like Mac OS X)'
+                'userAgent': 'com.google.ios.youtube/19.09.3 (iPhone14,3; U; CPU iOS 15_6 like Mac OS X)'
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 66,
@@ -193,9 +194,9 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'IOS_MUSIC',
-                'clientVersion': '5.21',
+                'clientVersion': '6.33.3',
                 'deviceModel': 'iPhone14,3',
-                'userAgent': 'com.google.ios.youtubemusic/5.21 (iPhone14,3; U; CPU iOS 15_6 like Mac OS X)'
+                'userAgent': 'com.google.ios.youtubemusic/6.33.3 (iPhone14,3; U; CPU iOS 15_6 like Mac OS X)'
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 26,
@@ -2068,7 +2069,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'title': 'Voyeur Girl',
                 'description': 'md5:7ae382a65843d6df2685993e90a8628f',
                 'upload_date': '20190312',
-                'artist': 'Stephen',
+                'artists': ['Stephen'],
+                'creators': ['Stephen'],
                 'track': 'Voyeur Girl',
                 'album': 'it\'s too much love to know my dear',
                 'release_date': '20190313',
@@ -2081,7 +2083,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'channel': 'Stephen',  # TODO: should be "Stephen - Topic"
                 'uploader': 'Stephen',
                 'availability': 'public',
-                'creator': 'Stephen',
                 'duration': 169,
                 'thumbnail': 'https://i.ytimg.com/vi_webp/MgNrAu2pzNs/maxresdefault.webp',
                 'age_limit': 0,
@@ -3640,15 +3641,28 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         return orderedSet(requested_clients)
 
+    def _invalid_player_response(self, pr, video_id):
+        # YouTube may return a different video player response than expected.
+        # See: https://github.com/TeamNewPipe/NewPipe/issues/8713
+        if (pr_id := traverse_obj(pr, ('videoDetails', 'videoId'))) != video_id:
+            return pr_id
+
     def _extract_player_responses(self, clients, video_id, webpage, master_ytcfg, smuggled_data):
         initial_pr = None
         if webpage:
             initial_pr = self._search_json(
                 self._YT_INITIAL_PLAYER_RESPONSE_RE, webpage, 'initial player response', video_id, fatal=False)
 
+        prs = []
+        if initial_pr and not self._invalid_player_response(initial_pr, video_id):
+            # Android player_response does not have microFormats which are needed for
+            # extraction of some data. So we return the initial_pr with formats
+            # stripped out even if not requested by the user
+            # See: https://github.com/yt-dlp/yt-dlp/issues/501
+            prs.append({**initial_pr, 'streamingData': None})
+
         all_clients = set(clients)
         clients = clients[::-1]
-        prs = []
 
         def append_client(*client_names):
             """ Append the first client name that exists but not already used """
@@ -3660,18 +3674,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         all_clients.add(actual_client)
                         return
 
-        # Android player_response does not have microFormats which are needed for
-        # extraction of some data. So we return the initial_pr with formats
-        # stripped out even if not requested by the user
-        # See: https://github.com/yt-dlp/yt-dlp/issues/501
-        if initial_pr:
-            pr = dict(initial_pr)
-            pr['streamingData'] = None
-            prs.append(pr)
-
-        last_error = None
         tried_iframe_fallback = False
         player_url = None
+        skipped_clients = {}
         while clients:
             client, base_client, variant = _split_innertube_client(clients.pop())
             player_ytcfg = master_ytcfg if client == 'web' else {}
@@ -3692,26 +3697,19 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 pr = initial_pr if client == 'web' and initial_pr else self._extract_player_response(
                     client, video_id, player_ytcfg or master_ytcfg, player_ytcfg, player_url if require_js_player else None, initial_pr, smuggled_data)
             except ExtractorError as e:
-                if last_error:
-                    self.report_warning(last_error)
-                last_error = e
+                self.report_warning(e)
                 continue
 
-            if pr:
-                # YouTube may return a different video player response than expected.
-                # See: https://github.com/TeamNewPipe/NewPipe/issues/8713
-                pr_video_id = traverse_obj(pr, ('videoDetails', 'videoId'))
-                if pr_video_id and pr_video_id != video_id:
-                    self.report_warning(
-                        f'Skipping player response from {client} client (got player response for video "{pr_video_id}" instead of "{video_id}")' + bug_reports_message())
-                else:
-                    # Save client name for introspection later
-                    name = short_client_name(client)
-                    sd = traverse_obj(pr, ('streamingData', {dict})) or {}
-                    sd[STREAMING_DATA_CLIENT_NAME] = name
-                    for f in traverse_obj(sd, (('formats', 'adaptiveFormats'), ..., {dict})):
-                        f[STREAMING_DATA_CLIENT_NAME] = name
-                    prs.append(pr)
+            if pr_id := self._invalid_player_response(pr, video_id):
+                skipped_clients[client] = pr_id
+            elif pr:
+                # Save client name for introspection later
+                name = short_client_name(client)
+                sd = traverse_obj(pr, ('streamingData', {dict})) or {}
+                sd[STREAMING_DATA_CLIENT_NAME] = name
+                for f in traverse_obj(sd, (('formats', 'adaptiveFormats'), ..., {dict})):
+                    f[STREAMING_DATA_CLIENT_NAME] = name
+                prs.append(pr)
 
             # creator clients can bypass AGE_VERIFICATION_REQUIRED if logged in
             if variant == 'embedded' and self._is_unplayable(pr) and self.is_authenticated:
@@ -3722,10 +3720,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 elif not variant:
                     append_client(f'tv_embedded.{base_client}', f'{base_client}_embedded')
 
-        if last_error:
-            if not len(prs):
-                raise last_error
-            self.report_warning(last_error)
+        if skipped_clients:
+            self.report_warning(
+                f'Skipping player responses from {"/".join(skipped_clients)} clients '
+                f'(got player responses for video "{"/".join(set(skipped_clients.values()))}" instead of "{video_id}")')
+            if not prs:
+                raise ExtractorError(
+                    'All player responses are invalid. Your IP is likely being blocked by Youtube', expected=True)
+        elif not prs:
+            raise ExtractorError('Failed to extract any player response')
         return prs, player_url
 
     def _needs_live_processing(self, live_status, duration):
@@ -3831,7 +3834,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                             video_id=video_id, only_once=True)
                     throttled = True
 
-            tbr = float_or_none(fmt.get('averageBitrate') or fmt.get('bitrate'), 1000)
+            tbr = float_or_none(fmt.get('averageBitrate') or fmt.get('bitrate'), 1024)
             language_preference = (
                 10 if audio_track.get('audioIsDefault') and 10
                 else -10 if 'descriptive' in (audio_track.get('displayName') or '').lower() and -10
@@ -4386,7 +4389,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         release_year = release_date[:4]
                 info.update({
                     'album': mobj.group('album'.strip()),
-                    'artist': mobj.group('clean_artist') or ', '.join(a.strip() for a in mobj.group('artist').split('·')),
+                    'artists': ([a] if (a := mobj.group('clean_artist'))
+                                else [a.strip() for a in mobj.group('artist').split('·')]),
                     'track': mobj.group('track').strip(),
                     'release_date': release_date,
                     'release_year': int_or_none(release_year),
@@ -4532,7 +4536,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     if mrr_title == 'Album':
                         info['album'] = mrr_contents_text
                     elif mrr_title == 'Artist':
-                        info['artist'] = mrr_contents_text
+                        info['artists'] = [mrr_contents_text] if mrr_contents_text else None
                     elif mrr_title == 'Song':
                         info['track'] = mrr_contents_text
             owner_badges = self._extract_badges(traverse_obj(vsir, ('owner', 'videoOwnerRenderer', 'badges')))
@@ -4566,7 +4570,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     if fmt.get('protocol') == 'm3u8_native':
                         fmt['__needs_testing'] = True
 
-        for s_k, d_k in [('artist', 'creator'), ('track', 'alt_title')]:
+        for s_k, d_k in [('artists', 'creators'), ('track', 'alt_title')]:
             v = info.get(s_k)
             if v:
                 info[d_k] = v
@@ -5084,7 +5088,8 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             'availability': self._extract_availability(data),
             'channel_follower_count': self._get_count(data, ('header', ..., 'subscriberCountText')),
             'description': try_get(metadata_renderer, lambda x: x.get('description', '')),
-            'tags': try_get(metadata_renderer or {}, lambda x: x.get('keywords', '').split()),
+            'tags': (traverse_obj(data, ('microformat', 'microformatDataRenderer', 'tags', ..., {str}))
+                     or traverse_obj(metadata_renderer, ('keywords', {lambda x: x and shlex.split(x)}, ...))),
             'thumbnails': (primary_thumbnails or playlist_thumbnails) + avatar_thumbnails + channel_banners,
         })
 
@@ -5417,14 +5422,14 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'playlist_mincount': 94,
         'info_dict': {
             'id': 'UCqj7Cz7revf5maW9g5pgNcg',
-            'title': 'Igor Kleiner - Playlists',
-            'description': 'md5:be97ee0f14ee314f1f002cf187166ee2',
-            'uploader': 'Igor Kleiner',
+            'title': 'Igor Kleiner Ph.D. - Playlists',
+            'description': 'md5:15d7dd9e333cb987907fcb0d604b233a',
+            'uploader': 'Igor Kleiner Ph.D.',
             'uploader_id': '@IgorDataScience',
             'uploader_url': 'https://www.youtube.com/@IgorDataScience',
-            'channel': 'Igor Kleiner',
+            'channel': 'Igor Kleiner Ph.D.',
             'channel_id': 'UCqj7Cz7revf5maW9g5pgNcg',
-            'tags': ['"критическое', 'мышление"', '"наука', 'просто"', 'математика', '"анализ', 'данных"'],
+            'tags': ['критическое мышление', 'наука просто', 'математика', 'анализ данных'],
             'channel_url': 'https://www.youtube.com/channel/UCqj7Cz7revf5maW9g5pgNcg',
             'channel_follower_count': int
         },
@@ -5434,14 +5439,14 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'playlist_mincount': 94,
         'info_dict': {
             'id': 'UCqj7Cz7revf5maW9g5pgNcg',
-            'title': 'Igor Kleiner - Playlists',
-            'description': 'md5:be97ee0f14ee314f1f002cf187166ee2',
-            'uploader': 'Igor Kleiner',
+            'title': 'Igor Kleiner Ph.D. - Playlists',
+            'description': 'md5:15d7dd9e333cb987907fcb0d604b233a',
+            'uploader': 'Igor Kleiner Ph.D.',
             'uploader_id': '@IgorDataScience',
             'uploader_url': 'https://www.youtube.com/@IgorDataScience',
-            'tags': ['"критическое', 'мышление"', '"наука', 'просто"', 'математика', '"анализ', 'данных"'],
+            'tags': ['критическое мышление', 'наука просто', 'математика', 'анализ данных'],
             'channel_id': 'UCqj7Cz7revf5maW9g5pgNcg',
-            'channel': 'Igor Kleiner',
+            'channel': 'Igor Kleiner Ph.D.',
             'channel_url': 'https://www.youtube.com/channel/UCqj7Cz7revf5maW9g5pgNcg',
             'channel_follower_count': int
         },
@@ -5452,7 +5457,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'info_dict': {
             'id': 'UCYO_jab_esuFRV4b17AJtAw',
             'title': '3Blue1Brown - Playlists',
-            'description': 'md5:e1384e8a133307dd10edee76e875d62f',
+            'description': 'md5:4d1da95432004b7ba840ebc895b6b4c9',
             'channel_url': 'https://www.youtube.com/channel/UCYO_jab_esuFRV4b17AJtAw',
             'channel': '3Blue1Brown',
             'channel_id': 'UCYO_jab_esuFRV4b17AJtAw',
@@ -5476,7 +5481,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'uploader_id': '@ThirstForScience',
             'channel_id': 'UCAEtajcuhQ6an9WEzY9LEMQ',
             'channel_url': 'https://www.youtube.com/channel/UCAEtajcuhQ6an9WEzY9LEMQ',
-            'tags': 'count:13',
+            'tags': 'count:12',
             'channel': 'ThirstForScience',
             'channel_follower_count': int
         }
@@ -5511,10 +5516,10 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'tags': [],
             'channel': 'Sergey M.',
             'description': '',
-            'modified_date': '20160902',
+            'modified_date': '20230921',
             'channel_id': 'UCmlqkdCBesrv2Lak1mF_MxA',
             'channel_url': 'https://www.youtube.com/channel/UCmlqkdCBesrv2Lak1mF_MxA',
-            'availability': 'public',
+            'availability': 'unlisted',
             'uploader_url': 'https://www.youtube.com/@sergeym.6173',
             'uploader_id': '@sergeym.6173',
             'uploader': 'Sergey M.',
@@ -5629,7 +5634,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'info_dict': {
             'id': 'UCYO_jab_esuFRV4b17AJtAw',
             'title': '3Blue1Brown - Search - linear algebra',
-            'description': 'md5:e1384e8a133307dd10edee76e875d62f',
+            'description': 'md5:4d1da95432004b7ba840ebc895b6b4c9',
             'channel_url': 'https://www.youtube.com/channel/UCYO_jab_esuFRV4b17AJtAw',
             'tags': ['Mathematics'],
             'channel': '3Blue1Brown',
@@ -5898,7 +5903,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'url': 'https://www.youtube.com/hashtag/cctv9',
         'info_dict': {
             'id': 'cctv9',
-            'title': '#cctv9',
+            'title': 'cctv9 - All',
             'tags': [],
         },
         'playlist_mincount': 300,  # not consistent but should be over 300
@@ -6176,12 +6181,13 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'channel_follower_count': int,
             'channel_id': 'UCK9V2B22uJYu3N7eR_BT9QA',
             'channel_url': 'https://www.youtube.com/channel/UCK9V2B22uJYu3N7eR_BT9QA',
-            'description': 'md5:e56b74b5bb7e9c701522162e9abfb822',
+            'description': 'md5:49809d8bf9da539bc48ed5d1f83c33f2',
             'channel': 'Polka Ch. 尾丸ポルカ',
             'tags': 'count:35',
             'uploader_url': 'https://www.youtube.com/@OmaruPolka',
             'uploader': 'Polka Ch. 尾丸ポルカ',
             'uploader_id': '@OmaruPolka',
+            'channel_is_verified': True,
         },
         'playlist_count': 3,
     }, {
@@ -6191,15 +6197,16 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'info_dict': {
             'id': 'UC0intLFzLaudFG-xAvUEO-A',
             'title': 'Not Just Bikes - Shorts',
-            'tags': 'count:12',
+            'tags': 'count:10',
             'channel_url': 'https://www.youtube.com/channel/UC0intLFzLaudFG-xAvUEO-A',
-            'description': 'md5:26bc55af26855a608a5cf89dfa595c8d',
+            'description': 'md5:5e82545b3a041345927a92d0585df247',
             'channel_follower_count': int,
             'channel_id': 'UC0intLFzLaudFG-xAvUEO-A',
             'channel': 'Not Just Bikes',
             'uploader_url': 'https://www.youtube.com/@NotJustBikes',
             'uploader': 'Not Just Bikes',
             'uploader_id': '@NotJustBikes',
+            'channel_is_verified': True,
         },
         'playlist_mincount': 10,
     }, {
@@ -6359,15 +6366,14 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
     }, {
         'url': 'https://www.youtube.com/@3blue1brown/about',
         'info_dict': {
-            'id': 'UCYO_jab_esuFRV4b17AJtAw',
+            'id': '@3blue1brown',
             'tags': ['Mathematics'],
-            'title': '3Blue1Brown - About',
+            'title': '3Blue1Brown',
             'channel_follower_count': int,
             'channel_id': 'UCYO_jab_esuFRV4b17AJtAw',
             'channel': '3Blue1Brown',
-            'view_count': int,
             'channel_url': 'https://www.youtube.com/channel/UCYO_jab_esuFRV4b17AJtAw',
-            'description': 'md5:e1384e8a133307dd10edee76e875d62f',
+            'description': 'md5:4d1da95432004b7ba840ebc895b6b4c9',
             'uploader_url': 'https://www.youtube.com/@3blue1brown',
             'uploader_id': '@3blue1brown',
             'uploader': '3Blue1Brown',
@@ -6390,7 +6396,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'channel': '99 Percent Invisible',
             'uploader_id': '@99percentinvisiblepodcast',
         },
-        'playlist_count': 1,
+        'playlist_count': 0,
     }, {
         # Releases tab, with rich entry playlistRenderers (same as Podcasts tab)
         'url': 'https://www.youtube.com/@AHimitsu/releases',
@@ -6402,7 +6408,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'uploader_id': '@AHimitsu',
             'uploader': 'A Himitsu',
             'channel_id': 'UCgFwu-j5-xNJml2FtTrrB3A',
-            'tags': 'count:16',
+            'tags': 'count:12',
             'description': 'I make music',
             'channel_url': 'https://www.youtube.com/channel/UCgFwu-j5-xNJml2FtTrrB3A',
             'channel_follower_count': int,
@@ -6426,11 +6432,32 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'uploader': 'Bangy Shorts',
             'tags': [],
             'availability': 'public',
-            'modified_date': '20230626',
+            'modified_date': r're:\d{8}',
             'title': 'Uploads from Bangy Shorts',
         },
         'playlist_mincount': 100,
         'expected_warnings': [r'[Uu]navailable videos (are|will be) hidden'],
+    }, {
+        'note': 'Tags containing spaces',
+        'url': 'https://www.youtube.com/channel/UC7_YxT-KID8kRbqZo7MyscQ',
+        'playlist_count': 3,
+        'info_dict': {
+            'id': 'UC7_YxT-KID8kRbqZo7MyscQ',
+            'channel': 'Markiplier',
+            'channel_id': 'UC7_YxT-KID8kRbqZo7MyscQ',
+            'title': 'Markiplier',
+            'channel_follower_count': int,
+            'description': 'md5:0c010910558658824402809750dc5d97',
+            'uploader_id': '@markiplier',
+            'uploader_url': 'https://www.youtube.com/@markiplier',
+            'uploader': 'Markiplier',
+            'channel_url': 'https://www.youtube.com/channel/UC7_YxT-KID8kRbqZo7MyscQ',
+            'channel_is_verified': True,
+            'tags': ['markiplier', 'comedy', 'gaming', 'funny videos', 'funny moments',
+                     'sketch comedy', 'laughing', 'lets play', 'challenge videos', 'hilarious',
+                     'challenges', 'sketches', 'scary games', 'funny games', 'rage games',
+                     'mark fischbach'],
+        },
     }]
 
     @classmethod
@@ -6938,13 +6965,21 @@ class YoutubeSearchIE(YoutubeTabBaseInfoExtractor, SearchInfoExtractor):
     IE_DESC = 'YouTube search'
     IE_NAME = 'youtube:search'
     _SEARCH_KEY = 'ytsearch'
-    _SEARCH_PARAMS = 'EgIQAQ%3D%3D'  # Videos only
+    _SEARCH_PARAMS = 'EgIQAfABAQ=='  # Videos only
     _TESTS = [{
         'url': 'ytsearch5:youtube-dl test video',
         'playlist_count': 5,
         'info_dict': {
             'id': 'youtube-dl test video',
             'title': 'youtube-dl test video',
+        }
+    }, {
+        'note': 'Suicide/self-harm search warning',
+        'url': 'ytsearch1:i hate myself and i wanna die',
+        'playlist_count': 1,
+        'info_dict': {
+            'id': 'i hate myself and i wanna die',
+            'title': 'i hate myself and i wanna die',
         }
     }]
 
@@ -6953,7 +6988,7 @@ class YoutubeSearchDateIE(YoutubeTabBaseInfoExtractor, SearchInfoExtractor):
     IE_NAME = YoutubeSearchIE.IE_NAME + ':date'
     _SEARCH_KEY = 'ytsearchdate'
     IE_DESC = 'YouTube search, newest videos first'
-    _SEARCH_PARAMS = 'CAISAhAB'  # Videos only, sorted by date
+    _SEARCH_PARAMS = 'CAISAhAB8AEB'  # Videos only, sorted by date
     _TESTS = [{
         'url': 'ytsearchdate5:youtube-dl test video',
         'playlist_count': 5,

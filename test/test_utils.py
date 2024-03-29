@@ -2386,7 +2386,7 @@ Line 1
         self.assertEqual(traverse_obj(etree, '//year/text()'), ['2008', '2011', '2011'],
                          msg='`text()` at end of path should give the inner text')
         self.assertEqual(traverse_obj(etree, '//*[@direction]/@direction'), ['E', 'W', 'N', 'W', 'E'],
-                         msg='full python xpath features should be supported')
+                         msg='full Python xpath features should be supported')
         self.assertEqual(traverse_obj(etree, (0, '@name')), 'Liechtenstein',
                          msg='special transformations should act on current element')
         self.assertEqual(traverse_obj(etree, ('country', 0, ..., 'text()', {int_or_none})), [1, 2008, 141100],

@@ -142,10 +142,10 @@ class ArteTVIE(ArteTVBaseIE):
     def _fix_accessible_subs_locale(subs):
         updated_subs = {}
         for lang, sub_formats in subs.items():
-            for format in sub_formats:
-                if format.get('url', '').endswith('-MAL.m3u8'):
+            for fmt in sub_formats:
+                if fmt.get('url', '').endswith('-MAL.m3u8'):
                     lang += '-acc'
-                updated_subs.setdefault(lang, []).append(format)
+                updated_subs.setdefault(lang, []).append(fmt)
         return updated_subs
 
     def _real_extract(self, url):
