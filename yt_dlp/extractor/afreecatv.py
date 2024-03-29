@@ -15,7 +15,6 @@ from ..utils import (
     update_url_query,
     url_or_none,
     urlencode_postdata,
-    xpath_text,
 )
 
 
@@ -200,7 +199,7 @@ class AfreecaTVIE(InfoExtractor):
             if adult_view:
                 query['adultView'] = 'ADULT_VIEW'
 
-            flag = data['flag'] 
+            flag = data['flag']
             if flag and flag == 'SUCCEED':
                 break
             if flag == 'PARTIAL_ADULT':
@@ -222,17 +221,17 @@ class AfreecaTVIE(InfoExtractor):
         else:
             raise ExtractorError('Unable to download video info')
 
-        video_element = data['files'][-1] 
+        video_element = data['files'][-1]
         if video_element is None:
             raise ExtractorError(
                 'Video %s does not exist' % video_id, expected=True)
 
-        video_url = str(video_element).strip() 
+        video_url = str(video_element).strip()
 
         title = data['title']
 
         uploader = data['writer_nick']
-        uploader_id = data['bj_id'] 
+        uploader_id = data['bj_id']
         duration = data['total_file_duration']
         thumbnail = data['thumb']
 
@@ -251,7 +250,7 @@ class AfreecaTVIE(InfoExtractor):
 
         if video_url:
             entries = []
-            file_elements = data['files'] 
+            file_elements = data['files']
             one = len(file_elements) == 1
             for file_num, file_element in enumerate(file_elements, start=1):
                 file_url = url_or_none(file_element['file'])
