@@ -430,7 +430,7 @@ class DagelijkseKostIE(VRTBaseIE):
 
 
 class Radio1BeIE(VRTBaseIE):
-    _VALID_URL = r'https?://radio1\.be/\w+(/[\w-]+/[\w-]+)?/(?P<display_id>[\w-]+)'
+    _VALID_URL = r'https?://radio1\.be/(?:lees|luister/select)/(?P<display_id>[\w/-]+)'
     _TESTS = [{
         'url': 'https://radio1.be/luister/select/de-ochtend/komt-n-va-volgend-jaar-op-in-wallonie',
         'info_dict': {
