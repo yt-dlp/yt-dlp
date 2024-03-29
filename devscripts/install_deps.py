@@ -20,22 +20,22 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Install dependencies for yt-dlp')
     parser.add_argument(
         'input', nargs='?', metavar='TOMLFILE', default=Path(__file__).parent.parent / 'pyproject.toml',
-        help='Input file (default: %(default)s)')
+        help='input file (default: %(default)s)')
     parser.add_argument(
         '-e', '--exclude', metavar='DEPENDENCY', action='append',
-        help='Exclude a dependency')
+        help='exclude a dependency')
     parser.add_argument(
         '-i', '--include', metavar='GROUP', action='append',
-        help='Include an optional dependency group')
+        help='include an optional dependency group')
     parser.add_argument(
         '-o', '--only-optional', action='store_true',
-        help='Only install optional dependencies')
+        help='only install optional dependencies')
     parser.add_argument(
         '-p', '--print', action='store_true',
-        help='Only print requirements to stdout')
+        help='only print requirements to stdout')
     parser.add_argument(
         '-u', '--user', action='store_true',
-        help='Install with pip as --user')
+        help='install with pip as --user')
     return parser.parse_args()
 
 
