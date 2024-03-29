@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..utils import UserNotLive
+from ..utils import UserNotLive, url_or_none
 from ..utils.traversal import traverse_obj
 
 
@@ -90,9 +90,9 @@ class MixchArchiveIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'title': traverse_obj(info_json, ('archive', 'title')),
+            'title': traverse_obj(info_json, ('archive', 'title', {str})),
             'formats': self._extract_m3u8_formats(
                 traverse_obj(info_json, ('archive', 'archiveURL')), video_id),
             'live_status': 'not_live',
-            'thumbnail': traverse_obj(info_json, ('archive', 'thumbnailURL')),
+            'thumbnail': traverse_obj(info_json, ('archive', 'thumbnailURL', {url_or_none})),
         }
