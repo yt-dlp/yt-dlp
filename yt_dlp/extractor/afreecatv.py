@@ -199,15 +199,8 @@ class AfreecaTVIE(InfoExtractor):
                 query['partialView'] = 'SKIP_ADULT'
             if adult_view:
                 query['adultView'] = 'ADULT_VIEW'
-            video_xml = self._download_xml(
-                'http://afbbs.afreecatv.com:8080/api/video/get_video_info.php',
-                video_id, 'Downloading video info XML%s'
-                % (' (skipping adult)' if partial_view else ''),
-                video_id, headers={
-                    'Referer': url,
-                }, query=query)
 
-            flag = xpath_text(video_xml, './track/flag', 'flag', default=None)
+            flag = data['flag'] 
             if flag and flag == 'SUCCEED':
                 break
             if flag == 'PARTIAL_ADULT':
@@ -229,20 +222,19 @@ class AfreecaTVIE(InfoExtractor):
         else:
             raise ExtractorError('Unable to download video info')
 
-        video_element = video_xml.findall('./track/video')[-1]
-        if video_element is None or video_element.text is None:
+        video_element = data['files'][-1] 
+        if video_element is None:
             raise ExtractorError(
                 'Video %s does not exist' % video_id, expected=True)
 
-        video_url = video_element.text.strip()
+        video_url = str(video_element).strip() 
 
-        title = xpath_text(video_xml, './track/title', 'title', fatal=True)
+        title = data['title']
 
-        uploader = xpath_text(video_xml, './track/nickname', 'uploader')
-        uploader_id = xpath_text(video_xml, './track/bj_id', 'uploader id')
-        duration = int_or_none(xpath_text(
-            video_xml, './track/duration', 'duration'))
-        thumbnail = xpath_text(video_xml, './track/titleImage', 'thumbnail')
+        uploader = data['writer_nick']
+        uploader_id = data['bj_id'] 
+        duration = data['total_file_duration']
+        thumbnail = data['thumb']
 
         common_entry = {
             'uploader': uploader,
@@ -257,15 +249,15 @@ class AfreecaTVIE(InfoExtractor):
             'duration': duration,
         })
 
-        if not video_url:
+        if video_url:
             entries = []
-            file_elements = video_element.findall('./file')
+            file_elements = data['files'] 
             one = len(file_elements) == 1
             for file_num, file_element in enumerate(file_elements, start=1):
-                file_url = url_or_none(file_element.text)
+                file_url = url_or_none(file_element['file'])
                 if not file_url:
                     continue
-                key = file_element.get('key', '')
+                key = file_element['file_info_key']
                 upload_date = unified_strdate(self._search_regex(
                     r'^(\d{8})_', key, 'upload date', default=None))
                 if upload_date is not None:
@@ -275,7 +267,7 @@ class AfreecaTVIE(InfoExtractor):
                     parsed_date = date_from_str(upload_date)
                     if parsed_date.year < 2000 or parsed_date.year >= 2100:
                         upload_date = None
-                file_duration = int_or_none(file_element.get('duration'))
+                file_duration = int_or_none(file_element['duration'])
                 format_id = key if key else '%s_%s' % (video_id, file_num)
                 if determine_ext(file_url) == 'm3u8':
                     formats = self._extract_m3u8_formats(
