@@ -491,7 +491,7 @@ class FFmpegFD(ExternalFD):
         if not self.params.get('verbose'):
             args += ['-hide_banner']
 
-        args += traverse_obj(info_dict, ('downloader_options', 'ffmpeg_args'), default=[])
+        args += traverse_obj(info_dict, ('downloader_options', 'ffmpeg_args', ...))
 
         # These exists only for compatibility. Extractors should use
         # info_dict['downloader_options']['ffmpeg_args'] instead
