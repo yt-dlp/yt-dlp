@@ -246,7 +246,8 @@ class InfoExtractor:
                     * downloader_options  A dictionary of downloader options
                                  (For internal use only)
                                  * http_chunk_size Chunk size for HTTP downloads
-                                 * ffmpeg_args     Extra arguments for ffmpeg downloader
+                                 * ffmpeg_args     Extra arguments for ffmpeg downloader (input)
+                                 * ffmpeg_args_out Extra arguments for ffmpeg downloader (output)
                     * is_dash_periods  Whether the format is a result of merging
                                  multiple DASH periods.
                     RTMP formats can also have the additional fields: page_url,
