@@ -2420,10 +2420,10 @@ class InfoExtractor:
                     # contains EXT-X-STREAM-INF tag which references AUDIO
                     # rendition group but does not have CODECS and despite
                     # referencing an audio group it represents a complete
-                    # (with audio and video) format. So, for such cases we will
-                    # ignore references to rendition groups and treat them
-                    # as complete formats.
-                    if audio_group_id and codecs and f.get('vcodec') != 'none':
+                    # (with audio and video) format. But we can't know that
+                    # at this point so assume it's video only.
+                    # It can be resolved at later stage.
+                    if audio_group_id and f.get('vcodec') != 'none':
                         # Save this to determine quality of audio formats that only have a GROUP-ID
                         f['_audio_group_id'] = audio_group_id
                         audio_group = groups.get(audio_group_id)
