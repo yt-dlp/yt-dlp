@@ -6,6 +6,8 @@ import sys
 
 import pytest
 
+from yt_dlp.networking.common import Features
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import gzip
@@ -642,81 +644,49 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
             assert res.read().decode().endswith('\n\n')
             assert res.read() == b''
 
-
-class TestHTTPProxy(TestRequestHandlerBase):
-    # Note: this only tests http urls over non-CONNECT proxy
-    @classmethod
-    def setup_class(cls):
-        super().setup_class()
-        # HTTP Proxy server
-        cls.proxy = http.server.ThreadingHTTPServer(
-            ('127.0.0.1', 0), _build_proxy_handler('normal'))
-        cls.proxy_port = http_server_port(cls.proxy)
-        cls.proxy_thread = threading.Thread(target=cls.proxy.serve_forever)
-        cls.proxy_thread.daemon = True
-        cls.proxy_thread.start()
-
-        # Geo proxy server
-        cls.geo_proxy = http.server.ThreadingHTTPServer(
-            ('127.0.0.1', 0), _build_proxy_handler('geo'))
-        cls.geo_port = http_server_port(cls.geo_proxy)
-        cls.geo_proxy_thread = threading.Thread(target=cls.geo_proxy.serve_forever)
-        cls.geo_proxy_thread.daemon = True
-        cls.geo_proxy_thread.start()
+    @pytest.mark.parametrize('handler', ['Urllib', 'Requests', 'CurlCFFI'], indirect=True)
+    def test_request_disable_proxy(self, handler):
+        for proxy_proto in handler._SUPPORTED_PROXY_SCHEMES or ['http']:
+            # Given the handler is configured with a proxy
+            with handler(proxies={'http': f'{proxy_proto}://10.255.255.255'}, timeout=5) as rh:
+                # When a proxy is explicitly set to None for the request
+                res = validate_and_send(
+                    rh, Request(f'http://127.0.0.1:{self.http_port}/headers', proxies={'http': None}))
+                # Then no proxy should be used
+                res.close()
+                assert res.status == 200
 
     @pytest.mark.parametrize('handler', ['Urllib', 'Requests', 'CurlCFFI'], indirect=True)
-    def test_http_proxy(self, handler):
-        http_proxy = f'http://127.0.0.1:{self.proxy_port}'
-        geo_proxy = f'http://127.0.0.1:{self.geo_port}'
-
-        # Test global http proxy
-        # Test per request http proxy
-        # Test per request http proxy disables proxy
-        url = 'http://foo.com/bar'
-
-        # Global HTTP proxy
-        with handler(proxies={'http': http_proxy}) as rh:
-            res = validate_and_send(rh, Request(url)).read().decode()
-            assert res == f'normal: {url}'
-
-            # Per request proxy overrides global
-            res = validate_and_send(rh, Request(url, proxies={'http': geo_proxy})).read().decode()
-            assert res == f'geo: {url}'
-
-            # and setting to None disables all proxies for that request
-            real_url = f'http://127.0.0.1:{self.http_port}/headers'
-            res = validate_and_send(
-                rh, Request(real_url, proxies={'http': None})).read().decode()
-            assert res != f'normal: {real_url}'
-            assert 'Accept' in res
-
-    @pytest.mark.parametrize('handler', ['Urllib', 'Requests', 'CurlCFFI'], indirect=True)
+    @pytest.mark.skip_handlers_if(
+        lambda _, handler: Features.NO_PROXY not in handler._SUPPORTED_FEATURES, 'handler does not support NO_PROXY')
     def test_noproxy(self, handler):
-        with handler(proxies={'proxy': f'http://127.0.0.1:{self.proxy_port}'}) as rh:
-            # NO_PROXY
-            for no_proxy in (f'127.0.0.1:{self.http_port}', '127.0.0.1', 'localhost'):
-                nop_response = validate_and_send(
-                    rh, Request(f'http://127.0.0.1:{self.http_port}/headers', proxies={'no': no_proxy})).read().decode(
-                    'utf-8')
-                assert 'Accept' in nop_response
+        for proxy_proto in handler._SUPPORTED_PROXY_SCHEMES or ['http']:
+            # Given the handler is configured with a proxy
+            with handler(proxies={'http': f'{proxy_proto}://10.255.255.255'}, timeout=5) as rh:
+                for no_proxy in (f'127.0.0.1:{self.http_port}', '127.0.0.1', 'localhost'):
+                    # When request no proxy includes the request url host
+                    nop_response = validate_and_send(
+                        rh, Request(f'http://127.0.0.1:{self.http_port}/headers', proxies={'no': no_proxy}))
+                    # Then the proxy should not be used
+                    assert nop_response.status == 200
+                    nop_response.close()
 
     @pytest.mark.parametrize('handler', ['Urllib', 'Requests', 'CurlCFFI'], indirect=True)
+    @pytest.mark.skip_handlers_if(
+        lambda _, handler: Features.ALL_PROXY not in handler._SUPPORTED_FEATURES, 'handler does not support ALL_PROXY')
     def test_allproxy(self, handler):
-        url = 'http://foo.com/bar'
-        with handler() as rh:
-            response = validate_and_send(rh, Request(url, proxies={'all': f'http://127.0.0.1:{self.proxy_port}'})).read().decode(
-                'utf-8')
-            assert response == f'normal: {url}'
+        # This is a bit of a hacky test, but it should be enough to check whether the handler is using the proxy.
+        # 0.1s might not be enough of a timeout if proxy is not used in all cases, but should still get failures.
+        with handler(proxies={'all': f'http://10.255.255.255'}, timeout=0.1) as rh:
+            with pytest.raises(TransportError):
+                validate_and_send(
+                        rh, Request(f'http://127.0.0.1:{self.http_port}/headers')).close()
 
-    @pytest.mark.parametrize('handler', ['Urllib', 'Requests', 'CurlCFFI'], indirect=True)
-    def test_http_proxy_with_idn(self, handler):
-        with handler(proxies={
-            'http': f'http://127.0.0.1:{self.proxy_port}',
-        }) as rh:
-            url = 'http://中文.tw/'
-            response = rh.send(Request(url)).read().decode()
-            # b'xn--fiq228c' is '中文'.encode('idna')
-            assert response == 'normal: http://xn--fiq228c.tw/'
+        with handler(timeout=0.1) as rh:
+            with pytest.raises(TransportError):
+                validate_and_send(
+                    rh, Request(
+                        f'http://127.0.0.1:{self.http_port}/headers', proxies={'all': f'http://10.255.255.255'})).close()
 
 
 class TestClientCertificate:

@@ -7,6 +7,7 @@ import sys
 import pytest
 
 from test.helper import verify_address_availability
+from yt_dlp.networking.common import Features
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -302,6 +303,31 @@ class TestWebsSocketRequestHandlerConformance:
             client_cert=client_cert
         ) as rh:
             ws_validate_and_send(rh, Request(self.mtls_wss_base_url)).close()
+
+    @pytest.mark.parametrize('handler', ['Websockets'], indirect=True)
+    def test_request_disable_proxy(self, handler):
+        for proxy_proto in handler._SUPPORTED_PROXY_SCHEMES or ['ws']:
+            # Given handler is configured with a proxy
+            with handler(proxies={'ws': f'{proxy_proto}://10.255.255.255'}, timeout=5) as rh:
+                # When a proxy is explicitly set to None for the request
+                ws = ws_validate_and_send(rh, Request(self.ws_base_url, proxies={'http': None}))
+                # Then no proxy should be used
+                assert ws.status == 101
+                ws.close()
+
+    @pytest.mark.parametrize('handler', ['Websockets'], indirect=True)
+    @pytest.mark.skip_handlers_if(
+        lambda _, handler: Features.NO_PROXY not in handler._SUPPORTED_FEATURES, 'handler does not support NO_PROXY')
+    def test_noproxy(self, handler):
+        for proxy_proto in handler._SUPPORTED_PROXY_SCHEMES or ['ws']:
+            # Given the handler is configured with a proxy
+            with handler(proxies={'ws': f'{proxy_proto}://10.255.255.255'}, timeout=5) as rh:
+                for no_proxy in (f'127.0.0.1:{self.ws_port}', '127.0.0.1', 'localhost'):
+                    # When request no proxy includes the request url host
+                    ws = ws_validate_and_send(rh, Request(self.ws_base_url, proxies={'no': no_proxy}))
+                    # Then the proxy should not be used
+                    assert ws.status == 101
+                    ws.close()
 
 
 def create_fake_ws_connection(raised):
