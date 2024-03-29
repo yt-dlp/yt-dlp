@@ -480,21 +480,14 @@ class Radio1BeIE(VRTBaseIE):
         next_js_data = self._search_nextjs_data(webpage, display_id)['props']['pageProps']['item']
 
         entries = self._extract_video_entries(next_js_data, display_id)
-        playlist_info = merge_dicts(
-            traverse_obj(next_js_data, ({
-                'id': 'id',
-                'title': 'title',
-                'description': (('description', 'content'), {clean_html}),
-            }), get_all=False),
-            {
-                'title': self._html_search_meta(['name', 'og:title', 'twitter:title'], webpage),
-                'description': self._html_search_meta(['description', 'og:description', 'twitter:description'], webpage),
-                'thumbnail': self._html_search_meta(['og:image', 'twitter:image'], webpage)
-            }
-        )
         return self.playlist_result(
-            entries, playlist_id=playlist_info['id'], display_id=display_id, **traverse_obj(playlist_info, {
-                'thumbnail': 'thumbnail',
-                'playlist_description': 'description',
-                'playlist_title': 'title'
-            }))
+            entries, **merge_dicts(traverse_obj(
+                next_js_data, ({
+                    'id': ('id', {str}),
+                    'title': ('title', {str}),
+                    'description': (('description', 'content'), {clean_html}),
+                }), get_all=False), {
+                    'display_id': display_id,
+                    'title': self._html_search_meta(['name', 'og:title', 'twitter:title'], webpage),
+                    'description': self._html_search_meta(['description', 'og:description', 'twitter:description'], webpage),
+                    'thumbnail': self._html_search_meta(['og:image', 'twitter:image'], webpage)}))
