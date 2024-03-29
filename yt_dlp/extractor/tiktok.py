@@ -1,4 +1,3 @@
-import functools
 import itertools
 import json
 import random
@@ -32,41 +31,64 @@ from ..utils import (
 
 
 class TikTokBaseIE(InfoExtractor):
-    _APP_INSTALL_IDS = [
-        '7351144126450059040',
-        '7351149742343391009',
-        '7351153174894626592',
-    ]
-    _WORKING_APP_IID = None
-    _AID = 0  # aweme = 1128, trill = 1180, musical_ly = 1233, universal = 0
     _UPLOADER_URL_FORMAT = 'https://www.tiktok.com/@%s'
     _WEBPAGE_HOST = 'https://www.tiktok.com/'
     QUALITIES = ('360p', '540p', '720p', '1080p')
 
-    @property
-    def _APP_NAME(self):
-        return self._configuration_arg('app_name', ['musical_ly'], ie_key=TikTokIE)[0]
-
-    @property
-    def _APP_VERSION(self):
-        return self._configuration_arg('app_version', ['34.1.2'], ie_key=TikTokIE)[0]
-
-    @property
-    def _MANIFEST_APP_VERSION(self):
-        return self._configuration_arg('manifest_app_version', ['2023401020'], ie_key=TikTokIE)[0]
-
-    @functools.cached_property
-    def _APP_USER_AGENT(self):
-        if self._APP_NAME == 'musical_ly':
-            package = 'com.zhiliaoapp.musically'
-        else:  # trill, aweme
-            package = f'com.ss.android.ugc.{self._APP_NAME}'
-        return f'{package}/{self._MANIFEST_APP_VERSION} (Linux; U; Android 13; en_US; Pixel 7; Build/TD1A.220804.031; Cronet/58.0.2991.0)'
+    _APP_INFO_DEFAULTS = {
+        # unique "install id"
+        'iid': None,
+        # TikTok (KR/PH/TW/TH/VN) = trill, TikTok (rest of world) = musical_ly, Douyin = aweme
+        'app_name': 'musical_ly',
+        'app_version': '34.1.2',
+        'manifest_app_version': '2023401020',
+        # "app id": aweme = 1128, trill = 1180, musical_ly = 1233, universal = 0
+        'aid': '0',
+    }
+    _KNOWN_APP_INFO = [
+        '7351144126450059040',
+        '7351149742343391009',
+        '7351153174894626592',
+    ]
+    _APP_INFO_POOL = None
+    _APP_INFO = None
+    _APP_USER_AGENT = None
 
     @property
     def _API_HOSTNAME(self):
         return self._configuration_arg(
             'api_hostname', ['api22-normal-c-useast2a.tiktokv.com'], ie_key=TikTokIE)[0]
+
+    def _get_next_app_info(self):
+        if self._APP_INFO_POOL is None:
+            defaults = {
+                key: self._configuration_arg(key, [default], ie_key=TikTokIE)[0]
+                for key, default in self._APP_INFO_DEFAULTS.items()
+                if key != 'iid'
+            }
+            app_info_list = (
+                self._configuration_arg('app_info', ie_key=TikTokIE)
+                or random.sample(self._KNOWN_APP_INFO, len(self._KNOWN_APP_INFO)))
+            self._APP_INFO_POOL = [
+                {**defaults, **dict(
+                    (k, v) for k, v in zip(self._APP_INFO_DEFAULTS, app_info.split('/')) if v
+                )} for app_info in app_info_list
+            ]
+
+        if not self._APP_INFO_POOL:
+            return False
+
+        self._APP_INFO = self._APP_INFO_POOL.pop(0)
+
+        app_name = self._APP_INFO['app_name']
+        version = self._APP_INFO['manifest_app_version']
+        if app_name == 'musical_ly':
+            package = f'com.zhiliaoapp.musically/{version}'
+        else:  # trill, aweme
+            package = f'com.ss.android.ugc.{app_name}/{version}'
+        self._APP_USER_AGENT = f'{package} (Linux; U; Android 13; en_US; Pixel 7; Build/TD1A.220804.031; Cronet/58.0.2991.0)'
+
+        return True
 
     @staticmethod
     def _create_url(user_id, video_id):
@@ -96,7 +118,7 @@ class TikTokBaseIE(InfoExtractor):
                 'Accept': 'application/json',
             }, query=query)
 
-    def _build_api_query(self, query, iid):
+    def _build_api_query(self, query):
         return {
             **query,
             'device_platform': 'android',
@@ -105,13 +127,13 @@ class TikTokBaseIE(InfoExtractor):
             '_rticket': int(time.time() * 1000),
             'cdid': str(uuid.uuid4()),
             'channel': 'googleplay',
-            'aid': self._AID,
-            'app_name': self._APP_NAME,
-            'version_code': ''.join((f'{int(v):02d}' for v in self._APP_VERSION.split('.'))),
-            'version_name': self._APP_VERSION,
-            'manifest_version_code': self._MANIFEST_APP_VERSION,
-            'update_version_code': self._MANIFEST_APP_VERSION,
-            'ab_version': self._APP_VERSION,
+            'aid': self._APP_INFO['aid'],
+            'app_name': self._APP_INFO['app_name'],
+            'version_code': ''.join((f'{int(v):02d}' for v in self._APP_INFO['app_version'].split('.'))),
+            'version_name': self._APP_INFO['app_version'],
+            'manifest_version_code': self._APP_INFO['manifest_app_version'],
+            'update_version_code': self._APP_INFO['manifest_app_version'],
+            'ab_version': self._APP_INFO['app_version'],
             'resolution': '1080*2400',
             'dpi': 420,
             'device_type': 'Pixel 7',
@@ -134,37 +156,34 @@ class TikTokBaseIE(InfoExtractor):
             'ac2': 'wifi5g',
             'uoo': '1',
             'op_region': 'US',
-            'build_number': self._APP_VERSION,
+            'build_number': self._APP_INFO['app_version'],
             'region': 'US',
             'ts': int(time.time()),
-            'iid': iid,
+            'iid': self._APP_INFO['iid'],
             'device_id': random.randint(7250000000000000000, 7351147085025500000),
             'openudid': ''.join(random.choices('0123456789abcdef', k=16)),
         }
 
     def _call_api(self, ep, query, video_id, fatal=True,
                   note='Downloading API JSON', errnote='Unable to download API page'):
-        if not self._WORKING_APP_IID:
-            if iid := self._configuration_arg('iid', [None], ie_key=TikTokIE)[0]:
-                self._WORKING_APP_IID = iid
-                self.write_debug(f'Imported app install id {iid!r} from extractor argument')
+        if not self._APP_INFO and not self._get_next_app_info():
+            message = 'No working app info is available'
+            if fatal:
+                raise ExtractorError(message, expected=True)
+            else:
+                self.report_warning(message)
+                return
 
-        if self._WORKING_APP_IID:
-            real_query = self._build_api_query(query, self._WORKING_APP_IID)
-            return self._call_api_impl(ep, real_query, video_id, fatal, note, errnote)
-
-        max_tries = len(self._APP_INSTALL_IDS)
-        for count, iid in enumerate(random.sample(self._APP_INSTALL_IDS, max_tries), start=1):
-            real_query = self._build_api_query(query, iid)
-            self.write_debug(f'iid={iid}')
+        max_tries = len(self._APP_INFO_POOL) + 1  # _APP_INFO_POOL + _APP_INFO
+        for count in itertools.count(1):
+            self.write_debug(str(self._APP_INFO))
+            real_query = self._build_api_query(query)
             try:
-                res = self._call_api_impl(ep, real_query, video_id, fatal, note, errnote)
-                self._WORKING_APP_IID = iid
-                return res
+                return self._call_api_impl(ep, real_query, video_id, fatal, note, errnote)
             except ExtractorError as e:
                 if isinstance(e.cause, json.JSONDecodeError) and e.cause.pos == 0:
                     message = str(e.cause or e.msg)
-                    if count == max_tries:
+                    if not self._get_next_app_info():
                         if fatal:
                             raise
                         else:
