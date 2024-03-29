@@ -206,6 +206,7 @@ class TwitchBaseIE(InfoExtractor):
             })
         for fmt in formats:
             if fmt.get('vcodec') and fmt['vcodec'].startswith('av01'):
+                # mpegts does not yet have proper support for av1
                 fmt['downloader_options'] = {'ffmpeg_args_out': ['-f', 'mp4']}
 
         return formats
