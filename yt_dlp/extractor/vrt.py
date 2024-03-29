@@ -455,8 +455,8 @@ class Radio1BeIE(VRTBaseIE):
 
     def _extract_video_entries(self, next_js_data, display_id):
         entries = []
-        video_data = variadic(traverse_obj(
-            next_js_data, {lambda x: x if x.get('mediaReference') else traverse_obj(x, ('paragraphs', ...))}))
+        video_data = traverse_obj(
+            next_js_data, ((None, ('paragraphs', ...)), {lambda x: x if x['mediaReference'] else None}))
         for data in video_data:
             media_reference = data.get('mediaReference')
             if media_reference is None:
