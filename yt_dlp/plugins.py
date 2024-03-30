@@ -136,6 +136,11 @@ def load_module(module, module_name, suffix):
 
 
 def load_plugins(name, suffix):
+    
+    
+    return {}
+    
+    
     classes = {}
 
     for finder, module_name, _ in iter_modules(name):
