@@ -1,5 +1,6 @@
 from .common import InfoExtractor
-from ..utils import UserNotLive, url_or_none
+from ..networking.exceptions import HTTPError
+from ..utils import ExtractorError, UserNotLive, url_or_none
 from ..utils.traversal import traverse_obj
 
 
@@ -83,10 +84,16 @@ class MixchArchiveIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        info_json, urlh = self._download_json_handle(
-            f'https://mixch.tv/api-web/archive/{video_id}', video_id, expected_status=401)
-        if urlh.status == 401:
-            self.raise_login_required()
+        try:
+            info_json = self._download_json(
+                f'https://mixch.tv/api-web/archive/{video_id}', video_id)
+        except ExtractorError as e:
+            if isinstance(e.cause, HTTPError):
+                if e.cause.status == 401:
+                    self.raise_login_required()
+                elif e.cause.status == 404:
+                    raise ExtractorError('This video may have been expired', expected=True) from e
+            raise
 
         return {
             'id': video_id,
