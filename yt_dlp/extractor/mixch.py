@@ -72,7 +72,6 @@ class MixchArchiveIE(InfoExtractor):
             'id': '1213',
             'ext': 'mp4',
             'title': '【特別トーク番組アーカイブス】Merm4id×燐舞曲 2nd LIVE「VERSUS」',
-            'live_status': 'not_live',
             'release_date': '20231201',
             'thumbnail': str,
         }
@@ -100,6 +99,5 @@ class MixchArchiveIE(InfoExtractor):
             'title': traverse_obj(info_json, ('archive', 'title', {str})),
             'formats': self._extract_m3u8_formats(
                 traverse_obj(info_json, ('archive', 'archiveURL')), video_id),
-            'live_status': 'not_live',
             'thumbnail': traverse_obj(info_json, ('archive', 'thumbnailURL', {url_or_none})),
         }
