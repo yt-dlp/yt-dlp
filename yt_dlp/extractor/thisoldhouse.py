@@ -1,5 +1,6 @@
 import json
 
+from .brightcove import BrightcoveNewIE
 from .common import InfoExtractor
 from .zype import ZypeIE
 from ..networking import HEADRequest
@@ -8,6 +9,7 @@ from ..utils import (
     ExtractorError,
     filter_dict,
     parse_qs,
+    smuggle_url,
     try_call,
     urlencode_postdata,
 )
@@ -98,7 +100,12 @@ class ThisOldHouseIE(InfoExtractor):
 
         video_url, video_id = self._search_regex(
             r'<iframe[^>]+src=[\'"]((?:https?:)?//(?:www\.)?thisoldhouse\.(?:chorus\.build|com)/videos/zype/([0-9a-f]{24})[^\'"]*)[\'"]',
-            webpage, 'video url', group=(1, 2))
-        video_url = self._request_webpage(HEADRequest(video_url), video_id, 'Resolving Zype URL').url
+            webpage, 'zype url', group=(1, 2), default=(None, None))
+        if video_url:
+            video_url = self._request_webpage(HEADRequest(video_url), video_id, 'Resolving Zype URL').url
+            return self.url_result(video_url, ZypeIE, video_id)
 
-        return self.url_result(video_url, ZypeIE, video_id)
+        video_url, video_id = self._search_regex(
+            r'<iframe[^>]+src=[\'"]((?:https?:)?//players\.brightcove\.net/\d+/\w+/index\.html\?videoId=(\d+))',
+            webpage, 'iframe url', group=(1, 2))
+        return self.url_result(smuggle_url(video_url, {'referrer': url}), BrightcoveNewIE, video_id)
