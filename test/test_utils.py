@@ -2401,13 +2401,13 @@ Line 1
         self.assertEqual(traverse_obj(_TEST_DATA, [('dict', 'None', 100), any]), 100,
                          msg='`any` should filter `None` and empty dict')
         self.assertEqual(traverse_obj(_TEST_DATA, [{
-                            'all': [('dict', 'None', 100, 1.2), all],
-                            'any': [('dict', 'None', 100, 1.2), any],
+                         'all': [('dict', 'None', 100, 1.2), all],
+                         'any': [('dict', 'None', 100, 1.2), any],
                          }]), {'all': [100, 1.2], 'any': 100},
                          msg='`all`/`any` should apply to each dict path separately')
         self.assertEqual(traverse_obj(_TEST_DATA, [{
-                            'all': [('dict', 'None', 100, 1.2), all],
-                            'any': [('dict', 'None', 100, 1.2), any],
+                         'all': [('dict', 'None', 100, 1.2), all],
+                         'any': [('dict', 'None', 100, 1.2), any],
                          }], get_all=False), {'all': [100, 1.2], 'any': 100},
                          msg='`all`/`any` should apply to dict regardless of `get_all`')
         self.assertEqual(traverse_obj(_TEST_DATA, [('dict', 'None', 100, 1.2), all, {float}]), None,
