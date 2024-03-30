@@ -105,7 +105,10 @@ class ThisOldHouseIE(InfoExtractor):
             video_url = self._request_webpage(HEADRequest(video_url), video_id, 'Resolving Zype URL').url
             return self.url_result(video_url, ZypeIE, video_id)
 
-        video_url, video_id = self._search_regex(
+        video_url, video_id = self._search_regex([
             r'<iframe[^>]+src=[\'"]((?:https?:)?//players\.brightcove\.net/\d+/\w+/index\.html\?videoId=(\d+))',
+            r'<iframe[^>]+src=[\'"]((?:https?:)?//(?:www\.)thisoldhouse\.com/videos/brightcove/(\d+))'],
             webpage, 'iframe url', group=(1, 2))
+        if not parse_qs(video_url).get('videoId'):
+            video_url = self._request_webpage(HEADRequest(video_url), video_id, 'Resolving Brightcove URL').url
         return self.url_result(smuggle_url(video_url, {'referrer': url}), BrightcoveNewIE, video_id)
