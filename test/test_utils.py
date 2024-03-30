@@ -44,7 +44,6 @@ from yt_dlp.utils import (
     determine_ext,
     determine_file_encoding,
     dfxp2srt,
-    dict_get,
     encode_base_n,
     encode_compat_str,
     encodeFilename,
