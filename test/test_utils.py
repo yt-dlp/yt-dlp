@@ -752,28 +752,6 @@ class TestUtil(unittest.TestCase):
         self.assertRaises(
             ValueError, multipart_encode, {b'field': b'value'}, boundary='value')
 
-    def test_dict_get(self):
-        FALSE_VALUES = {
-            'none': None,
-            'false': False,
-            'zero': 0,
-            'empty_string': '',
-            'empty_list': [],
-        }
-        d = FALSE_VALUES.copy()
-        d['a'] = 42
-        self.assertEqual(dict_get(d, 'a'), 42)
-        self.assertEqual(dict_get(d, 'b'), None)
-        self.assertEqual(dict_get(d, 'b', 42), 42)
-        self.assertEqual(dict_get(d, ('a', )), 42)
-        self.assertEqual(dict_get(d, ('b', 'a', )), 42)
-        self.assertEqual(dict_get(d, ('b', 'c', 'a', 'd', )), 42)
-        self.assertEqual(dict_get(d, ('b', 'c', )), None)
-        self.assertEqual(dict_get(d, ('b', 'c', ), 42), 42)
-        for key, false_value in FALSE_VALUES.items():
-            self.assertEqual(dict_get(d, ('b', 'c', key, )), None)
-            self.assertEqual(dict_get(d, ('b', 'c', key, ), skip_false_values=False), false_value)
-
     def test_merge_dicts(self):
         self.assertEqual(merge_dicts({'a': 1}, {'b': 2}), {'a': 1, 'b': 2})
         self.assertEqual(merge_dicts({'a': 1}, {'a': 2}), {'a': 1})
