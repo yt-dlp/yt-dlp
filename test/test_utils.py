@@ -2392,6 +2392,33 @@ Line 1
         self.assertEqual(traverse_obj(etree, ('country', 0, ..., 'text()', {int_or_none})), [1, 2008, 141100],
                          msg='special transformations should act on current element')
 
+        self.assertEqual(traverse_obj(_TEST_DATA, [(100, 1.2), all]), [100, 1.2],
+                         msg='`all` should give all results as list')
+        self.assertEqual(traverse_obj(_TEST_DATA, [(100, 1.2), any]), 100,
+                         msg='`any` should give the first result')
+        self.assertEqual(traverse_obj(_TEST_DATA, [('dict', 'None', 100), all]), [100],
+                         msg='`all` should filter `None` and empty dict')
+        self.assertEqual(traverse_obj(_TEST_DATA, [('dict', 'None', 100), any]), 100,
+                         msg='`any` should filter `None` and empty dict')
+        self.assertEqual(traverse_obj(_TEST_DATA, [{
+                            'all': [('dict', 'None', 100, 1.2), all],
+                            'any': [('dict', 'None', 100, 1.2), any],
+                         }]), {'all': [100, 1.2], 'any': 100},
+                         msg='`all`/`any` should apply to each dict path separately')
+        self.assertEqual(traverse_obj(_TEST_DATA, [{
+                            'all': [('dict', 'None', 100, 1.2), all],
+                            'any': [('dict', 'None', 100, 1.2), any],
+                         }], get_all=False), {'all': [100, 1.2], 'any': 100},
+                         msg='`all`/`any` should apply to dict regardless of `get_all`')
+        self.assertEqual(traverse_obj(_TEST_DATA, [('dict', 'None', 100, 1.2), all, {float}]), None,
+                         msg='`all` should reset branching status')
+        self.assertEqual(traverse_obj(_TEST_DATA, [('dict', 'None', 100, 1.2), any, {float}]), None,
+                         msg='`any` should reset branching status')
+        self.assertEqual(traverse_obj(_TEST_DATA, [('dict', 'None', 100, 1.2), all, ..., {float}]), [1.2],
+                         msg='`all` should allow further branching')
+        self.assertEqual(traverse_obj(_TEST_DATA, [('dict', 'None', 100, 1.2), any, ..., {float}]), [],
+                         msg='`any` should allow further branching')
+
     def test_http_header_dict(self):
         headers = HTTPHeaderDict()
         headers['ytdl-test'] = b'0'
