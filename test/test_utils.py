@@ -2396,6 +2396,10 @@ Line 1
                          msg='`all` should give all results as list')
         self.assertEqual(traverse_obj(_TEST_DATA, [(100, 1.2), any]), 100,
                          msg='`any` should give the first result')
+        self.assertEqual(traverse_obj(_TEST_DATA, [100, all]), [100],
+                         msg='`all` should give list if non branching')
+        self.assertEqual(traverse_obj(_TEST_DATA, [100, any]), 100,
+                         msg='`any` should give single item if non branching')
         self.assertEqual(traverse_obj(_TEST_DATA, [('dict', 'None', 100), all]), [100],
                          msg='`all` should filter `None` and empty dict')
         self.assertEqual(traverse_obj(_TEST_DATA, [('dict', 'None', 100), any]), 100,
@@ -2416,7 +2420,7 @@ Line 1
                          msg='`any` should reset branching status')
         self.assertEqual(traverse_obj(_TEST_DATA, [('dict', 'None', 100, 1.2), all, ..., {float}]), [1.2],
                          msg='`all` should allow further branching')
-        self.assertEqual(traverse_obj(_TEST_DATA, [('dict', 'None', 100, 1.2), any, ..., {float}]), [],
+        self.assertEqual(traverse_obj(_TEST_DATA, [('dict', 'None', 'urls', 'data'), any, ..., 'index']), [0, 1],
                          msg='`any` should allow further branching')
 
     def test_http_header_dict(self):
