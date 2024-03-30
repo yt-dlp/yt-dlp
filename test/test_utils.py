@@ -2,7 +2,6 @@
 
 # Allow direct execution
 import os
-import re
 import sys
 import unittest
 import warnings
@@ -106,13 +105,11 @@ from yt_dlp.utils import (
     sanitize_url,
     shell_quote,
     smuggle_url,
-    str_or_none,
     str_to_int,
     strip_jsonp,
     strip_or_none,
     subtitles_filename,
     timeconvert,
-    traverse_obj,
     try_call,
     unescapeHTML,
     unified_strdate,
