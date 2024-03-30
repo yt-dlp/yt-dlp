@@ -263,6 +263,21 @@ class ZDFIE(ZDFBaseIE):
             'format_note': 'uhd, main',
             'thumbnail': 'https://www.zdf.de/assets/saguaro-kakteen-102~3840x2160?cb=1655910690796',
         },
+    }, {
+        'url': 'https://www.zdf.de/serien/northern-lights/begegnung-auf-der-bruecke-100.html',
+        'info_dict': {
+            'id': '240319_2310_sendung_not',
+            'title': 'Begegnung auf der Brücke',
+            'description': 'Lloyd begegnet an einem verregneten Abend in Dublin einer jungen Frau, die völlig durchnässt auf der Grattan Bridge steht. Es ist der Beginn einer außergewöhnlichen Freundschaft.',
+            'seriesId': '1d7a1879-01ee-4468-8237-c6b4ecd633c7',
+            'series': 'Northern Lights',
+            'season': 'Staffel 1',
+            'season_number': 1,
+            'season_id': '22ac26a2-4ea2-4055-ac0b-98b755cdf718',
+            'episode': 'Begegnung auf der Brücke',
+            'episode_number': 1,
+            'episode_id': 'POS_71049438-024b-471f-b472-4fe2e490d1fb'
+        },
     }]
 
     def _extract_entry(self, url, player, content, video_id):
