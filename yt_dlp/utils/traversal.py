@@ -231,7 +231,10 @@ def traverse_obj(
             if key in (any, all):
                 has_branched = False
                 filtered_objs = (obj for obj in objs if obj not in (None, {}))
-                objs = (next(filtered_objs, None) if key is any else list(filtered_objs),)
+                if key is any:
+                    objs = (next(filtered_objs, None),)
+                else:
+                    objs = (list(filtered_objs),)
                 continue
 
             if __debug__ and callable(key):
