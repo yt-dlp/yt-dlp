@@ -1,5 +1,6 @@
 import collections.abc
 import contextlib
+import http.cookies
 import inspect
 import itertools
 import re
@@ -28,7 +29,7 @@ def traverse_obj(
 
     Each of the provided `paths` is tested and the first producing a valid result will be returned.
     The next path will also be tested if the path branched but no results could be found.
-    Supported values for traversal are `Mapping`, `Iterable` and `re.Match`.
+    Supported values for traversal are `Mapping`, `Iterable`, `re.Match` and `http.cookies.Morsel`.
     Unhelpful values (`{}`, `None`) are treated as the absence of a value and discarded.
 
     The paths will be wrapped in `variadic`, so that `'key'` is conveniently the same as `('key', )`.
@@ -36,8 +37,8 @@ def traverse_obj(
     The keys in the path can be one of:
         - `None`:           Return the current object.
         - `set`:            Requires the only item in the set to be a type or function,
-                            like `{type}`/`{func}`. If a `type`, returns only values
-                            of this type. If a function, returns `func(obj)`.
+                            like `{type}`/`{(type, type)}/`{func}`. If a `type`, return only
+                            values of this type. If a function, returns `func(obj)`.
         - `str`/`int`:      Return `obj[key]`. For `re.Match`, return `obj.group(key)`.
         - `slice`:          Branch out and return all values in `obj[key]`.
         - `Ellipsis`:       Branch out and return a list of all values.
@@ -48,8 +49,10 @@ def traverse_obj(
                             For `Iterable`s, `key` is the index of the value.
                             For `re.Match`es, `key` is the group number (0 = full match)
                             as well as additionally any group names, if given.
-        - `dict`            Transform the current object and return a matching dict.
+        - `dict`:           Transform the current object and return a matching dict.
                             Read as: `{key: traverse_obj(obj, path) for key, path in dct.items()}`.
+        - `any`-builtin:    Take the first matching object and return it, resetting branching.
+        - `all`-builtin:    Take all matching objects and return them as a list, resetting branching.
 
         `tuple`, `list`, and `dict` all support nested paths and branches.
 
@@ -104,7 +107,7 @@ def traverse_obj(
         elif isinstance(key, set):
             assert len(key) == 1, 'Set should only be used to wrap a single item'
             item = next(iter(key))
-            if isinstance(item, type):
+            if isinstance(item, (type, tuple)):
                 if isinstance(obj, item):
                     result = obj
             else:
@@ -117,6 +120,8 @@ def traverse_obj(
 
         elif key is ...:
             branching = True
+            if isinstance(obj, http.cookies.Morsel):
+                obj = dict(obj, key=obj.key, value=obj.value)
             if isinstance(obj, collections.abc.Mapping):
                 result = obj.values()
             elif is_iterable_like(obj) or isinstance(obj, xml.etree.ElementTree.Element):
@@ -131,6 +136,8 @@ def traverse_obj(
 
         elif callable(key):
             branching = True
+            if isinstance(obj, http.cookies.Morsel):
+                obj = dict(obj, key=obj.key, value=obj.value)
             if isinstance(obj, collections.abc.Mapping):
                 iter_obj = obj.items()
             elif is_iterable_like(obj) or isinstance(obj, xml.etree.ElementTree.Element):
@@ -157,6 +164,8 @@ def traverse_obj(
             } or None
 
         elif isinstance(obj, collections.abc.Mapping):
+            if isinstance(obj, http.cookies.Morsel):
+                obj = dict(obj, key=obj.key, value=obj.value)
             result = (try_call(obj.get, args=(key,)) if casesense or try_call(obj.__contains__, args=(key,)) else
                       next((v for k, v in obj.items() if casefold(k) == key), None))
 
