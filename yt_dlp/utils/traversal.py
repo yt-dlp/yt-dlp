@@ -189,7 +189,7 @@ def traverse_obj(
 
         elif isinstance(obj, xml.etree.ElementTree.Element) and isinstance(key, str):
             xpath, _, special = key.rpartition('/')
-            if not special.startswith('@') and special != 'text()':
+            if not special.startswith('@') and not special.endswith('()'):
                 xpath = key
                 special = None
 
@@ -208,7 +208,7 @@ def traverse_obj(
                     return try_call(element.attrib.get, args=(special[1:],))
                 if special == 'text()':
                     return element.text
-                assert False, f'apply_specials is missing case for {special!r}'
+                raise SyntaxError(f'apply_specials is missing case for {special!r}')
 
             if xpath:
                 result = list(map(apply_specials, obj.iterfind(xpath)))
