@@ -10,17 +10,19 @@ from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     int_or_none,
+    join_nonempty,
     parse_age_limit,
     parse_duration,
     traverse_obj,
     try_get,
     unified_timestamp,
     url_or_none,
+    urljoin,
 )
 
 
 class FOXIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?fox(?:sports)?\.com/(?:watch|replay)/(?P<id>[\da-fA-F]+)'
+    _VALID_URL = r'https?://(?:www\.)?fox(?:sports)?\.com/(?:watch|replay)/(?P<id>[\w-]+)'
     _TESTS = [{
         # clip
         'url': 'https://www.fox.com/watch/4b765a60490325103ea69888fb2bd4e8/',
@@ -33,14 +35,50 @@ class FOXIE(InfoExtractor):
             'duration': 102,
             'timestamp': 1504291893,
             'upload_date': '20170901',
-            'creator': 'FOX',
-            'series': 'Gotham',
+            'creators': ['FOX'],
+            # actual series name 'Gotham' is no longer returned by the API
+            'series': 'Aftermath: Bruce Wayne Develops Into The Dark Knight',
             'age_limit': 14,
             'episode': 'Aftermath: Bruce Wayne Develops Into The Dark Knight',
             'thumbnail': r're:^https?://.*\.jpg$',
         },
         'params': {
             'skip_download': True,
+        },
+    }, {
+        'url': 'https://www.foxsports.com/watch/play-612168c6700004b',
+        'md5': '8eee3db207783070173cbc8b99639688',
+        'info_dict': {
+            'id': 'play-612168c6700004b',
+            'ext': 'mp4',
+            'title': 'Mario Pasalic scores decisive penalty kick to help Croatia knock out Japan | 2022 FIFA World Cup',
+            'description': 'Mario Pasalic scores the game-winning PK in shootouts to clinch a win for Croatia against Japan.',
+            'duration': 31,
+            'timestamp': 1670262586,
+            'upload_date': '20221205',
+            'creators': ['FOX'],
+            'series': 'Mario Pasalic scores decisive penalty kick to help Croatia knock out Japan | 2022 FIFA World Cup',
+            'age_limit': 14,
+            'episode': 'Mario Pasalic scores decisive penalty kick to help Croatia knock out Japan | 2022 FIFA World Cup',
+            'thumbnail': r're:^https?://.*\.jpg$',
+        },
+    }, {
+        # XML endpoint
+        'url': 'https://www.foxsports.com/watch/fmc-m2du80v5ewz11pbw',
+        'md5': '5451a633a5ca87b582a4d025df6852e6',
+        'info_dict': {
+            'id': 'fmc-m2du80v5ewz11pbw',
+            'ext': 'mp4',
+            'title': 'WWE FRIDAY NIGHT SMACKDOWN',
+            'description': 'From Fiserv Forum in Milwaukee, WI',
+            'duration': 5367,
+            'timestamp': 1698176671,
+            'upload_date': '20231024',
+            'creators': ['fox-digital'],
+            'series': 'WWE FRIDAY NIGHT SMACKDOWN',
+            'age_limit': 0,
+            'episode': 'WWE FRIDAY NIGHT SMACKDOWN',
+            'thumbnail': r're:^https?://.*\.jpg$',
         },
     }, {
         # episode, geo-restricted
@@ -57,9 +95,13 @@ class FOXIE(InfoExtractor):
     }]
     _GEO_BYPASS = False
     _HOME_PAGE_URL = 'https://www.fox.com/'
-    _API_KEY = '6E9S4bmcoNnZwVLOHywOv8PJEdu76cM9'
+    _API_KEY = '6E9S4bmcoNnZwVLOHywOv8PJEdu76cM9'  # sports: 'cf289e299efdfa39fb6316f259d1de93'
     _access_token = None
     _device_id = compat_str(uuid.uuid4())
+    _XML_NS = {
+        'vmap': 'http://www.iab.net/videosuite/vmap',
+        'yospacenet': 'http://www.yospace.com/extension',
+    }
 
     def _call_api(self, path, video_id, data=None):
         headers = {
@@ -69,7 +111,7 @@ class FOXIE(InfoExtractor):
             headers['Authorization'] = 'Bearer ' + self._access_token
         try:
             return self._download_json(
-                'https://api3.fox.com/v2.0/' + path,
+                urljoin('https://api3.fox.com/v2.0/', path),
                 video_id, data=data, headers=headers)
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError) and e.cause.status == 403:
@@ -103,8 +145,8 @@ class FOXIE(InfoExtractor):
             'previewpassmvpd?device_id=%s&mvpd_id=TempPass_fbcfox_60min' % self._device_id,
             video_id)['accessToken']
 
-        video = self._call_api('watch', video_id, data=json.dumps({
-            'capabilities': ['drm/widevine', 'fsdk/yo'],
+        video = self._call_api('https://prod.api.video.fox/v2.0/watch', video_id, data=json.dumps({
+            'capabilities': ['fsdk/yo/v3'],
             'deviceWidth': 1280,
             'deviceHeight': 720,
             'maxRes': '720p',
@@ -119,13 +161,16 @@ class FOXIE(InfoExtractor):
             'privacy': {'us': '1---'},
             'siteSection': '',
             'streamType': 'vod',
-            'streamId': video_id}).encode('utf-8'))
-
-        title = video['name']
-        release_url = video['url']
+            'streamId': video_id,
+        }).encode())
 
         try:
-            m3u8_url = self._download_json(release_url, video_id)['playURL']
+            if playback_url := traverse_obj(video, ('playbackUrl', {url_or_none})):
+                xml_data = self._download_xml(playback_url, video_id)
+                stream = xml_data.find('vmap:Extensions/vmap:Extension/yospacenet:Stream', self._XML_NS)
+                m3u8_url = join_nonempty('https://', stream.get('urlDomain'), stream.get('urlSuffix'), delim='')
+            else:
+                m3u8_url = self._download_json(video['url'], video_id)['playURL']
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError) and e.cause.status == 403:
                 error = self._parse_json(e.cause.response.read().decode(), video_id)
@@ -133,9 +178,11 @@ class FOXIE(InfoExtractor):
                     self.raise_geo_restricted(countries=['US'])
                 raise ExtractorError(error['description'], expected=True)
             raise
-        formats = self._extract_m3u8_formats(
-            m3u8_url, video_id, 'mp4',
-            entry_protocol='m3u8_native', m3u8_id='hls')
+
+        if not m3u8_url or m3u8_url == 'https://':
+            raise ExtractorError('Unable to extract m3u8 url')
+
+        formats = self._extract_m3u8_formats(m3u8_url, video_id, 'mp4', m3u8_id='hls')
 
         data = try_get(
             video, lambda x: x['trackingData']['properties'], dict) or {}
@@ -160,7 +207,7 @@ class FOXIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'title': title,
+            'title': video.get('name'),
             'formats': formats,
             'description': video.get('description'),
             'duration': duration,
