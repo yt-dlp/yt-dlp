@@ -206,9 +206,6 @@ class SoundcloudBaseIE(InfoExtractor):
         query = {'client_id': self._CLIENT_ID}
         if secret_token:
             query['secret_token'] = secret_token
-        if track_authorization := info.get('track_authorization'):
-            # Possibly needed for premium format extraction with cookies
-            query['track_authorization'] = track_authorization
 
         if not extract_flat and info.get('downloadable') and info.get('has_downloads_left'):
             download_url = update_url_query(
