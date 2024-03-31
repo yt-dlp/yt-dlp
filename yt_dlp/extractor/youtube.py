@@ -33,6 +33,7 @@ from ..utils import (
     clean_html,
     datetime_from_str,
     dict_get,
+    filesize_from_tbr,
     filter_dict,
     float_or_none,
     format_field,
@@ -55,6 +56,7 @@ from ..utils import (
     str_to_int,
     strftime_or_none,
     traverse_obj,
+    try_call,
     try_get,
     unescapeHTML,
     unified_strdate,
@@ -3839,11 +3841,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 10 if audio_track.get('audioIsDefault') and 10
                 else -10 if 'descriptive' in (audio_track.get('displayName') or '').lower() and -10
                 else -1)
+            format_duration = traverse_obj(fmt, ('approxDurationMs', {lambda x: float_or_none(x, 1000)}))
             # Some formats may have much smaller duration than others (possibly damaged during encoding)
             # E.g. 2-nOtRESiUc Ref: https://github.com/yt-dlp/yt-dlp/issues/2823
             # Make sure to avoid false positives with small duration differences.
             # E.g. __2ABJjxzNo, ySuUZEjARPY
-            is_damaged = try_get(fmt, lambda x: float(x['approxDurationMs']) / duration < 500)
+            is_damaged = try_call(lambda: format_duration < duration // 2)
             if is_damaged:
                 self.report_warning(
                     f'{video_id}: Some formats are possibly damaged. They will be deprioritized', only_once=True)
@@ -3873,6 +3876,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'quality': q(quality) - bool(fmt.get('isDrc')) / 2,
                 'has_drm': bool(fmt.get('drmFamilies')),
                 'tbr': tbr,
+                'filesize_approx': filesize_from_tbr(tbr, format_duration),
                 'url': fmt_url,
                 'width': int_or_none(fmt.get('width')),
                 'language': join_nonempty(audio_track.get('id', '').split('.')[0],
