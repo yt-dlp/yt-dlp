@@ -217,7 +217,7 @@ class SoundcloudBaseIE(InfoExtractor):
                         'filesize': int_or_none(urlh.headers.get('Content-Length')),
                         'url': format_url,
                         'quality': 10,
-                        'format_note': 'Original format',
+                        'format_note': 'Original',
                     })
 
         def invalid_url(url):
