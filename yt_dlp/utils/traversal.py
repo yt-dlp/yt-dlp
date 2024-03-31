@@ -29,7 +29,8 @@ def traverse_obj(
 
     Each of the provided `paths` is tested and the first producing a valid result will be returned.
     The next path will also be tested if the path branched but no results could be found.
-    Supported values for traversal are `Mapping`, `Iterable`, `re.Match` and `http.cookies.Morsel`.
+    Supported values for traversal are `Mapping`, `Iterable`, `re.Match`,
+    `xml.etree.ElementTree` (xpath) and `http.cookies.Morsel`.
     Unhelpful values (`{}`, `None`) are treated as the absence of a value and discarded.
 
     The paths will be wrapped in `variadic`, so that `'key'` is conveniently the same as `('key', )`.
