@@ -263,7 +263,7 @@ class SoundcloudBaseIE(InfoExtractor):
         # New API
         for t in traverse_obj(info, ('media', 'transcodings', lambda _, v: url_or_none(v['url']))):
             if extract_flat:
-                continue
+                break
             format_url = t['url']
             stream = None
 
