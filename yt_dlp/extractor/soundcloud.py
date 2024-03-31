@@ -267,7 +267,7 @@ class SoundcloudBaseIE(InfoExtractor):
             format_url = t['url']
             stream = None
 
-            # Handle rate-limit
+            # Handle rate-limit of ~600 requests per 10 minutes
             for retry in self.RetryManager(fatal=False):
                 try:
                     stream = self._download_json(format_url, track_id, query=query, headers=self._HEADERS)
