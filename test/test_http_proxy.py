@@ -7,6 +7,7 @@ import os
 import random
 import ssl
 import threading
+import time
 from http.server import BaseHTTPRequestHandler
 from socketserver import BaseRequestHandler, ThreadingTCPServer
 
@@ -124,6 +125,30 @@ class HTTPSProxyHandler(HTTPProxyHandler):
         super().__init__(request, *args, **kwargs)
 
 
+class WebSocketProxyHandler(BaseRequestHandler):
+    def __init__(self, *args, proxy_info=None, **kwargs):
+        self.proxy_info = proxy_info
+        super().__init__(*args, **kwargs)
+
+    def handle(self):
+        import websockets.sync.server
+        protocol = websockets.ServerProtocol()
+        connection = websockets.sync.server.ServerConnection(socket=self.request, protocol=protocol, close_timeout=0)
+        connection.handshake()
+        connection.send(json.dumps(self.proxy_info))
+        connection.close()
+
+
+class WebSocketSecureProxyHandler(WebSocketProxyHandler):
+    def __init__(self, request, *args, proxy_info=None, **kwargs):
+        self.proxy_info = proxy_info
+        certfn = os.path.join(TEST_DIR, 'testcert.pem')
+        sslctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        sslctx.load_cert_chain(certfn, None)
+        request = SSLTransport(request, ssl_context=sslctx, server_side=True)
+        super().__init__(request, *args, **kwargs)
+
+
 class HTTPConnectProxyHandler(BaseHTTPRequestHandler, HTTPProxyAuthMixin):
     protocol_version = 'HTTP/1.1'
     default_request_version = 'HTTP/1.1'
@@ -215,9 +240,30 @@ class HTTPProxyHTTPSTestContext(HTTPProxyTestContext):
         return json.loads(handler.send(request).read().decode())
 
 
+class HTTPProxyWebSocketTestContext(HTTPProxyTestContext):
+    REQUEST_HANDLER_CLASS = WebSocketProxyHandler
+    REQUEST_PROTO = 'ws'
+
+    def proxy_info_request(self, handler, target_domain=None, target_port=None, **req_kwargs):
+        request = Request(f'{self.REQUEST_PROTO}://{target_domain or "127.0.0.1"}:{target_port or "40000"}', **req_kwargs)
+        handler.validate(request)
+        ws = handler.send(request)
+        ws.send('proxy_info')
+        socks_info = ws.recv()
+        ws.close()
+        return json.loads(socks_info)
+
+
+class HTTPProxyWebSocketSecureTestContext(HTTPProxyWebSocketTestContext):
+    REQUEST_HANDLER_CLASS = WebSocketSecureProxyHandler
+    REQUEST_PROTO = 'wss'
+
+
 CTX_MAP = {
     'http': HTTPProxyHTTPTestContext,
     'https': HTTPProxyHTTPSTestContext,
+    'ws': HTTPProxyWebSocketTestContext,
+    'wss': HTTPProxyWebSocketSecureTestContext,
 }
 
 
@@ -289,6 +335,8 @@ class TestHTTPProxy:
     'handler,ctx', [
         ('Requests', 'https'),
         ('CurlCFFI', 'https'),
+        ('Websockets', 'ws'),
+        ('Websockets', 'wss')
     ], indirect=True)
 class TestHTTPConnectProxy:
     def test_http_connect_no_auth(self, handler, ctx):
