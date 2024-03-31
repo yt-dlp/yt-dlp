@@ -7,7 +7,7 @@ from .common import (
     SearchInfoExtractor
 )
 from ..compat import compat_str
-from ..networking import HEADRequest, Request
+from ..networking import HEADRequest
 from ..networking.exceptions import HTTPError
 from ..utils import (
     KNOWN_EXTENSIONS,
@@ -112,21 +112,19 @@ class SoundcloudBaseIE(InfoExtractor):
         self._CLIENT_ID = self.cache.load('soundcloud', 'client_id') or 'a3e059563d7fd3372b49b37f00a00bcf'
 
     def _verify_oauth_token(self, token):
-        query = self._API_AUTH_QUERY_TEMPLATE % self._CLIENT_ID
-        payload = {'session': {'access_token': token}}
-        token_verification = Request(self._API_VERIFY_AUTH_TOKEN % query, json.dumps(payload).encode('utf-8'))
-        response = self._download_json(token_verification, None, note='Verifying login token...', fatal=False)
-        if response is not False:
+        if self._request_webpage(
+                self._API_VERIFY_AUTH_TOKEN % (self._API_AUTH_QUERY_TEMPLATE % self._CLIENT_ID),
+                None, note='Verifying login token...', fatal=False,
+                data=json.dumps({'session': {'access_token': token}}).encode()):
             self._HEADERS = {'Authorization': f'OAuth {token}'}
             self.report_login()
         else:
-            self.report_warning('Provided authorization token seems to be invalid. Continue as guest')
+            self.report_warning('Provided authorization token seems to be invalid. Continuing as guest')
 
     def _real_initialize(self):
         if self._HEADERS:
             return
-        token = try_call(lambda: self._get_cookies(self._BASE_URL)['oauth_token'].value)
-        if token:
+        if token := try_call(lambda: self._get_cookies(self._BASE_URL)['oauth_token'].value):
             self._verify_oauth_token(token)
 
     def _perform_login(self, username, password):
@@ -208,9 +206,9 @@ class SoundcloudBaseIE(InfoExtractor):
         query = {'client_id': self._CLIENT_ID}
         if secret_token:
             query['secret_token'] = secret_token
-        if info.get('track_authorization'):
+        if track_authorization := info.get('track_authorization'):
             # Possibly needed for premium format extraction with cookies
-            query['track_authorization'] = info['track_authorization']
+            query['track_authorization'] = track_authorization
 
         if not extract_flat and info.get('downloadable') and info.get('has_downloads_left'):
             download_url = update_url_query(
