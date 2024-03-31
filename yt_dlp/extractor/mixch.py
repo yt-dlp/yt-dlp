@@ -85,19 +85,15 @@ class MixchArchiveIE(InfoExtractor):
 
         try:
             info_json = self._download_json(
-                f'https://mixch.tv/api-web/archive/{video_id}', video_id)
+                f'https://mixch.tv/api-web/archive/{video_id}', video_id)['archive']
         except ExtractorError as e:
-            if isinstance(e.cause, HTTPError):
-                if e.cause.status == 401:
-                    self.raise_login_required()
-                elif e.cause.status == 404:
-                    raise ExtractorError('This video may have been expired', expected=True) from e
+            if isinstance(e.cause, HTTPError) and e.cause.status == 401:
+                self.raise_login_required()
             raise
 
         return {
             'id': video_id,
-            'title': traverse_obj(info_json, ('archive', 'title', {str})),
-            'formats': self._extract_m3u8_formats(
-                traverse_obj(info_json, ('archive', 'archiveURL')), video_id),
-            'thumbnail': traverse_obj(info_json, ('archive', 'thumbnailURL', {url_or_none})),
+            'title': traverse_obj(info_json, ('title', {str})),
+            'formats': self._extract_m3u8_formats(info_json['archiveURL'], video_id),
+            'thumbnail': traverse_obj(info_json, ('thumbnailURL', {url_or_none})),
         }
