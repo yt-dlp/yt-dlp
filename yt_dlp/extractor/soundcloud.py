@@ -153,14 +153,17 @@ class SoundcloudBaseIE(InfoExtractor):
             'user_agent': self._USER_AGENT
         }
 
-        query = self._API_AUTH_QUERY_TEMPLATE % self._CLIENT_ID
-        login = Request(self._API_AUTH_URL_PW % query, json.dumps(payload).encode('utf-8'))
-        response = self._download_json(login, None)
-        token = response.get('session').get('access_token')
-        if not token:
-            self.report_warning('Unable to get access token, login may has failed')
-        else:
+        response = self._download_json(
+            self._API_AUTH_URL_PW % (self._API_AUTH_QUERY_TEMPLATE % self._CLIENT_ID),
+            None, note='Verifying login token...', fatal=False,
+            data=json.dumps(payload).encode())
+
+        if token := traverse_obj(response, ('session', 'access_token', {str})):
             self._HEADERS = {'Authorization': f'OAuth {token}'}
+            self.report_login()
+            return
+
+        raise ExtractorError('Unable to get access token, login may have failed', expected=True)
         '''
 
     # signature generation
