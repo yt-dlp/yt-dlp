@@ -273,6 +273,10 @@ class SoundcloudBaseIE(InfoExtractor):
                     stream = self._download_json(format_url, track_id, query=query, headers=self._HEADERS)
                 except ExtractorError as e:
                     if isinstance(e.cause, HTTPError) and e.cause.status == 429:
+                        self.report_warning(
+                            'You have reached the API rate limit, which is ~600 requests per '
+                            '10 minutes. Use the --extractor-retries and --retry-sleep options '
+                            'to configure an appropriate retry count and wait time', only_once=True)
                         retry.error = e.cause
                     else:
                         self.report_warning(e.msg)
