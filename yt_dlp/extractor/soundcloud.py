@@ -131,7 +131,8 @@ class SoundcloudBaseIE(InfoExtractor):
         if username != 'oauth':
             raise ExtractorError(
                 'Login using username and password is not currently supported. '
-                'Use "--username oauth --password <oauth_token>" to login using an oauth token')
+                'Use "--username oauth --password <oauth_token>" to login '
+                'using an oauth token', expected=True)
         self._verify_oauth_token(password)
 
         r'''
