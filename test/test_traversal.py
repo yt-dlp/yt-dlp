@@ -96,7 +96,7 @@ class TestTraversal:
         assert traverse_obj(_TEST_DATA, (..., {str})) == ['str'], \
             'Type in set should be a type filter'
         assert traverse_obj(_TEST_DATA, (..., {str, int})) == [100, 'str'], \
-            'tuple of types in set should be a type filter'
+            'Multiple types in set should be a type filter'
         assert traverse_obj(_TEST_DATA, {dict}) == _TEST_DATA, \
             'A single set should be wrapped into a path'
         assert traverse_obj(_TEST_DATA, (..., {str.upper})) == ['STR'], \
