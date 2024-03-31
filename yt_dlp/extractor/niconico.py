@@ -1,4 +1,4 @@
-import datetime as dt
+import datetime
 import functools
 import itertools
 import json
@@ -819,12 +819,12 @@ class NicovideoSearchDateIE(NicovideoSearchBaseIE, SearchInfoExtractor):
         'playlist_mincount': 1610,
     }]
 
-    _START_DATE = dt.date(2007, 1, 1)
+    _START_DATE = datetime.date(2007, 1, 1)
     _RESULTS_PER_PAGE = 32
     _MAX_PAGES = 50
 
     def _entries(self, url, item_id, start_date=None, end_date=None):
-        start_date, end_date = start_date or self._START_DATE, end_date or dt.datetime.now().date()
+        start_date, end_date = start_date or self._START_DATE, end_date or datetime.datetime.now().date()
 
         # If the last page has a full page of videos, we need to break down the query interval further
         last_page_len = len(list(self._get_entries_for_date(
