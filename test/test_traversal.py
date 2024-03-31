@@ -95,7 +95,7 @@ class TestTraversal:
             'Function in set should be a transformation'
         assert traverse_obj(_TEST_DATA, (..., {str})) == ['str'], \
             'Type in set should be a type filter'
-        assert traverse_obj(_TEST_DATA, (..., {(str, int)})) == [100, 'str'], \
+        assert traverse_obj(_TEST_DATA, (..., {str, int})) == [100, 'str'], \
             'tuple of types in set should be a type filter'
         assert traverse_obj(_TEST_DATA, {dict}) == _TEST_DATA, \
             'A single set should be wrapped into a path'
@@ -106,7 +106,7 @@ class TestTraversal:
             'Function in set should be a transformation'
         assert traverse_obj(_TEST_DATA, ('fail', {lambda _: 'const'})) == 'const', \
             'Function in set should always be called'
-        # Sets with length != 1 should raise in debug
+        # Sets with length < 1 or > 1 not including only types should raise
         with pytest.raises(Exception):
             traverse_obj(_TEST_DATA, set())
         with pytest.raises(Exception):

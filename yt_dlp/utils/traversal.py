@@ -106,10 +106,10 @@ def traverse_obj(
             result = obj
 
         elif isinstance(key, set):
-            assert len(key) == 1, 'Set should only be used to wrap a single item'
             item = next(iter(key))
-            if isinstance(item, (type, tuple)):
-                if isinstance(obj, item):
+            if len(key) > 1 or isinstance(item, type):
+                assert all(isinstance(item, type) for item in key)
+                if isinstance(obj, tuple(key)):
                     result = obj
             else:
                 result = try_call(item, args=(obj,))
