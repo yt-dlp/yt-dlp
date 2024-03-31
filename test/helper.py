@@ -338,3 +338,8 @@ def http_server_port(httpd):
 def verify_address_availability(address):
     if find_available_port(address) is None:
         pytest.skip(f'Unable to bind to source address {address} (address may not exist)')
+
+
+def validate_and_send(rh, req):
+    rh.validate(req)
+    return rh.send(req)

@@ -30,6 +30,7 @@ def handler(request):
 
 @pytest.fixture(autouse=True)
 def skip_handler(request, handler):
+    # usage: pytest.mark.skip_handler('my_handler', 'reason')
     for marker in request.node.iter_markers('skip_handler'):
         if marker.args[0] == handler.RH_KEY:
             pytest.skip(marker.args[1] if len(marker.args) > 1 else '')
@@ -37,19 +38,18 @@ def skip_handler(request, handler):
 
 @pytest.fixture(autouse=True)
 def skip_handler_if(request, handler):
+    # usage: pytest.mark.skip_handler_if('my_handler', lambda request: True, 'reason')
     for marker in request.node.iter_markers('skip_handler_if'):
         if marker.args[0] == handler.RH_KEY and marker.args[1](request):
             pytest.skip(marker.args[2] if len(marker.args) > 2 else '')
 
+
 @pytest.fixture(autouse=True)
 def skip_handlers_if(request, handler):
+    # usage: pytest.mark.skip_handlers_if(lambda request, handler: True, 'reason')
     for marker in request.node.iter_markers('skip_handlers_if'):
         if handler and marker.args[0](request, handler):
             pytest.skip(marker.args[1] if len(marker.args) > 1 else '')
-
-def validate_and_send(rh, req):
-    rh.validate(req)
-    return rh.send(req)
 
 
 def pytest_configure(config):

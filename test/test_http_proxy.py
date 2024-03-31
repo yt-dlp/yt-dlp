@@ -17,7 +17,7 @@ from test.test_networking import TEST_DIR
 from test.test_socks import IPv6ThreadingTCPServer
 from yt_dlp.dependencies import urllib3
 from yt_dlp.networking import Request
-from yt_dlp.networking.exceptions import ProxyError, HTTPError, SSLError
+from yt_dlp.networking.exceptions import HTTPError, ProxyError, SSLError
 
 
 class HTTPProxyAuthMixin:
@@ -124,21 +124,6 @@ class HTTPSProxyHandler(HTTPProxyHandler):
         super().__init__(request, *args, **kwargs)
 
 
-class WebsocketsProxyHandler(BaseRequestHandler):
-    def __init__(self, *args, proxy_info=None, **kwargs):
-        self.proxy_info = proxy_info
-        super().__init__(*args, **kwargs)
-
-    def handle(self):
-        import websockets.sync.server
-        protocol = websockets.ServerProtocol()
-        connection = websockets.sync.server.ServerConnection(socket=self.request, protocol=protocol,
-                                                             close_timeout=0)
-        connection.handshake()
-        connection.send(json.dumps(self.proxy_info))
-        connection.close()
-
-
 class HTTPConnectProxyHandler(BaseHTTPRequestHandler, HTTPProxyAuthMixin):
     protocol_version = 'HTTP/1.1'
     default_request_version = 'HTTP/1.1'
@@ -199,6 +184,7 @@ def proxy_server(proxy_server_class, request_handler, bind_ip=None, **proxy_serv
 class HTTPProxyTestContext(abc.ABC):
     REQUEST_HANDLER_CLASS = None
     REQUEST_PROTO = None
+
     def http_server(self, server_class, *args, **kwargs):
         return proxy_server(server_class, self.REQUEST_HANDLER_CLASS, *args, **kwargs)
 
@@ -229,26 +215,9 @@ class HTTPProxyHTTPSTestContext(HTTPProxyTestContext):
         return json.loads(handler.send(request).read().decode())
 
 
-class HTTPProxyWebsocketsTestContext(HTTPProxyTestContext):
-    REQUEST_HANDLER_CLASS = WebsocketsProxyHandler
-    REQUEST_PROTO = 'ws'
-
-    def proxy_info_request(self, handler, target_domain=None, target_port=None, **req_kwargs):
-        request = Request(f'ws://{target_domain or "127.0.0.1"}:{target_port or "40000"}', **req_kwargs)
-        handler.validate(request)
-        ws = handler.send(request)
-        ws.send('proxy_info')
-        proxy_info = ws.recv()
-        ws.close()
-        return json.loads(proxy_info)
-
-# todo: wss
-
-
 CTX_MAP = {
     'http': HTTPProxyHTTPTestContext,
     'https': HTTPProxyHTTPSTestContext,
-    'ws': HTTPProxyWebsocketsTestContext,
 }
 
 
