@@ -390,7 +390,7 @@ class TestTraversal:
             '`any` should allow further branching'
 
 
-class  TestDictGet:
+class TestDictGet:
     def test_dict_get(self):
         FALSE_VALUES = {
             'none': None,
