@@ -209,7 +209,7 @@ class SoundcloudBaseIE(InfoExtractor):
         if secret_token:
             query['secret_token'] = secret_token
         if info.get('track_authorization'):
-            # Needed For high quality formats with cookies
+            # Possibly needed for premium format extraction with cookies
             query['track_authorization'] = info['track_authorization']
 
         if not extract_flat and info.get('downloadable') and info.get('has_downloads_left'):
