@@ -116,10 +116,10 @@ class SoundcloudBaseIE(InfoExtractor):
                 self._API_VERIFY_AUTH_TOKEN % (self._API_AUTH_QUERY_TEMPLATE % self._CLIENT_ID),
                 None, note='Verifying login token...', fatal=False,
                 data=json.dumps({'session': {'access_token': token}}).encode()):
-            self._HEADERS = {'Authorization': f'OAuth {token}'}
+            self._HEADERS['Authorization'] = f'OAuth {token}'
             self.report_login()
         else:
-            self.report_warning('Provided authorization token seems to be invalid. Continuing as guest')
+            self.report_warning('Provided authorization token is invalid. Continuing as guest')
 
     def _real_initialize(self):
         if self._HEADERS:
@@ -131,8 +131,8 @@ class SoundcloudBaseIE(InfoExtractor):
         if username != 'oauth':
             raise ExtractorError(
                 'Login using username and password is not currently supported. '
-                + 'Use "--username oauth --password <oauth_token>" to login using an oauth token, '
-                + f'or else {self._login_hint(method="cookies")}', expected=True)
+                'Use "--username oauth --password <oauth_token>" to login using an oauth token, '
+                f'or else {self._login_hint(method="cookies")}', expected=True)
         self._verify_oauth_token(password)
 
         r'''
