@@ -1833,6 +1833,13 @@ The following extractors use this feature:
 #### jiosaavn
 * `bitrate`: Audio bitrates to request. One or more of `16`, `32`, `64`, `128`, `320`. Default is `128,320`
 
+#### polsatgo
+* `player_client`: Clients to extract metadata as - one of `web` (default), `android`
+
+#### polsatboxgo
+* `force_use_pg`: Force extraction as Polsat Go. One or more of `video`, `series`. By default links to videos on PBG are extracted as PG if not logged in to PBG, and series always as PBG (if provided url is to PBG)
+* `player_client`: Clients to extract metadata as - currently only `web`
+
 **Note**: These options may be changed/removed in the future without concern for backward compatibility
 
 <!-- MANPAGE: MOVE "INSTALLATION" SECTION HERE -->
