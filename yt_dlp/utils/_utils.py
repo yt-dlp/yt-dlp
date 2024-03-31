@@ -5415,6 +5415,17 @@ class FormatSorter:
         return tuple(self._calculate_field_preference(format, field) for field in self._order)
 
 
+def filesize_from_tbr(tbr, duration):
+    """
+    @param tbr:      Total bitrate in kbps (1000 bits/sec)
+    @param duration: Duration in seconds
+    @returns         Filesize in bytes
+    """
+    if tbr is None or duration is None:
+        return None
+    return int(duration * tbr * (1000 / 8))
+
+
 # XXX: Temporary
 class _YDLLogger:
     def __init__(self, ydl=None):

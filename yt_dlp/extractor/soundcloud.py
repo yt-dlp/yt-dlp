@@ -217,6 +217,7 @@ class SoundcloudBaseIE(InfoExtractor):
                         'filesize': int_or_none(urlh.headers.get('Content-Length')),
                         'url': format_url,
                         'quality': 10,
+                        'format_note': 'Original',
                     })
 
         def invalid_url(url):
@@ -233,9 +234,13 @@ class SoundcloudBaseIE(InfoExtractor):
                 format_id_list.append(protocol)
             ext = f.get('ext')
             if ext == 'aac':
-                f['abr'] = '256'
+                f.update({
+                    'abr': 256,
+                    'quality': 5,
+                    'format_note': 'Premium',
+                })
             for k in ('ext', 'abr'):
-                v = f.get(k)
+                v = str_or_none(f.get(k))
                 if v:
                     format_id_list.append(v)
             preview = is_preview or re.search(r'/(?:preview|playlist)/0/30/', f['url'])
