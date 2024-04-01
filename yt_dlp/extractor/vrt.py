@@ -429,13 +429,13 @@ class DagelijkseKostIE(VRTBaseIE):
 
 
 class Radio1BeIE(VRTBaseIE):
-    _VALID_URL = r'https?://radio1\.be/(?:lees|luister/select)/(?P<display_id>[\w/-]+)'
+    _VALID_URL = r'https?://radio1\.be/(?:lees|luister/select)/(?P<id>[\w/-]+)'
     _TESTS = [{
         'url': 'https://radio1.be/luister/select/de-ochtend/komt-n-va-volgend-jaar-op-in-wallonie',
         'info_dict': {
             'id': 'eb6c22e9-544f-44f4-af39-cf8cccd29e22',
             'title': 'Komt N-VA volgend jaar op in Wallonië?',
-            'display_id': 'komt-n-va-volgend-jaar-op-in-wallonie',
+            'display_id': 'de-ochtend/komt-n-va-volgend-jaar-op-in-wallonie',
             'description': 'md5:b374ea1c9302f38362df9dea1931468e',
             'thumbnail': r're:https?://cds\.vrt\.radio/[^/#\?&]+'
         },
@@ -471,7 +471,7 @@ class Radio1BeIE(VRTBaseIE):
             }
 
     def _real_extract(self, url):
-        display_id = self._match_valid_url(url).group('display_id')
+        display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
         next_js_data = self._search_nextjs_data(webpage, display_id)['props']['pageProps']['item']
 
