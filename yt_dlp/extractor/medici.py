@@ -1,4 +1,5 @@
-from urllib.parse import unquote
+import urllib.parse
+
 from .common import InfoExtractor
 from ..utils import (
     unified_strdate,
