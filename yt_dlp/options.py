@@ -516,6 +516,18 @@ def create_parser():
         help='Client-side IP address to bind to',
     )
     network.add_option(
+        '--impersonate',
+        metavar='CLIENT[:OS]', dest='impersonate', default=None,
+        help=(
+            'Client to impersonate for requests. E.g. chrome, chrome-110, chrome:windows-10. '
+            'Pass --impersonate="" to impersonate any client.'),
+    )
+    network.add_option(
+        '--list-impersonate-targets',
+        dest='list_impersonate_targets', default=False, action='store_true',
+        help='List available clients to impersonate.',
+    )
+    network.add_option(
         '-4', '--force-ipv4',
         action='store_const', const='0.0.0.0', dest='source_address',
         help='Make all connections via IPv4',

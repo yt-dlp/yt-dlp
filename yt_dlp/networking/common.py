@@ -256,6 +256,15 @@ class RequestHandler(abc.ABC):
     def _merge_headers(self, request_headers):
         return HTTPHeaderDict(self.headers, request_headers)
 
+    def _calculate_timeout(self, request):
+        return float(request.extensions.get('timeout') or self.timeout)
+
+    def _get_cookiejar(self, request):
+        return request.extensions.get('cookiejar') or self.cookiejar
+
+    def _get_proxies(self, request):
+        return (request.proxies or self.proxies).copy()
+
     def _check_url_scheme(self, request: Request):
         scheme = urllib.parse.urlparse(request.url).scheme.lower()
         if self._SUPPORTED_URL_SCHEMES is not None and scheme not in self._SUPPORTED_URL_SCHEMES:
@@ -454,9 +463,10 @@ class Request:
         else:
             raise TypeError('headers must be a mapping')
 
-    def update(self, url=None, data=None, headers=None, query=None):
+    def update(self, url=None, data=None, headers=None, query=None, extensions=None):
         self.data = data if data is not None else self.data
         self.headers.update(headers or {})
+        self.extensions.update(extensions or {})
         self.url = update_url_query(url or self.url, query or {})
 
     def copy(self):
@@ -491,7 +501,7 @@ class Response(io.IOBase):
 
     def __init__(
             self,
-            fp: typing.IO,
+            fp: io.IOBase,
             url: str,
             headers: Mapping[str, str],
             status: int = 200,

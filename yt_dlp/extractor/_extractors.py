@@ -590,6 +590,7 @@ from .facebook import (
     FacebookReelIE,
     FacebookAdsIE,
 )
+from .fathom import FathomIE
 from .fancode import (
     FancodeVodIE,
     FancodeLiveIE
@@ -988,6 +989,10 @@ from .livestreamfails import LivestreamfailsIE
 from .lnkgo import (
     LnkGoIE,
     LnkIE,
+)
+from .loom import (
+    LoomIE,
+    LoomFolderIE,
 )
 from .lovehomeporn import LoveHomePornIE
 from .lrt import (
@@ -1750,6 +1755,7 @@ from .shahid import (
     ShahidIE,
     ShahidShowIE,
 )
+from .sharepoint import SharePointIE
 from .sharevideos import ShareVideosEmbedIE
 from .sibnet import SibnetEmbedIE
 from .shemaroome import ShemarooMeIE
