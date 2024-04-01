@@ -122,8 +122,8 @@ class MediciIE(InfoExtractor):
             headers={
                 'Authorization': token,
                 'Device-Type': 'web',
-                'Origin': source_url,
-                'Referer': source_url + '/',
+                'Origin': origin,
+                'Referer': f'{origin}/',
                 'Accept': 'application/json, text/plain, */*',
             }
         )
