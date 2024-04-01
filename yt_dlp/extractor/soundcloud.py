@@ -160,7 +160,7 @@ class SoundcloudBaseIE(InfoExtractor):
             data=json.dumps(payload).encode())
 
         if token := traverse_obj(response, ('session', 'access_token', {str})):
-            self._HEADERS = {'Authorization': f'OAuth {token}'}
+            self._HEADERS['Authorization'] = f'OAuth {token}'
             self.report_login()
             return
 
