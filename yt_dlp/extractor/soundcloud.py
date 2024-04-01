@@ -2,10 +2,7 @@ import itertools
 import json
 import re
 
-from .common import (
-    InfoExtractor,
-    SearchInfoExtractor
-)
+from .common import InfoExtractor, SearchInfoExtractor
 from ..compat import compat_str
 from ..networking import HEADRequest
 from ..networking.exceptions import HTTPError
