@@ -113,12 +113,11 @@ class MediciIE(InfoExtractor):
 
         origin = f'https://{urllib.parse.urlparse(url).hostname}'
         subdomain = 'edu-' if subdomain == 'edu' else ''
-        api_url = f'https://api.medici.tv/{subdomain}satie/edito/movie-file/{video_id}/'
 
         token = try_call(lambda: urllib.parse.unquote(self._get_cookies(url)['auth._token.mAuth'].value))
 
         data = self._download_json(
-            api_url, video_id,
+            f'https://api.medici.tv/{subdomain}satie/edito/movie-file/{video_id}/', video_id,
             headers={
                 'Authorization': token,
                 'Device-Type': 'web',
@@ -141,8 +140,7 @@ class MediciIE(InfoExtractor):
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(m3u8_url, video_id, ext='mp4')
 
         return {
-            'id': video_id,
-            'display_id': str_or_none(data.get('id')),
+            'id': str_or_none(data.get('id')),
             'title': data.get('title'),
             'description': data.get('subtitle'),
             'thumbnail': data.get('picture'),
