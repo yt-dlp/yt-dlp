@@ -544,7 +544,7 @@ class InfoExtractor:
     The _ENABLED attribute should be set to False for IEs that
     are disabled by default and must be explicitly enabled.
 
-    For broken extractors, the _BROKEN_ISSUE attribute can be set to the issue URL
+    For broken extractors, the _REPORTED_BROKEN attribute can be set to the issue URL
     in order to warn the users and skip the tests.
     [Deprecated] If there is no open issue, set _WORKING = False instead.
     """
@@ -613,12 +613,12 @@ class InfoExtractor:
             return None
 
     @classproperty(cache=True)
-    def _BROKEN_ISSUE(cls):
+    def _REPORTED_BROKEN(cls):
         return not cls._WORKING and ''
 
     @classmethod
     def working(cls):
-        return cls._BROKEN_ISSUE is False
+        return cls._REPORTED_BROKEN is False
 
     @classmethod
     def supports_login(cls):
@@ -3636,8 +3636,8 @@ class InfoExtractor:
             msg = 'Currently broken'
             if markdown:
                 msg = f'**{msg}**'
-                if cls._BROKEN_ISSUE:
-                    msg = f'[{msg}]({cls._BROKEN_ISSUE})'
+                if cls._REPORTED_BROKEN:
+                    msg = f'[{msg}]({cls._REPORTED_BROKEN})'
             desc += f' ({msg})'
 
         # Escape emojis. Ref: https://github.com/github/markup/issues/1153

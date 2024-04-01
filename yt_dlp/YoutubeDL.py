@@ -1573,7 +1573,7 @@ class YoutubeDL:
                 self.report_warning(join_nonempty(
                     f'[{ie.IE_NAME}] The program\'s functionality for this site has been marked as '
                     f'{self._format_err("BROKEN", self.Styles.ERROR)}, and will probably not work.',
-                    format_field(ie._BROKEN_ISSUE, None, f'See  {self._format_err("%s", self.Styles.EMPHASIS)}'
+                    format_field(ie._REPORTED_BROKEN, None, f'See  {self._format_err("%s", self.Styles.EMPHASIS)}'
                                  '  for more information. Do NOT open a new issue for this.'),
                     delim='\n         '))
 
