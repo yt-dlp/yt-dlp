@@ -115,11 +115,7 @@ class MediciIE(InfoExtractor):
         subdomain = 'edu-' if subdomain == 'edu' else ''
         api_url = f'https://api.medici.tv/{subdomain}satie/edito/movie-file/{video_id}/'
 
-        mAuth_cookie = cookies.get('auth._token.mAuth')
-        if not mAuth_cookie:
-            token = ''
-        else:
-            token = unquote(str_or_none(mAuth_cookie.value, ''))
+        token = try_call(lambda: urllib.parse.unquote(self._get_cookies(url)['auth._token.mAuth'].value))
 
         data = self._download_json(
             request_url, video_id,
