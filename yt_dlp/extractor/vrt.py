@@ -453,7 +453,6 @@ class Radio1BeIE(VRTBaseIE):
     }]
 
     def _extract_video_entries(self, next_js_data, display_id):
-        entries = []
         video_data = traverse_obj(
             next_js_data, ((None, ('paragraphs', ...)), {lambda x: x if x['mediaReference'] else None}))
         for data in video_data:
@@ -461,25 +460,23 @@ class Radio1BeIE(VRTBaseIE):
             formats, subtitles = self._extract_formats_and_subtitles(
                 self._call_api(media_reference), display_id)
 
-            entries.append({
+            yield {
                 'id': media_reference,
                 'formats': formats,
                 'subtitles': subtitles,
                 **traverse_obj(data, {
                     'title': ('title', {str}),
                     'description': ('body', {clean_html})
-                })
-            })
-        return entries
+                }),
+            }
 
     def _real_extract(self, url):
         display_id = self._match_valid_url(url).group('display_id')
         webpage = self._download_webpage(url, display_id)
         next_js_data = self._search_nextjs_data(webpage, display_id)['props']['pageProps']['item']
 
-        entries = self._extract_video_entries(next_js_data, display_id)
         return self.playlist_result(
-            entries, **merge_dicts(traverse_obj(
+            self._extract_video_entries(next_js_data, display_id), **merge_dicts(traverse_obj(
                 next_js_data, ({
                     'id': ('id', {str}),
                     'title': ('title', {str}),
@@ -488,4 +485,5 @@ class Radio1BeIE(VRTBaseIE):
                     'display_id': display_id,
                     'title': self._html_search_meta(['name', 'og:title', 'twitter:title'], webpage),
                     'description': self._html_search_meta(['description', 'og:description', 'twitter:description'], webpage),
-                    'thumbnail': self._html_search_meta(['og:image', 'twitter:image'], webpage)}))
+                    'thumbnail': self._html_search_meta(['og:image', 'twitter:image'], webpage),
+                }))
