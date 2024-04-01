@@ -2,6 +2,7 @@ from urllib.parse import unquote
 from .common import InfoExtractor
 from ..utils import (
     unified_strdate,
+    bool_or_none,
     str_or_none,
     traverse_obj,
 )
@@ -13,6 +14,7 @@ class MediciIE(InfoExtractor):
         {
             'url': 'https://www.medici.tv/en/operas/thomas-ades-the-exterminating-angel-calixto-bieito-opera-bastille-paris',
             'md5': 'd483f74e7a7a9eac0dbe152ab189050d',
+            'expected_warnings': [r'preview'],
             'info_dict': {
                 'id': '8032',
                 'ext': 'mp4',
@@ -25,6 +27,7 @@ class MediciIE(InfoExtractor):
         {
             'url': 'https://edu.medici.tv/en/operas/wagner-lohengrin-paris-opera-kirill-serebrennikov-piotr-beczala-kwangchul-youn-johanni-van-oostrum',
             'md5': '4ef3f4079a6e1c617584463a9eb84f99',
+            'expected_warnings': [r'preview'],
             'info_dict': {
                 'id': '7900',
                 'ext': 'mp4',
@@ -35,20 +38,22 @@ class MediciIE(InfoExtractor):
             },
         },
         {
-            'url': 'https://edu.medici.tv/en/concerts/pierre-laurent-aimard-plays-piano-fantasies-mozart-sweelinck-volkonski-bach-beethoven-benjamin',
-            'md5': 'edc8564a7d2921f1ab702e3b7c917437',
+            'url': 'https://www.medici.tv/en/concerts/sergey-smbatyan-conducts-mansurian-chouchane-siranossian-mario-brunello',
+            'md5': '9dd757e53b22b2511e85ea9ea60e4815',
+            'expected_warnings': [r'preview'],
             'info_dict': {
-                'id': '7373',
+                'id': '5712',
                 'ext': 'mp4',
-                'title': 'Pierre-Laurent Aimard plays Mozart, Sweelinck, Volkonski, Bach, Beethoven, and Benjamin',
+                'title': 'Sergey Smbatyan conducts Tigran Mansurian — With Chouchane Siranossian and Mario Brunello',
                 'thumbnail': r're:^https?://medicitv-[abc]\.imgix\.net/movie/[^?]+\.jpg(?:\?[^?]+)?',
-                'description': 'md5:3b61238577aa27eacf12d660a333c850',
-                'upload_date': '20240323',
+                'description': 'md5:9411fe44c874bb10e9af288c65816e41',
+                'upload_date': '20200323',
             },
         },
         {
             'url': 'https://www.medici.tv/en/ballets/carmen-ballet-choregraphie-de-jiri-bubenicek-teatro-dellopera-di-roma',
             'md5': '40f5e76cb701a97a6d7ba23b62c49990',
+            'expected_warnings': [r'preview'],
             'info_dict': {
                 'id': '7857',
                 'ext': 'mp4',
@@ -61,10 +66,11 @@ class MediciIE(InfoExtractor):
         {
             'url': 'https://www.medici.tv/en/documentaries/la-sonnambula-liege-2023-documentaire',
             'md5': '87ff198018ce79a34757ab0dd6f21080',
+            'expected_warnings': [r'preview'],
             'info_dict': {
                 'id': '7513',
                 'ext': 'mp4',
-                'title': 'NEW: La Sonnambula',
+                'title': 'La Sonnambula',
                 'thumbnail': r're:^https?://medicitv-[abc]\.imgix\.net/movie/[^?]+\.jpg(?:\?[^?]+)?',
                 'description': 'md5:0caf9109a860fd50cd018df062a67f34',
                 'upload_date': '20231103',
@@ -72,7 +78,8 @@ class MediciIE(InfoExtractor):
         },
         {
             'url': 'https://edu.medici.tv/en/masterclasses/yvonne-loriod-olivier-messiaen',
-            'md5': '5737b5b4d50a842605f5f7db6b76bce2',
+            'md5': 'fb5dcec46d76ad20fbdbaabb01da191d',
+            'skip': 'The preview doesn\'t start from the start. Only works when authenticated.',
             'info_dict': {
                 'id': '3024',
                 'ext': 'mp4',
@@ -85,6 +92,7 @@ class MediciIE(InfoExtractor):
         {
             'url': 'https://www.medici.tv/en/jazz/makaya-mccraven-la-rochelle',
             'md5': '4cc279a8b06609782747c8f50beea2b3',
+            'expected_warnings': [r'preview'],
             'info_dict': {
                 'id': '7922',
                 'ext': 'mp4',
@@ -111,7 +119,6 @@ class MediciIE(InfoExtractor):
 
         mAuth_cookie = cookies.get('auth._token.mAuth')
         if not mAuth_cookie:
-            self.to_screen('[auth] Can\'t find a token for authorization. Only previews may be downloaded.')
             token = ''
         else:
             token = unquote(str_or_none(mAuth_cookie.value, ''))
@@ -131,8 +138,15 @@ class MediciIE(InfoExtractor):
         id = str_or_none(data.get('id'))
         title = data.get('title')
         description = data.get('subtitle')
-
+        is_free = bool_or_none(data.get('is_free'))
+        is_full = traverse_obj(data, ('video', 'is_full_video'), expected_type=bool)
         m3u8_url = traverse_obj(data, ('video', 'video_url'), expected_type=str)
+
+        if not is_full:
+            if is_free:
+                self.report_warning('You need an account. Only previews will be downloaded. If you have used the --cookies-from-browser option, try using the --cookies option.')
+            else:
+                self.report_warning('The full video is for subscribers only. Only previews will be downloaded. If you have used the --cookies-from-browser option, try using the --cookies option.')
 
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(m3u8_url, video_id, ext='mp4')
 
