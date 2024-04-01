@@ -110,7 +110,7 @@ class MediciIE(InfoExtractor):
         self._download_webpage(url, video_id)
         cookies = self._get_cookies(url)
 
-        if "edu" in url:
+        if 'edu' in url:
             request_url = f'https://api.medici.tv/edu-satie/edito/movie-file/{video_id}/'
             source_url = 'https://edu.medici.tv'
         else:
