@@ -1,24 +1,21 @@
 import itertools
-import re
 import json
-# import random
+import re
 
-from .common import (
-    InfoExtractor,
-    SearchInfoExtractor
-)
+from .common import InfoExtractor, SearchInfoExtractor
 from ..compat import compat_str
-from ..networking import HEADRequest, Request
+from ..networking import HEADRequest
 from ..networking.exceptions import HTTPError
 from ..utils import (
-    error_to_compat_str,
+    KNOWN_EXTENSIONS,
     ExtractorError,
+    error_to_compat_str,
     float_or_none,
     int_or_none,
-    KNOWN_EXTENSIONS,
     mimetype2ext,
     parse_qs,
     str_or_none,
+    try_call,
     unified_timestamp,
     update_url_query,
     url_or_none,
@@ -54,7 +51,6 @@ class SoundcloudBaseIE(InfoExtractor):
     _API_AUTH_QUERY_TEMPLATE = '?client_id=%s'
     _API_AUTH_URL_PW = 'https://api-auth.soundcloud.com/web-auth/sign-in/password%s'
     _API_VERIFY_AUTH_TOKEN = 'https://api-auth.soundcloud.com/connect/session%s'
-    _access_token = None
     _HEADERS = {}
 
     _IMAGE_REPL_RE = r'-([0-9a-z]+)\.jpg'
@@ -112,21 +108,31 @@ class SoundcloudBaseIE(InfoExtractor):
     def _initialize_pre_login(self):
         self._CLIENT_ID = self.cache.load('soundcloud', 'client_id') or 'a3e059563d7fd3372b49b37f00a00bcf'
 
-    def _perform_login(self, username, password):
-        if username != 'oauth':
-            self.report_warning(
-                'Login using username and password is not currently supported. '
-                'Use "--username oauth --password <oauth_token>" to login using an oauth token')
-        self._access_token = password
-        query = self._API_AUTH_QUERY_TEMPLATE % self._CLIENT_ID
-        payload = {'session': {'access_token': self._access_token}}
-        token_verification = Request(self._API_VERIFY_AUTH_TOKEN % query, json.dumps(payload).encode('utf-8'))
-        response = self._download_json(token_verification, None, note='Verifying login token...', fatal=False)
-        if response is not False:
-            self._HEADERS = {'Authorization': 'OAuth ' + self._access_token}
+    def _verify_oauth_token(self, token):
+        if self._request_webpage(
+                self._API_VERIFY_AUTH_TOKEN % (self._API_AUTH_QUERY_TEMPLATE % self._CLIENT_ID),
+                None, note='Verifying login token...', fatal=False,
+                data=json.dumps({'session': {'access_token': token}}).encode()):
+            self._HEADERS['Authorization'] = f'OAuth {token}'
             self.report_login()
         else:
-            self.report_warning('Provided authorization token seems to be invalid. Continue as guest')
+            self.report_warning('Provided authorization token is invalid. Continuing as guest')
+
+    def _real_initialize(self):
+        if self._HEADERS:
+            return
+        if token := try_call(lambda: self._get_cookies(self._BASE_URL)['oauth_token'].value):
+            self._verify_oauth_token(token)
+
+    def _perform_login(self, username, password):
+        if username != 'oauth':
+            raise ExtractorError(
+                'Login using username and password is not currently supported. '
+                'Use "--username oauth --password <oauth_token>" to login using an oauth token, '
+                f'or else {self._login_hint(method="cookies")}', expected=True)
+        if self._HEADERS:
+            return
+        self._verify_oauth_token(password)
 
         r'''
         def genDevId():
@@ -147,14 +153,17 @@ class SoundcloudBaseIE(InfoExtractor):
             'user_agent': self._USER_AGENT
         }
 
-        query = self._API_AUTH_QUERY_TEMPLATE % self._CLIENT_ID
-        login = sanitized_Request(self._API_AUTH_URL_PW % query, json.dumps(payload).encode('utf-8'))
-        response = self._download_json(login, None)
-        self._access_token = response.get('session').get('access_token')
-        if not self._access_token:
-            self.report_warning('Unable to get access token, login may has failed')
-        else:
-            self._HEADERS = {'Authorization': 'OAuth ' + self._access_token}
+        response = self._download_json(
+            self._API_AUTH_URL_PW % (self._API_AUTH_QUERY_TEMPLATE % self._CLIENT_ID),
+            None, note='Verifying login token...', fatal=False,
+            data=json.dumps(payload).encode())
+
+        if token := traverse_obj(response, ('session', 'access_token', {str})):
+            self._HEADERS['Authorization'] = f'OAuth {token}'
+            self.report_login()
+            return
+
+        raise ExtractorError('Unable to get access token, login may have failed', expected=True)
         '''
 
     # signature generation
