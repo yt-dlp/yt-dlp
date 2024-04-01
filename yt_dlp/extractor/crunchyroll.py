@@ -21,6 +21,7 @@ from ..utils import (
 
 
 class CrunchyrollBaseIE(InfoExtractor):
+    _BROKEN_ISSUE = 'https://github.com/yt-dlp/yt-dlp/issues/9453'
     _BASE_URL = 'https://www.crunchyroll.com'
     _API_BASE = 'https://api.crunchyroll.com'
     _NETRC_MACHINE = 'crunchyroll'

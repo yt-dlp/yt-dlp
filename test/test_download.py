@@ -98,7 +98,7 @@ def generator(test_case, tname):
             self.skipTest(reason)
 
         if not ie.working():
-            print_skipping('IE marked as not _WORKING')
+            print_skipping('IE marked with _BROKEN_ISSUE')
 
         for tc in test_cases:
             if tc.get('expected_exception'):
@@ -117,7 +117,7 @@ def generator(test_case, tname):
 
         for other_ie in other_ies:
             if not other_ie.working():
-                print_skipping('test depends on %sIE, marked as not WORKING' % other_ie.ie_key())
+                print_skipping('test depends on %sIE, marked with _BROKEN_ISSUE' % other_ie.ie_key())
 
         params = get_params(test_case.get('params', {}))
         params['outtmpl'] = tname + '_' + params['outtmpl']
