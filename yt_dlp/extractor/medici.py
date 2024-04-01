@@ -110,12 +110,9 @@ class MediciIE(InfoExtractor):
         self._download_webpage(url, video_id)
         cookies = self._get_cookies(url)
 
-        if 'edu' in url:
-            request_url = f'https://api.medici.tv/edu-satie/edito/movie-file/{video_id}/'
-            source_url = 'https://edu.medici.tv'
-        else:
-            request_url = f'https://api.medici.tv/satie/edito/movie-file/{video_id}/'
-            source_url = 'https://www.medici.tv'
+        origin = f'https://{urllib.parse.urlparse(url).hostname}'
+        subdomain = 'edu-' if subdomain == 'edu' else ''
+        api_url = f'https://api.medici.tv/{subdomain}satie/edito/movie-file/{video_id}/'
 
         mAuth_cookie = cookies.get('auth._token.mAuth')
         if not mAuth_cookie:
