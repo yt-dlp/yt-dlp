@@ -1,3 +1,4 @@
+import http.cookies
 import re
 import xml.etree.ElementTree
 
@@ -94,6 +95,8 @@ class TestTraversal:
             'Function in set should be a transformation'
         assert traverse_obj(_TEST_DATA, (..., {str})) == ['str'], \
             'Type in set should be a type filter'
+        assert traverse_obj(_TEST_DATA, (..., {str, int})) == [100, 'str'], \
+            'Multiple types in set should be a type filter'
         assert traverse_obj(_TEST_DATA, {dict}) == _TEST_DATA, \
             'A single set should be wrapped into a path'
         assert traverse_obj(_TEST_DATA, (..., {str.upper})) == ['STR'], \
@@ -103,7 +106,7 @@ class TestTraversal:
             'Function in set should be a transformation'
         assert traverse_obj(_TEST_DATA, ('fail', {lambda _: 'const'})) == 'const', \
             'Function in set should always be called'
-        # Sets with length != 1 should raise in debug
+        # Sets with length < 1 or > 1 not including only types should raise
         with pytest.raises(Exception):
             traverse_obj(_TEST_DATA, set())
         with pytest.raises(Exception):
@@ -409,3 +412,31 @@ class TestTraversal:
             '`all` should allow further branching'
         assert traverse_obj(_TEST_DATA, [('dict', 'None', 'urls', 'data'), any, ..., 'index']) == [0, 1], \
             '`any` should allow further branching'
+
+    def test_traversal_morsel(self):
+        values = {
+            'expires': 'a',
+            'path': 'b',
+            'comment': 'c',
+            'domain': 'd',
+            'max-age': 'e',
+            'secure': 'f',
+            'httponly': 'g',
+            'version': 'h',
+            'samesite': 'i',
+        }
+        morsel = http.cookies.Morsel()
+        morsel.set('item_key', 'item_value', 'coded_value')
+        morsel.update(values)
+        values['key'] = 'item_key'
+        values['value'] = 'item_value'
+
+        for key, value in values.items():
+            assert traverse_obj(morsel, key) == value, \
+                'Morsel should provide access to all values'
+        assert traverse_obj(morsel, ...) == list(values.values()), \
+            '`...` should yield all values'
+        assert traverse_obj(morsel, lambda k, v: True) == list(values.values()), \
+            'function key should yield all values'
+        assert traverse_obj(morsel, [(None,), any]) == morsel, \
+            'Morsel should not be implicitly changed to dict on usage'
