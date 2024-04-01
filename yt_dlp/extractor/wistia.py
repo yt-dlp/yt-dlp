@@ -1,6 +1,6 @@
+import base64
 import re
 import urllib.parse
-from base64 import b64decode
 
 from .common import InfoExtractor
 from ..networking import HEADRequest
@@ -371,7 +371,7 @@ class WistiaChannelIE(WistiaBaseIE):
             webpage = self._download_webpage(f'https://fast.wistia.net/embed/channel/{channel_id}', channel_id)
             data = self._parse_json(
                 self._search_regex(r'wchanneljsonp-%s\'\]\s*=[^\"]*\"([A-Za-z0-9=/]*)' % channel_id, webpage, 'jsonp', channel_id),
-                channel_id, transform_source=lambda x: urllib.parse.unquote_plus(b64decode(x).decode('utf-8')))
+                channel_id, transform_source=lambda x: urllib.parse.unquote_plus(base64.b64decode(x).decode('utf-8')))
 
         # XXX: can there be more than one series?
         series = traverse_obj(data, ('series', 0), default={})

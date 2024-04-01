@@ -132,5 +132,9 @@
         "when": "aa7e9ae4f48276bd5d0173966c77db9484f65a0a",
         "short": "[ie/xvideos] Support new URL format (#9502)",
         "authors": ["sta1us"]
+    },
+    {
+        "action": "remove",
+        "when": "22e4dfacb61f62dfbb3eb41b31c7b69ba1059b80"
     }
 ]
