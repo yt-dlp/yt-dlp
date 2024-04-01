@@ -70,7 +70,7 @@ class AsobiStageIE(InfoExtractor):
             response = self._download_json(
                 f'{self._API_HOST}/{path}', None, f'Downloading {name}',
                 f'Unable to download {name}', expected_status=400)
-            if traverse_obj(response, ('payload', 'error_message'), ('error')) == 'notlogin':
+            if traverse_obj(response, ('payload', 'error_message'), 'error') == 'notlogin':
                 self._is_logged_in = False
                 break
             owned_tickets.update(
