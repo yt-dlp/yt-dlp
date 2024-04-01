@@ -171,12 +171,12 @@ class InfoExtractor:
                                  Automatically calculated from width and height
                     * dynamic_range The dynamic range of the video. One of:
                                  "SDR" (None), "HDR10", "HDR10+, "HDR12", "HLG, "DV"
-                    * tbr        Average bitrate of audio and video in KBit/s
-                    * abr        Average audio bitrate in KBit/s
+                    * tbr        Average bitrate of audio and video in kbps (1000 bits/sec)
+                    * abr        Average audio bitrate in kbps (1000 bits/sec)
                     * acodec     Name of the audio codec in use
                     * asr        Audio sampling rate in Hertz
                     * audio_channels  Number of audio channels
-                    * vbr        Average video bitrate in KBit/s
+                    * vbr        Average video bitrate in kbps (1000 bits/sec)
                     * fps        Frame rate
                     * vcodec     Name of the video codec in use
                     * container  Name of the container format
