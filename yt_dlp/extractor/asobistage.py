@@ -54,7 +54,7 @@ class AsobiStageIE(InfoExtractor):
     }]
 
     _API_HOST = 'https://asobistage-api.asobistore.jp'
-    _TOKEN_HEADER = None
+    _HEADERS = {}
     _is_logged_in = False
 
     @functools.cached_property
@@ -98,7 +98,7 @@ class AsobiStageIE(InfoExtractor):
             self._is_logged_in = True
         token = self._download_json(
             f'{self._API_HOST}/api/v1/vspf/token', None, 'Getting token', 'Unable to get token')
-        self._TOKEN_HEADER = {'Authorization': f'Bearer {token}'}
+        self._HEADERS['Authorization'] = f'Bearer {token}'
 
     def _real_extract(self, url):
         video_id, event, type_, slug = self._match_valid_url(url).group('id', 'event', 'type', 'slug')
@@ -123,7 +123,7 @@ class AsobiStageIE(InfoExtractor):
                 channel_json = self._download_json(
                     f'https://survapi.channel.or.jp/proxy/v1/contents/{channel_id}/get_by_cuid', channel_id,
                     'Getting archive channel info', 'Unable to get archive channel info', fatal=False,
-                    headers=self._TOKEN_HEADER)
+                    headers=self._HEADERS)
                 channel_data = traverse_obj(channel_json, ('ex_content', {
                     'm3u8_url': 'streaming_url',
                     'title': 'title',
@@ -133,7 +133,7 @@ class AsobiStageIE(InfoExtractor):
                 channel_json = self._download_json(
                     f'https://survapi.channel.or.jp/ex/events/{channel_id}', channel_id,
                     'Getting live channel info', 'Unable to get live channel info', fatal=False,
-                    headers=self._TOKEN_HEADER, query={'embed': 'channel'})
+                    headers=self._HEADERS, query={'embed': 'channel'})
                 channel_data = traverse_obj(channel_json, ('data', {
                     'm3u8_url': ('Channel', 'Custom_live_url'),
                     'title': 'Name',
