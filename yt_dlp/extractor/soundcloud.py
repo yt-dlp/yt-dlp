@@ -130,6 +130,8 @@ class SoundcloudBaseIE(InfoExtractor):
                 'Login using username and password is not currently supported. '
                 'Use "--username oauth --password <oauth_token>" to login using an oauth token, '
                 f'or else {self._login_hint(method="cookies")}', expected=True)
+        if self._HEADERS:
+            return
         self._verify_oauth_token(password)
 
         r'''
