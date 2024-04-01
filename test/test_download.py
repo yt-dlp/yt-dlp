@@ -117,7 +117,7 @@ def generator(test_case, tname):
 
         for other_ie in other_ies:
             if not other_ie.working():
-                print_skipping('test depends on {other_ie.ie_key()}IE, is _REPORTED_BROKEN')
+                print_skipping(f'test depends on {other_ie.ie_key()}IE, is _REPORTED_BROKEN')
 
         params = get_params(test_case.get('params', {}))
         params['outtmpl'] = tname + '_' + params['outtmpl']

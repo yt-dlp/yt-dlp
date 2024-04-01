@@ -40,7 +40,7 @@ class BaseTestSubtitles(unittest.TestCase):
         self.ie = self.IE()
         self.DL.add_info_extractor(self.ie)
         if not self.IE.working():
-            print('Skipping: {self.IE.ie_key()} is _REPORTED_BROKEN')
+            print(f'Skipping: {self.IE.ie_key()} is _REPORTED_BROKEN')
             self.skipTest('IE is _REPORTED_BROKEN')
 
     def getInfoDict(self):
