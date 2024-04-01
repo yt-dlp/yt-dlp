@@ -125,7 +125,6 @@ class MediciIE(InfoExtractor):
                 'Origin': source_url,
                 'Referer': source_url + '/',
                 'Accept': 'application/json, text/plain, */*',
-                'Accept-Language': 'en',
             }
         )
 
