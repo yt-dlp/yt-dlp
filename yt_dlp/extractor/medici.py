@@ -2,15 +2,16 @@ import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import (
-    unified_strdate,
     bool_or_none,
     str_or_none,
     traverse_obj,
+    try_call,
+    unified_strdate,
 )
 
 
 class MediciIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?(?:medici|edu\.medici)\.tv/(?:(?:[a-zA-Z0-9-_\.]+)/)*(?:#!/)?(?P<id>[^?#&]+)'
+    _VALID_URL = r'https?://(?:(?P<sub>www|edu)\.)?medici\.tv/(?:[a-z]{2}/[\w.-]+)/(?P<id>[^/?#&]+)'
     _TESTS = [
         {
             'url': 'https://www.medici.tv/en/operas/thomas-ades-the-exterminating-angel-calixto-bieito-opera-bastille-paris',
@@ -109,7 +110,6 @@ class MediciIE(InfoExtractor):
         video_id, subdomain = self._match_valid_url(url).group('id', 'sub')
 
         self._download_webpage(url, video_id)
-        cookies = self._get_cookies(url)
 
         origin = f'https://{urllib.parse.urlparse(url).hostname}'
         subdomain = 'edu-' if subdomain == 'edu' else ''
@@ -118,7 +118,7 @@ class MediciIE(InfoExtractor):
         token = try_call(lambda: urllib.parse.unquote(self._get_cookies(url)['auth._token.mAuth'].value))
 
         data = self._download_json(
-            request_url, video_id,
+            api_url, video_id,
             headers={
                 'Authorization': token,
                 'Device-Type': 'web',
@@ -128,9 +128,6 @@ class MediciIE(InfoExtractor):
             }
         )
 
-        id = str_or_none(data.get('id'))
-        title = data.get('title')
-        description = data.get('subtitle')
         is_free = bool_or_none(data.get('is_free'))
         is_full = traverse_obj(data, ('video', 'is_full_video'), expected_type=bool)
         m3u8_url = traverse_obj(data, ('video', 'video_url'), expected_type=str)
@@ -143,15 +140,13 @@ class MediciIE(InfoExtractor):
 
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(m3u8_url, video_id, ext='mp4')
 
-        thumbnail = data.get('picture')
-        upload_date = unified_strdate(data.get('date_publish'))
-
         return {
-            'id': id,
-            'title': title,
-            'description': description,
-            'thumbnail': thumbnail,
-            'upload_date': upload_date,
+            'id': video_id,
+            'display_id': str_or_none(data.get('id')),
+            'title': data.get('title'),
+            'description': data.get('subtitle'),
+            'thumbnail': data.get('picture'),
+            'upload_date': unified_strdate(data.get('date_publish')),
             'formats': formats,
             'subtitles': subtitles,
         }
