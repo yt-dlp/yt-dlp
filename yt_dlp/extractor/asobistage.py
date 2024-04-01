@@ -119,8 +119,6 @@ class AsobiStageIE(InfoExtractor):
 
         entries = []
         for channel_id in traverse_obj(available_channels, (..., {self._get_available_channel_id})):
-            channel_data = {}
-
             if video_type == 'archives':
                 channel_json = self._download_json(
                     f'https://survapi.channel.or.jp/proxy/v1/contents/{channel_id}/get_by_cuid', channel_id,
@@ -131,7 +129,7 @@ class AsobiStageIE(InfoExtractor):
                     'title': 'title',
                     'thumbnail': ('thumbnail', 'url'),
                 }))
-            elif video_type == 'broadcasts':
+            else:  # video_type == 'broadcasts'
                 channel_json = self._download_json(
                     f'https://survapi.channel.or.jp/ex/events/{channel_id}', channel_id,
                     'Getting live channel info', 'Unable to get live channel info', fatal=False,
