@@ -1,5 +1,7 @@
 from .common import InfoExtractor
-from ..utils import UserNotLive, traverse_obj
+from ..networking.exceptions import HTTPError
+from ..utils import ExtractorError, UserNotLive, url_or_none
+from ..utils.traversal import traverse_obj
 
 
 class MixchIE(InfoExtractor):
@@ -60,22 +62,38 @@ class MixchArchiveIE(InfoExtractor):
         'skip': 'paid video, no DRM. expires at Jan 23',
         'info_dict': {
             'id': '421',
+            'ext': 'mp4',
             'title': '96NEKO SHOW TIME',
         }
+    }, {
+        'url': 'https://mixch.tv/archive/1213',
+        'skip': 'paid video, no DRM. expires at Dec 31, 2023',
+        'info_dict': {
+            'id': '1213',
+            'ext': 'mp4',
+            'title': '【特別トーク番組アーカイブス】Merm4id×燐舞曲 2nd LIVE「VERSUS」',
+            'release_date': '20231201',
+            'thumbnail': str,
+        }
+    }, {
+        'url': 'https://mixch.tv/archive/1214',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        webpage = self._download_webpage(url, video_id)
 
-        html5_videos = self._parse_html5_media_entries(
-            url, webpage.replace('video-js', 'video'), video_id, 'hls')
-        if not html5_videos:
-            self.raise_login_required(method='cookies')
-        infodict = html5_videos[0]
-        infodict.update({
+        try:
+            info_json = self._download_json(
+                f'https://mixch.tv/api-web/archive/{video_id}', video_id)['archive']
+        except ExtractorError as e:
+            if isinstance(e.cause, HTTPError) and e.cause.status == 401:
+                self.raise_login_required()
+            raise
+
+        return {
             'id': video_id,
-            'title': self._html_search_regex(r'class="archive-title">(.+?)</', webpage, 'title')
-        })
-
-        return infodict
+            'title': traverse_obj(info_json, ('title', {str})),
+            'formats': self._extract_m3u8_formats(info_json['archiveURL'], video_id),
+            'thumbnail': traverse_obj(info_json, ('thumbnailURL', {url_or_none})),
+        }
