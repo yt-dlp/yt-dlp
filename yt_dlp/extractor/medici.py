@@ -109,6 +109,7 @@ class MediciIE(InfoExtractor):
     def _real_extract(self, url):
         video_id, subdomain = self._match_valid_url(url).group('id', 'sub')
 
+        # Sets csrftoken cookie
         self._download_webpage(url, video_id)
 
         origin = f'https://{urllib.parse.urlparse(url).hostname}'
