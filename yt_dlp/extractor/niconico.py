@@ -4,8 +4,7 @@ import itertools
 import json
 import re
 import time
-
-from urllib.parse import urlparse
+import urllib.parse
 
 from .common import InfoExtractor, SearchInfoExtractor
 from ..networking import Request
@@ -957,7 +956,7 @@ class NiconicoLiveIE(InfoExtractor):
             'frontend_id': traverse_obj(embedded_data, ('site', 'frontendId')) or '9',
         })
 
-        hostname = remove_start(urlparse(urlh.url).hostname, 'sp.')
+        hostname = remove_start(urllib.parse.urlparse(urlh.url).hostname, 'sp.')
         latency = try_get(self._configuration_arg('latency'), lambda x: x[0])
         if latency not in self._KNOWN_LATENCY:
             latency = 'high'
