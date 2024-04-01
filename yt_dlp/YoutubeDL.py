@@ -1577,7 +1577,6 @@ class YoutubeDL:
                                  '  for more information. Do NOT open a new issue for this.'),
                     delim='\n         '))
 
-
             temp_id = ie.get_temp_id(url)
             if temp_id is not None and self.in_download_archive({'id': temp_id, 'ie_key': key}):
                 self.to_screen(f'[download] {self._format_screen(temp_id, self.Styles.ID)}: '
