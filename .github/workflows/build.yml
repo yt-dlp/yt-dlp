@@ -467,8 +467,9 @@ jobs:
       - name: Make SHA2-SUMS files
         run: |
           cd ./artifact/
-          sha256sum * > ../SHA2-256SUMS
-          sha512sum * > ../SHA2-512SUMS
+          # make sure SHA sums are also printed to stdout
+          sha256sum * | tee ../SHA2-256SUMS
+          sha512sum * | tee ../SHA2-512SUMS
 
       - name: Make Update spec
         run: |
