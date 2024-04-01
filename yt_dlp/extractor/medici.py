@@ -11,7 +11,7 @@ from ..utils import (
 
 
 class MediciIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:(?P<sub>www|edu)\.)?medici\.tv/(?:[a-z]{2}/[\w.-]+)/(?P<id>[^/?#&]+)'
+    _VALID_URL = r'https?://(?:(?P<sub>www|edu)\.)?medici\.tv/[a-z]{2}/[\w.-]+/(?P<id>[^/?#&]+)'
     _TESTS = [
         {
             'url': 'https://www.medici.tv/en/operas/thomas-ades-the-exterminating-angel-calixto-bieito-opera-bastille-paris',
