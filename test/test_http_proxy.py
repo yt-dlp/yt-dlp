@@ -156,8 +156,9 @@ class HTTPConnectProxyHandler(BaseHTTPRequestHandler, HTTPProxyAuthMixin):
             'path': self.path,
             'proxy': ':'.join(str(y) for y in self.connection.getsockname()),
         }
+        request = self.request
         self.request_handler(self.request, self.client_address, self.server, proxy_info=proxy_info)
-        self.server.close_request(self.request)
+        self.server.close_request(request)
 
 
 class HTTPSConnectProxyHandler(HTTPConnectProxyHandler):
