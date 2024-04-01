@@ -80,6 +80,8 @@ class AsobiStageIE(InfoExtractor):
 
     def _get_available_channel_id(self, channel):
         channel_id = traverse_obj(channel, ('chennel_vspf_id', {str}))
+        if not channel_id:
+            return None
         # if rights_type_id == 6, then 'No conditions (no login required - non-members are OK)'
         if traverse_obj(channel, ('viewrights', lambda _, v: v['rights_type_id'] == 6)):
             return channel_id
