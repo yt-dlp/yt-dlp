@@ -19,12 +19,12 @@ from ..utils import (
     mimetype2ext,
     parse_qs,
     str_or_none,
-    try_get,
     unified_timestamp,
     update_url_query,
     url_or_none,
     urlhandle_detect_ext,
 )
+from ..utils.traversal import traverse_obj
 
 
 class SoundcloudEmbedIE(InfoExtractor):
@@ -261,16 +261,25 @@ class SoundcloudBaseIE(InfoExtractor):
             formats.append(f)
 
         # New API
-        transcodings = try_get(
-            info, lambda x: x['media']['transcodings'], list) or []
-        for t in transcodings:
-            if not isinstance(t, dict):
-                continue
-            format_url = url_or_none(t.get('url'))
-            if not format_url:
-                continue
-            stream = None if extract_flat else self._download_json(
-                format_url, track_id, query=query, fatal=False, headers=self._HEADERS)
+        for t in traverse_obj(info, ('media', 'transcodings', lambda _, v: url_or_none(v['url']))):
+            if extract_flat:
+                break
+            format_url = t['url']
+            stream = None
+
+            for retry in self.RetryManager(fatal=False):
+                try:
+                    stream = self._download_json(format_url, track_id, query=query, headers=self._HEADERS)
+                except ExtractorError as e:
+                    if isinstance(e.cause, HTTPError) and e.cause.status == 429:
+                        self.report_warning(
+                            'You have reached the API rate limit, which is ~600 requests per '
+                            '10 minutes. Use the --extractor-retries and --retry-sleep options '
+                            'to configure an appropriate retry count and wait time', only_once=True)
+                        retry.error = e.cause
+                    else:
+                        self.report_warning(e.msg)
+
             if not isinstance(stream, dict):
                 continue
             stream_url = url_or_none(stream.get('url'))
