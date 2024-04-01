@@ -486,4 +486,4 @@ class Radio1BeIE(VRTBaseIE):
                     'title': self._html_search_meta(['name', 'og:title', 'twitter:title'], webpage),
                     'description': self._html_search_meta(['description', 'og:description', 'twitter:description'], webpage),
                     'thumbnail': self._html_search_meta(['og:image', 'twitter:image'], webpage),
-                }))
+            }))
