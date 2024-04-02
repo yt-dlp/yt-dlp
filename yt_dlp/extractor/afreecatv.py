@@ -1,21 +1,18 @@
 import functools
-import re
 
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     OnDemandPagedList,
-    date_from_str,
     determine_ext,
     int_or_none,
     qualities,
-    traverse_obj,
-    unified_strdate,
     unified_timestamp,
     update_url_query,
     url_or_none,
     urlencode_postdata,
 )
+from ..utils.traversal import traverse_obj
 
 
 class AfreecaTVIE(InfoExtractor):
@@ -128,15 +125,6 @@ class AfreecaTVIE(InfoExtractor):
         },
     }]
 
-    @staticmethod
-    def parse_video_key(key):
-        video_key = {}
-        m = re.match(r'^(?P<upload_date>\d{8})_\w+_(?P<part>\d+)$', key)
-        if m:
-            video_key['upload_date'] = m.group('upload_date')
-            video_key['part'] = int(m.group('part'))
-        return video_key
-
     def _perform_login(self, username, password):
         login_form = {
             'szWork': 'login',
@@ -177,148 +165,69 @@ class AfreecaTVIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-
-        partial_view = False
-        adult_view = False
-        for _ in range(2):
-            data = self._download_json(
-                'https://api.m.afreecatv.com/station/video/a/view',
-                video_id, headers={'Referer': url}, data=urlencode_postdata({
-                    'nTitleNo': video_id,
-                    'nApiLevel': 10,
-                }))['data']
-            if traverse_obj(data, ('code', {int})) == -6221:
-                raise ExtractorError('The VOD does not exist', expected=True)
-            query = {
+        data = self._download_json(
+            'https://api.m.afreecatv.com/station/video/a/view', video_id,
+            headers={'Referer': url}, data=urlencode_postdata({
                 'nTitleNo': video_id,
-                'nStationNo': data['station_no'],
-                'nBbsNo': data['bbs_no'],
-            }
-            if partial_view:
-                query['partialView'] = 'SKIP_ADULT'
-            if adult_view:
-                query['adultView'] = 'ADULT_VIEW'
+                'nApiLevel': 10,
+            }))['data']
 
-            flag = data['flag']
-            if flag and flag == 'SUCCEED':
-                break
-            if flag == 'PARTIAL_ADULT':
-                self.report_warning(
-                    'In accordance with local laws and regulations, underage users are restricted from watching adult content. '
-                    'Only content suitable for all ages will be downloaded. '
-                    'Provide account credentials if you wish to download restricted content.')
-                partial_view = True
-                continue
-            elif flag == 'ADULT':
-                if not adult_view:
-                    adult_view = True
-                    continue
-                error = 'Only users older than 19 are able to watch this video. Provide account credentials to download this content.'
-            else:
-                error = flag
-            raise ExtractorError(
-                '%s said: %s' % (self.IE_NAME, error), expected=True)
-        else:
-            raise ExtractorError('Unable to download video info')
+        error_code = traverse_obj(data, ('code', {int}))
+        if error_code == -6221:
+            raise ExtractorError('The VOD does not exist', expected=True)
+        elif error_code == -6205:
+            raise ExtractorError('This VOD is private', expected=True)
 
-        video_element = data['files'][-1]
-        if video_element is None:
-            raise ExtractorError(
-                'Video %s does not exist' % video_id, expected=True)
+        flag = traverse_obj(data, ('flag', {str}))
+        if flag == 'PARTIAL_ADULT':
+            self.report_warning(
+                'In accordance with local laws and regulations, underage users are '
+                'restricted from watching adult content. Only content suitable for all '
+                f'ages will be downloaded. {self._login_hint(method="netrc")}')
+        elif flag == 'ADULT':
+            self.raise_login_required(
+                'Only users older than 19 are able to watch this video', method='netrc')
 
-        video_url = str(video_element).strip()
-
-        title = data['title']
-
-        uploader = data['writer_nick']
-        uploader_id = data['bj_id']
-        duration = data['total_file_duration']
-        thumbnail = data['thumb']
-
-        common_entry = {
-            'uploader': uploader,
-            'uploader_id': uploader_id,
-            'thumbnail': thumbnail,
-        }
-
-        info = common_entry.copy()
-        info.update({
-            'id': video_id,
-            'title': title,
-            'duration': duration,
+        common_info = traverse_obj(data, {
+            'title': ('title', {str}),
+            'uploader': ('writer_nick', {str}),
+            'uploader_id': ('bj_id', {str}),
+            'duration': ('total_file_duration', {functools.partial(int_or_none, scale=1000)}),
+            'thumbnail': ('thumb', {url_or_none}),
         })
 
-        if video_url:
-            entries = []
-            file_elements = data['files']
-            one = len(file_elements) == 1
-            for file_num, file_element in enumerate(file_elements, start=1):
-                file_url = url_or_none(file_element['file'])
-                if not file_url:
-                    continue
-                key = file_element['file_info_key']
-                upload_date = unified_strdate(self._search_regex(
-                    r'^(\d{8})_', key, 'upload date', default=None))
-                if upload_date is not None:
-                    # sometimes the upload date isn't included in the file name
-                    # instead, another random ID is, which may parse as a valid
-                    # date but be wildly out of a reasonable range
-                    parsed_date = date_from_str(upload_date)
-                    if parsed_date.year < 2000 or parsed_date.year >= 2100:
-                        upload_date = None
-                file_duration = int_or_none(file_element['duration'])
-                format_id = key if key else '%s_%s' % (video_id, file_num)
-                if determine_ext(file_url) == 'm3u8':
-                    formats = self._extract_m3u8_formats(
-                        file_url, video_id, 'mp4', entry_protocol='m3u8_native',
-                        m3u8_id='hls',
-                        note='Downloading part %d m3u8 information' % file_num)
-                else:
-                    formats = [{
-                        'url': file_url,
-                        'format_id': 'http',
-                    }]
-                if not formats and not self.get_param('ignore_no_formats'):
-                    continue
-                file_info = common_entry.copy()
-                file_info.update({
-                    'id': format_id,
-                    'title': title if one else '%s (part %d)' % (title, file_num),
-                    'upload_date': upload_date,
-                    'duration': file_duration,
-                    'formats': formats,
+        entries = []
+        for file_num, file_element in enumerate(
+                traverse_obj(data, ('files', lambda _, v: url_or_none(v['file']))), start=1):
+            file_url = file_element['file']
+            if determine_ext(file_url) == 'm3u8':
+                formats = self._extract_m3u8_formats(
+                    file_url, video_id, 'mp4', m3u8_id='hls',
+                    note=f'Downloading part {file_num} m3u8 information')
+            else:
+                formats = [{
+                    'url': file_url,
+                    'format_id': 'http',
+                }]
+
+            entries.append({
+                **common_info,
+                'id': file_element.get('file_info_key') or f'{video_id}_{file_num}',
+                'title': f'{common_info.get("title") or "Untitled"} (part {file_num})',
+                'formats': formats,
+                **traverse_obj(file_element, {
+                    'duration': ('duration', {functools.partial(int_or_none, scale=1000)}),
+                    'timestamp': ('file_start', {unified_timestamp}),
                 })
-                entries.append(file_info)
-            entries_info = info.copy()
-            entries_info.update({
-                '_type': 'multi_video',
-                'entries': entries,
-            })
-            return entries_info
-
-        info = {
-            'id': video_id,
-            'title': title,
-            'uploader': uploader,
-            'uploader_id': uploader_id,
-            'duration': duration,
-            'thumbnail': thumbnail,
-        }
-
-        if determine_ext(video_url) == 'm3u8':
-            info['formats'] = self._extract_m3u8_formats(
-                video_url, video_id, 'mp4', entry_protocol='m3u8_native',
-                m3u8_id='hls')
-        else:
-            app, playpath = video_url.split('mp4:')
-            info.update({
-                'url': app,
-                'ext': 'flv',
-                'play_path': 'mp4:' + playpath,
-                'rtmp_live': True,  # downloading won't end without this
             })
 
-        return info
+        if len(entries) == 1:
+            return {
+                **entries[0],
+                'title': common_info.get('title'),
+            }
+
+        return self.playlist_result(entries, video_id, multi_video=True, **common_info)
 
 
 class AfreecaTVLiveIE(AfreecaTVIE):  # XXX: Do not subclass from concrete IE
