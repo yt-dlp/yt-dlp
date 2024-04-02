@@ -107,10 +107,10 @@ class MediciIE(InfoExtractor):
     ]
 
     def _real_extract(self, url):
-        video_id, subdomain = self._match_valid_url(url).group('id', 'sub')
+        display_id, subdomain = self._match_valid_url(url).group('id', 'sub')
 
         # Sets csrftoken cookie
-        self._request_webpage(url, video_id)
+        self._request_webpage(url, display_id)
 
         origin = f'https://{urllib.parse.urlparse(url).hostname}'
         subdomain = 'edu-' if subdomain == 'edu' else ''
@@ -118,7 +118,7 @@ class MediciIE(InfoExtractor):
         token = try_call(lambda: urllib.parse.unquote(self._get_cookies(url)['auth._token.mAuth'].value))
 
         data = self._download_json(
-            f'https://api.medici.tv/{subdomain}satie/edito/movie-file/{video_id}/', video_id,
+            f'https://api.medici.tv/{subdomain}satie/edito/movie-file/{display_id}/', display_id,
             headers={
                 'Authorization': token,
                 'Device-Type': 'web',
@@ -134,11 +134,11 @@ class MediciIE(InfoExtractor):
 
         if not is_full:
             if is_free:
-                self.report_warning('You need an account. Only previews will be downloaded. If you have used the --cookies-from-browser option, try using the --cookies option.')
+                self.report_warning('You need an account. Only previews will be downloaded. If you have used the --cookies-from-browser option, try using the --cookies option instead.')
             else:
-                self.report_warning('The full video is for subscribers only. Only previews will be downloaded. If you have used the --cookies-from-browser option, try using the --cookies option.')
+                self.report_warning('The full video is for subscribers only. Only previews will be downloaded. If you have used the --cookies-from-browser option, try using the --cookies option instead.')
 
-        formats, subtitles = self._extract_m3u8_formats_and_subtitles(m3u8_url, video_id, ext='mp4')
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(m3u8_url, display_id, ext='mp4')
 
         return {
             'id': str_or_none(data.get('id')),
