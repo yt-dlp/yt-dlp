@@ -61,9 +61,10 @@ class JioSaavnSongIE(JioSaavnBaseIE):
             if not media_data.get('auth_url'):
                 self.report_warning(f'Unable to extract format info for {bitrate}')
                 continue
+            ext = media_data.get('type')
             formats.append({
                 'url': media_data['auth_url'],
-                'ext': media_data.get('type'),
+                'ext': 'm4a' if ext == 'mp4' else ext,
                 'format_id': bitrate,
                 'abr': int(bitrate),
                 'vcodec': 'none',
