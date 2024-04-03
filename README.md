@@ -481,6 +481,9 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
     --max-downloads NUMBER          Abort after downloading NUMBER files
     --break-on-existing             Stop the download process when encountering
                                     a file that is in the archive
+    --no-break-on-existing          Do not stop the download process when
+                                    encountering a file that is in the archive
+                                    (default)
     --break-per-input               Alters --max-downloads, --break-on-existing,
                                     --break-match-filter, and autonumber to
                                     reset per input URL
