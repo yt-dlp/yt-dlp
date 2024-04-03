@@ -81,7 +81,7 @@ class JioSaavnSongIE(JioSaavnBaseIE):
                 'duration': ('duration', {int_or_none}),
                 'view_count': ('play_count', {int_or_none}),
                 'release_year': ('year', {int_or_none}),
-                'artists': ('artists', ..., 'name', {str}, all, {lambda x: orderedSet(x) or None}),
+                'artists': ('artists', ..., 'name', {str}, all, {orderedSet}),
             }),
         }
 
