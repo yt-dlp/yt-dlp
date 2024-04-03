@@ -2,6 +2,7 @@ from .common import InfoExtractor
 from ..utils import (
     int_or_none,
     js_to_json,
+    orderedSet,
     url_or_none,
     urlencode_postdata,
     urljoin,
@@ -31,6 +32,7 @@ class JioSaavnSongIE(JioSaavnBaseIE):
             'duration': 205,
             'view_count': int,
             'release_year': 2018,
+            'artists': ['Sandesh Shandilya', 'Dhvani Bhanushali', 'Tanishk Bagchi', 'Rashmi Virag', 'Irshad Kamil'],
         },
     }, {
         'url': 'https://www.saavn.com/s/song/hindi/Saathiya/O-Humdum-Suniyo-Re/KAMiazoCblU',
@@ -79,6 +81,7 @@ class JioSaavnSongIE(JioSaavnBaseIE):
                 'duration': ('duration', {int_or_none}),
                 'view_count': ('play_count', {int_or_none}),
                 'release_year': ('year', {int_or_none}),
+                'artists': ('artists', ..., 'name', {str}, all, {lambda x: orderedSet(x) or None}),
             }),
         }
 
