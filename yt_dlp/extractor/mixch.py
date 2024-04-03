@@ -1,6 +1,6 @@
 from .common import InfoExtractor
 from ..networking.exceptions import HTTPError
-from ..utils import ExtractorError, UserNotLive, url_or_none
+from ..utils import ExtractorError, UserNotLive, int_or_none, url_or_none
 from ..utils.traversal import traverse_obj
 
 
@@ -27,25 +27,23 @@ class MixchIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        webpage = self._download_webpage(f'https://mixch.tv/u/{video_id}/live', video_id)
-
-        initial_js_state = self._parse_json(self._search_regex(
-            r'(?m)^\s*window\.__INITIAL_JS_STATE__\s*=\s*(\{.+?\});\s*$', webpage, 'initial JS state'), video_id)
-        if not initial_js_state.get('liveInfo'):
+        data = self._download_json(f'https://mixch.tv/api-web/users/{video_id}/live', video_id)
+        if not traverse_obj(data, ('liveInfo', {dict})):
             raise UserNotLive(video_id=video_id)
 
         return {
             'id': video_id,
-            'title': traverse_obj(initial_js_state, ('liveInfo', 'title')),
-            'comment_count': traverse_obj(initial_js_state, ('liveInfo', 'comments')),
-            'view_count': traverse_obj(initial_js_state, ('liveInfo', 'visitor')),
-            'timestamp': traverse_obj(initial_js_state, ('liveInfo', 'created')),
-            'uploader': traverse_obj(initial_js_state, ('broadcasterInfo', 'name')),
             'uploader_id': video_id,
+            **traverse_obj(data, {
+                'title': ('liveInfo', 'title', {str}),
+                'comment_count': ('liveInfo', 'comments', {int_or_none}),
+                'view_count': ('liveInfo', 'visitor', {int_or_none}),
+                'timestamp': ('liveInfo', 'created', {int_or_none}),
+                'uploader': ('broadcasterInfo', 'name', {str}),
+            }),
             'formats': [{
                 'format_id': 'hls',
-                'url': (traverse_obj(initial_js_state, ('liveInfo', 'hls'))
-                        or f'https://d1hd0ww6piyb43.cloudfront.net/hls/torte_{video_id}.m3u8'),
+                'url': data['liveInfo']['hls'],
                 'ext': 'mp4',
                 'protocol': 'm3u8',
             }],
