@@ -277,6 +277,15 @@ class CBCPlayerIE(InfoExtractor):
             'location': 'Canada',
             'media_type': 'Full Program',
         },
+    }, {
+        'url': 'cbcplayer:1.7159484',
+        'only_matching': True,
+    }, {
+        'url': 'cbcplayer:2164402062',
+        'only_matching': True,
+    }, {
+        'url': 'http://www.cbc.ca/player/play/2657631896',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
@@ -286,6 +295,7 @@ class CBCPlayerIE(InfoExtractor):
             json_content = self._search_json(
                 r'window\.__INITIAL_STATE__\s*=', webpage, 'initial state', video_id)
             video_id = json_content['video']['currentClip']['mediaId']
+
         return {
             '_type': 'url_transparent',
             'ie_key': 'ThePlatform',
