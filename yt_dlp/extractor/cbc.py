@@ -172,7 +172,7 @@ class CBCPlayerIE(InfoExtractor):
             'id': '2657631896',
             'ext': 'mp3',
             'title': 'CBC Montreal is organizing its first ever community hackathon!',
-            'description': 'The modern technology we tend to depend on so heavily, is never without it\'s share of hiccups and headaches. Next weekend - CBC Montreal will be getting members of the public for its first Hackathon.',
+            'description': 'md5:dd3b692f0a139b0369943150bd1c46a9',
             'timestamp': 1425704400,
             'upload_date': '20150307',
             'uploader': 'CBCC-NEW',
