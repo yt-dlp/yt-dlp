@@ -292,9 +292,9 @@ class CBCPlayerIE(InfoExtractor):
         video_id = self._match_id(url)
         if '.' in video_id:
             webpage = self._download_webpage(f'https://www.cbc.ca/player/play/{video_id}', video_id)
-            json_content = self._search_json(
-                r'window\.__INITIAL_STATE__\s*=', webpage, 'initial state', video_id)
-            video_id = json_content['video']['currentClip']['mediaId']
+            video_id = self._search_json(
+                r'window\.__INITIAL_STATE__\s*=', webpage,
+                'initial state', video_id)['video']['currentClip']['mediaId']
 
         return {
             '_type': 'url_transparent',
