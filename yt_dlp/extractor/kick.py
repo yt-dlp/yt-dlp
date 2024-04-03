@@ -13,7 +13,8 @@ from ..utils import (
 
 class KickBaseIE(InfoExtractor):
     def _real_initialize(self):
-        self._request_webpage(HEADRequest('https://kick.com/'), None, 'Setting up session', fatal=False)
+        self._request_webpage(
+            HEADRequest('https://kick.com/'), None, 'Setting up session', fatal=False, impersonate=True)
         xsrf_token = self._get_cookies('https://kick.com/').get('XSRF-TOKEN')
         if not xsrf_token:
             self.write_debug('kick.com did not set XSRF-TOKEN cookie')
@@ -25,7 +26,7 @@ class KickBaseIE(InfoExtractor):
     def _call_api(self, path, display_id, note='Downloading API JSON', headers={}, **kwargs):
         return self._download_json(
             f'https://kick.com/api/v1/{path}', display_id, note=note,
-            headers=merge_dicts(headers, self._API_HEADERS), **kwargs)
+            headers=merge_dicts(headers, self._API_HEADERS), impersonate=True, **kwargs)
 
 
 class KickIE(KickBaseIE):
