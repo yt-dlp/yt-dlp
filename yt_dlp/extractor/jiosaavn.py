@@ -24,7 +24,7 @@ class JioSaavnSongIE(JioSaavnBaseIE):
         'md5': '3b84396d15ed9e083c3106f1fa589c04',
         'info_dict': {
             'id': 'OQsEfQFVUXk',
-            'ext': 'mp4',
+            'ext': 'm4a',
             'title': 'Leja Re',
             'album': 'Leja Re',
             'thumbnail': 'https://c.saavncdn.com/258/Leja-Re-Hindi-2018-20181124024539-500x500.jpg',
