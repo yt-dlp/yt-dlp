@@ -3,20 +3,20 @@ import re
 
 from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
+    OnDemandPagedList,
+    UserNotLive,
     date_from_str,
     determine_ext,
-    ExtractorError,
     filter_dict,
     int_or_none,
-    OnDemandPagedList,
-    traverse_obj,
     unified_strdate,
     unified_timestamp,
     url_or_none,
     urlencode_postdata,
-    UserNotLive,
     xpath_text,
 )
+from ..utils.traversal import traverse_obj
 
 
 class AfreecaTVIE(InfoExtractor):
