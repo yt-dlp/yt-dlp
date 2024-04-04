@@ -19,7 +19,49 @@ from ..utils import (
 from ..utils.traversal import traverse_obj
 
 
-class AfreecaTVIE(InfoExtractor):
+class AfreecaTVBaseIE(InfoExtractor):
+    _NETRC_MACHINE = 'afreecatv'
+
+    def _perform_login(self, username, password):
+        login_form = {
+            'szWork': 'login',
+            'szType': 'json',
+            'szUid': username,
+            'szPassword': password,
+            'isSaveId': 'false',
+            'szScriptVar': 'oLoginRet',
+            'szAction': '',
+        }
+
+        response = self._download_json(
+            'https://login.afreecatv.com/app/LoginAction.php', None,
+            'Logging in', data=urlencode_postdata(login_form))
+
+        _ERRORS = {
+            -4: 'Your account has been suspended due to a violation of our terms and policies.',
+            -5: 'https://member.afreecatv.com/app/user_delete_progress.php',
+            -6: 'https://login.afreecatv.com/membership/changeMember.php',
+            -8: "Hello! AfreecaTV here.\nThe username you have entered belongs to \n an account that requires a legal guardian's consent. \nIf you wish to use our services without restriction, \nplease make sure to go through the necessary verification process.",
+            -9: 'https://member.afreecatv.com/app/pop_login_block.php',
+            -11: 'https://login.afreecatv.com/afreeca/second_login.php',
+            -12: 'https://member.afreecatv.com/app/user_security.php',
+            0: 'The username does not exist or you have entered the wrong password.',
+            -1: 'The username does not exist or you have entered the wrong password.',
+            -3: 'You have entered your username/password incorrectly.',
+            -7: 'You cannot use your Global AfreecaTV account to access Korean AfreecaTV.',
+            -10: 'Sorry for the inconvenience. \nYour account has been blocked due to an unauthorized access. \nPlease contact our Help Center for assistance.',
+            -32008: 'You have failed to log in. Please contact our Help Center.',
+        }
+
+        result = int_or_none(response.get('RESULT'))
+        if result != 1:
+            error = _ERRORS.get(result, 'You have failed to log in.')
+            raise ExtractorError(
+                'Unable to login: %s said: %s' % (self.IE_NAME, error),
+                expected=True)
+
+
+class AfreecaTVIE(AfreecaTVBaseIE):
     IE_NAME = 'afreecatv'
     IE_DESC = 'afreecatv.com'
     _VALID_URL = r'''(?x)
@@ -137,44 +179,6 @@ class AfreecaTVIE(InfoExtractor):
             video_key['upload_date'] = m.group('upload_date')
             video_key['part'] = int(m.group('part'))
         return video_key
-
-    def _perform_login(self, username, password):
-        login_form = {
-            'szWork': 'login',
-            'szType': 'json',
-            'szUid': username,
-            'szPassword': password,
-            'isSaveId': 'false',
-            'szScriptVar': 'oLoginRet',
-            'szAction': '',
-        }
-
-        response = self._download_json(
-            'https://login.afreecatv.com/app/LoginAction.php', None,
-            'Logging in', data=urlencode_postdata(login_form))
-
-        _ERRORS = {
-            -4: 'Your account has been suspended due to a violation of our terms and policies.',
-            -5: 'https://member.afreecatv.com/app/user_delete_progress.php',
-            -6: 'https://login.afreecatv.com/membership/changeMember.php',
-            -8: "Hello! AfreecaTV here.\nThe username you have entered belongs to \n an account that requires a legal guardian's consent. \nIf you wish to use our services without restriction, \nplease make sure to go through the necessary verification process.",
-            -9: 'https://member.afreecatv.com/app/pop_login_block.php',
-            -11: 'https://login.afreecatv.com/afreeca/second_login.php',
-            -12: 'https://member.afreecatv.com/app/user_security.php',
-            0: 'The username does not exist or you have entered the wrong password.',
-            -1: 'The username does not exist or you have entered the wrong password.',
-            -3: 'You have entered your username/password incorrectly.',
-            -7: 'You cannot use your Global AfreecaTV account to access Korean AfreecaTV.',
-            -10: 'Sorry for the inconvenience. \nYour account has been blocked due to an unauthorized access. \nPlease contact our Help Center for assistance.',
-            -32008: 'You have failed to log in. Please contact our Help Center.',
-        }
-
-        result = int_or_none(response.get('RESULT'))
-        if result != 1:
-            error = _ERRORS.get(result, 'You have failed to log in.')
-            raise ExtractorError(
-                'Unable to login: %s said: %s' % (self.IE_NAME, error),
-                expected=True)
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -330,9 +334,9 @@ class AfreecaTVIE(InfoExtractor):
         return info
 
 
-class AfreecaTVLiveIE(AfreecaTVIE):  # XXX: Do not subclass from concrete IE
-
+class AfreecaTVLiveIE(AfreecaTVBaseIE):
     IE_NAME = 'afreecatv:live'
+    IE_DESC = 'afreecatv.com livestreams'
     _VALID_URL = r'https?://play\.afreeca(?:tv)?\.com/(?P<id>[^/]+)(?:/(?P<bno>\d+))?'
     _TESTS = [{
         'url': 'https://play.afreecatv.com/pyh3646/237852185',
@@ -361,6 +365,7 @@ class AfreecaTVLiveIE(AfreecaTVIE):  # XXX: Do not subclass from concrete IE
         channel_info = traverse_obj(self._download_json(
             self._LIVE_API_URL, broadcaster_id, data=urlencode_postdata({'bid': broadcaster_id})),
             ('CHANNEL', {dict})) or {}
+
         broadcaster_id = channel_info.get('BJID') or broadcaster_id
         broadcast_no = channel_info.get('BNO') or broadcast_no
         if not broadcast_no:
