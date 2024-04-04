@@ -183,16 +183,6 @@ class AfreecaTVIE(AfreecaTVBaseIE):
         elif error_code == -6205:
             raise ExtractorError('This VOD is private', expected=True)
 
-        flag = traverse_obj(data, ('flag', {str}))
-        if flag == 'PARTIAL_ADULT':
-            self.report_warning(
-                'In accordance with local laws and regulations, underage users are '
-                'restricted from watching adult content. Only content suitable for all '
-                f'ages will be downloaded. {self._login_hint(method="netrc")}')
-        elif flag == 'ADULT':
-            self.raise_login_required(
-                'Only users older than 19 are able to watch this video', method='netrc')
-
         common_info = traverse_obj(data, {
             'title': ('title', {str}),
             'uploader': ('writer_nick', {str}),
@@ -225,6 +215,18 @@ class AfreecaTVIE(AfreecaTVBaseIE):
                     'timestamp': ('file_start', {unified_timestamp}),
                 })
             })
+
+        if traverse_obj(data, ('adult_status', {str})) == 'notLogin':
+            if not entries:
+                self.raise_login_required(
+                    'Only users older than 19 are able to watch this video', method='password')
+            self.report_warning(
+                'In accordance with local laws and regulations, underage users are '
+                'restricted from watching adult content. Only content suitable for all '
+                f'ages will be downloaded. {self._login_hint("password")}')
+
+        if not entries and traverse_obj(data, ('sub_upload_type', {str})):
+            self.raise_login_required('This VOD is for subscribers only', method='password')
 
         if len(entries) == 1:
             return {
