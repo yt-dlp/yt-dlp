@@ -345,7 +345,7 @@ class CrunchyrollBetaIE(CrunchyrollCmsBaseIE):
         else:
             raise ExtractorError(f'Unknown object type {object_type}')
 
-        if not traverse_obj(response, (f'{object_type}_metadata', 'is_premium_only')):
+        if traverse_obj(response, (f'{object_type}_metadata', 'is_premium_only')):
             message = f'This {object_type} is for premium members only'
             if self.is_logged_in:
                 raise ExtractorError(message, expected=True)
