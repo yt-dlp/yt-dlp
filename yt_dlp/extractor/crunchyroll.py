@@ -354,6 +354,8 @@ class CrunchyrollBetaIE(CrunchyrollCmsBaseIE):
 
         if traverse_obj(response, (f'{object_type}_metadata', 'is_premium_only')) and not self.is_premium:
             message = f'This {object_type} is for premium members only'
+            if self.is_logged_in:
+                raise ExtractorError(message, expected=True)
             self.raise_login_required(message)
 
         # We need go from unsigned to signed api to avoid getting soft banned
@@ -555,6 +557,8 @@ class CrunchyrollMusicIE(CrunchyrollBaseIE):
 
         if response.get('isPremiumOnly') and not self.is_premium:
             message = f'This {response.get("type") or "media"} is for premium members only'
+            if self.is_logged_in:
+                raise ExtractorError(message, expected=True)
             self.raise_login_required(message)
 
         result = self._transform_music_response(response)
