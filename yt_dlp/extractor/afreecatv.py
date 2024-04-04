@@ -3,11 +3,12 @@ import re
 
 from .common import InfoExtractor
 from ..utils import (
-    ExtractorError,
-    OnDemandPagedList,
     date_from_str,
     determine_ext,
+    ExtractorError,
+    filter_dict,
     int_or_none,
+    OnDemandPagedList,
     traverse_obj,
     unified_strdate,
     unified_timestamp,
@@ -15,7 +16,6 @@ from ..utils import (
     urlencode_postdata,
     UserNotLive,
     xpath_text,
-    filter_dict,
 )
 
 
@@ -360,7 +360,7 @@ class AfreecaTVLiveIE(AfreecaTVIE):  # XXX: Do not subclass from concrete IE
         broadcaster_id, broadcast_no = self._match_valid_url(url).group('id', 'bno')
         channel_info = traverse_obj(self._download_json(
             self._LIVE_API_URL, broadcaster_id, data=urlencode_postdata({'bid': broadcaster_id})),
-            'CHANNEL') or {}
+            ('CHANNEL', {dict})) or {}
         broadcaster_id = channel_info.get('BJID') or broadcaster_id
         broadcast_no = channel_info.get('BNO') or broadcast_no
         if not broadcast_no:
