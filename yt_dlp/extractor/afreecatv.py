@@ -166,6 +166,18 @@ class AfreecaTVIE(AfreecaTVBaseIE):
         'params': {
             'skip_download': True,
         },
+    }, {
+        # adult content
+        'url': 'https://vod.afreecatv.com/player/70395877',
+        'only_matching': True,
+    }, {
+        # subscribers only
+        'url': 'https://vod.afreecatv.com/player/104647403',
+        'only_matching': True,
+    }, {
+        # private
+        'url': 'https://vod.afreecatv.com/player/81669846',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
