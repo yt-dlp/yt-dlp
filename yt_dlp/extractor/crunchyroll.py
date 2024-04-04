@@ -142,6 +142,25 @@ class CrunchyrollBaseIE(InfoExtractor):
             raise ExtractorError(f'Unexpected response when downloading {note} JSON')
         return result
 
+    def _extract_chapters(self, internal_id):
+        # if no skip events are available, a 403 xml error is returned
+        skip_events = self._download_json(
+            f'https://static.crunchyroll.com/skip-events/production/{internal_id}.json',
+            internal_id, note='Downloading chapter info', fatal=False, errnote=False) or {}
+
+        chapters = []
+        for event in ('recap', 'intro', 'credits', 'preview'):
+            start = skip_events.get(event, {}).get('start')
+            end = skip_events.get(event, {}).get('end')
+
+            # some chapters have no start and/or ending time, they will just be ignored
+            if start is None or end is None:
+                continue
+
+            chapters.append({'title': event.capitalize(), 'start_time': start, 'end_time': end})
+
+        return chapters
+
     def _extract_formats(self, identifier, display_id=None):
         if not display_id:
             display_id = identifier
@@ -370,16 +389,7 @@ class CrunchyrollBetaIE(CrunchyrollCmsBaseIE):
 
         result['formats'], result['subtitles'] = self._extract_formats(internal_id)
 
-        # if no intro chapter is available, a 403 without usable data is returned
-        intro_chapter = self._download_json(
-            f'https://static.crunchyroll.com/datalab-intro-v2/{internal_id}.json',
-            internal_id, note='Downloading chapter info', fatal=False, errnote=False)
-        if isinstance(intro_chapter, dict):
-            result['chapters'] = [{
-                'title': 'Intro',
-                'start_time': float_or_none(intro_chapter.get('startTime')),
-                'end_time': float_or_none(intro_chapter.get('endTime')),
-            }]
+        result['chapters'] = self._extract_chapters(internal_id)
 
         def calculate_count(item):
             return parse_count(''.join((item['displayed'], item.get('unit') or '')))
