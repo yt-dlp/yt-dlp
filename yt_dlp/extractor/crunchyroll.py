@@ -8,6 +8,7 @@ from ..utils import (
     float_or_none,
     format_field,
     int_or_none,
+    jwt_decode_hs256,
     parse_age_limit,
     parse_count,
     parse_iso8601,
@@ -23,6 +24,7 @@ class CrunchyrollBaseIE(InfoExtractor):
     _BASE_URL = 'https://www.crunchyroll.com'
     _API_BASE = 'https://api.crunchyroll.com'
     _NETRC_MACHINE = 'crunchyroll'
+    _ACCESS_TOKEN = None
     _AUTH_HEADERS = None
     _API_ENDPOINT = None
     _BASIC_AUTH = None
@@ -44,6 +46,10 @@ class CrunchyrollBaseIE(InfoExtractor):
     @property
     def is_logged_in(self):
         return bool(self._get_cookies(self._BASE_URL).get('etp_rt'))
+
+    @property
+    def is_premium(self):
+        return 'cr_premium' in jwt_decode_hs256(self._ACCESS_TOKEN).get('benefits', [])
 
     def _perform_login(self, username, password):
         if self.is_logged_in:
@@ -100,6 +106,7 @@ class CrunchyrollBaseIE(InfoExtractor):
                     'and your browser\'s User-Agent (with --user-agent)', expected=True)
             raise
 
+        CrunchyrollBaseIE._ACCESS_TOKEN = auth_response['access_token']
         CrunchyrollBaseIE._AUTH_HEADERS = {'Authorization': auth_response['token_type'] + ' ' + auth_response['access_token']}
         CrunchyrollBaseIE._AUTH_REFRESH = time_seconds(seconds=traverse_obj(auth_response, ('expires_in', {float_or_none}), default=300) - 10)
 
@@ -345,10 +352,8 @@ class CrunchyrollBetaIE(CrunchyrollCmsBaseIE):
         else:
             raise ExtractorError(f'Unknown object type {object_type}')
 
-        if traverse_obj(response, (f'{object_type}_metadata', 'is_premium_only')):
+        if traverse_obj(response, (f'{object_type}_metadata', 'is_premium_only')) and not self.is_premium:
             message = f'This {object_type} is for premium members only'
-            if self.is_logged_in:
-                raise ExtractorError(message, expected=True)
             self.raise_login_required(message)
 
         # We need go from unsigned to signed api to avoid getting soft banned
@@ -548,10 +553,8 @@ class CrunchyrollMusicIE(CrunchyrollBaseIE):
         if not response:
             raise ExtractorError(f'No video with id {internal_id} could be found (possibly region locked?)', expected=True)
 
-        if response.get('isPremiumOnly'):
+        if response.get('isPremiumOnly') and not self.is_premium:
             message = f'This {response.get("type") or "media"} is for premium members only'
-            if self.is_logged_in:
-                raise ExtractorError(message, expected=True)
             self.raise_login_required(message)
 
         result = self._transform_music_response(response)
