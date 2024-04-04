@@ -89,11 +89,13 @@ class CrunchyrollBaseIE(InfoExtractor):
             self.write_debug(f'Using cxApiParam={cx_api_param}')
             CrunchyrollBaseIE._BASIC_AUTH = 'Basic ' + base64.b64encode(f'{cx_api_param}:'.encode()).decode()
 
-        grant_type = 'etp_rt_cookie' if self.is_logged_in else 'client_id'
+        auth_headers = {'Authorization': CrunchyrollBaseIE._BASIC_AUTH}
+        if self.is_logged_in:
+            grant_type = 'etp_rt_cookie'
+        else:
+            grant_type = 'client_id'
+            auth_headers['ETP-Anonymous-ID'] = uuid.uuid4()
         try:
-            auth_headers = {'Authorization': CrunchyrollBaseIE._BASIC_AUTH}
-            if not self.is_logged_in:
-                auth_headers['ETP-Anonymous-ID'] = uuid.uuid4()
 
             auth_response = self._download_json(
                 f'{self._BASE_URL}/auth/v1/token', None, note=f'Authenticating with grant_type={grant_type}',
