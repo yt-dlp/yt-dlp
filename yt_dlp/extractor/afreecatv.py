@@ -72,7 +72,6 @@ class AfreecaTVIE(AfreecaTVBaseIE):
                         )
                         (?P<id>\d+)
                     '''
-    _NETRC_MACHINE = 'afreecatv'
     _TESTS = [{
         'url': 'http://live.afreecatv.com:8079/app/index.cgi?szType=read_ucc_bbs&szBjId=dailyapril&nStationNo=16711924&nBbsNo=18605867&nTitleNo=36164052&szSkin=',
         'md5': 'f72c89fe7ecc14c1b5ce506c4996046e',
