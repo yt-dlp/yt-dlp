@@ -397,9 +397,6 @@ class AfreecaTVLiveIE(AfreecaTVIE):  # XXX: Do not subclass from concrete IE
             'https://st.afreecatv.com/api/get_station_status.php', broadcast_no,
             'Downloading channel metadata', 'Unable to download channel metadata',
             query={'szBjId': broadcaster_id}, fatal=False), {dict}) or {}
-        # Add Referer to download the segments
-        for f in formats:
-            f.setdefault('http_headers', {})['Referer'] = url
 
         return {
             'id': broadcast_no,
@@ -409,6 +406,7 @@ class AfreecaTVLiveIE(AfreecaTVIE):  # XXX: Do not subclass from concrete IE
             'timestamp': unified_timestamp(station_info.get('broad_start')),
             'formats': formats,
             'is_live': True,
+            'http_headers': {'Referer': url},
         }
 
 
