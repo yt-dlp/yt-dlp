@@ -83,6 +83,7 @@ class AfreecaTVIE(InfoExtractor):
             'uploader': '♥이슬이',
             'uploader_id': 'dasl8121',
             'upload_date': '20170411',
+            'timestamp': 1491929865,
             'duration': 213,
         },
         'params': {
@@ -116,8 +117,9 @@ class AfreecaTVIE(InfoExtractor):
             'uploader_id': 'rlantnghks',
             'uploader': '페이즈으',
             'duration': 10840,
-            'thumbnail': 'http://videoimg.afreecatv.com/php/SnapshotLoad.php?rowKey=20230108_9FF5BEE1_244432674_1_r',
+            'thumbnail': r're:https?://videoimg\.afreecatv\.com/.+',
             'upload_date': '20230108',
+            'timestamp': 1673218805,
             'title': '젠지 페이즈',
         },
         'params': {
