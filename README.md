@@ -481,6 +481,9 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
     --max-downloads NUMBER          Abort after downloading NUMBER files
     --break-on-existing             Stop the download process when encountering
                                     a file that is in the archive
+    --no-break-on-existing          Do not stop the download process when
+                                    encountering a file that is in the archive
+                                    (default)
     --break-per-input               Alters --max-downloads, --break-on-existing,
                                     --break-match-filter, and autonumber to
                                     reset per input URL
@@ -1472,9 +1475,9 @@ The following numeric meta fields can be used with comparisons `<`, `<=`, `>`, `
  - `width`: Width of the video, if known
  - `height`: Height of the video, if known
  - `aspect_ratio`: Aspect ratio of the video, if known
- - `tbr`: Average bitrate of audio and video in KBit/s
- - `abr`: Average audio bitrate in KBit/s
- - `vbr`: Average video bitrate in KBit/s
+ - `tbr`: Average bitrate of audio and video in [kbps](## "1000 bits/sec")
+ - `abr`: Average audio bitrate in [kbps](## "1000 bits/sec")
+ - `vbr`: Average video bitrate in [kbps](## "1000 bits/sec")
  - `asr`: Audio sampling rate in Hertz
  - `fps`: Frame rate
  - `audio_channels`: The number of audio channels
@@ -1499,7 +1502,7 @@ Any string comparison may be prefixed with negation `!` in order to produce an o
 
 **Note**: None of the aforementioned meta fields are guaranteed to be present since this solely depends on the metadata obtained by particular extractor, i.e. the metadata offered by the website. Any other field made available by the extractor can also be used for filtering.
 
-Formats for which the value is not known are excluded unless you put a question mark (`?`) after the operator. You can combine format filters, so `-f "bv[height<=?720][tbr>500]"` selects up to 720p videos (or videos where the height is not known) with a bitrate of at least 500 KBit/s. You can also use the filters with `all` to download all formats that satisfy the filter, e.g. `-f "all[vcodec=none]"` selects all audio-only formats.
+Formats for which the value is not known are excluded unless you put a question mark (`?`) after the operator. You can combine format filters, so `-f "bv[height<=?720][tbr>500]"` selects up to 720p videos (or videos where the height is not known) with a bitrate of at least 500 kbps. You can also use the filters with `all` to download all formats that satisfy the filter, e.g. `-f "all[vcodec=none]"` selects all audio-only formats.
 
 Format selectors can also be grouped using parentheses; e.g. `-f "(mp4,webm)[height<480]"` will download the best pre-merged mp4 and webm formats with a height lower than 480.
 
@@ -1531,10 +1534,10 @@ The available fields are:
  - `fps`: Framerate of video
  - `hdr`: The dynamic range of the video (`DV` > `HDR12` > `HDR10+` > `HDR10` > `HLG` > `SDR`)
  - `channels`: The number of audio channels
- - `tbr`: Total average bitrate in KBit/s
- - `vbr`: Average video bitrate in KBit/s
- - `abr`: Average audio bitrate in KBit/s
- - `br`: Average bitrate in KBit/s, `tbr`/`vbr`/`abr`
+ - `tbr`: Total average bitrate in [kbps](## "1000 bits/sec")
+ - `vbr`: Average video bitrate in [kbps](## "1000 bits/sec")
+ - `abr`: Average audio bitrate in [kbps](## "1000 bits/sec")
+ - `br`: Average bitrate in [kbps](## "1000 bits/sec"), `tbr`/`vbr`/`abr`
  - `asr`: Audio sample rate in Hz
  
 **Deprecation warning**: Many of these fields have (currently undocumented) aliases, that may be removed in a future version. It is recommended to use only the documented field names.
@@ -1805,9 +1808,12 @@ The following extractors use this feature:
 * `max_comments`: Maximum number of comments to extract - default is `120`
 
 #### tiktok
-* `api_hostname`: Hostname to use for mobile API requests, e.g. `api-h2.tiktokv.com`
-* `app_version`: App version to call mobile APIs with - should be set along with `manifest_app_version`, e.g. `20.2.1`
-* `manifest_app_version`: Numeric app version to call mobile APIs with, e.g. `221`
+* `api_hostname`: Hostname to use for mobile API calls, e.g. `api22-normal-c-alisg.tiktokv.com`
+* `app_name`: Default app name to use with mobile API calls, e.g. `trill`
+* `app_version`: Default app version to use with mobile API calls - should be set along with `manifest_app_version`, e.g. `34.1.2`
+* `manifest_app_version`: Default numeric app version to use with mobile API calls, e.g. `2023401020`
+* `aid`: Default app ID to use with API calls, e.g. `1180`
+* `app_info`: One or more app info strings in the format of `<iid>/[app_name]/[app_version]/[manifest_app_version]/[aid]`, where `iid` is the unique app install ID. `iid` is the only required value; all other values and their `/` separators can be omitted, e.g. `tiktok:app_info=1234567890123456789` or `tiktok:app_info=123,456/trill///1180,789//34.0.1/340001`
 
 #### rokfinchannel
 * `tab`: Which tab to download - one of `new`, `top`, `videos`, `podcasts`, `streams`, `stacks`

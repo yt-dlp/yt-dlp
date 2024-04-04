@@ -69,8 +69,10 @@ dev = [
     "isort",
     "pytest",
 ]
-pyinstaller = ["pyinstaller>=6.3"]
-pyinstaller_macos = ["pyinstaller==5.13.2"]  # needed for curl_cffi builds
+pyinstaller = [
+    "pyinstaller>=6.3; sys_platform!='darwin'",
+    "pyinstaller==5.13.2; sys_platform=='darwin'",  # needed for curl_cffi
+]
 py2exe = ["py2exe>=0.12"]
 
 [project.urls]
