@@ -103,7 +103,7 @@ class CrunchyrollBaseIE(InfoExtractor):
                     'and your browser\'s User-Agent (with --user-agent)', expected=True)
             raise
 
-        CrunchyrollBaseIE._IS_PREMIUM = 'cr_premium' in jwt_decode_hs256(auth_response['access_token']).get('benefits', [])
+        CrunchyrollBaseIE._IS_PREMIUM = 'cr_premium' in traverse_obj(auth_response, ('access_token', {jwt_decode_hs256}, 'benefits', ...))
         CrunchyrollBaseIE._AUTH_HEADERS = {'Authorization': auth_response['token_type'] + ' ' + auth_response['access_token']}
         CrunchyrollBaseIE._AUTH_REFRESH = time_seconds(seconds=traverse_obj(auth_response, ('expires_in', {float_or_none}), default=300) - 10)
 
@@ -146,24 +146,26 @@ class CrunchyrollBaseIE(InfoExtractor):
         # if no skip events are available, a 403 xml error is returned
         skip_events = self._download_json(
             f'https://static.crunchyroll.com/skip-events/production/{internal_id}.json',
-            internal_id, note='Downloading chapter info', fatal=False, errnote=False) or {}
+            internal_id, note='Downloading chapter info', fatal=False, errnote=False)
+        if not skip_events:
+            return None
 
         chapters = []
         for event in ('recap', 'intro', 'credits', 'preview'):
-            start = skip_events.get(event, {}).get('start')
-            end = skip_events.get(event, {}).get('end')
-
+            start = traverse_obj(skip_events, (event, 'start', {float_or_none}))
+            end = traverse_obj(skip_events, (event, 'start', {float_or_none}))
             # some chapters have no start and/or ending time, they will just be ignored
             if start is None or end is None:
                 continue
-
             chapters.append({'title': event.capitalize(), 'start_time': start, 'end_time': end})
 
         return chapters
 
-    def _extract_formats(self, identifier, display_id=None):
+    def _extract_stream(self, identifier, display_id=None):
         if not display_id:
             display_id = identifier
+
+        self._update_auth()
         stream_response = self._download_json(
             f'https://cr-play-service.prd.crunchyrollsvc.com/v1/{identifier}/console/switch/play',
             display_id, note='stream info', headers=CrunchyrollBaseIE._AUTH_HEADERS)
@@ -381,13 +383,13 @@ class CrunchyrollBetaIE(CrunchyrollCmsBaseIE):
         else:
             raise ExtractorError(f'Unknown object type {object_type}')
 
-        if traverse_obj(response, (f'{object_type}_metadata', 'is_premium_only')) and not self._IS_PREMIUM:
+        if not self._IS_PREMIUM and traverse_obj(response, (f'{object_type}_metadata', 'is_premium_only')):
             message = f'This {object_type} is for premium members only'
             if self.is_logged_in:
                 raise ExtractorError(message, expected=True)
             self.raise_login_required(message)
 
-        result['formats'], result['subtitles'] = self._extract_formats(internal_id)
+        result['formats'], result['subtitles'] = self._extract_stream(internal_id)
 
         result['chapters'] = self._extract_chapters(internal_id)
 
@@ -572,14 +574,14 @@ class CrunchyrollMusicIE(CrunchyrollBaseIE):
         if not response:
             raise ExtractorError(f'No video with id {internal_id} could be found (possibly region locked?)', expected=True)
 
-        if response.get('isPremiumOnly') and not self._IS_PREMIUM:
+        if not self._IS_PREMIUM and response.get('isPremiumOnly'):
             message = f'This {response.get("type") or "media"} is for premium members only'
             if self.is_logged_in:
                 raise ExtractorError(message, expected=True)
             self.raise_login_required(message)
 
         result = self._transform_music_response(response)
-        result['formats'], _ = self._extract_formats(f'music/{internal_id}', internal_id)
+        result['formats'], _ = self._extract_stream(f'music/{internal_id}', internal_id)
 
         return result
 
