@@ -4,7 +4,6 @@ from .common import InfoExtractor
 from .vimeo import VimeoIE
 from ..compat import compat_urllib_parse_unquote
 from ..networking.exceptions import HTTPError
-from ..networking import HEADRequest
 from ..utils import (
     KNOWN_EXTENSIONS,
     ExtractorError,
@@ -252,7 +251,7 @@ class PatreonIE(PatreonBaseIE):
                 self._search_regex(r'(https(?:%3A%2F%2F|://)player\.vimeo\.com.+app_id(?:=|%3D)+\d+)', embed_html, 'vimeo url', fatal=False)))
             if v_url:
                 vimeo_embed_url = VimeoIE._smuggle_referrer(v_url, 'https://patreon.com')
-                response = self._request_webpage(HEADRequest(vimeo_embed_url), video_id, fatal=False)
+                response = self._request_webpage(vimeo_embed_url, video_id, fatal=False)
 
                 if response is not False:
                     return {
@@ -264,7 +263,7 @@ class PatreonIE(PatreonBaseIE):
 
         embed_url = try_get(attributes, lambda x: x['embed']['url'])
         if embed_url:
-            response = self._request_webpage(HEADRequest(embed_url), video_id, fatal=False)
+            response = self._request_webpage(embed_url, video_id, fatal=False)
 
             if response is not False:
                 return {
