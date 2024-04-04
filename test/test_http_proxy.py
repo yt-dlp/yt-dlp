@@ -156,9 +156,8 @@ class HTTPConnectProxyHandler(BaseHTTPRequestHandler, HTTPProxyAuthMixin):
             'path': self.path,
             'proxy': ':'.join(str(y) for y in self.connection.getsockname()),
         }
-        request = self.request
         self.request_handler(self.request, self.client_address, self.server, proxy_info=proxy_info)
-        self.server.close_request(request)
+        self.server.close_request(self.request)
 
 
 class HTTPSConnectProxyHandler(HTTPConnectProxyHandler):
@@ -167,7 +166,12 @@ class HTTPSConnectProxyHandler(HTTPConnectProxyHandler):
         sslctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
         sslctx.load_cert_chain(certfn, None)
         request = sslctx.wrap_socket(request, server_side=True)
+        self._original_request = request
         super().__init__(request, *args, **kwargs)
+
+    def do_CONNECT(self):
+        super().do_CONNECT()
+        self.server.close_request(self._original_request)
 
 
 @contextlib.contextmanager
