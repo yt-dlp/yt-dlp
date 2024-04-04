@@ -359,8 +359,8 @@ class AfreecaTVLiveIE(AfreecaTVIE):  # XXX: Do not subclass from concrete IE
     def _real_extract(self, url):
         broadcaster_id, broadcast_no = self._match_valid_url(url).group('id', 'bno')
         channel_info = traverse_obj(self._download_json(
-            self._LIVE_API_URL, broadcaster_id, data=urlencode_postdata({'bid': broadcaster_id}))
-            , 'CHANNEL') or {}
+            self._LIVE_API_URL, broadcaster_id, data=urlencode_postdata({'bid': broadcaster_id})),
+            'CHANNEL') or {}
         broadcaster_id = channel_info.get('BJID') or broadcaster_id
         broadcast_no = channel_info.get('BNO') or broadcast_no
         if not broadcast_no:
