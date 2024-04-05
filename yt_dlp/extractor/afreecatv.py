@@ -246,6 +246,8 @@ class AfreecaTVIE(AfreecaTVBaseIE):
                 'title': common_info.get('title'),
             }
 
+        common_info['timestamp'] = traverse_obj(entries, (..., 'timestamp'), get_all=False)
+
         return self.playlist_result(entries, video_id, multi_video=True, **common_info)
 
 
