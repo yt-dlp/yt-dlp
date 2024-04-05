@@ -211,7 +211,7 @@ class CrunchyrollBaseIE(InfoExtractor):
             formats.extend(adaptive_formats)
 
         subtitles = {}
-        for locale, subtitle in traverse_obj(stream_response, ((None, 'meta'), 'subtitles', {dict.items}, ...)):
+        for locale, subtitle in traverse_obj(stream_response, (('subtitles', 'captions'), {dict.items}, ...)):
             subtitles[locale] = [traverse_obj(subtitle, {'url': 'url', 'ext': 'format'})]
 
         return formats, subtitles
