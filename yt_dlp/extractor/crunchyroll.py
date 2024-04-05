@@ -153,7 +153,7 @@ class CrunchyrollBaseIE(InfoExtractor):
         chapters = []
         for event in ('recap', 'intro', 'credits', 'preview'):
             start = traverse_obj(skip_events, (event, 'start', {float_or_none}))
-            end = traverse_obj(skip_events, (event, 'start', {float_or_none}))
+            end = traverse_obj(skip_events, (event, 'end', {float_or_none}))
             # some chapters have no start and/or ending time, they will just be ignored
             if start is None or end is None:
                 continue
