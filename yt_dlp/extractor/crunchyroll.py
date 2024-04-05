@@ -175,10 +175,12 @@ class CrunchyrollBaseIE(InfoExtractor):
             available_formats[hardsub_lang] = (f'hardsub-{hardsub_lang}', hardsub_lang, stream['url'])
 
         requested_hardsubs = [('' if val == 'none' else val) for val in (self._configuration_arg('hardsub') or ['none'])]
-        if '' in available_formats and 'all' not in requested_hardsubs:
+        hardsub_langs = [lang for lang in available_formats if lang]
+        if hardsub_langs and 'all' not in requested_hardsubs:
             full_format_langs = set(requested_hardsubs)
+            self.to_screen(f'Available hardsub languages: {", ".join(hardsub_langs)}')
             self.to_screen(
-                'To get all formats of a hardsub language, use '
+                'To extract formats of a hardsub language, use '
                 '"--extractor-args crunchyrollbeta:hardsub=<language_code or all>". '
                 'See https://github.com/yt-dlp/yt-dlp#crunchyrollbeta-crunchyroll for more info',
                 only_once=True)
@@ -195,16 +197,7 @@ class CrunchyrollBaseIE(InfoExtractor):
                     fatal=False, note=f'Downloading {f"{format_id} " if hardsub_lang else ""}MPD manifest')
                 self._merge_subtitles(dash_subs, target=subtitles)
             else:
-                adaptive_formats = [{
-                    'format_id': format_id,
-                    'url': stream_url,
-                    'ext': None,
-                    'protocol': 'http_dash_segments',
-                    'preference': -100,
-                    'quality': None,
-                    'resolution': 'multiple',
-                    'format_note': 'Quality selection URL'
-                }]
+                continue  # XXX: Update this if/when meta mpd formats are working
             for f in adaptive_formats:
                 if f.get('acodec') != 'none':
                     f['language'] = audio_locale
