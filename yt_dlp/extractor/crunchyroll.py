@@ -187,7 +187,7 @@ class CrunchyrollBaseIE(InfoExtractor):
 
         audio_locale = traverse_obj(stream_response, ('audioLocale', {str}))
         hardsub_preference = qualities(requested_hardsubs[::-1])
-        formats, subtitles, dash_subs = [], {}, {}
+        formats, subtitles = [], {}
         for format_id, hardsub_lang, stream_url in available_formats.values():
             if hardsub_lang.lower() in full_format_langs:
                 adaptive_formats, dash_subs = self._extract_mpd_formats_and_subtitles(
