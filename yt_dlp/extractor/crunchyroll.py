@@ -210,7 +210,7 @@ class CrunchyrollBaseIE(InfoExtractor):
                 f['quality'] = hardsub_preference(hardsub_lang.lower())
             formats.extend(adaptive_formats)
 
-        for locale, caption in traverse_obj(stream_response, (('subtitles', 'captions'), {dict.items}, ...)):
+        for locale, subtitle in traverse_obj(stream_response, (('subtitles', 'captions'), {dict.items}, ...)):
             subtitles.setdefault(locale, []).append(traverse_obj(subtitle, {'url': 'url', 'ext': 'format'}))
 
         return formats, subtitles
