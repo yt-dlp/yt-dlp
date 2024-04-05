@@ -171,7 +171,7 @@ class CrunchyrollBaseIE(InfoExtractor):
             display_id, note='stream info', headers=CrunchyrollBaseIE._AUTH_HEADERS)
 
         available_formats = {'': ('', '', stream_response['url'])}
-        for hardsub_lang, stream in traverse_obj(stream_response, 'hardSubs', lambda _, v: v['url'], default={}).items():
+        for hardsub_lang, stream in traverse_obj(stream_response, ('hardSubs', {dict.items}, lambda _, v: v[1]['url'])):
             available_formats[hardsub_lang] = (f'hardsub-{hardsub_lang}', hardsub_lang, stream['url'])
 
         requested_hardsubs = [('' if val == 'none' else val) for val in (self._configuration_arg('hardsub') or ['none'])]
