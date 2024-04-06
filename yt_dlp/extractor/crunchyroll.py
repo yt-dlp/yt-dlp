@@ -262,7 +262,11 @@ class CrunchyrollBetaIE(CrunchyrollCmsBaseIE):
             'like_count': int,
             'dislike_count': int,
         },
-        'params': {'skip_download': 'm3u8', 'format': 'all[format_id~=hardsub]'},
+        'params': {
+            'skip_download': 'm3u8',
+            'extractor_args': {'crunchyrollbeta': {'hardsub': ['de-DE']}},
+            'format': 'bv[format_id~=hardsub]',
+        },
     }, {
         # Premium only
         'url': 'https://www.crunchyroll.com/watch/GYE5WKQGR',
@@ -323,6 +327,7 @@ class CrunchyrollBetaIE(CrunchyrollCmsBaseIE):
             'thumbnail': r're:^https://www.crunchyroll.com/imgsrv/.*\.jpeg?$',
         },
         'params': {'skip_download': 'm3u8'},
+        'skip': 'no longer exists',
     }, {
         'url': 'https://www.crunchyroll.com/watch/G62PEZ2E6',
         'info_dict': {
@@ -513,7 +518,7 @@ class CrunchyrollMusicIE(CrunchyrollBaseIE):
             'display_id': 'egaono-hana',
             'title': 'Egaono Hana',
             'track': 'Egaono Hana',
-            'artist': 'Goose house',
+            'artists': ['Goose house'],
             'thumbnail': r're:(?i)^https://www.crunchyroll.com/imgsrv/.*\.jpeg?$',
             'genres': ['J-Pop'],
         },
@@ -526,11 +531,12 @@ class CrunchyrollMusicIE(CrunchyrollBaseIE):
             'display_id': 'crossing-field',
             'title': 'Crossing Field',
             'track': 'Crossing Field',
-            'artist': 'LiSA',
+            'artists': ['LiSA'],
             'thumbnail': r're:(?i)^https://www.crunchyroll.com/imgsrv/.*\.jpeg?$',
             'genres': ['Anime'],
         },
         'params': {'skip_download': 'm3u8'},
+        'skip': 'no longer exists',
     }, {
         'url': 'https://www.crunchyroll.com/watch/concert/MC2E2AC135',
         'info_dict': {
@@ -539,7 +545,7 @@ class CrunchyrollMusicIE(CrunchyrollBaseIE):
             'display_id': 'live-is-smile-always-364joker-at-yokohama-arena',
             'title': 'LiVE is Smile Always-364+JOKER- at YOKOHAMA ARENA',
             'track': 'LiVE is Smile Always-364+JOKER- at YOKOHAMA ARENA',
-            'artist': 'LiSA',
+            'artists': ['LiSA'],
             'thumbnail': r're:(?i)^https://www.crunchyroll.com/imgsrv/.*\.jpeg?$',
             'description': 'md5:747444e7e6300907b7a43f0a0503072e',
             'genres': ['J-Pop'],
@@ -586,7 +592,7 @@ class CrunchyrollMusicIE(CrunchyrollBaseIE):
                 'display_id': 'slug',
                 'title': 'title',
                 'track': 'title',
-                'artist': ('artist', 'name'),
+                'artists': ('artist', 'name', all),
                 'description': ('description', {str}, {lambda x: x.replace(r'\r\n', '\n') or None}),
                 'thumbnails': ('images', ..., ..., {
                     'url': ('source', {url_or_none}),
@@ -610,7 +616,7 @@ class CrunchyrollArtistIE(CrunchyrollBaseIE):
         'info_dict': {
             'id': 'MA179CB50D',
             'title': 'LiSA',
-            'genres': ['J-Pop', 'Anime', 'Rock'],
+            'genres': ['Anime', 'J-Pop', 'Rock'],
             'description': 'md5:16d87de61a55c3f7d6c454b73285938e',
         },
         'playlist_mincount': 83,
