@@ -120,5 +120,15 @@
         "when": "15f22b4880b6b3f71f350c64d70976ae65b9f1ca",
         "short": "[webvtt] Allow spaces before newlines for CueBlock (#7681)",
         "authors": ["TSRBerry"]
+    },
+    {
+        "action": "change",
+        "when": "4ce57d3b873c2887814cbec03d029533e82f7db5",
+        "short": "[ie] Support multi-period MPD streams (#6654)",
+        "authors": ["alard", "pukkandan"]
+    },
+    {
+        "action": "remove",
+        "when": "22e4dfacb61f62dfbb3eb41b31c7b69ba1059b80"
     }
 ]

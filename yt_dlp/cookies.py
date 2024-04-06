@@ -1,6 +1,7 @@
 import base64
 import collections
 import contextlib
+import datetime as dt
 import glob
 import http.cookiejar
 import http.cookies
@@ -15,7 +16,6 @@ import sys
 import tempfile
 import time
 import urllib.request
-from datetime import datetime, timedelta, timezone
 from enum import Enum, auto
 from hashlib import pbkdf2_hmac
 
@@ -121,7 +121,7 @@ def _extract_firefox_cookies(profile, container, logger):
     logger.info('Extracting cookies from firefox')
     if not sqlite3:
         logger.warning('Cannot extract cookies from firefox without sqlite3 support. '
-                       'Please use a python interpreter compiled with sqlite3 support')
+                       'Please use a Python interpreter compiled with sqlite3 support')
         return YoutubeDLCookieJar()
 
     if profile is None:
@@ -264,7 +264,7 @@ def _extract_chrome_cookies(browser_name, profile, keyring, logger):
 
     if not sqlite3:
         logger.warning(f'Cannot extract cookies from {browser_name} without sqlite3 support. '
-                       'Please use a python interpreter compiled with sqlite3 support')
+                       'Please use a Python interpreter compiled with sqlite3 support')
         return YoutubeDLCookieJar()
 
     config = _get_chromium_based_browser_settings(browser_name)
@@ -594,7 +594,7 @@ class DataParser:
 
 
 def _mac_absolute_time_to_posix(timestamp):
-    return int((datetime(2001, 1, 1, 0, 0, tzinfo=timezone.utc) + timedelta(seconds=timestamp)).timestamp())
+    return int((dt.datetime(2001, 1, 1, 0, 0, tzinfo=dt.timezone.utc) + dt.timedelta(seconds=timestamp)).timestamp())
 
 
 def _parse_safari_cookies_header(data, logger):

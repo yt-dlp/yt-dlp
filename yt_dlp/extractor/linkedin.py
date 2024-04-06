@@ -1,4 +1,4 @@
-from itertools import zip_longest
+import itertools
 import re
 
 from .common import InfoExtractor
@@ -156,7 +156,7 @@ class LinkedInLearningIE(LinkedInLearningBaseIE):
 
     def json2srt(self, transcript_lines, duration=None):
         srt_data = ''
-        for line, (line_dict, next_dict) in enumerate(zip_longest(transcript_lines, transcript_lines[1:])):
+        for line, (line_dict, next_dict) in enumerate(itertools.zip_longest(transcript_lines, transcript_lines[1:])):
             start_time, caption = line_dict['transcriptStartAt'] / 1000, line_dict['caption']
             end_time = next_dict['transcriptStartAt'] / 1000 if next_dict else duration or start_time + 1
             srt_data += '%d\n%s --> %s\n%s\n\n' % (line + 1, srt_subtitles_timecode(start_time),

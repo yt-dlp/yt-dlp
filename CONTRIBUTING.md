@@ -79,7 +79,7 @@ Before reporting any issue, type `yt-dlp -U`. This should report that you're up-
 
 ###  Is the issue already documented?
 
-Make sure that someone has not already opened the issue you're trying to open. Search at the top of the window or browse the [GitHub Issues](https://github.com/yt-dlp/yt-dlp/search?type=Issues) of this repository. If there is an issue, subcribe to it to be notified when there is any progress. Unless you have something useful to add to the converation, please refrain from commenting.
+Make sure that someone has not already opened the issue you're trying to open. Search at the top of the window or browse the [GitHub Issues](https://github.com/yt-dlp/yt-dlp/search?type=Issues) of this repository. If there is an issue, subscribe to it to be notified when there is any progress. Unless you have something useful to add to the conversation, please refrain from commenting.
 
 Additionally, it is also helpful to see if the issue has already been documented in the [youtube-dl issue tracker](https://github.com/ytdl-org/youtube-dl/issues). If similar issues have already been reported in youtube-dl (but not in our issue tracker), links to them can be included in your issue report here.
 
@@ -138,11 +138,11 @@ Most users do not need to build yt-dlp and can [download the builds](https://git
 
 To run yt-dlp as a developer, you don't need to build anything either. Simply execute
 
-    python -m yt_dlp
+    python3 -m yt_dlp
 
 To run all the available core tests, use:
 
-    python devscripts/run_tests.py
+    python3 devscripts/run_tests.py
 
 See item 6 of [new extractor tutorial](#adding-support-for-a-new-site) for how to run extractor specific test cases.
 
@@ -151,7 +151,7 @@ If you want to create a build of yt-dlp yourself, you can follow the instruction
 
 ## Adding new feature or making overarching changes
 
-Before you start writing code for implementing a new feature, open an issue explaining your feature request and atleast one use case. This allows the maintainers to decide whether such a feature is desired for the project in the first place, and will provide an avenue to discuss some implementation details. If you open a pull request for a new feature without discussing with us first, do not be surprised when we ask for large changes to the code, or even reject it outright.
+Before you start writing code for implementing a new feature, open an issue explaining your feature request and at least one use case. This allows the maintainers to decide whether such a feature is desired for the project in the first place, and will provide an avenue to discuss some implementation details. If you open a pull request for a new feature without discussing with us first, do not be surprised when we ask for large changes to the code, or even reject it outright.
 
 The same applies for changes to the documentation, code style, or overarching changes to the architecture
 
@@ -218,7 +218,7 @@ After you have ensured this site is distributing its content legally, you can fo
             }
     ```
 1. Add an import in [`yt_dlp/extractor/_extractors.py`](yt_dlp/extractor/_extractors.py). Note that the class name must end with `IE`.
-1. Run `python devscripts/run_tests.py YourExtractor`. This *may fail* at first, but you can continually re-run it until you're done. Upon failure, it will output the missing fields and/or correct values which you can copy. If you decide to add more than one test, the tests will then be named `YourExtractor`, `YourExtractor_1`, `YourExtractor_2`, etc. Note that tests with an `only_matching` key in the test's dict are not included in the count. You can also run all the tests in one go with `YourExtractor_all`
+1. Run `python3 devscripts/run_tests.py YourExtractor`. This *may fail* at first, but you can continually re-run it until you're done. Upon failure, it will output the missing fields and/or correct values which you can copy. If you decide to add more than one test, the tests will then be named `YourExtractor`, `YourExtractor_1`, `YourExtractor_2`, etc. Note that tests with an `only_matching` key in the test's dict are not included in the count. You can also run all the tests in one go with `YourExtractor_all`
 1. Make sure you have at least one test for your extractor. Even if all videos covered by the extractor are expected to be inaccessible for automated testing, tests should still be added with a `skip` parameter indicating why the particular test is disabled from running.
 1. Have a look at [`yt_dlp/extractor/common.py`](yt_dlp/extractor/common.py) for possible helper methods and a [detailed description of what your extractor should and may return](yt_dlp/extractor/common.py#L119-L440). Add tests and code for as many as you want.
 1. Make sure your code follows [yt-dlp coding conventions](#yt-dlp-coding-conventions) and check the code with [flake8](https://flake8.pycqa.org/en/latest/index.html#quickstart):
@@ -237,7 +237,7 @@ After you have ensured this site is distributing its content legally, you can fo
 
 In any case, thank you very much for your contributions!
 
-**Tip:** To test extractors that require login information, create a file `test/local_parameters.json` and add `"usenetrc": true` or your username and password in it:
+**Tip:** To test extractors that require login information, create a file `test/local_parameters.json` and add `"usenetrc": true` or your `username`&`password` or `cookiefile`/`cookiesfrombrowser` in it:
 ```json
 {
     "username": "your user name",
@@ -264,7 +264,7 @@ The aforementioned metafields are the critical data that the extraction does not
 
 For pornographic sites, appropriate `age_limit` must also be returned.
 
-The extractor is allowed to return the info dict without url or formats in some special cases if it allows the user to extract usefull information with `--ignore-no-formats-error` - e.g. when the video is a live stream that has not started yet.
+The extractor is allowed to return the info dict without url or formats in some special cases if it allows the user to extract useful information with `--ignore-no-formats-error` - e.g. when the video is a live stream that has not started yet.
 
 [Any field](yt_dlp/extractor/common.py#219-L426) apart from the aforementioned ones are considered **optional**. That means that extraction should be **tolerant** to situations when sources for these fields can potentially be unavailable (even if they are always available at the moment) and **future-proof** in order not to break the extraction of general purpose mandatory fields.
 

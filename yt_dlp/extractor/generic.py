@@ -2105,22 +2105,6 @@ class GenericIE(InfoExtractor):
             },
         },
         {
-            'note': 'JW Player embed with unicode-escape sequences in URL',
-            'url': 'https://www.medici.tv/en/concerts/lahav-shani-mozart-mahler-israel-philharmonic-abu-dhabi-classics',
-            'info_dict': {
-                'id': 'm',
-                'ext': 'mp4',
-                'title': 'Lahav Shani conducts the Israel Philharmonic\'s first-ever concert in Abu Dhabi',
-                'description': 'Mahler\'s ',
-                'uploader': 'www.medici.tv',
-                'age_limit': 0,
-                'thumbnail': r're:^https?://.+\.jpg',
-            },
-            'params': {
-                'skip_download': True,
-            },
-        },
-        {
             'url': 'https://shooshtime.com/videos/284002/just-out-of-the-shower-joi/',
             'md5': 'e2f0a4c329f7986280b7328e24036d60',
             'info_dict': {
@@ -2394,7 +2378,6 @@ class GenericIE(InfoExtractor):
             'Referer': smuggled_data.get('referer'),
         }))
         new_url = full_response.url
-        url = urllib.parse.urlparse(url)._replace(scheme=urllib.parse.urlparse(new_url).scheme).geturl()
         if new_url != extract_basic_auth(url)[0]:
             self.report_following_redirect(new_url)
             if force_videoid:

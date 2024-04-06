@@ -1965,6 +1965,7 @@ class BiliIntlIE(BiliIntlBaseIE):
         'only_matching': True,
     }]
 
+    @staticmethod
     def _make_url(video_id, series_id=None):
         if series_id:
             return f'https://www.bilibili.tv/en/play/{series_id}/{video_id}'

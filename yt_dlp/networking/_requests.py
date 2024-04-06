@@ -116,7 +116,7 @@ See: https://github.com/urllib3/urllib3/issues/517
 """
 
 if urllib3_version < (2, 0, 0):
-    with contextlib.suppress():
+    with contextlib.suppress(Exception):
         urllib3.util.IS_SECURETRANSPORT = urllib3.util.ssl_.IS_SECURETRANSPORT = True
 
 
@@ -307,8 +307,7 @@ class RequestsRH(RequestHandler, InstanceStoreMixin):
 
         max_redirects_exceeded = False
 
-        session = self._get_instance(
-            cookiejar=request.extensions.get('cookiejar') or self.cookiejar)
+        session = self._get_instance(cookiejar=self._get_cookiejar(request))
 
         try:
             requests_res = session.request(
@@ -316,8 +315,8 @@ class RequestsRH(RequestHandler, InstanceStoreMixin):
                 url=request.url,
                 data=request.data,
                 headers=headers,
-                timeout=float(request.extensions.get('timeout') or self.timeout),
-                proxies=request.proxies or self.proxies,
+                timeout=self._calculate_timeout(request),
+                proxies=self._get_proxies(request),
                 allow_redirects=True,
                 stream=True
             )

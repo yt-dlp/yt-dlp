@@ -5,21 +5,63 @@ from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     OnDemandPagedList,
+    UserNotLive,
     date_from_str,
     determine_ext,
+    filter_dict,
     int_or_none,
-    qualities,
-    traverse_obj,
     unified_strdate,
     unified_timestamp,
-    update_url_query,
     url_or_none,
     urlencode_postdata,
     xpath_text,
 )
+from ..utils.traversal import traverse_obj
 
 
-class AfreecaTVIE(InfoExtractor):
+class AfreecaTVBaseIE(InfoExtractor):
+    _NETRC_MACHINE = 'afreecatv'
+
+    def _perform_login(self, username, password):
+        login_form = {
+            'szWork': 'login',
+            'szType': 'json',
+            'szUid': username,
+            'szPassword': password,
+            'isSaveId': 'false',
+            'szScriptVar': 'oLoginRet',
+            'szAction': '',
+        }
+
+        response = self._download_json(
+            'https://login.afreecatv.com/app/LoginAction.php', None,
+            'Logging in', data=urlencode_postdata(login_form))
+
+        _ERRORS = {
+            -4: 'Your account has been suspended due to a violation of our terms and policies.',
+            -5: 'https://member.afreecatv.com/app/user_delete_progress.php',
+            -6: 'https://login.afreecatv.com/membership/changeMember.php',
+            -8: "Hello! AfreecaTV here.\nThe username you have entered belongs to \n an account that requires a legal guardian's consent. \nIf you wish to use our services without restriction, \nplease make sure to go through the necessary verification process.",
+            -9: 'https://member.afreecatv.com/app/pop_login_block.php',
+            -11: 'https://login.afreecatv.com/afreeca/second_login.php',
+            -12: 'https://member.afreecatv.com/app/user_security.php',
+            0: 'The username does not exist or you have entered the wrong password.',
+            -1: 'The username does not exist or you have entered the wrong password.',
+            -3: 'You have entered your username/password incorrectly.',
+            -7: 'You cannot use your Global AfreecaTV account to access Korean AfreecaTV.',
+            -10: 'Sorry for the inconvenience. \nYour account has been blocked due to an unauthorized access. \nPlease contact our Help Center for assistance.',
+            -32008: 'You have failed to log in. Please contact our Help Center.',
+        }
+
+        result = int_or_none(response.get('RESULT'))
+        if result != 1:
+            error = _ERRORS.get(result, 'You have failed to log in.')
+            raise ExtractorError(
+                'Unable to login: %s said: %s' % (self.IE_NAME, error),
+                expected=True)
+
+
+class AfreecaTVIE(AfreecaTVBaseIE):
     IE_NAME = 'afreecatv'
     IE_DESC = 'afreecatv.com'
     _VALID_URL = r'''(?x)
@@ -137,44 +179,6 @@ class AfreecaTVIE(InfoExtractor):
             video_key['upload_date'] = m.group('upload_date')
             video_key['part'] = int(m.group('part'))
         return video_key
-
-    def _perform_login(self, username, password):
-        login_form = {
-            'szWork': 'login',
-            'szType': 'json',
-            'szUid': username,
-            'szPassword': password,
-            'isSaveId': 'false',
-            'szScriptVar': 'oLoginRet',
-            'szAction': '',
-        }
-
-        response = self._download_json(
-            'https://login.afreecatv.com/app/LoginAction.php', None,
-            'Logging in', data=urlencode_postdata(login_form))
-
-        _ERRORS = {
-            -4: 'Your account has been suspended due to a violation of our terms and policies.',
-            -5: 'https://member.afreecatv.com/app/user_delete_progress.php',
-            -6: 'https://login.afreecatv.com/membership/changeMember.php',
-            -8: "Hello! AfreecaTV here.\nThe username you have entered belongs to \n an account that requires a legal guardian's consent. \nIf you wish to use our services without restriction, \nplease make sure to go through the necessary verification process.",
-            -9: 'https://member.afreecatv.com/app/pop_login_block.php',
-            -11: 'https://login.afreecatv.com/afreeca/second_login.php',
-            -12: 'https://member.afreecatv.com/app/user_security.php',
-            0: 'The username does not exist or you have entered the wrong password.',
-            -1: 'The username does not exist or you have entered the wrong password.',
-            -3: 'You have entered your username/password incorrectly.',
-            -7: 'You cannot use your Global AfreecaTV account to access Korean AfreecaTV.',
-            -10: 'Sorry for the inconvenience. \nYour account has been blocked due to an unauthorized access. \nPlease contact our Help Center for assistance.',
-            -32008: 'You have failed to log in. Please contact our Help Center.',
-        }
-
-        result = int_or_none(response.get('RESULT'))
-        if result != 1:
-            error = _ERRORS.get(result, 'You have failed to log in.')
-            raise ExtractorError(
-                'Unable to login: %s said: %s' % (self.IE_NAME, error),
-                expected=True)
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -330,9 +334,9 @@ class AfreecaTVIE(InfoExtractor):
         return info
 
 
-class AfreecaTVLiveIE(AfreecaTVIE):  # XXX: Do not subclass from concrete IE
-
+class AfreecaTVLiveIE(AfreecaTVBaseIE):
     IE_NAME = 'afreecatv:live'
+    IE_DESC = 'afreecatv.com livestreams'
     _VALID_URL = r'https?://play\.afreeca(?:tv)?\.com/(?P<id>[^/]+)(?:/(?P<bno>\d+))?'
     _TESTS = [{
         'url': 'https://play.afreecatv.com/pyh3646/237852185',
@@ -347,77 +351,57 @@ class AfreecaTVLiveIE(AfreecaTVIE):  # XXX: Do not subclass from concrete IE
         },
         'skip': 'Livestream has ended',
     }, {
-        'url': 'http://play.afreeca.com/pyh3646/237852185',
+        'url': 'https://play.afreecatv.com/pyh3646/237852185',
         'only_matching': True,
     }, {
-        'url': 'http://play.afreeca.com/pyh3646',
+        'url': 'https://play.afreecatv.com/pyh3646',
         'only_matching': True,
     }]
 
     _LIVE_API_URL = 'https://live.afreecatv.com/afreeca/player_live_api.php'
 
-    _QUALITIES = ('sd', 'hd', 'hd2k', 'original')
-
     def _real_extract(self, url):
         broadcaster_id, broadcast_no = self._match_valid_url(url).group('id', 'bno')
-        password = self.get_param('videopassword')
+        channel_info = traverse_obj(self._download_json(
+            self._LIVE_API_URL, broadcaster_id, data=urlencode_postdata({'bid': broadcaster_id})),
+            ('CHANNEL', {dict})) or {}
 
-        info = self._download_json(self._LIVE_API_URL, broadcaster_id, fatal=False,
-                                   data=urlencode_postdata({'bid': broadcaster_id})) or {}
-        channel_info = info.get('CHANNEL') or {}
         broadcaster_id = channel_info.get('BJID') or broadcaster_id
         broadcast_no = channel_info.get('BNO') or broadcast_no
-        password_protected = channel_info.get('BPWD')
         if not broadcast_no:
-            raise ExtractorError(f'Unable to extract broadcast number ({broadcaster_id} may not be live)', expected=True)
-        if password_protected == 'Y' and password is None:
+            raise UserNotLive(video_id=broadcaster_id)
+
+        password = self.get_param('videopassword')
+        if channel_info.get('BPWD') == 'Y' and password is None:
             raise ExtractorError(
                 'This livestream is protected by a password, use the --video-password option',
                 expected=True)
 
-        formats = []
-        quality_key = qualities(self._QUALITIES)
-        for quality_str in self._QUALITIES:
-            params = {
+        aid = self._download_json(
+            self._LIVE_API_URL, broadcast_no, 'Downloading access token for stream',
+            'Unable to download access token for stream', data=urlencode_postdata(filter_dict({
                 'bno': broadcast_no,
                 'stream_type': 'common',
                 'type': 'aid',
-                'quality': quality_str,
-            }
-            if password is not None:
-                params['pwd'] = password
-            aid_response = self._download_json(
-                self._LIVE_API_URL, broadcast_no, fatal=False,
-                data=urlencode_postdata(params),
-                note=f'Downloading access token for {quality_str} stream',
-                errnote=f'Unable to download access token for {quality_str} stream')
-            aid = traverse_obj(aid_response, ('CHANNEL', 'AID'))
-            if not aid:
-                continue
+                'quality': 'master',
+                'pwd': password,
+            })))['CHANNEL']['AID']
 
-            stream_base_url = channel_info.get('RMD') or 'https://livestream-manager.afreecatv.com'
-            stream_info = self._download_json(
-                f'{stream_base_url}/broad_stream_assign.html', broadcast_no, fatal=False,
-                query={
-                    'return_type': channel_info.get('CDN', 'gcp_cdn'),
-                    'broad_key': f'{broadcast_no}-common-{quality_str}-hls',
-                },
-                note=f'Downloading metadata for {quality_str} stream',
-                errnote=f'Unable to download metadata for {quality_str} stream') or {}
+        stream_base_url = channel_info.get('RMD') or 'https://livestream-manager.afreecatv.com'
+        stream_info = self._download_json(f'{stream_base_url}/broad_stream_assign.html', broadcast_no, query={
+            # works: gs_cdn_pc_app, gs_cdn_mobile_web, gs_cdn_pc_web
+            'return_type': 'gs_cdn_pc_app',
+            'broad_key': f'{broadcast_no}-common-master-hls',
+        }, note='Downloading metadata for stream', errnote='Unable to download metadata for stream')
 
-            if stream_info.get('view_url'):
-                formats.append({
-                    'format_id': quality_str,
-                    'url': update_url_query(stream_info['view_url'], {'aid': aid}),
-                    'ext': 'mp4',
-                    'protocol': 'm3u8',
-                    'quality': quality_key(quality_str),
-                })
+        formats = self._extract_m3u8_formats(
+            stream_info['view_url'], broadcast_no, 'mp4', m3u8_id='hls',
+            query={'aid': aid}, headers={'Referer': url})
 
-        station_info = self._download_json(
+        station_info = traverse_obj(self._download_json(
             'https://st.afreecatv.com/api/get_station_status.php', broadcast_no,
-            query={'szBjId': broadcaster_id}, fatal=False,
-            note='Downloading channel metadata', errnote='Unable to download channel metadata') or {}
+            'Downloading channel metadata', 'Unable to download channel metadata',
+            query={'szBjId': broadcaster_id}, fatal=False), {dict}) or {}
 
         return {
             'id': broadcast_no,
@@ -427,6 +411,7 @@ class AfreecaTVLiveIE(AfreecaTVIE):  # XXX: Do not subclass from concrete IE
             'timestamp': unified_timestamp(station_info.get('broad_start')),
             'formats': formats,
             'is_live': True,
+            'http_headers': {'Referer': url},
         }
 
 
