@@ -118,7 +118,7 @@ class WebsocketsRH(WebSocketRequestHandler):
         for name in ('websockets.client', 'websockets.server'):
             logger = logging.getLogger(name)
             handler = logging.StreamHandler(stream=sys.stdout)
-            handler.setFormatter(logging.Formatter(f'{self.RH_NAME}: %(message)s'))
+            handler.setFormatter(logging.Formatter(f'{self.RH_NAME}: [{name}] %(message)s'))
             self.__logging_handlers[name] = handler
             logger.addHandler(handler)
             if self.verbose:
@@ -152,7 +152,7 @@ class WebsocketsRH(WebSocketRequestHandler):
                     **create_conn_kwargs
                 )
 
-            elif parsed_proxy_url.scheme.startswith('http'):
+            elif parsed_proxy_url.scheme in ('http', 'https'):
                 return create_http_connect_conn(
                     proxy_url=proxy,
                     url=url,
@@ -177,6 +177,7 @@ class WebsocketsRH(WebSocketRequestHandler):
                 headers['cookie'] = cookie_header
 
         proxy = select_proxy(request.url, self._get_proxies(request))
+
         try:
             conn = websockets.sync.client.connect(
                 sock=self._make_sock(proxy, request.url, timeout),
@@ -184,7 +185,10 @@ class WebsocketsRH(WebSocketRequestHandler):
                 additional_headers=headers,
                 open_timeout=timeout,
                 user_agent_header=None,
-                ssl_context=self._make_sslcontext() if parse_uri(request.url).secure else None,
+                ssl_context=(
+                    WebsocketsSSLContext(self._make_sslcontext())
+                    if parse_uri(request.url).secure else None
+                ),
                 close_timeout=0,  # not ideal, but prevents yt-dlp hanging
             )
             return WebsocketsResponseAdapter(conn, url=request.url)
@@ -218,11 +222,33 @@ class NoCloseHTTPResponse(HTTPResponse):
         if not self._check_close() and not self.chunked and self.length is None:
             self.will_close = False
 
-class CustomSSLTransport(SSLTransport):
+
+# todo: only define if urllib3 is available
+class WebsocketsSSLTransport(SSLTransport):
+    """
+    Modified version of urllib3 SSLTransport to support additional operations used by websockets
+    """
     def setsockopt(self, *args, **kwargs):
         self.socket.setsockopt(*args, **kwargs)
+
     def shutdown(self, *args, **kwargs):
+        self.unwrap()
         self.socket.shutdown(*args, **kwargs)
+
+
+class WebsocketsSSLContext:
+    """
+    Dummy SSL Context for websockets which returns a WebsocketsSSLTransport instance
+    for wrap socket when using TLS-in-TLS.
+    """
+    def __init__(self, ssl_context: ssl.SSLContext):
+        self.ssl_context = ssl_context
+
+    def wrap_socket(self, sock, server_hostname=None):
+        if isinstance(sock, ssl.SSLSocket):
+            return WebsocketsSSLTransport(sock, self.ssl_context, server_hostname=server_hostname)
+        return self.ssl_context.wrap_socket(sock, server_hostname=server_hostname)
+
 
 def create_http_connect_conn(
     proxy_url,
@@ -256,17 +282,18 @@ def create_http_connect_conn(
     if source_address is not None:
         conn.source_address = (source_address, 0)
 
-    conn.debuglevel=2
     try:
         conn.connect()
         if ssl_context:
-            conn.sock = CustomSSLTransport(conn.sock, ssl_context, server_hostname=proxy_url_parsed.hostname)
-
-        conn.request(method='CONNECT', url=f'{request_url_parsed.host}:{request_url_parsed.port}', headers=proxy_headers)
+            conn.sock = ssl_context.wrap_socket(conn.sock, server_hostname=proxy_url_parsed.hostname)
+        conn.request(
+            method='CONNECT',
+            url=f'{request_url_parsed.host}:{request_url_parsed.port}',
+            headers=proxy_headers)
         response = conn.getresponse()
     except OSError as e:
         conn.close()
-        raise TransportError('Unable to connect to proxy', cause=e) from e
+        raise ProxyError('Unable to connect to proxy', cause=e) from e
 
     if response.status == 200:
         return conn.sock
