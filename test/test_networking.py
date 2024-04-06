@@ -1140,8 +1140,8 @@ class TestRequestHandlerValidation:
             ('socks5h', False),
         ]),
         ('Websockets', 'ws', [
-            ('http', UnsupportedRequest),
-            ('https', UnsupportedRequest),
+            ('http', False),
+            ('https', False),
             ('socks4', False),
             ('socks4a', False),
             ('socks5', False),
@@ -1222,8 +1222,8 @@ class TestRequestHandlerValidation:
         ('Websockets', False, 'ws')
     ], indirect=['handler'])
     def test_no_proxy(self, handler, fail, scheme):
-        run_validation(handler, fail, Request(f'{scheme}://', proxies={'no': '127.0.0.1,github.com'}))
-        run_validation(handler, fail, Request(f'{scheme}://'), proxies={'no': '127.0.0.1,github.com'})
+        run_validation(handler, fail, Request(f'{scheme}://example.com', proxies={'no': '127.0.0.1,github.com'}))
+        run_validation(handler, fail, Request(f'{scheme}://example.com'), proxies={'no': '127.0.0.1,github.com'})
 
     @pytest.mark.parametrize('handler,scheme', [
         ('Urllib', 'http'),
