@@ -22,7 +22,7 @@ from ..utils import (
 
 
 class FOXIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?fox(?:sports)?\.com/(?:watch|replay)/(?P<id>[\w-]+)'
+    _VALID_URL = r'https?://(?:www\.)?fox(?:sports)?\.com/(?:watch|replay)/(?!play-)(?P<id>[\w-]+)'
     _TESTS = [{
         # clip
         'url': 'https://www.fox.com/watch/4b765a60490325103ea69888fb2bd4e8/',
@@ -44,23 +44,6 @@ class FOXIE(InfoExtractor):
         },
         'params': {
             'skip_download': True,
-        },
-    }, {
-        'url': 'https://www.foxsports.com/watch/play-612168c6700004b',
-        'md5': '8eee3db207783070173cbc8b99639688',
-        'info_dict': {
-            'id': 'play-612168c6700004b',
-            'ext': 'mp4',
-            'title': 'Mario Pasalic scores decisive penalty kick to help Croatia knock out Japan | 2022 FIFA World Cup',
-            'description': 'Mario Pasalic scores the game-winning PK in shootouts to clinch a win for Croatia against Japan.',
-            'duration': 31,
-            'timestamp': 1670262586,
-            'upload_date': '20221205',
-            'creators': ['FOX'],
-            'series': 'Mario Pasalic scores decisive penalty kick to help Croatia knock out Japan | 2022 FIFA World Cup',
-            'age_limit': 14,
-            'episode': 'Mario Pasalic scores decisive penalty kick to help Croatia knock out Japan | 2022 FIFA World Cup',
-            'thumbnail': r're:^https?://.*\.jpg$',
         },
     }, {
         # XML endpoint

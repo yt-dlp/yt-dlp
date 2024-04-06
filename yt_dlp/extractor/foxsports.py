@@ -5,7 +5,7 @@ from ..utils import float_or_none, make_archive_id, smuggle_url
 
 
 class FoxSportsIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?foxsports\.com/watch/(?P<id>[\w-]+)'
+    _VALID_URL = r'https?://(?:www\.)?foxsports\.com/watch/(?P<id>play-[\w-]+)'
     _TESTS = [{
         'url': 'https://www.foxsports.com/watch/play-612168c6700004b',
         'info_dict': {
