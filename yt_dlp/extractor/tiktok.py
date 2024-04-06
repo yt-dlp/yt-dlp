@@ -155,6 +155,7 @@ class TikTokBaseIE(InfoExtractor):
             'locale': 'en',
             'ac2': 'wifi5g',
             'uoo': '1',
+            'carrier_region': 'US',
             'op_region': 'US',
             'build_number': self._APP_INFO['app_version'],
             'region': 'US',
