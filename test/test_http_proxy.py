@@ -8,7 +8,7 @@ import random
 import ssl
 import threading
 from http.server import BaseHTTPRequestHandler
-from socketserver import ThreadingTCPServer
+from socketserver import BaseRequestHandler, ThreadingTCPServer
 
 import pytest
 
@@ -224,7 +224,7 @@ def proxy_server(proxy_server_class, request_handler, bind_ip=None, **proxy_serv
     finally:
         server.shutdown()
         server.server_close()
-        server_thread.join()
+        server_thread.join(2.0)
 
 
 class HTTPProxyTestContext(abc.ABC):
@@ -304,7 +304,6 @@ class TestHTTPProxy:
                 assert proxy_info['proxy'] == server_address
                 assert proxy_info['connect'] is False
                 assert 'Proxy-Authorization' not in proxy_info['headers']
-                assert proxy_info['proxy'] == server_address
 
     def test_http_auth(self, handler, ctx):
         with ctx.http_server(HTTPProxyHandler, username='test', password='test') as server_address:
@@ -339,7 +338,6 @@ class TestHTTPProxy:
                 assert proxy_info['proxy'] == server_address
                 assert proxy_info['connect'] is False
                 assert 'Proxy-Authorization' not in proxy_info['headers']
-                assert proxy_info['proxy'] == server_address
 
     @pytest.mark.skip_handler('Urllib', 'urllib does not support https proxies')
     def test_https_verify_failed(self, handler, ctx):
@@ -358,7 +356,6 @@ class TestHTTPProxy:
                 assert proxy_info['proxy'] == server_address
                 assert proxy_info['path'].startswith('http://xn--fiq228c.tw')
                 assert proxy_info['headers']['Host'].split(':', 1)[0] == 'xn--fiq228c.tw'
-                assert proxy_info['proxy'] == server_address
 
 
 @pytest.mark.parametrize(
@@ -376,7 +373,6 @@ class TestHTTPConnectProxy:
                 assert proxy_info['proxy'] == server_address
                 assert proxy_info['connect'] is True
                 assert 'Proxy-Authorization' not in proxy_info['headers']
-                assert proxy_info['proxy'] == server_address
 
     def test_http_connect_auth(self, handler, ctx):
         with ctx.http_server(HTTPConnectProxyHandler, username='test', password='test') as server_address:
@@ -384,7 +380,6 @@ class TestHTTPConnectProxy:
                 proxy_info = ctx.proxy_info_request(rh)
                 assert proxy_info['proxy'] == server_address
                 assert 'Proxy-Authorization' in proxy_info['headers']
-                assert proxy_info['proxy'] == server_address
 
     @pytest.mark.skip_handler(
         'Requests',
@@ -415,7 +410,6 @@ class TestHTTPConnectProxy:
                 assert proxy_info['proxy'] == server_address
                 assert proxy_info['connect'] is True
                 assert 'Proxy-Authorization' not in proxy_info['headers']
-                assert proxy_info['proxy'] == server_address
 
     @pytest.mark.skipif(urllib3 is None, reason='requires urllib3 to test')
     def test_https_connect_verify_failed(self, handler, ctx):
@@ -434,4 +428,3 @@ class TestHTTPConnectProxy:
                 proxy_info = ctx.proxy_info_request(rh)
                 assert proxy_info['proxy'] == server_address
                 assert 'Proxy-Authorization' in proxy_info['headers']
-                assert proxy_info['proxy'] == server_address

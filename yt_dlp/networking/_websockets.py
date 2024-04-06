@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import base64
 import contextlib
 import io
 import logging
 import ssl
 import sys
+import urllib.parse
+from http.client import HTTPConnection, HTTPResponse
 
 from ._helper import (
     create_connection,
@@ -19,19 +22,14 @@ from .exceptions import (
     ProxyError,
     RequestError,
     SSLError,
-    TransportError, UnsupportedRequest,
+    TransportError,
+    UnsupportedRequest,
 )
 from .websocket import WebSocketRequestHandler, WebSocketResponse
 from ..compat import functools
-from ..dependencies import websockets, urllib3
+from ..dependencies import urllib3, websockets
 from ..socks import ProxyError as SocksProxyError
 from ..utils import int_or_none
-import io
-import urllib.parse
-import base64
-
-from http.client import HTTPResponse, HTTPConnection
-
 from ..utils.networking import HTTPHeaderDict
 
 if not websockets:
@@ -282,7 +280,6 @@ def create_http_connect_conn(
     password=None,
 ):
 
-    # todo: handle ipv6 host
     proxy_headers = HTTPHeaderDict({
         **(headers or {}),
     })
