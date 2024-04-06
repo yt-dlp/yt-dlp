@@ -692,6 +692,10 @@ def create_parser():
         action='store_true', dest='break_on_existing', default=False,
         help='Stop the download process when encountering a file that is in the archive')
     selection.add_option(
+        '--no-break-on-existing',
+        action='store_false', dest='break_on_existing',
+        help='Do not stop the download process when encountering a file that is in the archive (default)')
+    selection.add_option(
         '--break-on-reject',
         action='store_true', dest='break_on_reject', default=False,
         help=optparse.SUPPRESS_HELP)
