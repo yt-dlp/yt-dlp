@@ -19,20 +19,18 @@ from .exceptions import (
     ProxyError,
     RequestError,
     SSLError,
-    TransportError,
+    TransportError, UnsupportedRequest,
 )
 from .websocket import WebSocketRequestHandler, WebSocketResponse
 from ..compat import functools
-from ..dependencies import websockets
+from ..dependencies import websockets, urllib3
 from ..socks import ProxyError as SocksProxyError
-from ..utils import int_or_none, extract_basic_auth
+from ..utils import int_or_none
 import io
 import urllib.parse
 import base64
 
-from http.client import HTTPResponse, HTTPConnection, HTTPSConnection
-
-from urllib3.util.ssltransport import SSLTransport
+from http.client import HTTPResponse, HTTPConnection
 
 from ..utils.networking import HTTPHeaderDict
 
@@ -44,6 +42,11 @@ import websockets.version
 websockets_version = tuple(map(int_or_none, websockets.version.version.split('.')))
 if websockets_version < (12, 0):
     raise ImportError('Only websockets>=12.0 is supported')
+
+urllib3_supported = False
+urllib3_version = tuple(int_or_none(x, default=0) for x in urllib3.__version__.split('.')) if urllib3 else None
+if urllib3_version and urllib3_version >= (1, 26, 17):
+    urllib3_supported = True
 
 import websockets.sync.client
 from websockets.uri import parse_uri
@@ -124,6 +127,17 @@ class WebsocketsRH(WebSocketRequestHandler):
             if self.verbose:
                 logger.setLevel(logging.DEBUG)
 
+    def _validate(self, request):
+        super()._validate(request)
+        proxy = select_proxy(request.url, self._get_proxies(request))
+        if (
+            proxy
+            and urllib.parse.urlparse(proxy).scheme.lower() == 'https'
+            and urllib.parse.urlparse(request.url).scheme.lower() == 'wss'
+            and not urllib3_supported
+        ):
+            raise UnsupportedRequest('WSS over HTTPS proxies requires a supported version of urllib3')
+
     def _check_extensions(self, extensions):
         super()._check_extensions(extensions)
         extensions.pop('timeout', None)
@@ -178,6 +192,12 @@ class WebsocketsRH(WebSocketRequestHandler):
 
         proxy = select_proxy(request.url, self._get_proxies(request))
 
+        ssl_context = None
+        if parse_uri(request.url).secure:
+            if WebsocketsSSLContext is not None:
+                ssl_context = WebsocketsSSLContext(self._make_sslcontext())
+            else:
+                ssl_context = self._make_sslcontext()
         try:
             conn = websockets.sync.client.connect(
                 sock=self._make_sock(proxy, request.url, timeout),
@@ -185,10 +205,7 @@ class WebsocketsRH(WebSocketRequestHandler):
                 additional_headers=headers,
                 open_timeout=timeout,
                 user_agent_header=None,
-                ssl_context=(
-                    WebsocketsSSLContext(self._make_sslcontext())
-                    if parse_uri(request.url).secure else None
-                ),
+                ssl_context=ssl_context,
                 close_timeout=0,  # not ideal, but prevents yt-dlp hanging
             )
             return WebsocketsResponseAdapter(conn, url=request.url)
@@ -223,17 +240,21 @@ class NoCloseHTTPResponse(HTTPResponse):
             self.will_close = False
 
 
-# todo: only define if urllib3 is available
-class WebsocketsSSLTransport(SSLTransport):
-    """
-    Modified version of urllib3 SSLTransport to support additional operations used by websockets
-    """
-    def setsockopt(self, *args, **kwargs):
-        self.socket.setsockopt(*args, **kwargs)
+if urllib3_supported:
+    from urllib3.util.ssltransport import SSLTransport
 
-    def shutdown(self, *args, **kwargs):
-        self.unwrap()
-        self.socket.shutdown(*args, **kwargs)
+    class WebsocketsSSLTransport(SSLTransport):
+        """
+        Modified version of urllib3 SSLTransport to support additional operations used by websockets
+        """
+        def setsockopt(self, *args, **kwargs):
+            self.socket.setsockopt(*args, **kwargs)
+
+        def shutdown(self, *args, **kwargs):
+            self.unwrap()
+            self.socket.shutdown(*args, **kwargs)
+else:
+    WebsocketsSSLTransport = None
 
 
 class WebsocketsSSLContext:

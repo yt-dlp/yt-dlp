@@ -156,7 +156,10 @@ class WebSocketSecureProxyHandler(WebSocketProxyHandler):
         certfn = os.path.join(TEST_DIR, 'testcert.pem')
         sslctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
         sslctx.load_cert_chain(certfn, None)
-        request = SSLTransport(request, ssl_context=sslctx, server_side=True)
+        if SSLTransport:
+            request = SSLTransport(request, ssl_context=sslctx, server_side=True)
+        else:
+            request = sslctx.wrap_socket(request, server_side=True)
         super().__init__(request, *args, **kwargs)
 
 
