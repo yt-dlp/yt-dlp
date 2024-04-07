@@ -2,6 +2,7 @@ import functools
 
 from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
     format_field,
     int_or_none,
     js_to_json,
@@ -14,15 +15,15 @@ from ..utils.traversal import traverse_obj
 
 
 class JioSaavnBaseIE(InfoExtractor):
-    _VALID_BITRATES = ('16', '32', '64', '128', '320')
+    _VALID_BITRATES = {'16', '32', '64', '128', '320'}
 
     @functools.cached_property
     def requested_bitrates(self):
         requested_bitrates = self._configuration_arg('bitrate', ['128', '320'], ie_key='JioSaavn')
-        if invalid_bitrates := [br for br in requested_bitrates if br not in self._VALID_BITRATES]:
-            raise ValueError(
+        if invalid_bitrates := set(requested_bitrates).difference(self._VALID_BITRATES):
+            raise ExtractorError(
                 f'Invalid bitrate(s): {", ".join(invalid_bitrates)}. '
-                + f'Valid bitrates are: {", ".join(self._VALID_BITRATES)}')
+                + f'Valid bitrates are: {", ".join(sorted(self._VALID_BITRATES, key=int))}', expected=True)
         return requested_bitrates
 
     def _extract_formats(self, song_data):
