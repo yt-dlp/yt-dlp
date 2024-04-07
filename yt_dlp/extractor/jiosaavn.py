@@ -20,7 +20,7 @@ class JioSaavnBaseIE(InfoExtractor):
     @functools.cached_property
     def requested_bitrates(self):
         requested_bitrates = self._configuration_arg('bitrate', ['128', '320'], ie_key='JioSaavn')
-        if invalid_bitrates := set(requested_bitrates).difference(self._VALID_BITRATES):
+        if invalid_bitrates := set(requested_bitrates) - self._VALID_BITRATES:
             raise ExtractorError(
                 f'Invalid bitrate(s): {", ".join(invalid_bitrates)}. '
                 + f'Valid bitrates are: {", ".join(sorted(self._VALID_BITRATES, key=int))}', expected=True)
