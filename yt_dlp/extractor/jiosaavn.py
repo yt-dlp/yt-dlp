@@ -7,6 +7,8 @@ from ..utils import (
     int_or_none,
     js_to_json,
     make_archive_id,
+    smuggle_url,
+    unsmuggle_url,
     url_basename,
     url_or_none,
     urlencode_postdata,
@@ -49,7 +51,7 @@ class JioSaavnBaseIE(InfoExtractor):
                 'vcodec': 'none',
             }
 
-    def _extract_song(self, song_data, extract_flat=False):
+    def _extract_song(self, song_data):
         info = traverse_obj(song_data, {
             'id': ('id', {str}),
             'title': ('title', 'text', {str}),
@@ -66,18 +68,8 @@ class JioSaavnBaseIE(InfoExtractor):
                 song_data, [('title', 'action')], 'https://www.jiosaavn.com%s') or None
         if webpage_url := info['webpage_url']:
             info['_old_archive_ids'] = [make_archive_id(JioSaavnSongIE, url_basename(webpage_url))]
-        if not extract_flat:
-            info.update({
-                'formats': list(self._extract_formats(song_data)),
-                'extractor': JioSaavnSongIE.IE_NAME,
-                'extractor_key': JioSaavnSongIE.ie_key(),
-            })
-        return info
 
-    def _entries(self, playlist_data):
-        for song_data in traverse_obj(playlist_data, self._PATH):
-            song_info = self._extract_song(song_data, extract_flat=True)
-            yield self.url_result(song_info['webpage_url'], JioSaavnSongIE, **song_info)
+        return info
 
     def _extract_initial_data(self, url, display_id):
         webpage = self._download_webpage(url, display_id)
@@ -110,8 +102,21 @@ class JioSaavnSongIE(JioSaavnBaseIE):
     }]
 
     def _real_extract(self, url):
-        song_data = self._extract_initial_data(url, self._match_id(url))['song']['song']
-        return self._extract_song(song_data)
+        url, smuggled_data = unsmuggle_url(url)
+        song_data = traverse_obj(smuggled_data, ({
+            'id': ('id', {str}),
+            'encrypted_media_url': ('encrypted_media_url', {str}),
+        }))
+
+        if 'id' in song_data and 'encrypted_media_url' in song_data:
+            result = {'id': song_data['id']}
+        else:
+            # only extract metadata if this is not a url_transparent result
+            song_data = self._extract_initial_data(url, self._match_id(url))['song']['song']
+            result = self._extract_song(song_data)
+
+        result['formats'] = list(self._extract_formats(song_data))
+        return result
 
 
 class JioSaavnAlbumIE(JioSaavnBaseIE):
@@ -125,7 +130,13 @@ class JioSaavnAlbumIE(JioSaavnBaseIE):
         },
         'playlist_count': 10,
     }]
-    _PATH = ('modules', lambda _, x: x['key'] == 'list', 'data', lambda _, v: v['title']['action'])
+
+    def _entries(self, playlist_data):
+        for song_data in traverse_obj(playlist_data, (
+                'modules', lambda _, x: x['key'] == 'list', 'data', lambda _, v: v['title']['action'])):
+            song_info = self._extract_song(song_data)
+            # album song data is missing artists and release_year, need to re-extract metadata
+            yield self.url_result(song_info['webpage_url'], JioSaavnSongIE, **song_info)
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
@@ -146,7 +157,15 @@ class JioSaavnPlaylistIE(JioSaavnBaseIE):
         },
         'playlist_mincount': 50,
     }]
-    _PATH = ('list', lambda _, v: v['perma_url'])
+
+    def _entries(self, playlist_data):
+        for song_data in traverse_obj(playlist_data, ('list', lambda _, v: v['perma_url'])):
+            song_info = self._extract_song(song_data)
+            url = smuggle_url(song_info['webpage_url'], {
+                'id': song_data['id'],
+                'encrypted_media_url': song_data['encrypted_media_url'],
+            })
+            yield self.url_result(url, JioSaavnSongIE, url_transparent=True, **song_info)
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
