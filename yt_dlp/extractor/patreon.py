@@ -92,7 +92,7 @@ class PatreonIE(PatreonBaseIE):
             'thumbnail': 're:^https?://.*$',
             'upload_date': '20150211',
             'description': 'md5:8af6425f50bd46fbf29f3db0fc3a8364',
-            'uploader_id': 'TraciJHines',
+            'uploader_id': '@TraciHinesMusic',
             'categories': ['Entertainment'],
             'duration': 282,
             'view_count': int,
@@ -106,8 +106,10 @@ class PatreonIE(PatreonBaseIE):
             'availability': 'public',
             'channel_follower_count': int,
             'playable_in_embed': True,
-            'uploader_url': 'http://www.youtube.com/user/TraciJHines',
+            'uploader_url': 'https://www.youtube.com/@TraciHinesMusic',
             'comment_count': int,
+            'channel_is_verified': True,
+            'chapters': 'count:4',
         },
         'params': {
             'noplaylist': True,
@@ -176,6 +178,27 @@ class PatreonIE(PatreonBaseIE):
             'uploader_url': 'https://www.patreon.com/thenormies',
         },
         'skip': 'Patron-only content',
+    }, {
+        # dead vimeo and embed URLs, need to extract post_file
+        'url': 'https://www.patreon.com/posts/hunter-x-hunter-34007913',
+        'info_dict': {
+            'id': '34007913',
+            'ext': 'mp4',
+            'title': 'Hunter x Hunter | Kurapika DESTROYS Uvogin!!!',
+            'like_count': int,
+            'uploader': 'YaBoyRoshi',
+            'timestamp': 1581636833,
+            'channel_url': 'https://www.patreon.com/yaboyroshi',
+            'thumbnail': r're:^https?://.*$',
+            'tags': ['Hunter x Hunter'],
+            'uploader_id': '14264111',
+            'comment_count': int,
+            'channel_follower_count': int,
+            'description': 'Kurapika is a walking cheat code!',
+            'upload_date': '20200213',
+            'channel_id': '2147162',
+            'uploader_url': 'https://www.patreon.com/yaboyroshi',
+        },
     }]
 
     def _real_extract(self, url):
