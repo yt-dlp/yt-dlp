@@ -156,9 +156,11 @@ class NhkBaseIE(InfoExtractor):
 
 
 class NhkVodIE(NhkBaseIE):
-    _VALID_URL = [rf'{NhkBaseIE._BASE_URL_REGEX}shows/(?:(?P<type>video)/)?(?P<id>\d{{4}}[\da-z]\d+)/?(?:$|[?#])',
-                  rf'{NhkBaseIE._BASE_URL_REGEX}(?:ondemand|shows)/(?P<type>audio)/(?P<id>[^/?#]+?-\d{{8}}-[\da-z]+)',
-                  rf'{NhkBaseIE._BASE_URL_REGEX}ondemand/(?P<type>video)/(?P<id>\d{{4}}[\da-z]\d+)']  # deprecated
+    _VALID_URL = [
+        rf'{NhkBaseIE._BASE_URL_REGEX}shows/(?:(?P<type>video)/)?(?P<id>\d{{4}}[\da-z]\d+)/?(?:$|[?#])',
+        rf'{NhkBaseIE._BASE_URL_REGEX}(?:ondemand|shows)/(?P<type>audio)/(?P<id>[^/?#]+?-\d{{8}}-[\da-z]+)',
+        rf'{NhkBaseIE._BASE_URL_REGEX}ondemand/(?P<type>video)/(?P<id>\d{{4}}[\da-z]\d+)',  # deprecated
+    ]
     # Content available only for a limited period of time. Visit
     # https://www3.nhk.or.jp/nhkworld/en/ondemand/ for working samples.
     _TESTS = [{
@@ -425,10 +427,8 @@ class NhkVodProgramIE(NhkBaseIE):
 
         def entries():
             for episode in episodes:
-                episode_path = episode.get('url')
-                if not episode_path:
-                    continue
-                yield self._extract_episode_info(urljoin(url, episode_path), episode)
+                if episode_path := episode.get('url'):
+                    yield self._extract_episode_info(urljoin(url, episode_path), episode)
 
         html = self._download_webpage(url, program_id)
         program_title = self._extract_meta_from_class_elements([
