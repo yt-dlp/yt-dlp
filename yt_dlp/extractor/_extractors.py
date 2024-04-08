@@ -990,6 +990,7 @@ from .lnkgo import (
     LnkGoIE,
     LnkIE,
 )
+from .locals import LocalsIE
 from .loom import (
     LoomIE,
     LoomFolderIE,
