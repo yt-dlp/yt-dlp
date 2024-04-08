@@ -93,10 +93,7 @@ class EuropaIE(InfoExtractor):
 
 
 class EuroParlWebstreamIE(InfoExtractor):
-    _VALID_URL = r'''(?x)
-        https?://multimedia\.europarl\.europa\.eu/[^/#?]+/
-        (?:(?!video)[^/#?]+/[\w-]+_)(?P<id>[\w-]+)
-    '''
+    _VALID_URL = r'''(?x)https?://multimedia\.europarl\.europa\.eu/(?:(?:[^/#?]+/)*[\w-]+/)?(?:(?!video)[^/#?]+/)?(?:[\w-]+_)?(?P<id>[\w-]+)'''
     _TESTS = [{
         'url': 'https://multimedia.europarl.europa.eu/pl/webstreaming/plenary-session_20220914-0900-PLENARY',
         'info_dict': {
