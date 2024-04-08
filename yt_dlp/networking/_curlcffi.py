@@ -5,13 +5,7 @@ import math
 import urllib.parse
 
 from ._helper import InstanceStoreMixin, select_proxy
-from .common import (
-    Features,
-    Request,
-    Response,
-    register_preference,
-    register_rh,
-)
+from .common import Features, Request, register_preference, register_rh
 from .exceptions import (
     CertificateVerifyError,
     HTTPError,
@@ -20,7 +14,11 @@ from .exceptions import (
     SSLError,
     TransportError,
 )
-from .impersonate import ImpersonateRequestHandler, ImpersonateTarget
+from .impersonate import (
+    ImpersonateRequestHandler,
+    ImpersonateResponse,
+    ImpersonateTarget,
+)
 from ..dependencies import curl_cffi
 from ..utils import int_or_none
 
@@ -80,15 +78,16 @@ class CurlCFFIResponseReader(io.IOBase):
         super().close()
 
 
-class CurlCFFIResponseAdapter(Response):
+class CurlCFFIResponseAdapter(ImpersonateResponse):
     fp: CurlCFFIResponseReader
 
-    def __init__(self, response: curl_cffi.requests.Response):
+    def __init__(self, response: curl_cffi.requests.Response, impersonate: ImpersonateTarget):
         super().__init__(
             fp=CurlCFFIResponseReader(response),
             headers=response.headers,
             url=response.url,
-            status=response.status_code)
+            status=response.status_code,
+            impersonate=impersonate)
 
     def read(self, amt=None):
         try:
@@ -178,6 +177,8 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
         session.curl.setopt(CurlOpt.LOW_SPEED_LIMIT, 1)  # 1 byte per second
         session.curl.setopt(CurlOpt.LOW_SPEED_TIME, math.ceil(timeout))
 
+        impersonate_target = self._get_request_target(request)
+
         try:
             curl_response = session.request(
                 method=request.method,
@@ -187,8 +188,7 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
                 verify=self.verify,
                 max_redirects=5,
                 timeout=timeout,
-                impersonate=self._SUPPORTED_IMPERSONATE_TARGET_MAP.get(
-                    self._get_request_target(request)),
+                impersonate=self._SUPPORTED_IMPERSONATE_TARGET_MAP.get(impersonate_target),
                 interface=self.source_address,
                 stream=True
             )
@@ -208,7 +208,7 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
             else:
                 raise TransportError(cause=e) from e
 
-        response = CurlCFFIResponseAdapter(curl_response)
+        response = CurlCFFIResponseAdapter(curl_response, impersonate_target)
 
         if not 200 <= response.status < 300:
             raise HTTPError(response, redirect_loop=max_redirects_exceeded)

@@ -5,7 +5,7 @@ from abc import ABC
 from dataclasses import dataclass
 from typing import Any
 
-from .common import RequestHandler, register_preference
+from .common import RequestHandler, Response, register_preference
 from .exceptions import UnsupportedRequest
 from ..compat.types import NoneType
 from ..utils import classproperty, join_nonempty
@@ -56,6 +56,18 @@ class ImpersonateTarget:
         if not mobj:
             raise ValueError(f'Invalid impersonate target "{target}"')
         return cls(**mobj.groupdict())
+
+
+class ImpersonateResponse(Response):
+    """
+    Wrapper class for a Response to an impersonated Request.
+
+    Parameters:
+    @param impersonate: the ImpersonateTarget used in the originating Request.
+    """
+    def __init__(self, *args, impersonate: ImpersonateTarget, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.impersonate = impersonate
 
 
 class ImpersonateRequestHandler(RequestHandler, ABC):
