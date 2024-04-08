@@ -5,7 +5,6 @@ from ..utils import (
     merge_dicts,
     parse_count,
     url_or_none,
-    urljoin,
 )
 from ..utils.traversal import traverse_obj
 
@@ -16,8 +15,8 @@ class NFBBaseIE(InfoExtractor):
 
     def _extract_ep_data(self, webpage, video_id, fatal=False):
         return self._search_json(
-            r'const\s+episodesData\s*=', webpage, 'episode data', video_id,
-            contains_pattern=r'\[\s*{(?s:.+)}\s*\]', fatal=fatal) or []
+            r'episodesData\s*:', webpage, 'episode data', video_id,
+            contains_pattern=r'\s*{(?s:.+)}\s*', fatal=fatal) or []
 
     def _extract_ep_info(self, data, video_id, slug=None):
         info = traverse_obj(data, (lambda _, v: video_id in v['embed_url'], {
@@ -224,15 +223,15 @@ class NFBIE(NFBBaseIE):
         # type_ can change from film to serie(s) after redirect; new slug may have episode number
         type_, slug = self._match_valid_url(urlh.url).group('type', 'id')
 
-        embed_url = urljoin(f'https://www.{site}.ca', self._html_search_regex(
-            r'<[^>]+\bid=["\']player-iframe["\'][^>]*\bsrc=["\']([^"\']+)', webpage, 'embed url'))
+        embed_url = self._html_search_regex(
+            r'<script.*<iframe\s+src=[\\"\']+(https?:[^\\"\']+)', webpage, 'embed url')
         video_id = self._match_id(embed_url)  # embed url has unique slug
         player = self._download_webpage(embed_url, video_id, 'Downloading player page')
         if 'MESSAGE_GEOBLOCKED' in player:
             self.raise_geo_restricted(countries=self._GEO_COUNTRIES)
 
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
-            self._html_search_regex(r'source:\s*\'([^\']+)', player, 'm3u8 url'),
+            self._html_search_regex(r'["\']?source["\']?:\s*["\']([^"\']+\.m3u8)', player, 'm3u8 url'),
             video_id, 'mp4', m3u8_id='hls')
 
         if dv_source := self._html_search_regex(r'dvSource:\s*\'([^\']+)', player, 'dv', default=None):
@@ -246,7 +245,7 @@ class NFBIE(NFBBaseIE):
         info = {
             'id': video_id,
             'title': self._html_search_regex(
-                r'<[^>]+\bid=["\']titleHeader["\'][^>]*>\s*<h1[^>]*>\s*([^<]+?)\s*</h1>',
+                r'["\']nfb_version_title["\']\s*:\s*["\']([^"\']+)',
                 webpage, 'title', default=None),
             'description': self._html_search_regex(
                 r'<[^>]+\bid=["\']tabSynopsis["\'][^>]*>\s*<p[^>]*>\s*([^<]+)',
@@ -254,9 +253,9 @@ class NFBIE(NFBBaseIE):
             'thumbnail': self._html_search_regex(
                 r'poster:\s*\'([^\']+)', player, 'thumbnail', default=None),
             'uploader': self._html_search_regex(
-                r'<[^>]+\bitemprop=["\']name["\'][^>]*>([^<]+)', webpage, 'uploader', default=None),
+                r'<[^>]+\bitemprop=["\']director["\'][^>]*>([^<]+)', webpage, 'uploader', default=None),
             'release_year': int_or_none(self._html_search_regex(
-                r'<[^>]+\bitemprop=["\']datePublished["\'][^>]*>([^<]+)',
+                r'["\']nfb_version_year["\']\s*:\s*["\']([^"\']+)',
                 webpage, 'release_year', default=None)),
         } if type_ == 'film' else self._extract_ep_info(self._extract_ep_data(webpage, video_id, slug), video_id)
 
