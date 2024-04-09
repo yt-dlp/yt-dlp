@@ -62,7 +62,7 @@ class JioSaavnBaseIE(InfoExtractor):
             'duration': ('duration', {int_or_none}),
             'view_count': ('play_count', {int_or_none}),
             'release_year': ('year', {int_or_none}),
-            'artists': ('primary_artists', {lambda x: x.split(', ')}),
+            'artists': ('primary_artists', {lambda x: x.split(', ') if x else None}),
             'webpage_url': ('perma_url', {url_or_none}),
         })
         if webpage_url := info.get('webpage_url') or url:
