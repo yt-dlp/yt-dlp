@@ -7,8 +7,8 @@ import urllib.parse
 from .common import InfoExtractor
 from ..compat import compat_str
 from ..utils import (
+    DownloadError,
     ExtractorError,
-    float_or_none,
     int_or_none,
     merge_dicts,
     remove_end,
@@ -199,21 +199,18 @@ class ViuOTTIE(InfoExtractor):
         },
         'skip': 'Geo-restricted to Hong Kong',
     }, {
-        'url': 'https://www.viu.com/ott/id/id/vod/1130404/Dr-Stone-Stone-Wars',
+        'url': 'https://www.viu.com/ott/id/id/vod/2221644/Detective-Conan',
         'info_dict': {
-            'id': '1130404',
+            'id': '2221644',
             'ext': 'mp4',
-            'duration': 1440.0,
-            'title': 'Dr. Stone: Stone Wars - Dr. Stone: Stone Wars - Episode 11',
-            'episode_number': 11,
-            'episode': 'Dr. Stone: Stone Wars - Dr. Stone: Stone Wars - Episode 11',
-            'description': 'md5:65aa14cb80e0d18acf829513b6d64297',
-            'series': 'Dr. Stone: Stone Wars',
-            'series_id': '35837',
+            'description': 'md5:b199bcdb07b1e01a03529f155349ddd5',
+            'duration': 1425,
+            'series': 'Detective Conan',
+            'title': 'Detective Conan - Episode 1150',
+            'episode': 'Detective Conan - Episode 1150',
+            'episode_number': 1150,
             'thumbnail': r're:https?://prod-images\.viu\.com/clip_asset_v6/\d+/\d+/[a-f0-9]+',
-
-        },
-        'skip': 'Geo-restricted to Indonesia'
+        }
     }]
 
     _AREA_ID = {
@@ -289,89 +286,41 @@ class ViuOTTIE(InfoExtractor):
         url, idata = unsmuggle_url(url, {})
         country_code, lang_code, video_id = self._match_valid_url(url).groups()
 
-        if country_code in ('id'):
-            webpage = self._download_webpage(url, video_id)
-            json_ld = self._search_json_ld(webpage, video_id)
-            next_js_data = self._search_nextjs_data(webpage, video_id)['props']
-            runtime_info = next_js_data['initialState']['app']['runtimeInfo']
+        webpage = self._download_webpage(url, video_id, fatal=False)
+        json_ld = self._search_json_ld(webpage, video_id, fatal=False)
+        next_js_data = (self._search_nextjs_data(webpage, video_id, fatal=False) or {}).get('props')
+        runtime_info = traverse_obj(next_js_data, ('initialState', 'app', 'runtimeInfo'))
 
-            # NOTE: some geo-blocked like https://www.viu.com/ott/sg/en/vod/108599/The-Beauty-Inside actually can bypassed
-            # on other region (like in ID)
-            product_detail_json = traverse_obj(
-                next_js_data, ('pageProps', 'fallback', lambda k, v: v if re.match(r'@"PRODUCT_DETAIL"[^:]+', k) else None),
-                get_all=False)
-            current_product_info = traverse_obj(product_detail_json, ('data', 'current_product'))
-
-            formats, subtitles = [], {}
-
-            for subtitle_info in current_product_info.get('subtitle') or []:
-                subtitles.setdefault(subtitle_info.get('code'), []).append({
-                    'url': subtitle_info.get('url'),
-                    'name': subtitle_info.get('name')
-                })
-
-            stream_info_json = self._download_json('https://api-gateway-global.viu.com/api/playback/distribute', video_id, query={
-                'platform_flag_label': 'web',
-                'area_id': runtime_info.get('areaId') or 1000,
-                'language_flag_id': int_or_none(runtime_info.get('languageFlagId'), default=3),
-                'countryCode': country_code.upper(),
-                'ccs_product_id': current_product_info.get('ccs_product_id')
-            }, headers={
-                'Authorization': f'Bearer {self._get_token(country_code, video_id)}'
-            })
-
-            for stream_url in traverse_obj(stream_info_json, ('data', 'stream', ('url', 'airplayurl'), lambda _, v: v)):
-                fmts, subs = self._extract_m3u8_formats_and_subtitles(stream_url, video_id, fatal=False)
-                formats.extend(fmts)
-                self._merge_subtitles(subs, target=subtitles)
-
-            return merge_dicts({
-                'id': video_id,
-                'formats': formats,
-                'subtitles': subtitles,
-            },
-                traverse_obj(json_ld, {
-                    'thumbnails': 'thumbnails',
-                    'title': 'title',
-                    'episode': 'episode',
-                    'episode_number': 'episode_number'
-                }),
-                traverse_obj(current_product_info, {
-                    'description': 'description',
-                    'thumbnail': ('cover_image_url', {url_or_none}),
-                    'duration': ('time_duration', {float_or_none}),
-                    'episode_number': ('number', {float_or_none}),
-
-                }),
-                traverse_obj(product_detail_json, ('data', 'series', {
-                    'series_id': 'series_id',
-                    'series': 'name'
-                })),
-                {
-                    'title': self._html_search_meta(['og:title'], webpage),
-                    'thumbnail': self._html_search_meta(['og:image'], webpage)}
-            )
         query = {
             'r': 'vod/ajax-detail',
             'platform_flag_label': 'web',
             'product_id': video_id,
         }
 
-        area_id = self._AREA_ID.get(country_code.upper())
+        area_id = self._AREA_ID.get(country_code.upper()) or runtime_info.get('areaId')
         if area_id:
             query['area_id'] = area_id
 
-        product_data = self._download_json(
-            f'http://www.viu.com/ott/{country_code}/index.php', video_id,
-            'Downloading video info', query=query)['data']
+        try:
+            product_data = self._download_json(
+                f'http://www.viu.com/ott/{country_code}/index.php', video_id,
+                'Downloading video info', query=query, fatal=False)['data']
+        # The `fatal` in `_download_json` didn't prevent json error
+        # FIXME: probably the error still too broad
+        except (DownloadError, ExtractorError):
+            # NOTE: some geo-blocked like https://www.viu.com/ott/sg/en/vod/108599/The-Beauty-Inside actually can bypassed
+            # on other region (like in ID)
+            product_data = traverse_obj(
+                next_js_data, ('pageProps', 'fallback', lambda k, v: v if re.match(r'@"PRODUCT_DETAIL"[^:]+', k) else None),
+                get_all=False)['data']
 
         video_data = product_data.get('current_product')
         if not video_data:
             self.raise_geo_restricted()
 
-        series_id = video_data.get('series_id')
+        series_id = video_data.get('series_id') or traverse_obj(product_data, ('series', 'series_id'))
         if self._yes_playlist(series_id, video_id, idata):
-            series = product_data.get('series') or {}
+            series = product_data.get('series') or traverse_obj(product_data, ('series', 'name')) or {}
             product = series.get('product')
             if product:
                 entries = []
@@ -389,7 +338,9 @@ class ViuOTTIE(InfoExtractor):
         duration_limit = False
         query = {
             'ccs_product_id': video_data['ccs_product_id'],
-            'language_flag_id': self._LANGUAGE_FLAG.get(lang_code.lower()) or '3',
+            'language_flag_id': self._LANGUAGE_FLAG.get(lang_code.lower()) or runtime_info.get('languageFlagId') or '3',
+            'platform_flag_label': 'web',
+            'countryCode': country_code.upper()
         }
 
         def download_playback():
@@ -465,7 +416,7 @@ class ViuOTTIE(InfoExtractor):
                 })
 
         title = strip_or_none(video_data.get('synopsis'))
-        return {
+        return merge_dicts({
             'id': video_id,
             'title': title,
             'description': video_data.get('description'),
@@ -476,7 +427,12 @@ class ViuOTTIE(InfoExtractor):
             'thumbnail': url_or_none(video_data.get('cover_image_url')),
             'formats': formats,
             'subtitles': subtitles,
-        }
+        }, traverse_obj(json_ld, {
+            'thumbnails': 'thumbnails',
+            'title': 'title',
+            'episode': 'episode',
+            'episode_number': 'episode_number'
+        }))
 
 
 class ViuOTTIndonesiaBaseIE(InfoExtractor):
