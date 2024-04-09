@@ -124,7 +124,7 @@ def make_ssl_context(
     context.verify_mode = ssl.CERT_REQUIRED if verify else ssl.CERT_NONE
     # OpenSSL 1.1.1+ Python 3.8+ keylog file
     if hasattr(context, 'keylog_filename'):
-        context.keylog_filename = os.environ.get('SSLKEYLOGFILE')
+        context.keylog_filename = os.environ.get('SSLKEYLOGFILE') or None
 
     # Some servers may reject requests if ALPN extension is not sent. See:
     # https://github.com/python/cpython/issues/85140
