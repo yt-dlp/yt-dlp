@@ -158,6 +158,7 @@ When using `--update`/`-U`, a release binary will only update to its current cha
 You may also use `--update-to <repository>` (`<owner>/<repository>`) to update to a channel on a completely different repository. Be careful with what repository you are updating to though, there is no verification done for binaries from different repositories.
 
 Example usage:
+
 * `yt-dlp --update-to master` switch to the `master` channel and update to its latest release
 * `yt-dlp --update-to stable@2023.07.06` upgrade/downgrade to release to `stable` channel tag `2023.07.06`
 * `yt-dlp --update-to 2023.10.07` upgrade/downgrade to tag `2023.10.07` if it exists on the current channel
@@ -202,7 +203,7 @@ The following provide support for impersonating browser requests. This may be re
 
 * [**curl_cffi**](https://github.com/yifeikong/curl_cffi) (recommended) - Python binding for [curl-impersonate](https://github.com/lwthiker/curl-impersonate). Provides impersonation targets for Chrome, Edge and Safari. Licensed under [MIT](https://github.com/yifeikong/curl_cffi/blob/main/LICENSE)
   * Can be installed with the `curl_cffi` group, e.g. `pip install yt-dlp[default,curl_cffi]`
-  * Only included in `yt-dlp.exe`, `yt-dlp_macos` and `yt-dlp_macos_legacy` builds
+  * Currently only included in `yt-dlp.exe` and `yt-dlp_macos` builds
 
 
 ### Metadata
@@ -757,6 +758,7 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
                                     accessible under "progress" key. E.g.
                                     --console-title --progress-template
                                     "download-title:%(info.id)s-%(progress.eta)s"
+    --progress-delta SECONDS        Time between progress output (default: 0)
     -v, --verbose                   Print various debugging information
     --dump-pages                    Print downloaded pages encoded using base64
                                     to debug problems (very verbose)
@@ -1892,6 +1894,7 @@ Plugins can be installed using various methods and locations.
 
 
 `.zip`, `.egg` and `.whl` archives containing a `yt_dlp_plugins` namespace folder in their root are also supported as plugin packages.
+
 * e.g. `${XDG_CONFIG_HOME}/yt-dlp/plugins/mypluginpkg.zip` where `mypluginpkg.zip` contains `yt_dlp_plugins/<type>/myplugin.py`
 
 Run yt-dlp with `--verbose` to check if the plugin has been loaded.

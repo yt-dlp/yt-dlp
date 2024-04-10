@@ -114,7 +114,7 @@ _NON_UPDATEABLE_REASONS = {
     **{variant: f'Auto-update is not supported for unpackaged {name} executable; Re-download the latest release'
        for variant, name in {'win32_dir': 'Windows', 'darwin_dir': 'MacOS', 'linux_dir': 'Linux'}.items()},
     'source': 'You cannot update when running from source code; Use git to pull the latest changes',
-    'unknown': 'You installed yt-dlp with a package manager or setup.py; Use that to update',
+    'unknown': 'You installed yt-dlp from a manual build or with a package manager; Use that to update',
     'other': 'You are using an unofficial build of yt-dlp; Build the executable again',
 }
 

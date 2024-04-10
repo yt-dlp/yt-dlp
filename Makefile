@@ -10,9 +10,12 @@ tar: yt-dlp.tar.gz
 # intended use: when building a source distribution,
 # make pypi-files && python3 -m build -sn .
 pypi-files: AUTHORS Changelog.md LICENSE README.md README.txt supportedsites \
-	        completions yt-dlp.1 pyproject.toml setup.cfg devscripts/* test/*
+            completions yt-dlp.1 pyproject.toml setup.cfg devscripts/* test/*
 
-.PHONY: all clean install test tar pypi-files completions ot offlinetest codetest supportedsites
+.PHONY: all clean clean-all clean-test clean-dist clean-cache \
+        completions completion-bash completion-fish completion-zsh \
+        doc issuetemplates supportedsites ot offlinetest codetest test \
+        tar pypi-files lazy-extractors install uninstall
 
 clean-test:
 	rm -rf test/testdata/sigs/player-*.js tmp/ *.annotations.xml *.aria2 *.description *.dump *.frag \
