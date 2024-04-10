@@ -54,7 +54,7 @@ class EuropaIE(InfoExtractor):
                     return items[p]
 
         query = parse_qs(url)
-        preferred_lang = query.get('sitelang', ('en', ))[0]
+        preferred_lang = query.get('sitelang', ('en',))[0]
 
         preferred_langs = orderedSet((preferred_lang, 'en', 'int'))
 
@@ -93,7 +93,12 @@ class EuropaIE(InfoExtractor):
 
 
 class EuroParlWebstreamIE(InfoExtractor):
-    _VALID_URL = r'''(?x)https?://multimedia\.europarl\.europa\.eu/(?:(?:[^/#?]+/)*[\w-]+/)?(?:(?!video)[^/#?]+/)?(?:[\w-]+_)?(?P<id>[\w-]+)'''
+    _VALID_URL = r'''(?x)https?://multimedia\.europarl\.europa\.eu/
+                        (?:(?:[^/#?]+/)*[\w-]+/)?
+                        (?:(?!video)[^/#?]+/)?
+                        (?:[\w-]+_)?
+                        (?P<id>[\w-]+)
+                    '''
     _TESTS = [{
         'url': 'https://multimedia.europarl.europa.eu/pl/webstreaming/plenary-session_20220914-0900-PLENARY',
         'info_dict': {
@@ -139,7 +144,16 @@ class EuroParlWebstreamIE(InfoExtractor):
             'live_status': 'is_live',
         },
         'skip': 'Not live anymore'
-    }]
+    }, {
+        # live stream
+        'url': 'https://multimedia.europarl.europa.eu/en/webstreaming/20240320-1345-SPECIAL-PRESSER',
+        'info_dict': {
+            'id': '20240320-1345-SPECIAL-PRESSER',
+            'ext': 'mp4',
+            'release_date': '20240320',
+        }
+    }
+    ]
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
@@ -163,7 +177,7 @@ class EuroParlWebstreamIE(InfoExtractor):
 
         return {
             'id': json_info['id'],
-            'title': traverse_obj(webpage_nextjs, (('mediaItem', 'title'), ('title', )), get_all=False),
+            'title': traverse_obj(webpage_nextjs, (('mediaItem', 'title'), ('title',)), get_all=False),
             'formats': formats,
             'subtitles': subtitles,
             'release_timestamp': parse_iso8601(json_info.get('startDateTime')),
