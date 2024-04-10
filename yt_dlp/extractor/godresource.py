@@ -1,7 +1,8 @@
 from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
     determine_ext,
-    merge_dicts,
+    str_or_none,
     unified_timestamp,
     url_or_none
 )
@@ -43,7 +44,6 @@ class GodResourceIE(InfoExtractor):
     def _real_extract(self, url):
         display_id = self._match_id(url)
 
-
         api_data = self._download_json(
             f'https://api.godresource.com/api/Streams/{display_id}', display_id)
 
@@ -61,7 +61,8 @@ class GodResourceIE(InfoExtractor):
 
         return {
             'id': display_id,
-            **extraction_result,
+            'formats': formats,
+            'subtitles': subtitles,
             'title': '',
             **traverse_obj(api_data, {
                 'title': ('title', {str}),
