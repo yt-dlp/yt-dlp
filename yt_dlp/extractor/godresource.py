@@ -70,16 +70,14 @@ class GodResourceIE(InfoExtractor):
         return {
             'id': display_id,
             **extraction_result,
-            **merge_dicts(traverse_obj(api_data, {
-                'title': ('title', {str}),  # can be None in API
+            'title': '',
+            **traverse_obj(api_data, {
+                'title': ('title', {str}),
                 'thumbnail': ('thumbnail', {url_or_none}),
                 'view_count': ('views', {int}),
                 'channel': ('channelName', {str}),
-                'channel_id': 'channelId',
+                'channel_id': ('channelId', {str_or_none}),
                 'timestamp': ('streamDateCreated', {unified_timestamp}),
                 'modified_timestamp': ('streamDataModified', {unified_timestamp})
-            }), {
-                # This title is not reliable (only give the site name)
-                'title': self._html_extract_title(webpage),
-            }),
+            })
         }
