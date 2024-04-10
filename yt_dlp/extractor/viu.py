@@ -6,8 +6,8 @@ import urllib.parse
 
 from .common import InfoExtractor
 from ..compat import compat_str
+from ..networking.exceptions import HTTPError
 from ..utils import (
-    DownloadError,
     ExtractorError,
     int_or_none,
     merge_dicts,
@@ -304,10 +304,12 @@ class ViuOTTIE(InfoExtractor):
         try:
             product_data = self._download_json(
                 f'http://www.viu.com/ott/{country_code}/index.php', video_id,
-                'Downloading video info', query=query, fatal=False)['data']
+                'Downloading video info', query=query)['data']
         # The `fatal` in `_download_json` didn't prevent json error
         # FIXME: probably the error still too broad
-        except (DownloadError, ExtractorError):
+        except ExtractorError as e:
+            if not isinstance(e.cause, (json.JSONDecodeError, HTTPError)):
+                raise
             # NOTE: some geo-blocked like https://www.viu.com/ott/sg/en/vod/108599/The-Beauty-Inside actually can bypassed
             # on other region (like in ID)
             product_data = traverse_obj(
