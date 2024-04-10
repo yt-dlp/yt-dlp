@@ -8,7 +8,7 @@ from ..utils import (
 from ..utils.traversal import traverse_obj
 
 
-class XiaoHungSuIE(InfoExtractor):
+class XiaoHongSuIE(InfoExtractor):
     _VALID_URL = r'https?://www\.xiaohongshu.com/explore/(?P<id>[a-f0-9]+)'
     _TESTS = [{
         'url': 'https://www.xiaohongshu.com/explore/6411cf99000000001300b6d9',
