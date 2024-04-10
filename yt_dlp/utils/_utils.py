@@ -50,7 +50,6 @@ from ..compat import (
     compat_expanduser,
     compat_HTMLParseError,
     compat_os_name,
-    compat_shlex_quote,
 )
 from ..dependencies import xattr
 
@@ -836,9 +835,11 @@ class Popen(subprocess.Popen):
 
         if shell and compat_os_name == 'nt' and kwargs.get('executable') is None:
             if not isinstance(args, str):
-                args = ' '.join(compat_shlex_quote(a) for a in args)
+                args = shell_quote(args, shell=True)
             shell = False
-            args = f'{self.__comspec()} /Q /S /D /V:OFF /C "{args}"'
+            # Set variable for `cmd.exe` newline escaping (see `utils.shell_quote`)
+            env['='] = '"^\n\n"'
+            args = f'{self.__comspec()} /Q /S /D /V:OFF /E:ON /C "{args}"'
 
         super().__init__(args, *remaining, env=env, shell=shell, **kwargs, startupinfo=self._startupinfo)
 
@@ -1637,15 +1638,38 @@ def get_filesystem_encoding():
     return encoding if encoding is not None else 'utf-8'
 
 
-def shell_quote(args):
-    quoted_args = []
-    encoding = get_filesystem_encoding()
-    for a in args:
-        if isinstance(a, bytes):
-            # We may get a filename encoded with 'encodeFilename'
-            a = a.decode(encoding)
-        quoted_args.append(compat_shlex_quote(a))
-    return ' '.join(quoted_args)
+_WINDOWS_QUOTE_TRANS = str.maketrans({'"': '\\"', '\\': '\\\\'})
+_CMD_QUOTE_TRANS = str.maketrans({
+    # Keep quotes balanced by replacing them with `""` instead of `\\"`
+    '"': '""',
+    # Requires a variable `=` containing `"^\n\n"` (set in `utils.Popen`)
+    # `=` should be unique since variables containing `=` cannot be set using cmd
+    '\n': '%=%',
+    # While we are only required to escape backslashes immediately before quotes,
+    # we instead escape all of 'em anyways to be consistent
+    '\\': '\\\\',
+    # Use zero length variable replacement so `%` doesn't get expanded
+    # `cd` is always set as long as extensions are enabled (`/E:ON` in `utils.Popen`)
+    '%': '%%cd:~,%',
+})
+
+
+def shell_quote(args, *, shell=False):
+    args = list(variadic(args))
+    if any(isinstance(item, bytes) for item in args):
+        deprecation_warning('Passing bytes to utils.shell_quote is deprecated')
+        encoding = get_filesystem_encoding()
+        for index, item in enumerate(args):
+            if isinstance(item, bytes):
+                args[index] = item.decode(encoding)
+
+    if compat_os_name != 'nt':
+        return shlex.join(args)
+
+    trans = _CMD_QUOTE_TRANS if shell else _WINDOWS_QUOTE_TRANS
+    return ' '.join(
+        s if re.fullmatch(r'[\w#$*\-+./:?@\\]+', s, re.ASCII) else s.translate(trans).join('""')
+        for s in args)
 
 
 def smuggle_url(url, data):
@@ -2849,7 +2873,7 @@ def ytdl_is_updateable():
 
 def args_to_str(args):
     # Get a short string representation for a subprocess command
-    return ' '.join(compat_shlex_quote(a) for a in args)
+    return shell_quote(args)
 
 
 def error_to_str(err):

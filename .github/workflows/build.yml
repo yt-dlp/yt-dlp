@@ -320,7 +320,7 @@ jobs:
         run: |
           brew install coreutils
           python3 devscripts/install_deps.py --user -o --include build
-          python3 devscripts/install_deps.py --user --include pyinstaller --include curl_cffi
+          python3 devscripts/install_deps.py --user --include pyinstaller
 
       - name: Prepare
         run: |
