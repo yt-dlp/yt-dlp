@@ -43,8 +43,6 @@ class GodResourceIE(InfoExtractor):
     def _real_extract(self, url):
         display_id = self._match_id(url)
 
-        # the website is oddly giving all request as 404 at first and then loaded with js
-        webpage, _ = self._download_webpage_handle(url, display_id, expected_status=404)
 
         api_data = self._download_json(
             f'https://api.godresource.com/api/Streams/{display_id}', display_id)
