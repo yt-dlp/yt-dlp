@@ -334,7 +334,7 @@ class AfreecaTVLiveIE(AfreecaTVBaseIE):
                 'This livestream is protected by a password, use the --video-password option',
                 expected=True)
 
-        aid = self._download_json(
+        token_info = traverse_obj(self._download_json(
             self._LIVE_API_URL, broadcast_no, 'Downloading access token for stream',
             'Unable to download access token for stream', data=urlencode_postdata(filter_dict({
                 'bno': broadcast_no,
@@ -342,7 +342,15 @@ class AfreecaTVLiveIE(AfreecaTVBaseIE):
                 'type': 'aid',
                 'quality': 'master',
                 'pwd': password,
-            })))['CHANNEL']['AID']
+            }))), ('CHANNEL', {dict})) or {}
+        aid = token_info.get('AID')
+        if not aid:
+            result = token_info.get('RESULT')
+            if result == 0:
+                raise ExtractorError('This livestream has ended', expected=True)
+            elif result == -6:
+                self.raise_login_required('This livestream is for subscribers only', method='password')
+            raise ExtractorError('Unable to extract access token')
 
         formats = self._extract_formats(channel_info, broadcast_no, aid)
 
