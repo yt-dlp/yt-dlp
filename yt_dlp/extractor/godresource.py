@@ -48,22 +48,16 @@ class GodResourceIE(InfoExtractor):
             f'https://api.godresource.com/api/Streams/{display_id}', display_id)
 
         video_url = api_data['streamUrl']
-
-        # TODO: better name?
-        extraction_result = {}
-        if determine_ext(video_url) == 'm3u8':
+        if (ext := determine_ext(video_url)) == 'm3u8':
             formats, subtitles = self._extract_m3u8_formats_and_subtitles(
                 api_data['streamUrl'], display_id)
-
-            extraction_result = {
-                'formats': formats,
-                'subtitles': subtitles
-            }
-        elif determine_ext(video_url) == 'mp4':
-            extraction_result = {
+        elif ext == 'mp4':
+            formats, subtitles = [{
                 'url': video_url,
-                'ext': 'mp4'
-            }
+                'ext': ext
+            }], {}
+        else:
+            raise ExtractorError(f'Unexpected video format {ext}')
 
         return {
             'id': display_id,
