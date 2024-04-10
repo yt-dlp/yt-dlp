@@ -19,11 +19,11 @@ class GodResourceIE(InfoExtractor):
             'ext': 'mp4',
             'view_count': int,
             'timestamp': 1710978666,
-            'channel_id': 5,
+            'channel_id': '5',
             'thumbnail': 'https://cdn-02.godresource.com/e42968ac-9e8b-4231-ab86-f4f9d775841f/thumbnail.jpg',
             'channel': 'Stedfast Baptist Church',
             'upload_date': '20240320',
-            'title': 'GodResource',
+            'title': 'GodResource video #A01mTKjyf6w',
         }
     }, {
         # mp4 link
@@ -31,7 +31,7 @@ class GodResourceIE(InfoExtractor):
         'info_dict': {
             'id': '01DXmBbQv_X',
             'ext': 'mp4',
-            'channel_id': 12,
+            'channel_id': '12',
             'view_count': int,
             'timestamp': 1687996800,
             'thumbnail': 'https://cdn-02.godresource.com/sodomitedeception/thumbnail.jpg',
