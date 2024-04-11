@@ -14,7 +14,8 @@ from ..utils import (
 
 
 class TV5MondePlusIE(InfoExtractor):
-    IE_DESC = 'TV5MONDE+'
+    IE_NAME = 'TV5MONDE'
+    IE_DESC = 'TV5MONDE'
     _VALID_URL = r'https?://(?:www\.)?tv5monde\.com/tv/video/(?P<id>[^/?#]+)'
     _TESTS = [{
         # documentary
@@ -40,7 +41,7 @@ class TV5MondePlusIE(InfoExtractor):
             'display_id': '5639-allo-tribunal-vol-de-projet',
             'ext': 'mp4',
             'title': 'Allô tribunal - Vol de projet',
-            'description': "md5:da441d0b328793dfb4059884fbee6af3",
+            'description': 'md5:da441d0b328793dfb4059884fbee6af3',
             'thumbnail': 'https://psi.tv5monde.com/media/image/960px/5157125.jpg',
             'duration': 1483,
             'upload_date': '20240205',
@@ -147,11 +148,10 @@ class TV5MondePlusIE(InfoExtractor):
         duration = (int_or_none(try_get(metadata, lambda x: x['content']['duration']))
                     or parse_duration(self._html_search_meta('duration', webpage)))
 
-        title = episode = self._html_search_regex(r'<h1 class="main-title">([^<]+)', webpage, 'title')
+        title = episode = self._html_search_regex(r'<h1 class="main-title">([^<]+)', webpage, 'title', default=None)
         series = self._html_search_regex(r'<p class="video-title">([^<]+)', webpage, 'title', default=None)
         subtitle = self._html_search_regex(r'<p class="video-subtitle">([^<]+)', webpage, 'subtitle', default=None)
-        if series and subtitle:
-            title = '%s - %s' % (series, subtitle)
+        if subtitle:
             episode = subtitle
 
         ep_summary = self._search_regex(
