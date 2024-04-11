@@ -13,6 +13,7 @@ class XiaoHongSuIE(InfoExtractor):
     IE_DESC = '小红书'
     _TESTS = [{
         'url': 'https://www.xiaohongshu.com/explore/6411cf99000000001300b6d9',
+        'md5': '2a87a77ddbedcaeeda8d7eae61b61228',
         'info_dict': {
             'id': '6411cf99000000001300b6d9',
             'ext': 'mp4',
