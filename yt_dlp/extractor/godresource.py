@@ -28,6 +28,7 @@ class GodResourceIE(InfoExtractor):
     }, {
         # mp4 link
         'url': 'https://new.godresource.com/video/01DXmBbQv_X',
+        'md5': '0e8f72aa89a106b9d5c011ba6f8717b7',
         'info_dict': {
             'id': '01DXmBbQv_X',
             'ext': 'mp4',
