@@ -57,12 +57,6 @@ class XiaoHongSuIE(InfoExtractor):
                     })
                 })
 
-        if len(formats) == 0:
-            formats.append({
-                'url': self._html_search_meta(['og:video'], webpage),
-                'ext': 'mp4'
-            })
-
         thumbnails = []
         for image_info in traverse_obj(note_info, ('imageList', ...)):
             for url in traverse_obj(image_info, (('urlDefault', 'urlPre'), {url_or_none})):
@@ -74,16 +68,19 @@ class XiaoHongSuIE(InfoExtractor):
                     })
                 })
 
-        return merge_dicts({
+        return {
             'id': display_id,
-            'formats': formats,
-            'thumbnails': thumbnails
-        }, traverse_obj(note_info, {
-            'title': 'title',
-            'description': 'desc',
-            'tags': ('tagList', ..., 'name', {str}),
-            'uploader_id': ('user', 'userId'),
-        }), {
-            'title': self._html_search_meta(['og:title'], webpage),
-            'thumbnail': self._html_search_meta(['og:image'], webpage),
-        })
+            'formats': formats or [{
+                'url': self._html_search_meta(['og:video'], webpage, fatal=True),
+                'ext': 'mp4'
+            }],
+            'thumbnails': thumbnails or [{'url':
+                self._html_search_meta(['og:image'], webpage)}]
+            'title': self._html_search_meta(['og:title'], webpage, default=None),
+            **traverse_obj(note_info, {
+                'title': 'title',
+                'description': 'desc',
+                'tags': ('tagList', ..., 'name', {str}),
+                'uploader_id': ('user', 'userId'),
+            }),
+        }
