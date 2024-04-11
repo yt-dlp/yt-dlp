@@ -2,7 +2,6 @@ from .common import InfoExtractor
 from ..utils import (
     float_or_none,
     js_to_json,
-    merge_dicts,
     url_or_none,
 )
 from ..utils.traversal import traverse_obj
@@ -74,8 +73,9 @@ class XiaoHongSuIE(InfoExtractor):
                 'url': self._html_search_meta(['og:video'], webpage, fatal=True),
                 'ext': 'mp4'
             }],
-            'thumbnails': thumbnails or [{'url':
-                self._html_search_meta(['og:image'], webpage)}]
+            'thumbnails': thumbnails or [{
+                'url': self._html_search_meta(['og:image'], webpage)
+            }],
             'title': self._html_search_meta(['og:title'], webpage, default=None),
             **traverse_obj(note_info, {
                 'title': 'title',
