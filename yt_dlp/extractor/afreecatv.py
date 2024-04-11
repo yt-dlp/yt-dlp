@@ -296,9 +296,10 @@ class AfreecaTVLiveIE(AfreecaTVBaseIE):
         stream_base_url = channel_info.get('RMD') or 'https://livestream-manager.afreecatv.com'
 
         # If user has not passed CDN IDs, try API-provided CDN ID followed by other working CDN IDs
-        default_cdn_ids = orderedSet(filter(
-            lambda x: x and x not in self._BAD_CDNS,
-            [traverse_obj(channel_info, ('CDN', {str})), *self._WORKING_CDNS]))
+        default_cdn_ids = orderedSet([
+            *traverse_obj(channel_info, ('CDN', {str}, all, lambda _, v: v not in self._BAD_CDNS)),
+            *self._WORKING_CDNS,
+        ])
         cdn_ids = self._configuration_arg('cdn', default_cdn_ids)
 
         for attempt, cdn_id in enumerate(cdn_ids, start=1):
