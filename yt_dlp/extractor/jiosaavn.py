@@ -179,8 +179,7 @@ class JioSaavnPlaylistIE(JioSaavnBaseIE):
             'playlist', token, f'playlist page {page}', {'p': page, 'n': self._PAGE_SIZE})
 
     def _entries(self, token, first_page_data, page):
-        page += 1
-        page_data = first_page_data if page == 1 else self._fetch_page(token, page)
+        page_data = first_page_data if not page else self._fetch_page(token, page + 1)
         yield from self._yield_songs(page_data)
 
     def _real_extract(self, url):
