@@ -29,7 +29,7 @@ class XiaoHongSuIE(InfoExtractor):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
         initial_state = self._search_json(
-            r'window\.__INITIAL_STATE__=', webpage, '__INITIAL_STATE__', display_id, transform_source=js_to_json)
+            r'window\.__INITIAL_STATE__\s*=', webpage, 'initial state', display_id, transform_source=js_to_json)
 
         note_info = traverse_obj(initial_state, ('note', 'noteDetailMap', display_id, 'note'))
         video_info = traverse_obj(note_info, ('video', 'media', 'stream', ('h264', 'av1', 'h265'), ...))
