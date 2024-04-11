@@ -2378,7 +2378,7 @@ from .xhamster import (
     XHamsterEmbedIE,
     XHamsterUserIE,
 )
-from .xiaohongsu import XiaoHongSuIE
+from .xiaohongshu import XiaoHongShuIE
 from .ximalaya import (
     XimalayaIE,
     XimalayaAlbumIE

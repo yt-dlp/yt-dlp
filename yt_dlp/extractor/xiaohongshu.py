@@ -7,7 +7,7 @@ from ..utils import (
 from ..utils.traversal import traverse_obj
 
 
-class XiaoHongSuIE(InfoExtractor):
+class XiaoHongShuIE(InfoExtractor):
     _VALID_URL = r'https?://www\.xiaohongshu.com/explore/(?P<id>[a-f0-9]+)'
     IE_DESC = '小红书'
     _TESTS = [{
