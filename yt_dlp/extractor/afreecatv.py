@@ -286,8 +286,10 @@ class AfreecaTVLiveIE(AfreecaTVBaseIE):
     ]
     _BAD_CDNS = [
         'gs_cdn',  # chromecast.afreeca.gscdn.com (cannot resolve)
+        'gs_cdn_chromecast',  # chromecast.stream.afreecatv.com (HTTP Error 400)
         'azure_cdn',  # live-global-cdn-v01.afreecatv.com (cannot resolve)
         'aws_cf',  # live-global-cdn-v03.afreecatv.com (cannot resolve)
+        'kt_cdn',  # kt.stream.afreecatv.com (HTTP Error 400)
     ]
 
     def _extract_formats(self, channel_info, broadcast_no, aid):
