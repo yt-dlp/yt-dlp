@@ -74,7 +74,7 @@ class XiaoHongShuIE(InfoExtractor):
                 'ext': 'mp4'
             }],
             'thumbnails': thumbnails or [{
-                'url': self._html_search_meta(['og:image'], webpage)
+                'url': self._html_search_meta(['og:image'], webpage, default=None)
             }],
             'title': self._html_search_meta(['og:title'], webpage, default=None),
             **traverse_obj(note_info, {
