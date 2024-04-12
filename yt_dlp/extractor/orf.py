@@ -590,6 +590,9 @@ class ORFONIE(InfoExtractor):
         api_json = self._download_json(
             f'https://api-tvthek.orf.at/api/v4.3/public/episode/encrypted/{encrypted_id}', display_id)
 
+        if api_json.get('is_drm_protected'):
+            self.report_drm(video_id)
+
         formats, subtitles = [], {}
         for manifest_type in traverse_obj(api_json, ('sources', {dict.keys}, ...)):
             for manifest_url in traverse_obj(api_json, ('sources', manifest_type, ..., 'src', {url_or_none})):
