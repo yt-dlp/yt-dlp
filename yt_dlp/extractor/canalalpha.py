@@ -58,6 +58,17 @@ class CanalAlphaIE(InfoExtractor):
             'duration': 360,
         },
         'params': {'skip_download': True}
+    }, {
+        'url': 'https://www.canalalpha.ch/play/le-journal/topic/33500/encore-des-mesures-deconomie-dans-le-jura',
+        'info_dict': {
+            'id': '33500',
+            'ext': 'mp4',
+            'title': 'Encore des mesures d\'économie dans le Jura',
+            'description': 'md5:938b5b556592f2d1b9ab150268082a80',
+            'thumbnail': 'https://static.canalalpha.ch/poster/news/news_46665.jpg',
+            'upload_date': '20240411',
+            'duration': 105,
+        },
     }]
 
     def _real_extract(self, url):
@@ -75,11 +86,11 @@ class CanalAlphaIE(InfoExtractor):
             'height': try_get(video, lambda x: x['res']['height'], expected_type=int),
         } for video in try_get(data_json, lambda x: x['video']['mp4'], expected_type=list) or [] if video.get('$url')]
         if manifests.get('hls'):
-            m3u8_frmts, m3u8_subs = self._parse_m3u8_formats_and_subtitles(manifests['hls'], video_id=id)
+            m3u8_frmts, m3u8_subs = self._extract_m3u8_formats_and_subtitles(manifests['hls'], id)
             formats.extend(m3u8_frmts)
             subtitles = self._merge_subtitles(subtitles, m3u8_subs)
         if manifests.get('dash'):
-            dash_frmts, dash_subs = self._parse_mpd_formats_and_subtitles(manifests['dash'])
+            dash_frmts, dash_subs = self._extract_mpd_formats_and_subtitles(manifests['dash'], id)
             formats.extend(dash_frmts)
             subtitles = self._merge_subtitles(subtitles, dash_subs)
         return {
