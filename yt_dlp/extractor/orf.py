@@ -584,6 +584,20 @@ class ORFONIE(InfoExtractor):
             'timestamp': 1706472362,
             'upload_date': '20240128',
         }
+    }, {
+        'url': 'https://on.orf.at/video/3220355',
+        'md5': 'f94d98e667cf9a3851317efb4e136662',
+        'info_dict': {
+            'id': '3220355',
+            'ext': 'mp4',
+            'duration': 445.04,
+            'thumbnail': 'https://api-tvthek.orf.at/assets/segments/0002/60/thumb_159573_segments_highlight_teaser.png',
+            'title': '50 Jahre Burgenland: Der Festumzug',
+            'description': 'md5:1560bf855119544ee8c4fa5376a2a6b0',
+            'media_type': 'episode',
+            'timestamp': 52916400,
+            'upload_date': '19710905',
+        }
     }]
 
     def _extract_video(self, video_id, display_id):
