@@ -24,6 +24,7 @@ from ..utils import (
     url_or_none,
 )
 from ..utils.traversal import traverse_obj
+from ..utils import parse_age_limit
 
 
 class ORFTVthekIE(InfoExtractor):
@@ -620,10 +621,14 @@ class ORFONIE(InfoExtractor):
                 ],
             }, target=subtitles)
 
+        age_classification = traverse_obj(api_json, ('age_classification'), {str})
+        age_limit = parse_age_limit(age_classification)
+
         return {
             'id': video_id,
             'formats': formats,
             'subtitles': subtitles,
+            'age_limit': age_limit,
             **traverse_obj(api_json, {
                 'duration': ('duration_second', {float_or_none}),
                 'title': (('title', 'headline'), {str}),
