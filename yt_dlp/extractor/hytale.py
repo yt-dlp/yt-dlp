@@ -2,6 +2,7 @@ import re
 
 from .common import InfoExtractor
 from ..utils import traverse_obj
+from .cloudflarestream import CloudflareStreamIE
 
 
 class HytaleIE(InfoExtractor):
@@ -49,7 +50,7 @@ class HytaleIE(InfoExtractor):
         entries = [
             self.url_result(
                 f'https://cloudflarestream.com/{video_hash}/manifest/video.mpd?parentOrigin=https%3A%2F%2Fhytale.com',
-                ie='CloudflareStream', title=self._titles.get(video_hash), url_transparent=True)
+                ie=CloudflareStreamIE, title=self._titles.get(video_hash), url_transparent=True)
             for video_hash in re.findall(
                 r'<stream\s+class\s*=\s*"ql-video\s+cf-stream"\s+src\s*=\s*"([a-f0-9]{32})"',
                 webpage)
