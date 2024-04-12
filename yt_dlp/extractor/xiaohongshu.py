@@ -56,13 +56,14 @@ class XiaoHongShuIE(InfoExtractor):
 
         thumbnails = []
         for image_info in traverse_obj(note_info, ('imageList', ...)):
+            thumbnail_info = traverse_obj(image_info, {
+                'height': 'height',
+                'width': 'width'
+            })
             for url in traverse_obj(image_info, (('urlDefault', 'urlPre'), {url_or_none})):
                 thumbnails.append({
                     'url': url,
-                    **traverse_obj(image_info, {
-                        'height': 'height',
-                        'width': 'width'
-                    })
+                    **thumbnail_info
                 })
 
         return {
