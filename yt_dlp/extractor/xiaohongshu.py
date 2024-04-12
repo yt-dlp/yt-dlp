@@ -36,25 +36,23 @@ class XiaoHongShuIE(InfoExtractor):
 
         formats = []
         for info in video_info:
-            for url in traverse_obj(info, (('mediaUrl', ('backupUrls', ...)), {url_or_none})):
-                formats.append({
-                    'url': url,
-                    'ext': 'mp4',
-                    **traverse_obj(info, {
-                        'fps': 'fps',
-                        'width': 'width',
-                        'height': 'height',
-                        'vcodec': 'videoCodec',
-                        'acodec': 'audioCodec',
-                        'abr': 'audioBitrate',
-                        'vbr': 'videoBitrate',
-                        'audio_channels': 'audioChannels',
-                        'tbr': 'avgBitrate',
-                        'format': 'qualityType',
-                        'filesize': 'size',
-                        'duration': ('duration', {lambda x: float_or_none(x, scale=1000)})
-                    })
-                })
+            format_info = traverse_obj(info, {
+                'fps': 'fps',
+                'width': 'width',
+                'height': 'height',
+                'vcodec': 'videoCodec',
+                'acodec': 'audioCodec',
+                'abr': 'audioBitrate',
+                'vbr': 'videoBitrate',
+                'audio_channels': 'audioChannels',
+                'tbr': 'avgBitrate',
+                'format': 'qualityType',
+                'filesize': 'size',
+                'duration': ('duration', {lambda x: float_or_none(x, scale=1000)})
+            })
+
+            formats.extend(traverse_obj(info, (('mediaUrl', ('backupUrls', ...)), {
+                lambda url: url_or_none(url) and {'url': url, 'ext': 'mp4', **format_info}})))
 
         thumbnails = []
         for image_info in traverse_obj(note_info, ('imageList', ...)):
