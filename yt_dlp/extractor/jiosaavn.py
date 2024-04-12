@@ -66,7 +66,8 @@ class JioSaavnBaseIE(InfoExtractor):
             'webpage_url': ('perma_url', {url_or_none}),
         })
         if webpage_url := info.get('webpage_url') or url:
-            info['_old_archive_ids'] = [make_archive_id(JioSaavnSongIE, url_basename(webpage_url))]
+            info['display_id'] = url_basename(webpage_url)
+            info['_old_archive_ids'] = [make_archive_id(JioSaavnSongIE, info['display_id'])]
 
         return info
 
@@ -101,6 +102,7 @@ class JioSaavnSongIE(JioSaavnBaseIE):
         'md5': '3b84396d15ed9e083c3106f1fa589c04',
         'info_dict': {
             'id': 'IcoLuefJ',
+            'display_id': 'OQsEfQFVUXk',
             'ext': 'm4a',
             'title': 'Leja Re',
             'album': 'Leja Re',
