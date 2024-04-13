@@ -3,8 +3,10 @@ import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import (
+    clean_html,
     determine_ext,
     extract_attributes,
+    get_element_by_class,
     get_element_html_by_class,
     int_or_none,
     parse_duration,
@@ -148,16 +150,13 @@ class TV5MondePlusIE(InfoExtractor):
         duration = (int_or_none(try_get(metadata, lambda x: x['content']['duration']))
                     or parse_duration(self._html_search_meta('duration', webpage)))
 
-        title = episode = self._html_search_regex(r'<h1 class="main-title">([^<]+)', webpage, 'title', default=None)
-        subtitle = self._html_search_regex(r'<p class="video-subtitle">([^<]+)', webpage, 'subtitle', default=None)
+        title = episode = clean_html(get_element_by_class('main-title', webpage))
+        subtitle = clean_html(get_element_by_class('video-subtitle', webpage))
         if subtitle:
             episode = subtitle
 
         ep_summary = get_element_html_by_class('ep-summary', webpage)
-
-        description = self._html_search_regex(
-            r'<p class="text">(.+?)</p>', ep_summary,
-            'description', fatal=False, flags=re.DOTALL)
+        description = clean_html(get_element_by_class('text', ep_summary))
 
         upload_date = self._search_regex(
             r'(?:date_publication|publish_date)["\']\s*:\s*["\'](\d{4}_\d{2}_\d{2})',
@@ -182,6 +181,6 @@ class TV5MondePlusIE(InfoExtractor):
             'formats': formats,
             'subtitles': self._extract_subtitles(self._parse_json(
                 traverse_obj(vpl_data, ('data-captions', {str}), default='{}'), display_id, fatal=False)),
-            'series': self._html_search_regex(r'<p class="video-title">([^<]+)', webpage, 'title', default=None),
+            'series': clean_html(get_element_by_class('video-title', webpage)),
             'episode': episode,
         }
