@@ -1,10 +1,12 @@
 import functools
+import math
+import re
 
 from .common import InfoExtractor
 from ..utils import (
-    format_field,
+    InAdvancePagedList,
+    clean_html,
     int_or_none,
-    js_to_json,
     make_archive_id,
     smuggle_url,
     unsmuggle_url,
@@ -16,6 +18,7 @@ from ..utils.traversal import traverse_obj
 
 
 class JioSaavnBaseIE(InfoExtractor):
+    _API_URL = 'https://www.jiosaavn.com/api.php'
     _VALID_BITRATES = {'16', '32', '64', '128', '320'}
 
     @functools.cached_property
@@ -30,7 +33,7 @@ class JioSaavnBaseIE(InfoExtractor):
     def _extract_formats(self, song_data):
         for bitrate in self.requested_bitrates:
             media_data = self._download_json(
-                'https://www.jiosaavn.com/api.php', song_data['id'],
+                self._API_URL, song_data['id'],
                 f'Downloading format info for {bitrate}',
                 fatal=False, data=urlencode_postdata({
                     '__call': 'song.generateAuthToken',
@@ -50,31 +53,45 @@ class JioSaavnBaseIE(InfoExtractor):
                 'vcodec': 'none',
             }
 
-    def _extract_song(self, song_data):
+    def _extract_song(self, song_data, url=None):
         info = traverse_obj(song_data, {
             'id': ('id', {str}),
-            'title': ('title', 'text', {str}),
-            'album': ('album', 'text', {str}),
-            'thumbnail': ('image', 0, {url_or_none}),
+            'title': ('song', {clean_html}),
+            'album': ('album', {clean_html}),
+            'thumbnail': ('image', {url_or_none}, {lambda x: re.sub(r'-\d+x\d+\.', '-500x500.', x)}),
             'duration': ('duration', {int_or_none}),
             'view_count': ('play_count', {int_or_none}),
             'release_year': ('year', {int_or_none}),
-            'artists': ('artists', lambda _, v: v['role'] == 'singer', 'name', {str}),
-            'webpage_url': ('perma_url', {url_or_none}),  # for song, playlist extraction
+            'artists': ('primary_artists', {lambda x: x.split(', ') if x else None}),
+            'webpage_url': ('perma_url', {url_or_none}),
         })
-        if not info.get('webpage_url'):  # for album extraction / fallback
-            info['webpage_url'] = format_field(
-                song_data, [('title', 'action')], 'https://www.jiosaavn.com%s') or None
-        if webpage_url := info['webpage_url']:
-            info['_old_archive_ids'] = [make_archive_id(JioSaavnSongIE, url_basename(webpage_url))]
+        if webpage_url := info.get('webpage_url') or url:
+            info['display_id'] = url_basename(webpage_url)
+            info['_old_archive_ids'] = [make_archive_id(JioSaavnSongIE, info['display_id'])]
 
         return info
 
-    def _extract_initial_data(self, url, display_id):
-        webpage = self._download_webpage(url, display_id)
-        return self._search_json(
-            r'window\.__INITIAL_DATA__\s*=', webpage,
-            'initial data', display_id, transform_source=js_to_json)
+    def _call_api(self, type_, token, note='API', params={}):
+        return self._download_json(
+            self._API_URL, token, f'Downloading {note} JSON', f'Unable to download {note} JSON',
+            query={
+                '__call': 'webapi.get',
+                '_format': 'json',
+                '_marker': '0',
+                'ctx': 'web6dot0',
+                'token': token,
+                'type': type_,
+                **params,
+            })
+
+    def _yield_songs(self, playlist_data):
+        for song_data in traverse_obj(playlist_data, ('songs', lambda _, v: v['id'] and v['perma_url'])):
+            song_info = self._extract_song(song_data)
+            url = smuggle_url(song_info['webpage_url'], {
+                'id': song_data['id'],
+                'encrypted_media_url': song_data['encrypted_media_url'],
+            })
+            yield self.url_result(url, JioSaavnSongIE, url_transparent=True, **song_info)
 
 
 class JioSaavnSongIE(JioSaavnBaseIE):
@@ -85,10 +102,11 @@ class JioSaavnSongIE(JioSaavnBaseIE):
         'md5': '3b84396d15ed9e083c3106f1fa589c04',
         'info_dict': {
             'id': 'IcoLuefJ',
+            'display_id': 'OQsEfQFVUXk',
             'ext': 'm4a',
             'title': 'Leja Re',
             'album': 'Leja Re',
-            'thumbnail': 'https://c.saavncdn.com/258/Leja-Re-Hindi-2018-20181124024539-500x500.jpg',
+            'thumbnail': r're:https?://c.saavncdn.com/258/Leja-Re-Hindi-2018-20181124024539-500x500.jpg',
             'duration': 205,
             'view_count': int,
             'release_year': 2018,
@@ -111,8 +129,8 @@ class JioSaavnSongIE(JioSaavnBaseIE):
             result = {'id': song_data['id']}
         else:
             # only extract metadata if this is not a url_transparent result
-            song_data = self._extract_initial_data(url, self._match_id(url))['song']['song']
-            result = self._extract_song(song_data)
+            song_data = self._call_api('song', self._match_id(url))['songs'][0]
+            result = self._extract_song(song_data, url)
 
         result['formats'] = list(self._extract_formats(song_data))
         return result
@@ -130,19 +148,12 @@ class JioSaavnAlbumIE(JioSaavnBaseIE):
         'playlist_count': 10,
     }]
 
-    def _entries(self, playlist_data):
-        for song_data in traverse_obj(playlist_data, (
-                'modules', lambda _, x: x['key'] == 'list', 'data', lambda _, v: v['title']['action'])):
-            song_info = self._extract_song(song_data)
-            # album song data is missing artists and release_year, need to re-extract metadata
-            yield self.url_result(song_info['webpage_url'], JioSaavnSongIE, **song_info)
-
     def _real_extract(self, url):
         display_id = self._match_id(url)
-        album_data = self._extract_initial_data(url, display_id)['albumView']
+        album_data = self._call_api('album', display_id)
 
         return self.playlist_result(
-            self._entries(album_data), display_id, traverse_obj(album_data, ('album', 'title', 'text', {str})))
+            self._yield_songs(album_data), display_id, traverse_obj(album_data, ('title', {str})))
 
 
 class JioSaavnPlaylistIE(JioSaavnBaseIE):
@@ -154,21 +165,30 @@ class JioSaavnPlaylistIE(JioSaavnBaseIE):
             'id': 'LlJ8ZWT1ibN5084vKHRj2Q__',
             'title': 'Mood English',
         },
-        'playlist_mincount': 50,
+        'playlist_mincount': 301,
+    }, {
+        'url': 'https://www.jiosaavn.com/s/playlist/2279fbe391defa793ad7076929a2f5c9/mood-hindi/DVR,pFUOwyXqIp77B1JF,A__',
+        'info_dict': {
+            'id': 'DVR,pFUOwyXqIp77B1JF,A__',
+            'title': 'Mood Hindi',
+        },
+        'playlist_mincount': 801,
     }]
+    _PAGE_SIZE = 50
 
-    def _entries(self, playlist_data):
-        for song_data in traverse_obj(playlist_data, ('list', lambda _, v: v['perma_url'])):
-            song_info = self._extract_song(song_data)
-            url = smuggle_url(song_info['webpage_url'], {
-                'id': song_data['id'],
-                'encrypted_media_url': song_data['encrypted_media_url'],
-            })
-            yield self.url_result(url, JioSaavnSongIE, url_transparent=True, **song_info)
+    def _fetch_page(self, token, page):
+        return self._call_api(
+            'playlist', token, f'playlist page {page}', {'p': page, 'n': self._PAGE_SIZE})
+
+    def _entries(self, token, first_page_data, page):
+        page_data = first_page_data if not page else self._fetch_page(token, page + 1)
+        yield from self._yield_songs(page_data)
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
-        playlist_data = self._extract_initial_data(url, display_id)['playlist']['playlist']
+        playlist_data = self._fetch_page(display_id, 1)
+        total_pages = math.ceil(int(playlist_data['list_count']) / self._PAGE_SIZE)
 
-        return self.playlist_result(
-            self._entries(playlist_data), display_id, traverse_obj(playlist_data, ('title', 'text', {str})))
+        return self.playlist_result(InAdvancePagedList(
+            functools.partial(self._entries, display_id, playlist_data),
+            total_pages, self._PAGE_SIZE), display_id, traverse_obj(playlist_data, ('listname', {str})))
