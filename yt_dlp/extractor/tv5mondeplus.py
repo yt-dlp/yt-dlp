@@ -5,6 +5,7 @@ from .common import InfoExtractor
 from ..utils import (
     determine_ext,
     extract_attributes,
+    get_element_html_by_class,
     int_or_none,
     parse_duration,
     traverse_obj,
@@ -15,7 +16,6 @@ from ..utils import (
 
 class TV5MondePlusIE(InfoExtractor):
     IE_NAME = 'TV5MONDE'
-    IE_DESC = 'TV5MONDE'
     _VALID_URL = r'https?://(?:www\.)?tv5monde\.com/tv/video/(?P<id>[^/?#]+)'
     _TESTS = [{
         # documentary
@@ -149,14 +149,11 @@ class TV5MondePlusIE(InfoExtractor):
                     or parse_duration(self._html_search_meta('duration', webpage)))
 
         title = episode = self._html_search_regex(r'<h1 class="main-title">([^<]+)', webpage, 'title', default=None)
-        series = self._html_search_regex(r'<p class="video-title">([^<]+)', webpage, 'title', default=None)
         subtitle = self._html_search_regex(r'<p class="video-subtitle">([^<]+)', webpage, 'subtitle', default=None)
         if subtitle:
             episode = subtitle
 
-        ep_summary = self._search_regex(
-            r'<div[^>]+class="ep-summary"[^>]*>(.+?)</div>', webpage,
-            'episode summary', fatal=False, flags=re.DOTALL)
+        ep_summary = get_element_html_by_class('ep-summary', webpage)
 
         description = self._html_search_regex(
             r'<p class="text">(.+?)</p>', ep_summary,
@@ -185,6 +182,6 @@ class TV5MondePlusIE(InfoExtractor):
             'formats': formats,
             'subtitles': self._extract_subtitles(self._parse_json(
                 traverse_obj(vpl_data, ('data-captions', {str}), default='{}'), display_id, fatal=False)),
-            'series': series,
+            'series': self._html_search_regex(r'<p class="video-title">([^<]+)', webpage, 'title', default=None),
             'episode': episode,
         }
