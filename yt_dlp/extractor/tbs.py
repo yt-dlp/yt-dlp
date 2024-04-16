@@ -34,6 +34,9 @@ class TBSIE(TurnerBaseIE):
     }, {
         'url': 'http://www.tntdrama.com/movies/star-wars-a-new-hope',
         'only_matching': True,
+    }, {
+        'url': 'https://www.trutv.com/watchtrutv/east',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
