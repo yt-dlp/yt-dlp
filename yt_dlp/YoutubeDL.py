@@ -1,7 +1,7 @@
 import collections
 import contextlib
 import copy
-import datetime
+import datetime as dt
 import errno
 import fileinput
 import http.cookiejar
@@ -25,7 +25,7 @@ import unicodedata
 
 from .cache import Cache
 from .compat import functools, urllib  # isort: split
-from .compat import compat_os_name, compat_shlex_quote, urllib_req_to_req
+from .compat import compat_os_name, urllib_req_to_req
 from .cookies import LenientSimpleCookie, load_cookies
 from .downloader import (
     DashSegmentsFD,
@@ -107,7 +107,6 @@ from .utils import (
     UserNotLive,
     YoutubeDLError,
     age_restricted,
-    args_to_str,
     bug_reports_message,
     date_from_str,
     deprecation_warning,
@@ -146,11 +145,13 @@ from .utils import (
     sanitize_filename,
     sanitize_path,
     sanitize_url,
+    shell_quote,
     str_or_none,
     strftime_or_none,
     subtitles_filename,
     supports_terminal_sequences,
     system_identifier,
+    filesize_from_tbr,
     timetuple_from_msec,
     to_high_limit_path,
     traverse_obj,
@@ -485,7 +486,7 @@ class YoutubeDL:
     nopart, updatetime, buffersize, ratelimit, throttledratelimit, min_filesize,
     max_filesize, test, noresizebuffer, retries, file_access_retries, fragment_retries,
     continuedl, xattr_set_filesize, hls_use_mpegts, http_chunk_size,
-    external_downloader_args, concurrent_fragment_downloads.
+    external_downloader_args, concurrent_fragment_downloads, progress_delta.
 
     The following options are used by the post processors:
     ffmpeg_location:   Location of the ffmpeg/avconv binary; either the path
@@ -827,7 +828,7 @@ class YoutubeDL:
             self.report_warning(
                 'Long argument string detected. '
                 'Use -- to separate parameters and URLs, like this:\n%s' %
-                args_to_str(correct_argv))
+                shell_quote(correct_argv))
 
     def add_info_extractor(self, ie):
         """Add an InfoExtractor object to the end of the list."""
@@ -1359,7 +1360,7 @@ class YoutubeDL:
                 value, fmt = escapeHTML(str(value)), str_fmt
             elif fmt[-1] == 'q':  # quoted
                 value = map(str, variadic(value) if '#' in flags else [value])
-                value, fmt = ' '.join(map(compat_shlex_quote, value)), str_fmt
+                value, fmt = shell_quote(value, shell=True), str_fmt
             elif fmt[-1] == 'B':  # bytes
                 value = f'%{str_fmt}'.encode() % str(value).encode()
                 value, fmt = value.decode('utf-8', 'ignore'), 's'
@@ -2633,7 +2634,7 @@ class YoutubeDL:
                 # Working around out-of-range timestamp values (e.g. negative ones on Windows,
                 # see http://bugs.python.org/issue1646728)
                 with contextlib.suppress(ValueError, OverflowError, OSError):
-                    upload_date = datetime.datetime.fromtimestamp(info_dict[ts_key], datetime.timezone.utc)
+                    upload_date = dt.datetime.fromtimestamp(info_dict[ts_key], dt.timezone.utc)
                     info_dict[date_key] = upload_date.strftime('%Y%m%d')
 
         if not info_dict.get('release_year'):
@@ -2787,7 +2788,7 @@ class YoutubeDL:
 
         get_from_start = not info_dict.get('is_live') or bool(self.params.get('live_from_start'))
         if not get_from_start:
-            info_dict['title'] += ' ' + datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
+            info_dict['title'] += ' ' + dt.datetime.now().strftime('%Y-%m-%d %H:%M')
         if info_dict.get('is_live') and formats:
             formats = [f for f in formats if bool(f.get('is_from_start')) == get_from_start]
             if get_from_start and not formats:
@@ -2818,6 +2819,9 @@ class YoutubeDL:
             format['url'] = sanitize_url(format['url'])
             if format.get('ext') is None:
                 format['ext'] = determine_ext(format['url']).lower()
+            if format['ext'] in ('aac', 'opus', 'mp3', 'flac', 'vorbis'):
+                if format.get('acodec') is None:
+                    format['acodec'] = format['ext']
             if format.get('protocol') is None:
                 format['protocol'] = determine_protocol(format)
             if format.get('resolution') is None:
@@ -2828,9 +2832,8 @@ class YoutubeDL:
                 format['aspect_ratio'] = try_call(lambda: round(format['width'] / format['height'], 2))
             # For fragmented formats, "tbr" is often max bitrate and not average
             if (('manifest-filesize-approx' in self.params['compat_opts'] or not format.get('manifest_url'))
-                    and info_dict.get('duration') and format.get('tbr')
                     and not format.get('filesize') and not format.get('filesize_approx')):
-                format['filesize_approx'] = int(info_dict['duration'] * format['tbr'] * (1024 / 8))
+                format['filesize_approx'] = filesize_from_tbr(format.get('tbr'), info_dict.get('duration'))
             format['http_headers'] = self._calc_headers(collections.ChainMap(format, info_dict), load_cookies=True)
 
         # Safeguard against old/insecure infojson when using --load-info-json
@@ -3880,8 +3883,8 @@ class YoutubeDL:
                 delim, (
                     format_field(f, 'filesize', ' \t%s', func=format_bytes)
                     or format_field(f, 'filesize_approx', '≈\t%s', func=format_bytes)
-                    or format_field(try_call(lambda: format_bytes(int(info_dict['duration'] * f['tbr'] * (1024 / 8)))),
-                                    None, self._format_out('~\t%s', self.Styles.SUPPRESS))),
+                    or format_field(filesize_from_tbr(f.get('tbr'), info_dict.get('duration')), None,
+                                    self._format_out('~\t%s', self.Styles.SUPPRESS), func=format_bytes)),
                 format_field(f, 'tbr', '\t%dk', func=round),
                 shorten_protocol_name(f.get('protocol', '')),
                 delim,
