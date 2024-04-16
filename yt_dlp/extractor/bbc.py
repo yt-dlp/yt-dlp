@@ -602,7 +602,7 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
         'url': 'http://www.bbc.com/news/world-europe-32668511',
         'info_dict': {
             'id': 'world-europe-32668511',
-            'title': 'Russia stages massive WW2 parade',
+            'title': 'Russia stages massive WW2 parade despite Western boycott',
             'description': 'md5:00ff61976f6081841f759a08bf78cc9c',
         },
         'playlist_count': 2,
@@ -790,6 +790,17 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
             'thumbnail': r're:https?://.+/.+\.jpg',
             'timestamp': 1638230731,
             'upload_date': '20211130',
+        },
+    }, {
+        # video with script id __NEXT_DATA__ and value as JSON string
+        'url': 'https://www.bbc.com/news/uk-68546268',
+        'info_dict': {
+            'id': 'p0hj0lq7',
+            'ext': 'mp4',
+            'title': 'Nasser Hospital doctor describes his treatment by IDF',
+            'description': 'Doctor Abu Sabha said he was detained by Israeli forces after the raid on Nasser Hospital and feared for his life.\n\nThe IDF said "during the activity, about 200 terrorists and suspects of terrorist activity were detained, including some who posed as medical teams, many weapons were found, as well as closed medicines intended for Israeli hostages."',
+            'thumbnail': r're:https?://.+/.+\.jpg',
+            'timestamp': 1710270205000,
         },
     }, {
         # single video article embedded with data-media-vpid
@@ -1254,6 +1265,45 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
             return list(filter(None, map(
                 lambda s: self._parse_json(s, playlist_id, fatal=False),
                 re.findall(pattern, webpage))))
+
+        # US accessed article with single embedded video (e.g.
+        # https://www.bbc.com/news/uk-68546268)
+        video_id = self._match_id(url)
+        next_data = self._search_nextjs_data(webpage, video_id)['props']['pageProps']['page']
+        video_data = None
+        timestamp = None
+        for key in next_data:
+            for item in (try_get(next_data, lambda x: x[key]['contents'], list) or []):
+                if item.get('type') == 'video':
+                    video_data = item
+                elif item.get('type') == 'timestamp':
+                    timestamp = item
+        if video_data:
+            for item in (try_get(video_data, lambda x: x['model']['blocks'], list) or []):
+                if item.get('type') == 'media':
+                    for subtype in (try_get(item, lambda x: x['model']['blocks'], list) or []):
+                        if subtype.get('type') == 'mediaMetadata':
+                            model = subtype.get('model')
+                            if model:
+                                item_id = try_get(model, lambda x: x['versions'][0]['versionId'])
+                                item_thumbnail = model.get('imageUrl')
+                                item_title = model.get('title')
+                                formats, subtitles = self._download_media_selector(item_id)
+                                synopses = model.get('synopses') or {}
+            item_time = None
+            if timestamp:
+                item_time = try_get(timestamp, lambda x: x['model']['timestamp'])
+            entries.append({
+                'id': item_id,
+                'title': item_title,
+                'thumbnail': item_thumbnail,
+                'formats': formats,
+                'subtitles': subtitles,
+                'timestamp': item_time,
+                'description': dict_get(synopses, ('long', 'medium', 'short'))
+            })
+            return self.playlist_result(
+                entries, playlist_id, playlist_title, playlist_description)
 
         # Multiple video article (e.g.
         # http://www.bbc.co.uk/blogs/adamcurtis/entries/3662a707-0af9-3149-963f-47bea720b460)
