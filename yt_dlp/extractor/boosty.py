@@ -179,9 +179,6 @@ class BoostyIE(InfoExtractor):
             f'https://api.boosty.to/v1/blog/{user}/post/{post_id}', post_id,
             note='Downloading post data', errnote='Unable to download post data', headers=auth_headers)
 
-        if not post.get('hasAccess'):
-            self.report_warning('This post requires a subscription, make sure to include your browser cookies.')
-
         post_title = post.get('title')
         if not post_title:
             self.report_warning('Unable to extract post title. Falling back to parsing html page')
@@ -218,6 +215,8 @@ class BoostyIE(InfoExtractor):
                         'thumbnail': (('previewUrl', 'defaultPreview'), {url_or_none}),
                     }, get_all=False)})
 
+        if not post.get('hasAccess'):
+            self.raise_login_required('This post requires a subscription', True, method='cookies')
         if not entries:
             raise ExtractorError('No videos found', expected=True)
         if len(entries) == 1:
