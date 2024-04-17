@@ -166,7 +166,7 @@ class BoostyIE(InfoExtractor):
     def _real_extract(self, url):
         user, post_id = self._match_valid_url(url).group('user', 'post_id')
 
-        auth_cookie = self._get_cookies('https://api.boosty.to/').get('auth')
+        auth_cookie = self._get_cookies('https://boosty.to/').get('auth')
         auth_headers = {}
         if auth_cookie is not None:
             try:
