@@ -1268,40 +1268,31 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
 
         # US accessed article with single embedded video (e.g.
         # https://www.bbc.com/news/uk-68546268)
-        video_id = self._match_id(url)
-        next_data = self._search_nextjs_data(webpage, video_id)['props']['pageProps']['page']
-        video_data = None
-        timestamp = None
-        for key in next_data:
-            for item in (try_get(next_data, lambda x: x[key]['contents'], list) or []):
-                if item.get('type') == 'video':
-                    video_data = item
-                elif item.get('type') == 'timestamp':
-                    timestamp = item
+        next_data = traverse_obj(self._search_nextjs_data(webpage, playlist_id), (
+            'props', 'pageProps', 'page'), get_all=False)
+        video_data = traverse_obj(next_data, (
+            ..., 'contents', lambda _, v: v['type'] == 'video'), get_all=False)
         if video_data:
-            for item in (try_get(video_data, lambda x: x['model']['blocks'], list) or []):
-                if item.get('type') == 'media':
-                    for subtype in (try_get(item, lambda x: x['model']['blocks'], list) or []):
-                        if subtype.get('type') == 'mediaMetadata':
-                            model = subtype.get('model')
-                            if model:
-                                item_id = try_get(model, lambda x: x['versions'][0]['versionId'])
-                                item_thumbnail = model.get('imageUrl')
-                                item_title = model.get('title')
-                                formats, subtitles = self._download_media_selector(item_id)
-                                synopses = model.get('synopses') or {}
-            item_time = None
-            if timestamp:
-                item_time = try_get(timestamp, lambda x: x['model']['timestamp'])
-            entries.append({
-                'id': item_id,
-                'title': item_title,
-                'thumbnail': item_thumbnail,
-                'formats': formats,
-                'subtitles': subtitles,
-                'timestamp': item_time,
-                'description': dict_get(synopses, ('long', 'medium', 'short'))
-            })
+            timestamp = traverse_obj(next_data, (
+                ..., 'contents', lambda _, v: v['type'] == 'timestamp',
+                'model', 'timestamp', {int_or_none}), get_all=False)
+            model = traverse_obj(video_data, (
+                'model', 'blocks', lambda _, v: v['type'] == 'media',
+                'model', 'blocks', lambda _, v: v['type'] == 'mediaMetadata',
+                'model'), get_all=False)
+            if model:
+                item_id = try_get(model, lambda x: x['versions'][0]['versionId'])
+                formats, subtitles = self._download_media_selector(item_id)
+                synopses = model.get('synopses') or {}
+                entries.append({
+                    'id': item_id,
+                    'title': model.get('title'),
+                    'thumbnail': model.get('imageUrl'),
+                    'formats': formats,
+                    'subtitles': subtitles,
+                    'timestamp': timestamp,
+                    'description': dict_get(synopses, ('long', 'medium', 'short'))
+                })
             return self.playlist_result(
                 entries, playlist_id, playlist_title, playlist_description)
 
