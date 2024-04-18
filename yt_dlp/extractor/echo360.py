@@ -1,7 +1,13 @@
 import re
 
 from .common import InfoExtractor
-from ..utils import determine_ext, float_or_none, traverse_obj, update_url
+from ..utils import (
+    determine_ext,
+    float_or_none,
+    parse_duration,
+    traverse_obj,
+    update_url,
+)
 
 
 class Echo360IE(InfoExtractor):
@@ -50,19 +56,14 @@ class Echo360IE(InfoExtractor):
 
     def _parse_mediapackage(self, video):
         video_id = video['playableAudioVideo']['mediaId']
-        query_strings = traverse_obj(video, ('sourceQueryStrings', 'queryStrings')) or []
+        query_strings = traverse_obj(video, ('sourceQueryStrings', 'queryStrings', ...))
 
         formats = []
-        for track in traverse_obj(video, ('playableAudioVideo', 'playableMedias', ...)):
-            href = track.get('uri')
-            if href is None:
-                continue
-            href = update_url(href, query=self._get_query_string(href, query_strings))
-            if track.get('isHls') or determine_ext(href, None) == 'm3u8':
+        for track in traverse_obj(video, ('playableAudioVideo', 'playableMedias', lambda _, v: v['uri'])):
+            href = update_url(track['uri'], query=self._get_query_string(track['uri'], query_strings))
+            if track.get('isHls') or determine_ext(href) == 'm3u8':
                 hls_formats = self._extract_m3u8_formats(
-                    href, video_id, live=track.get('isLive'), m3u8_id='hls',
-                    entry_protocol='m3u8_native', fatal=False
-                )
+                    href, video_id, live=track.get('isLive'), m3u8_id='hls', fatal=False)
 
                 for hls_format in hls_formats:
                     query_string = self._get_query_string(hls_format['url'], query_strings)
@@ -75,9 +76,7 @@ class Echo360IE(InfoExtractor):
             'id': video_id,
             'formats': formats,
             'title': video.get('mediaName'),
-            'duration': float_or_none(self._search_regex(
-                r'PT([\d.]+)S', traverse_obj(video, ('playableAudioVideo', 'duration')),
-                'video duration', fatal=False)),
+            'duration': traverse_obj(video, ('playableAudioVideo', 'duration', {parse_duration})),
         }
 
     def _real_extract(self, url):
