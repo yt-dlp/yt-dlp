@@ -1,13 +1,7 @@
 import re
 
-from urllib.parse import urlparse, urlunparse
-
 from .common import InfoExtractor
-from ..utils import (
-    determine_ext,
-    float_or_none,
-    traverse_obj,
-)
+from ..utils import determine_ext, float_or_none, traverse_obj, update_url
 
 
 class Echo360IE(InfoExtractor):
@@ -44,13 +38,8 @@ class Echo360IE(InfoExtractor):
             f'https://{host}/api/ui/echoplayer/public-links/{video_id}/media/{media_id}/player-properties',
             video_id, headers={'Authorization': f'Bearer {session_token}'}, **kwargs)
 
-    def _replace_url_query(self, url, query_string):
-        if query_string is not None:
-            return urlunparse(urlparse(url)._replace(query=query_string))
-        return url
-
     def _get_query_string(self, uri, query_strings):
-        uri_base = urlparse(uri)._replace(query='', fragment='').geturl()
+        uri_base = update_url(uri, query=None, fragment=None)
         for query_string in query_strings:
             try:
                 if re.match(query_string['uriPattern'], uri_base):
@@ -68,7 +57,7 @@ class Echo360IE(InfoExtractor):
             href = track.get('uri')
             if href is None:
                 continue
-            href = self._replace_url_query(href, self._get_query_string(href, query_strings))
+            href = update_url(href, query=self._get_query_string(href, query_strings))
             if track.get('isHls') or determine_ext(href, None) == 'm3u8':
                 hls_formats = self._extract_m3u8_formats(
                     href, video_id, live=track.get('isLive'), m3u8_id='hls',
@@ -78,7 +67,7 @@ class Echo360IE(InfoExtractor):
                 for hls_format in hls_formats:
                     query_string = self._get_query_string(hls_format['url'], query_strings)
                     hls_format['extra_param_to_segment_url'] = query_string
-                    hls_format['url'] = self._replace_url_query(hls_format['url'], query_string)
+                    hls_format['url'] = update_url(hls_format['url'], query=query_string)
 
                 formats.extend(hls_formats)
 
