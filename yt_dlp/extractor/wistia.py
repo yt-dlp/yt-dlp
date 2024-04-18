@@ -1,12 +1,12 @@
+import base64
 import re
-import urllib.error
 import urllib.parse
-from base64 import b64decode
 
 from .common import InfoExtractor
+from ..networking import HEADRequest
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
-    HEADRequest,
     determine_ext,
     float_or_none,
     int_or_none,
@@ -365,13 +365,13 @@ class WistiaChannelIE(WistiaBaseIE):
 
         try:
             data = self._download_embed_config('channel', channel_id, url)
-        except (ExtractorError, urllib.error.HTTPError):
+        except (ExtractorError, HTTPError):
             # Some channels give a 403 from the JSON API
             self.report_warning('Failed to download channel data from API, falling back to webpage.')
             webpage = self._download_webpage(f'https://fast.wistia.net/embed/channel/{channel_id}', channel_id)
             data = self._parse_json(
                 self._search_regex(r'wchanneljsonp-%s\'\]\s*=[^\"]*\"([A-Za-z0-9=/]*)' % channel_id, webpage, 'jsonp', channel_id),
-                channel_id, transform_source=lambda x: urllib.parse.unquote_plus(b64decode(x).decode('utf-8')))
+                channel_id, transform_source=lambda x: urllib.parse.unquote_plus(base64.b64decode(x).decode('utf-8')))
 
         # XXX: can there be more than one series?
         series = traverse_obj(data, ('series', 0), default={})

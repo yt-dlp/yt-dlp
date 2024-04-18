@@ -1,7 +1,7 @@
 import re
 
 from .common import InfoExtractor
-from ..compat import compat_HTTPError
+from ..networking.exceptions import HTTPError
 from ..utils import (
     determine_ext,
     ExtractorError,
@@ -57,8 +57,8 @@ class TV2IE(InfoExtractor):
                                            headers={'content-type': 'application/json'},
                                            data='{"device":{"id":"1-1-1","name":"Nettleser (HTML)"}}'.encode())['playback']
             except ExtractorError as e:
-                if isinstance(e.cause, compat_HTTPError) and e.cause.code == 401:
-                    error = self._parse_json(e.cause.read().decode(), video_id)['error']
+                if isinstance(e.cause, HTTPError) and e.cause.status == 401:
+                    error = self._parse_json(e.cause.response.read().decode(), video_id)['error']
                     error_code = error.get('code')
                     if error_code == 'ASSET_PLAYBACK_INVALID_GEO_LOCATION':
                         self.raise_geo_restricted(countries=self._GEO_COUNTRIES)
@@ -161,6 +161,7 @@ class TV2ArticleIE(InfoExtractor):
 
 
 class KatsomoIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?(?:katsomo|mtv(uutiset)?)\.fi/(?:sarja/[0-9a-z-]+-\d+/[0-9a-z-]+-|(?:#!/)?jakso/(?:\d+/[^/]+/)?|video/prog)(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://www.mtv.fi/sarja/mtv-uutiset-live-33001002003/lahden-pelicans-teki-kovan-ratkaisun-ville-nieminen-pihalle-1181321',
@@ -211,8 +212,8 @@ class KatsomoIE(InfoExtractor):
                     api_base + '/play.json?protocol=%s&videoFormat=SMIL+ISMUSP' % protocol,
                     video_id, 'Downloading play JSON')['playback']
             except ExtractorError as e:
-                if isinstance(e.cause, compat_HTTPError) and e.cause.code == 401:
-                    error = self._parse_json(e.cause.read().decode(), video_id)['error']
+                if isinstance(e.cause, HTTPError) and e.cause.status == 401:
+                    error = self._parse_json(e.cause.response.read().decode(), video_id)['error']
                     error_code = error.get('code')
                     if error_code == 'ASSET_PLAYBACK_INVALID_GEO_LOCATION':
                         self.raise_geo_restricted(countries=self._GEO_COUNTRIES)
@@ -279,6 +280,7 @@ class KatsomoIE(InfoExtractor):
 
 
 class MTVUutisetArticleIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)mtvuutiset\.fi/artikkeli/[^/]+/(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://www.mtvuutiset.fi/artikkeli/tallaisia-vaurioita-viking-amorellassa-on-useamman-osaston-alla-vetta/7931384',

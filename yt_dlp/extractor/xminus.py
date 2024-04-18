@@ -12,6 +12,7 @@ from ..utils import (
 
 
 class XMinusIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?x-minus\.org/track/(?P<id>[0-9]+)'
     _TEST = {
         'url': 'http://x-minus.org/track/4542/%D0%BF%D0%B5%D1%81%D0%B5%D0%BD%D0%BA%D0%B0-%D1%88%D0%BE%D1%84%D0%B5%D1%80%D0%B0.html',

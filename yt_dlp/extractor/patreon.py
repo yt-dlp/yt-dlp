@@ -1,22 +1,22 @@
 import itertools
-from urllib.error import HTTPError
 
 from .common import InfoExtractor
 from .vimeo import VimeoIE
-
 from ..compat import compat_urllib_parse_unquote
+from ..networking.exceptions import HTTPError
 from ..utils import (
+    KNOWN_EXTENSIONS,
+    ExtractorError,
     clean_html,
     determine_ext,
-    ExtractorError,
     int_or_none,
-    KNOWN_EXTENSIONS,
     mimetype2ext,
     parse_iso8601,
     str_or_none,
     traverse_obj,
     try_get,
     url_or_none,
+    urljoin,
 )
 
 
@@ -37,9 +37,9 @@ class PatreonBaseIE(InfoExtractor):
                 item_id, note='Downloading API JSON' if not note else note,
                 query=query, fatal=fatal, headers=headers)
         except ExtractorError as e:
-            if not isinstance(e.cause, HTTPError) or mimetype2ext(e.cause.headers.get('Content-Type')) != 'json':
+            if not isinstance(e.cause, HTTPError) or mimetype2ext(e.cause.response.headers.get('Content-Type')) != 'json':
                 raise
-            err_json = self._parse_json(self._webpage_read_content(e.cause, None, item_id), item_id, fatal=False)
+            err_json = self._parse_json(self._webpage_read_content(e.cause.response, None, item_id), item_id, fatal=False)
             err_message = traverse_obj(err_json, ('errors', ..., 'detail'), get_all=False)
             if err_message:
                 raise ExtractorError(f'Patreon said: {err_message}', expected=True)
@@ -92,7 +92,7 @@ class PatreonIE(PatreonBaseIE):
             'thumbnail': 're:^https?://.*$',
             'upload_date': '20150211',
             'description': 'md5:8af6425f50bd46fbf29f3db0fc3a8364',
-            'uploader_id': 'TraciJHines',
+            'uploader_id': '@TraciHinesMusic',
             'categories': ['Entertainment'],
             'duration': 282,
             'view_count': int,
@@ -106,8 +106,10 @@ class PatreonIE(PatreonBaseIE):
             'availability': 'public',
             'channel_follower_count': int,
             'playable_in_embed': True,
-            'uploader_url': 'http://www.youtube.com/user/TraciJHines',
+            'uploader_url': 'https://www.youtube.com/@TraciHinesMusic',
             'comment_count': int,
+            'channel_is_verified': True,
+            'chapters': 'count:4',
         },
         'params': {
             'noplaylist': True,
@@ -176,6 +178,27 @@ class PatreonIE(PatreonBaseIE):
             'uploader_url': 'https://www.patreon.com/thenormies',
         },
         'skip': 'Patron-only content',
+    }, {
+        # dead vimeo and embed URLs, need to extract post_file
+        'url': 'https://www.patreon.com/posts/hunter-x-hunter-34007913',
+        'info_dict': {
+            'id': '34007913',
+            'ext': 'mp4',
+            'title': 'Hunter x Hunter | Kurapika DESTROYS Uvogin!!!',
+            'like_count': int,
+            'uploader': 'YaBoyRoshi',
+            'timestamp': 1581636833,
+            'channel_url': 'https://www.patreon.com/yaboyroshi',
+            'thumbnail': r're:^https?://.*$',
+            'tags': ['Hunter x Hunter'],
+            'uploader_id': '14264111',
+            'comment_count': int,
+            'channel_follower_count': int,
+            'description': 'Kurapika is a walking cheat code!',
+            'upload_date': '20200213',
+            'channel_id': '2147162',
+            'uploader_url': 'https://www.patreon.com/yaboyroshi',
+        },
     }]
 
     def _real_extract(self, url):
@@ -250,20 +273,13 @@ class PatreonIE(PatreonBaseIE):
             v_url = url_or_none(compat_urllib_parse_unquote(
                 self._search_regex(r'(https(?:%3A%2F%2F|://)player\.vimeo\.com.+app_id(?:=|%3D)+\d+)', embed_html, 'vimeo url', fatal=False)))
             if v_url:
-                return {
-                    **info,
-                    '_type': 'url_transparent',
-                    'url': VimeoIE._smuggle_referrer(v_url, 'https://patreon.com'),
-                    'ie_key': 'Vimeo',
-                }
+                v_url = VimeoIE._smuggle_referrer(v_url, 'https://patreon.com')
+                if self._request_webpage(v_url, video_id, 'Checking Vimeo embed URL', fatal=False, errnote=False):
+                    return self.url_result(v_url, VimeoIE, url_transparent=True, **info)
 
         embed_url = try_get(attributes, lambda x: x['embed']['url'])
-        if embed_url:
-            return {
-                **info,
-                '_type': 'url',
-                'url': embed_url,
-            }
+        if embed_url and self._request_webpage(embed_url, video_id, 'Checking embed URL', fatal=False, errnote=False):
+            return self.url_result(embed_url, **info)
 
         post_file = traverse_obj(attributes, 'post_file')
         if post_file:
@@ -275,7 +291,7 @@ class PatreonIE(PatreonBaseIE):
                     'ext': ext,
                     'url': post_file['url'],
                 }
-            elif name == 'video':
+            elif name == 'video' or determine_ext(post_file.get('url')) == 'm3u8':
                 formats, subtitles = self._extract_m3u8_formats_and_subtitles(post_file['url'], video_id)
                 return {
                     **info,
@@ -404,8 +420,8 @@ class PatreonCampaignIE(PatreonBaseIE):
             posts_json = self._call_api('posts', campaign_id, query=params, note='Downloading posts page %d' % page)
 
             cursor = traverse_obj(posts_json, ('meta', 'pagination', 'cursors', 'next'))
-            for post in posts_json.get('data') or []:
-                yield self.url_result(url_or_none(traverse_obj(post, ('attributes', 'patreon_url'))), 'Patreon')
+            for post_url in traverse_obj(posts_json, ('data', ..., 'attributes', 'patreon_url')):
+                yield self.url_result(urljoin('https://www.patreon.com/', post_url), PatreonIE)
 
             if cursor is None:
                 break

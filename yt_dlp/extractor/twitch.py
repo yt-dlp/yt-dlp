@@ -8,7 +8,6 @@ from .common import InfoExtractor
 from ..compat import (
     compat_parse_qs,
     compat_str,
-    compat_urllib_parse_urlencode,
     compat_urllib_parse_urlparse,
 )
 from ..utils import (
@@ -41,7 +40,6 @@ class TwitchBaseIE(InfoExtractor):
     _USHER_BASE = 'https://usher.ttvnw.net'
     _LOGIN_FORM_URL = 'https://www.twitch.tv/login'
     _LOGIN_POST_URL = 'https://passport.twitch.tv/login'
-    _CLIENT_ID = 'kimne78kx3ncx6brgo4mv6wki5h1ko'
     _NETRC_MACHINE = 'twitch'
 
     _OPERATION_HASHES = {
@@ -58,6 +56,11 @@ class TwitchBaseIE(InfoExtractor):
         'VideoPlayer_VODSeekbarPreviewVideo': '07e99e4d56c5a7c67117a154777b0baf85a5ffefa393b213f4bc712ccaf85dd6',
     }
 
+    @property
+    def _CLIENT_ID(self):
+        return self._configuration_arg(
+            'client_id', ['ue6666qo983tsx6so1t0vnawi233wa'], ie_key='Twitch', casesense=True)[0]
+
     def _perform_login(self, username, password):
         def fail(message):
             raise ExtractorError(
@@ -67,7 +70,7 @@ class TwitchBaseIE(InfoExtractor):
             form = self._hidden_inputs(page)
             form.update(data)
 
-            page_url = urlh.geturl()
+            page_url = urlh.url
             post_url = self._search_regex(
                 r'<form[^>]+action=(["\'])(?P<url>.+?)\1', page,
                 'post url', default=self._LOGIN_POST_URL, group='url')
@@ -179,6 +182,35 @@ class TwitchBaseIE(InfoExtractor):
             video_id, ops,
             'Downloading %s access token GraphQL' % token_kind)['data'][method]
 
+    def _get_thumbnails(self, thumbnail):
+        return [{
+            'url': re.sub(r'\d+x\d+(\.\w+)($|(?=[?#]))', r'0x0\g<1>', thumbnail),
+            'preference': 1,
+        }, {
+            'url': thumbnail,
+        }] if thumbnail else None
+
+    def _extract_twitch_m3u8_formats(self, path, video_id, token, signature):
+        formats = self._extract_m3u8_formats(
+            f'{self._USHER_BASE}/{path}/{video_id}.m3u8', video_id, 'mp4', query={
+                'allow_source': 'true',
+                'allow_audio_only': 'true',
+                'allow_spectre': 'true',
+                'p': random.randint(1000000, 10000000),
+                'platform': 'web',
+                'player': 'twitchweb',
+                'supported_codecs': 'av1,h265,h264',
+                'playlist_include_framerate': 'true',
+                'sig': signature,
+                'token': token,
+            })
+        for fmt in formats:
+            if fmt.get('vcodec') and fmt['vcodec'].startswith('av01'):
+                # mpegts does not yet have proper support for av1
+                fmt['downloader_options'] = {'ffmpeg_args_out': ['-f', 'mp4']}
+
+        return formats
+
 
 class TwitchVodIE(TwitchBaseIE):
     IE_NAME = 'twitch:vod'
@@ -186,7 +218,8 @@ class TwitchVodIE(TwitchBaseIE):
                     https?://
                         (?:
                             (?:(?:www|go|m)\.)?twitch\.tv/(?:[^/]+/v(?:ideo)?|videos)/|
-                            player\.twitch\.tv/\?.*?\bvideo=v?
+                            player\.twitch\.tv/\?.*?\bvideo=v?|
+                            www\.twitch\.tv/[^/]+/schedule\?vodID=
                         )
                         (?P<id>\d+)
                     '''
@@ -355,6 +388,9 @@ class TwitchVodIE(TwitchBaseIE):
             'skip_download': True
         },
         'expected_warnings': ['Unable to download JSON metadata: HTTP Error 403: Forbidden']
+    }, {
+        'url': 'https://www.twitch.tv/tangotek/schedule?vodID=1822395420',
+        'only_matching': True,
     }]
 
     def _download_info(self, item_id):
@@ -456,19 +492,17 @@ class TwitchVodIE(TwitchBaseIE):
         thumbnail = url_or_none(info.get('previewThumbnailURL'))
         is_live = None
         if thumbnail:
-            if thumbnail.endswith('/404_processing_{width}x{height}.png'):
+            if re.findall(r'/404_processing_[^.?#]+\.png', thumbnail):
                 is_live, thumbnail = True, None
             else:
                 is_live = False
-                for p in ('width', 'height'):
-                    thumbnail = thumbnail.replace('{%s}' % p, '0')
 
         return {
             'id': vod_id,
             'title': info.get('title') or 'Untitled Broadcast',
             'description': info.get('description'),
             'duration': int_or_none(info.get('lengthSeconds')),
-            'thumbnail': thumbnail,
+            'thumbnails': self._get_thumbnails(thumbnail),
             'uploader': try_get(info, lambda x: x['owner']['displayName'], compat_str),
             'uploader_id': try_get(info, lambda x: x['owner']['login'], compat_str),
             'timestamp': unified_timestamp(info.get('publishedAt')),
@@ -518,20 +552,8 @@ class TwitchVodIE(TwitchBaseIE):
         info = self._extract_info_gql(video, vod_id)
         access_token = self._download_access_token(vod_id, 'video', 'id')
 
-        formats = self._extract_m3u8_formats(
-            '%s/vod/%s.m3u8?%s' % (
-                self._USHER_BASE, vod_id,
-                compat_urllib_parse_urlencode({
-                    'allow_source': 'true',
-                    'allow_audio_only': 'true',
-                    'allow_spectre': 'true',
-                    'player': 'twitchweb',
-                    'playlist_include_framerate': 'true',
-                    'nauth': access_token['value'],
-                    'nauthsig': access_token['signature'],
-                })),
-            vod_id, 'mp4', entry_protocol='m3u8_native')
-
+        formats = self._extract_twitch_m3u8_formats(
+            'vod', vod_id, access_token['value'], access_token['signature'])
         formats.extend(self._extract_storyboard(vod_id, video.get('storyboard'), info.get('duration')))
 
         self._prefer_source(formats)
@@ -1012,23 +1034,10 @@ class TwitchStreamIE(TwitchBaseIE):
 
         access_token = self._download_access_token(
             channel_name, 'stream', 'channelName')
-        token = access_token['value']
 
         stream_id = stream.get('id') or channel_name
-        query = {
-            'allow_source': 'true',
-            'allow_audio_only': 'true',
-            'allow_spectre': 'true',
-            'p': random.randint(1000000, 10000000),
-            'player': 'twitchweb',
-            'playlist_include_framerate': 'true',
-            'segment_preference': '4',
-            'sig': access_token['signature'].encode('utf-8'),
-            'token': token.encode('utf-8'),
-        }
-        formats = self._extract_m3u8_formats(
-            '%s/api/channel/hls/%s.m3u8' % (self._USHER_BASE, channel_name),
-            stream_id, 'mp4', query=query)
+        formats = self._extract_twitch_m3u8_formats(
+            'api/channel/hls', channel_name, access_token['value'], access_token['signature'])
         self._prefer_source(formats)
 
         view_count = stream.get('viewers')
@@ -1053,7 +1062,7 @@ class TwitchStreamIE(TwitchBaseIE):
             'display_id': channel_name,
             'title': title,
             'description': description,
-            'thumbnail': thumbnail,
+            'thumbnails': self._get_thumbnails(thumbnail),
             'uploader': uploader,
             'uploader_id': channel_name,
             'timestamp': timestamp,
@@ -1069,7 +1078,7 @@ class TwitchClipsIE(TwitchBaseIE):
                     https?://
                         (?:
                             clips\.twitch\.tv/(?:embed\?.*?\bclip=|(?:[^/]+/)*)|
-                            (?:(?:www|go|m)\.)?twitch\.tv/[^/]+/clip/
+                            (?:(?:www|go|m)\.)?twitch\.tv/(?:[^/]+/)?clip/
                         )
                         (?P<id>[^/?#&]+)
                     '''
@@ -1104,6 +1113,9 @@ class TwitchClipsIE(TwitchBaseIE):
         'only_matching': True,
     }, {
         'url': 'https://go.twitch.tv/rossbroadcast/clip/ConfidentBraveHumanChefFrank',
+        'only_matching': True,
+    }, {
+        'url': 'https://m.twitch.tv/clip/FaintLightGullWholeWheat',
         'only_matching': True,
     }]
 

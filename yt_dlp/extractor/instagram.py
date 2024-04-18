@@ -3,13 +3,14 @@ import itertools
 import json
 import re
 import time
-import urllib.error
 
 from .common import InfoExtractor
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     decode_base_n,
     encode_base_n,
+    filter_dict,
     float_or_none,
     format_field,
     get_element_by_attribute,
@@ -442,7 +443,7 @@ class InstagramIE(InstagramBaseIE):
             shared_data = self._search_json(
                 r'window\._sharedData\s*=', webpage, 'shared data', video_id, fatal=False) or {}
 
-            if shared_data and self._LOGIN_URL not in urlh.geturl():
+            if shared_data and self._LOGIN_URL not in urlh.url:
                 media.update(traverse_obj(
                     shared_data, ('entry_data', 'PostPage', 0, 'graphql', 'shortcode_media'),
                     ('entry_data', 'PostPage', 0, 'media'), expected_type=dict) or {})
@@ -589,7 +590,7 @@ class InstagramPlaylistBaseIE(InstagramBaseIE):
                 except ExtractorError as e:
                     # if it's an error caused by a bad query, and there are
                     # more GIS templates to try, ignore it and keep trying
-                    if isinstance(e.cause, urllib.error.HTTPError) and e.cause.code == 403:
+                    if isinstance(e.cause, HTTPError) and e.cause.status == 403:
                         if gis_tmpl != gis_tmpls[-1]:
                             continue
                     raise
@@ -616,6 +617,7 @@ class InstagramPlaylistBaseIE(InstagramBaseIE):
 
 
 class InstagramUserIE(InstagramPlaylistBaseIE):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?instagram\.com/(?P<id>[^/]{2,})/?(?:$|[?#])'
     IE_DESC = 'Instagram user profile'
     IE_NAME = 'instagram:user'
@@ -703,28 +705,31 @@ class InstagramStoryIE(InstagramBaseIE):
         user_info = self._search_json(r'"user":', story_info, 'user info', story_id, fatal=False)
         if not user_info:
             self.raise_login_required('This content is unreachable')
-        user_id = user_info.get('id')
 
+        user_id = traverse_obj(user_info, 'pk', 'id', expected_type=str)
         story_info_url = user_id if username != 'highlights' else f'highlight:{story_id}'
+        if not story_info_url:  # user id is only mandatory for non-highlights
+            raise ExtractorError('Unable to extract user id')
+
         videos = traverse_obj(self._download_json(
             f'{self._API_BASE_URL}/feed/reels_media/?reel_ids={story_info_url}',
             story_id, errnote=False, fatal=False, headers=self._API_HEADERS), 'reels')
         if not videos:
             self.raise_login_required('You need to log in to access this content')
 
-        full_name = traverse_obj(videos, (f'highlight:{story_id}', 'user', 'full_name'), (str(user_id), 'user', 'full_name'))
+        full_name = traverse_obj(videos, (f'highlight:{story_id}', 'user', 'full_name'), (user_id, 'user', 'full_name'))
         story_title = traverse_obj(videos, (f'highlight:{story_id}', 'title'))
         if not story_title:
             story_title = f'Story by {username}'
 
-        highlights = traverse_obj(videos, (f'highlight:{story_id}', 'items'), (str(user_id), 'items'))
+        highlights = traverse_obj(videos, (f'highlight:{story_id}', 'items'), (user_id, 'items'))
         info_data = []
         for highlight in highlights:
             highlight_data = self._extract_product(highlight)
             if highlight_data.get('formats'):
                 info_data.append({
-                    **highlight_data,
                     'uploader': full_name,
                     'uploader_id': user_id,
+                    **filter_dict(highlight_data),
                 })
         return self.playlist_result(info_data, playlist_id=story_id, playlist_title=story_title)

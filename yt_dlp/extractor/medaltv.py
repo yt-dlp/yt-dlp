@@ -13,10 +13,10 @@ from ..utils import (
 
 
 class MedalTVIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?medal\.tv/(?P<path>games/[^/?#&]+/clips)/(?P<id>[^/?#&]+)'
+    _VALID_URL = r'https?://(?:www\.)?medal\.tv/games/[^/?#&]+/clips/(?P<id>[^/?#&]+)'
     _TESTS = [{
         'url': 'https://medal.tv/games/valorant/clips/jTBFnLKdLy15K',
-        'md5': '6930f8972914b6b9fdc2bb3918098ba0',
+        'md5': '03e4911fdcf7fce563090705c2e79267',
         'info_dict': {
             'id': 'jTBFnLKdLy15K',
             'ext': 'mp4',
@@ -33,8 +33,8 @@ class MedalTVIE(InfoExtractor):
             'duration': 13,
         }
     }, {
-        'url': 'https://medal.tv/games/cod%20cold%20war/clips/2mA60jWAGQCBH',
-        'md5': '3d19d426fe0b2d91c26e412684e66a06',
+        'url': 'https://medal.tv/games/cod-cold-war/clips/2mA60jWAGQCBH',
+        'md5': 'fc7a3e4552ae8993c1c4006db46be447',
         'info_dict': {
             'id': '2mA60jWAGQCBH',
             'ext': 'mp4',
@@ -52,7 +52,7 @@ class MedalTVIE(InfoExtractor):
             'duration': 23,
         }
     }, {
-        'url': 'https://medal.tv/games/cod%20cold%20war/clips/2um24TWdty0NA',
+        'url': 'https://medal.tv/games/cod-cold-war/clips/2um24TWdty0NA',
         'md5': 'b6dc76b78195fff0b4f8bf4a33ec2148',
         'info_dict': {
             'id': '2um24TWdty0NA',
@@ -80,25 +80,14 @@ class MedalTVIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        path = self._match_valid_url(url).group('path')
 
-        webpage = self._download_webpage(url, video_id)
+        webpage = self._download_webpage(url, video_id, query={'mobilebypass': 'true'})
 
-        next_data = self._search_json(
-            '<script[^>]*__NEXT_DATA__[^>]*>', webpage,
+        hydration_data = self._search_json(
+            r'<script[^>]*>[^<]*\bhydrationData\s*=', webpage,
             'next data', video_id, end_pattern='</script>', fatal=False)
 
-        build_id = next_data.get('buildId')
-        if not build_id:
-            raise ExtractorError(
-                'Could not find build ID.', video_id=video_id)
-
-        locale = next_data.get('locale', 'en')
-
-        api_response = self._download_json(
-            f'https://medal.tv/_next/data/{build_id}/{locale}/{path}/{video_id}.json', video_id)
-
-        clip = traverse_obj(api_response, ('pageProps', 'clip')) or {}
+        clip = traverse_obj(hydration_data, ('clips', ...), get_all=False)
         if not clip:
             raise ExtractorError(
                 'Could not find video information.', video_id=video_id)
@@ -152,7 +141,7 @@ class MedalTVIE(InfoExtractor):
 
         # Necessary because the id of the author is not known in advance.
         # Won't raise an issue if no profile can be found as this is optional.
-        author = traverse_obj(api_response, ('pageProps', 'profile')) or {}
+        author = traverse_obj(hydration_data, ('profiles', ...), get_all=False) or {}
         author_id = str_or_none(author.get('userId'))
         author_url = format_field(author_id, None, 'https://medal.tv/users/%s')
 

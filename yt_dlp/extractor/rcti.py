@@ -3,7 +3,7 @@ import random
 import time
 
 from .common import InfoExtractor
-from ..compat import compat_HTTPError
+from ..networking.exceptions import HTTPError
 from ..utils import (
     dict_get,
     ExtractorError,
@@ -28,7 +28,7 @@ class RCTIPlusBaseIE(InfoExtractor):
 
 
 class RCTIPlusIE(RCTIPlusBaseIE):
-    _VALID_URL = r'https://www\.rctiplus\.com/(?:programs/\d+?/.*?/)?(?P<type>episode|clip|extra|live-event|missed-event)/(?P<id>\d+)/(?P<display_id>[^/?#&]+)'
+    _VALID_URL = r'https?://www\.rctiplus\.com/(?:programs/\d+?/.*?/)?(?P<type>episode|clip|extra|live-event|missed-event)/(?P<id>\d+)/(?P<display_id>[^/?#&]+)'
     _TESTS = [{
         'url': 'https://www.rctiplus.com/programs/1259/kiko-untuk-lola/episode/22124/untuk-lola',
         'md5': '56ed45affad45fa18d5592a1bc199997',
@@ -186,7 +186,7 @@ class RCTIPlusIE(RCTIPlusBaseIE):
         try:
             formats = self._extract_m3u8_formats(video_url, display_id, 'mp4', headers={'Referer': 'https://www.rctiplus.com/'})
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 403:
+            if isinstance(e.cause, HTTPError) and e.cause.status == 403:
                 self.raise_geo_restricted(countries=['ID'], metadata_available=True)
             else:
                 raise e
@@ -218,7 +218,7 @@ class RCTIPlusIE(RCTIPlusBaseIE):
 
 
 class RCTIPlusSeriesIE(RCTIPlusBaseIE):
-    _VALID_URL = r'https://www\.rctiplus\.com/programs/(?P<id>\d+)/(?P<display_id>[^/?#&]+)(?:/(?P<type>episodes|extras|clips))?'
+    _VALID_URL = r'https?://www\.rctiplus\.com/programs/(?P<id>\d+)/(?P<display_id>[^/?#&]+)(?:/(?P<type>episodes|extras|clips))?'
     _TESTS = [{
         'url': 'https://www.rctiplus.com/programs/829/putri-untuk-pangeran',
         'playlist_mincount': 1019,
@@ -229,7 +229,7 @@ class RCTIPlusSeriesIE(RCTIPlusBaseIE):
             'age_limit': 2,
             'cast': ['Verrel Bramasta', 'Ranty Maria', 'Riza Syah', 'Ivan Fadilla', 'Nicole Parham', 'Dll', 'Aviv Elham'],
             'display_id': 'putri-untuk-pangeran',
-            'tag': 'count:18',
+            'tags': 'count:18',
         },
     }, {  # No episodes
         'url': 'https://www.rctiplus.com/programs/615/inews-pagi',
@@ -239,7 +239,7 @@ class RCTIPlusSeriesIE(RCTIPlusBaseIE):
             'title': 'iNews Pagi',
             'description': 'md5:f18ee3d4643cfb41c358e5a9b693ee04',
             'age_limit': 2,
-            'tag': 'count:11',
+            'tags': 'count:11',
             'display_id': 'inews-pagi',
         }
     }]
@@ -327,8 +327,8 @@ class RCTIPlusSeriesIE(RCTIPlusBaseIE):
             'age_limit': try_get(series_meta, lambda x: self._AGE_RATINGS[x['age_restriction'][0]['code']]),
             'cast': traverse_obj(series_meta, (('starring', 'creator', 'writer'), ..., 'name'),
                                  expected_type=lambda x: strip_or_none(x) or None),
-            'tag': traverse_obj(series_meta, ('tag', ..., 'name'),
-                                expected_type=lambda x: strip_or_none(x) or None),
+            'tags': traverse_obj(series_meta, ('tag', ..., 'name'),
+                                 expected_type=lambda x: strip_or_none(x) or None),
         }
         return self.playlist_result(
             self._series_entries(series_id, display_id, video_type, metadata), series_id,
@@ -336,7 +336,7 @@ class RCTIPlusSeriesIE(RCTIPlusBaseIE):
 
 
 class RCTIPlusTVIE(RCTIPlusBaseIE):
-    _VALID_URL = r'https://www\.rctiplus\.com/((tv/(?P<tvname>\w+))|(?P<eventname>live-event|missed-event))'
+    _VALID_URL = r'https?://www\.rctiplus\.com/((tv/(?P<tvname>\w+))|(?P<eventname>live-event|missed-event))'
     _TESTS = [{
         'url': 'https://www.rctiplus.com/tv/rcti',
         'info_dict': {

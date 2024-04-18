@@ -5,7 +5,7 @@ from ..utils import ExtractorError
 
 
 class NewsPicksIE(InfoExtractor):
-    _VALID_URL = r'https://newspicks\.com/movie-series/(?P<channel_id>\d+)\?movieId=(?P<id>\d+)'
+    _VALID_URL = r'https?://newspicks\.com/movie-series/(?P<channel_id>\d+)\?movieId=(?P<id>\d+)'
 
     _TESTS = [{
         'url': 'https://newspicks.com/movie-series/11?movieId=1813',

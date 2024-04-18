@@ -6,6 +6,7 @@ from ..utils import (
     int_or_none,
     merge_dicts,
     str_to_int,
+    traverse_obj,
     unified_strdate,
     url_or_none,
 )
@@ -86,32 +87,31 @@ class YouPornIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        mobj = self._match_valid_url(url)
-        video_id = mobj.group('id')
-        display_id = mobj.group('display_id') or video_id
-
+        video_id, display_id = self._match_valid_url(url).group('id', 'display_id')
         definitions = self._download_json(
-            'https://www.youporn.com/api/video/media_definitions/%s/' % video_id,
-            display_id)
+            f'https://www.youporn.com/api/video/media_definitions/{video_id}/', display_id or video_id)
+
+        def get_format_data(data, f):
+            return traverse_obj(data, lambda _, v: v['format'] == f and url_or_none(v['videoUrl']))
 
         formats = []
-        for definition in definitions:
-            if not isinstance(definition, dict):
-                continue
-            video_url = url_or_none(definition.get('videoUrl'))
-            if not video_url:
-                continue
-            f = {
-                'url': video_url,
-                'filesize': int_or_none(definition.get('videoSize')),
-            }
+        # Try to extract only the actual master m3u8 first, avoiding the duplicate single resolution "master" m3u8s
+        for hls_url in traverse_obj(get_format_data(definitions, 'hls'), (
+                lambda _, v: not isinstance(v['defaultQuality'], bool), 'videoUrl'), (..., 'videoUrl')):
+            formats.extend(self._extract_m3u8_formats(hls_url, video_id, 'mp4', fatal=False, m3u8_id='hls'))
+
+        for definition in get_format_data(definitions, 'mp4'):
+            f = traverse_obj(definition, {
+                'url': 'videoUrl',
+                'filesize': ('videoSize', {int_or_none})
+            })
             height = int_or_none(definition.get('quality'))
             # Video URL's path looks like this:
             #  /201012/17/505835/720p_1500k_505835/YouPorn%20-%20Sex%20Ed%20Is%20It%20Safe%20To%20Masturbate%20Daily.mp4
             #  /201012/17/505835/vl_240p_240k_505835/YouPorn%20-%20Sex%20Ed%20Is%20It%20Safe%20To%20Masturbate%20Daily.mp4
             #  /videos/201703/11/109285532/1080P_4000K_109285532.mp4
             # We will benefit from it by extracting some metadata
-            mobj = re.search(r'(?P<height>\d{3,4})[pP]_(?P<bitrate>\d+)[kK]_\d+', video_url)
+            mobj = re.search(r'(?P<height>\d{3,4})[pP]_(?P<bitrate>\d+)[kK]_\d+', definition['videoUrl'])
             if mobj:
                 if not height:
                     height = int(mobj.group('height'))
@@ -179,6 +179,7 @@ class YouPornIE(InfoExtractor):
             'tags')
 
         data = self._search_json_ld(webpage, video_id, expected_type='VideoObject', fatal=False)
+        data.pop('url', None)
         return merge_dicts(data, {
             'id': video_id,
             'display_id': display_id,

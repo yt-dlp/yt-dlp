@@ -56,7 +56,7 @@ class TeachableBaseIE(InfoExtractor):
             self._logged_in = True
             return
 
-        login_url = urlh.geturl()
+        login_url = urlh.url
 
         login_form = self._hidden_inputs(login_page)
 
@@ -99,6 +99,7 @@ class TeachableBaseIE(InfoExtractor):
 
 
 class TeachableIE(TeachableBaseIE):
+    _WORKING = False
     _VALID_URL = r'''(?x)
                     (?:
                         %shttps?://(?P<site_t>[^/]+)|

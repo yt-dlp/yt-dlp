@@ -7,6 +7,7 @@ from ..utils import (
 
 
 class ViqeoIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'''(?x)
                         (?:
                             viqeo:|

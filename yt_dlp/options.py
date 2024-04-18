@@ -34,6 +34,7 @@ from .utils import (
     join_nonempty,
     orderedSet_from_options,
     remove_end,
+    variadic,
     write_string,
 )
 from .version import CHANNEL, __version__
@@ -150,7 +151,7 @@ class _YoutubeDLHelpFormatter(optparse.IndentedHelpFormatter):
 
 
 class _YoutubeDLOptionParser(optparse.OptionParser):
-    # optparse is deprecated since python 3.2. So assume a stable interface even for private methods
+    # optparse is deprecated since Python 3.2. So assume a stable interface even for private methods
     ALIAS_DEST = '_triggered_aliases'
     ALIAS_TRIGGER_LIMIT = 100
 
@@ -195,9 +196,12 @@ class _YoutubeDLOptionParser(optparse.OptionParser):
                     raise
         return self.check_values(self.values, self.largs)
 
-    def error(self, msg):
+    def _generate_error_message(self, msg):
         msg = f'{self.get_prog_name()}: error: {str(msg).strip()}\n'
-        raise optparse.OptParseError(f'{self.get_usage()}\n{msg}' if self.usage else msg)
+        return f'{self.get_usage()}\n{msg}' if self.usage else msg
+
+    def error(self, msg):
+        raise optparse.OptParseError(self._generate_error_message(msg))
 
     def _get_args(self, args):
         return sys.argv[1:] if args is None else list(args)
@@ -243,14 +247,14 @@ def create_parser():
         if multiple_keys:
             allowed_keys = fr'({allowed_keys})(,({allowed_keys}))*'
         mobj = re.match(
-            fr'(?i)(?P<keys>{allowed_keys}){delimiter}(?P<val>.*)$',
+            fr'(?is)(?P<keys>{allowed_keys}){delimiter}(?P<val>.*)$',
             value[0] if multiple_args else value)
         if mobj is not None:
             keys, val = mobj.group('keys').split(','), mobj.group('val')
             if multiple_args:
                 val = [val, *value[1:]]
         elif default_key is not None:
-            keys, val = [default_key], value
+            keys, val = variadic(default_key), value
         else:
             raise optparse.OptionValueError(
                 f'wrong {opt_str} formatting; it should be {option.metavar}, not "{value}"')
@@ -323,7 +327,7 @@ def create_parser():
         help='Print program version and exit')
     general.add_option(
         '-U', '--update',
-        action='store_true', dest='update_self',
+        action='store_const', dest='update_self', const=CHANNEL,
         help=format_field(
             is_non_updateable(), None, 'Check if updates are available. %s',
             default=f'Update this program to the latest {CHANNEL} version'))
@@ -335,9 +339,9 @@ def create_parser():
         '--update-to',
         action='store', dest='update_self', metavar='[CHANNEL]@[TAG]',
         help=(
-            'Upgrade/downgrade to a specific version. CHANNEL and TAG defaults to '
-            f'"{CHANNEL}" and "latest" respectively if omitted; See "UPDATE" for details. '
-            f'Supported channels: {", ".join(UPDATE_SOURCES)}'))
+            'Upgrade/downgrade to a specific version. CHANNEL can be a repository as well. '
+            f'CHANNEL and TAG default to "{CHANNEL.partition("@")[0]}" and "latest" respectively if omitted; '
+            f'See "UPDATE" for details. Supported channels: {", ".join(UPDATE_SOURCES)}'))
     general.add_option(
         '-i', '--ignore-errors',
         action='store_true', dest='ignoreerrors',
@@ -389,7 +393,7 @@ def create_parser():
         '--ignore-config', '--no-config',
         action='store_true', dest='ignoreconfig',
         help=(
-            'Don\'t load any more configuration files except those given by --config-locations. '
+            'Don\'t load any more configuration files except those given to --config-locations. '
             'For backward compatibility, if this option is found inside the system configuration file, the user configuration is not loaded. '
             '(Alias: --no-config)'))
     general.add_option(
@@ -411,7 +415,7 @@ def create_parser():
     general.add_option(
         '--no-flat-playlist',
         action='store_false', dest='extract_flat',
-        help='Extract the videos of a playlist')
+        help='Fully extract the videos of a playlist (default)')
     general.add_option(
         '--live-from-start',
         action='store_true', dest='live_from_start',
@@ -440,8 +444,25 @@ def create_parser():
         help='Do not mark videos watched (default)')
     general.add_option(
         '--no-colors', '--no-colours',
-        action='store_true', dest='no_color', default=False,
-        help='Do not emit color codes in output (Alias: --no-colours)')
+        action='store_const', dest='color', const={
+            'stdout': 'no_color',
+            'stderr': 'no_color',
+        },
+        help=optparse.SUPPRESS_HELP)
+    general.add_option(
+        '--color',
+        dest='color', metavar='[STREAM:]POLICY', default={}, type='str',
+        action='callback', callback=_dict_from_options_callback,
+        callback_kwargs={
+            'allowed_keys': 'stdout|stderr',
+            'default_key': ['stdout', 'stderr'],
+            'process': str.strip,
+        }, help=(
+            'Whether to emit color codes in output, optionally prefixed by '
+            'the STREAM (stdout or stderr) to apply the setting to. '
+            'Can be one of "always", "auto" (default), "never", or '
+            '"no_color" (use non color terminal sequences). '
+            'Can be used multiple times'))
     general.add_option(
         '--compat-options',
         metavar='OPTS', dest='compat_opts', default=set(), type='str',
@@ -449,15 +470,17 @@ def create_parser():
         callback_kwargs={
             'allowed_values': {
                 'filename', 'filename-sanitization', 'format-sort', 'abort-on-error', 'format-spec', 'no-playlist-metafiles',
-                'multistreams', 'no-live-chat', 'playlist-index', 'list-formats', 'no-direct-merge',
+                'multistreams', 'no-live-chat', 'playlist-index', 'list-formats', 'no-direct-merge', 'playlist-match-filter',
                 'no-attach-info-json', 'embed-thumbnail-atomicparsley', 'no-external-downloader-progress',
                 'embed-metadata', 'seperate-video-versions', 'no-clean-infojson', 'no-keep-subs', 'no-certifi',
                 'no-youtube-channel-redirect', 'no-youtube-unavailable-videos', 'no-youtube-prefer-utc-upload-date',
+                'prefer-legacy-http-handler', 'manifest-filesize-approx'
             }, 'aliases': {
-                'youtube-dl': ['all', '-multistreams'],
-                'youtube-dlc': ['all', '-no-youtube-channel-redirect', '-no-live-chat'],
+                'youtube-dl': ['all', '-multistreams', '-playlist-match-filter', '-manifest-filesize-approx'],
+                'youtube-dlc': ['all', '-no-youtube-channel-redirect', '-no-live-chat', '-playlist-match-filter', '-manifest-filesize-approx'],
                 '2021': ['2022', 'no-certifi', 'filename-sanitization', 'no-youtube-prefer-utc-upload-date'],
-                '2022': ['no-external-downloader-progress'],
+                '2022': ['2023', 'no-external-downloader-progress', 'playlist-match-filter', 'prefer-legacy-http-handler', 'manifest-filesize-approx'],
+                '2023': [],
             }
         }, help=(
             'Options that can help keep compatibility with youtube-dl or youtube-dlc '
@@ -493,6 +516,18 @@ def create_parser():
         help='Client-side IP address to bind to',
     )
     network.add_option(
+        '--impersonate',
+        metavar='CLIENT[:OS]', dest='impersonate', default=None,
+        help=(
+            'Client to impersonate for requests. E.g. chrome, chrome-110, chrome:windows-10. '
+            'Pass --impersonate="" to impersonate any client.'),
+    )
+    network.add_option(
+        '--list-impersonate-targets',
+        dest='list_impersonate_targets', default=False, action='store_true',
+        help='List available clients to impersonate.',
+    )
+    network.add_option(
         '-4', '--force-ipv4',
         action='store_const', const='0.0.0.0', dest='source_address',
         help='Make all connections via IPv4',
@@ -520,21 +555,26 @@ def create_parser():
         dest='cn_verification_proxy', default=None, metavar='URL',
         help=optparse.SUPPRESS_HELP)
     geo.add_option(
+        '--xff', metavar='VALUE',
+        dest='geo_bypass', default='default',
+        help=(
+            'How to fake X-Forwarded-For HTTP header to try bypassing geographic restriction. '
+            'One of "default" (only when known to be useful), "never", '
+            'an IP block in CIDR notation, or a two-letter ISO 3166-2 country code'))
+    geo.add_option(
         '--geo-bypass',
-        action='store_true', dest='geo_bypass', default=True,
-        help='Bypass geographic restriction via faking X-Forwarded-For HTTP header (default)')
+        action='store_const', dest='geo_bypass', const='default',
+        help=optparse.SUPPRESS_HELP)
     geo.add_option(
         '--no-geo-bypass',
-        action='store_false', dest='geo_bypass',
-        help='Do not bypass geographic restriction via faking X-Forwarded-For HTTP header')
+        action='store_const', dest='geo_bypass', const='never',
+        help=optparse.SUPPRESS_HELP)
     geo.add_option(
-        '--geo-bypass-country', metavar='CODE',
-        dest='geo_bypass_country', default=None,
-        help='Force bypass geographic restriction with explicitly provided two-letter ISO 3166-2 country code')
+        '--geo-bypass-country', metavar='CODE', dest='geo_bypass',
+        help=optparse.SUPPRESS_HELP)
     geo.add_option(
-        '--geo-bypass-ip-block', metavar='IP_BLOCK',
-        dest='geo_bypass_ip_block', default=None,
-        help='Force bypass geographic restriction with explicitly provided IP block in CIDR notation')
+        '--geo-bypass-ip-block', metavar='IP_BLOCK', dest='geo_bypass',
+        help=optparse.SUPPRESS_HELP)
 
     selection = optparse.OptionGroup(parser, 'Video Selection')
     selection.add_option(
@@ -612,7 +652,7 @@ def create_parser():
             'that contains the phrase "cats & dogs" (caseless). '
             'Use "--match-filter -" to interactively ask whether to download each video'))
     selection.add_option(
-        '--no-match-filter',
+        '--no-match-filters',
         dest='match_filter', action='store_const', const=None,
         help='Do not use any --match-filter (default)')
     selection.add_option(
@@ -651,6 +691,10 @@ def create_parser():
         '--break-on-existing',
         action='store_true', dest='break_on_existing', default=False,
         help='Stop the download process when encountering a file that is in the archive')
+    selection.add_option(
+        '--no-break-on-existing',
+        action='store_false', dest='break_on_existing',
+        help='Do not stop the download process when encountering a file that is in the archive (default)')
     selection.add_option(
         '--break-on-reject',
         action='store_true', dest='break_on_reject', default=False,
@@ -698,9 +742,13 @@ def create_parser():
         dest='netrc_location', metavar='PATH',
         help='Location of .netrc authentication data; either the path or its containing directory. Defaults to ~/.netrc')
     authentication.add_option(
+        '--netrc-cmd',
+        dest='netrc_cmd', metavar='NETRC_CMD',
+        help='Command to execute to get the credentials for an extractor.')
+    authentication.add_option(
         '--video-password',
         dest='videopassword', metavar='PASSWORD',
-        help='Video password (vimeo, youku)')
+        help='Video-specific password')
     authentication.add_option(
         '--ap-mso',
         dest='ap_mso', metavar='MSO',
@@ -985,8 +1033,9 @@ def create_parser():
         '--download-sections',
         metavar='REGEX', dest='download_ranges', action='append',
         help=(
-            'Download only chapters whose title matches the given regular expression. '
-            'Time ranges prefixed by a "*" can also be used in place of chapters to download the specified range. '
+            'Download only chapters that match the regular expression. '
+            'A "*" prefix denotes time-range instead of chapter. Negative timestamps are calculated from the end. '
+            '"*from-url" can be used to download between the "start_time" and "end_time" extracted from the URL. '
             'Needs ffmpeg. This option can be used multiple times to download multiple sections, '
             'e.g. --download-sections "*10:15-inf" --download-sections "intro"'))
     downloader.add_option(
@@ -1079,8 +1128,12 @@ def create_parser():
     verbosity = optparse.OptionGroup(parser, 'Verbosity and Simulation Options')
     verbosity.add_option(
         '-q', '--quiet',
-        action='store_true', dest='quiet', default=False,
+        action='store_true', dest='quiet', default=None,
         help='Activate quiet mode. If used with --verbose, print the log to stderr')
+    verbosity.add_option(
+        '--no-quiet',
+        action='store_false', dest='quiet',
+        help='Deactivate quiet mode. (Default)')
     verbosity.add_option(
         '--no-warnings',
         dest='no_warnings', action='store_true', default=False,
@@ -1156,7 +1209,9 @@ def create_parser():
     verbosity.add_option(
         '-j', '--dump-json',
         action='store_true', dest='dumpjson', default=False,
-        help='Quiet, but print JSON information for each video. Simulate unless --no-simulate is used. See "OUTPUT TEMPLATE" for a description of available keys')
+        help=(
+            'Quiet, but print JSON information for each video. Simulate unless --no-simulate is used. '
+            'See "OUTPUT TEMPLATE" for a description of available keys'))
     verbosity.add_option(
         '-J', '--dump-single-json',
         action='store_true', dest='dump_single_json', default=False,
@@ -1203,6 +1258,10 @@ def create_parser():
             'the progress attributes are accessible under "progress" key. E.g. '
             # TODO: Document the fields inside "progress"
             '--console-title --progress-template "download-title:%(info.id)s-%(progress.eta)s"'))
+    verbosity.add_option(
+        '--progress-delta',
+        metavar='SECONDS', action='store', dest='progress_delta', type=float, default=0,
+        help='Time between progress output (default: 0)')
     verbosity.add_option(
         '-v', '--verbose',
         action='store_true', dest='verbose', default=False,
@@ -1278,7 +1337,7 @@ def create_parser():
     filesystem.add_option(
         '--output-na-placeholder',
         dest='outtmpl_na_placeholder', metavar='TEXT', default='NA',
-        help=('Placeholder for unavailable fields in "OUTPUT TEMPLATE" (default: "%default")'))
+        help=('Placeholder for unavailable fields in --output (default: "%default")'))
     filesystem.add_option(
         '--autonumber-size',
         dest='autonumber_size', metavar='NUMBER', type=int,
@@ -1383,8 +1442,7 @@ def create_parser():
         '--clean-info-json', '--clean-infojson',
         action='store_true', dest='clean_infojson', default=None,
         help=(
-            'Remove some private fields such as filenames from the infojson. '
-            'Note that it could still contain some personal information (default)'))
+            'Remove some internal metadata such as filenames from the infojson (default)'))
     filesystem.add_option(
         '--no-clean-info-json', '--no-clean-infojson',
         action='store_false', dest='clean_infojson',
@@ -1647,8 +1705,7 @@ def create_parser():
             'Execute a command, optionally prefixed with when to execute it, separated by a ":". '
             'Supported values of "WHEN" are the same as that of --use-postprocessor (default: after_move). '
             'Same syntax as the output template can be used to pass any field as arguments to the command. '
-            'After download, an additional field "filepath" that contains the final path of the downloaded file '
-            'is also available, and if no fields are passed, %(filepath,_filename|)q is appended to the end of the command. '
+            'If no fields are passed, %(filepath,_filename|)q is appended to the end of the command. '
             'This option can be used multiple times'))
     postproc.add_option(
         '--no-exec',

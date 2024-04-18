@@ -78,7 +78,7 @@ class _MatchChildParser(_MatchParser):
 class ParseError(Exception):
     def __init__(self, parser):
         super().__init__("Parse error at position %u (near %r)" % (
-            parser._pos, parser._data[parser._pos:parser._pos + 20]
+            parser._pos, parser._data[parser._pos:parser._pos + 100]
         ))
 
 
@@ -95,6 +95,7 @@ _REGEX_TS = re.compile(r'''(?x)
 _REGEX_EOF = re.compile(r'\Z')
 _REGEX_NL = re.compile(r'(?:\r\n|[\r\n]|$)')
 _REGEX_BLANK = re.compile(r'(?:\r\n|[\r\n])+')
+_REGEX_OPTIONAL_WHITESPACE = re.compile(r'[ \t]*')
 
 
 def _parse_ts(ts):
@@ -286,6 +287,7 @@ class CueBlock(Block):
         if not m1:
             return None
         m2 = parser.consume(cls._REGEX_SETTINGS)
+        parser.consume(_REGEX_OPTIONAL_WHITESPACE)
         if not parser.consume(_REGEX_NL):
             return None
 
