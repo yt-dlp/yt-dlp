@@ -1,13 +1,7 @@
 import re
 
 from .common import InfoExtractor
-from ..utils import (
-    determine_ext,
-    float_or_none,
-    parse_duration,
-    traverse_obj,
-    update_url,
-)
+from ..utils import determine_ext, parse_duration, traverse_obj, update_url
 
 
 class Echo360IE(InfoExtractor):
