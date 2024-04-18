@@ -291,7 +291,7 @@ class PatreonIE(PatreonBaseIE):
         if traverse_obj(attributes, ('embed', 'provider')) == 'Vimeo':
             v_url = urllib.parse.unquote(self._html_search_regex(
                 r'(https(?:%3A%2F%2F|://)player\.vimeo\.com.+app_id(?:=|%3D)+\d+)',
-                traverse_obj(attributes, ('embed', 'html', {str})), 'vimeo url', fatal=False))
+                traverse_obj(attributes, ('embed', 'html', {str})), 'vimeo url', fatal=False) or '')
             if url_or_none(v_url) and self._request_webpage(
                     v_url, video_id, 'Checking Vimeo embed URL',
                     headers={'Referer': 'https://patreon.com'},
