@@ -294,10 +294,10 @@ class PatreonIE(PatreonBaseIE):
                 traverse_obj(attributes, ('embed', 'html', {str})), 'vimeo url', fatal=False) or '')
             if url_or_none(v_url) and self._request_webpage(
                     v_url, video_id, 'Checking Vimeo embed URL',
-                    headers={'Referer': 'https://patreon.com'},
+                    headers={'Referer': 'https://patreon.com/'},
                     fatal=False, errnote=False):
                 return self.url_result(
-                    VimeoIE._smuggle_referrer(v_url, 'https://patreon.com'),
+                    VimeoIE._smuggle_referrer(v_url, 'https://patreon.com/'),
                     VimeoIE, url_transparent=True, **info)
 
         embed_url = traverse_obj(attributes, ('embed', 'url', {url_or_none}))
