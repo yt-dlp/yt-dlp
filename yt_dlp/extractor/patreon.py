@@ -198,6 +198,27 @@ class PatreonIE(PatreonBaseIE):
             'channel_id': '2147162',
             'uploader_url': 'https://www.patreon.com/yaboyroshi',
         },
+    }, {
+        # NSFW vimeo embed URL
+        'url': 'https://www.patreon.com/posts/4k-spiderman-4k-96414599',
+        'info_dict': {
+            'id': '902250943',
+            'ext': 'mp4',
+            'title': '❤️(4K) Spiderman Girl Yeonhwa’s Gift ❤️(4K) 스파이더맨걸 연화의 선물',
+            'description': '❤️(4K) Spiderman Girl Yeonhwa’s Gift \n❤️(4K) 스파이더맨걸 연화의 선물',
+            'uploader': 'Npickyeonhwa',
+            'uploader_id': '90574422',
+            'uploader_url': 'https://www.patreon.com/Yeonhwa726',
+            'channel_id': '10237902',
+            'channel_url': 'https://www.patreon.com/Yeonhwa726',
+            'duration': 70,
+            'timestamp': 1705150153,
+            'upload_date': '20240113',
+            'comment_count': int,
+            'like_count': int,
+            'thumbnail': r're:^https?://.+',
+        },
+        'params': {'skip_download': 'm3u8'},
     }]
 
     def _real_extract(self, url):
