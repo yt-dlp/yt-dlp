@@ -1,8 +1,8 @@
 import itertools
+import urllib.parse
 
 from .common import InfoExtractor
 from .vimeo import VimeoIE
-from ..compat import compat_urllib_parse_unquote
 from ..networking.exceptions import HTTPError
 from ..utils import (
     KNOWN_EXTENSIONS,
@@ -14,7 +14,6 @@ from ..utils import (
     parse_iso8601,
     str_or_none,
     traverse_obj,
-    try_get,
     url_or_none,
     urljoin,
 )
@@ -199,6 +198,27 @@ class PatreonIE(PatreonBaseIE):
             'channel_id': '2147162',
             'uploader_url': 'https://www.patreon.com/yaboyroshi',
         },
+    }, {
+        # NSFW vimeo embed URL
+        'url': 'https://www.patreon.com/posts/4k-spiderman-4k-96414599',
+        'info_dict': {
+            'id': '902250943',
+            'ext': 'mp4',
+            'title': '❤️(4K) Spiderman Girl Yeonhwa’s Gift ❤️(4K) 스파이더맨걸 연화의 선물',
+            'description': '❤️(4K) Spiderman Girl Yeonhwa’s Gift \n❤️(4K) 스파이더맨걸 연화의 선물',
+            'uploader': 'Npickyeonhwa',
+            'uploader_id': '90574422',
+            'uploader_url': 'https://www.patreon.com/Yeonhwa726',
+            'channel_id': '10237902',
+            'channel_url': 'https://www.patreon.com/Yeonhwa726',
+            'duration': 70,
+            'timestamp': 1705150153,
+            'upload_date': '20240113',
+            'comment_count': int,
+            'like_count': int,
+            'thumbnail': r're:^https?://.+',
+        },
+        'params': {'skip_download': 'm3u8'},
     }]
 
     def _real_extract(self, url):
@@ -268,16 +288,19 @@ class PatreonIE(PatreonBaseIE):
                 })
 
         # handle Vimeo embeds
-        if try_get(attributes, lambda x: x['embed']['provider']) == 'Vimeo':
-            embed_html = try_get(attributes, lambda x: x['embed']['html'])
-            v_url = url_or_none(compat_urllib_parse_unquote(
-                self._search_regex(r'(https(?:%3A%2F%2F|://)player\.vimeo\.com.+app_id(?:=|%3D)+\d+)', embed_html, 'vimeo url', fatal=False)))
-            if v_url:
-                v_url = VimeoIE._smuggle_referrer(v_url, 'https://patreon.com')
-                if self._request_webpage(v_url, video_id, 'Checking Vimeo embed URL', fatal=False, errnote=False):
-                    return self.url_result(v_url, VimeoIE, url_transparent=True, **info)
+        if traverse_obj(attributes, ('embed', 'provider')) == 'Vimeo':
+            v_url = urllib.parse.unquote(self._html_search_regex(
+                r'(https(?:%3A%2F%2F|://)player\.vimeo\.com.+app_id(?:=|%3D)+\d+)',
+                traverse_obj(attributes, ('embed', 'html', {str})), 'vimeo url', fatal=False) or '')
+            if url_or_none(v_url) and self._request_webpage(
+                    v_url, video_id, 'Checking Vimeo embed URL',
+                    headers={'Referer': 'https://patreon.com/'},
+                    fatal=False, errnote=False):
+                return self.url_result(
+                    VimeoIE._smuggle_referrer(v_url, 'https://patreon.com/'),
+                    VimeoIE, url_transparent=True, **info)
 
-        embed_url = try_get(attributes, lambda x: x['embed']['url'])
+        embed_url = traverse_obj(attributes, ('embed', 'url', {url_or_none}))
         if embed_url and self._request_webpage(embed_url, video_id, 'Checking embed URL', fatal=False, errnote=False):
             return self.url_result(embed_url, **info)
 
