@@ -1281,8 +1281,7 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
                 'model', 'blocks', lambda _, v: v['type'] == 'mediaMetadata',
                 'model'), get_all=False)
             if model:
-                item_id = traverse_obj(model, (
-                    'versions', 0, 'versionId'), get_all=False)
+                item_id = traverse_obj(model, ('versions', 0, 'versionId'))
                 formats, subtitles = self._download_media_selector(item_id)
                 synopses = model.get('synopses') or {}
                 entries.append({
