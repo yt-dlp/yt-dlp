@@ -1273,25 +1273,27 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
         video_data = traverse_obj(next_data, (
             ..., 'contents', lambda _, v: v['type'] == 'video'), get_all=False)
         if video_data:
-            timestamp = traverse_obj(next_data, (
-                ..., 'contents', lambda _, v: v['type'] == 'timestamp',
-                'model', 'timestamp', {int_or_none}), get_all=False)
             model = traverse_obj(video_data, (
                 'model', 'blocks', lambda _, v: v['type'] == 'media',
                 'model', 'blocks', lambda _, v: v['type'] == 'mediaMetadata',
                 'model'), get_all=False)
             if model:
-                item_id = traverse_obj(model, ('versions', 0, 'versionId'))
+                timestamp = traverse_obj(next_data, (
+                    ..., 'contents', lambda _, v: v['type'] == 'timestamp',
+                    'model', 'timestamp', {int_or_none}, any))
+                item_id = traverse_obj(model, ('versions', 0, 'versionId', {str}))
                 formats, subtitles = self._download_media_selector(item_id)
-                synopses = model.get('synopses') or {}
                 entries.append({
                     'id': item_id,
-                    'title': model.get('title'),
-                    'thumbnail': model.get('imageUrl'),
                     'formats': formats,
                     'subtitles': subtitles,
                     'timestamp': timestamp,
-                    'description': dict_get(synopses, ('long', 'medium', 'short'))
+                    **traverse_obj(model, {
+                        'title': ('title', {str}),
+                        'thumbnail': ('imageUrl', {url_or_none}),
+                        'description': (
+                            'synopses', ('long', 'medium', 'short'), {str}, any),
+                    })
                 })
             return self.playlist_result(
                 entries, playlist_id, playlist_title, playlist_description)
