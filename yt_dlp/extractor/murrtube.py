@@ -12,6 +12,7 @@ from ..utils import (
 
 
 class MurrtubeIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'''(?x)
                         (?:
                             murrtube:|
@@ -100,6 +101,7 @@ query Medium($id: ID!) {
 
 
 class MurrtubeUserIE(MurrtubeIE):  # XXX: Do not subclass from concrete IE
+    _WORKING = False
     IE_DESC = 'Murrtube user profile'
     _VALID_URL = r'https?://murrtube\.net/(?P<id>[^/]+)$'
     _TEST = {

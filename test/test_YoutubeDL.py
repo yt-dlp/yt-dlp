@@ -183,7 +183,7 @@ class TestFormatSelection(unittest.TestCase):
         ]
 
         info_dict = _make_result(formats)
-        ydl = YDL({'format': 'best'})
+        ydl = YDL({'format': 'best', 'format_sort': ['abr', 'ext']})
         ydl.sort_formats(info_dict)
         ydl.process_ie_result(copy.deepcopy(info_dict))
         downloaded = ydl.downloaded_info_dicts[0]
@@ -195,7 +195,7 @@ class TestFormatSelection(unittest.TestCase):
         downloaded = ydl.downloaded_info_dicts[0]
         self.assertEqual(downloaded['format_id'], 'mp3-64')
 
-        ydl = YDL({'prefer_free_formats': True})
+        ydl = YDL({'prefer_free_formats': True, 'format_sort': ['abr', 'ext']})
         ydl.sort_formats(info_dict)
         ydl.process_ie_result(copy.deepcopy(info_dict))
         downloaded = ydl.downloaded_info_dicts[0]
@@ -941,7 +941,7 @@ class TestYoutubeDL(unittest.TestCase):
         def get_videos(filter_=None):
             ydl = YDL({'match_filter': filter_, 'simulate': True})
             for v in videos:
-                ydl.process_ie_result(v, download=True)
+                ydl.process_ie_result(v.copy(), download=True)
             return [v['id'] for v in ydl.downloaded_info_dicts]
 
         res = get_videos()
