@@ -68,7 +68,7 @@ dev = [
     "autopep8~=2.0",
     "pre-commit",
     "pytest",
-    "ruff==0.2.*",
+    "ruff==0.4.*",
 ]
 pyinstaller = [
     "pyinstaller>=6.3; sys_platform!='darwin'",
