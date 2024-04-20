@@ -560,7 +560,7 @@ class FacebookIE(InfoExtractor):
                     js_data, lambda x: x['jsmods']['instances'], list) or [])
 
         def extract_dash_manifest(video, formats):
-            dash_manifest = video.get('dash_manifest')
+            dash_manifest = traverse_obj(video, 'dash_manifest', 'playlist', expected_type=str)
             if dash_manifest:
                 formats.extend(self._parse_mpd_formats(
                     compat_etree_fromstring(urllib.parse.unquote_plus(dash_manifest)),
