@@ -142,20 +142,19 @@ You can easily install it using [`pipx`](<https://pipx.pypa.io>) via `pipx insta
 If you plan on contributing to `yt-dlp`, you are required to run
 
 ```shell
-$ hatch run install
+$ hatch run setup
 ```
 
-so that required checks run automatically before a commit (using pre-commit).
-After this you can use `hatch shell` to enable a virtual environment that has development dependencies as well as `yt-dlp` installed.
+so that required checks run automatically before a commit (using pre-commit). This will ensure that certain tests are running before a commit, like formatting. A failing test will mean that the commit will be blocked; fix the failing case and try to commit the fixed version again.
 
-Scripts can be used to run simple tasks, like linting or testing, without having to run `hatch shell` first:
+After this you can use `hatch shell` to enable a virtual environment that has development dependencies as well as `yt-dlp` installed. Scripts can be used to run simple tasks, like linting or testing, without having to run `hatch shell` first:
+* `hatch run format`: Format the code according to yt-dlp code standards
+* `hatch run lint`: Find common issues and automatically fix some of them
+* `hatch run fix`: Both format and lint the code
+* `hatch run check`: Check if the code is formatted and linted
+* `hatch run test`: Run extractor or core tests
 
-```shell
-$ hatch run format
-$ hatch run lint
-$ hatch run test
-```
-Make sure to run `hatch run format` before `hatch run lint` since `autopep8` fixes errors that `ruff` detects but cannot fix.
+To automatically fix linter violations as well as format the code, use `hatch run fix`.
 
 You can run scripts for all available and supported python versions sequentially by setting the `TEST_ALL` variable:
 ```shell

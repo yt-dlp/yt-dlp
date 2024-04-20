@@ -128,7 +128,7 @@ features = ["dev"]
 path = ".venv"
 
 [tool.hatch.envs.default.scripts]
-install = "pre-commit install"
+setup = "pre-commit install"
 fix = [
     "format",
     "lint",
