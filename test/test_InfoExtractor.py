@@ -1908,8 +1908,10 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
 
     def test_search_nextjs_data(self):
         self.assertEqual(self.ie._search_nextjs_data('', None, fatal=False), {})
-        self.assertEqual(self.ie._search_nextjs_data('', None, default='{}'), {})
         self.assertEqual(self.ie._search_nextjs_data('', None, default=None), None)
+        self.assertEqual(self.ie._search_nextjs_data('', None, default={}), {})
+        with self.assertRaises(DeprecationWarning):
+            self.assertEqual(self.ie._search_nextjs_data('', None, default='{}'), {})
 
 
 if __name__ == '__main__':

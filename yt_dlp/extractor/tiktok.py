@@ -692,7 +692,7 @@ class TikTokIE(TikTokBaseIE):
 
         url = self._create_url(user_id, video_id)
         webpage = self._download_webpage(url, video_id, headers={'User-Agent': 'Mozilla/5.0'})
-        next_data = self._search_nextjs_data(webpage, video_id, default='{}')
+        next_data = self._search_nextjs_data(webpage, video_id, default=None)
         if next_data:
             status = traverse_obj(next_data, ('props', 'pageProps', 'statusCode'), expected_type=int) or 0
             video_data = traverse_obj(next_data, ('props', 'pageProps', 'itemInfo', 'itemStruct'), expected_type=dict)

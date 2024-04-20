@@ -1681,8 +1681,8 @@ class InfoExtractor:
         return filter_dict(info)
 
     def _search_nextjs_data(self, webpage, video_id, *, fatal=True, default=NO_DEFAULT, **kw):
-        # Compat with old usage to make this function non fatal
         if default == '{}':
+            deprecation_warning('using `default=\'{}\'` is deprecated, use `default={}` instead')
             default = {}
         if default is not NO_DEFAULT:
             fatal = False
