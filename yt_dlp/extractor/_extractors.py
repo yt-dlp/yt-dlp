@@ -2416,6 +2416,10 @@ from .washingtonpost import (
     WashingtonPostIE,
 )
 from .wat import WatIE
+from .watchertv import (
+    WatcherTVSeasonIE,
+    WatcherTVIE
+)
 from .wdr import (
     WDRIE,
     WDRElefantIE,
