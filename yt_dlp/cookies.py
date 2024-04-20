@@ -347,9 +347,7 @@ def _process_chrome_cookie(decryptor, host_key, name, value, encrypted_value, pa
         if value is None:
             return is_encrypted, None
 
-    if has_expires == 1:
-        expires_utc = expires_utc
-    else:
+    if not has_expires:
         expires_utc = None
 
     return is_encrypted, http.cookiejar.Cookie(
