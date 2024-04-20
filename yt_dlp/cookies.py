@@ -299,7 +299,7 @@ def _extract_chrome_cookies(browser_name, profile, keyring, logger):
             cursor.connection.text_factory = bytes
             column_names = _get_column_names(cursor, 'cookies')
             secure_column = 'is_secure' if 'is_secure' in column_names else 'secure'
-            cursor.execute(f'SELECT host_key, name, value, encrypted_value, path, expires_utc, {secure_column} FROM cookies')
+            cursor.execute(f'SELECT host_key, name, value, encrypted_value, path, expires_utc, has_expires, {secure_column} FROM cookies')
             jar = YoutubeDLCookieJar()
             failed_cookies = 0
             unencrypted_cookies = 0
@@ -335,7 +335,7 @@ def _extract_chrome_cookies(browser_name, profile, keyring, logger):
                 cursor.connection.close()
 
 
-def _process_chrome_cookie(decryptor, host_key, name, value, encrypted_value, path, expires_utc, is_secure):
+def _process_chrome_cookie(decryptor, host_key, name, value, encrypted_value, path, expires_utc, has_expires, is_secure):
     host_key = host_key.decode()
     name = name.decode()
     value = value.decode()
@@ -346,6 +346,11 @@ def _process_chrome_cookie(decryptor, host_key, name, value, encrypted_value, pa
         value = decryptor.decrypt(encrypted_value)
         if value is None:
             return is_encrypted, None
+
+    if has_expires == 1:
+        expires_utc = expires_utc
+    else:
+        expires_utc = None
 
     return is_encrypted, http.cookiejar.Cookie(
         version=0, name=name, value=value, port=None, port_specified=False,
