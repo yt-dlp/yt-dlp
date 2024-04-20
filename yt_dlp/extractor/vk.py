@@ -707,6 +707,7 @@ class VKWallPostIE(VKBaseIE):
 
 
 class VKPlayBaseIE(InfoExtractor):
+    _BASE_URL_RE = r'https?://(?:vkplay\.live|live\.vkplay\.ru)/'
     _RESOLUTIONS = {
         'tiny': '256x144',
         'lowest': '426x240',
@@ -765,7 +766,7 @@ class VKPlayBaseIE(InfoExtractor):
 
 
 class VKPlayIE(VKPlayBaseIE):
-    _VALID_URL = r'https?://vkplay\.live/(?P<username>[^/#?]+)/record/(?P<id>[a-f0-9-]+)'
+    _VALID_URL = rf'{VKPlayBaseIE._BASE_URL_RE}(?P<username>[^/#?]+)/record/(?P<id>[\da-f-]+)'
     _TESTS = [{
         'url': 'https://vkplay.live/zitsmann/record/f5e6e3b5-dc52-4d14-965d-0680dd2882da',
         'info_dict': {
@@ -776,13 +777,16 @@ class VKPlayIE(VKPlayBaseIE):
             'uploader_id': '13159830',
             'release_timestamp': 1683461378,
             'release_date': '20230507',
-            'thumbnail': r're:https://images.vkplay.live/public_video_stream/record/f5e6e3b5-dc52-4d14-965d-0680dd2882da/preview\?change_time=\d+',
+            'thumbnail': r're:https://[^/]+/public_video_stream/record/f5e6e3b5-dc52-4d14-965d-0680dd2882da/preview',
             'duration': 10608,
             'view_count': int,
             'like_count': int,
             'categories': ['Atomic Heart'],
         },
         'params': {'skip_download': 'm3u8'},
+    }, {
+        'url': 'https://live.vkplay.ru/lebwa/record/33a4e4ce-e3ef-49db-bb14-f006cc6fabc9/records',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
@@ -802,7 +806,7 @@ class VKPlayIE(VKPlayBaseIE):
 
 
 class VKPlayLiveIE(VKPlayBaseIE):
-    _VALID_URL = r'https?://vkplay\.live/(?P<id>[^/#?]+)/?(?:[#?]|$)'
+    _VALID_URL = rf'{VKPlayBaseIE._BASE_URL_RE}(?P<id>[^/#?]+)/?(?:[#?]|$)'
     _TESTS = [{
         'url': 'https://vkplay.live/bayda',
         'info_dict': {
@@ -813,7 +817,7 @@ class VKPlayLiveIE(VKPlayBaseIE):
             'uploader_id': '12279401',
             'release_timestamp': 1687209962,
             'release_date': '20230619',
-            'thumbnail': r're:https://images.vkplay.live/public_video_stream/12279401/preview\?change_time=\d+',
+            'thumbnail': r're:https://[^/]+/public_video_stream/12279401/preview',
             'view_count': int,
             'concurrent_view_count': int,
             'like_count': int,
@@ -822,6 +826,9 @@ class VKPlayLiveIE(VKPlayBaseIE):
         },
         'skip': 'livestream',
         'params': {'skip_download': True},
+    }, {
+        'url': 'https://live.vkplay.ru/lebwa',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):

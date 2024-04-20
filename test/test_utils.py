@@ -2069,6 +2069,10 @@ Line 1
 
         # Test escaping
         assert run_shell(['echo', 'test"&']) == '"test""&"\n'
+        assert run_shell(['echo', '%CMDCMDLINE:~-1%&']) == '"%CMDCMDLINE:~-1%&"\n'
+        assert run_shell(['echo', 'a\nb']) == '"a"\n"b"\n'
+        assert run_shell(['echo', '"']) == '""""\n'
+        assert run_shell(['echo', '\\']) == '\\\n'
         # Test if delayed expansion is disabled
         assert run_shell(['echo', '^!']) == '"^!"\n'
         assert run_shell('echo "^!"') == '"^!"\n'

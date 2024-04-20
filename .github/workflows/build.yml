@@ -254,7 +254,7 @@ jobs:
           # We need to fuse our own universal2 wheels for curl_cffi
           python3 -m pip install -U --user delocate
           mkdir curl_cffi_whls curl_cffi_universal2
-          python3 devscripts/install_deps.py --print -o --include curl_cffi > requirements.txt
+          python3 devscripts/install_deps.py --print -o --include curl-cffi > requirements.txt
           for platform in "macosx_11_0_arm64" "macosx_11_0_x86_64"; do
             python3 -m pip download \
               --only-binary=:all: \
@@ -320,7 +320,7 @@ jobs:
         run: |
           brew install coreutils
           python3 devscripts/install_deps.py --user -o --include build
-          python3 devscripts/install_deps.py --user --include pyinstaller --include curl_cffi
+          python3 devscripts/install_deps.py --user --include pyinstaller
 
       - name: Prepare
         run: |
@@ -362,7 +362,7 @@ jobs:
       - name: Install Requirements
         run: | # Custom pyinstaller built with https://github.com/yt-dlp/pyinstaller-builds
           python devscripts/install_deps.py -o --include build
-          python devscripts/install_deps.py --include py2exe --include curl_cffi
+          python devscripts/install_deps.py --include py2exe --include curl-cffi
           python -m pip install -U "https://yt-dlp.github.io/Pyinstaller-Builds/x86_64/pyinstaller-5.8.0-py3-none-any.whl"
 
       - name: Prepare

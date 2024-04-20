@@ -1,4 +1,5 @@
 import base64
+import uuid
 
 from .common import InfoExtractor
 from ..networking.exceptions import HTTPError
@@ -7,12 +8,11 @@ from ..utils import (
     float_or_none,
     format_field,
     int_or_none,
-    join_nonempty,
+    jwt_decode_hs256,
     parse_age_limit,
     parse_count,
     parse_iso8601,
     qualities,
-    remove_start,
     time_seconds,
     traverse_obj,
     url_or_none,
@@ -27,6 +27,7 @@ class CrunchyrollBaseIE(InfoExtractor):
     _AUTH_HEADERS = None
     _API_ENDPOINT = None
     _BASIC_AUTH = None
+    _IS_PREMIUM = None
     _CLIENT_ID = ('cr_web', 'noaihdevm_6iyg0a8l0q')
     _LOCALE_LOOKUP = {
         'ar': 'ar-SA',
@@ -84,11 +85,16 @@ class CrunchyrollBaseIE(InfoExtractor):
             self.write_debug(f'Using cxApiParam={cx_api_param}')
             CrunchyrollBaseIE._BASIC_AUTH = 'Basic ' + base64.b64encode(f'{cx_api_param}:'.encode()).decode()
 
-        grant_type = 'etp_rt_cookie' if self.is_logged_in else 'client_id'
+        auth_headers = {'Authorization': CrunchyrollBaseIE._BASIC_AUTH}
+        if self.is_logged_in:
+            grant_type = 'etp_rt_cookie'
+        else:
+            grant_type = 'client_id'
+            auth_headers['ETP-Anonymous-ID'] = uuid.uuid4()
         try:
             auth_response = self._download_json(
                 f'{self._BASE_URL}/auth/v1/token', None, note=f'Authenticating with grant_type={grant_type}',
-                headers={'Authorization': CrunchyrollBaseIE._BASIC_AUTH}, data=f'grant_type={grant_type}'.encode())
+                headers=auth_headers, data=f'grant_type={grant_type}'.encode())
         except ExtractorError as error:
             if isinstance(error.cause, HTTPError) and error.cause.status == 403:
                 raise ExtractorError(
@@ -97,6 +103,7 @@ class CrunchyrollBaseIE(InfoExtractor):
                     'and your browser\'s User-Agent (with --user-agent)', expected=True)
             raise
 
+        CrunchyrollBaseIE._IS_PREMIUM = 'cr_premium' in traverse_obj(auth_response, ('access_token', {jwt_decode_hs256}, 'benefits', ...))
         CrunchyrollBaseIE._AUTH_HEADERS = {'Authorization': auth_response['token_type'] + ' ' + auth_response['access_token']}
         CrunchyrollBaseIE._AUTH_REFRESH = time_seconds(seconds=traverse_obj(auth_response, ('expires_in', {float_or_none}), default=300) - 10)
 
@@ -135,62 +142,72 @@ class CrunchyrollBaseIE(InfoExtractor):
             raise ExtractorError(f'Unexpected response when downloading {note} JSON')
         return result
 
-    def _extract_formats(self, stream_response, display_id=None):
-        requested_formats = self._configuration_arg('format') or ['vo_adaptive_hls']
-        available_formats = {}
-        for stream_type, streams in traverse_obj(
-                stream_response, (('streams', ('data', 0)), {dict.items}, ...)):
-            if stream_type not in requested_formats:
+    def _extract_chapters(self, internal_id):
+        # if no skip events are available, a 403 xml error is returned
+        skip_events = self._download_json(
+            f'https://static.crunchyroll.com/skip-events/production/{internal_id}.json',
+            internal_id, note='Downloading chapter info', fatal=False, errnote=False)
+        if not skip_events:
+            return None
+
+        chapters = []
+        for event in ('recap', 'intro', 'credits', 'preview'):
+            start = traverse_obj(skip_events, (event, 'start', {float_or_none}))
+            end = traverse_obj(skip_events, (event, 'end', {float_or_none}))
+            # some chapters have no start and/or ending time, they will just be ignored
+            if start is None or end is None:
                 continue
-            for stream in traverse_obj(streams, lambda _, v: v['url']):
-                hardsub_lang = stream.get('hardsub_locale') or ''
-                format_id = join_nonempty(stream_type, format_field(stream, 'hardsub_locale', 'hardsub-%s'))
-                available_formats[hardsub_lang] = (stream_type, format_id, hardsub_lang, stream['url'])
+            chapters.append({'title': event.capitalize(), 'start_time': start, 'end_time': end})
+
+        return chapters
+
+    def _extract_stream(self, identifier, display_id=None):
+        if not display_id:
+            display_id = identifier
+
+        self._update_auth()
+        stream_response = self._download_json(
+            f'https://cr-play-service.prd.crunchyrollsvc.com/v1/{identifier}/console/switch/play',
+            display_id, note='Downloading stream info', headers=CrunchyrollBaseIE._AUTH_HEADERS)
+
+        available_formats = {'': ('', '', stream_response['url'])}
+        for hardsub_lang, stream in traverse_obj(stream_response, ('hardSubs', {dict.items}, lambda _, v: v[1]['url'])):
+            available_formats[hardsub_lang] = (f'hardsub-{hardsub_lang}', hardsub_lang, stream['url'])
 
         requested_hardsubs = [('' if val == 'none' else val) for val in (self._configuration_arg('hardsub') or ['none'])]
-        if '' in available_formats and 'all' not in requested_hardsubs:
+        hardsub_langs = [lang for lang in available_formats if lang]
+        if hardsub_langs and 'all' not in requested_hardsubs:
             full_format_langs = set(requested_hardsubs)
+            self.to_screen(f'Available hardsub languages: {", ".join(hardsub_langs)}')
             self.to_screen(
-                'To get all formats of a hardsub language, use '
+                'To extract formats of a hardsub language, use '
                 '"--extractor-args crunchyrollbeta:hardsub=<language_code or all>". '
                 'See https://github.com/yt-dlp/yt-dlp#crunchyrollbeta-crunchyroll for more info',
                 only_once=True)
         else:
             full_format_langs = set(map(str.lower, available_formats))
 
-        audio_locale = traverse_obj(stream_response, ((None, 'meta'), 'audio_locale'), get_all=False)
+        audio_locale = traverse_obj(stream_response, ('audioLocale', {str}))
         hardsub_preference = qualities(requested_hardsubs[::-1])
-        formats = []
-        for stream_type, format_id, hardsub_lang, stream_url in available_formats.values():
-            if stream_type.endswith('hls'):
-                if hardsub_lang.lower() in full_format_langs:
-                    adaptive_formats = self._extract_m3u8_formats(
-                        stream_url, display_id, 'mp4', m3u8_id=format_id,
-                        fatal=False, note=f'Downloading {format_id} HLS manifest')
-                else:
-                    adaptive_formats = (self._m3u8_meta_format(stream_url, ext='mp4', m3u8_id=format_id),)
-            elif stream_type.endswith('dash'):
-                adaptive_formats = self._extract_mpd_formats(
-                    stream_url, display_id, mpd_id=format_id,
-                    fatal=False, note=f'Downloading {format_id} MPD manifest')
+        formats, subtitles = [], {}
+        for format_id, hardsub_lang, stream_url in available_formats.values():
+            if hardsub_lang.lower() in full_format_langs:
+                adaptive_formats, dash_subs = self._extract_mpd_formats_and_subtitles(
+                    stream_url, display_id, mpd_id=format_id, headers=CrunchyrollBaseIE._AUTH_HEADERS,
+                    fatal=False, note=f'Downloading {f"{format_id} " if hardsub_lang else ""}MPD manifest')
+                self._merge_subtitles(dash_subs, target=subtitles)
             else:
-                self.report_warning(f'Encountered unknown stream_type: {stream_type!r}', display_id, only_once=True)
-                continue
+                continue  # XXX: Update this if/when meta mpd formats are working
             for f in adaptive_formats:
                 if f.get('acodec') != 'none':
                     f['language'] = audio_locale
                 f['quality'] = hardsub_preference(hardsub_lang.lower())
             formats.extend(adaptive_formats)
 
-        return formats
+        for locale, subtitle in traverse_obj(stream_response, (('subtitles', 'captions'), {dict.items}, ...)):
+            subtitles.setdefault(locale, []).append(traverse_obj(subtitle, {'url': 'url', 'ext': 'format'}))
 
-    def _extract_subtitles(self, data):
-        subtitles = {}
-
-        for locale, subtitle in traverse_obj(data, ((None, 'meta'), 'subtitles', {dict.items}, ...)):
-            subtitles[locale] = [traverse_obj(subtitle, {'url': 'url', 'ext': 'format'})]
-
-        return subtitles
+        return formats, subtitles
 
 
 class CrunchyrollCmsBaseIE(CrunchyrollBaseIE):
@@ -245,7 +262,11 @@ class CrunchyrollBetaIE(CrunchyrollCmsBaseIE):
             'like_count': int,
             'dislike_count': int,
         },
-        'params': {'skip_download': 'm3u8', 'format': 'all[format_id~=hardsub]'},
+        'params': {
+            'skip_download': 'm3u8',
+            'extractor_args': {'crunchyrollbeta': {'hardsub': ['de-DE']}},
+            'format': 'bv[format_id~=hardsub]',
+        },
     }, {
         # Premium only
         'url': 'https://www.crunchyroll.com/watch/GYE5WKQGR',
@@ -306,6 +327,7 @@ class CrunchyrollBetaIE(CrunchyrollCmsBaseIE):
             'thumbnail': r're:^https://www.crunchyroll.com/imgsrv/.*\.jpeg?$',
         },
         'params': {'skip_download': 'm3u8'},
+        'skip': 'no longer exists',
     }, {
         'url': 'https://www.crunchyroll.com/watch/G62PEZ2E6',
         'info_dict': {
@@ -359,31 +381,15 @@ class CrunchyrollBetaIE(CrunchyrollCmsBaseIE):
         else:
             raise ExtractorError(f'Unknown object type {object_type}')
 
-        # There might be multiple audio languages for one object (`<object>_metadata.versions`),
-        # so we need to get the id from `streams_link` instead or we dont know which language to choose
-        streams_link = response.get('streams_link')
-        if not streams_link and traverse_obj(response, (f'{object_type}_metadata', 'is_premium_only')):
+        if not self._IS_PREMIUM and traverse_obj(response, (f'{object_type}_metadata', 'is_premium_only')):
             message = f'This {object_type} is for premium members only'
             if self.is_logged_in:
                 raise ExtractorError(message, expected=True)
             self.raise_login_required(message)
 
-        # We need go from unsigned to signed api to avoid getting soft banned
-        stream_response = self._call_cms_api_signed(remove_start(
-            streams_link, '/content/v2/cms/'), internal_id, lang, 'stream info')
-        result['formats'] = self._extract_formats(stream_response, internal_id)
-        result['subtitles'] = self._extract_subtitles(stream_response)
+        result['formats'], result['subtitles'] = self._extract_stream(internal_id)
 
-        # if no intro chapter is available, a 403 without usable data is returned
-        intro_chapter = self._download_json(
-            f'https://static.crunchyroll.com/datalab-intro-v2/{internal_id}.json',
-            internal_id, note='Downloading chapter info', fatal=False, errnote=False)
-        if isinstance(intro_chapter, dict):
-            result['chapters'] = [{
-                'title': 'Intro',
-                'start_time': float_or_none(intro_chapter.get('startTime')),
-                'end_time': float_or_none(intro_chapter.get('endTime')),
-            }]
+        result['chapters'] = self._extract_chapters(internal_id)
 
         def calculate_count(item):
             return parse_count(''.join((item['displayed'], item.get('unit') or '')))
@@ -512,7 +518,7 @@ class CrunchyrollMusicIE(CrunchyrollBaseIE):
             'display_id': 'egaono-hana',
             'title': 'Egaono Hana',
             'track': 'Egaono Hana',
-            'artist': 'Goose house',
+            'artists': ['Goose house'],
             'thumbnail': r're:(?i)^https://www.crunchyroll.com/imgsrv/.*\.jpeg?$',
             'genres': ['J-Pop'],
         },
@@ -525,11 +531,12 @@ class CrunchyrollMusicIE(CrunchyrollBaseIE):
             'display_id': 'crossing-field',
             'title': 'Crossing Field',
             'track': 'Crossing Field',
-            'artist': 'LiSA',
+            'artists': ['LiSA'],
             'thumbnail': r're:(?i)^https://www.crunchyroll.com/imgsrv/.*\.jpeg?$',
             'genres': ['Anime'],
         },
         'params': {'skip_download': 'm3u8'},
+        'skip': 'no longer exists',
     }, {
         'url': 'https://www.crunchyroll.com/watch/concert/MC2E2AC135',
         'info_dict': {
@@ -538,7 +545,7 @@ class CrunchyrollMusicIE(CrunchyrollBaseIE):
             'display_id': 'live-is-smile-always-364joker-at-yokohama-arena',
             'title': 'LiVE is Smile Always-364+JOKER- at YOKOHAMA ARENA',
             'track': 'LiVE is Smile Always-364+JOKER- at YOKOHAMA ARENA',
-            'artist': 'LiSA',
+            'artists': ['LiSA'],
             'thumbnail': r're:(?i)^https://www.crunchyroll.com/imgsrv/.*\.jpeg?$',
             'description': 'md5:747444e7e6300907b7a43f0a0503072e',
             'genres': ['J-Pop'],
@@ -566,16 +573,14 @@ class CrunchyrollMusicIE(CrunchyrollBaseIE):
         if not response:
             raise ExtractorError(f'No video with id {internal_id} could be found (possibly region locked?)', expected=True)
 
-        streams_link = response.get('streams_link')
-        if not streams_link and response.get('isPremiumOnly'):
+        if not self._IS_PREMIUM and response.get('isPremiumOnly'):
             message = f'This {response.get("type") or "media"} is for premium members only'
             if self.is_logged_in:
                 raise ExtractorError(message, expected=True)
             self.raise_login_required(message)
 
         result = self._transform_music_response(response)
-        stream_response = self._call_api(streams_link, internal_id, lang, 'stream info')
-        result['formats'] = self._extract_formats(stream_response, internal_id)
+        result['formats'], _ = self._extract_stream(f'music/{internal_id}', internal_id)
 
         return result
 
@@ -587,7 +592,7 @@ class CrunchyrollMusicIE(CrunchyrollBaseIE):
                 'display_id': 'slug',
                 'title': 'title',
                 'track': 'title',
-                'artist': ('artist', 'name'),
+                'artists': ('artist', 'name', all),
                 'description': ('description', {str}, {lambda x: x.replace(r'\r\n', '\n') or None}),
                 'thumbnails': ('images', ..., ..., {
                     'url': ('source', {url_or_none}),
@@ -611,7 +616,7 @@ class CrunchyrollArtistIE(CrunchyrollBaseIE):
         'info_dict': {
             'id': 'MA179CB50D',
             'title': 'LiSA',
-            'genres': ['J-Pop', 'Anime', 'Rock'],
+            'genres': ['Anime', 'J-Pop', 'Rock'],
             'description': 'md5:16d87de61a55c3f7d6c454b73285938e',
         },
         'playlist_mincount': 83,
