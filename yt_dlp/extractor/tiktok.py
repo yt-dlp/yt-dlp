@@ -776,7 +776,7 @@ class TikTokIE(TikTokBaseIE):
             status = traverse_obj(sigi_data, ('VideoPage', 'statusCode', {int})) or 0
             video_data = traverse_obj(sigi_data, ('ItemModule', video_id, {dict}))
 
-        elif next_data := self._search_nextjs_data(webpage, video_id, default='{}'):
+        elif next_data := self._search_nextjs_data(webpage, video_id, default={}):
             self.write_debug('Found next.js data')
             status = traverse_obj(next_data, ('props', 'pageProps', 'statusCode', {int})) or 0
             video_data = traverse_obj(next_data, ('props', 'pageProps', 'itemInfo', 'itemStruct', {dict}))
