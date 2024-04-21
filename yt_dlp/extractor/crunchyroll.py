@@ -53,7 +53,7 @@ class CrunchyrollBaseIE(InfoExtractor):
         CrunchyrollBaseIE._AUTH_EXPIRY = time_seconds(seconds=traverse_obj(response, ('expires_in', {float_or_none}), default=300) - 10)
 
     def _request_token(self, headers, data, note='Requesting token', errnote='Failed to request token'):
-        try:
+        try:  # TODO: Add impersonation support here
             return self._download_json(
                 f'{self._BASE_URL}/auth/v1/token', None, note=note, errnote=errnote,
                 headers=headers, data=urlencode_postdata(data))
