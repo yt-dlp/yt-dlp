@@ -147,7 +147,7 @@ class WrestleUniverseBaseIE(InfoExtractor):
         metadata = self._call_api(video_id, msg='metadata', query={'al': lang or 'ja'}, auth=False, fatal=False)
         if not metadata:
             webpage = self._download_webpage(url, video_id)
-            nextjs_data = self._search_nextjs_data(webpage, video_id)
+            nextjs_data = self._search_nextjs_data(webpage, video_id, fatal=False)
             metadata = traverse_obj(nextjs_data, (
                 'props', 'pageProps', *variadic(props_keys, (str, bytes, dict, set)), {dict})) or {}
         return metadata
