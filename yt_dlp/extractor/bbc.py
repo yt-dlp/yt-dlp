@@ -798,9 +798,11 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
             'id': 'p0hj0lq7',
             'ext': 'mp4',
             'title': 'Nasser Hospital doctor describes his treatment by IDF',
-            'description': 'Doctor Abu Sabha said he was detained by Israeli forces after the raid on Nasser Hospital and feared for his life.\n\nThe IDF said "during the activity, about 200 terrorists and suspects of terrorist activity were detained, including some who posed as medical teams, many weapons were found, as well as closed medicines intended for Israeli hostages."',
+            'description': r're:(?s)Doctor Abu Sabha said he was detained by Israeli forces after .{276,} hostages\."$',
             'thumbnail': r're:https?://.+/.+\.jpg',
-            'timestamp': 1710270205000,
+            'timestamp': 1710188248,
+            'upload_date': '20240311',
+            'duration': 104,
         },
     }, {
         # single video article embedded with data-media-vpid
@@ -1266,37 +1268,47 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
                 lambda s: self._parse_json(s, playlist_id, fatal=False),
                 re.findall(pattern, webpage))))
 
+        def parse_model(model):
+            '''Extract single video from model structure'''
+            if(type(model) == list):
+                model = model[0]
+            item_id = traverse_obj(model, ('versions', 0, 'versionId', {str}))
+            if not item_id:
+                return
+            formats, subtitles = self._download_media_selector(item_id)
+            return {
+                'id': item_id,
+                'formats': formats,
+                'subtitles': subtitles,
+                **traverse_obj(model, {
+                    'title': ('title', {str}),
+                    'thumbnail': ('imageUrl', {lambda u: urljoin(url, u.replace('$recipe', 'raw'))}),
+                    'description': (
+                        'synopses', ('long', 'medium', 'short'), {str}, any),
+                        'duration': ('versions', 0, 'duration', {int}),
+                        'timestamp': ('versions', 0, 'availableFrom', {lambda x: int_or_none(x, scale=1000)}),
+                    })
+                }
+
         # US accessed article with single embedded video (e.g.
         # https://www.bbc.com/news/uk-68546268)
-        next_data = traverse_obj(self._search_nextjs_data(webpage, playlist_id), (
-            'props', 'pageProps', 'page'), get_all=False)
-        video_data = traverse_obj(next_data, (
-            ..., 'contents', lambda _, v: v['type'] == 'video'), get_all=False)
-        if video_data:
-            model = traverse_obj(video_data, (
-                'model', 'blocks', lambda _, v: v['type'] == 'media',
-                'model', 'blocks', lambda _, v: v['type'] == 'mediaMetadata',
-                'model'), get_all=False)
-            if model:
-                timestamp = traverse_obj(next_data, (
-                    ..., 'contents', lambda _, v: v['type'] == 'timestamp',
-                    'model', 'timestamp', {int_or_none}, any))
-                item_id = traverse_obj(model, ('versions', 0, 'versionId', {str}))
-                formats, subtitles = self._download_media_selector(item_id)
-                entries.append({
-                    'id': item_id,
-                    'formats': formats,
-                    'subtitles': subtitles,
-                    'timestamp': timestamp,
-                    **traverse_obj(model, {
-                        'title': ('title', {str}),
-                        'thumbnail': ('imageUrl', {url_or_none}),
-                        'description': (
-                            'synopses', ('long', 'medium', 'short'), {str}, any),
-                    })
-                })
-            return self.playlist_result(
-                entries, playlist_id, playlist_title, playlist_description)
+        next_data = traverse_obj(self._search_nextjs_data(webpage, playlist_id, default={}), (
+            'props', 'pageProps', 'page'))
+        model = traverse_obj(next_data, (
+            ..., 'contents', lambda _, v: v['type'] == 'video',
+            'model', 'blocks', lambda _, v: v['type'] == 'media',
+            'model', 'blocks', lambda _, v: v['type'] == 'mediaMetadata',
+            'model'))
+        if model:
+            entry = parse_model(model)
+            if entry:
+                if entry.get('timestamp') is None:
+                    entry['timestamp'] = traverse_obj(next_data, (
+                        ..., 'contents', lambda _, v: v['type'] == 'timestamp',
+                        'model', 'timestamp', {functools.partial(int_or_none, scale=1000)}, any))
+                entries.append(entry)
+                return self.playlist_result(
+                    entries, playlist_id, playlist_title, playlist_description)
 
         # Multiple video article (e.g.
         # http://www.bbc.co.uk/blogs/adamcurtis/entries/3662a707-0af9-3149-963f-47bea720b460)
