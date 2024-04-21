@@ -1740,7 +1740,7 @@ class InfoExtractor:
 
     def _search_nextjs_data(self, webpage, video_id, *, fatal=True, default=NO_DEFAULT, **kw):
         if default == '{}':
-            deprecation_warning('using `default=\'{}\'` is deprecated, use `default={}` instead')
+            self._downloader.deprecation_warning('using `default=\'{}\'` is deprecated, use `default={}` instead')
             default = {}
         if default is not NO_DEFAULT:
             fatal = False
