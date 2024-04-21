@@ -46,12 +46,24 @@ class CrunchyrollBaseIE(InfoExtractor):
         'ru': 'ru-RU',
         'hi': 'hi-IN',
     }
-    _CF_HINT = 'Request blocked by Cloudflare; navigate to Crunchyroll in your browser, then pass the fresh cookies (with --cookies-from-browser or --cookies) and your browser\'s User-Agent (with --user-agent)'
 
     def _set_auth_info(self, response):
         CrunchyrollBaseIE._IS_PREMIUM = 'cr_premium' in traverse_obj(response, ('access_token', {jwt_decode_hs256}, 'benefits', ...))
         CrunchyrollBaseIE._AUTH_HEADERS = {'Authorization': response['token_type'] + ' ' + response['access_token']}
         CrunchyrollBaseIE._AUTH_EXPIRY = time_seconds(seconds=traverse_obj(response, ('expires_in', {float_or_none}), default=300) - 10)
+
+    def _request_token(self, headers, data, note='Requesting token', errnote='Failed to request token'):
+        try:
+            return self._download_json(
+                f'{self._BASE_URL}/auth/v1/token', None, note=note, errnote=errnote,
+                headers=headers, data=urlencode_postdata(data))
+        except ExtractorError as error:
+            if not isinstance(error.cause, HTTPError) or error.cause.status != 403:
+                raise
+            raise ExtractorError(
+                'Request blocked by Cloudflare; navigate to Crunchyroll in your browser, '
+                'then pass the fresh cookies (with --cookies-from-browser or --cookies) '
+                'and your browser\'s User-Agent (with --user-agent)', expected=True)
 
     def _perform_login(self, username, password):
         if not CrunchyrollBaseIE._REFRESH_TOKEN:
@@ -60,20 +72,16 @@ class CrunchyrollBaseIE(InfoExtractor):
             return
 
         try:
-            login_response = self._download_json(
-                f'{self._BASE_URL}/auth/v1/token', None, note='Logging in',
-                headers={'Authorization': self._BASIC_AUTH}, data=urlencode_postdata({
+            login_response = self._request_token(
+                headers={'Authorization': self._BASIC_AUTH}, data={
                     'username': username,
                     'password': password,
                     'grant_type': 'password',
                     'scope': 'offline_access',
-                }))
+                }, note='Logging in', errnote='Failed to log in')
         except ExtractorError as error:
-            if isinstance(error.cause, HTTPError):
-                if error.cause.status == 403:
-                    raise ExtractorError(self._CF_HINT, expected=True)
-                elif error.cause.status == 401:
-                    raise ExtractorError('Invalid username and/or password', expected=True)
+            if isinstance(error.cause, HTTPError) and error.cause.status == 401:
+                raise ExtractorError('Invalid username and/or password', expected=True)
             raise
 
         CrunchyrollBaseIE._REFRESH_TOKEN = login_response['refresh_token']
@@ -95,22 +103,16 @@ class CrunchyrollBaseIE(InfoExtractor):
             data = {'grant_type': 'client_id'}
             auth_headers['ETP-Anonymous-ID'] = uuid.uuid4()
         try:
-            auth_response = self._download_json(
-                f'{self._BASE_URL}/auth/v1/token', None, note='Requesting access token',
-                headers=auth_headers, data=urlencode_postdata(data))
+            auth_response = self._request_token(auth_headers, data)
         except ExtractorError as error:
-            if isinstance(error.cause, HTTPError):
-                if error.cause.status == 403:
-                    raise ExtractorError(self._CF_HINT, expected=True)
-                elif error.cause.status == 400:
-                    username, password = self._get_login_info()
-                    if username and password:
-                        self.to_screen('Refresh token has expired. Re-logging in')
-                        CrunchyrollBaseIE._REFRESH_TOKEN = None
-                        self.cache.store(self._NETRC_MACHINE, username, None)
-                        self._perform_login(username, password)
-                        return
-            raise
+            username, password = self._get_login_info()
+            if not username or not isinstance(error.cause, HTTPError) or error.cause.status != 400:
+                raise
+            self.to_screen('Refresh token has expired. Re-logging in')
+            CrunchyrollBaseIE._REFRESH_TOKEN = None
+            self.cache.store(self._NETRC_MACHINE, username, None)
+            self._perform_login(username, password)
+            return
 
         self._set_auth_info(auth_response)
 
