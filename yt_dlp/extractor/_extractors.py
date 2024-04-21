@@ -1341,6 +1341,7 @@ from .nubilesporn import NubilesPornIE
 from .nytimes import (
     NYTimesIE,
     NYTimesArticleIE,
+    NYTimesAudioIE,
     NYTimesCookingIE,
     NYTimesCookingRecipeIE,
 )
