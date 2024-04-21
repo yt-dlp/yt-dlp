@@ -1270,7 +1270,7 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
 
         def parse_model(model):
             '''Extract single video from model structure'''
-            if(type(model) == list):
+            if isinstance(model, list):
                 model = model[0]
             item_id = traverse_obj(model, ('versions', 0, 'versionId', {str}))
             if not item_id:
@@ -1285,10 +1285,10 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
                     'thumbnail': ('imageUrl', {lambda u: urljoin(url, u.replace('$recipe', 'raw'))}),
                     'description': (
                         'synopses', ('long', 'medium', 'short'), {str}, any),
-                        'duration': ('versions', 0, 'duration', {int}),
-                        'timestamp': ('versions', 0, 'availableFrom', {lambda x: int_or_none(x, scale=1000)}),
-                    })
-                }
+                    'duration': ('versions', 0, 'duration', {int}),
+                    'timestamp': ('versions', 0, 'availableFrom', {lambda x: int_or_none(x, scale=1000)}),
+                })
+            }
 
         # US accessed article with single embedded video (e.g.
         # https://www.bbc.com/news/uk-68546268)
