@@ -145,16 +145,16 @@ If you plan on contributing to `yt-dlp`, you are required to run
 $ hatch run setup
 ```
 
-so that required checks run automatically before a commit (using pre-commit). This will ensure that certain tests are running before a commit, like formatting. A failing test will mean that the commit will be blocked; fix the failing case and try to commit the fixed version again.
+to install a `pre-commit` hook so that required checks (linting, formatting) will run automatically before each commit. If any of the checks fail, then the commit will be blocked; you'll need to fix the failing case and then you can commit the fixed version.
 
-After this you can use `hatch shell` to enable a virtual environment that has development dependencies as well as `yt-dlp` installed. Scripts can be used to run simple tasks, like linting or testing, without having to run `hatch shell` first:
+After this you can use `hatch shell` to enable a virtual environment that has `yt-dlp` and its development dependencies installed.
+
+In addition, the following script commands can be used to run simple tasks such as linting or testing (without having to run `hatch shell` first):
 * `hatch run format`: Format the code according to yt-dlp code standards
 * `hatch run lint`: Find common issues and automatically fix some of them
-* `hatch run fix`: Both format and lint the code
+* `hatch run fix`: Automatically fix linter violations and apply required code formatting changes
 * `hatch run check`: Check if the code is formatted and linted
 * `hatch run test`: Run extractor or core tests
-
-To automatically fix linter violations as well as format the code, use `hatch run fix`.
 
 You can run scripts for all available and supported python versions sequentially by setting the `TEST_ALL` variable:
 ```shell

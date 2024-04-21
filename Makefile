@@ -27,7 +27,7 @@ clean-dist:
 	yt_dlp/extractor/lazy_extractors.py *.spec CONTRIBUTING.md.tmp yt-dlp yt-dlp.exe yt_dlp.egg-info/ AUTHORS
 clean-cache:
 	find . \( \
-		-type d -name '.*_cache' -o -type d -name __pycache__ -o -name "*.pyc" -o -name "*.class" \
+		-type d -name ".*_cache" -o -type d -name __pycache__ -o -name "*.pyc" -o -name "*.class" \
 	\) -prune -exec rm -rf {} \;
 
 completion-bash: completions/bash/yt-dlp
