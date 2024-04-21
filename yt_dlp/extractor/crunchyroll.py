@@ -394,10 +394,11 @@ class CrunchyrollBetaIE(CrunchyrollCmsBaseIE):
         if not self._IS_PREMIUM and traverse_obj(response, (f'{object_type}_metadata', 'is_premium_only')):
             message = f'This {object_type} is for premium members only'
             if CrunchyrollBaseIE._REFRESH_TOKEN:
-                raise ExtractorError(message, expected=True)
-            self.raise_login_required(message, method='password')
-
-        result['formats'], result['subtitles'] = self._extract_stream(internal_id)
+                self.raise_no_formats(message, expected=True, video_id=internal_id)
+            else:
+                self.raise_login_required(message, method='password', metadata_available=True)
+        else:
+            result['formats'], result['subtitles'] = self._extract_stream(internal_id)
 
         result['chapters'] = self._extract_chapters(internal_id)
 
@@ -583,14 +584,16 @@ class CrunchyrollMusicIE(CrunchyrollBaseIE):
         if not response:
             raise ExtractorError(f'No video with id {internal_id} could be found (possibly region locked?)', expected=True)
 
+        result = self._transform_music_response(response)
+
         if not self._IS_PREMIUM and response.get('isPremiumOnly'):
             message = f'This {response.get("type") or "media"} is for premium members only'
             if CrunchyrollBaseIE._REFRESH_TOKEN:
-                raise ExtractorError(message, expected=True)
-            self.raise_login_required(message, method='password')
-
-        result = self._transform_music_response(response)
-        result['formats'], _ = self._extract_stream(f'music/{internal_id}', internal_id)
+                self.raise_no_formats(message, expected=True, video_id=internal_id)
+            else:
+                self.raise_login_required(message, method='password', metadata_available=True)
+        else:
+            result['formats'], _ = self._extract_stream(f'music/{internal_id}', internal_id)
 
         return result
 
