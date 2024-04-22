@@ -6,8 +6,13 @@ from .common import InfoExtractor
 from ..utils import (
     clean_html,
     ExtractorError,
+    UserNotLive,
     strip_jsonp,
     unescapeHTML,
+    traverse_obj,
+    str_or_none,
+    url_or_none,
+    int_or_none,
 )
 
 
@@ -363,3 +368,90 @@ class QQMusicPlaylistIE(QQPlaylistBaseIE):
         list_name = cdlist.get('dissname')
         list_description = clean_html(unescapeHTML(cdlist.get('desc')))
         return self.playlist_result(entries, list_id, list_name, list_description)
+
+
+class QQMusicVideoIE(InfoExtractor):
+    _VALID_URL = r'https?://y\.qq\.com/n/ryqq/mv/(?P<id>[0-9A-Za-z]+)'
+
+    def _parse_url_formats(self, url_data):
+        formats = traverse_obj(url_data, ('mp4', lambda _, v: v.get('freeflow_url'), {
+            'url': ('freeflow_url', 0, {url_or_none}),
+            'filesize': ('fileSize', {int_or_none}),
+            'format_id': ('newFileType', {str_or_none}),
+        }))
+        return formats
+
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+        payload = '{"comm":{"format":"json","platform":"yqq"},"mvInfo":{"module":"music.video.VideoData","method":"get_video_info_batch","param":{"vidlist":["%s"],"required":["vid","type","sid","cover_pic","duration","singers","new_switch_str","video_pay","hint","code","msg","name","desc","playcnt","pubdate","isfav","fileid","filesize_v2","switch_pay_type","pay","pay_info","uploader_headurl","uploader_nick","uploader_uin","uploader_encuin","play_forbid_reason"]}},"mvUrl":{"module":"music.stream.MvUrlProxy","method":"GetMvUrls","param":{"vids":["%s"]}}}' % (video_id, video_id)
+        video_info = self._download_json('https://u.y.qq.com/cgi-bin/musicu.fcg', video_id, data=payload.encode())
+        if traverse_obj(video_info, ('mvInfo', 'data', video_id, 'play_forbid_reason')) == 3:
+            self.raise_geo_restricted()
+        return {
+            'id': video_id,
+            'formats': self._parse_url_formats(traverse_obj(video_info, ('mvUrl', 'data', video_id))),
+            **traverse_obj(video_info, ('mvInfo', 'data', video_id, {
+                'title': ('name', {str_or_none}),
+                'description': ('desc', {str_or_none}),
+                'thumbnail': ('cover_pic', {url_or_none}),
+                'release_timestamp': ('pubdate', {int_or_none}),
+                'duration': ('duration', {int_or_none}),
+                'creator': ('singers', 0, 'name', {str_or_none}),
+            })),
+        }
+
+
+class QQMusicVideoLiveIE(InfoExtractor):
+    _VALID_URL = r'https?://v\.y\.qq\.com/m/play\.html\?showid=(?P<id>[0-9]+)'
+    _HEIGHTS = {
+        112: 720,
+        110: 540,
+    }
+
+    def _parse_url_foramts(self, stream_info, stream_id):
+        formats = []
+        for url in traverse_obj(stream_info, ('req_0', 'data', ('streamFLV', 'streamHLS'), {url_or_none})):
+            formats.append({
+                'url': url,
+                'quality': 10000,
+                'format': '原画',
+                'resolution': 'original',
+            })
+        for stream in traverse_obj(stream_info, ('req_0', 'data', ('streamFlvList', 'streamHlsList'), ..., {
+            'url': ('stream', {url_or_none}),
+            'format': ('text', {str_or_none}),
+            'quality': ('resolution', {int_or_none}),
+            'height': ('resolution', {lambda i: self._HEIGHTS.get(i)}),
+        })):
+            if stream['url']:
+                formats.append(stream)
+        return formats
+
+    def _real_extract(self, url):
+        stream_id = self._match_id(url)
+
+        payload = '{"comm":{"format":"json","inCharset":"utf-8","outCharset":"utf-8","notice":0,"platform":"h5","needNewCode":1},"req_0":{"module":"mlive.show.MliveShowMemberSvr","method":"GetNewestShow","param":{"showID":%s}}}' % stream_id
+        show_info = self._download_json('https://vc.y.qq.com/cgi-bin/musicu.fcg', stream_id, data=payload.encode())
+        # import json
+        # print(payload)
+        # print(json.dumps(show_info, ensure_ascii=False))
+        show_id = traverse_obj(show_info, ('req_0', 'data', 'showID'))
+
+        payload = '{"comm":{"format":"json","inCharset":"utf-8","outCharset":"utf-8","notice":0,"platform":"h5","needNewCode":1},"req_0":{"module":"mlive.show.MliveShowMemberSvr","method":"JoinBasicShow","param":{"showID":%s,"uinStr":"v%.0f"}}}' % (show_id, time.time() * 1000)
+        stream_info = self._download_json('https://vc.y.qq.com/cgi-bin/musicu.fcg', stream_id, data=payload.encode())
+        # print(payload)
+        # print(json.dumps(stream_info, ensure_ascii=False))
+
+        formats = self._parse_url_foramts(stream_info, stream_id)
+        if not formats and traverse_obj(stream_info, ('req_0', 'data', 'showInfo', 'liveType')) == 0:
+            raise UserNotLive(video_id=stream_id)
+        return {
+            'id': stream_id,
+            'formats': self._parse_url_foramts(stream_info, stream_id),
+            'is_live': True,
+            **traverse_obj(stream_info, ('req_0', 'data', 'showInfo', {
+                'title': ('title', {str_or_none}),
+                'thumbnail': ('cover_pic', {url_or_none}),
+                'uploader_id': ('uin', {str_or_none}),
+            })),
+        }
