@@ -798,7 +798,7 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
             'id': 'p0hj0lq7',
             'ext': 'mp4',
             'title': 'Nasser Hospital doctor describes his treatment by IDF',
-            'description': r're:(?s)Doctor Abu Sabha said he was detained by Israeli forces after .{276,} hostages\."$',
+            'description': r're:(?s)Doctor Abu Sabha said he was detained by Israeli forces after .{276} hostages\."$',
             'thumbnail': r're:https?://.+/.+\.jpg',
             'timestamp': 1710188248,
             'upload_date': '20240311',
@@ -1270,8 +1270,6 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
 
         def parse_model(model):
             '''Extract single video from model structure'''
-            if isinstance(model, list):
-                model = model[0]
             item_id = traverse_obj(model, ('versions', 0, 'versionId', {str}))
             if not item_id:
                 return
@@ -1298,7 +1296,7 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
             ..., 'contents', lambda _, v: v['type'] == 'video',
             'model', 'blocks', lambda _, v: v['type'] == 'media',
             'model', 'blocks', lambda _, v: v['type'] == 'mediaMetadata',
-            'model'))
+            'model', {dict}, any))
         if model:
             entry = parse_model(model)
             if entry:
