@@ -1,3 +1,6 @@
+import base64
+import json
+import hashlib
 import random
 import re
 import time
@@ -5,23 +8,66 @@ import time
 from .common import InfoExtractor
 from ..utils import (
     clean_html,
+    int_or_none,
+    join_nonempty,
+    strip_jsonp,
+    str_or_none,
+    traverse_obj,
+    unescapeHTML,
+    url_or_none,
     ExtractorError,
     UserNotLive,
-    strip_jsonp,
-    unescapeHTML,
-    traverse_obj,
-    str_or_none,
-    url_or_none,
-    int_or_none,
 )
 
 
-class QQMusicIE(InfoExtractor):
+class QQMusicBaseIE(InfoExtractor):
+    def _get_sign(self, payload: bytes):
+        # This may not work for domains other than `y.qq.com` and browswer UA that contains `Headless`
+        md5hex = hashlib.md5(payload).hexdigest().upper()
+        hex_digits = [int(c, base=16) for c in md5hex]
+
+        xor_digits = []
+        for i, xor in enumerate([212, 45, 80, 68, 195, 163, 163, 203, 157, 220, 254, 91, 204, 79, 104, 6]):
+            xor_digits.append((hex_digits[i * 2] * 16 + hex_digits[i * 2 + 1]) ^ xor)
+
+        char_indicies = []
+        for i in range(0, len(xor_digits) - 1, 3):
+            char_indicies.extend([
+                xor_digits[i] >> 2,
+                ((xor_digits[i] & 3) << 4) | (xor_digits[i + 1] >> 4),
+                ((xor_digits[i + 1] & 15) << 2) | (xor_digits[i + 2] >> 6),
+                xor_digits[i + 2] & 63,
+            ])
+        char_indicies.extend([
+            xor_digits[15] >> 2,
+            (xor_digits[15] & 3) << 4,
+        ])
+
+        head = ''.join(md5hex[i] for i in [21, 4, 9, 26, 16, 20, 27, 30])
+        tail = ''.join(md5hex[i] for i in [18, 11, 3, 2, 1, 7, 6, 25])
+        body = ''.join('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/='[i] for i in char_indicies)
+        return re.sub(r'[\/+]', '', f'zzb{head}{body}{tail}'.lower())
+
+    def _get_g_tk(self):
+        n = 5381
+        for chr in self._get_cookies('https://y.qq.com').get('qqmusic_key', ''):
+            n += (n << 5) + ord(chr)
+        return n & 2147483647
+
+    # Reference: m_r_GetRUin() in top_player.js
+    # http://imgcache.gtimg.cn/music/portal_v3/y/top_player.js
+    @staticmethod
+    def m_r_get_ruin():
+        curMs = int(time.time() * 1000) % 1000
+        return int(round(random.random() * 2147483647) * curMs % 1E10)
+
+
+class QQMusicIE(QQMusicBaseIE):
     IE_NAME = 'qqmusic'
     IE_DESC = 'QQ音乐'
-    _VALID_URL = r'https?://y\.qq\.com/n/yqq/song/(?P<id>[0-9A-Za-z]+)\.html'
+    _VALID_URL = r'https?://y\.qq\.com/n/ryqq/songDetail/(?P<id>[0-9A-Za-z]+)'
     _TESTS = [{
-        'url': 'https://y.qq.com/n/yqq/song/004295Et37taLD.html',
+        'url': 'https://y.qq.com/n/ryqq/songDetail/004295Et37taLD',
         'md5': '5f1e6cea39e182857da7ffc5ef5e6bb8',
         'info_dict': {
             'id': '004295Et37taLD',
@@ -68,86 +114,83 @@ class QQMusicIE(InfoExtractor):
         'm4a': {'prefix': 'C200', 'ext': 'm4a', 'preference': 10}
     }
 
-    # Reference: m_r_GetRUin() in top_player.js
-    # http://imgcache.gtimg.cn/music/portal_v3/y/top_player.js
-    @staticmethod
-    def m_r_get_ruin():
-        curMs = int(time.time() * 1000) % 1000
-        return int(round(random.random() * 2147483647) * curMs % 1E10)
-
     def _real_extract(self, url):
         mid = self._match_id(url)
 
-        detail_info_page = self._download_webpage(
-            'http://s.plcloud.music.qq.com/fcgi-bin/fcg_yqq_song_detail_info.fcg?songmid=%s&play=0' % mid,
-            mid, note='Download song detail info',
-            errnote='Unable to get song detail info', encoding='gbk')
+        webpage = self._download_webpage(url, mid)
+        init_data = self._search_json(
+            r'window\.__INITIAL_DATA__\s*=\s*', webpage.replace('undefined', 'null'),
+            'init data', mid, fatal=False)
 
-        song_name = self._html_search_regex(
-            r"songname:\s*'([^']+)'", detail_info_page, 'song name')
+        payload = json.dumps({
+            "comm": {
+                "cv": 4747474,
+                "ct": 24,
+                "format": "json",
+                "inCharset": "utf-8",
+                "outCharset": "utf-8",
+                "notice": 0,
+                "platform": "yqq.json",
+                "needNewCode": 1,
+                "uin": int_or_none(self._get_cookies('https://y.qq.com').get('o_cookie')) or 0,
+                "g_tk_new_20200303": self._get_g_tk(),
+                "g_tk": self._get_g_tk(),
+            },
+            "req_1": {
+                "module": "vkey.GetVkeyServer",
+                "method": "CgiGetVkey",
+                "param": {
+                    "guid": str(self.m_r_get_ruin()),
+                    "songmid": [mid],
+                    "songtype": [0],
+                    "uin": self._get_cookies('https://y.qq.com').get('o_cookie', '0'),
+                    "loginflag": 1,
+                    "platform": "20"
+                }
+            },
+            "req_2": {
+                "module": "music.musichallSong.PlayLyricInfo",
+                "method": "GetPlayLyricInfo",
+                "param": {
+                    "songMID": mid,
+                    "songID": traverse_obj(init_data, ('detail', 'id', {int})),
+                }
+            },
+        }, separators=(',', ':')).encode('utf-8')
 
-        publish_time = self._html_search_regex(
-            r'发行时间：(\d{4}-\d{2}-\d{2})', detail_info_page,
-            'publish time', default=None)
-        if publish_time:
-            publish_time = publish_time.replace('-', '')
+        data = self._download_json(
+            'https://u6.y.qq.com/cgi-bin/musics.fcg', mid, data=payload,
+            query={'_': int(time.time()), 'sign': self._get_sign(payload)})
 
-        singer = self._html_search_regex(
-            r"singer:\s*'([^']+)", detail_info_page, 'singer', default=None)
-
-        lrc_content = self._html_search_regex(
-            r'<div class="content" id="lrc_content"[^<>]*>([^<>]+)</div>',
-            detail_info_page, 'LRC lyrics', default=None)
-        if lrc_content:
-            lrc_content = lrc_content.replace('\\n', '\n')
-
-        thumbnail_url = None
-        albummid = self._search_regex(
-            [r'albummid:\'([0-9a-zA-Z]+)\'', r'"albummid":"([0-9a-zA-Z]+)"'],
-            detail_info_page, 'album mid', default=None)
-        if albummid:
-            thumbnail_url = 'http://i.gtimg.cn/music/photo/mid_album_500/%s/%s/%s.jpg' \
-                            % (albummid[-2:-1], albummid[-1], albummid)
-
-        guid = self.m_r_get_ruin()
-
-        vkey = self._download_json(
-            'http://base.music.qq.com/fcgi-bin/fcg_musicexpress.fcg?json=3&guid=%s' % guid,
-            mid, note='Retrieve vkey', errnote='Unable to get vkey',
-            transform_source=strip_jsonp)['key']
-
-        formats = []
-        for format_id, details in self._FORMATS.items():
-            formats.append({
-                'url': 'http://cc.stream.qqmusic.qq.com/%s%s.%s?vkey=%s&guid=%s&fromtag=0'
-                       % (details['prefix'], mid, details['ext'], vkey, guid),
-                'format': format_id,
-                'format_id': format_id,
-                'quality': details['preference'],
-                'abr': details.get('abr'),
-            })
-        self._check_formats(formats, mid)
-
-        actual_lrc_lyrics = ''.join(
-            line + '\n' for line in re.findall(
-                r'(?m)^(\[[0-9]{2}:[0-9]{2}(?:\.[0-9]{2,})?\][^\n]*|\[[^\]]*\])', lrc_content))
+        formats = traverse_obj(data, ('req_1', 'data', 'midurlinfo', lambda _, v: v['songmid'] == mid, {
+            'url': ('purl', {str}, {lambda x: f'https://dl.stream.qqmusic.qq.com/{x}'}),
+        }))
+        lrc_content = traverse_obj(data, ('req_2', 'data', 'lyric', {lambda x: base64.b64decode(x).decode('utf-8')}))
 
         info_dict = {
             'id': mid,
             'formats': formats,
-            'title': song_name,
-            'release_date': publish_time,
-            'creator': singer,
-            'description': lrc_content,
-            'thumbnail': thumbnail_url
+            **traverse_obj(init_data, ('detail', {
+                'title': ('title', {str}),
+                'album': ('albumName', {str}, {lambda x: x or None}),
+                'thumbnail': ('picurl', {url_or_none}),
+                'release_date': ('ctime', {lambda x: x.replace('-', '') or None}),
+                'description': ('info', 'intro', 'content', ..., 'value', {str}),
+            }), get_all=False),
+            **traverse_obj(init_data, ('songList', lambda _, v: v['mid'] == mid, {
+                'alt_title': ('subtitle', {str}, {lambda x: x or None}),
+                'duration': ('interval', {int}),
+            }), get_all=False),
+            'creator': ' / '.join(traverse_obj(init_data, ('detail', 'singer', ..., 'name'))) or None,
         }
-        if actual_lrc_lyrics:
+        if lrc_content:
             info_dict['subtitles'] = {
                 'origin': [{
                     'ext': 'lrc',
-                    'data': actual_lrc_lyrics,
+                    'data': lrc_content,
                 }]
             }
+            info_dict['description'] = join_nonempty(info_dict.get('description'), lrc_content, delim='\n')
         return info_dict
 
 
