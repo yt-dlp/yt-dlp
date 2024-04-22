@@ -81,7 +81,7 @@ class CurlCFFIResponseReader(io.IOBase):
 class CurlCFFIResponseAdapter(ImpersonateResponse):
     fp: CurlCFFIResponseReader
 
-    def __init__(self, response: curl_cffi.requests.Response, impersonate: ImpersonateTarget):
+    def __init__(self, response: curl_cffi.requests.Response, impersonate: ImpersonateTarget | None):
         super().__init__(
             fp=CurlCFFIResponseReader(response),
             headers=response.headers,

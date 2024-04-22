@@ -65,9 +65,10 @@ class ImpersonateResponse(Response):
     Parameters:
     @param impersonate: the ImpersonateTarget used in the originating Request.
     """
-    def __init__(self, *args, impersonate: ImpersonateTarget, **kwargs):
+    def __init__(self, *args, impersonate: ImpersonateTarget | None, **kwargs):
         super().__init__(*args, **kwargs)
-        self.impersonate = impersonate
+        if impersonate is not None:
+            self.extras['impersonate'] = impersonate
 
 
 class ImpersonateRequestHandler(RequestHandler, ABC):

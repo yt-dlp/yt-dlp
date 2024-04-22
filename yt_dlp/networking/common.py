@@ -517,6 +517,7 @@ class Response(io.IOBase):
             self.reason = reason or HTTPStatus(status).phrase
         except ValueError:
             self.reason = None
+        self.extras = {}
 
     def readable(self):
         return self.fp.readable()
