@@ -665,6 +665,7 @@ from .funimation import (
 from .funk import FunkIE
 from .funker530 import Funker530IE
 from .fuyintv import FuyinTVIE
+from .fyptt import FYPTTIE
 from .gab import (
     GabTVIE,
     GabIE,
