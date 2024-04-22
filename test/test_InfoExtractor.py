@@ -1912,7 +1912,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
         self.assertEqual(self.ie._search_nextjs_data('', None, fatal=False), {})
         self.assertEqual(self.ie._search_nextjs_data('', None, default=None), None)
         self.assertEqual(self.ie._search_nextjs_data('', None, default={}), {})
-        with self.assertRaises(DeprecationWarning):
+        with self.assertWarns(DeprecationWarning):
             self.assertEqual(self.ie._search_nextjs_data('', None, default='{}'), {})
 
 
