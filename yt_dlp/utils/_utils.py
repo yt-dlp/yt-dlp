@@ -625,7 +625,7 @@ def sanitize_filename(s, restricted=False, is_id=NO_DEFAULT):
             return '\0 '
         elif is_id is NO_DEFAULT and not restricted and char in '"*:<>?|/\\':
             # Replace with their full-width unicode counterparts
-            return {'/': '\u29F8', '\\': '\u29f9'}.get(char, chr(ord(char) + 0xfee0))
+            return chr(ord(char) + 0xfee0)
         elif char == '?' or ord(char) < 32 or ord(char) == 127:
             return ''
         elif char == '"':
