@@ -1,8 +1,6 @@
 import base64
 import json
-import hashlib
 import random
-import re
 import time
 
 from .common import InfoExtractor
@@ -10,6 +8,7 @@ from ..utils import (
     clean_html,
     int_or_none,
     join_nonempty,
+    js_to_json,
     strip_jsonp,
     str_or_none,
     traverse_obj,
@@ -20,33 +19,6 @@ from ..utils import (
 
 
 class QQMusicBaseIE(InfoExtractor):
-    def _get_sign(self, payload: bytes):
-        # This may not work for domains other than `y.qq.com` and browswer UA that contains `Headless`
-        md5hex = hashlib.md5(payload).hexdigest().upper()
-        hex_digits = [int(c, base=16) for c in md5hex]
-
-        xor_digits = []
-        for i, xor in enumerate([212, 45, 80, 68, 195, 163, 163, 203, 157, 220, 254, 91, 204, 79, 104, 6]):
-            xor_digits.append((hex_digits[i * 2] * 16 + hex_digits[i * 2 + 1]) ^ xor)
-
-        char_indicies = []
-        for i in range(0, len(xor_digits) - 1, 3):
-            char_indicies.extend([
-                xor_digits[i] >> 2,
-                ((xor_digits[i] & 3) << 4) | (xor_digits[i + 1] >> 4),
-                ((xor_digits[i + 1] & 15) << 2) | (xor_digits[i + 2] >> 6),
-                xor_digits[i + 2] & 63,
-            ])
-        char_indicies.extend([
-            xor_digits[15] >> 2,
-            (xor_digits[15] & 3) << 4,
-        ])
-
-        head = ''.join(md5hex[i] for i in [21, 4, 9, 26, 16, 20, 27, 30])
-        tail = ''.join(md5hex[i] for i in [18, 11, 3, 2, 1, 7, 6, 25])
-        body = ''.join('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/='[i] for i in char_indicies)
-        return re.sub(r'[\/+]', '', f'zzb{head}{body}{tail}'.lower())
-
     def _get_g_tk(self):
         n = 5381
         for chr in self._get_cookies('https://y.qq.com').get('qqmusic_key', ''):
@@ -63,33 +35,24 @@ class QQMusicBaseIE(InfoExtractor):
         curMs = int(time.time() * 1000) % 1000
         return int(round(random.random() * 2147483647) * curMs % 1E10)
 
-    def download_init_data(self, url, mid):
-        webpage = self._download_webpage(url, mid)
-        return self._search_json(
-            r'window\.__INITIAL_DATA__\s*=\s*',
-            webpage.replace('undefined', 'null'), 'init data', mid)
+    def download_init_data(self, url, mid, fatal=True):
+        webpage = self._download_webpage(url, mid, fatal=fatal)
+        return self._search_json(r'window\.__INITIAL_DATA__\s*=\s*', webpage,
+                                 'init data', mid, transform_source=js_to_json, fatal=fatal)
 
-    def make_fcu_req(self, mid, req_dict, **kwargs):
+    def make_fcu_req(self, req_dict, mid, **kwargs):
         payload = json.dumps({
             'comm': {
-                'cv': 4747474,
+                'cv': 0,
                 'ct': 24,
                 'format': 'json',
-                'inCharset': 'utf-8',
-                'outCharset': 'utf-8',
-                'notice': 0,
-                'platform': 'yqq.json',
-                'needNewCode': 1,
                 'uin': self._get_uin(),
-                'g_tk_new_20200303': self._get_g_tk(),
-                'g_tk': self._get_g_tk(),
             },
             **req_dict
         }, separators=(',', ':')).encode('utf-8')
 
-        return self._download_json(
-            'https://u.y.qq.com/cgi-bin/musics.fcg', mid, data=payload,
-            query={'_': int(time.time()), 'sign': self._get_sign(payload)}, **kwargs)
+        return self._download_json('https://u.y.qq.com/cgi-bin/musicu.fcg',
+                                   mid, data=payload, **kwargs)
 
 
 class QQMusicIE(QQMusicBaseIE):
@@ -103,10 +66,11 @@ class QQMusicIE(QQMusicBaseIE):
             'id': '004Ti8rT003TaZ',
             'ext': 'mp3',
             'title': '永夜のパレード (永夜的游行)',
+            'album': '幻想遊園郷 -Fantastic Park-',
             'release_date': '20111230',
             'duration': 281,
             'creators': ['ケーキ姫', 'JUMA'],
-            'album': '幻想遊園郷 -Fantastic Park-',
+            'genres': ['Pop'],
             'description': 'md5:b5261f3d595657ae561e9e6aee7eb7d9',
             'size': 4501244,
             'thumbnail': r're:^https?://.*\.jpg(?:$|[#?])',
@@ -124,6 +88,7 @@ class QQMusicIE(QQMusicBaseIE):
             'release_date': '20150129',
             'duration': 298,
             'creators': ['林俊杰'],
+            'genres': ['Pop'],
             'description': 'md5:f568421ff618d2066e74b65a04149c4e',
             'thumbnail': r're:^https?://.*\.jpg(?:$|[#?])',
         },
@@ -172,43 +137,45 @@ class QQMusicIE(QQMusicBaseIE):
     def _real_extract(self, url):
         mid = self._match_id(url)
 
-        init_data = self.download_init_data(url, mid)
-        media_id = traverse_obj(init_data, (
-            'songList', lambda _, v: v['mid'] == mid, 'file', 'media_mid'), get_all=False)
+        init_data = self.download_init_data(url, mid, fatal=False)
+        info_data = self.make_fcu_req({'info': {
+            'module': 'music.pf_song_detail_svr',
+            'method': 'get_song_detail_yqq',
+            'param': {
+                'song_mid': mid,
+                'song_type': 0,
+            }
+        }}, mid, note='Downloading song info')['info']['data']['track_info']
 
-        data = self.make_fcu_req(mid, {
+        media_mid = info_data['file']['media_mid']
+
+        data = self.make_fcu_req({
             'req_1': {
                 'module': 'vkey.GetVkeyServer',
                 'method': 'CgiGetVkey',
                 'param': {
                     'guid': str(self.m_r_get_ruin()),
-                    'songmid': [mid],
-                    'songtype': [0],
-                    'uin': self._get_cookies('https://y.qq.com').get('o_cookie', '0'),
+                    'songmid': [mid] * len(self._FORMATS),
+                    'songtype': [0] * len(self._FORMATS),
+                    'uin': str(self._get_uin()),
                     'loginflag': 1,
                     'platform': '20',
-                    **({
-                        'songmid': [mid] * len(self._FORMATS),
-                        'songtype': [0] * len(self._FORMATS),
-                        'filename': [f'{f["prefix"]}{media_id}.{f["ext"]}' for f in self._FORMATS.values()],
-                    } if media_id else {}),
+                    'filename': [f'{f["prefix"]}{media_mid}.{f["ext"]}' for f in self._FORMATS.values()],
                 }
             },
             'req_2': {
                 'module': 'music.musichallSong.PlayLyricInfo',
                 'method': 'GetPlayLyricInfo',
-                'param': {
-                    'songMID': mid,
-                    'songID': traverse_obj(init_data, ('detail', 'id', {int})),
-                }
-            }})
+                'param': {'songMID': mid},
+            },
+        }, mid, note='Downloading formats and lyric')
 
         formats = traverse_obj(data, ('req_1', 'data', 'midurlinfo', lambda _, v: v['songmid'] == mid and v['purl'], {
             'url': ('purl', {str}, {lambda x: f'https://dl.stream.qqmusic.qq.com/{x}'}),
             'format': ('filename', {lambda x: self._FORMATS[x[:4]]['name']}),
             'format_id': ('filename', {lambda x: self._FORMATS[x[:4]]['name']}),
             'size': ('filename', {lambda x: self._FORMATS[x[:4]]['name']},
-                     {lambda x: traverse_obj(init_data, ('songList', ..., 'file', f'size_{x}'), get_all=False)}),
+                     {lambda x: traverse_obj(info_data, ('file', f'size_{x}'), get_all=False)}),
             'quality': ('filename', {lambda x: self._FORMATS[x[:4]]['preference']}),
             'abr': ('filename', {lambda x: self._FORMATS[x[:4]]['abr']}),
         }))
@@ -217,18 +184,19 @@ class QQMusicIE(QQMusicBaseIE):
         info_dict = {
             'id': mid,
             'formats': formats,
-            **traverse_obj(init_data, ('detail', {
+            **traverse_obj(info_data, {
                 'title': ('title', {str}),
-                'album': ('albumName', {str}, {lambda x: x or None}),
-                'thumbnail': ('picurl', {url_or_none}),
-                'release_date': ('ctime', {lambda x: x.replace('-', '') or None}),
-                'description': ('info', 'intro', 'content', ..., 'value', {str}),
-            }), get_all=False),
-            **traverse_obj(init_data, ('songList', lambda _, v: v['mid'] == mid, {
+                'album': ('album', 'title', {str}, {lambda x: x or None}),
+                'release_date': ('time_public', {lambda x: x.replace('-', '') or None}),
+                'creators': ('singer', ..., 'name', {str}),
                 'alt_title': ('subtitle', {str}, {lambda x: x or None}),
                 'duration': ('interval', {int}),
+            }),
+            **traverse_obj(init_data, ('detail', {
+                'thumbnail': ('picurl', {url_or_none}),
+                'description': ('info', 'intro', 'content', ..., 'value', {str}),
+                'genres': ('info', 'genre', 'content', ..., 'value', {str}, {lambda x: [x]}),
             }), get_all=False),
-            'creators': traverse_obj(init_data, ('detail', 'singer', ..., 'name')),
         }
         if lrc_content:
             info_dict['subtitles'] = {'origin': [{'ext': 'lrc', 'data': lrc_content}]}
@@ -278,7 +246,7 @@ class QQMusicSingerIE(QQMusicBaseIE):
         size = 50
         max_num = traverse_obj(init_data, ('singerDetail', 'songTotalNum'))
         for page in range(0, max_num // size + 1):
-            data = self.make_fcu_req(mid, {'req_1': {
+            data = self.make_fcu_req({'req_1': {
                 'module': 'music.web_singer_info_svr',
                 'method': 'get_singer_detail_info',
                 'param': {
@@ -286,7 +254,7 @@ class QQMusicSingerIE(QQMusicBaseIE):
                     'singermid': mid,
                     'sin': page * size,
                     'num': size,
-                }}}, note=f'Downloading page {page}')
+                }}}, mid, note=f'Downloading page {page}')
             yield from traverse_obj(data, ('req_1', 'data', 'songlist', ..., {lambda x: self.url_result(
                 f'https://y.qq.com/n/ryqq/songDetail/{x["mid"]}', QQMusicIE, x['mid'], x.get('title'))}))
 
@@ -463,15 +431,7 @@ class QQMusicVideoIE(QQMusicBaseIE):
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        payload = json.dumps({
-            'comm': {
-                'ct': 6,
-                'cv': 0,
-                'g_tk': self._get_g_tk(),
-                'uin': self._get_uin(),
-                'format': 'json',
-                'platform': 'yqq',
-            },
+        video_info = self.make_fcu_req({
             'mvInfo': {
                 'module': 'music.video.VideoData',
                 'method': 'get_video_info_batch',
@@ -479,27 +439,16 @@ class QQMusicVideoIE(QQMusicBaseIE):
                     'vidlist': [video_id],
                     'required': [
                         'vid', 'type', 'sid', 'cover_pic', 'duration', 'singers',
-                        'new_switch_str', 'video_pay', 'hint', 'code', 'msg',
-                        'name', 'desc', 'playcnt', 'pubdate', 'isfav', 'fileid',
-                        'filesize_v2', 'switch_pay_type', 'pay', 'pay_info',
-                        'uploader_headurl', 'uploader_nick', 'uploader_uin',
-                        'uploader_encuin', 'play_forbid_reason']
+                        'video_pay', 'hint', 'code', 'msg', 'name', 'desc',
+                        'playcnt', 'pubdate', 'play_forbid_reason']
                 }
             },
             'mvUrl': {
                 'module': 'music.stream.MvUrlProxy',
                 'method': 'GetMvUrls',
-                'param': {
-                    'vids': [video_id],
-                    'request_type': 10003,
-                    'addrtype': 3,
-                    'format': 264,
-                    'maxFiletype': 60,
-                }
+                'param': {'vids': [video_id]}
             }
-        }, separators=(',', ':')).encode('utf-8')
-
-        video_info = self._download_json('https://u.y.qq.com/cgi-bin/musicu.fcg', video_id, data=payload)
+        }, video_id)
         if traverse_obj(video_info, ('mvInfo', 'data', video_id, 'play_forbid_reason')) == 3:
             self.raise_geo_restricted()
 
