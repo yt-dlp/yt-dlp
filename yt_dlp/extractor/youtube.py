@@ -3466,7 +3466,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                             entity = entity
                             break
 
-                comment = self._extract_comment(view_model, entity, parent)
+                    comment = self._extract_comment(view_model, entity, parent)
+
                 if comment.get('is_pinned'):
                     tracker['pinned_comment_ids'].add(comment_id)
                 # Sometimes YouTube may break and give us infinite looping comments.
