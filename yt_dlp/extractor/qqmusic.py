@@ -327,25 +327,27 @@ class QQMusicSingerIE(QQMusicBaseIE):
         })))
 
 
-class QQMusicAlbumIE(QQPlaylistBaseIE):
+class QQMusicAlbumIE(QQMusicBaseIE):
     IE_NAME = 'qqmusic:album'
     IE_DESC = 'QQ音乐 - 专辑'
-    _VALID_URL = r'https?://y\.qq\.com/n/yqq/album/(?P<id>[0-9A-Za-z]+)\.html'
+    _VALID_URL = r'https?://y\.qq\.com/n/ryqq/albumDetail/(?P<id>[0-9A-Za-z]+)'
 
     _TESTS = [{
-        'url': 'https://y.qq.com/n/yqq/album/000gXCTb2AhRR1.html',
+        'url': 'https://y.qq.com/n/ryqq/albumDetail/000gXCTb2AhRR1',
         'info_dict': {
             'id': '000gXCTb2AhRR1',
             'title': '我们都是这样长大的',
             'description': 'md5:179c5dce203a5931970d306aa9607ea6',
+            'thumbnail': r're:(^https?:|^)//.*\.jpg(?:$|[#?])',
         },
         'playlist_count': 4,
     }, {
-        'url': 'https://y.qq.com/n/yqq/album/002Y5a3b3AlCu3.html',
+        'url': 'https://y.qq.com/n/ryqq/albumDetail/002Y5a3b3AlCu3',
         'info_dict': {
             'id': '002Y5a3b3AlCu3',
-            'title': '그리고...',
+            'title': '그리고…',
             'description': 'md5:a48823755615508a95080e81b51ba729',
+            'thumbnail': r're:(^https?:|^)//.*\.jpg(?:$|[#?])',
         },
         'playlist_count': 8,
     }]
@@ -353,21 +355,16 @@ class QQMusicAlbumIE(QQPlaylistBaseIE):
     def _real_extract(self, url):
         mid = self._match_id(url)
 
-        album = self._download_json(
-            'http://i.y.qq.com/v8/fcg-bin/fcg_v8_album_info_cp.fcg?albummid=%s&format=json' % mid,
-            mid, 'Download album page')['data']
+        init_data = self.download_init_data(url, mid)
 
-        entries = [
-            self.url_result(
-                'https://y.qq.com/n/yqq/song/' + song['songmid'] + '.html', 'QQMusic', song['songmid']
-            ) for song in album['list']
-        ]
-        album_name = album.get('name')
-        album_detail = album.get('desc')
-        if album_detail is not None:
-            album_detail = album_detail.strip()
+        entries = traverse_obj(init_data, ('songList', ..., {lambda x: self.url_result(
+            f'https://y.qq.com/n/ryqq/songDetail/{x["mid"]}', QQMusicIE, x['mid'], x.get('title'))}))
 
-        return self.playlist_result(entries, mid, album_name, album_detail)
+        return self.playlist_result(entries, mid, **traverse_obj(init_data, ('detail', {
+            'title': ('albumName', {str}),
+            'description': ('desc', {str}),
+            'thumbnail': ('picurl', {url_or_none}),
+        })))
 
 
 class QQMusicToplistIE(QQPlaylistBaseIE):
