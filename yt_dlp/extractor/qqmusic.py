@@ -61,6 +61,13 @@ class QQMusicBaseIE(InfoExtractor):
         curMs = int(time.time() * 1000) % 1000
         return int(round(random.random() * 2147483647) * curMs % 1E10)
 
+    def extract_init_data(self, webpage, mid):
+        return self._search_json(
+            r'window\.__INITIAL_DATA__\s*=\s*', webpage.replace('undefined', 'null'), 'init data', mid)
+
+    def download_init_data(self, url, mid):
+        return self.extract_init_data(self._download_webpage(url, mid), mid)
+
 
 class QQMusicIE(QQMusicBaseIE):
     IE_NAME = 'qqmusic'
@@ -142,10 +149,7 @@ class QQMusicIE(QQMusicBaseIE):
     def _real_extract(self, url):
         mid = self._match_id(url)
 
-        webpage = self._download_webpage(url, mid)
-        init_data = self._search_json(
-            r'window\.__INITIAL_DATA__\s*=\s*', webpage.replace('undefined', 'null'),
-            'init data', mid, fatal=False)
+        init_data = self.download_init_data(url, mid)
         media_id = traverse_obj(init_data, (
             'songList', lambda _, v: v['mid'] == mid, 'file', 'media_mid'), get_all=False)
 
@@ -227,7 +231,7 @@ class QQMusicIE(QQMusicBaseIE):
         return info_dict
 
 
-class QQPlaylistBaseIE(InfoExtractor):
+class QQPlaylistBaseIE(QQMusicBaseIE):
     @staticmethod
     def qq_static_url(category, mid):
         return 'http://y.qq.com/y/static/%s/%s/%s/%s.html' % (category, mid[-2], mid[-1], mid)
@@ -269,39 +273,58 @@ class QQPlaylistBaseIE(InfoExtractor):
         return entries
 
 
-class QQMusicSingerIE(QQPlaylistBaseIE):
+class QQMusicSingerIE(QQMusicBaseIE):
     IE_NAME = 'qqmusic:singer'
     IE_DESC = 'QQ音乐 - 歌手'
-    _VALID_URL = r'https?://y\.qq\.com/n/yqq/singer/(?P<id>[0-9A-Za-z]+)\.html'
-    _TEST = {
-        'url': 'https://y.qq.com/n/yqq/singer/001BLpXF2DyJe2.html',
+    _VALID_URL = r'https?://y\.qq\.com/n/ryqq/singer/(?P<id>[0-9A-Za-z]+)'
+    _TESTS = [{
+        'url': 'https://y.qq.com/n/ryqq/singer/001BLpXF2DyJe2',
         'info_dict': {
             'id': '001BLpXF2DyJe2',
             'title': '林俊杰',
-            'description': 'md5:870ec08f7d8547c29c93010899103751',
+            'description': 'md5:10624ce73b06fa400bc846f59b0305fa',
+            'thumbnail': r're:^https?://.*\.jpg(?:$|[#?])',
         },
-        'playlist_mincount': 12,
-    }
+        'playlist_mincount': 10,
+    }, {
+        'url': 'https://y.qq.com/n/ryqq/singer/000Q00f213YzNV',
+        'info_dict': {
+            'id': '000Q00f213YzNV',
+            'title': '桃几OvO',
+            'description': '小破站小唱见~希望大家喜欢听我唱歌~！',
+            'thumbnail': r're:^https?://.*\.jpg(?:$|[#?])',
+        },
+        'playlist_mincount': 10,
+        'playlist': [{
+            'info_dict': {
+                'id': '0016cvsy02mmCl',
+                'ext': 'mp3',
+                'title': '群青',
+                'release_date': '20210913',
+                'duration': 248,
+                'creators': ['桃几OvO'],
+                'album': '桃几2021年翻唱集',
+                'description': 'md5:4296005a04edcb5cdbe0889d5055a7ae',
+                'size': 3970822,
+                'thumbnail': r're:^https?://.*\.jpg(?:$|[#?])',
+            },
+        }],
+    }]
 
     def _real_extract(self, url):
         mid = self._match_id(url)
+        self.to_screen('Due to website restriction, only first 10 items are retrieved')
 
-        entries = self.get_entries_from_page(mid)
-        singer_page = self._download_webpage(url, mid, 'Download singer page')
-        singer_name = self._html_search_regex(
-            r"singername\s*:\s*'(.*?)'", singer_page, 'singer name', default=None)
-        singer_desc = None
+        init_data = self.download_init_data(url, mid)
 
-        if mid:
-            singer_desc_page = self._download_xml(
-                'http://s.plcloud.music.qq.com/fcgi-bin/fcg_get_singer_desc.fcg', mid,
-                'Donwload singer description XML',
-                query={'utf8': 1, 'outCharset': 'utf-8', 'format': 'xml', 'singermid': mid},
-                headers={'Referer': 'https://y.qq.com/n/yqq/singer/'})
+        entries = traverse_obj(init_data, ('songList', ..., {lambda x: self.url_result(
+            f'https://y.qq.com/n/ryqq/songDetail/{x["mid"]}', QQMusicIE, x['mid'], x.get('title'))}))
 
-            singer_desc = singer_desc_page.find('./data/info/desc').text
-
-        return self.playlist_result(entries, mid, singer_name, singer_desc)
+        return self.playlist_result(entries, mid, **traverse_obj(init_data, ('singerDetail', {
+            'title': ('basic_info', 'name', {str}),
+            'description': ('ex_info', 'desc', {str}),
+            'thumbnail': ('pic', 'pic', {url_or_none}),
+        })))
 
 
 class QQMusicAlbumIE(QQPlaylistBaseIE):
