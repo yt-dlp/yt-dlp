@@ -170,6 +170,8 @@ class QQMusicIE(QQMusicBaseIE):
             },
         }, mid, note='Downloading formats and lyric')
 
+        if data['req_1']['code'] != 0:
+            raise ExtractorError(f'Failed to download formats, error {data["req_1"]["code"]}')
         formats = traverse_obj(data, ('req_1', 'data', 'midurlinfo', lambda _, v: v['songmid'] == mid and v['purl'], {
             'url': ('purl', {str}, {lambda x: f'https://dl.stream.qqmusic.qq.com/{x}'}),
             'format': ('filename', {lambda x: self._FORMATS[x[:4]]['name']}),
@@ -179,6 +181,9 @@ class QQMusicIE(QQMusicBaseIE):
             'quality': ('filename', {lambda x: self._FORMATS[x[:4]]['preference']}),
             'abr': ('filename', {lambda x: self._FORMATS[x[:4]]['abr']}),
         }))
+
+        if traverse_obj(data, ('req_2', 'code')):
+            self.report_warning(f'Failed to download lyric, error {data["req_2"]["code"]}')
         lrc_content = traverse_obj(data, ('req_2', 'data', 'lyric', {lambda x: base64.b64decode(x).decode('utf-8')}))
 
         info_dict = {
@@ -190,7 +195,7 @@ class QQMusicIE(QQMusicBaseIE):
                 'release_date': ('time_public', {lambda x: x.replace('-', '') or None}),
                 'creators': ('singer', ..., 'name', {str}),
                 'alt_title': ('subtitle', {str}, {lambda x: x or None}),
-                'duration': ('interval', {int}),
+                'duration': ('interval', {int_or_none}),
             }),
             **traverse_obj(init_data, ('detail', {
                 'thumbnail': ('picurl', {url_or_none}),
@@ -244,17 +249,17 @@ class QQMusicSingerIE(QQMusicBaseIE):
     }]
 
     def _entries(self, mid, init_data):
-        size = 50
+        page_size = 50
         max_num = traverse_obj(init_data, ('singerDetail', 'songTotalNum'))
-        for page in range(0, max_num // size + 1):
+        for page in range(0, max_num // page_size + 1):
             data = self.make_fcu_req({'req_1': {
                 'module': 'music.web_singer_info_svr',
                 'method': 'get_singer_detail_info',
                 'param': {
                     'sort': 5,
                     'singermid': mid,
-                    'sin': page * size,
-                    'num': size,
+                    'sin': page * page_size,
+                    'num': page_size,
                 }}}, mid, note=f'Downloading page {page}')
             yield from traverse_obj(data, ('req_1', 'data', 'songlist', ..., {lambda x: self.url_result(
                 f'https://y.qq.com/n/ryqq/songDetail/{x["mid"]}', QQMusicIE, x['mid'], x.get('title'))}))
@@ -457,8 +462,8 @@ class QQMusicVideoIE(QQMusicBaseIE):
             'id': video_id,
             'formats': self._parse_url_formats(traverse_obj(video_info, ('mvUrl', 'data', video_id))),
             **traverse_obj(video_info, ('mvInfo', 'data', video_id, {
-                'title': ('name', {str_or_none}),
-                'description': ('desc', {str_or_none}),
+                'title': ('name', {str}),
+                'description': ('desc', {str}),
                 'thumbnail': ('cover_pic', {url_or_none}),
                 'release_timestamp': ('pubdate', {int_or_none}),
                 'duration': ('duration', {int_or_none}),
