@@ -1013,7 +1013,7 @@ class TestCurlCFFIRequestHandler(TestRequestHandlerBase):
 
         from yt_dlp.networking._curlcffi import CurlCFFIResponseAdapter
         curl_res = curl_cffi.requests.Response()
-        res = CurlCFFIResponseAdapter(curl_res, None)
+        res = CurlCFFIResponseAdapter(curl_res)
 
         def mock_read(*args, **kwargs):
             try:
