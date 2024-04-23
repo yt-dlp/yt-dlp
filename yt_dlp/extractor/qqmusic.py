@@ -61,12 +61,33 @@ class QQMusicBaseIE(InfoExtractor):
         curMs = int(time.time() * 1000) % 1000
         return int(round(random.random() * 2147483647) * curMs % 1E10)
 
-    def extract_init_data(self, webpage, mid):
-        return self._search_json(
-            r'window\.__INITIAL_DATA__\s*=\s*', webpage.replace('undefined', 'null'), 'init data', mid)
-
     def download_init_data(self, url, mid):
-        return self.extract_init_data(self._download_webpage(url, mid), mid)
+        webpage = self._download_webpage(url, mid)
+        return self._search_json(
+            r'window\.__INITIAL_DATA__\s*=\s*',
+            webpage.replace('undefined', 'null'), 'init data', mid)
+
+    def make_fcu_req(self, mid, req_dict, **kwargs):
+        payload = json.dumps({
+            'comm': {
+                'cv': 4747474,
+                'ct': 24,
+                'format': 'json',
+                'inCharset': 'utf-8',
+                'outCharset': 'utf-8',
+                'notice': 0,
+                'platform': 'yqq.json',
+                'needNewCode': 1,
+                'uin': int_or_none(self._get_cookies('https://y.qq.com').get('o_cookie')) or 0,
+                'g_tk_new_20200303': self._get_g_tk(),
+                'g_tk': self._get_g_tk(),
+            },
+            **req_dict
+        }, separators=(',', ':')).encode('utf-8')
+
+        return self._download_json(
+            'https://u.y.qq.com/cgi-bin/musics.fcg', mid, data=payload,
+            query={'_': int(time.time()), 'sign': self._get_sign(payload)}, **kwargs)
 
 
 class QQMusicIE(QQMusicBaseIE):
@@ -153,20 +174,7 @@ class QQMusicIE(QQMusicBaseIE):
         media_id = traverse_obj(init_data, (
             'songList', lambda _, v: v['mid'] == mid, 'file', 'media_mid'), get_all=False)
 
-        payload = json.dumps({
-            'comm': {
-                'cv': 4747474,
-                'ct': 24,
-                'format': 'json',
-                'inCharset': 'utf-8',
-                'outCharset': 'utf-8',
-                'notice': 0,
-                'platform': 'yqq.json',
-                'needNewCode': 1,
-                'uin': int_or_none(self._get_cookies('https://y.qq.com').get('o_cookie')) or 0,
-                'g_tk_new_20200303': self._get_g_tk(),
-                'g_tk': self._get_g_tk(),
-            },
+        data = self.make_fcu_req(mid, {
             'req_1': {
                 'module': 'vkey.GetVkeyServer',
                 'method': 'CgiGetVkey',
@@ -191,12 +199,7 @@ class QQMusicIE(QQMusicBaseIE):
                     'songMID': mid,
                     'songID': traverse_obj(init_data, ('detail', 'id', {int})),
                 }
-            },
-        }, separators=(',', ':')).encode('utf-8')
-
-        data = self._download_json(
-            'https://u.y.qq.com/cgi-bin/musics.fcg', mid, data=payload,
-            query={'_': int(time.time()), 'sign': self._get_sign(payload)})
+            }})
 
         formats = traverse_obj(data, ('req_1', 'data', 'midurlinfo', lambda _, v: v['songmid'] == mid and v['purl'], {
             'url': ('purl', {str}, {lambda x: f'https://dl.stream.qqmusic.qq.com/{x}'}),
@@ -231,48 +234,6 @@ class QQMusicIE(QQMusicBaseIE):
         return info_dict
 
 
-class QQPlaylistBaseIE(QQMusicBaseIE):
-    @staticmethod
-    def qq_static_url(category, mid):
-        return 'http://y.qq.com/y/static/%s/%s/%s/%s.html' % (category, mid[-2], mid[-1], mid)
-
-    def get_singer_all_songs(self, singmid, num):
-        return self._download_webpage(
-            r'https://c.y.qq.com/v8/fcg-bin/fcg_v8_singer_track_cp.fcg', singmid,
-            query={
-                'format': 'json',
-                'inCharset': 'utf8',
-                'outCharset': 'utf-8',
-                'platform': 'yqq',
-                'needNewCode': 0,
-                'singermid': singmid,
-                'order': 'listen',
-                'begin': 0,
-                'num': num,
-                'songstatus': 1,
-            })
-
-    def get_entries_from_page(self, singmid):
-        entries = []
-
-        default_num = 1
-        json_text = self.get_singer_all_songs(singmid, default_num)
-        json_obj_all_songs = self._parse_json(json_text, singmid)
-
-        if json_obj_all_songs['code'] == 0:
-            total = json_obj_all_songs['data']['total']
-            json_text = self.get_singer_all_songs(singmid, total)
-            json_obj_all_songs = self._parse_json(json_text, singmid)
-
-        for item in json_obj_all_songs['data']['list']:
-            if item['musicData'].get('songmid') is not None:
-                songmid = item['musicData']['songmid']
-                entries.append(self.url_result(
-                    r'https://y.qq.com/n/yqq/song/%s.html' % songmid, 'QQMusic', songmid))
-
-        return entries
-
-
 class QQMusicSingerIE(QQMusicBaseIE):
     IE_NAME = 'qqmusic:singer'
     IE_DESC = 'QQ音乐 - 歌手'
@@ -294,7 +255,7 @@ class QQMusicSingerIE(QQMusicBaseIE):
             'description': '小破站小唱见~希望大家喜欢听我唱歌~！',
             'thumbnail': r're:^https?://.*\.jpg(?:$|[#?])',
         },
-        'playlist_mincount': 10,
+        'playlist_count': 12,
         'playlist': [{
             'info_dict': {
                 'id': '0016cvsy02mmCl',
@@ -311,23 +272,41 @@ class QQMusicSingerIE(QQMusicBaseIE):
         }],
     }]
 
+    def _entries(self, mid, init_data):
+        size = 50
+        max_num = traverse_obj(init_data, ('singerDetail', 'songTotalNum'))
+        for page in range(0, max_num // size + 1):
+            data = self.make_fcu_req(mid, {'req_1': {
+                'module': 'music.web_singer_info_svr',
+                'method': 'get_singer_detail_info',
+                'param': {
+                    'sort': 5,
+                    'singermid': mid,
+                    'sin': page * size,
+                    'num': size,
+                }}}, note=f'Downloading page {page}')
+            yield from traverse_obj(data, ('req_1', 'data', 'songlist', ..., {lambda x: self.url_result(
+                f'https://y.qq.com/n/ryqq/songDetail/{x["mid"]}', QQMusicIE, x['mid'], x.get('title'))}))
+
     def _real_extract(self, url):
         mid = self._match_id(url)
-        self.to_screen('Due to website restriction, only first 10 items are retrieved')
 
         init_data = self.download_init_data(url, mid)
-
-        entries = traverse_obj(init_data, ('songList', ..., {lambda x: self.url_result(
-            f'https://y.qq.com/n/ryqq/songDetail/{x["mid"]}', QQMusicIE, x['mid'], x.get('title'))}))
-
-        return self.playlist_result(entries, mid, **traverse_obj(init_data, ('singerDetail', {
-            'title': ('basic_info', 'name', {str}),
-            'description': ('ex_info', 'desc', {str}),
-            'thumbnail': ('pic', 'pic', {url_or_none}),
-        })))
+        return self.playlist_result(
+            self._entries(mid, init_data), mid, **traverse_obj(init_data, ('singerDetail', {
+                'title': ('basic_info', 'name', {str}),
+                'description': ('ex_info', 'desc', {str}),
+                'thumbnail': ('pic', 'pic', {url_or_none}),
+            })))
 
 
-class QQMusicAlbumIE(QQMusicBaseIE):
+class QQPlaylistBaseIE(InfoExtractor):
+    def _extract_entries(self, info_json, path):
+        return traverse_obj(info_json, (*path, {lambda song: self.url_result(
+            f'https://y.qq.com/n/ryqq/songDetail/{song["songmid"]}', QQMusicIE, song['songmid'], song['songname'])}))
+
+
+class QQMusicAlbumIE(QQPlaylistBaseIE):
     IE_NAME = 'qqmusic:album'
     IE_DESC = 'QQ音乐 - 专辑'
     _VALID_URL = r'https?://y\.qq\.com/n/ryqq/albumDetail/(?P<id>[0-9A-Za-z]+)'
@@ -354,11 +333,11 @@ class QQMusicAlbumIE(QQMusicBaseIE):
         mid = self._match_id(url)
 
         album_json = self._download_json(
-            f'http://i.y.qq.com/v8/fcg-bin/fcg_v8_album_info_cp.fcg?albummid={mid}&format=json',
-            mid, 'Download album page')['data']
+            'http://i.y.qq.com/v8/fcg-bin/fcg_v8_album_info_cp.fcg',
+            mid, 'Download album page',
+            query={'albummid': mid, 'format': 'json'})['data']
 
-        entries = traverse_obj(album_json, ('list', ..., {lambda song: self.url_result(
-            f'https://y.qq.com/n/ryqq/songDetail/{song["songmid"]}', QQMusicIE, song['songmid'], song['songname'])}))
+        entries = self._extract_entries(album_json, ('list', ...))
 
         return self.playlist_result(entries, mid, **traverse_obj(album_json, {
             'title': ('name', {str}),
@@ -366,7 +345,7 @@ class QQMusicAlbumIE(QQMusicBaseIE):
         }))
 
 
-class QQMusicToplistIE(InfoExtractor):
+class QQMusicToplistIE(QQPlaylistBaseIE):
     IE_NAME = 'qqmusic:toplist'
     IE_DESC = 'QQ音乐 - 排行榜'
     _VALID_URL = r'https?://y\.qq\.com/n/ryqq/toplist/(?P<id>[0-9]+)'
@@ -405,8 +384,7 @@ class QQMusicToplistIE(InfoExtractor):
             note='Download toplist page',
             query={'type': 'toplist', 'topid': list_id, 'format': 'json'})
 
-        entries = traverse_obj(toplist_json, ('songlist', ..., {lambda song: self.url_result(
-            f'https://y.qq.com/n/ryqq/songDetail/{song["data"]["songmid"]}', QQMusicIE)}))
+        entries = self._extract_entries(toplist_json, ('songlist', ..., 'data'))
 
         list_name = join_nonempty(*traverse_obj(toplist_json, ((('topinfo', 'ListName'), 'update_time'),)), delim=' ')
         list_description = traverse_obj(toplist_json, ('topinfo', 'info'))
@@ -414,7 +392,7 @@ class QQMusicToplistIE(InfoExtractor):
         return self.playlist_result(entries, list_id, list_name, list_description)
 
 
-class QQMusicPlaylistIE(InfoExtractor):
+class QQMusicPlaylistIE(QQPlaylistBaseIE):
     IE_NAME = 'qqmusic:playlist'
     IE_DESC = 'QQ音乐 - 歌单'
     _VALID_URL = r'https?://y\.qq\.com/n/ryqq/playlist/(?P<id>[0-9]+)'
@@ -443,8 +421,7 @@ class QQMusicPlaylistIE(InfoExtractor):
                 error_msg = f': Error {list_json.get("code")}-{list_json["subcode"]}: {list_json.get("msg", "")}'
             raise ExtractorError(f'Unable to get playlist info{error_msg}')
 
-        entries = traverse_obj(list_json, ('cdlist', 0, 'songlist', ..., {lambda song: self.url_result(
-            f'https://y.qq.com/n/ryqq/songDetail/{song["songmid"]}', QQMusicIE, song['songmid'], song['songname'])}))
+        entries = self._extract_entries(list_json, ('cdlist', 0, 'songlist', ...))
 
         return self.playlist_result(entries, list_id, **traverse_obj(list_json, ('cdlist', 0, {
             'title': ('dissname', {str}),
