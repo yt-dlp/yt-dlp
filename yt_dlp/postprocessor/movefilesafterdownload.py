@@ -21,8 +21,6 @@ class MoveFilesAfterDownloadPP(PostProcessor):
 
     def expand_relative_paths(self, files_to_move, finaldir):
         for filetype in self.FILETYPE_KEYS:
-            if filetype not in files_to_move:
-                continue
             for file_attrs in files_to_move[filetype]:
                 if not os.path.isabs(file_attrs['final_filepath']):
                     file_attrs['final_filepath'] = os.path.join(finaldir, file_attrs['final_filepath'])
@@ -34,7 +32,6 @@ class MoveFilesAfterDownloadPP(PostProcessor):
     def write_filepath_into_info(self, info, filetype, file_attrs):
         if filetype == 'media':
             info['filepath'] = file_attrs['final_filepath']
-            return
 
         elif filetype == 'thumbnails':
             for filetype_dict in info[filetype]:
