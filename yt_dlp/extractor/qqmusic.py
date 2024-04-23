@@ -216,7 +216,7 @@ class QQMusicSingerIE(QQMusicBaseIE):
             'description': 'md5:10624ce73b06fa400bc846f59b0305fa',
             'thumbnail': r're:^https?://.*\.jpg(?:$|[#?])',
         },
-        'playlist_mincount': 10,
+        'playlist_mincount': 100,
     }, {
         'url': 'https://y.qq.com/n/ryqq/singer/000Q00f213YzNV',
         'info_dict': {
@@ -231,10 +231,11 @@ class QQMusicSingerIE(QQMusicBaseIE):
                 'id': '0016cvsy02mmCl',
                 'ext': 'mp3',
                 'title': '群青',
+                'album': '桃几2021年翻唱集',
                 'release_date': '20210913',
                 'duration': 248,
                 'creators': ['桃几OvO'],
-                'album': '桃几2021年翻唱集',
+                'genres': ['Pop'],
                 'description': 'md5:4296005a04edcb5cdbe0889d5055a7ae',
                 'size': 3970822,
                 'thumbnail': r're:^https?://.*\.jpg(?:$|[#?])',
@@ -416,7 +417,7 @@ class QQMusicVideoIE(QQMusicBaseIE):
             'release_date': '20230709',
             'duration': 313,
             'creators': ['Duke Dumont'],
-            'view_count': 542,
+            'view_count': int,
         },
     }]
 
