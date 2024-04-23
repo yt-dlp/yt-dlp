@@ -16,7 +16,6 @@ from ..utils import (
     unescapeHTML,
     url_or_none,
     ExtractorError,
-    UserNotLive,
 )
 
 
@@ -54,6 +53,9 @@ class QQMusicBaseIE(InfoExtractor):
             n += (n << 5) + ord(chr)
         return n & 2147483647
 
+    def _get_uin(self):
+        return int_or_none(self._get_cookies('https://y.qq.com').get('o_cookie')) or 0
+
     # Reference: m_r_GetRUin() in top_player.js
     # http://imgcache.gtimg.cn/music/portal_v3/y/top_player.js
     @staticmethod
@@ -78,7 +80,7 @@ class QQMusicBaseIE(InfoExtractor):
                 'notice': 0,
                 'platform': 'yqq.json',
                 'needNewCode': 1,
-                'uin': int_or_none(self._get_cookies('https://y.qq.com').get('o_cookie')) or 0,
+                'uin': self._get_uin(),
                 'g_tk_new_20200303': self._get_g_tk(),
                 'g_tk': self._get_g_tk(),
             },
@@ -429,8 +431,26 @@ class QQMusicPlaylistIE(QQPlaylistBaseIE):
         })))
 
 
-class QQMusicVideoIE(InfoExtractor):
+class QQMusicVideoIE(QQMusicBaseIE):
+    IE_NAME = 'qqmusic:mv'
+    IE_DESC = 'QQ音乐 - MV'
     _VALID_URL = r'https?://y\.qq\.com/n/ryqq/mv/(?P<id>[0-9A-Za-z]+)'
+
+    _TESTS = [{
+        'url': 'https://y.qq.com/n/ryqq/mv/002Vsarh3SVU8K',
+        'info_dict': {
+            'id': '002Vsarh3SVU8K',
+            'ext': 'mp4',
+            'title': 'The Chant (Extended Mix / Audio)',
+            'description': '',
+            'thumbnail': r're:^https?://.*\.jpg(?:$|[#?])',
+            'release_timestamp': 1688918400,
+            'release_date': '20230709',
+            'duration': 313,
+            'creators': ['Duke Dumont'],
+            'view_count': 542,
+        },
+    }]
 
     def _parse_url_formats(self, url_data):
         formats = traverse_obj(url_data, ('mp4', lambda _, v: v.get('freeflow_url'), {
@@ -442,10 +462,47 @@ class QQMusicVideoIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        payload = '{"comm":{"format":"json","platform":"yqq"},"mvInfo":{"module":"music.video.VideoData","method":"get_video_info_batch","param":{"vidlist":["%s"],"required":["vid","type","sid","cover_pic","duration","singers","new_switch_str","video_pay","hint","code","msg","name","desc","playcnt","pubdate","isfav","fileid","filesize_v2","switch_pay_type","pay","pay_info","uploader_headurl","uploader_nick","uploader_uin","uploader_encuin","play_forbid_reason"]}},"mvUrl":{"module":"music.stream.MvUrlProxy","method":"GetMvUrls","param":{"vids":["%s"]}}}' % (video_id, video_id)
-        video_info = self._download_json('https://u.y.qq.com/cgi-bin/musicu.fcg', video_id, data=payload.encode())
+
+        payload = json.dumps({
+            'comm': {
+                'ct': 6,
+                'cv': 0,
+                'g_tk': self._get_g_tk(),
+                'uin': self._get_uin(),
+                'format': 'json',
+                'platform': 'yqq',
+            },
+            'mvInfo': {
+                'module': 'music.video.VideoData',
+                'method': 'get_video_info_batch',
+                'param': {
+                    'vidlist': [video_id],
+                    'required': [
+                        'vid', 'type', 'sid', 'cover_pic', 'duration', 'singers',
+                        'new_switch_str', 'video_pay', 'hint', 'code', 'msg',
+                        'name', 'desc', 'playcnt', 'pubdate', 'isfav', 'fileid',
+                        'filesize_v2', 'switch_pay_type', 'pay', 'pay_info',
+                        'uploader_headurl', 'uploader_nick', 'uploader_uin',
+                        'uploader_encuin', 'play_forbid_reason']
+                }
+            },
+            'mvUrl': {
+                'module': 'music.stream.MvUrlProxy',
+                'method': 'GetMvUrls',
+                'param': {
+                    'vids': [video_id],
+                    'request_type': 10003,
+                    'addrtype': 3,
+                    'format': 264,
+                    'maxFiletype': 60,
+                }
+            }
+        }, separators=(',', ':')).encode('utf-8')
+
+        video_info = self._download_json('https://u.y.qq.com/cgi-bin/musicu.fcg', video_id, data=payload)
         if traverse_obj(video_info, ('mvInfo', 'data', video_id, 'play_forbid_reason')) == 3:
             self.raise_geo_restricted()
+
         return {
             'id': video_id,
             'formats': self._parse_url_formats(traverse_obj(video_info, ('mvUrl', 'data', video_id))),
@@ -455,62 +512,7 @@ class QQMusicVideoIE(InfoExtractor):
                 'thumbnail': ('cover_pic', {url_or_none}),
                 'release_timestamp': ('pubdate', {int_or_none}),
                 'duration': ('duration', {int_or_none}),
-                'creator': ('singers', 0, 'name', {str_or_none}),
-            })),
-        }
-
-
-class QQMusicVideoLiveIE(InfoExtractor):
-    _VALID_URL = r'https?://v\.y\.qq\.com/m/play\.html\?showid=(?P<id>[0-9]+)'
-    _HEIGHTS = {
-        112: 720,
-        110: 540,
-    }
-
-    def _parse_url_foramts(self, stream_info, stream_id):
-        formats = []
-        for url in traverse_obj(stream_info, ('req_0', 'data', ('streamFLV', 'streamHLS'), {url_or_none})):
-            formats.append({
-                'url': url,
-                'quality': 10000,
-                'format': '原画',
-                'resolution': 'original',
-            })
-        for stream in traverse_obj(stream_info, ('req_0', 'data', ('streamFlvList', 'streamHlsList'), ..., {
-            'url': ('stream', {url_or_none}),
-            'format': ('text', {str_or_none}),
-            'quality': ('resolution', {int_or_none}),
-            'height': ('resolution', {lambda i: self._HEIGHTS.get(i)}),
-        })):
-            if stream['url']:
-                formats.append(stream)
-        return formats
-
-    def _real_extract(self, url):
-        stream_id = self._match_id(url)
-
-        payload = '{"comm":{"format":"json","inCharset":"utf-8","outCharset":"utf-8","notice":0,"platform":"h5","needNewCode":1},"req_0":{"module":"mlive.show.MliveShowMemberSvr","method":"GetNewestShow","param":{"showID":%s}}}' % stream_id
-        show_info = self._download_json('https://vc.y.qq.com/cgi-bin/musicu.fcg', stream_id, data=payload.encode())
-        # import json
-        # print(payload)
-        # print(json.dumps(show_info, ensure_ascii=False))
-        show_id = traverse_obj(show_info, ('req_0', 'data', 'showID'))
-
-        payload = '{"comm":{"format":"json","inCharset":"utf-8","outCharset":"utf-8","notice":0,"platform":"h5","needNewCode":1},"req_0":{"module":"mlive.show.MliveShowMemberSvr","method":"JoinBasicShow","param":{"showID":%s,"uinStr":"v%.0f"}}}' % (show_id, time.time() * 1000)
-        stream_info = self._download_json('https://vc.y.qq.com/cgi-bin/musicu.fcg', stream_id, data=payload.encode())
-        # print(payload)
-        # print(json.dumps(stream_info, ensure_ascii=False))
-
-        formats = self._parse_url_foramts(stream_info, stream_id)
-        if not formats and traverse_obj(stream_info, ('req_0', 'data', 'showInfo', 'liveType')) == 0:
-            raise UserNotLive(video_id=stream_id)
-        return {
-            'id': stream_id,
-            'formats': self._parse_url_foramts(stream_info, stream_id),
-            'is_live': True,
-            **traverse_obj(stream_info, ('req_0', 'data', 'showInfo', {
-                'title': ('title', {str_or_none}),
-                'thumbnail': ('cover_pic', {url_or_none}),
-                'uploader_id': ('uin', {str_or_none}),
+                'creators': ('singers', ..., 'name', {str}),
+                'view_count': ('playcnt', {int_or_none}),
             })),
         }
