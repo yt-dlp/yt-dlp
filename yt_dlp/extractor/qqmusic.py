@@ -338,7 +338,6 @@ class QQMusicAlbumIE(QQMusicBaseIE):
             'id': '000gXCTb2AhRR1',
             'title': '我们都是这样长大的',
             'description': 'md5:179c5dce203a5931970d306aa9607ea6',
-            'thumbnail': r're:(^https?:|^)//.*\.jpg(?:$|[#?])',
         },
         'playlist_count': 4,
     }, {
@@ -347,7 +346,6 @@ class QQMusicAlbumIE(QQMusicBaseIE):
             'id': '002Y5a3b3AlCu3',
             'title': '그리고…',
             'description': 'md5:a48823755615508a95080e81b51ba729',
-            'thumbnail': r're:(^https?:|^)//.*\.jpg(?:$|[#?])',
         },
         'playlist_count': 8,
     }]
@@ -355,16 +353,17 @@ class QQMusicAlbumIE(QQMusicBaseIE):
     def _real_extract(self, url):
         mid = self._match_id(url)
 
-        init_data = self.download_init_data(url, mid)
+        album_json = self._download_json(
+            f'http://i.y.qq.com/v8/fcg-bin/fcg_v8_album_info_cp.fcg?albummid={mid}&format=json',
+            mid, 'Download album page')['data']
 
-        entries = traverse_obj(init_data, ('songList', ..., {lambda x: self.url_result(
-            f'https://y.qq.com/n/ryqq/songDetail/{x["mid"]}', QQMusicIE, x['mid'], x.get('title'))}))
+        entries = traverse_obj(album_json, ('list', ..., {lambda song: self.url_result(
+            f'https://y.qq.com/n/ryqq/songDetail/{song["songmid"]}', QQMusicIE, song['songmid'], song['songname'])}))
 
-        return self.playlist_result(entries, mid, **traverse_obj(init_data, ('detail', {
-            'title': ('albumName', {str}),
-            'description': ('desc', {str}),
-            'thumbnail': ('picurl', {url_or_none}),
-        })))
+        return self.playlist_result(entries, mid, **traverse_obj(album_json, {
+            'title': ('name', {str}),
+            'description': ('desc', {str}, {str.strip}),
+        }))
 
 
 class QQMusicToplistIE(InfoExtractor):
@@ -415,7 +414,7 @@ class QQMusicToplistIE(InfoExtractor):
         return self.playlist_result(entries, list_id, list_name, list_description)
 
 
-class QQMusicPlaylistIE(QQPlaylistBaseIE):
+class QQMusicPlaylistIE(InfoExtractor):
     IE_NAME = 'qqmusic:playlist'
     IE_DESC = 'QQ音乐 - 歌单'
     _VALID_URL = r'https?://y\.qq\.com/n/ryqq/playlist/(?P<id>[0-9]+)'
