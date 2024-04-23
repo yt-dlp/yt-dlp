@@ -1293,6 +1293,9 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
                 })
             }
 
+        def is_type(*types):
+            return lambda _, v: v['type'] in types
+
         initial_data = self._search_regex(
             r'window\.__INITIAL_DATA__\s*=\s*("{.+?}")\s*;', webpage,
             'quoted preload state', default=None)
@@ -1305,10 +1308,10 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
         initial_data = self._parse_json(initial_data, playlist_id, fatal=False)
         if initial_data:
             for video_data in traverse_obj(initial_data, (
-                    'stores', 'article', 'articleBodyContent', lambda _, v: v['type'] == 'video')):
+                    'stores', 'article', 'articleBodyContent', is_type('video'))):
                 model = traverse_obj(video_data, (
-                    'model', 'blocks', lambda _, v: v['type'] == 'aresMedia',
-                    'model', 'blocks', lambda _, v: v['type'] == 'aresMediaMetadata',
+                    'model', 'blocks', is_type('aresMedia'),
+                    'model', 'blocks', is_type('aresMediaMetadata'),
                     'model', {dict}, any))
                 entry = parse_model(model)
                 if entry:
@@ -1374,15 +1377,15 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
         next_data = traverse_obj(self._search_nextjs_data(webpage, playlist_id, default={}),
                                  ('props', 'pageProps', 'page'))
         model = traverse_obj(next_data, (
-            ..., 'contents', lambda _, v: v['type'] == 'video',
-            'model', 'blocks', lambda _, v: v['type'] == 'media',
-            'model', 'blocks', lambda _, v: v['type'] == 'mediaMetadata',
+            ..., 'contents', is_type('video'),
+            'model', 'blocks', is_type('media'),
+            'model', 'blocks', is_type('mediaMetadata'),
             'model', {dict}, any))
         if model:
             if entry := parse_model(model):
                 if not entry.get('timestamp'):
                     entry['timestamp'] = traverse_obj(next_data, (
-                        ..., 'contents', lambda _, v: v['type'] == 'timestamp',
+                        ..., 'contents', is_type('timestamp'),
                         'model', 'timestamp', {k_int_or_none}, any))
                 entries.append(entry)
                 return self.playlist_result(
