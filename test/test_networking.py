@@ -789,7 +789,7 @@ class TestHTTPImpersonateRequestHandler(TestRequestHandlerBase):
         with handler() as rh:
             for target in rh.supported_targets:
                 request = Request(
-                    f'http://127.0.0.1:{self.http_port}', extensions={'impersonate': target})
+                    f'http://127.0.0.1:{self.http_port}/gen_200', extensions={'impersonate': target})
                 res = validate_and_send(rh, request)
                 assert res.extensions['impersonate'] == rh._get_request_target(request)
 
