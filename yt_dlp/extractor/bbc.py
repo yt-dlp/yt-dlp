@@ -17,6 +17,7 @@ from ..utils import (
     int_or_none,
     join_nonempty,
     js_to_json,
+    merge_dicts,
     parse_duration,
     parse_iso8601,
     parse_qs,
@@ -43,6 +44,7 @@ class BBCCoUkIE(InfoExtractor):
                             iplayer(?:/[^/]+)?/(?:episode/|playlist/)|
                             music/(?:clips|audiovideo/popular)[/#]|
                             radio/player/|
+                            sounds/play/|
                             events/[^/]+/play/[^/]+/
                         )
                         (?P<id>%s)(?!/(?:episodes|broadcasts|clips))
@@ -623,6 +625,7 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
         'info_dict': {
             'id': '3662a707-0af9-3149-963f-47bea720b460',
             'title': 'BUGGER',
+            'description': r're:BUGGER  The recent revelations by the whistleblower Edward Snowden were fascinating. .{211}\.{3}$',
         },
         'playlist_count': 18,
     }, {
@@ -631,14 +634,14 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
         'info_dict': {
             'id': 'p02mprgb',
             'ext': 'mp4',
-            'title': 'Aerial footage showed the site of the crash in the Alps - courtesy BFM TV',
-            'description': 'md5:2868290467291b37feda7863f7a83f54',
-            'duration': 47,
+            'title': 'Germanwings crash site aerial video',
+            'description': r're:(?s)Aerial video showed the site where the Germanwings flight 4U 9525, .{156} BFM TV\.$',
+            'duration': None,  # 47,
             'timestamp': 1427219242,
             'upload_date': '20150324',
+            'thumbnail': 'https://ichef.bbci.co.uk/news/1024/media/images/81879000/jpg/_81879090_81879089.jpg',
         },
         'params': {
-            # rtmp download
             'skip_download': True,
         }
     }, {
@@ -656,7 +659,8 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
         },
         'params': {
             'skip_download': True,
-        }
+        },
+        'skip': 'now SIMORGH_DATA with no video',
     }, {
         # single video embedded with data-playable containing XML playlists (regional section)
         'url': 'http://www.bbc.com/mundo/video_fotos/2015/06/150619_video_honduras_militares_hospitales_corrupcion_aw',
@@ -670,7 +674,9 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
         },
         'params': {
             'skip_download': True,
-        }
+        },
+        # TODO: now in .pageData.promo.media of SIMORGH_DATA
+        'skip': 'video extraction failed',
     }, {
         # single video from video playlist embedded with vxp-playlist-data JSON
         'url': 'http://www.bbc.com/news/video_and_audio/must_see/33376376',
@@ -683,22 +689,22 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
         },
         'params': {
             'skip_download': True,
-        }
+        },
+        'skip': '404 Not Found',
     }, {
         # single video story with digitalData
         'url': 'http://www.bbc.com/travel/story/20150625-sri-lankas-spicy-secret',
         'info_dict': {
             'id': 'p02q6gc4',
-            'ext': 'flv',
-            'title': 'Sri Lanka’s spicy secret',
-            'description': 'As a new train line to Jaffna opens up the country’s north, travellers can experience a truly distinct slice of Tamil culture.',
-            'timestamp': 1437674293,
-            'upload_date': '20150723',
+            'ext': 'mp4',
+            # page title: 'Sri Lanka’s spicy secret',
+            'title': 'Tasting the spice of life in Jaffna',
+            # page description: 'As a new train line to Jaffna opens up the country’s north, travellers can experience a truly distinct slice of Tamil culture.',
+            'description': r're:(?s)BBC Travel Show’s Henry Golding explores the city of Jaffna .{149} aftertaste\.$',
+            'timestamp': 1437935638,   # was: 1437674293,
+            'upload_date': '20150726',
+            'duration': 255,
         },
-        'params': {
-            # rtmp download
-            'skip_download': True,
-        }
     }, {
         # single video story without digitalData
         'url': 'http://www.bbc.com/autos/story/20130513-hyundais-rock-star',
@@ -710,12 +716,10 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
             'timestamp': 1415867444,
             'upload_date': '20141113',
         },
-        'params': {
-            # rtmp download
-            'skip_download': True,
-        }
+        'skip': 'redirects to TopGear home page',
     }, {
         # single video embedded with Morph
+        # TODO: replacement test page
         'url': 'http://www.bbc.co.uk/sport/live/olympics/36895975',
         'info_dict': {
             'id': 'p041vhd0',
@@ -726,27 +730,22 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
             'uploader': 'BBC Sport',
             'uploader_id': 'bbc_sport',
         },
-        'params': {
-            # m3u8 download
-            'skip_download': True,
-        },
-        'skip': 'Georestricted to UK',
+        'skip': 'Video no longer in page',
     }, {
-        # single video with playlist.sxml URL in playlist param
+        # single video in __INITIAL_DATA__ (was: playlist.sxml URL in playlist param)
         'url': 'http://www.bbc.com/sport/0/football/33653409',
         'info_dict': {
             'id': 'p02xycnp',
             'ext': 'mp4',
-            'title': 'Transfers: Cristiano Ronaldo to Man Utd, Arsenal to spend?',
-            'description': 'BBC Sport\'s David Ornstein has the latest transfer gossip, including rumours of a Manchester United return for Cristiano Ronaldo.',
-            'duration': 140,
+            'title': 'Ronaldo to Man Utd, Arsenal to spend?',
+            'description': r'''re:(?s)BBC Sport's David Ornstein rounds up the latest transfer reports, .{359} here\.$''',
+            'timestamp': 1437750175,
+            'upload_date': '20150724',
+            'thumbnail': 'https://news.bbcimg.co.uk/media/images/69320000/png/_69320754_mmgossipcolumnextraaugust18.png',
+            'duration': None,  # 140,
         },
-        'params': {
-            # rtmp download
-            'skip_download': True,
-        }
     }, {
-        # article with multiple videos embedded with playlist.sxml in playlist param
+        # article with multiple videos embedded with Morph.setPayload
         'url': 'http://www.bbc.com/sport/0/football/34475836',
         'info_dict': {
             'id': '34475836',
@@ -755,6 +754,21 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
         },
         'playlist_count': 3,
     }, {
+        # lead item from above playlist
+        'url': 'http://www.bbc.com/sport/0/football/34475836',
+        'info_dict': {
+            'id': 'p034ppnv',
+            'ext': 'mp4',
+            'title': 'All you need to know about Jurgen Klopp',
+            'timestamp': 1444335081,
+            'upload_date': '20151008',
+            'duration': 122.0,
+            'thumbnail': 'https://ichef.bbci.co.uk/onesport/cps/976/cpsprodpb/7542/production/_85981003_klopp.jpg',
+        },
+        'params': {
+            'noplaylist': True,
+        },
+    }, {
         # school report article with single video
         'url': 'http://www.bbc.co.uk/schoolreport/35744779',
         'info_dict': {
@@ -762,6 +776,7 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
             'title': 'School which breaks down barriers in Jerusalem',
         },
         'playlist_count': 1,
+        'skip': 'redirects to Young Reporter home page https://www.bbc.co.uk/news/topics/cg41ylwv43pt',
     }, {
         # single video with playlist URL from weather section
         'url': 'http://www.bbc.com/weather/features/33601775',
@@ -783,10 +798,10 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
         # video with window.__INITIAL_DATA__ and value as JSON string
         'url': 'https://www.bbc.com/news/av/world-europe-59468682',
         'info_dict': {
-            'id': 'p0b71qth',
+            'id': 'p0b779gc',  # was 'p0b71qth',
             'ext': 'mp4',
             'title': 'Why France is making this woman a national hero',
-            'description': 'md5:7affdfab80e9c3a1f976230a1ff4d5e4',
+            'description': r're:(?s)France is honouring the US-born 20th Century singer and activist Josephine .{291} Casseville$',
             'thumbnail': r're:https?://.+/.+\.jpg',
             'timestamp': 1638230731,
             'upload_date': '20211130',
@@ -830,6 +845,7 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
             'uploader': 'Radio 3',
             'uploader_id': 'bbc_radio_three',
         },
+        'skip': '404 Not Found',
     }, {
         'url': 'http://www.bbc.co.uk/learningenglish/chinese/features/lingohack/ep-181227',
         'info_dict': {
@@ -837,6 +853,7 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
             'ext': 'mp4',
             'title': 'md5:2fabf12a726603193a2879a055f72514',
             'description': 'Learn English words and phrases from this story',
+            'thumbnail': 'https://ichef.bbci.co.uk/images/ic/1200x675/p06pq9gk.jpg',
         },
         'add_ie': [BBCCoUkIE.ie_key()],
     }, {
@@ -849,7 +866,7 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
             'alt_title': 'The downsides of positive thinking',
             'description': 'md5:fad74b31da60d83b8265954ee42d85b4',
             'duration': 235,
-            'thumbnail': r're:https?://.+/p07c9dsr.jpg',
+            'thumbnail': r're:https?://.+/p07c9dsr\.(?:jpg|webp|png)',
             'upload_date': '20190604',
             'categories': ['Psychology'],
         },
@@ -867,6 +884,7 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
             'duration': 1800,
             'uploader_id': 'bbc_radio_three',
         },
+        'skip': '404 Not Found',
     }, {  # onion routes
         'url': 'https://www.bbcnewsd73hkzno2ini43t4gblxvycyac5aw4gnv7t2rccijh7745uqd.onion/news/av/world-europe-63208576',
         'only_matching': True,
@@ -1082,83 +1100,141 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
                 }
 
         # Morph based embed (e.g. http://www.bbc.co.uk/sport/live/olympics/36895975)
-        # There are several setPayload calls may be present but the video
-        # seems to be always related to the first one
-        morph_payload = self._parse_json(
-            self._search_regex(
-                r'Morph\.setPayload\([^,]+,\s*({.+?})\);',
-                webpage, 'morph payload', default='{}'),
-            playlist_id, fatal=False)
+        # Several setPayload calls may be present but the video(s)
+        # should be in one that mentions leadMedia or videoData
+        morph_payload = self._search_json(
+            r'\bMorph\s*\.\s*setPayload\s*\([^,]+,', webpage, 'morph payload', playlist_id,
+            contains_pattern=r'\{(?:(?!</script>)[\s\S])+?(?:"leadMedia"|\\"videoData\\")\s*:(?:(?!</script>)[\s\S])+\}',
+            default={})
         if morph_payload:
-            components = try_get(morph_payload, lambda x: x['body']['components'], list) or []
-            for component in components:
-                if not isinstance(component, dict):
-                    continue
-                lead_media = try_get(component, lambda x: x['props']['leadMedia'], dict)
-                if not lead_media:
-                    continue
-                identifiers = lead_media.get('identifiers')
-                if not identifiers or not isinstance(identifiers, dict):
-                    continue
-                programme_id = identifiers.get('vpid') or identifiers.get('playablePid')
+            for component in traverse_obj(morph_payload, (
+                    'body', 'components', lambda _, v: v['props']['leadMedia']['identifiers'])):
+                lead_media = component['props']['leadMedia']
+                programme_id = traverse_obj(lead_media['identifiers'], 'vpid', 'playablePid', expected_type=str)
                 if not programme_id:
                     continue
                 title = lead_media.get('title') or self._og_search_title(webpage)
                 formats, subtitles = self._download_media_selector(programme_id)
-                description = lead_media.get('summary')
-                uploader = lead_media.get('masterBrand')
-                uploader_id = lead_media.get('mid')
-                duration = None
-                duration_d = lead_media.get('duration')
-                if isinstance(duration_d, dict):
-                    duration = parse_duration(dict_get(
-                        duration_d, ('rawDuration', 'formattedDuration', 'spokenDuration')))
                 return {
                     'id': programme_id,
                     'title': title,
-                    'description': description,
-                    'duration': duration,
-                    'uploader': uploader,
-                    'uploader_id': uploader_id,
+                    **traverse_obj(lead_media, {
+                        'description': ('summary', {str}),
+                        'duration': ('duration', ('rawDuration', 'formattedDuration', 'spokenDuration'), {parse_duration}),
+                        'uploader': ('masterBrand', {str}),
+                        'uploader_id': ('mid', {str}),
+                    }),
                     'formats': formats,
                     'subtitles': subtitles,
+                }
+            body = traverse_obj(morph_payload, (
+                'body', 'content', 'article', 'body',
+                {lambda s: self._parse_json(s, playlist_id, fatal=False)}))
+            added = False
+            for video_data in traverse_obj(body, (Ellipsis, 'videoData', {lambda v: v.get('pid') and v})):
+                if video_data.get('vpid'):
+                    video_id = video_data['vpid']
+                    formats, subtitles = self._download_media_selector(video_id)
+                    entry = {
+                        'id': video_id,
+                        'formats': formats,
+                        'subtitles': subtitles,
+                    }
+                else:
+                    video_id = video_data['pid']
+                    entry = self.url_result(
+                        'https://www.bbc.co.uk/programmes/%s' % video_id, BBCCoUkIE.ie_key(),
+                        video_id, url_transparent=True)
+                entry = merge_dicts(
+                    traverse_obj(morph_payload, (
+                        'body', 'content', 'article', {
+                            'timestamp': ('dateTimeInfo', 'dateTime', {parse_iso8601}),
+                        })), traverse_obj(video_data, {
+                            'thumbnail': (('iChefImage', 'image'), {url_or_none}, any),
+                            'title': (('title', 'caption'), {str}, any),
+                            'duration': ('duration', {parse_duration}),
+                        }), entry)
+                if video_data.get('isLead') and not self._yes_playlist(playlist_id, video_id):
+                    return entry
+                entries.append(entry)
+                added = True
+            if added:
+                playlist_title = traverse_obj(morph_payload, (
+                    'body', 'content', 'article', 'headline', {str})) or playlist_title
+                return self.playlist_result(
+                    entries, playlist_id, playlist_title, playlist_description)
+
+        # various PRELOADED_STATE JSON
+        preload_state = self._search_json(
+            r'window\.__(?:PWA_)?PRELOADED_STATE__\s*=', webpage,
+            'preload state', playlist_id, transform_source=js_to_json, default={})
+        # PRELOADED_STATE with current programmme
+        current_programme = traverse_obj(preload_state, (
+            'programmes', 'current', {dict}))
+        if current_programme:
+            programme_id = traverse_obj(current_programme, ('id', {str}))
+            if programme_id and current_programme.get('type') == 'playable_item':
+                title = traverse_obj(current_programme, ('titles', 'tertiary', {str})) or playlist_title
+                formats, subtitles = self._download_media_selector(programme_id)
+                return {
+                    'id': programme_id,
+                    'title': title,
+                    'formats': formats,
+                    **traverse_obj(current_programme, {
+                        'description': ('synopses', ('long', 'medium', 'short'), {str}, any),
+                        'thumbnail': ('image_url', {lambda u: url_or_none(u.replace('{recipe}', 'raw'))}),
+                        'duration': ('duration', 'value', {int_or_none}),
+                        'uploader': ('network', 'short_title', {str}),
+                        'uploader_id': ('network', 'id', {str}),
+                    }),
+                    'subtitles': subtitles,
+                    **traverse_obj(preload_state, {
+                        'chapters': (
+                            'tracklist', 'tracks', lambda _, v: float_or_none(v['offset']['start']), {
+                                'title': ('titles', {lambda x: join_nonempty(
+                                    'primary', 'secondary', 'tertiary', delim=' - ', from_dict=x)}),
+                                'start_time': ('offset', 'start', {float_or_none}),
+                                'end_time': ('offset', 'end', {float_or_none}),
+                            }
+                        )
+                    }),
                 }
 
-        preload_state = self._parse_json(self._search_regex(
-            r'window\.__PRELOADED_STATE__\s*=\s*({.+?});', webpage,
-            'preload state', default='{}'), playlist_id, fatal=False)
-        if preload_state:
-            current_programme = preload_state.get('programmes', {}).get('current') or {}
-            programme_id = current_programme.get('id')
-            if current_programme and programme_id and current_programme.get('type') == 'playable_item':
-                title = current_programme.get('titles', {}).get('tertiary') or playlist_title
-                formats, subtitles = self._download_media_selector(programme_id)
-                synopses = current_programme.get('synopses') or {}
-                network = current_programme.get('network') or {}
-                duration = int_or_none(
-                    current_programme.get('duration', {}).get('value'))
-                thumbnail = None
-                image_url = current_programme.get('image_url')
-                if image_url:
-                    thumbnail = image_url.replace('{recipe}', 'raw')
+        # PWA_PRELOADED_STATE with article video asset
+        asset_id = traverse_obj(preload_state, (
+            'entities', 'articles', lambda k, _: k.rsplit('/', 1)[-1] == playlist_id,
+            'assetVideo', 0, {str}, any))
+        if asset_id:
+            video_id = traverse_obj(preload_state, ('entities', 'videos', asset_id, 'vpid', {str}))
+            if video_id:
+                article = traverse_obj(preload_state, (
+                    'entities', 'articles', lambda _, v: v['assetVideo'][0] == asset_id, any))
+
+                def image_url(image_id):
+                    return traverse_obj(preload_state, (
+                        'entities', 'images', image_id, 'url',
+                        {lambda u: url_or_none(u.replace('$recipe', 'raw'))}))
+
+                formats, subtitles = self._download_media_selector(video_id)
                 return {
-                    'id': programme_id,
-                    'title': title,
-                    'description': dict_get(synopses, ('long', 'medium', 'short')),
-                    'thumbnail': thumbnail,
-                    'duration': duration,
-                    'uploader': network.get('short_title'),
-                    'uploader_id': network.get('id'),
+                    'id': video_id,
+                    **traverse_obj(preload_state, ('entities', 'videos', asset_id, {
+                        'title': ('title', {str}),
+                        'description': (('synopsisLong', 'synopsisMedium', 'synopsisShort'), {str}, any),
+                        'thumbnail': (0, {image_url}),
+                        'duration': ('duration', {int_or_none}),
+                    })),
                     'formats': formats,
                     'subtitles': subtitles,
-                    'chapters': traverse_obj(preload_state, (
-                        'tracklist', 'tracks', lambda _, v: float_or_none(v['offset']['start']), {
-                            'title': ('titles', {lambda x: join_nonempty(
-                                'primary', 'secondary', 'tertiary', delim=' - ', from_dict=x)}),
-                            'start_time': ('offset', 'start', {float_or_none}),
-                            'end_time': ('offset', 'end', {float_or_none}),
-                        })) or None,
+                    **traverse_obj(article, {
+                        'timestamp': ('displayDate', {parse_iso8601}),
+                    }),
                 }
+            else:
+                return self.url_result(
+                    'https://www.bbc.co.uk/programmes/%s' % asset_id, BBCCoUkIE.ie_key(),
+                    asset_id, playlist_title, display_id=playlist_id,
+                    description=playlist_description)
 
         bbc3_config = self._parse_json(
             self._search_regex(
@@ -1204,6 +1280,28 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
                 return self.playlist_result(
                     entries, playlist_id, playlist_title, playlist_description)
 
+        k_int_or_none = functools.partial(int_or_none, scale=1000)
+
+        def parse_model(model):
+            '''Extract single video from model structure'''
+            item_id = traverse_obj(model, ('versions', 0, 'versionId', {str}))
+            if not item_id:
+                return
+            formats, subtitles = self._download_media_selector(item_id)
+            return {
+                'id': item_id,
+                'formats': formats,
+                'subtitles': subtitles,
+                **traverse_obj(model, {
+                    'title': ('title', {str}),
+                    'thumbnail': ('imageUrl', {lambda u: urljoin(url, u.replace('$recipe', 'raw'))}),
+                    'description': (
+                        'synopses', ('long', 'medium', 'short'), {str}, any),
+                    'duration': ('versions', 0, 'duration', {int}),
+                    'timestamp': ('versions', 0, 'availableFrom', {k_int_or_none}),
+                })
+            }
+
         initial_data = self._search_regex(
             r'window\.__INITIAL_DATA__\s*=\s*("{.+?}")\s*;', webpage,
             'quoted preload state', default=None)
@@ -1215,6 +1313,21 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
             initial_data = self._parse_json(initial_data or '"{}"', playlist_id, fatal=False)
         initial_data = self._parse_json(initial_data, playlist_id, fatal=False)
         if initial_data:
+            added = False
+            for video_data in traverse_obj(initial_data, (
+                    'stores', 'article', 'articleBodyContent', lambda _, v: v['type'] == 'video')):
+                model = traverse_obj(video_data, (
+                    'model', 'blocks', lambda _, v: v['type'] == 'aresMedia',
+                    'model', 'blocks', lambda _, v: v['type'] == 'aresMediaMetadata',
+                    'model', {dict}, any))
+                entry = parse_model(model)
+                if entry:
+                    entries.append(entry)
+                    added = True
+            if added:
+                return self.playlist_result(
+                    entries, playlist_id, playlist_title, playlist_description)
+
             def parse_media(media):
                 if not media:
                     return
@@ -1248,18 +1361,19 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
                         'timestamp': item_time,
                         'description': strip_or_none(item_desc),
                     })
+
+            for resp in traverse_obj(initial_data, ('data', lambda _, v: v.get('name'))):
+                name = resp['name']
             for resp in (initial_data.get('data') or {}).values():
                 name = resp.get('name')
                 if name == 'media-experience':
                     parse_media(try_get(resp, lambda x: x['data']['initialItem']['mediaItem'], dict))
                 elif name == 'article':
-                    for block in (try_get(resp,
-                                          (lambda x: x['data']['blocks'],
-                                           lambda x: x['data']['content']['model']['blocks'],),
-                                          list) or []):
-                        if block.get('type') not in ['media', 'video']:
-                            continue
-                        parse_media(block.get('model'))
+                    for block in traverse_obj(resp, ('data', (
+                            None, ('content', 'model')), 'blocks',
+                            lambda _, v: v.get('type') in {'media', 'video'},
+                            'model', {dict})):
+                        parse_media(block)
             return self.playlist_result(
                 entries, playlist_id, playlist_title, playlist_description)
 
@@ -1267,26 +1381,6 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
             return list(filter(None, map(
                 lambda s: self._parse_json(s, playlist_id, fatal=False),
                 re.findall(pattern, webpage))))
-
-        def parse_model(model):
-            '''Extract single video from model structure'''
-            item_id = traverse_obj(model, ('versions', 0, 'versionId', {str}))
-            if not item_id:
-                return
-            formats, subtitles = self._download_media_selector(item_id)
-            return {
-                'id': item_id,
-                'formats': formats,
-                'subtitles': subtitles,
-                **traverse_obj(model, {
-                    'title': ('title', {str}),
-                    'thumbnail': ('imageUrl', {lambda u: urljoin(url, u.replace('$recipe', 'raw'))}),
-                    'description': (
-                        'synopses', ('long', 'medium', 'short'), {str}, any),
-                    'duration': ('versions', 0, 'duration', {int}),
-                    'timestamp': ('versions', 0, 'availableFrom', {lambda x: int_or_none(x, scale=1000)}),
-                })
-            }
 
         # US accessed article with single embedded video (e.g.
         # https://www.bbc.com/news/uk-68546268)
@@ -1303,7 +1397,7 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
                 if entry.get('timestamp') is None:
                     entry['timestamp'] = traverse_obj(next_data, (
                         ..., 'contents', lambda _, v: v['type'] == 'timestamp',
-                        'model', 'timestamp', {functools.partial(int_or_none, scale=1000)}, any))
+                        'model', 'timestamp', {k_int_or_none}, any))
                 entries.append(entry)
                 return self.playlist_result(
                     entries, playlist_id, playlist_title, playlist_description)
