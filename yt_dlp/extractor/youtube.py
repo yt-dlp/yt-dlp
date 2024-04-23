@@ -3313,16 +3313,16 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         info = {
             'id': comment_id,
-            'text': self._get_text(entity_payload, ('properties', 'content', 'contetn')),
-            'like_count': self._get_count(entity_payload, ('toolbar', 'likeCountNotliked')),
+            'text': entity_payload['properties']['content']['content'],
+            'like_count': entity_payload['toolbar']['likeCountLiked'],
             'author_id': traverse_obj(entity_payload, ('author', 'channelId', {self.ucid_or_none})),
-            'author': self._get_text(entity_payload, ('author', 'displayName')),
+            'author': entity_payload['author']['displayName'],
             'author_thumbnail': traverse_obj(entity_payload, ('author', 'avatarThumbnailUrl', {url_or_none})),
             'parent': parent or 'root',
         }
 
         # Timestamp is an estimate calculated from the current time and time_text
-        time_text = self._get_text(entity_payload, ('properties', 'publishedTime')) or ''
+        time_text = entity_payload['properties']['publishedTime'] or ''
         timestamp = self._parse_time_text(time_text)
 
         info.update({
