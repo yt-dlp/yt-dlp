@@ -1016,8 +1016,10 @@ class FFmpegSubtitlesConvertorPP(FFmpegPostProcessor):
                     'filepath': new_file,
                 }
 
-            info['__files_to_move'][new_file] = replace_extension(
-                info['__files_to_move'][sub['filepath']], new_ext)
+            for sub_info in info['__files_to_move']['requested_subtitles']:
+                if sub_info['lang'] == lang and sub_info['ext'] == sub['ext']:
+                    sub_info['current_filepath'] = replace_extension(sub_info['current_filepath'], new_ext)
+                    sub_info['final_filepath'] = replace_extension(sub_info['final_filepath'], new_ext)
 
         return sub_filenames, info
 
@@ -1083,16 +1085,20 @@ class FFmpegThumbnailsConvertorPP(FFmpegPostProcessor):
         return imghdr.what(path) == 'webp'
 
     def fixup_webp(self, info, idx=-1):
-        thumbnail_filename = info['thumbnails'][idx]['filepath']
+        thumbnail = info['thumbnails'][idx]
+        thumbnail_filename = thumbnail['filepath']
         _, thumbnail_ext = os.path.splitext(thumbnail_filename)
         if thumbnail_ext:
             if thumbnail_ext.lower() != '.webp' and imghdr.what(thumbnail_filename) == 'webp':
                 self.to_screen('Correcting thumbnail "%s" extension to webp' % thumbnail_filename)
                 webp_filename = replace_extension(thumbnail_filename, 'webp')
                 os.replace(thumbnail_filename, webp_filename)
-                info['thumbnails'][idx]['filepath'] = webp_filename
-                info['__files_to_move'][webp_filename] = replace_extension(
-                    info['__files_to_move'].pop(thumbnail_filename), 'webp')
+                thumbnail['filepath'] = webp_filename
+
+                for thumb_info in info['__files_to_move']['thumbnails']:
+                    if thumb_info['id'] == thumbnail['id']:
+                        thumb_info['current_filepath'] = replace_extension(thumbnail_filename, 'webp')
+                        thumb_info['final_filepath'] = replace_extension(thumb_info['final_filepath'], 'webp')
 
     @staticmethod
     def _options(target_ext):
@@ -1130,8 +1136,11 @@ class FFmpegThumbnailsConvertorPP(FFmpegPostProcessor):
                 continue
             thumbnail_dict['filepath'] = self.convert_thumbnail(original_thumbnail, target_ext)
             files_to_delete.append(original_thumbnail)
-            info['__files_to_move'][thumbnail_dict['filepath']] = replace_extension(
-                info['__files_to_move'][original_thumbnail], target_ext)
+
+            for thumb_info in info['__files_to_move']['thumbnails']:
+                if thumb_info['id'] == thumbnail_dict['id']:
+                    thumb_info['current_filepath'] = replace_extension(thumb_info['current_filepath'], target_ext)
+                    thumb_info['final_filepath'] = replace_extension(thumb_info['final_filepath'], target_ext)
 
         if not has_thumbnail:
             self.to_screen('There aren\'t any thumbnails to convert')

@@ -3236,13 +3236,15 @@ class YoutubeDL:
         sub_files = self._write_subtitles(info_dict, temp_filename)
         if sub_files is None:
             return
-        files_to_move.update(dict(sub_files))
+
+        files_to_move['requested_subtitles'] = sub_files
 
         thumb_files = self._write_thumbnails(
             'video', info_dict, temp_filename, self.prepare_filename(info_dict, 'thumbnail'))
         if thumb_files is None:
             return
-        files_to_move.update(dict(thumb_files))
+
+        files_to_move['thumbnails'] = thumb_files
 
         infofn = self.prepare_filename(info_dict, 'infojson')
         _infojson_written = self._write_info_json('video', info_dict, infofn)
@@ -3452,7 +3454,6 @@ class YoutubeDL:
 
                 dl_filename = dl_filename or temp_filename
                 info_dict['__finaldir'] = os.path.dirname(os.path.abspath(encodeFilename(full_filename)))
-
             except network_exceptions as err:
                 self.report_error('unable to download video data: %s' % error_to_compat_str(err))
                 return
@@ -3644,8 +3645,6 @@ class YoutubeDL:
                 os.remove(filename)
             except OSError:
                 self.report_warning(f'Unable to delete file {filename}')
-            if filename in info.get('__files_to_move', []):  # NB: Delete even if None
-                del info['__files_to_move'][filename]
 
     @staticmethod
     def post_extract(info_dict):
@@ -3675,10 +3674,7 @@ class YoutubeDL:
 
         if not files_to_delete:
             return infodict
-        if self.params.get('keepvideo', False):
-            for f in files_to_delete:
-                infodict['__files_to_move'].setdefault(f, '')
-        else:
+        if not self.params.get('keepvideo', False):
             self._delete_downloaded_files(
                 *files_to_delete, info=infodict, msg='Deleting original file %s (pass -k to keep)')
         return infodict
@@ -4294,10 +4290,17 @@ class YoutubeDL:
             sub_filename = subtitles_filename(filename, sub_lang, sub_format, info_dict.get('ext'))
             sub_filename_final = subtitles_filename(sub_filename_base, sub_lang, sub_format, info_dict.get('ext'))
             existing_sub = self.existing_file((sub_filename_final, sub_filename))
+
             if existing_sub:
                 self.to_screen(f'[info] Video subtitle {sub_lang}.{sub_format} is already present')
                 sub_info['filepath'] = existing_sub
-                ret.append((existing_sub, sub_filename_final))
+                ret.append({
+                    'current_filepath': existing_sub,
+                    'final_filepath': sub_filename_final,
+                    'lang': sub_lang,
+                    'ext': sub_info['ext']
+                })
+
                 continue
 
             self.to_screen(f'[info] Writing video subtitles to: {sub_filename}')
@@ -4308,7 +4311,13 @@ class YoutubeDL:
                     with open(sub_filename, 'w', encoding='utf-8', newline='') as subfile:
                         subfile.write(sub_info['data'])
                     sub_info['filepath'] = sub_filename
-                    ret.append((sub_filename, sub_filename_final))
+                    ret.append({
+                        'current_filepath': sub_filename,
+                        'final_filepath': sub_filename_final,
+                        'lang': sub_lang,
+                        'ext': sub_info['ext']
+                    })
+
                     continue
                 except OSError:
                     self.report_error(f'Cannot write video subtitles file {sub_filename}')
@@ -4319,7 +4328,13 @@ class YoutubeDL:
                 sub_copy.setdefault('http_headers', info_dict.get('http_headers'))
                 self.dl(sub_filename, sub_copy, subtitle=True)
                 sub_info['filepath'] = sub_filename
-                ret.append((sub_filename, sub_filename_final))
+                ret.append({
+                    'current_filepath': sub_filename,
+                    'final_filepath': sub_filename_final,
+                    'lang': sub_lang,
+                    'ext': sub_info['ext']
+                })
+
             except (DownloadError, ExtractorError, IOError, OSError, ValueError) + network_exceptions as err:
                 msg = f'Unable to download video subtitles for {sub_lang!r}: {err}'
                 if self.params.get('ignoreerrors') is not True:  # False or 'only_download'
@@ -4360,7 +4375,12 @@ class YoutubeDL:
                 self.to_screen('[info] %s is already present' % (
                     thumb_display_id if multiple else f'{label} thumbnail').capitalize())
                 t['filepath'] = existing_thumb
-                ret.append((existing_thumb, thumb_filename_final))
+                ret.append({
+                    'current_filepath': existing_thumb,
+                    'final_filepath': thumb_filename_final,
+                    'id': t['id']
+                })
+
             else:
                 self.to_screen(f'[info] Downloading {thumb_display_id} ...')
                 try:
@@ -4368,7 +4388,13 @@ class YoutubeDL:
                     self.to_screen(f'[info] Writing {thumb_display_id} to: {thumb_filename}')
                     with open(encodeFilename(thumb_filename), 'wb') as thumbf:
                         shutil.copyfileobj(uf, thumbf)
-                    ret.append((thumb_filename, thumb_filename_final))
+
+                    ret.append({
+                        'current_filepath': thumb_filename,
+                        'final_filepath': thumb_filename_final,
+                        'id': t['id']
+                    })
+
                     t['filepath'] = thumb_filename
                 except network_exceptions as err:
                     if isinstance(err, HTTPError) and err.status == 404:
@@ -4378,4 +4404,5 @@ class YoutubeDL:
                     thumbnails.pop(idx)
             if ret and not write_all:
                 break
+
         return ret
