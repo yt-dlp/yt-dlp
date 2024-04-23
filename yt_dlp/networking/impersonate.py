@@ -67,8 +67,7 @@ class ImpersonateResponse(Response):
     """
     def __init__(self, *args, impersonate: ImpersonateTarget | None, **kwargs):
         super().__init__(*args, **kwargs)
-        if impersonate is not None:
-            self.extras['impersonate'] = impersonate
+        self.impersonate = impersonate
 
 
 class ImpersonateRequestHandler(RequestHandler, ABC):
