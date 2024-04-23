@@ -67,6 +67,22 @@ class QQMusicIE(QQMusicBaseIE):
     IE_DESC = 'QQ音乐'
     _VALID_URL = r'https?://y\.qq\.com/n/ryqq/songDetail/(?P<id>[0-9A-Za-z]+)'
     _TESTS = [{
+        'url': 'https://y.qq.com/n/ryqq/songDetail/004Ti8rT003TaZ',
+        'md5': '2ded4f88bfae33384b0a03662e060e8c',
+        'info_dict': {
+            'id': '004Ti8rT003TaZ',
+            'ext': 'mp3',
+            'title': '永夜のパレード (永夜的游行)',
+            'release_date': '20111230',
+            'duration': 281,
+            'creator': 'ケーキ姫 / JUMA',
+            'album': '幻想遊園郷 -Fantastic Park-',
+            'description': 'md5:b5261f3d595657ae561e9e6aee7eb7d9',
+            'thumbnail': r're:^https?://.*\.jpg',
+            'subtitles': 'count:1',
+        },
+        'params': {'listsubtitles': True},
+    }, {
         'url': 'https://y.qq.com/n/ryqq/songDetail/004295Et37taLD',
         'md5': '5f1e6cea39e182857da7ffc5ef5e6bb8',
         'info_dict': {
@@ -80,7 +96,7 @@ class QQMusicIE(QQMusicBaseIE):
         }
     }, {
         'note': 'There is no mp3-320 version of this song.',
-        'url': 'https://y.qq.com/n/yqq/song/004MsGEo3DdNxV.html',
+        'url': 'https://y.qq.com/n/ryqq/song/004MsGEo3DdNxV',
         'md5': 'fa3926f0c585cda0af8fa4f796482e3e',
         'info_dict': {
             'id': '004MsGEo3DdNxV',
@@ -93,7 +109,7 @@ class QQMusicIE(QQMusicBaseIE):
         }
     }, {
         'note': 'lyrics not in .lrc format',
-        'url': 'https://y.qq.com/n/yqq/song/001JyApY11tIp6.html',
+        'url': 'https://y.qq.com/n/ryqq/song/001JyApY11tIp6',
         'info_dict': {
             'id': '001JyApY11tIp6',
             'ext': 'mp3',
@@ -109,9 +125,12 @@ class QQMusicIE(QQMusicBaseIE):
     }]
 
     _FORMATS = {
-        'mp3-320': {'prefix': 'M800', 'ext': 'mp3', 'preference': 40, 'abr': 320},
-        'mp3-128': {'prefix': 'M500', 'ext': 'mp3', 'preference': 30, 'abr': 128},
-        'm4a': {'prefix': 'C200', 'ext': 'm4a', 'preference': 10}
+        'F000': {'name': 'flac', 'prefix': 'F000', 'ext': 'flac', 'preference': 60},
+        'A000': {'name': 'ape', 'prefix': 'A000', 'ext': 'ape', 'preference': 50},
+        'M800': {'name': '320mp3', 'prefix': 'M800', 'ext': 'mp3', 'preference': 40, 'abr': 320},
+        'M500': {'name': '128mp3', 'prefix': 'M500', 'ext': 'mp3', 'preference': 30, 'abr': 128},
+        'C400': {'name': '96aac', 'prefix': 'C400', 'ext': 'm4a', 'preference': 20, 'abr': 96},
+        'C200': {'name': '48aac', 'prefix': 'C200', 'ext': 'm4a', 'preference': 20, 'abr': 48},
     }
 
     def _real_extract(self, url):
@@ -121,49 +140,62 @@ class QQMusicIE(QQMusicBaseIE):
         init_data = self._search_json(
             r'window\.__INITIAL_DATA__\s*=\s*', webpage.replace('undefined', 'null'),
             'init data', mid, fatal=False)
+        media_id = traverse_obj(init_data, (
+            'songList', lambda _, v: v['mid'] == mid, 'file', 'media_mid'), get_all=False)
 
         payload = json.dumps({
-            "comm": {
-                "cv": 4747474,
-                "ct": 24,
-                "format": "json",
-                "inCharset": "utf-8",
-                "outCharset": "utf-8",
-                "notice": 0,
-                "platform": "yqq.json",
-                "needNewCode": 1,
-                "uin": int_or_none(self._get_cookies('https://y.qq.com').get('o_cookie')) or 0,
-                "g_tk_new_20200303": self._get_g_tk(),
-                "g_tk": self._get_g_tk(),
+            'comm': {
+                'cv': 4747474,
+                'ct': 24,
+                'format': 'json',
+                'inCharset': 'utf-8',
+                'outCharset': 'utf-8',
+                'notice': 0,
+                'platform': 'yqq.json',
+                'needNewCode': 1,
+                'uin': int_or_none(self._get_cookies('https://y.qq.com').get('o_cookie')) or 0,
+                'g_tk_new_20200303': self._get_g_tk(),
+                'g_tk': self._get_g_tk(),
             },
-            "req_1": {
-                "module": "vkey.GetVkeyServer",
-                "method": "CgiGetVkey",
-                "param": {
-                    "guid": str(self.m_r_get_ruin()),
-                    "songmid": [mid],
-                    "songtype": [0],
-                    "uin": self._get_cookies('https://y.qq.com').get('o_cookie', '0'),
-                    "loginflag": 1,
-                    "platform": "20"
+            'req_1': {
+                'module': 'vkey.GetVkeyServer',
+                'method': 'CgiGetVkey',
+                'param': {
+                    'guid': str(self.m_r_get_ruin()),
+                    'songmid': [mid],
+                    'songtype': [0],
+                    'uin': self._get_cookies('https://y.qq.com').get('o_cookie', '0'),
+                    'loginflag': 1,
+                    'platform': '20',
+                    **({
+                        'songmid': [mid] * len(self._FORMATS),
+                        'songtype': [0] * len(self._FORMATS),
+                        'filename': [f'{f["prefix"]}{media_id}.{f["ext"]}' for f in self._FORMATS.values()],
+                    } if media_id else {}),
                 }
             },
-            "req_2": {
-                "module": "music.musichallSong.PlayLyricInfo",
-                "method": "GetPlayLyricInfo",
-                "param": {
-                    "songMID": mid,
-                    "songID": traverse_obj(init_data, ('detail', 'id', {int})),
+            'req_2': {
+                'module': 'music.musichallSong.PlayLyricInfo',
+                'method': 'GetPlayLyricInfo',
+                'param': {
+                    'songMID': mid,
+                    'songID': traverse_obj(init_data, ('detail', 'id', {int})),
                 }
             },
         }, separators=(',', ':')).encode('utf-8')
 
         data = self._download_json(
-            'https://u6.y.qq.com/cgi-bin/musics.fcg', mid, data=payload,
+            'https://u.y.qq.com/cgi-bin/musics.fcg', mid, data=payload,
             query={'_': int(time.time()), 'sign': self._get_sign(payload)})
 
-        formats = traverse_obj(data, ('req_1', 'data', 'midurlinfo', lambda _, v: v['songmid'] == mid, {
+        formats = traverse_obj(data, ('req_1', 'data', 'midurlinfo', lambda _, v: v['songmid'] == mid and v['purl'], {
             'url': ('purl', {str}, {lambda x: f'https://dl.stream.qqmusic.qq.com/{x}'}),
+            'format': ('filename', {lambda x: self._FORMATS[x[:4]]['name']}),
+            'format_id': ('filename', {lambda x: self._FORMATS[x[:4]]['name']}),
+            'size': ('filename', {lambda x: self._FORMATS[x[:4]]['name']},
+                     {lambda x: traverse_obj(init_data, ('songList', ..., 'file', f'size_{x}'), get_all=False)}),
+            'quality': ('filename', {lambda x: self._FORMATS[x[:4]]['preference']}),
+            'abr': ('filename', {lambda x: self._FORMATS[x[:4]]['abr']}),
         }))
         lrc_content = traverse_obj(data, ('req_2', 'data', 'lyric', {lambda x: base64.b64decode(x).decode('utf-8')}))
 
@@ -184,12 +216,7 @@ class QQMusicIE(QQMusicBaseIE):
             'creator': ' / '.join(traverse_obj(init_data, ('detail', 'singer', ..., 'name'))) or None,
         }
         if lrc_content:
-            info_dict['subtitles'] = {
-                'origin': [{
-                    'ext': 'lrc',
-                    'data': lrc_content,
-                }]
-            }
+            info_dict['subtitles'] = {'origin': [{'ext': 'lrc', 'data': lrc_content}]}
             info_dict['description'] = join_nonempty(info_dict.get('description'), lrc_content, delim='\n')
         return info_dict
 
