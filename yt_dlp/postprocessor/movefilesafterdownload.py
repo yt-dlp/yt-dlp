@@ -7,6 +7,7 @@ from ..utils import (
     make_dir,
 )
 
+
 class MoveFilesAfterDownloadPP(PostProcessor):
     FILETYPE_KEYS = ['media', 'thumbnails', 'requested_subtitles']
 
@@ -51,7 +52,7 @@ class MoveFilesAfterDownloadPP(PostProcessor):
         info['__files_to_move']['media'] = []
 
         if self._downloaded:
-            info['__files_to_move']['media'] = [{ 'current_filepath': info['filepath'], 'final_filepath': dl_name }]
+            info['__files_to_move']['media'] = [{'current_filepath': info['filepath'], 'final_filepath': dl_name}]
 
         files_to_move = self.expand_relative_paths(info['__files_to_move'], finaldir)
 
