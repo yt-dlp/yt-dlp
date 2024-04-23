@@ -367,32 +367,32 @@ class QQMusicAlbumIE(QQMusicBaseIE):
         })))
 
 
-class QQMusicToplistIE(QQPlaylistBaseIE):
+class QQMusicToplistIE(InfoExtractor):
     IE_NAME = 'qqmusic:toplist'
     IE_DESC = 'QQ音乐 - 排行榜'
-    _VALID_URL = r'https?://y\.qq\.com/n/yqq/toplist/(?P<id>[0-9]+)\.html'
+    _VALID_URL = r'https?://y\.qq\.com/n/ryqq/toplist/(?P<id>[0-9]+)'
 
     _TESTS = [{
-        'url': 'https://y.qq.com/n/yqq/toplist/123.html',
+        'url': 'https://y.qq.com/n/ryqq/toplist/123',
         'info_dict': {
             'id': '123',
-            'title': '美国iTunes榜',
-            'description': 'md5:89db2335fdbb10678dee2d43fe9aba08',
+            'title': r're:美国热门音乐榜 \d{4}-\d{2}-\d{2}',
+            'description': '美国热门音乐榜，每周一更新。',
         },
-        'playlist_count': 100,
+        'playlist_count': 95,
     }, {
-        'url': 'https://y.qq.com/n/yqq/toplist/3.html',
+        'url': 'https://y.qq.com/n/ryqq/toplist/3',
         'info_dict': {
             'id': '3',
-            'title': '巅峰榜·欧美',
-            'description': 'md5:5a600d42c01696b26b71f8c4d43407da',
+            'title': r're:巅峰榜·欧美 \d{4}-\d{2}-\d{2}',
+            'description': 'md5:4def03b60d3644be4c9a36f21fd33857',
         },
         'playlist_count': 100,
     }, {
-        'url': 'https://y.qq.com/n/yqq/toplist/106.html',
+        'url': 'https://y.qq.com/n/ryqq/toplist/106',
         'info_dict': {
             'id': '106',
-            'title': '韩国Mnet榜',
+            'title': r're:韩国Mnet榜 \d{4}-\d{2}-\d{2}',
             'description': 'md5:cb84b325215e1d21708c615cac82a6e7',
         },
         'playlist_count': 50,
@@ -406,14 +406,12 @@ class QQMusicToplistIE(QQPlaylistBaseIE):
             note='Download toplist page',
             query={'type': 'toplist', 'topid': list_id, 'format': 'json'})
 
-        entries = [self.url_result(
-            'https://y.qq.com/n/yqq/song/' + song['data']['songmid'] + '.html', 'QQMusic',
-            song['data']['songmid'])
-            for song in toplist_json['songlist']]
+        entries = traverse_obj(toplist_json, ('songlist', ..., {lambda song: self.url_result(
+            f'https://y.qq.com/n/ryqq/songDetail/{song["data"]["songmid"]}', QQMusicIE)}))
 
-        topinfo = toplist_json.get('topinfo', {})
-        list_name = topinfo.get('ListName')
-        list_description = topinfo.get('info')
+        list_name = join_nonempty(*traverse_obj(toplist_json, ((('topinfo', 'ListName'), 'update_time'),)), delim=' ')
+        list_description = traverse_obj(toplist_json, ('topinfo', 'info'))
+
         return self.playlist_result(entries, list_id, list_name, list_description)
 
 
