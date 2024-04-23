@@ -68,17 +68,18 @@ class QQMusicIE(QQMusicBaseIE):
     _VALID_URL = r'https?://y\.qq\.com/n/ryqq/songDetail/(?P<id>[0-9A-Za-z]+)'
     _TESTS = [{
         'url': 'https://y.qq.com/n/ryqq/songDetail/004Ti8rT003TaZ',
-        'md5': '2ded4f88bfae33384b0a03662e060e8c',
+        'md5': 'd7adc5c438d12e2cb648cca81593fd47',
         'info_dict': {
             'id': '004Ti8rT003TaZ',
             'ext': 'mp3',
             'title': '永夜のパレード (永夜的游行)',
             'release_date': '20111230',
             'duration': 281,
-            'creator': 'ケーキ姫 / JUMA',
+            'creators': ['ケーキ姫', 'JUMA'],
             'album': '幻想遊園郷 -Fantastic Park-',
             'description': 'md5:b5261f3d595657ae561e9e6aee7eb7d9',
-            'thumbnail': r're:^https?://.*\.jpg',
+            'size': 4501244,
+            'thumbnail': r're:^https?://.*\.jpg(?:$|[#?])',
             'subtitles': 'count:1',
         },
         'params': {'listsubtitles': True},
@@ -89,27 +90,33 @@ class QQMusicIE(QQMusicBaseIE):
             'id': '004295Et37taLD',
             'ext': 'mp3',
             'title': '可惜没如果',
-            'release_date': '20141227',
-            'creator': '林俊杰',
-            'description': 'md5:d85afb3051952ecc50a1ee8a286d1eac',
-            'thumbnail': r're:^https?://.*\.jpg$',
-        }
+            'album': '新地球 - 人 (Special Edition)',
+            'release_date': '20150129',
+            'duration': 298,
+            'creators': ['林俊杰'],
+            'description': 'md5:f568421ff618d2066e74b65a04149c4e',
+            'thumbnail': r're:^https?://.*\.jpg(?:$|[#?])',
+        },
+        'skip': 'premium member only',
     }, {
         'note': 'There is no mp3-320 version of this song.',
-        'url': 'https://y.qq.com/n/ryqq/song/004MsGEo3DdNxV',
-        'md5': 'fa3926f0c585cda0af8fa4f796482e3e',
+        'url': 'https://y.qq.com/n/ryqq/songDetail/004MsGEo3DdNxV',
+        'md5': '028aaef1ae13d8a9f4861a92614887f9',
         'info_dict': {
             'id': '004MsGEo3DdNxV',
             'ext': 'mp3',
             'title': '如果',
+            'album': '新传媒电视连续剧金曲系列II',
             'release_date': '20050626',
-            'creator': '李季美',
-            'description': 'md5:46857d5ed62bc4ba84607a805dccf437',
-            'thumbnail': r're:^https?://.*\.jpg$',
-        }
+            'duration': 220,
+            'creators': ['李季美'],
+            'description': 'md5:fc711212aa623b28534954dc4bd67385',
+            'size': 3535730,
+            'thumbnail': r're:^https?://.*\.jpg(?:$|[#?])',
+        },
     }, {
         'note': 'lyrics not in .lrc format',
-        'url': 'https://y.qq.com/n/ryqq/song/001JyApY11tIp6',
+        'url': 'https://y.qq.com/n/ryqq/songDetail/001JyApY11tIp6',
         'info_dict': {
             'id': '001JyApY11tIp6',
             'ext': 'mp3',
@@ -117,11 +124,10 @@ class QQMusicIE(QQMusicBaseIE):
             'release_date': '19970225',
             'creator': 'Dark Funeral',
             'description': 'md5:c9b20210587cbcd6836a1c597bab4525',
-            'thumbnail': r're:^https?://.*\.jpg$',
+            'thumbnail': r're:^https?://.*\.jpg(?:$|[#?])',
         },
-        'params': {
-            'skip_download': True,
-        },
+        'params': {'skip_download': True},
+        'skip': 'no longer available',
     }]
 
     _FORMATS = {
@@ -213,7 +219,7 @@ class QQMusicIE(QQMusicBaseIE):
                 'alt_title': ('subtitle', {str}, {lambda x: x or None}),
                 'duration': ('interval', {int}),
             }), get_all=False),
-            'creator': ' / '.join(traverse_obj(init_data, ('detail', 'singer', ..., 'name'))) or None,
+            'creators': traverse_obj(init_data, ('detail', 'singer', ..., 'name')),
         }
         if lrc_content:
             info_dict['subtitles'] = {'origin': [{'ext': 'lrc', 'data': lrc_content}]}
