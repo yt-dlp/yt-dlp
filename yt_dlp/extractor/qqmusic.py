@@ -418,19 +418,10 @@ class QQMusicToplistIE(InfoExtractor):
 class QQMusicPlaylistIE(QQPlaylistBaseIE):
     IE_NAME = 'qqmusic:playlist'
     IE_DESC = 'QQ音乐 - 歌单'
-    _VALID_URL = r'https?://y\.qq\.com/n/yqq/playlist/(?P<id>[0-9]+)\.html'
+    _VALID_URL = r'https?://y\.qq\.com/n/ryqq/playlist/(?P<id>[0-9]+)'
 
     _TESTS = [{
-        'url': 'http://y.qq.com/n/yqq/playlist/3462654915.html',
-        'info_dict': {
-            'id': '3462654915',
-            'title': '韩国5月新歌精选下旬',
-            'description': 'md5:d2c9d758a96b9888cf4fe82f603121d4',
-        },
-        'playlist_count': 40,
-        'skip': 'playlist gone',
-    }, {
-        'url': 'https://y.qq.com/n/yqq/playlist/1374105607.html',
+        'url': 'https://y.qq.com/n/ryqq/playlist/1374105607',
         'info_dict': {
             'id': '1374105607',
             'title': '易入人心的华语民谣',
@@ -446,22 +437,20 @@ class QQMusicPlaylistIE(QQPlaylistBaseIE):
             'http://i.y.qq.com/qzone-music/fcg-bin/fcg_ucc_getcdinfo_byids_cp.fcg',
             list_id, 'Download list page',
             query={'type': 1, 'json': 1, 'utf8': 1, 'onlysong': 0, 'disstid': list_id},
-            transform_source=strip_jsonp)
+            transform_source=strip_jsonp, headers={'Referer': url})
         if not len(list_json.get('cdlist', [])):
-            if list_json.get('code'):
-                raise ExtractorError(
-                    'QQ Music said: error %d in fetching playlist info' % list_json['code'],
-                    expected=True)
-            raise ExtractorError('Unable to get playlist info')
+            error_msg = ''
+            if list_json.get('code') or list_json.get('subcode'):
+                error_msg = f': Error {list_json.get("code")}-{list_json["subcode"]}: {list_json.get("msg", "")}'
+            raise ExtractorError(f'Unable to get playlist info{error_msg}')
 
-        cdlist = list_json['cdlist'][0]
-        entries = [self.url_result(
-            'https://y.qq.com/n/yqq/song/' + song['songmid'] + '.html', 'QQMusic', song['songmid'])
-            for song in cdlist['songlist']]
+        entries = traverse_obj(list_json, ('cdlist', 0, 'songlist', ..., {lambda song: self.url_result(
+            f'https://y.qq.com/n/ryqq/songDetail/{song["songmid"]}', QQMusicIE, song['songmid'], song['songname'])}))
 
-        list_name = cdlist.get('dissname')
-        list_description = clean_html(unescapeHTML(cdlist.get('desc')))
-        return self.playlist_result(entries, list_id, list_name, list_description)
+        return self.playlist_result(entries, list_id, **traverse_obj(list_json, ('cdlist', 0, {
+            'title': ('dissname', {str}),
+            'description': ('desc', {lambda x: clean_html(unescapeHTML(x))}),
+        })))
 
 
 class QQMusicVideoIE(InfoExtractor):
