@@ -21,6 +21,9 @@ class MoveFilesAfterDownloadPP(PostProcessor):
 
     def expand_relative_paths(self, files_to_move, finaldir):
         for filetype in self.FILETYPE_KEYS:
+            if filetype not in files_to_move:
+                files_to_move[filetype] = []
+
             for file_attrs in files_to_move[filetype]:
                 if not os.path.isabs(file_attrs['final_filepath']):
                     file_attrs['final_filepath'] = os.path.join(finaldir, file_attrs['final_filepath'])
@@ -45,8 +48,7 @@ class MoveFilesAfterDownloadPP(PostProcessor):
 
     def run(self, info):
         dl_path, dl_name = os.path.split(info['filepath'])
-        finaldir = info.get('__finaldir', dl_path)
-        info['__files_to_move']['media'] = []
+        finaldir = info.get('__finaldir', os.path.abspath(dl_path))
 
         if self._downloaded:
             info['__files_to_move']['media'] = [{'current_filepath': info['filepath'], 'final_filepath': dl_name}]
@@ -54,9 +56,6 @@ class MoveFilesAfterDownloadPP(PostProcessor):
         files_to_move = self.expand_relative_paths(info['__files_to_move'], finaldir)
 
         for filetype in self.FILETYPE_KEYS:
-            if filetype not in files_to_move:
-                continue
-
             for file_attrs in files_to_move[filetype]:
                 current_filepath = file_attrs['current_filepath']
                 final_filepath = file_attrs['final_filepath']
