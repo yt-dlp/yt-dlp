@@ -17,79 +17,8 @@ from ..utils import (
 )
 
 
-class DropoutIE(InfoExtractor):
-    _HOST = 'https://www.dropout.tv'
-    _NETRC_MACHINE = 'dropout'
-
-    _VALID_URL = r'https?://(?:www\.)?dropout\.tv/(?:[^/]+/)*videos/(?P<id>[^/]+)/?$'
-    _TESTS = [
-        {
-            'url': 'https://www.dropout.tv/game-changer/season:2/videos/yes-or-no',
-            'note': 'Episode in a series',
-            'md5': 'fc55805bac60b1ce2ffdc35fb9c51195',
-            'info_dict': {
-                'id': '738153',
-                'display_id': 'yes-or-no',
-                'ext': 'mp4',
-                'title': 'Yes or No',
-                'description': 'Ally, Brennan, and Zac are asked a simple question, but is there a correct answer?',
-                'release_date': '20200508',
-                'thumbnail': 'https://vhx.imgix.net/chuncensoredstaging/assets/351e3f24-c4a3-459a-8b79-dc80f1e5b7fd.jpg',
-                'series': 'Game Changer',
-                'season_number': 2,
-                'season': 'Season 2',
-                'episode_number': 6,
-                'episode': 'Yes or No',
-                'duration': 1180,
-                'uploader_id': 'user80538407',
-                'uploader_url': 'https://vimeo.com/user80538407',
-                'uploader': 'OTT Videos',
-            },
-            'expected_warnings': ['Ignoring subtitle tracks found in the HLS manifest'],
-        },
-        {
-            'url': 'https://www.dropout.tv/ch-shorts/season:1/videos/post-apocalyptic-dane-cook',
-            'note': 'Episode in a series (missing release_date)',
-            'md5': 'f260b8d7d0fdbaceae713c9196dac07f',
-            'info_dict': {
-                'id': '449042',
-                'display_id': 'post-apocalyptic-dane-cook',
-                'ext': 'mp4',
-                'title': 'Post-Apocalyptic Dane Cook',
-                'description': 'Dane Cook is back with his all new special. Don\'t worry, it\'s not the end of the world.',
-                'thumbnail': 'https://vhx.imgix.net/chuncensoredstaging/assets/5b0678df-d9c3-4864-b811-24db03072f4a.jpg',
-                'series': 'CH Shorts',
-                'season_number': 1,
-                'season': 'Season 1',
-                'episode_number': 1,
-                'episode': 'Post-Apocalyptic Dane Cook',
-                'duration': 135,
-                'uploader_id': 'user80538407',
-                'uploader_url': 'https://vimeo.com/user80538407',
-                'uploader': 'OTT Videos',
-            },
-            'expected_warnings': ['Ignoring subtitle tracks found in the HLS manifest'],
-        },
-        {
-            'url': 'https://www.dropout.tv/videos/misfits-magic-holiday-special',
-            'note': 'Episode not in a series',
-            'md5': '147e0607bd877a791665c0b7219b512c',
-            'info_dict': {
-                'id': '1915774',
-                'display_id': 'misfits-magic-holiday-special',
-                'ext': 'mp4',
-                'title': 'Misfits & Magic Holiday Special',
-                'description': 'The magical misfits spend Christmas break at Gowpenny, with an unwelcome visitor.',
-                'release_date': '20211215',
-                'thumbnail': 'https://vhx.imgix.net/chuncensoredstaging/assets/d91ea8a6-b250-42ed-907e-b30fb1c65176-8e24b8e5.jpg',
-                'duration': 11698,
-                'uploader_id': 'user80538407',
-                'uploader_url': 'https://vimeo.com/user80538407',
-                'uploader': 'OTT Videos',
-            },
-            'expected_warnings': ['Ignoring subtitle tracks found in the HLS manifest'],
-        },
-    ]
+class DropoutBaseIE(InfoExtractor):
+    _HOST = None
 
     def _get_authenticity_token(self, display_id):
         signin_page = self._download_webpage(
@@ -165,8 +94,102 @@ class DropoutIE(InfoExtractor):
         }
 
 
-class DropoutSeasonIE(InfoExtractor):
+class DropoutIE(DropoutBaseIE):
+    _HOST = 'https://www.dropout.tv'
+    _NETRC_MACHINE = 'dropout'
+
+    _VALID_URL = r'https?://(?:www\.)?dropout\.tv/(?:[^/]+/)*videos/(?P<id>[^/]+)/?$'
+    _TESTS = [
+        {
+            'url': 'https://www.dropout.tv/game-changer/season:2/videos/yes-or-no',
+            'note': 'Episode in a series',
+            'md5': 'fc55805bac60b1ce2ffdc35fb9c51195',
+            'info_dict': {
+                'id': '738153',
+                'display_id': 'yes-or-no',
+                'ext': 'mp4',
+                'title': 'Yes or No',
+                'description': 'Ally, Brennan, and Zac are asked a simple question, but is there a correct answer?',
+                'release_date': '20200508',
+                'thumbnail': 'https://vhx.imgix.net/chuncensoredstaging/assets/351e3f24-c4a3-459a-8b79-dc80f1e5b7fd.jpg',
+                'series': 'Game Changer',
+                'season_number': 2,
+                'season': 'Season 2',
+                'episode_number': 6,
+                'episode': 'Yes or No',
+                'duration': 1180,
+                'uploader_id': 'user80538407',
+                'uploader_url': 'https://vimeo.com/user80538407',
+                'uploader': 'OTT Videos',
+            },
+            'expected_warnings': ['Ignoring subtitle tracks found in the HLS manifest'],
+        },
+        {
+            'url': 'https://www.dropout.tv/ch-shorts/season:1/videos/post-apocalyptic-dane-cook',
+            'note': 'Episode in a series (missing release_date)',
+            'md5': 'f260b8d7d0fdbaceae713c9196dac07f',
+            'info_dict': {
+                'id': '449042',
+                'display_id': 'post-apocalyptic-dane-cook',
+                'ext': 'mp4',
+                'title': 'Post-Apocalyptic Dane Cook',
+                'description': 'Dane Cook is back with his all new special. Don\'t worry, it\'s not the end of the world.',
+                'thumbnail': 'https://vhx.imgix.net/chuncensoredstaging/assets/5b0678df-d9c3-4864-b811-24db03072f4a.jpg',
+                'series': 'CH Shorts',
+                'season_number': 1,
+                'season': 'Season 1',
+                'episode_number': 1,
+                'episode': 'Post-Apocalyptic Dane Cook',
+                'duration': 135,
+                'uploader_id': 'user80538407',
+                'uploader_url': 'https://vimeo.com/user80538407',
+                'uploader': 'OTT Videos',
+            },
+            'expected_warnings': ['Ignoring subtitle tracks found in the HLS manifest'],
+        },
+        {
+            'url': 'https://www.dropout.tv/videos/misfits-magic-holiday-special',
+            'note': 'Episode not in a series',
+            'md5': '147e0607bd877a791665c0b7219b512c',
+            'info_dict': {
+                'id': '1915774',
+                'display_id': 'misfits-magic-holiday-special',
+                'ext': 'mp4',
+                'title': 'Misfits & Magic Holiday Special',
+                'description': 'The magical misfits spend Christmas break at Gowpenny, with an unwelcome visitor.',
+                'release_date': '20211215',
+                'thumbnail': 'https://vhx.imgix.net/chuncensoredstaging/assets/d91ea8a6-b250-42ed-907e-b30fb1c65176-8e24b8e5.jpg',
+                'duration': 11698,
+                'uploader_id': 'user80538407',
+                'uploader_url': 'https://vimeo.com/user80538407',
+                'uploader': 'OTT Videos',
+            },
+            'expected_warnings': ['Ignoring subtitle tracks found in the HLS manifest'],
+        },
+    ]
+
+
+class DropoutSeasonBaseIE(InfoExtractor):
     _PAGE_SIZE = 24
+
+    def _fetch_page(self, url, season_id, page):
+        page += 1
+        webpage = self._download_webpage(
+            f'{url}?page={page}', season_id, note=f'Downloading page {page}', expected_status={400})
+        yield from [self.url_result(item_url, self._VIDEO_IE) for item_url in traverse_obj(
+            get_elements_html_by_class('browse-item-link', webpage), (..., {extract_attributes}, 'href'))]
+
+    def _real_extract(self, url):
+        season_id = self._match_id(url)
+        season_num = self._match_valid_url(url).group('season') or 1
+        season_title = season_id.replace('-', ' ').title()
+
+        return self.playlist_result(
+            OnDemandPagedList(functools.partial(self._fetch_page, url, season_id), self._PAGE_SIZE),
+            f'{season_id}-season-{season_num}', f'{season_title} - Season {season_num}')
+
+
+class DropoutSeasonIE(DropoutSeasonBaseIE):
     _VALID_URL = r'https?://(?:www\.)?dropout\.tv/(?P<id>[^\/$&?#]+)(?:/?$|/season:(?P<season>[0-9]+)/?$)'
     _VIDEO_IE = DropoutIE
     _TESTS = [
@@ -207,19 +230,3 @@ class DropoutSeasonIE(InfoExtractor):
             },
         },
     ]
-
-    def _fetch_page(self, url, season_id, page):
-        page += 1
-        webpage = self._download_webpage(
-            f'{url}?page={page}', season_id, note=f'Downloading page {page}', expected_status={400})
-        yield from [self.url_result(item_url, self._VIDEO_IE) for item_url in traverse_obj(
-            get_elements_html_by_class('browse-item-link', webpage), (..., {extract_attributes}, 'href'))]
-
-    def _real_extract(self, url):
-        season_id = self._match_id(url)
-        season_num = self._match_valid_url(url).group('season') or 1
-        season_title = season_id.replace('-', ' ').title()
-
-        return self.playlist_result(
-            OnDemandPagedList(functools.partial(self._fetch_page, url, season_id), self._PAGE_SIZE),
-            f'{season_id}-season-{season_num}', f'{season_title} - Season {season_num}')

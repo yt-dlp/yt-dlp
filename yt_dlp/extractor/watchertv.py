@@ -1,7 +1,7 @@
-from .dropout import DropoutIE, DropoutSeasonIE
+from .dropout import DropoutBaseIE, DropoutSeasonBaseIE
 
 
-class WatcherTVIE(DropoutIE):
+class WatcherTVIE(DropoutBaseIE):
     _HOST = 'https://www.watchertv.com'
     _NETRC_MACHINE = 'watchertv'
 
@@ -76,8 +76,7 @@ class WatcherTVIE(DropoutIE):
     ]
 
 
-class WatcherTVSeasonIE(DropoutSeasonIE):
-    _PAGE_SIZE = 24
+class WatcherTVSeasonIE(DropoutSeasonBaseIE):
     _VALID_URL = r'https?://(?:www\.)?watchertv\.com/(?P<id>[^\/$&?#]+)(?:/?$|/season:(?P<season>[0-9]+)/?$)'
     _VIDEO_IE = WatcherTVIE
     _TESTS = [
