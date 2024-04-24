@@ -3307,13 +3307,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             })) or None
 
     def _extract_comment(self, view_model, entity, parent=None):
-        entity_payload = entity['payload']['commentEntityPayload']
+        entity_payload = traverse_obj(entity, ('payload', 'commentEntityPayload', {dict}))
         comment_id = entity_payload.get('properties').get('commentId')
 
         info = {
             'id': comment_id,
             'text': try_get(entity_payload, lambda x: x['properties']['content']['content'], str),
-            'like_count': str_to_int(try_get(entity_payload, lambda x: x['toolbar']['likeCountNotliked'], str)) or 0,
+            'like_count': self._search_regex(r'^([\d]+)', try_get(entity_payload, lambda x: x['toolbar']['likeCountA11y'], str), 'like_count', fatal=False) or 0,
             'author_id': traverse_obj(entity_payload, ('author', 'channelId', {self.ucid_or_none})),
             'author': try_get(entity_payload, lambda x: x['author']['displayName'], str),
             'author_thumbnail': traverse_obj(entity_payload, ('author', 'avatarThumbnailUrl', {url_or_none})),
