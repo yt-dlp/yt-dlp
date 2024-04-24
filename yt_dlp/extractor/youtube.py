@@ -3331,9 +3331,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         })
 
         info['author_url'] = urljoin(
-            'https://www.youtube.com', traverse_obj(entity_payload,
-                ('author', 'channelCommand', 'innertubeCommand', 'browseEndpoint', 'canonicalBaseUrl'),
-                expected_type=str, get_all=False))
+            'https://www.youtube.com',
+            traverse_obj(entity_payload,
+                         ('author',
+                          'channelCommand',
+                          'innertubeCommand',
+                          'browseEndpoint',
+                          'canonicalBaseUrl'),
+                         expected_type=str, get_all=False))
 
         author_is_uploader = traverse_obj(entity_payload, ('author', 'isCreator'))
         if author_is_uploader is not None:
