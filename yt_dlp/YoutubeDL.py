@@ -1982,7 +1982,7 @@ class YoutubeDL:
                 'playlist', ie_result, self.prepare_filename(ie_copy, 'pl_infojson'))
             if _infojson_written is None:
                 return
-            
+
             description_file = self._write_description('playlist', ie_result, self.prepare_filename(ie_copy, 'pl_description'))
             if description_file is None:
                 return
@@ -4265,7 +4265,6 @@ class YoutubeDL:
                 self.to_screen(f'[info] Writing {label} description to: {filename}')
                 with open(filename, 'w', encoding='utf-8') as descfile:
                     descfile.write(info_dict['description'])
-                info_dict['description_filepath'] = filename 
             except OSError:
                 self.report_error(f'Cannot write {label} description file {filename}')
                 return None
