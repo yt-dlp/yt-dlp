@@ -4282,12 +4282,6 @@ class YoutubeDL:
             if existing_sub:
                 self.to_screen(f'[info] Video subtitle {sub_lang}.{sub_format} is already present')
                 sub_info['filepath'] = existing_sub
-                ret.append({
-                    'current_filepath': existing_sub,
-                    'final_filepath': sub_filename_final,
-                    'lang': sub_lang,
-                    'ext': sub_info['ext']
-                })
 
                 continue
 
@@ -4299,12 +4293,6 @@ class YoutubeDL:
                     with open(sub_filename, 'w', encoding='utf-8', newline='') as subfile:
                         subfile.write(sub_info['data'])
                     sub_info['filepath'] = sub_filename
-                    ret.append({
-                        'current_filepath': sub_filename,
-                        'final_filepath': sub_filename_final,
-                        'lang': sub_lang,
-                        'ext': sub_info['ext']
-                    })
 
                     continue
                 except OSError:
@@ -4316,12 +4304,6 @@ class YoutubeDL:
                 sub_copy.setdefault('http_headers', info_dict.get('http_headers'))
                 self.dl(sub_filename, sub_copy, subtitle=True)
                 sub_info['filepath'] = sub_filename
-                ret.append({
-                    'current_filepath': sub_filename,
-                    'final_filepath': sub_filename_final,
-                    'lang': sub_lang,
-                    'ext': sub_info['ext']
-                })
 
             except (DownloadError, ExtractorError, IOError, OSError, ValueError) + network_exceptions as err:
                 msg = f'Unable to download video subtitles for {sub_lang!r}: {err}'
@@ -4363,11 +4345,6 @@ class YoutubeDL:
                 self.to_screen('[info] %s is already present' % (
                     thumb_display_id if multiple else f'{label} thumbnail').capitalize())
                 t['filepath'] = existing_thumb
-                ret.append({
-                    'current_filepath': existing_thumb,
-                    'final_filepath': thumb_filename_final,
-                    'id': t['id']
-                })
 
             else:
                 self.to_screen(f'[info] Downloading {thumb_display_id} ...')
@@ -4376,12 +4353,6 @@ class YoutubeDL:
                     self.to_screen(f'[info] Writing {thumb_display_id} to: {thumb_filename}')
                     with open(encodeFilename(thumb_filename), 'wb') as thumbf:
                         shutil.copyfileobj(uf, thumbf)
-
-                    ret.append({
-                        'current_filepath': thumb_filename,
-                        'final_filepath': thumb_filename_final,
-                        'id': t['id']
-                    })
 
                     t['filepath'] = thumb_filename
                 except network_exceptions as err:
