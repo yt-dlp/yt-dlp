@@ -1397,20 +1397,23 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
                         'tbr': ('bitrate', {k_int_or_none}),
                     }, {lambda u: u.get('url') and u}))
                     if formats:
-                        entry = merge_dicts({
+                        entry = {
                             'id': block_id,
                             'display_id': playlist_id,
                             'formats': formats,
-                        }, traverse_obj(simorgh_data, ('pageData', 'promo', {
-                            'description': ('summary', {str}),
-                        })), traverse_obj(model, {
+                            **traverse_obj(simorgh_data, (
+                                'pageData', 'promo', {
+                                    'description': ('summary', {str}),
+                                }
+                            )),
+                            **traverse_obj(model, {
                                 'title': ('title', {str}),
                                 'thumbnail': ('imageUrl', {lambda u: urljoin(url, u.replace('$recipe', 'raw'))}),
                                 'description': (
                                     'synopses', ('long', 'medium', 'short'), {str}, any),
                                 'timestamp': ('firstPublished', {k_int_or_none}),
                             }),
-                        )
+                        }
                         done = True
                 if entry:
                     entries.append(entry)
