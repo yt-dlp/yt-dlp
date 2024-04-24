@@ -1906,6 +1906,7 @@ from .syvdk import SYVDKIE
 from .syfy import SyfyIE
 from .sztvhu import SztvHuIE
 from .tagesschau import TagesschauIE
+from .taptap import TapTapIE
 from .tass import TassIE
 from .tbs import TBSIE
 from .tbsjp import (
