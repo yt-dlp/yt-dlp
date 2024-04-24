@@ -17,6 +17,7 @@ from ..utils import (
     int_or_none,
     join_nonempty,
     js_to_json,
+    merge_dicts,
     parse_duration,
     parse_iso8601,
     parse_qs,
@@ -1397,23 +1398,20 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
                         'tbr': ('bitrate', {k_int_or_none}),
                     }, {lambda u: u.get('url') and u}))
                     if formats:
-                        entry = {
+                        entry = merge_dicts({
                             'id': block_id,
                             'display_id': playlist_id,
                             'formats': formats,
-                            **traverse_obj(simorgh_data, (
-                                'pageData', 'promo', {
-                                    'description': ('summary', {str}),
-                                }
-                            )),
-                            **traverse_obj(model, {
-                                'title': ('title', {str}),
-                                'thumbnail': ('imageUrl', {lambda u: urljoin(url, u.replace('$recipe', 'raw'))}),
-                                'description': (
-                                    'synopses', ('long', 'medium', 'short'), {str}, any),
-                                'timestamp': ('firstPublished', {k_int_or_none}),
-                            }),
-                        }
+                        }, traverse_obj(simorgh_data, ('pageData', 'promo', {
+                            'description': ('summary', {str}),
+                        })), traverse_obj(model, {
+                            'title': ('title', {str}),
+                            'thumbnail': ('imageUrl', {lambda u: urljoin(url, u.replace('$recipe', 'raw'))}),
+                            'description': (
+                                'synopses', ('long', 'medium', 'short'), {str}, any),
+                            'timestamp': ('firstPublished', {k_int_or_none}),
+                        }),
+                        )
                         done = True
                 if entry:
                     entries.append(entry)
