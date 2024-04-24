@@ -663,7 +663,8 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
         # single video embedded with data-playable containing XML playlists (regional section)
         'url': 'http://www.bbc.com/mundo/video_fotos/2015/06/150619_video_honduras_militares_hospitales_corrupcion_aw',
         'info_dict': {
-            'id': '150619_video_honduras_militares_hospitales_corrupcion_aw',
+            'id': '39275083',
+            'display_id': '150619_video_honduras_militares_hospitales_corrupcion_aw',
             'ext': 'mp4',
             'title': 'Honduras militariza sus hospitales por nuevo escándalo de corrupción',
             'description': 'md5:1525f17448c4ee262b64b8f0c9ce66c8',
@@ -673,7 +674,6 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
         'params': {
             'skip_download': True,
         },
-        # TODO: now in .pageData.promo.media of SIMORGH_DATA
     }, {
         # single video from video playlist embedded with vxp-playlist-data JSON
         'url': 'http://www.bbc.com/news/video_and_audio/must_see/33376376',
@@ -689,7 +689,7 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
         },
         'skip': '404 Not Found',
     }, {
-        # single video story with digitalData
+        # single video story with __PWA_PRELOADED_STATE__
         'url': 'http://www.bbc.com/travel/story/20150625-sri-lankas-spicy-secret',
         'info_dict': {
             'id': 'p02q6gc4',
@@ -736,7 +736,7 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
             'description': r're:(?s)BBC Sport\'s David Ornstein rounds up the latest transfer reports, .{359} here\.$',
             'timestamp': 1437750175,
             'upload_date': '20150724',
-            'thumbnail': 'https://news.bbcimg.co.uk/media/images/69320000/png/_69320754_mmgossipcolumnextraaugust18.png',
+            'thumbnail': r're:https://(?:[^/]+/)+/media/images/69320000/png/_69320754_mmgossipcolumnextraaugust18.png',
             'duration': 140,
         },
     }, {
@@ -788,6 +788,7 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
             'thumbnail': r're:https?://.+/.+\.jpg',
             'timestamp': 1437785037,
             'upload_date': '20150725',
+            'duration': 105,
         },
     }, {
         # video with window.__INITIAL_DATA__ and value as JSON string
@@ -800,6 +801,7 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
             'thumbnail': r're:https?://.+/.+\.jpg',
             'timestamp': 1638230731,
             'upload_date': '20211130',
+            'duration': 125,
         },
     }, {
         # video with script id __NEXT_DATA__ and value as JSON string
@@ -867,19 +869,20 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
         },
     }, {
         # BBC Sounds
-        'url': 'https://www.bbc.co.uk/sounds/play/m001q78b',
+        'url': 'https://www.bbc.co.uk/sounds/play/w3ct5rgx',
         'info_dict': {
-            'id': 'm001q789',
+            'id': 'p0hrw4nr',
             'ext': 'mp4',
-            'title': 'The Night Tracks Mix - Music for the darkling hour',
-            'thumbnail': 'https://ichef.bbci.co.uk/images/ic/raw/p0c00hym.jpg',
-            'chapters': 'count:8',
-            'description': 'md5:815fb51cbdaa270040aab8145b3f1d67',
-            'uploader': 'Radio 3',
-            'duration': 1800,
-            'uploader_id': 'bbc_radio_three',
-        },
-        'skip': '404 Not Found',
+            'title': 'Are our coastlines being washed away?',
+            'description': r're:(?s)Around the world, coastlines are constantly changing .{2153} Images\)$',
+            'timestamp': 1713556800,
+            'upload_date': '20240419',
+            'duration': 1588,
+            'thumbnail': 'https://ichef.bbci.co.uk/images/ic/raw/p0hrnxbl.jpg',
+            'uploader': 'World Service',
+            'uploader_id': 'bbc_world_service',
+            'series': 'CrowdScience',
+        }
     }, {  # onion routes
         'url': 'https://www.bbcnewsd73hkzno2ini43t4gblxvycyac5aw4gnv7t2rccijh7745uqd.onion/news/av/world-europe-63208576',
         'only_matching': True,
@@ -1165,7 +1168,7 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
         current_programme = traverse_obj(preload_state, ('programmes', 'current', {dict}))
         programme_id = traverse_obj(current_programme, ('id', {str}))
         if programme_id and current_programme.get('type') == 'playable_item':
-            title = traverse_obj(current_programme, ('titles', 'tertiary', {str})) or playlist_title
+            title = traverse_obj(current_programme, ('titles', ('tertiary', 'secondary'), {str}, any)) or playlist_title
             formats, subtitles = self._download_media_selector(programme_id)
             return {
                 'id': programme_id,
@@ -1177,6 +1180,8 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
                     'duration': ('duration', 'value', {int_or_none}),
                     'uploader': ('network', 'short_title', {str}),
                     'uploader_id': ('network', 'id', {str}),
+                    'timestamp': ((('availability', 'from'), ('release', 'date')), {parse_iso8601}, any),
+                    'series': ('titles', 'primary', {str}),
                 }),
                 'subtitles': subtitles,
                 **traverse_obj(preload_state, {
@@ -1366,6 +1371,54 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
                         parse_media(block)
             return self.playlist_result(
                 entries, playlist_id, playlist_title, playlist_description)
+
+        # extract from SIMORGH_DATA hydration JSON
+        simorgh_data = self._search_json(
+            r'window\s*\.\s*SIMORGH_DATA\s*=', webpage,
+            'simorgh data', playlist_id, default={})
+        if simorgh_data:
+            done = False
+            for video_data in traverse_obj(simorgh_data, (
+                    'pageData', 'content', 'model', 'blocks', is_type('video', 'legacyMedia'))):
+                model = traverse_obj(video_data, (
+                    'model', 'blocks', is_type('aresMedia'),
+                    'model', 'blocks', is_type('aresMediaMetadata'),
+                    'model', {dict}, any))
+                if video_data['type'] == 'video':
+                    entry = parse_model(model)
+                else:  # legacyMedia: no duration, subtitles
+                    block_id, entry = traverse_obj(model, ('blockId', {str})), None
+                    media_data = traverse_obj(simorgh_data, (
+                        'pageData', 'promo', 'media',
+                        {lambda x: x if x['id'] == block_id else None}))
+                    formats = traverse_obj(media_data, ('playlist', lambda _, v: v['url'], {
+                        'url': ('url', {url_or_none}),
+                        'ext': ('format', {str}),
+                        'tbr': ('bitrate', {k_int_or_none}),
+                    }, {lambda u: u.get('url') and u}))
+                    if formats:
+                        entry = merge_dicts({
+                            'id': block_id,
+                            'display_id': playlist_id,
+                            'formats': formats,
+                        }, traverse_obj(simorgh_data, ('pageData', 'promo', {
+                            'description': ('summary', {str}),
+                        })), traverse_obj(model, {
+                                'title': ('title', {str}),
+                                'thumbnail': ('imageUrl', {lambda u: urljoin(url, u.replace('$recipe', 'raw'))}),
+                                'description': (
+                                    'synopses', ('long', 'medium', 'short'), {str}, any),
+                                'timestamp': ('firstPublished', {k_int_or_none}),
+                            }),
+                        )
+                        done = True
+                if entry:
+                    entries.append(entry)
+                if done:
+                    break
+            if entries:
+                return self.playlist_result(
+                    entries, playlist_id, playlist_title, playlist_description)
 
         def extract_all(pattern):
             return list(filter(None, map(
