@@ -1808,7 +1808,7 @@ class YoutubeDL:
                     info_copy['id'] = ie.get_temp_id(ie_result['url'])
                 self.add_default_extra_info(info_copy, ie, ie_result['url'])
                 self.add_extra_info(info_copy, extra_info)
-                info_copy, _ = self.pre_process(info_copy)
+                info_copy = self.pre_process(info_copy)
                 self._fill_common_fields(info_copy, False)
                 self.__forced_printings(info_copy)
                 self._raise_pending_errors(info_copy)
@@ -2885,13 +2885,13 @@ class YoutubeDL:
             # which can't be exported to json
             info_dict['formats'] = formats
 
-        info_dict, _ = self.pre_process(info_dict)
+        info_dict = self.pre_process(info_dict)
 
         if self._match_entry(info_dict, incomplete=self._format_fields) is not None:
             return info_dict
 
         self.post_extract(info_dict)
-        info_dict, _ = self.pre_process(info_dict, 'after_filter')
+        info_dict = self.pre_process(info_dict, 'after_filter')
 
         # The pre-processors may have modified the formats
         formats = self._get_formats(info_dict)
@@ -3202,14 +3202,13 @@ class YoutubeDL:
             info_dict.clear()
             info_dict.update(new_info)
 
-        new_info, _ = self.pre_process(info_dict, 'video')
+        new_info = self.pre_process(info_dict, 'video')
         replace_info_dict(new_info)
         self._num_downloads += 1
 
         # info_dict['_filename'] needs to be set for backward compatibility
         info_dict['_filename'] = full_filename = self.prepare_filename(info_dict, warn=True)
         temp_filename = self.prepare_filename(info_dict, 'temp')
-        files_to_move = {}
 
         # Forced printings
         self.__forced_printings(info_dict, full_filename, incomplete=('format' not in info_dict))
@@ -3238,14 +3237,10 @@ class YoutubeDL:
         if sub_files is None:
             return
 
-        files_to_move['requested_subtitles'] = sub_files
-
         thumb_files = self._write_thumbnails(
             'video', info_dict, temp_filename, self.prepare_filename(info_dict, 'thumbnail'))
         if thumb_files is None:
             return
-
-        files_to_move['thumbnails'] = thumb_files
 
         infofn = self.prepare_filename(info_dict, 'infojson')
         _infojson_written = self._write_info_json('video', info_dict, infofn)
@@ -3319,13 +3314,12 @@ class YoutubeDL:
                for link_type, should_write in write_links.items()):
             return
 
-        new_info, files_to_move = self.pre_process(info_dict, 'before_dl', files_to_move)
+        new_info = self.pre_process(info_dict, 'before_dl')
         replace_info_dict(new_info)
 
         if self.params.get('skip_download'):
             info_dict['filepath'] = temp_filename
             info_dict['__finaldir'] = os.path.dirname(os.path.abspath(encodeFilename(full_filename)))
-            info_dict['__files_to_move'] = files_to_move
             replace_info_dict(self.run_pp(MoveFilesAfterDownloadPP(self, False), info_dict))
             info_dict['__write_download_archive'] = self.params.get('force_write_download_archive')
         else:
@@ -3439,9 +3433,6 @@ class YoutubeDL:
                         info_dict['__files_to_merge'] = downloaded
                         # Even if there were no downloads, it is being merged only now
                         info_dict['__real_download'] = True
-                    else:
-                        for file in downloaded:
-                            files_to_move[file] = None
                 else:
                     # Just a single file
                     dl_filename = existing_video_file(full_filename, temp_filename)
@@ -3525,7 +3516,7 @@ class YoutubeDL:
 
                 fixup()
                 try:
-                    replace_info_dict(self.post_process(dl_filename, info_dict, files_to_move))
+                    replace_info_dict(self.post_process(dl_filename, info_dict))
                 except PostProcessingError as err:
                     self.report_error('Postprocessing: %s' % str(err))
                     return
@@ -3662,8 +3653,7 @@ class YoutubeDL:
 
     def run_pp(self, pp, infodict):
         files_to_delete = []
-        if '__files_to_move' not in infodict:
-            infodict['__files_to_move'] = {}
+
         try:
             files_to_delete, infodict = pp.run(infodict)
         except PostProcessingError as e:
@@ -3687,24 +3677,21 @@ class YoutubeDL:
             info = self.run_pp(pp, info)
         return info
 
-    def pre_process(self, ie_info, key='pre_process', files_to_move=None):
+    def pre_process(self, ie_info, key='pre_process'):
         info = dict(ie_info)
-        info['__files_to_move'] = files_to_move or {}
         try:
             info = self.run_all_pps(key, info)
         except PostProcessingError as err:
             msg = f'Preprocessing: {err}'
             info.setdefault('__pending_error', msg)
             self.report_error(msg, is_error=False)
-        return info, info.pop('__files_to_move', None)
+        return info
 
-    def post_process(self, filename, info, files_to_move=None):
+    def post_process(self, filename, info):
         """Run all the postprocessors on the given file."""
         info['filepath'] = filename
-        info['__files_to_move'] = files_to_move or {}
         info = self.run_all_pps('post_process', info, additional_pps=info.get('__postprocessors'))
         info = self.run_pp(MoveFilesAfterDownloadPP(self), info)
-        del info['__files_to_move']
         return self.run_all_pps('after_move', info)
 
     def _make_archive_id(self, info_dict):
