@@ -3456,7 +3456,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 else:
                     view_model = traverse_obj(comment_thread_renderer, ('commentViewModel', 'commentViewModel'))
                     if not view_model:
-                      view_model = content.get('commentViewModel')
+                        view_model = content.get('commentViewModel')
                     if not view_model:
                         continue
                     comment_id = view_model['commentId']
