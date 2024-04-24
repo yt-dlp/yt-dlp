@@ -17,7 +17,6 @@ import threading
 import time
 import traceback
 import urllib.parse
-
 from .common import InfoExtractor, SearchInfoExtractor
 from .openload import PhantomJSwrapper
 from ..compat import functools
@@ -3314,7 +3313,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         info = {
             'id': comment_id,
             'text': entity_payload['properties']['content']['content'],
-            'like_count': entity_payload['toolbar']['likeCountLiked'],
+            'like_count': entity_payload['toolbar']['likeCountNotliked'],
             'author_id': traverse_obj(entity_payload, ('author', 'channelId', {self.ucid_or_none})),
             'author': entity_payload['author']['displayName'],
             'author_thumbnail': traverse_obj(entity_payload, ('author', 'avatarThumbnailUrl', {url_or_none})),
