@@ -1140,7 +1140,7 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
                     entry = self.url_result(
                         f'https://www.bbc.co.uk/programmes/{video_id}', BBCCoUkIE,
                         video_id, url_transparent=True)
-                entry = {
+                entry.update({
                     **traverse_obj(morph_payload, (
                         'body', 'content', 'article', {
                             'timestamp': ('dateTimeInfo', 'dateTime', {parse_iso8601}),
@@ -1151,7 +1151,7 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
                         'title': (('title', 'caption'), {str}, any),
                         'duration': ('duration', {parse_duration}),
                     }),
-                }
+                })
                 if video_data.get('isLead') and not self._yes_playlist(playlist_id, video_id):
                     return entry
                 entries.append(entry)
@@ -1367,8 +1367,7 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
                 elif name == 'article':
                     for block in traverse_obj(resp, (
                             'data', (None, ('content', 'model')), 'blocks',
-                            lambda _, v: v.get('type') in {'media', 'video'},
-                            'model', {dict})):
+                            is_type('media', 'video'), 'model', {dict})):
                         parse_media(block)
             return self.playlist_result(
                 entries, playlist_id, playlist_title, playlist_description)
