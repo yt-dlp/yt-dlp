@@ -18,7 +18,7 @@ from ..utils import (
 
 
 class DropoutBaseIE(InfoExtractor):
-    _HOST = None
+    """Subclasses must define _HOST"""
 
     def _get_authenticity_token(self, display_id):
         signin_page = self._download_webpage(
@@ -170,6 +170,7 @@ class DropoutIE(DropoutBaseIE):
 
 
 class DropoutSeasonBaseIE(InfoExtractor):
+    """Subclasses must define _VIDEO_IE"""
     _PAGE_SIZE = 24
 
     def _fetch_page(self, url, season_id, page):
