@@ -1,8 +1,8 @@
+import datetime as dt
 import itertools
 import json
 import re
 import urllib.parse
-from datetime import datetime
 
 from .common import InfoExtractor, SearchInfoExtractor
 from ..utils import (
@@ -156,7 +156,7 @@ class RokfinIE(InfoExtractor):
                 self.raise_login_required('This video is only available to premium users', True, method='cookies')
             elif scheduled:
                 self.raise_no_formats(
-                    f'Stream is offline; scheduled for {datetime.fromtimestamp(scheduled).strftime("%Y-%m-%d %H:%M:%S")}',
+                    f'Stream is offline; scheduled for {dt.datetime.fromtimestamp(scheduled).strftime("%Y-%m-%d %H:%M:%S")}',
                     video_id=video_id, expected=True)
 
         uploader = traverse_obj(metadata, ('createdBy', 'username'), ('creator', 'username'))
