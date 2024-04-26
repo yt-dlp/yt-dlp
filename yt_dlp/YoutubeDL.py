@@ -3697,6 +3697,7 @@ class YoutubeDL:
         info['filepath'] = filename
         info = self.run_all_pps('post_process', info, additional_pps=info.get('__postprocessors'))
         info = self.run_pp(MoveFilesAfterDownloadPP(self), info)
+        del info['__multiple_thumbnails']
         return self.run_all_pps('after_move', info)
 
     def _make_archive_id(self, info_dict):
@@ -4287,7 +4288,7 @@ class YoutubeDL:
             if existing_sub:
                 self.to_screen(f'[info] Video subtitle {sub_lang}.{sub_format} is already present')
                 sub_info['filepath'] = existing_sub
-                ret.append((existing_sub, sub_filename_final))
+                ret.append(existing_sub)
                 continue
 
             self.to_screen(f'[info] Writing video subtitles to: {sub_filename}')
@@ -4298,7 +4299,7 @@ class YoutubeDL:
                     with open(sub_filename, 'w', encoding='utf-8', newline='') as subfile:
                         subfile.write(sub_info['data'])
                     sub_info['filepath'] = sub_filename
-                    ret.append((sub_filename, sub_filename_final))
+                    ret.append(sub_filename)
                     continue
                 except OSError:
                     self.report_error(f'Cannot write video subtitles file {sub_filename}')
@@ -4309,7 +4310,7 @@ class YoutubeDL:
                 sub_copy.setdefault('http_headers', info_dict.get('http_headers'))
                 self.dl(sub_filename, sub_copy, subtitle=True)
                 sub_info['filepath'] = sub_filename
-                ret.append((sub_filename, sub_filename_final))
+                ret.append(sub_filename)
             except (DownloadError, ExtractorError, IOError, OSError, ValueError) + network_exceptions as err:
                 msg = f'Unable to download video subtitles for {sub_lang!r}: {err}'
                 if self.params.get('ignoreerrors') is not True:  # False or 'only_download'
@@ -4329,6 +4330,7 @@ class YoutubeDL:
                 self.to_screen(f'[info] There are no {label} thumbnails to download')
                 return ret
         multiple = write_all and len(thumbnails) > 1
+        info_dict['__multiple_thumbnails'] = multiple
 
         if thumb_filename_base is None:
             thumb_filename_base = filename
@@ -4350,7 +4352,7 @@ class YoutubeDL:
                 self.to_screen('[info] %s is already present' % (
                     thumb_display_id if multiple else f'{label} thumbnail').capitalize())
                 t['filepath'] = existing_thumb
-                ret.append((existing_thumb, thumb_filename_final))
+                ret.append(existing_thumb)
             else:
                 self.to_screen(f'[info] Downloading {thumb_display_id} ...')
                 try:
@@ -4358,7 +4360,7 @@ class YoutubeDL:
                     self.to_screen(f'[info] Writing {thumb_display_id} to: {thumb_filename}')
                     with open(encodeFilename(thumb_filename), 'wb') as thumbf:
                         shutil.copyfileobj(uf, thumbf)
-                    ret.append((thumb_filename, thumb_filename_final))
+                    ret.append(thumb_filename)
                     t['filepath'] = thumb_filename
                 except network_exceptions as err:
                     if isinstance(err, HTTPError) and err.status == 404:

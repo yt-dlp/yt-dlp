@@ -8,10 +8,10 @@ from ..utils import (
     make_dir,
     replace_extension
 )
+import pdb
 
 
 class MoveFilesAfterDownloadPP(PostProcessor):
-    TOP_LEVEL_KEYS = ['filepath']
     # Map of the keys that contain moveable files and the 'type' of the file
     # for generating the output filename
     CHILD_KEYS = {
@@ -33,18 +33,24 @@ class MoveFilesAfterDownloadPP(PostProcessor):
             return
 
         output_file_type = output_file_type or ''
-        current_filepath = relevant_dict['filepath']
-        # This approach is needed to preserved indexed thumbnail paths from `--write-all-thumbnails`
-        # and also to support user-defined extensions (eg: `%(title)s.temp.%(ext)s`)
-        extension = ''.join(Path(current_filepath).suffixes)
-        name_format = self._downloader.prepare_filename(info_dict, output_file_type)
-        final_filepath = replace_extension(name_format, extension)
+        current_filepath, final_filepath = self.determine_filepath(info_dict, relevant_dict, output_file_type)
         move_result = self.move_file(info_dict, current_filepath, final_filepath)
 
         if move_result:
             relevant_dict['filepath'] = move_result
         else:
             del relevant_dict['filepath']
+
+    def determine_filepath(self, info_dict, relevant_dict, output_file_type):
+        current_filepath = relevant_dict['filepath']
+        prepared_filepath = self._downloader.prepare_filename(info_dict, output_file_type)
+
+        if (output_file_type == 'thumbnail' and info_dict['__multiple_thumbnails']) or output_file_type == 'subtitle':
+            desired_extension = ''.join(Path(current_filepath).suffixes[-2:])
+        else:
+            desired_extension = Path(current_filepath).suffix
+
+        return current_filepath, replace_extension(prepared_filepath, desired_extension)
 
     def move_file(self, info_dict, current_filepath, final_filepath):
         if not current_filepath or not final_filepath:
@@ -83,10 +89,17 @@ class MoveFilesAfterDownloadPP(PostProcessor):
         return final_filepath
 
     def run(self, info):
+        # Map of the keys that contain moveable files and the 'type' of the file
+        # for generating the output filename
+        child_keys = {
+            'thumbnails': 'thumbnail',
+            'requested_subtitles': 'subtitle'
+        }
+
         # This represents the main media file (using the 'filepath' key)
         self.move_file_and_write_to_info(info)
 
-        for key, output_file_type in self.CHILD_KEYS.items():
+        for key, output_file_type in child_keys.items():
             if key not in info:
                 continue
 
