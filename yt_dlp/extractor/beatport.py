@@ -2,7 +2,7 @@ import re
 
 from .common import InfoExtractor
 from ..compat import compat_str
-from ..utils import int_or_none
+from ..utils import int_or_none, ExtractorError
 
 
 class BeatportIE(InfoExtractor):
@@ -43,55 +43,47 @@ class BeatportIE(InfoExtractor):
 
         webpage = self._download_webpage(url, display_id)
 
-        playables = self._parse_json(
-            self._search_regex(
-                r'window\.Playables\s*=\s*({.+?});', webpage,
-                'playables info', flags=re.DOTALL),
-            track_id)
+        try:
+            playables_json = self._search_regex(
+                r'window\.Playables\s*=\s*({.+?})\s*;', webpage,
+                'playables info', default='{}', flags=re.DOTALL)
+            playables = self._parse_json(playables_json, track_id)
+        except re.error:
+            raise ExtractorError('Failed to extract playables information. The page structure may have changed.')
 
-        track = next(t for t in playables['tracks'] if t['id'] == int(track_id))
+        if not playables or 'tracks' not in playables:
+            raise ExtractorError('No playable tracks found in the extracted information.')
 
-        title = ', '.join((a['name'] for a in track['artists'])) + ' - ' + track['name']
-        if track['mix']:
+        track = next((t for t in playables['tracks'] if t['id'] == int(track_id)), None)
+        if not track:
+            raise ExtractorError(f'No track with ID {track_id} found.')
+
+        title = ', '.join(a['name'] for a in track['artists']) + ' - ' + track['name']
+        if track.get('mix'):
             title += ' (' + track['mix'] + ')'
 
         formats = []
-        for ext, info in track['preview'].items():
-            if not info['url']:
-                continue
-            fmt = {
-                'url': info['url'],
-                'ext': ext,
-                'format_id': ext,
-                'vcodec': 'none',
-            }
-            if ext == 'mp3':
-                fmt['acodec'] = 'mp3'
-                fmt['abr'] = 96
-                fmt['asr'] = 44100
-            elif ext == 'mp4':
-                fmt['acodec'] = 'aac'
-                fmt['abr'] = 96
-                fmt['asr'] = 44100
-            formats.append(fmt)
+        for ext, info in track.get('preview', {}).items():
+            url = info.get('url')
+            if url:
+                fmt = {
+                    'url': url,
+                    'ext': ext,
+                    'format_id': ext,
+                    'vcodec': 'none',
+                    'acodec': 'mp3' if ext == 'mp3' else 'aac',
+                    'abr': 96,
+                    'asr': 44100
+                }
+                formats.append(fmt)
 
-        images = []
-        for name, info in track['images'].items():
-            image_url = info.get('url')
-            if name == 'dynamic' or not image_url:
-                continue
-            image = {
-                'id': name,
-                'url': image_url,
-                'height': int_or_none(info.get('height')),
-                'width': int_or_none(info.get('width')),
-            }
-            images.append(image)
+        images = [{'id': name, 'url': info['url'], 'height': int_or_none(info.get('height')), 'width': int_or_none(info.get('width'))}
+                  for name, info in track.get('images', {}).items() if name != 'dynamic' and info.get('url')]
 
         return {
-            'id': compat_str(track.get('id')) or track_id,
-            'display_id': track.get('slug') or display_id,
+            'id': compat_str(track.get('id', track_id)),
+            'display_id': track.get('slug', display_id),
             'title': title,
             'formats': formats,
-            'thumbnails': images,
+            'thumbnails': images
         }
