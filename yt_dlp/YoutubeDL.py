@@ -1808,7 +1808,7 @@ class YoutubeDL:
                     info_copy['id'] = ie.get_temp_id(ie_result['url'])
                 self.add_default_extra_info(info_copy, ie, ie_result['url'])
                 self.add_extra_info(info_copy, extra_info)
-                info_copy = self.pre_process(info_copy)
+                info_copy, _ = self.pre_process(info_copy)
                 self._fill_common_fields(info_copy, False)
                 self.__forced_printings(info_copy)
                 self._raise_pending_errors(info_copy)
@@ -2884,13 +2884,13 @@ class YoutubeDL:
             # which can't be exported to json
             info_dict['formats'] = formats
 
-        info_dict = self.pre_process(info_dict)
+        info_dict, _ = self.pre_process(info_dict)
 
         if self._match_entry(info_dict, incomplete=self._format_fields) is not None:
             return info_dict
 
         self.post_extract(info_dict)
-        info_dict = self.pre_process(info_dict, 'after_filter')
+        info_dict, _ = self.pre_process(info_dict, 'after_filter')
 
         # The pre-processors may have modified the formats
         formats = self._get_formats(info_dict)
@@ -3201,7 +3201,7 @@ class YoutubeDL:
             info_dict.clear()
             info_dict.update(new_info)
 
-        new_info = self.pre_process(info_dict, 'video')
+        new_info, _ = self.pre_process(info_dict, 'video')
         replace_info_dict(new_info)
         self._num_downloads += 1
 
@@ -3313,7 +3313,7 @@ class YoutubeDL:
                for link_type, should_write in write_links.items()):
             return
 
-        new_info = self.pre_process(info_dict, 'before_dl')
+        new_info, _ = self.pre_process(info_dict, 'before_dl')
         replace_info_dict(new_info)
 
         if self.params.get('skip_download'):
@@ -3676,7 +3676,10 @@ class YoutubeDL:
             info = self.run_pp(pp, info)
         return info
 
-    def pre_process(self, ie_info, key='pre_process'):
+    def pre_process(self, ie_info, key='pre_process', files_to_move=None):
+        if files_to_move is not None:
+            self.report_warning('[pre_process] "files_to_move" is deprecated and may be removed in a future version')
+
         info = dict(ie_info)
         try:
             info = self.run_all_pps(key, info)
@@ -3684,10 +3687,13 @@ class YoutubeDL:
             msg = f'Preprocessing: {err}'
             info.setdefault('__pending_error', msg)
             self.report_error(msg, is_error=False)
-        return info
+        return info, files_to_move
 
-    def post_process(self, filename, info):
+    def post_process(self, filename, info, files_to_move=None):
         """Run all the postprocessors on the given file."""
+        if files_to_move is not None:
+            self.report_warning('[post_process] "files_to_move" is deprecated and may be removed in a future version')
+
         info['filepath'] = filename
         info = self.run_all_pps('post_process', info, additional_pps=info.get('__postprocessors'))
         info = self.run_pp(MoveFilesAfterDownloadPP(self), info)
@@ -4281,7 +4287,7 @@ class YoutubeDL:
             if existing_sub:
                 self.to_screen(f'[info] Video subtitle {sub_lang}.{sub_format} is already present')
                 sub_info['filepath'] = existing_sub
-
+                ret.append((existing_sub, sub_filename_final))
                 continue
 
             self.to_screen(f'[info] Writing video subtitles to: {sub_filename}')
@@ -4292,7 +4298,7 @@ class YoutubeDL:
                     with open(sub_filename, 'w', encoding='utf-8', newline='') as subfile:
                         subfile.write(sub_info['data'])
                     sub_info['filepath'] = sub_filename
-
+                    ret.append((sub_filename, sub_filename_final))
                     continue
                 except OSError:
                     self.report_error(f'Cannot write video subtitles file {sub_filename}')
@@ -4303,7 +4309,7 @@ class YoutubeDL:
                 sub_copy.setdefault('http_headers', info_dict.get('http_headers'))
                 self.dl(sub_filename, sub_copy, subtitle=True)
                 sub_info['filepath'] = sub_filename
-
+                ret.append((sub_filename, sub_filename_final))
             except (DownloadError, ExtractorError, IOError, OSError, ValueError) + network_exceptions as err:
                 msg = f'Unable to download video subtitles for {sub_lang!r}: {err}'
                 if self.params.get('ignoreerrors') is not True:  # False or 'only_download'
@@ -4344,7 +4350,7 @@ class YoutubeDL:
                 self.to_screen('[info] %s is already present' % (
                     thumb_display_id if multiple else f'{label} thumbnail').capitalize())
                 t['filepath'] = existing_thumb
-
+                ret.append((existing_thumb, thumb_filename_final))
             else:
                 self.to_screen(f'[info] Downloading {thumb_display_id} ...')
                 try:
@@ -4352,7 +4358,7 @@ class YoutubeDL:
                     self.to_screen(f'[info] Writing {thumb_display_id} to: {thumb_filename}')
                     with open(encodeFilename(thumb_filename), 'wb') as thumbf:
                         shutil.copyfileobj(uf, thumbf)
-
+                    ret.append((thumb_filename, thumb_filename_final))
                     t['filepath'] = thumb_filename
                 except network_exceptions as err:
                     if isinstance(err, HTTPError) and err.status == 404:
