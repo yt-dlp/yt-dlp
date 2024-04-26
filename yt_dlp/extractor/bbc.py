@@ -1407,7 +1407,8 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
                                 'title': ('title', {str}),
                                 'thumbnail': ('imageUrl', {lambda u: urljoin(url, u.replace('$recipe', 'raw'))}),
                                 'description': (
-                                'synopses', ('long', 'medium', 'short'), {str}, any),
+                                    'synopses', ('long', 'medium', 'short'), {str}, any
+                                ),
                                 'timestamp': ('firstPublished', {k_int_or_none}),
                             }),
                         }
