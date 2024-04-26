@@ -34,6 +34,8 @@ class BrilliantpalaBaseIE(InfoExtractor):
             return
 
         if urlh.status == 401:
+            # The stored cookies have been invalidated.
+            # No login page will be returned and cookies will be reset, so visit the page again.
             login_page = self._download_webpage(self._LOGIN_API, None, 'Downloading login page')
 
         login_form = self._hidden_inputs(login_page)
