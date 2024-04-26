@@ -17,7 +17,6 @@ from ..utils import (
     int_or_none,
     join_nonempty,
     js_to_json,
-    merge_dicts,
     parse_duration,
     parse_iso8601,
     parse_qs,
@@ -1391,26 +1390,27 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
                     media_data = traverse_obj(simorgh_data, (
                         'pageData', 'promo', 'media',
                         {lambda x: x if x['id'] == block_id else None}))
-                    formats = traverse_obj(media_data, ('playlist', lambda _, v: v['url'], {
+                    formats = traverse_obj(media_data, ('playlist', lambda _, v: url_or_none(v['url']), {
                         'url': ('url', {url_or_none}),
                         'ext': ('format', {str}),
                         'tbr': ('bitrate', {k_int_or_none}),
-                    }, {lambda u: u.get('url') and u}))
+                    }))
                     if formats:
-                        entry = merge_dicts({
+                        entry = {
                             'id': block_id,
                             'display_id': playlist_id,
                             'formats': formats,
-                        }, traverse_obj(simorgh_data, ('pageData', 'promo', {
-                            'description': ('summary', {str}),
-                        })), traverse_obj(model, {
-                            'title': ('title', {str}),
-                            'thumbnail': ('imageUrl', {lambda u: urljoin(url, u.replace('$recipe', 'raw'))}),
-                            'description': (
+                            **traverse_obj(simorgh_data, ('pageData', 'promo', {
+                                'description': ('summary', {str}),
+                            })),
+                            **traverse_obj(model, {
+                                'title': ('title', {str}),
+                                'thumbnail': ('imageUrl', {lambda u: urljoin(url, u.replace('$recipe', 'raw'))}),
+                                'description': (
                                 'synopses', ('long', 'medium', 'short'), {str}, any),
-                            'timestamp': ('firstPublished', {k_int_or_none}),
-                        }),
-                        )
+                                'timestamp': ('firstPublished', {k_int_or_none}),
+                            }),
+                        }
                         done = True
                 if entry:
                     entries.append(entry)
