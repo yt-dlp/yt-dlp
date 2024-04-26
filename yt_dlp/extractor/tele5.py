@@ -3,6 +3,8 @@ from ..compat import compat_urlparse
 from ..utils import (
     ExtractorError,
     extract_attributes,
+    try_get,
+    RegexNotFoundError
 )
 
 
@@ -74,16 +76,31 @@ class Tele5IE(DPlayIE):  # XXX: Do not subclass from concrete IE
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
-        player_element = self._search_regex(r'(<hyoga-player\b[^>]+?>)', webpage, 'video player')
+    
+        # Improved regex to handle different variations of <hyoga-player> tag
+        player_element_regex = r'(<hyoga-player\b[^>]*?>)'
+        player_element = self._search_regex(player_element_regex, webpage, 'video player', default=None)
+    
+        if not player_element:
+            raise RegexNotFoundError('Could not find <hyoga-player> element. The page layout might have changed.')
+    
         player_info = extract_attributes(player_element)
-        asset_id, country, realm = (player_info[x] for x in ('assetid', 'locale', 'realm', ))
-        endpoint = compat_urlparse.urlparse(player_info['endpoint']).hostname
+        asset_id = player_info.get('assetid')
+        country = player_info.get('locale', 'DE')
+        realm = player_info.get('realm')
+        endpoint = try_get(player_info, lambda x: compat_urlparse.urlparse(x['endpoint']).hostname, str)
+    
+        # Adjust source type handling if available
         source_type = player_info.get('sourcetype')
         if source_type:
-            endpoint = '%s-%s' % (source_type, endpoint)
+            endpoint = f'{source_type}-{endpoint}'
+    
+        if not all([asset_id, endpoint, realm]):
+            raise ExtractorError('Necessary information missing from <hyoga-player> attributes')
+
         try:
             return self._get_disco_api_info(url, asset_id, endpoint, realm, country)
         except ExtractorError as e:
-            if getattr(e, 'message', '') == 'Missing deviceId in context':
+            if 'Missing deviceId in context' in getattr(e, 'message', ''):
                 self.report_drm(video_id)
             raise
