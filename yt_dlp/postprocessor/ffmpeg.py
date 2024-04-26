@@ -662,6 +662,10 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
         self.run_ffmpeg_multiple_files(input_files, temp_filename, opts)
         os.replace(temp_filename, filename)
 
+        if not self._already_have_subtitle:
+            for _, subtitle in subtitles.items():
+                subtitle.pop('filepath', None)
+
         files_to_delete = [] if self._already_have_subtitle else sub_filenames
         return files_to_delete, info
 
@@ -698,6 +702,7 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
                 infojson_filename = info.get('infojson_filename')
                 options.extend(self._get_infojson_opts(info, infojson_filename))
                 if not infojson_filename:
+                    info.pop('infojson_filename', None)
                     files_to_delete.append(info.get('infojson_filename'))
             elif self._add_infojson is True:
                 self.to_screen('The info-json can only be attached to mkv/mka files')

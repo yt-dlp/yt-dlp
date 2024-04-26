@@ -3697,7 +3697,7 @@ class YoutubeDL:
         info['filepath'] = filename
         info = self.run_all_pps('post_process', info, additional_pps=info.get('__postprocessors'))
         info = self.run_pp(MoveFilesAfterDownloadPP(self), info)
-        del info['__multiple_thumbnails']
+        info.pop('__multiple_thumbnails', None)
         return self.run_all_pps('after_move', info)
 
     def _make_archive_id(self, info_dict):

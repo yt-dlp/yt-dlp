@@ -226,6 +226,6 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
             info=info)
 
         if not self._already_have_thumbnail:
-            del info['thumbnails'][idx]['filepath']
+            info['thumbnails'][idx].pop('filepath', None)
 
         return [], info
