@@ -1,6 +1,10 @@
 import json
 import uuid
 
+from urllib.parse import urlsplit, urljoin
+
+import requests
+
 from .common import InfoExtractor
 from ..networking.exceptions import HTTPError
 from ..utils import (
@@ -49,32 +53,76 @@ class DPlayBaseIE(InfoExtractor):
                 'This video is only available for registered users. You may want to use --cookies.', expected=True)
         raise ExtractorError(info['errors'][0]['detail'], expected=True)
 
-    def _update_disco_api_headers(self, headers, disco_base, display_id, realm):
-        headers['Authorization'] = self._get_auth(disco_base, display_id, realm, False)
-
-    def _download_video_playback_info(self, disco_base, video_id, headers):
-        streaming = self._download_json(
-            disco_base + 'playback/videoPlaybackInfo/' + video_id,
-            video_id, headers=headers)['data']['attributes']['streaming']
-        streaming_list = []
-        for format_id, format_dict in streaming.items():
-            streaming_list.append({
-                'type': format_id,
-                'url': format_dict.get('url'),
+    def _update_disco_api_headers(self, headers, disco_base, display_id, realm, api_version=2):
+        if api_version == 3:
+            headers.update({
+                'Authorization': self._get_auth(disco_base, display_id, realm, True),
             })
+        else:
+            headers['Authorization'] = self._get_auth(disco_base, display_id, realm, False)
+
+    def _download_video_playback_info(self, disco_base, video_id, headers, api_version=2):
+        """
+        Disco Api Playback Info
+        :param disco_base: The url base, i.e. https://{region}{instance_number}-prod.disco-api.com/ .
+        :param video_id: The Video ID, part of the url, and used for Log Output by this program.
+        :param headers: The headers to be used for the request.
+        :param api_version: Api Version V3 now uses json based approach. Default is 2 to keep old behaviour.
+        :return: A dictionary with {content_type: url_to_content_type} scheme.
+        """
+        if api_version == 3:
+            video_playback_info_url = urljoin(base=disco_base, url="playback/v3/videoPlaybackInfo")
+
+            request_json_content = {
+                "deviceInfo": {"adBlocker": False,  # deviceInfo is mandatory, some keys inside are optional!
+                               "drmSupported": False,
+                               },
+                "videoId": "{0}".format(video_id),
+            }
+
+            video_playback_response = requests.post(url=video_playback_info_url,
+                                                    headers=headers,
+                                                    json=request_json_content,
+                                                    )
+            video_playback_response.raise_for_status()
+
+            streaming_list = video_playback_response.json()['data']['attributes']['streaming']
+            streaming_item = streaming_list[0]
+            streaming_item_protection = streaming_item.get("protection")
+
+            assert streaming_item_protection.get("drmEnabled") is False
+        else:
+            # old behaviour
+            streaming = self._download_json(
+                disco_base + 'playback/videoPlaybackInfo/' + video_id,
+                video_id, headers=headers)['data']['attributes']['streaming']
+            streaming_list = []
+            for format_id, format_dict in streaming.items():
+                streaming_list.append({
+                    'type': format_id,
+                    'url': format_dict.get('url'),
+                })
         return streaming_list
 
-    def _get_disco_api_info(self, url, display_id, disco_host, realm, country, domain=''):
+    def _get_disco_api_info(self, url, display_id, disco_host, realm, country, domain='', api_version=2):
         country = self.get_param('geo_bypass_country') or country
         geo_countries = [country.upper()]
         self._initialize_geo_bypass({
             'countries': geo_countries,
         })
         disco_base = 'https://%s/' % disco_host
-        headers = {
-            'Referer': url,
-        }
-        self._update_disco_api_headers(headers, disco_base, display_id, realm)
+        if api_version == 3:
+            url_base = "://".join(urlsplit(url)[:2])
+            headers = {
+                'Referer': urljoin(base=url_base, url="/"),
+                'Origin': url_base,
+            }
+        else:
+            # old behaviour
+            headers = {
+                'Referer': url,
+            }
+        self._update_disco_api_headers(headers, disco_base, display_id, realm, api_version=api_version)
         try:
             video = self._download_json(
                 disco_base + 'content/videos/' + display_id, display_id,
@@ -97,7 +145,7 @@ class DPlayBaseIE(InfoExtractor):
         subtitles = {}
         try:
             streaming = self._download_video_playback_info(
-                disco_base, video_id, headers)
+                disco_base, video_id, headers, api_version=api_version)
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError) and e.cause.status == 403:
                 self._process_errors(e, geo_countries)
