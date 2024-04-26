@@ -1982,9 +1982,8 @@ class YoutubeDL:
                 'playlist', ie_result, self.prepare_filename(ie_copy, 'pl_infojson'))
             if _infojson_written is None:
                 return
-
-            description_file = self._write_description('playlist', ie_result, self.prepare_filename(ie_copy, 'pl_description'))
-            if description_file is None:
+            if self._write_description('playlist', ie_result,
+                                       self.prepare_filename(ie_copy, 'pl_description')) is None:
                 return
             # TODO: This should be passed to ThumbnailsConvertor if necessary
             self._write_thumbnails('playlist', ie_result, self.prepare_filename(ie_copy, 'pl_thumbnail'))
@@ -3229,8 +3228,8 @@ class YoutubeDL:
         if not self._ensure_dir_exists(encodeFilename(temp_filename)):
             return
 
-        description_file = self._write_description('video', info_dict, self.prepare_filename(info_dict, 'description'))
-        if description_file is None:
+        if self._write_description('video', info_dict,
+                                   self.prepare_filename(info_dict, 'description')) is None:
             return
 
         sub_files = self._write_subtitles(info_dict, temp_filename)
@@ -4233,27 +4232,27 @@ class YoutubeDL:
             self.report_error(f'Cannot write {label} metadata to JSON file {infofn}')
             return None
 
-    def _write_description(self, label, info_dict, filename):
+    def _write_description(self, label, ie_result, descfn):
         ''' Write description and returns True = written, False = skip, None = error '''
         if not self.params.get('writedescription'):
             return False
-        elif not filename:
+        elif not descfn:
             self.write_debug(f'Skipping writing {label} description')
             return False
-        elif not self._ensure_dir_exists(filename):
+        elif not self._ensure_dir_exists(descfn):
             return None
-        elif not self.params.get('overwrites', True) and os.path.exists(filename):
+        elif not self.params.get('overwrites', True) and os.path.exists(descfn):
             self.to_screen(f'[info] {label.title()} description is already present')
-        elif info_dict.get('description') is None:
+        elif ie_result.get('description') is None:
             self.to_screen(f'[info] There\'s no {label} description to write')
             return False
         else:
             try:
-                self.to_screen(f'[info] Writing {label} description to: {filename}')
-                with open(filename, 'w', encoding='utf-8') as descfile:
-                    descfile.write(info_dict['description'])
+                self.to_screen(f'[info] Writing {label} description to: {descfn}')
+                with open(encodeFilename(descfn), 'w', encoding='utf-8') as descfile:
+                    descfile.write(ie_result['description'])
             except OSError:
-                self.report_error(f'Cannot write {label} description file {filename}')
+                self.report_error(f'Cannot write {label} description file {descfn}')
                 return None
         return True
 
