@@ -8,7 +8,6 @@ from ..utils import (
     make_dir,
     replace_extension
 )
-import pdb
 
 
 class MoveFilesAfterDownloadPP(PostProcessor):
@@ -89,17 +88,10 @@ class MoveFilesAfterDownloadPP(PostProcessor):
         return final_filepath
 
     def run(self, info):
-        # Map of the keys that contain moveable files and the 'type' of the file
-        # for generating the output filename
-        child_keys = {
-            'thumbnails': 'thumbnail',
-            'requested_subtitles': 'subtitle'
-        }
-
         # This represents the main media file (using the 'filepath' key)
         self.move_file_and_write_to_info(info)
 
-        for key, output_file_type in child_keys.items():
+        for key, output_file_type in self.CHILD_KEYS.items():
             if key not in info:
                 continue
 
