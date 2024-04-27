@@ -2059,7 +2059,7 @@ Line 1
         assert extract_basic_auth('http://user:pass@foo.bar') == ('http://foo.bar', 'Basic dXNlcjpwYXNz')
 
     @unittest.skipUnless(compat_os_name == 'nt', 'Only relevant on Windows')
-    def test_Popen_windows_escaping(self):
+    def test_windows_escaping(self):
         tests = [
             'test"&',
             '%CMDCMDLINE:~-1%&',
@@ -2083,10 +2083,10 @@ Line 1
             return stdout
 
         for argument in tests:
-            if isinstance(argument, tuple):
-                argument, expected = argument
-            else:
+            if isinstance(argument, str):
                 expected = argument
+            else:
+                argument, expected = argument
 
             args = [sys.executable, '-c', 'import sys; print(end=sys.argv[1])', argument]
             assert run_shell(args) == expected
