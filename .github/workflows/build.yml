@@ -300,7 +300,7 @@ jobs:
   macos_legacy:
     needs: process
     if: inputs.macos_legacy
-    runs-on: macos-latest
+    runs-on: macos-12
 
     steps:
       - uses: actions/checkout@v4
