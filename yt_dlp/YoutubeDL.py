@@ -2136,6 +2136,8 @@ class YoutubeDL:
 
     def _check_formats(self, formats):
         for f in formats:
+            if f.get('__working'):
+                yield f
             self.to_screen('[info] Testing format %s' % f['format_id'])
             path = self.get_output_path('temp')
             if not self._ensure_dir_exists(f'{path}/'):
@@ -2153,6 +2155,7 @@ class YoutubeDL:
                     except OSError:
                         self.report_warning('Unable to delete temporary file "%s"' % temp_file.name)
             if success:
+                f['__working'] = True
                 yield f
             else:
                 self.to_screen('[info] Unable to download format %s. Skipping...' % f['format_id'])
@@ -2162,6 +2165,18 @@ class YoutubeDL:
         def can_merge():
             merger = FFmpegMergerPP(self)
             return merger.available and merger.can_merge()
+
+        def evaluate_formats(format_spec):
+            formats = info_dict.get('formats') or []
+            return list(self.build_format_selector(format_spec)({
+                'formats': formats,
+                'has_merged_format': any('none' not in (f.get('acodec'), f.get('vcodec')) for f in formats),
+                'incomplete_formats': (all(f.get('vcodec') == 'none' for f in formats)  # No formats with video
+                                       or all(f.get('acodec') == 'none' for f in formats)),  # OR, No formats with audio
+            }))
+        if not can_merge() and evaluate_formats('best/bestvideo+bestaudio') != evaluate_formats('bestvideo*+bestaudio/best'):
+            self.report_warning('ffmpeg not found. The downloaded format is not the highest available quality. '
+                                'Installing ffmpeg is strongly recommended: https://github.com/yt-dlp/yt-dlp#dependencies')
 
         prefer_best = (
             not self.params.get('simulate')
