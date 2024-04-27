@@ -2088,11 +2088,11 @@ Line 1
             else:
                 argument, expected = argument
 
-            args = [sys.executable, '-c', 'import sys; print(end=sys.argv[1])', argument]
+            args = [sys.executable, '-c', 'import sys; print(end=sys.argv[1])', argument, 'end']
             assert run_shell(args) == expected
 
             escaped = shell_quote(argument, shell=True)
-            args = f'{sys.executable} -c "import sys; print(end=sys.argv[1])" {escaped}'
+            args = f'{sys.executable} -c "import sys; print(end=sys.argv[1])" {escaped} end'
             assert run_shell(args) == expected
 
 
