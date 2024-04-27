@@ -1359,8 +1359,8 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
                         'description': strip_or_none(item_desc),
                     })
 
-            for resp in (initial_data.get('data') or {}).values():
-                name = resp.get('name')
+            for resp in traverse_obj(initial_data, ('data', lambda _, v: v['name'])):
+                name = resp['name']
                 if name == 'media-experience':
                     parse_media(try_get(resp, lambda x: x['data']['initialItem']['mediaItem'], dict))
                 elif name == 'article':
