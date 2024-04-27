@@ -1291,8 +1291,7 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
                 **traverse_obj(model, {
                     'title': ('title', {str}),
                     'thumbnail': ('imageUrl', {lambda u: urljoin(url, u.replace('$recipe', 'raw'))}),
-                    'description': (
-                        'synopses', ('long', 'medium', 'short'), {str}, any),
+                    'description': ('synopses', ('long', 'medium', 'short'), {str}, any),
                     'duration': ('versions', 0, 'duration', {int}),
                     'timestamp': ('versions', 0, 'availableFrom', {k_int_or_none}),
                 })
@@ -1406,9 +1405,7 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
                             **traverse_obj(model, {
                                 'title': ('title', {str}),
                                 'thumbnail': ('imageUrl', {lambda u: urljoin(url, u.replace('$recipe', 'raw'))}),
-                                'description': (
-                                    'synopses', ('long', 'medium', 'short'), {str}, any
-                                ),
+                                'description': ('synopses', ('long', 'medium', 'short'), {str}, any),
                                 'timestamp': ('firstPublished', {k_int_or_none}),
                             }),
                         }
