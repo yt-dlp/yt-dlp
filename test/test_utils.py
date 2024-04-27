@@ -2060,6 +2060,21 @@ Line 1
 
     @unittest.skipUnless(compat_os_name == 'nt', 'Only relevant on Windows')
     def test_Popen_windows_escaping(self):
+        tests = [
+            'test"&',
+            '%CMDCMDLINE:~-1%&',
+            'a\nb',
+            '"',
+            '\\',
+            '!',
+            '^!',
+            'a \\ b',
+            'a \\" b',
+            'a \\ b\\',
+            # We replace \r with \n
+            ('a\r\ra', 'a\n\na'),
+        ]
+
         def run_shell(args):
             stdout, stderr, error = Popen.run(
                 args, text=True, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -2067,15 +2082,18 @@ Line 1
             assert not error
             return stdout
 
-        # Test escaping
-        assert run_shell(['echo', 'test"&']) == '"test""&"\n'
-        assert run_shell(['echo', '%CMDCMDLINE:~-1%&']) == '"%CMDCMDLINE:~-1%&"\n'
-        assert run_shell(['echo', 'a\nb']) == '"a"\n"b"\n'
-        assert run_shell(['echo', '"']) == '""""\n'
-        assert run_shell(['echo', '\\']) == '\\\n'
-        # Test if delayed expansion is disabled
-        assert run_shell(['echo', '^!']) == '"^!"\n'
-        assert run_shell('echo "^!"') == '"^!"\n'
+        for argument in tests:
+            if isinstance(argument, tuple):
+                argument, expected = argument
+            else:
+                expected = argument
+
+            args = [sys.executable, '-c', 'import sys; print(end=sys.argv[1])', argument]
+            assert run_shell(args) == expected
+
+            escaped = shell_quote(argument, shell=True)
+            args = f'{sys.executable} -c "import sys; print(end=sys.argv[1])" {escaped}'
+            assert run_shell(args) == expected
 
 
 if __name__ == '__main__':
