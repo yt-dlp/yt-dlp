@@ -259,6 +259,10 @@ class WrestleUniversePPVIE(WrestleUniverseBaseIE):
         'params': {
             'skip_download': 'm3u8',
         },
+    }, {
+        'note': 'manifest provides live-a (partial) and live-b (full) streams',
+        'url': 'https://www.wrestle-universe.com/en/lives/umc99R9XsexXrxr9VjTo9g',
+        'only_matching': True,
     }]
 
     _API_PATH = 'events'
