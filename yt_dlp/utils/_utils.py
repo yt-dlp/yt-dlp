@@ -1654,12 +1654,6 @@ _CMD_QUOTE_TRANS = str.maketrans({
 
 def shell_quote(args, *, shell=False):
     args = list(variadic(args))
-    if any(isinstance(item, bytes) for item in args):
-        deprecation_warning('Passing bytes to utils.shell_quote is deprecated')
-        encoding = get_filesystem_encoding()
-        for index, item in enumerate(args):
-            if isinstance(item, bytes):
-                args[index] = item.decode(encoding)
 
     if compat_os_name != 'nt':
         return shlex.join(args)
