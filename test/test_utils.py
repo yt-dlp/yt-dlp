@@ -2090,10 +2090,7 @@ Line 1
 
             args = [sys.executable, '-c', 'import sys; print(end=sys.argv[1])', argument, 'end']
             assert run_shell(args) == expected
-
-            escaped = shell_quote(argument, shell=True)
-            args = f'{sys.executable} -c "import sys; print(end=sys.argv[1])" {escaped} end'
-            assert run_shell(args) == expected
+            assert run_shell(shell_quote(args, shell=True)) == expected
 
 
 if __name__ == '__main__':
