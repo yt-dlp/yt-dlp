@@ -6,5 +6,5 @@ services:
       origin: ${origin}
       version: ${version}
     volumes:
-      - /build:/build
+      - ~/build:/build
       - ../..:/yt-dlp

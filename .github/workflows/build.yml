@@ -153,25 +153,23 @@ jobs:
           origin: ${{ needs.process.outputs.origin }}
           version: ${{ inputs.version }}
         run: |
-          mkdir /build
+          mkdir ~/build
           cd bundle/docker
           docker compose up --build static
       - name: Verify --update-to
         if: vars.UPDATE_TO_VERIFICATION
         run: |
-          for binary in /build/*; do
-            chmod +x "${binary}"
-            cp "${binary}" "${binary}_downgraded"
-            version="$("${binary}" --version)"
-            "${binary}_downgraded" -v --update-to yt-dlp/yt-dlp@2023.03.04
-            downgraded_version="$("${binary}_downgraded" --version)"
-            [[ "$version" != "$downgraded_version" ]]
-          done
+          cp ~/build/yt-dlp_linux ~/build/yt-dlp_linux_downgraded
+          version="$(~/build/yt-dlp_linux --version)"
+          ~/build/yt-dlp_linux_downgraded -v --update-to yt-dlp/yt-dlp@2023.03.04
+          downgraded_version="$(~/build/yt-dlp_linux_downgraded --version)"
+          [[ "$version" != "$downgraded_version" ]]
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: build-bin-${{ github.job }}
-          path: /build/*
+          path: |
+            ~/build/yt-dlp_linux
           compression-level: 0
 
   linux_arm:
