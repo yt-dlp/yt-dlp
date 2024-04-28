@@ -156,7 +156,7 @@ jobs:
           mkdir ~/build
           cd bundle/docker
           docker compose up --build static
-          sudo chown "${USER}:${USER}" ~/build/yt-dlp_linux
+          sudo chown "${USER}:docker" ~/build/yt-dlp_linux
       - name: Verify --update-to
         if: vars.UPDATE_TO_VERIFICATION
         run: |
