@@ -447,6 +447,7 @@ jobs:
     needs:
       - process
       - unix
+      - linux_static
       - linux_arm
       - macos
       - macos_legacy
