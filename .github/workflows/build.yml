@@ -156,9 +156,11 @@ jobs:
           mkdir ~/build
           cd bundle/docker
           docker compose up --build static
+          sudo chown "${USER}:${USER}" ~/build/yt-dlp_linux
       - name: Verify --update-to
         if: vars.UPDATE_TO_VERIFICATION
         run: |
+          chmod +x ~/build/yt-dlp_linux
           cp ~/build/yt-dlp_linux ~/build/yt-dlp_linux_downgraded
           version="$(~/build/yt-dlp_linux --version)"
           ~/build/yt-dlp_linux_downgraded -v --update-to yt-dlp/yt-dlp@2023.03.04

@@ -11,4 +11,3 @@ deactivate
 source ~/.local/share/pipx/venvs/staticx/bin/activate
 staticx /yt-dlp/dist/yt-dlp_linux /build/yt-dlp_linux
 deactivate
-chmod +rx /build/yt-dlp_linux
