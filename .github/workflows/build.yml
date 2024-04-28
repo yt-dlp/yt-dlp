@@ -51,12 +51,12 @@ on:
         required: true
         default: stable
         type: string
-      linux_static:
-        description: yt-dlp_linux
-        default: true
-        type: boolean
       unix:
         description: yt-dlp, yt-dlp.tar.gz
+        default: true
+        type: boolean
+      linux_static:
+        description: yt-dlp_linux
         default: true
         type: boolean
       linux_arm:
@@ -77,10 +77,6 @@ on:
         type: boolean
       windows32:
         description: yt-dlp_x86.exe
-        default: true
-        type: boolean
-      meta_files:
-        description: SHA2-256SUMS, SHA2-512SUMS, _update_spec
         default: true
         type: boolean
       origin:
@@ -104,39 +100,6 @@ jobs:
         id: process_origin
         run: |
           echo "origin=${{ inputs.origin == 'current repo' && github.repository || inputs.origin }}" | tee "$GITHUB_OUTPUT"
-
-  linux_static:
-    needs: process
-    if: inputs.linux_static
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Build static executable
-        env:
-          channel: ${{ inputs.channel }}
-          origin: ${{ needs.process.outputs.origin }}
-          version: ${{ inputs.version }}
-        run: |
-          mkdir /build
-          cd bundle/docker
-          docker compose up --build static
-      - name: Verify --update-to
-        if: vars.UPDATE_TO_VERIFICATION
-        run: |
-          for binary in /build/*; do
-            chmod +x "${binary}"
-            cp "${binary}" "${binary}_downgraded"
-            version="$("${binary}" --version)"
-            "${binary}_downgraded" -v --update-to yt-dlp/yt-dlp@2023.03.04
-            downgraded_version="$("${binary}_downgraded" --version)"
-            [[ "$version" != "$downgraded_version" ]]
-          done
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-bin-${{ github.job }}
-          path: /build/*
-          compression-level: 0
 
   unix:
     needs: process
@@ -176,6 +139,39 @@ jobs:
           path: |
             yt-dlp
             yt-dlp.tar.gz
+          compression-level: 0
+
+  linux_static:
+    needs: process
+    if: inputs.linux_static
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build static executable
+        env:
+          channel: ${{ inputs.channel }}
+          origin: ${{ needs.process.outputs.origin }}
+          version: ${{ inputs.version }}
+        run: |
+          mkdir /build
+          cd bundle/docker
+          docker compose up --build static
+      - name: Verify --update-to
+        if: vars.UPDATE_TO_VERIFICATION
+        run: |
+          for binary in /build/*; do
+            chmod +x "${binary}"
+            cp "${binary}" "${binary}_downgraded"
+            version="$("${binary}" --version)"
+            "${binary}_downgraded" -v --update-to yt-dlp/yt-dlp@2023.03.04
+            downgraded_version="$("${binary}_downgraded" --version)"
+            [[ "$version" != "$downgraded_version" ]]
+          done
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-bin-${{ github.job }}
+          path: /build/*
           compression-level: 0
 
   linux_arm:
