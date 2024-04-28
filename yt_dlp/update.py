@@ -69,6 +69,10 @@ def _get_variant_and_executable_path():
             # Ref: https://en.wikipedia.org/wiki/Uname#Examples
             if machine[1:] in ('x86', 'x86_64', 'amd64', 'i386', 'i686'):
                 machine = '_x86' if platform.architecture()[0][:2] == '32' else ''
+            # sys.executable returns a /tmp/ path for staticx builds (linux_static)
+            # Ref: https://staticx.readthedocs.io/en/latest/usage.html#run-time-information
+            if static_exe_path := os.getenv('STATICX_PROG_PATH'):
+                path = static_exe_path
         return f'{remove_end(sys.platform, "32")}{machine}_exe', path
 
     path = os.path.dirname(__file__)
