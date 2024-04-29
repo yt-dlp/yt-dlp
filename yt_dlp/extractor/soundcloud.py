@@ -361,7 +361,7 @@ class SoundcloudBaseIE(InfoExtractor):
             'like_count': extract_count('favoritings') or extract_count('likes'),
             'comment_count': extract_count('comment'),
             'repost_count': extract_count('reposts'),
-            'genre': info.get('genre'),
+            'genres': traverse_obj(info, ('genre', {str}, {lambda x: x or None}, all)),
             'formats': formats if not extract_flat else None
         }
 
