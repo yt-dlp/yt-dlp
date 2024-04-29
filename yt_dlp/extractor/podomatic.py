@@ -5,6 +5,7 @@ from ..utils import int_or_none
 
 
 class PodomaticIE(InfoExtractor):
+    _WORKING = False
     IE_NAME = 'podomatic'
     _VALID_URL = r'''(?x)
                     (?P<proto>https?)://

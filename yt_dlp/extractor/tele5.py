@@ -7,6 +7,7 @@ from ..utils import (
 
 
 class Tele5IE(DPlayIE):  # XXX: Do not subclass from concrete IE
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?tele5\.de/(?:[^/]+/)*(?P<id>[^/?#&]+)'
     _GEO_COUNTRIES = ['DE']
     _TESTS = [{
