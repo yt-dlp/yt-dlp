@@ -670,6 +670,7 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
             'description': 'md5:1525f17448c4ee262b64b8f0c9ce66c8',
             'timestamp': 1434713142,
             'upload_date': '20150619',
+            'thumbnail': 'https://a.files.bbci.co.uk/worldservice/live/assets/images/2015/06/19/150619132146_honduras_hsopitales_militares_640x360_aptn_nocredit.jpg',
         },
         'params': {
             'skip_download': True,
@@ -695,10 +696,11 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
             'id': 'p02q6gc4',
             'ext': 'mp4',
             'title': 'Tasting the spice of life in Jaffna',
-            'description': r're:(?s)BBC Travel Show’s Henry Golding explores the city of Jaffna .{149} aftertaste\.$',
-            'timestamp': 1437935638,
-            'upload_date': '20150726',
+            'description': r're:(?s)BBC Travel Show’s Henry Golding explores the city of Jaffna .{151} aftertaste\.$',
+            'timestamp': 1646058397,
+            'upload_date': '20220228',
             'duration': 255,
+            'thumbnail': 'https://ichef.bbci.co.uk/images/ic/1920xn/p02vxvkn.jpg',
         },
     }, {
         # single video story without digitalData
@@ -736,7 +738,7 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
             'description': r're:(?s)BBC Sport\'s David Ornstein rounds up the latest transfer reports, .{359} here\.$',
             'timestamp': 1437750175,
             'upload_date': '20150724',
-            'thumbnail': r're:https://(?:[^/]+/)+/media/images/69320000/png/_69320754_mmgossipcolumnextraaugust18.png',
+            'thumbnail': r're:https?://.+/.+media/images/69320000/png/_69320754_mmgossipcolumnextraaugust18.png',
             'duration': 140,
         },
     }, {
@@ -797,10 +799,10 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
             'id': 'p0b779gc',
             'ext': 'mp4',
             'title': 'Why France is making this woman a national hero',
-            'description': r're:(?s)France is honouring the US-born 20th Century singer and activist Josephine .{291} Casseville$',
+            'description': r're:(?s)France is honouring the US-born 20th Century singer and activist Josephine .{208} Second World War.',
             'thumbnail': r're:https?://.+/.+\.jpg',
-            'timestamp': 1638230731,
-            'upload_date': '20211130',
+            'timestamp': 1638215626,
+            'upload_date': '20211129',
             'duration': 125,
         },
     }, {
@@ -864,7 +866,7 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
             'description': 'md5:fad74b31da60d83b8265954ee42d85b4',
             'duration': 235,
             'thumbnail': r're:https?://.+/p07c9dsr\.(?:jpg|webp|png)',
-            'upload_date': '20190604',
+            'upload_date': '20220223',
             'categories': ['Psychology'],
         },
     }, {
@@ -1140,11 +1142,9 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
                         f'https://www.bbc.co.uk/programmes/{video_id}', BBCCoUkIE,
                         video_id, url_transparent=True)
                 entry.update({
-                    **traverse_obj(morph_payload, (
-                        'body', 'content', 'article', {
-                            'timestamp': ('dateTimeInfo', 'dateTime', {parse_iso8601}),
-                        }
-                    )),
+                    'timestamp': traverse_obj(morph_payload, (
+                        'body', 'content', 'article', 'dateTimeInfo', 'dateTime', {parse_iso8601})
+                    ),
                     **traverse_obj(video_data, {
                         'thumbnail': (('iChefImage', 'image'), {url_or_none}, any),
                         'title': (('title', 'caption'), {str}, any),
@@ -1184,16 +1184,14 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
                     'series': ('titles', 'primary', {str}),
                 }),
                 'subtitles': subtitles,
-                **traverse_obj(preload_state, {
-                    'chapters': (
-                        'tracklist', 'tracks', lambda _, v: float(v['offset']['start']), {
-                            'title': ('titles', {lambda x: join_nonempty(
-                                'primary', 'secondary', 'tertiary', delim=' - ', from_dict=x)}),
-                            'start_time': ('offset', 'start', {float_or_none}),
-                            'end_time': ('offset', 'end', {float_or_none}),
-                        }
-                    )
-                }),
+                'chapters': traverse_obj(preload_state, (
+                    'tracklist', 'tracks', lambda _, v: float(v['offset']['start']), {
+                        'title': ('titles', {lambda x: join_nonempty(
+                            'primary', 'secondary', 'tertiary', delim=' - ', from_dict=x)}),
+                        'start_time': ('offset', 'start', {float_or_none}),
+                        'end_time': ('offset', 'end', {float_or_none}),
+                    })
+                ),
             }
 
         # PWA_PRELOADED_STATE with article video asset
@@ -1399,9 +1397,7 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
                             'id': block_id,
                             'display_id': playlist_id,
                             'formats': formats,
-                            **traverse_obj(simorgh_data, ('pageData', 'promo', {
-                                'description': ('summary', {str}),
-                            })),
+                            'description': traverse_obj(simorgh_data, ('pageData', 'promo', 'summary', {str})),
                             **traverse_obj(model, {
                                 'title': ('title', {str}),
                                 'thumbnail': ('imageUrl', {lambda u: urljoin(url, u.replace('$recipe', 'raw'))}),
@@ -1425,7 +1421,7 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
 
         # US accessed article with single embedded video (e.g.
         # https://www.bbc.com/news/uk-68546268)
-        next_data = traverse_obj(self._search_nextjs_data(webpage, playlist_id, default={}),
+        next_data = traverse_obj(self._search_nextjs_data(webpage, playlist_id, default='{}'),
                                  ('props', 'pageProps', 'page'))
         model = traverse_obj(next_data, (
             ..., 'contents', is_type('video'),
