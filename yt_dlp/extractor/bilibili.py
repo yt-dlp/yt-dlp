@@ -93,11 +93,11 @@ class BilibiliBaseIE(InfoExtractor):
 
         return formats
 
-    def _download_playinfo(self, video_id, cid):
+    def _download_playinfo(self, video_id, cid, headers=None):
         return self._download_json(
             'https://api.bilibili.com/x/player/playurl', video_id,
             query={'bvid': video_id, 'cid': cid, 'fnval': 4048},
-            note=f'Downloading video formats for cid {cid}')['data']
+            note=f'Downloading video formats for cid {cid}', headers=headers)['data']
 
     def json2srt(self, json_data):
         srt_data = ''
@@ -532,7 +532,7 @@ class BiliBiliIE(BilibiliBaseIE):
             self._download_json(
                 'https://api.bilibili.com/x/player/pagelist', video_id,
                 fatal=False, query={'bvid': video_id, 'jsonp': 'jsonp'},
-                note='Extracting videos in anthology'),
+                note='Extracting videos in anthology', headers=headers),
             'data', expected_type=list) or []
         is_anthology = len(page_list_json) > 1
 
@@ -553,7 +553,7 @@ class BiliBiliIE(BilibiliBaseIE):
 
         festival_info = {}
         if is_festival:
-            play_info = self._download_playinfo(video_id, cid)
+            play_info = self._download_playinfo(video_id, cid, headers=headers)
 
             festival_info = traverse_obj(initial_state, {
                 'uploader': ('videoInfo', 'upName'),
