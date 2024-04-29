@@ -667,7 +667,7 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
 
     def _real_extract(self, url):
         episode_id = self._match_id(url)
-        headers = {'Referer': url, **self.geo_verification_headers()}
+        headers = self.geo_verification_headers()
         webpage = self._download_webpage(url, episode_id, headers=headers)
 
         if '您所在的地区无法观看本片' in webpage:
