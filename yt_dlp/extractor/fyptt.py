@@ -1,8 +1,7 @@
 from .common import InfoExtractor
 
-
 class FYPTTIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:stream\.|)fyptt\.to/(?P<id>[0-9a-zA-Z]+)(?:\.|/)'
+    _VALID_URL = r'https?://(?:stream\.|)fyptt\.to/(?P<id>[0-9a-zA-Z]+)(?:|/)'
     _TESTS = [{
         'url': 'https://fyptt.to/203/gorgeous-naughty-blonde-with-beautiful-curves-shows-her-naked-boobies-on-nsfw-tiktok/',
         'md5': 'TODO: md5 sum of the first 10241 bytes of the video file (use --test)',
@@ -32,16 +31,31 @@ class FYPTTIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        #video_id = self._match_id(url)
-        #webpage = self._download_webpage(url, video_id)
+        video_id = self._match_id(url)
+        webpage = self._download_webpage(url, video_id)
+        formats = []
 
-        # TODO more code goes here, for example ...
-        title = self._html_search_regex(r'<h1>(.+?)</h1>', webpage, 'title')
+#        format_url = self._html_search_regex(r'<span">(.+?)</span>', webpage, 'title')
+        #format_url = self._html_search_regex(r'<source\s+src="([^"]+)"\s+type="video/mp4">', webpage, 'video URL')
+        print("format_url")
+        format_url = self._html_search_regex(r'<source\s+src="(.+?)"\s+type="video/mp4">', webpage, 'format_url')
+        print(format_url)
+        formats.append({
+            'url': format_url,
+            'format_id': 'default',
+        })
+
+        title = self._html_search_regex(r'<span class="fl-heading-text">(.+?)</span>', webpage, 'title')
+
+#<video tabindex="-1" class="vjs-tech" id="my-video_html5_api" preload="auto" loop="" autoplay="" src="https://stream.fyptt.to/j9RGIKsg.mp4">
+#<source src="https://stream.fyptt.to/j9RGIKsg.mp4" type="video/mp4"></video>
+        
+
 
         return {
             'id': video_id,
             'title': title,
             'description': self._og_search_description(webpage),
-            'uploader': self._search_regex(r'<div[^>]+id="uploader"[^>]*>([^<]+)<', webpage, 'uploader', fatal=False),
-            # TODO more properties (see yt_dlp/extractor/common.py)
+            'age_limit': 18,
+            'formats': formats,
         }
