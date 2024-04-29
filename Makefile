@@ -73,7 +73,7 @@ codetest:
 	flake8 .
 
 test:
-	$(PYTHON) -m pytest
+	$(PYTHON) -m pytest -Werror
 	$(MAKE) codetest
 
 offlinetest: codetest
