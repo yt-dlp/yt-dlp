@@ -64,9 +64,8 @@ class QubIE(InfoExtractor):
 
     def _real_extract(self, url):
         entity_id = self._match_id(url)
-        entity = self._download_json(
-            'https://www.qub.ca/proxy/pfu/content-delivery-service/v1/entities',
-            entity_id, query={'id': entity_id})
+        webpage = self._download_webpage(url, entity_id)
+        entity = self._search_nextjs_data(webpage, entity_id)['props']['initialProps']['pageProps']['fallbackData']
         video_id = entity['videoId']
         episode = strip_or_none(entity.get('name'))
 
