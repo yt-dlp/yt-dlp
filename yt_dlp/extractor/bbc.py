@@ -1220,9 +1220,7 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
                     })),
                     'formats': formats,
                     'subtitles': subtitles,
-                    **traverse_obj(article, {
-                        'timestamp': ('displayDate', {parse_iso8601}),
-                    }),
+                    'timestamp'; traverse_obj(article, ('displayDate', {parse_iso8601})),
                 }
             else:
                 return self.url_result(
