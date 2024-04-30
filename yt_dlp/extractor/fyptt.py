@@ -1,4 +1,7 @@
 from .common import InfoExtractor
+from ..utils import escapeHTML
+
+import re
 
 class FYPTTIE(InfoExtractor):
     _VALID_URL = r'https?://(?:stream\.|)fyptt\.to/(?P<id>[0-9a-zA-Z]+)(?:|/)'
@@ -35,21 +38,28 @@ class FYPTTIE(InfoExtractor):
         webpage = self._download_webpage(url, video_id)
         formats = []
 
+
 #        format_url = self._html_search_regex(r'<span">(.+?)</span>', webpage, 'title')
-        #format_url = self._html_search_regex(r'<source\s+src="([^"]+)"\s+type="video/mp4">', webpage, 'video URL')
+        format_url = self._html_search_regex(r'"embedURL":"([^"]+)"', webpage, 'video URL')
+
+    # Remove invalid characters using regex
+        format_url = re.sub(r'\\', '', format_url)
         print("format_url")
-        format_url = self._html_search_regex(r'<source\s+src="(.+?)"\s+type="video/mp4">', webpage, 'format_url')
         print(format_url)
+        webpage_video = self._download_webpage(format_url, video_id)
+
+
+  #      format_url = self._html_search_regex(r'<source\s+src="(.+?)"\s+type', webpage, 'format_url')
+        match = re.search(r'<source\s+src="(.+?)"\s+type', webpage_video)
+
+        format_url = match.group(1)
+        print(match)
         formats.append({
             'url': format_url,
             'format_id': 'default',
         })
 
         title = self._html_search_regex(r'<span class="fl-heading-text">(.+?)</span>', webpage, 'title')
-
-#<video tabindex="-1" class="vjs-tech" id="my-video_html5_api" preload="auto" loop="" autoplay="" src="https://stream.fyptt.to/j9RGIKsg.mp4">
-#<source src="https://stream.fyptt.to/j9RGIKsg.mp4" type="video/mp4"></video>
-        
 
 
         return {
