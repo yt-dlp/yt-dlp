@@ -2160,6 +2160,14 @@ class YoutubeDL:
             else:
                 self.to_screen('[info] Unable to download format %s. Skipping...' % f['format_id'])
 
+    def _select_formats(self, formats, selector):
+        return list(selector({
+            'formats': formats,
+            'has_merged_format': any('none' not in (f.get('acodec'), f.get('vcodec')) for f in formats),
+            'incomplete_formats': (all(f.get('vcodec') == 'none' for f in formats)  # No formats with video
+                                   or all(f.get('acodec') == 'none' for f in formats)),  # OR, No formats with audio
+        }))
+
     def _default_format_spec(self, info_dict, download=True):
 
         def can_merge():
@@ -2168,12 +2176,7 @@ class YoutubeDL:
 
         def evaluate_formats(format_spec):
             formats = self._get_formats(info_dict)
-            return list(self.build_format_selector(format_spec)({
-                'formats': formats,
-                'has_merged_format': any('none' not in (f.get('acodec'), f.get('vcodec')) for f in formats),
-                'incomplete_formats': (all(f.get('vcodec') == 'none' for f in formats)  # No formats with video
-                                       or all(f.get('acodec') == 'none' for f in formats)),  # OR, No formats with audio
-            }))
+            return self._select_formats(formats, self.build_format_selector(format_spec))
         if not can_merge() and evaluate_formats('best/bestvideo+bestaudio') != evaluate_formats('bestvideo*+bestaudio/best'):
             self.report_warning('ffmpeg not found. The downloaded format is not the highest available quality. '
                                 'Installing ffmpeg is strongly recommended: https://github.com/yt-dlp/yt-dlp#dependencies')
@@ -2943,12 +2946,7 @@ class YoutubeDL:
                 self.write_debug(f'Default format spec: {req_format}')
                 format_selector = self.build_format_selector(req_format)
 
-            formats_to_download = list(format_selector({
-                'formats': formats,
-                'has_merged_format': any('none' not in (f.get('acodec'), f.get('vcodec')) for f in formats),
-                'incomplete_formats': (all(f.get('vcodec') == 'none' for f in formats)  # No formats with video
-                                       or all(f.get('acodec') == 'none' for f in formats)),  # OR, No formats with audio
-            }))
+            formats_to_download = self._select_formats(formats, format_selector)
             if interactive_format_selection and not formats_to_download:
                 self.report_error('Requested format is not available', tb=False, is_error=False)
                 continue
