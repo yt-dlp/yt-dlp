@@ -173,7 +173,7 @@ class XVideosIE(InfoExtractor):
 
 class XVideosQuickiesIE(InfoExtractor):
     IE_NAME = 'xvideos:quickies'
-    _VALID_URL = r'https?://(?P<domain>(?:[^/?#]+\.)?xvideos2?\.com)/(?:profiles/|amateur-channels/)?[^#]+#quickies/a/(?P<id>[a-z0-9]+)'
+    _VALID_URL = r'https?://(?P<domain>(?:[^/?#]+\.)?xvideos2?\.com)/(?:profiles/|amateur-channels/)?[^#]+#quickies/a/(?P<id>\w+)'
     _TESTS = [{
         'url': 'https://www.xvideos.com/lili_love#quickies/a/ipdtikh1a4c',
         'md5': '670235b33d790201f4515fd3604fa236',
