@@ -180,7 +180,7 @@ class XVideosQuickiesIE(InfoExtractor):
         'info_dict': {
             'id': 'ipdtikh1a4c',
             'ext': 'mp4',
-            'title': 'Verification video',
+            'title': 'Mexican chichóna putisima',
             'age_limit': 18,
             'duration': 80,
             'thumbnail': r're:^https://cdn.*-pic.xvideos-cdn.com/.+\.jpg',
