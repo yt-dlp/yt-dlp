@@ -2167,7 +2167,7 @@ class YoutubeDL:
             return merger.available and merger.can_merge()
 
         def evaluate_formats(format_spec):
-            formats = info_dict.get('formats') or []
+            formats = self._get_formats(info_dict)
             return list(self.build_format_selector(format_spec)({
                 'formats': formats,
                 'has_merged_format': any('none' not in (f.get('acodec'), f.get('vcodec')) for f in formats),
