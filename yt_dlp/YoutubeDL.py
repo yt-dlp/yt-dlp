@@ -2177,7 +2177,10 @@ class YoutubeDL:
         def evaluate_formats(format_spec):
             formats = self._get_formats(info_dict)
             return self._select_formats(formats, self.build_format_selector(format_spec))
-        if not can_merge() and evaluate_formats('best/bestvideo+bestaudio') != evaluate_formats('bestvideo*+bestaudio/best'):
+
+        to_stdout = self.params['outtmpl']['default'] == '-'
+
+        if not can_merge() and not to_stdout and evaluate_formats('b/bv+ba') != evaluate_formats('bv*+ba/b'):
             self.report_warning('ffmpeg not found. The downloaded format is not the highest available quality. '
                                 'Installing ffmpeg is strongly recommended: https://github.com/yt-dlp/yt-dlp#dependencies')
 
@@ -2187,7 +2190,7 @@ class YoutubeDL:
             and (
                 not can_merge()
                 or info_dict.get('is_live') and not self.params.get('live_from_start')
-                or self.params['outtmpl']['default'] == '-'))
+                or to_stdout))
         compat = (
             prefer_best
             or self.params.get('allow_multiple_audio_streams', False)
