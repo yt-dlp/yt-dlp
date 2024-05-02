@@ -2169,37 +2169,29 @@ class YoutubeDL:
         }))
 
     def _default_format_spec(self, info_dict, download=True):
+        download = download and not self.params.get('simulate')
+        prefer_best = download and (
+            self.params['outtmpl']['default'] == '-'
+            or info_dict.get('is_live') and not self.params.get('live_from_start'))
 
         def can_merge():
             merger = FFmpegMergerPP(self)
             return merger.available and merger.can_merge()
 
-        def evaluate_formats(format_spec):
+        if not prefer_best and download and not can_merge():
+            prefer_best = True
             formats = self._get_formats(info_dict)
-            return self._select_formats(formats, self.build_format_selector(format_spec))
+            evaluate_formats = lambda spec: self._select_formats(formats, self.build_format_selector(spec))
+            if evaluate_formats('b/bv+ba') != evaluate_formats('bv*+ba/b'):
+                self.report_warning('ffmpeg not found. The downloaded format is not the highest available quality. '
+                                    'Installing ffmpeg is strongly recommended: https://github.com/yt-dlp/yt-dlp#dependencies')
 
-        to_stdout = self.params['outtmpl']['default'] == '-'
+        compat = (self.params.get('allow_multiple_audio_streams')
+                  or 'format-spec' in self.params['compat_opts'])
 
-        if not can_merge() and not to_stdout and evaluate_formats('b/bv+ba') != evaluate_formats('bv*+ba/b'):
-            self.report_warning('ffmpeg not found. The downloaded format is not the highest available quality. '
-                                'Installing ffmpeg is strongly recommended: https://github.com/yt-dlp/yt-dlp#dependencies')
-
-        prefer_best = (
-            not self.params.get('simulate')
-            and download
-            and (
-                not can_merge()
-                or info_dict.get('is_live') and not self.params.get('live_from_start')
-                or to_stdout))
-        compat = (
-            prefer_best
-            or self.params.get('allow_multiple_audio_streams', False)
-            or 'format-spec' in self.params['compat_opts'])
-
-        return (
-            'best/bestvideo+bestaudio' if prefer_best
-            else 'bestvideo*+bestaudio/best' if not compat
-            else 'bestvideo+bestaudio/best')
+        return ('best/bestvideo+bestaudio' if prefer_best
+                else 'bestvideo+bestaudio/best' if compat
+                else 'bestvideo*+bestaudio/best')
 
     def build_format_selector(self, format_spec):
         def syntax_error(note, start):
