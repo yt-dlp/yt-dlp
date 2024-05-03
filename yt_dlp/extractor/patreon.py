@@ -311,25 +311,22 @@ class PatreonIE(PatreonBaseIE):
                 'include': 'audio,user,user_defined_tags,campaign,attachments_media',
             })
         attributes = post['data']['attributes']
-        title = attributes['title'].strip()
-        image = attributes.get('image') or {}
-        info = {
-            'title': title,
-            'description': clean_html(attributes.get('content')),
-            'thumbnail': image.get('large_url') or image.get('url'),
-            'timestamp': parse_iso8601(attributes.get('published_at')),
-            'like_count': int_or_none(attributes.get('like_count')),
-            'comment_count': int_or_none(attributes.get('comment_count')),
-        }
+        info = traverse_obj(attributes, {
+            'title': ('title', {str.strip}),
+            'description': ('content', {clean_html}),
+            'thumbnail': ('image', ('large_url', 'url'), {url_or_none}),
+            'timestamp': ('published_at', {parse_iso8601}),
+            'like_count': ('like_count', {int_or_none}),
+            'comment_count': ('comment_count', {int_or_none}),
+        }, get_all=False)
 
         entries = []
         idx = 0
-
-        for include in traverse_obj(post, ('included', ...)):
-            include_type = include.get('type')
+        for include in traverse_obj(post, ('included', lambda _, v: v['type'])):
+            include_type = include['type']
             if include_type == 'media':
-                media_attributes = include.get('attributes') or {}
-                download_url = media_attributes.get('download_url')
+                media_attributes = traverse_obj(include, ('attributes', {dict})) or {}
+                download_url = url_or_none(media_attributes.get('download_url'))
                 ext = mimetype2ext(media_attributes.get('mimetype'))
 
                 # if size_bytes is None, this media file is likely unavailable
@@ -343,25 +340,25 @@ class PatreonIE(PatreonBaseIE):
                         'filesize': size_bytes,
                         'url': download_url,
                     })
+
             elif include_type == 'user':
-                user_attributes = include.get('attributes')
-                if user_attributes:
-                    info.update({
-                        'uploader': user_attributes.get('full_name'),
-                        'uploader_id': str_or_none(include.get('id')),
-                        'uploader_url': user_attributes.get('url'),
-                    })
+                info.update(traverse_obj(include, {
+                    'uploader': ('attributes', 'full_name', {str}),
+                    'uploader_id': ('id', {str_or_none}),
+                    'uploader_url': ('attributes', 'url', {url_or_none}),
+                }))
 
             elif include_type == 'post_tag':
-                info.setdefault('tags', []).append(traverse_obj(include, ('attributes', 'value')))
+                if post_tag := traverse_obj(include, ('attributes', 'value', {str})):
+                    info.setdefault('tags', []).append(post_tag)
 
             elif include_type == 'campaign':
-                info.update({
-                    'channel': traverse_obj(include, ('attributes', 'title')),
-                    'channel_id': str_or_none(include.get('id')),
-                    'channel_url': traverse_obj(include, ('attributes', 'url')),
-                    'channel_follower_count': int_or_none(traverse_obj(include, ('attributes', 'patron_count'))),
-                })
+                info.update(traverse_obj(include, {
+                    'channel': ('attributes', 'title', {str}),
+                    'channel_id': ('id', {str_or_none}),
+                    'channel_url': ('attributes', 'url', {url_or_none}),
+                    'channel_follower_count': ('attributes', 'patron_count', {int_or_none}),
+                }))
 
         for entry in entries:
             entry.update(info)
@@ -385,7 +382,7 @@ class PatreonIE(PatreonBaseIE):
         if embed_url and self._request_webpage(embed_url, video_id, 'Checking embed URL', fatal=False, errnote=False):
             entries.append(self.url_result(embed_url, **info))
 
-        post_file = traverse_obj(attributes, 'post_file')
+        post_file = traverse_obj(attributes, ('post_file', {dict}))
         if post_file:
             name = post_file.get('name')
             ext = determine_ext(name)
@@ -404,7 +401,7 @@ class PatreonIE(PatreonBaseIE):
                 })
 
         can_view_post = traverse_obj(attributes, 'current_user_can_view')
-        if can_view_post and info['comment_count']:
+        if can_view_post and info.get('comment_count'):
             info['__post_extractor'] = self.extract_comments(video_id)
 
         if not entries and can_view_post is False:
