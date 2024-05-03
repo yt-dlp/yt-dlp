@@ -286,7 +286,7 @@ def create_http_connect_conn(
 
     if username is not None or password is not None:
         proxy_headers['Proxy-Authorization'] = 'Basic ' + base64.b64encode(
-            f'{username}:{password}'.encode('utf-8')).decode('utf-8')
+            f'{username or ""}:{password or ""}'.encode('utf-8')).decode('utf-8')
 
     proxy_url_parsed = urllib.parse.urlparse(proxy_url)
     request_url_parsed = parse_uri(url)
