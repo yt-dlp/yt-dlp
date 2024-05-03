@@ -33,12 +33,12 @@ class FYPTTIE(InfoExtractor):
         'only_matching': True,
     }]
             
-    def _download_webpage_handle(self, *args, **kwargs):
-        headers = kwargs.get('headers', {}).copy()
-        headers['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.109 Safari/537.36'
-        kwargs['headers'] = headers
-        return super(FYPTTIE, self)._download_webpage_handle(
-            *args, **kwargs)
+#    def _download_webpage_handle(self, *args, **kwargs):
+#        headers = kwargs.get('headers', {}).copy()
+#        headers['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.109 Safari/537.36'
+#        kwargs['headers'] = headers
+#        return super(FYPTTIE, self)._download_webpage_handle(
+#            *args, **kwargs)
         
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -57,11 +57,13 @@ class FYPTTIE(InfoExtractor):
         })
 
         title = self._html_search_regex(r'<span class="fl-heading-text">(.+?)</span>', webpage, 'title')
+        
+        http_headers = {'Referer':'https://fyptt.to/'}
 
         return {
             'id': video_id,
             'title': title,
-            'description': self._og_search_description(webpage),
             'age_limit': 18,
             'formats': formats,
+            'http_headers': http_headers
         }
