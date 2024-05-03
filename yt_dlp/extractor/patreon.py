@@ -314,11 +314,11 @@ class PatreonIE(PatreonBaseIE):
         info = traverse_obj(attributes, {
             'title': ('title', {str.strip}),
             'description': ('content', {clean_html}),
-            'thumbnail': ('image', ('large_url', 'url'), {url_or_none}),
+            'thumbnail': ('image', ('large_url', 'url'), {url_or_none}, any),
             'timestamp': ('published_at', {parse_iso8601}),
             'like_count': ('like_count', {int_or_none}),
             'comment_count': ('comment_count', {int_or_none}),
-        }, get_all=False)
+        })
 
         entries = []
         idx = 0
