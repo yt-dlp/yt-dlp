@@ -1988,6 +1988,10 @@ from .thisvid import (
     ThisVidMemberIE,
     ThisVidPlaylistIE,
 )
+from .threads import (
+    ThreadsIE,
+    ThreadsIOSIE
+)
 from .threespeak import (
     ThreeSpeakIE,
     ThreeSpeakUserIE,
