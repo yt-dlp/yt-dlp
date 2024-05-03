@@ -10,6 +10,7 @@ from ..utils import (
     clean_html,
     determine_ext,
     int_or_none,
+    make_archive_id,
     mimetype2ext,
     parse_iso8601,
     str_or_none,
@@ -51,7 +52,7 @@ class PatreonIE(PatreonBaseIE):
         'url': 'http://www.patreon.com/creation?hid=743933',
         'md5': 'e25505eec1053a6e6813b8ed369875cc',
         'info_dict': {
-            'id': '743933',
+            'id': '743933-1',
             'ext': 'mp3',
             'title': 'Episode 166: David Smalley of Dogma Debate',
             'description': 'md5:34d207dd29aa90e24f1b3f58841b81c7',
@@ -66,6 +67,7 @@ class PatreonIE(PatreonBaseIE):
             'channel_id': '80642',
             'channel_url': 'https://www.patreon.com/dissonancepod',
             'channel_follower_count': int,
+            '_old_archive_ids': 'patreon 743933',
         },
     }, {
         'url': 'http://www.patreon.com/creation?hid=754133',
@@ -237,7 +239,6 @@ class PatreonIE(PatreonBaseIE):
         title = attributes['title'].strip()
         image = attributes.get('image') or {}
         info = {
-            'id': video_id,
             'title': title,
             'description': clean_html(attributes.get('content')),
             'thumbnail': image.get('large_url') or image.get('url'),
@@ -245,14 +246,15 @@ class PatreonIE(PatreonBaseIE):
             'like_count': int_or_none(attributes.get('like_count')),
             'comment_count': int_or_none(attributes.get('comment_count')),
         }
-        can_view_post = traverse_obj(attributes, 'current_user_can_view')
-        if can_view_post and info['comment_count']:
-            info['__post_extractor'] = self.extract_comments(video_id)
 
-        for i in post.get('included', []):
-            i_type = i.get('type')
-            if i_type == 'media':
-                media_attributes = i.get('attributes') or {}
+        entries = []
+        idx = 0
+
+        for include in traverse_obj(post, ('included', ...)):
+            include_type = include.get('type')
+            if include_type == 'media':
+                idx += 1
+                media_attributes = include.get('attributes') or {}
                 download_url = media_attributes.get('download_url')
                 ext = mimetype2ext(media_attributes.get('mimetype'))
 
@@ -260,32 +262,37 @@ class PatreonIE(PatreonBaseIE):
                 # See: https://github.com/yt-dlp/yt-dlp/issues/4608
                 size_bytes = int_or_none(media_attributes.get('size_bytes'))
                 if download_url and ext in KNOWN_EXTENSIONS and size_bytes is not None:
-                    # XXX: what happens if there are multiple attachments?
-                    return {
-                        **info,
+                    entries.append({
+                        'id': f'{video_id}-{idx}',
                         'ext': ext,
                         'filesize': size_bytes,
                         'url': download_url,
-                    }
-            elif i_type == 'user':
-                user_attributes = i.get('attributes')
+                        '_old_archive_ids': make_archive_id(PatreonIE, video_id),
+                    })
+            elif include_type == 'user':
+                user_attributes = include.get('attributes')
                 if user_attributes:
                     info.update({
                         'uploader': user_attributes.get('full_name'),
-                        'uploader_id': str_or_none(i.get('id')),
+                        'uploader_id': str_or_none(include.get('id')),
                         'uploader_url': user_attributes.get('url'),
                     })
 
-            elif i_type == 'post_tag':
-                info.setdefault('tags', []).append(traverse_obj(i, ('attributes', 'value')))
+            elif include_type == 'post_tag':
+                info.setdefault('tags', []).append(traverse_obj(include, ('attributes', 'value')))
 
-            elif i_type == 'campaign':
+            elif include_type == 'campaign':
                 info.update({
-                    'channel': traverse_obj(i, ('attributes', 'title')),
-                    'channel_id': str_or_none(i.get('id')),
-                    'channel_url': traverse_obj(i, ('attributes', 'url')),
-                    'channel_follower_count': int_or_none(traverse_obj(i, ('attributes', 'patron_count'))),
+                    'channel': traverse_obj(include, ('attributes', 'title')),
+                    'channel_id': str_or_none(include.get('id')),
+                    'channel_url': traverse_obj(include, ('attributes', 'url')),
+                    'channel_follower_count': int_or_none(traverse_obj(include, ('attributes', 'patron_count'))),
                 })
+
+        for entry in entries:
+            entry.update(info)
+
+        info['id'] = video_id
 
         # handle Vimeo embeds
         if traverse_obj(attributes, ('embed', 'provider')) == 'Vimeo':
@@ -296,36 +303,45 @@ class PatreonIE(PatreonBaseIE):
                     v_url, video_id, 'Checking Vimeo embed URL',
                     headers={'Referer': 'https://patreon.com/'},
                     fatal=False, errnote=False):
-                return self.url_result(
+                entries.append(self.url_result(
                     VimeoIE._smuggle_referrer(v_url, 'https://patreon.com/'),
-                    VimeoIE, url_transparent=True, **info)
+                    VimeoIE, url_transparent=True, **info))
 
         embed_url = traverse_obj(attributes, ('embed', 'url', {url_or_none}))
         if embed_url and self._request_webpage(embed_url, video_id, 'Checking embed URL', fatal=False, errnote=False):
-            return self.url_result(embed_url, **info)
+            entries.append(self.url_result(embed_url, **info))
 
         post_file = traverse_obj(attributes, 'post_file')
         if post_file:
             name = post_file.get('name')
             ext = determine_ext(name)
             if ext in KNOWN_EXTENSIONS:
-                return {
+                entries.append({
                     **info,
                     'ext': ext,
                     'url': post_file['url'],
-                }
+                })
             elif name == 'video' or determine_ext(post_file.get('url')) == 'm3u8':
                 formats, subtitles = self._extract_m3u8_formats_and_subtitles(post_file['url'], video_id)
-                return {
+                entries.append({
                     **info,
                     'formats': formats,
                     'subtitles': subtitles,
-                }
+                })
 
-        if can_view_post is False:
+        can_view_post = traverse_obj(attributes, 'current_user_can_view')
+        if can_view_post and info['comment_count']:
+            info['__post_extractor'] = self.extract_comments(video_id)
+
+        if not entries and can_view_post is False:
             self.raise_no_formats('You do not have access to this post', video_id=video_id, expected=True)
-        else:
+        elif not entries:
             self.raise_no_formats('No supported media found in this post', video_id=video_id, expected=True)
+        elif len(entries) == 1:
+            return {**info, **entries[0]}
+        else:
+            return self.playlist_result(entries, **info)
+        # return only metadata for --ignore-no-formats-error
         return info
 
     def _get_comments(self, post_id):
