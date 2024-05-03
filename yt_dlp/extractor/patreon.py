@@ -251,7 +251,6 @@ class PatreonIE(PatreonBaseIE):
         for include in traverse_obj(post, ('included', ...)):
             include_type = include.get('type')
             if include_type == 'media':
-                idx += 1
                 media_attributes = include.get('attributes') or {}
                 download_url = media_attributes.get('download_url')
                 ext = mimetype2ext(media_attributes.get('mimetype'))
@@ -260,6 +259,7 @@ class PatreonIE(PatreonBaseIE):
                 # See: https://github.com/yt-dlp/yt-dlp/issues/4608
                 size_bytes = int_or_none(media_attributes.get('size_bytes'))
                 if download_url and ext in KNOWN_EXTENSIONS and size_bytes is not None:
+                    idx += 1
                     entries.append({
                         'id': f'{video_id}-{idx}',
                         'ext': ext,
