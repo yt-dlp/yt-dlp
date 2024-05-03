@@ -7,23 +7,12 @@ class FYPTTIE(InfoExtractor):
     _VALID_URL = r'https?://(?:stream\.|)fyptt\.to/(?P<id>[0-9a-zA-Z]+)(?:|/)'
     _TESTS = [{
         'url': 'https://fyptt.to/203/gorgeous-naughty-blonde-with-beautiful-curves-shows-her-naked-boobies-on-nsfw-tiktok/',
-        'md5': 'TODO: md5 sum of the first 10241 bytes of the video file (use --test)',
+        'md5': 'fc12bce4a9c1335f153500c8fea6e1a8',
         'info_dict': {
-            # For videos, only the 'id' and 'ext' fields are required to RUN the test:
             'id': '203',
             'ext': 'mp4',
-            # Then if the test run fails, it will output the missing/incorrect fields.
-            # Properties can be added as:
-            # * A value, e.g.
-            #     'title': 'Video title goes here',
-            # * MD5 checksum; start the string with 'md5:', e.g.
-            #     'description': 'md5:098f6bcd4621d373cade4e832627b4f6',
-            # * A regular expression; start the string with 're:', e.g.
-            #     'thumbnail': r're:^https?://.*\.jpg$',
-            # * A count of elements in a list; start the string with 'count:', e.g.
-            #     'tags': 'count:10',
-            # * Any Python type, e.g.
-            #     'view_count': int,
+            'title': 'Gorgeous, naughty blonde with beautiful curves shows her naked boobies on NSFW TikTok',
+            'age_limit': 18
         },
     }, {
         'url': 'https://fyptt.to/10382/beautiful-livestream-tits-and-nipples-slip-from-girls-who-loves-talking-with-their-viewers/',
@@ -32,14 +21,7 @@ class FYPTTIE(InfoExtractor):
         'url': 'https://fyptt.to/120/small-tits-fit-blonde-dancing-naked-at-the-front-door-on-tiktok',
         'only_matching': True,
     }]
-            
-#    def _download_webpage_handle(self, *args, **kwargs):
-#        headers = kwargs.get('headers', {}).copy()
-#        headers['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.109 Safari/537.36'
-#        kwargs['headers'] = headers
-#        return super(FYPTTIE, self)._download_webpage_handle(
-#            *args, **kwargs)
-        
+
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
@@ -57,13 +39,13 @@ class FYPTTIE(InfoExtractor):
         })
 
         title = self._html_search_regex(r'<span class="fl-heading-text">(.+?)</span>', webpage, 'title')
-        
+
         http_headers = {'Referer':'https://fyptt.to/'}
 
         return {
             'id': video_id,
             'title': title,
-            'age_limit': 18,
             'formats': formats,
+            'age_limit': 18,
             'http_headers': http_headers
         }
