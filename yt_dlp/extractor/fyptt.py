@@ -32,35 +32,31 @@ class FYPTTIE(InfoExtractor):
         'url': 'https://fyptt.to/120/small-tits-fit-blonde-dancing-naked-at-the-front-door-on-tiktok',
         'only_matching': True,
     }]
-
+            
+    def _download_webpage_handle(self, *args, **kwargs):
+        headers = kwargs.get('headers', {}).copy()
+        headers['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.109 Safari/537.36'
+        kwargs['headers'] = headers
+        return super(FYPTTIE, self)._download_webpage_handle(
+            *args, **kwargs)
+        
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
         formats = []
-
-
-#        format_url = self._html_search_regex(r'<span">(.+?)</span>', webpage, 'title')
         format_url = self._html_search_regex(r'"embedURL":"([^"]+)"', webpage, 'video URL')
 
-    # Remove invalid characters using regex
         format_url = re.sub(r'\\', '', format_url)
-        print("format_url")
-        print(format_url)
         webpage_video = self._download_webpage(format_url, video_id)
 
-
-  #      format_url = self._html_search_regex(r'<source\s+src="(.+?)"\s+type', webpage, 'format_url')
         match = re.search(r'<source\s+src="(.+?)"\s+type', webpage_video)
-
         format_url = match.group(1)
-        print(match)
         formats.append({
             'url': format_url,
             'format_id': 'default',
         })
 
         title = self._html_search_regex(r'<span class="fl-heading-text">(.+?)</span>', webpage, 'title')
-
 
         return {
             'id': video_id,
