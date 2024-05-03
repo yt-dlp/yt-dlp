@@ -2183,7 +2183,7 @@ class YoutubeDL:
             formats = self._get_formats(info_dict)
             evaluate_formats = lambda spec: self._select_formats(formats, self.build_format_selector(spec))
             if evaluate_formats('b/bv+ba') != evaluate_formats('bv*+ba/b'):
-                self.report_warning('ffmpeg not found. The downloaded format is not the highest available quality. '
+                self.report_warning('ffmpeg not found. The downloaded format may not be the best available. '
                                     'Installing ffmpeg is strongly recommended: https://github.com/yt-dlp/yt-dlp#dependencies')
 
         compat = (self.params.get('allow_multiple_audio_streams')
