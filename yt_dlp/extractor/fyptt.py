@@ -24,13 +24,14 @@ class FYPTTIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
+
         formats = []
         format_url = self._html_search_regex(r'"embedURL":"([^"]+)"', webpage, 'video URL')
-
         format_url = re.sub(r'\\', '', format_url)
+        
         webpage_video = self._download_webpage(format_url, video_id)
 
-        match = re.search(r'<source\s+src="(.+?)"\s+type', webpage_video)
+        match = re.search(r'(https:\/\/[^"]+\.mp4)', webpage_video)
         format_url = match.group(1)
         formats.append({
             'url': format_url,
