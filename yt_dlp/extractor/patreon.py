@@ -10,7 +10,6 @@ from ..utils import (
     clean_html,
     determine_ext,
     int_or_none,
-    make_archive_id,
     mimetype2ext,
     parse_iso8601,
     str_or_none,
@@ -52,7 +51,7 @@ class PatreonIE(PatreonBaseIE):
         'url': 'http://www.patreon.com/creation?hid=743933',
         'md5': 'e25505eec1053a6e6813b8ed369875cc',
         'info_dict': {
-            'id': '743933-1',
+            'id': '743933',
             'ext': 'mp3',
             'title': 'Episode 166: David Smalley of Dogma Debate',
             'description': 'md5:34d207dd29aa90e24f1b3f58841b81c7',
@@ -67,7 +66,6 @@ class PatreonIE(PatreonBaseIE):
             'channel_id': '80642',
             'channel_url': 'https://www.patreon.com/dissonancepod',
             'channel_follower_count': int,
-            '_old_archive_ids': 'patreon 743933',
         },
     }, {
         'url': 'http://www.patreon.com/creation?hid=754133',
@@ -267,7 +265,6 @@ class PatreonIE(PatreonBaseIE):
                         'ext': ext,
                         'filesize': size_bytes,
                         'url': download_url,
-                        '_old_archive_ids': make_archive_id(PatreonIE, video_id),
                     })
             elif include_type == 'user':
                 user_attributes = include.get('attributes')
@@ -338,7 +335,7 @@ class PatreonIE(PatreonBaseIE):
         elif not entries:
             self.raise_no_formats('No supported media found in this post', video_id=video_id, expected=True)
         elif len(entries) == 1:
-            return {**info, **entries[0]}
+            return {**entries[0], **info}
         else:
             return self.playlist_result(entries, **info)
         # return only metadata for --ignore-no-formats-error
