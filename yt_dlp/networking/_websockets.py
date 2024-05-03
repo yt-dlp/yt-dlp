@@ -115,7 +115,6 @@ class WebsocketsRH(WebSocketRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.__logging_handlers = {}
-        self.verbose = True
         for name in ('websockets.client', 'websockets.server'):
             logger = logging.getLogger(name)
             handler = logging.StreamHandler(stream=sys.stdout)
@@ -275,14 +274,11 @@ def create_http_connect_conn(
     timeout=None,
     ssl_context=None,
     source_address=None,
-    headers=None,
     username=None,
     password=None,
 ):
 
-    proxy_headers = HTTPHeaderDict({
-        **(headers or {}),
-    })
+    proxy_headers = HTTPHeaderDict()
 
     if username is not None or password is not None:
         proxy_headers['Proxy-Authorization'] = 'Basic ' + base64.b64encode(
