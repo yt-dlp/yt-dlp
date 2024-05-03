@@ -2,6 +2,7 @@ from .common import InfoExtractor
 
 import re
 
+
 class FYPTTIE(InfoExtractor):
     _VALID_URL = r'https?://(?:stream\.|)fyptt\.to/(?P<id>[0-9a-zA-Z]+)(?:|/)'
     _TESTS = [{
@@ -28,7 +29,7 @@ class FYPTTIE(InfoExtractor):
         formats = []
         format_url = self._html_search_regex(r'"embedURL":"([^"]+)"', webpage, 'video URL')
         format_url = re.sub(r'\\', '', format_url)
-        
+
         webpage_video = self._download_webpage(format_url, video_id)
 
         match = re.search(r'(https:\/\/[^"]+\.mp4)', webpage_video)
@@ -40,7 +41,7 @@ class FYPTTIE(InfoExtractor):
 
         title = self._html_search_regex(r'<span class="fl-heading-text">(.+?)</span>', webpage, 'title')
 
-        http_headers = {'Referer':'https://fyptt.to/'}
+        http_headers = {'Referer': 'https://fyptt.to/'}
 
         return {
             'id': video_id,
