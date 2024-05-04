@@ -4552,19 +4552,43 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'uploader_id': channel_handle,
             'uploader_url': format_field(channel_handle, None, 'https://www.youtube.com/%s', default=None),
         })
+
+        def get_pacific_tz():
+            # Python 3.8 should be deprecated soon
+            # This fallback may make the timestamp slightly inaccurate for 3.8 users.
+            if sys.version_info < (3, 9):
+                return dt.timedelta(hours=-7)
+            from zoneinfo import ZoneInfo
+            return dt.datetime.now(ZoneInfo('US/Pacific')).utcoffset()
+
+        # We only want timestamp IF it has second precision
+        # Additionally, if there is no timezone present, we should assume it is in PT.
+        timestamp = (
+            parse_iso8601(get_first(microformats, 'uploadDate'), timezone=get_pacific_tz())
+            or parse_iso8601(search_meta('uploadDate'), timezone=get_pacific_tz())
+        )
+        upload_date = (
+            dt.datetime.fromtimestamp(timestamp, dt.timezone.utc).strftime('%Y%m%d') if timestamp else
+            (
+                unified_strdate(get_first(microformats, 'uploadDate'))
+                or unified_strdate(search_meta('uploadDate'))
+            ))
+
+        # In the case we cannot get the timestamp:
         # The upload date for scheduled, live and past live streams / premieres in microformats
         # may be different from the stream date. Although not in UTC, we will prefer it in this case.
         # See: https://github.com/yt-dlp/yt-dlp/pull/2223#issuecomment-1008485139
-        upload_date = (
-            unified_strdate(get_first(microformats, 'uploadDate'))
-            or unified_strdate(search_meta('uploadDate')))
         if not upload_date or (
-            live_status in ('not_live', None)
+            not timestamp
+            and live_status in ('not_live', None)
             and 'no-youtube-prefer-utc-upload-date' not in self.get_param('compat_opts', [])
         ):
+            # this should be in UTC, as configured in the cookie/client context
             upload_date = strftime_or_none(
                 self._parse_time_text(self._get_text(vpir, 'dateText'))) or upload_date
+
         info['upload_date'] = upload_date
+        info['timestamp'] = timestamp
 
         if upload_date and live_status not in ('is_live', 'post_live', 'is_upcoming'):
             # Newly uploaded videos' HLS formats are potentially problematic and need to be checked

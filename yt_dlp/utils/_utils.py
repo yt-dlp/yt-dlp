@@ -1134,7 +1134,7 @@ def is_path_like(f):
     return isinstance(f, (str, bytes, os.PathLike))
 
 
-def extract_timezone(date_str):
+def extract_timezone(date_str, default=None):
     m = re.search(
         r'''(?x)
             ^.{8,}?                                              # >=8 char non-TZ prefix, if present
@@ -1146,22 +1146,23 @@ def extract_timezone(date_str):
                 (?P<hours>[0-9]{2}):?(?P<minutes>[0-9]{2})       # hh[:]mm
             $)
         ''', date_str)
+    timezone = None
+
     if not m:
         m = re.search(r'\d{1,2}:\d{1,2}(?:\.\d+)?(?P<tz>\s*[A-Z]+)$', date_str)
         timezone = TIMEZONE_NAMES.get(m and m.group('tz').strip())
         if timezone is not None:
             date_str = date_str[:-len(m.group('tz'))]
-        timezone = dt.timedelta(hours=timezone or 0)
+            timezone = dt.timedelta(hours=timezone)
     else:
         date_str = date_str[:-len(m.group('tz'))]
-        if not m.group('sign'):
-            timezone = dt.timedelta()
-        else:
+        if m.group('sign'):
             sign = 1 if m.group('sign') == '+' else -1
             timezone = dt.timedelta(
                 hours=sign * int(m.group('hours')),
                 minutes=sign * int(m.group('minutes')))
-    return timezone, date_str
+
+    return timezone or default or dt.timedelta(), date_str
 
 
 def parse_iso8601(date_str, delimiter='T', timezone=None):
@@ -1172,8 +1173,7 @@ def parse_iso8601(date_str, delimiter='T', timezone=None):
 
     date_str = re.sub(r'\.[0-9]+', '', date_str)
 
-    if timezone is None:
-        timezone, date_str = extract_timezone(date_str)
+    timezone, date_str = extract_timezone(date_str, timezone)
 
     with contextlib.suppress(ValueError):
         date_format = f'%Y-%m-%d{delimiter}%H:%M:%S'
