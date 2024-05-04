@@ -360,12 +360,6 @@ class PatreonIE(PatreonBaseIE):
                     'channel_follower_count': ('attributes', 'patron_count', {int_or_none}),
                 }))
 
-        # Not all `info` is extracted until after the previous loop is exhausted
-        for entry in entries:
-            entry.update(info)
-        # Add `id` field after updating entries so indexed id is not overwritten
-        info['id'] = video_id
-
         # handle Vimeo embeds
         if traverse_obj(attributes, ('embed', 'provider')) == 'Vimeo':
             v_url = urllib.parse.unquote(self._html_search_regex(
@@ -377,11 +371,11 @@ class PatreonIE(PatreonBaseIE):
                     fatal=False, errnote=False):
                 entries.append(self.url_result(
                     VimeoIE._smuggle_referrer(v_url, 'https://patreon.com/'),
-                    VimeoIE, url_transparent=True, **info))
+                    VimeoIE, url_transparent=True))
 
         embed_url = traverse_obj(attributes, ('embed', 'url', {url_or_none}))
         if embed_url and self._request_webpage(embed_url, video_id, 'Checking embed URL', fatal=False, errnote=False):
-            entries.append(self.url_result(embed_url, **info))
+            entries.append(self.url_result(embed_url))
 
         post_file = traverse_obj(attributes, ('post_file', {dict}))
         if post_file:
@@ -389,32 +383,36 @@ class PatreonIE(PatreonBaseIE):
             ext = determine_ext(name)
             if ext in KNOWN_EXTENSIONS:
                 entries.append({
-                    **info,
+                    'id': video_id,
                     'ext': ext,
                     'url': post_file['url'],
                 })
             elif name == 'video' or determine_ext(post_file.get('url')) == 'm3u8':
                 formats, subtitles = self._extract_m3u8_formats_and_subtitles(post_file['url'], video_id)
                 entries.append({
-                    **info,
+                    'id': video_id,
                     'formats': formats,
                     'subtitles': subtitles,
                 })
 
         can_view_post = traverse_obj(attributes, 'current_user_can_view')
+        comments = None
         if can_view_post and info.get('comment_count'):
-            info['__post_extractor'] = self.extract_comments(video_id)
+            comments = self.extract_comments(video_id)
 
         if not entries and can_view_post is False:
             self.raise_no_formats('You do not have access to this post', video_id=video_id, expected=True)
         elif not entries:
             self.raise_no_formats('No supported media found in this post', video_id=video_id, expected=True)
         elif len(entries) == 1:
-            # Need to unpack info again to add comments and overwrite potentially indexed id
-            return {**entries[0], **info}
+            info.update(entries[0])
         else:
-            return self.playlist_result(entries, **info)
-        # Return only metadata for --ignore-no-formats-error
+            for entry in entries:
+                entry.update(info)
+            return self.playlist_result(entries, video_id, **info, __post_extract=comments)
+
+        info['id'] = video_id
+        info['__post_extract'] = comments
         return info
 
     def _get_comments(self, post_id):
