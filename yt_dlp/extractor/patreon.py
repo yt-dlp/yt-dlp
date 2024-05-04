@@ -354,10 +354,10 @@ class PatreonIE(PatreonBaseIE):
         else:
             for entry in entries:
                 entry.update(info)
-            return self.playlist_result(entries, video_id, **info, __post_extract=comments)
+            return self.playlist_result(entries, video_id, **info, __post_extractor=comments)
 
         info['id'] = video_id
-        info['__post_extract'] = comments
+        info['__post_extractor'] = comments
         return info
 
     def _get_comments(self, post_id):
