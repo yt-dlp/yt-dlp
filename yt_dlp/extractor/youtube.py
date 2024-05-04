@@ -4553,7 +4553,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'uploader_url': format_field(channel_handle, None, 'https://www.youtube.com/%s', default=None),
         })
 
-        # We only want timestamp IF it has second precision AND a timezone
+        # We only want timestamp IF it has time precision AND a timezone
         # Currently the uploadDate in microformats appears to be in US/Pacific timezone.
         timestamp = (
             parse_iso8601(get_first(microformats, 'uploadDate'), timezone=NO_DEFAULT)
