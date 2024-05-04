@@ -2136,8 +2136,10 @@ class YoutubeDL:
 
     def _check_formats(self, formats):
         for f in formats:
-            if f.get('__working'):
-                yield f
+            working = f.get('__working')
+            if working is not None:
+                if working:
+                    yield f
                 continue
             self.to_screen('[info] Testing format %s' % f['format_id'])
             path = self.get_output_path('temp')
@@ -2155,8 +2157,8 @@ class YoutubeDL:
                         os.remove(temp_file.name)
                     except OSError:
                         self.report_warning('Unable to delete temporary file "%s"' % temp_file.name)
+            f['__working'] = success
             if success:
-                f['__working'] = True
                 yield f
             else:
                 self.to_screen('[info] Unable to download format %s. Skipping...' % f['format_id'])
