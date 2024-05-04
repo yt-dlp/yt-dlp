@@ -2138,6 +2138,7 @@ class YoutubeDL:
         for f in formats:
             if f.get('__working'):
                 yield f
+                continue
             self.to_screen('[info] Testing format %s' % f['format_id'])
             path = self.get_output_path('temp')
             if not self._ensure_dir_exists(f'{path}/'):
