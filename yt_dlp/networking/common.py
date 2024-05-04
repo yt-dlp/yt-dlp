@@ -497,7 +497,7 @@ class Response(io.IOBase):
     @param headers: response headers.
     @param status: Response HTTP status code. Default is 200 OK.
     @param reason: HTTP status reason. Will use built-in reasons based on status code if not provided.
-    @param extensions: Dictionary of handler-specific response extensions
+    @param extensions: Dictionary of handler-specific response extensions.
     """
 
     def __init__(
