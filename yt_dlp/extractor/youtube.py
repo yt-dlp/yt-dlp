@@ -4557,7 +4557,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             # Python 3.8 should be deprecated soon
             # This fallback may make the timestamp slightly inaccurate for 3.8 users.
             if sys.version_info < (3, 9):
-                return dt.timedelta(hours=-7)
+                return NO_DEFAULT
             from zoneinfo import ZoneInfo
             return dt.datetime.now(ZoneInfo('US/Pacific')).utcoffset()
 

@@ -1162,7 +1162,10 @@ def extract_timezone(date_str, default=None):
                 hours=sign * int(m.group('hours')),
                 minutes=sign * int(m.group('minutes')))
 
-    return timezone or default or dt.timedelta(), date_str
+    if timezone is None and default is not NO_DEFAULT:
+        timezone = default or dt.timedelta()
+
+    return timezone, date_str
 
 
 def parse_iso8601(date_str, delimiter='T', timezone=None):
@@ -1175,7 +1178,7 @@ def parse_iso8601(date_str, delimiter='T', timezone=None):
 
     timezone, date_str = extract_timezone(date_str, timezone)
 
-    with contextlib.suppress(ValueError):
+    with contextlib.suppress(ValueError, TypeError):
         date_format = f'%Y-%m-%d{delimiter}%H:%M:%S'
         dt_ = dt.datetime.strptime(date_str, date_format) - timezone
         return calendar.timegm(dt_.timetuple())
