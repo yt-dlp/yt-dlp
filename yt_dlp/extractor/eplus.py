@@ -142,6 +142,10 @@ class EplusIbIE(InfoExtractor):
         if data_json.get('drm_mode') == 'ON':
             self.report_drm(video_id)
 
+        if data_json.get('is_pass_ticket') == 'YES':
+            raise ExtractorError(
+                'Pass ticket url is not supported, please use a url points to the player page', expected=True)
+
         delivery_status = data_json.get('delivery_status')
         archive_mode = data_json.get('archive_mode')
         release_timestamp = try_call(lambda: unified_timestamp(data_json['event_datetime']) - 32400)
