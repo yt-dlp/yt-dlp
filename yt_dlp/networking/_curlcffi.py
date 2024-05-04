@@ -133,12 +133,13 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
         extensions.pop('timeout', None)
 
     def send(self, request: Request) -> Response:
+        target = self._get_request_target(request)
         try:
             response = super().send(request)
         except HTTPError as e:
-            e.response.extensions['impersonate'] = self._get_request_target(request)
+            e.response.extensions['impersonate'] = target
             raise
-        response.extensions['impersonate'] = self._get_request_target(request)
+        response.extensions['impersonate'] = target
         return response
 
     def _send(self, request: Request):
