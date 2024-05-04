@@ -158,6 +158,7 @@ When using `--update`/`-U`, a release binary will only update to its current cha
 You may also use `--update-to <repository>` (`<owner>/<repository>`) to update to a channel on a completely different repository. Be careful with what repository you are updating to though, there is no verification done for binaries from different repositories.
 
 Example usage:
+
 * `yt-dlp --update-to master` switch to the `master` channel and update to its latest release
 * `yt-dlp --update-to stable@2023.07.06` upgrade/downgrade to release to `stable` channel tag `2023.07.06`
 * `yt-dlp --update-to 2023.10.07` upgrade/downgrade to tag `2023.10.07` if it exists on the current channel
@@ -201,8 +202,8 @@ While all the other dependencies are optional, `ffmpeg` and `ffprobe` are highly
 The following provide support for impersonating browser requests. This may be required for some sites that employ TLS fingerprinting. 
 
 * [**curl_cffi**](https://github.com/yifeikong/curl_cffi) (recommended) - Python binding for [curl-impersonate](https://github.com/lwthiker/curl-impersonate). Provides impersonation targets for Chrome, Edge and Safari. Licensed under [MIT](https://github.com/yifeikong/curl_cffi/blob/main/LICENSE)
-  * Can be installed with the `curl_cffi` group, e.g. `pip install yt-dlp[default,curl_cffi]`
-  * Only included in `yt-dlp.exe`, `yt-dlp_macos` and `yt-dlp_macos_legacy` builds
+  * Can be installed with the `curl-cffi` group, e.g. `pip install yt-dlp[default,curl-cffi]`
+  * Currently only included in `yt-dlp.exe` and `yt-dlp_macos` builds
 
 
 ### Metadata
@@ -481,6 +482,9 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
     --max-downloads NUMBER          Abort after downloading NUMBER files
     --break-on-existing             Stop the download process when encountering
                                     a file that is in the archive
+    --no-break-on-existing          Do not stop the download process when
+                                    encountering a file that is in the archive
+                                    (default)
     --break-per-input               Alters --max-downloads, --break-on-existing,
                                     --break-match-filter, and autonumber to
                                     reset per input URL
@@ -754,6 +758,7 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
                                     accessible under "progress" key. E.g.
                                     --console-title --progress-template
                                     "download-title:%(info.id)s-%(progress.eta)s"
+    --progress-delta SECONDS        Time between progress output (default: 0)
     -v, --verbose                   Print various debugging information
     --dump-pages                    Print downloaded pages encoded using base64
                                     to debug problems (very verbose)
@@ -1781,8 +1786,7 @@ The following extractors use this feature:
 * `version`: The video version to extract - `uncut` or `simulcast`
 
 #### crunchyrollbeta (Crunchyroll)
-* `format`: Which stream type(s) to extract (default: `adaptive_hls`). Potentially useful values include `adaptive_hls`, `adaptive_dash`, `vo_adaptive_hls`, `vo_adaptive_dash`, `download_hls`, `download_dash`, `multitrack_adaptive_hls_v2`
-* `hardsub`: Preference order for which hardsub versions to extract, or `all` (default: `None` = no hardsubs), e.g. `crunchyrollbeta:hardsub=en-US,None`
+* `hardsub`: One or more hardsub versions to extract (in order of preference), or `all` (default: `None` = no hardsubs will be extracted), e.g. `crunchyrollbeta:hardsub=en-US,de-DE`
 
 #### vikichannel
 * `video_types`: Types of videos to download - one or more of `episodes`, `movies`, `clips`, `trailers`
@@ -1832,6 +1836,9 @@ The following extractors use this feature:
 
 #### jiosaavn
 * `bitrate`: Audio bitrates to request. One or more of `16`, `32`, `64`, `128`, `320`. Default is `128,320`
+
+#### afreecatvlive
+* `cdn`: One or more CDN IDs to use with the API call for stream URLs, e.g. `gcp_cdn`, `gs_cdn_pc_app`, `gs_cdn_mobile_web`, `gs_cdn_pc_web`
 
 **Note**: These options may be changed/removed in the future without concern for backward compatibility
 
@@ -1890,6 +1897,7 @@ Plugins can be installed using various methods and locations.
 
 
 `.zip`, `.egg` and `.whl` archives containing a `yt_dlp_plugins` namespace folder in their root are also supported as plugin packages.
+
 * e.g. `${XDG_CONFIG_HOME}/yt-dlp/plugins/mypluginpkg.zip` where `mypluginpkg.zip` contains `yt_dlp_plugins/<type>/myplugin.py`
 
 Run yt-dlp with `--verbose` to check if the plugin has been loaded.
