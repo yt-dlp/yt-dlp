@@ -4553,19 +4553,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'uploader_url': format_field(channel_handle, None, 'https://www.youtube.com/%s', default=None),
         })
 
-        def get_pacific_tz():
-            # Python 3.8 should be deprecated soon
-            # This fallback may make the timestamp slightly inaccurate for 3.8 users.
-            if sys.version_info < (3, 9):
-                return NO_DEFAULT
-            from zoneinfo import ZoneInfo
-            return dt.datetime.now(ZoneInfo('US/Pacific')).utcoffset()
-
-        # We only want timestamp IF it has second precision
-        # Additionally, if there is no timezone present, we should assume it is in PT.
+        # We only want timestamp IF it has second precision AND a timezone
+        # Currently the uploadDate in microformats appears to be in US/Pacific timezone.
         timestamp = (
-            parse_iso8601(get_first(microformats, 'uploadDate'), timezone=get_pacific_tz())
-            or parse_iso8601(search_meta('uploadDate'), timezone=get_pacific_tz())
+            parse_iso8601(get_first(microformats, 'uploadDate'), timezone=NO_DEFAULT)
+            or parse_iso8601(search_meta('uploadDate'), timezone=NO_DEFAULT)
         )
         upload_date = (
             dt.datetime.fromtimestamp(timestamp, dt.timezone.utc).strftime('%Y%m%d') if timestamp else
