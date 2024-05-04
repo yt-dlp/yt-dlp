@@ -360,9 +360,10 @@ class PatreonIE(PatreonBaseIE):
                     'channel_follower_count': ('attributes', 'patron_count', {int_or_none}),
                 }))
 
+        # Not all `info` is extracted until after the previous loop is exhausted
         for entry in entries:
             entry.update(info)
-
+        # Add `id` field after updating entries so indexed id is not overwritten
         info['id'] = video_id
 
         # handle Vimeo embeds
@@ -409,10 +410,11 @@ class PatreonIE(PatreonBaseIE):
         elif not entries:
             self.raise_no_formats('No supported media found in this post', video_id=video_id, expected=True)
         elif len(entries) == 1:
+            # Need to unpack info again to add comments and overwrite potentially indexed id
             return {**entries[0], **info}
         else:
             return self.playlist_result(entries, **info)
-        # return only metadata for --ignore-no-formats-error
+        # Return only metadata for --ignore-no-formats-error
         return info
 
     def _get_comments(self, post_id):
