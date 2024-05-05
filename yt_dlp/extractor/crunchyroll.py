@@ -188,20 +188,21 @@ class CrunchyrollBaseIE(InfoExtractor):
         variant_obj_check = lambda _, v: v['guid'] and v['audio_locale']
         for audio_locale_variant in traverse_obj(stream_response, ('versions', variant_obj_check)):
             locale = audio_locale_variant['audio_locale']
+            is_original_stream = traverse_obj(audio_locale_variant, ('original', {bool}), default = False)
             
             stream_variants[locale] = self._download_json(
                 stream_url.format(audio_locale_variant['guid']),
                 display_id, note=f'Downloading {locale} stream info', errnote=f'Failed to download {locale} stream info',
                 headers=CrunchyrollBaseIE._AUTH_HEADERS)
             
-            available_formats[f'audio_{locale}'] = (f'audio-{locale}', '', locale, stream_variants[locale]['url'])
+            available_formats[f'audio_{locale}'] = (f'{locale}', '', locale, stream_variants[locale]['url'], is_original_stream)
 
         if not stream_variants:
-            available_formats[''] = ('', '', default_audio_locale, stream_response['url'])
+            available_formats[''] = ('', '', default_audio_locale, stream_response['url'], True)
 
 
         for hardsub_lang, stream in traverse_obj(stream_response, ('hardSubs', {dict.items}, lambda _, v: v[1]['url'])):
-            available_formats[f'hardsub_{hardsub_lang}'] = (f'hardsub-{hardsub_lang}', hardsub_lang, default_audio_locale, stream['url'])
+            available_formats[f'hardsub_{hardsub_lang}'] = (f'hardsub-{hardsub_lang}', hardsub_lang, default_audio_locale, stream['url'], True)
 
         requested_hardsubs = [('' if val == 'none' else val) for val in (self._configuration_arg('hardsub') or ['none'])]
         hardsub_langs = [lang.replace('hardsub_', '') for lang in available_formats if lang.startswith('hardsub_')]
@@ -218,7 +219,7 @@ class CrunchyrollBaseIE(InfoExtractor):
 
         hardsub_preference = qualities(requested_hardsubs[::-1])
         formats, subtitles = [], {}
-        for format_id, hardsub_lang, audio_locale, stream_url in available_formats.values():
+        for format_id, hardsub_lang, audio_locale, stream_url, is_original in available_formats.values():
             if hardsub_lang.lower() in full_format_langs:
                 adaptive_formats, dash_subs = self._extract_mpd_formats_and_subtitles(
                     stream_url, display_id, mpd_id=format_id, headers=CrunchyrollBaseIE._AUTH_HEADERS,
@@ -229,8 +230,10 @@ class CrunchyrollBaseIE(InfoExtractor):
             for f in adaptive_formats:
                 if f.get('acodec') != 'none':
                     f['language'] = audio_locale
+                elif not is_original:
+                    continue
                 f['quality'] = hardsub_preference(hardsub_lang.lower())
-            formats.extend(adaptive_formats)
+                formats.append(f)
 
         for locale, subtitle in traverse_obj(stream_response, (('subtitles', 'captions'), {dict.items}, ...)):
             subtitles.setdefault(locale, []).append(traverse_obj(subtitle, {'url': 'url', 'ext': 'format'}))
