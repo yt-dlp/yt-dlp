@@ -53,15 +53,19 @@ class CrunchyrollBaseIE(InfoExtractor):
         CrunchyrollBaseIE._AUTH_EXPIRY = time_seconds(seconds=traverse_obj(response, ('expires_in', {float_or_none}), default=300) - 10)
 
     def _request_token(self, headers, data, note='Requesting token', errnote='Failed to request token'):
-        try:  # TODO: Add impersonation support here
+        try:
             return self._download_json(
                 f'{self._BASE_URL}/auth/v1/token', None, note=note, errnote=errnote,
-                headers=headers, data=urlencode_postdata(data))
+                headers=headers, data=urlencode_postdata(data), impersonate=True)
         except ExtractorError as error:
             if not isinstance(error.cause, HTTPError) or error.cause.status != 403:
                 raise
+            if target := error.cause.response.extensions.get('impersonate'):
+                raise ExtractorError(f'Got HTTP Error 403 when using impersonate target "{target}"')
             raise ExtractorError(
-                'Request blocked by Cloudflare; navigate to Crunchyroll in your browser, '
+                'Request blocked by Cloudflare. '
+                'Install the required impersonation dependency if possible, '
+                'or else navigate to Crunchyroll in your browser, '
                 'then pass the fresh cookies (with --cookies-from-browser or --cookies) '
                 'and your browser\'s User-Agent (with --user-agent)', expected=True)
 
