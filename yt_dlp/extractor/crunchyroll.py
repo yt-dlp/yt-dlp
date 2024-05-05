@@ -183,22 +183,21 @@ class CrunchyrollBaseIE(InfoExtractor):
         default_audio_locale = traverse_obj(stream_response, ('audioLocale', {str}))
 
         available_formats = {}
-        stream_variants = {}
 
         variant_obj_check = lambda _, v: v['guid'] and v['audio_locale']
         for audio_locale_variant in traverse_obj(stream_response, ('versions', variant_obj_check)):
             locale = audio_locale_variant['audio_locale']
             is_original_stream = traverse_obj(audio_locale_variant, ('original', {bool}), default = False)
             
-            stream_variants[locale] = self._download_json(
+            stream_variant = self._download_json(
                 stream_url.format(audio_locale_variant['guid']),
                 display_id, note=f'Downloading {locale} stream info', errnote=f'Failed to download {locale} stream info',
                 headers=CrunchyrollBaseIE._AUTH_HEADERS)
             
-            available_formats[f'audio_{locale}'] = (f'{locale}', '', locale, stream_variants[locale]['url'], is_original_stream)
+            available_formats[f'audio_{locale}'] = (f'{locale}', '', locale, stream_variant.get('url'), is_original_stream)
 
-        if not stream_variants:
-            available_formats[''] = ('', '', default_audio_locale, stream_response['url'], True)
+        if not available_formats:
+            available_formats[''] = ('', '', default_audio_locale, stream_response.get('url'), True)
 
 
         for hardsub_lang, stream in traverse_obj(stream_response, ('hardSubs', {dict.items}, lambda _, v: v[1]['url'])):
