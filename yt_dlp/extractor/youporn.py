@@ -89,7 +89,7 @@ class YouPornIE(InfoExtractor):
     def _real_extract(self, url):
         video_id, display_id = self._match_valid_url(url).group('id', 'display_id')
         webpage = self._download_webpage(
-            f"https://www.youporn.com/watch/{video_id}", display_id or video_id,
+            f'https://www.youporn.com/watch/{video_id}', display_id or video_id,
             headers={'Cookie': 'age_verified=1'})
         player_vars = self._search_json(r'\bplayervars\s*:', webpage, 'player vars', display_id)
 
