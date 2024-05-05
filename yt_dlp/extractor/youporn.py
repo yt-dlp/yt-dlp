@@ -90,7 +90,7 @@ class YouPornIE(InfoExtractor):
         video_id, display_id = self._match_valid_url(url).group('id', 'display_id')
         self._set_cookie('.youporn.com', 'age_verified', '1')
         webpage = self._download_webpage(f'https://www.youporn.com/watch/{video_id}', video_id)
-        player_vars = self._search_json(r'\bplayervars\s*:', webpage, 'player vars', display_id)
+        player_vars = self._search_json(r'\bplayervars\s*:', webpage, 'player vars', video_id)
 
         definitions = {}
         for type_ in ('hls', 'mp4'):
