@@ -96,7 +96,7 @@ class YouPornIE(InfoExtractor):
             info_url = traverse_obj(player_vars, (
                 'mediaDefinitions', lambda _, v: v['format'] == type_, 'videoUrl', {url_or_none}, any))
             if not info_url:
-                return None
+                return []
             return traverse_obj(
                 self._download_json(info_url, video_id, f'Downloading {type_} info JSON', fatal=False),
                 lambda _, v: v['format'] == type_ and url_or_none(v['videoUrl']))
