@@ -2172,7 +2172,6 @@ class YoutubeDL:
         }))
 
     def _default_format_spec(self, info_dict, download=True):
-        download = download and not self.params.get('simulate')
         prefer_best = download and (
             self.params['outtmpl']['default'] == '-'
             or info_dict.get('is_live') and not self.params.get('live_from_start'))
