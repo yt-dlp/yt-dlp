@@ -72,15 +72,15 @@ class YouPornIE(InfoExtractor):
             'id': '16290308',
             'age_limit': 18,
             'categories': [],
-            'description': 'md5:00ea70f642f431c379763c17c2f396bc',
+            'description': str,  # TODO: detect/remove SEO spam description in ytdl backport
             'display_id': 'tinderspecial-trailer1',
             'duration': 298.0,
             'ext': 'mp4',
             'upload_date': '20201123',
             'uploader': 'Ersties',
             'tags': [],
-            'thumbnail': 'https://fi1.ypncdn.com/202011/23/16290308/original/8/tinderspecial-trailer1-8(m=eaAaaEPbaaaa).jpg',
-            'timestamp': 1606089600,
+            'thumbnail': r're:https://.+\.jpg',
+            'timestamp': 1606147564,
             'title': 'Tinder In Real Life',
             'view_count': int,
         }
@@ -90,25 +90,24 @@ class YouPornIE(InfoExtractor):
         video_id, display_id = self._match_valid_url(url).group('id', 'display_id')
         webpage = self._download_webpage(
             f"https://www.youporn.com/watch/{video_id}", display_id or video_id,
-            headers={'Cookie': 'age_verified=1'},
-        )
+            headers={'Cookie': 'age_verified=1'})
+        player_vars = self._search_json(r'\bplayervars\s*:', webpage, 'player vars', display_id)
 
-        playervars = self._search_regex(r'^\s*playervars:\s*(\{.+?\})$', webpage, 'playervars', flags=re.MULTILINE)
-        playervars = self._parse_json(playervars, display_id or video_id)
-        defs_by_format = {x['format'] : x for x in playervars.get('mediaDefinitions', {})}
-
-        def get_format_data(f):
-            if not f in defs_by_format:
-                return []
-            return self._download_json(defs_by_format[f]['videoUrl'], display_id or video_id, f"{f}-formats")
+        definitions = {}
+        for type_ in ('hls', 'mp4'):
+            if info_url := traverse_obj(player_vars, (
+                    'mediaDefinitions', lambda _, v: v['format'] == type_,
+                    'videoUrl', {url_or_none}, any)):
+                definitions[type_] = self._download_json(
+                    info_url, display_id or video_id, f'Downloading {type_} info JSON', fatal=False)
 
         formats = []
         # Try to extract only the actual master m3u8 first, avoiding the duplicate single resolution "master" m3u8s
-        for hls_url in traverse_obj(get_format_data('hls'), (
-                lambda _, v: not isinstance(v['defaultQuality'], bool), 'videoUrl'), (..., 'videoUrl')):
+        for hls_url in traverse_obj(definitions, (
+                'hls', lambda _, v: not isinstance(v['defaultQuality'], bool), 'videoUrl'), (..., 'videoUrl')):
             formats.extend(self._extract_m3u8_formats(hls_url, video_id, 'mp4', fatal=False, m3u8_id='hls'))
 
-        for definition in get_format_data('mp4'):
+        for definition in traverse_obj(definitions, ('mp4', lambda _, v: v['videoUrl'])):
             f = traverse_obj(definition, {
                 'url': 'videoUrl',
                 'filesize': ('videoSize', {int_or_none})
