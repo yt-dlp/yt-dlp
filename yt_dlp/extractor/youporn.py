@@ -107,7 +107,7 @@ class YouPornIE(InfoExtractor):
                 'hls', lambda _, v: not isinstance(v['defaultQuality'], bool), 'videoUrl'), (..., 'videoUrl')):
             formats.extend(self._extract_m3u8_formats(hls_url, video_id, 'mp4', fatal=False, m3u8_id='hls'))
 
-        for definition in traverse_obj(definitions, ('mp4', lambda _, v: v['videoUrl'])):
+        for definition in traverse_obj(definitions, ('mp4', lambda _, v: url_or_none(v['videoUrl']))):
             f = traverse_obj(definition, {
                 'url': 'videoUrl',
                 'filesize': ('videoSize', {int_or_none})
