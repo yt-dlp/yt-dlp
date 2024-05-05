@@ -90,11 +90,10 @@ class YouPornIE(InfoExtractor):
         video_id, display_id = self._match_valid_url(url).group('id', 'display_id')
         self._set_cookie('.youporn.com', 'age_verified', '1')
         webpage = self._download_webpage(f'https://www.youporn.com/watch/{video_id}', video_id)
-        player_vars = self._search_json(r'\bplayervars\s*:', webpage, 'player vars', video_id)
+        definitions = self._search_json(r'\bplayervars\s*:', webpage, 'player vars', video_id)['mediaDefinitions']
 
-        def get_format_data(type_):
-            info_url = traverse_obj(player_vars, (
-                'mediaDefinitions', lambda _, v: v['format'] == type_, 'videoUrl', {url_or_none}, any))
+        def get_format_data(data, type_):
+            info_url = traverse_obj(data, (lambda _, v: v['format'] == type_, 'videoUrl', {url_or_none}, any))
             if not info_url:
                 return []
             return traverse_obj(
@@ -103,11 +102,11 @@ class YouPornIE(InfoExtractor):
 
         formats = []
         # Try to extract only the actual master m3u8 first, avoiding the duplicate single resolution "master" m3u8s
-        for hls_url in traverse_obj(get_format_data('hls'), (
+        for hls_url in traverse_obj(get_format_data(definitions, 'hls'), (
                 lambda _, v: not isinstance(v['defaultQuality'], bool), 'videoUrl'), (..., 'videoUrl')):
             formats.extend(self._extract_m3u8_formats(hls_url, video_id, 'mp4', fatal=False, m3u8_id='hls'))
 
-        for definition in get_format_data('mp4'):
+        for definition in get_format_data(definitions, 'mp4'):
             f = traverse_obj(definition, {
                 'url': 'videoUrl',
                 'filesize': ('videoSize', {int_or_none})
