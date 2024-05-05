@@ -56,7 +56,7 @@ class CrunchyrollBaseIE(InfoExtractor):
         try:
             return self._download_json(
                 f'{self._BASE_URL}/auth/v1/token', None, note=note, errnote=errnote,
-                headers=headers, data=urlencode_postdata(data), impersonate='chrome')
+                headers=headers, data=urlencode_postdata(data), impersonate=True)
         except ExtractorError as error:
             if not isinstance(error.cause, HTTPError) or error.cause.status != 403:
                 raise
