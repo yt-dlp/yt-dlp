@@ -63,7 +63,9 @@ class CrunchyrollBaseIE(InfoExtractor):
             if target := error.cause.response.extensions.get('impersonate'):
                 raise ExtractorError(f'Got HTTP Error 403 when using impersonate target "{target}"')
             raise ExtractorError(
-                'Request blocked by Cloudflare; navigate to Crunchyroll in your browser, '
+                'Request blocked by Cloudflare. '
+                'Install the required impersonation dependency if possible, '
+                'or else navigate to Crunchyroll in your browser, '
                 'then pass the fresh cookies (with --cookies-from-browser or --cookies) '
                 'and your browser\'s User-Agent (with --user-agent)', expected=True)
 
