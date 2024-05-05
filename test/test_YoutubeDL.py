@@ -544,6 +544,7 @@ class TestFormatSelection(unittest.TestCase):
         self.assertEqual(ydl._default_format_spec({'is_live': True}), 'best/bestvideo+bestaudio')
 
     @patch('yt_dlp.postprocessor.ffmpeg.FFmpegMergerPP.available', True)
+    @patch('yt_dlp.postprocessor.ffmpeg.FFmpegMergerPP.can_merge', lambda _: True)
     def test_default_format_spec_with_ffmpeg(self):
         ydl = YDL({})
         self.assertEqual(ydl._default_format_spec({}), 'bestvideo*+bestaudio/best')
