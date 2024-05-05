@@ -685,6 +685,7 @@ from .gamespot import GameSpotIE
 from .gamestar import GameStarIE
 from .gaskrank import GaskrankIE
 from .gazeta import GazetaIE
+from .gbnews import GBNewsIE
 from .gdcvault import GDCVaultIE
 from .gedidigital import GediDigitalIE
 from .generic import GenericIE
