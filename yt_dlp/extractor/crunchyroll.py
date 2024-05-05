@@ -197,7 +197,7 @@ class CrunchyrollBaseIE(InfoExtractor):
             available_formats[f'audio_{locale}'] = (f'audio-{locale}', '', locale, stream_variants[locale]['url'])
 
         if not stream_variants:
-            available_formats['default'] = ('default', '', default_audio_locale, stream_response)
+            available_formats[''] = ('', '', default_audio_locale, stream_response['url'])
 
 
         for hardsub_lang, stream in traverse_obj(stream_response, ('hardSubs', {dict.items}, lambda _, v: v[1]['url'])):
