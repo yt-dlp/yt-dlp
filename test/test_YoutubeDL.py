@@ -540,7 +540,7 @@ class TestFormatSelection(unittest.TestCase):
         self.assertEqual(ydl._default_format_spec({}), 'best/bestvideo+bestaudio')
 
         ydl = YDL({})
-        self.assertEqual(ydl._default_format_spec({}, download=False), 'bestvideo*+bestaudio/best')
+        self.assertEqual(ydl._default_format_spec({}), 'best/bestvideo+bestaudio')
         self.assertEqual(ydl._default_format_spec({'is_live': True}), 'best/bestvideo+bestaudio')
 
     @patch('yt_dlp.YoutubeDL.FFmpegMergerPP.available', True)
@@ -562,7 +562,7 @@ class TestFormatSelection(unittest.TestCase):
         self.assertEqual(ydl._default_format_spec({}), 'best/bestvideo+bestaudio')
 
         ydl = YDL({})
-        self.assertEqual(ydl._default_format_spec({}, download=False), 'bestvideo*+bestaudio/best')
+        self.assertEqual(ydl._default_format_spec({}), 'bestvideo*+bestaudio/best')
         self.assertEqual(ydl._default_format_spec({'is_live': True}), 'best/bestvideo+bestaudio')
 
 
