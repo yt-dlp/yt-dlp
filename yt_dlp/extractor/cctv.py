@@ -89,6 +89,20 @@ class CCTVIE(InfoExtractor):
             'skip_download': True,
         },
     }, {
+        # videoCenterId: "id"
+        'url': 'http://news.cctv.com/2024/02/21/ARTIcU5tKIOIF2myEGCATkLo240221.shtml',
+        'info_dict': {
+            'id': '5c846c0518444308ba32c4159df3b3e0',
+            'ext': 'mp4',
+            'title': '《平“语”近人——习近平喜欢的典故》第三季 第5集：风物长宜放眼量',
+            'uploader': 'yangjuan',
+            'timestamp': 1708554940,
+            'upload_date': '20240221',
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }, {
         # var ids = ["id"]
         'url': 'http://www.ncpa-classic.com/clt/more/416/index.shtml',
         'info_dict': {
@@ -128,7 +142,7 @@ class CCTVIE(InfoExtractor):
 
         video_id = self._search_regex(
             [r'var\s+guid\s*=\s*["\']([\da-fA-F]+)',
-             r'videoCenterId["\']\s*,\s*["\']([\da-fA-F]+)',
+             r'videoCenterId(?:["\']\s*,|:)\s*["\']([\da-fA-F]+)',
              r'changePlayer\s*\(\s*["\']([\da-fA-F]+)',
              r'load[Vv]ideo\s*\(\s*["\']([\da-fA-F]+)',
              r'var\s+initMyAray\s*=\s*["\']([\da-fA-F]+)',

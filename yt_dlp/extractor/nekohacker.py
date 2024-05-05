@@ -118,7 +118,6 @@ class NekoHackerIE(InfoExtractor):
                     'artist': 'Neko Hacker',
                     'track': 'md5:1a5fcbc96ca3c3265b1c6f9f79f30fd0',
                     'track_number': 1,
-                    'duration': None
                 }
             },
             {
@@ -136,7 +135,6 @@ class NekoHackerIE(InfoExtractor):
                     'artist': 'Neko Hacker',
                     'track': 'むじな de なじむ feat. 六科なじむ (CV: 日高里菜 )',
                     'track_number': 2,
-                    'duration': None
                 }
             },
             {
@@ -154,7 +152,6 @@ class NekoHackerIE(InfoExtractor):
                     'artist': 'Neko Hacker',
                     'track': '進め！むじなカンパニー (instrumental)',
                     'track_number': 3,
-                    'duration': None
                 }
             },
             {
@@ -172,7 +169,6 @@ class NekoHackerIE(InfoExtractor):
                     'artist': 'Neko Hacker',
                     'track': 'むじな de なじむ (instrumental)',
                     'track_number': 4,
-                    'duration': None
                 }
             }
         ]

@@ -8,6 +8,7 @@ from ..utils import (
 
 # class CBSSportsEmbedIE(CBSBaseIE):
 class CBSSportsEmbedIE(InfoExtractor):
+    _WORKING = False
     IE_NAME = 'cbssports:embed'
     _VALID_URL = r'''(?ix)https?://(?:(?:www\.)?cbs|embed\.247)sports\.com/player/embed.+?
         (?:
@@ -75,6 +76,7 @@ class CBSSportsBaseIE(InfoExtractor):
 
 
 class CBSSportsIE(CBSSportsBaseIE):
+    _WORKING = False
     IE_NAME = 'cbssports'
     _VALID_URL = r'https?://(?:www\.)?cbssports\.com/[^/]+/video/(?P<id>[^/?#&]+)'
     _TESTS = [{
@@ -92,6 +94,7 @@ class CBSSportsIE(CBSSportsBaseIE):
 
 
 class TwentyFourSevenSportsIE(CBSSportsBaseIE):
+    _WORKING = False
     IE_NAME = '247sports'
     _VALID_URL = r'https?://(?:www\.)?247sports\.com/Video/(?:[^/?#&]+-)?(?P<id>\d+)'
     _TESTS = [{

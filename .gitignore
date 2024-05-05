@@ -33,6 +33,7 @@ cookies
 *.gif
 *.jpeg
 *.jpg
+*.lrc
 *.m4a
 *.m4v
 *.mhtml
@@ -40,6 +41,7 @@ cookies
 *.mov
 *.mp3
 *.mp4
+*.mpg
 *.mpga
 *.oga
 *.ogg
@@ -47,6 +49,7 @@ cookies
 *.png
 *.sbv
 *.srt
+*.ssa
 *.swf
 *.swp
 *.tt

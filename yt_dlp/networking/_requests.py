@@ -8,6 +8,7 @@ import warnings
 
 from ..dependencies import brotli, requests, urllib3
 from ..utils import bug_reports_message, int_or_none, variadic
+from ..utils.networking import normalize_url
 
 if requests is None:
     raise ImportError('requests module is not installed')
@@ -115,7 +116,7 @@ See: https://github.com/urllib3/urllib3/issues/517
 """
 
 if urllib3_version < (2, 0, 0):
-    with contextlib.suppress():
+    with contextlib.suppress(Exception):
         urllib3.util.IS_SECURETRANSPORT = urllib3.util.ssl_.IS_SECURETRANSPORT = True
 
 
@@ -188,6 +189,7 @@ class RequestsSession(requests.sessions.Session):
     """
     Ensure unified redirect method handling with our urllib redirect handler.
     """
+
     def rebuild_method(self, prepared_request, response):
         new_method = get_redirect_method(prepared_request.method, response.status_code)
 
@@ -197,6 +199,10 @@ class RequestsSession(requests.sessions.Session):
             response.status_code = 308
 
         prepared_request.method = new_method
+
+        # Requests fails to resolve dot segments on absolute redirect locations
+        # See: https://github.com/yt-dlp/yt-dlp/issues/9020
+        prepared_request.url = normalize_url(prepared_request.url)
 
     def rebuild_auth(self, prepared_request, response):
         # HACK: undo status code change from rebuild_method, if applicable.
@@ -218,6 +224,7 @@ class Urllib3LoggingFilter(logging.Filter):
 
 class Urllib3LoggingHandler(logging.Handler):
     """Redirect urllib3 logs to our logger"""
+
     def __init__(self, logger, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._logger = logger
@@ -251,10 +258,10 @@ class RequestsRH(RequestHandler, InstanceStoreMixin):
 
         # Forward urllib3 debug messages to our logger
         logger = logging.getLogger('urllib3')
-        handler = Urllib3LoggingHandler(logger=self._logger)
-        handler.setFormatter(logging.Formatter('requests: %(message)s'))
-        handler.addFilter(Urllib3LoggingFilter())
-        logger.addHandler(handler)
+        self.__logging_handler = Urllib3LoggingHandler(logger=self._logger)
+        self.__logging_handler.setFormatter(logging.Formatter('requests: %(message)s'))
+        self.__logging_handler.addFilter(Urllib3LoggingFilter())
+        logger.addHandler(self.__logging_handler)
         # TODO: Use a logger filter to suppress pool reuse warning instead
         logger.setLevel(logging.ERROR)
 
@@ -269,6 +276,9 @@ class RequestsRH(RequestHandler, InstanceStoreMixin):
 
     def close(self):
         self._clear_instances()
+        # Remove the logging handler that contains a reference to our logger
+        # See: https://github.com/yt-dlp/yt-dlp/issues/8922
+        logging.getLogger('urllib3').removeHandler(self.__logging_handler)
 
     def _check_extensions(self, extensions):
         super()._check_extensions(extensions)
@@ -297,8 +307,7 @@ class RequestsRH(RequestHandler, InstanceStoreMixin):
 
         max_redirects_exceeded = False
 
-        session = self._get_instance(
-            cookiejar=request.extensions.get('cookiejar') or self.cookiejar)
+        session = self._get_instance(cookiejar=self._get_cookiejar(request))
 
         try:
             requests_res = session.request(
@@ -306,8 +315,8 @@ class RequestsRH(RequestHandler, InstanceStoreMixin):
                 url=request.url,
                 data=request.data,
                 headers=headers,
-                timeout=float(request.extensions.get('timeout') or self.timeout),
-                proxies=request.proxies or self.proxies,
+                timeout=self._calculate_timeout(request),
+                proxies=self._get_proxies(request),
                 allow_redirects=True,
                 stream=True
             )
@@ -367,7 +376,7 @@ class SocksHTTPConnection(urllib3.connection.HTTPConnection):
                 self, f'Connection to {self.host} timed out. (connect timeout={self.timeout})') from e
         except SocksProxyError as e:
             raise urllib3.exceptions.ProxyError(str(e), e) from e
-        except (OSError, socket.error) as e:
+        except OSError as e:
             raise urllib3.exceptions.NewConnectionError(
                 self, f'Failed to establish a new connection: {e}') from e
 

@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 import typing
-import urllib.error
 
-from ..utils import YoutubeDLError, deprecation_warning
+from ..utils import YoutubeDLError
 
 if typing.TYPE_CHECKING:
     from .common import RequestHandler, Response
@@ -99,119 +98,6 @@ class CertificateVerifyError(SSLError):
 
 class ProxyError(TransportError):
     pass
-
-
-class _CompatHTTPError(urllib.error.HTTPError, HTTPError):
-    """
-    Provides backwards compatibility with urllib.error.HTTPError.
-    Do not use this class directly, use HTTPError instead.
-    """
-
-    def __init__(self, http_error: HTTPError):
-        super().__init__(
-            url=http_error.response.url,
-            code=http_error.status,
-            msg=http_error.msg,
-            hdrs=http_error.response.headers,
-            fp=http_error.response
-        )
-        self._closer.close_called = True  # Disable auto close
-        self._http_error = http_error
-        HTTPError.__init__(self, http_error.response, redirect_loop=http_error.redirect_loop)
-
-    @property
-    def status(self):
-        return self._http_error.status
-
-    @status.setter
-    def status(self, value):
-        return
-
-    @property
-    def reason(self):
-        return self._http_error.reason
-
-    @reason.setter
-    def reason(self, value):
-        return
-
-    @property
-    def headers(self):
-        deprecation_warning('HTTPError.headers is deprecated, use HTTPError.response.headers instead')
-        return self._http_error.response.headers
-
-    @headers.setter
-    def headers(self, value):
-        return
-
-    def info(self):
-        deprecation_warning('HTTPError.info() is deprecated, use HTTPError.response.headers instead')
-        return self.response.headers
-
-    def getcode(self):
-        deprecation_warning('HTTPError.getcode is deprecated, use HTTPError.status instead')
-        return self.status
-
-    def geturl(self):
-        deprecation_warning('HTTPError.geturl is deprecated, use HTTPError.response.url instead')
-        return self.response.url
-
-    @property
-    def code(self):
-        deprecation_warning('HTTPError.code is deprecated, use HTTPError.status instead')
-        return self.status
-
-    @code.setter
-    def code(self, value):
-        return
-
-    @property
-    def url(self):
-        deprecation_warning('HTTPError.url is deprecated, use HTTPError.response.url instead')
-        return self.response.url
-
-    @url.setter
-    def url(self, value):
-        return
-
-    @property
-    def hdrs(self):
-        deprecation_warning('HTTPError.hdrs is deprecated, use HTTPError.response.headers instead')
-        return self.response.headers
-
-    @hdrs.setter
-    def hdrs(self, value):
-        return
-
-    @property
-    def filename(self):
-        deprecation_warning('HTTPError.filename is deprecated, use HTTPError.response.url instead')
-        return self.response.url
-
-    @filename.setter
-    def filename(self, value):
-        return
-
-    def __getattr__(self, name):
-        # File operations are passed through the response.
-        # Warn for some commonly used ones
-        passthrough_warnings = {
-            'read': 'response.read()',
-            # technically possibly due to passthrough, but we should discourage this
-            'get_header': 'response.get_header()',
-            'readable': 'response.readable()',
-            'closed': 'response.closed',
-            'tell': 'response.tell()',
-        }
-        if name in passthrough_warnings:
-            deprecation_warning(f'HTTPError.{name} is deprecated, use HTTPError.{passthrough_warnings[name]} instead')
-        return super().__getattr__(name)
-
-    def __str__(self):
-        return str(self._http_error)
-
-    def __repr__(self):
-        return repr(self._http_error)
 
 
 network_exceptions = (HTTPError, TransportError)

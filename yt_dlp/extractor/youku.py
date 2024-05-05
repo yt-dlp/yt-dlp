@@ -42,11 +42,11 @@ class YoukuIE(InfoExtractor):
             'uploader_id': '322014285',
             'uploader_url': 'http://i.youku.com/u/UMTI4ODA1NzE0MA==',
             'tags': list,
-            'skip': '404',
         },
         'params': {
             'videopassword': '100600',
         },
+        'skip': '404',
     }, {
         # /play/get.json contains streams with "channel_type":"tail"
         'url': 'http://v.youku.com/v_show/id_XOTUxMzg4NDMy.html',
