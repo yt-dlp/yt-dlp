@@ -102,8 +102,8 @@ class YouPornIE(InfoExtractor):
 
         formats = []
         # Try to extract only the actual master m3u8 first, avoiding the duplicate single resolution "master" m3u8s
-        for hls_url in traverse_obj(definitions, (
-                'hls', lambda _, v: not isinstance(v['defaultQuality'], bool), 'videoUrl'), (..., 'videoUrl')):
+        for hls_url in traverse_obj(definitions.get('hls'), (
+                lambda _, v: not isinstance(v['defaultQuality'], bool), 'videoUrl'), (..., 'videoUrl')):
             formats.extend(self._extract_m3u8_formats(hls_url, video_id, 'mp4', fatal=False, m3u8_id='hls'))
 
         for definition in traverse_obj(definitions, ('mp4', lambda _, v: url_or_none(v['videoUrl']))):
