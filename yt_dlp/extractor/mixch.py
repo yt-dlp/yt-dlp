@@ -64,11 +64,11 @@ class MixchIE(InfoExtractor):
         yield from traverse_obj(self._download_json(
             f'https://mixch.tv/api-web/lives/{video_id}/messages', video_id,
             note='Downloading comments', errnote='Failed to download comments'), (..., {
-                'author': ('name', {str_or_none}),
-                'author_id': ('user_id', {int_or_none}),
-                'id': ('message_id', {str_or_none}),
-                'text': ('body', {str_or_none}),
-                'timestamp': ('created', {int_or_none}),
+                'author': ('name', {str}),
+                'author_id': ('user_id', {str_or_none}),
+                'id': ('message_id', {str}, {lambda x: x or None}),
+                'text': ('body', {str}),
+                'timestamp': ('created', {int}),
             }))
 
 
