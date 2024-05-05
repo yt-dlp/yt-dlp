@@ -92,13 +92,13 @@ class YouPornIE(InfoExtractor):
         webpage = self._download_webpage(f'https://www.youporn.com/watch/{video_id}', video_id)
         definitions = self._search_json(r'\bplayervars\s*:', webpage, 'player vars', video_id)['mediaDefinitions']
 
-        def get_format_data(data, type_):
-            info_url = traverse_obj(data, (lambda _, v: v['format'] == type_, 'videoUrl', {url_or_none}, any))
+        def get_format_data(data, stream_type):
+            info_url = traverse_obj(data, (lambda _, v: v['format'] == stream_type, 'videoUrl', {url_or_none}, any))
             if not info_url:
                 return []
             return traverse_obj(
-                self._download_json(info_url, video_id, f'Downloading {type_} info JSON', fatal=False),
-                lambda _, v: v['format'] == type_ and url_or_none(v['videoUrl']))
+                self._download_json(info_url, video_id, f'Downloading {stream_type} info JSON', fatal=False),
+                lambda _, v: v['format'] == stream_type and url_or_none(v['videoUrl']))
 
         formats = []
         # Try to extract only the actual master m3u8 first, avoiding the duplicate single resolution "master" m3u8s
