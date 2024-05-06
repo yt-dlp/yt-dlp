@@ -20,7 +20,6 @@ class TV2HuIE(InfoExtractor):
             'description': 'md5:7350147e75485a59598e806c47967b07',
             'thumbnail': r're:^https?://.*\.jpg$',
             'release_date': '20210825',
-            'season_number': None,
             'episode_number': 213,
         },
         'params': {
@@ -38,8 +37,6 @@ class TV2HuIE(InfoExtractor):
             'description': 'md5:47762155dc9a50241797ded101b1b08c',
             'thumbnail': r're:^https?://.*\.jpg$',
             'release_date': '20210118',
-            'season_number': None,
-            'episode_number': None,
         },
         'params': {
             'skip_download': True,

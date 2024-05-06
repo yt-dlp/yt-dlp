@@ -1,5 +1,5 @@
 import json
-from socket import timeout
+import socket
 
 from .common import InfoExtractor
 from ..utils import (
@@ -9,6 +9,7 @@ from ..utils import (
 
 
 class DTubeIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?d\.tube/(?:#!/)?v/(?P<uploader_id>[0-9a-z.-]+)/(?P<id>[0-9a-z]{8})'
     _TEST = {
         'url': 'https://d.tube/#!/v/broncnutz/x380jtr1',
@@ -55,7 +56,7 @@ class DTubeIE(InfoExtractor):
             try:
                 self.to_screen('%s: Checking %s video format URL' % (video_id, format_id))
                 self._downloader._opener.open(video_url, timeout=5).close()
-            except timeout:
+            except socket.timeout:
                 self.to_screen(
                     '%s: %s URL is invalid, skipping' % (video_id, format_id))
                 continue

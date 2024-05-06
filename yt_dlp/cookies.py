@@ -1,6 +1,8 @@
 import base64
 import collections
 import contextlib
+import datetime as dt
+import glob
 import http.cookiejar
 import http.cookies
 import io
@@ -14,7 +16,6 @@ import sys
 import tempfile
 import time
 import urllib.request
-from datetime import datetime, timedelta, timezone
 from enum import Enum, auto
 from hashlib import pbkdf2_hmac
 
@@ -23,7 +24,8 @@ from .aes import (
     aes_gcm_decrypt_and_verify_bytes,
     unpad_pkcs7,
 )
-from .compat import functools
+from .compat import functools  # isort: split
+from .compat import compat_os_name
 from .dependencies import (
     _SECRETSTORAGE_UNAVAILABLE_REASON,
     secretstorage,
@@ -31,6 +33,7 @@ from .dependencies import (
 )
 from .minicurses import MultilinePrinter, QuietMultilinePrinter
 from .utils import (
+    DownloadError,
     Popen,
     error_to_str,
     expand_path,
@@ -118,17 +121,18 @@ def _extract_firefox_cookies(profile, container, logger):
     logger.info('Extracting cookies from firefox')
     if not sqlite3:
         logger.warning('Cannot extract cookies from firefox without sqlite3 support. '
-                       'Please use a python interpreter compiled with sqlite3 support')
+                       'Please use a Python interpreter compiled with sqlite3 support')
         return YoutubeDLCookieJar()
 
     if profile is None:
-        search_root = _firefox_browser_dir()
+        search_roots = list(_firefox_browser_dirs())
     elif _is_path(profile):
-        search_root = profile
+        search_roots = [profile]
     else:
-        search_root = os.path.join(_firefox_browser_dir(), profile)
+        search_roots = [os.path.join(path, profile) for path in _firefox_browser_dirs()]
+    search_root = ', '.join(map(repr, search_roots))
 
-    cookie_database_path = _find_most_recently_used_file(search_root, 'cookies.sqlite', logger)
+    cookie_database_path = _newest(_firefox_cookie_dbs(search_roots))
     if cookie_database_path is None:
         raise FileNotFoundError(f'could not find firefox cookies database in {search_root}')
     logger.debug(f'Extracting cookies from: "{cookie_database_path}"')
@@ -182,12 +186,25 @@ def _extract_firefox_cookies(profile, container, logger):
                 cursor.connection.close()
 
 
-def _firefox_browser_dir():
+def _firefox_browser_dirs():
     if sys.platform in ('cygwin', 'win32'):
-        return os.path.expandvars(R'%APPDATA%\Mozilla\Firefox\Profiles')
+        yield os.path.expandvars(R'%APPDATA%\Mozilla\Firefox\Profiles')
+
     elif sys.platform == 'darwin':
-        return os.path.expanduser('~/Library/Application Support/Firefox/Profiles')
-    return os.path.expanduser('~/.mozilla/firefox')
+        yield os.path.expanduser('~/Library/Application Support/Firefox/Profiles')
+
+    else:
+        yield from map(os.path.expanduser, (
+            '~/.mozilla/firefox',
+            '~/snap/firefox/common/.mozilla/firefox',
+            '~/.var/app/org.mozilla.firefox/.mozilla/firefox',
+        ))
+
+
+def _firefox_cookie_dbs(roots):
+    for root in map(os.path.abspath, roots):
+        for pattern in ('', '*/', 'Profiles/*/'):
+            yield from glob.iglob(os.path.join(root, pattern, 'cookies.sqlite'))
 
 
 def _get_chromium_based_browser_settings(browser_name):
@@ -251,7 +268,7 @@ def _extract_chrome_cookies(browser_name, profile, keyring, logger):
 
     if not sqlite3:
         logger.warning(f'Cannot extract cookies from {browser_name} without sqlite3 support. '
-                       'Please use a python interpreter compiled with sqlite3 support')
+                       'Please use a Python interpreter compiled with sqlite3 support')
         return YoutubeDLCookieJar()
 
     config = _get_chromium_based_browser_settings(browser_name)
@@ -268,7 +285,7 @@ def _extract_chrome_cookies(browser_name, profile, keyring, logger):
             logger.error(f'{browser_name} does not support profiles')
             search_root = config['browser_dir']
 
-    cookie_database_path = _find_most_recently_used_file(search_root, 'Cookies', logger)
+    cookie_database_path = _newest(_find_files(search_root, 'Cookies', logger))
     if cookie_database_path is None:
         raise FileNotFoundError(f'could not find {browser_name} cookies database in "{search_root}"')
     logger.debug(f'Extracting cookies from: "{cookie_database_path}"')
@@ -307,6 +324,12 @@ def _extract_chrome_cookies(browser_name, profile, keyring, logger):
             counts['unencrypted'] = unencrypted_cookies
             logger.debug(f'cookie version breakdown: {counts}')
             return jar
+        except PermissionError as error:
+            if compat_os_name == 'nt' and error.errno == 13:
+                message = 'Could not copy Chrome cookie database. See  https://github.com/yt-dlp/yt-dlp/issues/7271  for more info'
+                logger.error(message)
+                raise DownloadError(message)  # force exit
+            raise
         finally:
             if cursor is not None:
                 cursor.connection.close()
@@ -575,7 +598,7 @@ class DataParser:
 
 
 def _mac_absolute_time_to_posix(timestamp):
-    return int((datetime(2001, 1, 1, 0, 0, tzinfo=timezone.utc) + timedelta(seconds=timestamp)).timestamp())
+    return int((dt.datetime(2001, 1, 1, 0, 0, tzinfo=dt.timezone.utc) + dt.timedelta(seconds=timestamp)).timestamp())
 
 
 def _parse_safari_cookies_header(data, logger):
@@ -947,7 +970,7 @@ def _get_windows_v10_key(browser_root, logger):
     References:
         - [1] https://chromium.googlesource.com/chromium/src/+/refs/heads/main/components/os_crypt/sync/os_crypt_win.cc
     """
-    path = _find_most_recently_used_file(browser_root, 'Local State', logger)
+    path = _newest(_find_files(browser_root, 'Local State', logger))
     if path is None:
         logger.error('could not find local state file')
         return None
@@ -1049,17 +1072,20 @@ def _get_column_names(cursor, table_name):
     return [row[1].decode() for row in table_info]
 
 
-def _find_most_recently_used_file(root, filename, logger):
+def _newest(files):
+    return max(files, key=lambda path: os.lstat(path).st_mtime, default=None)
+
+
+def _find_files(root, filename, logger):
     # if there are multiple browser profiles, take the most recently used one
-    i, paths = 0, []
+    i = 0
     with _create_progress_bar(logger) as progress_bar:
-        for curr_root, dirs, files in os.walk(root):
+        for curr_root, _, files in os.walk(root):
             for file in files:
                 i += 1
                 progress_bar.print(f'Searching for "{filename}": {i: 6d} files searched')
                 if file == filename:
-                    paths.append(os.path.join(curr_root, file))
-    return None if not paths else max(paths, key=lambda path: os.lstat(path).st_mtime)
+                    yield os.path.join(curr_root, file)
 
 
 def _merge_cookie_jars(jars):
@@ -1073,7 +1099,7 @@ def _merge_cookie_jars(jars):
 
 
 def _is_path(value):
-    return os.path.sep in value
+    return any(sep in value for sep in (os.path.sep, os.path.altsep) if sep)
 
 
 def _parse_browser_specification(browser_name, profile=None, keyring=None, container=None):
