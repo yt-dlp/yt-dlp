@@ -213,7 +213,7 @@ class CrunchyrollBaseIE(InfoExtractor):
                 'See https://github.com/yt-dlp/yt-dlp#crunchyrollbeta-crunchyroll for more info',
                 only_once=True)
         else:
-            full_format_langs = set(map(str.lower, available_formats))
+            full_format_langs = set(map(lambda v: str.lower(v[1]), available_formats.values()))
 
         hardsub_preference = qualities(requested_hardsubs[::-1])
         formats, subtitles = [], {}
