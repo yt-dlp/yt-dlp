@@ -1,4 +1,5 @@
 import json
+import urllib
 
 from .common import InfoExtractor
 from .youtube import YoutubeIE
@@ -10,7 +11,6 @@ from ..utils import (
     url_or_none,
 )
 from ..utils.traversal import traverse_obj
-from ..compat import compat_urllib_parse_unquote
 
 
 class BoostyIE(InfoExtractor):
@@ -170,7 +170,7 @@ class BoostyIE(InfoExtractor):
         auth_headers = {}
         if auth_cookie is not None:
             try:
-                auth_data = json.loads(compat_urllib_parse_unquote(auth_cookie.value))
+                auth_data = json.loads(urllib.parse.unquote(auth_cookie.value))
                 auth_headers['Authorization'] = f'Bearer {auth_data["accessToken"]}'
             except (json.JSONDecodeError, KeyError):
                 self.report_warning('Failed to extract token from auth cookie.')
