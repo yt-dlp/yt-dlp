@@ -3306,22 +3306,23 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'value': ('intensityScoreNormalized', {float_or_none}),
             })) or None
 
-    def _extract_comment(self, view_model, entity, parent=None):
-        entity_payload = traverse_obj(entity, ('payload', 'commentEntityPayload', {dict}))
-        comment_id = entity_payload.get('properties').get('commentId')
+    def _extract_comment(self, view_model, entities, parent=None):
+        comment_entity_payload = traverse_obj(entities, (..., 'payload', 'commentEntityPayload', {dict}), get_all=False)
+        toolbar_entity_payload = traverse_obj(entities, (..., 'payload', 'engagementToolbarStateEntityPayload', {dict}), get_all=False)
+        comment_id = comment_entity_payload.get('properties').get('commentId')
 
         info = {
             'id': comment_id,
-            'text': try_get(entity_payload, lambda x: x['properties']['content']['content'], str),
-            'like_count': self._search_regex(r'^([\d]+)', try_get(entity_payload, lambda x: x['toolbar']['likeCountA11y'], str), 'like_count', fatal=False) or 0,
-            'author_id': traverse_obj(entity_payload, ('author', 'channelId', {self.ucid_or_none})),
-            'author': try_get(entity_payload, lambda x: x['author']['displayName'], str),
-            'author_thumbnail': traverse_obj(entity_payload, ('author', 'avatarThumbnailUrl', {url_or_none})),
+            'text': try_get(comment_entity_payload, lambda x: x['properties']['content']['content'], str),
+            'like_count': str_to_int(self._search_regex(r'^([\d]+)', try_get(comment_entity_payload, lambda x: x['toolbar']['likeCountA11y'], str), 'like_count', fatal=False)) or 0,
+            'author_id': traverse_obj(comment_entity_payload, ('author', 'channelId', {self.ucid_or_none})),
+            'author': try_get(comment_entity_payload, lambda x: x['author']['displayName'], str),
+            'author_thumbnail': traverse_obj(comment_entity_payload, ('author', 'avatarThumbnailUrl', {url_or_none})),
             'parent': parent or 'root',
         }
 
         # Timestamp is an estimate calculated from the current time and time_text
-        time_text = try_get(entity_payload, lambda x: x['properties']['publishedTime'], str) or ''
+        time_text = try_get(comment_entity_payload, lambda x: x['properties']['publishedTime'], str) or ''
         timestamp = self._parse_time_text(time_text)
 
         info.update({
@@ -3332,7 +3333,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         info['author_url'] = urljoin(
             'https://www.youtube.com',
-            traverse_obj(entity_payload,
+            traverse_obj(comment_entity_payload,
                          ('author',
                           'channelCommand',
                           'innertubeCommand',
@@ -3340,16 +3341,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                           'canonicalBaseUrl'),
                          expected_type=str, get_all=False))
 
-        author_is_uploader = traverse_obj(entity_payload, ('author', 'isCreator'))
+        author_is_uploader = traverse_obj(comment_entity_payload, ('author', 'isCreator'))
         if author_is_uploader is not None:
             info['author_is_uploader'] = author_is_uploader
 
-        comment_abr = traverse_obj(
-            entity, ('payload', 'engagementToolbarStateEntityPayload', 'heartState'), expected_type=str)
-        if comment_abr is not None:
-            info['is_favorited'] = comment_abr == 'TOOLBAR_HEART_STATE_HEARTED'
+        if toolbar_entity_payload.get('heartState') == 'TOOLBAR_HEART_STATE_HEARTED':
+            info['is_favorited'] = True
 
-        info['author_is_verified'] = traverse_obj(entity_payload, ('author', 'isVerified')) == 'true'
+        info['author_is_verified'] = traverse_obj(comment_entity_payload, ('author', 'isVerified')) == 'true'
 
         pinned_text = traverse_obj(view_model, 'pinnedText')
         if pinned_text:
@@ -3465,12 +3464,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     if not view_model:
                         continue
                     comment_id = view_model['commentId']
-                    for entity in entity_payloads:
-                        if traverse_obj(entity, ('payload', 'commentEntityPayload', 'properties', 'commentId')) == comment_id:
-                            entity = entity
-                            break
+                    comment_key = view_model.get('commentKey')
+                    toolbar_state_key = view_model.get('toolbarStateKey')
+                    entities = traverse_obj(entity_payloads, lambda _, v: v["entityKey"] in [comment_key, toolbar_state_key])
 
-                    comment = self._extract_comment(view_model, entity, parent)
+                    comment = self._extract_comment(view_model, entities, parent)
 
                 if comment.get('is_pinned'):
                     tracker['pinned_comment_ids'].add(comment_id)
