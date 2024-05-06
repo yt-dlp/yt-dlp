@@ -9,6 +9,7 @@ from ..utils import (
     qualities,
     str_or_none,
     url_or_none,
+    bug_reports_message,
 )
 from ..utils.traversal import traverse_obj
 
@@ -173,7 +174,7 @@ class BoostyIE(InfoExtractor):
                 auth_data = json.loads(urllib.parse.unquote(auth_cookie.value))
                 auth_headers['Authorization'] = f'Bearer {auth_data["accessToken"]}'
             except (json.JSONDecodeError, KeyError):
-                self.report_warning('Failed to extract token from auth cookie.')
+                self.report_warning(f'Failed to extract token from auth cookie{bug_reports_message()}')
 
         post = self._download_json(
             f'https://api.boosty.to/v1/blog/{user}/post/{post_id}', post_id,
