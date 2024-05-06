@@ -3564,7 +3564,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             check_get_keys = None
             if not is_forced_continuation and not (tracker['est_total'] == 0 and tracker['running_total'] == 0):
                 check_get_keys = [[*continuation_items_path, ..., (
-                    'commentsHeaderRenderer' if is_first_continuation else ('commentThreadRenderer', 'commentViewModel'))]]
+                    'commentsHeaderRenderer' if is_first_continuation else ('commentThreadRenderer', 'commentViewModel', 'commentRenderer'))]]
             try:
                 response = self._extract_response(
                     item_id=None, query=continuation,
