@@ -4,7 +4,7 @@ import re
 
 
 class FYPTTIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:stream\.|)fyptt\.to/(?P<id>[0-9a-zA-Z]+)(?:|/)'
+    _VALID_URL = r'https?://(?:fyptt|fkbae)\.to/(?P<id>[0-9a-zA-Z]+)(?:|/)'
     _TESTS = [{
         'url': 'https://fyptt.to/203/gorgeous-naughty-blonde-with-beautiful-curves-shows-her-naked-boobies-on-nsfw-tiktok/',
         'md5': 'fc12bce4a9c1335f153500c8fea6e1a8',
@@ -19,6 +19,9 @@ class FYPTTIE(InfoExtractor):
         'only_matching': True,
     }, {
         'url': 'https://fyptt.to/120/small-tits-fit-blonde-dancing-naked-at-the-front-door-on-tiktok',
+        'only_matching': True,
+    }, {
+        'url': 'https://fkbae.to/18',
         'only_matching': True,
     }]
 
@@ -41,7 +44,8 @@ class FYPTTIE(InfoExtractor):
 
         title = self._html_search_regex(r'<span class="fl-heading-text">(.+?)</span>', webpage, 'title')
 
-        http_headers = {'Referer': 'https://fyptt.to/'}
+        base_url = re.search(r'^(https?://[a-zA-Z0-9_-]+\.to)', url).group(1)
+        http_headers = {'Referer': base_url}
 
         return {
             'id': video_id,
