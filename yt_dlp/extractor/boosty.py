@@ -216,9 +216,9 @@ class BoostyIE(InfoExtractor):
                         'thumbnail': (('previewUrl', 'defaultPreview'), {url_or_none}),
                     }, get_all=False)})
 
-        if not post.get('hasAccess'):
-            self.raise_login_required('This post requires a subscription', True, method='cookies')
-        if not entries:
+        if not entries and not post.get('hasAccess'):
+            self.raise_login_required('This post requires a subscription', metadata_available=True, method='cookies')
+        elif not entries:
             raise ExtractorError('No videos found', expected=True)
         if len(entries) == 1:
             return entries[0]
