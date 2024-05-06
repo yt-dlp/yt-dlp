@@ -1,5 +1,5 @@
 import json
-import urllib
+import urllib.parse
 
 from .common import InfoExtractor
 from .youtube import YoutubeIE
