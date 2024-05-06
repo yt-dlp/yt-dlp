@@ -2211,6 +2211,12 @@ class InfoExtractor:
                         'quality': quality,
                         'has_drm': has_drm,
                     }
+
+                    # YouTube Specific
+                    if last_stream_inf.get('YT-EXT-AUDIO-CONTENT-ID'):
+                        # Strip anything after and including from the end '.'
+                        f['language'] = last_stream_inf.get('YT-EXT-AUDIO-CONTENT-ID').split('.')[0]
+
                     resolution = last_stream_inf.get('RESOLUTION')
                     if resolution:
                         mobj = re.search(r'(?P<width>\d+)[xX](?P<height>\d+)', resolution)
