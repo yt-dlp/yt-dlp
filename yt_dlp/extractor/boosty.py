@@ -217,7 +217,7 @@ class BoostyIE(InfoExtractor):
                     }, get_all=False)})
 
         if not entries and not post.get('hasAccess'):
-            self.raise_login_required('This post requires a subscription', metadata_available=True, method='cookies')
+            self.raise_login_required('This post requires a subscription', metadata_available=True)
         elif not entries:
             raise ExtractorError('No videos found', expected=True)
         if len(entries) == 1:
