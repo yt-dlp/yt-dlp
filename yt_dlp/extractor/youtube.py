@@ -3314,7 +3314,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         info = {
             'id': comment_id,
             'text': try_get(comment_entity_payload, lambda x: x['properties']['content']['content'], str),
-            'like_count': str_to_int(self._search_regex(r'^([\d]+)', try_get(comment_entity_payload, lambda x: x['toolbar']['likeCountA11y'], str), 'like_count', fatal=False)) or 0,
+            'like_count': parse_count(try_get(comment_entity_payload, lambda x: x['toolbar']['likeCountA11y'], str)) or 0,
             'author_id': traverse_obj(comment_entity_payload, ('author', 'channelId', {self.ucid_or_none})),
             'author': try_get(comment_entity_payload, lambda x: x['author']['displayName'], str),
             'author_thumbnail': traverse_obj(comment_entity_payload, ('author', 'avatarThumbnailUrl', {url_or_none})),
