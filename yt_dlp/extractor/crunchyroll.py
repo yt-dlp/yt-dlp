@@ -230,7 +230,7 @@ class CrunchyrollBaseIE(InfoExtractor):
                     f['language'] = audio_locale
                 elif not is_original:
                     continue
-                f['quality'] = hardsub_preference(hardsub_lang.lower())
+                f['quality'] = hardsub_preference(hardsub_lang.lower()) + 1 if is_original else 0
                 formats.append(f)
 
         for locale, subtitle in traverse_obj(stream_response, (('subtitles', 'captions'), {dict.items}, ...)):
