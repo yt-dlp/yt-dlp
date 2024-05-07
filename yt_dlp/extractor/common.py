@@ -1036,8 +1036,7 @@ class InfoExtractor:
         webpage_bytes = urlh.read()
         if prefix is not None:
             webpage_bytes = prefix + webpage_bytes
-        if isinstance(url_or_request, Request):
-            data = data if data is not None else url_or_request.data
+        url_or_request = self._create_request(url_or_request, data)
         if self.get_param('dump_intermediate_pages', False):
             self.to_screen('Dumping request to ' + urlh.url)
             dump = base64.b64encode(webpage_bytes).decode('ascii')
