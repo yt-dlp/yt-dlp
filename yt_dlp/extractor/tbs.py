@@ -35,6 +35,9 @@ class TBSIE(TurnerBaseIE):
         'url': 'http://www.tntdrama.com/movies/star-wars-a-new-hope',
         'only_matching': True,
     }, {
+        'url': 'https://www.trutv.com/shows/impractical-jokers/season-9/episode-1/you-dirty-dog',
+        'only_matching': True,
+    }, {
         'url': 'https://www.trutv.com/watchtrutv/east',
         'only_matching': True,
     }]
