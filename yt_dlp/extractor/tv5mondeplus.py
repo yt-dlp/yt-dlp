@@ -8,11 +8,9 @@ from ..utils import (
     get_element_by_class,
     get_element_html_by_class,
     int_or_none,
-    parse_duration,
-    traverse_obj,
-    try_get,
     url_or_none,
 )
+from ..utils.traversal import traverse_obj
 
 
 class TV5MondePlusIE(InfoExtractor):
@@ -30,8 +28,10 @@ class TV5MondePlusIE(InfoExtractor):
             'thumbnail': 'https://psi.tv5monde.com/upsilon-images/960x540/6f/baudouin-f49c6b0e.jpg',
             'duration': 4842,
             'upload_date': '20240130',
-            'episode': "Baudouin, l'héritage d'un roi",
+            'timestamp': 1706641242,
+            'episode': "BAUDOUIN, L'HERITAGE D'UN ROI",
             'description': 'md5:78125c74a5cac06d7743a2d09126edad',
+            'series': "Baudouin, l'héritage d'un roi",
         },
     }, {
         # series episode
@@ -45,7 +45,8 @@ class TV5MondePlusIE(InfoExtractor):
             'description': 'md5:a824a2e1dfd94cf45fa379a1fb43ce65',
             'thumbnail': 'https://psi.tv5monde.com/media/image/960px/5880553.jpg',
             'duration': 2526,
-            'upload_date': '20240411',
+            'upload_date': '20230721',
+            'timestamp': 1689971646,
             'series': 'Toute la vie',
             'episode': 'Mardi 23 mars 2021',
         },
@@ -61,24 +62,27 @@ class TV5MondePlusIE(InfoExtractor):
             'description': 'md5:62ba3f875343c7fc4082bdfbbc1be992',
             'thumbnail': 'https://psi.tv5monde.com/media/image/960px/5476617.jpg',
             'duration': 5300,
-            'upload_date': '20240411',
-            'episode': 'Ce fleuve qui nous charrie',
+            'upload_date': '20210822',
+            'timestamp': 1629594105,
+            'episode': 'CE FLEUVE QUI NOUS CHARRIE-P001-CE FLEUVE QUI NOUS CHARRIE',
+            'series': 'Ce fleuve qui nous charrie',
         },
     }, {
         # news
-        'url': 'https://www.tv5monde.com/tv/video/68764-tv5monde-le-journal-edition-du-11-04-24-11h',
+        'url': 'https://www.tv5monde.com/tv/video/70402-tv5monde-le-journal-edition-du-08-05-24-11h',
         'md5': 'c62977d6d10754a2ecebba70ad370479',
         'info_dict': {
-            'id': '0NU1lYMa0Q_6D4BA7b',
-            'display_id': '68764-tv5monde-le-journal-edition-du-11-04-24-11h',
+            'id': 'LgQFrOCNsc_6D4BA7b',
+            'display_id': '70402-tv5monde-le-journal-edition-du-08-05-24-11h',
             'ext': 'mp4',
             'title': 'TV5MONDE, le journal',
             'description': 'md5:777dc209eaa4423b678477c36b0b04a8',
-            'thumbnail': 'https://psi.tv5monde.com/media/image/960px/6183997.jpg',
-            'duration': 836,
-            'upload_date': '20240411',
+            'thumbnail': 'https://psi.tv5monde.com/media/image/960px/6184105.jpg',
+            'duration': 854,
+            'upload_date': '20240508',
+            'timestamp': 1715159640,
             'series': 'TV5MONDE, le journal',
-            'episode': 'TV5MONDE, le journal',
+            'episode': 'EDITION DU 08/05/24 - 11H',
         },
     }]
     _GEO_BYPASS = False
@@ -145,23 +149,7 @@ class TV5MondePlusIE(InfoExtractor):
         process_video_files(video_files)
 
         metadata = self._parse_json(
-            vpl_data['data-metadata'], display_id)
-        duration = (int_or_none(try_get(metadata, lambda x: x['content']['duration']))
-                    or parse_duration(self._html_search_meta('duration', webpage)))
-
-        title = episode = clean_html(get_element_by_class('main-title', webpage))
-        subtitle = clean_html(get_element_by_class('video-subtitle', webpage))
-        if subtitle:
-            episode = subtitle
-
-        ep_summary = get_element_html_by_class('ep-summary', webpage)
-        description = clean_html(get_element_by_class('text', ep_summary))
-
-        upload_date = self._search_regex(
-            r'(?:date_publication|publish_date)["\']\s*:\s*["\'](\d{4}_\d{2}_\d{2})',
-            webpage, 'upload date', default=None)
-        if upload_date:
-            upload_date = upload_date.replace('_', '')
+            vpl_data.get('data-metadata') or '{}', display_id, fatal=False)
 
         if not video_id:
             video_id = self._search_regex(
@@ -170,16 +158,20 @@ class TV5MondePlusIE(InfoExtractor):
                 default=display_id)
 
         return {
+            **traverse_obj(metadata, ('content', {
+                'id': ('id', {str}),
+                'title': ('title', {str}),
+                'episode': ('title', {str}),
+                'series': ('series', {str}),
+                'timestamp': ('publishDate_ts', {int_or_none}),
+                'duration': ('duration', {int_or_none}),
+            })),
             'id': video_id,
             'display_id': display_id,
-            'title': title,
-            'description': description,
-            'thumbnail': vpl_data.get('data-image'),
-            'duration': duration,
-            'upload_date': upload_date,
+            'title': clean_html(get_element_by_class('main-title', webpage)),
+            'description': clean_html(get_element_by_class('text', get_element_html_by_class('ep-summary', webpage))),
+            'thumbnail': url_or_none(vpl_data.get('data-image')),
             'formats': formats,
             'subtitles': self._extract_subtitles(self._parse_json(
                 traverse_obj(vpl_data, ('data-captions', {str}), default='{}'), display_id, fatal=False)),
-            'series': clean_html(get_element_by_class('video-title', webpage)),
-            'episode': episode,
         }
