@@ -462,12 +462,16 @@ class VKIE(VKBaseIE):
                 formats.append({
                     'format_id': format_id,
                     'url': format_url,
+                    'ext': 'mp4',
                     'height': height,
                 })
             elif format_id == 'hls':
                 formats.extend(self._extract_m3u8_formats(
                     format_url, video_id, 'mp4', 'm3u8_native',
                     m3u8_id=format_id, fatal=False, live=is_live))
+            elif format_id == 'dash_sep':
+                formats.extend(self._extract_mpd_formats(
+                    format_url, video_id, mpd_id='dash', fatal=False))
             elif format_id == 'rtmp':
                 formats.append({
                     'format_id': format_id,
