@@ -57,7 +57,7 @@ class MixchIE(InfoExtractor):
                 'protocol': 'm3u8',
             }],
             'is_live': True,
-            '__post_extractor': self.extract_comments(video_id=video_id),
+            '__post_extractor': self.extract_comments(video_id),
         }
 
     def _get_comments(self, video_id):
