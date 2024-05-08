@@ -467,13 +467,13 @@ class VKIE(VKBaseIE):
                     'source_preference': 1,
                     'height': height,
                 })
-            elif format_id == 'hls':
+            elif format_id.startswith('hls') and format_id != 'hls_live_playback':
                 fmts, subs = self._extract_m3u8_formats_and_subtitles(
                     format_url, video_id, 'mp4', 'm3u8_native',
                     m3u8_id=format_id, fatal=False, live=is_live)
                 formats.extend(fmts)
                 self._merge_subtitles(subs, target=subtitles)
-            elif format_id.startswith('dash_'):
+            elif format_id.startswith('dash') and format_id not in ('dash_live_playback', 'dash_uni'):
                 fmts, subs = self._extract_mpd_formats_and_subtitles(
                     format_url, video_id, mpd_id=format_id, fatal=False)
                 formats.extend(fmts)
