@@ -468,9 +468,11 @@ class VKIE(VKBaseIE):
                     'height': height,
                 })
             elif format_id == 'hls':
-                formats.extend(self._extract_m3u8_formats(
+                fmts, subs = self._extract_m3u8_formats_and_subtitles(
                     format_url, video_id, 'mp4', 'm3u8_native',
-                    m3u8_id=format_id, fatal=False, live=is_live))
+                    m3u8_id=format_id, fatal=False, live=is_live)
+                formats.extend(fmts)
+                self._merge_subtitles(subs, target=subtitles)
             elif format_id.startswith('dash_'):
                 fmts, subs = self._extract_mpd_formats_and_subtitles(
                     format_url, video_id, mpd_id=format_id, fatal=False)
