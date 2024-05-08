@@ -1049,9 +1049,10 @@ class BilibiliSpaceVideoIE(BilibiliSpaceBaseIE):
                     raise ExtractorError(
                         'Request is blocked by server (412), please add cookies, wait and try later.', expected=True)
                 raise
-            if response['code'] == -401:
+            if response['code'] in (-352, -401):
                 raise ExtractorError(
-                    'Request is blocked by server (401), please add cookies, wait and try later.', expected=True)
+                    f'Request is blocked by server ({-response["code"]}), '
+                    'please add cookies, wait and try later.', expected=True)
             return response['data']
 
         def get_metadata(page_data):
