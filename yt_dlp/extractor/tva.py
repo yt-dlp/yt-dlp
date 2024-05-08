@@ -49,11 +49,16 @@ class QubIE(InfoExtractor):
         'info_dict': {
             'id': '6084352463001',
             'ext': 'mp4',
-            'title': 'Épisode 01',
+            'title': 'Ép 01. Mon dernier jour',
             'uploader_id': '5481942443001',
             'upload_date': '20190907',
             'timestamp': 1567899756,
             'description': 'md5:9c0d7fbb90939420c651fd977df90145',
+            'thumbnail': r're:https://.+\.jpg',
+            'episode': 'Ép 01. Mon dernier jour',
+            'episode_number': 1,
+            'tags': ['alerte amber', 'alerte amber saison 1', 'surdemande'],
+            'duration': 2625.963,
         },
     }, {
         'url': 'https://www.qub.ca/tele/video/lcn-ca-vous-regarde-rev-30s-ap369664-1009357943',
