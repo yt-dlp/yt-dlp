@@ -5,11 +5,11 @@ from .common import InfoExtractor
 from .youtube import YoutubeIE
 from ..utils import (
     ExtractorError,
+    bug_reports_message,
     int_or_none,
     qualities,
     str_or_none,
     url_or_none,
-    bug_reports_message,
 )
 from ..utils.traversal import traverse_obj
 
@@ -167,8 +167,8 @@ class BoostyIE(InfoExtractor):
     def _real_extract(self, url):
         user, post_id = self._match_valid_url(url).group('user', 'post_id')
 
-        auth_cookie = self._get_cookies('https://boosty.to/').get('auth')
         auth_headers = {}
+        auth_cookie = self._get_cookies('https://boosty.to/').get('auth')
         if auth_cookie is not None:
             try:
                 auth_data = json.loads(urllib.parse.unquote(auth_cookie.value))
