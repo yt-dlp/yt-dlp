@@ -143,15 +143,18 @@ class EuroParlWebstreamIE(InfoExtractor):
         },
         'skip': 'Not live anymore'
     }, {
-        # live stream
         'url': 'https://multimedia.europarl.europa.eu/en/webstreaming/20240320-1345-SPECIAL-PRESSER',
         'info_dict': {
-            'id': '20240320-1345-SPECIAL-PRESSER',
+            'id': 'c1f11567-5b52-470a-f3e1-08dc3c216ace',
             'ext': 'mp4',
             'release_date': '20240320',
+            'title': 'md5:7c6c814cac55dea5e2d87bf8d3db2234',
+            'release_timestamp': 1710939767,
         }
-    }
-    ]
+    }, {
+        'url': 'https://multimedia.europarl.europa.eu/webstreaming/briefing-for-media-on-2024-european-elections_20240429-1000-SPECIAL-OTHER',
+        'only_matching': True,
+    }]
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
