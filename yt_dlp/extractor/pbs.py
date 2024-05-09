@@ -8,6 +8,7 @@ from ..utils import (
     int_or_none,
     float_or_none,
     js_to_json,
+    clean_html,
     orderedSet,
     strip_jsonp,
     strip_or_none,
@@ -759,9 +760,9 @@ class PBSKidsIE(InfoExtractor):
 
 class PBSShowIE(InfoExtractor):
     # https://watch.opb.org/show/oregon-experience/
-    _VALID_URL = r'https?://(?:www\.)?opb\.org/show/(?P<id>.+)'
+    _VALID_URL = r'https?://(?:watch\.)?opb\.org/show/(?P<id>.+)'
     _TESTS = [{
-        'url': 'https://watch.opb.org/show/oregon-experience/',
+        'url': 'https://watch.opb.org/show/oregon-experience',
         'info_dict': {
             'id': 'bitchute',
             'title': 'BitChute',
@@ -842,8 +843,9 @@ class PBSShowIE(InfoExtractor):
                 view_count=parse_count(clean_html(get_element_by_class('video-views', video_html))))
 
     def _real_extract(self, url):
-        playlist_type, playlist_id = self._match_valid_url(url).group('type', 'id')
-        webpage = self._download_webpage(self._make_url(playlist_id, playlist_type), playlist_id)
+        playlist_id = self._match_valid_url(url).group('id')
+        webpage = self._download_webpage(self._make_url(playlist_id), playlist_id)
+        show_data = self._search_json(r'<script[^>]+id="content-strip-data" type="application/json">', webpage, 'seasons', playlist_id)
 
         page_func = functools.partial(self._fetch_page, playlist_id, playlist_type)
         return self.playlist_result(
