@@ -67,7 +67,7 @@ class ThirtyDaySingerIE(ThirtyDaySingerBase):
 
 class ThirtyDaySingerPlaylistIE(ThirtyDaySingerBase):
     _URI_BASE = 'https://www.30daysinger.com'
-    _VALID_URL = r'(https?://)?www.30daysinger.com/tutorial/(?P<id>[\w-]+)'
+    _VALID_URL = r'(https?://)?www.30daysinger.com/tutorial/(?P<id>[\w-]+)/?(?:$|[#?])'
 
     _TESTS = [{
         'url': 'https://www.30daysinger.com/tutorial/30-day-beginner-course-with-jonathan-estabrooks',
@@ -76,7 +76,8 @@ class ThirtyDaySingerPlaylistIE(ThirtyDaySingerBase):
             'description': 'md5:8cf6d6c7c377895653c9cde9dfc4104f',
             'title': '30 Day Beginner Course with Jonathan Estabrooks',
         },
-        'playlist_count': 1
+        'playlist_count': 1,
+        'expected_warnings': ['This video is for premium members only']
     }]
 
     def _real_extract(self, url):
