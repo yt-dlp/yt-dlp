@@ -785,6 +785,25 @@ class TestHTTPImpersonateRequestHandler(TestRequestHandlerBase):
                 assert res.status == 200
                 assert std_headers['user-agent'].lower() not in res.read().decode().lower()
 
+    def test_response_extensions(self, handler):
+        with handler() as rh:
+            for target in rh.supported_targets:
+                request = Request(
+                    f'http://127.0.0.1:{self.http_port}/gen_200', extensions={'impersonate': target})
+                res = validate_and_send(rh, request)
+                assert res.extensions['impersonate'] == rh._get_request_target(request)
+
+    def test_http_error_response_extensions(self, handler):
+        with handler() as rh:
+            for target in rh.supported_targets:
+                request = Request(
+                    f'http://127.0.0.1:{self.http_port}/gen_404', extensions={'impersonate': target})
+                try:
+                    validate_and_send(rh, request)
+                except HTTPError as e:
+                    res = e.response
+                assert res.extensions['impersonate'] == rh._get_request_target(request)
+
 
 class TestRequestHandlerMisc:
     """Misc generic tests for request handlers, not related to request or validation testing"""

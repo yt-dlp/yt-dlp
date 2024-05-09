@@ -191,17 +191,25 @@ class TwitchBaseIE(InfoExtractor):
         }] if thumbnail else None
 
     def _extract_twitch_m3u8_formats(self, path, video_id, token, signature):
-        return self._extract_m3u8_formats(
+        formats = self._extract_m3u8_formats(
             f'{self._USHER_BASE}/{path}/{video_id}.m3u8', video_id, 'mp4', query={
                 'allow_source': 'true',
                 'allow_audio_only': 'true',
                 'allow_spectre': 'true',
                 'p': random.randint(1000000, 10000000),
+                'platform': 'web',
                 'player': 'twitchweb',
+                'supported_codecs': 'av1,h265,h264',
                 'playlist_include_framerate': 'true',
                 'sig': signature,
                 'token': token,
             })
+        for fmt in formats:
+            if fmt.get('vcodec') and fmt['vcodec'].startswith('av01'):
+                # mpegts does not yet have proper support for av1
+                fmt['downloader_options'] = {'ffmpeg_args_out': ['-f', 'mp4']}
+
+        return formats
 
 
 class TwitchVodIE(TwitchBaseIE):
