@@ -1,13 +1,17 @@
-from .wistia import WistiaIE
+import re
+
+from .wistia import WistiaBaseIE
 from ..utils import (
     clean_html,
     get_elements_html_by_class
 )
 
 
-class ThirtyDaySingerBase(WistiaIE):
+class ThirtyDaySingerBase(WistiaBaseIE):
+    _INDEX_EXTRACTION_RE = r'/tutorial/[\w-]+/(?P<index>[\w-]+)'
+
     def _extract_for_url(self, url):
-        lesson_index = self._match_id(url)
+        lesson_index = re.search(self._INDEX_EXTRACTION_RE, url).group('index')
         webpage = self._download_webpage(url, lesson_index)
         match = next(self._extract_wistia_async_embed(webpage))
         embed_config = self._download_embed_config('medias', match.group('id'), url)
@@ -44,7 +48,7 @@ class ThirtyDaySingerBase(WistiaIE):
 
 
 class ThirtyDaySingerIE(ThirtyDaySingerBase):
-    _VALID_URL = r'(https?://)?www.30daysinger.com/tutorial/[\w-]+/(?P<id>[\w-]+)'
+    _VALID_URL = r'(https?://)?www.30daysinger.com/tutorial/[\w-]+/[\w-]+'
 
     _TESTS = [{
         'url': 'https://www.30daysinger.com/tutorial/30-day-beginner-course-with-jonathan-estabrooks/1',
@@ -67,7 +71,7 @@ class ThirtyDaySingerIE(ThirtyDaySingerBase):
 
 class ThirtyDaySingerPlaylistIE(ThirtyDaySingerBase):
     _URI_BASE = 'https://www.30daysinger.com'
-    _VALID_URL = r'(https?://)?www.30daysinger.com/tutorial/(?P<id>[\w-]+)/?(?:$|[#?])'
+    _VALID_URL = r'(https?://)?www.30daysinger.com/tutorial/(?P<playlist_id>[\w-]+)/?(?:$|[#?])'
 
     _TESTS = [{
         'url': 'https://www.30daysinger.com/tutorial/30-day-beginner-course-with-jonathan-estabrooks',
@@ -81,7 +85,7 @@ class ThirtyDaySingerPlaylistIE(ThirtyDaySingerBase):
     }]
 
     def _real_extract(self, url):
-        playlist_id = self._match_id(url)
+        playlist_id = self._match_valid_url(url).group('playlist_id')
         webpage = self._download_webpage(url, playlist_id)
         playlist_attrs = self._extract_webpage_data(webpage)
 
