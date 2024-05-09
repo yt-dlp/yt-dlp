@@ -48,7 +48,7 @@ class ThirtyDaySingerBase(WistiaBaseIE):
 
 
 class ThirtyDaySingerIE(ThirtyDaySingerBase):
-    _VALID_URL = r'(https?://)?www.30daysinger.com/tutorial/[\w-]+/[\w-]+'
+    _VALID_URL = r'https?://www\.30daysinger\.com/tutorial/[\w-]+/[\w-]+'
 
     _TESTS = [{
         'url': 'https://www.30daysinger.com/tutorial/30-day-beginner-course-with-jonathan-estabrooks/1',
@@ -71,7 +71,7 @@ class ThirtyDaySingerIE(ThirtyDaySingerBase):
 
 class ThirtyDaySingerPlaylistIE(ThirtyDaySingerBase):
     _URI_BASE = 'https://www.30daysinger.com'
-    _VALID_URL = r'(https?://)?www.30daysinger.com/tutorial/(?P<playlist_id>[\w-]+)/?(?:$|[#?])'
+    _VALID_URL = r'https?://www\.30daysinger\.com/tutorial/(?P<playlist_id>[\w-]+)/?(?:$|[#?])'
 
     _TESTS = [{
         'url': 'https://www.30daysinger.com/tutorial/30-day-beginner-course-with-jonathan-estabrooks',
