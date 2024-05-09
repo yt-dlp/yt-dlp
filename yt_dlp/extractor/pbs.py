@@ -811,9 +811,9 @@ class PBSShowIE(InfoExtractor):
 
     @staticmethod
     def _make_url(playlist_id):
-        return f'https://watch.opb.org/show/{playlist_id}/'
+        return f'https://watch.opb.org/show/{playlist_id}'
 
-    def _fetch_page(self, playlist_id, page_num):
+    def _fetch_page(self, playlist_id, season):
         playlist_url = self._make_url(playlist_id)
         data = self._download_json(
             playlist_url, playlist_id, f'Downloading page {page_num}',
@@ -844,14 +844,17 @@ class PBSShowIE(InfoExtractor):
 
     def _real_extract(self, url):
         playlist_id = self._match_valid_url(url).group('id')
+        playlist_url = self._make_url(playlist_id)
         webpage = self._download_webpage(self._make_url(playlist_id), playlist_id)
         show_data = self._search_json(r'<script[^>]+id="content-strip-data" type="application/json">', webpage, 'seasons', playlist_id)
 
-        page_func = functools.partial(self._fetch_page, playlist_id, playlist_type)
-        return self.playlist_result(
-            OnDemandPagedList(page_func, self.PAGE_SIZE), playlist_id,
-            title=self._html_extract_title(webpage, default=None),
-            description=self._html_search_meta(
-                ('description', 'og:description', 'twitter:description'), webpage, default=None),
-            playlist_count=int_or_none(self._html_search_regex(
-                r'<span>(\d+)\s+videos?</span>', webpage, 'playlist count', default=None)))
+        for season_metadata in reversed(show_data.get('episodes_data', {}).get('seasons', [])):
+            season_ordinal = season_metadata.get('ordinal', 0)
+            if season_ordinal == 0:
+                continue
+
+            season_data = self._download_webpage(f'{playlist_url}/episodes/season/{season_ordinal}', video_id=f'{playlist_id}-{season_ordinal}')
+            pass
+
+
+        return
