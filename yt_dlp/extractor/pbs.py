@@ -9,6 +9,7 @@ from ..utils import (
     float_or_none,
     js_to_json,
     clean_html,
+    get_elements_html_by_class,
     orderedSet,
     strip_jsonp,
     strip_or_none,
@@ -793,6 +794,8 @@ class PBSShowIE(InfoExtractor):
         },
     }]
 
+    _JSON_SEARCH = r'<script[^>]+id="content-strip-data" type="application/json">'
+
     _TOKEN = 'zyG6tQcGPE5swyAEFLqKUwMuMMuF6IO2DZ6ZDQjGfsL0e4dcTLwqkTTul05Jdve7'
     PAGE_SIZE = 25
     HTML_CLASS_NAMES = {
@@ -813,47 +816,21 @@ class PBSShowIE(InfoExtractor):
     def _make_url(playlist_id):
         return f'https://watch.opb.org/show/{playlist_id}'
 
-    def _fetch_page(self, playlist_id, season):
-        playlist_url = self._make_url(playlist_id)
-        data = self._download_json(
-            playlist_url, playlist_id, f'Downloading page {page_num}',
-            data=urlencode_postdata({
-                'csrfmiddlewaretoken': self._TOKEN,
-                'name': '',
-                'offset': page_num * self.PAGE_SIZE,
-            }), headers={
-                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-                'Referer': playlist_url,
-                'X-Requested-With': 'XMLHttpRequest',
-                'Cookie': f'csrftoken={self._TOKEN}',
-            })
-        if not data.get('success'):
-            return
-        classes = self.HTML_CLASS_NAMES[playlist_type]
-        for video_html in get_elements_html_by_class(classes['container'], data.get('html')):
-            video_id = self._search_regex(
-                r'<a\s[^>]*\bhref=["\']/video/([^"\'/]+)', video_html, 'video id', default=None)
-            if not video_id:
-                continue
-            yield self.url_result(
-                f'https://www.bitchute.com/video/{video_id}', BitChuteIE, video_id, url_transparent=True,
-                title=clean_html(get_element_by_class(classes['title'], video_html)),
-                description=clean_html(get_element_by_class(classes['description'], video_html)),
-                duration=parse_duration(get_element_by_class('video-duration', video_html)),
-                view_count=parse_count(clean_html(get_element_by_class('video-views', video_html))))
-
     def _real_extract(self, url):
         playlist_id = self._match_valid_url(url).group('id')
         playlist_url = self._make_url(playlist_id)
         webpage = self._download_webpage(self._make_url(playlist_id), playlist_id)
-        show_data = self._search_json(r'<script[^>]+id="content-strip-data" type="application/json">', webpage, 'seasons', playlist_id)
+        show_data = self._search_json(self._JSON_SEARCH, webpage, 'seasons', playlist_id)
 
-        for season_metadata in reversed(show_data.get('episodes_data', {}).get('seasons', [])):
-            season_ordinal = season_metadata.get('ordinal', 0)
+        for show_season_metadata in sorted(show_data.get('episodes_data', {}).get('seasons', []), key=lambda x: x.get('ordinal', 0), reverse=True):
+            season_ordinal = show_season_metadata.get('ordinal', 0)
             if season_ordinal == 0:
                 continue
 
-            season_data = self._download_webpage(f'{playlist_url}/episodes/season/{season_ordinal}', video_id=f'{playlist_id}-{season_ordinal}')
+            season_id = f'{playlist_id}-{season_ordinal}'
+
+            season_page = self._download_webpage(f'{playlist_url}/episodes/season/{season_ordinal}', video_id=season_id)
+            season_data = get_elements_html_by_class("video-summary", season_page)
             pass
 
 
