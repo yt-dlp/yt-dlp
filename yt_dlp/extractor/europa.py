@@ -54,7 +54,7 @@ class EuropaIE(InfoExtractor):
                     return items[p]
 
         query = parse_qs(url)
-        preferred_lang = query.get('sitelang', ('en',))[0]
+        preferred_lang = query.get('sitelang', ('en', ))[0]
 
         preferred_langs = orderedSet((preferred_lang, 'en', 'int'))
 
@@ -177,7 +177,7 @@ class EuroParlWebstreamIE(InfoExtractor):
 
         return {
             'id': json_info['id'],
-            'title': traverse_obj(webpage_nextjs, (('mediaItem', 'title'), ('title',)), get_all=False),
+            'title': traverse_obj(webpage_nextjs, (('mediaItem', 'title'), ('title', )), get_all=False),
             'formats': formats,
             'subtitles': subtitles,
             'release_timestamp': parse_iso8601(json_info.get('startDateTime')),
