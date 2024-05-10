@@ -10,7 +10,7 @@ tar: yt-dlp.tar.gz
 # intended use: when building a source distribution,
 # make pypi-files && python3 -m build -sn .
 pypi-files: AUTHORS Changelog.md LICENSE README.md README.txt supportedsites \
-            completions yt-dlp.1 pyproject.toml devscripts/* test/*
+            completions yt-dlp.1 pyproject.toml setup.cfg devscripts/* test/*
 
 .PHONY: all clean clean-all clean-test clean-dist clean-cache \
         completions completion-bash completion-fish completion-zsh \
@@ -158,7 +158,7 @@ yt-dlp.tar.gz: all
 		README.md supportedsites.md Changelog.md LICENSE \
 		CONTRIBUTING.md Collaborators.md CONTRIBUTORS AUTHORS \
 		Makefile yt-dlp.1 README.txt completions .gitignore \
-		yt-dlp yt_dlp pyproject.toml devscripts test
+		setup.cfg yt-dlp yt_dlp pyproject.toml devscripts test
 
 AUTHORS: Changelog.md
 	@if [ -d '.git' ] && command -v git > /dev/null ; then \
