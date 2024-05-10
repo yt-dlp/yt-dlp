@@ -1,7 +1,7 @@
 import base64
+import datetime as dt
 import functools
 import itertools
-from datetime import datetime
 
 from .common import InfoExtractor
 from ..networking import HEADRequest
@@ -20,7 +20,8 @@ class TenPlayIE(InfoExtractor):
             'alt_title': 'Nathan Borg Is The First Aussie Actor With A Cochlear Implant To Join Neighbours',
             'description': 'md5:a02d0199c901c2dd4c796f1e7dd0de43',
             'duration': 186,
-            'season': 39,
+            'season': 'Season 39',
+            'season_number': 39,
             'series': 'Neighbours',
             'thumbnail': r're:https://.*\.jpg',
             'uploader': 'Channel 10',
@@ -69,7 +70,7 @@ class TenPlayIE(InfoExtractor):
         username, password = self._get_login_info()
         if username is None or password is None:
             self.raise_login_required('Your 10play account\'s details must be provided with --username and --password.')
-        _timestamp = datetime.now().strftime('%Y%m%d000000')
+        _timestamp = dt.datetime.now().strftime('%Y%m%d000000')
         _auth_header = base64.b64encode(_timestamp.encode('ascii')).decode('ascii')
         data = self._download_json('https://10play.com.au/api/user/auth', video_id, 'Getting bearer token', headers={
             'X-Network-Ten-Auth': _auth_header,
@@ -108,7 +109,7 @@ class TenPlayIE(InfoExtractor):
             'description': data.get('description'),
             'age_limit': self._AUS_AGES.get(data.get('classification')),
             'series': data.get('tvShow'),
-            'season': int_or_none(data.get('season')),
+            'season_number': int_or_none(data.get('season')),
             'episode_number': int_or_none(data.get('episode')),
             'timestamp': data.get('published'),
             'thumbnail': data.get('imageUrl'),

@@ -8,6 +8,8 @@ from ..compat import compat_urlparse
 
 
 class DWIE(InfoExtractor):
+    _WORKING = False
+    _ENABLED = None  # XXX: pass through to GenericIE
     IE_NAME = 'dw'
     _VALID_URL = r'https?://(?:www\.)?dw\.com/(?:[^/]+/)+(?:av|e)-(?P<id>\d+)'
     _TESTS = [{
@@ -82,6 +84,8 @@ class DWIE(InfoExtractor):
 
 
 class DWArticleIE(InfoExtractor):
+    _WORKING = False
+    _ENABLED = None  # XXX: pass through to GenericIE
     IE_NAME = 'dw:article'
     _VALID_URL = r'https?://(?:www\.)?dw\.com/(?:[^/]+/)+a-(?P<id>\d+)'
     _TEST = {

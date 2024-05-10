@@ -9,6 +9,7 @@ from ..utils import (
 
 
 class TeacherTubeIE(InfoExtractor):
+    _WORKING = False
     IE_NAME = 'teachertube'
     IE_DESC = 'teachertube.com videos'
 
@@ -87,6 +88,7 @@ class TeacherTubeIE(InfoExtractor):
 
 
 class TeacherTubeUserIE(InfoExtractor):
+    _WORKING = False
     IE_NAME = 'teachertube:user:collection'
     IE_DESC = 'teachertube.com user and collection videos'
 

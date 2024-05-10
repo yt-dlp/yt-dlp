@@ -5,7 +5,10 @@ from ..utils import traverse_obj, update_url_query
 
 
 class ScreencastifyIE(InfoExtractor):
-    _VALID_URL = r'https?://watch\.screencastify\.com/v/(?P<id>[^/?#]+)'
+    _VALID_URL = [
+        r'https?://watch\.screencastify\.com/v/(?P<id>[^/?#]+)',
+        r'https?://app\.screencastify\.com/v[23]/watch/(?P<id>[^/?#]+)',
+    ]
     _TESTS = [{
         'url': 'https://watch.screencastify.com/v/sYVkZip3quLKhHw4Ybk8',
         'info_dict': {
@@ -19,6 +22,21 @@ class ScreencastifyIE(InfoExtractor):
         'params': {
             'skip_download': 'm3u8',
         },
+    }, {
+        'url': 'https://app.screencastify.com/v3/watch/J5N7H11wofDN1jZUCr3t',
+        'info_dict': {
+            'id': 'J5N7H11wofDN1jZUCr3t',
+            'ext': 'mp4',
+            'uploader': 'Scott Piesen',
+            'description': '',
+            'title': 'Lesson Recording 1-17 Burrr...',
+        },
+        'params': {
+            'skip_download': 'm3u8',
+        },
+    }, {
+        'url': 'https://app.screencastify.com/v2/watch/BQ26VbUdfbQLhKzkktOk',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):

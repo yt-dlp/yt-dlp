@@ -157,7 +157,7 @@ class BilibiliBaseIE(InfoExtractor):
         params['w_rid'] = hashlib.md5(f'{query}{self._get_wbi_key(video_id)}'.encode()).hexdigest()
         return params
 
-    def _download_playinfo(self, bvid, cid, headers={}, qn=None):
+    def _download_playinfo(self, bvid, cid, headers=None, qn=None):
         params = {'bvid': bvid, 'cid': cid, 'fnval': 4048}
         if qn:
             params['qn'] = qn
@@ -619,7 +619,8 @@ class BiliBiliIE(BilibiliBaseIE):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        webpage, urlh = self._download_webpage_handle(url, video_id)
+        headers = self.geo_verification_headers()
+        webpage, urlh = self._download_webpage_handle(url, video_id, headers=headers)
         if not self._match_valid_url(urlh.url):
             return self.url_result(urlh.url)
 
@@ -658,7 +659,7 @@ class BiliBiliIE(BilibiliBaseIE):
             self._download_json(
                 'https://api.bilibili.com/x/player/pagelist', video_id,
                 fatal=False, query={'bvid': video_id, 'jsonp': 'jsonp'},
-                note='Extracting videos in anthology'),
+                note='Extracting videos in anthology', headers=headers),
             'data', expected_type=list) or []
         is_anthology = len(page_list_json) > 1
 
@@ -678,7 +679,7 @@ class BiliBiliIE(BilibiliBaseIE):
 
         festival_info = {}
         if is_festival:
-            play_info = self._download_playinfo(video_id, cid, headers)
+            play_info = self._download_playinfo(video_id, cid, headers=headers)
 
             festival_info = traverse_obj(initial_state, {
                 'uploader': ('videoInfo', 'upName'),
@@ -832,14 +833,15 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
 
     def _real_extract(self, url):
         episode_id = self._match_id(url)
-        webpage = self._download_webpage(url, episode_id)
+        headers = self.geo_verification_headers()
+        webpage = self._download_webpage(url, episode_id, headers=headers)
 
         if '您所在的地区无法观看本片' in webpage:
             raise GeoRestrictedError('This video is restricted')
         elif '正在观看预览，大会员免费看全片' in webpage:
             self.raise_login_required('This video is for premium members only')
 
-        headers = {'Referer': url, **self.geo_verification_headers()}
+        headers['Referer'] = url
         play_info = self._download_json(
             'https://api.bilibili.com/pgc/player/web/v2/playurl', episode_id,
             'Extracting episode', query={'fnval': '4048', 'ep_id': episode_id},
@@ -890,7 +892,7 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
             'duration': float_or_none(play_info.get('timelength'), scale=1000),
             'subtitles': self.extract_subtitles(episode_id, episode_info.get('cid'), aid=aid),
             '__post_extractor': self.extract_comments(aid),
-            'http_headers': headers,
+            'http_headers': {'Referer': url},
         }
 
 
@@ -1192,13 +1194,14 @@ class BilibiliSpaceVideoIE(BilibiliSpaceBaseIE):
                     raise ExtractorError(
                         'Request is blocked by server (412), please add cookies, wait and try later.', expected=True)
                 raise
-            if response['code'] == -401:
+            status_code = response['code']
+            if status_code == -401:
                 raise ExtractorError(
                     'Request is blocked by server (401), please add cookies, wait and try later.', expected=True)
-            if response['code'] == -352 and not self._get_cookies('https://api.bilibili.com').get('SESSDATA'):
+            elif status_code == -352 and not self._get_cookies('https://api.bilibili.com').get('SESSDATA'):
                 self.raise_login_required('Request is rejected, you need to login to access playlist')
-            if response['code'] != 0:
-                raise ExtractorError(f'Request failed ({response["code"]}): {response.get("message", "")}')
+            elif status_code != 0:
+                raise ExtractorError(f'Request failed ({status_code}): {response.get("message") or "Unknown error"}')
             return response['data']
 
         def get_metadata(page_data):
@@ -2121,6 +2124,7 @@ class BiliIntlIE(BiliIntlBaseIE):
         'only_matching': True,
     }]
 
+    @staticmethod
     def _make_url(video_id, series_id=None):
         if series_id:
             return f'https://www.bilibili.tv/en/play/{series_id}/{video_id}'
@@ -2152,7 +2156,7 @@ class BiliIntlIE(BiliIntlBaseIE):
                 'title': get_element_by_class(
                     'bstar-meta__title', webpage) or self._html_search_meta('og:title', webpage),
                 'description': get_element_by_class(
-                    'bstar-meta__desc', webpage) or self._html_search_meta('og:description'),
+                    'bstar-meta__desc', webpage) or self._html_search_meta('og:description', webpage),
             }, self._search_json_ld(webpage, video_id, default={}))
 
     def _get_comments_reply(self, root_id, next_id=0, display_id=None):
