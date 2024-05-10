@@ -15,23 +15,23 @@ class TapTapIE(InfoExtractor):
         'url': 'https://www.taptap.cn/moment/194618230982052443',
         'info_dict': {
             'id': 'moment_194618230982052443',
-            "title": "《崩坏3》开放世界「后崩坏书」新篇章 于淹没之地仰视辰星",
-            "description": "md5:cf66f7819d413641b8b28c8543f4ecda",
-            "timestamp": 1633453402,
-            "upload_date": "20211005",
-            "uploader": "乌酱",
+            'title': '《崩坏3》开放世界「后崩坏书」新篇章 于淹没之地仰视辰星',
+            'description': 'md5:cf66f7819d413641b8b28c8543f4ecda',
+            'timestamp': 1633453402,
+            'upload_date': '20211005',
+            'uploader': '乌酱',
         },
         'playlist_count': 1,
         'playlist': [{
             'info_dict': {
                 'id': '2202584',
-                "ext": "mp4",
-                "title": "《崩坏3》开放世界「后崩坏书」新篇章 于淹没之地仰视辰星",
-                "description": "md5:cf66f7819d413641b8b28c8543f4ecda",
-                "duration": 66,
-                "timestamp": 1633453402,
-                "upload_date": "20211005",
-                "uploader": "乌酱",
+                'ext': 'mp4',
+                'title': '《崩坏3》开放世界「后崩坏书」新篇章 于淹没之地仰视辰星',
+                'description': 'md5:cf66f7819d413641b8b28c8543f4ecda',
+                'duration': 66,
+                'timestamp': 1633453402,
+                'upload_date': '20211005',
+                'uploader': '乌酱',
                 'thumbnail': r're:^https?://.*\.(png|jpg)',
             }
         }]
@@ -39,23 +39,23 @@ class TapTapIE(InfoExtractor):
         'url': 'https://www.taptap.cn/moment/521630629209573493',
         'info_dict': {
             'id': 'moment_521630629209573493',
-            "title": "《崩坏：星穹铁道》黄泉角色PV——「你的颜色」",
-            "description": "md5:2c81245da864428c904d53ae4ad2182b",
-            "timestamp": 1711425600,
-            "upload_date": "20240326",
-            "uploader": "崩坏：星穹铁道",
+            'title': '《崩坏：星穹铁道》黄泉角色PV——「你的颜色」',
+            'description': 'md5:2c81245da864428c904d53ae4ad2182b',
+            'timestamp': 1711425600,
+            'upload_date': '20240326',
+            'uploader': '崩坏：星穹铁道',
         },
         'playlist_count': 1,
         'playlist': [{
             'info_dict': {
                 'id': '4006511',
-                "ext": "mp4",
-                "title": "《崩坏：星穹铁道》黄泉角色PV——「你的颜色」",
-                "description": "md5:2c81245da864428c904d53ae4ad2182b",
-                "duration": 173,
-                "timestamp": 1711425600,
-                "upload_date": "20240326",
-                "uploader": "崩坏：星穹铁道",
+                'ext': 'mp4',
+                'title': '《崩坏：星穹铁道》黄泉角色PV——「你的颜色」',
+                'description': 'md5:2c81245da864428c904d53ae4ad2182b',
+                'duration': 173,
+                'timestamp': 1711425600,
+                'upload_date': '20240326',
+                'uploader': '崩坏：星穹铁道',
                 'thumbnail': r're:^https?://.*\.(png|jpg)',
             }
         }]
@@ -63,26 +63,26 @@ class TapTapIE(InfoExtractor):
         'url': 'https://www.taptap.cn/app/168332',
         'info_dict': {
             'id': 'app_168332',
-            "title": "原神",
-            "description": "md5:e345f39a5fea5de2a46923f70d5f76ab",
+            'title': '原神',
+            'description': 'md5:e345f39a5fea5de2a46923f70d5f76ab',
         },
         'playlist_count': 2,
         'playlist': [{
             'info_dict': {
                 'id': '4058443',
-                "ext": "mp4",
-                "title": "原神",
-                "description": "md5:e345f39a5fea5de2a46923f70d5f76ab",
-                "duration": 26,
+                'ext': 'mp4',
+                'title': '原神',
+                'description': 'md5:e345f39a5fea5de2a46923f70d5f76ab',
+                'duration': 26,
                 'thumbnail': r're:^https?://.*\.(png|jpg)',
             }
         }, {
             'info_dict': {
                 'id': '4058462',
-                "ext": "mp4",
-                "title": "原神",
-                "description": "md5:e345f39a5fea5de2a46923f70d5f76ab",
-                "duration": 295,
+                'ext': 'mp4',
+                'title': '原神',
+                'description': 'md5:e345f39a5fea5de2a46923f70d5f76ab',
+                'duration': 295,
                 'thumbnail': r're:^https?://.*\.(png|jpg)',
             }
         }]
