@@ -1045,7 +1045,8 @@ class BilibiliSpaceVideoIE(BilibiliSpaceBaseIE):
 
             try:
                 response = self._download_json('https://api.bilibili.com/x/space/wbi/arc/search',
-                                               playlist_id, note=f'Downloading page {page_idx}', query=query)
+                                               playlist_id, note=f'Downloading page {page_idx}', query=query,
+                                               headers={'referer': url})
             except ExtractorError as e:
                 if isinstance(e.cause, HTTPError) and e.cause.status == 412:
                     raise ExtractorError(
