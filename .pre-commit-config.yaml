@@ -3,6 +3,6 @@ repos:
   hooks:
   - id: fix
     name: Apply code fixes
-    entry: hatch run fix
+    entry: hatch fmt
     language: system
     types: [python]

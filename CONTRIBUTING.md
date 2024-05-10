@@ -239,10 +239,10 @@ After you have ensured this site is distributing its content legally, you can fo
 1. Make sure your code follows [yt-dlp coding conventions](#yt-dlp-coding-conventions), passes [ruff](https://docs.astral.sh/ruff/tutorial/#getting-started) code checks and is properly formatted:
 
     ```shell
-    $ hatch run check
+    $ hatch fmt --check
     ```
 
-    You can use `hatch run lint` and `hatch run format` to automatically fix problems.
+    You can use `hatch fmt` to automatically fix problems.
 
 1. Make sure your code works under all [Python](https://www.python.org/) versions supported by yt-dlp, namely CPython and PyPy for Python 3.8 and above. Backward compatibility is not required for even older versions of Python.
 1. When the tests pass, [add](https://git-scm.com/docs/git-add) the new files, [commit](https://git-scm.com/docs/git-commit) them and [push](https://git-scm.com/docs/git-push) the result, like this:
