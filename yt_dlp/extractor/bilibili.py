@@ -49,6 +49,9 @@ class BilibiliBaseIE(InfoExtractor):
     _WBI_KEY_CACHE_TIMEOUT = 30  # exact expire timeout is unclear, use 30s for one session
     _wbi_key_cache = {}
 
+    def _has_no_login_cookie(self):
+        return self._get_cookies('https://api.bilibili.com').get('SESSDATA') is None
+
     def check_missing_formats(self, play_info, formats):
         parsed_qualites = set(traverse_obj(formats, (..., 'quality')))
         missing_formats = [
@@ -188,7 +191,7 @@ class BilibiliBaseIE(InfoExtractor):
             note=f'Extracting subtitle info {cid}'), ('data', 'subtitle'))
         subs_list = traverse_obj(subtitle_info, ('subtitles', lambda _, v: v['subtitle_url'] and v['lan']))
         if not subs_list and traverse_obj(subtitle_info, 'allow_submit'):
-            if not self._get_cookies('https://api.bilibili.com').get('SESSDATA'):  # no login session cookie
+            if self._has_no_login_cookie():
                 self.report_warning(f'CC subtitles (if any) are only visible when logged in. {self._login_hint()}', only_once=True)
         for s in subs_list:
             subtitles.setdefault(s['lan'], []).append({
@@ -270,15 +273,15 @@ class BilibiliBaseIE(InfoExtractor):
                 self._get_divisions(video_id, graph_version, edges, choice['edge_id'], cid_edges=cid_edges)
         return cid_edges
 
-    def _get_interactive_entries(self, video_id, cid, metainfo):
+    def _get_interactive_entries(self, video_id, cid, metainfo, headers=None):
         graph_version = traverse_obj(
             self._download_json(
                 'https://api.bilibili.com/x/player/wbi/v2', video_id,
-                'Extracting graph version', query={'bvid': video_id, 'cid': cid}),
+                'Extracting graph version', query={'bvid': video_id, 'cid': cid}, headers=headers),
             ('data', 'interaction', 'graph_version', {int_or_none}))
         cid_edges = self._get_divisions(video_id, graph_version, {1: {'cid': cid}}, 1)
         for cid, edges in cid_edges.items():
-            play_info = self._download_playinfo(video_id, cid, metainfo.get('http_headers', {}))
+            play_info = self._download_playinfo(video_id, cid, headers=headers)
             yield {
                 **metainfo,
                 'id': f'{video_id}_{cid}',
@@ -623,10 +626,9 @@ class BiliBiliIE(BilibiliBaseIE):
         webpage, urlh = self._download_webpage_handle(url, video_id, headers=headers)
         if not self._match_valid_url(urlh.url):
             return self.url_result(urlh.url)
-
-        initial_state = self._search_json(r'window\.__INITIAL_STATE__\s*=', webpage, 'initial state', video_id)
         headers = {'Referer': url, **self.geo_verification_headers()}
 
+        initial_state = self._search_json(r'window\.__INITIAL_STATE__\s*=', webpage, 'initial state', video_id)
         is_festival = 'videoData' not in initial_state
         if is_festival:
             video_data = initial_state['videoInfo']
@@ -706,13 +708,13 @@ class BiliBiliIE(BilibiliBaseIE):
             'id': f'{video_id}{format_field(part_id, None, "_p%d")}',
             '_old_archive_ids': [make_archive_id(self, old_video_id)] if old_video_id else None,
             'title': title,
-            'http_headers': headers,
+            'http_headers': {'Referer': url},
         }
 
         is_interactive = traverse_obj(video_data, ('rights', 'is_stein_gate'))
         if is_interactive:
             return self.playlist_result(
-                self._get_interactive_entries(video_id, cid, metainfo), **metainfo, **{
+                self._get_interactive_entries(video_id, cid, metainfo, headers=headers), **metainfo, **{
                     'duration': traverse_obj(initial_state, ('videoData', 'duration', {int_or_none})),
                     '__post_extractor': self.extract_comments(aid),
                 })
@@ -1175,7 +1177,7 @@ class BilibiliSpaceVideoIE(BilibiliSpaceBaseIE):
             query = {
                 'keyword': '',
                 'mid': playlist_id,
-                'order': 'pubdate',
+                'order': traverse_obj(parse_qs(url), ('order', 0)) or 'pubdate',
                 'order_avoided': 'true',
                 'platform': 'web',
                 'pn': page_idx + 1,
@@ -1198,7 +1200,7 @@ class BilibiliSpaceVideoIE(BilibiliSpaceBaseIE):
             if status_code == -401:
                 raise ExtractorError(
                     'Request is blocked by server (401), please add cookies, wait and try later.', expected=True)
-            elif status_code == -352 and not self._get_cookies('https://api.bilibili.com').get('SESSDATA'):
+            elif status_code == -352 and self._has_no_login_cookie():
                 self.raise_login_required('Request is rejected, you need to login to access playlist')
             elif status_code != 0:
                 raise ExtractorError(f'Request failed ({status_code}): {response.get("message") or "Unknown error"}')
