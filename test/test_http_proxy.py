@@ -8,7 +8,7 @@ import random
 import ssl
 import threading
 from http.server import BaseHTTPRequestHandler
-from socketserver import BaseRequestHandler, ThreadingTCPServer
+from socketserver import BaseRequestHandler
 
 import pytest
 

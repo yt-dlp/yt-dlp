@@ -1,6 +1,6 @@
 import base64
 import codecs
-import datetime
+import datetime as dt
 import hashlib
 import hmac
 import json
@@ -134,7 +134,7 @@ class CDAIE(InfoExtractor):
         self._API_HEADERS['User-Agent'] = f'pl.cda 1.0 (version {app_version}; Android {android_version}; {phone_model})'
 
         cached_bearer = self.cache.load(self._BEARER_CACHE, username) or {}
-        if cached_bearer.get('valid_until', 0) > datetime.datetime.now().timestamp() + 5:
+        if cached_bearer.get('valid_until', 0) > dt.datetime.now().timestamp() + 5:
             self._API_HEADERS['Authorization'] = f'Bearer {cached_bearer["token"]}'
             return
 
@@ -154,7 +154,7 @@ class CDAIE(InfoExtractor):
             })
         self.cache.store(self._BEARER_CACHE, username, {
             'token': token_res['access_token'],
-            'valid_until': token_res['expires_in'] + datetime.datetime.now().timestamp(),
+            'valid_until': token_res['expires_in'] + dt.datetime.now().timestamp(),
         })
         self._API_HEADERS['Authorization'] = f'Bearer {token_res["access_token"]}'
 
