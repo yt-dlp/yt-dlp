@@ -7,6 +7,7 @@ import sys
 import pytest
 
 from test.helper import verify_address_availability
+from yt_dlp.networking.common import Features
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -18,7 +19,7 @@ import random
 import ssl
 import threading
 
-from yt_dlp import socks
+from yt_dlp import socks, traverse_obj
 from yt_dlp.cookies import YoutubeDLCookieJar
 from yt_dlp.dependencies import websockets
 from yt_dlp.networking import Request
@@ -114,6 +115,7 @@ def ws_validate_and_send(rh, req):
 
 
 @pytest.mark.skipif(not websockets, reason='websockets must be installed to test websocket request handlers')
+@pytest.mark.parametrize('handler', ['Websockets'], indirect=True)
 class TestWebsSocketRequestHandlerConformance:
     @classmethod
     def setup_class(cls):
@@ -129,7 +131,6 @@ class TestWebsSocketRequestHandlerConformance:
         cls.mtls_wss_thread, cls.mtls_wss_port = create_mtls_wss_websocket_server()
         cls.mtls_wss_base_url = f'wss://127.0.0.1:{cls.mtls_wss_port}'
 
-    @pytest.mark.parametrize('handler', ['Websockets'], indirect=True)
     def test_basic_websockets(self, handler):
         with handler() as rh:
             ws = ws_validate_and_send(rh, Request(self.ws_base_url))
@@ -141,7 +142,6 @@ class TestWebsSocketRequestHandlerConformance:
 
     # https://www.rfc-editor.org/rfc/rfc6455.html#section-5.6
     @pytest.mark.parametrize('msg,opcode', [('str', 1), (b'bytes', 2)])
-    @pytest.mark.parametrize('handler', ['Websockets'], indirect=True)
     def test_send_types(self, handler, msg, opcode):
         with handler() as rh:
             ws = ws_validate_and_send(rh, Request(self.ws_base_url))
@@ -149,7 +149,6 @@ class TestWebsSocketRequestHandlerConformance:
             assert int(ws.recv()) == opcode
             ws.close()
 
-    @pytest.mark.parametrize('handler', ['Websockets'], indirect=True)
     def test_verify_cert(self, handler):
         with handler() as rh:
             with pytest.raises(CertificateVerifyError):
@@ -160,14 +159,12 @@ class TestWebsSocketRequestHandlerConformance:
             assert ws.status == 101
             ws.close()
 
-    @pytest.mark.parametrize('handler', ['Websockets'], indirect=True)
     def test_ssl_error(self, handler):
         with handler(verify=False) as rh:
             with pytest.raises(SSLError, match=r'ssl(?:v3|/tls) alert handshake failure') as exc_info:
                 ws_validate_and_send(rh, Request(self.bad_wss_host))
             assert not issubclass(exc_info.type, CertificateVerifyError)
 
-    @pytest.mark.parametrize('handler', ['Websockets'], indirect=True)
     @pytest.mark.parametrize('path,expected', [
         # Unicode characters should be encoded with uppercase percent-encoding
         ('/中文', '/%E4%B8%AD%E6%96%87'),
@@ -182,7 +179,6 @@ class TestWebsSocketRequestHandlerConformance:
             assert ws.status == 101
             ws.close()
 
-    @pytest.mark.parametrize('handler', ['Websockets'], indirect=True)
     def test_remove_dot_segments(self, handler):
         with handler() as rh:
             # This isn't a comprehensive test,
@@ -195,7 +191,6 @@ class TestWebsSocketRequestHandlerConformance:
 
     # We are restricted to known HTTP status codes in http.HTTPStatus
     # Redirects are not supported for websockets
-    @pytest.mark.parametrize('handler', ['Websockets'], indirect=True)
     @pytest.mark.parametrize('status', (200, 204, 301, 302, 303, 400, 500, 511))
     def test_raise_http_error(self, handler, status):
         with handler() as rh:
@@ -203,7 +198,6 @@ class TestWebsSocketRequestHandlerConformance:
                 ws_validate_and_send(rh, Request(f'{self.ws_base_url}/gen_{status}'))
             assert exc_info.value.status == status
 
-    @pytest.mark.parametrize('handler', ['Websockets'], indirect=True)
     @pytest.mark.parametrize('params,extensions', [
         ({'timeout': sys.float_info.min}, {}),
         ({}, {'timeout': sys.float_info.min}),
@@ -213,7 +207,6 @@ class TestWebsSocketRequestHandlerConformance:
             with pytest.raises(TransportError):
                 ws_validate_and_send(rh, Request(self.ws_base_url, extensions=extensions))
 
-    @pytest.mark.parametrize('handler', ['Websockets'], indirect=True)
     def test_cookies(self, handler):
         cookiejar = YoutubeDLCookieJar()
         cookiejar.set_cookie(http.cookiejar.Cookie(
@@ -239,7 +232,6 @@ class TestWebsSocketRequestHandlerConformance:
             assert json.loads(ws.recv())['cookie'] == 'test=ytdlp'
             ws.close()
 
-    @pytest.mark.parametrize('handler', ['Websockets'], indirect=True)
     def test_source_address(self, handler):
         source_address = f'127.0.0.{random.randint(5, 255)}'
         verify_address_availability(source_address)
@@ -249,7 +241,6 @@ class TestWebsSocketRequestHandlerConformance:
             assert source_address == ws.recv()
             ws.close()
 
-    @pytest.mark.parametrize('handler', ['Websockets'], indirect=True)
     def test_response_url(self, handler):
         with handler() as rh:
             url = f'{self.ws_base_url}/something'
@@ -257,7 +248,6 @@ class TestWebsSocketRequestHandlerConformance:
             assert ws.url == url
             ws.close()
 
-    @pytest.mark.parametrize('handler', ['Websockets'], indirect=True)
     def test_request_headers(self, handler):
         with handler(headers=HTTPHeaderDict({'test1': 'test', 'test2': 'test2'})) as rh:
             # Global Headers
@@ -293,7 +283,6 @@ class TestWebsSocketRequestHandlerConformance:
             'client_certificate_password': 'foobar',
         }
     ))
-    @pytest.mark.parametrize('handler', ['Websockets'], indirect=True)
     def test_mtls(self, handler, client_cert):
         with handler(
             # Disable client-side validation of unacceptable self-signed testcert.pem
@@ -302,6 +291,44 @@ class TestWebsSocketRequestHandlerConformance:
             client_cert=client_cert
         ) as rh:
             ws_validate_and_send(rh, Request(self.mtls_wss_base_url)).close()
+
+    def test_request_disable_proxy(self, handler):
+        for proxy_proto in handler._SUPPORTED_PROXY_SCHEMES or ['ws']:
+            # Given handler is configured with a proxy
+            with handler(proxies={'ws': f'{proxy_proto}://10.255.255.255'}, timeout=5) as rh:
+                # When a proxy is explicitly set to None for the request
+                ws = ws_validate_and_send(rh, Request(self.ws_base_url, proxies={'http': None}))
+                # Then no proxy should be used
+                assert ws.status == 101
+                ws.close()
+
+    @pytest.mark.skip_handlers_if(
+        lambda _, handler: Features.NO_PROXY not in handler._SUPPORTED_FEATURES, 'handler does not support NO_PROXY')
+    def test_noproxy(self, handler):
+        for proxy_proto in handler._SUPPORTED_PROXY_SCHEMES or ['ws']:
+            # Given the handler is configured with a proxy
+            with handler(proxies={'ws': f'{proxy_proto}://10.255.255.255'}, timeout=5) as rh:
+                for no_proxy in (f'127.0.0.1:{self.ws_port}', '127.0.0.1', 'localhost'):
+                    # When request no proxy includes the request url host
+                    ws = ws_validate_and_send(rh, Request(self.ws_base_url, proxies={'no': no_proxy}))
+                    # Then the proxy should not be used
+                    assert ws.status == 101
+                    ws.close()
+
+    @pytest.mark.skip_handlers_if(
+        lambda _, handler: Features.ALL_PROXY not in handler._SUPPORTED_FEATURES, 'handler does not support ALL_PROXY')
+    def test_allproxy(self, handler):
+        supported_proto = traverse_obj(handler._SUPPORTED_PROXY_SCHEMES, 0, default='ws')
+        # This is a bit of a hacky test, but it should be enough to check whether the handler is using the proxy.
+        # 0.1s might not be enough of a timeout if proxy is not used in all cases, but should still get failures.
+        with handler(proxies={'all': f'{supported_proto}://10.255.255.255'}, timeout=0.1) as rh:
+            with pytest.raises(TransportError):
+                ws_validate_and_send(rh, Request(self.ws_base_url)).close()
+
+        with handler(timeout=0.1) as rh:
+            with pytest.raises(TransportError):
+                ws_validate_and_send(
+                    rh, Request(self.ws_base_url, proxies={'all': f'{supported_proto}://10.255.255.255'})).close()
 
 
 def create_fake_ws_connection(raised):
