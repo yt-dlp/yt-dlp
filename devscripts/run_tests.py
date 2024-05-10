@@ -4,6 +4,7 @@ import argparse
 import functools
 import os
 import re
+import shlex
 import subprocess
 import sys
 from pathlib import Path
@@ -18,6 +19,8 @@ def parse_args():
         'test', help='a extractor tests, or one of "core" or "download"', nargs='*')
     parser.add_argument(
         '-k', help='run a test matching EXPRESSION. Same as "pytest -k"', metavar='EXPRESSION')
+    parser.add_argument(
+        '--pytest-args', help='arguments to passthrough to pytest')
     return parser.parse_args()
 
 
@@ -26,7 +29,8 @@ def run_tests(*tests, pattern=None, ci=False):
     run_download = 'download' in tests
     tests = list(map(fix_test_name, tests))
 
-    arguments = ['pytest', '-Werror', '--tb=short']
+    pytest_args = args.pytest_args or os.getenv('HATCH_TEST_ARGS', '')
+    arguments = ['pytest', '-Werror', '--tb=short', *shlex.split(pytest_args)]
     if ci:
         arguments.append('--color=yes')
     if pattern:

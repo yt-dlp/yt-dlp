@@ -129,19 +129,35 @@ path = ".venv"
 
 [tool.hatch.envs.default.scripts]
 setup = "pre-commit install"
-fix = [
-    "format",
-    "lint",
-]
-lint = "ruff check --fix {args:.}"
-format = "autopep8 --in-place {args:.}"
-check = [
-    "ruff check {args:.}",
-    "autopep8 --diff {args:.}",
-]
-test = "python -m devscripts.run_tests {args}"
 
-[[tool.hatch.envs.default.overrides.env.TEST_ALL.matrix.value]]
+[tool.hatch.envs.hatch-static-analysis]
+detached = true
+dependencies = [
+    "autopep8~=2.0",
+    "ruff==0.4.*",
+]
+config-path = "pyproject.toml"
+
+[tool.hatch.envs.hatch-static-analysis.scripts]
+format-check = "autopep8 --diff {args:.}"
+format-fix = "autopep8 --in-place {args:.}"
+lint-check = "ruff check {args:.}"
+lint-fix = "ruff check --fix {args:.}"
+
+[tool.hatch.envs.hatch-test]
+features = ["default"]
+dependencies = [
+  "pytest~=8.1",
+  "pytest-randomly~=3.15",
+  "pytest-rerunfailures~=14.0",
+  "pytest-xdist[psutil]~=3.5",
+]
+
+[tool.hatch.envs.hatch-test.scripts]
+run = "python -m devscripts.run_tests {args}"
+run-cov = "echo Code coverage not implemented && exit 1"
+
+[[tool.hatch.envs.hatch-test.matrix]]
 python = [
     "3.8",
     "3.9",
