@@ -197,7 +197,7 @@ class PBSIE(InfoExtractor):
            # Direct video URL
            (?:%s)/(?:(?:vir|port)alplayer|video)/(?P<id>[0-9]+)(?:[?/]|$) |
            # Article with embedded player (or direct video)
-           (?:www\.)?pbs\.org/(?:[^/]+/){1,5}(?P<presumptive_id>[^/]+?)(?:\.html)?/?(?:$|[?\#]) |
+           (?:www\.)?pbs\.org/(?!show)(?:[^/]+/){1,5}(?P<presumptive_id>[^/]+?)(?:\.html)?/?(?:$|[?\#]) |
            # Player
            (?:video|player)\.pbs\.org/(?:widget/)?partnerplayer/(?P<player_id>[^/]+)
         )
@@ -765,37 +765,18 @@ class PBSKidsIE(InfoExtractor):
         }
 
 class PBSShowIE(InfoExtractor):
-    # https://watch.opb.org/show/oregon-experience/
-    _VALID_URL = r'https?://(?:watch\.)?opb\.org/show/(?P<id>.+)'
+    _VALID_URL = r'(?:https://)?(?:www\.)?pbs\.org\/show\/(?P<presumptive_id>[^/]+?)(?:\.html)?\/?(?:$|[?#])'
+
     _TESTS = [{
-        'url': 'https://watch.opb.org/show/oregon-experience',
+        'url': 'https://www.pbs.org/show/oregon-experience',
         'info_dict': {
-            'id': 'bitchute',
-            'title': 'BitChute',
-            'description': 'md5:5329fb3866125afa9446835594a9b138',
+            'id': 'oregon-experience',
+            'title': 'Oregon Experience',
+            'description': 'md5:67b0184af36fcb5cc20df9974633eb90',
         },
-        'playlist': [
-            {
-                'md5': '7e427d7ed7af5a75b5855705ec750e2b',
-                'info_dict': {
-                    'id': 'UGlrF9o9b-Q',
-                    'ext': 'mp4',
-                    'title': 'This is the first video on #BitChute !',
-                    'description': 'md5:a0337e7b1fe39e32336974af8173a034',
-                    'thumbnail': r're:^https?://.*\.jpg$',
-                    'uploader': 'BitChute',
-                    'upload_date': '20170103',
-                    'uploader_url': 'https://www.bitchute.com/profile/I5NgtHZn9vPj/',
-                    'channel': 'BitChute',
-                    'channel_url': 'https://www.bitchute.com/channel/bitchute/',
-                    'duration': 16,
-                    'view_count': int,
-                },
-            }
-        ],
+        'playlist_mincount': 2,
         'params': {
             'skip_download': True,
-            'playlist_items': '-1',
         },
     }]
 
@@ -803,67 +784,45 @@ class PBSShowIE(InfoExtractor):
     _SHOW_JSON_SEARCH = r'GTMDataLayer\.push\('
     PAGE_SIZE = 40
 
-    _TOKEN = 'zyG6tQcGPE5swyAEFLqKUwMuMMuF6IO2DZ6ZDQjGfsL0e4dcTLwqkTTul05Jdve7'
-    HTML_CLASS_NAMES = {
-        'channel': {
-            'container': 'channel-videos-container',
-            'title': 'channel-videos-title',
-            'description': 'channel-videos-text',
-        },
-        'playlist': {
-            'container': 'playlist-video',
-            'title': 'title',
-            'description': 'description',
-        }
-
-    }
-
     @staticmethod
     def _make_url(playlist_id):
-        return f'https://watch.opb.org/show/{playlist_id}'
+        return f'https://video.ksps.org/show/{playlist_id}'
 
-    def _fetch_season_page(self, playlist_id, page_num):
+    def _fetch_season_page(self, playlist_id, season_indices, page_num):
         playlist_url = self._make_url(playlist_id)
-        season_id = f'{playlist_id}-{page_num}'
+        page_as_season = season_indices[page_num]
+        season_id = f'{playlist_id}-{page_as_season}'
 
-        season_page = self._download_webpage(f'{playlist_url}/episodes/season/{page_num}', video_id=season_id)
-        season_data = get_elements_html_by_class("video-summary", season_page)
+        season_page = self._download_webpage(f'{playlist_url}/episodes/season/{page_as_season}', video_id=season_id)
+        episodes_metadata = [extract_attributes(elem) for elem in get_elements_html_by_class("video-summary", season_page)]
+        for episode_metadata in episodes_metadata:
+            yield self.url_result(
+                url=f'https://pbs.org/video/{episode_metadata["data-video-slug"]}',
+                ie=PBSIE,
+                video_id=episode_metadata["data-cid"],
+                url_transparent=True,
+                title=episode_metadata["data-title"]
+            )
 
     def _real_extract(self, url):
-        playlist_id = self._match_valid_url(url).group('id')
-        playlist_url = self._make_url(playlist_id)
+        playlist_id = self._match_valid_url(url).group('presumptive_id')
         webpage = self._download_webpage(self._make_url(playlist_id), playlist_id)
         show_data = self._search_json(self._JSON_SEARCH, webpage, 'seasons', playlist_id)
-        # show_metadata = self._search_json(self._SHOW_JSON_SEARCH, webpage, 'show metadata', playlist_id)
 
         playlist_description = clean_html(get_element_html_by_class("show-hero__description--long is-hidden", webpage))
         show_metadata = extract_attributes(get_element_html_by_class("show-hero__my-list btn--mylist--placeholder", webpage))
 
-        playlist_title = show_metadata['data-gtml-label']
+        playlist_title = show_metadata['data-gtm-label']
         clean_html(playlist_description[0])
 
-
+        season_indices = list(sorted([x['ordinal'] for x in show_data['episodes_data']['seasons'] if x.get('ordinal', 0) != 0], reverse=True))
 
         return self.playlist_result(
             OnDemandPagedList(
-                pagefunc=functools.partial(self._fetch_season_page, playlist_id),
+                pagefunc=functools.partial(self._fetch_season_page, playlist_id, season_indices),
                 pagesize=self.PAGE_SIZE
             ),
             playlist_id=playlist_id,
             playlist_title=playlist_title,
-            # playlist_title=
+            playlist_description=playlist_description,
         )
-
-        # for show_season_metadata in sorted(show_data.get('episodes_data', {}).get('seasons', []), key=lambda x: x.get('ordinal', 0), reverse=True):
-        #     season_ordinal = show_season_metadata.get('ordinal', 0)
-        #     if season_ordinal == 0:
-        #         continue
-        #
-        #     season_id = f'{playlist_id}-{season_ordinal}'
-        #
-        #     season_page = self._download_webpage(f'{playlist_url}/episodes/season/{season_ordinal}', video_id=season_id)
-        #     season_data = get_elements_html_by_class("video-summary", season_page)
-        #     pass
-
-
-        return
