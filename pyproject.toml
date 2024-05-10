@@ -129,6 +129,7 @@ path = ".venv"
 
 [tool.hatch.envs.default.scripts]
 setup = "pre-commit install"
+yt-dlp = "python -Werror -Xdev -m yt_dlp {args}"
 
 [tool.hatch.envs.hatch-static-analysis]
 detached = true
