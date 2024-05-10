@@ -40,7 +40,7 @@ class CanalAlphaIE(InfoExtractor):
             'id': '24484',
             'ext': 'mp4',
             'title': 'Ces innovations qui veulent rendre l’agriculture plus durable',
-            'description': 'md5:3de3f151180684621e85be7c10e4e613',
+            'description': 'md5:85d594a3b5dc6ccfc4a85aba6e73b129',
             'thumbnail': 'https://static.canalalpha.ch/poster/magazine/magazine_10236.jpg',
             'upload_date': '20211026',
             'duration': 360,
@@ -58,14 +58,25 @@ class CanalAlphaIE(InfoExtractor):
             'duration': 360,
         },
         'params': {'skip_download': True}
+    }, {
+        'url': 'https://www.canalalpha.ch/play/le-journal/topic/33500/encore-des-mesures-deconomie-dans-le-jura',
+        'info_dict': {
+            'id': '33500',
+            'ext': 'mp4',
+            'title': 'Encore des mesures d\'économie dans le Jura',
+            'description': 'md5:938b5b556592f2d1b9ab150268082a80',
+            'thumbnail': 'https://static.canalalpha.ch/poster/news/news_46665.jpg',
+            'upload_date': '20240411',
+            'duration': 105,
+        },
     }]
 
     def _real_extract(self, url):
-        id = self._match_id(url)
-        webpage = self._download_webpage(url, id)
+        video_id = self._match_id(url)
+        webpage = self._download_webpage(url, video_id)
         data_json = self._parse_json(self._search_regex(
             r'window\.__SERVER_STATE__\s?=\s?({(?:(?!};)[^"]|"([^"]|\\")*")+})\s?;',
-            webpage, 'data_json'), id)['1']['data']['data']
+            webpage, 'data_json'), video_id)['1']['data']['data']
         manifests = try_get(data_json, lambda x: x['video']['manifests'], expected_type=dict) or {}
         subtitles = {}
         formats = [{
@@ -75,15 +86,17 @@ class CanalAlphaIE(InfoExtractor):
             'height': try_get(video, lambda x: x['res']['height'], expected_type=int),
         } for video in try_get(data_json, lambda x: x['video']['mp4'], expected_type=list) or [] if video.get('$url')]
         if manifests.get('hls'):
-            m3u8_frmts, m3u8_subs = self._parse_m3u8_formats_and_subtitles(manifests['hls'], video_id=id)
-            formats.extend(m3u8_frmts)
-            subtitles = self._merge_subtitles(subtitles, m3u8_subs)
+            fmts, subs = self._extract_m3u8_formats_and_subtitles(
+                manifests['hls'], video_id, m3u8_id='hls', fatal=False)
+            formats.extend(fmts)
+            self._merge_subtitles(subs, target=subtitles)
         if manifests.get('dash'):
-            dash_frmts, dash_subs = self._parse_mpd_formats_and_subtitles(manifests['dash'])
-            formats.extend(dash_frmts)
-            subtitles = self._merge_subtitles(subtitles, dash_subs)
+            fmts, subs = self._extract_mpd_formats_and_subtitles(
+                manifests['dash'], video_id, mpd_id='dash', fatal=False)
+            formats.extend(fmts)
+            self._merge_subtitles(subs, target=subtitles)
         return {
-            'id': id,
+            'id': video_id,
             'title': data_json.get('title').strip(),
             'description': clean_html(dict_get(data_json, ('longDesc', 'shortDesc'))),
             'thumbnail': data_json.get('poster'),
