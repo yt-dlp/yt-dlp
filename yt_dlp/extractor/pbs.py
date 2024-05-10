@@ -5,7 +5,7 @@ from .common import InfoExtractor
 from ..compat import compat_str
 from ..utils import (
     ExtractorError,
-    OnDemandPagedList,
+    LazyList,
     determine_ext,
     int_or_none,
     float_or_none,
@@ -782,27 +782,28 @@ class PBSShowIE(InfoExtractor):
 
     _JSON_SEARCH = r'<script[^>]+id="content-strip-data" type="application/json">'
     _SHOW_JSON_SEARCH = r'GTMDataLayer\.push\('
-    PAGE_SIZE = 40
 
     @staticmethod
     def _make_url(playlist_id):
+        # pbs does not show metadata, use a different station that does
         return f'https://video.ksps.org/show/{playlist_id}'
 
-    def _fetch_season_page(self, playlist_id, season_indices, page_num):
+    def _fetch_seasons(self, playlist_id, season_indices):
         playlist_url = self._make_url(playlist_id)
-        page_as_season = season_indices[page_num]
-        season_id = f'{playlist_id}-{page_as_season}'
 
-        season_page = self._download_webpage(f'{playlist_url}/episodes/season/{page_as_season}', video_id=season_id)
-        episodes_metadata = [extract_attributes(elem) for elem in get_elements_html_by_class("video-summary", season_page)]
-        for episode_metadata in episodes_metadata:
-            yield self.url_result(
-                url=f'https://pbs.org/video/{episode_metadata["data-video-slug"]}',
-                ie=PBSIE,
-                video_id=episode_metadata["data-cid"],
-                url_transparent=True,
-                title=episode_metadata["data-title"]
-            )
+        for season_idx in season_indices:
+            season_id = f'{playlist_id}-{season_idx}'
+
+            season_page = self._download_webpage(f'{playlist_url}/episodes/season/{season_idx}', video_id=season_id)
+            episodes_metadata = [extract_attributes(elem) for elem in get_elements_html_by_class("video-summary", season_page)]
+            for episode_metadata in episodes_metadata:
+                yield self.url_result(
+                    url=f'https://pbs.org/video/{episode_metadata["data-video-slug"]}',
+                    ie=PBSIE,
+                    video_id=episode_metadata["data-cid"],
+                    url_transparent=True,
+                    title=episode_metadata["data-title"]
+                )
 
     def _real_extract(self, url):
         playlist_id = self._match_valid_url(url).group('presumptive_id')
@@ -815,13 +816,11 @@ class PBSShowIE(InfoExtractor):
         playlist_title = show_metadata['data-gtm-label']
         clean_html(playlist_description[0])
 
+        # iterate seasons in reverse to get newest vids first
         season_indices = list(sorted([x['ordinal'] for x in show_data['episodes_data']['seasons'] if x.get('ordinal', 0) != 0], reverse=True))
 
         return self.playlist_result(
-            OnDemandPagedList(
-                pagefunc=functools.partial(self._fetch_season_page, playlist_id, season_indices),
-                pagesize=self.PAGE_SIZE
-            ),
+            LazyList(self._fetch_seasons(playlist_id, season_indices)),
             playlist_id=playlist_id,
             playlist_title=playlist_title,
             playlist_description=playlist_description,
