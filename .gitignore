@@ -4,6 +4,14 @@ cookies
 *cookies.txt
 .netrc
 
+
+test.cmd
+download.cmd
+*.xml
+*.rar
+nano-ch-nico.txt
+
+
 # Downloaded
 *.annotations.xml
 *.aria2
