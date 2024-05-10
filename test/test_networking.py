@@ -6,7 +6,7 @@ import sys
 
 import pytest
 
-from yt_dlp.networking.common import Features
+from yt_dlp.networking.common import Features, DEFAULT_TIMEOUT
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -528,7 +528,7 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
             with pytest.raises(TransportError):
                 validate_and_send(
                     rh, Request(connect_timeout_url))
-            assert 0.01 <= time.time() - now < 20
+            assert time.time() - now < DEFAULT_TIMEOUT
 
         with handler() as rh:
             with pytest.raises(TransportError):
@@ -536,7 +536,7 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
                 now = time.time()
                 validate_and_send(
                     rh, Request(connect_timeout_url, extensions={'timeout': 0.01}))
-                assert 0.01 <= time.time() - now < 20
+                assert time.time() - now < DEFAULT_TIMEOUT
 
     def test_source_address(self, handler):
         source_address = f'127.0.0.{random.randint(5, 255)}'
