@@ -1,4 +1,3 @@
-import functools
 import re
 
 from .common import InfoExtractor
@@ -13,15 +12,13 @@ from ..utils import (
     clean_html,
     get_elements_html_by_class,
     get_element_html_by_class,
-    get_element_by_id,
-extract_attributes,
+    extract_attributes,
     orderedSet,
     strip_jsonp,
     strip_or_none,
     traverse_obj,
     unified_strdate,
     url_or_none,
-    urlencode_postdata,
     US_RATINGS,
 )
 
@@ -764,6 +761,7 @@ class PBSKidsIE(InfoExtractor):
             })
         }
 
+
 class PBSShowIE(InfoExtractor):
     _VALID_URL = r'(?:https://)?(?:www\.)?pbs\.org\/show\/(?P<presumptive_id>[^/]+?)(?:\.html)?\/?(?:$|[?#])'
 
@@ -788,21 +786,31 @@ class PBSShowIE(InfoExtractor):
         # pbs does not show metadata, use a different station that does
         return f'https://video.ksps.org/show/{playlist_id}'
 
-    def _fetch_seasons(self, playlist_id, season_indices):
+    def _iterate_entries(self, playlist_id, season_indices):
         playlist_url = self._make_url(playlist_id)
 
         for season_idx in season_indices:
-            season_id = f'{playlist_id}-{season_idx}'
+            season_id = f'{playlist_id}-season-{season_idx}'
 
-            season_page = self._download_webpage(f'{playlist_url}/episodes/season/{season_idx}', video_id=season_id)
-            episodes_metadata = [extract_attributes(elem) for elem in get_elements_html_by_class("video-summary", season_page)]
-            for episode_metadata in episodes_metadata:
+            season_page = self._download_webpage(
+                f'{playlist_url}/episodes/season/{season_idx}',
+                video_id=season_id
+            )
+            episodes_metadata = [
+                extract_attributes(elem)
+                for elem in get_elements_html_by_class("video-summary", season_page)
+            ]
+            num_eps = len(episodes_metadata)
+            for i, episode_metadata in enumerate(episodes_metadata):
+                print(f's{season_idx}e{num_eps - i} {episode_metadata["data-title"]}')
                 yield self.url_result(
                     url=f'https://pbs.org/video/{episode_metadata["data-video-slug"]}',
                     ie=PBSIE,
                     video_id=episode_metadata["data-cid"],
                     url_transparent=True,
-                    title=episode_metadata["data-title"]
+                    title=episode_metadata["data-title"],
+                    season=season_idx,
+                    episode_index=num_eps - i,
                 )
 
     def _real_extract(self, url):
@@ -810,17 +818,27 @@ class PBSShowIE(InfoExtractor):
         webpage = self._download_webpage(self._make_url(playlist_id), playlist_id)
         show_data = self._search_json(self._JSON_SEARCH, webpage, 'seasons', playlist_id)
 
-        playlist_description = clean_html(get_element_html_by_class("show-hero__description--long is-hidden", webpage))
-        show_metadata = extract_attributes(get_element_html_by_class("show-hero__my-list btn--mylist--placeholder", webpage))
+        playlist_description = clean_html(get_element_html_by_class(
+            "show-hero__description--long is-hidden", webpage)
+        )
+        show_metadata = extract_attributes(
+            get_element_html_by_class("show-hero__my-list btn--mylist--placeholder", webpage)
+        )
 
         playlist_title = show_metadata['data-gtm-label']
         clean_html(playlist_description[0])
 
         # iterate seasons in reverse to get newest vids first
-        season_indices = list(sorted([x['ordinal'] for x in show_data['episodes_data']['seasons'] if x.get('ordinal', 0) != 0], reverse=True))
+        season_indices = list(sorted(
+            [
+                x['ordinal'] for x in show_data['episodes_data']['seasons']
+                if x.get('ordinal', 0) != 0
+            ],
+            reverse=True
+        ))
 
         return self.playlist_result(
-            LazyList(self._fetch_seasons(playlist_id, season_indices)),
+            LazyList(self._iterate_entries(playlist_id, season_indices)),
             playlist_id=playlist_id,
             playlist_title=playlist_title,
             playlist_description=playlist_description,
