@@ -21,7 +21,7 @@ from .exceptions import (
     TransportError,
 )
 from .impersonate import ImpersonateRequestHandler, ImpersonateTarget
-from ..dependencies import curl_cffi
+from ..dependencies import curl_cffi, certifi
 from ..utils import int_or_none
 
 if curl_cffi is None:
@@ -166,6 +166,13 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
                 # See: https://curl.se/libcurl/c/CURLOPT_HTTPPROXYTUNNEL.html
                 session.curl.setopt(CurlOpt.HTTPPROXYTUNNEL, 1)
 
+            # curl_cffi does not currently set these for proxies
+            session.curl.setopt(CurlOpt.PROXY_CAINFO, certifi.where())
+
+            if not self.verify:
+                session.curl.setopt(CurlOpt.PROXY_SSL_VERIFYPEER, 0)
+                session.curl.setopt(CurlOpt.PROXY_SSL_VERIFYHOST, 0)
+
         headers = self._get_impersonate_headers(request)
 
         if self._client_cert:
@@ -213,7 +220,10 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
                 max_redirects_exceeded = True
                 curl_response = e.response
 
-            elif e.code == CurlECode.PROXY:
+            elif (
+                e.code == CurlECode.PROXY
+                or (e.code == CurlECode.RECV_ERROR and 'Received HTTP code 407 from proxy after CONNECT' in str(e))
+            ):
                 raise ProxyError(cause=e) from e
             else:
                 raise TransportError(cause=e) from e
