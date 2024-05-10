@@ -626,7 +626,8 @@ class BiliBiliIE(BilibiliBaseIE):
         webpage, urlh = self._download_webpage_handle(url, video_id, headers=headers)
         if not self._match_valid_url(urlh.url):
             return self.url_result(urlh.url)
-        headers = {'Referer': url, **self.geo_verification_headers()}
+
+        headers = {**headers, 'Referer': url}
 
         initial_state = self._search_json(r'window\.__INITIAL_STATE__\s*=', webpage, 'initial state', video_id)
         is_festival = 'videoData' not in initial_state
@@ -843,7 +844,8 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
         elif '正在观看预览，大会员免费看全片' in webpage:
             self.raise_login_required('This video is for premium members only')
 
-        headers['Referer'] = url
+        headers = {**headers, 'Referer': url}
+
         play_info = self._download_json(
             'https://api.bilibili.com/pgc/player/web/v2/playurl', episode_id,
             'Extracting episode', query={'fnval': '4048', 'ep_id': episode_id},
