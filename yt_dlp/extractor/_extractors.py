@@ -387,7 +387,11 @@ from .comedycentral import (
     ComedyCentralIE,
     ComedyCentralTVIE,
 )
-from .commonmistakes import CommonMistakesIE, UnicodeBOMIE
+from .commonmistakes import (
+    BlobIE,
+    CommonMistakesIE,
+    UnicodeBOMIE,
+)
 from .commonprotocols import (
     MmsIE,
     RtmpIE,
