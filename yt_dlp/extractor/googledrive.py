@@ -63,7 +63,7 @@ class GoogleDriveIE(InfoExtractor):
         # My Buddy by Henry Burr; Gus Kahn; Walter Donaldson
         # https://archive.org/details/78_my-buddy_henry-burr-gus-kahn-walter-donaldson_gbia0015627a/My+Buddy+-+Henry+Burr+-+Gus+Kahn+-+Walter+Donaldson.flac
         'url': 'https://drive.google.com/uc?id=1IP0o8dHcQrIHGgVyp0Ofvx2cGfLzyO1x',
-        'md5': 'e94c9cbb9cf9c9724f71ce53141d5a2f',
+        'md5': '322db8d63dd19788c04050a4bba67073',
         'info_dict': {
             "id": "1IP0o8dHcQrIHGgVyp0Ofvx2cGfLzyO1x",
             'ext': 'mp3',
