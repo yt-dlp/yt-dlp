@@ -764,19 +764,47 @@ class PBSKidsIE(InfoExtractor):
 
 class PBSShowIE(InfoExtractor):
     _VALID_URL = r'(?:https://)?(?:www\.)?pbs\.org\/show\/(?P<presumptive_id>[^/]+?)(?:\.html)?\/?(?:$|[?#])'
-
-    _TESTS = [{
-        'url': 'https://www.pbs.org/show/oregon-experience',
-        'info_dict': {
-            'id': 'oregon-experience',
-            'title': 'Oregon Experience',
-            'description': 'md5:67b0184af36fcb5cc20df9974633eb90',
+    _TESTS = [
+        # Full Show
+        {
+            'url': 'https://www.pbs.org/show/oregon-experience',
+            'info_dict': {
+                'id': 'oregon-experience',
+                'title': 'Oregon Experience',
+                'description': 'md5:67b0184af36fcb5cc20df9974633eb90',
+            },
+            'playlist_mincount': 2,
+            'params': {
+                'skip_download': True,
+            },
         },
-        'playlist_mincount': 2,
-        'params': {
-            'skip_download': True,
+        # Single Special
+        {
+            'url': 'https://www.pbs.org/show/betrayed-survivng-american-concentration-camp',
+            'info_dict': {
+                'id': 'betrayed-survivng-american-concentration-camp',
+                'title': 'Betrayed: Surviving an American Concentration Camp',
+                'description': 'md5:7e78ee497f1359c030d54d68339f31e8',
+            },
+            'playlist_mincount': 1,
+            'params': {
+                'skip_download': True,
+            }
         },
-    }]
+        # Non-Season Episodes (uses season 1)
+        {
+            'url': 'https://www.pbs.org/show/a-brief-history-of-the-future/',
+            'info_dict': {
+                'id': 'a-brief-history-of-the-future',
+                'title': 'A Brief History of the Future',
+                'description': 'md5:08297c374c61361ac3f3d297b5157913',
+            },
+            'playlist_mincount': 1,
+            'params': {
+                'skip_download': True,
+            }
+        }
+    ]
 
     _JSON_SEARCH = r'<script[^>]+id="content-strip-data" type="application/json">'
     _SHOW_JSON_SEARCH = r'GTMDataLayer\.push\('
@@ -786,6 +814,14 @@ class PBSShowIE(InfoExtractor):
         # pbs does not show metadata, use a different station that does
         return f'https://video.ksps.org/show/{playlist_id}'
 
+    @staticmethod
+    def _extract_episode(popover_html):
+        clean = clean_html(popover_html)
+        maybe_ep = re.search(r"Ep(\d+) ", clean)
+        if maybe_ep is not None:
+            return maybe_ep[1]
+        return None
+
     def _iterate_entries(self, playlist_id, season_indices):
         playlist_url = self._make_url(playlist_id)
 
@@ -793,24 +829,34 @@ class PBSShowIE(InfoExtractor):
             season_id = f'{playlist_id}-season-{season_idx}'
 
             season_page = self._download_webpage(
-                f'{playlist_url}/episodes/season/{season_idx}',
+                f'{playlist_url}/episodes/season/{season_idx}'
+                if season_idx > 0 else f'{playlist_url}/specials',
                 video_id=season_id
             )
-            episodes_metadata = [
+            episodes = [
                 extract_attributes(elem)
                 for elem in get_elements_html_by_class("video-summary", season_page)
             ]
-            num_eps = len(episodes_metadata)
-            for i, episode_metadata in enumerate(episodes_metadata):
-                print(f's{season_idx}e{num_eps - i} {episode_metadata["data-title"]}')
+            if not episodes:
+                continue
+
+            episode_indices = [
+                self._extract_episode(elem)
+                for elem in get_elements_html_by_class("popover__meta-data", season_page)
+            ]
+            for i, ep in enumerate(episodes):
+                url_kwargs = {}
+                if len(episode_indices) == len(episodes) and episode_indices[i] is not None:
+                    url_kwargs['episode'] = episode_indices[i]
+
                 yield self.url_result(
-                    url=f'https://pbs.org/video/{episode_metadata["data-video-slug"]}',
+                    url=f'https://pbs.org/video/{ep["data-video-slug"]}',
                     ie=PBSIE,
-                    video_id=episode_metadata["data-cid"],
+                    video_id=ep["data-cid"],
                     url_transparent=True,
-                    title=episode_metadata["data-title"],
+                    title=ep["data-title"],
                     season=season_idx,
-                    episode_index=num_eps - i,
+                    **url_kwargs,
                 )
 
     def _real_extract(self, url):
@@ -836,6 +882,8 @@ class PBSShowIE(InfoExtractor):
             ],
             reverse=True
         ))
+        if not self._configuration_arg('exclude_specials', [None])[0]:
+            season_indices = [0] + season_indices
 
         return self.playlist_result(
             LazyList(self._iterate_entries(playlist_id, season_indices)),
