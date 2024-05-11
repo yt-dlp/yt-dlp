@@ -40,7 +40,7 @@ class GoogleDriveIE(InfoExtractor):
             'thumbnail': 'https://drive.google.com/thumbnail?id=0ByeS4oOUV-49Zzh4R1J6R09zazQ',
         }
     }, {
-        # mp3 (format 50) - Royalty Free music from 1922
+        # has itag 50 which is not in YoutubeIE._formats (royalty Free music from 1922)
         'url': 'https://drive.google.com/uc?id=1IP0o8dHcQrIHGgVyp0Ofvx2cGfLzyO1x',
         'md5': '322db8d63dd19788c04050a4bba67073',
         'info_dict': {
