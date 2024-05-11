@@ -13,6 +13,7 @@ from ..utils import (
     try_get,
     update_url_query,
 )
+from .youtube import YoutubeIE
 
 
 class GoogleDriveIE(InfoExtractor):
@@ -58,22 +59,8 @@ class GoogleDriveIE(InfoExtractor):
         'only_matching': True,
     }]
     _FORMATS_EXT = {
-        '5': 'flv',
-        '6': 'flv',
-        '13': '3gp',
-        '17': '3gp',
-        '18': 'mp4',
-        '22': 'mp4',
-        '34': 'flv',
-        '35': 'flv',
-        '36': '3gp',
-        '37': 'mp4',
-        '38': 'mp4',
-        '43': 'webm',
-        '44': 'webm',
-        '45': 'webm',
-        '46': 'webm',
-        '59': 'mp4',
+        **{k: v['ext'] for k, v in YoutubeIE._formats.items() if v.get('ext')},
+        '50': 'mp3',
     }
     _BASE_URL_CAPTIONS = 'https://drive.google.com/timedtext'
     _CAPTIONS_ENTRY_TAG = {
