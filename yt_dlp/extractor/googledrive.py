@@ -31,7 +31,7 @@ class GoogleDriveIE(InfoExtractor):
                     '''
     _TESTS = [{
         'url': 'https://drive.google.com/file/d/0ByeS4oOUV-49Zzh4R1J6R09zazQ/edit?pli=1',
-        'md5': '5c602afbbf2c1db91831f5d82f678554',
+        'md5': 'fc6291214bab683b9e6126c5933d91bf',
         'info_dict': {
             'id': '0ByeS4oOUV-49Zzh4R1J6R09zazQ',
             'ext': 'mp4',
@@ -63,7 +63,13 @@ class GoogleDriveIE(InfoExtractor):
         # My Buddy by Henry Burr; Gus Kahn; Walter Donaldson
         # https://archive.org/details/78_my-buddy_henry-burr-gus-kahn-walter-donaldson_gbia0015627a/My+Buddy+-+Henry+Burr+-+Gus+Kahn+-+Walter+Donaldson.flac
         'url': 'https://drive.usercontent.google.com/download?id=1IP0o8dHcQrIHGgVyp0Ofvx2cGfLzyO1x',
-        'only_matching': False,
+        'md5': '5c602afbbf2c1db91831f5d82f678554',
+        'info_dict': {
+            "id": "1IP0o8dHcQrIHGgVyp0Ofvx2cGfLzyO1x",
+            'ext': 'mp3',
+            "title": "My Buddy - Henry Burr - Gus Kahn - Walter Donaldson.mp3",
+            'duration': 184,
+        }
     }]
     _FORMATS_EXT = {
         **{k: v['ext'] for k, v in YoutubeIE._formats.items() if v.get('ext')},
