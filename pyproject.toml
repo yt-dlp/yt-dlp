@@ -67,7 +67,7 @@ build = [
 dev = [
     "autopep8~=2.0",
     "pre-commit",
-    "ruff~=0.4",
+    "ruff~=0.4.3",
 ]
 test = [
     "pytest~=8.1",
@@ -103,6 +103,7 @@ include = [
     "/LICENSE",  # included as license
     "/pyproject.toml",  # included by default
     "/README.md",  # included as readme
+    "/setup.cfg",
     "/supportedsites.md",
 ]
 artifacts = [

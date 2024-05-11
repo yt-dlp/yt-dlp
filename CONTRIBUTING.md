@@ -137,7 +137,7 @@ We follow [youtube-dl's policy](https://github.com/ytdl-org/youtube-dl#can-you-a
 Most users do not need to build yt-dlp and can [download the builds](https://github.com/yt-dlp/yt-dlp/releases), get them via [the other installation methods](README.md#installation) or directly run it using `python -m yt_dlp`.
 
 `yt-dlp` uses [`hatch`](<https://hatch.pypa.io>) as a project management tool.
-You can easily install it using [`pipx`](<https://pipx.pypa.io>) via `pipx install hatch`, or else via `pip` or your package manager of choice.
+You can easily install it using [`pipx`](<https://pipx.pypa.io>) via `pipx install hatch`, or else via `pip` or your package manager of choice. Make sure you are using at least version `1.10.0`, otherwise some functionality might not work as expected.
 
 If you plan on contributing to `yt-dlp`, you are required to run
 
