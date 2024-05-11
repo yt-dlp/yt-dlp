@@ -15,7 +15,7 @@ jobs:
       with:
         python-version: '3.8'
     - name: Install test requirements
-      run: python3 ./devscripts/install_deps.py --include dev
+      run: python3 ./devscripts/install_deps.py --include test
     - name: Run tests
       run: |
         python3 -m yt_dlp -v || true
