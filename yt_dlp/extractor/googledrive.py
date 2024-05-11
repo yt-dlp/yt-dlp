@@ -62,8 +62,8 @@ class GoogleDriveIE(InfoExtractor):
         # Royalty Free music from 1922
         # My Buddy by Henry Burr; Gus Kahn; Walter Donaldson
         # https://archive.org/details/78_my-buddy_henry-burr-gus-kahn-walter-donaldson_gbia0015627a/My+Buddy+-+Henry+Burr+-+Gus+Kahn+-+Walter+Donaldson.flac
-        'url': 'https://drive.usercontent.google.com/download?id=1IP0o8dHcQrIHGgVyp0Ofvx2cGfLzyO1x',
-        'md5': '5c602afbbf2c1db91831f5d82f678554',
+        'url': 'https://drive.google.com/uc?id=1IP0o8dHcQrIHGgVyp0Ofvx2cGfLzyO1x',
+        'md5': 'e94c9cbb9cf9c9724f71ce53141d5a2f',
         'info_dict': {
             "id": "1IP0o8dHcQrIHGgVyp0Ofvx2cGfLzyO1x",
             'ext': 'mp3',
