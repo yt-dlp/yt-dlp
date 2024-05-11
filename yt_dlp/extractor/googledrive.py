@@ -31,7 +31,7 @@ class GoogleDriveIE(InfoExtractor):
                     '''
     _TESTS = [{
         'url': 'https://drive.google.com/file/d/0ByeS4oOUV-49Zzh4R1J6R09zazQ/edit?pli=1',
-        'md5': 'fc6291214bab683b9e6126c5933d91bf',
+        'md5': '5c602afbbf2c1db91831f5d82f678554',
         'info_dict': {
             'id': '0ByeS4oOUV-49Zzh4R1J6R09zazQ',
             'ext': 'mp4',
@@ -39,6 +39,19 @@ class GoogleDriveIE(InfoExtractor):
             'duration': 45,
             'thumbnail': 'https://drive.google.com/thumbnail?id=0ByeS4oOUV-49Zzh4R1J6R09zazQ',
         }
+    }, {
+        # mp3 (format 50) tests
+        # Royalty Free music from 1922
+        # My Buddy by Henry Burr; Gus Kahn; Walter Donaldson
+        # https://archive.org/details/78_my-buddy_henry-burr-gus-kahn-walter-donaldson_gbia0015627a/My+Buddy+-+Henry+Burr+-+Gus+Kahn+-+Walter+Donaldson.flac
+        'url': 'https://drive.google.com/uc?id=1IP0o8dHcQrIHGgVyp0Ofvx2cGfLzyO1x',
+        'md5': '322db8d63dd19788c04050a4bba67073',
+        'info_dict': {
+            "id": "1IP0o8dHcQrIHGgVyp0Ofvx2cGfLzyO1x",
+            'ext': 'mp3',
+            "title": "My Buddy - Henry Burr - Gus Kahn - Walter Donaldson.mp3",
+            'duration': 184,
+            'thumbnail': 'https://drive.google.com/thumbnail?id=1IP0o8dHcQrIHGgVyp0Ofvx2cGfLzyO1x',
     }, {
         # video can't be watched anonymously due to view count limit reached,
         # but can be downloaded (see https://github.com/ytdl-org/youtube-dl/issues/14046)
@@ -57,20 +70,7 @@ class GoogleDriveIE(InfoExtractor):
     }, {
         'url': 'https://drive.usercontent.google.com/download?id=0ByeS4oOUV-49Zzh4R1J6R09zazQ',
         'only_matching': True,
-    }, {
-        # mp3 (format 50) tests
-        # Royalty Free music from 1922
-        # My Buddy by Henry Burr; Gus Kahn; Walter Donaldson
-        # https://archive.org/details/78_my-buddy_henry-burr-gus-kahn-walter-donaldson_gbia0015627a/My+Buddy+-+Henry+Burr+-+Gus+Kahn+-+Walter+Donaldson.flac
-        'url': 'https://drive.google.com/uc?id=1IP0o8dHcQrIHGgVyp0Ofvx2cGfLzyO1x',
-        'md5': '322db8d63dd19788c04050a4bba67073',
-        'info_dict': {
-            "id": "1IP0o8dHcQrIHGgVyp0Ofvx2cGfLzyO1x",
-            'ext': 'mp3',
-            "title": "My Buddy - Henry Burr - Gus Kahn - Walter Donaldson.mp3",
-            'duration': 184,
-            'thumbnail': 'https://drive.google.com/thumbnail?id=1IP0o8dHcQrIHGgVyp0Ofvx2cGfLzyO1x',
-        }
+    }
     }]
     _FORMATS_EXT = {
         **{k: v['ext'] for k, v in YoutubeIE._formats.items() if v.get('ext')},
