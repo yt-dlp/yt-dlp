@@ -40,18 +40,16 @@ class GoogleDriveIE(InfoExtractor):
             'thumbnail': 'https://drive.google.com/thumbnail?id=0ByeS4oOUV-49Zzh4R1J6R09zazQ',
         }
     }, {
-        # mp3 (format 50) tests
-        # Royalty Free music from 1922
-        # My Buddy by Henry Burr; Gus Kahn; Walter Donaldson
-        # https://archive.org/details/78_my-buddy_henry-burr-gus-kahn-walter-donaldson_gbia0015627a/My+Buddy+-+Henry+Burr+-+Gus+Kahn+-+Walter+Donaldson.flac
+        # mp3 (format 50) - Royalty Free music from 1922
         'url': 'https://drive.google.com/uc?id=1IP0o8dHcQrIHGgVyp0Ofvx2cGfLzyO1x',
         'md5': '322db8d63dd19788c04050a4bba67073',
         'info_dict': {
-            "id": "1IP0o8dHcQrIHGgVyp0Ofvx2cGfLzyO1x",
+            'id': '1IP0o8dHcQrIHGgVyp0Ofvx2cGfLzyO1x',
             'ext': 'mp3',
-            "title": "My Buddy - Henry Burr - Gus Kahn - Walter Donaldson.mp3",
+            'title': 'My Buddy - Henry Burr - Gus Kahn - Walter Donaldson.mp3',
             'duration': 184,
             'thumbnail': 'https://drive.google.com/thumbnail?id=1IP0o8dHcQrIHGgVyp0Ofvx2cGfLzyO1x',
+        },
     }, {
         # video can't be watched anonymously due to view count limit reached,
         # but can be downloaded (see https://github.com/ytdl-org/youtube-dl/issues/14046)
@@ -70,7 +68,6 @@ class GoogleDriveIE(InfoExtractor):
     }, {
         'url': 'https://drive.usercontent.google.com/download?id=0ByeS4oOUV-49Zzh4R1J6R09zazQ',
         'only_matching': True,
-    }
     }]
     _FORMATS_EXT = {
         **{k: v['ext'] for k, v in YoutubeIE._formats.items() if v.get('ext')},
