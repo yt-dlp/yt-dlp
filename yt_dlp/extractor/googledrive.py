@@ -69,6 +69,7 @@ class GoogleDriveIE(InfoExtractor):
             'ext': 'mp3',
             "title": "My Buddy - Henry Burr - Gus Kahn - Walter Donaldson.mp3",
             'duration': 184,
+            'thumbnail': 'https://drive.google.com/thumbnail?id=1IP0o8dHcQrIHGgVyp0Ofvx2cGfLzyO1x',
         }
     }]
     _FORMATS_EXT = {
