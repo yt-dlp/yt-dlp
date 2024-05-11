@@ -71,7 +71,7 @@ class GoogleDriveIE(InfoExtractor):
     }]
     _FORMATS_EXT = {
         **{k: v['ext'] for k, v in YoutubeIE._formats.items() if v.get('ext')},
-        '50': 'mp3',
+        '50': 'm4a',
     }
     _BASE_URL_CAPTIONS = 'https://drive.google.com/timedtext'
     _CAPTIONS_ENTRY_TAG = {
