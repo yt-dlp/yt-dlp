@@ -63,7 +63,7 @@ class GoogleDriveIE(InfoExtractor):
         # My Buddy by Henry Burr; Gus Kahn; Walter Donaldson
         # https://archive.org/details/78_my-buddy_henry-burr-gus-kahn-walter-donaldson_gbia0015627a/My+Buddy+-+Henry+Burr+-+Gus+Kahn+-+Walter+Donaldson.flac
         'url': 'https://drive.usercontent.google.com/download?id=1IP0o8dHcQrIHGgVyp0Ofvx2cGfLzyO1x',
-        'only_matching': True,
+        'only_matching': False,
     }]
     _FORMATS_EXT = {
         **{k: v['ext'] for k, v in YoutubeIE._formats.items() if v.get('ext')},
