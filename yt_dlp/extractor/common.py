@@ -1738,12 +1738,16 @@ class InfoExtractor:
         traverse_json_ld(json_ld)
         return filter_dict(info)
 
-    def _search_nextjs_data(self, webpage, video_id, *, transform_source=None, fatal=True, **kw):
-        return self._parse_json(
-            self._search_regex(
-                r'(?s)<script[^>]+id=[\'"]__NEXT_DATA__[\'"][^>]*>([^<]+)</script>',
-                webpage, 'next.js data', fatal=fatal, **kw),
-            video_id, transform_source=transform_source, fatal=fatal)
+    def _search_nextjs_data(self, webpage, video_id, *, fatal=True, default=NO_DEFAULT, **kw):
+        if default == '{}':
+            self._downloader.deprecation_warning('using `default=\'{}\'` is deprecated, use `default={}` instead')
+            default = {}
+        if default is not NO_DEFAULT:
+            fatal = False
+
+        return self._search_json(
+            r'<script[^>]+id=[\'"]__NEXT_DATA__[\'"][^>]*>', webpage, 'next.js data',
+            video_id, end_pattern='</script>', fatal=fatal, default=default, **kw)
 
     def _search_nuxt_data(self, webpage, video_id, context_name='__NUXT__', *, fatal=True, traverse=('data', 0)):
         """Parses Nuxt.js metadata. This works as long as the function __NUXT__ invokes is a pure function"""

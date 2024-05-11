@@ -151,7 +151,7 @@ class CBCIE(InfoExtractor):
 
 class CBCPlayerIE(InfoExtractor):
     IE_NAME = 'cbc.ca:player'
-    _VALID_URL = r'(?:cbcplayer:|https?://(?:www\.)?cbc\.ca/(?:player/play/|i/caffeine/syndicate/\?mediaId=))(?P<id>(?:\d\.)?\d+)'
+    _VALID_URL = r'(?:cbcplayer:|https?://(?:www\.)?cbc\.ca/(?:player/play/(?:video/)?|i/caffeine/syndicate/\?mediaId=))(?P<id>(?:\d\.)?\d+)'
     _TESTS = [{
         'url': 'http://www.cbc.ca/player/play/2683190193',
         'md5': '64d25f841ddf4ddb28a235338af32e2c',
@@ -276,6 +276,28 @@ class CBCPlayerIE(InfoExtractor):
             'creators': ['News'],
             'location': 'Canada',
             'media_type': 'Full Program',
+        },
+    }, {
+        'url': 'https://www.cbc.ca/player/play/video/1.7194274',
+        'md5': '188b96cf6bdcb2540e178a6caa957128',
+        'info_dict': {
+            'id': '2334524995812',
+            'ext': 'mp4',
+            'title': '#TheMoment a rare white spirit moose was spotted in Alberta',
+            'description': 'md5:18ae269a2d0265c5b0bbe4b2e1ac61a3',
+            'timestamp': 1714788791,
+            'duration': 77.678,
+            'subtitles': {'eng': [{'ext': 'vtt', 'protocol': 'm3u8_native'}]},
+            'thumbnail': 'https://thumbnails.cbc.ca/maven_legacy/thumbnails/201/543/THE_MOMENT.jpg',
+            'uploader': 'CBCC-NEW',
+            'chapters': 'count:0',
+            'upload_date': '20240504',
+            'categories': 'count:3',
+            'series': 'The National',
+            'tags': 'count:15',
+            'creators': ['encoder'],
+            'location': 'Canada',
+            'media_type': 'Excerpt',
         },
     }, {
         'url': 'cbcplayer:1.7159484',

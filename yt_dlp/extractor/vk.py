@@ -451,6 +451,7 @@ class VKIE(VKBaseIE):
             info_page, 'view count', default=None))
 
         formats = []
+        subtitles = {}
         for format_id, format_url in data.items():
             format_url = url_or_none(format_url)
             if not format_url or not format_url.startswith(('http', '//', 'rtmp')):
@@ -462,12 +463,21 @@ class VKIE(VKBaseIE):
                 formats.append({
                     'format_id': format_id,
                     'url': format_url,
+                    'ext': 'mp4',
+                    'source_preference': 1,
                     'height': height,
                 })
             elif format_id == 'hls':
-                formats.extend(self._extract_m3u8_formats(
+                fmts, subs = self._extract_m3u8_formats_and_subtitles(
                     format_url, video_id, 'mp4', 'm3u8_native',
-                    m3u8_id=format_id, fatal=False, live=is_live))
+                    m3u8_id=format_id, fatal=False, live=is_live)
+                formats.extend(fmts)
+                self._merge_subtitles(subs, target=subtitles)
+            elif format_id.startswith('dash_'):
+                fmts, subs = self._extract_mpd_formats_and_subtitles(
+                    format_url, video_id, mpd_id=format_id, fatal=False)
+                formats.extend(fmts)
+                self._merge_subtitles(subs, target=subtitles)
             elif format_id == 'rtmp':
                 formats.append({
                     'format_id': format_id,
@@ -475,7 +485,6 @@ class VKIE(VKBaseIE):
                     'ext': 'flv',
                 })
 
-        subtitles = {}
         for sub in data.get('subs') or {}:
             subtitles.setdefault(sub.get('lang', 'en'), []).append({
                 'ext': sub.get('title', '.srt').split('.')[-1],
@@ -496,6 +505,7 @@ class VKIE(VKBaseIE):
             'comment_count': int_or_none(mv_data.get('commcount')),
             'is_live': is_live,
             'subtitles': subtitles,
+            '_format_sort_fields': ('res', 'source'),
         }
 
 
