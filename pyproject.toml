@@ -65,15 +65,16 @@ build = [
     "wheel",
 ]
 dev = [
-    "autopep8~=2.0",
     "pre-commit",
-    "ruff~=0.4.3",
+    "yt-dlp[static-analysis]",
+    "yt-dlp[test]",
+]
+static-analysis = [
+    "autopep8~=2.0",
+    "ruff~=0.4.4",
 ]
 test = [
     "pytest~=8.1",
-    "pytest-randomly~=3.15",
-    "pytest-rerunfailures~=14.0",
-    "pytest-xdist[psutil]~=3.5",
 ]
 pyinstaller = [
     "pyinstaller>=6.3; sys_platform!='darwin'",
@@ -130,7 +131,8 @@ path = "yt_dlp/version.py"
 pattern = "_pkg_version = '(?P<version>[^']+)'"
 
 [tool.hatch.envs.default]
-features = ["default", "dev", "test"]
+features = ["curl-cffi", "default"]
+dependencies = ["pre-commit"]
 path = ".venv"
 
 [tool.hatch.envs.default.scripts]
@@ -139,7 +141,8 @@ yt-dlp = "python -Werror -Xdev -m yt_dlp {args}"
 
 [tool.hatch.envs.hatch-static-analysis]
 detached = true
-features = ["dev"]
+features = ["static-analysis"]
+dependencies = []  # override hatch ruff version
 config-path = "pyproject.toml"
 
 [tool.hatch.envs.hatch-static-analysis.scripts]
@@ -149,7 +152,12 @@ lint-check = "ruff check {args:.}"
 lint-fix = "ruff check --fix {args:.}"
 
 [tool.hatch.envs.hatch-test]
-features = ["curl-cffi", "default", "test"]
+features = ["test"]
+dependencies = [
+    "pytest-randomly~=3.15",
+    "pytest-rerunfailures~=14.0",
+    "pytest-xdist[psutil]~=3.5",
+]
 
 [tool.hatch.envs.hatch-test.scripts]
 run = "python -m devscripts.run_tests {args}"
