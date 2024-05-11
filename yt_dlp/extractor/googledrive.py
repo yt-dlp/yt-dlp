@@ -2,6 +2,7 @@ import re
 
 from .common import InfoExtractor
 from ..compat import compat_parse_qs
+from .youtube import YoutubeIE
 from ..utils import (
     ExtractorError,
     determine_ext,
@@ -13,7 +14,6 @@ from ..utils import (
     try_get,
     update_url_query,
 )
-from .youtube import YoutubeIE
 
 
 class GoogleDriveIE(InfoExtractor):
