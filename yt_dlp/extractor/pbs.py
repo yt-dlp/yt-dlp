@@ -203,17 +203,17 @@ class PBSIE(InfoExtractor):
     _GEO_COUNTRIES = ['US']
 
     _TESTS = [
-        # {
-        #     'url': 'http://www.pbs.org/tpt/constitution-usa-peter-sagal/watch/a-more-perfect-union/',
-        #     'md5': '173dc391afd361fa72eab5d3d918968d',
-        #     'info_dict': {
-        #         'id': '2365006249',
-        #         'ext': 'mp4',
-        #         'title': 'Constitution USA with Peter Sagal - A More Perfect Union',
-        #         'description': 'md5:31b664af3c65fd07fa460d306b837d00',
-        #         'duration': 3190,
-        #     },
-        # },
+        {
+            'url': 'http://www.pbs.org/tpt/constitution-usa-peter-sagal/watch/a-more-perfect-union/',
+            'md5': '173dc391afd361fa72eab5d3d918968d',
+            'info_dict': {
+                'id': '2365006249',
+                'ext': 'mp4',
+                'title': 'Constitution USA with Peter Sagal - A More Perfect Union',
+                'description': 'md5:31b664af3c65fd07fa460d306b837d00',
+                'duration': 3190,
+            },
+        },
         {
             'url': 'http://www.pbs.org/wgbh/pages/frontline/losing-iraq/',
             'md5': '6f722cb3c3982186d34b0f13374499c7',
