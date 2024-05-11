@@ -169,7 +169,7 @@ class TV5MondePlusIE(InfoExtractor):
             'id': video_id,
             'display_id': display_id,
             'title': clean_html(get_element_by_class('main-title', webpage)),
-            'description': clean_html(get_element_by_class('text', get_element_html_by_class('ep-summary', webpage))),
+            'description': clean_html(get_element_by_class('text', get_element_html_by_class('ep-summary', webpage) or '')),
             'thumbnail': url_or_none(vpl_data.get('data-image')),
             'formats': formats,
             'subtitles': self._extract_subtitles(self._parse_json(
