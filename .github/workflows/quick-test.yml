@@ -30,7 +30,7 @@ jobs:
       with:
         python-version: '3.8'
     - name: Install dev dependencies
-      run: python3 ./devscripts/install_deps.py -o --include dev
+      run: python3 ./devscripts/install_deps.py -o --include static-analysis
     - name: Make lazy extractors
       run: python3 ./devscripts/make_lazy_extractors.py
     - name: Run ruff
