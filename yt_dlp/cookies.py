@@ -1,6 +1,7 @@
 import base64
 import collections
 import contextlib
+import datetime as dt
 import glob
 import http.cookiejar
 import http.cookies
@@ -15,7 +16,6 @@ import sys
 import tempfile
 import time
 import urllib.request
-from datetime import datetime, timedelta, timezone
 from enum import Enum, auto
 from hashlib import pbkdf2_hmac
 
@@ -194,7 +194,11 @@ def _firefox_browser_dirs():
         yield os.path.expanduser('~/Library/Application Support/Firefox/Profiles')
 
     else:
-        yield from map(os.path.expanduser, ('~/.mozilla/firefox', '~/snap/firefox/common/.mozilla/firefox'))
+        yield from map(os.path.expanduser, (
+            '~/.mozilla/firefox',
+            '~/snap/firefox/common/.mozilla/firefox',
+            '~/.var/app/org.mozilla.firefox/.mozilla/firefox',
+        ))
 
 
 def _firefox_cookie_dbs(roots):
@@ -342,6 +346,11 @@ def _process_chrome_cookie(decryptor, host_key, name, value, encrypted_value, pa
         value = decryptor.decrypt(encrypted_value)
         if value is None:
             return is_encrypted, None
+
+    # In chrome, session cookies have expires_utc set to 0
+    # In our cookie-store, cookies that do not expire should have expires set to None
+    if not expires_utc:
+        expires_utc = None
 
     return is_encrypted, http.cookiejar.Cookie(
         version=0, name=name, value=value, port=None, port_specified=False,
@@ -594,7 +603,7 @@ class DataParser:
 
 
 def _mac_absolute_time_to_posix(timestamp):
-    return int((datetime(2001, 1, 1, 0, 0, tzinfo=timezone.utc) + timedelta(seconds=timestamp)).timestamp())
+    return int((dt.datetime(2001, 1, 1, 0, 0, tzinfo=dt.timezone.utc) + dt.timedelta(seconds=timestamp)).timestamp())
 
 
 def _parse_safari_cookies_header(data, logger):

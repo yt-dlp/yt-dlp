@@ -463,9 +463,10 @@ class Request:
         else:
             raise TypeError('headers must be a mapping')
 
-    def update(self, url=None, data=None, headers=None, query=None):
+    def update(self, url=None, data=None, headers=None, query=None, extensions=None):
         self.data = data if data is not None else self.data
         self.headers.update(headers or {})
+        self.extensions.update(extensions or {})
         self.url = update_url_query(url or self.url, query or {})
 
     def copy(self):
@@ -496,6 +497,7 @@ class Response(io.IOBase):
     @param headers: response headers.
     @param status: Response HTTP status code. Default is 200 OK.
     @param reason: HTTP status reason. Will use built-in reasons based on status code if not provided.
+    @param extensions: Dictionary of handler-specific response extensions.
     """
 
     def __init__(
@@ -504,7 +506,9 @@ class Response(io.IOBase):
             url: str,
             headers: Mapping[str, str],
             status: int = 200,
-            reason: str = None):
+            reason: str = None,
+            extensions: dict = None
+    ):
 
         self.fp = fp
         self.headers = Message()
@@ -516,6 +520,7 @@ class Response(io.IOBase):
             self.reason = reason or HTTPStatus(status).phrase
         except ValueError:
             self.reason = None
+        self.extensions = extensions or {}
 
     def readable(self):
         return self.fp.readable()

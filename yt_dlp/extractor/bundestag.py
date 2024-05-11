@@ -1,5 +1,5 @@
+import functools
 import re
-from functools import partial
 
 from .common import InfoExtractor
 from ..networking.exceptions import HTTPError
@@ -115,9 +115,9 @@ class BundestagIE(InfoExtractor):
             note='Downloading metadata overlay', fatal=False,
         ), {
             'title': (
-                {partial(get_element_text_and_html_by_tag, 'h3')}, 0,
-                {partial(re.sub, r'<span[^>]*>[^<]+</span>', '')}, {clean_html}),
-            'description': ({partial(get_element_text_and_html_by_tag, 'p')}, 0, {clean_html}),
+                {functools.partial(get_element_text_and_html_by_tag, 'h3')}, 0,
+                {functools.partial(re.sub, r'<span[^>]*>[^<]+</span>', '')}, {clean_html}),
+            'description': ({functools.partial(get_element_text_and_html_by_tag, 'p')}, 0, {clean_html}),
         }))
 
         return result
