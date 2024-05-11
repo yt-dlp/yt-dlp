@@ -139,13 +139,13 @@ Most users do not need to build yt-dlp and can [download the builds](https://git
 `yt-dlp` uses [`hatch`](<https://hatch.pypa.io>) as a project management tool.
 You can easily install it using [`pipx`](<https://pipx.pypa.io>) via `pipx install hatch`, or else via `pip` or your package manager of choice. Make sure you are using at least version `1.10.0`, otherwise some functionality might not work as expected.
 
-If you plan on contributing to `yt-dlp`, you are required to run
+If you plan on contributing to `yt-dlp`, best practice is to start by running the following command:
 
 ```shell
 $ hatch run setup
 ```
 
-to install a `pre-commit` hook so that required checks/fixes (linting, formatting) will run automatically before each commit. If any code needed to be linted or formatted, then the necessary changes will be made, but the commit will be blocked; you can review the edits and re-commit the fixed version.
+The above command will install a `pre-commit` hook so that required checks/fixes (linting, formatting) will run automatically before each commit. If any code needs to be linted or formatted, then the necessary changes will be made, but the commit will be blocked; you can review the edits and re-commit the fixed version.
 
 After this you can use `hatch shell` to enable a virtual environment that has `yt-dlp` and its development dependencies installed.
 
@@ -156,6 +156,26 @@ In addition, the following script commands can be used to run simple tasks such 
     * See `hatch test --help` for more info
 
 See item 6 of [new extractor tutorial](#adding-support-for-a-new-site) for how to run extractor specific test cases.
+
+While it is strongly recommended to use `hatch` for yt-dlp development, if you are unable to do so, alternatively you can manually create a virtual environment and use the following commands:
+
+```shell
+# To only install development dependencies:
+$ python -m devscripts.install_deps --include dev
+
+# Or, for an editable install plus dev dependencies:
+$ python -m pip install -e ".[default,dev]"
+
+# To setup the pre-commit hook:
+$ pre-commit install
+
+# To be used in place of `hatch test`:
+$ python -m devscripts.run_tests
+
+# To be used in place of `hatch fmt`:
+$ ruff check --fix .
+$ autopep8 --in-place .
+```
 
 If you want to create a build of yt-dlp yourself, you can follow the instructions [here](README.md#compile).
 
