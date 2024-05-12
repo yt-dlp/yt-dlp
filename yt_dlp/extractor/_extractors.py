@@ -2377,7 +2377,6 @@ from .wykop import (
 )
 from .xanimu import XanimuIE
 from .xboxclips import XboxClipsIE
-from .xfileshare import XFileShareIE
 from .xhamster import (
     XHamsterIE,
     XHamsterEmbedIE,

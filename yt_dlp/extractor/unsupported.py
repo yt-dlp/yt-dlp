@@ -173,6 +173,15 @@ class KnownPiracyIE(UnsupportedInfoExtractor):
         r'filemoon\.sx',
         r'hentai\.animestigma\.com',
         r'thisav\.com',
+        r'gounlimited\.to',
+        r'highstream\.tv',
+        r'uqload\.com',
+        r'vedbam\.xyz',
+        r'vadbam\.net'
+        r'vidlo\.us',
+        r'wolfstream\.tv',
+        r'xvideosharing\.com',
+        r'(?:\w+\.)?viidshar\.com',
     )
 
     _TESTS = [{
