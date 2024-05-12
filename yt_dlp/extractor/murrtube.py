@@ -30,7 +30,10 @@ class MurrtubeIE(InfoExtractor):
                 'description': 'Humping a very good slutty sheppy (roomate)',
                 'uploader': 'Inferno Wolf',
                 'age_limit': 18,
-                'thumbnail': 'https://storage.murrtube.net/murrtube-production/ekbs3zcfvuynnqfx72nn2tkokvsd'
+                'thumbnail': 'https://storage.murrtube.net/murrtube-production/ekbs3zcfvuynnqfx72nn2tkokvsd',
+                'comment_count': int,
+                'view_count': int,
+                'like_count': int,
             },
         },
         {
@@ -43,7 +46,10 @@ class MurrtubeIE(InfoExtractor):
                 'title': 'Who\'s in charge now?',
                 'description': 'md5:795791e97e5b0f1805ea84573f02a997',
                 'age_limit': 18,
-                'thumbnail': 'https://storage.murrtube.net/murrtube-production/fb1ojjwiucufp34ya6hxu5vfqi5s'
+                'thumbnail': 'https://storage.murrtube.net/murrtube-production/fb1ojjwiucufp34ya6hxu5vfqi5s',
+                'comment_count': int,
+                'view_count': int,
+                'like_count': int,
             }
         }
     ]
@@ -62,18 +68,21 @@ class MurrtubeIE(InfoExtractor):
         playlist = video_attrs['data-url'].split('?')[0]
         video_id = self._search_regex(r'https://storage.murrtube.net/murrtube-production/.+/(?P<id>.+)/index.m3u8', playlist, 'id', default=None)
         formats = self._extract_m3u8_formats(playlist, video_id, 'mp4', entry_protocol='m3u8_native', fatal=False)
+        view_str = self._search_regex(r'(?P<views>[\d,]+) <span class="has-text-white">Views<\/span>', video_page, 'views', default=None)
+        like_str = self._search_regex(r'(?P<likes>[\d,]+) <span class="has-text-white">Likes<\/span>', video_page, 'likes', default=None)
+        comment_str = self._search_regex(r'(?P<comment>[\d,]+) <span class="has-text-white">Comments<\/span>', video_page, 'comment', default=None)
         return {
             'id': video_id,
-            'title': self._og_search_title(video_page),
+            'title': self._og_search_title(video_page).split(' - Murrtube')[0],
             'age_limit': 18,
             'formats': formats,
             'description': self._og_search_description(video_page),
-            'thumbnail': self._og_search_thumbnail(video_page),
+            'thumbnail': self._og_search_thumbnail(video_page).split('?')[0],
             'uploader': self._html_search_regex(
                 r'<span class="pl-1 is-size-6 has-text-lighter">(.+?)</span>', video_page, 'uploader', default=None),
-            'view_count': self._search_regex(r'(?P<views>[\d,]+) <span class="has-text-white">Views<\/span>', video_page, 'views', default=None),
-            'like_count': self._search_regex(r'(?P<likes>[\d,]+) <span class="has-text-white">Likes<\/span>', video_page, 'likes', default=None),
-            'comment_count': self._search_regex(r'(?P<comment>[\d,]+) <span class="has-text-white">Comment<\/span>', video_page, 'comment', default=None)
+            'view_count': int(view_str.replace(',', '')) if view_str else None,
+            'like_count': int(like_str.replace(',', '')) if like_str else None,
+            'comment_count': int(comment_str.replace(',', '')) if comment_str else None
         }
 
 
