@@ -136,7 +136,7 @@ dependencies = ["pre-commit"]
 path = ".venv"
 
 [tool.hatch.envs.default.scripts]
-setup = "pre-commit install"
+setup = "pre-commit install --config .pre-commit-hatch.yaml"
 yt-dlp = "python -Werror -Xdev -m yt_dlp {args}"
 
 [tool.hatch.envs.hatch-static-analysis]
