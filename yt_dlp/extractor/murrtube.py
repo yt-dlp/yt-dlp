@@ -53,7 +53,7 @@ class MurrtubeIE(InfoExtractor):
         data = self._hidden_inputs(video_page)
         self._download_webpage(
             'https://murrtube.net/accept_age_check', None, 'Set age cookie', data=urlencode_postdata(data))
-        video_page = self._download_webpage(url, None)
+        video_page = self._download_webpage(url, video_id)
         video_attrs = extract_attributes(self._search_regex(r'(<video[^>]+>)', video_page, 'video'))
         playlist = video_attrs['data-url'].split('?')[0]
         matches = re.compile(r'https://storage.murrtube.net/murrtube-production/.+/(?P<id>.+)/index.m3u8').match(playlist).groupdict()
