@@ -185,6 +185,7 @@ class KnownPiracyIE(UnsupportedInfoExtractor):
         r'sxyprn\.com',
         r'jable\.tv',
         r'91porn\.com',
+        r'einthusan\.(?:tv|com|ca)',
     )
 
     _TESTS = [{
