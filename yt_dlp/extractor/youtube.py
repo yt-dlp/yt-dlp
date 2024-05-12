@@ -240,6 +240,16 @@ INNERTUBE_CLIENTS = {
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 85
     },
+    # This client has pre-merged video+audio 720p/1080p streams
+    'mediaconnect': {
+        'INNERTUBE_CONTEXT': {
+            'client': {
+                'clientName': 'MEDIA_CONNECT_FRONTEND',
+                'clientVersion': '0.1',
+            },
+        },
+        'INNERTUBE_CONTEXT_CLIENT_NAME': 95
+    },
 }
 
 
