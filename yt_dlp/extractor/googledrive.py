@@ -5,6 +5,7 @@ from .youtube import YoutubeIE
 from ..compat import compat_parse_qs
 from ..utils import (
     ExtractorError,
+    bug_reports_message,
     determine_ext,
     extract_attributes,
     get_element_by_class,
@@ -192,10 +193,13 @@ class GoogleDriveIE(InfoExtractor):
                 if len(fmt_stream_split) < 2:
                     continue
                 format_id, format_url = fmt_stream_split[:2]
+                ext = self._FORMATS_EXT.get(format_id)
+                if ext is None:
+                    self.report_warning(f'Unknown format {format_id}{bug_reports_message()}')
                 f = {
                     'url': lowercase_escape(format_url),
                     'format_id': format_id,
-                    'ext': self._FORMATS_EXT[format_id],
+                    'ext': ext,
                 }
                 resolution = resolutions.get(format_id)
                 if resolution:
