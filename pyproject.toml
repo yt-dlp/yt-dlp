@@ -134,6 +134,7 @@ pattern = "_pkg_version = '(?P<version>[^']+)'"
 features = ["curl-cffi", "default"]
 dependencies = ["pre-commit"]
 path = ".venv"
+installer = "uv"
 
 [tool.hatch.envs.default.scripts]
 setup = "pre-commit install --config .pre-commit-hatch.yaml"
