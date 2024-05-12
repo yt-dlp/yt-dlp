@@ -3648,7 +3648,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
     def _get_requested_clients(self, url, smuggled_data):
         requested_clients = []
-        default = ['ios', 'web']
+        default = ['ios', 'android', 'web']
         allowed_clients = sorted(
             (client for client in INNERTUBE_CLIENTS.keys() if client[:1] != '_'),
             key=lambda client: INNERTUBE_CLIENTS[client]['priority'], reverse=True)
