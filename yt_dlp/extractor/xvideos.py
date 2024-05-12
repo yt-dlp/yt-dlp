@@ -173,7 +173,7 @@ class XVideosIE(InfoExtractor):
 
 class XVideosQuickiesIE(InfoExtractor):
     IE_NAME = 'xvideos:quickies'
-    _VALID_URL = r'https?://(?P<domain>(?:[^/?#]+\.)?xvideos2?\.com)/(?:profiles/|amateur-channels/)?[^#]+#quickies/a/(?P<id>\w+)'
+    _VALID_URL = r'https?://(?P<domain>(?:[^/?#]+\.)?xvideos2?\.com)/(?:profiles/|amateur-channels/)?[^/?#]+#quickies/a/(?P<id>\w+)'
     _TESTS = [{
         'url': 'https://www.xvideos.com/lili_love#quickies/a/ipdtikh1a4c',
         'md5': 'f9e4f518ff1de14b99a400bbd0fc5ee0',
@@ -222,4 +222,4 @@ class XVideosQuickiesIE(InfoExtractor):
 
     def _real_extract(self, url):
         domain, id_ = self._match_valid_url(url).group('domain', 'id')
-        return self.url_result(f'https://{domain}/video{"" if id_.isdigit() else "."}{id_}/_', XVideosIE, id_)
+        return self.url_result(f'https://{domain}/video{"" if id_.isdecimal() else "."}{id_}/_', XVideosIE, id_)
