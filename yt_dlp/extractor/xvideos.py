@@ -173,8 +173,41 @@ class XVideosIE(InfoExtractor):
 
 class XVideosQuickiesIE(InfoExtractor):
     IE_NAME = 'xvideos:quickies'
-    _VALID_URL = r'https?://(?P<domain>(?:[^/]+\.)?xvideos2?\.com)/amateur-channels/[^#]+#quickies/a/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?P<domain>(?:[^/?#]+\.)?xvideos2?\.com)/(?:profiles/|amateur-channels/)?[^/?#]+#quickies/a/(?P<id>\w+)'
     _TESTS = [{
+        'url': 'https://www.xvideos.com/lili_love#quickies/a/ipdtikh1a4c',
+        'md5': 'f9e4f518ff1de14b99a400bbd0fc5ee0',
+        'info_dict': {
+            'id': 'ipdtikh1a4c',
+            'ext': 'mp4',
+            'title': 'Mexican chichóna putisima',
+            'age_limit': 18,
+            'duration': 81,
+            'thumbnail': r're:^https://cdn.*-pic.xvideos-cdn.com/.+\.jpg',
+        }
+    }, {
+        'url': 'https://www.xvideos.com/profiles/lili_love#quickies/a/ipphaob6fd1',
+        'md5': '5340938aac6b46e19ebdd1d84535862e',
+        'info_dict': {
+            'id': 'ipphaob6fd1',
+            'ext': 'mp4',
+            'title': 'Puta chichona mexicana squirting',
+            'age_limit': 18,
+            'duration': 56,
+            'thumbnail': r're:^https://cdn.*-pic.xvideos-cdn.com/.+\.jpg',
+        }
+    }, {
+        'url': 'https://www.xvideos.com/amateur-channels/lili_love#quickies/a/hfmffmd7661',
+        'md5': '92428518bbabcb4c513e55922e022491',
+        'info_dict': {
+            'id': 'hfmffmd7661',
+            'ext': 'mp4',
+            'title': 'Chichona mexican slut',
+            'age_limit': 18,
+            'duration': 9,
+            'thumbnail': r're:^https://cdn.*-pic.xvideos-cdn.com/.+\.jpg',
+        }
+    }, {
         'url': 'https://www.xvideos.com/amateur-channels/wifeluna#quickies/a/47258683',
         'md5': '16e322a93282667f1963915568f782c1',
         'info_dict': {
@@ -189,4 +222,4 @@ class XVideosQuickiesIE(InfoExtractor):
 
     def _real_extract(self, url):
         domain, id_ = self._match_valid_url(url).group('domain', 'id')
-        return self.url_result(f'https://{domain}/video{id_}/_', XVideosIE, id_)
+        return self.url_result(f'https://{domain}/video{"" if id_.isdecimal() else "."}{id_}/_', XVideosIE, id_)
