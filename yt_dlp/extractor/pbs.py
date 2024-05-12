@@ -205,6 +205,20 @@ class PBSIE(InfoExtractor):
 
     _TESTS = [
         {
+            'url': 'https://watch.opb.org/video/cherry-blossoms-at-portlands-waterfront-have-a-story-2e1de0/',
+            'md5': 'af5a85ffecd6371e86f050b4ce5a3636',
+            'info_dict': {
+                'id': 'cherry-blossoms-at-portlands-waterfront-have-a-story-2e1de0',
+                'ext': 'mp4',
+                'title': 'Oregon Experience - Cherry Blossoms at Portland\'s Waterfront Have a Story',
+                'description': 'md5:8d15d264cb6ed954ee08c8c0dcbd43a2',
+                'duration': 167,
+                'upload_date': '20190225',
+                'chapters': [],
+                'thumbnail': r're:^https?://.*\.jpg$',
+            },
+        },
+        {
             'url': 'http://www.pbs.org/tpt/constitution-usa-peter-sagal/watch/a-more-perfect-union/',
             'md5': '173dc391afd361fa72eab5d3d918968d',
             'info_dict': {
@@ -687,8 +701,9 @@ class PBSIE(InfoExtractor):
         if alt_title:
             info['title'] = alt_title + ' - ' + re.sub(r'^' + alt_title + r'[\s\-:]+', '', info['title'])
 
-        description = info.get('description') or info.get(
-            'program', {}).get('description') or description
+        upload_date = upload_date or unified_strdate(info.get("air_date"))
+        description = info.get('description') or info.get("long_description") or info.get(
+            "short_description") or info.get('program', {}).get('description') or description
 
         return {
             'id': video_id,
