@@ -183,6 +183,7 @@ class KnownPiracyIE(UnsupportedInfoExtractor):
         r'xvideosharing\.com',
         r'(?:\w+\.)?viidshar\.com',
         r'sxyprn\.com',
+        r'jable\.tv',
     )
 
     _TESTS = [{

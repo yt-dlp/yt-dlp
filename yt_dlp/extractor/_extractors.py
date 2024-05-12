@@ -861,10 +861,6 @@ from .iwara import (
 )
 from .ixigua import IxiguaIE
 from .izlesene import IzleseneIE
-from .jable import (
-    JableIE,
-    JablePlaylistIE,
-)
 from .jamendo import (
     JamendoIE,
     JamendoAlbumIE,
