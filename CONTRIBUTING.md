@@ -175,6 +175,10 @@ $ python -m devscripts.run_tests
 # To be used in place of `hatch fmt`:
 $ ruff check --fix .
 $ autopep8 --in-place .
+
+# To only check code instead of applying fixes:
+$ ruff check .
+$ autopep8 --diff .
 ```
 
 If you want to create a build of yt-dlp yourself, you can follow the instructions [here](README.md#compile).
