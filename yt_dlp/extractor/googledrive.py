@@ -194,7 +194,7 @@ class GoogleDriveIE(InfoExtractor):
                     continue
                 format_id, format_url = fmt_stream_split[:2]
                 ext = self._FORMATS_EXT.get(format_id)
-                if ext is None:
+                if not ext:
                     self.report_warning(f'Unknown format {format_id}{bug_reports_message()}')
                 f = {
                     'url': lowercase_escape(format_url),
