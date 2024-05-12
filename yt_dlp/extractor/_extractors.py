@@ -2431,7 +2431,6 @@ from .younow import (
     YouNowMomentIE,
 )
 from .youporn import YouPornIE
-from .yourporn import YourPornIE
 from .yourupload import YourUploadIE
 from .zaiko import (
     ZaikoIE,

@@ -182,6 +182,7 @@ class KnownPiracyIE(UnsupportedInfoExtractor):
         r'wolfstream\.tv',
         r'xvideosharing\.com',
         r'(?:\w+\.)?viidshar\.com',
+        r'sxyprn\.com',
     )
 
     _TESTS = [{
