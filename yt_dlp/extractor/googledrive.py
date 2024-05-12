@@ -1,9 +1,11 @@
 import re
 
 from .common import InfoExtractor
+from .youtube import YoutubeIE
 from ..compat import compat_parse_qs
 from ..utils import (
     ExtractorError,
+    bug_reports_message,
     determine_ext,
     extract_attributes,
     get_element_by_class,
@@ -39,6 +41,17 @@ class GoogleDriveIE(InfoExtractor):
             'thumbnail': 'https://drive.google.com/thumbnail?id=0ByeS4oOUV-49Zzh4R1J6R09zazQ',
         }
     }, {
+        # has itag 50 which is not in YoutubeIE._formats (royalty Free music from 1922)
+        'url': 'https://drive.google.com/uc?id=1IP0o8dHcQrIHGgVyp0Ofvx2cGfLzyO1x',
+        'md5': '322db8d63dd19788c04050a4bba67073',
+        'info_dict': {
+            'id': '1IP0o8dHcQrIHGgVyp0Ofvx2cGfLzyO1x',
+            'ext': 'mp3',
+            'title': 'My Buddy - Henry Burr - Gus Kahn - Walter Donaldson.mp3',
+            'duration': 184,
+            'thumbnail': 'https://drive.google.com/thumbnail?id=1IP0o8dHcQrIHGgVyp0Ofvx2cGfLzyO1x',
+        },
+    }, {
         # video can't be watched anonymously due to view count limit reached,
         # but can be downloaded (see https://github.com/ytdl-org/youtube-dl/issues/14046)
         'url': 'https://drive.google.com/file/d/0B-vUyvmDLdWDcEt4WjBqcmI2XzQ/view',
@@ -58,22 +71,8 @@ class GoogleDriveIE(InfoExtractor):
         'only_matching': True,
     }]
     _FORMATS_EXT = {
-        '5': 'flv',
-        '6': 'flv',
-        '13': '3gp',
-        '17': '3gp',
-        '18': 'mp4',
-        '22': 'mp4',
-        '34': 'flv',
-        '35': 'flv',
-        '36': '3gp',
-        '37': 'mp4',
-        '38': 'mp4',
-        '43': 'webm',
-        '44': 'webm',
-        '45': 'webm',
-        '46': 'webm',
-        '59': 'mp4',
+        **{k: v['ext'] for k, v in YoutubeIE._formats.items() if v.get('ext')},
+        '50': 'm4a',
     }
     _BASE_URL_CAPTIONS = 'https://drive.google.com/timedtext'
     _CAPTIONS_ENTRY_TAG = {
@@ -194,10 +193,13 @@ class GoogleDriveIE(InfoExtractor):
                 if len(fmt_stream_split) < 2:
                     continue
                 format_id, format_url = fmt_stream_split[:2]
+                ext = self._FORMATS_EXT.get(format_id)
+                if not ext:
+                    self.report_warning(f'Unknown format {format_id}{bug_reports_message()}')
                 f = {
                     'url': lowercase_escape(format_url),
                     'format_id': format_id,
-                    'ext': self._FORMATS_EXT[format_id],
+                    'ext': ext,
                 }
                 resolution = resolutions.get(format_id)
                 if resolution:
