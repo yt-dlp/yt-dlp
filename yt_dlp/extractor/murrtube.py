@@ -77,13 +77,15 @@ class MurrtubeUserIE(MurrtubeIE):  # XXX: Do not subclass from concrete IE
     _WORKING = False
     IE_DESC = 'Murrtube user profile'
     _VALID_URL = r'https?://murrtube\.net/(?P<id>[^/]+)$'
-    _TEST = {
-        'url': 'https://murrtube.net/stormy',
-        'info_dict': {
-            'id': 'stormy',
-        },
-        'playlist_mincount': 27,
-    }
+    _TESTS = [
+        {
+            'url': 'https://murrtube.net/stormy',
+            'info_dict': {
+                'id': 'stormy',
+            },
+            'playlist_mincount': 27,
+        }
+    ]
     _PAGE_SIZE = 10
 
     def _fetch_page(self, username, user_id, page):
