@@ -193,7 +193,7 @@ class PBSIE(InfoExtractor):
     _VALID_URL = r'''(?x)https?://
         (?:
            # Direct video URL
-           (?:%s)/(?!show)(?:(?:vir|port)alplayer|video)/(?P<id>[0-9]+)(?:[?/]|$) |
+           (?:%s)/(?!show)(?:(?:vir|port)alplayer|video)/(?P<id>[^/]+)(?:[?/]|$) |
            # Article with embedded player (or direct video)
            (?:www\.)?pbs\.org/(?!show)(?:[^/]+/){1,5}(?P<presumptive_id>[^/]+?)(?:\.html)?/?(?:$|[?\#]) |
            # Player
