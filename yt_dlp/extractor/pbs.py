@@ -1,4 +1,5 @@
 import re
+import urllib.parse
 
 from .common import InfoExtractor
 from ..compat import compat_str
@@ -192,7 +193,7 @@ class PBSIE(InfoExtractor):
     _VALID_URL = r'''(?x)https?://
         (?:
            # Direct video URL
-           (?:%s)/(?:(?:vir|port)alplayer|video)/(?P<id>[0-9]+)(?:[?/]|$) |
+           (?:%s)/(?!show)(?:(?:vir|port)alplayer|video)/(?P<id>[0-9]+)(?:[?/]|$) |
            # Article with embedded player (or direct video)
            (?:www\.)?pbs\.org/(?!show)(?:[^/]+/){1,5}(?P<presumptive_id>[^/]+?)(?:\.html)?/?(?:$|[?\#]) |
            # Player
@@ -763,11 +764,14 @@ class PBSKidsIE(InfoExtractor):
 
 
 class PBSShowIE(InfoExtractor):
-    _VALID_URL = r'(?:https://)?(?:www\.)?pbs\.org\/show\/(?P<presumptive_id>[^/]+?)(?:\.html)?\/?(?:$|[?#])'
+    _VALID_URL = r'''(?x)https?://
+        (?:www\.)?(?:%s)/show\/(?P<presumptive_id>[^/]+?)(?:\.html)?\/?(?:$|[?#])
+    ''' % '|'.join(list(zip(*PBSIE._STATIONS))[0])
+
     _TESTS = [
         # Full Show
         {
-            'url': 'https://www.pbs.org/show/oregon-experience',
+            'url': 'https://video.ksps.org/show/oregon-experience/',
             'info_dict': {
                 'id': 'oregon-experience',
                 'title': 'Oregon Experience',
@@ -780,7 +784,7 @@ class PBSShowIE(InfoExtractor):
         },
         # Single Special
         {
-            'url': 'https://www.pbs.org/show/betrayed-survivng-american-concentration-camp',
+            'url': 'https://video.ksps.org/show/betrayed-survivng-american-concentration-camp',
             'info_dict': {
                 'id': 'betrayed-survivng-american-concentration-camp',
                 'title': 'Betrayed: Surviving an American Concentration Camp',
@@ -793,7 +797,7 @@ class PBSShowIE(InfoExtractor):
         },
         # Non-Season Episodes (uses season 1)
         {
-            'url': 'https://www.pbs.org/show/a-brief-history-of-the-future/',
+            'url': 'https://video.ksps.org/show/a-brief-history-of-the-future/',
             'info_dict': {
                 'id': 'a-brief-history-of-the-future',
                 'title': 'A Brief History of the Future',
@@ -810,9 +814,8 @@ class PBSShowIE(InfoExtractor):
     _SHOW_JSON_SEARCH = r'GTMDataLayer\.push\('
 
     @staticmethod
-    def _make_url(playlist_id):
-        # pbs does not show metadata, use a different station that does
-        return f'https://video.ksps.org/show/{playlist_id}'
+    def _make_url(url, playlist_id):
+        return f'https://{urllib.parse.urlparse(url).netloc}/show/{playlist_id}'
 
     @staticmethod
     def _extract_episode(popover_html):
@@ -822,15 +825,15 @@ class PBSShowIE(InfoExtractor):
             return maybe_ep[1]
         return None
 
-    def _iterate_entries(self, playlist_id, season_indices):
-        playlist_url = self._make_url(playlist_id)
+    def _iterate_entries(self, url, playlist_id, season_indices):
+        base_url = urllib.parse.urlparse(url).netloc
 
         for season_idx in season_indices:
             season_id = f'{playlist_id}-season-{season_idx}'
 
             season_page = self._download_webpage(
-                f'{playlist_url}/episodes/season/{season_idx}'
-                if season_idx > 0 else f'{playlist_url}/specials',
+                f'{url}/episodes/season/{season_idx}'
+                if season_idx > 0 else f'{url}/specials',
                 video_id=season_id
             )
             episodes = [
@@ -850,7 +853,7 @@ class PBSShowIE(InfoExtractor):
                     url_kwargs['episode'] = episode_indices[i]
 
                 yield self.url_result(
-                    url=f'https://pbs.org/video/{ep["data-video-slug"]}',
+                    url=f'https://{base_url}/video/{ep["data-video-slug"]}',
                     ie=PBSIE,
                     video_id=ep["data-cid"],
                     url_transparent=True,
@@ -861,7 +864,9 @@ class PBSShowIE(InfoExtractor):
 
     def _real_extract(self, url):
         playlist_id = self._match_valid_url(url).group('presumptive_id')
-        webpage = self._download_webpage(self._make_url(playlist_id), playlist_id)
+        url = self._make_url(url=url, playlist_id=playlist_id)
+
+        webpage = self._download_webpage(url, playlist_id)
         show_data = self._search_json(self._JSON_SEARCH, webpage, 'seasons', playlist_id)
 
         playlist_description = clean_html(get_element_html_by_class(
@@ -886,7 +891,7 @@ class PBSShowIE(InfoExtractor):
             season_indices = [0] + season_indices
 
         return self.playlist_result(
-            LazyList(self._iterate_entries(playlist_id, season_indices)),
+            LazyList(self._iterate_entries(url, playlist_id, season_indices)),
             playlist_id=playlist_id,
             playlist_title=playlist_title,
             playlist_description=playlist_description,
