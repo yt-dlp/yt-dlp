@@ -1,6 +1,9 @@
-import re
+import functools
+
 from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
+    OnDemandPagedList,
     urlencode_postdata,
     extract_attributes
 )
@@ -72,6 +75,7 @@ class MurrtubeIE(InfoExtractor):
             'like_count': self._search_regex(r'(?P<likes>[\d,]+) <span class="has-text-white">Likes<\/span>', video_page, 'likes', default=None),
             'comment_count': self._search_regex(r'(?P<comment>[\d,]+) <span class="has-text-white">Comment<\/span>', video_page, 'comment', default=None)
         }
+
 
 class MurrtubeUserIE(MurrtubeIE):  # XXX: Do not subclass from concrete IE
     _WORKING = False
