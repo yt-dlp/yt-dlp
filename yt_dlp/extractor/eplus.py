@@ -29,8 +29,8 @@ class EplusIbIE(InfoExtractor):
             'ignore_no_formats_error': True,
         },
         'expected_warnings': [
-            'Could not find the playlist URL. This event may not be accessible',
-            'No video formats found!',
+            'This event may not be accessible',
+            'No video formats found',
             'Requested format is not available',
         ],
     }, {
@@ -144,7 +144,7 @@ class EplusIbIE(InfoExtractor):
 
         if data_json.get('is_pass_ticket') == 'YES':
             raise ExtractorError(
-                'Pass ticket url is not supported, please use a url points to the player page', expected=True)
+                'This URL is for a pass ticket instead of a player page', expected=True)
 
         delivery_status = data_json.get('delivery_status')
         archive_mode = data_json.get('archive_mode')
