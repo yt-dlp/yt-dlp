@@ -1,3 +1,4 @@
+import json
 from .common import InfoExtractor
 from ..utils import (
     determine_ext,
@@ -9,20 +10,53 @@ from ..utils import (
 
 
 class DailyWireBaseIE(InfoExtractor):
-    _JSON_PATH = {
-        'episode': ('props', 'pageProps', 'episodeData', 'episode'),
-        'videos': ('props', 'pageProps', 'videoData', 'video'),
-        'podcasts': ('props', 'pageProps', 'episode'),
+    _GRAPHQL_API = 'https://v2server.dailywire.com/app/graphql'
+    _GRAPHQL_QUERIES = {
+        'getEpisodeBySlug': 'query getEpisodeBySlug($slug: String!) {episode(where: {slug: $slug}) {id,title,status,slug,isLive,description,createdAt,scheduleAt,updatedAt,image,allowedCountryNames,allowedContinents,rating,show {id,name,slug,belongsTo},segments {id,image,title,liveChatAccess,audio,video,duration,watchTime,description,videoAccess,muxAssetId,muxPlaybackId,captions {id}},createdBy {firstName,lastName},discussionId}}',
+        'getVideoBySlug': 'query getVideoBySlug($slug: String!) {video(where: {slug: $slug}) {id,name,slug,status,description,metadata,image,clips {id,name,slug,image,show {id,name,slug},video {id,name,slug},thumbnail,duration,clipAccess,createdAt,updatedAt},scheduleAt,allowedContinents,allowedCountryNames,rating,thumbnail,videoURL,logoImage,duration,createdBy {firstName,lastName},createdAt,updatedAt,watchTime,liveChatAccess,videoAccess,captions {id}}}',
+        'getClipBySlug': 'query getClipBySlug($slug: String!) {clip(where: {slug: $slug}) {id,name,slug,description,image,show {id,name,slug},video {id,status,name,slug},thumbnail,duration,clipAccess,createdBy {firstName,lastName},createdAt,updatedAt,videoURL,captions {id}}}',
+        'getShowBySlug': 'query getShowBySlug($slug: String!) {show(where: {slug: $slug}) {id,slug,belongsTo,name,description,image,logoImage,backgroundImage,hostImage,createdAt,updatedAt,author {firstName,lastName},episodes(where: {status_not_in: [DRAFT, UNPUBLISHED]},first: 1,orderBy: createdAt_DESC) {id,image,title,slug,status,createdAt,scheduleAt,description,show {id,name,slug,belongsTo},segments {id,title,muxAssetId,muxPlaybackId,audio}},seasons(orderBy: weight_DESC) {id,name,slug,orderBy}}}',
+        'getSeasonEpisodes': 'query getSeasonEpisodes($where: getSeasonEpisodesInput!, $first: Int, $skip: Int) {getSeasonEpisodes(where: $where, first: $first, skip: $skip) {id,episode {id,title,slug,image,description,updatedAt,scheduleAt,createdAt,discussionId,isLive,status}}}',
     }
+    _GRAPHQL_VIDEO_QUERIES = {
+        'episode': 'getEpisodeBySlug',
+        'videos': 'getVideoBySlug',
+        'clips': 'getClipBySlug',
+    }
+    _GRAPHQL_JSON_PATH = {
+        'getEpisodeBySlug': ('data', 'episode'),
+        'getVideoBySlug': ('data', 'video'),
+        'getClipBySlug': ('data', 'clip'),
+        'getSeasonEpisodes': ('data', 'getSeasonEpisodes'),
+        'getShowBySlug': ('data', 'show'),
+    }
+    _ACCESS_TOKEN = None
 
-    def _get_json(self, url):
-        sites_type, slug = self._match_valid_url(url).group('sites_type', 'id')
-        json_data = self._search_nextjs_data(self._download_webpage(url, slug), slug)
-        return slug, traverse_obj(json_data, self._JSON_PATH[sites_type])
+    def _get_auth(self):
+        t = self._get_cookies('https://www.dailywire.com').get('accessToken')
+        if t:
+            self._ACCESS_TOKEN = t.value
+
+    def _call_api(self, slug, query, variables):
+        headers = {
+                'Apollographql-Client-Name': 'DW_WEBSITE',
+                'Content-Type': 'application/json',
+                'Origin': 'https://www.dailywire.com',
+                'Referer': 'https://www.dailywire.com/'}
+        
+        self._get_auth() ### I doubt this is how you are supposed to set _TOKEN
+        if self._ACCESS_TOKEN:
+            headers['Authorization'] = f'Bearer {self._ACCESS_TOKEN}'
+        
+        json_data = self._download_json(
+                self._GRAPHQL_API, slug, 'Downloading JSON from GraphQL API', data=json.dumps({
+                'query': self._GRAPHQL_QUERIES[query], 'variables': variables}).encode(), headers=headers)
+
+        return traverse_obj(json_data, self._GRAPHQL_JSON_PATH.get(query, ()))
 
 
 class DailyWireIE(DailyWireBaseIE):
-    _VALID_URL = r'https?://(?:www\.)dailywire(?:\.com)/(?P<sites_type>episode|videos)/(?P<id>[\w-]+)'
+    _VALID_URL = r'https?://(?:www\.)dailywire(?:\.com)/(?P<sites_type>episode|videos|clips)/(?P<id>[\w-]+)'
     _TESTS = [{
         'url': 'https://www.dailywire.com/episode/1-fauci',
         'info_dict': {
@@ -55,9 +89,16 @@ class DailyWireIE(DailyWireBaseIE):
     }]
 
     def _real_extract(self, url):
-        slug, episode_info = self._get_json(url)
-        urls = traverse_obj(
-            episode_info, (('segments', 'videoUrl'), ..., ('video', 'audio')), expected_type=url_or_none)
+        sites_type, slug = self._match_valid_url(url).group('sites_type', 'id')
+        episode_info = self._call_api(slug, self._GRAPHQL_VIDEO_QUERIES[sites_type], {'slug': slug})
+
+        urls = traverse_obj(episode_info,
+            (('segments', 'clips'), ..., ('video', 'audio')), expected_type=url_or_none) or [
+            episode_info.get('videoURL') if episode_info.get('videoURL') != 'Access Denied' else None]
+
+        ### print(urls)
+
+        ### add warning about auth if no formats and no auth ?
 
         formats, subtitles = [], {}
         for url in urls:
@@ -80,10 +121,10 @@ class DailyWireIE(DailyWireBaseIE):
             'subtitles': subtitles,
             'series_id': traverse_obj(episode_info, ('show', 'id')),
             'series': traverse_obj(episode_info, ('show', 'name')),
-        }
+        } ### test to make sure all values are properly extracted
 
 
-class DailyWirePodcastIE(DailyWireBaseIE):
+class DailyWirePodcastIE(DailyWireBaseIE): ### need to rewrite this
     _VALID_URL = r'https?://(?:www\.)dailywire(?:\.com)/(?P<sites_type>podcasts)/(?P<podcaster>[\w-]+/(?P<id>[\w-]+))'
     _TESTS = [{
         'url': 'https://www.dailywire.com/podcasts/morning-wire/get-ready-for-recession-6-15-22',
@@ -99,6 +140,7 @@ class DailyWirePodcastIE(DailyWireBaseIE):
     }]
 
     def _real_extract(self, url):
+        raise Exception('currently broken') ###
         slug, episode_info = self._get_json(url)
         audio_id = traverse_obj(episode_info, 'audioMuxPlaybackId', 'VUsAipTrBVSgzw73SpC2DAJD401TYYwEp')
 
@@ -111,3 +153,26 @@ class DailyWirePodcastIE(DailyWireBaseIE):
             'thumbnail': episode_info.get('thumbnail'),
             'description': episode_info.get('description'),
         }
+
+
+class DailyWireShowIE(DailyWireBaseIE):
+    _VALID_URL = r'https?://(?:www\.)dailywire(?:\.com)/(?P<sites_type>show)/(?P<id>[\w-]+)'
+    _TESTS = [
+    ]
+    
+    def _real_extract(self, url):
+        sites_type, slug = self._match_valid_url(url).group('sites_type', 'id')
+        
+        show = self._call_api(slug, 'getShowBySlug', {'slug': slug})
+        
+        for season in show.get('seasons', []):
+            season['episodes'] = []
+            while episode_page := self._call_api(season['slug'], 'getSeasonEpisodes', {'where': {'season': {'id': season['id']}},
+                                                 'first': 10, 'skip': len(season['episodes']) or None}):
+                season['episodes'] += [episode['episode'] for episode in episode_page]
+        
+        return self.playlist_result(
+            [self.url_result(f'https://www.dailywire.com/episode/{e["slug"]}')
+             for season in show['seasons'] for e in season['episodes']],
+            show.get('id'), show.get('name'), show.get('description'))
+
