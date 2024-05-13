@@ -77,8 +77,8 @@ class PornHubBaseIE(InfoExtractor):
         # on both sites so that we have to identify them as the same video.
         # For that purpose we have to keep both in the same extractor
         # but under different netrc machines.
-        username, password = self._get_login_info(netrc_machine=site)
-        if username is None:
+        email, password = self._get_login_info(netrc_machine=site)
+        if email is None:
             return
 
         login_url = 'https://www.%s/%slogin' % (host, 'premium/' if 'premium' in host else '')
@@ -97,7 +97,7 @@ class PornHubBaseIE(InfoExtractor):
         login_form = self._hidden_inputs(login_page)
 
         login_form.update({
-            'username': username,
+            'email': email,
             'password': password,
         })
 
