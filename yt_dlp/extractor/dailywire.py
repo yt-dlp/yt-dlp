@@ -1,9 +1,10 @@
 import itertools
 import json
+
 from .common import InfoExtractor
 from ..utils import (
-    determine_ext,
     ExtractorError,
+    determine_ext,
     float_or_none,
     join_nonempty,
     parse_iso8601,
@@ -56,8 +57,8 @@ class DailyWireBaseIE(InfoExtractor):
 
     def _paginate(self, slug, query, where):
         for i in itertools.count(0):
-            page = self._call_api(slug,
-                query, {'where': where, 'first': 10, 'skip': i * 10},
+            page = self._call_api(
+                slug, query, {'where': where, 'first': 10, 'skip': i * 10},
                 message=f'Downloading page {i + 1}')
             if not page:
                 break
