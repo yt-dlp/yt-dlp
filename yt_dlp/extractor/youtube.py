@@ -3646,7 +3646,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 android_clients.append(client)
             else:
                 requested_clients.append(client)
-        # Force deprioritization of broken Android client for format de-duplication
+        # Force deprioritization of broken Android clients for format de-duplication
         requested_clients.extend(android_clients)
         if not requested_clients:
             requested_clients = default
