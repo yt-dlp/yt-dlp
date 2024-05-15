@@ -3587,6 +3587,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 raise
             is_forced_continuation = False
             continuation = None
+            mutations = traverse_obj(response, ('frameworkUpdates', 'entityBatchUpdate', 'mutations', ..., {dict}))
             for continuation_items in traverse_obj(response, continuation_items_path, expected_type=list, default=[]):
                 if is_first_continuation:
                     continuation = extract_header(continuation_items)
@@ -3595,12 +3596,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         break
                     continue
 
-                if 'frameworkUpdates' in response:
-                    _iterator = extract_thread(continuation_items, response['frameworkUpdates']['entityBatchUpdate']['mutations'])
-                else:
-                    _iterator = extract_thread(continuation_items, None)
-
-                for entry in _iterator:
+                for entry in extract_thread(continuation_items, mutations):
                     if not entry:
                         return
                     yield entry
