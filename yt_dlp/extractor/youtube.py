@@ -3311,8 +3311,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         comment_entity_payload = get_first(entities, ('payload', 'commentEntityPayload', {dict}))
         if not (comment_id := traverse_obj(comment_entity_payload, ('properties', 'commentId', {str}))):
             return
+
         toolbar_entity_payload = get_first(entities, ('payload', 'engagementToolbarStateEntityPayload', {dict}))
         time_text = traverse_obj(comment_entity_payload, ('properties', 'publishedTime', {str})) or ''
+
         return {
             'id': comment_id,
             'parent': parent or 'root',
