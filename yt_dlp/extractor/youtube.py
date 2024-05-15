@@ -3349,7 +3349,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if toolbar_entity_payload.get('heartState') == 'TOOLBAR_HEART_STATE_HEARTED':
             info['is_favorited'] = True
 
-        info['author_is_verified'] = traverse_obj(comment_entity_payload, ('author', 'isVerified')) == 'true'
+        if traverse_obj(comment_entity_payload, ('author', 'isVerified', {bool})):
+            info['author_is_verified'] = True
 
         if traverse_obj(view_model, 'pinnedText'):
             info['is_pinned'] = True
