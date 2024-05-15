@@ -112,6 +112,58 @@ INNERTUBE_CLIENTS = {
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 62,
     },
+    'android': {
+        'INNERTUBE_API_KEY': 'AIzaSyA8eiZmM1FaDVjRy-df2KTyQ_vz_yYM39w',
+        'INNERTUBE_CONTEXT': {
+            'client': {
+                'clientName': 'ANDROID',
+                'clientVersion': '19.09.37',
+                'androidSdkVersion': 30,
+                'userAgent': 'com.google.android.youtube/19.09.37 (Linux; U; Android 11) gzip'
+            }
+        },
+        'INNERTUBE_CONTEXT_CLIENT_NAME': 3,
+        'REQUIRE_JS_PLAYER': False
+    },
+    'android_embedded': {
+        'INNERTUBE_API_KEY': 'AIzaSyCjc_pVEDi4qsv5MtC2dMXzpIaDoRFLsxw',
+        'INNERTUBE_CONTEXT': {
+            'client': {
+                'clientName': 'ANDROID_EMBEDDED_PLAYER',
+                'clientVersion': '19.09.37',
+                'androidSdkVersion': 30,
+                'userAgent': 'com.google.android.youtube/19.09.37 (Linux; U; Android 11) gzip'
+            },
+        },
+        'INNERTUBE_CONTEXT_CLIENT_NAME': 55,
+        'REQUIRE_JS_PLAYER': False
+    },
+    'android_music': {
+        'INNERTUBE_API_KEY': 'AIzaSyAOghZGza2MQSZkY_zfZ370N-PUdXEo8AI',
+        'INNERTUBE_CONTEXT': {
+            'client': {
+                'clientName': 'ANDROID_MUSIC',
+                'clientVersion': '6.42.52',
+                'androidSdkVersion': 30,
+                'userAgent': 'com.google.android.apps.youtube.music/6.42.52 (Linux; U; Android 11) gzip'
+            }
+        },
+        'INNERTUBE_CONTEXT_CLIENT_NAME': 21,
+        'REQUIRE_JS_PLAYER': False
+    },
+    'android_creator': {
+        'INNERTUBE_API_KEY': 'AIzaSyD_qjV8zaaUMehtLkrKFgVeSX_Iqbtyws8',
+        'INNERTUBE_CONTEXT': {
+            'client': {
+                'clientName': 'ANDROID_CREATOR',
+                'clientVersion': '22.30.100',
+                'androidSdkVersion': 30,
+                'userAgent': 'com.google.android.apps.youtube.creator/22.30.100 (Linux; U; Android 11) gzip'
+            },
+        },
+        'INNERTUBE_CONTEXT_CLIENT_NAME': 14,
+        'REQUIRE_JS_PLAYER': False
+    },
     # iOS clients have HLS live streams. Setting device model to get 60fps formats.
     # See: https://github.com/TeamNewPipe/NewPipeExtractor/issues/680#issuecomment-1002724558
     'ios': {
@@ -218,7 +270,7 @@ def build_innertube_clients():
     THIRD_PARTY = {
         'embedUrl': 'https://www.youtube.com/',  # Can be any valid URL
     }
-    BASE_CLIENTS = ('ios', 'web', 'tv', 'mweb')
+    BASE_CLIENTS = ('ios', 'android', 'web', 'tv', 'mweb')
     priority = qualities(BASE_CLIENTS[::-1])
 
     for client, ytcfg in tuple(INNERTUBE_CLIENTS.items()):
