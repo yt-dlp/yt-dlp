@@ -3307,7 +3307,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'value': ('intensityScoreNormalized', {float_or_none}),
             })) or None
 
-    def _extract_comment(self, view_model, entities, parent=None):
+    def _extract_comment(self, entities, parent=None):
         comment_entity_payload = get_first(entities, ('payload', 'commentEntityPayload', {dict}))
         if not (comment_id := traverse_obj(comment_entity_payload, ('properties', 'commentId', {str}))):
             return
@@ -3330,9 +3330,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     ('browseEndpoint', 'canonicalBaseUrl'), ('commandMetadata', 'webCommandMetadata', 'url')
                 ), {lambda x: urljoin('https://www.youtube.com', x)}),
             }, get_all=False),
-            'is_favorited': (None if toolbar_entity_payload is None else  # TODO(before merge): Is this logic correct?
+            'is_favorited': (None if toolbar_entity_payload is None else
                              toolbar_entity_payload.get('heartState') == 'TOOLBAR_HEART_STATE_HEARTED'),
-            'is_pinned': view_model.get('pinnedText'),
             '_time_text': time_text,  # FIXME: non-standard, but we need a way of showing that it is an estimate.
             'timestamp': self._parse_time_text(time_text),
         }
@@ -3443,7 +3442,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         continue
                     comment_keys = list(filter(None, [view_model.get('commentKey'), view_model.get('toolbarStateKey')]))
                     entities = traverse_obj(entity_payloads, lambda _, v: v['entityKey'] in comment_keys)
-                    comment = self._extract_comment(view_model, entities, parent)
+                    comment = self._extract_comment(entities, parent)
+                    if comment:
+                        comment['is_pinned'] = traverse_obj(view_model, ('pinnedText', {str})) is not None
 
                 if not comment:
                     continue
