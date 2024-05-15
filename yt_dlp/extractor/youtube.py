@@ -3327,7 +3327,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         }
 
         # Timestamp is an estimate calculated from the current time and time_text
-        time_text = try_get(comment_entity_payload, lambda x: x['properties']['publishedTime'], str) or ''
+        time_text = traverse_obj(comment_entity_payload, ('properties', 'publishedTime', {str})) or ''
         timestamp = self._parse_time_text(time_text)
 
         info.update({
