@@ -3351,8 +3351,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         info['author_is_verified'] = traverse_obj(comment_entity_payload, ('author', 'isVerified')) == 'true'
 
-        pinned_text = traverse_obj(view_model, 'pinnedText')
-        if pinned_text:
+        if traverse_obj(view_model, 'pinnedText'):
             info['is_pinned'] = True
 
         return info
