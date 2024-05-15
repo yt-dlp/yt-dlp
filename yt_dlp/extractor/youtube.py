@@ -3861,6 +3861,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     f'{video_id}: Some formats are possibly damaged. They will be deprioritized', only_once=True)
 
             client_name = fmt.get(STREAMING_DATA_CLIENT_NAME)
+            # Android client formats are broken due to integrity check enforcement
+            # Ref: https://github.com/yt-dlp/yt-dlp/issues/9554
+            is_broken = client_name and client_name.startswith(short_client_name('android'))
+            if is_broken:
+                self.report_warning(
+                    f'{video_id}: Android client formats are broken and may yield HTTP Error 403. '
+                    'They will be deprioritized', only_once=True)
+
             name = fmt.get('qualityLabel') or quality.replace('audio_quality_', '') or ''
             fps = int_or_none(fmt.get('fps')) or 0
             dct = {
@@ -3873,7 +3881,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     name, fmt.get('isDrc') and 'DRC',
                     try_get(fmt, lambda x: x['projectionType'].replace('RECTANGULAR', '').lower()),
                     try_get(fmt, lambda x: x['spatialAudioType'].replace('SPATIAL_AUDIO_TYPE_', '').lower()),
-                    throttled and 'THROTTLED', is_damaged and 'DAMAGED',
+                    throttled and 'THROTTLED', is_damaged and 'DAMAGED', is_broken and 'BROKEN',
                     (self.get_param('verbose') or all_formats) and client_name,
                     delim=', '),
                 # Format 22 is likely to be damaged. See https://github.com/yt-dlp/yt-dlp/issues/3372
@@ -3891,8 +3899,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'language': join_nonempty(audio_track.get('id', '').split('.')[0],
                                           'desc' if language_preference < -1 else '') or None,
                 'language_preference': language_preference,
-                # Strictly de-prioritize damaged and 3gp formats
-                'preference': -10 if is_damaged else -2 if itag == '17' else None,
+                # Strictly de-prioritize broken, damaged and 3gp formats
+                'preference': -20 if is_broken else -10 if is_damaged else -2 if itag == '17' else None,
             }
             mime_mobj = re.match(
                 r'((?:[^/]+)/(?:[^;]+))(?:;\s*codecs="([^"]+)")?', fmt.get('mimeType') or '')
