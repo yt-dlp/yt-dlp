@@ -17,6 +17,7 @@ import threading
 import time
 import traceback
 import urllib.parse
+
 from .common import InfoExtractor, SearchInfoExtractor
 from .openload import PhantomJSwrapper
 from ..compat import functools
@@ -3603,7 +3604,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     if not entry:
                         return
                     yield entry
-
                 continuation = self._extract_continuation({'contents': continuation_items})
                 if continuation:
                     break
