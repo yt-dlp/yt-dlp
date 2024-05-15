@@ -3438,9 +3438,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     view_model = (
                         traverse_obj(comment_thread_renderer, ('commentViewModel', 'commentViewModel', {dict}))
                         or traverse_obj(content, ('commentViewModel', {dict})))
-                    if not view_model:
+                    comment_keys = traverse_obj(view_model, (('commentKey', 'toolbarStateKey'), {str}))
+                    if not comment_keys:
                         continue
-                    comment_keys = list(filter(None, [view_model.get('commentKey'), view_model.get('toolbarStateKey')]))
                     entities = traverse_obj(entity_payloads, lambda _, v: v['entityKey'] in comment_keys)
                     comment = self._extract_comment(entities, parent)
                     if comment:
