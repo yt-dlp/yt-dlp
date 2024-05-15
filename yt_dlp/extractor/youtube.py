@@ -3447,7 +3447,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 comment_thread_renderer = try_get(content, lambda x: x['commentThreadRenderer'])
 
                 # old comment format
-                if entity_payloads is None:
+                if not entity_payloads:
                     comment_renderer = get_first(
                         (comment_thread_renderer, content), [['commentRenderer', ('comment', 'commentRenderer')]],
                         expected_type=dict, default={})
