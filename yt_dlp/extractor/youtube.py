@@ -3309,12 +3309,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
     def _extract_comment(self, view_model, entities, parent=None):
         comment_entity_payload = get_first(entities, ('payload', 'commentEntityPayload', {dict}))
-        toolbar_entity_payload = get_first(entities, ('payload', 'engagementToolbarStateEntityPayload', {dict})) or {}
-        comment_id = traverse_obj(comment_entity_payload, ('properties', 'commentId', {str}))
-        if not comment_id:
+        if not (comment_id := traverse_obj(comment_entity_payload, ('properties', 'commentId', {str}))):
             return
-
-        info = {
+        toolbar_entity_payload = get_first(entities, ('payload', 'engagementToolbarStateEntityPayload', {dict}))
+        time_text = traverse_obj(comment_entity_payload, ('properties', 'publishedTime', {str})) or ''
+        return {
             'id': comment_id,
             'parent': parent or 'root',
             **traverse_obj(comment_entity_payload, {
@@ -3323,39 +3322,18 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'author_id': ('author', 'channelId', {self.ucid_or_none}),
                 'author': ('author', 'displayName', {str}),
                 'author_thumbnail': ('author', 'avatarThumbnailUrl', {url_or_none}),
-            }),
+                'author_is_uploader': ('author', 'isCreator', {bool}),
+                'author_is_verified': ('author', 'isVerified', {bool}),
+                'author_url': ('author', 'channelCommand', 'innertubeCommand', (
+                    ('browseEndpoint', 'canonicalBaseUrl'), ('commandMetadata', 'webCommandMetadata', 'url')
+                ), {lambda x: urljoin('https://www.youtube.com', x)}),
+            }, get_all=False),
+            'is_favorited': (None if toolbar_entity_payload is None else  # TODO(before merge): Is this logic correct?
+                             toolbar_entity_payload.get('heartState') == 'TOOLBAR_HEART_STATE_HEARTED'),
+            'is_pinned': view_model.get('pinnedText'),
+            '_time_text': time_text,  # FIXME: non-standard, but we need a way of showing that it is an estimate.
+            'timestamp': self._parse_time_text(time_text),
         }
-
-        # Timestamp is an estimate calculated from the current time and time_text
-        time_text = traverse_obj(comment_entity_payload, ('properties', 'publishedTime', {str})) or ''
-        timestamp = self._parse_time_text(time_text)
-
-        info.update({
-            # FIXME: non-standard, but we need a way of showing that it is an estimate.
-            '_time_text': time_text,
-            'timestamp': timestamp,
-        })
-
-        info['author_url'] = urljoin(
-            'https://www.youtube.com',
-            traverse_obj(comment_entity_payload, ('author', 'channelCommand', 'innertubeCommand', (
-                ('browseEndpoint', 'canonicalBaseUrl'), ('commandMetadata', 'webCommandMetadata', 'url'))),
-                expected_type=str, get_all=False))
-
-        author_is_uploader = traverse_obj(comment_entity_payload, ('author', 'isCreator', {bool}))
-        if author_is_uploader is not None:
-            info['author_is_uploader'] = author_is_uploader
-
-        if toolbar_entity_payload.get('heartState') == 'TOOLBAR_HEART_STATE_HEARTED':
-            info['is_favorited'] = True
-
-        if traverse_obj(comment_entity_payload, ('author', 'isVerified', {bool})):
-            info['author_is_verified'] = True
-
-        if traverse_obj(view_model, 'pinnedText'):
-            info['is_pinned'] = True
-
-        return info
 
     def _extract_comment_old(self, comment_renderer, parent=None):
         comment_id = comment_renderer.get('commentId')
