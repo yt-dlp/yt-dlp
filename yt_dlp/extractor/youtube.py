@@ -3308,9 +3308,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             })) or None
 
     def _extract_comment(self, view_model, entities, parent=None):
-        comment_entity_payload = traverse_obj(entities, (..., 'payload', 'commentEntityPayload', {dict}), get_all=False)
-        toolbar_entity_payload = traverse_obj(entities, (..., 'payload', 'engagementToolbarStateEntityPayload', {dict}), get_all=False)
-        comment_id = comment_entity_payload.get('properties').get('commentId')
+        comment_entity_payload = get_first(entities, ('payload', 'commentEntityPayload', {dict}))
+        toolbar_entity_payload = get_first(entities, ('payload', 'engagementToolbarStateEntityPayload', {dict})) or {}
+        comment_id = traverse_obj(comment_entity_payload, ('properties', 'commentId', {str}))
+        if not comment_id:
+            return
 
         info = {
             'id': comment_id,
