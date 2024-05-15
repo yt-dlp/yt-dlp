@@ -3453,9 +3453,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         expected_type=dict, default={})
 
                     comment = self._extract_comment_old(comment_renderer, parent)
-                    if not comment:
-                        continue
-                    comment_id = comment['id']
 
                 # new comment format
                 else:
@@ -3464,12 +3461,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         or traverse_obj(content, ('commentViewModel', {dict})))
                     if not view_model:
                         continue
-                    comment_id = view_model['commentId']
-                    comment_key = view_model.get('commentKey')
-                    toolbar_state_key = view_model.get('toolbarStateKey')
-                    entities = traverse_obj(entity_payloads, lambda _, v: v["entityKey"] in [comment_key, toolbar_state_key])
-
+                    comment_keys = list(filter(None, [view_model.get('commentKey'), view_model.get('toolbarStateKey')]))
+                    entities = traverse_obj(entity_payloads, lambda _, v: v['entityKey'] in comment_keys)
                     comment = self._extract_comment(view_model, entities, parent)
+
+                if not comment:
+                    continue
+                comment_id = comment['id']
 
                 if comment.get('is_pinned'):
                     tracker['pinned_comment_ids'].add(comment_id)
