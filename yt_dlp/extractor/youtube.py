@@ -3342,7 +3342,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 ('browseEndpoint', 'canonicalBaseUrl'), ('commandMetadata', 'webCommandMetadata', 'url'))),
                 expected_type=str, get_all=False))
 
-        author_is_uploader = traverse_obj(comment_entity_payload, ('author', 'isCreator'))
+        author_is_uploader = traverse_obj(comment_entity_payload, ('author', 'isCreator', {bool}))
         if author_is_uploader is not None:
             info['author_is_uploader'] = author_is_uploader
 
