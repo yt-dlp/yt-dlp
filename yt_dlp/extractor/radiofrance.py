@@ -328,15 +328,15 @@ class RadioFrancePodcastIE(RadioFrancePlaylistBaseIE):
         },
         'playlist_mincount': 11,
     }, {
-        'url': 'https://www.radiofrance.fr/franceinter/podcasts/jean-marie-le-pen-l-obsession-nationale',
+        'url': 'https://www.radiofrance.fr/franceinter/podcasts/avec-la-langue',
         'info_dict': {
-            'id': '566fd524-3074-4fbc-ac69-8696f2152a54',
-            'display_id': 'jean-marie-le-pen-l-obsession-nationale',
-            'title': 'Jean-Marie Le Pen, l\'obsession nationale',
-            'description': 'md5:a07c0cfb894f6d07a62d0ad12c4b7d73',
+            'id': '53a95989-7c61-48c7-873c-6a71009101bb',
+            'display_id': 'avec-la-langue',
+            'title': 'Avec la langue',
+            'description': 'md5:4ddb6d4ed46dbbdee611b8e16e4af868',
             'thumbnail': r're:^https?://.*\.(?:jpg|png)',
         },
-        'playlist_count': 7,
+        'playlist_mincount': 36,
     }, {
         'url': 'https://www.radiofrance.fr/franceculture/podcasts/serie-thomas-grjebine',
         'info_dict': {
@@ -351,7 +351,7 @@ class RadioFrancePodcastIE(RadioFrancePlaylistBaseIE):
             'id': '143dff38-e956-4a5d-8576-1c0b7242b99e',
             'display_id': 'certains-l-aiment-fip',
             'title': 'Certains l’aiment Fip',
-            'description': 'md5:ff974672ba00d4fd5be80fb001c5b27e',
+            'description': 'md5:7c373cdcec7a024f12fa34de7612e44e',
             'thumbnail': r're:^https?://.*\.(?:jpg|png)',
         },
         'playlist_mincount': 321,
@@ -399,7 +399,7 @@ class RadioFranceProfileIE(RadioFrancePlaylistBaseIE):
             'title': 'Thomas Pesquet',
             'description': 'Astronaute à l\'agence spatiale européenne',
         },
-        'playlist_mincount': 212,
+        'playlist_mincount': 100,
     }, {
         'url': 'https://www.radiofrance.fr/personnes/eugenie-bastie',
         'info_dict': {
