@@ -425,8 +425,9 @@ class RadioFranceProfileIE(RadioFrancePlaylistBaseIE):
 
         # On profile pages, the data is stored in a javascript array in the final <script>
         # Each episode is stored as
-        # a[0] = { id: ... }; a[1] = [ id: ... ]; etc.
-        # Annoyingly, sometimes it is delivered using 'b', with 'a' holding metadata
+        # a[0] = { id: ... }; a[1] = [ id: ... ]; on page 2->
+        # If a page had a thumbnail, the a variable contains image data,
+        # and episode data is stored in b[0]...
         resp['items'] = []
         podcastindex = 0
         nextmatch = True
@@ -447,6 +448,11 @@ class RadioFranceProfileIE(RadioFrancePlaylistBaseIE):
 
         resp['metadata'] = self._search_json(r'content:\s*', webpage, profile_id, profile_id,
                                              transform_source=js_to_json)
+        # If the image data is stored separately rather than in the main content area
+        if resp['metadata']['visual'] and isinstance(resp['metadata']['visual'], str):
+            imagedata = dict()
+            imagedata['src'] = self._og_search_thumbnail(webpage)
+            resp['metadata']['visual'] = imagedata
 
         return resp
 
