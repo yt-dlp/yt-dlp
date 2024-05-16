@@ -1813,8 +1813,8 @@ The following extractors use this feature:
 * `app_name`: Default app name to use with mobile API calls, e.g. `trill`
 * `app_version`: Default app version to use with mobile API calls - should be set along with `manifest_app_version`, e.g. `34.1.2`
 * `manifest_app_version`: Default numeric app version to use with mobile API calls, e.g. `2023401020`
-* `aid`: Default app ID to use with API calls, e.g. `1180`
-* `app_info`: One or more app info strings in the format of `<iid>/[app_name]/[app_version]/[manifest_app_version]/[aid]`, where `iid` is the unique app install ID. `iid` is the only required value; all other values and their `/` separators can be omitted, e.g. `tiktok:app_info=1234567890123456789` or `tiktok:app_info=123,456/trill///1180,789//34.0.1/340001`
+* `aid`: Default app ID to use with mobile API calls, e.g. `1180`
+* `app_info`: Enable mobile API extraction with one or more app info strings in the format of `<iid>/[app_name]/[app_version]/[manifest_app_version]/[aid]`, where `iid` is the unique app install ID. `iid` is the only required value; all other values and their `/` separators can be omitted, e.g. `tiktok:app_info=1234567890123456789` or `tiktok:app_info=123,456/trill///1180,789//34.0.1/340001`
 
 #### rokfinchannel
 * `tab`: Which tab to download - one of `new`, `top`, `videos`, `podcasts`, `streams`, `stacks`
