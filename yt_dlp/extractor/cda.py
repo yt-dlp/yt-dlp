@@ -110,8 +110,7 @@ class CDAIE(InfoExtractor):
     }]
 
     def _download_age_confirm_page(self, url, video_id, *args, **kwargs):
-        form_data = {'age_confirm': ''}
-        data, content_type = multipart_encode(form_data)
+        data, content_type = multipart_encode({'age_confirm': ''})
         return self._download_webpage(
             url, video_id, *args,
             data=data, headers={
@@ -183,7 +182,7 @@ class CDAIE(InfoExtractor):
         if 'Authorization' in self._API_HEADERS:
             return self._api_extract(video_id)
         else:
-            return self._web_extract(video_id, url)
+            return self._web_extract(video_id)
 
     def _api_extract(self, video_id):
         meta = self._download_json(
@@ -216,16 +215,14 @@ class CDAIE(InfoExtractor):
             'view_count': meta.get('views'),
         }
 
-    def _web_extract(self, video_id, url):
+    def _web_extract(self, video_id):
         self._set_cookie('cda.pl', 'cda.player', 'html5')
-        url = f'{self._BASE_URL}/video/{video_id}'
-        webpage = self._download_webpage(url, video_id)
+        webpage, urlh = self._download_webpage_handle(
+            f'{self._BASE_URL}/video/{video_id}/vfilm', video_id)
+        url = urlh.url
 
         if 'Ten film jest dostępny dla użytkowników premium' in webpage:
             self.raise_login_required('This video is only available for premium users')
-
-        if re.search(f'video/{video_id}/vfilm', webpage):
-            url += '/vfilm'
 
         if re.search(r'niedostępn[ey] w(?:&nbsp;|\s+)Twoim kraju\s*<', webpage):
             self.raise_geo_restricted()
