@@ -237,7 +237,8 @@ class RadioFranceLiveIE(RadioFranceBaseIE):
 
         if substation_id:
             webpage = self._download_webpage(url, station_id)
-            api_response = self._extract_data_from_webpage(webpage, station_id, 'webRadioData')
+            api_response = self._search_json(r'webradioLive:\s*', webpage, station_id, substation_id,
+                                             transform_source=js_to_json)
         else:
             api_response = self._download_json(
                 f'https://www.radiofrance.fr/{station_id}/api/live', station_id)
