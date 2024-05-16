@@ -281,10 +281,10 @@ class RadioFrancePlaylistBaseIE(RadioFranceBaseIE):
                         'thumbnail': ('visual', 'src'),
                     }))
 
-            if not content_response["next"]:
+            if not content_response['next']:
                 break
 
-            content_response = self._call_api(station, content_id, content_response["next"])
+            content_response = self._call_api(station, content_id, content_response['next'])
 
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
