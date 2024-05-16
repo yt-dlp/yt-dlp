@@ -69,7 +69,7 @@ class CDAIE(InfoExtractor):
             'timestamp': 1455968218,
         }
     }, {
-        # Age-restricted
+        # Age-restricted with vfilm redirection
         'url': 'https://www.cda.pl/video/8753244c4',
         'md5': 'd8eeb83d63611289507010d3df3bb8b3',
         'info_dict': {
@@ -85,6 +85,24 @@ class CDAIE(InfoExtractor):
             'average_rating': float,
             'timestamp': 1633888264,
             'upload_date': '20211010',
+        }
+    }, {
+        # Age-restricted without vfilm redirection
+        'url': 'https://www.cda.pl/video/17028157b8',
+        'md5': 'c1fe5ff4582bace95d4f0ce0fbd0f992',
+        'info_dict': {
+            'id': '17028157b8',
+            'ext': 'mp4',
+            'title': 'STENDUPY MICHAŁ OGIŃSKI',
+            'description': 'md5:5851f3272bfc31f762d616040a1d609a',
+            'height': 480,
+            'uploader': 'oginski',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'duration': 18855,
+            'age_limit': 18,
+            'average_rating': float,
+            'timestamp': 1699705901,
+            'upload_date': '20231111',
         }
     }, {
         'url': 'http://ebd.cda.pl/0x0/5749950c',
@@ -200,11 +218,14 @@ class CDAIE(InfoExtractor):
 
     def _web_extract(self, video_id, url):
         self._set_cookie('cda.pl', 'cda.player', 'html5')
-        url = f'{self._BASE_URL}/video/{video_id}/vfilm'
+        url = f'{self._BASE_URL}/video/{video_id}'
         webpage = self._download_webpage(url, video_id)
 
         if 'Ten film jest dostępny dla użytkowników premium' in webpage:
             self.raise_login_required('This video is only available for premium users')
+
+        if re.search(f'video/{video_id}/vfilm', webpage):
+            url += '/vfilm'
 
         if re.search(r'niedostępn[ey] w(?:&nbsp;|\s+)Twoim kraju\s*<', webpage):
             self.raise_geo_restricted()
