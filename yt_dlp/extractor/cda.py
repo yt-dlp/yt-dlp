@@ -219,7 +219,6 @@ class CDAIE(InfoExtractor):
         self._set_cookie('cda.pl', 'cda.player', 'html5')
         webpage, urlh = self._download_webpage_handle(
             f'{self._BASE_URL}/video/{video_id}/vfilm', video_id)
-        url = urlh.url
 
         if 'Ten film jest dostępny dla użytkowników premium' in webpage:
             self.raise_login_required('This video is only available for premium users')
@@ -231,7 +230,7 @@ class CDAIE(InfoExtractor):
         if self._html_search_regex(r'(<button[^>]+name="[^"]*age_confirm[^"]*")',
                                    webpage, 'birthday validate form', default=None):
             webpage = self._download_age_confirm_page(
-                url, video_id, note='Confirming age')
+                urlh.url, video_id, note='Confirming age')
             need_confirm_age = True
 
         formats = []
