@@ -292,19 +292,10 @@ class RadioFrancePlaylistBaseIE(RadioFranceBaseIE):
         # profile page playlists are not attached to a station currently
         station = self._match_valid_url(url).group('station') if isinstance(self, RadioFrancePodcastIE) else None
 
-        # Check if user started request from a page other than 1
-        startpage = 1
-        parsedurl = urllib.parse.urlparse(url)
-        if parsedurl.query:
-            startpagequery = urllib.parse.parse_qs(parsedurl.query)
-            if 'p' in startpagequery:
-                startpage = int(startpagequery['p'][0])
-
         # Get data for the first page, and the uuid for the playlist
-        metadata = self._call_api(station, playlist_id, startpage)
+        metadata = self._call_api(station, playlist_id, 1)
         uuid = traverse_obj(metadata, ('metadata', 'id'))
 
-        # This method should return the final playlist metadata which yt-dlp can then use to download everything
         return self.playlist_result(
             self._generate_playlist_entries(station, playlist_id, metadata),
             uuid,
@@ -408,7 +399,7 @@ class RadioFranceProfileIE(RadioFrancePlaylistBaseIE):
             'title': 'Thomas Pesquet',
             'description': 'Astronaute à l\'agence spatiale européenne',
         },
-        'playlist_mincount': 158,
+        'playlist_mincount': 212,
     }, {
         'url': 'https://www.radiofrance.fr/personnes/eugenie-bastie',
         'info_dict': {
