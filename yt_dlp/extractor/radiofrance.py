@@ -1,6 +1,5 @@
 import itertools
 import re
-import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import (
