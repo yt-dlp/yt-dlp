@@ -1039,8 +1039,7 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
             webpage, 'group id', default=None)
         if group_id:
             return self.url_result(
-                f'https://www.bbc.co.uk/programmes/{group_id}',
-                ie=BBCCoUkIE)
+                f'https://www.bbc.co.uk/programmes/{group_id}', BBCCoUkIE)
 
         # single video story (e.g. http://www.bbc.com/travel/story/20150625-sri-lankas-spicy-secret)
         programme_id = self._search_regex(
@@ -1104,7 +1103,7 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
         # should be in one that mentions leadMedia or videoData
         morph_payload = self._search_json(
             r'\bMorph\s*\.\s*setPayload\s*\([^,]+,', webpage, 'morph payload', playlist_id,
-            contains_pattern=r'\{(?:(?!</script>)[\s\S])+?(?:"leadMedia"|\\"videoData\\")\s*:(?:(?!</script>)[\s\S])+\}',
+            contains_pattern=r'{(?s:(?:(?!</script>).)+(?:"leadMedia"|\\"videoData\\")\s*:.+)}',
             default={})
         if morph_payload:
             for lead_media in traverse_obj(morph_payload, (
@@ -1272,8 +1271,6 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
                 return self.playlist_result(
                     entries, playlist_id, playlist_title, playlist_description)
 
-        k_int_or_none = functools.partial(int_or_none, scale=1000)
-
         def parse_model(model):
             """Extract single video from model structure"""
             item_id = traverse_obj(model, ('versions', 0, 'versionId', {str}))
@@ -1289,7 +1286,7 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
                     'thumbnail': ('imageUrl', {lambda u: urljoin(url, u.replace('$recipe', 'raw'))}),
                     'description': ('synopses', ('long', 'medium', 'short'), {str}, any),
                     'duration': ('versions', 0, 'duration', {int}),
-                    'timestamp': ('versions', 0, 'availableFrom', {k_int_or_none}),
+                    'timestamp': ('versions', 0, 'availableFrom', {functools.partial(int_or_none, scale=1000)}),
                 })
             }
 
@@ -1388,7 +1385,7 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
                     formats = traverse_obj(media_data, ('playlist', lambda _, v: url_or_none(v['url']), {
                         'url': ('url', {url_or_none}),
                         'ext': ('format', {str}),
-                        'tbr': ('bitrate', {k_int_or_none}),
+                        'tbr': ('bitrate', {functools.partial(int_or_none, scale=1000)}),
                     }))
                     if formats:
                         entry = {
@@ -1400,7 +1397,7 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
                                 'title': ('title', {str}),
                                 'thumbnail': ('imageUrl', {lambda u: urljoin(url, u.replace('$recipe', 'raw'))}),
                                 'description': ('synopses', ('long', 'medium', 'short'), {str}, any),
-                                'timestamp': ('firstPublished', {k_int_or_none}),
+                                'timestamp': ('firstPublished', {functools.partial(int_or_none, scale=1000)}),
                             }),
                         }
                         done = True
@@ -1419,22 +1416,21 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
 
         # US accessed article with single embedded video (e.g.
         # https://www.bbc.com/news/uk-68546268)
-        next_data = traverse_obj(self._search_nextjs_data(webpage, playlist_id, default='{}'),
+        next_data = traverse_obj(self._search_nextjs_data(webpage, playlist_id, default={}),
                                  ('props', 'pageProps', 'page'))
         model = traverse_obj(next_data, (
             ..., 'contents', is_type('video'),
             'model', 'blocks', is_type('media'),
             'model', 'blocks', is_type('mediaMetadata'),
             'model', {dict}, any))
-        if model:
-            if entry := parse_model(model):
-                if not entry.get('timestamp'):
-                    entry['timestamp'] = traverse_obj(next_data, (
-                        ..., 'contents', is_type('timestamp'),
-                        'model', 'timestamp', {k_int_or_none}, any))
-                entries.append(entry)
-                return self.playlist_result(
-                    entries, playlist_id, playlist_title, playlist_description)
+        if model and (entry := parse_model(model)):
+            if not entry.get('timestamp'):
+                entry['timestamp'] = traverse_obj(next_data, (
+                    ..., 'contents', is_type('timestamp'), 'model',
+                    'timestamp', {functools.partial(int_or_none, scale=1000)}, any))
+            entries.append(entry)
+            return self.playlist_result(
+                entries, playlist_id, playlist_title, playlist_description)
 
         # Multiple video article (e.g.
         # http://www.bbc.co.uk/blogs/adamcurtis/entries/3662a707-0af9-3149-963f-47bea720b460)
