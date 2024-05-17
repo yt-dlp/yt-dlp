@@ -2353,6 +2353,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'format': '17',  # 3gp format available on android
                 'extractor_args': {'youtube': {'player_client': ['android']}},
             },
+            'skip': 'android client broken',
         },
         {
             # Skip download of additional client configs (remix client config in this case)
@@ -2730,7 +2731,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'heatmap': 'count:100',
             },
             'params': {
-                'extractor_args': {'youtube': {'player_client': ['android'], 'player_skip': ['webpage']}},
+                'extractor_args': {'youtube': {'player_client': ['ios'], 'player_skip': ['webpage']}},
             },
         },
     ]
@@ -3662,8 +3663,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         yt_query = {
             'videoId': video_id,
         }
-        if _split_innertube_client(client)[0] in ('android', 'android_embedscreen'):
-            yt_query['params'] = 'CgIIAQ=='
 
         pp_arg = self._configuration_arg('player_params', [None], casesense=True)[0]
         if pp_arg:
@@ -3679,19 +3678,24 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
     def _get_requested_clients(self, url, smuggled_data):
         requested_clients = []
-        default = ['ios', 'android', 'web']
+        android_clients = []
+        default = ['ios', 'web']
         allowed_clients = sorted(
             (client for client in INNERTUBE_CLIENTS.keys() if client[:1] != '_'),
             key=lambda client: INNERTUBE_CLIENTS[client]['priority'], reverse=True)
         for client in self._configuration_arg('player_client'):
-            if client in allowed_clients:
-                requested_clients.append(client)
-            elif client == 'default':
+            if client == 'default':
                 requested_clients.extend(default)
             elif client == 'all':
                 requested_clients.extend(allowed_clients)
-            else:
+            elif client not in allowed_clients:
                 self.report_warning(f'Skipping unsupported client {client}')
+            elif client.startswith('android'):
+                android_clients.append(client)
+            else:
+                requested_clients.append(client)
+        # Force deprioritization of broken Android clients for format de-duplication
+        requested_clients.extend(android_clients)
         if not requested_clients:
             requested_clients = default
 
@@ -3910,6 +3914,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     f'{video_id}: Some formats are possibly damaged. They will be deprioritized', only_once=True)
 
             client_name = fmt.get(STREAMING_DATA_CLIENT_NAME)
+            # Android client formats are broken due to integrity check enforcement
+            # Ref: https://github.com/yt-dlp/yt-dlp/issues/9554
+            is_broken = client_name and client_name.startswith(short_client_name('android'))
+            if is_broken:
+                self.report_warning(
+                    f'{video_id}: Android client formats are broken and may yield HTTP Error 403. '
+                    'They will be deprioritized', only_once=True)
+
             name = fmt.get('qualityLabel') or quality.replace('audio_quality_', '') or ''
             fps = int_or_none(fmt.get('fps')) or 0
             dct = {
@@ -3922,7 +3934,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     name, fmt.get('isDrc') and 'DRC',
                     try_get(fmt, lambda x: x['projectionType'].replace('RECTANGULAR', '').lower()),
                     try_get(fmt, lambda x: x['spatialAudioType'].replace('SPATIAL_AUDIO_TYPE_', '').lower()),
-                    throttled and 'THROTTLED', is_damaged and 'DAMAGED',
+                    throttled and 'THROTTLED', is_damaged and 'DAMAGED', is_broken and 'BROKEN',
                     (self.get_param('verbose') or all_formats) and client_name,
                     delim=', '),
                 # Format 22 is likely to be damaged. See https://github.com/yt-dlp/yt-dlp/issues/3372
@@ -3940,8 +3952,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'language': join_nonempty(audio_track.get('id', '').split('.')[0],
                                           'desc' if language_preference < -1 else '') or None,
                 'language_preference': language_preference,
-                # Strictly de-prioritize damaged and 3gp formats
-                'preference': -10 if is_damaged else -2 if itag == '17' else None,
+                # Strictly de-prioritize broken, damaged and 3gp formats
+                'preference': -20 if is_broken else -10 if is_damaged else -2 if itag == '17' else None,
             }
             mime_mobj = re.match(
                 r'((?:[^/]+)/(?:[^;]+))(?:;\s*codecs="([^"]+)")?', fmt.get('mimeType') or '')
