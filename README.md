@@ -2335,7 +2335,7 @@ These options were deprecated since 2014 and have now been entirely removed
 
 
 # CONTRIBUTING
-See [CONTRIBUTING.md](https://github.com/yt-dlp/yt-dlp/tree/THIS_VARIABLE/CONTRIBUTING.md#contributing-to-yt-dlp) for instructions on [Opening an Issue](https://github.com/yt-dlp/yt-dlp/tree/THIS_VARIABLE/CONTRIBUTING.md#opening-an-issue) and [Contributing code to the project](https://github.com/yt-dlp/yt-dlp/tree/THIS_VARIABLE/CONTRIBUTING.md#developer-instructions)
+See [CONTRIBUTING.md](https://github.com/yt-dlp/yt-dlp/tree/master/CONTRIBUTING.md#contributing-to-yt-dlp) for instructions on [Opening an Issue](https://github.com/yt-dlp/yt-dlp/tree/master/CONTRIBUTING.md#opening-an-issue) and [Contributing code to the project](https://github.com/yt-dlp/yt-dlp/tree/master/CONTRIBUTING.md#developer-instructions)
 
 # WIKI
 See the [Wiki](https://github.com/yt-dlp/yt-dlp/wiki) for more information
