@@ -3317,7 +3317,36 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'value': ('intensityScoreNormalized', {float_or_none}),
             })) or None
 
-    def _extract_comment(self, comment_renderer, parent=None):
+    def _extract_comment(self, entities, parent=None):
+        comment_entity_payload = get_first(entities, ('payload', 'commentEntityPayload', {dict}))
+        if not (comment_id := traverse_obj(comment_entity_payload, ('properties', 'commentId', {str}))):
+            return
+
+        toolbar_entity_payload = get_first(entities, ('payload', 'engagementToolbarStateEntityPayload', {dict}))
+        time_text = traverse_obj(comment_entity_payload, ('properties', 'publishedTime', {str})) or ''
+
+        return {
+            'id': comment_id,
+            'parent': parent or 'root',
+            **traverse_obj(comment_entity_payload, {
+                'text': ('properties', 'content', 'content', {str}),
+                'like_count': ('toolbar', 'likeCountA11y', {parse_count}),
+                'author_id': ('author', 'channelId', {self.ucid_or_none}),
+                'author': ('author', 'displayName', {str}),
+                'author_thumbnail': ('author', 'avatarThumbnailUrl', {url_or_none}),
+                'author_is_uploader': ('author', 'isCreator', {bool}),
+                'author_is_verified': ('author', 'isVerified', {bool}),
+                'author_url': ('author', 'channelCommand', 'innertubeCommand', (
+                    ('browseEndpoint', 'canonicalBaseUrl'), ('commandMetadata', 'webCommandMetadata', 'url')
+                ), {lambda x: urljoin('https://www.youtube.com', x)}),
+            }, get_all=False),
+            'is_favorited': (None if toolbar_entity_payload is None else
+                             toolbar_entity_payload.get('heartState') == 'TOOLBAR_HEART_STATE_HEARTED'),
+            '_time_text': time_text,  # FIXME: non-standard, but we need a way of showing that it is an estimate.
+            'timestamp': self._parse_time_text(time_text),
+        }
+
+    def _extract_comment_old(self, comment_renderer, parent=None):
         comment_id = comment_renderer.get('commentId')
         if not comment_id:
             return
@@ -3398,21 +3427,39 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 break
             return _continuation
 
-        def extract_thread(contents):
+        def extract_thread(contents, entity_payloads):
             if not parent:
                 tracker['current_page_thread'] = 0
             for content in contents:
                 if not parent and tracker['total_parent_comments'] >= max_parents:
                     yield
                 comment_thread_renderer = try_get(content, lambda x: x['commentThreadRenderer'])
-                comment_renderer = get_first(
-                    (comment_thread_renderer, content), [['commentRenderer', ('comment', 'commentRenderer')]],
-                    expected_type=dict, default={})
 
-                comment = self._extract_comment(comment_renderer, parent)
+                # old comment format
+                if not entity_payloads:
+                    comment_renderer = get_first(
+                        (comment_thread_renderer, content), [['commentRenderer', ('comment', 'commentRenderer')]],
+                        expected_type=dict, default={})
+
+                    comment = self._extract_comment_old(comment_renderer, parent)
+
+                # new comment format
+                else:
+                    view_model = (
+                        traverse_obj(comment_thread_renderer, ('commentViewModel', 'commentViewModel', {dict}))
+                        or traverse_obj(content, ('commentViewModel', {dict})))
+                    comment_keys = traverse_obj(view_model, (('commentKey', 'toolbarStateKey'), {str}))
+                    if not comment_keys:
+                        continue
+                    entities = traverse_obj(entity_payloads, lambda _, v: v['entityKey'] in comment_keys)
+                    comment = self._extract_comment(entities, parent)
+                    if comment:
+                        comment['is_pinned'] = traverse_obj(view_model, ('pinnedText', {str})) is not None
+
                 if not comment:
                     continue
                 comment_id = comment['id']
+
                 if comment.get('is_pinned'):
                     tracker['pinned_comment_ids'].add(comment_id)
                 # Sometimes YouTube may break and give us infinite looping comments.
@@ -3505,7 +3552,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             check_get_keys = None
             if not is_forced_continuation and not (tracker['est_total'] == 0 and tracker['running_total'] == 0):
                 check_get_keys = [[*continuation_items_path, ..., (
-                    'commentsHeaderRenderer' if is_first_continuation else ('commentThreadRenderer', 'commentRenderer'))]]
+                    'commentsHeaderRenderer' if is_first_continuation else ('commentThreadRenderer', 'commentViewModel', 'commentRenderer'))]]
             try:
                 response = self._extract_response(
                     item_id=None, query=continuation,
@@ -3529,6 +3576,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 raise
             is_forced_continuation = False
             continuation = None
+            mutations = traverse_obj(response, ('frameworkUpdates', 'entityBatchUpdate', 'mutations', ..., {dict}))
             for continuation_items in traverse_obj(response, continuation_items_path, expected_type=list, default=[]):
                 if is_first_continuation:
                     continuation = extract_header(continuation_items)
@@ -3537,7 +3585,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         break
                     continue
 
-                for entry in extract_thread(continuation_items):
+                for entry in extract_thread(continuation_items, mutations):
                     if not entry:
                         return
                     yield entry
