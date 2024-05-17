@@ -118,6 +118,13 @@ if urllib3:
 
         def shutdown(self, *args, **kwargs):
             self.socket.shutdown(*args, **kwargs)
+
+        def _wrap_ssl_read(self, *args, **kwargs):
+            res = super()._wrap_ssl_read(*args, **kwargs)
+            if res == 0:
+                # Websockets does not treat 0 as an EOF, rather only b''
+                return b''
+            return res
 else:
     SSLTransport = None
 
@@ -270,9 +277,9 @@ class HTTPProxyWebSocketTestContext(HTTPProxyTestContext):
         handler.validate(request)
         ws = handler.send(request)
         ws.send('proxy_info')
-        socks_info = ws.recv()
+        proxy_info = ws.recv()
         ws.close()
-        return json.loads(socks_info)
+        return json.loads(proxy_info)
 
 
 class HTTPProxyWebSocketSecureTestContext(HTTPProxyWebSocketTestContext):

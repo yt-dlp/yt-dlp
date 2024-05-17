@@ -250,6 +250,13 @@ if urllib3_supported:
         def shutdown(self, *args, **kwargs):
             self.unwrap()
             self.socket.shutdown(*args, **kwargs)
+
+        def _wrap_ssl_read(self, *args, **kwargs):
+            res = super()._wrap_ssl_read(*args, **kwargs)
+            if res == 0:
+                # Websockets does not treat 0 as an EOF, rather only b''
+                return b''
+            return res
 else:
     WebsocketsSSLTransport = None
 
