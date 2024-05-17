@@ -666,7 +666,7 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
                                     The name of the browser to load cookies
                                     from. Currently supported browsers are:
                                     brave, chrome, chromium, edge, firefox,
-                                    opera, safari, vivaldi. Optionally, the
+                                    opera, safari, vivaldi, whale. Optionally, the
                                     KEYRING used for decrypting Chromium cookies
                                     on Linux, the name/path of the PROFILE to
                                     load cookies from, and the CONTAINER name
