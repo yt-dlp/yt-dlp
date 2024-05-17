@@ -11,10 +11,10 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v2
 
-      - name: Replace VARIABLE in README.md
+      - name: Replace THIS_VARIABLE in README.md
         run: |
           BRANCH_NAME=${GITHUB_REF#refs/heads/}
-          sed -i "s/VARIABLE/$BRANCH_NAME/g" README.md
+          sed -i "s/THIS_VARIABLE/$BRANCH_NAME/g" README.md
 
       - name: Commit and push if it changed
         run: |
