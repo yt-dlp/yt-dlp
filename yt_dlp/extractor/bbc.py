@@ -667,7 +667,7 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
             'display_id': '150619_video_honduras_militares_hospitales_corrupcion_aw',
             'ext': 'mp4',
             'title': 'Honduras militariza sus hospitales por nuevo escándalo de corrupción',
-            'description': 'md5:1525f17448c4ee262b64b8f0c9ce66c8',
+            'description': 'Honduras militariza sus hospitales por nuevo escándalo de corrupción',
             'timestamp': 1434713142,
             'upload_date': '20150619',
             'thumbnail': 'https://a.files.bbci.co.uk/worldservice/live/assets/images/2015/06/19/150619132146_honduras_hsopitales_militares_640x360_aptn_nocredit.jpg',
@@ -861,13 +861,12 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
         'info_dict': {
             'id': 'p07c6sb9',
             'ext': 'mp4',
-            'title': 'How positive thinking is harming your happiness',
-            'alt_title': 'The downsides of positive thinking',
-            'description': 'md5:fad74b31da60d83b8265954ee42d85b4',
+            'title': 'The downsides of positive thinking',
+            'description': 'The downsides of positive thinking',
             'duration': 235,
             'thumbnail': r're:https?://.+/p07c9dsr\.(?:jpg|webp|png)',
             'upload_date': '20220223',
-            'categories': ['Psychology'],
+            'timestamp': 1645632746,
         },
     }, {
         # BBC Sounds
@@ -876,7 +875,7 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
             'id': 'p0hrw4nr',
             'ext': 'mp4',
             'title': 'Are our coastlines being washed away?',
-            'description': r're:(?s)Around the world, coastlines are constantly changing .{2153} Images\)$',
+            'description': r're:(?s)Around the world, coastlines are constantly changing .{2000,} Images\)$',
             'timestamp': 1713556800,
             'upload_date': '20240419',
             'duration': 1588,
@@ -884,6 +883,7 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
             'uploader': 'World Service',
             'uploader_id': 'bbc_world_service',
             'series': 'CrowdScience',
+            'chapters': [],
         }
     }, {  # onion routes
         'url': 'https://www.bbcnewsd73hkzno2ini43t4gblxvycyac5aw4gnv7t2rccijh7745uqd.onion/news/av/world-europe-63208576',
@@ -1284,7 +1284,7 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
                 **traverse_obj(model, {
                     'title': ('title', {str}),
                     'thumbnail': ('imageUrl', {lambda u: urljoin(url, u.replace('$recipe', 'raw'))}),
-                    'description': ('synopses', ('long', 'medium', 'short'), {str}, any),
+                    'description': ('synopses', ('long', 'medium', 'short'), {str}, {lambda x: x or None}, any),
                     'duration': ('versions', 0, 'duration', {int}),
                     'timestamp': ('versions', 0, 'availableFrom', {functools.partial(int_or_none, scale=1000)}),
                 })
