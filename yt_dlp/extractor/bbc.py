@@ -1349,6 +1349,7 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
                         'subtitles': subtitles,
                         'timestamp': item_time,
                         'description': strip_or_none(item_desc),
+                        'duration': int_or_none(item.get('duration')),
                     })
 
             for resp in traverse_obj(initial_data, ('data', lambda _, v: v['name'])):
