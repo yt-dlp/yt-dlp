@@ -347,6 +347,11 @@ def _process_chrome_cookie(decryptor, host_key, name, value, encrypted_value, pa
         if value is None:
             return is_encrypted, None
 
+    # In chrome, session cookies have expires_utc set to 0
+    # In our cookie-store, cookies that do not expire should have expires set to None
+    if not expires_utc:
+        expires_utc = None
+
     return is_encrypted, http.cookiejar.Cookie(
         version=0, name=name, value=value, port=None, port_specified=False,
         domain=host_key, domain_specified=bool(host_key), domain_initial_dot=host_key.startswith('.'),

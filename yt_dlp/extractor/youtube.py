@@ -240,6 +240,16 @@ INNERTUBE_CLIENTS = {
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 85
     },
+    # This client has pre-merged video+audio 720p/1080p streams
+    'mediaconnect': {
+        'INNERTUBE_CONTEXT': {
+            'client': {
+                'clientName': 'MEDIA_CONNECT_FRONTEND',
+                'clientVersion': '0.1',
+            },
+        },
+        'INNERTUBE_CONTEXT_CLIENT_NAME': 95
+    },
 }
 
 
@@ -1171,7 +1181,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         r'/(?P<id>[a-zA-Z0-9_-]{8,})/player(?:_ias\.vflset(?:/[a-zA-Z]{2,3}_[a-zA-Z]{2,3})?|-plasma-ias-(?:phone|tablet)-[a-z]{2}_[A-Z]{2}\.vflset)/base\.js$',
         r'\b(?P<id>vfl[a-zA-Z0-9_-]+)\b.*?\.js$',
     )
-    _formats = {
+    _formats = {  # NB: Used in YoutubeWebArchiveIE and GoogleDriveIE
         '5': {'ext': 'flv', 'width': 400, 'height': 240, 'acodec': 'mp3', 'abr': 64, 'vcodec': 'h263'},
         '6': {'ext': 'flv', 'width': 450, 'height': 270, 'acodec': 'mp3', 'abr': 64, 'vcodec': 'h263'},
         '13': {'ext': '3gp', 'acodec': 'aac', 'vcodec': 'mp4v'},
