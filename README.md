@@ -1178,7 +1178,7 @@ yt-dlp --netrc-cmd 'gpg --decrypt ~/.authinfo.gpg' https://www.youtube.com/watch
 
 
 ### Notes about environment variables
-* Environment variables are normally specified as `${master}`/`$master` on UNIX and `%master%` on Windows; but is always shown as `${master}` in this documentation
+* Environment variables are normally specified as `${VARIABLE}`/`$VARIABLE` on UNIX and `%VARIABLE%` on Windows; but is always shown as `${VARIABLE}` in this documentation
 * yt-dlp also allow using UNIX-style variables on Windows for path-like options; e.g. `--output`, `--config-location`
 * If unset, `${XDG_CONFIG_HOME}` defaults to `~/.config` and `${XDG_CACHE_HOME}` to `~/.cache`
 * On Windows, `~` points to `${HOME}` if present; or, `${USERPROFILE}` or `${HOMEDRIVE}${HOMEPATH}` otherwise
@@ -2335,7 +2335,7 @@ These options were deprecated since 2014 and have now been entirely removed
 
 
 # CONTRIBUTING
-See [CONTRIBUTING.md](https://github.com/yt-dlp/yt-dlp/tree/master/CONTRIBUTING.md#contributing-to-yt-dlp) for instructions on [Opening an Issue](https://github.com/yt-dlp/yt-dlp/tree/master/CONTRIBUTING.md#opening-an-issue) and [Contributing code to the project](https://github.com/yt-dlp/yt-dlp/tree/master/CONTRIBUTING.md#developer-instructions)
+See [CONTRIBUTING.md](https://github.com/yt-dlp/yt-dlp/tree/THIS_VARIABLE/CONTRIBUTING.md#contributing-to-yt-dlp) for instructions on [Opening an Issue](https://github.com/yt-dlp/yt-dlp/tree/THIS_VARIABLE/CONTRIBUTING.md#opening-an-issue) and [Contributing code to the project](https://github.com/yt-dlp/yt-dlp/tree/THIS_VARIABLE/CONTRIBUTING.md#developer-instructions)
 
 # WIKI
 See the [Wiki](https://github.com/yt-dlp/yt-dlp/wiki) for more information
