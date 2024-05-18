@@ -51,7 +51,7 @@ class TikTokBaseIE(InfoExtractor):
 
     @property
     def _KNOWN_APP_INFO(self):
-        # If we have an genuine device ID, we may not need any IID
+        # If we have a genuine device ID, we may not need any IID
         default = [''] if self._KNOWN_DEVICE_ID else []
         return self._configuration_arg('app_info', default, ie_key=TikTokIE)
 
