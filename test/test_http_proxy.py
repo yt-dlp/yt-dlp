@@ -130,6 +130,9 @@ if urllib3:
                 # Websockets does not treat 0 as an EOF, rather only b''
                 return b''
             return res
+
+        def getsockname(self):
+            return self.socket.getsockname()
 else:
     SSLTransport = None
 
