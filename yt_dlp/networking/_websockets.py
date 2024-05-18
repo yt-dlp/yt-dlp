@@ -142,7 +142,7 @@ class WebsocketsRH(WebSocketRequestHandler):
         self.__logging_handlers = {}
         for name in ('websockets.client', 'websockets.server'):
             logger = logging.getLogger(name)
-            handler = logging.StreamHandler(stream=sys.stdout)
+            handler = WebsocketsLoggingHandler(logger=self._logger)
             handler.setFormatter(logging.Formatter(f'{self.RH_NAME}: [{name}] %(message)s'))
             self.__logging_handlers[name] = handler
             logger.addHandler(handler)
