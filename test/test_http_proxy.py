@@ -156,6 +156,7 @@ class WebSocketProxyHandler(BaseRequestHandler):
 
     def handle(self):
         import websockets.sync.server
+        self.request.settimeout(None)
         protocol = websockets.ServerProtocol()
         connection = websockets.sync.server.ServerConnection(socket=self.request, protocol=protocol, close_timeout=2)
         connection.handshake()

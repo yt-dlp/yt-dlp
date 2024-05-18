@@ -204,9 +204,12 @@ class WebsocketsRH(WebSocketRequestHandler):
                 ssl_context = WebsocketsSSLContext(self._make_sslcontext())
             else:
                 ssl_context = self._make_sslcontext()
+        sock = self._make_sock(proxy, request.url, timeout)
+        # We need to reset the timeout to not conflict with websocket handshake
+        sock.settimeout(None)
         try:
             conn = websockets.sync.client.connect(
-                sock=self._make_sock(proxy, request.url, timeout),
+                sock=sock,
                 uri=request.url,
                 additional_headers=headers,
                 open_timeout=timeout,
