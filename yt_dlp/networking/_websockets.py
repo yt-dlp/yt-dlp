@@ -201,9 +201,7 @@ class WebsocketsRH(WebSocketRequestHandler):
         ssl_context = None
         sock = self._make_sock(proxy, request.url, timeout)
         if parse_uri(request.url).secure:
-            ssl_context = self._make_sslcontext()
-            if isinstance(sock, ssl.SSLSocket) and WebsocketsSSLContext:  # tls in tls
-                ssl_context = WebsocketsSSLContext(ssl_context)
+            ssl_context = WebsocketsSSLContext(self._make_sslcontext())
 
         try:
             conn = websockets.sync.client.connect(
@@ -272,6 +270,6 @@ class WebsocketsSSLContext:
         self.ssl_context = ssl_context
 
     def wrap_socket(self, sock, server_hostname=None):
-        if WebsocketsSSLTransport:
+        if isinstance(sock, ssl.SSLSocket) and WebsocketsSSLTransport:
             return WebsocketsSSLTransport(sock, self.ssl_context, server_hostname=server_hostname)
         return self.ssl_context.wrap_socket(sock, server_hostname=server_hostname)
