@@ -341,7 +341,10 @@ def create_http_connect_connection(
         raise ProxyError('Unable to connect to proxy', cause=e) from e
 
     if response.status == 200:
-        return conn.sock
+        sock = conn.sock
+        conn.sock = None
+        response.fp = None
+        return sock
     else:
         conn.close()
         response.close()
