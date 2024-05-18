@@ -1,3 +1,4 @@
+import functools
 import itertools
 import json
 import random
@@ -49,21 +50,21 @@ class TikTokBaseIE(InfoExtractor):
     _APP_INFO = None
     _APP_USER_AGENT = None
 
-    @property
+    @functools.cached_property
     def _KNOWN_APP_INFO(self):
         # If we have a genuine device ID, we may not need any IID
         default = [''] if self._KNOWN_DEVICE_ID else []
         return self._configuration_arg('app_info', default, ie_key=TikTokIE)
 
-    @property
+    @functools.cached_property
     def _KNOWN_DEVICE_ID(self):
         return self._configuration_arg('device_id', [None], ie_key=TikTokIE)[0]
 
-    @property
+    @functools.cached_property
     def _DEVICE_ID(self):
         return self._KNOWN_DEVICE_ID or str(random.randint(7250000000000000000, 7351147085025500000))
 
-    @property
+    @functools.cached_property
     def _API_HOSTNAME(self):
         return self._configuration_arg(
             'api_hostname', ['api16-normal-c-useast1a.tiktokv.com'], ie_key=TikTokIE)[0]
