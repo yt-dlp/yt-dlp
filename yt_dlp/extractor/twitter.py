@@ -155,12 +155,11 @@ class TwitterBaseIE(InfoExtractor):
 
     # XXX: Temporary workaround until twitter.com => x.com migration is completed
     def _real_initialize(self):
-        if self.is_logged_in:
+        if self.is_logged_in or not self._get_cookies('https://twitter.com/').get('auth_token'):
             return
-        if self._get_cookies('https://twitter.com/').get('auth_token'):
-            # User has not yet been migrated to x.com and has passed twitter.com cookies
-            TwitterBaseIE._API_BASE = 'https://api.twitter.com/1.1/'
-            TwitterBaseIE._GRAPHQL_API_BASE = 'https://twitter.com/i/api/graphql/'
+        # User has not yet been migrated to x.com and has passed twitter.com cookies
+        TwitterBaseIE._API_BASE = 'https://api.twitter.com/1.1/'
+        TwitterBaseIE._GRAPHQL_API_BASE = 'https://twitter.com/i/api/graphql/'
 
     @functools.cached_property
     def _selected_api(self):
