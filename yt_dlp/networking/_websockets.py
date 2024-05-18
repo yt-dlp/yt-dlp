@@ -198,12 +198,11 @@ class WebsocketsRH(WebSocketRequestHandler):
 
         proxy = select_proxy(request.url, self._get_proxies(request))
 
-        ssl_context = None
-        sock = self._make_sock(proxy, request.url, timeout)
-        if parse_uri(request.url).secure:
-            ssl_context = WebsocketsSSLContext(self._make_sslcontext())
-
         try:
+            ssl_context = None
+            sock = self._make_sock(proxy, request.url, timeout)
+            if parse_uri(request.url).secure:
+                ssl_context = WebsocketsSSLContext(self._make_sslcontext())
             conn = websockets.sync.client.connect(
                 sock=sock,
                 uri=request.url,
