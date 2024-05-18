@@ -34,8 +34,8 @@ from ..utils import (
 
 class TwitterBaseIE(InfoExtractor):
     _NETRC_MACHINE = 'twitter'
-    _API_BASE = 'https://api.twitter.com/1.1/'
-    _GRAPHQL_API_BASE = 'https://twitter.com/i/api/graphql/'
+    _API_BASE = 'https://api.x.com/1.1/'
+    _GRAPHQL_API_BASE = 'https://x.com/i/api/graphql/'
     _BASE_REGEX = r'https?://(?:(?:www|m(?:obile)?)\.)?(?:(?:twitter|x)\.com|twitter3e4tixl4xyajtrzo62zg5vztmjuricljdp2c5kshju4avyoid\.onion)/'
     _AUTH = 'AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA'
     _LEGACY_AUTH = 'AAAAAAAAAAAAAAAAAAAAAIK1zgAAAAAA2tUWuhGZ2JceoId5GwYWU5GspY4%3DUq7gzFoCZs1QfwGoVdvSac3IniczZEYXIcDyumCauIXpcAPorE'
@@ -153,6 +153,14 @@ class TwitterBaseIE(InfoExtractor):
     def is_logged_in(self):
         return bool(self._get_cookies(self._API_BASE).get('auth_token'))
 
+    # XXX: Temporary workaround until twitter.com => x.com migration is completed
+    def _real_initialize(self):
+        if self.is_logged_in or not self._get_cookies('https://twitter.com/').get('auth_token'):
+            return
+        # User has not yet been migrated to x.com and has passed twitter.com cookies
+        TwitterBaseIE._API_BASE = 'https://api.twitter.com/1.1/'
+        TwitterBaseIE._GRAPHQL_API_BASE = 'https://twitter.com/i/api/graphql/'
+
     @functools.cached_property
     def _selected_api(self):
         return self._configuration_arg('api', ['graphql'], ie_key='Twitter')[0]
@@ -196,17 +204,15 @@ class TwitterBaseIE(InfoExtractor):
         if self.is_logged_in:
             return
 
-        webpage = self._download_webpage('https://twitter.com/', None, 'Downloading login page')
-        guest_token = self._search_regex(
-            r'\.cookie\s*=\s*["\']gt=(\d+);', webpage, 'gt', default=None) or self._fetch_guest_token(None)
+        guest_token = self._fetch_guest_token(None)
         headers = {
             **self._set_base_headers(),
             'content-type': 'application/json',
             'x-guest-token': guest_token,
             'x-twitter-client-language': 'en',
             'x-twitter-active-user': 'yes',
-            'Referer': 'https://twitter.com/',
-            'Origin': 'https://twitter.com',
+            'Referer': 'https://x.com/',
+            'Origin': 'https://x.com',
         }
 
         def build_login_json(*subtask_inputs):
