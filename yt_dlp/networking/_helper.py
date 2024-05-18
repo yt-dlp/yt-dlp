@@ -341,4 +341,5 @@ def create_http_connect_connection(
         return conn.sock
     else:
         conn.close()
+        response.close()
         raise ProxyError(f'Got HTTP Error {response.status} with CONNECT: {response.reason}')
