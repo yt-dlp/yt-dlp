@@ -15,6 +15,7 @@ from ..utils import (
     UnsupportedError,
     UserNotLive,
     determine_ext,
+    filter_dict,
     format_field,
     int_or_none,
     join_nonempty,
@@ -51,7 +52,17 @@ class TikTokBaseIE(InfoExtractor):
 
     @property
     def _KNOWN_APP_INFO(self):
-        return self._configuration_arg('app_info', ie_key=TikTokIE)
+        # If we have an genuine device ID, we may not need any IID
+        default = [''] if self._KNOWN_DEVICE_ID else []
+        return self._configuration_arg('app_info', default, ie_key=TikTokIE)
+
+    @property
+    def _KNOWN_DEVICE_ID(self):
+        return self._configuration_arg('device_id', [None], ie_key=TikTokIE)[0]
+
+    @property
+    def _DEVICE_ID(self):
+        return self._KNOWN_DEVICE_ID or str(random.randint(7250000000000000000, 7351147085025500000))
 
     @property
     def _API_HOSTNAME(self):
@@ -115,7 +126,7 @@ class TikTokBaseIE(InfoExtractor):
             }, query=query)
 
     def _build_api_query(self, query):
-        return {
+        return filter_dict({
             **query,
             'device_platform': 'android',
             'os': 'android',
@@ -156,10 +167,10 @@ class TikTokBaseIE(InfoExtractor):
             'build_number': self._APP_INFO['app_version'],
             'region': 'US',
             'ts': int(time.time()),
-            'iid': self._APP_INFO['iid'],
-            'device_id': random.randint(7250000000000000000, 7351147085025500000),
+            'iid': self._APP_INFO.get('iid'),
+            'device_id': self._DEVICE_ID,
             'openudid': ''.join(random.choices('0123456789abcdef', k=16)),
-        }
+        })
 
     def _call_api(self, ep, query, video_id, fatal=True,
                   note='Downloading API JSON', errnote='Unable to download API page'):
@@ -173,8 +184,9 @@ class TikTokBaseIE(InfoExtractor):
 
         max_tries = len(self._APP_INFO_POOL) + 1  # _APP_INFO_POOL + _APP_INFO
         for count in itertools.count(1):
-            self.write_debug(str(self._APP_INFO))
             real_query = self._build_api_query(query)
+            device_id = 'PRIVATE' if self._KNOWN_DEVICE_ID else real_query['device_id']
+            self.write_debug(str({**self._APP_INFO, 'device_id': device_id}))
             try:
                 return self._call_api_impl(ep, real_query, video_id, fatal, note, errnote)
             except ExtractorError as e:
@@ -848,7 +860,7 @@ class TikTokUserIE(TikTokBaseIE):
             'max_cursor': 0,
             'min_cursor': 0,
             'retry_type': 'no_retry',
-            'device_id': ''.join(random.choices(string.digits, k=19)),  # Some endpoints don't like randomized device_id, so it isn't directly set in _call_api.
+            'device_id': self._DEVICE_ID,  # Some endpoints don't like randomized device_id, so it isn't directly set in _call_api.
         }
 
         for page in itertools.count(1):
@@ -896,7 +908,7 @@ class TikTokBaseListIE(TikTokBaseIE):  # XXX: Conventionally, base classes shoul
             'cursor': 0,
             'count': 20,
             'type': 5,
-            'device_id': ''.join(random.choices(string.digits, k=19))
+            'device_id': self._DEVICE_ID,
         }
 
         for page in itertools.count(1):
