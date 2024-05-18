@@ -222,7 +222,7 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
 
             elif (
                 e.code == CurlECode.PROXY
-                or (e.code == CurlECode.RECV_ERROR and 'Received HTTP code 407 from proxy after CONNECT' in str(e))
+                or (e.code == CurlECode.RECV_ERROR and 'from proxy after CONNECT' in str(e))
             ):
                 raise ProxyError(cause=e) from e
             else:

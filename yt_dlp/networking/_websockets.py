@@ -1,16 +1,17 @@
 from __future__ import annotations
 
-import base64
+
 import contextlib
 import io
 import logging
 import ssl
 import sys
 import urllib.parse
-from http.client import HTTPConnection, HTTPResponse
+
 
 from ._helper import (
     create_connection,
+    create_http_connect_connection,
     create_socks_proxy_socket,
     make_socks_proxy_opts,
     select_proxy,
@@ -30,7 +31,7 @@ from ..compat import functools
 from ..dependencies import urllib3, websockets
 from ..socks import ProxyError as SocksProxyError
 from ..utils import int_or_none
-from ..utils.networking import HTTPHeaderDict
+
 
 if not websockets:
     raise ImportError('websockets is not installed')
@@ -164,9 +165,11 @@ class WebsocketsRH(WebSocketRequestHandler):
                 )
 
             elif parsed_proxy_url.scheme in ('http', 'https'):
-                return create_http_connect_conn(
-                    proxy_url=proxy,
-                    url=url,
+                return create_http_connect_connection(
+                    proxy_port=parsed_proxy_url.port,
+                    proxy_host=parsed_proxy_url.hostname,
+                    connect_port=parsed_url.port,
+                    connect_host=parsed_url.host,
                     timeout=timeout,
                     ssl_context=self._make_sslcontext() if parsed_proxy_url.scheme == 'https' else None,
                     source_address=self.source_address,
@@ -229,14 +232,6 @@ class WebsocketsRH(WebSocketRequestHandler):
             raise TransportError(cause=e) from e
 
 
-class NoCloseHTTPResponse(HTTPResponse):
-    def begin(self):
-        super().begin()
-        # Revert the default behavior of closing the connection after reading the response
-        if not self._check_close() and not self.chunked and self.length is None:
-            self.will_close = False
-
-
 if urllib3_supported:
     from urllib3.util.ssltransport import SSLTransport
 
@@ -273,59 +268,3 @@ class WebsocketsSSLContext:
         if isinstance(sock, ssl.SSLSocket):
             return WebsocketsSSLTransport(sock, self.ssl_context, server_hostname=server_hostname)
         return self.ssl_context.wrap_socket(sock, server_hostname=server_hostname)
-
-
-def create_http_connect_conn(
-    proxy_url,
-    url,
-    timeout=None,
-    ssl_context=None,
-    source_address=None,
-    username=None,
-    password=None,
-):
-
-    proxy_headers = HTTPHeaderDict()
-
-    if username is not None or password is not None:
-        proxy_headers['Proxy-Authorization'] = 'Basic ' + base64.b64encode(
-            f'{username or ""}:{password or ""}'.encode('utf-8')).decode('utf-8')
-
-    proxy_url_parsed = urllib.parse.urlparse(proxy_url)
-    request_url_parsed = parse_uri(url)
-
-    conn = HTTPConnection(proxy_url_parsed.hostname, port=proxy_url_parsed.port, timeout=timeout)
-    conn.response_class = NoCloseHTTPResponse
-
-    if hasattr(conn, '_create_connection'):
-        conn._create_connection = create_connection
-
-    if source_address is not None:
-        conn.source_address = (source_address, 0)
-
-    try:
-        conn.connect()
-        if ssl_context:
-            conn.sock = ssl_context.wrap_socket(conn.sock, server_hostname=proxy_url_parsed.hostname)
-        conn.request(
-            method='CONNECT',
-            url=f'{request_url_parsed.host}:{request_url_parsed.port}',
-            headers=proxy_headers)
-        response = conn.getresponse()
-    except OSError as e:
-        conn.close()
-        raise ProxyError('Unable to connect to proxy', cause=e) from e
-
-    if response.status == 200:
-        return conn.sock
-    elif response.status == 407:
-        conn.close()
-        raise ProxyError('Got HTTP Error 407 with CONNECT: Proxy Authentication Required')
-    else:
-        conn.close()
-        res_adapter = Response(
-            fp=io.BytesIO(b''),
-            url=proxy_url, headers=response.headers,
-            status=response.status,
-            reason=response.reason)
-        raise HTTPError(response=res_adapter)

@@ -46,6 +46,11 @@ class HTTPProxyAuthMixin:
         except Exception:
             return self.proxy_auth_error()
 
+        if auth_username == 'http_error':
+            self.send_response(404)
+            self.end_headers()
+            return False
+
         if auth_username != (username or '') or auth_password != (password or ''):
             return self.proxy_auth_error()
         return True
@@ -327,6 +332,14 @@ class TestHTTPProxy:
                 assert exc_info.value.response.status == 407
                 exc_info.value.response.close()
 
+    def test_http_error(self, handler, ctx):
+        with ctx.http_server(HTTPProxyHandler, username='http_error', password='test') as server_address:
+            with handler(proxies={ctx.REQUEST_PROTO: f'http://http_error:test@{server_address}'}) as rh:
+                with pytest.raises(HTTPError) as exc_info:
+                    ctx.proxy_info_request(rh)
+                assert exc_info.value.response.status == 404
+                exc_info.value.response.close()
+
     def test_http_source_address(self, handler, ctx):
         with ctx.http_server(HTTPProxyHandler) as server_address:
             source_address = f'127.0.0.{random.randint(5, 255)}'
@@ -395,6 +408,12 @@ class TestHTTPConnectProxy:
     def test_http_connect_bad_auth(self, handler, ctx):
         with ctx.http_server(HTTPConnectProxyHandler, username='test', password='test') as server_address:
             with handler(verify=False, proxies={ctx.REQUEST_PROTO: f'http://test:bad@{server_address}'}) as rh:
+                with pytest.raises(ProxyError):
+                    ctx.proxy_info_request(rh)
+
+    def test_http_connect_http_error(self, handler, ctx):
+        with ctx.http_server(HTTPConnectProxyHandler, username='http_error', password='test') as server_address:
+            with handler(verify=False, proxies={ctx.REQUEST_PROTO: f'http://http_error:test@{server_address}'}) as rh:
                 with pytest.raises(ProxyError):
                     ctx.proxy_info_request(rh)
 
