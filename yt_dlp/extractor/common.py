@@ -1036,13 +1036,14 @@ class InfoExtractor:
         webpage_bytes = urlh.read()
         if prefix is not None:
             webpage_bytes = prefix + webpage_bytes
-        url_or_request = self._create_request(url_or_request, data)
         if self.get_param('dump_intermediate_pages', False):
             self.to_screen('Dumping request to ' + urlh.url)
             dump = base64.b64encode(webpage_bytes).decode('ascii')
             self._downloader.to_screen(dump)
         if self.get_param('write_pages'):
-            filename = self._request_dump_filename(urlh.url, video_id, url_or_request.data)
+            if isinstance(url_or_request, Request):
+                data = self._create_request(url_or_request, data).data
+            filename = self._request_dump_filename(urlh.url, video_id, data)
             self.to_screen(f'Saving request to {filename}')
             with open(filename, 'wb') as outf:
                 outf.write(webpage_bytes)
