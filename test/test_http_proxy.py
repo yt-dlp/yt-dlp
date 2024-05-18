@@ -139,7 +139,7 @@ class HTTPSProxyHandler(HTTPProxyHandler):
         certfn = os.path.join(TEST_DIR, 'testcert.pem')
         sslctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
         sslctx.load_cert_chain(certfn, None)
-        if isinstance(request, ssl.SSLSocket):
+        if SSLTransport:
             request = SSLTransport(request, ssl_context=sslctx, server_side=True)
         else:
             request = sslctx.wrap_socket(request, server_side=True)
@@ -208,7 +208,10 @@ class HTTPSConnectProxyHandler(HTTPConnectProxyHandler):
         certfn = os.path.join(TEST_DIR, 'testcert.pem')
         sslctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
         sslctx.load_cert_chain(certfn, None)
-        request = sslctx.wrap_socket(request, server_side=True)
+        if SSLTransport:
+            request = SSLTransport(request, ssl_context=sslctx, server_side=True)
+        else:
+            request = sslctx.wrap_socket(request, server_side=True)
         self._original_request = request
         super().__init__(request, *args, **kwargs)
 
