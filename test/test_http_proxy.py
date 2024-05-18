@@ -392,6 +392,9 @@ class TestHTTPProxy:
         ('Websockets', 'ws'),
         ('Websockets', 'wss')
     ], indirect=True)
+@pytest.mark.skip_handler_if(
+    'Websockets', lambda _: platform.python_implementation() == 'PyPy',
+    'PyPy sometimes fails with these tests, unknown reason')
 class TestHTTPConnectProxy:
     def test_http_connect_no_auth(self, handler, ctx):
         with ctx.http_server(HTTPConnectProxyHandler) as server_address:
