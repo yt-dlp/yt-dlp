@@ -79,10 +79,7 @@ class WebsocketsLoggingHandler(logging.Handler):
     def emit(self, record):
         try:
             msg = self.format(record)
-            if record.levelno >= logging.ERROR:
-                self._logger.error(msg)
-            else:
-                self._logger.stdout(msg)
+            self._logger.stdout(msg)
 
         except Exception:
             self.handleError(record)
