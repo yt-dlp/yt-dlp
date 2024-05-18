@@ -154,7 +154,7 @@ class WebSocketProxyHandler(BaseRequestHandler):
     def handle(self):
         import websockets.sync.server
         protocol = websockets.ServerProtocol()
-        connection = websockets.sync.server.ServerConnection(socket=self.request, protocol=protocol, close_timeout=0)
+        connection = websockets.sync.server.ServerConnection(socket=self.request, protocol=protocol, close_timeout=2)
         connection.handshake()
         for message in connection:
             if message == 'proxy_info':
