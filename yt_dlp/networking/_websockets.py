@@ -47,9 +47,11 @@ if urllib3_version and urllib3_version >= (1, 26, 17):
 
 # Disable apply_mask C implementation
 # Seems to help reduce "Fatal Python error: Aborted" in CI
-import websockets.frames
-import websockets.utils
-websockets.frames.apply_mask = websockets.utils.apply_mask
+with contextlib.suppress(Exception):
+    import websockets.frames
+    import websockets.legacy.framing
+    import websockets.utils
+    websockets.frames.apply_mask = websockets.legacy.framing = websockets.utils.apply_mask
 
 import websockets.sync.client
 from websockets.uri import parse_uri
