@@ -47,6 +47,12 @@ urllib3_version = tuple(int_or_none(x, default=0) for x in urllib3.__version__.s
 if urllib3_version and urllib3_version >= (1, 26, 17):
     urllib3_supported = True
 
+
+# Disable apply_mask C implementation
+import websockets.frames
+from websockets.utils import apply_mask
+websockets.frames.apply_mask = apply_mask
+
 import websockets.sync.client
 from websockets.uri import parse_uri
 
