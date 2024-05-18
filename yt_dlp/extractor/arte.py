@@ -1,6 +1,7 @@
 import re
 
 from .common import InfoExtractor
+from .. import join_nonempty
 from ..utils import (
     ExtractorError,
     GeoRestrictedError,
