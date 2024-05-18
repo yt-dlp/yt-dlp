@@ -1,13 +1,11 @@
 from __future__ import annotations
 
-
 import contextlib
 import io
 import logging
 import ssl
 import sys
 import urllib.parse
-
 
 from ._helper import (
     create_connection,
@@ -32,7 +30,6 @@ from ..dependencies import urllib3, websockets
 from ..socks import ProxyError as SocksProxyError
 from ..utils import int_or_none
 
-
 if not websockets:
     raise ImportError('websockets is not installed')
 
@@ -49,9 +46,10 @@ if urllib3_version and urllib3_version >= (1, 26, 17):
 
 
 # Disable apply_mask C implementation
+# Seems to help reduce "Fatal Python error: Aborted" in CI
 import websockets.frames
-from websockets.utils import apply_mask
-websockets.frames.apply_mask = apply_mask
+import websockets.utils
+websockets.frames.apply_mask = websockets.utils.apply_mask
 
 import websockets.sync.client
 from websockets.uri import parse_uri
@@ -140,7 +138,7 @@ class WebsocketsRH(WebSocketRequestHandler):
             and urllib.parse.urlparse(request.url).scheme.lower() == 'wss'
             and not urllib3_supported
         ):
-            raise UnsupportedRequest('WSS over HTTPS proxies requires a supported version of urllib3')
+            raise UnsupportedRequest('WSS over HTTPS proxy requires a supported version of urllib3')
 
     def _check_extensions(self, extensions):
         super()._check_extensions(extensions)
