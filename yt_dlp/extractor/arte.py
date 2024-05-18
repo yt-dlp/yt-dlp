@@ -1,7 +1,6 @@
 import re
 
 from .common import InfoExtractor
-from .. import join_nonempty
 from ..utils import (
     ExtractorError,
     GeoRestrictedError,
@@ -11,6 +10,7 @@ from ..utils import (
     strip_or_none,
     traverse_obj,
     url_or_none,
+    join_nonempty
 )
 
 
@@ -55,13 +55,26 @@ class ArteTVIE(ArteTVBaseIE):
             'thumbnail': 'https://api-cdn.arte.tv/img/v2/image/3rR6PLzfbigSkkeHtkCZNF/940x530',
             'duration': 7599,
             'title': 'La loi de Téhéran',
-            'alt_title': None,
             'upload_date': '20240424',
             'subtitles': {
                 'fr': 'mincount:1',
                 'fr-acc': 'mincount:1',
                 'fr-partial': 'mincount:1',
             },
+        },
+    }, {
+        'skip': '404 Not Found',
+        'note': 'age-restricted',
+        'url': 'https://www.arte.tv/de/videos/006785-000-A/the-element-of-crime/',
+        'info_dict': {
+            'id': '006785-000-A',
+            'description': 'md5:c2f94fdfefc8a280e4dab68ab96ab0ba',
+            'title': 'The Element of Crime',
+            'timestamp': 1696111200,
+            'duration': 5849,
+            'thumbnail': 'https://api-cdn.arte.tv/img/v2/image/q82dTTfyuCXupPsGxXsd7B/940x530',
+            'upload_date': '20230930',
+            'ext': 'mp4',
         },
     }]
 
