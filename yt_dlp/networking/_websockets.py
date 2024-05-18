@@ -204,18 +204,15 @@ class WebsocketsRH(WebSocketRequestHandler):
                 ssl_context = WebsocketsSSLContext(self._make_sslcontext())
             else:
                 ssl_context = self._make_sslcontext()
-        sock = self._make_sock(proxy, request.url, timeout)
-        # We need to reset the timeout to not conflict with websocket handshake
-        sock.settimeout(None)
         try:
             conn = websockets.sync.client.connect(
-                sock=sock,
+                sock=self._make_sock(proxy, request.url, timeout),
                 uri=request.url,
                 additional_headers=headers,
                 open_timeout=timeout,
                 user_agent_header=None,
                 ssl_context=ssl_context,
-                close_timeout=0,  # not ideal, but prevents yt-dlp hanging
+                close_timeout=0.1,  # not ideal, but prevents yt-dlp hanging
             )
             return WebsocketsResponseAdapter(conn, url=request.url)
 
