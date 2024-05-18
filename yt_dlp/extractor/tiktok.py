@@ -183,9 +183,8 @@ class TikTokBaseIE(InfoExtractor):
 
         max_tries = len(self._APP_INFO_POOL) + 1  # _APP_INFO_POOL + _APP_INFO
         for count in itertools.count(1):
+            self.write_debug(str(self._APP_INFO))
             real_query = self._build_api_query(query)
-            device_id = 'PRIVATE' if self._KNOWN_DEVICE_ID else real_query['device_id']
-            self.write_debug(str({**self._APP_INFO, 'device_id': device_id}))
             try:
                 return self._call_api_impl(ep, real_query, video_id, fatal, note, errnote)
             except ExtractorError as e:
