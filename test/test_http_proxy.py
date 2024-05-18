@@ -172,7 +172,7 @@ class WebSocketSecureProxyHandler(WebSocketProxyHandler):
         certfn = os.path.join(TEST_DIR, 'testcert.pem')
         sslctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
         sslctx.load_cert_chain(certfn, None)
-        if SSLTransport:
+        if isinstance(request, ssl.SSLSocket) and SSLTransport:
             request = SSLTransport(request, ssl_context=sslctx, server_side=True)
         else:
             request = sslctx.wrap_socket(request, server_side=True)
@@ -213,10 +213,7 @@ class HTTPSConnectProxyHandler(HTTPConnectProxyHandler):
         certfn = os.path.join(TEST_DIR, 'testcert.pem')
         sslctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
         sslctx.load_cert_chain(certfn, None)
-        if SSLTransport:
-            request = SSLTransport(request, ssl_context=sslctx, server_side=True)
-        else:
-            request = sslctx.wrap_socket(request, server_side=True)
+        request = sslctx.wrap_socket(request, server_side=True)
         self._original_request = request
         super().__init__(request, *args, **kwargs)
 
@@ -244,7 +241,6 @@ def proxy_server(proxy_server_class, request_handler, bind_ip=None, **proxy_serv
     finally:
         server.shutdown()
         server.server_close()
-        server_thread.join(2.0)
 
 
 class HTTPProxyTestContext(abc.ABC):
@@ -393,11 +389,11 @@ class TestHTTPProxy:
         ('Websockets', 'ws'),
         ('Websockets', 'wss')
     ], indirect=True)
-@pytest.mark.skip_handler_if(
-    'Websockets', lambda request:
-        (platform.python_implementation() == 'PyPy'
-         and request.getfixturevalue('ctx').REQUEST_PROTO == 'wss'),
-    'PyPy sometimes fails with wss tests, unknown reason')
+# @pytest.mark.skip_handler_if(
+#     'Websockets', lambda request:
+#         (platform.python_implementation() == 'PyPy'
+#          and request.getfixturevalue('ctx').REQUEST_PROTO == 'wss'),
+#     'PyPy sometimes fails with wss tests, unknown reason')
 class TestHTTPConnectProxy:
     def test_http_connect_no_auth(self, handler, ctx):
         with ctx.http_server(HTTPConnectProxyHandler) as server_address:

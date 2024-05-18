@@ -199,20 +199,21 @@ class WebsocketsRH(WebSocketRequestHandler):
         proxy = select_proxy(request.url, self._get_proxies(request))
 
         ssl_context = None
+        sock = self._make_sock(proxy, request.url, timeout)
         if parse_uri(request.url).secure:
-            if WebsocketsSSLContext is not None:
-                ssl_context = WebsocketsSSLContext(self._make_sslcontext())
-            else:
-                ssl_context = self._make_sslcontext()
+            ssl_context = self._make_sslcontext()
+            if isinstance(sock, ssl.SSLSocket) and WebsocketsSSLContext:  # tls in tls
+                ssl_context = WebsocketsSSLContext(ssl_context)
+
         try:
             conn = websockets.sync.client.connect(
-                sock=self._make_sock(proxy, request.url, timeout),
+                sock=sock,
                 uri=request.url,
                 additional_headers=headers,
                 open_timeout=timeout,
                 user_agent_header=None,
                 ssl_context=ssl_context,
-                close_timeout=0.1,  # not ideal, but prevents yt-dlp hanging
+                close_timeout=0,  # not ideal, but prevents yt-dlp hanging
             )
             return WebsocketsResponseAdapter(conn, url=request.url)
 
