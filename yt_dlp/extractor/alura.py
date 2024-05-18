@@ -39,7 +39,7 @@ class AluraIE(InfoExtractor):
 
     def _real_extract(self, url):
 
-        course, video_id = self._match_valid_url(url)
+        course, video_id = self._match_valid_url(url).group('course_name', 'id')
         video_url = self._VIDEO_URL % (course, video_id)
 
         video_dict = self._download_json(video_url, video_id, 'Searching for videos')
@@ -52,7 +52,7 @@ class AluraIE(InfoExtractor):
 
             formats = []
             for video_obj in video_dict:
-                video_url_m3u8 = video_obj.get('link')
+                video_url_m3u8 = video_obj.get('mp4')
                 video_format = self._extract_m3u8_formats(
                     video_url_m3u8, None, 'mp4', entry_protocol='m3u8_native',
                     m3u8_id='hls', fatal=False)
