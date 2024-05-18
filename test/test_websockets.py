@@ -211,20 +211,17 @@ class TestWebsSocketRequestHandlerConformance:
     def test_connect_timeout(self, handler):
         # nothing should be listening on this port
         connect_timeout_url = 'ws://10.255.255.255'
-        with handler(timeout=0.01) as rh:
+        with handler(timeout=0.01) as rh, pytest.raises(TransportError):
             now = time.time()
-            with pytest.raises(TransportError):
-                ws_validate_and_send(
-                    rh, Request(connect_timeout_url))
-            assert time.time() - now < DEFAULT_TIMEOUT
+            ws_validate_and_send(rh, Request(connect_timeout_url))
+        assert time.time() - now < DEFAULT_TIMEOUT
 
-        with handler() as rh:
-            with pytest.raises(TransportError):
-                # Per request timeout, should override handler timeout
-                now = time.time()
-                ws_validate_and_send(
-                    rh, Request(connect_timeout_url, extensions={'timeout': 0.01}))
-                assert time.time() - now < DEFAULT_TIMEOUT
+        # Per request timeout, should override handler timeout
+        request = Request(connect_timeout_url, extensions={'timeout': 0.01})
+        with handler() as rh, pytest.raises(TransportError):
+            now = time.time()
+            ws_validate_and_send(rh, request)
+        assert time.time() - now < DEFAULT_TIMEOUT
 
     def test_cookies(self, handler):
         cookiejar = YoutubeDLCookieJar()
