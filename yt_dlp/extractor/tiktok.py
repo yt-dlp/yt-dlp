@@ -1,3 +1,4 @@
+import functools
 import itertools
 import json
 import random
@@ -421,8 +422,17 @@ class TikTokBaseIE(InfoExtractor):
         width = int_or_none(video_info.get('width'))
         height = int_or_none(video_info.get('height'))
 
+        def watermark_info(url):
+            no_watermark = 'unwatermarked' in url
+            return {
+                'format_note': None if no_watermark else 'watermarked',
+                'source_preference': -1 if no_watermark else -2,
+            }
+
         for play_url in traverse_obj(video_info, ('playAddr', ((..., 'src'), None), {url_or_none})):
             formats.append({
+                **watermark_info(play_url),
+                'format_id': 'play',
                 'url': self._proto_relative_url(play_url),
                 'ext': 'mp4',
                 'width': width,
@@ -431,12 +441,31 @@ class TikTokBaseIE(InfoExtractor):
 
         for download_url in traverse_obj(video_info, (('downloadAddr', ('download', 'url')), {url_or_none})):
             formats.append({
+                **watermark_info(download_url),
                 'format_id': 'download',
                 'url': self._proto_relative_url(download_url),
                 'ext': 'mp4',
                 'width': width,
                 'height': height,
             })
+
+        for bitrate_info in traverse_obj(video_info, ('bitrateInfo', lambda _, v: v['PlayAddr']['UrlList'])):
+            format_info = traverse_obj(bitrate_info, {
+                'format_id': (('GearName', {str}), ('QualityType', {int}, {str_or_none}), any),
+                'vcodec': ('CodecType', {str}),
+                'tbr': ('Bitrate', {functools.partial(int_or_none, scale=1000)}),
+                'filesize': ('PlayAddr', 'DataSize', {int_or_none}),
+                'width': ('PlayAddr', 'UrlKey', {lambda x: re.search(r'_(\d+)p_', x)}, 1, {int_or_none}),
+            })
+            format_info['height'] = try_call(lambda: int(format_info['width'] / 0.5625))
+
+            for video_url in traverse_obj(bitrate_info, ('PlayAddr', 'UrlList', ..., {url_or_none})):
+                formats.append({
+                    **format_info,
+                    **watermark_info(video_url),
+                    'url': self._proto_relative_url(video_url),
+                    'ext': 'mp4',
+                })
 
         self._remove_duplicate_formats(formats)
 
