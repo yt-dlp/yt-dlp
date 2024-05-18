@@ -411,6 +411,10 @@ class TestHTTPConnectProxy:
                 with pytest.raises(ProxyError):
                     ctx.proxy_info_request(rh)
 
+    @pytest.mark.skip_handler(
+        'Requests',
+        'bug in urllib3 causes unclosed socket: https://github.com/urllib3/urllib3/issues/3374'
+    )
     def test_http_connect_http_error(self, handler, ctx):
         with ctx.http_server(HTTPConnectProxyHandler, username='http_error', password='test') as server_address:
             with handler(verify=False, proxies={ctx.REQUEST_PROTO: f'http://http_error:test@{server_address}'}) as rh:
