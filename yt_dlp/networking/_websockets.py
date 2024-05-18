@@ -265,6 +265,6 @@ class WebsocketsSSLContext:
         self.ssl_context = ssl_context
 
     def wrap_socket(self, sock, server_hostname=None):
-        if isinstance(sock, ssl.SSLSocket):
+        if isinstance(sock, ssl.SSLSocket) or WebsocketsSSLTransport:
             return WebsocketsSSLTransport(sock, self.ssl_context, server_hostname=server_hostname)
         return self.ssl_context.wrap_socket(sock, server_hostname=server_hostname)
