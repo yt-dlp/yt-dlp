@@ -307,6 +307,7 @@ def create_http_connect_connection(
     source_address=None,
     username=None,
     password=None,
+    debug=False,
 ):
 
     proxy_headers = dict()
@@ -316,6 +317,8 @@ def create_http_connect_connection(
             f'{username or ""}:{password or ""}'.encode('utf-8')).decode('utf-8')
 
     conn = HTTPConnection(proxy_host, port=proxy_port, timeout=timeout)
+    conn.set_debuglevel(int(debug))
+
     conn.response_class = NoCloseHTTPResponse
 
     if hasattr(conn, '_create_connection'):

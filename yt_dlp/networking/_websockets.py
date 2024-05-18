@@ -4,7 +4,6 @@ import contextlib
 import io
 import logging
 import ssl
-import sys
 import urllib.parse
 
 from ._helper import (
@@ -68,6 +67,25 @@ with contextlib.suppress(Exception):
     websockets.sync.connection.Connection.recv_exc = None
     # 12.0
     websockets.sync.connection.Connection.recv_events_exc = None
+
+
+class WebsocketsLoggingHandler(logging.Handler):
+    """Redirect websocket logs to our logger"""
+
+    def __init__(self, logger, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._logger = logger
+
+    def emit(self, record):
+        try:
+            msg = self.format(record)
+            if record.levelno >= logging.ERROR:
+                self._logger.error(msg)
+            else:
+                self._logger.stdout(msg)
+
+        except Exception:
+            self.handleError(record)
 
 
 class WebsocketsResponseAdapter(WebSocketResponse):
@@ -181,6 +199,7 @@ class WebsocketsRH(WebSocketRequestHandler):
                     source_address=self.source_address,
                     username=parsed_proxy_url.username,
                     password=parsed_proxy_url.password,
+                    debug=self.verbose,
                 )
         return create_connection(
             address=(parsed_url.host, parsed_url.port),
