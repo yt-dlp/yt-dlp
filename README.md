@@ -2326,6 +2326,7 @@ These options may no longer work as intended
     --write-annotations              No supported site has annotations now
     --no-write-annotations           Default
     --compat-options seperate-video-versions  No longer needed
+    --compat-options no-youtube-prefer-utc-upload-date  No longer supported
 
 #### Removed
 These options were deprecated since 2014 and have now been entirely removed
