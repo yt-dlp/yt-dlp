@@ -40,6 +40,22 @@ class HearThisAtIE(InfoExtractor):
             'duration': 4360,
             'genre': 'Dance',
         },
+    }, {
+        'url': 'https://hearthis.at/tindalos/0001-tindalos-gnrique/eQd/',
+        'md5': 'cd08e51911f147f6da2d9678905b0bd9',
+        'info_dict': {
+            'id': '2685222',
+            'ext': 'mp3',
+            'duration': 86,
+            'view_count': int,
+            'timestamp': 1545471670,
+            'display_id': 'tindalos - 0001-tindalos-gnrique',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'genres': ['Other'],
+            'title': 'Tindalos - Tindalos - générique n°1',
+            'description': '',
+            'upload_date': '20181222',
+        },
     }]
 
     def _real_extract(self, url):
