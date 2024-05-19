@@ -2,10 +2,13 @@ import re
 
 from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
+    clean_html,
     extract_attributes,
+    get_element_by_id,
     int_or_none,
     merge_dicts,
-    str_to_int,
+    parse_count,
     traverse_obj,
     unified_strdate,
     url_or_none,
@@ -13,7 +16,7 @@ from ..utils import (
 
 
 class YouPornIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?youporn\.com/(?:watch|embed)/(?P<id>\d+)(?:/(?P<display_id>[^/?#&]+))?'
+    _VALID_URL = r'https?://(?:www\.)?youporn\.com/(?:watch|embed)/(?P<id>\d+)(?:/(?P<display_id>[^/?#&]+))?/?(?:[#?]|$)'
     _EMBED_REGEX = [r'<iframe[^>]+\bsrc=["\'](?P<url>(?:https?:)?//(?:www\.)?youporn\.com/embed/\d+)']
     _TESTS = [{
         'url': 'http://www.youporn.com/watch/505835/sex-ed-is-it-safe-to-masturbate-daily/',
@@ -34,7 +37,7 @@ class YouPornIE(InfoExtractor):
             'tags': list,
             'age_limit': 18,
         },
-        'skip': 'This video has been disabled',
+        'skip': 'This video has been deactivated',
     }, {
         # Unknown uploader
         'url': 'http://www.youporn.com/watch/561726/big-tits-awesome-brunette-on-amazing-webcam-show/?from=related3&al=2&from_id=561726&pos=4',
@@ -72,7 +75,6 @@ class YouPornIE(InfoExtractor):
             'id': '16290308',
             'age_limit': 18,
             'categories': [],
-            'description': str,  # TODO: detect/remove SEO spam description in ytdl backport
             'display_id': 'tinderspecial-trailer1',
             'duration': 298.0,
             'ext': 'mp4',
@@ -90,7 +92,17 @@ class YouPornIE(InfoExtractor):
         video_id, display_id = self._match_valid_url(url).group('id', 'display_id')
         self._set_cookie('.youporn.com', 'age_verified', '1')
         webpage = self._download_webpage(f'https://www.youporn.com/watch/{video_id}', video_id)
-        definitions = self._search_json(r'\bplayervars\s*:', webpage, 'player vars', video_id)['mediaDefinitions']
+
+        watchable = self._search_regex(
+            r'''(<div\s[^>]*\bid\s*=\s*('|")?watch-container(?(2)\2|(?!-)\b)[^>]*>)''',
+            webpage, 'watchability', default=None)
+        if not watchable:
+            msg = re.split(r'\s{2}', clean_html(get_element_by_id('mainContent', webpage)) or '')[0]
+            raise ExtractorError(
+                f'{self.IE_NAME} says: {msg}' if msg else 'Video unavailable', expected=True)
+
+        player_vars = self._search_json(r'\bplayervars\s*:', webpage, 'player vars', video_id)
+        definitions = player_vars['mediaDefinitions']
 
         def get_format_data(data, stream_type):
             info_url = traverse_obj(data, (lambda _, v: v['format'] == stream_type, 'videoUrl', {url_or_none}, any))
@@ -143,8 +155,10 @@ class YouPornIE(InfoExtractor):
         thumbnail = self._search_regex(
             r'(?:imageurl\s*=|poster\s*:)\s*(["\'])(?P<thumbnail>.+?)\1',
             webpage, 'thumbnail', fatal=False, group='thumbnail')
-        duration = int_or_none(self._html_search_meta(
-            'video:duration', webpage, 'duration', fatal=False))
+        duration = traverse_obj(player_vars, ('duration', {int_or_none}))
+        if duration is None:
+            duration = int_or_none(self._html_search_meta(
+                'video:duration', webpage, 'duration', fatal=False))
 
         uploader = self._html_search_regex(
             r'(?s)<div[^>]+class=["\']submitByLink["\'][^>]*>(.+?)</div>',
@@ -160,11 +174,11 @@ class YouPornIE(InfoExtractor):
 
         view_count = None
         views = self._search_regex(
-            r'(<div[^>]+\bclass=["\']js_videoInfoViews["\']>)', webpage,
-            'views', default=None)
+            r'(<div [^>]*\bdata-value\s*=[^>]+>)\s*<label>Views:</label>',
+            webpage, 'views', default=None)
         if views:
-            view_count = str_to_int(extract_attributes(views).get('data-value'))
-        comment_count = str_to_int(self._search_regex(
+            view_count = parse_count(extract_attributes(views).get('data-value'))
+        comment_count = parse_count(self._search_regex(
             r'>All [Cc]omments? \(([\d,.]+)\)',
             webpage, 'comment count', default=None))
 
@@ -182,7 +196,8 @@ class YouPornIE(InfoExtractor):
 
         data = self._search_json_ld(webpage, video_id, expected_type='VideoObject', fatal=False)
         data.pop('url', None)
-        return merge_dicts(data, {
+
+        result = merge_dicts(data, {
             'id': video_id,
             'display_id': display_id,
             'title': title,
@@ -198,3 +213,10 @@ class YouPornIE(InfoExtractor):
             'age_limit': age_limit,
             'formats': formats,
         })
+
+        # Remove SEO spam "description"
+        description = result.get('description')
+        if description and description.startswith(f'Watch {result.get("title")} online'):
+            del result['description']
+
+        return result
