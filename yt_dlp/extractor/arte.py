@@ -5,12 +5,12 @@ from ..utils import (
     ExtractorError,
     GeoRestrictedError,
     int_or_none,
+    join_nonempty,
     parse_iso8601,
     parse_qs,
     strip_or_none,
     traverse_obj,
     url_or_none,
-    join_nonempty
 )
 
 
@@ -130,12 +130,12 @@ class ArteTVIE(ArteTVBaseIE):
     def _fix_accessible_subs_locale(subs):
         updated_subs = {}
         for lang, sub_formats in subs.items():
-            for format_ in sub_formats:
-                url = format_.get('url') or ''
+            for fmt in sub_formats:
+                url = fmt.get('url') or ''
                 suffix = ('acc' if url.endswith('-MAL.m3u8')
                           else 'partial' if '_VO' not in url
                           else None)
-                updated_subs.setdefault(join_nonempty(lang, suffix), []).append(format_)
+                updated_subs.setdefault(join_nonempty(lang, suffix), []).append(fmt)
         return updated_subs
 
     def _real_extract(self, url):
