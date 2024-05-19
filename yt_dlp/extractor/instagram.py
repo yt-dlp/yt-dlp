@@ -379,6 +379,9 @@ class InstagramIE(InstagramBaseIE):
     }, {
         'url': 'https://www.instagram.com/marvelskies.fc/reel/CWqAgUZgCku/',
         'only_matching': True,
+    }, {
+        'url': 'https://www.instagram.com/reels/Cop84x6u7CP/',
+        'only_matching': True,
     }]
 
     @classmethod
