@@ -25,9 +25,11 @@ class CableCastTVIE(InfoExtractor):
         video_url = self._html_search_regex(r'"([^\"]*\.m3u8)"', webpage_video, 'video URL')
 
         formats = []
-        formats.extend(self._extract_m3u8_formats(
-            video_url, video_id, ext='mp4', m3u8_id='hls'),
-            note='Downloading HD m3u8 information', errnote='Unable to download HD m3u8 information')
+        subtitles = {}
+
+        fmts, subs = self._extract_m3u8_formats_and_subtitles(video_url, video_id, 'mp4', fatal=False)
+        formats.extend(fmts)
+        self._merge_subtitles(subs, target=subtitles)
 
         title = self._og_search_title(webpage) or self._html_search_regex(r'<title>(.+?)</title>', webpage, 'title')
 
@@ -35,4 +37,5 @@ class CableCastTVIE(InfoExtractor):
             'id': video_id,
             'title': title,
             'formats': formats,
+            'subtitles': subtitles,
         }
