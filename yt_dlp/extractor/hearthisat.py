@@ -7,7 +7,7 @@ from ..utils import (
 
 
 class HearThisAtIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?hearthis\.at/(?P<artist>[^/?#]+)/(?P<title>[\w-]+)'
+    _VALID_URL = r'https?://(?:www\.)?hearthis\.at/(?P<artist>[^/?#]+)/(?P<title>[\w.-]+)'
     _PLAYLIST_URL = 'https://hearthis.at/playlist.php'
     _TESTS = [{
         'url': 'https://hearthis.at/moofi/dr-kreep',
@@ -58,6 +58,22 @@ class HearThisAtIE(InfoExtractor):
             'title': 'Tindalos - Tindalos - générique n°1',
             'description': '',
             'upload_date': '20181222',
+        },
+    }, {
+        'url': 'https://hearthis.at/sithi2/biochip-c-classics-set-wolle-xdp-tresor.core-special-tresor-globus-berlin-13.07.20011/',
+        'md5': 'b45ac60f0c8111eef6ddc10ec232e312',
+        'info_dict': {
+            'id': '7145959',
+            'ext': 'mp3',
+            'description': 'md5:d7ae36a453d78903f6b7ed6eb2fce1f2',
+            'duration': 8986,
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'title': 'md5:62669ce5b1b67f45c6f846033f37d3b9',
+            'timestamp': 1588699409,
+            'display_id': 'sithi2 - biochip-c-classics-set-wolle-xdp-tresor.core-special-tresor-globus-berlin-13.07.20011',
+            'view_count': int,
+            'upload_date': '20200505',
+            'genres': ['Other'],
         },
     }]
 
