@@ -63,7 +63,6 @@ class ArteTVIE(ArteTVBaseIE):
             },
         },
     }, {
-        'skip': '404 Not Found',
         'note': 'age-restricted',
         'url': 'https://www.arte.tv/de/videos/006785-000-A/the-element-of-crime/',
         'info_dict': {
@@ -76,6 +75,7 @@ class ArteTVIE(ArteTVBaseIE):
             'upload_date': '20230930',
             'ext': 'mp4',
         },
+        'skip': '404 Not Found',
     }]
 
     _GEO_BYPASS = True
