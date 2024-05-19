@@ -2425,7 +2425,15 @@ from .younow import (
     YouNowChannelIE,
     YouNowMomentIE,
 )
-from .youporn import YouPornIE
+from .youporn import (
+    YouPornIE,
+    YouPornCategoryIE,
+    YouPornChannelIE,
+    YouPornCollectionIE,
+    YouPornStarIE,
+    YouPornTagIE,
+    YouPornVideosIE,
+)
 from .zaiko import (
     ZaikoIE,
     ZaikoETicketIE,
