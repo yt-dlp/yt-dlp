@@ -53,7 +53,7 @@ class NineNowIE(InfoExtractor):
             'upload_date': '20210421',
         },
         'expected_warnings': ['Ignoring subtitle tracks'],
-        'params':{
+        'params': {
             'skip_download': True,
         }
     }]

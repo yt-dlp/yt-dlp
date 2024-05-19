@@ -61,7 +61,6 @@ class SunPornoIE(InfoExtractor):
                 'format_id': video_ext,
                 'quality': quality(video_ext),
             })
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

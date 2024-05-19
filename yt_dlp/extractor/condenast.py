@@ -58,7 +58,10 @@ class CondeNastIE(InfoExtractor):
         )''' % '|'.join(_SITES.keys())
     IE_DESC = 'Condé Nast media group: %s' % ', '.join(sorted(_SITES.values()))
 
-    EMBED_URL = r'(?:https?:)?//player(?:-backend)?\.(?:%s)\.com/(?:embed(?:js)?|(?:script|inline)/video)/.+?' % '|'.join(_SITES.keys())
+    _EMBED_REGEX = [r'''(?x)
+        <(?:iframe|script)[^>]+?src=(["\'])(?P<url>
+            (?:https?:)?//player(?:-backend)?\.(?:%s)\.com/(?:embed(?:js)?|(?:script|inline)/video)/.+?
+        )\1''' % '|'.join(_SITES.keys())]
 
     _TESTS = [{
         'url': 'http://video.wired.com/watch/3d-printed-speakers-lit-with-led',
@@ -194,7 +197,6 @@ class CondeNastIE(InfoExtractor):
                 'ext': ext,
                 'quality': 1 if quality == 'high' else 0,
             })
-        self._sort_formats(formats)
 
         subtitles = {}
         for t, caption in video_info.get('captions', {}).items():

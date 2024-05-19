@@ -4,8 +4,10 @@ from ..compat import (
     compat_urlparse,
 )
 from ..utils import (
+    ExtractorError,
     determine_ext,
     update_url_query,
+    traverse_obj,
 )
 from .bokecc import BokeCCBaseIE
 
@@ -34,6 +36,7 @@ class InfoQIE(BokeCCBaseIE):
             'ext': 'flv',
             'description': 'md5:308d981fb28fa42f49f9568322c683ff',
         },
+        'skip': 'Sorry, the page you visited does not exist',
     }, {
         'url': 'https://www.infoq.com/presentations/Simple-Made-Easy',
         'md5': '0e34642d4d9ef44bf86f66f6399672db',
@@ -86,8 +89,10 @@ class InfoQIE(BokeCCBaseIE):
         }]
 
     def _extract_http_audio(self, webpage, video_id):
-        fields = self._form_hidden_inputs('mp3Form', webpage)
-        http_audio_url = fields.get('filename')
+        try:
+            http_audio_url = traverse_obj(self._form_hidden_inputs('mp3Form', webpage), 'filename')
+        except ExtractorError:
+            http_audio_url = None
         if not http_audio_url:
             return []
 
@@ -122,8 +127,6 @@ class InfoQIE(BokeCCBaseIE):
                 self._extract_rtmp_video(webpage)
                 + self._extract_http_video(webpage)
                 + self._extract_http_audio(webpage, video_id))
-
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

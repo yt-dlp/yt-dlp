@@ -3,6 +3,7 @@ from ..utils import (
     float_or_none,
     int_or_none,
     parse_iso8601,
+    str_or_none,
     try_get,
 )
 
@@ -43,7 +44,6 @@ class NineCNineMediaIE(InfoExtractor):
         formats.extend(self._extract_mpd_formats(
             manifest_base_url + 'mpd', content_id,
             mpd_id='dash', fatal=False))
-        self._sort_formats(formats)
 
         thumbnails = []
         for image in (content.get('Images') or []):
@@ -74,7 +74,7 @@ class NineCNineMediaIE(InfoExtractor):
             'episode_number': int_or_none(content.get('Episode')),
             'season': season.get('Name'),
             'season_number': int_or_none(season.get('Number')),
-            'season_id': season.get('Id'),
+            'season_id': str_or_none(season.get('Id')),
             'series': try_get(content, lambda x: x['Media']['Name']),
             'tags': tags,
             'categories': categories,
@@ -110,10 +110,9 @@ class CPTwentyFourIE(InfoExtractor):
             'title': 'WATCH: Truck rips ATM from Mississauga business',
             'description': 'md5:cf7498480885f080a754389a2b2f7073',
             'timestamp': 1637618377,
-            'episode_number': None,
             'season': 'Season 0',
             'season_number': 0,
-            'season_id': 57974,
+            'season_id': '57974',
             'series': 'CTV News Toronto',
             'duration': 26.86,
             'thumbnail': 'http://images2.9c9media.com/image_asset/2014_11_5_2eb609a0-475b-0132-fbd6-34b52f6f1279_jpg_2000x1125.jpg',

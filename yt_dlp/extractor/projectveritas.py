@@ -7,6 +7,7 @@ from ..utils import (
 
 
 class ProjectVeritasIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?projectveritas\.com/(?P<type>news|video)/(?P<id>[^/?#]+)'
     _TESTS = [{
         'url': 'https://www.projectveritas.com/news/exclusive-inside-the-new-york-and-new-jersey-hospitals-battling-coronavirus/',
@@ -42,7 +43,6 @@ class ProjectVeritasIE(InfoExtractor):
             raise ExtractorError('No video on the provided url.', expected=True)
         playback_id = traverse_obj(mux_asset, 'playbackId', ('en-US', 'playbackId'))
         formats = self._extract_m3u8_formats(f'https://stream.mux.com/{playback_id}.m3u8', video_id)
-        self._sort_formats(formats)
         return {
             'id': video_id,
             'title': main_data['title'],

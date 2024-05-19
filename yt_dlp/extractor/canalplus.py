@@ -64,7 +64,7 @@ class CanalplusIE(InfoExtractor):
         #     response = self._request_webpage(
         #         HEADRequest(fmt_url), video_id,
         #         'Checking if the video is georestricted')
-        #     if '/blocage' in response.geturl():
+        #     if '/blocage' in response.url:
         #         raise ExtractorError(
         #             'The video is not available in your country',
         #             expected=True)
@@ -86,7 +86,6 @@ class CanalplusIE(InfoExtractor):
                     'format_id': format_id,
                     'quality': preference(format_id),
                 })
-        self._sort_formats(formats)
 
         thumbnails = [{
             'id': image_id,

@@ -9,6 +9,7 @@ from ..utils import (
 
 
 class MuenchenTVIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?muenchen\.tv/livestream'
     IE_DESC = 'münchen.tv'
     _TEST = {
@@ -60,7 +61,6 @@ class MuenchenTVIE(InfoExtractor):
                 'format_id': format_id,
                 'preference': -100 if '.smil' in s['file'] else 0,  # Strictly inferior than all other formats?
             })
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

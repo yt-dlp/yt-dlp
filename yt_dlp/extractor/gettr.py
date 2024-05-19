@@ -121,8 +121,6 @@ class GettrIE(GettrBaseIE):
                 'height': int_or_none(post_data.get('vid_hgt')),
             })
 
-        self._sort_formats(formats)
-
         return {
             'id': post_id,
             'title': title,
@@ -191,8 +189,6 @@ class GettrStreamingIE(GettrBaseIE):
         thumbnails = [{
             'url': urljoin(self._MEDIA_BASE_URL, thumbnail),
         } for thumbnail in try_get(video_info, lambda x: x['postData']['imgs'], list) or []]
-
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

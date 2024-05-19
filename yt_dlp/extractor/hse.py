@@ -25,7 +25,6 @@ class HSEShowBaseInfoExtractor(InfoExtractor):
             fmts, subs = self._extract_m3u8_formats_and_subtitles(src['url'], video_id, ext='mp4')
             formats.extend(fmts)
             subtitles = self._merge_subtitles(subtitles, subs)
-        self._sort_formats(formats)
         return formats, subtitles
 
 

@@ -9,7 +9,7 @@ from ..utils import (
 )
 
 
-class AMCNetworksIE(ThePlatformIE):
+class AMCNetworksIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
     _VALID_URL = r'https?://(?:www\.)?(?P<site>amc|bbcamerica|ifc|(?:we|sundance)tv)\.com/(?P<id>(?:movies|shows(?:/[^/]+)+)/[^/?#&]+)'
     _TESTS = [{
         'url': 'https://www.bbcamerica.com/shows/the-graham-norton-show/videos/tina-feys-adorable-airline-themed-family-dinner--51631',
@@ -26,6 +26,7 @@ class AMCNetworksIE(ThePlatformIE):
             # m3u8 download
             'skip_download': True,
         },
+        'skip': '404 Not Found',
     }, {
         'url': 'http://www.bbcamerica.com/shows/the-hunt/full-episodes/season-1/episode-01-the-hardest-challenge',
         'only_matching': True,
@@ -106,7 +107,6 @@ class AMCNetworksIE(ThePlatformIE):
         media_url = update_url_query(media_url, query)
         formats, subtitles = self._extract_theplatform_smil(
             media_url, video_id)
-        self._sort_formats(formats)
 
         thumbnails = []
         thumbnail_urls = [properties.get('imageDesktop')]

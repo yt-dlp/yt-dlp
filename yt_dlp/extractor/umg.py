@@ -7,6 +7,7 @@ from ..utils import (
 
 
 class UMGDeIE(InfoExtractor):
+    _WORKING = False
     IE_NAME = 'umg:de'
     IE_DESC = 'Universal Music Deutschland'
     _VALID_URL = r'https?://(?:www\.)?universal-music\.de/[^/]+/videos/[^/?#]+-(?P<id>\d+)'
@@ -86,7 +87,6 @@ class UMGDeIE(InfoExtractor):
         if not formats:
             for format_id in (867, 836, 940):
                 add_m3u8_format(format_id)
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

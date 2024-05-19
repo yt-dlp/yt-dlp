@@ -1,16 +1,11 @@
 import re
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_parse_qs,
-)
+from ..compat import compat_parse_qs
+from ..networking import Request
 from ..utils import (
     ExtractorError,
-    WebSocketsWrapper,
-    has_websockets,
     js_to_json,
-    sanitized_Request,
-    std_headers,
     traverse_obj,
     update_url_query,
     urlencode_postdata,
@@ -60,7 +55,7 @@ class FC2IE(InfoExtractor):
         }
 
         login_data = urlencode_postdata(login_form_strs)
-        request = sanitized_Request(
+        request = Request(
             'https://secure.id.fc2.com/index.php?mode=login&switch_language=en', login_data)
 
         login_results = self._download_webpage(request, None, note='Logging in', errnote='Unable to log in')
@@ -69,7 +64,7 @@ class FC2IE(InfoExtractor):
             return False
 
         # this is also needed
-        login_redir = sanitized_Request('http://id.fc2.com/?mode=redirect&login=done')
+        login_redir = Request('http://id.fc2.com/?mode=redirect&login=done')
         self._download_webpage(
             login_redir, None, note='Login redirect', errnote='Login redirect failed')
 
@@ -81,7 +76,7 @@ class FC2IE(InfoExtractor):
         webpage = None
         if not url.startswith('fc2:'):
             webpage = self._download_webpage(url, video_id)
-            self._downloader.cookiejar.clear_session_cookies()  # must clear
+            self.cookiejar.clear_session_cookies()  # must clear
             self._login()
 
         title, thumbnail, description = None, None, None
@@ -170,8 +165,6 @@ class FC2LiveIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        if not has_websockets:
-            raise ExtractorError('websockets library is not available. Please install it.', expected=True)
         video_id = self._match_id(url)
         webpage = self._download_webpage('https://live.fc2.com/%s/' % video_id, video_id)
 
@@ -202,15 +195,11 @@ class FC2LiveIE(InfoExtractor):
         ws_url = update_url_query(control_server['url'], {'control_token': control_server['control_token']})
         playlist_data = None
 
-        self.to_screen('%s: Fetching HLS playlist info via WebSocket' % video_id)
-        ws = WebSocketsWrapper(ws_url, {
-            'Cookie': str(self._get_cookies('https://live.fc2.com/'))[12:],
+        ws = self._request_webpage(Request(ws_url, headers={
             'Origin': 'https://live.fc2.com',
-            'Accept': '*/*',
-            'User-Agent': std_headers['User-Agent'],
-        })
+        }), video_id, note='Fetching HLS playlist info via WebSocket')
 
-        self.write_debug('[debug] Sending HLS server request')
+        self.write_debug('Sending HLS server request')
 
         while True:
             recv = ws.recv()
@@ -232,13 +221,10 @@ class FC2LiveIE(InfoExtractor):
             if not data or not isinstance(data, dict):
                 continue
             if data.get('name') == '_response_' and data.get('id') == 1:
-                self.write_debug('[debug] Goodbye.')
+                self.write_debug('Goodbye')
                 playlist_data = data
                 break
-            elif self._downloader.params.get('verbose', False):
-                if len(recv) > 100:
-                    recv = recv[:100] + '...'
-                self.to_screen('[debug] Server said: %s' % recv)
+            self.write_debug('Server said: %s%s' % (recv[:100], '...' if len(recv) > 100 else ''))
 
         if not playlist_data:
             raise ExtractorError('Unable to fetch HLS playlist info via WebSocket')
@@ -256,7 +242,6 @@ class FC2LiveIE(InfoExtractor):
                             'Referer': url,
                         }))
 
-        self._sort_formats(formats)
         for fmt in formats:
             fmt.update({
                 'protocol': 'fc2_live',

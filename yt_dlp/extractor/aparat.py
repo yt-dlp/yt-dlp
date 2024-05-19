@@ -10,6 +10,7 @@ from ..utils import (
 
 class AparatIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?aparat\.com/(?:v/|video/video/embed/videohash/)(?P<id>[a-zA-Z0-9]+)'
+    _EMBED_REGEX = [r'<iframe .*?src="(?P<url>http://www\.aparat\.com/video/[^"]+)"']
 
     _TESTS = [{
         'url': 'http://www.aparat.com/v/wP8On',
@@ -72,7 +73,6 @@ class AparatIE(InfoExtractor):
                             r'(\d+)[pP]', label or '', 'height',
                             default=None)),
                     })
-        self._sort_formats(formats)
 
         info = self._search_json_ld(webpage, video_id, default={})
 

@@ -223,8 +223,6 @@ class LifeEmbedIE(InfoExtractor):
                 else:
                     extract_original(video_url)
 
-        self._sort_formats(formats)
-
         thumbnail = thumbnail or self._search_regex(
             r'"image"\s*:\s*"([^"]+)', webpage, 'thumbnail', default=None)
 

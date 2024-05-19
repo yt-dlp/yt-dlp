@@ -3,19 +3,20 @@ import re
 import string
 
 from .common import InfoExtractor
-from ..compat import compat_HTTPError
+from ..networking.exceptions import HTTPError
 from ..utils import (
+    ExtractorError,
     determine_ext,
     int_or_none,
     join_nonempty,
     js_to_json,
+    make_archive_id,
     orderedSet,
     qualities,
     str_or_none,
     traverse_obj,
     try_get,
     urlencode_postdata,
-    ExtractorError,
 )
 
 
@@ -45,8 +46,8 @@ class FunimationBaseIE(InfoExtractor):
                 }))
             FunimationBaseIE._TOKEN = data['token']
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 401:
-                error = self._parse_json(e.cause.read().decode(), None)['error']
+            if isinstance(e.cause, HTTPError) and e.cause.status == 401:
+                error = self._parse_json(e.cause.response.read().decode(), None)['error']
                 raise ExtractorError(error, expected=True)
             raise
 
@@ -209,7 +210,7 @@ class FunimationIE(FunimationBaseIE):
             page = self._download_json(
                 'https://www.funimation.com/api/showexperience/%s/' % experience_id,
                 display_id, headers=headers, expected_status=403, query={
-                    'pinst_id': ''.join([random.choice(string.digits + string.ascii_letters) for _ in range(8)]),
+                    'pinst_id': ''.join(random.choices(string.digits + string.ascii_letters, k=8)),
                 }, note=f'Downloading {format_name} JSON')
             sources = page.get('items') or []
             if not sources:
@@ -242,11 +243,14 @@ class FunimationIE(FunimationBaseIE):
                         'language_preference': language_preference(lang.lower()),
                     })
                 formats.extend(current_formats)
+        if not formats and (requested_languages or requested_versions):
+            self.raise_no_formats(
+                'There are no video formats matching the requested languages/versions', expected=True, video_id=display_id)
         self._remove_duplicate_formats(formats)
-        self._sort_formats(formats, ('lang', 'source'))
 
         return {
-            'id': initial_experience_id if only_initial_experience else episode_id,
+            'id': episode_id,
+            '_old_archive_ids': [make_archive_id(self, initial_experience_id)],
             'display_id': display_id,
             'duration': duration,
             'title': episode['episodeTitle'],
@@ -261,6 +265,7 @@ class FunimationIE(FunimationBaseIE):
             'formats': formats,
             'thumbnails': thumbnails,
             'subtitles': subtitles,
+            '_format_sort_fields': ('lang', 'source'),
         }
 
     def _get_subtitles(self, subtitles, experience_id, episode, display_id, format_name):
@@ -296,7 +301,7 @@ class FunimationShowIE(FunimationBaseIE):
     _TESTS = [{
         'url': 'https://www.funimation.com/en/shows/sk8-the-infinity',
         'info_dict': {
-            'id': 1315000,
+            'id': '1315000',
             'title': 'SK8 the Infinity'
         },
         'playlist_count': 13,
@@ -307,7 +312,7 @@ class FunimationShowIE(FunimationBaseIE):
         # without lang code
         'url': 'https://www.funimation.com/shows/ouran-high-school-host-club/',
         'info_dict': {
-            'id': 39643,
+            'id': '39643',
             'title': 'Ouran High School Host Club'
         },
         'playlist_count': 26,
@@ -334,7 +339,7 @@ class FunimationShowIE(FunimationBaseIE):
 
         return {
             '_type': 'playlist',
-            'id': show_info['id'],
+            'id': str_or_none(show_info['id']),
             'title': show_info['name'],
             'entries': orderedSet(
                 self.url_result(

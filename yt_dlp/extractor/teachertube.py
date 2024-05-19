@@ -9,6 +9,7 @@ from ..utils import (
 
 
 class TeacherTubeIE(InfoExtractor):
+    _WORKING = False
     IE_NAME = 'teachertube'
     IE_DESC = 'teachertube.com videos'
 
@@ -73,8 +74,6 @@ class TeacherTubeIE(InfoExtractor):
             } for media_url in set(media_urls)
         ]
 
-        self._sort_formats(formats)
-
         thumbnail = self._og_search_thumbnail(
             webpage, default=None) or self._html_search_meta(
             'thumbnail', webpage)
@@ -89,6 +88,7 @@ class TeacherTubeIE(InfoExtractor):
 
 
 class TeacherTubeUserIE(InfoExtractor):
+    _WORKING = False
     IE_NAME = 'teachertube:user:collection'
     IE_DESC = 'teachertube.com user and collection videos'
 

@@ -8,7 +8,7 @@ from ..utils import traverse_obj
 class WashingtonPostIE(InfoExtractor):
     IE_NAME = 'washingtonpost'
     _VALID_URL = r'(?:washingtonpost:|https?://(?:www\.)?washingtonpost\.com/(?:video|posttv)/(?:[^/]+/)*)(?P<id>[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12})'
-    _EMBED_URL = r'https?://(?:www\.)?washingtonpost\.com/video/c/embed/[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}'
+    _EMBED_REGEX = [r'<iframe[^>]+\bsrc=["\'](?P<url>https?://(?:www\.)?washingtonpost\.com/video/c/embed/[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12})']
     _TESTS = [{
         'url': 'https://www.washingtonpost.com/video/c/video/480ba4ee-1ec7-11e6-82c2-a7dcb313287d',
         'md5': '6f537e1334b714eb15f9563bd4b9cdfa',
@@ -27,11 +27,6 @@ class WashingtonPostIE(InfoExtractor):
         'url': 'https://www.washingtonpost.com/posttv/world/iraq-to-track-down-antiquities-after-islamic-state-museum-rampage/2015/02/28/7c57e916-bf86-11e4-9dfb-03366e719af8_video.html',
         'only_matching': True,
     }]
-
-    @classmethod
-    def _extract_urls(cls, webpage):
-        return re.findall(
-            r'<iframe[^>]+\bsrc=["\'](%s)' % cls._EMBED_URL, webpage)
 
     def _real_extract(self, url):
         video_id = self._match_id(url)

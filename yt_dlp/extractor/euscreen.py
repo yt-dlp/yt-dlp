@@ -45,7 +45,6 @@ class EUScreenIE(InfoExtractor):
         formats = [{
             'url': source['src'],
         } for source in video_json.get('sources', [])]
-        self._sort_formats(formats)
 
         return {
             'id': id,

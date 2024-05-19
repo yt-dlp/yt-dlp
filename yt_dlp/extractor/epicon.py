@@ -59,7 +59,6 @@ class EpiconIE(InfoExtractor):
         description = self._og_search_description(webpage) or None
         thumbnail = self._og_search_thumbnail(webpage) or None
         formats = self._extract_m3u8_formats(data_json['url']['video_url'], id)
-        self._sort_formats(formats)
 
         subtitles = {}
         for subtitle in data_json.get('subtitles', []):

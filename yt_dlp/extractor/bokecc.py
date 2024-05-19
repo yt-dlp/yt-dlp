@@ -21,8 +21,6 @@ class BokeCCBaseIE(InfoExtractor):
             'quality': int(quality.attrib['value']),
         } for quality in info_xml.findall('./video/quality')]
 
-        self._sort_formats(formats)
-
         return formats
 
 

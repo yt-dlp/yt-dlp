@@ -1,20 +1,12 @@
 import base64
-import imghdr
 import os
 import re
 import subprocess
 
-try:
-    from mutagen.flac import FLAC, Picture
-    from mutagen.mp4 import MP4, MP4Cover
-    from mutagen.oggopus import OggOpus
-    from mutagen.oggvorbis import OggVorbis
-    has_mutagen = True
-except ImportError:
-    has_mutagen = False
-
 from .common import PostProcessor
 from .ffmpeg import FFmpegPostProcessor, FFmpegThumbnailsConvertorPP
+from ..compat import imghdr
+from ..dependencies import mutagen
 from ..utils import (
     Popen,
     PostProcessingError,
@@ -25,6 +17,12 @@ from ..utils import (
     prepend_extension,
     shell_quote,
 )
+
+if mutagen:
+    from mutagen.flac import FLAC, Picture
+    from mutagen.mp4 import MP4, MP4Cover
+    from mutagen.oggopus import OggOpus
+    from mutagen.oggvorbis import OggVorbis
 
 
 class EmbedThumbnailPPError(PostProcessingError):
@@ -81,12 +79,10 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
 
         original_thumbnail = thumbnail_filename = info['thumbnails'][idx]['filepath']
 
-        # Convert unsupported thumbnail formats to PNG (see #25687, #25717)
-        # Original behavior was to convert to JPG, but since JPG is a lossy
-        # format, there will be some additional data loss.
-        # PNG, on the other hand, is lossless.
+        # Convert unsupported thumbnail formats (see #25687, #25717)
+        # PNG is preferred since JPEG is lossy
         thumbnail_ext = os.path.splitext(thumbnail_filename)[1][1:]
-        if thumbnail_ext not in ('jpg', 'jpeg', 'png'):
+        if info['ext'] not in ('mkv', 'mka') and thumbnail_ext not in ('jpg', 'jpeg', 'png'):
             thumbnail_filename = convertor.convert_thumbnail(thumbnail_filename, 'png')
             thumbnail_ext = 'png'
 
@@ -96,7 +92,7 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
         if info['ext'] == 'mp3':
             options = [
                 '-c', 'copy', '-map', '0:0', '-map', '1:0', '-write_id3v1', '1', '-id3v2_version', '3',
-                '-metadata:s:v', 'title="Album cover"', '-metadata:s:v', 'comment="Cover (front)"']
+                '-metadata:s:v', 'title="Album cover"', '-metadata:s:v', 'comment=Cover (front)']
 
             self._report_run('ffmpeg', filename)
             self.run_ffmpeg_multiple_files([filename, thumbnail_filename], temp_filename, options)
@@ -104,24 +100,24 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
         elif info['ext'] in ['mkv', 'mka']:
             options = list(self.stream_copy_opts())
 
-            mimetype = 'image/%s' % ('png' if thumbnail_ext == 'png' else 'jpeg')
+            mimetype = f'image/{thumbnail_ext.replace("jpg", "jpeg")}'
             old_stream, new_stream = self.get_stream_number(
                 filename, ('tags', 'mimetype'), mimetype)
             if old_stream is not None:
                 options.extend(['-map', '-0:%d' % old_stream])
                 new_stream -= 1
             options.extend([
-                '-attach', thumbnail_filename,
+                '-attach', self._ffmpeg_filename_argument(thumbnail_filename),
                 '-metadata:s:%d' % new_stream, 'mimetype=%s' % mimetype,
                 '-metadata:s:%d' % new_stream, 'filename=cover.%s' % thumbnail_ext])
 
             self._report_run('ffmpeg', filename)
             self.run_ffmpeg(filename, temp_filename, options)
 
-        elif info['ext'] in ['m4a', 'mp4', 'mov']:
+        elif info['ext'] in ['m4a', 'mp4', 'm4v', 'mov']:
             prefer_atomicparsley = 'embed-thumbnail-atomicparsley' in self.get_param('compat_opts', [])
             # Method 1: Use mutagen
-            if not has_mutagen or prefer_atomicparsley:
+            if not mutagen or prefer_atomicparsley:
                 success = False
             else:
                 try:
@@ -143,7 +139,8 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
             if not success:
                 success = True
                 atomicparsley = next((
-                    x for x in ['AtomicParsley', 'atomicparsley']
+                    # libatomicparsley.so : See https://github.com/xibr/ytdlp-lazy/issues/1
+                    x for x in ['AtomicParsley', 'atomicparsley', 'libatomicparsley.so']
                     if check_executable(x, ['-v'])), None)
                 if atomicparsley is None:
                     self.to_screen('Neither mutagen nor AtomicParsley was found. Falling back to ffmpeg')
@@ -161,14 +158,12 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
 
                     self._report_run('atomicparsley', filename)
                     self.write_debug('AtomicParsley command line: %s' % shell_quote(cmd))
-                    p = Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                    stdout, stderr = p.communicate_or_kill()
-                    if p.returncode != 0:
-                        msg = stderr.decode('utf-8', 'replace').strip()
-                        self.report_warning(f'Unable to embed thumbnails using AtomicParsley; {msg}')
+                    stdout, stderr, returncode = Popen.run(cmd, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    if returncode:
+                        self.report_warning(f'Unable to embed thumbnails using AtomicParsley; {stderr.strip()}')
                     # for formats that don't support thumbnails (like 3gp) AtomicParsley
                     # won't create to the temporary file
-                    if b'No changes' in stdout:
+                    if 'No changes' in stdout:
                         self.report_warning('The file format doesn\'t support embedding a thumbnail')
                         success = False
 
@@ -194,8 +189,8 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
                     raise EmbedThumbnailPPError(f'Unable to embed using ffprobe & ffmpeg; {err}')
 
         elif info['ext'] in ['ogg', 'opus', 'flac']:
-            if not has_mutagen:
-                raise EmbedThumbnailPPError('module mutagen was not found. Please install using `python -m pip install mutagen`')
+            if not mutagen:
+                raise EmbedThumbnailPPError('module mutagen was not found. Please install using `python3 -m pip install mutagen`')
 
             self._report_run('mutagen', filename)
             f = {'opus': OggOpus, 'flac': FLAC, 'ogg': OggVorbis}[info['ext']](filename)
@@ -218,17 +213,15 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
             temp_filename = filename
 
         else:
-            raise EmbedThumbnailPPError('Supported filetypes for thumbnail embedding are: mp3, mkv/mka, ogg/opus/flac, m4a/mp4/mov')
+            raise EmbedThumbnailPPError('Supported filetypes for thumbnail embedding are: mp3, mkv/mka, ogg/opus/flac, m4a/mp4/m4v/mov')
 
         if success and temp_filename != filename:
             os.replace(temp_filename, filename)
 
         self.try_utime(filename, mtime, mtime)
-
-        files_to_delete = [thumbnail_filename]
-        if self._already_have_thumbnail:
-            if original_thumbnail == thumbnail_filename:
-                files_to_delete = []
-        elif original_thumbnail != thumbnail_filename:
-            files_to_delete.append(original_thumbnail)
-        return files_to_delete, info
+        converted = original_thumbnail != thumbnail_filename
+        self._delete_downloaded_files(
+            thumbnail_filename if converted or not self._already_have_thumbnail else None,
+            original_thumbnail if converted and not self._already_have_thumbnail else None,
+            info=info)
+        return [], info

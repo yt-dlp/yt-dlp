@@ -74,8 +74,6 @@ class GiantBombIE(InfoExtractor):
             if youtube_id:
                 return self.url_result(youtube_id, 'Youtube')
 
-        self._sort_formats(formats)
-
         return {
             'id': video_id,
             'display_id': display_id,

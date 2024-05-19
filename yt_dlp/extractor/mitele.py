@@ -5,7 +5,7 @@ from ..utils import (
 )
 
 
-class MiTeleIE(TelecincoIE):
+class MiTeleIE(TelecincoIE):  # XXX: Do not subclass from concrete IE
     IE_DESC = 'mitele.es'
     _VALID_URL = r'https?://(?:www\.)?mitele\.es/(?:[^/]+/)+(?P<id>[^/]+)/player'
 

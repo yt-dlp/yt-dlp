@@ -1,9 +1,5 @@
 from .common import InfoExtractor
-from ..utils import (
-    traverse_obj,
-    float_or_none,
-    int_or_none
-)
+from ..utils import float_or_none, int_or_none, make_archive_id, traverse_obj
 
 
 class CallinIE(InfoExtractor):
@@ -35,6 +31,54 @@ class CallinIE(InfoExtractor):
             'episode_number': 1,
             'episode_id': '218b979630a35ead12c6fd096f2996c56c37e4d0dc1f6dc0feada32dcf7b31cd'
         }
+    }, {
+        'url': 'https://www.callin.com/episode/fcc-commissioner-brendan-carr-on-elons-PrumRdSQJW',
+        'md5': '14ede27ee2c957b7e4db93140fc0745c',
+        'info_dict': {
+            'id': 'c3dab47f237bf953d180d3f243477a84302798be0e0b29bc9ade6d60a69f04f5',
+            'ext': 'ts',
+            'title': 'FCC Commissioner Brendan Carr on Elon’s Starlink',
+            'description': 'Or, why the government doesn’t like SpaceX',
+            'channel': 'The Pull Request',
+            'channel_url': 'https://callin.com/show/the-pull-request-ucnDJmEKAa',
+            'duration': 3182.472,
+            'series_id': '7e9c23156e4aecfdcaef46bfb2ed7ca268509622ec006c0f0f25d90e34496638',
+            'uploader_url': 'http://thepullrequest.com',
+            'upload_date': '20220902',
+            'episode': 'FCC Commissioner Brendan Carr on Elon’s Starlink',
+            'display_id': 'fcc-commissioner-brendan-carr-on-elons-PrumRdSQJW',
+            'series': 'The Pull Request',
+            'channel_id': '7e9c23156e4aecfdcaef46bfb2ed7ca268509622ec006c0f0f25d90e34496638',
+            'view_count': int,
+            'uploader': 'Antonio García Martínez',
+            'thumbnail': 'https://d1z76fhpoqkd01.cloudfront.net/shows/legacy/1ade9142625344045dc17cf523469ced1d93610762f4c886d06aa190a2f979e8.png',
+            'episode_id': 'c3dab47f237bf953d180d3f243477a84302798be0e0b29bc9ade6d60a69f04f5',
+            'timestamp': 1662100688.005,
+        }
+    }, {
+        'url': 'https://www.callin.com/episode/episode-81-elites-melt-down-over-student-debt-lzxMidUnjA',
+        'md5': '16f704ddbf82a27e3930533b12062f07',
+        'info_dict': {
+            'id': '8d06f869798f93a7814e380bceabea72d501417e620180416ff6bd510596e83c',
+            'ext': 'ts',
+            'title': 'Episode 81- Elites MELT DOWN over Student Debt Victory? Rumble in NYC?',
+            'description': 'Let’s talk todays episode about the primary election shake up in NYC and the elites melting down over student debt cancelation.',
+            'channel': 'The DEBRIEF With Briahna Joy Gray',
+            'channel_url': 'https://callin.com/show/the-debrief-with-briahna-joy-gray-siiFDzGegm',
+            'duration': 10043.16,
+            'series_id': '61cea58444465fd26674069703bd8322993bc9e5b4f1a6d0872690554a046ff7',
+            'uploader_url': 'http://patreon.com/badfaithpodcast',
+            'upload_date': '20220826',
+            'episode': 'Episode 81- Elites MELT DOWN over Student Debt Victory? Rumble in NYC?',
+            'display_id': 'episode-',
+            'series': 'The DEBRIEF With Briahna Joy Gray',
+            'channel_id': '61cea58444465fd26674069703bd8322993bc9e5b4f1a6d0872690554a046ff7',
+            'view_count': int,
+            'uploader': 'Briahna Gray',
+            'thumbnail': 'https://d1z76fhpoqkd01.cloudfront.net/shows/legacy/461ea0d86172cb6aff7d6c80fd49259cf5e64bdf737a4650f8bc24cf392ca218.png',
+            'episode_id': '8d06f869798f93a7814e380bceabea72d501417e620180416ff6bd510596e83c',
+            'timestamp': 1661476708.282,
+        }
     }]
 
     def try_get_user_name(self, d):
@@ -51,12 +95,9 @@ class CallinIE(InfoExtractor):
         episode = next_data['props']['pageProps']['episode']
 
         id = episode['id']
-        title = (episode.get('title')
-                 or self._og_search_title(webpage, fatal=False)
-                 or self._html_extract_title(webpage))
+        title = episode.get('title') or self._generic_title('', webpage)
         url = episode['m3u8']
         formats = self._extract_m3u8_formats(url, display_id, ext='ts')
-        self._sort_formats(formats)
 
         show = traverse_obj(episode, ('show', 'title'))
         show_id = traverse_obj(episode, ('show', 'id'))
@@ -89,6 +130,7 @@ class CallinIE(InfoExtractor):
 
         return {
             'id': id,
+            '_old_archive_ids': [make_archive_id(self, display_id.rsplit('-', 1)[-1])],
             'display_id': display_id,
             'title': title,
             'formats': formats,

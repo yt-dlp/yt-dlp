@@ -21,7 +21,7 @@ class MinotoIE(InfoExtractor):
                 continue
             container = fmt.get('container')
             if container == 'hls':
-                formats.extend(fmt_url, video_id, 'mp4', m3u8_id='hls', fatal=False)
+                formats.extend(self._extract_m3u8_formats(fmt_url, video_id, 'mp4', m3u8_id='hls', fatal=False))
             else:
                 fmt_profile = fmt.get('profile') or {}
                 formats.append({
@@ -35,7 +35,6 @@ class MinotoIE(InfoExtractor):
                     'height': int_or_none(fmt.get('height')),
                     **parse_codecs(fmt.get('codecs')),
                 })
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

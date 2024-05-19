@@ -15,35 +15,35 @@ class XVideosIE(InfoExtractor):
     _VALID_URL = r'''(?x)
                     https?://
                         (?:
-                            (?:[^/]+\.)?xvideos2?\.com/video|
-                            (?:www\.)?xvideos\.es/video|
+                            (?:[^/]+\.)?xvideos2?\.com/video\.?|
+                            (?:www\.)?xvideos\.es/video\.?|
                             (?:www|flashservice)\.xvideos\.com/embedframe/|
                             static-hw\.xvideos\.com/swf/xv-player\.swf\?.*?\bid_video=
                         )
-                        (?P<id>[0-9]+)
+                        (?P<id>[0-9a-z]+)
                     '''
     _TESTS = [{
-        'url': 'https://www.xvideos.com/video4588838/motorcycle_guy_cucks_influencer_steals_his_gf',
-        'md5': '14cea69fcb84db54293b1e971466c2e1',
+        'url': 'http://xvideos.com/video.ucuvbkfda4e/a_beautiful_red-haired_stranger_was_refused_but_still_came_to_my_room_for_sex',
+        'md5': '396255a900a6bddb3e98985f0b86c3fd',
         'info_dict': {
-            'id': '4588838',
+            'id': 'ucuvbkfda4e',
             'ext': 'mp4',
-            'title': 'Motorcycle Guy Cucks Influencer, Steals his GF',
-            'duration': 108,
+            'title': 'A Beautiful Red-Haired Stranger Was Refused, But Still Came To My Room For Sex',
+            'duration': 1238,
             'age_limit': 18,
-            'thumbnail': r're:^https://img-hw.xvideos-cdn.com/.+\.jpg',
+            'thumbnail': r're:^https://cdn\d+-pic.xvideos-cdn.com/.+\.jpg',
         }
     }, {
         # Broken HLS formats
         'url': 'https://www.xvideos.com/video65982001/what_s_her_name',
-        'md5': 'b82d7d7ef7d65a84b1fa6965f81f95a5',
+        'md5': '56742808292c8fa1418e4538c262c58b',
         'info_dict': {
             'id': '65982001',
             'ext': 'mp4',
             'title': 'what\'s her name?',
             'duration': 120,
             'age_limit': 18,
-            'thumbnail': r're:^https://img-hw.xvideos-cdn.com/.+\.jpg',
+            'thumbnail': r're:^https://cdn\d+-pic.xvideos-cdn.com/.+\.jpg',
         }
     }, {
         'url': 'https://flashservice.xvideos.com/embedframe/4588838',
@@ -89,6 +89,18 @@ class XVideosIE(InfoExtractor):
         'only_matching': True
     }, {
         'url': 'https://de.xvideos.com/video4588838/biker_takes_his_girl',
+        'only_matching': True
+    }, {
+        'url': 'https://flashservice.xvideos.com/embedframe/ucuvbkfda4e',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.xvideos.com/embedframe/ucuvbkfda4e',
+        'only_matching': True,
+    }, {
+        'url': 'http://static-hw.xvideos.com/swf/xv-player.swf?id_video=ucuvbkfda4e',
+        'only_matching': True,
+    }, {
+        'url': 'https://xvideos.es/video.ucuvbkfda4e/a_beautiful_red-haired_stranger_was_refused_but_still_came_to_my_room_for_sex',
         'only_matching': True
     }]
 
@@ -149,8 +161,6 @@ class XVideosIE(InfoExtractor):
                     'quality': -2 if format_id.endswith('low') else None,
                 })
 
-        self._sort_formats(formats)
-
         return {
             'id': video_id,
             'formats': formats,
@@ -159,3 +169,57 @@ class XVideosIE(InfoExtractor):
             'thumbnails': thumbnails,
             'age_limit': 18,
         }
+
+
+class XVideosQuickiesIE(InfoExtractor):
+    IE_NAME = 'xvideos:quickies'
+    _VALID_URL = r'https?://(?P<domain>(?:[^/?#]+\.)?xvideos2?\.com)/(?:profiles/|amateur-channels/)?[^/?#]+#quickies/a/(?P<id>\w+)'
+    _TESTS = [{
+        'url': 'https://www.xvideos.com/lili_love#quickies/a/ipdtikh1a4c',
+        'md5': 'f9e4f518ff1de14b99a400bbd0fc5ee0',
+        'info_dict': {
+            'id': 'ipdtikh1a4c',
+            'ext': 'mp4',
+            'title': 'Mexican chichóna putisima',
+            'age_limit': 18,
+            'duration': 81,
+            'thumbnail': r're:^https://cdn.*-pic.xvideos-cdn.com/.+\.jpg',
+        }
+    }, {
+        'url': 'https://www.xvideos.com/profiles/lili_love#quickies/a/ipphaob6fd1',
+        'md5': '5340938aac6b46e19ebdd1d84535862e',
+        'info_dict': {
+            'id': 'ipphaob6fd1',
+            'ext': 'mp4',
+            'title': 'Puta chichona mexicana squirting',
+            'age_limit': 18,
+            'duration': 56,
+            'thumbnail': r're:^https://cdn.*-pic.xvideos-cdn.com/.+\.jpg',
+        }
+    }, {
+        'url': 'https://www.xvideos.com/amateur-channels/lili_love#quickies/a/hfmffmd7661',
+        'md5': '92428518bbabcb4c513e55922e022491',
+        'info_dict': {
+            'id': 'hfmffmd7661',
+            'ext': 'mp4',
+            'title': 'Chichona mexican slut',
+            'age_limit': 18,
+            'duration': 9,
+            'thumbnail': r're:^https://cdn.*-pic.xvideos-cdn.com/.+\.jpg',
+        }
+    }, {
+        'url': 'https://www.xvideos.com/amateur-channels/wifeluna#quickies/a/47258683',
+        'md5': '16e322a93282667f1963915568f782c1',
+        'info_dict': {
+            'id': '47258683',
+            'ext': 'mp4',
+            'title': 'Verification video',
+            'age_limit': 18,
+            'duration': 16,
+            'thumbnail': r're:^https://cdn.*-pic.xvideos-cdn.com/.+\.jpg',
+        }
+    }]
+
+    def _real_extract(self, url):
+        domain, id_ = self._match_valid_url(url).group('domain', 'id')
+        return self.url_result(f'https://{domain}/video{"" if id_.isdecimal() else "."}{id_}/_', XVideosIE, id_)

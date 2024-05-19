@@ -3,6 +3,7 @@ from ..utils import int_or_none
 
 
 class KelbyOneIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://members\.kelbyone\.com/course/(?P<id>[^$&?#/]+)'
 
     _TESTS = [{
@@ -59,7 +60,6 @@ class KelbyOneIE(InfoExtractor):
                     subtitles.setdefault('en', []).append({
                         'url': track['file'],
                     })
-            self._sort_formats(formats)
             yield {
                 'id': video_id,
                 'title': item['title'],

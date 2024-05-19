@@ -1,4 +1,4 @@
-import datetime
+import datetime as dt
 import hashlib
 import re
 import time
@@ -182,11 +182,10 @@ class LeIE(InfoExtractor):
                     f['height'] = int_or_none(format_id[:-1])
 
                 formats.append(f)
-        self._sort_formats(formats, ('res', 'quality'))
 
         publish_time = parse_iso8601(self._html_search_regex(
             r'发布时间&nbsp;([^<>]+) ', page, 'publish time', default=None),
-            delimiter=' ', timezone=datetime.timedelta(hours=8))
+            delimiter=' ', timezone=dt.timedelta(hours=8))
         description = self._html_search_meta('description', page, fatal=False)
 
         return {
@@ -196,6 +195,7 @@ class LeIE(InfoExtractor):
             'thumbnail': playurl['pic'],
             'description': description,
             'timestamp': publish_time,
+            '_format_sort_fields': ('res', 'quality'),
         }
 
 
@@ -356,7 +356,6 @@ class LetvCloudIE(InfoExtractor):
         media_id = uu + '_' + vu
 
         formats = self._get_formats('flash', uu, vu, media_id) + self._get_formats('html5', uu, vu, media_id)
-        self._sort_formats(formats)
 
         return {
             'id': media_id,

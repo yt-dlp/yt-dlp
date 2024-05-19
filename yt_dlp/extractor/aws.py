@@ -1,4 +1,4 @@
-import datetime
+import datetime as dt
 import hashlib
 import hmac
 
@@ -6,13 +6,13 @@ from .common import InfoExtractor
 from ..compat import compat_urllib_parse_urlencode
 
 
-class AWSIE(InfoExtractor):
+class AWSIE(InfoExtractor):  # XXX: Conventionally, base classes should end with BaseIE/InfoExtractor
     _AWS_ALGORITHM = 'AWS4-HMAC-SHA256'
     _AWS_REGION = 'us-east-1'
 
     def _aws_execute_api(self, aws_dict, video_id, query=None):
         query = query or {}
-        amz_date = datetime.datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')
+        amz_date = dt.datetime.now(dt.timezone.utc).strftime('%Y%m%dT%H%M%SZ')
         date = amz_date[:8]
         headers = {
             'Accept': 'application/json',

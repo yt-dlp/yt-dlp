@@ -126,8 +126,6 @@ class LibraryOfCongressIE(InfoExtractor):
                 'filesize_approx': parse_filesize(m.group('size')),
             })
 
-        self._sort_formats(formats)
-
         duration = float_or_none(data.get('duration'))
         view_count = int_or_none(data.get('viewCount'))
 

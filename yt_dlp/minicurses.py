@@ -34,7 +34,7 @@ def format_text(text, f):
     '''
     @param f    String representation of formatting to apply in the form:
                 [style] [light] font_color [on [light] bg_color]
-                Eg: "red", "bold green on light blue"
+                E.g. "red", "bold green on light blue"
     '''
     f = f.upper()
     tokens = f.strip().split()
@@ -69,6 +69,7 @@ def format_text(text, f):
             raise SyntaxError(f'Invalid format {" ".join(tokens)!r} in {f!r}')
 
     if fg_color or bg_color:
+        text = text.replace(CONTROL_SEQUENCES['RESET'], f'{fg_color}{bg_color}')
         return f'{fg_color}{bg_color}{text}{CONTROL_SEQUENCES["RESET"]}'
     else:
         return text

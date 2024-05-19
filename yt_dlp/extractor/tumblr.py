@@ -274,7 +274,7 @@ class TumblrIE(InfoExtractor):
         url = f'http://{blog}.tumblr.com/post/{video_id}/'
         webpage, urlh = self._download_webpage_handle(url, video_id)
 
-        redirect_url = urlh.geturl()
+        redirect_url = urlh.url
 
         api_only = bool(self._search_regex(
             r'(tumblr.com|^)/(safe-mode|login_required|blog/view)',
@@ -358,7 +358,6 @@ class TumblrIE(InfoExtractor):
             'height': int_or_none(
                 media_json.get('height') or self._og_search_property('video:height', webpage, default=None)),
         }]
-        self._sort_formats(formats)
 
         # the url we're extracting from might be an original post or it might be a reblog.
         # if it's a reblog, og:description will be the reblogger's comment, not the uploader's.

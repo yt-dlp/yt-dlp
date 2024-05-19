@@ -95,7 +95,6 @@ class ChaturbateIE(InfoExtractor):
                 # ffmpeg skips segments for fast m3u8
                 preference=-10 if m3u8_id == 'fast' else None,
                 m3u8_id=m3u8_id, fatal=False, live=True))
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

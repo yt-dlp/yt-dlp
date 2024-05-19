@@ -48,7 +48,6 @@ class NHLBaseIE(InfoExtractor):
                     'height': height,
                     'tbr': int_or_none(self._search_regex(r'_(\d+)[kK]', playback_url, 'bitrate', default=None)),
                 })
-        self._sort_formats(formats)
 
         thumbnails = []
         cuts = video_data.get('image', {}).get('cuts') or []

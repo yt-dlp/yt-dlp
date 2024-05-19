@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 # Allow direct execution
 import os
 import sys
@@ -7,40 +8,40 @@ import unittest
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
+import struct
+
+from yt_dlp import compat
+from yt_dlp.compat import urllib  # isort: split
 from yt_dlp.compat import (
     compat_etree_fromstring,
     compat_expanduser,
-    compat_getenv,
-    compat_setenv,
-    compat_str,
-    compat_struct_unpack,
     compat_urllib_parse_unquote,
-    compat_urllib_parse_unquote_plus,
     compat_urllib_parse_urlencode,
 )
+from yt_dlp.compat.urllib.request import getproxies
 
 
 class TestCompat(unittest.TestCase):
-    def test_compat_getenv(self):
-        test_str = 'тест'
-        compat_setenv('yt_dlp_COMPAT_GETENV', test_str)
-        self.assertEqual(compat_getenv('yt_dlp_COMPAT_GETENV'), test_str)
+    def test_compat_passthrough(self):
+        with self.assertWarns(DeprecationWarning):
+            compat.compat_basestring
 
-    def test_compat_setenv(self):
-        test_var = 'yt_dlp_COMPAT_SETENV'
-        test_str = 'тест'
-        compat_setenv(test_var, test_str)
-        compat_getenv(test_var)
-        self.assertEqual(compat_getenv(test_var), test_str)
+        with self.assertWarns(DeprecationWarning):
+            compat.WINDOWS_VT_MODE
+
+        self.assertEqual(urllib.request.getproxies, getproxies)
+
+        with self.assertWarns(DeprecationWarning):
+            compat.compat_pycrypto_AES  # Must not raise error
 
     def test_compat_expanduser(self):
         old_home = os.environ.get('HOME')
         test_str = R'C:\Documents and Settings\тест\Application Data'
         try:
-            compat_setenv('HOME', test_str)
+            os.environ['HOME'] = test_str
             self.assertEqual(compat_expanduser('~'), test_str)
         finally:
-            compat_setenv('HOME', old_home or '')
+            os.environ['HOME'] = old_home or ''
 
     def test_compat_urllib_parse_unquote(self):
         self.assertEqual(compat_urllib_parse_unquote('abc%20def'), 'abc def')
@@ -62,8 +63,8 @@ class TestCompat(unittest.TestCase):
             '''(^◣_◢^)っ︻デ═一    ⇀    ⇀    ⇀    ⇀    ⇀    ↶%I%Break%Things%''')
 
     def test_compat_urllib_parse_unquote_plus(self):
-        self.assertEqual(compat_urllib_parse_unquote_plus('abc%20def'), 'abc def')
-        self.assertEqual(compat_urllib_parse_unquote_plus('%7e/abc+def'), '~/abc def')
+        self.assertEqual(urllib.parse.unquote_plus('abc%20def'), 'abc def')
+        self.assertEqual(urllib.parse.unquote_plus('%7e/abc+def'), '~/abc def')
 
     def test_compat_urllib_parse_urlencode(self):
         self.assertEqual(compat_urllib_parse_urlencode({'abc': 'def'}), 'abc=def')
@@ -83,12 +84,12 @@ class TestCompat(unittest.TestCase):
                 <foo><bar>spam</bar></foo>
             </root>
         '''
-        doc = compat_etree_fromstring(xml.encode('utf-8'))
-        self.assertTrue(isinstance(doc.attrib['foo'], compat_str))
-        self.assertTrue(isinstance(doc.attrib['spam'], compat_str))
-        self.assertTrue(isinstance(doc.find('normal').text, compat_str))
-        self.assertTrue(isinstance(doc.find('chinese').text, compat_str))
-        self.assertTrue(isinstance(doc.find('foo/bar').text, compat_str))
+        doc = compat_etree_fromstring(xml.encode())
+        self.assertTrue(isinstance(doc.attrib['foo'], str))
+        self.assertTrue(isinstance(doc.attrib['spam'], str))
+        self.assertTrue(isinstance(doc.find('normal').text, str))
+        self.assertTrue(isinstance(doc.find('chinese').text, str))
+        self.assertTrue(isinstance(doc.find('foo/bar').text, str))
 
     def test_compat_etree_fromstring_doctype(self):
         xml = '''<?xml version="1.0"?>
@@ -97,7 +98,7 @@ class TestCompat(unittest.TestCase):
         compat_etree_fromstring(xml)
 
     def test_struct_unpack(self):
-        self.assertEqual(compat_struct_unpack('!B', b'\x00'), (0,))
+        self.assertEqual(struct.unpack('!B', b'\x00'), (0,))
 
 
 if __name__ == '__main__':

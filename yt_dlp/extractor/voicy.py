@@ -1,3 +1,5 @@
+import itertools
+
 from .common import InfoExtractor
 from ..compat import compat_str
 from ..utils import (
@@ -8,8 +10,6 @@ from ..utils import (
     unified_strdate,
     unsmuggle_url,
 )
-
-import itertools
 
 
 class VoicyBaseIE(InfoExtractor):
@@ -44,7 +44,6 @@ class VoicyBaseIE(InfoExtractor):
             'acodec': 'mp3',
             'vcodec': 'none',
         }]
-        self._sort_formats(formats)
         return {
             'id': compat_str(entry.get('ArticleId')),
             'title': entry.get('ArticleTitle'),
@@ -63,6 +62,7 @@ class VoicyBaseIE(InfoExtractor):
 
 
 class VoicyIE(VoicyBaseIE):
+    _WORKING = False
     IE_NAME = 'voicy'
     _VALID_URL = r'https?://voicy\.jp/channel/(?P<channel_id>\d+)/(?P<id>\d+)'
     ARTICLE_LIST_API_URL = 'https://vmw.api.voicy.jp/articles_list?channel_id=%s&pid=%s'
@@ -89,6 +89,7 @@ class VoicyIE(VoicyBaseIE):
 
 
 class VoicyChannelIE(VoicyBaseIE):
+    _WORKING = False
     IE_NAME = 'voicy:channel'
     _VALID_URL = r'https?://voicy\.jp/channel/(?P<id>\d+)'
     PROGRAM_LIST_API_URL = 'https://vmw.api.voicy.jp/program_list/all?channel_id=%s&limit=20&public_type=3%s'
@@ -105,7 +106,7 @@ class VoicyChannelIE(VoicyBaseIE):
 
     @classmethod
     def suitable(cls, url):
-        return not VoicyIE.suitable(url) and super(VoicyChannelIE, cls).suitable(url)
+        return not VoicyIE.suitable(url) and super().suitable(url)
 
     def _entries(self, channel_id):
         pager = ''

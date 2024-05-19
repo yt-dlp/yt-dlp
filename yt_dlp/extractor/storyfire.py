@@ -32,9 +32,7 @@ class StoryFireBaseIE(InfoExtractor):
             'description': video.get('description'),
             'url': smuggle_url(
                 'https://player.vimeo.com/video/' + vimeo_id, {
-                    'http_headers': {
-                        'Referer': 'https://storyfire.com/',
-                    }
+                    'referer': 'https://storyfire.com/',
                 }),
             'thumbnail': video.get('storyImage'),
             'view_count': int_or_none(video.get('views')),
@@ -44,7 +42,7 @@ class StoryFireBaseIE(InfoExtractor):
             'timestamp': int_or_none(video.get('publishDate')),
             'uploader': video.get('username'),
             'uploader_id': uploader_id,
-            'uploader_url': format_field(uploader_id, template='https://storyfire.com/user/%s/video'),
+            'uploader_url': format_field(uploader_id, None, 'https://storyfire.com/user/%s/video'),
             'episode_number': int_or_none(video.get('episodeNumber') or video.get('episode_number')),
         }
 

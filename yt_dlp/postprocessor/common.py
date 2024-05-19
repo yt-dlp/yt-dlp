@@ -1,17 +1,15 @@
 import functools
-import itertools
 import json
 import os
-import time
-import urllib.error
 
+from ..networking import Request
+from ..networking.exceptions import HTTPError, network_exceptions
 from ..utils import (
     PostProcessingError,
+    RetryManager,
     _configuration_args,
+    deprecation_warning,
     encodeFilename,
-    network_exceptions,
-    sanitized_Request,
-    write_string,
 )
 
 
@@ -45,9 +43,6 @@ class PostProcessor(metaclass=PostProcessorMetaClass):
     an initial argument and then with the returned value of the previous
     PostProcessor.
 
-    The chain will be stopped if one of them ever returns None or the end
-    of the chain is reached.
-
     PostProcessor objects follow a "mutual registration" process similar
     to InfoExtractor objects.
 
@@ -77,10 +72,14 @@ class PostProcessor(metaclass=PostProcessorMetaClass):
         if self._downloader:
             return self._downloader.report_warning(text, *args, **kwargs)
 
-    def deprecation_warning(self, text):
+    def deprecation_warning(self, msg):
+        warn = getattr(self._downloader, 'deprecation_warning', deprecation_warning)
+        return warn(msg, stacklevel=1)
+
+    def deprecated_feature(self, msg):
         if self._downloader:
-            return self._downloader.deprecation_warning(text)
-        write_string(f'DeprecationWarning: {text}')
+            return self._downloader.deprecated_feature(msg)
+        return deprecation_warning(msg, stacklevel=1)
 
     def report_error(self, text, *args, **kwargs):
         self.deprecation_warning('"yt_dlp.postprocessor.PostProcessor.report_error" is deprecated. '
@@ -91,6 +90,12 @@ class PostProcessor(metaclass=PostProcessorMetaClass):
     def write_debug(self, text, *args, **kwargs):
         if self._downloader:
             return self._downloader.write_debug(text, *args, **kwargs)
+
+    def _delete_downloaded_files(self, *files_to_delete, **kwargs):
+        if self._downloader:
+            return self._downloader._delete_downloaded_files(*files_to_delete, **kwargs)
+        for filename in set(filter(None, files_to_delete)):
+            os.remove(filename)
 
     def get_param(self, name, default=None, *args, **kwargs):
         if self._downloader:
@@ -170,6 +175,8 @@ class PostProcessor(metaclass=PostProcessorMetaClass):
 
     def report_progress(self, s):
         s['_default_template'] = '%(postprocessor)s %(status)s' % s
+        if not self._downloader:
+            return
 
         progress_dict = s.copy()
         progress_dict.pop('info_dict')
@@ -178,34 +185,31 @@ class PostProcessor(metaclass=PostProcessorMetaClass):
         progress_template = self.get_param('progress_template', {})
         tmpl = progress_template.get('postprocess')
         if tmpl:
-            self._downloader.to_stdout(self._downloader.evaluate_outtmpl(tmpl, progress_dict))
+            self._downloader.to_screen(
+                self._downloader.evaluate_outtmpl(tmpl, progress_dict), quiet=False)
 
         self._downloader.to_console_title(self._downloader.evaluate_outtmpl(
             progress_template.get('postprocess-title') or 'yt-dlp %(progress._default_template)s',
             progress_dict))
 
-    def _download_json(self, url, *, expected_http_errors=(404,)):
+    def _retry_download(self, err, count, retries):
         # While this is not an extractor, it behaves similar to one and
-        # so obey extractor_retries and sleep_interval_requests
-        max_retries = self.get_param('extractor_retries', 3)
-        sleep_interval = self.get_param('sleep_interval_requests') or 0
+        # so obey extractor_retries and "--retry-sleep extractor"
+        RetryManager.report_retry(err, count, retries, info=self.to_screen, warn=self.report_warning,
+                                  sleep_func=self.get_param('retry_sleep_functions', {}).get('extractor'))
 
+    def _download_json(self, url, *, expected_http_errors=(404,)):
         self.write_debug(f'{self.PP_NAME} query: {url}')
-        for retries in itertools.count():
+        for retry in RetryManager(self.get_param('extractor_retries', 3), self._retry_download):
             try:
-                rsp = self._downloader.urlopen(sanitized_Request(url))
-                return json.loads(rsp.read().decode(rsp.info().get_param('charset') or 'utf-8'))
+                rsp = self._downloader.urlopen(Request(url))
             except network_exceptions as e:
-                if isinstance(e, urllib.error.HTTPError) and e.code in expected_http_errors:
+                if isinstance(e, HTTPError) and e.status in expected_http_errors:
                     return None
-                if retries < max_retries:
-                    self.report_warning(f'{e}. Retrying...')
-                    if sleep_interval > 0:
-                        self.to_screen(f'Sleeping {sleep_interval} seconds ...')
-                        time.sleep(sleep_interval)
-                    continue
-                raise PostProcessingError(f'Unable to communicate with {self.PP_NAME} API: {e}')
+                retry.error = PostProcessingError(f'Unable to communicate with {self.PP_NAME} API: {e}')
+                continue
+        return json.loads(rsp.read().decode(rsp.headers.get_param('charset') or 'utf-8'))
 
 
-class AudioConversionError(PostProcessingError):
+class AudioConversionError(PostProcessingError):  # Deprecated
     pass

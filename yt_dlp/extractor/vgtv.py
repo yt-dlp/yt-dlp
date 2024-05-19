@@ -9,11 +9,12 @@ from ..utils import (
 )
 
 
-class VGTVIE(XstreamIE):
+class VGTVIE(XstreamIE):  # XXX: Do not subclass from concrete IE
     IE_DESC = 'VGTV, BTTV, FTV, Aftenposten and Aftonbladet'
     _GEO_BYPASS = False
 
     _HOST_TO_APPNAME = {
+        'tv.vg.no': 'vgtv',
         'vgtv.no': 'vgtv',
         'bt.no/tv': 'bttv',
         'aftenbladet.no/tv': 'satv',
@@ -127,6 +128,10 @@ class VGTVIE(XstreamIE):
             },
         },
         {
+            'url': 'https://tv.vg.no/video/241779/politiets-ekstremkjoering',
+            'only_matching': True,
+        },
+        {
             'url': 'http://www.bt.no/tv/#!/video/100250/norling-dette-er-forskjellen-paa-1-divisjon-og-eliteserien',
             'only_matching': True,
         },
@@ -232,8 +237,6 @@ class VGTVIE(XstreamIE):
             if properties and 'geoblocked' in properties:
                 raise self.raise_geo_restricted(
                     countries=[host.rpartition('.')[-1].partition('/')[0].upper()])
-
-        self._sort_formats(info['formats'])
 
         info.update({
             'id': video_id,

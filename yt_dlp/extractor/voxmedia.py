@@ -47,18 +47,16 @@ class VoxMediaVolumeIE(OnceIE):
                 'tbr': int_or_none(tbr),
             })
         if formats:
-            self._sort_formats(formats)
             info['formats'] = formats
             info['duration'] = int_or_none(asset.get('duration'))
             return info
 
-        for provider_video_type in ('ooyala', 'youtube', 'brightcove'):
+        for provider_video_type in ('youtube', 'brightcove'):
             provider_video_id = video_data.get('%s_id' % provider_video_type)
             if not provider_video_id:
                 continue
             if provider_video_type == 'brightcove':
                 info['formats'] = self._extract_once_formats(provider_video_id)
-                self._sort_formats(info['formats'])
             else:
                 info.update({
                     '_type': 'url_transparent',
@@ -71,6 +69,7 @@ class VoxMediaVolumeIE(OnceIE):
 
 class VoxMediaIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?(?:(?:theverge|vox|sbnation|eater|polygon|curbed|racked|funnyordie)\.com|recode\.net)/(?:[^/]+/)*(?P<id>[^/?]+)'
+    _EMBED_REGEX = [r'<iframe[^>]+?src="(?P<url>https?://(?:www\.)?funnyordie\.com/embed/[^"]+)"']
     _TESTS = [{
         # Volume embed, Youtube
         'url': 'http://www.theverge.com/2014/6/27/5849272/material-world-how-google-discovered-what-software-is-made-of',
@@ -178,7 +177,6 @@ class VoxMediaIE(InfoExtractor):
         def create_entry(provider_video_id, provider_video_type, title=None, description=None):
             video_url = {
                 'youtube': '%s',
-                'ooyala': 'ooyala:%s',
                 'volume': 'http://volume.vox-cdn.com/embed/%s',
             }[provider_video_type] % provider_video_id
             return {
@@ -205,11 +203,6 @@ class VoxMediaIE(InfoExtractor):
                     entries.append(create_entry(
                         provider_video_id, provider_video_type,
                         video_data.get('title'), video_data.get('description')))
-
-        provider_video_id = self._search_regex(
-            r'data-ooyala-id="([^"]+)"', webpage, 'ooyala id', default=None)
-        if provider_video_id:
-            entries.append(create_entry(provider_video_id, 'ooyala'))
 
         volume_uuid = self._search_regex(
             r'data-volume-uuid="([^"]+)"', webpage, 'volume uuid', default=None)

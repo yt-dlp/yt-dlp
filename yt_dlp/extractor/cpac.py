@@ -54,8 +54,6 @@ class CPACIE(InfoExtractor):
                 else:
                     fmt['language_preference'] = -10
 
-        self._sort_formats(formats)
-
         category = str_or_none(content['details']['category_%s_t' % (url_lang, )])
 
         def is_live(v_type):
@@ -67,7 +65,7 @@ class CPACIE(InfoExtractor):
             'title': title,
             'description': str_or_none(content['details'].get('description_%s_t' % (url_lang, ))),
             'timestamp': unified_timestamp(content['details'].get('liveDateTime')),
-            'category': [category] if category else None,
+            'categories': [category] if category else None,
             'thumbnail': urljoin(url, str_or_none(content['details'].get('image_%s_s' % (url_lang, )))),
             'is_live': is_live(content['details'].get('type')),
         }

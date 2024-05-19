@@ -4,6 +4,7 @@ from .common import InfoExtractor
 from ..utils import (
     qualities,
     unified_timestamp,
+    traverse_obj,
 )
 
 
@@ -36,7 +37,14 @@ class PearVideoIE(InfoExtractor):
         } for mobj in re.finditer(
             r'(?P<id>[a-zA-Z]+)Url\s*=\s*(["\'])(?P<url>(?:https?:)?//.+?)\2',
             webpage)]
-        self._sort_formats(formats)
+        if not formats:
+            info = self._download_json(
+                'https://www.pearvideo.com/videoStatus.jsp', video_id=video_id,
+                query={'contId': video_id}, headers={'Referer': url})
+            formats = [{
+                'format_id': k,
+                'url': v.replace(info['systemTime'], f'cont-{video_id}') if k == 'srcUrl' else v
+            } for k, v in traverse_obj(info, ('videoInfo', 'videos'), default={}).items() if v]
 
         title = self._search_regex(
             (r'<h1[^>]+\bclass=(["\'])video-tt\1[^>]*>(?P<value>[^<]+)',

@@ -10,6 +10,7 @@ from ..utils import (
 
 
 class FancodeVodIE(InfoExtractor):
+    _WORKING = False
     IE_NAME = 'fancode:vod'
 
     _VALID_URL = r'https?://(?:www\.)?fancode\.com/video/(?P<id>[0-9]+)\b'
@@ -125,7 +126,8 @@ class FancodeVodIE(InfoExtractor):
         }
 
 
-class FancodeLiveIE(FancodeVodIE):
+class FancodeLiveIE(FancodeVodIE):  # XXX: Do not subclass from concrete IE
+    _WORKING = False
     IE_NAME = 'fancode:live'
 
     _VALID_URL = r'https?://(www\.)?fancode\.com/match/(?P<id>[0-9]+).+'

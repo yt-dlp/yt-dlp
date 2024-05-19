@@ -6,6 +6,7 @@ from ..utils import (
     ExtractorError,
     format_field,
     int_or_none,
+    str_or_none,
     try_get,
 )
 
@@ -91,7 +92,7 @@ def _extract_moment(item, fatal=True):
 
     uploader = try_get(item, lambda x: x['owner']['name'], compat_str)
     uploader_id = try_get(item, lambda x: x['owner']['userId'])
-    uploader_url = format_field(uploader, template='https://www.younow.com/%s')
+    uploader_url = format_field(uploader, None, 'https://www.younow.com/%s')
 
     entry = {
         'extractor_key': 'YouNowMoment',
@@ -102,7 +103,7 @@ def _extract_moment(item, fatal=True):
         'timestamp': int_or_none(item.get('created')),
         'creator': uploader,
         'uploader': uploader,
-        'uploader_id': uploader_id,
+        'uploader_id': str_or_none(uploader_id),
         'uploader_url': uploader_url,
         'formats': [{
             'url': 'https://hls.younow.com/momentsplaylists/live/%s/%s.m3u8'
@@ -184,7 +185,7 @@ class YouNowMomentIE(InfoExtractor):
             'timestamp': 1490432040,
             'upload_date': '20170325',
             'uploader': 'GABO...',
-            'uploader_id': 35917228,
+            'uploader_id': '35917228',
         },
     }
 

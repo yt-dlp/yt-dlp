@@ -53,7 +53,6 @@ class ElonetIE(InfoExtractor):
         else:
             formats, subtitles = [], {}
             self.raise_no_formats(f'Unknown streaming format {ext}')
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

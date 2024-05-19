@@ -126,7 +126,7 @@ class HKETVIE(InfoExtractor):
             # If we ever wanted to provide the final resolved URL that
             # does not require cookies, albeit with a shorter lifespan:
             #     urlh = self._downloader.urlopen(file_url)
-            #     resolved_url = urlh.geturl()
+            #     resolved_url = urlh.url
             label = fmt.get('label')
             h = self._FORMAT_HEIGHTS.get(label)
             w = h * width // height if h and width and height else None
@@ -137,7 +137,6 @@ class HKETVIE(InfoExtractor):
                 'width': w,
                 'height': h,
             })
-        self._sort_formats(formats)
 
         subtitles = {}
         tracks = try_get(playlist0, lambda x: x['tracks'], list) or []

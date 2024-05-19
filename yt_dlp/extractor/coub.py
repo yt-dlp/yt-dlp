@@ -104,8 +104,6 @@ class CoubIE(InfoExtractor):
                 'source_preference': preference_key(MOBILE),
             })
 
-        self._sort_formats(formats)
-
         thumbnail = coub.get('picture')
         duration = float_or_none(coub.get('duration'))
         timestamp = parse_iso8601(coub.get('published_at') or coub.get('created_at'))

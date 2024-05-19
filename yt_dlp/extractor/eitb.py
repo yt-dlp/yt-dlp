@@ -1,10 +1,6 @@
 from .common import InfoExtractor
-from ..utils import (
-    float_or_none,
-    int_or_none,
-    parse_iso8601,
-    sanitized_Request,
-)
+from ..networking import Request
+from ..utils import float_or_none, int_or_none, parse_iso8601
 
 
 class EitbIE(InfoExtractor):
@@ -54,7 +50,7 @@ class EitbIE(InfoExtractor):
 
         hls_url = media.get('HLS_SURL')
         if hls_url:
-            request = sanitized_Request(
+            request = Request(
                 'http://mam.eitb.eus/mam/REST/ServiceMultiweb/DomainRestrictedSecurity/TokenAuth/',
                 headers={'Referer': url})
             token_data = self._download_json(
@@ -70,8 +66,6 @@ class EitbIE(InfoExtractor):
             formats.extend(self._extract_f4m_formats(
                 '%s?hdcore=3.7.0' % hds_url.replace('euskalsvod', 'euskalvod'),
                 video_id, f4m_id='hds', fatal=False))
-
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

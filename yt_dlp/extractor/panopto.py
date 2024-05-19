@@ -1,9 +1,8 @@
-import re
 import calendar
-import json
+import datetime as dt
 import functools
-from datetime import datetime
-from random import random
+import json
+import random
 
 from .common import InfoExtractor
 from ..compat import (
@@ -73,15 +72,10 @@ class PanoptoBaseIE(InfoExtractor):
     def _parse_fragment(url):
         return {k: json.loads(v[0]) for k, v in compat_urlparse.parse_qs(compat_urllib_parse_urlparse(url).fragment).items()}
 
-    @staticmethod
-    def _extract_urls(webpage):
-        return [m.group('url') for m in re.finditer(
-            r'<iframe[^>]+src=["\'](?P<url>%s/Pages/(Viewer|Embed|Sessions/List)\.aspx[^"\']+)' % PanoptoIE.BASE_URL_RE,
-            webpage)]
-
 
 class PanoptoIE(PanoptoBaseIE):
     _VALID_URL = PanoptoBaseIE.BASE_URL_RE + r'/Pages/(Viewer|Embed)\.aspx.*(?:\?|&)id=(?P<id>[a-f0-9-]+)'
+    _EMBED_REGEX = [rf'<iframe[^>]+src=["\'](?P<url>{PanoptoBaseIE.BASE_URL_RE}/Pages/(Viewer|Embed|Sessions/List)\.aspx[^"\']+)']
     _TESTS = [
         {
             'url': 'https://demo.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=26b3ae9e-4a48-4dcc-96ba-0befba08a0fb',
@@ -249,7 +243,7 @@ class PanoptoIE(PanoptoBaseIE):
         invocation_id = delivery_info.get('InvocationId')
         stream_id = traverse_obj(delivery_info, ('Delivery', 'Streams', ..., 'PublicID'), get_all=False, expected_type=str)
         if invocation_id and stream_id and duration:
-            timestamp_str = f'/Date({calendar.timegm(datetime.utcnow().timetuple())}000)/'
+            timestamp_str = f'/Date({calendar.timegm(dt.datetime.now(dt.timezone.utc).timetuple())}000)/'
             data = {
                 'streamRequests': [
                     {
@@ -413,16 +407,15 @@ class PanoptoIE(PanoptoBaseIE):
         subtitles = self._merge_subtitles(
             podcast_subtitles, streams_subtitles, self.extract_subtitles(base_url, video_id, delivery))
 
-        self._sort_formats(formats)
         self.mark_watched(base_url, video_id, delivery_info)
 
         return {
             'id': video_id,
             'title': delivery.get('SessionName'),
-            'cast': traverse_obj(delivery, ('Contributors', ..., 'DisplayName'), default=[], expected_type=lambda x: x or None),
+            'cast': traverse_obj(delivery, ('Contributors', ..., 'DisplayName'), expected_type=lambda x: x or None),
             'timestamp': session_start_time - 11640000000 if session_start_time else None,
             'duration': delivery.get('Duration'),
-            'thumbnail': base_url + f'/Services/FrameGrabber.svc/FrameRedirect?objectId={video_id}&mode=Delivery&random={random()}',
+            'thumbnail': base_url + f'/Services/FrameGrabber.svc/FrameRedirect?objectId={video_id}&mode=Delivery&random={random.random()}',
             'average_rating': delivery.get('AverageRating'),
             'chapters': self._extract_chapters(timestamps),
             'uploader': delivery.get('OwnerDisplayName') or None,
@@ -543,7 +536,7 @@ class PanoptoListIE(PanoptoBaseIE):
         }
 
         response = self._call_api(
-            base_url, '/Services/Data.svc/GetSessions', f'{display_id} page {page+1}',
+            base_url, '/Services/Data.svc/GetSessions', f'{display_id} page {page + 1}',
             data={'queryParameters': params}, fatal=False)
 
         for result in get_first(response, 'Results', default=[]):
@@ -570,7 +563,7 @@ class PanoptoListIE(PanoptoBaseIE):
             base_url, '/Services/Data.svc/GetFolderInfo', folder_id,
             data={'folderID': folder_id}, fatal=False)
         return {
-            'title': get_first(response, 'Name', default=[])
+            'title': get_first(response, 'Name')
         }
 
     def _real_extract(self, url):

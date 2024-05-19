@@ -1,5 +1,3 @@
-import re
-
 from .common import InfoExtractor
 from ..utils import (
     determine_ext,
@@ -11,6 +9,7 @@ from ..utils import (
 
 class SportBoxIE(InfoExtractor):
     _VALID_URL = r'https?://(?:news\.sportbox|matchtv)\.ru/vdl/player(?:/[^/]+/|\?.*?\bn?id=)(?P<id>\d+)'
+    _EMBED_REGEX = [r'<iframe[^>]+src="(?P<url>https?://(?:news\.sportbox|matchtv)\.ru/vdl/player[^"]+)"']
     _TESTS = [{
         'url': 'http://news.sportbox.ru/vdl/player/ci/211355',
         'info_dict': {
@@ -42,12 +41,6 @@ class SportBoxIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    @staticmethod
-    def _extract_urls(webpage):
-        return re.findall(
-            r'<iframe[^>]+src="(https?://(?:news\.sportbox|matchtv)\.ru/vdl/player[^"]+)"',
-            webpage)
-
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
@@ -72,7 +65,6 @@ class SportBoxIE(InfoExtractor):
                 formats.append({
                     'url': src,
                 })
-        self._sort_formats(formats)
 
         player = self._parse_json(
             self._search_regex(

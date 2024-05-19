@@ -7,6 +7,7 @@ from ..utils import (
 
 
 class TVN24IE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:(?:[^/]+)\.)?tvn24(?:bis)?\.pl/(?:[^/]+/)*(?P<id>[^/]+)'
     _TESTS = [{
         'url': 'http://www.tvn24.pl/wiadomosci-z-kraju,3/oredzie-artura-andrusa,702428.html',
@@ -70,7 +71,6 @@ class TVN24IE(InfoExtractor):
                 'format_id': format_id,
                 'height': int_or_none(format_id.rstrip('p')),
             })
-        self._sort_formats(formats)
 
         description = self._og_search_description(webpage, default=None)
         thumbnail = self._og_search_thumbnail(

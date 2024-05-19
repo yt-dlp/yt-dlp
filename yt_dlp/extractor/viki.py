@@ -263,7 +263,6 @@ class VikiIE(VikiBaseIE):
             # Modify the URL to get 1080p
             mpd_url = mpd_url.replace('mpdhd', 'mpdhd_high')
         formats = self._extract_mpd_formats(mpd_url, video_id)
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

@@ -8,6 +8,8 @@ from ..compat import compat_urlparse
 
 
 class DWIE(InfoExtractor):
+    _WORKING = False
+    _ENABLED = None  # XXX: pass through to GenericIE
     IE_NAME = 'dw'
     _VALID_URL = r'https?://(?:www\.)?dw\.com/(?:[^/]+/)+(?:av|e)-(?P<id>\d+)'
     _TESTS = [{
@@ -62,7 +64,6 @@ class DWIE(InfoExtractor):
                 transform_source=lambda s: s.replace(
                     'rtmp://tv-od.dw.de/flash/',
                     'http://tv-download.dw.de/dwtv_video/flv/'))
-        self._sort_formats(formats)
 
         upload_date = hidden_inputs.get('display_date')
         if not upload_date:
@@ -83,6 +84,8 @@ class DWIE(InfoExtractor):
 
 
 class DWArticleIE(InfoExtractor):
+    _WORKING = False
+    _ENABLED = None  # XXX: pass through to GenericIE
     IE_NAME = 'dw:article'
     _VALID_URL = r'https?://(?:www\.)?dw\.com/(?:[^/]+/)+a-(?P<id>\d+)'
     _TEST = {

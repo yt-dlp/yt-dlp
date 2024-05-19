@@ -1,5 +1,3 @@
-import re
-
 from .common import InfoExtractor
 from ..compat import (
     compat_str,
@@ -10,13 +8,11 @@ from ..utils import (
     parse_iso8601,
     strip_or_none,
     try_get,
-    unescapeHTML,
-    urljoin,
 )
 
 
 class KinjaEmbedIE(InfoExtractor):
-    IENAME = 'kinja:embed'
+    IE_NAME = 'kinja:embed'
     _DOMAIN_REGEX = r'''(?:[^.]+\.)?
         (?:
             avclub|
@@ -45,7 +41,6 @@ class KinjaEmbedIE(InfoExtractor):
             kinjavideo|
             mcp|
             megaphone|
-            ooyala|
             soundcloud(?:-playlist)?|
             tumblr-post|
             twitch-stream|
@@ -55,6 +50,7 @@ class KinjaEmbedIE(InfoExtractor):
             vine|
             youtube-(?:list|video)
         )-(?P<id>[^&]+)''' % (_DOMAIN_REGEX, _COMMON_REGEX)
+    _EMBED_REGEX = [rf'(?x)<iframe[^>]+?src=(?P<q>["\'])(?P<url>(?:(?:https?:)?//{_DOMAIN_REGEX})?{_COMMON_REGEX}(?:(?!\1).)+)\1']
     _TESTS = [{
         'url': 'https://kinja.com/ajax/inset/iframe?id=fb-10103303356633621',
         'only_matching': True,
@@ -63,9 +59,6 @@ class KinjaEmbedIE(InfoExtractor):
         'only_matching': True,
     }, {
         'url': 'https://kinja.com/ajax/inset/iframe?id=megaphone-PPY1300931075',
-        'only_matching': True,
-    }, {
-        'url': 'https://kinja.com/ajax/inset/iframe?id=ooyala-xzMXhleDpopuT0u1ijt_qZj3Va-34pEX%2FZTIxYmJjZDM2NWYzZDViZGRiOWJjYzc5',
         'only_matching': True,
     }, {
         'url': 'https://kinja.com/ajax/inset/iframe?id=soundcloud-128574047',
@@ -106,7 +99,6 @@ class KinjaEmbedIE(InfoExtractor):
         'jwplayer-video': _JWPLATFORM_PROVIDER,
         'jwp-video': _JWPLATFORM_PROVIDER,
         'megaphone': ('player.megaphone.fm/', 'Generic'),
-        'ooyala': ('player.ooyala.com/player.js?embedCode=', 'Ooyala'),
         'soundcloud': ('api.soundcloud.com/tracks/', 'Soundcloud'),
         'soundcloud-playlist': ('api.soundcloud.com/playlists/', 'SoundcloudPlaylist'),
         'tumblr-post': ('%s.tumblr.com/post/%s', 'Tumblr'),
@@ -118,12 +110,6 @@ class KinjaEmbedIE(InfoExtractor):
         'youtube-list': ('youtube.com/embed/%s?list=%s', 'YoutubePlaylist'),
         'youtube-video': ('youtube.com/embed/', 'Youtube'),
     }
-
-    @staticmethod
-    def _extract_urls(webpage, url):
-        return [urljoin(url, unescapeHTML(mobj.group('url'))) for mobj in re.finditer(
-            r'(?x)<iframe[^>]+?src=(?P<q>["\'])(?P<url>(?:(?:https?:)?//%s)?%s(?:(?!\1).)+)\1' % (KinjaEmbedIE._DOMAIN_REGEX, KinjaEmbedIE._COMMON_REGEX),
-            webpage)]
 
     def _real_extract(self, url):
         video_type, video_id = self._match_valid_url(url).groups()
@@ -138,8 +124,6 @@ class KinjaEmbedIE(InfoExtractor):
                 video_id, playlist_id = video_id.split('/')
                 result_url = provider[0] % (video_id, playlist_id)
             else:
-                if video_type == 'ooyala':
-                    video_id = video_id.split('/')[0]
                 result_url = provider[0] + video_id
             return self.url_result('http://' + result_url, provider[1])
 
@@ -156,7 +140,6 @@ class KinjaEmbedIE(InfoExtractor):
                     formats.extend(self._extract_m3u8_formats(
                         m3u8_url, video_id, 'mp4', 'm3u8_native',
                         m3u8_id='hls', fatal=False))
-            self._sort_formats(formats)
 
             thumbnail = None
             poster = data.get('poster') or {}
@@ -203,8 +186,6 @@ class KinjaEmbedIE(InfoExtractor):
                         'bitrate', default=None)),
                     'url': fallback_rendition_url,
                 })
-
-            self._sort_formats(formats)
 
             return {
                 'id': video_id,

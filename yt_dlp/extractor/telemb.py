@@ -5,6 +5,7 @@ from ..utils import remove_start
 
 
 class TeleMBIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?telemb\.be/(?P<display_id>.+?)_d_(?P<id>\d+)\.html'
     _TESTS = [
         {
@@ -57,7 +58,6 @@ class TeleMBIE(InfoExtractor):
                     'preference': -10,
                 })
             formats.append(fmt)
-        self._sort_formats(formats)
 
         title = remove_start(self._og_search_title(webpage), 'TéléMB : ')
         description = self._html_search_regex(

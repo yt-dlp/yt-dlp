@@ -60,7 +60,6 @@ class PornFlipIE(InfoExtractor):
             r'class="btn btn-down-rating[^>]*>[^<]*<i[^>]*>[^<]*</i>[^>]*<span[^>]*>[^0-9]*([0-9]+)[^<0-9]*<', webpage, 'dislike_count', fatal=False)
         mpd_url = self._search_regex(r'"([^"]+userscontent.net/dash/[0-9]+/manifest.mpd[^"]*)"', webpage, 'mpd_url').replace('&amp;', '&')
         formats = self._extract_mpd_formats(mpd_url, video_id, mpd_id='dash')
-        self._sort_formats(formats)
 
         return {
             'age_limit': 18,

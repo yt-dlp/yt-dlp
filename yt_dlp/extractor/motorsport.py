@@ -5,6 +5,7 @@ from ..compat import (
 
 
 class MotorsportIE(InfoExtractor):
+    _WORKING = False
     IE_DESC = 'motorsport.com'
     _VALID_URL = r'https?://(?:www\.)?motorsport\.com/[^/?#]+/video/(?:[^/?#]+/)(?P<id>[^/]+)/?(?:$|[?#])'
     _TEST = {
@@ -31,8 +32,13 @@ class MotorsportIE(InfoExtractor):
         webpage = self._download_webpage(url, display_id)
 
         iframe_path = self._html_search_regex(
-            r'<iframe id="player_iframe"[^>]+src="([^"]+)"', webpage,
-            'iframe path')
+            r'<iframe id="player_iframe"[^>]+src="([^"]+)"', webpage, 'iframe path', default=None)
+
+        if iframe_path is None:
+            iframe_path = self._html_search_regex(
+                r'<iframe [^>]*\bsrc="(https://motorsport\.tv/embed/[^"]+)', webpage, 'embed iframe path')
+            return self.url_result(iframe_path)
+
         iframe = self._download_webpage(
             compat_urlparse.urljoin(url, iframe_path), display_id,
             'Downloading iframe')

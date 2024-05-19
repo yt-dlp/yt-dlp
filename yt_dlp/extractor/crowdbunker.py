@@ -60,7 +60,6 @@ class CrowdBunkerIE(InfoExtractor):
             'width': int_or_none(image.get('width')),
         } for image in video_json.get('thumbnails') or [] if image.get('url')]
 
-        self._sort_formats(formats)
         return {
             'id': id,
             'title': video_json.get('title'),

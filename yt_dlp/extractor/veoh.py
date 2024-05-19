@@ -1,9 +1,14 @@
+import functools
+import json
+
 from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
+    OnDemandPagedList,
     int_or_none,
     parse_duration,
     qualities,
-    try_get
+    try_get,
 )
 
 
@@ -100,7 +105,6 @@ class VeohIE(InfoExtractor):
                     'quality': q(f_id),
                     'url': f_url,
                 })
-        self._sort_formats(formats)
 
         categories = metadata.get('categoryPath')
         if not categories:
@@ -123,3 +127,62 @@ class VeohIE(InfoExtractor):
             'categories': categories,
             'tags': tags.split(', ') if tags else None,
         }
+
+
+class VeohUserIE(VeohIE):  # XXX: Do not subclass from concrete IE
+    _VALID_URL = r'https?://(?:www\.)?veoh\.com/users/(?P<id>[\w-]+)'
+    IE_NAME = 'veoh:user'
+
+    _TESTS = [
+        {
+            'url': 'https://www.veoh.com/users/valentinazoe',
+            'info_dict': {
+                'id': 'valentinazoe',
+                'title': 'valentinazoe (Uploads)'
+            },
+            'playlist_mincount': 75
+        },
+        {
+            'url': 'https://www.veoh.com/users/PiensaLibre',
+            'info_dict': {
+                'id': 'PiensaLibre',
+                'title': 'PiensaLibre (Uploads)'
+            },
+            'playlist_mincount': 2
+        }]
+
+    _PAGE_SIZE = 16
+
+    def _fetch_page(self, uploader, page):
+        response = self._download_json(
+            'https://www.veoh.com/users/published/videos', uploader,
+            note=f'Downloading videos page {page + 1}',
+            headers={
+                'x-csrf-token': self._TOKEN,
+                'content-type': 'application/json;charset=UTF-8'
+            },
+            data=json.dumps({
+                'username': uploader,
+                'maxResults': self._PAGE_SIZE,
+                'page': page + 1,
+                'requestName': 'userPage'
+            }).encode('utf-8'))
+        if not response.get('success'):
+            raise ExtractorError(response['message'])
+
+        for video in response['videos']:
+            yield self.url_result(f'https://www.veoh.com/watch/{video["permalinkId"]}', VeohIE,
+                                  video['permalinkId'], video.get('title'))
+
+    def _real_initialize(self):
+        webpage = self._download_webpage(
+            'https://www.veoh.com', None, note='Downloading authorization token')
+        self._TOKEN = self._search_regex(
+            r'csrfToken:\s*(["\'])(?P<token>[0-9a-zA-Z]{40})\1', webpage,
+            'request token', group='token')
+
+    def _real_extract(self, url):
+        uploader = self._match_id(url)
+        return self.playlist_result(OnDemandPagedList(
+            functools.partial(self._fetch_page, uploader),
+            self._PAGE_SIZE), uploader, f'{uploader} (Uploads)')

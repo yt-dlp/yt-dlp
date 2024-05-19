@@ -22,7 +22,6 @@ class Alsace20TVBaseIE(InfoExtractor):
                 self._extract_smil_formats(fmt_url, video_id, fatal=False)
                 if '/smil:_' in fmt_url
                 else self._extract_mpd_formats(fmt_url, video_id, mpd_id=res, fatal=False))
-        self._sort_formats(formats)
 
         webpage = (url and self._download_webpage(url, video_id, fatal=False)) or ''
         thumbnail = url_or_none(dict_get(info, ('image', 'preview', )) or self._og_search_thumbnail(webpage))

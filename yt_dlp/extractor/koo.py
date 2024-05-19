@@ -6,6 +6,7 @@ from ..utils import (
 
 
 class KooIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?kooapp\.com/koo/[^/]+/(?P<id>[^/&#$?]+)'
     _TESTS = [{  # Test for video in the comments
         'url': 'https://www.kooapp.com/koo/ytdlpTestAccount/946c4189-bc2d-4524-b95b-43f641e2adde',
@@ -101,7 +102,6 @@ class KooIE(InfoExtractor):
         if not formats:
             self.raise_no_formats('No video/audio found at the provided url.', expected=True)
 
-        self._sort_formats(formats)
         return {
             'id': id,
             'title': clean_html(item_json.get('title')),

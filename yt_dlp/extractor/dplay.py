@@ -2,12 +2,13 @@ import json
 import uuid
 
 from .common import InfoExtractor
-from ..compat import compat_HTTPError
+from ..networking.exceptions import HTTPError
 from ..utils import (
     determine_ext,
     ExtractorError,
     float_or_none,
     int_or_none,
+    remove_start,
     strip_or_none,
     try_get,
     unified_timestamp,
@@ -38,7 +39,7 @@ class DPlayBaseIE(InfoExtractor):
         return f'Bearer {token}'
 
     def _process_errors(self, e, geo_countries):
-        info = self._parse_json(e.cause.read().decode('utf-8'), None)
+        info = self._parse_json(e.cause.response.read().decode('utf-8'), None)
         error = info['errors'][0]
         error_code = error.get('code')
         if error_code == 'access.denied.geoblocked':
@@ -64,6 +65,7 @@ class DPlayBaseIE(InfoExtractor):
         return streaming_list
 
     def _get_disco_api_info(self, url, display_id, disco_host, realm, country, domain=''):
+        country = self.get_param('geo_bypass_country') or country
         geo_countries = [country.upper()]
         self._initialize_geo_bypass({
             'countries': geo_countries,
@@ -85,7 +87,7 @@ class DPlayBaseIE(InfoExtractor):
                     'include': 'images,primaryChannel,show,tags'
                 })
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 400:
+            if isinstance(e.cause, HTTPError) and e.cause.status == 400:
                 self._process_errors(e, geo_countries)
             raise
         video_id = video['data']['id']
@@ -97,7 +99,7 @@ class DPlayBaseIE(InfoExtractor):
             streaming = self._download_video_playback_info(
                 disco_base, video_id, headers)
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 403:
+            if isinstance(e.cause, HTTPError) and e.cause.status == 403:
                 self._process_errors(e, geo_countries)
             raise
         for format_dict in streaming:
@@ -125,7 +127,6 @@ class DPlayBaseIE(InfoExtractor):
                     'url': format_url,
                     'format_id': format_id,
                 })
-        self._sort_formats(formats)
 
         creator = series = None
         tags = []
@@ -311,7 +312,7 @@ class DPlayIE(DPlayBaseIE):
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
         display_id = mobj.group('id')
-        domain = mobj.group('domain').lstrip('www.')
+        domain = remove_start(mobj.group('domain'), 'www.')
         country = mobj.group('country') or mobj.group('subdomain_country') or mobj.group('plus_country')
         host = 'disco-api.' + domain if domain[0] == 'd' else 'eu2-prod.disco-api.com'
         return self._get_disco_api_info(
@@ -717,6 +718,91 @@ class TLCIE(DiscoveryPlusBaseIE):
     }
 
 
+class MotorTrendIE(DiscoveryPlusBaseIE):
+    _VALID_URL = r'https?://(?:watch\.)?motortrend\.com/video' + DPlayBaseIE._PATH_REGEX
+    _TESTS = [{
+        'url': 'https://watch.motortrend.com/video/car-issues-motortrend-atve-us/double-dakotas',
+        'info_dict': {
+            'id': '"4859182"',
+            'display_id': 'double-dakotas',
+            'ext': 'mp4',
+            'title': 'Double Dakotas',
+            'description': 'Tylers buy-one-get-one Dakota deal has the Wizard pulling double duty.',
+            'season_number': 2,
+            'episode_number': 3,
+        },
+        'skip': 'Available for Premium users',
+    }, {
+        'url': 'https://watch.motortrend.com/video/car-issues-motortrend-atve-us/double-dakotas',
+        'only_matching': True,
+    }]
+
+    _PRODUCT = 'vel'
+    _DISCO_API_PARAMS = {
+        'disco_host': 'us1-prod-direct.watch.motortrend.com',
+        'realm': 'go',
+        'country': 'us',
+    }
+
+
+class MotorTrendOnDemandIE(DiscoveryPlusBaseIE):
+    _VALID_URL = r'https?://(?:www\.)?motortrend(?:ondemand\.com|\.com/plus)/detail' + DPlayBaseIE._PATH_REGEX
+    _TESTS = [{
+        'url': 'https://www.motortrendondemand.com/detail/wheelstanding-dump-truck-stubby-bobs-comeback/37699/784',
+        'info_dict': {
+            'id': '37699',
+            'display_id': 'wheelstanding-dump-truck-stubby-bobs-comeback/37699',
+            'ext': 'mp4',
+            'title': 'Wheelstanding Dump Truck! Stubby Bob’s Comeback',
+            'description': 'md5:996915abe52a1c3dfc83aecea3cce8e7',
+            'season_number': 5,
+            'episode_number': 52,
+            'episode': 'Episode 52',
+            'season': 'Season 5',
+            'thumbnail': r're:^https?://.+\.jpe?g$',
+            'timestamp': 1388534401,
+            'duration': 1887.345,
+            'creator': 'Originals',
+            'series': 'Roadkill',
+            'upload_date': '20140101',
+            'tags': [],
+        },
+    }, {
+        'url': 'https://www.motortrend.com/plus/detail/roadworthy-rescues-teaser-trailer/4922860/',
+        'info_dict': {
+            'id': '4922860',
+            'ext': 'mp4',
+            'title': 'Roadworthy Rescues | Teaser Trailer',
+            'description': 'Derek Bieri helps Freiburger and Finnegan with their \'68 big-block Dart.',
+            'display_id': 'roadworthy-rescues-teaser-trailer/4922860',
+            'creator': 'Originals',
+            'series': 'Roadworthy Rescues',
+            'thumbnail': r're:^https?://.+\.jpe?g$',
+            'upload_date': '20220907',
+            'timestamp': 1662523200,
+            'duration': 1066.356,
+            'tags': [],
+        },
+    }, {
+        'url': 'https://www.motortrend.com/plus/detail/ugly-duckling/2450033/12439',
+        'only_matching': True,
+    }]
+
+    _PRODUCT = 'MTOD'
+    _DISCO_API_PARAMS = {
+        'disco_host': 'us1-prod-direct.motortrendondemand.com',
+        'realm': 'motortrend',
+        'country': 'us',
+    }
+
+    def _update_disco_api_headers(self, headers, disco_base, display_id, realm):
+        headers.update({
+            'x-disco-params': f'realm={realm}',
+            'x-disco-client': f'WEB:UNKNOWN:{self._PRODUCT}:4.39.1-gi1',
+            'Authorization': self._get_auth(disco_base, display_id, realm),
+        })
+
+
 class DiscoveryPlusIE(DiscoveryPlusBaseIE):
     _VALID_URL = r'https?://(?:www\.)?discoveryplus\.com/(?!it/)(?:\w{2}/)?video' + DPlayBaseIE._PATH_REGEX
     _TESTS = [{
@@ -879,6 +965,9 @@ class DiscoveryPlusItalyIE(DiscoveryPlusBaseIE):
     _TESTS = [{
         'url': 'https://www.discoveryplus.com/it/video/i-signori-della-neve/stagione-2-episodio-1-i-preparativi',
         'only_matching': True,
+    }, {
+        'url': 'https://www.discoveryplus.com/it/video/super-benny/trailer',
+        'only_matching': True,
     }]
 
     _PRODUCT = 'dplus_us'
@@ -887,6 +976,13 @@ class DiscoveryPlusItalyIE(DiscoveryPlusBaseIE):
         'realm': 'dplay',
         'country': 'it',
     }
+
+    def _update_disco_api_headers(self, headers, disco_base, display_id, realm):
+        headers.update({
+            'x-disco-params': 'realm=%s' % realm,
+            'x-disco-client': f'WEB:UNKNOWN:{self._PRODUCT}:25.2.6',
+            'Authorization': self._get_auth(disco_base, display_id, realm),
+        })
 
 
 class DiscoveryPlusItalyShowIE(DiscoveryPlusShowBaseIE):
@@ -925,3 +1021,39 @@ class DiscoveryPlusIndiaShowIE(DiscoveryPlusShowBaseIE):
     _SHOW_STR = 'show'
     _INDEX = 4
     _VIDEO_IE = DiscoveryPlusIndiaIE
+
+
+class GlobalCyclingNetworkPlusIE(DiscoveryPlusBaseIE):
+    _VALID_URL = r'https?://plus\.globalcyclingnetwork\.com/watch/(?P<id>\d+)'
+    _TESTS = [{
+        'url': 'https://plus.globalcyclingnetwork.com/watch/1397691',
+        'info_dict': {
+            'id': '1397691',
+            'ext': 'mp4',
+            'title': 'The Athertons: Mountain Biking\'s Fastest Family',
+            'description': 'md5:75a81937fcd8b989eec6083a709cd837',
+            'thumbnail': 'https://us1-prod-images.disco-api.com/2021/03/04/eb9e3026-4849-3001-8281-9356466f0557.png',
+            'series': 'gcn',
+            'creator': 'Gcn',
+            'upload_date': '20210309',
+            'timestamp': 1615248000,
+            'duration': 2531.0,
+            'tags': [],
+        },
+        'skip': 'Subscription required',
+        'params': {'skip_download': 'm3u8'},
+    }]
+
+    _PRODUCT = 'web'
+    _DISCO_API_PARAMS = {
+        'disco_host': 'disco-api-prod.globalcyclingnetwork.com',
+        'realm': 'gcn',
+        'country': 'us',
+    }
+
+    def _update_disco_api_headers(self, headers, disco_base, display_id, realm):
+        headers.update({
+            'x-disco-params': f'realm={realm}',
+            'x-disco-client': f'WEB:UNKNOWN:{self._PRODUCT}:27.3.2',
+            'Authorization': self._get_auth(disco_base, display_id, realm),
+        })

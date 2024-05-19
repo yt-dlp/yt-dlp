@@ -2,6 +2,7 @@ from .common import InfoExtractor
 
 
 class RestudyIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:(?:www|portal)\.)?restudy\.dk/video/[^/]+/id/(?P<id>[0-9]+)'
     _TESTS = [{
         'url': 'https://www.restudy.dk/video/play/id/1637',
@@ -31,7 +32,6 @@ class RestudyIE(InfoExtractor):
         formats = self._extract_smil_formats(
             'https://cdn.portal.restudy.dk/dynamic/themes/front/awsmedia/SmilDirectory/video_%s.xml' % video_id,
             video_id)
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

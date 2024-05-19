@@ -11,6 +11,7 @@ from ..utils import (
 
 
 class RadioJavanIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?radiojavan\.com/videos/video/(?P<id>[^/]+)/?'
     _TEST = {
         'url': 'http://www.radiojavan.com/videos/video/chaartaar-ashoobam',
@@ -50,7 +51,6 @@ class RadioJavanIE(InfoExtractor):
                 'format_id': format_id,
             })
             formats.append(f)
-        self._sort_formats(formats)
 
         title = self._og_search_title(webpage)
         thumbnail = self._og_search_thumbnail(webpage)

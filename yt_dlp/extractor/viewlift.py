@@ -1,8 +1,7 @@
 import json
-import re
 
 from .common import InfoExtractor
-from ..compat import compat_HTTPError
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     int_or_none,
@@ -13,7 +12,7 @@ from ..utils import (
 
 class ViewLiftBaseIE(InfoExtractor):
     _API_BASE = 'https://prod-api.viewlift.com/'
-    _DOMAINS_REGEX = r'(?:(?:main\.)?snagfilms|snagxtreme|funnyforfree|kiddovid|winnersview|(?:monumental|lax)sportsnetwork|vayafilm|failarmy|ftfnext|lnppass\.legapallacanestro|moviespree|app\.myoutdoortv|neoufitness|pflmma|theidentitytb)\.com|(?:hoichoi|app\.horseandcountry|kronon|marquee|supercrosslive)\.tv'
+    _DOMAINS_REGEX = r'(?:(?:main\.)?snagfilms|snagxtreme|funnyforfree|kiddovid|winnersview|(?:monumental|lax)sportsnetwork|vayafilm|failarmy|ftfnext|lnppass\.legapallacanestro|moviespree|app\.myoutdoortv|neoufitness|pflmma|theidentitytb|chorki)\.com|(?:hoichoi|app\.horseandcountry|kronon|marquee|supercrosslive)\.tv'
     _SITE_MAP = {
         'ftfnext': 'lax',
         'funnyforfree': 'snagfilms',
@@ -28,6 +27,7 @@ class ViewLiftBaseIE(InfoExtractor):
         'snagxtreme': 'snagfilms',
         'theidentitytb': 'tampabay',
         'vayafilm': 'snagfilms',
+        'chorki': 'prothomalo',
     }
     _TOKENS = {}
 
@@ -47,8 +47,8 @@ class ViewLiftBaseIE(InfoExtractor):
             return self._download_json(
                 self._API_BASE + path, video_id, headers={'Authorization': self._TOKENS.get(site)}, query=query)
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 403:
-                webpage = e.cause.read().decode()
+            if isinstance(e.cause, HTTPError) and e.cause.status == 403:
+                webpage = e.cause.response.read().decode()
                 try:
                     error_message = traverse_obj(json.loads(webpage), 'errorMessage', 'message')
                 except json.JSONDecodeError:
@@ -63,6 +63,7 @@ class ViewLiftBaseIE(InfoExtractor):
 class ViewLiftEmbedIE(ViewLiftBaseIE):
     IE_NAME = 'viewlift:embed'
     _VALID_URL = r'https?://(?:(?:www|embed)\.)?(?P<domain>%s)/embed/player\?.*\bfilmId=(?P<id>[\da-f]{8}-(?:[\da-f]{4}-){3}[\da-f]{12})' % ViewLiftBaseIE._DOMAINS_REGEX
+    _EMBED_REGEX = [r'<iframe[^>]+?src=(["\'])(?P<url>(?:https?:)?//(?:embed\.)?(?:%s)/embed/player.+?)\1' % ViewLiftBaseIE._DOMAINS_REGEX]
     _TESTS = [{
         'url': 'http://embed.snagfilms.com/embed/player?filmId=74849a00-85a9-11e1-9660-123139220831&w=500',
         'md5': '2924e9215c6eff7a55ed35b72276bd93',
@@ -88,14 +89,6 @@ class ViewLiftEmbedIE(ViewLiftBaseIE):
         'url': 'http://www.snagfilms.com/embed/player?filmId=0000014c-de2f-d5d6-abcf-ffef58af0017',
         'only_matching': True,
     }]
-
-    @staticmethod
-    def _extract_url(webpage):
-        mobj = re.search(
-            r'<iframe[^>]+?src=(["\'])(?P<url>(?:https?:)?//(?:embed\.)?(?:%s)/embed/player.+?)\1' % ViewLiftBaseIE._DOMAINS_REGEX,
-            webpage)
-        if mobj:
-            return mobj.group('url')
 
     def _real_extract(self, url):
         domain, film_id = self._match_valid_url(url).groups()
@@ -142,7 +135,6 @@ class ViewLiftEmbedIE(ViewLiftBaseIE):
                 'url': sub_url,
             })
 
-        self._sort_formats(formats)
         return {
             'id': film_id,
             'title': title,
@@ -239,7 +231,6 @@ class ViewLiftIE(ViewLiftBaseIE):
             'description': 'md5:e28f2fb8680096a69c944d37c1fa5ffc',
             'thumbnail': r're:^https?://.*\.jpg$',
             'upload_date': '20211006',
-            'series': None
         },
         'params': {'skip_download': True},
     }, {  # Free film
@@ -251,7 +242,6 @@ class ViewLiftIE(ViewLiftBaseIE):
             'description': 'md5:605cba408e51a79dafcb824bdeded51e',
             'thumbnail': r're:^https?://.*\.jpg$',
             'upload_date': '20210827',
-            'series': None
         },
         'params': {'skip_download': True},
     }, {  # Free episode
@@ -305,6 +295,33 @@ class ViewLiftIE(ViewLiftBaseIE):
     }, {  # Premium movie
         'url': 'https://www.hoichoi.tv/movies/detective-2020',
         'only_matching': True
+    }, {  # Chorki Premium series
+        'url': 'https://www.chorki.com/bn/series/sinpaat',
+        'playlist_mincount': 7,
+        'info_dict': {
+            'id': 'bn/series/sinpaat',
+        },
+    }, {  # Chorki free movie
+        'url': 'https://www.chorki.com/bn/videos/bangla-movie-bikkhov',
+        'info_dict': {
+            'id': '564e755b-f5c7-4515-aee6-8959bee18c93',
+            'title': 'Bikkhov',
+            'ext': 'mp4',
+            'upload_date': '20230824',
+            'timestamp': 1692860553,
+            'categories': ['Action Movies', 'Salman Special'],
+            'tags': 'count:14',
+            'thumbnail': 'https://snagfilms-a.akamaihd.net/dd078ff5-b16e-45e4-9723-501b56b9df0a/images/2023/08/24/1692860450729_1920x1080_16x9Images.jpg',
+            'display_id': 'bn/videos/bangla-movie-bikkhov',
+            'description': 'md5:71492b086450625f4374a3eb824f27dc',
+            'duration': 8002,
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }, {  # Chorki Premium movie
+        'url': 'https://www.chorki.com/bn/videos/something-like-an-autobiography',
+        'only_matching': True,
     }]
 
     @classmethod

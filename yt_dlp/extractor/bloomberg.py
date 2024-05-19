@@ -7,13 +7,11 @@ class BloombergIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?bloomberg\.com/(?:[^/]+/)*(?P<id>[^/?#]+)'
 
     _TESTS = [{
-        'url': 'http://www.bloomberg.com/news/videos/b/aaeae121-5949-481e-a1ce-4562db6f5df2',
-        # The md5 checksum changes
+        'url': 'https://www.bloomberg.com/news/videos/2021-09-14/apple-unveils-the-new-iphone-13-stock-doesn-t-move-much-video',
         'info_dict': {
-            'id': 'qurhIVlJSB6hzkVi229d8g',
+            'id': 'V8cFcYMxTHaMcEiiYVr39A',
             'ext': 'flv',
-            'title': 'Shah\'s Presentation on Foreign-Exchange Strategies',
-            'description': 'md5:a8ba0302912d03d246979735c17d2761',
+            'title': 'Apple Unveils the New IPhone 13, Stock Doesn\'t Move Much',
         },
         'params': {
             'format': 'best[format_id^=hds]',
@@ -57,7 +55,7 @@ class BloombergIE(InfoExtractor):
         title = re.sub(': Video$', '', self._og_search_title(webpage))
 
         embed_info = self._download_json(
-            'http://www.bloomberg.com/api/embed?id=%s' % video_id, video_id)
+            'http://www.bloomberg.com/multimedia/api/embed?id=%s' % video_id, video_id)
         formats = []
         for stream in embed_info['streams']:
             stream_url = stream.get('url')
@@ -69,7 +67,6 @@ class BloombergIE(InfoExtractor):
             else:
                 formats.extend(self._extract_f4m_formats(
                     stream_url, video_id, f4m_id='hds', fatal=False))
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

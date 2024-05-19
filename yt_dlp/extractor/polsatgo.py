@@ -1,5 +1,5 @@
-from uuid import uuid4
 import json
+import uuid
 
 from .common import InfoExtractor
 from ..utils import (
@@ -42,7 +42,6 @@ class PolsatGoIE(InfoExtractor):
 
         formats = list(self._extract_formats(
             try_get(media, lambda x: x['playback']['mediaSources']), video_id))
-        self._sort_formats(formats)
 
         return {
             'id': video_id,
@@ -52,7 +51,7 @@ class PolsatGoIE(InfoExtractor):
         }
 
     def _call_api(self, endpoint, media_id, method, params):
-        rand_uuid = str(uuid4())
+        rand_uuid = str(uuid.uuid4())
         res = self._download_json(
             f'https://b2c-mobile.redefine.pl/rpc/{endpoint}/', media_id,
             note=f'Downloading {method} JSON metadata',

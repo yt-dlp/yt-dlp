@@ -16,6 +16,7 @@ from ..utils import (
 
 
 class PlutoTVIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'''(?x)
         https?://(?:www\.)?pluto\.tv(?:/[^/]+)?/on-demand
         /(?P<video_type>movies|series)
@@ -84,6 +85,17 @@ class PlutoTVIE(InfoExtractor):
         }, {
             'url': 'https://pluto.tv/it/on-demand/series/csi-vegas/episode/legacy-2021-1-1',
             'only_matching': True,
+        },
+        {
+            'url': 'https://pluto.tv/en/on-demand/movies/attack-of-the-killer-tomatoes-1977-1-1-ptv1',
+            'md5': '7db56369c0da626a32d505ec6eb3f89f',
+            'info_dict': {
+                'id': '5b190c7bb0875c36c90c29c4',
+                'ext': 'mp4',
+                'title': 'Attack of the Killer Tomatoes',
+                'description': 'A group of scientists band together to save the world from mutated tomatoes that KILL! (1978)',
+                'duration': 5700,
+            }
         }
     ]
 
@@ -103,7 +115,7 @@ class PlutoTVIE(InfoExtractor):
                     compat_urlparse.urljoin(first_segment_url.group(1), '0-end/master.m3u8'))
                 continue
             first_segment_url = re.search(
-                r'^(https?://.*/).+\-0+\.ts$', res,
+                r'^(https?://.*/).+\-0+[0-1]0\.ts$', res,
                 re.MULTILINE)
             if first_segment_url:
                 m3u8_urls.add(
@@ -135,7 +147,6 @@ class PlutoTVIE(InfoExtractor):
             subtitles = self._merge_subtitles(subtitles, subs)
 
         formats, subtitles = self._to_ad_free_formats(video_id, formats, subtitles)
-        self._sort_formats(formats)
 
         info = {
             'id': video_id,

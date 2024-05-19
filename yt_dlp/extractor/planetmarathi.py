@@ -20,7 +20,6 @@ class PlanetMarathiIE(InfoExtractor):
                 'title': 'ek unad divas',
                 'alt_title': 'चित्रपट',
                 'description': 'md5:41c7ed6b041c2fea9820a3f3125bd881',
-                'season_number': None,
                 'episode_number': 1,
                 'duration': 5539,
                 'upload_date': '20210829',
@@ -57,7 +56,6 @@ class PlanetMarathiIE(InfoExtractor):
                 asset_title = id.replace('-', ' ')
             asset_id = f'{asset["sk"]}_{id}'.replace('#', '-')
             formats, subtitles = self._extract_m3u8_formats_and_subtitles(asset['mediaAssetURL'], asset_id)
-            self._sort_formats(formats)
             entries.append({
                 'id': asset_id,
                 'title': asset_title,

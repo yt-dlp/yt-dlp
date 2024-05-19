@@ -13,6 +13,7 @@ class UDNEmbedIE(InfoExtractor):
     IE_DESC = '聯合影音'
     _PROTOCOL_RELATIVE_VALID_URL = r'//video\.udn\.com/(?:embed|play)/news/(?P<id>\d+)'
     _VALID_URL = r'https?:' + _PROTOCOL_RELATIVE_VALID_URL
+    _EMBED_REGEX = [r'<iframe[^>]+src="(?:https?:)?(?P<url>%s)"' % _PROTOCOL_RELATIVE_VALID_URL]
     _TESTS = [{
         'url': 'http://video.udn.com/embed/news/300040',
         'info_dict': {
@@ -88,8 +89,6 @@ class UDNEmbedIE(InfoExtractor):
                         'tbr': int_or_none(mobj.group('tbr')),
                     })
                 formats.append(a_format)
-
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

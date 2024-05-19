@@ -4,13 +4,12 @@ import re
 import uuid
 
 from .fragment import FragmentFD
+from ..compat import imghdr
 from ..utils import escapeHTML, formatSeconds, srt_subtitles_timecode, urljoin
 from ..version import __version__ as YT_DLP_VERSION
 
 
 class MhtmlFD(FragmentFD):
-    FD_NAME = 'mhtml'
-
     _STYLESHEET = """\
 html, body {
     margin: 0;
@@ -54,7 +53,7 @@ body > figure > img {
     def _escape_mime(s):
         return '=?utf-8?Q?' + (b''.join(
             bytes((b,)) if b >= 0x20 else b'=%02X' % b
-            for b in quopri.encodestring(s.encode('utf-8'), header=True)
+            for b in quopri.encodestring(s.encode(), header=True)
         )).decode('us-ascii') + '?='
 
     def _gen_cid(self, i, fragment, frag_boundary):
@@ -151,7 +150,7 @@ body > figure > img {
                 length=len(stub),
                 title=self._escape_mime(title),
                 stub=stub
-            ).encode('utf-8'))
+            ).encode())
             extra_state['header_written'] = True
 
         for i, fragment in enumerate(fragments):
@@ -168,21 +167,13 @@ body > figure > img {
                 continue
             frag_content = self._read_fragment(ctx)
 
-            mime_type = b'image/jpeg'
-            if frag_content.startswith(b'\x89PNG\r\n\x1a\n'):
-                mime_type = b'image/png'
-            if frag_content.startswith((b'GIF87a', b'GIF89a')):
-                mime_type = b'image/gif'
-            if frag_content.startswith(b'RIFF') and frag_content[8:12] == 'WEBP':
-                mime_type = b'image/webp'
-
             frag_header = io.BytesIO()
             frag_header.write(
                 b'--%b\r\n' % frag_boundary.encode('us-ascii'))
             frag_header.write(
                 b'Content-ID: <%b>\r\n' % self._gen_cid(i, fragment, frag_boundary).encode('us-ascii'))
             frag_header.write(
-                b'Content-type: %b\r\n' % mime_type)
+                b'Content-type: %b\r\n' % f'image/{imghdr.what(h=frag_content) or "jpeg"}'.encode())
             frag_header.write(
                 b'Content-length: %u\r\n' % len(frag_content))
             frag_header.write(
@@ -195,5 +186,4 @@ body > figure > img {
 
         ctx['dest_stream'].write(
             b'--%b--\r\n\r\n' % frag_boundary.encode('us-ascii'))
-        self._finish_frag_download(ctx, info_dict)
-        return True
+        return self._finish_frag_download(ctx, info_dict)

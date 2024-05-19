@@ -70,7 +70,6 @@ class WhoWatchIE(InfoExtractor):
         formats.extend(self._extract_m3u8_formats(
             hls_url, video_id, ext='mp4', m3u8_id='hls'))
         self._remove_duplicate_formats(formats)
-        self._sort_formats(formats)
 
         uploader_url = try_get(metadata, lambda x: x['live']['user']['user_path'], compat_str)
         if uploader_url:

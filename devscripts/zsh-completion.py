@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
+
+# Allow direct execution
 import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 
 import yt_dlp
 
@@ -43,5 +46,5 @@ def build_completion(opt_parser):
         f.write(template)
 
 
-parser = yt_dlp.parseOpts()[0]
+parser = yt_dlp.parseOpts(ignore_config_files=True)[0]
 build_completion(parser)

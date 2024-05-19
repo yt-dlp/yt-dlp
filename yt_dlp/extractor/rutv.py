@@ -20,6 +20,10 @@ class RUTVIE(InfoExtractor):
                         )
                         (?P<id>\d+)
                     '''
+    _EMBED_URLS = [
+        r'<iframe[^>]+?src=(["\'])(?P<url>https?://(?:test)?player\.(?:rutv\.ru|vgtrk\.com)/(?:iframe/(?:swf|video|live)/id|index/iframe/cast_id)/.+?)\1',
+        r'<meta[^>]+?property=(["\'])og:video\1[^>]+?content=(["\'])(?P<url>https?://(?:test)?player\.(?:rutv\.ru|vgtrk\.com)/flash\d+v/container\.swf\?id=.+?\2)',
+    ]
 
     _TESTS = [
         {
@@ -107,19 +111,6 @@ class RUTVIE(InfoExtractor):
         },
     ]
 
-    @classmethod
-    def _extract_url(cls, webpage):
-        mobj = re.search(
-            r'<iframe[^>]+?src=(["\'])(?P<url>https?://(?:test)?player\.(?:rutv\.ru|vgtrk\.com)/(?:iframe/(?:swf|video|live)/id|index/iframe/cast_id)/.+?)\1', webpage)
-        if mobj:
-            return mobj.group('url')
-
-        mobj = re.search(
-            r'<meta[^>]+?property=(["\'])og:video\1[^>]+?content=(["\'])(?P<url>https?://(?:test)?player\.(?:rutv\.ru|vgtrk\.com)/flash\d+v/container\.swf\?id=.+?\2)',
-            webpage)
-        if mobj:
-            return mobj.group('url')
-
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
         video_id = mobj.group('id')
@@ -150,7 +141,7 @@ class RUTVIE(InfoExtractor):
         if media['errors']:
             raise ExtractorError('%s said: %s' % (self.IE_NAME, media['errors']), expected=True)
 
-        view_count = playlist.get('count_views')
+        view_count = int_or_none(playlist.get('count_views'))
         priority_transport = playlist['priority_transport']
 
         thumbnail = media['picture']
@@ -161,6 +152,7 @@ class RUTVIE(InfoExtractor):
         duration = int_or_none(media.get('duration'))
 
         formats = []
+        subtitles = {}
 
         for transport, links in media['sources'].items():
             for quality, url in links.items():
@@ -180,8 +172,10 @@ class RUTVIE(InfoExtractor):
                         'vbr': str_to_int(quality),
                     }
                 elif transport == 'm3u8':
-                    formats.extend(self._extract_m3u8_formats(
-                        url, video_id, 'mp4', quality=preference, m3u8_id='hls'))
+                    fmt, subs = self._extract_m3u8_formats_and_subtitles(
+                        url, video_id, 'mp4', quality=preference, m3u8_id='hls')
+                    formats.extend(fmt)
+                    self._merge_subtitles(subs, target=subtitles)
                     continue
                 else:
                     fmt = {
@@ -195,8 +189,6 @@ class RUTVIE(InfoExtractor):
                 })
                 formats.append(fmt)
 
-        self._sort_formats(formats)
-
         return {
             'id': video_id,
             'title': title,
@@ -205,5 +197,7 @@ class RUTVIE(InfoExtractor):
             'view_count': view_count,
             'duration': duration,
             'formats': formats,
+            'subtitles': subtitles,
             'is_live': is_live,
+            '_format_sort_fields': ('source', ),
         }

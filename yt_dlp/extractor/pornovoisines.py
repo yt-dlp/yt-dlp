@@ -7,6 +7,7 @@ from ..utils import (
 
 
 class PornoVoisinesIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?pornovoisines\.com/videos/show/(?P<id>\d+)/(?P<display_id>[^/.]+)'
 
     _TEST = {
@@ -55,7 +56,6 @@ class PornoVoisinesIE(InfoExtractor):
                         'height': item.get('height'),
                         'bitrate': item.get('bitrate'),
                     })
-        self._sort_formats(formats)
 
         webpage = self._download_webpage(url, video_id)
 

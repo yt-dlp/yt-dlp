@@ -80,7 +80,6 @@ class NuvidIE(InfoExtractor):
         } for quality, source in video_data.get('files').items() if source]
 
         self._check_formats(formats, video_id)
-        self._sort_formats(formats)
 
         duration = parse_duration(traverse_obj(video_data, 'duration', 'duration_format'))
         thumbnails = [

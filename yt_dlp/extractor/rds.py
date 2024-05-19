@@ -8,6 +8,7 @@ from ..compat import compat_str
 
 
 class RDSIE(InfoExtractor):
+    _WORKING = False
     IE_DESC = 'RDS.ca'
     _VALID_URL = r'https?://(?:www\.)?rds\.ca/vid(?:[eé]|%C3%A9)os/(?:[^/]+/)*(?P<id>[^/]+)-\d+\.\d+'
 

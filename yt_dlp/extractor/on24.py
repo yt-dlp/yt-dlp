@@ -76,7 +76,6 @@ class On24IE(InfoExtractor):
                     'vcodec': 'none',
                     'acodec': 'wav'
                 })
-        self._sort_formats(formats)
 
         return {
             'id': event_id,

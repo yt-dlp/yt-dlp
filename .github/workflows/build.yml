@@ -1,413 +1,507 @@
-name: Build
-on: workflow_dispatch
+name: Build Artifacts
+on:
+  workflow_call:
+    inputs:
+      version:
+        required: true
+        type: string
+      channel:
+        required: false
+        default: stable
+        type: string
+      unix:
+        default: true
+        type: boolean
+      linux_static:
+        default: true
+        type: boolean
+      linux_arm:
+        default: true
+        type: boolean
+      macos:
+        default: true
+        type: boolean
+      macos_legacy:
+        default: true
+        type: boolean
+      windows:
+        default: true
+        type: boolean
+      windows32:
+        default: true
+        type: boolean
+      origin:
+        required: false
+        default: ''
+        type: string
+    secrets:
+      GPG_SIGNING_KEY:
+        required: false
+
+  workflow_dispatch:
+    inputs:
+      version:
+        description: |
+          VERSION: yyyy.mm.dd[.rev] or rev
+        required: true
+        type: string
+      channel:
+        description: |
+          SOURCE of this build's updates: stable/nightly/master/<repo>
+        required: true
+        default: stable
+        type: string
+      unix:
+        description: yt-dlp, yt-dlp.tar.gz
+        default: true
+        type: boolean
+      linux_static:
+        description: yt-dlp_linux
+        default: true
+        type: boolean
+      linux_arm:
+        description: yt-dlp_linux_aarch64, yt-dlp_linux_armv7l
+        default: true
+        type: boolean
+      macos:
+        description: yt-dlp_macos, yt-dlp_macos.zip
+        default: true
+        type: boolean
+      macos_legacy:
+        description: yt-dlp_macos_legacy
+        default: true
+        type: boolean
+      windows:
+        description: yt-dlp.exe, yt-dlp_min.exe, yt-dlp_win.zip
+        default: true
+        type: boolean
+      windows32:
+        description: yt-dlp_x86.exe
+        default: true
+        type: boolean
+      origin:
+        description: Origin
+        required: false
+        default: 'current repo'
+        type: choice
+        options:
+        - 'current repo'
+
+permissions:
+  contents: read
 
 jobs:
-  build_unix:
+  process:
     runs-on: ubuntu-latest
     outputs:
-      version_suffix: ${{ steps.version_suffix.outputs.version_suffix }}
-      ytdlp_version: ${{ steps.bump_version.outputs.ytdlp_version }}
-      upload_url: ${{ steps.create_release.outputs.upload_url }}
-      sha256_bin: ${{ steps.sha256_bin.outputs.sha256_bin }}
-      sha512_bin: ${{ steps.sha512_bin.outputs.sha512_bin }}
-      sha256_tar: ${{ steps.sha256_tar.outputs.sha256_tar }}
-      sha512_tar: ${{ steps.sha512_tar.outputs.sha512_tar }}
+      origin: ${{ steps.process_origin.outputs.origin }}
+    steps:
+      - name: Process origin
+        id: process_origin
+        run: |
+          echo "origin=${{ inputs.origin == 'current repo' && github.repository || inputs.origin }}" | tee "$GITHUB_OUTPUT"
+
+  unix:
+    needs: process
+    if: inputs.unix
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Needed for changelog
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: Install Requirements
+        run: |
+          sudo apt -y install zip pandoc man sed
+      - name: Prepare
+        run: |
+          python devscripts/update-version.py -c "${{ inputs.channel }}" -r "${{ needs.process.outputs.origin }}" "${{ inputs.version }}"
+          python devscripts/update_changelog.py -vv
+          python devscripts/make_lazy_extractors.py
+      - name: Build Unix platform-independent binary
+        run: |
+          make all tar
+      - name: Verify --update-to
+        if: vars.UPDATE_TO_VERIFICATION
+        run: |
+          chmod +x ./yt-dlp
+          cp ./yt-dlp ./yt-dlp_downgraded
+          version="$(./yt-dlp --version)"
+          ./yt-dlp_downgraded -v --update-to yt-dlp/yt-dlp@2023.03.04
+          downgraded_version="$(./yt-dlp_downgraded --version)"
+          [[ "$version" != "$downgraded_version" ]]
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-bin-${{ github.job }}
+          path: |
+            yt-dlp
+            yt-dlp.tar.gz
+          compression-level: 0
+
+  linux_static:
+    needs: process
+    if: inputs.linux_static
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build static executable
+        env:
+          channel: ${{ inputs.channel }}
+          origin: ${{ needs.process.outputs.origin }}
+          version: ${{ inputs.version }}
+        run: |
+          mkdir ~/build
+          cd bundle/docker
+          docker compose up --build static
+          sudo chown "${USER}:docker" ~/build/yt-dlp_linux
+      - name: Verify --update-to
+        if: vars.UPDATE_TO_VERIFICATION
+        run: |
+          chmod +x ~/build/yt-dlp_linux
+          cp ~/build/yt-dlp_linux ~/build/yt-dlp_linux_downgraded
+          version="$(~/build/yt-dlp_linux --version)"
+          ~/build/yt-dlp_linux_downgraded -v --update-to yt-dlp/yt-dlp@2023.03.04
+          downgraded_version="$(~/build/yt-dlp_linux_downgraded --version)"
+          [[ "$version" != "$downgraded_version" ]]
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-bin-${{ github.job }}
+          path: |
+            ~/build/yt-dlp_linux
+          compression-level: 0
+
+  linux_arm:
+    needs: process
+    if: inputs.linux_arm
+    permissions:
+      contents: read
+      packages: write # for creating cache
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        architecture:
+          - armv7
+          - aarch64
 
     steps:
-    - uses: actions/checkout@v2
-      with:
-        fetch-depth: 0
-    - name: Set up Python
-      uses: actions/setup-python@v2
-      with:
-          python-version: '3.8'
-    - name: Install packages
-      run: sudo apt-get -y install zip pandoc man
-    - name: Set version suffix
-      id: version_suffix
-      env:
-        PUSH_VERSION_COMMIT: ${{ secrets.PUSH_VERSION_COMMIT }}
-      if: "env.PUSH_VERSION_COMMIT == ''"
-      run: echo ::set-output name=version_suffix::$(date -u +"%H%M%S")
-    - name: Bump version
-      id: bump_version
-      run: |
-        python devscripts/update-version.py ${{ steps.version_suffix.outputs.version_suffix }}
-        make issuetemplates
-    - name: Push to release
-      id: push_release
-      run: |
-        git config --global user.name github-actions
-        git config --global user.email github-actions@example.com
-        git add -u
-        git commit -m "[version] update" -m "Created by: ${{ github.event.sender.login }}" -m ":ci skip all"
-        git push origin --force ${{ github.event.ref }}:release
-        echo ::set-output name=head_sha::$(git rev-parse HEAD)
-    - name: Update master
-      id: push_master
-      env:
-        PUSH_VERSION_COMMIT: ${{ secrets.PUSH_VERSION_COMMIT }}
-      if: "env.PUSH_VERSION_COMMIT != ''"
-      run: git push origin ${{ github.event.ref }}
-    - name: Get Changelog
-      id: get_changelog
-      run: |
-        changelog=$(cat Changelog.md | grep -oPz '(?s)(?<=### ${{ steps.bump_version.outputs.ytdlp_version }}\n{2}).+?(?=\n{2,3}###)') || true
-        echo "changelog<<EOF" >> $GITHUB_ENV
-        echo "$changelog" >> $GITHUB_ENV
-        echo "EOF" >> $GITHUB_ENV
+      - uses: actions/checkout@v4
+        with:
+          path: ./repo
+      - name: Virtualized Install, Prepare & Build
+        uses: yt-dlp/run-on-arch-action@v2
+        with:
+          # Ref: https://github.com/uraimo/run-on-arch-action/issues/55
+          env: |
+            GITHUB_WORKFLOW: build
+          githubToken: ${{ github.token }} # To cache image
+          arch: ${{ matrix.architecture }}
+          distro: ubuntu18.04 # Standalone executable should be built on minimum supported OS
+          dockerRunArgs: --volume "${PWD}/repo:/repo"
+          install: | # Installing Python 3.10 from the Deadsnakes repo raises errors
+            apt update
+            apt -y install zlib1g-dev libffi-dev python3.8 python3.8-dev python3.8-distutils python3-pip
+            python3.8 -m pip install -U pip setuptools wheel
+            # Cannot access any files from the repo directory at this stage
+            python3.8 -m pip install -U Pyinstaller mutagen pycryptodomex websockets brotli certifi secretstorage cffi
 
-    - name: Build lazy extractors
-      id: lazy_extractors
-      run: python devscripts/make_lazy_extractors.py
-    - name: Run Make
-      run: make all tar
-    - name: Get SHA2-256SUMS for yt-dlp
-      id: sha256_bin
-      run: echo "::set-output name=sha256_bin::$(sha256sum yt-dlp | awk '{print $1}')"
-    - name: Get SHA2-256SUMS for yt-dlp.tar.gz
-      id: sha256_tar
-      run: echo "::set-output name=sha256_tar::$(sha256sum yt-dlp.tar.gz | awk '{print $1}')"
-    - name: Get SHA2-512SUMS for yt-dlp
-      id: sha512_bin
-      run: echo "::set-output name=sha512_bin::$(sha512sum yt-dlp | awk '{print $1}')"
-    - name: Get SHA2-512SUMS for yt-dlp.tar.gz
-      id: sha512_tar
-      run: echo "::set-output name=sha512_tar::$(sha512sum yt-dlp.tar.gz | awk '{print $1}')"
+          run: |
+            cd repo
+            python3.8 devscripts/install_deps.py -o --include build
+            python3.8 devscripts/install_deps.py --include pyinstaller --include secretstorage  # Cached version may be out of date
+            python3.8 devscripts/update-version.py -c "${{ inputs.channel }}" -r "${{ needs.process.outputs.origin }}" "${{ inputs.version }}"
+            python3.8 devscripts/make_lazy_extractors.py
+            python3.8 -m bundle.pyinstaller
 
-    - name: Install dependencies for pypi
-      env:
-        PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
-      if: "env.PYPI_TOKEN != ''"
-      run: |
-        python -m pip install --upgrade pip
-        pip install setuptools wheel twine
-    - name: Build and publish on pypi
-      env:
-        TWINE_USERNAME: __token__
-        TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
-      if: "env.TWINE_PASSWORD != ''"
-      run: |
-        rm -rf dist/*
-        python setup.py sdist bdist_wheel
-        twine upload dist/*
+            if ${{ vars.UPDATE_TO_VERIFICATION && 'true' || 'false' }}; then
+              arch="${{ (matrix.architecture == 'armv7' && 'armv7l') || matrix.architecture }}"
+              chmod +x ./dist/yt-dlp_linux_${arch}
+              cp ./dist/yt-dlp_linux_${arch} ./dist/yt-dlp_linux_${arch}_downgraded
+              version="$(./dist/yt-dlp_linux_${arch} --version)"
+              ./dist/yt-dlp_linux_${arch}_downgraded -v --update-to yt-dlp/yt-dlp@2023.03.04
+              downgraded_version="$(./dist/yt-dlp_linux_${arch}_downgraded --version)"
+              [[ "$version" != "$downgraded_version" ]]
+            fi
 
-    - name: Install SSH private key
-      env:
-        BREW_TOKEN: ${{ secrets.BREW_TOKEN }}
-      if: "env.BREW_TOKEN != ''"
-      uses: yt-dlp/ssh-agent@v0.5.3
-      with:
-          ssh-private-key: ${{ env.BREW_TOKEN }}
-    - name: Update Homebrew Formulae
-      env:
-        BREW_TOKEN: ${{ secrets.BREW_TOKEN }}
-      if: "env.BREW_TOKEN != ''"
-      run: |
-        git clone git@github.com:yt-dlp/homebrew-taps taps/
-        python3 devscripts/update-formulae.py taps/Formula/yt-dlp.rb "${{ steps.bump_version.outputs.ytdlp_version }}"
-        git -C taps/ config user.name github-actions
-        git -C taps/ config user.email github-actions@example.com
-        git -C taps/ commit -am 'yt-dlp: ${{ steps.bump_version.outputs.ytdlp_version }}'
-        git -C taps/ push
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-bin-linux_${{ matrix.architecture }}
+          path: | # run-on-arch-action designates armv7l as armv7
+            repo/dist/yt-dlp_linux_${{ (matrix.architecture == 'armv7' && 'armv7l') || matrix.architecture }}
+          compression-level: 0
 
-    - name: Create Release
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ steps.bump_version.outputs.ytdlp_version }}
-        release_name: yt-dlp ${{ steps.bump_version.outputs.ytdlp_version }}
-        commitish: ${{ steps.push_release.outputs.head_sha }}
-        body: |
-          #### [A description of the various files]((https://github.com/yt-dlp/yt-dlp#release-files)) are in the README
-
-          ---
-
-          ### Changelog:
-          ${{ env.changelog }}
-        draft: false
-        prerelease: false
-    - name: Upload yt-dlp Unix binary
-      id: upload-release-asset
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./yt-dlp
-        asset_name: yt-dlp
-        asset_content_type: application/octet-stream
-    - name: Upload Source tar
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./yt-dlp.tar.gz
-        asset_name: yt-dlp.tar.gz
-        asset_content_type: application/gzip
-
-  build_macos:
+  macos:
+    needs: process
+    if: inputs.macos
     runs-on: macos-11
-    needs: build_unix
-    outputs:
-      sha256_macos: ${{ steps.sha256_macos.outputs.sha256_macos }}
-      sha512_macos: ${{ steps.sha512_macos.outputs.sha512_macos }}
-      sha256_macos_zip: ${{ steps.sha256_macos_zip.outputs.sha256_macos_zip }}
-      sha512_macos_zip: ${{ steps.sha512_macos_zip.outputs.sha512_macos_zip }}
 
     steps:
-    - uses: actions/checkout@v2
-    # In order to create a universal2 application, the version of python3 in /usr/bin has to be used
-    - name: Install Requirements
-      run: |
+      - uses: actions/checkout@v4
+      # NB: Building universal2 does not work with python from actions/setup-python
+      - name: Install Requirements
+        run: |
           brew install coreutils
-          /usr/bin/python3 -m pip install -U --user pip Pyinstaller==4.10 -r requirements.txt
-    - name: Bump version
-      id: bump_version
-      run: /usr/bin/python3 devscripts/update-version.py
-    - name: Build lazy extractors
-      id: lazy_extractors
-      run: /usr/bin/python3 devscripts/make_lazy_extractors.py
-    - name: Run PyInstaller Script
-      run: /usr/bin/python3 pyinst.py --target-architecture universal2 --onefile
-    - name: Upload yt-dlp MacOS binary
-      id: upload-release-macos
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ needs.build_unix.outputs.upload_url }}
-        asset_path: ./dist/yt-dlp_macos
-        asset_name: yt-dlp_macos
-        asset_content_type: application/octet-stream
-    - name: Get SHA2-256SUMS for yt-dlp_macos
-      id: sha256_macos
-      run: echo "::set-output name=sha256_macos::$(sha256sum dist/yt-dlp_macos | awk '{print $1}')"
-    - name: Get SHA2-512SUMS for yt-dlp_macos
-      id: sha512_macos
-      run: echo "::set-output name=sha512_macos::$(sha512sum dist/yt-dlp_macos | awk '{print $1}')"
+          python3 devscripts/install_deps.py --user -o --include build
+          python3 devscripts/install_deps.py --print --include pyinstaller > requirements.txt
+          # We need to ignore wheels otherwise we break universal2 builds
+          python3 -m pip install -U --user --no-binary :all: -r requirements.txt
+          # We need to fuse our own universal2 wheels for curl_cffi
+          python3 -m pip install -U --user delocate
+          mkdir curl_cffi_whls curl_cffi_universal2
+          python3 devscripts/install_deps.py --print -o --include curl-cffi > requirements.txt
+          for platform in "macosx_11_0_arm64" "macosx_11_0_x86_64"; do
+            python3 -m pip download \
+              --only-binary=:all: \
+              --platform "${platform}" \
+              --pre -d curl_cffi_whls \
+              -r requirements.txt
+          done
+          python3 -m delocate.cmd.delocate_fuse curl_cffi_whls/curl_cffi*.whl -w curl_cffi_universal2
+          python3 -m delocate.cmd.delocate_fuse curl_cffi_whls/cffi*.whl -w curl_cffi_universal2
+          cd curl_cffi_universal2
+          for wheel in *cffi*.whl; do mv -n -- "${wheel}" "${wheel/x86_64/universal2}"; done
+          python3 -m pip install -U --user *cffi*.whl
 
-    - name: Run PyInstaller Script with --onedir
-      run: |
-        /usr/bin/python3 pyinst.py --target-architecture universal2 --onedir
-        zip ./dist/yt-dlp_macos.zip ./dist/yt-dlp_macos
-    - name: Upload yt-dlp MacOS onedir
-      id: upload-release-macos-zip
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ needs.build_unix.outputs.upload_url }}
-        asset_path: ./dist/yt-dlp_macos.zip
-        asset_name: yt-dlp_macos.zip
-        asset_content_type: application/zip
-    - name: Get SHA2-256SUMS for yt-dlp_macos.zip
-      id: sha256_macos_zip
-      run: echo "::set-output name=sha256_macos_zip::$(sha256sum dist/yt-dlp_macos.zip | awk '{print $1}')"
-    - name: Get SHA2-512SUMS for yt-dlp_macos.zip
-      id: sha512_macos_zip
-      run: echo "::set-output name=sha512_macos_zip::$(sha512sum dist/yt-dlp_macos.zip | awk '{print $1}')"
+      - name: Prepare
+        run: |
+          python3 devscripts/update-version.py -c "${{ inputs.channel }}" -r "${{ needs.process.outputs.origin }}" "${{ inputs.version }}"
+          python3 devscripts/make_lazy_extractors.py
+      - name: Build
+        run: |
+          python3 -m bundle.pyinstaller --target-architecture universal2 --onedir
+          (cd ./dist/yt-dlp_macos && zip -r ../yt-dlp_macos.zip .)
+          python3 -m bundle.pyinstaller --target-architecture universal2
 
-  build_windows:
-    runs-on: windows-latest
-    needs: build_unix
-    outputs:
-      sha256_win: ${{ steps.sha256_win.outputs.sha256_win }}
-      sha512_win: ${{ steps.sha512_win.outputs.sha512_win }}
-      sha256_py2exe: ${{ steps.sha256_py2exe.outputs.sha256_py2exe }}
-      sha512_py2exe: ${{ steps.sha512_py2exe.outputs.sha512_py2exe }}
-      sha256_win_zip: ${{ steps.sha256_win_zip.outputs.sha256_win_zip }}
-      sha512_win_zip: ${{ steps.sha512_win_zip.outputs.sha512_win_zip }}
+      - name: Verify --update-to
+        if: vars.UPDATE_TO_VERIFICATION
+        run: |
+          chmod +x ./dist/yt-dlp_macos
+          cp ./dist/yt-dlp_macos ./dist/yt-dlp_macos_downgraded
+          version="$(./dist/yt-dlp_macos --version)"
+          ./dist/yt-dlp_macos_downgraded -v --update-to yt-dlp/yt-dlp@2023.03.04
+          downgraded_version="$(./dist/yt-dlp_macos_downgraded --version)"
+          [[ "$version" != "$downgraded_version" ]]
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-bin-${{ github.job }}
+          path: |
+            dist/yt-dlp_macos
+            dist/yt-dlp_macos.zip
+          compression-level: 0
+
+  macos_legacy:
+    needs: process
+    if: inputs.macos_legacy
+    runs-on: macos-12
 
     steps:
-    - uses: actions/checkout@v2
-    # 3.8 is used for Win7 support
-    - name: Set up Python 3.8
-      uses: actions/setup-python@v2
-      with:
-          python-version: '3.8'
-    - name: Install Requirements
-      # Custom pyinstaller built with https://github.com/yt-dlp/pyinstaller-builds
-      run: |
-          python -m pip install --upgrade pip setuptools wheel py2exe
-          pip install "https://yt-dlp.github.io/Pyinstaller-Builds/x86_64/pyinstaller-4.10-py3-none-any.whl" -r requirements.txt
-    - name: Bump version
-      id: bump_version
-      env:
-        version_suffix: ${{ needs.build_unix.outputs.version_suffix }}
-      run: python devscripts/update-version.py ${{ env.version_suffix }}
-    - name: Build lazy extractors
-      id: lazy_extractors
-      run: python devscripts/make_lazy_extractors.py
-    - name: Run PyInstaller Script
-      run: python pyinst.py
-    - name: Upload yt-dlp.exe Windows binary
-      id: upload-release-windows
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ needs.build_unix.outputs.upload_url }}
-        asset_path: ./dist/yt-dlp.exe
-        asset_name: yt-dlp.exe
-        asset_content_type: application/vnd.microsoft.portable-executable
-    - name: Get SHA2-256SUMS for yt-dlp.exe
-      id: sha256_win
-      run: echo "::set-output name=sha256_win::$((Get-FileHash dist\yt-dlp.exe -Algorithm SHA256).Hash.ToLower())"
-    - name: Get SHA2-512SUMS for yt-dlp.exe
-      id: sha512_win
-      run: echo "::set-output name=sha512_win::$((Get-FileHash dist\yt-dlp.exe -Algorithm SHA512).Hash.ToLower())"
+      - uses: actions/checkout@v4
+      - name: Install Python
+        # We need the official Python, because the GA ones only support newer macOS versions
+        env:
+          PYTHON_VERSION: 3.10.5
+          MACOSX_DEPLOYMENT_TARGET: 10.9 # Used up by the Python build tools
+        run: |
+          # Hack to get the latest patch version. Uncomment if needed
+          #brew install python@3.10
+          #export PYTHON_VERSION=$( $(brew --prefix)/opt/python@3.10/bin/python3 --version | cut -d ' ' -f 2 )
+          curl https://www.python.org/ftp/python/${PYTHON_VERSION}/python-${PYTHON_VERSION}-macos11.pkg -o "python.pkg"
+          sudo installer -pkg python.pkg -target /
+          python3 --version
+      - name: Install Requirements
+        run: |
+          brew install coreutils
+          python3 devscripts/install_deps.py --user -o --include build
+          python3 devscripts/install_deps.py --user --include pyinstaller
 
-    - name: Run PyInstaller Script with --onedir
-      run: |
-        python pyinst.py --onedir
-        Compress-Archive -LiteralPath ./dist/yt-dlp -DestinationPath ./dist/yt-dlp_win.zip
-    - name: Upload yt-dlp Windows onedir
-      id: upload-release-windows-zip
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ needs.build_unix.outputs.upload_url }}
-        asset_path: ./dist/yt-dlp_win.zip
-        asset_name: yt-dlp_win.zip
-        asset_content_type: application/zip
-    - name: Get SHA2-256SUMS for yt-dlp_win.zip
-      id: sha256_win_zip
-      run: echo "::set-output name=sha256_win_zip::$((Get-FileHash dist\yt-dlp_win.zip -Algorithm SHA256).Hash.ToLower())"
-    - name: Get SHA2-512SUMS for yt-dlp_win.zip
-      id: sha512_win_zip
-      run: echo "::set-output name=sha512_win_zip::$((Get-FileHash dist\yt-dlp_win.zip -Algorithm SHA512).Hash.ToLower())"
+      - name: Prepare
+        run: |
+          python3 devscripts/update-version.py -c "${{ inputs.channel }}" -r "${{ needs.process.outputs.origin }}" "${{ inputs.version }}"
+          python3 devscripts/make_lazy_extractors.py
+      - name: Build
+        run: |
+          python3 -m bundle.pyinstaller
+          mv dist/yt-dlp_macos dist/yt-dlp_macos_legacy
 
-    - name: Run py2exe Script
-      run: python setup.py py2exe
-    - name: Upload yt-dlp_min.exe Windows binary
-      id: upload-release-windows-py2exe
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ needs.build_unix.outputs.upload_url }}
-        asset_path: ./dist/yt-dlp.exe
-        asset_name: yt-dlp_min.exe
-        asset_content_type: application/vnd.microsoft.portable-executable
-    - name: Get SHA2-256SUMS for yt-dlp_min.exe
-      id: sha256_py2exe
-      run: echo "::set-output name=sha256_py2exe::$((Get-FileHash dist\yt-dlp.exe -Algorithm SHA256).Hash.ToLower())"
-    - name: Get SHA2-512SUMS for yt-dlp_min.exe
-      id: sha512_py2exe
-      run: echo "::set-output name=sha512_py2exe::$((Get-FileHash dist\yt-dlp.exe -Algorithm SHA512).Hash.ToLower())"
+      - name: Verify --update-to
+        if: vars.UPDATE_TO_VERIFICATION
+        run: |
+          chmod +x ./dist/yt-dlp_macos_legacy
+          cp ./dist/yt-dlp_macos_legacy ./dist/yt-dlp_macos_legacy_downgraded
+          version="$(./dist/yt-dlp_macos_legacy --version)"
+          ./dist/yt-dlp_macos_legacy_downgraded -v --update-to yt-dlp/yt-dlp@2023.03.04
+          downgraded_version="$(./dist/yt-dlp_macos_legacy_downgraded --version)"
+          [[ "$version" != "$downgraded_version" ]]
 
-  build_windows32:
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-bin-${{ github.job }}
+          path: |
+            dist/yt-dlp_macos_legacy
+          compression-level: 0
+
+  windows:
+    needs: process
+    if: inputs.windows
     runs-on: windows-latest
-    needs: build_unix
-
-    outputs:
-      sha256_win32: ${{ steps.sha256_win32.outputs.sha256_win32 }}
-      sha512_win32: ${{ steps.sha512_win32.outputs.sha512_win32 }}
 
     steps:
-    - uses: actions/checkout@v2
-    # 3.7 is used for Vista support. See https://github.com/yt-dlp/yt-dlp/issues/390
-    - name: Set up Python 3.7 32-Bit
-      uses: actions/setup-python@v2
-      with:
-          python-version: '3.7'
-          architecture: 'x86'
-    - name: Install Requirements
-      run: |
-          python -m pip install --upgrade pip setuptools wheel
-          pip install "https://yt-dlp.github.io/Pyinstaller-Builds/i686/pyinstaller-4.10-py3-none-any.whl" -r requirements.txt
-    - name: Bump version
-      id: bump_version
-      env:
-        version_suffix: ${{ needs.build_unix.outputs.version_suffix }}
-      run: python devscripts/update-version.py ${{ env.version_suffix }}
-    - name: Build lazy extractors
-      id: lazy_extractors
-      run: python devscripts/make_lazy_extractors.py
-    - name: Run PyInstaller Script for 32 Bit
-      run: python pyinst.py
-    - name: Upload Executable yt-dlp_x86.exe
-      id: upload-release-windows32
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ needs.build_unix.outputs.upload_url }}
-        asset_path: ./dist/yt-dlp_x86.exe
-        asset_name: yt-dlp_x86.exe
-        asset_content_type: application/vnd.microsoft.portable-executable
-    - name: Get SHA2-256SUMS for yt-dlp_x86.exe
-      id: sha256_win32
-      run: echo "::set-output name=sha256_win32::$((Get-FileHash dist\yt-dlp_x86.exe -Algorithm SHA256).Hash.ToLower())"
-    - name: Get SHA2-512SUMS for yt-dlp_x86.exe
-      id: sha512_win32
-      run: echo "::set-output name=sha512_win32::$((Get-FileHash dist\yt-dlp_x86.exe -Algorithm SHA512).Hash.ToLower())"
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: # 3.8 is used for Win7 support
+          python-version: "3.8"
+      - name: Install Requirements
+        run: | # Custom pyinstaller built with https://github.com/yt-dlp/pyinstaller-builds
+          python devscripts/install_deps.py -o --include build
+          python devscripts/install_deps.py --include py2exe --include curl-cffi
+          python -m pip install -U "https://yt-dlp.github.io/Pyinstaller-Builds/x86_64/pyinstaller-5.8.0-py3-none-any.whl"
 
-  finish:
+      - name: Prepare
+        run: |
+          python devscripts/update-version.py -c "${{ inputs.channel }}" -r "${{ needs.process.outputs.origin }}" "${{ inputs.version }}"
+          python devscripts/make_lazy_extractors.py
+      - name: Build
+        run: |
+          python -m bundle.py2exe
+          Move-Item ./dist/yt-dlp.exe ./dist/yt-dlp_min.exe
+          python -m bundle.pyinstaller
+          python -m bundle.pyinstaller --onedir
+          Compress-Archive -Path ./dist/yt-dlp/* -DestinationPath ./dist/yt-dlp_win.zip
+
+      - name: Verify --update-to
+        if: vars.UPDATE_TO_VERIFICATION
+        run: |
+          foreach ($name in @("yt-dlp","yt-dlp_min")) {
+            Copy-Item "./dist/${name}.exe" "./dist/${name}_downgraded.exe"
+            $version = & "./dist/${name}.exe" --version
+            & "./dist/${name}_downgraded.exe" -v --update-to yt-dlp/yt-dlp@2023.03.04
+            $downgraded_version = & "./dist/${name}_downgraded.exe" --version
+            if ($version -eq $downgraded_version) {
+              exit 1
+            }
+          }
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-bin-${{ github.job }}
+          path: |
+            dist/yt-dlp.exe
+            dist/yt-dlp_min.exe
+            dist/yt-dlp_win.zip
+          compression-level: 0
+
+  windows32:
+    needs: process
+    if: inputs.windows32
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.8"
+          architecture: "x86"
+      - name: Install Requirements
+        run: |
+          python devscripts/install_deps.py -o --include build
+          python devscripts/install_deps.py
+          python -m pip install -U "https://yt-dlp.github.io/Pyinstaller-Builds/i686/pyinstaller-5.8.0-py3-none-any.whl"
+
+      - name: Prepare
+        run: |
+          python devscripts/update-version.py -c "${{ inputs.channel }}" -r "${{ needs.process.outputs.origin }}" "${{ inputs.version }}"
+          python devscripts/make_lazy_extractors.py
+      - name: Build
+        run: |
+          python -m bundle.pyinstaller
+
+      - name: Verify --update-to
+        if: vars.UPDATE_TO_VERIFICATION
+        run: |
+          foreach ($name in @("yt-dlp_x86")) {
+            Copy-Item "./dist/${name}.exe" "./dist/${name}_downgraded.exe"
+            $version = & "./dist/${name}.exe" --version
+            & "./dist/${name}_downgraded.exe" -v --update-to yt-dlp/yt-dlp@2023.03.04
+            $downgraded_version = & "./dist/${name}_downgraded.exe" --version
+            if ($version -eq $downgraded_version) {
+              exit 1
+            }
+          }
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-bin-${{ github.job }}
+          path: |
+            dist/yt-dlp_x86.exe
+          compression-level: 0
+
+  meta_files:
+    if: always() && !cancelled()
+    needs:
+      - process
+      - unix
+      - linux_static
+      - linux_arm
+      - macos
+      - macos_legacy
+      - windows
+      - windows32
     runs-on: ubuntu-latest
-    needs: [build_unix, build_windows, build_windows32, build_macos]
-
     steps:
-    - name: Make SHA2-256SUMS file
-      env:
-        SHA256_BIN: ${{ needs.build_unix.outputs.sha256_bin }}
-        SHA256_TAR: ${{ needs.build_unix.outputs.sha256_tar }}
-        SHA256_WIN: ${{ needs.build_windows.outputs.sha256_win }}
-        SHA256_PY2EXE: ${{ needs.build_windows.outputs.sha256_py2exe }}
-        SHA256_WIN_ZIP: ${{ needs.build_windows.outputs.sha256_win_zip }}
-        SHA256_WIN32: ${{ needs.build_windows32.outputs.sha256_win32 }}
-        SHA256_MACOS: ${{ needs.build_macos.outputs.sha256_macos }}
-        SHA256_MACOS_ZIP: ${{ needs.build_macos.outputs.sha256_macos_zip }}
-      run: |
-        echo "${{ env.SHA256_BIN }}  yt-dlp" >> SHA2-256SUMS
-        echo "${{ env.SHA256_TAR }}  yt-dlp.tar.gz" >> SHA2-256SUMS
-        echo "${{ env.SHA256_WIN }}  yt-dlp.exe" >> SHA2-256SUMS
-        echo "${{ env.SHA256_PY2EXE }}  yt-dlp_min.exe" >> SHA2-256SUMS
-        echo "${{ env.SHA256_WIN32 }}  yt-dlp_x86.exe" >> SHA2-256SUMS
-        echo "${{ env.SHA256_WIN_ZIP }}  yt-dlp_win.zip" >> SHA2-256SUMS
-        echo "${{ env.SHA256_MACOS }}  yt-dlp_macos" >> SHA2-256SUMS
-        echo "${{ env.SHA256_MACOS_ZIP }}  yt-dlp_macos.zip" >> SHA2-256SUMS
-    - name: Upload 256SUMS file
-      id: upload-sums
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ needs.build_unix.outputs.upload_url }}
-        asset_path: ./SHA2-256SUMS
-        asset_name: SHA2-256SUMS
-        asset_content_type: text/plain
-    - name: Make SHA2-512SUMS file
-      env:
-        SHA512_BIN: ${{ needs.build_unix.outputs.sha512_bin }}
-        SHA512_TAR: ${{ needs.build_unix.outputs.sha512_tar }}
-        SHA512_WIN: ${{ needs.build_windows.outputs.sha512_win }}
-        SHA512_PY2EXE: ${{ needs.build_windows.outputs.sha512_py2exe }}
-        SHA512_WIN_ZIP: ${{ needs.build_windows.outputs.sha512_win_zip }}
-        SHA512_WIN32: ${{ needs.build_windows32.outputs.sha512_win32 }}
-        SHA512_MACOS: ${{ needs.build_macos.outputs.sha512_macos }}
-        SHA512_MACOS_ZIP: ${{ needs.build_macos.outputs.sha512_macos_zip }}
-      run: |
-        echo "${{ env.SHA512_BIN }}  yt-dlp" >> SHA2-512SUMS
-        echo "${{ env.SHA512_TAR }}  yt-dlp.tar.gz" >> SHA2-512SUMS
-        echo "${{ env.SHA512_WIN }}  yt-dlp.exe" >> SHA2-512SUMS
-        echo "${{ env.SHA512_WIN_ZIP }}  yt-dlp_win.zip" >> SHA2-512SUMS
-        echo "${{ env.SHA512_PY2EXE }}  yt-dlp_min.exe" >> SHA2-512SUMS
-        echo "${{ env.SHA512_WIN32 }}  yt-dlp_x86.exe" >> SHA2-512SUMS
-        echo "${{ env.SHA512_MACOS }}  yt-dlp_macos" >> SHA2-512SUMS
-        echo "${{ env.SHA512_MACOS_ZIP }}  yt-dlp_macos.zip" >> SHA2-512SUMS
-    - name: Upload 512SUMS file
-      id: upload-512sums
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ needs.build_unix.outputs.upload_url }}
-        asset_path: ./SHA2-512SUMS
-        asset_name: SHA2-512SUMS
-        asset_content_type: text/plain
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifact
+          pattern: build-bin-*
+          merge-multiple: true
+
+      - name: Make SHA2-SUMS files
+        run: |
+          cd ./artifact/
+          # make sure SHA sums are also printed to stdout
+          sha256sum * | tee ../SHA2-256SUMS
+          sha512sum * | tee ../SHA2-512SUMS
+
+      - name: Make Update spec
+        run: |
+          cat >> _update_spec << EOF
+          # This file is used for regulating self-update
+          lock 2022.08.18.36 .+ Python 3\.6
+          lock 2023.11.16 (?!win_x86_exe).+ Python 3\.7
+          lock 2023.11.16 win_x86_exe .+ Windows-(?:Vista|2008Server)
+          lockV2 yt-dlp/yt-dlp 2022.08.18.36 .+ Python 3\.6
+          lockV2 yt-dlp/yt-dlp 2023.11.16 (?!win_x86_exe).+ Python 3\.7
+          lockV2 yt-dlp/yt-dlp 2023.11.16 win_x86_exe .+ Windows-(?:Vista|2008Server)
+          lockV2 yt-dlp/yt-dlp-nightly-builds 2023.11.15.232826 (?!win_x86_exe).+ Python 3\.7
+          lockV2 yt-dlp/yt-dlp-nightly-builds 2023.11.15.232826 win_x86_exe .+ Windows-(?:Vista|2008Server)
+          lockV2 yt-dlp/yt-dlp-master-builds 2023.11.15.232812 (?!win_x86_exe).+ Python 3\.7
+          lockV2 yt-dlp/yt-dlp-master-builds 2023.11.15.232812 win_x86_exe .+ Windows-(?:Vista|2008Server)
+          EOF
+
+      - name: Sign checksum files
+        env:
+          GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
+        if: env.GPG_SIGNING_KEY != ''
+        run: |
+          gpg --batch --import <<< "${{ secrets.GPG_SIGNING_KEY }}"
+          for signfile in ./SHA*SUMS; do
+            gpg --batch --detach-sign "$signfile"
+          done
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-${{ github.job }}
+          path: |
+            _update_spec
+            SHA*SUMS*
+          compression-level: 0
+          overwrite: true

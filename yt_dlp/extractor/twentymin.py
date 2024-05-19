@@ -1,5 +1,3 @@
-import re
-
 from .common import InfoExtractor
 from ..utils import (
     int_or_none,
@@ -18,6 +16,7 @@ class TwentyMinutenIE(InfoExtractor):
                         )
                         (?P<id>\d+)
                     '''
+    _EMBED_REGEX = [r'<iframe[^>]+src=(["\'])(?P<url>(?:(?:https?:)?//)?(?:www\.)?20min\.ch/videoplayer/videoplayer.html\?.*?\bvideoId@\d+.*?)\1']
     _TESTS = [{
         'url': 'http://www.20min.ch/videotv/?vid=469148&cid=2',
         'md5': 'e7264320db31eed8c38364150c12496e',
@@ -44,12 +43,6 @@ class TwentyMinutenIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    @staticmethod
-    def _extract_urls(webpage):
-        return [m.group('url') for m in re.finditer(
-            r'<iframe[^>]+src=(["\'])(?P<url>(?:(?:https?:)?//)?(?:www\.)?20min\.ch/videoplayer/videoplayer.html\?.*?\bvideoId@\d+.*?)\1',
-            webpage)]
-
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
@@ -64,7 +57,6 @@ class TwentyMinutenIE(InfoExtractor):
             'url': 'http://podcast.20min-tv.ch/podcast/20min/%s%s.mp4' % (video_id, p),
             'quality': quality,
         } for quality, (format_id, p) in enumerate([('sd', ''), ('hd', 'h')])]
-        self._sort_formats(formats)
 
         description = video.get('lead')
         thumbnail = video.get('thumbnail')

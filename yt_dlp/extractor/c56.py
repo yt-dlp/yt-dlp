@@ -49,7 +49,6 @@ class C56IE(InfoExtractor):
                 'url': f['url']
             } for f in info['rfiles']
         ]
-        self._sort_formats(formats)
 
         return {
             'id': info['vid'],

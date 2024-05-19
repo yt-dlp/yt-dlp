@@ -7,6 +7,8 @@ from ..utils import (
 
 class PlaywireIE(InfoExtractor):
     _VALID_URL = r'https?://(?:config|cdn)\.playwire\.com(?:/v2)?/(?P<publisher_id>\d+)/(?:videos/v2|embed|config)/(?P<id>\d+)'
+    _EMBED_REGEX = [r'<script[^>]+data-config=(["\'])(?P<url>(?:https?:)?//config\.playwire\.com/.+?)\1']
+
     _TESTS = [{
         'url': 'http://config.playwire.com/14907/videos/v2/3353705/player.json',
         'md5': 'e6398701e3595888125729eaa2329ed9',
@@ -60,7 +62,6 @@ class PlaywireIE(InfoExtractor):
         for a_format in formats:
             if not dict_get(a_format, ['tbr', 'width', 'height']):
                 a_format['quality'] = 1 if '-hd.' in a_format['url'] else 0
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

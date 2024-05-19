@@ -10,6 +10,7 @@ from ..utils import (
 
 
 class NobelPrizeIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?nobelprize\.org/mediaplayer.*?\bid=(?P<id>\d+)'
     _TEST = {
         'url': 'http://www.nobelprize.org/mediaplayer/?id=2636',
@@ -48,7 +49,6 @@ class NobelPrizeIE(InfoExtractor):
                 formats.append({
                     'url': source_src,
                 })
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

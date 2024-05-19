@@ -1,5 +1,3 @@
-import re
-
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
@@ -136,42 +134,3 @@ class PokemonWatchIE(InfoExtractor):
             'episode': video_data.get('title'),
             'episode_number': int_or_none(video_data.get('episode')),
         })
-
-
-class PokemonSoundLibraryIE(InfoExtractor):
-    _VALID_URL = r'https?://soundlibrary\.pokemon\.co\.jp'
-
-    _TESTS = [{
-        'url': 'https://soundlibrary.pokemon.co.jp/',
-        'info_dict': {
-            'title': 'Pokémon Diamond and Pearl Sound Tracks',
-        },
-        'playlist_mincount': 149,
-    }]
-
-    def _real_extract(self, url):
-        musicbox_webpage = self._download_webpage(
-            'https://soundlibrary.pokemon.co.jp/musicbox', None,
-            'Downloading list of songs')
-        song_titles = [x.group(1) for x in re.finditer(r'<span>([^>]+?)</span><br/>をてもち曲に加えます。', musicbox_webpage)]
-        song_titles = song_titles[4::2]
-
-        # each songs don't have permalink; instead we return all songs at once
-        song_entries = [{
-            'id': f'pokemon-soundlibrary-{song_id}',
-            'url': f'https://soundlibrary.pokemon.co.jp/api/assets/signing/sounds/wav/{song_id}.wav',
-            # note: the server always serves MP3 files, despite its extension of the URL above
-            'ext': 'mp3',
-            'acodec': 'mp3',
-            'vcodec': 'none',
-            'title': song_title,
-            'track': song_title,
-            'artist': 'Nintendo / Creatures Inc. / GAME FREAK inc.',
-            'uploader': 'Pokémon',
-            'release_year': 2006,
-            'release_date': '20060928',
-            'track_number': song_id,
-            'album': 'Pokémon Diamond and Pearl',
-        } for song_id, song_title in enumerate(song_titles, 1)]
-
-        return self.playlist_result(song_entries, playlist_title='Pokémon Diamond and Pearl Sound Tracks')

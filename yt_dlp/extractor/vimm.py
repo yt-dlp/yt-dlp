@@ -23,7 +23,6 @@ class VimmIE(InfoExtractor):
 
         formats, subs = self._extract_m3u8_formats_and_subtitles(
             f'https://www.vimm.tv/hls/{channel_id}.m3u8', channel_id, 'mp4', m3u8_id='hls', live=True)
-        self._sort_formats(formats)
 
         return {
             'id': channel_id,
@@ -56,7 +55,6 @@ class VimmRecordingIE(InfoExtractor):
 
         formats, subs = self._extract_m3u8_formats_and_subtitles(
             f'https://d211qfrkztakg3.cloudfront.net/{channel_id}/{video_id}/index.m3u8', video_id, 'mp4', m3u8_id='hls', live=False)
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

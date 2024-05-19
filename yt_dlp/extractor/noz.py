@@ -9,6 +9,7 @@ from ..compat import compat_urllib_parse_unquote
 
 
 class NozIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?noz\.de/video/(?P<id>[0-9]+)/'
     _TESTS = [{
         'url': 'http://www.noz.de/video/25151/32-Deutschland-gewinnt-Badminton-Lnderspiel-in-Melle',
@@ -71,7 +72,6 @@ class NozIE(InfoExtractor):
                     formats.extend(self._extract_m3u8_formats(
                         m3u8_url, video_id, 'mp4', 'm3u8_native',
                         m3u8_id='hls', fatal=False))
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

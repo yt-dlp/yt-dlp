@@ -1,8 +1,9 @@
 import time
+import urllib.parse
 
+from . import get_suitable_downloader
 from .fragment import FragmentFD
-from ..downloader import get_suitable_downloader
-from ..utils import urljoin
+from ..utils import update_url_query, urljoin
 
 
 class DashSegmentsFD(FragmentFD):
@@ -14,12 +15,15 @@ class DashSegmentsFD(FragmentFD):
     FD_NAME = 'dashsegments'
 
     def real_download(self, filename, info_dict):
-        if info_dict.get('is_live') and set(info_dict['protocol'].split('+')) != {'http_dash_segments_generator'}:
-            self.report_error('Live DASH videos are not supported')
+        if 'http_dash_segments_generator' in info_dict['protocol'].split('+'):
+            real_downloader = None  # No external FD can support --live-from-start
+        else:
+            if info_dict.get('is_live'):
+                self.report_error('Live DASH videos are not supported')
+            real_downloader = get_suitable_downloader(
+                info_dict, self.params, None, protocol='dash_frag_urls', to_stdout=(filename == '-'))
 
         real_start = time.time()
-        real_downloader = get_suitable_downloader(
-            info_dict, self.params, None, protocol='dash_frag_urls', to_stdout=(filename == '-'))
 
         requested_formats = [{**info_dict, **fmt} for fmt in info_dict.get('requested_formats', [])]
         args = []
@@ -40,7 +44,12 @@ class DashSegmentsFD(FragmentFD):
                 self._prepare_and_start_frag_download(ctx, fmt)
             ctx['start'] = real_start
 
-            fragments_to_download = self._get_fragments(fmt, ctx)
+            extra_query = None
+            extra_param_to_segment_url = info_dict.get('extra_param_to_segment_url')
+            if extra_param_to_segment_url:
+                extra_query = urllib.parse.parse_qs(extra_param_to_segment_url)
+
+            fragments_to_download = self._get_fragments(fmt, ctx, extra_query)
 
             if real_downloader:
                 self.to_screen(
@@ -51,13 +60,13 @@ class DashSegmentsFD(FragmentFD):
 
             args.append([ctx, fragments_to_download, fmt])
 
-        return self.download_and_append_fragments_multiple(*args)
+        return self.download_and_append_fragments_multiple(*args, is_fatal=lambda idx: idx == 0)
 
     def _resolve_fragments(self, fragments, ctx):
         fragments = fragments(ctx) if callable(fragments) else fragments
         return [next(iter(fragments))] if self.params.get('test') else fragments
 
-    def _get_fragments(self, fmt, ctx):
+    def _get_fragments(self, fmt, ctx, extra_query):
         fragment_base_url = fmt.get('fragment_base_url')
         fragments = self._resolve_fragments(fmt['fragments'], ctx)
 
@@ -70,9 +79,12 @@ class DashSegmentsFD(FragmentFD):
             if not fragment_url:
                 assert fragment_base_url
                 fragment_url = urljoin(fragment_base_url, fragment['path'])
+            if extra_query:
+                fragment_url = update_url_query(fragment_url, extra_query)
 
             yield {
                 'frag_index': frag_index,
+                'fragment_count': fragment.get('fragment_count'),
                 'index': i,
                 'url': fragment_url,
             }
