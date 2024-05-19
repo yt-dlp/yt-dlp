@@ -2,7 +2,7 @@ from .common import InfoExtractor
 
 
 class CableCastTVIE(InfoExtractor):
-    _VALID_URL = r'https://wctv\.wilmette\.com/CablecastPublicSite/show/(?P<id>\d+)'
+    _VALID_URL = r'https:\/\/[a-zA-Z0-9-]+\.cablecast\.tv\/show\/(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://wctv.wilmette.com/CablecastPublicSite/show/532',
         'md5': '17e7ed129582babf6d1ae5c3b9d70d18',
@@ -11,6 +11,12 @@ class CableCastTVIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Village Board Meeting 4/24/24',
         },
+    }, {
+        'url': 'https://capitoltvri.cablecast.tv/show/9199?site=1',
+        'only_matching': True,
+    }, {
+        'url': 'https://king-county-tv.cablecast.tv/show/504',
+        'only_matching': True,
     }, {
         'url': 'https://wctv.wilmette.com/CablecastPublicSite/show/53/',
         'only_matching': True,
