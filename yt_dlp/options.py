@@ -1259,6 +1259,10 @@ def create_parser():
             # TODO: Document the fields inside "progress"
             '--console-title --progress-template "download-title:%(info.id)s-%(progress.eta)s"'))
     verbosity.add_option(
+        '--progress-delta',
+        metavar='SECONDS', action='store', dest='progress_delta', type=float, default=0,
+        help='Time between progress output (default: 0)')
+    verbosity.add_option(
         '-v', '--verbose',
         action='store_true', dest='verbose', default=False,
         help='Print various debugging information')

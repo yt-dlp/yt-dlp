@@ -25,7 +25,7 @@ import unicodedata
 
 from .cache import Cache
 from .compat import functools, urllib  # isort: split
-from .compat import compat_os_name, compat_shlex_quote, urllib_req_to_req
+from .compat import compat_os_name, urllib_req_to_req
 from .cookies import LenientSimpleCookie, load_cookies
 from .downloader import FFmpegFD, get_suitable_downloader, shorten_protocol_name
 from .downloader.rtmp import rtmpdump_version
@@ -102,7 +102,6 @@ from .utils import (
     UserNotLive,
     YoutubeDLError,
     age_restricted,
-    args_to_str,
     bug_reports_message,
     date_from_str,
     deprecation_warning,
@@ -141,6 +140,7 @@ from .utils import (
     sanitize_filename,
     sanitize_path,
     sanitize_url,
+    shell_quote,
     str_or_none,
     strftime_or_none,
     subtitles_filename,
@@ -481,7 +481,7 @@ class YoutubeDL:
     nopart, updatetime, buffersize, ratelimit, throttledratelimit, min_filesize,
     max_filesize, test, noresizebuffer, retries, file_access_retries, fragment_retries,
     continuedl, xattr_set_filesize, hls_use_mpegts, http_chunk_size,
-    external_downloader_args, concurrent_fragment_downloads.
+    external_downloader_args, concurrent_fragment_downloads, progress_delta.
 
     The following options are used by the post processors:
     ffmpeg_location:   Location of the ffmpeg/avconv binary; either the path
@@ -823,7 +823,7 @@ class YoutubeDL:
             self.report_warning(
                 'Long argument string detected. '
                 'Use -- to separate parameters and URLs, like this:\n%s' %
-                args_to_str(correct_argv))
+                shell_quote(correct_argv))
 
     def add_info_extractor(self, ie):
         """Add an InfoExtractor object to the end of the list."""
@@ -1355,7 +1355,7 @@ class YoutubeDL:
                 value, fmt = escapeHTML(str(value)), str_fmt
             elif fmt[-1] == 'q':  # quoted
                 value = map(str, variadic(value) if '#' in flags else [value])
-                value, fmt = ' '.join(map(compat_shlex_quote, value)), str_fmt
+                value, fmt = shell_quote(value, shell=True), str_fmt
             elif fmt[-1] == 'B':  # bytes
                 value = f'%{str_fmt}'.encode() % str(value).encode()
                 value, fmt = value.decode('utf-8', 'ignore'), 's'
@@ -2136,6 +2136,11 @@ class YoutubeDL:
 
     def _check_formats(self, formats):
         for f in formats:
+            working = f.get('__working')
+            if working is not None:
+                if working:
+                    yield f
+                continue
             self.to_screen('[info] Testing format %s' % f['format_id'])
             path = self.get_output_path('temp')
             if not self._ensure_dir_exists(f'{path}/'):
@@ -2152,33 +2157,44 @@ class YoutubeDL:
                         os.remove(temp_file.name)
                     except OSError:
                         self.report_warning('Unable to delete temporary file "%s"' % temp_file.name)
+            f['__working'] = success
             if success:
                 yield f
             else:
                 self.to_screen('[info] Unable to download format %s. Skipping...' % f['format_id'])
 
+    def _select_formats(self, formats, selector):
+        return list(selector({
+            'formats': formats,
+            'has_merged_format': any('none' not in (f.get('acodec'), f.get('vcodec')) for f in formats),
+            'incomplete_formats': (all(f.get('vcodec') == 'none' for f in formats)  # No formats with video
+                                   or all(f.get('acodec') == 'none' for f in formats)),  # OR, No formats with audio
+        }))
+
     def _default_format_spec(self, info_dict, download=True):
+        download = download and not self.params.get('simulate')
+        prefer_best = download and (
+            self.params['outtmpl']['default'] == '-'
+            or info_dict.get('is_live') and not self.params.get('live_from_start'))
 
         def can_merge():
             merger = FFmpegMergerPP(self)
             return merger.available and merger.can_merge()
 
-        prefer_best = (
-            not self.params.get('simulate')
-            and download
-            and (
-                not can_merge()
-                or info_dict.get('is_live') and not self.params.get('live_from_start')
-                or self.params['outtmpl']['default'] == '-'))
-        compat = (
-            prefer_best
-            or self.params.get('allow_multiple_audio_streams', False)
-            or 'format-spec' in self.params['compat_opts'])
+        if not prefer_best and download and not can_merge():
+            prefer_best = True
+            formats = self._get_formats(info_dict)
+            evaluate_formats = lambda spec: self._select_formats(formats, self.build_format_selector(spec))
+            if evaluate_formats('b/bv+ba') != evaluate_formats('bv*+ba/b'):
+                self.report_warning('ffmpeg not found. The downloaded format may not be the best available. '
+                                    'Installing ffmpeg is strongly recommended: https://github.com/yt-dlp/yt-dlp#dependencies')
 
-        return (
-            'best/bestvideo+bestaudio' if prefer_best
-            else 'bestvideo*+bestaudio/best' if not compat
-            else 'bestvideo+bestaudio/best')
+        compat = (self.params.get('allow_multiple_audio_streams')
+                  or 'format-spec' in self.params['compat_opts'])
+
+        return ('best/bestvideo+bestaudio' if prefer_best
+                else 'bestvideo+bestaudio/best' if compat
+                else 'bestvideo*+bestaudio/best')
 
     def build_format_selector(self, format_spec):
         def syntax_error(note, start):
@@ -2928,12 +2944,7 @@ class YoutubeDL:
                 self.write_debug(f'Default format spec: {req_format}')
                 format_selector = self.build_format_selector(req_format)
 
-            formats_to_download = list(format_selector({
-                'formats': formats,
-                'has_merged_format': any('none' not in (f.get('acodec'), f.get('vcodec')) for f in formats),
-                'incomplete_formats': (all(f.get('vcodec') == 'none' for f in formats)  # No formats with video
-                                       or all(f.get('acodec') == 'none' for f in formats)),  # OR, No formats with audio
-            }))
+            formats_to_download = self._select_formats(formats, format_selector)
             if interactive_format_selection and not formats_to_download:
                 self.report_error('Requested format is not available', tb=False, is_error=False)
                 continue
@@ -3060,7 +3071,7 @@ class YoutubeDL:
                 f = formats[-1]
                 self.report_warning(
                     'No subtitle format found matching "%s" for language %s, '
-                    'using %s' % (formats_query, lang, f['ext']))
+                    'using %s. Use --list-subs for a list of available subtitles' % (formats_query, lang, f['ext']))
             subs[lang] = f
         return subs
 

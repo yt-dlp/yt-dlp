@@ -128,7 +128,24 @@
         "authors": ["alard", "pukkandan"]
     },
     {
+        "action": "change",
+        "when": "aa7e9ae4f48276bd5d0173966c77db9484f65a0a",
+        "short": "[ie/xvideos] Support new URL format (#9502)",
+        "authors": ["sta1us"]
+    },
+    {
         "action": "remove",
         "when": "22e4dfacb61f62dfbb3eb41b31c7b69ba1059b80"
+    },
+    {
+        "action": "change",
+        "when": "e3a3ed8a981d9395c4859b6ef56cd02bc3148db2",
+        "short": "[cleanup:ie] No `from` stdlib imports in extractors",
+        "authors": ["pukkandan"]
+    },
+    {
+        "action": "add",
+        "when": "9590cc6b4768e190183d7d071a6c78170889116a",
+        "short": "[priority] Security: [[CVE-2024-22423](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2024-22423)] [Prevent RCE when using `--exec` with `%q` on Windows](https://github.com/yt-dlp/yt-dlp/security/advisories/GHSA-hjq6-52gw-2g7p)\n    - The shell escape function now properly escapes `%`, `\\` and `\\n`.\n    - `utils.Popen` has been patched accordingly."
     }
 ]
