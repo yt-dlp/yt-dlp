@@ -288,7 +288,6 @@ from .bundestag import BundestagIE
 from .buzzfeed import BuzzFeedIE
 from .byutv import BYUtvIE
 from .c56 import C56IE
-from .cableav import CableAVIE
 from .cablecasttv import CableCastTVIE
 from .callin import CallinIE
 from .caltrans import CaltransIE
