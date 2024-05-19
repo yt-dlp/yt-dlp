@@ -7,7 +7,7 @@ from ..utils import (
 
 
 class HearThisAtIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?hearthis\.at/(?P<artist>[^/]+)/(?P<title>[A-Za-z0-9\-]+)/?'
+    _VALID_URL = r'https?://(?:www\.)?hearthis\.at/(?P<artist>[^/?#]+)/(?P<title>[\w-]+)'
     _PLAYLIST_URL = 'https://hearthis.at/playlist.php'
     _TESTS = [{
         'url': 'https://hearthis.at/moofi/dr-kreep',
