@@ -14,6 +14,7 @@ class HearThisAtIE(InfoExtractor):
         'md5': 'ab6ec33c8fed6556029337c7885eb4e0',
         'info_dict': {
             'id': '150939',
+            'display_id': 'moofi - dr-kreep',
             'ext': 'wav',
             'title': 'Moofi - Dr. Kreep',
             'thumbnail': r're:^https?://.*\.jpg$',
@@ -21,8 +22,9 @@ class HearThisAtIE(InfoExtractor):
             'description': 'md5:1adb0667b01499f9d27e97ddfd53852a',
             'upload_date': '20150118',
             'view_count': int,
-            'duration': 71,
-            'genre': 'Experimental',
+            'duration': 70,
+            'genres': ['Experimental'],
+
         }
     }, {
         # 'download' link redirects to the original webpage
@@ -30,6 +32,7 @@ class HearThisAtIE(InfoExtractor):
         'md5': '5980ceb7c461605d30f1f039df160c6e',
         'info_dict': {
             'id': '811296',
+            'display_id': 'twitchsf - dj-jim-hopkins-totally-bitchin-80s-dance-mix',
             'ext': 'mp3',
             'title': 'TwitchSF - DJ Jim Hopkins -  Totally Bitchin\' 80\'s Dance Mix!',
             'description': 'md5:ef26815ca8f483272a87b137ff175be2',
@@ -38,7 +41,7 @@ class HearThisAtIE(InfoExtractor):
             'thumbnail': r're:^https?://.*\.jpg$',
             'view_count': int,
             'duration': 4360,
-            'genre': 'Dance',
+            'genres': ['Dance'],
         },
     }, {
         'url': 'https://hearthis.at/tindalos/0001-tindalos-gnrique/eQd/',
