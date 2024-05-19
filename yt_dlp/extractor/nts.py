@@ -1,5 +1,6 @@
 from .common import InfoExtractor
-from ..utils import extract_attributes
+from ..utils import parse_iso8601, url_or_none
+from ..utils.traversal import traverse_obj
 
 
 class NTSLiveIE(InfoExtractor):
@@ -54,7 +55,16 @@ class NTSLiveIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        attrs = extract_attributes(self._search_regex(
-            r'(<button[^>]+?aria-label="Play"[^>]*?>)', webpage, 'player'))
+        data = self._search_json(r'window\._REACT_STATE_\s*=', webpage, 'react state', video_id)
 
-        return self.url_result(attrs['data-src'])
+        return {
+            '_type': 'url_transparent',
+            **traverse_obj(data, ('episode', {
+                'url': ('audio_sources', ..., 'url', {url_or_none}, any),
+                'title': ('name', {str}),
+                'description': ('description', {str}),
+                'genres': ('genres', ..., 'value', {str}),
+                'timestamp': ('broadcast', {parse_iso8601}),
+                'modified_timestamp': ('updated', {parse_iso8601}),
+            })),
+        }
