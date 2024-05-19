@@ -59,7 +59,7 @@ class ArteTVIE(ArteTVBaseIE):
             'subtitles': {
                 'fr': 'mincount:1',
                 'fr-acc': 'mincount:1',
-                'fr-partial': 'mincount:1',
+                'fr-forced': 'mincount:1',
             },
         },
     }, {
@@ -133,7 +133,7 @@ class ArteTVIE(ArteTVBaseIE):
             for fmt in sub_formats:
                 url = fmt.get('url') or ''
                 suffix = ('acc' if url.endswith('-MAL.m3u8')
-                          else 'partial' if '_VO' not in url
+                          else 'forced' if '_VO' not in url
                           else None)
                 updated_subs.setdefault(join_nonempty(lang, suffix), []).append(fmt)
         return updated_subs
