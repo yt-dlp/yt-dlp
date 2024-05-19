@@ -53,15 +53,19 @@ class CrunchyrollBaseIE(InfoExtractor):
         CrunchyrollBaseIE._AUTH_EXPIRY = time_seconds(seconds=traverse_obj(response, ('expires_in', {float_or_none}), default=300) - 10)
 
     def _request_token(self, headers, data, note='Requesting token', errnote='Failed to request token'):
-        try:  # TODO: Add impersonation support here
+        try:
             return self._download_json(
                 f'{self._BASE_URL}/auth/v1/token', None, note=note, errnote=errnote,
-                headers=headers, data=urlencode_postdata(data))
+                headers=headers, data=urlencode_postdata(data), impersonate=True)
         except ExtractorError as error:
             if not isinstance(error.cause, HTTPError) or error.cause.status != 403:
                 raise
+            if target := error.cause.response.extensions.get('impersonate'):
+                raise ExtractorError(f'Got HTTP Error 403 when using impersonate target "{target}"')
             raise ExtractorError(
-                'Request blocked by Cloudflare; navigate to Crunchyroll in your browser, '
+                'Request blocked by Cloudflare. '
+                'Install the required impersonation dependency if possible, '
+                'or else navigate to Crunchyroll in your browser, '
                 'then pass the fresh cookies (with --cookies-from-browser or --cookies) '
                 'and your browser\'s User-Agent (with --user-agent)', expected=True)
 
@@ -394,10 +398,11 @@ class CrunchyrollBetaIE(CrunchyrollCmsBaseIE):
         if not self._IS_PREMIUM and traverse_obj(response, (f'{object_type}_metadata', 'is_premium_only')):
             message = f'This {object_type} is for premium members only'
             if CrunchyrollBaseIE._REFRESH_TOKEN:
-                raise ExtractorError(message, expected=True)
-            self.raise_login_required(message, method='password')
-
-        result['formats'], result['subtitles'] = self._extract_stream(internal_id)
+                self.raise_no_formats(message, expected=True, video_id=internal_id)
+            else:
+                self.raise_login_required(message, method='password', metadata_available=True)
+        else:
+            result['formats'], result['subtitles'] = self._extract_stream(internal_id)
 
         result['chapters'] = self._extract_chapters(internal_id)
 
@@ -583,14 +588,16 @@ class CrunchyrollMusicIE(CrunchyrollBaseIE):
         if not response:
             raise ExtractorError(f'No video with id {internal_id} could be found (possibly region locked?)', expected=True)
 
+        result = self._transform_music_response(response)
+
         if not self._IS_PREMIUM and response.get('isPremiumOnly'):
             message = f'This {response.get("type") or "media"} is for premium members only'
             if CrunchyrollBaseIE._REFRESH_TOKEN:
-                raise ExtractorError(message, expected=True)
-            self.raise_login_required(message, method='password')
-
-        result = self._transform_music_response(response)
-        result['formats'], _ = self._extract_stream(f'music/{internal_id}', internal_id)
+                self.raise_no_formats(message, expected=True, video_id=internal_id)
+            else:
+                self.raise_login_required(message, method='password', metadata_available=True)
+        else:
+            result['formats'], _ = self._extract_stream(f'music/{internal_id}', internal_id)
 
         return result
 
