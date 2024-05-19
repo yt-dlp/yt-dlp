@@ -49,9 +49,10 @@ class GodResourceIE(InfoExtractor):
             f'https://api.godresource.com/api/Streams/{display_id}', display_id)
 
         video_url = api_data['streamUrl']
+        is_live = api_data.get('isLive') or False
         if (ext := determine_ext(video_url)) == 'm3u8':
             formats, subtitles = self._extract_m3u8_formats_and_subtitles(
-                api_data['streamUrl'], display_id)
+                video_url, display_id, live=is_live)
         elif ext == 'mp4':
             formats, subtitles = [{
                 'url': video_url,
@@ -65,6 +66,7 @@ class GodResourceIE(InfoExtractor):
             'formats': formats,
             'subtitles': subtitles,
             'title': '',
+            'is_live': is_live,
             **traverse_obj(api_data, {
                 'title': ('title', {str}),
                 'thumbnail': ('thumbnail', {url_or_none}),
