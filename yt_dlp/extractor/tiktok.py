@@ -20,6 +20,8 @@ from ..utils import (
     int_or_none,
     join_nonempty,
     merge_dicts,
+    mimetype2ext,
+    parse_qs,
     qualities,
     remove_start,
     srt_subtitles_timecode,
@@ -250,23 +252,22 @@ class TikTokBaseIE(InfoExtractor):
                 })
         return subtitles
 
+    def _parse_url_key(self, url_key):
+        format_id, codec, res, bitrate = self._search_regex(
+            r'v[^_]+_(?P<id>(?P<codec>[^_]+)_(?P<res>\d+p)_(?P<bitrate>\d+))', url_key,
+            'url key', default=(None, None, None, None), group=('id', 'codec', 'res', 'bitrate'))
+        if not format_id:
+            return {}, None
+        return {
+            'format_id': format_id,
+            'vcodec': 'h265' if codec == 'bytevc1' else codec,
+            'tbr': int_or_none(bitrate, scale=1000) or None,
+            'quality': qualities(self.QUALITIES)(res),
+        }, res
+
     def _parse_aweme_video_app(self, aweme_detail):
         aweme_id = aweme_detail['aweme_id']
         video_info = aweme_detail['video']
-
-        def parse_url_key(url_key):
-            format_id, codec, res, bitrate = self._search_regex(
-                r'v[^_]+_(?P<id>(?P<codec>[^_]+)_(?P<res>\d+p)_(?P<bitrate>\d+))', url_key,
-                'url key', default=(None, None, None, None), group=('id', 'codec', 'res', 'bitrate'))
-            if not format_id:
-                return {}, None
-            return {
-                'format_id': format_id,
-                'vcodec': 'h265' if codec == 'bytevc1' else codec,
-                'tbr': int_or_none(bitrate, scale=1000) or None,
-                'quality': qualities(self.QUALITIES)(res),
-            }, res
-
         known_resolutions = {}
 
         def audio_meta(url):
@@ -281,7 +282,7 @@ class TikTokBaseIE(InfoExtractor):
             } if ext == 'mp3' or '-music-' in url else {}
 
         def extract_addr(addr, add_meta={}):
-            parsed_meta, res = parse_url_key(addr.get('url_key', ''))
+            parsed_meta, res = self._parse_url_key(addr.get('url_key', ''))
             is_bytevc2 = parsed_meta.get('vcodec') == 'bytevc2'
             if res:
                 known_resolutions.setdefault(res, {}).setdefault('height', int_or_none(addr.get('height')))
@@ -295,7 +296,7 @@ class TikTokBaseIE(InfoExtractor):
                 'acodec': 'aac',
                 'source_preference': -2 if 'aweme/v1' in url else -1,  # Downloads from API might get blocked
                 **add_meta, **parsed_meta,
-                # bytevc2 is bytedance's proprietary (unplayable) video codec
+                # bytevc2 is bytedance's own custom h266/vvc codec, as-of-yet unplayable
                 'preference': -100 if is_bytevc2 else -1,
                 'format_note': join_nonempty(
                     add_meta.get('format_note'), '(API)' if 'aweme/v1' in url else None,
@@ -307,6 +308,7 @@ class TikTokBaseIE(InfoExtractor):
         formats = []
         width = int_or_none(video_info.get('width'))
         height = int_or_none(video_info.get('height'))
+        ratio = try_call(lambda: width / height) or 0.5625
         if video_info.get('play_addr'):
             formats.extend(extract_addr(video_info['play_addr'], {
                 'format_id': 'play_addr',
@@ -323,8 +325,8 @@ class TikTokBaseIE(InfoExtractor):
                 'format_id': 'download_addr',
                 'format_note': 'Download video%s' % (', watermarked' if video_info.get('has_watermark') else ''),
                 'vcodec': 'h264',
-                'width': dl_width or width,
-                'height': try_call(lambda: int(dl_width / 0.5625)) or height,  # download_addr['height'] is wrong
+                'width': dl_width,
+                'height': try_call(lambda: int(dl_width / ratio)),  # download_addr['height'] is wrong
                 'preference': -2 if video_info.get('has_watermark') else -1,
             }))
         if video_info.get('play_addr_h264'):
@@ -431,25 +433,87 @@ class TikTokBaseIE(InfoExtractor):
         formats = []
         width = int_or_none(video_info.get('width'))
         height = int_or_none(video_info.get('height'))
+        ratio = try_call(lambda: width / height) or 0.5625
+        COMMON_FORMAT_INFO = {
+            'ext': 'mp4',
+            'vcodec': 'h264',
+            'acodec': 'aac',
+        }
+
+        for bitrate_info in traverse_obj(video_info, ('bitrateInfo', lambda _, v: v['PlayAddr']['UrlList'])):
+            format_info, res = self._parse_url_key(
+                traverse_obj(bitrate_info, ('PlayAddr', 'UrlKey', {str})) or '')
+            # bytevc2 is bytedance's own custom h266/vvc codec, as-of-yet unplayable
+            is_bytevc2 = format_info.get('vcodec') == 'bytevc2'
+            format_info.update({
+                'format_note': 'UNPLAYABLE' if is_bytevc2 else None,
+                'preference': -100 if is_bytevc2 else -1,
+                'filesize': traverse_obj(bitrate_info, ('PlayAddr', 'DataSize', {int_or_none})),
+            })
+
+            if dimension := (res and int(res[:-1])):
+                if dimension == 540:  # '540p' is actually 576p
+                    dimension = 576
+                if ratio < 1:  # portrait: res/dimension is width
+                    y = int(dimension / ratio)
+                    format_info.update({
+                        'width': dimension,
+                        'height': y - (y % 2),
+                    })
+                else:  # landscape: res/dimension is height
+                    x = int(dimension * ratio)
+                    format_info.update({
+                        'width': x - (x % 2),
+                        'height': dimension,
+                    })
+
+            for video_url in traverse_obj(bitrate_info, ('PlayAddr', 'UrlList', ..., {url_or_none})):
+                formats.append({
+                    **COMMON_FORMAT_INFO,
+                    **format_info,
+                    'url': self._proto_relative_url(video_url),
+                })
+
+        # We don't have res string for play formats, but need quality for sorting & de-duplication
+        play_quality = traverse_obj(formats, (lambda _, v: v['width'] == width, 'quality', any))
 
         for play_url in traverse_obj(video_info, ('playAddr', ((..., 'src'), None), {url_or_none})):
             formats.append({
+                **COMMON_FORMAT_INFO,
+                'format_id': 'play',
                 'url': self._proto_relative_url(play_url),
-                'ext': 'mp4',
                 'width': width,
                 'height': height,
+                'quality': play_quality,
             })
 
         for download_url in traverse_obj(video_info, (('downloadAddr', ('download', 'url')), {url_or_none})):
             formats.append({
+                **COMMON_FORMAT_INFO,
                 'format_id': 'download',
                 'url': self._proto_relative_url(download_url),
-                'ext': 'mp4',
-                'width': width,
-                'height': height,
             })
 
         self._remove_duplicate_formats(formats)
+
+        for f in traverse_obj(formats, lambda _, v: 'unwatermarked' not in v['url']):
+            f.update({
+                'format_note': join_nonempty(f.get('format_note'), 'watermarked', delim=', '),
+                'preference': f.get('preference') or -2,
+            })
+
+        # Is it a slideshow with only audio for download?
+        if not formats and traverse_obj(music_info, ('playUrl', {url_or_none})):
+            audio_url = music_info['playUrl']
+            ext = traverse_obj(parse_qs(audio_url), (
+                'mime_type', -1, {lambda x: x.replace('_', '/')}, {mimetype2ext})) or 'm4a'
+            formats.append({
+                'format_id': 'audio',
+                'url': self._proto_relative_url(audio_url),
+                'ext': ext,
+                'acodec': 'aac' if ext == 'm4a' else ext,
+                'vcodec': 'none',
+            })
 
         thumbnails = []
         for thumb_url in traverse_obj(aweme_detail, (
@@ -462,10 +526,17 @@ class TikTokBaseIE(InfoExtractor):
 
         return {
             'id': video_id,
+            **traverse_obj(music_info, {
+                'track': ('title', {str}),
+                'album': ('album', {str}, {lambda x: x or None}),
+                'artists': ('authorName', {str}, {lambda x: [x] if x else None}),
+                'duration': ('duration', {int_or_none}),
+            }),
             **traverse_obj(aweme_detail, {
                 'title': ('desc', {str}),
                 'description': ('desc', {str}),
-                'duration': ('video', 'duration', {int_or_none}),
+                # audio-only slideshows have a video duration of 0 and an actual audio duration
+                'duration': ('video', 'duration', {int_or_none}, {lambda x: x or None}),
                 'timestamp': ('createTime', {int_or_none}),
             }),
             **traverse_obj(author_info or aweme_detail, {
@@ -480,11 +551,6 @@ class TikTokBaseIE(InfoExtractor):
                 'repost_count': 'shareCount',
                 'comment_count': 'commentCount',
             }, expected_type=int_or_none),
-            **traverse_obj(music_info, {
-                'track': ('title', {str}),
-                'album': ('album', {str}, {lambda x: x or None}),
-                'artists': ('authorName', {str}, {lambda x: [x] if x else None}),
-            }),
             'channel_id': channel_id,
             'uploader_url': user_url,
             'formats': formats,
