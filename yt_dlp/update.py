@@ -69,6 +69,10 @@ def _get_variant_and_executable_path():
             # Ref: https://en.wikipedia.org/wiki/Uname#Examples
             if machine[1:] in ('x86', 'x86_64', 'amd64', 'i386', 'i686'):
                 machine = '_x86' if platform.architecture()[0][:2] == '32' else ''
+            # sys.executable returns a /tmp/ path for staticx builds (linux_static)
+            # Ref: https://staticx.readthedocs.io/en/latest/usage.html#run-time-information
+            if static_exe_path := os.getenv('STATICX_PROG_PATH'):
+                path = static_exe_path
         return f'{remove_end(sys.platform, "32")}{machine}_exe', path
 
     path = os.path.dirname(__file__)
@@ -114,7 +118,7 @@ _NON_UPDATEABLE_REASONS = {
     **{variant: f'Auto-update is not supported for unpackaged {name} executable; Re-download the latest release'
        for variant, name in {'win32_dir': 'Windows', 'darwin_dir': 'MacOS', 'linux_dir': 'Linux'}.items()},
     'source': 'You cannot update when running from source code; Use git to pull the latest changes',
-    'unknown': 'You installed yt-dlp with a package manager or setup.py; Use that to update',
+    'unknown': 'You installed yt-dlp from a manual build or with a package manager; Use that to update',
     'other': 'You are using an unofficial build of yt-dlp; Build the executable again',
 }
 

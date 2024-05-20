@@ -1,4 +1,4 @@
-import datetime
+import datetime as dt
 
 from .common import InfoExtractor
 from .redge import RedCDNLivxIE
@@ -13,16 +13,16 @@ from ..utils.traversal import traverse_obj
 
 
 def is_dst(date):
-    last_march = datetime.datetime(date.year, 3, 31)
-    last_october = datetime.datetime(date.year, 10, 31)
-    last_sunday_march = last_march - datetime.timedelta(days=last_march.isoweekday() % 7)
-    last_sunday_october = last_october - datetime.timedelta(days=last_october.isoweekday() % 7)
+    last_march = dt.datetime(date.year, 3, 31)
+    last_october = dt.datetime(date.year, 10, 31)
+    last_sunday_march = last_march - dt.timedelta(days=last_march.isoweekday() % 7)
+    last_sunday_october = last_october - dt.timedelta(days=last_october.isoweekday() % 7)
     return last_sunday_march.replace(hour=2) <= date <= last_sunday_october.replace(hour=3)
 
 
 def rfc3339_to_atende(date):
-    date = datetime.datetime.fromisoformat(date)
-    date = date + datetime.timedelta(hours=1 if is_dst(date) else 0)
+    date = dt.datetime.fromisoformat(date)
+    date = date + dt.timedelta(hours=1 if is_dst(date) else 0)
     return int((date.timestamp() - 978307200) * 1000)
 
 

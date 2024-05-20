@@ -1,5 +1,6 @@
+import datetime as dt
 import json
-from urllib.parse import unquote
+import urllib.parse
 
 from .common import InfoExtractor
 from ..compat import functools
@@ -114,7 +115,7 @@ class Pr0grammIE(InfoExtractor):
             cookies = self._get_cookies(self.BASE_URL)
             if 'me' not in cookies:
                 self._download_webpage(self.BASE_URL, None, 'Refreshing verification information')
-            if traverse_obj(cookies, ('me', {lambda x: x.value}, {unquote}, {json.loads}, 'verified')):
+            if traverse_obj(cookies, ('me', {lambda x: x.value}, {urllib.parse.unquote}, {json.loads}, 'verified')):
                 flags |= 0b00110
 
         return flags
@@ -196,6 +197,7 @@ class Pr0grammIE(InfoExtractor):
                 'like_count': ('up', {int}),
                 'dislike_count': ('down', {int}),
                 'timestamp': ('created', {int}),
+                'upload_date': ('created', {int}, {dt.date.fromtimestamp}, {lambda x: x.strftime('%Y%m%d')}),
                 'thumbnail': ('thumb', {lambda x: urljoin('https://thumb.pr0gramm.com', x)})
             }),
         }

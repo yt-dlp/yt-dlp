@@ -183,7 +183,7 @@ class TestFormatSelection(unittest.TestCase):
         ]
 
         info_dict = _make_result(formats)
-        ydl = YDL({'format': 'best'})
+        ydl = YDL({'format': 'best', 'format_sort': ['abr', 'ext']})
         ydl.sort_formats(info_dict)
         ydl.process_ie_result(copy.deepcopy(info_dict))
         downloaded = ydl.downloaded_info_dicts[0]
@@ -195,7 +195,7 @@ class TestFormatSelection(unittest.TestCase):
         downloaded = ydl.downloaded_info_dicts[0]
         self.assertEqual(downloaded['format_id'], 'mp3-64')
 
-        ydl = YDL({'prefer_free_formats': True})
+        ydl = YDL({'prefer_free_formats': True, 'format_sort': ['abr', 'ext']})
         ydl.sort_formats(info_dict)
         ydl.process_ie_result(copy.deepcopy(info_dict))
         downloaded = ydl.downloaded_info_dicts[0]
