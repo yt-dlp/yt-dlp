@@ -622,18 +622,14 @@ class ORFONIE(InfoExtractor):
                 formats.extend(fmts)
                 self._merge_subtitles(subs, target=subtitles)
 
-        for subtitle_type in ['vtt']:  # not working formats 'xml', 'srt', 'sami', 'ttml', 'stl'
-            subtitle_url = traverse_obj(api_json, ('_embedded', 'subtitle', f'{subtitle_type}_url'), {str})
-            if subtitle_url is None:
-                continue
-            self._merge_subtitles({
-                'de': [
-                    {
-                        'url': subtitle_url,
-                        'ext': f'{subtitle_type}',
-                    }
-                ],
-            }, target=subtitles)
+        for sub_url in traverse_obj(api_json, ('_embedded', 'subtitle', lambda k, _: k.endswith('_url'), {url_or_none})):
+            subtitle_type = sub_url.split('.')[-1]
+            self._merge_subtitles({'de': [{'url': sub_url, 'ext': subtitle_type}]}, target=subtitles)
+        if 'de' in subtitles:
+            subtitles['de'].sort(
+                # sort that vtt is default so `--embed-subs` is working out of the box
+                key=lambda sub: 1 if sub['ext'] == 'vtt' else 0
+            )
 
         return {
             'id': video_id,
