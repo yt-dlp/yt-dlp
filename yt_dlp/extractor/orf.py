@@ -570,7 +570,7 @@ class ORFFM4StoryIE(InfoExtractor):
 
 class ORFONIE(InfoExtractor):
     IE_NAME = 'orf:on'
-    _VALID_URL = r'https?://on\.orf\.at/video/(?P<id>\d+)(/(?P<slug>[\w-]+))?'
+    _VALID_URL = r'https?://on\.orf\.at/video/(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://on.orf.at/video/14210000/school-of-champions-48',
         'info_dict': {
@@ -600,10 +600,10 @@ class ORFONIE(InfoExtractor):
         }
     }]
 
-    def _extract_video(self, video_id, display_id):
+    def _extract_video(self, video_id):
         encrypted_id = base64.b64encode(f'3dSlfek03nsLKdj4Jsd{video_id}'.encode()).decode()
         api_json = self._download_json(
-            f'https://api-tvthek.orf.at/api/v4.3/public/episode/encrypted/{encrypted_id}', display_id)
+            f'https://api-tvthek.orf.at/api/v4.3/public/episode/encrypted/{encrypted_id}', video_id)
 
         if api_json.get('is_drm_protected'):
             self.report_drm(video_id)
@@ -613,10 +613,10 @@ class ORFONIE(InfoExtractor):
             for manifest_url in traverse_obj(api_json, ('sources', manifest_type, ..., 'src', {url_or_none})):
                 if manifest_type == 'hls':
                     fmts, subs = self._extract_m3u8_formats_and_subtitles(
-                        manifest_url, display_id, fatal=False, m3u8_id='hls')
+                        manifest_url, video_id, fatal=False, m3u8_id='hls')
                 elif manifest_type == 'dash':
                     fmts, subs = self._extract_mpd_formats_and_subtitles(
-                        manifest_url, display_id, fatal=False, mpd_id='dash')
+                        manifest_url, video_id, fatal=False, mpd_id='dash')
                 else:
                     continue
                 formats.extend(fmts)
@@ -652,16 +652,14 @@ class ORFONIE(InfoExtractor):
         }
 
     def _real_extract(self, url):
-        video_id, display_id = self._match_valid_url(url).group('id', 'slug')
-        if display_id is None:
-            display_id = video_id
-        webpage = self._download_webpage(url, display_id)
+        video_id = self._match_valid_url(url).group('id')
+        webpage = self._download_webpage(url, video_id)
 
         return {
             'id': video_id,
             'title': self._html_search_meta(['og:title', 'twitter:title'], webpage, default=None),
             'description': self._html_search_meta(
                 ['description', 'og:description', 'twitter:description'], webpage, default=None),
-            **self._search_json_ld(webpage, display_id, fatal=False),
-            **self._extract_video(video_id, display_id),
+            **self._search_json_ld(webpage, video_id, fatal=False),
+            **self._extract_video(video_id),
         }
