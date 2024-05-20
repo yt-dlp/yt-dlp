@@ -639,8 +639,8 @@ class ORFONIE(InfoExtractor):
             'id': video_id,
             'formats': formats,
             'subtitles': subtitles,
-            'age_limit': traverse_obj(api_json, ('age_classification'), {parse_age_limit}),
             **traverse_obj(api_json, {
+                'age_limit': ('age_classification', {parse_age_limit}),
                 'duration': ('duration_second', {float_or_none}),
                 'title': (('title', 'headline'), {str}),
                 'description': (('description', 'teaser_text'), {str}),
