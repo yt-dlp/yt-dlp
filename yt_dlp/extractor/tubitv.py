@@ -82,20 +82,22 @@ class TubiTvIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        video_data = self._download_json(f'https://tubitv.com/oz/videos/{video_id}/content', video_id, query={
-            'video_resources': ['dash', 'hlsv3', 'hlsv6', *self._UNPLAYABLE_FORMATS],
-        })
-        title = video_data['title']
+        webpage = self._download_webpage(f'https://tubitv.com/movies/{video_id}/', video_id)
+        rawjson = self._search_regex(r'window\.__data\s*=\s*({[^<]+});\s*</script>', webpage, 'data')
+        windowdata = self._parse_json(rawjson, video_id, transform_source=js_to_json)
+        video_data = traverse_obj(windowdata, ('video', 'byId', video_id))
+        title = video_data.get('title') 
+        video_resources = video_data.get('video_resources')
 
         formats = []
         drm_formats = False
 
-        for resource in video_data['video_resources']:
-            if resource['type'] in ('dash', ):
-                formats += self._extract_mpd_formats(resource['manifest']['url'], video_id, mpd_id=resource['type'], fatal=False)
-            elif resource['type'] in ('hlsv3', 'hlsv6'):
-                formats += self._extract_m3u8_formats(resource['manifest']['url'], video_id, 'mp4', m3u8_id=resource['type'], fatal=False)
-            elif resource['type'] in self._UNPLAYABLE_FORMATS:
+        for resource in video_resources:
+            if resource.get('type') in ('dash', ):
+                formats += self._extract_mpd_formats(traverse_obj(resource,('manifest','url')), video_id, mpd_id=resource.get('type'), fatal=False)
+            elif resource.get('type') in ('hlsv3', 'hlsv6'):
+                formats += self._extract_m3u8_formats(traverse_obj(resource,('manifest','url')), video_id, 'mp4', m3u8_id=resource.get('type'), fatal=False)
+            elif resource.get('type') in self._UNPLAYABLE_FORMATS:
                 drm_formats = True
 
         if not formats and drm_formats:
