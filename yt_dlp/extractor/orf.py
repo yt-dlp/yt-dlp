@@ -14,6 +14,7 @@ from ..utils import (
     make_archive_id,
     mimetype2ext,
     orderedSet,
+    parse_age_limit,
     remove_end,
     smuggle_url,
     strip_jsonp,
@@ -24,7 +25,6 @@ from ..utils import (
     url_or_none,
 )
 from ..utils.traversal import traverse_obj
-from ..utils import parse_age_limit
 
 
 class ORFTVthekIE(InfoExtractor):
