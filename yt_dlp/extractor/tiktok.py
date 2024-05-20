@@ -440,7 +440,7 @@ class TikTokBaseIE(InfoExtractor):
                 'filesize': traverse_obj(bitrate_info, ('PlayAddr', 'DataSize', {int_or_none})),
             })
 
-            if dimension := res and int_or_none(res[:-1]):
+            if dimension := (res and int(res[:-1])):
                 if dimension == 540:  # '540p' is actually 576p
                     dimension = 576
                 if ratio < 1:  # portrait: res/dimension is width
@@ -463,8 +463,8 @@ class TikTokBaseIE(InfoExtractor):
                     'url': self._proto_relative_url(video_url),
                 })
 
-        play_quality = traverse_obj(
-            formats, (lambda _, v: v['width'] == width and v['vcodec'] == 'h264', 'quality', any))
+        # We don't have res string for play formats, but need quality for sorting & de-duplication
+        play_quality = traverse_obj(formats, (lambda _, v: v['width'] == width, 'quality', any))
 
         for play_url in traverse_obj(video_info, ('playAddr', ((..., 'src'), None), {url_or_none})):
             formats.append({
