@@ -82,7 +82,6 @@ pyinstaller = [
 ]
 py2exe = [
     "py2exe>=0.12",
-    "requests==2.31.*",
 ]
 
 [project.urls]
