@@ -21,8 +21,8 @@ urllib3_version = tuple(int_or_none(x, default=0) for x in urllib3.__version__.s
 if urllib3_version < (1, 26, 17):
     raise ImportError('Only urllib3 >= 1.26.17 is supported')
 
-if requests.__build__ < 0x023100:
-    raise ImportError('Only requests >= 2.31.0 is supported')
+if requests.__build__ < 0x023200:
+    raise ImportError('Only requests >= 2.32.0 is supported')
 
 import requests.adapters
 import requests.utils
@@ -181,8 +181,12 @@ class RequestsHTTPAdapter(requests.adapters.HTTPAdapter):
         return super().proxy_manager_for(proxy, **proxy_kwargs, **self._pm_args, **extra_kwargs)
 
     def cert_verify(*args, **kwargs):
-        # lean on SSLContext for cert verification
+        # Lean on our SSLContext for cert verification
         pass
+
+    def _get_connection(self, request, *_, proxies=None, **__):
+        # Lean on our SSLContext for cert verification
+        return self.get_connection(request.url, proxies)
 
 
 class RequestsSession(requests.sessions.Session):
