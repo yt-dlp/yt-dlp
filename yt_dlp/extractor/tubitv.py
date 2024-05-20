@@ -22,17 +22,17 @@ class TubiTvIE(InfoExtractor):
     _NETRC_MACHINE = 'tubitv'
     _GEO_COUNTRIES = ['US']
     _TESTS = [{
-        'url': 'https://tubitv.com/movies/383676/tracker',
-        'md5': '566fa0f76870302d11af0de89511d3f0',
+        'url': 'https://tubitv.com/movies/100004539/the-39-steps',
+        'md5': '826620bf9e711042079463349e8e047b',
         'info_dict': {
-            'id': '383676',
+            'id': '100004539',
             'ext': 'mp4',
-            'title': 'Tracker',
-            'description': 'md5:ff320baf43d0ad2655e538c1d5cd9706',
-            'uploader_id': 'f866e2677ea2f0dff719788e4f7f9195',
-            'release_year': 2010,
+            'title': 'The 39 Steps',
+            'description': 'A man in London tries to help a counter-espionage Agent. But when the Agent is killed, and the man stands accused, he must run to save himself.',
+            'uploader_id': 'abc2558d54505d4f0f32be94f2e7108c',
+            'release_year': 1935,
             'thumbnail': r're:^https?://.+\.(jpe?g|png)$',
-            'duration': 6122,
+            'duration': 5187,
         },
     }, {
         'url': 'http://tubitv.com/video/283829/the_comedian_at_the_friday',
@@ -86,7 +86,7 @@ class TubiTvIE(InfoExtractor):
         rawjson = self._search_regex(r'window\.__data\s*=\s*({[^<]+});\s*</script>', webpage, 'data')
         windowdata = self._parse_json(rawjson, video_id, transform_source=js_to_json)
         video_data = traverse_obj(windowdata, ('video', 'byId', video_id))
-        title = video_data.get('title') 
+        title = video_data.get('title')
         video_resources = video_data.get('video_resources')
 
         formats = []
@@ -94,9 +94,9 @@ class TubiTvIE(InfoExtractor):
 
         for resource in video_resources:
             if resource.get('type') in ('dash', ):
-                formats += self._extract_mpd_formats(traverse_obj(resource,('manifest','url')), video_id, mpd_id=resource.get('type'), fatal=False)
+                formats += self._extract_mpd_formats(traverse_obj(resource, ('manifest', 'url')), video_id, mpd_id=resource.get('type'), fatal=False)
             elif resource.get('type') in ('hlsv3', 'hlsv6'):
-                formats += self._extract_m3u8_formats(traverse_obj(resource,('manifest','url')), video_id, 'mp4', m3u8_id=resource.get('type'), fatal=False)
+                formats += self._extract_m3u8_formats(traverse_obj(resource, ('manifest', 'url')), video_id, 'mp4', m3u8_id=resource.get('type'), fatal=False)
             elif resource.get('type') in self._UNPLAYABLE_FORMATS:
                 drm_formats = True
 
