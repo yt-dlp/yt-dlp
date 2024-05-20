@@ -2376,7 +2376,7 @@ class GenericIE(InfoExtractor):
         full_response = self._request_webpage(url, video_id, headers=filter_dict({
             'Accept-Encoding': 'identity',
             'Referer': smuggled_data.get('referer'),
-        }))
+        }), expected_status=404)
         new_url = full_response.url
         if new_url != extract_basic_auth(url)[0]:
             self.report_following_redirect(new_url)
