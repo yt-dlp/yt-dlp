@@ -19,6 +19,8 @@ from ..utils import (
     int_or_none,
     join_nonempty,
     merge_dicts,
+    mimetype2ext,
+    parse_qs,
     qualities,
     remove_start,
     srt_subtitles_timecode,
@@ -489,6 +491,19 @@ class TikTokBaseIE(InfoExtractor):
                 'preference': f.get('preference') or -2,
             })
 
+        # Is it a slideshow with only audio for download?
+        if not formats and traverse_obj(music_info, ('playUrl', {url_or_none})):
+            audio_url = music_info['playUrl']
+            ext = traverse_obj(parse_qs(audio_url), (
+                'mime_type', -1, {lambda x: x.replace('_', '/')}, {mimetype2ext})) or 'm4a'
+            formats.append({
+                'format_id': 'audio',
+                'url': self._proto_relative_url(audio_url),
+                'ext': ext,
+                'acodec': 'aac' if ext == 'm4a' else ext,
+                'vcodec': 'none',
+            })
+
         thumbnails = []
         for thumb_url in traverse_obj(aweme_detail, (
                 (None, 'video'), ('thumbnail', 'cover', 'dynamicCover', 'originCover'), {url_or_none})):
@@ -500,10 +515,17 @@ class TikTokBaseIE(InfoExtractor):
 
         return {
             'id': video_id,
+            **traverse_obj(music_info, {
+                'track': ('title', {str}),
+                'album': ('album', {str}, {lambda x: x or None}),
+                'artists': ('authorName', {str}, {lambda x: [x] if x else None}),
+                'duration': ('duration', {int_or_none}),
+            }),
             **traverse_obj(aweme_detail, {
                 'title': ('desc', {str}),
                 'description': ('desc', {str}),
-                'duration': ('video', 'duration', {int_or_none}),
+                # audio-only slideshows have a video duration of 0 and an actual audio duration
+                'duration': ('video', 'duration', {int_or_none}, {lambda x: x or None}),
                 'timestamp': ('createTime', {int_or_none}),
             }),
             **traverse_obj(author_info or aweme_detail, {
@@ -518,11 +540,6 @@ class TikTokBaseIE(InfoExtractor):
                 'repost_count': 'shareCount',
                 'comment_count': 'commentCount',
             }, expected_type=int_or_none),
-            **traverse_obj(music_info, {
-                'track': ('title', {str}),
-                'album': ('album', {str}, {lambda x: x or None}),
-                'artists': ('authorName', {str}, {lambda x: [x] if x else None}),
-            }),
             'channel_id': channel_id,
             'uploader_url': user_url,
             'formats': formats,
