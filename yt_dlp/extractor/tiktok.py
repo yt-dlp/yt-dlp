@@ -1452,6 +1452,7 @@ class TikTokLiveIE(TikTokBaseIE):
             }, get_all=False),
         }
 
+
 class TikTokCollectionIE(TikTokBaseIE):
     _VALID_URL = r'https?://www\.tiktok\.com/@(?P<user_id>[\w\.-]+)/collection/(?P<title>[^/]+)-(?P<id>\d+)(?=\?|$)'
     _TESTS = [{
@@ -1462,7 +1463,7 @@ class TikTokCollectionIE(TikTokBaseIE):
             'title': 'count-test'
         },
         'playlist_count': 9
-    },{
+    }, {
         # tests returning multiple pages of a large collection
         'url': 'https://www.tiktok.com/@imanoreotwe/collection/%F0%9F%98%82-7111887189571160875',
         'info_dict': {
@@ -1475,7 +1476,6 @@ class TikTokCollectionIE(TikTokBaseIE):
     def _real_extract(self, url):
         collection_id, collection_title, user_id = self._match_valid_url(url).group('id', 'title', 'user_id')
 
-        status = 0
         hasMore = True
         entries = []
         count = 30
