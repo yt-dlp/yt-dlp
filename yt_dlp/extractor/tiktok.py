@@ -1453,10 +1453,27 @@ class TikTokLiveIE(TikTokBaseIE):
         }
 
 class TikTokCollectionIE(TikTokBaseIE):
-    _VALID_URL = r'https?://www\.tiktok\.com/@(?P<user_id>[\w\.-]+)/collection/[^\r\n\t\f\b\- ]+-(?P<id>\d+)(?:\?\S+)?'
+    _VALID_URL = r'https?://www\.tiktok\.com/@(?P<user_id>[\w\.-]+)/collection/(?P<title>[^/]+)-(?P<id>\d+)(?=\?|$)'
+    _TESTS = [{
+        # playlist should have exactly 9 videos
+        'url': 'https://www.tiktok.com/t/ZPRK8PDa2/',
+        'info_dict': {
+            'id': '7371330159376370462',
+            'title': 'count-test'
+        },
+        'playlist_count': 9
+    },{
+        # tests returning multiple pages of a large collection
+        'url': 'https://www.tiktok.com/@imanoreotwe/collection/%F0%9F%98%82-7111887189571160875',
+        'info_dict': {
+            'id': '7111887189571160875',
+            'title': '%F0%9F%98%82'
+        },
+        'playlist_mincount': 100
+    }]
 
     def _real_extract(self, url):
-        collection_id, user_id = self._match_valid_url(url).group('id', 'user_id')
+        collection_id, collection_title, user_id = self._match_valid_url(url).group('id', 'title', 'user_id')
 
         status = 0
         hasMore = True
@@ -1468,22 +1485,18 @@ class TikTokCollectionIE(TikTokBaseIE):
             url = self._create_collection_url(user_id, collection_id, count=count, cursor=cursor)
             webpage = self._download_json(url, collection_id, headers={'User-Agent': 'Mozilla/5.0'})
 
-            title = webpage.get('')
+            hasMore = webpage.get('hasMore')
+            cursor = cursor + count
 
-            status = webpage.get('statusCode')
-            if status == 0:
-                hasMore = webpage.get('hasMore')
-                cursor = cursor + count
+            videos = webpage.get('itemList') or []
+            for vid in videos:
+                entries.append(self._parse_aweme_video_web(vid, url, vid.get('id')))
 
-                videos = webpage.get('itemList')
-                for vid in videos:
-                    entries.append(self._parse_aweme_video_web(vid, url, vid['id']))
-            elif status == 10216:
-                raise ExtractorError('This video is private', expected=True)
-            else:
-                hasMore = False
-        
+        if len(entries) == 0:
+            raise ExtractorError('Collection is either empty, private, or the URL is incorrect')
+
         return self.playlist_result(
             entries,
-            collection_id
+            collection_id,
+            collection_title
         )
