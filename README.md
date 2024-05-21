@@ -263,7 +263,7 @@ You can also run `make yt-dlp` instead to compile only the binary without updati
 
 ### Standalone Py2Exe Builds (Windows)
 
-While we provide the option to build with [py2exe](https://www.py2exe.org), it is recommended to build [using PyInstaller](#standalone-pyinstaller-builds) instead since the py2exe builds **cannot contain `pycryptodomex`/`certifi`/`requests` and need VC++14** on the target computer to run.
+While we provide the option to build with [py2exe](https://www.py2exe.org), it is recommended to build [using PyInstaller](#standalone-pyinstaller-builds) instead since the py2exe builds **cannot contain `pycryptodomex`/`certifi` and need VC++14** on the target computer to run.
 
 If you wish to build it anyway, install Python (if it is not already installed) and you can run the following commands:
 
