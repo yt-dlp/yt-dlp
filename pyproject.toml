@@ -62,6 +62,7 @@ build = [
     "build",
     "hatchling",
     "pip",
+    "setuptools>=66.1.0,<70",
     "wheel",
 ]
 dev = [
