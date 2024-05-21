@@ -1457,7 +1457,7 @@ class TikTokCollectionIE(TikTokBaseIE):
     _VALID_URL = r'https?://www\.tiktok\.com/@(?P<user_id>[\w\.-]+)/collection/(?P<title>[^/]+)-(?P<id>\d+)(?=\?|$)'
     _TESTS = [{
         # playlist should have exactly 9 videos
-        'url': 'https://www.tiktok.com/t/ZPRK8PDa2/',
+        'url': 'https://www.tiktok.com/@imanoreotwe/collection/count-test-7371330159376370462',
         'info_dict': {
             'id': '7371330159376370462',
             'title': 'count-test'
