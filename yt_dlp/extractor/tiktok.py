@@ -100,8 +100,12 @@ class TikTokBaseIE(InfoExtractor):
         return True
 
     @staticmethod
-    def _create_url(user_id, video_id):
+    def _create_video_url(user_id, video_id):
         return f'https://www.tiktok.com/@{user_id or "_"}/video/{video_id}'
+
+    @staticmethod
+    def _create_collection_url(user_id, collection_id, count=30, cursor=0):
+        return f'https://www.tiktok.com/api/collection/item_list/?aid=1988&collectionId={collection_id}&count={count}&cursor={cursor}&sourceType=113'
 
     def _get_sigi_state(self, webpage, display_id):
         return self._search_json(
@@ -838,10 +842,11 @@ class TikTokIE(TikTokBaseIE):
                 e.expected = True
                 self.report_warning(f'{e}; trying with webpage')
 
-        url = self._create_url(user_id, video_id)
+        url = self._create_video_url(user_id, video_id)
         webpage = self._download_webpage(url, video_id, headers={'User-Agent': 'Mozilla/5.0'})
 
         if universal_data := self._get_universal_data(webpage, video_id):
+            print(universal_data)
             self.write_debug('Found universal data for rehydration')
             status = traverse_obj(universal_data, ('webapp.video-detail', 'statusCode', {int})) or 0
             video_data = traverse_obj(universal_data, ('webapp.video-detail', 'itemInfo', 'itemStruct', {dict}))
@@ -1446,3 +1451,39 @@ class TikTokLiveIE(TikTokBaseIE):
                 'concurrent_view_count': (('user_count', ('liveRoomStats', 'userCount')), {int_or_none}),
             }, get_all=False),
         }
+
+class TikTokCollectionIE(TikTokBaseIE):
+    _VALID_URL = r'https?://www\.tiktok\.com/@(?P<user_id>[\w\.-]+)/collection/[^\r\n\t\f\b\- ]+-(?P<id>\d+)(?:\?\S+)?'
+
+    def _real_extract(self, url):
+        collection_id, user_id = self._match_valid_url(url).group('id', 'user_id')
+
+        status = 0
+        hasMore = True
+        entries = []
+        count = 30
+        cursor = 0
+
+        while hasMore:
+            url = self._create_collection_url(user_id, collection_id, count=count, cursor=cursor)
+            webpage = self._download_json(url, collection_id, headers={'User-Agent': 'Mozilla/5.0'})
+
+            title = webpage.get('')
+
+            status = webpage.get('statusCode')
+            if status == 0:
+                hasMore = webpage.get('hasMore')
+                cursor = cursor + count
+
+                videos = webpage.get('itemList')
+                for vid in videos:
+                    entries.append(self._parse_aweme_video_web(vid, url, vid['id']))
+            elif status == 10216:
+                raise ExtractorError('This video is private', expected=True)
+            else:
+                hasMore = False
+        
+        return self.playlist_result(
+            entries,
+            collection_id
+        )

@@ -1999,6 +1999,7 @@ from .tiktok import (
     TikTokVMIE,
     TikTokLiveIE,
     DouyinIE,
+    TikTokCollectionIE,
 )
 from .tmz import TMZIE
 from .tnaflix import (
