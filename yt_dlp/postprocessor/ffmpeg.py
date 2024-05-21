@@ -805,15 +805,19 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
             write_json_file(self._downloader.sanitize_info(info, self.get_param('clean_infojson', True)), infofn)
             info['infojson_filename'] = infofn
 
-        old_stream, new_stream = self.get_stream_number(info['filepath'], ('tags', 'mimetype'), 'application/json')
-        if old_stream is not None:
-            yield ('-map', f'-0:{old_stream}')
-            new_stream -= 1
+        escaped_name = self._ffmpeg_filename_argument(infofn)
 
         yield (
-            '-attach', self._ffmpeg_filename_argument(infofn),
-            f'-metadata:s:{new_stream}', 'mimetype=application/json',
-            f'-metadata:s:{new_stream}', 'filename=info.json',
+            # In order to override any old info.json reliably we need to
+            # instruct FFmpeg to consider valid tracks without a codec id, like
+            # JSON attachments.
+            '-copy_unknown',
+            # This map operation allows us to actually replace any previous
+            # info.json data.
+            '-map', '-0:m:filename:info.json?',
+            '-attach', escaped_name,
+            f'-metadata:s:m:filename:{escaped_name}', 'mimetype=application/json',
+            f'-metadata:s:m:filename:{escaped_name}', 'filename=info.json',
         )
 
 
