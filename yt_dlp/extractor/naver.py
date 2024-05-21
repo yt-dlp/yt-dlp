@@ -4,8 +4,8 @@ import hmac
 import itertools
 import json
 import re
+import urllib.parse
 import time
-from urllib.parse import parse_qs, urlparse
 
 from .common import InfoExtractor
 from ..utils import (
@@ -388,7 +388,7 @@ class NaverNowIE(NaverBaseIE):
 
     def _real_extract(self, url):
         show_id = self._match_id(url)
-        qs = parse_qs(urlparse(url).query)
+        qs = urllib.parse.parse_qs(urllib.parse.urlparse(url).query)
 
         if not self._yes_playlist(show_id, qs.get('shareHightlight')):
             return self._extract_highlight(show_id, qs['shareHightlight'][0])

@@ -1,9 +1,10 @@
+import functools
 import itertools
 import json
 import random
 import re
-import string
 import time
+import uuid
 
 from .common import InfoExtractor
 from ..compat import compat_urllib_parse_urlparse
@@ -14,10 +15,13 @@ from ..utils import (
     UnsupportedError,
     UserNotLive,
     determine_ext,
+    filter_dict,
     format_field,
     int_or_none,
     join_nonempty,
     merge_dicts,
+    mimetype2ext,
+    parse_qs,
     qualities,
     remove_start,
     srt_subtitles_timecode,
@@ -30,18 +34,70 @@ from ..utils import (
 
 
 class TikTokBaseIE(InfoExtractor):
-    _APP_VERSIONS = [('26.1.3', '260103'), ('26.1.2', '260102'), ('26.1.1', '260101'), ('25.6.2', '250602')]
-    _WORKING_APP_VERSION = None
-    _APP_NAME = 'trill'
-    _AID = 1180
     _UPLOADER_URL_FORMAT = 'https://www.tiktok.com/@%s'
     _WEBPAGE_HOST = 'https://www.tiktok.com/'
     QUALITIES = ('360p', '540p', '720p', '1080p')
 
-    @property
+    _APP_INFO_DEFAULTS = {
+        # unique "install id"
+        'iid': None,
+        # TikTok (KR/PH/TW/TH/VN) = trill, TikTok (rest of world) = musical_ly, Douyin = aweme
+        'app_name': 'musical_ly',
+        'app_version': '34.1.2',
+        'manifest_app_version': '2023401020',
+        # "app id": aweme = 1128, trill = 1180, musical_ly = 1233, universal = 0
+        'aid': '0',
+    }
+    _APP_INFO_POOL = None
+    _APP_INFO = None
+    _APP_USER_AGENT = None
+
+    @functools.cached_property
+    def _KNOWN_APP_INFO(self):
+        # If we have a genuine device ID, we may not need any IID
+        default = [''] if self._KNOWN_DEVICE_ID else []
+        return self._configuration_arg('app_info', default, ie_key=TikTokIE)
+
+    @functools.cached_property
+    def _KNOWN_DEVICE_ID(self):
+        return self._configuration_arg('device_id', [None], ie_key=TikTokIE)[0]
+
+    @functools.cached_property
+    def _DEVICE_ID(self):
+        return self._KNOWN_DEVICE_ID or str(random.randint(7250000000000000000, 7351147085025500000))
+
+    @functools.cached_property
     def _API_HOSTNAME(self):
         return self._configuration_arg(
             'api_hostname', ['api16-normal-c-useast1a.tiktokv.com'], ie_key=TikTokIE)[0]
+
+    def _get_next_app_info(self):
+        if self._APP_INFO_POOL is None:
+            defaults = {
+                key: self._configuration_arg(key, [default], ie_key=TikTokIE)[0]
+                for key, default in self._APP_INFO_DEFAULTS.items()
+                if key != 'iid'
+            }
+            self._APP_INFO_POOL = [
+                {**defaults, **dict(
+                    (k, v) for k, v in zip(self._APP_INFO_DEFAULTS, app_info.split('/')) if v
+                )} for app_info in self._KNOWN_APP_INFO
+            ]
+
+        if not self._APP_INFO_POOL:
+            return False
+
+        self._APP_INFO = self._APP_INFO_POOL.pop(0)
+
+        app_name = self._APP_INFO['app_name']
+        version = self._APP_INFO['manifest_app_version']
+        if app_name == 'musical_ly':
+            package = f'com.zhiliaoapp.musically/{version}'
+        else:  # trill, aweme
+            package = f'com.ss.android.ugc.{app_name}/{version}'
+        self._APP_USER_AGENT = f'{package} (Linux; U; Android 13; en_US; Pixel 7; Build/TD1A.220804.031; Cronet/58.0.2991.0)'
+
+        return True
 
     @staticmethod
     def _create_url(user_id, video_id):
@@ -58,7 +114,7 @@ class TikTokBaseIE(InfoExtractor):
             'universal data', display_id, end_pattern=r'</script>', default={}),
             ('__DEFAULT_SCOPE__', {dict})) or {}
 
-    def _call_api_impl(self, ep, query, manifest_app_version, video_id, fatal=True,
+    def _call_api_impl(self, ep, query, video_id, fatal=True,
                        note='Downloading API JSON', errnote='Unable to download API page'):
         self._set_cookie(self._API_HOSTNAME, 'odin_tt', ''.join(random.choices('0123456789abcdef', k=160)))
         webpage_cookies = self._get_cookies(self._WEBPAGE_HOST)
@@ -67,80 +123,85 @@ class TikTokBaseIE(InfoExtractor):
         return self._download_json(
             'https://%s/aweme/v1/%s/' % (self._API_HOSTNAME, ep), video_id=video_id,
             fatal=fatal, note=note, errnote=errnote, headers={
-                'User-Agent': f'com.ss.android.ugc.{self._APP_NAME}/{manifest_app_version} (Linux; U; Android 13; en_US; Pixel 7; Build/TD1A.220804.031; Cronet/58.0.2991.0)',
+                'User-Agent': self._APP_USER_AGENT,
                 'Accept': 'application/json',
             }, query=query)
 
-    def _build_api_query(self, query, app_version, manifest_app_version):
-        return {
+    def _build_api_query(self, query):
+        return filter_dict({
             **query,
-            'version_name': app_version,
-            'version_code': manifest_app_version,
-            'build_number': app_version,
-            'manifest_version_code': manifest_app_version,
-            'update_version_code': manifest_app_version,
-            'openudid': ''.join(random.choices('0123456789abcdef', k=16)),
-            'uuid': ''.join(random.choices(string.digits, k=16)),
-            '_rticket': int(time.time() * 1000),
-            'ts': int(time.time()),
-            'device_brand': 'Google',
-            'device_type': 'Pixel 7',
             'device_platform': 'android',
+            'os': 'android',
+            'ssmix': 'a',
+            '_rticket': int(time.time() * 1000),
+            'cdid': str(uuid.uuid4()),
+            'channel': 'googleplay',
+            'aid': self._APP_INFO['aid'],
+            'app_name': self._APP_INFO['app_name'],
+            'version_code': ''.join((f'{int(v):02d}' for v in self._APP_INFO['app_version'].split('.'))),
+            'version_name': self._APP_INFO['app_version'],
+            'manifest_version_code': self._APP_INFO['manifest_app_version'],
+            'update_version_code': self._APP_INFO['manifest_app_version'],
+            'ab_version': self._APP_INFO['app_version'],
             'resolution': '1080*2400',
             'dpi': 420,
-            'os_version': '13',
-            'os_api': '29',
-            'carrier_region': 'US',
-            'sys_region': 'US',
-            'region': 'US',
-            'app_name': self._APP_NAME,
-            'app_language': 'en',
+            'device_type': 'Pixel 7',
+            'device_brand': 'Google',
             'language': 'en',
-            'timezone_name': 'America/New_York',
-            'timezone_offset': '-14400',
-            'channel': 'googleplay',
+            'os_api': '29',
+            'os_version': '13',
             'ac': 'wifi',
-            'mcc_mnc': '310260',
-            'is_my_cn': 0,
-            'aid': self._AID,
-            'ssmix': 'a',
-            'as': 'a1qwert123',
-            'cp': 'cbfhckdckkde1',
-        }
+            'is_pad': '0',
+            'current_region': 'US',
+            'app_type': 'normal',
+            'sys_region': 'US',
+            'last_install_time': int(time.time()) - random.randint(86400, 1123200),
+            'timezone_name': 'America/New_York',
+            'residence': 'US',
+            'app_language': 'en',
+            'timezone_offset': '-14400',
+            'host_abi': 'armeabi-v7a',
+            'locale': 'en',
+            'ac2': 'wifi5g',
+            'uoo': '1',
+            'carrier_region': 'US',
+            'op_region': 'US',
+            'build_number': self._APP_INFO['app_version'],
+            'region': 'US',
+            'ts': int(time.time()),
+            'iid': self._APP_INFO.get('iid'),
+            'device_id': self._DEVICE_ID,
+            'openudid': ''.join(random.choices('0123456789abcdef', k=16)),
+        })
 
     def _call_api(self, ep, query, video_id, fatal=True,
                   note='Downloading API JSON', errnote='Unable to download API page'):
-        if not self._WORKING_APP_VERSION:
-            app_version = self._configuration_arg('app_version', [''], ie_key=TikTokIE.ie_key())[0]
-            manifest_app_version = self._configuration_arg('manifest_app_version', [''], ie_key=TikTokIE.ie_key())[0]
-            if app_version and manifest_app_version:
-                self._WORKING_APP_VERSION = (app_version, manifest_app_version)
-                self.write_debug('Imported app version combo from extractor arguments')
-            elif app_version or manifest_app_version:
-                self.report_warning('Only one of the two required version params are passed as extractor arguments', only_once=True)
+        if not self._APP_INFO and not self._get_next_app_info():
+            message = 'No working app info is available'
+            if fatal:
+                raise ExtractorError(message, expected=True)
+            else:
+                self.report_warning(message)
+                return
 
-        if self._WORKING_APP_VERSION:
-            app_version, manifest_app_version = self._WORKING_APP_VERSION
-            real_query = self._build_api_query(query, app_version, manifest_app_version)
-            return self._call_api_impl(ep, real_query, manifest_app_version, video_id, fatal, note, errnote)
-
-        for count, (app_version, manifest_app_version) in enumerate(self._APP_VERSIONS, start=1):
-            real_query = self._build_api_query(query, app_version, manifest_app_version)
+        max_tries = len(self._APP_INFO_POOL) + 1  # _APP_INFO_POOL + _APP_INFO
+        for count in itertools.count(1):
+            self.write_debug(str(self._APP_INFO))
+            real_query = self._build_api_query(query)
             try:
-                res = self._call_api_impl(ep, real_query, manifest_app_version, video_id, fatal, note, errnote)
-                self._WORKING_APP_VERSION = (app_version, manifest_app_version)
-                return res
+                return self._call_api_impl(ep, real_query, video_id, fatal, note, errnote)
             except ExtractorError as e:
                 if isinstance(e.cause, json.JSONDecodeError) and e.cause.pos == 0:
-                    if count == len(self._APP_VERSIONS):
+                    message = str(e.cause or e.msg)
+                    if not self._get_next_app_info():
                         if fatal:
-                            raise e
+                            raise
                         else:
-                            self.report_warning(str(e.cause or e.msg))
+                            self.report_warning(message)
                             return
-                    self.report_warning('%s. Retrying... (attempt %s of %s)' % (str(e.cause or e.msg), count, len(self._APP_VERSIONS)))
+                    self.report_warning(f'{message}. Retrying... (attempt {count} of {max_tries})')
                     continue
-                raise e
+                raise
 
     def _extract_aweme_app(self, aweme_id):
         feed_list = self._call_api(
@@ -191,23 +252,22 @@ class TikTokBaseIE(InfoExtractor):
                 })
         return subtitles
 
+    def _parse_url_key(self, url_key):
+        format_id, codec, res, bitrate = self._search_regex(
+            r'v[^_]+_(?P<id>(?P<codec>[^_]+)_(?P<res>\d+p)_(?P<bitrate>\d+))', url_key,
+            'url key', default=(None, None, None, None), group=('id', 'codec', 'res', 'bitrate'))
+        if not format_id:
+            return {}, None
+        return {
+            'format_id': format_id,
+            'vcodec': 'h265' if codec == 'bytevc1' else codec,
+            'tbr': int_or_none(bitrate, scale=1000) or None,
+            'quality': qualities(self.QUALITIES)(res),
+        }, res
+
     def _parse_aweme_video_app(self, aweme_detail):
         aweme_id = aweme_detail['aweme_id']
         video_info = aweme_detail['video']
-
-        def parse_url_key(url_key):
-            format_id, codec, res, bitrate = self._search_regex(
-                r'v[^_]+_(?P<id>(?P<codec>[^_]+)_(?P<res>\d+p)_(?P<bitrate>\d+))', url_key,
-                'url key', default=(None, None, None, None), group=('id', 'codec', 'res', 'bitrate'))
-            if not format_id:
-                return {}, None
-            return {
-                'format_id': format_id,
-                'vcodec': 'h265' if codec == 'bytevc1' else codec,
-                'tbr': int_or_none(bitrate, scale=1000) or None,
-                'quality': qualities(self.QUALITIES)(res),
-            }, res
-
         known_resolutions = {}
 
         def audio_meta(url):
@@ -222,7 +282,8 @@ class TikTokBaseIE(InfoExtractor):
             } if ext == 'mp3' or '-music-' in url else {}
 
         def extract_addr(addr, add_meta={}):
-            parsed_meta, res = parse_url_key(addr.get('url_key', ''))
+            parsed_meta, res = self._parse_url_key(addr.get('url_key', ''))
+            is_bytevc2 = parsed_meta.get('vcodec') == 'bytevc2'
             if res:
                 known_resolutions.setdefault(res, {}).setdefault('height', int_or_none(addr.get('height')))
                 known_resolutions[res].setdefault('width', int_or_none(addr.get('width')))
@@ -235,8 +296,11 @@ class TikTokBaseIE(InfoExtractor):
                 'acodec': 'aac',
                 'source_preference': -2 if 'aweme/v1' in url else -1,  # Downloads from API might get blocked
                 **add_meta, **parsed_meta,
+                # bytevc2 is bytedance's own custom h266/vvc codec, as-of-yet unplayable
+                'preference': -100 if is_bytevc2 else -1,
                 'format_note': join_nonempty(
-                    add_meta.get('format_note'), '(API)' if 'aweme/v1' in url else None, delim=' '),
+                    add_meta.get('format_note'), '(API)' if 'aweme/v1' in url else None,
+                    '(UNPLAYABLE)' if is_bytevc2 else None, delim=' '),
                 **audio_meta(url),
             } for url in addr.get('url_list') or []]
 
@@ -244,6 +308,7 @@ class TikTokBaseIE(InfoExtractor):
         formats = []
         width = int_or_none(video_info.get('width'))
         height = int_or_none(video_info.get('height'))
+        ratio = try_call(lambda: width / height) or 0.5625
         if video_info.get('play_addr'):
             formats.extend(extract_addr(video_info['play_addr'], {
                 'format_id': 'play_addr',
@@ -260,8 +325,8 @@ class TikTokBaseIE(InfoExtractor):
                 'format_id': 'download_addr',
                 'format_note': 'Download video%s' % (', watermarked' if video_info.get('has_watermark') else ''),
                 'vcodec': 'h264',
-                'width': dl_width or width,
-                'height': try_call(lambda: int(dl_width / 0.5625)) or height,  # download_addr['height'] is wrong
+                'width': dl_width,
+                'height': try_call(lambda: int(dl_width / ratio)),  # download_addr['height'] is wrong
                 'preference': -2 if video_info.get('has_watermark') else -1,
             }))
         if video_info.get('play_addr_h264'):
@@ -377,25 +442,87 @@ class TikTokBaseIE(InfoExtractor):
         formats = []
         width = int_or_none(video_info.get('width'))
         height = int_or_none(video_info.get('height'))
+        ratio = try_call(lambda: width / height) or 0.5625
+        COMMON_FORMAT_INFO = {
+            'ext': 'mp4',
+            'vcodec': 'h264',
+            'acodec': 'aac',
+        }
+
+        for bitrate_info in traverse_obj(video_info, ('bitrateInfo', lambda _, v: v['PlayAddr']['UrlList'])):
+            format_info, res = self._parse_url_key(
+                traverse_obj(bitrate_info, ('PlayAddr', 'UrlKey', {str})) or '')
+            # bytevc2 is bytedance's own custom h266/vvc codec, as-of-yet unplayable
+            is_bytevc2 = format_info.get('vcodec') == 'bytevc2'
+            format_info.update({
+                'format_note': 'UNPLAYABLE' if is_bytevc2 else None,
+                'preference': -100 if is_bytevc2 else -1,
+                'filesize': traverse_obj(bitrate_info, ('PlayAddr', 'DataSize', {int_or_none})),
+            })
+
+            if dimension := (res and int(res[:-1])):
+                if dimension == 540:  # '540p' is actually 576p
+                    dimension = 576
+                if ratio < 1:  # portrait: res/dimension is width
+                    y = int(dimension / ratio)
+                    format_info.update({
+                        'width': dimension,
+                        'height': y - (y % 2),
+                    })
+                else:  # landscape: res/dimension is height
+                    x = int(dimension * ratio)
+                    format_info.update({
+                        'width': x - (x % 2),
+                        'height': dimension,
+                    })
+
+            for video_url in traverse_obj(bitrate_info, ('PlayAddr', 'UrlList', ..., {url_or_none})):
+                formats.append({
+                    **COMMON_FORMAT_INFO,
+                    **format_info,
+                    'url': self._proto_relative_url(video_url),
+                })
+
+        # We don't have res string for play formats, but need quality for sorting & de-duplication
+        play_quality = traverse_obj(formats, (lambda _, v: v['width'] == width, 'quality', any))
 
         for play_url in traverse_obj(video_info, ('playAddr', ((..., 'src'), None), {url_or_none})):
             formats.append({
+                **COMMON_FORMAT_INFO,
+                'format_id': 'play',
                 'url': self._proto_relative_url(play_url),
-                'ext': 'mp4',
                 'width': width,
                 'height': height,
+                'quality': play_quality,
             })
 
         for download_url in traverse_obj(video_info, (('downloadAddr', ('download', 'url')), {url_or_none})):
             formats.append({
+                **COMMON_FORMAT_INFO,
                 'format_id': 'download',
                 'url': self._proto_relative_url(download_url),
-                'ext': 'mp4',
-                'width': width,
-                'height': height,
             })
 
         self._remove_duplicate_formats(formats)
+
+        for f in traverse_obj(formats, lambda _, v: 'unwatermarked' not in v['url']):
+            f.update({
+                'format_note': join_nonempty(f.get('format_note'), 'watermarked', delim=', '),
+                'preference': f.get('preference') or -2,
+            })
+
+        # Is it a slideshow with only audio for download?
+        if not formats and traverse_obj(music_info, ('playUrl', {url_or_none})):
+            audio_url = music_info['playUrl']
+            ext = traverse_obj(parse_qs(audio_url), (
+                'mime_type', -1, {lambda x: x.replace('_', '/')}, {mimetype2ext})) or 'm4a'
+            formats.append({
+                'format_id': 'audio',
+                'url': self._proto_relative_url(audio_url),
+                'ext': ext,
+                'acodec': 'aac' if ext == 'm4a' else ext,
+                'vcodec': 'none',
+            })
 
         thumbnails = []
         for thumb_url in traverse_obj(aweme_detail, (
@@ -408,10 +535,18 @@ class TikTokBaseIE(InfoExtractor):
 
         return {
             'id': video_id,
+            **traverse_obj(music_info, {
+                'track': ('title', {str}),
+                'track_id': ('id', {str}, {lambda x: x or None}),
+                'album': ('album', {str}, {lambda x: x or None}),
+                'artists': ('authorName', {str}, {lambda x: [x] if x else None}),
+                'duration': ('duration', {int_or_none}),
+            }),
             **traverse_obj(aweme_detail, {
                 'title': ('desc', {str}),
                 'description': ('desc', {str}),
-                'duration': ('video', 'duration', {int_or_none}),
+                # audio-only slideshows have a video duration of 0 and an actual audio duration
+                'duration': ('video', 'duration', {int_or_none}, {lambda x: x or None}),
                 'timestamp': ('createTime', {int_or_none}),
             }),
             **traverse_obj(author_info or aweme_detail, {
@@ -426,12 +561,6 @@ class TikTokBaseIE(InfoExtractor):
                 'repost_count': 'shareCount',
                 'comment_count': 'commentCount',
             }, expected_type=int_or_none),
-            **traverse_obj(music_info, {
-                'track': ('title', {str}),
-                'track_id': ('id', {str}, {lambda x: x or None}),
-                'album': ('album', {str}, {lambda x: x or None}),
-                'artists': ('authorName', {str}, {lambda x: [x] if x else None}),
-            }),
             'channel_id': channel_id,
             'uploader_url': user_url,
             'formats': formats,
@@ -723,11 +852,13 @@ class TikTokIE(TikTokBaseIE):
 
     def _real_extract(self, url):
         video_id, user_id = self._match_valid_url(url).group('id', 'user_id')
-        try:
-            return self._extract_aweme_app(video_id)
-        except ExtractorError as e:
-            e.expected = True
-            self.report_warning(f'{e}; trying with webpage')
+
+        if self._KNOWN_APP_INFO:
+            try:
+                return self._extract_aweme_app(video_id)
+            except ExtractorError as e:
+                e.expected = True
+                self.report_warning(f'{e}; trying with webpage')
 
         url = self._create_url(user_id, video_id)
         webpage = self._download_webpage(url, video_id, headers={'User-Agent': 'Mozilla/5.0'})
@@ -742,7 +873,7 @@ class TikTokIE(TikTokBaseIE):
             status = traverse_obj(sigi_data, ('VideoPage', 'statusCode', {int})) or 0
             video_data = traverse_obj(sigi_data, ('ItemModule', video_id, {dict}))
 
-        elif next_data := self._search_nextjs_data(webpage, video_id, default='{}'):
+        elif next_data := self._search_nextjs_data(webpage, video_id, default={}):
             self.write_debug('Found next.js data')
             status = traverse_obj(next_data, ('props', 'pageProps', 'statusCode', {int})) or 0
             video_data = traverse_obj(next_data, ('props', 'pageProps', 'itemInfo', 'itemStruct', {dict}))
@@ -816,7 +947,7 @@ class TikTokUserIE(TikTokBaseIE):
             'max_cursor': 0,
             'min_cursor': 0,
             'retry_type': 'no_retry',
-            'device_id': ''.join(random.choices(string.digits, k=19)),  # Some endpoints don't like randomized device_id, so it isn't directly set in _call_api.
+            'device_id': self._DEVICE_ID,  # Some endpoints don't like randomized device_id, so it isn't directly set in _call_api.
         }
 
         for page in itertools.count(1):
@@ -864,7 +995,7 @@ class TikTokBaseListIE(TikTokBaseIE):  # XXX: Conventionally, base classes shoul
             'cursor': 0,
             'count': 20,
             'type': 5,
-            'device_id': ''.join(random.choices(string.digits, k=19))
+            'device_id': self._DEVICE_ID,
         }
 
         for page in itertools.count(1):

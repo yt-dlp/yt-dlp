@@ -10,7 +10,7 @@ maintainers = [
     {name = "bashonly", email = "bashonly@protonmail.com"},
     {name = "coletdjnz", email = "coletdjnz@protonmail.com"},
 ]
-description = "A youtube-dl fork with additional features and patches"
+description = "A feature-rich command-line audio/video downloader"
 readme = "README.md"
 requires-python = ">=3.8"
 keywords = [
@@ -46,13 +46,14 @@ dependencies = [
     "certifi",
     "mutagen",
     "pycryptodomex",
-    "requests>=2.31.0,<3",
+    "requests>=2.32.0,<3",
     "urllib3>=1.26.17,<3",
     "websockets>=12.0",
 ]
 
 [project.optional-dependencies]
 default = []
+curl-cffi = ["curl-cffi==0.5.10; implementation_name=='cpython'"]
 secretstorage = [
     "cffi",
     "secretstorage",
@@ -68,7 +69,10 @@ dev = [
     "isort",
     "pytest",
 ]
-pyinstaller = ["pyinstaller>=6.3"]
+pyinstaller = [
+    "pyinstaller>=6.3; sys_platform!='darwin'",
+    "pyinstaller==5.13.2; sys_platform=='darwin'",  # needed for curl_cffi
+]
 py2exe = ["py2exe>=0.12"]
 
 [project.urls]

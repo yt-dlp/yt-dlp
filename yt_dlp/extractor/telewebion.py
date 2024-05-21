@@ -1,8 +1,7 @@
 from __future__ import annotations
-
+import functools
 import json
-from functools import partial
-from textwrap import dedent
+import textwrap
 
 from .common import InfoExtractor
 from ..utils import ExtractorError, format_field, int_or_none, parse_iso8601
@@ -10,7 +9,7 @@ from ..utils.traversal import traverse_obj
 
 
 def _fmt_url(url):
-    return partial(format_field, template=url, default=None)
+    return functools.partial(format_field, template=url, default=None)
 
 
 class TelewebionIE(InfoExtractor):
@@ -88,7 +87,7 @@ class TelewebionIE(InfoExtractor):
         if not video_id.startswith('0x'):
             video_id = hex(int(video_id))
 
-        episode_data = self._call_graphql_api('getEpisodeDetail', video_id, dedent('''
+        episode_data = self._call_graphql_api('getEpisodeDetail', video_id, textwrap.dedent('''
             queryEpisode(filter: {EpisodeID: $EpisodeId}, first: 1) {
               title
               program {
@@ -127,7 +126,7 @@ class TelewebionIE(InfoExtractor):
             'formats': (
                 'channel', 'descriptor', {str},
                 {_fmt_url(f'https://cdna.telewebion.com/%s/episode/{video_id}/playlist.m3u8')},
-                {partial(self._extract_m3u8_formats, video_id=video_id, ext='mp4', m3u8_id='hls')}),
+                {functools.partial(self._extract_m3u8_formats, video_id=video_id, ext='mp4', m3u8_id='hls')}),
         }))
         info_dict['id'] = video_id
         return info_dict
