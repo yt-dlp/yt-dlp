@@ -748,6 +748,7 @@ from .hketv import HKETVIE
 from .hidive import HiDiveIE
 from .historicfilms import HistoricFilmsIE
 from .hitrecord import HitRecordIE
+from .hockeycanada import HockeyCanadaIE
 from .hollywoodreporter import (
     HollywoodReporterIE,
     HollywoodReporterPlaylistIE,
