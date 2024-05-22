@@ -21,10 +21,8 @@ class TapTapBaseIE(InfoExtractor):
     _META_PATH = None
 
     def _get_api(self, url, video_id, query, **kwargs):
-        rand_hex = lambda digits: ''.join(f'{random.randint(0, 15):x}' for _ in range(digits))
-        uuid = '-'.join(rand_hex(digits) for digits in [8, 4, 4, 4, 12])
-        query = {**query, 'X-UA': self._X_UA.format(uuid=uuid)}
-        return self._download_json(url, video_id, query=query, **kwargs)
+        query = {**query, 'X-UA': self._X_UA.format(uuid=uuid.uuid4())}
+        return self._download_json(url, video_id, query=query, **kwargs)['data']
 
     def _extract_video(self, video_id, is_intl=False):
         video_data = self._get_api(self._VIDEO_API, video_id, query={'video_ids': video_id})['data']['list'][0]
