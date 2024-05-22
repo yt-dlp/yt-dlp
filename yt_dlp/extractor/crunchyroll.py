@@ -179,10 +179,16 @@ class CrunchyrollBaseIE(InfoExtractor):
             display_id = identifier
 
         self._update_auth()
-        stream_response = self._download_json(
-            f'https://cr-play-service.prd.crunchyrollsvc.com/v1/{identifier}/console/switch/play',
-            display_id, note='Downloading stream info', errnote='Failed to download stream info',
-            headers=CrunchyrollBaseIE._AUTH_HEADERS)
+        try:
+            stream_response = self._download_json(
+                f'https://cr-play-service.prd.crunchyrollsvc.com/v1/{identifier}/console/switch/play',
+                display_id, note='Downloading stream info', errnote='Failed to download stream info',
+                headers=CrunchyrollBaseIE._AUTH_HEADERS)
+        except ExtractorError as e:
+            if self.get_param('ignore_no_formats_error'):
+                self.report_warning(e.orig_msg)
+                return [], {}
+            raise
 
         available_formats = {'': ('', '', stream_response['url'])}
         for hardsub_lang, stream in traverse_obj(stream_response, ('hardSubs', {dict.items}, lambda _, v: v[1]['url'])):
