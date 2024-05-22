@@ -1,14 +1,15 @@
-import random
 import re
+import uuid
 
 from .common import InfoExtractor
 from ..utils import (
     clean_html,
     int_or_none,
     join_nonempty,
-    traverse_obj,
+    str_or_none,
     url_or_none,
 )
+from ..utils.traversal import traverse_obj
 
 
 class TapTapBaseIE(InfoExtractor):
