@@ -185,14 +185,15 @@ class BilibiliBaseIE(InfoExtractor):
             }]
         }
 
-        subtitle_info = traverse_obj(self._download_json(
+        video_info = self._download_json(
             'https://api.bilibili.com/x/player/v2', video_id,
             query={'aid': aid, 'cid': cid} if aid else {'bvid': video_id, 'cid': cid},
-            note=f'Extracting subtitle info {cid}'), ('data', 'subtitle'))
-        subs_list = traverse_obj(subtitle_info, ('subtitles', lambda _, v: v['subtitle_url'] and v['lan']))
-        if not subs_list and traverse_obj(subtitle_info, 'allow_submit'):
-            if self._has_no_login_cookie():
-                self.report_warning(f'CC subtitles (if any) are only visible when logged in. {self._login_hint()}', only_once=True)
+            note=f'Extracting subtitle info {cid}')
+        if traverse_obj(video_info, ('data', 'need_login_subtitle')):
+            self.report_warning(f'subtitles are only available when logged in. {self._login_hint()}', only_once=True)
+        subs_list = traverse_obj(video_info, ('data', 'subtitle', 'subtitles',
+                                              lambda _, v: v['subtitle_url'] and v['lan']))
+
         for s in subs_list:
             subtitles.setdefault(s['lan'], []).append({
                 'ext': 'srt',
