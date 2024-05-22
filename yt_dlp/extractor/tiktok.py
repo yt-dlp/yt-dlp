@@ -213,7 +213,7 @@ class TikTokBaseIE(InfoExtractor):
         return self._parse_aweme_video_app(aweme_detail)
 
     def _extract_web_data_and_status(self, url, video_id, fatal=True):
-        webpage = self._download_webpage(url, video_id, headers={'User-Agent': 'Mozilla/5.0'}, fatal=fatal)
+        webpage = self._download_webpage(url, video_id, headers={'User-Agent': 'Mozilla/5.0'}, fatal=fatal) or ''
         video_data, status = {}, None
 
         if universal_data := self._get_universal_data(webpage, video_id):
