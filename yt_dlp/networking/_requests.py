@@ -25,7 +25,6 @@ if requests.__build__ < 0x023100:
     raise ImportError('Only requests >= 2.31.0 is supported')
 
 import requests.adapters
-import requests.exceptions
 import requests.utils
 import urllib3.connection
 import urllib3.exceptions
@@ -193,15 +192,11 @@ class RequestsHTTPAdapter(requests.adapters.HTTPAdapter):
 
     # requests 2.32.2+: Reimplementation without `_urllib3_request_context`
     def get_connection_with_tls_context(self, request, verify, proxies=None, cert=None):
-        if proxy := requests.utils.select_proxy(request.url, proxies):
-            proxy = requests.utils.prepend_scheme_if_needed(proxy, 'http')
-            if not urllib3.util.parse_url(proxy).host:
-                raise requests.exceptions.InvalidProxyURL(
-                    'Please check proxy URL. It is malformed and could be missing the host.')
+        if proxy := select_proxy(url, proxies):
             return self.proxy_manager_for(proxy).connection_from_url(request.url)
 
-        url = urllib3.util.parse_url(request.url).url
-        return self.poolmanager.connection_from_url(url)
+        normalized_url = urllib3.util.parse_url(request.url).url
+        return self.poolmanager.connection_from_url(normalized_url)
 
 
 class RequestsSession(requests.sessions.Session):
