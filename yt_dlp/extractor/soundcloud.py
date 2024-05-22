@@ -309,7 +309,9 @@ class SoundcloudBaseIE(InfoExtractor):
             stream = None
             for retry in self.RetryManager(fatal=False):
                 try:
-                    stream = self._download_json(format_url, track_id, query=query, headers=self._HEADERS)
+                    stream = self._download_json(
+                        format_url, track_id, f'Downloading {identifier} format info JSON',
+                        query=query, headers=self._HEADERS)
                 except ExtractorError as e:
                     if isinstance(e.cause, HTTPError) and e.cause.status == 429:
                         self.report_warning(
