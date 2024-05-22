@@ -27,6 +27,7 @@ class TapTapBaseIE(InfoExtractor):
     def _extract_video(self, video_id):
         video_data = self._get_api(self._VIDEO_API, video_id, query={'video_ids': video_id})['list'][0]
 
+        # h265 playlist contains both h265 and h264 formats
         video_url = traverse_obj(video_data, ('play_url', ('url_h265', 'url'), {url_or_none}))[0]
         formats = self._extract_m3u8_formats(video_url, video_id)
         for format in formats:
@@ -42,10 +43,6 @@ class TapTapBaseIE(InfoExtractor):
             }), get_all=False)
         }
 
-    def _extract_entries(self, video_ids, metainfo, list_id):
-        entries = [{**metainfo, **self._extract_video(id)} for id in set(video_ids)]
-        return self.playlist_result(entries, **metainfo, id=list_id)
-
     def _real_extract(self, url):
         video_id = self._match_id(url)
         query = {self._INFO_QUERY_KEY: video_id}
@@ -53,9 +50,13 @@ class TapTapBaseIE(InfoExtractor):
         data = traverse_obj(
             self._get_api(self._INFO_API, video_id, query=query), self._DATA_PATH)
 
-        video_ids = traverse_obj(data, self._ID_PATH)
         metainfo = traverse_obj(data, self._META_PATH)
-        return self._extract_entries(video_ids, metainfo, video_id)
+        entries = [{
+            **metainfo,
+            **self._extract_video(id)
+        } for id in set(traverse_obj(data, self._ID_PATH))]
+
+        return self.playlist_result(entries, **metainfo, id=video_id)
 
 
 class TapTapIntlBase(TapTapBaseIE):
