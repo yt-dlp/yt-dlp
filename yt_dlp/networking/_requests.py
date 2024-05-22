@@ -192,11 +192,13 @@ class RequestsHTTPAdapter(requests.adapters.HTTPAdapter):
 
     # requests 2.32.2+: Reimplementation without `_urllib3_request_context`
     def get_connection_with_tls_context(self, request, verify, proxies=None, cert=None):
-        if proxy := select_proxy(request.url, proxies):
-            return self.proxy_manager_for(proxy).connection_from_url(request.url)
+        url = urllib3.util.parse_url(request.url).url
 
-        normalized_url = urllib3.util.parse_url(request.url).url
-        return self.poolmanager.connection_from_url(normalized_url)
+        manager = self.poolmanager
+        if proxy := select_proxy(url, proxies):
+            manager =  self.proxy_manager_for(proxy)
+
+        return manager.connection_from_url(url)
 
 
 class RequestsSession(requests.sessions.Session):
