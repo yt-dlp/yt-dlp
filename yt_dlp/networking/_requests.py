@@ -196,7 +196,7 @@ class RequestsHTTPAdapter(requests.adapters.HTTPAdapter):
 
         manager = self.poolmanager
         if proxy := select_proxy(url, proxies):
-            manager =  self.proxy_manager_for(proxy)
+            manager = self.proxy_manager_for(proxy)
 
         return manager.connection_from_url(url)
 
