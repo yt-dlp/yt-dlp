@@ -1841,6 +1841,9 @@ The following extractors use this feature:
 #### afreecatvlive
 * `cdn`: One or more CDN IDs to use with the API call for stream URLs, e.g. `gcp_cdn`, `gs_cdn_pc_app`, `gs_cdn_mobile_web`, `gs_cdn_pc_web`
 
+#### soundcloud
+* `formats`: Formats to request from the API. Requested values should be in the format of `{protocol}_{extension}`, e.g. `hls_opus,http_aac`. The `*` character functions as a wildcard, e.g. `*_mp3`, and can passed by itself to request all formats. Known protocols include `http`, `hls`, and `hls-aes`; known extensions include `aac`, `opus` and `mp3`. Original `download` formats are always extracted. Default is `http_aac,hls_aac,http_opus,hls_opus,http_mp3,hls_mp3`
+
 **Note**: These options may be changed/removed in the future without concern for backward compatibility
 
 <!-- MANPAGE: MOVE "INSTALLATION" SECTION HERE -->
