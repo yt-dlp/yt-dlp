@@ -1009,10 +1009,10 @@ class TikTokUserIE(TikTokBaseIE):
                 ('source', 'data', f'/embed/@{user_name}', {dict}))
 
             for aweme_id in traverse_obj(data, ('videoList', ..., 'id')):
-                try:
-                    sec_uid = self._extract_aweme_app(aweme_id).get('channel_id')
-                except ExtractorError:
-                    continue
+                webpage_url = self._create_url(user_name, aweme_id)
+                video_data, _ = self._extract_web_data_and_status(webpage_url, aweme_id, fatal=False)
+                sec_uid = self._parse_aweme_video_web(
+                    video_data, webpage_url, aweme_id, extract_flat=True).get('channel_id')
                 if sec_uid:
                     break
 
