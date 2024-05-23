@@ -1003,7 +1003,7 @@ class TikTokUserIE(TikTokBaseIE):
                 webpage, 'data', user_name, default={}),
                 ('source', 'data', f'/embed/@{user_name}', {dict}))
 
-            for aweme_id in traverse_obj(data, ('videoList', ..., 'id')):
+            for aweme_id in traverse_obj(data, ('videoList', ..., 'id', {str})):
                 webpage_url = self._create_url(user_name, aweme_id)
                 video_data, _ = self._extract_web_data_and_status(webpage_url, aweme_id, fatal=False)
                 sec_uid = self._parse_aweme_video_web(
