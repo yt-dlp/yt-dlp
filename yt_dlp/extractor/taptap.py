@@ -60,11 +60,6 @@ class TapTapBaseIE(InfoExtractor):
         return self.playlist_result(entries, **metainfo, id=video_id)
 
 
-class TapTapIntlBase(TapTapBaseIE):
-    _X_UA = 'V=1&PN=WebAppIntl2&LANG=zh_TW&VN_CODE=115&VN=0.1.0&LOC=CN&PLT=PC&DS=Android&UID={uuid}&CURR=&DT=PC&OS=Windows&OSV=NT%208.0.0'
-    _VIDEO_API = 'https://www.taptap.io/webapiv2/video-resource/v1/multi-get'
-
-
 class TapTapMomentIE(TapTapBaseIE):
     _VALID_URL = r'https?://www\.taptap\.cn/moment/(?P<id>\d+)'
     _INFO_API = 'https://www.taptap.cn/webapiv2/moment/v3/detail'
@@ -194,6 +189,11 @@ class TapTapAppIE(TapTapBaseIE):
         }],
         'params': {'skip_download': 'm3u8'},
     }]
+
+
+class TapTapIntlBase(TapTapBaseIE):
+    _X_UA = 'V=1&PN=WebAppIntl2&LANG=zh_TW&VN_CODE=115&VN=0.1.0&LOC=CN&PLT=PC&DS=Android&UID={uuid}&CURR=&DT=PC&OS=Windows&OSV=NT%208.0.0'
+    _VIDEO_API = 'https://www.taptap.io/webapiv2/video-resource/v1/multi-get'
 
 
 class TapTapAppIntlIE(TapTapIntlBase):
