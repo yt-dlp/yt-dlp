@@ -14,6 +14,7 @@ from ..utils import (
     make_archive_id,
     mimetype2ext,
     orderedSet,
+    parse_age_limit,
     remove_end,
     smuggle_url,
     strip_jsonp,
@@ -569,7 +570,7 @@ class ORFFM4StoryIE(InfoExtractor):
 
 class ORFONIE(InfoExtractor):
     IE_NAME = 'orf:on'
-    _VALID_URL = r'https?://on\.orf\.at/video/(?P<id>\d{8})/(?P<slug>[\w-]+)'
+    _VALID_URL = r'https?://on\.orf\.at/video/(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://on.orf.at/video/14210000/school-of-champions-48',
         'info_dict': {
@@ -583,32 +584,55 @@ class ORFONIE(InfoExtractor):
             'timestamp': 1706472362,
             'upload_date': '20240128',
         }
+    }, {
+        'url': 'https://on.orf.at/video/3220355',
+        'md5': 'f94d98e667cf9a3851317efb4e136662',
+        'info_dict': {
+            'id': '3220355',
+            'ext': 'mp4',
+            'duration': 445.04,
+            'thumbnail': 'https://api-tvthek.orf.at/assets/segments/0002/60/thumb_159573_segments_highlight_teaser.png',
+            'title': '50 Jahre Burgenland: Der Festumzug',
+            'description': 'md5:1560bf855119544ee8c4fa5376a2a6b0',
+            'media_type': 'episode',
+            'timestamp': 52916400,
+            'upload_date': '19710905',
+        }
     }]
 
-    def _extract_video(self, video_id, display_id):
+    def _extract_video(self, video_id):
         encrypted_id = base64.b64encode(f'3dSlfek03nsLKdj4Jsd{video_id}'.encode()).decode()
         api_json = self._download_json(
-            f'https://api-tvthek.orf.at/api/v4.3/public/episode/encrypted/{encrypted_id}', display_id)
+            f'https://api-tvthek.orf.at/api/v4.3/public/episode/encrypted/{encrypted_id}', video_id)
+
+        if traverse_obj(api_json, 'is_drm_protected'):
+            self.report_drm(video_id)
 
         formats, subtitles = [], {}
         for manifest_type in traverse_obj(api_json, ('sources', {dict.keys}, ...)):
             for manifest_url in traverse_obj(api_json, ('sources', manifest_type, ..., 'src', {url_or_none})):
                 if manifest_type == 'hls':
                     fmts, subs = self._extract_m3u8_formats_and_subtitles(
-                        manifest_url, display_id, fatal=False, m3u8_id='hls')
+                        manifest_url, video_id, fatal=False, m3u8_id='hls')
                 elif manifest_type == 'dash':
                     fmts, subs = self._extract_mpd_formats_and_subtitles(
-                        manifest_url, display_id, fatal=False, mpd_id='dash')
+                        manifest_url, video_id, fatal=False, mpd_id='dash')
                 else:
                     continue
                 formats.extend(fmts)
                 self._merge_subtitles(subs, target=subtitles)
+
+        for sub_url in traverse_obj(api_json, (
+                '_embedded', 'subtitle',
+                ('xml_url', 'sami_url', 'stl_url', 'ttml_url', 'srt_url', 'vtt_url'), {url_or_none})):
+            self._merge_subtitles({'de': [{'url': sub_url}]}, target=subtitles)
 
         return {
             'id': video_id,
             'formats': formats,
             'subtitles': subtitles,
             **traverse_obj(api_json, {
+                'age_limit': ('age_classification', {parse_age_limit}),
                 'duration': ('duration_second', {float_or_none}),
                 'title': (('title', 'headline'), {str}),
                 'description': (('description', 'teaser_text'), {str}),
@@ -617,14 +641,14 @@ class ORFONIE(InfoExtractor):
         }
 
     def _real_extract(self, url):
-        video_id, display_id = self._match_valid_url(url).group('id', 'slug')
-        webpage = self._download_webpage(url, display_id)
+        video_id = self._match_id(url)
+        webpage = self._download_webpage(url, video_id)
 
         return {
             'id': video_id,
             'title': self._html_search_meta(['og:title', 'twitter:title'], webpage, default=None),
             'description': self._html_search_meta(
                 ['description', 'og:description', 'twitter:description'], webpage, default=None),
-            **self._search_json_ld(webpage, display_id, fatal=False),
-            **self._extract_video(video_id, display_id),
+            **self._search_json_ld(webpage, video_id, fatal=False),
+            **self._extract_video(video_id),
         }

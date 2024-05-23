@@ -212,7 +212,31 @@ class TikTokBaseIE(InfoExtractor):
             raise ExtractorError('Unable to find video in feed', video_id=aweme_id)
         return self._parse_aweme_video_app(aweme_detail)
 
-    def _get_subtitles(self, aweme_detail, aweme_id):
+    def _extract_web_data_and_status(self, url, video_id, fatal=True):
+        webpage = self._download_webpage(url, video_id, headers={'User-Agent': 'Mozilla/5.0'}, fatal=fatal) or ''
+        video_data, status = {}, None
+
+        if universal_data := self._get_universal_data(webpage, video_id):
+            self.write_debug('Found universal data for rehydration')
+            status = traverse_obj(universal_data, ('webapp.video-detail', 'statusCode', {int})) or 0
+            video_data = traverse_obj(universal_data, ('webapp.video-detail', 'itemInfo', 'itemStruct', {dict}))
+
+        elif sigi_data := self._get_sigi_state(webpage, video_id):
+            self.write_debug('Found sigi state data')
+            status = traverse_obj(sigi_data, ('VideoPage', 'statusCode', {int})) or 0
+            video_data = traverse_obj(sigi_data, ('ItemModule', video_id, {dict}))
+
+        elif next_data := self._search_nextjs_data(webpage, video_id, default={}):
+            self.write_debug('Found next.js data')
+            status = traverse_obj(next_data, ('props', 'pageProps', 'statusCode', {int})) or 0
+            video_data = traverse_obj(next_data, ('props', 'pageProps', 'itemInfo', 'itemStruct', {dict}))
+
+        elif fatal:
+            raise ExtractorError('Unable to extract webpage video data')
+
+        return video_data, status
+
+    def _get_subtitles(self, aweme_detail, aweme_id, user_url):
         # TODO: Extract text positioning info
         subtitles = {}
         # aweme/detail endpoint subs
@@ -243,9 +267,10 @@ class TikTokBaseIE(InfoExtractor):
                 })
         # webpage subs
         if not subtitles:
-            for caption in traverse_obj(aweme_detail, ('video', 'subtitleInfos', ...), expected_type=dict):
-                if not caption.get('Url'):
-                    continue
+            if user_url:  # only _parse_aweme_video_app needs to extract the webpage here
+                aweme_detail, _ = self._extract_web_data_and_status(
+                    f'{user_url}/video/{aweme_id}', aweme_id, fatal=False)
+            for caption in traverse_obj(aweme_detail, ('video', 'subtitleInfos', lambda _, v: v['Url'])):
                 subtitles.setdefault(caption.get('LanguageCodeName') or 'en', []).append({
                     'ext': remove_start(caption.get('Format'), 'web'),
                     'url': caption['Url'],
@@ -412,7 +437,7 @@ class TikTokBaseIE(InfoExtractor):
             'album': str_or_none(music_info.get('album')) or None,
             'artists': re.split(r'(?:, | & )', music_author) if music_author else None,
             'formats': formats,
-            'subtitles': self.extract_subtitles(aweme_detail, aweme_id),
+            'subtitles': self.extract_subtitles(aweme_detail, aweme_id, user_url),
             'thumbnails': thumbnails,
             'duration': int_or_none(traverse_obj(video_info, 'duration', ('download_addr', 'duration')), scale=1000),
             'availability': self._availability(
@@ -554,6 +579,7 @@ class TikTokBaseIE(InfoExtractor):
             'channel_id': channel_id,
             'uploader_url': user_url,
             'formats': formats,
+            'subtitles': self.extract_subtitles(aweme_detail, video_id, None),
             'thumbnails': thumbnails,
             'http_headers': {
                 'Referer': webpage_url,
@@ -839,25 +865,7 @@ class TikTokIE(TikTokBaseIE):
                 self.report_warning(f'{e}; trying with webpage')
 
         url = self._create_url(user_id, video_id)
-        webpage = self._download_webpage(url, video_id, headers={'User-Agent': 'Mozilla/5.0'})
-
-        if universal_data := self._get_universal_data(webpage, video_id):
-            self.write_debug('Found universal data for rehydration')
-            status = traverse_obj(universal_data, ('webapp.video-detail', 'statusCode', {int})) or 0
-            video_data = traverse_obj(universal_data, ('webapp.video-detail', 'itemInfo', 'itemStruct', {dict}))
-
-        elif sigi_data := self._get_sigi_state(webpage, video_id):
-            self.write_debug('Found sigi state data')
-            status = traverse_obj(sigi_data, ('VideoPage', 'statusCode', {int})) or 0
-            video_data = traverse_obj(sigi_data, ('ItemModule', video_id, {dict}))
-
-        elif next_data := self._search_nextjs_data(webpage, video_id, default={}):
-            self.write_debug('Found next.js data')
-            status = traverse_obj(next_data, ('props', 'pageProps', 'statusCode', {int})) or 0
-            video_data = traverse_obj(next_data, ('props', 'pageProps', 'itemInfo', 'itemStruct', {dict}))
-
-        else:
-            raise ExtractorError('Unable to extract webpage video data')
+        video_data, status = self._extract_web_data_and_status(url, video_id)
 
         if video_data and status == 0:
             return self._parse_aweme_video_web(video_data, url, video_id)
