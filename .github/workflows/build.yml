@@ -12,6 +12,9 @@ on:
       unix:
         default: true
         type: boolean
+      linux_static:
+        default: true
+        type: boolean
       linux_arm:
         default: true
         type: boolean
@@ -25,9 +28,6 @@ on:
         default: true
         type: boolean
       windows32:
-        default: true
-        type: boolean
-      meta_files:
         default: true
         type: boolean
       origin:
@@ -52,7 +52,11 @@ on:
         default: stable
         type: string
       unix:
-        description: yt-dlp, yt-dlp.tar.gz, yt-dlp_linux, yt-dlp_linux.zip
+        description: yt-dlp, yt-dlp.tar.gz
+        default: true
+        type: boolean
+      linux_static:
+        description: yt-dlp_linux
         default: true
         type: boolean
       linux_arm:
@@ -73,10 +77,6 @@ on:
         type: boolean
       windows32:
         description: yt-dlp_x86.exe
-        default: true
-        type: boolean
-      meta_files:
-        description: SHA2-256SUMS, SHA2-512SUMS, _update_spec
         default: true
         type: boolean
       origin:
@@ -112,27 +112,9 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.10"
-      - uses: conda-incubator/setup-miniconda@v3
-        with:
-          miniforge-variant: Mambaforge
-          use-mamba: true
-          channels: conda-forge
-          auto-update-conda: true
-          activate-environment: ""
-          auto-activate-base: false
       - name: Install Requirements
         run: |
           sudo apt -y install zip pandoc man sed
-          cat > ./requirements.txt << EOF
-          python=3.10.*
-          pyinstaller
-          brotli-python
-          EOF
-          python devscripts/install_deps.py --print \
-            --exclude brotli --exclude brotlicffi \
-            --include secretstorage >> ./requirements.txt
-          mamba create -n build --file ./requirements.txt
-
       - name: Prepare
         run: |
           python devscripts/update-version.py -c "${{ inputs.channel }}" -r "${{ needs.process.outputs.origin }}" "${{ inputs.version }}"
@@ -141,30 +123,15 @@ jobs:
       - name: Build Unix platform-independent binary
         run: |
           make all tar
-      - name: Build Unix standalone binary
-        shell: bash -l {0}
-        run: |
-          unset LD_LIBRARY_PATH  # Harmful; set by setup-python
-          conda activate build
-          python -m bundle.pyinstaller --onedir
-          (cd ./dist/yt-dlp_linux && zip -r ../yt-dlp_linux.zip .)
-          python -m bundle.pyinstaller
-          mv ./dist/yt-dlp_linux ./yt-dlp_linux
-          mv ./dist/yt-dlp_linux.zip ./yt-dlp_linux.zip
-
       - name: Verify --update-to
         if: vars.UPDATE_TO_VERIFICATION
         run: |
-          binaries=("yt-dlp" "yt-dlp_linux")
-          for binary in "${binaries[@]}"; do
-            chmod +x ./${binary}
-            cp ./${binary} ./${binary}_downgraded
-            version="$(./${binary} --version)"
-            ./${binary}_downgraded -v --update-to yt-dlp/yt-dlp@2023.03.04
-            downgraded_version="$(./${binary}_downgraded --version)"
-            [[ "$version" != "$downgraded_version" ]]
-          done
-
+          chmod +x ./yt-dlp
+          cp ./yt-dlp ./yt-dlp_downgraded
+          version="$(./yt-dlp --version)"
+          ./yt-dlp_downgraded -v --update-to yt-dlp/yt-dlp@2023.03.04
+          downgraded_version="$(./yt-dlp_downgraded --version)"
+          [[ "$version" != "$downgraded_version" ]]
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -172,8 +139,39 @@ jobs:
           path: |
             yt-dlp
             yt-dlp.tar.gz
-            yt-dlp_linux
-            yt-dlp_linux.zip
+          compression-level: 0
+
+  linux_static:
+    needs: process
+    if: inputs.linux_static
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build static executable
+        env:
+          channel: ${{ inputs.channel }}
+          origin: ${{ needs.process.outputs.origin }}
+          version: ${{ inputs.version }}
+        run: |
+          mkdir ~/build
+          cd bundle/docker
+          docker compose up --build static
+          sudo chown "${USER}:docker" ~/build/yt-dlp_linux
+      - name: Verify --update-to
+        if: vars.UPDATE_TO_VERIFICATION
+        run: |
+          chmod +x ~/build/yt-dlp_linux
+          cp ~/build/yt-dlp_linux ~/build/yt-dlp_linux_downgraded
+          version="$(~/build/yt-dlp_linux --version)"
+          ~/build/yt-dlp_linux_downgraded -v --update-to yt-dlp/yt-dlp@2023.03.04
+          downgraded_version="$(~/build/yt-dlp_linux_downgraded --version)"
+          [[ "$version" != "$downgraded_version" ]]
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-bin-${{ github.job }}
+          path: |
+            ~/build/yt-dlp_linux
           compression-level: 0
 
   linux_arm:
@@ -254,7 +252,7 @@ jobs:
           # We need to fuse our own universal2 wheels for curl_cffi
           python3 -m pip install -U --user delocate
           mkdir curl_cffi_whls curl_cffi_universal2
-          python3 devscripts/install_deps.py --print -o --include curl_cffi > requirements.txt
+          python3 devscripts/install_deps.py --print -o --include curl-cffi > requirements.txt
           for platform in "macosx_11_0_arm64" "macosx_11_0_x86_64"; do
             python3 -m pip download \
               --only-binary=:all: \
@@ -300,7 +298,7 @@ jobs:
   macos_legacy:
     needs: process
     if: inputs.macos_legacy
-    runs-on: macos-latest
+    runs-on: macos-12
 
     steps:
       - uses: actions/checkout@v4
@@ -362,7 +360,7 @@ jobs:
       - name: Install Requirements
         run: | # Custom pyinstaller built with https://github.com/yt-dlp/pyinstaller-builds
           python devscripts/install_deps.py -o --include build
-          python devscripts/install_deps.py --include py2exe --include curl_cffi
+          python devscripts/install_deps.py --include curl-cffi
           python -m pip install -U "https://yt-dlp.github.io/Pyinstaller-Builds/x86_64/pyinstaller-5.8.0-py3-none-any.whl"
 
       - name: Prepare
@@ -371,11 +369,19 @@ jobs:
           python devscripts/make_lazy_extractors.py
       - name: Build
         run: |
-          python -m bundle.py2exe
-          Move-Item ./dist/yt-dlp.exe ./dist/yt-dlp_min.exe
           python -m bundle.pyinstaller
           python -m bundle.pyinstaller --onedir
+          Move-Item ./dist/yt-dlp.exe ./dist/yt-dlp_real.exe
           Compress-Archive -Path ./dist/yt-dlp/* -DestinationPath ./dist/yt-dlp_win.zip
+
+      - name: Install Requirements (py2exe)
+        run: |
+          python devscripts/install_deps.py --include py2exe
+      - name: Build (py2exe)
+        run: |
+          python -m bundle.py2exe
+          Move-Item ./dist/yt-dlp.exe ./dist/yt-dlp_min.exe
+          Move-Item ./dist/yt-dlp_real.exe ./dist/yt-dlp.exe
 
       - name: Verify --update-to
         if: vars.UPDATE_TO_VERIFICATION
@@ -447,10 +453,11 @@ jobs:
           compression-level: 0
 
   meta_files:
-    if: inputs.meta_files && always() && !cancelled()
+    if: always() && !cancelled()
     needs:
       - process
       - unix
+      - linux_static
       - linux_arm
       - macos
       - macos_legacy

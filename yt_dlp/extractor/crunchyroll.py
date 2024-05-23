@@ -2,6 +2,7 @@ import base64
 import uuid
 
 from .common import InfoExtractor
+from ..networking import Request
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
@@ -24,11 +25,16 @@ class CrunchyrollBaseIE(InfoExtractor):
     _BASE_URL = 'https://www.crunchyroll.com'
     _API_BASE = 'https://api.crunchyroll.com'
     _NETRC_MACHINE = 'crunchyroll'
+    _SWITCH_USER_AGENT = 'Crunchyroll/1.8.0 Nintendo Switch/12.3.12.0 UE4/4.27'
+    _REFRESH_TOKEN = None
     _AUTH_HEADERS = None
+    _AUTH_EXPIRY = None
     _API_ENDPOINT = None
-    _BASIC_AUTH = None
+    _BASIC_AUTH = 'Basic ' + base64.b64encode(':'.join((
+        't-kdgp2h8c3jub8fn0fq',
+        'yfLDfMfrYvKXh4JXS1LEI2cCqu1v5Wan',
+    )).encode()).decode()
     _IS_PREMIUM = None
-    _CLIENT_ID = ('cr_web', 'noaihdevm_6iyg0a8l0q')
     _LOCALE_LOOKUP = {
         'ar': 'ar-SA',
         'de': 'de-DE',
@@ -43,69 +49,78 @@ class CrunchyrollBaseIE(InfoExtractor):
         'hi': 'hi-IN',
     }
 
-    @property
-    def is_logged_in(self):
-        return bool(self._get_cookies(self._BASE_URL).get('etp_rt'))
+    def _set_auth_info(self, response):
+        CrunchyrollBaseIE._IS_PREMIUM = 'cr_premium' in traverse_obj(response, ('access_token', {jwt_decode_hs256}, 'benefits', ...))
+        CrunchyrollBaseIE._AUTH_HEADERS = {'Authorization': response['token_type'] + ' ' + response['access_token']}
+        CrunchyrollBaseIE._AUTH_EXPIRY = time_seconds(seconds=traverse_obj(response, ('expires_in', {float_or_none}), default=300) - 10)
+
+    def _request_token(self, headers, data, note='Requesting token', errnote='Failed to request token'):
+        try:
+            return self._download_json(
+                f'{self._BASE_URL}/auth/v1/token', None, note=note, errnote=errnote,
+                headers=headers, data=urlencode_postdata(data), impersonate=True)
+        except ExtractorError as error:
+            if not isinstance(error.cause, HTTPError) or error.cause.status != 403:
+                raise
+            if target := error.cause.response.extensions.get('impersonate'):
+                raise ExtractorError(f'Got HTTP Error 403 when using impersonate target "{target}"')
+            raise ExtractorError(
+                'Request blocked by Cloudflare. '
+                'Install the required impersonation dependency if possible, '
+                'or else navigate to Crunchyroll in your browser, '
+                'then pass the fresh cookies (with --cookies-from-browser or --cookies) '
+                'and your browser\'s User-Agent (with --user-agent)', expected=True)
 
     def _perform_login(self, username, password):
-        if self.is_logged_in:
+        if not CrunchyrollBaseIE._REFRESH_TOKEN:
+            CrunchyrollBaseIE._REFRESH_TOKEN = self.cache.load(self._NETRC_MACHINE, username)
+        if CrunchyrollBaseIE._REFRESH_TOKEN:
             return
 
-        upsell_response = self._download_json(
-            f'{self._API_BASE}/get_upsell_data.0.json', None, 'Getting session id',
-            query={
-                'sess_id': 1,
-                'device_id': 'whatvalueshouldbeforweb',
-                'device_type': 'com.crunchyroll.static',
-                'access_token': 'giKq5eY27ny3cqz',
-                'referer': f'{self._BASE_URL}/welcome/login'
-            })
-        if upsell_response['code'] != 'ok':
-            raise ExtractorError('Could not get session id')
-        session_id = upsell_response['data']['session_id']
-
-        login_response = self._download_json(
-            f'{self._API_BASE}/login.1.json', None, 'Logging in',
-            data=urlencode_postdata({
-                'account': username,
-                'password': password,
-                'session_id': session_id
-            }))
-        if login_response['code'] != 'ok':
-            raise ExtractorError('Login failed. Server message: %s' % login_response['message'], expected=True)
-        if not self.is_logged_in:
-            raise ExtractorError('Login succeeded but did not set etp_rt cookie')
-
-    def _update_auth(self):
-        if CrunchyrollBaseIE._AUTH_HEADERS and CrunchyrollBaseIE._AUTH_REFRESH > time_seconds():
-            return
-
-        if not CrunchyrollBaseIE._BASIC_AUTH:
-            cx_api_param = self._CLIENT_ID[self.is_logged_in]
-            self.write_debug(f'Using cxApiParam={cx_api_param}')
-            CrunchyrollBaseIE._BASIC_AUTH = 'Basic ' + base64.b64encode(f'{cx_api_param}:'.encode()).decode()
-
-        auth_headers = {'Authorization': CrunchyrollBaseIE._BASIC_AUTH}
-        if self.is_logged_in:
-            grant_type = 'etp_rt_cookie'
-        else:
-            grant_type = 'client_id'
-            auth_headers['ETP-Anonymous-ID'] = uuid.uuid4()
         try:
-            auth_response = self._download_json(
-                f'{self._BASE_URL}/auth/v1/token', None, note=f'Authenticating with grant_type={grant_type}',
-                headers=auth_headers, data=f'grant_type={grant_type}'.encode())
+            login_response = self._request_token(
+                headers={'Authorization': self._BASIC_AUTH}, data={
+                    'username': username,
+                    'password': password,
+                    'grant_type': 'password',
+                    'scope': 'offline_access',
+                }, note='Logging in', errnote='Failed to log in')
         except ExtractorError as error:
-            if isinstance(error.cause, HTTPError) and error.cause.status == 403:
-                raise ExtractorError(
-                    'Request blocked by Cloudflare; navigate to Crunchyroll in your browser, '
-                    'then pass the fresh cookies (with --cookies-from-browser or --cookies) '
-                    'and your browser\'s User-Agent (with --user-agent)', expected=True)
+            if isinstance(error.cause, HTTPError) and error.cause.status == 401:
+                raise ExtractorError('Invalid username and/or password', expected=True)
             raise
 
-        CrunchyrollBaseIE._IS_PREMIUM = 'cr_premium' in traverse_obj(auth_response, ('access_token', {jwt_decode_hs256}, 'benefits', ...))
-        CrunchyrollBaseIE._AUTH_HEADERS = {'Authorization': auth_response['token_type'] + ' ' + auth_response['access_token']}
-        CrunchyrollBaseIE._AUTH_REFRESH = time_seconds(seconds=traverse_obj(auth_response, ('expires_in', {float_or_none}), default=300) - 10)
+        CrunchyrollBaseIE._REFRESH_TOKEN = login_response['refresh_token']
+        self.cache.store(self._NETRC_MACHINE, username, CrunchyrollBaseIE._REFRESH_TOKEN)
+        self._set_auth_info(login_response)
+
+    def _update_auth(self):
+        if CrunchyrollBaseIE._AUTH_HEADERS and CrunchyrollBaseIE._AUTH_EXPIRY > time_seconds():
+            return
+
+        auth_headers = {'Authorization': self._BASIC_AUTH}
+        if CrunchyrollBaseIE._REFRESH_TOKEN:
+            data = {
+                'refresh_token': CrunchyrollBaseIE._REFRESH_TOKEN,
+                'grant_type': 'refresh_token',
+                'scope': 'offline_access',
+            }
+        else:
+            data = {'grant_type': 'client_id'}
+            auth_headers['ETP-Anonymous-ID'] = uuid.uuid4()
+        try:
+            auth_response = self._request_token(auth_headers, data)
+        except ExtractorError as error:
+            username, password = self._get_login_info()
+            if not username or not isinstance(error.cause, HTTPError) or error.cause.status != 400:
+                raise
+            self.to_screen('Refresh token has expired. Re-logging in')
+            CrunchyrollBaseIE._REFRESH_TOKEN = None
+            self.cache.store(self._NETRC_MACHINE, username, None)
+            self._perform_login(username, password)
+            return
+
+        self._set_auth_info(auth_response)
 
     def _locale_from_language(self, language):
         config_locale = self._configuration_arg('metadata', ie_key=CrunchyrollBetaIE, casesense=True)
@@ -166,9 +181,19 @@ class CrunchyrollBaseIE(InfoExtractor):
             display_id = identifier
 
         self._update_auth()
-        stream_response = self._download_json(
-            f'https://cr-play-service.prd.crunchyrollsvc.com/v1/{identifier}/console/switch/play',
-            display_id, note='Downloading stream info', headers=CrunchyrollBaseIE._AUTH_HEADERS)
+        headers = {**CrunchyrollBaseIE._AUTH_HEADERS, 'User-Agent': self._SWITCH_USER_AGENT}
+        try:
+            stream_response = self._download_json(
+                f'https://cr-play-service.prd.crunchyrollsvc.com/v1/{identifier}/console/switch/play',
+                display_id, note='Downloading stream info', errnote='Failed to download stream info', headers=headers)
+        except ExtractorError as error:
+            if self.get_param('ignore_no_formats_error'):
+                self.report_warning(error.orig_msg)
+                return [], {}
+            elif isinstance(error.cause, HTTPError) and error.cause.status == 420:
+                raise ExtractorError(
+                    'You have reached the rate-limit for active streams; try again later', expected=True)
+            raise
 
         available_formats = {'': ('', '', stream_response['url'])}
         for hardsub_lang, stream in traverse_obj(stream_response, ('hardSubs', {dict.items}, lambda _, v: v[1]['url'])):
@@ -197,7 +222,7 @@ class CrunchyrollBaseIE(InfoExtractor):
                     fatal=False, note=f'Downloading {f"{format_id} " if hardsub_lang else ""}MPD manifest')
                 self._merge_subtitles(dash_subs, target=subtitles)
             else:
-                continue  # XXX: Update this if/when meta mpd formats are working
+                continue  # XXX: Update this if meta mpd formats work; will be tricky with token invalidation
             for f in adaptive_formats:
                 if f.get('acodec') != 'none':
                     f['language'] = audio_locale
@@ -206,6 +231,15 @@ class CrunchyrollBaseIE(InfoExtractor):
 
         for locale, subtitle in traverse_obj(stream_response, (('subtitles', 'captions'), {dict.items}, ...)):
             subtitles.setdefault(locale, []).append(traverse_obj(subtitle, {'url': 'url', 'ext': 'format'}))
+
+        # Invalidate stream token to avoid rate-limit
+        error_msg = 'Unable to invalidate stream token; you may experience rate-limiting'
+        if stream_token := stream_response.get('token'):
+            self._request_webpage(Request(
+                f'https://cr-play-service.prd.crunchyrollsvc.com/v1/token/{identifier}/{stream_token}/inactive',
+                headers=headers, method='PATCH'), display_id, 'Invalidating stream token', error_msg, fatal=False)
+        else:
+            self.report_warning(error_msg)
 
         return formats, subtitles
 
@@ -383,11 +417,12 @@ class CrunchyrollBetaIE(CrunchyrollCmsBaseIE):
 
         if not self._IS_PREMIUM and traverse_obj(response, (f'{object_type}_metadata', 'is_premium_only')):
             message = f'This {object_type} is for premium members only'
-            if self.is_logged_in:
-                raise ExtractorError(message, expected=True)
-            self.raise_login_required(message)
-
-        result['formats'], result['subtitles'] = self._extract_stream(internal_id)
+            if CrunchyrollBaseIE._REFRESH_TOKEN:
+                self.raise_no_formats(message, expected=True, video_id=internal_id)
+            else:
+                self.raise_login_required(message, method='password', metadata_available=True)
+        else:
+            result['formats'], result['subtitles'] = self._extract_stream(internal_id)
 
         result['chapters'] = self._extract_chapters(internal_id)
 
@@ -573,14 +608,16 @@ class CrunchyrollMusicIE(CrunchyrollBaseIE):
         if not response:
             raise ExtractorError(f'No video with id {internal_id} could be found (possibly region locked?)', expected=True)
 
+        result = self._transform_music_response(response)
+
         if not self._IS_PREMIUM and response.get('isPremiumOnly'):
             message = f'This {response.get("type") or "media"} is for premium members only'
-            if self.is_logged_in:
-                raise ExtractorError(message, expected=True)
-            self.raise_login_required(message)
-
-        result = self._transform_music_response(response)
-        result['formats'], _ = self._extract_stream(f'music/{internal_id}', internal_id)
+            if CrunchyrollBaseIE._REFRESH_TOKEN:
+                self.raise_no_formats(message, expected=True, video_id=internal_id)
+            else:
+                self.raise_login_required(message, method='password', metadata_available=True)
+        else:
+            result['formats'], _ = self._extract_stream(f'music/{internal_id}', internal_id)
 
         return result
 

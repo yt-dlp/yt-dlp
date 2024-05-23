@@ -53,7 +53,7 @@ dependencies = [
 
 [project.optional-dependencies]
 default = []
-curl_cffi = ["curl-cffi==0.5.10; implementation_name=='cpython'"]
+curl-cffi = ["curl-cffi==0.5.10; implementation_name=='cpython'"]
 secretstorage = [
     "cffi",
     "secretstorage",
@@ -62,6 +62,7 @@ build = [
     "build",
     "hatchling",
     "pip",
+    "setuptools>=66.1.0,<70",
     "wheel",
 ]
 dev = [
@@ -73,7 +74,10 @@ pyinstaller = [
     "pyinstaller>=6.3; sys_platform!='darwin'",
     "pyinstaller==5.13.2; sys_platform=='darwin'",  # needed for curl_cffi
 ]
-py2exe = ["py2exe>=0.12"]
+py2exe = [
+    "py2exe>=0.12",
+    "requests==2.31.*",
+]
 
 [project.urls]
 Documentation = "https://github.com/yt-dlp/yt-dlp#readme"
