@@ -29,7 +29,7 @@ class TapTapBaseIE(InfoExtractor):
         video_data = self._get_api(self._VIDEO_API, video_id, query={'video_ids': video_id})['list'][0]
 
         # h265 playlist contains both h265 and h264 formats
-        video_url = traverse_obj(video_data, ('play_url', ('url_h265', 'url'), {url_or_none}))[0]
+        video_url = traverse_obj(video_data, ('play_url', ('url_h265', 'url'), {url_or_none}, any))
         formats = self._extract_m3u8_formats(video_url, video_id)
         for format in formats:
             if re.search(r'^(hev|hvc|hvt)\d', format.get('vcodec', '')):
