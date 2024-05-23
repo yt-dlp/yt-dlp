@@ -3,25 +3,19 @@ import functools
 import re
 
 from .common import InfoExtractor
-from ..networking import HEADRequest
 from ..utils import (
-    InAdvancePagedList,
     clean_html,
     determine_ext,
     float_or_none,
     int_or_none,
-    join_nonempty,
     make_archive_id,
     mimetype2ext,
     orderedSet,
     parse_age_limit,
     remove_end,
-    smuggle_url,
     strip_jsonp,
     try_call,
-    unescapeHTML,
     unified_strdate,
-    unsmuggle_url,
     url_or_none,
 )
 from ..utils.traversal import traverse_obj
