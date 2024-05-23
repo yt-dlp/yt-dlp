@@ -991,13 +991,8 @@ class TikTokUserIE(TikTokBaseIE):
         if mobj := re.fullmatch(r'MS4wLjABAAAA[\w-]{64}', user_name):
             user_name, sec_uid = None, mobj.group(0)
         else:
-            for user_url, msg in (
-                (self._UPLOADER_URL_FORMAT % user_name, 'user'),
-                (self._UPLOADER_URL_FORMAT % f'{user_name}/live', 'live'),
-            ):
-                sec_uid = self._get_sec_uid(user_url, user_name, msg)
-                if sec_uid:
-                    break
+            sec_uid = (self._get_sec_uid(self._UPLOADER_URL_FORMAT % user_name, user_name, 'user')
+                       or self._get_sec_uid(self._UPLOADER_URL_FORMAT % f'{user_name}/live', user_name, 'live'))
 
         if not sec_uid:
             webpage = self._download_webpage(
