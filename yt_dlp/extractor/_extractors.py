@@ -715,6 +715,7 @@ from .globo import (
 from .gmanetwork import GMANetworkVideoIE
 from .go import GoIE
 from .godtube import GodTubeIE
+from .godresource import GodResourceIE
 from .gofile import GofileIE
 from .golem import GolemIE
 from .goodgame import GoodGameIE
