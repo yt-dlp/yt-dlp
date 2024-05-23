@@ -532,7 +532,7 @@ class SheetaEmbedIE(InfoExtractor):
         if not mail_tel:
             return
 
-        cache_key = hashlib.md5(f'{self._DOMAIN}:{mail_tel}:{password}'.encode()).hexdigest()
+        cache_key = hashlib.sha1(f'{self._DOMAIN}:{mail_tel}:{password}'.encode()).hexdigest()
         self._auth_info = {'cache_key': cache_key}
         cache_name = 'niconico_sns'
 
@@ -640,7 +640,7 @@ class SheetaEmbedIE(InfoExtractor):
         if not username:
             return
 
-        cache_key = hashlib.md5(f'{self._DOMAIN}:{username}:{password}'.encode()).hexdigest()
+        cache_key = hashlib.sha1(f'{self._DOMAIN}:{username}:{password}'.encode()).hexdigest()
         cache_name = 'refresh'
         self._auth_info = {
             'cache_key': cache_key,
