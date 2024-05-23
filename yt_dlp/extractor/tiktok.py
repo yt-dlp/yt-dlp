@@ -876,10 +876,7 @@ class TikTokIE(TikTokBaseIE):
 
 class TikTokUserIE(TikTokBaseIE):
     IE_NAME = 'tiktok:user'
-    _VALID_URL = [
-        r'https?://(?:www\.)?tiktok\.com/@(?P<id>[\w.-]+)/?(?:$|[#?])',
-        r'tiktokuser:(?P<id>MS4wLjABAAAA[\w-]{64})',
-    ]
+    _VALID_URL = r'(?:tiktokuser:|https?://(?:www\.)?tiktok\.com/@)(?P<id>[\w.-]+)/?(?:$|[#?])'
     _TESTS = [{
         'url': 'https://tiktok.com/@corgibobaa?lang=en',
         'playlist_mincount': 45,
@@ -947,15 +944,17 @@ class TikTokUserIE(TikTokBaseIE):
         }
 
     def _entries(self, sec_uid, user_name):
+        display_id = user_name or sec_uid
+
         cursor = int(time.time() * 1E3)
         for page in itertools.count(1):
             response = self._download_json(
-                self._API_BASE_URL, user_name or sec_uid, f'Downloading page {page}',
+                self._API_BASE_URL, display_id, f'Downloading page {page}',
                 query=self._build_web_query(sec_uid, cursor), headers={'User-Agent': self._USER_AGENT})
 
             for video in traverse_obj(response, ('itemList', lambda _, v: v['id'])):
                 video_id = video['id']
-                webpage_url = self._create_url(user_name, video_id)
+                webpage_url = self._create_url(display_id, video_id)
                 info = try_call(
                     lambda: self._parse_aweme_video_web(video, webpage_url, video_id)) or {'id': video_id}
                 info.pop('formats', None)
@@ -982,18 +981,17 @@ class TikTokUserIE(TikTokBaseIE):
                                 ('UserModule', 'users', ..., 'secUid', {str}, any)))
 
     def _real_extract(self, url):
-        if url.startswith('tiktokuser:'):
-            sec_uid, user_name = self._match_id(url), None
+        user_name, sec_uid = self._match_id(url), None
+        if mobj := re.fullmatch(r'MS4wLjABAAAA[\w-]{64}', user_name):
+            user_name, sec_uid = None, mobj.group(0)
         else:
-            sec_uid, user_name = None, self._match_id(url)
-
-        for user_url, msg in (
-            (self._UPLOADER_URL_FORMAT % user_name, 'user'),
-            (self._UPLOADER_URL_FORMAT % f'{user_name}/live', 'live'),
-        ):
-            if sec_uid:
-                break
-            sec_uid = self._get_sec_uid(user_url, user_name, msg)
+            for user_url, msg in (
+                (self._UPLOADER_URL_FORMAT % user_name, 'user'),
+                (self._UPLOADER_URL_FORMAT % f'{user_name}/live', 'live'),
+            ):
+                sec_uid = self._get_sec_uid(user_url, user_name, msg)
+                if sec_uid:
+                    break
 
         if not sec_uid:
             webpage = self._download_webpage(
@@ -1012,10 +1010,11 @@ class TikTokUserIE(TikTokBaseIE):
                 if sec_uid:
                     break
 
-            if not sec_uid:
-                raise ExtractorError(
-                    'Unable to extract secondary user ID. Try using "tiktokuser:CHANNEL_ID" as the '
-                    'input URL, replacing "CHANNEL_ID" with the channel_id of the requested user')
+        if not sec_uid:
+            raise ExtractorError(
+                'Unable to extract secondary user ID. If you are able to get the channel_id '
+                'from a video posted by this user, try using "tiktokuser:channel_id" as the '
+                'input URL (replacing channel_id with its actual value)', expected=True)
 
         return self.playlist_result(self._entries(sec_uid, user_name), sec_uid, user_name)
 
