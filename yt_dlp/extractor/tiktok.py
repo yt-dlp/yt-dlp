@@ -448,8 +448,8 @@ class TikTokBaseIE(InfoExtractor):
         }
 
     def _parse_aweme_video_web(self, aweme_detail, webpage_url, video_id):
-        video_info = aweme_detail['video']
-        author_info = traverse_obj(aweme_detail, 'authorInfo', 'author', expected_type=dict, default={})
+        video_info = traverse_obj(aweme_detail, ('video', {dict})) or {}
+        author_info = traverse_obj(aweme_detail, (('authorInfo', 'author'), {dict}, any)) or {}
         music_info = aweme_detail.get('music') or {}
         stats_info = aweme_detail.get('stats') or {}
         channel_id = traverse_obj(author_info or aweme_detail, (('authorSecId', 'secUid'), {str}), get_all=False)
@@ -958,8 +958,7 @@ class TikTokUserIE(TikTokBaseIE):
             for video in traverse_obj(response, ('itemList', lambda _, v: v['id'])):
                 video_id = video['id']
                 webpage_url = self._create_url(display_id, video_id)
-                info = try_call(
-                    lambda: self._parse_aweme_video_web(video, webpage_url, video_id)) or {'id': video_id}
+                info = self._parse_aweme_video_web(video, webpage_url, video_id)
                 info.pop('formats', None)
                 yield self.url_result(webpage_url, TikTokIE, **info)
 
