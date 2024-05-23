@@ -403,6 +403,7 @@ class ORFONIE(InfoExtractor):
             'media_type': 'episode',
             'timestamp': 1706472362,
             'upload_date': '20240128',
+            '_old_archive_ids': ['orftvthek 14210000'],
         }
     }, {
         'url': 'https://on.orf.at/video/3220355',
@@ -417,6 +418,7 @@ class ORFONIE(InfoExtractor):
             'media_type': 'episode',
             'timestamp': 52916400,
             'upload_date': '19710905',
+            '_old_archive_ids': ['orftvthek 3220355'],
         }
     }]
 
@@ -451,6 +453,7 @@ class ORFONIE(InfoExtractor):
             'id': video_id,
             'formats': formats,
             'subtitles': subtitles,
+            '_old_archive_ids': [make_archive_id('ORFTVthek', video_id)],
             **traverse_obj(api_json, {
                 'age_limit': ('age_classification', {parse_age_limit}),
                 'duration': ('duration_second', {float_or_none}),
