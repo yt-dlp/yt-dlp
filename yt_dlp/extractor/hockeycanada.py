@@ -3,9 +3,9 @@ import json
 
 from .common import InfoExtractor
 from ..utils import (
-    int_or_none,
     mimetype2ext,
     traverse_obj,
+    url_or_none,
 )
 
 
@@ -79,22 +79,27 @@ class HockeyCanadaIE(InfoExtractor):
             self._download_json(data_url, video_id),
             ('config', {lambda x: json.loads(base64.b64decode(x).decode())}))
 
-        for media_source in traverse_obj(media_config, ('media', 'source', ..., {dict})):
-            media_url = traverse_obj(media_source, 'src')
-            media_type = mimetype2ext(traverse_obj(media_source, 'type'))
+        for media_source in traverse_obj(media_config, ('media', 'source', ..., {
+            'url': ('src', {url_or_none}),
+            'type': ('type', {mimetype2ext}),
+        })):
+            if not (media_url := media_source.get('url')):
+                continue
+            media_type = media_source.get('type')
+
             if media_type == 'm3u8':
                 yield from self._extract_m3u8_formats(media_url, video_id)
             elif media_type == 'mp4':
                 fmt = {
                     'url': media_url,
-                    'ext': media_type,
+                    'ext': 'mp4',
                     'vcodec': 'avc1',
                     'acodec': 'mp4a.40.2',
                 }
                 if bitrate := self._search_regex(r'_(\d+)k\.mp4', media_url, 'bitrate', default=None):
                     fmt.update({
                         'format_id': f'http-{bitrate}',
-                        'tbr': int_or_none(bitrate),
+                        'tbr': int(bitrate),
                     })
                 yield fmt
             else:
