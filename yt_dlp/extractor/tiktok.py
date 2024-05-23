@@ -447,23 +447,15 @@ class TikTokBaseIE(InfoExtractor):
             '_format_sort_fields': ('quality', 'codec', 'size', 'br'),
         }
 
-    def _parse_aweme_video_web(self, aweme_detail, webpage_url, video_id):
-        video_info = traverse_obj(aweme_detail, ('video', {dict})) or {}
-        author_info = traverse_obj(aweme_detail, (('authorInfo', 'author'), {dict}, any)) or {}
-        music_info = aweme_detail.get('music') or {}
-        stats_info = aweme_detail.get('stats') or {}
-        channel_id = traverse_obj(author_info or aweme_detail, (('authorSecId', 'secUid'), {str}), get_all=False)
-        user_url = self._UPLOADER_URL_FORMAT % channel_id if channel_id else None
-
-        formats = []
-        width = int_or_none(video_info.get('width'))
-        height = int_or_none(video_info.get('height'))
-        ratio = try_call(lambda: width / height) or 0.5625
+    def _extract_web_formats(self, video_info, music_info, resolution_info):
         COMMON_FORMAT_INFO = {
             'ext': 'mp4',
             'vcodec': 'h264',
             'acodec': 'aac',
         }
+        width = resolution_info.get('width')
+        ratio = try_call(lambda: width / resolution_info['height']) or 0.5625
+        formats = []
 
         for bitrate_info in traverse_obj(video_info, ('bitrateInfo', lambda _, v: v['PlayAddr']['UrlList'])):
             format_info, res = self._parse_url_key(
@@ -505,10 +497,9 @@ class TikTokBaseIE(InfoExtractor):
         for play_url in traverse_obj(video_info, ('playAddr', ((..., 'src'), None), {url_or_none})):
             formats.append({
                 **COMMON_FORMAT_INFO,
+                **resolution_info,  # is only applicable to playAddr video and thumbnails
                 'format_id': 'play',
                 'url': self._proto_relative_url(play_url),
-                'width': width,
-                'height': height,
                 'quality': play_quality,
             })
 
@@ -540,13 +531,27 @@ class TikTokBaseIE(InfoExtractor):
                 'vcodec': 'none',
             })
 
+        return formats
+
+    def _parse_aweme_video_web(self, aweme_detail, webpage_url, video_id, extract_flat=False):
+        video_info = traverse_obj(aweme_detail, ('video', {dict})) or {}
+        author_info = traverse_obj(aweme_detail, (('authorInfo', 'author'), {dict}, any)) or {}
+        music_info = aweme_detail.get('music') or {}
+        stats_info = aweme_detail.get('stats') or {}
+        channel_id = traverse_obj(author_info or aweme_detail, (('authorSecId', 'secUid'), {str}, any))
+        user_url = self._UPLOADER_URL_FORMAT % channel_id if channel_id else None
+
+        resolution_info = traverse_obj(video_info, {
+            'width': ('width', {int_or_none}),
+            'height': ('height', {int_or_none}),
+        })
+
         thumbnails = []
         for thumb_url in traverse_obj(aweme_detail, (
                 (None, 'video'), ('thumbnail', 'cover', 'dynamicCover', 'originCover'), {url_or_none})):
             thumbnails.append({
+                **resolution_info,
                 'url': self._proto_relative_url(thumb_url),
-                'width': width,
-                'height': height,
             })
 
         return {
@@ -578,8 +583,8 @@ class TikTokBaseIE(InfoExtractor):
             }, expected_type=int_or_none),
             'channel_id': channel_id,
             'uploader_url': user_url,
-            'formats': formats,
-            'subtitles': self.extract_subtitles(aweme_detail, video_id, None),
+            'formats': None if extract_flat else self._extract_web_formats(video_info, music_info, resolution_info),
+            'subtitles': None if extract_flat else self.extract_subtitles(aweme_detail, video_id, None),
             'thumbnails': thumbnails,
             'http_headers': {
                 'Referer': webpage_url,
@@ -957,9 +962,9 @@ class TikTokUserIE(TikTokBaseIE):
             for video in traverse_obj(response, ('itemList', lambda _, v: v['id'])):
                 video_id = video['id']
                 webpage_url = self._create_url(display_id, video_id)
-                info = self._parse_aweme_video_web(video, webpage_url, video_id)
-                info.pop('formats', None)
-                yield self.url_result(webpage_url, TikTokIE, **info)
+                yield self.url_result(
+                    webpage_url, TikTokIE,
+                    **self._parse_aweme_video_web(video, webpage_url, video_id, extract_flat=True))
 
             old_cursor = cursor
             cursor = traverse_obj(
