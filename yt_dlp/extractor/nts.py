@@ -5,7 +5,7 @@ from ..utils.traversal import traverse_obj
 
 class NTSLiveIE(InfoExtractor):
     IE_NAME = 'nts.live'
-    _VALID_URL = r'https?://(?:www\.)?nts\.live/shows/[^/]+/episodes/(?P<id>[^./?#]+)'
+    _VALID_URL = r'https?://(?:www\.)?nts\.live/shows/[^/?#]+/episodes/(?P<id>[^./?#]+)'
     _TESTS = [
         {
             # embedded soundcloud
