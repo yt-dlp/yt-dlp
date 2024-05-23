@@ -929,7 +929,7 @@ class TikTokUserIE(TikTokBaseIE):
             'cookie_enabled': 'true',
             'count': '15',
             'cursor': cursor,
-            'device_id': ''.join(random.choices(string.digits, k=19)),
+            'device_id': self._DEVICE_ID,
             'device_platform': 'web_pc',
             'focus_state': 'true',
             'from_page': 'user',
