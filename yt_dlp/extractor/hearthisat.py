@@ -24,8 +24,7 @@ class HearThisAtIE(InfoExtractor):
             'view_count': int,
             'duration': 70,
             'genres': ['Experimental'],
-
-        }
+        },
     }, {
         # 'download' link redirects to the original webpage
         'url': 'https://hearthis.at/twitchsf/dj-jim-hopkins-totally-bitchin-80s-dance-mix/',
