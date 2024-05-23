@@ -3,6 +3,7 @@ import itertools
 import json
 import random
 import re
+import string
 import time
 import uuid
 
@@ -876,7 +877,7 @@ class TikTokIE(TikTokBaseIE):
 class TikTokUserIE(TikTokBaseIE):
     IE_NAME = 'tiktok:user'
     _VALID_URL = [
-        r'https?://(?:www\.)?tiktok\.com/@(?P<id>[\w\.-]+)/?(?:$|[#?])',
+        r'https?://(?:www\.)?tiktok\.com/@(?P<id>[\w.-]+)/?(?:$|[#?])',
         r'tiktokuser:(?P<id>MS4wLjABAAAA[\w-]{64})',
     ]
     _TESTS = [{
@@ -941,7 +942,7 @@ class TikTokUserIE(TikTokBaseIE):
             'secUid': sec_uid,
             'type': '1',  # pagination type: 0 == oldest-to-newest, 1 == newest-to-oldest
             'tz_name': 'UTC',
-            'verifyFp': 'verify_%s' % ''.join(random.choices(string.hexdigits, k=7)),
+            'verifyFp': f'verify_{"".join(random.choices(string.hexdigits, k=7))}',
             'webcast_language': 'en',
         }
 
@@ -962,9 +963,11 @@ class TikTokUserIE(TikTokBaseIE):
 
             old_cursor = cursor
             cursor = traverse_obj(
-                response, ('itemList', -1, 'createTime', {lambda x: x * 1E3}, {int_or_none}))
+                response, ('itemList', -1, 'createTime', {lambda x: int_or_none(x, invscale=1E3)}))
             if not cursor:
-                cursor = old_cursor - 604800000  # jump 1 week back in time
+                # User may not have posted within the next ~1 week lookback, so manually set cursor
+                cursor = old_cursor - 7 * 86_400_000
+            # In case 'hasMorePrevious' is wrong, break if we have gone back before TikTok existed
             if cursor < 1472706000000 or not traverse_obj(response, 'hasMorePrevious'):
                 break
 
@@ -972,29 +975,25 @@ class TikTokUserIE(TikTokBaseIE):
         webpage = self._download_webpage(
             user_url, user_name, fatal=False, headers={'User-Agent': 'Mozilla/5.0'},
             note=f'Downloading {msg} webpage', errnote=f'Unable to download {msg} webpage') or ''
-        return traverse_obj(
-            self._get_universal_data(webpage, user_name),
-            ('webapp.user-detail', 'userInfo', 'user', 'secUid', {str})) or traverse_obj(
-            self._get_sigi_state(webpage, user_name),
-            ('LiveRoom', 'liveRoomUserInfo', 'user', 'secUid'),
-            ('UserModule', 'users', ..., 'secUid'),
-            get_all=False, expected_type=str)
+        return (traverse_obj(self._get_universal_data(webpage, user_name),
+                             ('webapp.user-detail', 'userInfo', 'user', 'secUid', {str}))
+                or traverse_obj(self._get_sigi_state(webpage, user_name),
+                                ('LiveRoom', 'liveRoomUserInfo', 'user', 'secUid', {str}),
+                                ('UserModule', 'users', ..., 'secUid', {str}, any)))
 
     def _real_extract(self, url):
-        user_name, sec_uid = None, None
         if url.startswith('tiktokuser:'):
-            sec_uid = self._match_id(url)
+            sec_uid, user_name = self._match_id(url), None
         else:
-            user_name = self._match_id(url)
+            sec_uid, user_name = None, self._match_id(url)
 
-        if not sec_uid:
-            for user_url, msg in (
-                (self._UPLOADER_URL_FORMAT % user_name, 'user'),
-                (self._UPLOADER_URL_FORMAT % f'{user_name}/live', 'live'),
-            ):
-                sec_uid = self._get_sec_uid(user_url, user_name, msg)
-                if sec_uid:
-                    break
+        for user_url, msg in (
+            (self._UPLOADER_URL_FORMAT % user_name, 'user'),
+            (self._UPLOADER_URL_FORMAT % f'{user_name}/live', 'live'),
+        ):
+            if sec_uid:
+                break
+            sec_uid = self._get_sec_uid(user_url, user_name, msg)
 
         if not sec_uid:
             webpage = self._download_webpage(
