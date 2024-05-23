@@ -968,7 +968,7 @@ class TikTokUserIE(TikTokBaseIE):
 
             old_cursor = cursor
             cursor = traverse_obj(
-                response, ('itemList', -1, 'createTime', {lambda x: int_or_none(x, invscale=1E3)}))
+                response, ('itemList', -1, 'createTime', {functools.partial(int_or_none, invscale=1E3)}))
             if not cursor:
                 # User may not have posted within this ~1 week lookback, so manually adjust cursor
                 cursor = old_cursor - 7 * 86_400_000
