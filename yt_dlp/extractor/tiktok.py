@@ -620,15 +620,15 @@ class TikTokIE(TikTokBaseIE):
         'skip': '404 Not Found',
     }, {
         'url': 'https://www.tiktok.com/@patroxofficial/video/6742501081818877190?langCountry=en',
-        'md5': '6f3cf8cdd9b28cb8363fe0a9a160695b',
+        'md5': 'f21112672ee4ce05ca390fb6522e1b6f',
         'info_dict': {
             'id': '6742501081818877190',
             'ext': 'mp4',
             'title': 'md5:5e2a23877420bb85ce6521dbee39ba94',
             'description': 'md5:5e2a23877420bb85ce6521dbee39ba94',
             'duration': 27,
-            'height': 960,
-            'width': 540,
+            'height': 1024,
+            'width': 576,
             'uploader': 'patrox',
             'uploader_id': '18702747',
             'uploader_url': 'https://www.tiktok.com/@MS4wLjABAAAAiFnldaILebi5heDoVU6bn4jBWWycX6-9U3xuNPqZ8Ws',
@@ -642,11 +642,12 @@ class TikTokIE(TikTokBaseIE):
             'like_count': int,
             'repost_count': int,
             'comment_count': int,
-            'artists': ['Evan Todd', 'Jessica Keenan Wynn', 'Alice Lee', 'Barrett Wilbert Weed', 'Jon Eidson'],
+            'artists': ['Evan Todd, Jessica Keenan Wynn, Alice Lee, Barrett Wilbert Weed & Jon Eidson'],
+            # FIXME: 'artists': ['Evan Todd', 'Jessica Keenan Wynn', 'Alice Lee', 'Barrett Wilbert Weed', 'Jon Eidson'],
             'track': 'Big Fun',
         },
     }, {
-        # Banned audio, only available on the app
+        # Banned audio, was available on the app, now works with web too
         'url': 'https://www.tiktok.com/@barudakhb_/video/6984138651336838402',
         'info_dict': {
             'id': '6984138651336838402',
@@ -694,7 +695,7 @@ class TikTokIE(TikTokBaseIE):
             'repost_count': int,
             'comment_count': int,
         },
-        'params': {'skip_download': True},  # XXX: unable to download video data: HTTP Error 403: Forbidden
+        'skip': 'This video is unavailable',
     }, {
         # Video without title and description
         'url': 'https://www.tiktok.com/@pokemonlife22/video/7059698374567611694',
@@ -759,6 +760,7 @@ class TikTokIE(TikTokBaseIE):
             'channel_id': 'MS4wLjABAAAAoShJqaw_5gvy48y3azFeFcT4jeyKWbB0VVYasOCt2tTLwjNFIaDcHAM4D-QGXFOP',
             'artists': ['nathan !'],
             'track': 'grahamscott canon',
+            'duration': 10,
             'upload_date': '20220905',
             'timestamp': 1662406249,
             'view_count': int,
@@ -770,7 +772,7 @@ class TikTokIE(TikTokBaseIE):
     }, {
         # only available via web
         'url': 'https://www.tiktok.com/@moxypatch/video/7206382937372134662',  # FIXME
-        'md5': '6aba7fad816e8709ff2c149679ace165',
+        'md5': '4cdefa501ac8ac20bf04986e10916fea',
         'info_dict': {
             'id': '7206382937372134662',
             'ext': 'mp4',
@@ -821,7 +823,7 @@ class TikTokIE(TikTokBaseIE):
             'comment_count': int,
             'thumbnail': r're:^https://.+\.webp',
         },
-        'skip': 'Unavailable via feed API, no formats available via web',
+        'skip': 'Unavailable via feed API, only audio available via web',
     }, {
         # Slideshow, audio-only m4a format
         'url': 'https://www.tiktok.com/@hara_yoimiya/video/7253412088251534594',
@@ -835,11 +837,12 @@ class TikTokIE(TikTokBaseIE):
             'uploader_id': '6582536342634676230',
             'uploader_url': 'https://www.tiktok.com/@MS4wLjABAAAAIAlDxriiPWLE-p8p1R_0Bx8qWKfi-7zwmGhzU8Mv25W8sNxjfIKrol31qTczzuLB',
             'channel_id': 'MS4wLjABAAAAIAlDxriiPWLE-p8p1R_0Bx8qWKfi-7zwmGhzU8Mv25W8sNxjfIKrol31qTczzuLB',
-            'channel': 'лампочка',
-            'creators': ['лампочка'],
+            'channel': 'лампочка(!)',
+            'creators': ['лампочка(!)'],
             'artists': ['Øneheart'],
             'album': 'watching the stars',
             'track': 'watching the stars',
+            'duration': 60,
             'upload_date': '20230708',
             'timestamp': 1688816612,
             'view_count': int,
