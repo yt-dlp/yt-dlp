@@ -349,8 +349,11 @@ class RedditIE(InfoExtractor):
                 'video_id', default=display_id)
 
             dash_playlist_url = playlist_urls[0] or f'https://v.redd.it/{video_id}/DASHPlaylist.mpd'
-            hls_playlist_url = re.sub(r'(f=[^&]+)', r'\1%2CsubsAll', playlist_urls[1]) or f'https://v.redd.it/{video_id}/HLSPlaylist.m3u8?f=hd%2CsubsAll'
-            caption_url = f'https://v.redd.it/{video_id}/wh_ben_en.vtt'
+            hls_playlist_url = playlist_urls[1] or f'https://v.redd.it/{video_id}/HLSPlaylist.m3u8'
+            qs = traverse_obj(parse_qs(hls_playlist_url), {
+                'f': ('f', 0, {lambda x: ','.join([x, 'subsAll']) if x else 'hd,subsAll'}),
+            })
+            hls_playlist_url = update_url_query(hls_playlist_url, qs)
 
             formats = [{
                 'url': unescapeHTML(reddit_video['fallback_url']),
@@ -370,8 +373,9 @@ class RedditIE(InfoExtractor):
                 dash_playlist_url, display_id, mpd_id='dash', fatal=False)
             formats.extend(dash_fmts)
             self._merge_subtitles(dash_subs, target=subtitles)
+            caption_url = f'https://v.redd.it/{video_id}/wh_ben_en.vtt'
             if not subtitles and self._is_valid_url(caption_url, video_id, item='subtitle'):
-                self._merge_subtitles({'en': [{'url': caption_url}]}, target=subtitles)
+                subtitles = {'en': [{'url': caption_url}]}
 
             return {
                 **info,
