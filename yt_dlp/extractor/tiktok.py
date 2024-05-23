@@ -554,7 +554,7 @@ class TikTokBaseIE(InfoExtractor):
             **traverse_obj(music_info, {
                 'track': ('title', {str}),
                 'album': ('album', {str}, {lambda x: x or None}),
-                'artists': ('authorName', {str}, {lambda x: [x] if x else None}),
+                'artists': ('authorName', {str}, {lambda x: re.split(r'(?:, | & )', x) if x else None}),
                 'duration': ('duration', {int_or_none}),
             }),
             **traverse_obj(aweme_detail, {
@@ -642,8 +642,7 @@ class TikTokIE(TikTokBaseIE):
             'like_count': int,
             'repost_count': int,
             'comment_count': int,
-            'artists': ['Evan Todd, Jessica Keenan Wynn, Alice Lee, Barrett Wilbert Weed & Jon Eidson'],
-            # FIXME: 'artists': ['Evan Todd', 'Jessica Keenan Wynn', 'Alice Lee', 'Barrett Wilbert Weed', 'Jon Eidson'],
+            'artists': ['Evan Todd', 'Jessica Keenan Wynn', 'Alice Lee', 'Barrett Wilbert Weed', 'Jon Eidson'],
             'track': 'Big Fun',
         },
     }, {
