@@ -375,7 +375,7 @@ class RedditIE(InfoExtractor):
             formats.extend(dash_fmts)
             self._merge_subtitles(dash_subs, target=subtitles)
             caption_url = f'https://v.redd.it/{video_id}/wh_ben_en.vtt'
-            if not subtitles and self._is_valid_url(caption_url, video_id, item='subtitle'):
+            if not subtitles and self._is_valid_url(caption_url, video_id, item='subtitles'):
                 subtitles = {'en': [{'url': caption_url}]}
 
             return {
