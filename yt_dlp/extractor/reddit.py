@@ -195,6 +195,7 @@ class RedditIE(InfoExtractor):
         },
         'params': {
             'skip_download': True,
+            'writesubtitles': True,
         },
     }, {
         'url': 'https://www.reddit.com/r/videos/comments/6rrwyj',
