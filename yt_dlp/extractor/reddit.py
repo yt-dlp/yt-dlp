@@ -5,9 +5,11 @@ from ..utils import (
     ExtractorError,
     float_or_none,
     int_or_none,
+    parse_qs,
     traverse_obj,
     try_get,
     unescapeHTML,
+    update_url_query,
     urlencode_postdata,
     url_or_none,
 )
