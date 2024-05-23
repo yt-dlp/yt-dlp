@@ -360,7 +360,7 @@ jobs:
       - name: Install Requirements
         run: | # Custom pyinstaller built with https://github.com/yt-dlp/pyinstaller-builds
           python devscripts/install_deps.py -o --include build
-          python devscripts/install_deps.py --include py2exe --include curl-cffi
+          python devscripts/install_deps.py --include curl-cffi
           python -m pip install -U "https://yt-dlp.github.io/Pyinstaller-Builds/x86_64/pyinstaller-5.8.0-py3-none-any.whl"
 
       - name: Prepare
@@ -369,11 +369,19 @@ jobs:
           python devscripts/make_lazy_extractors.py
       - name: Build
         run: |
-          python -m bundle.py2exe
-          Move-Item ./dist/yt-dlp.exe ./dist/yt-dlp_min.exe
           python -m bundle.pyinstaller
           python -m bundle.pyinstaller --onedir
+          Move-Item ./dist/yt-dlp.exe ./dist/yt-dlp_real.exe
           Compress-Archive -Path ./dist/yt-dlp/* -DestinationPath ./dist/yt-dlp_win.zip
+
+      - name: Install Requirements (py2exe)
+        run: |
+          python devscripts/install_deps.py --include py2exe
+      - name: Build (py2exe)
+        run: |
+          python -m bundle.py2exe
+          Move-Item ./dist/yt-dlp.exe ./dist/yt-dlp_min.exe
+          Move-Item ./dist/yt-dlp_real.exe ./dist/yt-dlp.exe
 
       - name: Verify --update-to
         if: vars.UPDATE_TO_VERIFICATION

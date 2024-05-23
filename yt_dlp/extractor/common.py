@@ -957,7 +957,8 @@ class InfoExtractor:
         if urlh is False:
             assert not fatal
             return False
-        content = self._webpage_read_content(urlh, url_or_request, video_id, note, errnote, fatal, encoding=encoding)
+        content = self._webpage_read_content(urlh, url_or_request, video_id, note, errnote, fatal,
+                                             encoding=encoding, data=data)
         return (content, urlh)
 
     @staticmethod
@@ -1005,8 +1006,10 @@ class InfoExtractor:
                 'Visit http://blocklist.rkn.gov.ru/ for a block reason.',
                 expected=True)
 
-    def _request_dump_filename(self, url, video_id):
-        basen = f'{video_id}_{url}'
+    def _request_dump_filename(self, url, video_id, data=None):
+        if data is not None:
+            data = hashlib.md5(data).hexdigest()
+        basen = join_nonempty(video_id, data, url, delim='_')
         trim_length = self.get_param('trim_file_name') or 240
         if len(basen) > trim_length:
             h = '___' + hashlib.md5(basen.encode('utf-8')).hexdigest()
@@ -1028,7 +1031,8 @@ class InfoExtractor:
         except LookupError:
             return webpage_bytes.decode('utf-8', 'replace')
 
-    def _webpage_read_content(self, urlh, url_or_request, video_id, note=None, errnote=None, fatal=True, prefix=None, encoding=None):
+    def _webpage_read_content(self, urlh, url_or_request, video_id, note=None, errnote=None, fatal=True,
+                              prefix=None, encoding=None, data=None):
         webpage_bytes = urlh.read()
         if prefix is not None:
             webpage_bytes = prefix + webpage_bytes
@@ -1037,7 +1041,9 @@ class InfoExtractor:
             dump = base64.b64encode(webpage_bytes).decode('ascii')
             self._downloader.to_screen(dump)
         if self.get_param('write_pages'):
-            filename = self._request_dump_filename(urlh.url, video_id)
+            if isinstance(url_or_request, Request):
+                data = self._create_request(url_or_request, data).data
+            filename = self._request_dump_filename(urlh.url, video_id, data)
             self.to_screen(f'Saving request to {filename}')
             with open(filename, 'wb') as outf:
                 outf.write(webpage_bytes)
@@ -1098,7 +1104,7 @@ class InfoExtractor:
                              impersonate=None, require_impersonation=False):
             if self.get_param('load_pages'):
                 url_or_request = self._create_request(url_or_request, data, headers, query)
-                filename = self._request_dump_filename(url_or_request.url, video_id)
+                filename = self._request_dump_filename(url_or_request.url, video_id, url_or_request.data)
                 self.to_screen(f'Loading request from {filename}')
                 try:
                     with open(filename, 'rb') as dumpf:
