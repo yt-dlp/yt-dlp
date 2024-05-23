@@ -1020,7 +1020,7 @@ class TikTokUserIE(TikTokBaseIE):
             raise ExtractorError(
                 'Unable to extract secondary user ID. If you are able to get the channel_id '
                 'from a video posted by this user, try using "tiktokuser:channel_id" as the '
-                'input URL (replacing channel_id with its actual value)', expected=True)
+                'input URL (replacing `channel_id` with its actual value)', expected=True)
 
         return self.playlist_result(self._entries(sec_uid, user_name), sec_uid, user_name)
 
