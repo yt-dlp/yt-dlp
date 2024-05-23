@@ -153,7 +153,7 @@ class RedditIE(InfoExtractor):
         },
         'skip': 'Requires account that has opted-in to the GenZedong subreddit',
     }, {
-        # subtitle in HLS manifest
+        # subtitles in HLS manifest
         'url': 'https://www.reddit.com/r/Unexpected/comments/1cl9h0u/the_insurance_claim_will_be_interesting/',
         'info_dict': {
             'id': 'a2mdj5d57qyc1',
@@ -169,12 +169,13 @@ class RedditIE(InfoExtractor):
             'comment_count': int,
             'dislike_count': int,
             'like_count': int,
+            'subtitles': {'en': 'mincount:1'},
         },
         'params': {
             'skip_download': True,
         },
     }, {
-        # subtitle from caption-url
+        # subtitles from caption-url
         'url': 'https://www.reddit.com/r/soccer/comments/1cxwzso/tottenham_1_0_newcastle_united_james_maddison_31/',
         'info_dict': {
             'id': 'xbmj4t3igy1d1',
@@ -190,6 +191,7 @@ class RedditIE(InfoExtractor):
             'comment_count': int,
             'dislike_count': int,
             'like_count': int,
+            'subtitles': {'en': 'mincount:1'},
         },
         'params': {
             'skip_download': True,
