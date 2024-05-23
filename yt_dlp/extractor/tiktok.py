@@ -970,7 +970,7 @@ class TikTokUserIE(TikTokBaseIE):
             cursor = traverse_obj(
                 response, ('itemList', -1, 'createTime', {lambda x: int_or_none(x, invscale=1E3)}))
             if not cursor:
-                # User may not have posted within the next ~1 week lookback, so manually set cursor
+                # User may not have posted within this ~1 week lookback, so manually adjust cursor
                 cursor = old_cursor - 7 * 86_400_000
             # In case 'hasMorePrevious' is wrong, break if we have gone back before TikTok existed
             if cursor < 1472706000000 or not traverse_obj(response, 'hasMorePrevious'):
