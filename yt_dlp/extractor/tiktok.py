@@ -447,14 +447,16 @@ class TikTokBaseIE(InfoExtractor):
             '_format_sort_fields': ('quality', 'codec', 'size', 'br'),
         }
 
-    def _extract_web_formats(self, video_info, music_info, resolution_info):
+    def _extract_web_formats(self, aweme_detail):
         COMMON_FORMAT_INFO = {
             'ext': 'mp4',
             'vcodec': 'h264',
             'acodec': 'aac',
         }
-        width = resolution_info.get('width')
-        ratio = try_call(lambda: width / resolution_info['height']) or 0.5625
+        video_info = traverse_obj(aweme_detail, ('video', {dict})) or {}
+        play_width = int_or_none(video_info.get('width'))
+        play_height = int_or_none(video_info.get('height'))
+        ratio = try_call(lambda: play_width / play_height) or 0.5625
         formats = []
 
         for bitrate_info in traverse_obj(video_info, ('bitrateInfo', lambda _, v: v['PlayAddr']['UrlList'])):
@@ -492,14 +494,15 @@ class TikTokBaseIE(InfoExtractor):
                 })
 
         # We don't have res string for play formats, but need quality for sorting & de-duplication
-        play_quality = traverse_obj(formats, (lambda _, v: v['width'] == width, 'quality', any))
+        play_quality = traverse_obj(formats, (lambda _, v: v['width'] == play_width, 'quality', any))
 
         for play_url in traverse_obj(video_info, ('playAddr', ((..., 'src'), None), {url_or_none})):
             formats.append({
                 **COMMON_FORMAT_INFO,
-                **resolution_info,  # is only applicable to playAddr video and thumbnails
                 'format_id': 'play',
                 'url': self._proto_relative_url(play_url),
+                'width': play_width,
+                'height': play_height,
                 'quality': play_quality,
             })
 
@@ -519,8 +522,8 @@ class TikTokBaseIE(InfoExtractor):
             })
 
         # Is it a slideshow with only audio for download?
-        if not formats and traverse_obj(music_info, ('playUrl', {url_or_none})):
-            audio_url = music_info['playUrl']
+        if not formats and traverse_obj(aweme_detail, ('music', 'playUrl', {url_or_none})):
+            audio_url = aweme_detail['music']['playUrl']
             ext = traverse_obj(parse_qs(audio_url), (
                 'mime_type', -1, {lambda x: x.replace('_', '/')}, {mimetype2ext})) or 'm4a'
             formats.append({
@@ -534,34 +537,29 @@ class TikTokBaseIE(InfoExtractor):
         return formats
 
     def _parse_aweme_video_web(self, aweme_detail, webpage_url, video_id, extract_flat=False):
-        video_info = traverse_obj(aweme_detail, ('video', {dict})) or {}
-        author_info = traverse_obj(aweme_detail, (('authorInfo', 'author'), {dict}, any)) or {}
-        music_info = aweme_detail.get('music') or {}
-        stats_info = aweme_detail.get('stats') or {}
-        channel_id = traverse_obj(author_info or aweme_detail, (('authorSecId', 'secUid'), {str}, any))
-        user_url = self._UPLOADER_URL_FORMAT % channel_id if channel_id else None
-
-        resolution_info = traverse_obj(video_info, {
-            'width': ('width', {int_or_none}),
-            'height': ('height', {int_or_none}),
-        })
-
-        thumbnails = []
-        for thumb_url in traverse_obj(aweme_detail, (
-                (None, 'video'), ('thumbnail', 'cover', 'dynamicCover', 'originCover'), {url_or_none})):
-            thumbnails.append({
-                **resolution_info,
-                'url': self._proto_relative_url(thumb_url),
-            })
+        author_info = traverse_obj(aweme_detail, (('authorInfo', 'author', None), {
+            'creators': ('nickname', {str}, {lambda x: [x] if x else None}),  # for compat
+            'channel': ('nickname', {str}),
+            'channel_id': (('authorSecId', 'secUid'), {str}),
+            'uploader': (('uniqueId', 'author'), {str}),
+            'uploader_id': (('authorId', 'uid', 'id'), {str_or_none}),
+        }), get_all=False)
 
         return {
             'id': video_id,
-            **traverse_obj(music_info, {
+            'formats': None if extract_flat else self._extract_web_formats(aweme_detail),
+            'subtitles': None if extract_flat else self.extract_subtitles(aweme_detail, video_id, None),
+            'http_headers': {'Referer': webpage_url},
+            **author_info,
+            'channel_url': format_field(author_info, 'channel_id', self._UPLOADER_URL_FORMAT, default=None),
+            'uploader_url': format_field(
+                author_info, [(('uploader', 'uploader_id'), any)], self._UPLOADER_URL_FORMAT, default=None),
+            **traverse_obj(aweme_detail, ('music', {
                 'track': ('title', {str}),
                 'album': ('album', {str}, {lambda x: x or None}),
                 'artists': ('authorName', {str}, {lambda x: re.split(r'(?:, | & )', x) if x else None}),
                 'duration': ('duration', {int_or_none}),
-            }),
+            })),
             **traverse_obj(aweme_detail, {
                 'title': ('desc', {str}),
                 'description': ('desc', {str}),
@@ -569,26 +567,17 @@ class TikTokBaseIE(InfoExtractor):
                 'duration': ('video', 'duration', {int_or_none}, {lambda x: x or None}),
                 'timestamp': ('createTime', {int_or_none}),
             }),
-            **traverse_obj(author_info or aweme_detail, {
-                'creators': ('nickname', {str}, {lambda x: [x] if x else None}),  # for compat
-                'channel': ('nickname', {str}),
-                'uploader': (('uniqueId', 'author'), {str}),
-                'uploader_id': (('authorId', 'uid', 'id'), {str_or_none}),
-            }, get_all=False),
-            **traverse_obj(stats_info, {
+            **traverse_obj(aweme_detail, ('stats', {
                 'view_count': 'playCount',
                 'like_count': 'diggCount',
                 'repost_count': 'shareCount',
                 'comment_count': 'commentCount',
-            }, expected_type=int_or_none),
-            'channel_id': channel_id,
-            'uploader_url': user_url,
-            'formats': None if extract_flat else self._extract_web_formats(video_info, music_info, resolution_info),
-            'subtitles': None if extract_flat else self.extract_subtitles(aweme_detail, video_id, None),
-            'thumbnails': thumbnails,
-            'http_headers': {
-                'Referer': webpage_url,
-            }
+            }), expected_type=int_or_none),
+            'thumbnails': traverse_obj(aweme_detail, (
+                (None, 'video'), ('thumbnail', 'cover', 'dynamicCover', 'originCover'), {
+                    'url': ({url_or_none}, {self._proto_relative_url}),
+                },
+            )),
         }
 
 
