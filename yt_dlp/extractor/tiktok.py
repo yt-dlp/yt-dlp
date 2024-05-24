@@ -394,11 +394,8 @@ class TikTokBaseIE(InfoExtractor):
                 })
 
         stats_info = aweme_detail.get('statistics') or {}
-        author_info = aweme_detail.get('author') or {}
         music_info = aweme_detail.get('music') or {}
-        user_url = self._UPLOADER_URL_FORMAT % (traverse_obj(author_info,
-                                                             'sec_uid', 'id', 'uid', 'unique_id',
-                                                             expected_type=str_or_none, get_all=False))
+
         labels = traverse_obj(aweme_detail, ('hybrid_label', ..., 'text'), expected_type=str)
 
         contained_music_track = traverse_obj(
@@ -411,6 +408,16 @@ class TikTokBaseIE(InfoExtractor):
             music_track, music_author = contained_music_track or 'original sound', contained_music_author
         else:
             music_track, music_author = music_info.get('title'), traverse_obj(music_info, ('author', {str}))
+
+        author_info = traverse_obj(aweme_detail, ('author', {
+            'uploader': ('unique_id', {str}),
+            'uploader_id': ('uid', {str_or_none}),
+            'channel': ('nickname', {str}),
+            'channel_id': ('sec_uid', {str}),
+        }))
+        channel_url = format_field(author_info, 'channel_id', self._UPLOADER_URL_FORMAT, default=None)
+        uploader_url = format_field(
+            author_info, [(('uploader', 'uploader_id'), any)], self._UPLOADER_URL_FORMAT, default=None)
 
         return {
             'id': aweme_id,
@@ -425,18 +432,14 @@ class TikTokBaseIE(InfoExtractor):
                 'repost_count': 'share_count',
                 'comment_count': 'comment_count',
             }, expected_type=int_or_none),
-            **traverse_obj(author_info, {
-                'uploader': ('unique_id', {str}),
-                'uploader_id': ('uid', {str_or_none}),
-                'channel': ('nickname', {str}),
-                'channel_id': ('sec_uid', {str}),
-            }),
-            'uploader_url': user_url,
+            **author_info,
+            'channel_url': channel_url,
+            'uploader_url': uploader_url,
             'track': music_track,
             'album': str_or_none(music_info.get('album')) or None,
             'artists': re.split(r'(?:, | & )', music_author) if music_author else None,
             'formats': formats,
-            'subtitles': self.extract_subtitles(aweme_detail, aweme_id, user_url),
+            'subtitles': self.extract_subtitles(aweme_detail, aweme_id, uploader_url or channel_url),
             'thumbnails': thumbnails,
             'duration': int_or_none(traverse_obj(video_info, 'duration', ('download_addr', 'duration')), scale=1000),
             'availability': self._availability(
