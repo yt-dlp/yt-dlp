@@ -236,7 +236,7 @@ class TikTokBaseIE(InfoExtractor):
 
         return video_data, status
 
-    def _get_subtitles(self, aweme_detail, aweme_id, user_url):
+    def _get_subtitles(self, aweme_detail, aweme_id, user_name):
         # TODO: Extract text positioning info
         subtitles = {}
         # aweme/detail endpoint subs
@@ -267,9 +267,9 @@ class TikTokBaseIE(InfoExtractor):
                 })
         # webpage subs
         if not subtitles:
-            if user_url:  # only _parse_aweme_video_app needs to extract the webpage here
+            if user_name:  # only _parse_aweme_video_app needs to extract the webpage here
                 aweme_detail, _ = self._extract_web_data_and_status(
-                    f'{user_url}/video/{aweme_id}', aweme_id, fatal=False)
+                    self._create_url(user_name, aweme_id), aweme_id, fatal=False)
             for caption in traverse_obj(aweme_detail, ('video', 'subtitleInfos', lambda _, v: v['Url'])):
                 subtitles.setdefault(caption.get('LanguageCodeName') or 'en', []).append({
                     'ext': remove_start(caption.get('Format'), 'web'),
@@ -395,7 +395,6 @@ class TikTokBaseIE(InfoExtractor):
 
         stats_info = aweme_detail.get('statistics') or {}
         music_info = aweme_detail.get('music') or {}
-
         labels = traverse_obj(aweme_detail, ('hybrid_label', ..., 'text'), expected_type=str)
 
         contained_music_track = traverse_obj(
@@ -415,9 +414,6 @@ class TikTokBaseIE(InfoExtractor):
             'channel': ('nickname', {str}),
             'channel_id': ('sec_uid', {str}),
         }))
-        channel_url = format_field(author_info, 'channel_id', self._UPLOADER_URL_FORMAT, default=None)
-        uploader_url = format_field(
-            author_info, [(('uploader', 'uploader_id'), any)], self._UPLOADER_URL_FORMAT, default=None)
 
         return {
             'id': aweme_id,
@@ -433,13 +429,15 @@ class TikTokBaseIE(InfoExtractor):
                 'comment_count': 'comment_count',
             }, expected_type=int_or_none),
             **author_info,
-            'channel_url': channel_url,
-            'uploader_url': uploader_url,
+            'channel_url': format_field(author_info, 'channel_id', self._UPLOADER_URL_FORMAT, default=None),
+            'uploader_url': format_field(
+                author_info, [(('uploader', 'uploader_id'), any)], self._UPLOADER_URL_FORMAT, default=None),
             'track': music_track,
             'album': str_or_none(music_info.get('album')) or None,
             'artists': re.split(r'(?:, | & )', music_author) if music_author else None,
             'formats': formats,
-            'subtitles': self.extract_subtitles(aweme_detail, aweme_id, uploader_url or channel_url),
+            'subtitles': self.extract_subtitles(
+                aweme_detail, aweme_id, traverse_obj(author_info, 'uploader', 'uploader_id', 'channel_id')),
             'thumbnails': thumbnails,
             'duration': int_or_none(traverse_obj(video_info, 'duration', ('download_addr', 'duration')), scale=1000),
             'availability': self._availability(
