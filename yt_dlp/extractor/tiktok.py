@@ -482,7 +482,7 @@ class TikTokBaseIE(InfoExtractor):
                 else:  # landscape: res/dimension is height
                     x = int(dimension * ratio)
                     format_info.update({
-                        'width': x - (x % 2),
+                        'width': x + (x % 2),
                         'height': dimension,
                     })
 
