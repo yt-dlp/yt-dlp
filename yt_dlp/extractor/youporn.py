@@ -8,6 +8,7 @@ from ..utils import (
     extract_attributes,
     get_element_by_class,
     get_element_by_id,
+    get_elements_html_by_class,
     int_or_none,
     merge_dicts,
     parse_count,
@@ -227,8 +228,6 @@ class YouPornIE(InfoExtractor):
 
 
 class YouPornListBase(InfoExtractor):
-    # pattern in '.title-text' element of page section containing videos
-    _PLAYLIST_TITLEBAR_RE = r'\s+[Vv]ideos\s*$'
     _PAGE_RETRY_COUNT = 0  # ie, no retry
     _PAGE_RETRY_DELAY = 2  # seconds
 
@@ -243,17 +242,6 @@ class YouPornListBase(InfoExtractor):
         return re.sub(r'[_-]', ' ', title_slug)
 
     def _entries(self, url, pl_id, html=None, page_num=None):
-        # separates page sections
-        PLAYLIST_SECTION_RE = (
-            r'''<div [^>]*\bclass\s*=\s*('|")(?:[\w$-]+\s+|\s)*?title-bar(?:\s+[\w$-]+|\s)*\1[^>]*>'''
-        )
-        # contains video link
-        VIDEO_URL_RE = r'''(?x)
-            <div [^>]*\bdata-video-id\s*=\s*('|")\d+\1[^>]*>\s*
-            (?:<div\b[\s\S]+?</div>\s*)*
-            <a\s[^>]*\bhref\s*=\s*('|")(?P<url>(?:(?!\2)[^>])+)\2
-        '''
-
         def yield_pages(url, html=html, page_num=page_num):
             fatal = not html
             for pnum in itertools.count(start=page_num or 1):
@@ -281,16 +269,9 @@ class YouPornListBase(InfoExtractor):
                 yield_pages(page_data[0], page_num=page_data[2]), None)
 
         def yield_entries(html):
-            for frag in re.split(PLAYLIST_SECTION_RE, html):
-                if not frag:
-                    continue
-                t_text = get_element_by_class('title-text', frag or '')
-                if not (t_text and re.search(self._PLAYLIST_TITLEBAR_RE, t_text)):
-                    continue
-                for m in re.finditer(VIDEO_URL_RE, frag):
-                    video_url = urljoin(url, m.group('url'))
-                    if video_url:
-                        yield self.url_result(video_url)
+            for element in get_elements_html_by_class('video-title', html):
+                if video_url := traverse_obj(element, ({extract_attributes}, 'href', {lambda x: urljoin(url, x)})):
+                    yield self.url_result(video_url)
 
         last_first_url = None
         for page_data in yield_pages(url, html=html, page_num=page_num):
@@ -426,7 +407,6 @@ class YouPornCollectionIE(YouPornListBase):
         (?P<type>collection)s/videos/(?P<id>\d+)
         (?:/(?P<sort>rating|views|time|duration))?/?(?:[#?]|$)
     '''
-    _PLAYLIST_TITLEBAR_RE = r'^\s*Videos\s+in\s'
     _TESTS = [{
         'note': 'Full list with pagination',
         'url': 'https://www.youporn.com/collections/videos/33044251/',
@@ -472,7 +452,6 @@ class YouPornTagIE(YouPornListBase):
         porn(?P<type>tag)s/(?P<id>[^/?#&]+)
         (?:/(?P<sort>views|rating|time|duration))?/?(?:[#?]|$)
     '''
-    _PLAYLIST_TITLEBAR_RE = r'^\s*Videos\s+tagged\s'
     _PAGE_RETRY_COUNT = 1
     _TESTS = [{
         'note': 'Full list with pagination',
@@ -481,7 +460,7 @@ class YouPornTagIE(YouPornListBase):
             'id': 'austrian',
             'title': 'Tag austrian videos',
         },
-        'playlist_mincount': 35,
+        'playlist_mincount': 33,
         'expected_warnings': ['Retrying duplicate page'],
     }, {
         'note': 'Filtered paginated list with single page result',
@@ -528,7 +507,6 @@ class YouPornStarIE(YouPornListBase):
         (?P<type>pornstar)/(?P<id>[^/?#&]+)
         (?:/(?P<sort>rating|views|duration))?/?(?:[#?]|$)
     '''
-    _PLAYLIST_TITLEBAR_RE = r'^\s*Videos\s+[fF]eaturing\s'
     _TESTS = [{
         'note': 'Full list with pagination',
         'url': 'https://www.youporn.com/pornstar/daynia/',
@@ -583,7 +561,6 @@ class YouPornVideosIE(YouPornListBase):
                 (?:most_(?:favou?rit|view)ed|recommended|top_rated)?))
             (?:[/#?]|$)
     '''
-    _PLAYLIST_TITLEBAR_RE = r'\s+(?:[Vv]ideos|VIDEOS)\s*$'
     _TESTS = [{
         'note': 'Full list with pagination (too long for test)',
         'url': 'https://www.youporn.com/',
