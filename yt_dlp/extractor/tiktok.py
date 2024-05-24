@@ -439,7 +439,9 @@ class TikTokBaseIE(InfoExtractor):
             'subtitles': self.extract_subtitles(
                 aweme_detail, aweme_id, traverse_obj(author_info, 'uploader', 'uploader_id', 'channel_id')),
             'thumbnails': thumbnails,
-            'duration': int_or_none(traverse_obj(video_info, 'duration', ('download_addr', 'duration')), scale=1000),
+            'duration': (traverse_obj(video_info, (
+                (None, 'download_addr'), 'duration', {functools.partial(int_or_none, scale=1000)}, any))
+                or traverse_obj(music_info, ('duration', {int_or_none}))),
             'availability': self._availability(
                 is_private='Private' in labels,
                 needs_subscription='Friends only' in labels,
