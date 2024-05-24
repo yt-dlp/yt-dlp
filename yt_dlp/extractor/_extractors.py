@@ -1060,6 +1060,7 @@ from .mediastream import (
 from .mediaworksnz import MediaWorksNZVODIE
 from .medici import MediciIE
 from .megaphone import MegaphoneIE
+from .megatube import MegaTubeIE
 from .meipai import MeipaiIE
 from .melonvod import MelonVODIE
 from .metacritic import MetacriticIE
