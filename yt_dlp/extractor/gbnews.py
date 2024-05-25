@@ -46,7 +46,7 @@ class GBNewsIE(InfoExtractor):
             'live_status': 'is_live',
             'title': r're:^GB News Live',
         },
-        'skip_download': 'm3u8',
+        'params': {'skip_download': 'm3u8'},
     }]
 
     @functools.lru_cache

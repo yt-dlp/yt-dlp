@@ -430,7 +430,7 @@ class YouPornCollectionIE(YouPornListBase):
     def _real_extract(self, url):
         pl_id = self._match_id(url)
         html = self._download_webpage(url, pl_id)
-        playlist = super(YouPornCollectionIE, self)._real_extract(url, html=html)
+        playlist = super()._real_extract(url, html=html)
         infos = re.sub(r'\s+', ' ', clean_html(get_element_by_class(
             'collection-infos', html)) or '')
         title, uploader = self._search_regex(
@@ -489,7 +489,7 @@ class YouPornTagIE(YouPornListBase):
 
     # YP tag navigation is broken, loses sort
     def _get_next_url(self, url, pl_id, html):
-        if next_url := super(YouPornTagIE, self)._get_next_url(url, pl_id, html):
+        if next_url := super()._get_next_url(url, pl_id, html):
             if n := self._match_valid_url(next_url):
                 if s := n.groupdict().get('sort'):
                     if u := self._match_valid_url(url):
@@ -534,7 +534,7 @@ class YouPornStarIE(YouPornListBase):
     def _real_extract(self, url):
         pl_id = self._match_id(url)
         html = self._download_webpage(url, pl_id)
-        playlist = super(YouPornStarIE, self)._real_extract(url, html=html)
+        playlist = super()._real_extract(url, html=html)
         INFO_ELEMENT_RE = r'''(?x)
             <div [^>]*\bclass\s*=\s*('|")(?:[\w$-]+\s+|\s)*?pornstar-info-wrapper(?:\s+[\w$-]+|\s)*\1[^>]*>
             (?P<info>[\s\S]+?)(?:</div>\s*){6,}
