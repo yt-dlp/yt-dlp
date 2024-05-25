@@ -937,8 +937,7 @@ class DiscoveryNetworksDeIE(DiscoveryPlusBaseIE):
         country = 'GB' if domain == 'dplay.co.uk' else 'DE'
         realm = 'questuk' if country == 'GB' else domain.replace('.', '')
         return self._get_disco_api_info(
-            url, '%s/%s' % (programme, alternate_id),
-            'eu1-prod.disco-api.com', realm, country)
+            url, f'{programme}/{alternate_id}', 'eu1-prod.disco-api.com', realm, country)
 
     def _update_disco_api_headers(self, headers, disco_base, display_id, realm):
         headers.update({
