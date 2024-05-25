@@ -453,6 +453,10 @@ from .damtomo import (
     DamtomoRecordIE,
     DamtomoVideoIE,
 )
+from .dangalplay import (
+    DangalPlayIE,
+    DangalPlaySeasonIE,
+)
 from .daum import (
     DaumIE,
     DaumClipIE,
