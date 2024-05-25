@@ -44,8 +44,10 @@ class LCIIE(InfoExtractor):
 
         next_data = self._search_nextjs_data(webpage, video_id)
 
-        videos = traverse_obj(next_data, ('props', 'pageProps', 'page', 'tms', 'videos'))
-        videos_id = videos.keys()
+        wat_id = traverse_obj(next_data, (
+            'props', 'pageProps', 'page', 'tms', 'videos', {dict.keys}, ..., {int_or_none}, any))
 
-        wat_id = [video_id for video_id in videos_id if video_id.isnumeric()][0]
-        return self.url_result('wat:{}'.format(wat_id), 'Wat', wat_id)
+        if not wat_id:
+            raise ExtractorError('Could not find wat_id')
+
+        return self.url_result(f'wat:{wat_id}', WatIE, wat_id)
