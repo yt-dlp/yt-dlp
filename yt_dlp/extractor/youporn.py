@@ -473,7 +473,7 @@ class YouPornTagIE(YouPornListBase):
         # number of videos per page is (row x col) 2x3 + 6x4 + 2, or + 3,
         # or more, varying with number of ads; let's set max as 9x4
         # NB col 1 may not be shown in non-JS page with site CSS and zoom 100%
-        # 'playlist_count': 32,
+        # 'playlist_maxcount': 32,
         'expected_warnings': ['Retrying duplicate page', 'Retrying empty page'],
     }, {
         'note': 'Single page of full list',
