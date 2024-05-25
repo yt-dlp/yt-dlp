@@ -1,5 +1,5 @@
 from .dplay import DiscoveryPlusBaseIE
-from ..utils import ExtractorError
+from ..utils import join_nonempty
 from ..utils.traversal import traverse_obj
 
 
@@ -41,6 +41,13 @@ class Tele5IE(DiscoveryPlusBaseIE):
             'creators': ['Tele5'],
             'tags': [],
         },
+    }, {
+        # playlist
+        'url': 'https://tele5.de/mediathek/schlefaz',
+        'info_dict': {
+            'id': 'mediathek-schlefaz',
+        },
+        'playlist_mincount': 3,
     }]
 
     def _real_extract(self, url):
@@ -61,12 +68,12 @@ class Tele5IE(DiscoveryPlusBaseIE):
                     'v': '2',
                 })
 
-        video_id = traverse_obj(cms_data, ('blocks', ..., 'videoId', {str}, any))
-        if not video_id:
-            raise ExtractorError('Unable to extract video id')
+        def entries():
+            for video_id in traverse_obj(cms_data, ('blocks', ..., 'videoId', {str})):
+                yield self._get_disco_api_info(
+                    url, video_id, 'eu1-prod.disco-api.com', 'dmaxde', 'DE')
 
-        return self._get_disco_api_info(
-            url, video_id, 'eu1-prod.disco-api.com', 'dmaxde', 'DE')
+        return self.playlist_result(entries(), join_nonempty(parent_slug, slug_a, slug_b, delim='-'))
 
     def _update_disco_api_headers(self, headers, disco_base, display_id, realm):
         headers.update({
