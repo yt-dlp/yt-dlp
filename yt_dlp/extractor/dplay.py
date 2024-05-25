@@ -880,6 +880,27 @@ class DiscoveryNetworksDeIE(DiscoveryPlusBaseIE):
     _VALID_URL = r'https?://(?:www\.)?(?P<domain>(?:tlc|dmax)\.de|dplay\.co\.uk)/(?:programme|show|sendungen)/(?P<programme>[^/]+)/(?:video/)?(?P<alternate_id>[^/]+)'
 
     _TESTS = [{
+        'url': 'https://dmax.de/sendungen/goldrausch-in-australien/german-gold',
+        'info_dict': {
+            'id': '4756322',
+            'ext': 'mp4',
+            'title': 'German Gold',
+            'description': 'md5:f3073306553a8d9b40e6ac4cdbf09fc6',
+            'display_id': 'goldrausch-in-australien/german-gold',
+            'episode': 'Episode 1',
+            'episode_number': 1,
+            'season': 'Season 5',
+            'season_number': 5,
+            'series': 'Goldrausch in Australien',
+            'duration': 2648.0,
+            'upload_date': '20230517',
+            'timestamp': 1684357500,
+            'creators': ['DMAX'],
+            'thumbnail': 'https://eu1-prod-images.disco-api.com/2023/05/09/f72fb510-7992-3b12-af7f-f16a2c22d1e3.jpeg',
+            'tags': ['schatzsucher', 'schatz', 'nugget', 'bodenschätze', 'down under', 'australien', 'goldrausch'],
+        },
+        'params': {'skip_download': 'm3u8'},
+    }, {
         'url': 'https://www.tlc.de/programme/breaking-amish/video/die-welt-da-drauen/DCB331270001100',
         'info_dict': {
             'id': '78867',
@@ -899,9 +920,7 @@ class DiscoveryNetworksDeIE(DiscoveryPlusBaseIE):
             'season_number': 1,
             'thumbnail': r're:https://.+\.jpg',
         },
-        'params': {
-            'skip_download': True,
-        },
+        'skip': '404 Not Found',
     }, {
         'url': 'https://www.dmax.de/programme/dmax-highlights/video/tuning-star-sidney-hoffmann-exklusiv-bei-dmax/191023082312316',
         'only_matching': True,
