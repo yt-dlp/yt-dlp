@@ -431,7 +431,7 @@ class TikTokBaseIE(InfoExtractor):
             **author_info,
             'channel_url': format_field(author_info, 'channel_id', self._UPLOADER_URL_FORMAT, default=None),
             'uploader_url': format_field(
-                author_info, [(('uploader', 'uploader_id'), any)], self._UPLOADER_URL_FORMAT, default=None),
+                author_info, ['uploader', 'uploader_id'], self._UPLOADER_URL_FORMAT, default=None),
             'track': music_track,
             'album': str_or_none(music_info.get('album')) or None,
             'artists': re.split(r'(?:, | & )', music_author) if music_author else None,
@@ -554,7 +554,7 @@ class TikTokBaseIE(InfoExtractor):
             **author_info,
             'channel_url': format_field(author_info, 'channel_id', self._UPLOADER_URL_FORMAT, default=None),
             'uploader_url': format_field(
-                author_info, [(('uploader', 'uploader_id'), any)], self._UPLOADER_URL_FORMAT, default=None),
+                author_info, ['uploader', 'uploader_id'], self._UPLOADER_URL_FORMAT, default=None),
             **traverse_obj(aweme_detail, ('music', {
                 'track': ('title', {str}),
                 'album': ('album', {str}, {lambda x: x or None}),
