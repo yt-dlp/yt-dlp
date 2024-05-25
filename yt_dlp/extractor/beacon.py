@@ -80,6 +80,8 @@ class BeaconTvIE(InfoExtractor):
                         language = traverse_obj(track, 'language')
                         if language is None:
                             language = "en"
+                        else:
+                            language = language.lower()
                         subs = {language: [{'url': file}]}
                         self._merge_subtitles(subs, target=subtitles)
 
