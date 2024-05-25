@@ -453,6 +453,10 @@ from .damtomo import (
     DamtomoRecordIE,
     DamtomoVideoIE,
 )
+from .dangalplay import (
+    DangalPlayIE,
+    DangalPlaySeasonIE,
+)
 from .daum import (
     DaumIE,
     DaumClipIE,
@@ -715,6 +719,7 @@ from .globo import (
 from .gmanetwork import GMANetworkVideoIE
 from .go import GoIE
 from .godtube import GodTubeIE
+from .godresource import GodResourceIE
 from .gofile import GofileIE
 from .golem import GolemIE
 from .goodgame import GoodGameIE
@@ -871,6 +876,10 @@ from .japandiet import (
     SangiinIE,
 )
 from .jeuxvideo import JeuxVideoIE
+from .jiocinema import (
+    JioCinemaIE,
+    JioCinemaSeriesIE,
+)
 from .jiosaavn import (
     JioSaavnSongIE,
     JioSaavnAlbumIE,
@@ -1332,6 +1341,7 @@ from .nrk import (
     NRKTVSeriesIE,
 )
 from .nrl import NRLTVIE
+from .nts import NTSLiveIE
 from .ntvcojp import NTVCoJpCUIE
 from .ntvde import NTVDeIE
 from .ntvru import NTVRuIE
@@ -1385,7 +1395,6 @@ from .openrec import (
 )
 from .ora import OraTVIE
 from .orf import (
-    ORFTVthekIE,
     ORFFM4StoryIE,
     ORFONIE,
     ORFRadioIE,
@@ -1903,6 +1912,12 @@ from .syvdk import SYVDKIE
 from .syfy import SyfyIE
 from .sztvhu import SztvHuIE
 from .tagesschau import TagesschauIE
+from .taptap import (
+    TapTapMomentIE,
+    TapTapAppIE,
+    TapTapAppIntlIE,
+    TapTapPostIntlIE,
+)
 from .tass import TassIE
 from .tbs import TBSIE
 from .tbsjp import (
@@ -2276,10 +2291,6 @@ from .voicy import (
     VoicyChannelIE,
 )
 from .volejtv import VolejTVIE
-from .voot import (
-    VootIE,
-    VootSeriesIE,
-)
 from .voxmedia import (
     VoxMediaVolumeIE,
     VoxMediaIE,

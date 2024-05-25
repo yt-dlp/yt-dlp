@@ -21,13 +21,14 @@ urllib3_version = tuple(int_or_none(x, default=0) for x in urllib3.__version__.s
 if urllib3_version < (1, 26, 17):
     raise ImportError('Only urllib3 >= 1.26.17 is supported')
 
-if requests.__build__ < 0x023200:
-    raise ImportError('Only requests >= 2.32.0 is supported')
+if requests.__build__ < 0x023100:
+    raise ImportError('Only requests >= 2.31.0 is supported')
 
 import requests.adapters
 import requests.utils
 import urllib3.connection
 import urllib3.exceptions
+import urllib3.util
 
 from ._helper import (
     InstanceStoreMixin,
@@ -180,13 +181,24 @@ class RequestsHTTPAdapter(requests.adapters.HTTPAdapter):
             extra_kwargs['proxy_ssl_context'] = self._proxy_ssl_context
         return super().proxy_manager_for(proxy, **proxy_kwargs, **self._pm_args, **extra_kwargs)
 
+    # Skip `requests` internal verification; we use our own SSLContext
+    # requests 2.31.0+
     def cert_verify(*args, **kwargs):
-        # Lean on our SSLContext for cert verification
         pass
 
+    # requests 2.31.0-2.32.1
     def _get_connection(self, request, *_, proxies=None, **__):
-        # Lean on our SSLContext for cert verification
         return self.get_connection(request.url, proxies)
+
+    # requests 2.32.2+: Reimplementation without `_urllib3_request_context`
+    def get_connection_with_tls_context(self, request, verify, proxies=None, cert=None):
+        url = urllib3.util.parse_url(request.url).url
+
+        manager = self.poolmanager
+        if proxy := select_proxy(url, proxies):
+            manager = self.proxy_manager_for(proxy)
+
+        return manager.connection_from_url(url)
 
 
 class RequestsSession(requests.sessions.Session):
