@@ -128,7 +128,7 @@ class DangalPlayIE(DangalPlayBaseIE):
                 }, data=self._generate_api_data(metadata))['data']
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError) and e.cause.status == 422:
-                error_info = traverse_obj(e.cause.response.read().decode(), ({json.loads}, 'error', {dict}))
+                error_info = traverse_obj(e.cause.response.read().decode(), ({json.loads}, 'error', {dict})) or {}
                 if error_info.get('code') == '1016':
                     self.raise_login_required(
                         f'Your token has expired or is invalid. {self._LOGIN_HINT}', method=None)
