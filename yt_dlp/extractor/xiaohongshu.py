@@ -1,3 +1,5 @@
+import functools
+
 from .common import InfoExtractor
 from ..utils import (
     float_or_none,
@@ -49,7 +51,7 @@ class XiaoHongShuIE(InfoExtractor):
                 'tbr': ('avgBitrate', {int_or_none}),
                 'format': ('qualityType', {str}),
                 'filesize': ('size', {int_or_none}),
-                'duration': ('duration', {lambda x: float_or_none(x, scale=1000)})
+                'duration': ('duration', {functools.partial(float_or_none, scale=1000)})
             })
 
             formats.extend(traverse_obj(info, (('mediaUrl', ('backupUrls', ...)), {
