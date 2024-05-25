@@ -9,7 +9,7 @@ from ..utils.traversal import traverse_obj
 
 
 class XiaoHongShuIE(InfoExtractor):
-    _VALID_URL = r'https?://www\.xiaohongshu.com/explore/(?P<id>[a-f0-9]+)'
+    _VALID_URL = r'https?://www\.xiaohongshu\.com/explore/(?P<id>[\da-f]+)'
     IE_DESC = '小红书'
     _TESTS = [{
         'url': 'https://www.xiaohongshu.com/explore/6411cf99000000001300b6d9',
@@ -53,7 +53,7 @@ class XiaoHongShuIE(InfoExtractor):
             })
 
             formats.extend(traverse_obj(info, (('mediaUrl', ('backupUrls', ...)), {
-                lambda url: url_or_none(url) and {'url': url, **format_info}})))
+                lambda u: url_or_none(u) and {'url': u, **format_info}})))
 
         thumbnails = []
         for image_info in traverse_obj(note_info, ('imageList', ...)):
@@ -61,20 +61,16 @@ class XiaoHongShuIE(InfoExtractor):
                 'height': ('height', {int_or_none}),
                 'width': ('width', {int_or_none}),
             })
-            for url in traverse_obj(image_info, (('urlDefault', 'urlPre'), {url_or_none})):
+            for thumb_url in traverse_obj(image_info, (('urlDefault', 'urlPre'), {url_or_none})):
                 thumbnails.append({
-                    'url': url,
-                    **thumbnail_info
+                    'url': thumb_url,
+                    **thumbnail_info,
                 })
 
         return {
             'id': display_id,
-            'formats': formats or [{
-                'url': self._html_search_meta(['og:video'], webpage, fatal=True),
-            }],
-            'thumbnails': thumbnails or [{
-                'url': self._html_search_meta(['og:image'], webpage, default=None)
-            }],
+            'formats': formats,
+            'thumbnails': thumbnails,
             'title': self._html_search_meta(['og:title'], webpage, default=None),
             **traverse_obj(note_info, {
                 'title': ('title', {str}),
