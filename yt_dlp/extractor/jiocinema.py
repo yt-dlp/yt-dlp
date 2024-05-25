@@ -232,6 +232,21 @@ class JioCinemaIE(JioCinemaBaseIE):
         'params': {'skip_download': 'm3u8'},
     }]
 
+    def _extract_formats_and_subtitles(self, playback, video_id):
+        m3u8_url = traverse_obj(playback, (
+            'data', 'playbackUrls', lambda _, v: v['streamtype'] == 'hls', 'url', {url_or_none}, any))
+        if not m3u8_url:  # DRM-only content only serves dash urls
+            self.report_drm(video_id)
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(m3u8_url, video_id, m3u8_id='hls')
+        self._remove_duplicate_formats(formats)
+
+        return {
+            # '/_definst_/smil:vod/' m3u8 manifests claim to have 720p+ formats but max out at 480p
+            'formats': traverse_obj(formats, (
+                lambda _, v: '/_definst_/smil:vod/' not in v['url'] or v['height'] <= 480)),
+            'subtitles': subtitles,
+        }
+
     def _real_extract(self, url):
         video_id = self._match_id(url)
         if not self._ACCESS_TOKEN and self._is_token_expired(self._GUEST_TOKEN):
@@ -288,13 +303,6 @@ class JioCinemaIE(JioCinemaBaseIE):
         elif status_code == 400:
             raise ExtractorError('The requested content is not available', expected=True)
 
-        m3u8_url = traverse_obj(playback, (
-            'data', 'playbackUrls', lambda _, v: v['streamtype'] == 'hls', 'url', {url_or_none}, any))
-        if not m3u8_url:  # DRM-only content only serves dash urls
-            self.report_drm(video_id)
-        formats, subtitles = self._extract_m3u8_formats_and_subtitles(m3u8_url, video_id, m3u8_id='hls')
-        self._remove_duplicate_formats(formats)
-
         metadata = self._download_json(
             f'{self._METADATA_API_BASE}/voot/v1/voot-web/content/query/asset-details',
             video_id, fatal=False, query={
@@ -305,11 +313,8 @@ class JioCinemaIE(JioCinemaBaseIE):
 
         return {
             'id': video_id,
-            # '/_definst_/smil:vod/' m3u8 manifests claim to have 720p+ formats but max out at 480p
-            'formats': traverse_obj(formats, (
-                lambda _, v: '/_definst_/smil:vod/' not in v['url'] or v['height'] <= 480)),
-            'subtitles': subtitles,
             'http_headers': self._API_HEADERS,
+            **self._extract_formats_and_subtitles(playback, video_id),
             **traverse_obj(playback, ('data', {
                 # fallback metadata
                 'title': ('name', {str}),
