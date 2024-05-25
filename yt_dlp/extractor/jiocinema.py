@@ -285,6 +285,8 @@ class JioCinemaIE(JioCinemaBaseIE):
             self.raise_geo_restricted(countries=['IN'])
         elif status_code == 1008:
             self.raise_login_required('This content is only available for premium users')
+        elif status_code == 400:
+            raise ExtractorError('The requested content is not available', expected=True)
 
         m3u8_url = traverse_obj(playback, (
             'data', 'playbackUrls', lambda _, v: v['streamtype'] == 'hls', 'url', {url_or_none}, any))
