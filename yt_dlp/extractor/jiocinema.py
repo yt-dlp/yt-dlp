@@ -32,6 +32,12 @@ class JioCinemaBaseIE(InfoExtractor):
     _APP_VERSION = {'appVersion': '5.0.0'}
     _API_SIGNATURES = 'o668nxgzwff'
     _METADATA_API_BASE = 'https://content-jiovoot.voot.com/psapi'
+    _ACCESS_HINT = 'the `accessToken` from your browser local storage'
+    _LOGIN_HINT = (
+        'Log in with "-u phone -p <PHONE_NUMBER>" to authenticate with OTP, '
+        f'or use "-u token -p <ACCESS_TOKEN>" to log in with {_ACCESS_HINT}. '
+        'If you have previously logged in with yt-dlp and your session '
+        'has been cached, you can use "-u device -p <DEVICE_ID>"')
 
     def _cache_token(self, token_type):
         assert token_type in ('access', 'refresh', 'all')
@@ -108,7 +114,6 @@ class JioCinemaBaseIE(InfoExtractor):
             return
 
         UUID_RE = r'[\da-f]{8}-(?:[\da-f]{4}-){3}[\da-f]{12}'
-        ACCESS_HINT = 'the `accessToken` from your browser local storage'
 
         if username.lower() == 'token':
             if try_call(lambda: jwt_decode_hs256(password)):
@@ -126,7 +131,7 @@ class JioCinemaBaseIE(InfoExtractor):
                     self.report_warning(f'Invalid refresh_token value. Use {refresh_hint}')
             else:
                 raise ExtractorError(
-                    f'The password given could not be decoded as a token; use {ACCESS_HINT}', expected=True)
+                    f'The password given could not be decoded as a token; use {self._ACCESS_HINT}', expected=True)
 
         elif username.lower() == 'device' and re.fullmatch(rf'(?:{UUID_RE}|\d+)', password):
             JioCinemaBaseIE._REFRESH_TOKEN = self.cache.load(JioCinemaBaseIE._NETRC_MACHINE, f'{password}-refresh')
@@ -164,11 +169,7 @@ class JioCinemaBaseIE(InfoExtractor):
             JioCinemaBaseIE._ACCESS_TOKEN = response['authToken']
 
         else:
-            raise ExtractorError(
-                'Log in with "-u phone -p <PHONE_NUMBER>" to authenticate with OTP, '
-                f'or use "-u token -p <ACCESS_TOKEN>" to log in with {ACCESS_HINT}. '
-                'If you have previously logged in with yt-dlp and your session '
-                'has been cached, you can use "-u device -p <DEVICE_ID>"', expected=True)
+            raise ExtractorError(self._LOGIN_HINT, expected=True)
 
         user_token = jwt_decode_hs256(JioCinemaBaseIE._ACCESS_TOKEN)['data']
         JioCinemaBaseIE._USER_ID = user_token['userId']
@@ -302,7 +303,7 @@ class JioCinemaIE(JioCinemaBaseIE):
             error_msg = 'This content is only available for premium users'
             if self._ACCESS_TOKEN:
                 raise ExtractorError(error_msg, expected=True)
-            self.raise_login_required(error_msg)
+            self.raise_login_required(f'{error_msg}. {self._LOGIN_HINT}', method=None)
         elif status_code == 400:
             raise ExtractorError('The requested content is not available', expected=True)
         elif status_code is not None and status_code != 200:
