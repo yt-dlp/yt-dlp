@@ -942,7 +942,7 @@ class DiscoveryNetworksDeIE(DiscoveryPlusBaseIE):
 
     def _update_disco_api_headers(self, headers, disco_base, display_id, realm):
         headers.update({
-            'x-disco-params': 'realm=%s' % realm,
+            'x-disco-params': f'realm={realm}',
             'x-disco-client': 'Alps:HyogaPlayer:0.0.0',
             'Authorization': self._get_auth(disco_base, display_id, realm),
         })
