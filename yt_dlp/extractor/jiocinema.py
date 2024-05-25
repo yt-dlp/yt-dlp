@@ -34,6 +34,7 @@ class JioCinemaBaseIE(InfoExtractor):
     _METADATA_API_BASE = 'https://content-jiovoot.voot.com/psapi'
 
     def _cache_token(self, token_type):
+        assert token_type in ('access', 'refresh', 'all')
         if token_type in ('access', 'all'):
             self.cache.store(
                 JioCinemaBaseIE._NETRC_MACHINE, f'{JioCinemaBaseIE._DEVICE_ID}-access', JioCinemaBaseIE._ACCESS_TOKEN)
