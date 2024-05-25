@@ -299,9 +299,15 @@ class JioCinemaIE(JioCinemaBaseIE):
         if status_code == 474:
             self.raise_geo_restricted(countries=['IN'])
         elif status_code == 1008:
-            self.raise_login_required('This content is only available for premium users')
+            error_msg = 'This content is only available for premium users'
+            if self._ACCESS_TOKEN:
+                raise ExtractorError(error_msg, expected=True)
+            self.raise_login_required(error_msg)
         elif status_code == 400:
             raise ExtractorError('The requested content is not available', expected=True)
+        elif status_code is not None and status_code != 200:
+            raise ExtractorError(
+                f'JioCinema says: {traverse_obj(playback, ("message", {str})) or status_code}')
 
         metadata = self._download_json(
             f'{self._METADATA_API_BASE}/voot/v1/voot-web/content/query/asset-details',
