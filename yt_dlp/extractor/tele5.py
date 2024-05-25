@@ -1,3 +1,5 @@
+import functools
+
 from .dplay import DiscoveryPlusBaseIE
 from ..utils import join_nonempty
 from ..utils.traversal import traverse_obj
@@ -52,28 +54,20 @@ class Tele5IE(DiscoveryPlusBaseIE):
 
     def _real_extract(self, url):
         parent_slug, slug_a, slug_b = self._match_valid_url(url).group('parent_slug', 'slug_a', 'slug_b')
+        playlist_id = join_nonempty(parent_slug, slug_a, slug_b, delim='-')
 
+        query = {'environment': 'tele5', 'v': '2'}
         if not slug_b:
-            cms_data = self._download_json(
-                f'https://de-api.loma-cms.com/feloma/page/{slug_a}/', slug_a, query={
-                    'environment': 'tele5',
-                    'parent_slug': parent_slug,
-                    'v': '2',
-                })
+            endpoint = f'page/{slug_a}'
+            query['parent_slug'] = parent_slug
         else:
-            cms_data = self._download_json(
-                f'https://de-api.loma-cms.com/feloma/videos/{slug_b}/', slug_b, query={
-                    'filter[show.slug]': slug_a,
-                    'environment': 'tele5',
-                    'v': '2',
-                })
+            endpoint = f'videos/{slug_b}'
+            query['filter[show.slug]'] = slug_a
+        cms_data = self._download_json(f'https://de-api.loma-cms.com/feloma/{endpoint}/', playlist_id, query=query)
 
-        def entries():
-            for video_id in traverse_obj(cms_data, ('blocks', ..., 'videoId', {str})):
-                yield self._get_disco_api_info(
-                    url, video_id, 'eu1-prod.disco-api.com', 'dmaxde', 'DE')
-
-        return self.playlist_result(entries(), join_nonempty(parent_slug, slug_a, slug_b, delim='-'))
+        return self.playlist_result(map(
+            functools.partial(self._get_disco_api_info, url, disco_host='eu1-prod.disco-api.com', realm='dmaxde', country='DE'),
+            traverse_obj(cms_data, ('blocks', ..., 'videoId', {str}))), playlist_id)
 
     def _update_disco_api_headers(self, headers, disco_base, display_id, realm):
         headers.update({
