@@ -138,7 +138,7 @@ class JioCinemaBaseIE(InfoExtractor):
             self._fetch_guest_token()
             guest_token = jwt_decode_hs256(self._GUEST_TOKEN)
             initial_data = {
-                'number': f'{base64.b64encode(password.encode())}',
+                'number': f'{base64.b64encode(password.encode()).decode()}',
                 **self._APP_VERSION,
             }
             response = self._call_login_api('send', guest_token, initial_data, 'Requesting OTP')
