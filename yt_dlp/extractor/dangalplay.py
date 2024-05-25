@@ -12,7 +12,7 @@ from ..utils.traversal import traverse_obj
 class DangalPlayBaseIE(InfoExtractor):
     _NETRC_MACHINE = 'dangalplay'
     _OTV_USER_ID = None
-    _LOGIN_HINT = 'Login required. Pass credentials as -u "token" -p "USER_ID" where USER_ID is the `otv_user_id` in browser local storage'
+    _LOGIN_HINT = 'Pass credentials as -u "token" -p "USER_ID" where USER_ID is the `otv_user_id` in browser local storage'
     _API_BASE = 'https://ottapi.dangalplay.com'
     _AUTH_TOKEN = 'jqeGWxRKK7FK5zEk3xCM'  # from https://www.dangalplay.com/main.48ad19e24eb46acccef3.js
     _SECRET_KEY = 'f53d31a4377e4ef31fa0'  # same as above
@@ -26,7 +26,7 @@ class DangalPlayBaseIE(InfoExtractor):
 
     def _real_initialize(self):
         if not self._OTV_USER_ID:
-            self.raise_login_required(self._LOGIN_HINT, method=None)
+            self.raise_login_required(f'Login required. {self._LOGIN_HINT}', method=None)
 
     def _extract_episode_info(self, metadata, episode_slug, series_slug):
         return {
