@@ -162,7 +162,7 @@ class JioCinemaBaseIE(InfoExtractor):
         else:
             raise ExtractorError(
                 'Log in with "-u phone -p <PHONE_NUMBER>" to authenticate with OTP, '
-                'or use "-u token -p <ACCESS_TOKEN>" to login with the `accessToken` '
+                'or use "-u token -p <ACCESS_TOKEN>" to log in with the `accessToken` '
                 'from your browser local storage. If you have previously logged in with yt-dlp '
                 'and your session has been cached, you can use "-u device -p <DEVICE_ID>"', expected=True)
 
