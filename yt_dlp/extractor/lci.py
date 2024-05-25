@@ -1,5 +1,6 @@
 from .common import InfoExtractor
-
+from .wat import WatIE
+from ..utils import ExtractorError, int_or_none
 from ..utils.traversal import traverse_obj
 
 
