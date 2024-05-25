@@ -2,6 +2,8 @@ from .common import InfoExtractor
 from ..compat import compat_urlparse
 from ..utils import (
     ExtractorError,
+    clean_html,
+    get_element_by_class,
     parse_duration,
     parse_filesize,
     str_to_int,
@@ -88,27 +90,21 @@ class PiaproIE(InfoExtractor):
         if category_id not in ('1', '2', '21', '22', '23', '24', '25'):
             raise ExtractorError('The URL does not contain audio.', expected=True)
 
-        str_duration = self._search_regex(r'長さ：\s*(.+?)</p>', webpage, 'duration')
-        str_filesize = self._search_regex(r'サイズ：\s*([0-9.]+?[KMG]?B)', webpage, 'size')
-        str_viewcount = self._search_regex(r'閲覧数：\s*([0-9,]+)\s*</p>', webpage, 'view count', fatal=False)
-
-        uploader_id = self._search_regex(r'<div\s+class="contents_creator">\s*<a\s+href="/(.*)"', webpage, 'uploader_id')
-        uploader = self._search_regex(r'class="contents_creator_txt">(.*)</p', webpage, 'uploader')
-
-        create_date = self._search_regex(r'投稿日：\s*(.+)</p>', webpage, 'timestamp')
+        def extract_info(name, description):
+            return self._search_regex(rf'{name}[：:]\s*([\d\s,:/]+)\s*</p>', webpage, description, default=None)
 
         return {
             'id': video_id,
-            'title': self._html_search_regex(r'<h1\s+class="contents_title">(.+?)</h1>', webpage, 'title', fatal=False),
-            'description': self._html_search_regex(r'(?s)<div\s+class="contents_description">(.+?)</div>\s*<div', webpage, 'description', fatal=False),
-            'uploader': uploader,
-            'uploader_id': uploader_id,
-            'timestamp': unified_timestamp(create_date, False),
-            'duration': parse_duration(str_duration),
-            'view_count': str_to_int(str_viewcount),
+            'title': clean_html(get_element_by_class('contents_title', webpage)),
+            'description': clean_html(get_element_by_class('contents_description', webpage)),
+            'uploader': clean_html(get_element_by_class('contents_creator_txt', webpage)),
+            'uploader_id': self._search_regex(
+                r'<a\s+href="/([^"]+)"', get_element_by_class('contents_creator', webpage), 'uploader id', default=None),
+            'timestamp': unified_timestamp(extract_info('投稿日', 'timestamp'), False),
+            'duration': parse_duration(extract_info('長さ', 'duration')),
+            'view_count': str_to_int(extract_info('閲覧数', 'view count')),
             'thumbnail': self._html_search_meta('twitter:image', webpage),
-
-            'filesize_approx': parse_filesize(str_filesize.replace(',', '')),
+            'filesize_approx': parse_filesize((extract_info('サイズ', 'size') or '').replace(',', '')),
             'url': self._search_regex(r'\"url\":\s*\"(.*?)\"', webpage, 'url'),
             'ext': 'mp3',
             'vcodec': 'none',
