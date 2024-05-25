@@ -108,6 +108,7 @@ class JioCinemaBaseIE(InfoExtractor):
             return
 
         UUID_RE = r'[\da-f]{8}-(?:[\da-f]{4}-){3}[\da-f]{12}'
+        ACCESS_HINT = 'the `accessToken` from your browser local storage'
 
         if username.lower() == 'token':
             if try_call(lambda: jwt_decode_hs256(password)):
@@ -123,6 +124,9 @@ class JioCinemaBaseIE(InfoExtractor):
                     JioCinemaBaseIE._REFRESH_TOKEN = refresh_token
                 else:
                     self.report_warning(f'Invalid refresh_token value. Use {refresh_hint}')
+            else:
+                raise ExtractorError(
+                    f'The password given could not be decoded as a token; use {ACCESS_HINT}', expected=True)
 
         elif username.lower() == 'device' and re.fullmatch(rf'(?:{UUID_RE}|\d+)', password):
             JioCinemaBaseIE._REFRESH_TOKEN = self.cache.load(JioCinemaBaseIE._NETRC_MACHINE, f'{password}-refresh')
@@ -162,9 +166,9 @@ class JioCinemaBaseIE(InfoExtractor):
         else:
             raise ExtractorError(
                 'Log in with "-u phone -p <PHONE_NUMBER>" to authenticate with OTP, '
-                'or use "-u token -p <ACCESS_TOKEN>" to log in with the `accessToken` '
-                'from your browser local storage. If you have previously logged in with yt-dlp '
-                'and your session has been cached, you can use "-u device -p <DEVICE_ID>"', expected=True)
+                f'or use "-u token -p <ACCESS_TOKEN>" to log in with {ACCESS_HINT}. '
+                'If you have previously logged in with yt-dlp and your session '
+                'has been cached, you can use "-u device -p <DEVICE_ID>"', expected=True)
 
         user_token = jwt_decode_hs256(JioCinemaBaseIE._ACCESS_TOKEN)['data']
         JioCinemaBaseIE._USER_ID = user_token['userId']
