@@ -242,72 +242,54 @@ class YouPornListBase(InfoExtractor):
         return re.sub(r'[_-]', ' ', title_slug)
 
     def _entries(self, url, pl_id, html=None, page_num=None):
-        def yield_pages(url, html=html, page_num=page_num):
-            fatal = not html
-            for pnum in itertools.count(start=page_num or 1):
-                if not html:
-                    html = self._download_webpage(
-                        url, pl_id, note=f'Downloading page {pnum}', fatal=fatal)
-                if not html:
-                    break
-                fatal = False
-                yield (url, html, pnum)
-                # explicit page: extract just that page
-                if page_num is not None:
-                    break
-                next_url = self._get_next_url(url, pl_id, html)
-                if not next_url or next_url == url:
-                    break
-                url, html = next_url, None
-
-        def retry_page(msg, tries_left, page_data):
-            if tries_left <= 0:
-                return
-            self.report_warning(msg, pl_id)
-            self._sleep(self._PAGE_RETRY_DELAY, pl_id)
-            return next(
-                yield_pages(page_data[0], page_num=page_data[2]), None)
-
         def yield_entries(html):
             for element in get_elements_html_by_class('video-title', html):
                 if video_url := traverse_obj(element, ({extract_attributes}, 'href', {lambda x: urljoin(url, x)})):
                     yield self.url_result(video_url)
 
-        last_first_url = None
-        for page_data in yield_pages(url, html=html, page_num=page_num):
-            # page_data: url, html, page_num
-            first_url = None
-            tries_left = self._PAGE_RETRY_COUNT + 1
-            while tries_left > 0:
-                tries_left -= 1
-                for from_ in yield_entries(page_data[1]):
-                    # may get the same page twice instead of empty page
-                    # or (site bug) intead of actual next page
-                    if not first_url:
-                        first_url = from_['url']
-                        if first_url == last_first_url:
-                            # sometimes (/porntags/) the site serves the previous page
-                            # instead but may provide the correct page after a delay
-                            page_data = retry_page(
-                                'Retrying duplicate page...', tries_left, page_data)
-                            if page_data:
-                                first_url = None
-                                break
-                            continue
-                    yield from_
+        start = page_num or 1
+        retries = self._PAGE_RETRY_COUNT + 1
+
+        previous_first_url = None
+        for page in itertools.count(start):
+            for retry in range(1, retries + 2):
+                if not html:
+                    html = self._download_webpage(
+                        url, pl_id, note=f'Downloading page {page}', fatal=page == start)
+                if not html:
+                    return
+
+                entries = yield_entries(html)
+                first = next(entries, None)
+                if first is None:
+                    # XXX: if 'no-result-paragarph1' in page_data[1]:
+                    self.report_warning('Retrying empty page...', pl_id)
+
+                elif first['url'] == previous_first_url:
+                    # sometimes (/porntags/) the site serves the previous page
+                    # instead but may provide the correct page after a delay
+                    self.report_warning('Retrying duplicate page after a delay...', pl_id)
+
                 else:
-                    if not first_url and 'no-result-paragarph1' in page_data[1]:
-                        page_data = retry_page(
-                            'Retrying empty page...', tries_left, page_data)
-                        if page_data:
-                            continue
-                    else:
-                        # success/failure
-                        break
-            # may get an infinite (?) sequence of empty pages
-            if not first_url:
-                break
-            last_first_url = first_url
+                    previous_first_url = first['url']
+                    yield first
+                    yield from entries
+                    break
+
+                if retry <= retries:
+                    self._sleep(self._PAGE_RETRY_DELAY, pl_id)
+            else:
+                if retries:
+                    raise ExtractorError(f'Exceeded retries ({retries})', expected=False)
+                # TODO: this needs cleaner error handling logic
+
+            if page_num is not None:
+                return
+            next_url = self._get_next_url(url, pl_id, html)
+            if not next_url or next_url == url:
+                return
+            url = next_url
+            html = None
 
     def _real_extract(self, url, html=None):
         m_dict = self._match_valid_url(url).groupdict()
@@ -325,9 +307,9 @@ class YouPornListBase(InfoExtractor):
             title = f'{title} videos by {re.sub(r"[_-]", " ", sort)}'
             base_id.append(sort)
         if qs:
-            ps = ['%s=%s' % item for item in sorted(qs.items())]
-            title += f' ({",".join(ps)})'
-            base_id.extend(ps)
+            filters = list(map('='.join, sorted(qs.items())))
+            title += f' ({",".join(filters)})'
+            base_id.extend(filters)
         pl_id = '/'.join(base_id)
 
         return self.playlist_result(
