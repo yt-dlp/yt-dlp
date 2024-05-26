@@ -3388,7 +3388,7 @@ class InfoExtractor:
             r'''(?<!-)\bjwplayer\s*\(\s*(?P<q>'|")(?!(?P=q)).+(?P=q)\s*\)(?:(?!</script>).)*?\.\s*(?:setup\s*\(|(?P<load>load)\s*\(\s*\[)''',
             webpage, 'JWPlayer data', video_id,
             # must be a {...} or sequence, ending
-            contains_pattern=r'\{[\s\S]*}(?(load)(?:\s*,\s*\{[\s\S]*})*)', end_pattern=r'(?(load)\]|\))',
+            contains_pattern=r'\{(?s:.*)}(?(load)(?:\s*,\s*\{(?s:.*)})*)', end_pattern=r'(?(load)\]|\))',
             transform_source=transform_source, default=None)
 
     def _extract_jwplayer_data(self, webpage, video_id, *args, transform_source=js_to_json, **kwargs):
