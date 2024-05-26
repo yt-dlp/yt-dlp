@@ -163,5 +163,11 @@
         "when": "beaf832c7a9d57833f365ce18f6115b88071b296",
         "short": "[ie/soundcloud] Add `formats` extractor-arg (#10004)",
         "authors": ["bashonly", "Grub4K"]
+    },
+    {
+        "action": "change",
+        "when": "5c019f6328ad40d66561eac3c4de0b3cd070d0f6",
+        "short": "[cleanup] Misc (#9765)",
+        "authors": ["bashonly", "Grub4K", "seproDev"]
     }
 ]
