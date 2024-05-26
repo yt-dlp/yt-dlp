@@ -1013,7 +1013,7 @@ class NiconicoLiveIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage, urlh = self._download_webpage_handle(f'https://live.nicovideo.jp/watch/{video_id}', video_id)
-        headers = {'Origin': 'https://' + remove_start(urlparse(urlh.url).hostname, 'sp.')}
+        headers = {'Origin': 'https://' + remove_start(urllib.parse.urlparse(urlh.url).hostname, 'sp.')}
 
         embedded_data = self._parse_json(unescapeHTML(self._search_regex(
             r'<script\s+id="embedded-data"\s*data-props="(.+?)"', webpage, 'embedded data')), video_id)
