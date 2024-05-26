@@ -2,13 +2,7 @@ import json
 
 from .common import InfoExtractor
 from ..networking.exceptions import HTTPError
-from ..utils import (
-    ExtractorError,
-    GeoRestrictedError,
-    float_or_none,
-    traverse_obj,
-    try_call
-)
+from ..utils import ExtractorError, GeoRestrictedError, float_or_none, traverse_obj, try_call
 
 
 class OnDemandChinaEpisodeIE(InfoExtractor):

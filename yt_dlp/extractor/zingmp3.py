@@ -5,14 +5,7 @@ import json
 import urllib.parse
 
 from .common import InfoExtractor
-from ..utils import (
-    ExtractorError,
-    int_or_none,
-    join_nonempty,
-    try_call,
-    urljoin,
-    url_or_none
-)
+from ..utils import ExtractorError, int_or_none, join_nonempty, try_call, url_or_none, urljoin
 from ..utils.traversal import traverse_obj
 
 

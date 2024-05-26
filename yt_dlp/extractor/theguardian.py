@@ -10,7 +10,7 @@ from ..utils import (
     parse_qs,
     traverse_obj,
     unified_strdate,
-    urljoin
+    urljoin,
 )
 
 

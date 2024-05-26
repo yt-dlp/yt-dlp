@@ -1,8 +1,7 @@
 from .common import InfoExtractor
-
 from ..utils import (
-    parse_duration,
     js_to_json,
+    parse_duration,
 )
 
 

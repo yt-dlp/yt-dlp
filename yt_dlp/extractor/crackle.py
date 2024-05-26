@@ -6,6 +6,7 @@ import time
 from .common import InfoExtractor
 from ..networking.exceptions import HTTPError
 from ..utils import (
+    ExtractorError,
     determine_ext,
     float_or_none,
     int_or_none,
@@ -13,7 +14,6 @@ from ..utils import (
     parse_age_limit,
     parse_duration,
     url_or_none,
-    ExtractorError
 )
 
 

@@ -1,29 +1,27 @@
-import re
-import time
-import hmac
 import binascii
 import hashlib
+import hmac
+import re
+import time
 
-
-from .once import OnceIE
 from .adobepass import AdobePassIE
-from ..networking import Request
+from .once import OnceIE
+from ..networking import HEADRequest, Request
 from ..utils import (
-    determine_ext,
     ExtractorError,
+    determine_ext,
+    find_xpath_attr,
     float_or_none,
     int_or_none,
-    parse_qs,
-    unsmuggle_url,
-    update_url_query,
-    xpath_with_ns,
     mimetype2ext,
-    find_xpath_attr,
+    parse_qs,
     traverse_obj,
+    unsmuggle_url,
     update_url,
+    update_url_query,
     urlhandle_detect_ext,
+    xpath_with_ns,
 )
-from ..networking import HEADRequest
 
 default_ns = 'http://www.w3.org/2005/SMIL21/Language'
 _x = lambda p: xpath_with_ns(p, {'smil': default_ns})

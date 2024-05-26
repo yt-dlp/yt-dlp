@@ -194,7 +194,7 @@ select = [
     "E",  # pycodestyle errors
     "W",  # pycodestyle warnings
     "F",  # pyflakes
-    # "I",  # import order
+    "I",  # import order
 ]
 
 [tool.ruff.lint.per-file-ignores]

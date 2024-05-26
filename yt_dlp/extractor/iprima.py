@@ -2,14 +2,7 @@ import re
 import time
 
 from .common import InfoExtractor
-from ..utils import (
-    determine_ext,
-    js_to_json,
-    urlencode_postdata,
-    ExtractorError,
-    parse_qs,
-    traverse_obj
-)
+from ..utils import ExtractorError, determine_ext, js_to_json, parse_qs, traverse_obj, urlencode_postdata
 
 
 class IPrimaIE(InfoExtractor):
