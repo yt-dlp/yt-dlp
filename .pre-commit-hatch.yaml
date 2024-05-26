@@ -6,3 +6,4 @@ repos:
     entry: hatch fmt
     language: system
     types: [python]
+    require_serial: true

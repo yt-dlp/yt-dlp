@@ -195,6 +195,7 @@ select = [
 
 [tool.ruff.lint.per-file-ignores]
 "devscripts/lazy_load_template.py" = ["F401"]
+"!yt_dlp/extractor/**.py" = ["I"]
 
 [tool.ruff.lint.isort]
 known-first-party = [

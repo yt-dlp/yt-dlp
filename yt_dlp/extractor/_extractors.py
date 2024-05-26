@@ -1,4 +1,5 @@
 # flake8: noqa: F401
+# isort: off
 
 from .youtube import (  # Youtube is moved to the top to improve performance
     YoutubeIE,
@@ -23,6 +24,8 @@ from .youtube import (  # Youtube is moved to the top to improve performance
     YoutubeShortsAudioPivotIE,
     YoutubeConsentRedirectIE,
 )
+
+# isort: on
 
 from .abc import (
     ABCIE,

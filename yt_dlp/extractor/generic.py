@@ -4,7 +4,7 @@ import types
 import urllib.parse
 import xml.etree.ElementTree
 
-from .common import InfoExtractor  # isort: split
+from .common import InfoExtractor
 from .commonprotocols import RtmpIE
 from .youtube import YoutubeIE
 from ..compat import compat_etree_fromstring

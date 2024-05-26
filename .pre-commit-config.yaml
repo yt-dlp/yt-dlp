@@ -6,6 +6,7 @@ repos:
     entry: ruff check --fix .
     language: system
     types: [python]
+    require_serial: true
   - id: format
     name: Apply formatting fixes
     entry: autopep8 --in-place .
