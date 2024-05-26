@@ -74,11 +74,11 @@ codetest:
 	autopep8 --diff .
 
 test:
-	$(PYTHON) -m pytest
+	$(PYTHON) -m pytest -Werror
 	$(MAKE) codetest
 
 offlinetest: codetest
-	$(PYTHON) -m pytest -k "not download"
+	$(PYTHON) -m pytest -Werror -m "not download"
 
 CODE_FOLDERS_CMD = find yt_dlp -type f -name '__init__.py' | sed 's,/__init__.py,,' | grep -v '/__' | sort
 CODE_FOLDERS != $(CODE_FOLDERS_CMD)
