@@ -308,6 +308,7 @@ from .businessinsider import BusinessInsiderIE
 from .buzzfeed import BuzzFeedIE
 from .byutv import BYUtvIE
 from .c56 import C56IE
+from .caffeinetv import CaffeineTVIE
 from .callin import CallinIE
 from .caltrans import CaltransIE
 from .cam4 import CAM4IE
@@ -720,6 +721,7 @@ from .gamespot import GameSpotIE
 from .gamestar import GameStarIE
 from .gaskrank import GaskrankIE
 from .gazeta import GazetaIE
+from .gbnews import GBNewsIE
 from .gdcvault import GDCVaultIE
 from .gedidigital import GediDigitalIE
 from .generic import GenericIE
@@ -2501,7 +2503,15 @@ from .younow import (
     YouNowLiveIE,
     YouNowMomentIE,
 )
-from .youporn import YouPornIE
+from .youporn import (
+    YouPornCategoryIE,
+    YouPornChannelIE,
+    YouPornCollectionIE,
+    YouPornIE,
+    YouPornStarIE,
+    YouPornTagIE,
+    YouPornVideosIE,
+)
 from .zaiko import (
     ZaikoETicketIE,
     ZaikoIE,
