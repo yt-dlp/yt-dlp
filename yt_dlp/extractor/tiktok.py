@@ -1162,7 +1162,7 @@ class TikTokCollectionIE(TikTokBaseIE):
                 webpage_url = self._create_url(author, video_id)
                 yield self.url_result(
                     webpage_url, TikTokIE,
-                    **self._parse_aweme_video_web(video, webpage_url, video_id))  # XXX: Before merge: extract_flat=True
+                    **self._parse_aweme_video_web(video, webpage_url, video_id, extract_flat=True))
 
             if not traverse_obj(response, 'hasMore'):
                 break
