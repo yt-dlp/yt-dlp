@@ -1124,7 +1124,8 @@ class TikTokCollectionIE(TikTokBaseIE):
 
             for video in traverse_obj(response, ('itemList', lambda _, v: v['id'])):
                 video_id = video['id']
-                webpage_url = self._create_url('_', video_id)
+                author = traverse_obj(video, ('author', ('uniqueId', 'secUid', 'id'), {str}, any)) or '_'
+                webpage_url = self._create_url(author, video_id)
                 yield self.url_result(
                     webpage_url, TikTokIE,
                     **self._parse_aweme_video_web(video, webpage_url, video_id))  # XXX: Before merge: extract_flat=True
