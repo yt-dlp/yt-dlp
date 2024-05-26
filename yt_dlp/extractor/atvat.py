@@ -1,4 +1,4 @@
-import datetime
+import datetime as dt
 
 from .common import InfoExtractor
 from ..utils import (
@@ -71,9 +71,9 @@ class ATVAtIE(InfoExtractor):
         content_ids = [{'id': id, 'subclip_start': content['start'], 'subclip_end': content['end']}
                        for id, content in enumerate(contentResource)]
 
-        time_of_request = datetime.datetime.now()
-        not_before = time_of_request - datetime.timedelta(minutes=5)
-        expire = time_of_request + datetime.timedelta(minutes=5)
+        time_of_request = dt.datetime.now()
+        not_before = time_of_request - dt.timedelta(minutes=5)
+        expire = time_of_request + dt.timedelta(minutes=5)
         payload = {
             'content_ids': {
                 content_id: content_ids,

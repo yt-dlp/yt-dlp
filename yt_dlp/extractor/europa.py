@@ -94,13 +94,14 @@ class EuropaIE(InfoExtractor):
 
 class EuroParlWebstreamIE(InfoExtractor):
     _VALID_URL = r'''(?x)
-        https?://multimedia\.europarl\.europa\.eu/[^/#?]+/
-        (?:(?!video)[^/#?]+/[\w-]+_)(?P<id>[\w-]+)
+        https?://multimedia\.europarl\.europa\.eu/
+        (?:\w+/)?webstreaming/(?:[\w-]+_)?(?P<id>[\w-]+)
     '''
     _TESTS = [{
         'url': 'https://multimedia.europarl.europa.eu/pl/webstreaming/plenary-session_20220914-0900-PLENARY',
         'info_dict': {
             'id': '62388b15-d85b-4add-99aa-ba12ccf64f0d',
+            'display_id': '20220914-0900-PLENARY',
             'ext': 'mp4',
             'title': 'Plenary session',
             'release_timestamp': 1663139069,
@@ -125,6 +126,7 @@ class EuroParlWebstreamIE(InfoExtractor):
         'url': 'https://multimedia.europarl.europa.eu/en/webstreaming/committee-on-culture-and-education_20230301-1130-COMMITTEE-CULT',
         'info_dict': {
             'id': '7355662c-8eac-445e-4bb9-08db14b0ddd7',
+            'display_id': '20230301-1130-COMMITTEE-CULT',
             'ext': 'mp4',
             'release_date': '20230301',
             'title': 'Committee on Culture and Education',
@@ -142,6 +144,19 @@ class EuroParlWebstreamIE(InfoExtractor):
             'live_status': 'is_live',
         },
         'skip': 'Not live anymore'
+    }, {
+        'url': 'https://multimedia.europarl.europa.eu/en/webstreaming/20240320-1345-SPECIAL-PRESSER',
+        'info_dict': {
+            'id': 'c1f11567-5b52-470a-f3e1-08dc3c216ace',
+            'display_id': '20240320-1345-SPECIAL-PRESSER',
+            'ext': 'mp4',
+            'release_date': '20240320',
+            'title': 'md5:7c6c814cac55dea5e2d87bf8d3db2234',
+            'release_timestamp': 1710939767,
+        }
+    }, {
+        'url': 'https://multimedia.europarl.europa.eu/webstreaming/briefing-for-media-on-2024-european-elections_20240429-1000-SPECIAL-OTHER',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
@@ -166,6 +181,7 @@ class EuroParlWebstreamIE(InfoExtractor):
 
         return {
             'id': json_info['id'],
+            'display_id': display_id,
             'title': traverse_obj(webpage_nextjs, (('mediaItem', 'title'), ('title', )), get_all=False),
             'formats': formats,
             'subtitles': subtitles,

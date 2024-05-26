@@ -516,6 +516,18 @@ def create_parser():
         help='Client-side IP address to bind to',
     )
     network.add_option(
+        '--impersonate',
+        metavar='CLIENT[:OS]', dest='impersonate', default=None,
+        help=(
+            'Client to impersonate for requests. E.g. chrome, chrome-110, chrome:windows-10. '
+            'Pass --impersonate="" to impersonate any client.'),
+    )
+    network.add_option(
+        '--list-impersonate-targets',
+        dest='list_impersonate_targets', default=False, action='store_true',
+        help='List available clients to impersonate.',
+    )
+    network.add_option(
         '-4', '--force-ipv4',
         action='store_const', const='0.0.0.0', dest='source_address',
         help='Make all connections via IPv4',
@@ -679,6 +691,10 @@ def create_parser():
         '--break-on-existing',
         action='store_true', dest='break_on_existing', default=False,
         help='Stop the download process when encountering a file that is in the archive')
+    selection.add_option(
+        '--no-break-on-existing',
+        action='store_false', dest='break_on_existing',
+        help='Do not stop the download process when encountering a file that is in the archive (default)')
     selection.add_option(
         '--break-on-reject',
         action='store_true', dest='break_on_reject', default=False,
@@ -1242,6 +1258,10 @@ def create_parser():
             'the progress attributes are accessible under "progress" key. E.g. '
             # TODO: Document the fields inside "progress"
             '--console-title --progress-template "download-title:%(info.id)s-%(progress.eta)s"'))
+    verbosity.add_option(
+        '--progress-delta',
+        metavar='SECONDS', action='store', dest='progress_delta', type=float, default=0,
+        help='Time between progress output (default: 0)')
     verbosity.add_option(
         '-v', '--verbose',
         action='store_true', dest='verbose', default=False,

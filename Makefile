@@ -2,7 +2,7 @@ all: lazy-extractors yt-dlp doc pypi-files
 clean: clean-test clean-dist
 clean-all: clean clean-cache
 completions: completion-bash completion-fish completion-zsh
-doc: README.md CONTRIBUTING.md issuetemplates supportedsites
+doc: README.md CONTRIBUTING.md CONTRIBUTORS issuetemplates supportedsites
 ot: offlinetest
 tar: yt-dlp.tar.gz
 
@@ -10,9 +10,12 @@ tar: yt-dlp.tar.gz
 # intended use: when building a source distribution,
 # make pypi-files && python3 -m build -sn .
 pypi-files: AUTHORS Changelog.md LICENSE README.md README.txt supportedsites \
-	        completions yt-dlp.1 pyproject.toml setup.cfg devscripts/* test/*
+            completions yt-dlp.1 pyproject.toml setup.cfg devscripts/* test/*
 
-.PHONY: all clean install test tar pypi-files completions ot offlinetest codetest supportedsites
+.PHONY: all clean clean-all clean-test clean-dist clean-cache \
+        completions completion-bash completion-fish completion-zsh \
+        doc issuetemplates supportedsites ot offlinetest codetest test \
+        tar pypi-files lazy-extractors install uninstall
 
 clean-test:
 	rm -rf test/testdata/sigs/player-*.js tmp/ *.annotations.xml *.aria2 *.description *.dump *.frag \
@@ -156,5 +159,14 @@ yt-dlp.tar.gz: all
 		Makefile yt-dlp.1 README.txt completions .gitignore \
 		setup.cfg yt-dlp yt_dlp pyproject.toml devscripts test
 
-AUTHORS:
-	git shortlog -s -n HEAD | cut -f2 | sort > AUTHORS
+AUTHORS: Changelog.md
+	@if [ -d '.git' ] && command -v git > /dev/null ; then \
+	  echo 'Generating $@ from git commit history' ; \
+	  git shortlog -s -n HEAD | cut -f2 | sort > $@ ; \
+	fi
+
+CONTRIBUTORS: Changelog.md
+	@if [ -d '.git' ] && command -v git > /dev/null ; then \
+	  echo 'Updating $@ from git commit history' ; \
+	  $(PYTHON) devscripts/make_changelog.py -v -c > /dev/null ; \
+	fi

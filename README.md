@@ -17,7 +17,7 @@
 </div>
 <!-- MANPAGE: END EXCLUDED SECTION -->
 
-yt-dlp is a [youtube-dl](https://github.com/ytdl-org/youtube-dl) fork based on the now inactive [youtube-dlc](https://github.com/blackjack4494/yt-dlc). The main focus of this project is adding new features and patches while also keeping up to date with the original project
+yt-dlp is a feature-rich command-line audio/video downloader with support for [thousands of sites](supportedsites.md). The project is a fork of [youtube-dl](https://github.com/ytdl-org/youtube-dl) based on the now inactive [youtube-dlc](https://github.com/blackjack4494/yt-dlc).
 
 <!-- MANPAGE: MOVE "USAGE AND OPTIONS" SECTION HERE -->
 
@@ -158,6 +158,7 @@ When using `--update`/`-U`, a release binary will only update to its current cha
 You may also use `--update-to <repository>` (`<owner>/<repository>`) to update to a channel on a completely different repository. Be careful with what repository you are updating to though, there is no verification done for binaries from different repositories.
 
 Example usage:
+
 * `yt-dlp --update-to master` switch to the `master` channel and update to its latest release
 * `yt-dlp --update-to stable@2023.07.06` upgrade/downgrade to release to `stable` channel tag `2023.07.06`
 * `yt-dlp --update-to 2023.10.07` upgrade/downgrade to tag `2023.10.07` if it exists on the current channel
@@ -195,6 +196,15 @@ While all the other dependencies are optional, `ffmpeg` and `ffprobe` are highly
 * [**brotli**](https://github.com/google/brotli)\* or [**brotlicffi**](https://github.com/python-hyper/brotlicffi) - [Brotli](https://en.wikipedia.org/wiki/Brotli) content encoding support. Both licensed under MIT <sup>[1](https://github.com/google/brotli/blob/master/LICENSE) [2](https://github.com/python-hyper/brotlicffi/blob/master/LICENSE) </sup>
 * [**websockets**](https://github.com/aaugustin/websockets)\* - For downloading over websocket. Licensed under [BSD-3-Clause](https://github.com/aaugustin/websockets/blob/main/LICENSE)
 * [**requests**](https://github.com/psf/requests)\* - HTTP library. For HTTPS proxy and persistent connections support. Licensed under [Apache-2.0](https://github.com/psf/requests/blob/main/LICENSE)
+
+#### Impersonation
+
+The following provide support for impersonating browser requests. This may be required for some sites that employ TLS fingerprinting. 
+
+* [**curl_cffi**](https://github.com/yifeikong/curl_cffi) (recommended) - Python binding for [curl-impersonate](https://github.com/lwthiker/curl-impersonate). Provides impersonation targets for Chrome, Edge and Safari. Licensed under [MIT](https://github.com/yifeikong/curl_cffi/blob/main/LICENSE)
+  * Can be installed with the `curl-cffi` group, e.g. `pip install yt-dlp[default,curl-cffi]`
+  * Currently only included in `yt-dlp.exe` and `yt-dlp_macos` builds
+
 
 ### Metadata
 
@@ -253,7 +263,7 @@ You can also run `make yt-dlp` instead to compile only the binary without updati
 
 ### Standalone Py2Exe Builds (Windows)
 
-While we provide the option to build with [py2exe](https://www.py2exe.org), it is recommended to build [using PyInstaller](#standalone-pyinstaller-builds) instead since the py2exe builds **cannot contain `pycryptodomex`/`certifi` and needs VC++14** on the target computer to run.
+While we provide the option to build with [py2exe](https://www.py2exe.org), it is recommended to build [using PyInstaller](#standalone-pyinstaller-builds) instead since the py2exe builds **cannot contain `pycryptodomex`/`certifi` and need VC++14** on the target computer to run.
 
 If you wish to build it anyway, install Python (if it is not already installed) and you can run the following commands:
 
@@ -389,6 +399,10 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
                                     direct connection
     --socket-timeout SECONDS        Time to wait before giving up, in seconds
     --source-address IP             Client-side IP address to bind to
+    --impersonate CLIENT[:OS]       Client to impersonate for requests. E.g.
+                                    chrome, chrome-110, chrome:windows-10. Pass
+                                    --impersonate="" to impersonate any client.
+    --list-impersonate-targets      List available clients to impersonate.
     -4, --force-ipv4                Make all connections via IPv4
     -6, --force-ipv6                Make all connections via IPv6
     --enable-file-urls              Enable file:// URLs. This is disabled by
@@ -468,6 +482,9 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
     --max-downloads NUMBER          Abort after downloading NUMBER files
     --break-on-existing             Stop the download process when encountering
                                     a file that is in the archive
+    --no-break-on-existing          Do not stop the download process when
+                                    encountering a file that is in the archive
+                                    (default)
     --break-per-input               Alters --max-downloads, --break-on-existing,
                                     --break-match-filter, and autonumber to
                                     reset per input URL
@@ -649,7 +666,7 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
                                     The name of the browser to load cookies
                                     from. Currently supported browsers are:
                                     brave, chrome, chromium, edge, firefox,
-                                    opera, safari, vivaldi. Optionally, the
+                                    opera, safari, vivaldi, whale. Optionally, the
                                     KEYRING used for decrypting Chromium cookies
                                     on Linux, the name/path of the PROFILE to
                                     load cookies from, and the CONTAINER name
@@ -741,6 +758,7 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
                                     accessible under "progress" key. E.g.
                                     --console-title --progress-template
                                     "download-title:%(info.id)s-%(progress.eta)s"
+    --progress-delta SECONDS        Time between progress output (default: 0)
     -v, --verbose                   Print various debugging information
     --dump-pages                    Print downloaded pages encoded using base64
                                     to debug problems (very verbose)
@@ -1459,9 +1477,9 @@ The following numeric meta fields can be used with comparisons `<`, `<=`, `>`, `
  - `width`: Width of the video, if known
  - `height`: Height of the video, if known
  - `aspect_ratio`: Aspect ratio of the video, if known
- - `tbr`: Average bitrate of audio and video in KBit/s
- - `abr`: Average audio bitrate in KBit/s
- - `vbr`: Average video bitrate in KBit/s
+ - `tbr`: Average bitrate of audio and video in [kbps](## "1000 bits/sec")
+ - `abr`: Average audio bitrate in [kbps](## "1000 bits/sec")
+ - `vbr`: Average video bitrate in [kbps](## "1000 bits/sec")
  - `asr`: Audio sampling rate in Hertz
  - `fps`: Frame rate
  - `audio_channels`: The number of audio channels
@@ -1486,7 +1504,7 @@ Any string comparison may be prefixed with negation `!` in order to produce an o
 
 **Note**: None of the aforementioned meta fields are guaranteed to be present since this solely depends on the metadata obtained by particular extractor, i.e. the metadata offered by the website. Any other field made available by the extractor can also be used for filtering.
 
-Formats for which the value is not known are excluded unless you put a question mark (`?`) after the operator. You can combine format filters, so `-f "bv[height<=?720][tbr>500]"` selects up to 720p videos (or videos where the height is not known) with a bitrate of at least 500 KBit/s. You can also use the filters with `all` to download all formats that satisfy the filter, e.g. `-f "all[vcodec=none]"` selects all audio-only formats.
+Formats for which the value is not known are excluded unless you put a question mark (`?`) after the operator. You can combine format filters, so `-f "bv[height<=?720][tbr>500]"` selects up to 720p videos (or videos where the height is not known) with a bitrate of at least 500 kbps. You can also use the filters with `all` to download all formats that satisfy the filter, e.g. `-f "all[vcodec=none]"` selects all audio-only formats.
 
 Format selectors can also be grouped using parentheses; e.g. `-f "(mp4,webm)[height<480]"` will download the best pre-merged mp4 and webm formats with a height lower than 480.
 
@@ -1518,10 +1536,10 @@ The available fields are:
  - `fps`: Framerate of video
  - `hdr`: The dynamic range of the video (`DV` > `HDR12` > `HDR10+` > `HDR10` > `HLG` > `SDR`)
  - `channels`: The number of audio channels
- - `tbr`: Total average bitrate in KBit/s
- - `vbr`: Average video bitrate in KBit/s
- - `abr`: Average audio bitrate in KBit/s
- - `br`: Average bitrate in KBit/s, `tbr`/`vbr`/`abr`
+ - `tbr`: Total average bitrate in [kbps](## "1000 bits/sec")
+ - `vbr`: Average video bitrate in [kbps](## "1000 bits/sec")
+ - `abr`: Average audio bitrate in [kbps](## "1000 bits/sec")
+ - `br`: Average bitrate in [kbps](## "1000 bits/sec"), `tbr`/`vbr`/`abr`
  - `asr`: Audio sample rate in Hz
  
 **Deprecation warning**: Many of these fields have (currently undocumented) aliases, that may be removed in a future version. It is recommended to use only the documented field names.
@@ -1742,7 +1760,7 @@ The following extractors use this feature:
 #### youtube
 * `lang`: Prefer translated metadata (`title`, `description` etc) of this language code (case-sensitive). By default, the video primary language metadata is preferred, with a fallback to `en` translated. See [youtube.py](https://github.com/yt-dlp/yt-dlp/blob/c26f9b991a0681fd3ea548d535919cec1fbbd430/yt_dlp/extractor/youtube.py#L381-L390) for list of supported content language codes
 * `skip`: One or more of `hls`, `dash` or `translated_subs` to skip extraction of the m3u8 manifests, dash manifests and [auto-translated subtitles](https://github.com/yt-dlp/yt-dlp/issues/4090#issuecomment-1158102032) respectively
-* `player_client`: Clients to extract video data from. The main clients are `web`, `android` and `ios` with variants `_music`, `_embedded`, `_embedscreen`, `_creator` (e.g. `web_embedded`); and `mweb`, `mweb_embedscreen` and `tv_embedded` (agegate bypass) with no variants. By default, `ios,android,web` is used, but `tv_embedded` and `creator` variants are added as required for age-gated videos. Similarly, the music variants are added for `music.youtube.com` urls. You can use `all` to use all the clients, and `default` for the default clients.
+* `player_client`: Clients to extract video data from. The main clients are `web`, `ios` and `android`, with variants `_music`, `_embedded`, `_embedscreen`, `_creator` (e.g. `web_embedded`); and `mweb`, `mweb_embedscreen` and `tv_embedded` (agegate bypass) with no variants. By default, `ios,web` is used, but `tv_embedded` and `creator` variants are added as required for age-gated videos. Similarly, the music variants are added for `music.youtube.com` urls. The `android` clients will always be given lowest priority since their formats are broken. You can use `all` to use all the clients, and `default` for the default clients.
 * `player_skip`: Skip some network requests that are generally needed for robust extraction. One or more of `configs` (skip client configs), `webpage` (skip initial webpage), `js` (skip js player). While these options can help reduce the number of requests needed or avoid some rate-limiting, they could cause some issues. See [#860](https://github.com/yt-dlp/yt-dlp/pull/860) for more details
 * `player_params`: YouTube player parameters to use for player requests. Will overwrite any default ones set by yt-dlp.
 * `comment_sort`: `top` or `new` (default) - choose comment sorting mode (on YouTube's side)
@@ -1768,8 +1786,7 @@ The following extractors use this feature:
 * `version`: The video version to extract - `uncut` or `simulcast`
 
 #### crunchyrollbeta (Crunchyroll)
-* `format`: Which stream type(s) to extract (default: `adaptive_hls`). Potentially useful values include `adaptive_hls`, `adaptive_dash`, `vo_adaptive_hls`, `vo_adaptive_dash`, `download_hls`, `download_dash`, `multitrack_adaptive_hls_v2`
-* `hardsub`: Preference order for which hardsub versions to extract, or `all` (default: `None` = no hardsubs), e.g. `crunchyrollbeta:hardsub=en-US,None`
+* `hardsub`: One or more hardsub versions to extract (in order of preference), or `all` (default: `None` = no hardsubs will be extracted), e.g. `crunchyrollbeta:hardsub=en-US,de-DE`
 
 #### vikichannel
 * `video_types`: Types of videos to download - one or more of `episodes`, `movies`, `clips`, `trailers`
@@ -1792,9 +1809,13 @@ The following extractors use this feature:
 * `max_comments`: Maximum number of comments to extract - default is `120`
 
 #### tiktok
-* `api_hostname`: Hostname to use for mobile API requests, e.g. `api-h2.tiktokv.com`
-* `app_version`: App version to call mobile APIs with - should be set along with `manifest_app_version`, e.g. `20.2.1`
-* `manifest_app_version`: Numeric app version to call mobile APIs with, e.g. `221`
+* `api_hostname`: Hostname to use for mobile API calls, e.g. `api22-normal-c-alisg.tiktokv.com`
+* `app_name`: Default app name to use with mobile API calls, e.g. `trill`
+* `app_version`: Default app version to use with mobile API calls - should be set along with `manifest_app_version`, e.g. `34.1.2`
+* `manifest_app_version`: Default numeric app version to use with mobile API calls, e.g. `2023401020`
+* `aid`: Default app ID to use with mobile API calls, e.g. `1180`
+* `app_info`: Enable mobile API extraction with one or more app info strings in the format of `<iid>/[app_name]/[app_version]/[manifest_app_version]/[aid]`, where `iid` is the unique app install ID. `iid` is the only required value; all other values and their `/` separators can be omitted, e.g. `tiktok:app_info=1234567890123456789` or `tiktok:app_info=123,456/trill///1180,789//34.0.1/340001`
+* `device_id`: Enable mobile API extraction with a genuine device ID to be used with mobile API calls. Default is a random 19-digit string
 
 #### rokfinchannel
 * `tab`: Which tab to download - one of `new`, `top`, `videos`, `podcasts`, `streams`, `stacks`
@@ -1814,8 +1835,17 @@ The following extractors use this feature:
 #### nflplusreplay
 * `type`: Type(s) of game replays to extract. Valid types are: `full_game`, `full_game_spanish`, `condensed_game` and `all_22`. You can use `all` to extract all available replay types, which is the default
 
+#### jiocinema
+* `refresh_token`: The `refreshToken` UUID from browser local storage can be passed to extend the life of your login session when logging in with `token` as username and the `accessToken` from browser local storage as password
+
 #### jiosaavn
 * `bitrate`: Audio bitrates to request. One or more of `16`, `32`, `64`, `128`, `320`. Default is `128,320`
+
+#### afreecatvlive
+* `cdn`: One or more CDN IDs to use with the API call for stream URLs, e.g. `gcp_cdn`, `gs_cdn_pc_app`, `gs_cdn_mobile_web`, `gs_cdn_pc_web`
+
+#### soundcloud
+* `formats`: Formats to request from the API. Requested values should be in the format of `{protocol}_{extension}` (omitting the bitrate), e.g. `hls_opus,http_aac`. The `*` character functions as a wildcard, e.g. `*_mp3`, and can passed by itself to request all formats. Known protocols include `http`, `hls` and `hls-aes`; known extensions include `aac`, `opus` and `mp3`. Original `download` formats are always extracted. Default is `http_aac,hls_aac,http_opus,hls_opus,http_mp3,hls_mp3`
 
 **Note**: These options may be changed/removed in the future without concern for backward compatibility
 
@@ -1874,6 +1904,7 @@ Plugins can be installed using various methods and locations.
 
 
 `.zip`, `.egg` and `.whl` archives containing a `yt_dlp_plugins` namespace folder in their root are also supported as plugin packages.
+
 * e.g. `${XDG_CONFIG_HOME}/yt-dlp/plugins/mypluginpkg.zip` where `mypluginpkg.zip` contains `yt_dlp_plugins/<type>/myplugin.py`
 
 Run yt-dlp with `--verbose` to check if the plugin has been loaded.
