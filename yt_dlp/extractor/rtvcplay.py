@@ -1,7 +1,8 @@
 import re
 
-from .common import ExtractorError, InfoExtractor
+from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
     clean_html,
     determine_ext,
     float_or_none,
