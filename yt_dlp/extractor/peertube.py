@@ -4,6 +4,7 @@ import re
 from .common import InfoExtractor
 from ..compat import compat_str
 from ..utils import (
+    OnDemandPagedList,
     format_field,
     int_or_none,
     parse_resolution,
@@ -12,7 +13,6 @@ from ..utils import (
     unified_timestamp,
     url_or_none,
     urljoin,
-    OnDemandPagedList,
 )
 
 

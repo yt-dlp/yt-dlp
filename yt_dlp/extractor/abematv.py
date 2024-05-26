@@ -12,20 +12,21 @@ import urllib.parse
 import urllib.request
 import urllib.response
 import uuid
-from ..utils.networking import clean_proxies
+
 from .common import InfoExtractor
 from ..aes import aes_ecb_decrypt
 from ..utils import (
     ExtractorError,
+    OnDemandPagedList,
     bytes_to_intlist,
     decode_base_n,
     int_or_none,
     intlist_to_bytes,
-    OnDemandPagedList,
     time_seconds,
     traverse_obj,
     update_url_query,
 )
+from ..utils.networking import clean_proxies
 
 
 def add_opener(ydl, handler):  # FIXME: Create proper API in .networking

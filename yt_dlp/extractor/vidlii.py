@@ -3,8 +3,8 @@ import re
 from .common import InfoExtractor
 from ..networking import HEADRequest
 from ..utils import (
-    format_field,
     float_or_none,
+    format_field,
     get_element_by_id,
     int_or_none,
     str_to_int,

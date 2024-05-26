@@ -10,8 +10,8 @@ from ..utils import (
     int_or_none,
     join_nonempty,
     try_call,
+    url_or_none,
     urljoin,
-    url_or_none
 )
 from ..utils.traversal import traverse_obj
 

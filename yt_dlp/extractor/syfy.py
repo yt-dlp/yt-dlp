@@ -1,7 +1,7 @@
 from .adobepass import AdobePassIE
 from ..utils import (
-    update_url_query,
     smuggle_url,
+    update_url_query,
 )
 
 

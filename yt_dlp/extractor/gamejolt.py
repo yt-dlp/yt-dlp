@@ -10,7 +10,7 @@ from ..utils import (
     int_or_none,
     str_or_none,
     traverse_obj,
-    try_get
+    try_get,
 )
 
 

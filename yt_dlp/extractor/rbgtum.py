@@ -1,7 +1,7 @@
 import re
 
 from .common import InfoExtractor
-from ..utils import parse_qs, remove_start, traverse_obj, ExtractorError
+from ..utils import ExtractorError, parse_qs, remove_start, traverse_obj
 
 
 class RbgTumIE(InfoExtractor):

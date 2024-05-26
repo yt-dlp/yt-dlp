@@ -93,6 +93,7 @@ if urllib3:
 
         This allows us to chain multiple TLS connections.
         """
+
         def __init__(self, socket, ssl_context, server_hostname=None, suppress_ragged_eofs=True, server_side=False):
             self.incoming = ssl.MemoryBIO()
             self.outgoing = ssl.MemoryBIO()
