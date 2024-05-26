@@ -2504,10 +2504,10 @@ from .younow import (
     YouNowMomentIE,
 )
 from .youporn import (
-    YouPornIE,
     YouPornCategoryIE,
     YouPornChannelIE,
     YouPornCollectionIE,
+    YouPornIE,
     YouPornStarIE,
     YouPornTagIE,
     YouPornVideosIE,
