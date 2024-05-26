@@ -1,10 +1,14 @@
 import re
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_urlparse,
+from ..compat import compat_urlparse
+from ..utils import (
+    ExtractorError,
+    clean_html,
+    int_or_none,
+    urlencode_postdata,
+    urljoin,
 )
-from ..utils import ExtractorError, clean_html, int_or_none, urlencode_postdata, urljoin
 
 
 class AluraIE(InfoExtractor):

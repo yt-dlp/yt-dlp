@@ -1,5 +1,10 @@
 from .common import InfoExtractor
-from ..utils import ExtractorError, UserNotLive, lowercase_escape, traverse_obj
+from ..utils import (
+    ExtractorError,
+    UserNotLive,
+    lowercase_escape,
+    traverse_obj,
+)
 
 
 class StripchatIE(InfoExtractor):

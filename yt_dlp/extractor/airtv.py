@@ -1,6 +1,12 @@
 from .common import InfoExtractor
 from .youtube import YoutubeIE
-from ..utils import determine_ext, int_or_none, mimetype2ext, parse_iso8601, traverse_obj
+from ..utils import (
+    determine_ext,
+    int_or_none,
+    mimetype2ext,
+    parse_iso8601,
+    traverse_obj,
+)
 
 
 class AirTVIE(InfoExtractor):

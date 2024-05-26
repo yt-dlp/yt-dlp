@@ -4,7 +4,14 @@ import math
 
 from .common import InfoExtractor
 from ..compat import compat_urllib_parse_unquote
-from ..utils import determine_ext, format_field, int_or_none, str_or_none, traverse_obj, try_get
+from ..utils import (
+    determine_ext,
+    format_field,
+    int_or_none,
+    str_or_none,
+    traverse_obj,
+    try_get,
+)
 
 
 class GameJoltBaseIE(InfoExtractor):

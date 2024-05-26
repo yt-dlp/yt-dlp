@@ -2,7 +2,12 @@ import json
 import re
 
 from .common import InfoExtractor
-from ..utils import classproperty, int_or_none, traverse_obj, urljoin
+from ..utils import (
+    classproperty,
+    int_or_none,
+    traverse_obj,
+    urljoin,
+)
 
 
 class BrainPOPBaseIE(InfoExtractor):

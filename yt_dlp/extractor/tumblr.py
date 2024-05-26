@@ -1,5 +1,10 @@
 from .common import InfoExtractor
-from ..utils import ExtractorError, int_or_none, traverse_obj, urlencode_postdata
+from ..utils import (
+    ExtractorError,
+    int_or_none,
+    traverse_obj,
+    urlencode_postdata,
+)
 
 
 class TumblrIE(InfoExtractor):

@@ -1,5 +1,11 @@
 from .common import InfoExtractor
-from ..utils import ExtractorError, determine_ext, str_or_none, unified_timestamp, url_or_none
+from ..utils import (
+    ExtractorError,
+    determine_ext,
+    str_or_none,
+    unified_timestamp,
+    url_or_none,
+)
 from ..utils.traversal import traverse_obj
 
 
