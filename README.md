@@ -1835,6 +1835,9 @@ The following extractors use this feature:
 #### nflplusreplay
 * `type`: Type(s) of game replays to extract. Valid types are: `full_game`, `full_game_spanish`, `condensed_game` and `all_22`. You can use `all` to extract all available replay types, which is the default
 
+#### jiocinema
+* `refresh_token`: The `refreshToken` UUID from browser local storage can be passed to extend the life of your login session when logging in with `token` as username and the `accessToken` from browser local storage as password
+
 #### jiosaavn
 * `bitrate`: Audio bitrates to request. One or more of `16`, `32`, `64`, `128`, `320`. Default is `128,320`
 

@@ -3,10 +3,10 @@ import re
 from .common import InfoExtractor
 from ..compat import compat_urlparse
 from ..utils import (
-    get_element_by_id,
-    clean_html,
     ExtractorError,
     InAdvancePagedList,
+    clean_html,
+    get_element_by_id,
     remove_start,
 )
 

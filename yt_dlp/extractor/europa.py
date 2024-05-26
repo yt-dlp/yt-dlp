@@ -8,7 +8,7 @@ from ..utils import (
     qualities,
     traverse_obj,
     unified_strdate,
-    xpath_text
+    xpath_text,
 )
 
 

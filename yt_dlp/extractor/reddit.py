@@ -10,8 +10,8 @@ from ..utils import (
     try_get,
     unescapeHTML,
     update_url_query,
-    urlencode_postdata,
     url_or_none,
+    urlencode_postdata,
 )
 
 

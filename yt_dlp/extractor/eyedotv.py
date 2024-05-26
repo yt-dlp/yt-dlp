@@ -1,8 +1,8 @@
 from .common import InfoExtractor
 from ..utils import (
-    xpath_text,
-    parse_duration,
     ExtractorError,
+    parse_duration,
+    xpath_text,
 )
 
 
