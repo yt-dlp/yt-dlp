@@ -228,9 +228,6 @@ class YouPornIE(InfoExtractor):
 
 
 class YouPornListBase(InfoExtractor):
-    _PAGE_RETRY_COUNT = 0  # ie, no retry
-    _PAGE_RETRY_DELAY = 2  # seconds
-
     def _get_next_url(self, url, pl_id, html):
         return urljoin(url, self._search_regex(
             r'''<a [^>]*?\bhref\s*=\s*("|')(?P<url>(?:(?!\1)[^>])+)\1''',
@@ -242,46 +239,16 @@ class YouPornListBase(InfoExtractor):
         return re.sub(r'[_-]', ' ', title_slug)
 
     def _entries(self, url, pl_id, html=None, page_num=None):
-        def yield_entries(html):
+        start = page_num or 1
+        for page in itertools.count(start):
+            if not html:
+                html = self._download_webpage(
+                    url, pl_id, note=f'Downloading page {page}', fatal=page == start)
+            if not html:
+                return
             for element in get_elements_html_by_class('video-title', html):
                 if video_url := traverse_obj(element, ({extract_attributes}, 'href', {lambda x: urljoin(url, x)})):
                     yield self.url_result(video_url)
-
-        start = page_num or 1
-        retries = self._PAGE_RETRY_COUNT + 1
-
-        previous_first_url = None
-        for page in itertools.count(start):
-            for retry in range(1, retries + 2):
-                if not html:
-                    html = self._download_webpage(
-                        url, pl_id, note=f'Downloading page {page}', fatal=page == start)
-                if not html:
-                    return
-
-                entries = yield_entries(html)
-                first = next(entries, None)
-                if first is None:
-                    # XXX: if 'no-result-paragarph1' in page_data[1]:
-                    self.report_warning('Retrying empty page...', pl_id)
-
-                elif first['url'] == previous_first_url:
-                    # sometimes (/porntags/) the site serves the previous page
-                    # instead but may provide the correct page after a delay
-                    self.report_warning('Retrying duplicate page after a delay...', pl_id)
-
-                else:
-                    previous_first_url = first['url']
-                    yield first
-                    yield from entries
-                    break
-
-                if retry <= retries:
-                    self._sleep(self._PAGE_RETRY_DELAY, pl_id)
-            else:
-                if retries:
-                    raise ExtractorError(f'Exceeded retries ({retries})', expected=False)
-                # TODO: this needs cleaner error handling logic
 
             if page_num is not None:
                 return
@@ -434,7 +401,6 @@ class YouPornTagIE(YouPornListBase):
         porn(?P<type>tag)s/(?P<id>[^/?#&]+)
         (?:/(?P<sort>views|rating|time|duration))?/?(?:[#?]|$)
     '''
-    _PAGE_RETRY_COUNT = 1
     _TESTS = [{
         'note': 'Full list with pagination',
         'url': 'https://www.youporn.com/porntags/austrian',
@@ -443,7 +409,7 @@ class YouPornTagIE(YouPornListBase):
             'title': 'Tag austrian videos',
         },
         'playlist_mincount': 33,
-        'expected_warnings': ['Retrying duplicate page'],
+        'expected_warnings': ['YouPorn tags are wrongly cached'],
     }, {
         'note': 'Filtered paginated list with single page result',
         'url': 'https://www.youporn.com/porntags/austrian/duration/?min_minutes=10',
@@ -456,7 +422,7 @@ class YouPornTagIE(YouPornListBase):
         # or more, varying with number of ads; let's set max as 9x4
         # NB col 1 may not be shown in non-JS page with site CSS and zoom 100%
         # 'playlist_maxcount': 32,
-        'expected_warnings': ['Retrying duplicate page', 'Retrying empty page'],
+        'expected_warnings': ['YouPorn tags are wrongly cached'],
     }, {
         'note': 'Single page of full list',
         'url': 'https://www.youporn.com/porntags/austrian/?page=1',
@@ -466,20 +432,14 @@ class YouPornTagIE(YouPornListBase):
         },
         'playlist_mincount': 32,
         # 'playlist_maxcount': 34,
-        'expected_warnings': ['Retrying duplicate page', 'Retrying empty page'],
+        'expected_warnings': ['YouPorn tags are wrongly cached'],
     }]
 
-    # YP tag navigation is broken, loses sort
-    def _get_next_url(self, url, pl_id, html):
-        if next_url := super()._get_next_url(url, pl_id, html):
-            if n := self._match_valid_url(next_url):
-                if s := n.groupdict().get('sort'):
-                    if u := self._match_valid_url(url):
-                        u = u.groupdict().get('sort')
-                        if s and not u:
-                            n = n.end('sort')
-                            next_url = next_url[:n] + '/' + next_url[n:]
-        return next_url
+    def _real_extract(self, url):
+        self.report_warning(
+            'YouPorn tag pages are not correctly cached and '
+            'often return incorrect results', only_once=True)
+        return super()._real_extract(url)
 
 
 class YouPornStarIE(YouPornListBase):
