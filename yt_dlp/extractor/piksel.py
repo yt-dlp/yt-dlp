@@ -149,7 +149,7 @@ class PikselIE(InfoExtractor):
 
         smil_url = dict_get(video_data, ['httpSmil', 'hdSmil', 'rtmpSmil'])
         if smil_url:
-            transform_source = None
+            transform_source = lambda x: x.replace('src="/', 'src="')
             if ref_id == 'nhkworld':
                 # TODO: figure out if this is something to be fixed in urljoin,
                 # _parse_smil_formats or keep it here
