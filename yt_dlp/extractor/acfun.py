@@ -3,10 +3,10 @@ from ..utils import (
     float_or_none,
     format_field,
     int_or_none,
-    str_or_none,
-    traverse_obj,
     parse_codecs,
     parse_qs,
+    str_or_none,
+    traverse_obj,
 )
 
 

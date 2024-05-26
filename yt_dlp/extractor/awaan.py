@@ -2,8 +2,8 @@ import base64
 
 from .common import InfoExtractor
 from ..compat import (
-    compat_urllib_parse_urlencode,
     compat_str,
+    compat_urllib_parse_urlencode,
 )
 from ..utils import (
     format_field,

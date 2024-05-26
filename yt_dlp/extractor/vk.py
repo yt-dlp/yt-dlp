@@ -20,6 +20,7 @@ from ..utils import (
     parse_resolution,
     str_or_none,
     str_to_int,
+    traverse_obj,
     try_call,
     unescapeHTML,
     unified_timestamp,
@@ -27,7 +28,6 @@ from ..utils import (
     url_or_none,
     urlencode_postdata,
     urljoin,
-    traverse_obj,
 )
 
 
