@@ -5,7 +5,7 @@ from ..utils.traversal import traverse_obj
 
 
 class LCIIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?(?:lci|tf1info)\.fr(?:/[^/]+)+/[\w-]+-(?P<id>\d+)\.html'
+    _VALID_URL = r'https?://(?:www\.)?(?:lci|tf1info)\.fr/(?:[^/?#]+/)+[\w-]+-(?P<id>\d+)\.html'
     _TESTS = [
         {
             'url': 'https://www.tf1info.fr/replay-lci/videos/video-24h-pujadas-du-vendredi-24-mai-6708-2300831.html',
@@ -41,13 +41,10 @@ class LCIIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
-
         next_data = self._search_nextjs_data(webpage, video_id)
-
         wat_id = traverse_obj(next_data, (
             'props', 'pageProps', 'page', 'tms', 'videos', {dict.keys}, ..., {int_or_none}, any))
-
-        if not wat_id:
+        if wat_id is None:
             raise ExtractorError('Could not find wat_id')
 
-        return self.url_result(f'wat:{wat_id}', WatIE, wat_id)
+        return self.url_result(f'wat:{wat_id}', WatIE, str(wat_id))
