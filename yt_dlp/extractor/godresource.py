@@ -4,7 +4,7 @@ from ..utils import (
     determine_ext,
     str_or_none,
     unified_timestamp,
-    url_or_none
+    url_or_none,
 )
 from ..utils.traversal import traverse_obj
 

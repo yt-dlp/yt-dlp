@@ -1,6 +1,6 @@
 from .common import InfoExtractor
-from ..utils import unified_timestamp
 from .youtube import YoutubeIE
+from ..utils import unified_timestamp
 
 
 class CtsNewsIE(InfoExtractor):
