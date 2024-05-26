@@ -1,12 +1,14 @@
 import re
 
 from .common import InfoExtractor
-from .wistia import WistiaIE
+from .hotmart import HotmartIE
 from ..utils import (
     clean_html,
+    extract_attributes,
     ExtractorError,
-    int_or_none,
     get_element_by_class,
+    get_elements_html_by_class,
+    int_or_none,
     strip_or_none,
     urlencode_postdata,
     urljoin,
@@ -111,19 +113,23 @@ class TeachableIE(TeachableBaseIE):
     _TESTS = [{
         'url': 'https://gns3.teachable.com/courses/gns3-certified-associate/lectures/6842364',
         'info_dict': {
-            'id': 'untlgzk1v7',
-            'ext': 'bin',
+            'id': 'Nq7vkXmXRA',
+            'video_id': 'Nq7vkXmXRA',
+            'ext': 'mp4',
             'title': 'Overview',
-            'description': 'md5:071463ff08b86c208811130ea1c2464c',
-            'duration': 736.4,
-            'timestamp': 1542315762,
-            'upload_date': '20181115',
             'chapter': 'Welcome',
             'chapter_number': 1,
+            'webpage_url': r're:https://player.hotmart.com/embed/Nq7vkXmXRA\?signature=.+&token=.+',
+            'width': 1920,
+            'height': 1080,
+            'thumbnail': r're:https?://.*\.(?:jpg|jpeg|webp)\?token=exp=\d+~acl=.*~hmac=[a-f0-9]+$',
         },
         'params': {
             'skip_download': True,
         },
+    }, {
+        'url': 'http://v1.upskillcourses.com/courses/119763/lectures/1747100',
+        'only_matching': True,
     }, {
         'url': 'http://v1.upskillcourses.com/courses/119763/lectures/1747100',
         'only_matching': True,
@@ -161,13 +167,35 @@ class TeachableIE(TeachableBaseIE):
 
         webpage = self._download_webpage(url, video_id)
 
-        wistia_urls = WistiaIE._extract_embed_urls(url, webpage)
-        if not wistia_urls:
+        hotmart_container_elements = get_elements_html_by_class(
+            'hotmart_video_player', webpage
+        )
+        hotmart_urls = []
+        for hotmart_container_element in hotmart_container_elements:
+            hotmart_container_attributes = extract_attributes(hotmart_container_element)
+            attachment_id = hotmart_container_attributes['data-attachment-id']
+
+            hotmart_video_url_data = self._download_json(
+                f'https://{site}/api/v2/hotmart/private_video',
+                video_id,
+                query={'attachment_id': attachment_id},
+            )
+
+            hotmart_url = (
+                'https://player.hotmart.com/embed/'
+                f'{hotmart_video_url_data ["video_id"]}?'
+                f'signature={hotmart_video_url_data ["signature"]}&'
+                'token='
+                f'{hotmart_video_url_data ["teachable_application_key"]}'
+            )
+
+            hotmart_urls.append(hotmart_url)
+
+        if not hotmart_urls:
             if any(re.search(p, webpage) for p in (
                     r'class=["\']lecture-contents-locked',
                     r'>\s*Lecture contents locked',
                     r'id=["\']lecture-locked',
-                    # https://academy.tailoredtutors.co.uk/courses/108779/lectures/1955313
                     r'class=["\'](?:inner-)?lesson-locked',
                     r'>LESSON LOCKED<')):
                 self.raise_login_required('Lecture contents locked')
@@ -196,14 +224,16 @@ class TeachableIE(TeachableBaseIE):
                 if chapter_number <= len(sections):
                     chapter = sections[chapter_number - 1]
 
-        entries = [{
-            '_type': 'url_transparent',
-            'url': wistia_url,
-            'ie_key': WistiaIE.ie_key(),
-            'title': title,
-            'chapter': chapter,
-            'chapter_number': chapter_number,
-        } for wistia_url in wistia_urls]
+        entries = []
+        for hotmart_url in hotmart_urls:
+            entries.append({
+                '_type': 'url_transparent',
+                'url': hotmart_url,
+                'ie_key': HotmartIE.ie_key(),
+                'title': title,
+                'chapter': chapter,
+                'chapter_number': chapter_number,
+            })
 
         return self.playlist_result(entries, video_id, title)
 
