@@ -315,7 +315,7 @@ class YouPornCategoryIE(YouPornListBase):
             'id': 'popular-with-women/popular/page=1',
             'title': 'Category popular with women videos by popular (page=1)',
         },
-        'playlist_count': 30,
+        'playlist_count': 36,
     }]
 
 
@@ -409,7 +409,7 @@ class YouPornTagIE(YouPornListBase):
             'title': 'Tag austrian videos',
         },
         'playlist_mincount': 33,
-        'expected_warnings': ['YouPorn tags are wrongly cached'],
+        'expected_warnings': ['YouPorn tag pages are not correctly cached'],
     }, {
         'note': 'Filtered paginated list with single page result',
         'url': 'https://www.youporn.com/porntags/austrian/duration/?min_minutes=10',
@@ -422,7 +422,7 @@ class YouPornTagIE(YouPornListBase):
         # or more, varying with number of ads; let's set max as 9x4
         # NB col 1 may not be shown in non-JS page with site CSS and zoom 100%
         # 'playlist_maxcount': 32,
-        'expected_warnings': ['YouPorn tags are wrongly cached'],
+        'expected_warnings': ['YouPorn tag pages are not correctly cached'],
     }, {
         'note': 'Single page of full list',
         'url': 'https://www.youporn.com/porntags/austrian/?page=1',
@@ -432,7 +432,7 @@ class YouPornTagIE(YouPornListBase):
         },
         'playlist_mincount': 32,
         # 'playlist_maxcount': 34,
-        'expected_warnings': ['YouPorn tags are wrongly cached'],
+        'expected_warnings': ['YouPorn tag pages are not correctly cached'],
     }]
 
     def _real_extract(self, url):
