@@ -231,7 +231,6 @@ class ViewLiftIE(ViewLiftBaseIE):
             'description': 'md5:e28f2fb8680096a69c944d37c1fa5ffc',
             'thumbnail': r're:^https?://.*\.jpg$',
             'upload_date': '20211006',
-            'series': None
         },
         'params': {'skip_download': True},
     }, {  # Free film
@@ -243,7 +242,6 @@ class ViewLiftIE(ViewLiftBaseIE):
             'description': 'md5:605cba408e51a79dafcb824bdeded51e',
             'thumbnail': r're:^https?://.*\.jpg$',
             'upload_date': '20210827',
-            'series': None
         },
         'params': {'skip_download': True},
     }, {  # Free episode

@@ -1,14 +1,15 @@
 from .common import InfoExtractor
-from ..utils import (
-    int_or_none,
-    find_xpath_attr,
-    xpath_text,
-    update_url_query,
-)
 from ..compat import compat_urllib_parse_unquote
+from ..utils import (
+    find_xpath_attr,
+    int_or_none,
+    update_url_query,
+    xpath_text,
+)
 
 
 class NozIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?noz\.de/video/(?P<id>[0-9]+)/'
     _TESTS = [{
         'url': 'http://www.noz.de/video/25151/32-Deutschland-gewinnt-Badminton-Lnderspiel-in-Melle',

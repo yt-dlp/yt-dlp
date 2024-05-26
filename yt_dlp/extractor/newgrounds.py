@@ -2,7 +2,9 @@ import functools
 import re
 
 from .common import InfoExtractor
+from ..networking.exceptions import HTTPError
 from ..utils import (
+    ExtractorError,
     OnDemandPagedList,
     clean_html,
     extract_attributes,
@@ -10,12 +12,16 @@ from ..utils import (
     int_or_none,
     parse_count,
     parse_duration,
-    traverse_obj,
     unified_timestamp,
+    url_or_none,
+    urlencode_postdata,
+    urljoin,
 )
+from ..utils.traversal import traverse_obj
 
 
 class NewgroundsIE(InfoExtractor):
+    _NETRC_MACHINE = 'newgrounds'
     _VALID_URL = r'https?://(?:www\.)?newgrounds\.com/(?:audio/listen|portal/view)/(?P<id>\d+)(?:/format/flash)?'
     _TESTS = [{
         'url': 'https://www.newgrounds.com/audio/listen/549479',
@@ -25,11 +31,13 @@ class NewgroundsIE(InfoExtractor):
             'ext': 'mp3',
             'title': 'B7 - BusMode',
             'uploader': 'Burn7',
-            'timestamp': 1378878540,
+            'timestamp': 1378892945,
             'upload_date': '20130911',
             'duration': 143,
             'view_count': int,
             'description': 'md5:b8b3c2958875189f07d8e313462e8c4f',
+            'age_limit': 0,
+            'thumbnail': r're:^https://aicon\.ngfiles\.com/549/549479\.png',
         },
     }, {
         'url': 'https://www.newgrounds.com/portal/view/1',
@@ -39,11 +47,12 @@ class NewgroundsIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Scrotum 1',
             'uploader': 'Brian-Beaton',
-            'timestamp': 955064100,
-            'upload_date': '20000406',
+            'timestamp': 955078533,
+            'upload_date': '20000407',
             'view_count': int,
             'description': 'Scrotum plays "catch."',
             'age_limit': 17,
+            'thumbnail': r're:^https://picon\.ngfiles\.com/0/flash_1_card\.png',
         },
     }, {
         # source format unavailable, additional mp4 formats
@@ -53,11 +62,12 @@ class NewgroundsIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'ZTV News Episode 8',
             'uploader': 'ZONE-SAMA',
-            'timestamp': 1487965140,
-            'upload_date': '20170224',
+            'timestamp': 1487983183,
+            'upload_date': '20170225',
             'view_count': int,
             'description': 'md5:aff9b330ec2e78ed93b1ad6d017accc6',
             'age_limit': 17,
+            'thumbnail': r're:^https://picon\.ngfiles\.com/689000/flash_689400_card\.png',
         },
         'params': {
             'skip_download': True,
@@ -70,11 +80,12 @@ class NewgroundsIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Metal Gear Awesome',
             'uploader': 'Egoraptor',
-            'timestamp': 1140663240,
+            'timestamp': 1140681292,
             'upload_date': '20060223',
             'view_count': int,
             'description': 'md5:9246c181614e23754571995104da92e0',
             'age_limit': 13,
+            'thumbnail': r're:^https://picon\.ngfiles\.com/297000/flash_297383_card\.png',
         }
     }, {
         'url': 'https://www.newgrounds.com/portal/view/297383/format/flash',
@@ -86,8 +97,24 @@ class NewgroundsIE(InfoExtractor):
             'description': 'Metal Gear Awesome',
             'uploader': 'Egoraptor',
             'upload_date': '20060223',
-            'timestamp': 1140663240,
+            'timestamp': 1140681292,
+            'view_count': int,
             'age_limit': 13,
+            'thumbnail': r're:^https://picon\.ngfiles\.com/297000/flash_297383_card\.png',
+        }
+    }, {
+        'url': 'https://www.newgrounds.com/portal/view/823109',
+        'info_dict': {
+            'id': '823109',
+            'ext': 'mp4',
+            'title': 'Rouge Futa Fleshlight Fuck',
+            'description': 'I made a fleshlight model and I wanted to use it in an animation. Based on a video by CDNaturally.',
+            'uploader': 'DefaultUser12',
+            'upload_date': '20211122',
+            'timestamp': 1637611540,
+            'view_count': int,
+            'age_limit': 18,
+            'thumbnail': r're:^https://picon\.ngfiles\.com/823000/flash_823109_card\.png',
         }
     }]
     _AGE_LIMIT = {
@@ -96,42 +123,59 @@ class NewgroundsIE(InfoExtractor):
         'm': 17,
         'a': 18,
     }
+    _LOGIN_URL = 'https://www.newgrounds.com/passport'
+
+    def _perform_login(self, username, password):
+        login_webpage = self._download_webpage(self._LOGIN_URL, None, 'Downloading login page')
+        login_url = urljoin(self._LOGIN_URL, self._search_regex(
+            r'<form action="([^"]+)"', login_webpage, 'login endpoint', default=None))
+        result = self._download_json(login_url, None, 'Logging in', headers={
+            'Accept': 'application/json',
+            'Referer': self._LOGIN_URL,
+            'X-Requested-With': 'XMLHttpRequest'
+        }, data=urlencode_postdata({
+            **self._hidden_inputs(login_webpage),
+            'username': username,
+            'password': password,
+        }))
+        if errors := traverse_obj(result, ('errors', ..., {str})):
+            raise ExtractorError(', '.join(errors) or 'Unknown Error', expected=True)
 
     def _real_extract(self, url):
         media_id = self._match_id(url)
-        formats = []
-        uploader = None
-        webpage = self._download_webpage(url, media_id)
-
-        title = self._html_extract_title(webpage)
+        try:
+            webpage = self._download_webpage(url, media_id)
+        except ExtractorError as error:
+            if isinstance(error.cause, HTTPError) and error.cause.status == 401:
+                self.raise_login_required()
+            raise
 
         media_url_string = self._search_regex(
-            r'"url"\s*:\s*("[^"]+"),', webpage, 'media url', default=None)
-
+            r'embedController\(\[{"url"\s*:\s*("[^"]+"),', webpage, 'media url', default=None)
         if media_url_string:
-            media_url = self._parse_json(media_url_string, media_id)
+            uploader = None
             formats = [{
-                'url': media_url,
+                'url': self._parse_json(media_url_string, media_id),
                 'format_id': 'source',
                 'quality': 1,
             }]
+
         else:
-            json_video = self._download_json('https://www.newgrounds.com/portal/video/' + media_id, media_id, headers={
+            json_video = self._download_json(f'https://www.newgrounds.com/portal/video/{media_id}', media_id, headers={
                 'Accept': 'application/json',
                 'Referer': url,
                 'X-Requested-With': 'XMLHttpRequest'
             })
 
-            uploader = json_video.get('author')
-            media_formats = json_video.get('sources', [])
-            for media_format in media_formats:
-                media_sources = media_formats[media_format]
-                for source in media_sources:
-                    formats.append({
-                        'format_id': media_format,
-                        'quality': int_or_none(media_format[:-1]),
-                        'url': source.get('src')
-                    })
+            formats = []
+            uploader = traverse_obj(json_video, ('author', {str}))
+            for format_id, sources in traverse_obj(json_video, ('sources', {dict.items}, ...)):
+                quality = int_or_none(format_id[:-1])
+                formats.extend({
+                    'format_id': format_id,
+                    'quality': quality,
+                    'url': url,
+                } for url in traverse_obj(sources, (..., 'src', {url_or_none})))
 
         if not uploader:
             uploader = self._html_search_regex(
@@ -139,51 +183,35 @@ class NewgroundsIE(InfoExtractor):
                  r'(?:Author|Writer)\s*<a[^>]+>([^<]+)'), webpage, 'uploader',
                 fatal=False)
 
-        age_limit = self._html_search_regex(
-            r'<h2\s*class=["\']rated-([^"\'])["\'][^>]+>', webpage, 'age_limit', default='e')
-        age_limit = self._AGE_LIMIT.get(age_limit)
-
-        timestamp = unified_timestamp(self._html_search_regex(
-            (r'<dt>\s*Uploaded\s*</dt>\s*<dd>([^<]+</dd>\s*<dd>[^<]+)',
-             r'<dt>\s*Uploaded\s*</dt>\s*<dd>([^<]+)'), webpage, 'timestamp',
-            default=None))
-
-        duration = parse_duration(self._html_search_regex(
-            r'"duration"\s*:\s*["\']?(\d+)["\']?', webpage,
-            'duration', default=None))
-
-        description = clean_html(get_element_by_id('author_comments', webpage)) or self._og_search_description(webpage)
-
-        view_count = parse_count(self._html_search_regex(
-            r'(?s)<dt>\s*(?:Views|Listens)\s*</dt>\s*<dd>([\d\.,]+)</dd>', webpage,
-            'view count', default=None))
-
-        filesize = int_or_none(self._html_search_regex(
-            r'"filesize"\s*:\s*["\']?([\d]+)["\']?,', webpage, 'filesize',
-            default=None))
-
-        video_type_description = self._html_search_regex(
-            r'"description"\s*:\s*["\']?([^"\']+)["\']?,', webpage, 'filesize',
-            default=None)
-
         if len(formats) == 1:
-            formats[0]['filesize'] = filesize
+            formats[0]['filesize'] = int_or_none(self._html_search_regex(
+                r'"filesize"\s*:\s*["\']?([\d]+)["\']?,', webpage, 'filesize', default=None))
 
-        if video_type_description == 'Audio File':
-            formats[0]['vcodec'] = 'none'
+            video_type_description = self._html_search_regex(
+                r'"description"\s*:\s*["\']?([^"\']+)["\']?,', webpage, 'media type', default=None)
+            if video_type_description == 'Audio File':
+                formats[0]['vcodec'] = 'none'
+
         self._check_formats(formats, media_id)
-
         return {
             'id': media_id,
-            'title': title,
+            'title': self._html_extract_title(webpage),
             'uploader': uploader,
-            'timestamp': timestamp,
-            'duration': duration,
+            'timestamp': unified_timestamp(self._search_regex(
+                r'itemprop="(?:uploadDate|datePublished)"\s+content="([^"]+)"',
+                webpage, 'timestamp', default=None)),
+            'duration': parse_duration(self._html_search_regex(
+                r'"duration"\s*:\s*["\']?(\d+)["\']?', webpage, 'duration', default=None)),
             'formats': formats,
             'thumbnail': self._og_search_thumbnail(webpage),
-            'description': description,
-            'age_limit': age_limit,
-            'view_count': view_count,
+            'description': (
+                clean_html(get_element_by_id('author_comments', webpage))
+                or self._og_search_description(webpage)),
+            'age_limit': self._AGE_LIMIT.get(self._html_search_regex(
+                r'<h2\s+class=["\']rated-([etma])["\']', webpage, 'age_limit', default='e')),
+            'view_count': parse_count(self._html_search_regex(
+                r'(?s)<dt>\s*(?:Views|Listens)\s*</dt>\s*<dd>([\d\.,]+)</dd>',
+                webpage, 'view count', default=None)),
         }
 
 

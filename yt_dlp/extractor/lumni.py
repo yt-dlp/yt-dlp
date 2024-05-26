@@ -1,8 +1,7 @@
-from .common import InfoExtractor
-from .francetv import FranceTVIE
+from .francetv import FranceTVBaseInfoExtractor
 
 
-class LumniIE(InfoExtractor):
+class LumniIE(FranceTVBaseInfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?lumni\.fr/video/(?P<id>[\w-]+)'
     _TESTS = [{
         'url': 'https://www.lumni.fr/video/l-homme-et-son-environnement-dans-la-revolution-industrielle',
@@ -21,4 +20,4 @@ class LumniIE(InfoExtractor):
         webpage = self._download_webpage(url, display_id)
         video_id = self._html_search_regex(
             r'<div[^>]+data-factoryid\s*=\s*["\']([^"\']+)', webpage, 'video id')
-        return self.url_result(f'francetv:{video_id}', FranceTVIE, video_id)
+        return self._make_url_result(video_id, url=url)

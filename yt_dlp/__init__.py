@@ -4,7 +4,7 @@ if sys.version_info < (3, 8):
     raise ImportError(
         f'You are using an unsupported version of Python. Only Python versions 3.8 and above are supported by yt-dlp')  # noqa: F541
 
-__license__ = 'Public Domain'
+__license__ = 'The Unlicense'
 
 import collections
 import getpass
@@ -14,11 +14,12 @@ import os
 import re
 import traceback
 
-from .compat import compat_shlex_quote
+from .compat import compat_os_name, compat_shlex_quote
 from .cookies import SUPPORTED_BROWSERS, SUPPORTED_KEYRINGS
 from .downloader.external import get_external_downloader
 from .extractor import list_extractor_classes
 from .extractor.adobepass import MSO_INFO
+from .networking.impersonate import ImpersonateTarget
 from .options import parseOpts
 from .postprocessor import (
     FFmpegExtractAudioPP,
@@ -48,6 +49,7 @@ from .utils import (
     float_or_none,
     format_field,
     int_or_none,
+    join_nonempty,
     match_filter_func,
     parse_bytes,
     parse_duration,
@@ -387,6 +389,9 @@ def validate_options(opts):
                 raise ValueError(f'unsupported keyring specified for cookies: "{keyring}". '
                                  f'Supported keyrings are: {", ".join(sorted(SUPPORTED_KEYRINGS))}')
         opts.cookiesfrombrowser = (browser_name, profile, keyring, container)
+
+    if opts.impersonate is not None:
+        opts.impersonate = ImpersonateTarget.from_str(opts.impersonate.lower())
 
     # MetadataParser
     def metadataparser_actions(f):
@@ -831,6 +836,7 @@ def parse_options(argv=None):
         'noprogress': opts.quiet if opts.noprogress is None else opts.noprogress,
         'progress_with_newline': opts.progress_with_newline,
         'progress_template': opts.progress_template,
+        'progress_delta': opts.progress_delta,
         'playliststart': opts.playliststart,
         'playlistend': opts.playlistend,
         'playlistreverse': opts.playlist_reverse,
@@ -911,6 +917,7 @@ def parse_options(argv=None):
         'postprocessors': postprocessors,
         'fixup': opts.fixup,
         'source_address': opts.source_address,
+        'impersonate': opts.impersonate,
         'call_home': opts.call_home,
         'sleep_interval_requests': opts.sleep_interval_requests,
         'sleep_interval': opts.sleep_interval,
@@ -980,11 +987,67 @@ def _real_main(argv=None):
             traceback.print_exc()
             ydl._download_retcode = 100
 
+        if opts.list_impersonate_targets:
+
+            known_targets = [
+                # List of simplified targets we know are supported,
+                # to help users know what dependencies may be required.
+                (ImpersonateTarget('chrome'), 'curl_cffi'),
+                (ImpersonateTarget('edge'), 'curl_cffi'),
+                (ImpersonateTarget('safari'), 'curl_cffi'),
+            ]
+
+            available_targets = ydl._get_available_impersonate_targets()
+
+            def make_row(target, handler):
+                return [
+                    join_nonempty(target.client.title(), target.version, delim='-') or '-',
+                    join_nonempty((target.os or "").title(), target.os_version, delim='-') or '-',
+                    handler,
+                ]
+
+            rows = [make_row(target, handler) for target, handler in available_targets]
+
+            for known_target, known_handler in known_targets:
+                if not any(
+                    known_target in target and handler == known_handler
+                    for target, handler in available_targets
+                ):
+                    rows.append([
+                        ydl._format_out(text, ydl.Styles.SUPPRESS)
+                        for text in make_row(known_target, f'{known_handler} (not available)')
+                    ])
+
+            ydl.to_screen('[info] Available impersonate targets')
+            ydl.to_stdout(render_table(['Client', 'OS', 'Source'], rows, extra_gap=2, delim='-'))
+            return
+
         if not actual_use:
             if pre_process:
                 return ydl._download_retcode
 
-            ydl.warn_if_short_id(sys.argv[1:] if argv is None else argv)
+            args = sys.argv[1:] if argv is None else argv
+            ydl.warn_if_short_id(args)
+
+            # Show a useful error message and wait for keypress if not launched from shell on Windows
+            if not args and compat_os_name == 'nt' and getattr(sys, 'frozen', False):
+                import ctypes.wintypes
+                import msvcrt
+
+                kernel32 = ctypes.WinDLL('Kernel32')
+
+                buffer = (1 * ctypes.wintypes.DWORD)()
+                attached_processes = kernel32.GetConsoleProcessList(buffer, 1)
+                # If we only have a single process attached, then the executable was double clicked
+                # When using `pyinstaller` with `--onefile`, two processes get attached
+                is_onefile = hasattr(sys, '_MEIPASS') and os.path.basename(sys._MEIPASS).startswith('_MEI')
+                if attached_processes == 1 or is_onefile and attached_processes == 2:
+                    print(parser._generate_error_message(
+                        'Do not double-click the executable, instead call it from a command line.\n'
+                        'Please read the README for further information on how to use yt-dlp: '
+                        'https://github.com/yt-dlp/yt-dlp#readme'))
+                    msvcrt.getch()
+                    _exit(2)
             parser.error(
                 'You must provide at least one URL.\n'
                 'Type yt-dlp --help to see a list of all options.')

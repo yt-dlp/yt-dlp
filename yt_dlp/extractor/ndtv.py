@@ -5,6 +5,7 @@ from ..utils import parse_duration, remove_end, unified_strdate, urljoin
 
 
 class NDTVIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:[^/]+\.)?ndtv\.com/(?:[^/]+/)*videos?/?(?:[^/]+/)*[^/?^&]+-(?P<id>\d+)'
 
     _TESTS = [

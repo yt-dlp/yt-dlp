@@ -8,7 +8,7 @@ from ..utils import (
 
 
 class ParlviewIE(InfoExtractor):
-
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?parlview\.aph\.gov\.au/(?:[^/]+)?\bvideoID=(?P<id>\d{6})'
     _TESTS = [{
         'url': 'https://parlview.aph.gov.au/mediaPlayer.php?videoID=542661',

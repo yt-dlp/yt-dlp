@@ -259,15 +259,15 @@ class ZenYandexIE(InfoExtractor):
             webpage = self._download_webpage(redirect, video_id, note='Redirecting')
         data_json = self._search_json(
             r'("data"\s*:|data\s*=)', webpage, 'metadata', video_id, contains_pattern=r'{["\']_*serverState_*video.+}')
-        serverstate = self._search_regex(r'(_+serverState_+video-site_[^_]+_+)',
-                                         webpage, 'server state').replace('State', 'Settings')
+        serverstate = self._search_regex(r'(_+serverState_+video-site_[^_]+_+)', webpage, 'server state')
         uploader = self._search_regex(r'(<a\s*class=["\']card-channel-link[^"\']+["\'][^>]+>)',
                                       webpage, 'uploader', default='<a>')
         uploader_name = extract_attributes(uploader).get('aria-label')
-        video_json = try_get(data_json, lambda x: x[serverstate]['exportData']['video'], dict)
-        stream_urls = try_get(video_json, lambda x: x['video']['streams'])
+        item_id = traverse_obj(data_json, (serverstate, 'videoViewer', 'openedItemId', {str}))
+        video_json = traverse_obj(data_json, (serverstate, 'videoViewer', 'items', item_id, {dict})) or {}
+
         formats, subtitles = [], {}
-        for s_url in stream_urls:
+        for s_url in traverse_obj(video_json, ('video', 'streams', ..., {url_or_none})):
             ext = determine_ext(s_url)
             if ext == 'mpd':
                 fmts, subs = self._extract_mpd_formats_and_subtitles(s_url, video_id, mpd_id='dash')

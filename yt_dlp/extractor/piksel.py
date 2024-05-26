@@ -2,8 +2,8 @@ import re
 
 from .common import InfoExtractor
 from ..utils import (
-    dict_get,
     ExtractorError,
+    dict_get,
     int_or_none,
     join_nonempty,
     parse_iso8601,

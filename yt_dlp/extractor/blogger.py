@@ -1,3 +1,4 @@
+from .common import InfoExtractor
 from ..utils import (
     mimetype2ext,
     parse_duration,
@@ -5,7 +6,6 @@ from ..utils import (
     str_or_none,
     traverse_obj,
 )
-from .common import InfoExtractor
 
 
 class BloggerIE(InfoExtractor):

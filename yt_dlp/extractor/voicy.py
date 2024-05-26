@@ -62,6 +62,7 @@ class VoicyBaseIE(InfoExtractor):
 
 
 class VoicyIE(VoicyBaseIE):
+    _WORKING = False
     IE_NAME = 'voicy'
     _VALID_URL = r'https?://voicy\.jp/channel/(?P<channel_id>\d+)/(?P<id>\d+)'
     ARTICLE_LIST_API_URL = 'https://vmw.api.voicy.jp/articles_list?channel_id=%s&pid=%s'
@@ -88,6 +89,7 @@ class VoicyIE(VoicyBaseIE):
 
 
 class VoicyChannelIE(VoicyBaseIE):
+    _WORKING = False
     IE_NAME = 'voicy:channel'
     _VALID_URL = r'https?://voicy\.jp/channel/(?P<id>\d+)'
     PROGRAM_LIST_API_URL = 'https://vmw.api.voicy.jp/program_list/all?channel_id=%s&limit=20&public_type=3%s'

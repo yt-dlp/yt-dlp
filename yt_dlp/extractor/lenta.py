@@ -2,6 +2,7 @@ from .common import InfoExtractor
 
 
 class LentaIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?lenta\.ru/[^/]+/\d+/\d+/\d+/(?P<id>[^/?#&]+)'
     _TESTS = [{
         'url': 'https://lenta.ru/news/2018/03/22/savshenko_go/',
