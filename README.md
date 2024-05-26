@@ -1834,11 +1834,17 @@ The following extractors use this feature:
 #### nflplusreplay
 * `type`: Type(s) of game replays to extract. Valid types are: `full_game`, `full_game_spanish`, `condensed_game` and `all_22`. You can use `all` to extract all available replay types, which is the default
 
+#### jiocinema
+* `refresh_token`: The `refreshToken` UUID from browser local storage can be passed to extend the life of your login session when logging in with `token` as username and the `accessToken` from browser local storage as password
+
 #### jiosaavn
 * `bitrate`: Audio bitrates to request. One or more of `16`, `32`, `64`, `128`, `320`. Default is `128,320`
 
 #### afreecatvlive
 * `cdn`: One or more CDN IDs to use with the API call for stream URLs, e.g. `gcp_cdn`, `gs_cdn_pc_app`, `gs_cdn_mobile_web`, `gs_cdn_pc_web`
+
+#### soundcloud
+* `formats`: Formats to request from the API. Requested values should be in the format of `{protocol}_{extension}` (omitting the bitrate), e.g. `hls_opus,http_aac`. The `*` character functions as a wildcard, e.g. `*_mp3`, and can passed by itself to request all formats. Known protocols include `http`, `hls` and `hls-aes`; known extensions include `aac`, `opus` and `mp3`. Original `download` formats are always extracted. Default is `http_aac,hls_aac,http_opus,hls_opus,http_mp3,hls_mp3`
 
 **Note**: These options may be changed/removed in the future without concern for backward compatibility
 
