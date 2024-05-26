@@ -1,7 +1,7 @@
 from .common import InfoExtractor
 from ..utils import (
-    int_or_none,
     NO_DEFAULT,
+    int_or_none,
     unescapeHTML,
 )
 

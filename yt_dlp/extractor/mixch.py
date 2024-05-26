@@ -1,6 +1,12 @@
 from .common import InfoExtractor
 from ..networking.exceptions import HTTPError
-from ..utils import ExtractorError, UserNotLive, int_or_none, url_or_none
+from ..utils import (
+    ExtractorError,
+    UserNotLive,
+    int_or_none,
+    str_or_none,
+    url_or_none,
+)
 from ..utils.traversal import traverse_obj
 
 
@@ -9,17 +15,20 @@ class MixchIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?mixch\.tv/u/(?P<id>\d+)'
 
     _TESTS = [{
-        'url': 'https://mixch.tv/u/16236849/live',
+        'url': 'https://mixch.tv/u/16943797/live',
         'skip': 'don\'t know if this live persists',
         'info_dict': {
-            'id': '16236849',
-            'title': '24配信シェア⭕️投票🙏💦',
-            'comment_count': 13145,
-            'view_count': 28348,
-            'timestamp': 1636189377,
-            'uploader': '🦥伊咲👶🏻#フレアワ',
-            'uploader_id': '16236849',
-        }
+            'id': '16943797',
+            'ext': 'mp4',
+            'title': '#EntView #カリナ #セブチ 2024-05-05 06:58',
+            'comment_count': int,
+            'view_count': int,
+            'timestamp': 1714726805,
+            'uploader': 'Ent.View K-news🎶💕',
+            'uploader_id': '16943797',
+            'live_status': 'is_live',
+            'upload_date': '20240503',
+        },
     }, {
         'url': 'https://mixch.tv/u/16137876/live',
         'only_matching': True,
@@ -48,7 +57,19 @@ class MixchIE(InfoExtractor):
                 'protocol': 'm3u8',
             }],
             'is_live': True,
+            '__post_extractor': self.extract_comments(video_id),
         }
+
+    def _get_comments(self, video_id):
+        yield from traverse_obj(self._download_json(
+            f'https://mixch.tv/api-web/lives/{video_id}/messages', video_id,
+            note='Downloading comments', errnote='Failed to download comments'), (..., {
+                'author': ('name', {str}),
+                'author_id': ('user_id', {str_or_none}),
+                'id': ('message_id', {str}, {lambda x: x or None}),
+                'text': ('body', {str}),
+                'timestamp': ('created', {int}),
+            }))
 
 
 class MixchArchiveIE(InfoExtractor):

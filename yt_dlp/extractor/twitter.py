@@ -1,10 +1,10 @@
+import functools
 import json
 import random
 import re
 
 from .common import InfoExtractor
 from .periscope import PeriscopeBaseIE, PeriscopeIE
-from ..compat import functools  # isort: split
 from ..compat import (
     compat_parse_qs,
     compat_urllib_parse_unquote,
@@ -34,9 +34,9 @@ from ..utils import (
 
 class TwitterBaseIE(InfoExtractor):
     _NETRC_MACHINE = 'twitter'
-    _API_BASE = 'https://api.twitter.com/1.1/'
-    _GRAPHQL_API_BASE = 'https://twitter.com/i/api/graphql/'
-    _BASE_REGEX = r'https?://(?:(?:www|m(?:obile)?)\.)?(?:twitter\.com|twitter3e4tixl4xyajtrzo62zg5vztmjuricljdp2c5kshju4avyoid\.onion)/'
+    _API_BASE = 'https://api.x.com/1.1/'
+    _GRAPHQL_API_BASE = 'https://x.com/i/api/graphql/'
+    _BASE_REGEX = r'https?://(?:(?:www|m(?:obile)?)\.)?(?:(?:twitter|x)\.com|twitter3e4tixl4xyajtrzo62zg5vztmjuricljdp2c5kshju4avyoid\.onion)/'
     _AUTH = 'AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA'
     _LEGACY_AUTH = 'AAAAAAAAAAAAAAAAAAAAAIK1zgAAAAAA2tUWuhGZ2JceoId5GwYWU5GspY4%3DUq7gzFoCZs1QfwGoVdvSac3IniczZEYXIcDyumCauIXpcAPorE'
     _flow_token = None
@@ -153,6 +153,14 @@ class TwitterBaseIE(InfoExtractor):
     def is_logged_in(self):
         return bool(self._get_cookies(self._API_BASE).get('auth_token'))
 
+    # XXX: Temporary workaround until twitter.com => x.com migration is completed
+    def _real_initialize(self):
+        if self.is_logged_in or not self._get_cookies('https://twitter.com/').get('auth_token'):
+            return
+        # User has not yet been migrated to x.com and has passed twitter.com cookies
+        TwitterBaseIE._API_BASE = 'https://api.twitter.com/1.1/'
+        TwitterBaseIE._GRAPHQL_API_BASE = 'https://twitter.com/i/api/graphql/'
+
     @functools.cached_property
     def _selected_api(self):
         return self._configuration_arg('api', ['graphql'], ie_key='Twitter')[0]
@@ -196,17 +204,15 @@ class TwitterBaseIE(InfoExtractor):
         if self.is_logged_in:
             return
 
-        webpage = self._download_webpage('https://twitter.com/', None, 'Downloading login page')
-        guest_token = self._search_regex(
-            r'\.cookie\s*=\s*["\']gt=(\d+);', webpage, 'gt', default=None) or self._fetch_guest_token(None)
+        guest_token = self._fetch_guest_token(None)
         headers = {
             **self._set_base_headers(),
             'content-type': 'application/json',
             'x-guest-token': guest_token,
             'x-twitter-client-language': 'en',
             'x-twitter-active-user': 'yes',
-            'Referer': 'https://twitter.com/',
-            'Origin': 'https://twitter.com',
+            'Referer': 'https://x.com/',
+            'Origin': 'https://x.com',
         }
 
         def build_login_json(*subtask_inputs):
@@ -1191,6 +1197,31 @@ class TwitterIE(TwitterBaseIE):
             'age_limit': 0,
             '_old_archive_ids': ['twitter 1724884212803834154'],
         },
+    }, {
+        # x.com
+        'url': 'https://x.com/historyinmemes/status/1790637656616943991',
+        'md5': 'daca3952ba0defe2cfafb1276d4c1ea5',
+        'info_dict': {
+            'id': '1790637589910654976',
+            'ext': 'mp4',
+            'title': 'Historic Vids - One of the most intense moments in history',
+            'description': 'One of the most intense moments in history https://t.co/Zgzhvix8ES',
+            'display_id': '1790637656616943991',
+            'uploader': 'Historic Vids',
+            'uploader_id': 'historyinmemes',
+            'uploader_url': 'https://twitter.com/historyinmemes',
+            'channel_id': '855481986290524160',
+            'upload_date': '20240515',
+            'timestamp': 1715756260.0,
+            'duration': 15.488,
+            'tags': [],
+            'comment_count': int,
+            'repost_count': int,
+            'like_count': int,
+            'thumbnail': r're:https://pbs\.twimg\.com/amplify_video_thumb/.+',
+            'age_limit': 0,
+            '_old_archive_ids': ['twitter 1790637656616943991'],
+        }
     }, {
         # onion route
         'url': 'https://twitter3e4tixl4xyajtrzo62zg5vztmjuricljdp2c5kshju4avyoid.onion/TwitterBlue/status/1484226494708662273',

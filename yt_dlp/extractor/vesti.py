@@ -1,8 +1,8 @@
 import re
 
 from .common import InfoExtractor
-from ..utils import ExtractorError
 from .rutv import RUTVIE
+from ..utils import ExtractorError
 
 
 class VestiIE(InfoExtractor):
