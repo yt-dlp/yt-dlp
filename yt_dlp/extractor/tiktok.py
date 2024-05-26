@@ -1117,6 +1117,64 @@ class TikTokTagIE(TikTokBaseListIE):
         return self.playlist_result(self._entries(tag_id, display_id), tag_id, display_id)
 
 
+class TikTokCollectionIE(TikTokBaseIE):
+    IE_NAME = 'tiktok:collection'
+    _VALID_URL = r'https?://www\.tiktok\.com/@(?P<user_id>[\w.-]+)/collection/(?P<title>[^/?#]+)-(?P<id>\d+)/?(?:[?#]|$)'
+    _TESTS = [{
+        # playlist should have exactly 9 videos
+        'url': 'https://www.tiktok.com/@imanoreotwe/collection/count-test-7371330159376370462',
+        'info_dict': {
+            'id': '7371330159376370462',
+            'title': 'imanoreotwe-count-test'
+        },
+        'playlist_count': 9
+    }, {
+        # tests returning multiple pages of a large collection
+        'url': 'https://www.tiktok.com/@imanoreotwe/collection/%F0%9F%98%82-7111887189571160875',
+        'info_dict': {
+            'id': '7111887189571160875',
+            'title': 'imanoreotwe-%F0%9F%98%82'
+        },
+        'playlist_mincount': 100
+    }]
+    _API_BASE_URL = 'https://www.tiktok.com/api/collection/item_list/'
+    _PAGE_COUNT = 30
+
+    def _build_web_query(self, collection_id, cursor):
+        return {
+            'aid': '1988',
+            'collectionId': collection_id,
+            'count': self._PAGE_COUNT,
+            'cursor': cursor,
+            'sourceType': '113',
+        }
+
+    def _entries(self, collection_id):
+        cursor = 0
+        for page in itertools.count(1):
+            response = self._download_json(
+                self._API_BASE_URL, collection_id, f'Downloading page {page}',
+                query=self._build_web_query(collection_id, cursor))
+
+            for video in traverse_obj(response, ('itemList', lambda _, v: v['id'])):
+                video_id = video['id']
+                author = traverse_obj(video, ('author', ('uniqueId', 'secUid', 'id'), {str}, any)) or '_'
+                webpage_url = self._create_url(author, video_id)
+                yield self.url_result(
+                    webpage_url, TikTokIE,
+                    **self._parse_aweme_video_web(video, webpage_url, video_id, extract_flat=True))
+
+            if not traverse_obj(response, 'hasMore'):
+                break
+            cursor += self._PAGE_COUNT
+
+    def _real_extract(self, url):
+        collection_id, title, user_name = self._match_valid_url(url).group('id', 'title', 'user_id')
+
+        return self.playlist_result(
+            self._entries(collection_id), collection_id, '-'.join((user_name, title)))
+
+
 class DouyinIE(TikTokBaseIE):
     _VALID_URL = r'https?://(?:www\.)?douyin\.com/video/(?P<id>[0-9]+)'
     _TESTS = [{
