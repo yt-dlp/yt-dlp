@@ -7,7 +7,7 @@ from ..utils import (
     parse_codecs,
     parse_duration,
     str_to_int,
-    unified_timestamp
+    unified_timestamp,
 )
 
 
