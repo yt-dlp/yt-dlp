@@ -604,6 +604,7 @@ from .fc2 import (
     FC2LiveIE,
 )
 from .fczenit import FczenitIE
+from .filemoon import FileMoonIE
 from .fifa import FifaIE
 from .filmon import (
     FilmOnIE,
