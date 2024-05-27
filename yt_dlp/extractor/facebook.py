@@ -487,9 +487,6 @@ class FacebookIE(InfoExtractor):
             post = traverse_obj(post_data, (
                 ..., 'require', ..., ..., ..., '__bbox', 'require', ..., ..., ..., '__bbox', 'result', 'data'), expected_type=dict) or []
 
-            with open('post.json', 'w') as f:
-                json.dump(post, f)
-
             followers = get_first(post, ('user', 'profile_header_renderer', 'user', 'profile_social_context', 'content', ..., 'text',
                                 lambda k, v: k == 'text' and isinstance(v, str) and v.endswith('followers'))) or None
             if not isinstance(followers, str):
