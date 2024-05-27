@@ -527,7 +527,6 @@ class FacebookIE(InfoExtractor):
                 or get_first(post, (..., 'video', lambda k, v: k == 'owner' and v['name']))
                 or get_first(post, ('node', 'actors', ..., {dict}))
                 or get_first(post, ('event', 'event_creator', {dict})) or {})
-            profile_url = get_first(post, ('attachments', ..., 'media', 'creation_story', 'comet_sections', 'actor_photo', 'story', 'actors', ..., 'profile_url')) or None
             uploader = uploader_data.get('name') or (
                 clean_html(get_element_by_id('fbPhotoPageAuthorName', webpage))
                 or self._search_regex(
@@ -542,6 +541,7 @@ class FacebookIE(InfoExtractor):
             # in https://www.facebook.com/yaroslav.korpan/videos/1417995061575415/
             if thumbnail and not re.search(r'\.(?:jpg|png)', thumbnail):
                 thumbnail = None
+            profile_url = get_first(post, ('attachments', ..., 'media', 'creation_story', 'comet_sections', 'actor_photo', 'story', 'actors', ..., 'profile_url')) or None
             follower_count = extract_follower_count(self._download_webpage(profile_url, None))
             info_dict = {
                 'description': description,
