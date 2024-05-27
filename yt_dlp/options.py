@@ -520,7 +520,8 @@ def create_parser():
         metavar='CLIENT[:OS]', dest='impersonate', default=None,
         help=(
             'Client to impersonate for requests. E.g. chrome, chrome-110, chrome:windows-10. '
-            'Pass --impersonate="" to impersonate any client.'),
+            'Pass --impersonate="" to impersonate any client. Note that forcing impersonation '
+            'for all requests may have a detrimental impact on download speed and stability'),
     )
     network.add_option(
         '--list-impersonate-targets',
