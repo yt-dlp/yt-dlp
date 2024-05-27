@@ -1,15 +1,38 @@
-from yt_dlp.extractor.common import InfoExtractor
-from yt_dlp.utils import parse_codecs
+# filemoon.py
+# coding: utf-8
+from __future__ import unicode_literals
+
+import re
+
+from .common import InfoExtractor
+from ..utils import (
+    decode_packed_codes,
+    js_to_json,
+)
 
 class FileMoonIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?filemoon\.sx/./(?P<id>\w+)'
+    _TEST = {
+        'url': 'https://filemoon.sx/e/dw40rxrzruqz',
+        'md5': '5a713742f57ac4aef29b74733e8dda01',
+        'info_dict': {
+            'id': 'dw40rxrzruqz',
+            'title': 'dw40rxrzruqz',
+            'ext': 'mp4'
+        }
+    }
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
         webpage = self._download_webpage(url, video_id)
-        matches = self._parse_html(webpage, video_id)
-        jwplayer_sources = matches.get('jwplayer_sources', [])
+        matches = re.findall(r'(?s)(eval.*?)</script>', webpage)
+        packed = matches[-1]
+        unpacked = decode_packed_codes(packed)
+        jwplayer_sources = self._parse_json(
+            self._search_regex(
+                r'(?s)player\s*\.\s*setup\s*\(\s*\{\s*sources\s*:\s*(.*?])', unpacked, 'jwplayer sources'),
+            video_id, transform_source=js_to_json)
 
         formats = self._parse_jwplayer_formats(jwplayer_sources, video_id)
 
@@ -17,24 +40,4 @@ class FileMoonIE(InfoExtractor):
             'id': video_id,
             'title': self._generic_title(url) or video_id,
             'formats': formats
-        }
-
-    def _parse_jwplayer_formats(self, jwplayer_sources, video_id):
-        formats = []
-        for source in jwplayer_sources:
-            format_id = '%s-%s' % (source.get('height'), source.get('container'))
-            codecs = parse_codecs(source.get('type'))
-            format_info = {
-                'format_id': format_id,
-                'url': source['file'],
-                'ext': source.get('container'),
-                'vcodec': codecs.get('vcodec'),
-                'acodec': codecs.get('acodec'),
-                'width': source.get('width'),
-                'height': source.get('height'),
-                'filesize': source.get('size'),
-                'protocol': source.get('protocol'),
-                'http_headers': source.get('http_headers'),
-            }
-            formats.append(format_info)
-        return formats
+    }
