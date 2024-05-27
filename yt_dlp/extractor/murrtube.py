@@ -13,8 +13,7 @@ class MurrtubeIE(InfoExtractor):
     _VALID_URL = r'''(?x)
                         (?:
                             murrtube:|
-                            https?://murrtube\.net/v/|
-                            https?://murrtube\.net/videos/(?P<slug>[a-z0-9\-]+?)\-
+                            https?://murrtube\.net/(?:v/|videos/(?P<slug>[a-z0-9-]+?)-)
                         )
                         (?P<id>[A-Z0-9]{4}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})
                     '''
