@@ -16,7 +16,7 @@ class MurrtubeIE(InfoExtractor):
                             https?://murrtube\.net/v/|
                             https?://murrtube\.net/videos/(?P<slug>[a-z0-9\-]+?)\-
                         )
-                        (?P<id>[A-Z0-9]{4}|[a-f0-9]{8}\-[a-f0-9]{4}\-[a-f0-9]{4}\-[a-f0-9]{4}\-[a-f0-9]{12})
+                        (?P<id>[A-Z0-9]{4}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})
                     '''
 
     _TESTS = [
