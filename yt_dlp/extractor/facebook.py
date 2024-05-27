@@ -542,6 +542,7 @@ class FacebookIE(InfoExtractor):
             # in https://www.facebook.com/yaroslav.korpan/videos/1417995061575415/
             if thumbnail and not re.search(r'\.(?:jpg|png)', thumbnail):
                 thumbnail = None
+            follower_count = extract_follower_count(self._download_webpage(profile_url, None))
             info_dict = {
                 'description': description,
                 'uploader': uploader,
@@ -553,7 +554,7 @@ class FacebookIE(InfoExtractor):
                     webpage, 'view count', default=None)),
                 'concurrent_view_count': get_first(post, (
                     ('video', (..., ..., 'attachments', ..., 'media')), 'liveViewerCount', {int_or_none})),
-                'profile_url': profile_url,
+                'channel_follower_count': follower_count,
             }
 
             info_json_ld = self._search_json_ld(webpage, video_id, default={})
@@ -736,11 +737,6 @@ class FacebookIE(InfoExtractor):
 
                 video_info = entries[0] if entries else {'id': video_id}
                 webpage_info = extract_metadata(webpage)
-                if profile_url := webpage_info.get('profile_url'):
-                    profile_page = self._download_webpage(profile_url, None)
-                    follower_count = extract_follower_count(profile_page)
-                    webpage_info['channel_follower_count'] = follower_count
-                    del webpage_info['profile_url']
                 # honor precise duration in video info
                 if video_info.get('duration'):
                     webpage_info['duration'] = video_info['duration']
