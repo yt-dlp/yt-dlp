@@ -56,9 +56,9 @@ class MurrtubeIE(InfoExtractor):
     def _real_initialize(self):
         homepage = self._download_webpage(
             'https://murrtube.net', None, note='Getting session token')
-        data = self._hidden_inputs(homepage)
-        self._download_webpage(
-            'https://murrtube.net/accept_age_check', None, 'Set age cookie', data=urlencode_postdata(data))
+        self._request_webpage(
+            'https://murrtube.net/accept_age_check', None, 'Setting age cookie',
+            data=urlencode_postdata(self._hidden_inputs(homepage)))
 
     def _real_extract(self, url):
         video_id = self._match_valid_url(url)
