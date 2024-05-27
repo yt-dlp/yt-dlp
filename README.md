@@ -108,7 +108,6 @@ File|Description
 [yt-dlp_x86.exe](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_x86.exe)|Windows (Win7 SP1+) standalone x86 (32-bit) binary
 [yt-dlp_min.exe](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_min.exe)|Windows (Win7 SP1+) standalone x64 binary built with `py2exe`<br/> ([Not recommended](#standalone-py2exe-builds-windows))
 [yt-dlp_linux](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux)|Linux standalone x64 binary
-[yt-dlp_linux.zip](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux.zip)|Unpackaged Linux executable (no auto-update)
 [yt-dlp_linux_armv7l](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux_armv7l)|Linux standalone armv7l (32-bit) binary
 [yt-dlp_linux_aarch64](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux_aarch64)|Linux standalone aarch64 (64-bit) binary
 [yt-dlp_win.zip](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_win.zip)|Unpackaged Windows executable (no auto-update)
@@ -170,7 +169,7 @@ Example usage:
 yt-dlp --update-to nightly
 
 # To install nightly with pip:
-python3 -m pip install -U --pre yt-dlp[default]
+python3 -m pip install -U --pre "yt-dlp[default]"
 ```
 
 ## DEPENDENCIES
@@ -202,7 +201,7 @@ While all the other dependencies are optional, `ffmpeg` and `ffprobe` are highly
 The following provide support for impersonating browser requests. This may be required for some sites that employ TLS fingerprinting. 
 
 * [**curl_cffi**](https://github.com/yifeikong/curl_cffi) (recommended) - Python binding for [curl-impersonate](https://github.com/lwthiker/curl-impersonate). Provides impersonation targets for Chrome, Edge and Safari. Licensed under [MIT](https://github.com/yifeikong/curl_cffi/blob/main/LICENSE)
-  * Can be installed with the `curl-cffi` group, e.g. `pip install yt-dlp[default,curl-cffi]`
+  * Can be installed with the `curl-cffi` group, e.g. `pip install "yt-dlp[default,curl-cffi]"`
   * Currently only included in `yt-dlp.exe` and `yt-dlp_macos` builds
 
 
@@ -666,16 +665,17 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
                                     The name of the browser to load cookies
                                     from. Currently supported browsers are:
                                     brave, chrome, chromium, edge, firefox,
-                                    opera, safari, vivaldi, whale. Optionally, the
-                                    KEYRING used for decrypting Chromium cookies
-                                    on Linux, the name/path of the PROFILE to
-                                    load cookies from, and the CONTAINER name
-                                    (if Firefox) ("none" for no container) can
-                                    be given with their respective seperators.
-                                    By default, all containers of the most
-                                    recently accessed profile are used.
-                                    Currently supported keyrings are: basictext,
-                                    gnomekeyring, kwallet, kwallet5, kwallet6
+                                    opera, safari, vivaldi, whale. Optionally,
+                                    the KEYRING used for decrypting Chromium
+                                    cookies on Linux, the name/path of the
+                                    PROFILE to load cookies from, and the
+                                    CONTAINER name (if Firefox) ("none" for no
+                                    container) can be given with their
+                                    respective seperators. By default, all
+                                    containers of the most recently accessed
+                                    profile are used. Currently supported
+                                    keyrings are: basictext, gnomekeyring,
+                                    kwallet, kwallet5, kwallet6
     --no-cookies-from-browser       Do not load cookies from browser (default)
     --cache-dir DIR                 Location in the filesystem where yt-dlp can
                                     store some downloaded information (such as
@@ -1751,7 +1751,7 @@ $ yt-dlp --replace-in-metadata "title,uploader" "[ _]" "-"
 
 # EXTRACTOR ARGUMENTS
 
-Some extractors accept additional arguments which can be passed using `--extractor-args KEY:ARGS`. `ARGS` is a `;` (semicolon) separated string of `ARG=VAL1,VAL2`. E.g. `--extractor-args "youtube:player-client=android_embedded,web;include_live_dash" --extractor-args "funimation:version=uncut"`
+Some extractors accept additional arguments which can be passed using `--extractor-args KEY:ARGS`. `ARGS` is a `;` (semicolon) separated string of `ARG=VAL1,VAL2`. E.g. `--extractor-args "youtube:player-client=android_embedded,web;formats=incomplete" --extractor-args "funimation:version=uncut"`
 
 Note: In CLI, `ARG` can use `-` instead of `_`; e.g. `youtube:player-client"` becomes `youtube:player_client"`
 
@@ -2123,7 +2123,7 @@ with yt_dlp.YoutubeDL(ydl_opts) as ydl:
 
 ### New features
 
-* Forked from [**yt-dlc@f9401f2**](https://github.com/blackjack4494/yt-dlc/commit/f9401f2a91987068139c5f757b12fc711d4c0cee) and merged with [**youtube-dl@be008e6**](https://github.com/ytdl-org/youtube-dl/commit/be008e657d79832642e2158557c899249c9e31cd) ([exceptions](https://github.com/yt-dlp/yt-dlp/issues/21))
+* Forked from [**yt-dlc@f9401f2**](https://github.com/blackjack4494/yt-dlc/commit/f9401f2a91987068139c5f757b12fc711d4c0cee) and merged with [**youtube-dl@a08f2b7**](https://github.com/ytdl-org/youtube-dl/commit/a08f2b7e4567cdc50c0614ee0a4ffdff49b8b6e6) ([exceptions](https://github.com/yt-dlp/yt-dlp/issues/21))
 
 * **[SponsorBlock Integration](#sponsorblock-options)**: You can mark/remove sponsor sections in YouTube videos by utilizing the [SponsorBlock](https://sponsor.ajay.app) API
 
@@ -2333,6 +2333,7 @@ These options may no longer work as intended
     --write-annotations              No supported site has annotations now
     --no-write-annotations           Default
     --compat-options seperate-video-versions  No longer needed
+    --compat-options no-youtube-prefer-utc-upload-date  No longer supported
 
 #### Removed
 These options were deprecated since 2014 and have now been entirely removed

@@ -66,9 +66,16 @@ build = [
     "wheel",
 ]
 dev = [
-    "flake8",
-    "isort",
-    "pytest",
+    "pre-commit",
+    "yt-dlp[static-analysis]",
+    "yt-dlp[test]",
+]
+static-analysis = [
+    "autopep8~=2.0",
+    "ruff~=0.4.4",
+]
+test = [
+    "pytest~=8.1",
 ]
 pyinstaller = [
     "pyinstaller>=6.3; sys_platform!='darwin'",
@@ -126,3 +133,146 @@ artifacts = ["/yt_dlp/extractor/lazy_extractors.py"]
 [tool.hatch.version]
 path = "yt_dlp/version.py"
 pattern = "_pkg_version = '(?P<version>[^']+)'"
+
+[tool.hatch.envs.default]
+features = ["curl-cffi", "default"]
+dependencies = ["pre-commit"]
+path = ".venv"
+installer = "uv"
+
+[tool.hatch.envs.default.scripts]
+setup = "pre-commit install --config .pre-commit-hatch.yaml"
+yt-dlp = "python -Werror -Xdev -m yt_dlp {args}"
+
+[tool.hatch.envs.hatch-static-analysis]
+detached = true
+features = ["static-analysis"]
+dependencies = []  # override hatch ruff version
+config-path = "pyproject.toml"
+
+[tool.hatch.envs.hatch-static-analysis.scripts]
+format-check = "autopep8 --diff {args:.}"
+format-fix = "autopep8 --in-place {args:.}"
+lint-check = "ruff check {args:.}"
+lint-fix = "ruff check --fix {args:.}"
+
+[tool.hatch.envs.hatch-test]
+features = ["test"]
+dependencies = [
+    "pytest-randomly~=3.15",
+    "pytest-rerunfailures~=14.0",
+    "pytest-xdist[psutil]~=3.5",
+]
+
+[tool.hatch.envs.hatch-test.scripts]
+run = "python -m devscripts.run_tests {args}"
+run-cov = "echo Code coverage not implemented && exit 1"
+
+[[tool.hatch.envs.hatch-test.matrix]]
+python = [
+    "3.8",
+    "3.9",
+    "3.10",
+    "3.11",
+    "3.12",
+    "pypy3.8",
+    "pypy3.9",
+    "pypy3.10",
+]
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+ignore = [
+    "E402",  # module level import not at top of file
+    "E501",  # line too long
+    "E731",  # do not assign a lambda expression, use a def
+    "E741",  # ambiguous variable name
+]
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # import order
+]
+
+[tool.ruff.lint.per-file-ignores]
+"devscripts/lazy_load_template.py" = ["F401"]
+"!yt_dlp/extractor/**.py" = ["I"]
+
+[tool.ruff.lint.isort]
+known-first-party = [
+    "bundle",
+    "devscripts",
+    "test",
+]
+relative-imports-order = "closest-to-furthest"
+
+[tool.autopep8]
+max_line_length = 120
+recursive = true
+exit-code = true
+jobs = 0
+select = [
+    "E101",
+    "E112",
+    "E113",
+    "E115",
+    "E116",
+    "E117",
+    "E121",
+    "E122",
+    "E123",
+    "E124",
+    "E125",
+    "E126",
+    "E127",
+    "E128",
+    "E129",
+    "E131",
+    "E201",
+    "E202",
+    "E203",
+    "E211",
+    "E221",
+    "E222",
+    "E223",
+    "E224",
+    "E225",
+    "E226",
+    "E227",
+    "E228",
+    "E231",
+    "E241",
+    "E242",
+    "E251",
+    "E252",
+    "E261",
+    "E262",
+    "E265",
+    "E266",
+    "E271",
+    "E272",
+    "E273",
+    "E274",
+    "E275",
+    "E301",
+    "E302",
+    "E303",
+    "E304",
+    "E305",
+    "E306",
+    "E502",
+    "E701",
+    "E702",
+    "E704",
+    "W391",
+    "W504",
+]
+
+[tool.pytest.ini_options]
+addopts = "-ra -v --strict-markers"
+markers = [
+    "download",
+]

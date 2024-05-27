@@ -1,21 +1,21 @@
 import base64
 import functools
-import re
 import itertools
+import re
 
 from .common import InfoExtractor
 from ..compat import compat_str, compat_urlparse
 from ..networking import HEADRequest, Request
 from ..networking.exceptions import HTTPError
 from ..utils import (
+    ExtractorError,
+    OnDemandPagedList,
     clean_html,
     determine_ext,
-    ExtractorError,
     get_element_by_class,
-    js_to_json,
     int_or_none,
+    js_to_json,
     merge_dicts,
-    OnDemandPagedList,
     parse_filesize,
     parse_iso8601,
     parse_qs,
@@ -26,8 +26,8 @@ from ..utils import (
     unified_timestamp,
     unsmuggle_url,
     urlencode_postdata,
-    urljoin,
     urlhandle_detect_ext,
+    urljoin,
 )
 
 

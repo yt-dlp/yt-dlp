@@ -1,9 +1,9 @@
 from .common import InfoExtractor
 from ..utils import (
-    parse_iso8601,
+    int_or_none,
     parse_duration,
     parse_filesize,
-    int_or_none,
+    parse_iso8601,
 )
 
 

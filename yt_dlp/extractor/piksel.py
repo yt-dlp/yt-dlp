@@ -2,8 +2,8 @@ import re
 
 from .common import InfoExtractor
 from ..utils import (
-    dict_get,
     ExtractorError,
+    dict_get,
     int_or_none,
     join_nonempty,
     parse_iso8601,
@@ -25,29 +25,31 @@ class PikselIE(InfoExtractor):
                     )|
                 (?:api|player)\.multicastmedia|
                 (?:api-ovp|player)\.piksel
-            )\.com|
+            )\.(?:com|tech)|
             (?:
                 mz-edge\.stream\.co|
                 movie-s\.nhk\.or
             )\.jp|
             vidego\.baltimorecity\.gov
         )/v/(?:refid/(?P<refid>[^/]+)/prefid/)?(?P<id>[\w-]+)'''
-    _EMBED_REGEX = [r'<iframe[^>]+src=["\'](?P<url>(?:https?:)?//player\.piksel\.com/v/[a-z0-9]+)']
+    _EMBED_REGEX = [r'<iframe[^>]+src=["\'](?P<url>(?:https?:)?//player\.piksel\.(?:com|tech)/v/[a-z0-9]+)']
     _TESTS = [
         {
-            'url': 'http://player.piksel.com/v/ums2867l',
+            'url': 'http://player.piksel.tech/v/ums2867l',
             'md5': '34e34c8d89dc2559976a6079db531e85',
             'info_dict': {
                 'id': 'ums2867l',
                 'ext': 'mp4',
                 'title': 'GX-005 with Caption',
                 'timestamp': 1481335659,
-                'upload_date': '20161210'
+                'upload_date': '20161210',
+                'description': '',
+                'thumbnail': 'https://thumbs.piksel.tech/thumbs/aid/t1488331553/3238987.jpg?w=640&h=480',
             }
         },
         {
             # Original source: http://www.uscourts.gov/cameras-courts/state-washington-vs-donald-j-trump-et-al
-            'url': 'https://player.piksel.com/v/v80kqp41',
+            'url': 'https://player.piksel.tech/v/v80kqp41',
             'md5': '753ddcd8cc8e4fa2dda4b7be0e77744d',
             'info_dict': {
                 'id': 'v80kqp41',
@@ -55,7 +57,8 @@ class PikselIE(InfoExtractor):
                 'title': 'WAW- State of Washington vs. Donald J. Trump, et al',
                 'description': 'State of Washington vs. Donald J. Trump, et al, Case Number 17-CV-00141-JLR, TRO Hearing, Civil Rights Case, 02/3/2017, 1:00 PM (PST), Seattle Federal Courthouse, Seattle, WA, Judge James L. Robart presiding.',
                 'timestamp': 1486171129,
-                'upload_date': '20170204'
+                'upload_date': '20170204',
+                'thumbnail': 'https://thumbs.piksel.tech/thumbs/aid/t1495569155/3279887.jpg?w=640&h=360',
             }
         },
         {
@@ -65,7 +68,7 @@ class PikselIE(InfoExtractor):
         }
     ]
 
-    def _call_api(self, app_token, resource, display_id, query, host='https://player.piksel.com', fatal=True):
+    def _call_api(self, app_token, resource, display_id, query, host='https://player.piksel.tech', fatal=True):
         url = urljoin(host, f'/ws/ws_{resource}/api/{app_token}/mode/json/apiv/5')
         response = traverse_obj(
             self._download_json(url, display_id, query=query, fatal=fatal), ('response', {dict})) or {}
@@ -146,7 +149,7 @@ class PikselIE(InfoExtractor):
 
         smil_url = dict_get(video_data, ['httpSmil', 'hdSmil', 'rtmpSmil'])
         if smil_url:
-            transform_source = None
+            transform_source = lambda x: x.replace('src="/', 'src="')
             if ref_id == 'nhkworld':
                 # TODO: figure out if this is something to be fixed in urljoin,
                 # _parse_smil_formats or keep it here

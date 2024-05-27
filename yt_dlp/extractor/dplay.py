@@ -4,8 +4,8 @@ import uuid
 from .common import InfoExtractor
 from ..networking.exceptions import HTTPError
 from ..utils import (
-    determine_ext,
     ExtractorError,
+    determine_ext,
     float_or_none,
     int_or_none,
     remove_start,

@@ -1,7 +1,7 @@
 from .common import InfoExtractor
 from ..compat import (
-    compat_urlparse,
     compat_urllib_parse_urlencode,
+    compat_urlparse,
 )
 from ..utils import (
     ExtractorError,
