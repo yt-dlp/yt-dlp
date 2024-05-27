@@ -83,8 +83,7 @@ class MurrtubeIE(InfoExtractor):
             'formats': self._extract_m3u8_formats(playlist, video_id, 'mp4'),
             'description': self._og_search_description(video_page),
             'thumbnail': update_url(self._og_search_thumbnail(video_page, default=''), query=None) or None,
-            'uploader': self._html_search_regex(
-                r'<span class="pl-1 is-size-6 has-text-lighter">(.+?)</span>', video_page, 'uploader', default=None),
+            'uploader': clean_html(get_element_by_class('pl-1 is-size-6 has-text-lighter', video_page)),
             'view_count': int(view_str.replace(',', '')) if view_str else None,
             'like_count': int(like_str.replace(',', '')) if like_str else None,
             'comment_count': int(comment_str.replace(',', '')) if comment_str else None
