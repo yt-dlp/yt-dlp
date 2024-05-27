@@ -72,7 +72,7 @@ class MurrtubeIE(InfoExtractor):
         comment_str = self._search_regex(r'(?P<comment>[\d,]+) <span class="has-text-white">Comments<\/span>', video_page, 'comment', default=None)
         return {
             'id': video_id,
-            'title': self._og_search_title(video_page).split(' - Murrtube')[0],
+            'title': remove_end(self._og_search_title(video_page), ' - Murrtube'),
             'age_limit': 18,
             'formats': formats,
             'description': self._og_search_description(video_page),
