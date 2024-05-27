@@ -72,10 +72,7 @@ class MurrtubeIE(InfoExtractor):
         video_attrs = extract_attributes(get_element_html_by_id('video', video_page))
         playlist = update_url(video_attrs['data-url'], query=None)
         video_id = self._search_regex(r'/([^/?#]+)/index.m3u8', playlist, 'video id')
-        formats = self._extract_m3u8_formats(playlist, video_id, 'mp4', entry_protocol='m3u8_native', fatal=False)
-        view_str = self._search_regex(r'(?P<views>[\d,]+) <span class="has-text-white">Views<\/span>', video_page, 'views', default=None)
-        like_str = self._search_regex(r'(?P<likes>[\d,]+) <span class="has-text-white">Likes<\/span>', video_page, 'likes', default=None)
-        comment_str = self._search_regex(r'(?P<comment>[\d,]+) <span class="has-text-white">Comments<\/span>', video_page, 'comment', default=None)
+
         return {
             'id': video_id,
             'title': remove_end(self._og_search_title(video_page), ' - Murrtube'),
