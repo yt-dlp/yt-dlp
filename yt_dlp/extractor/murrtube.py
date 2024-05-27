@@ -69,9 +69,9 @@ class MurrtubeIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         video_page = self._download_webpage(url, video_id)
-        video_attrs = extract_attributes(self._search_regex(r'(<video[^>]+>)', video_page, 'video'))
-        playlist = video_attrs['data-url'].split('?')[0]
-        video_id = self._search_regex(r'https://storage.murrtube.net/murrtube-production/.+/(?P<id>.+)/index.m3u8', playlist, 'id', default=None)
+        video_attrs = extract_attributes(get_element_html_by_id('video', video_page))
+        playlist = update_url(video_attrs['data-url'], query=None)
+        video_id = self._search_regex(r'/([^/?#]+)/index.m3u8', playlist, 'video id')
         formats = self._extract_m3u8_formats(playlist, video_id, 'mp4', entry_protocol='m3u8_native', fatal=False)
         view_str = self._search_regex(r'(?P<views>[\d,]+) <span class="has-text-white">Views<\/span>', video_page, 'views', default=None)
         like_str = self._search_regex(r'(?P<likes>[\d,]+) <span class="has-text-white">Likes<\/span>', video_page, 'likes', default=None)
