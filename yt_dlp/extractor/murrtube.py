@@ -61,7 +61,7 @@ class MurrtubeIE(InfoExtractor):
             data=urlencode_postdata(self._hidden_inputs(homepage)))
 
     def _real_extract(self, url):
-        video_id = self._match_valid_url(url)
+        video_id = self._match_id(url)
         video_page = self._download_webpage(url, video_id)
         video_attrs = extract_attributes(self._search_regex(r'(<video[^>]+>)', video_page, 'video'))
         playlist = video_attrs['data-url'].split('?')[0]
