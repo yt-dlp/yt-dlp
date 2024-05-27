@@ -59,6 +59,10 @@ class MurrtubeIE(InfoExtractor):
         }
     ]
 
+    def _extract_count(self, name, html):
+        return parse_count(self._search_regex(
+            rf'([\d,]+)\s+<span[^>]*>{name}</span>', html, name, default=None))
+
     def _real_initialize(self):
         homepage = self._download_webpage(
             'https://murrtube.net', None, note='Getting session token')
@@ -81,9 +85,9 @@ class MurrtubeIE(InfoExtractor):
             'description': self._og_search_description(video_page),
             'thumbnail': update_url(self._og_search_thumbnail(video_page, default=''), query=None) or None,
             'uploader': clean_html(get_element_by_class('pl-1 is-size-6 has-text-lighter', video_page)),
-            'view_count': int(view_str.replace(',', '')) if view_str else None,
-            'like_count': int(like_str.replace(',', '')) if like_str else None,
-            'comment_count': int(comment_str.replace(',', '')) if comment_str else None
+            'view_count': self._extract_count('Views', video_page),
+            'like_count': self._extract_count('Likes', video_page),
+            'comment_count': self._extract_count('Comments', video_page)
         }
 
 
