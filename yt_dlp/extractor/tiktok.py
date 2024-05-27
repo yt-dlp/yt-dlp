@@ -940,6 +940,7 @@ class TikTokUserIE(TikTokBaseIE):
 
     def _entries(self, sec_uid, user_name):
         display_id = user_name or sec_uid
+        seen_ids = set()
 
         cursor = int(time.time() * 1E3)
         for page in itertools.count(1):
@@ -949,6 +950,9 @@ class TikTokUserIE(TikTokBaseIE):
 
             for video in traverse_obj(response, ('itemList', lambda _, v: v['id'])):
                 video_id = video['id']
+                if video_id in seen_ids:
+                    continue
+                seen_ids.add(video_id)
                 webpage_url = self._create_url(display_id, video_id)
                 yield self.url_result(
                     webpage_url, TikTokIE,
@@ -956,8 +960,8 @@ class TikTokUserIE(TikTokBaseIE):
 
             old_cursor = cursor
             cursor = traverse_obj(
-                response, ('itemList', -1, 'createTime', {functools.partial(int_or_none, invscale=1E3)}))
-            if not cursor:
+                response, ('itemList', -1, 'createTime', {lambda x: int(x * 1E3)}))
+            if not cursor or old_cursor == cursor:
                 # User may not have posted within this ~1 week lookback, so manually adjust cursor
                 cursor = old_cursor - 7 * 86_400_000
             # In case 'hasMorePrevious' is wrong, break if we have gone back before TikTok existed
