@@ -481,6 +481,32 @@ class FacebookIE(InfoExtractor):
         webpage = self._download_webpage(
             url.replace('://m.facebook.com/', '://www.facebook.com/'), video_id)
 
+        def extract_follower_count(webpage):
+            post_data = [self._parse_json(j, video_id, fatal=False) for j in re.findall(
+                r'data-sjs>({.*?ScheduledServerJS.*?})</script>', webpage)]
+            post = traverse_obj(post_data, (
+                ..., 'require', ..., ..., ..., '__bbox', 'require', ..., ..., ..., '__bbox', 'result', 'data'), expected_type=dict) or []
+
+            with open('post.json', 'w') as f:
+                json.dump(post, f)
+
+            followers = get_first(post, ('user', 'profile_header_renderer', 'user', 'profile_social_context', 'content', ..., 'text',
+                                lambda k, v: k == 'text' and isinstance(v, str) and v.endswith('followers'))) or None
+            if not isinstance(followers, str):
+                return None
+
+            matches = re.search(r"(\d+)([K|M])?", followers)
+            if matches is None:
+                return None
+
+            count = int(matches[1])
+            unit = matches[2]
+            if unit == "K":
+                count *= 1_000
+            elif unit == "M":
+                count *= 1_000_000
+            return count
+
         def extract_metadata(webpage):
             post_data = [self._parse_json(j, video_id, fatal=False) for j in re.findall(
                 r'data-sjs>({.*?ScheduledServerJS.*?})</script>', webpage)]
@@ -504,6 +530,8 @@ class FacebookIE(InfoExtractor):
                 or get_first(post, (..., 'video', lambda k, v: k == 'owner' and v['name']))
                 or get_first(post, ('node', 'actors', ..., {dict}))
                 or get_first(post, ('event', 'event_creator', {dict})) or {})
+            uploader_profile = get_first(post, ('attachments', ..., 'media', 'creation_story', 'comet_sections', 'actor_photo', 'story', 'actors', ..., {dict})) or {}
+            profile_url = uploader_profile.get('profile_url')
             uploader = uploader_data.get('name') or (
                 clean_html(get_element_by_id('fbPhotoPageAuthorName', webpage))
                 or self._search_regex(
@@ -529,6 +557,7 @@ class FacebookIE(InfoExtractor):
                     webpage, 'view count', default=None)),
                 'concurrent_view_count': get_first(post, (
                     ('video', (..., ..., 'attachments', ..., 'media')), 'liveViewerCount', {int_or_none})),
+                'profile_url': profile_url,
             }
 
             info_json_ld = self._search_json_ld(webpage, video_id, default={})
@@ -711,6 +740,11 @@ class FacebookIE(InfoExtractor):
 
                 video_info = entries[0] if entries else {'id': video_id}
                 webpage_info = extract_metadata(webpage)
+                if profile_url := webpage_info.get('profile_url'):
+                    profile_page = self._download_webpage(profile_url, None)
+                    follower_count = extract_follower_count(profile_page)
+                    webpage_info['channel_follower_count'] = follower_count
+                    del webpage_info['profile_url']
                 # honor precise duration in video info
                 if video_info.get('duration'):
                     webpage_info['duration'] = video_info['duration']
