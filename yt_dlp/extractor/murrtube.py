@@ -74,7 +74,7 @@ class MurrtubeIE(InfoExtractor):
             'id': video_id,
             'title': remove_end(self._og_search_title(video_page), ' - Murrtube'),
             'age_limit': 18,
-            'formats': formats,
+            'formats': self._extract_m3u8_formats(playlist, video_id, 'mp4'),
             'description': self._og_search_description(video_page),
             'thumbnail': self._og_search_thumbnail(video_page).split('?')[0],
             'uploader': self._html_search_regex(
