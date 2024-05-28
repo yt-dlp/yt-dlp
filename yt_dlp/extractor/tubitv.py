@@ -21,7 +21,6 @@ class TubiTvIE(InfoExtractor):
                     (?P<id>[0-9]+)'''
     _LOGIN_URL = 'http://tubitv.com/login'
     _NETRC_MACHINE = 'tubitv'
-    _GEO_COUNTRIES = ['US']
     _TESTS = [{
         'url': 'https://tubitv.com/movies/100004539/the-39-steps',
         'info_dict': {
