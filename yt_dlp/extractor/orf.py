@@ -523,12 +523,13 @@ class ORFONIE(InfoExtractor):
         segments = traverse_obj(api_json, ('_embedded', 'segments', lambda _, v: v['id']))
 
         if len(segments) > 1:
-            if self._yes_playlist(video_id, video_id, playlist_label='collection'):
+            selected_segment = traverse_obj(segments, (lambda _, v: str(v['id']) == segment_id, any), 0)
+            segment_id = selected_segment['id']
+            if self._yes_playlist(video_id, segment_id, playlist_label='collection', video_label='segment'):
                 return self.playlist_result(
                     (self._extract_video_info(str(segment['id']), segment) for segment in segments),
                     video_id, **self._parse_metadata(api_json), multi_video=True)
 
-            segment = traverse_obj(segments, (lambda _, v: str(v['id']) == segment_id, any), 0)
-            return self._extract_video_info(segment['id'], segment)
+            return self._extract_video_info(segment_id, selected_segment)
 
         return self._extract_video_info(video_id, api_json)
