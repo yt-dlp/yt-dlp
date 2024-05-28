@@ -16,7 +16,7 @@ class TubiTvIE(InfoExtractor):
     _VALID_URL = r'''(?x)
                     (?:
                         tubitv:|
-                        https?://(?:www\.)?tubitv\.com/(?:video|movies|tv-shows)/
+                        https?://(?:www\.)?tubitv\.com/(?P<type>video|movies|tv-shows)/
                     )
                     (?P<id>[0-9]+)'''
     _LOGIN_URL = 'http://tubitv.com/login'
@@ -24,7 +24,6 @@ class TubiTvIE(InfoExtractor):
     _GEO_COUNTRIES = ['US']
     _TESTS = [{
         'url': 'https://tubitv.com/movies/100004539/the-39-steps',
-        'md5': '826620bf9e711042079463349e8e047b',
         'info_dict': {
             'id': '100004539',
             'ext': 'mp4',
@@ -34,6 +33,23 @@ class TubiTvIE(InfoExtractor):
             'release_year': 1935,
             'thumbnail': r're:^https?://.+\.(jpe?g|png)$',
             'duration': 5187,
+        },
+        'params': {'skip_download': 'm3u8'},
+    }, {
+        'url': 'https://tubitv.com/tv-shows/554628/s01-e01-rise-of-the-snakes',
+        'info_dict': {
+            'id': '554628',
+            'ext': 'mp4',
+            'title': 'S01:E01 - Rise of the Snakes',
+            'description': 'md5:ba136f586de53af0372811e783a3f57d',
+            'episode': 'Rise of the Snakes',
+            'episode_number': 1,
+            'season': 'Season 1',
+            'season_number': 1,
+            'uploader_id': '2a9273e728c510d22aa5c57d0646810b',
+            'release_year': 2011,
+            'thumbnail': r're:^https?://.+\.(jpe?g|png)$',
+            'duration': 1376,
         },
         'params': {'skip_download': 'm3u8'},
     }, {
@@ -83,8 +99,8 @@ class TubiTvIE(InfoExtractor):
                 'Login failed (invalid username/password)', expected=True)
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
-        webpage = self._download_webpage(f'https://tubitv.com/movies/{video_id}/', video_id)
+        video_id, video_type = self._match_valid_url(url).group('id', 'type')
+        webpage = self._download_webpage(f'https://tubitv.com/{video_type}/{video_id}/', video_id)
         video_data = self._search_json(
             r'window\.__data\s*=', webpage, 'data', video_id,
             transform_source=js_to_json)['video']['byId'][video_id]
@@ -126,7 +142,7 @@ class TubiTvIE(InfoExtractor):
             'subtitles': subtitles,
             'season_number': int_or_none(season_number),
             'episode_number': int_or_none(episode_number),
-            'episode_title': episode_title,
+            'episode': episode_title,
             **traverse_obj(video_data, {
                 'description': ('description', {str}),
                 'duration': ('duration', {int_or_none}),
