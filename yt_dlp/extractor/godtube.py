@@ -6,6 +6,7 @@ from ..utils import (
 
 
 class GodTubeIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?godtube\.com/watch/\?v=(?P<id>[\da-zA-Z]+)'
     _TESTS = [
         {

@@ -1,12 +1,13 @@
+import json
+
 from .brightcove import BrightcoveNewIE
 from .common import InfoExtractor
-
 from ..utils import (
-    dict_get,
-    get_element_by_id,
-    js_to_json,
-    traverse_obj,
+    extract_attributes,
+    get_element_html_by_class,
+    get_element_text_and_html_by_tag,
 )
+from ..utils.traversal import traverse_obj
 
 
 class CraftsyIE(InfoExtractor):
@@ -41,28 +42,34 @@ class CraftsyIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        video_data = self._parse_json(self._search_regex(
-            r'class_video_player_vars\s*=\s*({.*})\s*;',
-            get_element_by_id('vidstore-classes_class-video-player-js-extra', webpage),
-            'video data'), video_id, transform_source=js_to_json)
+        video_player = get_element_html_by_class('class-video-player', webpage)
+        video_data = traverse_obj(video_player, (
+            {extract_attributes}, 'wire:snapshot', {json.loads}, 'data', {dict})) or {}
+        video_js = traverse_obj(video_player, (
+            {lambda x: get_element_text_and_html_by_tag('video-js', x)}, 1, {extract_attributes})) or {}
 
-        account_id = traverse_obj(video_data, ('video_player', 'bc_account_id'))
+        has_access = video_data.get('userHasAccess')
+        lessons = traverse_obj(video_data, ('lessons', ..., ..., lambda _, v: v['video_id']))
 
-        entries = []
-        class_preview = traverse_obj(video_data, ('video_player', 'class_preview'))
-        if class_preview:
-            v_id = class_preview.get('video_id')
-            entries.append(self.url_result(
-                f'http://players.brightcove.net/{account_id}/default_default/index.html?videoId={v_id}',
-                BrightcoveNewIE, v_id, class_preview.get('title')))
+        preview_id = video_js.get('data-video-id')
+        if preview_id and preview_id not in traverse_obj(lessons, (..., 'video_id')):
+            if not lessons and not has_access:
+                self.report_warning(
+                    'Only extracting preview. For the full class, pass cookies '
+                    + f'from an account that has access. {self._login_hint()}')
+            lessons.append({'video_id': preview_id})
 
-        if dict_get(video_data, ('is_free', 'user_has_access')):
-            entries += [
-                self.url_result(
+        if not lessons and not has_access:
+            self.raise_login_required('You do not have access to this class')
+
+        account_id = video_data.get('accountId') or video_js['data-account']
+
+        def entries(lessons):
+            for lesson in lessons:
+                yield self.url_result(
                     f'http://players.brightcove.net/{account_id}/default_default/index.html?videoId={lesson["video_id"]}',
                     BrightcoveNewIE, lesson['video_id'], lesson.get('title'))
-                for lesson in video_data['lessons']]
 
         return self.playlist_result(
-            entries, video_id, video_data.get('class_title'),
+            entries(lessons), video_id, self._html_search_meta(('og:title', 'twitter:title'), webpage),
             self._html_search_meta(('og:description', 'description'), webpage, default=None))

@@ -7,6 +7,7 @@ from ..utils import (
 
 
 class UMGDeIE(InfoExtractor):
+    _WORKING = False
     IE_NAME = 'umg:de'
     IE_DESC = 'Universal Music Deutschland'
     _VALID_URL = r'https?://(?:www\.)?universal-music\.de/[^/]+/videos/[^/?#]+-(?P<id>\d+)'

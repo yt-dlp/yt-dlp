@@ -44,8 +44,6 @@ class SBSIE(InfoExtractor):
             'timestamp': 1408613220,
             'upload_date': '20140821',
             'uploader': 'SBSC',
-            'tags': None,
-            'categories': None,
         },
         'expected_warnings': ['Unable to download JSON metadata'],
     }, {

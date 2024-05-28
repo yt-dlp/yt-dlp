@@ -2,6 +2,7 @@ from .hbo import HBOBaseIE
 
 
 class CinemaxIE(HBOBaseIE):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?cinemax\.com/(?P<path>[^/]+/video/[0-9a-z-]+-(?P<id>\d+))'
     _TESTS = [{
         'url': 'https://www.cinemax.com/warrior/video/s1-ep-1-recap-20126903',

@@ -4,6 +4,7 @@ import re
 from .common import InfoExtractor
 from ..compat import compat_str
 from ..utils import (
+    OnDemandPagedList,
     format_field,
     int_or_none,
     parse_resolution,
@@ -12,7 +13,6 @@ from ..utils import (
     unified_timestamp,
     url_or_none,
     urljoin,
-    OnDemandPagedList,
 )
 
 
@@ -1470,11 +1470,15 @@ class PeerTubeIE(InfoExtractor):
 
         title = video['name']
 
-        formats = []
+        formats, is_live = [], False
         files = video.get('files') or []
         for playlist in (video.get('streamingPlaylists') or []):
             if not isinstance(playlist, dict):
                 continue
+            if playlist_url := url_or_none(playlist.get('playlistUrl')):
+                is_live = True
+                formats.extend(self._extract_m3u8_formats(
+                    playlist_url, video_id, fatal=False, live=True))
             playlist_files = playlist.get('files')
             if not (playlist_files and isinstance(playlist_files, list)):
                 continue
@@ -1498,6 +1502,7 @@ class PeerTubeIE(InfoExtractor):
                 f['vcodec'] = 'none'
             else:
                 f['fps'] = int_or_none(file_.get('fps'))
+            is_live = False
             formats.append(f)
 
         description = video.get('description')
@@ -1555,6 +1560,7 @@ class PeerTubeIE(InfoExtractor):
             'categories': categories,
             'formats': formats,
             'subtitles': subtitles,
+            'is_live': is_live,
             'webpage_url': webpage_url,
         }
 

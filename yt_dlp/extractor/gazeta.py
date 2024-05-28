@@ -2,6 +2,7 @@ from .common import InfoExtractor
 
 
 class GazetaIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'(?P<url>https?://(?:www\.)?gazeta\.ru/(?:[^/]+/)?video/(?:main/)*(?:\d{4}/\d{2}/\d{2}/)?(?P<id>[A-Za-z0-9-_.]+)\.s?html)'
     _TESTS = [{
         'url': 'http://www.gazeta.ru/video/main/zadaite_vopros_vladislavu_yurevichu.shtml',

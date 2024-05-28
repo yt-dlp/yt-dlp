@@ -151,7 +151,7 @@ class _YoutubeDLHelpFormatter(optparse.IndentedHelpFormatter):
 
 
 class _YoutubeDLOptionParser(optparse.OptionParser):
-    # optparse is deprecated since python 3.2. So assume a stable interface even for private methods
+    # optparse is deprecated since Python 3.2. So assume a stable interface even for private methods
     ALIAS_DEST = '_triggered_aliases'
     ALIAS_TRIGGER_LIMIT = 100
 
@@ -393,7 +393,7 @@ def create_parser():
         '--ignore-config', '--no-config',
         action='store_true', dest='ignoreconfig',
         help=(
-            'Don\'t load any more configuration files except those given by --config-locations. '
+            'Don\'t load any more configuration files except those given to --config-locations. '
             'For backward compatibility, if this option is found inside the system configuration file, the user configuration is not loaded. '
             '(Alias: --no-config)'))
     general.add_option(
@@ -478,7 +478,7 @@ def create_parser():
             }, 'aliases': {
                 'youtube-dl': ['all', '-multistreams', '-playlist-match-filter', '-manifest-filesize-approx'],
                 'youtube-dlc': ['all', '-no-youtube-channel-redirect', '-no-live-chat', '-playlist-match-filter', '-manifest-filesize-approx'],
-                '2021': ['2022', 'no-certifi', 'filename-sanitization', 'no-youtube-prefer-utc-upload-date'],
+                '2021': ['2022', 'no-certifi', 'filename-sanitization'],
                 '2022': ['2023', 'no-external-downloader-progress', 'playlist-match-filter', 'prefer-legacy-http-handler', 'manifest-filesize-approx'],
                 '2023': [],
             }
@@ -514,6 +514,19 @@ def create_parser():
         '--source-address',
         metavar='IP', dest='source_address', default=None,
         help='Client-side IP address to bind to',
+    )
+    network.add_option(
+        '--impersonate',
+        metavar='CLIENT[:OS]', dest='impersonate', default=None,
+        help=(
+            'Client to impersonate for requests. E.g. chrome, chrome-110, chrome:windows-10. '
+            'Pass --impersonate="" to impersonate any client. Note that forcing impersonation '
+            'for all requests may have a detrimental impact on download speed and stability'),
+    )
+    network.add_option(
+        '--list-impersonate-targets',
+        dest='list_impersonate_targets', default=False, action='store_true',
+        help='List available clients to impersonate.',
     )
     network.add_option(
         '-4', '--force-ipv4',
@@ -679,6 +692,10 @@ def create_parser():
         '--break-on-existing',
         action='store_true', dest='break_on_existing', default=False,
         help='Stop the download process when encountering a file that is in the archive')
+    selection.add_option(
+        '--no-break-on-existing',
+        action='store_false', dest='break_on_existing',
+        help='Do not stop the download process when encountering a file that is in the archive (default)')
     selection.add_option(
         '--break-on-reject',
         action='store_true', dest='break_on_reject', default=False,
@@ -1193,7 +1210,9 @@ def create_parser():
     verbosity.add_option(
         '-j', '--dump-json',
         action='store_true', dest='dumpjson', default=False,
-        help='Quiet, but print JSON information for each video. Simulate unless --no-simulate is used. See "OUTPUT TEMPLATE" for a description of available keys')
+        help=(
+            'Quiet, but print JSON information for each video. Simulate unless --no-simulate is used. '
+            'See "OUTPUT TEMPLATE" for a description of available keys'))
     verbosity.add_option(
         '-J', '--dump-single-json',
         action='store_true', dest='dump_single_json', default=False,
@@ -1240,6 +1259,10 @@ def create_parser():
             'the progress attributes are accessible under "progress" key. E.g. '
             # TODO: Document the fields inside "progress"
             '--console-title --progress-template "download-title:%(info.id)s-%(progress.eta)s"'))
+    verbosity.add_option(
+        '--progress-delta',
+        metavar='SECONDS', action='store', dest='progress_delta', type=float, default=0,
+        help='Time between progress output (default: 0)')
     verbosity.add_option(
         '-v', '--verbose',
         action='store_true', dest='verbose', default=False,
@@ -1315,7 +1338,7 @@ def create_parser():
     filesystem.add_option(
         '--output-na-placeholder',
         dest='outtmpl_na_placeholder', metavar='TEXT', default='NA',
-        help=('Placeholder for unavailable fields in "OUTPUT TEMPLATE" (default: "%default")'))
+        help=('Placeholder for unavailable fields in --output (default: "%default")'))
     filesystem.add_option(
         '--autonumber-size',
         dest='autonumber_size', metavar='NUMBER', type=int,

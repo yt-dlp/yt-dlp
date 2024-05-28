@@ -3,7 +3,7 @@ from ..utils import update_url
 
 
 class KommunetvIE(InfoExtractor):
-    _VALID_URL = r'https://\w+\.kommunetv\.no/archive/(?P<id>\w+)'
+    _VALID_URL = r'https?://\w+\.kommunetv\.no/archive/(?P<id>\w+)'
     _TEST = {
         'url': 'https://oslo.kommunetv.no/archive/921',
         'md5': '5f102be308ee759be1e12b63d5da4bbc',

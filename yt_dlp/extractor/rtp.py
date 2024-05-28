@@ -1,3 +1,8 @@
+import base64
+import json
+import re
+import urllib.parse
+
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
@@ -6,10 +11,6 @@ from ..utils import (
     join_nonempty,
     js_to_json,
 )
-import re
-import json
-import urllib.parse
-import base64
 
 
 class RTPIE(InfoExtractor):

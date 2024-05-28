@@ -4,6 +4,7 @@ from .archiveorg import ArchiveOrgIE
 from .common import InfoExtractor
 from ..utils import (
     InAdvancePagedList,
+    clean_html,
     int_or_none,
     orderedSet,
     str_to_int,
@@ -32,13 +33,15 @@ class AltCensoredIE(InfoExtractor):
             'duration': 926.09,
             'thumbnail': 'https://archive.org/download/youtube-k0srjLSkga8/youtube-k0srjLSkga8.thumbs/k0srjLSkga8_000925.jpg',
             'view_count': int,
-            'categories': ['News & Politics'],  # FIXME
+            'categories': ['News & Politics'],
         }
     }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
+        category = clean_html(self._html_search_regex(
+            r'<a href="/category/\d+">([^<]+)</a>', webpage, 'category', default=None))
 
         return {
             '_type': 'url_transparent',
@@ -46,9 +49,7 @@ class AltCensoredIE(InfoExtractor):
             'ie_key': ArchiveOrgIE.ie_key(),
             'view_count': str_to_int(self._html_search_regex(
                 r'YouTube Views:(?:\s|&nbsp;)*([\d,]+)', webpage, 'view count', default=None)),
-            'categories': self._html_search_regex(
-                r'<a href="/category/\d+">\s*\n?\s*([^<]+)</a>',
-                webpage, 'category', default='').split() or None,
+            'categories': [category] if category else None,
         }
 
 

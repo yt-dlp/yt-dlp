@@ -1,11 +1,10 @@
-import datetime
+import datetime as dt
 import functools
 import itertools
 import json
 import re
 import time
-
-from urllib.parse import urlparse
+import urllib.parse
 
 from .common import InfoExtractor, SearchInfoExtractor
 from ..networking import Request
@@ -36,6 +35,8 @@ from ..utils import (
 class NiconicoIE(InfoExtractor):
     IE_NAME = 'niconico'
     IE_DESC = 'ニコニコ動画'
+    _GEO_COUNTRIES = ['JP']
+    _GEO_BYPASS = False
 
     _TESTS = [{
         'url': 'http://www.nicovideo.jp/watch/sm22312215',
@@ -161,8 +162,6 @@ class NiconicoIE(InfoExtractor):
             'description': 'md5:15df8988e47a86f9e978af2064bf6d8e',
             'timestamp': 1341128008,
             'upload_date': '20120701',
-            'uploader': None,
-            'uploader_id': None,
             'thumbnail': r're:https?://.*',
             'duration': 5271,
             'view_count': int,
@@ -478,15 +477,27 @@ class NiconicoIE(InfoExtractor):
                     raise
                 raise ExtractorError(clean_html(error_msg), expected=True)
 
-        club_joined = traverse_obj(api_data, ('channel', 'viewer', 'follow', 'isFollowed', {bool}))
-        if club_joined is None:
-            fail_msg = self._html_search_regex(
+        availability = self._availability(**(traverse_obj(api_data, ('payment', 'video', {
+            'needs_premium': ('isPremium', {bool}),
+            'needs_subscription': ('isAdmission', {bool}),
+        })) or {'needs_auth': True}))
+        formats = [*self._yield_dmc_formats(api_data, video_id),
+                   *self._yield_dms_formats(api_data, video_id)]
+        if not formats:
+            fail_msg = clean_html(self._html_search_regex(
                 r'<p[^>]+\bclass="fail-message"[^>]*>(?P<msg>.+?)</p>',
-                webpage, 'fail message', default=None, group='msg')
+                webpage, 'fail message', default=None, group='msg'))
             if fail_msg:
-                self.raise_login_required(clean_html(fail_msg), metadata_available=True)
-        elif not club_joined:
-            self.raise_login_required('This video is for members only', metadata_available=True)
+                self.to_screen(f'Niconico said: {fail_msg}')
+            if fail_msg and 'された地域と同じ地域からのみ視聴できます。' in fail_msg:
+                availability = None
+                self.raise_geo_restricted(countries=self._GEO_COUNTRIES, metadata_available=True)
+            elif availability == 'premium_only':
+                self.raise_login_required('This video requires premium', metadata_available=True)
+            elif availability == 'subscriber_only':
+                self.raise_login_required('This video is for members only', metadata_available=True)
+            elif availability == 'needs_auth':
+                self.raise_login_required(metadata_available=False)
 
         # Start extracting information
         tags = None
@@ -512,8 +523,8 @@ class NiconicoIE(InfoExtractor):
             'id': video_id,
             '_api_data': api_data,
             'title': get_video_info(('originalTitle', 'title')) or self._og_search_title(webpage, default=None),
-            'formats': [*self._yield_dmc_formats(api_data, video_id),
-                        *self._yield_dms_formats(api_data, video_id)],
+            'formats': formats,
+            'availability': availability,
             'thumbnails': [{
                 'id': key,
                 'url': url,
@@ -808,12 +819,12 @@ class NicovideoSearchDateIE(NicovideoSearchBaseIE, SearchInfoExtractor):
         'playlist_mincount': 1610,
     }]
 
-    _START_DATE = datetime.date(2007, 1, 1)
+    _START_DATE = dt.date(2007, 1, 1)
     _RESULTS_PER_PAGE = 32
     _MAX_PAGES = 50
 
     def _entries(self, url, item_id, start_date=None, end_date=None):
-        start_date, end_date = start_date or self._START_DATE, end_date or datetime.datetime.now().date()
+        start_date, end_date = start_date or self._START_DATE, end_date or dt.datetime.now().date()
 
         # If the last page has a full page of videos, we need to break down the query interval further
         last_page_len = len(list(self._get_entries_for_date(
@@ -945,7 +956,7 @@ class NiconicoLiveIE(InfoExtractor):
             'frontend_id': traverse_obj(embedded_data, ('site', 'frontendId')) or '9',
         })
 
-        hostname = remove_start(urlparse(urlh.url).hostname, 'sp.')
+        hostname = remove_start(urllib.parse.urlparse(urlh.url).hostname, 'sp.')
         latency = try_get(self._configuration_arg('latency'), lambda x: x[0])
         if latency not in self._KNOWN_LATENCY:
             latency = 'high'

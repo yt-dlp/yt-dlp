@@ -5,6 +5,7 @@ from ..utils import (
 
 
 class PornoXOIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?pornoxo\.com/videos/(?P<id>\d+)/(?P<display_id>[^/]+)\.html'
     _TEST = {
         'url': 'http://www.pornoxo.com/videos/7564/striptease-from-sexy-secretary.html',
