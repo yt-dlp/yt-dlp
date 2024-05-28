@@ -101,7 +101,7 @@ class CeskaTelevizeIE(InfoExtractor):
         site_name = self._og_search_property('site_name', webpage, fatal=False, default='Česká televize')
         playlist_title = self._og_search_title(webpage, default=None)
         if site_name and playlist_title:
-            playlist_title = re.split(r'\s*[—|]\s*%s' % (site_name, ), playlist_title, 1)[0]
+            playlist_title = re.split(r'\s*[—|]\s*%s' % (site_name, ), playlist_title, maxsplit=1)[0]
         playlist_description = self._og_search_description(webpage, default=None)
         if playlist_description:
             playlist_description = playlist_description.replace('\xa0', ' ')

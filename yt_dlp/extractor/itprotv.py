@@ -1,12 +1,11 @@
 import re
 
 from .common import InfoExtractor
-
 from ..utils import (
     int_or_none,
     str_or_none,
     traverse_obj,
-    urljoin
+    urljoin,
 )
 
 
