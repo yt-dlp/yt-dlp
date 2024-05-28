@@ -4,8 +4,8 @@ from ..compat import (
     compat_str,
 )
 from ..utils import (
-    clean_html,
     ExtractorError,
+    clean_html,
     int_or_none,
     str_or_none,
     try_get,

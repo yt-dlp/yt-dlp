@@ -12,7 +12,6 @@ from ..utils import (
 )
 from ..utils.traversal import traverse_obj
 
-
 _FIELDS = '''
     _id
     clipImageSource
