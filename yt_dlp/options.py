@@ -478,7 +478,7 @@ def create_parser():
             }, 'aliases': {
                 'youtube-dl': ['all', '-multistreams', '-playlist-match-filter', '-manifest-filesize-approx'],
                 'youtube-dlc': ['all', '-no-youtube-channel-redirect', '-no-live-chat', '-playlist-match-filter', '-manifest-filesize-approx'],
-                '2021': ['2022', 'no-certifi', 'filename-sanitization', 'no-youtube-prefer-utc-upload-date'],
+                '2021': ['2022', 'no-certifi', 'filename-sanitization'],
                 '2022': ['2023', 'no-external-downloader-progress', 'playlist-match-filter', 'prefer-legacy-http-handler', 'manifest-filesize-approx'],
                 '2023': [],
             }
@@ -520,7 +520,8 @@ def create_parser():
         metavar='CLIENT[:OS]', dest='impersonate', default=None,
         help=(
             'Client to impersonate for requests. E.g. chrome, chrome-110, chrome:windows-10. '
-            'Pass --impersonate="" to impersonate any client.'),
+            'Pass --impersonate="" to impersonate any client. Note that forcing impersonation '
+            'for all requests may have a detrimental impact on download speed and stability'),
     )
     network.add_option(
         '--list-impersonate-targets',

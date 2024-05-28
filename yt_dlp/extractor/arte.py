@@ -5,6 +5,7 @@ from ..utils import (
     ExtractorError,
     GeoRestrictedError,
     int_or_none,
+    join_nonempty,
     parse_iso8601,
     parse_qs,
     strip_or_none,
@@ -32,20 +33,6 @@ class ArteTVIE(ArteTVBaseIE):
         'url': 'https://www.arte.tv/en/videos/088501-000-A/mexico-stealing-petrol-to-survive/',
         'only_matching': True,
     }, {
-        'url': 'https://www.arte.tv/pl/videos/100103-000-A/usa-dyskryminacja-na-porodowce/',
-        'info_dict': {
-            'id': '100103-000-A',
-            'title': 'USA: Dyskryminacja na porodówce',
-            'description': 'md5:242017b7cce59ffae340a54baefcafb1',
-            'alt_title': 'ARTE Reportage',
-            'upload_date': '20201103',
-            'duration': 554,
-            'thumbnail': r're:https://api-cdn\.arte\.tv/.+940x530',
-            'timestamp': 1604417980,
-            'ext': 'mp4',
-        },
-        'params': {'skip_download': 'm3u8'}
-    }, {
         'note': 'No alt_title',
         'url': 'https://www.arte.tv/fr/videos/110371-000-A/la-chaleur-supplice-des-arbres-de-rue/',
         'only_matching': True,
@@ -59,6 +46,23 @@ class ArteTVIE(ArteTVBaseIE):
         'url': 'https://www.arte.tv/de/videos/110203-006-A/zaz/',
         'only_matching': True,
     }, {
+        'url': 'https://www.arte.tv/fr/videos/109067-000-A/la-loi-de-teheran/',
+        'info_dict': {
+            'id': '109067-000-A',
+            'ext': 'mp4',
+            'description': 'md5:d2ca367b8ecee028dddaa8bd1aebc739',
+            'timestamp': 1713927600,
+            'thumbnail': 'https://api-cdn.arte.tv/img/v2/image/3rR6PLzfbigSkkeHtkCZNF/940x530',
+            'duration': 7599,
+            'title': 'La loi de Téhéran',
+            'upload_date': '20240424',
+            'subtitles': {
+                'fr': 'mincount:1',
+                'fr-acc': 'mincount:1',
+                'fr-forced': 'mincount:1',
+            },
+        },
+    }, {
         'note': 'age-restricted',
         'url': 'https://www.arte.tv/de/videos/006785-000-A/the-element-of-crime/',
         'info_dict': {
@@ -71,23 +75,7 @@ class ArteTVIE(ArteTVBaseIE):
             'upload_date': '20230930',
             'ext': 'mp4',
         },
-    }, {
-        'url': 'https://www.arte.tv/de/videos/085374-003-A/im-hohen-norden-geboren/',
-        'info_dict': {
-            'id': '085374-003-A',
-            'ext': 'mp4',
-            'description': 'md5:ab79ec7cc472a93164415b4e4916abf9',
-            'timestamp': 1702872000,
-            'thumbnail': 'https://api-cdn.arte.tv/img/v2/image/TnyHBfPxv3v2GEY3suXGZP/940x530',
-            'duration': 2594,
-            'title': 'Die kurze Zeit der Jugend',
-            'alt_title': 'Im hohen Norden geboren',
-            'upload_date': '20231218',
-            'subtitles': {
-                'fr': 'mincount:1',
-                'fr-acc': 'mincount:1',
-            },
-        },
+        'skip': '404 Not Found',
     }]
 
     _GEO_BYPASS = True
@@ -143,16 +131,18 @@ class ArteTVIE(ArteTVBaseIE):
         updated_subs = {}
         for lang, sub_formats in subs.items():
             for fmt in sub_formats:
-                if fmt.get('url', '').endswith('-MAL.m3u8'):
-                    lang += '-acc'
-                updated_subs.setdefault(lang, []).append(fmt)
+                url = fmt.get('url') or ''
+                suffix = ('acc' if url.endswith('-MAL.m3u8')
+                          else 'forced' if '_VO' not in url
+                          else None)
+                updated_subs.setdefault(join_nonempty(lang, suffix), []).append(fmt)
         return updated_subs
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
         video_id = mobj.group('id')
         lang = mobj.group('lang') or mobj.group('lang_2')
-        langauge_code = self._LANG_MAP.get(lang)
+        language_code = self._LANG_MAP.get(lang)
 
         config = self._download_json(f'{self._API_BASE}/config/{lang}/{video_id}', video_id, headers={
             'x-validated-age': '18'
@@ -180,10 +170,10 @@ class ArteTVIE(ArteTVBaseIE):
             m = self._VERSION_CODE_RE.match(stream_version_code)
             if m:
                 lang_pref = int(''.join('01'[x] for x in (
-                    m.group('vlang') == langauge_code,      # we prefer voice in the requested language
+                    m.group('vlang') == language_code,      # we prefer voice in the requested language
                     not m.group('audio_desc'),              # and not the audio description version
                     bool(m.group('original_voice')),        # but if voice is not in the requested language, at least choose the original voice
-                    m.group('sub_lang') == langauge_code,   # if subtitles are present, we prefer them in the requested language
+                    m.group('sub_lang') == language_code,   # if subtitles are present, we prefer them in the requested language
                     not m.group('has_sub'),                 # but we prefer no subtitles otherwise
                     not m.group('sdh_sub'),                 # and we prefer not the hard-of-hearing subtitles if there are subtitles
                 )))

@@ -5,6 +5,7 @@ import os
 import sys
 import unittest
 import warnings
+import datetime as dt
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -27,6 +28,7 @@ from yt_dlp.utils import (
     ExtractorError,
     InAdvancePagedList,
     LazyList,
+    NO_DEFAULT,
     OnDemandPagedList,
     Popen,
     age_restricted,
@@ -768,6 +770,11 @@ class TestUtil(unittest.TestCase):
 
     def test_parse_iso8601(self):
         self.assertEqual(parse_iso8601('2014-03-23T23:04:26+0100'), 1395612266)
+        self.assertEqual(parse_iso8601('2014-03-23T23:04:26-07:00'), 1395641066)
+        self.assertEqual(parse_iso8601('2014-03-23T23:04:26', timezone=dt.timedelta(hours=-7)), 1395641066)
+        self.assertEqual(parse_iso8601('2014-03-23T23:04:26', timezone=NO_DEFAULT), None)
+        # default does not override timezone in date_str
+        self.assertEqual(parse_iso8601('2014-03-23T23:04:26-07:00', timezone=dt.timedelta(hours=-10)), 1395641066)
         self.assertEqual(parse_iso8601('2014-03-23T22:04:26+0000'), 1395612266)
         self.assertEqual(parse_iso8601('2014-03-23T22:04:26Z'), 1395612266)
         self.assertEqual(parse_iso8601('2014-03-23T22:04:26.1234Z'), 1395612266)
