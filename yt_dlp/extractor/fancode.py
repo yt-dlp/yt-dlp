@@ -1,15 +1,10 @@
 from .common import InfoExtractor
-
 from ..compat import compat_str
-from ..utils import (
-    parse_iso8601,
-    ExtractorError,
-    try_get,
-    mimetype2ext
-)
+from ..utils import ExtractorError, mimetype2ext, parse_iso8601, try_get
 
 
 class FancodeVodIE(InfoExtractor):
+    _WORKING = False
     IE_NAME = 'fancode:vod'
 
     _VALID_URL = r'https?://(?:www\.)?fancode\.com/video/(?P<id>[0-9]+)\b'
@@ -126,6 +121,7 @@ class FancodeVodIE(InfoExtractor):
 
 
 class FancodeLiveIE(FancodeVodIE):  # XXX: Do not subclass from concrete IE
+    _WORKING = False
     IE_NAME = 'fancode:live'
 
     _VALID_URL = r'https?://(www\.)?fancode\.com/match/(?P<id>[0-9]+).+'

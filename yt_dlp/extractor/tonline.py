@@ -3,6 +3,8 @@ from ..utils import int_or_none, join_nonempty
 
 
 class TOnlineIE(InfoExtractor):
+    _WORKING = False
+    _ENABLED = None  # XXX: pass through to GenericIE
     IE_NAME = 't-online.de'
     _VALID_URL = r'https?://(?:www\.)?t-online\.de/tv/(?:[^/]+/)*id_(?P<id>\d+)'
     _TEST = {

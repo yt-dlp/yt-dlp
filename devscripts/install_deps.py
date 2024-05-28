@@ -10,6 +10,8 @@ import argparse
 import re
 import subprocess
 
+from pathlib import Path
+
 from devscripts.tomlparse import parse_toml
 from devscripts.utils import read_file
 
@@ -17,37 +19,50 @@ from devscripts.utils import read_file
 def parse_args():
     parser = argparse.ArgumentParser(description='Install dependencies for yt-dlp')
     parser.add_argument(
-        'input', nargs='?', metavar='TOMLFILE', default='pyproject.toml', help='Input file (default: %(default)s)')
+        'input', nargs='?', metavar='TOMLFILE', default=Path(__file__).parent.parent / 'pyproject.toml',
+        help='input file (default: %(default)s)')
     parser.add_argument(
-        '-e', '--exclude', metavar='REQUIREMENT', action='append', help='Exclude a required dependency')
+        '-e', '--exclude', metavar='DEPENDENCY', action='append',
+        help='exclude a dependency')
     parser.add_argument(
-        '-i', '--include', metavar='GROUP', action='append', help='Include an optional dependency group')
+        '-i', '--include', metavar='GROUP', action='append',
+        help='include an optional dependency group')
     parser.add_argument(
-        '-o', '--only-optional', action='store_true', help='Only install optional dependencies')
+        '-o', '--only-optional', action='store_true',
+        help='only install optional dependencies')
     parser.add_argument(
-        '-p', '--print', action='store_true', help='Only print a requirements.txt to stdout')
+        '-p', '--print', action='store_true',
+        help='only print requirements to stdout')
     parser.add_argument(
-        '-u', '--user', action='store_true', help='Install with pip as --user')
+        '-u', '--user', action='store_true',
+        help='install with pip as --user')
     return parser.parse_args()
 
 
 def main():
     args = parse_args()
-    toml_data = parse_toml(read_file(args.input))
-    deps = toml_data['project']['dependencies']
-    targets = deps.copy() if not args.only_optional else []
+    project_table = parse_toml(read_file(args.input))['project']
+    recursive_pattern = re.compile(rf'{project_table["name"]}\[(?P<group_name>[\w-]+)\]')
+    optional_groups = project_table['optional-dependencies']
+    excludes = args.exclude or []
 
-    for exclude in args.exclude or []:
-        for dep in deps:
-            simplified_dep = re.match(r'[\w-]+', dep)[0]
-            if dep in targets and (exclude.lower() == simplified_dep.lower() or exclude == dep):
-                targets.remove(dep)
+    def yield_deps(group):
+        for dep in group:
+            if mobj := recursive_pattern.fullmatch(dep):
+                yield from optional_groups.get(mobj.group('group_name'), [])
+            else:
+                yield dep
 
-    optional_deps = toml_data['project']['optional-dependencies']
-    for include in args.include or []:
-        group = optional_deps.get(include)
-        if group:
-            targets.extend(group)
+    targets = []
+    if not args.only_optional:  # `-o` should exclude 'dependencies' and the 'default' group
+        targets.extend(project_table['dependencies'])
+        if 'default' not in excludes:  # `--exclude default` should exclude entire 'default' group
+            targets.extend(yield_deps(optional_groups['default']))
+
+    for include in filter(None, map(optional_groups.get, args.include or [])):
+        targets.extend(yield_deps(include))
+
+    targets = [t for t in targets if re.match(r'[\w-]+', t).group(0).lower() not in excludes]
 
     if args.print:
         for target in targets:

@@ -27,7 +27,7 @@ class DaumIE(DaumBaseIE):
             'duration': 2117,
             'view_count': int,
             'comment_count': int,
-            'uploader_id': 186139,
+            'uploader_id': '186139',
             'uploader': '콘간지',
             'timestamp': 1387310323,
         },
@@ -44,7 +44,7 @@ class DaumIE(DaumBaseIE):
             'view_count': int,
             'comment_count': int,
             'uploader': 'MBC 예능',
-            'uploader_id': 132251,
+            'uploader_id': '132251',
             'timestamp': 1421604228,
         },
     }, {
@@ -63,7 +63,7 @@ class DaumIE(DaumBaseIE):
             'view_count': int,
             'comment_count': int,
             'uploader': '까칠한 墮落始祖 황비홍님의',
-            'uploader_id': 560824,
+            'uploader_id': '560824',
             'timestamp': 1203770745,
         },
     }, {
@@ -77,7 +77,7 @@ class DaumIE(DaumBaseIE):
             'description': '러블리즈 - Destiny (나의 지구) (Lovelyz - Destiny)\r\n\r\n[쇼! 음악중심] 20160611, 507회',
             'upload_date': '20170129',
             'uploader': '쇼! 음악중심',
-            'uploader_id': 2653210,
+            'uploader_id': '2653210',
             'timestamp': 1485684628,
         },
     }]
@@ -107,7 +107,7 @@ class DaumClipIE(DaumBaseIE):
             'duration': 3868,
             'view_count': int,
             'uploader': 'GOMeXP',
-            'uploader_id': 6667,
+            'uploader_id': '6667',
             'timestamp': 1377911092,
         },
     }, {

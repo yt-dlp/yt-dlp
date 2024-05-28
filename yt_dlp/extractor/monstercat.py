@@ -8,15 +8,15 @@ from ..utils import (
     get_element_html_by_class,
     get_element_text_and_html_by_tag,
     int_or_none,
-    unified_strdate,
     strip_or_none,
     traverse_obj,
     try_call,
+    unified_strdate,
 )
 
 
 class MonstercatIE(InfoExtractor):
-    _VALID_URL = r'https://www\.monstercat\.com/release/(?P<id>\d+)'
+    _VALID_URL = r'https?://www\.monstercat\.com/release/(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://www.monstercat.com/release/742779548009',
         'playlist_count': 20,

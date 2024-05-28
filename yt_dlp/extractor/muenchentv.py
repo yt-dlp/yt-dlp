@@ -9,6 +9,7 @@ from ..utils import (
 
 
 class MuenchenTVIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?muenchen\.tv/livestream'
     IE_DESC = 'münchen.tv'
     _TEST = {

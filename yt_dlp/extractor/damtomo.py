@@ -1,8 +1,8 @@
 import re
 
 from .common import InfoExtractor
-from ..utils import ExtractorError, clean_html, int_or_none, try_get, unified_strdate
 from ..compat import compat_str
+from ..utils import ExtractorError, clean_html, int_or_none, try_get, unified_strdate
 
 
 class DamtomoBaseIE(InfoExtractor):
@@ -83,7 +83,6 @@ class DamtomoRecordIE(DamtomoBaseIE):
         'info_dict': {
             'id': '27376862',
             'title': 'イカSUMMER [良音]',
-            'description': None,
             'uploader': 'ＮＡＮＡ',
             'uploader_id': 'MzAyMDExNTY',
             'upload_date': '20210721',

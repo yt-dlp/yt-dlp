@@ -3,6 +3,7 @@ from ..utils import int_or_none, urljoin
 
 
 class StarTrekIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'(?P<base>https?://(?:intl|www)\.startrek\.com)/videos/(?P<id>[^/]+)'
     _TESTS = [{
         'url': 'https://intl.startrek.com/videos/watch-welcoming-jess-bush-to-the-ready-room',

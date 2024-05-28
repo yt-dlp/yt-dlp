@@ -1,5 +1,4 @@
 from .common import InfoExtractor
-
 from ..utils import traverse_obj
 
 

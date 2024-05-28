@@ -167,7 +167,7 @@ class HTTPHandler(urllib.request.AbstractHTTPHandler):
         if 300 <= resp.code < 400:
             location = resp.headers.get('Location')
             if location:
-                # As of RFC 2616 default charset is iso-8859-1 that is respected by python 3
+                # As of RFC 2616 default charset is iso-8859-1 that is respected by Python 3
                 location = location.encode('iso-8859-1').decode()
                 location_escaped = normalize_url(location)
                 if location != location_escaped:
@@ -389,11 +389,11 @@ class UrllibRH(RequestHandler, InstanceStoreMixin):
         )
 
         opener = self._get_instance(
-            proxies=request.proxies or self.proxies,
-            cookiejar=request.extensions.get('cookiejar') or self.cookiejar
+            proxies=self._get_proxies(request),
+            cookiejar=self._get_cookiejar(request)
         )
         try:
-            res = opener.open(urllib_req, timeout=float(request.extensions.get('timeout') or self.timeout))
+            res = opener.open(urllib_req, timeout=self._calculate_timeout(request))
         except urllib.error.HTTPError as e:
             if isinstance(e.fp, (http.client.HTTPResponse, urllib.response.addinfourl)):
                 # Prevent file object from being closed when urllib.error.HTTPError is destroyed.
