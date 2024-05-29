@@ -1,4 +1,5 @@
 from .common import InfoExtractor
+from ..compat import compat_str
 from ..utils import (
     ExtractorError,
     get_first,
@@ -8,7 +9,6 @@ from ..utils import (
     unified_strdate,
     unified_timestamp,
 )
-from ..compat import compat_str
 
 
 class OpenRecBaseIE(InfoExtractor):

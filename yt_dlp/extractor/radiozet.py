@@ -1,7 +1,7 @@
 from .common import InfoExtractor
 from ..utils import (
-    traverse_obj,
     strip_or_none,
+    traverse_obj,
 )
 
 
