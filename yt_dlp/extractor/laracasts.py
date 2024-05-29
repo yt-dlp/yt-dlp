@@ -1,6 +1,6 @@
 from .common import InfoExtractor
 from .vimeo import VimeoIE
-
+from ..utils import extract_attributes, get_element_html_by_id
 
 class LaracastsPlaylistIE(InfoExtractor):
     IE_NAME = 'laracasts:series'
@@ -31,7 +31,7 @@ class LaracastsPlaylistIE(InfoExtractor):
 
 class LaracastsIE(InfoExtractor):
     IE_NAME = 'laracasts'
-    _VALID_URL = r'https?://(?:www\.)?laracasts\.com/series/(?P<series>[^/?#]+)/episodes/(?P<episode_number>[0-9]+)'
+    _VALID_URL = r'https?://(?:www\.)?laracasts\.com/series/(?P<series>[\w\d-]+)/episodes/(?P<episode_number>[0-9]+)$'
     _TESTS = [{
         'url': 'https://laracasts.com/series/30-days-to-learn-laravel-11/episodes/1',
         'md5': 'c8f5e7b02ad0e438ef9280a08c8493dc',
@@ -47,11 +47,25 @@ class LaracastsIE(InfoExtractor):
         }
     }]
 
-    def _real_extract(self, url):
+    def extract_vimeo_id(self, url):
         mobj = self._match_valid_url(url)
+
         series, episode_number = mobj.group('series', 'episode_number')
         display_id = '%s/%s' % (series, episode_number)
+
         webpage = self._download_webpage(url, display_id)
-        video_id = self._search_regex(r'vimeoId&quot;:&quot;(?P<vimeo_id>[0-9]+)', webpage, 'vimeo_id')
+        app_element = get_element_html_by_id('app', webpage)
+        app_attributes = extract_attributes(app_element)
+        app_json = self._parse_json(app_attributes.get('data-page'), display_id)
+        series_chapters = app_json['props']['series']['chapters']
+
+        for chapter in series_chapters:
+            for episode in chapter['episodes']:
+                if int(episode['position']) == int(episode_number):
+                    return episode['vimeoId']
+
+    def _real_extract(self, url):
+        video_id = self.extract_vimeo_id(url)
         embed_url = VimeoIE._smuggle_referrer(f'https://player.vimeo.com/video/{video_id}', 'https://laracasts.com/')
+
         return self.url_result(embed_url)
