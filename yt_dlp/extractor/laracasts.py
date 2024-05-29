@@ -1,6 +1,10 @@
 from .common import InfoExtractor
 from .vimeo import VimeoIE
-from ..utils import extract_attributes, get_element_html_by_id
+from ..utils import (
+    extract_attributes,
+    get_element_html_by_id,
+)
+
 
 class LaracastsPlaylistIE(InfoExtractor):
     IE_NAME = 'laracasts:series'
