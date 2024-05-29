@@ -28,6 +28,7 @@ class LaracastsPlaylistIE(InfoExtractor):
         playlist_id = self._search_regex(r'id&quot;:(?P<playlist_id>[0-9]+)', webpage, 'playlist_id')
         return self.playlist_result(self._entries(display_id, episode_count), playlist_id, playlist_title)
 
+
 class LaracastsIE(InfoExtractor):
     IE_NAME = 'laracasts'
     _VALID_URL = r'https?://(?:www\.)?laracasts\.com/series/(?P<series>[^/?#]+)/episodes/(?P<episode_number>[0-9]+)'
