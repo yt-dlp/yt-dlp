@@ -13,12 +13,7 @@ from ..utils import (
 
 
 class TubiTvIE(InfoExtractor):
-    _VALID_URL = r'''(?x)
-                    (?:
-                        tubitv:|
-                        https?://(?:www\.)?tubitv\.com/(?P<type>video|movies|tv-shows)/
-                    )
-                    (?P<id>[0-9]+)'''
+    _VALID_URL = r'https?://(?:www\.)?tubitv\.com/(?P<type>video|movies|tv-shows)/(?P<id>\d+)'
     _LOGIN_URL = 'http://tubitv.com/login'
     _NETRC_MACHINE = 'tubitv'
     _TESTS = [{
@@ -153,6 +148,7 @@ class TubiTvIE(InfoExtractor):
 
 
 class TubiTvShowIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?tubitv\.com/series/[0-9]+/(?P<show_name>[^/?#]+)'
     _TESTS = [{
         'url': 'https://tubitv.com/series/3936/the-joy-of-painting-with-bob-ross?start=true',
@@ -173,7 +169,7 @@ class TubiTvShowIE(InfoExtractor):
             if traverse_obj(show_json, ('byId', episode_id, 'type')) == 's':
                 continue
             yield self.url_result(
-                'tubitv:%s' % episode_id,
+                f'https://tubitv.com/tv-shows/{episode_id}/',
                 ie=TubiTvIE.ie_key(), video_id=episode_id)
 
     def _real_extract(self, url):
