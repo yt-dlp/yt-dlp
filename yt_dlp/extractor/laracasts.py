@@ -4,7 +4,7 @@ from .vimeo import VimeoIE
 
 class LaracastsPlaylistIE(InfoExtractor):
     IE_NAME = 'laracasts:series'
-    _VALID_URL = r'https?://(?:www\.)?laracasts\.com/series/(?P<series>[^/?#]+)'
+    _VALID_URL = r'https?://(?:www\.)?laracasts\.com/series/(?P<series>[^/?#]+)/?(?:$|[?#])'
     _TESTS = [{
         'url': 'https://laracasts.com/series/30-days-to-learn-laravel-11',
         'info_dict': {
