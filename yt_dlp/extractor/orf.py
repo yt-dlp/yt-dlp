@@ -462,10 +462,28 @@ class ORFONIE(InfoExtractor):
             'upload_date': '20240526',
             'release_timestamp': 1716721802,
             'release_date': '20240526',
-            'modified_timestamp': 1716884702,
-            'modified_date': '20240528',
+            'modified_timestamp': 1716967501,
+            'modified_date': '20240529',
         },
         'playlist_count': 42,
+    }, {
+        'url': 'https://on.orf.at/video/14228172',
+        'info_dict': {
+            'id': '14228172',
+            'ext': 'mp4',
+            'duration': 3294.878,
+            'thumbnail': 'https://api-tvthek.orf.at/assets/segments/0176/17/thumb_17516455_segments_highlight_teaser.jpg',
+            'title': 'Willkommen Österreich mit Stermann & Grissemann',
+            'description': 'md5:5de034d033a9c27f989343be3bbd4839',
+            'media_type': 'episode',
+            'timestamp': 1716926584,
+            'upload_date': '20240528',
+            'release_timestamp': 1716919202,
+            'release_date': '20240528',
+            'modified_timestamp': 1716968045,
+            'modified_date': '20240529',
+            '_old_archive_ids': ['orftvthek 14228172'],
+        },
     }]
 
     @staticmethod
@@ -522,15 +540,16 @@ class ORFONIE(InfoExtractor):
             self.report_drm(video_id)
 
         segments = traverse_obj(api_json, ('_embedded', 'segments', lambda _, v: v['id']))
+        selected_segment = traverse_obj(segments, (lambda _, v: str(v['id']) == segment_id, any))
 
-        if len(segments) > 1:
-            selected_segment = traverse_obj(segments, (lambda _, v: str(v['id']) == segment_id, any), 0)
-            segment_id = selected_segment['id']
-            if self._yes_playlist(video_id, segment_id, playlist_label='collection', video_label='segment'):
-                return self.playlist_result(
-                    (self._extract_video_info(str(segment['id']), segment) for segment in segments),
-                    video_id, **self._parse_metadata(api_json), multi_video=True)
-
+        # selected_segment will be falsy if input URL did not include a valid segment_id
+        if selected_segment and not self._yes_playlist(video_id, segment_id, playlist_label='episode', video_label='segment'):
             return self._extract_video_info(segment_id, selected_segment)
+
+        # Even some segmented videos have an unsegmented version available in API response root
+        if not traverse_obj(api_json, ('sources', ..., ..., 'src', {url_or_none})):
+            return self.playlist_result(
+                (self._extract_video_info(str(segment['id']), segment) for segment in segments),
+                video_id, **self._parse_metadata(api_json), multi_video=True)
 
         return self._extract_video_info(video_id, api_json)
