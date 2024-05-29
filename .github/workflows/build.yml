@@ -237,7 +237,7 @@ jobs:
   macos:
     needs: process
     if: inputs.macos
-    runs-on: macos-11
+    runs-on: macos-12
 
     steps:
       - uses: actions/checkout@v4
