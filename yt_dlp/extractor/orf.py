@@ -468,7 +468,8 @@ class ORFONIE(InfoExtractor):
         'playlist_count': 42,
     }]
 
-    def _parse_metadata(self, api_json):
+    @staticmethod
+    def _parse_metadata(api_json):
         return traverse_obj(api_json, {
             'id': ('id', {int}, {str_or_none}),
             'age_limit': ('age_classification', {parse_age_limit}),
