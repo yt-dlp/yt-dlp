@@ -22,7 +22,7 @@ class TubiTvIE(InfoExtractor):
             'id': '100004539',
             'ext': 'mp4',
             'title': 'The 39 Steps',
-            'description': 'A man in London tries to help a counter-espionage Agent. But when the Agent is killed, and the man stands accused, he must run to save himself.',
+            'description': 'md5:bb2f2dd337f0dc58c06cb509943f54c8',
             'uploader_id': 'abc2558d54505d4f0f32be94f2e7108c',
             'release_year': 1935,
             'thumbnail': r're:^https?://.+\.(jpe?g|png)$',
