@@ -431,6 +431,7 @@ class ORFONIE(InfoExtractor):
             '_old_archive_ids': ['orftvthek 3220355'],
         },
     }, {
+        # Video with multiple segments selecting the second segment
         'url': 'https://on.orf.at/video/14226549/15639808/jugendbande-einbrueche-aus-langeweile',
         'md5': '90f4ebff86b4580837b8a361d0232a9e',
         'info_dict': {
@@ -449,6 +450,7 @@ class ORFONIE(InfoExtractor):
         },
         'params': {'noplaylist': True},
     }, {
+        # Video with multiple segments and no combined version
         'url': 'https://on.orf.at/video/14227864/formel-1-grosser-preis-von-monaco-2024',
         'info_dict': {
             '_type': 'multi_video',
@@ -467,6 +469,7 @@ class ORFONIE(InfoExtractor):
         },
         'playlist_count': 42,
     }, {
+        # Video with multiple segments, but with combined version
         'url': 'https://on.orf.at/video/14228172',
         'info_dict': {
             'id': '14228172',
