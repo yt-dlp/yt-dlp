@@ -261,6 +261,7 @@ jobs:
               -r requirements.txt
           done
           ( # Overwrite x86_64-only libs with fat/universal2 libs or else Pyinstaller will do the opposite
+            # See https://github.com/yt-dlp/yt-dlp/pull/10069
             cd curl_cffi_whls
             mkdir -p curl_cffi/.dylibs
             python_libdir=$(python3 -c 'import sys; from pathlib import Path; print(Path(sys.path[1]).parent)')
