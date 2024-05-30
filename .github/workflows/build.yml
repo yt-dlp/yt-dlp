@@ -260,7 +260,7 @@ jobs:
               --pre -d curl_cffi_whls \
               -r requirements.txt
           done
-          (  # Overwrite x86_64-only libs with fat/universal2 libs or else Pyinstaller will do the opposite
+          ( # Overwrite x86_64-only libs with fat/universal2 libs or else Pyinstaller will do the opposite
             cd curl_cffi_whls
             mkdir -p curl_cffi/.dylibs
             python_libdir=$(python3 -c 'import sys; from pathlib import Path; print(Path(sys.path[1]).parent)')
