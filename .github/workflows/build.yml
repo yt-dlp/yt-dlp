@@ -274,8 +274,8 @@ jobs:
           python3 -m delocate.cmd.delocate_fuse curl_cffi_whls/curl_cffi*.whl -w curl_cffi_universal2
           python3 -m delocate.cmd.delocate_fuse curl_cffi_whls/cffi*.whl -w curl_cffi_universal2
           cd curl_cffi_universal2
-          for wheel in *cffi*.whl; do mv -n -- "${wheel}" "${wheel/x86_64/universal2}"; done
-          python3 -m pip install -U --user *cffi*.whl
+          for wheel in ./*cffi*.whl; do mv -n -- "${wheel}" "${wheel/x86_64/universal2}"; done
+          python3 -m pip install -U --user ./*cffi*.whl
 
       - name: Prepare
         run: |
@@ -322,7 +322,7 @@ jobs:
           # Hack to get the latest patch version. Uncomment if needed
           #brew install python@3.10
           #export PYTHON_VERSION=$( $(brew --prefix)/opt/python@3.10/bin/python3 --version | cut -d ' ' -f 2 )
-          curl https://www.python.org/ftp/python/${PYTHON_VERSION}/python-${PYTHON_VERSION}-macos11.pkg -o "python.pkg"
+          curl "https://www.python.org/ftp/python/${PYTHON_VERSION}/python-${PYTHON_VERSION}-macos11.pkg" -o "python.pkg"
           sudo installer -pkg python.pkg -target /
           python3 --version
       - name: Install Requirements
@@ -486,8 +486,8 @@ jobs:
         run: |
           cd ./artifact/
           # make sure SHA sums are also printed to stdout
-          sha256sum * | tee ../SHA2-256SUMS
-          sha512sum * | tee ../SHA2-512SUMS
+          sha256sum -- * | tee ../SHA2-256SUMS
+          sha512sum -- * | tee ../SHA2-512SUMS
 
       - name: Make Update spec
         run: |
