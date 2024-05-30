@@ -267,8 +267,7 @@ jobs:
             for dylib in lib{ssl,crypto}.3.dylib; do
               cp "${python_libdir}/${dylib}" "curl_cffi/.dylibs/${dylib}"
               for wheel in curl_cffi*macos*x86_64.whl; do
-                touch "curl_cffi/.dylibs/${dylib}"
-                zip -u "${wheel}" "curl_cffi/.dylibs/${dylib}"
+                zip "${wheel}" "curl_cffi/.dylibs/${dylib}"
               done
             done
           )
