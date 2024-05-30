@@ -911,6 +911,8 @@ class NiconicoUserIE(InfoExtractor):
 class NiconicoLiveIE(InfoExtractor):
     IE_NAME = 'niconico:live'
     IE_DESC = 'ニコニコ生放送'
+    _GEO_COUNTRIES = ['JP']
+    _GEO_BYPASS = False
     _VALID_URL = r'https?://(?:sp\.)?live2?\.nicovideo\.jp/(?:watch|gate)/(?P<id>lv\d+)'
     _TESTS = [{
         'note': 'this test case includes invisible characters for title, pasting them as-is',
@@ -959,7 +961,7 @@ class NiconicoLiveIE(InfoExtractor):
         ws = self._request_webpage(
             Request(ws_url, headers=headers), video_id, note='Connecting to WebSocket server')
 
-        self.write_debug('[debug] Sending HLS server request')
+        self.write_debug('Sending HLS server request')
         ws.send(json.dumps({
             'type': 'startWatching',
             'data': {
@@ -1023,8 +1025,6 @@ class NiconicoLiveIE(InfoExtractor):
             ws_url = update_url_query(ws_url, {
                 'frontend_id': traverse_obj(embedded_data, ('site', 'frontendId')) or '9',
             })
-        else:
-            self.raise_no_formats('The live hasn\'t started yet or already ended.', expected=True)
 
         title = traverse_obj(embedded_data, ('program', 'title')) or self._html_search_meta(
             ('og:title', 'twitter:title'), webpage, 'live title', fatal=False)
@@ -1050,11 +1050,7 @@ class NiconicoLiveIE(InfoExtractor):
                     **res,
                 })
 
-        live_status = {
-            'Before': 'is_live',
-            'Open': 'was_live',
-            'End': 'was_live',
-        }.get(traverse_obj(embedded_data, ('programTimeshift', 'publication', 'status', {str})), 'is_live')
+        live_status, availability = self._check_status_and_availability(embedded_data, video_id)
 
         latency = try_get(self._configuration_arg('latency'), lambda x: x[0])
         if latency not in self._KNOWN_LATENCY:
@@ -1074,6 +1070,7 @@ class NiconicoLiveIE(InfoExtractor):
             'description': clean_html(traverse_obj(embedded_data, ('program', 'description'))),
             'timestamp': int_or_none(traverse_obj(embedded_data, ('program', 'openTime'))),
             'live_status': live_status,
+            'availability': availability,
             'thumbnails': thumbnails,
             'formats': [*self._yield_formats(
                 ws_url, headers, latency, video_id, live_status == 'is_live')] if ws_url else None,
@@ -1083,3 +1080,64 @@ class NiconicoLiveIE(InfoExtractor):
                 'ws_url': ws_url,
             },
         }
+
+    def _check_status_and_availability(self, embedded_data, video_id):
+        live_status = {
+            'Before': 'is_live',
+            'Open': 'was_live',
+            'End': 'was_live',
+        }.get(traverse_obj(embedded_data, ('programTimeshift', 'publication', 'status', {str})), 'is_live')
+
+        if traverse_obj(embedded_data, ('userProgramWatch', 'canWatch', {bool})):
+            if needs_subscription := traverse_obj(embedded_data, ('program', 'isMemberFree', {bool})):
+                msg = 'You have no right to access the paid content. '
+                if not traverse_obj(embedded_data, ('program', 'trialWatch', 'isShown', {bool})):
+                    msg += 'This video may be completely blank'
+                else:
+                    # TODO: get the exact duration of the free part
+                    msg += 'There may be some blank parts in this video'
+                self.report_warning(msg, video_id)
+            return live_status, self._availability(needs_subscription=needs_subscription)
+
+        if traverse_obj(embedded_data, ('userProgramWatch', 'isCountryRestrictionTarget', {bool})):
+            self.raise_geo_restricted(countries=self._GEO_COUNTRIES, metadata_available=True)
+            return live_status, self._availability()
+
+        rejected_reasons = traverse_obj(embedded_data, ('userProgramWatch', 'rejectedReasons', ..., {str}))
+        self.write_debug(f'userProgramWatch.rejectedReasons: {rejected_reasons!r}')
+
+        if 'programNotBegun' in rejected_reasons:
+            live_status = 'is_upcoming'
+        elif 'timeshiftBeforeOpen' in rejected_reasons:
+            live_status = 'post_live'
+        elif 'noTimeshiftProgram' in rejected_reasons:
+            self.report_warning('Timeshift is disabled', video_id)
+            live_status = 'was_live'
+        elif any(x in ['timeshiftClosed', 'timeshiftClosedAndNotFollow'] for x in rejected_reasons):
+            self.report_warning('Timeshift viewing period has ended', video_id)
+            live_status = 'was_live'
+
+        availability = self._availability(**{
+            'needs_premium': 'notLogin' in rejected_reasons,
+            'needs_subscription': any(x in [
+                'notSocialGroupMember',
+                'notCommunityMember',
+                'notChannelMember',
+                'notCommunityMemberAndNotHaveTimeshiftTicket',
+                'notChannelMemberAndNotHaveTimeshiftTicket',
+            ] for x in rejected_reasons),
+            'needs_auth': any(x in [
+                'timeshiftTicketExpired',
+                'notHaveTimeshiftTicket',
+                'notCommunityMemberAndNotHaveTimeshiftTicket',
+                'notChannelMemberAndNotHaveTimeshiftTicket',
+                'notHavePayTicket',
+                'notActivatedBySerial',
+                'notHavePayTicketAndNotActivatedBySerial',
+                'notUseTimeshiftTicket',
+                'notUseTimeshiftTicketOnOnceTimeshift',
+                'notUseTimeshiftTicketOnUnlimitedTimeshift',
+            ] for x in rejected_reasons),
+        })
+
+        return live_status, availability
