@@ -17,9 +17,7 @@ from ..utils import (
 class LecturioBaseIE(InfoExtractor):
     _API_BASE_URL = 'https://app.lecturio.com/api/en/latest/html5/'
     _LOGIN_URL = 'https://app.lecturio.com/en/login'
-
     _NETRC_MACHINE = 'lecturio'
-
     _CC_LANGS = {
         'Arabic': 'ar',
         'Bulgarian': 'bg',
@@ -146,7 +144,6 @@ class LecturioBaseIE(InfoExtractor):
 
 class LecturioIE(LecturioBaseIE):
     _VALID_URL = r'https?://app\.lecturio\.com/([^/?#]+/(?P<nt>[^/?#&]+)\.lecture|(?:\#/)?lecture/c/\d+/(?P<id>\d+))'
-
     _TESTS = [{
         'url': 'https://app.lecturio.com/medical-courses/important-concepts-and-terms-introduction-to-microbiology.lecture#tab/videos',
         'md5': '9a42cf1d8282a6311bf7211bbde26fde',
@@ -161,15 +158,12 @@ class LecturioIE(LecturioBaseIE):
         'only_matching': True,
     }]
 
-
-class LecturioDeIE(LecturioIE):
-    _VALID_URL = r'https?://www\.lecturio\.de/[^/?#]+/(?P<nt>[^/?#&]+)\.vortrag'
-
+class LecturioDeIE(LecturioBaseIE):
+    _VALID_URL = r'https?://www\.lecturio\.de/[^/?#]+/(?P<id>)(?P<nt>[^/?#&]+)\.vortrag'
     _TESTS = [{
         'url': 'https://www.lecturio.de/jura/oeffentliches-recht-staatsexamen.vortrag',
         'only_matching': True,
     }]
-
     _API_BASE_URL = 'https://lecturio.de/api/de/latest/html5/'
     _LOGIN_URL = 'https://www.lecturio.de/anmelden.html'
 
@@ -220,7 +214,6 @@ class LecturioDeCourseIE(InfoExtractor):
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
-
         webpage = self._download_webpage(url, display_id)
 
         entries = []
@@ -230,7 +223,7 @@ class LecturioDeCourseIE(InfoExtractor):
             lecture_url = urljoin(url, mobj.group('url'))
             lecture_id = mobj.group('id')
             entries.append(self.url_result(
-                lecture_url, ie=LecturioIE.ie_key(), video_id=lecture_id))
+                lecture_url, LecturioDeIE, video_id=lecture_id))
 
         title = self._search_regex(
             r'<h1[^>]*>([^<]+)', webpage, 'title', default=None)
