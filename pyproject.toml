@@ -62,7 +62,7 @@ build = [
     "build",
     "hatchling",
     "pip",
-    "setuptools>=66.1.0,<70",
+    "setuptools",
     "wheel",
 ]
 dev = [
@@ -78,8 +78,7 @@ test = [
     "pytest~=8.1",
 ]
 pyinstaller = [
-    "pyinstaller>=6.3; sys_platform!='darwin'",
-    "pyinstaller==5.13.2; sys_platform=='darwin'",  # needed for curl_cffi
+    "pyinstaller>=6.7.0",  # for compat with setuptools>=70
 ]
 py2exe = [
     "py2exe>=0.12",

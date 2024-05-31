@@ -237,7 +237,7 @@ jobs:
   macos:
     needs: process
     if: inputs.macos
-    runs-on: macos-11
+    runs-on: macos-12
 
     steps:
       - uses: actions/checkout@v4
@@ -260,11 +260,23 @@ jobs:
               --pre -d curl_cffi_whls \
               -r requirements.txt
           done
+          ( # Overwrite x86_64-only libs with fat/universal2 libs or else Pyinstaller will do the opposite
+            # See https://github.com/yt-dlp/yt-dlp/pull/10069
+            cd curl_cffi_whls
+            mkdir -p curl_cffi/.dylibs
+            python_libdir=$(python3 -c 'import sys; from pathlib import Path; print(Path(sys.path[1]).parent)')
+            for dylib in lib{ssl,crypto}.3.dylib; do
+              cp "${python_libdir}/${dylib}" "curl_cffi/.dylibs/${dylib}"
+              for wheel in curl_cffi*macos*x86_64.whl; do
+                zip "${wheel}" "curl_cffi/.dylibs/${dylib}"
+              done
+            done
+          )
           python3 -m delocate.cmd.delocate_fuse curl_cffi_whls/curl_cffi*.whl -w curl_cffi_universal2
           python3 -m delocate.cmd.delocate_fuse curl_cffi_whls/cffi*.whl -w curl_cffi_universal2
           cd curl_cffi_universal2
-          for wheel in *cffi*.whl; do mv -n -- "${wheel}" "${wheel/x86_64/universal2}"; done
-          python3 -m pip install -U --user *cffi*.whl
+          for wheel in ./*cffi*.whl; do mv -n -- "${wheel}" "${wheel/x86_64/universal2}"; done
+          python3 -m pip install -U --user ./*cffi*.whl
 
       - name: Prepare
         run: |
@@ -311,7 +323,7 @@ jobs:
           # Hack to get the latest patch version. Uncomment if needed
           #brew install python@3.10
           #export PYTHON_VERSION=$( $(brew --prefix)/opt/python@3.10/bin/python3 --version | cut -d ' ' -f 2 )
-          curl https://www.python.org/ftp/python/${PYTHON_VERSION}/python-${PYTHON_VERSION}-macos11.pkg -o "python.pkg"
+          curl "https://www.python.org/ftp/python/${PYTHON_VERSION}/python-${PYTHON_VERSION}-macos11.pkg" -o "python.pkg"
           sudo installer -pkg python.pkg -target /
           python3 --version
       - name: Install Requirements
@@ -361,7 +373,7 @@ jobs:
         run: | # Custom pyinstaller built with https://github.com/yt-dlp/pyinstaller-builds
           python devscripts/install_deps.py -o --include build
           python devscripts/install_deps.py --include curl-cffi
-          python -m pip install -U "https://yt-dlp.github.io/Pyinstaller-Builds/x86_64/pyinstaller-5.8.0-py3-none-any.whl"
+          python -m pip install -U "https://yt-dlp.github.io/Pyinstaller-Builds/x86_64/pyinstaller-6.7.0-py3-none-any.whl"
 
       - name: Prepare
         run: |
@@ -421,7 +433,7 @@ jobs:
         run: |
           python devscripts/install_deps.py -o --include build
           python devscripts/install_deps.py
-          python -m pip install -U "https://yt-dlp.github.io/Pyinstaller-Builds/i686/pyinstaller-5.8.0-py3-none-any.whl"
+          python -m pip install -U "https://yt-dlp.github.io/Pyinstaller-Builds/i686/pyinstaller-6.7.0-py3-none-any.whl"
 
       - name: Prepare
         run: |
@@ -475,8 +487,8 @@ jobs:
         run: |
           cd ./artifact/
           # make sure SHA sums are also printed to stdout
-          sha256sum * | tee ../SHA2-256SUMS
-          sha512sum * | tee ../SHA2-512SUMS
+          sha256sum -- * | tee ../SHA2-256SUMS
+          sha512sum -- * | tee ../SHA2-512SUMS
 
       - name: Make Update spec
         run: |

@@ -401,6 +401,9 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
     --impersonate CLIENT[:OS]       Client to impersonate for requests. E.g.
                                     chrome, chrome-110, chrome:windows-10. Pass
                                     --impersonate="" to impersonate any client.
+                                    Note that forcing impersonation for all
+                                    requests may have a detrimental impact on
+                                    download speed and stability
     --list-impersonate-targets      List available clients to impersonate.
     -4, --force-ipv4                Make all connections via IPv4
     -6, --force-ipv6                Make all connections via IPv6

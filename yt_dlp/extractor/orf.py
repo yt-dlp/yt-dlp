@@ -12,7 +12,9 @@ from ..utils import (
     mimetype2ext,
     orderedSet,
     parse_age_limit,
+    parse_iso8601,
     remove_end,
+    str_or_none,
     strip_jsonp,
     try_call,
     unified_strdate,
@@ -390,7 +392,7 @@ class ORFFM4StoryIE(InfoExtractor):
 
 class ORFONIE(InfoExtractor):
     IE_NAME = 'orf:on'
-    _VALID_URL = r'https?://on\.orf\.at/video/(?P<id>\d+)'
+    _VALID_URL = r'https?://on\.orf\.at/video/(?P<id>\d+)(?:/(?P<segment>\d+))?'
     _TESTS = [{
         'url': 'https://on.orf.at/video/14210000/school-of-champions-48',
         'info_dict': {
@@ -401,10 +403,14 @@ class ORFONIE(InfoExtractor):
             'title': 'School of Champions (4/8)',
             'description': 'md5:d09ad279fc2e8502611e7648484b6afd',
             'media_type': 'episode',
-            'timestamp': 1706472362,
-            'upload_date': '20240128',
+            'timestamp': 1706558922,
+            'upload_date': '20240129',
+            'release_timestamp': 1706472362,
+            'release_date': '20240128',
+            'modified_timestamp': 1712756663,
+            'modified_date': '20240410',
             '_old_archive_ids': ['orftvthek 14210000'],
-        }
+        },
     }, {
         'url': 'https://on.orf.at/video/3220355',
         'md5': 'f94d98e667cf9a3851317efb4e136662',
@@ -418,18 +424,87 @@ class ORFONIE(InfoExtractor):
             'media_type': 'episode',
             'timestamp': 52916400,
             'upload_date': '19710905',
+            'release_timestamp': 52916400,
+            'release_date': '19710905',
+            'modified_timestamp': 1498536049,
+            'modified_date': '20170627',
             '_old_archive_ids': ['orftvthek 3220355'],
-        }
+        },
+    }, {
+        # Video with multiple segments selecting the second segment
+        'url': 'https://on.orf.at/video/14226549/15639808/jugendbande-einbrueche-aus-langeweile',
+        'md5': '90f4ebff86b4580837b8a361d0232a9e',
+        'info_dict': {
+            'id': '15639808',
+            'ext': 'mp4',
+            'duration': 97.707,
+            'thumbnail': 'https://api-tvthek.orf.at/assets/segments/0175/43/thumb_17442704_segments_highlight_teaser.jpg',
+            'title': 'Jugendbande: Einbrüche aus Langeweile',
+            'description': 'md5:193df0bf0d91cf16830c211078097120',
+            'media_type': 'segment',
+            'timestamp': 1715792400,
+            'upload_date': '20240515',
+            'modified_timestamp': 1715794394,
+            'modified_date': '20240515',
+            '_old_archive_ids': ['orftvthek 15639808'],
+        },
+        'params': {'noplaylist': True},
+    }, {
+        # Video with multiple segments and no combined version
+        'url': 'https://on.orf.at/video/14227864/formel-1-grosser-preis-von-monaco-2024',
+        'info_dict': {
+            '_type': 'multi_video',
+            'id': '14227864',
+            'duration': 18410.52,
+            'thumbnail': 'https://api-tvthek.orf.at/assets/segments/0176/04/thumb_17503881_segments_highlight_teaser.jpg',
+            'title': 'Formel 1: Großer Preis von Monaco 2024',
+            'description': 'md5:aeeb010710ccf70ce28ccb4482243d4f',
+            'media_type': 'episode',
+            'timestamp': 1716721200,
+            'upload_date': '20240526',
+            'release_timestamp': 1716721802,
+            'release_date': '20240526',
+            'modified_timestamp': 1716967501,
+            'modified_date': '20240529',
+        },
+        'playlist_count': 42,
+    }, {
+        # Video with multiple segments, but with combined version
+        'url': 'https://on.orf.at/video/14228172',
+        'info_dict': {
+            'id': '14228172',
+            'ext': 'mp4',
+            'duration': 3294.878,
+            'thumbnail': 'https://api-tvthek.orf.at/assets/segments/0176/17/thumb_17516455_segments_highlight_teaser.jpg',
+            'title': 'Willkommen Österreich mit Stermann & Grissemann',
+            'description': 'md5:5de034d033a9c27f989343be3bbd4839',
+            'media_type': 'episode',
+            'timestamp': 1716926584,
+            'upload_date': '20240528',
+            'release_timestamp': 1716919202,
+            'release_date': '20240528',
+            'modified_timestamp': 1716968045,
+            'modified_date': '20240529',
+            '_old_archive_ids': ['orftvthek 14228172'],
+        },
     }]
 
-    def _extract_video(self, video_id):
-        encrypted_id = base64.b64encode(f'3dSlfek03nsLKdj4Jsd{video_id}'.encode()).decode()
-        api_json = self._download_json(
-            f'https://api-tvthek.orf.at/api/v4.3/public/episode/encrypted/{encrypted_id}', video_id)
+    @staticmethod
+    def _parse_metadata(api_json):
+        return traverse_obj(api_json, {
+            'id': ('id', {int}, {str_or_none}),
+            'age_limit': ('age_classification', {parse_age_limit}),
+            'duration': ('exact_duration', {functools.partial(float_or_none, scale=1000)}),
+            'title': (('title', 'headline'), {str}),
+            'description': (('description', 'teaser_text'), {str}),
+            'media_type': ('video_type', {str}),
+            'thumbnail': ('_embedded', 'image', 'public_urls', 'highlight_teaser', 'url', {url_or_none}),
+            'timestamp': (('date', 'episode_date'), {parse_iso8601}),
+            'release_timestamp': ('release_date', {parse_iso8601}),
+            'modified_timestamp': ('updated_at', {parse_iso8601}),
+        }, get_all=False)
 
-        if traverse_obj(api_json, 'is_drm_protected'):
-            self.report_drm(video_id)
-
+    def _extract_video_info(self, video_id, api_json):
         formats, subtitles = [], {}
         for manifest_type in traverse_obj(api_json, ('sources', {dict.keys}, ...)):
             for manifest_url in traverse_obj(api_json, ('sources', manifest_type, ..., 'src', {url_or_none})):
@@ -454,24 +529,30 @@ class ORFONIE(InfoExtractor):
             'formats': formats,
             'subtitles': subtitles,
             '_old_archive_ids': [make_archive_id('ORFTVthek', video_id)],
-            **traverse_obj(api_json, {
-                'age_limit': ('age_classification', {parse_age_limit}),
-                'duration': ('duration_second', {float_or_none}),
-                'title': (('title', 'headline'), {str}),
-                'description': (('description', 'teaser_text'), {str}),
-                'media_type': ('video_type', {str}),
-            }, get_all=False),
+            **self._parse_metadata(api_json),
         }
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
-        webpage = self._download_webpage(url, video_id)
+        video_id, segment_id = self._match_valid_url(url).group('id', 'segment')
 
-        return {
-            'id': video_id,
-            'title': self._html_search_meta(['og:title', 'twitter:title'], webpage, default=None),
-            'description': self._html_search_meta(
-                ['description', 'og:description', 'twitter:description'], webpage, default=None),
-            **self._search_json_ld(webpage, video_id, fatal=False),
-            **self._extract_video(video_id),
-        }
+        encrypted_id = base64.b64encode(f'3dSlfek03nsLKdj4Jsd{video_id}'.encode()).decode()
+        api_json = self._download_json(
+            f'https://api-tvthek.orf.at/api/v4.3/public/episode/encrypted/{encrypted_id}', video_id)
+
+        if traverse_obj(api_json, 'is_drm_protected'):
+            self.report_drm(video_id)
+
+        segments = traverse_obj(api_json, ('_embedded', 'segments', lambda _, v: v['id']))
+        selected_segment = traverse_obj(segments, (lambda _, v: str(v['id']) == segment_id, any))
+
+        # selected_segment will be falsy if input URL did not include a valid segment_id
+        if selected_segment and not self._yes_playlist(video_id, segment_id, playlist_label='episode', video_label='segment'):
+            return self._extract_video_info(segment_id, selected_segment)
+
+        # Even some segmented videos have an unsegmented version available in API response root
+        if not traverse_obj(api_json, ('sources', ..., ..., 'src', {url_or_none})):
+            return self.playlist_result(
+                (self._extract_video_info(str(segment['id']), segment) for segment in segments),
+                video_id, **self._parse_metadata(api_json), multi_video=True)
+
+        return self._extract_video_info(video_id, api_json)

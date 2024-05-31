@@ -4,6 +4,17 @@
 # To create a release, dispatch the https://github.com/yt-dlp/yt-dlp/actions/workflows/release.yml workflow on master
 -->
 
+### 2024.05.27
+
+#### Extractor changes
+- [Fix parsing of base URL in SMIL manifest](https://github.com/yt-dlp/yt-dlp/commit/26603d0b34898818992bee4598e0607c07059511) ([#9225](https://github.com/yt-dlp/yt-dlp/issues/9225)) by [seproDev](https://github.com/seproDev)
+- **peertube**: [Support livestreams](https://github.com/yt-dlp/yt-dlp/commit/12b248ce60be1aa1362edd839d915bba70dbee4b) ([#10044](https://github.com/yt-dlp/yt-dlp/issues/10044)) by [bashonly](https://github.com/bashonly), [trueauracoral](https://github.com/trueauracoral)
+- **piksel**: [Update domain](https://github.com/yt-dlp/yt-dlp/commit/ae2194e1dd4a99d32eb3cab7c48a0ff03101ef3b) ([#9223](https://github.com/yt-dlp/yt-dlp/issues/9223)) by [seproDev](https://github.com/seproDev)
+- **tiktok**: user: [Fix extraction loop](https://github.com/yt-dlp/yt-dlp/commit/c53c2e40fde8f2e15c7c62f8ca1a5d9e90ddc079) ([#10035](https://github.com/yt-dlp/yt-dlp/issues/10035)) by [bashonly](https://github.com/bashonly)
+
+#### Misc. changes
+- **cleanup**: Miscellaneous: [5e3e19c](https://github.com/yt-dlp/yt-dlp/commit/5e3e19c93c52830da98d9d1ed84ea7a559efefbd) by [bashonly](https://github.com/bashonly)
+
 ### 2024.05.26
 
 #### Core changes
