@@ -1,12 +1,11 @@
 import re
 
 from .common import InfoExtractor
-
 from ..utils import (
     int_or_none,
     str_or_none,
     traverse_obj,
-    urljoin
+    urljoin,
 )
 
 
@@ -31,7 +30,7 @@ class ITProTVBaseIE(InfoExtractor):
 
 
 class ITProTVIE(ITProTVBaseIE):
-    _VALID_URL = r'https://app\.itpro\.tv/course/(?P<course>[\w-]+)/(?P<id>[\w-]+)'
+    _VALID_URL = r'https?://app\.itpro\.tv/course/(?P<course>[\w-]+)/(?P<id>[\w-]+)'
     _TESTS = [{
         'url': 'https://app.itpro.tv/course/guided-tour/introductionitprotv',
         'md5': 'bca4a28c2667fd1a63052e71a94bb88c',

@@ -10,6 +10,7 @@ from ..utils import (
 
 
 class MarkizaIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?videoarchiv\.markiza\.sk/(?:video/(?:[^/]+/)*|embed/)(?P<id>\d+)(?:[_/]|$)'
     _TESTS = [{
         'url': 'http://videoarchiv.markiza.sk/video/oteckovia/84723_oteckovia-109',
@@ -68,6 +69,7 @@ class MarkizaIE(InfoExtractor):
 
 
 class MarkizaPageIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?(?:(?:[^/]+\.)?markiza|tvnoviny)\.sk/(?:[^/]+/)*(?P<id>\d+)_'
     _TESTS = [{
         'url': 'http://www.markiza.sk/soubiz/zahranicny/1923705_oteckovia-maju-svoj-den-ti-slavni-nie-su-o-nic-menej-rozkosni',

@@ -5,6 +5,7 @@ from ..compat import (
 
 
 class MotorsportIE(InfoExtractor):
+    _WORKING = False
     IE_DESC = 'motorsport.com'
     _VALID_URL = r'https?://(?:www\.)?motorsport\.com/[^/?#]+/video/(?:[^/?#]+/)(?P<id>[^/]+)/?(?:$|[?#])'
     _TEST = {

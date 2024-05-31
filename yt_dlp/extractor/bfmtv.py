@@ -93,7 +93,6 @@ class BFMTVArticleIE(BFMTVBaseIE):
             'id': '6318445464112',
             'ext': 'mp4',
             'title': 'Le plein de bioéthanol fait de plus en plus mal à la pompe',
-            'description': None,
             'uploader_id': '876630703001',
             'upload_date': '20230110',
             'timestamp': 1673341692,

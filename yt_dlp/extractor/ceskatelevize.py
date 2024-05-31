@@ -51,7 +51,7 @@ class CeskaTelevizeIE(InfoExtractor):
         'url': 'http://www.ceskatelevize.cz/ivysilani/zive/ct4/',
         'only_matching': True,
         'info_dict': {
-            'id': 402,
+            'id': '402',
             'ext': 'mp4',
             'title': r're:^ČT Sport \d{4}-\d{2}-\d{2} \d{2}:\d{2}$',
             'is_live': True,
@@ -101,7 +101,7 @@ class CeskaTelevizeIE(InfoExtractor):
         site_name = self._og_search_property('site_name', webpage, fatal=False, default='Česká televize')
         playlist_title = self._og_search_title(webpage, default=None)
         if site_name and playlist_title:
-            playlist_title = re.split(r'\s*[—|]\s*%s' % (site_name, ), playlist_title, 1)[0]
+            playlist_title = re.split(r'\s*[—|]\s*%s' % (site_name, ), playlist_title, maxsplit=1)[0]
         playlist_description = self._og_search_description(webpage, default=None)
         if playlist_description:
             playlist_description = playlist_description.replace('\xa0', ' ')

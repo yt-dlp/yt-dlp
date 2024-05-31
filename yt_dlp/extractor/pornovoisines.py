@@ -1,12 +1,13 @@
 from .common import InfoExtractor
 from ..utils import (
-    int_or_none,
     float_or_none,
+    int_or_none,
     unified_strdate,
 )
 
 
 class PornoVoisinesIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?pornovoisines\.com/videos/show/(?P<id>\d+)/(?P<display_id>[^/.]+)'
 
     _TEST = {

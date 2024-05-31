@@ -1,11 +1,5 @@
 from .common import InfoExtractor
-
-
-from ..utils import (
-    try_get,
-    unified_strdate,
-    unified_timestamp
-)
+from ..utils import try_get, unified_strdate, unified_timestamp
 
 
 class NFHSNetworkIE(InfoExtractor):

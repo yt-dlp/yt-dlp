@@ -11,6 +11,7 @@ from ..utils import (
     join_nonempty,
     parse_codecs,
     parse_iso8601,
+    url_or_none,
     urljoin,
 )
 from ..utils.traversal import traverse_obj
@@ -108,6 +109,64 @@ class FloatplaneIE(InfoExtractor):
             'availability': 'subscriber_only',
         },
         'params': {'skip_download': 'm3u8'},
+    }, {
+        'url': 'https://www.floatplane.com/post/65B5PNoBtf',
+        'info_dict': {
+            'id': '65B5PNoBtf',
+            'description': 'I recorded the inbuilt demo mode for your 90\'s enjoyment, thanks for being Floaties!',
+            'display_id': '65B5PNoBtf',
+            'like_count': int,
+            'release_timestamp': 1701249480,
+            'uploader': 'The Trash Network',
+            'availability': 'subscriber_only',
+            'uploader_id': '61bc20c9a131fb692bf2a513',
+            'uploader_url': 'https://www.floatplane.com/channel/TheTrashNetwork/home',
+            'channel_url': 'https://www.floatplane.com/channel/TheTrashNetwork/home/thedrumthing',
+            'comment_count': int,
+            'title': 'The $50 electronic drum kit.',
+            'channel_id': '64424fe73cd58cbcf8d8e131',
+            'thumbnail': 'https://pbs.floatplane.com/blogPost_thumbnails/65B5PNoBtf/725555379422705_1701247052743.jpeg',
+            'dislike_count': int,
+            'channel': 'The Drum Thing',
+            'release_date': '20231129',
+        },
+        'playlist_count': 2,
+        'playlist': [{
+            'info_dict': {
+                'id': 'ISPJjexylS',
+                'ext': 'mp4',
+                'release_date': '20231129',
+                'release_timestamp': 1701249480,
+                'title': 'The $50 electronic drum kit. .mov',
+                'channel_id': '64424fe73cd58cbcf8d8e131',
+                'thumbnail': 'https://pbs.floatplane.com/video_thumbnails/ISPJjexylS/335202812134041_1701249383392.jpeg',
+                'availability': 'subscriber_only',
+                'uploader': 'The Trash Network',
+                'duration': 622,
+                'channel': 'The Drum Thing',
+                'uploader_id': '61bc20c9a131fb692bf2a513',
+                'channel_url': 'https://www.floatplane.com/channel/TheTrashNetwork/home/thedrumthing',
+                'uploader_url': 'https://www.floatplane.com/channel/TheTrashNetwork/home',
+            },
+        }, {
+            'info_dict': {
+                'id': 'qKfxu6fEpu',
+                'ext': 'aac',
+                'release_date': '20231129',
+                'release_timestamp': 1701249480,
+                'title': 'Roland TD-7 Demo.m4a',
+                'channel_id': '64424fe73cd58cbcf8d8e131',
+                'availability': 'subscriber_only',
+                'uploader': 'The Trash Network',
+                'duration': 114,
+                'channel': 'The Drum Thing',
+                'uploader_id': '61bc20c9a131fb692bf2a513',
+                'channel_url': 'https://www.floatplane.com/channel/TheTrashNetwork/home/thedrumthing',
+                'uploader_url': 'https://www.floatplane.com/channel/TheTrashNetwork/home',
+            },
+        }],
+        'skip': 'requires subscription: "The Trash Network"',
+        'params': {'skip_download': 'm3u8'},
     }]
 
     def _real_initialize(self):
@@ -123,6 +182,22 @@ class FloatplaneIE(InfoExtractor):
 
         if not any(traverse_obj(post_data, ('metadata', ('hasVideo', 'hasAudio')))):
             raise ExtractorError('Post does not contain a video or audio track', expected=True)
+
+        uploader_url = format_field(
+            post_data, [('creator', 'urlname')], 'https://www.floatplane.com/channel/%s/home') or None
+
+        common_info = {
+            'uploader_url': uploader_url,
+            'channel_url': urljoin(f'{uploader_url}/', traverse_obj(post_data, ('channel', 'urlname'))),
+            'availability': self._availability(needs_subscription=True),
+            **traverse_obj(post_data, {
+                'uploader': ('creator', 'title', {str}),
+                'uploader_id': ('creator', 'id', {str}),
+                'channel': ('channel', 'title', {str}),
+                'channel_id': ('channel', 'id', {str}),
+                'release_timestamp': ('releaseDate', {parse_iso8601}),
+            }),
+        }
 
         items = []
         for media in traverse_obj(post_data, (('videoAttachments', 'audioAttachments'), ...)):
@@ -150,11 +225,11 @@ class FloatplaneIE(InfoExtractor):
             formats = []
             for quality in traverse_obj(stream, ('resource', 'data', 'qualityLevels', ...)):
                 url = urljoin(stream['cdn'], format_path(traverse_obj(
-                    stream, ('resource', 'data', 'qualityLevelParams', quality['name']))))
+                    stream, ('resource', 'data', 'qualityLevelParams', quality['name'], {dict}))))
                 formats.append({
                     **traverse_obj(quality, {
-                        'format_id': 'name',
-                        'format_note': 'label',
+                        'format_id': ('name', {str}),
+                        'format_note': ('label', {str}),
                         'width': ('width', {int}),
                         'height': ('height', {int}),
                     }),
@@ -164,38 +239,28 @@ class FloatplaneIE(InfoExtractor):
                 })
 
             items.append({
+                **common_info,
                 'id': media_id,
                 **traverse_obj(metadata, {
-                    'title': 'title',
+                    'title': ('title', {str}),
                     'duration': ('duration', {int_or_none}),
-                    'thumbnail': ('thumbnail', 'path'),
+                    'thumbnail': ('thumbnail', 'path', {url_or_none}),
                 }),
                 'formats': formats,
             })
 
-        uploader_url = format_field(
-            post_data, [('creator', 'urlname')], 'https://www.floatplane.com/channel/%s/home') or None
-        channel_url = urljoin(f'{uploader_url}/', traverse_obj(post_data, ('channel', 'urlname')))
-
         post_info = {
+            **common_info,
             'id': post_id,
             'display_id': post_id,
             **traverse_obj(post_data, {
-                'title': 'title',
+                'title': ('title', {str}),
                 'description': ('text', {clean_html}),
-                'uploader': ('creator', 'title'),
-                'uploader_id': ('creator', 'id'),
-                'channel': ('channel', 'title'),
-                'channel_id': ('channel', 'id'),
                 'like_count': ('likes', {int_or_none}),
                 'dislike_count': ('dislikes', {int_or_none}),
                 'comment_count': ('comments', {int_or_none}),
-                'release_timestamp': ('releaseDate', {parse_iso8601}),
-                'thumbnail': ('thumbnail', 'path'),
+                'thumbnail': ('thumbnail', 'path', {url_or_none}),
             }),
-            'uploader_url': uploader_url,
-            'channel_url': channel_url,
-            'availability': self._availability(needs_subscription=True),
         }
 
         if len(items) > 1:

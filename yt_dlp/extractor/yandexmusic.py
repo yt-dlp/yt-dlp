@@ -8,9 +8,9 @@ from ..utils import (
     ExtractorError,
     float_or_none,
     int_or_none,
-    traverse_obj,
     try_get,
 )
+from ..utils.traversal import traverse_obj
 
 
 class YandexMusicBaseIE(InfoExtractor):

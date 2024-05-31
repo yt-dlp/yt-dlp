@@ -27,12 +27,9 @@ def compat_etree_fromstring(text):
 compat_os_name = os._name if os.name == 'java' else os.name
 
 
-if compat_os_name == 'nt':
-    def compat_shlex_quote(s):
-        import re
-        return s if re.match(r'^[-_\w./]+$', s) else s.replace('"', '""').join('""')
-else:
-    from shlex import quote as compat_shlex_quote  # noqa: F401
+def compat_shlex_quote(s):
+    from ..utils import shell_quote
+    return shell_quote(s)
 
 
 def compat_ord(c):

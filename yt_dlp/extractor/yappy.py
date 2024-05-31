@@ -9,6 +9,7 @@ from ..utils import (
 
 
 class YappyIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://yappy\.media/video/(?P<id>\w+)'
     _TESTS = [{
         'url': 'https://yappy.media/video/47fea6d8586f48d1a0cf96a7342aabd2',

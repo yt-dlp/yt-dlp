@@ -1,4 +1,4 @@
-import datetime
+import datetime as dt
 import hashlib
 import hmac
 
@@ -12,7 +12,7 @@ class AWSIE(InfoExtractor):  # XXX: Conventionally, base classes should end with
 
     def _aws_execute_api(self, aws_dict, video_id, query=None):
         query = query or {}
-        amz_date = datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%SZ')
+        amz_date = dt.datetime.now(dt.timezone.utc).strftime('%Y%m%dT%H%M%SZ')
         date = amz_date[:8]
         headers = {
             'Accept': 'application/json',

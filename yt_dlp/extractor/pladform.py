@@ -1,11 +1,11 @@
 from .common import InfoExtractor
 from ..utils import (
-    determine_ext,
     ExtractorError,
+    determine_ext,
     int_or_none,
     parse_qs,
-    xpath_text,
     qualities,
+    xpath_text,
 )
 
 
@@ -35,7 +35,6 @@ class PladformIE(InfoExtractor):
             'thumbnail': str,
             'view_count': int,
             'description': str,
-            'category': list,
             'uploader_id': '12082',
             'uploader': 'Comedy Club',
             'duration': 367,
