@@ -1,7 +1,9 @@
-import re
-import json
 import base64
+import json
+import re
 import time
+import urllib.parse
+import xml.etree.ElementTree
 
 from .common import InfoExtractor
 from ..compat import (
@@ -65,6 +67,7 @@ class CBCIE(InfoExtractor):
             'uploader': 'CBCC-NEW',
             'timestamp': 255977160,
         },
+        'skip': '404 Not Found',
     }, {
         # multiple iframes
         'url': 'http://www.cbc.ca/natureofthings/blog/birds-eye-view-from-vancouvers-burrard-street-bridge-how-we-got-the-shot',
@@ -96,7 +99,7 @@ class CBCIE(InfoExtractor):
         # multiple CBC.APP.Caffeine.initInstance(...)
         'url': 'http://www.cbc.ca/news/canada/calgary/dog-indoor-exercise-winter-1.3928238',
         'info_dict': {
-            'title': 'Keep Rover active during the deep freeze with doggie pushups and other fun indoor tasks',
+            'title': 'Keep Rover active during the deep freeze with doggie pushups and other fun indoor tasks',  # FIXME
             'id': 'dog-indoor-exercise-winter-1.3928238',
             'description': 'md5:c18552e41726ee95bd75210d1ca9194c',
         },
@@ -148,7 +151,7 @@ class CBCIE(InfoExtractor):
 
 class CBCPlayerIE(InfoExtractor):
     IE_NAME = 'cbc.ca:player'
-    _VALID_URL = r'(?:cbcplayer:|https?://(?:www\.)?cbc\.ca/(?:player/play/|i/caffeine/syndicate/\?mediaId=))(?P<id>\d+)'
+    _VALID_URL = r'(?:cbcplayer:|https?://(?:www\.)?cbc\.ca/(?:player/play/(?:video/)?|i/caffeine/syndicate/\?mediaId=))(?P<id>(?:\d\.)?\d+)'
     _TESTS = [{
         'url': 'http://www.cbc.ca/player/play/2683190193',
         'md5': '64d25f841ddf4ddb28a235338af32e2c',
@@ -161,22 +164,31 @@ class CBCPlayerIE(InfoExtractor):
             'upload_date': '20160210',
             'uploader': 'CBCC-NEW',
         },
-        'skip': 'Geo-restricted to Canada',
+        'skip': 'Geo-restricted to Canada and no longer available',
     }, {
-        # Redirected from http://www.cbc.ca/player/AudioMobile/All%20in%20a%20Weekend%20Montreal/ID/2657632011/
-        'url': 'http://www.cbc.ca/player/play/2657631896',
+        'url': 'http://www.cbc.ca/i/caffeine/syndicate/?mediaId=2657631896',
         'md5': 'e5e708c34ae6fca156aafe17c43e8b75',
         'info_dict': {
             'id': '2657631896',
             'ext': 'mp3',
             'title': 'CBC Montreal is organizing its first ever community hackathon!',
-            'description': 'The modern technology we tend to depend on so heavily, is never without it\'s share of hiccups and headaches. Next weekend - CBC Montreal will be getting members of the public for its first Hackathon.',
+            'description': 'md5:dd3b692f0a139b0369943150bd1c46a9',
             'timestamp': 1425704400,
             'upload_date': '20150307',
             'uploader': 'CBCC-NEW',
+            'thumbnail': 'http://thumbnails.cbc.ca/maven_legacy/thumbnails/sonali-karnick-220.jpg',
+            'chapters': [],
+            'duration': 494.811,
+            'categories': ['AudioMobile/All in a Weekend Montreal'],
+            'tags': 'count:8',
+            'location': 'Quebec',
+            'series': 'All in a Weekend Montreal',
+            'season': 'Season 2015',
+            'season_number': 2015,
+            'media_type': 'Excerpt',
         },
     }, {
-        'url': 'http://www.cbc.ca/player/play/2164402062',
+        'url': 'http://www.cbc.ca/i/caffeine/syndicate/?mediaId=2164402062',
         'md5': '33fcd8f6719b9dd60a5e73adcb83b9f6',
         'info_dict': {
             'id': '2164402062',
@@ -186,11 +198,126 @@ class CBCPlayerIE(InfoExtractor):
             'timestamp': 1320410746,
             'upload_date': '20111104',
             'uploader': 'CBCC-NEW',
+            'thumbnail': 'https://thumbnails.cbc.ca/maven_legacy/thumbnails/277/67/cancer_852x480_2164412612.jpg',
+            'chapters': [],
+            'duration': 186.867,
+            'series': 'CBC News: Windsor at 6:00',
+            'categories': ['News/Canada/Windsor'],
+            'location': 'Windsor',
+            'tags': ['cancer'],
+            'creators': ['Allison Johnson'],
+            'media_type': 'Excerpt',
         },
+    }, {
+        # Redirected from http://www.cbc.ca/player/AudioMobile/All%20in%20a%20Weekend%20Montreal/ID/2657632011/
+        'url': 'https://www.cbc.ca/player/play/1.2985700',
+        'md5': 'e5e708c34ae6fca156aafe17c43e8b75',
+        'info_dict': {
+            'id': '2657631896',
+            'ext': 'mp3',
+            'title': 'CBC Montreal is organizing its first ever community hackathon!',
+            'description': 'The modern technology we tend to depend on so heavily, is never without it\'s share of hiccups and headaches. Next weekend - CBC Montreal will be getting members of the public for its first Hackathon.',
+            'timestamp': 1425704400,
+            'upload_date': '20150307',
+            'uploader': 'CBCC-NEW',
+            'thumbnail': 'http://thumbnails.cbc.ca/maven_legacy/thumbnails/sonali-karnick-220.jpg',
+            'chapters': [],
+            'duration': 494.811,
+            'categories': ['AudioMobile/All in a Weekend Montreal'],
+            'tags': 'count:8',
+            'location': 'Quebec',
+            'series': 'All in a Weekend Montreal',
+            'season': 'Season 2015',
+            'season_number': 2015,
+            'media_type': 'Excerpt',
+        },
+    }, {
+        'url': 'https://www.cbc.ca/player/play/1.1711287',
+        'md5': '33fcd8f6719b9dd60a5e73adcb83b9f6',
+        'info_dict': {
+            'id': '2164402062',
+            'ext': 'mp4',
+            'title': 'Cancer survivor four times over',
+            'description': 'Tim Mayer has beaten three different forms of cancer four times in five years.',
+            'timestamp': 1320410746,
+            'upload_date': '20111104',
+            'uploader': 'CBCC-NEW',
+            'thumbnail': 'https://thumbnails.cbc.ca/maven_legacy/thumbnails/277/67/cancer_852x480_2164412612.jpg',
+            'chapters': [],
+            'duration': 186.867,
+            'series': 'CBC News: Windsor at 6:00',
+            'categories': ['News/Canada/Windsor'],
+            'location': 'Windsor',
+            'tags': ['cancer'],
+            'creators': ['Allison Johnson'],
+            'media_type': 'Excerpt',
+        },
+    }, {
+        # Has subtitles
+        # These broadcasts expire after ~1 month, can find new test URL here:
+        # https://www.cbc.ca/player/news/TV%20Shows/The%20National/Latest%20Broadcast
+        'url': 'https://www.cbc.ca/player/play/1.7159484',
+        'md5': '6ed6cd0fc2ef568d2297ba68a763d455',
+        'info_dict': {
+            'id': '2324213316001',
+            'ext': 'mp4',
+            'title': 'The National | School boards sue social media giants',
+            'description': 'md5:4b4db69322fa32186c3ce426da07402c',
+            'timestamp': 1711681200,
+            'duration': 2743.400,
+            'subtitles': {'eng': [{'ext': 'vtt', 'protocol': 'm3u8_native'}]},
+            'thumbnail': 'https://thumbnails.cbc.ca/maven_legacy/thumbnails/607/559/thumbnail.jpeg',
+            'uploader': 'CBCC-NEW',
+            'chapters': 'count:5',
+            'upload_date': '20240329',
+            'categories': 'count:4',
+            'series': 'The National - Full Show',
+            'tags': 'count:1',
+            'creators': ['News'],
+            'location': 'Canada',
+            'media_type': 'Full Program',
+        },
+    }, {
+        'url': 'https://www.cbc.ca/player/play/video/1.7194274',
+        'md5': '188b96cf6bdcb2540e178a6caa957128',
+        'info_dict': {
+            'id': '2334524995812',
+            'ext': 'mp4',
+            'title': '#TheMoment a rare white spirit moose was spotted in Alberta',
+            'description': 'md5:18ae269a2d0265c5b0bbe4b2e1ac61a3',
+            'timestamp': 1714788791,
+            'duration': 77.678,
+            'subtitles': {'eng': [{'ext': 'vtt', 'protocol': 'm3u8_native'}]},
+            'thumbnail': 'https://thumbnails.cbc.ca/maven_legacy/thumbnails/201/543/THE_MOMENT.jpg',
+            'uploader': 'CBCC-NEW',
+            'chapters': 'count:0',
+            'upload_date': '20240504',
+            'categories': 'count:3',
+            'series': 'The National',
+            'tags': 'count:15',
+            'creators': ['encoder'],
+            'location': 'Canada',
+            'media_type': 'Excerpt',
+        },
+    }, {
+        'url': 'cbcplayer:1.7159484',
+        'only_matching': True,
+    }, {
+        'url': 'cbcplayer:2164402062',
+        'only_matching': True,
+    }, {
+        'url': 'http://www.cbc.ca/player/play/2657631896',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
+        if '.' in video_id:
+            webpage = self._download_webpage(f'https://www.cbc.ca/player/play/{video_id}', video_id)
+            video_id = self._search_json(
+                r'window\.__INITIAL_STATE__\s*=', webpage,
+                'initial state', video_id)['video']['currentClip']['mediaId']
+
         return {
             '_type': 'url_transparent',
             'ie_key': 'ThePlatform',
@@ -199,7 +326,40 @@ class CBCPlayerIE(InfoExtractor):
                     'force_smil_url': True
                 }),
             'id': video_id,
+            '_format_sort_fields': ('res', 'proto')  # Prioritize direct http formats over HLS
         }
+
+
+class CBCPlayerPlaylistIE(InfoExtractor):
+    IE_NAME = 'cbc.ca:player:playlist'
+    _VALID_URL = r'https?://(?:www\.)?cbc\.ca/(?:player/)(?!play/)(?P<id>[^?#]+)'
+    _TESTS = [{
+        'url': 'https://www.cbc.ca/player/news/TV%20Shows/The%20National/Latest%20Broadcast',
+        'playlist_mincount': 25,
+        'info_dict': {
+            'id': 'news/tv shows/the national/latest broadcast',
+        }
+    }, {
+        'url': 'https://www.cbc.ca/player/news/Canada/North',
+        'playlist_mincount': 25,
+        'info_dict': {
+            'id': 'news/canada/north',
+        }
+    }]
+
+    def _real_extract(self, url):
+        playlist_id = urllib.parse.unquote(self._match_id(url)).lower()
+        webpage = self._download_webpage(url, playlist_id)
+        json_content = self._search_json(
+            r'window\.__INITIAL_STATE__\s*=', webpage, 'initial state', playlist_id)
+
+        def entries():
+            for video_id in traverse_obj(json_content, (
+                'video', 'clipsByCategory', lambda k, _: k.lower() == playlist_id, 'items', ..., 'id'
+            )):
+                yield self.url_result(f'https://www.cbc.ca/player/play/{video_id}', CBCPlayerIE)
+
+        return self.playlist_result(entries(), playlist_id)
 
 
 class CBCGemIE(InfoExtractor):
@@ -280,12 +440,12 @@ class CBCGemIE(InfoExtractor):
         data = json.dumps({'jwt': sig}).encode()
         headers = {'content-type': 'application/json', 'ott-device-type': 'web'}
         resp = self._download_json('https://services.radio-canada.ca/ott/cbc-api/v2/token',
-                                   None, data=data, headers=headers)
+                                   None, data=data, headers=headers, expected_status=426)
         cbc_access_token = resp['accessToken']
 
         headers = {'content-type': 'application/json', 'ott-device-type': 'web', 'ott-access-token': cbc_access_token}
         resp = self._download_json('https://services.radio-canada.ca/ott/cbc-api/v2/profile',
-                                   None, headers=headers)
+                                   None, headers=headers, expected_status=426)
         return resp['claimsToken']
 
     def _get_claims_token_expiry(self):
@@ -327,7 +487,7 @@ class CBCGemIE(InfoExtractor):
         url = re.sub(r'(Manifest\(.*?),format=[\w-]+(.*?\))', r'\1\2', base_url)
 
         secret_xml = self._download_xml(url, video_id, note='Downloading secret XML', fatal=False)
-        if not secret_xml:
+        if not isinstance(secret_xml, xml.etree.ElementTree.Element):
             return
 
         for child in secret_xml:
@@ -417,6 +577,10 @@ class CBCGemPlaylistIE(InfoExtractor):
             'id': 'schitts-creek/s06',
             'title': 'Season 6',
             'description': 'md5:6a92104a56cbeb5818cc47884d4326a2',
+            'series': 'Schitt\'s Creek',
+            'season_number': 6,
+            'season': 'Season 6',
+            'thumbnail': 'https://images.radio-canada.ca/v1/synps-cbc/season/perso/cbc_schitts_creek_season_06_carousel_v03.jpg?impolicy=ott&im=Resize=(_Size_)&quality=75',
         },
     }, {
         'url': 'https://gem.cbc.ca/schitts-creek/s06',

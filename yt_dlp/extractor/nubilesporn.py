@@ -19,7 +19,7 @@ from ..utils import (
 class NubilesPornIE(InfoExtractor):
     _NETRC_MACHINE = 'nubiles-porn'
     _VALID_URL = r'''(?x)
-        https://members.nubiles-porn.com/video/watch/(?P<id>\d+)
+        https://members\.nubiles-porn\.com/video/watch/(?P<id>\d+)
         (?:/(?P<display_id>[\w\-]+-s(?P<season>\d+)e(?P<episode>\d+)))?
     '''
 

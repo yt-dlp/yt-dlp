@@ -2,9 +2,9 @@ import re
 
 from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
     clean_html,
     determine_ext,
-    ExtractorError,
     float_or_none,
     int_or_none,
     str_or_none,
@@ -14,23 +14,7 @@ from ..utils import (
 )
 
 
-class LecturioIE(InfoExtractor):
-    _VALID_URL = r'https://app\.lecturio\.com/([^/]+/(?P<nt>[^/?#&]+)\.lecture|(?:\#/)?lecture/c/\d+/(?P<id>\d+))'
-
-    _TESTS = [{
-        'url': 'https://app.lecturio.com/medical-courses/important-concepts-and-terms-introduction-to-microbiology.lecture#tab/videos',
-        'md5': '9a42cf1d8282a6311bf7211bbde26fde',
-        'info_dict': {
-            'id': '39634',
-            'ext': 'mp4',
-            'title': 'Important Concepts and Terms — Introduction to Microbiology',
-        },
-        'skip': 'Requires lecturio account credentials',
-    }, {
-        'url': 'https://app.lecturio.com/#/lecture/c/6434/39634',
-        'only_matching': True,
-    }]
-
+class LecturioBaseIE(InfoExtractor):
     _API_BASE_URL = 'https://app.lecturio.com/api/en/latest/html5/'
     _LOGIN_URL = 'https://app.lecturio.com/en/login'
 
@@ -57,7 +41,7 @@ class LecturioIE(InfoExtractor):
             self._LOGIN_URL, None, 'Downloading login popup')
 
         def is_logged(url_handle):
-            return self._LOGIN_URL not in url_handle.geturl()
+            return self._LOGIN_URL not in url_handle.url
 
         # Already logged in
         if is_logged(urlh):
@@ -159,9 +143,27 @@ class LecturioIE(InfoExtractor):
             'automatic_captions': automatic_captions,
         }
 
-# German Lecturio simply requires different URLs
+
+class LecturioIE(LecturioBaseIE):
+    _VALID_URL = r'https?://app\.lecturio\.com/([^/?#]+/(?P<nt>[^/?#&]+)\.lecture|(?:\#/)?lecture/c/\d+/(?P<id>\d+))'
+
+    _TESTS = [{
+        'url': 'https://app.lecturio.com/medical-courses/important-concepts-and-terms-introduction-to-microbiology.lecture#tab/videos',
+        'md5': '9a42cf1d8282a6311bf7211bbde26fde',
+        'info_dict': {
+            'id': '39634',
+            'ext': 'mp4',
+            'title': 'Important Concepts and Terms — Introduction to Microbiology',
+        },
+        'skip': 'Requires lecturio account credentials',
+    }, {
+        'url': 'https://app.lecturio.com/#/lecture/c/6434/39634',
+        'only_matching': True,
+    }]
+
+
 class LecturioDeIE(LecturioIE):
-    _VALID_URL = r'https://www\.lecturio\.de/[^/]+/(?P<nt>[^/?#&]+)\.vortrag'
+    _VALID_URL = r'https?://www\.lecturio\.de/[^/?#]+/(?P<nt>[^/?#&]+)\.vortrag'
 
     _TESTS = [{
         'url': 'https://www.lecturio.de/jura/oeffentliches-recht-staatsexamen.vortrag',
@@ -172,8 +174,8 @@ class LecturioDeIE(LecturioIE):
     _LOGIN_URL = 'https://www.lecturio.de/anmelden.html'
 
 
-class LecturioCourseIE(LecturioIE):
-    _VALID_URL = r'https://app\.lecturio\.com/(?:[^/]+/(?P<nt>[^/?#&]+)\.course|(?:#/)?course/c/(?P<id>\d+))'
+class LecturioCourseIE(LecturioBaseIE):
+    _VALID_URL = r'https?://app\.lecturio\.com/(?:[^/]+/(?P<nt>[^/?#&]+)\.course|(?:#/)?course/c/(?P<id>\d+))'
     _TESTS = [{
         'url': 'https://app.lecturio.com/medical-courses/microbiology-introduction.course#/',
         'info_dict': {
@@ -209,9 +211,9 @@ class LecturioCourseIE(LecturioIE):
             clean_html(course.get('description')))
 
 
-class LecturioDeCourseIE(LecturioDeIE):
-    _VALID_URL = r'https://(?:www\.)?lecturio\.de/[^/]+/(?P<id>[^/?#&]+)\.kurs'
-    _TESTS = [{
+class LecturioDeCourseIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:www\.)?lecturio\.de/[^/?#]+/(?P<id>[^/?#&]+)\.kurs'
+    _TEST = {
         'url': 'https://www.lecturio.de/jura/grundrechte.kurs',
         'only_matching': True,
     }]

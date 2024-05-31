@@ -3,10 +3,10 @@ import re
 from .common import InfoExtractor
 from .wistia import WistiaIE
 from ..utils import (
-    clean_html,
     ExtractorError,
-    int_or_none,
+    clean_html,
     get_element_by_class,
+    int_or_none,
     strip_or_none,
     urlencode_postdata,
     urljoin,
@@ -56,7 +56,7 @@ class TeachableBaseIE(InfoExtractor):
             self._logged_in = True
             return
 
-        login_url = urlh.geturl()
+        login_url = urlh.url
 
         login_form = self._hidden_inputs(login_page)
 
@@ -99,6 +99,7 @@ class TeachableBaseIE(InfoExtractor):
 
 
 class TeachableIE(TeachableBaseIE):
+    _WORKING = False
     _VALID_URL = r'''(?x)
                     (?:
                         %shttps?://(?P<site_t>[^/]+)|

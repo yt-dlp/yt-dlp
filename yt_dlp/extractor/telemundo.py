@@ -1,13 +1,10 @@
 from .common import InfoExtractor
-from ..utils import (
-    try_get,
-    unified_timestamp,
-    HEADRequest,
-)
+from ..networking import HEADRequest
+from ..utils import try_get, unified_timestamp
 
 
 class TelemundoIE(InfoExtractor):
-
+    _WORKING = False
     _VALID_URL = r'https?:\/\/(?:www\.)?telemundo\.com\/.+?video\/[^\/]+(?P<id>tmvo\d{7})'
     _TESTS = [{
         'url': 'https://www.telemundo.com/noticias/noticias-telemundo-en-la-noche/empleo/video/esta-aplicacion-gratuita-esta-ayudando-los-latinos-encontrar-trabajo-en-estados-unidos-tmvo9829325',
@@ -38,7 +35,7 @@ class TelemundoIE(InfoExtractor):
 
         m3u8_url = self._request_webpage(HEADRequest(
             redirect_url + '?format=redirect&manifest=m3u&format=redirect&Tracking=true&Embedded=true&formats=MPEG4'),
-            video_id, 'Processing m3u8').geturl()
+            video_id, 'Processing m3u8').url
         formats = self._extract_m3u8_formats(m3u8_url, video_id, 'mp4')
         date = unified_timestamp(try_get(
             metadata, lambda x: x['props']['initialState']['video']['associatedPlaylists'][0]['videos'][0]['datePublished'].split(' ', 1)[1]))

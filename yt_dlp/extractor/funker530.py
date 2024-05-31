@@ -60,6 +60,7 @@ class Funker530IE(InfoExtractor):
     def _real_extract(self, url):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
+        info = {}
         rumble_url = list(RumbleEmbedIE._extract_embed_urls(url, webpage))
         if rumble_url:
             info = {'url': rumble_url[0], 'ie_key': RumbleEmbedIE.ie_key()}

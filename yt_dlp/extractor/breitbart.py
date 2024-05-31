@@ -2,7 +2,7 @@ from .common import InfoExtractor
 
 
 class BreitBartIE(InfoExtractor):
-    _VALID_URL = r'https?:\/\/(?:www\.)breitbart.com/videos/v/(?P<id>[^/]+)'
+    _VALID_URL = r'https?://(?:www\.)?breitbart\.com/videos/v/(?P<id>[^/?#]+)'
     _TESTS = [{
         'url': 'https://www.breitbart.com/videos/v/5cOz1yup/?pl=Ij6NDOji',
         'md5': '0aa6d1d6e183ac5ca09207fe49f17ade',

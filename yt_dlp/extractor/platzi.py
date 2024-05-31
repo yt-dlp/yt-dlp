@@ -4,8 +4,8 @@ from ..compat import (
     compat_str,
 )
 from ..utils import (
-    clean_html,
     ExtractorError,
+    clean_html,
     int_or_none,
     str_or_none,
     try_get,
@@ -36,7 +36,7 @@ class PlatziBaseIE(InfoExtractor):
             headers={'Referer': self._LOGIN_URL})
 
         # login succeeded
-        if 'platzi.com/login' not in urlh.geturl():
+        if 'platzi.com/login' not in urlh.url:
             return
 
         login_error = self._webpage_read_content(

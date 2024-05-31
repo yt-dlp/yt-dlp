@@ -1,7 +1,7 @@
 import uuid
 
 from .common import InfoExtractor
-from ..compat import compat_HTTPError
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     int_or_none,
@@ -75,7 +75,7 @@ class LEGOIE(InfoExtractor):
                     'videoId': '%s_%s' % (uuid.UUID(video_id), locale),
                 }, headers=self.geo_verification_headers())
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 451:
+            if isinstance(e.cause, HTTPError) and e.cause.status == 451:
                 self.raise_geo_restricted(countries=countries)
             raise
 

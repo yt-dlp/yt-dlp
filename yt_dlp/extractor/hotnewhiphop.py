@@ -1,14 +1,11 @@
 from .common import InfoExtractor
 from ..compat import compat_b64decode
-from ..utils import (
-    ExtractorError,
-    HEADRequest,
-    sanitized_Request,
-    urlencode_postdata,
-)
+from ..networking import HEADRequest, Request
+from ..utils import ExtractorError, urlencode_postdata
 
 
 class HotNewHipHopIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?hotnewhiphop\.com/.*\.(?P<id>.*)\.html'
     _TEST = {
         'url': 'http://www.hotnewhiphop.com/freddie-gibbs-lay-it-down-song.1435540.html',
@@ -36,9 +33,9 @@ class HotNewHipHopIE(InfoExtractor):
             ('mediaType', 's'),
             ('mediaId', video_id),
         ])
-        r = sanitized_Request(
+        r = Request(
             'http://www.hotnewhiphop.com/ajax/media/getActions/', data=reqdata)
-        r.add_header('Content-Type', 'application/x-www-form-urlencoded')
+        r.headers['Content-Type'] = 'application/x-www-form-urlencoded'
         mkd = self._download_json(
             r, video_id, note='Requesting media key',
             errnote='Could not download media key')
@@ -50,7 +47,7 @@ class HotNewHipHopIE(InfoExtractor):
         req = self._request_webpage(
             redirect_req, video_id,
             note='Resolving final URL', errnote='Could not resolve final URL')
-        video_url = req.geturl()
+        video_url = req.url
         if video_url.endswith('.html'):
             raise ExtractorError('Redirect failed')
 

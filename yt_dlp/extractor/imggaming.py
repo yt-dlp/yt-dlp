@@ -1,7 +1,7 @@
 import json
 
 from .common import InfoExtractor
-from ..compat import compat_HTTPError
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     int_or_none,
@@ -52,9 +52,9 @@ class ImgGamingBaseIE(InfoExtractor):
             return self._call_api(
                 stream_path, media_id)['playerUrlCallback']
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 403:
+            if isinstance(e.cause, HTTPError) and e.cause.status == 403:
                 raise ExtractorError(
-                    self._parse_json(e.cause.read().decode(), media_id)['messages'][0],
+                    self._parse_json(e.cause.response.read().decode(), media_id)['messages'][0],
                     expected=True)
             raise
 

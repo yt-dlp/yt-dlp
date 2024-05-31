@@ -1,19 +1,18 @@
 import re
 
 from .common import InfoExtractor
-
 from ..utils import (
     int_or_none,
     js_to_json,
     parse_duration,
     traverse_obj,
     try_get,
-    urljoin
+    urljoin,
 )
 
 
 class MainStreamingIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:webtools-?)?(?P<host>[A-Za-z0-9-]*\.msvdn.net)/(?:embed|amp_embed|content)/(?P<id>\w+)'
+    _VALID_URL = r'https?://(?:webtools-?)?(?P<host>[A-Za-z0-9-]*\.msvdn\.net)/(?:embed|amp_embed|content)/(?P<id>\w+)'
     _EMBED_REGEX = [rf'<iframe[^>]+?src=["\']?(?P<url>{_VALID_URL})["\']?']
     IE_DESC = 'MainStreaming Player'
 

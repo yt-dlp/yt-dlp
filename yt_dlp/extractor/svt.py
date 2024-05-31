@@ -1,3 +1,4 @@
+import json
 import re
 
 from .common import InfoExtractor
@@ -6,10 +7,9 @@ from ..utils import (
     determine_ext,
     dict_get,
     int_or_none,
-    unified_timestamp,
-    str_or_none,
-    strip_or_none,
+    traverse_obj,
     try_get,
+    unified_timestamp,
 )
 
 
@@ -163,10 +163,46 @@ class SVTPlayIE(SVTPlayBaseIE):
             },
         },
         'params': {
-            # skip for now due to download test asserts that segment is > 10000 bytes and svt uses
-            # init segments that are smaller
-            # AssertionError: Expected test_SVTPlay_jNwpV9P.mp4 to be at least 9.77KiB, but it's only 864.00B
-            'skip_download': True,
+            'skip_download': 'm3u8',
+        },
+        'skip': 'Episode is no longer available',
+    }, {
+        'url': 'https://www.svtplay.se/video/emBxBQj',
+        'md5': '2382036fd6f8c994856c323fe51c426e',
+        'info_dict': {
+            'id': 'eyBd9aj',
+            'ext': 'mp4',
+            'title': '1. Farlig kryssning',
+            'timestamp': 1491019200,
+            'upload_date': '20170401',
+            'duration': 2566,
+            'thumbnail': r're:^https?://(?:.*[\.-]jpg|www.svtstatic.se/image/.*)$',
+            'age_limit': 0,
+            'episode': '1. Farlig kryssning',
+            'series': 'Rederiet',
+            'subtitles': {
+                'sv': 'count:3'
+            },
+        },
+        'params': {
+            'skip_download': 'm3u8',
+        },
+    }, {
+        'url': 'https://www.svtplay.se/video/jz2rYz7/anders-hansen-moter/james-fallon?info=visa',
+        'info_dict': {
+            'id': 'jvXAGVb',
+            'ext': 'mp4',
+            'title': 'James Fallon',
+            'timestamp': 1673917200,
+            'upload_date': '20230117',
+            'duration': 1081,
+            'thumbnail': r're:^https?://(?:.*[\.-]jpg|www.svtstatic.se/image/.*)$',
+            'age_limit': 0,
+            'episode': 'James Fallon',
+            'series': 'Anders Hansen möter...',
+        },
+        'params': {
+            'skip_download': 'dash',
         },
     }, {
         'url': 'https://www.svtplay.se/video/30479064/husdrommar/husdrommar-sasong-8-designdrommar-i-stenungsund?modalId=8zVbDPA',
@@ -248,14 +284,15 @@ class SVTPlayIE(SVTPlayBaseIE):
                 compat_str)
 
         if not svt_id:
+            nextjs_data = self._search_nextjs_data(webpage, video_id, fatal=False)
+            svt_id = traverse_obj(nextjs_data, (
+                'props', 'urqlState', ..., 'data', {json.loads}, 'detailsPageByPath',
+                'video', 'svtId', {str}), get_all=False)
+
+        if not svt_id:
             svt_id = self._search_regex(
                 (r'<video[^>]+data-video-id=["\']([\da-zA-Z-]+)',
-                 r'<[^>]+\bdata-rt=["\']top-area-play-button["\'][^>]+\bhref=["\'][^"\']*video/%s/[^"\']*\b(?:modalId|id)=([\da-zA-Z-]+)' % re.escape(video_id),
-                 r'["\']videoSvtId["\']\s*:\s*["\']([\da-zA-Z-]+)',
-                 r'["\']videoSvtId\\?["\']\s*:\s*\\?["\']([\da-zA-Z-]+)',
-                 r'"content"\s*:\s*{.*?"id"\s*:\s*"([\da-zA-Z-]+)"',
-                 r'["\']svtId["\']\s*:\s*["\']([\da-zA-Z-]+)',
-                 r'["\']svtId\\?["\']\s*:\s*\\?["\']([\da-zA-Z-]+)'),
+                 r'<[^>]+\bdata-rt=["\']top-area-play-button["\'][^>]+\bhref=["\'][^"\']*video/[\w-]+/[^"\']*\b(?:modalId|id)=([\w-]+)'),
                 webpage, 'video id')
 
         info_dict = self._extract_by_video_id(svt_id, webpage)
@@ -349,15 +386,55 @@ class SVTSeriesIE(SVTPlayBaseIE):
             dict_get(series, ('longDescription', 'shortDescription')))
 
 
-class SVTPageIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?svt\.se/(?P<path>(?:[^/]+/)*(?P<id>[^/?&#]+))'
+class SVTPageIE(SVTBaseIE):
+    _VALID_URL = r'https?://(?:www\.)?svt\.se/(?:[^/?#]+/)*(?P<id>[^/?&#]+)'
     _TESTS = [{
+        'url': 'https://www.svt.se/nyheter/lokalt/skane/viktor-18-forlorade-armar-och-ben-i-sepsis-vill-ateruppta-karaten-och-bli-svetsare',
+        'info_dict': {
+            'title': 'Viktor, 18, förlorade armar och ben i sepsis – vill återuppta karaten och bli svetsare',
+            'id': 'viktor-18-forlorade-armar-och-ben-i-sepsis-vill-ateruppta-karaten-och-bli-svetsare',
+        },
+        'playlist_count': 2,
+    }, {
+        'url': 'https://www.svt.se/nyheter/lokalt/skane/forsvarsmakten-om-trafikkaoset-pa-e22-kunde-inte-varit-dar-snabbare',
+        'info_dict': {
+            'id': 'jXvk42E',
+            'title': 'Försvarsmakten om trafikkaoset på E22: Kunde inte varit där snabbare',
+            'ext': 'mp4',
+            "duration": 80,
+            'age_limit': 0,
+            'timestamp': 1704370009,
+            'episode': 'Försvarsmakten om trafikkaoset på E22: Kunde inte varit där snabbare',
+            'series': 'Lokala Nyheter Skåne',
+            'upload_date': '20240104'
+        },
+        'params': {
+            'skip_download': True,
+        }
+    }, {
+        'url': 'https://www.svt.se/nyheter/svtforum/2023-tungt-ar-for-svensk-media',
+        'info_dict': {
+            'title': '2023 tungt år för svensk media',
+            'id': 'ewqAZv4',
+            'ext': 'mp4',
+            "duration": 3074,
+            'age_limit': 0,
+            'series': '',
+            'timestamp': 1702980479,
+            'upload_date': '20231219',
+            'episode': 'Mediestudier'
+        },
+        'params': {
+            'skip_download': True,
+        }
+    }, {
         'url': 'https://www.svt.se/sport/ishockey/bakom-masken-lehners-kamp-mot-mental-ohalsa',
         'info_dict': {
             'id': '25298267',
             'title': 'Bakom masken – Lehners kamp mot mental ohälsa',
         },
         'playlist_count': 4,
+        'skip': 'Video is gone'
     }, {
         'url': 'https://www.svt.se/nyheter/utrikes/svenska-andrea-ar-en-mil-fran-branderna-i-kalifornien',
         'info_dict': {
@@ -365,6 +442,7 @@ class SVTPageIE(InfoExtractor):
             'title': 'Svenska Andrea redo att fly sitt hem i Kalifornien',
         },
         'playlist_count': 2,
+        'skip': 'Video is gone'
     }, {
         # only programTitle
         'url': 'http://www.svt.se/sport/ishockey/jagr-tacklar-giroux-under-intervjun',
@@ -375,6 +453,7 @@ class SVTPageIE(InfoExtractor):
             'duration': 27,
             'age_limit': 0,
         },
+        'skip': 'Video is gone'
     }, {
         'url': 'https://www.svt.se/nyheter/lokalt/vast/svt-testar-tar-nagon-upp-skrapet-1',
         'only_matching': True,
@@ -388,26 +467,23 @@ class SVTPageIE(InfoExtractor):
         return False if SVTIE.suitable(url) or SVTPlayIE.suitable(url) else super(SVTPageIE, cls).suitable(url)
 
     def _real_extract(self, url):
-        path, display_id = self._match_valid_url(url).groups()
+        display_id = self._match_id(url)
 
-        article = self._download_json(
-            'https://api.svt.se/nss-api/page/' + path, display_id,
-            query={'q': 'articles'})['articles']['content'][0]
+        webpage = self._download_webpage(url, display_id)
+        title = self._og_search_title(webpage)
 
-        entries = []
+        urql_state = self._search_json(
+            r'window\.svt\.nyh\.urqlState\s*=', webpage, 'json data', display_id)
 
-        def _process_content(content):
-            if content.get('_type') in ('VIDEOCLIP', 'VIDEOEPISODE'):
-                video_id = compat_str(content['image']['svtId'])
-                entries.append(self.url_result(
-                    'svt:' + video_id, SVTPlayIE.ie_key(), video_id))
+        data = traverse_obj(urql_state, (..., 'data', {str}, {json.loads}), get_all=False) or {}
 
-        for media in article.get('media', []):
-            _process_content(media)
+        def entries():
+            for video_id in set(traverse_obj(data, (
+                'page', (('topMedia', 'svtId'), ('body', ..., 'video', 'svtId')), {str}
+            ))):
+                info = self._extract_video(
+                    self._download_json(f'https://api.svt.se/video/{video_id}', video_id), video_id)
+                info['title'] = title
+                yield info
 
-        for obj in article.get('structuredBody', []):
-            _process_content(obj.get('content') or {})
-
-        return self.playlist_result(
-            entries, str_or_none(article.get('id')),
-            strip_or_none(article.get('title')))
+        return self.playlist_result(entries(), display_id, title)

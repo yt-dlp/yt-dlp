@@ -1,7 +1,7 @@
 from .common import InfoExtractor
 from ..utils import (
-    clean_html,
     ExtractorError,
+    clean_html,
     format_field,
     get_element_by_class,
     int_or_none,
@@ -39,7 +39,7 @@ class VidioBaseIE(InfoExtractor):
         login_post, login_post_urlh = self._download_webpage_handle(
             self._LOGIN_URL, None, 'Logging in', data=urlencode_postdata(login_form), expected_status=[302, 401])
 
-        if login_post_urlh.getcode() == 401:
+        if login_post_urlh.status == 401:
             if get_element_by_class('onboarding-content-register-popup__title', login_post):
                 raise ExtractorError(
                     'Unable to log in: The provided email has not registered yet.', expected=True)

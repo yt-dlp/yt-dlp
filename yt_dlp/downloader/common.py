@@ -4,6 +4,7 @@ import functools
 import os
 import random
 import re
+import threading
 import time
 
 from ..minicurses import (
@@ -63,6 +64,7 @@ class FileDownloader:
     min_filesize:       Skip files smaller than this size
     max_filesize:       Skip files larger than this size
     xattr_set_filesize: Set ytdl.filesize user xattribute with expected size.
+    progress_delta:     The minimum time between progress output, in seconds
     external_downloader_args:  A dictionary of downloader keys (in lower case)
                         and a list of additional command-line arguments for the
                         executable. Use 'default' as the name for arguments to be
@@ -88,6 +90,9 @@ class FileDownloader:
         self.params = params
         self._prepare_multiline_status()
         self.add_progress_hook(self.report_progress)
+        if self.params.get('progress_delta'):
+            self._progress_delta_lock = threading.Lock()
+            self._progress_delta_time = time.monotonic()
 
     def _set_ydl(self, ydl):
         self.ydl = ydl
@@ -255,7 +260,8 @@ class FileDownloader:
 
     @wrap_file_access('remove')
     def try_remove(self, filename):
-        os.remove(filename)
+        if os.path.isfile(filename):
+            os.remove(filename)
 
     @wrap_file_access('rename')
     def try_rename(self, old_filename, new_filename):
@@ -365,6 +371,12 @@ class FileDownloader:
         if s['status'] != 'downloading':
             return
 
+        if update_delta := self.params.get('progress_delta'):
+            with self._progress_delta_lock:
+                if time.monotonic() < self._progress_delta_time:
+                    return
+                self._progress_delta_time += update_delta
+
         s.update({
             '_eta_str': self.format_eta(s.get('eta')).strip(),
             '_speed_str': self.format_speed(s.get('speed')),
@@ -418,7 +430,6 @@ class FileDownloader:
         """Download to a filename using the info from info_dict
         Return True on success and False otherwise
         """
-
         nooverwrites_and_exists = (
             not self.params.get('overwrites', True)
             and os.path.exists(encodeFilename(filename))

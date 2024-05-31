@@ -50,16 +50,16 @@ class SubstackIE(InfoExtractor):
         if not re.search(r'<script[^>]+src=["\']https://substackcdn.com/[^"\']+\.js', webpage):
             return
 
-        mobj = re.search(r'{[^}]*["\']subdomain["\']\s*:\s*["\'](?P<subdomain>[^"]+)', webpage)
+        mobj = re.search(r'{[^}]*\\?["\']subdomain\\?["\']\s*:\s*\\?["\'](?P<subdomain>[^\\"\']+)', webpage)
         if mobj:
             parsed = urllib.parse.urlparse(url)
             yield parsed._replace(netloc=f'{mobj.group("subdomain")}.substack.com').geturl()
             raise cls.StopExtraction()
 
-    def _extract_video_formats(self, video_id, username):
+    def _extract_video_formats(self, video_id, url):
         formats, subtitles = [], {}
         for video_format in ('hls', 'mp4'):
-            video_url = f'https://{username}.substack.com/api/v1/video/upload/{video_id}/src?type={video_format}'
+            video_url = urllib.parse.urljoin(url, f'/api/v1/video/upload/{video_id}/src?type={video_format}')
 
             if video_format == 'hls':
                 fmts, subs = self._extract_m3u8_formats_and_subtitles(video_url, video_id, 'mp4', fatal=False)
@@ -81,12 +81,17 @@ class SubstackIE(InfoExtractor):
             r'window\._preloads\s*=\s*JSON\.parse\(', webpage, 'json string',
             display_id, transform_source=js_to_json, contains_pattern=r'"{(?s:.+)}"'), display_id)
 
+        canonical_url = url
+        domain = traverse_obj(webpage_info, ('domainInfo', 'customDomain', {str}))
+        if domain:
+            canonical_url = urllib.parse.urlparse(url)._replace(netloc=domain).geturl()
+
         post_type = webpage_info['post']['type']
         formats, subtitles = [], {}
         if post_type == 'podcast':
             formats, subtitles = [{'url': webpage_info['post']['podcast_url']}], {}
         elif post_type == 'video':
-            formats, subtitles = self._extract_video_formats(webpage_info['post']['videoUpload']['id'], username)
+            formats, subtitles = self._extract_video_formats(webpage_info['post']['videoUpload']['id'], canonical_url)
         else:
             self.raise_no_formats(f'Page type "{post_type}" is not supported')
 
@@ -99,4 +104,5 @@ class SubstackIE(InfoExtractor):
             'thumbnail': traverse_obj(webpage_info, ('post', 'cover_image')),
             'uploader': traverse_obj(webpage_info, ('pub', 'name')),
             'uploader_id': str_or_none(traverse_obj(webpage_info, ('post', 'publication_id'))),
+            'webpage_url': canonical_url,
         }

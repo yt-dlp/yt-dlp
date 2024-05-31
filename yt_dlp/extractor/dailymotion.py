@@ -1,9 +1,10 @@
 import functools
 import json
 import re
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import compat_HTTPError
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     OnDemandPagedList,
@@ -44,36 +45,41 @@ class DailymotionBaseInfoExtractor(InfoExtractor):
         self._FAMILY_FILTER = ff == 'on' if ff else age_restricted(18, self.get_param('age_limit'))
         self._set_dailymotion_cookie('ff', 'on' if self._FAMILY_FILTER else 'off')
 
+    def _get_token(self, xid):
+        cookies = self._get_dailymotion_cookies()
+        token = self._get_cookie_value(cookies, 'access_token') or self._get_cookie_value(cookies, 'client_token')
+        if token:
+            return token
+
+        data = {
+            'client_id': 'f1a362d288c1b98099c7',
+            'client_secret': 'eea605b96e01c796ff369935357eca920c5da4c5',
+        }
+        username, password = self._get_login_info()
+        if username:
+            data.update({
+                'grant_type': 'password',
+                'password': password,
+                'username': username,
+            })
+        else:
+            data['grant_type'] = 'client_credentials'
+        try:
+            token = self._download_json(
+                'https://graphql.api.dailymotion.com/oauth/token',
+                None, 'Downloading Access Token',
+                data=urlencode_postdata(data))['access_token']
+        except ExtractorError as e:
+            if isinstance(e.cause, HTTPError) and e.cause.status == 400:
+                raise ExtractorError(self._parse_json(
+                    e.cause.response.read().decode(), xid)['error_description'], expected=True)
+            raise
+        self._set_dailymotion_cookie('access_token' if username else 'client_token', token)
+        return token
+
     def _call_api(self, object_type, xid, object_fields, note, filter_extra=None):
         if not self._HEADERS.get('Authorization'):
-            cookies = self._get_dailymotion_cookies()
-            token = self._get_cookie_value(cookies, 'access_token') or self._get_cookie_value(cookies, 'client_token')
-            if not token:
-                data = {
-                    'client_id': 'f1a362d288c1b98099c7',
-                    'client_secret': 'eea605b96e01c796ff369935357eca920c5da4c5',
-                }
-                username, password = self._get_login_info()
-                if username:
-                    data.update({
-                        'grant_type': 'password',
-                        'password': password,
-                        'username': username,
-                    })
-                else:
-                    data['grant_type'] = 'client_credentials'
-                try:
-                    token = self._download_json(
-                        'https://graphql.api.dailymotion.com/oauth/token',
-                        None, 'Downloading Access Token',
-                        data=urlencode_postdata(data))['access_token']
-                except ExtractorError as e:
-                    if isinstance(e.cause, compat_HTTPError) and e.cause.code == 400:
-                        raise ExtractorError(self._parse_json(
-                            e.cause.read().decode(), xid)['error_description'], expected=True)
-                    raise
-                self._set_dailymotion_cookie('access_token' if username else 'client_token', token)
-            self._HEADERS['Authorization'] = 'Bearer ' + token
+            self._HEADERS['Authorization'] = f'Bearer {self._get_token(xid)}'
 
         resp = self._download_json(
             'https://graphql.api.dailymotion.com/', xid, note, data=json.dumps({
@@ -93,7 +99,7 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
     _VALID_URL = r'''(?ix)
                     https?://
                         (?:
-                            (?:(?:www|touch|geo)\.)?dailymotion\.[a-z]{2,3}/(?:(?:(?:(?:embed|swf|\#)/)|player\.html\?)?video|swf)|
+                            (?:(?:www|touch|geo)\.)?dailymotion\.[a-z]{2,3}/(?:(?:(?:(?:embed|swf|\#)/)|player(?:/\w+)?\.html\?)?video|swf)|
                             (?:www\.)?lequipe\.fr/video
                         )
                         [/=](?P<id>[^/?_&]+)(?:.+?\bplaylist=(?P<playlist_id>x[0-9a-z]+))?
@@ -107,13 +113,17 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
             'id': 'x5kesuj',
             'ext': 'mp4',
             'title': 'Office Christmas Party Review –  Jason Bateman, Olivia Munn, T.J. Miller',
-            'description': 'Office Christmas Party Review -  Jason Bateman, Olivia Munn, T.J. Miller',
+            'description': 'Office Christmas Party Review - Jason Bateman, Olivia Munn, T.J. Miller',
             'duration': 187,
             'timestamp': 1493651285,
             'upload_date': '20170501',
             'uploader': 'Deadline',
             'uploader_id': 'x1xm8ri',
             'age_limit': 0,
+            'view_count': int,
+            'like_count': int,
+            'tags': ['hollywood', 'celeb', 'celebrity', 'movies', 'red carpet'],
+            'thumbnail': r're:https://(?:s[12]\.)dmcdn\.net/v/K456B1aXqIx58LKWQ/x1080',
         },
     }, {
         'url': 'https://geo.dailymotion.com/player.html?video=x89eyek&mute=true',
@@ -132,7 +142,7 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
             'view_count': int,
             'like_count': int,
             'tags': ['en_quete_d_esprit'],
-            'thumbnail': 'https://s2.dmcdn.net/v/Tncwi1YGKdvFbDuDY/x1080',
+            'thumbnail': r're:https://(?:s[12]\.)dmcdn\.net/v/Tncwi1YNg_RUl7ueu/x1080',
         }
     }, {
         'url': 'https://www.dailymotion.com/video/x2iuewm_steam-machine-models-pricing-listed-on-steam-store-ign-news_videogames',
@@ -200,6 +210,12 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
         'only_matching': True,
     }, {
         'url': 'https://www.dailymotion.com/video/x3z49k?playlist=xv4bw',
+        'only_matching': True,
+    }, {
+        'url': 'https://geo.dailymotion.com/player/x86gw.html?video=k46oCapRs4iikoz9DWy',
+        'only_matching': True,
+    }, {
+        'url': 'https://geo.dailymotion.com/player/xakln.html?video=x8mjju4&customConfig%5BcustomParams%5D=%2Ffr-fr%2Ftennis%2Fwimbledon-mens-singles%2Farticles-video',
         'only_matching': True,
     }]
     _GEO_BYPASS = False
@@ -383,9 +399,55 @@ class DailymotionPlaylistIE(DailymotionPlaylistBaseIE):
                 yield '//dailymotion.com/playlist/%s' % p
 
 
+class DailymotionSearchIE(DailymotionPlaylistBaseIE):
+    IE_NAME = 'dailymotion:search'
+    _VALID_URL = r'https?://(?:www\.)?dailymotion\.[a-z]{2,3}/search/(?P<id>[^/?#]+)/videos'
+    _PAGE_SIZE = 20
+    _TESTS = [{
+        'url': 'http://www.dailymotion.com/search/king of turtles/videos',
+        'info_dict': {
+            'id': 'king of turtles',
+            'title': 'king of turtles',
+        },
+        'playlist_mincount': 90,
+    }]
+    _SEARCH_QUERY = 'query SEARCH_QUERY( $query: String! $page: Int $limit: Int ) { search { videos( query: $query first: $limit page: $page ) { edges { node { xid } } } } } '
+
+    def _call_search_api(self, term, page, note):
+        if not self._HEADERS.get('Authorization'):
+            self._HEADERS['Authorization'] = f'Bearer {self._get_token(term)}'
+        resp = self._download_json(
+            'https://graphql.api.dailymotion.com/', None, note, data=json.dumps({
+                'operationName': 'SEARCH_QUERY',
+                'query': self._SEARCH_QUERY,
+                'variables': {
+                    'limit': 20,
+                    'page': page,
+                    'query': term,
+                }
+            }).encode(), headers=self._HEADERS)
+        obj = traverse_obj(resp, ('data', 'search', {dict}))
+        if not obj:
+            raise ExtractorError(
+                traverse_obj(resp, ('errors', 0, 'message', {str})) or 'Could not fetch search data')
+
+        return obj
+
+    def _fetch_page(self, term, page):
+        page += 1
+        response = self._call_search_api(term, page, f'Searching "{term}" page {page}')
+        for xid in traverse_obj(response, ('videos', 'edges', ..., 'node', 'xid')):
+            yield self.url_result(f'https://www.dailymotion.com/video/{xid}', DailymotionIE, xid)
+
+    def _real_extract(self, url):
+        term = urllib.parse.unquote_plus(self._match_id(url))
+        return self.playlist_result(
+            OnDemandPagedList(functools.partial(self._fetch_page, term), self._PAGE_SIZE), term, term)
+
+
 class DailymotionUserIE(DailymotionPlaylistBaseIE):
     IE_NAME = 'dailymotion:user'
-    _VALID_URL = r'https?://(?:www\.)?dailymotion\.[a-z]{2,3}/(?!(?:embed|swf|#|video|playlist)/)(?:(?:old/)?user/)?(?P<id>[^/]+)'
+    _VALID_URL = r'https?://(?:www\.)?dailymotion\.[a-z]{2,3}/(?!(?:embed|swf|#|video|playlist|search)/)(?:(?:old/)?user/)?(?P<id>[^/?#]+)'
     _TESTS = [{
         'url': 'https://www.dailymotion.com/user/nqtv',
         'info_dict': {

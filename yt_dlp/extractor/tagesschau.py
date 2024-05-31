@@ -12,6 +12,7 @@ from ..utils import (
 
 
 class TagesschauIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?tagesschau\.de/(?P<path>[^/]+/(?:[^/]+/)*?(?P<id>[^/#?]+?(?:-?[0-9]+)?))(?:~_?[^/#?]+?)?\.html'
 
     _TESTS = [{

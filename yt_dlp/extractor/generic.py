@@ -4,7 +4,7 @@ import types
 import urllib.parse
 import xml.etree.ElementTree
 
-from .common import InfoExtractor  # isort: split
+from .common import InfoExtractor
 from .commonprotocols import RtmpIE
 from .youtube import YoutubeIE
 from ..compat import compat_etree_fromstring
@@ -17,6 +17,7 @@ from ..utils import (
     determine_protocol,
     dict_get,
     extract_basic_auth,
+    filter_dict,
     format_field,
     int_or_none,
     is_html,
@@ -35,6 +36,7 @@ from ..utils import (
     unsmuggle_url,
     update_url_query,
     url_or_none,
+    urlhandle_detect_ext,
     urljoin,
     variadic,
     xpath_attr,
@@ -58,6 +60,8 @@ class GenericIE(InfoExtractor):
                 'ext': 'mp4',
                 'title': 'trailer',
                 'upload_date': '20100513',
+                'direct': True,
+                'timestamp': 1273772943.0,
             }
         },
         # Direct link to media delivered compressed (until Accept-Encoding is *)
@@ -101,6 +105,8 @@ class GenericIE(InfoExtractor):
                 'ext': 'webm',
                 'title': '5_Lennart_Poettering_-_Systemd',
                 'upload_date': '20141120',
+                'direct': True,
+                'timestamp': 1416498816.0,
             },
             'expected_warnings': [
                 'URL could be a direct video link, returning it as such.'
@@ -133,6 +139,7 @@ class GenericIE(InfoExtractor):
                     'upload_date': '20201204',
                 },
             }],
+            'skip': 'Dead link',
         },
         # RSS feed with item with description and thumbnails
         {
@@ -145,12 +152,12 @@ class GenericIE(InfoExtractor):
             'playlist': [{
                 'info_dict': {
                     'ext': 'm4a',
-                    'id': 'c1c879525ce2cb640b344507e682c36d',
+                    'id': '818a5d38-01cd-152f-2231-ee479677fa82',
                     'title': 're:Hydrogen!',
                     'description': 're:.*In this episode we are going.*',
                     'timestamp': 1567977776,
                     'upload_date': '20190908',
-                    'duration': 459,
+                    'duration': 423,
                     'thumbnail': r're:^https?://.*\.jpg$',
                     'episode_number': 1,
                     'season_number': 1,
@@ -267,6 +274,7 @@ class GenericIE(InfoExtractor):
             'params': {
                 'skip_download': True,
             },
+            'skip': '404 Not Found',
         },
         # MPD from http://dash-mse-test.appspot.com/media.html
         {
@@ -278,6 +286,7 @@ class GenericIE(InfoExtractor):
                 'title': 'car-20120827-manifest',
                 'formats': 'mincount:9',
                 'upload_date': '20130904',
+                'timestamp': 1378272859.0,
             },
         },
         # m3u8 served with Content-Type: audio/x-mpegURL; charset=utf-8
@@ -318,7 +327,7 @@ class GenericIE(InfoExtractor):
                 'id': 'cmQHVoWB5FY',
                 'ext': 'mp4',
                 'upload_date': '20130224',
-                'uploader_id': 'TheVerge',
+                'uploader_id': '@TheVerge',
                 'description': r're:^Chris Ziegler takes a look at the\.*',
                 'uploader': 'The Verge',
                 'title': 'First Firefox OS phones side-by-side',
@@ -364,46 +373,6 @@ class GenericIE(InfoExtractor):
                 'uploader': 'M_Pallante',
             },
             'skip': 'There is a limit of 200 free downloads / month for the test song',
-        },
-        # ooyala video
-        {
-            'url': 'http://www.rollingstone.com/music/videos/norwegian-dj-cashmere-cat-goes-spartan-on-with-me-premiere-20131219',
-            'md5': '166dd577b433b4d4ebfee10b0824d8ff',
-            'info_dict': {
-                'id': 'BwY2RxaTrTkslxOfcan0UCf0YqyvWysJ',
-                'ext': 'mp4',
-                'title': '2cc213299525360.mov',  # that's what we get
-                'duration': 238.231,
-            },
-            'add_ie': ['Ooyala'],
-        },
-        {
-            # ooyala video embedded with http://player.ooyala.com/iframe.js
-            'url': 'http://www.macrumors.com/2015/07/24/steve-jobs-the-man-in-the-machine-first-trailer/',
-            'info_dict': {
-                'id': 'p0MGJndjoG5SOKqO_hZJuZFPB-Tr5VgB',
-                'ext': 'mp4',
-                'title': '"Steve Jobs: Man in the Machine" trailer',
-                'description': 'The first trailer for the Alex Gibney documentary "Steve Jobs: Man in the Machine."',
-                'duration': 135.427,
-            },
-            'params': {
-                'skip_download': True,
-            },
-            'skip': 'movie expired',
-        },
-        # ooyala video embedded with http://player.ooyala.com/static/v4/production/latest/core.min.js
-        {
-            'url': 'http://wnep.com/2017/07/22/steampunk-fest-comes-to-honesdale/',
-            'info_dict': {
-                'id': 'lwYWYxYzE6V5uJMjNGyKtwwiw9ZJD7t2',
-                'ext': 'mp4',
-                'title': 'Steampunk Fest Comes to Honesdale',
-                'duration': 43.276,
-            },
-            'params': {
-                'skip_download': True,
-            }
         },
         # embed.ly video
         {
@@ -497,7 +466,8 @@ class GenericIE(InfoExtractor):
                 'title': 'Ужастики, русский трейлер (2015)',
                 'thumbnail': r're:^https?://.*\.jpg$',
                 'duration': 153,
-            }
+            },
+            'skip': 'Site dead',
         },
         # XHamster embed
         {
@@ -769,14 +739,16 @@ class GenericIE(InfoExtractor):
             'playlist_mincount': 1,
             'add_ie': ['Youtube'],
         },
-        # Cinchcast embed
+        # Libsyn embed
         {
             'url': 'http://undergroundwellness.com/podcasts/306-5-steps-to-permanent-gut-healing/',
             'info_dict': {
-                'id': '7141703',
+                'id': '3793998',
                 'ext': 'mp3',
                 'upload_date': '20141126',
-                'title': 'Jack Tips: 5 Steps to Permanent Gut Healing',
+                'title': 'Underground Wellness Radio - Jack Tips: 5 Steps to Permanent Gut Healing',
+                'thumbnail': 'https://assets.libsyn.com/secure/item/3793998/?height=90&width=90',
+                'duration': 3989.0,
             }
         },
         # Cinerama player
@@ -1559,16 +1531,6 @@ class GenericIE(InfoExtractor):
             },
         },
         {
-            # vzaar embed
-            'url': 'http://help.vzaar.com/article/165-embedding-video',
-            'md5': '7e3919d9d2620b89e3e00bec7fe8c9d4',
-            'info_dict': {
-                'id': '8707641',
-                'ext': 'mp4',
-                'title': 'Building A Business Online: Principal Chairs Q & A',
-            },
-        },
-        {
             # multiple HTML5 videos on one page
             'url': 'https://www.paragon-software.com/home/rk-free/keyscenarios.html',
             'info_dict': {
@@ -2143,22 +2105,6 @@ class GenericIE(InfoExtractor):
             },
         },
         {
-            'note': 'JW Player embed with unicode-escape sequences in URL',
-            'url': 'https://www.medici.tv/en/concerts/lahav-shani-mozart-mahler-israel-philharmonic-abu-dhabi-classics',
-            'info_dict': {
-                'id': 'm',
-                'ext': 'mp4',
-                'title': 'Lahav Shani conducts the Israel Philharmonic\'s first-ever concert in Abu Dhabi',
-                'description': 'Mahler\'s ',
-                'uploader': 'www.medici.tv',
-                'age_limit': 0,
-                'thumbnail': r're:^https?://.+\.jpg',
-            },
-            'params': {
-                'skip_download': True,
-            },
-        },
-        {
             'url': 'https://shooshtime.com/videos/284002/just-out-of-the-shower-joi/',
             'md5': 'e2f0a4c329f7986280b7328e24036d60',
             'info_dict': {
@@ -2370,7 +2316,7 @@ class GenericIE(InfoExtractor):
             'id': flashvars['video_id'],
             'display_id': display_id,
             'title': title,
-            'thumbnail': thumbnail,
+            'thumbnail': urljoin(url, thumbnail),
             'formats': formats,
         }
 
@@ -2427,12 +2373,11 @@ class GenericIE(InfoExtractor):
         # to accept raw bytes and being able to download only a chunk.
         # It may probably better to solve this by checking Content-Type for application/octet-stream
         # after a HEAD request, but not sure if we can rely on this.
-        full_response = self._request_webpage(url, video_id, headers={
+        full_response = self._request_webpage(url, video_id, headers=filter_dict({
             'Accept-Encoding': 'identity',
-            **smuggled_data.get('http_headers', {})
-        })
-        new_url = full_response.geturl()
-        url = urllib.parse.urlparse(url)._replace(scheme=urllib.parse.urlparse(new_url).scheme).geturl()
+            'Referer': smuggled_data.get('referer'),
+        }))
+        new_url = full_response.url
         if new_url != extract_basic_auth(url)[0]:
             self.report_following_redirect(new_url)
             if force_videoid:
@@ -2450,9 +2395,9 @@ class GenericIE(InfoExtractor):
         m = re.match(r'^(?P<type>audio|video|application(?=/(?:ogg$|(?:vnd\.apple\.|x-)?mpegurl)))/(?P<format_id>[^;\s]+)', content_type)
         if m:
             self.report_detected('direct video link')
-            headers = smuggled_data.get('http_headers', {})
+            headers = filter_dict({'Referer': smuggled_data.get('referer')})
             format_id = str(m.group('format_id'))
-            ext = determine_ext(url)
+            ext = determine_ext(url, default_ext=None) or urlhandle_detect_ext(full_response)
             subtitles = {}
             if format_id.endswith('mpegurl') or ext == 'm3u8':
                 formats, subtitles = self._extract_m3u8_formats_and_subtitles(url, video_id, 'mp4', headers=headers)
@@ -2464,6 +2409,7 @@ class GenericIE(InfoExtractor):
                 formats = [{
                     'format_id': format_id,
                     'url': url,
+                    'ext': ext,
                     'vcodec': 'none' if m.group('type') == 'audio' else None
                 }]
                 info_dict['direct'] = True
@@ -2529,12 +2475,12 @@ class GenericIE(InfoExtractor):
                 return self.playlist_result(
                     self._parse_xspf(
                         doc, video_id, xspf_url=url,
-                        xspf_base_url=full_response.geturl()),
+                        xspf_base_url=full_response.url),
                     video_id)
             elif re.match(r'(?i)^(?:{[^}]+})?MPD$', doc.tag):
                 info_dict['formats'], info_dict['subtitles'] = self._parse_mpd_formats_and_subtitles(
                     doc,
-                    mpd_base_url=full_response.geturl().rpartition('/')[0],
+                    mpd_base_url=full_response.url.rpartition('/')[0],
                     mpd_url=url)
                 self._extra_manifest_info(info_dict, url)
                 self.report_detected('DASH manifest')
@@ -2562,7 +2508,7 @@ class GenericIE(InfoExtractor):
         self._downloader.write_debug('Looking for embeds')
         embeds = list(self._extract_embeds(original_url, webpage, urlh=full_response, info_dict=info_dict))
         if len(embeds) == 1:
-            return {**info_dict, **embeds[0]}
+            return merge_dicts(embeds[0], info_dict)
         elif embeds:
             return self.playlist_result(embeds, **info_dict)
         raise UnsupportedError(url)
@@ -2572,7 +2518,7 @@ class GenericIE(InfoExtractor):
         info_dict = types.MappingProxyType(info_dict)  # Prevents accidental mutation
         video_id = traverse_obj(info_dict, 'display_id', 'id') or self._generic_id(url)
         url, smuggled_data = unsmuggle_url(url, {})
-        actual_url = urlh.geturl() if urlh else url
+        actual_url = urlh.url if urlh else url
 
         # Sometimes embedded video player is hidden behind percent encoding
         # (e.g. https://github.com/ytdl-org/youtube-dl/issues/2448)
@@ -2701,7 +2647,7 @@ class GenericIE(InfoExtractor):
                 'url': smuggle_url(json_ld['url'], {
                     'force_videoid': video_id,
                     'to_generic': True,
-                    'http_headers': {'Referer': url},
+                    'referer': url,
                 }),
             }, json_ld)]
 

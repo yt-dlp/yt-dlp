@@ -2,8 +2,8 @@ from .common import InfoExtractor
 from ..compat import compat_str
 from ..utils import (
     ExtractorError,
-    int_or_none,
     float_or_none,
+    int_or_none,
     smuggle_url,
     str_or_none,
     try_get,
@@ -53,7 +53,7 @@ class NineNowIE(InfoExtractor):
             'upload_date': '20210421',
         },
         'expected_warnings': ['Ignoring subtitle tracks'],
-        'params':{
+        'params': {
             'skip_download': True,
         }
     }]

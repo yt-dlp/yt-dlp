@@ -41,7 +41,7 @@ class EttuTvIE(InfoExtractor):
                 'device': 'desktop',
             })
 
-        stream_response = self._download_json(player_settings['streamAccess'], video_id, data={})
+        stream_response = self._download_json(player_settings['streamAccess'], video_id, data=b'')
 
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
             stream_response['data']['stream'], video_id, 'mp4')

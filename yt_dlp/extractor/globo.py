@@ -8,8 +8,8 @@ from .common import InfoExtractor
 from ..compat import (
     compat_str,
 )
+from ..networking import HEADRequest
 from ..utils import (
-    HEADRequest,
     ExtractorError,
     float_or_none,
     orderedSet,

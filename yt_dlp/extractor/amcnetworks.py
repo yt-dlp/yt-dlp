@@ -26,6 +26,7 @@ class AMCNetworksIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
             # m3u8 download
             'skip_download': True,
         },
+        'skip': '404 Not Found',
     }, {
         'url': 'http://www.bbcamerica.com/shows/the-hunt/full-episodes/season-1/episode-01-the-hardest-challenge',
         'only_matching': True,

@@ -8,7 +8,6 @@ from .common import InfoExtractor
 from ..compat import (
     compat_parse_qs,
     compat_str,
-    compat_urllib_parse_urlencode,
     compat_urllib_parse_urlparse,
 )
 from ..utils import (
@@ -71,7 +70,7 @@ class TwitchBaseIE(InfoExtractor):
             form = self._hidden_inputs(page)
             form.update(data)
 
-            page_url = urlh.geturl()
+            page_url = urlh.url
             post_url = self._search_regex(
                 r'<form[^>]+action=(["\'])(?P<url>.+?)\1', page,
                 'post url', default=self._LOGIN_POST_URL, group='url')
@@ -190,6 +189,27 @@ class TwitchBaseIE(InfoExtractor):
         }, {
             'url': thumbnail,
         }] if thumbnail else None
+
+    def _extract_twitch_m3u8_formats(self, path, video_id, token, signature):
+        formats = self._extract_m3u8_formats(
+            f'{self._USHER_BASE}/{path}/{video_id}.m3u8', video_id, 'mp4', query={
+                'allow_source': 'true',
+                'allow_audio_only': 'true',
+                'allow_spectre': 'true',
+                'p': random.randint(1000000, 10000000),
+                'platform': 'web',
+                'player': 'twitchweb',
+                'supported_codecs': 'av1,h265,h264',
+                'playlist_include_framerate': 'true',
+                'sig': signature,
+                'token': token,
+            })
+        for fmt in formats:
+            if fmt.get('vcodec') and fmt['vcodec'].startswith('av01'):
+                # mpegts does not yet have proper support for av1
+                fmt['downloader_options'] = {'ffmpeg_args_out': ['-f', 'mp4']}
+
+        return formats
 
 
 class TwitchVodIE(TwitchBaseIE):
@@ -532,20 +552,8 @@ class TwitchVodIE(TwitchBaseIE):
         info = self._extract_info_gql(video, vod_id)
         access_token = self._download_access_token(vod_id, 'video', 'id')
 
-        formats = self._extract_m3u8_formats(
-            '%s/vod/%s.m3u8?%s' % (
-                self._USHER_BASE, vod_id,
-                compat_urllib_parse_urlencode({
-                    'allow_source': 'true',
-                    'allow_audio_only': 'true',
-                    'allow_spectre': 'true',
-                    'player': 'twitchweb',
-                    'playlist_include_framerate': 'true',
-                    'nauth': access_token['value'],
-                    'nauthsig': access_token['signature'],
-                })),
-            vod_id, 'mp4', entry_protocol='m3u8_native')
-
+        formats = self._extract_twitch_m3u8_formats(
+            'vod', vod_id, access_token['value'], access_token['signature'])
         formats.extend(self._extract_storyboard(vod_id, video.get('storyboard'), info.get('duration')))
 
         self._prefer_source(formats)
@@ -1026,23 +1034,10 @@ class TwitchStreamIE(TwitchBaseIE):
 
         access_token = self._download_access_token(
             channel_name, 'stream', 'channelName')
-        token = access_token['value']
 
         stream_id = stream.get('id') or channel_name
-        query = {
-            'allow_source': 'true',
-            'allow_audio_only': 'true',
-            'allow_spectre': 'true',
-            'p': random.randint(1000000, 10000000),
-            'player': 'twitchweb',
-            'playlist_include_framerate': 'true',
-            'segment_preference': '4',
-            'sig': access_token['signature'].encode('utf-8'),
-            'token': token.encode('utf-8'),
-        }
-        formats = self._extract_m3u8_formats(
-            '%s/api/channel/hls/%s.m3u8' % (self._USHER_BASE, channel_name),
-            stream_id, 'mp4', query=query)
+        formats = self._extract_twitch_m3u8_formats(
+            'api/channel/hls', channel_name, access_token['value'], access_token['signature'])
         self._prefer_source(formats)
 
         view_count = stream.get('viewers')

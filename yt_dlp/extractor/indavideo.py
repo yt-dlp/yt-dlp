@@ -1,9 +1,9 @@
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     int_or_none,
     parse_age_limit,
     parse_iso8601,
+    time_seconds,
     update_url_query,
 )
 
@@ -11,15 +11,14 @@ from ..utils import (
 class IndavideoEmbedIE(InfoExtractor):
     _VALID_URL = r'https?://(?:(?:embed\.)?indavideo\.hu/player/video/|assets\.indavideo\.hu/swf/player\.swf\?.*\b(?:v(?:ID|id))=)(?P<id>[\da-f]+)'
     # Some example URLs covered by generic extractor:
-    #   http://indavideo.hu/video/Vicces_cica_1
-    #   http://index.indavideo.hu/video/2015_0728_beregszasz
-    #   http://auto.indavideo.hu/video/Sajat_utanfutoban_a_kis_tacsko
-    #   http://erotika.indavideo.hu/video/Amator_tini_punci
-    #   http://film.indavideo.hu/video/f_hrom_nagymamm_volt
-    #   http://palyazat.indavideo.hu/video/Embertelen_dal_Dodgem_egyuttes
-    _EMBED_REGEX = [r'<iframe[^>]+\bsrc=["\'](?P<url>(?:https?:)?//embed\.indavideo\.hu/player/video/[\da-f]+)']
+    #   https://indavideo.hu/video/Vicces_cica_1
+    #   https://index.indavideo.hu/video/Hod_Nemetorszagban
+    #   https://auto.indavideo.hu/video/Sajat_utanfutoban_a_kis_tacsko
+    #   https://film.indavideo.hu/video/f_farkaslesen
+    #   https://palyazat.indavideo.hu/video/Embertelen_dal_Dodgem_egyuttes
+    _EMBED_REGEX = [r'<iframe[^>]+\bsrc=["\'](?P<url>(?:https?:)//embed\.indavideo\.hu/player/video/[\da-f]+)']
     _TESTS = [{
-        'url': 'http://indavideo.hu/player/video/1bdc3c6d80/',
+        'url': 'https://indavideo.hu/player/video/1bdc3c6d80/',
         'md5': 'c8a507a1c7410685f83a06eaeeaafeab',
         'info_dict': {
             'id': '1837039',
@@ -36,21 +35,33 @@ class IndavideoEmbedIE(InfoExtractor):
             'tags': ['tánc', 'cica', 'cuki', 'cukiajanlo', 'newsroom'],
         },
     }, {
-        'url': 'http://embed.indavideo.hu/player/video/1bdc3c6d80?autostart=1&hide=1',
+        'url': 'https://embed.indavideo.hu/player/video/1bdc3c6d80?autostart=1&hide=1',
         'only_matching': True,
-    }, {
-        'url': 'http://assets.indavideo.hu/swf/player.swf?v=fe25e500&vID=1bdc3c6d80&autostart=1&hide=1&i=1',
-        'only_matching': True,
+    }]
+    _WEBPAGE_TESTS = [{
+        'url': 'https://indavideo.hu/video/Vicces_cica_1',
+        'info_dict': {
+            'id': '1335611',
+            'ext': 'mp4',
+            'title': 'Vicces cica',
+            'description': 'Játszik a tablettel. :D',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'uploader': 'Jet_Pack',
+            'uploader_id': '491217',
+            'timestamp': 1390821212,
+            'upload_date': '20140127',
+            'duration': 7,
+            'age_limit': 0,
+            'tags': ['cica', 'Jet_Pack'],
+        },
     }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
         video = self._download_json(
-            'https://amfphp.indavideo.hu/SYm0json.php/player.playerHandler.getVideoData/%s' % video_id,
-            video_id)['data']
-
-        title = video['title']
+            f'https://amfphp.indavideo.hu/SYm0json.php/player.playerHandler.getVideoData/{video_id}/',
+            video_id, query={'_': time_seconds()})['data']
 
         video_urls = []
 
@@ -60,33 +71,21 @@ class IndavideoEmbedIE(InfoExtractor):
         elif isinstance(video_files, dict):
             video_urls.extend(video_files.values())
 
-        video_file = video.get('video_file')
-        if video:
-            video_urls.append(video_file)
         video_urls = list(set(video_urls))
 
-        video_prefix = video_urls[0].rsplit('/', 1)[0]
-
-        for flv_file in video.get('flv_files', []):
-            flv_url = '%s/%s' % (video_prefix, flv_file)
-            if flv_url not in video_urls:
-                video_urls.append(flv_url)
-
-        filesh = video.get('filesh')
+        filesh = video.get('filesh') or {}
 
         formats = []
         for video_url in video_urls:
             height = int_or_none(self._search_regex(
                 r'\.(\d{3,4})\.mp4(?:\?|$)', video_url, 'height', default=None))
-            if filesh:
-                if not height:
-                    continue
-                token = filesh.get(compat_str(height))
-                if token is None:
-                    continue
-                video_url = update_url_query(video_url, {'token': token})
+            if not height and len(filesh) == 1:
+                height = int_or_none(list(filesh.keys())[0])
+            token = filesh.get(str(height))
+            if token is None:
+                continue
             formats.append({
-                'url': video_url,
+                'url': update_url_query(video_url, {'token': token}),
                 'height': height,
             })
 
@@ -103,7 +102,7 @@ class IndavideoEmbedIE(InfoExtractor):
 
         return {
             'id': video.get('id') or video_id,
-            'title': title,
+            'title': video.get('title'),
             'description': video.get('description'),
             'thumbnails': thumbnails,
             'uploader': video.get('user_name'),

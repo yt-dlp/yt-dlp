@@ -3,7 +3,7 @@ from ..utils import (
     ExtractorError,
     int_or_none,
     traverse_obj,
-    urlencode_postdata
+    urlencode_postdata,
 )
 
 
@@ -274,7 +274,7 @@ class TumblrIE(InfoExtractor):
         url = f'http://{blog}.tumblr.com/post/{video_id}/'
         webpage, urlh = self._download_webpage_handle(url, video_id)
 
-        redirect_url = urlh.geturl()
+        redirect_url = urlh.url
 
         api_only = bool(self._search_regex(
             r'(tumblr.com|^)/(safe-mode|login_required|blog/view)',

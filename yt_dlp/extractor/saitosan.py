@@ -3,6 +3,7 @@ from ..utils import ExtractorError, try_get
 
 
 class SaitosanIE(InfoExtractor):
+    _WORKING = False
     IE_NAME = 'Saitosan'
     _VALID_URL = r'https?://(?:www\.)?saitosan\.net/bview.html\?id=(?P<id>[0-9]+)'
     _TESTS = [{

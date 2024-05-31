@@ -5,8 +5,9 @@ import re
 from .common import InfoExtractor
 from ..dependencies import websockets
 from ..utils import (
-    clean_html,
     ExtractorError,
+    UserNotLive,
+    clean_html,
     float_or_none,
     get_element_by_class,
     get_element_by_id,
@@ -22,7 +23,7 @@ from ..utils import (
 
 
 class TwitCastingIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:[^/]+\.)?twitcasting\.tv/(?P<uploader_id>[^/]+)/(?:movie|twplayer)/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:[^/?#]+\.)?twitcasting\.tv/(?P<uploader_id>[^/?#]+)/(?:movie|twplayer)/(?P<id>\d+)'
     _M3U8_HEADERS = {
         'Origin': 'https://twitcasting.tv',
         'Referer': 'https://twitcasting.tv/',
@@ -107,9 +108,9 @@ class TwitCastingIE(InfoExtractor):
                 url, video_id, data=request_data,
                 headers={'Origin': 'https://twitcasting.tv'},
                 note='Trying video password')
-        if urlh.geturl() != url and request_data:
+        if urlh.url != url and request_data:
             webpage = self._download_webpage(
-                urlh.geturl(), video_id, data=request_data,
+                urlh.url, video_id, data=request_data,
                 headers={'Origin': 'https://twitcasting.tv'},
                 note='Retrying authentication')
         # has to check here as the first request can contain password input form even if the password is correct
@@ -141,7 +142,7 @@ class TwitCastingIE(InfoExtractor):
             'https://twitcasting.tv/streamserver.php?target=%s&mode=client' % uploader_id, video_id,
             'Downloading live info', fatal=False)
 
-        is_live = 'data-status="online"' in webpage
+        is_live = any(f'data-{x}' in webpage for x in ['is-onlive="true"', 'live-type="live"', 'status="online"'])
         if not traverse_obj(stream_server_data, 'llfmp4') and is_live:
             self.raise_login_required(method='cookies')
 
@@ -231,10 +232,13 @@ class TwitCastingIE(InfoExtractor):
 
 
 class TwitCastingLiveIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:[^/]+\.)?twitcasting\.tv/(?P<id>[^/]+)/?(?:[#?]|$)'
+    _VALID_URL = r'https?://(?:[^/?#]+\.)?twitcasting\.tv/(?P<id>[^/?#]+)/?(?:[#?]|$)'
     _TESTS = [{
         'url': 'https://twitcasting.tv/ivetesangalo',
         'only_matching': True,
+    }, {
+        'url': 'https://twitcasting.tv/c:unusedlive',
+        'expected_exception': 'UserNotLive',
     }]
 
     def _real_extract(self, url):
@@ -243,30 +247,38 @@ class TwitCastingLiveIE(InfoExtractor):
             'Downloading live video of user {0}. '
             'Pass "https://twitcasting.tv/{0}/show" to download the history'.format(uploader_id))
 
-        webpage = self._download_webpage(url, uploader_id)
+        is_live = traverse_obj(self._download_json(
+            f'https://frontendapi.twitcasting.tv/watch/user/{uploader_id}',
+            uploader_id, 'Checking live status', data=b'', fatal=False), ('is_live', {bool}))
+        if is_live is False:  # only raise here if API response was as expected
+            raise UserNotLive(video_id=uploader_id)
+
+        # Use /show/ page so that password-protected and members-only livestreams can be found
+        webpage = self._download_webpage(
+            f'https://twitcasting.tv/{uploader_id}/show/', uploader_id, 'Downloading live history')
+        is_live = is_live or self._search_regex(
+            r'(?s)(<span\s*class="tw-movie-thumbnail2-badge"\s*data-status="live">\s*LIVE)',
+            webpage, 'is live?', default=False)
+        # Current live is always the first match
         current_live = self._search_regex(
-            (r'data-type="movie" data-id="(\d+)">',
-             r'tw-sound-flag-open-link" data-id="(\d+)" style=',),
-            webpage, 'current live ID', default=None)
-        if not current_live:
-            # fetch unfiltered /show to find running livestreams; we can't get ID of the password-protected livestream above
-            webpage = self._download_webpage(
-                f'https://twitcasting.tv/{uploader_id}/show/', uploader_id,
-                note='Downloading live history')
-            is_live = self._search_regex(r'(?s)(<span\s*class="tw-movie-thumbnail-badge"\s*data-status="live">\s*LIVE)', webpage, 'is live?', default=None)
-            if is_live:
-                # get the first live; running live is always at the first
-                current_live = self._search_regex(
-                    r'(?s)<a\s+class="tw-movie-thumbnail"\s*href="/[^/]+/movie/(?P<video_id>\d+)"\s*>.+?</a>',
-                    webpage, 'current live ID 2', default=None, group='video_id')
-        if not current_live:
-            raise ExtractorError('The user is not currently live')
-        return self.url_result('https://twitcasting.tv/%s/movie/%s' % (uploader_id, current_live))
+            r'(?s)<a\s+class="tw-movie-thumbnail2"\s+href="/[^/"]+/movie/(?P<video_id>\d+)"',
+            webpage, 'current live ID', default=None, group='video_id')
+        if not is_live or not current_live:
+            raise UserNotLive(video_id=uploader_id)
+
+        return self.url_result(f'https://twitcasting.tv/{uploader_id}/movie/{current_live}', TwitCastingIE)
 
 
 class TwitCastingUserIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:[^/]+\.)?twitcasting\.tv/(?P<id>[^/]+)/show/?(?:[#?]|$)'
+    _VALID_URL = r'https?://(?:[^/?#]+\.)?twitcasting\.tv/(?P<id>[^/?#]+)/(:?show|archive)/?(?:[#?]|$)'
     _TESTS = [{
+        'url': 'https://twitcasting.tv/natsuiromatsuri/archive/',
+        'info_dict': {
+            'id': 'natsuiromatsuri',
+            'title': 'natsuiromatsuri - Live History',
+        },
+        'playlist_mincount': 235,
+    }, {
         'url': 'https://twitcasting.tv/noriyukicas/show',
         'only_matching': True,
     }]
@@ -277,8 +289,7 @@ class TwitCastingUserIE(InfoExtractor):
             webpage = self._download_webpage(
                 next_url, uploader_id, query={'filter': 'watchable'}, note='Downloading page %d' % page_num)
             matches = re.finditer(
-                r'''(?isx)<a\s+class="tw-movie-thumbnail"\s*href="(?P<url>/[^/]+/movie/\d+)"\s*>.+?</a>''',
-                webpage)
+                r'(?s)<a\s+class="tw-movie-thumbnail2"\s+href="(?P<url>/[^/"]+/movie/\d+)"', webpage)
             for mobj in matches:
                 yield self.url_result(urljoin(base_url, mobj.group('url')))
 

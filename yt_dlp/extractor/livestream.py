@@ -80,7 +80,8 @@ class LivestreamIE(InfoExtractor):
     }]
     _API_URL_TEMPLATE = 'http://livestream.com/api/accounts/%s/events/%s'
 
-    def _parse_smil_formats(self, smil, smil_url, video_id, namespace=None, f4m_params=None, transform_rtmp_url=None):
+    def _parse_smil_formats_and_subtitles(
+            self, smil, smil_url, video_id, namespace=None, f4m_params=None, transform_rtmp_url=None):
         base_ele = find_xpath_attr(
             smil, self._xpath_ns('.//meta', namespace), 'name', 'httpBase')
         base = base_ele.get('content') if base_ele is not None else 'http://livestreamvod-f.akamaihd.net/'
@@ -104,7 +105,7 @@ class LivestreamIE(InfoExtractor):
                 'tbr': tbr,
                 'preference': -1000,  # Strictly inferior than all other formats?
             })
-        return formats
+        return formats, {}
 
     def _extract_video_info(self, video_data):
         video_id = compat_str(video_data['id'])

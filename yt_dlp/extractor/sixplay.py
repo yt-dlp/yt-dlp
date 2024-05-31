@@ -6,8 +6,8 @@ from ..utils import (
     determine_ext,
     int_or_none,
     parse_qs,
-    try_get,
     qualities,
+    try_get,
 )
 
 
@@ -79,7 +79,7 @@ class SixPlayIE(InfoExtractor):
                             headers=self.geo_verification_headers())
                         if not urlh:
                             continue
-                        asset_url = urlh.geturl()
+                        asset_url = urlh.url
                     asset_url = asset_url.replace('_drmnp.ism/', '_unpnp.ism/')
                     for i in range(3, 0, -1):
                         asset_url = asset_url = asset_url.replace('_sd1/', '_sd%d/' % i)

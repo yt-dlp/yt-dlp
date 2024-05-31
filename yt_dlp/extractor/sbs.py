@@ -1,6 +1,6 @@
 from .common import InfoExtractor
+from ..networking import HEADRequest
 from ..utils import (
-    HEADRequest,
     float_or_none,
     int_or_none,
     parse_duration,
@@ -44,8 +44,6 @@ class SBSIE(InfoExtractor):
             'timestamp': 1408613220,
             'upload_date': '20140821',
             'uploader': 'SBSC',
-            'tags': None,
-            'categories': None,
         },
         'expected_warnings': ['Unable to download JSON metadata'],
     }, {

@@ -1,8 +1,9 @@
 import re
-from uuid import uuid4
+import uuid
 
 from .common import InfoExtractor
-from ..compat import compat_HTTPError, compat_str
+from ..compat import compat_str
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     int_or_none,
@@ -36,7 +37,7 @@ class ZattooPlatformBaseIE(InfoExtractor):
                     'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
                 })
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 400:
+            if isinstance(e.cause, HTTPError) and e.cause.status == 400:
                 raise ExtractorError(
                     'Unable to login: incorrect username and/or password',
                     expected=True)
@@ -52,7 +53,7 @@ class ZattooPlatformBaseIE(InfoExtractor):
         self._request_webpage(
             '%s/zapi/v3/session/hello' % self._host_url(), None,
             'Opening session', data=urlencode_postdata({
-                'uuid': compat_str(uuid4()),
+                'uuid': compat_str(uuid.uuid4()),
                 'lang': 'en',
                 'app_version': '1.8.2',
                 'format': 'json',
