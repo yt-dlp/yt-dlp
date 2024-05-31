@@ -451,6 +451,7 @@ class MTVVideoIE(MTVServicesInfoExtractor):
 
 
 class MTVDEIE(MTVServicesInfoExtractor):
+    _WORKING = False
     IE_NAME = 'mtv.de'
     _VALID_URL = r'https?://(?:www\.)?mtv\.de/(?:musik/videoclips|folgen|news)/(?P<id>[0-9a-z]+)'
     _TESTS = [{

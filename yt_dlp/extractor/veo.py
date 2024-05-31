@@ -1,5 +1,4 @@
 from .common import InfoExtractor
-
 from ..utils import (
     int_or_none,
     mimetype2ext,

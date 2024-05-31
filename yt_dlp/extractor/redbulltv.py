@@ -9,9 +9,9 @@ from ..utils import (
     get_element_text_and_html_by_tag,
     parse_duration,
     parse_iso8601,
-    traverse_obj,
     url_or_none,
 )
+from ..utils.traversal import traverse_obj
 
 
 class RedBullBaseIE(InfoExtractor):

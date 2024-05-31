@@ -13,6 +13,7 @@ from ..utils import (
 
 
 class RTSIE(SRGSSRIE):  # XXX: Do not subclass from concrete IE
+    _WORKING = False
     IE_DESC = 'RTS.ch'
     _VALID_URL = r'rts:(?P<rts_id>\d+)|https?://(?:.+?\.)?rts\.ch/(?:[^/]+/){2,}(?P<id>[0-9]+)-(?P<display_id>.+?)\.html'
 

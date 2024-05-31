@@ -6,16 +6,16 @@ from ..compat import (
     compat_urlparse,
 )
 from ..utils import (
+    ExtractorError,
     determine_ext,
     dict_get,
-    ExtractorError,
     js_to_json,
     strip_jsonp,
     try_get,
     unified_strdate,
     update_url_query,
-    urlhandle_detect_ext,
     url_or_none,
+    urlhandle_detect_ext,
 )
 
 
@@ -324,7 +324,6 @@ class WDRElefantIE(InfoExtractor):
             'title': 'Wippe',
             'id': 'mdb-1198320',
             'ext': 'mp4',
-            'age_limit': None,
             'upload_date': '20071003'
         },
     }

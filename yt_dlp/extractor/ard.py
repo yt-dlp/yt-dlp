@@ -1,5 +1,5 @@
+import functools
 import re
-from functools import partial
 
 from .common import InfoExtractor
 from ..utils import (
@@ -349,7 +349,7 @@ class ARDBetaMediathekIE(InfoExtractor):
             r'(?P<title>.*)',
         ]
 
-        return traverse_obj(patterns, (..., {partial(re.match, string=title)}, {
+        return traverse_obj(patterns, (..., {functools.partial(re.match, string=title)}, {
             'season_number': ('season_number', {int_or_none}),
             'episode_number': ('episode_number', {int_or_none}),
             'episode': ((

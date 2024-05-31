@@ -738,9 +738,10 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
 
         def add(meta_list, info_list=None):
             value = next((
-                str(info[key]) for key in [f'{meta_prefix}_'] + list(variadic(info_list or meta_list))
+                info[key] for key in [f'{meta_prefix}_'] + list(variadic(info_list or meta_list))
                 if info.get(key) is not None), None)
             if value not in ('', None):
+                value = ', '.join(map(str, variadic(value)))
                 value = value.replace('\0', '')  # nul character cannot be passed in command line
                 metadata['common'].update({meta_f: value for meta_f in variadic(meta_list)})
 
@@ -754,10 +755,11 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
         add(('description', 'synopsis'), 'description')
         add(('purl', 'comment'), 'webpage_url')
         add('track', 'track_number')
-        add('artist', ('artist', 'creator', 'uploader', 'uploader_id'))
-        add('genre')
+        add('artist', ('artist', 'artists', 'creator', 'creators', 'uploader', 'uploader_id'))
+        add('composer', ('composer', 'composers'))
+        add('genre', ('genre', 'genres'))
         add('album')
-        add('album_artist')
+        add('album_artist', ('album_artist', 'album_artists'))
         add('disc', 'disc_number')
         add('show', 'series')
         add('season_number')

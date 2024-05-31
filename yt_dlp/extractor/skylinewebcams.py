@@ -2,6 +2,7 @@ from .common import InfoExtractor
 
 
 class SkylineWebcamsIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?skylinewebcams\.com/[^/]+/webcam/(?:[^/]+/)+(?P<id>[^/]+)\.html'
     _TEST = {
         'url': 'https://www.skylinewebcams.com/it/webcam/italia/lazio/roma/scalinata-piazza-di-spagna-barcaccia.html',

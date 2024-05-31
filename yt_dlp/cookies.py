@@ -1,6 +1,7 @@
 import base64
 import collections
 import contextlib
+import datetime as dt
 import glob
 import http.cookiejar
 import http.cookies
@@ -15,7 +16,6 @@ import sys
 import tempfile
 import time
 import urllib.request
-from datetime import datetime, timedelta, timezone
 from enum import Enum, auto
 from hashlib import pbkdf2_hmac
 
@@ -46,7 +46,7 @@ from .utils import (
 from .utils._utils import _YDLLogger
 from .utils.networking import normalize_url
 
-CHROMIUM_BASED_BROWSERS = {'brave', 'chrome', 'chromium', 'edge', 'opera', 'vivaldi'}
+CHROMIUM_BASED_BROWSERS = {'brave', 'chrome', 'chromium', 'edge', 'opera', 'vivaldi', 'whale'}
 SUPPORTED_BROWSERS = CHROMIUM_BASED_BROWSERS | {'firefox', 'safari'}
 
 
@@ -121,7 +121,7 @@ def _extract_firefox_cookies(profile, container, logger):
     logger.info('Extracting cookies from firefox')
     if not sqlite3:
         logger.warning('Cannot extract cookies from firefox without sqlite3 support. '
-                       'Please use a python interpreter compiled with sqlite3 support')
+                       'Please use a Python interpreter compiled with sqlite3 support')
         return YoutubeDLCookieJar()
 
     if profile is None:
@@ -194,7 +194,11 @@ def _firefox_browser_dirs():
         yield os.path.expanduser('~/Library/Application Support/Firefox/Profiles')
 
     else:
-        yield from map(os.path.expanduser, ('~/.mozilla/firefox', '~/snap/firefox/common/.mozilla/firefox'))
+        yield from map(os.path.expanduser, (
+            '~/.mozilla/firefox',
+            '~/snap/firefox/common/.mozilla/firefox',
+            '~/.var/app/org.mozilla.firefox/.mozilla/firefox',
+        ))
 
 
 def _firefox_cookie_dbs(roots):
@@ -215,6 +219,7 @@ def _get_chromium_based_browser_settings(browser_name):
             'edge': os.path.join(appdata_local, R'Microsoft\Edge\User Data'),
             'opera': os.path.join(appdata_roaming, R'Opera Software\Opera Stable'),
             'vivaldi': os.path.join(appdata_local, R'Vivaldi\User Data'),
+            'whale': os.path.join(appdata_local, R'Naver\Naver Whale\User Data'),
         }[browser_name]
 
     elif sys.platform == 'darwin':
@@ -226,6 +231,7 @@ def _get_chromium_based_browser_settings(browser_name):
             'edge': os.path.join(appdata, 'Microsoft Edge'),
             'opera': os.path.join(appdata, 'com.operasoftware.Opera'),
             'vivaldi': os.path.join(appdata, 'Vivaldi'),
+            'whale': os.path.join(appdata, 'Naver/Whale'),
         }[browser_name]
 
     else:
@@ -237,6 +243,7 @@ def _get_chromium_based_browser_settings(browser_name):
             'edge': os.path.join(config, 'microsoft-edge'),
             'opera': os.path.join(config, 'opera'),
             'vivaldi': os.path.join(config, 'vivaldi'),
+            'whale': os.path.join(config, 'naver-whale'),
         }[browser_name]
 
     # Linux keyring names can be determined by snooping on dbus while opening the browser in KDE:
@@ -248,6 +255,7 @@ def _get_chromium_based_browser_settings(browser_name):
         'edge': 'Microsoft Edge' if sys.platform == 'darwin' else 'Chromium',
         'opera': 'Opera' if sys.platform == 'darwin' else 'Chromium',
         'vivaldi': 'Vivaldi' if sys.platform == 'darwin' else 'Chrome',
+        'whale': 'Whale',
     }[browser_name]
 
     browsers_without_profiles = {'opera'}
@@ -264,7 +272,7 @@ def _extract_chrome_cookies(browser_name, profile, keyring, logger):
 
     if not sqlite3:
         logger.warning(f'Cannot extract cookies from {browser_name} without sqlite3 support. '
-                       'Please use a python interpreter compiled with sqlite3 support')
+                       'Please use a Python interpreter compiled with sqlite3 support')
         return YoutubeDLCookieJar()
 
     config = _get_chromium_based_browser_settings(browser_name)
@@ -342,6 +350,11 @@ def _process_chrome_cookie(decryptor, host_key, name, value, encrypted_value, pa
         value = decryptor.decrypt(encrypted_value)
         if value is None:
             return is_encrypted, None
+
+    # In chrome, session cookies have expires_utc set to 0
+    # In our cookie-store, cookies that do not expire should have expires set to None
+    if not expires_utc:
+        expires_utc = None
 
     return is_encrypted, http.cookiejar.Cookie(
         version=0, name=name, value=value, port=None, port_specified=False,
@@ -594,7 +607,7 @@ class DataParser:
 
 
 def _mac_absolute_time_to_posix(timestamp):
-    return int((datetime(2001, 1, 1, 0, 0, tzinfo=timezone.utc) + timedelta(seconds=timestamp)).timestamp())
+    return int((dt.datetime(2001, 1, 1, 0, 0, tzinfo=dt.timezone.utc) + dt.timedelta(seconds=timestamp)).timestamp())
 
 
 def _parse_safari_cookies_header(data, logger):

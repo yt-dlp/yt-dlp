@@ -160,9 +160,8 @@ class GetCourseRuIE(InfoExtractor):
             self._login(hostname, username, password)
 
         display_id = self._match_id(url)
-        # NB: 404 is returned due to yt-dlp not properly following redirects #9020
-        webpage, urlh = self._download_webpage_handle(url, display_id, expected_status=404)
-        if self._LOGIN_URL_PATH in urlh.url or urlh.status == 404:
+        webpage, urlh = self._download_webpage_handle(url, display_id)
+        if self._LOGIN_URL_PATH in urlh.url:
             raise ExtractorError(
                 f'This video is only available for registered users. {self._login_hint("any", netrc=hostname)}',
                 expected=True)

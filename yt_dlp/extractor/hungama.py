@@ -114,7 +114,6 @@ class HungamaSongIE(InfoExtractor):
             'title': 'Lucky Ali - Kitni Haseen Zindagi',
             'track': 'Kitni Haseen Zindagi',
             'artist': 'Lucky Ali',
-            'album': None,
             'release_year': 2000,
             'thumbnail': 'https://stat2.hungama.ind.in/assets/images/default_images/da-200x200.png',
         },

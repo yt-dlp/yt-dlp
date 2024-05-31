@@ -6,7 +6,7 @@ from ..utils import (
     classproperty,
     int_or_none,
     traverse_obj,
-    urljoin
+    urljoin,
 )
 
 

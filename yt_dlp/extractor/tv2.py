@@ -3,10 +3,10 @@ import re
 from .common import InfoExtractor
 from ..networking.exceptions import HTTPError
 from ..utils import (
-    determine_ext,
     ExtractorError,
-    int_or_none,
+    determine_ext,
     float_or_none,
+    int_or_none,
     js_to_json,
     parse_iso8601,
     remove_end,
@@ -161,6 +161,7 @@ class TV2ArticleIE(InfoExtractor):
 
 
 class KatsomoIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?(?:katsomo|mtv(uutiset)?)\.fi/(?:sarja/[0-9a-z-]+-\d+/[0-9a-z-]+-|(?:#!/)?jakso/(?:\d+/[^/]+/)?|video/prog)(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://www.mtv.fi/sarja/mtv-uutiset-live-33001002003/lahden-pelicans-teki-kovan-ratkaisun-ville-nieminen-pihalle-1181321',
@@ -279,6 +280,7 @@ class KatsomoIE(InfoExtractor):
 
 
 class MTVUutisetArticleIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)mtvuutiset\.fi/artikkeli/[^/]+/(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://www.mtvuutiset.fi/artikkeli/tallaisia-vaurioita-viking-amorellassa-on-useamman-osaston-alla-vetta/7931384',

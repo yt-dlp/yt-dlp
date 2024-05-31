@@ -2,16 +2,17 @@ import re
 
 from .common import InfoExtractor
 from ..utils import (
-    float_or_none,
-    parse_iso8601,
-    update_url_query,
-    int_or_none,
     determine_protocol,
+    float_or_none,
+    int_or_none,
+    parse_iso8601,
     unescapeHTML,
+    update_url_query,
 )
 
 
 class SendtoNewsIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://embed\.sendtonews\.com/player2/embedplayer\.php\?.*\bSC=(?P<id>[0-9A-Za-z-]+)'
 
     _TEST = {
