@@ -1089,26 +1089,32 @@ class NiconicoLiveIE(InfoExtractor):
         }.get(traverse_obj(embedded_data, ('programTimeshift', 'publication', 'status', {str})), 'is_live')
 
         if traverse_obj(embedded_data, ('userProgramWatch', 'canWatch', {bool})):
-            if needs_subscription := traverse_obj(embedded_data, ('program', 'isMemberFree', {bool})):
-                msg = 'You have no right to access the paid content. '
-                if not traverse_obj(embedded_data, ('program', 'trialWatch', 'isShown', {bool})):
-                    msg += 'This video may be completely blank'
-                else:
-                    # TODO: get the exact duration of the free part
-                    msg += 'There may be some blank parts in this video'
-                self.report_warning(msg, video_id)
-            return live_status, self._availability(needs_subscription=needs_subscription)
+            is_member_free = traverse_obj(embedded_data, ('program', 'isMemberFree', {bool}))
+            is_shown = traverse_obj(embedded_data, ('program', 'trialWatch', 'isShown', {bool}))
+            self.write_debug(f'.program.isMemberFree: {is_member_free}; .program.trialWatch.isShown: {is_shown}')
+
+            if is_member_free is None and is_shown is None:
+                return live_status, self._availability()
+
+            if is_member_free is False:
+                msg = 'You cannot access the paid content, thus the video may be blank.'
+            else:
+                msg = 'You cannot access restricted content, thus a part of the video or the entire video may be blank.'
+            self.report_warning(msg, video_id)
+            return live_status, self._availability(needs_subscription=True)
 
         if traverse_obj(embedded_data, ('userProgramWatch', 'isCountryRestrictionTarget', {bool})):
             self.raise_geo_restricted(countries=self._GEO_COUNTRIES, metadata_available=True)
             return live_status, self._availability()
 
         rejected_reasons = traverse_obj(embedded_data, ('userProgramWatch', 'rejectedReasons', ..., {str}))
-        self.write_debug(f'userProgramWatch.rejectedReasons: {rejected_reasons!r}')
+        self.write_debug(f'.userProgramWatch.rejectedReasons: {rejected_reasons!r}')
 
         if 'programNotBegun' in rejected_reasons:
+            self.report_warning('Live has not started', video_id)
             live_status = 'is_upcoming'
         elif 'timeshiftBeforeOpen' in rejected_reasons:
+            self.report_warning('Live has ended but timeshift is not yet processed', video_id)
             live_status = 'post_live'
         elif 'noTimeshiftProgram' in rejected_reasons:
             self.report_warning('Timeshift is disabled', video_id)
@@ -1139,5 +1145,12 @@ class NiconicoLiveIE(InfoExtractor):
                 'notUseTimeshiftTicketOnUnlimitedTimeshift',
             ] for x in rejected_reasons),
         })
+
+        if availability == 'premium_only':
+            self.raise_login_required('This video requires premium', metadata_available=True)
+        elif availability == 'subscriber_only':
+            self.raise_login_required('This video is for members only', metadata_available=True)
+        elif availability == 'needs_auth':
+            self.raise_login_required(metadata_available=True)
 
         return live_status, availability
