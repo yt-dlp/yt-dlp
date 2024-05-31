@@ -206,7 +206,7 @@ class LecturioCourseIE(LecturioBaseIE):
 
 class LecturioDeCourseIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?lecturio\.de/[^/?#]+/(?P<id>[^/?#&]+)\.kurs'
-    _TEST = {
+    _TESTS = [{
         'url': 'https://www.lecturio.de/jura/grundrechte.kurs',
         'only_matching': True,
     }]
