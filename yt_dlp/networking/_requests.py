@@ -21,8 +21,8 @@ urllib3_version = tuple(int_or_none(x, default=0) for x in urllib3.__version__.s
 if urllib3_version < (1, 26, 17):
     raise ImportError('Only urllib3 >= 1.26.17 is supported')
 
-if requests.__build__ < 0x023100:
-    raise ImportError('Only requests >= 2.31.0 is supported')
+if requests.__build__ < 0x023202:
+    raise ImportError('Only requests >= 2.32.2 is supported')
 
 import requests.adapters
 import requests.utils
@@ -186,7 +186,7 @@ class RequestsHTTPAdapter(requests.adapters.HTTPAdapter):
     def cert_verify(*args, **kwargs):
         pass
 
-    # requests 2.31.0-2.32.1
+    # requests 2.32.0-2.32.1
     def _get_connection(self, request, *_, proxies=None, **__):
         return self.get_connection(request.url, proxies)
 
