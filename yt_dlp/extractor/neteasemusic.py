@@ -561,7 +561,8 @@ class NetEaseMusicProgramIE(NetEaseMusicBaseIE):
             'timestamp': ('createTime', {self.kilo_or_none}),
         })
 
-        if not self._yes_playlist(info['songs'] and program_id, info['mainSong']['id']):
+        if not self._yes_playlist(
+                info['songs'] and program_id, info['mainSong']['id'], playlist_label='program', video_label='song'):
             formats = self.extract_formats(info['mainSong'])
 
             return {

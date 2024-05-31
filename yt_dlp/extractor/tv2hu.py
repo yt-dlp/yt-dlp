@@ -1,8 +1,8 @@
 # encoding: utf-8
 from .common import InfoExtractor
 from ..utils import (
-    traverse_obj,
     UnsupportedError,
+    traverse_obj,
 )
 
 

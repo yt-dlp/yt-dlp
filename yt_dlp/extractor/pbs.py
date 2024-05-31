@@ -3,10 +3,11 @@ import re
 from .common import InfoExtractor
 from ..compat import compat_str
 from ..utils import (
+    US_RATINGS,
     ExtractorError,
     determine_ext,
-    int_or_none,
     float_or_none,
+    int_or_none,
     js_to_json,
     orderedSet,
     strip_jsonp,
@@ -14,7 +15,6 @@ from ..utils import (
     traverse_obj,
     unified_strdate,
     url_or_none,
-    US_RATINGS,
 )
 
 

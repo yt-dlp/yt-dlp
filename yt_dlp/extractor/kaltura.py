@@ -4,18 +4,18 @@ import re
 
 from .common import InfoExtractor
 from ..compat import (
-    compat_urlparse,
     compat_parse_qs,
+    compat_urlparse,
 )
 from ..utils import (
-    clean_html,
     ExtractorError,
+    clean_html,
     format_field,
     int_or_none,
-    unsmuggle_url,
+    remove_start,
     smuggle_url,
     traverse_obj,
-    remove_start
+    unsmuggle_url,
 )
 
 
