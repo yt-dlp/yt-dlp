@@ -6,9 +6,7 @@ import urllib.parse
 import xml.etree.ElementTree
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-)
+from ..compat import compat_str
 from ..utils import (
     ExtractorError,
     int_or_none,
@@ -17,11 +15,11 @@ from ..utils import (
     orderedSet,
     parse_iso8601,
     smuggle_url,
-    unsmuggle_url,
     strip_or_none,
-    traverse_obj,
     try_get,
+    unsmuggle_url,
 )
+from ..utils.traversal import traverse_obj
 
 
 class CBCIE(InfoExtractor):
