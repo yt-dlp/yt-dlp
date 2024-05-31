@@ -33,10 +33,7 @@ class CrooksAndLiarsIE(InfoExtractor):
         webpage = self._download_webpage(
             'http://embed.crooksandliars.com/embed/%s' % video_id, video_id)
 
-        manifest = self._parse_json(
-            self._search_regex(
-                r'var\s+manifest\s*=\s*({.+?})\n', webpage, 'manifest JSON'),
-            video_id)
+        manifest = self._search_json(r'var\s+manifest\s*=', webpage, 'manifest JSON', video_id)
 
         quality = qualities(('webm_low', 'mp4_low', 'webm_high', 'mp4_high'))
 

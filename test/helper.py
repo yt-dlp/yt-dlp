@@ -223,6 +223,10 @@ def sanitize_got_info_dict(got_dict):
     if test_info_dict.get('display_id') == test_info_dict.get('id'):
         test_info_dict.pop('display_id')
 
+    # Remove deprecated fields
+    for old in YoutubeDL._deprecated_multivalue_fields.keys():
+        test_info_dict.pop(old, None)
+
     # release_year may be generated from release_date
     if try_call(lambda: test_info_dict['release_year'] == int(test_info_dict['release_date'][:4])):
         test_info_dict.pop('release_year')
@@ -334,3 +338,8 @@ def http_server_port(httpd):
 def verify_address_availability(address):
     if find_available_port(address) is None:
         pytest.skip(f'Unable to bind to source address {address} (address may not exist)')
+
+
+def validate_and_send(rh, req):
+    rh.validate(req)
+    return rh.send(req)

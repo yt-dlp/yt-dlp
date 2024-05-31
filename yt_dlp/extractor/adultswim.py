@@ -107,7 +107,6 @@ class AdultSwimIE(TurnerBaseIE):
       title
       tvRating
     }''' % episode_path
-            ['getVideoBySlug']
         else:
             query = query % '''metaDescription
     title

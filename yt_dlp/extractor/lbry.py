@@ -231,7 +231,6 @@ class LBRYIE(LBRYBaseIE):
             'release_timestamp': int,
             'release_date': str,
             'tags': list,
-            'duration': None,
             'channel': 'RT',
             'channel_id': 'fdd11cb3ab75f95efb7b3bc2d726aa13ac915b66',
             'channel_url': 'https://odysee.com/@RT:fdd11cb3ab75f95efb7b3bc2d726aa13ac915b66',

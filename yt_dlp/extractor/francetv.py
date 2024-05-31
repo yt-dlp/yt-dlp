@@ -1,60 +1,49 @@
+import re
+import urllib.parse
+
 from .common import InfoExtractor
 from .dailymotion import DailymotionIE
+from ..networking import HEADRequest
 from ..utils import (
-    ExtractorError,
     determine_ext,
+    filter_dict,
     format_field,
     int_or_none,
     join_nonempty,
     parse_iso8601,
-    parse_qs,
+    smuggle_url,
+    unsmuggle_url,
+    url_or_none,
 )
+from ..utils.traversal import traverse_obj
 
 
 class FranceTVBaseInfoExtractor(InfoExtractor):
-    def _make_url_result(self, video_or_full_id, catalog=None):
-        full_id = 'francetv:%s' % video_or_full_id
-        if '@' not in video_or_full_id and catalog:
-            full_id += '@%s' % catalog
-        return self.url_result(
-            full_id, ie=FranceTVIE.ie_key(),
-            video_id=video_or_full_id.split('@')[0])
+    def _make_url_result(self, video_id, url=None):
+        video_id = video_id.split('@')[0]  # for compat with old @catalog IDs
+        full_id = f'francetv:{video_id}'
+        if url:
+            full_id = smuggle_url(full_id, {'hostname': urllib.parse.urlparse(url).hostname})
+        return self.url_result(full_id, FranceTVIE, video_id)
 
 
 class FranceTVIE(InfoExtractor):
-    _VALID_URL = r'''(?x)
-                    (?:
-                        https?://
-                            sivideo\.webservices\.francetelevisions\.fr/tools/getInfosOeuvre/v2/\?
-                            .*?\bidDiffusion=[^&]+|
-                        (?:
-                            https?://videos\.francetv\.fr/video/|
-                            francetv:
-                        )
-                        (?P<id>[^@]+)(?:@(?P<catalog>.+))?
-                    )
-                    '''
-    _EMBED_REGEX = [r'<iframe[^>]+?src=(["\'])(?P<url>(?:https?://)?embed\.francetv\.fr/\?ue=.+?)\1']
+    _VALID_URL = r'francetv:(?P<id>[^@#]+)'
+    _GEO_COUNTRIES = ['FR']
+    _GEO_BYPASS = False
 
     _TESTS = [{
-        # without catalog
-        'url': 'https://sivideo.webservices.francetelevisions.fr/tools/getInfosOeuvre/v2/?idDiffusion=162311093&callback=_jsonp_loader_callback_request_0',
-        'md5': 'c2248a8de38c4e65ea8fae7b5df2d84f',
+        'url': 'francetv:ec217ecc-0733-48cf-ac06-af1347b849d1',
         'info_dict': {
-            'id': '162311093',
+            'id': 'ec217ecc-0733-48cf-ac06-af1347b849d1',
             'ext': 'mp4',
             'title': '13h15, le dimanche... - Les mystères de Jésus',
-            'description': 'md5:75efe8d4c0a8205e5904498ffe1e1a42',
             'timestamp': 1502623500,
+            'duration': 2580,
+            'thumbnail': r're:^https?://.*\.jpg$',
             'upload_date': '20170813',
         },
-    }, {
-        # with catalog
-        'url': 'https://sivideo.webservices.francetelevisions.fr/tools/getInfosOeuvre/v2/?idDiffusion=NI_1004933&catalogue=Zouzous&callback=_jsonp_loader_callback_request_4',
-        'only_matching': True,
-    }, {
-        'url': 'http://videos.francetv.fr/video/NI_657393@Regions',
-        'only_matching': True,
+        'params': {'skip_download': 'm3u8'},
     }, {
         'url': 'francetv:162311093',
         'only_matching': True,
@@ -76,10 +65,7 @@ class FranceTVIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    def _extract_video(self, video_id, catalogue=None):
-        # Videos are identified by idDiffusion so catalogue part is optional.
-        # However when provided, some extra formats may be returned so we pass
-        # it if available.
+    def _extract_video(self, video_id, hostname=None):
         is_live = None
         videos = []
         title = None
@@ -91,18 +77,20 @@ class FranceTVIE(InfoExtractor):
         timestamp = None
         spritesheets = None
 
-        for device_type in ('desktop', 'mobile'):
+        # desktop+chrome returns dash; mobile+safari returns hls
+        for device_type, browser in [('desktop', 'chrome'), ('mobile', 'safari')]:
             dinfo = self._download_json(
-                'https://player.webservices.francetelevisions.fr/v1/videos/%s' % video_id,
-                video_id, 'Downloading %s video JSON' % device_type, query={
+                f'https://k7.ftven.fr/videos/{video_id}', video_id,
+                f'Downloading {device_type} {browser} video JSON', query=filter_dict({
                     'device_type': device_type,
-                    'browser': 'chrome',
-                }, fatal=False)
+                    'browser': browser,
+                    'domain': hostname,
+                }), fatal=False)
 
             if not dinfo:
                 continue
 
-            video = dinfo.get('video')
+            video = traverse_obj(dinfo, ('video', {dict}))
             if video:
                 videos.append(video)
                 if duration is None:
@@ -112,7 +100,7 @@ class FranceTVIE(InfoExtractor):
                 if spritesheets is None:
                     spritesheets = video.get('spritesheets')
 
-            meta = dinfo.get('meta')
+            meta = traverse_obj(dinfo, ('meta', {dict}))
             if meta:
                 if title is None:
                     title = meta.get('title')
@@ -126,43 +114,46 @@ class FranceTVIE(InfoExtractor):
                 if timestamp is None:
                     timestamp = parse_iso8601(meta.get('broadcasted_at'))
 
-        formats = []
-        subtitles = {}
-        for video in videos:
+        formats, subtitles, video_url = [], {}, None
+        for video in traverse_obj(videos, lambda _, v: url_or_none(v['url'])):
+            video_url = video['url']
             format_id = video.get('format')
 
-            video_url = None
-            if video.get('workflow') == 'token-akamai':
-                token_url = video.get('token')
-                if token_url:
-                    token_json = self._download_json(
-                        token_url, video_id,
-                        'Downloading signed %s manifest URL' % format_id)
-                    if token_json:
-                        video_url = token_json.get('url')
-            if not video_url:
-                video_url = video.get('url')
+            if token_url := url_or_none(video.get('token')):
+                tokenized_url = traverse_obj(self._download_json(
+                    token_url, video_id, f'Downloading signed {format_id} manifest URL',
+                    fatal=False, query={
+                        'format': 'json',
+                        'url': video_url,
+                    }), ('url', {url_or_none}))
+                if tokenized_url:
+                    video_url = tokenized_url
 
             ext = determine_ext(video_url)
             if ext == 'f4m':
                 formats.extend(self._extract_f4m_formats(
-                    video_url, video_id, f4m_id=format_id, fatal=False))
+                    video_url, video_id, f4m_id=format_id or ext, fatal=False))
             elif ext == 'm3u8':
+                format_id = format_id or 'hls'
                 fmts, subs = self._extract_m3u8_formats_and_subtitles(
-                    video_url, video_id, 'mp4',
-                    entry_protocol='m3u8_native', m3u8_id=format_id,
-                    fatal=False)
+                    video_url, video_id, 'mp4', m3u8_id=format_id, fatal=False)
+                for f in traverse_obj(fmts, lambda _, v: v['vcodec'] == 'none' and v.get('tbr') is None):
+                    if mobj := re.match(rf'{format_id}-[Aa]udio-\w+-(?P<bitrate>\d+)', f['format_id']):
+                        f.update({
+                            'tbr': int_or_none(mobj.group('bitrate')),
+                            'acodec': 'mp4a',
+                        })
                 formats.extend(fmts)
                 self._merge_subtitles(subs, target=subtitles)
             elif ext == 'mpd':
                 fmts, subs = self._extract_mpd_formats_and_subtitles(
-                    video_url, video_id, mpd_id=format_id, fatal=False)
+                    video_url, video_id, mpd_id=format_id or 'dash', fatal=False)
                 formats.extend(fmts)
                 self._merge_subtitles(subs, target=subtitles)
             elif video_url.startswith('rtmp'):
                 formats.append({
                     'url': video_url,
-                    'format_id': 'rtmp-%s' % format_id,
+                    'format_id': join_nonempty('rtmp', format_id),
                     'ext': 'flv',
                 })
             else:
@@ -173,6 +164,13 @@ class FranceTVIE(InfoExtractor):
                     })
 
             # XXX: what is video['captions']?
+
+        if not formats and video_url:
+            urlh = self._request_webpage(
+                HEADRequest(video_url), video_id, 'Checking for geo-restriction',
+                fatal=False, expected_status=403)
+            if urlh and urlh.headers.get('x-errortype') == 'geo':
+                self.raise_geo_restricted(countries=self._GEO_COUNTRIES, metadata_available=True)
 
         for f in formats:
             if f.get('acodec') != 'none' and f.get('language') in ('qtz', 'qad'):
@@ -194,7 +192,7 @@ class FranceTVIE(InfoExtractor):
                     # a 10×10 grid of thumbnails corresponding to approximately
                     # 2 seconds of the video; the last spritesheet may be shorter
                     'duration': 200,
-                } for sheet in spritesheets]
+                } for sheet in traverse_obj(spritesheets, (..., {url_or_none}))]
             })
 
         return {
@@ -210,21 +208,15 @@ class FranceTVIE(InfoExtractor):
             'series': title if episode_number else None,
             'episode_number': int_or_none(episode_number),
             'season_number': int_or_none(season_number),
+            '_format_sort_fields': ('res', 'tbr', 'proto'),  # prioritize m3u8 over dash
         }
 
     def _real_extract(self, url):
-        mobj = self._match_valid_url(url)
-        video_id = mobj.group('id')
-        catalog = mobj.group('catalog')
+        url, smuggled_data = unsmuggle_url(url, {})
+        video_id = self._match_id(url)
+        hostname = smuggled_data.get('hostname') or 'www.france.tv'
 
-        if not video_id:
-            qs = parse_qs(url)
-            video_id = qs.get('idDiffusion', [None])[0]
-            catalog = qs.get('catalogue', [None])[0]
-            if not video_id:
-                raise ExtractorError('Invalid URL', expected=True)
-
-        return self._extract_video(video_id, catalog)
+        return self._extract_video(video_id, hostname=hostname)
 
 
 class FranceTVSiteIE(FranceTVBaseInfoExtractor):
@@ -246,6 +238,7 @@ class FranceTVSiteIE(FranceTVBaseInfoExtractor):
         },
         'add_ie': [FranceTVIE.ie_key()],
     }, {
+        # geo-restricted
         'url': 'https://www.france.tv/enfants/six-huit-ans/foot2rue/saison-1/3066387-duel-au-vieux-port.html',
         'info_dict': {
             'id': 'a9050959-eedd-4b4a-9b0d-de6eeaa73e44',
@@ -262,6 +255,26 @@ class FranceTVSiteIE(FranceTVBaseInfoExtractor):
             'duration': 1441,
         },
     }, {
+        # geo-restricted livestream (workflow == 'token-akamai')
+        'url': 'https://www.france.tv/france-4/direct.html',
+        'info_dict': {
+            'id': '9a6a7670-dde9-4264-adbc-55b89558594b',
+            'ext': 'mp4',
+            'title': r're:France 4 en direct .+',
+            'live_status': 'is_live',
+        },
+        'skip': 'geo-restricted livestream',
+    }, {
+        # livestream (workflow == 'dai')
+        'url': 'https://www.france.tv/france-2/direct.html',
+        'info_dict': {
+            'id': '006194ea-117d-4bcf-94a9-153d999c59ae',
+            'ext': 'mp4',
+            'title': r're:France 2 en direct .+',
+            'live_status': 'is_live',
+        },
+        'params': {'skip_download': 'livestream'},
+    }, {
         # france3
         'url': 'https://www.france.tv/france-3/des-chiffres-et-des-lettres/139063-emission-du-mardi-9-mai-2017.html',
         'only_matching': True,
@@ -276,10 +289,6 @@ class FranceTVSiteIE(FranceTVBaseInfoExtractor):
     }, {
         # franceo
         'url': 'https://www.france.tv/france-o/archipels/132249-mon-ancetre-l-esclave.html',
-        'only_matching': True,
-    }, {
-        # france2 live
-        'url': 'https://www.france.tv/france-2/direct.html',
         'only_matching': True,
     }, {
         'url': 'https://www.france.tv/documentaires/histoire/136517-argentine-les-500-bebes-voles-de-la-dictature.html',
@@ -304,17 +313,16 @@ class FranceTVSiteIE(FranceTVBaseInfoExtractor):
 
         webpage = self._download_webpage(url, display_id)
 
-        catalogue = None
         video_id = self._search_regex(
             r'(?:data-main-video\s*=|videoId["\']?\s*[:=])\s*(["\'])(?P<id>(?:(?!\1).)+)\1',
             webpage, 'video id', default=None, group='id')
 
         if not video_id:
-            video_id, catalogue = self._html_search_regex(
-                r'(?:href=|player\.setVideo\(\s*)"http://videos?\.francetv\.fr/video/([^@]+@[^"]+)"',
-                webpage, 'video ID').split('@')
+            video_id = self._html_search_regex(
+                r'(?:href=|player\.setVideo\(\s*)"http://videos?\.francetv\.fr/video/([^@"]+@[^"]+)"',
+                webpage, 'video ID')
 
-        return self._make_url_result(video_id, catalogue)
+        return self._make_url_result(video_id, url=url)
 
 
 class FranceTVInfoIE(FranceTVBaseInfoExtractor):
@@ -328,8 +336,9 @@ class FranceTVInfoIE(FranceTVBaseInfoExtractor):
             'ext': 'mp4',
             'title': 'Soir 3',
             'upload_date': '20190822',
-            'timestamp': 1566510900,
-            'description': 'md5:72d167097237701d6e8452ff03b83c00',
+            'timestamp': 1566510730,
+            'thumbnail': r're:^https?://.*\.jpe?g$',
+            'duration': 1637,
             'subtitles': {
                 'fr': 'mincount:2',
             },
@@ -344,8 +353,8 @@ class FranceTVInfoIE(FranceTVBaseInfoExtractor):
         'info_dict': {
             'id': '7d204c9e-a2d3-11eb-9e4c-000d3a23d482',
             'ext': 'mp4',
-            'title': 'Covid-19 : une situation catastrophique à New Dehli',
-            'thumbnail': str,
+            'title': 'Covid-19 : une situation catastrophique à New Dehli - Édition du mercredi 21 avril 2021',
+            'thumbnail': r're:^https?://.*\.jpe?g$',
             'duration': 76,
             'timestamp': 1619028518,
             'upload_date': '20210421',
@@ -371,11 +380,17 @@ class FranceTVInfoIE(FranceTVBaseInfoExtractor):
             'id': 'x4iiko0',
             'ext': 'mp4',
             'title': 'NDDL, référendum, Brexit : Cécile Duflot répond à Patrick Cohen',
-            'description': 'Au lendemain de la victoire du "oui" au référendum sur l\'aéroport de Notre-Dame-des-Landes, l\'ancienne ministre écologiste est l\'invitée de Patrick Cohen. Plus d\'info : https://www.franceinter.fr/emissions/le-7-9/le-7-9-27-juin-2016',
+            'description': 'md5:fdcb582c370756293a65cdfbc6ecd90e',
             'timestamp': 1467011958,
-            'upload_date': '20160627',
             'uploader': 'France Inter',
             'uploader_id': 'x2q2ez',
+            'upload_date': '20160627',
+            'view_count': int,
+            'tags': ['Politique', 'France Inter', '27 juin 2016', 'Linvité de 8h20', 'Cécile Duflot', 'Patrick Cohen'],
+            'age_limit': 0,
+            'duration': 640,
+            'like_count': int,
+            'thumbnail': r're:https://[^/?#]+/v/[^/?#]+/x1080',
         },
         'add_ie': ['Dailymotion'],
     }, {
@@ -405,4 +420,4 @@ class FranceTVInfoIE(FranceTVBaseInfoExtractor):
              r'(?:data-id|<figure[^<]+\bid)=["\']([\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12})'),
             webpage, 'video id')
 
-        return self._make_url_result(video_id)
+        return self._make_url_result(video_id, url=url)

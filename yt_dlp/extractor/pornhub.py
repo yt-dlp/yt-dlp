@@ -87,8 +87,8 @@ class PornHubBaseIE(InfoExtractor):
 
         def is_logged(webpage):
             return any(re.search(p, webpage) for p in (
-                r'class=["\']signOut',
-                r'>Sign\s+[Oo]ut\s*<'))
+                r'id="profileMenuDropdown"',
+                r'class="ph-icon-logout"'))
 
         if is_logged(login_page):
             self._logged_in = True
@@ -97,7 +97,7 @@ class PornHubBaseIE(InfoExtractor):
         login_form = self._hidden_inputs(login_page)
 
         login_form.update({
-            'username': username,
+            'email': username,
             'password': password,
         })
 

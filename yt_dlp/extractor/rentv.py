@@ -8,6 +8,7 @@ from ..utils import (
 
 
 class RENTVIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'(?:rentv:|https?://(?:www\.)?ren\.tv/(?:player|video/epizod)/)(?P<id>\d+)'
     _TESTS = [{
         'url': 'http://ren.tv/video/epizod/118577',
@@ -59,6 +60,7 @@ class RENTVIE(InfoExtractor):
 
 
 class RENTVArticleIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?ren\.tv/novosti/\d{4}-\d{2}-\d{2}/(?P<id>[^/?#]+)'
     _TESTS = [{
         'url': 'http://ren.tv/novosti/2016-10-26/video-mikroavtobus-popavshiy-v-dtp-s-gruzovikami-v-podmoskove-prevratilsya-v',

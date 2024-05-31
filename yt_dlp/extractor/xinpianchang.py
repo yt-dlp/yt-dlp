@@ -1,6 +1,7 @@
 from .common import InfoExtractor
 from ..utils import (
     int_or_none,
+    str_or_none,
     try_get,
     update_url_query,
     url_or_none,
@@ -8,6 +9,7 @@ from ..utils import (
 
 
 class XinpianchangIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://www\.xinpianchang\.com/(?P<id>[^/]+?)(?:\D|$)'
     IE_NAME = 'xinpianchang'
     IE_DESC = 'xinpianchang.com'
@@ -21,9 +23,9 @@ class XinpianchangIE(InfoExtractor):
             'duration': 151,
             'thumbnail': r're:^https?://oss-xpc0\.xpccdn\.com.+/assets/',
             'uploader': '正时文创',
-            'uploader_id': 10357277,
+            'uploader_id': '10357277',
             'categories': ['宣传片', '国家城市', '广告', '其他'],
-            'keywords': ['北京冬奥会', '冰墩墩', '再见', '告别', '冰墩墩哭了', '感动', '闭幕式', '熄火']
+            'tags': ['北京冬奥会', '冰墩墩', '再见', '告别', '冰墩墩哭了', '感动', '闭幕式', '熄火']
         },
     }, {
         'url': 'https://www.xinpianchang.com/a11762904',
@@ -35,9 +37,9 @@ class XinpianchangIE(InfoExtractor):
             'duration': 136,
             'thumbnail': r're:^https?://oss-xpc0\.xpccdn\.com.+/assets/',
             'uploader': '精品动画',
-            'uploader_id': 10858927,
+            'uploader_id': '10858927',
             'categories': ['动画', '三维CG'],
-            'keywords': ['France Télévisions', '法国3台', '蠢萌', '冬奥会']
+            'tags': ['France Télévisions', '法国3台', '蠢萌', '冬奥会']
         },
     }, {
         'url': 'https://www.xinpianchang.com/a11779743?from=IndexPick&part=%E7%BC%96%E8%BE%91%E7%B2%BE%E9%80%89&index=2',
@@ -78,10 +80,10 @@ class XinpianchangIE(InfoExtractor):
             'description': data.get('description'),
             'duration': int_or_none(data.get('duration')),
             'categories': data.get('categories'),
-            'keywords': data.get('keywords'),
+            'tags': data.get('keywords'),
             'thumbnail': data.get('cover'),
             'uploader': try_get(data, lambda x: x['owner']['username']),
-            'uploader_id': try_get(data, lambda x: x['owner']['id']),
+            'uploader_id': str_or_none(try_get(data, lambda x: x['owner']['id'])),
             'formats': formats,
             'subtitles': subtitles,
         }

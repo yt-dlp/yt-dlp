@@ -1,13 +1,13 @@
 import json
 
+from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     format_field,
     traverse_obj,
     try_get,
-    unified_timestamp
+    unified_timestamp,
 )
-from .common import InfoExtractor
 
 
 class RadLiveIE(InfoExtractor):
@@ -38,10 +38,6 @@ class RadLiveIE(InfoExtractor):
             'language': 'en',
             'thumbnail': 'https://lsp.littlstar.com/channels/WHISTLE/BAD_JOKES/SEASON_1/BAD_JOKES_101/poster.jpg',
             'description': 'Bad Jokes - Champions, Adam Pally, Super Troopers, Team Edge and 2Hype',
-            'release_timestamp': None,
-            'channel': None,
-            'channel_id': None,
-            'channel_url': None,
             'episode': 'E01: Bad Jokes 1',
             'episode_number': 1,
             'episode_id': '336',

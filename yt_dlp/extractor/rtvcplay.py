@@ -1,16 +1,17 @@
 import re
 
-from .common import InfoExtractor, ExtractorError
+from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
     clean_html,
     determine_ext,
-    int_or_none,
     float_or_none,
+    int_or_none,
     js_to_json,
     mimetype2ext,
     traverse_obj,
-    urljoin,
     url_or_none,
+    urljoin,
 )
 
 

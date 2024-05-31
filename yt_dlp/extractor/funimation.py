@@ -301,7 +301,7 @@ class FunimationShowIE(FunimationBaseIE):
     _TESTS = [{
         'url': 'https://www.funimation.com/en/shows/sk8-the-infinity',
         'info_dict': {
-            'id': 1315000,
+            'id': '1315000',
             'title': 'SK8 the Infinity'
         },
         'playlist_count': 13,
@@ -312,7 +312,7 @@ class FunimationShowIE(FunimationBaseIE):
         # without lang code
         'url': 'https://www.funimation.com/shows/ouran-high-school-host-club/',
         'info_dict': {
-            'id': 39643,
+            'id': '39643',
             'title': 'Ouran High School Host Club'
         },
         'playlist_count': 26,
@@ -339,7 +339,7 @@ class FunimationShowIE(FunimationBaseIE):
 
         return {
             '_type': 'playlist',
-            'id': show_info['id'],
+            'id': str_or_none(show_info['id']),
             'title': show_info['name'],
             'entries': orderedSet(
                 self.url_result(

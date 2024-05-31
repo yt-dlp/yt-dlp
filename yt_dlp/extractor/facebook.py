@@ -500,6 +500,7 @@ class FacebookIE(InfoExtractor):
                 webpage, 'description', default=None)
             uploader_data = (
                 get_first(media, ('owner', {dict}))
+                or get_first(post, ('video', 'creation_story', 'attachments', ..., 'media', lambda k, v: k == 'owner' and v['name']))
                 or get_first(post, (..., 'video', lambda k, v: k == 'owner' and v['name']))
                 or get_first(post, ('node', 'actors', ..., {dict}))
                 or get_first(post, ('event', 'event_creator', {dict})) or {})
@@ -559,7 +560,7 @@ class FacebookIE(InfoExtractor):
                     js_data, lambda x: x['jsmods']['instances'], list) or [])
 
         def extract_dash_manifest(video, formats):
-            dash_manifest = video.get('dash_manifest')
+            dash_manifest = traverse_obj(video, 'dash_manifest', 'playlist', expected_type=str)
             if dash_manifest:
                 formats.extend(self._parse_mpd_formats(
                     compat_etree_fromstring(urllib.parse.unquote_plus(dash_manifest)),
@@ -583,8 +584,8 @@ class FacebookIE(InfoExtractor):
         def extract_relay_prefetched_data(_filter):
             return traverse_obj(extract_relay_data(_filter), (
                 'require', (None, (..., ..., ..., '__bbox', 'require')),
-                lambda _, v: 'RelayPrefetchedStreamCache' in v, ..., ...,
-                '__bbox', 'result', 'data', {dict}), get_all=False) or {}
+                lambda _, v: any(key.startswith('RelayPrefetchedStreamCache') for key in v),
+                ..., ..., '__bbox', 'result', 'data', {dict}), get_all=False) or {}
 
         if not video_data:
             server_js_data = self._parse_json(self._search_regex([

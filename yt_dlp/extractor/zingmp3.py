@@ -10,8 +10,8 @@ from ..utils import (
     int_or_none,
     join_nonempty,
     try_call,
+    url_or_none,
     urljoin,
-    url_or_none
 )
 from ..utils.traversal import traverse_obj
 
@@ -513,7 +513,6 @@ class ZingMp3LiveRadioIE(ZingMp3BaseIE):
             'id': 'IWZ979UB',
             'title': r're:^V\-POP',
             'description': 'md5:aa857f8a91dc9ce69e862a809e4bdc10',
-            'protocol': 'm3u8_native',
             'ext': 'mp4',
             'view_count': int,
             'thumbnail': r're:^https?://.*\.jpg',
@@ -529,7 +528,6 @@ class ZingMp3LiveRadioIE(ZingMp3BaseIE):
             'id': 'IWZ97CWB',
             'title': r're:^Live\s247',
             'description': 'md5:d41d8cd98f00b204e9800998ecf8427e',
-            'protocol': 'm3u8_native',
             'ext': 'm4a',
             'view_count': int,
             'thumbnail': r're:^https?://.*\.jpg',
