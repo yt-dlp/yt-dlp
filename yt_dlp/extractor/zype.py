@@ -3,8 +3,8 @@ import re
 from .common import InfoExtractor
 from ..networking.exceptions import HTTPError
 from ..utils import (
-    dict_get,
     ExtractorError,
+    dict_get,
     int_or_none,
     js_to_json,
     parse_iso8601,

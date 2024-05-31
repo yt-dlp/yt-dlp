@@ -5,6 +5,7 @@ import time
 
 from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
     clean_html,
     int_or_none,
     join_nonempty,
@@ -14,7 +15,6 @@ from ..utils import (
     traverse_obj,
     unescapeHTML,
     url_or_none,
-    ExtractorError,
 )
 
 

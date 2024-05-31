@@ -1134,7 +1134,7 @@ def is_path_like(f):
     return isinstance(f, (str, bytes, os.PathLike))
 
 
-def extract_timezone(date_str):
+def extract_timezone(date_str, default=None):
     m = re.search(
         r'''(?x)
             ^.{8,}?                                              # >=8 char non-TZ prefix, if present
@@ -1146,21 +1146,25 @@ def extract_timezone(date_str):
                 (?P<hours>[0-9]{2}):?(?P<minutes>[0-9]{2})       # hh[:]mm
             $)
         ''', date_str)
+    timezone = None
+
     if not m:
         m = re.search(r'\d{1,2}:\d{1,2}(?:\.\d+)?(?P<tz>\s*[A-Z]+)$', date_str)
         timezone = TIMEZONE_NAMES.get(m and m.group('tz').strip())
         if timezone is not None:
             date_str = date_str[:-len(m.group('tz'))]
-        timezone = dt.timedelta(hours=timezone or 0)
+            timezone = dt.timedelta(hours=timezone)
     else:
         date_str = date_str[:-len(m.group('tz'))]
-        if not m.group('sign'):
-            timezone = dt.timedelta()
-        else:
+        if m.group('sign'):
             sign = 1 if m.group('sign') == '+' else -1
             timezone = dt.timedelta(
                 hours=sign * int(m.group('hours')),
                 minutes=sign * int(m.group('minutes')))
+
+    if timezone is None and default is not NO_DEFAULT:
+        timezone = default or dt.timedelta()
+
     return timezone, date_str
 
 
@@ -1172,10 +1176,9 @@ def parse_iso8601(date_str, delimiter='T', timezone=None):
 
     date_str = re.sub(r'\.[0-9]+', '', date_str)
 
-    if timezone is None:
-        timezone, date_str = extract_timezone(date_str)
+    timezone, date_str = extract_timezone(date_str, timezone)
 
-    with contextlib.suppress(ValueError):
+    with contextlib.suppress(ValueError, TypeError):
         date_format = f'%Y-%m-%d{delimiter}%H:%M:%S'
         dt_ = dt.datetime.strptime(date_str, date_format) - timezone
         return calendar.timegm(dt_.timetuple())
@@ -1638,16 +1641,14 @@ def get_filesystem_encoding():
     return encoding if encoding is not None else 'utf-8'
 
 
-_WINDOWS_QUOTE_TRANS = str.maketrans({'"': '\\"', '\\': '\\\\'})
+_WINDOWS_QUOTE_TRANS = str.maketrans({'"': R'\"'})
 _CMD_QUOTE_TRANS = str.maketrans({
     # Keep quotes balanced by replacing them with `""` instead of `\\"`
     '"': '""',
-    # Requires a variable `=` containing `"^\n\n"` (set in `utils.Popen`)
+    # These require an env-variable `=` containing `"^\n\n"` (set in `utils.Popen`)
     # `=` should be unique since variables containing `=` cannot be set using cmd
     '\n': '%=%',
-    # While we are only required to escape backslashes immediately before quotes,
-    # we instead escape all of 'em anyways to be consistent
-    '\\': '\\\\',
+    '\r': '%=%',
     # Use zero length variable replacement so `%` doesn't get expanded
     # `cd` is always set as long as extensions are enabled (`/E:ON` in `utils.Popen`)
     '%': '%%cd:~,%',
@@ -1656,19 +1657,14 @@ _CMD_QUOTE_TRANS = str.maketrans({
 
 def shell_quote(args, *, shell=False):
     args = list(variadic(args))
-    if any(isinstance(item, bytes) for item in args):
-        deprecation_warning('Passing bytes to utils.shell_quote is deprecated')
-        encoding = get_filesystem_encoding()
-        for index, item in enumerate(args):
-            if isinstance(item, bytes):
-                args[index] = item.decode(encoding)
 
     if compat_os_name != 'nt':
         return shlex.join(args)
 
     trans = _CMD_QUOTE_TRANS if shell else _WINDOWS_QUOTE_TRANS
     return ' '.join(
-        s if re.fullmatch(r'[\w#$*\-+./:?@\\]+', s, re.ASCII) else s.translate(trans).join('""')
+        s if re.fullmatch(r'[\w#$*\-+./:?@\\]+', s, re.ASCII)
+        else re.sub(r'(\\+)("|$)', r'\1\1\2', s).translate(trans).join('""')
         for s in args)
 
 
@@ -2529,7 +2525,7 @@ def read_batch_urls(batch_fd):
             return False
         # "#" cannot be stripped out since it is part of the URI
         # However, it can be safely stripped out if following a whitespace
-        return re.split(r'\s#', url, 1)[0].rstrip()
+        return re.split(r'\s#', url, maxsplit=1)[0].rstrip()
 
     with contextlib.closing(batch_fd) as fd:
         return [url for url in map(fixup, fd) if url]

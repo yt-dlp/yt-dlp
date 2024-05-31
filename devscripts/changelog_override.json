@@ -147,5 +147,27 @@
         "action": "add",
         "when": "9590cc6b4768e190183d7d071a6c78170889116a",
         "short": "[priority] Security: [[CVE-2024-22423](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2024-22423)] [Prevent RCE when using `--exec` with `%q` on Windows](https://github.com/yt-dlp/yt-dlp/security/advisories/GHSA-hjq6-52gw-2g7p)\n    - The shell escape function now properly escapes `%`, `\\` and `\\n`.\n    - `utils.Popen` has been patched accordingly."
+    },
+    {
+        "action": "change",
+        "when": "41ba4a808b597a3afed78c89675a30deb6844450",
+        "short": "[ie/tiktok] Extract via mobile API only if extractor-arg is passed (#9938)",
+        "authors": ["bashonly"]
+    },
+    {
+        "action": "remove",
+        "when": "6e36d17f404556f0e3a43f441c477a71a91877d9"
+    },
+    {
+        "action": "change",
+        "when": "beaf832c7a9d57833f365ce18f6115b88071b296",
+        "short": "[ie/soundcloud] Add `formats` extractor-arg (#10004)",
+        "authors": ["bashonly", "Grub4K"]
+    },
+    {
+        "action": "change",
+        "when": "5c019f6328ad40d66561eac3c4de0b3cd070d0f6",
+        "short": "[cleanup] Misc (#9765)",
+        "authors": ["bashonly", "Grub4K", "seproDev"]
     }
 ]

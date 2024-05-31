@@ -5,6 +5,7 @@ import os
 import sys
 import unittest
 import warnings
+import datetime as dt
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -27,6 +28,7 @@ from yt_dlp.utils import (
     ExtractorError,
     InAdvancePagedList,
     LazyList,
+    NO_DEFAULT,
     OnDemandPagedList,
     Popen,
     age_restricted,
@@ -768,6 +770,11 @@ class TestUtil(unittest.TestCase):
 
     def test_parse_iso8601(self):
         self.assertEqual(parse_iso8601('2014-03-23T23:04:26+0100'), 1395612266)
+        self.assertEqual(parse_iso8601('2014-03-23T23:04:26-07:00'), 1395641066)
+        self.assertEqual(parse_iso8601('2014-03-23T23:04:26', timezone=dt.timedelta(hours=-7)), 1395641066)
+        self.assertEqual(parse_iso8601('2014-03-23T23:04:26', timezone=NO_DEFAULT), None)
+        # default does not override timezone in date_str
+        self.assertEqual(parse_iso8601('2014-03-23T23:04:26-07:00', timezone=dt.timedelta(hours=-10)), 1395641066)
         self.assertEqual(parse_iso8601('2014-03-23T22:04:26+0000'), 1395612266)
         self.assertEqual(parse_iso8601('2014-03-23T22:04:26Z'), 1395612266)
         self.assertEqual(parse_iso8601('2014-03-23T22:04:26.1234Z'), 1395612266)
@@ -2059,7 +2066,22 @@ Line 1
         assert extract_basic_auth('http://user:pass@foo.bar') == ('http://foo.bar', 'Basic dXNlcjpwYXNz')
 
     @unittest.skipUnless(compat_os_name == 'nt', 'Only relevant on Windows')
-    def test_Popen_windows_escaping(self):
+    def test_windows_escaping(self):
+        tests = [
+            'test"&',
+            '%CMDCMDLINE:~-1%&',
+            'a\nb',
+            '"',
+            '\\',
+            '!',
+            '^!',
+            'a \\ b',
+            'a \\" b',
+            'a \\ b\\',
+            # We replace \r with \n
+            ('a\r\ra', 'a\n\na'),
+        ]
+
         def run_shell(args):
             stdout, stderr, error = Popen.run(
                 args, text=True, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -2067,15 +2089,15 @@ Line 1
             assert not error
             return stdout
 
-        # Test escaping
-        assert run_shell(['echo', 'test"&']) == '"test""&"\n'
-        assert run_shell(['echo', '%CMDCMDLINE:~-1%&']) == '"%CMDCMDLINE:~-1%&"\n'
-        assert run_shell(['echo', 'a\nb']) == '"a"\n"b"\n'
-        assert run_shell(['echo', '"']) == '""""\n'
-        assert run_shell(['echo', '\\']) == '\\\n'
-        # Test if delayed expansion is disabled
-        assert run_shell(['echo', '^!']) == '"^!"\n'
-        assert run_shell('echo "^!"') == '"^!"\n'
+        for argument in tests:
+            if isinstance(argument, str):
+                expected = argument
+            else:
+                argument, expected = argument
+
+            args = [sys.executable, '-c', 'import sys; print(end=sys.argv[1])', argument, 'end']
+            assert run_shell(args) == expected
+            assert run_shell(shell_quote(args, shell=True)) == expected
 
 
 if __name__ == '__main__':
