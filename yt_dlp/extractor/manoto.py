@@ -1,10 +1,5 @@
 from .common import InfoExtractor
-from ..utils import (
-    clean_html,
-    int_or_none,
-    traverse_obj
-)
-
+from ..utils import clean_html, int_or_none, traverse_obj
 
 _API_URL = 'https://dak1vd5vmi7x6.cloudfront.net/api/v1/publicrole/{}/{}?id={}'
 

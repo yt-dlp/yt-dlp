@@ -1,8 +1,8 @@
 import re
 
 from .common import InfoExtractor
-from ..utils import ExtractorError, clean_html, int_or_none, try_get, unified_strdate
 from ..compat import compat_str
+from ..utils import ExtractorError, clean_html, int_or_none, try_get, unified_strdate
 
 
 class DamtomoBaseIE(InfoExtractor):

@@ -2,8 +2,8 @@ import re
 
 from .common import InfoExtractor
 from ..utils import (
-    determine_ext,
     ExtractorError,
+    determine_ext,
     merge_dicts,
     parse_duration,
     parse_resolution,

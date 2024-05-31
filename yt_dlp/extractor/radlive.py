@@ -1,13 +1,13 @@
 import json
 
+from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     format_field,
     traverse_obj,
     try_get,
-    unified_timestamp
+    unified_timestamp,
 )
-from .common import InfoExtractor
 
 
 class RadLiveIE(InfoExtractor):

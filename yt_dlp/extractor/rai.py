@@ -3,11 +3,11 @@ import re
 from .common import InfoExtractor
 from ..networking import HEADRequest
 from ..utils import (
+    ExtractorError,
+    GeoRestrictedError,
     clean_html,
     determine_ext,
-    ExtractorError,
     filter_dict,
-    GeoRestrictedError,
     int_or_none,
     join_nonempty,
     parse_duration,

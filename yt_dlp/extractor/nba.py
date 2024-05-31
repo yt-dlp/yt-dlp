@@ -7,9 +7,9 @@ from ..compat import (
     compat_urllib_parse_unquote,
 )
 from ..utils import (
+    OnDemandPagedList,
     int_or_none,
     merge_dicts,
-    OnDemandPagedList,
     parse_duration,
     parse_iso8601,
     parse_qs,
