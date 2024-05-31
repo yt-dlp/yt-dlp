@@ -8,9 +8,9 @@ from ..utils import (
 
 class DumpertIE(InfoExtractor):
     _VALID_URL = r'''(?x)
-        (?P<protocol>https?)://(?:(?:www|legacy)\.)?dumpert\.nl(?:
-            /(?:mediabase|embed|item)/|
-            (?:/toppers|/latest|/?)\?selectedId=
+        (?P<protocol>https?)://(?:(?:www|legacy)\.)?dumpert\.nl/(?:
+            (?:mediabase|embed|item)/|
+            [^#]*[?&]selectedId=
         )(?P<id>[0-9]+[/_][0-9a-zA-Z]+)'''
     _TESTS = [{
         'url': 'https://www.dumpert.nl/item/6646981_951bc60f',
@@ -55,6 +55,9 @@ class DumpertIE(InfoExtractor):
         'only_matching': True,
     }, {
         'url': 'https://www.dumpert.nl/?selectedId=100031688_b317a185',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.dumpert.nl/toppers/dag?selectedId=100086074_f5cef3ac',
         'only_matching': True,
     }]
 

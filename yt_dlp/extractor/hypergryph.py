@@ -9,7 +9,7 @@ class MonsterSirenHypergryphMusicIE(InfoExtractor):
         'info_dict': {
             'id': '514562',
             'ext': 'wav',
-            'artist': ['塞壬唱片-MSR'],
+            'artists': ['塞壬唱片-MSR'],
             'album': 'Flame Shadow',
             'title': 'Flame Shadow',
         }
@@ -27,6 +27,6 @@ class MonsterSirenHypergryphMusicIE(InfoExtractor):
             'url': traverse_obj(json_data, ('player', 'songDetail', 'sourceUrl')),
             'ext': 'wav',
             'vcodec': 'none',
-            'artist': traverse_obj(json_data, ('player', 'songDetail', 'artists')),
+            'artists': traverse_obj(json_data, ('player', 'songDetail', 'artists', ...)),
             'album': traverse_obj(json_data, ('musicPlay', 'albumDetail', 'name'))
         }

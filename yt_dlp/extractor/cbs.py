@@ -5,14 +5,14 @@ from .youtube import YoutubeIE
 from ..utils import (
     ExtractorError,
     extract_attributes,
+    find_xpath_attr,
     get_element_html_by_id,
     int_or_none,
-    find_xpath_attr,
     smuggle_url,
-    xpath_element,
-    xpath_text,
     update_url_query,
     url_or_none,
+    xpath_element,
+    xpath_text,
 )
 
 
@@ -76,6 +76,7 @@ class CBSBaseIE(ThePlatformFeedIE):  # XXX: Do not subclass from concrete IE
 
 
 class CBSIE(CBSBaseIE):
+    _WORKING = False
     _VALID_URL = r'''(?x)
         (?:
             cbs:|

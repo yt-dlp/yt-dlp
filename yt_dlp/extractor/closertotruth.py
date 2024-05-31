@@ -4,6 +4,7 @@ from .common import InfoExtractor
 
 
 class CloserToTruthIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?closertotruth\.com/(?:[^/]+/)*(?P<id>[^/?#&]+)'
     _TESTS = [{
         'url': 'http://closertotruth.com/series/solutions-the-mind-body-problem#video-3688',

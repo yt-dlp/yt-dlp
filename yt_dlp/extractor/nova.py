@@ -13,7 +13,7 @@ from ..utils import (
 
 
 class NovaEmbedIE(InfoExtractor):
-    _VALID_URL = r'https?://media\.cms\.nova\.cz/embed/(?P<id>[^/?#&]+)'
+    _VALID_URL = r'https?://media(?:tn)?\.cms\.nova\.cz/embed/(?P<id>[^/?#&]+)'
     _TESTS = [{
         'url': 'https://media.cms.nova.cz/embed/8o0n0r?autoplay=1',
         'info_dict': {
@@ -35,6 +35,16 @@ class NovaEmbedIE(InfoExtractor):
             'title': 'Borhyová oslavila 60? Soutěžící z pořadu odboural moderátora Ondřeje Sokola',
             'thumbnail': r're:^https?://.*\.jpg',
             'duration': 114,
+        },
+        'params': {'skip_download': 'm3u8'},
+    }, {
+        'url': 'https://mediatn.cms.nova.cz/embed/EU5ELEsmOHt?autoplay=1',
+        'info_dict': {
+            'id': 'EU5ELEsmOHt',
+            'ext': 'mp4',
+            'title': 'Haptické křeslo, bionická ruka nebo roboti. Reportérka se podívala na Týden inovací',
+            'thumbnail': r're:^https?://.*\.jpg',
+            'duration': 1780,
         },
         'params': {'skip_download': 'm3u8'},
     }]
@@ -125,14 +135,15 @@ class NovaIE(InfoExtractor):
     _VALID_URL = r'https?://(?:[^.]+\.)?(?P<site>tv(?:noviny)?|tn|novaplus|vymena|fanda|krasna|doma|prask)\.nova\.cz/(?:[^/]+/)+(?P<id>[^/]+?)(?:\.html|/|$)'
     _TESTS = [{
         'url': 'http://tn.nova.cz/clanek/tajemstvi-ukryte-v-podzemi-specialni-nemocnice-v-prazske-krci.html#player_13260',
-        'md5': '249baab7d0104e186e78b0899c7d5f28',
+        'md5': 'da8f3f1fcdaf9fb0f112a32a165760a3',
         'info_dict': {
-            'id': '1757139',
-            'display_id': 'tajemstvi-ukryte-v-podzemi-specialni-nemocnice-v-prazske-krci',
+            'id': '8OvQqEvV3MW',
+            'display_id': '8OvQqEvV3MW',
             'ext': 'mp4',
             'title': 'Podzemní nemocnice v pražské Krči',
             'description': 'md5:f0a42dd239c26f61c28f19e62d20ef53',
             'thumbnail': r're:^https?://.*\.(?:jpg)',
+            'duration': 151,
         }
     }, {
         'url': 'http://fanda.nova.cz/clanek/fun-and-games/krvavy-epos-zaklinac-3-divoky-hon-vychazi-vyhrajte-ho-pro-sebe.html',
@@ -200,7 +211,7 @@ class NovaIE(InfoExtractor):
 
         # novaplus
         embed_id = self._search_regex(
-            r'<iframe[^>]+\bsrc=["\'](?:https?:)?//media\.cms\.nova\.cz/embed/([^/?#&]+)',
+            r'<iframe[^>]+\bsrc=["\'](?:https?:)?//media(?:tn)?\.cms\.nova\.cz/embed/([^/?#&"\']+)',
             webpage, 'embed url', default=None)
         if embed_id:
             return {

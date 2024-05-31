@@ -1,8 +1,8 @@
 from .common import InfoExtractor
 from ..compat import compat_str
 from ..utils import (
-    parse_iso8601,
     parse_duration,
+    parse_iso8601,
 )
 
 
@@ -38,6 +38,7 @@ class SkyNewsArabiaBaseIE(InfoExtractor):
 
 
 class SkyNewsArabiaIE(SkyNewsArabiaBaseIE):
+    _WORKING = False
     IE_NAME = 'skynewsarabia:video'
     _VALID_URL = r'https?://(?:www\.)?skynewsarabia\.com/web/video/(?P<id>[0-9]+)'
     _TEST = {
@@ -64,6 +65,7 @@ class SkyNewsArabiaIE(SkyNewsArabiaBaseIE):
 
 
 class SkyNewsArabiaArticleIE(SkyNewsArabiaBaseIE):
+    _WORKING = False
     IE_NAME = 'skynewsarabia:article'
     _VALID_URL = r'https?://(?:www\.)?skynewsarabia\.com/web/article/(?P<id>[0-9]+)'
     _TESTS = [{

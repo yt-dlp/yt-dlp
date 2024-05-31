@@ -3,7 +3,7 @@ from ..utils import (
     ExtractorError,
     UserNotLive,
     lowercase_escape,
-    traverse_obj
+    traverse_obj,
 )
 
 

@@ -1,5 +1,6 @@
 import base64
 import random
+import re
 import urllib.parse
 
 from .common import InfoExtractor
@@ -11,6 +12,7 @@ from ..utils import (
     unified_timestamp,
     update_url_query,
 )
+from ..utils.traversal import traverse_obj
 
 
 class RadikoBaseIE(InfoExtractor):
@@ -159,6 +161,10 @@ class RadikoBaseIE(InfoExtractor):
 
         return formats
 
+    def _extract_performers(self, prog):
+        return traverse_obj(prog, (
+            'pfm/text()', ..., {lambda x: re.split(r'[/／、　,，]', x)}, ..., {str.strip})) or None
+
 
 class RadikoIE(RadikoBaseIE):
     _VALID_URL = r'https?://(?:www\.)?radiko\.jp/#!/ts/(?P<station>[A-Z0-9-]+)/(?P<id>\d+)'
@@ -186,10 +192,12 @@ class RadikoIE(RadikoBaseIE):
         return {
             'id': video_id,
             'title': try_call(lambda: prog.find('title').text),
+            'cast': self._extract_performers(prog),
             'description': clean_html(try_call(lambda: prog.find('info').text)),
             'uploader': try_call(lambda: station_program.find('.//name').text),
             'uploader_id': station,
             'timestamp': vid_int,
+            'duration': try_call(lambda: unified_timestamp(radio_end, False) - unified_timestamp(radio_begin, False)),
             'is_live': True,
             'formats': self._extract_formats(
                 video_id=video_id, station=station, is_onair=False,
@@ -243,6 +251,7 @@ class RadikoRadioIE(RadikoBaseIE):
         return {
             'id': station,
             'title': title,
+            'cast': self._extract_performers(prog),
             'description': description,
             'uploader': station_name,
             'uploader_id': station,

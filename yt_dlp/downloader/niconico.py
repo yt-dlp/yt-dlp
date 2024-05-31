@@ -6,7 +6,7 @@ from . import get_suitable_downloader
 from .common import FileDownloader
 from .external import FFmpegFD
 from ..networking import Request
-from ..utils import DownloadError, WebSocketsWrapper, str_or_none, try_get
+from ..utils import DownloadError, str_or_none, try_get
 
 
 class NiconicoDmcFD(FileDownloader):
@@ -64,7 +64,6 @@ class NiconicoLiveFD(FileDownloader):
         ws_url = info_dict['url']
         ws_extractor = info_dict['ws']
         ws_origin_host = info_dict['origin']
-        cookies = info_dict.get('cookies')
         live_quality = info_dict.get('live_quality', 'high')
         live_latency = info_dict.get('live_latency', 'high')
         dl = FFmpegFD(self.ydl, self.params or {})
@@ -76,12 +75,7 @@ class NiconicoLiveFD(FileDownloader):
 
         def communicate_ws(reconnect):
             if reconnect:
-                ws = WebSocketsWrapper(ws_url, {
-                    'Cookies': str_or_none(cookies) or '',
-                    'Origin': f'https://{ws_origin_host}',
-                    'Accept': '*/*',
-                    'User-Agent': self.params['http_headers']['User-Agent'],
-                })
+                ws = self.ydl.urlopen(Request(ws_url, headers={'Origin': f'https://{ws_origin_host}'}))
                 if self.ydl.params.get('verbose', False):
                     self.to_screen('[debug] Sending startWatching request')
                 ws.send(json.dumps({

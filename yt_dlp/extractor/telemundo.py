@@ -4,7 +4,7 @@ from ..utils import try_get, unified_timestamp
 
 
 class TelemundoIE(InfoExtractor):
-
+    _WORKING = False
     _VALID_URL = r'https?:\/\/(?:www\.)?telemundo\.com\/.+?video\/[^\/]+(?P<id>tmvo\d{7})'
     _TESTS = [{
         'url': 'https://www.telemundo.com/noticias/noticias-telemundo-en-la-noche/empleo/video/esta-aplicacion-gratuita-esta-ayudando-los-latinos-encontrar-trabajo-en-estados-unidos-tmvo9829325',

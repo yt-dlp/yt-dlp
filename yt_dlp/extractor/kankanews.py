@@ -1,13 +1,14 @@
-import time
+import hashlib
 import random
 import string
-import hashlib
+import time
 import urllib.parse
 
 from .common import InfoExtractor
 
 
 class KankaNewsIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?kankanews\.com/a/\d+\-\d+\-\d+/(?P<id>\d+)\.shtml'
     _TESTS = [{
         'url': 'https://www.kankanews.com/a/2022-11-08/00310276054.shtml?appid=1088227',

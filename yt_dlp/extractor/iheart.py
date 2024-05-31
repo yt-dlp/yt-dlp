@@ -23,7 +23,7 @@ class IHeartRadioBaseIE(InfoExtractor):
 
 
 class IHeartRadioIE(IHeartRadioBaseIE):
-    IENAME = 'iheartradio'
+    IE_NAME = 'iheartradio'
     _VALID_URL = r'(?:https?://(?:www\.)?iheart\.com/podcast/[^/]+/episode/(?P<display_id>[^/?&#]+)-|iheartradio:)(?P<id>\d+)'
     _TEST = {
         'url': 'https://www.iheart.com/podcast/105-behind-the-bastards-29236323/episode/part-one-alexander-lukashenko-the-dictator-70346499/?embed=true',
