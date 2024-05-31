@@ -182,13 +182,8 @@ class RequestsHTTPAdapter(requests.adapters.HTTPAdapter):
         return super().proxy_manager_for(proxy, **proxy_kwargs, **self._pm_args, **extra_kwargs)
 
     # Skip `requests` internal verification; we use our own SSLContext
-    # requests 2.31.0+
     def cert_verify(*args, **kwargs):
         pass
-
-    # requests 2.32.0-2.32.1
-    def _get_connection(self, request, *_, proxies=None, **__):
-        return self.get_connection(request.url, proxies)
 
     # requests 2.32.2+: Reimplementation without `_urllib3_request_context`
     def get_connection_with_tls_context(self, request, verify, proxies=None, cert=None):
