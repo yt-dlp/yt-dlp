@@ -157,6 +157,7 @@ class LecturioIE(LecturioBaseIE):
         'only_matching': True,
     }]
 
+
 class LecturioDeIE(LecturioBaseIE):
     _VALID_URL = r'https?://www\.lecturio\.de/[^/?#]+/(?P<id>)(?P<nt>[^/?#&]+)\.vortrag'
     _TESTS = [{
@@ -213,6 +214,7 @@ class LecturioDeCourseIE(InfoExtractor):
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
+
         webpage = self._download_webpage(url, display_id)
 
         entries = []
