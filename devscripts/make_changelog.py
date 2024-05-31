@@ -40,20 +40,6 @@ class CommitGroup(enum.Enum):
         return {
             name: group
             for group, names in {
-                cls.CORE: {
-                    'aes',
-                    'cache',
-                    'compat_utils',
-                    'compat',
-                    'cookies',
-                    'dependencies',
-                    'formats',
-                    'jsinterp',
-                    'outtmpl',
-                    'plugins',
-                    'update',
-                    'utils',
-                },
                 cls.MISC: {
                     'build',
                     'ci',
@@ -267,7 +253,7 @@ class CommitRange:
         ''', re.VERBOSE | re.DOTALL)
     EXTRACTOR_INDICATOR_RE = re.compile(r'(?:Fix|Add)\s+Extractors?', re.IGNORECASE)
     REVERT_RE = re.compile(r'(?:\[[^\]]+\]\s+)?(?i:Revert)\s+([\da-f]{40})')
-    FIXES_RE = re.compile(r'(?i:Fix(?:es)?(?:\s+bugs?)?(?:\s+in|\s+for)?|Revert)\s+([\da-f]{40})')
+    FIXES_RE = re.compile(r'(?i:Fix(?:es)?(?:\s+bugs?)?(?:\s+in|\s+for)?|Revert|Improve)\s+([\da-f]{40})')
     UPSTREAM_MERGE_RE = re.compile(r'Update to ytdl-commit-([\da-f]+)')
 
     def __init__(self, start, end, default_author=None):
@@ -404,9 +390,9 @@ class CommitRange:
             if not group:
                 if self.EXTRACTOR_INDICATOR_RE.search(commit.short):
                     group = CommitGroup.EXTRACTOR
+                    logger.error(f'Assuming [ie] group for {commit.short!r}')
                 else:
-                    group = CommitGroup.POSTPROCESSOR
-                logger.warning(f'Failed to map {commit.short!r}, selected {group.name.lower()}')
+                    group = CommitGroup.CORE
 
             commit_info = CommitInfo(
                 details, sub_details, message.strip(),
@@ -459,7 +445,32 @@ def get_new_contributors(contributors_path, commits):
     return sorted(new_contributors, key=str.casefold)
 
 
-if __name__ == '__main__':
+def create_changelog(args):
+    logging.basicConfig(
+        datefmt='%Y-%m-%d %H-%M-%S', format='{asctime} | {levelname:<8} | {message}',
+        level=logging.WARNING - 10 * args.verbosity, style='{', stream=sys.stderr)
+
+    commits = CommitRange(None, args.commitish, args.default_author)
+
+    if not args.no_override:
+        if args.override_path.exists():
+            overrides = json.loads(read_file(args.override_path))
+            commits.apply_overrides(overrides)
+        else:
+            logger.warning(f'File {args.override_path.as_posix()} does not exist')
+
+    logger.info(f'Loaded {len(commits)} commits')
+
+    new_contributors = get_new_contributors(args.contributors_path, commits)
+    if new_contributors:
+        if args.contributors:
+            write_file(args.contributors_path, '\n'.join(new_contributors) + '\n', mode='a')
+        logger.info(f'New contributors: {", ".join(new_contributors)}')
+
+    return Changelog(commits.groups(), args.repo, args.collapsible)
+
+
+def create_parser():
     import argparse
 
     parser = argparse.ArgumentParser(
@@ -491,27 +502,9 @@ if __name__ == '__main__':
     parser.add_argument(
         '--collapsible', action='store_true',
         help='make changelog collapsible (default: %(default)s)')
-    args = parser.parse_args()
 
-    logging.basicConfig(
-        datefmt='%Y-%m-%d %H-%M-%S', format='{asctime} | {levelname:<8} | {message}',
-        level=logging.WARNING - 10 * args.verbosity, style='{', stream=sys.stderr)
+    return parser
 
-    commits = CommitRange(None, args.commitish, args.default_author)
 
-    if not args.no_override:
-        if args.override_path.exists():
-            overrides = json.loads(read_file(args.override_path))
-            commits.apply_overrides(overrides)
-        else:
-            logger.warning(f'File {args.override_path.as_posix()} does not exist')
-
-    logger.info(f'Loaded {len(commits)} commits')
-
-    new_contributors = get_new_contributors(args.contributors_path, commits)
-    if new_contributors:
-        if args.contributors:
-            write_file(args.contributors_path, '\n'.join(new_contributors) + '\n', mode='a')
-        logger.info(f'New contributors: {", ".join(new_contributors)}')
-
-    print(Changelog(commits.groups(), args.repo, args.collapsible))
+if __name__ == '__main__':
+    print(create_changelog(create_parser().parse_args()))

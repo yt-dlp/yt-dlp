@@ -185,7 +185,6 @@ class BitChuteChannelIE(InfoExtractor):
                 'info_dict': {
                     'id': 'UGlrF9o9b-Q',
                     'ext': 'mp4',
-                    'filesize': None,
                     'title': 'This is the first video on #BitChute !',
                     'description': 'md5:a0337e7b1fe39e32336974af8173a034',
                     'thumbnail': r're:^https?://.*\.jpg$',

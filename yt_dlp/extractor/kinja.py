@@ -12,7 +12,7 @@ from ..utils import (
 
 
 class KinjaEmbedIE(InfoExtractor):
-    IENAME = 'kinja:embed'
+    IE_NAME = 'kinja:embed'
     _DOMAIN_REGEX = r'''(?:[^.]+\.)?
         (?:
             avclub|

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import contextlib
 import functools
+import os
 import socket
 import ssl
 import sys
@@ -121,6 +122,9 @@ def make_ssl_context(
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
     context.check_hostname = verify
     context.verify_mode = ssl.CERT_REQUIRED if verify else ssl.CERT_NONE
+    # OpenSSL 1.1.1+ Python 3.8+ keylog file
+    if hasattr(context, 'keylog_filename'):
+        context.keylog_filename = os.environ.get('SSLKEYLOGFILE') or None
 
     # Some servers may reject requests if ALPN extension is not sent. See:
     # https://github.com/python/cpython/issues/85140
@@ -219,7 +223,7 @@ def _socket_connect(ip_addr, timeout, source_address):
             sock.bind(source_address)
         sock.connect(sa)
         return sock
-    except socket.error:
+    except OSError:
         sock.close()
         raise
 
@@ -237,7 +241,7 @@ def create_socks_proxy_socket(dest_addr, proxy_args, proxy_ip_addr, timeout, sou
             sock.bind(source_address)
         sock.connect(dest_addr)
         return sock
-    except socket.error:
+    except OSError:
         sock.close()
         raise
 
@@ -255,7 +259,7 @@ def create_connection(
     host, port = address
     ip_addrs = socket.getaddrinfo(host, port, 0, socket.SOCK_STREAM)
     if not ip_addrs:
-        raise socket.error('getaddrinfo returns an empty list')
+        raise OSError('getaddrinfo returns an empty list')
     if source_address is not None:
         af = socket.AF_INET if ':' not in source_address[0] else socket.AF_INET6
         ip_addrs = [addr for addr in ip_addrs if addr[0] == af]
@@ -272,7 +276,7 @@ def create_connection(
             # https://bugs.python.org/issue36820
             err = None
             return sock
-        except socket.error as e:
+        except OSError as e:
             err = e
 
     try:

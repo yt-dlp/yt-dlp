@@ -93,7 +93,7 @@ class AENetworksBaseIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
             resource = self._get_mvpd_resource(
                 requestor_id, theplatform_metadata['title'],
                 theplatform_metadata.get('AETN$PPL_pplProgramId') or theplatform_metadata.get('AETN$PPL_pplProgramId_OLD'),
-                theplatform_metadata['ratings'][0]['rating'])
+                traverse_obj(theplatform_metadata, ('ratings', 0, 'rating')))
             auth = self._extract_mvpd_auth(
                 url, video_id, requestor_id, resource)
         info.update(self._extract_aen_smil(media_url, video_id, auth))

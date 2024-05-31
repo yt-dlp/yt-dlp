@@ -1,6 +1,7 @@
 import functools
 import json
 import re
+import urllib.parse
 
 from .common import InfoExtractor
 from ..networking.exceptions import HTTPError
@@ -44,36 +45,41 @@ class DailymotionBaseInfoExtractor(InfoExtractor):
         self._FAMILY_FILTER = ff == 'on' if ff else age_restricted(18, self.get_param('age_limit'))
         self._set_dailymotion_cookie('ff', 'on' if self._FAMILY_FILTER else 'off')
 
+    def _get_token(self, xid):
+        cookies = self._get_dailymotion_cookies()
+        token = self._get_cookie_value(cookies, 'access_token') or self._get_cookie_value(cookies, 'client_token')
+        if token:
+            return token
+
+        data = {
+            'client_id': 'f1a362d288c1b98099c7',
+            'client_secret': 'eea605b96e01c796ff369935357eca920c5da4c5',
+        }
+        username, password = self._get_login_info()
+        if username:
+            data.update({
+                'grant_type': 'password',
+                'password': password,
+                'username': username,
+            })
+        else:
+            data['grant_type'] = 'client_credentials'
+        try:
+            token = self._download_json(
+                'https://graphql.api.dailymotion.com/oauth/token',
+                None, 'Downloading Access Token',
+                data=urlencode_postdata(data))['access_token']
+        except ExtractorError as e:
+            if isinstance(e.cause, HTTPError) and e.cause.status == 400:
+                raise ExtractorError(self._parse_json(
+                    e.cause.response.read().decode(), xid)['error_description'], expected=True)
+            raise
+        self._set_dailymotion_cookie('access_token' if username else 'client_token', token)
+        return token
+
     def _call_api(self, object_type, xid, object_fields, note, filter_extra=None):
         if not self._HEADERS.get('Authorization'):
-            cookies = self._get_dailymotion_cookies()
-            token = self._get_cookie_value(cookies, 'access_token') or self._get_cookie_value(cookies, 'client_token')
-            if not token:
-                data = {
-                    'client_id': 'f1a362d288c1b98099c7',
-                    'client_secret': 'eea605b96e01c796ff369935357eca920c5da4c5',
-                }
-                username, password = self._get_login_info()
-                if username:
-                    data.update({
-                        'grant_type': 'password',
-                        'password': password,
-                        'username': username,
-                    })
-                else:
-                    data['grant_type'] = 'client_credentials'
-                try:
-                    token = self._download_json(
-                        'https://graphql.api.dailymotion.com/oauth/token',
-                        None, 'Downloading Access Token',
-                        data=urlencode_postdata(data))['access_token']
-                except ExtractorError as e:
-                    if isinstance(e.cause, HTTPError) and e.cause.status == 400:
-                        raise ExtractorError(self._parse_json(
-                            e.cause.response.read().decode(), xid)['error_description'], expected=True)
-                    raise
-                self._set_dailymotion_cookie('access_token' if username else 'client_token', token)
-            self._HEADERS['Authorization'] = 'Bearer ' + token
+            self._HEADERS['Authorization'] = f'Bearer {self._get_token(xid)}'
 
         resp = self._download_json(
             'https://graphql.api.dailymotion.com/', xid, note, data=json.dumps({
@@ -393,9 +399,55 @@ class DailymotionPlaylistIE(DailymotionPlaylistBaseIE):
                 yield '//dailymotion.com/playlist/%s' % p
 
 
+class DailymotionSearchIE(DailymotionPlaylistBaseIE):
+    IE_NAME = 'dailymotion:search'
+    _VALID_URL = r'https?://(?:www\.)?dailymotion\.[a-z]{2,3}/search/(?P<id>[^/?#]+)/videos'
+    _PAGE_SIZE = 20
+    _TESTS = [{
+        'url': 'http://www.dailymotion.com/search/king of turtles/videos',
+        'info_dict': {
+            'id': 'king of turtles',
+            'title': 'king of turtles',
+        },
+        'playlist_mincount': 90,
+    }]
+    _SEARCH_QUERY = 'query SEARCH_QUERY( $query: String! $page: Int $limit: Int ) { search { videos( query: $query first: $limit page: $page ) { edges { node { xid } } } } } '
+
+    def _call_search_api(self, term, page, note):
+        if not self._HEADERS.get('Authorization'):
+            self._HEADERS['Authorization'] = f'Bearer {self._get_token(term)}'
+        resp = self._download_json(
+            'https://graphql.api.dailymotion.com/', None, note, data=json.dumps({
+                'operationName': 'SEARCH_QUERY',
+                'query': self._SEARCH_QUERY,
+                'variables': {
+                    'limit': 20,
+                    'page': page,
+                    'query': term,
+                }
+            }).encode(), headers=self._HEADERS)
+        obj = traverse_obj(resp, ('data', 'search', {dict}))
+        if not obj:
+            raise ExtractorError(
+                traverse_obj(resp, ('errors', 0, 'message', {str})) or 'Could not fetch search data')
+
+        return obj
+
+    def _fetch_page(self, term, page):
+        page += 1
+        response = self._call_search_api(term, page, f'Searching "{term}" page {page}')
+        for xid in traverse_obj(response, ('videos', 'edges', ..., 'node', 'xid')):
+            yield self.url_result(f'https://www.dailymotion.com/video/{xid}', DailymotionIE, xid)
+
+    def _real_extract(self, url):
+        term = urllib.parse.unquote_plus(self._match_id(url))
+        return self.playlist_result(
+            OnDemandPagedList(functools.partial(self._fetch_page, term), self._PAGE_SIZE), term, term)
+
+
 class DailymotionUserIE(DailymotionPlaylistBaseIE):
     IE_NAME = 'dailymotion:user'
-    _VALID_URL = r'https?://(?:www\.)?dailymotion\.[a-z]{2,3}/(?!(?:embed|swf|#|video|playlist)/)(?:(?:old/)?user/)?(?P<id>[^/]+)'
+    _VALID_URL = r'https?://(?:www\.)?dailymotion\.[a-z]{2,3}/(?!(?:embed|swf|#|video|playlist|search)/)(?:(?:old/)?user/)?(?P<id>[^/?#]+)'
     _TESTS = [{
         'url': 'https://www.dailymotion.com/user/nqtv',
         'info_dict': {

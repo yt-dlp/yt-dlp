@@ -9,7 +9,15 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
 from test.helper import FakeYDL, report_warning
-from yt_dlp.update import Updater, UpdateInfo
+from yt_dlp.update import UpdateInfo, Updater
+
+
+# XXX: Keep in sync with yt_dlp.update.UPDATE_SOURCES
+TEST_UPDATE_SOURCES = {
+    'stable': 'yt-dlp/yt-dlp',
+    'nightly': 'yt-dlp/yt-dlp-nightly-builds',
+    'master': 'yt-dlp/yt-dlp-master-builds',
+}
 
 TEST_API_DATA = {
     'yt-dlp/yt-dlp/latest': {
@@ -104,6 +112,7 @@ class FakeUpdater(Updater):
 
     _channel = 'stable'
     _origin = 'yt-dlp/yt-dlp'
+    _update_sources = TEST_UPDATE_SOURCES
 
     def _download_update_spec(self, *args, **kwargs):
         return TEST_LOCKFILE_ACTUAL

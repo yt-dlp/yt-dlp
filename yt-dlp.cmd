@@ -1,1 +1,1 @@
-@py -bb -Werror -Xdev "%~dp0yt_dlp\__main__.py" %*
+@py -Werror -Xdev "%~dp0yt_dlp\__main__.py" %*

@@ -10,14 +10,14 @@ import urllib.request
 import zlib
 
 from ._utils import Popen, decode_base_n, preferredencoding
-from .networking import escape_rfc3986  # noqa: F401
-from .networking import normalize_url as escape_url  # noqa: F401
 from .traversal import traverse_obj
 from ..dependencies import certifi, websockets
 from ..networking._helper import make_ssl_context
 from ..networking._urllib import HTTPHandler
 
 # isort: split
+from .networking import escape_rfc3986  # noqa: F401
+from .networking import normalize_url as escape_url  # noqa: F401
 from .networking import random_user_agent, std_headers  # noqa: F401
 from ..cookies import YoutubeDLCookieJar  # noqa: F401
 from ..networking._urllib import PUTRequest  # noqa: F401
@@ -90,7 +90,7 @@ class WebSocketsWrapper:
         for task in to_cancel:
             task.cancel()
 
-        # XXX: "loop" is removed in python 3.10+
+        # XXX: "loop" is removed in Python 3.10+
         loop.run_until_complete(
             asyncio.gather(*to_cancel, loop=loop, return_exceptions=True))
 

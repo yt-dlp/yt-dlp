@@ -29,7 +29,8 @@ class BigoIE(InfoExtractor):
 
         info_raw = self._download_json(
             'https://ta.bigo.tv/official_website/studio/getInternalStudioInfo',
-            user_id, data=urlencode_postdata({'siteId': user_id}))
+            user_id, data=urlencode_postdata({'siteId': user_id}),
+            headers={'Accept': 'application/json'})
 
         if not isinstance(info_raw, dict):
             raise ExtractorError('Received invalid JSON data')

@@ -40,3 +40,19 @@ class UnicodeBOMIE(InfoExtractor):
             'Your URL starts with a Byte Order Mark (BOM). '
             'Removing the BOM and looking for "%s" ...' % real_url)
         return self.url_result(real_url)
+
+
+class BlobIE(InfoExtractor):
+    IE_DESC = False
+    _VALID_URL = r'blob:'
+
+    _TESTS = [{
+        'url': 'blob:https://www.youtube.com/4eb3d090-a761-46e6-8083-c32016a36e3b',
+        'only_matching': True,
+    }]
+
+    def _real_extract(self, url):
+        raise ExtractorError(
+            'You\'ve asked yt-dlp to download a blob URL. '
+            'A blob URL exists only locally in your browser. '
+            'It is not possible for yt-dlp to access it.', expected=True)

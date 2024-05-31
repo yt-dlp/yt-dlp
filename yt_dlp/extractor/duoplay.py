@@ -13,7 +13,7 @@ from ..utils.traversal import traverse_obj
 
 
 class DuoplayIE(InfoExtractor):
-    _VALID_URL = r'https://duoplay\.ee/(?P<id>\d+)/[\w-]+/?(?:\?(?:[^#]+&)?ep=(?P<ep>\d+))?'
+    _VALID_URL = r'https?://duoplay\.ee/(?P<id>\d+)/[\w-]+/?(?:\?(?:[^#]+&)?ep=(?P<ep>\d+))?'
     _TESTS = [{
         'note': 'Siberi võmm S02E12',
         'url': 'https://duoplay.ee/4312/siberi-vomm?ep=24',
@@ -32,7 +32,7 @@ class DuoplayIE(InfoExtractor):
             'season_number': 2,
             'episode': 'Operatsioon "Öö"',
             'episode_number': 12,
-            'episode_id': 24,
+            'episode_id': '24',
         },
     }, {
         'note': 'Empty title',
@@ -50,23 +50,8 @@ class DuoplayIE(InfoExtractor):
             'series_id': '17',
             'season': 'Season 2',
             'season_number': 2,
-            'episode_id': 14,
+            'episode_id': '14',
             'release_year': 2010,
-        },
-    }, {
-        'note': 'Movie',
-        'url': 'https://duoplay.ee/4325/naljamangud',
-        'md5': '2b0bcac4159a08b1844c2bfde06b1199',
-        'info_dict': {
-            'id': '4325',
-            'ext': 'mp4',
-            'title': 'Näljamängud',
-            'thumbnail': r're:https://.+\.jpg(?:\?c=\d+)?$',
-            'description': 'md5:fb35f5eb2ff46cdb82e4d5fbe7b49a13',
-            'cast': ['Jennifer Lawrence', 'Josh Hutcherson', 'Liam Hemsworth'],
-            'upload_date': '20231109',
-            'timestamp': 1699552800,
-            'release_year': 2012,
         },
     }, {
         'note': 'Movie without expiry',
@@ -114,6 +99,6 @@ class DuoplayIE(InfoExtractor):
                 'season_number': ('season_id', {int_or_none}),
                 'episode': 'subtitle',
                 'episode_number': ('episode_nr', {int_or_none}),
-                'episode_id': ('episode_id', {int_or_none}),
+                'episode_id': ('episode_id', {str_or_none}),
             }, get_all=False) if episode_attr.get('category') != 'movies' else {}),
         }

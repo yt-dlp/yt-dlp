@@ -1,7 +1,7 @@
 from .common import InfoExtractor
 from ..utils import (
-    parse_duration,
     int_or_none,
+    parse_duration,
 )
 
 

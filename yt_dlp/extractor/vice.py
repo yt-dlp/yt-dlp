@@ -10,10 +10,10 @@ from .youtube import YoutubeIE
 from ..compat import compat_str
 from ..networking.exceptions import HTTPError
 from ..utils import (
-    clean_html,
     ExtractorError,
-    int_or_none,
     OnDemandPagedList,
+    clean_html,
+    int_or_none,
     parse_age_limit,
     str_or_none,
     try_get,
@@ -224,7 +224,7 @@ class ViceShowIE(ViceBaseIE):
 
 class ViceArticleIE(ViceBaseIE):
     IE_NAME = 'vice:article'
-    _VALID_URL = r'https://(?:www\.)?vice\.com/(?P<locale>[^/]+)/article/(?:[0-9a-z]{6}/)?(?P<id>[^?#]+)'
+    _VALID_URL = r'https?://(?:www\.)?vice\.com/(?P<locale>[^/]+)/article/(?:[0-9a-z]{6}/)?(?P<id>[^?#]+)'
 
     _TESTS = [{
         'url': 'https://www.vice.com/en_us/article/on-set-with-the-woman-making-mormon-porn-in-utah',

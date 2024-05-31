@@ -64,7 +64,6 @@ jobs:
       target_tag: ${{ steps.setup_variables.outputs.target_tag }}
       pypi_project: ${{ steps.setup_variables.outputs.pypi_project }}
       pypi_suffix: ${{ steps.setup_variables.outputs.pypi_suffix }}
-      pypi_token: ${{ steps.setup_variables.outputs.pypi_token }}
       head_sha: ${{ steps.get_target.outputs.head_sha }}
 
     steps:
@@ -72,7 +71,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.10"
 
@@ -153,7 +152,6 @@ jobs:
               ${{ !!secrets[format('{0}_archive_repo_token', env.target_repo)] }} || fallback_token
               pypi_project='${{ vars[format('{0}_pypi_project', env.target_repo)] }}'
               pypi_suffix='${{ vars[format('{0}_pypi_suffix', env.target_repo)] }}'
-              ${{ !secrets[format('{0}_pypi_token', env.target_repo)] }} || pypi_token='${{ env.target_repo }}_pypi_token'
             fi
           else
             target_tag="${source_tag:-${version}}"
@@ -163,7 +161,6 @@ jobs:
               ${{ !!secrets[format('{0}_archive_repo_token', env.source_repo)] }} || fallback_token
               pypi_project='${{ vars[format('{0}_pypi_project', env.source_repo)] }}'
               pypi_suffix='${{ vars[format('{0}_pypi_suffix', env.source_repo)] }}'
-              ${{ !secrets[format('{0}_pypi_token', env.source_repo)] }} || pypi_token='${{ env.source_repo }}_pypi_token'
             else
               target_repo='${{ github.repository }}'
             fi
@@ -171,13 +168,6 @@ jobs:
 
           if [[ "${target_repo}" == '${{ github.repository }}' ]] && ${{ !inputs.prerelease }}; then
             pypi_project='${{ vars.PYPI_PROJECT }}'
-          fi
-          if [[ -z "${pypi_token}" && "${pypi_project}" ]]; then
-            if ${{ !secrets.PYPI_TOKEN }}; then
-              pypi_token=OIDC
-            else
-              pypi_token=PYPI_TOKEN
-            fi
           fi
 
           echo "::group::Output variables"
@@ -189,7 +179,6 @@ jobs:
           target_tag=${target_tag}
           pypi_project=${pypi_project}
           pypi_suffix=${pypi_suffix}
-          pypi_token=${pypi_token}
           EOF
           echo "::endgroup::"
 
@@ -200,13 +189,8 @@ jobs:
         if: |
           !inputs.prerelease && env.target_repo == github.repository
         run: |
+          python devscripts/update_changelog.py -vv
           make doc
-          sed '/### /Q' Changelog.md >> ./CHANGELOG
-          echo '### ${{ env.version }}' >> ./CHANGELOG
-          python ./devscripts/make_changelog.py -vv -c >> ./CHANGELOG
-          echo >> ./CHANGELOG
-          grep -Poz '(?s)### \d+\.\d+\.\d+.+' 'Changelog.md' | head -n -1 >> ./CHANGELOG
-          cat ./CHANGELOG > Changelog.md
 
       - name: Push to release
         id: push_release
@@ -257,15 +241,16 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.10"
 
       - name: Install Requirements
         run: |
           sudo apt -y install pandoc man
-          python -m pip install -U pip setuptools wheel twine
-          python -m pip install -U -r requirements.txt
+          python devscripts/install_deps.py -o --include build
 
       - name: Prepare
         env:
@@ -276,28 +261,23 @@ jobs:
           pypi_project: ${{ needs.prepare.outputs.pypi_project }}
         run: |
           python devscripts/update-version.py -c "${{ env.channel }}" -r "${{ env.target_repo }}" -s "${{ env.suffix }}" "${{ env.version }}"
+          python devscripts/update_changelog.py -vv
           python devscripts/make_lazy_extractors.py
-          sed -i -E "s/(name=')[^']+(',  # package name)/\1${{ env.pypi_project }}\2/" setup.py
+          sed -i -E '0,/(name = ")[^"]+(")/s//\1${{ env.pypi_project }}\2/' pyproject.toml
 
       - name: Build
         run: |
           rm -rf dist/*
           make pypi-files
+          printf '%s\n\n' \
+            'Official repository: <https://github.com/yt-dlp/yt-dlp>' \
+            '**PS**: Some links in this document will not work since this is a copy of the README.md from Github' > ./README.md.new
+          cat ./README.md >> ./README.md.new && mv -f ./README.md.new ./README.md
           python devscripts/set-variant.py pip -M "You installed yt-dlp with pip or using the wheel from PyPi; Use that to update"
-          python setup.py sdist bdist_wheel
+          make clean-cache
+          python -m build --no-isolation .
 
-      - name: Publish to PyPI via token
-        env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets[needs.prepare.outputs.pypi_token] }}
-        if: |
-          needs.prepare.outputs.pypi_token != 'OIDC' && env.TWINE_PASSWORD
-        run: |
-          twine upload dist/*
-
-      - name: Publish to PyPI via trusted publishing
-        if: |
-          needs.prepare.outputs.pypi_token == 'OIDC'
+      - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           verbose: true
@@ -312,8 +292,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: actions/download-artifact@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifact
+          pattern: build-*
+          merge-multiple: true
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.10"
 
@@ -324,19 +308,19 @@ jobs:
           target_tag: ${{ needs.prepare.outputs.target_tag }}
         run: |
           printf '%s' \
-            '[![Installation](https://img.shields.io/badge/-Which%20file%20should%20I%20download%3F-white.svg?style=for-the-badge)]' \
+            '[![Installation](https://img.shields.io/badge/-Which%20file%20to%20download%3F-white.svg?style=for-the-badge)]' \
               '(https://github.com/${{ github.repository }}#installation "Installation instructions") ' \
+            '[![Discord](https://img.shields.io/discord/807245652072857610?color=blue&labelColor=555555&label=&logo=discord&style=for-the-badge)]' \
+              '(https://discord.gg/H5MNcFW63r "Discord") ' \
+            '[![Donate](https://img.shields.io/badge/_-Donate-red.svg?logo=githubsponsors&labelColor=555555&style=for-the-badge)]' \
+              '(https://github.com/yt-dlp/yt-dlp/blob/master/Collaborators.md#collaborators "Donate") ' \
             '[![Documentation](https://img.shields.io/badge/-Docs-brightgreen.svg?style=for-the-badge&logo=GitBook&labelColor=555555)]' \
               '(https://github.com/${{ github.repository }}' \
               '${{ env.target_repo == github.repository && format('/tree/{0}', env.target_tag) || '' }}#readme "Documentation") ' \
-            '[![Donate](https://img.shields.io/badge/_-Donate-red.svg?logo=githubsponsors&labelColor=555555&style=for-the-badge)]' \
-              '(https://github.com/yt-dlp/yt-dlp/blob/master/Collaborators.md#collaborators "Donate") ' \
-            '[![Discord](https://img.shields.io/discord/807245652072857610?color=blue&labelColor=555555&label=&logo=discord&style=for-the-badge)]' \
-              '(https://discord.gg/H5MNcFW63r "Discord") ' \
             ${{ env.target_repo == 'yt-dlp/yt-dlp' && '\
-              "[![Nightly](https://img.shields.io/badge/Get%20nightly%20builds-purple.svg?style=for-the-badge)]" \
+              "[![Nightly](https://img.shields.io/badge/Nightly%20builds-purple.svg?style=for-the-badge)]" \
               "(https://github.com/yt-dlp/yt-dlp-nightly-builds/releases/latest \"Nightly builds\") " \
-              "[![Master](https://img.shields.io/badge/Get%20master%20builds-lightblue.svg?style=for-the-badge)]" \
+              "[![Master](https://img.shields.io/badge/Master%20builds-lightblue.svg?style=for-the-badge)]" \
               "(https://github.com/yt-dlp/yt-dlp-master-builds/releases/latest \"Master builds\")"' || '' }} > ./RELEASE_NOTES
           printf '\n\n' >> ./RELEASE_NOTES
           cat >> ./RELEASE_NOTES << EOF

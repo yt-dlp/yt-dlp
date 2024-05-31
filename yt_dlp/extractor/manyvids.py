@@ -12,6 +12,7 @@ from ..utils import (
 
 
 class ManyVidsIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'(?i)https?://(?:www\.)?manyvids\.com/video/(?P<id>\d+)'
     _TESTS = [{
         # preview video

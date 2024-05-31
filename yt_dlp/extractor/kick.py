@@ -13,7 +13,8 @@ from ..utils import (
 
 class KickBaseIE(InfoExtractor):
     def _real_initialize(self):
-        self._request_webpage(HEADRequest('https://kick.com/'), None, 'Setting up session', fatal=False)
+        self._request_webpage(
+            HEADRequest('https://kick.com/'), None, 'Setting up session', fatal=False, impersonate=True)
         xsrf_token = self._get_cookies('https://kick.com/').get('XSRF-TOKEN')
         if not xsrf_token:
             self.write_debug('kick.com did not set XSRF-TOKEN cookie')
@@ -25,7 +26,7 @@ class KickBaseIE(InfoExtractor):
     def _call_api(self, path, display_id, note='Downloading API JSON', headers={}, **kwargs):
         return self._download_json(
             f'https://kick.com/api/v1/{path}', display_id, note=note,
-            headers=merge_dicts(headers, self._API_HEADERS), **kwargs)
+            headers=merge_dicts(headers, self._API_HEADERS), impersonate=True, **kwargs)
 
 
 class KickIE(KickBaseIE):
@@ -82,26 +83,27 @@ class KickIE(KickBaseIE):
 class KickVODIE(KickBaseIE):
     _VALID_URL = r'https?://(?:www\.)?kick\.com/video/(?P<id>[\da-f]{8}-(?:[\da-f]{4}-){3}[\da-f]{12})'
     _TESTS = [{
-        'url': 'https://kick.com/video/54244b5e-050a-4df4-a013-b2433dafbe35',
-        'md5': '73691206a6a49db25c5aa1588e6538fc',
+        'url': 'https://kick.com/video/58bac65b-e641-4476-a7ba-3707a35e60e3',
+        'md5': '3870f94153e40e7121a6e46c068b70cb',
         'info_dict': {
-            'id': '54244b5e-050a-4df4-a013-b2433dafbe35',
+            'id': '58bac65b-e641-4476-a7ba-3707a35e60e3',
             'ext': 'mp4',
-            'title': 'Making 710-carBoosting. Kinda No Pixel inspired.  !guilded  - !links',
-            'description': 'md5:a0d3546bf7955d0a8252ffe0fd6f518f',
-            'channel': 'kmack710',
-            'channel_id': '16278',
-            'uploader': 'Kmack710',
-            'uploader_id': '16412',
-            'upload_date': '20221206',
-            'timestamp': 1670318289,
-            'duration': 40104.0,
+            'title': '🤠REBIRTH IS BACK!!!!🤠!stake CODE JAREDFPS 🤠',
+            'description': 'md5:02b0c46f9b4197fb545ab09dddb85b1d',
+            'channel': 'jaredfps',
+            'channel_id': '26608',
+            'uploader': 'JaredFPS',
+            'uploader_id': '26799',
+            'upload_date': '20240402',
+            'timestamp': 1712097108,
+            'duration': 33859.0,
             'thumbnail': r're:^https?://.*\.jpg',
-            'categories': ['Grand Theft Auto V'],
+            'categories': ['Call of Duty: Warzone'],
         },
         'params': {
             'skip_download': 'm3u8',
         },
+        'expected_warnings': [r'impersonation'],
     }]
 
     def _real_extract(self, url):

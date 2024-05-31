@@ -1,11 +1,12 @@
 from .adobepass import AdobePassIE
 from ..utils import (
-    update_url_query,
     smuggle_url,
+    update_url_query,
 )
 
 
 class SyfyIE(AdobePassIE):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?syfy\.com/(?:[^/]+/)?videos/(?P<id>[^/?#]+)'
     _TESTS = [{
         'url': 'http://www.syfy.com/theinternetruinedmylife/videos/the-internet-ruined-my-life-season-1-trailer',
