@@ -1677,8 +1677,11 @@ from .redbee import (
     ParliamentLiveUKIE,
 )
 from .redbulltv import (
+    RedBullChannelIE,
     RedBullEmbedIE,
+    RedBullEventIE,
     RedBullIE,
+    RedBullShowIE,
     RedBullTVIE,
     RedBullTVRrnContentIE,
 )
