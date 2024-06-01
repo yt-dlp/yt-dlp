@@ -1053,6 +1053,14 @@ class NiconicoLiveIE(NiconicoBaseIE):
 
         live_status, availability = self._check_status_and_availability(embedded_data, video_id)
 
+        if availability == 'premium_only':
+            self.raise_login_required('This video requires premium', metadata_available=True)
+        elif availability == 'subscriber_only':
+            self.raise_login_required('This video is for members only', metadata_available=True)
+        elif availability == 'needs_auth':
+            # PPV or tickets for limited time viewing
+            self.raise_login_required('This video requires additional steps to watch', metadata_available=True)
+
         latency = try_get(self._configuration_arg('latency'), lambda x: x[0])
         if latency not in self._KNOWN_LATENCY:
             latency = 'high'
@@ -1098,11 +1106,13 @@ class NiconicoLiveIE(NiconicoBaseIE):
                 return live_status, self._availability()
 
             if is_member_free is False:
-                msg = 'You cannot access the paid content, thus the video may be blank.'
+                availability = {'needs_auth': True}
+                msg = 'Paid content cannot be accessed, the video may be blank.'
             else:
-                msg = 'You cannot access restricted content, thus a part of the video or the entire video may be blank.'
+                availability = {'needs_subscription': True}
+                msg = 'Restricted content cannot be accessed, a part of the video or the entire video may be blank.'
             self.report_warning(msg, video_id)
-            return live_status, self._availability(needs_subscription=True)
+            return live_status, self._availability(**availability)
 
         if traverse_obj(embedded_data, ('userProgramWatch', 'isCountryRestrictionTarget', {bool})):
             self.raise_geo_restricted(countries=self._GEO_COUNTRIES, metadata_available=True)
@@ -1146,12 +1156,5 @@ class NiconicoLiveIE(NiconicoBaseIE):
                 'notUseTimeshiftTicketOnUnlimitedTimeshift',
             ] for x in rejected_reasons),
         })
-
-        if availability == 'premium_only':
-            self.raise_login_required('This video requires premium', metadata_available=True)
-        elif availability == 'subscriber_only':
-            self.raise_login_required('This video is for members only', metadata_available=True)
-        elif availability == 'needs_auth':
-            self.raise_login_required(metadata_available=True)
 
         return live_status, availability
