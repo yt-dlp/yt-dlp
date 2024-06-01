@@ -1,8 +1,8 @@
 from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
     parse_iso8601,
     traverse_obj,
-    ExtractorError,
 )
 
 
