@@ -1369,7 +1369,65 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                         }
                     ]
                 },
-            )
+            ), (
+                'role',
+                'http://unknown/manifest.mpd',
+                None,
+                [{
+                    'format_id': '10',
+                    'manifest_url': 'http://unknown/manifest.mpd',
+                    'ext': 'm4a',
+                    'width': None,
+                    'height': None,
+                    'tbr': 96,
+                    'asr': 48000,
+                    'format_note': 'DASH audio',
+                    'container': 'm4a_dash',
+                    'vcodec': 'none',
+                    'acodec': 'mp4a.40.2',
+                    'role': 'main',
+                    'url': 'MPEGDASH_96_a.mp4',
+                    "audio_ext": 'm4a',
+                }, {
+                    'format_id': '12',
+                    'manifest_url': 'http://unknown/manifest.mpd',
+                    'ext': 'm4a',
+                    'width': None,
+                    'height': None,
+                    'tbr': 96,
+                    'asr': 48000,
+                    'format_note': 'DASH audio',
+                    'container': 'm4a_dash',
+                    'vcodec': 'none',
+                    'acodec': 'mp4a.40.2',
+                    'role': 'description',
+                    'url': 'MPEGDASH_96_a.mp4',
+                }, {
+                    'format_id': '1',
+                    'manifest_url': 'http://unknown/manifest.mpd',
+                    'ext': 'mp4',
+                    'width': 1920,
+                    'height': 1080,
+                    'tbr': 6000,
+                    'format_note': 'DASH video',
+                    'container': 'mp4_dash',
+                    'vcodec': 'avc1.4d4028',
+                    'acodec': 'none',
+                    'role': None,
+                    'url': 'MPEGDASH_6000_v.mp4',
+                }],
+                {
+                    'en': [
+                        {
+                            'ext': 'vtt',
+                            'manifest_url': 'http://unknown/manifest.mpd',
+                            'filesize': None,
+                            'role': 'subtitle',
+                            'url': 'subtitles.mpd'
+                        }
+                    ]
+                },
+            ),
         ]
 
         for mpd_file, mpd_url, mpd_base_url, expected_formats, expected_subtitles in _TEST_CASES:

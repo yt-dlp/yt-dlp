@@ -583,7 +583,7 @@ class YoutubeDL:
         'player_url', 'protocol', 'fragment_base_url', 'fragments', 'is_from_start', 'is_dash_periods', 'request_data',
         'preference', 'language', 'language_preference', 'quality', 'source_preference', 'cookies',
         'http_headers', 'stretched_ratio', 'no_resume', 'has_drm', 'extra_param_to_segment_url', 'hls_aes', 'downloader_options',
-        'page_url', 'app', 'play_path', 'tc_url', 'flash_version', 'rtmp_live', 'rtmp_conn', 'rtmp_protocol', 'rtmp_real_time'
+        'page_url', 'app', 'play_path', 'tc_url', 'flash_version', 'rtmp_live', 'rtmp_conn', 'rtmp_protocol', 'rtmp_real_time', 'role',
     }
     _deprecated_multivalue_fields = {
         'album_artist': 'album_artists',
@@ -3905,6 +3905,7 @@ class YoutubeDL:
                      else self._format_out('DRM', self.Styles.BAD_FORMAT) if f.get('has_drm') else None),
                     format_field(f, 'format_note'),
                     format_field(f, 'container', ignore=(None, f.get('ext'))),
+                    format_field(f, 'role'),
                     delim=', '), delim=' '),
             ] for f in formats if f.get('preference') is None or f['preference'] >= -1000]
         header_line = self._list_format_headers(

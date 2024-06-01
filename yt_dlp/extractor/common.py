@@ -249,6 +249,10 @@ class InfoExtractor:
                                  * http_chunk_size Chunk size for HTTP downloads
                                  * ffmpeg_args     Extra arguments for ffmpeg downloader (input)
                                  * ffmpeg_args_out Extra arguments for ffmpeg downloader (output)
+                    * role      The DASH Role scheme descriptor value identifies the adapation set to look for.
+                                The role scheme accepts one of the following values - ("subtitle", "main", "alternate",
+                                "supplementary", "commentary", "dub", "description", "sign", "metadata",
+                                "enhanced-audio-intelligibility", "emergency").
                     * is_dash_periods  Whether the format is a result of merging
                                  multiple DASH periods.
                     RTMP formats can also have the additional fields: page_url,
@@ -2756,6 +2760,7 @@ class InfoExtractor:
                 'timescale': 1,
             })
             for adaptation_set in period.findall(_add_ns('AdaptationSet')):
+                role = try_call(lambda: adaptation_set.find(_add_ns('Role')).attrib['value'])
                 adaption_set_ms_info = extract_multisegment_info(adaptation_set, period_ms_info)
                 for representation in adaptation_set.findall(_add_ns('Representation')):
                     representation_attrib = adaptation_set.attrib.copy()
@@ -2823,13 +2828,15 @@ class InfoExtractor:
                             'format_note': 'DASH %s' % content_type,
                             'filesize': filesize,
                             'container': mimetype2ext(mime_type) + '_dash',
-                            **codecs
+                            **codecs,
+                            'role': role,
                         }
                     elif content_type == 'text':
                         f = {
                             'ext': mimetype2ext(mime_type),
                             'manifest_url': mpd_url,
                             'filesize': filesize,
+                            'role': role,
                         }
                     elif content_type == 'image/jpeg':
                         # See test case in VikiIE

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<MPD xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="urn:mpeg:dash:schema:mpd:2011" xsi:schemaLocation="urn:mpeg:dash:schema:mpd:2011 http://standards.iso.org/ittf/PubliclyAvailableStandards/MPEG-DASH_schema_files/DASH-MPD.xsd" type="static" minBufferTime="PT30S" profiles="urn:mpeg:dash:profile:isoff-main:2011" mediaPresentationDuration="PT43M54.090S">
+  <Period start="PT0S" duration="PT43M54.090S" id="1">
+    <AdaptationSet mimeType="video/mp4" frameRate="25/1" segmentAlignment="true" subsegmentAlignment="true" startWithSAP="1" subsegmentStartsWithSAP="1" bitstreamSwitching="false" id="1" group="2">
+      <Representation id="1" width="1920" height="1080" bandwidth="6000000" codecs="avc1.4d4028">
+        <BaseURL>MPEGDASH_6000_v.mp4</BaseURL>
+        <SegmentBase indexRange="1490-17345">
+          <Initialization range="0-1489"/>
+        </SegmentBase>
+      </Representation>
+    </AdaptationSet>
+    <AdaptationSet mimeType="audio/mp4" lang="en" segmentAlignment="0" id="2" group="1">
+      <Label>English</Label>
+      <Representation id="10" bandwidth="96000" audioSamplingRate="48000" codecs="mp4a.40.2">
+        <BaseURL>MPEGDASH_96_a.mp4</BaseURL>
+        <SegmentBase indexRange="1410-17265">
+          <Initialization range="0-1409"/>
+        </SegmentBase>
+        <AudioChannelConfiguration schemeIdUri="urn:mpeg:dash:23003:3:audio_channel_configuration:2011" value="2"/>
+      </Representation>
+      <Role schemeIdUri="urn:mpeg:dash:role:2011" value="main"/>
+    </AdaptationSet>
+    <AdaptationSet mimeType="audio/mp4" lang="en" segmentAlignment="0" id="3" group="1">
+      <Label>English (Audio Description)</Label>
+      <Accessibility schemeIdUri="urn:tva:metadata:cs:AudioPurposeCS:2007" value="1"/>
+      <Role schemeIdUri="urn:mpeg:dash:role:2011" value="description"/>
+      <Representation id="12" bandwidth="96000" audioSamplingRate="48000" codecs="mp4a.40.2">
+        <BaseURL>MPEGDASH_96_a.mp4</BaseURL>
+        <SegmentBase indexRange="1410-17265">
+          <Initialization range="0-1409"/>
+        </SegmentBase>
+        <AudioChannelConfiguration schemeIdUri="urn:mpeg:dash:23003:3:audio_channel_configuration:2011" value="2"/>
+      </Representation>
+    </AdaptationSet>
+    <AdaptationSet mimeType="text/vtt" lang="en" id="4" group="4">
+      <Role schemeIdUri="urn:mpeg:dash:role" value="subtitle"/>
+      <Label>English</Label>
+      <Representation id="14" bandwidth="256">
+        <BaseURL>subtitles.mpd</BaseURL>
+      </Representation>
+    </AdaptationSet>
+  </Period>
+</MPD>

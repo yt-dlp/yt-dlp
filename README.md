@@ -1502,6 +1502,7 @@ Also filtering work for comparisons `=` (equals), `^=` (starts with), `$=` (ends
  - `format`: A human-readable description of the format
  - `format_note`: Additional info about the format
  - `resolution`: Textual description of width and height
+ - `role`: The DASH Role scheme descriptor value (`caption`, `subtitle`, `Main`, `alternate`, `supplementary`, `commentary`, `dub`, `description`, `sign`, `metadata`, `enhanced-audiointelligibility`, `emergency`)
 
 Any string comparison may be prefixed with negation `!` in order to produce an opposite comparison, e.g. `!*=` (does not contain). The comparand of a string comparison needs to be quoted with either double or single quotes if it contains spaces or special characters other than `._-`.
 
@@ -1658,7 +1659,6 @@ $ yt-dlp -S "codec:h264"
 # Download the best video with worst codec no worse than h264,
 # or the best video with best codec if there is no such video
 $ yt-dlp -S "+codec:h264"
-
 
 
 # More complex examples
