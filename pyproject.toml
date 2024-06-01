@@ -46,7 +46,7 @@ dependencies = [
     "certifi",
     "mutagen",
     "pycryptodomex",
-    "requests>=2.31.0,<3",
+    "requests>=2.32.2,<3",
     "urllib3>=1.26.17,<3",
     "websockets>=12.0",
 ]
@@ -82,7 +82,6 @@ pyinstaller = [
 ]
 py2exe = [
     "py2exe>=0.12",
-    "requests==2.31.*",
 ]
 
 [project.urls]
