@@ -1,8 +1,8 @@
-import json
 import hashlib
+import json
 
-from .aws import AWSIE
 from .anvato import AnvatoIE
+from .aws import AWSIE
 from .common import InfoExtractor
 from ..utils import (
     smuggle_url,

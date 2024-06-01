@@ -1325,6 +1325,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader_url': 'https://www.youtube.com/@PhilippHagemeister',
                 'uploader_id': '@PhilippHagemeister',
                 'heatmap': 'count:100',
+                'timestamp': 1349198244,
             }
         },
         {
@@ -1368,6 +1369,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader_url': 'https://www.youtube.com/@PhilippHagemeister',
                 'uploader_id': '@PhilippHagemeister',
                 'heatmap': 'count:100',
+                'timestamp': 1349198244,
             },
             'params': {
                 'skip_download': True,
@@ -1454,6 +1456,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'comment_count': int,
                 'channel_is_verified': True,
                 'heatmap': 'count:100',
+                'timestamp': 1401991663,
             },
         },
         {
@@ -1513,6 +1516,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader': 'Projekt Melody',
                 'uploader_url': 'https://www.youtube.com/@ProjektMelody',
                 'uploader_id': '@ProjektMelody',
+                'timestamp': 1577508724,
             },
         },
         {
@@ -1618,6 +1622,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader_url': 'https://www.youtube.com/@Olympics',
                 'uploader_id': '@Olympics',
                 'channel_is_verified': True,
+                'timestamp': 1440707674,
             },
             'params': {
                 'skip_download': 'requires avconv',
@@ -1651,6 +1656,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader': '孫ᄋᄅ',
                 'uploader_url': 'https://www.youtube.com/@AllenMeow',
                 'uploader_id': '@AllenMeow',
+                'timestamp': 1299776999,
             },
         },
         # url_encoded_fmt_stream_map is empty string
@@ -1794,6 +1800,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 },
             }],
             'params': {'skip_download': True},
+            'skip': 'Not multifeed anymore',
         },
         {
             # Multifeed video with comma in title (see https://github.com/ytdl-org/youtube-dl/issues/8536)
@@ -1902,6 +1909,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader': 'The Berkman Klein Center for Internet & Society',
                 'uploader_id': '@BKCHarvard',
                 'uploader_url': 'https://www.youtube.com/@BKCHarvard',
+                'timestamp': 1422422076,
             },
             'params': {
                 'skip_download': True,
@@ -1937,6 +1945,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader_id': '@BernieSanders',
                 'channel_is_verified': True,
                 'heatmap': 'count:100',
+                'timestamp': 1447987198,
             },
             'params': {
                 'skip_download': True,
@@ -2000,6 +2009,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader_id': '@Vsauce',
                 'comment_count': int,
                 'channel_is_verified': True,
+                'timestamp': 1484761047,
             },
             'params': {
                 'skip_download': True,
@@ -2155,6 +2165,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader': 'l\'Or Vert asbl',
                 'uploader_url': 'https://www.youtube.com/@ElevageOrVert',
                 'uploader_id': '@ElevageOrVert',
+                'timestamp': 1497343210,
             },
             'params': {
                 'skip_download': True,
@@ -2193,6 +2204,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader_id': '@Csharp-video-tutorialsBlogspot',
                 'channel_is_verified': True,
                 'heatmap': 'count:100',
+                'timestamp': 1377976349,
             },
             'params': {
                 'skip_download': True,
@@ -2275,6 +2287,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader_id': '@CBSMornings',
                 'comment_count': int,
                 'channel_is_verified': True,
+                'timestamp': 1405513526,
             }
         },
         {
@@ -2292,7 +2305,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'view_count': int,
                 'channel': 'Walk around Japan',
                 'tags': ['Ueno Tokyo', 'Okachimachi Tokyo', 'Ameyoko Street', 'Tokyo attraction', 'Travel in Tokyo'],
-                'thumbnail': 'https://i.ytimg.com/vi_webp/cBvYw8_A0vQ/hqdefault.webp',
+                'thumbnail': 'https://i.ytimg.com/vi/cBvYw8_A0vQ/hqdefault.jpg',
                 'age_limit': 0,
                 'availability': 'public',
                 'channel_url': 'https://www.youtube.com/channel/UC3o_t8PzBmXf5S9b7GLx1Mw',
@@ -2302,6 +2315,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader': 'Walk around Japan',
                 'uploader_url': 'https://www.youtube.com/@walkaroundjapan7124',
                 'uploader_id': '@walkaroundjapan7124',
+                'timestamp': 1605884416,
             },
             'params': {
                 'skip_download': True,
@@ -2397,6 +2411,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'comment_count': int,
                 'channel_is_verified': True,
                 'heatmap': 'count:100',
+                'timestamp': 1395685455,
             }, 'params': {'format': 'mhtml', 'skip_download': True}
         }, {
             # Ensure video upload_date is in UTC timezone (video was uploaded 1641170939)
@@ -2426,37 +2441,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader_url': 'https://www.youtube.com/@LeonNguyen',
                 'uploader_id': '@LeonNguyen',
                 'heatmap': 'count:100',
+                'timestamp': 1641170939,
             }
-        }, {
-            # Same video as above, but with --compat-opt no-youtube-prefer-utc-upload-date
-            'url': 'https://www.youtube.com/watch?v=2NUZ8W2llS4',
-            'info_dict': {
-                'id': '2NUZ8W2llS4',
-                'ext': 'mp4',
-                'title': 'The NP that test your phone performance 🙂',
-                'description': 'md5:144494b24d4f9dfacb97c1bbef5de84d',
-                'channel_id': 'UCRqNBSOHgilHfAczlUmlWHA',
-                'channel_url': 'https://www.youtube.com/channel/UCRqNBSOHgilHfAczlUmlWHA',
-                'duration': 21,
-                'view_count': int,
-                'age_limit': 0,
-                'categories': ['Gaming'],
-                'tags': 'count:23',
-                'playable_in_embed': True,
-                'live_status': 'not_live',
-                'upload_date': '20220102',
-                'like_count': int,
-                'availability': 'public',
-                'channel': 'Leon Nguyen',
-                'thumbnail': 'https://i.ytimg.com/vi_webp/2NUZ8W2llS4/maxresdefault.webp',
-                'comment_count': int,
-                'channel_follower_count': int,
-                'uploader': 'Leon Nguyen',
-                'uploader_url': 'https://www.youtube.com/@LeonNguyen',
-                'uploader_id': '@LeonNguyen',
-                'heatmap': 'count:100',
-            },
-            'params': {'compat_opts': ['no-youtube-prefer-utc-upload-date']}
         }, {
             # date text is premiered video, ensure upload date in UTC (published 1641172509)
             'url': 'https://www.youtube.com/watch?v=mzZzzBU6lrM',
@@ -2488,38 +2474,41 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'comment_count': int,
                 'channel_is_verified': True,
                 'heatmap': 'count:100',
+                'timestamp': 1641172509,
             }
         },
-        {   # continuous livestream. Microformat upload date should be preferred.
-            # Upload date was 2021-06-19 (not UTC), while stream start is 2021-11-27
-            'url': 'https://www.youtube.com/watch?v=kgx4WGK0oNU',
+        {   # continuous livestream.
+            # Upload date was 2022-07-12T05:12:29-07:00, while stream start is 2022-07-12T15:59:30+00:00
+            'url': 'https://www.youtube.com/watch?v=jfKfPfyJRdk',
             'info_dict': {
-                'id': 'kgx4WGK0oNU',
-                'title': r're:jazz\/lofi hip hop radio🌱chill beats to relax\/study to \[LIVE 24\/7\] \d{4}-\d{2}-\d{2} \d{2}:\d{2}',
+                'id': 'jfKfPfyJRdk',
                 'ext': 'mp4',
-                'channel_id': 'UC84whx2xxsiA1gXHXXqKGOA',
-                'availability': 'public',
-                'age_limit': 0,
-                'release_timestamp': 1637975704,
-                'upload_date': '20210619',
-                'channel_url': 'https://www.youtube.com/channel/UC84whx2xxsiA1gXHXXqKGOA',
-                'live_status': 'is_live',
-                'thumbnail': 'https://i.ytimg.com/vi/kgx4WGK0oNU/maxresdefault.jpg',
-                'channel': 'Abao in Tokyo',
-                'channel_follower_count': int,
-                'release_date': '20211127',
-                'tags': 'count:39',
-                'categories': ['People & Blogs'],
+                'channel_id': 'UCSJ4gkVC6NrvII8umztf0Ow',
                 'like_count': int,
-                'view_count': int,
-                'playable_in_embed': True,
-                'description': 'md5:2ef1d002cad520f65825346e2084e49d',
+                'uploader': 'Lofi Girl',
+                'categories': ['Music'],
                 'concurrent_view_count': int,
-                'uploader': 'Abao in Tokyo',
-                'uploader_url': 'https://www.youtube.com/@abaointokyo',
-                'uploader_id': '@abaointokyo',
+                'playable_in_embed': True,
+                'timestamp': 1657627949,
+                'release_date': '20220712',
+                'channel_url': 'https://www.youtube.com/channel/UCSJ4gkVC6NrvII8umztf0Ow',
+                'description': 'md5:13a6f76df898f5674f9127139f3df6f7',
+                'age_limit': 0,
+                'thumbnail': 'https://i.ytimg.com/vi/jfKfPfyJRdk/maxresdefault.jpg',
+                'release_timestamp': 1657641570,
+                'uploader_url': 'https://www.youtube.com/@LofiGirl',
+                'channel_follower_count': int,
+                'channel_is_verified': True,
+                'title': r're:^lofi hip hop radio 📚 - beats to relax/study to',
+                'view_count': int,
+                'live_status': 'is_live',
+                'tags': 'count:32',
+                'channel': 'Lofi Girl',
+                'availability': 'public',
+                'upload_date': '20220712',
+                'uploader_id': '@LofiGirl',
             },
-            'params': {'skip_download': True}
+            'params': {'skip_download': True},
         }, {
             'url': 'https://www.youtube.com/watch?v=tjjjtzRLHvA',
             'info_dict': {
@@ -2545,6 +2534,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader_id': '@lesmiscore',
                 'uploader': 'Lesmiscore',
                 'uploader_url': 'https://www.youtube.com/@lesmiscore',
+                'timestamp': 1648005313,
             }
         }, {
             # Prefer primary title+description language metadata by default
@@ -2572,6 +2562,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader_url': 'https://www.youtube.com/@coletdjnz',
                 'uploader_id': '@coletdjnz',
                 'uploader': 'cole-dlp-test-acc',
+                'timestamp': 1662677394,
             },
             'params': {'skip_download': True}
         }, {
@@ -2585,7 +2576,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'duration': 5,
                 'live_status': 'not_live',
                 'channel_id': 'UCiu-3thuViMebBjw_5nWYrA',
-                'upload_date': '20220728',
+                'upload_date': '20220729',
                 'view_count': int,
                 'categories': ['People & Blogs'],
                 'thumbnail': r're:^https?://.*\.jpg',
@@ -2598,6 +2589,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader_url': 'https://www.youtube.com/@coletdjnz',
                 'uploader_id': '@coletdjnz',
                 'uploader': 'cole-dlp-test-acc',
+                'timestamp': 1659073275,
+                'like_count': int,
             },
             'params': {'skip_download': True, 'extractor_args': {'youtube': {'lang': ['fr']}}},
             'expected_warnings': [r'Preferring "fr" translated fields'],
@@ -2663,6 +2656,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader': 'Projekt Melody',
                 'uploader_id': '@ProjektMelody',
                 'uploader_url': 'https://www.youtube.com/@ProjektMelody',
+                'timestamp': 1577508724,
             },
             'params': {'extractor_args': {'youtube': {'player_client': ['tv_embedded']}}, 'format': '251-drc'},
         },
@@ -2697,6 +2691,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader_id': '@sana_natori',
                 'channel_is_verified': True,
                 'heatmap': 'count:100',
+                'timestamp': 1671798112,
             },
         },
         {
@@ -2766,6 +2761,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader_url': 'https://www.youtube.com/@ChristopherSykesDocumentaries',
                 'uploader_id': '@ChristopherSykesDocumentaries',
                 'heatmap': 'count:100',
+                'timestamp': 1211825920,
             },
             'params': {
                 'skip_download': True,
@@ -4622,19 +4618,31 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'uploader_id': channel_handle,
             'uploader_url': format_field(channel_handle, None, 'https://www.youtube.com/%s', default=None),
         })
+
+        # We only want timestamp IF it has time precision AND a timezone
+        # Currently the uploadDate in microformats appears to be in US/Pacific timezone.
+        timestamp = (
+            parse_iso8601(get_first(microformats, 'uploadDate'), timezone=NO_DEFAULT)
+            or parse_iso8601(search_meta('uploadDate'), timezone=NO_DEFAULT)
+        )
+        upload_date = (
+            dt.datetime.fromtimestamp(timestamp, dt.timezone.utc).strftime('%Y%m%d') if timestamp else
+            (
+                unified_strdate(get_first(microformats, 'uploadDate'))
+                or unified_strdate(search_meta('uploadDate'))
+            ))
+
+        # In the case we cannot get the timestamp:
         # The upload date for scheduled, live and past live streams / premieres in microformats
         # may be different from the stream date. Although not in UTC, we will prefer it in this case.
         # See: https://github.com/yt-dlp/yt-dlp/pull/2223#issuecomment-1008485139
-        upload_date = (
-            unified_strdate(get_first(microformats, 'uploadDate'))
-            or unified_strdate(search_meta('uploadDate')))
-        if not upload_date or (
-            live_status in ('not_live', None)
-            and 'no-youtube-prefer-utc-upload-date' not in self.get_param('compat_opts', [])
-        ):
+        if not upload_date or (not timestamp and live_status in ('not_live', None)):
+            # this should be in UTC, as configured in the cookie/client context
             upload_date = strftime_or_none(
                 self._parse_time_text(self._get_text(vpir, 'dateText'))) or upload_date
+
         info['upload_date'] = upload_date
+        info['timestamp'] = timestamp
 
         if upload_date and live_status not in ('is_live', 'post_live', 'is_upcoming'):
             # Newly uploaded videos' HLS formats are potentially problematic and need to be checked
