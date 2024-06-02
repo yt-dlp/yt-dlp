@@ -723,7 +723,12 @@ from .gaskrank import GaskrankIE
 from .gazeta import GazetaIE
 from .gbnews import GBNewsIE
 from .gdcvault import GDCVaultIE
-from .gedidigital import GediDigitalIE
+from .gedidigital import (
+    GediDigitalIE,
+    GediDigitalLegacyIE,
+    RepubblicaTVIE,
+    RepubblicaTVPodcastIE,
+)
 from .generic import GenericIE
 from .genericembeds import (
     HTML5MediaEmbedIE,
