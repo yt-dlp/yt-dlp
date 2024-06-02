@@ -31,6 +31,8 @@ from ..utils import (
 )
 from ..utils.networking import HTTPHeaderDict, normalize_url
 
+DEFAULT_TIMEOUT = 20
+
 
 def register_preference(*handlers: type[RequestHandler]):
     assert all(issubclass(handler, RequestHandler) for handler in handlers)
@@ -235,7 +237,7 @@ class RequestHandler(abc.ABC):
         self._logger = logger
         self.headers = headers or {}
         self.cookiejar = cookiejar if cookiejar is not None else YoutubeDLCookieJar()
-        self.timeout = float(timeout or 20)
+        self.timeout = float(timeout or DEFAULT_TIMEOUT)
         self.proxies = proxies or {}
         self.source_address = source_address
         self.verbose = verbose

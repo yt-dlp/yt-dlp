@@ -5,9 +5,9 @@ import re
 from .aws import AWSIE
 from ..networking.exceptions import HTTPError
 from ..utils import (
-    clean_html,
     ExtractorError,
     InAdvancePagedList,
+    clean_html,
     int_or_none,
     parse_iso8601,
     str_or_none,

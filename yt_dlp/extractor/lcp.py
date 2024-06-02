@@ -1,5 +1,5 @@
-from .common import InfoExtractor
 from .arkena import ArkenaIE
+from .common import InfoExtractor
 
 
 class LcpPlayIE(ArkenaIE):  # XXX: Do not subclass from concrete IE
