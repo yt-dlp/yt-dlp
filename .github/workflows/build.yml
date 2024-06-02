@@ -243,9 +243,11 @@ jobs:
       - uses: actions/checkout@v4
       # NB: Building universal2 does not work with python from actions/setup-python
 
-      - name: Restored cached requirements
+      - name: Restore cached requirements
         id: restore-cache
         uses: actions/cache/restore@v4
+        env:
+          SEGMENT_DOWNLOAD_TIMEOUT_MINS: 1
         with:
           path: |
             ~/yt-dlp-build-venv
