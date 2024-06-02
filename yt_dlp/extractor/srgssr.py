@@ -57,7 +57,7 @@ class SRGSSRIE(InfoExtractor):
     def _get_media_data(self, bu, media_type, media_id):
         query = {'onlyChapters': True} if media_type == 'video' else {}
         full_media_data = self._download_json(
-            'https://il.srgssr.ch/integrationlayer/2.0/%s/mediaComposition/%s/%s.json'
+            'https://il.srgssr.ch/integrationlayer/2.0/mediaComposition/byUrn/urn:%s:%s:%s.json'
             % (bu, media_type, media_id),
             media_id, query=query)['chapterList']
         try:
@@ -166,7 +166,7 @@ class SRGSSRPlayIE(InfoExtractor):
 
     _TESTS = [{
         'url': 'http://www.srf.ch/play/tv/10vor10/video/snowden-beantragt-asyl-in-russland?id=28e1a57d-5b76-4399-8ab3-9097f071e6c5',
-        'md5': '6db2226ba97f62ad42ce09783680046c',
+        'md5': '465bd9be85833a9472275796e97091ed',
         'info_dict': {
             'id': '28e1a57d-5b76-4399-8ab3-9097f071e6c5',
             'ext': 'mp4',
@@ -186,6 +186,7 @@ class SRGSSRPlayIE(InfoExtractor):
             'title': 'Saira: Tujetsch - tuttina cuntinuar cun Sedrun Mustér Turissem',
             'timestamp': 1444709160,
             'duration': 336.816,
+            'thumbnail': r're:https?://ws\.srf\.ch/asset/image/.+/\d+\.jpg',
         },
         'params': {
             # rtmp download
