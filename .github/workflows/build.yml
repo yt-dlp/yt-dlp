@@ -237,6 +237,9 @@ jobs:
   macos:
     needs: process
     if: inputs.macos
+    permissions:
+      contents: read
+      actions: write  # For cleaning up cache
     runs-on: macos-12
 
     steps:
@@ -251,13 +254,11 @@ jobs:
         with:
           path: |
             ~/yt-dlp-build-venv
-          key: only-use-restore-keys
-          restore-keys: |
-            reqs-${{ github.job }}-
+          key: cache-reqs-${{ github.job }}
 
       - name: Install Requirements
         run: |
-          brew install coreutils gnu-sed
+          brew install coreutils
           python3 -m venv ~/yt-dlp-build-venv
           # shellcheck disable=SC1090
           source ~/yt-dlp-build-venv/bin/activate
@@ -294,8 +295,6 @@ jobs:
             mv -n -- "${wheel}" "${wheel/x86_64/universal2}"
           done
           python3 -m pip install --force-reinstall -U curl_cffi_universal2/*cffi*.whl
-          # Need to write freeze.txt for cache key & remove unstable wheel hashes with gnu-sed
-          python3 -m pip freeze | gsed -E 's/#sha256=.+$//' | tee freeze.txt
 
       - name: Prepare
         run: |
@@ -328,15 +327,23 @@ jobs:
             dist/yt-dlp_macos.zip
           compression-level: 0
 
-      - name: Cache requirements
+      - name: Cleanup cache
+        if: steps.restore-cache.outputs.cache-hit == 'true'
         env:
-          new_cache_key: reqs-${{ github.job }}-${{ hashFiles('freeze.txt') }}
-        if: steps.restore-cache.outputs.cache-matched-key != env.new_cache_key
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          cache_key: cache-reqs-${{ github.job }}
+          repository: ${{ github.repository }}
+          branch: ${{ github.ref }}
+        run: |
+          gh extension install actions/gh-actions-cache
+          gh actions-cache delete "${cache_key}" -R "${repository}" -B "${branch}" --confirm
+
+      - name: Cache requirements
         uses: actions/cache/save@v4
         with:
           path: |
             ~/yt-dlp-build-venv
-          key: ${{ env.new_cache_key }}
+          key: cache-reqs-${{ github.job }}
 
   macos_legacy:
     needs: process
