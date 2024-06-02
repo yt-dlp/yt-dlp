@@ -1206,6 +1206,20 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                 }],
                 {},
             ), (
+                # https://github.com/yt-dlp/yt-dlp/pull/8711
+                'urls_with_ranges',
+                'http://unknown/manifest.mpd',  # mpd_url
+                None,  # mpd_base_url
+                [{
+                    'fragments': [
+                        {'byte_range': {'start': 0, 'end': 200000}},
+                        {'byte_range': {'start': 200001, 'end': 300000}},
+                        {'byte_range': {'start': 300000, 'end': 400000}},
+                        {'byte_range': None},
+                    ]
+                }],
+                {},
+            ), (
                 # https://github.com/ytdl-org/youtube-dl/issues/20346
                 # Media considered unfragmented even though it contains
                 # Initialization tag

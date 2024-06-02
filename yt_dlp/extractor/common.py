@@ -2716,10 +2716,20 @@ class InfoExtractor:
                 if segment_duration:
                     ms_info['segment_duration'] = float(segment_duration)
 
+            def parse_range(byte_range):
+                if isinstance(byte_range, str):
+                    split_byte_range = byte_range.split('-')
+                    if len(split_byte_range) == 2:
+                        return {
+                            'start': int(split_byte_range[0]),
+                            'end': int(split_byte_range[1]) + 1,
+                        }
+
             def extract_Initialization(source):
                 initialization = source.find(_add_ns('Initialization'))
                 if initialization is not None:
                     ms_info['initialization_url'] = initialization.attrib['sourceURL']
+                    ms_info['initialization_byte_range'] = parse_range(initialization.attrib.get('range'))
 
             segment_list = element.find(_add_ns('SegmentList'))
             if segment_list is not None:
@@ -2727,7 +2737,10 @@ class InfoExtractor:
                 extract_Initialization(segment_list)
                 segment_urls_e = segment_list.findall(_add_ns('SegmentURL'))
                 if segment_urls_e:
-                    ms_info['segment_urls'] = [segment.attrib['media'] for segment in segment_urls_e]
+                    ms_info['segments'] = [{
+                        'url': segment.attrib['media'],
+                        'byte_range': parse_range(segment.attrib.get('mediaRange')),
+                    } for segment in segment_urls_e]
             else:
                 segment_template = element.find(_add_ns('SegmentTemplate'))
                 if segment_template is not None:
@@ -2886,7 +2899,7 @@ class InfoExtractor:
                     def location_key(location):
                         return 'url' if re.match(r'^https?://', location) else 'path'
 
-                    if 'segment_urls' not in representation_ms_info and 'media' in representation_ms_info:
+                    if 'segments' not in representation_ms_info and 'media' in representation_ms_info:
 
                         media_template = prepare_template('media', ('Number', 'Bandwidth', 'Time'))
                         media_location_key = location_key(media_template)
@@ -2938,38 +2951,63 @@ class InfoExtractor:
                                     add_segment_url()
                                     segment_number += 1
                                 segment_time += segment_d
-                    elif 'segment_urls' in representation_ms_info and 's' in representation_ms_info:
+                    elif 'segments' in representation_ms_info and 's' in representation_ms_info:
                         # No media template,
                         # e.g. https://www.youtube.com/watch?v=iXZV5uAYMJI
                         # or any YouTube dashsegments video
                         fragments = []
+                        fragment = None
                         segment_index = 0
                         timescale = representation_ms_info['timescale']
                         for s in representation_ms_info['s']:
                             duration = float_or_none(s['d'], timescale)
                             for r in range(s.get('r', 0) + 1):
-                                segment_uri = representation_ms_info['segment_urls'][segment_index]
-                                fragments.append({
-                                    location_key(segment_uri): segment_uri,
-                                    'duration': duration,
-                                })
+                                segment = representation_ms_info['segments'][segment_index]
+                                segment_url = segment['url']
+                                fragment_location_key = location_key(segment_url)
+                                if (fragment is not None and fragment.get(fragment_location_key) == segment_url
+                                        and fragment['byte_range'] is not None and segment['byte_range'] is not None
+                                        and fragment['byte_range']['end'] == segment['byte_range']['start']
+                                        and ((fragment['duration'] is not None and duration is not None)
+                                             or (fragment['duration'] is None and duration is None))):
+                                    fragment['byte_range']['end'] = segment['byte_range']['end']
+                                    if duration:
+                                        fragment['duration'] += duration
+                                else:
+                                    fragment = {
+                                        fragment_location_key: segment_url,
+                                        'byte_range': segment['byte_range'],
+                                        'duration': duration,
+                                    }
+                                    fragments.append(fragment)
                                 segment_index += 1
                         representation_ms_info['fragments'] = fragments
-                    elif 'segment_urls' in representation_ms_info:
+                    elif 'segments' in representation_ms_info:
                         # Segment URLs with no SegmentTimeline
                         # E.g. https://www.seznam.cz/zpravy/clanek/cesko-zasahne-vitr-o-sile-vichrice-muze-byt-i-zivotu-nebezpecny-39091
                         # https://github.com/ytdl-org/youtube-dl/pull/14844
                         fragments = []
+                        fragment = None
                         segment_duration = float_or_none(
                             representation_ms_info['segment_duration'],
                             representation_ms_info['timescale']) if 'segment_duration' in representation_ms_info else None
-                        for segment_url in representation_ms_info['segment_urls']:
-                            fragment = {
-                                location_key(segment_url): segment_url,
-                            }
-                            if segment_duration:
-                                fragment['duration'] = segment_duration
-                            fragments.append(fragment)
+                        for segment in representation_ms_info['segments']:
+                            segment_url = segment['url']
+                            fragment_location_key = location_key(segment_url)
+                            if (fragment is not None and fragment.get(fragment_location_key) == segment_url
+                                    and fragment['byte_range'] is not None and segment['byte_range'] is not None
+                                    and fragment['byte_range']['end'] == segment['byte_range']['start']):
+                                fragment['byte_range']['end'] = segment['byte_range']['end']
+                                if segment_duration:
+                                    fragment['duration'] += segment_duration
+                            else:
+                                fragment = {
+                                    fragment_location_key: segment_url,
+                                    'byte_range': segment['byte_range'],
+                                }
+                                if segment_duration:
+                                    fragment['duration'] = segment_duration
+                                fragments.append(fragment)
                         representation_ms_info['fragments'] = fragments
                     # If there is a fragments key available then we correctly recognized fragmented media.
                     # Otherwise we will assume unfragmented media with direct access. Technically, such
@@ -2987,7 +3025,19 @@ class InfoExtractor:
                             initialization_url = representation_ms_info['initialization_url']
                             if not f.get('url'):
                                 f['url'] = initialization_url
-                            f['fragments'].append({location_key(initialization_url): initialization_url})
+                            initialization_byte_range = representation_ms_info.get('initialization_byte_range')
+                            fragments = representation_ms_info['fragments']
+                            fragment = fragments[0] if len(fragments) > 0 else None
+                            fragment_location_key = location_key(initialization_url)
+                            if (fragment is not None and initialization_url == fragment.get(fragment_location_key)
+                                    and initialization_byte_range is not None and fragment['byte_range'] is not None
+                                    and initialization_byte_range['end'] == fragment['byte_range']['start']):
+                                fragment['byte_range']['start'] = initialization_byte_range['start']
+                            else:
+                                f['fragments'].append({
+                                    fragment_location_key: initialization_url,
+                                    'byte_range': initialization_byte_range,
+                                })
                         f['fragments'].extend(representation_ms_info['fragments'])
                         if not period_duration:
                             period_duration = try_get(
