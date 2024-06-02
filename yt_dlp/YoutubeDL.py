@@ -1582,8 +1582,12 @@ class YoutubeDL:
                 continue
 
             if not ie.working():
-                self.report_warning('The program functionality for this site has been marked as broken, '
-                                    'and will probably not work.')
+                self.report_warning(join_nonempty(
+                    f'[{ie.IE_NAME}] The program\'s functionality for this site has been marked as '
+                    f'{self._format_err("BROKEN", self.Styles.ERROR)}, and will probably not work.',
+                    format_field(ie._REPORTED_BROKEN, None, f'See  {self._format_err("%s", self.Styles.EMPHASIS)}'
+                                 '  for more information. Do NOT open a new issue for this.'),
+                    delim='\n         '))
 
             temp_id = ie.get_temp_id(url)
             if temp_id is not None and self.in_download_archive({'id': temp_id, 'ie_key': key}):

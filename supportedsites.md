@@ -303,10 +303,10 @@
  - **CrowdBunker**
  - **CrowdBunkerChannel**
  - **Crtvg**
- - **crunchyroll**: [*crunchyroll*](## "netrc machine")
- - **crunchyroll:artist**: [*crunchyroll*](## "netrc machine")
- - **crunchyroll:music**: [*crunchyroll*](## "netrc machine")
- - **crunchyroll:playlist**: [*crunchyroll*](## "netrc machine")
+ - **crunchyroll**: [*crunchyroll*](## "netrc machine") ([**Currently broken**](https://github.com/yt-dlp/yt-dlp/issues/9453))
+ - **crunchyroll:artist**: [*crunchyroll*](## "netrc machine") ([**Currently broken**](https://github.com/yt-dlp/yt-dlp/issues/9453))
+ - **crunchyroll:music**: [*crunchyroll*](## "netrc machine") ([**Currently broken**](https://github.com/yt-dlp/yt-dlp/issues/9453))
+ - **crunchyroll:playlist**: [*crunchyroll*](## "netrc machine") ([**Currently broken**](https://github.com/yt-dlp/yt-dlp/issues/9453))
  - **CSpan**: C-SPAN
  - **CSpanCongress**
  - **CtsNews**: 華視新聞
@@ -555,7 +555,7 @@
  - **hgtv.com:show**
  - **HGTVDe**
  - **HGTVUsa**
- - **HiDive**: [*hidive*](## "netrc machine")
+ - **HiDive**: [*hidive*](## "netrc machine") ([**Currently broken**](https://github.com/yt-dlp/yt-dlp/issues/9385))
  - **HistoricFilms**
  - **history:player**
  - **history:topic**: History.com Topic

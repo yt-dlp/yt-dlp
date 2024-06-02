@@ -546,8 +546,9 @@ class InfoExtractor:
     The _ENABLED attribute should be set to False for IEs that
     are disabled by default and must be explicitly enabled.
 
-    The _WORKING attribute should be set to False for broken IEs
+    For broken extractors, the _REPORTED_BROKEN attribute can be set to the issue URL
     in order to warn the users and skip the tests.
+    [Deprecated] If there is no open issue, set _WORKING = False instead.
     """
 
     _ready = False
@@ -613,10 +614,13 @@ class InfoExtractor:
         except (IndexError, AttributeError):
             return None
 
+    @classproperty(cache=True)
+    def _REPORTED_BROKEN(cls):
+        return not cls._WORKING and ''
+
     @classmethod
     def working(cls):
-        """Getter method for _WORKING."""
-        return cls._WORKING
+        return cls._REPORTED_BROKEN is False
 
     @classmethod
     def supports_login(cls):
@@ -3665,7 +3669,12 @@ class InfoExtractor:
                 _COUNTS = ('', '5', '10', 'all')
                 desc += f' (e.g. "{cls.SEARCH_KEY}{random.choice(_COUNTS)}:{random.choice(search_examples)}")'
         if not cls.working():
-            desc += ' (**Currently broken**)' if markdown else ' (Currently broken)'
+            msg = 'Currently broken'
+            if markdown:
+                msg = f'**{msg}**'
+                if cls._REPORTED_BROKEN:
+                    msg = f'[{msg}]({cls._REPORTED_BROKEN})'
+            desc += f' ({msg})'
 
         # Escape emojis. Ref: https://github.com/github/markup/issues/1153
         name = (' - **%s**' % re.sub(r':(\w+:)', ':\u200B\\g<1>', cls.IE_NAME)) if markdown else cls.IE_NAME

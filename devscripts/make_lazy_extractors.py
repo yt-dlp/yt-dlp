@@ -15,7 +15,7 @@ from devscripts.utils import get_filename_args, read_file, write_file
 NO_ATTR = object()
 STATIC_CLASS_PROPERTIES = [
     'IE_NAME', '_ENABLED', '_VALID_URL',  # Used for URL matching
-    '_WORKING', 'IE_DESC', '_NETRC_MACHINE', 'SEARCH_KEY',  # Used for --extractor-descriptions
+    '_REPORTED_BROKEN', 'IE_DESC', '_NETRC_MACHINE', 'SEARCH_KEY',  # Used for --extractor-descriptions
     'age_limit',  # Used for --age-limit (evaluated)
     '_RETURN_TYPE',  # Accessed in CLI only with instance (evaluated)
 ]

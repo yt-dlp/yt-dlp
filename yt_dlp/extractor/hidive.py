@@ -9,6 +9,7 @@ from ..utils import (
 
 
 class HiDiveIE(InfoExtractor):
+    _REPORTED_BROKEN = 'https://github.com/yt-dlp/yt-dlp/issues/9385'
     _VALID_URL = r'https?://(?:www\.)?hidive\.com/stream/(?P<id>(?P<title>[^/]+)/(?P<key>[^/?#&]+))'
     # Using X-Forwarded-For results in 403 HTTP error for HLS fragments,
     # so disabling geo bypass completely
