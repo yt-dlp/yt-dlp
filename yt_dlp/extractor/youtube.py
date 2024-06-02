@@ -5125,7 +5125,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         else:
             metadata_renderer = traverse_obj(data, ('metadata', 'playlistMetadataRenderer'), expected_type=dict)
 
-        # pageHeaderViewModel slow rollout started May 2024
+        # pageHeaderViewModel slow rollout began April 2024
         page_header_view_model = traverse_obj(data, (
             'header', 'pageHeaderRenderer', 'content', 'pageHeaderViewModel', {dict}))
 
