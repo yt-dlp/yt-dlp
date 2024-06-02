@@ -260,7 +260,6 @@ jobs:
         run: |
           brew install coreutils
           python3 -m venv ~/yt-dlp-build-venv
-          # shellcheck disable=SC1090
           source ~/yt-dlp-build-venv/bin/activate
           python3 devscripts/install_deps.py -o --include build
           python3 devscripts/install_deps.py --print --include pyinstaller > requirements.txt
@@ -302,7 +301,6 @@ jobs:
           python3 devscripts/make_lazy_extractors.py
       - name: Build
         run: |
-          # shellcheck disable=SC1090
           source ~/yt-dlp-build-venv/bin/activate
           python3 -m bundle.pyinstaller --target-architecture universal2 --onedir
           (cd ./dist/yt-dlp_macos && zip -r ../yt-dlp_macos.zip .)
