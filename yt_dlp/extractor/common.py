@@ -2020,7 +2020,7 @@ class InfoExtractor:
             self, m3u8_url, video_id, ext=None, entry_protocol='m3u8_native',
             preference=None, quality=None, m3u8_id=None, note=None,
             errnote=None, fatal=True, live=False, data=None, headers={},
-            query={}):
+            query={}, force_codecs={}):
 
         if self.get_param('ignore_no_formats_error'):
             fatal = False
@@ -2049,13 +2049,13 @@ class InfoExtractor:
             m3u8_doc, m3u8_url, ext=ext, entry_protocol=entry_protocol,
             preference=preference, quality=quality, m3u8_id=m3u8_id,
             note=note, errnote=errnote, fatal=fatal, live=live, data=data,
-            headers=headers, query=query, video_id=video_id)
+            headers=headers, query=query, video_id=video_id, force_codecs=force_codecs)
 
     def _parse_m3u8_formats_and_subtitles(
             self, m3u8_doc, m3u8_url=None, ext=None, entry_protocol='m3u8_native',
             preference=None, quality=None, m3u8_id=None, live=False, note=None,
             errnote=None, fatal=True, data=None, headers={}, query={},
-            video_id=None):
+            video_id=None, force_codecs={}):
         formats, subtitles = [], {}
         has_drm = HlsFD._has_drm(m3u8_doc)
 
@@ -2234,7 +2234,8 @@ class InfoExtractor:
                             'abr': abr,
                         })
                     codecs = parse_codecs(last_stream_inf.get('CODECS'))
-                    f.update(codecs)
+                    for k, v in force_codecs.items():
+                        codecs.setdefault(k, v)
                     audio_group_id = last_stream_inf.get('AUDIO')
                     # As per [1, 4.3.4.1.1] any EXT-X-STREAM-INF tag which
                     # references a rendition group MUST have a CODECS attribute.
@@ -2245,12 +2246,28 @@ class InfoExtractor:
                     # (with audio and video) format. So, for such cases we will
                     # ignore references to rendition groups and treat them
                     # as complete formats.
-                    if audio_group_id and codecs and f.get('vcodec') != 'none':
+
+                    # updates acodec for audio only formats with
+                    # the same GROUP-ID
+                    for f_id in [join_nonempty(m3u8_id, audio_group_id, ag.get('NAME')) for ag in groups.get(audio_group_id) or []]:
+                        for fmt in formats:
+                            if fmt['format_id'].startswith(f_id) and fmt.get('vcodec') == 'none':
+                                fmt['acodec'] = codecs.get('acodec')
+                                break
+
+                    # Trying to set Video-only streams based on the manifest url (be very strict to avoid issues). Eg:
+                    # .../chunklist_b5210000_vo_...
+                    # .../v9/prog_index.m3u8...
+                    # .../index-f14-v1.m3u8?...
+                    if re.search(r'chunklist\w*?_vo_|/v\d{1,2}/\w*?index\.m3u8|index(?:-f\d{1,2})?-v\d{1,2}\.m3u8', f['url']):
+                        codecs['acodec'] = 'none'
+
+                    if audio_group_id and codecs and not force_codecs and f.get('vcodec') != 'none':
                         audio_group = groups.get(audio_group_id)
                         if audio_group and audio_group[0].get('URI'):
-                            # TODO: update acodec for audio only formats with
-                            # the same GROUP-ID
-                            f['acodec'] = 'none'
+                            codecs['acodec'] = 'none'
+
+                    f.update(codecs)
                     if not f.get('ext'):
                         f['ext'] = 'm4a' if f.get('vcodec') == 'none' else 'mp4'
                     formats.append(f)
