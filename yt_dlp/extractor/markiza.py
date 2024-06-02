@@ -1,76 +1,128 @@
 import re
 
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
-    orderedSet,
-    parse_duration,
-    try_get,
+    clean_html,
+    determine_ext,
+    int_or_none,
+    js_to_json,
+    traverse_obj,
+    unified_strdate,
+    url_or_none,
 )
 
 
-class MarkizaIE(InfoExtractor):
-    _WORKING = False
-    _VALID_URL = r'https?://(?:www\.)?videoarchiv\.markiza\.sk/(?:video/(?:[^/]+/)*|embed/)(?P<id>\d+)(?:[_/]|$)'
+class NovaEmbedIE(InfoExtractor):
+    _VALID_URL = r'https?://media(?:tn)?\.cms\.markiza\.sk/embed/(?P<id>[^/?#&]+)'
     _TESTS = [{
-        'url': 'http://videoarchiv.markiza.sk/video/oteckovia/84723_oteckovia-109',
-        'md5': 'ada4e9fad038abeed971843aa028c7b0',
+        'url': 'https://media.cms.markiza.sk/embed/8o0n0r?autoplay=1',
         'info_dict': {
-            'id': '139078',
+            'id': '8o0n0r',
+            'title': '2180. díl',
+            'thumbnail': r're:^https?://.*\.jpg',
+            'duration': 2578,
+        },
+        'params': {
+            'skip_download': True,
+            'ignore_no_formats_error': True,
+        },
+        'expected_warnings': ['DRM protected', 'Requested format is not available'],
+    }, {
+        'url': 'https://media.cms.markiza.sk/embed/KybpWYvcgOa',
+        'info_dict': {
+            'id': 'KybpWYvcgOa',
             'ext': 'mp4',
-            'title': 'Oteckovia 109',
-            'description': 'md5:d41d8cd98f00b204e9800998ecf8427e',
-            'thumbnail': r're:^https?://.*\.jpg$',
-            'duration': 2760,
+            'title': 'Borhyová oslavila 60? Soutěžící z pořadu odboural moderátora Ondřeje Sokola',
+            'thumbnail': r're:^https?://.*\.jpg',
+            'duration': 114,
         },
-    }, {
-        'url': 'http://videoarchiv.markiza.sk/video/televizne-noviny/televizne-noviny/85430_televizne-noviny',
-        'info_dict': {
-            'id': '85430',
-            'title': 'Televízne noviny',
-        },
-        'playlist_count': 23,
-    }, {
-        'url': 'http://videoarchiv.markiza.sk/video/oteckovia/84723',
-        'only_matching': True,
-    }, {
-        'url': 'http://videoarchiv.markiza.sk/video/84723',
-        'only_matching': True,
-    }, {
-        'url': 'http://videoarchiv.markiza.sk/video/filmy/85190_kamenak',
-        'only_matching': True,
-    }, {
-        'url': 'http://videoarchiv.markiza.sk/video/reflex/zo-zakulisia/84651_pribeh-alzbetky',
-        'only_matching': True,
-    }, {
-        'url': 'http://videoarchiv.markiza.sk/embed/85295',
-        'only_matching': True,
+        'params': {'skip_download': 'm3u8'},
     }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        data = self._download_json(
-            'http://videoarchiv.markiza.sk/json/video_jwplayer7.json',
-            video_id, query={'id': video_id})
+        webpage = self._download_webpage(url, video_id)
 
-        info = self._parse_jwplayer_data(data, m3u8_id='hls', mpd_id='dash')
+        has_drm = False
+        duration = None
+        formats = []
 
-        if info.get('_type') == 'playlist':
-            info.update({
-                'id': video_id,
-                'title': try_get(
-                    data, lambda x: x['details']['name'], compat_str),
-            })
-        else:
-            info['duration'] = parse_duration(
-                try_get(data, lambda x: x['details']['duration'], compat_str))
-        return info
+        def process_format_list(format_list, format_id=""):
+            nonlocal formats, has_drm
+            if not isinstance(format_list, list):
+                format_list = [format_list]
+            for format_dict in format_list:
+                if not isinstance(format_dict, dict):
+                    continue
+                if (not self.get_param('allow_unplayable_formats')
+                        and traverse_obj(format_dict, ('drm', 'keySystem'))):
+                    has_drm = True
+                    continue
+                format_url = url_or_none(format_dict.get('src'))
+                format_type = format_dict.get('type')
+                ext = determine_ext(format_url)
+                if (format_type == 'application/x-mpegURL'
+                        or format_id == 'HLS' or ext == 'm3u8'):
+                    formats.extend(self._extract_m3u8_formats(
+                        format_url, video_id, 'mp4',
+                        entry_protocol='m3u8_native', m3u8_id='hls',
+                        fatal=False))
+                elif (format_type == 'application/dash+xml'
+                      or format_id == 'DASH' or ext == 'mpd'):
+                    formats.extend(self._extract_mpd_formats(
+                        format_url, video_id, mpd_id='dash', fatal=False))
+                else:
+                    formats.append({
+                        'url': format_url,
+                    })
+
+        player = self._search_json(
+            r'player:', webpage, 'player', video_id, fatal=False, end_pattern=r';\s*</script>')
+        if player:
+            for src in traverse_obj(player, ('lib', 'source', 'sources', ...)):
+                process_format_list(src)
+            duration = traverse_obj(player, ('sourceInfo', 'duration', {int_or_none}))
+        if not formats and not has_drm:
+            # older code path, in use before August 2023
+            player = self._parse_json(
+                self._search_regex(
+                    (r'(?:(?:replacePlaceholders|processAdTagModifier).*?:\s*)?(?:replacePlaceholders|processAdTagModifier)\s*\(\s*(?P<json>{.*?})\s*\)(?:\s*\))?\s*,',
+                     r'Player\.init\s*\([^,]+,(?P<cndn>\s*\w+\s*\?)?\s*(?P<json>{(?(cndn).+?|.+)})\s*(?(cndn):|,\s*{.+?}\s*\)\s*;)'),
+                    webpage, 'player', group='json'), video_id)
+            if player:
+                for format_id, format_list in player['tracks'].items():
+                    process_format_list(format_list, format_id)
+                duration = int_or_none(player.get('duration'))
+
+        if not formats and has_drm:
+            self.report_drm(video_id)
+
+        title = self._og_search_title(
+            webpage, default=None) or self._search_regex(
+            (r'<value>(?P<title>[^<]+)',
+             r'videoTitle\s*:\s*(["\'])(?P<value>(?:(?!\1).)+)\1'), webpage,
+            'title', group='value')
+        thumbnail = self._og_search_thumbnail(
+            webpage, default=None) or self._search_regex(
+            r'poster\s*:\s*(["\'])(?P<value>(?:(?!\1).)+)\1', webpage,
+            'thumbnail', fatal=False, group='value')
+        duration = int_or_none(self._search_regex(
+            r'videoDuration\s*:\s*(\d+)', webpage, 'duration',
+            default=duration))
+
+        return {
+            'id': video_id,
+            'title': title,
+            'thumbnail': thumbnail,
+            'duration': duration,
+            'formats': formats,
+        }
 
 
-class MarkizaPageIE(InfoExtractor):
-    _WORKING = False
-    _VALID_URL = r'https?://(?:www\.)?(?:(?:[^/]+\.)?markiza|tvnoviny)\.sk/(?:[^/]+/)*(?P<id>\d+)_'
+class NovaIE(InfoExtractor):
+    IE_DESC = 'tvnoviny.sk, markiza.sk'
+    _VALID_URL = r'https?://(?:www\.)?(?:(?:[^/]+\.)?markiza|tvnoviny)\.sk/(?:[^/]+/)+(?P<id>[^/]+?)(?:\.html|/|$)'
     _TESTS = [{
         'url': 'http://www.markiza.sk/soubiz/zahranicny/1923705_oteckovia-maju-svoj-den-ti-slavni-nie-su-o-nic-menej-rozkosni',
         'md5': 'ada4e9fad038abeed971843aa028c7b0',
@@ -102,23 +154,116 @@ class MarkizaPageIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    @classmethod
-    def suitable(cls, url):
-        return False if MarkizaIE.suitable(url) else super(MarkizaPageIE, cls).suitable(url)
-
     def _real_extract(self, url):
-        playlist_id = self._match_id(url)
+        mobj = self._match_valid_url(url)
+        display_id = mobj.group('id')
+        site = mobj.group('site')
 
-        webpage = self._download_webpage(
-            # Downloading for some hosts (e.g. dajto, doma) fails with 500
-            # although everything seems to be OK, so considering 500
-            # status code to be expected.
-            url, playlist_id, expected_status=500)
+        webpage = self._download_webpage(url, display_id)
 
-        entries = [
-            self.url_result('http://videoarchiv.markiza.sk/video/%s' % video_id)
-            for video_id in orderedSet(re.findall(
-                r'(?:initPlayer_|data-entity=["\']|id=["\']player_)(\d+)',
-                webpage))]
+        description = clean_html(self._og_search_description(webpage, default=None))
+        if site == 'novaplus':
+            upload_date = unified_strdate(self._search_regex(
+                r'(\d{1,2}-\d{1,2}-\d{4})$', display_id, 'upload date', default=None))
+        elif site == 'fanda':
+            upload_date = unified_strdate(self._search_regex(
+                r'<span class="date_time">(\d{1,2}\.\d{1,2}\.\d{4})', webpage, 'upload date', default=None))
+        else:
+            upload_date = None
 
-        return self.playlist_result(entries, playlist_id)
+        # novaplus
+        embed_id = self._search_regex(
+            r'<iframe[^>]+\bsrc=["\'](?:https?:)?//media(?:tn)?\.cms\.markiza\.sk/embed/([^/?#&"\']+)',
+            webpage, 'embed url', default=None)
+        if embed_id:
+            return {
+                '_type': 'url_transparent',
+                'url': 'https://media.cms.markiza.sk/embed/%s' % embed_id,
+                'ie_key': NovaEmbedIE.ie_key(),
+                'id': embed_id,
+                'description': description,
+                'upload_date': upload_date
+            }
+
+        video_id = self._search_regex(
+            [r"(?:media|video_id)\s*:\s*'(\d+)'",
+             r'media=(\d+)',
+             r'id="article_video_(\d+)"',
+             r'id="player_(\d+)"'],
+            webpage, 'video id')
+
+        config_url = self._search_regex(
+            r'src="(https?://(?:tn|api)\.markiza\.sk/bin/player/videojs/config\.php\?[^"]+)"',
+            webpage, 'config url', default=None)
+        config_params = {}
+
+        if not config_url:
+            player = self._parse_json(
+                self._search_regex(
+                    r'(?s)Player\s*\(.+?\s*,\s*({.+?\bmedia\b["\']?\s*:\s*["\']?\d+.+?})\s*\)', webpage,
+                    'player', default='{}'),
+                video_id, transform_source=js_to_json, fatal=False)
+            if player:
+                config_url = url_or_none(player.get('configUrl'))
+                params = player.get('configParams')
+                if isinstance(params, dict):
+                    config_params = params
+
+        if not config_url:
+            DEFAULT_SITE_ID = '23000'
+            SITES = {
+                'tvnoviny': DEFAULT_SITE_ID,
+                'novaplus': DEFAULT_SITE_ID,
+                'vymena': DEFAULT_SITE_ID,
+                'krasna': DEFAULT_SITE_ID,
+                'fanda': '30',
+                'tn': '30',
+                'doma': '30',
+            }
+
+            site_id = self._search_regex(
+                r'site=(\d+)', webpage, 'site id', default=None) or SITES.get(
+                site, DEFAULT_SITE_ID)
+
+            config_url = 'https://api.nova.cz/bin/player/videojs/config.php'
+            config_params = {
+                'site': site_id,
+                'media': video_id,
+                'quality': 3,
+                'version': 1,
+            }
+
+        config = self._download_json(
+            config_url, display_id,
+            'Downloading config JSON', query=config_params,
+            transform_source=lambda s: s[s.index('{'):s.rindex('}') + 1])
+
+        mediafile = config['mediafile']
+        video_url = mediafile['src']
+
+        m = re.search(r'^(?P<url>rtmpe?://[^/]+/(?P<app>[^/]+?))/&*(?P<playpath>.+)$', video_url)
+        if m:
+            formats = [{
+                'url': m.group('url'),
+                'app': m.group('app'),
+                'play_path': m.group('playpath'),
+                'player_path': 'http://tvnoviny.nova.cz/static/shared/app/videojs/video-js.swf',
+                'ext': 'flv',
+            }]
+        else:
+            formats = [{
+                'url': video_url,
+            }]
+
+        title = mediafile.get('meta', {}).get('title') or self._og_search_title(webpage)
+        thumbnail = config.get('poster')
+
+        return {
+            'id': video_id,
+            'display_id': display_id,
+            'title': title,
+            'description': description,
+            'upload_date': upload_date,
+            'thumbnail': thumbnail,
+            'formats': formats,
+        }
