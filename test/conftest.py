@@ -23,7 +23,7 @@ def handler(request):
         RH_KEY = handler.RH_KEY
 
         def __init__(self, *args, **kwargs):
-            super().__init__(logger=FakeLogger, *args, **kwargs)
+            super().__init__(logger=FakeLogger(), *args, **kwargs)
 
     return HandlerWrapper
 
