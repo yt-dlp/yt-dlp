@@ -3,8 +3,8 @@ import re
 from .common import InfoExtractor
 from ..utils import (
     qualities,
-    unified_timestamp,
     traverse_obj,
+    unified_timestamp,
 )
 
 

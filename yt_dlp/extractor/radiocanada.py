@@ -1,8 +1,8 @@
 from .common import InfoExtractor
 from ..networking.exceptions import HTTPError
 from ..utils import (
-    determine_ext,
     ExtractorError,
+    determine_ext,
     int_or_none,
     unified_strdate,
 )

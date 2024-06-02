@@ -1,9 +1,9 @@
 import functools
-import urllib.parse
-import urllib.error
 import hashlib
 import json
 import time
+import urllib.error
+import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import (

@@ -1,5 +1,5 @@
-from .common import InfoExtractor
 from .amp import AMPIE
+from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     int_or_none,

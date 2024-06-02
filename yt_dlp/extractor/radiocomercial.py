@@ -14,7 +14,7 @@ from ..utils import (
     try_call,
     unified_strdate,
     update_url,
-    urljoin
+    urljoin,
 )
 from ..utils.traversal import traverse_obj
 

@@ -4,8 +4,8 @@ import hmac
 import itertools
 import json
 import re
-import urllib.parse
 import time
+import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import (

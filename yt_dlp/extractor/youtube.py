@@ -240,6 +240,16 @@ INNERTUBE_CLIENTS = {
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 85
     },
+    # This client has pre-merged video+audio 720p/1080p streams
+    'mediaconnect': {
+        'INNERTUBE_CONTEXT': {
+            'client': {
+                'clientName': 'MEDIA_CONNECT_FRONTEND',
+                'clientVersion': '0.1',
+            },
+        },
+        'INNERTUBE_CONTEXT_CLIENT_NAME': 95
+    },
 }
 
 
@@ -1171,7 +1181,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         r'/(?P<id>[a-zA-Z0-9_-]{8,})/player(?:_ias\.vflset(?:/[a-zA-Z]{2,3}_[a-zA-Z]{2,3})?|-plasma-ias-(?:phone|tablet)-[a-z]{2}_[A-Z]{2}\.vflset)/base\.js$',
         r'\b(?P<id>vfl[a-zA-Z0-9_-]+)\b.*?\.js$',
     )
-    _formats = {
+    _formats = {  # NB: Used in YoutubeWebArchiveIE and GoogleDriveIE
         '5': {'ext': 'flv', 'width': 400, 'height': 240, 'acodec': 'mp3', 'abr': 64, 'vcodec': 'h263'},
         '6': {'ext': 'flv', 'width': 450, 'height': 270, 'acodec': 'mp3', 'abr': 64, 'vcodec': 'h263'},
         '13': {'ext': '3gp', 'acodec': 'aac', 'vcodec': 'mp4v'},
@@ -1315,6 +1325,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader_url': 'https://www.youtube.com/@PhilippHagemeister',
                 'uploader_id': '@PhilippHagemeister',
                 'heatmap': 'count:100',
+                'timestamp': 1349198244,
             }
         },
         {
@@ -1358,6 +1369,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader_url': 'https://www.youtube.com/@PhilippHagemeister',
                 'uploader_id': '@PhilippHagemeister',
                 'heatmap': 'count:100',
+                'timestamp': 1349198244,
             },
             'params': {
                 'skip_download': True,
@@ -1444,6 +1456,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'comment_count': int,
                 'channel_is_verified': True,
                 'heatmap': 'count:100',
+                'timestamp': 1401991663,
             },
         },
         {
@@ -1503,6 +1516,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader': 'Projekt Melody',
                 'uploader_url': 'https://www.youtube.com/@ProjektMelody',
                 'uploader_id': '@ProjektMelody',
+                'timestamp': 1577508724,
             },
         },
         {
@@ -1608,6 +1622,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader_url': 'https://www.youtube.com/@Olympics',
                 'uploader_id': '@Olympics',
                 'channel_is_verified': True,
+                'timestamp': 1440707674,
             },
             'params': {
                 'skip_download': 'requires avconv',
@@ -1641,6 +1656,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader': '孫ᄋᄅ',
                 'uploader_url': 'https://www.youtube.com/@AllenMeow',
                 'uploader_id': '@AllenMeow',
+                'timestamp': 1299776999,
             },
         },
         # url_encoded_fmt_stream_map is empty string
@@ -1784,6 +1800,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 },
             }],
             'params': {'skip_download': True},
+            'skip': 'Not multifeed anymore',
         },
         {
             # Multifeed video with comma in title (see https://github.com/ytdl-org/youtube-dl/issues/8536)
@@ -1892,6 +1909,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader': 'The Berkman Klein Center for Internet & Society',
                 'uploader_id': '@BKCHarvard',
                 'uploader_url': 'https://www.youtube.com/@BKCHarvard',
+                'timestamp': 1422422076,
             },
             'params': {
                 'skip_download': True,
@@ -1927,6 +1945,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader_id': '@BernieSanders',
                 'channel_is_verified': True,
                 'heatmap': 'count:100',
+                'timestamp': 1447987198,
             },
             'params': {
                 'skip_download': True,
@@ -1990,6 +2009,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader_id': '@Vsauce',
                 'comment_count': int,
                 'channel_is_verified': True,
+                'timestamp': 1484761047,
             },
             'params': {
                 'skip_download': True,
@@ -2145,6 +2165,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader': 'l\'Or Vert asbl',
                 'uploader_url': 'https://www.youtube.com/@ElevageOrVert',
                 'uploader_id': '@ElevageOrVert',
+                'timestamp': 1497343210,
             },
             'params': {
                 'skip_download': True,
@@ -2183,6 +2204,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader_id': '@Csharp-video-tutorialsBlogspot',
                 'channel_is_verified': True,
                 'heatmap': 'count:100',
+                'timestamp': 1377976349,
             },
             'params': {
                 'skip_download': True,
@@ -2265,6 +2287,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader_id': '@CBSMornings',
                 'comment_count': int,
                 'channel_is_verified': True,
+                'timestamp': 1405513526,
             }
         },
         {
@@ -2282,7 +2305,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'view_count': int,
                 'channel': 'Walk around Japan',
                 'tags': ['Ueno Tokyo', 'Okachimachi Tokyo', 'Ameyoko Street', 'Tokyo attraction', 'Travel in Tokyo'],
-                'thumbnail': 'https://i.ytimg.com/vi_webp/cBvYw8_A0vQ/hqdefault.webp',
+                'thumbnail': 'https://i.ytimg.com/vi/cBvYw8_A0vQ/hqdefault.jpg',
                 'age_limit': 0,
                 'availability': 'public',
                 'channel_url': 'https://www.youtube.com/channel/UC3o_t8PzBmXf5S9b7GLx1Mw',
@@ -2292,6 +2315,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader': 'Walk around Japan',
                 'uploader_url': 'https://www.youtube.com/@walkaroundjapan7124',
                 'uploader_id': '@walkaroundjapan7124',
+                'timestamp': 1605884416,
             },
             'params': {
                 'skip_download': True,
@@ -2343,6 +2367,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'format': '17',  # 3gp format available on android
                 'extractor_args': {'youtube': {'player_client': ['android']}},
             },
+            'skip': 'android client broken',
         },
         {
             # Skip download of additional client configs (remix client config in this case)
@@ -2386,6 +2411,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'comment_count': int,
                 'channel_is_verified': True,
                 'heatmap': 'count:100',
+                'timestamp': 1395685455,
             }, 'params': {'format': 'mhtml', 'skip_download': True}
         }, {
             # Ensure video upload_date is in UTC timezone (video was uploaded 1641170939)
@@ -2415,37 +2441,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader_url': 'https://www.youtube.com/@LeonNguyen',
                 'uploader_id': '@LeonNguyen',
                 'heatmap': 'count:100',
+                'timestamp': 1641170939,
             }
-        }, {
-            # Same video as above, but with --compat-opt no-youtube-prefer-utc-upload-date
-            'url': 'https://www.youtube.com/watch?v=2NUZ8W2llS4',
-            'info_dict': {
-                'id': '2NUZ8W2llS4',
-                'ext': 'mp4',
-                'title': 'The NP that test your phone performance 🙂',
-                'description': 'md5:144494b24d4f9dfacb97c1bbef5de84d',
-                'channel_id': 'UCRqNBSOHgilHfAczlUmlWHA',
-                'channel_url': 'https://www.youtube.com/channel/UCRqNBSOHgilHfAczlUmlWHA',
-                'duration': 21,
-                'view_count': int,
-                'age_limit': 0,
-                'categories': ['Gaming'],
-                'tags': 'count:23',
-                'playable_in_embed': True,
-                'live_status': 'not_live',
-                'upload_date': '20220102',
-                'like_count': int,
-                'availability': 'public',
-                'channel': 'Leon Nguyen',
-                'thumbnail': 'https://i.ytimg.com/vi_webp/2NUZ8W2llS4/maxresdefault.webp',
-                'comment_count': int,
-                'channel_follower_count': int,
-                'uploader': 'Leon Nguyen',
-                'uploader_url': 'https://www.youtube.com/@LeonNguyen',
-                'uploader_id': '@LeonNguyen',
-                'heatmap': 'count:100',
-            },
-            'params': {'compat_opts': ['no-youtube-prefer-utc-upload-date']}
         }, {
             # date text is premiered video, ensure upload date in UTC (published 1641172509)
             'url': 'https://www.youtube.com/watch?v=mzZzzBU6lrM',
@@ -2477,38 +2474,41 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'comment_count': int,
                 'channel_is_verified': True,
                 'heatmap': 'count:100',
+                'timestamp': 1641172509,
             }
         },
-        {   # continuous livestream. Microformat upload date should be preferred.
-            # Upload date was 2021-06-19 (not UTC), while stream start is 2021-11-27
-            'url': 'https://www.youtube.com/watch?v=kgx4WGK0oNU',
+        {   # continuous livestream.
+            # Upload date was 2022-07-12T05:12:29-07:00, while stream start is 2022-07-12T15:59:30+00:00
+            'url': 'https://www.youtube.com/watch?v=jfKfPfyJRdk',
             'info_dict': {
-                'id': 'kgx4WGK0oNU',
-                'title': r're:jazz\/lofi hip hop radio🌱chill beats to relax\/study to \[LIVE 24\/7\] \d{4}-\d{2}-\d{2} \d{2}:\d{2}',
+                'id': 'jfKfPfyJRdk',
                 'ext': 'mp4',
-                'channel_id': 'UC84whx2xxsiA1gXHXXqKGOA',
-                'availability': 'public',
-                'age_limit': 0,
-                'release_timestamp': 1637975704,
-                'upload_date': '20210619',
-                'channel_url': 'https://www.youtube.com/channel/UC84whx2xxsiA1gXHXXqKGOA',
-                'live_status': 'is_live',
-                'thumbnail': 'https://i.ytimg.com/vi/kgx4WGK0oNU/maxresdefault.jpg',
-                'channel': 'Abao in Tokyo',
-                'channel_follower_count': int,
-                'release_date': '20211127',
-                'tags': 'count:39',
-                'categories': ['People & Blogs'],
+                'channel_id': 'UCSJ4gkVC6NrvII8umztf0Ow',
                 'like_count': int,
-                'view_count': int,
-                'playable_in_embed': True,
-                'description': 'md5:2ef1d002cad520f65825346e2084e49d',
+                'uploader': 'Lofi Girl',
+                'categories': ['Music'],
                 'concurrent_view_count': int,
-                'uploader': 'Abao in Tokyo',
-                'uploader_url': 'https://www.youtube.com/@abaointokyo',
-                'uploader_id': '@abaointokyo',
+                'playable_in_embed': True,
+                'timestamp': 1657627949,
+                'release_date': '20220712',
+                'channel_url': 'https://www.youtube.com/channel/UCSJ4gkVC6NrvII8umztf0Ow',
+                'description': 'md5:13a6f76df898f5674f9127139f3df6f7',
+                'age_limit': 0,
+                'thumbnail': 'https://i.ytimg.com/vi/jfKfPfyJRdk/maxresdefault.jpg',
+                'release_timestamp': 1657641570,
+                'uploader_url': 'https://www.youtube.com/@LofiGirl',
+                'channel_follower_count': int,
+                'channel_is_verified': True,
+                'title': r're:^lofi hip hop radio 📚 - beats to relax/study to',
+                'view_count': int,
+                'live_status': 'is_live',
+                'tags': 'count:32',
+                'channel': 'Lofi Girl',
+                'availability': 'public',
+                'upload_date': '20220712',
+                'uploader_id': '@LofiGirl',
             },
-            'params': {'skip_download': True}
+            'params': {'skip_download': True},
         }, {
             'url': 'https://www.youtube.com/watch?v=tjjjtzRLHvA',
             'info_dict': {
@@ -2534,6 +2534,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader_id': '@lesmiscore',
                 'uploader': 'Lesmiscore',
                 'uploader_url': 'https://www.youtube.com/@lesmiscore',
+                'timestamp': 1648005313,
             }
         }, {
             # Prefer primary title+description language metadata by default
@@ -2561,6 +2562,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader_url': 'https://www.youtube.com/@coletdjnz',
                 'uploader_id': '@coletdjnz',
                 'uploader': 'cole-dlp-test-acc',
+                'timestamp': 1662677394,
             },
             'params': {'skip_download': True}
         }, {
@@ -2574,7 +2576,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'duration': 5,
                 'live_status': 'not_live',
                 'channel_id': 'UCiu-3thuViMebBjw_5nWYrA',
-                'upload_date': '20220728',
+                'upload_date': '20220729',
                 'view_count': int,
                 'categories': ['People & Blogs'],
                 'thumbnail': r're:^https?://.*\.jpg',
@@ -2587,6 +2589,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader_url': 'https://www.youtube.com/@coletdjnz',
                 'uploader_id': '@coletdjnz',
                 'uploader': 'cole-dlp-test-acc',
+                'timestamp': 1659073275,
+                'like_count': int,
             },
             'params': {'skip_download': True, 'extractor_args': {'youtube': {'lang': ['fr']}}},
             'expected_warnings': [r'Preferring "fr" translated fields'],
@@ -2652,6 +2656,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader': 'Projekt Melody',
                 'uploader_id': '@ProjektMelody',
                 'uploader_url': 'https://www.youtube.com/@ProjektMelody',
+                'timestamp': 1577508724,
             },
             'params': {'extractor_args': {'youtube': {'player_client': ['tv_embedded']}}, 'format': '251-drc'},
         },
@@ -2686,6 +2691,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader_id': '@sana_natori',
                 'channel_is_verified': True,
                 'heatmap': 'count:100',
+                'timestamp': 1671798112,
             },
         },
         {
@@ -2720,7 +2726,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'heatmap': 'count:100',
             },
             'params': {
-                'extractor_args': {'youtube': {'player_client': ['android'], 'player_skip': ['webpage']}},
+                'extractor_args': {'youtube': {'player_client': ['ios'], 'player_skip': ['webpage']}},
             },
         },
     ]
@@ -2755,6 +2761,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader_url': 'https://www.youtube.com/@ChristopherSykesDocumentaries',
                 'uploader_id': '@ChristopherSykesDocumentaries',
                 'heatmap': 'count:100',
+                'timestamp': 1211825920,
             },
             'params': {
                 'skip_download': True,
@@ -3307,7 +3314,36 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'value': ('intensityScoreNormalized', {float_or_none}),
             })) or None
 
-    def _extract_comment(self, comment_renderer, parent=None):
+    def _extract_comment(self, entities, parent=None):
+        comment_entity_payload = get_first(entities, ('payload', 'commentEntityPayload', {dict}))
+        if not (comment_id := traverse_obj(comment_entity_payload, ('properties', 'commentId', {str}))):
+            return
+
+        toolbar_entity_payload = get_first(entities, ('payload', 'engagementToolbarStateEntityPayload', {dict}))
+        time_text = traverse_obj(comment_entity_payload, ('properties', 'publishedTime', {str})) or ''
+
+        return {
+            'id': comment_id,
+            'parent': parent or 'root',
+            **traverse_obj(comment_entity_payload, {
+                'text': ('properties', 'content', 'content', {str}),
+                'like_count': ('toolbar', 'likeCountA11y', {parse_count}),
+                'author_id': ('author', 'channelId', {self.ucid_or_none}),
+                'author': ('author', 'displayName', {str}),
+                'author_thumbnail': ('author', 'avatarThumbnailUrl', {url_or_none}),
+                'author_is_uploader': ('author', 'isCreator', {bool}),
+                'author_is_verified': ('author', 'isVerified', {bool}),
+                'author_url': ('author', 'channelCommand', 'innertubeCommand', (
+                    ('browseEndpoint', 'canonicalBaseUrl'), ('commandMetadata', 'webCommandMetadata', 'url')
+                ), {lambda x: urljoin('https://www.youtube.com', x)}),
+            }, get_all=False),
+            'is_favorited': (None if toolbar_entity_payload is None else
+                             toolbar_entity_payload.get('heartState') == 'TOOLBAR_HEART_STATE_HEARTED'),
+            '_time_text': time_text,  # FIXME: non-standard, but we need a way of showing that it is an estimate.
+            'timestamp': self._parse_time_text(time_text),
+        }
+
+    def _extract_comment_old(self, comment_renderer, parent=None):
         comment_id = comment_renderer.get('commentId')
         if not comment_id:
             return
@@ -3388,21 +3424,39 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 break
             return _continuation
 
-        def extract_thread(contents):
+        def extract_thread(contents, entity_payloads):
             if not parent:
                 tracker['current_page_thread'] = 0
             for content in contents:
                 if not parent and tracker['total_parent_comments'] >= max_parents:
                     yield
                 comment_thread_renderer = try_get(content, lambda x: x['commentThreadRenderer'])
-                comment_renderer = get_first(
-                    (comment_thread_renderer, content), [['commentRenderer', ('comment', 'commentRenderer')]],
-                    expected_type=dict, default={})
 
-                comment = self._extract_comment(comment_renderer, parent)
+                # old comment format
+                if not entity_payloads:
+                    comment_renderer = get_first(
+                        (comment_thread_renderer, content), [['commentRenderer', ('comment', 'commentRenderer')]],
+                        expected_type=dict, default={})
+
+                    comment = self._extract_comment_old(comment_renderer, parent)
+
+                # new comment format
+                else:
+                    view_model = (
+                        traverse_obj(comment_thread_renderer, ('commentViewModel', 'commentViewModel', {dict}))
+                        or traverse_obj(content, ('commentViewModel', {dict})))
+                    comment_keys = traverse_obj(view_model, (('commentKey', 'toolbarStateKey'), {str}))
+                    if not comment_keys:
+                        continue
+                    entities = traverse_obj(entity_payloads, lambda _, v: v['entityKey'] in comment_keys)
+                    comment = self._extract_comment(entities, parent)
+                    if comment:
+                        comment['is_pinned'] = traverse_obj(view_model, ('pinnedText', {str})) is not None
+
                 if not comment:
                     continue
                 comment_id = comment['id']
+
                 if comment.get('is_pinned'):
                     tracker['pinned_comment_ids'].add(comment_id)
                 # Sometimes YouTube may break and give us infinite looping comments.
@@ -3495,7 +3549,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             check_get_keys = None
             if not is_forced_continuation and not (tracker['est_total'] == 0 and tracker['running_total'] == 0):
                 check_get_keys = [[*continuation_items_path, ..., (
-                    'commentsHeaderRenderer' if is_first_continuation else ('commentThreadRenderer', 'commentRenderer'))]]
+                    'commentsHeaderRenderer' if is_first_continuation else ('commentThreadRenderer', 'commentViewModel', 'commentRenderer'))]]
             try:
                 response = self._extract_response(
                     item_id=None, query=continuation,
@@ -3519,6 +3573,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 raise
             is_forced_continuation = False
             continuation = None
+            mutations = traverse_obj(response, ('frameworkUpdates', 'entityBatchUpdate', 'mutations', ..., {dict}))
             for continuation_items in traverse_obj(response, continuation_items_path, expected_type=list, default=[]):
                 if is_first_continuation:
                     continuation = extract_header(continuation_items)
@@ -3527,7 +3582,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         break
                     continue
 
-                for entry in extract_thread(continuation_items):
+                for entry in extract_thread(continuation_items, mutations):
                     if not entry:
                         return
                     yield entry
@@ -3604,8 +3659,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         yt_query = {
             'videoId': video_id,
         }
-        if _split_innertube_client(client)[0] in ('android', 'android_embedscreen'):
-            yt_query['params'] = 'CgIIAQ=='
 
         pp_arg = self._configuration_arg('player_params', [None], casesense=True)[0]
         if pp_arg:
@@ -3621,19 +3674,24 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
     def _get_requested_clients(self, url, smuggled_data):
         requested_clients = []
-        default = ['ios', 'android', 'web']
+        android_clients = []
+        default = ['ios', 'web']
         allowed_clients = sorted(
             (client for client in INNERTUBE_CLIENTS.keys() if client[:1] != '_'),
             key=lambda client: INNERTUBE_CLIENTS[client]['priority'], reverse=True)
         for client in self._configuration_arg('player_client'):
-            if client in allowed_clients:
-                requested_clients.append(client)
-            elif client == 'default':
+            if client == 'default':
                 requested_clients.extend(default)
             elif client == 'all':
                 requested_clients.extend(allowed_clients)
-            else:
+            elif client not in allowed_clients:
                 self.report_warning(f'Skipping unsupported client {client}')
+            elif client.startswith('android'):
+                android_clients.append(client)
+            else:
+                requested_clients.append(client)
+        # Force deprioritization of broken Android clients for format de-duplication
+        requested_clients.extend(android_clients)
         if not requested_clients:
             requested_clients = default
 
@@ -3852,6 +3910,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     f'{video_id}: Some formats are possibly damaged. They will be deprioritized', only_once=True)
 
             client_name = fmt.get(STREAMING_DATA_CLIENT_NAME)
+            # Android client formats are broken due to integrity check enforcement
+            # Ref: https://github.com/yt-dlp/yt-dlp/issues/9554
+            is_broken = client_name and client_name.startswith(short_client_name('android'))
+            if is_broken:
+                self.report_warning(
+                    f'{video_id}: Android client formats are broken and may yield HTTP Error 403. '
+                    'They will be deprioritized', only_once=True)
+
             name = fmt.get('qualityLabel') or quality.replace('audio_quality_', '') or ''
             fps = int_or_none(fmt.get('fps')) or 0
             dct = {
@@ -3864,7 +3930,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     name, fmt.get('isDrc') and 'DRC',
                     try_get(fmt, lambda x: x['projectionType'].replace('RECTANGULAR', '').lower()),
                     try_get(fmt, lambda x: x['spatialAudioType'].replace('SPATIAL_AUDIO_TYPE_', '').lower()),
-                    throttled and 'THROTTLED', is_damaged and 'DAMAGED',
+                    throttled and 'THROTTLED', is_damaged and 'DAMAGED', is_broken and 'BROKEN',
                     (self.get_param('verbose') or all_formats) and client_name,
                     delim=', '),
                 # Format 22 is likely to be damaged. See https://github.com/yt-dlp/yt-dlp/issues/3372
@@ -3882,8 +3948,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'language': join_nonempty(audio_track.get('id', '').split('.')[0],
                                           'desc' if language_preference < -1 else '') or None,
                 'language_preference': language_preference,
-                # Strictly de-prioritize damaged and 3gp formats
-                'preference': -10 if is_damaged else -2 if itag == '17' else None,
+                # Strictly de-prioritize broken, damaged and 3gp formats
+                'preference': -20 if is_broken else -10 if is_damaged else -2 if itag == '17' else None,
             }
             mime_mobj = re.match(
                 r'((?:[^/]+)/(?:[^;]+))(?:;\s*codecs="([^"]+)")?', fmt.get('mimeType') or '')
@@ -4552,19 +4618,31 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'uploader_id': channel_handle,
             'uploader_url': format_field(channel_handle, None, 'https://www.youtube.com/%s', default=None),
         })
+
+        # We only want timestamp IF it has time precision AND a timezone
+        # Currently the uploadDate in microformats appears to be in US/Pacific timezone.
+        timestamp = (
+            parse_iso8601(get_first(microformats, 'uploadDate'), timezone=NO_DEFAULT)
+            or parse_iso8601(search_meta('uploadDate'), timezone=NO_DEFAULT)
+        )
+        upload_date = (
+            dt.datetime.fromtimestamp(timestamp, dt.timezone.utc).strftime('%Y%m%d') if timestamp else
+            (
+                unified_strdate(get_first(microformats, 'uploadDate'))
+                or unified_strdate(search_meta('uploadDate'))
+            ))
+
+        # In the case we cannot get the timestamp:
         # The upload date for scheduled, live and past live streams / premieres in microformats
         # may be different from the stream date. Although not in UTC, we will prefer it in this case.
         # See: https://github.com/yt-dlp/yt-dlp/pull/2223#issuecomment-1008485139
-        upload_date = (
-            unified_strdate(get_first(microformats, 'uploadDate'))
-            or unified_strdate(search_meta('uploadDate')))
-        if not upload_date or (
-            live_status in ('not_live', None)
-            and 'no-youtube-prefer-utc-upload-date' not in self.get_param('compat_opts', [])
-        ):
+        if not upload_date or (not timestamp and live_status in ('not_live', None)):
+            # this should be in UTC, as configured in the cookie/client context
             upload_date = strftime_or_none(
                 self._parse_time_text(self._get_text(vpir, 'dateText'))) or upload_date
+
         info['upload_date'] = upload_date
+        info['timestamp'] = timestamp
 
         if upload_date and live_status not in ('is_live', 'post_live', 'is_upcoming'):
             # Newly uploaded videos' HLS formats are potentially problematic and need to be checked

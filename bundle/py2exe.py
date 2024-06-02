@@ -42,9 +42,9 @@ def main():
                 # py2exe cannot import Crypto
                 'Crypto',
                 'Cryptodome',
-                # py2exe appears to confuse this with our socks library.
-                # We don't use pysocks and urllib3.contrib.socks would fail to import if tried.
-                'urllib3.contrib.socks'
+                # requests >=2.32.0 breaks py2exe builds due to certifi dependency
+                'requests',
+                'urllib3'
             ],
             'dll_excludes': ['w9xpopen.exe', 'crypt32.dll'],
             # Modules that are only imported dynamically must be added here

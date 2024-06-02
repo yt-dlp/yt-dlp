@@ -4,11 +4,12 @@ import urllib.parse
 from .common import InfoExtractor
 from ..compat import compat_str
 from ..utils import (
+    US_RATINGS,
     ExtractorError,
     LazyList,
     determine_ext,
-    int_or_none,
     float_or_none,
+    int_or_none,
     js_to_json,
     clean_html,
     get_elements_html_by_class,
@@ -20,7 +21,6 @@ from ..utils import (
     traverse_obj,
     unified_strdate,
     url_or_none,
-    US_RATINGS,
 )
 
 
