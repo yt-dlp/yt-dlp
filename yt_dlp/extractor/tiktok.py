@@ -400,13 +400,19 @@ class TikTokBaseIE(InfoExtractor):
         contained_music_track = traverse_obj(
             music_info, ('matched_song', 'title'), ('matched_pgc_sound', 'title'), expected_type=str)
         contained_music_author = traverse_obj(
-            music_info, ('matched_song', 'author'), ('matched_pgc_sound', 'author'), 'author', expected_type=str)
+            music_info, ('matched_song', 'author'), ('matched_pgc_sound', 'author'), expected_type=str)
 
         is_generic_og_trackname = music_info.get('is_original_sound') and music_info.get('title') == 'original sound - %s' % music_info.get('owner_handle')
-        if is_generic_og_trackname:
-            music_track, music_author = contained_music_track or 'original sound', contained_music_author
+        music_track, music_author = 'original sound' if is_generic_og_trackname else music_info.get('title'), traverse_obj(music_info, ('author', {str}))
+
+        if contained_music_track or contained_music_author:
+            contained_music_info = [{
+                'relation': 'music',
+                'track': contained_music_track,
+                'artist': contained_music_author,
+            }]
         else:
-            music_track, music_author = music_info.get('title'), traverse_obj(music_info, ('author', {str}))
+            contained_music_info = None
 
         author_info = traverse_obj(aweme_detail, ('author', {
             'uploader': ('unique_id', {str}),
@@ -433,7 +439,10 @@ class TikTokBaseIE(InfoExtractor):
             'uploader_url': format_field(
                 author_info, ['uploader', 'uploader_id'], self._UPLOADER_URL_FORMAT, default=None),
             'track': music_track,
+            'track_id': str_or_none(music_info.get('id')),
             'album': str_or_none(music_info.get('album')) or None,
+            'attributions': contained_music_info,
+            'timestamp': int_or_none(aweme_detail.get('create_time')),
             'artists': re.split(r'(?:, | & )', music_author) if music_author else None,
             'formats': formats,
             'subtitles': self.extract_subtitles(
@@ -557,6 +566,7 @@ class TikTokBaseIE(InfoExtractor):
                 author_info, ['uploader', 'uploader_id'], self._UPLOADER_URL_FORMAT, default=None),
             **traverse_obj(aweme_detail, ('music', {
                 'track': ('title', {str}),
+                'track_id': ('id', {str}, {lambda x: x or None}),
                 'album': ('album', {str}, {lambda x: x or None}),
                 'artists': ('authorName', {str}, {lambda x: re.split(r'(?:, | & )', x) if x else None}),
                 'duration': ('duration', {int_or_none}),
@@ -611,6 +621,7 @@ class TikTokIE(TikTokBaseIE):
             'artist': 'Ysrbeats',
             'album': 'Lehanga',
             'track': 'Lehanga',
+            'track_id': '6716465478027447045',
         },
         'skip': '404 Not Found',
     }, {
@@ -639,6 +650,7 @@ class TikTokIE(TikTokBaseIE):
             'comment_count': int,
             'artists': ['Evan Todd', 'Jessica Keenan Wynn', 'Alice Lee', 'Barrett Wilbert Weed', 'Jon Eidson'],
             'track': 'Big Fun',
+            'track_id': '209649576000286720',
         },
     }, {
         # Banned audio, was available on the app, now works with web too
@@ -655,7 +667,15 @@ class TikTokIE(TikTokBaseIE):
             'channel_url': 'https://www.tiktok.com/@MS4wLjABAAAAbhBwQC-R1iKoix6jDFsF-vBdfx2ABoDjaZrM9fX6arU3w71q3cOWgWuTXn1soZ7d',
             'channel_id': 'MS4wLjABAAAAbhBwQC-R1iKoix6jDFsF-vBdfx2ABoDjaZrM9fX6arU3w71q3cOWgWuTXn1soZ7d',
             'track': 'Boka Dance',
+            'track_id': '6984138615588653826',
             'artists': ['md5:29f238c49bc0c176cb3cef1a9cea9fa6'],
+            'attributions': [
+                {
+                    'relation': 'music',
+                    'track': 'Boka Loka Dance',
+                    'artist': 'FAUJI NOSS',
+                }
+            ],
             'timestamp': 1626121503,
             'duration': 18,
             'thumbnail': r're:^https?://[\w\/\.\-]+(~[\w\-]+\.image)?',
@@ -679,6 +699,7 @@ class TikTokIE(TikTokBaseIE):
             'uploader_url': 'https://www.tiktok.com/@MS4wLjABAAAATh8Vewkn0LYM7Fo03iec3qKdeCUOcBIouRk1mkiag6h3o_pQu_dUXvZ2EZlGST7_',
             'channel_id': 'MS4wLjABAAAATh8Vewkn0LYM7Fo03iec3qKdeCUOcBIouRk1mkiag6h3o_pQu_dUXvZ2EZlGST7_',
             'track': 'Promoted Music',
+            'track_id': '7042692955299203841',
             'timestamp': 1639754738,
             'duration': 30,
             'thumbnail': r're:^https?://[\w\/\.\-]+(~[\w\-]+\.image)?',
@@ -704,6 +725,7 @@ class TikTokIE(TikTokBaseIE):
             'channel_url': 'https://www.tiktok.com/@MS4wLjABAAAA0tF1nBwQVVMyrGu3CqttkNgM68Do1OXUFuCY0CRQk8fEtSVDj89HqoqvbSTmUP2W',
             'channel_id': 'MS4wLjABAAAA0tF1nBwQVVMyrGu3CqttkNgM68Do1OXUFuCY0CRQk8fEtSVDj89HqoqvbSTmUP2W',
             'track': 'original sound',
+            'track_id': '7059698289792273198',
             'timestamp': 1643714123,
             'duration': 6,
             'thumbnail': r're:^https?://[\w\/\.\-]+(~[\w\-]+\.image)?',
