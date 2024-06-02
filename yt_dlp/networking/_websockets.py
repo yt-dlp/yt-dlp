@@ -79,10 +79,10 @@ class WebsocketsLoggingHandler(logging.Handler):
     def emit(self, record):
         try:
             msg = self.format(record)
-            self._logger.stdout(msg)
-
         except Exception:
             self.handleError(record)
+        else:
+            self._logger.stdout(msg)
 
 
 class WebsocketsResponseAdapter(WebSocketResponse):
