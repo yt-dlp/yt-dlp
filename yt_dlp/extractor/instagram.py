@@ -453,7 +453,7 @@ class InstagramIE(InstagramBaseIE):
             else:
                 self.report_warning('Main webpage is locked behind the login page. Retrying with embed webpage (some metadata might be missing).')
                 webpage = self._download_webpage(
-                    f'{url}/embed/', video_id, note='Downloading embed webpage', fatal=False)
+                    f'{url}/embed/', video_id, note='Downloading embed webpage', fatal=False) or ''
                 additional_data = self._search_json(
                     r'window\.__additionalDataLoaded\s*\(\s*[^,]+,', webpage, 'additional data', video_id, fatal=False)
                 if not additional_data and not media:
