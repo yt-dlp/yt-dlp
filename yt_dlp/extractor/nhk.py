@@ -635,6 +635,13 @@ class NhkRadiruIE(InfoExtractor):
             'series_id': 'F683_01',
             'description': '朗読：浅井理アナウンサー',
             'thumbnail': 'https://www.nhk.or.jp/radioondemand/json/F683/img/roudoku_05_rod_640.jpg',
+            'upload_date': '20240106',
+            'release_date': '20240106',
+            'uploader': 'NHK R1',
+            'release_timestamp': 1704511800,
+            'channel': 'NHK R1',
+            'timestamp': 1704512700,
+
         },
         'expected_warnings': ['Unable to download JSON metadata',
                               'Failed to get extended metadata. API returned Error 1: Invalid parameters'],
@@ -655,6 +662,27 @@ class NhkRadiruIE(InfoExtractor):
             'upload_date': '20230416',
             'release_timestamp': 1681635600,
         },
+    }, {
+        # fallback when extended metadata fails
+        'url': 'https://www.nhk.or.jp/radio/player/ondemand.html?p=2834_01_4009298',
+        'skip': 'Expires on 2024-06-07',
+        'info_dict': {
+            'id': '2834_01_4009298',
+            'title': 'まち☆キラ！開成町特集',
+            'ext': 'm4a',
+            'release_date': '20240531',
+            'upload_date': '20240531',
+            'series': 'はま☆キラ！',
+            'thumbnail': 'https://www.nhk.or.jp/prog/img/2834/g2834.jpg',
+            'channel': 'NHK R1,FM',
+            'description': '',
+            'timestamp': 1717123800,
+            'uploader': 'NHK R1,FM',
+            'release_timestamp': 1717120800,
+            'series_id': '2834_01',
+
+        },
+        'expected_warnings': ['Failed to get extended metadata. API returned empty list.'],
     }]
 
     _API_URL_TMPL = None
@@ -663,20 +691,27 @@ class NhkRadiruIE(InfoExtractor):
         aa_vinfo = aa_contents_id.split(';')
         service, _, area = traverse_obj(aa_vinfo[2], ({str}, {lambda x: (x or '').partition(',')}))
 
+        def fallback():
+            start_time, _, end_time = aa_vinfo[4].partition("_")
+            return {
+                'timestamp': unified_timestamp(end_time),
+                'release_timestamp': unified_timestamp(start_time),
+            }
+
         detail_url = try_call(
             lambda: self._API_URL_TMPL.format(area=area, service=service, dateid=aa_vinfo[3]))
 
         if not detail_url:
-            return {}
+            return fallback()
         response = self._download_json(detail_url, episode_id, 'Downloading extended metadata', fatal=False, expected_status=400)
 
         error = response.get('error')
         if error:
             self.report_warning(f'Failed to get extended metadata. API returned Error {error.get("code")}: {error.get("message")}')
-            return {}
+            return fallback()
         if response.get('list') is None:
             self.report_warning('Failed to get extended metadata. API returned empty list.')
-            return {}
+            return fallback()
 
         full_meta = traverse_obj(response, ('list', service, 0, {dict}))
 
@@ -744,10 +779,16 @@ class NhkRadiruIE(InfoExtractor):
         json_url = f'https://www.nhk.or.jp/radio-api/app/v1/web/ondemand/series?site_id={site_id}&corner_site_id={corner_id}'
 
         meta = self._download_json(json_url, programme_id)
+
+        fallback_station = join_nonempty("NHK", meta.get("radio_broadcast"), delim=' ')
+
         series_meta = {
             'series': join_nonempty('title', 'corner_name', delim=' ', from_dict=meta),
             'series_id': programme_id,
-            'thumbnail': meta.get('thumbnail_url')
+            'thumbnail': meta.get('thumbnail_url'),
+
+            'channel': fallback_station,
+            'uploader': fallback_station,
         }
 
         if headline_id:
