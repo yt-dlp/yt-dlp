@@ -590,21 +590,23 @@ class NhkRadiruIE(InfoExtractor):
     IE_DESC = 'NHK らじる (Radiru/Rajiru)'
     _VALID_URL = r'https?://www\.nhk\.or\.jp/radio/(?:player/ondemand|ondemand/detail)\.html\?p=(?P<site>[\da-zA-Z]+)_(?P<corner>[\da-zA-Z]+)(?:_(?P<headline>[\da-zA-Z]+))?'
     _TESTS = [{
-        'url': 'https://www.nhk.or.jp/radio/player/ondemand.html?p=0449_01_3926210',
-        'skip': 'Episode expired on 2024-02-24',
+        'url': 'https://www.nhk.or.jp/radio/player/ondemand.html?p=0449_01_4003239',
+        'skip': 'Episode expired on 2024-06-09',
         'info_dict': {
-            'title': 'ジャズ・トゥナイト　シリーズＪＡＺＺジャイアンツ　５６　ジョニー・ホッジス',
-            'id': '0449_01_3926210',
+            'title': 'ジャズ・トゥナイト　ジャズ「Ｎｉｇｈｔ　ａｎｄ　Ｄａｙ」特集',
+            'id': '0449_01_4003239',
             'ext': 'm4a',
+            'uploader': 'NHK FM 東京',
+            'description': 'md5:ad05f3c3f3f6e99b2e69f9b5e49551dc',
             'series': 'ジャズ・トゥナイト',
-            'uploader': 'NHK-FM',
-            'channel': 'NHK-FM',
+            'channel': 'NHK FM 東京',
             'thumbnail': 'https://www.nhk.or.jp/prog/img/449/g449.jpg',
-            'release_date': '20240217',
-            'description': 'md5:a456ee8e5e59e6dd2a7d32e62386e811',
-            'timestamp': 1708185600,
-            'release_timestamp': 1708178400,
-            'upload_date': '20240217',
+            'upload_date': '20240601',
+            'series_id': '0449_01',
+            'release_date': '20240601',
+            'timestamp': 1717257600,
+            'release_timestamp': 1717250400,
+
         },
     }, {
         # playlist, airs every weekday so it should _hopefully_ be okay forever
@@ -613,30 +615,29 @@ class NhkRadiruIE(InfoExtractor):
             'id': '0458_01',
             'title': 'ベストオブクラシック',
             'description': '世界中の上質な演奏会をじっくり堪能する本格派クラシック番組。',
-            'channel': 'NHK-FM',
-            'uploader': 'NHK-FM',
             'thumbnail': 'https://www.nhk.or.jp/prog/img/458/g458.jpg',
+            'series_id': '0458_01',
+            'uploader': 'NHK FM',
+            'channel': 'NHK FM',
+            'series': 'ベストオブクラシック',
+
         },
         'playlist_mincount': 3,
     }, {
         # one with letters in the id
-        'url': 'https://www.nhk.or.jp/radio/player/ondemand.html?p=F300_06_3738470',
-        'note': 'Expires on 2024-03-31',
+        'url': 'https://www.nhk.or.jp/radio/player/ondemand.html?p=F683_01_3910688',
+        'note': 'Expires on 2025-03-31',
         'info_dict': {
-            'id': 'F300_06_3738470',
+            'id': 'F683_01_3910688',
             'ext': 'm4a',
-            'title': '有島武郎「一房のぶどう」',
-            'description': '朗読：川野一宇（ラジオ深夜便アンカー）\r\n\r\n（2016年12月8日放送「ラジオ深夜便『アンカー朗読シリーズ』」より）',
-            'channel': 'NHKラジオ第1、NHK-FM',
-            'uploader': 'NHKラジオ第1、NHK-FM',
-            'timestamp': 1635757200,
-            'thumbnail': 'https://www.nhk.or.jp/radioondemand/json/F300/img/corner/box_109_thumbnail.jpg',
-            'release_date': '20161207',
-            'series': 'らじる文庫 by ラジオ深夜便 ',
-            'release_timestamp': 1481126700,
-            'upload_date': '20211101',
+            'title': '夏目漱石「文鳥」第1回',
+            'series': '【らじる文庫】夏目漱石「文鳥」（全4回）',
+            'series_id': 'F683_01',
+            'description': '朗読：浅井理アナウンサー',
+            'thumbnail': 'https://www.nhk.or.jp/radioondemand/json/F683/img/roudoku_05_rod_640.jpg',
         },
-        'expected_warnings': ['Unable to download JSON metadata', 'Failed to get extended description'],
+        'expected_warnings': ['Unable to download JSON metadata',
+                              'Failed to get extended metadata. API returned Error 1: Invalid parameters'],
     }, {
         # news
         'url': 'https://www.nhk.or.jp/radio/player/ondemand.html?p=F261_01_3855109',
@@ -658,41 +659,75 @@ class NhkRadiruIE(InfoExtractor):
 
     _API_URL_TMPL = None
 
-    def _extract_extended_description(self, episode_id, episode):
-        service, _, area = traverse_obj(episode, ('aa_vinfo2', {str}, {lambda x: (x or '').partition(',')}))
-        aa_vinfo3 = traverse_obj(episode, ('aa_vinfo3', {str}))
+    def _extract_extended_metadata(self, episode_id, aa_contents_id):
+        aa_vinfo = aa_contents_id.split(';')
+        service, _, area = traverse_obj(aa_vinfo[2], ({str}, {lambda x: (x or '').partition(',')}))
+
         detail_url = try_call(
-            lambda: self._API_URL_TMPL.format(service=service, area=area, dateid=aa_vinfo3))
+            lambda: self._API_URL_TMPL.format(area=area, service=service, dateid=aa_vinfo[3]))
+
         if not detail_url:
-            return
+            return {}
+        response = self._download_json(detail_url, episode_id, 'Downloading extended metadata', fatal=False, expected_status=400)
 
-        full_meta = traverse_obj(
-            self._download_json(detail_url, episode_id, 'Downloading extended metadata', fatal=False),
-            ('list', service, 0, {dict})) or {}
-        return join_nonempty('subtitle', 'content', 'act', 'music', delim='\n\n', from_dict=full_meta)
+        error = response.get('error')
+        if error:
+            self.report_warning(f'Failed to get extended metadata. API returned Error {error.get("code")}: {error.get("message")}')
+            return {}
+        if response.get('list') is None:
+            self.report_warning('Failed to get extended metadata. API returned empty list.')
+            return {}
 
-    def _extract_episode_info(self, headline, programme_id, series_meta):
-        episode_id = f'{programme_id}_{headline["headline_id"]}'
-        episode = traverse_obj(headline, ('file_list', 0, {dict}))
-        description = self._extract_extended_description(episode_id, episode)
-        if not description:
-            self.report_warning('Failed to get extended description, falling back to summary')
-            description = traverse_obj(episode, ('file_title_sub', {str}))
+        full_meta = traverse_obj(response, ('list', service, 0, {dict}))
+
+        station = ' '.join(traverse_obj(full_meta, (('service', 'area',), 'name', {str})))
+        description = join_nonempty('subtitle', 'content', 'act', 'music', delim='\n\n', from_dict=full_meta)
+
+        thumbnails = []
+        for img_id, img_info in full_meta.get('images').items():
+            if img_info.get('url') != '':  # can happen
+                thumb_dict = {
+                    'id': img_id,
+                    **traverse_obj(img_info, {
+                        'url': 'url',
+                        'width': ('width', {int_or_none}),
+                        'height': ('height', {int_or_none}),
+                    }),
+                }
+                if img_id.startswith('thumbnail'):
+                    thumb_dict['preference'] = 1
+                elif img_id.startswith('logo'):
+                    thumb_dict['preference'] = -2
+                thumbnails.append(thumb_dict)
+
+        return {
+            'channel': station,
+            'uploader': station,
+            'description': description,
+            'thumbnails': thumbnails,
+            **traverse_obj(full_meta, {
+                'title': 'title',
+                'timestamp': ('end_time', {unified_timestamp}),
+                'release_timestamp': ('start_time', {unified_timestamp}),
+            }),
+        }
+
+    def _extract_episode_info(self, episode, programme_id, series_meta):
+        episode_id = f'{programme_id}_{episode["id"]}'
+
+        extended_metadata = self._extract_extended_metadata(episode_id, episode.get('aa_contents_id'))
+#        if extended_metadata.get("thumbnails") != []:
+#            series_meta["thumbnail"] = None
 
         return {
             **series_meta,
             'id': episode_id,
-            'formats': self._extract_m3u8_formats(episode.get('file_name'), episode_id, fatal=False),
+            'formats': self._extract_m3u8_formats(episode.get('stream_url'), episode_id, fatal=False),
             'container': 'm4a_dash',  # force fixup, AAC-only HLS
             'was_live': True,
-            'series': series_meta.get('title'),
-            'thumbnail': url_or_none(headline.get('headline_image')) or series_meta.get('thumbnail'),
-            'description': description,
-            **traverse_obj(episode, {
-                'title': 'file_title',
-                'timestamp': ('open_time', {unified_timestamp}),
-                'release_timestamp': ('aa_vinfo4', {lambda x: x.split('_')[0]}, {unified_timestamp}),
-            }),
+            'title': episode.get('program_title'),
+            'description': episode.get('program_sub_title'),  # fallback
+            **extended_metadata,
         }
 
     def _real_initialize(self):
@@ -706,32 +741,28 @@ class NhkRadiruIE(InfoExtractor):
         site_id, corner_id, headline_id = self._match_valid_url(url).group('site', 'corner', 'headline')
         programme_id = f'{site_id}_{corner_id}'
 
-        if site_id == 'F261':
-            json_url = 'https://www.nhk.or.jp/s-media/news/news-site/list/v1/all.json'
-        else:
-            json_url = f'https://www.nhk.or.jp/radioondemand/json/{site_id}/bangumi_{programme_id}.json'
+        json_url = f'https://www.nhk.or.jp/radio-api/app/v1/web/ondemand/series?site_id={site_id}&corner_site_id={corner_id}'
 
-        meta = self._download_json(json_url, programme_id)['main']
-
-        series_meta = traverse_obj(meta, {
-            'title': 'program_name',
-            'channel': 'media_name',
-            'uploader': 'media_name',
-            'thumbnail': (('thumbnail_c', 'thumbnail_p'), {url_or_none}),
-        }, get_all=False)
+        meta = self._download_json(json_url, programme_id)
+        series_meta = {
+            'series': join_nonempty('title', 'corner_name', delim=' ', from_dict=meta),
+            'series_id': programme_id,
+            'thumbnail': meta.get('thumbnail_url')
+        }
 
         if headline_id:
             return self._extract_episode_info(
                 traverse_obj(meta, (
-                    'detail_list', lambda _, v: v['headline_id'] == headline_id), get_all=False),
+                    'episodes', lambda _, v: v['id'] == int(headline_id)), get_all=False),
                 programme_id, series_meta)
 
         def entries():
-            for headline in traverse_obj(meta, ('detail_list', ..., {dict})):
+            for headline in traverse_obj(meta, ('episodes', ..., {dict})):
                 yield self._extract_episode_info(headline, programme_id, series_meta)
 
         return self.playlist_result(
-            entries(), programme_id, playlist_description=meta.get('site_detail'), **series_meta)
+            entries(), programme_id, title=series_meta.get('series'),
+            description=meta.get('series_description'), **series_meta)
 
 
 class NhkRadioNewsPageIE(InfoExtractor):
