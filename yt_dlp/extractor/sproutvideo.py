@@ -5,6 +5,8 @@ from .common import InfoExtractor
 from ..utils import (
     int_or_none,
     remove_start,
+    smuggle_url,
+    unsmuggle_url,
     update_url_query,
     url_or_none,
 )
@@ -59,11 +61,15 @@ class SproutVideoIE(InfoExtractor):
     @classmethod
     def _extract_embed_urls(cls, url, webpage):
         for embed_url in super()._extract_embed_urls(url, webpage):
-            yield f'https:{embed_url}' if embed_url.startswith('//') else embed_url
+            if embed_url.startswith('//'):
+                embed_url = f'https:{embed_url}'
+            yield smuggle_url(embed_url, {'Referer': url})
 
     def _real_extract(self, url):
+        url, smuggled_data = unsmuggle_url(url, {})
         video_id = self._match_id(url)
-        webpage = self._download_webpage(url, video_id)
+        webpage = self._download_webpage(
+            url, video_id, headers=traverse_obj(smuggled_data, {'Referer': 'Referer'}))
         data = self._search_json(
             r'var\s+dat\s*=\s*["\']', webpage, 'data', video_id, contains_pattern=r'[A-Za-z0-9+/=]+',
             end_pattern=r'["\'];', transform_source=lambda x: base64.b64decode(x).decode())
