@@ -807,6 +807,7 @@ class NhkRadiruIE(InfoExtractor):
 
 
 class NhkRadioNewsPageIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://www\.nhk\.or\.jp/radionews/?(?:$|[?#])'
     _TESTS = [{
         # airs daily, on-the-hour most hours
