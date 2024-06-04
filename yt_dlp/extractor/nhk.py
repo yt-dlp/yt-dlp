@@ -683,31 +683,23 @@ class NhkRadiruIE(InfoExtractor):
 
     _API_URL_TMPL = None
 
-    def _extract_extended_metadata(self, episode_id, aa_contents_id):
-        aa_vinfo = aa_contents_id.split(';')
+    def _extract_extended_metadata(self, episode_id, aa_vinfo):
         service, _, area = traverse_obj(aa_vinfo[2], ({str}, {lambda x: (x or '').partition(',')}))
-
-        def fallback():
-            start_time, _, end_time = aa_vinfo[4].partition("_")
-            return {
-                'timestamp': unified_timestamp(end_time),
-                'release_timestamp': unified_timestamp(start_time),
-            }
 
         detail_url = try_call(
             lambda: self._API_URL_TMPL.format(area=area, service=service, dateid=aa_vinfo[3]))
 
         if not detail_url:
-            return fallback()
+            return {}
         response = self._download_json(detail_url, episode_id, 'Downloading extended metadata', fatal=False, expected_status=400)
 
         error = response.get('error')
         if error:
             self.report_warning(f'Failed to get extended metadata. API returned Error {error.get("code")}: {error.get("message")}')
-            return fallback()
+            return {}
         if response.get('list') is None:
             self.report_warning('Failed to get extended metadata. API returned empty list.')
-            return fallback()
+            return {}
 
         full_meta = traverse_obj(response, ('list', service, 0, {dict}))
 
@@ -746,9 +738,13 @@ class NhkRadiruIE(InfoExtractor):
     def _extract_episode_info(self, episode, programme_id, series_meta):
         episode_id = f'{programme_id}_{episode["id"]}'
 
-        extended_metadata = self._extract_extended_metadata(episode_id, episode.get('aa_contents_id'))
+        aa_vinfo = episode.get('aa_contents_id').split(';')
+
+        extended_metadata = self._extract_extended_metadata(episode_id, aa_vinfo)
 #        if extended_metadata.get("thumbnails") != []:
 #            series_meta["thumbnail"] = None
+
+        fallback_start_time, _, fallback_end_time = aa_vinfo[4].partition("_")
 
         return {
             **series_meta,
@@ -758,6 +754,8 @@ class NhkRadiruIE(InfoExtractor):
             'was_live': True,
             'title': episode.get('program_title'),
             'description': episode.get('program_sub_title'),  # fallback
+            'timestamp': unified_timestamp(fallback_end_time),
+            'release_timestamp': unified_timestamp(fallback_start_time),
             **extended_metadata,
         }
 
