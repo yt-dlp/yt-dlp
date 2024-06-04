@@ -606,7 +606,6 @@ class NhkRadiruIE(InfoExtractor):
             'release_date': '20240601',
             'timestamp': 1717257600,
             'release_timestamp': 1717250400,
-
         },
     }, {
         # playlist, airs every weekday so it should _hopefully_ be okay forever
@@ -620,7 +619,6 @@ class NhkRadiruIE(InfoExtractor):
             'uploader': 'NHK FM',
             'channel': 'NHK FM',
             'series': 'ベストオブクラシック',
-
         },
         'playlist_mincount': 3,
     }, {
@@ -641,7 +639,6 @@ class NhkRadiruIE(InfoExtractor):
             'release_timestamp': 1704511800,
             'channel': 'NHK R1',
             'timestamp': 1704512700,
-
         },
         'expected_warnings': ['Unable to download JSON metadata',
                               'Failed to get extended metadata. API returned Error 1: Invalid parameters'],
@@ -680,7 +677,6 @@ class NhkRadiruIE(InfoExtractor):
             'uploader': 'NHK R1,FM',
             'release_timestamp': 1717120800,
             'series_id': '2834_01',
-
         },
         'expected_warnings': ['Failed to get extended metadata. API returned empty list.'],
     }]
