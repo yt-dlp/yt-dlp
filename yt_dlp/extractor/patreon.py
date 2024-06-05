@@ -2,6 +2,7 @@ import itertools
 import urllib.parse
 
 from .common import InfoExtractor
+from .sproutvideo import VidsIoIE
 from .vimeo import VimeoIE
 from ..networking.exceptions import HTTPError
 from ..utils import (
@@ -306,7 +307,8 @@ class PatreonIE(PatreonBaseIE):
                     'channel_follower_count': ('attributes', 'patron_count', {int_or_none}),
                 }))
 
-        headers = {'referer': url}  # all lowercase to be smugglable to Generic, SproutVideo, Vimeo
+        # all-lowercase 'referer' so we can smuggle it to Generic, SproutVideo, Vimeo
+        headers = {'referer': 'https://patreon.com/'}
 
         # handle Vimeo embeds
         if traverse_obj(attributes, ('embed', 'provider')) == 'Vimeo':
@@ -320,9 +322,12 @@ class PatreonIE(PatreonBaseIE):
                     VimeoIE, url_transparent=True))
 
         embed_url = traverse_obj(attributes, ('embed', 'url', {url_or_none}))
-        if embed_url and self._request_webpage(
-                embed_url, video_id, 'Checking embed URL', headers=headers, fatal=False, errnote=False):
-            entries.append(self.url_result(smuggle_url(embed_url, headers)))
+        if embed_url and (urlh := self._request_webpage(
+                embed_url, video_id, 'Checking embed URL', headers=headers,
+                fatal=False, errnote=False, expected_status=403)):
+            # Password-protected vids.io embeds return 403 errors w/o --video-password or session cookie
+            if urlh.status != 403 or VidsIoIE.suitable(embed_url):
+                entries.append(self.url_result(smuggle_url(embed_url, headers)))
 
         post_file = traverse_obj(attributes, ('post_file', {dict}))
         if post_file:
