@@ -16,7 +16,7 @@ from ..utils.traversal import traverse_obj
 class SproutVideoIE(InfoExtractor):
     _NO_SCHEME_RE = r'//videos\.sproutvideo\.com/embed/(?P<id>[\da-f]+)/[\da-f]+'
     _VALID_URL = rf'https?:{_NO_SCHEME_RE}'
-    _EMBED_REGEX = [rf'<iframe [^>]*\bsrc=["\'](?P<url>(?:https?)?{_NO_SCHEME_RE}[^"\']*)["\']']
+    _EMBED_REGEX = [rf'<iframe [^>]*\bsrc=["\'](?P<url>(?:https?:)?{_NO_SCHEME_RE}[^"\']*)["\']']
     _TESTS = [{
         'url': 'https://videos.sproutvideo.com/embed/4c9dddb01910e3c9c4/0fc24387c4f24ee3',
         'md5': '1343ce1a6cb39d67889bfa07c7b02b0e',
