@@ -31,6 +31,8 @@ from ..utils import (
 )
 from ..utils.networking import HTTPHeaderDict, normalize_url
 
+DEFAULT_TIMEOUT = 20
+
 
 def register_preference(*handlers: type[RequestHandler]):
     assert all(issubclass(handler, RequestHandler) for handler in handlers)
@@ -68,7 +70,7 @@ class RequestDirector:
     def close(self):
         for handler in self.handlers.values():
             handler.close()
-        self.handlers = {}
+        self.handlers.clear()
 
     def add_handler(self, handler: RequestHandler):
         """Add a handler. If a handler of the same RH_KEY exists, it will overwrite it"""
@@ -235,7 +237,7 @@ class RequestHandler(abc.ABC):
         self._logger = logger
         self.headers = headers or {}
         self.cookiejar = cookiejar if cookiejar is not None else YoutubeDLCookieJar()
-        self.timeout = float(timeout or 20)
+        self.timeout = float(timeout or DEFAULT_TIMEOUT)
         self.proxies = proxies or {}
         self.source_address = source_address
         self.verbose = verbose
@@ -255,6 +257,15 @@ class RequestHandler(abc.ABC):
 
     def _merge_headers(self, request_headers):
         return HTTPHeaderDict(self.headers, request_headers)
+
+    def _calculate_timeout(self, request):
+        return float(request.extensions.get('timeout') or self.timeout)
+
+    def _get_cookiejar(self, request):
+        return request.extensions.get('cookiejar') or self.cookiejar
+
+    def _get_proxies(self, request):
+        return (request.proxies or self.proxies).copy()
 
     def _check_url_scheme(self, request: Request):
         scheme = urllib.parse.urlparse(request.url).scheme.lower()
@@ -446,7 +457,7 @@ class Request:
 
     @headers.setter
     def headers(self, new_headers: Mapping):
-        """Replaces headers of the request. If not a CaseInsensitiveDict, it will be converted to one."""
+        """Replaces headers of the request. If not a HTTPHeaderDict, it will be converted to one."""
         if isinstance(new_headers, HTTPHeaderDict):
             self._headers = new_headers
         elif isinstance(new_headers, Mapping):
@@ -454,9 +465,10 @@ class Request:
         else:
             raise TypeError('headers must be a mapping')
 
-    def update(self, url=None, data=None, headers=None, query=None):
+    def update(self, url=None, data=None, headers=None, query=None, extensions=None):
         self.data = data if data is not None else self.data
         self.headers.update(headers or {})
+        self.extensions.update(extensions or {})
         self.url = update_url_query(url or self.url, query or {})
 
     def copy(self):
@@ -487,15 +499,18 @@ class Response(io.IOBase):
     @param headers: response headers.
     @param status: Response HTTP status code. Default is 200 OK.
     @param reason: HTTP status reason. Will use built-in reasons based on status code if not provided.
+    @param extensions: Dictionary of handler-specific response extensions.
     """
 
     def __init__(
             self,
-            fp: typing.IO,
+            fp: io.IOBase,
             url: str,
             headers: Mapping[str, str],
             status: int = 200,
-            reason: str = None):
+            reason: str = None,
+            extensions: dict = None
+    ):
 
         self.fp = fp
         self.headers = Message()
@@ -507,6 +522,7 @@ class Response(io.IOBase):
             self.reason = reason or HTTPStatus(status).phrase
         except ValueError:
             self.reason = None
+        self.extensions = extensions or {}
 
     def readable(self):
         return self.fp.readable()

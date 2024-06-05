@@ -5,7 +5,7 @@ from ..utils import js_to_json
 class MegaphoneIE(InfoExtractor):
     IE_NAME = 'megaphone.fm'
     IE_DESC = 'megaphone.fm embedded players'
-    _VALID_URL = r'https://player\.megaphone\.fm/(?P<id>[A-Z0-9]+)'
+    _VALID_URL = r'https?://player\.megaphone\.fm/(?P<id>[A-Z0-9]+)'
     _EMBED_REGEX = [rf'<iframe[^>]*?\ssrc=["\'](?P<url>{_VALID_URL})']
     _TEST = {
         'url': 'https://player.megaphone.fm/GLT9749789991',

@@ -83,7 +83,7 @@ class TeleQuebecIE(TeleQuebecBaseIE):
 
 
 class TeleQuebecSquatIE(InfoExtractor):
-    _VALID_URL = r'https://squat\.telequebec\.tv/videos/(?P<id>\d+)'
+    _VALID_URL = r'https?://squat\.telequebec\.tv/videos/(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://squat.telequebec.tv/videos/9314',
         'info_dict': {

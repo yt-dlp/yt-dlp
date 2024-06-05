@@ -1,5 +1,5 @@
-from .common import InfoExtractor
 from .brightcove import BrightcoveNewIE
+from .common import InfoExtractor
 from ..utils import ExtractorError
 from ..utils.traversal import traverse_obj
 

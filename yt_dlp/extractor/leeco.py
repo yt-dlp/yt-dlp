@@ -1,4 +1,4 @@
-import datetime
+import datetime as dt
 import hashlib
 import re
 import time
@@ -11,9 +11,9 @@ from ..compat import (
     compat_urllib_parse_urlencode,
 )
 from ..utils import (
+    ExtractorError,
     determine_ext,
     encode_data_uri,
-    ExtractorError,
     int_or_none,
     orderedSet,
     parse_iso8601,
@@ -185,7 +185,7 @@ class LeIE(InfoExtractor):
 
         publish_time = parse_iso8601(self._html_search_regex(
             r'发布时间&nbsp;([^<>]+) ', page, 'publish time', default=None),
-            delimiter=' ', timezone=datetime.timedelta(hours=8))
+            delimiter=' ', timezone=dt.timedelta(hours=8))
         description = self._html_search_meta('description', page, fatal=False)
 
         return {

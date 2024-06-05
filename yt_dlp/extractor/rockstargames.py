@@ -38,14 +38,14 @@ class RockstarGamesIE(InfoExtractor):
         title = video['title']
 
         formats = []
-        for video in video['files_processed']['video/mp4']:
-            if not video.get('src'):
+        for v in video['files_processed']['video/mp4']:
+            if not v.get('src'):
                 continue
-            resolution = video.get('resolution')
+            resolution = v.get('resolution')
             height = int_or_none(self._search_regex(
                 r'^(\d+)[pP]$', resolution or '', 'height', default=None))
             formats.append({
-                'url': self._proto_relative_url(video['src']),
+                'url': self._proto_relative_url(v['src']),
                 'format_id': resolution,
                 'height': height,
             })

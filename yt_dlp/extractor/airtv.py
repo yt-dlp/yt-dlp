@@ -5,7 +5,7 @@ from ..utils import (
     int_or_none,
     mimetype2ext,
     parse_iso8601,
-    traverse_obj
+    traverse_obj,
 )
 
 

@@ -41,7 +41,7 @@ class STVPlayerIE(InfoExtractor):
         ptype, video_id = self._match_valid_url(url).groups()
 
         webpage = self._download_webpage(url, video_id, fatal=False) or ''
-        props = self._search_nextjs_data(webpage, video_id, default='{}').get('props') or {}
+        props = self._search_nextjs_data(webpage, video_id, default={}).get('props') or {}
         player_api_cache = try_get(
             props, lambda x: x['initialReduxState']['playerApiCache']) or {}
 

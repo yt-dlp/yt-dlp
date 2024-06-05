@@ -7,7 +7,7 @@ from ..utils import (
     GeoRestrictedError,
     float_or_none,
     traverse_obj,
-    try_call
+    try_call,
 )
 
 
