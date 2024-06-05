@@ -306,7 +306,7 @@ class PatreonIE(PatreonBaseIE):
                     'channel_follower_count': ('attributes', 'patron_count', {int_or_none}),
                 }))
 
-        headers = {'Referer': url}
+        headers = {'referer': url}  # all lowercase to be smugglable to Generic, SproutVideo, Vimeo
 
         # handle Vimeo embeds
         if traverse_obj(attributes, ('embed', 'provider')) == 'Vimeo':
