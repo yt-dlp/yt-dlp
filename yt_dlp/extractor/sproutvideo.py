@@ -2,13 +2,16 @@ import base64
 import urllib.parse
 
 from .common import InfoExtractor
+from ..networking.exceptions import HTTPError
 from ..utils import (
+    ExtractorError,
     int_or_none,
     remove_start,
     smuggle_url,
     unsmuggle_url,
     update_url_query,
     url_or_none,
+    urlencode_postdata,
 )
 from ..utils.traversal import traverse_obj
 
@@ -99,3 +102,46 @@ class SproutVideoIE(InfoExtractor):
                 'thumbnail': ('posterframe_url', {url_or_none}),
             }),
         }
+
+
+class VidsIoIE(InfoExtractor):
+    IE_NAME = 'vids.io'
+    _VALID_URL = r'https?://[\w-]+\.vids\.io/videos/(?P<id>[\da-f]+)/(?P<display_id>[\w-]+)'
+    _TESTS = [{
+        'url': 'https://how-to-video.vids.io/videos/799cd8b11c10efc1f0/how-to-video-live-streaming',
+        'md5': '9bbbb2c0c0739eb163b80f87b8d77c9e',
+        'info_dict': {
+            'id': '799cd8b11c10efc1f0',
+            'ext': 'mp4',
+            'title': 'How to Video: Live Streaming',
+            'duration': 2787,
+            'thumbnail': r're:https?://images\.sproutvideo\.com/.+\.jpg',
+        },
+    }]
+
+    def _real_extract(self, url):
+        video_id, display_id = self._match_valid_url(url).group('id', 'display_id')
+        webpage, urlh = self._download_webpage_handle(url, display_id, expected_status=403)
+
+        if urlh.status == 403:
+            password = self.get_param('videopassword')
+            if not password:
+                raise ExtractorError(
+                    'This video is password-protected; use the --video-password option', expected=True)
+            try:
+                webpage = self._download_webpage(
+                    url, display_id, 'Submitting video password',
+                    data=urlencode_postdata({
+                        'password': password,
+                        **self._hidden_inputs(webpage),
+                    }))
+                # Requests with user's session cookie `_sproutvideo_session` are now authorized
+            except ExtractorError as e:
+                if isinstance(e.cause, HTTPError) and e.cause.status == 403:
+                    raise ExtractorError('Incorrect password', expected=True)
+                raise
+
+        if embed_url := next(SproutVideoIE._extract_embed_urls(url, webpage), None):
+            return self.url_result(embed_url, SproutVideoIE, video_id)
+
+        raise ExtractorError('Unable to extract any SproutVideo embed url')
