@@ -227,7 +227,7 @@ class SoundcloudBaseIE(InfoExtractor):
                 # Do not use _call_api(); HTTP Error codes have different meanings for this request
                 download_data = self._download_json(
                     f'{self._API_V2_BASE}tracks/{track_id}/download', track_id,
-                    'Downloading original download format info JSON', query=query)
+                    'Downloading original download format info JSON', query=query, headers=self._HEADERS)
             except ExtractorError as e:
                 if isinstance(e.cause, HTTPError):
                     if e.cause.status == 401:
