@@ -56,7 +56,7 @@ class EpornerIE(InfoExtractor):
 
         video_id = self._match_id(urlh.url)
 
-        hash = self._search_regex(
+        vid_hash = self._search_regex(
             r'hash\s*[:=]\s*["\']([\da-f]{32})', webpage, 'hash')
 
         title = self._og_search_title(webpage, default=None) or self._html_search_regex(
@@ -70,7 +70,7 @@ class EpornerIE(InfoExtractor):
             'http://www.eporner.com/xhr/video/%s' % video_id,
             display_id, note='Downloading video JSON',
             query={
-                'hash': calc_hash(hash),
+                'hash': calc_hash(vid_hash),
                 'device': 'generic',
                 'domain': 'www.eporner.com',
                 'fallback': 'false',

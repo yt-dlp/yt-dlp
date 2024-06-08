@@ -47,14 +47,15 @@ class PlanetMarathiIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        id = self._match_id(url)
+        playlist_id = self._match_id(url)
         entries = []
-        json_data = self._download_json(f'https://www.planetmarathi.com/api/v1/titles/{id}/assets', id)['assets']
+        json_data = self._download_json(
+            f'https://www.planetmarathi.com/api/v1/titles/{playlist_id}/assets', playlist_id)['assets']
         for asset in json_data:
             asset_title = asset['mediaAssetName']['en']
             if asset_title == 'Movie':
-                asset_title = id.replace('-', ' ')
-            asset_id = f'{asset["sk"]}_{id}'.replace('#', '-')
+                asset_title = playlist_id.replace('-', ' ')
+            asset_id = f'{asset["sk"]}_{playlist_id}'.replace('#', '-')
             formats, subtitles = self._extract_m3u8_formats_and_subtitles(asset['mediaAssetURL'], asset_id)
             entries.append({
                 'id': asset_id,
@@ -68,4 +69,4 @@ class PlanetMarathiIE(InfoExtractor):
                 'formats': formats,
                 'subtitles': subtitles,
             })
-        return self.playlist_result(entries, playlist_id=id)
+        return self.playlist_result(entries, playlist_id=playlist_id)

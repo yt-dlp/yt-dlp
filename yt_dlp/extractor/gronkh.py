@@ -43,17 +43,17 @@ class GronkhIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        id = self._match_id(url)
-        data_json = self._download_json(f'https://api.gronkh.tv/v1/video/info?episode={id}', id)
-        m3u8_url = self._download_json(f'https://api.gronkh.tv/v1/video/playlist?episode={id}', id)['playlist_url']
-        formats, subtitles = self._extract_m3u8_formats_and_subtitles(m3u8_url, id)
+        video_id = self._match_id(url)
+        data_json = self._download_json(f'https://api.gronkh.tv/v1/video/info?episode={video_id}', video_id)
+        m3u8_url = self._download_json(f'https://api.gronkh.tv/v1/video/playlist?episode={video_id}', video_id)['playlist_url']
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(m3u8_url, video_id)
         if data_json.get('vtt_url'):
             subtitles.setdefault('en', []).append({
                 'url': data_json['vtt_url'],
                 'ext': 'vtt',
             })
         return {
-            'id': id,
+            'id': video_id,
             'title': data_json.get('title'),
             'view_count': data_json.get('views'),
             'thumbnail': data_json.get('preview_url'),

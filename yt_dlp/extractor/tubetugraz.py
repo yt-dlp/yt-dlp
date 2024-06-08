@@ -53,16 +53,16 @@ class TubeTuGrazBaseIE(InfoExtractor):
         self.report_warning('unable to login: incorrect TFA code')
 
     def _extract_episode(self, episode_info):
-        id = episode_info.get('id')
+        video_id = episode_info.get('id')
         formats = list(self._extract_formats(
-            traverse_obj(episode_info, ('mediapackage', 'media', 'track')), id))
+            traverse_obj(episode_info, ('mediapackage', 'media', 'track')), video_id))
 
         title = traverse_obj(episode_info, ('mediapackage', 'title'), 'dcTitle')
         series_title = traverse_obj(episode_info, ('mediapackage', 'seriestitle'))
         creator = ', '.join(variadic(traverse_obj(
             episode_info, ('mediapackage', 'creators', 'creator'), 'dcCreator', default='')))
         return {
-            'id': id,
+            'id': video_id,
             'title': title,
             'creator': creator or None,
             'duration': traverse_obj(episode_info, ('mediapackage', 'duration'), 'dcExtent'),
@@ -72,14 +72,14 @@ class TubeTuGrazBaseIE(InfoExtractor):
             'formats': formats
         }
 
-    def _set_format_type(self, formats, type):
+    def _set_format_type(self, formats, fmt_type):
         for f in formats:
-            f['format_note'] = type
-            if not type.startswith(self._FORMAT_TYPES[0]):
+            f['format_note'] = fmt_type
+            if not fmt_type.startswith(self._FORMAT_TYPES[0]):
                 f['preference'] = -2
         return formats
 
-    def _extract_formats(self, format_list, id):
+    def _extract_formats(self, format_list, video_id):
         has_hls, has_dash = False, False
 
         for format_info in format_list or []:
@@ -87,7 +87,7 @@ class TubeTuGrazBaseIE(InfoExtractor):
             if url is None:
                 continue
 
-            type = format_info.get('type') or 'unknown'
+            fmt_type = format_info.get('type') or 'unknown'
             transport = (format_info.get('transport') or 'https').lower()
 
             if transport == 'https':
@@ -100,10 +100,10 @@ class TubeTuGrazBaseIE(InfoExtractor):
                 }]
             elif transport == 'hls':
                 has_hls, formats = True, self._extract_m3u8_formats(
-                    url, id, 'mp4', fatal=False, note=f'downloading {type} HLS manifest')
+                    url, video_id, 'mp4', fatal=False, note=f'downloading {fmt_type} HLS manifest')
             elif transport == 'dash':
                 has_dash, formats = True, self._extract_mpd_formats(
-                    url, id, fatal=False, note=f'downloading {type} DASH manifest')
+                    url, video_id, fatal=False, note=f'downloading {fmt_type} DASH manifest')
             else:
                 # RTMP, HDS, SMOOTH, and unknown formats
                 # - RTMP url fails on every tested entry until now
@@ -111,21 +111,21 @@ class TubeTuGrazBaseIE(InfoExtractor):
                 # - SMOOTH url 404's on every tested entry until now
                 continue
 
-            yield from self._set_format_type(formats, type)
+            yield from self._set_format_type(formats, fmt_type)
 
         # TODO: Add test for these
-        for type in self._FORMAT_TYPES:
+        for fmt_type in self._FORMAT_TYPES:
             if not has_hls:
                 hls_formats = self._extract_m3u8_formats(
-                    f'https://wowza.tugraz.at/matterhorn_engage/smil:engage-player_{id}_{type}.smil/playlist.m3u8',
-                    id, 'mp4', fatal=False, note=f'Downloading {type} HLS manifest', errnote=False) or []
-                yield from self._set_format_type(hls_formats, type)
+                    f'https://wowza.tugraz.at/matterhorn_engage/smil:engage-player_{video_id}_{fmt_type}.smil/playlist.m3u8',
+                    video_id, 'mp4', fatal=False, note=f'Downloading {fmt_type} HLS manifest', errnote=False) or []
+                yield from self._set_format_type(hls_formats, fmt_type)
 
             if not has_dash:
                 dash_formats = self._extract_mpd_formats(
-                    f'https://wowza.tugraz.at/matterhorn_engage/smil:engage-player_{id}_{type}.smil/manifest_mpm4sav_mvlist.mpd',
-                    id, fatal=False, note=f'Downloading {type} DASH manifest', errnote=False)
-                yield from self._set_format_type(dash_formats, type)
+                    f'https://wowza.tugraz.at/matterhorn_engage/smil:engage-player_{video_id}_{fmt_type}.smil/manifest_mpm4sav_mvlist.mpd',
+                    video_id, fatal=False, note=f'Downloading {fmt_type} DASH manifest', errnote=False)
+                yield from self._set_format_type(dash_formats, fmt_type)
 
 
 class TubeTuGrazIE(TubeTuGrazBaseIE):
@@ -236,17 +236,18 @@ class TubeTuGrazSeriesIE(TubeTuGrazBaseIE):
     }]
 
     def _real_extract(self, url):
-        id = self._match_id(url)
-        episodes_data = self._download_json(self._API_EPISODE, id, query={'sid': id}, note='Downloading episode list')
+        playlist_id = self._match_id(url)
+        episodes_data = self._download_json(
+            self._API_EPISODE, playlist_id, query={'sid': playlist_id}, note='Downloading episode list')
         series_data = self._download_json(
-            'https://tube.tugraz.at/series/series.json', id, fatal=False,
+            'https://tube.tugraz.at/series/series.json', playlist_id, fatal=False,
             note='downloading series metadata', errnote='failed to download series metadata',
             query={
-                'seriesId': id,
+                'seriesId': playlist_id,
                 'count': 1,
                 'sort': 'TITLE'
             })
 
         return self.playlist_result(
-            map(self._extract_episode, episodes_data['search-results']['result']), id,
+            map(self._extract_episode, episodes_data['search-results']['result']), playlist_id,
             traverse_obj(series_data, ('catalogs', 0, 'http://purl.org/dc/terms/', 'title', 0, 'value')))

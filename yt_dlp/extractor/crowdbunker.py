@@ -30,9 +30,10 @@ class CrowdBunkerIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        id = self._match_id(url)
-        data_json = self._download_json(f'https://api.divulg.org/post/{id}/details',
-                                        id, headers={'accept': 'application/json, text/plain, */*'})
+        video_id = self._match_id(url)
+        data_json = self._download_json(
+            f'https://api.divulg.org/post/{video_id}/details', video_id,
+            headers={'accept': 'application/json, text/plain, */*'})
         video_json = data_json['video']
         formats, subtitles = [], {}
         for sub in video_json.get('captions') or []:
@@ -45,12 +46,12 @@ class CrowdBunkerIE(InfoExtractor):
 
         mpd_url = try_get(video_json, lambda x: x['dashManifest']['url'])
         if mpd_url:
-            fmts, subs = self._extract_mpd_formats_and_subtitles(mpd_url, id)
+            fmts, subs = self._extract_mpd_formats_and_subtitles(mpd_url, video_id)
             formats.extend(fmts)
             subtitles = self._merge_subtitles(subtitles, subs)
         m3u8_url = try_get(video_json, lambda x: x['hlsManifest']['url'])
         if m3u8_url:
-            fmts, subs = self._extract_m3u8_formats_and_subtitles(mpd_url, id)
+            fmts, subs = self._extract_m3u8_formats_and_subtitles(mpd_url, video_id)
             formats.extend(fmts)
             subtitles = self._merge_subtitles(subtitles, subs)
 
@@ -61,7 +62,7 @@ class CrowdBunkerIE(InfoExtractor):
         } for image in video_json.get('thumbnails') or [] if image.get('url')]
 
         return {
-            'id': id,
+            'id': video_id,
             'title': video_json.get('title'),
             'description': video_json.get('description'),
             'view_count': video_json.get('viewCount'),
@@ -87,12 +88,13 @@ class CrowdBunkerChannelIE(InfoExtractor):
         },
     }]
 
-    def _entries(self, id):
+    def _entries(self, playlist_id):
         last = None
 
         for page in itertools.count():
             channel_json = self._download_json(
-                f'https://api.divulg.org/organization/{id}/posts', id, headers={'accept': 'application/json, text/plain, */*'},
+                f'https://api.divulg.org/organization/{playlist_id}/posts', playlist_id,
+                headers={'accept': 'application/json, text/plain, */*'},
                 query={'after': last} if last else {}, note=f'Downloading Page {page}')
             for item in channel_json.get('items') or []:
                 v_id = item.get('uid')
@@ -105,5 +107,5 @@ class CrowdBunkerChannelIE(InfoExtractor):
                 break
 
     def _real_extract(self, url):
-        id = self._match_id(url)
-        return self.playlist_result(self._entries(id), playlist_id=id)
+        playlist_id = self._match_id(url)
+        return self.playlist_result(self._entries(playlist_id), playlist_id=playlist_id)

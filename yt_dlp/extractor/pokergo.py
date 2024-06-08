@@ -53,9 +53,10 @@ class PokerGoIE(PokerGoBaseIE):
     }]
 
     def _real_extract(self, url):
-        id = self._match_id(url)
-        data_json = self._download_json(f'https://api.pokergo.com/v2/properties/{self._PROPERTY_ID}/videos/{id}', id,
-                                        headers={'authorization': f'Bearer {self._AUTH_TOKEN}'})['data']
+        video_id = self._match_id(url)
+        data_json = self._download_json(
+            f'https://api.pokergo.com/v2/properties/{self._PROPERTY_ID}/videos/{video_id}', video_id,
+            headers={'authorization': f'Bearer {self._AUTH_TOKEN}'})['data']
         v_id = data_json['source']
 
         thumbnails = [{
@@ -64,11 +65,11 @@ class PokerGoIE(PokerGoBaseIE):
             'width': image.get('width'),
             'height': image.get('height')
         } for image in data_json.get('images') or [] if image.get('url')]
-        series_json = next(dct for dct in data_json.get('show_tags') or [] if dct.get('video_id') == id) or {}
+        series_json = next(dct for dct in data_json.get('show_tags') or [] if dct.get('video_id') == video_id) or {}
 
         return {
             '_type': 'url_transparent',
-            'display_id': id,
+            'display_id': video_id,
             'title': data_json.get('title'),
             'description': data_json.get('description'),
             'duration': data_json.get('duration'),
@@ -91,9 +92,10 @@ class PokerGoCollectionIE(PokerGoBaseIE):
         },
     }]
 
-    def _entries(self, id):
-        data_json = self._download_json(f'https://api.pokergo.com/v2/properties/{self._PROPERTY_ID}/collections/{id}?include=entities',
-                                        id, headers={'authorization': f'Bearer {self._AUTH_TOKEN}'})['data']
+    def _entries(self, playlist_id):
+        data_json = self._download_json(
+            f'https://api.pokergo.com/v2/properties/{self._PROPERTY_ID}/collections/{playlist_id}?include=entities',
+            playlist_id, headers={'authorization': f'Bearer {self._AUTH_TOKEN}'})['data']
         for video in data_json.get('collection_video') or []:
             video_id = video.get('id')
             if video_id:
@@ -102,5 +104,5 @@ class PokerGoCollectionIE(PokerGoBaseIE):
                     ie=PokerGoIE.ie_key(), video_id=video_id)
 
     def _real_extract(self, url):
-        id = self._match_id(url)
-        return self.playlist_result(self._entries(id), playlist_id=id)
+        playlist_id = self._match_id(url)
+        return self.playlist_result(self._entries(playlist_id), playlist_id=playlist_id)

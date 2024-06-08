@@ -179,10 +179,10 @@ class YandexVideoPreviewIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        id = self._match_id(url)
-        webpage = self._download_webpage(url, id)
+        video_id = self._match_id(url)
+        webpage = self._download_webpage(url, video_id)
         data_raw = self._search_regex(r'window.Ya.__inline_params__\s*=\s*JSON.parse\(\'([^"]+?\\u0022video\\u0022:[^"]+?})\'\);', webpage, 'data_raw')
-        data_json = self._parse_json(data_raw, id, transform_source=lowercase_escape)
+        data_json = self._parse_json(data_raw, video_id, transform_source=lowercase_escape)
         return self.url_result(data_json['video']['url'])
 
 

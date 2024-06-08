@@ -931,18 +931,18 @@ class YoutubeWebArchiveIE(InfoExtractor):
             url = compat_urllib_parse_unquote(urlh.url)
             video_file_url_qs = parse_qs(url)
             # Attempt to recover any ext & format info from playback url & response headers
-            format = {'url': url, 'filesize': int_or_none(urlh.headers.get('x-archive-orig-content-length'))}
+            fmt = {'url': url, 'filesize': int_or_none(urlh.headers.get('x-archive-orig-content-length'))}
             itag = try_get(video_file_url_qs, lambda x: x['itag'][0])
             if itag and itag in YoutubeIE._formats:
-                format.update(YoutubeIE._formats[itag])
-                format.update({'format_id': itag})
+                fmt.update(YoutubeIE._formats[itag])
+                fmt.update({'format_id': itag})
             else:
                 mime = try_get(video_file_url_qs, lambda x: x['mime'][0])
                 ext = (mimetype2ext(mime)
                        or urlhandle_detect_ext(urlh)
                        or mimetype2ext(urlh.headers.get('x-archive-guessed-content-type')))
-                format.update({'ext': ext})
-            info['formats'] = [format]
+                fmt.update({'ext': ext})
+            info['formats'] = [fmt]
             if not info.get('duration'):
                 info['duration'] = str_to_int(try_get(video_file_url_qs, lambda x: x['dur'][0]))
 

@@ -206,8 +206,8 @@ class TokFMAuditionIE(InfoExtractor):
     }
 
     @staticmethod
-    def _create_url(id):
-        return f'https://audycje.tokfm.pl/audycja/{id}'
+    def _create_url(video_id):
+        return f'https://audycje.tokfm.pl/audycja/{video_id}'
 
     def _real_extract(self, url):
         audition_id = self._match_id(url)

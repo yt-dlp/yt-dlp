@@ -94,7 +94,7 @@ class CallinIE(InfoExtractor):
         next_data = self._search_nextjs_data(webpage, display_id)
         episode = next_data['props']['pageProps']['episode']
 
-        id = episode['id']
+        video_id = episode['id']
         title = episode.get('title') or self._generic_title('', webpage)
         url = episode['m3u8']
         formats = self._extract_m3u8_formats(url, display_id, ext='ts')
@@ -125,11 +125,11 @@ class CallinIE(InfoExtractor):
 
         episode_list = traverse_obj(show_json, ('pageProps', 'show', 'episodes')) or []
         episode_number = next(
-            (len(episode_list) - i for (i, e) in enumerate(episode_list) if e.get('id') == id),
+            (len(episode_list) - i for i, e in enumerate(episode_list) if e.get('id') == video_id),
             None)
 
         return {
-            'id': id,
+            'id': video_id,
             '_old_archive_ids': [make_archive_id(self, display_id.rsplit('-', 1)[-1])],
             'display_id': display_id,
             'title': title,
@@ -151,5 +151,5 @@ class CallinIE(InfoExtractor):
             'series_id': show_id,
             'episode': title,
             'episode_number': episode_number,
-            'episode_id': id
+            'episode_id': video_id
         }

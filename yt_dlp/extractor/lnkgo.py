@@ -136,20 +136,20 @@ class LnkIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        id = self._match_id(url)
-        video_json = self._download_json(f'https://lnk.lt/api/video/video-config/{id}', id)['videoInfo']
+        video_id = self._match_id(url)
+        video_json = self._download_json(f'https://lnk.lt/api/video/video-config/{video_id}', video_id)['videoInfo']
         formats, subtitles = [], {}
         if video_json.get('videoUrl'):
-            fmts, subs = self._extract_m3u8_formats_and_subtitles(video_json['videoUrl'], id)
+            fmts, subs = self._extract_m3u8_formats_and_subtitles(video_json['videoUrl'], video_id)
             formats.extend(fmts)
             subtitles = self._merge_subtitles(subtitles, subs)
         if video_json.get('videoFairplayUrl') and not video_json.get('drm'):
-            fmts, subs = self._extract_m3u8_formats_and_subtitles(video_json['videoFairplayUrl'], id)
+            fmts, subs = self._extract_m3u8_formats_and_subtitles(video_json['videoFairplayUrl'], video_id)
             formats.extend(fmts)
             subtitles = self._merge_subtitles(subtitles, subs)
 
         return {
-            'id': id,
+            'id': video_id,
             'title': video_json.get('title'),
             'description': video_json.get('description'),
             'view_count': video_json.get('viewsCount'),

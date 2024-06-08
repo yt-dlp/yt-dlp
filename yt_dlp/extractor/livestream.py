@@ -381,8 +381,7 @@ class LivestreamShortenerIE(InfoExtractor):
     _VALID_URL = r'https?://livestre\.am/(?P<id>.+)'
 
     def _real_extract(self, url):
-        mobj = self._match_valid_url(url)
-        id = mobj.group('id')
-        webpage = self._download_webpage(url, id)
+        video_id = self._match_id(url)
+        webpage = self._download_webpage(url, video_id)
 
         return self.url_result(self._og_search_url(webpage))

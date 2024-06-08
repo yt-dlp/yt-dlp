@@ -84,13 +84,13 @@ query GetCommentReplies($id: String!) {
         'GetCommentReplies': _GRAPHQL_GETCOMMENTSREPLIES_QUERY,
     }
 
-    def _call_api(self, video_id, id, operation, note):
+    def _call_api(self, video_id, id_var, operation, note):
         return self._download_json(
             'https://api.infowarsmedia.com/graphql', video_id, note=note,
             headers={
                 'Content-Type': 'application/json; charset=utf-8'
             }, data=json.dumps({
-                'variables': {'id': id},
+                'variables': {'id': id_var},
                 'operationName': operation,
                 'query': self._GRAPHQL_QUERIES[operation]
             }).encode('utf8')).get('data')

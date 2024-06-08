@@ -97,9 +97,9 @@ class TV2IE(InfoExtractor):
             self.report_drm(video_id)
 
         thumbnails = [{
-            'id': type,
+            'id': thumb_type,
             'url': thumb_url,
-        } for type, thumb_url in (asset.get('images') or {}).items()]
+        } for thumb_type, thumb_url in (asset.get('images') or {}).items()]
 
         return {
             'id': video_id,

@@ -338,8 +338,8 @@ class NitterIE(InfoExtractor):
                 r'<video[^>]+poster="([^"]+)"', webpage, 'thumbnail url', fatal=False)), '%3Asmall'))
 
         thumbnails = [
-            {'id': id, 'url': f'{thumbnail}%3A{id}'}
-            for id in ('thumb', 'small', 'large', 'medium', 'orig')
+            {'id': id_, 'url': f'{thumbnail}%3A{id_}'}
+            for id_ in ('thumb', 'small', 'large', 'medium', 'orig')
         ]
 
         date = self._html_search_regex(

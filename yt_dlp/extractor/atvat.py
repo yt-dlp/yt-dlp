@@ -68,8 +68,8 @@ class ATVAtIE(InfoExtractor):
         video_title = json_data['views']['default']['page']['title']
         contentResource = json_data['views']['default']['page']['contentResource']
         content_id = contentResource[0]['id']
-        content_ids = [{'id': id, 'subclip_start': content['start'], 'subclip_end': content['end']}
-                       for id, content in enumerate(contentResource)]
+        content_ids = [{'id': id_, 'subclip_start': content['start'], 'subclip_end': content['end']}
+                       for id_, content in enumerate(contentResource)]
 
         time_of_request = dt.datetime.now()
         not_before = time_of_request - dt.timedelta(minutes=5)

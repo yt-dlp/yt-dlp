@@ -1593,8 +1593,8 @@ class InfoExtractor:
         }
 
         def is_type(e, *expected_types):
-            type = variadic(traverse_obj(e, '@type'))
-            return any(x in type for x in expected_types)
+            type_ = variadic(traverse_obj(e, '@type'))
+            return any(x in type_ for x in expected_types)
 
         def extract_interaction_type(e):
             interaction_type = e.get('interactionType')
@@ -1776,9 +1776,9 @@ class InfoExtractor:
     def _hidden_inputs(html):
         html = re.sub(r'<!--(?:(?!<!--).)*-->', '', html)
         hidden_inputs = {}
-        for input in re.findall(r'(?i)(<input[^>]+>)', html):
-            attrs = extract_attributes(input)
-            if not input:
+        for input_el in re.findall(r'(?i)(<input[^>]+>)', html):
+            attrs = extract_attributes(input_el)
+            if not input_el:
                 continue
             if attrs.get('type') not in ('hidden', 'submit'):
                 continue

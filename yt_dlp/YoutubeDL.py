@@ -2214,8 +2214,8 @@ class YoutubeDL:
 
         def _parse_filter(tokens):
             filter_parts = []
-            for type, string_, start, _, _ in tokens:
-                if type == tokenize.OP and string_ == ']':
+            for type_, string_, start, _, _ in tokens:
+                if type_ == tokenize.OP and string_ == ']':
                     return ''.join(filter_parts)
                 else:
                     filter_parts.append(string_)
@@ -2225,23 +2225,23 @@ class YoutubeDL:
             # E.g. 'mp4' '-' 'baseline' '-' '16x9' is converted to 'mp4-baseline-16x9'
             ALLOWED_OPS = ('/', '+', ',', '(', ')')
             last_string, last_start, last_end, last_line = None, None, None, None
-            for type, string_, start, end, line in tokens:
-                if type == tokenize.OP and string_ == '[':
+            for type_, string_, start, end, line in tokens:
+                if type_ == tokenize.OP and string_ == '[':
                     if last_string:
                         yield tokenize.NAME, last_string, last_start, last_end, last_line
                         last_string = None
-                    yield type, string_, start, end, line
+                    yield type_, string_, start, end, line
                     # everything inside brackets will be handled by _parse_filter
-                    for type, string_, start, end, line in tokens:
-                        yield type, string_, start, end, line
-                        if type == tokenize.OP and string_ == ']':
+                    for type_, string_, start, end, line in tokens:
+                        yield type_, string_, start, end, line
+                        if type_ == tokenize.OP and string_ == ']':
                             break
-                elif type == tokenize.OP and string_ in ALLOWED_OPS:
+                elif type_ == tokenize.OP and string_ in ALLOWED_OPS:
                     if last_string:
                         yield tokenize.NAME, last_string, last_start, last_end, last_line
                         last_string = None
-                    yield type, string_, start, end, line
-                elif type in [tokenize.NAME, tokenize.NUMBER, tokenize.OP]:
+                    yield type_, string_, start, end, line
+                elif type_ in [tokenize.NAME, tokenize.NUMBER, tokenize.OP]:
                     if not last_string:
                         last_string = string_
                         last_start = start
@@ -2254,13 +2254,13 @@ class YoutubeDL:
         def _parse_format_selection(tokens, inside_merge=False, inside_choice=False, inside_group=False):
             selectors = []
             current_selector = None
-            for type, string_, start, _, _ in tokens:
+            for type_, string_, start, _, _ in tokens:
                 # ENCODING is only defined in Python 3.x
-                if type == getattr(tokenize, 'ENCODING', None):
+                if type_ == getattr(tokenize, 'ENCODING', None):
                     continue
-                elif type in [tokenize.NAME, tokenize.NUMBER]:
+                elif type_ in [tokenize.NAME, tokenize.NUMBER]:
                     current_selector = FormatSelector(SINGLE, string_, [])
-                elif type == tokenize.OP:
+                elif type_ == tokenize.OP:
                     if string_ == ')':
                         if not inside_group:
                             # ')' will be handled by the parentheses group
@@ -2303,7 +2303,7 @@ class YoutubeDL:
                         current_selector = FormatSelector(MERGE, (selector_1, selector_2), [])
                     else:
                         raise syntax_error(f'Operator not recognized: "{string_}"', start)
-                elif type == tokenize.ENDMARKER:
+                elif type_ == tokenize.ENDMARKER:
                     break
             if current_selector:
                 selectors.append(current_selector)
@@ -2824,28 +2824,28 @@ class YoutubeDL:
         if not formats:
             self.raise_no_formats(info_dict)
 
-        for format in formats:
-            sanitize_string_field(format, 'format_id')
-            sanitize_numeric_fields(format)
-            format['url'] = sanitize_url(format['url'])
-            if format.get('ext') is None:
-                format['ext'] = determine_ext(format['url']).lower()
-            if format['ext'] in ('aac', 'opus', 'mp3', 'flac', 'vorbis'):
-                if format.get('acodec') is None:
-                    format['acodec'] = format['ext']
-            if format.get('protocol') is None:
-                format['protocol'] = determine_protocol(format)
-            if format.get('resolution') is None:
-                format['resolution'] = self.format_resolution(format, default=None)
-            if format.get('dynamic_range') is None and format.get('vcodec') != 'none':
-                format['dynamic_range'] = 'SDR'
-            if format.get('aspect_ratio') is None:
-                format['aspect_ratio'] = try_call(lambda: round(format['width'] / format['height'], 2))
+        for fmt in formats:
+            sanitize_string_field(fmt, 'format_id')
+            sanitize_numeric_fields(fmt)
+            fmt['url'] = sanitize_url(fmt['url'])
+            if fmt.get('ext') is None:
+                fmt['ext'] = determine_ext(fmt['url']).lower()
+            if fmt['ext'] in ('aac', 'opus', 'mp3', 'flac', 'vorbis'):
+                if fmt.get('acodec') is None:
+                    fmt['acodec'] = fmt['ext']
+            if fmt.get('protocol') is None:
+                fmt['protocol'] = determine_protocol(fmt)
+            if fmt.get('resolution') is None:
+                fmt['resolution'] = self.format_resolution(fmt, default=None)
+            if fmt.get('dynamic_range') is None and fmt.get('vcodec') != 'none':
+                fmt['dynamic_range'] = 'SDR'
+            if fmt.get('aspect_ratio') is None:
+                fmt['aspect_ratio'] = try_call(lambda: round(fmt['width'] / fmt['height'], 2))
             # For fragmented formats, "tbr" is often max bitrate and not average
-            if (('manifest-filesize-approx' in self.params['compat_opts'] or not format.get('manifest_url'))
-                    and not format.get('filesize') and not format.get('filesize_approx')):
-                format['filesize_approx'] = filesize_from_tbr(format.get('tbr'), info_dict.get('duration'))
-            format['http_headers'] = self._calc_headers(collections.ChainMap(format, info_dict), load_cookies=True)
+            if (('manifest-filesize-approx' in self.params['compat_opts'] or not fmt.get('manifest_url'))
+                    and not fmt.get('filesize') and not fmt.get('filesize_approx')):
+                fmt['filesize_approx'] = filesize_from_tbr(fmt.get('tbr'), info_dict.get('duration'))
+            fmt['http_headers'] = self._calc_headers(collections.ChainMap(fmt, info_dict), load_cookies=True)
 
         # Safeguard against old/insecure infojson when using --load-info-json
         if info_dict.get('http_headers'):
@@ -2863,31 +2863,31 @@ class YoutubeDL:
 
         # Sanitize and group by format_id
         formats_dict = {}
-        for i, format in enumerate(formats):
-            if not format.get('format_id'):
-                format['format_id'] = str(i)
+        for i, fmt in enumerate(formats):
+            if not fmt.get('format_id'):
+                fmt['format_id'] = str(i)
             else:
                 # Sanitize format_id from characters used in format selector expression
-                format['format_id'] = re.sub(r'[\s,/+\[\]()]', '_', format['format_id'])
-            formats_dict.setdefault(format['format_id'], []).append(format)
+                fmt['format_id'] = re.sub(r'[\s,/+\[\]()]', '_', fmt['format_id'])
+            formats_dict.setdefault(fmt['format_id'], []).append(fmt)
 
         # Make sure all formats have unique format_id
         common_exts = set(itertools.chain(*self._format_selection_exts.values()))
         for format_id, ambiguous_formats in formats_dict.items():
             ambigious_id = len(ambiguous_formats) > 1
-            for i, format in enumerate(ambiguous_formats):
+            for i, fmt in enumerate(ambiguous_formats):
                 if ambigious_id:
-                    format['format_id'] = '%s-%d' % (format_id, i)
+                    fmt['format_id'] = '%s-%d' % (format_id, i)
                 # Ensure there is no conflict between id and ext in format selection
                 # See https://github.com/yt-dlp/yt-dlp/issues/1282
-                if format['format_id'] != format['ext'] and format['format_id'] in common_exts:
-                    format['format_id'] = 'f%s' % format['format_id']
+                if fmt['format_id'] != fmt['ext'] and fmt['format_id'] in common_exts:
+                    fmt['format_id'] = 'f%s' % fmt['format_id']
 
-                if format.get('format') is None:
-                    format['format'] = '{id} - {res}{note}'.format(
-                        id=format['format_id'],
-                        res=self.format_resolution(format),
-                        note=format_field(format, 'format_note', ' (%s)'),
+                if fmt.get('format') is None:
+                    fmt['format'] = '{id} - {res}{note}'.format(
+                        id=fmt['format_id'],
+                        res=self.format_resolution(fmt),
+                        note=format_field(fmt, 'format_note', ' (%s)'),
                     )
 
         if self.params.get('check_formats') is True:

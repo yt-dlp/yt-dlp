@@ -1617,12 +1617,12 @@ class PeerTubePlaylistIE(InfoExtractor):
         return self._download_json(
             self._API_BASE % (host, base, name, path), name, **kwargs)
 
-    def fetch_page(self, host, id, type, page):
+    def fetch_page(self, host, playlist_id, playlist_type, page):
         page += 1
         video_data = self.call_api(
-            host, id,
+            host, playlist_id,
             f'/videos?sort=-createdAt&start={self._PAGE_SIZE * (page - 1)}&count={self._PAGE_SIZE}&nsfw=both',
-            type, note=f'Downloading page {page}').get('data', [])
+            playlist_type, note=f'Downloading page {page}').get('data', [])
         for video in video_data:
             shortUUID = video.get('shortUUID') or try_get(video, lambda x: x['video']['shortUUID'])
             video_title = video.get('name') or try_get(video, lambda x: x['video']['name'])
@@ -1630,8 +1630,8 @@ class PeerTubePlaylistIE(InfoExtractor):
                 f'https://{host}/w/{shortUUID}', PeerTubeIE.ie_key(),
                 video_id=shortUUID, video_title=video_title)
 
-    def _extract_playlist(self, host, type, id):
-        info = self.call_api(host, id, '', type, note='Downloading playlist information', fatal=False)
+    def _extract_playlist(self, host, playlist_type, playlist_id):
+        info = self.call_api(host, playlist_id, '', playlist_type, note='Downloading playlist information', fatal=False)
 
         playlist_title = info.get('displayName')
         playlist_description = info.get('description')
@@ -1641,13 +1641,12 @@ class PeerTubePlaylistIE(InfoExtractor):
         thumbnail = format_field(info, 'thumbnailPath', f'https://{host}%s')
 
         entries = OnDemandPagedList(functools.partial(
-            self.fetch_page, host, id, type), self._PAGE_SIZE)
+            self.fetch_page, host, playlist_id, playlist_type), self._PAGE_SIZE)
 
         return self.playlist_result(
-            entries, id, playlist_title, playlist_description,
+            entries, playlist_id, playlist_title, playlist_description,
             timestamp=playlist_timestamp, channel=channel, channel_id=channel_id, thumbnail=thumbnail)
 
     def _real_extract(self, url):
-        type, host, id = self._match_valid_url(url).group('type', 'host', 'id')
-        type = self._TYPES[type]
-        return self._extract_playlist(host, type, id)
+        playlist_type, host, playlist_id = self._match_valid_url(url).group('type', 'host', 'id')
+        return self._extract_playlist(host, self._TYPES[playlist_type], playlist_id)

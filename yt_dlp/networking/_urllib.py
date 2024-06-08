@@ -246,8 +246,8 @@ class ProxyHandler(urllib.request.BaseHandler):
     def __init__(self, proxies=None):
         self.proxies = proxies
         # Set default handlers
-        for type in ('http', 'https', 'ftp'):
-            setattr(self, '%s_open' % type, lambda r, meth=self.proxy_open: meth(r))
+        for scheme in ('http', 'https', 'ftp'):
+            setattr(self, f'{scheme}_open', lambda r, meth=self.proxy_open: meth(r))
 
     def proxy_open(self, req):
         proxy = select_proxy(req.get_full_url(), self.proxies)

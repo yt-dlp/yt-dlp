@@ -1895,11 +1895,11 @@ class TwitterShortenerIE(TwitterBaseIE):
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
-        eid, id = mobj.group('eid', 'id')
+        eid, shortcode = mobj.group('eid', 'id')
         if eid:
-            id = eid
-            url = self._BASE_URL + id
-        new_url = self._request_webpage(url, id, headers={'User-Agent': 'curl'}).url
+            shortcode = eid
+            url = self._BASE_URL + shortcode
+        new_url = self._request_webpage(url, shortcode, headers={'User-Agent': 'curl'}).url
         __UNSAFE_LINK = "https://twitter.com/safety/unsafe_link_warning?unsafe_link="
         if new_url.startswith(__UNSAFE_LINK):
             new_url = new_url.replace(__UNSAFE_LINK, "")

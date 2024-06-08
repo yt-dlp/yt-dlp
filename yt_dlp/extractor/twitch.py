@@ -782,9 +782,9 @@ class TwitchVideosIE(TwitchPlaylistBaseIE):
     def _real_extract(self, url):
         channel_name = self._match_id(url)
         qs = parse_qs(url)
-        filter = qs.get('filter', ['all'])[0]
+        video_filter = qs.get('filter', ['all'])[0]
         sort = qs.get('sort', ['time'])[0]
-        broadcast = self._BROADCASTS.get(filter, self._DEFAULT_BROADCAST)
+        broadcast = self._BROADCASTS.get(video_filter, self._DEFAULT_BROADCAST)
         return self.playlist_result(
             self._entries(channel_name, broadcast.type, sort),
             playlist_id=channel_name,
@@ -828,11 +828,11 @@ class TwitchVideosClipsIE(TwitchPlaylistBaseIE):
     _NODE_KIND = 'Clip'
 
     @staticmethod
-    def _make_variables(channel_name, filter):
+    def _make_variables(channel_name, channel_filter):
         return {
             'login': channel_name,
             'criteria': {
-                'filter': filter,
+                'filter': channel_filter,
             },
         }
 
@@ -858,8 +858,8 @@ class TwitchVideosClipsIE(TwitchPlaylistBaseIE):
     def _real_extract(self, url):
         channel_name = self._match_id(url)
         qs = parse_qs(url)
-        range = qs.get('range', ['7d'])[0]
-        clip = self._RANGE.get(range, self._DEFAULT_CLIP)
+        date_range = qs.get('range', ['7d'])[0]
+        clip = self._RANGE.get(date_range, self._DEFAULT_CLIP)
         return self.playlist_result(
             self._entries(channel_name, clip.filter),
             playlist_id=channel_name,

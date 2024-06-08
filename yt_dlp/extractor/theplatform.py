@@ -1,4 +1,3 @@
-import binascii
 import hashlib
 import hmac
 import re
@@ -225,14 +224,11 @@ class ThePlatformIE(ThePlatformBaseIE, AdobePassIE):
         flags = '10' if include_qs else '00'
         expiration_date = '%x' % (int(time.time()) + life)
 
-        def str_to_hex(str):
-            return binascii.b2a_hex(str.encode('ascii')).decode('ascii')
-
-        def hex_to_bytes(hex):
-            return binascii.a2b_hex(hex.encode('ascii'))
+        def str_to_hex(str_data):
+            return str_data.encode('ascii').hex()
 
         relative_path = re.match(r'https?://link\.theplatform\.com/s/([^?]+)', url).group(1)
-        clear_text = hex_to_bytes(flags + expiration_date + str_to_hex(relative_path))
+        clear_text = bytes.fromhex(flags + expiration_date + str_to_hex(relative_path))
         checksum = hmac.new(sig_key.encode('ascii'), clear_text, hashlib.sha1).hexdigest()
         sig = flags + expiration_date + checksum + str_to_hex(sig_secret)
         return '%s&sig=%s' % (url, sig)

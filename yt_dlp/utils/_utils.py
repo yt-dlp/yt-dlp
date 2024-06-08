@@ -53,7 +53,7 @@ from ..compat import (
 )
 from ..dependencies import xattr
 
-__name__ = __name__.rsplit('.', 1)[0]  # Pretend to be the parent module
+__name__ = __name__.rsplit('.', 1)[0]  # noqa: A001: Pretend to be the parent module
 
 # This is not clearly defined otherwise
 compiled_regex_type = type(re.compile(''))
@@ -2161,7 +2161,7 @@ class LazyList(collections.abc.Sequence):
     """Lazy immutable list from an iterable
     Note that slices of a LazyList are lists and not LazyList"""
 
-    class IndexError(IndexError):
+    class IndexError(IndexError):  # noqa: A001
         pass
 
     def __init__(self, iterable, *, reverse=False, _cache=None):
@@ -2248,7 +2248,7 @@ class LazyList(collections.abc.Sequence):
 
 class PagedList:
 
-    class IndexError(IndexError):
+    class IndexError(IndexError):  # noqa: A001
         pass
 
     def __len__(self):
@@ -2488,7 +2488,7 @@ class PlaylistEntries:
     def __len__(self):
         return len(tuple(self[:]))
 
-    class IndexError(IndexError):
+    class IndexError(IndexError):  # noqa: A001
         pass
 
 
@@ -4794,7 +4794,7 @@ def scale_thumbnails_to_max_format_width(formats, thumbnails, url_width_re):
     """
     _keys = ('width', 'height')
     max_dimensions = max(
-        (tuple(format.get(k) or 0 for k in _keys) for format in formats),
+        (tuple(fmt.get(k) or 0 for k in _keys) for fmt in formats),
         default=(0, 0))
     if not max_dimensions[0]:
         return thumbnails
@@ -5240,11 +5240,11 @@ class FormatSorter:
             self.settings[field] = {}
         propObj = self.settings[field]
         if key not in propObj:
-            type = propObj.get('type')
+            type_ = propObj.get('type')
             if key == 'field':
-                default = 'preference' if type == 'extractor' else (field,) if type in ('combined', 'multiple') else field
+                default = 'preference' if type_ == 'extractor' else (field,) if type_ in ('combined', 'multiple') else field
             elif key == 'convert':
-                default = 'order' if type == 'ordered' else 'float_string' if field else 'ignore'
+                default = 'order' if type_ == 'ordered' else 'float_string' if field else 'ignore'
             else:
                 default = {'type': 'field', 'visible': True, 'order': [], 'not_in_list': (None,)}.get(key, None)
             propObj[key] = default
@@ -5353,20 +5353,20 @@ class FormatSorter:
             if self._get_field_setting(field, 'limit_text') is not None else '')
             for field in self._order if self._get_field_setting(field, 'visible')]))
 
-    def _calculate_field_preference_from_value(self, format, field, type, value):
+    def _calculate_field_preference_from_value(self, format_, field, type_, value):
         reverse = self._get_field_setting(field, 'reverse')
         closest = self._get_field_setting(field, 'closest')
         limit = self._get_field_setting(field, 'limit')
 
-        if type == 'extractor':
+        if type_ == 'extractor':
             maximum = self._get_field_setting(field, 'max')
             if value is None or (maximum is not None and value >= maximum):
                 value = -1
-        elif type == 'boolean':
+        elif type_ == 'boolean':
             in_list = self._get_field_setting(field, 'in_list')
             not_in_list = self._get_field_setting(field, 'not_in_list')
             value = 0 if ((in_list is None or value in in_list) and (not_in_list is None or value not in not_in_list)) else -1
-        elif type == 'ordered':
+        elif type_ == 'ordered':
             value = self._resolve_field_value(field, value, True)
 
         # try to convert to number
@@ -5382,17 +5382,17 @@ class FormatSorter:
                 else (0, -value, 0) if limit is None or (reverse and value == limit) or value > limit
                 else (-1, value, 0))
 
-    def _calculate_field_preference(self, format, field):
-        type = self._get_field_setting(field, 'type')  # extractor, boolean, ordered, field, multiple
-        get_value = lambda f: format.get(self._get_field_setting(f, 'field'))
-        if type == 'multiple':
-            type = 'field'  # Only 'field' is allowed in multiple for now
+    def _calculate_field_preference(self, format_, field):
+        type_ = self._get_field_setting(field, 'type')  # extractor, boolean, ordered, field, multiple
+        get_value = lambda f: format_.get(self._get_field_setting(f, 'field'))
+        if type_ == 'multiple':
+            type_ = 'field'  # Only 'field' is allowed in multiple for now
             actual_fields = self._get_field_setting(field, 'field')
 
             value = self._get_field_setting(field, 'function')(get_value(f) for f in actual_fields)
         else:
             value = get_value(field)
-        return self._calculate_field_preference_from_value(format, field, type, value)
+        return self._calculate_field_preference_from_value(format_, field, type_, value)
 
     def calculate_preference(self, format):
         # Determine missing protocol

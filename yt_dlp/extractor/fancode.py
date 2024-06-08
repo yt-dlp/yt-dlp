@@ -147,7 +147,7 @@ class FancodeLiveIE(FancodeVodIE):  # XXX: Do not subclass from concrete IE
 
     def _real_extract(self, url):
 
-        id = self._match_id(url)
+        video_id = self._match_id(url)
         data = '''{
             "query":"query MatchResponse($id: Int\\u0021, $isLoggedIn: Boolean\\u0021) { match: matchWithScores(id: $id) { id matchDesc mediaId videoStreamId videoStreamUrl { ...VideoSource } liveStreams { videoStreamId videoStreamUrl { ...VideoSource } contentId } name startTime streamingStatus isPremium isUserEntitled @include(if: $isLoggedIn) status metaTags bgImage { src } sport { name slug } tour { id name } squads { name shortName } liveStreams { contentId } mediaId }}fragment VideoSource on VideoSource { title description posterUrl url deliveryType playerType}",
             "variables":{
@@ -155,9 +155,9 @@ class FancodeLiveIE(FancodeVodIE):  # XXX: Do not subclass from concrete IE
                 "isLoggedIn":true
             },
             "operationName":"MatchResponse"
-        }''' % id
+        }''' % video_id
 
-        info_json = self.download_gql(id, data, "Info json")
+        info_json = self.download_gql(video_id, data, "Info json")
 
         match_info = try_get(info_json, lambda x: x['data']['match'])
 
@@ -166,9 +166,9 @@ class FancodeLiveIE(FancodeVodIE):  # XXX: Do not subclass from concrete IE
         self._check_login_required(match_info.get('isUserEntitled'), True)  # all live streams are premium only
 
         return {
-            'id': id,
+            'id': video_id,
             'title': match_info.get('name'),
-            'formats': self._extract_akamai_formats(try_get(match_info, lambda x: x['videoStreamUrl']['url']), id),
+            'formats': self._extract_akamai_formats(try_get(match_info, lambda x: x['videoStreamUrl']['url']), video_id),
             'ext': mimetype2ext(try_get(match_info, lambda x: x['videoStreamUrl']['deliveryType'])),
             'is_live': True,
             'release_timestamp': parse_iso8601(match_info.get('startTime'))

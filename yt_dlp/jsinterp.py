@@ -216,7 +216,7 @@ class JSInterpreter:
         self.code, self._functions = code, {}
         self._objects = {} if objects is None else objects
 
-    class Exception(ExtractorError):
+    class Exception(ExtractorError):  # noqa: A001
         def __init__(self, msg, expr=None, *args, **kwargs):
             if expr is not None:
                 msg = f'{msg.rstrip()} in: {truncate_string(expr, 50, 50)}'

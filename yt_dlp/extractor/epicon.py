@@ -45,12 +45,13 @@ class EpiconIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        id = self._match_id(url)
-        webpage = self._download_webpage(url, id)
+        video_id = self._match_id(url)
+        webpage = self._download_webpage(url, video_id)
         cid = self._search_regex(r'class=\"mylist-icon\ iconclick\"\ id=\"(\d+)', webpage, 'cid')
         headers = {'content-type': 'application/x-www-form-urlencoded; charset=UTF-8'}
         data = f'cid={cid}&action=st&type=video'.encode()
-        data_json = self._parse_json(self._download_json('https://www.epicon.in/ajaxplayer/', id, headers=headers, data=data), id)
+        data_json = self._parse_json(
+            self._download_json('https://www.epicon.in/ajaxplayer/', video_id, headers=headers, data=data), video_id)
 
         if not data_json['success']:
             raise ExtractorError(data_json['message'], expected=True)
@@ -58,7 +59,7 @@ class EpiconIE(InfoExtractor):
         title = self._search_regex(r'setplaytitle=\"([^\"]+)', webpage, 'title')
         description = self._og_search_description(webpage) or None
         thumbnail = self._og_search_thumbnail(webpage) or None
-        formats = self._extract_m3u8_formats(data_json['url']['video_url'], id)
+        formats = self._extract_m3u8_formats(data_json['url']['video_url'], video_id)
 
         subtitles = {}
         for subtitle in data_json.get('subtitles', []):
@@ -70,7 +71,7 @@ class EpiconIE(InfoExtractor):
             })
 
         return {
-            'id': id,
+            'id': video_id,
             'formats': formats,
             'title': title,
             'description': description,
@@ -108,8 +109,8 @@ class EpiconSeriesIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        id = self._match_id(url)
-        webpage = self._download_webpage(url, id)
-        episodes = re.findall(r'ct-tray-url=\"(tv-shows/%s/[^\"]+)' % id, webpage)
-        entries = [self.url_result('https://www.epicon.in/%s' % episode, ie=EpiconIE.ie_key()) for episode in episodes]
-        return self.playlist_result(entries, playlist_id=id)
+        playlist_id = self._match_id(url)
+        webpage = self._download_webpage(url, playlist_id)
+        episodes = re.findall(r'ct-tray-url=\"(tv-shows/%s/[^\"]+)' % playlist_id, webpage)
+        entries = [self.url_result('https://www.epicon.in/%s' % episode, EpiconIE) for episode in episodes]
+        return self.playlist_result(entries, playlist_id=playlist_id)

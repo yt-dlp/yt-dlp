@@ -28,14 +28,15 @@ class XanimuIE(InfoExtractor):
         webpage = self._download_webpage(url, video_id)
 
         formats = []
-        for format in ['videoHigh', 'videoLow']:
-            format_url = self._search_json(r'var\s+%s\s*=' % re.escape(format), webpage, format,
-                                           video_id, default=None, contains_pattern=r'[\'"]([^\'"]+)[\'"]')
+        for format_id in ['videoHigh', 'videoLow']:
+            format_url = self._search_json(
+                r'var\s+%s\s*=' % re.escape(format_id), webpage, format_id,
+                video_id, default=None, contains_pattern=r'[\'"]([^\'"]+)[\'"]')
             if format_url:
                 formats.append({
                     'url': format_url,
-                    'format_id': format,
-                    'quality': -2 if format.endswith('Low') else None,
+                    'format_id': format_id,
+                    'quality': -2 if format_id.endswith('Low') else None,
                 })
 
         return {

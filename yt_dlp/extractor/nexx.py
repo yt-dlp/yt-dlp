@@ -160,13 +160,13 @@ class NexxIE(InfoExtractor):
         cdn = stream_data['cdnType']
         assert cdn == 'free'
 
-        hash = video['general']['hash']
+        video_hash = video['general']['hash']
 
         ps = compat_str(stream_data['originalDomain'])
         if stream_data['applyFolderHierarchy'] == 1:
             s = ('%04d' % int(video_id))[::-1]
             ps += '/%s/%s' % (s[0:2], s[2:4])
-        ps += '/%s/%s_' % (video_id, hash)
+        ps += '/%s/%s_' % (video_id, video_hash)
 
         t = 'http://%s' + ps
         fd = stream_data['azureFileDistribution'].split(',')

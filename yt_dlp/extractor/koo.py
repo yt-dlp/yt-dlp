@@ -83,10 +83,11 @@ class KooIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        id = self._match_id(url)
-        data_json = self._download_json(f'https://www.kooapp.com/apiV1/ku/{id}?limit=20&offset=0&showSimilarKoos=true', id)['parentContent']
+        video_id = self._match_id(url)
+        data_json = self._download_json(
+            f'https://www.kooapp.com/apiV1/ku/{video_id}?limit=20&offset=0&showSimilarKoos=true', video_id)['parentContent']
         item_json = next(content['items'][0] for content in data_json
-                         if try_get(content, lambda x: x['items'][0]['id']) == id)
+                         if try_get(content, lambda x: x['items'][0]['id']) == video_id)
         media_json = item_json['mediaMap']
         formats = []
 
@@ -98,12 +99,12 @@ class KooIE(InfoExtractor):
                 'ext': 'mp4',
             })
         if video_m3u8_url:
-            formats.extend(self._extract_m3u8_formats(video_m3u8_url, id, fatal=False, ext='mp4'))
+            formats.extend(self._extract_m3u8_formats(video_m3u8_url, video_id, fatal=False, ext='mp4'))
         if not formats:
             self.raise_no_formats('No video/audio found at the provided url.', expected=True)
 
         return {
-            'id': id,
+            'id': video_id,
             'title': clean_html(item_json.get('title')),
             'description': f'{clean_html(item_json.get("title"))}\n\n{clean_html(item_json.get("enTransliteration"))}',
             'timestamp': item_json.get('createdAt'),

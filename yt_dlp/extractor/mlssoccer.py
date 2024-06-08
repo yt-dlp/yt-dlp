@@ -103,11 +103,12 @@ class MLSSoccerIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        id = self._match_id(url)
-        webpage = self._download_webpage(url, id)
-        data_json = self._parse_json(self._html_search_regex(r'data-options\=\"([^\"]+)\"', webpage, 'json'), id)['videoList'][0]
+        video_id = self._match_id(url)
+        webpage = self._download_webpage(url, video_id)
+        data_json = self._parse_json(
+            self._html_search_regex(r'data-options\=\"([^\"]+)\"', webpage, 'json'), video_id)['videoList'][0]
         return {
-            'id': id,
+            'id': video_id,
             '_type': 'url',
             'url': 'https://players.brightcove.net/%s/default_default/index.html?videoId=%s' % (data_json['accountId'], data_json['videoId']),
             'ie_key': 'BrightcoveNew',

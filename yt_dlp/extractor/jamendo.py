@@ -111,7 +111,7 @@ class JamendoIE(InfoExtractor):
             tags.append(tag_name)
 
         stats = track.get('stats') or {}
-        license = track.get('licenseCC') or []
+        video_license = track.get('licenseCC') or []
 
         return {
             'id': track_id,
@@ -124,7 +124,7 @@ class JamendoIE(InfoExtractor):
             'track': track_name,
             'album': album.get('name'),
             'formats': formats,
-            'license': '-'.join(license) if license else None,
+            'license': '-'.join(video_license) if video_license else None,
             'timestamp': int_or_none(track.get('dateCreated')),
             'view_count': int_or_none(stats.get('listenedAll')),
             'like_count': int_or_none(stats.get('favorited')),

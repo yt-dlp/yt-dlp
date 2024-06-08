@@ -26,9 +26,9 @@ from ..utils import (
 _ENCODING_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'
 
 
-def _pk_to_id(id):
+def _pk_to_id(media_id):
     """Source: https://stackoverflow.com/questions/24437823/getting-instagram-post-url-from-media-id"""
-    return encode_base_n(int(id.split('_')[0]), table=_ENCODING_CHARS)
+    return encode_base_n(int(media_id.split('_')[0]), table=_ENCODING_CHARS)
 
 
 def _id_to_pk(shortcode):
@@ -148,12 +148,12 @@ class InstagramBaseIE(InfoExtractor):
             return {}
 
         formats = [{
-            'format_id': format.get('id'),
-            'url': format.get('url'),
-            'width': format.get('width'),
-            'height': format.get('height'),
+            'format_id': fmt.get('id'),
+            'url': fmt.get('url'),
+            'width': fmt.get('width'),
+            'height': fmt.get('height'),
             'vcodec': vcodec,
-        } for format in videos_list or []]
+        } for fmt in videos_list or []]
         if dash_manifest_raw:
             formats.extend(self._parse_mpd_formats(self._parse_xml(dash_manifest_raw, media_id), mpd_id='dash'))
 

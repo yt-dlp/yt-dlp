@@ -24,9 +24,9 @@ class OlympicsReplayIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        id = self._match_id(url)
+        video_id = self._match_id(url)
 
-        webpage = self._download_webpage(url, id)
+        webpage = self._download_webpage(url, video_id)
         title = self._html_search_meta(('title', 'og:title', 'twitter:title'), webpage)
         uuid = self._html_search_meta('episode_uid', webpage)
         m3u8_url = self._html_search_meta('video_url', webpage)

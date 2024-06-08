@@ -26,21 +26,21 @@ class GabTVIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        id = self._match_id(url).split('-')[-1]
-        webpage = self._download_webpage(url, id)
+        video_id = self._match_id(url).split('-')[-1]
+        webpage = self._download_webpage(url, video_id)
         channel_id = self._search_regex(r'data-channel-id=\"(?P<channel_id>[^\"]+)', webpage, 'channel_id')
         channel_name = self._search_regex(r'data-channel-name=\"(?P<channel_id>[^\"]+)', webpage, 'channel_name')
         title = self._search_regex(r'data-episode-title=\"(?P<channel_id>[^\"]+)', webpage, 'title')
         view_key = self._search_regex(r'data-view-key=\"(?P<channel_id>[^\"]+)', webpage, 'view_key')
         description = clean_html(
             self._html_search_regex(self._meta_regex('description'), webpage, 'description', group='content')) or None
-        available_resolutions = re.findall(r'<a\ data-episode-id=\"%s\"\ data-resolution=\"(?P<resolution>[^\"]+)' % id,
+        available_resolutions = re.findall(r'<a\ data-episode-id=\"%s\"\ data-resolution=\"(?P<resolution>[^\"]+)' % video_id,
                                            webpage)
 
         formats = []
         for resolution in available_resolutions:
             frmt = {
-                'url': f'https://tv.gab.com/media/{id}?viewKey={view_key}&r={resolution}',
+                'url': f'https://tv.gab.com/media/{video_id}?viewKey={view_key}&r={resolution}',
                 'format_id': resolution,
                 'vcodec': 'h264',
                 'acodec': 'aac',
@@ -55,13 +55,13 @@ class GabTVIE(InfoExtractor):
             formats.append(frmt)
 
         return {
-            'id': id,
+            'id': video_id,
             'title': title,
             'formats': formats,
             'description': description,
             'uploader': channel_name,
             'uploader_id': channel_id,
-            'thumbnail': f'https://tv.gab.com/image/{id}',
+            'thumbnail': f'https://tv.gab.com/image/{video_id}',
         }
 
 

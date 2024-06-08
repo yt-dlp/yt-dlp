@@ -46,12 +46,12 @@ class RTNewsIE(InfoExtractor):
                 }
 
     def _real_extract(self, url):
-        id = self._match_id(url)
-        webpage = self._download_webpage(url, id)
+        playlist_id = self._match_id(url)
+        webpage = self._download_webpage(url, playlist_id)
 
         return {
             '_type': 'playlist',
-            'id': id,
+            'id': playlist_id,
             'entries': self._entries(webpage),
             'title': self._og_search_title(webpage),
             'description': self._og_search_description(webpage),
@@ -107,20 +107,20 @@ class RTDocumentryIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        id = self._match_id(url)
-        webpage = self._download_webpage(url, id)
+        video_id = self._match_id(url)
+        webpage = self._download_webpage(url, video_id)
         ld_json = self._search_json_ld(webpage, None, fatal=False)
         if not ld_json:
             self.raise_no_formats('No video/audio found at the provided url.', expected=True)
         media_json = self._parse_json(
             self._search_regex(r'(?s)\'Med\'\s*:\s*\[\s*({.+})\s*\]\s*};', webpage, 'media info'),
-            id, transform_source=js_to_json)
+            video_id, transform_source=js_to_json)
         if 'title' not in ld_json and 'title' in media_json:
             ld_json['title'] = media_json['title']
         formats = [{'url': src['file']} for src in media_json.get('sources') or [] if src.get('file')]
 
         return {
-            'id': id,
+            'id': video_id,
             'thumbnail': media_json.get('image'),
             'formats': formats,
             **ld_json
@@ -144,23 +144,23 @@ class RTDocumentryPlaylistIE(InfoExtractor):
         },
     }]
 
-    def _entries(self, webpage, id):
+    def _entries(self, webpage, playlist_id):
         video_urls = set(re.findall(r'list-2__link\s*"\s*href="([^"]+)"', webpage))
         for v_url in video_urls:
-            if id not in v_url:
+            if playlist_id not in v_url:
                 continue
             yield self.url_result(
                 'https://rtd.rt.com%s' % v_url,
                 ie=RTDocumentryIE.ie_key())
 
     def _real_extract(self, url):
-        id = self._match_id(url)
-        webpage = self._download_webpage(url, id)
+        playlist_id = self._match_id(url)
+        webpage = self._download_webpage(url, playlist_id)
 
         return {
             '_type': 'playlist',
-            'id': id,
-            'entries': self._entries(webpage, id),
+            'id': playlist_id,
+            'entries': self._entries(webpage, playlist_id),
         }
 
 
@@ -180,14 +180,14 @@ class RuptlyIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        id = self._match_id(url)
-        webpage = self._download_webpage(url, id)
+        video_id = self._match_id(url)
+        webpage = self._download_webpage(url, video_id)
         m3u8_url = self._search_regex(r'preview_url"\s?:\s?"(https?://storage\.ruptly\.tv/video_projects/.+\.m3u8)"', webpage, 'm3u8 url', fatal=False)
         if not m3u8_url:
             self.raise_no_formats('No video/audio found at the provided url.', expected=True)
-        formats, subs = self._extract_m3u8_formats_and_subtitles(m3u8_url, id, ext='mp4')
+        formats, subs = self._extract_m3u8_formats_and_subtitles(m3u8_url, video_id, ext='mp4')
         return {
-            'id': id,
+            'id': video_id,
             'formats': formats,
             'subtitles': subs,
             'title': self._og_search_title(webpage),

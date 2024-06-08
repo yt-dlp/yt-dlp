@@ -273,10 +273,10 @@ class CueBlock(Block):
     def parse(cls, parser):
         parser = parser.child()
 
-        id = None
+        id_ = None
         m = parser.consume(cls._REGEX_ID)
         if m:
-            id = m.group(1)
+            id_ = m.group(1)
 
         m0 = parser.consume(_REGEX_TS)
         if not m0:
@@ -304,7 +304,7 @@ class CueBlock(Block):
 
         parser.commit()
         return cls(
-            id=id,
+            id=id_,
             start=start, end=end, settings=settings,
             text=text.getvalue()
         )

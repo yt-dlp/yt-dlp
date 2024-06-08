@@ -30,11 +30,11 @@ class FourTubeBaseIE(InfoExtractor):
             'Referer': url,
         })
         return [{
-            'url': tokens[format]['token'],
-            'format_id': format + 'p',
-            'resolution': format + 'p',
-            'quality': int(format),
-        } for format in sources]
+            'url': tokens[res]['token'],
+            'format_id': res + 'p',
+            'resolution': res + 'p',
+            'quality': int(res),
+        } for res in sources]
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)

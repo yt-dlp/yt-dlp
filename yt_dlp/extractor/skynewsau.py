@@ -28,13 +28,13 @@ class SkyNewsAUIE(InfoExtractor):
     _API_KEY = '6krsj3w249nk779d8fukqx9f'
 
     def _real_extract(self, url):
-        id = self._match_id(url)
-        webpage = self._download_webpage(url, id)
+        video_id = self._match_id(url)
+        webpage = self._download_webpage(url, video_id)
         embedcode = self._search_regex(r'embedcode\s?=\s?\"([^\"]+)\"', webpage, 'embedcode')
         data_json = self._download_json(
-            f'https://content.api.news/v3/videos/brightcove/{embedcode}?api_key={self._API_KEY}', id)['content']
+            f'https://content.api.news/v3/videos/brightcove/{embedcode}?api_key={self._API_KEY}', video_id)['content']
         return {
-            'id': id,
+            'id': video_id,
             '_type': 'url_transparent',
             'url': 'https://players.brightcove.net/%s/default_default/index.html?videoId=%s' % tuple(embedcode.split('-')),
             'ie_key': 'BrightcoveNew',

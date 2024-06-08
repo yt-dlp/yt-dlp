@@ -272,8 +272,8 @@ class BBCCoUkIE(InfoExtractor):
             raise ExtractorError('Unable to log in')
 
     class MediaSelectionError(Exception):
-        def __init__(self, id):
-            self.id = id
+        def __init__(self, error_id):
+            self.id = error_id
 
     def _extract_asx_playlist(self, connection, programme_id):
         asx = self._download_xml(connection.get('href'), programme_id, 'Downloading ASX playlist')

@@ -124,7 +124,7 @@ class CPTwentyFourIE(InfoExtractor):
     def _real_extract(self, url):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
-        id, destination = self._search_regex(
+        video_id, destination = self._search_regex(
             r'getAuthStates\("(?P<id>[^"]+)",\s?"(?P<destination>[^"]+)"\);',
             webpage, 'video id and destination', group=('id', 'destination'))
-        return self.url_result(f'9c9media:{destination}:{id}', ie=NineCNineMediaIE.ie_key(), video_id=id)
+        return self.url_result(f'9c9media:{destination}:{video_id}', NineCNineMediaIE, video_id)

@@ -55,22 +55,22 @@ class RedBeeBaseIE(InfoExtractor):
             })
 
         formats, subtitles = [], {}
-        for format in api_response['formats']:
-            if not format.get('mediaLocator'):
+        for format_data in api_response['formats']:
+            if not format_data.get('mediaLocator'):
                 continue
 
             fmts, subs = [], {}
-            if format.get('format') == 'DASH':
+            if format_data.get('format') == 'DASH':
                 fmts, subs = self._extract_mpd_formats_and_subtitles(
-                    format['mediaLocator'], asset_id, fatal=False)
-            elif format.get('format') == 'SMOOTHSTREAMING':
+                    format_data['mediaLocator'], asset_id, fatal=False)
+            elif format_data.get('format') == 'SMOOTHSTREAMING':
                 fmts, subs = self._extract_ism_formats_and_subtitles(
-                    format['mediaLocator'], asset_id, fatal=False)
-            elif format.get('format') == 'HLS':
+                    format_data['mediaLocator'], asset_id, fatal=False)
+            elif format_data.get('format') == 'HLS':
                 fmts, subs = self._extract_m3u8_formats_and_subtitles(
-                    format['mediaLocator'], asset_id, fatal=False)
+                    format_data['mediaLocator'], asset_id, fatal=False)
 
-            if format.get('drm'):
+            if format_data.get('drm'):
                 for f in fmts:
                     f['has_drm'] = True
 

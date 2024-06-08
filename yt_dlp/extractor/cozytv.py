@@ -21,12 +21,12 @@ class CozyTVIE(InfoExtractor):
 
     def _real_extract(self, url):
         uploader, date = self._match_valid_url(url).groups()
-        id = f'{uploader}-{date}'
-        data_json = self._download_json(f'https://api.cozy.tv/cache/{uploader}/replay/{date}', id)
+        video_id = f'{uploader}-{date}'
+        data_json = self._download_json(f'https://api.cozy.tv/cache/{uploader}/replay/{date}', video_id)
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
-            f'https://cozycdn.foxtrotstream.xyz/replays/{uploader}/{date}/index.m3u8', id, ext='mp4')
+            f'https://cozycdn.foxtrotstream.xyz/replays/{uploader}/{date}/index.m3u8', video_id, ext='mp4')
         return {
-            'id': id,
+            'id': video_id,
             'title': data_json.get('title'),
             'uploader': data_json.get('user') or uploader,
             'upload_date': unified_strdate(data_json.get('date')),

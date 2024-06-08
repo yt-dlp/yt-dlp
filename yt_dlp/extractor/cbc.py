@@ -535,17 +535,17 @@ class CBCGemIE(InfoExtractor):
         self._remove_duplicate_formats(formats)
         formats.extend(self._find_secret_formats(formats, video_id))
 
-        for format in formats:
-            if format.get('vcodec') == 'none':
-                if format.get('ext') is None:
-                    format['ext'] = 'm4a'
-                if format.get('acodec') is None:
-                    format['acodec'] = 'mp4a.40.2'
+        for fmt in formats:
+            if fmt.get('vcodec') == 'none':
+                if fmt.get('ext') is None:
+                    fmt['ext'] = 'm4a'
+                if fmt.get('acodec') is None:
+                    fmt['acodec'] = 'mp4a.40.2'
 
                 # Put described audio at the beginning of the list, so that it
                 # isn't chosen by default, as most people won't want it.
-                if 'descriptive' in format['format_id'].lower():
-                    format['preference'] = -2
+                if 'descriptive' in fmt['format_id'].lower():
+                    fmt['preference'] = -2
 
         return {
             'id': video_id,

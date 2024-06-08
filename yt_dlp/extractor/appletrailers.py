@@ -173,14 +173,14 @@ class AppleTrailersIE(InfoExtractor):
             settings = self._download_json(settings_json_url, trailer_id, 'Downloading settings json')
 
             formats = []
-            for format in settings['metadata']['sizes']:
+            for fmt in settings['metadata']['sizes']:
                 # The src is a file pointing to the real video file
-                format_url = re.sub(r'_(\d*p\.mov)', r'_h\1', format['src'])
+                format_url = re.sub(r'_(\d*p\.mov)', r'_h\1', fmt['src'])
                 formats.append({
                     'url': format_url,
-                    'format': format['type'],
-                    'width': int_or_none(format['width']),
-                    'height': int_or_none(format['height']),
+                    'format': fmt['type'],
+                    'width': int_or_none(fmt['width']),
+                    'height': int_or_none(fmt['height']),
                 })
 
             playlist.append({

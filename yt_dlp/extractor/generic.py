@@ -2244,29 +2244,29 @@ class GenericIE(InfoExtractor):
             return video_url  # not obfuscated
 
         parsed = urllib.parse.urlparse(video_url[len('function/0/'):])
-        license = cls._kvs_get_license_token(license_code)
+        license_token = cls._kvs_get_license_token(license_code)
         urlparts = parsed.path.split('/')
 
         HASH_LENGTH = 32
-        hash = urlparts[3][:HASH_LENGTH]
+        hash_ = urlparts[3][:HASH_LENGTH]
         indices = list(range(HASH_LENGTH))
 
         # Swap indices of hash according to the destination calculated from the license token
         accum = 0
         for src in reversed(range(HASH_LENGTH)):
-            accum += license[src]
+            accum += license_token[src]
             dest = (src + accum) % HASH_LENGTH
             indices[src], indices[dest] = indices[dest], indices[src]
 
-        urlparts[3] = ''.join(hash[index] for index in indices) + urlparts[3][HASH_LENGTH:]
+        urlparts[3] = ''.join(hash_[index] for index in indices) + urlparts[3][HASH_LENGTH:]
         return urllib.parse.urlunparse(parsed._replace(path='/'.join(urlparts)))
 
     @staticmethod
-    def _kvs_get_license_token(license):
-        license = license.replace('$', '')
-        license_values = [int(char) for char in license]
+    def _kvs_get_license_token(license_code):
+        license_code = license_code.replace('$', '')
+        license_values = [int(char) for char in license_code]
 
-        modlicense = license.replace('0', '1')
+        modlicense = license_code.replace('0', '1')
         center = len(modlicense) // 2
         fronthalf = int(modlicense[:center + 1])
         backhalf = int(modlicense[center:])

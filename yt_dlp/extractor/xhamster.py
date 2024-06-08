@@ -398,10 +398,10 @@ class XHamsterEmbedIE(InfoExtractor):
             webpage, 'xhamster url', default=None)
 
         if not video_url:
-            vars = self._parse_json(
+            player_vars = self._parse_json(
                 self._search_regex(r'vars\s*:\s*({.+?})\s*,\s*\n', webpage, 'vars'),
                 video_id)
-            video_url = dict_get(vars, ('downloadLink', 'homepageLink', 'commentsLink', 'shareUrl'))
+            video_url = dict_get(player_vars, ('downloadLink', 'homepageLink', 'commentsLink', 'shareUrl'))
 
         return self.url_result(video_url, 'XHamster')
 

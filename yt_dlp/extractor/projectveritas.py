@@ -30,9 +30,9 @@ class ProjectVeritasIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        id, type = self._match_valid_url(url).group('id', 'type')
-        api_url = f'https://www.projectveritas.com/page-data/{type}/{id}/page-data.json'
-        data_json = self._download_json(api_url, id)['result']['data']
+        video_id, video_type = self._match_valid_url(url).group('id', 'type')
+        api_url = f'https://www.projectveritas.com/page-data/{video_type}/{video_id}/page-data.json'
+        data_json = self._download_json(api_url, video_id)['result']['data']
         main_data = traverse_obj(data_json, 'video', 'post')
         video_id = main_data['id']
         thumbnail = traverse_obj(main_data, ('image', 'ogImage', 'src'))

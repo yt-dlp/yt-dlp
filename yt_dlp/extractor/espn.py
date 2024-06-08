@@ -266,12 +266,13 @@ class ESPNCricInfoIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        id = self._match_id(url)
-        data_json = self._download_json(f'https://hs-consumer-api.espncricinfo.com/v1/pages/video/video-details?videoId={id}', id)['video']
+        video_id = self._match_id(url)
+        data_json = self._download_json(
+            f'https://hs-consumer-api.espncricinfo.com/v1/pages/video/video-details?videoId={video_id}', video_id)['video']
         formats, subtitles = [], {}
         for item in data_json.get('playbacks') or []:
             if item.get('type') == 'HLS' and item.get('url'):
-                m3u8_frmts, m3u8_subs = self._extract_m3u8_formats_and_subtitles(item['url'], id)
+                m3u8_frmts, m3u8_subs = self._extract_m3u8_formats_and_subtitles(item['url'], video_id)
                 formats.extend(m3u8_frmts)
                 subtitles = self._merge_subtitles(subtitles, m3u8_subs)
             elif item.get('type') == 'AUDIO' and item.get('url'):
@@ -280,7 +281,7 @@ class ESPNCricInfoIE(InfoExtractor):
                     'vcodec': 'none',
                 })
         return {
-            'id': id,
+            'id': video_id,
             'title': data_json.get('title'),
             'description': data_json.get('summary'),
             'upload_date': unified_strdate(dict_get(data_json, ('publishedAt', 'recordedAt'))),
