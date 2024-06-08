@@ -44,7 +44,7 @@ class LyndaBaseIE(InfoExtractor):
             headers={
                 'Referer': referrer_url,
                 'X-Requested-With': 'XMLHttpRequest',
-            }, expected_status=(418, 500, ))
+            }, expected_status=(418, 500))
 
         self._check_error(response, ('email', 'password', 'ErrorMessage'))
 
@@ -97,8 +97,8 @@ class LyndaIE(LyndaBaseIE):
             'id': '114408',
             'ext': 'mp4',
             'title': 'Using the exercise files',
-            'duration': 68
-        }
+            'duration': 68,
+        },
     }, {
         'url': 'https://www.lynda.com/player/embed/133770?tr=foo=1;bar=g;fizz=rt&fs=0',
         'only_matching': True,
@@ -214,7 +214,7 @@ class LyndaIE(LyndaBaseIE):
             'title': title,
             'duration': duration,
             'subtitles': subtitles,
-            'formats': formats
+            'formats': formats,
         }
 
     def _fix_subtitles(self, subs):

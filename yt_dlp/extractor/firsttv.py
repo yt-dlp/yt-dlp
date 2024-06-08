@@ -78,7 +78,7 @@ class FirstTVIE(InfoExtractor):
             items = [items[0]]
 
         entries = []
-        QUALITIES = ('ld', 'sd', 'hd', )
+        QUALITIES = ('ld', 'sd', 'hd')
 
         for item in items:
             title = item['title']
@@ -136,7 +136,7 @@ class FirstTVIE(InfoExtractor):
                 'title': title,
                 'upload_date': upload_date,
                 'duration': int_or_none(duration),
-                'formats': formats
+                'formats': formats,
             })
 
         title = self._html_search_regex(

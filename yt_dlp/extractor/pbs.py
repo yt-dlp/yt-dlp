@@ -415,7 +415,7 @@ class PBSIE(InfoExtractor):
         {
             'url': 'https://player.pbs.org/portalplayer/3004638221/?uid=',
             'only_matching': True,
-        }
+        },
     ]
     _ERRORS = {
         101: 'We\'re sorry, but this video is not yet available.',
@@ -671,7 +671,7 @@ class PBSIE(InfoExtractor):
         captions = info.get('cc') or {}
         for caption_url in captions.values():
             subtitles.setdefault('en', []).append({
-                'url': caption_url
+                'url': caption_url,
             })
         subtitles = self._merge_subtitles(subtitles, hls_subs)
 
@@ -715,7 +715,7 @@ class PBSKidsIE(InfoExtractor):
                 'description': 'md5:d006b2211633685d8ebc8d03b6d5611e',
                 'categories': ['Episode'],
                 'upload_date': '20190718',
-            }
+            },
         },
         {
             'url': 'https://pbskids.org/video/plum-landing/2365205059',
@@ -730,8 +730,8 @@ class PBSKidsIE(InfoExtractor):
                 'description': 'md5:657e5fc4356a84ead1c061eb280ff05d',
                 'categories': ['Episode'],
                 'upload_date': '20140302',
-            }
-        }
+            },
+        },
     ]
 
     def _real_extract(self, url):
@@ -753,5 +753,5 @@ class PBSKidsIE(InfoExtractor):
                 'series': ('video_obj', 'program_title', {str}),
                 'title': ('video_obj', 'title', {str}),
                 'upload_date': ('video_obj', 'air_date', {unified_strdate}),
-            })
+            }),
         }

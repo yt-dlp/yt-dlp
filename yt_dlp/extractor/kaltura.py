@@ -57,7 +57,7 @@ class KalturaIE(InfoExtractor):
                 'thumbnail': 're:^https?://.*/thumbnail/.*',
                 'timestamp': int,
             },
-            'skip': 'The access to this service is forbidden since the specified partner is blocked'
+            'skip': 'The access to this service is forbidden since the specified partner is blocked',
         },
         {
             'url': 'http://www.kaltura.com/index.php/kwidget/cache_st/1300318621/wid/_269692/uiconf_id/3873291/entry_id/1_1jc2y3e4',
@@ -124,14 +124,14 @@ class KalturaIE(InfoExtractor):
                 'view_count': int,
                 'upload_date': '20140815',
                 'thumbnail': 'http://cfvod.kaltura.com/p/691292/sp/69129200/thumbnail/entry_id/0_c076mna6/version/100022',
-            }
+            },
         },
         {
             # html5lib playlist URL using kwidget player
             'url': 'https://cdnapisec.kaltura.com/html5/html5lib/v2.89/mwEmbedFrame.php/p/2019031/uiconf_id/40436601?wid=1_4j3m32cv&iframeembed=true&playerId=kaltura_player_&flashvars[playlistAPI.kpl0Id]=1_jovey5nu&flashvars[ks]=&&flashvars[imageDefaultDuration]=30&flashvars[localizationCode]=en&flashvars[leadWithHTML5]=true&flashvars[forceMobileHTML5]=true&flashvars[nextPrevBtn.plugin]=true&flashvars[hotspots.plugin]=true&flashvars[sideBarContainer.plugin]=true&flashvars[sideBarContainer.position]=left&flashvars[sideBarContainer.clickToClose]=true&flashvars[chapters.plugin]=true&flashvars[chapters.layout]=vertical&flashvars[chapters.thumbnailRotator]=false&flashvars[streamSelector.plugin]=true&flashvars[EmbedPlayer.SpinnerTarget]=videoHolder&flashvars[dualScreen.plugin]=true&flashvars[playlistAPI.playlistUrl]=https://canvasgatechtest.kaf.kaltura.com/playlist/details/{playlistAPI.kpl0Id}/categoryid/126428551',
             'info_dict': {
                 'id': '1_jovey5nu',
-                'title': '00-00 Introduction'
+                'title': '00-00 Introduction',
             },
             'playlist': [
                 {
@@ -145,7 +145,7 @@ class KalturaIE(InfoExtractor):
                         'timestamp': 1533154447,
                         'upload_date': '20180801',
                         'uploader_id': 'djoyner3',
-                    }
+                    },
                 }, {
                     'info_dict': {
                         'id': '1_jfb7mdpn',
@@ -157,7 +157,7 @@ class KalturaIE(InfoExtractor):
                         'timestamp': 1533154489,
                         'upload_date': '20180801',
                         'uploader_id': 'djoyner3',
-                    }
+                    },
                 }, {
                     'info_dict': {
                         'id': '1_8xflxdp7',
@@ -169,7 +169,7 @@ class KalturaIE(InfoExtractor):
                         'timestamp': 1533154512,
                         'upload_date': '20180801',
                         'uploader_id': 'djoyner3',
-                    }
+                    },
                 }, {
                     'info_dict': {
                         'id': '1_3hqew8kn',
@@ -181,10 +181,10 @@ class KalturaIE(InfoExtractor):
                         'timestamp': 1533154536,
                         'upload_date': '20180801',
                         'uploader_id': 'djoyner3',
-                    }
-                }
-            ]
-        }
+                    },
+                },
+            ],
+        },
     ]
 
     @classmethod
@@ -342,7 +342,7 @@ class KalturaIE(InfoExtractor):
                 'apiVersion': '3.1',
                 'clientTag': 'kwidget:v2.89',
                 'ignoreNull': 1,
-                'ks': '{1:result:ks}'
+                'ks': '{1:result:ks}',
             },
             # info
             {

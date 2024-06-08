@@ -28,7 +28,7 @@ class WimTVIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'AMA SUPERCROSS 2020 - R2 ST. LOUIS',
             'duration': 6481,
-            'thumbnail': r're:https?://.+?/thumbnail/.+?/720$'
+            'thumbnail': r're:https?://.+?/thumbnail/.+?/720$',
         },
         'params': {
             'skip_download': True,
@@ -66,7 +66,7 @@ class WimTVIE(InfoExtractor):
             'vars': [{
                 'regex': r'appAuth = "(.+?)"',
                 'variable': 'app_auth',
-            }]
+            }],
         }, {
             'url': 'https://platform.wim.tv/common/config/endpointconfig.js',
             'vars': [{
@@ -75,7 +75,7 @@ class WimTVIE(InfoExtractor):
             }, {
                 'regex': r'PRODUCTION_HOSTNAME_THUMB\s*\+\s*"(.+?)"',
                 'variable': 'thumb_server_path',
-            }]
+            }],
         }]
 
         for data in datas:

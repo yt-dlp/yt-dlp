@@ -19,7 +19,7 @@ class ATVAtIE(InfoExtractor):
             'id': 'v-ce9cgn1e70n5-1',
             'ext': 'mp4',
             'title': 'Bauer sucht Frau - Staffel 18 Folge 3 - Die Hofwochen',
-        }
+        },
     }, {
         'url': 'https://www.atv.at/tv/bauer-sucht-frau/staffel-18/episode-01/bauer-sucht-frau-staffel-18-vorstellungsfolge-1',
         'only_matching': True,
@@ -87,7 +87,7 @@ class ATVAtIE(InfoExtractor):
         videos = self._download_json(
             'https://vas-v4.p7s1video.net/4.0/getsources',
             content_id, 'Downloading videos JSON', query={
-                'token': jwt_token.decode('utf-8')
+                'token': jwt_token.decode('utf-8'),
             })
 
         video_id, videos_data = next(iter(videos['data'].items()))

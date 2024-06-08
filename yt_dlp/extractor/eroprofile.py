@@ -91,7 +91,7 @@ class EroProfileAlbumIE(InfoExtractor):
         'url': 'https://www.eroprofile.com/m/videos/album/BBW-2-893',
         'info_dict': {
             'id': 'BBW-2-893',
-            'title': 'BBW 2'
+            'title': 'BBW 2',
         },
         'playlist_mincount': 486,
     },

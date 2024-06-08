@@ -207,7 +207,7 @@ class SRGSSRPlayIE(InfoExtractor):
         'params': {
             # m3u8 download
             'skip_download': True,
-        }
+        },
     }, {
         'url': 'http://play.swissinfo.ch/play/tv/business/video/why-people-were-against-tax-reforms?id=42960270',
         'info_dict': {
@@ -223,7 +223,7 @@ class SRGSSRPlayIE(InfoExtractor):
         },
         'params': {
             'skip_download': True,
-        }
+        },
     }, {
         'url': 'https://www.srf.ch/play/tv/popupvideoplayer?id=c4dba0ca-e75b-43b2-a34f-f708a4932e01',
         'only_matching': True,

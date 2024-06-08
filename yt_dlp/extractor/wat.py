@@ -52,7 +52,7 @@ class WatIE(InfoExtractor):
                 'ext': 'mp4',
             },
             'params': {'skip_download': 'm3u8'},
-        }
+        },
     ]
     _GEO_BYPASS = False
 

@@ -24,9 +24,9 @@ class CrowdBunkerIE(InfoExtractor):
             'uploader_id': 'UCeN_qQV829NYf0pvPJhW5dQ',
             'like_count': int,
             'upload_date': '20211218',
-            'thumbnail': 'https://scw.divulg.org/cb-medias4/images/0z4Kms8pi8I/maxres.jpg'
+            'thumbnail': 'https://scw.divulg.org/cb-medias4/images/0z4Kms8pi8I/maxres.jpg',
         },
-        'params': {'skip_download': True}
+        'params': {'skip_download': True},
     }]
 
     def _real_extract(self, url):

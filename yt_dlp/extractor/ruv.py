@@ -131,10 +131,10 @@ class RuvSpilaIE(InfoExtractor):
         },
     }, {
         'url': 'https://www.ruv.is/ungruv/spila/ungruv/28046/8beuph',
-        'only_matching': True
+        'only_matching': True,
     }, {
         'url': 'https://www.ruv.is/krakkaruv/spila/krakkafrettir/30712/9jbgb0',
-        'only_matching': True
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
@@ -182,5 +182,5 @@ class RuvSpilaIE(InfoExtractor):
             'timestamp': unified_timestamp(episode.get('firstrun')),
             'formats': formats,
             'age_limit': episode.get('rating'),
-            'chapters': clips
+            'chapters': clips,
         }

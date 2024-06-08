@@ -16,7 +16,7 @@ class TFOIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Video Game Hackathon',
             'description': 'md5:558afeba217c6c8d96c60e5421795c07',
-        }
+        },
     }
 
     def _real_extract(self, url):

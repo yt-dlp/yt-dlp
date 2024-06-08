@@ -26,7 +26,7 @@ class PodomaticIE(InfoExtractor):
             'uploader_id': 'scienceteachingtips',
             'title': '64.  When the Moon Hits Your Eye',
             'duration': 446,
-        }
+        },
     }, {
         'url': 'http://ostbahnhof.podomatic.com/entry/2013-11-15T16_31_21-08_00',
         'md5': 'd2cf443931b6148e27638650e2638297',
@@ -37,7 +37,7 @@ class PodomaticIE(InfoExtractor):
             'uploader_id': 'ostbahnhof',
             'title': 'Einunddreizig',
             'duration': 3799,
-        }
+        },
     }, {
         'url': 'https://www.podomatic.com/podcasts/scienceteachingtips/episodes/2009-01-02T16_03_35-08_00',
         'only_matching': True,

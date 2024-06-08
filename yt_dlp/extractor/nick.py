@@ -22,7 +22,7 @@ class NickIE(MTVServicesInfoExtractor):
                     'title': 'SpongeBob SquarePants: "A Place for Pets/Lockdown for Love" S1',
                     'description': 'A Place for Pets/Lockdown for Love: When customers bring pets into the Krusty Krab, Mr. Krabs realizes pets are more profitable than owners. Plankton ruins another date with Karen, so she puts the Chum Bucket on lockdown until he proves his affection.',
 
-                }
+                },
             },
             {
                 'md5': '839a04f49900a1fcbf517020d94e0737',
@@ -32,7 +32,7 @@ class NickIE(MTVServicesInfoExtractor):
                     'title': 'SpongeBob SquarePants: "A Place for Pets/Lockdown for Love" S2',
                     'description': 'A Place for Pets/Lockdown for Love: When customers bring pets into the Krusty Krab, Mr. Krabs realizes pets are more profitable than owners. Plankton ruins another date with Karen, so she puts the Chum Bucket on lockdown until he proves his affection.',
 
-                }
+                },
             },
             {
                 'md5': 'f1145699f199770e2919ee8646955d46',
@@ -42,7 +42,7 @@ class NickIE(MTVServicesInfoExtractor):
                     'title': 'SpongeBob SquarePants: "A Place for Pets/Lockdown for Love" S3',
                     'description': 'A Place for Pets/Lockdown for Love: When customers bring pets into the Krusty Krab, Mr. Krabs realizes pets are more profitable than owners. Plankton ruins another date with Karen, so she puts the Chum Bucket on lockdown until he proves his affection.',
 
-                }
+                },
             },
             {
                 'md5': 'd463116875aee2585ee58de3b12caebd',
@@ -52,7 +52,7 @@ class NickIE(MTVServicesInfoExtractor):
                     'title': 'SpongeBob SquarePants: "A Place for Pets/Lockdown for Love" S4',
                     'description': 'A Place for Pets/Lockdown for Love: When customers bring pets into the Krusty Krab, Mr. Krabs realizes pets are more profitable than owners. Plankton ruins another date with Karen, so she puts the Chum Bucket on lockdown until he proves his affection.',
 
-                }
+                },
             },
         ],
     }, {
@@ -63,7 +63,7 @@ class NickIE(MTVServicesInfoExtractor):
             'description': 'md5:9d65a66df38e02254852794b2809d1cf',
             'title': 'Blue\'s Imagination Station',
         },
-        'skip': 'Not accessible?'
+        'skip': 'Not accessible?',
     }]
 
     def _get_feed_query(self, uri):

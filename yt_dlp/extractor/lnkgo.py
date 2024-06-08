@@ -98,9 +98,9 @@ class LnkIE(InfoExtractor):
             'thumbnail': r're:^https?://.*\.jpg$',
             'episode_number': 13431,
             'series': 'Naujausi žinių reportažai',
-            'episode': 'Episode 13431'
+            'episode': 'Episode 13431',
         },
-        'params': {'skip_download': True}
+        'params': {'skip_download': True},
     }, {
         'url': 'https://lnk.lt/istorijos-trumpai/152546',
         'info_dict': {
@@ -114,9 +114,9 @@ class LnkIE(InfoExtractor):
             'thumbnail': r're:^https?://.*\.jpg$',
             'episode_number': 1036,
             'series': 'Istorijos trumpai',
-            'episode': 'Episode 1036'
+            'episode': 'Episode 1036',
         },
-        'params': {'skip_download': True}
+        'params': {'skip_download': True},
     }, {
         'url': 'https://lnk.lt/gyvunu-pasaulis/151549',
         'info_dict': {
@@ -130,9 +130,9 @@ class LnkIE(InfoExtractor):
             'thumbnail': r're:^https?://.*\.jpg$',
             'episode_number': 16,
             'series': 'Gyvūnų pasaulis',
-            'episode': 'Episode 16'
+            'episode': 'Episode 16',
         },
-        'params': {'skip_download': True}
+        'params': {'skip_download': True},
     }]
 
     def _real_extract(self, url):

@@ -253,7 +253,7 @@ class VideomoreVideoIE(VideomoreBaseIE):
         'params': {
             'skip_download': True,
         },
-        'skip': 'redirects to https://more.tv/'
+        'skip': 'redirects to https://more.tv/',
     }, {
         'url': 'https://videomore.ru/molodezhka/6_sezon/29_seriya?utm_so',
         'only_matching': True,

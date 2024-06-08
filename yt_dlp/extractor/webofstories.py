@@ -22,7 +22,7 @@ class WebOfStoriesIE(InfoExtractor):
             'thumbnail': r're:^https?://.*\.jpg$',
             'description': 'Hans Bethe talks about calculating the temperature of the sun',
             'duration': 238,
-        }
+        },
     }, {
         'url': 'http://www.webofstories.com/play/55908',
         'md5': '2985a698e1fe3211022422c4b5ed962c',

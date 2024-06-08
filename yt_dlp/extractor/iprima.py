@@ -200,8 +200,8 @@ class IPrimaCNNIE(InfoExtractor):
             'title': 'md5:277c6b1ed0577e51b40ddd35602ff43e',
         },
         'params': {
-            'skip_download': 'm3u8'
-        }
+            'skip_download': 'm3u8',
+        },
     }]
 
     def _real_extract(self, url):

@@ -39,7 +39,7 @@ class WDRIE(InfoExtractor):
 
     def _asset_url(self, wdr_id):
         id_len = max(len(wdr_id), 5)
-        return ''.join(('https:', self.__API_URL_TPL % (wdr_id[:id_len - 4], wdr_id, ), '.js'))
+        return ''.join(('https:', self.__API_URL_TPL % (wdr_id[:id_len - 4], wdr_id), '.js'))
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -94,7 +94,7 @@ class WDRIE(InfoExtractor):
                         medium_url, 'stream', fatal=False))
                 else:
                     a_format = {
-                        'url': medium_url
+                        'url': medium_url,
                     }
                     if ext == 'unknown_video':
                         urlh = self._request_webpage(
@@ -168,7 +168,7 @@ class WDRPageIE(WDRIE):  # XXX: Do not subclass from concrete IE
                 'upload_date': '20160312',
                 'description': 'md5:e127d320bc2b1f149be697ce044a3dd7',
                 'is_live': False,
-                'subtitles': {}
+                'subtitles': {},
             },
             'skip': 'HTTP Error 404: Not Found',
         },
@@ -202,7 +202,7 @@ class WDRPageIE(WDRIE):  # XXX: Do not subclass from concrete IE
                 'upload_date': 're:^[0-9]{8}$',
                 'title': 're:^Die Sendung (?:mit der Maus )?vom [0-9.]{10}$',
             },
-            'skip': 'The id changes from week to week because of the new episode'
+            'skip': 'The id changes from week to week because of the new episode',
         },
         {
             'url': 'http://www.wdrmaus.de/filme/sachgeschichten/achterbahn.php5',
@@ -228,7 +228,7 @@ class WDRPageIE(WDRIE):  # XXX: Do not subclass from concrete IE
             },
             'params': {
                 'skip_download': True,  # m3u8 download
-            }
+            },
         },
         {
             'url': 'http://www.sportschau.de/handballem2018/handball-nationalmannschaft-em-stolperstein-vorrunde-100.html',
@@ -260,7 +260,7 @@ class WDRPageIE(WDRIE):  # XXX: Do not subclass from concrete IE
                 'alt_title': 'Rockpalast',
                 'upload_date': '20220725',
             },
-        }
+        },
     ]
 
     def _real_extract(self, url):
@@ -324,7 +324,7 @@ class WDRElefantIE(InfoExtractor):
             'title': 'Wippe',
             'id': 'mdb-1198320',
             'ext': 'mp4',
-            'upload_date': '20071003'
+            'upload_date': '20071003',
         },
     }
 
@@ -368,7 +368,7 @@ class WDRMobileIE(InfoExtractor):
             'ext': 'mp4',
             'age_limit': 0,
         },
-        'skip': 'Problems with loading data.'
+        'skip': 'Problems with loading data.',
     }
 
     def _real_extract(self, url):

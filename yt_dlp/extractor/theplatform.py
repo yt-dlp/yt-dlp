@@ -139,7 +139,7 @@ class ThePlatformIE(ThePlatformBaseIE, AdobePassIE):
             <meta\s+
                 property=(["'])(?:og:video(?::(?:secure_)?url)?|twitter:player)\1\s+
                 content=(["'])(?P<url>https?://player\.theplatform\.com/p/.+?)\2''',
-        r'(?s)<(?:iframe|script)[^>]+src=(["\'])(?P<url>(?:https?:)?//player\.theplatform\.com/p/.+?)\1'
+        r'(?s)<(?:iframe|script)[^>]+src=(["\'])(?P<url>(?:https?:)?//player\.theplatform\.com/p/.+?)\1',
     ]
 
     _TESTS = [{

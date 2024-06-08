@@ -28,7 +28,7 @@ class TumblrIE(InfoExtractor):
             'repost_count': int,
             'age_limit': 0,
             'tags': ['Orphan Black', 'Tatiana Maslany', 'Interview', 'Video', 'OB S1 DVD Extras'],
-        }
+        },
     }, {
         'note': 'multiple formats',
         'url': 'https://maskofthedragon.tumblr.com/post/626907179849564160/mona-talking-in-english',
@@ -65,7 +65,7 @@ class TumblrIE(InfoExtractor):
             'repost_count': int,
             'age_limit': 0,
             'tags': [],
-        }
+        },
     }, {
         'note': 'dashboard only (original post)',
         'url': 'https://jujanon.tumblr.com/post/159704441298/my-baby-eating',
@@ -82,7 +82,7 @@ class TumblrIE(InfoExtractor):
             'repost_count': int,
             'age_limit': 0,
             'tags': ['crabs', 'my video', 'my pets'],
-        }
+        },
     }, {
         'note': 'dashboard only (reblog)',
         'url': 'https://bartlebyshop.tumblr.com/post/180294460076/duality-of-bird',
@@ -99,7 +99,7 @@ class TumblrIE(InfoExtractor):
             'repost_count': int,
             'age_limit': 0,
             'tags': [],
-        }
+        },
     }, {
         'note': 'dashboard only (external)',
         'url': 'https://afloweroutofstone.tumblr.com/post/675661759168823296/the-blues-remembers-everything-the-country-forgot',
@@ -149,7 +149,7 @@ class TumblrIE(InfoExtractor):
             'uploader': 'naked-yogi',
         },
         # 'add_ie': ['Vidme'],
-        'skip': 'dead embedded video host'
+        'skip': 'dead embedded video host',
     }, {
         'url': 'https://prozdvoices.tumblr.com/post/673201091169681408/what-recording-voice-acting-sounds-like',
         'md5': 'a0063fc8110e6c9afe44065b4ea68177',

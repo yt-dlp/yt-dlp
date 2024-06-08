@@ -69,7 +69,7 @@ class StoryFireIE(StoryFireBaseIE):
         'params': {
             'skip_download': True,
         },
-        'expected_warnings': ['Unable to download JSON metadata']
+        'expected_warnings': ['Unable to download JSON metadata'],
     }
 
     def _real_extract(self, url):

@@ -27,7 +27,7 @@ class HitRecordIE(InfoExtractor):
             'like_count': int,
             'comment_count': int,
             'tags': list,
-        }
+        },
     }
 
     def _real_extract(self, url):

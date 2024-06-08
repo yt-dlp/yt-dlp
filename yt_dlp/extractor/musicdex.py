@@ -50,9 +50,9 @@ class MusicdexSongIE(MusicdexBaseIE):
             'album_artists': ['fripSide'],
             'thumbnail': 'https://www.musicdex.org/storage/album/9iDIam1DHTVqUG4UclFIEq1WAFGXfPW4y0TtZa91.png',
             'album': 'To Aru Kagaku no Railgun T OP2 Single - dual existence',
-            'release_year': 2020
+            'release_year': 2020,
         },
-        'params': {'skip_download': True}
+        'params': {'skip_download': True},
     }]
 
     def _real_extract(self, url):

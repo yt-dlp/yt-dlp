@@ -39,7 +39,7 @@ class GoogleDriveIE(InfoExtractor):
             'title': 'Big Buck Bunny.mp4',
             'duration': 45,
             'thumbnail': 'https://drive.google.com/thumbnail?id=0ByeS4oOUV-49Zzh4R1J6R09zazQ',
-        }
+        },
     }, {
         # has itag 50 which is not in YoutubeIE._formats (royalty Free music from 1922)
         'url': 'https://drive.google.com/uc?id=1IP0o8dHcQrIHGgVyp0Ofvx2cGfLzyO1x',
@@ -294,7 +294,7 @@ class GoogleDriveFolderIE(InfoExtractor):
         'url': 'https://drive.google.com/drive/folders/1dQ4sx0-__Nvg65rxTSgQrl7VyW_FZ9QI',
         'info_dict': {
             'id': '1dQ4sx0-__Nvg65rxTSgQrl7VyW_FZ9QI',
-            'title': 'Forrest'
+            'title': 'Forrest',
         },
         'playlist_count': 3,
     }]
@@ -318,7 +318,7 @@ GET %s
                 'Origin': 'https://drive.google.com',
             }, query={
                 '$ct': f'multipart/mixed; boundary="{self._BOUNDARY}"',
-                'key': key
+                'key': key,
             }, **kwargs)
         return self._search_json('', response, 'api response', folder_id, **kwargs) or {}
 

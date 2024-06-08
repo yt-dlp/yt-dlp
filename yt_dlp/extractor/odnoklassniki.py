@@ -460,5 +460,5 @@ class OdnoklassnikiIE(InfoExtractor):
                 'format_id': 'mobile',
                 'url': redirect_url,
                 'ext': 'mp4',
-            }]
+            }],
         }

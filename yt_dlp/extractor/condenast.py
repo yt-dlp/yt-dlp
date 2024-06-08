@@ -74,7 +74,7 @@ class CondeNastIE(InfoExtractor):
             'uploader': 'wired',
             'upload_date': '20130314',
             'timestamp': 1363219200,
-        }
+        },
     }, {
         'url': 'http://video.gq.com/watch/the-closer-with-keith-olbermann-the-only-true-surprise-trump-s-an-idiot?c=series',
         'info_dict': {
@@ -97,7 +97,7 @@ class CondeNastIE(InfoExtractor):
             'uploader': 'arstechnica',
             'upload_date': '20150916',
             'timestamp': 1442434920,
-        }
+        },
     }, {
         'url': 'https://player.cnevids.com/inline/video/59138decb57ac36b83000005.js?target=js-cne-player',
         'only_matching': True,
@@ -168,7 +168,7 @@ class CondeNastIE(InfoExtractor):
             info_page = self._download_webpage(
                 'https://player.cnevids.com/inline/video/%s.js' % video_id,
                 video_id, 'Downloading inline info', query={
-                    'target': params.get('target', 'embedplayer')
+                    'target': params.get('target', 'embedplayer'),
                 })
 
         if not video_info:

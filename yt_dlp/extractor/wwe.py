@@ -69,7 +69,7 @@ class WWEIE(WWEBaseIE):
             'title': 'Daniel Bryan vs. Andrade "Cien" Almas: SmackDown LIVE, Sept. 4, 2018',
             'description': 'md5:2d7424dbc6755c61a0e649d2a8677f67',
             'thumbnail': r're:^https?://.*\.jpg$',
-        }
+        },
     }, {
         'url': 'https://de.wwe.com/videos/gran-metalik-vs-tony-nese-wwe-205-live-sept-4-2018',
         'only_matching': True,

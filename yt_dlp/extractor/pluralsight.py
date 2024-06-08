@@ -95,7 +95,7 @@ query BootstrapPlayer {
         response = self._download_json(
             self._GRAPHQL_EP, display_id, data=json.dumps({
                 'query': self._GRAPHQL_COURSE_TMPL % course_id,
-                'variables': {}
+                'variables': {},
             }).encode(), headers=self._GRAPHQL_HEADERS)
 
         course = try_get(
@@ -234,7 +234,7 @@ query viewClip {
                 }, {
                     'ext': 'srt',
                     'data': self._convert_subtitles(duration, captions),
-                }]
+                }],
             }
 
     @staticmethod
@@ -272,7 +272,7 @@ query viewClip {
         clip_idx = qs.get('clip', [None])[0]
         course_name = qs.get('course', [None])[0]
 
-        if any(not f for f in (author, name, clip_idx, course_name,)):
+        if any(not f for f in (author, name, clip_idx, course_name)):
             raise ExtractorError('Invalid URL', expected=True)
 
         display_id = '%s-%s' % (name, clip_idx)
@@ -308,14 +308,14 @@ query viewClip {
             'high-widescreen': {'width': 1280, 'height': 720},
         }
 
-        QUALITIES_PREFERENCE = ('low', 'medium', 'high', 'high-widescreen',)
+        QUALITIES_PREFERENCE = ('low', 'medium', 'high', 'high-widescreen')
         quality_key = qualities(QUALITIES_PREFERENCE)
 
         AllowedQuality = collections.namedtuple('AllowedQuality', ['ext', 'qualities'])
 
         ALLOWED_QUALITIES = (
-            AllowedQuality('webm', ['high', ]),
-            AllowedQuality('mp4', ['low', 'medium', 'high', ]),
+            AllowedQuality('webm', ['high']),
+            AllowedQuality('mp4', ['low', 'medium', 'high']),
         )
 
         # Some courses also offer widescreen resolution for high quality (see
@@ -367,7 +367,7 @@ query viewClip {
                         'Downloading %s viewclip graphql' % format_id,
                         data=json.dumps({
                             'query': self.GRAPHQL_VIEWCLIP_TMPL % clip_post,
-                            'variables': {}
+                            'variables': {},
                         }).encode(),
                         headers=self._GRAPHQL_HEADERS)['data']['viewClip']
                 except ExtractorError:

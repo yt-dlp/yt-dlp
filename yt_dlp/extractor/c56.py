@@ -46,7 +46,7 @@ class C56IE(InfoExtractor):
             {
                 'format_id': f['type'],
                 'filesize': int(f['filesize']),
-                'url': f['url']
+                'url': f['url'],
             } for f in info['rfiles']
         ]
 

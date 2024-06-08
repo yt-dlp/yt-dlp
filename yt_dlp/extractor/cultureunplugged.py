@@ -20,7 +20,7 @@ class CultureUnpluggedIE(InfoExtractor):
             'creator': 'Coldstream Creative',
             'duration': 2203,
             'view_count': int,
-        }
+        },
     }, {
         'url': 'http://www.cultureunplugged.com/documentary/watch-online/play/53662',
         'only_matching': True,

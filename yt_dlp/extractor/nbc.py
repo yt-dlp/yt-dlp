@@ -148,7 +148,7 @@ class NBCIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
             # Percent escaped url
             'url': 'https://www.nbc.com/up-all-night/video/day-after-valentine%27s-day/n2189',
             'only_matching': True,
-        }
+        },
     ]
 
     def _real_extract(self, url):
@@ -267,8 +267,8 @@ class NBCSportsVPlayerIE(InfoExtractor):
             'uploader': 'NBCU-SPORTS',
             'duration': 72.818,
             'chapters': [],
-            'thumbnail': r're:^https?://.*\.jpg$'
-        }
+            'thumbnail': r're:^https?://.*\.jpg$',
+        },
     }, {
         'url': 'https://vplayer.nbcsports.com/p/BxmELC/nbcsports_embed/select/media/PEgOtlNcC_y2',
         'only_matching': True,
@@ -301,7 +301,7 @@ class NBCSportsIE(InfoExtractor):
             'chapters': [],
             'thumbnail': 'https://hdliveextra-a.akamaihd.net/HD/image_sports/NBCU_Sports_Group_-_nbcsports/253/303/izzodps.jpg',
             'duration': 528.395,
-        }
+        },
     }, {
         # data-mpx-src
         'url': 'https://www.nbcsports.com/philadelphia/philadelphia-phillies/bruce-bochy-hector-neris-hes-idiot',
@@ -623,7 +623,7 @@ class NBCOlympicsStreamIE(AdobePassIE):
 
         source_url = self._download_json(
             f'https://api-leap.nbcsports.com/feeds/assets/{pid}?application=NBCOlympics&platform=desktop&format=nbc-player&env=staging',
-            pid, 'Downloading leap config'
+            pid, 'Downloading leap config',
         )['videoSources'][0]['cdnSources']['primary'][0]['sourceUrl']
 
         if event_config.get('cdnToken'):

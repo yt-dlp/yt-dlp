@@ -12,7 +12,7 @@ class CAM4IE(InfoExtractor):
             'age_limit': 18,
             'live_status': 'is_live',
             'thumbnail': 'https://snapshots.xcdnpro.com/thumbnails/foxynesss',
-        }
+        },
     }
 
     def _real_extract(self, url):

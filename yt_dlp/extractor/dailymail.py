@@ -19,7 +19,7 @@ class DailyMailIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'The Mountain appears in sparkling water ad for \'Heavy Bubbles\'',
             'description': 'md5:a93d74b6da172dd5dc4d973e0b766a84',
-        }
+        },
     }, {
         'url': 'http://www.dailymail.co.uk/embed/video/1295863.html',
         'only_matching': True,

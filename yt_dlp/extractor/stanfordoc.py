@@ -19,7 +19,7 @@ class StanfordOpenClassroomIE(InfoExtractor):
             'id': 'PracticalUnix_intro-environment',
             'ext': 'mp4',
             'title': 'Intro Environment',
-        }
+        },
     }
 
     def _real_extract(self, url):
@@ -66,7 +66,7 @@ class StanfordOpenClassroomIE(InfoExtractor):
 
             links = orderedSet(re.findall(r'<a href="(VideoPage\.php\?[^"]+)">', coursepage))
             info['entries'] = [self.url_result(
-                'http://openclassroom.stanford.edu/MainFolder/%s' % unescapeHTML(l)
+                'http://openclassroom.stanford.edu/MainFolder/%s' % unescapeHTML(l),
             ) for l in links]
             return info
         else:  # Root page
@@ -84,6 +84,6 @@ class StanfordOpenClassroomIE(InfoExtractor):
 
             links = orderedSet(re.findall(r'<a href="(CoursePage\.php\?[^"]+)">', rootpage))
             info['entries'] = [self.url_result(
-                'http://openclassroom.stanford.edu/MainFolder/%s' % unescapeHTML(l)
+                'http://openclassroom.stanford.edu/MainFolder/%s' % unescapeHTML(l),
             ) for l in links]
             return info

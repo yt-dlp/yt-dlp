@@ -40,7 +40,7 @@ class JamendoIE(InfoExtractor):
             'like_count': int,
             'average_rating': int,
             'tags': ['piano', 'peaceful', 'newage', 'strings', 'upbeat'],
-        }
+        },
     }, {
         'url': 'https://licensing.jamendo.com/en/track/1496667/energetic-rock',
         'only_matching': True,
@@ -53,7 +53,7 @@ class JamendoIE(InfoExtractor):
             'https://www.jamendo.com' + path, resource_id, fatal=fatal, query={
                 'id[]': resource_id,
             }, headers={
-                'X-Jam-Call': '$%s*%s~' % (hashlib.sha1((path + rand).encode()).hexdigest(), rand)
+                'X-Jam-Call': '$%s*%s~' % (hashlib.sha1((path + rand).encode()).hexdigest(), rand),
             })[0]
 
     def _real_extract(self, url):
@@ -160,7 +160,7 @@ class JamendoAlbumIE(JamendoIE):  # XXX: Do not subclass from concrete IE
                 'average_rating': 4,
                 'tags': ['rock', 'drums', 'bass', 'world', 'punk', 'neutral'],
                 'like_count': int,
-            }
+            },
         }, {
             'md5': '1f358d7b2f98edfe90fd55dac0799d50',
             'info_dict': {
@@ -179,11 +179,11 @@ class JamendoAlbumIE(JamendoIE):  # XXX: Do not subclass from concrete IE
                 'average_rating': 4,
                 'license': 'by',
                 'like_count': int,
-            }
+            },
         }],
         'params': {
-            'playlistend': 2
-        }
+            'playlistend': 2,
+        },
     }]
 
     def _real_extract(self, url):

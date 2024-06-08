@@ -26,7 +26,7 @@ class UOLIE(InfoExtractor):
             'description': 'md5:3f8c11a0c0556d66daf7e5b45ef823b2',
             'timestamp': 1470421860,
             'upload_date': '20160805',
-        }
+        },
     }, {
         'url': 'http://tvuol.uol.com.br/video/incendio-destroi-uma-das-maiores-casas-noturnas-de-londres-04024E9A3268D4C95326',
         'md5': '2850a0e8dfa0a7307e04a96c5bdc5bc2',
@@ -37,7 +37,7 @@ class UOLIE(InfoExtractor):
             'description': 'Em Londres, um incêndio destruiu uma das maiores boates da cidade. Não há informações sobre vítimas.',
             'timestamp': 1470674520,
             'upload_date': '20160808',
-        }
+        },
     }, {
         'url': 'http://mais.uol.com.br/static/uolplayer/index.html?mediaId=15951931',
         'only_matching': True,

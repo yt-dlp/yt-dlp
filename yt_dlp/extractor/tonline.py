@@ -15,7 +15,7 @@ class TOnlineIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Drittes Remis! Zidane: "Es muss etwas passieren"',
             'description': 'Es läuft nicht rund bei Real Madrid. Das 1:1 gegen den SD Eibar war das dritte Unentschieden in Folge in der Liga.',
-        }
+        },
     }
 
     def _real_extract(self, url):

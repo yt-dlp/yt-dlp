@@ -166,7 +166,7 @@ class GediDigitalIE(InfoExtractor):
                             'abr': abr,
                             'tbr': abr,
                             'acodec': ext,
-                            'vcodec': 'none'
+                            'vcodec': 'none',
                         })
                     else:
                         mobj = re.match(r'^video-rrtv-(\d+)(?:-(\d+))?$', n)

@@ -20,7 +20,7 @@ class PornotubeIE(InfoExtractor):
             'thumbnail': r're:^https?://.*\.jpg$',
             'timestamp': 1417582800,
             'age_limit': 18,
-        }
+        },
     }
 
     def _real_extract(self, url):
@@ -42,7 +42,7 @@ class PornotubeIE(InfoExtractor):
 
         FIELDS = (
             'title', 'description', 'startSecond', 'endSecond', 'publishDate',
-            'studios{name}', 'categories{name}', 'movieId', 'primaryImageNumber'
+            'studios{name}', 'categories{name}', 'movieId', 'primaryImageNumber',
         )
 
         info = self._download_json(

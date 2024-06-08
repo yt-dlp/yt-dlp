@@ -90,7 +90,7 @@ TIMEZONE_NAMES = {
     'EST': -5, 'EDT': -4,  # Eastern
     'CST': -6, 'CDT': -5,  # Central
     'MST': -7, 'MDT': -6,  # Mountain
-    'PST': -8, 'PDT': -7   # Pacific
+    'PST': -8, 'PDT': -7,   # Pacific
 }
 
 # needed for sanitizing filenames in restricted mode
@@ -364,7 +364,7 @@ def get_elements_text_and_html_by_attribute(attribute, value, html, *, tag=r'[\w
 
         yield (
             unescapeHTML(re.sub(r'^(?P<q>["\'])(?P<content>.*)(?P=q)$', r'\g<content>', content, flags=re.DOTALL)),
-            whole
+            whole,
         )
 
 
@@ -1505,7 +1505,7 @@ if sys.platform == 'win32':
         ctypes.wintypes.DWORD,      # dwReserved
         ctypes.wintypes.DWORD,      # nNumberOfBytesToLockLow
         ctypes.wintypes.DWORD,      # nNumberOfBytesToLockHigh
-        ctypes.POINTER(OVERLAPPED)  # Overlapped
+        ctypes.POINTER(OVERLAPPED),  # Overlapped
     ]
     LockFileEx.restype = ctypes.wintypes.BOOL
     UnlockFileEx = kernel32.UnlockFileEx
@@ -1514,7 +1514,7 @@ if sys.platform == 'win32':
         ctypes.wintypes.DWORD,      # dwReserved
         ctypes.wintypes.DWORD,      # nNumberOfBytesToLockLow
         ctypes.wintypes.DWORD,      # nNumberOfBytesToLockHigh
-        ctypes.POINTER(OVERLAPPED)  # Overlapped
+        ctypes.POINTER(OVERLAPPED),  # Overlapped
     ]
     UnlockFileEx.restype = ctypes.wintypes.BOOL
     whole_low = 0xffffffff
@@ -1926,7 +1926,7 @@ def remove_end(s, end):
 def remove_quotes(s):
     if s is None or len(s) < 2:
         return s
-    for quote in ('"', "'", ):
+    for quote in ('"', "'"):
         if s[0] == quote and s[-1] == quote:
             return s[1:-1]
     return s
@@ -2550,7 +2550,7 @@ def update_url(url, *, query_update=None, **kwargs):
         assert 'query' not in kwargs, 'query_update and query cannot be specified at the same time'
         kwargs['query'] = urllib.parse.urlencode({
             **urllib.parse.parse_qs(url.query),
-            **query_update
+            **query_update,
         }, True)
     return urllib.parse.urlunparse(url._replace(**kwargs))
 
@@ -3371,7 +3371,7 @@ def dfxp2srt(dfxp_data):
         'fontSize',
         'fontStyle',
         'fontWeight',
-        'textDecoration'
+        'textDecoration',
     ]
 
     _x = functools.partial(xpath_with_ns, ns_map={

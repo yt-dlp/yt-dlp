@@ -119,7 +119,7 @@ class MTVServicesInfoExtractor(InfoExtractor):
                     ext = 'scc'
                 subtitles.setdefault(lang, []).append({
                     'url': compat_str(sub_src),
-                    'ext': ext
+                    'ext': ext,
                 })
         return subtitles
 

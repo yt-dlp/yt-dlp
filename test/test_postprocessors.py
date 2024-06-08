@@ -555,7 +555,7 @@ class TestModifyChaptersPP(unittest.TestCase):
         self._remove_marked_arrange_sponsors_test_impl(
             chapters, self._chapters([2, 4, 6, 8, 10], [
                 'c', '[SponsorBlock]: Sponsor', '[SponsorBlock]: Unpaid/Self Promotion',
-                '[SponsorBlock]: Sponsor', 'c'
+                '[SponsorBlock]: Sponsor', 'c',
             ]), [])
 
     def test_make_concat_opts_CommonCase(self):

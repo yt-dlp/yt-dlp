@@ -23,7 +23,7 @@ class UrortIE(InfoExtractor):
         },
         'params': {
             'matchtitle': '^The Bomb$',  # To test, we want just one video
-        }
+        },
     }
 
     def _real_extract(self, url):

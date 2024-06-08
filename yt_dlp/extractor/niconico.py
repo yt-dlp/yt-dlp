@@ -213,7 +213,7 @@ class NiconicoIE(InfoExtractor):
                 urljoin('https://account.nicovideo.jp', post_url), None,
                 note='Performing MFA', errnote='Unable to complete MFA',
                 data=urlencode_postdata({
-                    'otp': self._get_tfa_info('6 digits code')
+                    'otp': self._get_tfa_info('6 digits code'),
                 }), headers={
                     'Content-Type': 'application/x-www-form-urlencoded',
                 })
@@ -264,7 +264,7 @@ class NiconicoIE(InfoExtractor):
                 'http_output_download_parameters': {
                     'use_ssl': yesno(session_api_data['urls'][0]['isSsl']),
                     'use_well_known_port': yesno(session_api_data['urls'][0]['isWellKnownPort']),
-                }
+                },
             }
         elif dmc_protocol == 'hls':
             protocol = 'm3u8'
@@ -277,14 +277,14 @@ class NiconicoIE(InfoExtractor):
                     'transfer_preset': '',
                     'use_ssl': yesno(session_api_data['urls'][0]['isSsl']),
                     'use_well_known_port': yesno(session_api_data['urls'][0]['isWellKnownPort']),
-                }
+                },
             }
             if 'hls_encryption' in parsed_token and encryption:
                 protocol_parameters['hls_parameters']['encryption'] = {
                     parsed_token['hls_encryption']: {
                         'encrypted_key': encryption['encryptedKey'],
                         'key_uri': encryption['keyUri'],
-                    }
+                    },
                 }
             else:
                 protocol = 'm3u8_native'
@@ -305,7 +305,7 @@ class NiconicoIE(InfoExtractor):
                         'auth_type': try_get(session_api_data, lambda x: x['authTypes'][session_api_data['protocols'][0]]),
                         'content_key_timeout': session_api_data.get('contentKeyTimeout'),
                         'service_id': 'nicovideo',
-                        'service_user_id': session_api_data.get('serviceUserId')
+                        'service_user_id': session_api_data.get('serviceUserId'),
                     },
                     'content_id': session_api_data.get('contentId'),
                     'content_src_id_sets': [{
@@ -313,34 +313,34 @@ class NiconicoIE(InfoExtractor):
                             'src_id_to_mux': {
                                 'audio_src_ids': [audio_src_id],
                                 'video_src_ids': [video_src_id],
-                            }
-                        }]
+                            },
+                        }],
                     }],
                     'content_type': 'movie',
                     'content_uri': '',
                     'keep_method': {
                         'heartbeat': {
-                            'lifetime': session_api_data.get('heartbeatLifetime')
-                        }
+                            'lifetime': session_api_data.get('heartbeatLifetime'),
+                        },
                     },
                     'priority': session_api_data['priority'],
                     'protocol': {
                         'name': 'http',
                         'parameters': {
                             'http_parameters': {
-                                'parameters': protocol_parameters
-                            }
-                        }
+                                'parameters': protocol_parameters,
+                            },
+                        },
                     },
                     'recipe_id': session_api_data.get('recipeId'),
                     'session_operation_auth': {
                         'session_operation_auth_by_signature': {
                             'signature': session_api_data.get('signature'),
                             'token': session_api_data.get('token'),
-                        }
+                        },
                     },
-                    'timing_constraint': 'unlimited'
-                }
+                    'timing_constraint': 'unlimited',
+                },
             }).encode())
 
         info_dict['url'] = session_response['data']['session']['content_uri']
@@ -352,7 +352,7 @@ class NiconicoIE(InfoExtractor):
             'data': json.dumps(session_response['data']),
             # interval, convert milliseconds to seconds, then halve to make a buffer.
             'interval': float_or_none(session_api_data.get('heartbeatLifetime'), scale=3000),
-            'ping': ping
+            'ping': ping,
         }
 
         return info_dict, heartbeat_info_dict
@@ -389,7 +389,7 @@ class NiconicoIE(InfoExtractor):
             'http_headers': {
                 'Origin': 'https://www.nicovideo.jp',
                 'Referer': 'https://www.nicovideo.jp/watch/' + video_id,
-            }
+            },
         }
 
     def _yield_dmc_formats(self, api_data, video_id):
@@ -416,7 +416,7 @@ class NiconicoIE(InfoExtractor):
         dms_m3u8_url = self._download_json(
             f'https://nvapi.nicovideo.jp/v1/watch/{video_id}/access-rights/hls', video_id,
             data=json.dumps({
-                'outputs': list(itertools.product((v['id'] for v in videos), (a['id'] for a in audios)))
+                'outputs': list(itertools.product((v['id'] for v in videos), (a['id'] for a in audios))),
             }).encode(), query={'actionTrackId': track_id}, headers={
                 'x-access-right-key': access_key,
                 'x-frontend-id': 6,
@@ -586,7 +586,7 @@ class NiconicoPlaylistBaseIE(InfoExtractor):
     _API_HEADERS = {
         'X-Frontend-ID': '6',
         'X-Frontend-Version': '0',
-        'X-Niconico-Language': 'en-us'
+        'X-Niconico-Language': 'en-us',
     }
 
     def _call_api(self, list_id, resource, query):
@@ -789,14 +789,14 @@ class NicovideoSearchURLIE(NicovideoSearchBaseIE):
         'url': 'http://www.nicovideo.jp/search/sm9',
         'info_dict': {
             'id': 'sm9',
-            'title': 'sm9'
+            'title': 'sm9',
         },
         'playlist_mincount': 40,
     }, {
         'url': 'https://www.nicovideo.jp/search/sm9?sort=h&order=d&end=2020-12-31&start=2020-01-01',
         'info_dict': {
             'id': 'sm9',
-            'title': 'sm9'
+            'title': 'sm9',
         },
         'playlist_count': 31,
     }]
@@ -814,7 +814,7 @@ class NicovideoSearchDateIE(NicovideoSearchBaseIE, SearchInfoExtractor):
         'url': 'nicosearchdateall:a',
         'info_dict': {
             'id': 'a',
-            'title': 'a'
+            'title': 'a',
         },
         'playlist_mincount': 1610,
     }]
@@ -861,7 +861,7 @@ class NicovideoTagURLIE(NicovideoSearchBaseIE):
         'url': 'https://www.nicovideo.jp/tag/ドキュメンタリー淫夢',
         'info_dict': {
             'id': 'ドキュメンタリー淫夢',
-            'title': 'ドキュメンタリー淫夢'
+            'title': 'ドキュメンタリー淫夢',
         },
         'playlist_mincount': 400,
     }]
@@ -885,7 +885,7 @@ class NiconicoUserIE(InfoExtractor):
 
     _API_HEADERS = {
         'X-Frontend-ID': '6',
-        'X-Frontend-Version': '0'
+        'X-Frontend-Version': '0',
     }
 
     def _entries(self, list_id):
@@ -973,14 +973,14 @@ class NiconicoLiveIE(InfoExtractor):
                     'quality': 'abr',
                     'protocol': 'hls+fmp4',
                     'latency': latency,
-                    'chasePlay': False
+                    'chasePlay': False,
                 },
                 'room': {
                     'protocol': 'webSocket',
-                    'commentable': True
+                    'commentable': True,
                 },
                 'reconnect': False,
-            }
+            },
         }))
 
         while True:

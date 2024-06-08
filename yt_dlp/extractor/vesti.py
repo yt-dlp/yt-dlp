@@ -94,7 +94,7 @@ class VestiIE(InfoExtractor):
                 # rtmp download
                 'skip_download': True,
             },
-            'skip': 'Translation has finished'
+            'skip': 'Translation has finished',
         },
     ]
 

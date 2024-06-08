@@ -47,7 +47,7 @@ class Zee5IE(InfoExtractor):
             'thumbnail': r're:^https?://.*\.jpg$',
             'episode_number': 0,
             'episode': 'Episode 0',
-            'tags': list
+            'tags': list,
         },
         'params': {
             'format': 'bv',
@@ -79,22 +79,22 @@ class Zee5IE(InfoExtractor):
         },
     }, {
         'url': 'https://www.zee5.com/hi/tv-shows/details/kundali-bhagya/0-6-366/kundali-bhagya-march-08-2021/0-1-manual_7g9jv1os7730?country=IN',
-        'only_matching': True
+        'only_matching': True,
     }, {
         'url': 'https://www.zee5.com/global/hi/tv-shows/details/kundali-bhagya/0-6-366/kundali-bhagya-march-08-2021/0-1-manual_7g9jv1os7730',
-        'only_matching': True
+        'only_matching': True,
     }, {
         'url': 'https://www.zee5.com/web-series/details/mithya/0-6-4z587408/maine-dekhi-hai-uski-mrityu/0-1-6z587412',
-        'only_matching': True
+        'only_matching': True,
     }, {
         'url': 'https://www.zee5.com/kids/kids-movies/maya-bommalu/0-0-movie_1040370005',
-        'only_matching': True
+        'only_matching': True,
     }, {
         'url': 'https://www.zee5.com/news/details/jana-sena-chief-pawan-kalyan-shows-slippers-to-ysrcp-leaders/0-0-newsauto_6ettj4242oo0',
-        'only_matching': True
+        'only_matching': True,
     }, {
         'url': 'https://www.zee5.com/music-videos/details/adhento-gaani-vunnapaatuga-jersey-nani-shraddha-srinath/0-0-56973',
-        'only_matching': True
+        'only_matching': True,
     }]
     _DEVICE_ID = str(uuid.uuid4())
     _USER_TOKEN = None
@@ -136,7 +136,7 @@ class Zee5IE(InfoExtractor):
             'https://launchapi.zee5.com/launch?platform_name=web_app',
             video_id, note='Downloading access token')['platform_token']
         data = {
-            'x-access-token': access_token_request['token']
+            'x-access-token': access_token_request['token'],
         }
         if self._USER_TOKEN:
             data['Authorization'] = 'bearer %s' % self._USER_TOKEN
@@ -186,7 +186,7 @@ class Zee5IE(InfoExtractor):
             'season': try_get(show_data, lambda x: x['seasons']['title'], str),
             'season_number': int_or_none(try_get(show_data, lambda x: x['seasons'][0]['orderid'])),
             'episode_number': int_or_none(try_get(asset_data, lambda x: x['orderid'])),
-            'tags': try_get(asset_data, lambda x: x['tags'], list)
+            'tags': try_get(asset_data, lambda x: x['tags'], list),
         }
 
 

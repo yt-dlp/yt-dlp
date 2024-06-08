@@ -112,7 +112,7 @@ class BilibiliBaseIE(InfoExtractor):
             'danmaku': [{
                 'ext': 'xml',
                 'url': f'https://comment.bilibili.com/{cid}.xml',
-            }]
+            }],
         }
 
         subtitle_info = traverse_obj(self._download_json(
@@ -126,7 +126,7 @@ class BilibiliBaseIE(InfoExtractor):
         for s in subs_list:
             subtitles.setdefault(s['lan'], []).append({
                 'ext': 'srt',
-                'data': self.json2srt(self._download_json(s['subtitle_url'], video_id))
+                'data': self.json2srt(self._download_json(s['subtitle_url'], video_id)),
             })
         return subtitles
 
@@ -269,7 +269,7 @@ class BiliBiliIE(BilibiliBaseIE):
         'url': 'https://www.bilibili.com/video/BV1bK411W797',
         'info_dict': {
             'id': 'BV1bK411W797',
-            'title': '物语中的人物是如何吐槽自己的OP的'
+            'title': '物语中的人物是如何吐槽自己的OP的',
         },
         'playlist_count': 18,
         'playlist': [{
@@ -288,8 +288,8 @@ class BiliBiliIE(BilibiliBaseIE):
                 'view_count': int,
                 'description': 'md5:e3c401cf7bc363118d1783dd74068a68',
                 'duration': 90.314,
-            }
-        }]
+            },
+        }],
     }, {
         'note': 'Specific page of Anthology',
         'url': 'https://www.bilibili.com/video/BV1bK411W797?p=1',
@@ -308,7 +308,7 @@ class BiliBiliIE(BilibiliBaseIE):
             'view_count': int,
             'description': 'md5:e3c401cf7bc363118d1783dd74068a68',
             'duration': 90.314,
-        }
+        },
     }, {
         'note': 'video has subtitles',
         'url': 'https://www.bilibili.com/video/BV12N4y1M7rh',
@@ -327,7 +327,7 @@ class BiliBiliIE(BilibiliBaseIE):
             'view_count': int,
             'like_count': int,
             'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
-            'subtitles': 'count:2'
+            'subtitles': 'count:2',
         },
         'params': {'listsubtitles': True},
     }, {
@@ -639,7 +639,7 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
             'duration': 1425.256,
             'timestamp': 1554566400,
             'upload_date': '20190406',
-            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$'
+            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
         },
         'skip': 'Geo-restricted',
     }, {
@@ -660,7 +660,7 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
             'duration': 1922.129,
             'timestamp': 1602853860,
             'upload_date': '20201016',
-            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$'
+            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
         },
     }]
 
@@ -763,7 +763,7 @@ class BiliBiliBangumiMediaIE(BilibiliBaseIE):
                 'duration': 1525.777,
                 'timestamp': 1425074413,
                 'upload_date': '20150227',
-                'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$'
+                'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
             },
         }],
     }]
@@ -793,7 +793,7 @@ class BiliBiliBangumiSeasonIE(BilibiliBaseIE):
             'title': '鬼灭之刃',
             'description': 'md5:e2cc9848b6f69be6db79fc2a82d9661b',
         },
-        'playlist_mincount': 26
+        'playlist_mincount': 26,
     }, {
         'url': 'https://www.bilibili.com/bangumi/play/ss2251',
         'info_dict': {
@@ -818,7 +818,7 @@ class BiliBiliBangumiSeasonIE(BilibiliBaseIE):
                 'duration': 1436.992,
                 'timestamp': 1343185080,
                 'upload_date': '20120725',
-                'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$'
+                'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
             },
         }],
     }]
@@ -905,7 +905,7 @@ class BilibiliCheeseIE(BilibiliCheeseBaseIE):
             'upload_date': '20230924',
             'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
             'view_count': int,
-        }
+        },
     }]
 
     def _real_extract(self, url):
@@ -938,7 +938,7 @@ class BilibiliCheeseSeasonIE(BilibiliCheeseBaseIE):
                 'upload_date': '20230924',
                 'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
                 'view_count': int,
-            }
+            },
         }],
         'params': {'playlist_items': '1'},
     }, {
@@ -1011,7 +1011,7 @@ class BilibiliSpaceVideoIE(BilibiliSpaceBaseIE):
         for position in (
             46, 47, 18, 2, 53, 8, 23, 32, 15, 50, 10, 31, 58, 3, 45, 35, 27, 43, 5, 49, 33, 9, 42, 19, 29, 28, 14, 39,
             12, 38, 41, 13, 37, 48, 7, 16, 24, 55, 40, 61, 26, 17, 0, 1, 60, 51, 30, 4, 22, 25, 54, 21, 56, 59, 6, 63,
-            57, 62, 11, 36, 20, 34, 44, 52
+            57, 62, 11, 36, 20, 34, 44, 52,
         ):
             char_at_position = try_call(lambda: session_key[position])
             if char_at_position:
@@ -1162,7 +1162,7 @@ class BilibiliCollectionListIE(BilibiliSpaceListBaseIE):
                     'uploader_id': ('meta', 'mid', {str_or_none}),
                     'timestamp': ('meta', 'ptime', {int_or_none}),
                     'thumbnail': ('meta', 'cover', {url_or_none}),
-                })
+                }),
             }
 
         def get_entries(page_data):
@@ -1194,7 +1194,7 @@ class BilibiliSeriesListIE(BilibiliSpaceListBaseIE):
         mid, sid = self._match_valid_url(url).group('mid', 'sid')
         playlist_id = f'{mid}_{sid}'
         playlist_meta = traverse_obj(self._download_json(
-            f'https://api.bilibili.com/x/series/series?series_id={sid}', playlist_id, fatal=False
+            f'https://api.bilibili.com/x/series/series?series_id={sid}', playlist_id, fatal=False,
         ), {
             'title': ('data', 'meta', 'name', {str}),
             'description': ('data', 'meta', 'description', {str}),
@@ -1216,7 +1216,7 @@ class BilibiliSeriesListIE(BilibiliSpaceListBaseIE):
                 'page_count': math.ceil(entry_count / page_size),
                 'page_size': page_size,
                 'uploader': self._get_uploader(mid, playlist_id),
-                **playlist_meta
+                **playlist_meta,
             }
 
         def get_entries(page_data):
@@ -1370,7 +1370,7 @@ class BilibiliPlaylistIE(BilibiliSpaceListBaseIE):
         for page_num in itertools.count(1):
             page_data = self._download_json(
                 'https://api.bilibili.com/x/v2/medialist/resource/list',
-                list_id, query=query, note=f'getting playlist {query["biz_id"]} page {page_num}'
+                list_id, query=query, note=f'getting playlist {query["biz_id"]} page {page_num}',
             )['data']
             yield from self._get_entries(page_data, 'media_list', ending_key='bv_id')
             query['oid'] = traverse_obj(page_data, ('media_list', -1, 'id'))
@@ -1406,7 +1406,7 @@ class BilibiliPlaylistIE(BilibiliSpaceListBaseIE):
                 'tid': ('tid', {int_or_none}),
                 'sort_field': ('sortFiled', {int_or_none}),
                 'desc': ('desc', {bool_or_none}, {str_or_none}, {str.lower}),
-            })
+            }),
         }
         metadata = {
             'id': f'{query["type"]}_{query["biz_id"]}',
@@ -1429,12 +1429,12 @@ class BilibiliCategoryIE(InfoExtractor):
         'url': 'https://www.bilibili.com/v/kichiku/mad',
         'info_dict': {
             'id': 'kichiku: mad',
-            'title': 'kichiku: mad'
+            'title': 'kichiku: mad',
         },
         'playlist_mincount': 45,
         'params': {
-            'playlistend': 45
-        }
+            'playlistend': 45,
+        },
     }]
 
     def _fetch_page(self, api_url, num_pages, query, page_num):
@@ -1458,7 +1458,7 @@ class BilibiliCategoryIE(InfoExtractor):
                 'manual_vocaloid': 126,
                 'guide': 22,
                 'theatre': 216,
-                'course': 127
+                'course': 127,
             },
         }
 
@@ -1587,7 +1587,7 @@ class BilibiliAudioIE(BilibiliAudioBaseIE):
         formats = [{
             'url': play_data['cdns'][0],
             'filesize': int_or_none(play_data.get('size')),
-            'vcodec': 'none'
+            'vcodec': 'none',
         }]
 
         for a_format in formats:
@@ -1605,7 +1605,7 @@ class BilibiliAudioIE(BilibiliAudioBaseIE):
             subtitles = {
                 'origin': [{
                     'url': lyric,
-                }]
+                }],
             }
 
         return {
@@ -1813,7 +1813,7 @@ class BiliIntlBaseIE(InfoExtractor):
                 'password': base64.b64encode(password_hash).decode('ascii'),
                 'keep_me': 'true',
                 's_locale': 'en_US',
-                'isTrusted': 'true'
+                'isTrusted': 'true',
             }), note='Logging in', errnote='Unable to log in')
         if login_post.get('code'):
             if login_post.get('message'):
@@ -1840,17 +1840,17 @@ class BiliIntlIE(BiliIntlBaseIE):
             'chapters': [{
                 'start_time': 0,
                 'end_time': 76.242,
-                'title': '<Untitled Chapter 1>'
+                'title': '<Untitled Chapter 1>',
             }, {
                 'start_time': 76.242,
                 'end_time': 161.161,
-                'title': 'Intro'
+                'title': 'Intro',
             }, {
                 'start_time': 1325.742,
                 'end_time': 1403.903,
-                'title': 'Outro'
+                'title': 'Outro',
             }],
-        }
+        },
     }, {
         # Non-Bstation page
         'url': 'https://www.bilibili.tv/en/play/1033760/11005006',
@@ -1867,17 +1867,17 @@ class BiliIntlIE(BiliIntlBaseIE):
             'chapters': [{
                 'start_time': 0,
                 'end_time': 88.0,
-                'title': '<Untitled Chapter 1>'
+                'title': '<Untitled Chapter 1>',
             }, {
                 'start_time': 88.0,
                 'end_time': 156.0,
-                'title': 'Intro'
+                'title': 'Intro',
             }, {
                 'start_time': 1173.0,
                 'end_time': 1259.535,
-                'title': 'Outro'
+                'title': 'Outro',
             }],
-        }
+        },
     }, {
         # Subtitle with empty content
         'url': 'https://www.bilibili.tv/en/play/1005144/10131790',
@@ -1888,7 +1888,7 @@ class BiliIntlIE(BiliIntlBaseIE):
             'thumbnail': r're:^https://pic\.bstarstatic\.com/ogv/.+\.png$',
             'episode_number': 140,
         },
-        'skip': 'According to the copyright owner\'s request, you may only watch the video after you log in.'
+        'skip': 'According to the copyright owner\'s request, you may only watch the video after you log in.',
     }, {
         # episode comment extraction
         'url': 'https://www.bilibili.tv/en/play/34580/340317',
@@ -1906,20 +1906,20 @@ class BiliIntlIE(BiliIntlBaseIE):
             'chapters': [{
                 'start_time': 0,
                 'end_time': 61.0,
-                'title': '<Untitled Chapter 1>'
+                'title': '<Untitled Chapter 1>',
             }, {
                 'start_time': 61.0,
                 'end_time': 134.0,
-                'title': 'Intro'
+                'title': 'Intro',
             }, {
                 'start_time': 1290.0,
                 'end_time': 1379.0,
-                'title': 'Outro'
+                'title': 'Outro',
             }],
         },
         'params': {
-            'getcomments': True
-        }
+            'getcomments': True,
+        },
     }, {
         # user generated content comment extraction
         'url': 'https://www.bilibili.tv/en/video/2045730385',
@@ -1934,8 +1934,8 @@ class BiliIntlIE(BiliIntlBaseIE):
             'thumbnail': r're:https://pic\.bstarstatic\.(?:com|net)/ugc/f6c363659efd2eabe5683fbb906b1582\.jpg',
         },
         'params': {
-            'getcomments': True
-        }
+            'getcomments': True,
+        },
     }, {
         # episode id without intro and outro
         'url': 'https://www.bilibili.tv/en/play/1048837/11246489',
@@ -1990,7 +1990,7 @@ class BiliIntlIE(BiliIntlBaseIE):
             # Non-Bstation layout, read through episode list
             season_json = self._call_api(f'/web/v2/ogv/play/episodes?season_id={season_id}&platform=web', video_id)
             video_data = traverse_obj(season_json, (
-                'sections', ..., 'episodes', lambda _, v: str(v['episode_id']) == video_id
+                'sections', ..., 'episodes', lambda _, v: str(v['episode_id']) == video_id,
             ), expected_type=dict, get_all=False)
 
         # XXX: webpage metadata may not accurate, it just used to not crash when video_data not found
@@ -2022,7 +2022,7 @@ class BiliIntlIE(BiliIntlBaseIE):
                 'id': replies.get('rpid'),
                 'like_count': int_or_none(replies.get('like_count')),
                 'parent': replies.get('parent'),
-                'timestamp': unified_timestamp(replies.get('ctime_text'))
+                'timestamp': unified_timestamp(replies.get('ctime_text')),
             }
 
         if not traverse_obj(comment_api_raw_data, ('data', 'cursor', 'is_end')):
@@ -2075,11 +2075,11 @@ class BiliIntlIE(BiliIntlBaseIE):
                 chapters = [{
                     'start_time': float_or_none(traverse_obj(intro_ending_json, ('skip', 'opening_start_time')), 1000),
                     'end_time': float_or_none(traverse_obj(intro_ending_json, ('skip', 'opening_end_time')), 1000),
-                    'title': 'Intro'
+                    'title': 'Intro',
                 }, {
                     'start_time': float_or_none(traverse_obj(intro_ending_json, ('skip', 'ending_start_time')), 1000),
                     'end_time': float_or_none(traverse_obj(intro_ending_json, ('skip', 'ending_end_time')), 1000),
-                    'title': 'Outro'
+                    'title': 'Outro',
                 }]
 
         return {
@@ -2135,7 +2135,7 @@ class BiliIntlSeriesIE(BiliIntlBaseIE):
             episode_id = str(episode['episode_id'])
             yield self.url_result(smuggle_url(
                 BiliIntlIE._make_url(episode_id, series_id),
-                self._parse_video_metadata(episode)
+                self._parse_video_metadata(episode),
             ), BiliIntlIE, episode_id)
 
     def _real_extract(self, url):
@@ -2160,13 +2160,13 @@ class BiliLiveIE(InfoExtractor):
             'thumbnail': 'https://i0.hdslb.com/bfs/live/new_room_cover/e607bc1529057ef4b332e1026e62cf46984c314d.jpg',
             'timestamp': 1650802769,
         },
-        'skip': 'not live'
+        'skip': 'not live',
     }, {
         'url': 'https://live.bilibili.com/196?broadcast_type=0&is_room_feed=1?spm_id_from=333.999.space_home.strengthen_live_card.click',
-        'only_matching': True
+        'only_matching': True,
     }, {
         'url': 'https://live.bilibili.com/blanc/196',
-        'only_matching': True
+        'only_matching': True,
     }]
 
     _FORMATS = {

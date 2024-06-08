@@ -66,7 +66,7 @@ class AbemaLicenseHandler(urllib.request.BaseHandler):
             query={'t': media_token},
             data=json.dumps({
                 'kv': 'a',
-                'lt': ticket
+                'lt': ticket,
             }).encode(),
             headers={
                 'Content-Type': 'application/json',
@@ -180,7 +180,7 @@ class AbemaTVBaseIE(InfoExtractor):
                 'osLang': 'ja_JP',
                 'osTimezone': 'Asia/Tokyo',
                 'appId': 'tv.abema',
-                'appVersion': '3.27.1'
+                'appVersion': '3.27.1',
             }, headers={
                 'Authorization': f'bearer {self._get_device_token()}',
             })['token']
@@ -202,7 +202,7 @@ class AbemaTVBaseIE(InfoExtractor):
             f'https://api.abema.io/v1/auth/{ep}', None, note='Logging in',
             data=json.dumps({
                 method: username,
-                'password': password
+                'password': password,
             }).encode(), headers={
                 'Authorization': f'bearer {self._get_device_token()}',
                 'Origin': 'https://abema.tv',
@@ -344,7 +344,7 @@ class AbemaTVIE(AbemaTVBaseIE):
 
         description = self._html_search_regex(
             (r'<p\s+class="com-video-EpisodeDetailsBlock__content"><span\s+class=".+?">(.+?)</span></p><div',
-             r'<span\s+class=".+?SlotSummary.+?">(.+?)</span></div><div',),
+             r'<span\s+class=".+?SlotSummary.+?">(.+?)</span></div><div'),
             webpage, 'description', default=None, group=1)
         if not description:
             og_desc = self._html_search_meta(

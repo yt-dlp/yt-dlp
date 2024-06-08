@@ -121,13 +121,13 @@ class UstreamIE(InfoExtractor):
             provider = dash_stream_info['providers'][0]
             fragments = [{
                 'url': resolve_dash_template(
-                    provider['url'] + stream['initUrl'], 0, dash_stream_info['hashes']['0'])
+                    provider['url'] + stream['initUrl'], 0, dash_stream_info['hashes']['0']),
             }]
             for idx in range(dash_stream_info['videoLength'] // dash_stream_info['chunkTime']):
                 fragments.append({
                     'url': resolve_dash_template(
                         provider['url'] + stream['segmentUrl'], idx,
-                        dash_stream_info['hashes'][compat_str(idx // 10 * 10)])
+                        dash_stream_info['hashes'][compat_str(idx // 10 * 10)]),
                 })
             content_type = stream['contentType']
             kind = content_type.split('/')[0]

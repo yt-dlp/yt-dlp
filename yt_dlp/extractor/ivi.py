@@ -83,9 +83,9 @@ class IviIE(InfoExtractor):
                 video_id, {
                     'site': 's%d',
                     'referrer': 'http://www.ivi.ru/watch/%s' % video_id,
-                    'contentid': video_id
-                }
-            ]
+                    'contentid': video_id,
+                },
+            ],
         })
 
         for site in (353, 183):
@@ -98,7 +98,7 @@ class IviIE(InfoExtractor):
                     self._LIGHT_URL, video_id,
                     'Downloading timestamp JSON', data=json.dumps({
                         'method': 'da.timestamp.get',
-                        'params': []
+                        'params': [],
                     }).encode(), fatal=False) or {}).get('result')
                 if not timestamp:
                     continue

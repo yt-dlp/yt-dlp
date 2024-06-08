@@ -254,7 +254,7 @@ class TikTokBaseIE(InfoExtractor):
                 'ext': 'srt',
                 'data': '\n\n'.join(
                     f'{i + 1}\n{srt_subtitles_timecode(line["start_time"] / 1000)} --> {srt_subtitles_timecode(line["end_time"] / 1000)}\n{line["text"]}'
-                    for i, line in enumerate(caption_json['utterances']) if line.get('text'))
+                    for i, line in enumerate(caption_json['utterances']) if line.get('text')),
             })
         # feed endpoint subs
         if not subtitles:
@@ -846,7 +846,7 @@ class TikTokIE(TikTokBaseIE):
     }, {
         # Auto-captions available
         'url': 'https://www.tiktok.com/@hankgreen1/video/7047596209028074758',
-        'only_matching': True
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
@@ -1059,17 +1059,17 @@ class TikTokSoundIE(TikTokBaseListIE):
         'url': 'https://www.tiktok.com/music/Build-a-Btch-6956990112127585029?lang=en',
         'playlist_mincount': 100,
         'info_dict': {
-            'id': '6956990112127585029'
+            'id': '6956990112127585029',
         },
-        'expected_warnings': ['Retrying']
+        'expected_warnings': ['Retrying'],
     }, {
         # Actual entries are less than listed video count
         'url': 'https://www.tiktok.com/music/jiefei-soap-remix-7036843036118469381',
         'playlist_mincount': 2182,
         'info_dict': {
-            'id': '7036843036118469381'
+            'id': '7036843036118469381',
         },
-        'expected_warnings': ['Retrying']
+        'expected_warnings': ['Retrying'],
     }]
 
 
@@ -1085,11 +1085,11 @@ class TikTokEffectIE(TikTokBaseListIE):
         'info_dict': {
             'id': '1258156',
         },
-        'expected_warnings': ['Retrying']
+        'expected_warnings': ['Retrying'],
     }, {
         # Different entries between mobile and web, depending on region
         'url': 'https://www.tiktok.com/sticker/Elf-Friend-479565',
-        'only_matching': True
+        'only_matching': True,
     }]
 
 
@@ -1106,16 +1106,16 @@ class TikTokTagIE(TikTokBaseListIE):
             'id': '46294678',
             'title': 'hello2018',
         },
-        'expected_warnings': ['Retrying']
+        'expected_warnings': ['Retrying'],
     }, {
         'url': 'https://tiktok.com/tag/fypシ?is_copy_url=0&is_from_webapp=v1',
-        'only_matching': True
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id, headers={
-            'User-Agent': 'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)'
+            'User-Agent': 'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)',
         })
         tag_id = self._html_search_regex(r'snssdk\d*://challenge/detail/(\d+)', webpage, 'tag ID')
         return self.playlist_result(self._entries(tag_id, display_id), tag_id, display_id)
@@ -1129,17 +1129,17 @@ class TikTokCollectionIE(TikTokBaseIE):
         'url': 'https://www.tiktok.com/@imanoreotwe/collection/count-test-7371330159376370462',
         'info_dict': {
             'id': '7371330159376370462',
-            'title': 'imanoreotwe-count-test'
+            'title': 'imanoreotwe-count-test',
         },
-        'playlist_count': 9
+        'playlist_count': 9,
     }, {
         # tests returning multiple pages of a large collection
         'url': 'https://www.tiktok.com/@imanoreotwe/collection/%F0%9F%98%82-7111887189571160875',
         'info_dict': {
             'id': '7111887189571160875',
-            'title': 'imanoreotwe-%F0%9F%98%82'
+            'title': 'imanoreotwe-%F0%9F%98%82',
         },
-        'playlist_mincount': 100
+        'playlist_mincount': 100,
     }]
     _API_BASE_URL = 'https://www.tiktok.com/api/collection/item_list/'
     _PAGE_COUNT = 30

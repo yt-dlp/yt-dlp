@@ -361,7 +361,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
             'params': {
                 'format': 'best[protocol=https]',
             },
-            'skip': 'No longer available'
+            'skip': 'No longer available',
         },
         {
             'url': 'http://player.vimeo.com/video/54469442',
@@ -748,7 +748,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
     def _extract_from_api(self, video_id, unlisted_hash=None):
         token = self._download_json(
             'https://vimeo.com/_rv/jwt', video_id, headers={
-                'X-Requested-With': 'XMLHttpRequest'
+                'X-Requested-With': 'XMLHttpRequest',
             })['token']
         api_url = 'https://api.vimeo.com/videos/' + video_id
         if unlisted_hash:
@@ -1135,7 +1135,7 @@ class VimeoAlbumIE(VimeoBaseInfoExtractor):
         'playlist_count': 1,
         'params': {
             'videopassword': 'youtube-dl',
-        }
+        },
     }]
     _PAGE_SIZE = 100
 

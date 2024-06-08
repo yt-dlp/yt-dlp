@@ -57,7 +57,7 @@ class HiDiveIE(InfoExtractor):
                 'profileId': profile_id,
                 'hash': self._search_regex(
                     r'\<button [^>]+?data-hash="(\w+)"', login_webpage, 'profile id hash'),
-                'returnUrl': '/dashboard'
+                'returnUrl': '/dashboard',
             }))
 
     def _call_api(self, video_id, title, key, data={}, **kwargs):
@@ -115,5 +115,5 @@ class HiDiveIE(InfoExtractor):
                 self._search_regex(r's(\d+)', key, 'season number', default=None)),
             'episode_number': int_or_none(
                 self._search_regex(r'e(\d+)', key, 'episode number', default=None)),
-            'http_headers': {'Referer': url}
+            'http_headers': {'Referer': url},
         }

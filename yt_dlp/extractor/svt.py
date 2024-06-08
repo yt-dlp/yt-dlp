@@ -159,7 +159,7 @@ class SVTPlayIE(SVTPlayBaseIE):
             'subtitles': {
                 'sv': [{
                     'ext': 'vtt',
-                }]
+                }],
             },
         },
         'params': {
@@ -181,7 +181,7 @@ class SVTPlayIE(SVTPlayBaseIE):
             'episode': '1. Farlig kryssning',
             'series': 'Rederiet',
             'subtitles': {
-                'sv': 'count:3'
+                'sv': 'count:3',
             },
         },
         'params': {
@@ -406,11 +406,11 @@ class SVTPageIE(SVTBaseIE):
             'timestamp': 1704370009,
             'episode': 'Försvarsmakten om trafikkaoset på E22: Kunde inte varit där snabbare',
             'series': 'Lokala Nyheter Skåne',
-            'upload_date': '20240104'
+            'upload_date': '20240104',
         },
         'params': {
             'skip_download': True,
-        }
+        },
     }, {
         'url': 'https://www.svt.se/nyheter/svtforum/2023-tungt-ar-for-svensk-media',
         'info_dict': {
@@ -422,11 +422,11 @@ class SVTPageIE(SVTBaseIE):
             'series': '',
             'timestamp': 1702980479,
             'upload_date': '20231219',
-            'episode': 'Mediestudier'
+            'episode': 'Mediestudier',
         },
         'params': {
             'skip_download': True,
-        }
+        },
     }, {
         'url': 'https://www.svt.se/sport/ishockey/bakom-masken-lehners-kamp-mot-mental-ohalsa',
         'info_dict': {
@@ -434,7 +434,7 @@ class SVTPageIE(SVTBaseIE):
             'title': 'Bakom masken – Lehners kamp mot mental ohälsa',
         },
         'playlist_count': 4,
-        'skip': 'Video is gone'
+        'skip': 'Video is gone',
     }, {
         'url': 'https://www.svt.se/nyheter/utrikes/svenska-andrea-ar-en-mil-fran-branderna-i-kalifornien',
         'info_dict': {
@@ -442,7 +442,7 @@ class SVTPageIE(SVTBaseIE):
             'title': 'Svenska Andrea redo att fly sitt hem i Kalifornien',
         },
         'playlist_count': 2,
-        'skip': 'Video is gone'
+        'skip': 'Video is gone',
     }, {
         # only programTitle
         'url': 'http://www.svt.se/sport/ishockey/jagr-tacklar-giroux-under-intervjun',
@@ -453,7 +453,7 @@ class SVTPageIE(SVTBaseIE):
             'duration': 27,
             'age_limit': 0,
         },
-        'skip': 'Video is gone'
+        'skip': 'Video is gone',
     }, {
         'url': 'https://www.svt.se/nyheter/lokalt/vast/svt-testar-tar-nagon-upp-skrapet-1',
         'only_matching': True,
@@ -479,7 +479,7 @@ class SVTPageIE(SVTBaseIE):
 
         def entries():
             for video_id in set(traverse_obj(data, (
-                'page', (('topMedia', 'svtId'), ('body', ..., 'video', 'svtId')), {str}
+                'page', (('topMedia', 'svtId'), ('body', ..., 'video', 'svtId')), {str},
             ))):
                 info = self._extract_video(
                     self._download_json(f'https://api.svt.se/video/{video_id}', video_id), video_id)

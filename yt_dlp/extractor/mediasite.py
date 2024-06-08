@@ -86,7 +86,7 @@ class MediasiteIE(InfoExtractor):
                 'upload_date': '20120409',
                 'timestamp': 1333983600,
                 'duration': 7794,
-            }
+            },
         },
         {
             'url': 'https://collegerama.tudelft.nl/Mediasite/Showcase/livebroadcast/Presentation/ada7020854f743c49fbb45c9ec7dbb351d',
@@ -100,7 +100,7 @@ class MediasiteIE(InfoExtractor):
             # dashed id
             'url': 'https://hitsmediaweb.h-its.org/mediasite/Play/2db6c271-681e-4f19-9af3-c60d1f82869b1d',
             'only_matching': True,
-        }
+        },
     ]
 
     # look in Mediasite.Core.js (Mediasite.ContentStreamType[*])
@@ -148,7 +148,7 @@ class MediasiteIE(InfoExtractor):
 
             fragments.append({
                 'path': fname_template.format(slide.get('Number', i + 1)),
-                'duration': (next_time - slide['Time']) / 1000
+                'duration': (next_time - slide['Time']) / 1000,
             })
 
         return {
@@ -189,7 +189,7 @@ class MediasiteIE(InfoExtractor):
                     'QueryString': query,
                     'UrlReferrer': data.get('UrlReferrer', ''),
                     'UseScreenReader': False,
-                }
+                },
             }).encode())['d']
 
         presentation = player_options['Presentation']
@@ -385,7 +385,7 @@ class MediasiteCatalogIE(InfoExtractor):
         title = try_get(
             catalog, lambda x: x['CurrentFolder']['Name'], compat_str)
 
-        return self.playlist_result(entries, catalog_id, title,)
+        return self.playlist_result(entries, catalog_id, title)
 
 
 class MediasiteNamedCatalogIE(InfoExtractor):

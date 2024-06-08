@@ -100,7 +100,7 @@ class ESPNIE(OnceIE):
     }, {
         'url': 'http://www.espn.com/watch/player?bucketId=257&id=19505875',
         'only_matching': True,
-    }, ]
+    }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -251,7 +251,7 @@ class ESPNCricInfoIE(InfoExtractor):
             'upload_date': '20211113',
             'duration': 96,
         },
-        'params': {'skip_download': True}
+        'params': {'skip_download': True},
     }, {
         'url': 'https://www.espncricinfo.com/cricket-videos/daryl-mitchell-mitchell-santner-is-one-of-the-best-white-ball-spinners-india-vs-new-zealand-1356225',
         'info_dict': {
@@ -367,28 +367,28 @@ class WatchESPNIE(AdobePassIE):
                     'subject_token': assertion,
                     'subject_token_type': 'urn:bamtech:params:oauth:token-type:device',
                     'platform': 'android',
-                    'grant_type': 'urn:ietf:params:oauth:grant-type:token-exchange'
+                    'grant_type': 'urn:ietf:params:oauth:grant-type:token-exchange',
                 })['access_token']
 
             assertion = self._call_bamgrid_api(
                 'accounts/grant', video_id, payload={'id_token': cookie.value.split('|')[1]},
                 headers={
                     'Authorization': token,
-                    'Content-Type': 'application/json; charset=UTF-8'
+                    'Content-Type': 'application/json; charset=UTF-8',
                 })['assertion']
             token = self._call_bamgrid_api(
                 'token', video_id, payload={
                     'subject_token': assertion,
                     'subject_token_type': 'urn:bamtech:params:oauth:token-type:account',
                     'platform': 'android',
-                    'grant_type': 'urn:ietf:params:oauth:grant-type:token-exchange'
+                    'grant_type': 'urn:ietf:params:oauth:grant-type:token-exchange',
                 })['access_token']
 
             playback = self._download_json(
                 video_data['videoHref'].format(scenario='browser~ssai'), video_id,
                 headers={
                     'Accept': 'application/vnd.media-service+json; version=5',
-                    'Authorization': token
+                    'Authorization': token,
                 })
             m3u8_url, headers = playback['stream']['complete'][0]['url'], {'authorization': token}
 

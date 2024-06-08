@@ -122,7 +122,7 @@ class CeskaTelevizeIE(InfoExtractor):
             iframe_hash = self._download_webpage(
                 'https://www.ceskatelevize.cz/v-api/iframe-hash/',
                 playlist_id, note='Getting IFRAME hash')
-            query = {'hash': iframe_hash, 'origin': 'iVysilani', 'autoStart': 'true', type_: idec, }
+            query = {'hash': iframe_hash, 'origin': 'iVysilani', 'autoStart': 'true', type_: idec}
             webpage = self._download_webpage(
                 'https://www.ceskatelevize.cz/ivysilani/embed/iFramePlayer.php',
                 playlist_id, note='Downloading player', query=query)
@@ -130,7 +130,7 @@ class CeskaTelevizeIE(InfoExtractor):
         NOT_AVAILABLE_STRING = 'This content is not available at your territory due to limited copyright.'
         if '%s</p>' % NOT_AVAILABLE_STRING in webpage:
             self.raise_geo_restricted(NOT_AVAILABLE_STRING)
-        if any(not_found in webpage for not_found in ('Neplatný parametr pro videopřehrávač', 'IDEC nebyl nalezen', )):
+        if any(not_found in webpage for not_found in ('Neplatný parametr pro videopřehrávač', 'IDEC nebyl nalezen')):
             raise ExtractorError('no video with IDEC available', video_id=idec, expected=True)
 
         type_ = None
@@ -261,7 +261,7 @@ class CeskaTelevizeIE(InfoExtractor):
             'cs': [{
                 'ext': 'srt',
                 'data': srt_subs,
-            }]
+            }],
         }
 
     @staticmethod

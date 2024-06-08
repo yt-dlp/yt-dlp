@@ -142,7 +142,7 @@ class BrightcoveLegacyIE(InfoExtractor):
             # from http://www.un.org/chinese/News/story.asp?NewsID=27724
             'url': 'https://link.brightcove.com/services/player/bcpid1722935254001/?bctid=5360463607001&autoStart=false&secureConnections=true&width=650&height=350',
             'only_matching': True,  # Tested in GenericIE
-        }
+        },
     ]
 
     _WEBPAGE_TESTS = [{
@@ -654,7 +654,7 @@ class BrightcoveNewIE(BrightcoveNewBaseIE):
         'params': {
             # m3u8 download
             'skip_download': True,
-        }
+        },
     }, {
         # playlist stream
         'url': 'https://players.brightcove.net/1752604059001/S13cJdUBz_default/index.html?playlistId=5718313430001',
@@ -666,7 +666,7 @@ class BrightcoveNewIE(BrightcoveNewBaseIE):
         'params': {
             # m3u8 download
             'skip_download': True,
-        }
+        },
     }, {
         'url': 'http://players.brightcove.net/5690807595001/HyZNerRl7_default/index.html?playlistId=5743160747001',
         'only_matching': True,
@@ -936,7 +936,7 @@ class BrightcoveNewIE(BrightcoveNewBaseIE):
                 custom_fields['bcadobepassresourceid'])
             json_data = self._download_json(
                 api_url, video_id, headers={
-                    'Accept': 'application/json;pk=%s' % policy_key
+                    'Accept': 'application/json;pk=%s' % policy_key,
                 }, query={
                     'tveToken': tve_token,
                 })

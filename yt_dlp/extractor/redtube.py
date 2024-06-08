@@ -60,7 +60,7 @@ class RedTubeIE(InfoExtractor):
         if not info.get('title'):
             info['title'] = self._html_search_regex(
                 (r'<h(\d)[^>]+class="(?:video_title_text|videoTitle|video_title)[^"]*">(?P<title>(?:(?!\1).)+)</h\1>',
-                 r'(?:videoTitle|title)\s*:\s*(["\'])(?P<title>(?:(?!\1).)+)\1',),
+                 r'(?:videoTitle|title)\s*:\s*(["\'])(?P<title>(?:(?!\1).)+)\1'),
                 webpage, 'title', group='title',
                 default=None) or self._og_search_title(webpage)
 

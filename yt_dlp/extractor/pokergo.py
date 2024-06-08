@@ -49,7 +49,7 @@ class PokerGoIE(PokerGoBaseIE):
             'episode': 'Episode 2',
             'display_id': '2a70ec4e-4a80-414b-97ec-725d9b72a7dc',
         },
-        'params': {'skip_download': True}
+        'params': {'skip_download': True},
     }]
 
     def _real_extract(self, url):
@@ -63,7 +63,7 @@ class PokerGoIE(PokerGoBaseIE):
             'url': image['url'],
             'id': image.get('label'),
             'width': image.get('width'),
-            'height': image.get('height')
+            'height': image.get('height'),
         } for image in data_json.get('images') or [] if image.get('url')]
         series_json = next(dct for dct in data_json.get('show_tags') or [] if dct.get('video_id') == video_id) or {}
 
@@ -77,7 +77,7 @@ class PokerGoIE(PokerGoBaseIE):
             'season_number': series_json.get('season'),
             'episode_number': series_json.get('episode_number'),
             'series': try_get(series_json, lambda x: x['tag']['name']),
-            'url': f'https://cdn.jwplayer.com/v2/media/{v_id}'
+            'url': f'https://cdn.jwplayer.com/v2/media/{v_id}',
         }
 
 

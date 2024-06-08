@@ -11,7 +11,7 @@ class SlutloadIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'virginie baisee en cam',
             'age_limit': 18,
-            'thumbnail': r're:https?://.*?\.jpg'
+            'thumbnail': r're:https?://.*?\.jpg',
         },
     }, {
         # mobile site
@@ -47,7 +47,7 @@ class SlutloadIE(InfoExtractor):
                     'url': video_url,
                     'title': title,
                     'thumbnail': extract('preview'),
-                    'age_limit': 18
+                    'age_limit': 18,
                 }
 
         webpage = self._download_webpage(

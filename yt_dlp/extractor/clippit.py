@@ -23,7 +23,7 @@ class ClippitIE(InfoExtractor):
             'upload_date': '20160826',
             'description': 'BattleBots | ABC',
             'thumbnail': r're:^https?://.*\.jpg$',
-        }
+        },
     }
 
     def _real_extract(self, url):

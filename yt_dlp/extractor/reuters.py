@@ -18,7 +18,7 @@ class ReutersIE(InfoExtractor):
             'id': '368575562',
             'ext': 'mp4',
             'title': 'San Francisco police chief resigns',
-        }
+        },
     }
 
     def _real_extract(self, url):

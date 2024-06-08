@@ -25,7 +25,7 @@ class CCCIE(InfoExtractor):
             'timestamp': 1388188800,
             'duration': 3710,
             'tags': list,
-        }
+        },
     }, {
         'url': 'https://media.ccc.de/v/32c3-7368-shopshifting#download',
         'only_matching': True,
@@ -96,7 +96,7 @@ class CCCPlaylistIE(InfoExtractor):
             'title': 'Datenspuren 2023',
             'id': 'DS2023',
         },
-        'playlist_count': 37
+        'playlist_count': 37,
     }]
 
     def _real_extract(self, url):

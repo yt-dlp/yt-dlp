@@ -111,7 +111,7 @@ class LEGOIE(InfoExtractor):
                         'abr': quality[0],
                         'height': quality[1],
                         'width': quality[2],
-                    }),
+                    })
                 formats.append(f)
 
         subtitles = {}

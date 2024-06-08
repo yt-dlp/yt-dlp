@@ -46,7 +46,7 @@ class SixPlayIE(InfoExtractor):
         data = self._download_json(
             'https://pc.middleware.6play.fr/6play/v2/platforms/m6group_web/services/%s/videos/clip_%s' % (service, video_id),
             video_id, headers={
-                'x-customer-name': consumer_name
+                'x-customer-name': consumer_name,
             }, query={
                 'csa': 5,
                 'with': 'clips',

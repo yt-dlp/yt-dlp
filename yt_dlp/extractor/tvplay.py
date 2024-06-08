@@ -107,7 +107,7 @@ class TVPlayIE(InfoExtractor):
         {
             'url': 'mtg:418113',
             'only_matching': True,
-        }
+        },
     ]
 
     def _real_extract(self, url):
@@ -143,7 +143,7 @@ class TVPlayIE(InfoExtractor):
                 formats.extend(self._extract_f4m_formats(
                     update_url_query(video_url, {
                         'hdcore': '3.5.0',
-                        'plugin': 'aasp-3.5.0.151.81'
+                        'plugin': 'aasp-3.5.0.151.81',
                     }), video_id, f4m_id='hds', fatal=False))
             elif ext == 'm3u8':
                 formats.extend(self._extract_m3u8_formats(
@@ -250,7 +250,7 @@ class TVPlayHomeIE(InfoExtractor):
             'description': 'md5:c6926e9710f1a126f028fbe121eddb79',
             'duration': 2440,
         },
-        'skip': '404'
+        'skip': '404',
     }, {
         'url': 'https://play.tv3.lt/lives/tv6-lt,live-2838694/optibet-a-lygos-rungtynes-marijampoles-suduva--vilniaus-riteriai,programme-3422014',
         'only_matching': True,

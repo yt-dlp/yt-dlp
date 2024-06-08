@@ -169,9 +169,9 @@ class LBRYIE(LBRYBaseIE):
                 'lbc',
                 'lbry',
                 'start',
-                'tutorial'
+                'tutorial',
             ],
-        }
+        },
     }, {
         # Audio
         'url': 'https://lbry.tv/@LBRYFoundation:0/Episode-1:e',
@@ -194,7 +194,7 @@ class LBRYIE(LBRYBaseIE):
             'thumbnail': 'https://spee.ch/d/0bc63b0e6bf1492d.png',
             'license': 'None',
             'uploader_id': '@LBRYFoundation',
-        }
+        },
     }, {
         'url': 'https://odysee.com/@gardeningincanada:b/plants-i-will-never-grow-again.-the:e',
         'md5': 'c35fac796f62a14274b4dc2addb5d0ba',
@@ -216,7 +216,7 @@ class LBRYIE(LBRYBaseIE):
             'formats': 'mincount:3',
             'thumbnail': 'https://thumbnails.lbry.com/AgHSc_HzrrE',
             'license': 'Copyrighted (contact publisher)',
-        }
+        },
     }, {
         # HLS live stream (might expire)
         'url': 'https://odysee.com/@RT:fd/livestream_RT:d',
@@ -239,7 +239,7 @@ class LBRYIE(LBRYBaseIE):
             'license': 'None',
             'uploader_id': '@RT',
         },
-        'params': {'skip_download': True}
+        'params': {'skip_download': True},
     }, {
         # original quality format w/higher resolution than HLS formats
         'url': 'https://odysee.com/@wickedtruths:2/Biotechnological-Invasion-of-Skin-(April-2023):4',

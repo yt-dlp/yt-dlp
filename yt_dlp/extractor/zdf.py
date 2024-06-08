@@ -73,7 +73,7 @@ class ZDFBaseIE(InfoExtractor):
             f.update({
                 'url': format_url,
                 'format_id': join_nonempty('http', meta.get('type'), meta.get('quality')),
-                'tbr': int_or_none(self._search_regex(r'_(\d+)k_', format_url, 'tbr', default=None))
+                'tbr': int_or_none(self._search_regex(r'_(\d+)k_', format_url, 'tbr', default=None)),
             })
             new_formats = [f]
         formats.extend(merge_dicts(f, {
@@ -236,7 +236,7 @@ class ZDFIE(ZDFBaseIE):
             'timestamp': 1641355200,
             'upload_date': '20220105',
         },
-        'skip': 'No longer available "Diese Seite wurde leider nicht gefunden"'
+        'skip': 'No longer available "Diese Seite wurde leider nicht gefunden"',
     }, {
         'url': 'https://www.zdf.de/serien/soko-stuttgart/das-geld-anderer-leute-100.html',
         'info_dict': {
@@ -270,7 +270,7 @@ class ZDFIE(ZDFBaseIE):
         t = content['mainVideoContent']['http://zdf.de/rels/target']
         ptmd_path = traverse_obj(t, (
             (('streams', 'default'), None),
-            ('http://zdf.de/rels/streams/ptmd', 'http://zdf.de/rels/streams/ptmd-template')
+            ('http://zdf.de/rels/streams/ptmd', 'http://zdf.de/rels/streams/ptmd-template'),
         ), get_all=False)
         if not ptmd_path:
             raise ExtractorError('Could not extract ptmd_path')
@@ -303,7 +303,7 @@ class ZDFIE(ZDFBaseIE):
         chapters = [{
             'start_time': chap.get('anchorOffset'),
             'end_time': next_chap.get('anchorOffset'),
-            'title': chap.get('anchorLabel')
+            'title': chap.get('anchorLabel'),
         } for chap, next_chap in zip(chapter_marks, chapter_marks[1:])]
 
         return merge_dicts(info, {
@@ -312,7 +312,7 @@ class ZDFIE(ZDFBaseIE):
             'duration': int_or_none(t.get('duration')),
             'timestamp': unified_timestamp(content.get('editorialDate')),
             'thumbnails': thumbnails,
-            'chapters': chapters or None
+            'chapters': chapters or None,
         })
 
     def _extract_regular(self, url, player, video_id):
@@ -432,7 +432,7 @@ class ZDFChannelIE(ZDFBaseIE):
 
         def check_video(m):
             v_ref = self._search_regex(
-                r'''(<a\b[^>]*?\shref\s*=[^>]+?\sdata-target-id\s*=\s*(["'])%s\2[^>]*>)''' % (m.group('p_id'), ),
+                r'''(<a\b[^>]*?\shref\s*=[^>]+?\sdata-target-id\s*=\s*(["'])%s\2[^>]*>)''' % (m.group('p_id'),),
                 webpage, 'check id', default='')
             v_ref = extract_attributes(v_ref)
             return v_ref.get('data-target-video-type') != 'novideo'

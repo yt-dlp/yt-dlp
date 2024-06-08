@@ -143,7 +143,7 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
             'like_count': int,
             'tags': ['en_quete_d_esprit'],
             'thumbnail': r're:https://(?:s[12]\.)dmcdn\.net/v/Tncwi1YNg_RUl7ueu/x1080',
-        }
+        },
     }, {
         'url': 'https://www.dailymotion.com/video/x2iuewm_steam-machine-models-pricing-listed-on-steam-store-ign-news_videogames',
         'md5': '2137c41a8e78554bb09225b8eb322406',
@@ -424,7 +424,7 @@ class DailymotionSearchIE(DailymotionPlaylistBaseIE):
                     'limit': 20,
                     'page': page,
                     'query': term,
-                }
+                },
             }).encode(), headers=self._HEADERS)
         obj = traverse_obj(resp, ('data', 'search', {dict}))
         if not obj:

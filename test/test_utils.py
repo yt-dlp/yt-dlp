@@ -922,19 +922,19 @@ class TestUtil(unittest.TestCase):
     def test_normalize_url(self):
         self.assertEqual(
             normalize_url('http://wowza.imust.org/srv/vod/telemb/new/UPLOAD/UPLOAD/20224_IncendieHavré_FD.mp4'),
-            'http://wowza.imust.org/srv/vod/telemb/new/UPLOAD/UPLOAD/20224_IncendieHavre%CC%81_FD.mp4'
+            'http://wowza.imust.org/srv/vod/telemb/new/UPLOAD/UPLOAD/20224_IncendieHavre%CC%81_FD.mp4',
         )
         self.assertEqual(
             normalize_url('http://www.ardmediathek.de/tv/Sturm-der-Liebe/Folge-2036-Zu-Mann-und-Frau-erklärt/Das-Erste/Video?documentId=22673108&bcastId=5290'),
-            'http://www.ardmediathek.de/tv/Sturm-der-Liebe/Folge-2036-Zu-Mann-und-Frau-erkl%C3%A4rt/Das-Erste/Video?documentId=22673108&bcastId=5290'
+            'http://www.ardmediathek.de/tv/Sturm-der-Liebe/Folge-2036-Zu-Mann-und-Frau-erkl%C3%A4rt/Das-Erste/Video?documentId=22673108&bcastId=5290',
         )
         self.assertEqual(
             normalize_url('http://тест.рф/фрагмент'),
-            'http://xn--e1aybc.xn--p1ai/%D1%84%D1%80%D0%B0%D0%B3%D0%BC%D0%B5%D0%BD%D1%82'
+            'http://xn--e1aybc.xn--p1ai/%D1%84%D1%80%D0%B0%D0%B3%D0%BC%D0%B5%D0%BD%D1%82',
         )
         self.assertEqual(
             normalize_url('http://тест.рф/абв?абв=абв#абв'),
-            'http://xn--e1aybc.xn--p1ai/%D0%B0%D0%B1%D0%B2?%D0%B0%D0%B1%D0%B2=%D0%B0%D0%B1%D0%B2#%D0%B0%D0%B1%D0%B2'
+            'http://xn--e1aybc.xn--p1ai/%D0%B0%D0%B1%D0%B2?%D0%B0%D0%B1%D0%B2=%D0%B0%D0%B1%D0%B2#%D0%B0%D0%B1%D0%B2',
         )
         self.assertEqual(normalize_url('http://vimeo.com/56015672#at=0'), 'http://vimeo.com/56015672#at=0')
 
@@ -979,7 +979,7 @@ class TestUtil(unittest.TestCase):
                     'e': 'false',
                     'f': '"false"',
                     'g': 'var',
-                }
+                },
             )),
             {
                 'null': None,
@@ -988,8 +988,8 @@ class TestUtil(unittest.TestCase):
                 'trueStr': 'true',
                 'false': False,
                 'falseStr': 'false',
-                'unresolvedVar': 'var'
-            }
+                'unresolvedVar': 'var',
+            },
         )
 
         self.assertDictEqual(
@@ -1005,14 +1005,14 @@ class TestUtil(unittest.TestCase):
                     'b': '"123"',
                     'c': '1.23',
                     'd': '"1.23"',
-                }
+                },
             )),
             {
                 'int': 123,
                 'intStr': '123',
                 'float': 1.23,
                 'floatStr': '1.23',
-            }
+            },
         )
 
         self.assertDictEqual(
@@ -1028,14 +1028,14 @@ class TestUtil(unittest.TestCase):
                     'b': '"{}"',
                     'c': '[]',
                     'd': '"[]"',
-                }
+                },
             )),
             {
                 'object': {},
                 'objectStr': '{}',
                 'array': [],
                 'arrayStr': '[]',
-            }
+            },
         )
 
     def test_js_to_json_realworld(self):
@@ -1115,7 +1115,7 @@ class TestUtil(unittest.TestCase):
             'e': [],
             'f': 'abc',
             'g': '',
-            '42': 42
+            '42': 42,
         })
 
         on = js_to_json('["abc", "def",]')
@@ -1265,7 +1265,7 @@ class TestUtil(unittest.TestCase):
     def test_args_to_str(self):
         self.assertEqual(
             args_to_str(['foo', 'ba/r', '-baz', '2 be', '']),
-            'foo ba/r -baz \'2 be\' \'\'' if compat_os_name != 'nt' else 'foo ba/r -baz "2 be" ""'
+            'foo ba/r -baz \'2 be\' \'\'' if compat_os_name != 'nt' else 'foo ba/r -baz "2 be" ""',
         )
 
     def test_parse_filesize(self):
@@ -1348,10 +1348,10 @@ ffmpeg version 2.4.4 Copyright (c) 2000-2014 the FFmpeg ...'''), '2.4.4')
         self.assertTrue(is_html(  # UTF-8 with BOM
             b'\xef\xbb\xbf<!DOCTYPE foo>\xaaa'))
         self.assertTrue(is_html(  # UTF-16-LE
-            b'\xff\xfe<\x00h\x00t\x00m\x00l\x00>\x00\xe4\x00'
+            b'\xff\xfe<\x00h\x00t\x00m\x00l\x00>\x00\xe4\x00',
         ))
         self.assertTrue(is_html(  # UTF-16-BE
-            b'\xfe\xff\x00<\x00h\x00t\x00m\x00l\x00>\x00\xe4'
+            b'\xfe\xff\x00<\x00h\x00t\x00m\x00l\x00>\x00\xe4',
         ))
         self.assertTrue(is_html(  # UTF-32-BE
             b'\x00\x00\xFE\xFF\x00\x00\x00<\x00\x00\x00h\x00\x00\x00t\x00\x00\x00m\x00\x00\x00l\x00\x00\x00>\x00\x00\x00\xe4'))
@@ -2003,7 +2003,7 @@ Line 1
                          msg='int fn with expected_type int should give int')
         self.assertEqual(try_call(lambda: 1, expected_type=dict), None,
                          msg='int fn with wrong expected_type should give None')
-        self.assertEqual(try_call(total, args=(0, 1, 0, ), expected_type=int), 1,
+        self.assertEqual(try_call(total, args=(0, 1, 0), expected_type=int), 1,
                          msg='fn should accept arglist')
         self.assertEqual(try_call(total, kwargs={'a': 0, 'b': 1, 'c': 0}, expected_type=int), 1,
                          msg='fn should accept kwargs')

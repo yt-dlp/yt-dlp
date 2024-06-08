@@ -27,7 +27,7 @@ class Sport5IE(InfoExtractor):
                 'categories': list,
             },
             'skip': 'Blocked outside of Israel',
-        }
+        },
     ]
 
     def _real_extract(self, url):

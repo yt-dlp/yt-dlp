@@ -236,7 +236,7 @@ def aes_gcm_decrypt_and_verify(data, key, tag, nonce):
         data
         + [0] * (BLOCK_SIZE_BYTES - len(data) + pad_len)        # pad
         + bytes_to_intlist((0 * 8).to_bytes(8, 'big')           # length of associated data
-                           + ((len(data) * 8).to_bytes(8, 'big')))  # length of data
+                           + ((len(data) * 8).to_bytes(8, 'big'))),  # length of data
     )
 
     if tag != aes_ctr_encrypt(s_tag, key, j0):

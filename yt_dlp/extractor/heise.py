@@ -105,7 +105,7 @@ class HeiseIE(InfoExtractor):
             'description': 'md5:fa164d8c8707dff124a9626d39205f5d',
             'timestamp': 1414825200,
             'upload_date': '20141101',
-        }
+        },
     }, {
         'url': 'http://www.heise.de/ct/artikel/c-t-uplink-3-3-Owncloud-Tastaturen-Peilsender-Smartphone-2403911.html',
         'only_matching': True,

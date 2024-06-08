@@ -21,7 +21,7 @@ class TVPlayerIE(InfoExtractor):
         'params': {
             # m3u8 download
             'skip_download': True,
-        }
+        },
     }
 
     def _real_extract(self, url):

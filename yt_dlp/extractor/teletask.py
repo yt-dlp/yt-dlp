@@ -20,7 +20,7 @@ class TeleTaskIE(InfoExtractor):
                 'ext': 'mp4',
                 'title': 'Duplicate Detection',
                 'upload_date': '20141218',
-            }
+            },
         }, {
             'md5': 'e1e7218c5f0e4790015a437fcf6c71b4',
             'info_dict': {
@@ -28,8 +28,8 @@ class TeleTaskIE(InfoExtractor):
                 'ext': 'mp4',
                 'title': 'Duplicate Detection',
                 'upload_date': '20141218',
-            }
-        }]
+            },
+        }],
     }
 
     def _real_extract(self, url):

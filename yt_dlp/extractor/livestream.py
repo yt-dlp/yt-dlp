@@ -41,13 +41,13 @@ class LivestreamIE(InfoExtractor):
             'like_count': int,
             'view_count': int,
             'comment_count': int,
-            'thumbnail': r're:^http://.*\.jpg$'
-        }
+            'thumbnail': r're:^http://.*\.jpg$',
+        },
     }, {
         'url': 'https://livestream.com/coheedandcambria/websterhall',
         'info_dict': {
             'id': '1585861',
-            'title': 'Live From Webster Hall'
+            'title': 'Live From Webster Hall',
         },
         'playlist_mincount': 1,
     }, {
@@ -69,8 +69,8 @@ class LivestreamIE(InfoExtractor):
             'timestamp': 1331042383,
             'thumbnail': 'http://img.new.livestream.com/videos/0000000000000372/cacbeed6-fb68-4b5e-ad9c-e148124e68a9_640x427.jpg',
             'duration': 15.332,
-            'ext': 'mp4'
-        }
+            'ext': 'mp4',
+        },
     }, {
         'url': 'https://new.livestream.com/accounts/362/events/3557232/videos/67864563/player?autoPlay=false&height=360&mute=false&width=640',
         'only_matching': True,

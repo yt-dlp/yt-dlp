@@ -17,12 +17,12 @@ class NFHSNetworkIE(InfoExtractor):
             'uploader_url': 'https://www.nfhsnetwork.com/schools/rockford-high-school-rockford-mi',
             'location': 'Rockford, Michigan',
             'timestamp': 1616859000,
-            'upload_date': '20210327'
+            'upload_date': '20210327',
         },
         'params': {
             # m3u8 download
             'skip_download': True,
-        }
+        },
     }, {
         # Non-sport activity with description
         'url': 'https://www.nfhsnetwork.com/events/limon-high-school-limon-co/evt4a30e3726c',
@@ -36,12 +36,12 @@ class NFHSNetworkIE(InfoExtractor):
             'uploader_url': 'https://www.nfhsnetwork.com/schools/limon-high-school-limon-co',
             'location': 'Limon, Colorado',
             'timestamp': 1607893200,
-            'upload_date': '20201213'
+            'upload_date': '20201213',
         },
         'params': {
             # m3u8 download
             'skip_download': True,
-        }
+        },
     }, {
         # Postseason game
         'url': 'https://www.nfhsnetwork.com/events/nfhs-network-special-events/dd8de71d45',
@@ -54,12 +54,12 @@ class NFHSNetworkIE(InfoExtractor):
             'uploader_url': 'https://www.nfhsnetwork.com/affiliates/socal-sports-productions',
             'location': 'San Diego, California',
             'timestamp': 1451187000,
-            'upload_date': '20151226'
+            'upload_date': '20151226',
         },
         'params': {
             # m3u8 download
             'skip_download': True,
-        }
+        },
     }, {
         # Video with no broadcasts object
         'url': 'https://www.nfhsnetwork.com/events/wiaa-wi/9aa2f92f82',
@@ -73,13 +73,13 @@ class NFHSNetworkIE(InfoExtractor):
             'uploader_url': 'https://www.nfhsnetwork.com/associations/wiaa-wi',
             'location': 'Stevens Point, Wisconsin',
             'timestamp': 1421856000,
-            'upload_date': '20150121'
+            'upload_date': '20150121',
         },
         'params': {
             # m3u8 download
             'skip_download': True,
-        }
-    }
+        },
+    },
     ]
 
     def _real_extract(self, url):

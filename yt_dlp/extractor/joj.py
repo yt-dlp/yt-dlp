@@ -25,7 +25,7 @@ class JojIE(InfoExtractor):
             'title': 'NOVÉ BÝVANIE',
             'thumbnail': r're:^https?://.*?$',
             'duration': 3118,
-        }
+        },
     }, {
         'url': 'https://media.joj.sk/embed/CSM0Na0l0p1',
         'info_dict': {
@@ -35,7 +35,7 @@ class JojIE(InfoExtractor):
             'title': 'Extrémne rodiny 2 - POKRAČOVANIE (2012/04/09 21:30:00)',
             'duration': 3937,
             'thumbnail': r're:^https?://.*?$',
-        }
+        },
     }, {
         'url': 'https://media.joj.sk/embed/9i1cxv',
         'only_matching': True,

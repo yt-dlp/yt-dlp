@@ -602,7 +602,7 @@ def get_postprocessors(opts):
         yield {
             'key': 'MetadataParser',
             'actions': actions,
-            'when': when
+            'when': when,
         }
     sponsorblock_query = opts.sponsorblock_mark | opts.sponsorblock_remove
     if sponsorblock_query:
@@ -610,19 +610,19 @@ def get_postprocessors(opts):
             'key': 'SponsorBlock',
             'categories': sponsorblock_query,
             'api': opts.sponsorblock_api,
-            'when': 'after_filter'
+            'when': 'after_filter',
         }
     if opts.convertsubtitles:
         yield {
             'key': 'FFmpegSubtitlesConvertor',
             'format': opts.convertsubtitles,
-            'when': 'before_dl'
+            'when': 'before_dl',
         }
     if opts.convertthumbnails:
         yield {
             'key': 'FFmpegThumbnailsConvertor',
             'format': opts.convertthumbnails,
-            'when': 'before_dl'
+            'when': 'before_dl',
         }
     if opts.extractaudio:
         yield {
@@ -647,7 +647,7 @@ def get_postprocessors(opts):
         yield {
             'key': 'FFmpegEmbedSubtitle',
             # already_have_subtitle = True prevents the file from being deleted after embedding
-            'already_have_subtitle': opts.writesubtitles and keep_subs
+            'already_have_subtitle': opts.writesubtitles and keep_subs,
         }
         if not opts.writeautomaticsub and keep_subs:
             opts.writesubtitles = True
@@ -660,7 +660,7 @@ def get_postprocessors(opts):
             'remove_sponsor_segments': opts.sponsorblock_remove,
             'remove_ranges': opts.remove_ranges,
             'sponsorblock_chapter_title': opts.sponsorblock_chapter_title,
-            'force_keyframes': opts.force_keyframes_at_cuts
+            'force_keyframes': opts.force_keyframes_at_cuts,
         }
     # FFmpegMetadataPP should be run after FFmpegVideoConvertorPP and
     # FFmpegExtractAudioPP as containers before conversion may not support
@@ -694,7 +694,7 @@ def get_postprocessors(opts):
         yield {
             'key': 'EmbedThumbnail',
             # already_have_thumbnail = True prevents the file from being deleted after embedding
-            'already_have_thumbnail': opts.writethumbnail
+            'already_have_thumbnail': opts.writethumbnail,
         }
         if not opts.writethumbnail:
             opts.writethumbnail = True
@@ -741,7 +741,7 @@ def parse_options(argv=None):
     print_only = bool(opts.forceprint) and all(k not in opts.forceprint for k in POSTPROCESS_WHEN[3:])
     any_getting = any(getattr(opts, k) for k in (
         'dumpjson', 'dump_single_json', 'getdescription', 'getduration', 'getfilename',
-        'getformat', 'getid', 'getthumbnail', 'gettitle', 'geturl'
+        'getformat', 'getid', 'getthumbnail', 'gettitle', 'geturl',
     ))
     if opts.quiet is None:
         opts.quiet = any_getting or opts.print_json or bool(opts.forceprint)

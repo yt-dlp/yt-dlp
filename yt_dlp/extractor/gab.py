@@ -22,7 +22,7 @@ class GabTVIE(InfoExtractor):
             'uploader': 'Wurzelroot',
             'uploader_id': '608fb0a85738fd1974984f7d',
             'thumbnail': 'https://tv.gab.com/image/61217eacea5665de450d0488',
-        }
+        },
     }]
 
     def _real_extract(self, url):
@@ -44,7 +44,7 @@ class GabTVIE(InfoExtractor):
                 'format_id': resolution,
                 'vcodec': 'h264',
                 'acodec': 'aac',
-                'ext': 'mp4'
+                'ext': 'mp4',
             }
             if 'audio-' in resolution:
                 frmt['abr'] = str_to_int(resolution.replace('audio-', ''))
@@ -79,7 +79,7 @@ class GabIE(InfoExtractor):
             'description': 'md5:204055fafd5e1a519f5d6db953567ca3',
             'timestamp': 1635192289,
             'upload_date': '20211025',
-        }
+        },
     }, {
         'url': 'https://gab.com/TheLonelyProud/posts/107045884469287653',
         'md5': 'f9cefcfdff6418e392611a828d47839d',
@@ -91,7 +91,7 @@ class GabIE(InfoExtractor):
             'timestamp': 1633390571,
             'upload_date': '20211004',
             'uploader': 'TheLonelyProud',
-        }
+        },
     }]
 
     def _real_extract(self, url):

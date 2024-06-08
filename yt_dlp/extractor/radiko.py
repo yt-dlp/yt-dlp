@@ -207,8 +207,8 @@ class RadikoIE(RadikoBaseIE):
                     'ft': radio_begin,
                     'end_at': radio_end,
                     'to': radio_end,
-                    'seek': video_id
-                }
+                    'seek': video_id,
+                },
             ),
         }
 

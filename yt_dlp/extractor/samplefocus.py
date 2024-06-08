@@ -28,10 +28,10 @@ class SampleFocusIE(InfoExtractor):
         },
     }, {
         'url': 'https://samplefocus.com/samples/dababy-style-bass-808',
-        'only_matching': True
+        'only_matching': True,
     }, {
         'url': 'https://samplefocus.com/samples/young-chop-kick',
-        'only_matching': True
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):

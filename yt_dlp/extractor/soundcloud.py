@@ -378,7 +378,7 @@ class SoundcloudBaseIE(InfoExtractor):
             'comment_count': extract_count('comment'),
             'repost_count': extract_count('reposts'),
             'genres': traverse_obj(info, ('genre', {str}, {lambda x: x or None}, all)),
-            'formats': formats if not extract_flat else None
+            'formats': formats if not extract_flat else None,
         }
 
     @classmethod
@@ -430,7 +430,7 @@ class SoundcloudIE(SoundcloudBaseIE):
                 'thumbnail': 'https://i1.sndcdn.com/artworks-000031955188-rwb18x-original.jpg',
                 'uploader_url': 'https://soundcloud.com/ethmusic',
                 'genres': [],
-            }
+            },
         },
         # geo-restricted
         {

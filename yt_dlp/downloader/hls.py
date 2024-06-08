@@ -228,7 +228,7 @@ class HlsFD(FragmentFD):
                         'url': frag_url,
                         'decrypt_info': decrypt_info,
                         'byte_range': byte_range,
-                        'media_sequence': media_sequence
+                        'media_sequence': media_sequence,
                     })
                     media_sequence += 1
 

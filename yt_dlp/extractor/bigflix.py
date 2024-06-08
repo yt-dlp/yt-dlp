@@ -21,7 +21,7 @@ class BigflixIE(InfoExtractor):
         },
         'params': {
             'skip_download': True,
-        }
+        },
     }, {
         # multiple formats
         'url': 'http://www.bigflix.com/Malayalam-movies/Drama-movies/Indian-Rupee/15967',
@@ -69,5 +69,5 @@ class BigflixIE(InfoExtractor):
             'id': video_id,
             'title': title,
             'description': description,
-            'formats': formats
+            'formats': formats,
         }

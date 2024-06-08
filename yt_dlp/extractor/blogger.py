@@ -21,7 +21,7 @@ class BloggerIE(InfoExtractor):
             'ext': 'mp4',
             'thumbnail': r're:^https?://.*',
             'duration': 76.068,
-        }
+        },
     }]
 
     def _real_extract(self, url):

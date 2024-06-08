@@ -83,7 +83,7 @@ class MGTVIE(InfoExtractor):
                 'https://pcweb.api.mgtv.com/player/video', video_id, query={
                     'tk2': tk2,
                     'video_id': video_id,
-                    'type': 'pch5'
+                    'type': 'pch5',
                 }, headers=self.geo_verification_headers())['data']
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError) and e.cause.status == 401:
@@ -160,6 +160,6 @@ class MGTVIE(InfoExtractor):
             subtitles.setdefault(locale.lower(), []).append({
                 'url': sub_url,
                 'name': sub.get('name'),
-                'ext': 'srt'
+                'ext': 'srt',
             })
         return subtitles

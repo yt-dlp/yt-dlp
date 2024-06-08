@@ -26,7 +26,7 @@ class NetzkinoIE(InfoExtractor):
         },
         'params': {
             'skip_download': 'Download only works from Germany',
-        }
+        },
     }, {
         'url': 'https://www.netzkino.de/#!/filme/dr-jekyll-mrs-hyde-2',
         'md5': 'c7728b2dadd04ff6727814847a51ef03',
@@ -42,7 +42,7 @@ class NetzkinoIE(InfoExtractor):
         },
         'params': {
             'skip_download': 'Download only works from Germany',
-        }
+        },
     }]
 
     def _real_extract(self, url):

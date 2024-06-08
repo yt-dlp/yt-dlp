@@ -104,7 +104,7 @@ class GloboIE(InfoExtractor):
                 'quality': 'max',
                 'content_protection': 'widevine',
                 'vsid': '581b986b-4c40-71f0-5a58-803e579d5fa2',
-                'tz': '-3.0:00'
+                'tz': '-3.0:00',
             }).encode())
 
         self._request_webpage(HEADRequest(security['sources'][0]['url_template']), video_id, 'Getting locksession cookie')

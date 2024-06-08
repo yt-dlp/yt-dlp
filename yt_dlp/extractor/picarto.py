@@ -17,7 +17,7 @@ class PicartoIE(InfoExtractor):
             'ext': 'mp4',
             'title': 're:^Setz [0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}$',
             'timestamp': int,
-            'is_live': True
+            'is_live': True,
         },
         'skip': 'Stream is offline',
     }
@@ -95,7 +95,7 @@ class PicartoVodIE(InfoExtractor):
             'id': 'ArtofZod_2017.12.12.00.13.23.flv',
             'ext': 'mp4',
             'title': 'ArtofZod_2017.12.12.00.13.23.flv',
-            'thumbnail': r're:^https?://.*\.jpg'
+            'thumbnail': r're:^https?://.*\.jpg',
         },
         'skip': 'The VOD does not exist',
     }, {
@@ -108,7 +108,7 @@ class PicartoVodIE(InfoExtractor):
             'thumbnail': r're:^https?://.*\.jpg',
             'channel': 'ArtofZod',
             'age_limit': 18,
-        }
+        },
     }, {
         'url': 'https://picarto.tv/videopopout/Plague',
         'only_matching': True,
@@ -130,7 +130,7 @@ class PicartoVodIE(InfoExtractor):
       name
     }}
   }}
-}}'''
+}}''',
             })['data']['video']
 
         file_name = data['file_name']

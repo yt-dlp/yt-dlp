@@ -14,7 +14,7 @@ class EpiconIE(InfoExtractor):
             'title': 'Air Battle of Srinagar',
             'description': 'md5:c4de2013af9bc05ae4392e4115d518d7',
             'thumbnail': r're:^https?://.*\.jpg$',
-        }
+        },
     }, {
         'url': 'https://www.epicon.in/movies/krit',
         'info_dict': {
@@ -23,7 +23,7 @@ class EpiconIE(InfoExtractor):
             'title': 'Krit',
             'description': 'md5:c12b35dad915d48ccff7f013c79bab4a',
             'thumbnail': r're:^https?://.*\.jpg$',
-        }
+        },
     }, {
         'url': 'https://www.epicon.in/tv-shows/paapnaashini-ganga/season-1/vardaan',
         'info_dict': {
@@ -32,7 +32,7 @@ class EpiconIE(InfoExtractor):
             'title': 'Paapnaashini Ganga - Season 1 - Ep 1 - VARDAAN',
             'description': 'md5:f517058c3d0402398eefa6242f4dd6ae',
             'thumbnail': r're:^https?://.*\.jpg$',
-        }
+        },
     }, {
         'url': 'https://www.epicon.in/movies/jayadev',
         'info_dict': {
@@ -41,7 +41,7 @@ class EpiconIE(InfoExtractor):
             'title': 'Jayadev',
             'description': 'md5:09e349eecd8e585a3b6466904f19df6c',
             'thumbnail': r're:^https?://.*\.jpg$',
-        }
+        },
     }]
 
     def _real_extract(self, url):

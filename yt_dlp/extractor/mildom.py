@@ -150,7 +150,7 @@ class MildomVodIE(MildomBaseIE):
             'protocol': 'm3u8_native',
             'vcodec': 'none',
             'acodec': 'aac',
-            'ext': 'm4a'
+            'ext': 'm4a',
         }]
         for fmt in autoplay['video_link']:
             formats.append({
@@ -161,7 +161,7 @@ class MildomVodIE(MildomBaseIE):
                 'height': fmt['level'],
                 'vcodec': 'h264',
                 'acodec': 'aac',
-                'ext': 'mp4'
+                'ext': 'mp4',
             })
 
         return {

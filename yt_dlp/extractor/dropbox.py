@@ -19,8 +19,8 @@ class DropboxIE(InfoExtractor):
             'info_dict': {
                 'id': 'nelirfsxnmcfbfh',
                 'ext': 'mp4',
-                'title': 'youtube-dl test video \'ä"BaW_jenozKc'
-            }
+                'title': 'youtube-dl test video \'ä"BaW_jenozKc',
+            },
         }, {
             'url': 'https://www.dropbox.com/s/nelirfsxnmcfbfh',
             'only_matching': True,
@@ -81,12 +81,12 @@ class DropboxIE(InfoExtractor):
                 'url': update_url_query(url, {'dl': '1'}),
                 'format_id': 'original',
                 'format_note': 'Original',
-                'quality': 1
+                'quality': 1,
             })
 
         return {
             'id': video_id,
             'title': title,
             'formats': formats,
-            'subtitles': subtitles
+            'subtitles': subtitles,
         }

@@ -75,7 +75,7 @@ class BBCCoUkIE(InfoExtractor):
             'params': {
                 # rtmp download
                 'skip_download': True,
-            }
+            },
         },
         {
             'url': 'http://www.bbc.co.uk/iplayer/episode/b00yng5w/The_Man_in_Black_Series_3_The_Printed_Name/',
@@ -148,7 +148,7 @@ class BBCCoUkIE(InfoExtractor):
             'params': {
                 # rtmp download
                 'skip_download': True,
-            }
+            },
         }, {
             'url': 'http://www.bbc.co.uk/music/clips/p025c0zz',
             'note': 'Video',
@@ -162,7 +162,7 @@ class BBCCoUkIE(InfoExtractor):
             'params': {
                 # rtmp download
                 'skip_download': True,
-            }
+            },
         }, {
             'url': 'http://www.bbc.co.uk/iplayer/episode/b054fn09/ad/natural-world-20152016-2-super-powered-owls',
             'info_dict': {
@@ -641,7 +641,7 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
         },
         'params': {
             'skip_download': True,
-        }
+        },
     }, {
         # article with single video embedded with data-playable containing XML playlist
         # with direct video links as progressiveDownloadUrl (for now these are extracted)
@@ -884,7 +884,7 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
             'uploader_id': 'bbc_world_service',
             'series': 'CrowdScience',
             'chapters': [],
-        }
+        },
     }, {  # onion routes
         'url': 'https://www.bbcnewsd73hkzno2ini43t4gblxvycyac5aw4gnv7t2rccijh7745uqd.onion/news/av/world-europe-63208576',
         'only_matching': True,
@@ -1142,7 +1142,7 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
                         video_id, url_transparent=True)
                 entry.update({
                     'timestamp': traverse_obj(morph_payload, (
-                        'body', 'content', 'article', 'dateTimeInfo', 'dateTime', {parse_iso8601})
+                        'body', 'content', 'article', 'dateTimeInfo', 'dateTime', {parse_iso8601}),
                     ),
                     **traverse_obj(video_data, {
                         'thumbnail': (('iChefImage', 'image'), {url_or_none}, any),
@@ -1189,7 +1189,7 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
                             'primary', 'secondary', 'tertiary', delim=' - ', from_dict=x)}),
                         'start_time': ('offset', 'start', {float_or_none}),
                         'end_time': ('offset', 'end', {float_or_none}),
-                    })
+                    }),
                 ),
             }
 
@@ -1287,7 +1287,7 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
                     'description': ('synopses', ('long', 'medium', 'short'), {str}, {lambda x: x or None}, any),
                     'duration': ('versions', 0, 'duration', {int}),
                     'timestamp': ('versions', 0, 'availableFrom', {functools.partial(int_or_none, scale=1000)}),
-                })
+                }),
             }
 
         def is_type(*types):
@@ -1712,7 +1712,7 @@ class BBCCoUkIPlayerEpisodesIE(BBCCoUkIPlayerPlaylistBaseIE):
             variables['sliceId'] = series_id
         return self._download_json(
             'https://graph.ibl.api.bbc.co.uk/', pid, headers={
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
             }, data=json.dumps({
                 'id': '5692d93d5aac8d796a0305e895e61551',
                 'variables': variables,

@@ -67,7 +67,7 @@ class ACastIE(ACastBaseIE):
             'display_id': '2.raggarmordet-rosterurdetforflutna',
             'season_number': 4,
             'season': 'Season 4',
-        }
+        },
     }, {
         'url': 'http://embed.acast.com/adambuxton/ep.12-adam-joeschristmaspodcast2015',
         'only_matching': True,
@@ -93,7 +93,7 @@ class ACastIE(ACastBaseIE):
             'series': 'Democracy Sausage with Mark Kenny',
             'timestamp': 1684826362,
             'description': 'md5:feabe1fc5004c78ee59c84a46bf4ba16',
-        }
+        },
     }]
 
     def _real_extract(self, url):

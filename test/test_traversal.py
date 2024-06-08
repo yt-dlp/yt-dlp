@@ -70,7 +70,7 @@ class TestTraversal:
 
     def test_traversal_set(self):
         # transformation/type, like `expected_type`
-        assert traverse_obj(_TEST_DATA, (..., {str.upper}, )) == ['STR'], \
+        assert traverse_obj(_TEST_DATA, (..., {str.upper})) == ['STR'], \
             'Function in set should be a transformation'
         assert traverse_obj(_TEST_DATA, (..., {str})) == ['str'], \
             'Type in set should be a type filter'

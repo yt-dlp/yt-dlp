@@ -51,7 +51,7 @@ class CDAIE(InfoExtractor):
             'age_limit': 0,
             'upload_date': '20160221',
             'timestamp': 1456078244,
-        }
+        },
     }, {
         'url': 'http://www.cda.pl/video/57413289',
         'md5': 'a88828770a8310fc00be6c95faf7f4d5',
@@ -67,7 +67,7 @@ class CDAIE(InfoExtractor):
             'age_limit': 0,
             'upload_date': '20160220',
             'timestamp': 1455968218,
-        }
+        },
     }, {
         # Age-restricted with vfilm redirection
         'url': 'https://www.cda.pl/video/8753244c4',
@@ -85,7 +85,7 @@ class CDAIE(InfoExtractor):
             'average_rating': float,
             'timestamp': 1633888264,
             'upload_date': '20211010',
-        }
+        },
     }, {
         # Age-restricted without vfilm redirection
         'url': 'https://www.cda.pl/video/17028157b8',
@@ -103,7 +103,7 @@ class CDAIE(InfoExtractor):
             'average_rating': float,
             'timestamp': 1699705901,
             'upload_date': '20231111',
-        }
+        },
     }, {
         'url': 'http://ebd.cda.pl/0x0/5749950c',
         'only_matching': True,
@@ -314,7 +314,7 @@ class CDAIE(InfoExtractor):
                 video_url = self._download_json(
                     f'https://www.cda.pl/video/{video_id}', video_id, headers={
                         'Content-Type': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest'
+                        'X-Requested-With': 'XMLHttpRequest',
                     }, data=data, note=f'Fetching {quality} url',
                     errnote=f'Failed to fetch {quality} url', fatal=False)
                 if try_get(video_url, lambda x: x['result']['status']) == 'ok':
@@ -322,7 +322,7 @@ class CDAIE(InfoExtractor):
                     info_dict['formats'].append({
                         'url': video_url,
                         'format_id': quality,
-                        'height': int_or_none(quality[:-1])
+                        'height': int_or_none(quality[:-1]),
                     })
 
             if not info_dict['duration']:

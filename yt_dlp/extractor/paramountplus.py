@@ -170,19 +170,19 @@ class ParamountPlusSeriesIE(InfoExtractor):
         'playlist_mincount': 50,
         'info_dict': {
             'id': 'drake-josh',
-        }
+        },
     }, {
         'url': 'https://www.paramountplus.com/shows/hawaii_five_0/',
         'playlist_mincount': 240,
         'info_dict': {
             'id': 'hawaii_five_0',
-        }
+        },
     }, {
         'url': 'https://www.paramountplus.com/shows/spongebob-squarepants/',
         'playlist_mincount': 248,
         'info_dict': {
             'id': 'spongebob-squarepants',
-        }
+        },
     }]
 
     def _entries(self, show_name):

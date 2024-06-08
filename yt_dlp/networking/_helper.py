@@ -251,7 +251,7 @@ def create_connection(
     timeout=socket._GLOBAL_DEFAULT_TIMEOUT,
     source_address=None,
     *,
-    _create_socket_func=_socket_connect
+    _create_socket_func=_socket_connect,
 ):
     # Work around socket.create_connection() which tries all addresses from getaddrinfo() including IPv6.
     # This filters the addresses based on the given source_address.

@@ -219,12 +219,12 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
                     links_url, video_id, 'Downloading links JSON metadata', headers={
                         'X-Player-Token': authorization,
                         'X-Target-Distribution': lang,
-                        **self._HEADERS
+                        **self._HEADERS,
                     }, query={
                         'freeWithAds': 'true',
                         'adaptive': 'false',
                         'withMetadata': 'true',
-                        'source': 'Web'
+                        'source': 'Web',
                     })
                 break
             except ExtractorError as e:
@@ -320,7 +320,7 @@ class ADNSeasonIE(ADNBaseIE):
             f'{self._API_BASE_URL}video/show/{show_id}', video_show_slug,
             'Downloading episode list', headers={
                 'X-Target-Distribution': lang,
-                **self._HEADERS
+                **self._HEADERS,
             }, query={
                 'order': 'asc',
                 'limit': '-1',

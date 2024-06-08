@@ -153,7 +153,7 @@ class TedSeriesIE(TedBaseIE):
             'id': '3',
             'title': 'Small Thing Big Idea',
             'series': 'Small Thing Big Idea',
-            'description': 'md5:6869ca52cec661aef72b3e9f7441c55c'
+            'description': 'md5:6869ca52cec661aef72b3e9f7441c55c',
         },
         'playlist_mincount': 16,
     }, {
@@ -163,7 +163,7 @@ class TedSeriesIE(TedBaseIE):
             'title': 'The Way We Work Season 2',
             'series': 'The Way We Work',
             'description': 'md5:59469256e533e1a48c4aa926a382234c',
-            'season_number': 2
+            'season_number': 2,
         },
         'playlist_mincount': 8,
     }]
@@ -194,7 +194,7 @@ class TedPlaylistIE(TedBaseIE):
         'info_dict': {
             'id': '171',
             'title': 'The most popular talks of all time',
-            'description': 'md5:d2f22831dc86c7040e733a3cb3993d78'
+            'description': 'md5:d2f22831dc86c7040e733a3cb3993d78',
         },
         'playlist_mincount': 25,
     }]

@@ -39,7 +39,7 @@ class PladformIE(InfoExtractor):
             'uploader': 'Comedy Club',
             'duration': 367,
         },
-        'expected_warnings': ['HTTP Error 404: Not Found']
+        'expected_warnings': ['HTTP Error 404: Not Found'],
     }, {
         'url': 'https://out.pladform.ru/player?pl=64471&videoid=3777899&vk_puid15=0&vk_puid34=0',
         'md5': '53362fac3a27352da20fa2803cc5cd6f',

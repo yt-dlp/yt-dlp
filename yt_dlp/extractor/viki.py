@@ -43,7 +43,7 @@ class VikiBaseIE(InfoExtractor):
             'X-Viki-as-id': '100005a-1625321982-3932',
             'timestamp': str(timestamp),
             'signature': str(sig),
-            'x-viki-app-ver': self._APP_VERSION
+            'x-viki-app-ver': self._APP_VERSION,
         }
 
     def _api_query(self, path, version=4, **kwargs):
@@ -251,7 +251,7 @@ class VikiIE(VikiBaseIE):
         subtitles = dict((lang, [{
             'ext': ext,
             'url': self._API_URL_TEMPLATE % self._api_query(
-                f'videos/{video_id}/auth_subtitles/{lang}.{ext}', stream_id=stream_id)
+                f'videos/{video_id}/auth_subtitles/{lang}.{ext}', stream_id=stream_id),
         } for ext in ('srt', 'vtt')]) for lang in (video.get('subtitle_completions') or {}).keys())
 
         mpd_url = resp['url']
@@ -317,7 +317,7 @@ class VikiChannelIE(VikiBaseIE):
     def _entries(self, channel_id):
         params = {
             'app': self._APP, 'token': self._token, 'only_ids': 'true',
-            'direction': 'asc', 'sort': 'number', 'per_page': 30
+            'direction': 'asc', 'sort': 'number', 'per_page': 30,
         }
         video_types = self._configuration_arg('video_types') or self._video_types
         for video_type in video_types:

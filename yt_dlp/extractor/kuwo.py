@@ -18,7 +18,7 @@ class KuwoBaseIE(InfoExtractor):
         {'format': 'mp3-192', 'ext': 'mp3', 'br': '192kmp3', 'abr': 192, 'preference': 70},
         {'format': 'mp3-128', 'ext': 'mp3', 'br': '128kmp3', 'abr': 128, 'preference': 60},
         {'format': 'wma', 'ext': 'wma', 'preference': 20},
-        {'format': 'aac', 'ext': 'aac', 'abr': 48, 'preference': 10}
+        {'format': 'aac', 'ext': 'aac', 'abr': 48, 'preference': 10},
     ]
 
     def _get_formats(self, song_id, tolerate_ip_deny=False):
@@ -29,7 +29,7 @@ class KuwoBaseIE(InfoExtractor):
                 'br': file_format.get('br', ''),
                 'rid': 'MUSIC_%s' % song_id,
                 'type': 'convert_url',
-                'response': 'url'
+                'response': 'url',
             }
 
             song_url = self._download_webpage(
@@ -66,7 +66,7 @@ class KuwoIE(KuwoBaseIE):
             'title': '爱我别走',
             'creator': '张震岳',
             'upload_date': '20080122',
-            'description': 'md5:ed13f58e3c3bf3f7fd9fbc4e5a7aa75c'
+            'description': 'md5:ed13f58e3c3bf3f7fd9fbc4e5a7aa75c',
         },
         'skip': 'this song has been offline because of copyright issues',
     }, {

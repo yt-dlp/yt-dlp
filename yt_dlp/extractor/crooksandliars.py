@@ -21,7 +21,7 @@ class CrooksAndLiarsIE(InfoExtractor):
             'upload_date': '20150405',
             'uploader': 'Heather',
             'duration': 236,
-        }
+        },
     }, {
         'url': 'http://embed.crooksandliars.com/v/MTE3MjUtMzQ2MzA',
         'only_matching': True,

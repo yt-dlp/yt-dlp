@@ -61,7 +61,7 @@ class TV5UnisVideoIE(TV5UnisBaseIE):
             'ext': 'mp4',
             'title': 'Watatatow',
             'duration': 10.01,
-        }
+        },
     }
     _GQL_QUERY_NAME = 'productById'
 

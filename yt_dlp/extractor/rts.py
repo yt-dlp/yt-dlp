@@ -110,7 +110,7 @@ class RTSIE(SRGSSRIE):  # XXX: Do not subclass from concrete IE
         {
             'url': 'http://pages.rts.ch/emissions/passe-moi-les-jumelles/5624065-entre-ciel-et-mer.html',
             'only_matching': True,
-        }
+        },
     ]
 
     def _real_extract(self, url):

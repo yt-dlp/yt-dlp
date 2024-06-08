@@ -41,7 +41,7 @@ class NexxIE(InfoExtractor):
             'timestamp': 1384264416,
             'upload_date': '20131112',
         },
-        'skip': 'Spiegel nexx CDNs are now disabled'
+        'skip': 'Spiegel nexx CDNs are now disabled',
     }, {
         # episode with captions
         'url': 'https://api.nexx.cloud/v3.1/741/videos/byid/1701834',
@@ -92,7 +92,7 @@ class NexxIE(InfoExtractor):
             'timestamp': 1527874460,
             'upload_date': '20180601',
         },
-        'skip': 'Spiegel nexx CDNs are now disabled'
+        'skip': 'Spiegel nexx CDNs are now disabled',
     }, {
         'url': 'https://api.nexxcdn.com/v3/748/videos/byid/128907',
         'only_matching': True,
@@ -459,13 +459,13 @@ class NexxIE(InfoExtractor):
                     'data': '\n\n'.join(
                         f'{i + 1}\n{srt_subtitles_timecode(line["fromms"] / 1000)} --> {srt_subtitles_timecode(line["toms"] / 1000)}\n{line["caption"]}'
                         for i, line in enumerate(sub['data'])),
-                    'name': sub.get('language_long') or sub.get('title')
+                    'name': sub.get('language_long') or sub.get('title'),
                 })
             elif sub.get('url'):
                 subtitles.setdefault(sub.get('language', 'en'), []).append({
                     'url': sub['url'],
                     'ext': sub.get('format'),
-                    'name': sub.get('language_long') or sub.get('title')
+                    'name': sub.get('language_long') or sub.get('title'),
                 })
 
         return {

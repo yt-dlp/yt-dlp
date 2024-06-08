@@ -62,7 +62,7 @@ class SafariBaseIE(InfoExtractor):
             self._apply_first_set_cookie_header(urlh, cookie)
 
         _, urlh = self._download_webpage_handle(
-            auth.get('redirect_uri') or next_uri, None, 'Completing login',)
+            auth.get('redirect_uri') or next_uri, None, 'Completing login')
 
         if is_logged(urlh):
             self.LOGGED_IN = True

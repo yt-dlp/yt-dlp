@@ -167,7 +167,7 @@ class AWAANSeasonIE(InfoExtractor):
             'http://admin.mangomolo.com/analytics/index.php/plus/show',
             show_id, data=urlencode_postdata(data), headers={
                 'Origin': 'http://awaan.ae',
-                'Content-Type': 'application/x-www-form-urlencoded'
+                'Content-Type': 'application/x-www-form-urlencoded',
             })
         if not season_id:
             season_id = show['default_season']

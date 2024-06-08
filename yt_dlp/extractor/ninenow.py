@@ -55,7 +55,7 @@ class NineNowIE(InfoExtractor):
         'expected_warnings': ['Ignoring subtitle tracks'],
         'params': {
             'skip_download': True,
-        }
+        },
     }]
     BRIGHTCOVE_URL_TEMPLATE = 'http://players.brightcove.net/4460760524001/default_default/index.html?videoId=%s'
 
@@ -80,7 +80,7 @@ class NineNowIE(InfoExtractor):
                 continue
             common_data = {
                 'episode': (cache.get(current_key) or next(iter(cache.values())))[kind],
-                'season': (cache.get(current_key) or next(iter(cache.values()))).get('season', None)
+                'season': (cache.get(current_key) or next(iter(cache.values()))).get('season', None),
             }
             break
         else:

@@ -27,7 +27,7 @@ class RadLiveIE(InfoExtractor):
             'channel': 'Proximity',
             'channel_id': '9ce6dd01-70a4-4d59-afb6-d01f807cd009',
             'channel_url': 'https://rad.live/content/channel/9ce6dd01-70a4-4d59-afb6-d01f807cd009',
-        }
+        },
     }, {
         'url': 'https://rad.live/content/episode/bbcf66ec-0d02-4ca0-8dc0-4213eb2429bf',
         'md5': '40b2175f347592125d93e9a344080125',
@@ -164,7 +164,7 @@ query WebChannelListing ($lrn: ID!) {
             headers={'Content-Type': 'application/json'},
             data=json.dumps({
                 'query': self._QUERY,
-                'variables': {'lrn': f'lrn:12core:media:content:channel:{channel_id}'}
+                'variables': {'lrn': f'lrn:12core:media:content:channel:{channel_id}'},
             }).encode())
 
         data = traverse_obj(graphql, ('data', 'channel'))

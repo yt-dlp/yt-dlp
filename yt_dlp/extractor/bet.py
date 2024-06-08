@@ -19,7 +19,7 @@ class BetIE(MTVServicesInfoExtractor):
                 'thumbnail': r're:(?i)^https?://.*\.jpg$',
                 'subtitles': {
                     'en': 'mincount:2',
-                }
+                },
             },
             'params': {
                 # rtmp download
@@ -39,13 +39,13 @@ class BetIE(MTVServicesInfoExtractor):
                 'thumbnail': r're:(?i)^https?://.*\.jpg$',
                 'subtitles': {
                     'en': 'mincount:2',
-                }
+                },
             },
             'params': {
                 # rtmp download
                 'skip_download': True,
             },
-        }
+        },
     ]
 
     _FEED_URL = 'http://feeds.mtvnservices.com/od/feed/bet-mrss-player'

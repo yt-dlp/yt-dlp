@@ -15,7 +15,7 @@ class RestudyIE(InfoExtractor):
         'params': {
             # rtmp download
             'skip_download': True,
-        }
+        },
     }, {
         'url': 'https://portal.restudy.dk/video/leiden-frosteffekt/id/1637',
         'only_matching': True,

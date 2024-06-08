@@ -98,7 +98,7 @@ class HungamaIE(HungamaBaseIE):
                 'en': [{
                     'url': video_json['sub_title'],
                     'ext': 'vtt',
-                }]
+                }],
             } if video_json.get('sub_title') else None,
         }
 

@@ -33,7 +33,7 @@ class StreetVoiceIE(InfoExtractor):
             'track': '流浪',
             'track_id': '123688',
             'album': '2010',
-        }
+        },
     }, {
         'url': 'http://tw.streetvoice.com/skippylu/songs/94440/',
         'only_matching': True,

@@ -31,7 +31,7 @@ class SevenPlusIE(BrightcoveNewBaseIE):
         },
         'params': {
             'skip_download': True,
-        }
+        },
     }, {
         'url': 'https://7plus.com.au/UUUU?episode-id=AUMS43-001',
         'only_matching': True,

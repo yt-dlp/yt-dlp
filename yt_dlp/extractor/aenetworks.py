@@ -142,7 +142,7 @@ class AENetworksIE(AENetworksBaseIE):
             'skip_download': True,
         },
         'add_ie': ['ThePlatform'],
-        'skip': 'Geo-restricted - This content is not available in your location.'
+        'skip': 'Geo-restricted - This content is not available in your location.',
     }, {
         'url': 'http://www.aetv.com/shows/duck-dynasty/season-9/episode-1',
         'info_dict': {
@@ -171,28 +171,28 @@ class AENetworksIE(AENetworksBaseIE):
         'skip': 'This video is only available for users of participating TV providers.',
     }, {
         'url': 'http://www.fyi.tv/shows/tiny-house-nation/season-1/episode-8',
-        'only_matching': True
+        'only_matching': True,
     }, {
         'url': 'http://www.mylifetime.com/shows/project-runway-junior/season-1/episode-6',
-        'only_matching': True
+        'only_matching': True,
     }, {
         'url': 'http://www.mylifetime.com/movies/center-stage-on-pointe/full-movie',
-        'only_matching': True
+        'only_matching': True,
     }, {
         'url': 'https://watch.lifetimemovieclub.com/movies/10-year-reunion/full-movie',
-        'only_matching': True
+        'only_matching': True,
     }, {
         'url': 'http://www.history.com/specials/sniper-into-the-kill-zone/full-special',
-        'only_matching': True
+        'only_matching': True,
     }, {
         'url': 'https://www.aetv.com/specials/hunting-jonbenets-killer-the-untold-story/preview-hunting-jonbenets-killer-the-untold-story',
-        'only_matching': True
+        'only_matching': True,
     }, {
         'url': 'http://www.history.com/videos/history-of-valentines-day',
-        'only_matching': True
+        'only_matching': True,
     }, {
         'url': 'https://play.aetv.com/shows/duck-dynasty/videos/best-of-duck-dynasty-getting-quack-in-shape',
-        'only_matching': True
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
@@ -248,10 +248,10 @@ class AENetworksCollectionIE(AENetworksListBaseIE):
         'playlist_mincount': 12,
     }, {
         'url': 'https://watch.historyvault.com/shows/america-the-story-of-us-2/season-1/list/america-the-story-of-us',
-        'only_matching': True
+        'only_matching': True,
     }, {
         'url': 'https://www.historyvault.com/collections/mysteryquest',
-        'only_matching': True
+        'only_matching': True,
     }]
     _RESOURCE = 'list'
     _ITEMS_KEY = 'items'

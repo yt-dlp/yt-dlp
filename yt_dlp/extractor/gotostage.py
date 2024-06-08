@@ -15,8 +15,8 @@ class GoToStageIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'What is GoToStage?',
             'thumbnail': r're:^https?://.*\.jpg$',
-            'duration': 93.924711
-        }
+            'duration': 93.924711,
+        },
     }, {
         'url': 'https://www.gotostage.com/channel/bacc3d3535b34bafacc3f4ef8d4df78a/recording/831e74cd3e0042be96defba627b6f676/watch?source=HOMEPAGE',
         'only_matching': True,
@@ -36,7 +36,7 @@ class GoToStageIE(InfoExtractor):
             'productReferenceKey': metadata['productRefKey'],
             'firstName': 'foo',
             'lastName': 'bar',
-            'email': 'foobar@example.com'
+            'email': 'foobar@example.com',
         }
 
         registration_response = self._download_json(
@@ -63,5 +63,5 @@ class GoToStageIE(InfoExtractor):
             'thumbnail': url_or_none(try_get(metadata, lambda x: x['thumbnail']['location'])),
             'duration': try_get(metadata, lambda x: x['duration'], float),
             'categories': [try_get(metadata, lambda x: x['category'], compat_str)],
-            'is_live': False
+            'is_live': False,
         }

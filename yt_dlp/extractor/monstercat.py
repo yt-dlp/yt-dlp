@@ -27,7 +27,7 @@ class MonstercatIE(InfoExtractor):
             'release_date': '20230711',
             'album': 'The Secret Language of Trees',
             'album_artist': 'BT',
-        }
+        },
     }]
 
     def _extract_tracks(self, table, album_meta):
@@ -51,7 +51,7 @@ class MonstercatIE(InfoExtractor):
                 'artist': clean_html(try_call(lambda: get_element_by_class('d-block fs-xxsmall', td))),
                 'url': f'https://www.monstercat.com/api/release/{release_id}/track-stream/{track_id}',
                 'id': track_id,
-                'ext': 'mp3'
+                'ext': 'mp3',
             }
 
     def _real_extract(self, url):

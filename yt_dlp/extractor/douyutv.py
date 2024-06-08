@@ -208,7 +208,7 @@ class DouyuTVIE(DouyuBaseIE):
                 'description': ('show_details', {str}),
                 'uploader': ('nickname', {str}),
                 'thumbnail': ('room_src', {url_or_none}),
-            })
+            }),
         }
 
 
@@ -284,7 +284,7 @@ class DouyuShowIE(DouyuBaseIE):
                     'quality': self._QUALITIES.get(name),
                     'ext': 'mp4' if ext == 'm3u8' else ext,
                     'protocol': 'm3u8_native' if ext == 'm3u8' else 'https',
-                    **parse_resolution(self._RESOLUTIONS.get(name))
+                    **parse_resolution(self._RESOLUTIONS.get(name)),
                 })
             else:
                 self.to_screen(
@@ -302,5 +302,5 @@ class DouyuShowIE(DouyuBaseIE):
                 'timestamp': ('content', 'create_time', {int_or_none}),
                 'view_count': ('content', 'view_num', {int_or_none}),
                 'tags': ('videoTag', ..., 'tagName', {str}),
-            }))
+            })),
         }

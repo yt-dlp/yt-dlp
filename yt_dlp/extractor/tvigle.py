@@ -46,7 +46,7 @@ class TvigleIE(InfoExtractor):
         }, {
             'url': 'https://cloud.tvigle.ru/video/5267604/',
             'only_matching': True,
-        }
+        },
     ]
 
     def _real_extract(self, url):

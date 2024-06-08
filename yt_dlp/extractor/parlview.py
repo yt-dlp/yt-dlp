@@ -24,7 +24,7 @@ class ParlviewIE(InfoExtractor):
         },
         'params': {
             'skip_download': True,
-        }
+        },
     }, {
         'url': 'https://parlview.aph.gov.au/mediaPlayer.php?videoID=539936',
         'only_matching': True,

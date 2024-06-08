@@ -51,7 +51,7 @@ class SohuIE(InfoExtractor):
             'upload_date': '20150305',
             'thumbnail': 'http://e3f49eaa46b57.cdn.sohucs.com//group1/M10/83/FA/MTAuMTAuODguODA=/6_14cbccdde5eg104SysCutcloud_78693464_7_0b.jpg',
             'tags': ['爱范儿', '爱范品', 'MWC', '手机'],
-        }
+        },
     }, {
         'note': 'Multipart video',
         'url': 'http://my.tv.sohu.com/pl/8384802/78910339.shtml',
@@ -71,22 +71,22 @@ class SohuIE(InfoExtractor):
                 'ext': 'mp4',
                 'duration': 294,
                 'title': '【神探苍实战秘籍】第13期 战争之影 赫卡里姆',
-            }
+            },
         }, {
             'info_dict': {
                 'id': '78910339_part2',
                 'ext': 'mp4',
                 'duration': 300,
                 'title': '【神探苍实战秘籍】第13期 战争之影 赫卡里姆',
-            }
+            },
         }, {
             'info_dict': {
                 'id': '78910339_part3',
                 'ext': 'mp4',
                 'duration': 150,
                 'title': '【神探苍实战秘籍】第13期 战争之影 赫卡里姆',
-            }
-        }]
+            },
+        }],
     }, {
         'note': 'Video with title containing dash',
         'url': 'http://my.tv.sohu.com/us/249884221/78932792.shtml',
@@ -101,8 +101,8 @@ class SohuIE(InfoExtractor):
             'tags': [],
         },
         'params': {
-            'skip_download': True
-        }
+            'skip_download': True,
+        },
     }]
 
     def _real_extract(self, url):
@@ -269,7 +269,7 @@ class SohuVIE(InfoExtractor):
             'upload_date': '20150305',
             'thumbnail': 'http://e3f49eaa46b57.cdn.sohucs.com//group1/M10/83/FA/MTAuMTAuODguODA=/6_14cbccdde5eg104SysCutcloud_78693464_7_0b.jpg',
             'tags': ['爱范儿', '爱范品', 'MWC', '手机'],
-        }
+        },
     }, {
         'note': 'Multipart video',
         'url': 'https://tv.sohu.com/v/dXMvMjQyNTYyMTYzLzc4OTEwMzM5LnNodG1s.html?src=pl',

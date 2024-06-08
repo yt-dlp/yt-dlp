@@ -42,7 +42,7 @@ class DiscoveryIE(DiscoveryGoBaseIE):
         },
         'params': {
             'skip_download': True,  # requires ffmpeg
-        }
+        },
     }, {
         'url': 'https://www.investigationdiscovery.com/tv-shows/final-vision/full-episodes/final-vision',
         'only_matching': True,

@@ -33,7 +33,7 @@ class BeatportIE(InfoExtractor):
             'display_id': 'birds-original-mix',
             'ext': 'mp4',
             'title': "Tos, Middle Milk, Mumblin' Johnsson - Birds (Original Mix)",
-        }
+        },
     }]
 
     def _real_extract(self, url):

@@ -133,7 +133,7 @@ class HBOBaseIE(InfoExtractor):
             subtitles = {
                 'en': [{
                     'url': caption_url,
-                    'ext': 'ttml'
+                    'ext': 'ttml',
                 }],
             }
 

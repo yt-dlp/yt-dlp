@@ -68,7 +68,7 @@ class SenateISVPIE(InfoExtractor):
         'info_dict': {
             'id': 'commerce011514',
             'ext': 'mp4',
-            'title': 'Integrated Senate Video Player'
+            'title': 'Integrated Senate Video Player',
         },
         'params': {
             # m3u8 download
@@ -80,8 +80,8 @@ class SenateISVPIE(InfoExtractor):
         'info_dict': {
             'id': 'intel090613',
             'ext': 'mp4',
-            'title': 'Integrated Senate Video Player'
-        }
+            'title': 'Integrated Senate Video Player',
+        },
     }, {
         # From http://www.c-span.org/video/?96791-1
         'url': 'http://www.senate.gov/isvp?type=live&comm=banking&filename=banking012715',
@@ -196,5 +196,5 @@ class SenateGovIE(InfoExtractor):
             'description': self._og_search_description(webpage, default=None),
             'thumbnail': self._og_search_thumbnail(webpage, default=None),
             'age_limit': self._rta_search(webpage),
-            'formats': formats
+            'formats': formats,
         }

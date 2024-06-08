@@ -65,7 +65,7 @@ class RedBullTVIE(InfoExtractor):
             video = self._download_json(
                 'https://api.redbull.tv/v3/products/' + video_id,
                 video_id, note='Downloading video information',
-                headers={'Authorization': token}
+                headers={'Authorization': token},
             )
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError) and e.cause.status == 404:

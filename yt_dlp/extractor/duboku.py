@@ -165,7 +165,7 @@ class DubokuIE(InfoExtractor):
             'episode_number': int_or_none(episode_id),
             'episode_id': episode_id,
             'formats': formats,
-            'http_headers': headers
+            'http_headers': headers,
         }
 
 
@@ -221,7 +221,7 @@ class DubokuPlaylistIE(InfoExtractor):
                     div.group('content'), 'a', 'href', value='[^\'"]+?', escape_value=False):
                 playlist.append({
                     'href': unescapeHTML(a.group('value')),
-                    'title': unescapeHTML(a.group('content'))
+                    'title': unescapeHTML(a.group('content')),
                 })
             playlists[playlist_id] = playlist
 

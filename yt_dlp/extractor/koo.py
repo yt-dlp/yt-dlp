@@ -19,9 +19,9 @@ class KooIE(InfoExtractor):
             'uploader_id': 'ytdlpTestAccount',
             'uploader': 'yt-dlpTestAccount',
             'duration': 7000,
-            'upload_date': '20210921'
+            'upload_date': '20210921',
         },
-        'params': {'skip_download': True}
+        'params': {'skip_download': True},
     }, {  # Test for koo with long title
         'url': 'https://www.kooapp.com/koo/laxman_kumarDBFEC/33decbf7-5e1e-4bb8-bfd7-04744a064361',
         'info_dict': {
@@ -33,9 +33,9 @@ class KooIE(InfoExtractor):
             'uploader_id': 'laxman_kumarDBFEC',
             'uploader': 'Laxman Kumar 🇮🇳',
             'duration': 46000,
-            'upload_date': '20210920'
+            'upload_date': '20210920',
         },
-        'params': {'skip_download': True}
+        'params': {'skip_download': True},
     }, {  # Test for audio
         'url': 'https://www.kooapp.com/koo/ytdlpTestAccount/a2a9c88e-ce4b-4d2d-952f-d06361c5b602',
         'info_dict': {
@@ -47,9 +47,9 @@ class KooIE(InfoExtractor):
             'uploader_id': 'ytdlpTestAccount',
             'uploader': 'yt-dlpTestAccount',
             'duration': 214000,
-            'upload_date': '20210921'
+            'upload_date': '20210921',
         },
-        'params': {'skip_download': True}
+        'params': {'skip_download': True},
     }, {  # Test for video
         'url': 'https://www.kooapp.com/koo/ytdlpTestAccount/a3e56c53-c1ed-4ac9-ac02-ed1630e6b1d1',
         'info_dict': {
@@ -61,9 +61,9 @@ class KooIE(InfoExtractor):
             'uploader_id': 'ytdlpTestAccount',
             'uploader': 'yt-dlpTestAccount',
             'duration': 14000,
-            'upload_date': '20210921'
+            'upload_date': '20210921',
         },
-        'params': {'skip_download': True}
+        'params': {'skip_download': True},
     }, {  # Test for link
         'url': 'https://www.kooapp.com/koo/ytdlpTestAccount/01bf5b94-81a5-4d8e-a387-5f732022e15a',
         'skip': 'No video/audio found at the provided url.',

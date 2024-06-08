@@ -64,7 +64,7 @@ class AppleTrailersIE(InfoExtractor):
                     'uploader_id': 'wb',
                 },
             },
-        ]
+        ],
     }, {
         'url': 'http://trailers.apple.com/trailers/magnolia/blackthorn/',
         'info_dict': {

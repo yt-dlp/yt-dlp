@@ -323,10 +323,10 @@ class CBCPlayerIE(InfoExtractor):
             'ie_key': 'ThePlatform',
             'url': smuggle_url(
                 'http://link.theplatform.com/s/ExhSPC/media/guid/2655402169/%s?mbr=true&formats=MPEG4,FLV,MP3' % video_id, {
-                    'force_smil_url': True
+                    'force_smil_url': True,
                 }),
             'id': video_id,
-            '_format_sort_fields': ('res', 'proto')  # Prioritize direct http formats over HLS
+            '_format_sort_fields': ('res', 'proto'),  # Prioritize direct http formats over HLS
         }
 
 
@@ -338,13 +338,13 @@ class CBCPlayerPlaylistIE(InfoExtractor):
         'playlist_mincount': 25,
         'info_dict': {
             'id': 'news/tv shows/the national/latest broadcast',
-        }
+        },
     }, {
         'url': 'https://www.cbc.ca/player/news/Canada/North',
         'playlist_mincount': 25,
         'info_dict': {
             'id': 'news/canada/north',
-        }
+        },
     }]
 
     def _real_extract(self, url):
@@ -355,7 +355,7 @@ class CBCPlayerPlaylistIE(InfoExtractor):
 
         def entries():
             for video_id in traverse_obj(json_content, (
-                'video', 'clipsByCategory', lambda k, _: k.lower() == playlist_id, 'items', ..., 'id'
+                'video', 'clipsByCategory', lambda k, _: k.lower() == playlist_id, 'items', ..., 'id',
             )):
                 yield self.url_result(f'https://www.cbc.ca/player/play/{video_id}', CBCPlayerIE)
 
@@ -670,7 +670,7 @@ class CBCGemLiveIE(InfoExtractor):
                 'title': r're:^Ottawa [0-9\-: ]+',
                 'description': 'The live TV channel and local programming from Ottawa',
                 'live_status': 'is_live',
-                'thumbnail': r're:https://images.gem.cbc.ca/v1/cbc-gem/live/.*'
+                'thumbnail': r're:https://images.gem.cbc.ca/v1/cbc-gem/live/.*',
             },
             'params': {'skip_download': True},
             'skip': 'Live might have ended',
@@ -690,7 +690,7 @@ class CBCGemLiveIE(InfoExtractor):
             },
             'params': {'skip_download': True},
             'skip': 'Live might have ended',
-        }
+        },
     ]
 
     def _real_extract(self, url):
@@ -729,5 +729,5 @@ class CBCGemLiveIE(InfoExtractor):
                 'description': 'description',
                 'thumbnail': ('images', 'card', 'url'),
                 'timestamp': ('airDate', {parse_iso8601}),
-            })
+            }),
         }

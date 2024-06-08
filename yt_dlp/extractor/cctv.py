@@ -174,7 +174,7 @@ class CCTVIE(InfoExtractor):
                         'format_id': 'http',
                         'quality': quality,
                         # Sample clip
-                        'preference': -10
+                        'preference': -10,
                     })
 
         hls_url = try_get(data, lambda x: x['hls_url'], compat_str)

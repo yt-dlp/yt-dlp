@@ -18,7 +18,7 @@ class AlJazeeraIE(InfoExtractor):
             'timestamp': 1636219149,
             'description': 'U sarajevskim naseljima Rajlovac i Reljevo stambeni objekti, ali i industrijska postrojenja i dalje su pod vodom.',
             'upload_date': '20211106',
-        }
+        },
     }, {
         'url': 'https://balkans.aljazeera.net/videos/2021/11/6/djokovic-usao-u-finale-mastersa-u-parizu',
         'info_dict': {
@@ -73,11 +73,11 @@ class AlJazeeraIE(InfoExtractor):
                 return {
                     '_type': 'url_transparent',
                     'url': url,
-                    'ie_key': 'Generic'
+                    'ie_key': 'Generic',
                 }
 
         return {
             '_type': 'url_transparent',
             'url': f'https://players.brightcove.net/{account}/{player_id}_{embed}/index.html?videoId={video_id}',
-            'ie_key': 'BrightcoveNew'
+            'ie_key': 'BrightcoveNew',
         }

@@ -106,7 +106,7 @@ class ManyVidsIE(InfoExtractor):
                     'vid': video_id,
                 }), headers={
                     'Referer': url,
-                    'X-Requested-With': 'XMLHttpRequest'
+                    'X-Requested-With': 'XMLHttpRequest',
                 })
 
         formats = []

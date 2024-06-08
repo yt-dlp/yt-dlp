@@ -30,7 +30,7 @@ class PiaproIE(InfoExtractor):
             'thumbnail': r're:^https?://.*\.(?:png|jpg)$',
             'upload_date': '20090901',
             'view_count': int,
-        }
+        },
     }, {
         'note': 'There are break lines in description, mandating (?s) flag',
         'url': 'https://piapro.jp/t/9cSd',
@@ -47,13 +47,13 @@ class PiaproIE(InfoExtractor):
             'view_count': int,
             'thumbnail': r're:^https?://.*\.(?:png|jpg)$',
             'uploader_id': 'cyankino',
-        }
+        },
     }, {
         'url': 'https://piapro.jp/content/hcw0z3a169wtemz6',
-        'only_matching': True
+        'only_matching': True,
     }, {
         'url': 'https://piapro.jp/t/-SO-',
-        'only_matching': True
+        'only_matching': True,
     }]
 
     _login_status = False
@@ -64,7 +64,7 @@ class PiaproIE(InfoExtractor):
             '_username': username,
             '_password': password,
             '_remember_me': 'on',
-            'login': 'ログイン'
+            'login': 'ログイン',
         }
         self._request_webpage('https://piapro.jp/login/', None)
         urlh = self._request_webpage(

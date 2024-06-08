@@ -16,7 +16,7 @@ class KTHIE(InfoExtractor):
             'timestamp': 1647345358,
             'upload_date': '20220315',
             'uploader_id': 'md5:0ec23e33a89e795a4512930c8102509f',
-        }
+        },
     }
 
     def _real_extract(self, url):

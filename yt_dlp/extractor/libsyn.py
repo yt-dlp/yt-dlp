@@ -34,7 +34,7 @@ class LibsynIE(InfoExtractor):
             'title': 'Clients From Hell Podcast - How a Sex Toy Company Kickstarted my Freelance Career',
             'upload_date': '20150818',
             'thumbnail': 're:^https?://.*',
-        }
+        },
     }]
 
     def _real_extract(self, url):

@@ -80,13 +80,13 @@ class PokemonWatchIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Lillier and the Staff!',
             'description': 'md5:338841b8c21b283d24bdc9b568849f04',
-        }
+        },
     }, {
         'url': 'https://watch.pokemon.com/en-us/#/player?id=3fe7752ba09141f0b0f7756d1981c6b2',
-        'only_matching': True
+        'only_matching': True,
     }, {
         'url': 'https://watch.pokemon.com/de-de/player.html?id=b3c402e111a4459eb47e12160ab0ba07',
-        'only_matching': True
+        'only_matching': True,
     }]
 
     def _extract_media(self, channel_array, video_id):

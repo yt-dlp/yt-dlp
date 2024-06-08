@@ -42,7 +42,7 @@ class RedBeeBaseIE(InfoExtractor):
         return self._download_json(
             f'{self._API_URL}/auth/{"gigyaLogin" if jwt else "anonymous"}',
             asset_id, data=json.dumps(request).encode(), headers={
-                'Content-Type': 'application/json;charset=utf-8'
+                'Content-Type': 'application/json;charset=utf-8',
             })['sessionToken']
 
     def _get_formats_and_subtitles(self, asset_id, **kwargs):
@@ -51,7 +51,7 @@ class RedBeeBaseIE(InfoExtractor):
             f'{self._API_URL}/entitlement/{asset_id}/play',
             asset_id, headers={
                 'Authorization': f'Bearer {bearer_token}',
-                'Accept': 'application/json, text/plain, */*'
+                'Accept': 'application/json, text/plain, */*',
             })
 
         formats, subtitles = [], {}

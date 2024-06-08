@@ -177,7 +177,7 @@ class IqiyiIE(InfoExtractor):
             'id': '9c1fb1b99d192b21c559e5a1a2cb3c73',
             'ext': 'mp4',
             'title': '美国德州空中惊现奇异云团 酷似UFO',
-        }
+        },
     }, {
         'url': 'http://www.iqiyi.com/v_19rrhnnclk.html',
         'md5': 'b7dc800a4004b1b57749d9abae0472da',
@@ -416,11 +416,11 @@ class IqIE(InfoExtractor):
         'params': {
             'format': '500',
         },
-        'expected_warnings': ['format is restricted']
+        'expected_warnings': ['format is restricted'],
     }, {
         # VIP-restricted video
         'url': 'https://www.iq.com/play/mermaid-in-the-fog-2021-gbdpx13bs4',
-        'only_matching': True
+        'only_matching': True,
     }]
     _BID_TAGS = {
         '100': '240P',
@@ -590,7 +590,7 @@ class IqIE(InfoExtractor):
                     'platformId': 3,
                     'modeCode': self._get_cookie('mod', 'intl'),
                     'langCode': self._get_cookie('lang', 'en_us'),
-                    'deviceId': self._get_cookie('QC005', '')
+                    'deviceId': self._get_cookie('QC005', ''),
                 }, fatal=False)
             ut_list = traverse_obj(vip_data, ('data', 'all_vip', ..., 'vipType'), expected_type=str_or_none)
         else:
@@ -672,7 +672,7 @@ class IqIE(InfoExtractor):
                 f.update({
                     'quality': qualities(list(self._BID_TAGS.keys()))(bid),
                     'format_note': self._BID_TAGS[bid],
-                    **parse_resolution(video_format.get('scrsz'))
+                    **parse_resolution(video_format.get('scrsz')),
                 })
             formats.extend(extracted_formats)
 
@@ -680,7 +680,7 @@ class IqIE(InfoExtractor):
             lang = self._LID_TAGS.get(str_or_none(sub_format.get('lid')), sub_format.get('_name'))
             subtitles.setdefault(lang, []).extend([{
                 'ext': format_ext,
-                'url': urljoin(initial_format_data.get('dstl', 'http://meta.video.iqiyi.com'), sub_format[format_key])
+                'url': urljoin(initial_format_data.get('dstl', 'http://meta.video.iqiyi.com'), sub_format[format_key]),
             } for format_key, format_ext in [('srt', 'srt'), ('webvtt', 'vtt')] if sub_format.get(format_key)])
 
         extra_metadata = page_data.get('albumInfo') if video_info.get('albumId') and page_data.get('albumInfo') else video_info
@@ -709,9 +709,9 @@ class IqAlbumIE(InfoExtractor):
         'info_dict': {
             'id': '1bk9icvr331',
             'title': 'One Piece',
-            'description': 'Subtitle available on Sunday 4PM（GMT+8）.'
+            'description': 'Subtitle available on Sunday 4PM（GMT+8）.',
         },
-        'playlist_mincount': 238
+        'playlist_mincount': 238,
     }, {
         # Movie/single video
         'url': 'https://www.iq.com/album/九龙城寨-2021-22yjnij099k',
@@ -728,7 +728,7 @@ class IqAlbumIE(InfoExtractor):
             'age_limit': 13,
             'average_rating': float,
         },
-        'expected_warnings': ['format is restricted']
+        'expected_warnings': ['format is restricted'],
     }]
 
     def _entries(self, album_id_num, page_ranges, album_id=None, mode_code='intl', lang_code='en_us'):
@@ -741,7 +741,7 @@ class IqAlbumIE(InfoExtractor):
                     'modeCode': mode_code,
                     'langCode': lang_code,
                     'endOrder': page_range['to'],
-                    'startOrder': page_range['from']
+                    'startOrder': page_range['from'],
                 })
             for video in page['data']['epg']:
                 yield self.url_result('https://www.iq.com/play/%s' % (video.get('playLocSuffix') or video['qipuIdStr']),

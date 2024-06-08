@@ -28,7 +28,7 @@ class HRTiBaseIE(InfoExtractor):
 
     def _initialize_pre_login(self):
         init_data = {
-            'application_publication_id': self._APP_PUBLICATION_ID
+            'application_publication_id': self._APP_PUBLICATION_ID,
         }
 
         uuid = self._download_json(
@@ -39,7 +39,7 @@ class HRTiBaseIE(InfoExtractor):
         app_data = {
             'uuid': uuid,
             'application_publication_id': self._APP_PUBLICATION_ID,
-            'application_version': self._APP_VERSION
+            'application_version': self._APP_VERSION,
         }
 
         req = Request(self._API_URL, data=json.dumps(app_data).encode())

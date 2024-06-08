@@ -415,7 +415,7 @@ class FacebookIE(InfoExtractor):
     }]
     _SUPPORTED_PAGLETS_REGEX = r'(?:pagelet_group_mall|permalink_video_pagelet|hyperfeed_story_id_[0-9a-f]+)'
     _api_config = {
-        'graphURI': '/api/graphql/'
+        'graphURI': '/api/graphql/',
     }
 
     def _perform_login(self, username, password):
@@ -493,7 +493,7 @@ class FacebookIE(InfoExtractor):
             page_title = title or self._html_search_regex((
                 r'<h2\s+[^>]*class="uiHeaderTitle"[^>]*>(?P<content>[^<]*)</h2>',
                 r'(?s)<span class="fbPhotosPhotoCaption".*?id="fbPhotoPageCaption"><span class="hasCaption">(?P<content>.*?)</span>',
-                self._meta_regex('og:title'), self._meta_regex('twitter:title'), r'<title>(?P<content>.+?)</title>'
+                self._meta_regex('og:title'), self._meta_regex('twitter:title'), r'<title>(?P<content>.+?)</title>',
             ), webpage, 'title', default=None, group='content')
             description = description or self._html_search_meta(
                 ['description', 'og:description', 'twitter:description'],
@@ -525,7 +525,7 @@ class FacebookIE(InfoExtractor):
                 'timestamp': timestamp,
                 'thumbnail': thumbnail,
                 'view_count': parse_count(self._search_regex(
-                    (r'\bviewCount\s*:\s*["\']([\d,.]+)', r'video_view_count["\']\s*:\s*(\d+)',),
+                    (r'\bviewCount\s*:\s*["\']([\d,.]+)', r'video_view_count["\']\s*:\s*(\d+)'),
                     webpage, 'view count', default=None)),
                 'concurrent_view_count': get_first(post, (
                     ('video', (..., ..., 'attachments', ..., 'media')), 'liveViewerCount', {int_or_none})),
@@ -590,7 +590,7 @@ class FacebookIE(InfoExtractor):
         if not video_data:
             server_js_data = self._parse_json(self._search_regex([
                 r'bigPipe\.onPageletArrive\(({.+?})\)\s*;\s*}\s*\)\s*,\s*["\']onPageletArrive\s+' + self._SUPPORTED_PAGLETS_REGEX,
-                r'bigPipe\.onPageletArrive\(({.*?id\s*:\s*"%s".*?})\);' % self._SUPPORTED_PAGLETS_REGEX
+                r'bigPipe\.onPageletArrive\(({.*?id\s*:\s*"%s".*?})\);' % self._SUPPORTED_PAGLETS_REGEX,
             ], webpage, 'js data', default='{}'), video_id, js_to_json, False)
             video_data = extract_from_jsmods_instances(server_js_data)
 
@@ -632,7 +632,7 @@ class FacebookIE(InfoExtractor):
                     for caption in traverse_obj(video, (
                         'video_available_captions_locales',
                         {lambda x: sorted(x, key=lambda c: c['locale'])},
-                        lambda _, v: url_or_none(v['captions_url'])
+                        lambda _, v: url_or_none(v['captions_url']),
                     )):
                         lang = caption.get('localized_language') or 'und'
                         subs = {
@@ -699,7 +699,7 @@ class FacebookIE(InfoExtractor):
                 if video:
                     attachments = try_get(video, [
                         lambda x: x['story']['attachments'],
-                        lambda x: x['creation_story']['attachments']
+                        lambda x: x['creation_story']['attachments'],
                     ], list) or []
                     for attachment in attachments:
                         parse_attachment(attachment)
@@ -829,7 +829,7 @@ class FacebookIE(InfoExtractor):
                             'format_id': '%s_%s_%s' % (format_id, quality, src_type),
                             'url': src,
                             'quality': preference,
-                            'height': 720 if quality == 'hd' else None
+                            'height': 720 if quality == 'hd' else None,
                         })
             extract_dash_manifest(f[0], formats)
             subtitles_src = f[0].get('subtitles_src')
@@ -940,7 +940,7 @@ class FacebookReelIE(InfoExtractor):
             'timestamp': 1637502609,
             'upload_date': '20211121',
             'thumbnail': r're:^https?://.*',
-        }
+        },
     }]
 
     def _real_extract(self, url):
@@ -966,7 +966,7 @@ class FacebookAdsIE(InfoExtractor):
             'thumbnail': r're:^https?://.*',
             'upload_date': '20231214',
             'like_count': int,
-        }
+        },
     }, {
         'url': 'https://www.facebook.com/ads/library/?id=893637265423481',
         'info_dict': {
@@ -998,7 +998,7 @@ class FacebookAdsIE(InfoExtractor):
     def _extract_formats(self, video_dict):
         formats = []
         for format_key, format_url in traverse_obj(video_dict, (
-            {dict.items}, lambda _, v: v[0] in self._FORMATS_MAP and url_or_none(v[1])
+            {dict.items}, lambda _, v: v[0] in self._FORMATS_MAP and url_or_none(v[1]),
         )):
             formats.append({
                 'format_id': self._FORMATS_MAP[format_key][0],
@@ -1035,7 +1035,7 @@ class FacebookAdsIE(InfoExtractor):
 
         entries = []
         for idx, entry in enumerate(traverse_obj(
-            data, (('videos', 'cards'), lambda _, v: any(url_or_none(v[f]) for f in self._FORMATS_MAP))), 1
+            data, (('videos', 'cards'), lambda _, v: any(url_or_none(v[f]) for f in self._FORMATS_MAP))), 1,
         ):
             entries.append({
                 'id': f'{video_id}_{idx}',

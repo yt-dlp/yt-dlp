@@ -71,5 +71,5 @@ class SaitosanIE(InfoExtractor):
             'formats': self._extract_m3u8_formats(m3u8_url, b_id, 'mp4', live=True),
             'thumbnail': m3u8_url.replace('av.m3u8', 'thumb'),
             'uploader': try_get(b_data, lambda x: x['broadcast_user']['name']),  # same as title
-            'is_live': True
+            'is_live': True,
         }

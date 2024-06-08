@@ -28,7 +28,7 @@ class CamdemyIE(InfoExtractor):
             'duration': 1591,
             'upload_date': '20130114',
             'view_count': int,
-        }
+        },
     }, {
         # With non-empty description
         # webpage returns "No permission or not login"
@@ -42,7 +42,7 @@ class CamdemyIE(InfoExtractor):
             'description': 'md5:2a9f989c2b153a2342acee579c6e7db6',
             'creator': 'evercam',
             'duration': 318,
-        }
+        },
     }, {
         # External source (YouTube)
         'url': 'http://www.camdemy.com/media/14842',
@@ -117,24 +117,24 @@ class CamdemyFolderIE(InfoExtractor):
             'id': '450',
             'title': '信號與系統 2012 & 2011 (Signals and Systems)',
         },
-        'playlist_mincount': 145
+        'playlist_mincount': 145,
     }, {
         # links without trailing slash
         # and multi-page
         'url': 'http://www.camdemy.com/folder/853',
         'info_dict': {
             'id': '853',
-            'title': '科學計算 - 使用 Matlab'
+            'title': '科學計算 - 使用 Matlab',
         },
-        'playlist_mincount': 20
+        'playlist_mincount': 20,
     }, {
         # with displayMode parameter. For testing the codes to add parameters
         'url': 'http://www.camdemy.com/folder/853/?displayMode=defaultOrderByOrg',
         'info_dict': {
             'id': '853',
-            'title': '科學計算 - 使用 Matlab'
+            'title': '科學計算 - 使用 Matlab',
         },
-        'playlist_mincount': 20
+        'playlist_mincount': 20,
     }]
 
     def _real_extract(self, url):

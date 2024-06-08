@@ -152,5 +152,5 @@ class ThreeQSDNIE(InfoExtractor):
             # It seems like this would be correctly handled by default
             # However, unless someone can confirm this, the old
             # behaviour is being kept as-is
-            '_format_sort_fields': ('res', 'source_preference')
+            '_format_sort_fields': ('res', 'source_preference'),
         }

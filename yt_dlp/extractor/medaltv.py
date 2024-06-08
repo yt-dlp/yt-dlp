@@ -31,7 +31,7 @@ class MedalTVIE(InfoExtractor):
             'view_count': int,
             'like_count': int,
             'duration': 13,
-        }
+        },
     }, {
         'url': 'https://medal.tv/games/cod-cold-war/clips/2mA60jWAGQCBH',
         'md5': 'fc7a3e4552ae8993c1c4006db46be447',
@@ -50,7 +50,7 @@ class MedalTVIE(InfoExtractor):
             'view_count': int,
             'like_count': int,
             'duration': 23,
-        }
+        },
     }, {
         'url': 'https://medal.tv/games/cod-cold-war/clips/2um24TWdty0NA',
         'md5': 'b6dc76b78195fff0b4f8bf4a33ec2148',
@@ -69,7 +69,7 @@ class MedalTVIE(InfoExtractor):
             'view_count': int,
             'like_count': int,
             'duration': 9,
-        }
+        },
     }, {
         'url': 'https://medal.tv/games/valorant/clips/37rMeFpryCC-9',
         'only_matching': True,
@@ -108,7 +108,7 @@ class MedalTVIE(InfoExtractor):
                 'url': item_url,
                 id_key: item_id,
                 'width': width,
-                'height': height
+                'height': height,
             })
 
         formats = []

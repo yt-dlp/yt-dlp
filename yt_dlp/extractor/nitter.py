@@ -265,7 +265,7 @@ class NitterIE(InfoExtractor):
                 'like_count': int,
                 'repost_count': int,
                 'comment_count': int,
-            }
+            },
         }, {  # no OpenGraph title
             'url': f'https://{current_instance}/LocalBateman/status/1678455464038735895#m',
             'info_dict': {
@@ -286,7 +286,7 @@ class NitterIE(InfoExtractor):
             },
             'expected_warnings': ['Ignoring subtitle tracks found in the HLS manifest'],
             'params': {'skip_download': 'm3u8'},
-        }
+        },
     ]
 
     def _real_extract(self, url):
@@ -310,7 +310,7 @@ class NitterIE(InfoExtractor):
         else:
             formats = [{
                 'url': video_url,
-                'ext': ext
+                'ext': ext,
             }]
 
         title = description = self._og_search_description(full_webpage, default=None) or self._html_search_regex(

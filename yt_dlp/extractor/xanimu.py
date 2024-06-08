@@ -16,11 +16,11 @@ class XanimuIE(InfoExtractor):
             'thumbnail': 'https://xanimu.com/storage/2020/09/the-princess-and-the-frog-hentai.jpg',
             'description': r're:^Enjoy The Princess \+ The Frog Hentai',
             'duration': 207.0,
-            'age_limit': 18
-        }
+            'age_limit': 18,
+        },
     }, {
         'url': 'https://xanimu.com/huge-expansion/',
-        'only_matching': True
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
@@ -48,5 +48,5 @@ class XanimuIE(InfoExtractor):
             'description': self._html_search_meta('description', webpage, default=None),
             'duration': int_or_none(self._search_regex(r'duration:\s*[\'"]([^\'"]+?)[\'"]',
                                     webpage, 'duration', fatal=False)),
-            'age_limit': 18
+            'age_limit': 18,
         }

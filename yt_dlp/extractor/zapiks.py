@@ -59,7 +59,7 @@ class ZapiksIE(InfoExtractor):
             display_id)
 
         NS_MAP = {
-            'jwplayer': 'http://rss.jwpcdn.com/'
+            'jwplayer': 'http://rss.jwpcdn.com/',
         }
 
         def ns(path):

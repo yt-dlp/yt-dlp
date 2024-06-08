@@ -27,7 +27,7 @@ class PinkbikeIE(InfoExtractor):
             'location': 'Victoria, British Columbia, Canada',
             'view_count': int,
             'comment_count': int,
-        }
+        },
     }, {
         'url': 'http://es.pinkbike.org/i/kvid/kvid-y5.swf?id=406629',
         'only_matching': True,
@@ -89,5 +89,5 @@ class PinkbikeIE(InfoExtractor):
             'location': location,
             'view_count': view_count,
             'comment_count': comment_count,
-            'formats': formats
+            'formats': formats,
         }

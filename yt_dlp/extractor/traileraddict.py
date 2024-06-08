@@ -14,7 +14,7 @@ class TrailerAddictIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Prince Avalanche Trailer',
             'description': 'Trailer for Prince Avalanche.\n\nTwo highway road workers spend the summer of 1988 away from their city lives. The isolated landscape becomes a place of misadventure as the men find themselves at odds with each other and the women they left behind.',
-        }
+        },
     }
 
     def _real_extract(self, url):

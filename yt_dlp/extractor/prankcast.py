@@ -22,8 +22,8 @@ class PrankCastIE(InfoExtractor):
             'description': '',
             'categories': ['prank'],
             'tags': ['prank call', 'prank', 'live show'],
-            'upload_date': '20220825'
-        }
+            'upload_date': '20220825',
+        },
     }, {
         'url': 'https://prankcast.com/phonelosers/showreel/2048-NOT-COOL',
         'info_dict': {
@@ -39,8 +39,8 @@ class PrankCastIE(InfoExtractor):
             'description': '',
             'categories': ['prank'],
             'tags': ['prank call', 'prank', 'live show'],
-            'upload_date': '20221006'
-        }
+            'upload_date': '20221006',
+        },
     }]
 
     def _real_extract(self, url):
@@ -65,7 +65,7 @@ class PrankCastIE(InfoExtractor):
             'cast': list(filter(None, [uploader, *traverse_obj(guests_json, (..., 'name'))])),
             'description': json_info.get('broadcast_description'),
             'categories': [json_info.get('broadcast_category')],
-            'tags': try_call(lambda: json_info['broadcast_tags'].split(','))
+            'tags': try_call(lambda: json_info['broadcast_tags'].split(',')),
         }
 
 
@@ -85,8 +85,8 @@ class PrankCastPostIE(InfoExtractor):
             'cast': ['Devonanustart'],
             'description': '',
             'categories': ['prank call'],
-            'upload_date': '20240104'
-        }
+            'upload_date': '20240104',
+        },
     }, {
         'url': 'https://prankcast.com/despicabledogs/posts/6217-jake-the-work-crow-',
         'info_dict': {
@@ -101,8 +101,8 @@ class PrankCastPostIE(InfoExtractor):
             'cast': ['despicabledogs'],
             'description': 'https://imgur.com/a/vtxLvKU',
             'categories': [],
-            'upload_date': '20240104'
-        }
+            'upload_date': '20240104',
+        },
     }]
 
     def _real_extract(self, url):
@@ -133,5 +133,5 @@ class PrankCastPostIE(InfoExtractor):
                     'url': f'https://prankcast.com/api/private/chat/select-broadcast?id={post["content_id"]}&cache=',
                     'ext': 'json',
                 }],
-            } if post.get('content_id') else None
+            } if post.get('content_id') else None,
         }

@@ -96,7 +96,7 @@ class FunimationPageIE(FunimationBaseIE):
             f'{show}_{episode}', query={
                 'deviceType': 'web',
                 'region': self._REGION,
-                'locale': locale or 'en'
+                'locale': locale or 'en',
             }), ('videoList', ..., 'id'), get_all=False)
 
         return self.url_result(f'https://www.funimation.com/player/{video_id}', FunimationIE.ie_key(), video_id)
@@ -284,7 +284,7 @@ class FunimationIE(FunimationBaseIE):
                     sub_type = sub_type if sub_type != 'FULL' else None
                     current_sub = {
                         'url': text_track['src'],
-                        'name': join_nonempty(version, text_track.get('label'), sub_type, delim=' ')
+                        'name': join_nonempty(version, text_track.get('label'), sub_type, delim=' '),
                     }
                     lang = join_nonempty(text_track.get('language', 'und'),
                                          version if version != 'Simulcast' else None,
@@ -302,7 +302,7 @@ class FunimationShowIE(FunimationBaseIE):
         'url': 'https://www.funimation.com/en/shows/sk8-the-infinity',
         'info_dict': {
             'id': '1315000',
-            'title': 'SK8 the Infinity'
+            'title': 'SK8 the Infinity',
         },
         'playlist_count': 13,
         'params': {
@@ -313,7 +313,7 @@ class FunimationShowIE(FunimationBaseIE):
         'url': 'https://www.funimation.com/shows/ouran-high-school-host-club/',
         'info_dict': {
             'id': '39643',
-            'title': 'Ouran High School Host Club'
+            'title': 'Ouran High School Host Club',
         },
         'playlist_count': 26,
         'params': {

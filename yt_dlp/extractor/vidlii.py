@@ -34,7 +34,7 @@ class VidLiiIE(InfoExtractor):
             'average_rating': float,
             'categories': ['News & Politics'],
             'tags': ['Vidlii', 'Jan', 'Videogames'],
-        }
+        },
     }, {
         'url': 'https://www.vidlii.com/watch?v=zTAtaAgOLKt',
         'md5': '5778f7366aa4c569b77002f8bf6b614f',

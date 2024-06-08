@@ -31,7 +31,7 @@ class FlickrIE(InfoExtractor):
             'view_count': int,
             'tags': list,
             'license': 'Attribution-ShareAlike',
-        }
+        },
     }
     _API_BASE_URL = 'https://api.flickr.com/services/rest?'
     # https://help.yahoo.com/kb/flickr/SLN25525.html

@@ -24,7 +24,7 @@ class RadioCanadaIE(InfoExtractor):
             'params': {
                 # m3u8 download
                 'skip_download': True,
-            }
+            },
         },
         {
             # empty Title
@@ -50,7 +50,7 @@ class RadioCanadaIE(InfoExtractor):
                 'series': 'District 31',
             },
             'only_matching': True,
-        }
+        },
     ]
     _GEO_COUNTRIES = ['CA']
     _access_token = None

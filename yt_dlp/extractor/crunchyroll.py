@@ -535,7 +535,7 @@ class CrunchyrollBetaShowIE(CrunchyrollCmsBaseIE):
                     'url': ('source', {url_or_none}),
                     'width': ('width', {int_or_none}),
                     'height': ('height', {int_or_none}),
-                })
+                }),
             })))
 
 

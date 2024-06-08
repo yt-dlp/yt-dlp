@@ -83,7 +83,7 @@ class RoosterTeethBaseIE(InfoExtractor):
             'availability': self._availability(
                 needs_premium=sub_only, needs_subscription=sub_only, needs_auth=sub_only,
                 is_private=False, is_unlisted=False),
-            'tags': attributes.get('genres')
+            'tags': attributes.get('genres'),
         }
 
 
@@ -281,7 +281,7 @@ class RoosterTeethIE(RoosterTeethBaseIE):
             'display_id': display_id,
             'formats': formats,
             'subtitles': subtitles,
-            **self._extract_video_info(episode)
+            **self._extract_video_info(episode),
         }
 
 

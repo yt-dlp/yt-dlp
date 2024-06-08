@@ -160,7 +160,7 @@ class RCTIPlusIE(RCTIPlusBaseIE):
             conviva_json_data = {
                 **self._CONVIVA_JSON_TEMPLATE,
                 'url': video_url,
-                'sst': int(time.time())
+                'sst': int(time.time()),
             }
             conviva_json_res = self._download_json(
                 'https://ff84ae928c3b33064b76dec08f12500465e59a6f.cws.conviva.com/0/wsg', display_id,
@@ -176,12 +176,12 @@ class RCTIPlusIE(RCTIPlusBaseIE):
         if video_meta.get('portrait_image'):
             thumbnails.append({
                 'id': 'portrait_image',
-                'url': '%s%d%s' % (image_path, 2000, video_meta['portrait_image'])  # 2000px seems to be the highest resolution that can be given
+                'url': '%s%d%s' % (image_path, 2000, video_meta['portrait_image']),  # 2000px seems to be the highest resolution that can be given
             })
         if video_meta.get('landscape_image'):
             thumbnails.append({
                 'id': 'landscape_image',
-                'url': '%s%d%s' % (image_path, 2000, video_meta['landscape_image'])
+                'url': '%s%d%s' % (image_path, 2000, video_meta['landscape_image']),
             })
         try:
             formats = self._extract_m3u8_formats(video_url, display_id, 'mp4', headers={'Referer': 'https://www.rctiplus.com/'})
@@ -241,7 +241,7 @@ class RCTIPlusSeriesIE(RCTIPlusBaseIE):
             'age_limit': 2,
             'tags': 'count:11',
             'display_id': 'inews-pagi',
-        }
+        },
     }]
     _AGE_RATINGS = {  # Based off https://id.wikipedia.org/wiki/Sistem_rating_konten_televisi with additional ratings
         'S-SU': 2,
@@ -288,7 +288,7 @@ class RCTIPlusSeriesIE(RCTIPlusBaseIE):
                     'duration': video_json.get('duration'),
                     'season_number': video_json.get('season'),
                     'episode_number': video_json.get('episode'),
-                    **metadata
+                    **metadata,
                 }
 
     def _series_entries(self, series_id, display_id=None, video_type=None, metadata={}):
@@ -348,7 +348,7 @@ class RCTIPlusTVIE(RCTIPlusBaseIE):
         },
         'params': {
             'skip_download': True,
-        }
+        },
     }, {
         # Returned video will always change
         'url': 'https://www.rctiplus.com/live-event',

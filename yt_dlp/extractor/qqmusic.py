@@ -26,7 +26,7 @@ class QQMusicIE(InfoExtractor):
             'creator': '林俊杰',
             'description': 'md5:d85afb3051952ecc50a1ee8a286d1eac',
             'thumbnail': r're:^https?://.*\.jpg$',
-        }
+        },
     }, {
         'note': 'There is no mp3-320 version of this song.',
         'url': 'https://y.qq.com/n/yqq/song/004MsGEo3DdNxV.html',
@@ -39,7 +39,7 @@ class QQMusicIE(InfoExtractor):
             'creator': '李季美',
             'description': 'md5:46857d5ed62bc4ba84607a805dccf437',
             'thumbnail': r're:^https?://.*\.jpg$',
-        }
+        },
     }, {
         'note': 'lyrics not in .lrc format',
         'url': 'https://y.qq.com/n/yqq/song/001JyApY11tIp6.html',
@@ -60,7 +60,7 @@ class QQMusicIE(InfoExtractor):
     _FORMATS = {
         'mp3-320': {'prefix': 'M800', 'ext': 'mp3', 'preference': 40, 'abr': 320},
         'mp3-128': {'prefix': 'M500', 'ext': 'mp3', 'preference': 30, 'abr': 128},
-        'm4a': {'prefix': 'C200', 'ext': 'm4a', 'preference': 10}
+        'm4a': {'prefix': 'C200', 'ext': 'm4a', 'preference': 10},
     }
 
     # Reference: m_r_GetRUin() in top_player.js
@@ -134,14 +134,14 @@ class QQMusicIE(InfoExtractor):
             'release_date': publish_time,
             'creator': singer,
             'description': lrc_content,
-            'thumbnail': thumbnail_url
+            'thumbnail': thumbnail_url,
         }
         if actual_lrc_lyrics:
             info_dict['subtitles'] = {
                 'origin': [{
                     'ext': 'lrc',
                     'data': actual_lrc_lyrics,
-                }]
+                }],
             }
         return info_dict
 
@@ -255,7 +255,7 @@ class QQMusicAlbumIE(QQPlaylistBaseIE):
 
         entries = [
             self.url_result(
-                'https://y.qq.com/n/yqq/song/' + song['songmid'] + '.html', 'QQMusic', song['songmid']
+                'https://y.qq.com/n/yqq/song/' + song['songmid'] + '.html', 'QQMusic', song['songmid'],
             ) for song in album['list']
         ]
         album_name = album.get('name')

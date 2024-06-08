@@ -31,7 +31,7 @@ class LifeNewsIE(InfoExtractor):
             'timestamp': 1344154740,
             'upload_date': '20120805',
             'view_count': int,
-        }
+        },
     }, {
         # single video embedded via iframe
         'url': 'https://life.ru/t/новости/152125',
@@ -44,7 +44,7 @@ class LifeNewsIE(InfoExtractor):
             'timestamp': 1427961840,
             'upload_date': '20150402',
             'view_count': int,
-        }
+        },
     }, {
         # two videos embedded via iframe
         'url': 'https://life.ru/t/новости/153461',
@@ -174,7 +174,7 @@ class LifeEmbedIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'e50c2dec2867350528e2574c899b8291',
             'thumbnail': r're:http://.*\.jpg',
-        }
+        },
     }, {
         # with 1080p
         'url': 'https://embed.life.ru/video/e50c2dec2867350528e2574c899b8291',

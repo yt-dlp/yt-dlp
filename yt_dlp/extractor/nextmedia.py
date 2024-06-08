@@ -24,7 +24,7 @@ class NextMediaIE(InfoExtractor):
             'description': 'md5:28222b9912b6665a21011b034c70fcc7',
             'timestamp': 1415456273,
             'upload_date': '20141108',
-        }
+        },
     }]
 
     _URL_PATTERN = r'\{ url: \'(.+)\' \}'
@@ -91,7 +91,7 @@ class NextMediaActionNewsIE(NextMediaIE):  # XXX: Do not subclass from concrete 
             'description': 'md5:cd802fad1f40fd9ea178c1e2af02d659',
             'timestamp': 1421791200,
             'upload_date': '20150120',
-        }
+        },
     }]
 
     def _real_extract(self, url):
@@ -115,7 +115,7 @@ class AppleDailyIE(NextMediaIE):  # XXX: Do not subclass from concrete IE
             'thumbnail': r're:^https?://.*\.jpg$',
             'description': 'md5:2acd430e59956dc47cd7f67cb3c003f4',
             'upload_date': '20150128',
-        }
+        },
     }, {
         'url': 'http://www.appledaily.com.tw/realtimenews/article/strange/20150128/550549/%E4%B8%8D%E6%BB%BF%E8%A2%AB%E8%B8%A9%E8%85%B3%E3%80%80%E5%B1%B1%E6%9D%B1%E5%85%A9%E5%A4%A7%E5%AA%BD%E4%B8%80%E8%B7%AF%E6%89%93%E4%B8%8B%E8%BB%8A',
         'md5': '86b4e9132d158279c7883822d94ccc49',
@@ -126,7 +126,7 @@ class AppleDailyIE(NextMediaIE):  # XXX: Do not subclass from concrete IE
             'thumbnail': r're:^https?://.*\.jpg$',
             'description': 'md5:175b4260c1d7c085993474217e4ab1b4',
             'upload_date': '20150128',
-        }
+        },
     }, {
         'url': 'http://www.appledaily.com.tw/animation/realtimenews/new/20150128/5003671',
         'md5': '03df296d95dedc2d5886debbb80cb43f',

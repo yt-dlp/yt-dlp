@@ -2007,7 +2007,7 @@ class InfoExtractor:
     def _report_ignoring_subs(self, name):
         self.report_warning(bug_reports_message(
             f'Ignoring subtitle tracks found in the {name} manifest; '
-            'if any subtitle tracks are missing,'
+            'if any subtitle tracks are missing,',
         ), only_once=True)
 
     def _extract_m3u8_formats(self, *args, **kwargs):
@@ -2656,7 +2656,7 @@ class InfoExtractor:
             if subtitles and period['subtitles']:
                 self.report_warning(bug_reports_message(
                     'Found subtitles in multiple periods in the DASH manifest; '
-                    'if part of the subtitles are missing,'
+                    'if part of the subtitles are missing,',
                 ), only_once=True)
 
             for sub_lang, sub_info in period['subtitles'].items():
@@ -2823,7 +2823,7 @@ class InfoExtractor:
                             'format_note': 'DASH %s' % content_type,
                             'filesize': filesize,
                             'container': mimetype2ext(mime_type) + '_dash',
-                            **codecs
+                            **codecs,
                         }
                     elif content_type == 'text':
                         f = {
@@ -3104,7 +3104,7 @@ class InfoExtractor:
                             'fourcc': fourcc,
                             'language': stream_language,
                             'codec_private_data': track.get('CodecPrivateData'),
-                        }
+                        },
                     })
                 elif stream_type in ('video', 'audio'):
                     formats.append({
@@ -3431,7 +3431,7 @@ class InfoExtractor:
                 if not track_url:
                     continue
                 subtitles.setdefault(track.get('label') or 'en', []).append({
-                    'url': self._proto_relative_url(track_url)
+                    'url': self._proto_relative_url(track_url),
                 })
 
             entry = {
@@ -3510,7 +3510,7 @@ class InfoExtractor:
                     'tbr': int_or_none(source.get('bitrate'), scale=1000),
                     'filesize': int_or_none(source.get('filesize')),
                     'ext': ext,
-                    'format_id': format_id
+                    'format_id': format_id,
                 }
                 if source_url.startswith('rtmp'):
                     a_format['ext'] = 'flv'
@@ -3708,7 +3708,7 @@ class InfoExtractor:
             self.to_screen(f'Extracted {comment_count} comments')
             return {
                 'comments': comments,
-                'comment_count': None if interrupted else comment_count
+                'comment_count': None if interrupted else comment_count,
             }
         return extractor
 

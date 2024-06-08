@@ -24,7 +24,7 @@ class TheWeatherChannelIE(ThePlatformIE):  # XXX: Do not subclass from concrete 
             'timestamp': 1689967343,
             'display_id': 'invest-95l-in-atlantic-has-a-medium-chance-of-development',
             'duration': 34.0,
-        }
+        },
     }, {
         'url': 'https://weather.com/en-CA/international/videos/video/unidentified-object-falls-from-sky-in-india',
         'only_matching': True,
@@ -44,7 +44,7 @@ class TheWeatherChannelIE(ThePlatformIE):  # XXX: Do not subclass from concrete 
                             '$in': asset_name,
                         },
                     },
-                }
+                },
             }]).encode(), headers={
                 'Content-Type': 'application/json',
             })['dal']['getCMSAssetsUrlConfig'].values()))['data'][0]

@@ -67,7 +67,7 @@ class ABCIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'WWI Centenary',
             'description': 'md5:c2379ec0ca84072e86b446e536954546',
-        }
+        },
     }, {
         'url': 'https://www.abc.net.au/news/programs/the-world/2020-06-10/black-lives-matter-protests-spawn-support-for/12342074',
         'info_dict': {
@@ -75,7 +75,7 @@ class ABCIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Black Lives Matter protests spawn support for Papuans in Indonesia',
             'description': 'md5:2961a17dc53abc558589ccd0fb8edd6f',
-        }
+        },
     }, {
         'url': 'https://www.abc.net.au/btn/newsbreak/btn-newsbreak-20200814/12560476',
         'info_dict': {
@@ -86,7 +86,7 @@ class ABCIE(InfoExtractor):
             'upload_date': '20200813',
             'uploader': 'Behind the News',
             'uploader_id': 'behindthenews',
-        }
+        },
     }, {
         'url': 'https://www.abc.net.au/news/2023-06-25/wagner-boss-orders-troops-back-to-bases-to-avoid-bloodshed/102520540',
         'info_dict': {
@@ -95,7 +95,7 @@ class ABCIE(InfoExtractor):
             'ext': 'mp4',
             'description': 'Wagner troops leave Rostov-on-Don and\xa0Yevgeny Prigozhin will move to Belarus under a deal brokered by Belarusian President Alexander Lukashenko to end the mutiny.',
             'thumbnail': 'https://live-production.wcms.abc-cdn.net.au/0c170f5b57f0105c432f366c0e8e267b?impolicy=wcms_crop_resize&cropH=2813&cropW=5000&xPos=0&yPos=249&width=862&height=485',
-        }
+        },
     }]
 
     def _real_extract(self, url):
@@ -164,7 +164,7 @@ class ABCIE(InfoExtractor):
                 'height': height,
                 'tbr': bitrate,
                 'filesize': int_or_none(url_info.get('filesize')),
-                'format_id': format_id
+                'format_id': format_id,
             })
 
         return {
@@ -358,7 +358,7 @@ class ABCIViewShowSeriesIE(InfoExtractor):
             'description': 'md5:93119346c24a7c322d446d8eece430ff',
             'series': 'Upper Middle Bogan',
             'season': 'Series 1',
-            'thumbnail': r're:^https?://cdn\.iview\.abc\.net\.au/thumbs/.*\.jpg$'
+            'thumbnail': r're:^https?://cdn\.iview\.abc\.net\.au/thumbs/.*\.jpg$',
         },
         'playlist_count': 8,
     }, {
@@ -386,7 +386,7 @@ class ABCIViewShowSeriesIE(InfoExtractor):
             'description': 'Satirist Mark Humphries brings his unique perspective on current political events for 7.30.',
             'series': '7.30 Mark Humphries Satire',
             'season': 'Episodes',
-            'thumbnail': r're:^https?://cdn\.iview\.abc\.net\.au/thumbs/.*\.jpg$'
+            'thumbnail': r're:^https?://cdn\.iview\.abc\.net\.au/thumbs/.*\.jpg$',
         },
         'playlist_count': 15,
     }]

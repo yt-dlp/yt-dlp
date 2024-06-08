@@ -38,7 +38,7 @@ class GettrIE(GettrBaseIE):
             'timestamp': 1632782451.058,
             'duration': 58.5585,
             'tags': ['hornofafrica', 'explorations'],
-        }
+        },
     }, {
         'url': 'https://gettr.com/post/p4iahp',
         'info_dict': {
@@ -53,7 +53,7 @@ class GettrIE(GettrBaseIE):
             'timestamp': 1626594455.017,
             'duration': 23,
             'tags': 'count:12',
-        }
+        },
     }, {
         # quote post
         'url': 'https://gettr.com/post/pxn5b743a9',
@@ -157,7 +157,7 @@ class GettrStreamingIE(GettrBaseIE):
             'title': 'Day 1: Opening Session of the Grand Jury Proceeding',
             'timestamp': 1644080997.164,
             'upload_date': '20220205',
-        }
+        },
     }, {
         'url': 'https://gettr.com/streaming/psfmeefcc1',
         'info_dict': {
@@ -172,7 +172,7 @@ class GettrStreamingIE(GettrBaseIE):
             'duration': 21872.507,
             'timestamp': 1643976662.858,
             'upload_date': '20220204',
-        }
+        },
     }]
 
     def _real_extract(self, url):

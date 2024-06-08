@@ -9,7 +9,7 @@ from ..utils.traversal import traverse_obj
 
 class PeriscopeBaseIE(InfoExtractor):
     _M3U8_HEADERS = {
-        'Referer': 'https://www.periscope.tv/'
+        'Referer': 'https://www.periscope.tv/',
     }
 
     def _call_api(self, method, query, item_id):
@@ -40,7 +40,7 @@ class PeriscopeBaseIE(InfoExtractor):
             'live_status': {
                 'running': 'is_live',
                 'not_started': 'is_upcoming',
-            }.get(traverse_obj(broadcast, ('state', {str.lower}))) or 'was_live'
+            }.get(traverse_obj(broadcast, ('state', {str.lower}))) or 'was_live',
         }
 
     @staticmethod

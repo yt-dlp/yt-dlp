@@ -21,7 +21,7 @@ class VuClipIE(InfoExtractor):
             'ext': '3gp',
             'title': 'Top 10 TV Convicts',
             'duration': 733,
-        }
+        },
     }
 
     def _real_extract(self, url):

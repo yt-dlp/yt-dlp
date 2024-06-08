@@ -16,7 +16,7 @@ class CTVNewsIE(InfoExtractor):
             'description': 'md5:958dd3b4f5bbbf0ed4d045c790d89285',
             'timestamp': 1467286284,
             'upload_date': '20160630',
-        }
+        },
     }, {
         'url': 'http://www.ctvnews.ca/video?playlistId=1.2966224',
         'info_dict':

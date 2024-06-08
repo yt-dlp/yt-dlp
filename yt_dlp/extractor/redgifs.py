@@ -130,7 +130,7 @@ class RedGifsIE(RedGifsBaseInfoExtractor):
             'categories': list,
             'age_limit': 18,
             'tags': list,
-        }
+        },
     }, {
         'url': 'https://thumbs2.redgifs.com/SqueakyHelplessWisent-mobile.mp4#t=0',
         'info_dict': {
@@ -146,7 +146,7 @@ class RedGifsIE(RedGifsBaseInfoExtractor):
             'categories': list,
             'age_limit': 18,
             'tags': list,
-        }
+        },
     }]
 
     def _real_extract(self, url):
@@ -166,7 +166,7 @@ class RedGifsSearchIE(RedGifsBaseInfoExtractor):
             'info_dict': {
                 'id': 'tags=Lesbian',
                 'title': 'Lesbian',
-                'description': 'RedGifs search for Lesbian, ordered by trending'
+                'description': 'RedGifs search for Lesbian, ordered by trending',
             },
             'playlist_mincount': 100,
         },
@@ -175,7 +175,7 @@ class RedGifsSearchIE(RedGifsBaseInfoExtractor):
             'info_dict': {
                 'id': 'type=g&order=latest&tags=Lesbian',
                 'title': 'Lesbian',
-                'description': 'RedGifs search for Lesbian, ordered by latest'
+                'description': 'RedGifs search for Lesbian, ordered by latest',
             },
             'playlist_mincount': 100,
         },
@@ -184,10 +184,10 @@ class RedGifsSearchIE(RedGifsBaseInfoExtractor):
             'info_dict': {
                 'id': 'type=g&order=latest&tags=Lesbian&page=2',
                 'title': 'Lesbian',
-                'description': 'RedGifs search for Lesbian, ordered by latest'
+                'description': 'RedGifs search for Lesbian, ordered by latest',
             },
             'playlist_count': 80,
-        }
+        },
     ]
 
     def _real_extract(self, url):
@@ -220,7 +220,7 @@ class RedGifsUserIE(RedGifsBaseInfoExtractor):
             'info_dict': {
                 'id': 'lamsinka89',
                 'title': 'lamsinka89',
-                'description': 'RedGifs user lamsinka89, ordered by recent'
+                'description': 'RedGifs user lamsinka89, ordered by recent',
             },
             'playlist_mincount': 100,
         },
@@ -229,7 +229,7 @@ class RedGifsUserIE(RedGifsBaseInfoExtractor):
             'info_dict': {
                 'id': 'lamsinka89?page=3',
                 'title': 'lamsinka89',
-                'description': 'RedGifs user lamsinka89, ordered by recent'
+                'description': 'RedGifs user lamsinka89, ordered by recent',
             },
             'playlist_count': 30,
         },
@@ -238,10 +238,10 @@ class RedGifsUserIE(RedGifsBaseInfoExtractor):
             'info_dict': {
                 'id': 'lamsinka89?order=best&type=g',
                 'title': 'lamsinka89',
-                'description': 'RedGifs user lamsinka89, ordered by best'
+                'description': 'RedGifs user lamsinka89, ordered by best',
             },
             'playlist_mincount': 100,
-        }
+        },
     ]
 
     def _real_extract(self, url):

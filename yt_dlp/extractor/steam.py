@@ -31,7 +31,7 @@ class SteamIE(InfoExtractor):
                     'ext': 'mp4',
                     'title': 'Terraria video 256785003',
                     'thumbnail': r're:^https://cdn\.[^\.]+\.steamstatic\.com',
-                }
+                },
             },
             {
                 'md5': '6a294ee0c4b1f47f5bb76a65e31e3592',
@@ -40,8 +40,8 @@ class SteamIE(InfoExtractor):
                     'ext': 'mp4',
                     'title': 'Terraria video 2040428',
                     'thumbnail': r're:^https://cdn\.[^\.]+\.steamstatic\.com',
-                }
-            }
+                },
+            },
         ],
         'info_dict': {
             'id': '105600',
@@ -49,7 +49,7 @@ class SteamIE(InfoExtractor):
         },
         'params': {
             'playlistend': 2,
-        }
+        },
     }, {
         'url': 'https://store.steampowered.com/app/271590/Grand_Theft_Auto_V/',
         'info_dict': {

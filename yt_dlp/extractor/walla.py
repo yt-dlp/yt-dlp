@@ -23,7 +23,7 @@ class WallaIE(InfoExtractor):
         'params': {
             # rtmp download
             'skip_download': True,
-        }
+        },
     }
 
     _SUBTITLE_LANGS = {

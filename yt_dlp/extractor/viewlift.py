@@ -74,7 +74,7 @@ class ViewLiftEmbedIE(ViewLiftBaseIE):
             'description': 'md5:b542bef32a6f657dadd0df06e26fb0c8',
             'timestamp': 1334350096,
             'upload_date': '20120413',
-        }
+        },
     }, {
         # invalid labels, 360p is better that 480p
         'url': 'http://www.snagfilms.com/embed/player?filmId=17ca0950-a74a-11e0-a92a-0026bb61d036',
@@ -98,7 +98,7 @@ class ViewLiftEmbedIE(ViewLiftBaseIE):
 
         content_data = self._call_api(
             site, 'entitlement/video/status', film_id, url, {
-                'id': film_id
+                'id': film_id,
             })['video']
         gist = content_data['gist']
         title = gist['title']
@@ -169,7 +169,7 @@ class ViewLiftIE(ViewLiftBaseIE):
             'age_limit': 14,
             'upload_date': '20150421',
             'timestamp': 1429656820,
-        }
+        },
     }, {
         'url': 'http://www.snagfilms.com/show/the_world_cut_project/india',
         'md5': 'e6292e5b837642bbda82d7f8bf3fbdfd',
@@ -183,7 +183,7 @@ class ViewLiftIE(ViewLiftBaseIE):
             'duration': 979,
             'timestamp': 1399478279,
             'upload_date': '20140507',
-        }
+        },
     }, {
         'url': 'http://main.snagfilms.com/augie_alone/s_2_ep_12_love',
         'info_dict': {
@@ -253,7 +253,7 @@ class ViewLiftIE(ViewLiftBaseIE):
             'description': 'md5:ca30a682b4528d02a3eb6d0427dd0f87',
             'thumbnail': r're:^https?://.*\.jpg$',
             'upload_date': '20210830',
-            'series': 'Case Jaundice'
+            'series': 'Case Jaundice',
         },
         'params': {'skip_download': True},
     }, {  # Free video
@@ -265,7 +265,7 @@ class ViewLiftIE(ViewLiftBaseIE):
             'description': 'md5:9d21edc1827d32f8633eb67c2054fc31',
             'thumbnail': r're:^https?://.*\.jpg$',
             'upload_date': '20211006',
-            'series': 'Six (Hindi)'
+            'series': 'Six (Hindi)',
         },
         'params': {'skip_download': True},
     }, {  # Free episode
@@ -277,7 +277,7 @@ class ViewLiftIE(ViewLiftBaseIE):
             'description': 'md5:ef6ffae01a3d83438597367400f824ed',
             'thumbnail': r're:^https?://.*\.jpg$',
             'upload_date': '20211004',
-            'series': 'Asian Paints Moner Thikana'
+            'series': 'Asian Paints Moner Thikana',
         },
         'params': {'skip_download': True},
     }, {  # Free series
@@ -294,7 +294,7 @@ class ViewLiftIE(ViewLiftBaseIE):
         },
     }, {  # Premium movie
         'url': 'https://www.hoichoi.tv/movies/detective-2020',
-        'only_matching': True
+        'only_matching': True,
     }, {  # Chorki Premium series
         'url': 'https://www.chorki.com/bn/series/sinpaat',
         'playlist_mincount': 7,

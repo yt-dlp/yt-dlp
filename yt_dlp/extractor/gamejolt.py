@@ -95,7 +95,7 @@ class GameJoltBaseIE(InfoExtractor):
             'comment_count': int_or_none(post_data.get('comment_count'), default=0),
             'timestamp': int_or_none(post_data.get('added_on'), scale=1000),
             'release_timestamp': int_or_none(post_data.get('published_on'), scale=1000),
-            '__post_extractor': self.extract_comments(post_data.get('id'), post_id)
+            '__post_extractor': self.extract_comments(post_data.get('id'), post_id),
         }
 
         # TODO: Handle multiple videos/embeds?
@@ -152,7 +152,7 @@ class GameJoltBaseIE(InfoExtractor):
                     'height': media.get('height') if url_key == 'img_url' else None,
                     'filesize': media.get('filesize') if url_key == 'img_url' else None,
                     'acodec': 'none',
-                } for url_key in ('img_url', 'mediaserver_url', 'mediaserver_url_mp4', 'mediaserver_url_webm') if media.get(url_key)]
+                } for url_key in ('img_url', 'mediaserver_url', 'mediaserver_url_mp4', 'mediaserver_url_webm') if media.get(url_key)],
             })
         if gif_entries:
             return {
@@ -192,7 +192,7 @@ class GameJoltIE(GameJoltBaseIE):
             'like_count': int,
             'comment_count': int,
             'view_count': int,
-        }
+        },
     }, {
         # YouTube embed
         'url': 'https://gamejolt.com/p/hey-hey-if-there-s-anyone-who-s-looking-to-get-into-learning-a-n6g4jzpq',
@@ -220,7 +220,7 @@ class GameJoltIE(GameJoltBaseIE):
             'upload_date': '20211015',
             'view_count': int,
             'chapters': 'count:18',
-        }
+        },
     }, {
         # Article
         'url': 'https://gamejolt.com/p/i-fuckin-broke-chaos-d56h3eue',
@@ -243,7 +243,7 @@ class GameJoltIE(GameJoltBaseIE):
             'like_count': int,
             'comment_count': int,
             'view_count': int,
-        }
+        },
     }, {
         # Single GIF
         'url': 'https://gamejolt.com/p/hello-everyone-i-m-developing-a-pixel-art-style-mod-for-fnf-and-i-vs4gdrd8',
@@ -267,7 +267,7 @@ class GameJoltIE(GameJoltBaseIE):
                 'id': 'dszyjnwi',
                 'ext': 'webm',
                 'title': 'gif-presentacion-mejorado-dszyjnwi',
-            }
+            },
         }],
         'playlist_count': 1,
     }, {
@@ -348,7 +348,7 @@ class GameJoltGameIE(GameJoltPostListBaseIE):
         'info_dict': {
             'id': '655124',
             'title': 'Friday Night Funkin\': Friday 4 Fun',
-            'description': 'md5:576a7dd87912a2dcf33c50d2bd3966d3'
+            'description': 'md5:576a7dd87912a2dcf33c50d2bd3966d3',
         },
         'params': {
             'ignore_no_formats_error': True,
@@ -383,7 +383,7 @@ class GameJoltGameSoundtrackIE(GameJoltBaseIE):
                 'url': r're:^https://.+vs-oswald-menu-music\.mp3$',
                 'release_timestamp': 1635190816,
                 'release_date': '20211025',
-            }
+            },
         }, {
             'info_dict': {
                 'id': '184435',
@@ -392,7 +392,7 @@ class GameJoltGameSoundtrackIE(GameJoltBaseIE):
                 'url': r're:^https://.+rabbit-s-luck--full-version-\.mp3$',
                 'release_timestamp': 1635190841,
                 'release_date': '20211025',
-            }
+            },
         }, {
             'info_dict': {
                 'id': '185228',
@@ -401,7 +401,7 @@ class GameJoltGameSoundtrackIE(GameJoltBaseIE):
                 'url': r're:^https://.+last-straw\.mp3$',
                 'release_timestamp': 1635881104,
                 'release_date': '20211102',
-            }
+            },
         }],
         'playlist_count': 3,
     }]
@@ -427,7 +427,7 @@ class GameJoltCommunityIE(GameJoltPostListBaseIE):
         'info_dict': {
             'id': 'fnf/videos',
             'title': 'Friday Night Funkin\' - Videos',
-            'description': 'md5:6d8c06f27460f7d35c1554757ffe53c8'
+            'description': 'md5:6d8c06f27460f7d35c1554757ffe53c8',
         },
         'params': {
             'playlistend': 50,
@@ -440,7 +440,7 @@ class GameJoltCommunityIE(GameJoltPostListBaseIE):
         'info_dict': {
             'id': 'youtubers/featured',
             'title': 'Youtubers - featured',
-            'description': 'md5:53e5582c93dcc467ab597bfca4db17d4'
+            'description': 'md5:53e5582c93dcc467ab597bfca4db17d4',
         },
         'params': {
             'playlistend': 50,

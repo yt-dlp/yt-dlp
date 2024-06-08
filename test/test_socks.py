@@ -291,7 +291,7 @@ def ctx(request):
         ('Urllib', 'http'),
         ('Requests', 'http'),
         ('Websockets', 'ws'),
-        ('CurlCFFI', 'http')
+        ('CurlCFFI', 'http'),
     ], indirect=True)
 class TestSocks4Proxy:
     def test_socks4_no_auth(self, handler, ctx):
@@ -366,7 +366,7 @@ class TestSocks4Proxy:
         ('Urllib', 'http'),
         ('Requests', 'http'),
         ('Websockets', 'ws'),
-        ('CurlCFFI', 'http')
+        ('CurlCFFI', 'http'),
     ], indirect=True)
 class TestSocks5Proxy:
 

@@ -54,21 +54,21 @@ class PlutoTVIE(InfoExtractor):
                 'season_number': 2,
                 'episode_number': 3,
                 'duration': 3600,
-            }
+            },
         }, {
             'url': 'https://pluto.tv/on-demand/series/i-love-money/season/1/',
             'playlist_count': 11,
             'info_dict': {
                 'id': '5de6c582e9379ae4912dedbd',
                 'title': 'I Love Money - Season 1',
-            }
+            },
         }, {
             'url': 'https://pluto.tv/on-demand/series/i-love-money/',
             'playlist_count': 26,
             'info_dict': {
                 'id': '5de6c582e9379ae4912dedbd',
                 'title': 'I Love Money',
-            }
+            },
         }, {
             'url': 'https://pluto.tv/on-demand/movies/arrival-2015-1-1',
             'md5': '3cead001d317a018bf856a896dee1762',
@@ -78,7 +78,7 @@ class PlutoTVIE(InfoExtractor):
                 'title': 'Arrival',
                 'description': 'When mysterious spacecraft touch down across the globe, an elite team - led by expert translator Louise Banks (Academy Award® nominee Amy Adams) – races against time to decipher their intent.',
                 'duration': 9000,
-            }
+            },
         }, {
             'url': 'https://pluto.tv/en/on-demand/series/manhunters-fugitive-task-force/seasons/1/episode/third-times-the-charm-1-1',
             'only_matching': True,
@@ -95,8 +95,8 @@ class PlutoTVIE(InfoExtractor):
                 'title': 'Attack of the Killer Tomatoes',
                 'description': 'A group of scientists band together to save the world from mutated tomatoes that KILL! (1978)',
                 'duration': 5700,
-            }
-        }
+            },
+        },
     ]
 
     def _to_ad_free_formats(self, video_id, formats, subtitles):

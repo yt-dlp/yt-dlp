@@ -69,16 +69,16 @@ class CorusIE(ThePlatformFeedIE):  # XXX: Do not subclass from concrete IE
         'only_matching': True,
     }, {
         'url': 'http://www.bigbrothercanada.ca/video/1457812035894/',
-        'only_matching': True
+        'only_matching': True,
     }, {
         'url': 'https://www.bigbrothercanada.ca/video/big-brother-canada-704/1457812035894/',
-        'only_matching': True
+        'only_matching': True,
     }, {
         'url': 'https://www.seriesplus.com/emissions/dre-mary-mort-sur-ordonnance/videos/deux-coeurs-battant/SERP0055626330000200/',
-        'only_matching': True
+        'only_matching': True,
     }, {
         'url': 'https://www.disneychannel.ca/shows/gabby-duran-the-unsittables/video/crybaby-duran-clip/2f557eec-0588-11ea-ae2b-e2c6776b770e/',
-        'only_matching': True
+        'only_matching': True,
     }]
     _GEO_BYPASS = False
     _SITE_MAP = {

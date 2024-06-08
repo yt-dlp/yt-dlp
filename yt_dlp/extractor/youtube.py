@@ -77,9 +77,9 @@ INNERTUBE_CLIENTS = {
             'client': {
                 'clientName': 'WEB',
                 'clientVersion': '2.20220801.00.00',
-            }
+            },
         },
-        'INNERTUBE_CONTEXT_CLIENT_NAME': 1
+        'INNERTUBE_CONTEXT_CLIENT_NAME': 1,
     },
     'web_embedded': {
         'INNERTUBE_API_KEY': 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8',
@@ -89,7 +89,7 @@ INNERTUBE_CLIENTS = {
                 'clientVersion': '1.20220731.00.00',
             },
         },
-        'INNERTUBE_CONTEXT_CLIENT_NAME': 56
+        'INNERTUBE_CONTEXT_CLIENT_NAME': 56,
     },
     'web_music': {
         'INNERTUBE_API_KEY': 'AIzaSyC9XL3ZjWddXya6X74dJoCTL-WEYFDNX30',
@@ -98,7 +98,7 @@ INNERTUBE_CLIENTS = {
             'client': {
                 'clientName': 'WEB_REMIX',
                 'clientVersion': '1.20220727.01.00',
-            }
+            },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 67,
     },
@@ -108,7 +108,7 @@ INNERTUBE_CLIENTS = {
             'client': {
                 'clientName': 'WEB_CREATOR',
                 'clientVersion': '1.20220726.00.00',
-            }
+            },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 62,
     },
@@ -119,11 +119,11 @@ INNERTUBE_CLIENTS = {
                 'clientName': 'ANDROID',
                 'clientVersion': '19.09.37',
                 'androidSdkVersion': 30,
-                'userAgent': 'com.google.android.youtube/19.09.37 (Linux; U; Android 11) gzip'
-            }
+                'userAgent': 'com.google.android.youtube/19.09.37 (Linux; U; Android 11) gzip',
+            },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 3,
-        'REQUIRE_JS_PLAYER': False
+        'REQUIRE_JS_PLAYER': False,
     },
     'android_embedded': {
         'INNERTUBE_API_KEY': 'AIzaSyCjc_pVEDi4qsv5MtC2dMXzpIaDoRFLsxw',
@@ -132,11 +132,11 @@ INNERTUBE_CLIENTS = {
                 'clientName': 'ANDROID_EMBEDDED_PLAYER',
                 'clientVersion': '19.09.37',
                 'androidSdkVersion': 30,
-                'userAgent': 'com.google.android.youtube/19.09.37 (Linux; U; Android 11) gzip'
+                'userAgent': 'com.google.android.youtube/19.09.37 (Linux; U; Android 11) gzip',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 55,
-        'REQUIRE_JS_PLAYER': False
+        'REQUIRE_JS_PLAYER': False,
     },
     'android_music': {
         'INNERTUBE_API_KEY': 'AIzaSyAOghZGza2MQSZkY_zfZ370N-PUdXEo8AI',
@@ -145,11 +145,11 @@ INNERTUBE_CLIENTS = {
                 'clientName': 'ANDROID_MUSIC',
                 'clientVersion': '6.42.52',
                 'androidSdkVersion': 30,
-                'userAgent': 'com.google.android.apps.youtube.music/6.42.52 (Linux; U; Android 11) gzip'
-            }
+                'userAgent': 'com.google.android.apps.youtube.music/6.42.52 (Linux; U; Android 11) gzip',
+            },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 21,
-        'REQUIRE_JS_PLAYER': False
+        'REQUIRE_JS_PLAYER': False,
     },
     'android_creator': {
         'INNERTUBE_API_KEY': 'AIzaSyD_qjV8zaaUMehtLkrKFgVeSX_Iqbtyws8',
@@ -158,11 +158,11 @@ INNERTUBE_CLIENTS = {
                 'clientName': 'ANDROID_CREATOR',
                 'clientVersion': '22.30.100',
                 'androidSdkVersion': 30,
-                'userAgent': 'com.google.android.apps.youtube.creator/22.30.100 (Linux; U; Android 11) gzip'
+                'userAgent': 'com.google.android.apps.youtube.creator/22.30.100 (Linux; U; Android 11) gzip',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 14,
-        'REQUIRE_JS_PLAYER': False
+        'REQUIRE_JS_PLAYER': False,
     },
     # iOS clients have HLS live streams. Setting device model to get 60fps formats.
     # See: https://github.com/TeamNewPipe/NewPipeExtractor/issues/680#issuecomment-1002724558
@@ -173,11 +173,11 @@ INNERTUBE_CLIENTS = {
                 'clientName': 'IOS',
                 'clientVersion': '19.09.3',
                 'deviceModel': 'iPhone14,3',
-                'userAgent': 'com.google.ios.youtube/19.09.3 (iPhone14,3; U; CPU iOS 15_6 like Mac OS X)'
-            }
+                'userAgent': 'com.google.ios.youtube/19.09.3 (iPhone14,3; U; CPU iOS 15_6 like Mac OS X)',
+            },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 5,
-        'REQUIRE_JS_PLAYER': False
+        'REQUIRE_JS_PLAYER': False,
     },
     'ios_embedded': {
         'INNERTUBE_CONTEXT': {
@@ -185,11 +185,11 @@ INNERTUBE_CLIENTS = {
                 'clientName': 'IOS_MESSAGES_EXTENSION',
                 'clientVersion': '19.09.3',
                 'deviceModel': 'iPhone14,3',
-                'userAgent': 'com.google.ios.youtube/19.09.3 (iPhone14,3; U; CPU iOS 15_6 like Mac OS X)'
+                'userAgent': 'com.google.ios.youtube/19.09.3 (iPhone14,3; U; CPU iOS 15_6 like Mac OS X)',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 66,
-        'REQUIRE_JS_PLAYER': False
+        'REQUIRE_JS_PLAYER': False,
     },
     'ios_music': {
         'INNERTUBE_API_KEY': 'AIzaSyBAETezhkwP0ZWA02RsqT1zu78Fpt0bC_s',
@@ -198,11 +198,11 @@ INNERTUBE_CLIENTS = {
                 'clientName': 'IOS_MUSIC',
                 'clientVersion': '6.33.3',
                 'deviceModel': 'iPhone14,3',
-                'userAgent': 'com.google.ios.youtubemusic/6.33.3 (iPhone14,3; U; CPU iOS 15_6 like Mac OS X)'
+                'userAgent': 'com.google.ios.youtubemusic/6.33.3 (iPhone14,3; U; CPU iOS 15_6 like Mac OS X)',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 26,
-        'REQUIRE_JS_PLAYER': False
+        'REQUIRE_JS_PLAYER': False,
     },
     'ios_creator': {
         'INNERTUBE_CONTEXT': {
@@ -210,11 +210,11 @@ INNERTUBE_CLIENTS = {
                 'clientName': 'IOS_CREATOR',
                 'clientVersion': '22.33.101',
                 'deviceModel': 'iPhone14,3',
-                'userAgent': 'com.google.ios.ytcreator/22.33.101 (iPhone14,3; U; CPU iOS 15_6 like Mac OS X)'
+                'userAgent': 'com.google.ios.ytcreator/22.33.101 (iPhone14,3; U; CPU iOS 15_6 like Mac OS X)',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 15,
-        'REQUIRE_JS_PLAYER': False
+        'REQUIRE_JS_PLAYER': False,
     },
     # mweb has 'ultralow' formats
     # See: https://github.com/yt-dlp/yt-dlp/pull/557
@@ -224,9 +224,9 @@ INNERTUBE_CLIENTS = {
             'client': {
                 'clientName': 'MWEB',
                 'clientVersion': '2.20220801.00.00',
-            }
+            },
         },
-        'INNERTUBE_CONTEXT_CLIENT_NAME': 2
+        'INNERTUBE_CONTEXT_CLIENT_NAME': 2,
     },
     # This client can access age restricted videos (unless the uploader has disabled the 'allow embedding' option)
     # See: https://github.com/zerodytrash/YouTube-Internal-Clients
@@ -238,7 +238,7 @@ INNERTUBE_CLIENTS = {
                 'clientVersion': '2.0',
             },
         },
-        'INNERTUBE_CONTEXT_CLIENT_NAME': 85
+        'INNERTUBE_CONTEXT_CLIENT_NAME': 85,
     },
     # This client has pre-merged video+audio 720p/1080p streams
     'mediaconnect': {
@@ -248,7 +248,7 @@ INNERTUBE_CLIENTS = {
                 'clientVersion': '0.1',
             },
         },
-        'INNERTUBE_CONTEXT_CLIENT_NAME': 95
+        'INNERTUBE_CONTEXT_CLIENT_NAME': 95,
     },
 }
 
@@ -465,7 +465,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         'lt', 'hu', 'nl', 'no', 'uz', 'pl', 'pt-PT', 'pt', 'ro', 'sq', 'sk', 'sl', 'sr-Latn', 'fi',
         'sv', 'vi', 'tr', 'be', 'bg', 'ky', 'kk', 'mk', 'mn', 'ru', 'sr', 'uk', 'el', 'hy', 'iw',
         'ur', 'ar', 'fa', 'ne', 'mr', 'hi', 'as', 'bn', 'pa', 'gu', 'or', 'ta', 'te', 'kn', 'ml',
-        'si', 'th', 'lo', 'my', 'ka', 'am', 'km', 'zh-CN', 'zh-TW', 'zh-HK', 'ja', 'ko'
+        'si', 'th', 'lo', 'my', 'ka', 'am', 'km', 'zh-CN', 'zh-TW', 'zh-HK', 'ja', 'ko',
     ]
 
     _IGNORED_WARNINGS = {'Unavailable videos will be hidden during playback'}
@@ -698,7 +698,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             'X-Youtube-Identity-Token': identity_token or self._extract_identity_token(ytcfg),
             'X-Goog-PageId': account_syncid or self._extract_account_syncid(ytcfg),
             'X-Goog-Visitor-Id': visitor_data or self._extract_visitor_data(ytcfg),
-            'User-Agent': self._ytcfg_get_safe(ytcfg, lambda x: x['INNERTUBE_CONTEXT']['client']['userAgent'], default_client=default_client)
+            'User-Agent': self._ytcfg_get_safe(ytcfg, lambda x: x['INNERTUBE_CONTEXT']['client']['userAgent'], default_client=default_client),
         }
         if session_index is None:
             session_index = self._extract_session_index(ytcfg)
@@ -715,7 +715,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         url = {
             'web': 'https://www.youtube.com',
             'web_music': 'https://music.youtube.com',
-            'web_embedded': f'https://www.youtube.com/embed/{video_id}?html5=1'
+            'web_embedded': f'https://www.youtube.com/embed/{video_id}?html5=1',
         }.get(client)
         if not url:
             return {}
@@ -726,7 +726,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     @staticmethod
     def _build_api_continuation_query(continuation, ctp=None):
         query = {
-            'continuation': continuation
+            'continuation': continuation,
         }
         # TODO: Inconsistency with clickTrackingParams.
         # Currently we have a fixed ctp contained within context (from ytcfg)
@@ -766,7 +766,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
         return traverse_obj(renderer, (
             ('contents', 'items', 'rows'), ..., 'continuationItemRenderer',
-            ('continuationEndpoint', ('button', 'buttonRenderer', 'command'))
+            ('continuationEndpoint', ('button', 'buttonRenderer', 'command')),
         ), get_all=False, expected_type=cls._extract_continuation_ep_data)
 
     @classmethod
@@ -1114,7 +1114,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                     is_unlisted=self._has_badge(badges, BadgeType.AVAILABILITY_UNLISTED) or None),
             view_count_field: view_count,
             'live_status': live_status,
-            'channel_is_verified': True if self._has_badge(owner_badges, BadgeType.VERIFIED) else None
+            'channel_is_verified': True if self._has_badge(owner_badges, BadgeType.VERIFIED) else None,
         }
 
 
@@ -1326,7 +1326,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader_id': '@PhilippHagemeister',
                 'heatmap': 'count:100',
                 'timestamp': 1349198244,
-            }
+            },
         },
         {
             'url': '//www.YouTube.com/watch?v=yZIXLfi8CZQ',
@@ -1383,7 +1383,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'ext': 'm4a',
                 'upload_date': '20121002',
                 'description': '',
-                'title': 'UHDTV TEST 8K VIDEO.mp4'
+                'title': 'UHDTV TEST 8K VIDEO.mp4',
             },
             'params': {
                 'youtube_include_dash_manifest': True,
@@ -1591,7 +1591,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             },
             'expected_warnings': [
                 'DASH manifest missing',
-            ]
+            ],
         },
         # Olympics (https://github.com/ytdl-org/youtube-dl/issues/4431)
         {
@@ -1626,7 +1626,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             },
             'params': {
                 'skip_download': 'requires avconv',
-            }
+            },
         },
         # Non-square pixels
         {
@@ -1850,7 +1850,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'playable_in_embed': True,
                 'like_count': int,
                 'age_limit': 0,
-                'channel_follower_count': int
+                'channel_follower_count': int,
             },
             'params': {
                 'skip_download': True,
@@ -2111,7 +2111,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'channel_id': 'UC-pWHpBjdGG69N9mM2auIAA',
                 'tags': 'count:11',
                 'live_status': 'not_live',
-                'channel_follower_count': int
+                'channel_follower_count': int,
             },
             'params': {
                 'skip_download': True,
@@ -2288,7 +2288,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'comment_count': int,
                 'channel_is_verified': True,
                 'timestamp': 1405513526,
-            }
+            },
         },
         {
             # restricted location, https://github.com/ytdl-org/youtube-dl/issues/28685
@@ -2323,11 +2323,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         }, {
             # Has multiple audio streams
             'url': 'WaOKSUlf4TM',
-            'only_matching': True
+            'only_matching': True,
         }, {
             # Requires Premium: has format 141 when requested using YTM url
             'url': 'https://music.youtube.com/watch?v=XclachpHxis',
-            'only_matching': True
+            'only_matching': True,
         }, {
             # multiple subtitles with same lang_code
             'url': 'https://www.youtube.com/watch?v=wsQiKKfKxug',
@@ -2412,7 +2412,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'channel_is_verified': True,
                 'heatmap': 'count:100',
                 'timestamp': 1395685455,
-            }, 'params': {'format': 'mhtml', 'skip_download': True}
+            }, 'params': {'format': 'mhtml', 'skip_download': True},
         }, {
             # Ensure video upload_date is in UTC timezone (video was uploaded 1641170939)
             'url': 'https://www.youtube.com/watch?v=2NUZ8W2llS4',
@@ -2442,7 +2442,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader_id': '@LeonNguyen',
                 'heatmap': 'count:100',
                 'timestamp': 1641170939,
-            }
+            },
         }, {
             # date text is premiered video, ensure upload date in UTC (published 1641172509)
             'url': 'https://www.youtube.com/watch?v=mzZzzBU6lrM',
@@ -2475,7 +2475,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'channel_is_verified': True,
                 'heatmap': 'count:100',
                 'timestamp': 1641172509,
-            }
+            },
         },
         {   # continuous livestream.
             # Upload date was 2022-07-12T05:12:29-07:00, while stream start is 2022-07-12T15:59:30+00:00
@@ -2535,7 +2535,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader': 'Lesmiscore',
                 'uploader_url': 'https://www.youtube.com/@lesmiscore',
                 'timestamp': 1648005313,
-            }
+            },
         }, {
             # Prefer primary title+description language metadata by default
             # Do not prefer translated description if primary is empty
@@ -2564,7 +2564,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader': 'cole-dlp-test-acc',
                 'timestamp': 1662677394,
             },
-            'params': {'skip_download': True}
+            'params': {'skip_download': True},
         }, {
             # Extractor argument: prefer translated title+description
             'url': 'https://www.youtube.com/watch?v=gHKT4uU8Zng',
@@ -2765,7 +2765,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             },
             'params': {
                 'skip_download': True,
-            }
+            },
         },
     ]
 
@@ -3280,7 +3280,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         chapter_list = traverse_obj(
             data, (
                 'playerOverlays', 'playerOverlayRenderer', 'decoratedPlayerBarRenderer',
-                'decoratedPlayerBarRenderer', 'playerBar', 'chapteredPlayerBarRenderer', 'chapters'
+                'decoratedPlayerBarRenderer', 'playerBar', 'chapteredPlayerBarRenderer', 'chapters',
             ), expected_type=list)
 
         return self._extract_chapters_helper(
@@ -3334,7 +3334,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'author_is_uploader': ('author', 'isCreator', {bool}),
                 'author_is_verified': ('author', 'isVerified', {bool}),
                 'author_url': ('author', 'channelCommand', 'innertubeCommand', (
-                    ('browseEndpoint', 'canonicalBaseUrl'), ('commandMetadata', 'webCommandMetadata', 'url')
+                    ('browseEndpoint', 'canonicalBaseUrl'), ('commandMetadata', 'webCommandMetadata', 'url'),
                 ), {lambda x: urljoin('https://www.youtube.com', x)}),
             }, get_all=False),
             'is_favorited': (None if toolbar_entity_payload is None else
@@ -3498,7 +3498,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'total_parent_comments': 0,
                 'total_reply_comments': 0,
                 'seen_comment_ids': set(),
-                'pinned_comment_ids': set()
+                'pinned_comment_ids': set(),
             }
 
         # TODO: Deprecated
@@ -3511,7 +3511,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             return
 
         max_comments, max_parents, max_replies, max_replies_per_thread, *_ = (
-            int_or_none(p, default=sys.maxsize) for p in self._configuration_arg('max_comments', ) + [''] * 4)
+            int_or_none(p, default=sys.maxsize) for p in self._configuration_arg('max_comments') + [''] * 4)
 
         continuation = self._extract_continuation(root_continuation_data)
 
@@ -3627,9 +3627,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             context['signatureTimestamp'] = sts
         return {
             'playbackContext': {
-                'contentPlaybackContext': context
+                'contentPlaybackContext': context,
             },
-            **cls._get_checkok_params()
+            **cls._get_checkok_params(),
         }
 
     @staticmethod
@@ -3669,7 +3669,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             item_id=video_id, ep='player', query=yt_query,
             ytcfg=player_ytcfg, headers=headers, fatal=True,
             default_client=client,
-            note='Downloading %s player API JSON' % client.replace('_', ' ').strip()
+            note='Downloading %s player API JSON' % client.replace('_', ' ').strip(),
         ) or None
 
     def _get_requested_clients(self, url, smuggled_data):
@@ -3805,7 +3805,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             # audio-only formats with unknown quality may get tagged as tiny
             'tiny',
             'audio_quality_ultralow', 'audio_quality_low', 'audio_quality_medium', 'audio_quality_high',  # Audio only formats
-            'small', 'medium', 'large', 'hd720', 'hd1080', 'hd1440', 'hd2160', 'hd2880', 'highres'
+            'small', 'medium', 'large', 'hd720', 'hd1080', 'hd1440', 'hd2160', 'hd2880', 'highres',
         ])
         streaming_formats = traverse_obj(streaming_data, (..., ('formats', 'adaptiveFormats'), ...))
         format_types = self._configuration_arg('formats')
@@ -3818,8 +3818,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         def build_fragments(f):
             return LazyList({
                 'url': update_url_query(f['url'], {
-                    'range': f'{range_start}-{min(range_start + CHUNK_SIZE - 1, f["filesize"])}'
-                })
+                    'range': f'{range_start}-{min(range_start + CHUNK_SIZE - 1, f["filesize"])}',
+                }),
             } for range_start in range(0, f['filesize'], CHUNK_SIZE))
 
         for fmt in streaming_formats:
@@ -3862,7 +3862,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 try:
                     fmt_url += '&%s=%s' % (
                         traverse_obj(sc, ('sp', -1)) or 'signature',
-                        self._decrypt_signature(encrypted_sig, video_id, player_url)
+                        self._decrypt_signature(encrypted_sig, video_id, player_url),
                     )
                 except ExtractorError as e:
                     self.report_warning('Signature extraction failed: Some formats may be missing',
@@ -3876,7 +3876,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 try:
                     decrypt_nsig = self._cached(self._decrypt_nsig, 'nsig', query['n'][0])
                     fmt_url = update_url_query(fmt_url, {
-                        'n': decrypt_nsig(query['n'][0], video_id, player_url)
+                        'n': decrypt_nsig(query['n'][0], video_id, player_url),
                     })
                 except ExtractorError as e:
                     phantomjs_hint = ''
@@ -4279,7 +4279,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             # While the *1,*2,*3 thumbnails are just below their corresponding "*default" variants
             # in resolution, these are not the custom thumbnail. So de-prioritize them
             'maxresdefault', 'hq720', 'sddefault', 'hqdefault', '0', 'mqdefault', 'default',
-            'sd1', 'sd2', 'sd3', 'hq1', 'hq2', 'hq3', 'mq1', 'mq2', 'mq3', '1', '2', '3'
+            'sd1', 'sd2', 'sd3', 'hq1', 'hq2', 'hq3', 'mq1', 'mq2', 'mq3', '1', '2', '3',
         ]
         n_thumbnail_names = len(thumbnail_names)
         thumbnails.extend({
@@ -4353,7 +4353,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'live_status': live_status,
             'release_timestamp': live_start_time,
             '_format_sort_fields': (  # source_preference is lower for throttled/potentially damaged formats
-                'quality', 'res', 'fps', 'hdr:12', 'source', 'vcodec:vp9.2', 'channels', 'acodec', 'lang', 'proto')
+                'quality', 'res', 'fps', 'hdr:12', 'source', 'vcodec:vp9.2', 'channels', 'acodec', 'lang', 'proto'),
         }
 
         subtitles = {}
@@ -4483,10 +4483,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         info['comment_count'] = traverse_obj(initial_data, (
             'contents', 'twoColumnWatchNextResults', 'results', 'results', 'contents', ..., 'itemSectionRenderer',
-            'contents', ..., 'commentsEntryPointHeaderRenderer', 'commentCount'
+            'contents', ..., 'commentsEntryPointHeaderRenderer', 'commentCount',
         ), (
             'engagementPanels', lambda _, v: v['engagementPanelSectionListRenderer']['panelIdentifier'] == 'comment-item-section',
-            'engagementPanelSectionListRenderer', 'header', 'engagementPanelTitleHeaderRenderer', 'contextualInfo'
+            'engagementPanelSectionListRenderer', 'header', 'engagementPanelTitleHeaderRenderer', 'contextualInfo',
         ), expected_type=self._get_count, get_all=False)
 
         try:  # This will error if there is no livechat
@@ -4716,7 +4716,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
     def _extract_basic_item_renderer(item):
         # Modified from _extract_grid_item_renderer
         known_basic_renderers = (
-            'playlistRenderer', 'videoRenderer', 'channelRenderer', 'showRenderer', 'reelItemRenderer'
+            'playlistRenderer', 'videoRenderer', 'channelRenderer', 'showRenderer', 'reelItemRenderer',
         )
         for key, renderer in item.items():
             if not isinstance(renderer, dict):
@@ -5065,7 +5065,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
 
             continuation_items = traverse_obj(response, (
                 ('onResponseReceivedActions', 'onResponseReceivedEndpoints'), ...,
-                'appendContinuationItemsAction', 'continuationItems'
+                'appendContinuationItemsAction', 'continuationItems',
             ), 'continuationContents', get_all=False)
             continuation_item = traverse_obj(continuation_items, 0, None, expected_type=dict, default={})
 
@@ -5137,7 +5137,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                 avatar_thumbnails.append({
                     'url': uncropped_avatar,
                     'id': 'avatar_uncropped',
-                    'preference': 1
+                    'preference': 1,
                 })
 
         channel_banners = self._extract_thumbnails(
@@ -5151,7 +5151,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                 channel_banners.append({
                     'url': uncropped_banner,
                     'id': 'banner_uncropped',
-                    'preference': -5
+                    'preference': -5,
                 })
 
         # Deprecated - remove primary_sidebar_renderer when layout discontinued
@@ -5221,7 +5221,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             info.update({
                 'channel': self._search_regex(r'^by (.+) and \d+ others?$', owner_text, 'uploader', default=owner_text),
                 'channel_id': self.ucid_or_none(browse_ep.get('browseId')),
-                'uploader_id': self.handle_from_url(urljoin('https://www.youtube.com', browse_ep.get('canonicalBaseUrl')))
+                'uploader_id': self.handle_from_url(urljoin('https://www.youtube.com', browse_ep.get('canonicalBaseUrl'))),
             })
 
         info.update({
@@ -5253,12 +5253,12 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                 'playlistId': playlist_id,
                 'videoId': watch_endpoint.get('videoId') or last_id,
                 'index': watch_endpoint.get('index') or len(videos),
-                'params': watch_endpoint.get('params') or 'OAE%3D'
+                'params': watch_endpoint.get('params') or 'OAE%3D',
             }
             response = self._extract_response(
                 item_id='%s page %d' % (playlist_id, page_num),
                 query=query, ep='next', headers=headers, ytcfg=ytcfg,
-                check_get_keys='contents'
+                check_get_keys='contents',
             )
             playlist = try_get(
                 response, lambda x: x['contents']['twoColumnWatchNextResults']['playlist']['playlist'], dict)
@@ -5349,7 +5349,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             visitor_data=self._extract_visitor_data(data, ytcfg))
         query = {
             'params': 'wgYCCAA=',
-            'browseId': f'VL{item_id}'
+            'browseId': f'VL{item_id}',
         }
         return self._extract_response(
             item_id=item_id, headers=headers, query=query,
@@ -5513,7 +5513,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'channel_id': 'UCqj7Cz7revf5maW9g5pgNcg',
             'tags': ['критическое мышление', 'наука просто', 'математика', 'анализ данных'],
             'channel_url': 'https://www.youtube.com/channel/UCqj7Cz7revf5maW9g5pgNcg',
-            'channel_follower_count': int
+            'channel_follower_count': int,
         },
     }, {
         'note': 'playlists, multipage, different order',
@@ -5530,7 +5530,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'channel_id': 'UCqj7Cz7revf5maW9g5pgNcg',
             'channel': 'Igor Kleiner Ph.D.',
             'channel_url': 'https://www.youtube.com/channel/UCqj7Cz7revf5maW9g5pgNcg',
-            'channel_follower_count': int
+            'channel_follower_count': int,
         },
     }, {
         'note': 'playlists, series',
@@ -5565,8 +5565,8 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'channel_url': 'https://www.youtube.com/channel/UCAEtajcuhQ6an9WEzY9LEMQ',
             'tags': 'count:12',
             'channel': 'ThirstForScience',
-            'channel_follower_count': int
-        }
+            'channel_follower_count': int,
+        },
     }, {
         'url': 'https://www.youtube.com/c/ChristophLaimer/playlists',
         'only_matching': True,
@@ -5621,7 +5621,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'uploader_url': 'https://www.youtube.com/@lexwill718',
             'channel_url': 'https://www.youtube.com/channel/UCKfVa3S1e4PHvxWcwyMMg8w',
             'channel_id': 'UCKfVa3S1e4PHvxWcwyMMg8w',
-            'channel_follower_count': int
+            'channel_follower_count': int,
         },
         'playlist_mincount': 2,
     }, {
@@ -5638,7 +5638,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'channel_id': 'UCKfVa3S1e4PHvxWcwyMMg8w',
             'uploader_url': 'https://www.youtube.com/@lexwill718',
             'channel': 'lex will',
-            'channel_follower_count': int
+            'channel_follower_count': int,
         },
         'playlist_mincount': 975,
     }, {
@@ -5655,7 +5655,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'channel': 'lex will',
             'tags': ['bible', 'history', 'prophesy'],
             'channel_url': 'https://www.youtube.com/channel/UCKfVa3S1e4PHvxWcwyMMg8w',
-            'channel_follower_count': int
+            'channel_follower_count': int,
         },
         'playlist_mincount': 199,
     }, {
@@ -5672,7 +5672,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'channel_url': 'https://www.youtube.com/channel/UCKfVa3S1e4PHvxWcwyMMg8w',
             'channel_id': 'UCKfVa3S1e4PHvxWcwyMMg8w',
             'tags': ['bible', 'history', 'prophesy'],
-            'channel_follower_count': int
+            'channel_follower_count': int,
         },
         'playlist_mincount': 17,
     }, {
@@ -5995,11 +5995,11 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
     }, {
         'note': 'Requires Premium: should request additional YTM-info webpage (and have format 141) for videos in playlist',
         'url': 'https://music.youtube.com/playlist?list=PLRBp0Fe2GpgmgoscNFLxNyBVSFVdYmFkq',
-        'only_matching': True
+        'only_matching': True,
     }, {
         'note': '/browse/ should redirect to /channel/',
         'url': 'https://music.youtube.com/browse/UC1a8OFewdjuLq6KlF8M_8Ng',
-        'only_matching': True
+        'only_matching': True,
     }, {
         'note': 'VLPL, should redirect to playlist?list=PL...',
         'url': 'https://music.youtube.com/browse/VLPLRBp0Fe2GpgmgoscNFLxNyBVSFVdYmFkq',
@@ -6096,7 +6096,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
                 'uploader_id': '@PhilippHagemeister',
                 'uploader_url': 'https://www.youtube.com/@PhilippHagemeister',
                 'uploader': 'Philipp Hagemeister',
-            }
+            },
         }],
         'playlist_count': 1,
         'params': {'extract_flat': True},
@@ -6111,7 +6111,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'playlist_mincount': 50,
         'params': {
             'skip_download': True,
-            'extractor_args': {'youtubetab': {'skip': ['webpage']}}
+            'extractor_args': {'youtubetab': {'skip': ['webpage']}},
         },
     }, {
         'note': 'API Fallback: /videos tab, sorted by oldest first',
@@ -6124,12 +6124,12 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'channel_id': 'UCu6mSoMNzHQiBIOCkHUa2Aw',
             'tags': [],
             'channel_url': 'https://www.youtube.com/channel/UCu6mSoMNzHQiBIOCkHUa2Aw',
-            'channel_follower_count': int
+            'channel_follower_count': int,
         },
         'playlist_mincount': 650,
         'params': {
             'skip_download': True,
-            'extractor_args': {'youtubetab': {'skip': ['webpage']}}
+            'extractor_args': {'youtubetab': {'skip': ['webpage']}},
         },
         'skip': 'Query for sorting no longer works',
     }, {
@@ -6151,13 +6151,13 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'playlist_mincount': 101,
         'params': {
             'skip_download': True,
-            'extractor_args': {'youtubetab': {'skip': ['webpage']}}
+            'extractor_args': {'youtubetab': {'skip': ['webpage']}},
         },
         'expected_warnings': ['YouTube Music is not directly supported', r'[Uu]navailable videos (are|will be) hidden'],
     }, {
         'note': 'non-standard redirect to regional channel',
         'url': 'https://www.youtube.com/channel/UCwVVpHQ2Cs9iGJfpdFngePQ',
-        'only_matching': True
+        'only_matching': True,
     }, {
         'note': 'collaborative playlist (uploader name in the form "by <uploader> and x other(s)")',
         'url': 'https://www.youtube.com/playlist?list=PLx-_-Kk4c89oOHEDQAojOXzEzemXxoqx6',
@@ -6176,7 +6176,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'uploader_id': '@pukkandan',
             'uploader': 'pukkandan',
         },
-        'playlist_mincount': 2
+        'playlist_mincount': 2,
     }, {
         'note': 'translated tab name',
         'url': 'https://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA/playlists',
@@ -6317,7 +6317,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         # No uploads and no UCID given. Should fail with no uploads error
         # See test_youtube_lists
         'url': 'https://www.youtube.com/news',
-        'only_matching': True
+        'only_matching': True,
     }, {
         # No videos tab but has a shorts tab
         'url': 'https://www.youtube.com/c/TKFShorts',
@@ -6379,7 +6379,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
                 'title': 'SHORT short',
                 'view_count': int,
                 'thumbnails': list,
-            }
+            },
         }],
         'params': {'extract_flat': True},
     }, {
@@ -6388,7 +6388,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'info_dict': {
             'id': 'UCQvWX73GQygcwXOTSf_VDVg',
             'title': 'UCQvWX73GQygcwXOTSf_VDVg - Live',  # TODO: should be Minecraft - Live or Minecraft - Topic - Live
-            'tags': []
+            'tags': [],
         },
         'playlist': [{
             'info_dict': {
@@ -6406,10 +6406,10 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
                 'uploader_url': str,
                 'uploader_id': str,
                 'channel_is_verified': bool,  # this will keep changing
-            }
+            },
         }],
         'params': {'extract_flat': True, 'playlist_items': '1'},
-        'playlist_mincount': 1
+        'playlist_mincount': 1,
     }, {
         # Channel renderer metadata. Contains number of videos on the channel
         'url': 'https://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA/channels',
@@ -6442,7 +6442,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
                 'uploader_url': 'https://www.youtube.com/@PewDiePie',
                 'uploader_id': '@PewDiePie',
                 'channel_is_verified': True,
-            }
+            },
         }],
         'params': {'extract_flat': True},
     }, {
@@ -6880,7 +6880,7 @@ class YoutubeYtBeIE(InfoExtractor):
             'availability': 'public',
             'duration': 59,
             'comment_count': int,
-            'channel_follower_count': int
+            'channel_follower_count': int,
         },
         'params': {
             'noplaylist': True,
@@ -7054,7 +7054,7 @@ class YoutubeSearchIE(YoutubeTabBaseInfoExtractor, SearchInfoExtractor):
         'info_dict': {
             'id': 'youtube-dl test video',
             'title': 'youtube-dl test video',
-        }
+        },
     }, {
         'note': 'Suicide/self-harm search warning',
         'url': 'ytsearch1:i hate myself and i wanna die',
@@ -7062,7 +7062,7 @@ class YoutubeSearchIE(YoutubeTabBaseInfoExtractor, SearchInfoExtractor):
         'info_dict': {
             'id': 'i hate myself and i wanna die',
             'title': 'i hate myself and i wanna die',
-        }
+        },
     }]
 
 
@@ -7077,7 +7077,7 @@ class YoutubeSearchDateIE(YoutubeTabBaseInfoExtractor, SearchInfoExtractor):
         'info_dict': {
             'id': 'youtube-dl test video',
             'title': 'youtube-dl test video',
-        }
+        },
     }]
 
 
@@ -7091,14 +7091,14 @@ class YoutubeSearchURLIE(YoutubeTabBaseInfoExtractor):
         'info_dict': {
             'id': 'youtube-dl test video',
             'title': 'youtube-dl test video',
-        }
+        },
     }, {
         'url': 'https://www.youtube.com/results?search_query=python&sp=EgIQAg%253D%253D',
         'playlist_mincount': 5,
         'info_dict': {
             'id': 'python',
             'title': 'python',
-        }
+        },
     }, {
         'url': 'https://www.youtube.com/results?search_query=%23cats',
         'playlist_mincount': 1,
@@ -7137,7 +7137,7 @@ class YoutubeSearchURLIE(YoutubeTabBaseInfoExtractor):
                 'uploader': 'Kurzgesagt – In a Nutshell',
                 'channel_is_verified': True,
                 'channel_follower_count': int,
-            }
+            },
         }],
         'params': {'extract_flat': True, 'playlist_items': '1'},
         'playlist_mincount': 1,
@@ -7162,7 +7162,7 @@ class YoutubeMusicSearchURLIE(YoutubeTabBaseInfoExtractor):
         'info_dict': {
             'id': 'royalty free music',
             'title': 'royalty free music',
-        }
+        },
     }, {
         'url': 'https://music.youtube.com/search?q=royalty+free+music&sp=EgWKAQIIAWoKEAoQAxAEEAkQBQ%3D%3D',
         'playlist_mincount': 30,
@@ -7170,7 +7170,7 @@ class YoutubeMusicSearchURLIE(YoutubeTabBaseInfoExtractor):
             'id': 'royalty free music - songs',
             'title': 'royalty free music - songs',
         },
-        'params': {'extract_flat': 'in_playlist'}
+        'params': {'extract_flat': 'in_playlist'},
     }, {
         'url': 'https://music.youtube.com/search?q=royalty+free+music#community+playlists',
         'playlist_mincount': 30,
@@ -7178,7 +7178,7 @@ class YoutubeMusicSearchURLIE(YoutubeTabBaseInfoExtractor):
             'id': 'royalty free music - community playlists',
             'title': 'royalty free music - community playlists',
         },
-        'params': {'extract_flat': 'in_playlist'}
+        'params': {'extract_flat': 'in_playlist'},
     }]
 
     _SECTIONS = {
@@ -7386,7 +7386,7 @@ class YoutubeClipIE(YoutubeTabBaseInfoExtractor):
             'chapters': 'count:20',
             'comment_count': int,
             'heatmap': 'count:100',
-        }
+        },
     }]
 
     def _real_extract(self, url):

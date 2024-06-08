@@ -24,7 +24,7 @@ class PlanetMarathiIE(InfoExtractor):
                 'duration': 5539,
                 'upload_date': '20210829',
             },
-        }]  # Trailer skipped
+        }],  # Trailer skipped
     }, {
         'url': 'https://www.planetmarathi.com/titles/baap-beep-baap-season-1',
         'playlist_mincount': 10,
@@ -43,7 +43,7 @@ class PlanetMarathiIE(InfoExtractor):
                 'duration': 29,
                 'upload_date': '20210829',
             },
-        }]  # Trailers, Episodes, other Character profiles skipped
+        }],  # Trailers, Episodes, other Character profiles skipped
     }]
 
     def _real_extract(self, url):

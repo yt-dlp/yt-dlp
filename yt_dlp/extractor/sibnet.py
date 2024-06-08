@@ -13,5 +13,5 @@ class SibnetEmbedIE(InfoExtractor):
             'age_limit': 0,
             'thumbnail': 'https://video.sibnet.ru/upload/cover/video_1887072_0.jpg',
             'title': 'КВН Москва не сразу строилась  - Девушка впервые играет в Mortal Kombat',
-        }
+        },
     }]

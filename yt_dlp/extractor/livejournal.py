@@ -14,7 +14,7 @@ class LiveJournalIE(InfoExtractor):
             'title': 'Истребители против БПЛА',
             'upload_date': '20190624',
             'timestamp': 1561406715,
-        }
+        },
     }
 
     def _real_extract(self, url):

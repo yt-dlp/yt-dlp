@@ -28,7 +28,7 @@ class TubeTuGrazBaseIE(InfoExtractor):
                 'lang': 'de',
                 '_eventId_proceed': '',
                 'j_username': username,
-                'j_password': password
+                'j_password': password,
             }))
         if not urlh or urlh.url == 'https://tube.tugraz.at/paella/ui/index.html':
             return
@@ -69,7 +69,7 @@ class TubeTuGrazBaseIE(InfoExtractor):
             'series': series_title,
             'series_id': traverse_obj(episode_info, ('mediapackage', 'series'), 'dcIsPartOf'),
             'episode': series_title and title,
-            'formats': formats
+            'formats': formats,
         }
 
     def _set_format_type(self, formats, fmt_type):
@@ -148,7 +148,7 @@ class TubeTuGrazIE(TubeTuGrazBaseIE):
                 'creator': 'Safran C',
                 'duration': 3295818,
                 'series_id': 'b1192fff-2aa7-4bf0-a5cf-7b15c3bd3b34',
-            }
+            },
         }, {
             'url': 'https://tube.tugraz.at/paella/ui/watch.html?id=2df6d787-e56a-428d-8ef4-d57f07eef238',
             'md5': 'de0d854a56bf7318d2b693fe1adb89a5',
@@ -158,7 +158,7 @@ class TubeTuGrazIE(TubeTuGrazBaseIE):
                 'ext': 'mp4',
             },
             'expected_warnings': ['Extractor failed to obtain "title"'],
-        }
+        },
     ]
 
     def _real_extract(self, url):
@@ -193,7 +193,7 @@ class TubeTuGrazSeriesIE(TubeTuGrazBaseIE):
                     'series': '[209351] Strassenwesen',
                     'creator': 'Neuhold R',
                     'duration': 6127024,
-                }
+                },
             },
             {
                 'info_dict': {
@@ -205,7 +205,7 @@ class TubeTuGrazSeriesIE(TubeTuGrazBaseIE):
                     'series': '[209351] Strassenwesen',
                     'creator': 'Neuhold R',
                     'duration': 5374422,
-                }
+                },
             },
             {
                 'info_dict': {
@@ -217,7 +217,7 @@ class TubeTuGrazSeriesIE(TubeTuGrazBaseIE):
                     'series': '[209351] Strassenwesen',
                     'creator': 'Neuhold R',
                     'duration': 5566404,
-                }
+                },
             },
             {
                 'info_dict': {
@@ -229,10 +229,10 @@ class TubeTuGrazSeriesIE(TubeTuGrazBaseIE):
                     'series': '[209351] Strassenwesen',
                     'creator': 'Neuhold R',
                     'duration': 5420200,
-                }
-            }
+                },
+            },
         ],
-        'min_playlist_count': 4
+        'min_playlist_count': 4,
     }]
 
     def _real_extract(self, url):
@@ -245,7 +245,7 @@ class TubeTuGrazSeriesIE(TubeTuGrazBaseIE):
             query={
                 'seriesId': playlist_id,
                 'count': 1,
-                'sort': 'TITLE'
+                'sort': 'TITLE',
             })
 
         return self.playlist_result(

@@ -60,7 +60,7 @@ from .exceptions import (
 from ..socks import ProxyError as SocksProxyError
 
 SUPPORTED_ENCODINGS = [
-    'gzip', 'deflate'
+    'gzip', 'deflate',
 ]
 
 if brotli is not None:
@@ -331,7 +331,7 @@ class RequestsRH(RequestHandler, InstanceStoreMixin):
                 timeout=self._calculate_timeout(request),
                 proxies=self._get_proxies(request),
                 allow_redirects=True,
-                stream=True
+                stream=True,
             )
 
         except requests.exceptions.TooManyRedirects as e:
@@ -413,7 +413,7 @@ class SocksProxyManager(urllib3.PoolManager):
         super().__init__(num_pools, headers, **connection_pool_kw)
         self.pool_classes_by_scheme = {
             'http': SocksHTTPConnectionPool,
-            'https': SocksHTTPSConnectionPool
+            'https': SocksHTTPSConnectionPool,
         }
 
 

@@ -20,7 +20,7 @@ class TheInterceptIE(InfoExtractor):
             'timestamp': 1450429239,
             'upload_date': '20151218',
             'comment_count': int,
-        }
+        },
     }]
 
     def _real_extract(self, url):

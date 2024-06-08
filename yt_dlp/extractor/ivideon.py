@@ -21,7 +21,7 @@ class IvideonIE(InfoExtractor):
         },
         'params': {
             'skip_download': True,
-        }
+        },
     }, {
         'url': 'https://www.ivideon.com/tv/camera/100-c4ee4cb9ede885cf62dfbe93d7b53783/589824/?lang=ru',
         'only_matching': True,

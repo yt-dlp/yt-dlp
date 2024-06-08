@@ -27,7 +27,7 @@ class SponsorBlockPP(FFmpegPostProcessor):
         'filler': 'Filler Tangent',
         'interaction': 'Interaction Reminder',
         'music_offtopic': 'Non-Music Section',
-        **NON_SKIPPABLE_CATEGORIES
+        **NON_SKIPPABLE_CATEGORIES,
     }
 
     def __init__(self, downloader, categories=None, api='https://sponsor.ajay.app'):
@@ -96,7 +96,7 @@ class SponsorBlockPP(FFmpegPostProcessor):
         url = f'{self._API_URL}/api/skipSegments/{video_hash[:4]}?' + urllib.parse.urlencode({
             'service': service,
             'categories': json.dumps(self._categories),
-            'actionTypes': json.dumps(['skip', 'poi', 'chapter'])
+            'actionTypes': json.dumps(['skip', 'poi', 'chapter']),
         })
         for d in self._download_json(url) or []:
             if d['videoID'] == video_id:

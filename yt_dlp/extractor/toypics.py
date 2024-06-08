@@ -16,7 +16,7 @@ class ToypicsIE(InfoExtractor):
             'title': "Chance-Bulge'd, 2",
             'age_limit': 18,
             'uploader': 'kidsune',
-        }
+        },
     }
 
     def _real_extract(self, url):
@@ -86,5 +86,5 @@ class ToypicsUserIE(InfoExtractor):
                 '_type': 'url',
                 'url': eurl,
                 'ie_key': 'Toypics',
-            } for eurl in urls]
+            } for eurl in urls],
         }

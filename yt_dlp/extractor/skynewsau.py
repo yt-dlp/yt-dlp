@@ -22,7 +22,7 @@ class SkyNewsAUIE(InfoExtractor):
             'tags': ['fblink', 'msn', 'usa', 'world', 'yt'],
             'upload_date': '20211015',
         },
-        'params': {'skip_download': True, 'format': 'bv'}
+        'params': {'skip_download': True, 'format': 'bv'},
     }]
 
     _API_KEY = '6krsj3w249nk779d8fukqx9f'

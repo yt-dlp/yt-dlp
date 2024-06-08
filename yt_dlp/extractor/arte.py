@@ -145,7 +145,7 @@ class ArteTVIE(ArteTVBaseIE):
         language_code = self._LANG_MAP.get(lang)
 
         config = self._download_json(f'{self._API_BASE}/config/{lang}/{video_id}', video_id, headers={
-            'x-validated-age': '18'
+            'x-validated-age': '18',
         })
 
         geoblocking = traverse_obj(config, ('data', 'attributes', 'restriction', 'geoblocking')) or {}
@@ -247,7 +247,7 @@ class ArteTVEmbedIE(InfoExtractor):
             'description': 'md5:be40b667f45189632b78c1425c7c2ce1',
             'upload_date': '20201116',
         },
-        'skip': 'No video available'
+        'skip': 'No video available',
     }, {
         'url': 'https://www.arte.tv/player/v3/index.php?json_url=https://api.arte.tv/api/player/v2/config/de/100605-013-A',
         'only_matching': True,
@@ -312,7 +312,7 @@ class ArteTVCategoryIE(ArteTVBaseIE):
     @classmethod
     def suitable(cls, url):
         return (
-            not any(ie.suitable(url) for ie in (ArteTVIE, ArteTVPlaylistIE, ))
+            not any(ie.suitable(url) for ie in (ArteTVIE, ArteTVPlaylistIE))
             and super().suitable(url))
 
     def _real_extract(self, url):
@@ -326,7 +326,7 @@ class ArteTVCategoryIE(ArteTVBaseIE):
             video = video.group('url')
             if video == url:
                 continue
-            if any(ie.suitable(video) for ie in (ArteTVIE, ArteTVPlaylistIE, )):
+            if any(ie.suitable(video) for ie in (ArteTVIE, ArteTVPlaylistIE)):
                 items.append(video)
 
         title = strip_or_none(self._generic_title('', webpage, default='').rsplit('|', 1)[0]) or None

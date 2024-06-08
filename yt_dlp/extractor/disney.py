@@ -26,7 +26,7 @@ class DisneyIE(InfoExtractor):
         'params': {
             # m3u8 download
             'skip_download': True,
-        }
+        },
     }, {
         # Grill.burger
         'url': 'http://www.starwars.com/video/rogue-one-a-star-wars-story-intro-featurette',
@@ -40,7 +40,7 @@ class DisneyIE(InfoExtractor):
         'params': {
             # m3u8 download
             'skip_download': True,
-        }
+        },
     }, {
         'url': 'http://videos.disneylatino.com/ver/spider-man-de-regreso-a-casa-primer-adelanto-543a33a1850bdcfcca13bae2',
         'only_matching': True,

@@ -21,7 +21,7 @@ class UstudioIE(InfoExtractor):
             'thumbnail': r're:^https?://.*\.jpg$',
             'upload_date': '20111107',
             'uploader': 'Tony Farley',
-        }
+        },
     }
 
     def _real_extract(self, url):
@@ -74,7 +74,7 @@ class UstudioEmbedIE(InfoExtractor):
             'title': '5 Things IT Should Know About Video',
             'description': 'md5:93d32650884b500115e158c5677d25ad',
             'uploader_id': 'DeN7VdYRDKhP',
-        }
+        },
     }
 
     def _real_extract(self, url):

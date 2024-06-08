@@ -175,7 +175,7 @@ class RUTVIE(InfoExtractor):
                     continue
                 else:
                     fmt = {
-                        'url': url
+                        'url': url,
                     }
                 fmt.update({
                     'width': int_or_none(quality, default=height, invscale=width, scale=height),

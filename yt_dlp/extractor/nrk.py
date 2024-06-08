@@ -85,7 +85,7 @@ class NRKIE(NRKBaseIE):
             'title': 'Dompap og andre fugler i Piip-Show',
             'description': 'md5:d9261ba34c43b61c812cb6b0269a5c8f',
             'duration': 262,
-        }
+        },
     }, {
         # audio
         'url': 'http://www.nrk.no/video/PS*154915',
@@ -96,7 +96,7 @@ class NRKIE(NRKBaseIE):
             'title': 'Slik høres internett ut når du er blind',
             'description': 'md5:a621f5cc1bd75c8d5104cb048c6b8568',
             'duration': 20,
-        }
+        },
     }, {
         'url': 'nrk:ecc1b952-96dc-4a98-81b9-5296dc7a98d9',
         'only_matching': True,
@@ -243,7 +243,7 @@ class NRKIE(NRKBaseIE):
             'age_limit': age_limit,
             'formats': formats,
             'subtitles': subtitles,
-            'timestamp': parse_iso8601(try_get(manifest, lambda x: x['availability']['onDemand']['from'], str))
+            'timestamp': parse_iso8601(try_get(manifest, lambda x: x['availability']['onDemand']['from'], str)),
         }
 
         if is_series:
@@ -306,7 +306,7 @@ class NRKTVIE(InfoExtractor):
                 }],
                 'nb-ttv': [{
                     'ext': 'vtt',
-                }]
+                }],
             },
         },
     }, {
@@ -489,7 +489,7 @@ class NRKTVSerieBaseIE(NRKBaseIE):
                 'nrk:%s' % nrk_id, ie=NRKIE.ie_key(), video_id=nrk_id))
         return entries
 
-    _ASSETS_KEYS = ('episodes', 'instalments',)
+    _ASSETS_KEYS = ('episodes', 'instalments')
 
     def _extract_assets_key(self, embedded):
         for asset_key in self._ASSETS_KEYS:

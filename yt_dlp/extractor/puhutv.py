@@ -48,7 +48,7 @@ class PuhuTVIE(InfoExtractor):
     _SUBTITLE_LANGS = {
         'English': 'en',
         'Deutsch': 'de',
-        'عربى': 'ar'
+        'عربى': 'ar',
     }
 
     def _real_extract(self, url):
@@ -94,7 +94,7 @@ class PuhuTVIE(InfoExtractor):
             f = {
                 'url': media_url,
                 'ext': 'mp4',
-                'height': quality
+                'height': quality,
             }
             video_format = video.get('video_format')
             is_hls = (video_format == 'hls' or '/hls/' in media_url or '/chunklist.m3u8' in media_url) and playlist is False
@@ -126,7 +126,7 @@ class PuhuTVIE(InfoExtractor):
             t = parse_resolution(image_id)
             t.update({
                 'id': image_id,
-                'url': image_url
+                'url': image_url,
             })
             thumbnails.append(t)
 
@@ -147,7 +147,7 @@ class PuhuTVIE(InfoExtractor):
             if not lang or not isinstance(lang, compat_str) or not sub_url:
                 continue
             subtitles[self._SUBTITLE_LANGS.get(lang, lang)] = [{
-                'url': sub_url
+                'url': sub_url,
             }]
 
         return {
@@ -166,7 +166,7 @@ class PuhuTVIE(InfoExtractor):
             'tags': tags,
             'subtitles': subtitles,
             'thumbnails': thumbnails,
-            'formats': formats
+            'formats': formats,
         }
 
 

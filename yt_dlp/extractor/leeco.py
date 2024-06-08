@@ -207,18 +207,18 @@ class LePlaylistIE(InfoExtractor):
         'info_dict': {
             'id': '46177',
             'title': '美人天下',
-            'description': 'md5:395666ff41b44080396e59570dbac01c'
+            'description': 'md5:395666ff41b44080396e59570dbac01c',
         },
-        'playlist_count': 35
+        'playlist_count': 35,
     }, {
         'url': 'http://tv.le.com/izt/wuzetian/index.html',
         'info_dict': {
             'id': 'wuzetian',
             'title': '武媚娘传奇',
-            'description': 'md5:e12499475ab3d50219e5bba00b3cb248'
+            'description': 'md5:e12499475ab3d50219e5bba00b3cb248',
         },
         # This playlist contains some extra videos other than the drama itself
-        'playlist_mincount': 96
+        'playlist_mincount': 96,
     }, {
         'url': 'http://tv.le.com/pzt/lswjzzjc/index.shtml',
         # This series is moved to http://www.le.com/tv/10005297.html

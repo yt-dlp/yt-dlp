@@ -19,7 +19,7 @@ class OraTVIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Vine & YouTube Stars Zach King & King Bach On Their Viral Videos!',
             'description': 'md5:ebbc5b1424dd5dba7be7538148287ac1',
-        }
+        },
     }, {
         'url': 'http://www.unsafespeech.com/video/2016/5/10/student-self-censorship-and-the-thought-police-on-university-campuses-0_6622bnkppw4d',
         'only_matching': True,

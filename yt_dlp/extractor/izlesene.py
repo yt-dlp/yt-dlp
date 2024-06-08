@@ -33,7 +33,7 @@ class IzleseneIE(InfoExtractor):
                 'upload_date': '20140702',
                 'duration': 95.395,
                 'age_limit': 0,
-            }
+            },
         },
         {
             'url': 'http://www.izlesene.com/video/tarkan-dortmund-2006-konseri/17997',
@@ -48,7 +48,7 @@ class IzleseneIE(InfoExtractor):
                 'upload_date': '20061112',
                 'duration': 253.666,
                 'age_limit': 0,
-            }
+            },
         },
     ]
 

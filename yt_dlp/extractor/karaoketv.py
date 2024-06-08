@@ -13,7 +13,7 @@ class KaraoketvIE(InfoExtractor):
         'params': {
             # rtmp download
             'skip_download': True,
-        }
+        },
     }
 
     def _real_extract(self, url):

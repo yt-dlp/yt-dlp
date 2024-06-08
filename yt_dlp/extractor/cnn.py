@@ -161,7 +161,7 @@ class CNNIndonesiaIE(InfoExtractor):
             'release_timestamp': 1662859088,
             'release_date': '20220911',
             'uploader': 'Asfahan Yahsyi',
-        }
+        },
     }, {
         'url': 'https://www.cnnindonesia.com/internasional/20220911104341-139-846189/video-momen-charles-disambut-meriah-usai-dilantik-jadi-raja-inggris',
         'info_dict': {
@@ -178,7 +178,7 @@ class CNNIndonesiaIE(InfoExtractor):
             'release_date': '20220911',
             'uploader': 'REUTERS',
             'release_timestamp': 1662869995,
-        }
+        },
     }]
 
     def _real_extract(self, url):
@@ -194,5 +194,5 @@ class CNNIndonesiaIE(InfoExtractor):
             '_type': 'url_transparent',
             'url': embed_url,
             'upload_date': upload_date,
-            'tags': try_call(lambda: self._html_search_meta('keywords', webpage).split(', '))
+            'tags': try_call(lambda: self._html_search_meta('keywords', webpage).split(', ')),
         })

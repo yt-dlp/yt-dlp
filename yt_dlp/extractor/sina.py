@@ -28,7 +28,7 @@ class SinaIE(InfoExtractor):
                 'id': '250576622',
                 'ext': 'mp4',
                 'title': '现场:克鲁兹宣布退选 特朗普将稳获提名',
-            }
+            },
         },
         {
             'url': 'http://video.sina.com.cn/v/b/101314253-1290078633.html',

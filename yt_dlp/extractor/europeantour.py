@@ -17,9 +17,9 @@ class EuropeanTourIE(InfoExtractor):
             'uploader_id': '5136026580001',
             'tags': ['prod-imported'],
             'thumbnail': 'md5:fdac52bc826548860edf8145ee74e71a',
-            'upload_date': '20211220'
+            'upload_date': '20211220',
         },
-        'params': {'skip_download': True}
+        'params': {'skip_download': True},
     }]
 
     BRIGHTCOVE_URL_TEMPLATE = 'http://players.brightcove.net/%s/default_default/index.html?videoId=%s'

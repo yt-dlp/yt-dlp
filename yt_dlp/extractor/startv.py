@@ -32,41 +32,41 @@ class StarTVIE(InfoExtractor):
                 'description': 'md5:3a8049f05a75c2e8747116a673275de4',
                 'thumbnail': r're:^https?://.*\.jpg(?:\?.*?)?$',
                 'timestamp': 1569281400,
-                'upload_date': '20190923'
+                'upload_date': '20190923',
             },
         },
         {
             'url': 'https://www.startv.com.tr/video/arsiv/dizi/avlu/44-bolum',
-            'only_matching': True
+            'only_matching': True,
         },
         {
             'url': 'https://www.startv.com.tr/dizi/cocuk/fragmanlar/5-bolum-fragmani',
-            'only_matching': True
+            'only_matching': True,
         },
         {
             'url': 'https://www.startv.com.tr/dizi/cocuk/ekstralar/5-bolumun-nefes-kesen-final-sahnesi',
-            'only_matching': True
+            'only_matching': True,
         },
         {
             'url': 'https://www.startv.com.tr/program/burcu-ile-haftasonu/bolumler/1-bolum',
-            'only_matching': True
+            'only_matching': True,
         },
         {
             'url': 'https://www.startv.com.tr/program/burcu-ile-haftasonu/fragmanlar/2-fragman',
-            'only_matching': True
+            'only_matching': True,
         },
         {
             'url': 'https://www.startv.com.tr/video/arsiv/program/buyukrisk/14-bolumde-hangi-unlu-ne-sordu-',
-            'only_matching': True
+            'only_matching': True,
         },
         {
             'url': 'https://www.startv.com.tr/video/arsiv/program/buyukrisk/buyuk-risk-334-bolum',
-            'only_matching': True
+            'only_matching': True,
         },
         {
             'url': 'https://www.startv.com.tr/video/arsiv/program/dada/dada-58-bolum',
-            'only_matching': True
-        }
+            'only_matching': True,
+        },
     ]
 
     def _real_extract(self, url):
@@ -96,5 +96,5 @@ class StarTVIE(InfoExtractor):
             'description': description,
             'thumbnail': thumbnail,
             'timestamp': int_or_none(info.get('release_date')),
-            'formats': formats
+            'formats': formats,
         }

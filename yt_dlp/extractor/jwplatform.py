@@ -18,7 +18,7 @@ class JWPlatformIE(InfoExtractor):
             'timestamp': 1227796140,
             'duration': 32.0,
             'thumbnail': 'https://cdn.jwplayer.com/v2/media/nPripu9l/poster.jpg?width=720',
-        }
+        },
     }, {
         'url': 'https://cdn.jwplayer.com/players/nPripu9l-ALJ3XQCI.js',
         'only_matching': True,

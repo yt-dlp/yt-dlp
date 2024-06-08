@@ -18,7 +18,7 @@ class ClubicIE(InfoExtractor):
             'title': 'Clubic Week 2.0 : le FBI se lance dans la photo d\u0092identité',
             'description': 're:Gueule de bois chez Nokia. Le constructeur a indiqué cette.*',
             'thumbnail': r're:^http://img\.clubic\.com/.*\.jpg$',
-        }
+        },
     }, {
         'url': 'http://www.clubic.com/video/video-clubic-week-2-0-apple-iphone-6s-et-plus-mais-surtout-le-pencil-469792.html',
         'only_matching': True,

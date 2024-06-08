@@ -15,7 +15,7 @@ class CloserToTruthIE(InfoExtractor):
             'title': 'Solutions to the Mind-Body Problem?',
             'upload_date': '20140221',
             'timestamp': 1392956007,
-            'uploader_id': 'CTTXML'
+            'uploader_id': 'CTTXML',
         },
         'params': {
             'skip_download': True,
@@ -29,7 +29,7 @@ class CloserToTruthIE(InfoExtractor):
             'title': 'How do Brains Work?',
             'upload_date': '20140221',
             'timestamp': 1392956024,
-            'uploader_id': 'CTTXML'
+            'uploader_id': 'CTTXML',
         },
         'params': {
             'skip_download': True,
@@ -85,5 +85,5 @@ class CloserToTruthIE(InfoExtractor):
             'display_id': display_id,
             'url': 'kaltura:%s:%s' % (partner_id, entry_id),
             'ie_key': 'Kaltura',
-            'title': title
+            'title': title,
         }

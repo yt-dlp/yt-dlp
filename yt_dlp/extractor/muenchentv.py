@@ -20,11 +20,11 @@ class MuenchenTVIE(InfoExtractor):
             'ext': 'mp4',
             'title': 're:^münchen.tv-Livestream [0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}$',
             'is_live': True,
-            'thumbnail': r're:^https?://.*\.jpg$'
+            'thumbnail': r're:^https?://.*\.jpg$',
         },
         'params': {
             'skip_download': True,
-        }
+        },
     }
 
     def _real_extract(self, url):

@@ -36,7 +36,7 @@ class MurrtubeIE(InfoExtractor):
             'view_count': int,
             'like_count': int,
             'tags': ['hump', 'breed', 'Fursuit', 'murrsuit', 'bareback'],
-        }
+        },
     }
 
     def _download_gql(self, video_id, op, note=None, fatal=True):

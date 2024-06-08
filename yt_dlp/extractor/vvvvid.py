@@ -109,7 +109,7 @@ class VVVVIDIE(InfoExtractor):
         },
     }, {
         'url': 'https://www.vvvvid.it/show/434/perche-dovrei-guardarlo-di-dario-moccia/437/489048',
-        'only_matching': True
+        'only_matching': True,
     }]
     _conn_id = None
 

@@ -97,8 +97,7 @@ class CanalplusIE(InfoExtractor):
         return {
             'id': video_id,
             'display_id': display_id,
-            'title': '%s - %s' % (titrage['TITRE'],
-                                  titrage['SOUS_TITRE']),
+            'title': '%s - %s' % (titrage['TITRE'], titrage['SOUS_TITRE']),
             'upload_date': unified_strdate(infos.get('PUBLICATION', {}).get('DATE')),
             'thumbnails': thumbnails,
             'description': infos.get('DESCRIPTION'),

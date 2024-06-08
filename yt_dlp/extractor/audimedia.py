@@ -19,7 +19,7 @@ class AudiMediaIE(InfoExtractor):
             'timestamp': 1448354940,
             'duration': 74022,
             'view_count': int,
-        }
+        },
     }, {
         'url': 'https://www.audi-mediacenter.com/en/audimediatv/video/60-seconds-of-audi-sport-104-2015-wec-bahrain-rookie-test-2991',
         'only_matching': True,

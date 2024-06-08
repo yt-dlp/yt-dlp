@@ -68,7 +68,7 @@ class DamtomoVideoIE(DamtomoBaseIE):
             'track': 'Get Wild',
             'artist': 'TM NETWORK(TMN)',
             'upload_date': '20201226',
-        }
+        },
     }]
 
 
@@ -90,7 +90,7 @@ class DamtomoRecordIE(DamtomoBaseIE):
             'like_count': 1,
             'track': 'イカSUMMER [良音]',
             'artist': 'ORANGE RANGE',
-        }
+        },
     }, {
         'url': 'https://www.clubdam.com/app/damtomo/karaokePost/StreamingKrk.do?karaokeContributeId=27489418',
         'info_dict': {
@@ -104,5 +104,5 @@ class DamtomoRecordIE(DamtomoBaseIE):
             'like_count': 3,
             'track': '心みだれて〜say it with flowers〜(生音)',
             'artist': '小林明子',
-        }
+        },
     }]

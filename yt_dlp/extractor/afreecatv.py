@@ -227,7 +227,7 @@ class AfreecaTVIE(AfreecaTVBaseIE):
                 **traverse_obj(file_element, {
                     'duration': ('duration', {functools.partial(int_or_none, scale=1000)}),
                     'timestamp': ('file_start', {unified_timestamp}),
-                })
+                }),
             })
 
         if traverse_obj(data, ('adult_status', {str})) == 'notLogin':

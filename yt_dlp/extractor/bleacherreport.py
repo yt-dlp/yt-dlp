@@ -99,8 +99,8 @@ class BleacherReportCMSIE(AMPIE):
 
         },
         'expected_warnings': [
-            'Unable to download f4m manifest'
-        ]
+            'Unable to download f4m manifest',
+        ],
     }]
 
     def _real_extract(self, url):

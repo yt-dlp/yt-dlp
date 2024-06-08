@@ -369,13 +369,13 @@ class ImgurAlbumIE(ImgurGalleryBaseIE):
         'url': 'https://imgur.com/a/iX265HX',
         'info_dict': {
             'id': 'iX265HX',
-            'title': 'enen-no-shouboutai'
+            'title': 'enen-no-shouboutai',
         },
         'playlist_count': 2,
     }, {
         'url': 'https://imgur.com/a/8pih2Ed',
         'info_dict': {
-            'id': '8pih2Ed'
+            'id': '8pih2Ed',
         },
         'playlist_mincount': 1,
     }]

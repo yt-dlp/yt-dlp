@@ -64,7 +64,7 @@ class SkyItPlayerIE(InfoExtractor):
             video_id, query={
                 'caller': 'sky',
                 'id': video_id,
-                'token': token
+                'token': token,
             }, headers=self.geo_verification_headers())
         return self._parse_video(video, video_id)
 

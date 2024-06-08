@@ -13,8 +13,8 @@ class HotNewHipHopIE(InfoExtractor):
         'info_dict': {
             'id': '1435540',
             'ext': 'mp3',
-            'title': 'Freddie Gibbs - Lay It Down'
-        }
+            'title': 'Freddie Gibbs - Lay It Down',
+        },
     }
 
     def _real_extract(self, url):

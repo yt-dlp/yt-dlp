@@ -30,7 +30,7 @@ class AolIE(YahooIE):  # XXX: Do not subclass from concrete IE
         'params': {
             # m3u8 download
             'skip_download': True,
-        }
+        },
     }, {
         # video with vidible ID
         'url': 'https://www.aol.com/video/view/netflix-is-raising-rates/5707d6b8e4b090497b04f706/',
@@ -46,7 +46,7 @@ class AolIE(YahooIE):  # XXX: Do not subclass from concrete IE
         'params': {
             # m3u8 download
             'skip_download': True,
-        }
+        },
     }, {
         'url': 'https://www.aol.com/video/view/park-bench-season-2-trailer/559a1b9be4b0c3bfad3357a7/',
         'only_matching': True,

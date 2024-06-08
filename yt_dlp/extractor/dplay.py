@@ -84,7 +84,7 @@ class DPlayBaseIE(InfoExtractor):
                     'fields[show]': 'name',
                     'fields[tag]': 'name',
                     'fields[video]': 'description,episodeNumber,name,publishStart,seasonNumber,videoDuration',
-                    'include': 'images,primaryChannel,show,tags'
+                    'include': 'images,primaryChannel,show,tags',
                 })
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError) and e.cause.status == 400:
@@ -857,7 +857,7 @@ class DiscoveryPlusIndiaIE(DiscoveryPlusBaseIE):
         },
         'params': {
             'skip_download': True,
-        }
+        },
     }]
 
     _PRODUCT = 'dplus-india'

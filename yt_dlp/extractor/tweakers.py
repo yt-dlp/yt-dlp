@@ -19,7 +19,7 @@ class TweakersIE(InfoExtractor):
             'thumbnail': r're:^https?://.*\.jpe?g$',
             'duration': 386,
             'uploader_id': 's7JeEm',
-        }
+        },
     }
 
     def _real_extract(self, url):

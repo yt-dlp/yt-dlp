@@ -22,7 +22,7 @@ class NuvidIE(InfoExtractor):
             'duration': 321.0,
             'age_limit': 18,
             'thumbnail': r're:https?://.+\.jpg',
-        }
+        },
     }, {
         'url': 'https://m.nuvid.com/video/6523263',
         'md5': 'ebd22ce8e47e1d9a4d0756a15c67da52',
@@ -34,7 +34,7 @@ class NuvidIE(InfoExtractor):
             'age_limit': 18,
             'thumbnail': r're:https?://.+\.jpg',
             'thumbnails': list,
-        }
+        },
     }, {
         'url': 'http://m.nuvid.com/video/6415801/',
         'md5': '638d5ececb138d5753593f751ae3f697',
@@ -45,7 +45,7 @@ class NuvidIE(InfoExtractor):
             'duration': 1882,
             'age_limit': 18,
             'thumbnail': r're:https?://.+\.jpg',
-        }
+        },
     }]
 
     def _real_extract(self, url):

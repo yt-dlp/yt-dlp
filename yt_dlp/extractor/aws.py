@@ -18,7 +18,7 @@ class AWSIE(InfoExtractor):  # XXX: Conventionally, base classes should end with
             'Accept': 'application/json',
             'Host': self._AWS_PROXY_HOST,
             'X-Amz-Date': amz_date,
-            'X-Api-Key': self._AWS_API_KEY
+            'X-Api-Key': self._AWS_API_KEY,
         }
         session_token = aws_dict.get('session_token')
         if session_token:
@@ -39,7 +39,7 @@ class AWSIE(InfoExtractor):  # XXX: Conventionally, base classes should end with
             canonical_querystring,
             canonical_headers,
             signed_headers,
-            aws_hash('')
+            aws_hash(''),
         ])
 
         # Task 2: http://docs.aws.amazon.com/general/latest/gr/sigv4-create-string-to-sign.html

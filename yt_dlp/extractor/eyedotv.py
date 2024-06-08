@@ -18,7 +18,7 @@ class EyedoTVIE(InfoExtractor):
             'description': 'md5:4abe07293b2f73efc6e1c37028d58c98',
             'uploader': 'Afnic Live',
             'uploader_id': '8023',
-        }
+        },
     }
     _ROOT_URL = 'http://live.eyedo.net:1935/'
 

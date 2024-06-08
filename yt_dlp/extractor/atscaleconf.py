@@ -12,7 +12,7 @@ class AtScaleConfEventIE(InfoExtractor):
         'info_dict': {
             'id': 'data-scale-spring-2022',
             'title': 'Data @Scale Spring 2022',
-            'description': 'md5:7d7ca1c42ac9c6d8a785092a1aea4b55'
+            'description': 'md5:7d7ca1c42ac9c6d8a785092a1aea4b55',
         },
     }, {
         'url': 'https://atscaleconference.com/events/video-scale-2021/',
@@ -20,7 +20,7 @@ class AtScaleConfEventIE(InfoExtractor):
         'info_dict': {
             'id': 'video-scale-2021',
             'title': 'Video @Scale 2021',
-            'description': 'md5:7d7ca1c42ac9c6d8a785092a1aea4b55'
+            'description': 'md5:7d7ca1c42ac9c6d8a785092a1aea4b55',
         },
     }]
 

@@ -94,7 +94,7 @@ class GoIE(AdobePassIE):
             'series': 'Shadowhunters',
             'episode_number': 1,
             'timestamp': 1483387200,
-            'ext': 'mp4'
+            'ext': 'mp4',
         },
         'params': {
             'geo_bypass_ip_block': '3.244.239.0/24',
@@ -201,7 +201,7 @@ class GoIE(AdobePassIE):
                         # page.analytics.videoIdCode
                         r'\bvideoIdCode["\']\s*:\s*["\']((?:vdka|VDKA)\w+)',
                         # https://abc.com/shows/the-rookie/episode-guide/season-02/03-the-bet
-                        r'\b(?:video)?id["\']\s*:\s*["\'](VDKA\w+)'
+                        r'\b(?:video)?id["\']\s*:\s*["\'](VDKA\w+)',
                     ), webpage, 'video id', default=video_id)
             if not site_info:
                 brand = self._search_regex(

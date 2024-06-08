@@ -24,8 +24,8 @@ class ShemarooMeIE(InfoExtractor):
             'description': 'md5:2782c4127807103cf5a6ae2ca33645ce',
         },
         'params': {
-            'skip_download': True
-        }
+            'skip_download': True,
+        },
     }, {
         'url': 'https://www.shemaroome.com/shows/jurm-aur-jazbaat/laalach',
         'info_dict': {
@@ -37,9 +37,9 @@ class ShemarooMeIE(InfoExtractor):
             'release_date': '20210507',
         },
         'params': {
-            'skip_download': True
+            'skip_download': True,
         },
-        'skip': 'Premium videos cannot be downloaded yet.'
+        'skip': 'Premium videos cannot be downloaded yet.',
     }, {
         'url': 'https://www.shemaroome.com/shows/jai-jai-jai-bajrang-bali/jai-jai-jai-bajrang-bali-episode-99',
         'info_dict': {
@@ -51,8 +51,8 @@ class ShemarooMeIE(InfoExtractor):
             'release_date': '20110101',
         },
         'params': {
-            'skip_download': True
-        }
+            'skip_download': True,
+        },
     }]
 
     def _real_extract(self, url):

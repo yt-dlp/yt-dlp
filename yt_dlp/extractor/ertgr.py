@@ -176,7 +176,7 @@ class ERTFlixIE(ERTFlixBaseIE):
     def _extract_episode(self, episode):
         codename = try_get(episode, lambda x: x['Codename'], compat_str)
         title = episode.get('Title')
-        description = clean_html(dict_get(episode, ('ShortDescription', 'TinyDescription', )))
+        description = clean_html(dict_get(episode, ('ShortDescription', 'TinyDescription')))
         if not codename or not title or not episode.get('HasPlayableStream', True):
             return
         thumbnail = next((
@@ -212,7 +212,7 @@ class ERTFlixIE(ERTFlixBaseIE):
         series_info = {
             'age_limit': self._parse_age_rating(series),
             'title': series.get('Title'),
-            'description': dict_get(series, ('ShortDescription', 'TinyDescription', )),
+            'description': dict_get(series, ('ShortDescription', 'TinyDescription')),
         }
         if season_numbers:
             season_titles = season_titles or []
@@ -281,7 +281,7 @@ class ERTWebtvEmbedIE(InfoExtractor):
             'id': 'trailers/E2251_TO_DIKTYO_E09_16-01_1900.mp4',
             'title': 'md5:914f06a73cd8b62fbcd6fb90c636e497',
             'ext': 'mp4',
-            'thumbnail': 'https://program.ert.gr/photos/2022/1/to_diktio_ep09_i_istoria_tou_diadiktiou_stin_Ellada_1021x576.jpg'
+            'thumbnail': 'https://program.ert.gr/photos/2022/1/to_diktio_ep09_i_istoria_tou_diadiktiou_stin_Ellada_1021x576.jpg',
         },
     }]
 

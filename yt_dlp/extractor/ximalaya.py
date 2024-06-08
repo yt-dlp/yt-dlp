@@ -33,14 +33,14 @@ class XimalayaIE(XimalayaBaseIE):
                         'name': 'cover_url_142',
                         'url': r're:^https?://.*\.jpg',
                         'width': 180,
-                        'height': 180
-                    }
+                        'height': 180,
+                    },
                 ],
                 'categories': ['其他'],
                 'duration': 93,
                 'view_count': int,
                 'like_count': int,
-            }
+            },
         },
         {
             'url': 'http://m.ximalaya.com/61425525/sound/47740352/',
@@ -62,15 +62,15 @@ class XimalayaIE(XimalayaBaseIE):
                         'name': 'cover_url_142',
                         'url': r're:^https?://.*\.jpg',
                         'width': 180,
-                        'height': 180
-                    }
+                        'height': 180,
+                    },
                 ],
                 'categories': ['人文'],
                 'duration': 93,
                 'view_count': int,
                 'like_count': int,
-            }
-        }
+            },
+        },
     ]
 
     def _real_extract(self, url):
@@ -86,7 +86,7 @@ class XimalayaIE(XimalayaBaseIE):
             'format_id': f'{bps}k',
             'url': audio_info[k],
             'abr': bps,
-            'vcodec': 'none'
+            'vcodec': 'none',
         } for bps, k in ((24, 'play_path_32'), (64, 'play_path_64')) if audio_info.get(k)]
 
         thumbnails = []

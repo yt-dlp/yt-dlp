@@ -87,7 +87,7 @@ class TV2HuSeriesIE(InfoExtractor):
         'playlist_mincount': 284,
         'info_dict': {
             'id': '59',
-        }
+        },
     }]
 
     def _real_extract(self, url):

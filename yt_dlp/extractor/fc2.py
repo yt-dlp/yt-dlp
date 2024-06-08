@@ -175,7 +175,7 @@ class FC2LiveIE(InfoExtractor):
                 'channel': '1',
                 'profile': '1',
                 'user': '1',
-                'streamid': video_id
+                'streamid': video_id,
             }), note='Requesting member info')
 
         control_server = self._download_json(

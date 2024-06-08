@@ -416,7 +416,7 @@ class Aria2cFD(ExternalFD):
                     'total_bytes_estimate': total,
                     'eta': (total - downloaded) / (speed or 1),
                     'fragment_index': min(frag_count, len(completed) + 1) if fragmented else None,
-                    'elapsed': time.time() - started
+                    'elapsed': time.time() - started,
                 })
                 self._hook_progress(status, info_dict)
 

@@ -385,7 +385,7 @@ class XHamsterEmbedIE(InfoExtractor):
             'uploader': 'ManyakisArt',
             'duration': 5,
             'age_limit': 18,
-        }
+        },
     }
 
     def _real_extract(self, url):

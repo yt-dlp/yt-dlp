@@ -189,7 +189,7 @@ class WistiaIE(WistiaBaseIE):
             'duration': 966.0,
             'timestamp': 1616614369,
             'thumbnail': 'https://embed-ssl.wistia.com/deliveries/53dc60239348dc9b9fba3755173ea4c2.png',
-        }
+        },
     }, {
         'url': 'wistia:5vd7p4bct5',
         'md5': 'b9676d24bf30945d97060638fbfe77f0',
@@ -228,7 +228,7 @@ class WistiaIE(WistiaBaseIE):
             'description': 'md5:27abc99a758573560be72600ef95cece',
             'upload_date': '20210421',
             'thumbnail': 'https://embed-ssl.wistia.com/deliveries/6c551820ae950cdee2306d6cbe9ef742.jpg',
-        }
+        },
     }, {
         'url': 'https://study.com/academy/lesson/north-american-exploration-failed-colonies-of-spain-france-england.html#lesson',
         'md5': 'b9676d24bf30945d97060638fbfe77f0',
@@ -299,7 +299,7 @@ class WistiaChannelIE(WistiaBaseIE):
         'info_dict': {
             'id': 'yvyvu7wjbg',
             'title': 'Copysmith Tutorials and Education!',
-            'description': 'Learn all things Copysmith via short and informative videos!'
+            'description': 'Learn all things Copysmith via short and informative videos!',
         },
         'playlist_mincount': 7,
         'expected_warnings': ['falling back to webpage'],

@@ -29,7 +29,7 @@ class NateIE(InfoExtractor):
             'uploader_id': '3606',
             'tags': 'count:59',
         },
-        'params': {'skip_download': True}
+        'params': {'skip_download': True},
     }, {
         'url': 'https://tv.nate.com/clip/4300566',
         'info_dict': {
@@ -47,7 +47,7 @@ class NateIE(InfoExtractor):
             'uploader_id': '27987',
             'tags': 'count:20',
         },
-        'params': {'skip_download': True}
+        'params': {'skip_download': True},
     }]
 
     _QUALITY = {

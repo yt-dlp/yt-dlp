@@ -21,7 +21,7 @@ class AluraIE(InfoExtractor):
         'info_dict': {
             'id': '60095',
             'ext': 'mp4',
-            'title': 'Referências, ref-set e alter'
+            'title': 'Referências, ref-set e alter',
         },
         'skip': 'Requires alura account credentials'},
         {
@@ -30,7 +30,7 @@ class AluraIE(InfoExtractor):
             'only_matching': True},
         {
             'url': 'https://cursos.alura.com.br/course/fundamentos-market-digital/task/55219',
-            'only_matching': True}
+            'only_matching': True},
     ]
 
     def _real_extract(self, url):
@@ -62,7 +62,7 @@ class AluraIE(InfoExtractor):
             return {
                 'id': video_id,
                 'title': video_title,
-                'formats': formats
+                'formats': formats,
             }
 
     def _perform_login(self, username, password):
@@ -157,7 +157,7 @@ class AluraCourseIE(AluraIE):  # XXX: Do not subclass from concrete IE
                         'url': video_url,
                         'id_key': self.ie_key(),
                         'chapter': chapter,
-                        'chapter_number': chapter_number
+                        'chapter_number': chapter_number,
                     }
                     entries.append(entry)
         return self.playlist_result(entries, course_path, course_title)

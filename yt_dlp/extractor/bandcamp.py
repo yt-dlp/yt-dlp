@@ -42,7 +42,7 @@ class BandcampIE(InfoExtractor):
             'uploader_id': 'youtube-dl',
             'thumbnail': 'https://f4.bcbits.com/img/a3216802731_5.jpg',
         },
-        '_skip': 'There is a limit of 200 free downloads / month for the test song'
+        '_skip': 'There is a limit of 200 free downloads / month for the test song',
     }, {
         # free download
         'url': 'http://benprunty.bandcamp.com/track/lanius-battle',
@@ -267,7 +267,7 @@ class BandcampAlbumIE(BandcampIE):  # XXX: Do not subclass from concrete IE
                     'timestamp': 1311756226,
                     'upload_date': '20110727',
                     'uploader': 'Blazo',
-                }
+                },
             },
             {
                 'md5': '1a2c32e2691474643e912cc6cd4bffaa',
@@ -278,7 +278,7 @@ class BandcampAlbumIE(BandcampIE):  # XXX: Do not subclass from concrete IE
                     'timestamp': 1311757238,
                     'upload_date': '20110727',
                     'uploader': 'Blazo',
-                }
+                },
             },
         ],
         'info_dict': {
@@ -287,9 +287,9 @@ class BandcampAlbumIE(BandcampIE):  # XXX: Do not subclass from concrete IE
             'uploader_id': 'blazo',
         },
         'params': {
-            'playlistend': 2
+            'playlistend': 2,
         },
-        'skip': 'Bandcamp imposes download limits.'
+        'skip': 'Bandcamp imposes download limits.',
     }, {
         'url': 'http://nightbringer.bandcamp.com/album/hierophany-of-the-open-grave',
         'info_dict': {
@@ -376,7 +376,7 @@ class BandcampWeeklyIE(BandcampIE):  # XXX: Do not subclass from concrete IE
         },
     }, {
         'url': 'https://bandcamp.com/?blah/blah@&show=228',
-        'only_matching': True
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
@@ -419,7 +419,7 @@ class BandcampWeeklyIE(BandcampIE):  # XXX: Do not subclass from concrete IE
             'series': 'Bandcamp Weekly',
             'episode': show.get('subtitle'),
             'episode_id': show_id,
-            'formats': formats
+            'formats': formats,
         }
 
 
@@ -440,7 +440,7 @@ class BandcampUserIE(InfoExtractor):
         'url': 'http://dotscale.bandcamp.com',
         'info_dict': {
             'id': 'dotscale',
-            'title': 'Discography of dotscale'
+            'title': 'Discography of dotscale',
         },
         'playlist_count': 1,
     }, {

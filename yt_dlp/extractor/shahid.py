@@ -63,17 +63,17 @@ class ShahidIE(ShahidBaseIE):
         'params': {
             # m3u8 download
             'skip_download': True,
-        }
+        },
     }, {
         'url': 'https://shahid.mbc.net/ar/movies/%D8%A7%D9%84%D9%82%D9%86%D8%A7%D8%B5%D8%A9/movie-151746',
-        'only_matching': True
+        'only_matching': True,
     }, {
         # shahid plus subscriber only
         'url': 'https://shahid.mbc.net/ar/series/%D9%85%D8%B1%D8%A7%D9%8A%D8%A7-2011-%D8%A7%D9%84%D9%85%D9%88%D8%B3%D9%85-1-%D8%A7%D9%84%D8%AD%D9%84%D9%82%D8%A9-1/episode-90511',
-        'only_matching': True
+        'only_matching': True,
     }, {
         'url': 'https://shahid.mbc.net/en/shows/Ramez-Fi-Al-Shallal-season-1-episode-1/episode-359319',
-        'only_matching': True
+        'only_matching': True,
     }]
 
     def _perform_login(self, username, password):
@@ -175,7 +175,7 @@ class ShahidShowIE(ShahidBaseIE):
         'playlist_mincount': 32,
     }, {
         'url': 'https://shahid.mbc.net/ar/series/How-to-live-Longer-(The-Big-Think)/series-291861',
-        'only_matching': True
+        'only_matching': True,
     }]
     _PAGE_SIZE = 30
 
@@ -196,7 +196,7 @@ class ShahidShowIE(ShahidBaseIE):
                     'pageSize': 30,
                     'sorts': [{
                         'order': 'DESC',
-                        'type': 'SORTDATE'
+                        'type': 'SORTDATE',
                     }],
                 })
             for product in playlist.get('productList', {}).get('products', []):

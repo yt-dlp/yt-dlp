@@ -79,7 +79,7 @@ class OCWMITIE(InfoExtractor):
                 'upload_date': '20121109',
                 'uploader_id': 'MIT',
                 'uploader': 'MIT OpenCourseWare',
-            }
+            },
         },
         {
             'url': 'http://ocw.mit.edu/courses/mathematics/18-01sc-single-variable-calculus-fall-2010/1.-differentiation/part-a-definition-and-basic-rules/session-1-introduction-to-derivatives/',
@@ -91,8 +91,8 @@ class OCWMITIE(InfoExtractor):
                 'uploader_id': 'MIT',
                 'uploader': 'MIT OpenCourseWare',
                 'description': 'This section contains lecture video excerpts, lecture notes, an interactive mathlet with supporting documents, and problem solving videos.',
-            }
-        }
+            },
+        },
     ]
 
     def _real_extract(self, url):

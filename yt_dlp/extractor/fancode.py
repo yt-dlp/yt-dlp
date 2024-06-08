@@ -23,8 +23,8 @@ class FancodeVodIE(InfoExtractor):
             'view_count': int,
             'like_count': int,
             'upload_date': '20210422',
-            'uploader_id': '6008340455001'
-        }
+            'uploader_id': '6008340455001',
+        },
     }, {
         'url': 'https://fancode.com/video/15043',
         'only_matching': True,
@@ -136,7 +136,7 @@ class FancodeLiveIE(FancodeVodIE):  # XXX: Do not subclass from concrete IE
             'is_live': True,
             'upload_date': '20210628',
         },
-        'skip': 'Ended'
+        'skip': 'Ended',
     }, {
         'url': 'https://fancode.com/match/35328/',
         'only_matching': True,
@@ -171,5 +171,5 @@ class FancodeLiveIE(FancodeVodIE):  # XXX: Do not subclass from concrete IE
             'formats': self._extract_akamai_formats(try_get(match_info, lambda x: x['videoStreamUrl']['url']), video_id),
             'ext': mimetype2ext(try_get(match_info, lambda x: x['videoStreamUrl']['deliveryType'])),
             'is_live': True,
-            'release_timestamp': parse_iso8601(match_info.get('startTime'))
+            'release_timestamp': parse_iso8601(match_info.get('startTime')),
         }

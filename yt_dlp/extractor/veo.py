@@ -22,7 +22,7 @@ class VeoIE(InfoExtractor):
             'timestamp': 1603847208,
             'duration': 1916,
             'view_count': int,
-        }
+        },
     }, {
         'url': 'https://app.veo.co/matches/20220313-2022-03-13_u15m-plsjq-vs-csl/',
         'only_matching': True,

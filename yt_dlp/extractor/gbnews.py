@@ -33,7 +33,7 @@ class GBNewsIE(InfoExtractor):
             'display_id': 'prince-harry-in-love-with-kate-meghan-markle-jealous-royal',
             'description': 'Ingrid Seward has published 17 books documenting the highs and lows of the Royal Family',
             'title': 'Royal author claims Prince Harry was \'in love\' with Kate - Meghan was \'jealous\'',
-        }
+        },
     }, {
         'url': 'https://www.gbnews.uk/watchlive',
         'info_dict': {

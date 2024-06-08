@@ -68,7 +68,7 @@ class PolskieRadioLegacyIE(PolskieRadioBaseExtractor):
                 'timestamp': 1592654400,
                 'upload_date': '20200620',
                 'duration': 1430,
-                'thumbnail': r're:^https?://static\.prsa\.pl/images/.*\.jpg$'
+                'thumbnail': r're:^https?://static\.prsa\.pl/images/.*\.jpg$',
             },
         }],
     }, {
@@ -328,14 +328,14 @@ class PolskieRadioCategoryIE(InfoExtractor):
             'id': '4143',
             'title': 'Kierunek Kraków',
         },
-        'playlist_mincount': 61
+        'playlist_mincount': 61,
     }, {
         'url': 'http://www.polskieradio.pl/10,czworka/214,muzyka',
         'info_dict': {
             'id': '214',
             'title': 'Muzyka',
         },
-        'playlist_mincount': 61
+        'playlist_mincount': 61,
     }, {
         # billennium tabs
         'url': 'https://www.polskieradio.pl/8/2385',
@@ -409,7 +409,7 @@ class PolskieRadioCategoryIE(InfoExtractor):
                     data=json.dumps(dict(zip((
                         'boxInstanceId', 'tabId', 'categoryType', 'sectionId', 'categoryId', 'pagerMode',
                         'subjectIds', 'tagIndexId', 'queryString', 'name', 'openArticlesInParentTemplate',
-                        'idSectionFromUrl', 'maxDocumentAge', 'showCategoryForArticle', 'pageNumber'
+                        'idSectionFromUrl', 'maxDocumentAge', 'showCategoryForArticle', 'pageNumber',
                     ), params))).encode())['d']
                 content, pagination = tab_content['Content'], tab_content.get('PagerContent')
             elif is_post_back:

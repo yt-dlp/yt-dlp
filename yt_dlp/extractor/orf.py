@@ -65,8 +65,8 @@ class ORFRadioIE(InfoExtractor):
                 'duration': 18000,
                 'timestamp': 1659322789,
                 'description': 'md5:a3f6083399ef92b8cbe2d421b180835a',
-            }
-        }]
+            },
+        }],
     }, {
         'url': 'https://ooe.orf.at/player/20220801/OGMO',
         'info_dict': {
@@ -84,8 +84,8 @@ class ORFRadioIE(InfoExtractor):
                 'duration': 18000,
                 'timestamp': 1659322789,
                 'description': 'md5:a3f6083399ef92b8cbe2d421b180835a',
-            }
-        }]
+            },
+        }],
     }, {
         'url': 'http://fm4.orf.at/player/20170107/4CC',
         'only_matching': True,
@@ -127,7 +127,7 @@ class ORFRadioIE(InfoExtractor):
             'timestamp': 1483858796,
             'upload_date': '20170108',
         },
-        'skip': 'Shows from ORF radios are only available for 7 days.'
+        'skip': 'Shows from ORF radios are only available for 7 days.',
     }]
 
     def _entries(self, data, station):
@@ -175,7 +175,7 @@ class ORFPodcastIE(InfoExtractor):
             'duration': 3396.0,
             'series': 'Frühstück bei mir',
         },
-        'skip': 'ORF podcasts are only available for a limited time'
+        'skip': 'ORF podcasts are only available for a limited time',
     }]
 
     def _real_extract(self, url):

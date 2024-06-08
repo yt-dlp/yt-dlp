@@ -34,7 +34,7 @@ class FujiTVFODPlus7IE(InfoExtractor):
             'series': 'ちびまる子ちゃん',
             'series_id': '5d40',
             'thumbnail': 'https://i.fod.fujitv.co.jp/img/program/5d40/episode/5d40810083_a.jpg'},
-        'skip': 'Video available only in one week'
+        'skip': 'Video available only in one week',
     }]
 
     def _real_extract(self, url):
@@ -67,5 +67,5 @@ class FujiTVFODPlus7IE(InfoExtractor):
             'formats': formats,
             'subtitles': subtitles,
             'thumbnail': f'{self._BASE_URL}img/program/{series_id}/episode/{video_id}_a.jpg',
-            '_format_sort_fields': ('tbr', )
+            '_format_sort_fields': ('tbr', ),
         }

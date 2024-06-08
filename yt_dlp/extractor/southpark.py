@@ -87,7 +87,7 @@ class SouthParkDeIE(SouthParkIE):  # XXX: Do not subclass from concrete IE
             'id': 'e99d45ea-ed00-11e0-aca6-0026b9414f30',
             'ext': 'mp4',
             'title': 'Zahnfee Cartman',
-            'description': 'md5:b917eec991d388811d911fd1377671ac'
+            'description': 'md5:b917eec991d388811d911fd1377671ac',
         },
     }, {
         # episode

@@ -19,7 +19,7 @@ class MotorsportIE(InfoExtractor):
             'uploader': 'mcomstaff',
             'uploader_id': 'UC334JIYKkVnyFoNCclfZtHQ',
             'upload_date': '20140903',
-            'thumbnail': r're:^https?://.+\.jpg$'
+            'thumbnail': r're:^https?://.+\.jpg$',
         },
         'add_ie': ['Youtube'],
         'params': {

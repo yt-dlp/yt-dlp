@@ -28,7 +28,7 @@ class ImdbIE(InfoExtractor):
             'description': 'md5:87bd0bdc61e351f21f20d2d7441cb4e7',
             'duration': 152,
             'thumbnail': r're:^https?://.+\.jpg',
-        }
+        },
     }, {
         'url': 'https://www.imdb.com/video/vi3516832537',
         'info_dict': {
@@ -38,7 +38,7 @@ class ImdbIE(InfoExtractor):
             'description': 'md5:17fcc4fe11ec29b4399be9d4c5ef126c',
             'duration': 153,
             'thumbnail': r're:^https?://.+\.jpg',
-        }
+        },
     }, {
         'url': 'http://www.imdb.com/video/_/vi2524815897',
         'only_matching': True,

@@ -16,7 +16,7 @@ class TwentyThreeVideoIE(InfoExtractor):
             'upload_date': '20171221',
             'uploader_id': '12258964',
             'uploader': 'Rasmus Bysted',
-        }
+        },
     }, {
         'url': 'https://bonnier-publications-danmark.23video.com/v.ihtml/player.html?token=f0dc46476e06e13afd5a1f84a29e31e8&source=embed&photo%5fid=36137620',
         'only_matching': True,

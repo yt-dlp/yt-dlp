@@ -35,7 +35,7 @@ class NozIE(InfoExtractor):
 
         config_url_encoded = self._search_regex(
             r'so\.addVariable\("config_url","[^,]*,(.*?)"',
-            edge_content, 'config URL'
+            edge_content, 'config URL',
         )
         config_url = compat_urllib_parse_unquote(config_url_encoded)
 

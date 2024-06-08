@@ -120,7 +120,7 @@ class YouNowChannelIE(InfoExtractor):
         'url': 'https://www.younow.com/its_Kateee_/channel',
         'info_dict': {
             'id': '14629760',
-            'title': 'its_Kateee_ moments'
+            'title': 'its_Kateee_ moments',
         },
         'playlist_mincount': 8,
     }

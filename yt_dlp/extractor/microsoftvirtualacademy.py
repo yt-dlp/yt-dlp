@@ -41,7 +41,7 @@ class MicrosoftVirtualAcademyIE(MicrosoftVirtualAcademyBaseIE):
                     'ext': 'ttml',
                 }],
             },
-        }
+        },
     }, {
         'url': 'mva:11788:gfVXISmEB_6804984382',
         'only_matching': True,
@@ -108,7 +108,7 @@ class MicrosoftVirtualAcademyIE(MicrosoftVirtualAcademyBaseIE):
             'id': video_id,
             'title': title,
             'subtitles': subtitles,
-            'formats': formats
+            'formats': formats,
         }
 
 

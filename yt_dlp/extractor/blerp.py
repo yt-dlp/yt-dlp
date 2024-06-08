@@ -16,7 +16,7 @@ class BlerpIE(InfoExtractor):
             'uploader_id': '5fb81e51aa66ae000c395478',
             'ext': 'mp3',
             'tags': ['samsung', 'galaxy', 's8', 'over the horizon', '2016', 'ringtone'],
-        }
+        },
     }, {
         'url': 'https://blerp.com/soundbites/5bc94ef4796001000498429f',
         'info_dict': {
@@ -25,8 +25,8 @@ class BlerpIE(InfoExtractor):
             'uploader': '179617322678353920',
             'uploader_id': '5ba99cf71386730004552c42',
             'ext': 'mp3',
-            'tags': ['YEE', 'YEET', 'wo ha haah catchy tune yee', 'yee']
-        }
+            'tags': ['YEE', 'YEET', 'wo ha haah catchy tune yee', 'yee'],
+        },
     }]
 
     _GRAPHQL_OPERATIONNAME = 'webBitePageGetBite'
@@ -141,12 +141,12 @@ class BlerpIE(InfoExtractor):
             'operationName': self._GRAPHQL_OPERATIONNAME,
             'query': self._GRAPHQL_QUERY,
             'variables': {
-                '_id': audio_id
-            }
+                '_id': audio_id,
+            },
         }
 
         headers = {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
         }
 
         json_result = self._download_json(
@@ -162,5 +162,5 @@ class BlerpIE(InfoExtractor):
             'uploader': traverse_obj(bite_json, ('ownerObject', 'username'), expected_type=strip_or_none),
             'uploader_id': traverse_obj(bite_json, ('ownerObject', '_id'), expected_type=strip_or_none),
             'ext': 'mp3',
-            'tags': list(filter(None, map(strip_or_none, (traverse_obj(bite_json, 'userKeywords', expected_type=list) or []))) or None)
+            'tags': list(filter(None, map(strip_or_none, (traverse_obj(bite_json, 'userKeywords', expected_type=list) or []))) or None),
         }

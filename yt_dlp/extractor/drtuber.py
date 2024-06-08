@@ -25,7 +25,7 @@ class DrTuberIE(InfoExtractor):
             'categories': ['Babe', 'Blonde', 'Erotic', 'Outdoor', 'Softcore', 'Solo'],
             'thumbnail': r're:https?://.*\.jpg$',
             'age_limit': 18,
-        }
+        },
     }, {
         'url': 'http://www.drtuber.com/embed/489939',
         'only_matching': True,
@@ -56,7 +56,7 @@ class DrTuberIE(InfoExtractor):
                 formats.append({
                     'format_id': format_id,
                     'quality': 2 if format_id == 'hq' else 1,
-                    'url': video_url
+                    'url': video_url,
                 })
 
         duration = int_or_none(video_data.get('duration')) or parse_duration(

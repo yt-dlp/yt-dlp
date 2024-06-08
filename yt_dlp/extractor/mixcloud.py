@@ -25,7 +25,7 @@ class MixcloudBaseIE(InfoExtractor):
   %s(lookup: {username: "%s"%s}) {
     %s
   }
-}''' % (lookup_key, username, ', slug: "%s"' % slug if slug else '', object_fields)
+}''' % (lookup_key, username, ', slug: "%s"' % slug if slug else '', object_fields),
             })['data'][lookup_key]
 
 

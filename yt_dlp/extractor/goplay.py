@@ -31,7 +31,7 @@ class GoPlayIE(InfoExtractor):
             'episode': 'Episode 2',
             'episode_number': 2,
         },
-        'skip': 'This video is only available for registered users'
+        'skip': 'This video is only available for registered users',
     }, {
         'url': 'https://www.goplay.be/video/a-family-for-thr-holidays-s1-aflevering-1#autoplay',
         'info_dict': {
@@ -39,7 +39,7 @@ class GoPlayIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'A Family for the Holidays',
         },
-        'skip': 'This video is only available for registered users'
+        'skip': 'This video is only available for registered users',
     }, {
         'url': 'https://www.goplay.be/video/de-mol/de-mol-s11/de-mol-s11-aflevering-1#autoplay',
         'info_dict': {
@@ -50,12 +50,12 @@ class GoPlayIE(InfoExtractor):
             'series': 'De Mol',
             'season_number': 11,
             'episode_number': 1,
-            'season': 'Season 11'
+            'season': 'Season 11',
         },
         'params': {
-            'skip_download': True
+            'skip_download': True,
         },
-        'skip': 'This video is only available for registered users'
+        'skip': 'This video is only available for registered users',
     }]
 
     _id_token = None
@@ -79,7 +79,7 @@ class GoPlayIE(InfoExtractor):
         if movie:
             video_id = movie['videoUuid']
             info_dict = {
-                'title': movie.get('title')
+                'title': movie.get('title'),
             }
         else:
             episode = traverse_obj(video_data, ('playlists', ..., 'episodes', lambda _, v: v['pageInfo']['url'] == url), get_all=False)
@@ -199,7 +199,7 @@ class AwsIdp:
         auth_headers = {
             'X-Amz-Target': 'AWSCognitoIdentityProviderService.InitiateAuth',
             'Accept-Encoding': 'identity',
-            'Content-Type': 'application/x-amz-json-1.1'
+            'Content-Type': 'application/x-amz-json-1.1',
         }
         auth_response_json = self.ie._download_json(
             self.url, None, data=auth_data, headers=auth_headers,
@@ -214,7 +214,7 @@ class AwsIdp:
         challenge_data = json.dumps(challenge_request).encode()
         challenge_headers = {
             'X-Amz-Target': 'AWSCognitoIdentityProviderService.RespondToAuthChallenge',
-            'Content-Type': 'application/x-amz-json-1.1'
+            'Content-Type': 'application/x-amz-json-1.1',
         }
         auth_response_json = self.ie._download_json(
             self.url, None, data=challenge_data, headers=challenge_headers,
@@ -224,7 +224,7 @@ class AwsIdp:
             raise InvalidLoginException(auth_response_json['message'])
         return (
             auth_response_json['AuthenticationResult']['IdToken'],
-            auth_response_json['AuthenticationResult']['RefreshToken']
+            auth_response_json['AuthenticationResult']['RefreshToken'],
         )
 
     def __get_authentication_request(self, username):
@@ -238,10 +238,10 @@ class AwsIdp:
         return {
             'AuthParameters': {
                 'USERNAME': username,
-                'SRP_A': self.__long_to_hex(self.large_a_value)
+                'SRP_A': self.__long_to_hex(self.large_a_value),
             },
             'AuthFlow': 'USER_SRP_AUTH',
-            'ClientId': self.client_id
+            'ClientId': self.client_id,
         }
 
     def __get_challenge_response_request(self, challenge_parameters, password):
@@ -266,7 +266,7 @@ class AwsIdp:
             user_id_for_srp,
             password,
             self.__hex_to_long(srp_b),
-            salt
+            salt,
         )
         secret_block_bytes = base64.standard_b64decode(secret_block)
 
@@ -283,10 +283,10 @@ class AwsIdp:
                 'USERNAME': user_id,
                 'TIMESTAMP': timestamp,
                 'PASSWORD_CLAIM_SECRET_BLOCK': secret_block,
-                'PASSWORD_CLAIM_SIGNATURE': signature_string
+                'PASSWORD_CLAIM_SIGNATURE': signature_string,
             },
             'ChallengeName': 'PASSWORD_VERIFIER',
-            'ClientId': self.client_id
+            'ClientId': self.client_id,
         }
 
     def __get_hkdf_key_for_password(self, username, password, server_b_value, salt):
@@ -313,7 +313,7 @@ class AwsIdp:
         s_value = pow(int_value2, self.small_a_value + u_value * x_value, self.big_n)
         return self.__compute_hkdf(
             bytearray.fromhex(self.__pad_hex(s_value)),
-            bytearray.fromhex(self.__pad_hex(self.__long_to_hex(u_value)))
+            bytearray.fromhex(self.__pad_hex(self.__long_to_hex(u_value))),
         )
 
     def __compute_hkdf(self, ikm, salt):
@@ -426,5 +426,5 @@ class AwsIdp:
 
     def __str__(self):
         return 'AWS IDP Client for:\nRegion: %s\nPoolId: %s\nAppId:  %s' % (
-            self.region, self.pool_id.split('_')[1], self.client_id
+            self.region, self.pool_id.split('_')[1], self.client_id,
         )

@@ -95,7 +95,7 @@ class IndavideoEmbedIE(InfoExtractor):
             timestamp = parse_iso8601(timestamp + ' +0200', ' ')
 
         thumbnails = [{
-            'url': self._proto_relative_url(thumbnail)
+            'url': self._proto_relative_url(thumbnail),
         } for thumbnail in video.get('thumbnails', [])]
 
         tags = [tag['title'] for tag in video.get('tags') or []]

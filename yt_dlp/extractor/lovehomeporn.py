@@ -15,7 +15,7 @@ class LoveHomePornIE(NuevoBaseIE):
         },
         'params': {
             'skip_download': True,
-        }
+        },
     }
 
     def _real_extract(self, url):
@@ -28,6 +28,6 @@ class LoveHomePornIE(NuevoBaseIE):
             video_id)
         info.update({
             'display_id': display_id,
-            'age_limit': 18
+            'age_limit': 18,
         })
         return info

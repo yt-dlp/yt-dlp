@@ -10,7 +10,7 @@ class Ku6IE(InfoExtractor):
             'id': 'JG-8yS14xzBr4bCn1pu0xw',
             'ext': 'f4v',
             'title': 'techniques test',
-        }
+        },
     }
 
     def _real_extract(self, url):
@@ -26,5 +26,5 @@ class Ku6IE(InfoExtractor):
         return {
             'id': video_id,
             'title': title,
-            'url': downloadUrl
+            'url': downloadUrl,
         }

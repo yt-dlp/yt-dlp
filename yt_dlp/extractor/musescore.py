@@ -13,7 +13,7 @@ class MuseScoreIE(InfoExtractor):
             'thumbnail': r're:https?://(?:www\.)?musescore\.com/.*\.png[^$]+',
             'uploader': 'PapyPiano',
             'creator': 'Wolfgang Amadeus Mozart',
-        }
+        },
     }, {
         'url': 'https://musescore.com/user/36164500/scores/6837638',
         'info_dict': {
@@ -24,7 +24,7 @@ class MuseScoreIE(InfoExtractor):
             'thumbnail': r're:https?://(?:www\.)?musescore\.com/.*\.png[^$]+',
             'uploader': 'roxbelviolin',
             'creator': 'Guns N´Roses Arr. Roxbel Violin',
-        }
+        },
     }, {
         'url': 'https://musescore.com/classicman/fur-elise',
         'info_dict': {
@@ -35,7 +35,7 @@ class MuseScoreIE(InfoExtractor):
             'thumbnail': r're:https?://(?:www\.)?musescore\.com/.*\.png[^$]+',
             'uploader': 'ClassicMan',
             'creator': 'Ludwig van Beethoven (1770–1827)',
-        }
+        },
     }, {
         'url': 'https://musescore.com/minh_cuteee/scores/6555384',
         'only_matching': True,

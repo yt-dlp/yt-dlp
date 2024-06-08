@@ -78,7 +78,7 @@ class _MatchChildParser(_MatchParser):
 class ParseError(Exception):
     def __init__(self, parser):
         super().__init__('Parse error at position %u (near %r)' % (
-            parser._pos, parser._data[parser._pos:parser._pos + 100]
+            parser._pos, parser._data[parser._pos:parser._pos + 100],
         ))
 
 
@@ -306,7 +306,7 @@ class CueBlock(Block):
         return cls(
             id=id_,
             start=start, end=end, settings=settings,
-            text=text.getvalue()
+            text=text.getvalue(),
         )
 
     def write_into(self, stream):
@@ -343,7 +343,7 @@ class CueBlock(Block):
             start=json['start'],
             end=json['end'],
             text=json['text'],
-            settings=json['settings']
+            settings=json['settings'],
         )
 
     def hinges(self, other):

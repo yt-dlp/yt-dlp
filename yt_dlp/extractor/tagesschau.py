@@ -144,7 +144,7 @@ class TagesschauIE(InfoExtractor):
                     'id': '%s-%d' % (display_id, num),
                     'title': try_get(video, lambda x: x['mc']['_title']),
                     'duration': int_or_none(try_get(video, lambda x: x['mc']['_duration'])),
-                    'formats': formats
+                    'formats': formats,
                 })
 
         if not entries:

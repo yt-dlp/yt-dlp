@@ -20,8 +20,8 @@ class GofileIE(InfoExtractor):
                 'title': 'nuuh',
                 'release_timestamp': 1638338704,
                 'release_date': '20211201',
-            }
-        }]
+            },
+        }],
     }, {
         'url': 'https://gofile.io/d/is8lKr',
         'info_dict': {
@@ -89,7 +89,7 @@ class GofileIE(InfoExtractor):
                     'title': file['name'].rsplit('.', 1)[0],
                     'url': file_url,
                     'filesize': file.get('size'),
-                    'release_timestamp': file.get('createTime')
+                    'release_timestamp': file.get('createTime'),
                 }
 
         if not found_files:

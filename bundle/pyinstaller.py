@@ -68,7 +68,7 @@ def exe(onedir):
         'dist/',
         onedir and f'{name}/',
         name,
-        OS_NAME == 'win32' and '.exe'
+        OS_NAME == 'win32' and '.exe',
     )))
 
 
@@ -123,8 +123,8 @@ def windows_set_version(exe, version):
                 StringStruct('ProductName', f'yt-dlp{suffix}'),
                 StringStruct(
                     'ProductVersion', f'{version}{suffix} on Python {platform.python_version()}'),
-            ])]), VarFileInfo([VarStruct('Translation', [0, 1200])])
-        ]
+            ])]), VarFileInfo([VarStruct('Translation', [0, 1200])]),
+        ],
     ))
 
 

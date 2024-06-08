@@ -57,8 +57,8 @@ def pytest_configure(config):
         'markers', 'skip_handler(handler): skip test for the given handler',
     )
     config.addinivalue_line(
-        'markers', 'skip_handler_if(handler): skip test for the given handler if condition is true'
+        'markers', 'skip_handler_if(handler): skip test for the given handler if condition is true',
     )
     config.addinivalue_line(
-        'markers', 'skip_handlers_if(handler): skip test for handlers when the condition is true'
+        'markers', 'skip_handlers_if(handler): skip test for handlers when the condition is true',
     )

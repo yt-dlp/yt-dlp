@@ -56,7 +56,7 @@ class NetEaseMusicBaseIE(InfoExtractor):
             'requestId': f'{int(time.time() * 1000)}_{random.randint(0, 1000):04}',
             **traverse_obj(self._get_cookies(self._API_BASE), {
                 'MUSIC_U': ('MUSIC_U', {lambda i: i.value}),
-            })
+            }),
         }
         return self._download_json(
             urljoin('https://interface3.music.163.com/', f'/eapi{path}'), video_id,
@@ -543,7 +543,7 @@ class NetEaseMusicProgramIE(NetEaseMusicBaseIE):
             'duration': 1104,
         },
         'params': {
-            'noplaylist': True
+            'noplaylist': True,
         },
     }]
 
@@ -585,7 +585,7 @@ class NetEaseMusicDjRadioIE(NetEaseMusicBaseIE):
         'info_dict': {
             'id': '42',
             'title': '声音蔓延',
-            'description': 'md5:c7381ebd7989f9f367668a5aee7d5f08'
+            'description': 'md5:c7381ebd7989f9f367668a5aee7d5f08',
         },
         'playlist_mincount': 40,
     }

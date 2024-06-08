@@ -73,7 +73,7 @@ body > figure > img {
         ).format(
             version=escapeHTML(YT_DLP_VERSION),
             styles=self._STYLESHEET,
-            title=escapeHTML(title)
+            title=escapeHTML(title),
         ))
 
         t0 = 0
@@ -87,7 +87,7 @@ body > figure > img {
                     num=i + 1,
                     t0=srt_subtitles_timecode(t0),
                     t1=srt_subtitles_timecode(t1),
-                    duration=formatSeconds(frag['duration'], msec=True)
+                    duration=formatSeconds(frag['duration'], msec=True),
                 ))
             except (KeyError, ValueError, TypeError):
                 t1 = None
@@ -126,7 +126,7 @@ body > figure > img {
             stub = self._gen_stub(
                 fragments=fragments,
                 frag_boundary=frag_boundary,
-                title=title
+                title=title,
             )
 
             ctx['dest_stream'].write((
@@ -149,7 +149,7 @@ body > figure > img {
                 boundary=frag_boundary,
                 length=len(stub),
                 title=self._escape_mime(title),
-                stub=stub
+                stub=stub,
             ).encode())
             extra_state['header_written'] = True
 

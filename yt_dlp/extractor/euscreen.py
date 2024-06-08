@@ -20,9 +20,9 @@ class EUScreenIE(InfoExtractor):
             'series': 'JA2 DERNIERE',
             'episode': '-',
             'uploader': 'INA /  France',
-            'thumbnail': 'http://images3.noterik.com/domain/euscreenxl/user/eu_ina/video/EUS_0EBCBF356BFC4E12A014023BA41BD98C/image.jpg'
+            'thumbnail': 'http://images3.noterik.com/domain/euscreenxl/user/eu_ina/video/EUS_0EBCBF356BFC4E12A014023BA41BD98C/image.jpg',
         },
-        'params': {'skip_download': True}
+        'params': {'skip_download': True},
     }]
 
     _payload = b'<fsxml><screen><properties><screenId>-1</screenId></properties><capabilities id="1"><properties><platform>Win32</platform><appcodename>Mozilla</appcodename><appname>Netscape</appname><appversion>5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.71 Safari/537.36</appversion><useragent>Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.71 Safari/537.36</useragent><cookiesenabled>true</cookiesenabled><screenwidth>784</screenwidth><screenheight>758</screenheight><orientation>undefined</orientation><smt_browserid>Sat, 07 Oct 2021 08:56:50 GMT</smt_browserid><smt_sessionid>1633769810758</smt_sessionid></properties></capabilities></screen></fsxml>'

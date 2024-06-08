@@ -43,7 +43,7 @@ class CSpanIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'CSPAN - International Health Care Models',
             'description': 'md5:7a985a2d595dba00af3d9c9f0783c967',
-        }
+        },
     }, {
         'url': 'http://www.c-span.org/video/?318608-1/gm-ignition-switch-recall',
         'info_dict': {
@@ -61,7 +61,7 @@ class CSpanIE(InfoExtractor):
         },
         'params': {
             'skip_download': True,  # m3u8 downloads
-        }
+        },
     }, {
         # Ustream embedded video
         'url': 'https://www.c-span.org/video/?114917-1/armed-services',
@@ -216,7 +216,7 @@ class CSpanIE(InfoExtractor):
                     continue
                 formats = self._extract_m3u8_formats(
                     path, video_id, 'mp4', entry_protocol='m3u8_native',
-                    m3u8_id='hls') if determine_ext(path) == 'm3u8' else [{'url': path, }]
+                    m3u8_id='hls') if determine_ext(path) == 'm3u8' else [{'url': path}]
             add_referer(formats)
             entries.append({
                 'id': '%s_%d' % (video_id, partnum + 1),
@@ -230,7 +230,7 @@ class CSpanIE(InfoExtractor):
                 'subtitles': {
                     'en': [{
                         'url': capfile,
-                        'ext': determine_ext(capfile, 'dfxp')
+                        'ext': determine_ext(capfile, 'dfxp'),
                     }],
                 } if capfile else None,
             })
@@ -257,8 +257,8 @@ class CSpanCongressIE(InfoExtractor):
             'title': 'Congressional Chronicle - Members of Congress, Hearings and More',
             'description': 'md5:54c264b7a8f219937987610243305a84',
             'thumbnail': r're:https://ximage.c-spanvideo.org/.+',
-            'ext': 'mp4'
-        }
+            'ext': 'mp4',
+        },
     }]
 
     def _real_extract(self, url):

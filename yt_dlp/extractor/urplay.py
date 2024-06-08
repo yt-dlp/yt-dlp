@@ -116,14 +116,14 @@ class URPlayIE(InfoExtractor):
             for k, v in stream.items():
                 if (k in ('sd', 'hd') or not isinstance(v, dict)):
                     continue
-                lang, sttl_url = (v.get(kk) for kk in ('language', 'location', ))
+                lang, sttl_url = (v.get(kk) for kk in ('language', 'location'))
                 if not sttl_url:
                     continue
                 lang = parse_lang_code(lang)
                 if not lang:
                     continue
                 sttl = subtitles.get(lang) or []
-                sttl.append({'ext': k, 'url': sttl_url, })
+                sttl.append({'ext': k, 'url': sttl_url})
                 subtitles[lang] = sttl
 
         image = urplayer_data.get('image') or {}

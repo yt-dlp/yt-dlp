@@ -228,7 +228,7 @@ class NPOIE(InfoExtractor):
                     'hasAdConsent': 0,
                 }), headers={
                     'x-xsrf-token': try_call(lambda: urllib.parse.unquote(
-                        self._get_cookies('https://www.npostart.nl')['XSRF-TOKEN'].value))
+                        self._get_cookies('https://www.npostart.nl')['XSRF-TOKEN'].value)),
                 })
 
         player_token = player['token']
@@ -339,7 +339,7 @@ class NPOLiveIE(InfoExtractor):
         },
         'params': {
             'skip_download': True,
-        }
+        },
     }, {
         'url': 'http://www.npo.nl/live',
         'only_matching': True,
@@ -379,7 +379,7 @@ class NPORadioIE(InfoExtractor):
         },
         'params': {
             'skip_download': True,
-        }
+        },
     }
 
     @classmethod
@@ -457,7 +457,7 @@ class NPODataMidEmbedIE(InfoExtractor):  # XXX: Conventionally, base classes sho
             '_type': 'url_transparent',
             'ie_key': 'NPO',
             'url': 'npo:%s' % video_id,
-            'display_id': display_id
+            'display_id': display_id,
         }
 
 
@@ -472,12 +472,12 @@ class SchoolTVIE(NPODataMidEmbedIE):
             'display_id': 'ademhaling-de-hele-dag-haal-je-adem-maar-wat-gebeurt-er-dan-eigenlijk-in-je-lichaam',
             'title': 'Ademhaling: De hele dag haal je adem. Maar wat gebeurt er dan eigenlijk in je lichaam?',
             'ext': 'mp4',
-            'description': 'md5:abfa0ff690adb73fd0297fd033aaa631'
+            'description': 'md5:abfa0ff690adb73fd0297fd033aaa631',
         },
         'params': {
             # Skip because of m3u8 download
-            'skip_download': True
-        }
+            'skip_download': True,
+        },
     }
 
 
@@ -496,8 +496,8 @@ class HetKlokhuisIE(NPODataMidEmbedIE):
             'upload_date': '20170223',
         },
         'params': {
-            'skip_download': True
-        }
+            'skip_download': True,
+        },
     }
 
 
@@ -574,9 +574,9 @@ class VPROIE(NPOPlaylistBaseIE):
             },
             'params': {
                 # Skip because of m3u8 download
-                'skip_download': True
+                'skip_download': True,
             },
-        }
+        },
     ]
 
 

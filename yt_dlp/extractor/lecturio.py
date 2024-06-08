@@ -130,7 +130,7 @@ class LecturioIE(LecturioBaseIE):
             f = {
                 'url': file_url,
                 'format_id': label,
-                'filesize': float_or_none(filesize, invscale=1000)
+                'filesize': float_or_none(filesize, invscale=1000),
             }
             if label:
                 mobj = re.match(r'(\d+)p\s*\(([^)]+)\)', label)

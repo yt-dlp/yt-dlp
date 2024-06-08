@@ -16,7 +16,7 @@ class PhotobucketIE(InfoExtractor):
             'upload_date': '20130504',
             'uploader': 'rachaneronas',
             'title': 'Tired of Link Building? Try BacklinkMyDomain.com!',
-        }
+        },
     }
 
     def _real_extract(self, url):

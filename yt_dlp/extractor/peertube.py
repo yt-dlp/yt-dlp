@@ -1349,7 +1349,7 @@ class PeerTubeIE(InfoExtractor):
             'dislike_count': int,
             'tags': ['framasoft', 'peertube'],
             'categories': ['Science & Technology'],
-        }
+        },
     }, {
         'url': 'https://peertube2.cpy.re/w/122d093a-1ede-43bd-bd34-59d2931ffc5e',
         'info_dict': {
@@ -1360,7 +1360,7 @@ class PeerTubeIE(InfoExtractor):
             'timestamp': 1589276219,
             'upload_date': '20200512',
             'uploader': 'chocobozzz',
-        }
+        },
     }, {
         'url': 'https://peertube2.cpy.re/w/3fbif9S3WmtTP8gGsC5HBd',
         'info_dict': {
@@ -1394,7 +1394,7 @@ class PeerTubeIE(InfoExtractor):
             'timestamp': 1587401293,
             'upload_date': '20200420',
             'uploader': 'Drew DeVault',
-        }
+        },
     }, {
         'url': 'https://peertube.debian.social/videos/watch/0b04f13d-1e18-4f1d-814e-4979aa7c9c44',
         'only_matching': True,

@@ -70,7 +70,7 @@ class TeacherTubeIE(InfoExtractor):
         formats = [
             {
                 'url': media_url,
-                'quality': quality(determine_ext(media_url))
+                'quality': quality(determine_ext(media_url)),
             } for media_url in set(media_urls)
         ]
 
@@ -102,7 +102,7 @@ class TeacherTubeUserIE(InfoExtractor):
     _TEST = {
         'url': 'http://www.teachertube.com/user/profile/rbhagwati2',
         'info_dict': {
-            'id': 'rbhagwati2'
+            'id': 'rbhagwati2',
         },
         'playlist_mincount': 179,
     }

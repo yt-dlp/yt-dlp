@@ -16,7 +16,7 @@ class DLiveVODIE(InfoExtractor):
             'upload_date': '20190701',
             'timestamp': 1562011015,
             'uploader_id': 'pdp',
-        }
+        },
     }, {
         'url': 'https://dlive.tv/p/pdpreplay+D-RD-xSZg',
         'only_matching': True,

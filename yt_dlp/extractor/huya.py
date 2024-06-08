@@ -32,7 +32,7 @@ class HuyaLiveIE(InfoExtractor):
         },
     }, {
         'url': 'https://www.huya.com/xiaoyugame',
-        'only_matching': True
+        'only_matching': True,
     }]
 
     _RESOLUTION = {
@@ -46,8 +46,8 @@ class HuyaLiveIE(InfoExtractor):
         },
         '流畅': {
             'width': 800,
-            'height': 480
-        }
+            'height': 480,
+        },
     }
 
     def _real_extract(self, url):

@@ -146,7 +146,7 @@ def _extract_firefox_cookies(profile, container, logger):
             identities = json.load(containers).get('identities', [])
         container_id = next((context.get('userContextId') for context in identities if container in (
             context.get('name'),
-            try_call(lambda: re.fullmatch(r'userContext([^\.]+)\.label', context['l10nID']).group())
+            try_call(lambda: re.fullmatch(r'userContext([^\.]+)\.label', context['l10nID']).group()),
         )), None)
         if not isinstance(container_id, int):
             raise ValueError(f'could not find firefox container "{container}" in containers.json')
@@ -263,7 +263,7 @@ def _get_chromium_based_browser_settings(browser_name):
     return {
         'browser_dir': browser_dir,
         'keyring_name': keyring_name,
-        'supports_profiles': browser_name not in browsers_without_profiles
+        'supports_profiles': browser_name not in browsers_without_profiles,
     }
 
 
@@ -826,7 +826,7 @@ def _choose_linux_keyring(logger):
     elif desktop_environment == _LinuxDesktopEnvironment.KDE6:
         linux_keyring = _LinuxKeyring.KWALLET6
     elif desktop_environment in (
-        _LinuxDesktopEnvironment.KDE3, _LinuxDesktopEnvironment.LXQT, _LinuxDesktopEnvironment.OTHER
+        _LinuxDesktopEnvironment.KDE3, _LinuxDesktopEnvironment.LXQT, _LinuxDesktopEnvironment.OTHER,
     ):
         linux_keyring = _LinuxKeyring.BASICTEXT
     else:
@@ -861,7 +861,7 @@ def _get_kwallet_network_wallet(keyring, logger):
             'dbus-send', '--session', '--print-reply=literal',
             f'--dest={service_name}',
             wallet_path,
-            'org.kde.KWallet.networkWallet'
+            'org.kde.KWallet.networkWallet',
         ], text=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
 
         if returncode:
@@ -891,7 +891,7 @@ def _get_kwallet_password(browser_keyring_name, keyring, logger):
             'kwallet-query',
             '--read-password', f'{browser_keyring_name} Safe Storage',
             '--folder', f'{browser_keyring_name} Keys',
-            network_wallet
+            network_wallet,
         ], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
 
         if returncode:
@@ -1052,7 +1052,7 @@ def _decrypt_windows_dpapi(ciphertext, logger):
         None,  # pvReserved: must be NULL
         None,  # pPromptStruct: information about prompts to display
         0,  # dwFlags
-        ctypes.byref(blob_out)  # pDataOut
+        ctypes.byref(blob_out),  # pDataOut
     )
     if not ret:
         logger.warning('failed to decrypt with DPAPI', only_once=True)
@@ -1265,7 +1265,7 @@ class YoutubeDLCookieJar(http.cookiejar.MozillaCookieJar):
                 cookie.path,
                 self._true_or_false(cookie.secure),
                 str_or_none(cookie.expires, default=''),
-                name, value
+                name, value,
             )))
 
     def save(self, filename=None, ignore_discard=True, ignore_expires=True):

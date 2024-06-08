@@ -91,7 +91,7 @@ class NineCNineMediaIE(InfoExtractor):
                 }, {
                     'url': manifest_base_url + 'srt',
                     'ext': 'srt',
-                }]
+                }],
             }
 
         return info
@@ -118,7 +118,7 @@ class CPTwentyFourIE(InfoExtractor):
             'thumbnail': 'http://images2.9c9media.com/image_asset/2014_11_5_2eb609a0-475b-0132-fbd6-34b52f6f1279_jpg_2000x1125.jpg',
             'upload_date': '20211122',
         },
-        'params': {'skip_download': True, 'format': 'bv'}
+        'params': {'skip_download': True, 'format': 'bv'},
     }]
 
     def _real_extract(self, url):

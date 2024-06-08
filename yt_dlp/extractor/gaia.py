@@ -62,7 +62,7 @@ class GaiaIE(InfoExtractor):
             'https://auth.gaia.com/v1/login',
             None, data=urlencode_postdata({
                 'username': username,
-                'password': password
+                'password': password,
             }))
         if auth.get('success') is False:
             raise ExtractorError(', '.join(auth['messages']), expected=True)

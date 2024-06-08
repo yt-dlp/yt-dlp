@@ -24,17 +24,17 @@ class HRFernsehenIE(InfoExtractor):
                            'Sterbehilfe: Die Lage in Hessen / Miss Hessen leitet zwei eigene Unternehmen / '
                            'Pop-Up Museum zeigt Schwarze Unterhaltung und Black Music',
             'subtitles': {'de': [{
-                'url': 'https://hr-a.akamaihd.net/video/as/hessenschau/2020_08/hrLogo_200826200407_L385592_512x288-25p-500kbit.vtt'
+                'url': 'https://hr-a.akamaihd.net/video/as/hessenschau/2020_08/hrLogo_200826200407_L385592_512x288-25p-500kbit.vtt',
             }]},
             'timestamp': 1598400000,
             'upload_date': '20200826',
             'thumbnail': 'https://www.hessenschau.de/tv-sendung/hs_ganz-1554~_t-1598465545029_v-16to9.jpg',
             'title': 'hessenschau vom 26.08.2020',
-            'duration': 1654
-        }
+            'duration': 1654,
+        },
     }, {
         'url': 'https://www.hr-fernsehen.de/sendungen-a-z/mex/sendungen/fair-und-gut---was-hinter-aldis-eigenem-guetesiegel-steckt,video-130544.html',
-        'only_matching': True
+        'only_matching': True,
     }]
 
     _GEO_COUNTRIES = ['DE']

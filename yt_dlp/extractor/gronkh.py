@@ -24,7 +24,7 @@ class GronkhIE(InfoExtractor):
             'chapters': 'count:3',
             'duration': 31463,
         },
-        'params': {'skip_download': True}
+        'params': {'skip_download': True},
     }, {
         'url': 'https://gronkh.tv/stream/536',
         'info_dict': {
@@ -36,7 +36,7 @@ class GronkhIE(InfoExtractor):
             'upload_date': '20211001',
             'duration': 32058,
         },
-        'params': {'skip_download': True}
+        'params': {'skip_download': True},
     }, {
         'url': 'https://gronkh.tv/watch/stream/546',
         'only_matching': True,

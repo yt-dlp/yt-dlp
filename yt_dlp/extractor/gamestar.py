@@ -19,7 +19,7 @@ class GameStarIE(InfoExtractor):
             'timestamp': 1406542380,
             'upload_date': '20140728',
             'duration': 17,
-        }
+        },
     }, {
         'url': 'http://www.gamepro.de/videos/top-10-indie-spiele-fuer-nintendo-switch-video-tolle-nindies-games-zum-download,95316.html',
         'only_matching': True,
@@ -54,7 +54,7 @@ class GameStarIE(InfoExtractor):
             'url': 'http://gamestar.de/_misc/videos/portal/getVideoUrl.cfm?premium=0&videoId=' + video_id,
             'ext': 'mp4',
             'view_count': view_count,
-            'comment_count': comment_count
+            'comment_count': comment_count,
         })
 
         return info_dict

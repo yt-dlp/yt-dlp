@@ -45,7 +45,7 @@ class CrackleIE(InfoExtractor):
             'skip_download': True,
         },
         'expected_warnings': [
-            'Trying with a list of known countries'
+            'Trying with a list of known countries',
         ],
     }, {
         'url': 'https://www.sonycrackle.com/thanksgiving/2510064',

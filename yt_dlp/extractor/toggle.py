@@ -26,7 +26,7 @@ class ToggleIE(InfoExtractor):
         },
         'params': {
             'skip_download': 'm3u8 download',
-        }
+        },
     }, {
         'note': 'DRM-protected video',
         'url': 'http://www.mewatch.sg/en/movies/dug-s-special-mission/341413',
@@ -40,7 +40,7 @@ class ToggleIE(InfoExtractor):
         },
         'params': {
             'skip_download': 'DRM-protected wvm download',
-        }
+        },
     }, {
         # this also tests correct video id extraction
         'note': 'm3u8 links are geo-restricted, but Android/mp4 is okay',
@@ -56,7 +56,7 @@ class ToggleIE(InfoExtractor):
         'params': {
             'skip_download': 'DRM-protected wvm download',
         },
-        'skip': 'm3u8 links are geo-restricted'
+        'skip': 'm3u8 links are geo-restricted',
     }, {
         'url': 'http://video.toggle.sg/en/clips/seraph-sun-aloysius-will-suddenly-sing-some-old-songs-in-high-pitch-on-set/343331',
         'only_matching': True,
@@ -92,14 +92,14 @@ class ToggleIE(InfoExtractor):
                     'LocaleLanguage': '',
                     'LocaleCountry': '',
                     'LocaleDevice': '',
-                    'LocaleUserState': 0
+                    'LocaleUserState': 0,
                 },
                 'Platform': 0,
                 'SiteGuid': 0,
                 'DomainID': '0',
                 'UDID': '',
                 'ApiUser': self._API_USER,
-                'ApiPass': self._API_PASS
+                'ApiPass': self._API_PASS,
             },
             'MediaID': video_id,
             'mediaType': 0,

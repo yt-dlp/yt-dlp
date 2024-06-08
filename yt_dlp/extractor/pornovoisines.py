@@ -29,9 +29,9 @@ class PornoVoisinesIE(InfoExtractor):
             'subtitles': {
                 'fr': [{
                     'ext': 'vtt',
-                }]
+                }],
             },
-        }
+        },
     }
 
     def _real_extract(self, url):

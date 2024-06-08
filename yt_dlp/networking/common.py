@@ -382,7 +382,7 @@ class Request:
             proxies: dict | None = None,
             query: dict | None = None,
             method: str | None = None,
-            extensions: dict | None = None
+            extensions: dict | None = None,
     ):
 
         self._headers = HTTPHeaderDict()
@@ -509,7 +509,7 @@ class Response(io.IOBase):
             headers: Mapping[str, str],
             status: int = 200,
             reason: str | None = None,
-            extensions: dict | None = None
+            extensions: dict | None = None,
     ):
 
         self.fp = fp

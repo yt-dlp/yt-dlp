@@ -583,7 +583,7 @@ class YoutubeDL:
         'player_url', 'protocol', 'fragment_base_url', 'fragments', 'is_from_start', 'is_dash_periods', 'request_data',
         'preference', 'language', 'language_preference', 'quality', 'source_preference', 'cookies',
         'http_headers', 'stretched_ratio', 'no_resume', 'has_drm', 'extra_param_to_segment_url', 'hls_aes', 'downloader_options',
-        'page_url', 'app', 'play_path', 'tc_url', 'flash_version', 'rtmp_live', 'rtmp_conn', 'rtmp_protocol', 'rtmp_real_time'
+        'page_url', 'app', 'play_path', 'tc_url', 'flash_version', 'rtmp_live', 'rtmp_conn', 'rtmp_protocol', 'rtmp_real_time',
     }
     _deprecated_multivalue_fields = {
         'album_artist': 'album_artists',
@@ -628,7 +628,7 @@ class YoutubeDL:
             error=sys.stderr,
             screen=sys.stderr if self.params.get('quiet') else stdout,
             console=None if compat_os_name == 'nt' else next(
-                filter(supports_terminal_sequences, (sys.stderr, sys.stdout)), None)
+                filter(supports_terminal_sequences, (sys.stderr, sys.stdout)), None),
         )
 
         try:
@@ -1211,7 +1211,7 @@ class YoutubeDL:
         FIELD_INNER_RE = r'(?:\w+|%(num)s|%(num)s?(?::%(num)s?){1,2})' % {'num': r'(?:-?\d+)'}
         FIELD_RE = r'\w*(?:\.(?:%(inner)s|{%(field)s(?:,%(field)s)*}))*' % {
             'inner': FIELD_INNER_RE,
-            'field': rf'\w*(?:\.{FIELD_INNER_RE})*'
+            'field': rf'\w*(?:\.{FIELD_INNER_RE})*',
         }
         MATH_FIELD_RE = rf'(?:{FIELD_RE}|-?{NUMBER_RE})'
         MATH_OPERATORS_RE = r'(?:%s)' % '|'.join(map(re.escape, MATH_FUNCTIONS.keys()))
@@ -2103,7 +2103,7 @@ class YoutubeDL:
                 '^=': lambda attr, value: attr.startswith(value),
                 '$=': lambda attr, value: attr.endswith(value),
                 '*=': lambda attr, value: value in attr,
-                '~=': lambda attr, value: value.search(attr) is not None
+                '~=': lambda attr, value: value.search(attr) is not None,
             }
             str_operator_rex = re.compile(r'''(?x)\s*
                 (?P<key>[a-zA-Z0-9._-]+)\s*
@@ -2378,7 +2378,7 @@ class YoutubeDL:
                     'acodec': the_only_audio.get('acodec'),
                     'abr': the_only_audio.get('abr'),
                     'asr': the_only_audio.get('asr'),
-                    'audio_channels': the_only_audio.get('audio_channels')
+                    'audio_channels': the_only_audio.get('audio_channels'),
                 })
 
             return new_dict
@@ -2858,7 +2858,7 @@ class YoutubeDL:
 
         self.sort_formats({
             'formats': formats,
-            '_format_sort_fields': info_dict.get('_format_sort_fields')
+            '_format_sort_fields': info_dict.get('_format_sort_fields'),
         })
 
         # Sanitize and group by format_id
@@ -3858,7 +3858,7 @@ class YoutubeDL:
                     format_field(f, 'format_id'),
                     format_field(f, 'ext'),
                     self.format_resolution(f),
-                    self._format_note(f)
+                    self._format_note(f),
                 ] for f in formats if (f.get('preference') or 0) >= -1000]
             return render_table(['format code', 'extension', 'resolution', 'note'], table, extra_gap=1)
 
@@ -3964,7 +3964,7 @@ class YoutubeDL:
         from .extractor.extractors import _LAZY_LOADER
         from .extractor.extractors import (
             _PLUGIN_CLASSES as plugin_ies,
-            _PLUGIN_OVERRIDES as plugin_ie_overrides
+            _PLUGIN_OVERRIDES as plugin_ie_overrides,
         )
 
         def get_encoding(stream):
@@ -3985,7 +3985,7 @@ class YoutubeDL:
             self.get_encoding(),
             ', '.join(
                 f'{key} {get_encoding(stream)}' for key, stream in self._out_files.items_
-                if stream is not None and key != 'console')
+                if stream is not None and key != 'console'),
         )
 
         logger = self.params.get('logger')

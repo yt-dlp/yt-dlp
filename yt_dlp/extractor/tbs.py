@@ -27,7 +27,7 @@ class TBSIE(TurnerBaseIE):
         'params': {
             # m3u8 download
             'skip_download': True,
-        }
+        },
     }, {
         'url': 'http://www.tbs.com/shows/search-party/season-1/episode-1/explicit-the-mysterious-disappearance-of-the-girl-no-one-knew',
         'only_matching': True,
@@ -55,7 +55,7 @@ class TBSIE(TurnerBaseIE):
                 'url': url,
                 'site_name': site[:3].upper(),
                 'auth_required': video_data.get('authRequired') == '1' or isLive,
-                'is_live': isLive
+                'is_live': isLive,
             })
 
         thumbnails = []
@@ -84,6 +84,6 @@ class TBSIE(TurnerBaseIE):
             'season_number': int_or_none(video_data.get('season')),
             'episode_number': int_or_none(video_data.get('episode')),
             'thumbnails': thumbnails,
-            'is_live': isLive
+            'is_live': isLive,
         })
         return info

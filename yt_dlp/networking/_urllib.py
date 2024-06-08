@@ -385,12 +385,12 @@ class UrllibRH(RequestHandler, InstanceStoreMixin):
             url=request.url,
             data=request.data,
             headers=dict(headers),
-            method=request.method
+            method=request.method,
         )
 
         opener = self._get_instance(
             proxies=self._get_proxies(request),
-            cookiejar=self._get_cookiejar(request)
+            cookiejar=self._get_cookiejar(request),
         )
         try:
             res = opener.open(urllib_req, timeout=self._calculate_timeout(request))

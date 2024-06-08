@@ -17,7 +17,7 @@ class ProjectVeritasIE(InfoExtractor):
             'title': 'Exclusive: Inside The New York and New Jersey Hospitals Battling Coronavirus',
             'upload_date': '20200327',
             'thumbnail': 'md5:6076477fe50b03eb8708be9415e18e1c',
-        }
+        },
     }, {
         'url': 'https://www.projectveritas.com/video/ilhan-omar-connected-ballot-harvester-in-cash-for-ballots-scheme-car-is-full/',
         'info_dict': {
@@ -26,7 +26,7 @@ class ProjectVeritasIE(InfoExtractor):
             'title': 'Ilhan Omar connected Ballot Harvester in cash-for-ballots scheme: "Car is full" of absentee ballots',
             'upload_date': '20200927',
             'thumbnail': 'md5:194b8edf0e2ba64f25500ff4378369a4',
-        }
+        },
     }]
 
     def _real_extract(self, url):

@@ -19,7 +19,7 @@ class GoshgayIE(InfoExtractor):
             'thumbnail': r're:^http://.*\.jpg$',
             'duration': 80,
             'age_limit': 18,
-        }
+        },
     }
 
     def _real_extract(self, url):

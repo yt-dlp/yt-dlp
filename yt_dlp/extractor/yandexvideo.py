@@ -196,7 +196,7 @@ class ZenYandexIE(InfoExtractor):
             'title': 'ВОТ ЭТО Focus. Деды Морозы на гидроциклах',
             'description': 'md5:8684912f6086f298f8078d4af0e8a600',
             'thumbnail': 're:^https://avatars.dzeninfra.ru/',
-            'uploader': 'AcademeG DailyStream'
+            'uploader': 'AcademeG DailyStream',
         },
         'params': {
             'skip_download': 'm3u8',

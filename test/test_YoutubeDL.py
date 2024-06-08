@@ -652,8 +652,8 @@ class TestYoutubeDL(unittest.TestCase):
         'formats': [
             {'id': 'id 1', 'height': 1080, 'width': 1920},
             {'id': 'id 2', 'height': 720},
-            {'id': 'id 3'}
-        ]
+            {'id': 'id 3'},
+        ],
     }
 
     def test_prepare_outtmpl_and_filename(self):
@@ -773,7 +773,7 @@ class TestYoutubeDL(unittest.TestCase):
         test('%(formats)j', (json.dumps(FORMATS), None))
         test('%(formats)#j', (
             json.dumps(FORMATS, indent=4),
-            json.dumps(FORMATS, indent=4).replace(':', '：').replace('"', '＂').replace('\n', ' ')
+            json.dumps(FORMATS, indent=4).replace(':', '：').replace('"', '＂').replace('\n', ' '),
         ))
         test('%(title5).3B', 'á')
         test('%(title5)U', 'áéí 𝐀')

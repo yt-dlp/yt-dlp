@@ -100,7 +100,7 @@ class MailRuIE(InfoExtractor):
         {
             'url': 'https://videoapi.my.mail.ru/videos/embed/mail/cloud-strife/Games/2009.html',
             'only_matching': True,
-        }
+        },
     ]
 
     def _real_extract(self, url):

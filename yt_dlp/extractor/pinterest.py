@@ -24,7 +24,7 @@ class PinterestBaseIE(InfoExtractor):
         return self._download_json(
             'https://www.pinterest.com/resource/%sResource/get/' % resource,
             video_id, 'Download %s JSON metadata' % resource, query={
-                'data': json.dumps({'options': options})
+                'data': json.dumps({'options': options}),
             })['resource_response']
 
     def _extract_video(self, data, extract_formats=True):
@@ -214,7 +214,7 @@ class PinterestCollectionIE(PinterestBaseIE):
         board = self._call_api(
             'Board', slug, {
                 'slug': slug,
-                'username': username
+                'username': username,
             })['data']
         board_id = board['id']
         options = {

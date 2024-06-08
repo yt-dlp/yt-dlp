@@ -22,7 +22,7 @@ class SunPornoIE(InfoExtractor):
             'thumbnail': r're:^https?://.*\.jpg$',
             'duration': 302,
             'age_limit': 18,
-        }
+        },
     }, {
         'url': 'http://embeds.sunporno.com/embed/807778',
         'only_matching': True,

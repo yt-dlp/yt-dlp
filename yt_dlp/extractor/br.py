@@ -61,7 +61,7 @@ class BRIE(InfoExtractor):
                 'title': 'Umweltbewusster Häuslebauer',
                 'description': 'md5:d52dae9792d00226348c1dbb13c9bae2',
                 'duration': 116,
-            }
+            },
         },
         {
             'url': 'http://www.br.de/fernsehen/br-alpha/sendungen/kant-fuer-anfaenger/kritik-der-reinen-vernunft/kant-kritik-01-metaphysik100.html',
@@ -74,7 +74,7 @@ class BRIE(InfoExtractor):
                 'duration': 893,
                 'uploader': 'Eva Maria Steimle',
                 'upload_date': '20170208',
-            }
+            },
         },
     ]
 

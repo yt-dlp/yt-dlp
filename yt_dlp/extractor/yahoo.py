@@ -70,7 +70,7 @@ class YahooIE(InfoExtractor):
             'duration': 128,
             'timestamp': 1385722202,
             'upload_date': '20131129',
-        }
+        },
     }, {
         'url': 'https://www.yahoo.com/movies/v/true-story-trailer-173000497.html',
         'md5': '2a9752f74cb898af5d1083ea9f661b58',
@@ -279,7 +279,7 @@ class YahooIE(InfoExtractor):
         items = self._download_json(
             'https://%s.yahoo.com/caas/content/article' % country, display_id,
             'Downloading content JSON metadata', query={
-                'url': url
+                'url': url,
             })['items'][0]
 
         item = items['data']['partnerData']
@@ -354,7 +354,7 @@ class YahooJapanNewsIE(InfoExtractor):
         },
     }, {
         'url': 'https://news.yahoo.co.jp/feature/1356',
-        'only_matching': True
+        'only_matching': True,
     }]
 
     def _extract_formats(self, json_data, content_id):

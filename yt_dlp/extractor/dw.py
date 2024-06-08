@@ -22,7 +22,7 @@ class DWIE(InfoExtractor):
             'title': 'Intelligent light',
             'description': 'md5:90e00d5881719f2a6a5827cb74985af1',
             'upload_date': '20160605',
-        }
+        },
     }, {
         # audio
         'url': 'http://www.dw.com/en/worldlink-my-business/av-19111941',
@@ -33,7 +33,7 @@ class DWIE(InfoExtractor):
             'title': 'WorldLink: My business',
             'description': 'md5:bc9ca6e4e063361e21c920c53af12405',
             'upload_date': '20160311',
-        }
+        },
     }, {
         # DW documentaries, only last for one or two weeks
         'url': 'http://www.dw.com/en/documentaries-welcome-to-the-90s-2016-05-21/e-19220158-9798',
@@ -97,7 +97,7 @@ class DWArticleIE(InfoExtractor):
             'title': 'The harsh life of refugees in Idomeni',
             'description': 'md5:196015cc7e48ebf474db9399420043c7',
             'upload_date': '20160310',
-        }
+        },
     }
 
     def _real_extract(self, url):

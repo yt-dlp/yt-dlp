@@ -113,7 +113,7 @@ class ZattooPlatformBaseIE(InfoExtractor):
             'season_number': int_or_none(p.get('s_no')),
             'release_year': int_or_none(p.get('year')),
             'categories': try_get(p, lambda x: x['c'], list),
-            'tags': try_get(p, lambda x: x['g'], list)
+            'tags': try_get(p, lambda x: x['g'], list),
         }
 
         return cid, info_dict
@@ -151,7 +151,7 @@ class ZattooPlatformBaseIE(InfoExtractor):
             postdata_common.update({
                 'teasable_id': ondemand_id,
                 'term_token': ondemand_termtoken,
-                'teasable_type': ondemand_type
+                'teasable_type': ondemand_type,
             })
             url = '%s/zapi/watch/vod/video' % self._host_url()
         else:
@@ -218,7 +218,7 @@ class ZattooPlatformBaseIE(InfoExtractor):
             'title': channel_name,
             'is_live': True,
             'formats': formats,
-            'subtitles': subtitles
+            'subtitles': subtitles,
         }
 
     def _extract_record(self, record_id):
@@ -267,9 +267,9 @@ class ZattooIE(ZattooBaseIE):
             'release_year': 2022,
             'episode': 'Folge 1655',
             'categories': 'count:1',
-            'tags': 'count:2'
+            'tags': 'count:2',
         },
-        'params': {'skip_download': 'm3u8'}
+        'params': {'skip_download': 'm3u8'},
     }, {
         'url': 'https://zattoo.com/program/daserste/210177916',
         'only_matching': True,

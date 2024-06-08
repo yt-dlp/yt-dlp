@@ -24,7 +24,7 @@ class ThreeSpeakIE(InfoExtractor):
             'duration': 2703.867833,
             'filesize': 1620054781,
         },
-        'params': {'skip_download': True}
+        'params': {'skip_download': True},
     }]
 
     def _real_extract(self, url):

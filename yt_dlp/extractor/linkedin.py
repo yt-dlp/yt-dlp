@@ -92,7 +92,7 @@ class LinkedInIE(LinkedInBaseIE):
             'description': 'md5:2998a31f6f479376dd62831f53a80f71',
             'uploader': 'Mishal K.',
             'thumbnail': 're:^https?://media.licdn.com/dms/image/.*$',
-            'like_count': int
+            'like_count': int,
         },
     }, {
         'url': 'https://www.linkedin.com/posts/the-mathworks_2_what-is-mathworks-cloud-center-activity-7151241570371948544-4Gu7',
@@ -104,7 +104,7 @@ class LinkedInIE(LinkedInBaseIE):
             'uploader': 'MathWorks',
             'thumbnail': 're:^https?://media.licdn.com/dms/image/.*$',
             'like_count': int,
-            'subtitles': 'mincount:1'
+            'subtitles': 'mincount:1',
         },
     }]
 
@@ -208,7 +208,7 @@ class LinkedInLearningIE(LinkedInLearningBaseIE):
         if transcript_lines:
             subtitles['en'] = [{
                 'ext': 'srt',
-                'data': self.json2srt(transcript_lines, duration)
+                'data': self.json2srt(transcript_lines, duration),
             }]
 
         return {
@@ -222,7 +222,7 @@ class LinkedInLearningIE(LinkedInLearningBaseIE):
             # It seems like this would be correctly handled by default
             # However, unless someone can confirm this, the old
             # behaviour is being kept as-is
-            '_format_sort_fields': ('res', 'source_preference')
+            '_format_sort_fields': ('res', 'source_preference'),
         }
 
 

@@ -29,7 +29,7 @@ class MediasetIE(ThePlatformBaseIE):
                     '''
 
     _EMBED_REGEX = [
-        rf'<iframe[^>]+src=[\'"](?P<url>(?:https?:)?//(?:\w+\.)+mediaset\.it/player/(?:v\d+/)?index\.html\?\S*?programGuid={_GUID_RE})[\'"&]'
+        rf'<iframe[^>]+src=[\'"](?P<url>(?:https?:)?//(?:\w+\.)+mediaset\.it/player/(?:v\d+/)?index\.html\?\S*?programGuid={_GUID_RE})[\'"&]',
     ]
     _TESTS = [{
         # full episode
@@ -154,7 +154,7 @@ class MediasetIE(ThePlatformBaseIE):
         },
         'params': {
             'skip_download': True,
-        }
+        },
     }]
 
     def _parse_smil_formats_and_subtitles(

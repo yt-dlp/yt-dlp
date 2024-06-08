@@ -15,8 +15,8 @@ class PressTVIE(InfoExtractor):
             'title': 'Organic mattresses used to clean waste water',
             'upload_date': '20160409',
             'thumbnail': r're:^https?://.*\.jpg',
-            'description': 'md5:20002e654bbafb6908395a5c0cfcd125'
-        }
+            'description': 'md5:20002e654bbafb6908395a5c0cfcd125',
+        },
     }
 
     def _real_extract(self, url):
@@ -36,7 +36,7 @@ class PressTVIE(InfoExtractor):
             (180, '_low200.mp4'),
             (360, '_low400.mp4'),
             (720, '_low800.mp4'),
-            (1080, '.mp4')
+            (1080, '.mp4'),
         ]
 
         formats = [{
@@ -65,5 +65,5 @@ class PressTVIE(InfoExtractor):
             'formats': formats,
             'thumbnail': thumbnail,
             'upload_date': upload_date,
-            'description': description
+            'description': description,
         }

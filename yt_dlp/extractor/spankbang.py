@@ -37,7 +37,7 @@ class SpankBangIE(InfoExtractor):
             'timestamp': 1617109572,
             'upload_date': '20210330',
             'age_limit': 18,
-        }
+        },
     }, {
         # 480p only
         'url': 'http://spankbang.com/1vt0/video/solvane+gangbang',
@@ -159,7 +159,7 @@ class SpankBangIE(InfoExtractor):
             'view_count': view_count,
             'formats': formats,
             'age_limit': age_limit,
-        }, info
+        }, info,
         )
 
 

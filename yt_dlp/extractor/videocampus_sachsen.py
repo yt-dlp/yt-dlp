@@ -119,7 +119,7 @@ class VideocampusSachsenIE(InfoExtractor):
                 'thumbnail': 'https://www2.univ-sba.dz/cache/4d5d4a0b4189271a8cc6cb5328e14769.jpg',
                 'display_id': 'Presentation-de-la-Faculte-de-droit-et-des-sciences-politiques-Journee-portes-ouvertes-202122',
                 'ext': 'mp4',
-            }
+            },
         },
         {
             'url': 'https://vimp.weka-fachmedien.de/video/Preisverleihung-Produkte-des-Jahres-2022/c8816f1cc942c12b6cce57c835cffd7c',

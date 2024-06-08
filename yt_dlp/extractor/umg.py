@@ -20,7 +20,7 @@ class UMGDeIE(InfoExtractor):
             'title': 'Jedes Wort ist Gold wert',
             'timestamp': 1513591800,
             'upload_date': '20171218',
-        }
+        },
     }
 
     def _real_extract(self, url):

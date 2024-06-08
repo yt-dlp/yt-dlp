@@ -141,7 +141,7 @@ class NDRIE(NDRBaseIE):
         timestamp = parse_iso8601(
             self._search_regex(
                 (r'<span[^>]+itemprop="(?:datePublished|uploadDate)"[^>]+content="(?P<cont>[^"]+)"',
-                 r'\bvar\s*pdt\s*=\s*(?P<q>["\'])(?P<cont>(?:(?!(?P=q)).)+)(?P=q)', ),
+                 r'\bvar\s*pdt\s*=\s*(?P<q>["\'])(?P<cont>(?:(?!(?P=q)).)+)(?P=q)'),
                 webpage, 'upload date', group='cont', default=None))
         info = self._search_json_ld(webpage, display_id, default={})
         return merge_dicts({
@@ -200,7 +200,7 @@ class NJoyIE(NDRBaseIE):
         # find tell-tale URL with the actual ID, or ...
         video_id = self._search_regex(
             (r'''\bsrc\s*=\s*["']?(?:/\w+)+/([a-z]+\d+)(?!\.)\b''',
-             r'<iframe[^>]+id="pp_([\da-z]+)"', ),
+             r'<iframe[^>]+id="pp_([\da-z]+)"'),
             webpage, 'NDR id', default=None)
 
         description = (

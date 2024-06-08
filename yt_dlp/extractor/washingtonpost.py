@@ -82,7 +82,7 @@ class WashingtonPostArticleIE(InfoExtractor):
                 'upload_date': '20141230',
                 'timestamp': 1419972442,
                 'title': 'Why black boxes don’t transmit data in real time',
-            }
+            },
         }],
         'skip': 'Doesnt have a video anymore',
     }, {

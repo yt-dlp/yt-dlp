@@ -140,7 +140,7 @@ class VKIE(VKBaseIE):
                 'comment_count': int,
                 'like_count': int,
                 'thumbnail': r're:https?://.+(?:\.jpg|getVideoPreview.*)$',
-            }
+            },
         },
         {
             'note': 'Embedded video',
@@ -220,7 +220,7 @@ class VKIE(VKBaseIE):
                 'like_count': int,
                 'view_count': int,
                 'thumbnail': r're:https?://.+x1080$',
-                'tags': list
+                'tags': list,
             },
         },
         {
@@ -530,7 +530,7 @@ class VKUserVideosIE(VKBaseIE):
         'url': 'https://vk.com/video/playlist/-174476437_2',
         'info_dict': {
             'id': '-174476437_playlist_2',
-            'title': 'Анонсы'
+            'title': 'Анонсы',
         },
         'playlist_mincount': 108,
     }]

@@ -113,7 +113,7 @@ class FOXIE(InfoExtractor):
             'provider': {
                 'freewheel': {'did': self._device_id},
                 'vdms': {'rays': ''},
-                'dmp': {'kuid': '', 'seg': ''}
+                'dmp': {'kuid': '', 'seg': ''},
             },
             'playlist': '',
             'privacy': {'us': '1---'},

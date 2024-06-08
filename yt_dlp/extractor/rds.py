@@ -24,7 +24,7 @@ class RDSIE(InfoExtractor):
             'timestamp': 1606129030,
             'upload_date': '20201123',
             'duration': 773.039,
-        }
+        },
     }, {
         'url': 'http://www.rds.ca/vid%C3%A9os/un-voyage-positif-3.877934',
         'only_matching': True,

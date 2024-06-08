@@ -21,7 +21,7 @@ class XboxClipsIE(InfoExtractor):
             'filesize_approx': 26800000,
             'upload_date': '20140807',
             'duration': 56,
-        }
+        },
     }, {
         'url': 'https://gameclips.io/iAbdulElah/074a69a9-5faf-46aa-b93b-9909c1720325',
         'only_matching': True,

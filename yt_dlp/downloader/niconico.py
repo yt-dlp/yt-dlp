@@ -85,14 +85,14 @@ class NiconicoLiveFD(FileDownloader):
                             'quality': live_quality,
                             'protocol': 'hls+fmp4',
                             'latency': live_latency,
-                            'chasePlay': False
+                            'chasePlay': False,
                         },
                         'room': {
                             'protocol': 'webSocket',
-                            'commentable': True
+                            'commentable': True,
                         },
                         'reconnect': True,
-                    }
+                    },
                 }))
             else:
                 ws = ws_extractor

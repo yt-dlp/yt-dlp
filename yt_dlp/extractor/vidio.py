@@ -98,7 +98,7 @@ class VidioIE(VidioBaseIE):
     }, {
         # Premier-exclusive video
         'url': 'https://www.vidio.com/watch/1550718-stand-by-me-doraemon',
-        'only_matching': True
+        'only_matching': True,
     }, {
         # embed url from https://enamplus.liputan6.com/read/5033648/video-fakta-temuan-suspek-cacar-monyet-di-jawa-tengah
         'url': 'https://www.vidio.com/embed/7115874-fakta-temuan-suspek-cacar-monyet-di-jawa-tengah',
@@ -224,7 +224,7 @@ class VidioPremierIE(VidioBaseIE):
             getter=lambda data: smuggle_url(url, {
                 'url': data['relationships']['videos']['links']['related'],
                 'id': data['id'],
-                'title': try_get(data, lambda x: x['attributes']['name'])
+                'title': try_get(data, lambda x: x['attributes']['name']),
             }))
 
 

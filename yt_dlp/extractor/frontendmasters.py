@@ -22,7 +22,7 @@ class FrontendMastersBaseIE(InfoExtractor):
     _QUALITIES = {
         'low': {'width': 480, 'height': 360},
         'mid': {'width': 1280, 'height': 720},
-        'high': {'width': 1920, 'height': 1080}
+        'high': {'width': 1920, 'height': 1080},
     }
 
     def _perform_login(self, username, password):
@@ -33,7 +33,7 @@ class FrontendMastersBaseIE(InfoExtractor):
 
         login_form.update({
             'username': username,
-            'password': password
+            'password': password,
         })
 
         post_url = self._search_regex(
@@ -164,14 +164,14 @@ class FrontendMastersIE(FrontendMastersBaseIE):
         subtitles = {
             'en': [{
                 'url': '%s/transcripts/%s.vtt' % (self._API_BASE, lesson_id),
-            }]
+            }],
         }
 
         return {
             'id': lesson_id,
             'title': lesson_id,
             'formats': formats,
-            'subtitles': subtitles
+            'subtitles': subtitles,
         }
 
 

@@ -17,7 +17,7 @@ class MojvideoIE(InfoExtractor):
             'title': 'V avtu pred mano rdečelaska - Alfi Nipič',
             'thumbnail': r're:^http://.*\.jpg$',
             'duration': 242,
-        }
+        },
     }
 
     def _real_extract(self, url):

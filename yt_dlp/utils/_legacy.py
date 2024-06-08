@@ -167,7 +167,7 @@ def decode_png(png_data):
         chunks.append({
             'type': chunk_type,
             'length': length,
-            'data': chunk_data
+            'data': chunk_data,
         })
 
     ihdr = chunks[0]['data']

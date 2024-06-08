@@ -22,8 +22,8 @@ class AudiomackIE(InfoExtractor):
                 'id': '310086',
                 'ext': 'mp3',
                 'uploader': 'Roosh Williams',
-                'title': 'Extraordinary'
-            }
+                'title': 'Extraordinary',
+            },
         },
         # audiomack wrapper around soundcloud song
         # Needs new test URL.
@@ -82,8 +82,8 @@ class AudiomackAlbumIE(InfoExtractor):
             'info_dict':
             {
                 'id': '812251',
-                'title': 'Tha Tour: Part 2 (Official Mixtape)'
-            }
+                'title': 'Tha Tour: Part 2 (Official Mixtape)',
+            },
         },
         # Album playlist ripped from fakeshoredrive with no metadata
         {
@@ -98,16 +98,16 @@ class AudiomackAlbumIE(InfoExtractor):
                     'id': '837576',
                     'ext': 'mp3',
                     'uploader': 'Lil Herb a.k.a. G Herbo',
-                }
+                },
             }, {
                 'info_dict': {
                     'title': 'PPP (Pistol P Project) - 10. 4 Minutes Of Hell Part 4 (prod by DY OF 808 MAFIA)',
                     'id': '837580',
                     'ext': 'mp3',
                     'uploader': 'Lil Herb a.k.a. G Herbo',
-                }
+                },
             }],
-        }
+        },
     ]
 
     def _real_extract(self, url):

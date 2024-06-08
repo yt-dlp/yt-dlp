@@ -21,7 +21,7 @@ class VTMIE(InfoExtractor):
             'duration': 74,
             # TODO: fix url _type result processing
             # 'series': 'Op Interventie',
-        }
+        },
     }
 
     def _real_extract(self, url):

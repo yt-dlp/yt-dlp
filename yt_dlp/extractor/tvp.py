@@ -98,7 +98,7 @@ class TVPIE(InfoExtractor):
         'playlist_mincount': 1800,
         'params': {
             'skip_download': True,
-        }
+        },
     }, {
         # ABC-specific video embeding
         # moved to https://bajkowakraina.tvp.pl/wideo/50981130,teleranek,51027049,zubr,51116450

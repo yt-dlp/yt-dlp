@@ -187,7 +187,7 @@ class TurnerBaseIE(AdobePassIE):
                         'scc': 'scc',
                         'webvtt': 'vtt',
                         'smptett': 'tt',
-                    }.get(source.get('format'))
+                    }.get(source.get('format')),
                 })
 
         thumbnails.extend({

@@ -16,7 +16,7 @@ class CozyTVIE(InfoExtractor):
             'was_live': True,
             'duration': 7981,
         },
-        'params': {'skip_download': True}
+        'params': {'skip_download': True},
     }]
 
     def _real_extract(self, url):

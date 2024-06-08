@@ -77,7 +77,7 @@ class PalcoMP3IE(PalcoMP3BaseIE):
             'title': 'Nossas Composições - CUIDA BEM DELA',
             'duration': 210,
             'view_count': int,
-        }
+        },
     }]
 
     @classmethod
@@ -134,7 +134,7 @@ class PalcoMP3VideoIE(PalcoMP3BaseIE):
             'upload_date': '20161107',
             'uploader_id': 'maiaramaraisaoficial',
             'uploader': 'Maiara e Maraisa',
-        }
+        },
     }]
     _MUSIC_FIELDS = 'youtubeID'
 

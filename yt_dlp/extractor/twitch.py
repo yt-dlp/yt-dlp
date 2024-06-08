@@ -156,7 +156,7 @@ class TwitchBaseIE(InfoExtractor):
                 'persistedQuery': {
                     'version': 1,
                     'sha256Hash': self._OPERATION_HASHES[op['operationName']],
-                }
+                },
             }
         return self._download_base_gql(video_id, ops, note)
 
@@ -242,8 +242,8 @@ class TwitchVodIE(TwitchBaseIE):
                 {
                     'start_time': 0,
                     'end_time': 17208,
-                    'title': 'League of Legends'
-                }
+                    'title': 'League of Legends',
+                },
             ],
             'live_status': 'was_live',
         },
@@ -301,25 +301,25 @@ class TwitchVodIE(TwitchBaseIE):
                 {
                     'start_time': 0,
                     'end_time': 573,
-                    'title': 'League of Legends'
+                    'title': 'League of Legends',
                 },
                 {
                     'start_time': 573,
                     'end_time': 3922,
-                    'title': 'Legends of Runeterra'
+                    'title': 'Legends of Runeterra',
                 },
                 {
                     'start_time': 3922,
                     'end_time': 11643,
-                    'title': 'Art'
-                }
+                    'title': 'Art',
+                },
             ],
             'live_status': 'was_live',
             'thumbnail': r're:^https?://.*\.jpg$',
             'view_count': int,
         },
         'params': {
-            'skip_download': True
+            'skip_download': True,
         },
     }, {
         'note': 'Storyboards',
@@ -338,18 +338,18 @@ class TwitchVodIE(TwitchBaseIE):
                 {
                     'start_time': 0,
                     'end_time': 573,
-                    'title': 'League of Legends'
+                    'title': 'League of Legends',
                 },
                 {
                     'start_time': 573,
                     'end_time': 3922,
-                    'title': 'Legends of Runeterra'
+                    'title': 'Legends of Runeterra',
                 },
                 {
                     'start_time': 3922,
                     'end_time': 11643,
-                    'title': 'Art'
-                }
+                    'title': 'Art',
+                },
             ],
             'live_status': 'was_live',
             'thumbnail': r're:^https?://.*\.jpg$',
@@ -359,8 +359,8 @@ class TwitchVodIE(TwitchBaseIE):
         },
         'params': {
             'format': 'mhtml',
-            'skip_download': True
-        }
+            'skip_download': True,
+        },
     }, {
         'note': 'VOD with single chapter',
         'url': 'https://www.twitch.tv/videos/1536751224',
@@ -377,17 +377,17 @@ class TwitchVodIE(TwitchBaseIE):
                 {
                     'start_time': 0,
                     'end_time': 8353,
-                    'title': 'League of Legends'
-                }
+                    'title': 'League of Legends',
+                },
             ],
             'live_status': 'was_live',
             'thumbnail': r're:^https?://.*\.jpg$',
             'view_count': int,
         },
         'params': {
-            'skip_download': True
+            'skip_download': True,
         },
-        'expected_warnings': ['Unable to download JSON metadata: HTTP Error 403: Forbidden']
+        'expected_warnings': ['Unable to download JSON metadata: HTTP Error 403: Forbidden'],
     }, {
         'url': 'https://www.twitch.tv/tangotek/schedule?vodID=1822395420',
         'only_matching': True,

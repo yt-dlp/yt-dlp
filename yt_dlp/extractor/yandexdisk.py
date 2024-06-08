@@ -102,7 +102,7 @@ class YandexDiskIE(InfoExtractor):
                 'format_id': 'source',
                 'ext': determine_ext(title, meta.get('ext') or mimetype2ext(meta.get('mime_type')) or 'mp4'),
                 'quality': 1,
-                'filesize': int_or_none(meta.get('size'))
+                'filesize': int_or_none(meta.get('size')),
             })
 
         for video in (video_streams.get('videos') or []):
