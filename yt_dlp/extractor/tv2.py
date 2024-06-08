@@ -55,7 +55,7 @@ class TV2IE(InfoExtractor):
                 data = self._download_json('https://api.sumo.tv2.no/play/%s?stream=%s' % (video_id, protocol),
                                            video_id, 'Downloading playabck JSON',
                                            headers={'content-type': 'application/json'},
-                                           data='{"device":{"id":"1-1-1","name":"Nettleser (HTML)"}}'.encode())['playback']
+                                           data=b'{"device":{"id":"1-1-1","name":"Nettleser (HTML)"}}')['playback']
             except ExtractorError as e:
                 if isinstance(e.cause, HTTPError) and e.cause.status == 401:
                     error = self._parse_json(e.cause.response.read().decode(), video_id)['error']

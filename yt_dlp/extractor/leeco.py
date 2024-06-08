@@ -294,7 +294,7 @@ class LetvCloudIE(InfoExtractor):
             salt = 'fbeh5player12c43eccf2bec3300344'
             items = ['cf', 'ran', 'uu', 'bver', 'vu']
         input_data = ''.join([item + obj[item] for item in items]) + salt
-        obj['sign'] = hashlib.md5(input_data.encode('utf-8')).hexdigest()
+        obj['sign'] = hashlib.md5(input_data.encode()).hexdigest()
 
     def _get_formats(self, cf, uu, vu, media_id):
         def get_play_json(cf, timestamp):

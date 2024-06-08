@@ -299,7 +299,7 @@ class AnvatoIE(InfoExtractor):
 
         return self._download_json(
             video_data_url, video_id, transform_source=strip_jsonp, query=query,
-            data=json.dumps({'api': api}, separators=(',', ':')).encode('utf-8'))
+            data=json.dumps({'api': api}, separators=(',', ':')).encode())
 
     def _get_anvato_videos(self, access_key, video_id, token):
         video_data = self._get_video_json(access_key, video_id, token)

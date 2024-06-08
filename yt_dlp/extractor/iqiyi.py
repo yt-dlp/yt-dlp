@@ -30,7 +30,7 @@ from ..utils import (
 
 
 def md5_text(text):
-    return hashlib.md5(text.encode('utf-8')).hexdigest()
+    return hashlib.md5(text.encode()).hexdigest()
 
 
 class IqiyiSDK:
@@ -250,7 +250,7 @@ class IqiyiIE(InfoExtractor):
         sdk = data['sdk']
         timestamp = int(time.time())
         target = '/apis/reglogin/login.action?lang=zh_TW&area_code=null&email=%s&passwd=%s&agenttype=1&from=undefined&keeplogin=0&piccode=&fromurl=&_pos=1' % (
-            username, self._rsa_fun(password.encode('utf-8')))
+            username, self._rsa_fun(password.encode()))
 
         interp = IqiyiSDKInterpreter(sdk)
         sign = interp.run(target, data['ip'], timestamp)

@@ -246,7 +246,7 @@ class KalturaIE(InfoExtractor):
 
         data = self._download_json(
             (service_url or self._SERVICE_URL) + self._SERVICE_BASE,
-            video_id, data=json.dumps(params).encode('utf-8'),
+            video_id, data=json.dumps(params).encode(),
             headers={
                 'Content-Type': 'application/json',
                 'Accept-Encoding': 'gzip, deflate, br',
@@ -452,7 +452,7 @@ class KalturaIE(InfoExtractor):
         if source_url:
             referrer = base64.b64encode(
                 '://'.join(compat_urlparse.urlparse(source_url)[:2])
-                .encode('utf-8')).decode('utf-8')
+                .encode()).decode('utf-8')
         else:
             referrer = None
 

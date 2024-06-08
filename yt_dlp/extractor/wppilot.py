@@ -120,7 +120,7 @@ class WPPilotIE(WPPilotBaseIE):
                 data=json.dumps({
                     'channelId': video_id,
                     't': stream_token,
-                }).encode('utf-8'))
+                }).encode())
             if try_get(close, lambda x: x['data']['status']) == 'ok':
                 return self.url_result(url, ie=WPPilotIE.ie_key())
 

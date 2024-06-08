@@ -149,8 +149,9 @@ class BlerpIE(InfoExtractor):
             'Content-Type': 'application/json'
         }
 
-        json_result = self._download_json('https://api.blerp.com/graphql',
-                                          audio_id, data=json.dumps(data).encode('utf-8'), headers=headers)
+        json_result = self._download_json(
+            'https://api.blerp.com/graphql', audio_id,
+            data=json.dumps(data).encode(), headers=headers)
 
         bite_json = json_result['data']['web']['biteById']
 

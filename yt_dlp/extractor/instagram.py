@@ -582,7 +582,7 @@ class InstagramPlaylistBaseIE(InstagramBaseIE):
                         'Downloading JSON page %d' % page_num, headers={
                             'X-Requested-With': 'XMLHttpRequest',
                             'X-Instagram-GIS': hashlib.md5(
-                                ('%s:%s' % (gis_tmpl, variables)).encode('utf-8')).hexdigest(),
+                                ('%s:%s' % (gis_tmpl, variables)).encode()).hexdigest(),
                         }, query={
                             'query_hash': self._QUERY_HASH,
                             'variables': variables,

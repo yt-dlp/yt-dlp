@@ -62,7 +62,7 @@ class RTVEALaCartaIE(InfoExtractor):
     }]
 
     def _real_initialize(self):
-        user_agent_b64 = base64.b64encode(self.get_param('http_headers')['User-Agent'].encode('utf-8')).decode('utf-8')
+        user_agent_b64 = base64.b64encode(self.get_param('http_headers')['User-Agent'].encode()).decode('utf-8')
         self._manager = self._download_json(
             'http://www.rtve.es/odin/loki/' + user_agent_b64,
             None, 'Fetching manager info')['manager']

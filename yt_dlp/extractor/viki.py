@@ -68,7 +68,7 @@ class VikiBaseIE(InfoExtractor):
             url = self._API_URL_TEMPLATE % self._api_query(path, version=4)
         resp = self._download_json(
             url, video_id, note, fatal=fatal, query=query,
-            data=json.dumps(data).encode('utf-8') if data else None,
+            data=json.dumps(data).encode() if data else None,
             headers=({'x-viki-app-ver': self._APP_VERSION} if data
                      else self._stream_headers(timestamp, sig) if query is None
                      else None), expected_status=400) or {}

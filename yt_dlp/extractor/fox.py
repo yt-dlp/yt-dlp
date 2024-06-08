@@ -119,7 +119,7 @@ class FOXIE(InfoExtractor):
             'privacy': {'us': '1---'},
             'siteSection': '',
             'streamType': 'vod',
-            'streamId': video_id}).encode('utf-8'))
+            'streamId': video_id}).encode())
 
         title = video['name']
         release_url = video['url']

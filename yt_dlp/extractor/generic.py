@@ -2458,7 +2458,7 @@ class GenericIE(InfoExtractor):
             try:
                 doc = compat_etree_fromstring(webpage)
             except xml.etree.ElementTree.ParseError:
-                doc = compat_etree_fromstring(webpage.encode('utf-8'))
+                doc = compat_etree_fromstring(webpage.encode())
             if doc.tag == 'rss':
                 self.report_detected('RSS feed')
                 return self._extract_rss(url, video_id, doc)

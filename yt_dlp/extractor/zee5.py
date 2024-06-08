@@ -150,7 +150,7 @@ class Zee5IE(InfoExtractor):
                 'platform_name': 'desktop_web',
                 'country': self._USER_COUNTRY or self.get_param('geo_bypass_country') or 'IN',
                 'check_parental_control': False,
-            }, headers={'content-type': 'application/json'}, data=json.dumps(data).encode('utf-8'))
+            }, headers={'content-type': 'application/json'}, data=json.dumps(data).encode())
         asset_data = json_data['assetDetails']
         show_data = json_data.get('showDetails', {})
         if 'premium' in asset_data['business_type']:

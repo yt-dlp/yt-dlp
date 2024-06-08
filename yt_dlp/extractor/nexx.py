@@ -415,7 +415,7 @@ class NexxIE(InfoExtractor):
             # Reversed from JS code for _play.api.call function (search for
             # X-Request-Token)
             request_token = hashlib.md5(
-                ''.join((op, domain_id, secret)).encode('utf-8')).hexdigest()
+                ''.join((op, domain_id, secret)).encode()).hexdigest()
 
             result = self._call_api(
                 domain_id, 'videos/%s/%s' % (op, video_id), video_id, data={

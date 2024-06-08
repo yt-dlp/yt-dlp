@@ -166,7 +166,7 @@ class VeohUserIE(VeohIE):  # XXX: Do not subclass from concrete IE
                 'maxResults': self._PAGE_SIZE,
                 'page': page + 1,
                 'requestName': 'userPage'
-            }).encode('utf-8'))
+            }).encode())
         if not response.get('success'):
             raise ExtractorError(response['message'])
 

@@ -84,7 +84,7 @@ class ShahidIE(ShahidBaseIE):
                     'email': username,
                     'password': password,
                     'basic': 'false',
-                }).encode('utf-8'), headers={
+                }).encode(), headers={
                     'Content-Type': 'application/json; charset=UTF-8',
                 })['user']
         except ExtractorError as e:

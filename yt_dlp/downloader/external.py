@@ -357,7 +357,7 @@ class Aria2cFD(ExternalFD):
             'id': sanitycheck,
             'method': method,
             'params': [f'token:{rpc_secret}', *params],
-        }).encode('utf-8')
+        }).encode()
         request = Request(
             f'http://localhost:{rpc_port}/jsonrpc',
             data=d, headers={

@@ -77,7 +77,7 @@ class PolsatGoIE(InfoExtractor):
                     'clientId': rand_uuid,
                     'cpid': 1,
                 },
-            }).encode('utf-8'),
+            }).encode(),
             headers={'Content-type': 'application/json'})
         if not res.get('result'):
             if res['error']['code'] == 13404:

@@ -67,7 +67,7 @@ class AbemaLicenseHandler(urllib.request.BaseHandler):
             data=json.dumps({
                 'kv': 'a',
                 'lt': ticket
-            }).encode('utf-8'),
+            }).encode(),
             headers={
                 'Content-Type': 'application/json',
             })
@@ -77,7 +77,7 @@ class AbemaLicenseHandler(urllib.request.BaseHandler):
 
         h = hmac.new(
             binascii.unhexlify(self.HKEY),
-            (license_response['cid'] + self.ie._DEVICE_ID).encode('utf-8'),
+            (license_response['cid'] + self.ie._DEVICE_ID).encode(),
             digestmod=hashlib.sha256)
         enckey = bytes_to_intlist(h.digest())
 
@@ -103,11 +103,11 @@ class AbemaTVBaseIE(InfoExtractor):
 
     @classmethod
     def _generate_aks(cls, deviceid):
-        deviceid = deviceid.encode('utf-8')
+        deviceid = deviceid.encode()
         # add 1 hour and then drop minute and secs
         ts_1hour = int((time_seconds() // 3600 + 1) * 3600)
         time_struct = time.gmtime(ts_1hour)
-        ts_1hour_str = str(ts_1hour).encode('utf-8')
+        ts_1hour_str = str(ts_1hour).encode()
 
         tmp = None
 
@@ -160,7 +160,7 @@ class AbemaTVBaseIE(InfoExtractor):
             data=json.dumps({
                 'deviceId': self._DEVICE_ID,
                 'applicationKeySecret': aks,
-            }).encode('utf-8'),
+            }).encode(),
             headers={
                 'Content-Type': 'application/json',
             })
@@ -203,7 +203,7 @@ class AbemaTVBaseIE(InfoExtractor):
             data=json.dumps({
                 method: username,
                 'password': password
-            }).encode('utf-8'), headers={
+            }).encode(), headers={
                 'Authorization': f'bearer {self._get_device_token()}',
                 'Origin': 'https://abema.tv',
                 'Referer': 'https://abema.tv/',

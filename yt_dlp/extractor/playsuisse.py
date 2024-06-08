@@ -187,7 +187,7 @@ class PlaySuisseIE(InfoExtractor):
                 'operationName': 'AssetWatch',
                 'query': self._GRAPHQL_QUERY,
                 'variables': {'assetId': media_id}
-            }).encode('utf-8'),
+            }).encode(),
             headers={'Content-Type': 'application/json', 'locale': 'de'})
 
         return response['data']['assetV2']

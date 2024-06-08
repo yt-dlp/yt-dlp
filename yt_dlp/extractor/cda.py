@@ -310,7 +310,7 @@ class CDAIE(InfoExtractor):
                     continue
                 data = {'jsonrpc': '2.0', 'method': 'videoGetLink', 'id': 2,
                         'params': [video_id, cda_quality, video.get('ts'), video.get('hash2'), {}]}
-                data = json.dumps(data).encode('utf-8')
+                data = json.dumps(data).encode()
                 video_url = self._download_json(
                     f'https://www.cda.pl/video/{video_id}', video_id, headers={
                         'Content-Type': 'application/json',

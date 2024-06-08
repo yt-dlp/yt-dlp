@@ -1806,7 +1806,7 @@ class BiliIntlBaseIE(InfoExtractor):
             note='Downloading login key', errnote='Unable to download login key')['data']
 
         public_key = Cryptodome.RSA.importKey(key_data['key'])
-        password_hash = Cryptodome.PKCS1_v1_5.new(public_key).encrypt((key_data['hash'] + password).encode('utf-8'))
+        password_hash = Cryptodome.PKCS1_v1_5.new(public_key).encrypt((key_data['hash'] + password).encode())
         login_post = self._download_json(
             'https://passport.bilibili.tv/x/intl/passport-login/web/login/password?lang=en-US', None, data=urlencode_postdata({
                 'username': username,

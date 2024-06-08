@@ -310,7 +310,7 @@ class GameJoltPostListBaseIE(GameJoltBaseIE):
                 endpoint, list_id, note=f'{note} page {page_num}', errnote=errnote, data=json.dumps({
                     'scrollDirection': 'from',
                     'scrollId': scroll_id,
-                }).encode('utf-8')).get('items')
+                }).encode()).get('items')
 
 
 class GameJoltUserIE(GameJoltPostListBaseIE):

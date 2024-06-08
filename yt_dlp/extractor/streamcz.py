@@ -87,7 +87,7 @@ class StreamCZIE(InfoExtractor):
                         duration
                         views
                     }'''
-            }).encode('utf-8'),
+            }).encode(),
             headers={'Content-Type': 'application/json;charset=UTF-8'}
         )['data']['episode']
 

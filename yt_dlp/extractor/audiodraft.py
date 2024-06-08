@@ -9,7 +9,7 @@ class AudiodraftBaseIE(InfoExtractor):
             headers={
                 'Content-type': 'application/x-www-form-urlencoded; charset=UTF-8',
                 'X-Requested-With': 'XMLHttpRequest',
-            }, data=f'id={player_entry_id}'.encode('utf-8'))
+            }, data=f'id={player_entry_id}'.encode())
 
         return {
             'id': str(data_json['entry_id']),

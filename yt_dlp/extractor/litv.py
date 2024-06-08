@@ -113,7 +113,7 @@ class LiTVIE(InfoExtractor):
                 endpoint = 'getMainUrlNoAuth'
             video_data = self._download_json(
                 f'https://www.litv.tv/vod/ajax/{endpoint}', video_id,
-                data=json.dumps(payload).encode('utf-8'),
+                data=json.dumps(payload).encode(),
                 headers={'Content-Type': 'application/json'})
 
         if not video_data.get('fullpath'):

@@ -315,7 +315,7 @@ class BrightcoveLegacyIE(InfoExtractor):
         object_str = fix_xml_ampersands(object_str)
 
         try:
-            object_doc = compat_etree_fromstring(object_str.encode('utf-8'))
+            object_doc = compat_etree_fromstring(object_str.encode())
         except xml.etree.ElementTree.ParseError:
             return
 

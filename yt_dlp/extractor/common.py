@@ -1012,7 +1012,7 @@ class InfoExtractor:
         basen = join_nonempty(video_id, data, url, delim='_')
         trim_length = self.get_param('trim_file_name') or 240
         if len(basen) > trim_length:
-            h = '___' + hashlib.md5(basen.encode('utf-8')).hexdigest()
+            h = '___' + hashlib.md5(basen.encode()).hexdigest()
             basen = basen[:trim_length - len(h)] + h
         filename = sanitize_filename(f'{basen}.dump', restricted=True)
         # Working around MAX_PATH limitation on Windows (see
@@ -1063,7 +1063,7 @@ class InfoExtractor:
         if transform_source:
             xml_string = transform_source(xml_string)
         try:
-            return compat_etree_fromstring(xml_string.encode('utf-8'))
+            return compat_etree_fromstring(xml_string.encode())
         except xml.etree.ElementTree.ParseError as ve:
             self.__print_error('Failed to parse XML' if errnote is None else errnote, fatal, video_id, ve)
 
@@ -2098,7 +2098,7 @@ class InfoExtractor:
             formats = [{
                 'format_id': join_nonempty(m3u8_id, idx),
                 'format_index': idx,
-                'url': m3u8_url or encode_data_uri(m3u8_doc.encode('utf-8'), 'application/x-mpegurl'),
+                'url': m3u8_url or encode_data_uri(m3u8_doc.encode(), 'application/x-mpegurl'),
                 'ext': ext,
                 'protocol': entry_protocol,
                 'preference': preference,

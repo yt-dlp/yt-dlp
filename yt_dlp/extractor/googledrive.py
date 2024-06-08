@@ -270,7 +270,7 @@ class GoogleDriveIE(InfoExtractor):
         if ttsurl:
             # the video Id for subtitles will be the last value in the ttsurl
             # query string
-            subtitles_id = ttsurl.encode('utf-8').decode(
+            subtitles_id = ttsurl.encode().decode(
                 'unicode_escape').split('=')[-1]
 
         self.cookiejar.clear(domain='.google.com', path='/', name='NID')
@@ -312,7 +312,7 @@ GET %s
     def _call_api(self, folder_id, key, data, **kwargs):
         response = self._download_webpage(
             'https://clients6.google.com/batch/drive/v2beta',
-            folder_id, data=data.encode('utf-8'),
+            folder_id, data=data.encode(),
             headers={
                 'Content-Type': 'text/plain;charset=UTF-8;',
                 'Origin': 'https://drive.google.com',

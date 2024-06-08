@@ -107,7 +107,7 @@ class ToggleIE(InfoExtractor):
 
         info = self._download_json(
             'http://tvpapi.as.tvinci.com/v2_9/gateways/jsonpostgw.aspx?m=GetMediaInfo',
-            video_id, 'Downloading video info json', data=json.dumps(params).encode('utf-8'))
+            video_id, 'Downloading video info json', data=json.dumps(params).encode())
 
         title = info['MediaName']
 

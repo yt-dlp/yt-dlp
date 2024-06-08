@@ -41,7 +41,7 @@ class RedBeeBaseIE(InfoExtractor):
 
         return self._download_json(
             f'{self._API_URL}/auth/{"gigyaLogin" if jwt else "anonymous"}',
-            asset_id, data=json.dumps(request).encode('utf-8'), headers={
+            asset_id, data=json.dumps(request).encode(), headers={
                 'Content-Type': 'application/json;charset=utf-8'
             })['sessionToken']
 
@@ -240,7 +240,7 @@ class RTBFIE(RedBeeBaseIE):
                 'APIKey': self._GIGYA_API_KEY,
                 'targetEnv': 'jssdk',
                 'sessionExpiration': '-2',
-            }).encode('utf-8'), headers={
+            }).encode(), headers={
                 'Content-Type': 'application/x-www-form-urlencoded',
             })
 

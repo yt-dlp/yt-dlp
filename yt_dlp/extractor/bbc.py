@@ -1716,7 +1716,7 @@ class BBCCoUkIPlayerEpisodesIE(BBCCoUkIPlayerPlaylistBaseIE):
             }, data=json.dumps({
                 'id': '5692d93d5aac8d796a0305e895e61551',
                 'variables': variables,
-            }).encode('utf-8'))['data']['programme']
+            }).encode())['data']['programme']
 
     @staticmethod
     def _get_playlist_data(data):

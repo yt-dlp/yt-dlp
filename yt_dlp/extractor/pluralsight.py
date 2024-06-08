@@ -96,7 +96,7 @@ query BootstrapPlayer {
             self._GRAPHQL_EP, display_id, data=json.dumps({
                 'query': self._GRAPHQL_COURSE_TMPL % course_id,
                 'variables': {}
-            }).encode('utf-8'), headers=self._GRAPHQL_HEADERS)
+            }).encode(), headers=self._GRAPHQL_HEADERS)
 
         course = try_get(
             response, lambda x: x['data']['rpc']['bootstrapPlayer']['course'],
@@ -224,7 +224,7 @@ query viewClip {
             captions = self._download_json(
                 '%s/player/retrieve-captions' % self._API_BASE, video_id,
                 'Downloading captions JSON', 'Unable to download captions JSON',
-                fatal=False, data=json.dumps(captions_post).encode('utf-8'),
+                fatal=False, data=json.dumps(captions_post).encode(),
                 headers={'Content-Type': 'application/json;charset=utf-8'})
         if captions:
             return {
@@ -368,14 +368,14 @@ query viewClip {
                         data=json.dumps({
                             'query': self.GRAPHQL_VIEWCLIP_TMPL % clip_post,
                             'variables': {}
-                        }).encode('utf-8'),
+                        }).encode(),
                         headers=self._GRAPHQL_HEADERS)['data']['viewClip']
                 except ExtractorError:
                     # Still works but most likely will go soon
                     viewclip = self._download_json(
                         '%s/video/clips/viewclip' % self._API_BASE, display_id,
                         'Downloading %s viewclip JSON' % format_id, fatal=False,
-                        data=json.dumps(clip_post).encode('utf-8'),
+                        data=json.dumps(clip_post).encode(),
                         headers={'Content-Type': 'application/json;charset=utf-8'})
 
                 # Pluralsight tracks multiple sequential calls to ViewClip API and start

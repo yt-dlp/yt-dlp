@@ -51,7 +51,7 @@ class DropboxIE(InfoExtractor):
                 content_id = self._search_regex(r'content_id=(.*?)["\']', webpage, 'content_id')
                 payload = f'is_xhr=true&t={self._get_cookies("https://www.dropbox.com").get("t").value}&content_id={content_id}&password={password}&url={url}'
                 response = self._download_json(
-                    'https://www.dropbox.com/sm/auth', video_id, 'POSTing video password', data=payload.encode('UTF-8'),
+                    'https://www.dropbox.com/sm/auth', video_id, 'POSTing video password', data=payload.encode(),
                     headers={'content-type': 'application/x-www-form-urlencoded; charset=UTF-8'})
 
                 if response.get('status') != 'authed':

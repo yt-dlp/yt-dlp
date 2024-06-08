@@ -34,7 +34,7 @@ class HRTiBaseIE(InfoExtractor):
         uuid = self._download_json(
             self._API_URL, None, note='Downloading uuid',
             errnote='Unable to download uuid',
-            data=json.dumps(init_data).encode('utf-8'))['uuid']
+            data=json.dumps(init_data).encode())['uuid']
 
         app_data = {
             'uuid': uuid,
@@ -42,7 +42,7 @@ class HRTiBaseIE(InfoExtractor):
             'application_version': self._APP_VERSION
         }
 
-        req = Request(self._API_URL, data=json.dumps(app_data).encode('utf-8'))
+        req = Request(self._API_URL, data=json.dumps(app_data).encode())
         req.get_method = lambda: 'PUT'
 
         resources = self._download_json(
@@ -71,10 +71,10 @@ class HRTiBaseIE(InfoExtractor):
         try:
             auth_info = self._download_json(
                 self._login_url, None, note='Logging in', errnote='Unable to log in',
-                data=json.dumps(auth_data).encode('utf-8'))
+                data=json.dumps(auth_data).encode())
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError) and e.cause.status == 406:
-                auth_info = self._parse_json(e.cause.response.read().encode('utf-8'), None)
+                auth_info = self._parse_json(e.cause.response.read().encode(), None)
             else:
                 raise
 

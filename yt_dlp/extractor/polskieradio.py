@@ -603,7 +603,7 @@ class PolskieRadioPodcastIE(PolskieRadioPodcastBaseExtractor):
             podcast_id, 'Downloading podcast metadata',
             data=json.dumps({
                 'guids': [podcast_id],
-            }).encode('utf-8'),
+            }).encode(),
             headers={
                 'Content-Type': 'application/json',
             })

@@ -195,7 +195,7 @@ class AwsIdp:
         """ Authenticate with a username and password. """
         # Step 1: First initiate an authentication request
         auth_data_dict = self.__get_authentication_request(username)
-        auth_data = json.dumps(auth_data_dict).encode("utf-8")
+        auth_data = json.dumps(auth_data_dict).encode()
         auth_headers = {
             "X-Amz-Target": "AWSCognitoIdentityProviderService.InitiateAuth",
             "Accept-Encoding": "identity",
@@ -211,7 +211,7 @@ class AwsIdp:
 
         # Step 2: Respond to the Challenge with a valid ChallengeResponse
         challenge_request = self.__get_challenge_response_request(challenge_parameters, password)
-        challenge_data = json.dumps(challenge_request).encode("utf-8")
+        challenge_data = json.dumps(challenge_request).encode()
         challenge_headers = {
             "X-Amz-Target": "AWSCognitoIdentityProviderService.RespondToAuthChallenge",
             "Content-Type": "application/x-amz-json-1.1"
@@ -305,7 +305,7 @@ class AwsIdp:
         if u_value == 0:
             raise ValueError('U cannot be zero.')
         username_password = '%s%s:%s' % (self.pool_id.split('_')[1], username, password)
-        username_password_hash = self.__hash_sha256(username_password.encode('utf-8'))
+        username_password_hash = self.__hash_sha256(username_password.encode())
 
         x_value = self.__hex_to_long(self.__hex_hash(self.__pad_hex(salt) + username_password_hash))
         g_mod_pow_xn = pow(self.g, x_value, self.big_n)

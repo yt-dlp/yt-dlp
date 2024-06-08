@@ -166,7 +166,7 @@ class VevoIE(VevoBaseIE):
             data=json.dumps({
                 'client_id': 'SPupX1tvqFEopQ1YS6SS',
                 'grant_type': 'urn:vevo:params:oauth:grant-type:anonymous',
-            }).encode('utf-8'),
+            }).encode(),
             headers={
                 'Content-Type': 'application/json',
             })

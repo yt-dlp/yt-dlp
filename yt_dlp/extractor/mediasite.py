@@ -190,7 +190,7 @@ class MediasiteIE(InfoExtractor):
                     'UrlReferrer': data.get('UrlReferrer', ''),
                     'UseScreenReader': False,
                 }
-            }).encode('utf-8'))['d']
+            }).encode())['d']
 
         presentation = player_options['Presentation']
         title = presentation['Title']

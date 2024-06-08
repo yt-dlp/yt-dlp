@@ -25,7 +25,7 @@ class AWSIE(InfoExtractor):  # XXX: Conventionally, base classes should end with
             headers['X-Amz-Security-Token'] = session_token
 
         def aws_hash(s):
-            return hashlib.sha256(s.encode('utf-8')).hexdigest()
+            return hashlib.sha256(s.encode()).hexdigest()
 
         # Task 1: http://docs.aws.amazon.com/general/latest/gr/sigv4-create-canonical-request.html
         canonical_querystring = compat_urllib_parse_urlencode(query)
@@ -49,7 +49,7 @@ class AWSIE(InfoExtractor):  # XXX: Conventionally, base classes should end with
 
         # Task 3: http://docs.aws.amazon.com/general/latest/gr/sigv4-calculate-signature.html
         def aws_hmac(key, msg):
-            return hmac.new(key, msg.encode('utf-8'), hashlib.sha256)
+            return hmac.new(key, msg.encode(), hashlib.sha256)
 
         def aws_hmac_digest(key, msg):
             return aws_hmac(key, msg).digest()
@@ -57,7 +57,7 @@ class AWSIE(InfoExtractor):  # XXX: Conventionally, base classes should end with
         def aws_hmac_hexdigest(key, msg):
             return aws_hmac(key, msg).hexdigest()
 
-        k_signing = ('AWS4' + aws_dict['secret_key']).encode('utf-8')
+        k_signing = ('AWS4' + aws_dict['secret_key']).encode()
         for value in credential_scope_list:
             k_signing = aws_hmac_digest(k_signing, value)
 

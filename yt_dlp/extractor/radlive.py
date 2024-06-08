@@ -165,7 +165,7 @@ query WebChannelListing ($lrn: ID!) {
             data=json.dumps({
                 'query': self._QUERY,
                 'variables': {'lrn': f'lrn:12core:media:content:channel:{channel_id}'}
-            }).encode('utf-8'))
+            }).encode())
 
         data = traverse_obj(graphql, ('data', 'channel'))
         if not data:

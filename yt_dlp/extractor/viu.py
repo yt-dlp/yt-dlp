@@ -265,7 +265,7 @@ class ViuOTTIE(InfoExtractor):
                 'language': 'en',
                 'uuid': str(uuid.uuid4()),
                 'carrierId': '0'
-            }).encode('utf-8'))['token']
+            }).encode())['token']
 
     def _real_extract(self, url):
         url, idata = unsmuggle_url(url, {})

@@ -57,7 +57,7 @@ class ScrippsNetworksWatchIE(AWSIE):
 
         aws_identity_id_json = json.dumps({
             'IdentityId': '%s:7655847c-0ae7-4d9b-80d6-56c062927eb3' % self._AWS_REGION
-        }).encode('utf-8')
+        }).encode()
         token = self._download_json(
             'https://cognito-identity.%s.amazonaws.com/' % self._AWS_REGION, video_id,
             data=aws_identity_id_json,

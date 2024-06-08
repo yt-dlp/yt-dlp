@@ -292,7 +292,7 @@ class ABCIViewIE(InfoExtractor):
             int(time.time()), house_number)
         sig = hmac.new(
             b'android.content.res.Resources',
-            path.encode('utf-8'), hashlib.sha256).hexdigest()
+            path.encode(), hashlib.sha256).hexdigest()
         token = self._download_webpage(
             'http://iview.abc.net.au{0}&sig={1}'.format(path, sig), video_id)
 
@@ -398,7 +398,7 @@ class ABCIViewShowSeriesIE(InfoExtractor):
             r'window\.__INITIAL_STATE__\s*=\s*[\'"](.+?)[\'"]\s*;',
             webpage, 'initial state')
         video_data = self._parse_json(
-            unescapeHTML(webpage_data).encode('utf-8').decode('unicode_escape'), show_id)
+            unescapeHTML(webpage_data).encode().decode('unicode_escape'), show_id)
         video_data = video_data['route']['pageData']['_embedded']
 
         highlight = try_get(video_data, lambda x: x['highlightVideo']['shareUrl'])

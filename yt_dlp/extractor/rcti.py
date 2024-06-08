@@ -165,7 +165,7 @@ class RCTIPlusIE(RCTIPlusBaseIE):
             conviva_json_res = self._download_json(
                 'https://ff84ae928c3b33064b76dec08f12500465e59a6f.cws.conviva.com/0/wsg', display_id,
                 'Creating Conviva session', 'Failed to create Conviva session',
-                fatal=False, data=json.dumps(conviva_json_data).encode('utf-8'))
+                fatal=False, data=json.dumps(conviva_json_data).encode())
             if conviva_json_res and conviva_json_res.get('err') != 'ok':
                 self.report_warning('Conviva said: %s' % str(conviva_json_res.get('err')))
 

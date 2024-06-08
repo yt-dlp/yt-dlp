@@ -29,7 +29,7 @@ class PornotubeIE(InfoExtractor):
         token = self._download_json(
             'https://api.aebn.net/auth/v2/origins/authenticate',
             video_id, note='Downloading token',
-            data=json.dumps({'credentials': 'Clip Application'}).encode('utf-8'),
+            data=json.dumps({'credentials': 'Clip Application'}).encode(),
             headers={
                 'Content-Type': 'application/json',
                 'Origin': 'http://www.pornotube.com',

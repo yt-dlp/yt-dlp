@@ -359,7 +359,7 @@ class DiscoveryPlusBaseIE(DPlayBaseIE):
                 },
                 'videoId': video_id,
                 'wisteriaProperties': {},
-            }).encode('utf-8'))['data']['attributes']['streaming']
+            }).encode())['data']['attributes']['streaming']
 
     def _real_extract(self, url):
         return self._get_disco_api_info(url, self._match_id(url), **self._DISCO_API_PARAMS)

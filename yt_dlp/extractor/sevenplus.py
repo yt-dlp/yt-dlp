@@ -71,7 +71,7 @@ class SevenPlusIE(BrightcoveNewBaseIE):
                 'idToken': id_token,
                 'platformId': 'web',
                 'regSource': '7plus',
-            }).encode('utf-8')) or {}
+            }).encode()) or {}
         self.token = token_resp.get('token')
         if not self.token:
             self.report_warning('Unable to log in: Could not extract auth token')
