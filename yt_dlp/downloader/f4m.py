@@ -326,8 +326,8 @@ class F4mFD(FragmentFD):
             formats = sorted(formats, key=lambda f: f[0])
             rate, media = formats[-1]
         else:
-            rate, media = list(filter(
-                lambda f: int(f[0]) == requested_bitrate, formats))[0]
+            rate, media = next(filter(
+                lambda f: int(f[0]) == requested_bitrate, formats))
 
         # Prefer baseURL for relative URLs as per 11.2 of F4M 3.0 spec.
         man_base_url = get_base_url(doc) or man_url

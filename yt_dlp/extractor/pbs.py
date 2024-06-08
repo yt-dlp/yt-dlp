@@ -193,7 +193,7 @@ class PBSIE(InfoExtractor):
            # Player
            (?:video|player)\.pbs\.org/(?:widget/)?partnerplayer/(?P<player_id>[^/]+)
         )
-    ''' % '|'.join(list(zip(*_STATIONS))[0])
+    ''' % '|'.join(next(zip(*_STATIONS)))
 
     _GEO_COUNTRIES = ['US']
 

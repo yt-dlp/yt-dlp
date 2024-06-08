@@ -131,7 +131,7 @@ class TestCookies(unittest.TestCase):
 
         jar = parse_safari_cookies(cookies)
         self.assertEqual(len(jar), 1)
-        cookie = list(jar)[0]
+        cookie = next(iter(jar))
         self.assertEqual(cookie.domain, 'localhost')
         self.assertEqual(cookie.port, None)
         self.assertEqual(cookie.path, '/')

@@ -155,8 +155,8 @@ class VVVVIDIE(InfoExtractor):
             video_id, query={'video_id': video_id})
 
         vid = int(video_id)
-        video_data = list(filter(
-            lambda episode: episode.get('video_id') == vid, response))[0]
+        video_data = next(filter(
+            lambda episode: episode.get('video_id') == vid, response))
         title = video_data['title']
         formats = []
 

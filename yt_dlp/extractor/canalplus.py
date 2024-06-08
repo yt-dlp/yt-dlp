@@ -53,7 +53,7 @@ class CanalplusIE(InfoExtractor):
         video_data = self._download_json(info_url, video_id, 'Downloading video JSON')
 
         if isinstance(video_data, list):
-            video_data = [video for video in video_data if video.get('ID') == video_id][0]
+            video_data = next(video for video in video_data if video.get('ID') == video_id)
         media = video_data['MEDIA']
         infos = video_data['INFOS']
 

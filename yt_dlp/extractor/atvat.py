@@ -90,7 +90,7 @@ class ATVAtIE(InfoExtractor):
                 'token': jwt_token.decode('utf-8')
             })
 
-        video_id, videos_data = list(videos['data'].items())[0]
+        video_id, videos_data = next(iter(videos['data'].items()))
         error_msg = try_get(videos_data, lambda x: x['error']['title'])
         if error_msg == 'Geo check failed':
             self.raise_geo_restricted(error_msg)

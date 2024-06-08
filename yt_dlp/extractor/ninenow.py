@@ -79,8 +79,8 @@ class NineNowIE(InfoExtractor):
             if not cache:
                 continue
             common_data = {
-                'episode': (cache.get(current_key) or list(cache.values())[0])[kind],
-                'season': (cache.get(current_key) or list(cache.values())[0]).get('season', None)
+                'episode': (cache.get(current_key) or next(iter(cache.values())))[kind],
+                'season': (cache.get(current_key) or next(iter(cache.values()))).get('season', None)
             }
             break
         else:

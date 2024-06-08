@@ -165,7 +165,7 @@ class PeriscopeUserIE(PeriscopeBaseIE):
                 webpage, 'data store', default='{}', group='data')),
             user_name)
 
-        user = list(data_store['UserCache']['users'].values())[0]['user']
+        user = next(iter(data_store['UserCache']['users'].values()))['user']
         user_id = user['id']
         session_id = data_store['SessionToken']['public']['broadcastHistory']['token']['session_id']
 

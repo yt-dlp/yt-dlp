@@ -34,7 +34,7 @@ class TheWeatherChannelIE(ThePlatformIE):  # XXX: Do not subclass from concrete 
         asset_name, locale, display_id = self._match_valid_url(url).groups()
         if not locale:
             locale = 'en-US'
-        video_data = list(self._download_json(
+        video_data = next(iter(self._download_json(
             'https://weather.com/api/v1/p/redux-dal', display_id, data=json.dumps([{
                 'name': 'getCMSAssetsUrlConfig',
                 'params': {
@@ -47,7 +47,7 @@ class TheWeatherChannelIE(ThePlatformIE):  # XXX: Do not subclass from concrete 
                 }
             }]).encode(), headers={
                 'Content-Type': 'application/json',
-            })['dal']['getCMSAssetsUrlConfig'].values())[0]['data'][0]
+            })['dal']['getCMSAssetsUrlConfig'].values()))['data'][0]
         video_id = video_data['id']
         seo_meta = video_data.get('seometa', {})
         title = video_data.get('title') or seo_meta['title']

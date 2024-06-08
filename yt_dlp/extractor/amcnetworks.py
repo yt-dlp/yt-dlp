@@ -131,7 +131,7 @@ class AMCNetworksIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
         })
         ns_keys = theplatform_metadata.get('$xmlns', {}).keys()
         if ns_keys:
-            ns = list(ns_keys)[0]
+            ns = next(iter(ns_keys))
             episode = theplatform_metadata.get(ns + '$episodeTitle') or None
             episode_number = int_or_none(
                 theplatform_metadata.get(ns + '$episode'))

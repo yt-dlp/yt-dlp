@@ -341,7 +341,7 @@ class VevoPlaylistIE(VevoBaseIE):
 
         playlists = self._extract_json(webpage, playlist_id)['default']['%ss' % playlist_kind]
 
-        playlist = (list(playlists.values())[0]
+        playlist = (next(iter(playlists.values()))
                     if playlist_kind == 'playlist' else playlists[playlist_id])
 
         entries = [

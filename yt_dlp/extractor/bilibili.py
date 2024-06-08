@@ -215,7 +215,7 @@ class BilibiliBaseIE(InfoExtractor):
             yield {
                 **metainfo,
                 'id': f'{video_id}_{cid}',
-                'title': f'{metainfo.get("title")} - {list(edges.values())[0].get("title")}',
+                'title': f'{metainfo.get("title")} - {next(iter(edges.values())).get("title")}',
                 'formats': self.extract_formats(play_info),
                 'description': f'{json.dumps(edges, ensure_ascii=False)}\n{metainfo.get("description", "")}',
                 'duration': float_or_none(play_info.get('timelength'), scale=1000),
