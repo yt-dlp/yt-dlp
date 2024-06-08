@@ -207,8 +207,7 @@ class PinterestCollectionIE(PinterestBaseIE):
 
     @classmethod
     def suitable(cls, url):
-        return False if PinterestIE.suitable(url) else super(
-            PinterestCollectionIE, cls).suitable(url)
+        return False if PinterestIE.suitable(url) else super().suitable(url)
 
     def _real_extract(self, url):
         username, slug = self._match_valid_url(url).groups()

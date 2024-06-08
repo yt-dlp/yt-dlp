@@ -326,7 +326,7 @@ class ViewLiftIE(ViewLiftBaseIE):
 
     @classmethod
     def suitable(cls, url):
-        return False if ViewLiftEmbedIE.suitable(url) else super(ViewLiftIE, cls).suitable(url)
+        return False if ViewLiftEmbedIE.suitable(url) else super().suitable(url)
 
     def _show_entries(self, domain, seasons):
         for season in seasons:

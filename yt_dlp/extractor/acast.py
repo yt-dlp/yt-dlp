@@ -130,7 +130,7 @@ class ACastChannelIE(ACastBaseIE):
 
     @classmethod
     def suitable(cls, url):
-        return False if ACastIE.suitable(url) else super(ACastChannelIE, cls).suitable(url)
+        return False if ACastIE.suitable(url) else super().suitable(url)
 
     def _real_extract(self, url):
         show_slug = self._match_id(url)

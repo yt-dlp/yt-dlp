@@ -108,7 +108,7 @@ class EaglePlatformIE(InfoExtractor):
 
     def _download_json(self, url_or_request, video_id, *args, **kwargs):
         try:
-            response = super(EaglePlatformIE, self)._download_json(
+            response = super()._download_json(
                 url_or_request, video_id, *args, **kwargs)
         except ExtractorError as ee:
             if isinstance(ee.cause, HTTPError):

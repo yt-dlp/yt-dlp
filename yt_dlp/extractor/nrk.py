@@ -593,7 +593,7 @@ class NRKTVSeasonIE(NRKTVSerieBaseIE):
     @classmethod
     def suitable(cls, url):
         return (False if NRKTVIE.suitable(url) or NRKTVEpisodeIE.suitable(url) or NRKRadioPodkastIE.suitable(url)
-                else super(NRKTVSeasonIE, cls).suitable(url))
+                else super().suitable(url))
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
@@ -691,7 +691,7 @@ class NRKTVSeriesIE(NRKTVSerieBaseIE):
         return (
             False if any(ie.suitable(url)
                          for ie in (NRKTVIE, NRKTVEpisodeIE, NRKRadioPodkastIE, NRKTVSeasonIE))
-            else super(NRKTVSeriesIE, cls).suitable(url))
+            else super().suitable(url))
 
     def _real_extract(self, url):
         site, serie_kind, series_id = self._match_valid_url(url).groups()

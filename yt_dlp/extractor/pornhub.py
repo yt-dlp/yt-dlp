@@ -748,7 +748,7 @@ class PornHubPagedVideoListIE(PornHubPagedPlaylistBaseIE):
     def suitable(cls, url):
         return (False
                 if PornHubIE.suitable(url) or PornHubUserIE.suitable(url) or PornHubUserVideosUploadIE.suitable(url)
-                else super(PornHubPagedVideoListIE, cls).suitable(url))
+                else super().suitable(url))
 
 
 class PornHubUserVideosUploadIE(PornHubPagedPlaylistBaseIE):

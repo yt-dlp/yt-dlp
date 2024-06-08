@@ -405,10 +405,10 @@ class ZDFChannelIE(ZDFBaseIE):
 
     @classmethod
     def suitable(cls, url):
-        return False if ZDFIE.suitable(url) else super(ZDFChannelIE, cls).suitable(url)
+        return False if ZDFIE.suitable(url) else super().suitable(url)
 
     def _og_search_title(self, webpage, fatal=False):
-        title = super(ZDFChannelIE, self)._og_search_title(webpage, fatal=fatal)
+        title = super()._og_search_title(webpage, fatal=fatal)
         return re.split(r'\s+[-|]\s+ZDF(?:mediathek)?$', title or '')[0] or None
 
     def _real_extract(self, url):

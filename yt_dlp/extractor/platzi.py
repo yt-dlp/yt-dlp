@@ -168,7 +168,7 @@ class PlatziCourseIE(PlatziBaseIE):
 
     @classmethod
     def suitable(cls, url):
-        return False if PlatziIE.suitable(url) else super(PlatziCourseIE, cls).suitable(url)
+        return False if PlatziIE.suitable(url) else super().suitable(url)
 
     def _real_extract(self, url):
         course_name = self._match_id(url)

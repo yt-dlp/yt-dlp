@@ -38,7 +38,7 @@ class YouNowLiveIE(InfoExtractor):
     def suitable(cls, url):
         return (False
                 if YouNowChannelIE.suitable(url) or YouNowMomentIE.suitable(url)
-                else super(YouNowLiveIE, cls).suitable(url))
+                else super().suitable(url))
 
     def _real_extract(self, url):
         username = self._match_id(url)
@@ -191,7 +191,7 @@ class YouNowMomentIE(InfoExtractor):
     def suitable(cls, url):
         return (False
                 if YouNowChannelIE.suitable(url)
-                else super(YouNowMomentIE, cls).suitable(url))
+                else super().suitable(url))
 
     def _real_extract(self, url):
         video_id = self._match_id(url)

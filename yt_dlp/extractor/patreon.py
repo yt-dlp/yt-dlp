@@ -457,7 +457,7 @@ class PatreonCampaignIE(PatreonBaseIE):
 
     @classmethod
     def suitable(cls, url):
-        return False if PatreonIE.suitable(url) else super(PatreonCampaignIE, cls).suitable(url)
+        return False if PatreonIE.suitable(url) else super().suitable(url)
 
     def _entries(self, campaign_id):
         cursor = None

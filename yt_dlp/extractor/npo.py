@@ -200,7 +200,7 @@ class NPOIE(InfoExtractor):
     def suitable(cls, url):
         return (False if any(ie.suitable(url)
                 for ie in (NPOLiveIE, NPORadioIE, NPORadioFragmentIE))
-                else super(NPOIE, cls).suitable(url))
+                else super().suitable(url))
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -384,7 +384,7 @@ class NPORadioIE(InfoExtractor):
 
     @classmethod
     def suitable(cls, url):
-        return False if NPORadioFragmentIE.suitable(url) else super(NPORadioIE, cls).suitable(url)
+        return False if NPORadioFragmentIE.suitable(url) else super().suitable(url)
 
     @staticmethod
     def _html_get_attribute_regex(attribute):

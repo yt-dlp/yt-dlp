@@ -98,7 +98,7 @@ class R7ArticleIE(InfoExtractor):
 
     @classmethod
     def suitable(cls, url):
-        return False if R7IE.suitable(url) else super(R7ArticleIE, cls).suitable(url)
+        return False if R7IE.suitable(url) else super().suitable(url)
 
     def _real_extract(self, url):
         display_id = self._match_id(url)

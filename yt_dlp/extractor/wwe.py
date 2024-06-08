@@ -111,7 +111,7 @@ class WWEPlaylistIE(WWEBaseIE):
 
     @classmethod
     def suitable(cls, url):
-        return False if WWEIE.suitable(url) else super(WWEPlaylistIE, cls).suitable(url)
+        return False if WWEIE.suitable(url) else super().suitable(url)
 
     def _real_extract(self, url):
         display_id = self._match_id(url)

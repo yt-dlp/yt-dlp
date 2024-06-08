@@ -227,7 +227,7 @@ class MLBVideoIE(MLBBaseIE):
 
     @classmethod
     def suitable(cls, url):
-        return False if MLBIE.suitable(url) else super(MLBVideoIE, cls).suitable(url)
+        return False if MLBIE.suitable(url) else super().suitable(url)
 
     @staticmethod
     def _get_feed(video):

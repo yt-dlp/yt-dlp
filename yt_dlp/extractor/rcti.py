@@ -255,7 +255,7 @@ class RCTIPlusSeriesIE(RCTIPlusBaseIE):
 
     @classmethod
     def suitable(cls, url):
-        return False if RCTIPlusIE.suitable(url) else super(RCTIPlusSeriesIE, cls).suitable(url)
+        return False if RCTIPlusIE.suitable(url) else super().suitable(url)
 
     def _entries(self, url, display_id=None, note='Downloading entries JSON', metadata={}):
         total_pages = 0
@@ -361,7 +361,7 @@ class RCTIPlusTVIE(RCTIPlusBaseIE):
 
     @classmethod
     def suitable(cls, url):
-        return False if RCTIPlusIE.suitable(url) else super(RCTIPlusTVIE, cls).suitable(url)
+        return False if RCTIPlusIE.suitable(url) else super().suitable(url)
 
     def _real_extract(self, url):
         match = self._match_valid_url(url).groupdict()

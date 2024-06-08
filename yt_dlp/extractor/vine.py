@@ -126,7 +126,7 @@ class VineUserIE(InfoExtractor):
 
     @classmethod
     def suitable(cls, url):
-        return False if VineIE.suitable(url) else super(VineUserIE, cls).suitable(url)
+        return False if VineIE.suitable(url) else super().suitable(url)
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)

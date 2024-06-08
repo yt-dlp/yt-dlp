@@ -171,7 +171,7 @@ class RutubeIE(RutubeBaseIE):
 
     @classmethod
     def suitable(cls, url):
-        return False if RutubePlaylistIE.suitable(url) else super(RutubeIE, cls).suitable(url)
+        return False if RutubePlaylistIE.suitable(url) else super().suitable(url)
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -335,7 +335,7 @@ class RutubePlaylistIE(RutubePlaylistBaseIE):
     def suitable(cls, url):
         from ..utils import int_or_none, parse_qs
 
-        if not super(RutubePlaylistIE, cls).suitable(url):
+        if not super().suitable(url):
             return False
         params = parse_qs(url)
         return params.get('pl_type', [None])[0] and int_or_none(params.get('pl_id', [None])[0])

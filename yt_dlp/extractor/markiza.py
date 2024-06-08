@@ -104,7 +104,7 @@ class MarkizaPageIE(InfoExtractor):
 
     @classmethod
     def suitable(cls, url):
-        return False if MarkizaIE.suitable(url) else super(MarkizaPageIE, cls).suitable(url)
+        return False if MarkizaIE.suitable(url) else super().suitable(url)
 
     def _real_extract(self, url):
         playlist_id = self._match_id(url)

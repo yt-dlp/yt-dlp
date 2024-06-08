@@ -236,7 +236,7 @@ class SafariCourseIE(SafariBaseIE):
     @classmethod
     def suitable(cls, url):
         return (False if SafariIE.suitable(url) or SafariApiIE.suitable(url)
-                else super(SafariCourseIE, cls).suitable(url))
+                else super().suitable(url))
 
     def _real_extract(self, url):
         course_id = self._match_id(url)

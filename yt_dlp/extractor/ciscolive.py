@@ -105,7 +105,7 @@ class CiscoLiveSearchIE(CiscoLiveBaseIE):
 
     @classmethod
     def suitable(cls, url):
-        return False if CiscoLiveSessionIE.suitable(url) else super(CiscoLiveSearchIE, cls).suitable(url)
+        return False if CiscoLiveSessionIE.suitable(url) else super().suitable(url)
 
     @staticmethod
     def _check_bc_id_exists(rf_item):

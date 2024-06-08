@@ -117,7 +117,7 @@ class DaumClipIE(DaumBaseIE):
 
     @classmethod
     def suitable(cls, url):
-        return False if DaumPlaylistIE.suitable(url) or DaumUserIE.suitable(url) else super(DaumClipIE, cls).suitable(url)
+        return False if DaumPlaylistIE.suitable(url) or DaumUserIE.suitable(url) else super().suitable(url)
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -187,7 +187,7 @@ class DaumPlaylistIE(DaumListIE):
 
     @classmethod
     def suitable(cls, url):
-        return False if DaumUserIE.suitable(url) else super(DaumPlaylistIE, cls).suitable(url)
+        return False if DaumUserIE.suitable(url) else super().suitable(url)
 
     def _real_extract(self, url):
         list_id = self._match_id(url)

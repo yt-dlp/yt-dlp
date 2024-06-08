@@ -241,7 +241,7 @@ class LinkedInLearningCourseIE(LinkedInLearningBaseIE):
 
     @classmethod
     def suitable(cls, url):
-        return False if LinkedInLearningIE.suitable(url) else super(LinkedInLearningCourseIE, cls).suitable(url)
+        return False if LinkedInLearningIE.suitable(url) else super().suitable(url)
 
     def _real_extract(self, url):
         course_slug = self._match_id(url)

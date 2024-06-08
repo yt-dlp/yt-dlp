@@ -230,7 +230,7 @@ class GloboArticleIE(InfoExtractor):
 
     @classmethod
     def suitable(cls, url):
-        return False if GloboIE.suitable(url) else super(GloboArticleIE, cls).suitable(url)
+        return False if GloboIE.suitable(url) else super().suitable(url)
 
     def _real_extract(self, url):
         display_id = self._match_id(url)

@@ -233,7 +233,7 @@ class LePlaylistIE(InfoExtractor):
 
     @classmethod
     def suitable(cls, url):
-        return False if LeIE.suitable(url) else super(LePlaylistIE, cls).suitable(url)
+        return False if LeIE.suitable(url) else super().suitable(url)
 
     def _real_extract(self, url):
         playlist_id = self._match_id(url)

@@ -264,7 +264,7 @@ class VideomoreVideoIE(VideomoreBaseIE):
 
     @classmethod
     def suitable(cls, url):
-        return False if VideomoreIE.suitable(url) else super(VideomoreVideoIE, cls).suitable(url)
+        return False if VideomoreIE.suitable(url) else super().suitable(url)
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
@@ -292,7 +292,7 @@ class VideomoreSeasonIE(VideomoreBaseIE):
     @classmethod
     def suitable(cls, url):
         return (False if (VideomoreIE.suitable(url) or VideomoreVideoIE.suitable(url))
-                else super(VideomoreSeasonIE, cls).suitable(url))
+                else super().suitable(url))
 
     def _real_extract(self, url):
         display_id = self._match_id(url)

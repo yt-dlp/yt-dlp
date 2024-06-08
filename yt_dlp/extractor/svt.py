@@ -323,7 +323,7 @@ class SVTSeriesIE(SVTPlayBaseIE):
 
     @classmethod
     def suitable(cls, url):
-        return False if SVTIE.suitable(url) or SVTPlayIE.suitable(url) else super(SVTSeriesIE, cls).suitable(url)
+        return False if SVTIE.suitable(url) or SVTPlayIE.suitable(url) else super().suitable(url)
 
     def _real_extract(self, url):
         series_slug, season_id = self._match_valid_url(url).groups()
@@ -464,7 +464,7 @@ class SVTPageIE(SVTBaseIE):
 
     @classmethod
     def suitable(cls, url):
-        return False if SVTIE.suitable(url) or SVTPlayIE.suitable(url) else super(SVTPageIE, cls).suitable(url)
+        return False if SVTIE.suitable(url) or SVTPlayIE.suitable(url) else super().suitable(url)
 
     def _real_extract(self, url):
         display_id = self._match_id(url)

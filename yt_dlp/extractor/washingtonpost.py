@@ -92,7 +92,7 @@ class WashingtonPostArticleIE(InfoExtractor):
 
     @classmethod
     def suitable(cls, url):
-        return False if WashingtonPostIE.suitable(url) else super(WashingtonPostArticleIE, cls).suitable(url)
+        return False if WashingtonPostIE.suitable(url) else super().suitable(url)
 
     def _real_extract(self, url):
         page_id = self._match_id(url)

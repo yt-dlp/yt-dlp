@@ -119,7 +119,7 @@ class AluraCourseIE(AluraIE):  # XXX: Do not subclass from concrete IE
 
     @classmethod
     def suitable(cls, url):
-        return False if AluraIE.suitable(url) else super(AluraCourseIE, cls).suitable(url)
+        return False if AluraIE.suitable(url) else super().suitable(url)
 
     def _real_extract(self, url):
 

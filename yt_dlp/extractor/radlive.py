@@ -104,7 +104,7 @@ class RadLiveSeasonIE(RadLiveIE):  # XXX: Do not subclass from concrete IE
 
     @classmethod
     def suitable(cls, url):
-        return False if RadLiveIE.suitable(url) else super(RadLiveSeasonIE, cls).suitable(url)
+        return False if RadLiveIE.suitable(url) else super().suitable(url)
 
     def _real_extract(self, url):
         season_id = self._match_id(url)
@@ -154,7 +154,7 @@ query WebChannelListing ($lrn: ID!) {
 
     @classmethod
     def suitable(cls, url):
-        return False if RadLiveIE.suitable(url) else super(RadLiveChannelIE, cls).suitable(url)
+        return False if RadLiveIE.suitable(url) else super().suitable(url)
 
     def _real_extract(self, url):
         channel_id = self._match_id(url)

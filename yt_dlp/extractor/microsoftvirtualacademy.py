@@ -142,8 +142,7 @@ class MicrosoftVirtualAcademyCourseIE(MicrosoftVirtualAcademyBaseIE):
 
     @classmethod
     def suitable(cls, url):
-        return False if MicrosoftVirtualAcademyIE.suitable(url) else super(
-            MicrosoftVirtualAcademyCourseIE, cls).suitable(url)
+        return False if MicrosoftVirtualAcademyIE.suitable(url) else super().suitable(url)
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)

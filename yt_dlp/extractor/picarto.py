@@ -24,7 +24,7 @@ class PicartoIE(InfoExtractor):
 
     @classmethod
     def suitable(cls, url):
-        return False if PicartoVodIE.suitable(url) else super(PicartoIE, cls).suitable(url)
+        return False if PicartoVodIE.suitable(url) else super().suitable(url)
 
     def _real_extract(self, url):
         channel_id = self._match_id(url)

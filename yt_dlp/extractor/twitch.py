@@ -765,7 +765,7 @@ class TwitchVideosIE(TwitchPlaylistBaseIE):
                 if any(ie.suitable(url) for ie in (
                     TwitchVideosClipsIE,
                     TwitchVideosCollectionsIE))
-                else super(TwitchVideosIE, cls).suitable(url))
+                else super().suitable(url))
 
     @staticmethod
     def _make_variables(channel_name, broadcast_type, sort):
@@ -996,7 +996,7 @@ class TwitchStreamIE(TwitchBaseIE):
                     TwitchVideosClipsIE,
                     TwitchVideosCollectionsIE,
                     TwitchClipsIE))
-                else super(TwitchStreamIE, cls).suitable(url))
+                else super().suitable(url))
 
     def _real_extract(self, url):
         channel_name = self._match_id(url).lower()

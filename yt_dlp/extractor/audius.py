@@ -21,7 +21,7 @@ class AudiusBaseIE(InfoExtractor):
 
     def _select_api_base(self):
         """Selecting one of the currently available API hosts"""
-        response = super(AudiusBaseIE, self)._download_json(
+        response = super()._download_json(
             'https://api.audius.co/', None,
             note='Requesting available API hosts',
             errnote='Unable to request available API hosts')
@@ -54,7 +54,7 @@ class AudiusBaseIE(InfoExtractor):
         if self._API_BASE is None:
             self._select_api_base()
         try:
-            response = super(AudiusBaseIE, self)._download_json(
+            response = super()._download_json(
                 '%s%s%s' % (self._API_BASE, self._API_V, path), item_id, note=note,
                 errnote=errnote, expected_status=expected_status)
         except ExtractorError as exc:

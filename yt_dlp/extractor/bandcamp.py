@@ -324,7 +324,7 @@ class BandcampAlbumIE(BandcampIE):  # XXX: Do not subclass from concrete IE
     def suitable(cls, url):
         return (False
                 if BandcampWeeklyIE.suitable(url) or BandcampIE.suitable(url)
-                else super(BandcampAlbumIE, cls).suitable(url))
+                else super().suitable(url))
 
     def _real_extract(self, url):
         uploader_id, album_id = self._match_valid_url(url).groups()

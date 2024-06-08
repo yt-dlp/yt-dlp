@@ -897,7 +897,7 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
     def suitable(cls, url):
         EXCLUDE_IE = (BBCCoUkIE, BBCCoUkArticleIE, BBCCoUkIPlayerEpisodesIE, BBCCoUkIPlayerGroupIE, BBCCoUkPlaylistIE)
         return (False if any(ie.suitable(url) for ie in EXCLUDE_IE)
-                else super(BBCIE, cls).suitable(url))
+                else super().suitable(url))
 
     def _extract_from_media_meta(self, media_meta, video_id):
         # Direct links to media in media metadata (e.g.

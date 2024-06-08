@@ -108,7 +108,7 @@ class CBCIE(InfoExtractor):
 
     @classmethod
     def suitable(cls, url):
-        return False if CBCPlayerIE.suitable(url) else super(CBCIE, cls).suitable(url)
+        return False if CBCPlayerIE.suitable(url) else super().suitable(url)
 
     def _extract_player_init(self, player_init, display_id):
         player_info = self._parse_json(player_init, display_id, js_to_json)
