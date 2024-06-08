@@ -1411,9 +1411,9 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
                     entries, playlist_id, playlist_title, playlist_description)
 
         def extract_all(pattern):
-            return list(filter(None, map(
-                lambda s: self._parse_json(s, playlist_id, fatal=False),
-                re.findall(pattern, webpage))))
+            return list(filter(None, (
+                self._parse_json(s, playlist_id, fatal=False)
+                for s in re.findall(pattern, webpage))))
 
         # US accessed article with single embedded video (e.g.
         # https://www.bbc.com/news/uk-68546268)

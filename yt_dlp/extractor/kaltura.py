@@ -242,7 +242,7 @@ class KalturaIE(InfoExtractor):
 
     def _kaltura_api_call(self, video_id, actions, service_url=None, *args, **kwargs):
         params = actions[0]
-        params.update({i: a for i, a in enumerate(actions[1:], start=1)})
+        params.update(dict(enumerate(actions[1:], start=1)))
 
         data = self._download_json(
             (service_url or self._SERVICE_URL) + self._SERVICE_BASE,

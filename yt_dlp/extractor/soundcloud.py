@@ -644,7 +644,7 @@ class SoundcloudPlaylistBaseIE(SoundcloudBaseIE):
     def _extract_set(self, playlist, token=None):
         playlist_id = compat_str(playlist['id'])
         tracks = playlist.get('tracks') or []
-        if not all([t.get('permalink_url') for t in tracks]) and token:
+        if not all(t.get('permalink_url') for t in tracks) and token:
             tracks = self._download_json(
                 self._API_V2_BASE + 'tracks', playlist_id,
                 'Downloading tracks', query={

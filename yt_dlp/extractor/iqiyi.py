@@ -41,7 +41,7 @@ class IqiyiSDK:
 
     @staticmethod
     def split_sum(data):
-        return compat_str(sum(map(lambda p: int(p, 16), list(data))))
+        return compat_str(sum(int(p, 16) for p in data))
 
     @staticmethod
     def digit_sum(num):
@@ -65,7 +65,7 @@ class IqiyiSDK:
 
     def mod(self, modulus):
         chunks, ip = self.preprocess(32)
-        self.target = chunks[0] + ''.join(map(lambda p: compat_str(p % modulus), ip))
+        self.target = chunks[0] + ''.join((compat_str(p % modulus) for p in ip))
 
     def split(self, chunksize):
         modulus_map = {
@@ -108,7 +108,7 @@ class IqiyiSDK:
             'm': '%02d' % d.tm_mon,
             'd': '%02d' % d.tm_mday,
         }
-        self.target += ''.join(map(lambda c: strings[c], list(scheme)))
+        self.target += ''.join(strings[c] for c in scheme)
 
     def split_time_even_odd(self):
         even, odd = self.even_odd()

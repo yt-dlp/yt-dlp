@@ -153,8 +153,8 @@ class Tube8IE(InfoExtractor):
         tags_str = self._search_regex(
             r'(?s)Tags:\s*</dt>\s*<dd>(.+?)</(?!a)',
             webpage, 'tags', fatal=False)
-        tags = [t for t in re.findall(
-            r'<a[^>]+href=[^>]+>([^<]+)', tags_str)] if tags_str else None
+        tags = list(re.findall(
+            r'<a[^>]+href=[^>]+>([^<]+)', tags_str)) if tags_str else None
 
         info.update({
             'description': description,

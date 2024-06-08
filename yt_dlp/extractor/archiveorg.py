@@ -695,7 +695,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
             note or 'Downloading CDX API JSON', query=query, fatal=fatal)
         if isinstance(res, list) and len(res) >= 2:
             # format response to make it easier to use
-            return list(dict(zip(res[0], v)) for v in res[1:])
+            return [dict(zip(res[0], v)) for v in res[1:]]
         elif not isinstance(res, list) or len(res) != 0:
             self.report_warning('Error while parsing CDX API response' + bug_reports_message())
 

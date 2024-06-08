@@ -3491,15 +3491,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         # Keeps track of counts across recursive calls
         if not tracker:
-            tracker = dict(
-                running_total=0,
-                est_total=None,
-                current_page_thread=0,
-                total_parent_comments=0,
-                total_reply_comments=0,
-                seen_comment_ids=set(),
-                pinned_comment_ids=set()
-            )
+            tracker = {
+                'running_total': 0,
+                'est_total': None,
+                'current_page_thread': 0,
+                'total_parent_comments': 0,
+                'total_reply_comments': 0,
+                'seen_comment_ids': set(),
+                'pinned_comment_ids': set()
+            }
 
         # TODO: Deprecated
         # YouTube comments have a max depth of 2
@@ -3510,8 +3510,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if max_depth == 1 and parent:
             return
 
-        max_comments, max_parents, max_replies, max_replies_per_thread, *_ = map(
-            lambda p: int_or_none(p, default=sys.maxsize), self._configuration_arg('max_comments', ) + [''] * 4)
+        max_comments, max_parents, max_replies, max_replies_per_thread, *_ = (
+            int_or_none(p, default=sys.maxsize) for p in self._configuration_arg('max_comments', ) + [''] * 4)
 
         continuation = self._extract_continuation(root_continuation_data)
 

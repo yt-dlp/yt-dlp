@@ -129,8 +129,8 @@ class TestFormatSelection(unittest.TestCase):
                 'allow_multiple_audio_streams': multi,
             })
             ydl.process_ie_result(info_dict.copy())
-            downloaded = map(lambda x: x['format_id'], ydl.downloaded_info_dicts)
-            self.assertEqual(list(downloaded), list(expected))
+            downloaded = [x['format_id'] for x in ydl.downloaded_info_dicts]
+            self.assertEqual(downloaded, list(expected))
 
         test('20/47', '47')
         test('20/71/worst', '35')

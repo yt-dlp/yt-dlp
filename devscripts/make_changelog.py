@@ -356,7 +356,7 @@ class CommitRange:
                 logger.info(f'CHANGE {self._commits[commit.hash]} -> {commit}')
                 self._commits[commit.hash] = commit
 
-        self._commits = {key: value for key, value in reversed(self._commits.items())}
+        self._commits = dict(reversed(self._commits.items()))
 
     def groups(self):
         group_dict = defaultdict(list)
