@@ -185,7 +185,7 @@ class WeiboVideoIE(WeiboBaseIE):
             'ext': 'mp4',
             'display_id': 'LEZDodaiW',
             'title': '呃，稍微了解了一下靡烟miya，感觉这东西也太二了',
-            'description': '呃，稍微了解了一下靡烟miya，感觉这东西也太二了 http://t.cn/A6aerGsM ​​​',
+            'description': '呃，稍微了解了一下靡烟miya，感觉这东西也太二了 http://t.cn/A6aerGsM \u200b\u200b\u200b',
             'duration': 76,
             'timestamp': 1659344278,
             'upload_date': '20220801',
