@@ -149,7 +149,7 @@ class Magic(HeaderBlock):
 
     # XXX: The X-TIMESTAMP-MAP extension is described in RFC 8216 §3.5
     # <https://tools.ietf.org/html/rfc8216#section-3.5>, but the RFC
-    # doesn’t specify the exact grammar nor where in the WebVTT
+    # doesn't specify the exact grammar nor where in the WebVTT
     # syntax it should be placed; the below has been devised based
     # on usage in the wild
     #

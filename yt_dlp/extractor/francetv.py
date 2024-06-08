@@ -189,7 +189,7 @@ class FranceTVIE(InfoExtractor):
                 'fragments': [{
                     'url': sheet,
                     # XXX: not entirely accurate; each spritesheet seems to be
-                    # a 10×10 grid of thumbnails corresponding to approximately
+                    # a 10x10 grid of thumbnails corresponding to approximately
                     # 2 seconds of the video; the last spritesheet may be shorter
                     'duration': 200,
                 } for sheet in traverse_obj(spritesheets, (..., {url_or_none}))]
