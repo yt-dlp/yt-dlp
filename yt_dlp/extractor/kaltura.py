@@ -240,7 +240,7 @@ class KalturaIE(InfoExtractor):
             urls.append(embed_url)
         return urls
 
-    def _kaltura_api_call(self, video_id, actions, service_url=None, *args, **kwargs):
+    def _kaltura_api_call(self, video_id, actions, service_url=None, **kwargs):
         params = actions[0]
         params.update(dict(enumerate(actions[1:], start=1)))
 
@@ -250,7 +250,7 @@ class KalturaIE(InfoExtractor):
             headers={
                 'Content-Type': 'application/json',
                 'Accept-Encoding': 'gzip, deflate, br',
-            }, *args, **kwargs)
+            }, **kwargs)
 
         for idx, status in enumerate(data):
             if not isinstance(status, dict):

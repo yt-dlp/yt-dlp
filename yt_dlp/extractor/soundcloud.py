@@ -196,13 +196,11 @@ class SoundcloudBaseIE(InfoExtractor):
         t = clid  # _CLIENT_ID
 
         d = '-'.join([str(mInt) for mInt in [a, i, s, w, u, l, b, k]])
-        p = n + y + d + r + e + t + d + n
-        h = p
+        h = n + y + d + r + e + t + d + n
 
         m = 8011470
-        f = 0
 
-        for f in range(f, len(h)):
+        for f in range(len(h)):
             m = (m >> 1) + ((1 & m) << 23)
             m += ord(h[f])
             m &= 16777215

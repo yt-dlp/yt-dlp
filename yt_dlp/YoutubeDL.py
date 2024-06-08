@@ -2214,7 +2214,7 @@ class YoutubeDL:
 
         def _parse_filter(tokens):
             filter_parts = []
-            for type_, string_, start, _, _ in tokens:
+            for type_, string_, _start, _, _ in tokens:
                 if type_ == tokenize.OP and string_ == ']':
                     return ''.join(filter_parts)
                 else:
@@ -3469,7 +3469,7 @@ class YoutubeDL:
                 return
             except OSError as err:
                 raise UnavailableVideoError(err)
-            except (ContentTooShortError, ) as err:
+            except ContentTooShortError as err:
                 self.report_error(f'content too short (expected {err.expected} bytes and served {err.downloaded})')
                 return
 

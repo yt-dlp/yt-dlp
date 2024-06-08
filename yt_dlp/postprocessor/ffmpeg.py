@@ -169,12 +169,12 @@ class FFmpegPostProcessor(PostProcessor):
 
     @functools.cached_property
     def basename(self):
-        self._version  # run property
+        _ = self._version  # run property
         return self.basename
 
     @functools.cached_property
     def probe_basename(self):
-        self._probe_version  # run property
+        _ = self._probe_version  # run property
         return self.probe_basename
 
     def _get_version(self, kind):

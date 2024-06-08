@@ -235,7 +235,7 @@ class JSInterpreter:
         flags = 0
         if not expr:
             return flags, expr
-        for idx, ch in enumerate(expr):
+        for idx, ch in enumerate(expr):  # noqa: B007
             if ch not in cls._RE_FLAGS:
                 break
             flags |= cls._RE_FLAGS[ch]
@@ -702,7 +702,7 @@ class JSInterpreter:
                         index += len(obj)
                     add_items = argvals[2:]
                     res = []
-                    for i in range(index, min(index + howMany, len(obj))):
+                    for _ in range(index, min(index + howMany, len(obj))):
                         res.append(obj.pop(index))
                     for i, item in enumerate(add_items):
                         obj.insert(index + i, item)

@@ -32,7 +32,7 @@ class PinterestBaseIE(InfoExtractor):
         thumbnails = []
         images = data.get('images')
         if isinstance(images, dict):
-            for thumbnail_id, thumbnail in images.items():
+            for thumbnail in images.values():
                 if not isinstance(thumbnail, dict):
                     continue
                 thumbnail_url = url_or_none(thumbnail.get('url'))

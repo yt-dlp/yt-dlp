@@ -61,7 +61,7 @@ class MTVServicesInfoExtractor(InfoExtractor):
         response = self._request_webpage(req, mtvn_id, 'Resolving url')
         url = response.url
         # Transform the url to get the best quality:
-        url = re.sub(r'.+pxE=mp4', 'http://mtvnmobile.vo.llnwd.net/kip0/_pxn=0+_pxK=18639+_pxE=mp4', url, 1)
+        url = re.sub(r'.+pxE=mp4', 'http://mtvnmobile.vo.llnwd.net/kip0/_pxn=0+_pxK=18639+_pxE=mp4', url, count=1)
         return [{'url': url, 'ext': 'mp4'}]
 
     def _extract_video_formats(self, mdoc, mtvn_id, video_id):

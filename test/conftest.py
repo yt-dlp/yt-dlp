@@ -22,8 +22,8 @@ def handler(request):
     class HandlerWrapper(handler):
         RH_KEY = handler.RH_KEY
 
-        def __init__(self, *args, **kwargs):
-            super().__init__(logger=FakeLogger, *args, **kwargs)
+        def __init__(self, **kwargs):
+            super().__init__(logger=FakeLogger, **kwargs)
 
     return HandlerWrapper
 

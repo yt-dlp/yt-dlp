@@ -2525,7 +2525,7 @@ class InfoExtractor:
     def _parse_smil_subtitles(self, smil, namespace=None, subtitles_lang='en'):
         urls = []
         subtitles = {}
-        for num, textstream in enumerate(smil.findall(self._xpath_ns('.//textstream', namespace))):
+        for textstream in smil.findall(self._xpath_ns('.//textstream', namespace)):
             src = textstream.get('src')
             if not src or src in urls:
                 continue
@@ -2928,12 +2928,12 @@ class InfoExtractor:
                                     'duration': float_or_none(segment_d, representation_ms_info['timescale']),
                                 })
 
-                            for num, s in enumerate(representation_ms_info['s']):
+                            for s in representation_ms_info['s']:
                                 segment_time = s.get('t') or segment_time
                                 segment_d = s['d']
                                 add_segment_url()
                                 segment_number += 1
-                                for r in range(s.get('r', 0)):
+                                for _ in range(s.get('r', 0)):
                                     segment_time += segment_d
                                     add_segment_url()
                                     segment_number += 1
@@ -2947,7 +2947,7 @@ class InfoExtractor:
                         timescale = representation_ms_info['timescale']
                         for s in representation_ms_info['s']:
                             duration = float_or_none(s['d'], timescale)
-                            for r in range(s.get('r', 0) + 1):
+                            for _ in range(s.get('r', 0) + 1):
                                 segment_uri = representation_ms_info['segment_urls'][segment_index]
                                 fragments.append({
                                     location_key(segment_uri): segment_uri,

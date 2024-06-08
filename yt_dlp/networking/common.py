@@ -341,7 +341,7 @@ class RequestHandler(abc.ABC):
         """Handle a request from start to finish. Redefine in subclasses."""
         pass
 
-    def close(self):
+    def close(self):  # noqa: B027
         pass
 
     @classproperty

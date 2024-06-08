@@ -71,7 +71,7 @@ class RedGifsBaseInfoExtractor(InfoExtractor):
             raise ExtractorError('Unable to get temporary token')
         self._API_HEADERS['authorization'] = f'Bearer {auth["token"]}'
 
-    def _call_api(self, ep, video_id, *args, **kwargs):
+    def _call_api(self, ep, video_id, **kwargs):
         for first_attempt in True, False:
             if 'authorization' not in self._API_HEADERS:
                 self._fetch_oauth_token(video_id)
@@ -79,7 +79,7 @@ class RedGifsBaseInfoExtractor(InfoExtractor):
                 headers = dict(self._API_HEADERS)
                 headers['x-customheader'] = f'https://www.redgifs.com/watch/{video_id}'
                 data = self._download_json(
-                    f'https://api.redgifs.com/v2/{ep}', video_id, headers=headers, *args, **kwargs)
+                    f'https://api.redgifs.com/v2/{ep}', video_id, headers=headers, **kwargs)
                 break
             except ExtractorError as e:
                 if first_attempt and isinstance(e.cause, HTTPError) and e.cause.status == 401:

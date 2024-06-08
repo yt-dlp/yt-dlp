@@ -115,16 +115,16 @@ class ESPNIE(OnceIE):
         formats = []
 
         def traverse_source(source, base_source_id=None):
-            for source_id, source in source.items():
-                if source_id == 'alert':
+            for src_id, src_item in source.items():
+                if src_id == 'alert':
                     continue
-                elif isinstance(source, str):
-                    extract_source(source, base_source_id)
-                elif isinstance(source, dict):
+                elif isinstance(src_item, str):
+                    extract_source(src_item, base_source_id)
+                elif isinstance(src_item, dict):
                     traverse_source(
-                        source,
-                        '%s-%s' % (base_source_id, source_id)
-                        if base_source_id else source_id)
+                        src_item,
+                        '%s-%s' % (base_source_id, src_id)
+                        if base_source_id else src_id)
 
         def extract_source(source_url, source_id=None):
             if source_url in format_urls:

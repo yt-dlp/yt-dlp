@@ -119,7 +119,7 @@ class AbemaTVBaseIE(InfoExtractor):
 
         def mix_tmp(count):
             nonlocal tmp
-            for i in range(count):
+            for _ in range(count):
                 mix_once(tmp)
 
         def mix_twist(nonce):
