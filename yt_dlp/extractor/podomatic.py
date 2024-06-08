@@ -48,8 +48,7 @@ class PodomaticIE(InfoExtractor):
         video_id = mobj.group('id')
         channel = mobj.group('channel') or mobj.group('channel_2')
 
-        json_url = (('%s://%s.podomatic.com/entry/embed_params/%s'
-                     + '?permalink=true&rtmp=0') %
+        json_url = ('%s://%s.podomatic.com/entry/embed_params/%s?permalink=true&rtmp=0' %
                     (mobj.group('proto'), channel, video_id))
         data_json = self._download_webpage(
             json_url, video_id, 'Downloading video info')

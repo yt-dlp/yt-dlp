@@ -66,9 +66,9 @@ body > figure > img {
             '<!DOCTYPE html>'
             '<html>'
             '<head>'
-            ''  '<meta name="generator" content="yt-dlp {version}">'
-            ''  '<title>{title}</title>'
-            ''  '<style>{styles}</style>'
+            '<meta name="generator" content="yt-dlp {version}">'
+            '<title>{title}</title>'
+            '<style>{styles}</style>'
             '<body>'
         ).format(
             version=escapeHTML(YT_DLP_VERSION),
@@ -135,8 +135,8 @@ body > figure > img {
                 'To: <nowhere@yt-dlp.github.io.invalid>\r\n'
                 'Subject: {title}\r\n'
                 'Content-type: multipart/related; '
-                ''  'boundary="{boundary}"; '
-                ''  'type="text/html"\r\n'
+                'boundary="{boundary}"; '
+                'type="text/html"\r\n'
                 'X.yt-dlp.Origin: {origin}\r\n'
                 '\r\n'
                 '--{boundary}\r\n'

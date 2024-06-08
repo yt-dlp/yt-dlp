@@ -379,8 +379,8 @@ class TVPEmbedIE(InfoExtractor):
         ))
 
         webpage = self._download_webpage(
-            ('https://www.tvp.pl/sess/TVPlayer2/api.php?id=%s'
-             + '&@method=getTvpConfig&@callback=%s') % (video_id, callback), video_id)
+            'https://www.tvp.pl/sess/TVPlayer2/api.php?id=%s&@method=getTvpConfig&@callback=%s'
+            % (video_id, callback), video_id)
 
         # stripping JSONP padding
         datastr = webpage[15 + len(callback):-3]
