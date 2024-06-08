@@ -5193,7 +5193,7 @@ class FormatSorter:
                  'function': lambda it: next(filter(None, it), None)},
         'ext': {'type': 'combined', 'field': ('vext', 'aext')},
         'res': {'type': 'multiple', 'field': ('height', 'width'),
-                'function': lambda it: (lambda l: min(l) if l else 0)(tuple(filter(None, it)))},
+                'function': lambda it: min(filter(None, it), default=0)},
 
         # Actual field names
         'format_id': {'type': 'alias', 'field': 'id'},
