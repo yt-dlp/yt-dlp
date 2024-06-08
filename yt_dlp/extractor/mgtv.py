@@ -77,7 +77,7 @@ class MGTVIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         tk2 = base64.urlsafe_b64encode(
-            f'did={str(uuid.uuid4())}|pno=1030|ver=0.3.0301|clit={int(time.time())}'.encode())[::-1]
+            f'did={uuid.uuid4()}|pno=1030|ver=0.3.0301|clit={int(time.time())}'.encode())[::-1]
         try:
             api_data = self._download_json(
                 'https://pcweb.api.mgtv.com/player/video', video_id, query={

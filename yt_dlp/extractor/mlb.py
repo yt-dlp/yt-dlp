@@ -304,7 +304,7 @@ class MLBTVIE(InfoExtractor):
             }, data=data.encode())['access_token']
 
         entitlement = self._download_webpage(
-            f'https://media-entitlement.mlb.com/api/v3/jwt?os=Android&appname=AtBat&did={str(uuid.uuid4())}', None,
+            f'https://media-entitlement.mlb.com/api/v3/jwt?os=Android&appname=AtBat&did={uuid.uuid4()}', None,
             headers={
                 'User-Agent': 'okhttp/3.12.1',
                 'Authorization': f'Bearer {access_token}'

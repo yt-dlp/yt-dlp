@@ -18,7 +18,7 @@ class MildomBaseIE(InfoExtractor):
 
     def _call_api(self, url, video_id, query=None, note='Downloading JSON metadata', body=None):
         if not self._GUEST_ID:
-            self._GUEST_ID = f'pc-gp-{str(uuid.uuid4())}'
+            self._GUEST_ID = f'pc-gp-{uuid.uuid4()}'
 
         content = self._download_json(
             url, video_id, note=note, data=json.dumps(body).encode() if body else None,
