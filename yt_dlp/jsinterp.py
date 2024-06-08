@@ -474,7 +474,7 @@ class JSInterpreter:
             if remaining.startswith('{'):
                 body, expr = self._separate_at_paren(remaining)
             else:
-                switch_m = re.match(r'switch\s*\(', remaining)  # FIXME
+                switch_m = re.match(r'switch\s*\(', remaining)  # FIXME: ?
                 if switch_m:
                     switch_val, remaining = self._separate_at_paren(remaining[switch_m.end() - 1:])
                     body, expr = self._separate_at_paren(remaining, '}')

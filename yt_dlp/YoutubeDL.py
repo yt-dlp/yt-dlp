@@ -4103,7 +4103,7 @@ class YoutubeDL:
         return handler._get_instance(cookiejar=self.cookiejar, proxies=self.proxies)
 
     def _get_available_impersonate_targets(self):
-        # todo(future): make available as public API
+        # TODO(future): make available as public API
         return [
             (target, rh.RH_NAME)
             for rh in self._request_director.handlers.values()
@@ -4112,7 +4112,7 @@ class YoutubeDL:
         ]
 
     def _impersonate_target_available(self, target):
-        # todo(future): make available as public API
+        # TODO(future): make available as public API
         return any(
             rh.is_supported_target(target)
             for rh in self._request_director.handlers.values()

@@ -1,6 +1,6 @@
 from .mtv import MTVIE
 
-# TODO Remove - Reason: Outdated Site
+# TODO: Remove - Reason: Outdated Site
 
 
 class CMTIE(MTVIE):  # XXX: Do not subclass from concrete IE

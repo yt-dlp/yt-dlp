@@ -792,7 +792,7 @@ class TikTokIE(TikTokBaseIE):
         'expected_warnings': ['Unable to find video in feed'],
     }, {
         # 1080p format
-        'url': 'https://www.tiktok.com/@tatemcrae/video/7107337212743830830',  # FIXME
+        'url': 'https://www.tiktok.com/@tatemcrae/video/7107337212743830830',  # FIXME: Video removed
         'md5': '982512017a8a917124d5a08c8ae79621',
         'info_dict': {
             'id': '7107337212743830830',

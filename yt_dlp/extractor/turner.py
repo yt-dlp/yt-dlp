@@ -79,7 +79,7 @@ class TurnerBaseIE(AdobePassIE):
             ext = determine_ext(video_url)
             if video_url.startswith('/mp4:protected/'):
                 continue
-                # TODO Correct extraction for these files
+                # TODO: Correct extraction for these files
                 # protected_path_data = path_data.get('protected')
                 # if not protected_path_data or not rtmp_src:
                 #     continue

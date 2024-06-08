@@ -1935,7 +1935,7 @@ Line 1
                             with locked_file(FILE, test_mode, False):
                                 pass
                         except (BlockingIOError, PermissionError):
-                            if not testing_write:  # FIXME
+                            if not testing_write:  # FIXME: blocked read access
                                 print(f'Known issue: Exclusive lock ({lock_mode}) blocks read access ({test_mode})')
                                 continue
                             self.assertTrue(testing_write, f'{test_mode} is blocked by {lock_mode}')

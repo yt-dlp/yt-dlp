@@ -843,8 +843,8 @@ class TestYoutubeDL(unittest.TestCase):
 
         # Empty filename
         test('%(foo|)s-%(bar|)s.%(ext)s', '-.mp4')
-        # test('%(foo|)s.%(ext)s', ('.mp4', '_.mp4'))  # fixme
-        # test('%(foo|)s', ('', '_'))  # fixme
+        # test('%(foo|)s.%(ext)s', ('.mp4', '_.mp4'))  # FIXME: ?
+        # test('%(foo|)s', ('', '_'))  # FIXME: ?
 
         # Environment variable expansion for prepare_filename
         os.environ['__yt_dlp_var'] = 'expanded'

@@ -4835,7 +4835,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             yield from self._grid_entries(renderer)
         renderer = content.get('horizontalListRenderer')
         if renderer:
-            # TODO
+            # TODO: handle case
             pass
 
     def _shelf_entries(self, shelf_renderer, skip_channels=False):
@@ -6387,7 +6387,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'url': 'https://www.youtube.com/channel/UCQvWX73GQygcwXOTSf_VDVg/live',
         'info_dict': {
             'id': 'UCQvWX73GQygcwXOTSf_VDVg',
-            'title': 'UCQvWX73GQygcwXOTSf_VDVg - Live',  # TODO, should be Minecraft - Live or Minecraft - Topic - Live
+            'title': 'UCQvWX73GQygcwXOTSf_VDVg - Live',  # TODO: should be Minecraft - Live or Minecraft - Topic - Live
             'tags': []
         },
         'playlist': [{

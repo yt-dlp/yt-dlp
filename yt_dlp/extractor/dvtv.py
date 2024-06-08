@@ -170,7 +170,7 @@ class DVTVIE(InfoExtractor):
             webpage, 'video', default=None)
         if item:
             # remove function calls (ex. htmldeentitize)
-            # TODO this should be fixed in a general way in the js_to_json
+            # TODO: this should be fixed in a general way in the js_to_json
             item = re.sub(r'\w+?\((.+)\)', r'\1', item)
             return self._parse_video_metadata(item, video_id, timestamp)
 

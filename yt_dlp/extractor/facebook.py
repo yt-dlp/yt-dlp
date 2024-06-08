@@ -209,7 +209,7 @@ class FacebookIE(InfoExtractor):
             'skip_download': True,
         },
     }, {
-        # FIXME
+        # FIXME: Cannot parse data error
         'url': 'https://www.facebook.com/LaGuiaDelVaron/posts/1072691702860471',
         'info_dict': {
             'id': '1072691702860471',
