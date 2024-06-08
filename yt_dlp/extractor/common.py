@@ -1837,7 +1837,7 @@ class InfoExtractor:
     def _is_valid_url(self, url, video_id, item='video', headers={}):
         url = self._proto_relative_url(url, scheme='http:')
         # For now assume non HTTP(S) URLs always valid
-        if not (url.startswith('http://') or url.startswith('https://')):
+        if not url.startswith(('http://', 'https://')):
             return True
         try:
             self._request_webpage(url, video_id, 'Checking %s URL' % item, headers=headers)
@@ -1946,7 +1946,7 @@ class InfoExtractor:
                 if not media_url:
                     continue
                 manifest_url = (
-                    media_url if media_url.startswith('http://') or media_url.startswith('https://')
+                    media_url if media_url.startswith(('http://', 'https://'))
                     else ((manifest_base_url or '/'.join(manifest_url.split('/')[:-1])) + '/' + media_url))
                 # If media_url is itself a f4m manifest do the recursive extraction
                 # since bitrates in parent manifest (this one) and media_url manifest

@@ -47,7 +47,7 @@ class STVPlayerIE(InfoExtractor):
 
         api_path, resp = None, {}
         for k, v in player_api_cache.items():
-            if k.startswith('/episodes/') or k.startswith('/shortform/'):
+            if k.startswith(('/episodes/', '/shortform/')):
                 api_path, resp = k, v
                 break
         else:

@@ -118,7 +118,7 @@ class VideaIE(InfoExtractor):
         l = nonce[:32]
         s = nonce[32:]
         result = ''
-        for i in range(0, 32):
+        for i in range(32):
             result += s[i - (self._STATIC_SECRET.index(l[i]) - 31)]
 
         query = parse_qs(player_url)

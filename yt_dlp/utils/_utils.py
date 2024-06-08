@@ -2736,7 +2736,7 @@ def js_to_json(code, vars={}, *, strict=False):
             return v
         elif v in ('undefined', 'void 0'):
             return 'null'
-        elif v.startswith('/*') or v.startswith('//') or v.startswith('!') or v == ',':
+        elif v.startswith(('/*', '//', '!')) or v == ',':
             return ''
 
         if v[0] in STRING_QUOTES:

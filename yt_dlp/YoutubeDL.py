@@ -3666,7 +3666,7 @@ class YoutubeDL:
                     actual_post_extract(video_dict or {})
                 return
 
-            post_extractor = info_dict.pop('__post_extractor', None) or (lambda: {})
+            post_extractor = info_dict.pop('__post_extractor', None) or dict
             info_dict.update(post_extractor())
 
         actual_post_extract(info_dict or {})

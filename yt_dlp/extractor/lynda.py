@@ -220,12 +220,10 @@ class LyndaIE(LyndaBaseIE):
     def _fix_subtitles(self, subs):
         srt = ''
         seq_counter = 0
-        for pos in range(0, len(subs) - 1):
-            seq_current = subs[pos]
+        for seq_current, seq_next in zip(subs, subs[1:]):
             m_current = re.match(self._TIMECODE_REGEX, seq_current['Timecode'])
             if m_current is None:
                 continue
-            seq_next = subs[pos + 1]
             m_next = re.match(self._TIMECODE_REGEX, seq_next['Timecode'])
             if m_next is None:
                 continue

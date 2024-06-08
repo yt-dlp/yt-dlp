@@ -2401,7 +2401,7 @@ class GenericIE(InfoExtractor):
             subtitles = {}
             if format_id.endswith('mpegurl') or ext == 'm3u8':
                 formats, subtitles = self._extract_m3u8_formats_and_subtitles(url, video_id, 'mp4', headers=headers)
-            elif format_id.endswith('mpd') or format_id.endswith('dash+xml') or ext == 'mpd':
+            elif format_id.endswith(('mpd', 'dash+xml')) or ext == 'mpd':
                 formats, subtitles = self._extract_mpd_formats_and_subtitles(url, video_id, headers=headers)
             elif format_id == 'f4m' or ext == 'f4m':
                 formats = self._extract_f4m_formats(url, video_id, headers=headers)
