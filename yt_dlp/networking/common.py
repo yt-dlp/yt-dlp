@@ -224,11 +224,11 @@ class RequestHandler(abc.ABC):
         headers: HTTPHeaderDict = None,
         cookiejar: YoutubeDLCookieJar = None,
         timeout: float | int | None = None,
-        proxies: dict = None,
-        source_address: str = None,
+        proxies: dict | None = None,
+        source_address: str | None = None,
         verbose: bool = False,
         prefer_system_certs: bool = False,
-        client_cert: dict[str, str | None] = None,
+        client_cert: dict[str, str | None] | None = None,
         verify: bool = True,
         legacy_ssl_support: bool = False,
         **_,
@@ -378,11 +378,11 @@ class Request:
             self,
             url: str,
             data: RequestData = None,
-            headers: typing.Mapping = None,
-            proxies: dict = None,
-            query: dict = None,
-            method: str = None,
-            extensions: dict = None
+            headers: typing.Mapping | None = None,
+            proxies: dict | None = None,
+            query: dict | None = None,
+            method: str | None = None,
+            extensions: dict | None = None
     ):
 
         self._headers = HTTPHeaderDict()
@@ -508,8 +508,8 @@ class Response(io.IOBase):
             url: str,
             headers: Mapping[str, str],
             status: int = 200,
-            reason: str = None,
-            extensions: dict = None
+            reason: str | None = None,
+            extensions: dict | None = None
     ):
 
         self.fp = fp
@@ -527,7 +527,7 @@ class Response(io.IOBase):
     def readable(self):
         return self.fp.readable()
 
-    def read(self, amt: int = None) -> bytes:
+    def read(self, amt: int | None = None) -> bytes:
         # Expected errors raised here should be of type RequestError or subclasses.
         # Subclasses should redefine this method with more precise error handling.
         try:

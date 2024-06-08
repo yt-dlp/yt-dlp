@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 import re
 import urllib.parse
@@ -681,7 +683,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
     _OLDEST_CAPTURE_DATE = 20050214000000
     _NEWEST_CAPTURE_DATE = 20500101000000
 
-    def _call_cdx_api(self, item_id, url, filters: list = None, collapse: list = None, query: dict = None, note=None, fatal=False):
+    def _call_cdx_api(self, item_id, url, filters: list | None = None, collapse: list | None = None, query: dict | None = None, note=None, fatal=False):
         # CDX docs: https://github.com/internetarchive/wayback/blob/master/wayback-cdx-server/README.md
         query = {
             'url': url,

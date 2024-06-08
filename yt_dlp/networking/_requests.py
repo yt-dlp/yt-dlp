@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import contextlib
 import functools
 import http.client
@@ -135,7 +137,7 @@ class RequestsResponseAdapter(Response):
 
         self._requests_response = res
 
-    def read(self, amt: int = None):
+    def read(self, amt: int | None = None):
         try:
             # Interact with urllib3 response directly.
             return self.fp.read(amt, decode_content=True)
