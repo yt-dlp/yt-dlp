@@ -16,8 +16,8 @@ if 'pytest' in sys.modules:
     import pytest
     is_download_test = pytest.mark.download
 else:
-    def is_download_test(testClass):
-        return testClass
+    def is_download_test(test_class):
+        return test_class
 
 
 def get_params(override=None):

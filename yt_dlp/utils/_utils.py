@@ -3144,8 +3144,8 @@ def render_table(header_row, data, delim=False, extra_gap=0, hide_empty=False):
     def get_max_lens(table):
         return [max(width(str(v)) for v in col) for col in zip(*table)]
 
-    def filter_using_list(row, filterArray):
-        return [col for take, col in itertools.zip_longest(filterArray, row, fillvalue=True) if take]
+    def filter_using_list(row, filter_array):
+        return [col for take, col in itertools.zip_longest(filter_array, row, fillvalue=True) if take]
 
     max_lens = get_max_lens(data) if hide_empty else []
     header_row = filter_using_list(header_row, max_lens)
@@ -5253,9 +5253,9 @@ class FormatSorter:
             propObj[key] = default
         return propObj[key]
 
-    def _resolve_field_value(self, field, value, convertNone=False):
+    def _resolve_field_value(self, field, value, convert_none=False):
         if value is None:
-            if not convertNone:
+            if not convert_none:
                 return None
         else:
             value = value.lower()

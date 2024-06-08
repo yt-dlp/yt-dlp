@@ -117,16 +117,16 @@ class MediasiteIE(InfoExtractor):
         for embed_url in super()._extract_embed_urls(url, webpage):
             yield smuggle_url(embed_url, {'UrlReferrer': url})
 
-    def __extract_slides(self, *, stream_id, snum, Stream, duration, images):
-        slide_base_url = Stream['SlideBaseUrl']
+    def __extract_slides(self, *, stream_id, snum, stream, duration, images):
+        slide_base_url = stream['SlideBaseUrl']
 
-        fname_template = Stream['SlideImageFileNameTemplate']
+        fname_template = stream['SlideImageFileNameTemplate']
         if fname_template != 'slide_{0:D4}.jpg':
             self.report_warning('Unusual slide file name template; report a bug if slide downloading fails')
         fname_template = re.sub(r'\{0:D([0-9]+)\}', r'{0:0\1}', fname_template)
 
         fragments = []
-        for i, slide in enumerate(Stream['Slides']):
+        for i, slide in enumerate(stream['Slides']):
             if i == 0:
                 if slide['Time'] > 0:
                     default_slide = images.get('DefaultSlide')
@@ -141,7 +141,7 @@ class MediasiteIE(InfoExtractor):
                         })
 
             next_time = try_call(
-                lambda: Stream['Slides'][i + 1]['Time'],
+                lambda: stream['Slides'][i + 1]['Time'],
                 lambda: duration,
                 lambda: slide['Time'],
                 expected_type=(int, float))
@@ -202,12 +202,12 @@ class MediasiteIE(InfoExtractor):
 
         thumbnails = []
         formats = []
-        for snum, Stream in enumerate(presentation['Streams']):
-            stream_type = Stream.get('StreamType')
+        for snum, stream in enumerate(presentation['Streams']):
+            stream_type = stream.get('StreamType')
             if stream_type is None:
                 continue
 
-            video_urls = Stream.get('VideoUrls')
+            video_urls = stream.get('VideoUrls')
             if not isinstance(video_urls, list):
                 video_urls = []
 
@@ -239,12 +239,12 @@ class MediasiteIE(InfoExtractor):
                         'ext': mimetype2ext(VideoUrl.get('MimeType')),
                     })
 
-            if Stream.get('HasSlideContent', False):
+            if stream.get('HasSlideContent', False):
                 images = player_options['PlayerLayoutOptions']['Images']
                 stream_formats.append(self.__extract_slides(
                     stream_id=stream_id,
                     snum=snum,
-                    Stream=Stream,
+                    stream=stream,
                     duration=presentation.get('Duration'),
                     images=images,
                 ))
@@ -254,7 +254,7 @@ class MediasiteIE(InfoExtractor):
                 for fmt in stream_formats:
                     fmt['quality'] = -10
 
-            thumbnail_url = Stream.get('ThumbnailUrl')
+            thumbnail_url = stream.get('ThumbnailUrl')
             if thumbnail_url:
                 thumbnails.append({
                     'id': '%s-%u' % (stream_id, snum),

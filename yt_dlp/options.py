@@ -40,7 +40,7 @@ from .utils import (
 from .version import CHANNEL, __version__
 
 
-def parseOpts(overrideArguments=None, ignore_config_files='if_override'):
+def parseOpts(overrideArguments=None, ignore_config_files='if_override'):  # noqa: N803
     PACKAGE_NAME = 'yt-dlp'
 
     root = Config(create_parser())
