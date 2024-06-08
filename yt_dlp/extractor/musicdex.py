@@ -105,8 +105,7 @@ class MusicdexPageIE(MusicdexBaseIE):  # XXX: Conventionally, base classes shoul
         next_page_url = self._API_URL % playlist_id
         while next_page_url:
             data_json = self._download_json(next_page_url, playlist_id)['pagination']
-            for data in data_json.get('data') or []:
-                yield data
+            yield from data_json.get('data') or []
             next_page_url = data_json.get('next_page_url')
 
 

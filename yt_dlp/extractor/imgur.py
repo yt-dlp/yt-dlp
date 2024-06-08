@@ -228,21 +228,18 @@ class ImgurGalleryBaseIE(ImgurBaseIE):
 
         if traverse_obj(data, 'is_album'):
 
-            def yield_media_ids():
-                for m_id in traverse_obj(data, (
-                        'media', lambda _, v: v.get('type') == 'video' or v['metadata']['is_animated'],
-                        'id', {lambda x: str_or_none(x) or None})):
-                    yield m_id
+            items = traverse_obj(data, (
+                'media', lambda _, v: v.get('type') == 'video' or v['metadata']['is_animated'],
+                'id', {lambda x: str_or_none(x) or None}))
 
             # if a gallery with exactly one video, apply album metadata to video
-            media_id = (
-                self._GALLERY
-                and traverse_obj(data, ('image_count', {lambda c: c == 1}))
-                and next(yield_media_ids(), None))
+            media_id = None
+            if self._GALLERY and len(items) == 1:
+                media_id = items[0]
 
             if not media_id:
                 result = self.playlist_result(
-                    map(self._imgur_result, yield_media_ids()), gallery_id)
+                    map(self._imgur_result, items), gallery_id)
                 result.update(info)
                 return result
             gallery_id = media_id

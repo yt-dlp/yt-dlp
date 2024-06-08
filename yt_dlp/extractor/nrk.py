@@ -514,8 +514,7 @@ class NRKTVSerieBaseIE(NRKBaseIE):
                 (lambda x: x[assets_key]['_embedded'][assets_key],
                  lambda x: x[assets_key]),
                 list)
-            for e in self._extract_entries(entries):
-                yield e
+            yield from self._extract_entries(entries)
             # Find next URL
             next_url_path = try_get(
                 data,

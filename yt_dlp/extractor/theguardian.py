@@ -117,8 +117,7 @@ class TheGuardianPodcastPlaylistIE(InfoExtractor):
                 break
 
             episodes = get_elements_html_by_class('fc-item--type-media', webpage)
-            for url_path in traverse_obj(episodes, (..., {extract_attributes}, 'data-id')):
-                yield url_path
+            yield from traverse_obj(episodes, (..., {extract_attributes}, 'data-id'))
 
     def _real_extract(self, url):
         podcast_id = self._match_id(url)

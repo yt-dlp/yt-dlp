@@ -811,8 +811,7 @@ class PornHubPlaylistIE(PornHubPlaylistBaseIE):
                 page_entries = self._extract_entries(webpage, host)
             if not page_entries:
                 break
-            for e in page_entries:
-                yield e
+            yield from page_entries
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
