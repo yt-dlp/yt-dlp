@@ -64,7 +64,7 @@ class EpornerIE(InfoExtractor):
 
         # Reverse engineered from vjs.js
         def calc_hash(s):
-            return ''.join((encode_base_n(int(s[lb:lb + 8], 16), 36) for lb in range(0, 32, 8)))
+            return ''.join(encode_base_n(int(s[lb:lb + 8], 16), 36) for lb in range(0, 32, 8))
 
         video = self._download_json(
             'http://www.eporner.com/xhr/video/%s' % video_id,

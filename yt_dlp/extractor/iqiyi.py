@@ -65,7 +65,7 @@ class IqiyiSDK:
 
     def mod(self, modulus):
         chunks, ip = self.preprocess(32)
-        self.target = chunks[0] + ''.join((compat_str(p % modulus) for p in ip))
+        self.target = chunks[0] + ''.join(compat_str(p % modulus) for p in ip)
 
     def split(self, chunksize):
         modulus_map = {

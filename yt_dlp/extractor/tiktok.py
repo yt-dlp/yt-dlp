@@ -138,7 +138,7 @@ class TikTokBaseIE(InfoExtractor):
             'channel': 'googleplay',
             'aid': self._APP_INFO['aid'],
             'app_name': self._APP_INFO['app_name'],
-            'version_code': ''.join((f'{int(v):02d}' for v in self._APP_INFO['app_version'].split('.'))),
+            'version_code': ''.join(f'{int(v):02d}' for v in self._APP_INFO['app_version'].split('.')),
             'version_name': self._APP_INFO['app_version'],
             'manifest_version_code': self._APP_INFO['manifest_app_version'],
             'update_version_code': self._APP_INFO['manifest_app_version'],

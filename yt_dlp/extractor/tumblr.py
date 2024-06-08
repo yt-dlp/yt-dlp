@@ -363,8 +363,8 @@ class TumblrIE(InfoExtractor):
         # if it's a reblog, og:description will be the reblogger's comment, not the uploader's.
         # content_json is always the op, so if it exists but has no text, there's no description
         if content_json:
-            description = '\n\n'.join((
-                item.get('text') for item in content_json if item.get('type') == 'text')) or None
+            description = '\n\n'.join(
+                item.get('text') for item in content_json if item.get('type') == 'text') or None
         else:
             description = self._og_search_description(webpage, default=None)
         uploader_id = traverse_obj(post_json, 'reblogged_root_name', 'blog_name')
