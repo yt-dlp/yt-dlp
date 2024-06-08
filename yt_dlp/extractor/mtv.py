@@ -320,8 +320,7 @@ class MTVServicesInfoExtractor(InfoExtractor):
         title = url_basename(url)
         webpage = self._download_webpage(url, title)
         mgid = self._extract_mgid(webpage)
-        videos_info = self._get_videos_info(mgid, url=url)
-        return videos_info
+        return self._get_videos_info(mgid, url=url)
 
 
 class MTVServicesEmbeddedIE(MTVServicesInfoExtractor):

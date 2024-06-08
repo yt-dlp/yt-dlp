@@ -44,8 +44,7 @@ class BaseTestSubtitles(unittest.TestCase):
             self.skipTest('IE marked as not _WORKING')
 
     def getInfoDict(self):
-        info_dict = self.DL.extract_info(self.url, download=False)
-        return info_dict
+        return self.DL.extract_info(self.url, download=False)
 
     def getSubtitles(self):
         info_dict = self.getInfoDict()

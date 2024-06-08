@@ -110,9 +110,7 @@ def aes_ecb_decrypt(data, key, iv=None):
     for i in range(block_count):
         block = data[i * BLOCK_SIZE_BYTES: (i + 1) * BLOCK_SIZE_BYTES]
         encrypted_data += aes_decrypt(block, expanded_key)
-    encrypted_data = encrypted_data[:len(data)]
-
-    return encrypted_data
+    return encrypted_data[:len(data)]
 
 
 def aes_ctr_decrypt(data, key, iv):
@@ -148,9 +146,7 @@ def aes_ctr_encrypt(data, key, iv):
 
         cipher_counter_block = aes_encrypt(counter_block, expanded_key)
         encrypted_data += xor(block, cipher_counter_block)
-    encrypted_data = encrypted_data[:len(data)]
-
-    return encrypted_data
+    return encrypted_data[:len(data)]
 
 
 def aes_cbc_decrypt(data, key, iv):
@@ -174,9 +170,7 @@ def aes_cbc_decrypt(data, key, iv):
         decrypted_block = aes_decrypt(block, expanded_key)
         decrypted_data += xor(decrypted_block, previous_cipher_block)
         previous_cipher_block = block
-    decrypted_data = decrypted_data[:len(data)]
-
-    return decrypted_data
+    return decrypted_data[:len(data)]
 
 
 def aes_cbc_encrypt(data, key, iv, *, padding_mode='pkcs7'):
@@ -288,9 +282,7 @@ def aes_decrypt(data, expanded_key):
             data = list(iter_mix_columns(data, MIX_COLUMN_MATRIX_INV))
         data = shift_rows_inv(data)
         data = sub_bytes_inv(data)
-    data = xor(data, expanded_key[:BLOCK_SIZE_BYTES])
-
-    return data
+    return xor(data, expanded_key[:BLOCK_SIZE_BYTES])
 
 
 def aes_decrypt_text(data, password, key_size_bytes):
@@ -318,9 +310,7 @@ def aes_decrypt_text(data, password, key_size_bytes):
     cipher = data[NONCE_LENGTH_BYTES:]
 
     decrypted_data = aes_ctr_decrypt(cipher, key, nonce + [0] * (BLOCK_SIZE_BYTES - NONCE_LENGTH_BYTES))
-    plaintext = intlist_to_bytes(decrypted_data)
-
-    return plaintext
+    return intlist_to_bytes(decrypted_data)
 
 
 RCON = (0x8d, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36)
@@ -428,9 +418,7 @@ def key_expansion(data):
         for _ in range(3 if key_size_bytes == 32 else 2 if key_size_bytes == 24 else 0):
             temp = data[-4:]
             data += xor(temp, data[-key_size_bytes: 4 - key_size_bytes])
-    data = data[:expanded_key_size_bytes]
-
-    return data
+    return data[:expanded_key_size_bytes]
 
 
 def iter_vector(iv):

@@ -154,7 +154,7 @@ class BlerpIE(InfoExtractor):
 
         bite_json = json_result['data']['web']['biteById']
 
-        info_dict = {
+        return {
             'id': bite_json['_id'],
             'url': bite_json['audio']['mp3']['url'],
             'title': bite_json['title'],
@@ -163,5 +163,3 @@ class BlerpIE(InfoExtractor):
             'ext': 'mp3',
             'tags': list(filter(None, map(strip_or_none, (traverse_obj(bite_json, 'userKeywords', expected_type=list) or []))) or None)
         }
-
-        return info_dict

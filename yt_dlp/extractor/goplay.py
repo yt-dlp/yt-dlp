@@ -235,7 +235,7 @@ class AwsIdp:
         :return: A full Authorization request.
         :rtype: dict
         """
-        auth_request = {
+        return {
             "AuthParameters": {
                 "USERNAME": username,
                 "SRP_A": self.__long_to_hex(self.large_a_value)
@@ -243,7 +243,6 @@ class AwsIdp:
             "AuthFlow": "USER_SRP_AUTH",
             "ClientId": self.client_id
         }
-        return auth_request
 
     def __get_challenge_response_request(self, challenge_parameters, password):
         """ Create a Challenge Response Request object.
@@ -279,7 +278,7 @@ class AwsIdp:
             bytearray(timestamp, 'utf-8')
         hmac_obj = hmac.new(hkdf, msg, digestmod=hashlib.sha256)
         signature_string = base64.standard_b64encode(hmac_obj.digest()).decode('utf-8')
-        challenge_request = {
+        return {
             "ChallengeResponses": {
                 "USERNAME": user_id,
                 "TIMESTAMP": timestamp,
@@ -289,7 +288,6 @@ class AwsIdp:
             "ChallengeName": "PASSWORD_VERIFIER",
             "ClientId": self.client_id
         }
-        return challenge_request
 
     def __get_hkdf_key_for_password(self, username, password, server_b_value, salt):
         """ Calculates the final hkdf based on computed S value, and computed U value and the key.
@@ -313,11 +311,10 @@ class AwsIdp:
         g_mod_pow_xn = pow(self.g, x_value, self.big_n)
         int_value2 = server_b_value - self.k * g_mod_pow_xn
         s_value = pow(int_value2, self.small_a_value + u_value * x_value, self.big_n)
-        hkdf = self.__compute_hkdf(
+        return self.__compute_hkdf(
             bytearray.fromhex(self.__pad_hex(s_value)),
             bytearray.fromhex(self.__pad_hex(self.__long_to_hex(u_value)))
         )
-        return hkdf
 
     def __compute_hkdf(self, ikm, salt):
         """ Standard hkdf algorithm
@@ -425,8 +422,7 @@ class AwsIdp:
 
         time_now = dt.datetime.now(dt.timezone.utc)
         format_string = "{} {} {} %H:%M:%S UTC %Y".format(days[time_now.weekday()], months[time_now.month], time_now.day)
-        time_string = time_now.strftime(format_string)
-        return time_string
+        return time_now.strftime(format_string)
 
     def __str__(self):
         return "AWS IDP Client for:\nRegion: %s\nPoolId: %s\nAppId:  %s" % (

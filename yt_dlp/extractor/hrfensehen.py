@@ -74,7 +74,7 @@ class HRFernsehenIE(InfoExtractor):
 
         subtitle = traverse_obj(loader_data, ('mediaCollection', 'subTitles', 0, 'sources', 0, 'url'))
 
-        info = {
+        return {
             'id': video_id,
             'title': title,
             'description': description,
@@ -86,5 +86,3 @@ class HRFernsehenIE(InfoExtractor):
                 loader_data, ('playerConfig', 'pluginData', 'trackingAti@all', 'richMedia', 'duration'))),
             'thumbnail': self._search_regex(r'thumbnailUrl\W*([^"]+)', webpage, 'thumbnail', default=None),
         }
-
-        return info

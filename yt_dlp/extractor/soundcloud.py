@@ -208,9 +208,7 @@ class SoundcloudBaseIE(InfoExtractor):
             m &= 16777215
 
         # c is not even needed
-        out = str(y) + ':' + str(d) + ':' + format(m, 'x') + ':' + str(c)
-
-        return out
+        return f'{y}:{d}:{m:x}:{c}'
 
     def _extract_info_dict(self, info, full_title=None, secret_token=None, extract_flat=False):
         track_id = compat_str(info['id'])

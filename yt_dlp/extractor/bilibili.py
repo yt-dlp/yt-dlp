@@ -1701,11 +1701,10 @@ class BiliIntlBaseIE(InfoExtractor):
         return json.get('data')
 
     def json2srt(self, json):
-        data = '\n\n'.join(
+        return '\n\n'.join(
             f'{i + 1}\n{srt_subtitles_timecode(line["from"])} --> {srt_subtitles_timecode(line["to"])}\n{line["content"]}'
             for i, line in enumerate(traverse_obj(json, (
                 'body', lambda _, l: l['content'] and l['from'] and l['to']))))
-        return data
 
     def _get_subtitles(self, *, ep_id=None, aid=None):
         sub_json = self._call_api(

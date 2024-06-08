@@ -94,7 +94,7 @@ def _extract_moment(item, fatal=True):
     uploader_id = try_get(item, lambda x: x['owner']['userId'])
     uploader_url = format_field(uploader, None, 'https://www.younow.com/%s')
 
-    entry = {
+    return {
         'extractor_key': 'YouNowMoment',
         'id': moment_id,
         'title': title,
@@ -112,8 +112,6 @@ def _extract_moment(item, fatal=True):
             'protocol': 'm3u8_native',
         }],
     }
-
-    return entry
 
 
 class YouNowChannelIE(InfoExtractor):

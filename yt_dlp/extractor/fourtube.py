@@ -29,13 +29,12 @@ class FourTubeBaseIE(InfoExtractor):
             'Origin': '%s://%s' % (parsed_url.scheme, parsed_url.hostname),
             'Referer': url,
         })
-        formats = [{
+        return [{
             'url': tokens[format]['token'],
             'format_id': format + 'p',
             'resolution': format + 'p',
             'quality': int(format),
         } for format in sources]
-        return formats
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)

@@ -15,13 +15,11 @@ class BokeCCBaseIE(InfoExtractor):
             'http://p.bokecc.com/servlet/playinfo?uid=%s&vid=%s&m=1' % (
                 player_params['siteid'][0], player_params['vid'][0]), video_id)
 
-        formats = [{
+        return [{
             'format_id': format_id,
             'url': quality.find('./copy').attrib['playurl'],
             'quality': int(quality.attrib['value']),
         } for quality in info_xml.findall('./video/quality')]
-
-        return formats
 
 
 class BokeCCIE(BokeCCBaseIE):

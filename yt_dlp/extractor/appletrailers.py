@@ -145,8 +145,7 @@ class AppleTrailersIE(InfoExtractor):
             def _clean_json(m):
                 return 'iTunes.playURL(%s);' % m.group(1).replace('\'', '&#39;')
             s = re.sub(self._JSON_RE, _clean_json, s)
-            s = '<html>%s</html>' % s
-            return s
+            return '<html>%s</html>' % s
         doc = self._download_xml(playlist_url, movie, transform_source=fix_html)
 
         playlist = []

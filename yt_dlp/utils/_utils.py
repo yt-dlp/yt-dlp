@@ -3163,8 +3163,7 @@ def render_table(header_row, data, delim=False, extra_gap=0, hide_empty=False):
                 row[pos] = text.replace('\t', ' ' * (max_lens[pos] - width(text))) + ' ' * extra_gap
             else:
                 row[pos] = text + ' ' * (max_lens[pos] - width(text) + extra_gap)
-    ret = '\n'.join(''.join(row).rstrip() for row in table)
-    return ret
+    return '\n'.join(''.join(row).rstrip() for row in table)
 
 
 def _match_one(filter_part, dct, incomplete):
@@ -4710,16 +4709,14 @@ def jwt_encode_hs256(payload_data, key, headers={}):
     payload_b64 = base64.b64encode(json.dumps(payload_data).encode())
     h = hmac.new(key.encode(), header_b64 + b'.' + payload_b64, hashlib.sha256)
     signature_b64 = base64.b64encode(h.digest())
-    token = header_b64 + b'.' + payload_b64 + b'.' + signature_b64
-    return token
+    return header_b64 + b'.' + payload_b64 + b'.' + signature_b64
 
 
 # can be extended in future to verify the signature and parse header and return the algorithm used if it's not HS256
 def jwt_decode_hs256(jwt):
     header_b64, payload_b64, signature_b64 = jwt.split('.')
     # add trailing ='s that may have been stripped, superfluous ='s are ignored
-    payload_data = json.loads(base64.urlsafe_b64decode(f'{payload_b64}==='))
-    return payload_data
+    return json.loads(base64.urlsafe_b64decode(f'{payload_b64}==='))
 
 
 WINDOWS_VT_MODE = False if compat_os_name == 'nt' else None
