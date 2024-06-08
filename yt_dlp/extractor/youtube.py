@@ -7217,8 +7217,8 @@ class YoutubeFeedsInfoExtractor(InfoExtractor):
         YoutubeBaseInfoExtractor._check_login_required(self)
 
     @classproperty
-    def IE_NAME(self):
-        return f'youtube:{self._FEED_NAME}'
+    def IE_NAME(cls):
+        return f'youtube:{cls._FEED_NAME}'
 
     def _real_extract(self, url):
         return self.url_result(
