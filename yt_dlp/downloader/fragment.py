@@ -424,7 +424,7 @@ class FragmentFD(FileDownloader):
             finally:
                 tpe.shutdown(wait=True)
         if not interrupt_trigger[0] and not is_live:
-            raise KeyboardInterrupt()
+            raise KeyboardInterrupt
         # we expect the user wants to stop and DO WANT the preceding postprocessors to run;
         # so returning a intermediate result here instead of KeyboardInterrupt on live
         return result

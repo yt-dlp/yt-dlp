@@ -407,7 +407,7 @@ class HTMLBreakOnClosingTagParser(html.parser.HTMLParser):
         else:
             raise compat_HTMLParseError(f'matching opening tag for closing {tag} tag not found')
         if not self.tagstack:
-            raise self.HTMLBreakOnClosingTagException()
+            raise self.HTMLBreakOnClosingTagException
 
 
 # XXX: This should be far less strict
@@ -587,7 +587,7 @@ def sanitize_open(filename, open_mode):
                     # FIXME: An exclusive lock also locks the file from being read.
                     # Since windows locks are mandatory, don't lock the file on windows (for now).
                     # Ref: https://github.com/yt-dlp/yt-dlp/issues/3124
-                    raise LockingUnsupportedError()
+                    raise LockingUnsupportedError
                 stream = locked_file(filename, open_mode, block=False).__enter__()
             except OSError:
                 stream = open(filename, open_mode)
@@ -1564,10 +1564,10 @@ else:
     except ImportError:
 
         def _lock_file(f, exclusive, block):
-            raise LockingUnsupportedError()
+            raise LockingUnsupportedError
 
         def _unlock_file(f):
-            raise LockingUnsupportedError()
+            raise LockingUnsupportedError
 
 
 class locked_file:
@@ -2282,7 +2282,7 @@ class PagedList:
             raise TypeError('indices must be non-negative integers')
         entries = self.getslice(idx, idx + 1)
         if not entries:
-            raise self.IndexError()
+            raise self.IndexError
         return entries[0]
 
     def __bool__(self):
@@ -2443,7 +2443,7 @@ class PlaylistEntries:
                 except IndexError:
                     entry = self.MissingEntry
                     if not self.is_incomplete:
-                        raise self.IndexError()
+                        raise self.IndexError
                 if entry is self.MissingEntry:
                     raise EntryNotInPlaylist(f'Entry {i + 1} cannot be found')
                 return entry
@@ -2452,7 +2452,7 @@ class PlaylistEntries:
                 try:
                     return type(self.ydl)._handle_extraction_exceptions(lambda _, i: self._entries[i])(self.ydl, i)
                 except (LazyList.IndexError, PagedList.IndexError):
-                    raise self.IndexError()
+                    raise self.IndexError
         return get_entry
 
     def __getitem__(self, idx):

@@ -176,7 +176,7 @@ class HttpFD(FileDownloader):
                                 'downloaded_bytes': ctx.resume_len,
                                 'total_bytes': ctx.resume_len,
                             }, info_dict)
-                            raise SucceedDownload()
+                            raise SucceedDownload
                         else:
                             # The length does not match, we start the download over
                             self.report_unable_to_resume()
@@ -327,7 +327,7 @@ class HttpFD(FileDownloader):
                     elif now - ctx.throttle_start > 3:
                         if ctx.stream is not None and ctx.tmpfilename != '-':
                             ctx.stream.close()
-                        raise ThrottledDownload()
+                        raise ThrottledDownload
                 elif speed:
                     ctx.throttle_start = None
 
@@ -338,7 +338,7 @@ class HttpFD(FileDownloader):
 
             if not is_test and ctx.chunk_size and ctx.content_len is not None and byte_counter < ctx.content_len:
                 ctx.resume_len = byte_counter
-                raise NextFragment()
+                raise NextFragment
 
             if ctx.tmpfilename != '-':
                 ctx.stream.close()

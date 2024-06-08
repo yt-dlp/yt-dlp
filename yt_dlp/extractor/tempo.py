@@ -56,7 +56,7 @@ class IVXPlayerIE(InfoExtractor):
             webpage)
         if mobj:
             yield f'ivxplayer:{mobj.group("video_id")}:{mobj.group("player_key")}'
-            raise cls.StopExtraction()
+            raise cls.StopExtraction
 
     def _real_extract(self, url):
         video_id, player_key = self._match_valid_url(url).group('video_id', 'player_key')

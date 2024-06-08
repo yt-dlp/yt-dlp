@@ -146,7 +146,7 @@ class TeachableIE(TeachableBaseIE):
         if cls._is_teachable(webpage):
             if re.match(r'https?://[^/]+/(?:courses|p)', url):
                 yield f'{cls._URL_PREFIX}{url}'
-                raise cls.StopExtraction()
+                raise cls.StopExtraction
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)

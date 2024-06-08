@@ -1590,7 +1590,7 @@ class YoutubeDL:
                 self.to_screen(f'[download] {self._format_screen(temp_id, self.Styles.ID)}: '
                                'has already been recorded in the archive')
                 if self.params.get('break_on_existing', False):
-                    raise ExistingVideoReached()
+                    raise ExistingVideoReached
                 break
             return self.__extract_info(url, self.get_info_extractor(key), download, extra_info, process)
         else:
@@ -2529,7 +2529,7 @@ class YoutubeDL:
 
             def __next__(self):
                 if self.counter >= len(self.tokens):
-                    raise StopIteration()
+                    raise StopIteration
                 value = self.tokens[self.counter]
                 self.counter += 1
                 return value
@@ -3009,7 +3009,7 @@ class YoutubeDL:
             info_dict['requested_downloads'] = downloaded_formats
             info_dict = self.run_all_pps('after_video', info_dict)
             if max_downloads_reached:
-                raise MaxDownloadsReached()
+                raise MaxDownloadsReached
 
         # We update the info dict with the selected best quality format (backwards compatibility)
         info_dict.update(best_format)
@@ -3226,7 +3226,7 @@ class YoutubeDL:
 
         def check_max_downloads():
             if self._num_downloads >= float(self.params.get('max_downloads') or 'inf'):
-                raise MaxDownloadsReached()
+                raise MaxDownloadsReached
 
         if self.params.get('simulate'):
             info_dict['__write_download_archive'] = self.params.get('force_write_download_archive')

@@ -3255,7 +3255,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             webpage)
         if mobj:
             yield cls.url_result(mobj.group('url'), cls)
-            raise cls.StopExtraction()
+            raise cls.StopExtraction
 
         yield from super()._extract_from_webpage(url, webpage)
 

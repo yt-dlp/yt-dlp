@@ -585,9 +585,9 @@ class JSInterpreter:
             return int(expr), should_return
 
         elif expr == 'break':
-            raise JS_Break()
+            raise JS_Break
         elif expr == 'continue':
-            raise JS_Continue()
+            raise JS_Continue
         elif expr == 'undefined':
             return JS_Undefined, should_return
         elif expr == 'NaN':
