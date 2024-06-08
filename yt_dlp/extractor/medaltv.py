@@ -136,7 +136,7 @@ class MedalTVIE(InfoExtractor):
                     expected=True, video_id=video_id)
             else:
                 self.raise_no_formats(
-                    'An unknown error occurred ({0}).'.format(error),
+                    'An unknown error occurred ({}).'.format(error),
                     video_id=video_id)
 
         # Necessary because the id of the author is not known in advance.

@@ -79,18 +79,18 @@ class WebOfStoriesIE(InfoExtractor):
             ms_prefix = 'mini_sites/'
 
         if is_great_life_series:
-            mp4_url = '{0:}lives/{1:}/{2:}.mp4'.format(
+            mp4_url = '{}lives/{}/{}.mp4'.format(
                 self._VIDEO_DOMAIN, speaker_id, story_filename)
             rtmp_ext = 'flv'
             streamer = self._GREAT_LIFE_STREAMER
-            play_path = 'stories/{0:}/{1:}'.format(
+            play_path = 'stories/{}/{}'.format(
                 speaker_id, story_filename)
         else:
-            mp4_url = '{0:}{1:}{2:}/{3:}.mp4'.format(
+            mp4_url = '{}{}{}/{}.mp4'.format(
                 self._VIDEO_DOMAIN, ms_prefix, speaker_id, story_filename)
             rtmp_ext = 'mp4'
             streamer = self._USER_STREAMER
-            play_path = 'mp4:{0:}{1:}/{2}.mp4'.format(
+            play_path = 'mp4:{}{}/{}.mp4'.format(
                 ms_prefix, speaker_id, story_filename)
 
         formats = [{

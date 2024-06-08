@@ -388,7 +388,7 @@ class NPORadioIE(InfoExtractor):
 
     @staticmethod
     def _html_get_attribute_regex(attribute):
-        return r'{0}\s*=\s*\'([^\']+)\''.format(attribute)
+        return r'{}\s*=\s*\'([^\']+)\''.format(attribute)
 
     def _real_extract(self, url):
         video_id = self._match_id(url)

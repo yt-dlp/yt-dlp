@@ -288,13 +288,13 @@ class ABCIViewIE(InfoExtractor):
         stream = next(s for s in video_params['playlist'] if s.get('type') in ('program', 'livestream'))
 
         house_number = video_params.get('episodeHouseNumber') or video_id
-        path = '/auth/hls/sign?ts={0}&hn={1}&d=android-tablet'.format(
+        path = '/auth/hls/sign?ts={}&hn={}&d=android-tablet'.format(
             int(time.time()), house_number)
         sig = hmac.new(
             b'android.content.res.Resources',
             path.encode(), hashlib.sha256).hexdigest()
         token = self._download_webpage(
-            'http://iview.abc.net.au{0}&sig={1}'.format(path, sig), video_id)
+            'http://iview.abc.net.au{}&sig={}'.format(path, sig), video_id)
 
         def tokenize_url(url, token):
             return update_url_query(url, {
