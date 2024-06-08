@@ -682,7 +682,7 @@ def create_parser():
         help='Download only videos not listed in the archive file. Record the IDs of all downloaded videos in it')
     selection.add_option(
         '--no-download-archive',
-        dest='download_archive', action="store_const", const=None,
+        dest='download_archive', action='store_const', const=None,
         help='Do not use archive file (default)')
     selection.add_option(
         '--max-downloads',

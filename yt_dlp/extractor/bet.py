@@ -48,7 +48,7 @@ class BetIE(MTVServicesInfoExtractor):
         }
     ]
 
-    _FEED_URL = "http://feeds.mtvnservices.com/od/feed/bet-mrss-player"
+    _FEED_URL = 'http://feeds.mtvnservices.com/od/feed/bet-mrss-player'
 
     def _get_feed_query(self, uri):
         return {

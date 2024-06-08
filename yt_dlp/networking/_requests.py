@@ -66,7 +66,7 @@ SUPPORTED_ENCODINGS = [
 if brotli is not None:
     SUPPORTED_ENCODINGS.append('br')
 
-"""
+'''
 Override urllib3's behavior to not convert lower-case percent-encoded characters
 to upper-case during url normalization process.
 
@@ -81,7 +81,7 @@ is best to avoid it in requests too for compatability reasons.
 
 1: https://tools.ietf.org/html/rfc3986#section-2.1
 2: https://github.com/streamlink/streamlink/pull/4003
-"""
+'''
 
 
 class Urllib3PercentREOverride:
@@ -107,7 +107,7 @@ elif hasattr(urllib3.util.url, '_PERCENT_RE'):  # urllib3 >= 2.0.0
 else:
     warnings.warn('Failed to patch PERCENT_RE in urllib3 (does the attribute exist?)' + bug_reports_message())
 
-"""
+'''
 Workaround for issue in urllib.util.ssl_.py: ssl_wrap_context does not pass
 server_hostname to SSLContext.wrap_socket if server_hostname is an IP,
 however this is an issue because we set check_hostname to True in our SSLContext.
@@ -116,7 +116,7 @@ Monkey-patching IS_SECURETRANSPORT forces ssl_wrap_context to pass server_hostna
 
 This has been fixed in urllib3 2.0+.
 See: https://github.com/urllib3/urllib3/issues/517
-"""
+'''
 
 if urllib3_version < (2, 0, 0):
     with contextlib.suppress(Exception):

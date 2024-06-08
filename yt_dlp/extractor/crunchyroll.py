@@ -519,7 +519,7 @@ class CrunchyrollBetaShowIE(CrunchyrollCmsBaseIE):
             seasons_response = self._call_cms_api_signed(f'seasons?series_id={internal_id}', internal_id, lang, 'seasons')
             for season in traverse_obj(seasons_response, ('items', ..., {dict})):
                 episodes_response = self._call_cms_api_signed(
-                    f'episodes?season_id={season["id"]}', season["id"], lang, 'episode list')
+                    f'episodes?season_id={season["id"]}', season['id'], lang, 'episode list')
                 for episode_response in traverse_obj(episodes_response, ('items', ..., {dict})):
                     yield self.url_result(
                         f'{self._BASE_URL}/{lang}watch/{episode_response["id"]}',

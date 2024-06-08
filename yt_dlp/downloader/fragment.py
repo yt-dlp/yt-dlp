@@ -366,10 +366,10 @@ class FragmentFD(FileDownloader):
         return decrypt_fragment
 
     def download_and_append_fragments_multiple(self, *args, **kwargs):
-        '''
+        """
         @params (ctx1, fragments1, info_dict1), (ctx2, fragments2, info_dict2), ...
                 all args must be either tuple or list
-        '''
+        """
         interrupt_trigger = [True]
         max_progress = len(args)
         if max_progress == 1:

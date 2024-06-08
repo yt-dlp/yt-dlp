@@ -72,8 +72,8 @@ class JamendoIE(InfoExtractor):
         # if artist_name:
         #     title = '%s - %s' % (artist_name, title)
         # album = get_model('album')
-        artist = self._call_api("artist", track.get('artistId'), fatal=False)
-        album = self._call_api("album", track.get('albumId'), fatal=False)
+        artist = self._call_api('artist', track.get('artistId'), fatal=False)
+        album = self._call_api('album', track.get('albumId'), fatal=False)
 
         formats = [{
             'url': 'https://%s.jamendo.com/?trackid=%s&format=%s&from=app-97dab294'

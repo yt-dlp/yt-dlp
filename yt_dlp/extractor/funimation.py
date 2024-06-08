@@ -157,7 +157,7 @@ class FunimationIE(FunimationBaseIE):
                     yield lang, version.title(), f
 
     def _get_episode(self, webpage, experience_id=None, episode_id=None, fatal=True):
-        ''' Extract the episode, season and show objects given either episode/experience id '''
+        """ Extract the episode, season and show objects given either episode/experience id """
         show = self._parse_json(
             self._search_regex(
                 r'show\s*=\s*({.+?})\s*;', webpage, 'show data', fatal=fatal),

@@ -1240,7 +1240,7 @@ class BilibiliFavoritesListIE(BilibiliSpaceListBaseIE):
             'upload_date': '20201109',
             'modified_timestamp': int,
             'modified_date': str,
-            'thumbnail': r"re:http://i\d\.hdslb\.com/bfs/archive/14b83c62aa8871b79083df1e9ab4fbc699ad16fe\.jpg",
+            'thumbnail': r're:http://i\d\.hdslb\.com/bfs/archive/14b83c62aa8871b79083df1e9ab4fbc699ad16fe\.jpg',
             'view_count': int,
             'like_count': int,
         },
@@ -1344,7 +1344,7 @@ class BilibiliPlaylistIE(BilibiliSpaceListBaseIE):
             'uploader_id': '84912',
             'timestamp': 1604905176,
             'upload_date': '20201109',
-            'thumbnail': r"re:http://i\d\.hdslb\.com/bfs/archive/14b83c62aa8871b79083df1e9ab4fbc699ad16fe\.jpg",
+            'thumbnail': r're:http://i\d\.hdslb\.com/bfs/archive/14b83c62aa8871b79083df1e9ab4fbc699ad16fe\.jpg',
         },
         'playlist_mincount': 22,
     }, {
@@ -2154,10 +2154,10 @@ class BiliLiveIE(InfoExtractor):
         'url': 'https://live.bilibili.com/196',
         'info_dict': {
             'id': '33989',
-            'description': "周六杂谈回，其他时候随机游戏。 | \n录播：@下播型泛式录播组。 | \n直播通知群（全员禁言）：666906670，902092584，59971⑧481 （功能一样，别多加）",
+            'description': '周六杂谈回，其他时候随机游戏。 | \n录播：@下播型泛式录播组。 | \n直播通知群（全员禁言）：666906670，902092584，59971⑧481 （功能一样，别多加）',
             'ext': 'flv',
-            'title': "太空狼人杀联动，不被爆杀就算赢",
-            'thumbnail': "https://i0.hdslb.com/bfs/live/new_room_cover/e607bc1529057ef4b332e1026e62cf46984c314d.jpg",
+            'title': '太空狼人杀联动，不被爆杀就算赢',
+            'thumbnail': 'https://i0.hdslb.com/bfs/live/new_room_cover/e607bc1529057ef4b332e1026e62cf46984c314d.jpg',
             'timestamp': 1650802769,
         },
         'skip': 'not live'

@@ -1413,7 +1413,7 @@ def system_identifier():
 
 @functools.cache
 def get_windows_version():
-    ''' Get Windows version. returns () if it's not running on Windows '''
+    """ Get Windows version. returns () if it's not running on Windows """
     if compat_os_name == 'nt':
         return version_tuple(platform.win32_ver()[1])
     else:
@@ -2582,7 +2582,7 @@ def _multipart_encode_impl(data, boundary):
 
 
 def multipart_encode(data, boundary=None):
-    '''
+    """
     Encode a dict to RFC 7578-compliant form-data
 
     data:
@@ -2593,7 +2593,7 @@ def multipart_encode(data, boundary=None):
         a random boundary is generated.
 
     Reference: https://tools.ietf.org/html/rfc7578
-    '''
+    """
     has_specified_boundary = boundary is not None
 
     while True:
@@ -3350,10 +3350,10 @@ def ass_subtitles_timecode(seconds):
 
 
 def dfxp2srt(dfxp_data):
-    '''
+    """
     @param dfxp_data A bytes-like object containing DFXP data
     @returns A unicode object containing converted SRT data
-    '''
+    """
     LEGACY_NAMESPACES = (
         (b'http://www.w3.org/ns/ttml', [
             b'http://www.w3.org/2004/11/ttaf1',
@@ -4348,7 +4348,7 @@ def bytes_to_long(s):
 
 
 def ohdave_rsa_encrypt(data, exponent, modulus):
-    '''
+    """
     Implement OHDave's RSA algorithm. See http://www.ohdave.com/rsa/
 
     Input:
@@ -4357,7 +4357,7 @@ def ohdave_rsa_encrypt(data, exponent, modulus):
     Output: hex string of encrypted data
 
     Limitation: supports one block encryption only
-    '''
+    """
 
     payload = int(binascii.hexlify(data[::-1]), 16)
     encrypted = pow(payload, exponent, modulus)

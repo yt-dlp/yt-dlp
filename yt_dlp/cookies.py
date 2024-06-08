@@ -1128,24 +1128,24 @@ class LenientSimpleCookie(http.cookies.SimpleCookie):
     _LEGAL_VALUE_CHARS = _LEGAL_KEY_CHARS + re.escape('(),/<=>?@[]{}')
 
     _RESERVED = {
-        "expires",
-        "path",
-        "comment",
-        "domain",
-        "max-age",
-        "secure",
-        "httponly",
-        "version",
-        "samesite",
+        'expires',
+        'path',
+        'comment',
+        'domain',
+        'max-age',
+        'secure',
+        'httponly',
+        'version',
+        'samesite',
     }
 
-    _FLAGS = {"secure", "httponly"}
+    _FLAGS = {'secure', 'httponly'}
 
     # Added 'bad' group to catch the remaining value
-    _COOKIE_PATTERN = re.compile(r"""
+    _COOKIE_PATTERN = re.compile(r'''
         \s*                            # Optional whitespace at start of cookie
         (?P<key>                       # Start of group 'key'
-        [""" + _LEGAL_KEY_CHARS + r"""]+?# Any word of at least one letter
+        [''' + _LEGAL_KEY_CHARS + r''']+?# Any word of at least one letter
         )                              # End of group 'key'
         (                              # Optional group: there may not be a value.
         \s*=\s*                          # Equal Sign
@@ -1155,7 +1155,7 @@ class LenientSimpleCookie(http.cookies.SimpleCookie):
         |                                    # or
         \w{3},\s[\w\d\s-]{9,11}\s[\d:]{8}\sGMT # Special case for "expires" attr
         |                                    # or
-        [""" + _LEGAL_VALUE_CHARS + r"""]*     # Any word or empty string
+        [''' + _LEGAL_VALUE_CHARS + r''']*     # Any word or empty string
         )                                  # End of group 'val'
         |                                  # or
         (?P<bad>(?:\\;|[^;])*?)            # 'bad' group fallback for invalid values
@@ -1163,7 +1163,7 @@ class LenientSimpleCookie(http.cookies.SimpleCookie):
         )?                             # End of optional value group
         \s*                            # Any number of spaces.
         (\s+|;|$)                      # Ending either at space, semicolon, or EOS.
-        """, re.ASCII | re.VERBOSE)
+        ''', re.ASCII | re.VERBOSE)
 
     def load(self, data):
         # Workaround for https://github.com/yt-dlp/yt-dlp/issues/4776

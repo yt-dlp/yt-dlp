@@ -196,7 +196,7 @@ class PornHubIE(PornHubBaseIE):
             'categories': list,
             'subtitles': {
                 'en': [{
-                    "ext": 'srt'
+                    'ext': 'srt'
                 }]
             },
         },

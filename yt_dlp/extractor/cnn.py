@@ -26,7 +26,7 @@ class CNNIE(TurnerBaseIE):
             'id': 'us/2013/08/21/sot-student-gives-epic-speech.georgia-institute-of-technology',
             'ext': 'mp4',
             'title': "Student's epic speech stuns new freshmen",
-            'description': "A Georgia Tech student welcomes the incoming freshmen with an epic speech backed by music from \"2001: A Space Odyssey.\"",
+            'description': 'A Georgia Tech student welcomes the incoming freshmen with an epic speech backed by music from "2001: A Space Odyssey."',
             'upload_date': '20130821',
         },
         'expected_warnings': ['Failed to download m3u8 information'],

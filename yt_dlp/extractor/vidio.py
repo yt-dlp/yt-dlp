@@ -31,7 +31,7 @@ class VidioBaseIE(InfoExtractor):
         login_page = self._download_webpage(
             self._LOGIN_URL, None, 'Downloading log in page')
 
-        login_form = self._form_hidden_inputs("login-form", login_page)
+        login_form = self._form_hidden_inputs('login-form', login_page)
         login_form.update({
             'user[login]': username,
             'user[password]': password,

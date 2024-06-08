@@ -140,7 +140,7 @@ class NetEaseMusicIE(NetEaseMusicBaseIE):
             'upload_date': '20180405',
             'description': 'md5:3650af9ee22c87e8637cb2dde22a765c',
             'subtitles': {'lyrics': [{'ext': 'lrc'}]},
-            "duration": 256,
+            'duration': 256,
             'thumbnail': r're:^http.*\.jpg',
             'album': '偶像练习生 表演曲目合集',
             'average_rating': int,
@@ -418,7 +418,7 @@ class NetEaseMusicListIE(NetEaseMusicBaseIE):
         info = self._download_eapi_json(
             '/v3/playlist/detail', list_id,
             {'id': list_id, 't': '-1', 'n': '500', 's': '0'},
-            note="Downloading playlist info")
+            note='Downloading playlist info')
 
         metainfo = traverse_obj(info, ('playlist', {
             'title': ('name', {str}),

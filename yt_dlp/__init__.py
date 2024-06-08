@@ -1002,7 +1002,7 @@ def _real_main(argv=None):
             def make_row(target, handler):
                 return [
                     join_nonempty(target.client.title(), target.version, delim='-') or '-',
-                    join_nonempty((target.os or "").title(), target.os_version, delim='-') or '-',
+                    join_nonempty((target.os or '').title(), target.os_version, delim='-') or '-',
                     handler,
                 ]
 

@@ -1120,7 +1120,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
 class YoutubeIE(YoutubeBaseInfoExtractor):
     IE_DESC = 'YouTube'
-    _VALID_URL = r"""(?x)^
+    _VALID_URL = r'''(?x)^
                      (
                          (?:https?://|//)                                    # http(s):// or protocol-independent URL
                          (?:(?:(?:(?:\w+\.)?[yY][oO][uU][tT][uU][bB][eE](?:-nocookie|kids)?\.com|
@@ -1152,7 +1152,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                      )?                                                       # all until now is optional -> you can pass the naked ID
                      (?P<id>[0-9A-Za-z_-]{11})                                # here is it! the YouTube video ID
                      (?(1).+)?                                                # if we found the ID, everything can follow
-                     (?:\#|$)""" % {
+                     (?:\#|$)''' % {
         'invidious': '|'.join(YoutubeBaseInfoExtractor._INVIDIOUS_SITES),
     }
     _EMBED_REGEX = [

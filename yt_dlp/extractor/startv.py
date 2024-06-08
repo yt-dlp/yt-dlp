@@ -11,14 +11,14 @@ from ..utils import (
 
 
 class StarTVIE(InfoExtractor):
-    _VALID_URL = r"""(?x)
+    _VALID_URL = r'''(?x)
         https?://(?:www\.)?startv\.com\.tr/
         (?:
             (?:dizi|program)/(?:[^/?#&]+)/(?:bolumler|fragmanlar|ekstralar)|
             video/arsiv/(?:dizi|program)/(?:[^/?#&]+)
         )/
         (?P<id>[^/?#&]+)
-    """
+    '''
     IE_NAME = 'startv'
     _TESTS = [
         {

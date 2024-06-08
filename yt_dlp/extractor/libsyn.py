@@ -18,7 +18,7 @@ class LibsynIE(InfoExtractor):
         'info_dict': {
             'id': '6385796',
             'ext': 'mp3',
-            'title': "Champion Minded - Developing a Growth Mindset",
+            'title': 'Champion Minded - Developing a Growth Mindset',
             # description fetched using another request:
             # http://html5-player.libsyn.com/embed/getitemdetails?item_id=6385796
             # 'description': 'In this episode, Allistair talks about the importance of developing a growth mindset, not only in sports, but in life too.',

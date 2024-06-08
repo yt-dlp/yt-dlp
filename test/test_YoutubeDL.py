@@ -773,7 +773,7 @@ class TestYoutubeDL(unittest.TestCase):
         test('%(formats)j', (json.dumps(FORMATS), None))
         test('%(formats)#j', (
             json.dumps(FORMATS, indent=4),
-            json.dumps(FORMATS, indent=4).replace(':', '：').replace('"', "＂").replace('\n', ' ')
+            json.dumps(FORMATS, indent=4).replace(':', '：').replace('"', '＂').replace('\n', ' ')
         ))
         test('%(title5).3B', 'á')
         test('%(title5)U', 'áéí 𝐀')
@@ -920,7 +920,7 @@ class TestYoutubeDL(unittest.TestCase):
             'duration': 30,
             'filesize': 10 * 1024,
             'playlist_id': '42',
-            'uploader': "變態妍字幕版 太妍 тест",
+            'uploader': '變態妍字幕版 太妍 тест',
             'creator': "тест ' 123 ' тест--",
             'webpage_url': 'http://example.com/watch?v=shenanigans',
         }
@@ -933,7 +933,7 @@ class TestYoutubeDL(unittest.TestCase):
             'description': 'foo',
             'filesize': 5 * 1024,
             'playlist_id': '43',
-            'uploader': "тест 123",
+            'uploader': 'тест 123',
             'webpage_url': 'http://example.com/watch?v=SHENANIGANS',
         }
         videos = [first, second]

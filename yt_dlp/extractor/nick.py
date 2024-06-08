@@ -74,7 +74,7 @@ class NickIE(MTVServicesInfoExtractor):
 
     def _real_extract(self, url):
         domain, video_type, display_id = self._match_valid_url(url).groups()
-        if video_type.startswith("episodes"):
+        if video_type.startswith('episodes'):
             return super()._real_extract(url)
         video_data = self._download_json(
             'http://%s/data/video.endLevel.json' % domain,

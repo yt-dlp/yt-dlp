@@ -114,9 +114,9 @@ class AudiusIE(AudiusBaseIE):
     ]
 
     _ARTWORK_MAP = {
-        "150x150": 150,
-        "480x480": 480,
-        "1000x1000": 1000
+        '150x150': 150,
+        '480x480': 480,
+        '1000x1000': 1000
     }
 
     def _real_extract(self, url):
@@ -144,7 +144,7 @@ class AudiusIE(AudiusBaseIE):
         if isinstance(artworks_data, dict):
             for quality_key, thumbnail_url in artworks_data.items():
                 thumbnail = {
-                    "url": thumbnail_url
+                    'url': thumbnail_url
                 }
                 quality_code = self._ARTWORK_MAP.get(quality_key)
                 if quality_code is not None:

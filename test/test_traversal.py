@@ -31,7 +31,7 @@ class TestTraversal:
             'allow tuple path'
         assert traverse_obj(_TEST_DATA, ['str']) == 'str', \
             'allow list path'
-        assert traverse_obj(_TEST_DATA, (value for value in ("str",))) == 'str', \
+        assert traverse_obj(_TEST_DATA, (value for value in ('str',))) == 'str', \
             'allow iterable path'
         assert traverse_obj(_TEST_DATA, 'str') == 'str', \
             'single items should be treated as a path'
@@ -276,7 +276,7 @@ class TestTraversal:
             '`...` should result in string (same value) if `traverse_string`'
         assert traverse_obj(_TRAVERSE_STRING_DATA, ('str', slice(0, None, 2)), traverse_string=True) == 'sr', \
             '`slice` should result in string if `traverse_string`'
-        assert traverse_obj(_TRAVERSE_STRING_DATA, ('str', lambda i, v: i or v == "s"), traverse_string=True) == 'str', \
+        assert traverse_obj(_TRAVERSE_STRING_DATA, ('str', lambda i, v: i or v == 's'), traverse_string=True) == 'str', \
             'function should result in string if `traverse_string`'
         assert traverse_obj(_TRAVERSE_STRING_DATA, ('str', (0, 2)), traverse_string=True) == ['s', 'r'], \
             'branching should result in list if `traverse_string`'

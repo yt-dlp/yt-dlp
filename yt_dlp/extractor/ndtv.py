@@ -15,7 +15,7 @@ class NDTVIE(InfoExtractor):
             'info_dict': {
                 'id': '468818',
                 'ext': 'mp4',
-                'title': "प्राइम टाइम: सिस्टम बीमार, स्कूल बदहाल",
+                'title': 'प्राइम टाइम: सिस्टम बीमार, स्कूल बदहाल',
                 'description': 'md5:f410512f1b49672e5695dea16ef2731d',
                 'upload_date': '20170928',
                 'duration': 2218,
@@ -29,7 +29,7 @@ class NDTVIE(InfoExtractor):
             'info_dict': {
                 'id': '470304',
                 'ext': 'mp4',
-                'title': "Cracker-Free Diwali Wishes From Karan Johar, Kriti Sanon & Other Stars",
+                'title': 'Cracker-Free Diwali Wishes From Karan Johar, Kriti Sanon & Other Stars',
                 'description': 'md5:f115bba1adf2f6433fa7c1ade5feb465',
                 'upload_date': '20171019',
                 'duration': 137,

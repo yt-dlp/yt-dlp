@@ -309,7 +309,7 @@ class HistoryTopicIE(AENetworksBaseIE):
         'info_dict': {
             'id': '40700995724',
             'ext': 'mp4',
-            'title': "History of Valentine’s Day",
+            'title': 'History of Valentine’s Day',
             'description': 'md5:7b57ea4829b391995b405fa60bd7b5f7',
             'timestamp': 1375819729,
             'upload_date': '20130806',

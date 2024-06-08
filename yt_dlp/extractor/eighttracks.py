@@ -105,7 +105,7 @@ class EightTracksIE(InfoExtractor):
 
         data = self._parse_json(
             self._search_regex(
-                r"(?s)PAGE\.mix\s*=\s*({.+?});\n", webpage, 'trax information'),
+                r'(?s)PAGE\.mix\s*=\s*({.+?});\n', webpage, 'trax information'),
             playlist_id)
 
         session = str(random.randint(0, 1000000000))

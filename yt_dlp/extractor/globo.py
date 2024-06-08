@@ -99,12 +99,12 @@ class GloboIE(InfoExtractor):
         security = self._download_json(
             'https://playback.video.globo.com/v2/video-session', video_id, 'Downloading security hash for %s' % video_id,
             headers={'content-type': 'application/json'}, data=json.dumps({
-                "player_type": "desktop",
-                "video_id": video_id,
-                "quality": "max",
-                "content_protection": "widevine",
-                "vsid": "581b986b-4c40-71f0-5a58-803e579d5fa2",
-                "tz": "-3.0:00"
+                'player_type': 'desktop',
+                'video_id': video_id,
+                'quality': 'max',
+                'content_protection': 'widevine',
+                'vsid': '581b986b-4c40-71f0-5a58-803e579d5fa2',
+                'tz': '-3.0:00'
             }).encode())
 
         self._request_webpage(HEADRequest(security['sources'][0]['url_template']), video_id, 'Getting locksession cookie')

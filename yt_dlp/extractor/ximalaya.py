@@ -22,7 +22,7 @@ class XimalayaIE(XimalayaBaseIE):
                 'uploader_id': '61425525',
                 'uploader_url': 'http://www.ximalaya.com/zhubo/61425525/',
                 'title': '261.唐诗三百首.卷八.送孟浩然之广陵.李白',
-                'description': "contains:《送孟浩然之广陵》\n作者：李白\n故人西辞黄鹤楼，烟花三月下扬州。\n孤帆远影碧空尽，惟见长江天际流。",
+                'description': 'contains:《送孟浩然之广陵》\n作者：李白\n故人西辞黄鹤楼，烟花三月下扬州。\n孤帆远影碧空尽，惟见长江天际流。',
                 'thumbnail': r're:^https?://.*\.jpg',
                 'thumbnails': [
                     {
@@ -51,7 +51,7 @@ class XimalayaIE(XimalayaBaseIE):
                 'uploader_id': '61425525',
                 'uploader_url': 'http://www.ximalaya.com/zhubo/61425525/',
                 'title': '261.唐诗三百首.卷八.送孟浩然之广陵.李白',
-                'description': "contains:《送孟浩然之广陵》\n作者：李白\n故人西辞黄鹤楼，烟花三月下扬州。\n孤帆远影碧空尽，惟见长江天际流。",
+                'description': 'contains:《送孟浩然之广陵》\n作者：李白\n故人西辞黄鹤楼，烟花三月下扬州。\n孤帆远影碧空尽，惟见长江天际流。',
                 'thumbnail': r're:^https?://.*\.jpg',
                 'thumbnails': [
                     {

@@ -154,12 +154,12 @@ class AwsIdp:
         self.ie = ie
 
         self.pool_id = pool_id
-        if "_" not in self.pool_id:
-            raise ValueError("Invalid pool_id format. Should be <region>_<poolid>.")
+        if '_' not in self.pool_id:
+            raise ValueError('Invalid pool_id format. Should be <region>_<poolid>.')
 
         self.client_id = client_id
-        self.region = self.pool_id.split("_")[0]
-        self.url = "https://cognito-idp.%s.amazonaws.com/" % (self.region,)
+        self.region = self.pool_id.split('_')[0]
+        self.url = 'https://cognito-idp.%s.amazonaws.com/' % (self.region,)
 
         # Initialize the values
         # https://github.com/aws/amazon-cognito-identity-js/blob/master/src/AuthenticationHelper.js#L22
@@ -197,24 +197,24 @@ class AwsIdp:
         auth_data_dict = self.__get_authentication_request(username)
         auth_data = json.dumps(auth_data_dict).encode()
         auth_headers = {
-            "X-Amz-Target": "AWSCognitoIdentityProviderService.InitiateAuth",
-            "Accept-Encoding": "identity",
-            "Content-Type": "application/x-amz-json-1.1"
+            'X-Amz-Target': 'AWSCognitoIdentityProviderService.InitiateAuth',
+            'Accept-Encoding': 'identity',
+            'Content-Type': 'application/x-amz-json-1.1'
         }
         auth_response_json = self.ie._download_json(
             self.url, None, data=auth_data, headers=auth_headers,
             note='Authenticating username', errnote='Invalid username')
-        challenge_parameters = auth_response_json.get("ChallengeParameters")
+        challenge_parameters = auth_response_json.get('ChallengeParameters')
 
-        if auth_response_json.get("ChallengeName") != "PASSWORD_VERIFIER":
-            raise AuthenticationException(auth_response_json["message"])
+        if auth_response_json.get('ChallengeName') != 'PASSWORD_VERIFIER':
+            raise AuthenticationException(auth_response_json['message'])
 
         # Step 2: Respond to the Challenge with a valid ChallengeResponse
         challenge_request = self.__get_challenge_response_request(challenge_parameters, password)
         challenge_data = json.dumps(challenge_request).encode()
         challenge_headers = {
-            "X-Amz-Target": "AWSCognitoIdentityProviderService.RespondToAuthChallenge",
-            "Content-Type": "application/x-amz-json-1.1"
+            'X-Amz-Target': 'AWSCognitoIdentityProviderService.RespondToAuthChallenge',
+            'Content-Type': 'application/x-amz-json-1.1'
         }
         auth_response_json = self.ie._download_json(
             self.url, None, data=challenge_data, headers=challenge_headers,
@@ -236,12 +236,12 @@ class AwsIdp:
         :rtype: dict
         """
         return {
-            "AuthParameters": {
-                "USERNAME": username,
-                "SRP_A": self.__long_to_hex(self.large_a_value)
+            'AuthParameters': {
+                'USERNAME': username,
+                'SRP_A': self.__long_to_hex(self.large_a_value)
             },
-            "AuthFlow": "USER_SRP_AUTH",
-            "ClientId": self.client_id
+            'AuthFlow': 'USER_SRP_AUTH',
+            'ClientId': self.client_id
         }
 
     def __get_challenge_response_request(self, challenge_parameters, password):
@@ -253,11 +253,11 @@ class AwsIdp:
         :return: A valid and full request data object to use as a response for a challenge.
         :rtype: dict
         """
-        user_id = challenge_parameters["USERNAME"]
-        user_id_for_srp = challenge_parameters["USER_ID_FOR_SRP"]
-        srp_b = challenge_parameters["SRP_B"]
-        salt = challenge_parameters["SALT"]
-        secret_block = challenge_parameters["SECRET_BLOCK"]
+        user_id = challenge_parameters['USERNAME']
+        user_id_for_srp = challenge_parameters['USER_ID_FOR_SRP']
+        srp_b = challenge_parameters['SRP_B']
+        salt = challenge_parameters['SALT']
+        secret_block = challenge_parameters['SECRET_BLOCK']
 
         timestamp = self.__get_current_timestamp()
 
@@ -279,14 +279,14 @@ class AwsIdp:
         hmac_obj = hmac.new(hkdf, msg, digestmod=hashlib.sha256)
         signature_string = base64.standard_b64encode(hmac_obj.digest()).decode('utf-8')
         return {
-            "ChallengeResponses": {
-                "USERNAME": user_id,
-                "TIMESTAMP": timestamp,
-                "PASSWORD_CLAIM_SECRET_BLOCK": secret_block,
-                "PASSWORD_CLAIM_SIGNATURE": signature_string
+            'ChallengeResponses': {
+                'USERNAME': user_id,
+                'TIMESTAMP': timestamp,
+                'PASSWORD_CLAIM_SECRET_BLOCK': secret_block,
+                'PASSWORD_CLAIM_SIGNATURE': signature_string
             },
-            "ChallengeName": "PASSWORD_VERIFIER",
-            "ClientId": self.client_id
+            'ChallengeName': 'PASSWORD_VERIFIER',
+            'ClientId': self.client_id
         }
 
     def __get_hkdf_key_for_password(self, username, password, server_b_value, salt):
@@ -421,10 +421,10 @@ class AwsIdp:
         days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
         time_now = dt.datetime.now(dt.timezone.utc)
-        format_string = "{} {} {} %H:%M:%S UTC %Y".format(days[time_now.weekday()], months[time_now.month], time_now.day)
+        format_string = '{} {} {} %H:%M:%S UTC %Y'.format(days[time_now.weekday()], months[time_now.month], time_now.day)
         return time_now.strftime(format_string)
 
     def __str__(self):
-        return "AWS IDP Client for:\nRegion: %s\nPoolId: %s\nAppId:  %s" % (
-            self.region, self.pool_id.split("_")[1], self.client_id
+        return 'AWS IDP Client for:\nRegion: %s\nPoolId: %s\nAppId:  %s' % (
+            self.region, self.pool_id.split('_')[1], self.client_id
         )

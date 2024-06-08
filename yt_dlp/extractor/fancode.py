@@ -19,7 +19,7 @@ class FancodeVodIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Match Preview: PBKS vs MI',
             'thumbnail': r're:^https?://.*\.jpg$',
-            "timestamp": 1619081590,
+            'timestamp': 1619081590,
             'view_count': int,
             'like_count': int,
             'upload_date': '20210422',
@@ -55,7 +55,7 @@ class FancodeVodIE(InfoExtractor):
             "operationName":"RefreshToken"
         }''' % password
 
-        token_json = self.download_gql('refresh token', data, "Getting the Access token")
+        token_json = self.download_gql('refresh token', data, 'Getting the Access token')
         self._ACCESS_TOKEN = try_get(token_json, lambda x: x['data']['refreshToken']['accessToken'])
         if self._ACCESS_TOKEN is None:
             self.report_warning('Failed to get Access token')
@@ -132,7 +132,7 @@ class FancodeLiveIE(FancodeVodIE):  # XXX: Do not subclass from concrete IE
             'id': '35328',
             'ext': 'mp4',
             'title': 'BUB vs BLB',
-            "timestamp": 1624863600,
+            'timestamp': 1624863600,
             'is_live': True,
             'upload_date': '20210628',
         },
@@ -157,11 +157,11 @@ class FancodeLiveIE(FancodeVodIE):  # XXX: Do not subclass from concrete IE
             "operationName":"MatchResponse"
         }''' % video_id
 
-        info_json = self.download_gql(video_id, data, "Info json")
+        info_json = self.download_gql(video_id, data, 'Info json')
 
         match_info = try_get(info_json, lambda x: x['data']['match'])
 
-        if match_info.get('streamingStatus') != "STARTED":
+        if match_info.get('streamingStatus') != 'STARTED':
             raise ExtractorError('The stream can\'t be accessed', expected=True)
         self._check_login_required(match_info.get('isUserEntitled'), True)  # all live streams are premium only
 

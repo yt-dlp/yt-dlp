@@ -58,7 +58,7 @@ class NovaEmbedIE(InfoExtractor):
         duration = None
         formats = []
 
-        def process_format_list(format_list, format_id=""):
+        def process_format_list(format_list, format_id=''):
             nonlocal formats, has_drm
             if not isinstance(format_list, list):
                 format_list = [format_list]

@@ -77,7 +77,7 @@ class _MatchChildParser(_MatchParser):
 
 class ParseError(Exception):
     def __init__(self, parser):
-        super().__init__("Parse error at position %u (near %r)" % (
+        super().__init__('Parse error at position %u (near %r)' % (
             parser._pos, parser._data[parser._pos:parser._pos + 100]
         ))
 

@@ -10,7 +10,7 @@ from ..version import __version__ as YT_DLP_VERSION
 
 
 class MhtmlFD(FragmentFD):
-    _STYLESHEET = """\
+    _STYLESHEET = '''\
 html, body {
     margin: 0;
     padding: 0;
@@ -45,7 +45,7 @@ body > figure > img {
     max-width: 100%;
     max-height: calc(100vh - 5em);
 }
-"""
+'''
     _STYLESHEET = re.sub(r'\s+', ' ', _STYLESHEET)
     _STYLESHEET = re.sub(r'\B \B|(?<=[\w\-]) (?=[^\w\-])|(?<=[^\w\-]) (?=[\w\-])', '', _STYLESHEET)
 

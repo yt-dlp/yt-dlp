@@ -1900,7 +1900,7 @@ class TwitterShortenerIE(TwitterBaseIE):
             shortcode = eid
             url = self._BASE_URL + shortcode
         new_url = self._request_webpage(url, shortcode, headers={'User-Agent': 'curl'}).url
-        __UNSAFE_LINK = "https://twitter.com/safety/unsafe_link_warning?unsafe_link="
+        __UNSAFE_LINK = 'https://twitter.com/safety/unsafe_link_warning?unsafe_link='
         if new_url.startswith(__UNSAFE_LINK):
-            new_url = new_url.replace(__UNSAFE_LINK, "")
+            new_url = new_url.replace(__UNSAFE_LINK, '')
         return self.url_result(new_url)

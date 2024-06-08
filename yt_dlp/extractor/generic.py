@@ -1055,7 +1055,7 @@ class GenericIE(InfoExtractor):
             'info_dict': {
                 'id': '8RUoRhRi',
                 'ext': 'mp4',
-                'title': "Fox & Friends Says Protecting Atheists From Discrimination Is Anti-Christian!",
+                'title': 'Fox & Friends Says Protecting Atheists From Discrimination Is Anti-Christian!',
                 'description': 'md5:e1a46ad1650e3a5ec7196d432799127f',
                 'timestamp': 1428207000,
                 'upload_date': '20150405',

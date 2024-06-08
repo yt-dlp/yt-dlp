@@ -453,7 +453,7 @@ class CBCGemIE(InfoExtractor):
         # JWT is decoded here and 'exp' field is extracted
         # It is a Unix timestamp for when the token expires
         b64_data = self._claims_token.split('.')[1]
-        data = base64.urlsafe_b64decode(b64_data + "==")
+        data = base64.urlsafe_b64decode(b64_data + '==')
         return json.loads(data)['exp']
 
     def claims_token_expired(self):

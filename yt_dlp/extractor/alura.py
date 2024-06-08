@@ -62,7 +62,7 @@ class AluraIE(InfoExtractor):
             return {
                 'id': video_id,
                 'title': video_title,
-                "formats": formats
+                'formats': formats
             }
 
     def _perform_login(self, username, password):

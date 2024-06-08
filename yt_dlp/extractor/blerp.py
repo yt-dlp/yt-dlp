@@ -29,7 +29,7 @@ class BlerpIE(InfoExtractor):
         }
     }]
 
-    _GRAPHQL_OPERATIONNAME = "webBitePageGetBite"
+    _GRAPHQL_OPERATIONNAME = 'webBitePageGetBite'
     _GRAPHQL_QUERY = (
         '''query webBitePageGetBite($_id: MongoID!) {
             web {

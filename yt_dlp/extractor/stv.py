@@ -21,7 +21,7 @@ class STVPlayerIE(InfoExtractor):
             'ext': 'mp4',
             'upload_date': '20170301',
             'title': '60 seconds on set with Laura Norton',
-            'description': "How many questions can Laura - a.k.a Kerry Wyatt - answer in 60 seconds? Let\'s find out!",
+            'description': "How many questions can Laura - a.k.a Kerry Wyatt - answer in 60 seconds? Let's find out!",
             'timestamp': 1488388054,
             'uploader_id': '1486976045',
         },

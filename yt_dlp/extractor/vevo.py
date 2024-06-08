@@ -22,10 +22,10 @@ class VevoBaseIE(InfoExtractor):
 
 
 class VevoIE(VevoBaseIE):
-    '''
+    """
     Accepts urls from vevo.com or in the format 'vevo:{id}'
     (currently used by MTVIE and MySpaceIE)
-    '''
+    """
     _VALID_URL = r'''(?x)
         (?:https?://(?:www\.)?vevo\.com/watch/(?!playlist|genre)(?:[^/]+/(?:[^/]+/)?)?|
            https?://cache\.vevo\.com/m/html/embed\.html\?video=|

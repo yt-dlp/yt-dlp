@@ -41,7 +41,7 @@ class HotStarBaseIE(InfoExtractor):
             token = self._download_json(
                 f'{self._API_URL}/um/v3/users',
                 video_id, note='Downloading token',
-                data=json.dumps({"device_ids": [{"id": compat_str(uuid.uuid4()), "type": "device_id"}]}).encode(),
+                data=json.dumps({'device_ids': [{'id': compat_str(uuid.uuid4()), 'type': 'device_id'}]}).encode(),
                 headers={
                     'hotstarauth': auth,
                     'x-hs-platform': 'PCTV',  # or 'web'

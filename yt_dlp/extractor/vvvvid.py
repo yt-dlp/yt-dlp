@@ -162,7 +162,7 @@ class VVVVIDIE(InfoExtractor):
 
         # vvvvid embed_info decryption algorithm is reverse engineered from function $ds(h) at vvvvid.js
         def ds(h):
-            g = "MNOPIJKL89+/4567UVWXQRSTEFGHABCDcdefYZabstuvopqr0123wxyzklmnghij"
+            g = 'MNOPIJKL89+/4567UVWXQRSTEFGHABCDcdefYZabstuvopqr0123wxyzklmnghij'
 
             def f(m):
                 l = []
@@ -307,7 +307,7 @@ class VVVVIDShowIE(VVVVIDIE):  # XXX: Do not subclass from concrete IE
             show_id, 'info/', show_title, fatal=False)
 
         if not show_title:
-            base_url += "/title"
+            base_url += '/title'
 
         entries = []
         for season in (seasons or []):

@@ -1045,10 +1045,10 @@ class YoutubeDL:
         return self._format_text(self._out_files.error, self._allow_colors.error, *args, **kwargs)
 
     def report_warning(self, message, only_once=False):
-        '''
+        """
         Print the message to stderr, it will be prefixed with 'WARNING:'
         If stderr is a tty file the 'WARNING:' will be colored
-        '''
+        """
         if self.params.get('logger') is not None:
             self.params['logger'].warning(message)
         else:
@@ -1066,14 +1066,14 @@ class YoutubeDL:
         self.to_stderr(f'{self._format_err("Deprecated Feature:", self.Styles.ERROR)} {message}', True)
 
     def report_error(self, message, *args, **kwargs):
-        '''
+        """
         Do the same as trouble, but prefixes the message with 'ERROR:', colored
         in red if stderr is a tty file.
-        '''
+        """
         self.trouble(f'{self._format_err("ERROR:", self.Styles.ERROR)} {message}', *args, **kwargs)
 
     def write_debug(self, message, only_once=False):
-        '''Log debug message or Print message to stderr'''
+        """Log debug message or Print message to stderr"""
         if not self.params.get('verbose', False):
             return
         message = f'[debug] {message}'
@@ -1147,7 +1147,7 @@ class YoutubeDL:
 
     @staticmethod
     def escape_outtmpl(outtmpl):
-        ''' Escape any remaining strings like %s, %abc% etc. '''
+        """ Escape any remaining strings like %s, %abc% etc. """
         return re.sub(
             STR_FORMAT_RE_TMPL.format('', '(?![%(\0])'),
             lambda mobj: ('' if mobj.group('has_key') else '%') + mobj.group(0),
@@ -1155,7 +1155,7 @@ class YoutubeDL:
 
     @classmethod
     def validate_outtmpl(cls, outtmpl):
-        ''' @return None or Exception object '''
+        """ @return None or Exception object """
         outtmpl = re.sub(
             STR_FORMAT_RE_TMPL.format('[^)]*', '[ljhqBUDS]'),
             lambda mobj: f'{mobj.group(0)[:-1]}s',
@@ -1544,7 +1544,7 @@ class YoutubeDL:
 
     @staticmethod
     def add_extra_info(info_dict, extra_info):
-        '''Set the keys from extra_info in info dict if they are missing'''
+        """Set the keys from extra_info in info dict if they are missing"""
         for key, value in extra_info.items():
             info_dict.setdefault(key, value)
 
@@ -3609,7 +3609,7 @@ class YoutubeDL:
 
     @staticmethod
     def sanitize_info(info_dict, remove_private_keys=False):
-        ''' Sanitize the infodict for converting to json '''
+        """ Sanitize the infodict for converting to json """
         if info_dict is None:
             return info_dict
         info_dict.setdefault('epoch', int(time.time()))
@@ -3644,7 +3644,7 @@ class YoutubeDL:
 
     @staticmethod
     def filter_requested_info(info_dict, actually_filter=True):
-        ''' Alias of sanitize_info for backward compatibility '''
+        """ Alias of sanitize_info for backward compatibility """
         return YoutubeDL.sanitize_info(info_dict, actually_filter)
 
     def _delete_downloaded_files(self, *files_to_delete, info={}, msg=None):
@@ -4238,7 +4238,7 @@ class YoutubeDL:
         return encoding
 
     def _write_info_json(self, label, ie_result, infofn, overwrite=None):
-        ''' Write infojson and returns True = written, 'exists' = Already exists, False = skip, None = error '''
+        """ Write infojson and returns True = written, 'exists' = Already exists, False = skip, None = error """
         if overwrite is None:
             overwrite = self.params.get('overwrites', True)
         if not self.params.get('writeinfojson'):
@@ -4261,7 +4261,7 @@ class YoutubeDL:
             return None
 
     def _write_description(self, label, ie_result, descfn):
-        ''' Write description and returns True = written, False = skip, None = error '''
+        """ Write description and returns True = written, False = skip, None = error """
         if not self.params.get('writedescription'):
             return False
         elif not descfn:
@@ -4285,7 +4285,7 @@ class YoutubeDL:
         return True
 
     def _write_subtitles(self, info_dict, filename):
-        ''' Write subtitles to file and return list of (sub_filename, final_sub_filename); or None if error'''
+        """ Write subtitles to file and return list of (sub_filename, final_sub_filename); or None if error"""
         ret = []
         subtitles = info_dict.get('requested_subtitles')
         if not (self.params.get('writesubtitles') or self.params.get('writeautomaticsub')):
@@ -4341,7 +4341,7 @@ class YoutubeDL:
         return ret
 
     def _write_thumbnails(self, label, info_dict, filename, thumb_filename_base=None):
-        ''' Write thumbnails to file and return list of (thumb_filename, final_thumb_filename); or None if error '''
+        """ Write thumbnails to file and return list of (thumb_filename, final_thumb_filename); or None if error """
         write_all = self.params.get('write_all_thumbnails', False)
         thumbnails, ret = [], []
         if write_all or self.params.get('writethumbnail', False):

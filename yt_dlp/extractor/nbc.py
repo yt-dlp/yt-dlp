@@ -568,7 +568,7 @@ class NBCOlympicsIE(InfoExtractor):
         except RegexNotFoundError:
             theplatform_url = self._search_regex(
                 r"([\"'])embedUrl\1: *([\"'])(?P<embedUrl>.+)\2",
-                webpage, 'embedding URL', group="embedUrl")
+                webpage, 'embedding URL', group='embedUrl')
 
         return {
             '_type': 'url_transparent',

@@ -880,7 +880,7 @@ class NiconicoUserIE(InfoExtractor):
         },
         'playlist_mincount': 101,
     }
-    _API_URL = "https://nvapi.nicovideo.jp/v1/users/%s/videos?sortKey=registeredAt&sortOrder=desc&pageSize=%s&page=%s"
+    _API_URL = 'https://nvapi.nicovideo.jp/v1/users/%s/videos?sortKey=registeredAt&sortOrder=desc&pageSize=%s&page=%s'
     _PAGE_SIZE = 100
 
     _API_HEADERS = {
@@ -898,7 +898,7 @@ class NiconicoUserIE(InfoExtractor):
                 note='Downloading JSON metadata%s' % (' page %d' % page_num if page_num else ''))
             if not page_num:
                 total_count = int_or_none(json_parsed['data'].get('totalCount'))
-            for entry in json_parsed["data"]["items"]:
+            for entry in json_parsed['data']['items']:
                 count += 1
                 yield self.url_result('https://www.nicovideo.jp/watch/%s' % entry['id'])
             page_num += 1

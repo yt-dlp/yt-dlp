@@ -262,16 +262,16 @@ class TestInfoExtractor(unittest.TestCase):
                 ''',
                 {
                     'chapters': [
-                        {"title": "Explosie Turnhout", "start_time": 70, "end_time": 440},
-                        {"title": "Jaarwisseling", "start_time": 440, "end_time": 1179},
-                        {"title": "Natuurbranden Colorado", "start_time": 1179, "end_time": 1263},
-                        {"title": "Klimaatverandering", "start_time": 1263, "end_time": 1367},
-                        {"title": "Zacht weer", "start_time": 1367, "end_time": 1383},
-                        {"title": "Financiële balans", "start_time": 1383, "end_time": 1484},
-                        {"title": "Club Brugge", "start_time": 1484, "end_time": 1575},
-                        {"title": "Mentale gezondheid bij topsporters", "start_time": 1575, "end_time": 1728},
-                        {"title": "Olympische Winterspelen", "start_time": 1728, "end_time": 1873},
-                        {"title": "Sober oudjaar in Nederland", "start_time": 1873, "end_time": 2079.23}
+                        {'title': 'Explosie Turnhout', 'start_time': 70, 'end_time': 440},
+                        {'title': 'Jaarwisseling', 'start_time': 440, 'end_time': 1179},
+                        {'title': 'Natuurbranden Colorado', 'start_time': 1179, 'end_time': 1263},
+                        {'title': 'Klimaatverandering', 'start_time': 1263, 'end_time': 1367},
+                        {'title': 'Zacht weer', 'start_time': 1367, 'end_time': 1383},
+                        {'title': 'Financiële balans', 'start_time': 1383, 'end_time': 1484},
+                        {'title': 'Club Brugge', 'start_time': 1484, 'end_time': 1575},
+                        {'title': 'Mentale gezondheid bij topsporters', 'start_time': 1575, 'end_time': 1728},
+                        {'title': 'Olympische Winterspelen', 'start_time': 1728, 'end_time': 1873},
+                        {'title': 'Sober oudjaar in Nederland', 'start_time': 1873, 'end_time': 2079.23}
                     ],
                     'title': 'Het journaal - Aflevering 365 (Seizoen 2021)'
                 }, {}

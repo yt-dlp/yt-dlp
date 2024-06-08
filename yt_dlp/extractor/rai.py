@@ -143,7 +143,7 @@ class RaiBaseIE(InfoExtractor):
         }
 
         def percentage(number, target, pc=20, roof=125):
-            '''check if the target is in the range of number +/- percent'''
+            """check if the target is in the range of number +/- percent"""
             if not number or number < 0:
                 return False
             return abs(target - number) < min(float(number) * float(pc) / 100.0, roof)
