@@ -53,7 +53,7 @@ class STVPlayerIE(InfoExtractor):
         else:
             episode_id = str_or_none(try_get(
                 props, lambda x: x['pageProps']['episodeId']))
-            api_path = '/%s/%s' % (self._PTYPE_MAP[ptype], episode_id or video_id)
+            api_path = f'/{self._PTYPE_MAP[ptype]}/{episode_id or video_id}'
 
         result = resp.get('results')
         if not result:

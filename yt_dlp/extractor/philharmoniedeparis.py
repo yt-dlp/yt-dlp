@@ -48,7 +48,7 @@ class PhilharmonieDeParisIE(InfoExtractor):
         video_id = self._match_id(url)
 
         config = self._download_json(
-            'https://otoplayer.philharmoniedeparis.fr/fr/config/%s.json' % video_id, video_id, query={
+            f'https://otoplayer.philharmoniedeparis.fr/fr/config/{video_id}.json', video_id, query={
                 'id': video_id,
                 'lang': 'fr-FR',
             })

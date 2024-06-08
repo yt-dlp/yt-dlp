@@ -94,7 +94,7 @@ class GoPlayIE(InfoExtractor):
         api = self._download_json(
             f'https://api.goplay.be/web/v1/videos/long-form/{video_id}',
             video_id, headers={
-                'Authorization': 'Bearer %s' % self._id_token,
+                'Authorization': f'Bearer {self._id_token}',
                 **self.geo_verification_headers(),
             })
 
@@ -159,7 +159,7 @@ class AwsIdp:
 
         self.client_id = client_id
         self.region = self.pool_id.split('_')[0]
-        self.url = 'https://cognito-idp.%s.amazonaws.com/' % (self.region,)
+        self.url = f'https://cognito-idp.{self.region}.amazonaws.com/'
 
         # Initialize the values
         # https://github.com/aws/amazon-cognito-identity-js/blob/master/src/AuthenticationHelper.js#L22
@@ -304,7 +304,7 @@ class AwsIdp:
         u_value = self.__calculate_u(self.large_a_value, server_b_value)
         if u_value == 0:
             raise ValueError('U cannot be zero.')
-        username_password = '%s%s:%s' % (self.pool_id.split('_')[1], username, password)
+        username_password = '{}{}:{}'.format(self.pool_id.split('_')[1], username, password)
         username_password_hash = self.__hash_sha256(username_password.encode())
 
         x_value = self.__hex_to_long(self.__hex_hash(self.__pad_hex(salt) + username_password_hash))
@@ -366,7 +366,7 @@ class AwsIdp:
 
     @staticmethod
     def __long_to_hex(long_num):
-        return '%x' % long_num
+        return f'{long_num:x}'
 
     @staticmethod
     def __hex_to_long(hex_string):
@@ -397,9 +397,9 @@ class AwsIdp:
         else:
             hash_str = long_int
         if len(hash_str) % 2 == 1:
-            hash_str = '0%s' % hash_str
+            hash_str = f'0{hash_str}'
         elif hash_str[0] in '89ABCDEFabcdef':
-            hash_str = '00%s' % hash_str
+            hash_str = f'00{hash_str}'
         return hash_str
 
     @staticmethod
@@ -421,10 +421,10 @@ class AwsIdp:
         days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
         time_now = dt.datetime.now(dt.timezone.utc)
-        format_string = '{} {} {} %H:%M:%S UTC %Y'.format(days[time_now.weekday()], months[time_now.month], time_now.day)
+        format_string = f'{days[time_now.weekday()]} {months[time_now.month]} {time_now.day} %H:%M:%S UTC %Y'
         return time_now.strftime(format_string)
 
     def __str__(self):
-        return 'AWS IDP Client for:\nRegion: %s\nPoolId: %s\nAppId:  %s' % (
+        return 'AWS IDP Client for:\nRegion: {}\nPoolId: {}\nAppId:  {}'.format(
             self.region, self.pool_id.split('_')[1], self.client_id,
         )

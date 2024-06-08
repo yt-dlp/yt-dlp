@@ -61,7 +61,7 @@ class AmaraIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         meta = self._download_json(
-            'https://amara.org/api/videos/%s/' % video_id,
+            f'https://amara.org/api/videos/{video_id}/',
             video_id, query={'format': 'json'})
         title = meta['title']
         video_url = meta['all_urls'][0]

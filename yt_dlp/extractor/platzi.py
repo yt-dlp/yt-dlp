@@ -48,10 +48,10 @@ class PlatziBaseIE(InfoExtractor):
             None)
 
         for kind in ('error', 'password', 'nonFields'):
-            error = str_or_none(login.get('%sError' % kind))
+            error = str_or_none(login.get(f'{kind}Error'))
             if error:
                 raise ExtractorError(
-                    'Unable to login: %s' % error, expected=True)
+                    f'Unable to login: {error}', expected=True)
         raise ExtractorError('Unable to log in')
 
 
@@ -120,12 +120,12 @@ class PlatziIE(PlatziBaseIE):
                     formats.extend(self._extract_m3u8_formats(
                         format_url, lecture_id, 'mp4',
                         entry_protocol='m3u8_native', m3u8_id=format_id,
-                        note='Downloading %s m3u8 information' % server_id,
+                        note=f'Downloading {server_id} m3u8 information',
                         fatal=False))
                 elif format_id == 'dash':
                     formats.extend(self._extract_mpd_formats(
                         format_url, lecture_id, mpd_id=format_id,
-                        note='Downloading %s MPD manifest' % server_id,
+                        note=f'Downloading {server_id} MPD manifest',
                         fatal=False))
 
         content = str_or_none(desc.get('content'))

@@ -122,8 +122,8 @@ class ToggleIE(InfoExtractor):
             if ext == 'm3u8':
                 m3u8_formats = self._extract_m3u8_formats(
                     video_url, video_id, ext='mp4', m3u8_id=vid_format,
-                    note='Downloading %s m3u8 information' % vid_format,
-                    errnote='Failed to download %s m3u8 information' % vid_format,
+                    note=f'Downloading {vid_format} m3u8 information',
+                    errnote=f'Failed to download {vid_format} m3u8 information',
                     fatal=False)
                 for f in m3u8_formats:
                     # Apple FairPlay Streaming
@@ -133,14 +133,14 @@ class ToggleIE(InfoExtractor):
             elif ext == 'mpd':
                 formats.extend(self._extract_mpd_formats(
                     video_url, video_id, mpd_id=vid_format,
-                    note='Downloading %s MPD manifest' % vid_format,
-                    errnote='Failed to download %s MPD manifest' % vid_format,
+                    note=f'Downloading {vid_format} MPD manifest',
+                    errnote=f'Failed to download {vid_format} MPD manifest',
                     fatal=False))
             elif ext == 'ism':
                 formats.extend(self._extract_ism_formats(
                     video_url, video_id, ism_id=vid_format,
-                    note='Downloading %s ISM manifest' % vid_format,
-                    errnote='Failed to download %s ISM manifest' % vid_format,
+                    note=f'Downloading {vid_format} ISM manifest',
+                    errnote=f'Failed to download {vid_format} ISM manifest',
                     fatal=False))
             elif ext == 'mp4':
                 formats.append({

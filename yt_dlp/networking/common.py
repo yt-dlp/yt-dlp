@@ -83,8 +83,8 @@ class RequestDirector:
             rh: sum(pref(rh, request) for pref in self.preferences)
             for rh in self.handlers.values()
         }
-        self._print_verbose('Handler preferences for this request: %s' % ', '.join(
-            f'{rh.RH_NAME}={pref}' for rh, pref in preferences.items()))
+        self._print_verbose('Handler preferences for this request: {}'.format(', '.join(
+            f'{rh.RH_NAME}={pref}' for rh, pref in preferences.items())))
         return sorted(self.handlers.values(), key=preferences.get, reverse=True)
 
     def _print_verbose(self, msg):

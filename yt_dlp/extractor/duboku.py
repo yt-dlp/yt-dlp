@@ -24,23 +24,23 @@ def _get_elements_by_tag_and_attrib(html, tag=None, attribute=None, value=None, 
     if attribute is None:
         attribute = ''
     else:
-        attribute = r'\s+(?P<attribute>%s)' % re.escape(attribute)
+        attribute = rf'\s+(?P<attribute>{re.escape(attribute)})'
     if value is None:
         value = ''
     else:
         value = re.escape(value) if escape_value else value
-        value = '=[\'"]?(?P<value>%s)[\'"]?' % value
+        value = f'=[\'"]?(?P<value>{value})[\'"]?'
 
     retlist = []
-    for m in re.finditer(r'''(?xs)
-        <(?P<tag>%s)
+    for m in re.finditer(rf'''(?xs)
+        <(?P<tag>{tag})
          (?:\s+[a-zA-Z0-9:._-]+(?:=[a-zA-Z0-9:._-]*|="[^"]*"|='[^']*'|))*?
-         %s%s
+         {attribute}{value}
          (?:\s+[a-zA-Z0-9:._-]+(?:=[a-zA-Z0-9:._-]*|="[^"]*"|='[^']*'|))*?
         \s*>
         (?P<content>.*?)
         </\1>
-    ''' % (tag, attribute, value), html):
+    ''', html):
         retlist.append(m)
 
     return retlist
@@ -101,7 +101,7 @@ class DubokuIE(InfoExtractor):
         season_id = temp[1]
         episode_id = temp[2]
 
-        webpage_url = 'https://w.duboku.io/vodplay/%s.html' % video_id
+        webpage_url = f'https://w.duboku.io/vodplay/{video_id}.html'
         webpage_html = self._download_webpage(webpage_url, video_id)
 
         # extract video url
@@ -193,11 +193,11 @@ class DubokuPlaylistIE(InfoExtractor):
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
         if mobj is None:
-            raise ExtractorError('Invalid URL: %s' % url)
+            raise ExtractorError(f'Invalid URL: {url}')
         series_id = mobj.group('id')
         fragment = compat_urlparse.urlparse(url).fragment
 
-        webpage_url = 'https://w.duboku.io/voddetail/%s.html' % series_id
+        webpage_url = f'https://w.duboku.io/voddetail/{series_id}.html'
         webpage_html = self._download_webpage(webpage_url, series_id)
 
         # extract title
@@ -237,7 +237,7 @@ class DubokuPlaylistIE(InfoExtractor):
                 (playlist_id, playlist) = first
         if not playlist:
             raise ExtractorError(
-                'Cannot find %s' % fragment if fragment else 'Cannot extract playlist')
+                f'Cannot find {fragment}' if fragment else 'Cannot extract playlist')
 
         # return url results
         return self.playlist_result([

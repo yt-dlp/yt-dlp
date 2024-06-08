@@ -99,14 +99,14 @@ class RtlNlIE(InfoExtractor):
     def _real_extract(self, url):
         uuid = self._match_id(url)
         info = self._download_json(
-            'http://www.rtl.nl/system/s4m/vfd/version=2/uuid=%s/fmt=adaptive/' % uuid,
+            f'http://www.rtl.nl/system/s4m/vfd/version=2/uuid={uuid}/fmt=adaptive/',
             uuid)
 
         material = info['material'][0]
         title = info['abstracts'][0]['name']
         subtitle = material.get('title')
         if subtitle:
-            title += ' - %s' % subtitle
+            title += f' - {subtitle}'
         description = material.get('synopsis')
 
         meta = info.get('meta', {})

@@ -22,7 +22,7 @@ from ..utils import (
 class IGNBaseIE(InfoExtractor):
     def _call_api(self, slug):
         return self._download_json(
-            'http://apis.ign.com/{0}/v3/{0}s/slug/{1}'.format(self._PAGE_TYPE, slug), slug)
+            f'http://apis.ign.com/{self._PAGE_TYPE}/v3/{self._PAGE_TYPE}s/slug/{slug}', slug)
 
     def _checked_call_api(self, slug):
         try:
@@ -106,8 +106,7 @@ class IGNIE(IGNBaseIE):
     _VIDEO_PATH_RE = r'/(?:\d{4}/\d{2}/\d{2}/)?(?P<id>.+?)'
     _PLAYLIST_PATH_RE = r'(?:/?\?(?P<filt>[^&#]+))?'
     _VALID_URL = (
-        r'https?://(?:.+?\.ign|www\.pcmag)\.com/videos(?:%s)'
-        % '|'.join((_VIDEO_PATH_RE + r'(?:[/?&#]|$)', _PLAYLIST_PATH_RE)))
+        r'https?://(?:.+?\.ign|www\.pcmag)\.com/videos(?:{})'.format('|'.join((_VIDEO_PATH_RE + r'(?:[/?&#]|$)', _PLAYLIST_PATH_RE))))
     IE_NAME = 'ign.com'
     _PAGE_TYPE = 'video'
 
@@ -152,10 +151,10 @@ class IGNIE(IGNBaseIE):
         grids = re.findall(
             r'''(?s)<section\b[^>]+\bclass\s*=\s*['"](?:[\w-]+\s+)*?content-feed-grid(?!\B|-)[^>]+>(.+?)</section[^>]*>''',
             webpage)
-        return filter(None,
-                      (urljoin(url, m.group('path')) for m in re.finditer(
-                          r'''<a\b[^>]+\bhref\s*=\s*('|")(?P<path>/videos%s)\1'''
-                          % cls._VIDEO_PATH_RE, grids[0] if grids else '')))
+        return filter(
+            None, (urljoin(url, m.group('path')) for m in re.finditer(
+                rf'''<a\b[^>]+\bhref\s*=\s*('|")(?P<path>/videos{cls._VIDEO_PATH_RE})\1''',
+                grids[0] if grids else '')))
 
     def _real_extract(self, url):
         display_id, filt = self._match_valid_url(url).group('id', 'filt')

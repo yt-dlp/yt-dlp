@@ -57,7 +57,7 @@ class RDSIE(InfoExtractor):
             '_type': 'url_transparent',
             'id': video_id,
             'display_id': display_id,
-            'url': '9c9media:rds_web:%s' % video_id,
+            'url': f'9c9media:rds_web:{video_id}',
             'title': title,
             'description': description,
             'thumbnail': thumbnail,

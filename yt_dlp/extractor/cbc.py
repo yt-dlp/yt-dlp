@@ -116,7 +116,7 @@ class CBCIE(InfoExtractor):
         if not media_id:
             clip_id = player_info['clipId']
             feed = self._download_json(
-                'http://tpfeed.cbc.ca/f/ExhSPC/vms_5akSXx4Ng_Zn?byCustomValue={:mpsReleases}{%s}' % clip_id,
+                f'http://tpfeed.cbc.ca/f/ExhSPC/vms_5akSXx4Ng_Zn?byCustomValue={{:mpsReleases}}{{{clip_id}}}',
                 clip_id, fatal=False)
             if feed:
                 media_id = try_get(feed, lambda x: x['entries'][0]['guid'], compat_str)
@@ -124,7 +124,7 @@ class CBCIE(InfoExtractor):
                 media_id = self._download_json(
                     'http://feed.theplatform.com/f/h9dtGB/punlNGjMlc1F?fields=id&byContent=byReleases%3DbyId%253D' + clip_id,
                     clip_id)['entries'][0]['id'].split('/')[-1]
-        return self.url_result('cbcplayer:%s' % media_id, 'CBCPlayer', media_id)
+        return self.url_result(f'cbcplayer:{media_id}', 'CBCPlayer', media_id)
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
@@ -142,7 +142,7 @@ class CBCIE(InfoExtractor):
                 r'guid["\']\s*:\s*["\'](\d+)'):
             media_ids.extend(re.findall(media_id_re, webpage))
         entries.extend([
-            self.url_result('cbcplayer:%s' % media_id, 'CBCPlayer', media_id)
+            self.url_result(f'cbcplayer:{media_id}', 'CBCPlayer', media_id)
             for media_id in orderedSet(media_ids)])
         return self.playlist_result(
             entries, display_id, strip_or_none(title),
@@ -322,7 +322,7 @@ class CBCPlayerIE(InfoExtractor):
             '_type': 'url_transparent',
             'ie_key': 'ThePlatform',
             'url': smuggle_url(
-                'http://link.theplatform.com/s/ExhSPC/media/guid/2655402169/%s?mbr=true&formats=MPEG4,FLV,MP3' % video_id, {
+                f'http://link.theplatform.com/s/ExhSPC/media/guid/2655402169/{video_id}?mbr=true&formats=MPEG4,FLV,MP3', {
                     'force_smil_url': True,
                 }),
             'id': video_id,

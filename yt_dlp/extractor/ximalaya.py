@@ -77,10 +77,10 @@ class XimalayaIE(XimalayaBaseIE):
         scheme = 'https' if url.startswith('https') else 'http'
 
         audio_id = self._match_id(url)
-        audio_info_file = '%s://m.ximalaya.com/tracks/%s.json' % (scheme, audio_id)
-        audio_info = self._download_json(audio_info_file, audio_id,
-                                         'Downloading info json %s' % audio_info_file,
-                                         'Unable to download info file')
+        audio_info_file = f'{scheme}://m.ximalaya.com/tracks/{audio_id}.json'
+        audio_info = self._download_json(
+            audio_info_file, audio_id,
+            f'Downloading info json {audio_info_file}', 'Unable to download info file')
 
         formats = [{
             'format_id': f'{bps}k',

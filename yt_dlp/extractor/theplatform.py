@@ -41,8 +41,7 @@ class ThePlatformBaseIE(OnceIE):
                 if exception.get('value') == 'GeoLocationBlocked':
                     self.raise_geo_restricted(error_element.attrib['abstract'])
                 elif error_element.attrib['src'].startswith(
-                        'http://link.theplatform.%s/s/errorFiles/Unavailable.'
-                        % self._TP_TLD):
+                        f'http://link.theplatform.{self._TP_TLD}/s/errorFiles/Unavailable.'):
                     raise ExtractorError(
                         error_element.attrib['abstract'], expected=True)
 
@@ -69,7 +68,7 @@ class ThePlatformBaseIE(OnceIE):
         return formats, subtitles
 
     def _download_theplatform_metadata(self, path, video_id):
-        info_url = 'http://link.theplatform.%s/s/%s?format=preview' % (self._TP_TLD, path)
+        info_url = f'http://link.theplatform.{self._TP_TLD}/s/{path}?format=preview'
         return self._download_json(info_url, video_id)
 
     def _parse_theplatform_metadata(self, info):
@@ -231,7 +230,7 @@ class ThePlatformIE(ThePlatformBaseIE, AdobePassIE):
         clear_text = bytes.fromhex(flags + expiration_date + str_to_hex(relative_path))
         checksum = hmac.new(sig_key.encode('ascii'), clear_text, hashlib.sha1).hexdigest()
         sig = flags + expiration_date + checksum + str_to_hex(sig_secret)
-        return '%s&sig=%s' % (url, sig)
+        return f'{url}&sig={sig}'
 
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url, {})
@@ -270,7 +269,7 @@ class ThePlatformIE(ThePlatformBaseIE, AdobePassIE):
                     break
             if feed_id is None:
                 raise ExtractorError('Unable to find feed id')
-            return self.url_result('http://feed.theplatform.com/f/%s/%s?byGuid=%s' % (
+            return self.url_result('http://feed.theplatform.com/f/{}/{}?byGuid={}'.format(
                 provider_id, feed_id, qs_dict['guid'][0]))
 
         if smuggled_data.get('force_smil_url', False):
@@ -297,7 +296,7 @@ class ThePlatformIE(ThePlatformBaseIE, AdobePassIE):
             release_url = config.get('releaseUrl') or f'http://link.theplatform.com/s/{path}?mbr=true'
             smil_url = release_url + '&formats=MPEG4&manifest=f4m'
         else:
-            smil_url = 'http://link.theplatform.com/s/%s?mbr=true' % path
+            smil_url = f'http://link.theplatform.com/s/{path}?mbr=true'
 
         sig = smuggled_data.get('sig')
         if sig:
@@ -380,7 +379,7 @@ class ThePlatformFeedIE(ThePlatformBaseIE):
                 if asset_type in asset_types_query:
                     query.update(asset_types_query[asset_type])
                 cur_formats, cur_subtitles = self._extract_theplatform_smil(update_url_query(
-                    main_smil_url or smil_url, query), video_id, 'Downloading SMIL data for %s' % asset_type)
+                    main_smil_url or smil_url, query), video_id, f'Downloading SMIL data for {asset_type}')
                 formats.extend(cur_formats)
                 subtitles = self._merge_subtitles(subtitles, cur_subtitles)
 
@@ -393,7 +392,7 @@ class ThePlatformFeedIE(ThePlatformBaseIE):
         timestamp = int_or_none(entry.get('media$availableDate'), scale=1000)
         categories = [item['media$name'] for item in entry.get('media$categories', [])]
 
-        ret = self._extract_theplatform_metadata('%s/%s' % (provider_id, first_video_id), video_id)
+        ret = self._extract_theplatform_metadata(f'{provider_id}/{first_video_id}', video_id)
         subtitles = self._merge_subtitles(subtitles, ret['subtitles'])
         ret.update({
             'id': video_id,

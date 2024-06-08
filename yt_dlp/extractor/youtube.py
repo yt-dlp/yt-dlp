@@ -793,7 +793,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         for alert_type, alert_message in (warnings + errors[:-1]):
             self.report_warning(f'YouTube said: {alert_type} - {alert_message}', only_once=only_once)
         if errors:
-            raise ExtractorError('YouTube said: %s' % errors[-1][1], expected=expected)
+            raise ExtractorError(f'YouTube said: {errors[-1][1]}', expected=expected)
 
     def _extract_and_report_alerts(self, data, *args, **kwargs):
         return self._report_alerts(self._extract_alerts(data), *args, **kwargs)
@@ -927,7 +927,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             if start:
                 return datetime_from_str(start)
             try:
-                return datetime_from_str('now-%s%s' % (mobj.group('time'), mobj.group('unit')))
+                return datetime_from_str('now-{}{}'.format(mobj.group('time'), mobj.group('unit')))
             except ValueError:
                 return None
 
@@ -1129,7 +1129,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                             (?:www\.)?hooktube\.com|
                             (?:www\.)?yourepeat\.com|
                             tube\.majestyc\.net|
-                            %(invidious)s|
+                            {invidious}|
                             youtube\.googleapis\.com)/                        # the various hostnames, with wildcard subdomains
                          (?:.*?\#/)?                                          # handle anchor (#/) redirect urls
                          (?:                                                  # the various things that can precede the ID:
@@ -1145,16 +1145,16 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                             youtu\.be|                                        # just youtu.be/xxxx
                             vid\.plus|                                        # or vid.plus/xxxx
                             zwearz\.com/watch|                                # or zwearz.com/watch/xxxx
-                            %(invidious)s
+                            {invidious}
                          )/
                          |(?:www\.)?cleanvideosearch\.com/media/action/yt/watch\?videoId=
                          )
                      )?                                                       # all until now is optional -> you can pass the naked ID
-                     (?P<id>[0-9A-Za-z_-]{11})                                # here is it! the YouTube video ID
+                     (?P<id>[0-9A-Za-z_-]{{11}})                              # here is it! the YouTube video ID
                      (?(1).+)?                                                # if we found the ID, everything can follow
-                     (?:\#|$)''' % {
-        'invidious': '|'.join(YoutubeBaseInfoExtractor._INVIDIOUS_SITES),
-    }
+                     (?:\#|$)'''.format(
+        invidious='|'.join(YoutubeBaseInfoExtractor._INVIDIOUS_SITES),
+    )
     _EMBED_REGEX = [
         r'''(?x)
             (?:
@@ -2971,7 +2971,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if id_m:
                 break
         else:
-            raise ExtractorError('Cannot identify player %r' % player_url)
+            raise ExtractorError(f'Cannot identify player {player_url!r}')
         return id_m.group('id')
 
     def _load_player(self, video_id, player_url, fatal=True):
@@ -2980,7 +2980,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             code = self._download_webpage(
                 player_url, video_id, fatal=fatal,
                 note='Downloading player ' + player_id,
-                errnote='Download of %s failed' % player_url)
+                errnote=f'Download of {player_url} failed')
             if code:
                 self._code_cache[player_id] = code
         return self._code_cache.get(player_id)
@@ -3041,10 +3041,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         cache_res = func(test_string)
         cache_spec = [ord(c) for c in cache_res]
         expr_code = ' + '.join(gen_sig_code(cache_spec))
-        signature_id_tuple = '(%s)' % (
-            ', '.join(str(len(p)) for p in example_sig.split('.')))
-        code = ('if tuple(len(p) for p in s.split(\'.\')) == %s:\n'
-                '    return %s\n') % (signature_id_tuple, expr_code)
+        signature_id_tuple = '({})'.format(', '.join(str(len(p)) for p in example_sig.split('.')))
+        code = (f'if tuple(len(p) for p in s.split(\'.\')) == {signature_id_tuple}:\n'
+                f'    return {expr_code}\n')
         self.to_screen('Extracted signature function:\n' + code)
 
     def _parse_sig_js(self, jscode):
@@ -3150,9 +3149,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         # For redundancy
         func_code = self._search_regex(
-            r'''(?xs)%s\s*=\s*function\s*\((?P<var>[\w$]+)\)\s*
+            rf'''(?xs){func_name}\s*=\s*function\s*\((?P<var>[\w$]+)\)\s*
                      # NB: The end of the regex is intentionally kept strict
-                     {(?P<code>.+?}\s*return\ [\w$]+.join\(""\))};''' % func_name,
+                     {{(?P<code>.+?}}\s*return\ [\w$]+.join\(""\))}};''',
             jscode, 'nsig function', group=('var', 'code'), default=None)
         if func_code:
             func_code = ([func_code[0]], func_code[1])
@@ -3420,7 +3419,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 sort_text = str_or_none(sort_menu_item.get('title'))
                 if not sort_text:
                     sort_text = 'top comments' if comment_sort_index == 0 else 'newest first'
-                self.to_screen('Sorting comments by %s' % sort_text.lower())
+                self.to_screen(f'Sorting comments by {sort_text.lower()}')
                 break
             return _continuation
 
@@ -3669,7 +3668,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             item_id=video_id, ep='player', query=yt_query,
             ytcfg=player_ytcfg, headers=headers, fatal=True,
             default_client=client,
-            note='Downloading %s player API JSON' % client.replace('_', ' ').strip(),
+            note='Downloading {} player API JSON'.format(client.replace('_', ' ').strip()),
         ) or None
 
     def _get_requested_clients(self, url, smuggled_data):
@@ -3860,7 +3859,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 if not all((sc, fmt_url, player_url, encrypted_sig)):
                     continue
                 try:
-                    fmt_url += '&%s=%s' % (
+                    fmt_url += '&{}={}'.format(
                         traverse_obj(sc, ('sp', -1)) or 'signature',
                         self._decrypt_signature(encrypted_sig, video_id, player_url),
                     )
@@ -4182,7 +4181,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             expected_type=str)
         if multifeed_metadata_list and not smuggled_data.get('force_singlefeed'):
             if self.get_param('noplaylist'):
-                self.to_screen('Downloading just video %s because of --no-playlist' % video_id)
+                self.to_screen(f'Downloading just video {video_id} because of --no-playlist')
             else:
                 entries = []
                 feed_ids = []
@@ -4203,19 +4202,19 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     feed_title = feed_entry('title')
                     title = video_title
                     if feed_title:
-                        title += ' (%s)' % feed_title
+                        title += f' ({feed_title})'
                     entries.append({
                         '_type': 'url_transparent',
                         'ie_key': 'Youtube',
                         'url': smuggle_url(
-                            '%swatch?v=%s' % (base_url, feed_data['id'][0]),
+                            '{}watch?v={}'.format(base_url, feed_data['id'][0]),
                             {'force_singlefeed': True}),
                         'title': title,
                     })
                     feed_ids.append(feed_id)
                 self.to_screen(
-                    'Downloading multifeed video (%s) - add --no-playlist to just download video %s'
-                    % (', '.join(feed_ids), video_id))
+                    'Downloading multifeed video ({}) - add --no-playlist to just download video {}'.format(
+                        ', '.join(feed_ids), video_id))
                 return self.playlist_result(
                     entries, video_id, video_title, video_description)
 
@@ -4777,7 +4776,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             playlist_id = renderer.get('playlistId')
             if playlist_id:
                 yield self.url_result(
-                    'https://www.youtube.com/playlist?list=%s' % playlist_id,
+                    f'https://www.youtube.com/playlist?list={playlist_id}',
                     ie=YoutubeTabIE.ie_key(), video_id=playlist_id,
                     video_title=title)
                 continue
@@ -4912,7 +4911,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             post_renderer, lambda x: x['backstageAttachment']['playlistRenderer']['playlistId'], str)
         if playlist_id:
             yield self.url_result(
-                'https://www.youtube.com/playlist?list=%s' % playlist_id,
+                f'https://www.youtube.com/playlist?list={playlist_id}',
                 ie=YoutubeTabIE.ie_key(), video_id=playlist_id)
         # inline video links
         runs = try_get(post_renderer, lambda x: x['contentText']['runs'], list) or []
@@ -5481,7 +5480,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             (?!consent\.)(?:\w+\.)?
             (?:
                 youtube(?:kids)?\.com|
-                %(invidious)s
+                {invidious}
             )/
             (?:
                 (?P<channel_type>channel|c|user|browse)/|
@@ -5489,13 +5488,13 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
                     feed/|hashtag/|
                     (?:playlist|watch)\?.*?\blist=
                 )|
-                (?!(?:%(reserved_names)s)\b)  # Direct URLs
+                (?!(?:{reserved_names})\b)  # Direct URLs
             )
             (?P<id>[^/?\#&]+)
-    )''' % {
-        'reserved_names': YoutubeBaseInfoExtractor._RESERVED_NAMES,
-        'invidious': '|'.join(YoutubeBaseInfoExtractor._INVIDIOUS_SITES),
-    }
+    )'''.format(
+        reserved_names=YoutubeBaseInfoExtractor._RESERVED_NAMES,
+        invidious='|'.join(YoutubeBaseInfoExtractor._INVIDIOUS_SITES),
+    )
     IE_NAME = 'youtube:tab'
 
     _TESTS = [{
@@ -6746,15 +6745,15 @@ class YoutubePlaylistIE(InfoExtractor):
                         (?:
                             (?:
                                 youtube(?:kids)?\.com|
-                                %(invidious)s
+                                {invidious}
                             )
                             /.*?\?.*?\blist=
                         )?
-                        (?P<id>%(playlist_id)s)
-                     )''' % {
-        'playlist_id': YoutubeBaseInfoExtractor._PLAYLIST_ID_RE,
-        'invidious': '|'.join(YoutubeBaseInfoExtractor._INVIDIOUS_SITES),
-    }
+                        (?P<id>{playlist_id})
+                     )'''.format(
+        playlist_id=YoutubeBaseInfoExtractor._PLAYLIST_ID_RE,
+        invidious='|'.join(YoutubeBaseInfoExtractor._INVIDIOUS_SITES),
+    )
     IE_NAME = 'youtube:playlist'
     _TESTS = [{
         'note': 'issue #673',
@@ -6854,7 +6853,7 @@ class YoutubePlaylistIE(InfoExtractor):
 
 class YoutubeYtBeIE(InfoExtractor):
     IE_DESC = 'youtu.be'
-    _VALID_URL = r'https?://youtu\.be/(?P<id>[0-9A-Za-z_-]{11})/*?.*?\blist=(?P<playlist_id>%(playlist_id)s)' % {'playlist_id': YoutubeBaseInfoExtractor._PLAYLIST_ID_RE}
+    _VALID_URL = rf'https?://youtu\.be/(?P<id>[0-9A-Za-z_-]{{11}})/*?.*?\blist=(?P<playlist_id>{YoutubeBaseInfoExtractor._PLAYLIST_ID_RE})'
     _TESTS = [{
         'url': 'https://youtu.be/yeWKywCrFtk?list=PL2qgrgXsNUG5ig9cat4ohreBjYLAPC0J5',
         'info_dict': {

@@ -62,19 +62,14 @@ body > figure > img {
     def _gen_stub(self, *, fragments, frag_boundary, title):
         output = io.StringIO()
 
-        output.write((
+        output.write(
             '<!DOCTYPE html>'
             '<html>'
             '<head>'
-            '<meta name="generator" content="yt-dlp {version}">'
-            '<title>{title}</title>'
-            '<style>{styles}</style>'
-            '<body>'
-        ).format(
-            version=escapeHTML(YT_DLP_VERSION),
-            styles=self._STYLESHEET,
-            title=escapeHTML(title),
-        ))
+            f'<meta name="generator" content="yt-dlp {escapeHTML(YT_DLP_VERSION)}">'
+            f'<title>{escapeHTML(title)}</title>'
+            f'<style>{self._STYLESHEET}</style>'
+            '<body>')
 
         t0 = 0
         for i, frag in enumerate(fragments):
@@ -91,11 +86,8 @@ body > figure > img {
                 ))
             except (KeyError, ValueError, TypeError):
                 t1 = None
-                output.write((
-                    '<figcaption>Slide #{num}</figcaption>'
-                ).format(num=i + 1))
-            output.write('<img src="cid:{cid}">'.format(
-                cid=self._gen_cid(i, frag, frag_boundary)))
+                output.write(f'<figcaption>Slide #{i + 1}</figcaption>')
+            output.write(f'<img src="cid:{self._gen_cid(i, frag, frag_boundary)}">')
             output.write('</figure>')
             t0 = t1
 
@@ -133,24 +125,17 @@ body > figure > img {
                 'MIME-Version: 1.0\r\n'
                 'From: <nowhere@yt-dlp.github.io.invalid>\r\n'
                 'To: <nowhere@yt-dlp.github.io.invalid>\r\n'
-                'Subject: {title}\r\n'
+                f'Subject: {self._escape_mime(title)}\r\n'
                 'Content-type: multipart/related; '
-                'boundary="{boundary}"; '
+                f'boundary="{frag_boundary}"; '
                 'type="text/html"\r\n'
-                'X.yt-dlp.Origin: {origin}\r\n'
+                f'X.yt-dlp.Origin: {origin}\r\n'
                 '\r\n'
-                '--{boundary}\r\n'
+                f'--{frag_boundary}\r\n'
                 'Content-Type: text/html; charset=utf-8\r\n'
-                'Content-Length: {length}\r\n'
+                f'Content-Length: {len(stub)}\r\n'
                 '\r\n'
-                '{stub}\r\n'
-            ).format(
-                origin=origin,
-                boundary=frag_boundary,
-                length=len(stub),
-                title=self._escape_mime(title),
-                stub=stub,
-            ).encode())
+                f'{stub}\r\n').encode())
             extra_state['header_written'] = True
 
         for i, fragment in enumerate(fragments):

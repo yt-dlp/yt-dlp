@@ -132,11 +132,11 @@ class DaumListIE(InfoExtractor):  # XXX: Conventionally, base classes should end
         for pagenum in itertools.count(1):
             list_info = self._download_json(
                 'http://tvpot.daum.net/mypot/json/GetClipInfo.do?size=48&init=true&order=date&page=%d&%s=%s' % (
-                    pagenum, list_id_type, list_id), list_id, 'Downloading list info - %s' % pagenum)
+                    pagenum, list_id_type, list_id), list_id, f'Downloading list info - {pagenum}')
 
             entries.extend([
                 self.url_result(
-                    'http://tvpot.daum.net/v/%s' % clip['vid'])
+                    'http://tvpot.daum.net/v/{}'.format(clip['vid']))
                 for clip in list_info['clip_list']
             ])
 

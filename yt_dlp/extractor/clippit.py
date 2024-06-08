@@ -36,7 +36,7 @@ class ClippitIE(InfoExtractor):
         quality = qualities(FORMATS)
         formats = []
         for format_id in FORMATS:
-            url = self._html_search_regex(r'data-%s-file="(.+?)"' % format_id,
+            url = self._html_search_regex(rf'data-{format_id}-file="(.+?)"',
                                           webpage, 'url', fatal=False)
             if not url:
                 continue

@@ -301,7 +301,7 @@ class NitterIE(InfoExtractor):
         if main_tweet_start > 0:
             webpage = full_webpage[main_tweet_start:]
 
-        video_url = '%s%s' % (base_url, self._html_search_regex(
+        video_url = '{}{}'.format(base_url, self._html_search_regex(
             r'(?:<video[^>]+data-url|<source[^>]+src)="([^"]+)"', webpage, 'video url'))
         ext = determine_ext(video_url)
 
@@ -334,7 +334,7 @@ class NitterIE(InfoExtractor):
 
         thumbnail = (
             self._html_search_meta('og:image', full_webpage, 'thumbnail url')
-            or remove_end('%s%s' % (base_url, self._html_search_regex(
+            or remove_end('{}{}'.format(base_url, self._html_search_regex(
                 r'<video[^>]+poster="([^"]+)"', webpage, 'thumbnail url', fatal=False)), '%3Asmall'))
 
         thumbnails = [

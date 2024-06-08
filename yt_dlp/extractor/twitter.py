@@ -1644,9 +1644,9 @@ class TwitterAmplifyIE(TwitterBaseIE):
 
         def _find_dimension(target):
             w = int_or_none(self._html_search_meta(
-                'twitter:%s:width' % target, webpage, fatal=False))
+                f'twitter:{target}:width', webpage, fatal=False))
             h = int_or_none(self._html_search_meta(
-                'twitter:%s:height' % target, webpage, fatal=False))
+                f'twitter:{target}:height', webpage, fatal=False))
             return w, h
 
         if thumbnail:

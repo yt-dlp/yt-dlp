@@ -32,7 +32,7 @@ class TV5UnisBaseIE(InfoExtractor):
       }
     }
   }
-}''' % (self._GQL_QUERY_NAME, self._gql_args(groups)),
+}''' % (self._GQL_QUERY_NAME, self._gql_args(groups)),  # noqa: UP031
             })['data'][self._GQL_QUERY_NAME]
         media_id = product['videoElement']['mediaId']
 
@@ -67,7 +67,7 @@ class TV5UnisVideoIE(TV5UnisBaseIE):
 
     @staticmethod
     def _gql_args(groups):
-        return 'id: %s' % groups
+        return f'id: {groups}'
 
 
 class TV5UnisIE(TV5UnisBaseIE):
@@ -110,7 +110,7 @@ class TV5UnisIE(TV5UnisBaseIE):
 
     @staticmethod
     def _gql_args(groups):
-        args = 'rootProductSlug: "%s"' % groups[0]
+        args = f'rootProductSlug: "{groups[0]}"'
         if groups[1]:
-            args += ', seasonNumber: %s, episodeNumber: %s' % groups[1:]
+            args += ', seasonNumber: {}, episodeNumber: {}'.format(*groups[1:])
         return args

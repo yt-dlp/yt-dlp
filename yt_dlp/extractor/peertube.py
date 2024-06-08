@@ -1316,13 +1316,13 @@ class PeerTubeIE(InfoExtractor):
                         )'''
     _UUID_RE = r'[\da-zA-Z]{22}|[\da-fA-F]{8}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{12}'
     _API_BASE = 'https://%s/api/v1/videos/%s/%s'
-    _VALID_URL = r'''(?x)
+    _VALID_URL = rf'''(?x)
                     (?:
                         peertube:(?P<host>[^:]+):|
-                        https?://(?P<host_2>%s)/(?:videos/(?:watch|embed)|api/v\d/videos|w)/
+                        https?://(?P<host_2>{_INSTANCES_RE})/(?:videos/(?:watch|embed)|api/v\d/videos|w)/
                     )
-                    (?P<id>%s)
-                    ''' % (_INSTANCES_RE, _UUID_RE)
+                    (?P<id>{_UUID_RE})
+                    '''
     _EMBED_REGEX = [r'''(?x)<iframe[^>]+\bsrc=["\'](?P<url>(?:https?:)?//{_INSTANCES_RE}/videos/embed/{cls._UUID_RE})''']
     _TESTS = [{
         'url': 'https://framatube.org/videos/watch/9c9de5e8-0a1e-484a-b099-e80766180a6d',
@@ -1416,14 +1416,13 @@ class PeerTubeIE(InfoExtractor):
     @staticmethod
     def _extract_peertube_url(webpage, source_url):
         mobj = re.match(
-            r'https?://(?P<host>[^/]+)/(?:videos/(?:watch|embed)|w)/(?P<id>%s)'
-            % PeerTubeIE._UUID_RE, source_url)
+            rf'https?://(?P<host>[^/]+)/(?:videos/(?:watch|embed)|w)/(?P<id>{PeerTubeIE._UUID_RE})', source_url)
         if mobj and any(p in webpage for p in (
                 'meta property="og:platform" content="PeerTube"',
                 '<title>PeerTube<',
                 'There will be other non JS-based clients to access PeerTube',
                 '>We are sorry but it seems that PeerTube is not compatible with your web browser.<')):
-            return 'peertube:%s:%s' % mobj.group('host', 'id')
+            return 'peertube:{}:{}'.format(*mobj.group('host', 'id'))
 
     @classmethod
     def _extract_embed_urls(cls, url, webpage):
@@ -1452,7 +1451,7 @@ class PeerTubeIE(InfoExtractor):
         subtitles = {}
         for e in data:
             language_id = try_get(e, lambda x: x['language']['id'], compat_str)
-            caption_url = urljoin('https://%s' % host, e.get('captionPath'))
+            caption_url = urljoin(f'https://{host}', e.get('captionPath'))
             if not caption_url:
                 continue
             subtitles.setdefault(language_id or 'en', []).append({
@@ -1535,7 +1534,7 @@ class PeerTubeIE(InfoExtractor):
         else:
             age_limit = None
 
-        webpage_url = 'https://%s/videos/watch/%s' % (host, video_id)
+        webpage_url = f'https://{host}/videos/watch/{video_id}'
 
         return {
             'id': video_id,
@@ -1573,9 +1572,9 @@ class PeerTubePlaylistIE(InfoExtractor):
         'w/p': 'video-playlists',
     }
     _VALID_URL = r'''(?x)
-                        https?://(?P<host>%s)/(?P<type>(?:%s))/
+                        https?://(?P<host>{})/(?P<type>(?:{}))/
                     (?P<id>[^/]+)
-                    ''' % (PeerTubeIE._INSTANCES_RE, '|'.join(_TYPES.keys()))
+                    '''.format(PeerTubeIE._INSTANCES_RE, '|'.join(_TYPES.keys()))
     _TESTS = [{
         'url': 'https://peertube.debian.social/w/p/hFdJoTuyhNJVa1cDWd1d12',
         'info_dict': {

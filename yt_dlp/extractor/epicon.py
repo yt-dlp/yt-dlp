@@ -111,6 +111,6 @@ class EpiconSeriesIE(InfoExtractor):
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
         webpage = self._download_webpage(url, playlist_id)
-        episodes = re.findall(r'ct-tray-url=\"(tv-shows/%s/[^\"]+)' % playlist_id, webpage)
-        entries = [self.url_result('https://www.epicon.in/%s' % episode, EpiconIE) for episode in episodes]
+        episodes = re.findall(rf'ct-tray-url=\"(tv-shows/{playlist_id}/[^\"]+)', webpage)
+        entries = [self.url_result(f'https://www.epicon.in/{episode}', EpiconIE) for episode in episodes]
         return self.playlist_result(entries, playlist_id=playlist_id)

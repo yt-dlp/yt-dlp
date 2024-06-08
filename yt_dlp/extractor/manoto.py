@@ -93,7 +93,7 @@ class ManotoTVShowIE(InfoExtractor):
 
         entries = [
             self.url_result(
-                'https://www.manototv.com/episode/%s' % item['slideID'], ie=ManotoTVIE.ie_key(), video_id=item['slideID'])
+                'https://www.manototv.com/episode/{}'.format(item['slideID']), ie=ManotoTVIE.ie_key(), video_id=item['slideID'])
             for item in playlist]
         return self.playlist_result(entries, show_id, title, description)
 

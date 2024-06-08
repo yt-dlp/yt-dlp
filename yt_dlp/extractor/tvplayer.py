@@ -66,7 +66,7 @@ class TVPlayerIE(InfoExtractor):
                 response = self._parse_json(
                     e.cause.response.read().decode(), resource_id)['tvplayer']['response']
                 raise ExtractorError(
-                    '%s said: %s' % (self.IE_NAME, response['error']), expected=True)
+                    '{} said: {}'.format(self.IE_NAME, response['error']), expected=True)
             raise
 
         formats = self._extract_m3u8_formats(response['stream'], display_id, 'mp4')

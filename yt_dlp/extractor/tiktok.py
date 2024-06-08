@@ -121,7 +121,7 @@ class TikTokBaseIE(InfoExtractor):
         if webpage_cookies.get('sid_tt'):
             self._set_cookie(self._API_HOSTNAME, 'sid_tt', webpage_cookies['sid_tt'].value)
         return self._download_json(
-            'https://%s/aweme/v1/%s/' % (self._API_HOSTNAME, ep), video_id=video_id,
+            f'https://{self._API_HOSTNAME}/aweme/v1/{ep}/', video_id=video_id,
             fatal=fatal, note=note, errnote=errnote, headers={
                 'User-Agent': self._APP_USER_AGENT,
                 'Accept': 'application/json',
@@ -402,7 +402,7 @@ class TikTokBaseIE(InfoExtractor):
         contained_music_author = traverse_obj(
             music_info, ('matched_song', 'author'), ('matched_pgc_sound', 'author'), 'author', expected_type=str)
 
-        is_generic_og_trackname = music_info.get('is_original_sound') and music_info.get('title') == 'original sound - %s' % music_info.get('owner_handle')
+        is_generic_og_trackname = music_info.get('is_original_sound') and music_info.get('title') == 'original sound - {}'.format(music_info.get('owner_handle'))
         if is_generic_og_trackname:
             music_track, music_author = contained_music_track or 'original sound', contained_music_author
         else:

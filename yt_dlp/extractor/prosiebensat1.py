@@ -80,7 +80,7 @@ class ProSiebenSat1BaseIE(InfoExtractor):
             client_id = self._SALT[:2] + hashlib.sha1(''.join([clip_id, self._SALT, self._TOKEN, client_location, self._SALT, self._CLIENT_NAME]).encode()).hexdigest()
 
             sources = self._download_json(
-                'http://vas.sim-technik.de/vas/live/v2/videos/%s/sources' % clip_id,
+                f'http://vas.sim-technik.de/vas/live/v2/videos/{clip_id}/sources',
                 clip_id, 'Downloading sources JSON', query={
                     'access_token': self._TOKEN,
                     'client_id': client_id,
@@ -98,7 +98,7 @@ class ProSiebenSat1BaseIE(InfoExtractor):
             for source_id in source_ids:
                 client_id = self._SALT[:2] + hashlib.sha1(''.join([self._SALT, clip_id, self._TOKEN, server_id, client_location, source_id, self._SALT, self._CLIENT_NAME]).encode()).hexdigest()
                 urls = self._download_json(
-                    'http://vas.sim-technik.de/vas/live/v2/videos/%s/sources/url' % clip_id,
+                    f'http://vas.sim-technik.de/vas/live/v2/videos/{clip_id}/sources/url',
                     clip_id, 'Downloading urls JSON', fatal=False, query={
                         'access_token': self._TOKEN,
                         'client_id': client_id,
@@ -141,7 +141,7 @@ class ProSiebenSat1BaseIE(InfoExtractor):
                             app = path[:mp4colon_index]
                             play_path = path[mp4colon_index:]
                             formats.append({
-                                'url': '%s/%s' % (mobj.group('url'), app),
+                                'url': '{}/{}'.format(mobj.group('url'), app),
                                 'app': app,
                                 'play_path': play_path,
                                 'player_url': 'http://livepassdl.conviva.com/hf/ver/2.79.0.17083/LivePassModuleMain.swf',
@@ -493,4 +493,4 @@ class ProSiebenSat1IE(ProSiebenSat1BaseIE):
             return self._extract_playlist(url, webpage)
         else:
             raise ExtractorError(
-                'Unsupported page type %s' % page_type, expected=True)
+                f'Unsupported page type {page_type}', expected=True)

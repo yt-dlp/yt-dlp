@@ -24,7 +24,7 @@ class LoveHomePornIE(NuevoBaseIE):
         display_id = mobj.group('display_id')
 
         info = self._extract_nuevo(
-            'http://lovehomeporn.com/media/nuevo/config.php?key=%s' % video_id,
+            f'http://lovehomeporn.com/media/nuevo/config.php?key={video_id}',
             video_id)
         info.update({
             'display_id': display_id,

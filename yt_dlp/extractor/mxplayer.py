@@ -230,7 +230,7 @@ class MxplayerShowIE(InfoExtractor):
                 for episode in season_json.get('items') or []:
                     video_url = episode['webUrl']
                     yield self.url_result(
-                        'https://mxplayer.in%s' % video_url,
+                        f'https://mxplayer.in{video_url}',
                         ie=MxplayerIE.ie_key(), video_id=video_url.split('-')[-1])
                 next_url = season_json.get('next')
 

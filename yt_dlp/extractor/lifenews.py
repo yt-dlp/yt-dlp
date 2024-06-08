@@ -100,7 +100,7 @@ class LifeNewsIE(InfoExtractor):
             webpage)
 
         if not video_urls and not iframe_links:
-            raise ExtractorError('No media links available for %s' % video_id)
+            raise ExtractorError(f'No media links available for {video_id}')
 
         title = remove_end(
             self._og_search_title(webpage),
@@ -125,9 +125,9 @@ class LifeNewsIE(InfoExtractor):
         def make_entry(video_id, video_url, index=None):
             cur_info = dict(common_info)
             cur_info.update({
-                'id': video_id if not index else '%s-video%s' % (video_id, index),
+                'id': video_id if not index else f'{video_id}-video{index}',
                 'url': video_url,
-                'title': title if not index else '%s (Видео %s)' % (title, index),
+                'title': title if not index else f'{title} (Видео {index})',
             })
             return cur_info
 

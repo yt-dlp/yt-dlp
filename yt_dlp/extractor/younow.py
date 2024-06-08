@@ -11,7 +11,7 @@ from ..utils import (
 )
 
 CDN_API_BASE = 'https://cdn.younow.com/php/api'
-MOMENT_URL_FORMAT = '%s/moment/fetch/id=%%s' % CDN_API_BASE
+MOMENT_URL_FORMAT = f'{CDN_API_BASE}/moment/fetch/id=%s'
 
 
 class YouNowLiveIE(InfoExtractor):
@@ -44,8 +44,7 @@ class YouNowLiveIE(InfoExtractor):
         username = self._match_id(url)
 
         data = self._download_json(
-            'https://api.younow.com/php/api/broadcast/info/curId=0/user=%s'
-            % username, username)
+            f'https://api.younow.com/php/api/broadcast/info/curId=0/user={username}', username)
 
         if data.get('errorCode') != 0:
             raise ExtractorError(data['errorMsg'], expected=True)
@@ -63,13 +62,12 @@ class YouNowLiveIE(InfoExtractor):
             'categories': data.get('tags'),
             'uploader': uploader,
             'uploader_id': data.get('userId'),
-            'uploader_url': 'https://www.younow.com/%s' % username,
+            'uploader_url': f'https://www.younow.com/{username}',
             'creator': uploader,
             'view_count': int_or_none(data.get('viewers')),
             'like_count': int_or_none(data.get('likes')),
             'formats': [{
-                'url': '%s/broadcast/videoPath/hls=1/broadcastId=%s/channelId=%s'
-                       % (CDN_API_BASE, data['broadcastId'], data['userId']),
+                'url': '{}/broadcast/videoPath/hls=1/broadcastId={}/channelId={}'.format(CDN_API_BASE, data['broadcastId'], data['userId']),
                 'ext': 'mp4',
                 'protocol': 'm3u8',
             }],
@@ -106,8 +104,7 @@ def _extract_moment(item, fatal=True):
         'uploader_id': str_or_none(uploader_id),
         'uploader_url': uploader_url,
         'formats': [{
-            'url': 'https://hls.younow.com/momentsplaylists/live/%s/%s.m3u8'
-                   % (moment_id, moment_id),
+            'url': f'https://hls.younow.com/momentsplaylists/live/{moment_id}/{moment_id}.m3u8',
             'ext': 'mp4',
             'protocol': 'm3u8_native',
         }],
@@ -151,7 +148,7 @@ class YouNowChannelIE(InfoExtractor):
                         for moment_id in moments:
                             m = self._download_json(
                                 MOMENT_URL_FORMAT % moment_id, username,
-                                note='Downloading %s moment JSON' % moment_id,
+                                note=f'Downloading {moment_id} moment JSON',
                                 fatal=False)
                             if m and isinstance(m, dict) and m.get('item'):
                                 entry = _extract_moment(m['item'])
@@ -162,11 +159,11 @@ class YouNowChannelIE(InfoExtractor):
     def _real_extract(self, url):
         username = self._match_id(url)
         channel_id = compat_str(self._download_json(
-            'https://api.younow.com/php/api/broadcast/info/curId=0/user=%s'
-            % username, username, note='Downloading user information')['userId'])
+            f'https://api.younow.com/php/api/broadcast/info/curId=0/user={username}',
+            username, note='Downloading user information')['userId'])
         return self.playlist_result(
             self._entries(username, channel_id), channel_id,
-            '%s moments' % username)
+            f'{username} moments')
 
 
 class YouNowMomentIE(InfoExtractor):

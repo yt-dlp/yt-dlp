@@ -255,7 +255,7 @@ class AnvatoIE(InfoExtractor):
       token
     }
   }
-}''' % (anvack, mcp_id),
+}''' % (anvack, mcp_id),  # noqa: UP031
             }).encode(), headers={
                 'Authorization': auth_token,
                 'Content-Type': 'application/json',

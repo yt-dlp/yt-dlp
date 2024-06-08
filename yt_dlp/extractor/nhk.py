@@ -521,7 +521,8 @@ class NhkForSchoolSubjectIE(InfoExtractor):
         'eigo', 'tokkatsu',
         'tokushi', 'sonota',
     )
-    _VALID_URL = r'https?://www\.nhk\.or\.jp/school/(?P<id>%s)/?(?:[\?#].*)?$' % '|'.join(re.escape(s) for s in KNOWN_SUBJECTS)
+    _VALID_URL = r'https?://www\.nhk\.or\.jp/school/(?P<id>{})/?(?:[\?#].*)?$'.format(
+        '|'.join(re.escape(s) for s in KNOWN_SUBJECTS))
 
     _TESTS = [{
         'url': 'https://www.nhk.or.jp/school/sougou/',
@@ -551,9 +552,8 @@ class NhkForSchoolSubjectIE(InfoExtractor):
 
 
 class NhkForSchoolProgramListIE(InfoExtractor):
-    _VALID_URL = r'https?://www\.nhk\.or\.jp/school/(?P<id>(?:%s)/[a-zA-Z0-9_-]+)' % (
-        '|'.join(re.escape(s) for s in NhkForSchoolSubjectIE.KNOWN_SUBJECTS)
-    )
+    _VALID_URL = r'https?://www\.nhk\.or\.jp/school/(?P<id>(?:{})/[a-zA-Z0-9_-]+)'.format(
+        '|'.join(re.escape(s) for s in NhkForSchoolSubjectIE.KNOWN_SUBJECTS))
     _TESTS = [{
         'url': 'https://www.nhk.or.jp/school/sougou/q/',
         'info_dict': {
@@ -803,8 +803,8 @@ class NhkRadiruLiveIE(InfoExtractor):
         data = config.find(f'.//data//area[.="{area}"]/..')
 
         if not data:
-            raise ExtractorError('Invalid area. Valid areas are: %s' % ', '.join(
-                [i.text for i in config.findall('.//data//area')]), expected=True)
+            raise ExtractorError('Invalid area. Valid areas are: {}'.format(', '.join(
+                [i.text for i in config.findall('.//data//area')])), expected=True)
 
         noa_info = self._download_json(
             f'https:{config.find(".//url_program_noa").text}'.format(area=data.find('areakey').text),

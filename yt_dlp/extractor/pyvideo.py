@@ -32,8 +32,8 @@ class PyvideoIE(InfoExtractor):
         entries = []
 
         data = self._download_json(
-            'https://raw.githubusercontent.com/pyvideo/data/master/%s/videos/%s.json'
-            % (category, video_id), video_id, fatal=False)
+            f'https://raw.githubusercontent.com/pyvideo/data/master/{category}/videos/{video_id}.json',
+            video_id, fatal=False)
 
         if data:
             for video in data['videos']:

@@ -56,7 +56,7 @@ class LibsynIE(InfoExtractor):
             r'<h3>([^<]+)</h3>', webpage, 'podcast title',
             default=None) or get_element_by_class('podcast-title', webpage)))
 
-        title = '%s - %s' % (podcast_title, episode_title) if podcast_title else episode_title
+        title = f'{podcast_title} - {episode_title}' if podcast_title else episode_title
 
         formats = []
         for k, format_id in (('media_url_libsyn', 'libsyn'), ('media_url', 'main'), ('download_link', 'download')):

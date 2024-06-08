@@ -86,7 +86,7 @@ class NZHeraldIE(InfoExtractor):
         """The initial webpage may include the brightcove player embed url"""
         bc_url = BrightcoveNewIE._extract_url(self, webpage)
         return bc_url or self._search_regex(
-            r'(?:embedUrl)\"\s*:\s*\"(?P<embed_url>%s)' % BrightcoveNewIE._VALID_URL,
+            rf'(?:embedUrl)\"\s*:\s*\"(?P<embed_url>{BrightcoveNewIE._VALID_URL})',
             webpage, 'embed url', default=None, group='embed_url')
 
     def _real_extract(self, url):

@@ -37,7 +37,7 @@ class IvideonIE(InfoExtractor):
         server_id, camera_id = mobj.group('id'), mobj.group('camera_id')
         camera_name, description = None, None
         camera_url = compat_urlparse.urljoin(
-            url, '/tv/camera/%s/%s/' % (server_id, camera_id))
+            url, f'/tv/camera/{server_id}/{camera_id}/')
 
         webpage = self._download_webpage(camera_url, server_id, fatal=False)
         if webpage:
@@ -57,12 +57,12 @@ class IvideonIE(InfoExtractor):
         quality = qualities(self._QUALITIES)
 
         formats = [{
-            'url': 'https://streaming.ivideon.com/flv/live?%s' % compat_urllib_parse_urlencode({
+            'url': 'https://streaming.ivideon.com/flv/live?{}'.format(compat_urllib_parse_urlencode({
                 'server': server_id,
                 'camera': camera_id,
                 'sessionId': 'demo',
                 'q': quality(format_id),
-            }),
+            })),
             'format_id': format_id,
             'ext': 'flv',
             'quality': quality(format_id),

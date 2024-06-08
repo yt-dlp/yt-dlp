@@ -177,7 +177,7 @@ class YahooIE(InfoExtractor):
 
     def _extract_yahoo_video(self, video_id, country):
         video = self._download_json(
-            'https://%s.yahoo.com/_td/api/resource/VideoService.videos;view=full;video_ids=["%s"]' % (country, video_id),
+            f'https://{country}.yahoo.com/_td/api/resource/VideoService.videos;view=full;video_ids=["{video_id}"]',
             video_id, 'Downloading video JSON metadata')[0]
         title = video['title']
 
@@ -193,7 +193,7 @@ class YahooIE(InfoExtractor):
         for fmt in fmts:
             media_obj = self._download_json(
                 'https://video-api.yql.yahoo.com/v1/video/sapi/streams/' + video_id,
-                video_id, 'Downloading %s JSON metadata' % fmt,
+                video_id, f'Downloading {fmt} JSON metadata',
                 headers=self.geo_verification_headers(), query={
                     'format': fmt,
                     'region': country.upper(),
@@ -277,7 +277,7 @@ class YahooIE(InfoExtractor):
             country = country.split('-')[0]
 
         items = self._download_json(
-            'https://%s.yahoo.com/caas/content/article' % country, display_id,
+            f'https://{country}.yahoo.com/caas/content/article', display_id,
             'Downloading content JSON metadata', query={
                 'url': url,
             })['items'][0]

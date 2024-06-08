@@ -49,7 +49,7 @@ class NetzkinoIE(InfoExtractor):
         mobj = self._match_valid_url(url)
         video_id = mobj.group('id')
 
-        api_url = 'https://api.netzkino.de.simplecache.net/capi-2.0a/movies/%s.json?d=www' % video_id
+        api_url = f'https://api.netzkino.de.simplecache.net/capi-2.0a/movies/{video_id}.json?d=www'
         info = self._download_json(api_url, video_id)
         custom_fields = info['custom_fields']
 

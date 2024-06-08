@@ -53,7 +53,7 @@ class NozIE(InfoExtractor):
                 formats.append({
                     'url': http_url,
                     'format_name': xpath_text(qnode, './name'),
-                    'format_id': '%s-%s' % ('http', xpath_text(qnode, './id')),
+                    'format_id': '{}-{}'.format('http', xpath_text(qnode, './id')),
                     'height': int_or_none(xpath_text(qnode, './height')),
                     'width': int_or_none(xpath_text(qnode, './width')),
                     'tbr': int_or_none(xpath_text(qnode, './bitrate'), scale=1000),

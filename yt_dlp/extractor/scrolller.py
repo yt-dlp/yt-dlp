@@ -68,7 +68,7 @@ class ScrolllerIE(InfoExtractor):
                         height
                     }
                 }
-            }''' % video_id,
+            }''' % video_id,  # noqa: UP031
         }
 
         video_data = self._download_json(

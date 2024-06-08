@@ -100,7 +100,7 @@ class FOXIE(InfoExtractor):
         video_id = self._match_id(url)
 
         self._access_token = self._call_api(
-            'previewpassmvpd?device_id=%s&mvpd_id=TempPass_fbcfox_60min' % self._device_id,
+            f'previewpassmvpd?device_id={self._device_id}&mvpd_id=TempPass_fbcfox_60min',
             video_id)['accessToken']
 
         video = self._call_api('watch', video_id, data=json.dumps({

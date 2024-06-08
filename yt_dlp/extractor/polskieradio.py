@@ -400,7 +400,7 @@ class PolskieRadioCategoryIE(InfoExtractor):
                 params = self._search_json(
                     r'<div[^>]+class=["\']next["\'][^>]*>\s*<a[^>]+onclick=["\']TB_LoadTab\(',
                     pagination, 'next page params', category_id, default=None, close_objects=1,
-                    contains_pattern='.+', transform_source=lambda x: '[%s' % js_to_json(unescapeHTML(x)))
+                    contains_pattern='.+', transform_source=lambda x: f'[{js_to_json(unescapeHTML(x))}')
                 if not params:
                     break
                 tab_content = self._download_json(

@@ -22,8 +22,8 @@ class PinterestBaseIE(InfoExtractor):
 
     def _call_api(self, resource, video_id, options):
         return self._download_json(
-            'https://www.pinterest.com/resource/%sResource/get/' % resource,
-            video_id, 'Download %s JSON metadata' % resource, query={
+            f'https://www.pinterest.com/resource/{resource}Resource/get/',
+            video_id, f'Download {resource} JSON metadata', query={
                 'data': json.dumps({'options': options}),
             })['resource_response']
 
@@ -109,7 +109,7 @@ class PinterestBaseIE(InfoExtractor):
 
 
 class PinterestIE(PinterestBaseIE):
-    _VALID_URL = r'%s/pin/(?P<id>\d+)' % PinterestBaseIE._VALID_URL_BASE
+    _VALID_URL = rf'{PinterestBaseIE._VALID_URL_BASE}/pin/(?P<id>\d+)'
     _TESTS = [{
         # formats found in data['videos']
         'url': 'https://www.pinterest.com/pin/664281013778109217/',
@@ -187,7 +187,7 @@ class PinterestIE(PinterestBaseIE):
 
 
 class PinterestCollectionIE(PinterestBaseIE):
-    _VALID_URL = r'%s/(?P<username>[^/]+)/(?P<id>[^/?#&]+)' % PinterestBaseIE._VALID_URL_BASE
+    _VALID_URL = rf'{PinterestBaseIE._VALID_URL_BASE}/(?P<username>[^/]+)/(?P<id>[^/?#&]+)'
     _TESTS = [{
         'url': 'https://www.pinterest.ca/mashal0407/cool-diys/',
         'info_dict': {

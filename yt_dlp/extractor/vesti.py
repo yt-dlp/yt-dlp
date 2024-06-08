@@ -109,7 +109,7 @@ class VestiIE(InfoExtractor):
             page)
         if mobj:
             video_id = mobj.group('id')
-            page = self._download_webpage('http://www.vesti.ru/only_video.html?vid=%s' % video_id, video_id,
+            page = self._download_webpage(f'http://www.vesti.ru/only_video.html?vid={video_id}', video_id,
                                           'Downloading video page')
 
         rutv_url = RUTVIE._extract_url(page)

@@ -34,7 +34,7 @@ class HitRecordIE(InfoExtractor):
         video_id = self._match_id(url)
 
         video = self._download_json(
-            'https://hitrecord.org/api/web/records/%s' % video_id, video_id)
+            f'https://hitrecord.org/api/web/records/{video_id}', video_id)
 
         title = video['title']
         video_url = video['source_url']['mp4_url']

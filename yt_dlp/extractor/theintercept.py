@@ -35,7 +35,7 @@ class TheInterceptIE(InfoExtractor):
             if post['slug'] == display_id:
                 return {
                     '_type': 'url_transparent',
-                    'url': 'jwplatform:%s' % post['fov_videoid'],
+                    'url': 'jwplatform:{}'.format(post['fov_videoid']),
                     'id': compat_str(post['ID']),
                     'display_id': display_id,
                     'title': post['title'],

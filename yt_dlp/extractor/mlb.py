@@ -203,7 +203,7 @@ class MLBIE(MLBBaseIE):
 
     def _download_video_data(self, display_id):
         return self._download_json(
-            'http://content.mlb.com/mlb/item/id/v1/%s/details/web-v1.json' % display_id,
+            f'http://content.mlb.com/mlb/item/id/v1/{display_id}/details/web-v1.json',
             display_id)
 
 
@@ -268,7 +268,7 @@ class MLBVideoIE(MLBBaseIE):
     timestamp
     title
   }
-}''' % display_id,
+}''' % display_id,  # noqa: UP031
             })['data']['mediaPlayback'][0]
 
 

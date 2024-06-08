@@ -63,7 +63,7 @@ class PacktPubIE(PacktPubBaseIE):
             headers['Authorization'] = 'Bearer ' + self._TOKEN
         try:
             video_url = self._download_json(
-                'https://services.packtpub.com/products-v1/products/%s/%s/%s' % (course_id, chapter_id, video_id), video_id,
+                f'https://services.packtpub.com/products-v1/products/{course_id}/{chapter_id}/{video_id}', video_id,
                 'Downloading JSON video', headers=headers)['data']
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError) and e.cause.status == 400:
@@ -116,9 +116,9 @@ class PacktPubCourseIE(PacktPubBaseIE):
         url, course_id = mobj.group('url', 'id')
 
         course = self._download_json(
-            self._STATIC_PRODUCTS_BASE + '%s/toc' % course_id, course_id)
+            self._STATIC_PRODUCTS_BASE + f'{course_id}/toc', course_id)
         metadata = self._download_json(
-            self._STATIC_PRODUCTS_BASE + '%s/summary' % course_id,
+            self._STATIC_PRODUCTS_BASE + f'{course_id}/summary',
             course_id, fatal=False) or {}
 
         entries = []

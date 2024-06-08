@@ -1259,14 +1259,14 @@ class YoutubeDLCookieJar(http.cookiejar.MozillaCookieJar):
                 # with no name, whereas http.cookiejar regards it as a
                 # cookie with no value.
                 name, value = '', name
-            f.write('%s\n' % '\t'.join((
+            f.write('{}\n'.format('\t'.join((
                 cookie.domain,
                 self._true_or_false(cookie.domain.startswith('.')),
                 cookie.path,
                 self._true_or_false(cookie.secure),
                 str_or_none(cookie.expires, default=''),
                 name, value,
-            )))
+            ))))
 
     def save(self, filename=None, ignore_discard=True, ignore_expires=True):
         """
@@ -1308,7 +1308,7 @@ class YoutubeDLCookieJar(http.cookiejar.MozillaCookieJar):
                 raise http.cookiejar.LoadError('invalid length %d' % len(cookie_list))
             cookie = self._CookieFileEntry(*cookie_list)
             if cookie.expires_at and not cookie.expires_at.isdigit():
-                raise http.cookiejar.LoadError('invalid expires at %s' % cookie.expires_at)
+                raise http.cookiejar.LoadError(f'invalid expires at {cookie.expires_at}')
             return line
 
         cf = io.StringIO()

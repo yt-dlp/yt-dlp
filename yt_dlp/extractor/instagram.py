@@ -520,7 +520,7 @@ class InstagramIE(InstagramBaseIE):
         return {
             'id': video_id,
             'formats': formats,
-            'title': media.get('title') or 'Video by %s' % username,
+            'title': media.get('title') or f'Video by {username}',
             'description': description,
             'duration': float_or_none(media.get('video_duration')),
             'timestamp': traverse_obj(media, 'taken_at_timestamp', 'date', expected_type=int_or_none),
@@ -567,10 +567,10 @@ class InstagramPlaylistBaseIE(InstagramBaseIE):
                 gis_tmpls = [self._gis_tmpl]
             else:
                 gis_tmpls = [
-                    '%s' % rhx_gis,
+                    f'{rhx_gis}',
                     '',
-                    '%s:%s' % (rhx_gis, csrf_token),
-                    '%s:%s:%s' % (rhx_gis, csrf_token, self.get_param('http_headers')['User-Agent']),
+                    f'{rhx_gis}:{csrf_token}',
+                    '{}:{}:{}'.format(rhx_gis, csrf_token, self.get_param('http_headers')['User-Agent']),
                 ]
 
             # try all of the ways to generate a GIS query, and not only use the
@@ -582,7 +582,7 @@ class InstagramPlaylistBaseIE(InstagramBaseIE):
                         'Downloading JSON page %d' % page_num, headers={
                             'X-Requested-With': 'XMLHttpRequest',
                             'X-Instagram-GIS': hashlib.md5(
-                                ('%s:%s' % (gis_tmpl, variables)).encode()).hexdigest(),
+                                (f'{gis_tmpl}:{variables}').encode()).hexdigest(),
                         }, query={
                             'query_hash': self._QUERY_HASH,
                             'variables': variables,

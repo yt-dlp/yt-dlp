@@ -1060,7 +1060,7 @@ def create_parser():
         metavar='NAME:ARGS', dest='external_downloader_args', default={}, type='str',
         action='callback', callback=_dict_from_options_callback,
         callback_kwargs={
-            'allowed_keys': r'ffmpeg_[io]\d*|%s' % '|'.join(map(re.escape, list_external_downloaders())),
+            'allowed_keys': r'ffmpeg_[io]\d*|{}'.format('|'.join(map(re.escape, list_external_downloaders()))),
             'default_key': 'default',
             'process': shlex.split,
         }, help=(
@@ -1317,7 +1317,7 @@ def create_parser():
         metavar='[TYPES:]PATH', dest='paths', default={}, type='str',
         action='callback', callback=_dict_from_options_callback,
         callback_kwargs={
-            'allowed_keys': 'home|temp|%s' % '|'.join(map(re.escape, OUTTMPL_TYPES.keys())),
+            'allowed_keys': 'home|temp|{}'.format('|'.join(map(re.escape, OUTTMPL_TYPES.keys()))),
             'default_key': 'home',
         }, help=(
             'The paths where the files should be downloaded. '
@@ -1724,8 +1724,8 @@ def create_parser():
         '--convert-subs', '--convert-sub', '--convert-subtitles',
         metavar='FORMAT', dest='convertsubtitles', default=None,
         help=(
-            'Convert the subtitles to another format (currently supported: %s) '
-            '(Alias: --convert-subtitles)' % ', '.join(sorted(FFmpegSubtitlesConvertorPP.SUPPORTED_EXTS))))
+            'Convert the subtitles to another format (currently supported: {}) '
+            '(Alias: --convert-subtitles)'.format(', '.join(sorted(FFmpegSubtitlesConvertorPP.SUPPORTED_EXTS)))))
     postproc.add_option(
         '--convert-thumbnails',
         metavar='FORMAT', dest='convertthumbnails', default=None,

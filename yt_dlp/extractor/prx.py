@@ -92,7 +92,7 @@ class PRXBaseIE(InfoExtractor):
             **base_info,
             'title': name,
             'channel_id': base_info.get('id'),
-            'channel_url': 'https://beta.prx.org/accounts/%s' % base_info.get('id'),
+            'channel_url': 'https://beta.prx.org/accounts/{}'.format(base_info.get('id')),
             'channel': name,
         }
 
@@ -142,7 +142,7 @@ class PRXBaseIE(InfoExtractor):
             return
         story.update({
             '_type': 'url',
-            'url': 'https://beta.prx.org/stories/%s' % story['id'],
+            'url': 'https://beta.prx.org/stories/{}'.format(story['id']),
             'ie_key': PRXStoryIE.ie_key(),
         })
         return story
@@ -153,7 +153,7 @@ class PRXBaseIE(InfoExtractor):
             return
         series.update({
             '_type': 'url',
-            'url': 'https://beta.prx.org/series/%s' % series['id'],
+            'url': 'https://beta.prx.org/series/{}'.format(series['id']),
             'ie_key': PRXSeriesIE.ie_key(),
         })
         return series
@@ -365,7 +365,7 @@ class PRXSeriesIE(PRXBaseIE):
         info = self._extract_series_info(series_response)
         return {
             '_type': 'playlist',
-            'entries': self._entries(info['id'], 'series/%s/stories' % info['id'], self._story_playlist_entry),
+            'entries': self._entries(info['id'], 'series/{}/stories'.format(info['id']), self._story_playlist_entry),
             **info,
         }
 

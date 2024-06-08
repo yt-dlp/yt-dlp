@@ -109,9 +109,9 @@ class ZoomIE(InfoExtractor):
 
         subtitles = {}
         for _type in ('transcript', 'cc', 'chapter'):
-            if data.get('%sUrl' % _type):
+            if data.get(f'{_type}Url'):
                 subtitles[_type] = [{
-                    'url': urljoin(base_url, data['%sUrl' % _type]),
+                    'url': urljoin(base_url, data[f'{_type}Url']),
                     'ext': 'vtt',
                 }]
 

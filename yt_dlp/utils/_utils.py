@@ -215,7 +215,7 @@ def write_json_file(obj, fn):
 def find_xpath_attr(node, xpath, key, val=None):
     """ Find the xpath xpath[@key=val] """
     assert re.match(r'^[a-zA-Z_-]+$', key)
-    expr = xpath + ('[@%s]' % key if val is None else f"[@{key}='{val}']")
+    expr = xpath + (f'[@{key}]' if val is None else f"[@{key}='{val}']")
     return node.find(expr)
 
 # On python2.6 the xml.etree.ElementTree.Element methods don't support
@@ -230,7 +230,7 @@ def xpath_with_ns(path, ns_map):
             replaced.append(c[0])
         else:
             ns, tag = c
-            replaced.append('{%s}%s' % (ns_map[ns], tag))
+            replaced.append(f'{{{ns_map[ns]}}}{tag}')
     return '/'.join(replaced)
 
 
@@ -251,7 +251,7 @@ def xpath_element(node, xpath, name=None, fatal=False, default=NO_DEFAULT):
             return default
         elif fatal:
             name = xpath if name is None else name
-            raise ExtractorError('Could not find XML element %s' % name)
+            raise ExtractorError(f'Could not find XML element {name}')
         else:
             return None
     return n
@@ -266,7 +266,7 @@ def xpath_text(node, xpath, name=None, fatal=False, default=NO_DEFAULT):
             return default
         elif fatal:
             name = xpath if name is None else name
-            raise ExtractorError('Could not find XML element\'s text %s' % name)
+            raise ExtractorError(f'Could not find XML element\'s text {name}')
         else:
             return None
     return n.text
@@ -279,7 +279,7 @@ def xpath_attr(node, xpath, key, name=None, fatal=False, default=NO_DEFAULT):
             return default
         elif fatal:
             name = f'{xpath}[@{key}]' if name is None else name
-            raise ExtractorError('Could not find XML attribute %s' % name)
+            raise ExtractorError(f'Could not find XML attribute {name}')
         else:
             return None
     return n.attrib[key]
@@ -320,14 +320,14 @@ def get_element_html_by_attribute(attribute, value, html, **kargs):
 def get_elements_by_class(class_name, html, **kargs):
     """Return the content of all tags with the specified class in the passed HTML document as a list"""
     return get_elements_by_attribute(
-        'class', r'[^\'"]*(?<=[\'"\s])%s(?=[\'"\s])[^\'"]*' % re.escape(class_name),
+        'class', rf'[^\'"]*(?<=[\'"\s]){re.escape(class_name)}(?=[\'"\s])[^\'"]*',
         html, escape_value=False)
 
 
 def get_elements_html_by_class(class_name, html):
     """Return the html of all tags with the specified class in the passed HTML document as a list"""
     return get_elements_html_by_attribute(
-        'class', r'[^\'"]*(?<=[\'"\s])%s(?=[\'"\s])[^\'"]*' % re.escape(class_name),
+        'class', rf'[^\'"]*(?<=[\'"\s]){re.escape(class_name)}(?=[\'"\s])[^\'"]*',
         html, escape_value=False)
 
 
@@ -719,7 +719,7 @@ def extract_basic_auth(url):
         parts.hostname if parts.port is None
         else '%s:%d' % (parts.hostname, parts.port))))
     auth_payload = base64.b64encode(
-        ('%s:%s' % (parts.username, parts.password or '')).encode())
+        ('{}:{}'.format(parts.username, parts.password or '')).encode())
     return url, f'Basic {auth_payload.decode()}'
 
 
@@ -758,7 +758,7 @@ def _htmlentity_transform(entity_with_semicolon):
         numstr = mobj.group(1)
         if numstr.startswith('x'):
             base = 16
-            numstr = '0%s' % numstr
+            numstr = f'0{numstr}'
         else:
             base = 10
         # See https://github.com/ytdl-org/youtube-dl/issues/7518
@@ -766,7 +766,7 @@ def _htmlentity_transform(entity_with_semicolon):
             return chr(int(numstr, base))
 
     # Unknown entity in name, return its literal representation
-    return '&%s;' % entity
+    return f'&{entity};'
 
 
 def unescapeHTML(s):
@@ -970,7 +970,7 @@ class ExtractorError(YoutubeDLError):
 class UnsupportedError(ExtractorError):
     def __init__(self, url):
         super().__init__(
-            'Unsupported URL: %s' % url, expected=True)
+            f'Unsupported URL: {url}', expected=True)
         self.url = url
 
 
@@ -1367,7 +1367,7 @@ class DateRange:
         else:
             self.end = dt.datetime.max.date()
         if self.start > self.end:
-            raise ValueError('Date range: "%s" , the start date must be before the end date' % self)
+            raise ValueError(f'Date range: "{self}" , the start date must be before the end date')
 
     @classmethod
     def day(cls, day):
@@ -1400,7 +1400,7 @@ def system_identifier():
     with contextlib.suppress(OSError):  # We may not have access to the executable
         libc_ver = platform.libc_ver()
 
-    return 'Python %s (%s %s %s) - %s (%s%s)' % (
+    return 'Python {} ({} {} {}) - {} ({}{})'.format(
         platform.python_version(),
         python_implementation,
         platform.machine(),
@@ -1537,7 +1537,7 @@ if sys.platform == 'win32':
         assert f._lock_file_overlapped_p
         handle = msvcrt.get_osfhandle(f.fileno())
         if not UnlockFileEx(handle, 0, whole_low, whole_high, f._lock_file_overlapped_p):
-            raise OSError('Unlocking file failed: %r' % ctypes.FormatError())
+            raise OSError(f'Unlocking file failed: {ctypes.FormatError()!r}')
 
 else:
     try:
@@ -2095,9 +2095,7 @@ def prepend_extension(filename, ext, expected_real_ext=None):
 
 def replace_extension(filename, ext, expected_real_ext=None):
     name, real_ext = os.path.splitext(filename)
-    return '{}.{}'.format(
-        name if not expected_real_ext or real_ext[1:] == expected_real_ext else filename,
-        ext)
+    return f'{name if not expected_real_ext or real_ext[1:] == expected_real_ext else filename}.{ext}'
 
 
 def check_executable(exe, args=[]):
@@ -2560,7 +2558,7 @@ def update_url_query(url, query):
 
 
 def _multipart_encode_impl(data, boundary):
-    content_type = 'multipart/form-data; boundary=%s' % boundary
+    content_type = f'multipart/form-data; boundary={boundary}'
 
     out = b''
     for k, v in data.items():
@@ -2688,7 +2686,7 @@ def parse_age_limit(s):
     s = s.upper()
     if s in US_RATINGS:
         return US_RATINGS[s]
-    m = re.match(r'^TV[_-]?(%s)$' % '|'.join(k[3:] for k in TV_PARENTAL_GUIDELINES), s)
+    m = re.match(r'^TV[_-]?({})$'.format('|'.join(k[3:] for k in TV_PARENTAL_GUIDELINES)), s)
     if m:
         return TV_PARENTAL_GUIDELINES['TV-' + m.group(1)]
     return None
@@ -3079,7 +3077,7 @@ def urlhandle_detect_ext(url_handle, default=NO_DEFAULT):
 
 
 def encode_data_uri(data, mime_type):
-    return 'data:%s;base64,%s' % (mime_type, base64.b64encode(data).decode('ascii'))
+    return 'data:{};base64,{}'.format(mime_type, base64.b64encode(data).decode('ascii'))
 
 
 def age_restricted(content_limit, age_limit):
@@ -3190,12 +3188,12 @@ def _match_one(filter_part, dct, incomplete):
 
     operator_rex = re.compile(r'''(?x)
         (?P<key>[a-z_]+)
-        \s*(?P<negation>!\s*)?(?P<op>%s)(?P<none_inclusive>\s*\?)?\s*
+        \s*(?P<negation>!\s*)?(?P<op>{})(?P<none_inclusive>\s*\?)?\s*
         (?:
             (?P<quote>["\'])(?P<quotedstrval>.+?)(?P=quote)|
             (?P<strval>.+?)
         )
-        ''' % '|'.join(map(re.escape, COMPARISON_OPERATORS.keys())))
+        '''.format('|'.join(map(re.escape, COMPARISON_OPERATORS.keys()))))
     m = operator_rex.fullmatch(filter_part.strip())
     if m:
         m = m.groupdict()
@@ -3206,7 +3204,7 @@ def _match_one(filter_part, dct, incomplete):
             op = unnegated_op
         comparison_value = m['quotedstrval'] or m['strval'] or m['intval']
         if m['quote']:
-            comparison_value = comparison_value.replace(r'\%s' % m['quote'], m['quote'])
+            comparison_value = comparison_value.replace(r'\{}'.format(m['quote']), m['quote'])
         actual_value = dct.get(m['key'])
         numeric_comparison = None
         if isinstance(actual_value, (int, float)):
@@ -3223,7 +3221,7 @@ def _match_one(filter_part, dct, incomplete):
                 if numeric_comparison is None:
                     numeric_comparison = parse_duration(comparison_value)
         if numeric_comparison is not None and m['op'] in STRING_OPERATORS:
-            raise ValueError('Operator %s only supports string values!' % m['op'])
+            raise ValueError('Operator {} only supports string values!'.format(m['op']))
         if actual_value is None:
             return is_incomplete(m['key']) or m['none_inclusive']
         return op(actual_value, comparison_value if numeric_comparison is None else numeric_comparison)
@@ -3233,8 +3231,8 @@ def _match_one(filter_part, dct, incomplete):
         '!': lambda v: (v is False) if isinstance(v, bool) else (v is None),
     }
     operator_rex = re.compile(r'''(?x)
-        (?P<op>%s)\s*(?P<key>[a-z_]+)
-        ''' % '|'.join(map(re.escape, UNARY_OPERATORS.keys())))
+        (?P<op>{})\s*(?P<key>[a-z_]+)
+        '''.format('|'.join(map(re.escape, UNARY_OPERATORS.keys()))))
     m = operator_rex.fullmatch(filter_part.strip())
     if m:
         op = UNARY_OPERATORS[m.group('op')]
@@ -3243,7 +3241,7 @@ def _match_one(filter_part, dct, incomplete):
             return True
         return op(actual_value)
 
-    raise ValueError('Invalid filter part %r' % filter_part)
+    raise ValueError(f'Invalid filter part {filter_part!r}')
 
 
 def match_str(filter_str, dct, incomplete=False):
@@ -3409,11 +3407,11 @@ def dfxp2srt(dfxp_data):
                         if self._applied_styles and self._applied_styles[-1].get(k) == v:
                             continue
                         if k == 'color':
-                            font += ' color="%s"' % v
+                            font += f' color="{v}"'
                         elif k == 'fontSize':
-                            font += ' size="%s"' % v
+                            font += f' size="{v}"'
                         elif k == 'fontFamily':
-                            font += ' face="%s"' % v
+                            font += f' face="{v}"'
                         elif k == 'fontWeight' and v == 'bold':
                             self._out += '<b>'
                             unclosed_elements.append('b')
@@ -3437,7 +3435,7 @@ def dfxp2srt(dfxp_data):
             if tag not in (_x('ttml:br'), 'br'):
                 unclosed_elements = self._unclosed_elements.pop()
                 for element in reversed(unclosed_elements):
-                    self._out += '</%s>' % element
+                    self._out += f'</{element}>'
                 if unclosed_elements and self._applied_styles:
                     self._applied_styles.pop()
 
@@ -4361,7 +4359,7 @@ def ohdave_rsa_encrypt(data, exponent, modulus):
 
     payload = int(binascii.hexlify(data[::-1]), 16)
     encrypted = pow(payload, exponent, modulus)
-    return '%x' % encrypted
+    return f'{encrypted:x}'
 
 
 def pkcs1pad(data, length):
@@ -5314,7 +5312,7 @@ class FormatSorter:
         for item in sort_list:
             match = re.match(self.regex, item)
             if match is None:
-                raise ExtractorError('Invalid format sort string "%s" given by extractor' % item)
+                raise ExtractorError(f'Invalid format sort string "{item}" given by extractor')
             field = match.group('field')
             if field is None:
                 continue
@@ -5342,16 +5340,16 @@ class FormatSorter:
 
     def print_verbose_info(self, write_debug):
         if self._sort_user:
-            write_debug('Sort order given by user: %s' % ', '.join(self._sort_user))
+            write_debug('Sort order given by user: {}'.format(', '.join(self._sort_user)))
         if self._sort_extractor:
-            write_debug('Sort order given by extractor: %s' % ', '.join(self._sort_extractor))
-        write_debug('Formats sorted by: %s' % ', '.join(['%s%s%s' % (
+            write_debug('Sort order given by extractor: {}'.format(', '.join(self._sort_extractor)))
+        write_debug('Formats sorted by: {}'.format(', '.join(['{}{}{}'.format(
             '+' if self._get_field_setting(field, 'reverse') else '', field,
-            '%s%s(%s)' % ('~' if self._get_field_setting(field, 'closest') else ':',
-                          self._get_field_setting(field, 'limit_text'),
-                          self._get_field_setting(field, 'limit'))
+            '{}{}({})'.format('~' if self._get_field_setting(field, 'closest') else ':',
+                              self._get_field_setting(field, 'limit_text'),
+                              self._get_field_setting(field, 'limit'))
             if self._get_field_setting(field, 'limit_text') is not None else '')
-            for field in self._order if self._get_field_setting(field, 'visible')]))
+            for field in self._order if self._get_field_setting(field, 'visible')])))
 
     def _calculate_field_preference_from_value(self, format_, field, type_, value):
         reverse = self._get_field_setting(field, 'reverse')

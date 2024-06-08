@@ -16,7 +16,7 @@ class CuriosityStreamBaseIE(InfoExtractor):
             if isinstance(error, dict):
                 error = ', '.join(error.values())
             raise ExtractorError(
-                '%s said: %s' % (self.IE_NAME, error), expected=True)
+                f'{self.IE_NAME} said: {error}', expected=True)
 
     def _call_api(self, path, video_id, query=None):
         headers = {}
@@ -160,7 +160,7 @@ class CuriosityStreamCollectionBaseIE(CuriosityStreamBaseIE):
             media_id = compat_str(media.get('id'))
             media_type, ie = ('series', CuriosityStreamSeriesIE) if media.get('is_collection') else ('video', CuriosityStreamIE)
             entries.append(self.url_result(
-                'https://curiositystream.com/%s/%s' % (media_type, media_id),
+                f'https://curiositystream.com/{media_type}/{media_id}',
                 ie=ie.ie_key(), video_id=media_id))
         return self.playlist_result(
             entries, collection_id,

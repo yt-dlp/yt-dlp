@@ -41,5 +41,5 @@ class BusinessInsiderIE(InfoExtractor):
              r'(?:jwplatform\.com/players/|jwplayer_)([a-zA-Z0-9]{8})'),
             webpage, 'jwplatform id')
         return self.url_result(
-            'jwplatform:%s' % jwplatform_id, ie=JWPlatformIE.ie_key(),
+            f'jwplatform:{jwplatform_id}', ie=JWPlatformIE.ie_key(),
             video_id=video_id)

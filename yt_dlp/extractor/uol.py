@@ -73,7 +73,7 @@ class UOLIE(InfoExtractor):
         ver = video_data.get('revision', 2)
 
         uol_formats = self._download_json(
-            'https://croupier.mais.uol.com.br/v3/formats/%s/jsonp' % media_id,
+            f'https://croupier.mais.uol.com.br/v3/formats/{media_id}/jsonp',
             media_id)
         quality = qualities(['mobile', 'WEBM', '360p', '720p', '1080p'])
         formats = []

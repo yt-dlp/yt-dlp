@@ -116,7 +116,7 @@ class EightTracksIE(InfoExtractor):
         # duration is sometimes negative, use predefined avg duration
         if avg_song_duration <= 0:
             avg_song_duration = 300
-        first_url = 'http://8tracks.com/sets/%s/play?player=sm&mix_id=%s&format=jsonh' % (session, mix_id)
+        first_url = f'http://8tracks.com/sets/{session}/play?player=sm&mix_id={mix_id}&format=jsonh'
         next_url = first_url
         entries = []
 
@@ -149,7 +149,7 @@ class EightTracksIE(InfoExtractor):
             }
             entries.append(info)
 
-            next_url = 'http://8tracks.com/sets/%s/next?player=sm&mix_id=%s&format=jsonh&track_id=%s' % (
+            next_url = 'http://8tracks.com/sets/{}/next?player=sm&mix_id={}&format=jsonh&track_id={}'.format(
                 session, mix_id, track_data['id'])
         return {
             '_type': 'playlist',

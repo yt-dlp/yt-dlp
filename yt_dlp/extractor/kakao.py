@@ -99,7 +99,7 @@ class KakaoIE(InfoExtractor):
             try:
                 fmt_url_json = self._download_json(
                     cdn_api_base, video_id, query=query,
-                    note='Downloading video URL for profile %s' % profile_name)
+                    note=f'Downloading video URL for profile {profile_name}')
             except ExtractorError as e:
                 if isinstance(e.cause, HTTPError) and e.cause.status == 403:
                     resp = self._parse_json(e.cause.response.read().decode(), video_id)

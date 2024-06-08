@@ -30,7 +30,7 @@ class HypemIE(InfoExtractor):
         title = track['song']
 
         final_url = self._download_json(
-            'http://hypem.com/serve/source/%s/%s' % (track_id, track['key']),
+            'http://hypem.com/serve/source/{}/{}'.format(track_id, track['key']),
             track_id, 'Downloading metadata', headers={
                 'Content-Type': 'application/json',
             })['url']

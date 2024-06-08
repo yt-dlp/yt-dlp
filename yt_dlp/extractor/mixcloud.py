@@ -25,7 +25,7 @@ class MixcloudBaseIE(InfoExtractor):
   %s(lookup: {username: "%s"%s}) {
     %s
   }
-}''' % (lookup_key, username, ', slug: "%s"' % slug if slug else '', object_fields),
+}''' % (lookup_key, username, f', slug: "{slug}"' if slug else '', object_fields),  # noqa: UP031
             })['data'][lookup_key]
 
 
@@ -92,7 +92,7 @@ class MixcloudIE(MixcloudBaseIE):
     def _real_extract(self, url):
         username, slug = self._match_valid_url(url).groups()
         username, slug = compat_urllib_parse_unquote(username), compat_urllib_parse_unquote(slug)
-        track_id = '%s_%s' % (username, slug)
+        track_id = f'{username}_{slug}'
 
         cloudcast = self._call_api('cloudcast', '''audioLength
     comments(first: 100) {
@@ -243,7 +243,7 @@ class MixcloudPlaylistBaseIE(MixcloudBaseIE):
             slug = 'uploads'
         else:
             slug = compat_urllib_parse_unquote(slug)
-        playlist_id = '%s_%s' % (username, slug)
+        playlist_id = f'{username}_{slug}'
 
         is_playlist_type = self._ROOT_TYPE == 'playlist'
         playlist_type = 'items' if is_playlist_type else slug
@@ -265,7 +265,7 @@ class MixcloudPlaylistBaseIE(MixcloudBaseIE):
         endCursor
         hasNextPage
       }
-    }''' % (self._TITLE_KEY, self._DESCRIPTION_KEY, playlist_type, list_filter, self._NODE_TEMPLATE),
+    }''' % (self._TITLE_KEY, self._DESCRIPTION_KEY, playlist_type, list_filter, self._NODE_TEMPLATE),  # noqa: UP031
                 playlist_id, username, slug if is_playlist_type else None)
 
             items = playlist.get(playlist_type) or {}
@@ -282,7 +282,7 @@ class MixcloudPlaylistBaseIE(MixcloudBaseIE):
 
             page_info = items['pageInfo']
             has_next_page = page_info['hasNextPage']
-            list_filter = ', after: "%s"' % page_info['endCursor']
+            list_filter = ', after: "{}"'.format(page_info['endCursor'])
 
         return self.playlist_result(
             entries, playlist_id,
@@ -351,7 +351,7 @@ class MixcloudUserIE(MixcloudPlaylistBaseIE):
           owner { username }'''
 
     def _get_playlist_title(self, title, slug):
-        return '%s (%s)' % (title, slug)
+        return f'{title} ({slug})'
 
 
 class MixcloudPlaylistIE(MixcloudPlaylistBaseIE):

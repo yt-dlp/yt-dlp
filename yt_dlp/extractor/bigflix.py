@@ -47,7 +47,7 @@ class BigflixIE(InfoExtractor):
             video_url = decode_url(encoded_url)
             f = {
                 'url': video_url,
-                'format_id': '%sp' % height,
+                'format_id': f'{height}p',
                 'height': int(height),
             }
             if video_url.startswith('rtmp'):

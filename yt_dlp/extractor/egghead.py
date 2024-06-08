@@ -13,7 +13,7 @@ class EggheadBaseIE(InfoExtractor):
     def _call_api(self, path, video_id, resource, fatal=True):
         return self._download_json(
             'https://app.egghead.io/api/v1/' + path,
-            video_id, 'Downloading %s JSON' % resource, fatal=fatal)
+            video_id, f'Downloading {resource} JSON', fatal=fatal)
 
 
 class EggheadCourseIE(EggheadBaseIE):

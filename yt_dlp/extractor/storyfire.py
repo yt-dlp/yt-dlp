@@ -14,8 +14,8 @@ class StoryFireBaseIE(InfoExtractor):
 
     def _call_api(self, path, video_id, resource, query=None):
         return self._download_json(
-            'https://storyfire.com/app/%s/%s' % (path, video_id), video_id,
-            'Downloading %s JSON metadata' % resource, query=query)
+            f'https://storyfire.com/app/{path}/{video_id}', video_id,
+            f'Downloading {resource} JSON metadata', query=query)
 
     def _parse_video(self, video):
         title = video['title']

@@ -20,15 +20,15 @@ class ArteTVBaseIE(InfoExtractor):
 
 
 class ArteTVIE(ArteTVBaseIE):
-    _VALID_URL = r'''(?x)
+    _VALID_URL = rf'''(?x)
                     (?:https?://
                         (?:
-                            (?:www\.)?arte\.tv/(?P<lang>%(langs)s)/videos|
-                            api\.arte\.tv/api/player/v\d+/config/(?P<lang_2>%(langs)s)
+                            (?:www\.)?arte\.tv/(?P<lang>{ArteTVBaseIE._ARTE_LANGUAGES})/videos|
+                            api\.arte\.tv/api/player/v\d+/config/(?P<lang_2>{ArteTVBaseIE._ARTE_LANGUAGES})
                         )
                     |arte://program)
-                        /(?P<id>\d{6}-\d{3}-[AF]|LIVE)
-                    ''' % {'langs': ArteTVBaseIE._ARTE_LANGUAGES}
+                        /(?P<id>\d{{6}}-\d{{3}}-[AF]|LIVE)
+                    '''
     _TESTS = [{
         'url': 'https://www.arte.tv/en/videos/088501-000-A/mexico-stealing-petrol-to-survive/',
         'only_matching': True,
@@ -262,7 +262,7 @@ class ArteTVEmbedIE(InfoExtractor):
 
 
 class ArteTVPlaylistIE(ArteTVBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?arte\.tv/(?P<lang>%s)/videos/(?P<id>RC-\d{6})' % ArteTVBaseIE._ARTE_LANGUAGES
+    _VALID_URL = rf'https?://(?:www\.)?arte\.tv/(?P<lang>{ArteTVBaseIE._ARTE_LANGUAGES})/videos/(?P<id>RC-\d{{6}})'
     _TESTS = [{
         'url': 'https://www.arte.tv/en/videos/RC-016954/earn-a-living/',
         'only_matching': True,
@@ -298,7 +298,7 @@ class ArteTVPlaylistIE(ArteTVBaseIE):
 
 
 class ArteTVCategoryIE(ArteTVBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?arte\.tv/(?P<lang>%s)/videos/(?P<id>[\w-]+(?:/[\w-]+)*)/?\s*$' % ArteTVBaseIE._ARTE_LANGUAGES
+    _VALID_URL = rf'https?://(?:www\.)?arte\.tv/(?P<lang>{ArteTVBaseIE._ARTE_LANGUAGES})/videos/(?P<id>[\w-]+(?:/[\w-]+)*)/?\s*$'
     _TESTS = [{
         'url': 'https://www.arte.tv/en/videos/politics-and-society/',
         'info_dict': {
@@ -321,7 +321,7 @@ class ArteTVCategoryIE(ArteTVBaseIE):
 
         items = []
         for video in re.finditer(
-                r'<a\b[^>]*?href\s*=\s*(?P<q>"|\'|\b)(?P<url>https?://www\.arte\.tv/%s/videos/[\w/-]+)(?P=q)' % lang,
+                rf'<a\b[^>]*?href\s*=\s*(?P<q>"|\'|\b)(?P<url>https?://www\.arte\.tv/{lang}/videos/[\w/-]+)(?P=q)',
                 webpage):
             video = video.group('url')
             if video == url:

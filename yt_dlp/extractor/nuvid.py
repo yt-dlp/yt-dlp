@@ -64,7 +64,7 @@ class NuvidIE(InfoExtractor):
             })
 
         webpage = self._download_webpage(
-            'http://m.nuvid.com/video/%s' % (video_id, ),
+            f'http://m.nuvid.com/video/{video_id}',
             video_id, 'Downloading video page', fatal=False) or ''
 
         title = strip_or_none(video_data.get('title') or self._html_search_regex(

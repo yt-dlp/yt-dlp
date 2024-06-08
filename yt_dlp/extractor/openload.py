@@ -121,7 +121,7 @@ class PhantomJSwrapper:
             if is_outdated_version(version, required_version):
                 self.extractor._downloader.report_warning(
                     'Your copy of PhantomJS is outdated, update it to version '
-                    '%s or newer if you encounter any errors.' % required_version)
+                    f'{required_version} or newer if you encounter any errors.')
 
         for name in self._TMP_FILE_NAMES:
             tmp = tempfile.NamedTemporaryFile(delete=False)

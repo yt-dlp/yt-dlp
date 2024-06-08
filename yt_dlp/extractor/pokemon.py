@@ -57,7 +57,7 @@ class PokemonIE(InfoExtractor):
         return {
             '_type': 'url_transparent',
             'id': video_id,
-            'url': 'limelight:media:%s' % video_id,
+            'url': f'limelight:media:{video_id}',
             'title': title,
             'description': video_data.get('data-video-summary'),
             'thumbnail': video_data.get('data-video-poster'),
@@ -102,7 +102,7 @@ class PokemonWatchIE(InfoExtractor):
         info = {
             '_type': 'url',
             'id': video_id,
-            'url': 'limelight:media:%s' % video_id,
+            'url': f'limelight:media:{video_id}',
             'ie_key': 'LimelightMedia',
         }
 
@@ -120,7 +120,7 @@ class PokemonWatchIE(InfoExtractor):
 
         if video_data is None:
             raise ExtractorError(
-                'Video %s does not exist' % video_id, expected=True)
+                f'Video {video_id} does not exist', expected=True)
 
         info['_type'] = 'url_transparent'
         images = video_data.get('images')

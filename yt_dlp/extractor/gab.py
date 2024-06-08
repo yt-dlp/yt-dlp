@@ -34,8 +34,8 @@ class GabTVIE(InfoExtractor):
         view_key = self._search_regex(r'data-view-key=\"(?P<channel_id>[^\"]+)', webpage, 'view_key')
         description = clean_html(
             self._html_search_regex(self._meta_regex('description'), webpage, 'description', group='content')) or None
-        available_resolutions = re.findall(r'<a\ data-episode-id=\"%s\"\ data-resolution=\"(?P<resolution>[^\"]+)' % video_id,
-                                           webpage)
+        available_resolutions = re.findall(
+            rf'<a\ data-episode-id=\"{video_id}\"\ data-resolution=\"(?P<resolution>[^\"]+)', webpage)
 
         formats = []
         for resolution in available_resolutions:

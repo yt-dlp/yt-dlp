@@ -33,27 +33,27 @@ _QUERIES = {
         video: getClip(clipIdentifier: $id) {
             %s %s
         }
-    }''' % (_FIELDS, _EXTRA_FIELDS),
+    }''' % (_FIELDS, _EXTRA_FIELDS),  # noqa: UP031
     'montage': '''query ($id: String!) {
         video: getMontage(clipIdentifier: $id) {
             %s
         }
-    }''' % _FIELDS,
+    }''' % _FIELDS,  # noqa: UP031
     'Clips': '''query ($page: Int!, $user: String!, $game: Int) {
         videos: clips(search: createdDate, page: $page, user: $user, mobile: false, game: $game) {
             data { %s %s }
         }
-    }''' % (_FIELDS, _EXTRA_FIELDS),
+    }''' % (_FIELDS, _EXTRA_FIELDS),  # noqa: UP031
     'Montages': '''query ($page: Int!, $user: String!) {
         videos: montages(search: createdDate, page: $page, user: $user) {
             data { %s }
         }
-    }''' % _FIELDS,
+    }''' % _FIELDS,  # noqa: UP031
     'Mobile Clips': '''query ($page: Int!, $user: String!) {
         videos: clips(search: createdDate, page: $page, user: $user, mobile: true) {
             data { %s %s }
         }
-    }''' % (_FIELDS, _EXTRA_FIELDS),
+    }''' % (_FIELDS, _EXTRA_FIELDS),  # noqa: UP031
 }
 
 

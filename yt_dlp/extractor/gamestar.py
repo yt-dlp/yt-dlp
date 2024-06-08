@@ -42,7 +42,7 @@ class GameStarIE(InfoExtractor):
             webpage, 'JSON-LD', group='json_ld'), video_id)
         info_dict = self._json_ld(json_ld, video_id)
         info_dict['title'] = remove_end(
-            info_dict['title'], ' - Game%s' % site.title())
+            info_dict['title'], f' - Game{site.title()}')
 
         view_count = int_or_none(json_ld.get('interactionCount'))
         comment_count = int_or_none(self._html_search_regex(

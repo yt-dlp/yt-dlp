@@ -22,6 +22,6 @@ class KTHIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         return self.url_result(
-            smuggle_url('kaltura:308:%s' % video_id, {
+            smuggle_url(f'kaltura:308:{video_id}', {
                 'service_url': 'https://api.kaltura.nordu.net'}),
             'Kaltura')

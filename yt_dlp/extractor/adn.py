@@ -136,7 +136,7 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
                 if start is None or end is None or text is None:
                     continue
                 alignment = self._POS_ALIGN_MAP.get(position_align, 2) + self._LINE_ALIGN_MAP.get(line_align, 0)
-                ssa += os.linesep + 'Dialogue: Marked=0,%s,%s,Default,,0,0,0,,%s%s' % (
+                ssa += os.linesep + 'Dialogue: Marked=0,{},{},Default,,0,0,0,,{}{}'.format(
                     ass_subtitles_timecode(start),
                     ass_subtitles_timecode(end),
                     '{\\a%d}' % alignment if alignment != 2 else '',
@@ -178,7 +178,7 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
 
     def _real_extract(self, url):
         lang, video_id = self._match_valid_url(url).group('lang', 'id')
-        video_base_url = self._PLAYER_BASE_URL + 'video/%s/' % video_id
+        video_base_url = self._PLAYER_BASE_URL + f'video/{video_id}/'
         player = self._download_json(
             video_base_url + 'configuration', video_id,
             'Downloading player config JSON metadata',
@@ -256,7 +256,7 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
             for quality, load_balancer_url in qualities.items():
                 load_balancer_data = self._download_json(
                     load_balancer_url, video_id,
-                    'Downloading %s %s JSON metadata' % (format_id, quality),
+                    f'Downloading {format_id} {quality} JSON metadata',
                     fatal=False) or {}
                 m3u8_url = load_balancer_data.get('location')
                 if not m3u8_url:
@@ -276,7 +276,7 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
             self.raise_login_required('This video requires a subscription', method='password')
 
         video = (self._download_json(
-            self._API_BASE_URL + 'video/%s' % video_id, video_id,
+            self._API_BASE_URL + f'video/{video_id}', video_id,
             'Downloading additional video metadata', fatal=False) or {}).get('video') or {}
         show = video.get('show') or {}
 

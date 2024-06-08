@@ -136,7 +136,7 @@ class PlaytvakIE(InfoExtractor):
                 continue
 
             format_ = fmt['format']
-            format_id = '%s_%s' % (format_, fmt['quality'])
+            format_id = '{}_{}'.format(format_, fmt['quality'])
             preference = None
 
             if format_ in ('mp4', 'webm'):

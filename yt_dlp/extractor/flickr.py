@@ -52,7 +52,7 @@ class FlickrIE(InfoExtractor):
     def _call_api(self, method, video_id, api_key, note, secret=None):
         query = {
             'photo_id': video_id,
-            'method': 'flickr.%s' % method,
+            'method': f'flickr.{method}',
             'api_key': api_key,
             'format': 'json',
             'nojsoncallback': 1,

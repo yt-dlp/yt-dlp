@@ -118,13 +118,13 @@ class TVPlayIE(InfoExtractor):
         if geo_country:
             self._initialize_geo_bypass({'countries': [geo_country.upper()]})
         video = self._download_json(
-            'http://playapi.mtgx.tv/v3/videos/%s' % video_id, video_id, 'Downloading video JSON')
+            f'http://playapi.mtgx.tv/v3/videos/{video_id}', video_id, 'Downloading video JSON')
 
         title = video['title']
 
         try:
             streams = self._download_json(
-                'http://playapi.mtgx.tv/v3/videos/stream/%s' % video_id,
+                f'http://playapi.mtgx.tv/v3/videos/stream/{video_id}',
                 video_id, 'Downloading streams JSON')
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError) and e.cause.status == 403:

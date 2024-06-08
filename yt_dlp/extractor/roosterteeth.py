@@ -254,7 +254,7 @@ class RoosterTeethIE(RoosterTeethBaseIE):
             if isinstance(e.cause, HTTPError) and e.cause.status == 403:
                 if self._parse_json(e.cause.response.read().decode(), display_id).get('access') is False:
                     self.raise_login_required(
-                        '%s is only available for FIRST members' % display_id)
+                        f'{display_id} is only available for FIRST members')
             raise
 
         # XXX: additional ad-free URL at video_data['links']['download'] but often gives 403 errors

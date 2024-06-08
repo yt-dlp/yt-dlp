@@ -238,8 +238,8 @@ class NPOIE(InfoExtractor):
         formats = []
         for profile in ('hls', 'dash-widevine', 'dash-playready', 'smooth'):
             streams = self._download_json(
-                'https://start-player.npo.nl/video/%s/streams' % video_id,
-                video_id, 'Downloading %s profile JSON' % profile, fatal=False,
+                f'https://start-player.npo.nl/video/{video_id}/streams',
+                video_id, f'Downloading {profile} profile JSON', fatal=False,
                 query={
                     'profile': profile,
                     'quality': 'npoplus',
@@ -358,7 +358,7 @@ class NPOLiveIE(InfoExtractor):
 
         return {
             '_type': 'url_transparent',
-            'url': 'npo:%s' % live_id,
+            'url': f'npo:{live_id}',
             'ie_key': NPOIE.ie_key(),
             'id': live_id,
             'display_id': display_id,
@@ -388,7 +388,7 @@ class NPORadioIE(InfoExtractor):
 
     @staticmethod
     def _html_get_attribute_regex(attribute):
-        return r'{}\s*=\s*\'([^\']+)\''.format(attribute)
+        return rf'{attribute}\s*=\s*\'([^\']+)\''
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -434,7 +434,7 @@ class NPORadioFragmentIE(InfoExtractor):
         webpage = self._download_webpage(url, audio_id)
 
         title = self._html_search_regex(
-            r'href="/radio/[^/]+/fragment/%s" title="([^"]+)"' % audio_id,
+            rf'href="/radio/[^/]+/fragment/{audio_id}" title="([^"]+)"',
             webpage, 'title')
 
         audio_url = self._search_regex(
@@ -456,7 +456,7 @@ class NPODataMidEmbedIE(InfoExtractor):  # XXX: Conventionally, base classes sho
         return {
             '_type': 'url_transparent',
             'ie_key': 'NPO',
-            'url': 'npo:%s' % video_id,
+            'url': f'npo:{video_id}',
             'display_id': display_id,
         }
 
@@ -508,7 +508,7 @@ class NPOPlaylistBaseIE(NPOIE):  # XXX: Do not subclass from concrete IE
         webpage = self._download_webpage(url, playlist_id)
 
         entries = [
-            self.url_result('npo:%s' % video_id if not video_id.startswith('http') else video_id)
+            self.url_result(f'npo:{video_id}' if not video_id.startswith('http') else video_id)
             for video_id in orderedSet(re.findall(self._PLAYLIST_ENTRY_RE, webpage))
         ]
 

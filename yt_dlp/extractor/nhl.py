@@ -12,8 +12,8 @@ class NHLBaseIE(InfoExtractor):
     def _real_extract(self, url):
         site, tmp_id = self._match_valid_url(url).groups()
         video_data = self._download_json(
-            'https://%s/%s/%sid/v1/%s/details/web-v1.json'
-            % (self._CONTENT_DOMAIN, site[:3], 'item/' if site == 'mlb' else '', tmp_id), tmp_id)
+            'https://{}/{}/{}id/v1/{}/details/web-v1.json'.format(
+                self._CONTENT_DOMAIN, site[:3], 'item/' if site == 'mlb' else '', tmp_id), tmp_id)
         if video_data.get('type') != 'video':
             video_data = video_data['media']
             video = video_data.get('video')

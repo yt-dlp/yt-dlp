@@ -53,14 +53,14 @@ class FancodeVodIE(InfoExtractor):
                 "refreshToken":"%s"
             },
             "operationName":"RefreshToken"
-        }''' % password
+        }''' % password  # noqa: UP031
 
         token_json = self.download_gql('refresh token', data, 'Getting the Access token')
         self._ACCESS_TOKEN = try_get(token_json, lambda x: x['data']['refreshToken']['accessToken'])
         if self._ACCESS_TOKEN is None:
             self.report_warning('Failed to get Access token')
         else:
-            self.headers.update({'Authorization': 'Bearer %s' % self._ACCESS_TOKEN})
+            self.headers.update({'Authorization': f'Bearer {self._ACCESS_TOKEN}'})
 
     def _check_login_required(self, is_available, is_premium):
         msg = None
@@ -92,7 +92,7 @@ class FancodeVodIE(InfoExtractor):
                 }
             },
             "operationName":"Video"
-        }''' % video_id
+        }''' % video_id  # noqa: UP031
 
         metadata_json = self.download_gql(video_id, data, note='Downloading metadata')
 
@@ -155,7 +155,7 @@ class FancodeLiveIE(FancodeVodIE):  # XXX: Do not subclass from concrete IE
                 "isLoggedIn":true
             },
             "operationName":"MatchResponse"
-        }''' % video_id
+        }''' % video_id  # noqa: UP031
 
         info_json = self.download_gql(video_id, data, 'Info json')
 

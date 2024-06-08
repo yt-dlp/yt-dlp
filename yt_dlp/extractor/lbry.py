@@ -24,7 +24,7 @@ from ..utils import (
 class LBRYBaseIE(InfoExtractor):
     _BASE_URL_REGEX = r'(?x)(?:https?://(?:www\.)?(?:lbry\.tv|odysee\.com)/|lbry://)'
     _CLAIM_ID_REGEX = r'[0-9a-f]{1,40}'
-    _OPT_CLAIM_ID = '[^$@:/?#&]+(?:[:#]%s)?' % _CLAIM_ID_REGEX
+    _OPT_CLAIM_ID = f'[^$@:/?#&]+(?:[:#]{_CLAIM_ID_REGEX})?'
     _SUPPORTED_STREAM_TYPES = ['video', 'audio']
     _PAGE_SIZE = 50
 
@@ -35,7 +35,7 @@ class LBRYBaseIE(InfoExtractor):
             headers['x-lbry-auth-token'] = token
         response = self._download_json(
             'https://api.lbry.tv/api/v1/proxy',
-            display_id, 'Downloading %s JSON metadata' % resource,
+            display_id, f'Downloading {resource} JSON metadata',
             headers=headers,
             data=json.dumps({
                 'method': method,
@@ -54,7 +54,7 @@ class LBRYBaseIE(InfoExtractor):
     def _permanent_url(self, url, claim_name, claim_id):
         return urljoin(
             url.replace('lbry://', 'https://lbry.tv/'),
-            '/%s:%s' % (claim_name, claim_id))
+            f'/{claim_name}:{claim_id}')
 
     def _parse_stream(self, stream, url):
         stream_type = traverse_obj(stream, ('value', 'stream_type', {str}))

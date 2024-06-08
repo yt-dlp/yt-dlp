@@ -41,7 +41,7 @@ class VuClipIE(InfoExtractor):
             default=None)
         if error_msg:
             raise ExtractorError(
-                '%s said: %s' % (self.IE_NAME, error_msg), expected=True)
+                f'{self.IE_NAME} said: {error_msg}', expected=True)
 
         # These clowns alternate between two page types
         video_url = self._search_regex(

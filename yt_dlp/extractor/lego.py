@@ -72,7 +72,7 @@ class LEGOIE(InfoExtractor):
                 # https://contentfeed.services.lego.com/api/v2/item/[VIDEO_ID]?culture=[LOCALE]&contentType=Video
                 'https://services.slingshot.lego.com/mediaplayer/v2',
                 video_id, query={
-                    'videoId': '%s_%s' % (uuid.UUID(video_id), locale),
+                    'videoId': f'{uuid.UUID(video_id)}_{locale}',
                 }, headers=self.geo_verification_headers())
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError) and e.cause.status == 451:
@@ -123,7 +123,7 @@ class LEGOIE(InfoExtractor):
             video_version = video.get('VideoVersion')
             if net_storage_path and invariant_id and video_file_id and video_version:
                 subtitles.setdefault(locale[:2], []).append({
-                    'url': 'https://lc-mediaplayerns-live-s.legocdn.com/public/%s/%s_%s_%s_%s_sub.srt' % (net_storage_path, invariant_id, video_file_id, locale, video_version),
+                    'url': f'https://lc-mediaplayerns-live-s.legocdn.com/public/{net_storage_path}/{invariant_id}_{video_file_id}_{locale}_{video_version}_sub.srt',
                 })
 
         return {

@@ -123,7 +123,7 @@ class LivestreamIE(InfoExtractor):
                 if ext == 'm3u8':
                     continue
                 bitrate = int_or_none(self._search_regex(
-                    r'(\d+)\.%s' % ext, video_url, 'bitrate', default=None))
+                    rf'(\d+)\.{ext}', video_url, 'bitrate', default=None))
                 formats.append({
                     'url': video_url,
                     'format_id': format_id,
@@ -212,8 +212,7 @@ class LivestreamIE(InfoExtractor):
             if last_video is None:
                 info_url = feed_root_url
             else:
-                info_url = '{root}?&id={id}&newer=-1&type=video'.format(
-                    root=feed_root_url, id=last_video)
+                info_url = f'{feed_root_url}?&id={last_video}&newer=-1&type=video'
             videos_info = self._download_json(
                 info_url, event_id, f'Downloading page {i}')['data']
             videos_info = [v['data'] for v in videos_info if v['type'] == 'video']
@@ -278,7 +277,7 @@ class LivestreamOriginalIE(InfoExtractor):
     }]
 
     def _extract_video_info(self, user, video_id):
-        api_url = 'http://x%sx.api.channel.livestream.com/2.0/clipdetails?extendedInfo=true&id=%s' % (user, video_id)
+        api_url = f'http://x{user}x.api.channel.livestream.com/2.0/clipdetails?extendedInfo=true&id={video_id}'
         info = self._download_xml(api_url, video_id)
 
         item = info.find('channel').find('item')
@@ -349,10 +348,10 @@ class LivestreamOriginalIE(InfoExtractor):
             return self._extract_folder(url, content_id)
         else:
             # this url is used on mobile devices
-            stream_url = 'http://x%sx.api.channel.livestream.com/3.0/getstream.json' % user
+            stream_url = f'http://x{user}x.api.channel.livestream.com/3.0/getstream.json'
             info = {}
             if content_id:
-                stream_url += '?id=%s' % content_id
+                stream_url += f'?id={content_id}'
                 info = self._extract_video_info(user, content_id)
             else:
                 content_id = user

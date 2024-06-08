@@ -36,7 +36,7 @@ class ERTFlixBaseIE(InfoExtractor):
             {'$headers': json.dumps(headers_as_param)},
             params)
         response = self._download_json(
-            'https://api.app.ertflix.gr/v%s/%s' % (str(api_version), method),
+            f'https://api.app.ertflix.gr/v{api_version!s}/{method}',
             video_id, fatal=False, query=query, data=data, headers=headers)
         if try_get(response, lambda x: x['Result']['Success']) is True:
             return response
@@ -195,7 +195,7 @@ class ERTFlixIE(ERTFlixBaseIE):
             'timestamp': parse_iso8601(episode.get('PublishDate')),
             'duration': episode.get('DurationSeconds'),
             'age_limit': self._parse_age_rating(episode),
-            'url': 'ertflix:%s' % (codename, ),
+            'url': f'ertflix:{codename}',
         }
 
     @staticmethod

@@ -58,7 +58,7 @@ class TVN24IE(InfoExtractor):
         def extract_json(attr, name, default=NO_DEFAULT, fatal=True):
             return self._parse_json(
                 self._search_regex(
-                    r'\b%s=(["\'])(?P<json>(?!\1).+?)\1' % attr, webpage,
+                    rf'\b{attr}=(["\'])(?P<json>(?!\1).+?)\1', webpage,
                     name, group='json', default=default, fatal=fatal) or '{}',
                 display_id, transform_source=unescapeHTML, fatal=fatal)
 

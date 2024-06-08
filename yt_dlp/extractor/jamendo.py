@@ -47,13 +47,13 @@ class JamendoIE(InfoExtractor):
     }]
 
     def _call_api(self, resource, resource_id, fatal=True):
-        path = '/api/%ss' % resource
+        path = f'/api/{resource}s'
         rand = compat_str(random.random())
         return self._download_json(
             'https://www.jamendo.com' + path, resource_id, fatal=fatal, query={
                 'id[]': resource_id,
             }, headers={
-                'X-Jam-Call': '$%s*%s~' % (hashlib.sha1((path + rand).encode()).hexdigest(), rand),
+                'X-Jam-Call': f'${hashlib.sha1((path + rand).encode()).hexdigest()}*{rand}~',
             })[0]
 
     def _real_extract(self, url):
@@ -76,8 +76,7 @@ class JamendoIE(InfoExtractor):
         album = self._call_api('album', track.get('albumId'), fatal=False)
 
         formats = [{
-            'url': 'https://%s.jamendo.com/?trackid=%s&format=%s&from=app-97dab294'
-                   % (sub_domain, track_id, format_id),
+            'url': f'https://{sub_domain}.jamendo.com/?trackid={track_id}&format={format_id}&from=app-97dab294',
             'format_id': format_id,
             'ext': ext,
             'quality': quality,

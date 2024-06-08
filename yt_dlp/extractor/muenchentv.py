@@ -52,7 +52,7 @@ class MuenchenTVIE(InfoExtractor):
             if ext is None:
                 format_id = label_str
             else:
-                format_id = '%s-%s' % (ext, label_str)
+                format_id = f'{ext}-{label_str}'
 
             formats.append({
                 'url': s['file'],

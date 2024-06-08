@@ -41,7 +41,7 @@ class CBSBaseIE(ThePlatformFeedIE):  # XXX: Do not subclass from concrete IE
             try:
                 tp_formats, tp_subtitles = self._extract_theplatform_smil(
                     update_url_query(tp_release_url, query), content_id,
-                    'Downloading %s SMIL data' % asset_type)
+                    f'Downloading {asset_type} SMIL data')
             except ExtractorError as e:
                 last_e = e
                 if asset_type != 'fallback':
@@ -50,7 +50,7 @@ class CBSBaseIE(ThePlatformFeedIE):  # XXX: Do not subclass from concrete IE
                 try:
                     tp_formats, tp_subtitles = self._extract_theplatform_smil(
                         update_url_query(tp_release_url, query), content_id,
-                        'Downloading %s SMIL data, trying again with another format' % asset_type)
+                        f'Downloading {asset_type} SMIL data, trying again with another format')
                 except ExtractorError as e:
                     last_e = e
                     continue

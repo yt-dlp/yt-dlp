@@ -23,8 +23,8 @@ _ID_RE = r'(?:[0-9a-f]{32,34}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0
 
 
 class MediasiteIE(InfoExtractor):
-    _VALID_URL = r'(?xi)https?://[^/]+/Mediasite/(?:Play|Showcase/[^/#?]+/Presentation)/(?P<id>%s)(?P<query>\?[^#]+|)' % _ID_RE
-    _EMBED_REGEX = [r'(?xi)<iframe\b[^>]+\bsrc=(["\'])(?P<url>(?:(?:https?:)?//[^/]+)?/Mediasite/Play/%s(?:\?.*?)?)\1' % _ID_RE]
+    _VALID_URL = rf'(?xi)https?://[^/]+/Mediasite/(?:Play|Showcase/[^/#?]+/Presentation)/(?P<id>{_ID_RE})(?P<query>\?[^#]+|)'
+    _EMBED_REGEX = [rf'(?xi)<iframe\b[^>]+\bsrc=(["\'])(?P<url>(?:(?:https?:)?//[^/]+)?/Mediasite/Play/{_ID_RE}(?:\?.*?)?)\1']
     _TESTS = [
         {
             'url': 'https://hitsmediaweb.h-its.org/mediasite/Play/2db6c271681e4f199af3c60d1f82869b1d',
@@ -178,7 +178,7 @@ class MediasiteIE(InfoExtractor):
             default='/Mediasite/PlayerService/PlayerService.svc/json'))
 
         player_options = self._download_json(
-            '%s/GetPlayerOptions' % service_path, resource_id,
+            f'{service_path}/GetPlayerOptions', resource_id,
             headers={
                 'Content-type': 'application/json; charset=utf-8',
                 'X-Requested-With': 'XMLHttpRequest',
@@ -197,7 +197,7 @@ class MediasiteIE(InfoExtractor):
 
         if presentation is None:
             raise ExtractorError(
-                'Mediasite says: %s' % player_options['PlayerPresentationStatusMessage'],
+                'Mediasite says: {}'.format(player_options['PlayerPresentationStatusMessage']),
                 expected=True)
 
         thumbnails = []
@@ -278,15 +278,15 @@ class MediasiteIE(InfoExtractor):
 
 
 class MediasiteCatalogIE(InfoExtractor):
-    _VALID_URL = r'''(?xi)
+    _VALID_URL = rf'''(?xi)
                         (?P<url>https?://[^/]+/Mediasite)
                         /Catalog/Full/
-                        (?P<catalog_id>{0})
+                        (?P<catalog_id>{_ID_RE})
                         (?:
-                            /(?P<current_folder_id>{0})
-                            /(?P<root_dynamic_folder_id>{0})
+                            /(?P<current_folder_id>{_ID_RE})
+                            /(?P<root_dynamic_folder_id>{_ID_RE})
                         )?
-                    '''.format(_ID_RE)
+                    '''
     _TESTS = [{
         'url': 'http://events7.mediasite.com/Mediasite/Catalog/Full/631f9e48530d454381549f955d08c75e21',
         'info_dict': {
@@ -368,7 +368,7 @@ class MediasiteCatalogIE(InfoExtractor):
             headers[anti_forgery_header] = anti_forgery_token
 
         catalog = self._download_json(
-            '%s/Catalog/Data/GetPresentationsForFolder' % mediasite_url,
+            f'{mediasite_url}/Catalog/Data/GetPresentationsForFolder',
             catalog_id, data=json.dumps(data).encode(), headers=headers)
 
         entries = []
@@ -379,7 +379,7 @@ class MediasiteCatalogIE(InfoExtractor):
             if not video_id:
                 continue
             entries.append(self.url_result(
-                '%s/Play/%s' % (mediasite_url, video_id),
+                f'{mediasite_url}/Play/{video_id}',
                 ie=MediasiteIE.ie_key(), video_id=video_id))
 
         title = try_get(
@@ -403,8 +403,8 @@ class MediasiteNamedCatalogIE(InfoExtractor):
         webpage = self._download_webpage(url, catalog_name)
 
         catalog_id = self._search_regex(
-            r'CatalogId\s*:\s*["\'](%s)' % _ID_RE, webpage, 'catalog id')
+            rf'CatalogId\s*:\s*["\']({_ID_RE})', webpage, 'catalog id')
 
         return self.url_result(
-            '%s/Catalog/Full/%s' % (mediasite_url, catalog_id),
+            f'{mediasite_url}/Catalog/Full/{catalog_id}',
             ie=MediasiteCatalogIE.ie_key(), video_id=catalog_id)

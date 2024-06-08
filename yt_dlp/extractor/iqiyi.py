@@ -157,7 +157,7 @@ class IqiyiSDKInterpreter:
             elif function in other_functions:
                 other_functions[function]()
             else:
-                raise ExtractorError('Unknown function %s' % function)
+                raise ExtractorError(f'Unknown function {function}')
 
         return sdk.target
 
@@ -249,8 +249,9 @@ class IqiyiIE(InfoExtractor):
             note='Get token for logging', errnote='Unable to get token for logging')
         sdk = data['sdk']
         timestamp = int(time.time())
-        target = '/apis/reglogin/login.action?lang=zh_TW&area_code=null&email=%s&passwd=%s&agenttype=1&from=undefined&keeplogin=0&piccode=&fromurl=&_pos=1' % (
-            username, self._rsa_fun(password.encode()))
+        target = (
+            f'/apis/reglogin/login.action?lang=zh_TW&area_code=null&email={username}'
+            f'&passwd={self._rsa_fun(password.encode())}&agenttype=1&from=undefined&keeplogin=0&piccode=&fromurl=&_pos=1')
 
         interp = IqiyiSDKInterpreter(sdk)
         sign = interp.run(target, data['ip'], timestamp)
@@ -276,7 +277,7 @@ class IqiyiIE(InfoExtractor):
         if code != 'A00000':
             msg = MSG_MAP.get(code)
             if not msg:
-                msg = 'error %s' % code
+                msg = f'error {code}'
                 if validation_result.get('msg'):
                     msg += ': ' + validation_result['msg']
             self.report_warning('unable to log in: ' + msg)
@@ -298,7 +299,7 @@ class IqiyiIE(InfoExtractor):
         }
 
         return self._download_json(
-            'http://cache.m.iqiyi.com/jp/tmts/%s/%s/' % (tvid, video_id),
+            f'http://cache.m.iqiyi.com/jp/tmts/{tvid}/{video_id}/',
             video_id, transform_source=lambda s: remove_start(s, 'var tvInfoJs='),
             query=params, headers=self.geo_verification_headers())
 
@@ -621,7 +622,7 @@ class IqIE(InfoExtractor):
         preview_time = traverse_obj(
             initial_format_data, ('boss_ts', (None, 'data'), ('previewTime', 'rtime')), expected_type=float_or_none, get_all=False)
         if traverse_obj(initial_format_data, ('boss_ts', 'data', 'prv'), expected_type=int_or_none):
-            self.report_warning('This preview video is limited%s' % format_field(preview_time, None, ' to %s seconds'))
+            self.report_warning('This preview video is limited{}'.format(format_field(preview_time, None, ' to %s seconds')))
 
         # TODO: Extract audio-only formats
         for bid in set(traverse_obj(initial_format_data, ('program', 'video', ..., 'bid'), expected_type=str_or_none)):
@@ -754,7 +755,7 @@ class IqAlbumIE(InfoExtractor):
         album_data = next_data['props']['initialState']['album']['videoAlbumInfo']
 
         if album_data.get('videoType') == 'singleVideo':
-            return self.url_result('https://www.iq.com/play/%s' % album_id, IqIE.ie_key())
+            return self.url_result(f'https://www.iq.com/play/{album_id}', IqIE.ie_key())
         return self.playlist_result(
             self._entries(album_data['albumId'], album_data['totalPageRange'], album_id,
                           traverse_obj(next_data, ('props', 'initialProps', 'pageProps', 'modeCode')),

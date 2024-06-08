@@ -111,7 +111,7 @@ class NateProgramIE(InfoExtractor):
                 clip_id = clip.get('clipSeq')
                 if clip_id:
                     yield self.url_result(
-                        'https://tv.nate.com/clip/%s' % clip_id, NateIE, playlist_id)
+                        f'https://tv.nate.com/clip/{clip_id}', NateIE, playlist_id)
             if program_data.get('last'):
                 break
 

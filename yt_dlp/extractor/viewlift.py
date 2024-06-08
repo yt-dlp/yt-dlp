@@ -62,8 +62,8 @@ class ViewLiftBaseIE(InfoExtractor):
 
 class ViewLiftEmbedIE(ViewLiftBaseIE):
     IE_NAME = 'viewlift:embed'
-    _VALID_URL = r'https?://(?:(?:www|embed)\.)?(?P<domain>%s)/embed/player\?.*\bfilmId=(?P<id>[\da-f]{8}-(?:[\da-f]{4}-){3}[\da-f]{12})' % ViewLiftBaseIE._DOMAINS_REGEX
-    _EMBED_REGEX = [r'<iframe[^>]+?src=(["\'])(?P<url>(?:https?:)?//(?:embed\.)?(?:%s)/embed/player.+?)\1' % ViewLiftBaseIE._DOMAINS_REGEX]
+    _VALID_URL = rf'https?://(?:(?:www|embed)\.)?(?P<domain>{ViewLiftBaseIE._DOMAINS_REGEX})/embed/player\?.*\bfilmId=(?P<id>[\da-f]{{8}}-(?:[\da-f]{{4}}-){{3}}[\da-f]{{12}})'
+    _EMBED_REGEX = [rf'<iframe[^>]+?src=(["\'])(?P<url>(?:https?:)?//(?:embed\.)?(?:{ViewLiftBaseIE._DOMAINS_REGEX})/embed/player.+?)\1']
     _TESTS = [{
         'url': 'http://embed.snagfilms.com/embed/player?filmId=74849a00-85a9-11e1-9660-123139220831&w=500',
         'md5': '2924e9215c6eff7a55ed35b72276bd93',
@@ -153,7 +153,7 @@ class ViewLiftEmbedIE(ViewLiftBaseIE):
 class ViewLiftIE(ViewLiftBaseIE):
     IE_NAME = 'viewlift'
     _API_BASE = 'https://prod-api-cached-2.viewlift.com/'
-    _VALID_URL = r'https?://(?:www\.)?(?P<domain>%s)(?P<path>(?:/(?:films/title|show|(?:news/)?videos?|watch))?/(?P<id>[^?#]+))' % ViewLiftBaseIE._DOMAINS_REGEX
+    _VALID_URL = rf'https?://(?:www\.)?(?P<domain>{ViewLiftBaseIE._DOMAINS_REGEX})(?P<path>(?:/(?:films/title|show|(?:news/)?videos?|watch))?/(?P<id>[^?#]+))'
     _TESTS = [{
         'url': 'http://www.snagfilms.com/films/title/lost_for_life',
         'md5': '19844f897b35af219773fd63bdec2942',
@@ -355,7 +355,7 @@ class ViewLiftIE(ViewLiftBaseIE):
         film_id = next(m['contentData'][0]['gist']['id'] for m in modules if m.get('moduleType') == 'VideoDetailModule')
         return {
             '_type': 'url_transparent',
-            'url': 'http://%s/embed/player?filmId=%s' % (domain, film_id),
+            'url': f'http://{domain}/embed/player?filmId={film_id}',
             'id': film_id,
             'display_id': display_id,
             'ie_key': 'ViewLiftEmbed',

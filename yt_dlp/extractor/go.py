@@ -50,14 +50,14 @@ class GoIE(AdobePassIE):
     _VALID_URL = r'''(?x)
                     https?://
                         (?P<sub_domain>
-                            (?:%s\.)?go|fxnow\.fxnetworks|
+                            (?:{}\.)?go|fxnow\.fxnetworks|
                             (?:www\.)?(?:abc|freeform|disneynow)
                         )\.com/
                         (?:
                             (?:[^/]+/)*(?P<id>[Vv][Dd][Kk][Aa]\w+)|
                             (?:[^/]+/)*(?P<display_id>[^/?\#]+)
                         )
-                    ''' % r'\.|'.join(list(_SITE_INFO.keys()))
+                    '''.format(r'\.|'.join(list(_SITE_INFO.keys())))
     _TESTS = [{
         'url': 'http://abc.go.com/shows/designated-survivor/video/most-recent/VDKA3807643',
         'info_dict': {
@@ -168,7 +168,7 @@ class GoIE(AdobePassIE):
     def _extract_videos(self, brand, video_id='-1', show_id='-1'):
         display_id = video_id if video_id != '-1' else show_id
         return self._download_json(
-            'http://api.contents.watchabc.go.com/vp2/ws/contents/3000/videos/%s/001/-1/%s/-1/%s/-1/-1.json' % (brand, show_id, video_id),
+            f'http://api.contents.watchabc.go.com/vp2/ws/contents/3000/videos/{brand}/001/-1/{show_id}/-1/{video_id}/-1/-1.json',
             display_id)['video']
 
     def _real_extract(self, url):
@@ -266,7 +266,7 @@ class GoIE(AdobePassIE):
                             self.raise_geo_restricted(
                                 error['message'], countries=['US'])
                     error_message = ', '.join([error['message'] for error in errors])
-                    raise ExtractorError('%s said: %s' % (self.IE_NAME, error_message), expected=True)
+                    raise ExtractorError(f'{self.IE_NAME} said: {error_message}', expected=True)
                 asset_url += '?' + entitlement['uplynkData']['sessionKey']
                 fmts, subs = self._extract_m3u8_formats_and_subtitles(
                     asset_url, video_id, 'mp4', m3u8_id=format_id or 'hls', fatal=False)
@@ -280,7 +280,7 @@ class GoIE(AdobePassIE):
                 }
                 if re.search(r'(?:/mp4/source/|_source\.mp4)', asset_url):
                     f.update({
-                        'format_id': ('%s-' % format_id if format_id else '') + 'SOURCE',
+                        'format_id': (f'{format_id}-' if format_id else '') + 'SOURCE',
                         'quality': 1,
                     })
                 else:
@@ -288,7 +288,7 @@ class GoIE(AdobePassIE):
                     if mobj:
                         height = int(mobj.group(2))
                         f.update({
-                            'format_id': ('%s-' % format_id if format_id else '') + '%dP' % height,
+                            'format_id': (f'{format_id}-' if format_id else '') + '%dP' % height,
                             'width': int(mobj.group(1)),
                             'height': height,
                         })

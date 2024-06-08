@@ -82,7 +82,7 @@ class ViuIE(ViuBaseIE):
         # hls_file = video_data.get('hlsfile')
         hls_file = video_data.get('jwhlsfile')
         if url_path and tdirforwhole and hls_file:
-            m3u8_url = '%s/%s/%s' % (url_path, tdirforwhole, hls_file)
+            m3u8_url = f'{url_path}/{tdirforwhole}/{hls_file}'
         else:
             # m3u8_url = re.sub(
             #     r'(/hlsc_)[a-z]+(\d+\.m3u8)',

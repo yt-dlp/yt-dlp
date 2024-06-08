@@ -290,7 +290,7 @@ class TVPStreamIE(InfoExtractor):
 
     def _real_extract(self, url):
         channel_id = self._match_id(url)
-        channel_url = self._proto_relative_url('//stream.tvp.pl/?channel_id=%s' % channel_id or 'default')
+        channel_url = self._proto_relative_url(f'//stream.tvp.pl/?channel_id={channel_id}' or 'default')
         webpage = self._download_webpage(channel_url, channel_id or 'default', 'Downloading channel webpage')
         channels = self._search_json(
             r'window\.__channels\s*=', webpage, 'channel list', channel_id,
@@ -300,7 +300,7 @@ class TVPStreamIE(InfoExtractor):
         return {
             '_type': 'url_transparent',
             'id': channel_id or channel['id'],
-            'url': 'tvp:%s' % audition['video_id'],
+            'url': 'tvp:{}'.format(audition['video_id']),
             'title': audition.get('title'),
             'alt_title': channel.get('title'),
             'is_live': True,
@@ -379,8 +379,7 @@ class TVPEmbedIE(InfoExtractor):
         ))
 
         webpage = self._download_webpage(
-            'https://www.tvp.pl/sess/TVPlayer2/api.php?id=%s&@method=getTvpConfig&@callback=%s'
-            % (video_id, callback), video_id)
+            f'https://www.tvp.pl/sess/TVPlayer2/api.php?id={video_id}&@method=getTvpConfig&@callback={callback}', video_id)
 
         # stripping JSONP padding
         datastr = webpage[15 + len(callback):-3]
@@ -470,7 +469,7 @@ class TVPEmbedIE(InfoExtractor):
         # vod.tvp.pl
         if info.get('vortalName') == 'vod':
             info_dict.update({
-                'title': '%s, %s' % (info.get('title'), info.get('subtitle')),
+                'title': '{}, {}'.format(info.get('title'), info.get('subtitle')),
                 'series': info.get('title'),
                 'season': info.get('season'),
                 'episode_number': info.get('episode'),

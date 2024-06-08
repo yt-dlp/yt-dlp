@@ -201,7 +201,7 @@ class NBCIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
             'switch': 'HLSServiceSecure',
         }
         video_id = video_data['mpxGuid']
-        tp_path = 'NnzsPC/media/guid/%s/%s' % (video_data.get('mpxAccountId') or '2410887629', video_id)
+        tp_path = 'NnzsPC/media/guid/{}/{}'.format(video_data.get('mpxAccountId') or '2410887629', video_id)
         tpm = self._download_theplatform_metadata(tp_path, video_id)
         title = tpm.get('title') or video_data.get('secondaryTitle')
         if video_data.get('locked'):
@@ -211,7 +211,7 @@ class NBCIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
             query['auth'] = self._extract_mvpd_auth(
                 url, video_id, 'nbcentertainment', resource)
         theplatform_url = smuggle_url(update_url_query(
-            'http://link.theplatform.com/s/NnzsPC/media/guid/%s/%s' % (video_data.get('mpxAccountId') or '2410887629', video_id),
+            'http://link.theplatform.com/s/NnzsPC/media/guid/{}/{}'.format(video_data.get('mpxAccountId') or '2410887629', video_id),
             query), {'force_smil_url': True})
 
         # Empty string or 0 can be valid values for these. So the check must be `is None`
@@ -253,7 +253,7 @@ class NBCIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
 class NBCSportsVPlayerIE(InfoExtractor):
     _VALID_URL_BASE = r'https?://(?:vplayer\.nbcsports\.com|(?:www\.)?nbcsports\.com/vplayer)/'
     _VALID_URL = _VALID_URL_BASE + r'(?:[^/]+/)+(?P<id>[0-9a-zA-Z_]+)'
-    _EMBED_REGEX = [r'(?:iframe[^>]+|var video|div[^>]+data-(?:mpx-)?)[sS]rc\s?=\s?"(?P<url>%s[^\"]+)' % _VALID_URL_BASE]
+    _EMBED_REGEX = [rf'(?:iframe[^>]+|var video|div[^>]+data-(?:mpx-)?)[sS]rc\s?=\s?"(?P<url>{_VALID_URL_BASE}[^\"]+)']
 
     _TESTS = [{
         'url': 'https://vplayer.nbcsports.com/p/BxmELC/nbcsports_embed/select/9CsDKds0kvHI',
@@ -339,7 +339,7 @@ class NBCSportsStreamIE(AdobePassIE):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         live_source = self._download_json(
-            'http://stream.nbcsports.com/data/live_sources_%s.json' % video_id,
+            f'http://stream.nbcsports.com/data/live_sources_{video_id}.json',
             video_id)
         video_source = live_source['videoSources'][0]
         title = video_source['title']

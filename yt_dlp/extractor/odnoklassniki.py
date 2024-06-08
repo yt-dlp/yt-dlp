@@ -281,7 +281,7 @@ class OdnoklassnikiIE(InfoExtractor):
 
         player = self._parse_json(
             unescapeHTML(self._search_regex(
-                r'data-options=(?P<quote>["\'])(?P<player>{.+?%s.+?})(?P=quote)' % video_id,
+                rf'data-options=(?P<quote>["\'])(?P<player>{{.+?{video_id}.+?}})(?P=quote)',
                 webpage, 'player', group='player')),
             video_id)
 
@@ -434,7 +434,7 @@ class OdnoklassnikiIE(InfoExtractor):
         video_id = self._match_id(url)
 
         webpage = self._download_webpage(
-            'http://m.ok.ru/video/%s' % video_id, video_id,
+            f'http://m.ok.ru/video/{video_id}', video_id,
             note='Downloading mobile webpage')
 
         error = self._search_regex(

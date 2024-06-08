@@ -24,7 +24,7 @@ class TwentyThreeVideoIE(InfoExtractor):
 
     def _real_extract(self, url):
         domain, query, photo_id = self._match_valid_url(url).groups()
-        base_url = 'https://%s' % domain
+        base_url = f'https://{domain}'
         photo_data = self._download_json(
             base_url + '/api/photo/list?' + query, photo_id, query={
                 'format': 'json',

@@ -73,8 +73,8 @@ class AENetworksBaseIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
     def _extract_aetn_info(self, domain, filter_key, filter_value, url):
         requestor_id, brand = self._DOMAIN_MAP[domain]
         result = self._download_json(
-            'https://feeds.video.aetnd.com/api/v2/%s/videos' % brand,
-            filter_value, query={'filter[%s]' % filter_key: filter_value})
+            f'https://feeds.video.aetnd.com/api/v2/{brand}/videos',
+            filter_value, query={f'filter[{filter_key}]': filter_value})
         result = traverse_obj(
             result, ('results',
                      lambda k, v: k == 0 and v[filter_key] == filter_value),
@@ -209,14 +209,14 @@ class AENetworksListBaseIE(AENetworksBaseIE):
   %s(slug: "%s") {
     %s
   }
-}''' % (resource, slug, fields),
+}''' % (resource, slug, fields),  # noqa: UP031
             }))['data'][resource]
 
     def _real_extract(self, url):
         domain, slug = self._match_valid_url(url).groups()
         _, brand = self._DOMAIN_MAP[domain]
         playlist = self._call_api(self._RESOURCE, slug, brand, self._FIELDS)
-        base_url = 'http://watch.%s' % domain
+        base_url = f'http://watch.{domain}'
 
         entries = []
         for item in (playlist.get(self._ITEMS_KEY) or []):
@@ -364,6 +364,6 @@ class BiographyIE(AENetworksBaseIE):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
         player_url = self._search_regex(
-            r'<phoenix-iframe[^>]+src="(%s)' % HistoryPlayerIE._VALID_URL,
+            rf'<phoenix-iframe[^>]+src="({HistoryPlayerIE._VALID_URL})',
             webpage, 'player URL')
         return self.url_result(player_url, HistoryPlayerIE.ie_key())

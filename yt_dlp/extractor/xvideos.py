@@ -110,7 +110,7 @@ class XVideosIE(InfoExtractor):
 
         mobj = re.search(r'<h1 class="inlineError">(.+?)</h1>', webpage)
         if mobj:
-            raise ExtractorError('%s said: %s' % (self.IE_NAME, clean_html(mobj.group(1))), expected=True)
+            raise ExtractorError(f'{self.IE_NAME} said: {clean_html(mobj.group(1))}', expected=True)
 
         title = self._html_search_regex(
             (r'<title>(?P<title>.+?)\s+-\s+XVID',
@@ -121,7 +121,7 @@ class XVideosIE(InfoExtractor):
         thumbnails = []
         for preference, thumbnail in enumerate(('', '169')):
             thumbnail_url = self._search_regex(
-                r'setThumbUrl%s\(\s*(["\'])(?P<thumbnail>(?:(?!\1).)+)\1' % thumbnail,
+                rf'setThumbUrl{thumbnail}\(\s*(["\'])(?P<thumbnail>(?:(?!\1).)+)\1',
                 webpage, 'thumbnail', default=None, group='thumbnail')
             if thumbnail_url:
                 thumbnails.append({
@@ -157,7 +157,7 @@ class XVideosIE(InfoExtractor):
             elif format_id in ('urllow', 'urlhigh'):
                 formats.append({
                     'url': format_url,
-                    'format_id': '%s-%s' % (determine_ext(format_url, 'mp4'), format_id[3:]),
+                    'format_id': '{}-{}'.format(determine_ext(format_url, 'mp4'), format_id[3:]),
                     'quality': -2 if format_id.endswith('low') else None,
                 })
 

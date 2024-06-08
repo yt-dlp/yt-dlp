@@ -105,7 +105,7 @@ class Tube8IE(InfoExtractor):
         if not formats:
             if 'title="This video is no longer available"' in webpage:
                 self.raise_no_formats(
-                    'Video %s is no longer available' % video_id, expected=True)
+                    f'Video {video_id} is no longer available', expected=True)
 
         if not title:
             title = self._html_search_regex(

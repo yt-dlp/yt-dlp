@@ -63,7 +63,7 @@ class NaverBaseIE(InfoExtractor):
                 encoding_option = stream.get('encodingOption', {})
                 bitrate = stream.get('bitrate', {})
                 formats.append({
-                    'format_id': '%s_%s' % (stream.get('type') or stream_type, dict_get(encoding_option, ('name', 'id'))),
+                    'format_id': '{}_{}'.format(stream.get('type') or stream_type, dict_get(encoding_option, ('name', 'id'))),
                     'url': stream_url,
                     'ext': 'mp4',
                     'width': int_or_none(encoding_option.get('width')),

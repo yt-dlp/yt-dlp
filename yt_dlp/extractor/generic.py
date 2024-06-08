@@ -2148,7 +2148,7 @@ class GenericIE(InfoExtractor):
 
     def report_following_redirect(self, new_url):
         """Report information extraction."""
-        self._downloader.to_screen('[redirect] Following redirect to %s' % new_url)
+        self._downloader.to_screen(f'[redirect] Following redirect to {new_url}')
 
     def report_detected(self, name, num=1, note=None):
         if num > 1:
@@ -2338,18 +2338,17 @@ class GenericIE(InfoExtractor):
                     if default_search == 'auto_warning':
                         if re.match(r'^(?:url|URL)$', url):
                             raise ExtractorError(
-                                'Invalid URL:  %r . Call yt-dlp like this:  yt-dlp -v "https://www.youtube.com/watch?v=BaW_jenozKc"  ' % url,
+                                f'Invalid URL:  {url!r} . Call yt-dlp like this:  yt-dlp -v "https://www.youtube.com/watch?v=BaW_jenozKc"  ',
                                 expected=True)
                         else:
                             self.report_warning(
-                                'Falling back to youtube search for  %s . Set --default-search "auto" to suppress this warning.' % url)
+                                f'Falling back to youtube search for  {url} . Set --default-search "auto" to suppress this warning.')
                     return self.url_result('ytsearch:' + url)
 
             if default_search in ('error', 'fixup_error'):
                 raise ExtractorError(
-                    '%r is not a valid URL. '
-                    'Set --default-search "ytsearch" (or run  yt-dlp "ytsearch:%s" ) to search YouTube'
-                    % (url, url), expected=True)
+                    f'{url!r} is not a valid URL. '
+                    f'Set --default-search "ytsearch" (or run  yt-dlp "ytsearch:{url}" ) to search YouTube', expected=True)
             else:
                 if ':' not in default_search:
                     default_search += ':'
@@ -2728,7 +2727,7 @@ class GenericIE(InfoExtractor):
             REDIRECT_REGEX = r'[0-9]{,2};\s*(?:URL|url)=\'?([^\'"]+)'
             found = re.search(
                 r'(?i)<meta\s+(?=(?:[a-z-]+="[^"]+"\s+)*http-equiv="refresh")'
-                r'(?:[a-z-]+="[^"]+"\s+)*?content="%s' % REDIRECT_REGEX,
+                rf'(?:[a-z-]+="[^"]+"\s+)*?content="{REDIRECT_REGEX}',
                 webpage)
             if not found:
                 # Look also in Refresh HTTP header

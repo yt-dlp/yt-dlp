@@ -30,7 +30,7 @@ class XanimuIE(InfoExtractor):
         formats = []
         for format_id in ['videoHigh', 'videoLow']:
             format_url = self._search_json(
-                r'var\s+%s\s*=' % re.escape(format_id), webpage, format_id,
+                rf'var\s+{re.escape(format_id)}\s*=', webpage, format_id,
                 video_id, default=None, contains_pattern=r'[\'"]([^\'"]+)[\'"]')
             if format_url:
                 formats.append({

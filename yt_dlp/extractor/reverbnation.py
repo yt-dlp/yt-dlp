@@ -24,9 +24,9 @@ class ReverbNationIE(InfoExtractor):
         song_id = self._match_id(url)
 
         api_res = self._download_json(
-            'https://api.reverbnation.com/song/%s' % song_id,
+            f'https://api.reverbnation.com/song/{song_id}',
             song_id,
-            note='Downloading information of song %s' % song_id,
+            note=f'Downloading information of song {song_id}',
         )
 
         THUMBNAILS = ('thumbnail', 'image')

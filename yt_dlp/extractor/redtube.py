@@ -53,7 +53,7 @@ class RedTubeIE(InfoExtractor):
         for patterns, message in ERRORS:
             if any(p in webpage for p in patterns):
                 raise ExtractorError(
-                    'Video %s %s' % (video_id, message), expected=True)
+                    f'Video {video_id} {message}', expected=True)
 
         info = self._search_json_ld(webpage, video_id, default={})
 

@@ -64,8 +64,8 @@ class AMCNetworksIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
         site, display_id = self._match_valid_url(url).groups()
         requestor_id = self._REQUESTOR_ID_MAP[site]
         page_data = self._download_json(
-            'https://content-delivery-gw.svc.ds.amcn.com/api/v2/content/amcn/%s/url/%s'
-            % (requestor_id.lower(), display_id), display_id)['data']
+            f'https://content-delivery-gw.svc.ds.amcn.com/api/v2/content/amcn/{requestor_id.lower()}/url/{display_id}',
+            display_id)['data']
         properties = page_data.get('properties') or {}
         query = {
             'mbr': 'true',

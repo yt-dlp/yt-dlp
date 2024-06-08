@@ -80,7 +80,7 @@ class HiDiveIE(InfoExtractor):
             self.raise_geo_restricted()
         if restriction and restriction != 'None':
             raise ExtractorError(
-                '%s said: %s' % (self.IE_NAME, restriction), expected=True)
+                f'{self.IE_NAME} said: {restriction}', expected=True)
 
         formats, parsed_urls = [], {None}
         for rendition_id, rendition in settings['renditions'].items():

@@ -151,7 +151,7 @@ class CSpanIE(InfoExtractor):
 
         # Obsolete
         # We first look for clipid, because clipprog always appears before
-        patterns = [r'id=\'clip(%s)\'\s*value=\'([0-9]+)\'' % t for t in ('id', 'prog')]
+        patterns = [rf'id=\'clip({t})\'\s*value=\'([0-9]+)\'' for t in ('id', 'prog')]
         results = list(filter(None, (re.search(p, webpage) for p in patterns)))
         if results:
             matches = results[0]
@@ -183,13 +183,13 @@ class CSpanIE(InfoExtractor):
             return d.get(attr, {}).get('#text')
 
         data = self._download_json(
-            'http://www.c-span.org/assets/player/ajax-player.php?os=android&html5=%s&id=%s' % (video_type, video_id),
+            f'http://www.c-span.org/assets/player/ajax-player.php?os=android&html5={video_type}&id={video_id}',
             video_id)['video']
         if data['@status'] != 'Success':
-            raise ExtractorError('%s said: %s' % (self.IE_NAME, get_text_attr(data, 'error')), expected=True)
+            raise ExtractorError('{} said: {}'.format(self.IE_NAME, get_text_attr(data, 'error')), expected=True)
 
         doc = self._download_xml(
-            'http://www.c-span.org/common/services/flashXml.php?%sid=%s' % (video_type, video_id),
+            f'http://www.c-span.org/common/services/flashXml.php?{video_type}id={video_id}',
             video_id)
 
         description = self._html_search_meta('description', webpage)
@@ -205,7 +205,7 @@ class CSpanIE(InfoExtractor):
             formats = []
             for quality in f.get('qualities', []):
                 formats.append({
-                    'format_id': '%s-%sp' % (get_text_attr(quality, 'bitrate'), get_text_attr(quality, 'height')),
+                    'format_id': '{}-{}p'.format(get_text_attr(quality, 'bitrate'), get_text_attr(quality, 'height')),
                     'url': unescapeHTML(get_text_attr(quality, 'file')),
                     'height': int_or_none(get_text_attr(quality, 'height')),
                     'tbr': int_or_none(get_text_attr(quality, 'bitrate')),

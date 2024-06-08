@@ -60,8 +60,8 @@ class ProxyError(OSError):
 
 class InvalidVersionError(ProxyError):
     def __init__(self, expected_version, got_version):
-        msg = ('Invalid response version from server. Expected {:02x} got '
-               '{:02x}'.format(expected_version, got_version))
+        msg = (f'Invalid response version from server. Expected {expected_version:02x} got '
+               f'{got_version:02x}')
         super().__init__(0, msg)
 
 

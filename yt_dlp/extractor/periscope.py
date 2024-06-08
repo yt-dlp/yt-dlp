@@ -14,13 +14,13 @@ class PeriscopeBaseIE(InfoExtractor):
 
     def _call_api(self, method, query, item_id):
         return self._download_json(
-            'https://api.periscope.tv/api/v2/%s' % method,
+            f'https://api.periscope.tv/api/v2/{method}',
             item_id, query=query)
 
     def _parse_broadcast_data(self, broadcast, video_id):
         title = broadcast.get('status') or 'Periscope Broadcast'
         uploader = broadcast.get('user_display_name') or broadcast.get('username')
-        title = '%s - %s' % (uploader, title) if uploader else title
+        title = f'{uploader} - {title}' if uploader else title
         thumbnails = [{
             'url': broadcast[image],
         } for image in ('image_url', 'image_url_medium', 'image_url_small') if broadcast.get(image)]
@@ -182,7 +182,7 @@ class PeriscopeUserIE(PeriscopeBaseIE):
 
         entries = [
             self.url_result(
-                'https://www.periscope.tv/%s/%s' % (user_name, broadcast_id))
+                f'https://www.periscope.tv/{user_name}/{broadcast_id}')
             for broadcast_id in broadcast_ids]
 
         return self.playlist_result(entries, user_id, title, description)

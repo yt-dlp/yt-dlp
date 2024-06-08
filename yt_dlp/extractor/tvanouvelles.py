@@ -51,7 +51,7 @@ class TVANouvellesArticleIE(InfoExtractor):
 
         entries = [
             self.url_result(
-                'http://www.tvanouvelles.ca/videos/%s' % mobj.group('id'),
+                'http://www.tvanouvelles.ca/videos/{}'.format(mobj.group('id')),
                 ie=TVANouvellesIE.ie_key(), video_id=mobj.group('id'))
             for mobj in re.finditer(
                 r'data-video-id=(["\'])?(?P<id>\d+)', webpage)]

@@ -32,7 +32,7 @@ class SlideshareIE(InfoExtractor):
             webpage, 'slideshare object')
         info = json.loads(slideshare_obj)
         if info['slideshow']['type'] != 'video':
-            raise ExtractorError('Webpage type is "%s": only video extraction is supported for Slideshare' % info['slideshow']['type'], expected=True)
+            raise ExtractorError('Webpage type is "{}": only video extraction is supported for Slideshare'.format(info['slideshow']['type']), expected=True)
 
         doc = info['doc']
         bucket = info['jsplayer']['video_bucket']

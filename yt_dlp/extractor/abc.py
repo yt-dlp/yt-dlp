@@ -126,7 +126,7 @@ class ABCIE(InfoExtractor):
                 if mobj is None:
                     expired = self._html_search_regex(r'(?s)class="expired-(?:video|audio)".+?<span>(.+?)</span>', webpage, 'expired', None)
                     if expired:
-                        raise ExtractorError('%s said: %s' % (self.IE_NAME, expired), expected=True)
+                        raise ExtractorError(f'{self.IE_NAME} said: {expired}', expected=True)
                     raise ExtractorError('Unable to extract video urls')
 
             urls_info = self._parse_json(
@@ -288,13 +288,12 @@ class ABCIViewIE(InfoExtractor):
         stream = next(s for s in video_params['playlist'] if s.get('type') in ('program', 'livestream'))
 
         house_number = video_params.get('episodeHouseNumber') or video_id
-        path = '/auth/hls/sign?ts={}&hn={}&d=android-tablet'.format(
-            int(time.time()), house_number)
+        path = f'/auth/hls/sign?ts={int(time.time())}&hn={house_number}&d=android-tablet'
         sig = hmac.new(
             b'android.content.res.Resources',
             path.encode(), hashlib.sha256).hexdigest()
         token = self._download_webpage(
-            'http://iview.abc.net.au{}&sig={}'.format(path, sig), video_id)
+            f'http://iview.abc.net.au{path}&sig={sig}', video_id)
 
         def tokenize_url(url, token):
             return update_url_query(url, {

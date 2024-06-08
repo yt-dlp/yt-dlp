@@ -96,12 +96,12 @@ class ARDMediathekBaseIE(InfoExtractor):
                             f = {
                                 'url': server,
                                 'play_path': stream_url,
-                                'format_id': 'a%s-rtmp-%s' % (num, quality),
+                                'format_id': f'a{num}-rtmp-{quality}',
                             }
                         else:
                             f = {
                                 'url': stream_url,
-                                'format_id': 'a%s-%s-%s' % (num, ext, quality),
+                                'format_id': f'a{num}-{ext}-{quality}',
                             }
                         m = re.search(
                             r'_(?P<width>\d+)x(?P<height>\d+)\.mp4$',

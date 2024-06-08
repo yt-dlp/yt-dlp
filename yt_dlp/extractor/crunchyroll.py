@@ -442,7 +442,7 @@ class CrunchyrollBetaIE(CrunchyrollCmsBaseIE):
         return {
             'id': data['id'],
             'title': ' \u2013 '.join((
-                ('%s%s' % (
+                ('{}{}'.format(
                     format_field(metadata, 'season_title'),
                     format_field(metadata, 'episode', ' Episode %s'))),
                 format_field(data, 'title'))),

@@ -32,7 +32,7 @@ class KinjaEmbedIE(InfoExtractor):
             ajax/inset|
             embed/video
         )/iframe\?.*?\bid='''
-    _VALID_URL = r'''(?x)https?://%s%s
+    _VALID_URL = rf'''(?x)https?://{_DOMAIN_REGEX}{_COMMON_REGEX}
         (?P<type>
             fb|
             imgur|
@@ -49,7 +49,7 @@ class KinjaEmbedIE(InfoExtractor):
             vimeo|
             vine|
             youtube-(?:list|video)
-        )-(?P<id>[^&]+)''' % (_DOMAIN_REGEX, _COMMON_REGEX)
+        )-(?P<id>[^&]+)'''
     _EMBED_REGEX = [rf'(?x)<iframe[^>]+?src=(?P<q>["\'])(?P<url>(?:(?:https?:)?//{_DOMAIN_REGEX})?{_COMMON_REGEX}(?:(?!\1).)+)\1']
     _TESTS = [{
         'url': 'https://kinja.com/ajax/inset/iframe?id=fb-10103303356633621',
@@ -145,7 +145,7 @@ class KinjaEmbedIE(InfoExtractor):
             poster = data.get('poster') or {}
             poster_id = poster.get('id')
             if poster_id:
-                thumbnail = 'https://i.kinja-img.com/gawker-media/image/upload/%s.%s' % (poster_id, poster.get('format') or 'jpg')
+                thumbnail = 'https://i.kinja-img.com/gawker-media/image/upload/{}.{}'.format(poster_id, poster.get('format') or 'jpg')
 
             return {
                 'id': video_id,

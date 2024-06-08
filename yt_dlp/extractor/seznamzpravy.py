@@ -68,7 +68,7 @@ class SeznamZpravyIE(InfoExtractor):
 
             f = {
                 'url': urljoin(sdn_url, relative_url),
-                'format_id': 'http-%s' % format_id,
+                'format_id': f'http-{format_id}',
                 'tbr': int_or_none(format_data.get('bandwidth'), scale=1000),
                 'width': int_or_none(width),
                 'height': int_or_none(height),

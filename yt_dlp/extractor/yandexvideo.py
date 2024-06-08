@@ -89,10 +89,10 @@ class YandexVideoIE(InfoExtractor):
     title
     views_count
   }
-}''' % video_id).encode(), fatal=False)), lambda x: x['player']['content'])
+}''' % video_id).encode(), fatal=False)), lambda x: x['player']['content'])  # noqa: UP031
         if not player or player.get('error'):
             player = self._download_json(
-                'https://frontend.vh.yandex.ru/v23/player/%s.json' % video_id,
+                f'https://frontend.vh.yandex.ru/v23/player/{video_id}.json',
                 video_id, query={
                     'stream_options': 'hires',
                     'disable_trackings': 1,

@@ -231,10 +231,10 @@ class KalturaIE(InfoExtractor):
             for k, v in embed_info.items():
                 if v:
                     embed_info[k] = v.strip()
-            embed_url = 'kaltura:%(partner_id)s:%(id)s' % embed_info
+            embed_url = 'kaltura:{partner_id}:{id}'.format(**embed_info)
             escaped_pid = re.escape(embed_info['partner_id'])
             service_mobj = re.search(
-                r'<script[^>]+src=(["\'])(?P<id>(?:https?:)?//(?:(?!\1).)+)/p/%s/sp/%s00/embedIframeJs' % (escaped_pid, escaped_pid),
+                rf'<script[^>]+src=(["\'])(?P<id>(?:https?:)?//(?:(?!\1).)+)/p/{escaped_pid}/sp/{escaped_pid}00/embedIframeJs',
                 webpage)
             if service_mobj:
                 embed_url = smuggle_url(embed_url, {'service_url': service_mobj.group('id')})
@@ -456,9 +456,9 @@ class KalturaIE(InfoExtractor):
 
         def sign_url(unsigned_url):
             if ks:
-                unsigned_url += '/ks/%s' % ks
+                unsigned_url += f'/ks/{ks}'
             if referrer:
-                unsigned_url += '?referrer=%s' % referrer
+                unsigned_url += f'?referrer={referrer}'
             return unsigned_url
 
         data_url = info['dataUrl']
@@ -485,8 +485,8 @@ class KalturaIE(InfoExtractor):
                 else:
                     f['fileExt'] = 'mp4'
             video_url = sign_url(
-                '%s/flavorId/%s' % (data_url, f['id']))
-            format_id = '%(fileExt)s-%(bitrate)s' % f
+                '{}/flavorId/{}'.format(data_url, f['id']))
+            format_id = '{fileExt}-{bitrate}'.format(**f)
             # Source format may not be available (e.g. kaltura:513551:1_66x4rg7o)
             if f.get('isOriginal') is True and not self._is_valid_url(
                     video_url, entry_id, format_id):
@@ -525,7 +525,7 @@ class KalturaIE(InfoExtractor):
                     continue
                 caption_format = int_or_none(caption.get('format'))
                 subtitles.setdefault(caption.get('languageCode') or caption.get('language'), []).append({
-                    'url': '%s/api_v3/service/caption_captionasset/action/serve/captionAssetId/%s' % (self._SERVICE_URL, caption['id']),
+                    'url': '{}/api_v3/service/caption_captionasset/action/serve/captionAssetId/{}'.format(self._SERVICE_URL, caption['id']),
                     'ext': caption.get('fileExt') or self._CAPTION_TYPES.get(caption_format) or 'ttml',
                 })
 

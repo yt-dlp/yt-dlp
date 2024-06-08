@@ -126,12 +126,12 @@ class NDRIE(NDRBaseIE):
         if re.match(r'^[a-z]+\d+$', embed_url):
             # get the initial part of the url path,. eg /panorama/archiv/2022/
             parsed_url = compat_urllib_parse_urlparse(url)
-            path = self._search_regex(r'(.+/)%s' % display_id, parsed_url.path or '', 'embed URL', default='')
+            path = self._search_regex(rf'(.+/){display_id}', parsed_url.path or '', 'embed URL', default='')
             # find tell-tale image with the actual ID
-            ndr_id = self._search_regex(r'%s([a-z]+\d+)(?!\.)\b' % (path, ), webpage, 'embed URL', default=None)
+            ndr_id = self._search_regex(rf'{path}([a-z]+\d+)(?!\.)\b', webpage, 'embed URL', default=None)
             # or try to use special knowledge!
             NDR_INFO_URL_TPL = 'https://www.ndr.de/info/%s-player.html'
-            embed_url = 'ndr:%s' % (ndr_id, ) if ndr_id else NDR_INFO_URL_TPL % (embed_url, )
+            embed_url = f'ndr:{ndr_id}' if ndr_id else NDR_INFO_URL_TPL % (embed_url, )
         if not embed_url:
             raise ExtractorError('Unable to extract embedUrl')
 
@@ -211,7 +211,7 @@ class NJoyIE(NDRBaseIE):
         return {
             '_type': 'url_transparent',
             'ie_key': 'NDREmbedBase',
-            'url': 'ndr:%s' % video_id,
+            'url': f'ndr:{video_id}',
             'display_id': display_id,
             'description': description,
             'title': display_id.replace('-', ' ').strip(),
@@ -234,7 +234,7 @@ class NDREmbedBaseIE(InfoExtractor):  # XXX: Conventionally, Concrete class name
         video_id = mobj.group('id') or mobj.group('id_s')
 
         ppjson = self._download_json(
-            'http://www.ndr.de/%s-ppjson.json' % video_id, video_id)
+            f'http://www.ndr.de/{video_id}-ppjson.json', video_id)
 
         playlist = ppjson['playlist']
 

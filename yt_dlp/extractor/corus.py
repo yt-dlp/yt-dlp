@@ -97,7 +97,7 @@ class CorusIE(ThePlatformFeedIE):  # XXX: Do not subclass from concrete IE
         if path != 'series':
             path = 'migration/' + path
         video = self._download_json(
-            'https://globalcontent.corusappservices.com/templates/%s/playlist/' % path,
+            f'https://globalcontent.corusappservices.com/templates/{path}/playlist/',
             video_id, query={'byId': video_id},
             headers={'Accept': 'application/json'})[0]
         title = video['title']

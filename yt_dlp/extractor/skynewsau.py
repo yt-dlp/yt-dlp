@@ -36,7 +36,7 @@ class SkyNewsAUIE(InfoExtractor):
         return {
             'id': video_id,
             '_type': 'url_transparent',
-            'url': 'https://players.brightcove.net/%s/default_default/index.html?videoId=%s' % tuple(embedcode.split('-')),
+            'url': 'https://players.brightcove.net/{}/default_default/index.html?videoId={}'.format(*tuple(embedcode.split('-'))),
             'ie_key': 'BrightcoveNew',
             'title': data_json.get('caption'),
             'upload_date': unified_strdate(try_get(data_json, lambda x: x['date']['created'])),

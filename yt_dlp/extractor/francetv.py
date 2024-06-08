@@ -175,7 +175,7 @@ class FranceTVIE(InfoExtractor):
         for f in formats:
             if f.get('acodec') != 'none' and f.get('language') in ('qtz', 'qad'):
                 f['language_preference'] = -10
-                f['format_note'] = 'audio description%s' % format_field(f, 'format_note', ', %s')
+                f['format_note'] = 'audio description{}'.format(format_field(f, 'format_note', ', %s'))
 
         if spritesheets:
             formats.append({

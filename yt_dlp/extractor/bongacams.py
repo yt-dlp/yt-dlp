@@ -38,7 +38,7 @@ class BongaCamsIE(InfoExtractor):
         channel_id = mobj.group('id')
 
         amf = self._download_json(
-            'https://%s/tools/amf.php' % host, channel_id,
+            f'https://{host}/tools/amf.php', channel_id,
             data=urlencode_postdata((
                 ('method', 'getRoomData'),
                 ('args[]', channel_id),
@@ -55,7 +55,7 @@ class BongaCamsIE(InfoExtractor):
             amf, lambda x: x['performerData']['loversCount']))
 
         formats = self._extract_m3u8_formats(
-            '%s/hls/stream_%s/playlist.m3u8' % (server_url, uploader_id),
+            f'{server_url}/hls/stream_{uploader_id}/playlist.m3u8',
             channel_id, 'mp4', m3u8_id='hls', live=True)
 
         return {

@@ -163,6 +163,6 @@ class MSNIE(InfoExtractor):
             error = unescapeHTML(self._search_regex(
                 r'data-error=(["\'])(?P<error>.+?)\1',
                 webpage, 'error', group='error'))
-            raise ExtractorError('%s said: %s' % (self.IE_NAME, error), expected=True)
+            raise ExtractorError(f'{self.IE_NAME} said: {error}', expected=True)
 
         return self.playlist_result(entries, page_id)

@@ -153,7 +153,7 @@ class RuvSpilaIE(InfoExtractor):
                         }
                     }
                 }
-            }''' % (series_id, display_id)})['data']['Program']
+            }''' % (series_id, display_id)})['data']['Program']  # noqa: UP031
         episode = program['episodes'][0]
 
         subs = {}

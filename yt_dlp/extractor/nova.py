@@ -216,7 +216,7 @@ class NovaIE(InfoExtractor):
         if embed_id:
             return {
                 '_type': 'url_transparent',
-                'url': 'https://media.cms.nova.cz/embed/%s' % embed_id,
+                'url': f'https://media.cms.nova.cz/embed/{embed_id}',
                 'ie_key': NovaEmbedIE.ie_key(),
                 'id': embed_id,
                 'description': description,

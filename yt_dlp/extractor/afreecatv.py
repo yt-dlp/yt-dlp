@@ -55,7 +55,7 @@ class AfreecaTVBaseIE(InfoExtractor):
         if result != 1:
             error = _ERRORS.get(result, 'You have failed to log in.')
             raise ExtractorError(
-                'Unable to login: %s said: %s' % (self.IE_NAME, error),
+                f'Unable to login: {self.IE_NAME} said: {error}',
                 expected=True)
 
 

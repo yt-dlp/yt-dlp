@@ -365,7 +365,7 @@ class KetnetIE(VRTBaseIE):
     subtitleVideodetail
     titleVideodetail
   }
-}''' % display_id,
+}''' % display_id,  # noqa: UP031
             })['data']['video']
 
         video_id = urllib.parse.unquote(video['mediaReference'])

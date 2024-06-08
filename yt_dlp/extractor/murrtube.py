@@ -129,7 +129,7 @@ query Media($q: String, $sort: String, $userId: ID, $offset: Int!, $limit: Int!)
     __typename
   }
 }'''},
-            'Downloading page {}'.format(page + 1))
+            f'Downloading page {page + 1}')
         if data is None:
             raise ExtractorError(f'Failed to retrieve video list for page {page + 1}')
 

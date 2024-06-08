@@ -127,7 +127,7 @@ class ShahidIE(ShahidBaseIE):
         #     })['productModel']
 
         response = self._download_json(
-            'http://api.shahid.net/api/v1_1/%s/%s' % (page_type, video_id),
+            f'http://api.shahid.net/api/v1_1/{page_type}/{video_id}',
             video_id, 'Downloading video JSON', query={
                 'apiKey': 'sh@hid0nlin3',
                 'hash': 'b2wMCTHpSmyxGqQjJFOycRmLSex+BpTK/ooxy6vHaqs=',
@@ -136,7 +136,7 @@ class ShahidIE(ShahidBaseIE):
         error = data.get('error')
         if error:
             raise ExtractorError(
-                '%s returned error: %s' % (self.IE_NAME, '\n'.join(error.values())),
+                '{} returned error: {}'.format(self.IE_NAME, '\n'.join(error.values())),
                 expected=True)
 
         video = data[page_type]

@@ -126,7 +126,7 @@ class MediaKlikkIE(InfoExtractor):
             self._html_search_regex(r'<h\d+\b[^>]+\bclass="article_title">([^<]+)<', webpage, 'title')
 
         upload_date = unified_strdate(
-            '%s-%s-%s' % (mobj.group('year'), mobj.group('month'), mobj.group('day')))
+            '{}-{}-{}'.format(mobj.group('year'), mobj.group('month'), mobj.group('day')))
         if not upload_date:
             upload_date = unified_strdate(self._html_search_regex(
                 r'<p+\b[^>]+\bclass="article_date">([^<]+)<', webpage, 'upload date', default=None))

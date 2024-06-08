@@ -50,7 +50,7 @@ class EUScreenIE(InfoExtractor):
             'title': meta_json.get('originalTitle'),
             'alt_title': meta_json.get('title'),
             'duration': parse_duration(meta_json.get('duration')),
-            'description': '%s\n%s' % (meta_json.get('summaryOriginal', ''), meta_json.get('summaryEnglish', '')),
+            'description': '{}\n{}'.format(meta_json.get('summaryOriginal', ''), meta_json.get('summaryEnglish', '')),
             'series': meta_json.get('series') or meta_json.get('seriesEnglish'),
             'episode': meta_json.get('episodeNumber'),
             'uploader': meta_json.get('provider'),

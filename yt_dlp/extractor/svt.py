@@ -100,7 +100,7 @@ class SVTBaseIE(InfoExtractor):
 
 class SVTIE(SVTBaseIE):
     _VALID_URL = r'https?://(?:www\.)?svt\.se/wd\?(?:.*?&)?widgetId=(?P<widget_id>\d+)&.*?\barticleId=(?P<id>\d+)'
-    _EMBED_REGEX = [r'(?:<iframe src|href)="(?P<url>%s[^"]*)"' % _VALID_URL]
+    _EMBED_REGEX = [rf'(?:<iframe src|href)="(?P<url>{_VALID_URL}[^"]*)"']
     _TEST = {
         'url': 'http://www.svt.se/wd?widgetId=23991&sectionId=541&articleId=2900353&type=embed&contextSectionId=123&autostart=false',
         'md5': '33e9a5d8f646523ce0868ecfb0eed77d',
@@ -119,7 +119,7 @@ class SVTIE(SVTBaseIE):
         article_id = mobj.group('id')
 
         info = self._download_json(
-            'http://www.svt.se/wd?widgetId=%s&articleId=%s&format=json&type=embed&output=json' % (widget_id, article_id),
+            f'http://www.svt.se/wd?widgetId={widget_id}&articleId={article_id}&format=json&type=embed&output=json',
             article_id)
 
         info_dict = self._extract_video(info['video'], article_id)
@@ -236,7 +236,7 @@ class SVTPlayIE(SVTPlayBaseIE):
 
     def _extract_by_video_id(self, video_id, webpage=None):
         data = self._download_json(
-            'https://api.svt.se/videoplayer-api/video/%s' % video_id,
+            f'https://api.svt.se/videoplayer-api/video/{video_id}',
             video_id, headers=self.geo_verification_headers())
         info_dict = self._extract_video(data, video_id)
         if not info_dict.get('title'):
@@ -349,7 +349,7 @@ class SVTSeriesIE(SVTPlayBaseIE):
     name
     shortDescription
   }
-}''' % series_slug,
+}''' % series_slug,  # noqa: UP031
             })['data']['listablesBySlug'][0]
 
         season_name = None
@@ -377,7 +377,7 @@ class SVTSeriesIE(SVTPlayBaseIE):
         season_name = season_name or season_id
 
         if title and season_name:
-            title = '%s - %s' % (title, season_name)
+            title = f'{title} - {season_name}'
         elif season_id:
             title = season_id
 

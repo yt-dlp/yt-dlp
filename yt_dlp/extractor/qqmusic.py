@@ -74,7 +74,7 @@ class QQMusicIE(InfoExtractor):
         mid = self._match_id(url)
 
         detail_info_page = self._download_webpage(
-            'http://s.plcloud.music.qq.com/fcgi-bin/fcg_yqq_song_detail_info.fcg?songmid=%s&play=0' % mid,
+            f'http://s.plcloud.music.qq.com/fcgi-bin/fcg_yqq_song_detail_info.fcg?songmid={mid}&play=0',
             mid, note='Download song detail info',
             errnote='Unable to get song detail info', encoding='gbk')
 
@@ -101,21 +101,20 @@ class QQMusicIE(InfoExtractor):
             [r'albummid:\'([0-9a-zA-Z]+)\'', r'"albummid":"([0-9a-zA-Z]+)"'],
             detail_info_page, 'album mid', default=None)
         if albummid:
-            thumbnail_url = 'http://i.gtimg.cn/music/photo/mid_album_500/%s/%s/%s.jpg' \
-                            % (albummid[-2:-1], albummid[-1], albummid)
+            thumbnail_url = f'http://i.gtimg.cn/music/photo/mid_album_500/{albummid[-2:-1]}/{albummid[-1]}/{albummid}.jpg'
 
         guid = self.m_r_get_ruin()
 
         vkey = self._download_json(
-            'http://base.music.qq.com/fcgi-bin/fcg_musicexpress.fcg?json=3&guid=%s' % guid,
+            f'http://base.music.qq.com/fcgi-bin/fcg_musicexpress.fcg?json=3&guid={guid}',
             mid, note='Retrieve vkey', errnote='Unable to get vkey',
             transform_source=strip_jsonp)['key']
 
         formats = []
         for format_id, details in self._FORMATS.items():
             formats.append({
-                'url': 'http://cc.stream.qqmusic.qq.com/%s%s.%s?vkey=%s&guid=%s&fromtag=0'
-                       % (details['prefix'], mid, details['ext'], vkey, guid),
+                'url': 'http://cc.stream.qqmusic.qq.com/{}{}.{}?vkey={}&guid={}&fromtag=0'.format(
+                    details['prefix'], mid, details['ext'], vkey, guid),
                 'format': format_id,
                 'format_id': format_id,
                 'quality': details['preference'],
@@ -149,7 +148,7 @@ class QQMusicIE(InfoExtractor):
 class QQPlaylistBaseIE(InfoExtractor):
     @staticmethod
     def qq_static_url(category, mid):
-        return 'http://y.qq.com/y/static/%s/%s/%s/%s.html' % (category, mid[-2], mid[-1], mid)
+        return f'http://y.qq.com/y/static/{category}/{mid[-2]}/{mid[-1]}/{mid}.html'
 
     def get_singer_all_songs(self, singmid, num):
         return self._download_webpage(
@@ -183,7 +182,7 @@ class QQPlaylistBaseIE(InfoExtractor):
             if item['musicData'].get('songmid') is not None:
                 songmid = item['musicData']['songmid']
                 entries.append(self.url_result(
-                    r'https://y.qq.com/n/yqq/song/%s.html' % songmid, 'QQMusic', songmid))
+                    rf'https://y.qq.com/n/yqq/song/{songmid}.html', 'QQMusic', songmid))
 
         return entries
 
@@ -250,7 +249,7 @@ class QQMusicAlbumIE(QQPlaylistBaseIE):
         mid = self._match_id(url)
 
         album = self._download_json(
-            'http://i.y.qq.com/v8/fcg-bin/fcg_v8_album_info_cp.fcg?albummid=%s&format=json' % mid,
+            f'http://i.y.qq.com/v8/fcg-bin/fcg_v8_album_info_cp.fcg?albummid={mid}&format=json',
             mid, 'Download album page')['data']
 
         entries = [

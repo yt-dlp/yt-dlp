@@ -71,7 +71,7 @@ class TedTalkIE(TedBaseIE):
                     bitrate = int_or_none(resource.get('bitrate'))
                     formats.append({
                         'url': h264_url,
-                        'format_id': '%s-%sk' % (format_id, bitrate),
+                        'format_id': f'{format_id}-{bitrate}k',
                         'tbr': bitrate,
                     })
                     if re.search(r'\d+k', h264_url):
@@ -81,7 +81,7 @@ class TedTalkIE(TedBaseIE):
                 if not streamer:
                     continue
                 formats.extend({
-                    'format_id': '%s-%s' % (format_id, resource.get('name')),
+                    'format_id': '{}-{}'.format(format_id, resource.get('name')),
                     'url': streamer,
                     'play_path': resource['file'],
                     'ext': 'flv',
@@ -98,7 +98,7 @@ class TedTalkIE(TedBaseIE):
                     continue
                 bitrate_url = re.sub(r'\d+k', bitrate, http_url)
                 if not self._is_valid_url(
-                        bitrate_url, video_id, '%s bitrate' % bitrate):
+                        bitrate_url, video_id, f'{bitrate} bitrate'):
                     continue
                 f = m3u8_format.copy()
                 f.update({

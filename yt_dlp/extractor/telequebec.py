@@ -108,14 +108,14 @@ class TeleQuebecSquatIE(InfoExtractor):
         video_id = self._match_id(url)
 
         video = self._download_json(
-            'https://squat.api.telequebec.tv/v1/videos/%s' % video_id,
+            f'https://squat.api.telequebec.tv/v1/videos/{video_id}',
             video_id)
 
         media_id = video['sourceId']
 
         return {
             '_type': 'url_transparent',
-            'url': 'http://zonevideo.telequebec.tv/media/%s' % media_id,
+            'url': f'http://zonevideo.telequebec.tv/media/{media_id}',
             'ie_key': TeleQuebecIE.ie_key(),
             'id': media_id,
             'title': video.get('titre'),

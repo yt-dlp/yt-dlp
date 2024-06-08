@@ -115,9 +115,9 @@ def print_extractor_information(opts, urls):
             ie.description(markdown=False, search_examples=_SEARCHES)
             for ie in list_extractor_classes(opts.age_limit) if ie.working() and ie.IE_DESC is not False)
     elif opts.ap_list_mso:
-        out = 'Supported TV Providers:\n%s\n' % render_table(
+        out = 'Supported TV Providers:\n{}\n'.format(render_table(
             ['mso', 'mso name'],
-            [[mso_id, mso_info['name']] for mso_id, mso_info in MSO_INFO.items()])
+            [[mso_id, mso_info['name']] for mso_id, mso_info in MSO_INFO.items()]))
     else:
         return False
     write_string(out, out=sys.stdout)
@@ -129,7 +129,7 @@ def set_compat_opts(opts):
         if name not in opts.compat_opts:
             return False
         opts.compat_opts.discard(name)
-        opts.compat_opts.update(['*%s' % name])
+        opts.compat_opts.update([f'*{name}'])
         return True
 
     def set_default_compat(compat_name, opt_name, default=True, remove_compat=True):
@@ -396,13 +396,13 @@ def validate_options(opts):
     # MetadataParser
     def metadataparser_actions(f):
         if isinstance(f, str):
-            cmd = '--parse-metadata %s' % compat_shlex_quote(f)
+            cmd = f'--parse-metadata {compat_shlex_quote(f)}'
             try:
                 actions = [MetadataFromFieldPP.to_action(f)]
             except Exception as err:
                 raise ValueError(f'{cmd} is invalid; {err}')
         else:
-            cmd = '--replace-in-metadata %s' % ' '.join(map(compat_shlex_quote, f))
+            cmd = '--replace-in-metadata {}'.format(' '.join(map(compat_shlex_quote, f)))
             actions = ((MetadataParserPP.Actions.REPLACE, x, *f[1:]) for x in f[0].split(','))
 
         for action in actions:
@@ -413,7 +413,7 @@ def validate_options(opts):
             yield action
 
     if opts.metafromtitle is not None:
-        opts.parse_metadata.setdefault('pre_process', []).append('title:%s' % opts.metafromtitle)
+        opts.parse_metadata.setdefault('pre_process', []).append(f'title:{opts.metafromtitle}')
     opts.parse_metadata = {
         k: list(itertools.chain(*map(metadataparser_actions, v)))
         for k, v in opts.parse_metadata.items()

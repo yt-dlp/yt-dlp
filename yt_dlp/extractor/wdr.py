@@ -348,7 +348,7 @@ class WDRElefantIE(InfoExtractor):
         zmdb_url_element = xml_metadata.find('./movie/zmdb_url')
         if zmdb_url_element is None:
             raise ExtractorError(
-                '%s is not a video' % display_id, expected=True)
+                f'{display_id} is not a video', expected=True)
         return self.url_result(zmdb_url_element.text, ie=WDRIE.ie_key())
 
 

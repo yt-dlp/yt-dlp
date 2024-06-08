@@ -295,7 +295,7 @@ class NiconicoIE(InfoExtractor):
             session_api_endpoint['url'], video_id,
             query={'_format': 'json'},
             headers={'Content-Type': 'application/json'},
-            note='Downloading JSON metadata for %s' % info_dict['format_id'],
+            note='Downloading JSON metadata for {}'.format(info_dict['format_id']),
             data=json.dumps({
                 'session': {
                     'client_info': {
@@ -368,7 +368,7 @@ class NiconicoIE(InfoExtractor):
         vid_qual_label = traverse_obj(video_quality, ('metadata', 'label'))
 
         return {
-            'url': 'niconico_dmc:%s/%s/%s' % (video_id, video_quality['id'], audio_quality['id']),
+            'url': 'niconico_dmc:{}/{}/{}'.format(video_id, video_quality['id'], audio_quality['id']),
             'format_id': format_id,
             'format_note': join_nonempty('DMC', vid_qual_label, dmc_protocol.upper(), delim=' '),
             'ext': 'mp4',  # Session API are used in HTML5, which always serves mp4
@@ -900,7 +900,7 @@ class NiconicoUserIE(InfoExtractor):
                 total_count = int_or_none(json_parsed['data'].get('totalCount'))
             for entry in json_parsed['data']['items']:
                 count += 1
-                yield self.url_result('https://www.nicovideo.jp/watch/%s' % entry['id'])
+                yield self.url_result('https://www.nicovideo.jp/watch/{}'.format(entry['id']))
             page_num += 1
 
     def _real_extract(self, url):
@@ -1004,7 +1004,7 @@ class NiconicoLiveIE(InfoExtractor):
             elif self.get_param('verbose', False):
                 if len(recv) > 100:
                     recv = recv[:100] + '...'
-                self.write_debug('Server said: %s' % recv)
+                self.write_debug(f'Server said: {recv}')
 
         title = traverse_obj(embedded_data, ('program', 'title')) or self._html_search_meta(
             ('og:title', 'twitter:title'), webpage, 'live title', fatal=False)

@@ -29,7 +29,7 @@ class GolemIE(InfoExtractor):
         video_id = self._match_id(url)
 
         config = self._download_xml(
-            'https://video.golem.de/xml/{}.xml'.format(video_id), video_id)
+            f'https://video.golem.de/xml/{video_id}.xml', video_id)
 
         info = {
             'id': video_id,

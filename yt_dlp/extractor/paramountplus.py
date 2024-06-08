@@ -193,7 +193,7 @@ class ParamountPlusSeriesIE(InfoExtractor):
                 return
             for episode in show_json['result']['data']:
                 yield self.url_result(
-                    'https://www.paramountplus.com%s' % episode['url'],
+                    'https://www.paramountplus.com{}'.format(episode['url']),
                     ie=ParamountPlusIE.ie_key(), video_id=episode['content_id'])
 
     def _real_extract(self, url):

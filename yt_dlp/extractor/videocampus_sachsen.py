@@ -70,11 +70,11 @@ class VideocampusSachsenIE(InfoExtractor):
         'www.wenglor-media.com',
         'www2.univ-sba.dz',
     )
-    _VALID_URL = r'''(?x)https?://(?P<host>%s)/(?:
+    _VALID_URL = r'''(?x)https?://(?P<host>{})/(?:
         m/(?P<tmp_id>[0-9a-f]+)|
-        (?:category/)?video/(?P<display_id>[\w-]+)/(?P<id>[0-9a-f]{32})|
-        media/embed.*(?:\?|&)key=(?P<embed_id>[0-9a-f]{32}&?)
-    )''' % ('|'.join(map(re.escape, _INSTANCES)))
+        (?:category/)?video/(?P<display_id>[\w-]+)/(?P<id>[0-9a-f]{{32}})|
+        media/embed.*(?:\?|&)key=(?P<embed_id>[0-9a-f]{{32}}&?)
+    )'''.format('|'.join(map(re.escape, _INSTANCES)))
 
     _TESTS = [
         {
@@ -187,10 +187,10 @@ class VideocampusSachsenIE(InfoExtractor):
 
 class ViMPPlaylistIE(InfoExtractor):
     IE_NAME = 'ViMP:Playlist'
-    _VALID_URL = r'''(?x)(?P<host>https?://(?:%s))/(?:
+    _VALID_URL = r'''(?x)(?P<host>https?://(?:{}))/(?:
         album/view/aid/(?P<album_id>[0-9]+)|
         (?P<mode>category|channel)/(?P<name>[\w-]+)/(?P<id>[0-9]+)
-    )''' % '|'.join(map(re.escape, VideocampusSachsenIE._INSTANCES))
+    )'''.format('|'.join(map(re.escape, VideocampusSachsenIE._INSTANCES)))
 
     _TESTS = [{
         'url': 'https://vimp.oth-regensburg.de/channel/Designtheorie-1-SoSe-2020/3',

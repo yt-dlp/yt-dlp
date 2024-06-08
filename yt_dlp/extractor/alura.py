@@ -103,7 +103,7 @@ class AluraIE(InfoExtractor):
                 r'(?s)<p[^>]+class="alert-message[^"]*">(.+?)</p>',
                 response, 'error message', default=None)
             if error:
-                raise ExtractorError('Unable to login: %s' % error, expected=True)
+                raise ExtractorError(f'Unable to login: {error}', expected=True)
             raise ExtractorError('Unable to log in')
 
 

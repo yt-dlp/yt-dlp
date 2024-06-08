@@ -63,7 +63,7 @@ class VidLiiIE(InfoExtractor):
         video_id = self._match_id(url)
 
         webpage = self._download_webpage(
-            'https://www.vidlii.com/watch?v=%s' % video_id, video_id)
+            f'https://www.vidlii.com/watch?v={video_id}', video_id)
         formats = []
 
         sources = [source[1] for source in re.findall(

@@ -299,7 +299,7 @@ class VideomoreSeasonIE(VideomoreBaseIE):
         season = self._download_page_data(display_id)
         season_id = compat_str(season['id'])
         tracks = self._download_json(
-            self._API_BASE_URL + 'seasons/%s/tracks' % season_id,
+            self._API_BASE_URL + f'seasons/{season_id}/tracks',
             season_id)['data']
         entries = []
         for track in tracks:
