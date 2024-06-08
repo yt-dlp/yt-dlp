@@ -98,7 +98,7 @@ class Urllib3PercentREOverride:
 
 # urllib3 >= 1.25.8 uses subn:
 # https://github.com/urllib3/urllib3/commit/a2697e7c6b275f05879b60f593c5854a816489f0
-import urllib3.util.url  # noqa: E305
+import urllib3.util.url
 
 if hasattr(urllib3.util.url, 'PERCENT_RE'):
     urllib3.util.url.PERCENT_RE = Urllib3PercentREOverride(urllib3.util.url.PERCENT_RE)
