@@ -106,7 +106,7 @@ class SkebIE(InfoExtractor):
             if width is not None and height is not None:
                 # the longest side is at most 720px for non-client viewers
                 max_size = max(width, height)
-                width, height = [x * 720 // max_size for x in (width, height)]
+                width, height = (x * 720 // max_size for x in (width, height))
             entries.append({
                 **parent,
                 'id': str(item['id']),

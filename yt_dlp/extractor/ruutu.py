@@ -218,7 +218,7 @@ class RuutuIE(InfoExtractor):
                         format_id = '%s-%s' % (proto, label if label else tbr) if label or tbr else proto
                         if not self._is_valid_url(video_url, video_id, format_id):
                             continue
-                        width, height = [int_or_none(x) for x in child.get('resolution', 'x').split('x')[:2]]
+                        width, height = (int_or_none(x) for x in child.get('resolution', 'x').split('x')[:2])
                         formats.append({
                             'format_id': format_id,
                             'url': video_url,

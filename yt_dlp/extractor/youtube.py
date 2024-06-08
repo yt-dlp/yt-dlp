@@ -6614,7 +6614,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
 
         # Handle both video/playlist URLs
         qs = parse_qs(url)
-        video_id, playlist_id = [traverse_obj(qs, (key, 0)) for key in ('v', 'list')]
+        video_id, playlist_id = (traverse_obj(qs, (key, 0)) for key in ('v', 'list'))
         if not video_id and mobj['not_channel'].startswith('watch'):
             if not playlist_id:
                 # If there is neither video or playlist ids, youtube redirects to home page, which is undesirable
