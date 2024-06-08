@@ -594,7 +594,7 @@ class YoutubeDL:
     }
     _format_selection_exts = {
         'audio': set(MEDIA_EXTENSIONS.common_audio),
-        'video': set(MEDIA_EXTENSIONS.common_video + ('3gp', )),
+        'video': {*MEDIA_EXTENSIONS.common_video, '3gp'},
         'storyboards': set(MEDIA_EXTENSIONS.storyboards),
     }
 
@@ -679,9 +679,9 @@ class YoutubeDL:
                 width_args = [] if width is None else ['-w', str(width)]
                 sp_kwargs = {'stdin': subprocess.PIPE, 'stdout': slave, 'stderr': self._out_files.error}
                 try:
-                    self._output_process = Popen(['bidiv'] + width_args, **sp_kwargs)
+                    self._output_process = Popen(['bidiv', *width_args], **sp_kwargs)
                 except OSError:
-                    self._output_process = Popen(['fribidi', '-c', 'UTF-8'] + width_args, **sp_kwargs)
+                    self._output_process = Popen(['fribidi', '-c', 'UTF-8', *width_args], **sp_kwargs)
                 self._output_channel = os.fdopen(master, 'rb')
             except OSError as ose:
                 if ose.errno == errno.ENOENT:
@@ -2149,7 +2149,7 @@ class YoutubeDL:
             temp_file.close()
             try:
                 success, _ = self.dl(temp_file.name, f, test=True)
-            except (DownloadError, OSError, ValueError) + network_exceptions:
+            except (DownloadError, OSError, ValueError, *network_exceptions):
                 success = False
             finally:
                 if os.path.exists(temp_file.name):
@@ -4331,7 +4331,7 @@ class YoutubeDL:
                 self.dl(sub_filename, sub_copy, subtitle=True)
                 sub_info['filepath'] = sub_filename
                 ret.append((sub_filename, sub_filename_final))
-            except (DownloadError, ExtractorError, IOError, OSError, ValueError) + network_exceptions as err:
+            except (DownloadError, ExtractorError, IOError, OSError, ValueError, *network_exceptions) as err:
                 msg = f'Unable to download video subtitles for {sub_lang!r}: {err}'
                 if self.params.get('ignoreerrors') is not True:  # False or 'only_download'
                     if not self.params.get('ignoreerrors'):

@@ -7197,7 +7197,7 @@ class YoutubeMusicSearchURLIE(YoutubeTabBaseInfoExtractor):
         if params:
             section = next((k for k, v in self._SECTIONS.items() if v == params), params)
         else:
-            section = urllib.parse.unquote_plus((url.split('#') + [''])[1]).lower()
+            section = urllib.parse.unquote_plus(([*url.split('#'), ''])[1]).lower()
             params = self._SECTIONS.get(section)
             if not params:
                 section = None

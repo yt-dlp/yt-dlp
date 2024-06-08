@@ -222,7 +222,7 @@ def validate_options(opts):
         validate_minmax(opts.sleep_interval, opts.max_sleep_interval, 'sleep interval')
 
     if opts.wait_for_video is not None:
-        min_wait, max_wait, *_ = map(parse_duration, opts.wait_for_video.split('-', 1) + [None])
+        min_wait, max_wait, *_ = map(parse_duration, [*opts.wait_for_video.split('-', 1), None])
         validate(min_wait is not None and not (max_wait is None and '-' in opts.wait_for_video),
                  'time range to wait for video', opts.wait_for_video)
         validate_minmax(min_wait, max_wait, 'time range to wait for video')
@@ -264,9 +264,9 @@ def validate_options(opts):
     # Retry sleep function
     def parse_sleep_func(expr):
         NUMBER_RE = r'\d+(?:\.\d+)?'
-        op, start, limit, step, *_ = tuple(re.fullmatch(
+        op, start, limit, step, *_ = (*tuple(re.fullmatch(
             rf'(?:(linear|exp)=)?({NUMBER_RE})(?::({NUMBER_RE})?)?(?::({NUMBER_RE}))?',
-            expr.strip()).groups()) + (None, None)
+            expr.strip()).groups()), None, None)
 
         if op == 'exp':
             return lambda n: min(float(start) * (float(step or 2) ** n), float(limit or 'inf'))

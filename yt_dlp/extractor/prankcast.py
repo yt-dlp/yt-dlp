@@ -62,7 +62,7 @@ class PrankCastIE(InfoExtractor):
             'uploader': uploader,
             'channel_id': str_or_none(json_info.get('user_id')),
             'duration': try_call(lambda: parse_iso8601(json_info['end_date']) - start_date),
-            'cast': list(filter(None, [uploader] + traverse_obj(guests_json, (..., 'name')))),
+            'cast': list(filter(None, [uploader, *traverse_obj(guests_json, (..., 'name'))])),
             'description': json_info.get('broadcast_description'),
             'categories': [json_info.get('broadcast_category')],
             'tags': try_call(lambda: json_info['broadcast_tags'].split(','))
@@ -124,7 +124,7 @@ class PrankCastPostIE(InfoExtractor):
             'uploader': uploader,
             'channel_id': str_or_none(post.get('user_id')),
             'duration': float_or_none(content.get('duration')),
-            'cast': list(filter(None, [uploader] + traverse_obj(guests_json, (..., 'name')))),
+            'cast': list(filter(None, [uploader, *traverse_obj(guests_json, (..., 'name'))])),
             'description': post.get('post_body'),
             'categories': list(filter(None, [content.get('category')])),
             'tags': try_call(lambda: list(filter('', post['post_tags'].split(',')))),

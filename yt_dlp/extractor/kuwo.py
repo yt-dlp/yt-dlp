@@ -314,10 +314,10 @@ class KuwoMvIE(KuwoBaseIE):
             'format': 'mv',
         },
     }
-    _FORMATS = KuwoBaseIE._FORMATS + [
+    _FORMATS = [
+        *KuwoBaseIE._FORMATS,
         {'format': 'mkv', 'ext': 'mkv', 'preference': 250},
-        {'format': 'mp4', 'ext': 'mp4', 'preference': 200},
-    ]
+        {'format': 'mp4', 'ext': 'mp4', 'preference': 200}]
 
     def _real_extract(self, url):
         song_id = self._match_id(url)

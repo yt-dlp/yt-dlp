@@ -697,7 +697,7 @@ class JSInterpreter:
                 elif member == 'splice':
                     assertion(isinstance(obj, list), 'must be applied on a list')
                     assertion(argvals, 'takes one or more arguments')
-                    index, howMany = map(int, (argvals + [len(obj)])[:2])
+                    index, howMany = map(int, ([*argvals, len(obj)])[:2])
                     if index < 0:
                         index += len(obj)
                     add_items = argvals[2:]
@@ -726,12 +726,12 @@ class JSInterpreter:
                 elif member == 'forEach':
                     assertion(argvals, 'takes one or more arguments')
                     assertion(len(argvals) <= 2, 'takes at-most 2 arguments')
-                    f, this = (argvals + [''])[:2]
+                    f, this = ([*argvals, ''])[:2]
                     return [f((item, idx, obj), {'this': this}, allow_recursion) for idx, item in enumerate(obj)]
                 elif member == 'indexOf':
                     assertion(argvals, 'takes one or more arguments')
                     assertion(len(argvals) <= 2, 'takes at-most 2 arguments')
-                    idx, start = (argvals + [0])[:2]
+                    idx, start = ([*argvals, 0])[:2]
                     try:
                         return obj.index(idx, start)
                     except ValueError:

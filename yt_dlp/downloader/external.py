@@ -575,7 +575,7 @@ class FFmpegFD(ExternalFD):
             if end_time:
                 args += ['-t', str(end_time - start_time)]
 
-            args += self._configuration_args((f'_i{i + 1}', '_i')) + ['-i', fmt['url']]
+            args += [*self._configuration_args((f'_i{i + 1}', '_i')), '-i', fmt['url']]
 
         if not (start_time or end_time) or not self.params.get('force_keyframes_at_cuts'):
             args += ['-c', 'copy']

@@ -257,7 +257,6 @@ class HotStarIE(HotStarBaseIE):
                    for key, prefix in self._IGNORE_MAP.items()
                    for ignore in self._configuration_arg(key)):
                 continue
-            tag_dict = dict((t.split(':', 1) + [None])[:2] for t in tags.split(';'))
 
             format_url = url_or_none(playback_set.get('playbackUrl'))
             if not format_url:
@@ -286,6 +285,7 @@ class HotStarIE(HotStarBaseIE):
                     geo_restricted = True
                 continue
 
+            tag_dict = dict((*t.split(':', 1), None)[:2] for t in tags.split(';'))
             if tag_dict.get('encryption') not in ('plain', None):
                 for f in current_formats:
                     f['has_drm'] = True

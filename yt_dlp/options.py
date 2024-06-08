@@ -264,7 +264,7 @@ def create_parser():
         except Exception as err:
             raise optparse.OptionValueError(f'wrong {opt_str} formatting; {err}')
         for key in keys:
-            out_dict[key] = out_dict.get(key, []) + [val] if append else val
+            out_dict[key] = [*out_dict.get(key, []), val] if append else val
         setattr(parser.values, option.dest, out_dict)
 
     def when_prefix(default):

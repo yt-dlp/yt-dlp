@@ -1635,7 +1635,7 @@ class InfoExtractor:
                 'end_time': part.get('endOffset'),
             } for part in variadic(e.get('hasPart') or []) if part.get('@type') == 'Clip']
             for idx, (last_c, current_c, next_c) in enumerate(zip(
-                    [{'end_time': 0}] + chapters, chapters, chapters[1:])):
+                    [{'end_time': 0}, *chapters], chapters, chapters[1:])):
                 current_c['end_time'] = current_c['end_time'] or next_c['start_time']
                 current_c['start_time'] = current_c['start_time'] or last_c['end_time']
                 if None in current_c.values():

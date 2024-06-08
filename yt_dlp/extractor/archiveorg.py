@@ -220,7 +220,7 @@ class ArchiveOrgIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = urllib.parse.unquote_plus(self._match_id(url))
-        identifier, entry_id = (video_id.split('/', 1) + [None])[:2]
+        identifier, _, entry_id = video_id.partition('/')
 
         # Archive.org metadata API doesn't clearly demarcate playlist entries
         # or subtitle tracks, so we get them from the embeddable player.
@@ -293,7 +293,9 @@ class ArchiveOrgIE(InfoExtractor):
                     'height': int_or_none(f.get('width')),
                     'filesize': int_or_none(f.get('size'))})
 
-            extension = (f['name'].rsplit('.', 1) + [None])[1]
+            _, has_ext, extension = f['name'].rpartition('.')
+            if not has_ext:
+                extension = None
 
             # We don't want to skip private formats if the user has access to them,
             # however without access to an account with such privileges we can't implement/test this.
@@ -673,7 +675,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
 
     _YT_DEFAULT_THUMB_SERVERS = ['i.ytimg.com']  # thumbnails most likely archived on these servers
     _YT_ALL_THUMB_SERVERS = orderedSet(
-        _YT_DEFAULT_THUMB_SERVERS + ['img.youtube.com', *[f'{c}{n or ""}.ytimg.com' for c in ('i', 's') for n in (*range(5), 9)]])
+        [*_YT_DEFAULT_THUMB_SERVERS, 'img.youtube.com', *[f'{c}{n or ""}.ytimg.com' for c in ('i', 's') for n in (*range(5), 9)]])
 
     _WAYBACK_BASE_URL = 'https://web.archive.org/web/%sif_/'
     _OLDEST_CAPTURE_DATE = 20050214000000

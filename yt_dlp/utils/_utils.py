@@ -2104,7 +2104,7 @@ def check_executable(exe, args=[]):
     """ Checks if the given binary is installed somewhere in PATH, and returns its name.
     args can be a list of arguments for a short output (like -version) """
     try:
-        Popen.run([exe] + args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        Popen.run([exe, *args], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     except OSError:
         return False
     return exe
@@ -2115,7 +2115,7 @@ def _get_exe_version_output(exe, args):
         # STDIN should be redirected too. On UNIX-like systems, ffmpeg triggers
         # SIGTTOU if yt-dlp is run in the background.
         # See https://github.com/ytdl-org/youtube-dl/issues/955#issuecomment-209789656
-        stdout, _, ret = Popen.run([encodeArgument(exe)] + args, text=True,
+        stdout, _, ret = Popen.run([encodeArgument(exe), *args], text=True,
                                    stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         if ret:
             return None
@@ -3151,11 +3151,11 @@ def render_table(header_row, data, delim=False, extra_gap=0, hide_empty=False):
     header_row = filter_using_list(header_row, max_lens)
     data = [filter_using_list(row, max_lens) for row in data]
 
-    table = [header_row] + data
+    table = [header_row, *data]
     max_lens = get_max_lens(table)
     extra_gap += 1
     if delim:
-        table = [header_row, [delim * (ml + extra_gap) for ml in max_lens]] + data
+        table = [header_row, [delim * (ml + extra_gap) for ml in max_lens], *data]
         table[1][-1] = table[1][-1][:-extra_gap * len(delim)]  # Remove extra_gap from end of delimiter
     for row in table:
         for pos, text in enumerate(map(str, row)):
@@ -4376,7 +4376,7 @@ def pkcs1pad(data, length):
         raise ValueError('Input data too long for PKCS#1 padding')
 
     pseudo_random = [random.randint(0, 254) for _ in range(length - len(data) - 3)]
-    return [0, 2] + pseudo_random + [0] + data
+    return [0, 2, *pseudo_random, 0, *data]
 
 
 def _base_n_table(n, table):

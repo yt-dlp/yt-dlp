@@ -437,7 +437,7 @@ class FFmpegPostProcessor(PostProcessor):
 
 
 class FFmpegExtractAudioPP(FFmpegPostProcessor):
-    COMMON_AUDIO_EXTS = MEDIA_EXTENSIONS.common_audio + ('wma', )
+    COMMON_AUDIO_EXTS = (*MEDIA_EXTENSIONS.common_audio, 'wma')
     SUPPORTED_EXTS = tuple(ACODECS.keys())
     FORMAT_RE = create_mapping_re(('best', *SUPPORTED_EXTS))
 
@@ -474,7 +474,7 @@ class FFmpegExtractAudioPP(FFmpegPostProcessor):
             acodec_opts = []
         else:
             acodec_opts = ['-acodec', codec]
-        opts = ['-vn'] + acodec_opts + more_opts
+        opts = ['-vn', *acodec_opts, *more_opts]
         try:
             FFmpegPostProcessor.run_ffmpeg(self, path, out_path, opts)
         except FFmpegPostProcessorError as err:
@@ -641,7 +641,7 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
         if not sub_langs:
             return [], info
 
-        input_files = [filename] + sub_filenames
+        input_files = [filename, *sub_filenames]
 
         opts = [
             *self.stream_copy_opts(ext=info['ext']),
@@ -738,7 +738,7 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
 
         def add(meta_list, info_list=None):
             value = next((
-                info[key] for key in [f'{meta_prefix}_'] + list(variadic(info_list or meta_list))
+                info[key] for key in [f'{meta_prefix}_', *list(variadic(info_list or meta_list))]
                 if info.get(key) is not None), None)
             if value not in ('', None):
                 value = ', '.join(map(str, variadic(value)))
@@ -925,7 +925,7 @@ class FFmpegFixupTimestampPP(FFmpegFixupPostProcessor):
             opts = ['-vf', 'setpts=PTS-STARTPTS']
         else:
             opts = ['-c', 'copy', '-bsf', 'setts=ts=TS-STARTPTS']
-        self._fixup('Fixing frame timestamp', info['filepath'], opts + [*self.stream_copy_opts(False), '-ss', self.trim])
+        self._fixup('Fixing frame timestamp', info['filepath'], [*opts, *self.stream_copy_opts(False), '-ss', self.trim])
         return [], info
 
 
