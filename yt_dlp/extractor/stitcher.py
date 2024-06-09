@@ -1,5 +1,4 @@
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     ExtractorError,
     clean_html,
@@ -37,7 +36,7 @@ class StitcherBaseIE(InfoExtractor):
 
     def _extract_episode(self, episode, audio_url, show_info):
         info = {
-            'id': compat_str(episode['id']),
+            'id': str(episode['id']),
             'display_id': episode.get('slug'),
             'title': episode['title'].strip(),
             'description': self._extract_description(episode),

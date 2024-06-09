@@ -1,7 +1,6 @@
 import re
 
 from .adobepass import AdobePassIE
-from ..compat import compat_str
 from ..utils import (
     ExtractorError,
     determine_ext,
@@ -160,7 +159,7 @@ class TurnerBaseIE(AdobePassIE):
                         'height': int(mobj.group('height')),
                         'tbr': int_or_none(mobj.group('bitrate')),
                     })
-                elif isinstance(format_id, compat_str):
+                elif isinstance(format_id, str):
                     if format_id.isdigit():
                         f['tbr'] = int(format_id)
                     else:

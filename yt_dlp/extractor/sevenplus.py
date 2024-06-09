@@ -2,7 +2,6 @@ import json
 import re
 
 from .brightcove import BrightcoveNewBaseIE
-from ..compat import compat_str
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
@@ -120,7 +119,7 @@ class SevenPlusIE(BrightcoveNewBaseIE):
                     if value:
                         info[dst_key] = value
                 info['series'] = try_get(
-                    item, lambda x: x['seriesLogo']['name'], compat_str)
+                    item, lambda x: x['seriesLogo']['name'], str)
                 mobj = re.search(r'^S(\d+)\s+E(\d+)\s+-\s+(.+)$', info['title'])
                 if mobj:
                     info.update({

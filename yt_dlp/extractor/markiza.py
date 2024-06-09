@@ -1,7 +1,6 @@
 import re
 
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     orderedSet,
     parse_duration,
@@ -60,11 +59,11 @@ class MarkizaIE(InfoExtractor):
             info.update({
                 'id': video_id,
                 'title': try_get(
-                    data, lambda x: x['details']['name'], compat_str),
+                    data, lambda x: x['details']['name'], str),
             })
         else:
             info['duration'] = parse_duration(
-                try_get(data, lambda x: x['details']['duration'], compat_str))
+                try_get(data, lambda x: x['details']['duration'], str))
         return info
 
 

@@ -2,12 +2,9 @@ import base64
 import contextlib
 import json
 import re
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_parse_qs,
-    compat_urlparse,
-)
 from ..utils import (
     ExtractorError,
     clean_html,
@@ -398,7 +395,7 @@ class KalturaIE(InfoExtractor):
                 raise ExtractorError('Invalid URL', expected=True)
             params = {}
             if query:
-                params = compat_parse_qs(query)
+                params = urllib.parse.parse_qs(query)
             if path:
                 splitted_path = path.split('/')
                 params.update(dict(zip(splitted_path[::2], [[v] for v in splitted_path[1::2]])))
@@ -449,7 +446,7 @@ class KalturaIE(InfoExtractor):
         source_url = smuggled_data.get('source_url')
         if source_url:
             referrer = base64.b64encode(
-                '://'.join(compat_urlparse.urlparse(source_url)[:2])
+                '://'.join(urllib.parse.urlparse(source_url)[:2])
                 .encode()).decode('utf-8')
         else:
             referrer = None

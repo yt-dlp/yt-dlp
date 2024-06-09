@@ -2,7 +2,6 @@ import json
 import re
 
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     ExtractorError,
     clean_html,
@@ -174,7 +173,7 @@ class ERTFlixIE(ERTFlixBaseIE):
     }]
 
     def _extract_episode(self, episode):
-        codename = try_get(episode, lambda x: x['Codename'], compat_str)
+        codename = try_get(episode, lambda x: x['Codename'], str)
         title = episode.get('Title')
         description = clean_html(dict_get(episode, ('ShortDescription', 'TinyDescription')))
         if not codename or not title or not episode.get('HasPlayableStream', True):

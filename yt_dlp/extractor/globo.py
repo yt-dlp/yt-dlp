@@ -5,9 +5,6 @@ import random
 import re
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-)
 from ..networking import HEADRequest
 from ..utils import (
     ExtractorError,
@@ -128,7 +125,7 @@ class GloboIE(InfoExtractor):
             padding += '1'
             hash_prefix = '05' + security_hash[:22]
 
-        padded_sign_time = compat_str(int(received_time) + 86400) + padding
+        padded_sign_time = str(int(received_time) + 86400) + padding
         md5_data = (received_md5 + padded_sign_time + '0xAC10FD').encode()
         signed_md5 = base64.urlsafe_b64encode(hashlib.md5(md5_data).digest()).decode().strip('=')
         signed_hash = hash_prefix + padded_sign_time + signed_md5

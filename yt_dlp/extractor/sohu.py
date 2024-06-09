@@ -1,11 +1,8 @@
 import base64
 import re
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-    compat_urllib_parse_urlencode,
-)
 from ..utils import (
     ExtractorError,
     float_or_none,
@@ -144,7 +141,7 @@ class SohuIE(InfoExtractor):
             vid_id = vid_data['data'].get(f'{format_id}Vid')
             if not vid_id:
                 continue
-            vid_id = compat_str(vid_id)
+            vid_id = str(vid_id)
             formats_json[format_id] = vid_data if vid == vid_id else _fetch_data(vid_id, mytv)
 
         part_count = vid_data['data']['totalBlocks']
@@ -183,7 +180,7 @@ class SohuIE(InfoExtractor):
                     if retries > 0:
                         download_note += ' (retry #%d)' % retries
                     part_info = self._parse_json(self._download_webpage(
-                        f'http://{allot}/?{compat_urllib_parse_urlencode(params)}',
+                        f'http://{allot}/?{urllib.parse.urlencode(params)}',
                         video_id, download_note), video_id)
 
                     video_url = part_info['url']

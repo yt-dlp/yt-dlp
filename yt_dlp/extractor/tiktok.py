@@ -5,10 +5,10 @@ import random
 import re
 import string
 import time
+import urllib.parse
 import uuid
 
 from .common import InfoExtractor
-from ..compat import compat_urllib_parse_urlparse
 from ..networking import HEADRequest
 from ..utils import (
     ExtractorError,
@@ -382,7 +382,7 @@ class TikTokBaseIE(InfoExtractor):
         auth_cookie = self._get_cookies(self._WEBPAGE_HOST).get('sid_tt')
         if auth_cookie:
             for f in formats:
-                self._set_cookie(compat_urllib_parse_urlparse(f['url']).hostname, 'sid_tt', auth_cookie.value)
+                self._set_cookie(urllib.parse.urlparse(f['url']).hostname, 'sid_tt', auth_cookie.value)
 
         thumbnails = []
         for cover_id in ('cover', 'ai_dynamic_cover', 'animated_cover', 'ai_dynamic_cover_bak',

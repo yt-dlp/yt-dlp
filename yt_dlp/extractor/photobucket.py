@@ -1,7 +1,7 @@
 import json
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import compat_urllib_parse_unquote
 
 
 class PhotobucketIE(InfoExtractor):
@@ -31,7 +31,7 @@ class PhotobucketIE(InfoExtractor):
         info_json = self._search_regex(r'Pb\.Data\.Shared\.put\(Pb\.Data\.Shared\.MEDIA, (.*?)\);',
                                        webpage, 'info json')
         info = json.loads(info_json)
-        url = compat_urllib_parse_unquote(self._html_search_regex(r'file=(.+\.mp4)', info['linkcodes']['html'], 'url'))
+        url = urllib.parse.unquote(self._html_search_regex(r'file=(.+\.mp4)', info['linkcodes']['html'], 'url'))
         return {
             'id': video_id,
             'url': url,

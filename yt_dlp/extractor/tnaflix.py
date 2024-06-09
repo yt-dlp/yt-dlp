@@ -1,7 +1,6 @@
 import re
 
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     fix_xml_ampersands,
     float_or_none,
@@ -64,7 +63,7 @@ class TNAFlixNetworkBaseIE(InfoExtractor):
         height = int_or_none(xpath_text(timeline, './imageHeight', 'thumbnail height'))
 
         return [{
-            'url': self._proto_relative_url(pattern_el.text.replace('#', compat_str(i)), 'http:'),
+            'url': self._proto_relative_url(pattern_el.text.replace('#', str(i)), 'http:'),
             'width': width,
             'height': height,
         } for i in range(first, last + 1)]

@@ -1,11 +1,8 @@
 import json
+import urllib.parse
 import uuid
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-    compat_urllib_parse_unquote,
-)
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
@@ -59,7 +56,7 @@ class FOXIE(InfoExtractor):
     _HOME_PAGE_URL = 'https://www.fox.com/'
     _API_KEY = '6E9S4bmcoNnZwVLOHywOv8PJEdu76cM9'
     _access_token = None
-    _device_id = compat_str(uuid.uuid4())
+    _device_id = str(uuid.uuid4())
 
     def _call_api(self, path, video_id, data=None):
         headers = {
@@ -88,7 +85,7 @@ class FOXIE(InfoExtractor):
         if not self._access_token:
             mvpd_auth = self._get_cookies(self._HOME_PAGE_URL).get('mvpd-auth')
             if mvpd_auth:
-                self._access_token = (self._parse_json(compat_urllib_parse_unquote(
+                self._access_token = (self._parse_json(urllib.parse.unquote(
                     mvpd_auth.value), None, fatal=False) or {}).get('accessToken')
             if not self._access_token:
                 self._access_token = self._call_api(

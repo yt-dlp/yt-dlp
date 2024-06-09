@@ -1,5 +1,4 @@
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     determine_ext,
     format_field,
@@ -146,6 +145,6 @@ class VineUserIE(InfoExtractor):
             self.url_result(
                 f'https://vine.co/v/{post_id}', ie='Vine', video_id=post_id)
             for post_id in profile['posts']
-            if post_id and isinstance(post_id, compat_str)]
+            if post_id and isinstance(post_id, str)]
         return self.playlist_result(
             entries, user, profile.get('username'), profile.get('description'))

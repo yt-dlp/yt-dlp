@@ -2,7 +2,6 @@ import itertools
 import re
 
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     ExtractorError,
     clean_html,
@@ -245,7 +244,7 @@ class XHamsterIE(InfoExtractor):
                     if not isinstance(c, dict):
                         continue
                     c_name = c.get('name')
-                    if isinstance(c_name, compat_str):
+                    if isinstance(c_name, str):
                         categories.append(c_name)
             else:
                 categories = None
@@ -258,7 +257,7 @@ class XHamsterIE(InfoExtractor):
                 'description': video.get('description'),
                 'timestamp': int_or_none(video.get('created')),
                 'uploader': try_get(
-                    video, lambda x: x['author']['name'], compat_str),
+                    video, lambda x: x['author']['name'], str),
                 'uploader_url': uploader_url,
                 'uploader_id': uploader_url.split('/')[-1] if uploader_url else None,
                 'thumbnail': video.get('thumbURL'),

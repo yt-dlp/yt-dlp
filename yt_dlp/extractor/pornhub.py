@@ -6,7 +6,6 @@ import re
 
 from .common import InfoExtractor
 from .openload import PhantomJSwrapper
-from ..compat import compat_str
 from ..networking import Request
 from ..networking.exceptions import HTTPError
 from ..utils import (
@@ -332,7 +331,7 @@ class PornHubIE(PornHubBaseIE):
                     if not isinstance(definition, dict):
                         continue
                     video_url = definition.get('videoUrl')
-                    if not video_url or not isinstance(video_url, compat_str):
+                    if not video_url or not isinstance(video_url, str):
                         continue
                     if video_url in video_urls_set:
                         continue

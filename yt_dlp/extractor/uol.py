@@ -1,8 +1,6 @@
+import urllib.parse
+
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-    compat_urllib_parse_urlencode,
-)
 from ..utils import (
     clean_html,
     int_or_none,
@@ -68,7 +66,7 @@ class UOLIE(InfoExtractor):
             # https://api.mais.uol.com.br/apiuol/v4/player/data/[MEDIA_ID]
             'https://api.mais.uol.com.br/apiuol/v3/media/detail/' + video_id,
             video_id)['item']
-        media_id = compat_str(video_data['mediaId'])
+        media_id = str(video_data['mediaId'])
         title = video_data['title']
         ver = video_data.get('revision', 2)
 
@@ -96,7 +94,7 @@ class UOLIE(InfoExtractor):
                 m3u8_formats = self._extract_m3u8_formats(
                     f_url, media_id, 'mp4', 'm3u8_native',
                     m3u8_id='hls', fatal=False)
-                encoded_query = compat_urllib_parse_urlencode(query)
+                encoded_query = urllib.parse.urlencode(query)
                 for m3u8_f in m3u8_formats:
                     m3u8_f['extra_param_to_segment_url'] = encoded_query
                     m3u8_f['url'] = update_url_query(m3u8_f['url'], query)

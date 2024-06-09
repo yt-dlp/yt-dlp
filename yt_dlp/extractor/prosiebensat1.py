@@ -2,7 +2,6 @@ import hashlib
 import re
 
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     ExtractorError,
     determine_ext,
@@ -75,7 +74,7 @@ class ProSiebenSat1BaseIE(InfoExtractor):
                             'format_id': protocol,
                         })
         if not formats:
-            source_ids = [compat_str(source['id']) for source in video['sources']]
+            source_ids = [str(source['id']) for source in video['sources']]
 
             client_id = self._SALT[:2] + hashlib.sha1(''.join([clip_id, self._SALT, self._TOKEN, client_location, self._SALT, self._CLIENT_NAME]).encode()).hexdigest()
 

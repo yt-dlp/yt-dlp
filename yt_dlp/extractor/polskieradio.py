@@ -5,7 +5,6 @@ import re
 import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     ExtractorError,
     InAdvancePagedList,
@@ -37,7 +36,7 @@ class PolskieRadioBaseExtractor(InfoExtractor):
             media_urls.add(media_url)
             entry = base_data.copy()
             entry.update({
-                'id': compat_str(media['id']),
+                'id': str(media['id']),
                 'url': media_url,
                 'duration': int_or_none(media.get('length')),
                 'vcodec': 'none' if media.get('provider') == 'audio' else None,
@@ -511,7 +510,7 @@ class PolskieRadioPlayerIE(InfoExtractor):
                 })
 
         return {
-            'id': compat_str(channel['id']),
+            'id': str(channel['id']),
             'formats': formats,
             'title': channel.get('name') or channel.get('streamName'),
             'display_id': channel_url,

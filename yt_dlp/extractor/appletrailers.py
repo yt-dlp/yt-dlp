@@ -1,8 +1,8 @@
 import json
 import re
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import compat_urlparse
 from ..utils import (
     int_or_none,
     parse_duration,
@@ -134,7 +134,7 @@ class AppleTrailersIE(InfoExtractor):
             page_data = film_data.get('page', {})
             return self.playlist_result(entries, film_id, page_data.get('movie_title'))
 
-        playlist_url = compat_urlparse.urljoin(url, 'includes/playlists/itunes.inc')
+        playlist_url = urllib.parse.urljoin(url, 'includes/playlists/itunes.inc')
 
         def fix_html(s):
             s = re.sub(r'(?s)<script[^<]*?>.*?</script>', '', s)
@@ -169,7 +169,7 @@ class AppleTrailersIE(InfoExtractor):
                 duration = 60 * int(m.group('minutes')) + int(m.group('seconds'))
 
             trailer_id = first_url.split('/')[-1].rpartition('_')[0].lower()
-            settings_json_url = compat_urlparse.urljoin(url, f'includes/settings/{trailer_id}.json')
+            settings_json_url = urllib.parse.urljoin(url, f'includes/settings/{trailer_id}.json')
             settings = self._download_json(settings_json_url, trailer_id, 'Downloading settings json')
 
             formats = []

@@ -1,5 +1,6 @@
+import urllib.parse
+
 from .common import InfoExtractor
-from ..compat import compat_urlparse
 from ..utils import (
     determine_ext,
     int_or_none,
@@ -104,7 +105,7 @@ class MDRIE(InfoExtractor):
             webpage, 'data url', group='url').replace(r'\/', '/')
 
         doc = self._download_xml(
-            compat_urlparse.urljoin(url, data_url), video_id)
+            urllib.parse.urljoin(url, data_url), video_id)
 
         title = xpath_text(doc, ['./title', './broadcast/broadcastName'], 'title', fatal=True)
 

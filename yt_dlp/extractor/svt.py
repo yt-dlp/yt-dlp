@@ -2,7 +2,6 @@ import json
 import re
 
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     determine_ext,
     dict_get,
@@ -281,7 +280,7 @@ class SVTPlayIE(SVTPlayBaseIE):
 
             svt_id = try_get(
                 data, lambda x: x['statistics']['dataLake']['content']['id'],
-                compat_str)
+                str)
 
         if not svt_id:
             nextjs_data = self._search_nextjs_data(webpage, video_id, fatal=False)
@@ -368,7 +367,7 @@ class SVTSeriesIE(SVTPlayBaseIE):
             for item in items:
                 video = item.get('item') or {}
                 content_id = video.get('videoSvtId')
-                if not content_id or not isinstance(content_id, compat_str):
+                if not content_id or not isinstance(content_id, str):
                     continue
                 entries.append(self.url_result(
                     'svt:' + content_id, SVTPlayIE.ie_key(), content_id))

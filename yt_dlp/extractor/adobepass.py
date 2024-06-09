@@ -2,10 +2,10 @@ import getpass
 import json
 import re
 import time
+import urllib.parse
 import xml.etree.ElementTree as etree
 
 from .common import InfoExtractor
-from ..compat import compat_urlparse
 from ..networking.exceptions import HTTPError
 from ..utils import (
     NO_DEFAULT,
@@ -1394,7 +1394,7 @@ class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should en
             form_page, urlh = form_page_res
             post_url = self._html_search_regex(r'<form[^>]+action=(["\'])(?P<url>.+?)\1', form_page, 'post url', group='url')
             if not re.match(r'https?://', post_url):
-                post_url = compat_urlparse.urljoin(urlh.url, post_url)
+                post_url = urllib.parse.urljoin(urlh.url, post_url)
             form_data = self._hidden_inputs(form_page)
             form_data.update(data)
             return self._download_webpage_handle(
@@ -1420,7 +1420,7 @@ class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should en
             if not redirect_url:
                 return None
             if url:
-                redirect_url = compat_urlparse.urljoin(url, unescapeHTML(redirect_url))
+                redirect_url = urllib.parse.urljoin(url, unescapeHTML(redirect_url))
             return redirect_url
 
         mvpd_headers = {

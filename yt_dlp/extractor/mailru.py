@@ -4,7 +4,6 @@ import re
 import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import compat_urllib_parse_unquote
 from ..utils import (
     int_or_none,
     parse_duration,
@@ -307,7 +306,7 @@ class MailRuMusicSearchIE(MailRuMusicSearchBaseIE):
     }]
 
     def _real_extract(self, url):
-        query = compat_urllib_parse_unquote(self._match_id(url))
+        query = urllib.parse.unquote(self._match_id(url))
 
         entries = []
 

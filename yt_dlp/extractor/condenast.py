@@ -1,10 +1,7 @@
 import re
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_urllib_parse_urlparse,
-    compat_urlparse,
-)
 from ..utils import (
     determine_ext,
     extract_attributes,
@@ -110,12 +107,12 @@ class CondeNastIE(InfoExtractor):
         title = self._html_search_regex(
             r'(?s)<div class="cne-series-info">.*?<h1>(.+?)</h1>',
             webpage, 'series title')
-        url_object = compat_urllib_parse_urlparse(url)
+        url_object = urllib.parse.urlparse(url)
         base_url = f'{url_object.scheme}://{url_object.netloc}'
         m_paths = re.finditer(
             r'(?s)<p class="cne-thumb-title">.*?<a href="(/watch/.+?)["\?]', webpage)
         paths = orderedSet(m.group(1) for m in m_paths)
-        build_url = lambda path: compat_urlparse.urljoin(base_url, path)
+        build_url = lambda path: urllib.parse.urljoin(base_url, path)
         entries = [self.url_result(build_url(path), 'CondeNast') for path in paths]
         return self.playlist_result(entries, playlist_title=title)
 

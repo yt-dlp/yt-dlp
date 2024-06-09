@@ -1,7 +1,6 @@
 import itertools
 
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     float_or_none,
     int_or_none,
@@ -16,8 +15,8 @@ def _extract_episode(data, episode_id=None):
     title = data['title']
     download_url = data['download_url']
 
-    series = try_get(data, lambda x: x['show']['title'], compat_str)
-    uploader = try_get(data, lambda x: x['author']['fullname'], compat_str)
+    series = try_get(data, lambda x: x['show']['title'], str)
+    uploader = try_get(data, lambda x: x['author']['fullname'], str)
 
     thumbnails = []
     for image in ('image_original', 'image_medium', 'image'):
@@ -35,7 +34,7 @@ def _extract_episode(data, episode_id=None):
         return float_or_none(data.get(key), scale=1000)
 
     return {
-        'id': compat_str(episode_id or data['episode_id']),
+        'id': str(episode_id or data['episode_id']),
         'url': download_url,
         'display_id': data.get('permalink'),
         'title': title,

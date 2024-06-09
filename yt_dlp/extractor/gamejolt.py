@@ -1,9 +1,9 @@
 import itertools
 import json
 import math
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import compat_urllib_parse_unquote
 from ..utils import (
     determine_ext,
     format_field,
@@ -528,7 +528,7 @@ class GameJoltSearchIE(GameJoltPostListBaseIE):
 
     def _real_extract(self, url):
         filter_mode, query = self._match_valid_url(url).group('filter', 'id')
-        display_query = compat_urllib_parse_unquote(query)
+        display_query = urllib.parse.unquote(query)
         return self.playlist_result(
             self._search_entries(query, filter_mode, display_query) if filter_mode else self._entries(
                 f'web/posts/fetch/search/{query}', display_query, initial_items=self._call_api(

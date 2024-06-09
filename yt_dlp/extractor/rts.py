@@ -1,7 +1,6 @@
 import re
 
 from .srgssr import SRGSSRIE
-from ..compat import compat_str
 from ..utils import (
     determine_ext,
     int_or_none,
@@ -215,7 +214,7 @@ class RTSIE(SRGSSRIE):  # XXX: Do not subclass from concrete IE
         self._check_formats(formats, media_id)
 
         duration = info.get('duration') or info.get('cutout') or info.get('cutduration')
-        if isinstance(duration, compat_str):
+        if isinstance(duration, str):
             duration = parse_duration(duration)
 
         return {

@@ -5,7 +5,6 @@ import urllib.parse
 import uuid
 
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     ExtractorError,
     int_or_none,
@@ -140,7 +139,7 @@ class ViuPlaylistIE(ViuBaseIE):
             item_id = item.get('id')
             if not item_id:
                 continue
-            item_id = compat_str(item_id)
+            item_id = str(item_id)
             entries.append(self.url_result(
                 'viu:' + item_id, 'Viu', item_id))
 

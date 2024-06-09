@@ -1,5 +1,6 @@
+import urllib.parse
+
 from .common import InfoExtractor
-from ..compat import compat_parse_qs
 from ..utils import ExtractorError
 
 
@@ -9,7 +10,7 @@ class BokeCCBaseIE(InfoExtractor):
             r'<(?:script|embed)[^>]+src=(?P<q>["\'])(?:https?:)?//p\.bokecc\.com/(?:player|flash/player\.swf)\?(?P<query>.+?)(?P=q)',
             webpage, 'player params', group='query')
 
-        player_params = compat_parse_qs(player_params_str)
+        player_params = urllib.parse.parse_qs(player_params_str)
 
         info_xml = self._download_xml(
             'http://p.bokecc.com/servlet/playinfo?uid={}&vid={}&m=1'.format(
@@ -36,7 +37,7 @@ class BokeCCIE(BokeCCBaseIE):
     }]
 
     def _real_extract(self, url):
-        qs = compat_parse_qs(self._match_valid_url(url).group('query'))
+        qs = urllib.parse.parse_qs(self._match_valid_url(url).group('query'))
         if not qs.get('vid') or not qs.get('uid'):
             raise ExtractorError('Invalid URL', expected=True)
 

@@ -1,7 +1,4 @@
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-)
 from ..utils import (
     determine_ext,
     int_or_none,
@@ -107,7 +104,7 @@ class SixPlayIE(InfoExtractor):
 
         def get(getter):
             for src in (data, clip_data):
-                v = try_get(src, getter, compat_str)
+                v = try_get(src, getter, str)
                 if v:
                     return v
 

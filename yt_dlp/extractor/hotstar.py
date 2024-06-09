@@ -6,7 +6,6 @@ import time
 import uuid
 
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
@@ -41,7 +40,7 @@ class HotStarBaseIE(InfoExtractor):
             token = self._download_json(
                 f'{self._API_URL}/um/v3/users',
                 video_id, note='Downloading token',
-                data=json.dumps({'device_ids': [{'id': compat_str(uuid.uuid4()), 'type': 'device_id'}]}).encode(),
+                data=json.dumps({'device_ids': [{'id': str(uuid.uuid4()), 'type': 'device_id'}]}).encode(),
                 headers={
                     'hotstarauth': auth,
                     'x-hs-platform': 'PCTV',  # or 'web'
@@ -66,7 +65,7 @@ class HotStarBaseIE(InfoExtractor):
         return self._call_api_impl(
             f'{path}/content/{video_id}', video_id, st=st, cookies=cookies, query={
                 'desired-config': 'audio_channel:stereo|container:fmp4|dynamic_range:hdr|encryption:plain|ladder:tv|package:dash|resolution:fhd|subs-tag:HotstarVIP|video_codec:h265',
-                'device-id': cookies.get('device_id').value if cookies.get('device_id') else compat_str(uuid.uuid4()),
+                'device-id': cookies.get('device_id').value if cookies.get('device_id') else str(uuid.uuid4()),
                 'os-name': 'Windows',
                 'os-version': '10',
             })

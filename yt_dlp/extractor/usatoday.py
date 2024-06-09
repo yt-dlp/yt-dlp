@@ -1,5 +1,4 @@
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     ExtractorError,
     get_element_by_attribute,
@@ -51,7 +50,7 @@ class USATodayIE(InfoExtractor):
         return {
             '_type': 'url_transparent',
             'url': self.BRIGHTCOVE_URL_TEMPLATE % (item.get('brightcoveaccount', '29906170001'), item.get('brightcoveid') or video_data['brightcove_id']),
-            'id': compat_str(video_data['id']),
+            'id': str(video_data['id']),
             'title': video_data['title'],
             'thumbnail': video_data.get('thumbnail'),
             'description': video_data.get('description'),

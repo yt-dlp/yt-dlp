@@ -1,7 +1,7 @@
 import re
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import compat_urlparse
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
@@ -184,7 +184,7 @@ class TVPlayIE(InfoExtractor):
         if sami_path:
             lang = self._search_regex(
                 r'_([a-z]{2})\.xml', sami_path, 'lang',
-                default=compat_urlparse.urlparse(url).netloc.rsplit('.', 1)[-1])
+                default=urllib.parse.urlparse(url).netloc.rsplit('.', 1)[-1])
             subtitles[lang] = [{
                 'url': sami_path,
             }]

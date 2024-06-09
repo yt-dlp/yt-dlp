@@ -1,5 +1,4 @@
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import try_get
 
 
@@ -66,7 +65,7 @@ class PhilharmonieDeParisIE(InfoExtractor):
             formats = []
             for format_id in ('mobile', 'desktop'):
                 format_url = try_get(
-                    files, lambda x: x[format_id]['file'], compat_str)
+                    files, lambda x: x[format_id]['file'], str)
                 if not format_url or format_url in format_urls:
                     continue
                 format_urls.add(format_url)

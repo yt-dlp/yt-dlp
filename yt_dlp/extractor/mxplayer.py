@@ -1,5 +1,4 @@
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     int_or_none,
     traverse_obj,
@@ -218,7 +217,7 @@ class MxplayerShowIE(InfoExtractor):
             video_id=show_id, headers={'Referer': 'https://mxplayer.in'})
         page_num = 0
         for season in show_json.get('items') or []:
-            season_id = try_get(season, lambda x: x['id'], compat_str)
+            season_id = try_get(season, lambda x: x['id'], str)
             next_url = ''
             while next_url is not None:
                 page_num += 1

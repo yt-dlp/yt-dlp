@@ -1,7 +1,6 @@
 import re
 
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     US_RATINGS,
     ExtractorError,
@@ -518,7 +517,7 @@ class PBSIE(InfoExtractor):
             if not video_id:
                 video_info = self._extract_video_data(
                     player_page, 'video data', display_id)
-                video_id = compat_str(
+                video_id = str(
                     video_info.get('id') or video_info['contentID'])
         else:
             video_id = mobj.group('id')

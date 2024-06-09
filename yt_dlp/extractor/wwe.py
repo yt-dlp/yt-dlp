@@ -1,7 +1,6 @@
 import re
 
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     try_get,
     unescapeHTML,
@@ -17,7 +16,7 @@ class WWEBaseIE(InfoExtractor):
     }
 
     def _extract_entry(self, data, url, video_id=None):
-        video_id = compat_str(video_id or data['nid'])
+        video_id = str(video_id or data['nid'])
         title = data['title']
 
         formats = self._extract_m3u8_formats(

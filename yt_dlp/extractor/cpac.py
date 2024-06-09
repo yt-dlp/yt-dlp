@@ -1,5 +1,4 @@
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     int_or_none,
     str_or_none,
@@ -38,7 +37,7 @@ class CPACIE(InfoExtractor):
         content = self._download_json(
             'https://www.cpac.ca/api/1/services/contentModel.json?url=/site/website/episode/index.xml&crafterSite=cpacca&id=' + video_id,
             video_id)
-        video_url = try_get(content, lambda x: x['page']['details']['videoUrl'], compat_str)
+        video_url = try_get(content, lambda x: x['page']['details']['videoUrl'], str)
         formats = []
         if video_url:
             content = content['page']

@@ -2,9 +2,9 @@ import base64
 import functools
 import itertools
 import re
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import compat_str, compat_urlparse
 from ..networking import HEADRequest, Request
 from ..networking.exceptions import HTTPError
 from ..utils import (
@@ -259,7 +259,7 @@ class VimeoBaseInfoExtractor(InfoExtractor):
             if self._is_valid_url(download_url, video_id, f'{source_name} video'):
                 ext = (try_get(
                     source_file, lambda x: x['extension'],
-                    compat_str) or determine_ext(
+                    str) or determine_ext(
                     download_url, None) or 'mp4').lower()
                 return {
                     'url': download_url,
@@ -739,7 +739,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
             'Content-Type': 'application/x-www-form-urlencoded',
         })
         checked = self._download_json(
-            f'{compat_urlparse.urlsplit(url)._replace(query=None).geturl()}/check-password',
+            f'{urllib.parse.urlsplit(url)._replace(query=None).geturl()}/check-password',
             video_id, 'Verifying the password', data=data, headers=headers)
         if checked is False:
             raise ExtractorError('Wrong video password', expected=True)
@@ -1074,7 +1074,7 @@ class VimeoChannelIE(VimeoBaseInfoExtractor):
             if clips:
                 for video_id, video_url, video_title in clips:
                     yield self.url_result(
-                        compat_urlparse.urljoin(base_url, video_url),
+                        urllib.parse.urljoin(base_url, video_url),
                         VimeoIE.ie_key(), video_id=video_id, video_title=video_title)
             # More relaxed fallback
             else:

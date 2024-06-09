@@ -1,10 +1,7 @@
 import re
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-    compat_urlparse,
-)
 from ..utils import (
     ExtractorError,
     determine_ext,
@@ -132,7 +129,7 @@ class LifeNewsIE(InfoExtractor):
             return cur_info
 
         def make_video_entry(video_id, video_url, index=None):
-            video_url = compat_urlparse.urljoin(url, video_url)
+            video_url = urllib.parse.urljoin(url, video_url)
             return make_entry(video_id, video_url, index)
 
         def make_iframe_entry(video_id, video_url, index=None):
@@ -207,17 +204,17 @@ class LifeEmbedIE(InfoExtractor):
             video_id).get('playlist', {})
         if playlist:
             master = playlist.get('master')
-            if isinstance(master, compat_str) and determine_ext(master) == 'm3u8':
-                extract_m3u8(compat_urlparse.urljoin(url, master))
+            if isinstance(master, str) and determine_ext(master) == 'm3u8':
+                extract_m3u8(urllib.parse.urljoin(url, master))
             original = playlist.get('original')
-            if isinstance(original, compat_str):
+            if isinstance(original, str):
                 extract_original(original)
             thumbnail = playlist.get('image')
 
         # Old rendition fallback
         if not formats:
             for video_url in re.findall(r'"file"\s*:\s*"([^"]+)', webpage):
-                video_url = compat_urlparse.urljoin(url, video_url)
+                video_url = urllib.parse.urljoin(url, video_url)
                 if determine_ext(video_url) == 'm3u8':
                     extract_m3u8(video_url)
                 else:

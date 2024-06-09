@@ -1,5 +1,6 @@
+import urllib.parse
+
 from .common import InfoExtractor
-from ..compat import compat_urlparse
 from ..utils import (
     ExtractorError,
     clean_html,
@@ -74,7 +75,7 @@ class PiaproIE(InfoExtractor):
         if urlh is False:
             login_ok = False
         else:
-            parts = compat_urlparse.urlparse(urlh.url)
+            parts = urllib.parse.urlparse(urlh.url)
             if parts.path != '/':
                 login_ok = False
         if not login_ok:

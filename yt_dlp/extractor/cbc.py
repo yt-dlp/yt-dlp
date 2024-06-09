@@ -6,9 +6,6 @@ import urllib.parse
 import xml.etree.ElementTree
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-)
 from ..utils import (
     ExtractorError,
     int_or_none,
@@ -119,7 +116,7 @@ class CBCIE(InfoExtractor):
                 f'http://tpfeed.cbc.ca/f/ExhSPC/vms_5akSXx4Ng_Zn?byCustomValue={{:mpsReleases}}{{{clip_id}}}',
                 clip_id, fatal=False)
             if feed:
-                media_id = try_get(feed, lambda x: x['entries'][0]['guid'], compat_str)
+                media_id = try_get(feed, lambda x: x['entries'][0]['guid'], str)
             if not media_id:
                 media_id = self._download_json(
                     'http://feed.theplatform.com/f/h9dtGB/punlNGjMlc1F?fields=id&byContent=byReleases%3DbyId%253D' + clip_id,

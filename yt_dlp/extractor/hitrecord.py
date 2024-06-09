@@ -1,5 +1,4 @@
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     clean_html,
     float_or_none,
@@ -46,7 +45,7 @@ class HitRecordIE(InfoExtractor):
                 t['text']
                 for t in tags_list
                 if isinstance(t, dict) and t.get('text')
-                and isinstance(t['text'], compat_str)]
+                and isinstance(t['text'], str)]
 
         return {
             'id': video_id,
@@ -56,9 +55,9 @@ class HitRecordIE(InfoExtractor):
             'duration': float_or_none(video.get('duration'), 1000),
             'timestamp': int_or_none(video.get('created_at_i')),
             'uploader': try_get(
-                video, lambda x: x['user']['username'], compat_str),
+                video, lambda x: x['user']['username'], str),
             'uploader_id': try_get(
-                video, lambda x: compat_str(x['user']['id'])),
+                video, lambda x: str(x['user']['id'])),
             'view_count': int_or_none(video.get('total_views_count')),
             'like_count': int_or_none(video.get('hearts_count')),
             'comment_count': int_or_none(video.get('comments_count')),

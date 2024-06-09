@@ -1,7 +1,7 @@
 import random
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import compat_str, compat_urllib_parse_unquote
 from ..utils import ExtractorError, str_or_none, try_get
 
 
@@ -41,8 +41,8 @@ class AudiusBaseIE(InfoExtractor):
         anything from this link, since the Audius API won't be able to resolve
         this url
         """
-        url = compat_urllib_parse_unquote(url)
-        title = compat_urllib_parse_unquote(title)
+        url = urllib.parse.unquote(url)
+        title = urllib.parse.unquote(title)
         if '/' in title or '%2F' in title:
             fixed_title = title.replace('/', '%5C').replace('%2F', '%5C')
             return url.replace(title, fixed_title)
@@ -59,7 +59,7 @@ class AudiusBaseIE(InfoExtractor):
                 errnote=errnote, expected_status=expected_status)
         except ExtractorError as exc:
             # some of Audius API hosts may not work as expected and return HTML
-            if 'Failed to parse JSON' in compat_str(exc):
+            if 'Failed to parse JSON' in str(exc):
                 raise ExtractorError('An error occurred while receiving data. Try again',
                                      expected=True)
             raise exc
@@ -159,7 +159,7 @@ class AudiusIE(AudiusBaseIE):
             'description': track_data.get('description'),
             'duration': track_data.get('duration'),
             'track': track_data.get('title'),
-            'artist': try_get(track_data, lambda x: x['user']['name'], compat_str),
+            'artist': try_get(track_data, lambda x: x['user']['name'], str),
             'genre': track_data.get('genre'),
             'thumbnails': thumbnails,
             'view_count': track_data.get('play_count'),

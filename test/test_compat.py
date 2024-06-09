@@ -15,8 +15,8 @@ from yt_dlp.compat import urllib  # isort: split
 from yt_dlp.compat import (
     compat_etree_fromstring,
     compat_expanduser,
-    compat_urllib_parse_unquote,
-    compat_urllib_parse_urlencode,
+    compat_urllib_parse_unquote,  # noqa: TID251
+    compat_urllib_parse_urlencode,  # noqa: TID251
 )
 from yt_dlp.compat.urllib.request import getproxies
 

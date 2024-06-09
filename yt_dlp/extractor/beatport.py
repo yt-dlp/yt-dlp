@@ -1,7 +1,6 @@
 import re
 
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import int_or_none
 
 
@@ -89,7 +88,7 @@ class BeatportIE(InfoExtractor):
             images.append(image)
 
         return {
-            'id': compat_str(track.get('id')) or track_id,
+            'id': str(track.get('id')) or track_id,
             'display_id': track.get('slug') or display_id,
             'title': title,
             'formats': formats,

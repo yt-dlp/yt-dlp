@@ -4,7 +4,6 @@ import re
 import time
 
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     ExtractorError,
     dict_get,
@@ -302,7 +301,7 @@ class ABCIViewIE(InfoExtractor):
 
         for sd in ('1080', '720', 'sd', 'sd-low'):
             sd_url = try_get(
-                stream, lambda x: x['streams']['hls'][sd], compat_str)
+                stream, lambda x: x['streams']['hls'][sd], str)
             if not sd_url:
                 continue
             formats = self._extract_m3u8_formats(

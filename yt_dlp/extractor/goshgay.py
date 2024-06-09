@@ -1,7 +1,6 @@
+import urllib.parse
+
 from .common import InfoExtractor
-from ..compat import (
-    compat_parse_qs,
-)
 from ..utils import (
     parse_duration,
 )
@@ -32,7 +31,7 @@ class GoshgayIE(InfoExtractor):
             r'<span class="duration">\s*-?\s*(.*?)</span>',
             webpage, 'duration', fatal=False))
 
-        flashvars = compat_parse_qs(self._html_search_regex(
+        flashvars = urllib.parse.parse_qs(self._html_search_regex(
             r'<embed.+?id="flash-player-embed".+?flashvars="([^"]+)"',
             webpage, 'flashvars'))
         thumbnail = flashvars.get('url_bigthumb', [None])[0]

@@ -3,7 +3,6 @@ import io
 import struct
 
 from .common import InfoExtractor
-from ..compat import compat_b64decode
 from ..utils import (
     ExtractorError,
     determine_ext,
@@ -69,7 +68,7 @@ class RTVEALaCartaIE(InfoExtractor):
 
     @staticmethod
     def _decrypt_url(png):
-        encrypted_data = io.BytesIO(compat_b64decode(png)[8:])
+        encrypted_data = io.BytesIO(base64.b64decode(png)[8:])
         while True:
             length = struct.unpack('!I', encrypted_data.read(4))[0]
             chunk_type = encrypted_data.read(4)

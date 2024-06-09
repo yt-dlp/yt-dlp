@@ -1,10 +1,8 @@
+import base64
 import re
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_b64decode,
-    compat_urllib_parse_unquote,
-)
 
 
 class BigflixIE(InfoExtractor):
@@ -38,7 +36,7 @@ class BigflixIE(InfoExtractor):
             webpage, 'title')
 
         def decode_url(quoted_b64_url):
-            return compat_b64decode(compat_urllib_parse_unquote(
+            return base64.b64decode(urllib.parse.unquote(
                 quoted_b64_url)).decode('utf-8')
 
         formats = []

@@ -1,5 +1,4 @@
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     determine_ext,
     int_or_none,
@@ -99,6 +98,6 @@ class RENTVArticleIE(InfoExtractor):
             media_id = config_profile.get('mediaid')
             if not media_id:
                 continue
-            media_id = compat_str(media_id)
+            media_id = str(media_id)
             entries.append(self.url_result('rentv:' + media_id, 'RENTV', media_id))
         return self.playlist_result(entries, display_id)

@@ -2,7 +2,6 @@ import json
 import re
 
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
@@ -281,7 +280,7 @@ class VevoIE(VevoBaseIE):
         genres = video_info.get('genres')
         genre = (
             genres[0] if genres and isinstance(genres, list)
-            and isinstance(genres[0], compat_str) else None)
+            and isinstance(genres[0], str) else None)
 
         is_explicit = video_info.get('isExplicit')
         if is_explicit is True:

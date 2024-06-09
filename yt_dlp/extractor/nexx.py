@@ -4,7 +4,6 @@ import re
 import time
 
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     ExtractorError,
     int_or_none,
@@ -161,7 +160,7 @@ class NexxIE(InfoExtractor):
 
         video_hash = video['general']['hash']
 
-        ps = compat_str(stream_data['originalDomain'])
+        ps = str(stream_data['originalDomain'])
         if stream_data['applyFolderHierarchy'] == 1:
             s = ('%04d' % int(video_id))[::-1]
             ps += f'/{s[0:2]}/{s[2:4]}'
@@ -305,7 +304,7 @@ class NexxIE(InfoExtractor):
             azure_stream_base, azure_locator, video_id, ('_manifest' if is_ml else '')) + '%s'
 
         protection_token = try_get(
-            video, lambda x: x['protectiondata']['token'], compat_str)
+            video, lambda x: x['protectiondata']['token'], str)
         if protection_token:
             azure_manifest_url += f'?hdnts={protection_token}'
 
@@ -475,7 +474,7 @@ class NexxIE(InfoExtractor):
             'release_year': int_or_none(general.get('year')),
             'creator': general.get('studio') or general.get('studio_adref') or None,
             'thumbnail': try_get(
-                video, lambda x: x['imagedata']['thumb'], compat_str),
+                video, lambda x: x['imagedata']['thumb'], str),
             'duration': parse_duration(general.get('runtime')),
             'timestamp': int_or_none(general.get('uploaded')),
             'episode_number': traverse_obj(

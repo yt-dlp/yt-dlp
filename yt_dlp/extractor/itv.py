@@ -2,7 +2,6 @@ import json
 
 from .brightcove import BrightcoveNewIE
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     JSON_LD_RE,
     ExtractorError,
@@ -136,7 +135,7 @@ class ITVIE(InfoExtractor):
         params = extract_attributes(self._search_regex(
             r'(?s)(<[^>]+id="video"[^>]*>)', webpage, 'params'))
         variants = self._parse_json(
-            try_get(params, lambda x: x['data-video-variants'], compat_str) or '{}',
+            try_get(params, lambda x: x['data-video-variants'], str) or '{}',
             video_id, fatal=False)
         # Prefer last matching featureset
         # See: https://github.com/yt-dlp/yt-dlp/issues/986
@@ -185,7 +184,7 @@ class ITVIE(InfoExtractor):
                         break
 
         thumbnails = []
-        thumbnail_url = try_get(params, lambda x: x['data-video-posterframe'], compat_str)
+        thumbnail_url = try_get(params, lambda x: x['data-video-posterframe'], str)
         if thumbnail_url:
             thumbnails.extend([{
                 'url': thumbnail_url.format(width=1920, height=1080, quality=100, blur=0, bg='false'),

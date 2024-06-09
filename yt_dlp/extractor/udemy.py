@@ -1,7 +1,7 @@
 import re
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import compat_str, compat_urlparse
 from ..networking import Request
 from ..networking.exceptions import HTTPError
 from ..utils import (
@@ -79,7 +79,7 @@ class UdemyIE(InfoExtractor):
 
     def _enroll_course(self, base_url, webpage, course_id):
         def combine_url(base_url, url):
-            return compat_urlparse.urljoin(base_url, url) if not url.startswith('http') else url
+            return urllib.parse.urljoin(base_url, url) if not url.startswith('http') else url
 
         checkout_url = unescapeHTML(self._search_regex(
             r'href=(["\'])(?P<url>(?:https?://(?:www\.)?udemy\.com)?/(?:payment|cart)/checkout/.+?)\1',
@@ -233,7 +233,7 @@ class UdemyIE(InfoExtractor):
             if youtube_url:
                 return self.url_result(youtube_url, 'Youtube')
 
-        video_id = compat_str(asset['id'])
+        video_id = str(asset['id'])
         thumbnail = asset.get('thumbnail_url') or asset.get('thumbnailUrl')
         duration = float_or_none(asset.get('data', {}).get('duration'))
 
@@ -326,7 +326,7 @@ class UdemyIE(InfoExtractor):
                 cc_url = url_or_none(cc.get('url'))
                 if not cc_url:
                     continue
-                lang = try_get(cc, lambda x: x['locale']['locale'], compat_str)
+                lang = try_get(cc, lambda x: x['locale']['locale'], str)
                 sub_dict = (automatic_captions if cc.get('source') == 'auto'
                             else subtitles)
                 sub_dict.setdefault(lang or 'en', []).append({

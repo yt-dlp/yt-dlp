@@ -3,9 +3,9 @@ import datetime as dt
 import functools
 import json
 import random
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import compat_urllib_parse_urlparse, compat_urlparse
 from ..utils import (
     ExtractorError,
     OnDemandPagedList,
@@ -66,7 +66,7 @@ class PanoptoBaseIE(InfoExtractor):
 
     @staticmethod
     def _parse_fragment(url):
-        return {k: json.loads(v[0]) for k, v in compat_urlparse.parse_qs(compat_urllib_parse_urlparse(url).fragment).items()}
+        return {k: json.loads(v[0]) for k, v in urllib.parse.parse_qs(urllib.parse.urlparse(url).fragment).items()}
 
 
 class PanoptoIE(PanoptoBaseIE):

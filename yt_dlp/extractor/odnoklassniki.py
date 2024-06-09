@@ -1,12 +1,7 @@
 import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_etree_fromstring,
-    compat_parse_qs,
-    compat_urllib_parse_unquote,
-    compat_urllib_parse_urlparse,
-)
+from ..compat import compat_etree_fromstring
 from ..networking import HEADRequest
 from ..utils import (
     ExtractorError,
@@ -257,8 +252,8 @@ class OdnoklassnikiIE(InfoExtractor):
                 raise e
 
     def _extract_desktop(self, url):
-        start_time = int_or_none(compat_parse_qs(
-            compat_urllib_parse_urlparse(url).query).get('fromTime', [None])[0])
+        start_time = int_or_none(urllib.parse.parse_qs(
+            urllib.parse.urlparse(url).query).get('fromTime', [None])[0])
 
         url, smuggled = unsmuggle_url(url, {})
         video_id, is_embed = self._match_valid_url(url).group('id', 'embed')
@@ -300,7 +295,7 @@ class OdnoklassnikiIE(InfoExtractor):
             if st_location:
                 data['st.location'] = st_location
             metadata = self._download_json(
-                compat_urllib_parse_unquote(flashvars['metadataUrl']),
+                urllib.parse.unquote(flashvars['metadataUrl']),
                 video_id, 'Downloading metadata JSON',
                 data=urlencode_postdata(data))
 

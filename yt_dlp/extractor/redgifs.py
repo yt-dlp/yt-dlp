@@ -1,7 +1,7 @@
 import functools
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import compat_parse_qs
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
@@ -192,7 +192,7 @@ class RedGifsSearchIE(RedGifsBaseInfoExtractor):
 
     def _real_extract(self, url):
         query_str = self._match_valid_url(url).group('query')
-        query = compat_parse_qs(query_str)
+        query = urllib.parse.parse_qs(query_str)
         if not query.get('tags'):
             raise ExtractorError('Invalid query tags', expected=True)
 
@@ -248,7 +248,7 @@ class RedGifsUserIE(RedGifsBaseInfoExtractor):
         username, query_str = self._match_valid_url(url).group('username', 'query')
         playlist_id = f'{username}?{query_str}' if query_str else username
 
-        query = compat_parse_qs(query_str)
+        query = urllib.parse.parse_qs(query_str)
         order = query.get('order', ('recent',))[0]
 
         entries = self._paged_entries(f'users/{username}/search', playlist_id, query, {

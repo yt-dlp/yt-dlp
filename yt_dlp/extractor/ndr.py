@@ -1,7 +1,7 @@
 import re
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import compat_urllib_parse_urlparse
 from ..utils import (
     ExtractorError,
     determine_ext,
@@ -125,7 +125,7 @@ class NDRIE(NDRBaseIE):
         # some more work needed if we only found sophoraID
         if re.match(r'^[a-z]+\d+$', embed_url):
             # get the initial part of the url path,. eg /panorama/archiv/2022/
-            parsed_url = compat_urllib_parse_urlparse(url)
+            parsed_url = urllib.parse.urlparse(url)
             path = self._search_regex(rf'(.+/){display_id}', parsed_url.path or '', 'embed URL', default='')
             # find tell-tale image with the actual ID
             ndr_id = self._search_regex(rf'{path}([a-z]+\d+)(?!\.)\b', webpage, 'embed URL', default=None)

@@ -1,15 +1,12 @@
 import base64
 import re
 import struct
+import urllib.parse
 import xml.etree.ElementTree
 
 from .adobepass import AdobePassIE
 from .common import InfoExtractor
-from ..compat import (
-    compat_etree_fromstring,
-    compat_parse_qs,
-    compat_urlparse,
-)
+from ..compat import compat_etree_fromstring
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
@@ -323,7 +320,7 @@ class BrightcoveLegacyIE(InfoExtractor):
         if fv_el is not None:
             flashvars = dict(
                 (k, v[0])
-                for k, v in compat_parse_qs(fv_el.attrib['value']).items())
+                for k, v in urllib.parse.parse_qs(fv_el.attrib['value']).items())
         else:
             flashvars = {}
 
@@ -448,7 +445,7 @@ class BrightcoveLegacyIE(InfoExtractor):
         url = re.sub(r'(?<=[?&])bckey', 'playerKey', url)
         mobj = self._match_valid_url(url)
         query_str = mobj.group('query')
-        query = compat_urlparse.parse_qs(query_str)
+        query = urllib.parse.parse_qs(query_str)
 
         videoPlayer = query.get('@videoPlayer')
         if videoPlayer:

@@ -1,5 +1,4 @@
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     ExtractorError,
     int_or_none,
@@ -37,7 +36,7 @@ class WhoWatchIE(InfoExtractor):
         formats = []
 
         for i, fmt in enumerate(live_data.get('streams') or []):
-            name = fmt.get('quality') or fmt.get('name') or compat_str(i)
+            name = fmt.get('quality') or fmt.get('name') or str(i)
             hls_url = fmt.get('hls_url')
             rtmp_url = fmt.get('rtmp_url')
             audio_only = fmt.get('audio_only')
@@ -71,12 +70,12 @@ class WhoWatchIE(InfoExtractor):
             hls_url, video_id, ext='mp4', m3u8_id='hls'))
         self._remove_duplicate_formats(formats)
 
-        uploader_url = try_get(metadata, lambda x: x['live']['user']['user_path'], compat_str)
+        uploader_url = try_get(metadata, lambda x: x['live']['user']['user_path'], str)
         if uploader_url:
             uploader_url = f'https://whowatch.tv/profile/{uploader_url}'
-        uploader_id = compat_str(try_get(metadata, lambda x: x['live']['user']['id'], int))
-        uploader = try_get(metadata, lambda x: x['live']['user']['name'], compat_str)
-        thumbnail = try_get(metadata, lambda x: x['live']['latest_thumbnail_url'], compat_str)
+        uploader_id = str(try_get(metadata, lambda x: x['live']['user']['id'], int))
+        uploader = try_get(metadata, lambda x: x['live']['user']['name'], str)
+        thumbnail = try_get(metadata, lambda x: x['live']['latest_thumbnail_url'], str)
         timestamp = int_or_none(try_get(metadata, lambda x: x['live']['started_at'], int), scale=1000)
         view_count = try_get(metadata, lambda x: x['live']['total_view_count'], int)
         comment_count = try_get(metadata, lambda x: x['live']['comment_count'], int)

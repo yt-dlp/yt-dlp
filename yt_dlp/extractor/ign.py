@@ -2,12 +2,10 @@ import re
 import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import compat_parse_qs
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     determine_ext,
-    error_to_compat_str,
     extract_attributes,
     int_or_none,
     merge_dicts,
@@ -223,7 +221,7 @@ class IGNVideoIE(IGNBaseIE):
 
         webpage, urlh = self._download_webpage_handle(embed_url, video_id)
         new_url = urlh.url
-        ign_url = compat_parse_qs(
+        ign_url = urllib.parse.parse_qs(
             urllib.parse.urlparse(new_url).query).get('url', [None])[-1]
         if ign_url:
             return self.url_result(ign_url, IGNIE.ie_key())
@@ -327,7 +325,7 @@ class IGNArticleIE(IGNBaseIE):
                         'Content not found: expired?', cause=e.cause,
                         expected=True)
                 elif e.cause.status == 503:
-                    self.report_warning(error_to_compat_str(e.cause))
+                    self.report_warning(str(e.cause))
                     return
             raise
 
@@ -366,7 +364,7 @@ class IGNArticleIE(IGNBaseIE):
                     flashvars = self._search_regex(
                         r'''(<param\b[^>]+\bname\s*=\s*("|')flashvars\2[^>]*>)''',
                         m.group('params'), 'flashvars', default='')
-                    flashvars = compat_parse_qs(extract_attributes(flashvars).get('value') or '')
+                    flashvars = urllib.parse.parse_qs(extract_attributes(flashvars).get('value') or '')
                     v_url = url_or_none((flashvars.get('url') or [None])[-1])
                     if v_url:
                         yield self.url_result(v_url)

@@ -1,7 +1,6 @@
+import urllib.parse
+
 from .common import InfoExtractor
-from ..compat import (
-    compat_urlparse,
-)
 
 
 class MotorsportIE(InfoExtractor):
@@ -40,7 +39,7 @@ class MotorsportIE(InfoExtractor):
             return self.url_result(iframe_path)
 
         iframe = self._download_webpage(
-            compat_urlparse.urljoin(url, iframe_path), display_id,
+            urllib.parse.urljoin(url, iframe_path), display_id,
             'Downloading iframe')
         youtube_id = self._search_regex(
             r'www.youtube.com/embed/(.{11})', iframe, 'youtube id')

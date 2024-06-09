@@ -1,8 +1,8 @@
 import json
 import re
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import compat_urllib_parse_urlparse
 from ..utils import (
     ExtractorError,
     determine_ext,
@@ -209,7 +209,7 @@ class RuutuIE(InfoExtractor):
                             'vcodec': 'none',
                         })
                     else:
-                        proto = compat_urllib_parse_urlparse(video_url).scheme
+                        proto = urllib.parse.urlparse(video_url).scheme
                         if not child.tag.startswith('HTTP') and proto != 'rtmp':
                             continue
                         preference = -1 if proto == 'rtmp' else 1

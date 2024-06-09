@@ -1,15 +1,12 @@
+import base64
 import datetime as dt
 import hashlib
 import re
 import time
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_b64decode,
-    compat_ord,
-    compat_str,
-    compat_urllib_parse_urlencode,
-)
+from ..compat import compat_ord
 from ..utils import (
     ExtractorError,
     determine_ext,
@@ -305,11 +302,11 @@ class LetvCloudIE(InfoExtractor):
                 'format': 'json',
                 'uu': uu,
                 'vu': vu,
-                'ran': compat_str(timestamp),
+                'ran': str(timestamp),
             }
             self.sign_data(data)
             return self._download_json(
-                'http://api.letvcloud.com/gpc.php?' + compat_urllib_parse_urlencode(data),
+                'http://api.letvcloud.com/gpc.php?' + urllib.parse.urlencode(data),
                 media_id, f'Downloading playJson data for type {cf}')
 
         play_json = get_play_json(cf, time.time())
@@ -326,7 +323,7 @@ class LetvCloudIE(InfoExtractor):
                 raise ExtractorError('Letv cloud returned an unknown error')
 
         def b64decode(s):
-            return compat_b64decode(s).decode('utf-8')
+            return base64.b64decode(s).decode('utf-8')
 
         formats = []
         for media in play_json['data']['video_info']['media'].values():

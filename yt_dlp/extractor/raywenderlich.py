@@ -2,7 +2,6 @@ import re
 
 from .common import InfoExtractor
 from .vimeo import VimeoIE
-from ..compat import compat_str
 from ..utils import (
     ExtractorError,
     int_or_none,
@@ -67,7 +66,7 @@ class RayWenderlichIE(InfoExtractor):
                     continue
                 video_id = content.get('identifier')
                 if video_id:
-                    return compat_str(video_id)
+                    return str(video_id)
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)

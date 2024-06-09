@@ -1,5 +1,4 @@
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     determine_protocol,
     int_or_none,
@@ -35,7 +34,7 @@ class DailyMailIE(InfoExtractor):
         sources_url = (try_get(
             video_data,
             (lambda x: x['plugins']['sources']['url'],
-             lambda x: x['sources']['url']), compat_str)
+             lambda x: x['sources']['url']), str)
             or f'http://www.dailymail.co.uk/api/player/{video_id}/video-sources.json')
 
         video_sources = self._download_json(sources_url, video_id)

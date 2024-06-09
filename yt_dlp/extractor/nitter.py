@@ -1,8 +1,8 @@
 import random
 import re
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import compat_urlparse
 from ..utils import (
     determine_ext,
     parse_count,
@@ -291,7 +291,7 @@ class NitterIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id, uploader_id = self._match_valid_url(url).group('id', 'uploader_id')
-        parsed_url = compat_urlparse.urlparse(url)
+        parsed_url = urllib.parse.urlparse(url)
         base_url = f'{parsed_url.scheme}://{parsed_url.netloc}'
 
         self._set_cookie(parsed_url.netloc, 'hlsPlayback', 'on')

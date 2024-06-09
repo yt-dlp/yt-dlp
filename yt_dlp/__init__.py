@@ -14,7 +14,7 @@ import os
 import re
 import traceback
 
-from .compat import compat_os_name, compat_shlex_quote
+from .compat import compat_os_name
 from .cookies import SUPPORTED_BROWSERS, SUPPORTED_KEYRINGS
 from .downloader.external import get_external_downloader
 from .extractor import list_extractor_classes
@@ -58,6 +58,7 @@ from .utils import (
     read_stdin,
     render_table,
     setproctitle,
+    shell_quote,
     traverse_obj,
     variadic,
     write_string,
@@ -396,13 +397,13 @@ def validate_options(opts):
     # MetadataParser
     def metadataparser_actions(f):
         if isinstance(f, str):
-            cmd = f'--parse-metadata {compat_shlex_quote(f)}'
+            cmd = f'--parse-metadata {shell_quote(f)}'
             try:
                 actions = [MetadataFromFieldPP.to_action(f)]
             except Exception as err:
                 raise ValueError(f'{cmd} is invalid; {err}')
         else:
-            cmd = '--replace-in-metadata {}'.format(' '.join(map(compat_shlex_quote, f)))
+            cmd = '--replace-in-metadata {}'.format(' '.join(map(shell_quote, f)))
             actions = ((MetadataParserPP.Actions.REPLACE, x, *f[1:]) for x in f[0].split(','))
 
         for action in actions:

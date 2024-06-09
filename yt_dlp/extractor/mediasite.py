@@ -1,11 +1,8 @@
 import json
 import re
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-    compat_urlparse,
-)
 from ..utils import (
     ExtractorError,
     float_or_none,
@@ -173,7 +170,7 @@ class MediasiteIE(InfoExtractor):
         redirect_url = urlh.url
 
         # XXX: might have also extracted UrlReferrer and QueryString from the html
-        service_path = compat_urlparse.urljoin(redirect_url, self._html_search_regex(
+        service_path = urllib.parse.urljoin(redirect_url, self._html_search_regex(
             r'<div[^>]+\bid=["\']ServicePath[^>]+>(.+?)</div>', webpage, resource_id,
             default='/Mediasite/PlayerService/PlayerService.svc/json'))
 
@@ -383,7 +380,7 @@ class MediasiteCatalogIE(InfoExtractor):
                 ie=MediasiteIE.ie_key(), video_id=video_id))
 
         title = try_get(
-            catalog, lambda x: x['CurrentFolder']['Name'], compat_str)
+            catalog, lambda x: x['CurrentFolder']['Name'], str)
 
         return self.playlist_result(entries, catalog_id, title)
 

@@ -1,10 +1,7 @@
 import base64
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-    compat_urllib_parse_urlencode,
-)
 from ..utils import (
     format_field,
     int_or_none,
@@ -79,7 +76,7 @@ class AWAANVideoIE(AWAANBaseIE):
             video_id, headers={'Origin': 'http://awaan.ae'})
         info = self._parse_video_data(video_data, video_id, False)
 
-        embed_url = 'http://admin.mangomolo.com/analytics/index.php/customers/embed/video?' + compat_urllib_parse_urlencode({
+        embed_url = 'http://admin.mangomolo.com/analytics/index.php/customers/embed/video?' + urllib.parse.urlencode({
             'id': video_data['id'],
             'user_id': video_data['user_id'],
             'signature': video_data['signature'],
@@ -121,7 +118,7 @@ class AWAANLiveIE(AWAANBaseIE):
             channel_id, headers={'Origin': 'http://awaan.ae'})
         info = self._parse_video_data(channel_data, channel_id, True)
 
-        embed_url = 'http://admin.mangomolo.com/analytics/index.php/customers/embed/index?' + compat_urllib_parse_urlencode({
+        embed_url = 'http://admin.mangomolo.com/analytics/index.php/customers/embed/index?' + urllib.parse.urlencode({
             'id': base64.b64encode(channel_data['user_id'].encode()).decode(),
             'channelid': base64.b64encode(channel_data['id'].encode()).decode(),
             'signature': channel_data['signature'],
@@ -177,7 +174,7 @@ class AWAANSeasonIE(InfoExtractor):
 
                 entries = []
                 for video in show['videos']:
-                    video_id = compat_str(video['id'])
+                    video_id = str(video['id'])
                     entries.append(self.url_result(
                         f'http://awaan.ae/media/{video_id}', 'AWAANVideo', video_id))
 

@@ -1,7 +1,6 @@
 import itertools
 
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     ExtractorError,
     format_field,
@@ -51,7 +50,7 @@ class YouNowLiveIE(InfoExtractor):
 
         uploader = try_get(
             data, lambda x: x['user']['profileUrlString'],
-            compat_str) or username
+            str) or username
 
         return {
             'id': uploader,
@@ -81,14 +80,14 @@ def _extract_moment(item, fatal=True):
             return
         raise ExtractorError('Unable to extract moment id')
 
-    moment_id = compat_str(moment_id)
+    moment_id = str(moment_id)
 
     title = item.get('text')
     if not title:
         title = 'YouNow %s' % (
             item.get('momentType') or item.get('titleType') or 'moment')
 
-    uploader = try_get(item, lambda x: x['owner']['name'], compat_str)
+    uploader = try_get(item, lambda x: x['owner']['name'], str)
     uploader_id = try_get(item, lambda x: x['owner']['userId'])
     uploader_url = format_field(uploader, None, 'https://www.younow.com/%s')
 
@@ -158,7 +157,7 @@ class YouNowChannelIE(InfoExtractor):
 
     def _real_extract(self, url):
         username = self._match_id(url)
-        channel_id = compat_str(self._download_json(
+        channel_id = str(self._download_json(
             f'https://api.younow.com/php/api/broadcast/info/curId=0/user={username}',
             username, note='Downloading user information')['userId'])
         return self.playlist_result(

@@ -1,5 +1,6 @@
+import urllib.parse
+
 from .common import InfoExtractor
-from ..compat import compat_urllib_parse_unquote
 from ..utils import (
     find_xpath_attr,
     int_or_none,
@@ -37,7 +38,7 @@ class NozIE(InfoExtractor):
             r'so\.addVariable\("config_url","[^,]*,(.*?)"',
             edge_content, 'config URL',
         )
-        config_url = compat_urllib_parse_unquote(config_url_encoded)
+        config_url = urllib.parse.unquote(config_url_encoded)
 
         doc = self._download_xml(config_url, 'video configuration')
         title = xpath_text(doc, './/title')

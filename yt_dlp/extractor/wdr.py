@@ -1,10 +1,7 @@
 import re
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-    compat_urlparse,
-)
 from ..utils import (
     ExtractorError,
     determine_ext,
@@ -289,14 +286,14 @@ class WDRPageIE(WDRIE):  # XXX: Do not subclass from concrete IE
             if not media_link_obj:
                 continue
             jsonp_url = try_get(
-                media_link_obj, lambda x: x['mediaObj']['url'], compat_str)
+                media_link_obj, lambda x: x['mediaObj']['url'], str)
             if jsonp_url:
                 # metadata, or player JS with ['ref'] giving WDR id, or just media, perhaps
                 clip_id = media_link_obj['mediaObj'].get('ref')
                 if jsonp_url.endswith('.assetjsonp'):
                     asset = self._download_json(
                         jsonp_url, display_id, fatal=False, transform_source=strip_jsonp)
-                    clip_id = try_get(asset, lambda x: x['trackerData']['trackerClipId'], compat_str)
+                    clip_id = try_get(asset, lambda x: x['trackerData']['trackerClipId'], str)
                 if clip_id:
                     jsonp_url = self._asset_url(clip_id[4:])
                 entries.append(self.url_result(jsonp_url, ie=WDRIE.ie_key()))
@@ -305,7 +302,7 @@ class WDRPageIE(WDRIE):  # XXX: Do not subclass from concrete IE
         if not entries:
             entries = [
                 self.url_result(
-                    compat_urlparse.urljoin(url, mobj.group('href')),
+                    urllib.parse.urljoin(url, mobj.group('href')),
                     ie=WDRPageIE.ie_key())
                 for mobj in re.finditer(
                     r'<a[^>]+\bhref=(["\'])(?P<href>(?:(?!\1).)+)\1[^>]+\bdata-extension(?:-ard)?=',

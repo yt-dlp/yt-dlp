@@ -7,7 +7,6 @@ import time
 
 from .common import InfoExtractor
 from ..aes import aes_cbc_decrypt_bytes, unpad_pkcs7
-from ..compat import compat_b64decode
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
@@ -111,9 +110,9 @@ class ADNIE(ADNBaseIE):
 
         # http://animationdigitalnetwork.fr/components/com_vodvideo/videojs/adn-vjs.min.js
         dec_subtitles = unpad_pkcs7(aes_cbc_decrypt_bytes(
-            compat_b64decode(enc_subtitles[24:]),
+            base64.b64decode(enc_subtitles[24:]),
             binascii.unhexlify(self._K + '7fac1178830cfe0c'),
-            compat_b64decode(enc_subtitles[:24])))
+            base64.b64decode(enc_subtitles[:24])))
         subtitles_json = self._parse_json(dec_subtitles.decode(), None, fatal=False)
         if not subtitles_json:
             return None

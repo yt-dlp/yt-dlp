@@ -2,7 +2,6 @@ import re
 import uuid
 
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
@@ -53,7 +52,7 @@ class ZattooPlatformBaseIE(InfoExtractor):
         self._request_webpage(
             f'{self._host_url()}/zapi/v3/session/hello', None,
             'Opening session', data=urlencode_postdata({
-                'uuid': compat_str(uuid.uuid4()),
+                'uuid': str(uuid.uuid4()),
                 'lang': 'en',
                 'app_version': '1.8.2',
                 'format': 'json',

@@ -1,7 +1,6 @@
 import re
 
 from .adobepass import AdobePassIE
-from ..compat import compat_str
 from ..utils import (
     ExtractorError,
     determine_ext,
@@ -191,7 +190,7 @@ class GoIE(AdobePassIE):
                 video_id = try_get(
                     layout,
                     (lambda x: x['videoid'], lambda x: x['video']['id']),
-                    compat_str)
+                    str)
             if not video_id:
                 video_id = self._search_regex(
                     (

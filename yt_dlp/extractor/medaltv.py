@@ -1,7 +1,6 @@
 import re
 
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     ExtractorError,
     float_or_none,
@@ -114,7 +113,7 @@ class MedalTVIE(InfoExtractor):
         formats = []
         thumbnails = []
         for k, v in clip.items():
-            if not (v and isinstance(v, compat_str)):
+            if not (v and isinstance(v, str)):
                 continue
             mobj = re.match(r'(contentUrl|thumbnail)(?:(\d+)p)?$', k)
             if not mobj:

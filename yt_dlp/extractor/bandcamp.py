@@ -3,7 +3,6 @@ import re
 import time
 
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     KNOWN_EXTENSIONS,
     ExtractorError,
@@ -167,7 +166,7 @@ class BandcampIE(InfoExtractor):
 
         download_link = tralbum.get('freeDownloadPage')
         if download_link:
-            track_id = compat_str(tralbum['id'])
+            track_id = str(tralbum['id'])
 
             download_webpage = self._download_webpage(
                 download_link, track_id, 'Downloading free downloads page')
@@ -192,7 +191,7 @@ class BandcampIE(InfoExtractor):
                     if isinstance(download_formats_list, list):
                         for f in blob['download_formats']:
                             name, ext = f.get('name'), f.get('file_extension')
-                            if all(isinstance(x, compat_str) for x in (name, ext)):
+                            if all(isinstance(x, str) for x in (name, ext)):
                                 download_formats[name] = ext.strip('.')
 
                     for format_id, f in downloads.items():

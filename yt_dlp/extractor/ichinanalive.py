@@ -1,5 +1,4 @@
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import ExtractorError, str_or_none, traverse_obj, unified_strdate
 
 
@@ -52,7 +51,7 @@ class IchinanaLiveIE(InfoExtractor):
             raise ExtractorError('unable to extract live URL information')
         formats = []
         for (name, value) in video_urls[0].items():
-            if not isinstance(value, compat_str):
+            if not isinstance(value, str):
                 continue
             if not value.startswith('http'):
                 continue

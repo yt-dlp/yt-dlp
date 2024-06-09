@@ -1,8 +1,8 @@
 import re
+import urllib.parse
 
 from .common import InfoExtractor
 from ..aes import aes_decrypt_text
-from ..compat import compat_urllib_parse_unquote
 from ..utils import (
     determine_ext,
     format_field,
@@ -100,7 +100,7 @@ class Tube8IE(InfoExtractor):
             r'flashvars\.video_url\s*=\s*(["\'])(?P<url>http.+?)\1',
             webpage, 'video url', default=None, group='url')
         if video_url:
-            extract_format(compat_urllib_parse_unquote(video_url))
+            extract_format(urllib.parse.unquote(video_url))
 
         if not formats:
             if 'title="This video is no longer available"' in webpage:

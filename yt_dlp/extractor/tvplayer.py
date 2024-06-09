@@ -1,5 +1,4 @@
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
@@ -48,7 +47,7 @@ class TVPlayerIE(InfoExtractor):
 
         validate = context['validate']
         platform = try_get(
-            context, lambda x: x['platform']['key'], compat_str) or 'firefox'
+            context, lambda x: x['platform']['key'], str) or 'firefox'
 
         try:
             response = self._download_json(

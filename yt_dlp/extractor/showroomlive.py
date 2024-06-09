@@ -1,5 +1,4 @@
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     ExtractorError,
     int_or_none,
@@ -68,7 +67,7 @@ class ShowRoomLiveIE(InfoExtractor):
                 })
 
         return {
-            'id': compat_str(room.get('live_id') or broadcaster_id),
+            'id': str(room.get('live_id') or broadcaster_id),
             'title': title,
             'description': room.get('description'),
             'timestamp': int_or_none(room.get('current_live_started_at')),

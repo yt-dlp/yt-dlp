@@ -1,9 +1,9 @@
 import datetime as dt
 import hashlib
 import hmac
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import compat_urllib_parse_urlencode
 
 
 class AWSIE(InfoExtractor):  # XXX: Conventionally, base classes should end with BaseIE/InfoExtractor
@@ -28,7 +28,7 @@ class AWSIE(InfoExtractor):  # XXX: Conventionally, base classes should end with
             return hashlib.sha256(s.encode()).hexdigest()
 
         # Task 1: http://docs.aws.amazon.com/general/latest/gr/sigv4-create-canonical-request.html
-        canonical_querystring = compat_urllib_parse_urlencode(query)
+        canonical_querystring = urllib.parse.urlencode(query)
         canonical_headers = ''
         for header_name, header_value in sorted(headers.items()):
             canonical_headers += f'{header_name.lower()}:{header_value}\n'

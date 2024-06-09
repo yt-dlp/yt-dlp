@@ -2,7 +2,6 @@ import re
 import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import ExtractorError, int_or_none, urlencode_postdata
 
 
@@ -157,7 +156,7 @@ class CuriosityStreamCollectionBaseIE(CuriosityStreamBaseIE):
         collection = self._call_api(collection_id, collection_id)
         entries = []
         for media in collection.get('media', []):
-            media_id = compat_str(media.get('id'))
+            media_id = str(media.get('id'))
             media_type, ie = ('series', CuriosityStreamSeriesIE) if media.get('is_collection') else ('video', CuriosityStreamIE)
             entries.append(self.url_result(
                 f'https://curiositystream.com/{media_type}/{media_id}',

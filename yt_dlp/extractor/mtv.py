@@ -2,7 +2,6 @@ import re
 import xml.etree.ElementTree
 
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..networking import HEADRequest, Request
 from ..utils import (
     ExtractorError,
@@ -118,7 +117,7 @@ class MTVServicesInfoExtractor(InfoExtractor):
                 if ext == 'cea-608':
                     ext = 'scc'
                 subtitles.setdefault(lang, []).append({
-                    'url': compat_str(sub_src),
+                    'url': str(sub_src),
                     'ext': ext,
                 })
         return subtitles
@@ -255,7 +254,7 @@ class MTVServicesInfoExtractor(InfoExtractor):
 
         feed_url = try_get(
             triforce_feed, lambda x: x['manifest']['zones'][data_zone]['feed'],
-            compat_str)
+            str)
         if not feed_url:
             return
 
@@ -263,7 +262,7 @@ class MTVServicesInfoExtractor(InfoExtractor):
         if not feed:
             return
 
-        return try_get(feed, lambda x: x['result']['data']['id'], compat_str)
+        return try_get(feed, lambda x: x['result']['data']['id'], str)
 
     @staticmethod
     def _extract_child_with_type(parent, t):
@@ -578,7 +577,7 @@ class MTVItaliaProgrammaIE(MTVItaliaIE):  # XXX: Do not subclass from concrete I
             pg = self._search_regex(r'/(\d+)$', url, 'entries', '1')
             entries = self._download_json(url, title, f'page {pg}')
             url = try_get(
-                entries, lambda x: x['result']['nextPageURL'], compat_str)
+                entries, lambda x: x['result']['nextPageURL'], str)
             entries = try_get(
                 entries, (
                     lambda x: x['result']['data']['items'],
@@ -597,15 +596,15 @@ class MTVItaliaProgrammaIE(MTVItaliaIE):  # XXX: Do not subclass from concrete I
         info = self._download_json(info_url, video_id).get('manifest')
 
         redirect = try_get(
-            info, lambda x: x['newLocation']['url'], compat_str)
+            info, lambda x: x['newLocation']['url'], str)
         if redirect:
             return self.url_result(redirect)
 
         title = info.get('title')
         video_id = try_get(
-            info, lambda x: x['reporting']['itemId'], compat_str)
+            info, lambda x: x['reporting']['itemId'], str)
         parent_id = try_get(
-            info, lambda x: x['reporting']['parentId'], compat_str)
+            info, lambda x: x['reporting']['parentId'], str)
 
         playlist_url = current_url = None
         for z in (info.get('zones') or {}).values():
@@ -629,15 +628,15 @@ class MTVItaliaProgrammaIE(MTVItaliaIE):  # XXX: Do not subclass from concrete I
             info, (
                 lambda x: x['title'],
                 lambda x: x['headline']),
-            compat_str)
-        description = try_get(info, lambda x: x['content'], compat_str)
+            str)
+        description = try_get(info, lambda x: x['content'], str)
 
         if current_url:
             season = try_get(
                 self._download_json(playlist_url, video_id, 'Seasons info'),
                 lambda x: x['result']['data'], dict)
             current = try_get(
-                season, lambda x: x['currentSeason'], compat_str)
+                season, lambda x: x['currentSeason'], str)
             seasons = try_get(
                 season, lambda x: x['seasons'], list) or []
 

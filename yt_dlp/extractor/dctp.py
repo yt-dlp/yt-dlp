@@ -1,5 +1,4 @@
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     float_or_none,
     int_or_none,
@@ -48,7 +47,7 @@ class DctpTvIE(InfoExtractor):
             'Downloading video info JSON')
 
         media = self._download_json(
-            '{}/media/{}.json'.format(restapi_base, compat_str(info['object_id'])),
+            '{}/media/{}.json'.format(restapi_base, str(info['object_id'])),
             display_id, 'Downloading media JSON')
 
         uuid = media['uuid']

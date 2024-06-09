@@ -1,8 +1,8 @@
 import random
 import string
+import urllib.parse
 
 from .discoverygo import DiscoveryGoBaseIE
-from ..compat import compat_urllib_parse_unquote
 from ..networking.exceptions import HTTPError
 from ..utils import ExtractorError
 
@@ -67,8 +67,8 @@ class DiscoveryIE(DiscoveryGoBaseIE):
         # prefer Affiliate Auth Token over Anonymous Auth Token
         auth_storage_cookie = cookies.get('eosAf') or cookies.get('eosAn')
         if auth_storage_cookie and auth_storage_cookie.value:
-            auth_storage = self._parse_json(compat_urllib_parse_unquote(
-                compat_urllib_parse_unquote(auth_storage_cookie.value)),
+            auth_storage = self._parse_json(urllib.parse.unquote(
+                urllib.parse.unquote(auth_storage_cookie.value)),
                 display_id, fatal=False) or {}
             access_token = auth_storage.get('a') or auth_storage.get('access_token')
 

@@ -1,5 +1,4 @@
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     int_or_none,
     smuggle_url,
@@ -72,7 +71,7 @@ class TeleQuebecIE(TeleQuebecBaseIE):
         product = media.get('product') or {}
         season = product.get('season') or {}
         info.update({
-            'description': try_get(media, lambda x: x['descriptions'][-1]['text'], compat_str),
+            'description': try_get(media, lambda x: x['descriptions'][-1]['text'], str),
             'series': try_get(season, lambda x: x['serie']['titre']),
             'season': season.get('name'),
             'season_number': int_or_none(season.get('seasonNo')),

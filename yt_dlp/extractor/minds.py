@@ -1,5 +1,4 @@
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     clean_html,
     format_field,
@@ -98,7 +97,7 @@ class MindsIE(MindsBaseIE):
         uploader_id = owner.get('username')
 
         tags = entity.get('tags')
-        if tags and isinstance(tags, compat_str):
+        if tags and isinstance(tags, str):
             tags = [tags]
 
         thumbnail = None

@@ -1,10 +1,7 @@
 import re
+import urllib.parse
 
 from .turner import TurnerBaseIE
-from ..compat import (
-    compat_parse_qs,
-    compat_urllib_parse_urlparse,
-)
 from ..utils import (
     float_or_none,
     int_or_none,
@@ -47,7 +44,7 @@ class TBSIE(TurnerBaseIE):
 
         media_id = video_data['mediaID']
         title = video_data['title']
-        tokenizer_query = compat_parse_qs(compat_urllib_parse_urlparse(
+        tokenizer_query = urllib.parse.parse_qs(urllib.parse.urlparse(
             drupal_settings['ngtv_token_url']).query)
 
         info = self._extract_ngtv_info(

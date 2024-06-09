@@ -1,8 +1,6 @@
+import urllib.parse
+
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-    compat_urlparse,
-)
 from ..utils import (
     determine_ext,
 )
@@ -44,8 +42,8 @@ class GolemIE(InfoExtractor):
                 continue
 
             formats.append({
-                'format_id': compat_str(e.tag),
-                'url': compat_urlparse.urljoin(self._PREFIX, url),
+                'format_id': str(e.tag),
+                'url': urllib.parse.urljoin(self._PREFIX, url),
                 'height': self._int(e.get('height'), 'height'),
                 'width': self._int(e.get('width'), 'width'),
                 'filesize': self._int(e.findtext('filesize'), 'filesize'),
@@ -59,7 +57,7 @@ class GolemIE(InfoExtractor):
             if not url:
                 continue
             thumbnails.append({
-                'url': compat_urlparse.urljoin(self._PREFIX, url),
+                'url': urllib.parse.urljoin(self._PREFIX, url),
                 'width': self._int(e.get('width'), 'thumbnail width'),
                 'height': self._int(e.get('height'), 'thumbnail height'),
             })

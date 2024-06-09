@@ -1,10 +1,7 @@
 import re
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-    compat_urlparse,
-)
 from ..utils import (
     ExtractorError,
     int_or_none,
@@ -21,7 +18,7 @@ class LyndaBaseIE(InfoExtractor):
 
     @staticmethod
     def _check_error(json_string, key_or_keys):
-        keys = [key_or_keys] if isinstance(key_or_keys, compat_str) else key_or_keys
+        keys = [key_or_keys] if isinstance(key_or_keys, str) else key_or_keys
         for key in keys:
             error = json_string.get(key)
             if error:
@@ -33,7 +30,7 @@ class LyndaBaseIE(InfoExtractor):
             'post url', default=fallback_action_url, group='url')
 
         if not action_url.startswith('http'):
-            action_url = compat_urlparse.urljoin(self._SIGNIN_URL, action_url)
+            action_url = urllib.parse.urljoin(self._SIGNIN_URL, action_url)
 
         form_data = self._hidden_inputs(form_html)
         form_data.update(extra_form_data)
@@ -178,7 +175,7 @@ class LyndaIE(LyndaBaseIE):
         if video.get('HasAccess') is False:
             self._raise_unavailable(video_id)
 
-        video_id = compat_str(video.get('ID') or video_id)
+        video_id = str(video.get('ID') or video_id)
         duration = int_or_none(video.get('DurationInSeconds'))
         title = video['Title']
 
@@ -192,7 +189,7 @@ class LyndaIE(LyndaBaseIE):
                 'width': int_or_none(f.get('Width')),
                 'height': int_or_none(f.get('Height')),
                 'filesize': int_or_none(f.get('FileSize')),
-                'format_id': compat_str(f.get('Resolution')) if f.get('Resolution') else None,
+                'format_id': str(f.get('Resolution')) if f.get('Resolution') else None,
             } for f in fmts if f.get('Url')])
 
         prioritized_streams = video.get('PrioritizedStreams')
@@ -313,7 +310,7 @@ class LyndaCourseIE(LyndaBaseIE):
                         'ie_key': LyndaIE.ie_key(),
                         'chapter': chapter.get('Title'),
                         'chapter_number': int_or_none(chapter.get('ChapterIndex')),
-                        'chapter_id': compat_str(chapter.get('ID')),
+                        'chapter_id': str(chapter.get('ID')),
                     })
 
         if unaccessible_videos > 0:

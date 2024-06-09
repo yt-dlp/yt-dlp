@@ -1,8 +1,6 @@
+import urllib.parse
+
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-    compat_urllib_parse_unquote,
-)
 from ..utils import (
     determine_ext,
     float_or_none,
@@ -67,14 +65,14 @@ class IzleseneIE(InfoExtractor):
         formats = []
         for stream in video['media']['level']:
             source_url = stream.get('source')
-            if not source_url or not isinstance(source_url, compat_str):
+            if not source_url or not isinstance(source_url, str):
                 continue
             ext = determine_ext(url, 'mp4')
             quality = stream.get('value')
             height = int_or_none(quality)
             formats.append({
                 'format_id': f'{quality}p' if quality else 'sd',
-                'url': compat_urllib_parse_unquote(source_url),
+                'url': urllib.parse.unquote(source_url),
                 'ext': ext,
                 'height': height,
             })

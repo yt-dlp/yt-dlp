@@ -3,7 +3,6 @@ import time
 import uuid
 
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     ExtractorError,
     int_or_none,
@@ -38,7 +37,7 @@ class Zee5IE(InfoExtractor):
             'display_id': 'adavari-matalaku-ardhale-verule',
             'title': 'Adavari Matalaku Ardhale Verule',
             'duration': 9360,
-            'description': compat_str,
+            'description': str,
             'alt_title': 'Adavari Matalaku Ardhale Verule',
             'uploader': 'Zee Entertainment Enterprises Ltd',
             'release_date': '20070427',
@@ -60,7 +59,7 @@ class Zee5IE(InfoExtractor):
             'display_id': 'yoga-se-hoga-bandbudh-aur-budbak',
             'title': 'Yoga Se Hoga-Bandbudh aur Budbak',
             'duration': 659,
-            'description': compat_str,
+            'description': str,
             'alt_title': 'Yoga Se Hoga-Bandbudh aur Budbak',
             'uploader': 'Zee Entertainment Enterprises Ltd',
             'release_date': '20150101',
@@ -251,7 +250,7 @@ class Zee5SeriesIE(InfoExtractor):
         page_num = 0
         show_json = self._download_json(show_url, video_id=show_id, headers=headers)
         for season in show_json.get('seasons') or []:
-            season_id = try_get(season, lambda x: x['id'], compat_str)
+            season_id = try_get(season, lambda x: x['id'], str)
             next_url = f'https://gwapi.zee5.com/content/tvshow/?season_id={season_id}&type=episode&translation=en&country=IN&on_air=false&asset_subtype=tvshow&page=1&limit=100'
             while next_url:
                 page_num += 1

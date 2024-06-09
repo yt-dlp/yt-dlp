@@ -1,5 +1,4 @@
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     format_field,
     int_or_none,
@@ -66,7 +65,7 @@ class JojIE(InfoExtractor):
 
         formats = []
         for format_url in try_get(bitrates, lambda x: x['mp4'], list) or []:
-            if isinstance(format_url, compat_str):
+            if isinstance(format_url, str):
                 height = self._search_regex(
                     r'(\d+)[pP]|(pal)\.', format_url, 'height', default=None)
                 if height == 'pal':

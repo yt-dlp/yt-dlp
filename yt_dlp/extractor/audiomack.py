@@ -3,7 +3,6 @@ import time
 
 from .common import InfoExtractor
 from .soundcloud import SoundcloudIE
-from ..compat import compat_str
 from ..utils import (
     ExtractorError,
     url_basename,
@@ -64,7 +63,7 @@ class AudiomackIE(InfoExtractor):
             return self.url_result(api_response['url'], SoundcloudIE.ie_key())
 
         return {
-            'id': compat_str(api_response.get('id', album_url_tag)),
+            'id': str(api_response.get('id', album_url_tag)),
             'uploader': api_response.get('artist'),
             'title': api_response.get('title'),
             'url': api_response['url'],
@@ -136,10 +135,10 @@ class AudiomackAlbumIE(InfoExtractor):
                 # Pull out the album metadata and add to result (if it exists)
                 for resultkey, apikey in [('id', 'album_id'), ('title', 'album_title')]:
                     if apikey in api_response and resultkey not in result:
-                        result[resultkey] = compat_str(api_response[apikey])
+                        result[resultkey] = str(api_response[apikey])
                 song_id = url_basename(api_response['url']).rpartition('.')[0]
                 result['entries'].append({
-                    'id': compat_str(api_response.get('id', song_id)),
+                    'id': str(api_response.get('id', song_id)),
                     'uploader': api_response.get('artist'),
                     'title': api_response.get('title', song_id),
                     'url': api_response['url'],

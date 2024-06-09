@@ -3,18 +3,13 @@ import re
 import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_etree_fromstring,
-    compat_str,
-    compat_urllib_parse_unquote,
-)
+from ..compat import compat_etree_fromstring
 from ..networking import Request
 from ..networking.exceptions import network_exceptions
 from ..utils import (
     ExtractorError,
     clean_html,
     determine_ext,
-    error_to_compat_str,
     float_or_none,
     format_field,
     get_element_by_id,
@@ -474,7 +469,7 @@ class FacebookIE(InfoExtractor):
             if re.search(r'id="checkpointSubmitButton"', check_response) is not None:
                 self.report_warning('Unable to confirm login, you have to login in your browser and authorize the login.')
         except network_exceptions as err:
-            self.report_warning(f'unable to log in: {error_to_compat_str(err)}')
+            self.report_warning(f'unable to log in: {err}')
             return
 
     def _extract_from_url(self, url, video_id):
@@ -760,7 +755,7 @@ class FacebookIE(InfoExtractor):
                 v_id = video.get('id')
                 if not v_id:
                     continue
-                v_id = compat_str(v_id)
+                v_id = str(v_id)
                 entries.append(self.url_result(
                     self._VIDEO_PAGE_TEMPLATE % v_id,
                     self.ie_key(), v_id, video.get('name')))
@@ -879,7 +874,7 @@ class FacebookPluginsVideoIE(InfoExtractor):
 
     def _real_extract(self, url):
         return self.url_result(
-            compat_urllib_parse_unquote(self._match_id(url)),
+            urllib.parse.unquote(self._match_id(url)),
             FacebookIE.ie_key())
 
 

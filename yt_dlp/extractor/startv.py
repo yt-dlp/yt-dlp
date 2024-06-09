@@ -1,7 +1,4 @@
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-)
 from ..utils import (
     ExtractorError,
     clean_html,
@@ -80,7 +77,7 @@ class StarTVIE(InfoExtractor):
         if not info:
             raise ExtractorError('Failed to extract API data')
 
-        video_id = compat_str(info.get('id'))
+        video_id = str(info.get('id'))
         title = info.get('title') or self._og_search_title(webpage)
         description = clean_html(info.get('description')) or self._og_search_description(webpage, default=None)
         thumbnail = self._proto_relative_url(

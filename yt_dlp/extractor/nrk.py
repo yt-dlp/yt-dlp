@@ -3,7 +3,6 @@ import random
 import re
 
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
@@ -156,7 +155,7 @@ class NRKIE(NRKBaseIE):
         # known values for preferredCdn: akamai, iponly, minicdn and telenor
         manifest = call_playback_api('manifest', {'preferredCdn': 'akamai'})
 
-        video_id = try_get(manifest, lambda x: x['id'], compat_str) or video_id
+        video_id = try_get(manifest, lambda x: x['id'], str) or video_id
 
         if manifest.get('playability') == 'nonPlayable':
             self._raise_error(manifest['nonPlayable'])
@@ -222,7 +221,7 @@ class NRKIE(NRKBaseIE):
             })
 
         legal_age = try_get(
-            data, lambda x: x['legalAge']['body']['rating']['code'], compat_str)
+            data, lambda x: x['legalAge']['body']['rating']['code'], str)
         # https://en.wikipedia.org/wiki/Norwegian_Media_Authority
         age_limit = None
         if legal_age:
@@ -483,7 +482,7 @@ class NRKTVSerieBaseIE(NRKBaseIE):
         entries = []
         for episode in entry_list:
             nrk_id = episode.get('prfId') or episode.get('episodeId')
-            if not nrk_id or not isinstance(nrk_id, compat_str):
+            if not nrk_id or not isinstance(nrk_id, str):
                 continue
             entries.append(self.url_result(
                 f'nrk:{nrk_id}', ie=NRKIE.ie_key(), video_id=nrk_id))
@@ -520,7 +519,7 @@ class NRKTVSerieBaseIE(NRKBaseIE):
                 data,
                 (lambda x: x['_links']['next']['href'],
                  lambda x: x['_embedded'][assets_key]['_links']['next']['href']),
-                compat_str)
+                str)
             if not next_url_path:
                 break
             data = self._call_api(
@@ -606,7 +605,7 @@ class NRKTVSeasonIE(NRKTVSerieBaseIE):
             f'{domain}/catalog/{self._catalog_name(serie_kind)}/{serie}/seasons/{season_id}',
             display_id, 'season', query={'pageSize': 50})
 
-        title = try_get(data, lambda x: x['titles']['title'], compat_str) or display_id
+        title = try_get(data, lambda x: x['titles']['title'], str) or display_id
         return self.playlist_result(
             self._entries(data, display_id),
             display_id, title)
@@ -716,7 +715,7 @@ class NRKTVSeriesIE(NRKTVSerieBaseIE):
                 season_url = urljoin(url, season.get('href'))
                 if not season_url:
                     season_name = season.get('name')
-                    if season_name and isinstance(season_name, compat_str):
+                    if season_name and isinstance(season_name, str):
                         season_url = f'https://{domain}.nrk.no/serie/{series_id}/sesong/{season_name}'
                 if season_url:
                     entries.append(self.url_result(

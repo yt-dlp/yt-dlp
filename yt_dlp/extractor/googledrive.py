@@ -1,8 +1,8 @@
 import re
+import urllib.parse
 
 from .common import InfoExtractor
 from .youtube import YoutubeIE
-from ..compat import compat_parse_qs
 from ..utils import (
     ExtractorError,
     bug_reports_message,
@@ -166,7 +166,7 @@ class GoogleDriveIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        video_info = compat_parse_qs(self._download_webpage(
+        video_info = urllib.parse.parse_qs(self._download_webpage(
             'https://drive.google.com/get_video_info',
             video_id, 'Downloading video webpage', query={'docid': video_id}))
 

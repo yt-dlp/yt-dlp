@@ -1,9 +1,6 @@
 import itertools
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-)
 from ..utils import (
     bool_or_none,
     determine_ext,
@@ -44,7 +41,7 @@ class RutubeBaseIE(InfoExtractor):
             'thumbnail': video.get('thumbnail_url'),
             'duration': duration,
             'uploader': try_get(video, lambda x: x['author']['name']),
-            'uploader_id': compat_str(uploader_id) if uploader_id else None,
+            'uploader_id': str(uploader_id) if uploader_id else None,
             'timestamp': unified_timestamp(video.get('created_ts')),
             'categories': [category] if category else None,
             'age_limit': age_limit,

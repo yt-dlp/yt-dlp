@@ -1,5 +1,4 @@
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
@@ -58,7 +57,7 @@ class PuhuTVIE(InfoExtractor):
             urljoin(url, f'/api/slug/{display_id}-izle'),
             display_id)['data']
 
-        video_id = compat_str(info['id'])
+        video_id = str(info['id'])
         show = info.get('title') or {}
         title = info.get('name') or show['name']
         if info.get('display_name'):
@@ -111,7 +110,7 @@ class PuhuTVIE(InfoExtractor):
             formats.append(f)
 
         creator = try_get(
-            show, lambda x: x['producer']['name'], compat_str)
+            show, lambda x: x['producer']['name'], str)
 
         content = info.get('content') or {}
 
@@ -119,7 +118,7 @@ class PuhuTVIE(InfoExtractor):
             content, lambda x: x['images']['wide'], dict) or {}
         thumbnails = []
         for image_id, image_url in images.items():
-            if not isinstance(image_url, compat_str):
+            if not isinstance(image_url, str):
                 continue
             if not image_url.startswith(('http', '//')):
                 image_url = f'https://{image_url}'
@@ -135,7 +134,7 @@ class PuhuTVIE(InfoExtractor):
             if not isinstance(genre, dict):
                 continue
             genre_name = genre.get('name')
-            if genre_name and isinstance(genre_name, compat_str):
+            if genre_name and isinstance(genre_name, str):
                 tags.append(genre_name)
 
         subtitles = {}
@@ -144,7 +143,7 @@ class PuhuTVIE(InfoExtractor):
                 continue
             lang = subtitle.get('language')
             sub_url = url_or_none(subtitle.get('url') or subtitle.get('file'))
-            if not lang or not isinstance(lang, compat_str) or not sub_url:
+            if not lang or not isinstance(lang, str) or not sub_url:
                 continue
             subtitles[self._SUBTITLE_LANGS.get(lang, lang)] = [{
                 'url': sub_url,

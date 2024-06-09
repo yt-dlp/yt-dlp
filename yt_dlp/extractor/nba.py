@@ -1,11 +1,8 @@
 import functools
 import re
+import urllib.parse
 
 from .turner import TurnerBaseIE
-from ..compat import (
-    compat_str,
-    compat_urllib_parse_unquote,
-)
 from ..utils import (
     OnDemandPagedList,
     int_or_none,
@@ -267,7 +264,7 @@ class NBABaseIE(NBACVPBaseIE):
             })['response']['result']
 
     def _extract_video(self, video, team, extract_all=True):
-        video_id = compat_str(video['nid'])
+        video_id = str(video['nid'])
         team = video['brand']
 
         info = {
@@ -330,7 +327,7 @@ class NBABaseIE(NBACVPBaseIE):
     def _real_extract(self, url):
         team, display_id = self._match_valid_url(url).groups()
         if '/play#/' in url:
-            display_id = compat_urllib_parse_unquote(display_id)
+            display_id = urllib.parse.unquote(display_id)
         else:
             webpage = self._download_webpage(url, display_id)
             display_id = self._search_regex(

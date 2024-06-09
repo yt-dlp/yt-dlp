@@ -6,9 +6,10 @@ import hmac
 import json
 import random
 import re
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import compat_ord, compat_urllib_parse_unquote
+from ..compat import compat_ord
 from ..utils import (
     ExtractorError,
     float_or_none,
@@ -263,7 +264,7 @@ class CDAIE(InfoExtractor):
         def decrypt_file(a):
             for p in ('_XDDD', '_CDA', '_ADC', '_CXD', '_QWE', '_Q5', '_IKSDE'):
                 a = a.replace(p, '')
-            a = compat_urllib_parse_unquote(a)
+            a = urllib.parse.unquote(a)
             b = []
             for c in a:
                 f = compat_ord(c)

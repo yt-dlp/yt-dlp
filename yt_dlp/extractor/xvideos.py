@@ -1,7 +1,7 @@
 import re
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import compat_urllib_parse_unquote
 from ..utils import (
     ExtractorError,
     clean_html,
@@ -137,7 +137,7 @@ class XVideosIE(InfoExtractor):
 
         formats = []
 
-        video_url = compat_urllib_parse_unquote(self._search_regex(
+        video_url = urllib.parse.unquote(self._search_regex(
             r'flv_url=(.+?)&', webpage, 'video URL', default=''))
         if video_url:
             formats.append({

@@ -6,7 +6,6 @@ import urllib.parse
 
 from .common import InfoExtractor
 from .youtube import YoutubeBaseInfoExtractor, YoutubeIE
-from ..compat import compat_urllib_parse_unquote
 from ..networking import HEADRequest
 from ..networking.exceptions import HTTPError
 from ..utils import (
@@ -928,7 +927,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
         info['thumbnails'] = self._extract_thumbnails(video_id)
 
         if urlh:
-            url = compat_urllib_parse_unquote(urlh.url)
+            url = urllib.parse.unquote(urlh.url)
             video_file_url_qs = parse_qs(url)
             # Attempt to recover any ext & format info from playback url & response headers
             fmt = {'url': url, 'filesize': int_or_none(urlh.headers.get('x-archive-orig-content-length'))}

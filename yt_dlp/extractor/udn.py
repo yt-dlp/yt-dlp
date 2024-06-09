@@ -1,7 +1,7 @@
 import re
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import compat_urlparse
 from ..utils import (
     determine_ext,
     int_or_none,
@@ -66,7 +66,7 @@ class UDNEmbedIE(InfoExtractor):
                 continue
 
             video_url = self._download_webpage(
-                compat_urlparse.urljoin(url, api_url), video_id,
+                urllib.parse.urljoin(url, api_url), video_id,
                 note=f'retrieve url for {video_type} video')
 
             ext = determine_ext(video_url)

@@ -1,5 +1,6 @@
+import urllib.parse
+
 from .common import InfoExtractor
-from ..compat import compat_str, compat_urllib_parse_unquote
 from ..utils import (
     ExtractorError,
     traverse_obj,
@@ -120,8 +121,8 @@ class MediaKlikkIE(InfoExtractor):
 
         player_data_str = self._html_search_regex(
             r'mtva_player_manager\.player\(document.getElementById\(.*\),\s?(\{.*\}).*\);', webpage, 'player data')
-        player_data = self._parse_json(player_data_str, display_id, compat_urllib_parse_unquote)
-        video_id = compat_str(player_data['contentId'])
+        player_data = self._parse_json(player_data_str, display_id, urllib.parse.unquote)
+        video_id = str(player_data['contentId'])
         title = player_data.get('title') or self._og_search_title(webpage, fatal=False) or \
             self._html_search_regex(r'<h\d+\b[^>]+\bclass="article_title">([^<]+)<', webpage, 'title')
 

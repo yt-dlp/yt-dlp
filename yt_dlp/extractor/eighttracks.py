@@ -2,9 +2,6 @@ import json
 import random
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-)
 from ..utils import (
     ExtractorError,
 )
@@ -140,7 +137,7 @@ class EightTracksIE(InfoExtractor):
             api_data = json.loads(api_json)
             track_data = api_data['set']['track']
             info = {
-                'id': compat_str(track_data['id']),
+                'id': str(track_data['id']),
                 'url': track_data['track_file_stream_url'],
                 'title': track_data['performer'] + ' - ' + track_data['name'],
                 'raw_title': track_data['name'],
@@ -154,7 +151,7 @@ class EightTracksIE(InfoExtractor):
         return {
             '_type': 'playlist',
             'entries': entries,
-            'id': compat_str(mix_id),
+            'id': str(mix_id),
             'display_id': playlist_id,
             'title': data.get('name'),
             'description': data.get('description'),

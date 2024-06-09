@@ -109,7 +109,6 @@ from .utils import (
     determine_protocol,
     encode_compat_str,
     encodeFilename,
-    error_to_compat_str,
     escapeHTML,
     expand_path,
     extract_basic_auth,
@@ -3465,7 +3464,7 @@ class YoutubeDL:
                 info_dict['__finaldir'] = os.path.dirname(os.path.abspath(encodeFilename(full_filename)))
 
             except network_exceptions as err:
-                self.report_error(f'unable to download video data: {error_to_compat_str(err)}')
+                self.report_error(f'unable to download video data: {err}')
                 return
             except OSError as err:
                 raise UnavailableVideoError(err)

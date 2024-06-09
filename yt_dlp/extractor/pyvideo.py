@@ -1,7 +1,6 @@
 import re
 
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import int_or_none
 
 
@@ -43,7 +42,7 @@ class PyvideoIE(InfoExtractor):
                         entries.append(self.url_result(video_url, 'Youtube'))
                     else:
                         entries.append({
-                            'id': compat_str(data.get('id') or video_id),
+                            'id': str(data.get('id') or video_id),
                             'url': video_url,
                             'title': data['title'],
                             'description': data.get('description') or data.get('summary'),

@@ -2,14 +2,10 @@ import functools
 import json
 import random
 import re
+import urllib.parse
 
 from .common import InfoExtractor
 from .periscope import PeriscopeBaseIE, PeriscopeIE
-from ..compat import (
-    compat_parse_qs,
-    compat_urllib_parse_unquote,
-    compat_urllib_parse_urlparse,
-)
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
@@ -126,7 +122,7 @@ class TwitterBaseIE(InfoExtractor):
         subtitles = {}
         urls = []
         for video_variant in vmap_data.findall('.//{http://twitter.com/schema/videoVMapV2.xsd}videoVariant'):
-            video_variant.attrib['url'] = compat_urllib_parse_unquote(
+            video_variant.attrib['url'] = urllib.parse.unquote(
                 video_variant.attrib['url'])
             urls.append(video_variant.attrib['url'])
             fmts, subs = self._extract_variant_formats(
@@ -1740,7 +1736,7 @@ class TwitterBroadcastIE(TwitterBaseIE, PeriscopeBaseIE):
         m3u8_url = source.get('noRedirectPlaybackUrl') or source['location']
         if '/live_video_stream/geoblocked/' in m3u8_url:
             self.raise_geo_restricted()
-        m3u8_id = compat_parse_qs(compat_urllib_parse_urlparse(
+        m3u8_id = urllib.parse.parse_qs(urllib.parse.urlparse(
             m3u8_url).query).get('type', [None])[0]
         state, width, height = self._extract_common_format_info(broadcast)
         info['formats'] = self._extract_pscp_m3u8_formats(

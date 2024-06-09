@@ -1,9 +1,9 @@
 import base64
 import os.path
 import re
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import compat_urllib_parse_unquote
 from ..utils import (
     ExtractorError,
     update_url_query,
@@ -40,7 +40,7 @@ class DropboxIE(InfoExtractor):
         mobj = self._match_valid_url(url)
         video_id = mobj.group('id')
         webpage = self._download_webpage(url, video_id)
-        fn = compat_urllib_parse_unquote(url_basename(url))
+        fn = urllib.parse.unquote(url_basename(url))
         title = os.path.splitext(fn)[0]
 
         password = self.get_param('videopassword')

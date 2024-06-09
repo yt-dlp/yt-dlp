@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from zipimport import zipimporter
 
 from .compat import functools  # isort: split
-from .compat import compat_realpath, compat_shlex_quote
+from .compat import compat_realpath
 from .networking import Request
 from .networking.exceptions import HTTPError, network_exceptions
 from .utils import (
@@ -515,7 +515,7 @@ class Updater:
                 os.chmod(self.filename, mask)
             except OSError:
                 return self._report_error(
-                    f'Unable to set permissions. Run: sudo chmod a+rx {compat_shlex_quote(self.filename)}')
+                    f'Unable to set permissions. Run: sudo chmod a+rx {shell_quote(self.filename)}')
 
         self.ydl.to_screen(f'Updated yt-dlp to {update_label}')
         return True

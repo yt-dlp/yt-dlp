@@ -1,5 +1,4 @@
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     parse_duration,
     parse_iso8601,
@@ -19,7 +18,7 @@ class SkyNewsArabiaBaseIE(InfoExtractor):
         return self._IMAGE_BASE_URL + image_path_template.format(width=width, height=height)
 
     def _extract_video_info(self, video_data):
-        video_id = compat_str(video_data['id'])
+        video_id = str(video_data['id'])
         topic = video_data.get('topicTitle')
         return {
             '_type': 'url_transparent',

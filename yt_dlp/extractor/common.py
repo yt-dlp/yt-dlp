@@ -60,7 +60,6 @@ from ..utils import (
     determine_ext,
     dict_get,
     encode_data_uri,
-    error_to_compat_str,
     extract_attributes,
     filter_dict,
     fix_xml_ampersands,
@@ -898,7 +897,7 @@ class InfoExtractor:
             if errnote is None:
                 errnote = 'Unable to download webpage'
 
-            errmsg = f'{errnote}: {error_to_compat_str(err)}'
+            errmsg = f'{errnote}: {err}'
             if fatal:
                 raise ExtractorError(errmsg, cause=err)
             else:
@@ -1844,7 +1843,7 @@ class InfoExtractor:
             return True
         except ExtractorError as e:
             self.to_screen(
-                f'{video_id}: {item} URL is invalid, skipping: {error_to_compat_str(e.cause)}')
+                f'{video_id}: {item} URL is invalid, skipping: {e.cause!s}')
             return False
 
     def http_scheme(self):

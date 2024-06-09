@@ -7,7 +7,6 @@ import time
 from .adobepass import AdobePassIE
 from .common import InfoExtractor
 from .youtube import YoutubeIE
-from ..compat import compat_str
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
@@ -156,7 +155,7 @@ class ViceIE(ViceBaseIE, AdobePassIE):
             cc_url = subtitle.get('url')
             if not cc_url:
                 continue
-            language_code = try_get(subtitle, lambda x: x['languages'][0]['language_code'], compat_str) or 'en'
+            language_code = try_get(subtitle, lambda x: x['languages'][0]['language_code'], str) or 'en'
             subtitles.setdefault(language_code, []).append({
                 'url': cc_url,
             })
@@ -170,7 +169,7 @@ class ViceIE(ViceBaseIE, AdobePassIE):
             'duration': int_or_none(video_data.get('video_duration')),
             'timestamp': int_or_none(video_data.get('created_at'), 1000),
             'age_limit': parse_age_limit(video_data.get('video_rating') or rating),
-            'series': try_get(video_data, lambda x: x['show']['base']['display_title'], compat_str),
+            'series': try_get(video_data, lambda x: x['show']['base']['display_title'], str),
             'episode_number': int_or_none(episode.get('episode_number')),
             'episode_id': str_or_none(episode.get('id') or video_data.get('episode_id')),
             'season_number': int_or_none(season.get('season_number')),

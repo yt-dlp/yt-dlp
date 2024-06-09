@@ -3,7 +3,6 @@ import re
 import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import compat_urlparse
 from ..utils import (
     ExtractorError,
     clean_html,
@@ -195,7 +194,7 @@ class DubokuPlaylistIE(InfoExtractor):
         if mobj is None:
             raise ExtractorError(f'Invalid URL: {url}')
         series_id = mobj.group('id')
-        fragment = compat_urlparse.urlparse(url).fragment
+        fragment = urllib.parse.urlparse(url).fragment
 
         webpage_url = f'https://w.duboku.io/voddetail/{series_id}.html'
         webpage_html = self._download_webpage(webpage_url, series_id)
@@ -242,6 +241,6 @@ class DubokuPlaylistIE(InfoExtractor):
         # return url results
         return self.playlist_result([
             self.url_result(
-                compat_urlparse.urljoin('https://w.duboku.io', x['href']),
+                urllib.parse.urljoin('https://w.duboku.io', x['href']),
                 ie=DubokuIE.ie_key(), video_title=x.get('title'))
             for x in playlist], series_id + '#' + playlist_id, title)

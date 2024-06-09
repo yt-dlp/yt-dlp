@@ -1,7 +1,7 @@
 import re
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import compat_parse_qs
 from ..networking import Request
 from ..utils import (
     ExtractorError,
@@ -127,7 +127,7 @@ class FC2EmbedIE(InfoExtractor):
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
-        query = compat_parse_qs(mobj.group('query'))
+        query = urllib.parse.parse_qs(mobj.group('query'))
 
         video_id = query['i'][-1]
         title = query.get('tl', [f'FC2 video {video_id}'])[0]

@@ -1,11 +1,8 @@
 import re
+import urllib.parse
 import uuid
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-    compat_urlparse,
-)
 from ..utils import (
     ExtractorError,
     float_or_none,
@@ -31,14 +28,14 @@ class PlutoTVIE(InfoExtractor):
     _INFO_QUERY_PARAMS = {
         'appName': 'web',
         'appVersion': 'na',
-        'clientID': compat_str(uuid.uuid1()),
+        'clientID': str(uuid.uuid1()),
         'clientModelNumber': 'na',
         'serverSideAds': 'false',
         'deviceMake': 'unknown',
         'deviceModel': 'web',
         'deviceType': 'web',
         'deviceVersion': 'unknown',
-        'sid': compat_str(uuid.uuid1()),
+        'sid': str(uuid.uuid1()),
     }
     _TESTS = [
         {
@@ -112,14 +109,14 @@ class PlutoTVIE(InfoExtractor):
                 re.MULTILINE)
             if first_segment_url:
                 m3u8_urls.add(
-                    compat_urlparse.urljoin(first_segment_url.group(1), '0-end/master.m3u8'))
+                    urllib.parse.urljoin(first_segment_url.group(1), '0-end/master.m3u8'))
                 continue
             first_segment_url = re.search(
                 r'^(https?://.*/).+\-0+[0-1]0\.ts$', res,
                 re.MULTILINE)
             if first_segment_url:
                 m3u8_urls.add(
-                    compat_urlparse.urljoin(first_segment_url.group(1), 'master.m3u8'))
+                    urllib.parse.urljoin(first_segment_url.group(1), 'master.m3u8'))
                 continue
 
         for m3u8_url in m3u8_urls:

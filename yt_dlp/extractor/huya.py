@@ -1,9 +1,10 @@
+import base64
 import hashlib
 import random
 import re
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import compat_b64decode, compat_urlparse
 from ..utils import (
     ExtractorError,
     int_or_none,
@@ -70,7 +71,7 @@ class HuyaLiveIE(InfoExtractor):
                 continue
             stream_name = stream_info.get('sStreamName')
             re_secret = not screen_type and live_source_type in (0, 8, 13)
-            params = dict(compat_urlparse.parse_qsl(unescapeHTML(stream_info['sFlvAntiCode'])))
+            params = dict(urllib.parse.parse_qsl(unescapeHTML(stream_info['sFlvAntiCode'])))
             fm, ss = '', ''
             if re_secret:
                 fm, ss = self.encrypt(params, stream_info, stream_name)
@@ -127,6 +128,6 @@ class HuyaLiveIE(InfoExtractor):
             'uuid': int_or_none(ct % 1e7 * 1e6 % 0xffffffff),
             't': '100',
         })
-        fm = compat_b64decode(params['fm']).decode().split('_', 1)[0]
+        fm = base64.b64decode(params['fm']).decode().split('_', 1)[0]
         ss = hashlib.md5('|'.join([params['seqid'], params['ctype'], params['t']]))
         return fm, ss

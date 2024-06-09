@@ -1,5 +1,4 @@
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     ExtractorError,
     int_or_none,
@@ -36,7 +35,7 @@ class TheInterceptIE(InfoExtractor):
                 return {
                     '_type': 'url_transparent',
                     'url': 'jwplatform:{}'.format(post['fov_videoid']),
-                    'id': compat_str(post['ID']),
+                    'id': str(post['ID']),
                     'display_id': display_id,
                     'title': post['title'],
                     'description': post.get('excerpt'),

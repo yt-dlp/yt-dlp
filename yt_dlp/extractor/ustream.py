@@ -1,11 +1,8 @@
 import random
 import re
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-    compat_urlparse,
-)
 from ..utils import (
     ExtractorError,
     encode_data_uri,
@@ -113,7 +110,7 @@ class UstreamIE(InfoExtractor):
 
     def _parse_segmented_mp4(self, dash_stream_info):
         def resolve_dash_template(template, idx, chunk_hash):
-            return template.replace('%', compat_str(idx), 1).replace('%', chunk_hash)
+            return template.replace('%', str(idx), 1).replace('%', chunk_hash)
 
         formats = []
         for stream in dash_stream_info['streams']:
@@ -127,7 +124,7 @@ class UstreamIE(InfoExtractor):
                 fragments.append({
                     'url': resolve_dash_template(
                         provider['url'] + stream['segmentUrl'], idx,
-                        dash_stream_info['hashes'][compat_str(idx // 10 * 10)]),
+                        dash_stream_info['hashes'][str(idx // 10 * 10)]),
                 })
             content_type = stream['contentType']
             kind = content_type.split('/')[0]
@@ -259,7 +256,7 @@ class UstreamChannelIE(InfoExtractor):
         video_ids = []
         while next_url:
             reply = self._download_json(
-                compat_urlparse.urljoin(BASE, next_url), display_id,
+                urllib.parse.urljoin(BASE, next_url), display_id,
                 note='Downloading video information (next: %d)' % (len(video_ids) + 1))
             video_ids.extend(re.findall(r'data-content-id="(\d.*)"', reply['data']))
             next_url = reply['nextUrl']

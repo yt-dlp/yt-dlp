@@ -2,7 +2,6 @@ import functools
 import re
 
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     ISO639Utils,
     OnDemandPagedList,
@@ -36,7 +35,7 @@ class AdobeTVBaseIE(InfoExtractor):
         return subtitles
 
     def _parse_video_data(self, video_data):
-        video_id = compat_str(video_data['id'])
+        video_id = str(video_data['id'])
         title = video_data['title']
 
         s3_extracted = False

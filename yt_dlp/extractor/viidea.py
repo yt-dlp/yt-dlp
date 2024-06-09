@@ -1,10 +1,7 @@
 import re
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-    compat_urlparse,
-)
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
@@ -124,7 +121,7 @@ class ViideaIE(InfoExtractor):
              r'cfg\s*:\s*({[^}]+})'],
             webpage, 'cfg'), lecture_slug, js_to_json)
 
-        lecture_id = compat_str(cfg['obj_id'])
+        lecture_id = str(cfg['obj_id'])
 
         base_url = self._proto_relative_url(cfg['livepipe'], 'http:')
 
@@ -150,7 +147,7 @@ class ViideaIE(InfoExtractor):
 
         playlist_entries = []
         lecture_type = lecture_data.get('type')
-        parts = [compat_str(video) for video in cfg.get('videos', [])]
+        parts = [str(video) for video in cfg.get('videos', [])]
         if parts:
             multipart = len(parts) > 1
 
@@ -189,7 +186,7 @@ class ViideaIE(InfoExtractor):
             playlist_webpage = self._download_webpage(
                 f'{base_url}/site/ajax/drilldown/?id={lecture_id}', lecture_id)
             entries = [
-                self.url_result(compat_urlparse.urljoin(url, video_url), 'Viidea')
+                self.url_result(urllib.parse.urljoin(url, video_url), 'Viidea')
                 for _, video_url in re.findall(
                     r'<a[^>]+href=(["\'])(.+?)\1[^>]+id=["\']lec=\d+', playlist_webpage)]
             playlist_entries.extend(entries)

@@ -1,5 +1,4 @@
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     clean_html,
     format_field,
@@ -61,7 +60,7 @@ class LnkGoIE(InfoExtractor):
             'https://lnk.lt/api/main/video-page/{}/{}/false'.format(display_id, video_id or '0'),
             display_id)['videoConfig']['videoInfo']
 
-        video_id = compat_str(video_info['id'])
+        video_id = str(video_info['id'])
         title = video_info['title']
         prefix = 'smil' if video_info.get('isQualityChangeAvailable') else 'mp4'
         formats = self._extract_m3u8_formats(

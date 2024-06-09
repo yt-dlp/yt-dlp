@@ -1,7 +1,4 @@
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-)
 from ..utils import (
     int_or_none,
     parse_qs,
@@ -297,7 +294,7 @@ class VideomoreSeasonIE(VideomoreBaseIE):
     def _real_extract(self, url):
         display_id = self._match_id(url)
         season = self._download_page_data(display_id)
-        season_id = compat_str(season['id'])
+        season_id = str(season['id'])
         tracks = self._download_json(
             self._API_BASE_URL + f'seasons/{season_id}/tracks',
             season_id)['data']

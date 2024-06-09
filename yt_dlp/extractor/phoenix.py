@@ -2,7 +2,6 @@ import re
 
 from .youtube import YoutubeIE
 from .zdf import ZDFBaseIE
-from ..compat import compat_str
 from ..utils import (
     int_or_none,
     merge_dicts,
@@ -76,7 +75,7 @@ class PhoenixIE(ZDFBaseIE):
                 video_id, ie=YoutubeIE.ie_key(), video_id=video_id,
                 video_title=title)
 
-        video_id = compat_str(video.get('basename') or video.get('content'))
+        video_id = str(video.get('basename') or video.get('content'))
 
         details = self._download_json(
             'https://www.phoenix.de/php/mediaplayer/data/beitrags_details.php',
@@ -99,7 +98,7 @@ class PhoenixIE(ZDFBaseIE):
         timestamp = unified_timestamp(details.get('editorialDate'))
         series = try_get(
             details, lambda x: x['tracking']['nielsen']['content']['program'],
-            compat_str)
+            str)
         episode = title if details.get('contentType') == 'episode' else None
 
         thumbnails = []

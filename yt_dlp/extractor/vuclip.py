@@ -1,9 +1,7 @@
 import re
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_urllib_parse_urlparse,
-)
 from ..utils import (
     ExtractorError,
     parse_duration,
@@ -31,7 +29,7 @@ class VuClipIE(InfoExtractor):
         ad_m = re.search(
             r'''value="No.*?" onClick="location.href='([^"']+)'"''', webpage)
         if ad_m:
-            urlr = compat_urllib_parse_urlparse(url)
+            urlr = urllib.parse.urlparse(url)
             adfree_url = urlr.scheme + '://' + urlr.netloc + ad_m.group(1)
             webpage = self._download_webpage(
                 adfree_url, video_id, note='Download post-ad page')

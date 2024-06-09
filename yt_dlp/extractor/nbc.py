@@ -1,12 +1,12 @@
 import base64
 import json
 import re
+import urllib.parse
 import xml.etree.ElementTree
 
 from .adobepass import AdobePassIE
 from .common import InfoExtractor
 from .theplatform import ThePlatformIE, default_ns
-from ..compat import compat_urllib_parse_unquote
 from ..networking import HEADRequest
 from ..utils import (
     ExtractorError,
@@ -153,7 +153,7 @@ class NBCIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
 
     def _real_extract(self, url):
         permalink, video_id = self._match_valid_url(url).groups()
-        permalink = 'http' + compat_urllib_parse_unquote(permalink)
+        permalink = 'http' + urllib.parse.unquote(permalink)
         video_data = self._download_json(
             'https://friendship.nbc.co/v2/graphql', video_id, query={
                 'query': '''query bonanzaPage(

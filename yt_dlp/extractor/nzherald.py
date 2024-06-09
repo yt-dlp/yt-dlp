@@ -2,7 +2,6 @@ import json
 
 from .brightcove import BrightcoveNewIE
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import ExtractorError, traverse_obj
 
 
@@ -108,7 +107,7 @@ class NZHeraldIE(InfoExtractor):
             bc_video_id = traverse_obj(
                 video_metadata or fusion_metadata,  # fusion metadata is the video metadata for video-only pages
                 'brightcoveId', ('content_elements', ..., 'referent', 'id'),
-                get_all=False, expected_type=compat_str)
+                get_all=False, expected_type=str)
 
             if not bc_video_id:
                 if isinstance(video_metadata, dict) and len(video_metadata) == 0:

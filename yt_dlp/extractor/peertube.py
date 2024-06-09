@@ -2,7 +2,6 @@ import functools
 import re
 
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     OnDemandPagedList,
     format_field,
@@ -1450,7 +1449,7 @@ class PeerTubeIE(InfoExtractor):
             return
         subtitles = {}
         for e in data:
-            language_id = try_get(e, lambda x: x['language']['id'], compat_str)
+            language_id = try_get(e, lambda x: x['language']['id'], str)
             caption_url = urljoin(f'https://{host}', e.get('captionPath'))
             if not caption_url:
                 continue
@@ -1490,7 +1489,7 @@ class PeerTubeIE(InfoExtractor):
                 continue
             file_size = int_or_none(file_.get('size'))
             format_id = try_get(
-                file_, lambda x: x['resolution']['label'], compat_str)
+                file_, lambda x: x['resolution']['label'], str)
             f = parse_resolution(format_id)
             f.update({
                 'url': file_url,
@@ -1525,7 +1524,7 @@ class PeerTubeIE(InfoExtractor):
         def channel_data(field, type_):
             return data('channel', field, type_)
 
-        category = data('category', 'label', compat_str)
+        category = data('category', 'label', str)
         categories = [category] if category else None
 
         nsfw = video.get('nsfw')
@@ -1542,14 +1541,14 @@ class PeerTubeIE(InfoExtractor):
             'description': description,
             'thumbnail': urljoin(webpage_url, video.get('thumbnailPath')),
             'timestamp': unified_timestamp(video.get('publishedAt')),
-            'uploader': account_data('displayName', compat_str),
+            'uploader': account_data('displayName', str),
             'uploader_id': str_or_none(account_data('id', int)),
-            'uploader_url': url_or_none(account_data('url', compat_str)),
-            'channel': channel_data('displayName', compat_str),
+            'uploader_url': url_or_none(account_data('url', str)),
+            'channel': channel_data('displayName', str),
             'channel_id': str_or_none(channel_data('id', int)),
-            'channel_url': url_or_none(channel_data('url', compat_str)),
-            'language': data('language', 'id', compat_str),
-            'license': data('licence', 'label', compat_str),
+            'channel_url': url_or_none(channel_data('url', str)),
+            'language': data('language', 'id', str),
+            'license': data('licence', 'label', str),
             'duration': int_or_none(video.get('duration')),
             'view_count': int_or_none(video.get('views')),
             'like_count': int_or_none(video.get('likes')),

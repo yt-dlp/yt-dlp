@@ -2,10 +2,10 @@ import hashlib
 import itertools
 import re
 import time
+import urllib.parse
 
 from .common import InfoExtractor
 from .openload import PhantomJSwrapper
-from ..compat import compat_str, compat_urllib_parse_unquote, compat_urllib_parse_urlencode
 from ..utils import (
     ExtractorError,
     clean_html,
@@ -41,17 +41,17 @@ class IqiyiSDK:
 
     @staticmethod
     def split_sum(data):
-        return compat_str(sum(int(p, 16) for p in data))
+        return str(sum(int(p, 16) for p in data))
 
     @staticmethod
     def digit_sum(num):
         if isinstance(num, int):
-            num = compat_str(num)
-        return compat_str(sum(map(int, num)))
+            num = str(num)
+        return str(sum(map(int, num)))
 
     def even_odd(self):
-        even = self.digit_sum(compat_str(self.timestamp)[::2])
-        odd = self.digit_sum(compat_str(self.timestamp)[1::2])
+        even = self.digit_sum(str(self.timestamp)[::2])
+        odd = self.digit_sum(str(self.timestamp)[1::2])
         return even, odd
 
     def preprocess(self, chunksize):
@@ -65,7 +65,7 @@ class IqiyiSDK:
 
     def mod(self, modulus):
         chunks, ip = self.preprocess(32)
-        self.target = chunks[0] + ''.join(compat_str(p % modulus) for p in ip)
+        self.target = chunks[0] + ''.join(str(p % modulus) for p in ip)
 
     def split(self, chunksize):
         modulus_map = {
@@ -77,7 +77,7 @@ class IqiyiSDK:
         chunks, ip = self.preprocess(chunksize)
         ret = ''
         for i in range(len(chunks)):
-            ip_part = compat_str(ip[i] % modulus_map[chunksize]) if i < 4 else ''
+            ip_part = str(ip[i] % modulus_map[chunksize]) if i < 4 else ''
             if chunksize == 8:
                 ret += ip_part + chunks[i]
             else:
@@ -104,7 +104,7 @@ class IqiyiSDK:
         self.target = md5_text(self.target)
         d = time.localtime(self.timestamp)
         strings = {
-            'y': compat_str(d.tm_year),
+            'y': str(d.tm_year),
             'm': '%02d' % d.tm_mon,
             'd': '%02d' % d.tm_mday,
         }
@@ -120,11 +120,11 @@ class IqiyiSDK:
 
     def split_ip_time_sum(self):
         chunks, ip = self.preprocess(32)
-        self.target = compat_str(sum(ip)) + chunks[0] + self.digit_sum(self.timestamp)
+        self.target = str(sum(ip)) + chunks[0] + self.digit_sum(self.timestamp)
 
     def split_time_ip_sum(self):
         chunks, ip = self.preprocess(32)
-        self.target = self.digit_sum(self.timestamp) + chunks[0] + compat_str(sum(ip))
+        self.target = self.digit_sum(self.timestamp) + chunks[0] + str(sum(ip))
 
 
 class IqiyiSDKInterpreter:
@@ -265,7 +265,7 @@ class IqiyiIE(InfoExtractor):
             'bird_t': timestamp,
         }
         validation_result = self._download_json(
-            'http://kylin.iqiyi.com/validate?' + compat_urllib_parse_urlencode(validation_params), None,
+            'http://kylin.iqiyi.com/validate?' + urllib.parse.urlencode(validation_params), None,
             note='Validate credentials', errnote='Unable to validate credentials')
 
         MSG_MAP = {
@@ -289,7 +289,7 @@ class IqiyiIE(InfoExtractor):
         tm = int(time.time() * 1000)
 
         key = 'd5fb4bd9d50c4be6948c97edd7254b0e'
-        sc = md5_text(compat_str(tm) + key + tvid)
+        sc = md5_text(str(tm) + key + tvid)
         params = {
             'tvid': tvid,
             'vid': video_id,
@@ -368,7 +368,7 @@ class IqiyiIE(InfoExtractor):
             for stream in data['vidl']:
                 if 'm3utx' not in stream:
                     continue
-                vd = compat_str(stream['vd'])
+                vd = str(stream['vd'])
                 formats.append({
                     'url': stream['m3utx'],
                     'format_id': vd,
@@ -581,7 +581,7 @@ class IqIE(InfoExtractor):
 
         uid = traverse_obj(
             self._parse_json(
-                self._get_cookie('I00002', '{}'), video_id, transform_source=compat_urllib_parse_unquote, fatal=False),
+                self._get_cookie('I00002', '{}'), video_id, transform_source=urllib.parse.unquote, fatal=False),
             ('data', 'uid'), default=0)
 
         if uid:

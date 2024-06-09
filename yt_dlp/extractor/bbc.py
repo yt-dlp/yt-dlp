@@ -2,10 +2,10 @@ import functools
 import itertools
 import json
 import re
+import urllib.parse
 import xml.etree.ElementTree
 
 from .common import InfoExtractor
-from ..compat import compat_str, compat_urlparse
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
@@ -1331,7 +1331,7 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
                     if blocks:
                         summary = []
                         for block in blocks:
-                            text = try_get(block, lambda x: x['model']['text'], compat_str)
+                            text = try_get(block, lambda x: x['model']['text'], str)
                             if text:
                                 summary.append(text)
                         if summary:
@@ -1557,8 +1557,8 @@ class BBCCoUkArticleIE(InfoExtractor):
 
 class BBCCoUkPlaylistBaseIE(InfoExtractor):
     def _entries(self, webpage, url, playlist_id):
-        single_page = 'page' in compat_urlparse.parse_qs(
-            compat_urlparse.urlparse(url).query)
+        single_page = 'page' in urllib.parse.parse_qs(
+            urllib.parse.urlparse(url).query)
         for page_num in itertools.count(2):
             for video_id in re.findall(
                     self._VIDEO_ID_TEMPLATE % BBCCoUkIE._ID_REGEX, webpage):
@@ -1572,7 +1572,7 @@ class BBCCoUkPlaylistBaseIE(InfoExtractor):
             if not next_page:
                 break
             webpage = self._download_webpage(
-                compat_urlparse.urljoin(url, next_page), playlist_id,
+                urllib.parse.urljoin(url, next_page), playlist_id,
                 'Downloading page %d' % page_num, page_num)
 
     def _real_extract(self, url):

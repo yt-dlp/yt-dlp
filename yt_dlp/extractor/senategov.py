@@ -1,10 +1,7 @@
 import re
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_parse_qs,
-    compat_urlparse,
-)
 from ..utils import (
     ExtractorError,
     parse_qs,
@@ -91,7 +88,7 @@ class SenateISVPIE(InfoExtractor):
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url, {})
 
-        qs = compat_parse_qs(self._match_valid_url(url).group('qs'))
+        qs = urllib.parse.parse_qs(self._match_valid_url(url).group('qs'))
         if not qs.get('filename') or not qs.get('type') or not qs.get('comm'):
             raise ExtractorError('Invalid URL', expected=True)
 
@@ -114,7 +111,7 @@ class SenateISVPIE(InfoExtractor):
         formats = []
         if video_type == 'arch':
             filename = video_id if '.' in video_id else video_id + '.mp4'
-            m3u8_url = compat_urlparse.urljoin(domain, 'i/' + filename + '/master.m3u8')
+            m3u8_url = urllib.parse.urljoin(domain, 'i/' + filename + '/master.m3u8')
             formats = self._extract_m3u8_formats(m3u8_url, video_id, ext='mp4', m3u8_id='m3u8')
         else:
             hdcore_sign = 'hdcore=3.1.0'

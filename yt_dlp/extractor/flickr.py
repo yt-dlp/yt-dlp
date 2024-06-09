@@ -1,8 +1,6 @@
+import urllib.parse
+
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-    compat_urllib_parse_urlencode,
-)
 from ..utils import (
     ExtractorError,
     format_field,
@@ -59,7 +57,7 @@ class FlickrIE(InfoExtractor):
         }
         if secret:
             query['secret'] = secret
-        data = self._download_json(self._API_BASE_URL + compat_urllib_parse_urlencode(query), video_id, note)
+        data = self._download_json(self._API_BASE_URL + urllib.parse.urlencode(query), video_id, note)
         if data['stat'] != 'ok':
             raise ExtractorError(data['message'])
         return data
@@ -83,7 +81,7 @@ class FlickrIE(InfoExtractor):
 
             formats = []
             for stream in streams['stream']:
-                stream_type = compat_str(stream.get('type'))
+                stream_type = str(stream.get('type'))
                 formats.append({
                     'format_id': stream_type,
                     'url': stream['_content'],

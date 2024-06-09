@@ -3,13 +3,9 @@ import itertools
 import json
 import random
 import re
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_parse_qs,
-    compat_str,
-    compat_urllib_parse_urlparse,
-)
 from ..utils import (
     ExtractorError,
     UserNotLive,
@@ -503,8 +499,8 @@ class TwitchVodIE(TwitchBaseIE):
             'description': info.get('description'),
             'duration': int_or_none(info.get('lengthSeconds')),
             'thumbnails': self._get_thumbnails(thumbnail),
-            'uploader': try_get(info, lambda x: x['owner']['displayName'], compat_str),
-            'uploader_id': try_get(info, lambda x: x['owner']['login'], compat_str),
+            'uploader': try_get(info, lambda x: x['owner']['displayName'], str),
+            'uploader_id': try_get(info, lambda x: x['owner']['login'], str),
             'timestamp': unified_timestamp(info.get('publishedAt')),
             'view_count': int_or_none(info.get('viewCount')),
             'chapters': list(self._extract_chapters(info, item_id)),
@@ -559,8 +555,8 @@ class TwitchVodIE(TwitchBaseIE):
         self._prefer_source(formats)
         info['formats'] = formats
 
-        parsed_url = compat_urllib_parse_urlparse(url)
-        query = compat_parse_qs(parsed_url.query)
+        parsed_url = urllib.parse.urlparse(url)
+        query = urllib.parse.parse_qs(parsed_url.query)
         if 't' in query:
             info['start_time'] = parse_duration(query['t'][0])
 
@@ -671,7 +667,7 @@ class TwitchPlaylistBaseIE(TwitchBaseIE):
                 if entry:
                     cursor = edge.get('cursor')
                     yield entry
-            if not cursor or not isinstance(cursor, compat_str):
+            if not cursor or not isinstance(cursor, str):
                 break
 
 
@@ -1046,11 +1042,11 @@ class TwitchStreamIE(TwitchBaseIE):
         sq_user = try_get(gql, lambda x: x[1]['data']['user'], dict) or {}
         uploader = sq_user.get('displayName')
         description = try_get(
-            sq_user, lambda x: x['broadcastSettings']['title'], compat_str)
+            sq_user, lambda x: x['broadcastSettings']['title'], str)
 
         thumbnail = url_or_none(try_get(
             gql, lambda x: x[2]['data']['user']['stream']['previewImageURL'],
-            compat_str))
+            str))
 
         title = uploader or channel_name
         stream_type = stream.get('type')
@@ -1213,7 +1209,7 @@ class TwitchClipsIE(TwitchBaseIE):
             'view_count': int_or_none(clip.get('viewCount')),
             'timestamp': unified_timestamp(clip.get('createdAt')),
             'thumbnails': thumbnails,
-            'creator': try_get(clip, lambda x: x['broadcaster']['displayName'], compat_str),
-            'uploader': try_get(clip, lambda x: x['curator']['displayName'], compat_str),
-            'uploader_id': try_get(clip, lambda x: x['curator']['id'], compat_str),
+            'creator': try_get(clip, lambda x: x['broadcaster']['displayName'], str),
+            'uploader': try_get(clip, lambda x: x['curator']['displayName'], str),
+            'uploader_id': try_get(clip, lambda x: x['curator']['id'], str),
         }

@@ -1,5 +1,4 @@
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     float_or_none,
     int_or_none,
@@ -62,7 +61,7 @@ class STVPlayerIE(InfoExtractor):
             result = resp['results']
 
         video = result['video']
-        video_id = compat_str(video['id'])
+        video_id = str(video['id'])
 
         subtitles = {}
         _subtitles = result.get('_subtitles') or {}

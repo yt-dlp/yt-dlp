@@ -1,11 +1,8 @@
 import json
 import re
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_parse_qs,
-    compat_urlparse,
-)
 from ..utils import (
     ExtractorError,
     update_url_query,
@@ -34,9 +31,9 @@ class SafariBaseIE(InfoExtractor):
             return
 
         redirect_url = urlh.url
-        parsed_url = compat_urlparse.urlparse(redirect_url)
-        qs = compat_parse_qs(parsed_url.query)
-        next_uri = compat_urlparse.urljoin(
+        parsed_url = urllib.parse.urlparse(redirect_url)
+        qs = urllib.parse.parse_qs(parsed_url.query)
+        next_uri = urllib.parse.urljoin(
             'https://api.oreilly.com', qs['next'][0])
 
         auth, urlh = self._download_json_handle(

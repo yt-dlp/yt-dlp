@@ -1,7 +1,6 @@
-import urllib.request
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import compat_parse_qs
 from ..utils import ExtractorError
 
 
@@ -71,8 +70,8 @@ class ScreencastIE(InfoExtractor):
                 if flash_vars_s:
                     flash_vars_s = flash_vars_s.replace(',', '&')
             if flash_vars_s:
-                flash_vars = compat_parse_qs(flash_vars_s)
-                video_url_raw = urllib.request.quote(
+                flash_vars = urllib.parse.parse_qs(flash_vars_s)
+                video_url_raw = urllib.parse.quote(
                     flash_vars['content'][0])
                 video_url = video_url_raw.replace('http%3A', 'http:')
 

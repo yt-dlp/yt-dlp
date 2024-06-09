@@ -1,9 +1,7 @@
 import itertools
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_urllib_parse_unquote,
-)
 from ..utils import parse_qs
 
 
@@ -83,7 +81,7 @@ class DaumIE(DaumBaseIE):
     }]
 
     def _real_extract(self, url):
-        video_id = compat_urllib_parse_unquote(self._match_id(url))
+        video_id = urllib.parse.unquote(self._match_id(url))
         if not video_id.isdigit():
             video_id += '@my'
         return self.url_result(

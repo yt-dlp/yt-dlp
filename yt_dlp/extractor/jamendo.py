@@ -2,7 +2,6 @@ import hashlib
 import random
 
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     clean_html,
     int_or_none,
@@ -48,7 +47,7 @@ class JamendoIE(InfoExtractor):
 
     def _call_api(self, resource, resource_id, fatal=True):
         path = f'/api/{resource}s'
-        rand = compat_str(random.random())
+        rand = str(random.random())
         return self._download_json(
             'https://www.jamendo.com' + path, resource_id, fatal=fatal, query={
                 'id[]': resource_id,
@@ -195,7 +194,7 @@ class JamendoAlbumIE(JamendoIE):  # XXX: Do not subclass from concrete IE
             track_id = track.get('id')
             if not track_id:
                 continue
-            track_id = compat_str(track_id)
+            track_id = str(track_id)
             entries.append({
                 '_type': 'url_transparent',
                 'url': 'https://www.jamendo.com/track/' + track_id,
@@ -206,4 +205,4 @@ class JamendoAlbumIE(JamendoIE):  # XXX: Do not subclass from concrete IE
 
         return self.playlist_result(
             entries, album_id, album_name,
-            clean_html(try_get(album, lambda x: x['description']['en'], compat_str)))
+            clean_html(try_get(album, lambda x: x['description']['en'], str)))

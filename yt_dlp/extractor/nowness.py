@@ -3,7 +3,6 @@ from .brightcove import (
     BrightcoveNewIE,
 )
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..networking import Request
 from ..utils import ExtractorError
 
@@ -139,4 +138,4 @@ class NownessSeriesIE(NownessBaseIE):
             series_title = translations[0].get('title') or translations[0]['seoTitle']
             series_description = translations[0].get('seoDescription')
         return self.playlist_result(
-            entries, compat_str(series['id']), series_title, series_description)
+            entries, str(series['id']), series_title, series_description)

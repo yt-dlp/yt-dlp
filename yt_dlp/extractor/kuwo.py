@@ -1,7 +1,7 @@
 import re
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import compat_urlparse
 from ..utils import (
     ExtractorError,
     InAdvancePagedList,
@@ -243,7 +243,7 @@ class KuwoSingerIE(InfoExtractor):
                 query={'artistId': artist_id, 'pn': page_num, 'rn': self.PAGE_SIZE})
 
             return [
-                self.url_result(compat_urlparse.urljoin(url, song_url), 'Kuwo')
+                self.url_result(urllib.parse.urljoin(url, song_url), 'Kuwo')
                 for song_url in re.findall(
                     r'<div[^>]+class="name"><a[^>]+href="(/yinyue/\d+)',
                     webpage)

@@ -1,5 +1,4 @@
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     int_or_none,
     qualities,
@@ -95,7 +94,7 @@ class AllocineIE(InfoExtractor):
             duration = int_or_none(video.get('duration'))
             view_count = int_or_none(video.get('view_count'))
             timestamp = unified_timestamp(try_get(
-                video, lambda x: x['added_at']['date'], compat_str))
+                video, lambda x: x['added_at']['date'], str))
         else:
             video_id = display_id
             media_data = self._download_json(

@@ -3,12 +3,9 @@ import json
 import os
 import random
 import re
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-    compat_urlparse,
-)
 from ..utils import (
     ExtractorError,
     dict_get,
@@ -176,7 +173,7 @@ query viewClip {
             'post url', default=self._LOGIN_URL, group='url')
 
         if not post_url.startswith('http'):
-            post_url = compat_urlparse.urljoin(self._LOGIN_URL, post_url)
+            post_url = urllib.parse.urljoin(self._LOGIN_URL, post_url)
 
         response = self._download_webpage(
             post_url, None, 'Logging in',
@@ -287,7 +284,7 @@ query viewClip {
                         clip_index = clip_.get('index')
                     if clip_index is None:
                         continue
-                    if compat_str(clip_index) == clip_idx:
+                    if str(clip_index) == clip_idx:
                         clip = clip_
                         break
 

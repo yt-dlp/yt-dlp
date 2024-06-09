@@ -13,7 +13,6 @@ from ..utils import (
     check_executable,
     encodeArgument,
     encodeFilename,
-    error_to_compat_str,
     prepend_extension,
     shell_quote,
 )
@@ -48,7 +47,7 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
             if mobj is None:
                 return guess()
         except PostProcessingError as err:
-            self.report_warning(f'unable to find the thumbnail resolution; {error_to_compat_str(err)}')
+            self.report_warning(f'unable to find the thumbnail resolution; {err}')
             return guess()
         return int(mobj.group('w')), int(mobj.group('h'))
 
@@ -132,7 +131,7 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
                     meta.save()
                     temp_filename = filename
                 except Exception as err:
-                    self.report_warning(f'unable to embed using mutagen; {error_to_compat_str(err)}')
+                    self.report_warning(f'unable to embed using mutagen; {err}')
                     success = False
 
             # Method 2: Use AtomicParsley

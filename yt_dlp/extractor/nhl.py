@@ -1,5 +1,4 @@
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     determine_ext,
     int_or_none,
@@ -24,7 +23,7 @@ class NHLBaseIE(InfoExtractor):
                 if videos:
                     video_data = videos[0]
 
-        video_id = compat_str(video_data['id'])
+        video_id = str(video_data['id'])
         title = video_data['title']
 
         formats = []

@@ -1,8 +1,7 @@
+import base64
+import urllib.parse
+
 from .common import InfoExtractor
-from ..compat import (
-    compat_b64decode,
-    compat_urllib_parse_unquote,
-)
 from ..utils import classproperty, int_or_none
 
 
@@ -70,4 +69,4 @@ class MangomoloLiveIE(MangomoloBaseIE):
     _IS_LIVE = True
 
     def _get_real_id(self, page_id):
-        return compat_b64decode(compat_urllib_parse_unquote(page_id)).decode()
+        return base64.b64decode(urllib.parse.unquote(page_id)).decode()

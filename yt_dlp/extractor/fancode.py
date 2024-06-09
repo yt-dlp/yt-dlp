@@ -1,5 +1,4 @@
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import ExtractorError, mimetype2ext, parse_iso8601, try_get
 
 
@@ -97,7 +96,7 @@ class FancodeVodIE(InfoExtractor):
         metadata_json = self.download_gql(video_id, data, note='Downloading metadata')
 
         media = try_get(metadata_json, lambda x: x['data']['media'], dict) or {}
-        brightcove_video_id = try_get(media, lambda x: x['mediaSource']['brightcove'], compat_str)
+        brightcove_video_id = try_get(media, lambda x: x['mediaSource']['brightcove'], str)
 
         if brightcove_video_id is None:
             raise ExtractorError('Unable to extract brightcove Video ID')

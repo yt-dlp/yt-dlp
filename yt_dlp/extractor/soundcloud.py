@@ -4,13 +4,11 @@ import json
 import re
 
 from .common import InfoExtractor, SearchInfoExtractor
-from ..compat import compat_str
 from ..networking import HEADRequest
 from ..networking.exceptions import HTTPError
 from ..utils import (
     KNOWN_EXTENSIONS,
     ExtractorError,
-    error_to_compat_str,
     float_or_none,
     int_or_none,
     join_nonempty,
@@ -113,7 +111,7 @@ class SoundcloudBaseIE(InfoExtractor):
                     self._update_client_id()
                     continue
                 elif non_fatal:
-                    self.report_warning(error_to_compat_str(e))
+                    self.report_warning(str(e))
                     return False
                 raise
 
@@ -209,7 +207,7 @@ class SoundcloudBaseIE(InfoExtractor):
         return f'{y}:{d}:{m:x}:{c}'
 
     def _extract_info_dict(self, info, full_title=None, secret_token=None, extract_flat=False):
-        track_id = compat_str(info['id'])
+        track_id = str(info['id'])
         title = info['title']
 
         format_urls = set()
@@ -338,7 +336,7 @@ class SoundcloudBaseIE(InfoExtractor):
         thumbnails = []
         artwork_url = info.get('artwork_url')
         thumbnail = artwork_url or user.get('avatar_url')
-        if isinstance(thumbnail, compat_str):
+        if isinstance(thumbnail, str):
             if re.search(self._IMAGE_REPL_RE, thumbnail):
                 for image_id, size in self._ARTWORK_MAP.items():
                     i = {
@@ -640,13 +638,13 @@ class SoundcloudIE(SoundcloudBaseIE):
 
 class SoundcloudPlaylistBaseIE(SoundcloudBaseIE):
     def _extract_set(self, playlist, token=None):
-        playlist_id = compat_str(playlist['id'])
+        playlist_id = str(playlist['id'])
         tracks = playlist.get('tracks') or []
         if not all(t.get('permalink_url') for t in tracks) and token:
             tracks = self._download_json(
                 self._API_V2_BASE + 'tracks', playlist_id,
                 'Downloading tracks', query={
-                    'ids': ','.join([compat_str(t['id']) for t in tracks]),
+                    'ids': ','.join([str(t['id']) for t in tracks]),
                     'playlistId': playlist_id,
                     'playlistSecretToken': token,
                 }, headers=self._HEADERS)
@@ -705,7 +703,7 @@ class SoundcloudSetIE(SoundcloudPlaylistBaseIE):
             self._BASE_URL + full_title), full_title, headers=self._HEADERS)
 
         if 'errors' in info:
-            msgs = (compat_str(err['error_message']) for err in info['errors'])
+            msgs = (str(err['error_message']) for err in info['errors'])
             raise ExtractorError('unable to download video webpage: {}'.format(','.join(msgs)))
 
         return self._extract_set(info, token)

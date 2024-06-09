@@ -1,8 +1,6 @@
+import urllib.parse
+
 from .common import InfoExtractor
-from ..compat import (
-    compat_urllib_parse_urlencode,
-    compat_urlparse,
-)
 from ..utils import (
     ExtractorError,
     int_or_none,
@@ -104,16 +102,16 @@ class PlaytvakIE(InfoExtractor):
         info_url = self._html_search_regex(
             r'Misc\.video(?:FLV)?\(\s*{\s*data\s*:\s*"([^"]+)"', webpage, 'info url')
 
-        parsed_url = compat_urlparse.urlparse(info_url)
+        parsed_url = urllib.parse.urlparse(info_url)
 
-        qs = compat_urlparse.parse_qs(parsed_url.query)
+        qs = urllib.parse.parse_qs(parsed_url.query)
         qs.update({
             'reklama': ['0'],
             'type': ['js'],
         })
 
-        info_url = compat_urlparse.urlunparse(
-            parsed_url._replace(query=compat_urllib_parse_urlencode(qs, True)))
+        info_url = urllib.parse.urlunparse(
+            parsed_url._replace(query=urllib.parse.urlencode(qs, True)))
 
         json_info = self._download_json(
             info_url, video_id,

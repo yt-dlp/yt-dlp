@@ -1,5 +1,6 @@
+import urllib.parse
+
 from .common import InfoExtractor
-from ..compat import compat_urlparse
 from ..utils import (
     clean_html,
     get_element_by_class,
@@ -39,7 +40,7 @@ class NextMediaIE(InfoExtractor):
             r'window\.location\.href\s*=\s*([\'"])(?P<url>(?!\1).+)\1',
             page, 'redirection URL', default=None, group='url')
         if redirection_url:
-            return self.url_result(compat_urlparse.urljoin(url, redirection_url))
+            return self.url_result(urllib.parse.urljoin(url, redirection_url))
 
         title = self._fetch_title(page)
         video_url = self._search_regex(self._URL_PATTERN, page, 'video url')

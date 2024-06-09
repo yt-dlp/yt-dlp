@@ -1,8 +1,6 @@
+import urllib.parse
+
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-    compat_urllib_parse_unquote,
-)
 from ..utils import (
     int_or_none,
     parse_iso8601,
@@ -116,7 +114,7 @@ class KinjaEmbedIE(InfoExtractor):
 
         provider = self._PROVIDER_MAP.get(video_type)
         if provider:
-            video_id = compat_urllib_parse_unquote(video_id)
+            video_id = urllib.parse.unquote(video_id)
             if video_type == 'tumblr-post':
                 video_id, blog = video_id.split('-', 1)
                 result_url = provider[0] % (blog, video_id)
@@ -190,10 +188,10 @@ class KinjaEmbedIE(InfoExtractor):
             return {
                 'id': video_id,
                 'title': title,
-                'thumbnail': try_get(iptc, lambda x: x['cloudinaryLink']['link'], compat_str),
+                'thumbnail': try_get(iptc, lambda x: x['cloudinaryLink']['link'], str),
                 'uploader': fmg.get('network'),
                 'duration': int_or_none(iptc.get('fileDuration')),
                 'formats': formats,
-                'description': try_get(iptc, lambda x: x['description']['en'], compat_str),
+                'description': try_get(iptc, lambda x: x['description']['en'], str),
                 'timestamp': parse_iso8601(iptc.get('dateReleased')),
             }

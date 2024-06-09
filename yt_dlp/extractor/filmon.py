@@ -1,5 +1,4 @@
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
@@ -127,7 +126,7 @@ class FilmOnChannelIE(InfoExtractor):
                 raise ExtractorError(f'{self.IE_NAME} said: {errmsg}', expected=True)
             raise
 
-        channel_id = compat_str(channel_data['id'])
+        channel_id = str(channel_data['id'])
         is_live = not channel_data.get('is_vod') and not channel_data.get('is_vox')
         title = channel_data['title']
 
