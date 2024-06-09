@@ -33,7 +33,7 @@ class PatreonBaseIE(InfoExtractor):
         try:
             return self._download_json(
                 f'https://www.patreon.com/api/{ep}',
-                item_id, note='Downloading API JSON' if not note else note,
+                item_id, note=note if note else 'Downloading API JSON',
                 query=query, fatal=fatal, headers=headers)
         except ExtractorError as e:
             if not isinstance(e.cause, HTTPError) or mimetype2ext(e.cause.response.headers.get('Content-Type')) != 'json':

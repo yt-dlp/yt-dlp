@@ -148,10 +148,7 @@ def generator(test_case, tname):
                 return False
             if err.__class__.__name__ == expected_exception:
                 return True
-            for exc in err.exc_info:
-                if exc.__class__.__name__ == expected_exception:
-                    return True
-            return False
+            return any(exc.__class__.__name__ == expected_exception for exc in err.exc_info)
 
         def try_rm_tcs_files(tcs=None):
             if tcs is None:

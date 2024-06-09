@@ -103,7 +103,7 @@ class WPPilotIE(WPPilotBaseIE):
 
         is_authorized = next((c for c in self.cookiejar if c.name == 'netviapisessid'), None)
         # cookies starting with "g:" are assigned to guests
-        is_authorized = True if is_authorized is not None and not is_authorized.value.startswith('g:') else False
+        is_authorized = is_authorized is not None and not is_authorized.value.startswith('g:')
 
         video = self._download_json(
             (self._VIDEO_URL if is_authorized else self._VIDEO_GUEST_URL) % video_id,

@@ -93,7 +93,7 @@ class CybraryIE(CybraryBaseIE):
             raise ExtractorError('The activity is not a video', expected=True)
 
         module = next((m for m in course.get('learning_modules') or []
-                      if int(activity_id) in traverse_obj(m, ('activities', ..., 'id') or [])), None)
+                      if int(activity_id) in traverse_obj(m, ('activities', ..., 'id'))), None)
 
         vimeo_id = self._get_vimeo_id(activity_id)
 

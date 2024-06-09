@@ -199,7 +199,7 @@ class RaiBaseIE(InfoExtractor):
 
         # filter out single-stream formats
         fmts = [f for f in fmts
-                if not f.get('vcodec') == 'none' and not f.get('acodec') == 'none']
+                if f.get('vcodec') != 'none' and f.get('acodec') != 'none']
 
         mobj = re.search(_MANIFEST_REG, manifest_url)
         if not mobj:

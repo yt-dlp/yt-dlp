@@ -562,7 +562,7 @@ class IqIE(InfoExtractor):
             return
         self._BID_TAGS = {
             bid: traverse_obj(extracted_bid_tags, (bid, 'value'), expected_type=str, default=self._BID_TAGS.get(bid))
-            for bid in extracted_bid_tags.keys()
+            for bid in extracted_bid_tags
         }
 
     def _get_cookie(self, name, default=None):

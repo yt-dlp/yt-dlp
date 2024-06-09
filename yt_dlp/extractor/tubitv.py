@@ -165,7 +165,7 @@ class TubiTvShowIE(InfoExtractor):
             r'window\.__data\s*=\s*({[^<]+});\s*</script>',
             show_webpage, 'data'), show_name, transform_source=js_to_json)['video']
 
-        for episode_id in show_json['fullContentById'].keys():
+        for episode_id in show_json['fullContentById']:
             if traverse_obj(show_json, ('byId', episode_id, 'type')) == 's':
                 continue
             yield self.url_result(

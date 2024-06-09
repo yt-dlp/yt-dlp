@@ -8,6 +8,7 @@ import unittest
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
+import contextlib
 import copy
 import json
 
@@ -515,10 +516,8 @@ class TestFormatSelection(unittest.TestCase):
         self.assertEqual(downloaded_ids, ['D', 'C', 'B'])
 
         ydl = YDL({'format': 'best[height<40]'})
-        try:
+        with contextlib.suppress(ExtractorError):
             ydl.process_ie_result(info_dict)
-        except ExtractorError:
-            pass
         self.assertEqual(ydl.downloaded_info_dicts, [])
 
     def test_default_format_spec(self):

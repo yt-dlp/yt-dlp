@@ -1337,7 +1337,7 @@ class YoutubeDL:
                     value, default = None, na
 
             fmt = outer_mobj.group('format')
-            if fmt == 's' and last_field in field_size_compat_map.keys() and isinstance(value, int):
+            if fmt == 's' and last_field in field_size_compat_map and isinstance(value, int):
                 fmt = f'0{field_size_compat_map[last_field]:d}d'
 
             flags = outer_mobj.group('conversion') or ''

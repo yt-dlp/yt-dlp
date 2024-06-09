@@ -119,7 +119,7 @@ class FFmpegPostProcessor(PostProcessor):
             filename = os.path.basename(location)
             basename = next((p for p in programs if p in filename), 'ffmpeg')
             dirname = os.path.dirname(os.path.abspath(location))
-            if basename in self._ffmpeg_to_avconv.keys():
+            if basename in self._ffmpeg_to_avconv:
                 self._prefer_ffmpeg = True
 
         paths = {p: os.path.join(dirname, p) for p in programs}

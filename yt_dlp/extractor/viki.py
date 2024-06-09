@@ -252,7 +252,7 @@ class VikiIE(VikiBaseIE):
             'ext': ext,
             'url': self._API_URL_TEMPLATE % self._api_query(
                 f'videos/{video_id}/auth_subtitles/{lang}.{ext}', stream_id=stream_id),
-        } for ext in ('srt', 'vtt')]) for lang in (video.get('subtitle_completions') or {}).keys())
+        } for ext in ('srt', 'vtt')]) for lang in (video.get('subtitle_completions') or {}))
 
         mpd_url = resp['url']
         # 720p is hidden in another MPD which can be found in the current manifest content

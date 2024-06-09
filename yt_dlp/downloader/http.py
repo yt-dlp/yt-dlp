@@ -194,7 +194,7 @@ class HttpFD(FileDownloader):
 
         def close_stream():
             if ctx.stream is not None:
-                if not ctx.tmpfilename == '-':
+                if ctx.tmpfilename != '-':
                     ctx.stream.close()
                 ctx.stream = None
 

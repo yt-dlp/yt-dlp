@@ -294,10 +294,7 @@ class ThePlatformIE(ThePlatformBaseIE, AdobePassIE):
             config_url = config_url.replace('swf/', 'config/')
             config_url = config_url.replace('onsite/', 'onsite/config/')
             config = self._download_json(config_url, video_id, 'Downloading config')
-            if 'releaseUrl' in config:
-                release_url = config['releaseUrl']
-            else:
-                release_url = 'http://link.theplatform.com/s/%s?mbr=true' % path
+            release_url = config.get('releaseUrl') or f'http://link.theplatform.com/s/{path}?mbr=true'
             smil_url = release_url + '&formats=MPEG4&manifest=f4m'
         else:
             smil_url = 'http://link.theplatform.com/s/%s?mbr=true' % path

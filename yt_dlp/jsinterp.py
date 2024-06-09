@@ -190,7 +190,7 @@ class Debugger:
                     cls.write('=> Raises:', e, '<-|', stmt, level=allow_recursion)
                 raise
             if cls.ENABLED and stmt.strip():
-                if should_ret or not repr(ret) == stmt:
+                if should_ret or repr(ret) != stmt:
                     cls.write(['->', '=>'][should_ret], repr(ret), '<-|', stmt, level=allow_recursion)
             return ret, should_ret
         return interpret_statement

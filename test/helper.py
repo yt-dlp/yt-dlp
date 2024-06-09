@@ -224,7 +224,7 @@ def sanitize_got_info_dict(got_dict):
         test_info_dict.pop('display_id')
 
     # Remove deprecated fields
-    for old in YoutubeDL._deprecated_multivalue_fields.keys():
+    for old in YoutubeDL._deprecated_multivalue_fields:
         test_info_dict.pop(old, None)
 
     # release_year may be generated from release_date
@@ -310,7 +310,7 @@ def assertLessEqual(self, got, expected, msg=None):
 
 
 def assertEqual(self, got, expected, msg=None):
-    if not (got == expected):
+    if got != expected:
         if msg is None:
             msg = f'{got!r} not equal to {expected!r}'
         self.assertTrue(got == expected, msg)

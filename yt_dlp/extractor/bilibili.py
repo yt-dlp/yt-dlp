@@ -2207,7 +2207,7 @@ class BiliLiveIE(InfoExtractor):
             raise ExtractorError('Streamer is not live', expected=True)
 
         formats = []
-        for qn in self._FORMATS.keys():
+        for qn in self._FORMATS:
             stream_data = self._call_api('xlive/web-room/v2/index/getRoomPlayInfo', room_id, {
                 'room_id': room_id,
                 'qn': qn,

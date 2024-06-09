@@ -5246,7 +5246,7 @@ class FormatSorter:
             elif key == 'convert':
                 default = 'order' if type_ == 'ordered' else 'float_string' if field else 'ignore'
             else:
-                default = {'type': 'field', 'visible': True, 'order': [], 'not_in_list': (None,)}.get(key, None)
+                default = {'type': 'field', 'visible': True, 'order': [], 'not_in_list': (None,)}.get(key)
             propObj[key] = default
         return propObj[key]
 

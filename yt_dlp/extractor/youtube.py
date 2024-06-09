@@ -3677,7 +3677,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         android_clients = []
         default = ['ios', 'web']
         allowed_clients = sorted(
-            (client for client in INNERTUBE_CLIENTS.keys() if client[:1] != '_'),
+            (client for client in INNERTUBE_CLIENTS if client[:1] != '_'),
             key=lambda client: INNERTUBE_CLIENTS[client]['priority'], reverse=True)
         for client in self._configuration_arg('player_client'):
             if client == 'default':
@@ -5070,7 +5070,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             continuation_item = traverse_obj(continuation_items, 0, None, expected_type=dict, default={})
 
             video_items_renderer = None
-            for key in continuation_item.keys():
+            for key in continuation_item:
                 if key not in known_renderers:
                     continue
                 func, parent_key = known_renderers[key]

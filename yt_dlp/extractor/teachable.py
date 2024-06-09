@@ -29,7 +29,7 @@ class TeachableBaseIE(InfoExtractor):
         'courses.workitdaily.com': 'workitdaily',
     }
 
-    _VALID_URL_SUB_TUPLE = (_URL_PREFIX, '|'.join(re.escape(site) for site in _SITES.keys()))
+    _VALID_URL_SUB_TUPLE = (_URL_PREFIX, '|'.join(re.escape(site) for site in _SITES))
 
     def _real_initialize(self):
         self._logged_in = False
