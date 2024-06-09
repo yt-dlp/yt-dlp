@@ -291,13 +291,12 @@ class NexxIE(InfoExtractor):
                 cdn_shield = stream_data.get('cdnShield%sHTTP%s' % (shield_type, secure.upper()))
                 if cdn_shield:
                     return 'http%s://%s' % (secure, cdn_shield)
+            if 'fb' in stream_data['azureAccount']:
+                prefix = 'df' if static else 'f'
             else:
-                if 'fb' in stream_data['azureAccount']:
-                    prefix = 'df' if static else 'f'
-                else:
-                    prefix = 'd' if static else 'p'
-                account = int(stream_data['azureAccount'].replace('nexxplayplus', '').replace('nexxplayfb', ''))
-                return 'http://nx-%s%02d.akamaized.net/' % (prefix, account)
+                prefix = 'd' if static else 'p'
+            account = int(stream_data['azureAccount'].replace('nexxplayplus', '').replace('nexxplayfb', ''))
+            return 'http://nx-%s%02d.akamaized.net/' % (prefix, account)
 
         language = video['general'].get('language_raw') or ''
 
