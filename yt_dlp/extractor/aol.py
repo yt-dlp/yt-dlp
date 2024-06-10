@@ -10,6 +10,7 @@ from ..utils import (
 
 
 class AolIE(YahooIE):  # XXX: Do not subclass from concrete IE
+    _WORKING = False
     IE_NAME = 'aol.com'
     _VALID_URL = r'(?:aol-video:|https?://(?:www\.)?aol\.(?:com|ca|co\.uk|de|jp)/video/(?:[^/]+/)*)(?P<id>\d{9}|[0-9a-f]{24}|[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12})'
 

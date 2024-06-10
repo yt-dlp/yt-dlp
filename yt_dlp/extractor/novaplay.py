@@ -3,7 +3,7 @@ from ..utils import int_or_none, parse_duration, parse_iso8601
 
 
 class NovaPlayIE(InfoExtractor):
-    _VALID_URL = r'https://play\.nova\.bg/video/[^?#]+/(?P<id>\d+)'
+    _VALID_URL = r'https?://play\.nova\.bg/video/[^?#]+/(?P<id>\d+)'
     _TESTS = [
         {
             'url': 'https://play.nova.bg/video/ochakvaite/season-0/ochakvaite-2022-07-22-sybudi-se-sat/606627',
@@ -18,7 +18,6 @@ class NovaPlayIE(InfoExtractor):
                 'upload_date': '20220722',
                 'thumbnail': 'https://nbg-img.fite.tv/img/606627_460x260.jpg',
                 'description': '29 сек',
-                'view_count': False
             },
         },
         {
@@ -34,7 +33,6 @@ class NovaPlayIE(InfoExtractor):
                 'upload_date': '20220722',
                 'thumbnail': 'https://nbg-img.fite.tv/img/606609_460x260.jpg',
                 'description': '29 сек',
-                'view_count': False
             },
         }
     ]

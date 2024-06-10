@@ -6,6 +6,7 @@ from ..utils import (
     int_or_none,
     smuggle_url,
     traverse_obj,
+    try_call,
     unsmuggle_url,
 )
 
@@ -96,13 +97,22 @@ class LiTVIE(InfoExtractor):
             r'uiHlsUrl\s*=\s*testBackendData\(([^;]+)\);',
             webpage, 'video data', default='{}'), video_id)
         if not video_data:
-            payload = {
-                'assetId': program_info['assetId'],
-                'watchDevices': program_info['watchDevices'],
-                'contentType': program_info['contentType'],
-            }
+            payload = {'assetId': program_info['assetId']}
+            puid = try_call(lambda: self._get_cookies('https://www.litv.tv/')['PUID'].value)
+            if puid:
+                payload.update({
+                    'type': 'auth',
+                    'puid': puid,
+                })
+                endpoint = 'getUrl'
+            else:
+                payload.update({
+                    'watchDevices': program_info['watchDevices'],
+                    'contentType': program_info['contentType'],
+                })
+                endpoint = 'getMainUrlNoAuth'
             video_data = self._download_json(
-                'https://www.litv.tv/vod/ajax/getMainUrlNoAuth', video_id,
+                f'https://www.litv.tv/vod/ajax/{endpoint}', video_id,
                 data=json.dumps(payload).encode('utf-8'),
                 headers={'Content-Type': 'application/json'})
 

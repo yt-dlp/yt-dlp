@@ -65,12 +65,14 @@ class DropboxIE(InfoExtractor):
         formats, subtitles, has_anonymous_download = [], {}, False
         for encoded in reversed(re.findall(r'registerStreamedPrefetch\s*\(\s*"[\w/+=]+"\s*,\s*"([\w/+=]+)"', webpage)):
             decoded = base64.b64decode(encoded).decode('utf-8', 'ignore')
+            if not has_anonymous_download:
+                has_anonymous_download = self._search_regex(
+                    r'(anonymous:\tanonymous)', decoded, 'anonymous', default=False)
             transcode_url = self._search_regex(
                 r'\n.(https://[^\x03\x08\x12\n]+\.m3u8)', decoded, 'transcode url', default=None)
             if not transcode_url:
                 continue
             formats, subtitles = self._extract_m3u8_formats_and_subtitles(transcode_url, video_id, 'mp4')
-            has_anonymous_download = self._search_regex(r'(anonymous:\tanonymous)', decoded, 'anonymous', default=False)
             break
 
         # downloads enabled we can get the original file

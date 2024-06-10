@@ -8,6 +8,7 @@ from ..utils import (
 
 
 class NetzkinoIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?netzkino\.de/\#!/[^/]+/(?P<id>[^/]+)'
 
     _TESTS = [{

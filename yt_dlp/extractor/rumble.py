@@ -90,7 +90,6 @@ class RumbleEmbedIE(InfoExtractor):
             'channel_url': 'https://rumble.com/c/LofiGirl',
             'channel': 'Lofi Girl',
             'thumbnail': r're:https://.+\.jpg',
-            'duration': None,
             'uploader': 'Lofi Girl',
             'live_status': 'is_live',
         },
@@ -383,7 +382,7 @@ class RumbleChannelIE(InfoExtractor):
                 if isinstance(e.cause, HTTPError) and e.cause.status == 404:
                     break
                 raise
-            for video_url in re.findall(r'class=video-item--a\s?href=([^>]+\.html)', webpage):
+            for video_url in re.findall(r'class="[^>"]*videostream__link[^>]+href="([^"]+\.html)"', webpage):
                 yield self.url_result('https://rumble.com' + video_url)
 
     def _real_extract(self, url):

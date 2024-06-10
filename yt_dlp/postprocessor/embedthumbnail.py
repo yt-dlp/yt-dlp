@@ -190,7 +190,7 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
 
         elif info['ext'] in ['ogg', 'opus', 'flac']:
             if not mutagen:
-                raise EmbedThumbnailPPError('module mutagen was not found. Please install using `python -m pip install mutagen`')
+                raise EmbedThumbnailPPError('module mutagen was not found. Please install using `python3 -m pip install mutagen`')
 
             self._report_run('mutagen', filename)
             f = {'opus': OggOpus, 'flac': FLAC, 'ogg': OggVorbis}[info['ext']](filename)

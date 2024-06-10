@@ -6,16 +6,17 @@ import time
 from .common import InfoExtractor
 from ..compat import compat_str
 from ..utils import (
-    dict_get,
     ExtractorError,
-    js_to_json,
+    dict_get,
     int_or_none,
+    js_to_json,
     parse_iso8601,
     str_or_none,
     traverse_obj,
     try_get,
     unescapeHTML,
     update_url_query,
+    url_or_none,
 )
 
 
@@ -244,7 +245,6 @@ class ABCIViewIE(InfoExtractor):
             'episode_id': 'NC2203H039S00',
             'season_number': 2022,
             'season': 'Season 2022',
-            'episode_number': None,
             'episode': 'Locking Up Kids',
             'thumbnail': 'https://cdn.iview.abc.net.au/thumbs/i/nc/NC2203H039S00_636d8a0944a22_1920.jpg',
             'timestamp': 1668460497,
@@ -270,8 +270,6 @@ class ABCIViewIE(InfoExtractor):
             'episode_id': 'RF2004Q043S00',
             'season_number': 2021,
             'season': 'Season 2021',
-            'episode_number': None,
-            'episode': None,
             'thumbnail': 'https://cdn.iview.abc.net.au/thumbs/i/rf/RF2004Q043S00_61a950639dbc0_1920.jpg',
             'timestamp': 1638710705,
 
@@ -379,6 +377,18 @@ class ABCIViewShowSeriesIE(InfoExtractor):
             'noplaylist': True,
             'skip_download': 'm3u8',
         },
+    }, {
+        # 'videoEpisodes' is a dict with `items` key
+        'url': 'https://iview.abc.net.au/show/7-30-mark-humphries-satire',
+        'info_dict': {
+            'id': '178458-0',
+            'title': 'Episodes',
+            'description': 'Satirist Mark Humphries brings his unique perspective on current political events for 7.30.',
+            'series': '7.30 Mark Humphries Satire',
+            'season': 'Episodes',
+            'thumbnail': r're:^https?://cdn\.iview\.abc\.net\.au/thumbs/.*\.jpg$'
+        },
+        'playlist_count': 15,
     }]
 
     def _real_extract(self, url):
@@ -398,12 +408,14 @@ class ABCIViewShowSeriesIE(InfoExtractor):
         series = video_data['selectedSeries']
         return {
             '_type': 'playlist',
-            'entries': [self.url_result(episode['shareUrl'])
-                        for episode in series['_embedded']['videoEpisodes']],
+            'entries': [self.url_result(episode_url, ABCIViewIE)
+                        for episode_url in traverse_obj(series, (
+                            '_embedded', 'videoEpisodes', (None, 'items'), ..., 'shareUrl', {url_or_none}))],
             'id': series.get('id'),
             'title': dict_get(series, ('title', 'displaySubtitle')),
             'description': series.get('description'),
             'series': dict_get(series, ('showTitle', 'displayTitle')),
             'season': dict_get(series, ('title', 'displaySubtitle')),
-            'thumbnail': series.get('thumbnail'),
+            'thumbnail': traverse_obj(
+                series, 'thumbnail', ('images', lambda _, v: v['name'] == 'seriesThumbnail', 'url'), get_all=False),
         }

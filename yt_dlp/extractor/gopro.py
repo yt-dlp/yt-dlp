@@ -57,8 +57,8 @@ class GoProIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        metadata = self._parse_json(
-            self._html_search_regex(r'window\.__reflectData\s*=\s*([^;]+)', webpage, 'metadata'), video_id)
+        metadata = self._search_json(
+            r'window\.__reflectData\s*=', webpage, 'metadata', video_id)
 
         video_info = metadata['collectionMedia'][0]
         media_data = self._download_json(
@@ -99,7 +99,7 @@ class GoProIE(InfoExtractor):
             'duration': int_or_none(
                 video_info.get('source_duration')),
             'artist': str_or_none(
-                video_info.get('music_track_artist')),
+                video_info.get('music_track_artist')) or None,
             'track': str_or_none(
-                video_info.get('music_track_name')),
+                video_info.get('music_track_name')) or None,
         }

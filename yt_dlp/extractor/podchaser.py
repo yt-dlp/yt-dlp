@@ -29,7 +29,7 @@ class PodchaserIE(InfoExtractor):
             'duration': 3708,
             'timestamp': 1636531259,
             'upload_date': '20211110',
-            'rating': 4.0
+            'average_rating': 4.0
         }
     }, {
         'url': 'https://www.podchaser.com/podcasts/the-bone-zone-28853',
@@ -59,7 +59,7 @@ class PodchaserIE(InfoExtractor):
             'thumbnail': episode.get('image_url'),
             'duration': str_to_int(episode.get('length')),
             'timestamp': unified_timestamp(episode.get('air_date')),
-            'rating': float_or_none(episode.get('rating')),
+            'average_rating': float_or_none(episode.get('rating')),
             'categories': list(set(traverse_obj(podcast, (('summary', None), 'categories', ..., 'text')))),
             'tags': traverse_obj(podcast, ('tags', ..., 'text')),
             'series': podcast.get('title'),

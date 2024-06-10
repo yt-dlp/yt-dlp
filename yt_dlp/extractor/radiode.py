@@ -2,6 +2,7 @@ from .common import InfoExtractor
 
 
 class RadioDeIE(InfoExtractor):
+    _WORKING = False
     IE_NAME = 'radio.de'
     _VALID_URL = r'https?://(?P<id>.+?)\.(?:radio\.(?:de|at|fr|pt|es|pl|it)|rad\.io)'
     _TEST = {

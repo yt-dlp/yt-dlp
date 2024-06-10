@@ -51,7 +51,7 @@ class VoxMediaVolumeIE(OnceIE):
             info['duration'] = int_or_none(asset.get('duration'))
             return info
 
-        for provider_video_type in ('ooyala', 'youtube', 'brightcove'):
+        for provider_video_type in ('youtube', 'brightcove'):
             provider_video_id = video_data.get('%s_id' % provider_video_type)
             if not provider_video_id:
                 continue
@@ -177,7 +177,6 @@ class VoxMediaIE(InfoExtractor):
         def create_entry(provider_video_id, provider_video_type, title=None, description=None):
             video_url = {
                 'youtube': '%s',
-                'ooyala': 'ooyala:%s',
                 'volume': 'http://volume.vox-cdn.com/embed/%s',
             }[provider_video_type] % provider_video_id
             return {
@@ -204,11 +203,6 @@ class VoxMediaIE(InfoExtractor):
                     entries.append(create_entry(
                         provider_video_id, provider_video_type,
                         video_data.get('title'), video_data.get('description')))
-
-        provider_video_id = self._search_regex(
-            r'data-ooyala-id="([^"]+)"', webpage, 'ooyala id', default=None)
-        if provider_video_id:
-            entries.append(create_entry(provider_video_id, 'ooyala'))
 
         volume_uuid = self._search_regex(
             r'data-volume-uuid="([^"]+)"', webpage, 'volume uuid', default=None)

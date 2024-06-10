@@ -29,6 +29,7 @@ You can also find lists of all [contributors of yt-dlp](CONTRIBUTORS) and [autho
 [![gh-sponsor](https://img.shields.io/badge/_-Github-white.svg?logo=github&labelColor=555555&style=for-the-badge)](https://github.com/sponsors/coletdjnz)
 
 * Improved plugin architecture
+* Rewrote the networking infrastructure, implemented support for `requests`
 * YouTube improvements including: age-gate bypass, private playlists, multiple-clients (to avoid throttling) and a lot of under-the-hood improvements
 * Added support for new websites YoutubeWebArchive, MainStreaming, PRX, nzherald, Mediaklikk, StarTV etc
 * Improved/fixed support for Patreon, panopto, gfycat, itv, pbs, SouthParkDE etc
@@ -46,16 +47,17 @@ You can also find lists of all [contributors of yt-dlp](CONTRIBUTORS) and [autho
 
 ## [bashonly](https://github.com/bashonly)
 
-* `--update-to`, automated release, nightly builds
-* `--cookies-from-browser` support for Firefox containers
-* Added support for new websites Genius, Kick, NBCStations, Triller, VideoKen etc
-* Improved/fixed support for Anvato, Brightcove, Instagram, ParamountPlus, Reddit, SlidesLive, TikTok, Twitter, Vimeo etc
+* `--update-to`, self-updater rewrite, automated/nightly/master releases
+* `--cookies-from-browser` support for Firefox containers, external downloader cookie handling overhaul
+* Added support for new websites like Dacast, Kick, NBCStations, Triller, VideoKen, Weverse, WrestleUniverse etc
+* Improved/fixed support for Anvato, Brightcove, Reddit, SlidesLive, TikTok, Twitter, Vimeo etc
 
 
 ## [Grub4K](https://github.com/Grub4K)
 
-[![ko-fi](https://img.shields.io/badge/_-Ko--fi-red.svg?logo=kofi&labelColor=555555&style=for-the-badge)](https://ko-fi.com/Grub4K) [![gh-sponsor](https://img.shields.io/badge/_-Github-white.svg?logo=github&labelColor=555555&style=for-the-badge)](https://github.com/sponsors/Grub4K)
+[![gh-sponsor](https://img.shields.io/badge/_-Github-white.svg?logo=github&labelColor=555555&style=for-the-badge)](https://github.com/sponsors/Grub4K) [![ko-fi](https://img.shields.io/badge/_-Ko--fi-red.svg?logo=kofi&labelColor=555555&style=for-the-badge)](https://ko-fi.com/Grub4K)
 
-* `--update-to`, automated release, nightly builds
-* Rework internals like `traverse_obj`, various core refactors and bugs fixes
-* Helped fix crunchyroll, Twitter, wrestleuniverse, wistia, slideslive etc
+* `--update-to`, self-updater rewrite, automated/nightly/master releases
+* Reworked internals like `traverse_obj`, various core refactors and bugs fixes
+* Implemented proper progress reporting for parallel downloads
+* Improved/fixed/added Bundestag, crunchyroll, pr0gramm, Twitter, WrestleUniverse etc

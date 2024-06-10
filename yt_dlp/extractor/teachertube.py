@@ -2,13 +2,14 @@ import re
 
 from .common import InfoExtractor
 from ..utils import (
-    determine_ext,
     ExtractorError,
+    determine_ext,
     qualities,
 )
 
 
 class TeacherTubeIE(InfoExtractor):
+    _WORKING = False
     IE_NAME = 'teachertube'
     IE_DESC = 'teachertube.com videos'
 
@@ -87,6 +88,7 @@ class TeacherTubeIE(InfoExtractor):
 
 
 class TeacherTubeUserIE(InfoExtractor):
+    _WORKING = False
     IE_NAME = 'teachertube:user:collection'
     IE_DESC = 'teachertube.com user and collection videos'
 

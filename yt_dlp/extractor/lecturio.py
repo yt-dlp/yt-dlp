@@ -2,9 +2,9 @@ import re
 
 from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
     clean_html,
     determine_ext,
-    ExtractorError,
     float_or_none,
     int_or_none,
     str_or_none,
@@ -172,7 +172,7 @@ class LecturioIE(LecturioBaseIE):
 
 
 class LecturioCourseIE(LecturioBaseIE):
-    _VALID_URL = r'https://app\.lecturio\.com/(?:[^/]+/(?P<nt>[^/?#&]+)\.course|(?:#/)?course/c/(?P<id>\d+))'
+    _VALID_URL = r'https?://app\.lecturio\.com/(?:[^/]+/(?P<nt>[^/?#&]+)\.course|(?:#/)?course/c/(?P<id>\d+))'
     _TESTS = [{
         'url': 'https://app.lecturio.com/medical-courses/microbiology-introduction.course#/',
         'info_dict': {
@@ -209,7 +209,7 @@ class LecturioCourseIE(LecturioBaseIE):
 
 
 class LecturioDeCourseIE(LecturioBaseIE):
-    _VALID_URL = r'https://(?:www\.)?lecturio\.de/[^/]+/(?P<id>[^/?#&]+)\.kurs'
+    _VALID_URL = r'https?://(?:www\.)?lecturio\.de/[^/]+/(?P<id>[^/?#&]+)\.kurs'
     _TEST = {
         'url': 'https://www.lecturio.de/jura/grundrechte.kurs',
         'only_matching': True,

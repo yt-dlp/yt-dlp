@@ -1,29 +1,27 @@
-import re
-import time
-import hmac
 import binascii
 import hashlib
+import hmac
+import re
+import time
 
-
-from .once import OnceIE
 from .adobepass import AdobePassIE
-from ..networking import Request
+from .once import OnceIE
+from ..networking import HEADRequest, Request
 from ..utils import (
-    determine_ext,
     ExtractorError,
+    determine_ext,
+    find_xpath_attr,
     float_or_none,
     int_or_none,
-    parse_qs,
-    unsmuggle_url,
-    update_url_query,
-    xpath_with_ns,
     mimetype2ext,
-    find_xpath_attr,
+    parse_qs,
     traverse_obj,
+    unsmuggle_url,
     update_url,
+    update_url_query,
     urlhandle_detect_ext,
+    xpath_with_ns,
 )
-from ..networking import HEADRequest
 
 default_ns = 'http://www.w3.org/2005/SMIL21/Language'
 _x = lambda p: xpath_with_ns(p, {'smil': default_ns})
@@ -104,6 +102,10 @@ class ThePlatformBaseIE(OnceIE):
                 _add_chapter(chapter.get('startTime'), chapter.get('endTime'))
             _add_chapter(tp_chapters[-1].get('startTime'), tp_chapters[-1].get('endTime') or duration)
 
+        def extract_site_specific_field(field):
+            # A number of sites have custom-prefixed keys, e.g. 'cbc$seasonNumber'
+            return traverse_obj(info, lambda k, v: v and k.endswith(f'${field}'), get_all=False)
+
         return {
             'title': info['title'],
             'subtitles': subtitles,
@@ -113,6 +115,14 @@ class ThePlatformBaseIE(OnceIE):
             'timestamp': int_or_none(info.get('pubDate'), 1000) or None,
             'uploader': info.get('billingCode'),
             'chapters': chapters,
+            'creator': traverse_obj(info, ('author', {str})) or None,
+            'categories': traverse_obj(info, (
+                'categories', lambda _, v: v.get('label') in ('category', None), 'name', {str})) or None,
+            'tags': traverse_obj(info, ('keywords', {lambda x: re.split(r'[;,]\s?', x) if x else None})),
+            'location': extract_site_specific_field('region'),
+            'series': extract_site_specific_field('show'),
+            'season_number': int_or_none(extract_site_specific_field('seasonNumber')),
+            'media_type': extract_site_specific_field('programmingType') or extract_site_specific_field('type'),
         }
 
     def _extract_theplatform_metadata(self, path, video_id):

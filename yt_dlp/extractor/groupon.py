@@ -31,7 +31,6 @@ class GrouponIE(InfoExtractor):
     }
 
     _PROVIDERS = {
-        'ooyala': ('ooyala:%s', 'Ooyala'),
         'youtube': ('%s', 'Youtube'),
     }
 

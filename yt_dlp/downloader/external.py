@@ -335,7 +335,7 @@ class Aria2cFD(ExternalFD):
         cmd += ['--auto-file-renaming=false']
 
         if 'fragments' in info_dict:
-            cmd += ['--file-allocation=none', '--uri-selector=inorder']
+            cmd += ['--uri-selector=inorder']
             url_list_file = '%s.frag.urls' % tmpfilename
             url_list = []
             for frag_index, fragment in enumerate(info_dict['fragments']):
@@ -491,7 +491,7 @@ class FFmpegFD(ExternalFD):
         if not self.params.get('verbose'):
             args += ['-hide_banner']
 
-        args += traverse_obj(info_dict, ('downloader_options', 'ffmpeg_args'), default=[])
+        args += traverse_obj(info_dict, ('downloader_options', 'ffmpeg_args', ...))
 
         # These exists only for compatibility. Extractors should use
         # info_dict['downloader_options']['ffmpeg_args'] instead
@@ -614,6 +614,8 @@ class FFmpegFD(ExternalFD):
                 args += ['-f', EXT_TO_OUT_FORMATS.get(ext, ext)]
         else:
             args += ['-f', EXT_TO_OUT_FORMATS.get(ext, ext)]
+
+        args += traverse_obj(info_dict, ('downloader_options', 'ffmpeg_args_out', ...))
 
         args += self._configuration_args(('_o1', '_o', ''))
 

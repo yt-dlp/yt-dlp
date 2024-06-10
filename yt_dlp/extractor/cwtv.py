@@ -46,6 +46,10 @@ class CWTVIE(InfoExtractor):
             'timestamp': 1444107300,
             'age_limit': 14,
             'uploader': 'CWTV',
+            'thumbnail': r're:^https?://.*\.jpe?g$',
+            'chapters': 'count:4',
+            'episode': 'Episode 20',
+            'season': 'Season 11',
         },
         'params': {
             # m3u8 download

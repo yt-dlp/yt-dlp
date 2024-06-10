@@ -247,17 +247,17 @@ class MujRozhlasIE(RozhlasBaseIE):
         'url': 'https://www.mujrozhlas.cz/vykopavky/ach-jo-zase-teleci-rizek-je-mnohem-min-cesky-nez-jsme-si-mysleli',
         'md5': '6f8fd68663e64936623e67c152a669e0',
         'info_dict': {
-            'id': '10739193',
+            'id': '10787730',
             'ext': 'mp3',
             'title': 'Ach jo, zase to telecí! Řízek je mnohem míň český, než jsme si mysleli',
             'description': 'md5:db7141e9caaedc9041ec7cefb9a62908',
             'timestamp': 1684915200,
-            'modified_timestamp': 1684922446,
+            'modified_timestamp': 1687550432,
             'series': 'Vykopávky',
             'thumbnail': 'https://portal.rozhlas.cz/sites/default/files/images/84377046610af6ddc54d910b1dd7a22b.jpg',
             'channel_id': 'radio-wave',
             'upload_date': '20230524',
-            'modified_date': '20230524',
+            'modified_date': '20230623',
         },
     }, {
         # serial extraction
@@ -277,6 +277,26 @@ class MujRozhlasIE(RozhlasBaseIE):
             'title': 'Nespavci',
             'description': 'md5:c430adcbf9e2b9eac88b745881e814dc',
         },
+    }, {
+        # serialPart
+        'url': 'https://www.mujrozhlas.cz/povidka/gustavo-adolfo-becquer-hora-duchu',
+        'info_dict': {
+            'id': '8889035',
+            'ext': 'm4a',
+            'title': 'Gustavo Adolfo Bécquer: Hora duchů',
+            'description': 'md5:343a15257b376c276e210b78e900ffea',
+            'chapter': 'Hora duchů a Polibek – dva tajemné příběhy Gustava Adolfa Bécquera',
+            'thumbnail': 'https://portal.rozhlas.cz/sites/default/files/images/2adfe1387fb140634be725c1ccf26214.jpg',
+            'timestamp': 1708173000,
+            'episode': 'Episode 1',
+            'episode_number': 1,
+            'series': 'Povídka',
+            'modified_date': '20240217',
+            'upload_date': '20240217',
+            'modified_timestamp': 1708173198,
+            'channel_id': 'vltava',
+        },
+        'params': {'skip_download': 'dash'},
     }]
 
     def _call_api(self, path, item_id, msg='API JSON'):
@@ -322,7 +342,7 @@ class MujRozhlasIE(RozhlasBaseIE):
 
         entity = info['siteEntityBundle']
 
-        if entity == 'episode':
+        if entity in ('episode', 'serialPart'):
             return self._extract_audio_entry(self._call_api(
                 'episodes', info['contentId'], 'episode info API JSON'))
 

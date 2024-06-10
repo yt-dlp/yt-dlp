@@ -2,15 +2,15 @@ import re
 
 from .common import InfoExtractor
 from ..utils import (
-    determine_ext,
     ExtractorError,
+    determine_ext,
     int_or_none,
     join_nonempty,
     js_to_json,
     mimetype2ext,
+    parse_iso8601,
     try_get,
     unescapeHTML,
-    parse_iso8601,
 )
 
 

@@ -77,7 +77,6 @@ class TelecincoIE(InfoExtractor):
         'url': 'http://www.telecinco.es/espanasinirmaslejos/Espana-gran-destino-turistico_2_1240605043.html',
         'only_matching': True,
     }, {
-        # ooyala video
         'url': 'http://www.cuatro.com/chesterinlove/a-carta/chester-chester_in_love-chester_edu_2_2331030022.html',
         'only_matching': True,
     }]
