@@ -283,11 +283,19 @@ class ABCIViewIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         video_params = self._download_json(
-            'https://iview.abc.net.au/api/programs/' + video_id, video_id)
+            'https://api.iview.abc.net.au/v3/video/' + video_id, video_id,
+            errnote='Failed to download API V3 JSON', fatal=False)
+        # fallback to legacy API, which will return some useful info even if the video is unavailable
+        if not video_params:
+            video_params = self._download_json(
+                'https://iview.abc.net.au/api/programs/' + video_id, video_id,
+                note='Downloading legacy API JSON')
         title = unescapeHTML(video_params.get('title') or video_params['seriesTitle'])
-        stream = next(s for s in video_params['playlist'] if s.get('type') in ('program', 'livestream'))
+        stream = traverse_obj(video_params, (
+            ('_embedded', None), 'playlist', lambda _, v: v['type'] in ('program', 'livestream')),
+            get_all=False)
 
-        house_number = video_params.get('episodeHouseNumber') or video_id
+        house_number = traverse_obj(video_params, ('houseNumber', 'episodeHouseNumber')) or video_id
         path = '/auth/hls/sign?ts={0}&hn={1}&d=android-tablet'.format(
             int(time.time()), house_number)
         sig = hmac.new(
@@ -320,17 +328,23 @@ class ABCIViewIE(InfoExtractor):
                 'ext': 'vtt',
             }]
 
-        is_live = video_params.get('livestream') == '1'
+        is_live = video_params.get('livestream') == '1' or stream['type'] == 'livestream'
+        thumbnail = traverse_obj(
+            video_params,
+            ('images', lambda _, v: v['name'] == 'episodeThumbnail', 'url'),
+            'thumbnail', expected_type=str, get_all=False)
+        series_id = traverse_obj(
+            video_params, ('analytics', 'oztam', 'seriesId'), 'seriesHouseNumber') or video_id[:7]
 
         return {
             'id': video_id,
             'title': title,
             'description': video_params.get('description'),
-            'thumbnail': video_params.get('thumbnail'),
-            'duration': int_or_none(video_params.get('eventDuration')),
+            'thumbnail': thumbnail,
+            'duration': int_or_none(traverse_obj(video_params, 'duration', 'eventDuration')),
             'timestamp': parse_iso8601(video_params.get('pubDate'), ' '),
             'series': unescapeHTML(video_params.get('seriesTitle')),
-            'series_id': video_params.get('seriesHouseNumber') or video_id[:7],
+            'series_id': series_id,
             'season_number': int_or_none(self._search_regex(
                 r'\bSeries\s+(\d+)\b', title, 'season number', default=None)),
             'episode_number': int_or_none(self._search_regex(
