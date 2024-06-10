@@ -198,6 +198,19 @@ class ABCIViewIE(InfoExtractor):
             'season': 'Season 1',
             'episode_number': 1,
             'episode': 'Wood For The Trees',
+            'duration': 1584,
+            'chapters': [
+                {
+                    'start_time': 0,
+                    'end_time': 1,
+                    'title': '<Untitled Chapter 1>',
+                },
+                {
+                    'start_time': 1,
+                    'end_time': 24,
+                    'title': 'opening-credits',
+                },
+            ],
             'thumbnail': 'https://cdn.iview.abc.net.au/thumbs/i/co/CO1211V001S00_5ad8353f4df09_1280.jpg',
             'timestamp': 1690403700,
         },
@@ -335,12 +348,15 @@ class ABCIViewIE(InfoExtractor):
             'thumbnail', expected_type=str, get_all=False)
         series_id = traverse_obj(
             video_params, ('analytics', 'oztam', 'seriesId'), 'seriesHouseNumber') or video_id[:7]
+        chapters = traverse_obj(
+            video_params, ('cuePoints', ..., {'start_time': 'start', 'end_time': 'end', 'title': 'type'}))
 
         return {
             'id': video_id,
             'title': title,
             'description': video_params.get('description'),
             'thumbnail': thumbnail,
+            'chapters': chapters,
             'duration': int_or_none(traverse_obj(video_params, 'duration', 'eventDuration')),
             'timestamp': parse_iso8601(video_params.get('pubDate'), ' '),
             'series': unescapeHTML(video_params.get('seriesTitle')),
