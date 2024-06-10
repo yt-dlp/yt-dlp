@@ -1897,8 +1897,8 @@ class InfoExtractor:
         # currently yt-dlp cannot decode the playerVerificationChallenge as Akamai uses Adobe Alchemy
         akamai_pv = manifest.find('{http://ns.adobe.com/f4m/1.0}pv-2.0')
         if akamai_pv is not None and ';' in akamai_pv.text:
-            playerVerificationChallenge = akamai_pv.text.split(';')[0]
-            if playerVerificationChallenge.strip() != '':
+            player_verification_challenge = akamai_pv.text.split(';')[0]
+            if player_verification_challenge.strip() != '':
                 return []
 
         formats = []

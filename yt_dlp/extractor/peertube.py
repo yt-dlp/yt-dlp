@@ -1622,11 +1622,11 @@ class PeerTubePlaylistIE(InfoExtractor):
             f'/videos?sort=-createdAt&start={self._PAGE_SIZE * (page - 1)}&count={self._PAGE_SIZE}&nsfw=both',
             playlist_type, note=f'Downloading page {page}').get('data', [])
         for video in video_data:
-            shortUUID = video.get('shortUUID') or try_get(video, lambda x: x['video']['shortUUID'])
+            short_uuid = video.get('shortUUID') or try_get(video, lambda x: x['video']['shortUUID'])
             video_title = video.get('name') or try_get(video, lambda x: x['video']['name'])
             yield self.url_result(
-                f'https://{host}/w/{shortUUID}', PeerTubeIE.ie_key(),
-                video_id=shortUUID, video_title=video_title)
+                f'https://{host}/w/{short_uuid}', PeerTubeIE.ie_key(),
+                video_id=short_uuid, video_title=video_title)
 
     def _extract_playlist(self, host, playlist_type, playlist_id):
         info = self.call_api(host, playlist_id, '', playlist_type, note='Downloading playlist information', fatal=False)

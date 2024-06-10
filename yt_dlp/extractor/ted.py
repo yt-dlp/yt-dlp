@@ -46,11 +46,11 @@ class TedTalkIE(TedBaseIE):
         webpage = self._download_webpage(url, display_id)
         talk_info = self._search_nextjs_data(webpage, display_id)['props']['pageProps']['videoData']
         video_id = talk_info['id']
-        playerData = self._parse_json(talk_info.get('playerData'), video_id)
+        player_data = self._parse_json(talk_info.get('playerData'), video_id)
 
         http_url = None
         formats, subtitles = [], {}
-        for format_id, resources in (playerData.get('resources') or {}).items():
+        for format_id, resources in (player_data.get('resources') or {}).items():
             if format_id == 'hls':
                 stream_url = url_or_none(try_get(resources, lambda x: x['stream']))
                 if not stream_url:
@@ -119,12 +119,12 @@ class TedTalkIE(TedBaseIE):
             })
 
         if not formats:
-            external = playerData.get('external') or {}
+            external = player_data.get('external') or {}
             service = external.get('service') or ''
             ext_url = external.get('code') if service.lower() == 'youtube' else None
             return self.url_result(ext_url or external['uri'])
 
-        thumbnail = playerData.get('thumb') or self._og_search_property('image', webpage)
+        thumbnail = player_data.get('thumb') or self._og_search_property('image', webpage)
         if thumbnail:
             # trim thumbnail resize parameters
             thumbnail = thumbnail.split('?')[0]
@@ -141,7 +141,7 @@ class TedTalkIE(TedBaseIE):
             'view_count': str_to_int(talk_info.get('viewedCount')),
             'upload_date': unified_strdate(talk_info.get('publishedAt')),
             'release_date': unified_strdate(talk_info.get('recordedOn')),
-            'tags': try_get(playerData, lambda x: x['targeting']['tag'].split(',')),
+            'tags': try_get(player_data, lambda x: x['targeting']['tag'].split(',')),
         }
 
 

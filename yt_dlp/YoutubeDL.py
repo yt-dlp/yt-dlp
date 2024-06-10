@@ -1477,9 +1477,9 @@ class YoutubeDL:
 
             date = info_dict.get('upload_date')
             if date is not None:
-                dateRange = self.params.get('daterange', DateRange())
-                if date not in dateRange:
-                    return f'{date_from_str(date).isoformat()} upload date is not in range {dateRange}'
+                date_range = self.params.get('daterange', DateRange())
+                if date not in date_range:
+                    return f'{date_from_str(date).isoformat()} upload date is not in range {date_range}'
             view_count = info_dict.get('view_count')
             if view_count is not None:
                 min_views = self.params.get('min_views')

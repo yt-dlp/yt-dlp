@@ -212,13 +212,13 @@ class MediasiteIE(InfoExtractor):
                 stream_type, 'type%u' % stream_type)
 
             stream_formats = []
-            for unum, VideoUrl in enumerate(video_urls):
-                video_url = url_or_none(VideoUrl.get('Location'))
+            for unum, video_url in enumerate(video_urls):
+                video_url = url_or_none(video_url.get('Location'))
                 if not video_url:
                     continue
                 # XXX: if Stream.get('CanChangeScheme', False), switch scheme to HTTP/HTTPS
 
-                media_type = VideoUrl.get('MediaType')
+                media_type = video_url.get('MediaType')
                 if media_type == 'SS':
                     stream_formats.extend(self._extract_ism_formats(
                         video_url, resource_id,
@@ -233,7 +233,7 @@ class MediasiteIE(InfoExtractor):
                     stream_formats.append({
                         'format_id': '%s-%u.%u' % (stream_id, snum, unum),
                         'url': video_url,
-                        'ext': mimetype2ext(VideoUrl.get('MimeType')),
+                        'ext': mimetype2ext(video_url.get('MimeType')),
                     })
 
             if stream.get('HasSlideContent', False):

@@ -159,7 +159,7 @@ class SohuIE(InfoExtractor):
                 su = data['su']
 
                 video_url = 'newflv.sohu.ccgslb.net'
-                cdnId = None
+                cdn_id = None
                 retries = 0
 
                 while 'newflv.sohu.ccgslb.net' in video_url:
@@ -171,8 +171,8 @@ class SohuIE(InfoExtractor):
                         'rb': 1,
                     }
 
-                    if cdnId is not None:
-                        params['idc'] = cdnId
+                    if cdn_id is not None:
+                        params['idc'] = cdn_id
 
                     download_note = 'Downloading %s video URL part %d of %d' % (
                         format_id, i + 1, part_count)
@@ -184,7 +184,7 @@ class SohuIE(InfoExtractor):
                         video_id, download_note), video_id)
 
                     video_url = part_info['url']
-                    cdnId = part_info.get('nid')
+                    cdn_id = part_info.get('nid')
 
                     retries += 1
                     if retries > 5:

@@ -337,32 +337,32 @@ class BrightcoveLegacyIE(InfoExtractor):
 
         params = {}
 
-        playerID = find_param('playerID') or find_param('playerId')
-        if playerID is None:
+        player_id = find_param('playerID') or find_param('playerId')
+        if player_id is None:
             raise ExtractorError('Cannot find player ID')
-        params['playerID'] = playerID
+        params['playerID'] = player_id
 
-        playerKey = find_param('playerKey')
+        player_key = find_param('playerKey')
         # Not all pages define this value
-        if playerKey is not None:
-            params['playerKey'] = playerKey
+        if player_key is not None:
+            params['playerKey'] = player_key
         # These fields hold the id of the video
-        videoPlayer = find_param('@videoPlayer') or find_param('videoId') or find_param('videoID') or find_param('@videoList')
-        if videoPlayer is not None:
-            if isinstance(videoPlayer, list):
-                videoPlayer = videoPlayer[0]
-            videoPlayer = videoPlayer.strip()
+        video_player = find_param('@videoPlayer') or find_param('videoId') or find_param('videoID') or find_param('@videoList')
+        if video_player is not None:
+            if isinstance(video_player, list):
+                video_player = video_player[0]
+            video_player = video_player.strip()
             # UUID is also possible for videoPlayer (e.g.
             # http://www.popcornflix.com/hoodies-vs-hooligans/7f2d2b87-bbf2-4623-acfb-ea942b4f01dd
             # or http://www8.hp.com/cn/zh/home.html)
             if not (re.match(
                     r'^(?:\d+|[\da-fA-F]{8}-?[\da-fA-F]{4}-?[\da-fA-F]{4}-?[\da-fA-F]{4}-?[\da-fA-F]{12})$',
-                    videoPlayer) or videoPlayer.startswith('ref:')):
+                    video_player) or video_player.startswith('ref:')):
                 return None
-            params['@videoPlayer'] = videoPlayer
-        linkBase = find_param('linkBaseURL')
-        if linkBase is not None:
-            params['linkBaseURL'] = linkBase
+            params['@videoPlayer'] = video_player
+        link_base = find_param('linkBaseURL')
+        if link_base is not None:
+            params['linkBaseURL'] = link_base
         return cls._make_brightcove_url(params)
 
     @classmethod
@@ -447,11 +447,11 @@ class BrightcoveLegacyIE(InfoExtractor):
         query_str = mobj.group('query')
         query = urllib.parse.parse_qs(query_str)
 
-        videoPlayer = query.get('@videoPlayer')
-        if videoPlayer:
+        video_player = query.get('@videoPlayer')
+        if video_player:
             # We set the original url as the default 'Referer' header
             referer = query.get('linkBaseURL', [None])[0] or smuggled_data.get('Referer', url)
-            video_id = videoPlayer[0]
+            video_id = video_player[0]
             if 'playerID' not in query:
                 mobj = re.search(r'/bcpid(\d+)', url)
                 if mobj is not None:

@@ -67,8 +67,8 @@ class QQMusicIE(InfoExtractor):
     # http://imgcache.gtimg.cn/music/portal_v3/y/top_player.js
     @staticmethod
     def m_r_get_ruin():
-        curMs = int(time.time() * 1000) % 1000
-        return int(round(random.random() * 2147483647) * curMs % 1E10)
+        cur_ms = int(time.time() * 1000) % 1000
+        return int(round(random.random() * 2147483647) * cur_ms % 1E10)
 
     def _real_extract(self, url):
         mid = self._match_id(url)

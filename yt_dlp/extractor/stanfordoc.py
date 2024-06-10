@@ -34,12 +34,12 @@ class StanfordOpenClassroomIE(InfoExtractor):
                 'upload_date': None,
             }
 
-            baseUrl = 'http://openclassroom.stanford.edu/MainFolder/courses/' + course + '/videos/'
-            xmlUrl = baseUrl + video + '.xml'
-            mdoc = self._download_xml(xmlUrl, info['id'])
+            base_url = 'http://openclassroom.stanford.edu/MainFolder/courses/' + course + '/videos/'
+            xml_url = base_url + video + '.xml'
+            mdoc = self._download_xml(xml_url, info['id'])
             try:
                 info['title'] = mdoc.findall('./title')[0].text
-                info['url'] = baseUrl + mdoc.findall('./videoFile')[0].text
+                info['url'] = base_url + mdoc.findall('./videoFile')[0].text
             except IndexError:
                 raise ExtractorError('Invalid metadata XML file')
             return info
@@ -78,8 +78,8 @@ class StanfordOpenClassroomIE(InfoExtractor):
             }
             info['title'] = info['id']
 
-            rootURL = 'http://openclassroom.stanford.edu/MainFolder/HomePage.php'
-            rootpage = self._download_webpage(rootURL, info['id'],
+            root_url = 'http://openclassroom.stanford.edu/MainFolder/HomePage.php'
+            rootpage = self._download_webpage(root_url, info['id'],
                                               errnote='Unable to download course info page')
 
             links = orderedSet(re.findall(r'<a href="(CoursePage\.php\?[^"]+)">', rootpage))

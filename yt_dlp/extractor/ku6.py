@@ -19,12 +19,12 @@ class Ku6IE(InfoExtractor):
 
         title = self._html_search_regex(
             r'<h1 title=.*>(.*?)</h1>', webpage, 'title')
-        dataUrl = f'http://v.ku6.com/fetchVideo4Player/{video_id}.html'
-        jsonData = self._download_json(dataUrl, video_id)
-        downloadUrl = jsonData['data']['f']
+        data_url = f'http://v.ku6.com/fetchVideo4Player/{video_id}.html'
+        json_data = self._download_json(data_url, video_id)
+        download_url = json_data['data']['f']
 
         return {
             'id': video_id,
             'title': title,
-            'url': downloadUrl,
+            'url': download_url,
         }

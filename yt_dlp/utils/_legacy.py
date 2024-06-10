@@ -195,15 +195,15 @@ def decode_png(png_data):
         return pixels[y][x]
 
     for y in range(height):
-        basePos = y * (1 + stride)
-        filter_type = decompressed_data[basePos]
+        base_pos = y * (1 + stride)
+        filter_type = decompressed_data[base_pos]
 
         current_row = []
 
         pixels.append(current_row)
 
         for x in range(stride):
-            color = decompressed_data[1 + basePos + x]
+            color = decompressed_data[1 + base_pos + x]
             basex = y * stride + x
             left = 0
             up = 0

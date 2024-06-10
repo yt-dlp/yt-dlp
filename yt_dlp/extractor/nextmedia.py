@@ -68,8 +68,8 @@ class NextMediaIE(InfoExtractor):
         return self._og_search_thumbnail(page)
 
     def _fetch_timestamp(self, page):
-        dateCreated = self._search_regex('"dateCreated":"([^"]+)"', page, 'created time')
-        return parse_iso8601(dateCreated)
+        date_created = self._search_regex('"dateCreated":"([^"]+)"', page, 'created time')
+        return parse_iso8601(date_created)
 
     def _fetch_upload_date(self, url):
         return self._search_regex(self._VALID_URL, url, 'upload date', group='date')

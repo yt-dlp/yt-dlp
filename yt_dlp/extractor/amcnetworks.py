@@ -76,8 +76,8 @@ class AMCNetworksIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
         try:
             for v in page_data['children']:
                 if v.get('type') == 'video-player':
-                    releasePid = v['properties']['currentVideo']['meta']['releasePid']
-                    tp_path = 'M_UwQC/' + releasePid
+                    release_pid = v['properties']['currentVideo']['meta']['releasePid']
+                    tp_path = 'M_UwQC/' + release_pid
                     media_url = 'https://link.theplatform.com/s/' + tp_path
                     video_player_count += 1
         except KeyError:
