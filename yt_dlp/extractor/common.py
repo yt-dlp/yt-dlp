@@ -1,5 +1,6 @@
 import base64
 import collections
+import functools
 import getpass
 import hashlib
 import http.client
@@ -21,7 +22,6 @@ import urllib.parse
 import urllib.request
 import xml.etree.ElementTree
 
-from ..compat import functools  # isort: split
 from ..compat import (
     compat_etree_fromstring,
     compat_expanduser,
@@ -957,7 +957,8 @@ class InfoExtractor:
         if urlh is False:
             assert not fatal
             return False
-        content = self._webpage_read_content(urlh, url_or_request, video_id, note, errnote, fatal, encoding=encoding)
+        content = self._webpage_read_content(urlh, url_or_request, video_id, note, errnote, fatal,
+                                             encoding=encoding, data=data)
         return (content, urlh)
 
     @staticmethod
@@ -1005,8 +1006,10 @@ class InfoExtractor:
                 'Visit http://blocklist.rkn.gov.ru/ for a block reason.',
                 expected=True)
 
-    def _request_dump_filename(self, url, video_id):
-        basen = f'{video_id}_{url}'
+    def _request_dump_filename(self, url, video_id, data=None):
+        if data is not None:
+            data = hashlib.md5(data).hexdigest()
+        basen = join_nonempty(video_id, data, url, delim='_')
         trim_length = self.get_param('trim_file_name') or 240
         if len(basen) > trim_length:
             h = '___' + hashlib.md5(basen.encode('utf-8')).hexdigest()
@@ -1028,7 +1031,8 @@ class InfoExtractor:
         except LookupError:
             return webpage_bytes.decode('utf-8', 'replace')
 
-    def _webpage_read_content(self, urlh, url_or_request, video_id, note=None, errnote=None, fatal=True, prefix=None, encoding=None):
+    def _webpage_read_content(self, urlh, url_or_request, video_id, note=None, errnote=None, fatal=True,
+                              prefix=None, encoding=None, data=None):
         webpage_bytes = urlh.read()
         if prefix is not None:
             webpage_bytes = prefix + webpage_bytes
@@ -1037,7 +1041,9 @@ class InfoExtractor:
             dump = base64.b64encode(webpage_bytes).decode('ascii')
             self._downloader.to_screen(dump)
         if self.get_param('write_pages'):
-            filename = self._request_dump_filename(urlh.url, video_id)
+            if isinstance(url_or_request, Request):
+                data = self._create_request(url_or_request, data).data
+            filename = self._request_dump_filename(urlh.url, video_id, data)
             self.to_screen(f'Saving request to {filename}')
             with open(filename, 'wb') as outf:
                 outf.write(webpage_bytes)
@@ -1098,7 +1104,7 @@ class InfoExtractor:
                              impersonate=None, require_impersonation=False):
             if self.get_param('load_pages'):
                 url_or_request = self._create_request(url_or_request, data, headers, query)
-                filename = self._request_dump_filename(url_or_request.url, video_id)
+                filename = self._request_dump_filename(url_or_request.url, video_id, url_or_request.data)
                 self.to_screen(f'Loading request from {filename}')
                 try:
                     with open(filename, 'rb') as dumpf:
@@ -2453,7 +2459,7 @@ class InfoExtractor:
                     })
                 continue
 
-            src_url = src if src.startswith('http') else urllib.parse.urljoin(base, src)
+            src_url = src if src.startswith('http') else urllib.parse.urljoin(f'{base}/', src)
             src_url = src_url.strip()
 
             if proto == 'm3u8' or src_ext == 'm3u8':
@@ -3386,23 +3392,16 @@ class InfoExtractor:
         return formats
 
     def _find_jwplayer_data(self, webpage, video_id=None, transform_source=js_to_json):
-        mobj = re.search(
-            r'''(?s)jwplayer\s*\(\s*(?P<q>'|")(?!(?P=q)).+(?P=q)\s*\)(?!</script>).*?\.\s*setup\s*\(\s*(?P<options>(?:\([^)]*\)|[^)])+)\s*\)''',
-            webpage)
-        if mobj:
-            try:
-                jwplayer_data = self._parse_json(mobj.group('options'),
-                                                 video_id=video_id,
-                                                 transform_source=transform_source)
-            except ExtractorError:
-                pass
-            else:
-                if isinstance(jwplayer_data, dict):
-                    return jwplayer_data
+        return self._search_json(
+            r'''(?<!-)\bjwplayer\s*\(\s*(?P<q>'|")(?!(?P=q)).+(?P=q)\s*\)(?:(?!</script>).)*?\.\s*(?:setup\s*\(|(?P<load>load)\s*\(\s*\[)''',
+            webpage, 'JWPlayer data', video_id,
+            # must be a {...} or sequence, ending
+            contains_pattern=r'\{(?s:.*)}(?(load)(?:\s*,\s*\{(?s:.*)})*)', end_pattern=r'(?(load)\]|\))',
+            transform_source=transform_source, default=None)
 
-    def _extract_jwplayer_data(self, webpage, video_id, *args, **kwargs):
+    def _extract_jwplayer_data(self, webpage, video_id, *args, transform_source=js_to_json, **kwargs):
         jwplayer_data = self._find_jwplayer_data(
-            webpage, video_id, transform_source=js_to_json)
+            webpage, video_id, transform_source=transform_source)
         return self._parse_jwplayer_data(
             jwplayer_data, video_id, *args, **kwargs)
 
@@ -3434,22 +3433,14 @@ class InfoExtractor:
                 mpd_id=mpd_id, rtmp_params=rtmp_params, base_url=base_url)
 
             subtitles = {}
-            tracks = video_data.get('tracks')
-            if tracks and isinstance(tracks, list):
-                for track in tracks:
-                    if not isinstance(track, dict):
-                        continue
-                    track_kind = track.get('kind')
-                    if not track_kind or not isinstance(track_kind, str):
-                        continue
-                    if track_kind.lower() not in ('captions', 'subtitles'):
-                        continue
-                    track_url = urljoin(base_url, track.get('file'))
-                    if not track_url:
-                        continue
-                    subtitles.setdefault(track.get('label') or 'en', []).append({
-                        'url': self._proto_relative_url(track_url)
-                    })
+            for track in traverse_obj(video_data, (
+                    'tracks', lambda _, v: v['kind'].lower() in ('captions', 'subtitles'))):
+                track_url = urljoin(base_url, track.get('file'))
+                if not track_url:
+                    continue
+                subtitles.setdefault(track.get('label') or 'en', []).append({
+                    'url': self._proto_relative_url(track_url)
+                })
 
             entry = {
                 'id': this_video_id,
@@ -3534,7 +3525,7 @@ class InfoExtractor:
                     # See com/longtailvideo/jwplayer/media/RTMPMediaProvider.as
                     # of jwplayer.flash.swf
                     rtmp_url_parts = re.split(
-                        r'((?:mp4|mp3|flv):)', source_url, 1)
+                        r'((?:mp4|mp3|flv):)', source_url, maxsplit=1)
                     if len(rtmp_url_parts) == 3:
                         rtmp_url, prefix, play_path = rtmp_url_parts
                         a_format.update({

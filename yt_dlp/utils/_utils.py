@@ -1134,7 +1134,7 @@ def is_path_like(f):
     return isinstance(f, (str, bytes, os.PathLike))
 
 
-def extract_timezone(date_str):
+def extract_timezone(date_str, default=None):
     m = re.search(
         r'''(?x)
             ^.{8,}?                                              # >=8 char non-TZ prefix, if present
@@ -1146,21 +1146,25 @@ def extract_timezone(date_str):
                 (?P<hours>[0-9]{2}):?(?P<minutes>[0-9]{2})       # hh[:]mm
             $)
         ''', date_str)
+    timezone = None
+
     if not m:
         m = re.search(r'\d{1,2}:\d{1,2}(?:\.\d+)?(?P<tz>\s*[A-Z]+)$', date_str)
         timezone = TIMEZONE_NAMES.get(m and m.group('tz').strip())
         if timezone is not None:
             date_str = date_str[:-len(m.group('tz'))]
-        timezone = dt.timedelta(hours=timezone or 0)
+            timezone = dt.timedelta(hours=timezone)
     else:
         date_str = date_str[:-len(m.group('tz'))]
-        if not m.group('sign'):
-            timezone = dt.timedelta()
-        else:
+        if m.group('sign'):
             sign = 1 if m.group('sign') == '+' else -1
             timezone = dt.timedelta(
                 hours=sign * int(m.group('hours')),
                 minutes=sign * int(m.group('minutes')))
+
+    if timezone is None and default is not NO_DEFAULT:
+        timezone = default or dt.timedelta()
+
     return timezone, date_str
 
 
@@ -1172,10 +1176,9 @@ def parse_iso8601(date_str, delimiter='T', timezone=None):
 
     date_str = re.sub(r'\.[0-9]+', '', date_str)
 
-    if timezone is None:
-        timezone, date_str = extract_timezone(date_str)
+    timezone, date_str = extract_timezone(date_str, timezone)
 
-    with contextlib.suppress(ValueError):
+    with contextlib.suppress(ValueError, TypeError):
         date_format = f'%Y-%m-%d{delimiter}%H:%M:%S'
         dt_ = dt.datetime.strptime(date_str, date_format) - timezone
         return calendar.timegm(dt_.timetuple())
@@ -2522,7 +2525,7 @@ def read_batch_urls(batch_fd):
             return False
         # "#" cannot be stripped out since it is part of the URI
         # However, it can be safely stripped out if following a whitespace
-        return re.split(r'\s#', url, 1)[0].rstrip()
+        return re.split(r'\s#', url, maxsplit=1)[0].rstrip()
 
     with contextlib.closing(batch_fd) as fd:
         return [url for url in map(fixup, fd) if url]
