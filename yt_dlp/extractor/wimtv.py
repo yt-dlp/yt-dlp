@@ -118,10 +118,11 @@ class WimTVIE(InfoExtractor):
             is_live = False
         token = self._generate_token()
         json = self._download_json(
-            f'https://platform.wim.tv/wimtv-server/api/public/{stream_type}/{video_id}/play', video_id,
-            headers={'Authorization': f'Bearer {token}',
-                     'Content-Type': 'application/json'},
-            data=bytes('{}', 'utf-8'))
+            f'https://platform.wim.tv/wimtv-server/api/public/{stream_type}/{video_id}/play',
+            video_id, headers={
+                'Authorization': f'Bearer {token}',
+                'Content-Type': 'application/json',
+            }, data=b'{}')
 
         formats = []
         for src in json.get('srcs') or []:

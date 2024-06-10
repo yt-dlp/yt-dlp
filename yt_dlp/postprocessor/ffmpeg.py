@@ -738,7 +738,7 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
 
         def add(meta_list, info_list=None):
             value = next((
-                info[key] for key in [f'{meta_prefix}_', *list(variadic(info_list or meta_list))]
+                info[key] for key in [f'{meta_prefix}_', *variadic(info_list or meta_list)]
                 if info.get(key) is not None), None)
             if value not in ('', None):
                 value = ', '.join(map(str, variadic(value)))

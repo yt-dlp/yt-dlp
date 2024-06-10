@@ -248,9 +248,19 @@ select = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"devscripts/lazy_load_template.py" = ["F401"]
-"!yt_dlp/extractor/**.py" = ["I", "ICN003", "T20", "A002", "C408"]
-"yt_dlp/jsinterp.py" = ["UP031"]
+"devscripts/lazy_load_template.py" = [
+    "F401",   # unused-import
+]
+"!yt_dlp/extractor/**.py" = [
+    "I",      # isort
+    "ICN003", # banned-import-from
+    "T20",    # flake8-print
+    "A002",   # builtin-argument-shadowing
+    "C408",   # unnecessary-collection-call
+]
+"yt_dlp/jsinterp.py" = [
+    "UP031",  # printf-string-formatting
+]
 
 [tool.ruff.lint.isort]
 known-first-party = [
@@ -267,7 +277,9 @@ inline-quotes = "single"
 avoid-escape = false
 
 [tool.ruff.lint.pep8-naming]
-classmethod-decorators = ["yt_dlp.utils.classproperty"]
+classmethod-decorators = [
+    "yt_dlp.utils.classproperty",
+]
 
 [tool.ruff.lint.flake8-import-conventions]
 banned-from = [

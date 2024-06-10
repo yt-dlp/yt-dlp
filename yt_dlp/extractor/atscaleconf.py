@@ -25,10 +25,10 @@ class AtScaleConfEventIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
-        webpage = self._download_webpage(url, video_id)
+        playlist_id = self._match_id(url)
+        webpage = self._download_webpage(url, playlist_id)
 
         return self.playlist_from_matches(
             re.findall(r'data-url\s*=\s*"(https?://(?:www\.)?atscaleconference\.com/videos/[^"]+)"', webpage),
-            ie='Generic', playlist_id=video_id,
+            ie='Generic', playlist_id=playlist_id,
             title=self._og_search_title(webpage), description=self._og_search_description(webpage))
