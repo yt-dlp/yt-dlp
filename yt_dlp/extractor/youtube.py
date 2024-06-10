@@ -3822,6 +3822,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 })
             } for range_start in range(0, f['filesize'], CHUNK_SIZE))
 
+        original_language = None
+
         for fmt in streaming_formats:
             if fmt.get('targetDurationSec'):
                 continue
@@ -3899,6 +3901,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 10 if audio_track.get('audioIsDefault') and 10
                 else -10 if 'descriptive' in (audio_track.get('displayName') or '').lower() and -10
                 else -1)
+            language_code = audio_track.get('id', '').split('.')[0]
+            if language_preference == 10 and language_code:
+                original_language = language_code
+
             format_duration = traverse_obj(fmt, ('approxDurationMs', {lambda x: float_or_none(x, 1000)}))
             # Some formats may have much smaller duration than others (possibly damaged during encoding)
             # E.g. 2-nOtRESiUc Ref: https://github.com/yt-dlp/yt-dlp/issues/2823
@@ -3945,8 +3951,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'filesize_approx': filesize_from_tbr(tbr, format_duration),
                 'url': fmt_url,
                 'width': int_or_none(fmt.get('width')),
-                'language': join_nonempty(audio_track.get('id', '').split('.')[0],
-                                          'desc' if language_preference < -1 else '') or None,
+                'language': join_nonempty(
+                    language_code, 'desc' if language_preference < -1 else '') or None,
                 'language_preference': language_preference,
                 # Strictly de-prioritize broken, damaged and 3gp formats
                 'preference': -20 if is_broken else -10 if is_damaged else -2 if itag == '17' else None,
@@ -4010,6 +4016,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
             if f.get('source_preference') is None:
                 f['source_preference'] = -1
+
+            if original_language and f.get('language') == original_language:
+                f['language_preference'] = 10
 
             if itag in ('616', '235'):
                 f['format_note'] = join_nonempty(f.get('format_note'), 'Premium', delim=' ')
