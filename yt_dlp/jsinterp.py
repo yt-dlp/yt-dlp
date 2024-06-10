@@ -478,7 +478,7 @@ class JSInterpreter:
                 if switch_m:
                     switch_val, remaining = self._separate_at_paren(remaining[switch_m.end() - 1:])
                     body, expr = self._separate_at_paren(remaining, '}')
-                    body = f'switch({switch_val}){{{body}}}'
+                    body = 'switch(%s){%s}' % (switch_val, body)
                 else:
                     body, expr = remaining, ''
             start, cndn, increment = self._separate(constructor, ';')
@@ -778,20 +778,20 @@ class JSInterpreter:
         _FUNC_NAME_RE = r'''(?:[a-zA-Z$0-9]+|"[a-zA-Z$0-9]+"|'[a-zA-Z$0-9]+')'''
         obj = {}
         obj_m = re.search(
-            rf'''(?x)
-                (?<!\.){re.escape(objname)}\s*=\s*{{\s*
-                    (?P<fields>({_FUNC_NAME_RE}\s*:\s*function\s*\(.*?\)\s*{{.*?}}(?:,\s*)?)*)
-                }}\s*;
-            ''',
+            r'''(?x)
+                (?<!\.)%s\s*=\s*{\s*
+                    (?P<fields>(%s\s*:\s*function\s*\(.*?\)\s*{.*?}(?:,\s*)?)*)
+                }\s*;
+            ''' % (re.escape(objname), _FUNC_NAME_RE),
             self.code)
         if not obj_m:
             raise self.Exception(f'Could not find object {objname}')
         fields = obj_m.group('fields')
         # Currently, it only supports function definitions
         fields_m = re.finditer(
-            rf'''(?x)
-                (?P<key>{_FUNC_NAME_RE})\s*:\s*function\s*\((?P<args>(?:{_NAME_RE}|,)*)\){{(?P<code>[^}}]+)}}
-            ''',
+            r'''(?x)
+                (?P<key>%s)\s*:\s*function\s*\((?P<args>(?:%s|,)*)\){(?P<code>[^}]+)}
+            ''' % (_FUNC_NAME_RE, _NAME_RE),
             fields)
         for f in fields_m:
             argnames = f.group('args').split(',')
@@ -805,12 +805,12 @@ class JSInterpreter:
         func_m = re.search(
             r'''(?xs)
                 (?:
-                    function\s+{name}|
-                    [{{;,]\s*{name}\s*=\s*function|
-                    (?:var|const|let)\s+{name}\s*=\s*function
+                    function\s+%(name)s|
+                    [{;,]\s*%(name)s\s*=\s*function|
+                    (?:var|const|let)\s+%(name)s\s*=\s*function
                 )\s*
                 \((?P<args>[^)]*)\)\s*
-                (?P<code>{{.+}})'''.format(name=re.escape(funcname)),
+                (?P<code>{.+})''' % {'name': re.escape(funcname)},
             self.code)
         if func_m is None:
             raise self.Exception(f'Could not find JS function "{funcname}"')
