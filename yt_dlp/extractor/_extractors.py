@@ -208,8 +208,8 @@ from .bandcamp import (
     BandcampWeeklyIE,
 )
 from .bannedvideo import (
-    BannedVideoIE,
     BannedVideoChannelIE,
+    BannedVideoIE,
     BannedVideoPlaylistIE,
 )
 from .bbc import (
