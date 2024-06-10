@@ -1,3 +1,6 @@
+import re
+from urllib.parse import urlparse
+
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
@@ -7,8 +10,6 @@ from ..utils import (
     unified_timestamp,
     url_or_none,
 )
-import re
-from urllib.parse import urlparse
 
 
 class RTVSLOIE(InfoExtractor):
@@ -180,8 +181,7 @@ class RTVSLOIE(InfoExtractor):
         html = self._download_webpage(url, v_id)
         all_urls = set(re.findall(r'<a.*href=\"(/arhiv/.+)\".*aria-label=.*>', html))
         parsed = urlparse(url)
-        res = re.findall(r'<title>(.*)</title>', html)
-        title = res[0] if len(res) != 0 else None
+        title = self._html_extract_title(html, v_id)
         return title, [f'{parsed.scheme}://{parsed.netloc}{url}' for url in all_urls]
 
     def _real_extract(self, url):
@@ -189,14 +189,7 @@ class RTVSLOIE(InfoExtractor):
         if 'oddaja' in url:
             # supplied URL is a shows homepage / like a channel or playlist
             title, urls = self._get_show_urls(url, url_id)
-            entries = [self._get_video_info(self._match_id(url)) for url in urls]
-            entries.sort(key=lambda x: x['id'])
-            return {
-                '_type': 'playlist',
-                'id': url_id,
-                'title': title,
-                'entries': entries,
-                'playlist_count': len(urls)
-            }
+            return self.playlist_result(
+                [self.url_result(url, RTVSLOIE, url_id) for url in urls], url_id, title)
         else:
             return self._get_video_info(url_id)
