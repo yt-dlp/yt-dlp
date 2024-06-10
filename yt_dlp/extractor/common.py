@@ -2213,9 +2213,11 @@ class InfoExtractor:
                     }
 
                     # YouTube Specific
-                    if last_stream_inf.get('YT-EXT-AUDIO-CONTENT-ID'):
-                        # Strip anything after and including from the end '.'
-                        f['language'] = last_stream_inf.get('YT-EXT-AUDIO-CONTENT-ID').split('.')[0]
+                    if yt_audio_content_id := last_stream_inf.get('YT-EXT-AUDIO-CONTENT-ID'):
+                        f['language'] = yt_audio_content_id.split('.')[0]
+                        if last_stream_inf.get('DEFAULT') == 'YES':
+                            # Keep value in sync with YoutubeIE._extract_formats_and_subtitles
+                            f['language_preference'] = 10
 
                     resolution = last_stream_inf.get('RESOLUTION')
                     if resolution:
