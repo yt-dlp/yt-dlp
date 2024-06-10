@@ -4014,11 +4014,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             elif itag:
                 f['format_id'] = itag
 
-            if f.get('source_preference') is None:
-                f['source_preference'] = -1
-
             if original_language and f.get('language') == original_language:
                 f['language_preference'] = 10
+
+            if f.get('source_preference') is None:
+                f['source_preference'] = -1
 
             if itag in ('616', '235'):
                 f['format_note'] = join_nonempty(f.get('format_note'), 'Premium', delim=' ')
