@@ -145,7 +145,7 @@ class ERRJupiterIE(InfoExtractor):
             'season_number': 0,
             'series': 'Лесные истории | Аисты',
             'series_id': '1037497',
-        }
+        },
     }, {
         'note': 'Lasteekraan: Pätu',
         'url': 'https://lasteekraan.err.ee/1092243/patu',

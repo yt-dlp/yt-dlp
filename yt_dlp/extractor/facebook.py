@@ -3,18 +3,13 @@ import re
 import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_etree_fromstring,
-    compat_str,
-    compat_urllib_parse_unquote,
-)
+from ..compat import compat_etree_fromstring
 from ..networking import Request
 from ..networking.exceptions import network_exceptions
 from ..utils import (
     ExtractorError,
     clean_html,
     determine_ext,
-    error_to_compat_str,
     float_or_none,
     format_field,
     get_element_by_id,
@@ -209,7 +204,7 @@ class FacebookIE(InfoExtractor):
             'skip_download': True,
         },
     }, {
-        # FIXME
+        # FIXME: Cannot parse data error
         'url': 'https://www.facebook.com/LaGuiaDelVaron/posts/1072691702860471',
         'info_dict': {
             'id': '1072691702860471',
@@ -415,7 +410,7 @@ class FacebookIE(InfoExtractor):
     }]
     _SUPPORTED_PAGLETS_REGEX = r'(?:pagelet_group_mall|permalink_video_pagelet|hyperfeed_story_id_[0-9a-f]+)'
     _api_config = {
-        'graphURI': '/api/graphql/'
+        'graphURI': '/api/graphql/',
     }
 
     def _perform_login(self, username, password):
@@ -450,7 +445,7 @@ class FacebookIE(InfoExtractor):
                     r'(?s)<div[^>]+class=(["\']).*?login_error_box.*?\1[^>]*><div[^>]*>.*?</div><div[^>]*>(?P<error>.+?)</div>',
                     login_results, 'login error', default=None, group='error')
                 if error:
-                    raise ExtractorError('Unable to login: %s' % error, expected=True)
+                    raise ExtractorError(f'Unable to login: {error}', expected=True)
                 self.report_warning('unable to log in: bad username/password, or exceeded login rate limit (~3/min). Check credentials or wait.')
                 return
 
@@ -474,7 +469,7 @@ class FacebookIE(InfoExtractor):
             if re.search(r'id="checkpointSubmitButton"', check_response) is not None:
                 self.report_warning('Unable to confirm login, you have to login in your browser and authorize the login.')
         except network_exceptions as err:
-            self.report_warning('unable to log in: %s' % error_to_compat_str(err))
+            self.report_warning(f'unable to log in: {err}')
             return
 
     def _extract_from_url(self, url, video_id):
@@ -493,7 +488,7 @@ class FacebookIE(InfoExtractor):
             page_title = title or self._html_search_regex((
                 r'<h2\s+[^>]*class="uiHeaderTitle"[^>]*>(?P<content>[^<]*)</h2>',
                 r'(?s)<span class="fbPhotosPhotoCaption".*?id="fbPhotoPageCaption"><span class="hasCaption">(?P<content>.*?)</span>',
-                self._meta_regex('og:title'), self._meta_regex('twitter:title'), r'<title>(?P<content>.+?)</title>'
+                self._meta_regex('og:title'), self._meta_regex('twitter:title'), r'<title>(?P<content>.+?)</title>',
             ), webpage, 'title', default=None, group='content')
             description = description or self._html_search_meta(
                 ['description', 'og:description', 'twitter:description'],
@@ -525,7 +520,7 @@ class FacebookIE(InfoExtractor):
                 'timestamp': timestamp,
                 'thumbnail': thumbnail,
                 'view_count': parse_count(self._search_regex(
-                    (r'\bviewCount\s*:\s*["\']([\d,.]+)', r'video_view_count["\']\s*:\s*(\d+)',),
+                    (r'\bviewCount\s*:\s*["\']([\d,.]+)', r'video_view_count["\']\s*:\s*(\d+)'),
                     webpage, 'view count', default=None)),
                 'concurrent_view_count': get_first(post, (
                     ('video', (..., ..., 'attachments', ..., 'media')), 'liveViewerCount', {int_or_none})),
@@ -578,7 +573,7 @@ class FacebookIE(InfoExtractor):
 
         def extract_relay_data(_filter):
             return self._parse_json(self._search_regex(
-                r'data-sjs>({.*?%s.*?})</script>' % _filter,
+                rf'data-sjs>({{.*?{_filter}.*?}})</script>',
                 webpage, 'replay data', default='{}'), video_id, fatal=False) or {}
 
         def extract_relay_prefetched_data(_filter):
@@ -590,7 +585,7 @@ class FacebookIE(InfoExtractor):
         if not video_data:
             server_js_data = self._parse_json(self._search_regex([
                 r'bigPipe\.onPageletArrive\(({.+?})\)\s*;\s*}\s*\)\s*,\s*["\']onPageletArrive\s+' + self._SUPPORTED_PAGLETS_REGEX,
-                r'bigPipe\.onPageletArrive\(({.*?id\s*:\s*"%s".*?})\);' % self._SUPPORTED_PAGLETS_REGEX
+                rf'bigPipe\.onPageletArrive\(({{.*?id\s*:\s*"{self._SUPPORTED_PAGLETS_REGEX}".*?}})\);',
             ], webpage, 'js data', default='{}'), video_id, js_to_json, False)
             video_data = extract_from_jsmods_instances(server_js_data)
 
@@ -632,7 +627,7 @@ class FacebookIE(InfoExtractor):
                     for caption in traverse_obj(video, (
                         'video_available_captions_locales',
                         {lambda x: sorted(x, key=lambda c: c['locale'])},
-                        lambda _, v: url_or_none(v['captions_url'])
+                        lambda _, v: url_or_none(v['captions_url']),
                     )):
                         lang = caption.get('localized_language') or 'und'
                         subs = {
@@ -670,7 +665,7 @@ class FacebookIE(InfoExtractor):
                             'description': description,
                         })
                     else:
-                        info['title'] = description or 'Facebook video #%s' % v_id
+                        info['title'] = description or f'Facebook video #{v_id}'
                     entries.append(info)
 
                 def parse_attachment(attachment, key='media'):
@@ -699,7 +694,7 @@ class FacebookIE(InfoExtractor):
                 if video:
                     attachments = try_get(video, [
                         lambda x: x['story']['attachments'],
-                        lambda x: x['creation_story']['attachments']
+                        lambda x: x['creation_story']['attachments'],
                     ], list) or []
                     for attachment in attachments:
                         parse_attachment(attachment)
@@ -723,7 +718,7 @@ class FacebookIE(InfoExtractor):
             m_msg = re.search(r'class="[^"]*uiInterstitialContent[^"]*"><div>(.*?)</div>', webpage)
             if m_msg is not None:
                 raise ExtractorError(
-                    'The video is not available, Facebook said: "%s"' % m_msg.group(1),
+                    f'The video is not available, Facebook said: "{m_msg.group(1)}"',
                     expected=True)
             elif any(p in webpage for p in (
                     '>You must log in to continue',
@@ -760,7 +755,7 @@ class FacebookIE(InfoExtractor):
                 v_id = video.get('id')
                 if not v_id:
                     continue
-                v_id = compat_str(v_id)
+                v_id = str(v_id)
                 entries.append(self.url_result(
                     self._VIDEO_PAGE_TEMPLATE % v_id,
                     self.ie_key(), v_id, video.get('name')))
@@ -818,7 +813,7 @@ class FacebookIE(InfoExtractor):
                 continue
             for quality in ('sd', 'hd'):
                 for src_type in ('src', 'src_no_ratelimit'):
-                    src = f[0].get('%s_%s' % (quality, src_type))
+                    src = f[0].get(f'{quality}_{src_type}')
                     if src:
                         # sd, hd formats w/o resolution info should be deprioritized below DASH
                         # TODO: investigate if progressive or src formats still exist
@@ -826,10 +821,10 @@ class FacebookIE(InfoExtractor):
                         if quality == 'hd':
                             preference += 1
                         formats.append({
-                            'format_id': '%s_%s_%s' % (format_id, quality, src_type),
+                            'format_id': f'{format_id}_{quality}_{src_type}',
                             'url': src,
                             'quality': preference,
-                            'height': 720 if quality == 'hd' else None
+                            'height': 720 if quality == 'hd' else None,
                         })
             extract_dash_manifest(f[0], formats)
             subtitles_src = f[0].get('subtitles_src')
@@ -879,7 +874,7 @@ class FacebookPluginsVideoIE(InfoExtractor):
 
     def _real_extract(self, url):
         return self.url_result(
-            compat_urllib_parse_unquote(self._match_id(url)),
+            urllib.parse.unquote(self._match_id(url)),
             FacebookIE.ie_key())
 
 
@@ -940,7 +935,7 @@ class FacebookReelIE(InfoExtractor):
             'timestamp': 1637502609,
             'upload_date': '20211121',
             'thumbnail': r're:^https?://.*',
-        }
+        },
     }]
 
     def _real_extract(self, url):
@@ -966,7 +961,7 @@ class FacebookAdsIE(InfoExtractor):
             'thumbnail': r're:^https?://.*',
             'upload_date': '20231214',
             'like_count': int,
-        }
+        },
     }, {
         'url': 'https://www.facebook.com/ads/library/?id=893637265423481',
         'info_dict': {
@@ -998,7 +993,7 @@ class FacebookAdsIE(InfoExtractor):
     def _extract_formats(self, video_dict):
         formats = []
         for format_key, format_url in traverse_obj(video_dict, (
-            {dict.items}, lambda _, v: v[0] in self._FORMATS_MAP and url_or_none(v[1])
+            {dict.items}, lambda _, v: v[0] in self._FORMATS_MAP and url_or_none(v[1]),
         )):
             formats.append({
                 'format_id': self._FORMATS_MAP[format_key][0],
@@ -1035,7 +1030,7 @@ class FacebookAdsIE(InfoExtractor):
 
         entries = []
         for idx, entry in enumerate(traverse_obj(
-            data, (('videos', 'cards'), lambda _, v: any([url_or_none(v[f]) for f in self._FORMATS_MAP]))), 1
+            data, (('videos', 'cards'), lambda _, v: any(url_or_none(v[f]) for f in self._FORMATS_MAP))), 1,
         ):
             entries.append({
                 'id': f'{video_id}_{idx}',

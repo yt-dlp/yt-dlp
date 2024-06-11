@@ -41,7 +41,7 @@ class NinaProtocolIE(InfoExtractor):
                 'channel_id': '4ceG4zsb7VVxBTGPtZMqDZWGHo3VUg2xRvzC2b17ymWP',
                 'upload_date': '20231201',
                 'album_artist': 'Post Present Medium ',
-            }
+            },
         }, {
             'info_dict': {
                 'id': '3SvsMM3y4oTPZ5DXFJnLkCAqkxz34hjzFxqms1vu9XBJ_2',
@@ -60,7 +60,7 @@ class NinaProtocolIE(InfoExtractor):
                 'timestamp': 1701417610,
                 'album': 'The Spatulas - March Chant',
                 'uploader_id': '2bGjgdKUddJoj2shYGqfNcUfoSoABP21RJoiwGMZDq3A',
-            }
+            },
         }, {
             'info_dict': {
                 'id': '3SvsMM3y4oTPZ5DXFJnLkCAqkxz34hjzFxqms1vu9XBJ_3',
@@ -79,7 +79,7 @@ class NinaProtocolIE(InfoExtractor):
                 'tags': ['punk', 'postpresentmedium', 'cambridge'],
                 'uploader': 'ppmrecs',
                 'channel': 'ppm',
-            }
+            },
         }, {
             'info_dict': {
                 'id': '3SvsMM3y4oTPZ5DXFJnLkCAqkxz34hjzFxqms1vu9XBJ_4',
@@ -98,7 +98,7 @@ class NinaProtocolIE(InfoExtractor):
                 'channel': 'ppm',
                 'uploader_id': '2bGjgdKUddJoj2shYGqfNcUfoSoABP21RJoiwGMZDq3A',
                 'uploader': 'ppmrecs',
-            }
+            },
         }, {
             'info_dict': {
                 'id': '3SvsMM3y4oTPZ5DXFJnLkCAqkxz34hjzFxqms1vu9XBJ_5',
@@ -117,7 +117,7 @@ class NinaProtocolIE(InfoExtractor):
                 'uploader': 'ppmrecs',
                 'channel_id': '4ceG4zsb7VVxBTGPtZMqDZWGHo3VUg2xRvzC2b17ymWP',
                 'upload_date': '20231201',
-            }
+            },
         }, {
             'info_dict': {
                 'id': '3SvsMM3y4oTPZ5DXFJnLkCAqkxz34hjzFxqms1vu9XBJ_6',

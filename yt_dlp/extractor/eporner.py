@@ -30,8 +30,8 @@ class EpornerIE(InfoExtractor):
             'age_limit': 18,
         },
         'params': {
-            'proxy': '127.0.0.1:8118'
-        }
+            'proxy': '127.0.0.1:8118',
+        },
     }, {
         # New (May 2016) URL layout
         'url': 'http://www.eporner.com/hd-porn/3YRUtzMcWn0/Star-Wars-XXX-Parody/',
@@ -56,7 +56,7 @@ class EpornerIE(InfoExtractor):
 
         video_id = self._match_id(urlh.url)
 
-        hash = self._search_regex(
+        vid_hash = self._search_regex(
             r'hash\s*[:=]\s*["\']([\da-f]{32})', webpage, 'hash')
 
         title = self._og_search_title(webpage, default=None) or self._html_search_regex(
@@ -64,13 +64,13 @@ class EpornerIE(InfoExtractor):
 
         # Reverse engineered from vjs.js
         def calc_hash(s):
-            return ''.join((encode_base_n(int(s[lb:lb + 8], 16), 36) for lb in range(0, 32, 8)))
+            return ''.join(encode_base_n(int(s[lb:lb + 8], 16), 36) for lb in range(0, 32, 8))
 
         video = self._download_json(
-            'http://www.eporner.com/xhr/video/%s' % video_id,
+            f'http://www.eporner.com/xhr/video/{video_id}',
             display_id, note='Downloading video JSON',
             query={
-                'hash': calc_hash(hash),
+                'hash': calc_hash(vid_hash),
                 'device': 'generic',
                 'domain': 'www.eporner.com',
                 'fallback': 'false',
@@ -78,7 +78,7 @@ class EpornerIE(InfoExtractor):
 
         if video.get('available') is False:
             raise ExtractorError(
-                '%s said: %s' % (self.IE_NAME, video['message']), expected=True)
+                '{} said: {}'.format(self.IE_NAME, video['message']), expected=True)
 
         sources = video['sources']
 
