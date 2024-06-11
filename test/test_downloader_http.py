@@ -38,9 +38,9 @@ class HTTPTestRequestHandler(http.server.BaseHTTPRequestHandler):
                 end = int(mobj.group(2))
         valid_range = start is not None and end is not None
         if valid_range:
-            content_range = 'bytes %d-%d' % (start, end)
+            content_range = f'bytes {start}-{end}'
             if total:
-                content_range += '/%d' % total
+                content_range += f'/{total}'
             self.send_header('Content-Range', content_range)
         return (end - start + 1) if valid_range else total
 
@@ -84,7 +84,7 @@ class TestHttpFD(unittest.TestCase):
         filename = 'testfile.mp4'
         try_rm(encodeFilename(filename))
         self.assertTrue(downloader.real_download(filename, {
-            'url': 'http://127.0.0.1:%d/%s' % (self.port, ep),
+            'url': f'http://127.0.0.1:{self.port}/{ep}',
         }), ep)
         self.assertEqual(os.path.getsize(encodeFilename(filename)), TEST_SIZE, ep)
         try_rm(encodeFilename(filename))

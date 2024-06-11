@@ -2,10 +2,10 @@ import getpass
 import json
 import re
 import time
+import urllib.parse
 import xml.etree.ElementTree as etree
 
 from .common import InfoExtractor
-from ..compat import compat_urlparse
 from ..networking.exceptions import HTTPError
 from ..utils import (
     NO_DEFAULT,
@@ -68,7 +68,7 @@ MSO_INFO = {
     },
     'Philo': {
         'name': 'Philo',
-        'username_field': 'ident'
+        'username_field': 'ident',
     },
     'Verizon': {
         'name': 'Verizon FiOS',
@@ -81,1258 +81,1258 @@ MSO_INFO = {
         'password_field': 'j_password',
     },
     'thr030': {
-        'name': '3 Rivers Communications'
+        'name': '3 Rivers Communications',
     },
     'com140': {
-        'name': 'Access Montana'
+        'name': 'Access Montana',
     },
     'acecommunications': {
-        'name': 'AcenTek'
+        'name': 'AcenTek',
     },
     'acm010': {
-        'name': 'Acme Communications'
+        'name': 'Acme Communications',
     },
     'ada020': {
-        'name': 'Adams Cable Service'
+        'name': 'Adams Cable Service',
     },
     'alb020': {
-        'name': 'Albany Mutual Telephone'
+        'name': 'Albany Mutual Telephone',
     },
     'algona': {
-        'name': 'Algona Municipal Utilities'
+        'name': 'Algona Municipal Utilities',
     },
     'allwest': {
-        'name': 'All West Communications'
+        'name': 'All West Communications',
     },
     'all025': {
-        'name': 'Allen\'s Communications'
+        'name': 'Allen\'s Communications',
     },
     'spl010': {
-        'name': 'Alliance Communications'
+        'name': 'Alliance Communications',
     },
     'all070': {
-        'name': 'ALLO Communications'
+        'name': 'ALLO Communications',
     },
     'alpine': {
-        'name': 'Alpine Communications'
+        'name': 'Alpine Communications',
     },
     'hun015': {
-        'name': 'American Broadband'
+        'name': 'American Broadband',
     },
     'nwc010': {
-        'name': 'American Broadband Missouri'
+        'name': 'American Broadband Missouri',
     },
     'com130-02': {
-        'name': 'American Community Networks'
+        'name': 'American Community Networks',
     },
     'com130-01': {
-        'name': 'American Warrior Networks'
+        'name': 'American Warrior Networks',
     },
     'tom020': {
-        'name': 'Amherst Telephone/Tomorrow Valley'
+        'name': 'Amherst Telephone/Tomorrow Valley',
     },
     'tvc020': {
-        'name': 'Andycable'
+        'name': 'Andycable',
     },
     'arkwest': {
-        'name': 'Arkwest Communications'
+        'name': 'Arkwest Communications',
     },
     'art030': {
-        'name': 'Arthur Mutual Telephone Company'
+        'name': 'Arthur Mutual Telephone Company',
     },
     'arvig': {
-        'name': 'Arvig'
+        'name': 'Arvig',
     },
     'nttcash010': {
-        'name': 'Ashland Home Net'
+        'name': 'Ashland Home Net',
     },
     'astound': {
-        'name': 'Astound (now Wave)'
+        'name': 'Astound (now Wave)',
     },
     'dix030': {
-        'name': 'ATC Broadband'
+        'name': 'ATC Broadband',
     },
     'ara010': {
-        'name': 'ATC Communications'
+        'name': 'ATC Communications',
     },
     'she030-02': {
-        'name': 'Ayersville Communications'
+        'name': 'Ayersville Communications',
     },
     'baldwin': {
-        'name': 'Baldwin Lightstream'
+        'name': 'Baldwin Lightstream',
     },
     'bal040': {
-        'name': 'Ballard TV'
+        'name': 'Ballard TV',
     },
     'cit025': {
-        'name': 'Bardstown Cable TV'
+        'name': 'Bardstown Cable TV',
     },
     'bay030': {
-        'name': 'Bay Country Communications'
+        'name': 'Bay Country Communications',
     },
     'tel095': {
-        'name': 'Beaver Creek Cooperative Telephone'
+        'name': 'Beaver Creek Cooperative Telephone',
     },
     'bea020': {
-        'name': 'Beaver Valley Cable'
+        'name': 'Beaver Valley Cable',
     },
     'bee010': {
-        'name': 'Bee Line Cable'
+        'name': 'Bee Line Cable',
     },
     'wir030': {
-        'name': 'Beehive Broadband'
+        'name': 'Beehive Broadband',
     },
     'bra020': {
-        'name': 'BELD'
+        'name': 'BELD',
     },
     'bel020': {
-        'name': 'Bellevue Municipal Cable'
+        'name': 'Bellevue Municipal Cable',
     },
     'vol040-01': {
-        'name': 'Ben Lomand Connect / BLTV'
+        'name': 'Ben Lomand Connect / BLTV',
     },
     'bev010': {
-        'name': 'BEVCOMM'
+        'name': 'BEVCOMM',
     },
     'big020': {
-        'name': 'Big Sandy Broadband'
+        'name': 'Big Sandy Broadband',
     },
     'ble020': {
-        'name': 'Bledsoe Telephone Cooperative'
+        'name': 'Bledsoe Telephone Cooperative',
     },
     'bvt010': {
-        'name': 'Blue Valley Tele-Communications'
+        'name': 'Blue Valley Tele-Communications',
     },
     'bra050': {
-        'name': 'Brandenburg Telephone Co.'
+        'name': 'Brandenburg Telephone Co.',
     },
     'bte010': {
-        'name': 'Bristol Tennessee Essential Services'
+        'name': 'Bristol Tennessee Essential Services',
     },
     'annearundel': {
-        'name': 'Broadstripe'
+        'name': 'Broadstripe',
     },
     'btc010': {
-        'name': 'BTC Communications'
+        'name': 'BTC Communications',
     },
     'btc040': {
-        'name': 'BTC Vision - Nahunta'
+        'name': 'BTC Vision - Nahunta',
     },
     'bul010': {
-        'name': 'Bulloch Telephone Cooperative'
+        'name': 'Bulloch Telephone Cooperative',
     },
     'but010': {
-        'name': 'Butler-Bremer Communications'
+        'name': 'Butler-Bremer Communications',
     },
     'tel160-csp': {
-        'name': 'C Spire SNAP'
+        'name': 'C Spire SNAP',
     },
     'csicable': {
-        'name': 'Cable Services Inc.'
+        'name': 'Cable Services Inc.',
     },
     'cableamerica': {
-        'name': 'CableAmerica'
+        'name': 'CableAmerica',
     },
     'cab038': {
-        'name': 'CableSouth Media 3'
+        'name': 'CableSouth Media 3',
     },
     'weh010-camtel': {
-        'name': 'Cam-Tel Company'
+        'name': 'Cam-Tel Company',
     },
     'car030': {
-        'name': 'Cameron Communications'
+        'name': 'Cameron Communications',
     },
     'canbytel': {
-        'name': 'Canby Telcom'
+        'name': 'Canby Telcom',
     },
     'crt020': {
-        'name': 'CapRock Tv'
+        'name': 'CapRock Tv',
     },
     'car050': {
-        'name': 'Carnegie Cable'
+        'name': 'Carnegie Cable',
     },
     'cas': {
-        'name': 'CAS Cable'
+        'name': 'CAS Cable',
     },
     'casscomm': {
-        'name': 'CASSCOMM'
+        'name': 'CASSCOMM',
     },
     'mid180-02': {
-        'name': 'Catalina Broadband Solutions'
+        'name': 'Catalina Broadband Solutions',
     },
     'cccomm': {
-        'name': 'CC Communications'
+        'name': 'CC Communications',
     },
     'nttccde010': {
-        'name': 'CDE Lightband'
+        'name': 'CDE Lightband',
     },
     'cfunet': {
-        'name': 'Cedar Falls Utilities'
+        'name': 'Cedar Falls Utilities',
     },
     'dem010-01': {
-        'name': 'Celect-Bloomer Telephone Area'
+        'name': 'Celect-Bloomer Telephone Area',
     },
     'dem010-02': {
-        'name': 'Celect-Bruce Telephone Area'
+        'name': 'Celect-Bruce Telephone Area',
     },
     'dem010-03': {
-        'name': 'Celect-Citizens Connected Area'
+        'name': 'Celect-Citizens Connected Area',
     },
     'dem010-04': {
-        'name': 'Celect-Elmwood/Spring Valley Area'
+        'name': 'Celect-Elmwood/Spring Valley Area',
     },
     'dem010-06': {
-        'name': 'Celect-Mosaic Telecom'
+        'name': 'Celect-Mosaic Telecom',
     },
     'dem010-05': {
-        'name': 'Celect-West WI Telephone Area'
+        'name': 'Celect-West WI Telephone Area',
     },
     'net010-02': {
-        'name': 'Cellcom/Nsight Telservices'
+        'name': 'Cellcom/Nsight Telservices',
     },
     'cen100': {
-        'name': 'CentraCom'
+        'name': 'CentraCom',
     },
     'nttccst010': {
-        'name': 'Central Scott / CSTV'
+        'name': 'Central Scott / CSTV',
     },
     'cha035': {
-        'name': 'Chaparral CableVision'
+        'name': 'Chaparral CableVision',
     },
     'cha050': {
-        'name': 'Chariton Valley Communication Corporation, Inc.'
+        'name': 'Chariton Valley Communication Corporation, Inc.',
     },
     'cha060': {
-        'name': 'Chatmoss Cablevision'
+        'name': 'Chatmoss Cablevision',
     },
     'nttcche010': {
-        'name': 'Cherokee Communications'
+        'name': 'Cherokee Communications',
     },
     'che050': {
-        'name': 'Chesapeake Bay Communications'
+        'name': 'Chesapeake Bay Communications',
     },
     'cimtel': {
-        'name': 'Cim-Tel Cable, LLC.'
+        'name': 'Cim-Tel Cable, LLC.',
     },
     'cit180': {
-        'name': 'Citizens Cablevision - Floyd, VA'
+        'name': 'Citizens Cablevision - Floyd, VA',
     },
     'cit210': {
-        'name': 'Citizens Cablevision, Inc.'
+        'name': 'Citizens Cablevision, Inc.',
     },
     'cit040': {
-        'name': 'Citizens Fiber'
+        'name': 'Citizens Fiber',
     },
     'cit250': {
-        'name': 'Citizens Mutual'
+        'name': 'Citizens Mutual',
     },
     'war040': {
-        'name': 'Citizens Telephone Corporation'
+        'name': 'Citizens Telephone Corporation',
     },
     'wat025': {
-        'name': 'City Of Monroe'
+        'name': 'City Of Monroe',
     },
     'wadsworth': {
-        'name': 'CityLink'
+        'name': 'CityLink',
     },
     'nor100': {
-        'name': 'CL Tel'
+        'name': 'CL Tel',
     },
     'cla010': {
-        'name': 'Clarence Telephone and Cedar Communications'
+        'name': 'Clarence Telephone and Cedar Communications',
     },
     'ser060': {
-        'name': 'Clear Choice Communications'
+        'name': 'Clear Choice Communications',
     },
     'tac020': {
-        'name': 'Click! Cable TV'
+        'name': 'Click! Cable TV',
     },
     'war020': {
-        'name': 'CLICK1.NET'
+        'name': 'CLICK1.NET',
     },
     'cml010': {
-        'name': 'CML Telephone Cooperative Association'
+        'name': 'CML Telephone Cooperative Association',
     },
     'cns': {
-        'name': 'CNS'
+        'name': 'CNS',
     },
     'com160': {
-        'name': 'Co-Mo Connect'
+        'name': 'Co-Mo Connect',
     },
     'coa020': {
-        'name': 'Coast Communications'
+        'name': 'Coast Communications',
     },
     'coa030': {
-        'name': 'Coaxial Cable TV'
+        'name': 'Coaxial Cable TV',
     },
     'mid055': {
-        'name': 'Cobalt TV (Mid-State Community TV)'
+        'name': 'Cobalt TV (Mid-State Community TV)',
     },
     'col070': {
-        'name': 'Columbia Power & Water Systems'
+        'name': 'Columbia Power & Water Systems',
     },
     'col080': {
-        'name': 'Columbus Telephone'
+        'name': 'Columbus Telephone',
     },
     'nor105': {
-        'name': 'Communications 1 Cablevision, Inc.'
+        'name': 'Communications 1 Cablevision, Inc.',
     },
     'com150': {
-        'name': 'Community Cable & Broadband'
+        'name': 'Community Cable & Broadband',
     },
     'com020': {
-        'name': 'Community Communications Company'
+        'name': 'Community Communications Company',
     },
     'coy010': {
-        'name': 'commZoom'
+        'name': 'commZoom',
     },
     'com025': {
-        'name': 'Complete Communication Services'
+        'name': 'Complete Communication Services',
     },
     'cat020': {
-        'name': 'Comporium'
+        'name': 'Comporium',
     },
     'com071': {
-        'name': 'ComSouth Telesys'
+        'name': 'ComSouth Telesys',
     },
     'consolidatedcable': {
-        'name': 'Consolidated'
+        'name': 'Consolidated',
     },
     'conwaycorp': {
-        'name': 'Conway Corporation'
+        'name': 'Conway Corporation',
     },
     'coo050': {
-        'name': 'Coon Valley Telecommunications Inc'
+        'name': 'Coon Valley Telecommunications Inc',
     },
     'coo080': {
-        'name': 'Cooperative Telephone Company'
+        'name': 'Cooperative Telephone Company',
     },
     'cpt010': {
-        'name': 'CP-TEL'
+        'name': 'CP-TEL',
     },
     'cra010': {
-        'name': 'Craw-Kan Telephone'
+        'name': 'Craw-Kan Telephone',
     },
     'crestview': {
-        'name': 'Crestview Cable Communications'
+        'name': 'Crestview Cable Communications',
     },
     'cross': {
-        'name': 'Cross TV'
+        'name': 'Cross TV',
     },
     'cro030': {
-        'name': 'Crosslake Communications'
+        'name': 'Crosslake Communications',
     },
     'ctc040': {
-        'name': 'CTC - Brainerd MN'
+        'name': 'CTC - Brainerd MN',
     },
     'phe030': {
-        'name': 'CTV-Beam - East Alabama'
+        'name': 'CTV-Beam - East Alabama',
     },
     'cun010': {
-        'name': 'Cunningham Telephone & Cable'
+        'name': 'Cunningham Telephone & Cable',
     },
     'dpc010': {
-        'name': 'D & P Communications'
+        'name': 'D & P Communications',
     },
     'dak030': {
-        'name': 'Dakota Central Telecommunications'
+        'name': 'Dakota Central Telecommunications',
     },
     'nttcdel010': {
-        'name': 'Delcambre Telephone LLC'
+        'name': 'Delcambre Telephone LLC',
     },
     'tel160-del': {
-        'name': 'Delta Telephone Company'
+        'name': 'Delta Telephone Company',
     },
     'sal040': {
-        'name': 'DiamondNet'
+        'name': 'DiamondNet',
     },
     'ind060-dc': {
-        'name': 'Direct Communications'
+        'name': 'Direct Communications',
     },
     'doy010': {
-        'name': 'Doylestown Cable TV'
+        'name': 'Doylestown Cable TV',
     },
     'dic010': {
-        'name': 'DRN'
+        'name': 'DRN',
     },
     'dtc020': {
-        'name': 'DTC'
+        'name': 'DTC',
     },
     'dtc010': {
-        'name': 'DTC Cable (Delhi)'
+        'name': 'DTC Cable (Delhi)',
     },
     'dum010': {
-        'name': 'Dumont Telephone Company'
+        'name': 'Dumont Telephone Company',
     },
     'dun010': {
-        'name': 'Dunkerton Telephone Cooperative'
+        'name': 'Dunkerton Telephone Cooperative',
     },
     'cci010': {
-        'name': 'Duo County Telecom'
+        'name': 'Duo County Telecom',
     },
     'eagle': {
-        'name': 'Eagle Communications'
+        'name': 'Eagle Communications',
     },
     'weh010-east': {
-        'name': 'East Arkansas Cable TV'
+        'name': 'East Arkansas Cable TV',
     },
     'eatel': {
-        'name': 'EATEL Video, LLC'
+        'name': 'EATEL Video, LLC',
     },
     'ell010': {
-        'name': 'ECTA'
+        'name': 'ECTA',
     },
     'emerytelcom': {
-        'name': 'Emery Telcom Video LLC'
+        'name': 'Emery Telcom Video LLC',
     },
     'nor200': {
-        'name': 'Empire Access'
+        'name': 'Empire Access',
     },
     'endeavor': {
-        'name': 'Endeavor Communications'
+        'name': 'Endeavor Communications',
     },
     'sun045': {
-        'name': 'Enhanced Telecommunications Corporation'
+        'name': 'Enhanced Telecommunications Corporation',
     },
     'mid030': {
-        'name': 'enTouch'
+        'name': 'enTouch',
     },
     'epb020': {
-        'name': 'EPB Smartnet'
+        'name': 'EPB Smartnet',
     },
     'jea010': {
-        'name': 'EPlus Broadband'
+        'name': 'EPlus Broadband',
     },
     'com065': {
-        'name': 'ETC'
+        'name': 'ETC',
     },
     'ete010': {
-        'name': 'Etex Communications'
+        'name': 'Etex Communications',
     },
     'fbc-tele': {
-        'name': 'F&B Communications'
+        'name': 'F&B Communications',
     },
     'fal010': {
-        'name': 'Falcon Broadband'
+        'name': 'Falcon Broadband',
     },
     'fam010': {
-        'name': 'FamilyView CableVision'
+        'name': 'FamilyView CableVision',
     },
     'far020': {
-        'name': 'Farmers Mutual Telephone Company'
+        'name': 'Farmers Mutual Telephone Company',
     },
     'fay010': {
-        'name': 'Fayetteville Public Utilities'
+        'name': 'Fayetteville Public Utilities',
     },
     'sal060': {
-        'name': 'fibrant'
+        'name': 'fibrant',
     },
     'fid010': {
-        'name': 'Fidelity Communications'
+        'name': 'Fidelity Communications',
     },
     'for030': {
-        'name': 'FJ Communications'
+        'name': 'FJ Communications',
     },
     'fli020': {
-        'name': 'Flint River Communications'
+        'name': 'Flint River Communications',
     },
     'far030': {
-        'name': 'FMT - Jesup'
+        'name': 'FMT - Jesup',
     },
     'foo010': {
-        'name': 'Foothills Communications'
+        'name': 'Foothills Communications',
     },
     'for080': {
-        'name': 'Forsyth CableNet'
+        'name': 'Forsyth CableNet',
     },
     'fbcomm': {
-        'name': 'Frankfort Plant Board'
+        'name': 'Frankfort Plant Board',
     },
     'tel160-fra': {
-        'name': 'Franklin Telephone Company'
+        'name': 'Franklin Telephone Company',
     },
     'nttcftc010': {
-        'name': 'FTC'
+        'name': 'FTC',
     },
     'fullchannel': {
-        'name': 'Full Channel, Inc.'
+        'name': 'Full Channel, Inc.',
     },
     'gar040': {
-        'name': 'Gardonville Cooperative Telephone Association'
+        'name': 'Gardonville Cooperative Telephone Association',
     },
     'gbt010': {
-        'name': 'GBT Communications, Inc.'
+        'name': 'GBT Communications, Inc.',
     },
     'tec010': {
-        'name': 'Genuine Telecom'
+        'name': 'Genuine Telecom',
     },
     'clr010': {
-        'name': 'Giant Communications'
+        'name': 'Giant Communications',
     },
     'gla010': {
-        'name': 'Glasgow EPB'
+        'name': 'Glasgow EPB',
     },
     'gle010': {
-        'name': 'Glenwood Telecommunications'
+        'name': 'Glenwood Telecommunications',
     },
     'gra060': {
-        'name': 'GLW Broadband Inc.'
+        'name': 'GLW Broadband Inc.',
     },
     'goldenwest': {
-        'name': 'Golden West Cablevision'
+        'name': 'Golden West Cablevision',
     },
     'vis030': {
-        'name': 'Grantsburg Telcom'
+        'name': 'Grantsburg Telcom',
     },
     'gpcom': {
-        'name': 'Great Plains Communications'
+        'name': 'Great Plains Communications',
     },
     'gri010': {
-        'name': 'Gridley Cable Inc'
+        'name': 'Gridley Cable Inc',
     },
     'hbc010': {
-        'name': 'H&B Cable Services'
+        'name': 'H&B Cable Services',
     },
     'hae010': {
-        'name': 'Haefele TV Inc.'
+        'name': 'Haefele TV Inc.',
     },
     'htc010': {
-        'name': 'Halstad Telephone Company'
+        'name': 'Halstad Telephone Company',
     },
     'har005': {
-        'name': 'Harlan Municipal Utilities'
+        'name': 'Harlan Municipal Utilities',
     },
     'har020': {
-        'name': 'Hart Communications'
+        'name': 'Hart Communications',
     },
     'ced010': {
-        'name': 'Hartelco TV'
+        'name': 'Hartelco TV',
     },
     'hea040': {
-        'name': 'Heart of Iowa Communications Cooperative'
+        'name': 'Heart of Iowa Communications Cooperative',
     },
     'htc020': {
-        'name': 'Hickory Telephone Company'
+        'name': 'Hickory Telephone Company',
     },
     'nttchig010': {
-        'name': 'Highland Communication Services'
+        'name': 'Highland Communication Services',
     },
     'hig030': {
-        'name': 'Highland Media'
+        'name': 'Highland Media',
     },
     'spc010': {
-        'name': 'Hilliary Communications'
+        'name': 'Hilliary Communications',
     },
     'hin020': {
-        'name': 'Hinton CATV Co.'
+        'name': 'Hinton CATV Co.',
     },
     'hometel': {
-        'name': 'HomeTel Entertainment, Inc.'
+        'name': 'HomeTel Entertainment, Inc.',
     },
     'hoodcanal': {
-        'name': 'Hood Canal Communications'
+        'name': 'Hood Canal Communications',
     },
     'weh010-hope': {
-        'name': 'Hope - Prescott Cable TV'
+        'name': 'Hope - Prescott Cable TV',
     },
     'horizoncable': {
-        'name': 'Horizon Cable TV, Inc.'
+        'name': 'Horizon Cable TV, Inc.',
     },
     'hor040': {
-        'name': 'Horizon Chillicothe Telephone'
+        'name': 'Horizon Chillicothe Telephone',
     },
     'htc030': {
-        'name': 'HTC Communications Co. - IL'
+        'name': 'HTC Communications Co. - IL',
     },
     'htccomm': {
-        'name': 'HTC Communications, Inc. - IA'
+        'name': 'HTC Communications, Inc. - IA',
     },
     'wal005': {
-        'name': 'Huxley Communications'
+        'name': 'Huxley Communications',
     },
     'imon': {
-        'name': 'ImOn Communications'
+        'name': 'ImOn Communications',
     },
     'ind040': {
-        'name': 'Independence Telecommunications'
+        'name': 'Independence Telecommunications',
     },
     'rrc010': {
-        'name': 'Inland Networks'
+        'name': 'Inland Networks',
     },
     'stc020': {
-        'name': 'Innovative Cable TV St Croix'
+        'name': 'Innovative Cable TV St Croix',
     },
     'car100': {
-        'name': 'Innovative Cable TV St Thomas-St John'
+        'name': 'Innovative Cable TV St Thomas-St John',
     },
     'icc010': {
-        'name': 'Inside Connect Cable'
+        'name': 'Inside Connect Cable',
     },
     'int100': {
-        'name': 'Integra Telecom'
+        'name': 'Integra Telecom',
     },
     'int050': {
-        'name': 'Interstate Telecommunications Coop'
+        'name': 'Interstate Telecommunications Coop',
     },
     'irv010': {
-        'name': 'Irvine Cable'
+        'name': 'Irvine Cable',
     },
     'k2c010': {
-        'name': 'K2 Communications'
+        'name': 'K2 Communications',
     },
     'kal010': {
-        'name': 'Kalida Telephone Company, Inc.'
+        'name': 'Kalida Telephone Company, Inc.',
     },
     'kal030': {
-        'name': 'Kalona Cooperative Telephone Company'
+        'name': 'Kalona Cooperative Telephone Company',
     },
     'kmt010': {
-        'name': 'KMTelecom'
+        'name': 'KMTelecom',
     },
     'kpu010': {
-        'name': 'KPU Telecommunications'
+        'name': 'KPU Telecommunications',
     },
     'kuh010': {
-        'name': 'Kuhn Communications, Inc.'
+        'name': 'Kuhn Communications, Inc.',
     },
     'lak130': {
-        'name': 'Lakeland Communications'
+        'name': 'Lakeland Communications',
     },
     'lan010': {
-        'name': 'Langco'
+        'name': 'Langco',
     },
     'lau020': {
-        'name': 'Laurel Highland Total Communications, Inc.'
+        'name': 'Laurel Highland Total Communications, Inc.',
     },
     'leh010': {
-        'name': 'Lehigh Valley Cooperative Telephone'
+        'name': 'Lehigh Valley Cooperative Telephone',
     },
     'bra010': {
-        'name': 'Limestone Cable/Bracken Cable'
+        'name': 'Limestone Cable/Bracken Cable',
     },
     'loc020': {
-        'name': 'LISCO'
+        'name': 'LISCO',
     },
     'lit020': {
-        'name': 'Litestream'
+        'name': 'Litestream',
     },
     'tel140': {
-        'name': 'LivCom'
+        'name': 'LivCom',
     },
     'loc010': {
-        'name': 'LocalTel Communications'
+        'name': 'LocalTel Communications',
     },
     'weh010-longview': {
-        'name': 'Longview - Kilgore Cable TV'
+        'name': 'Longview - Kilgore Cable TV',
     },
     'lon030': {
-        'name': 'Lonsdale Video Ventures, LLC'
+        'name': 'Lonsdale Video Ventures, LLC',
     },
     'lns010': {
-        'name': 'Lost Nation-Elwood Telephone Co.'
+        'name': 'Lost Nation-Elwood Telephone Co.',
     },
     'nttclpc010': {
-        'name': 'LPC Connect'
+        'name': 'LPC Connect',
     },
     'lumos': {
-        'name': 'Lumos Networks'
+        'name': 'Lumos Networks',
     },
     'madison': {
-        'name': 'Madison Communications'
+        'name': 'Madison Communications',
     },
     'mad030': {
-        'name': 'Madison County Cable Inc.'
+        'name': 'Madison County Cable Inc.',
     },
     'nttcmah010': {
-        'name': 'Mahaska Communication Group'
+        'name': 'Mahaska Communication Group',
     },
     'mar010': {
-        'name': 'Marne & Elk Horn Telephone Company'
+        'name': 'Marne & Elk Horn Telephone Company',
     },
     'mcc040': {
-        'name': 'McClure Telephone Co.'
+        'name': 'McClure Telephone Co.',
     },
     'mctv': {
-        'name': 'MCTV'
+        'name': 'MCTV',
     },
     'merrimac': {
-        'name': 'Merrimac Communications Ltd.'
+        'name': 'Merrimac Communications Ltd.',
     },
     'metronet': {
-        'name': 'Metronet'
+        'name': 'Metronet',
     },
     'mhtc': {
-        'name': 'MHTC'
+        'name': 'MHTC',
     },
     'midhudson': {
-        'name': 'Mid-Hudson Cable'
+        'name': 'Mid-Hudson Cable',
     },
     'midrivers': {
-        'name': 'Mid-Rivers Communications'
+        'name': 'Mid-Rivers Communications',
     },
     'mid045': {
-        'name': 'Midstate Communications'
+        'name': 'Midstate Communications',
     },
     'mil080': {
-        'name': 'Milford Communications'
+        'name': 'Milford Communications',
     },
     'min030': {
-        'name': 'MINET'
+        'name': 'MINET',
     },
     'nttcmin010': {
-        'name': 'Minford TV'
+        'name': 'Minford TV',
     },
     'san040-02': {
-        'name': 'Mitchell Telecom'
+        'name': 'Mitchell Telecom',
     },
     'mlg010': {
-        'name': 'MLGC'
+        'name': 'MLGC',
     },
     'mon060': {
-        'name': 'Mon-Cre TVE'
+        'name': 'Mon-Cre TVE',
     },
     'mou110': {
-        'name': 'Mountain Telephone'
+        'name': 'Mountain Telephone',
     },
     'mou050': {
-        'name': 'Mountain Village Cable'
+        'name': 'Mountain Village Cable',
     },
     'mtacomm': {
-        'name': 'MTA Communications, LLC'
+        'name': 'MTA Communications, LLC',
     },
     'mtc010': {
-        'name': 'MTC Cable'
+        'name': 'MTC Cable',
     },
     'med040': {
-        'name': 'MTC Technologies'
+        'name': 'MTC Technologies',
     },
     'man060': {
-        'name': 'MTCC'
+        'name': 'MTCC',
     },
     'mtc030': {
-        'name': 'MTCO Communications'
+        'name': 'MTCO Communications',
     },
     'mul050': {
-        'name': 'Mulberry Telecommunications'
+        'name': 'Mulberry Telecommunications',
     },
     'mur010': {
-        'name': 'Murray Electric System'
+        'name': 'Murray Electric System',
     },
     'musfiber': {
-        'name': 'MUS FiberNET'
+        'name': 'MUS FiberNET',
     },
     'mpw': {
-        'name': 'Muscatine Power & Water'
+        'name': 'Muscatine Power & Water',
     },
     'nttcsli010': {
-        'name': 'myEVTV.com'
+        'name': 'myEVTV.com',
     },
     'nor115': {
-        'name': 'NCC'
+        'name': 'NCC',
     },
     'nor260': {
-        'name': 'NDTC'
+        'name': 'NDTC',
     },
     'nctc': {
-        'name': 'Nebraska Central Telecom, Inc.'
+        'name': 'Nebraska Central Telecom, Inc.',
     },
     'nel020': {
-        'name': 'Nelsonville TV Cable'
+        'name': 'Nelsonville TV Cable',
     },
     'nem010': {
-        'name': 'Nemont'
+        'name': 'Nemont',
     },
     'new075': {
-        'name': 'New Hope Telephone Cooperative'
+        'name': 'New Hope Telephone Cooperative',
     },
     'nor240': {
-        'name': 'NICP'
+        'name': 'NICP',
     },
     'cic010': {
-        'name': 'NineStar Connect'
+        'name': 'NineStar Connect',
     },
     'nktelco': {
-        'name': 'NKTelco'
+        'name': 'NKTelco',
     },
     'nortex': {
-        'name': 'Nortex Communications'
+        'name': 'Nortex Communications',
     },
     'nor140': {
-        'name': 'North Central Telephone Cooperative'
+        'name': 'North Central Telephone Cooperative',
     },
     'nor030': {
-        'name': 'Northland Communications'
+        'name': 'Northland Communications',
     },
     'nor075': {
-        'name': 'Northwest Communications'
+        'name': 'Northwest Communications',
     },
     'nor125': {
-        'name': 'Norwood Light Broadband'
+        'name': 'Norwood Light Broadband',
     },
     'net010': {
-        'name': 'Nsight Telservices'
+        'name': 'Nsight Telservices',
     },
     'dur010': {
-        'name': 'Ntec'
+        'name': 'Ntec',
     },
     'nts010': {
-        'name': 'NTS Communications'
+        'name': 'NTS Communications',
     },
     'new045': {
-        'name': 'NU-Telecom'
+        'name': 'NU-Telecom',
     },
     'nulink': {
-        'name': 'NuLink'
+        'name': 'NuLink',
     },
     'jam030': {
-        'name': 'NVC'
+        'name': 'NVC',
     },
     'far035': {
-        'name': 'OmniTel Communications'
+        'name': 'OmniTel Communications',
     },
     'onesource': {
-        'name': 'OneSource Communications'
+        'name': 'OneSource Communications',
     },
     'cit230': {
-        'name': 'Opelika Power Services'
+        'name': 'Opelika Power Services',
     },
     'daltonutilities': {
-        'name': 'OptiLink'
+        'name': 'OptiLink',
     },
     'mid140': {
-        'name': 'OPTURA'
+        'name': 'OPTURA',
     },
     'ote010': {
-        'name': 'OTEC Communication Company'
+        'name': 'OTEC Communication Company',
     },
     'cci020': {
-        'name': 'Packerland Broadband'
+        'name': 'Packerland Broadband',
     },
     'pan010': {
-        'name': 'Panora Telco/Guthrie Center Communications'
+        'name': 'Panora Telco/Guthrie Center Communications',
     },
     'otter': {
-        'name': 'Park Region Telephone & Otter Tail Telcom'
+        'name': 'Park Region Telephone & Otter Tail Telcom',
     },
     'mid050': {
-        'name': 'Partner Communications Cooperative'
+        'name': 'Partner Communications Cooperative',
     },
     'fib010': {
-        'name': 'Pathway'
+        'name': 'Pathway',
     },
     'paulbunyan': {
-        'name': 'Paul Bunyan Communications'
+        'name': 'Paul Bunyan Communications',
     },
     'pem020': {
-        'name': 'Pembroke Telephone Company'
+        'name': 'Pembroke Telephone Company',
     },
     'mck010': {
-        'name': 'Peoples Rural Telephone Cooperative'
+        'name': 'Peoples Rural Telephone Cooperative',
     },
     'pul010': {
-        'name': 'PES Energize'
+        'name': 'PES Energize',
     },
     'phi010': {
-        'name': 'Philippi Communications System'
+        'name': 'Philippi Communications System',
     },
     'phonoscope': {
-        'name': 'Phonoscope Cable'
+        'name': 'Phonoscope Cable',
     },
     'pin070': {
-        'name': 'Pine Belt Communications, Inc.'
+        'name': 'Pine Belt Communications, Inc.',
     },
     'weh010-pine': {
-        'name': 'Pine Bluff Cable TV'
+        'name': 'Pine Bluff Cable TV',
     },
     'pin060': {
-        'name': 'Pineland Telephone Cooperative'
+        'name': 'Pineland Telephone Cooperative',
     },
     'cam010': {
-        'name': 'Pinpoint Communications'
+        'name': 'Pinpoint Communications',
     },
     'pio060': {
-        'name': 'Pioneer Broadband'
+        'name': 'Pioneer Broadband',
     },
     'pioncomm': {
-        'name': 'Pioneer Communications'
+        'name': 'Pioneer Communications',
     },
     'pioneer': {
-        'name': 'Pioneer DTV'
+        'name': 'Pioneer DTV',
     },
     'pla020': {
-        'name': 'Plant TiftNet, Inc.'
+        'name': 'Plant TiftNet, Inc.',
     },
     'par010': {
-        'name': 'PLWC'
+        'name': 'PLWC',
     },
     'pro035': {
-        'name': 'PMT'
+        'name': 'PMT',
     },
     'vik011': {
-        'name': 'Polar Cablevision'
+        'name': 'Polar Cablevision',
     },
     'pottawatomie': {
-        'name': 'Pottawatomie Telephone Co.'
+        'name': 'Pottawatomie Telephone Co.',
     },
     'premiercomm': {
-        'name': 'Premier Communications'
+        'name': 'Premier Communications',
     },
     'psc010': {
-        'name': 'PSC'
+        'name': 'PSC',
     },
     'pan020': {
-        'name': 'PTCI'
+        'name': 'PTCI',
     },
     'qco010': {
-        'name': 'QCOL'
+        'name': 'QCOL',
     },
     'qua010': {
-        'name': 'Quality Cablevision'
+        'name': 'Quality Cablevision',
     },
     'rad010': {
-        'name': 'Radcliffe Telephone Company'
+        'name': 'Radcliffe Telephone Company',
     },
     'car040': {
-        'name': 'Rainbow Communications'
+        'name': 'Rainbow Communications',
     },
     'rai030': {
-        'name': 'Rainier Connect'
+        'name': 'Rainier Connect',
     },
     'ral010': {
-        'name': 'Ralls Technologies'
+        'name': 'Ralls Technologies',
     },
     'rct010': {
-        'name': 'RC Technologies'
+        'name': 'RC Technologies',
     },
     'red040': {
-        'name': 'Red River Communications'
+        'name': 'Red River Communications',
     },
     'ree010': {
-        'name': 'Reedsburg Utility Commission'
+        'name': 'Reedsburg Utility Commission',
     },
     'mol010': {
-        'name': 'Reliance Connects- Oregon'
+        'name': 'Reliance Connects- Oregon',
     },
     'res020': {
-        'name': 'Reserve Telecommunications'
+        'name': 'Reserve Telecommunications',
     },
     'weh010-resort': {
-        'name': 'Resort TV Cable'
+        'name': 'Resort TV Cable',
     },
     'rld010': {
-        'name': 'Richland Grant Telephone Cooperative, Inc.'
+        'name': 'Richland Grant Telephone Cooperative, Inc.',
     },
     'riv030': {
-        'name': 'River Valley Telecommunications Coop'
+        'name': 'River Valley Telecommunications Coop',
     },
     'rockportcable': {
-        'name': 'Rock Port Cablevision'
+        'name': 'Rock Port Cablevision',
     },
     'rsf010': {
-        'name': 'RS Fiber'
+        'name': 'RS Fiber',
     },
     'rtc': {
-        'name': 'RTC Communication Corp'
+        'name': 'RTC Communication Corp',
     },
     'res040': {
-        'name': 'RTC-Reservation Telephone Coop.'
+        'name': 'RTC-Reservation Telephone Coop.',
     },
     'rte010': {
-        'name': 'RTEC Communications'
+        'name': 'RTEC Communications',
     },
     'stc010': {
-        'name': 'S&T'
+        'name': 'S&T',
     },
     'san020': {
-        'name': 'San Bruno Cable TV'
+        'name': 'San Bruno Cable TV',
     },
     'san040-01': {
-        'name': 'Santel'
+        'name': 'Santel',
     },
     'sav010': {
-        'name': 'SCI Broadband-Savage Communications Inc.'
+        'name': 'SCI Broadband-Savage Communications Inc.',
     },
     'sco050': {
-        'name': 'Scottsboro Electric Power Board'
+        'name': 'Scottsboro Electric Power Board',
     },
     'scr010': {
-        'name': 'Scranton Telephone Company'
+        'name': 'Scranton Telephone Company',
     },
     'selco': {
-        'name': 'SELCO'
+        'name': 'SELCO',
     },
     'she010': {
-        'name': 'Shentel'
+        'name': 'Shentel',
     },
     'she030': {
-        'name': 'Sherwood Mutual Telephone Association, Inc.'
+        'name': 'Sherwood Mutual Telephone Association, Inc.',
     },
     'ind060-ssc': {
-        'name': 'Silver Star Communications'
+        'name': 'Silver Star Communications',
     },
     'sjoberg': {
-        'name': 'Sjoberg\'s Inc.'
+        'name': 'Sjoberg\'s Inc.',
     },
     'sou025': {
-        'name': 'SKT'
+        'name': 'SKT',
     },
     'sky050': {
-        'name': 'SkyBest TV'
+        'name': 'SkyBest TV',
     },
     'nttcsmi010': {
-        'name': 'Smithville Communications'
+        'name': 'Smithville Communications',
     },
     'woo010': {
-        'name': 'Solarus'
+        'name': 'Solarus',
     },
     'sou075': {
-        'name': 'South Central Rural Telephone Cooperative'
+        'name': 'South Central Rural Telephone Cooperative',
     },
     'sou065': {
-        'name': 'South Holt Cablevision, Inc.'
+        'name': 'South Holt Cablevision, Inc.',
     },
     'sou035': {
-        'name': 'South Slope Cooperative Communications'
+        'name': 'South Slope Cooperative Communications',
     },
     'spa020': {
-        'name': 'Spanish Fork Community Network'
+        'name': 'Spanish Fork Community Network',
     },
     'spe010': {
-        'name': 'Spencer Municipal Utilities'
+        'name': 'Spencer Municipal Utilities',
     },
     'spi005': {
-        'name': 'Spillway Communications, Inc.'
+        'name': 'Spillway Communications, Inc.',
     },
     'srt010': {
-        'name': 'SRT'
+        'name': 'SRT',
     },
     'cccsmc010': {
-        'name': 'St. Maarten Cable TV'
+        'name': 'St. Maarten Cable TV',
     },
     'sta025': {
-        'name': 'Star Communications'
+        'name': 'Star Communications',
     },
     'sco020': {
-        'name': 'STE'
+        'name': 'STE',
     },
     'uin010': {
-        'name': 'STRATA Networks'
+        'name': 'STRATA Networks',
     },
     'sum010': {
-        'name': 'Sumner Cable TV'
+        'name': 'Sumner Cable TV',
     },
     'pie010': {
-        'name': 'Surry TV/PCSI TV'
+        'name': 'Surry TV/PCSI TV',
     },
     'swa010': {
-        'name': 'Swayzee Communications'
+        'name': 'Swayzee Communications',
     },
     'sweetwater': {
-        'name': 'Sweetwater Cable Television Co'
+        'name': 'Sweetwater Cable Television Co',
     },
     'weh010-talequah': {
-        'name': 'Tahlequah Cable TV'
+        'name': 'Tahlequah Cable TV',
     },
     'tct': {
-        'name': 'TCT'
+        'name': 'TCT',
     },
     'tel050': {
-        'name': 'Tele-Media Company'
+        'name': 'Tele-Media Company',
     },
     'com050': {
-        'name': 'The Community Agency'
+        'name': 'The Community Agency',
     },
     'thr020': {
-        'name': 'Three River'
+        'name': 'Three River',
     },
     'cab140': {
-        'name': 'Town & Country Technologies'
+        'name': 'Town & Country Technologies',
     },
     'tra010': {
-        'name': 'Trans-Video'
+        'name': 'Trans-Video',
     },
     'tre010': {
-        'name': 'Trenton TV Cable Company'
+        'name': 'Trenton TV Cable Company',
     },
     'tcc': {
-        'name': 'Tri County Communications Cooperative'
+        'name': 'Tri County Communications Cooperative',
     },
     'tri025': {
-        'name': 'TriCounty Telecom'
+        'name': 'TriCounty Telecom',
     },
     'tri110': {
-        'name': 'TrioTel Communications, Inc.'
+        'name': 'TrioTel Communications, Inc.',
     },
     'tro010': {
-        'name': 'Troy Cablevision, Inc.'
+        'name': 'Troy Cablevision, Inc.',
     },
     'tsc': {
-        'name': 'TSC'
+        'name': 'TSC',
     },
     'cit220': {
-        'name': 'Tullahoma Utilities Board'
+        'name': 'Tullahoma Utilities Board',
     },
     'tvc030': {
-        'name': 'TV Cable of Rensselaer'
+        'name': 'TV Cable of Rensselaer',
     },
     'tvc015': {
-        'name': 'TVC Cable'
+        'name': 'TVC Cable',
     },
     'cab180': {
-        'name': 'TVision'
+        'name': 'TVision',
     },
     'twi040': {
-        'name': 'Twin Lakes'
+        'name': 'Twin Lakes',
     },
     'tvtinc': {
-        'name': 'Twin Valley'
+        'name': 'Twin Valley',
     },
     'uis010': {
-        'name': 'Union Telephone Company'
+        'name': 'Union Telephone Company',
     },
     'uni110': {
-        'name': 'United Communications - TN'
+        'name': 'United Communications - TN',
     },
     'uni120': {
-        'name': 'United Services'
+        'name': 'United Services',
     },
     'uss020': {
-        'name': 'US Sonet'
+        'name': 'US Sonet',
     },
     'cab060': {
-        'name': 'USA Communications'
+        'name': 'USA Communications',
     },
     'she005': {
-        'name': 'USA Communications/Shellsburg, IA'
+        'name': 'USA Communications/Shellsburg, IA',
     },
     'val040': {
-        'name': 'Valley TeleCom Group'
+        'name': 'Valley TeleCom Group',
     },
     'val025': {
-        'name': 'Valley Telecommunications'
+        'name': 'Valley Telecommunications',
     },
     'val030': {
-        'name': 'Valparaiso Broadband'
+        'name': 'Valparaiso Broadband',
     },
     'cla050': {
-        'name': 'Vast Broadband'
+        'name': 'Vast Broadband',
     },
     'sul015': {
-        'name': 'Venture Communications Cooperative, Inc.'
+        'name': 'Venture Communications Cooperative, Inc.',
     },
     'ver025': {
-        'name': 'Vernon Communications Co-op'
+        'name': 'Vernon Communications Co-op',
     },
     'weh010-vicksburg': {
-        'name': 'Vicksburg Video'
+        'name': 'Vicksburg Video',
     },
     'vis070': {
-        'name': 'Vision Communications'
+        'name': 'Vision Communications',
     },
     'volcanotel': {
-        'name': 'Volcano Vision, Inc.'
+        'name': 'Volcano Vision, Inc.',
     },
     'vol040-02': {
-        'name': 'VolFirst / BLTV'
+        'name': 'VolFirst / BLTV',
     },
     'ver070': {
-        'name': 'VTel'
+        'name': 'VTel',
     },
     'nttcvtx010': {
-        'name': 'VTX1'
+        'name': 'VTX1',
     },
     'bci010-02': {
-        'name': 'Vyve Broadband'
+        'name': 'Vyve Broadband',
     },
     'wab020': {
-        'name': 'Wabash Mutual Telephone'
+        'name': 'Wabash Mutual Telephone',
     },
     'waitsfield': {
-        'name': 'Waitsfield Cable'
+        'name': 'Waitsfield Cable',
     },
     'wal010': {
-        'name': 'Walnut Communications'
+        'name': 'Walnut Communications',
     },
     'wavebroadband': {
-        'name': 'Wave'
+        'name': 'Wave',
     },
     'wav030': {
-        'name': 'Waverly Communications Utility'
+        'name': 'Waverly Communications Utility',
     },
     'wbi010': {
-        'name': 'WBI'
+        'name': 'WBI',
     },
     'web020': {
-        'name': 'Webster-Calhoun Cooperative Telephone Association'
+        'name': 'Webster-Calhoun Cooperative Telephone Association',
     },
     'wes005': {
-        'name': 'West Alabama TV Cable'
+        'name': 'West Alabama TV Cable',
     },
     'carolinata': {
-        'name': 'West Carolina Communications'
+        'name': 'West Carolina Communications',
     },
     'wct010': {
-        'name': 'West Central Telephone Association'
+        'name': 'West Central Telephone Association',
     },
     'wes110': {
-        'name': 'West River Cooperative Telephone Company'
+        'name': 'West River Cooperative Telephone Company',
     },
     'ani030': {
-        'name': 'WesTel Systems'
+        'name': 'WesTel Systems',
     },
     'westianet': {
-        'name': 'Western Iowa Networks'
+        'name': 'Western Iowa Networks',
     },
     'nttcwhi010': {
-        'name': 'Whidbey Telecom'
+        'name': 'Whidbey Telecom',
     },
     'weh010-white': {
-        'name': 'White County Cable TV'
+        'name': 'White County Cable TV',
     },
     'wes130': {
-        'name': 'Wiatel'
+        'name': 'Wiatel',
     },
     'wik010': {
-        'name': 'Wiktel'
+        'name': 'Wiktel',
     },
     'wil070': {
-        'name': 'Wilkes Communications, Inc./RiverStreet Networks'
+        'name': 'Wilkes Communications, Inc./RiverStreet Networks',
     },
     'wil015': {
-        'name': 'Wilson Communications'
+        'name': 'Wilson Communications',
     },
     'win010': {
-        'name': 'Windomnet/SMBS'
+        'name': 'Windomnet/SMBS',
     },
     'win090': {
-        'name': 'Windstream Cable TV'
+        'name': 'Windstream Cable TV',
     },
     'wcta': {
-        'name': 'Winnebago Cooperative Telecom Association'
+        'name': 'Winnebago Cooperative Telecom Association',
     },
     'wtc010': {
-        'name': 'WTC'
+        'name': 'WTC',
     },
     'wil040': {
-        'name': 'WTC Communications, Inc.'
+        'name': 'WTC Communications, Inc.',
     },
     'wya010': {
-        'name': 'Wyandotte Cable'
+        'name': 'Wyandotte Cable',
     },
     'hin020-02': {
-        'name': 'X-Stream Services'
+        'name': 'X-Stream Services',
     },
     'xit010': {
-        'name': 'XIT Communications'
+        'name': 'XIT Communications',
     },
     'yel010': {
-        'name': 'Yelcot Communications'
+        'name': 'Yelcot Communications',
     },
     'mid180-01': {
-        'name': 'yondoo'
+        'name': 'yondoo',
     },
     'cou060': {
-        'name': 'Zito Media'
+        'name': 'Zito Media',
     },
     'slingtv': {
         'name': 'Sling TV',
@@ -1363,7 +1363,7 @@ class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should en
         headers = self.geo_verification_headers()
         headers.update(kwargs.get('headers', {}))
         kwargs['headers'] = headers
-        return super(AdobePassIE, self)._download_webpage_handle(
+        return super()._download_webpage_handle(
             *args, **kwargs)
 
     @staticmethod
@@ -1384,7 +1384,7 @@ class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should en
     def _extract_mvpd_auth(self, url, video_id, requestor_id, resource):
         def xml_text(xml_str, tag):
             return self._search_regex(
-                '<%s>(.+?)</%s>' % (tag, tag), xml_str, tag)
+                f'<{tag}>(.+?)</{tag}>', xml_str, tag)
 
         def is_expired(token, date_ele):
             token_expires = unified_timestamp(re.sub(r'[_ ]GMT', '', xml_text(token, date_ele)))
@@ -1394,7 +1394,7 @@ class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should en
             form_page, urlh = form_page_res
             post_url = self._html_search_regex(r'<form[^>]+action=(["\'])(?P<url>.+?)\1', form_page, 'post url', group='url')
             if not re.match(r'https?://', post_url):
-                post_url = compat_urlparse.urljoin(urlh.url, post_url)
+                post_url = urllib.parse.urljoin(urlh.url, post_url)
             form_data = self._hidden_inputs(form_page)
             form_data.update(data)
             return self._download_webpage_handle(
@@ -1414,13 +1414,13 @@ class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should en
             REDIRECT_REGEX = r'[0-9]{,2};\s*(?:URL|url)=\'?([^\'"]+)'
             redirect_url = self._search_regex(
                 r'(?i)<meta\s+(?=(?:[a-z-]+="[^"]+"\s+)*http-equiv="refresh")'
-                r'(?:[a-z-]+="[^"]+"\s+)*?content="%s' % REDIRECT_REGEX,
+                rf'(?:[a-z-]+="[^"]+"\s+)*?content="{REDIRECT_REGEX}',
                 html, 'meta refresh redirect',
                 default=NO_DEFAULT if fatal else None, fatal=fatal)
             if not redirect_url:
                 return None
             if url:
-                redirect_url = compat_urlparse.urljoin(url, unescapeHTML(redirect_url))
+                redirect_url = urllib.parse.urljoin(url, unescapeHTML(redirect_url))
             return redirect_url
 
         mvpd_headers = {
@@ -1506,12 +1506,12 @@ class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should en
                             'ident': username,
                             'device': 'web',
                             'send_confirm_link': False,
-                            'send_token': True
+                            'send_token': True,
                         }))
                     philo_code = getpass.getpass('Type auth code you have received [Return]: ')
                     self._download_webpage(
                         'https://idp.philo.com/auth/update/login_code', video_id, 'Submitting token', data=urlencode_postdata({
-                            'token': philo_code
+                            'token': philo_code,
                         }))
                     mvpd_confirm_page_res = self._download_webpage_handle('https://idp.philo.com/idp/submit', video_id, 'Confirming Philo Login')
                     post_form(mvpd_confirm_page_res, 'Confirming Login')
@@ -1569,9 +1569,9 @@ class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should en
                         saml_response_json['targetValue'], video_id,
                         'Confirming Login', data=urlencode_postdata({
                             'SAMLResponse': saml_response_json['SAMLResponse'],
-                            'RelayState': saml_response_json['RelayState']
+                            'RelayState': saml_response_json['RelayState'],
                         }), headers={
-                            'Content-Type': 'application/x-www-form-urlencoded'
+                            'Content-Type': 'application/x-www-form-urlencoded',
                         })
                 elif mso_id in ('Spectrum', 'Charter_Direct'):
                     # Spectrum's login for is dynamically loaded via JS so we need to hardcode the flow
@@ -1606,7 +1606,7 @@ class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should en
                             'SAMLResponse': saml_response_json['SAMLResponse'],
                             'RelayState': relay_state,
                         }), headers={
-                            'Content-Type': 'application/x-www-form-urlencoded'
+                            'Content-Type': 'application/x-www-form-urlencoded',
                         })
                 elif mso_id == 'slingtv':
                     # SlingTV has a meta-refresh based authentication, but also
@@ -1625,7 +1625,7 @@ class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should en
                     provider_association_redirect, urlh = post_form(
                         provider_login_page_res, 'Logging in', {
                             mso_info['username_field']: username,
-                            mso_info['password_field']: password
+                            mso_info['password_field']: password,
                         })
 
                     provider_refresh_redirect_url = extract_redirect_url(
@@ -1676,7 +1676,7 @@ class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should en
                     provider_association_redirect, urlh = post_form(
                         provider_login_page_res, 'Logging in', {
                             mso_info['username_field']: username,
-                            mso_info['password_field']: password
+                            mso_info['password_field']: password,
                         })
 
                     provider_refresh_redirect_url = extract_redirect_url(
@@ -1708,7 +1708,7 @@ class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should en
                         provider_redirect_page_res, self._DOWNLOADING_LOGIN_PAGE)
                     form_data = {
                         mso_info.get('username_field', 'username'): username,
-                        mso_info.get('password_field', 'password'): password
+                        mso_info.get('password_field', 'password'): password,
                     }
                     if mso_id in ('Cablevision', 'AlticeOne'):
                         form_data['_eventId_proceed'] = ''

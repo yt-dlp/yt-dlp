@@ -39,7 +39,7 @@ class SpotifyBaseIE(InfoExtractor):
                     'persistedQuery': {
                         'sha256Hash': self._OPERATION_HASHES[operation],
                     },
-                })
+                }),
             }, headers={'authorization': 'Bearer ' + self._ACCESS_TOKEN},
             **kwargs)['data']
 
@@ -115,7 +115,7 @@ class SpotifyIE(SpotifyBaseIE):
             'duration': 2083.605,
             'release_date': '20201217',
             'series': "The Guardian's Audio Long Reads",
-        }
+        },
     }, {
         'url': 'https://open.spotify.com/embed/episode/4TvCsKKs2thXmarHigWvXE?si=7eatS8AbQb6RxqO2raIuWA',
         'only_matching': True,
@@ -124,7 +124,7 @@ class SpotifyIE(SpotifyBaseIE):
     def _real_extract(self, url):
         episode_id = self._match_id(url)
         episode = self._call_api('Episode', episode_id, {
-            'uri': 'spotify:episode:' + episode_id
+            'uri': 'spotify:episode:' + episode_id,
         })['episode']
         return self._extract_episode(
             episode, try_get(episode, lambda x: x['podcast']['name']))

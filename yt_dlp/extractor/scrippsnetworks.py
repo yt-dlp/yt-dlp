@@ -56,10 +56,10 @@ class ScrippsNetworksWatchIE(AWSIE):
         site_id, video_id = mobj.group('site', 'id')
 
         aws_identity_id_json = json.dumps({
-            'IdentityId': '%s:7655847c-0ae7-4d9b-80d6-56c062927eb3' % self._AWS_REGION
-        }).encode('utf-8')
+            'IdentityId': f'{self._AWS_REGION}:7655847c-0ae7-4d9b-80d6-56c062927eb3',
+        }).encode()
         token = self._download_json(
-            'https://cognito-identity.%s.amazonaws.com/' % self._AWS_REGION, video_id,
+            f'https://cognito-identity.{self._AWS_REGION}.amazonaws.com/', video_id,
             data=aws_identity_id_json,
             headers={
                 'Accept': '*/*',
@@ -85,11 +85,11 @@ class ScrippsNetworksWatchIE(AWSIE):
 
         def get(key):
             return xpath_text(
-                sts, './/{https://sts.amazonaws.com/doc/2011-06-15/}%s' % key,
+                sts, f'.//{{https://sts.amazonaws.com/doc/2011-06-15/}}{key}',
                 fatal=True)
 
         mcp_id = self._aws_execute_api({
-            'uri': '/1/web/brands/%s/episodes/scrid/%s' % (self._SNI_TABLE[site_id], video_id),
+            'uri': f'/1/web/brands/{self._SNI_TABLE[site_id]}/episodes/scrid/{video_id}',
             'access_key': get('AccessKeyId'),
             'secret_key': get('SecretAccessKey'),
             'session_token': get('SessionToken'),
@@ -97,7 +97,7 @@ class ScrippsNetworksWatchIE(AWSIE):
 
         return self.url_result(
             smuggle_url(
-                'anvato:anvato_scripps_app_web_prod_0837996dbe373629133857ae9eb72e740424d80a:%s' % mcp_id,
+                f'anvato:anvato_scripps_app_web_prod_0837996dbe373629133857ae9eb72e740424d80a:{mcp_id}',
                 {'geo_countries': ['US']}),
             AnvatoIE.ie_key(), video_id=mcp_id)
 

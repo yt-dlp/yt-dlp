@@ -1,5 +1,3 @@
-import functools
-
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
@@ -35,7 +33,7 @@ class GBNewsIE(InfoExtractor):
             'display_id': 'prince-harry-in-love-with-kate-meghan-markle-jealous-royal',
             'description': 'Ingrid Seward has published 17 books documenting the highs and lows of the Royal Family',
             'title': 'Royal author claims Prince Harry was \'in love\' with Kate - Meghan was \'jealous\'',
-        }
+        },
     }, {
         'url': 'https://www.gbnews.uk/watchlive',
         'info_dict': {
@@ -48,13 +46,20 @@ class GBNewsIE(InfoExtractor):
         },
         'params': {'skip_download': 'm3u8'},
     }]
+    _SS_ENDPOINTS = None
 
-    @functools.lru_cache
     def _get_ss_endpoint(self, data_id, data_env):
+        if not self._SS_ENDPOINTS:
+            self._SS_ENDPOINTS = {}
+
         if not data_id:
             data_id = 'GB003'
         if not data_env:
             data_env = 'production'
+        key = data_id, data_env
+        result = self._SS_ENDPOINTS.get(key)
+        if result:
+            return result
 
         json_data = self._download_json(
             self._SSMP_URL, None, 'Downloading Simplestream JSON metadata', query={
@@ -65,6 +70,7 @@ class GBNewsIE(InfoExtractor):
         if not meta_url:
             raise ExtractorError('No API host found')
 
+        self._SS_ENDPOINTS[key] = meta_url
         return meta_url
 
     def _real_extract(self, url):

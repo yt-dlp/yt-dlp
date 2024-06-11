@@ -203,7 +203,7 @@ class MLBIE(MLBBaseIE):
 
     def _download_video_data(self, display_id):
         return self._download_json(
-            'http://content.mlb.com/mlb/item/id/v1/%s/details/web-v1.json' % display_id,
+            f'http://content.mlb.com/mlb/item/id/v1/{display_id}/details/web-v1.json',
             display_id)
 
 
@@ -227,7 +227,7 @@ class MLBVideoIE(MLBBaseIE):
 
     @classmethod
     def suitable(cls, url):
-        return False if MLBIE.suitable(url) else super(MLBVideoIE, cls).suitable(url)
+        return False if MLBIE.suitable(url) else super().suitable(url)
 
     @staticmethod
     def _get_feed(video):
@@ -268,7 +268,7 @@ class MLBVideoIE(MLBBaseIE):
     timestamp
     title
   }
-}''' % display_id,
+}''' % display_id,  # noqa: UP031
             })['data']['mediaPlayback'][0]
 
 
@@ -300,14 +300,14 @@ class MLBTVIE(InfoExtractor):
             'https://ids.mlb.com/oauth2/aus1m088yK07noBfh356/v1/token', None,
             headers={
                 'User-Agent': 'okhttp/3.12.1',
-                'Content-Type': 'application/x-www-form-urlencoded'
+                'Content-Type': 'application/x-www-form-urlencoded',
             }, data=data.encode())['access_token']
 
         entitlement = self._download_webpage(
-            f'https://media-entitlement.mlb.com/api/v3/jwt?os=Android&appname=AtBat&did={str(uuid.uuid4())}', None,
+            f'https://media-entitlement.mlb.com/api/v3/jwt?os=Android&appname=AtBat&did={uuid.uuid4()}', None,
             headers={
                 'User-Agent': 'okhttp/3.12.1',
-                'Authorization': f'Bearer {access_token}'
+                'Authorization': f'Bearer {access_token}',
             })
 
         data = f'grant_type=urn:ietf:params:oauth:grant-type:token-exchange&subject_token={entitlement}&subject_token_type=urn:ietf:params:oauth:token-type:jwt&platform=android-tv'
@@ -316,7 +316,7 @@ class MLBTVIE(InfoExtractor):
             headers={
                 'Accept': 'application/json',
                 'Authorization': 'Bearer bWxidHYmYW5kcm9pZCYxLjAuMA.6LZMbH2r--rbXcgEabaDdIslpo4RyZrlVfWZhsAgXIk',
-                'Content-Type': 'application/x-www-form-urlencoded'
+                'Content-Type': 'application/x-www-form-urlencoded',
             }, data=data.encode())['access_token']
 
     def _real_extract(self, url):
@@ -331,7 +331,7 @@ class MLBTVIE(InfoExtractor):
                 airing['playbackUrls'][0]['href'].format(scenario='browser~csai'), video_id,
                 headers={
                     'Authorization': self._access_token,
-                    'Accept': 'application/vnd.media-service+json; version=2'
+                    'Accept': 'application/vnd.media-service+json; version=2',
                 })['stream']['complete']
             f, s = self._extract_m3u8_formats_and_subtitles(
                 m3u8_url, video_id, 'mp4', m3u8_id=join_nonempty(airing.get('feedType'), airing.get('feedLanguage')))

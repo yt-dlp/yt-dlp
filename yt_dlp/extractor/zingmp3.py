@@ -112,7 +112,7 @@ class ZingMp3IE(ZingMp3BaseIE):
             'subtitles': {
                 'origin': [{
                     'ext': 'lrc',
-                }]
+                }],
             },
             'duration': 255,
             'track': 'Xa Mãi Xa',
@@ -383,7 +383,7 @@ class ZingMp3ChartMusicVideoIE(ZingMp3BaseIE):
             'id': song_id,
             'type': 'genre',
             'page': page,
-            'count': self._PER_PAGE
+            'count': self._PER_PAGE,
         })
 
     def _real_extract(self, url):
@@ -446,7 +446,7 @@ class ZingMp3UserIE(ZingMp3BaseIE):
             'id': user_id,
             'type': 'artist',
             'page': page,
-            'count': self._PER_PAGE
+            'count': self._PER_PAGE,
         })
 
     def _real_extract(self, url):
@@ -569,14 +569,14 @@ class ZingMp3PodcastEpisodeIE(ZingMp3BaseIE):
         'info_dict': {
             'id': '68Z9W66B',
             'title': 'Nhạc Mới Mỗi Ngày',
-            'description': 'md5:2875dfa951f8e5356742f1610cf20691'
+            'description': 'md5:2875dfa951f8e5356742f1610cf20691',
         },
         'playlist_mincount': 20,
     }, {
         'url': 'https://zingmp3.vn/cgr/Am-nhac/IWZ980AO.html',
         'info_dict': {
             'id': 'IWZ980AO',
-            'title': 'Âm nhạc'
+            'title': 'Âm nhạc',
         },
         'playlist_mincount': 2,
     }]
@@ -585,7 +585,7 @@ class ZingMp3PodcastEpisodeIE(ZingMp3BaseIE):
         return self._call_api(url_type, {
             'id': eps_id,
             'page': page,
-            'count': self._PER_PAGE
+            'count': self._PER_PAGE,
         })
 
     def _real_extract(self, url):

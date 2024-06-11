@@ -41,8 +41,8 @@ class RedBeeBaseIE(InfoExtractor):
 
         return self._download_json(
             f'{self._API_URL}/auth/{"gigyaLogin" if jwt else "anonymous"}',
-            asset_id, data=json.dumps(request).encode('utf-8'), headers={
-                'Content-Type': 'application/json;charset=utf-8'
+            asset_id, data=json.dumps(request).encode(), headers={
+                'Content-Type': 'application/json;charset=utf-8',
             })['sessionToken']
 
     def _get_formats_and_subtitles(self, asset_id, **kwargs):
@@ -51,26 +51,26 @@ class RedBeeBaseIE(InfoExtractor):
             f'{self._API_URL}/entitlement/{asset_id}/play',
             asset_id, headers={
                 'Authorization': f'Bearer {bearer_token}',
-                'Accept': 'application/json, text/plain, */*'
+                'Accept': 'application/json, text/plain, */*',
             })
 
         formats, subtitles = [], {}
-        for format in api_response['formats']:
-            if not format.get('mediaLocator'):
+        for format_data in api_response['formats']:
+            if not format_data.get('mediaLocator'):
                 continue
 
             fmts, subs = [], {}
-            if format.get('format') == 'DASH':
+            if format_data.get('format') == 'DASH':
                 fmts, subs = self._extract_mpd_formats_and_subtitles(
-                    format['mediaLocator'], asset_id, fatal=False)
-            elif format.get('format') == 'SMOOTHSTREAMING':
+                    format_data['mediaLocator'], asset_id, fatal=False)
+            elif format_data.get('format') == 'SMOOTHSTREAMING':
                 fmts, subs = self._extract_ism_formats_and_subtitles(
-                    format['mediaLocator'], asset_id, fatal=False)
-            elif format.get('format') == 'HLS':
+                    format_data['mediaLocator'], asset_id, fatal=False)
+            elif format_data.get('format') == 'HLS':
                 fmts, subs = self._extract_m3u8_formats_and_subtitles(
-                    format['mediaLocator'], asset_id, fatal=False)
+                    format_data['mediaLocator'], asset_id, fatal=False)
 
-            if format.get('drm'):
+            if format_data.get('drm'):
                 for f in fmts:
                     f['has_drm'] = True
 
@@ -240,12 +240,12 @@ class RTBFIE(RedBeeBaseIE):
                 'APIKey': self._GIGYA_API_KEY,
                 'targetEnv': 'jssdk',
                 'sessionExpiration': '-2',
-            }).encode('utf-8'), headers={
+            }).encode(), headers={
                 'Content-Type': 'application/x-www-form-urlencoded',
             })
 
         if login_response['statusCode'] != 200:
-            raise ExtractorError('Login failed. Server message: %s' % login_response['errorMessage'], expected=True)
+            raise ExtractorError('Login failed. Server message: {}'.format(login_response['errorMessage']), expected=True)
 
         self._set_cookie('.rtbf.be', self._LOGIN_COOKIE_ID, login_response['sessionInfo']['login_token'],
                          secure=True, expire_time=time.time() + 3600)
@@ -287,7 +287,7 @@ class RTBFIE(RedBeeBaseIE):
 
         error = data.get('error')
         if error:
-            raise ExtractorError('%s said: %s' % (self.IE_NAME, error), expected=True)
+            raise ExtractorError(f'{self.IE_NAME} said: {error}', expected=True)
 
         provider = data.get('provider')
         if provider in self._PROVIDERS:

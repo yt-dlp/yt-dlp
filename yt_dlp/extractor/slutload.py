@@ -11,7 +11,7 @@ class SlutloadIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'virginie baisee en cam',
             'age_limit': 18,
-            'thumbnail': r're:https?://.*?\.jpg'
+            'thumbnail': r're:https?://.*?\.jpg',
         },
     }, {
         # mobile site
@@ -29,14 +29,14 @@ class SlutloadIE(InfoExtractor):
         video_id = self._match_id(url)
 
         embed_page = self._download_webpage(
-            'http://www.slutload.com/embed_player/%s' % video_id, video_id,
+            f'http://www.slutload.com/embed_player/{video_id}', video_id,
             'Downloading embed page', fatal=False)
 
         if embed_page:
             def extract(what):
                 return self._html_search_regex(
-                    r'data-video-%s=(["\'])(?P<url>(?:(?!\1).)+)\1' % what,
-                    embed_page, 'video %s' % what, default=None, group='url')
+                    rf'data-video-{what}=(["\'])(?P<url>(?:(?!\1).)+)\1',
+                    embed_page, f'video {what}', default=None, group='url')
 
             video_url = extract('url')
             if video_url:
@@ -47,11 +47,11 @@ class SlutloadIE(InfoExtractor):
                     'url': video_url,
                     'title': title,
                     'thumbnail': extract('preview'),
-                    'age_limit': 18
+                    'age_limit': 18,
                 }
 
         webpage = self._download_webpage(
-            'http://www.slutload.com/video/_/%s/' % video_id, video_id)
+            f'http://www.slutload.com/video/_/{video_id}/', video_id)
         title = self._html_search_regex(
             r'<h1><strong>([^<]+)</strong>', webpage, 'title').strip()
         info = self._parse_html5_media_entries(url, webpage, video_id)[0]

@@ -60,7 +60,7 @@ class TVerIE(InfoExtractor):
                 'platform_uid': self._PLATFORM_UID,
                 'platform_token': self._PLATFORM_TOKEN,
             }, headers={
-                'x-tver-platform-type': 'web'
+                'x-tver-platform-type': 'web',
             })
         episode_content = traverse_obj(
             episode_info, ('result', 'episode', 'content')) or {}
