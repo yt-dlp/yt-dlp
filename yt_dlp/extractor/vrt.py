@@ -38,12 +38,12 @@ class VRTBaseIE(GigyaBaseIE):
         'device': 'undefined (undefined)',
         'os': {
             'name': 'Windows',
-            'version': 'x86_64'
+            'version': 'x86_64',
         },
         'player': {
             'name': 'VRT web player',
-            'version': '2.7.4-prod-2023-04-19T06:05:45'
-        }
+            'version': '2.7.4-prod-2023-04-19T06:05:45',
+        },
     }
     # From https://player.vrt.be/vrtnws/js/main.js & https://player.vrt.be/ketnet/js/main.8cdb11341bcb79e4cd44.js
     _JWT_KEY_ID = '0-0Fp51UZykfaiCJrfTE3+oMI8zvDteYfPtR+2n1R+z8w='
@@ -98,8 +98,8 @@ class VRTBaseIE(GigyaBaseIE):
             }, data=json.dumps({
                 'identityToken': id_token or {},
                 'playerInfo': jwt_encode_hs256(player_info, self._JWT_SIGNING_KEY, headers={
-                    'kid': self._JWT_KEY_ID
-                }).decode()
+                    'kid': self._JWT_KEY_ID,
+                }).decode(),
             }, separators=(',', ':')).encode())['vrtPlayerToken']
 
         return self._download_json(
@@ -365,7 +365,7 @@ class KetnetIE(VRTBaseIE):
     subtitleVideodetail
     titleVideodetail
   }
-}''' % display_id,
+}''' % display_id,  # noqa: UP031
             })['data']['video']
 
         video_id = urllib.parse.unquote(video['mediaReference'])
@@ -437,9 +437,9 @@ class Radio1BeIE(VRTBaseIE):
             'title': 'Komt N-VA volgend jaar op in Wallonië?',
             'display_id': 'de-ochtend/komt-n-va-volgend-jaar-op-in-wallonie',
             'description': 'md5:b374ea1c9302f38362df9dea1931468e',
-            'thumbnail': r're:https?://cds\.vrt\.radio/[^/#\?&]+'
+            'thumbnail': r're:https?://cds\.vrt\.radio/[^/#\?&]+',
         },
-        'playlist_mincount': 1
+        'playlist_mincount': 1,
     }, {
         'url': 'https://radio1.be/lees/europese-unie-wil-onmiddellijke-humanitaire-pauze-en-duurzaam-staakt-het-vuren-in-gaza?view=web',
         'info_dict': {
@@ -447,9 +447,9 @@ class Radio1BeIE(VRTBaseIE):
             'title': 'Europese Unie wil "onmiddellijke humanitaire pauze" en "duurzaam staakt-het-vuren" in Gaza',
             'description': 'md5:1aad1fae7d39edeffde5d3e67d276b64',
             'thumbnail': r're:https?://cds\.vrt\.radio/[^/#\?&]+',
-            'display_id': 'europese-unie-wil-onmiddellijke-humanitaire-pauze-en-duurzaam-staakt-het-vuren-in-gaza'
+            'display_id': 'europese-unie-wil-onmiddellijke-humanitaire-pauze-en-duurzaam-staakt-het-vuren-in-gaza',
         },
-        'playlist_mincount': 1
+        'playlist_mincount': 1,
     }]
 
     def _extract_video_entries(self, next_js_data, display_id):
@@ -466,7 +466,7 @@ class Radio1BeIE(VRTBaseIE):
                 'subtitles': subtitles,
                 **traverse_obj(data, {
                     'title': ('title', {str}),
-                    'description': ('body', {clean_html})
+                    'description': ('body', {clean_html}),
                 }),
             }
 

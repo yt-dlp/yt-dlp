@@ -1,5 +1,4 @@
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     clean_html,
     format_field,
@@ -58,10 +57,10 @@ class LnkGoIE(InfoExtractor):
         display_id, video_id = self._match_valid_url(url).groups()
 
         video_info = self._download_json(
-            'https://lnk.lt/api/main/video-page/%s/%s/false' % (display_id, video_id or '0'),
+            'https://lnk.lt/api/main/video-page/{}/{}/false'.format(display_id, video_id or '0'),
             display_id)['videoConfig']['videoInfo']
 
-        video_id = compat_str(video_info['id'])
+        video_id = str(video_info['id'])
         title = video_info['title']
         prefix = 'smil' if video_info.get('isQualityChangeAvailable') else 'mp4'
         formats = self._extract_m3u8_formats(
@@ -98,9 +97,9 @@ class LnkIE(InfoExtractor):
             'thumbnail': r're:^https?://.*\.jpg$',
             'episode_number': 13431,
             'series': 'Naujausi žinių reportažai',
-            'episode': 'Episode 13431'
+            'episode': 'Episode 13431',
         },
-        'params': {'skip_download': True}
+        'params': {'skip_download': True},
     }, {
         'url': 'https://lnk.lt/istorijos-trumpai/152546',
         'info_dict': {
@@ -114,9 +113,9 @@ class LnkIE(InfoExtractor):
             'thumbnail': r're:^https?://.*\.jpg$',
             'episode_number': 1036,
             'series': 'Istorijos trumpai',
-            'episode': 'Episode 1036'
+            'episode': 'Episode 1036',
         },
-        'params': {'skip_download': True}
+        'params': {'skip_download': True},
     }, {
         'url': 'https://lnk.lt/gyvunu-pasaulis/151549',
         'info_dict': {
@@ -130,26 +129,26 @@ class LnkIE(InfoExtractor):
             'thumbnail': r're:^https?://.*\.jpg$',
             'episode_number': 16,
             'series': 'Gyvūnų pasaulis',
-            'episode': 'Episode 16'
+            'episode': 'Episode 16',
         },
-        'params': {'skip_download': True}
+        'params': {'skip_download': True},
     }]
 
     def _real_extract(self, url):
-        id = self._match_id(url)
-        video_json = self._download_json(f'https://lnk.lt/api/video/video-config/{id}', id)['videoInfo']
+        video_id = self._match_id(url)
+        video_json = self._download_json(f'https://lnk.lt/api/video/video-config/{video_id}', video_id)['videoInfo']
         formats, subtitles = [], {}
         if video_json.get('videoUrl'):
-            fmts, subs = self._extract_m3u8_formats_and_subtitles(video_json['videoUrl'], id)
+            fmts, subs = self._extract_m3u8_formats_and_subtitles(video_json['videoUrl'], video_id)
             formats.extend(fmts)
             subtitles = self._merge_subtitles(subtitles, subs)
         if video_json.get('videoFairplayUrl') and not video_json.get('drm'):
-            fmts, subs = self._extract_m3u8_formats_and_subtitles(video_json['videoFairplayUrl'], id)
+            fmts, subs = self._extract_m3u8_formats_and_subtitles(video_json['videoFairplayUrl'], video_id)
             formats.extend(fmts)
             subtitles = self._merge_subtitles(subtitles, subs)
 
         return {
-            'id': id,
+            'id': video_id,
             'title': video_json.get('title'),
             'description': video_json.get('description'),
             'view_count': video_json.get('viewsCount'),

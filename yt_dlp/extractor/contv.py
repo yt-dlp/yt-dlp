@@ -73,7 +73,7 @@ class CONtvIE(InfoExtractor):
         captions = m_details.get('captions') or {}
         for caption_url in captions.values():
             subtitles.setdefault('en', []).append({
-                'url': caption_url
+                'url': caption_url,
             })
 
         thumbnails = []

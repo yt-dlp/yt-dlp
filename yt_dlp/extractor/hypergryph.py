@@ -12,7 +12,7 @@ class MonsterSirenHypergryphMusicIE(InfoExtractor):
             'artists': ['塞壬唱片-MSR'],
             'album': 'Flame Shadow',
             'title': 'Flame Shadow',
-        }
+        },
     }]
 
     def _real_extract(self, url):
@@ -28,5 +28,5 @@ class MonsterSirenHypergryphMusicIE(InfoExtractor):
             'ext': 'wav',
             'vcodec': 'none',
             'artists': traverse_obj(json_data, ('player', 'songDetail', 'artists', ...)),
-            'album': traverse_obj(json_data, ('musicPlay', 'albumDetail', 'name'))
+            'album': traverse_obj(json_data, ('musicPlay', 'albumDetail', 'name')),
         }

@@ -187,7 +187,7 @@ class DouyuTVIE(DouyuBaseIE):
         }
         stream_formats = [self._download_json(
             f'https://www.douyu.com/lapi/live/getH5Play/{room_id}',
-            video_id, note="Downloading livestream format",
+            video_id, note='Downloading livestream format',
             data=urlencode_postdata(form_data))]
 
         for rate_id in traverse_obj(stream_formats[0], ('data', 'multirates', ..., 'rate')):
@@ -208,7 +208,7 @@ class DouyuTVIE(DouyuBaseIE):
                 'description': ('show_details', {str}),
                 'uploader': ('nickname', {str}),
                 'thumbnail': ('room_src', {url_or_none}),
-            })
+            }),
         }
 
 
@@ -270,7 +270,7 @@ class DouyuShowIE(DouyuBaseIE):
         }
         url_info = self._download_json(
             'https://v.douyu.com/api/stream/getStreamUrl', video_id,
-            data=urlencode_postdata(form_data), note="Downloading video formats")
+            data=urlencode_postdata(form_data), note='Downloading video formats')
 
         formats = []
         for name, url in traverse_obj(url_info, ('data', 'thumb_video', {dict.items}, ...)):
@@ -284,7 +284,7 @@ class DouyuShowIE(DouyuBaseIE):
                     'quality': self._QUALITIES.get(name),
                     'ext': 'mp4' if ext == 'm3u8' else ext,
                     'protocol': 'm3u8_native' if ext == 'm3u8' else 'https',
-                    **parse_resolution(self._RESOLUTIONS.get(name))
+                    **parse_resolution(self._RESOLUTIONS.get(name)),
                 })
             else:
                 self.to_screen(
@@ -302,5 +302,5 @@ class DouyuShowIE(DouyuBaseIE):
                 'timestamp': ('content', 'create_time', {int_or_none}),
                 'view_count': ('content', 'view_num', {int_or_none}),
                 'tags': ('videoTag', ..., 'tagName', {str}),
-            }))
+            })),
         }

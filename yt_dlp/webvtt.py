@@ -77,9 +77,8 @@ class _MatchChildParser(_MatchParser):
 
 class ParseError(Exception):
     def __init__(self, parser):
-        super().__init__("Parse error at position %u (near %r)" % (
-            parser._pos, parser._data[parser._pos:parser._pos + 100]
-        ))
+        data = parser._data[parser._pos:parser._pos + 100]
+        super().__init__(f'Parse error at position {parser._pos} (near {data!r})')
 
 
 # While the specification <https://www.w3.org/TR/webvtt1/#webvtt-timestamp>
@@ -149,7 +148,7 @@ class Magic(HeaderBlock):
 
     # XXX: The X-TIMESTAMP-MAP extension is described in RFC 8216 §3.5
     # <https://tools.ietf.org/html/rfc8216#section-3.5>, but the RFC
-    # doesn’t specify the exact grammar nor where in the WebVTT
+    # doesn't specify the exact grammar nor where in the WebVTT
     # syntax it should be placed; the below has been devised based
     # on usage in the wild
     #
@@ -273,10 +272,10 @@ class CueBlock(Block):
     def parse(cls, parser):
         parser = parser.child()
 
-        id = None
+        id_ = None
         m = parser.consume(cls._REGEX_ID)
         if m:
-            id = m.group(1)
+            id_ = m.group(1)
 
         m0 = parser.consume(_REGEX_TS)
         if not m0:
@@ -304,9 +303,9 @@ class CueBlock(Block):
 
         parser.commit()
         return cls(
-            id=id,
+            id=id_,
             start=start, end=end, settings=settings,
-            text=text.getvalue()
+            text=text.getvalue(),
         )
 
     def write_into(self, stream):
@@ -343,7 +342,7 @@ class CueBlock(Block):
             start=json['start'],
             end=json['end'],
             text=json['text'],
-            settings=json['settings']
+            settings=json['settings'],
         )
 
     def hinges(self, other):

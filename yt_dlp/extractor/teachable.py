@@ -29,7 +29,7 @@ class TeachableBaseIE(InfoExtractor):
         'courses.workitdaily.com': 'workitdaily',
     }
 
-    _VALID_URL_SUB_TUPLE = (_URL_PREFIX, '|'.join(re.escape(site) for site in _SITES.keys()))
+    _VALID_URL_SUB_TUPLE = (_URL_PREFIX, '|'.join(re.escape(site) for site in _SITES))
 
     def _real_initialize(self):
         self._logged_in = False
@@ -43,8 +43,8 @@ class TeachableBaseIE(InfoExtractor):
             return
 
         login_page, urlh = self._download_webpage_handle(
-            'https://%s/sign_in' % site, None,
-            'Downloading %s login page' % site)
+            f'https://{site}/sign_in', None,
+            f'Downloading {site} login page')
 
         def is_logged(webpage):
             return any(re.search(p, webpage) for p in (
@@ -73,7 +73,7 @@ class TeachableBaseIE(InfoExtractor):
             post_url = urljoin(login_url, post_url)
 
         response = self._download_webpage(
-            post_url, None, 'Logging in to %s' % site,
+            post_url, None, f'Logging in to {site}',
             data=urlencode_postdata(login_form),
             headers={
                 'Content-Type': 'application/x-www-form-urlencoded',
@@ -82,8 +82,8 @@ class TeachableBaseIE(InfoExtractor):
 
         if '>I accept the new Privacy Policy<' in response:
             raise ExtractorError(
-                'Unable to login: %s asks you to accept new Privacy Policy. '
-                'Go to https://%s/ and accept.' % (site, site), expected=True)
+                f'Unable to login: {site} asks you to accept new Privacy Policy. '
+                f'Go to https://{site}/ and accept.', expected=True)
 
         # Successful login
         if is_logged(response):
@@ -93,7 +93,7 @@ class TeachableBaseIE(InfoExtractor):
         message = get_element_by_class('alert', response)
         if message is not None:
             raise ExtractorError(
-                'Unable to login: %s' % clean_html(message), expected=True)
+                f'Unable to login: {clean_html(message)}', expected=True)
 
         raise ExtractorError('Unable to log in')
 
@@ -102,11 +102,11 @@ class TeachableIE(TeachableBaseIE):
     _WORKING = False
     _VALID_URL = r'''(?x)
                     (?:
-                        %shttps?://(?P<site_t>[^/]+)|
-                        https?://(?:www\.)?(?P<site>%s)
+                        {}https?://(?P<site_t>[^/]+)|
+                        https?://(?:www\.)?(?P<site>{})
                     )
                     /courses/[^/]+/lectures/(?P<id>\d+)
-                    ''' % TeachableBaseIE._VALID_URL_SUB_TUPLE
+                    '''.format(*TeachableBaseIE._VALID_URL_SUB_TUPLE)
 
     _TESTS = [{
         'url': 'https://gns3.teachable.com/courses/gns3-certified-associate/lectures/6842364',
@@ -146,7 +146,7 @@ class TeachableIE(TeachableBaseIE):
         if cls._is_teachable(webpage):
             if re.match(r'https?://[^/]+/(?:courses|p)', url):
                 yield f'{cls._URL_PREFIX}{url}'
-                raise cls.StopExtraction()
+                raise cls.StopExtraction
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
@@ -178,7 +178,7 @@ class TeachableIE(TeachableBaseIE):
         chapter = None
         chapter_number = None
         section_item = self._search_regex(
-            r'(?s)(?P<li><li[^>]+\bdata-lecture-id=["\']%s[^>]+>.+?</li>)' % video_id,
+            rf'(?s)(?P<li><li[^>]+\bdata-lecture-id=["\']{video_id}[^>]+>.+?</li>)',
             webpage, 'section item', default=None, group='li')
         if section_item:
             chapter_number = int_or_none(self._search_regex(
@@ -211,11 +211,11 @@ class TeachableIE(TeachableBaseIE):
 class TeachableCourseIE(TeachableBaseIE):
     _VALID_URL = r'''(?x)
                         (?:
-                            %shttps?://(?P<site_t>[^/]+)|
-                            https?://(?:www\.)?(?P<site>%s)
+                            {}https?://(?P<site_t>[^/]+)|
+                            https?://(?:www\.)?(?P<site>{})
                         )
                         /(?:courses|p)/(?:enrolled/)?(?P<id>[^/?#&]+)
-                    ''' % TeachableBaseIE._VALID_URL_SUB_TUPLE
+                    '''.format(*TeachableBaseIE._VALID_URL_SUB_TUPLE)
     _TESTS = [{
         'url': 'http://v1.upskillcourses.com/courses/essential-web-developer-course/',
         'info_dict': {
@@ -242,8 +242,7 @@ class TeachableCourseIE(TeachableBaseIE):
 
     @classmethod
     def suitable(cls, url):
-        return False if TeachableIE.suitable(url) else super(
-            TeachableCourseIE, cls).suitable(url)
+        return False if TeachableIE.suitable(url) else super().suitable(url)
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
@@ -259,7 +258,7 @@ class TeachableCourseIE(TeachableBaseIE):
 
         webpage = self._download_webpage(url, course_id)
 
-        url_base = 'https://%s/' % site
+        url_base = f'https://{site}/'
 
         entries = []
 

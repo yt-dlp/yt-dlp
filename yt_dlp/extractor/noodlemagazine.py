@@ -25,8 +25,8 @@ class NoodleMagazineIE(InfoExtractor):
             'description': 'Aria alexander manojob',
             'tags': ['aria', 'alexander', 'manojob'],
             'upload_date': '20190218',
-            'age_limit': 18
-        }
+            'age_limit': 18,
+        },
     }
 
     def _real_extract(self, url):
@@ -76,5 +76,5 @@ class NoodleMagazineIE(InfoExtractor):
             'view_count': view_count,
             'like_count': like_count,
             'upload_date': upload_date,
-            'age_limit': 18
+            'age_limit': 18,
         }

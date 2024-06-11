@@ -1,5 +1,4 @@
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     ExtractorError,
     get_element_by_attribute,
@@ -23,7 +22,7 @@ class USATodayIE(InfoExtractor):
             'description': 'md5:7e50464fdf2126b0f533748d3c78d58f',
             'uploader_id': '29906170001',
             'upload_date': '20160313',
-        }
+        },
     }, {
         # ui-video-data[asset_metadata][items][brightcoveaccount] = 28911775001
         'url': 'https://www.usatoday.com/story/tech/science/2018/08/21/yellowstone-supervolcano-eruption-stop-worrying-its-blow/973633002/',
@@ -35,7 +34,7 @@ class USATodayIE(InfoExtractor):
             'description': 'md5:3715e7927639a4f16b474e9391687c62',
             'uploader_id': '28911775001',
             'upload_date': '20180820',
-        }
+        },
     }]
     BRIGHTCOVE_URL_TEMPLATE = 'http://players.brightcove.net/%s/default_default/index.html?videoId=%s'
 
@@ -51,7 +50,7 @@ class USATodayIE(InfoExtractor):
         return {
             '_type': 'url_transparent',
             'url': self.BRIGHTCOVE_URL_TEMPLATE % (item.get('brightcoveaccount', '29906170001'), item.get('brightcoveid') or video_data['brightcove_id']),
-            'id': compat_str(video_data['id']),
+            'id': str(video_data['id']),
             'title': video_data['title'],
             'thumbnail': video_data.get('thumbnail'),
             'description': video_data.get('description'),

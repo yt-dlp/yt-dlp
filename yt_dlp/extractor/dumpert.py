@@ -24,7 +24,7 @@ class DumpertIE(InfoExtractor):
             'duration': 9,
             'view_count': int,
             'like_count': int,
-        }
+        },
     }, {
         'url': 'https://www.dumpert.nl/embed/6675421_dc440fe7',
         'only_matching': True,
@@ -46,7 +46,7 @@ class DumpertIE(InfoExtractor):
             'view_count': int,
             'like_count': int,
         },
-        'params': {'skip_download': 'm3u8'}
+        'params': {'skip_download': 'm3u8'},
     }, {
         'url': 'https://www.dumpert.nl/toppers?selectedId=100031688_b317a185',
         'only_matching': True,

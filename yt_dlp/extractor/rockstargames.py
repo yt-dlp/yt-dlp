@@ -19,7 +19,7 @@ class RockstarGamesIE(InfoExtractor):
             'thumbnail': r're:^https?://.*\.jpg$',
             'timestamp': 1464876000,
             'upload_date': '20160602',
-        }
+        },
     }, {
         'url': 'http://www.rockstargames.com/videos#/?video=48',
         'only_matching': True,
