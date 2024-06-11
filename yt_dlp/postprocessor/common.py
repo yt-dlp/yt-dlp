@@ -174,7 +174,7 @@ class PostProcessor(metaclass=PostProcessorMetaClass):
         self._progress_hooks.append(ph)
 
     def report_progress(self, s):
-        s['_default_template'] = '{postprocessor} {status}'.format(**s)
+        s['_default_template'] = '%(postprocessor)s %(status)s' % s  # noqa: UP031
         if not self._downloader:
             return
 

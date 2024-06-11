@@ -1206,11 +1206,11 @@ class YoutubeDL:
         }
         # Field is of the form key1.key2...
         # where keys (except first) can be string, int, slice or "{field, ...}"
-        FIELD_INNER_RE = r'(?:\w+|{num}|{num}?(?::{num}?){{1,2}})'.format(num=r'(?:-?\d+)')
-        FIELD_RE = r'\w*(?:\.(?:{inner}|{{{field}(?:,{field})*}}))*'.format(
-            inner=FIELD_INNER_RE,
-            field=rf'\w*(?:\.{FIELD_INNER_RE})*',
-        )
+        FIELD_INNER_RE = r'(?:\w+|%(num)s|%(num)s?(?::%(num)s?){1,2})' % {'num': r'(?:-?\d+)'}  # noqa: UP031
+        FIELD_RE = r'\w*(?:\.(?:%(inner)s|{%(field)s(?:,%(field)s)*}))*' % {  # noqa: UP031
+            'inner': FIELD_INNER_RE,
+            'field': rf'\w*(?:\.{FIELD_INNER_RE})*',
+        }
         MATH_FIELD_RE = rf'(?:{FIELD_RE}|-?{NUMBER_RE})'
         MATH_OPERATORS_RE = r'(?:{})'.format('|'.join(map(re.escape, MATH_FUNCTIONS.keys())))
         INTERNAL_FORMAT_RE = re.compile(rf'''(?xs)

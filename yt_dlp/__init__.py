@@ -403,7 +403,7 @@ def validate_options(opts):
             except Exception as err:
                 raise ValueError(f'{cmd} is invalid; {err}')
         else:
-            cmd = '--replace-in-metadata {}'.format(' '.join(map(shell_quote, f)))
+            cmd = f'--replace-in-metadata {shell_quote(f)}'
             actions = ((MetadataParserPP.Actions.REPLACE, x, *f[1:]) for x in f[0].split(','))
 
         for action in actions:
