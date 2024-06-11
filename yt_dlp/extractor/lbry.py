@@ -96,6 +96,30 @@ class LBRYBaseIE(InfoExtractor):
                 'url': self._permanent_url(url, item['name'], item['claim_id']),
             }
 
+    def _metapage_entries(self, display_id, url, params):
+        if 'release_time' in params:
+            raise ExtractorError('release_time isn\'t allowed because _metapage_entires needs to specify it.')
+        if not ('order_by' in params and params['order_by'] == ['release_time']):
+            raise ExtractorError('videos must be sorted by release_time for _metapage_entries to work.')
+
+        last_metapage = []
+        metapage = OnDemandPagedList(
+            functools.partial(self._fetch_page, display_id, url, params),
+            self._PAGE_SIZE).getslice()
+
+        while len(metapage) > 0:
+            yield from metapage
+
+            next_metapage_params = {
+                **params,
+                "release_time": "<=%s" % metapage[-1]["release_timestamp"]
+            }
+            last_metapage = metapage
+            metapage = OnDemandPagedList(
+                functools.partial(self._fetch_page, display_id, url, next_metapage_params),
+                self._PAGE_SIZE).getslice()
+            metapage = [x for x in metapage if x not in last_metapage]
+
     def _playlist_entries(self, url, display_id, claim_param, metadata):
         qs = parse_qs(url)
         content = qs.get('content', [None])[0]
@@ -123,9 +147,13 @@ class LBRYBaseIE(InfoExtractor):
                 languages.append('none')
             params['any_languages'] = languages
 
-        entries = OnDemandPagedList(
-            functools.partial(self._fetch_page, display_id, url, params),
-            self._PAGE_SIZE)
+        if qs.get('order', ['new'])[0] == 'new':
+            entries = self._metapage_entries(display_id, url, params)
+        else:
+            self.report_warning("Extraction is limited to 1000 Videos when not sorting by newest.")
+            entries = OnDemandPagedList(
+                functools.partial(self._fetch_page, display_id, url, params),
+                self._PAGE_SIZE)
 
         return self.playlist_result(
             entries, display_id, **traverse_obj(metadata, ('value', {
