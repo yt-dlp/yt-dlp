@@ -2611,7 +2611,7 @@ class YoutubeDL:
         self._sort_thumbnails(thumbnails)
         for i, t in enumerate(thumbnails):
             if t.get('id') is None:
-                t['id'] = f'{i}'
+                t['id'] = str(i)
             if t.get('width') and t.get('height'):
                 t['resolution'] = '%dx%d' % (t['width'], t['height'])
             t['url'] = sanitize_url(t['url'])

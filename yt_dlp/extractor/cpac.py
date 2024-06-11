@@ -115,7 +115,7 @@ class CPACPlaylistIE(InfoExtractor):
         total_pages = int_or_none(try_get(content, lambda x: x['page'][list_type]['totalPages']), default=1)
         for page in range(1, total_pages + 1):
             if page > 1:
-                api_url = update_url_query(api_url, {'page': f'{page}'})
+                api_url = update_url_query(api_url, {'page': page})
                 content = self._download_json(
                     api_url, video_id,
                     note=f'Downloading continuation - {page}',
