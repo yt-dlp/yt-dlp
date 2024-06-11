@@ -322,10 +322,10 @@ class IqiyiIE(InfoExtractor):
         # Start from 2 because links in the first page are already on webpage
         for page_num in itertools.count(2):
             pagelist_page = self._download_webpage(
-                'http://cache.video.qiyi.com/jp/avlist/%s/%d/%d/' % (album_id, page_num, PAGE_SIZE),
+                f'http://cache.video.qiyi.com/jp/avlist/{album_id}/{page_num}/{PAGE_SIZE}/',
                 album_id,
-                note='Download playlist page %d' % page_num,
-                errnote='Failed to download playlist page %d' % page_num)
+                note=f'Download playlist page {page_num}',
+                errnote=f'Failed to download playlist page {page_num}')
             pagelist = self._parse_json(
                 remove_start(pagelist_page, 'var tvInfoJs='), album_id)
             vlist = pagelist['data']['vlist']

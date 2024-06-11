@@ -45,7 +45,7 @@ class GameJoltBaseIE(InfoExtractor):
                 'comments/Fireside_Post/%s/%s?%s=%d' % (
                     post_num_id, sort_by,
                     'scroll_id' if is_scrolled else 'page', scroll_id if is_scrolled else page),
-                post_hash_id, note='Downloading comments list page %d' % page)
+                post_hash_id, note=f'Downloading comments list page {page}')
             if not comments_data.get('comments'):
                 break
             for comment in traverse_obj(comments_data, (('comments', 'childComments'), ...), expected_type=dict):

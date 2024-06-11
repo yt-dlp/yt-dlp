@@ -214,7 +214,7 @@ class YandexMusicPlaylistBaseIE(YandexMusicBaseIE):
                 assert missing_track_ids_req
                 missing_tracks = self._call_api(
                     'track-entries', tld, url, item_id,
-                    'Downloading missing tracks JSON chunk %d' % (chunk_num + 1), {
+                    f'Downloading missing tracks JSON chunk {chunk_num + 1}', {
                         'entries': ','.join(missing_track_ids_req),
                         'lang': tld,
                         'external-domain': f'music.yandex.{tld}',

@@ -598,7 +598,7 @@ class PornHubPagedPlaylistBaseIE(PornHubPlaylistBaseIE):
         VIDEOS = '/videos'
 
         def download_page(base_url, num, fallback=False):
-            note = 'Downloading page %d%s' % (num, ' (switch to fallback)' if fallback else '')
+            note = 'Downloading page {}{}'.format(num, ' (switch to fallback)' if fallback else '')
             return self._download_webpage(
                 base_url, item_id, note, query={'page': num})
 

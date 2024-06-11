@@ -69,7 +69,7 @@ class HBOBaseIE(InfoExtractor):
                 height = format_info.get('height')
                 fmt = {
                     'url': path,
-                    'format_id': 'http%s' % ('-%dp' % height if height else ''),
+                    'format_id': 'http{}'.format('-%dp' % height if height else ''),
                     'width': format_info.get('width'),
                     'height': height,
                 }

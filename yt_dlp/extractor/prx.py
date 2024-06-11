@@ -309,7 +309,7 @@ class PRXStoryIE(PRXBaseIE):
 
         entries = [{
             **info,
-            'id': '%s_part%d' % (info['id'], (idx + 1)),
+            'id': '{}_part{}'.format(info['id'], (idx + 1)),
             'formats': [fmt],
         } for idx, fmt in enumerate(audio_pieces)]
         return {

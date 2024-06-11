@@ -70,10 +70,10 @@ class ToypicsUserIE(InfoExtractor):
         urls = []
         page_count = (video_count + PAGE_SIZE + 1) // PAGE_SIZE
         for n in range(1, page_count + 1):
-            lpage_url = url + '/public/%d' % n
+            lpage_url = url + f'/public/{n}'
             lpage = self._download_webpage(
                 lpage_url, username,
-                note='Downloading page %d/%d' % (n, page_count))
+                note=f'Downloading page {n}/{page_count}')
             urls.extend(
                 re.findall(
                     r'<div[^>]+class=["\']preview[^>]+>\s*<a[^>]+href="(https?://videos\.toypics\.net/view/[^"]+)"',

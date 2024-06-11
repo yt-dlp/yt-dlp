@@ -287,7 +287,7 @@ class GoIE(AdobePassIE):
                     if mobj:
                         height = int(mobj.group(2))
                         f.update({
-                            'format_id': (f'{format_id}-' if format_id else '') + '%dP' % height,
+                            'format_id': (f'{format_id}-' if format_id else '') + f'{height}P',
                             'width': int(mobj.group(1)),
                             'height': height,
                         })

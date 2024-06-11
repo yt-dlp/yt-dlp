@@ -176,12 +176,12 @@ class RCTIPlusIE(RCTIPlusBaseIE):
         if video_meta.get('portrait_image'):
             thumbnails.append({
                 'id': 'portrait_image',
-                'url': '%s%d%s' % (image_path, 2000, video_meta['portrait_image']),  # 2000px seems to be the highest resolution that can be given
+                'url': '{}{}{}'.format(image_path, 2000, video_meta['portrait_image']),  # 2000px seems to be the highest resolution that can be given
             })
         if video_meta.get('landscape_image'):
             thumbnails.append({
                 'id': 'landscape_image',
-                'url': '%s%d%s' % (image_path, 2000, video_meta['landscape_image']),
+                'url': '{}{}{}'.format(image_path, 2000, video_meta['landscape_image']),
             })
         try:
             formats = self._extract_m3u8_formats(video_url, display_id, 'mp4', headers={'Referer': 'https://www.rctiplus.com/'})

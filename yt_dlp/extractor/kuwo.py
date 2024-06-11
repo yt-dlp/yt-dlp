@@ -238,8 +238,8 @@ class KuwoSingerIE(InfoExtractor):
         def page_func(page_num):
             webpage = self._download_webpage(
                 'http://www.kuwo.cn/artist/contentMusicsAjax',
-                singer_id, note='Download song list page #%d' % (page_num + 1),
-                errnote='Unable to get song list page #%d' % (page_num + 1),
+                singer_id, note=f'Download song list page #{page_num + 1}',
+                errnote=f'Unable to get song list page #{page_num + 1}',
                 query={'artistId': artist_id, 'pn': page_num, 'rn': self.PAGE_SIZE})
 
             return [

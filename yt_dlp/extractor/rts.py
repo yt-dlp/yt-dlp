@@ -195,7 +195,7 @@ class RTSIE(SRGSSRIE):  # XXX: Do not subclass from concrete IE
                     'tbr': extract_bitrate(format_url),
                 })
 
-        download_base = 'http://rtsww%s-d.rts.ch/' % ('-a' if media_type == 'audio' else '')
+        download_base = 'http://rtsww{}-d.rts.ch/'.format('-a' if media_type == 'audio' else '')
         for media in info.get('media', []):
             media_url = media.get('url')
             if not media_url or re.match(r'https?://', media_url):

@@ -79,7 +79,7 @@ class SixPlayIE(InfoExtractor):
                         asset_url = urlh.url
                     asset_url = asset_url.replace('_drmnp.ism/', '_unpnp.ism/')
                     for i in range(3, 0, -1):
-                        asset_url = asset_url.replace('_sd1/', '_sd%d/' % i)
+                        asset_url = asset_url.replace('_sd1/', f'_sd{i}/')
                         m3u8_formats = self._extract_m3u8_formats(
                             asset_url, video_id, 'mp4', 'm3u8_native',
                             m3u8_id='hls', fatal=False)

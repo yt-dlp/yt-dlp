@@ -1444,7 +1444,7 @@ class BilibiliCategoryIE(InfoExtractor):
 
         video_list = traverse_obj(parsed_json, ('data', 'archives'), expected_type=list)
         if not video_list:
-            raise ExtractorError('Failed to retrieve video list for page %d' % page_num)
+            raise ExtractorError(f'Failed to retrieve video list for page {page_num}')
 
         for video in video_list:
             yield self.url_result(

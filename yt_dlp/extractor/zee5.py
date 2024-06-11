@@ -256,7 +256,7 @@ class Zee5SeriesIE(InfoExtractor):
                 page_num += 1
                 episodes_json = self._download_json(
                     next_url, video_id=show_id, headers=headers,
-                    note='Downloading JSON metadata page %d' % page_num)
+                    note=f'Downloading JSON metadata page {page_num}')
                 for episode in try_get(episodes_json, lambda x: x['episode'], list) or []:
                     video_id = episode.get('id')
                     yield self.url_result(

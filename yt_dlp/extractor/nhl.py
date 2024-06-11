@@ -41,7 +41,7 @@ class NHLBaseIE(InfoExtractor):
             else:
                 height = int_or_none(playback.get('height'))
                 formats.append({
-                    'format_id': playback.get('name', 'http' + ('-%dp' % height if height else '')),
+                    'format_id': playback.get('name', 'http' + (f'-{height}p' if height else '')),
                     'url': playback_url,
                     'width': int_or_none(playback.get('width')),
                     'height': height,

@@ -84,7 +84,7 @@ class AMCNetworksIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
             pass
         if video_player_count > 1:
             self.report_warning(
-                'The JSON data has %d video players. Only one will be extracted' % video_player_count)
+                f'The JSON data has {video_player_count} video players. Only one will be extracted')
 
         # Fall back to videoPid if releasePid not found.
         # TODO: Fall back to videoPid if releasePid manifest uses DRM.

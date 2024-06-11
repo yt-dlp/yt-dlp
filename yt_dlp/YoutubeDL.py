@@ -1824,7 +1824,7 @@ class YoutubeDL:
                 if isinstance(additional_urls, str):
                     additional_urls = [additional_urls]
                 self.to_screen(
-                    '[info] %s: %d additional URL(s) requested' % (ie_result['id'], len(additional_urls)))
+                    '[info] {}: {} additional URL(s) requested'.format(ie_result['id'], len(additional_urls)))
                 self.write_debug('Additional URLs: "{}"'.format('", "'.join(additional_urls)))
                 ie_result['additional_entries'] = [
                     self.extract_info(
@@ -2611,7 +2611,7 @@ class YoutubeDL:
         self._sort_thumbnails(thumbnails)
         for i, t in enumerate(thumbnails):
             if t.get('id') is None:
-                t['id'] = '%d' % i
+                t['id'] = f'{i}'
             if t.get('width') and t.get('height'):
                 t['resolution'] = '%dx%d' % (t['width'], t['height'])
             t['url'] = sanitize_url(t['url'])
@@ -2876,7 +2876,7 @@ class YoutubeDL:
             ambigious_id = len(ambiguous_formats) > 1
             for i, fmt in enumerate(ambiguous_formats):
                 if ambigious_id:
-                    fmt['format_id'] = '%s-%d' % (format_id, i)
+                    fmt['format_id'] = f'{format_id}-{i}'
                 # Ensure there is no conflict between id and ext in format selection
                 # See https://github.com/yt-dlp/yt-dlp/issues/1282
                 if fmt['format_id'] != fmt['ext'] and fmt['format_id'] in common_exts:

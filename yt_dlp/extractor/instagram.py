@@ -579,7 +579,7 @@ class InstagramPlaylistBaseIE(InstagramBaseIE):
                 try:
                     json_data = self._download_json(
                         'https://www.instagram.com/graphql/query/', uploader_id,
-                        'Downloading JSON page %d' % page_num, headers={
+                        f'Downloading JSON page {page_num}', headers={
                             'X-Requested-With': 'XMLHttpRequest',
                             'X-Instagram-GIS': hashlib.md5(
                                 (f'{gis_tmpl}:{variables}').encode()).hexdigest(),

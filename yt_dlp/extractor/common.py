@@ -2505,7 +2505,7 @@ class InfoExtractor:
 
             imgs_count += 1
             formats.append({
-                'format_id': 'imagestream-%d' % (imgs_count),
+                'format_id': f'imagestream-{imgs_count}',
                 'url': src,
                 'ext': mimetype2ext(medium.get('type')),
                 'acodec': 'none',

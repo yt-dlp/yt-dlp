@@ -540,9 +540,9 @@ class BrightcoveNewBaseIE(AdobePassIE):
                 def build_format_id(kind):
                     format_id = kind
                     if tbr:
-                        format_id += '-%dk' % int(tbr)
+                        format_id += f'-{int(tbr)}k'
                     if height:
-                        format_id += '-%dp' % height
+                        format_id += f'-{height}p'
                     return format_id
 
                 if src or streaming_src:

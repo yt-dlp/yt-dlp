@@ -108,7 +108,7 @@ class CorusIE(ThePlatformFeedIE):  # XXX: Do not subclass from concrete IE
             if not smil_url:
                 continue
             source_type = source.get('type')
-            note = 'Downloading%s smil file' % (' ' + source_type if source_type else '')
+            note = 'Downloading{} smil file'.format(' ' + source_type if source_type else '')
             resp = self._download_webpage(
                 smil_url, video_id, note, fatal=False,
                 headers=self.geo_verification_headers())

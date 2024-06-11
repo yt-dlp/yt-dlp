@@ -192,7 +192,7 @@ class NexxIE(InfoExtractor):
                 filename = f'{h}{p[1]}{p0(tbr)}.mp4'
                 f = {
                     'url': http_base + '/' + filename,
-                    'format_id': '%s-http-%d' % (cdn, tbr),
+                    'format_id': f'{cdn}-http-{tbr}',
                     'tbr': tbr,
                 }
                 width_height = p[1].split('x')
@@ -202,7 +202,7 @@ class NexxIE(InfoExtractor):
                         'height': int_or_none(width_height[1]),
                     })
                 formats.append(f)
-                a = filename + ':%s' % (tbr * 1000)
+                a = filename + f':{tbr * 1000}'
                 t += a + ','
             t = t[:-1] + '&audiostream=' + a.split(':')[0]
         else:
@@ -329,9 +329,8 @@ class NexxIE(InfoExtractor):
                         tbr = int_or_none(ss[0])
                         if tbr:
                             f = {
-                                'url': '%s%s/%s_src_%s_%d.mp4' % (
-                                    azure_progressive_base, azure_locator, video_id, ss[1], tbr),
-                                'format_id': '%s-http-%d' % (cdn, tbr),
+                                'url': f'{azure_progressive_base}{azure_locator}/{video_id}_src_{ss[1]}_{tbr}.mp4',
+                                'format_id': f'{cdn}-http-{tbr}',
                                 'tbr': tbr,
                             }
                             width_height = ss[1].split('x')
@@ -372,9 +371,7 @@ class NexxIE(InfoExtractor):
         # not all videos work via arc, e.g. nexx:741:1269984
         if not video:
             # Reverse engineered from JS code (see getDeviceID function)
-            device_id = '%d:%d:%d%d' % (
-                random.randint(1, 4), int(time.time()),
-                random.randint(1e4, 99999), random.randint(1, 9))
+            device_id = f'{random.randint(1, 4)}:{int(time.time())}:{random.randint(1e4, 99999)}{random.randint(1, 9)}'
 
             result = self._call_api(domain_id, 'session/init', video_id, data={
                 'nxp_devh': device_id,

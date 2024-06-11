@@ -174,11 +174,10 @@ class SohuIE(InfoExtractor):
                     if cdn_id is not None:
                         params['idc'] = cdn_id
 
-                    download_note = 'Downloading %s video URL part %d of %d' % (
-                        format_id, i + 1, part_count)
+                    download_note = f'Downloading {format_id} video URL part {i + 1} of {part_count}'
 
                     if retries > 0:
-                        download_note += ' (retry #%d)' % retries
+                        download_note += f' (retry #{retries})'
                     part_info = self._parse_json(self._download_webpage(
                         f'http://{allot}/?{urllib.parse.urlencode(params)}',
                         video_id, download_note), video_id)
@@ -201,7 +200,7 @@ class SohuIE(InfoExtractor):
                 })
 
             playlist.append({
-                'id': '%s_part%d' % (video_id, i + 1),
+                'id': f'{video_id}_part{i + 1}',
                 'title': title,
                 'duration': vid_data['data']['clipsDuration'][i],
                 'formats': formats,

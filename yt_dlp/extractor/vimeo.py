@@ -1051,7 +1051,7 @@ class VimeoChannelIE(VimeoBaseInfoExtractor):
     _BASE_URL_TEMPL = 'https://vimeo.com/channels/%s'
 
     def _page_url(self, base_url, pagenum):
-        return '%s/videos/page:%d/' % (base_url, pagenum)
+        return f'{base_url}/videos/page:{pagenum}/'
 
     def _extract_list_title(self, webpage):
         return self._TITLE or self._html_search_regex(
@@ -1151,7 +1151,7 @@ class VimeoAlbumIE(VimeoBaseInfoExtractor):
         try:
             videos = self._download_json(
                 f'https://api.vimeo.com/albums/{album_id}/videos',
-                album_id, 'Downloading page %d' % api_page, query=query, headers={
+                album_id, f'Downloading page {api_page}', query=query, headers={
                     'Authorization': 'jwt ' + authorization,
                     'Accept': 'application/json',
                 })['data']
@@ -1311,7 +1311,7 @@ class VimeoWatchLaterIE(VimeoChannelIE):  # XXX: Do not subclass from concrete I
     }]
 
     def _page_url(self, base_url, pagenum):
-        url = '%s/page:%d/' % (base_url, pagenum)
+        url = f'{base_url}/page:{pagenum}/'
         request = Request(url)
         # Set the header to get a partial html page with the ids,
         # the normal page doesn't contain them.
@@ -1339,7 +1339,7 @@ class VimeoLikesIE(VimeoChannelIE):  # XXX: Do not subclass from concrete IE
     }]
 
     def _page_url(self, base_url, pagenum):
-        return '%s/page:%d/' % (base_url, pagenum)
+        return f'{base_url}/page:{pagenum}/'
 
     def _real_extract(self, url):
         user_id = self._match_id(url)

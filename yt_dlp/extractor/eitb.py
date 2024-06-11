@@ -39,7 +39,7 @@ class EitbIE(InfoExtractor):
             tbr = float_or_none(rendition.get('ENCODING_RATE'), 1000)
             format_id = 'http'
             if tbr:
-                format_id += '-%d' % int(tbr)
+                format_id += f'-{int(tbr)}'
             formats.append({
                 'url': rendition['PMD_URL'],
                 'format_id': format_id,

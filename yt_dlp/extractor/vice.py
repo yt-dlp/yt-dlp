@@ -126,7 +126,7 @@ class ViceIE(ViceBaseIE, AdobePassIE):
 
         query.update({
             'exp': exp,
-            'sign': hashlib.sha512(('%s:GET:%d' % (video_id, exp)).encode()).hexdigest(),
+            'sign': hashlib.sha512(f'{video_id}:GET:{exp}'.encode()).hexdigest(),
             'skipadstitching': 1,
             'platform': 'desktop',
             'rn': random.randint(10000, 100000),
@@ -200,7 +200,7 @@ class ViceShowIE(ViceBaseIE):
     def _fetch_page(self, locale, show_id, page):
         videos = self._call_api('videos', 'show_id', show_id, locale, '''body
     id
-    url''', ', page: %d, per_page: %d' % (page + 1, self._PAGE_SIZE))
+    url''', f', page: {page + 1}, per_page: {self._PAGE_SIZE}')
         for video in videos:
             yield self.url_result(
                 video['url'], ViceIE.ie_key(), video.get('id'))

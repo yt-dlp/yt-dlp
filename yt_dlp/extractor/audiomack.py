@@ -122,12 +122,12 @@ class AudiomackAlbumIE(InfoExtractor):
             api_response = self._download_json(
                 'http://www.audiomack.com/api/music/url/album/%s/%d?extended=1&_=%d'
                 % (album_url_tag, track_no, time.time()), album_url_tag,
-                note='Querying song information (%d)' % (track_no + 1))
+                note=f'Querying song information ({track_no + 1})')
 
             # Total failure, only occurs when url is totally wrong
             # Won't happen in middle of valid playlist (next case)
             if 'url' not in api_response or 'error' in api_response:
-                raise ExtractorError('Invalid url for track %d of album url %s' % (track_no, url))
+                raise ExtractorError(f'Invalid url for track {track_no} of album url {url}')
             # URL is good but song id doesn't exist - usually means end of playlist
             elif not api_response['url']:
                 break

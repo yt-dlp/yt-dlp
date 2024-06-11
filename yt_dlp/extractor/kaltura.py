@@ -255,7 +255,7 @@ class KalturaIE(InfoExtractor):
                 continue
             if status.get('objectType') == 'KalturaAPIException':
                 raise ExtractorError(
-                    '%s said: %s (%d)' % (self.IE_NAME, status['message'], idx))
+                    '{} said: {} ({})'.format(self.IE_NAME, status['message'], idx))
 
         data[1] = traverse_obj(data, (1, 'objects', 0))
 

@@ -92,7 +92,7 @@ class StoryFireUserIE(StoryFireBaseIE):
 
     def _fetch_page(self, user_id, page):
         videos = self._call_api(
-            'publicVideos', user_id, 'page %d' % (page + 1), {
+            'publicVideos', user_id, f'page {page + 1}', {
                 'skip': page * self._PAGE_SIZE,
             })['videos']
         for video in videos:

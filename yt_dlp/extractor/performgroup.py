@@ -52,7 +52,7 @@ class PerformGroupIE(InfoExtractor):
             tbr = int_or_none(c.get('bitrate'), 1000)
             format_id = 'http'
             if tbr:
-                format_id += '-%d' % tbr
+                format_id += f'-{tbr}'
             formats.append({
                 'format_id': format_id,
                 'url': c_url,

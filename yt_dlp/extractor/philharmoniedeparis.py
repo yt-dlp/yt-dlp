@@ -90,7 +90,7 @@ class PhilharmonieDeParisIE(InfoExtractor):
             entry = extract_entry(chapter)
             if entry is None:
                 continue
-            entry['id'] = '%s-%d' % (video_id, num)
+            entry['id'] = f'{video_id}-{num}'
             entries.append(entry)
 
         return self.playlist_result(entries, video_id, config.get('title'))

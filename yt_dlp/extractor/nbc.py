@@ -499,7 +499,7 @@ class NBCNewsIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
                 continue
             tbr = int_or_none(va.get('bitrate'), 1000)
             if tbr:
-                format_id += '-%d' % tbr
+                format_id += f'-{tbr}'
             formats.append({
                 'format_id': format_id,
                 'url': public_url,

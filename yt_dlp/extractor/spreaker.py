@@ -133,7 +133,7 @@ class SpreakerShowIE(InfoExtractor):
         for page_num in itertools.count(1):
             episodes = self._download_json(
                 f'https://api.spreaker.com/show/{show_id}/episodes',
-                show_id, note='Downloading JSON page %d' % page_num, query={
+                show_id, note=f'Downloading JSON page {page_num}', query={
                     'page': page_num,
                     'max_per_page': 100,
                 })

@@ -225,7 +225,7 @@ class MxplayerShowIE(InfoExtractor):
                     self._API_EPISODES_URL.format(season_id, next_url),
                     video_id=season_id,
                     headers={'Referer': 'https://mxplayer.in'},
-                    note='Downloading JSON metadata page %d' % page_num)
+                    note=f'Downloading JSON metadata page {page_num}')
                 for episode in season_json.get('items') or []:
                     video_url = episode['webUrl']
                     yield self.url_result(

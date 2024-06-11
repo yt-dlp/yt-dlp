@@ -191,7 +191,7 @@ class MailRuMusicSearchBaseIE(InfoExtractor):
     def _search(self, query, url, audio_id, limit=100, offset=0):
         search = self._download_json(
             'https://my.mail.ru/cgi-bin/my/ajax', audio_id,
-            'Downloading songs JSON page %d' % (offset // limit + 1),
+            f'Downloading songs JSON page {offset // limit + 1}',
             headers={
                 'Referer': url,
                 'X-Requested-With': 'XMLHttpRequest',

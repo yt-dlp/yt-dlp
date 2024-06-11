@@ -182,7 +182,7 @@ class NBAWatchCollectionIE(NBAWatchBaseIE):
         page += 1
         videos = self._download_json(
             'https://content-api-prod.nba.com/public/1/endeavor/video-list/collection/' + collection_id,
-            collection_id, 'Downloading page %d JSON metadata' % page, query={
+            collection_id, f'Downloading page {page} JSON metadata', query={
                 'count': self._PAGE_SIZE,
                 'page': page,
             })['results']['videos']
@@ -405,7 +405,7 @@ class NBAChannelIE(NBABaseIE):
             'channels': channel,
             'count': self._PAGE_SIZE,
             'offset': page * self._PAGE_SIZE,
-        }, 'page %d' % (page + 1))
+        }, f'page {page + 1}')
         for video in results:
             yield self._extract_video(video, team, False)
 

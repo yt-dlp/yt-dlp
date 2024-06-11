@@ -1902,7 +1902,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
         server_thread.start()
 
         (content, urlh) = self.ie._download_webpage_handle(
-            'http://127.0.0.1:%d/teapot' % port, None,
+            f'http://127.0.0.1:{port}/teapot', None,
             expected_status=TEAPOT_RESPONSE_STATUS)
         self.assertEqual(content, TEAPOT_RESPONSE_BODY)
 

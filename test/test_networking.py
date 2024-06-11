@@ -375,10 +375,10 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
         with handler() as rh:
             for bad_status in (400, 500, 599, 302):
                 with pytest.raises(HTTPError):
-                    validate_and_send(rh, Request('http://127.0.0.1:%d/gen_%d' % (self.http_port, bad_status)))
+                    validate_and_send(rh, Request(f'http://127.0.0.1:{self.http_port}/gen_{bad_status}'))
 
             # Should not raise an error
-            validate_and_send(rh, Request('http://127.0.0.1:%d/gen_200' % self.http_port)).close()
+            validate_and_send(rh, Request(f'http://127.0.0.1:{self.http_port}/gen_200')).close()
 
     def test_response_url(self, handler):
         with handler() as rh:
@@ -472,7 +472,7 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
     def test_incompleteread(self, handler):
         with handler(timeout=2) as rh:
             with pytest.raises(IncompleteRead, match='13 bytes read, 234221 more expected'):
-                validate_and_send(rh, Request('http://127.0.0.1:%d/incompleteread' % self.http_port)).read()
+                validate_and_send(rh, Request(f'http://127.0.0.1:{self.http_port}/incompleteread')).read()
 
     def test_cookies(self, handler):
         cookiejar = YoutubeDLCookieJar()

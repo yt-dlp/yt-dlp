@@ -76,7 +76,7 @@ class WSJIE(InfoExtractor):
             tbr = int_or_none(v.get('bitrate'))
             formats.append({
                 'url': mp4_url,
-                'format_id': 'http' + ('-%d' % tbr if tbr else ''),
+                'format_id': 'http' + (f'-{tbr}' if tbr else ''),
                 'tbr': tbr,
                 'width': int_or_none(v.get('width')),
                 'height': int_or_none(v.get('height')),

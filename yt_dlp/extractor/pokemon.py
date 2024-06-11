@@ -48,7 +48,7 @@ class PokemonIE(InfoExtractor):
         video_id, display_id = self._match_valid_url(url).groups()
         webpage = self._download_webpage(url, video_id or display_id)
         video_data = extract_attributes(self._search_regex(
-            r'(<[^>]+data-video-id="%s"[^>]*>)' % (video_id if video_id else '[a-z0-9]{32}'),
+            r'(<[^>]+data-video-id="{}"[^>]*>)'.format(video_id if video_id else '[a-z0-9]{32}'),
             webpage, 'video data element'))
         video_id = video_data['data-video-id']
         title = video_data.get('data-video-title') or self._html_search_meta(

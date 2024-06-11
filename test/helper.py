@@ -138,15 +138,14 @@ def expect_value(self, got, expected, field):
     elif isinstance(expected, list) and isinstance(got, list):
         self.assertEqual(
             len(expected), len(got),
-            'Expect a list of length %d, but got a list of length %d for field %s' % (
-                len(expected), len(got), field))
+            f'Expect a list of length {len(expected)}, but got a list of length {len(got)} for field {field}')
         for index, (item_got, item_expected) in enumerate(zip(got, expected)):
             type_got = type(item_got)
             type_expected = type(item_expected)
             self.assertEqual(
                 type_expected, type_got,
-                'Type mismatch for list item at index %d for field %s, expected %r, got %r' % (
-                    index, field, type_expected, type_got))
+                f'Type mismatch for list item at index {index} for field {field}, '
+                f'expected {type_expected!r}, got {type_got!r}')
             expect_value(self, item_got, item_expected, field)
     else:
         if isinstance(expected, str) and expected.startswith('md5:'):

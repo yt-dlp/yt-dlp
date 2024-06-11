@@ -110,7 +110,7 @@ class VoicyChannelIE(VoicyBaseIE):
     def _entries(self, channel_id):
         pager = ''
         for count in itertools.count(1):
-            article_list = self._call_api(self.PROGRAM_LIST_API_URL % (channel_id, pager), channel_id, note='Paging #%d' % count)
+            article_list = self._call_api(self.PROGRAM_LIST_API_URL % (channel_id, pager), channel_id, note=f'Paging #{count}')
             playlist_data = article_list.get('PlaylistData')
             if not playlist_data:
                 break

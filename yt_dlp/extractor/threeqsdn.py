@@ -121,7 +121,7 @@ class ThreeQSDNIE(InfoExtractor):
                     height = int_or_none(s.get('height'))
                     formats.append({
                         'ext': ext,
-                        'format_id': join_nonempty('http', ext, height and '%dp' % height),
+                        'format_id': join_nonempty('http', ext, height and f'{height}p'),
                         'height': height,
                         'source_preference': 0,
                         'url': src,

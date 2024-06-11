@@ -107,7 +107,7 @@ class TwitterBaseIE(InfoExtractor):
             tbr = int_or_none(dict_get(variant, ('bitrate', 'bit_rate')), 1000) or None
             f = {
                 'url': variant_url,
-                'format_id': 'http' + ('-%d' % tbr if tbr else ''),
+                'format_id': 'http' + (f'-{tbr}' if tbr else ''),
                 'tbr': tbr,
             }
             self._search_dimensions_in_video_url(f, variant_url)

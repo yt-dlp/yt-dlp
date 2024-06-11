@@ -136,7 +136,7 @@ class ArcPublishingIE(InfoExtractor):
             else:
                 vbr = int_or_none(s.get('bitrate'))
                 formats.append({
-                    'format_id': '%s-%d' % (stream_type, vbr) if vbr else stream_type,
+                    'format_id': f'{stream_type}-{vbr}' if vbr else stream_type,
                     'vbr': vbr,
                     'width': int_or_none(s.get('width')),
                     'height': int_or_none(s.get('height')),

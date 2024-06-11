@@ -117,7 +117,7 @@ class CiscoLiveSearchIE(CiscoLiveBaseIE):
         for page_num in itertools.count(1):
             results = self._call_api(
                 'search', None, query, url,
-                'Downloading search JSON page %d' % page_num)
+                f'Downloading search JSON page {page_num}')
             sl = try_get(results, lambda x: x['sectionList'][0], dict)
             if sl:
                 results = sl

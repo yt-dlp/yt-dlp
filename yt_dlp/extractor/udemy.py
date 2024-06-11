@@ -361,7 +361,7 @@ class UdemyIE(InfoExtractor):
                 else:
                     formats.append(add_output_format_meta({
                         'url': src,
-                        'format_id': '%dp' % height if height else None,
+                        'format_id': f'{height}p' if height else None,
                         'height': height,
                     }, res))
 

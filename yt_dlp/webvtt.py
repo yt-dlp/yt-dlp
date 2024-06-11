@@ -77,9 +77,8 @@ class _MatchChildParser(_MatchParser):
 
 class ParseError(Exception):
     def __init__(self, parser):
-        super().__init__('Parse error at position %u (near %r)' % (
-            parser._pos, parser._data[parser._pos:parser._pos + 100],
-        ))
+        data = parser._data[parser._pos:parser._pos + 100]
+        super().__init__(f'Parse error at position {parser._pos} (near {data!r})')
 
 
 # While the specification <https://www.w3.org/TR/webvtt1/#webvtt-timestamp>

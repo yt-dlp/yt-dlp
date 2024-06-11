@@ -2828,5 +2828,5 @@ class GenericIE(InfoExtractor):
             for num, e in enumerate(entries, start=1):
                 # 'url' results don't have a title
                 if e.get('title') is not None:
-                    e['title'] = '%s (%d)' % (e['title'], num)
+                    e['title'] = '{} ({})'.format(e['title'], num)
         return entries

@@ -127,9 +127,8 @@ class YouNowChannelIE(InfoExtractor):
             if created_before is None:
                 break
             info = self._download_json(
-                '%s/moment/profile/channelId=%s/createdBefore=%d/records=20'
-                % (CDN_API_BASE, channel_id, created_before), username,
-                note='Downloading moments page %d' % page_num)
+                f'{CDN_API_BASE}/moment/profile/channelId={channel_id}/createdBefore={created_before}/records=20',
+                username, note=f'Downloading moments page {page_num}')
             items = info.get('items')
             if not items or not isinstance(items, list):
                 break

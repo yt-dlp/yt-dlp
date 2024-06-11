@@ -120,7 +120,7 @@ class ViewLiftEmbedIE(ViewLiftBaseIE):
                 'height', default=None))
             formats.append({
                 'url': video_asset_url,
-                'format_id': 'http%s' % ('-%d' % bitrate if bitrate else ''),
+                'format_id': 'http{}'.format(f'-{bitrate}' if bitrate else ''),
                 'tbr': bitrate,
                 'height': height,
                 'vcodec': video_asset.get('codec'),

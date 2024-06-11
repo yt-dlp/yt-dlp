@@ -36,7 +36,7 @@ class NaverBaseIE(InfoExtractor):
             type_ = 'automatic_captions' if caption.get('type') == 'auto' else 'subtitles'
             lang = caption.get('locale') or join_nonempty('language', 'country', from_dict=caption) or 'und'
             if caption.get('type') == 'fan':
-                lang += '_fan%d' % next(i for i in itertools.count(1) if f'{lang}_fan{i}' not in ret[type_])
+                lang += '_fan{}'.format(next(i for i in itertools.count(1) if f'{lang}_fan{i}' not in ret[type_]))
             ret[type_].setdefault(lang, []).extend({
                 'url': sub_url,
                 'name': join_nonempty('label', 'fanName', from_dict=caption, delim=' - '),

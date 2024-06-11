@@ -378,7 +378,7 @@ class PatreonIE(PatreonBaseIE):
 
             params.update({'page[cursor]': cursor} if cursor else {})
             response = self._call_api(
-                f'posts/{post_id}/comments', post_id, query=params, note='Downloading comments page %d' % page)
+                f'posts/{post_id}/comments', post_id, query=params, note=f'Downloading comments page {page}')
 
             cursor = None
             for comment in traverse_obj(response, (('data', ('included', lambda _, v: v['type'] == 'comment')), ...)):
@@ -472,7 +472,7 @@ class PatreonCampaignIE(PatreonBaseIE):
         for page in itertools.count(1):
 
             params.update({'page[cursor]': cursor} if cursor else {})
-            posts_json = self._call_api('posts', campaign_id, query=params, note='Downloading posts page %d' % page)
+            posts_json = self._call_api('posts', campaign_id, query=params, note=f'Downloading posts page {page}')
 
             cursor = traverse_obj(posts_json, ('meta', 'pagination', 'cursors', 'next'))
             for post_url in traverse_obj(posts_json, ('data', ..., 'attributes', 'patreon_url')):

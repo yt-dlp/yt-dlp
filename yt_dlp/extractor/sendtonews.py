@@ -75,7 +75,7 @@ class SendtoNewsIE(InfoExtractor):
                 if not tbr:
                     continue
                 f.update({
-                    'format_id': '%s-%d' % (determine_protocol(f), tbr),
+                    'format_id': f'{determine_protocol(f)}-{tbr}',
                     'tbr': tbr,
                 })
 

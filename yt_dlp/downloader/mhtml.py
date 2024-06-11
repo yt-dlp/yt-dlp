@@ -57,7 +57,7 @@ body > figure > img {
         )).decode('us-ascii') + '?='
 
     def _gen_cid(self, i, fragment, frag_boundary):
-        return '%u.%s@yt-dlp.github.io.invalid' % (i, frag_boundary)
+        return f'{i}.{frag_boundary}@yt-dlp.github.io.invalid'
 
     def _gen_stub(self, *, fragments, frag_boundary, title):
         output = io.StringIO()

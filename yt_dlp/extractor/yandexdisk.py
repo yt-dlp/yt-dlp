@@ -118,7 +118,7 @@ class YandexDiskIE(InfoExtractor):
                 height = int_or_none(size.get('height'))
                 format_id = 'hls'
                 if height:
-                    format_id += '-%dp' % height
+                    format_id += f'-{height}p'
                 formats.append({
                     'ext': 'mp4',
                     'format_id': format_id,

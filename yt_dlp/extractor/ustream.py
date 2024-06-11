@@ -79,14 +79,14 @@ class UstreamIE(InfoExtractor):
             extra_note = ''
 
         conn_info = self._download_json(
-            'http://r%d-1-%s-recorded-lp-live.ums.ustream.tv/1/ustream' % (rnd(1e8), video_id),
+            f'http://r{rnd(1e8)}-1-{video_id}-recorded-lp-live.ums.ustream.tv/1/ustream',
             video_id, note='Downloading connection info' + extra_note,
             query={
                 'type': 'viewer',
                 'appId': app_id_ver[0],
                 'appVersion': app_id_ver[1],
                 'rsid': f'{num_to_hex(rnd(1e8))}:{num_to_hex(rnd(1e8))}',
-                'rpin': '_rpin.%d' % rnd(1e15),
+                'rpin': f'_rpin.{rnd(1e15)}',
                 'referrer': url,
                 'media': video_id,
                 'application': 'recorded',
@@ -103,7 +103,7 @@ class UstreamIE(InfoExtractor):
         for trial_count in range(3):
             stream_info = self._get_stream_info(
                 url, video_id, app_id_ver,
-                extra_note=' (try %d)' % (trial_count + 1) if trial_count > 0 else '')
+                extra_note=f' (try {trial_count + 1})' if trial_count > 0 else '')
             if 'stream' in stream_info[0]['args'][0]:
                 return stream_info[0]['args'][0]['stream']
         return []
@@ -257,7 +257,7 @@ class UstreamChannelIE(InfoExtractor):
         while next_url:
             reply = self._download_json(
                 urllib.parse.urljoin(BASE, next_url), display_id,
-                note='Downloading video information (next: %d)' % (len(video_ids) + 1))
+                note=f'Downloading video information (next: {len(video_ids) + 1})')
             video_ids.extend(re.findall(r'data-content-id="(\d.*)"', reply['data']))
             next_url = reply['nextUrl']
 

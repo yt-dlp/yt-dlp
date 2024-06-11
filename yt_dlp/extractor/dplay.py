@@ -967,7 +967,7 @@ class DiscoveryPlusShowBaseIE(DPlayBaseIE):
             while page_num < total_pages:
                 season_json = self._download_json(
                     season_url.format(season_id, show_id, str(page_num + 1)), show_name, headers=headers,
-                    note='Downloading season {} JSON metadata{}'.format(season_id, ' page %d' % page_num if page_num else ''))
+                    note='Downloading season {} JSON metadata{}'.format(season_id, f' page {page_num}' if page_num else ''))
                 if page_num == 0:
                     total_pages = try_get(season_json, lambda x: x['meta']['totalPages'], int) or 1
                 episodes_json = season_json['data']

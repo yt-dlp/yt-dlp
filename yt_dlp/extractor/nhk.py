@@ -104,7 +104,7 @@ class NhkBaseIE(InfoExtractor):
             if not img_path:
                 continue
             thumbnails.append({
-                'id': '%dp' % h,
+                'id': f'{h}p',
                 'height': h,
                 'width': w,
                 'url': 'https://www3.nhk.or.jp' + img_path,

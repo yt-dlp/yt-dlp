@@ -174,8 +174,8 @@ class AmericasTestKitchenSeasonIE(InfoExtractor):
         ]
 
         if season_number:
-            playlist_id = 'season_%d' % season_number
-            playlist_title = 'Season %d' % season_number
+            playlist_id = f'season_{season_number}'
+            playlist_title = f'Season {season_number}'
             facet_filters.append('search_season_list:' + playlist_title)
         else:
             playlist_id = show

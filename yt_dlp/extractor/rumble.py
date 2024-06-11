@@ -377,7 +377,7 @@ class RumbleChannelIE(InfoExtractor):
     def entries(self, url, playlist_id):
         for page in itertools.count(1):
             try:
-                webpage = self._download_webpage(f'{url}?page={page}', playlist_id, note='Downloading page %d' % page)
+                webpage = self._download_webpage(f'{url}?page={page}', playlist_id, note=f'Downloading page {page}')
             except ExtractorError as e:
                 if isinstance(e.cause, HTTPError) and e.cause.status == 404:
                     break

@@ -250,7 +250,7 @@ query viewClip {
                 continue
             srt += os.linesep.join(
                 (
-                    '%d' % num,
+                    f'{num}',
                     f'{srt_subtitles_timecode(start)} --> {srt_subtitles_timecode(end)}',
                     text,
                     os.linesep,

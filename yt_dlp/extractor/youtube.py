@@ -2922,7 +2922,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     if not should_continue:
                         known_idx = idx - 1
                         raise ExtractorError('breaking out of outer loop')
-                    last_segment_url = urljoin(fragment_base_url, 'sq/%d' % idx)
+                    last_segment_url = urljoin(fragment_base_url, f'sq/{idx}')
                     yield {
                         'url': last_segment_url,
                         'fragment_count': last_seq,
@@ -3539,7 +3539,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     note_prefix = '    Downloading comment API JSON reply thread %d %s' % (
                         tracker['current_page_thread'], comment_prog_str)
             else:
-                note_prefix = '%sDownloading comment%s API JSON page %d %s' % (
+                note_prefix = '{}Downloading comment{} API JSON page {} {}'.format(
                     '       ' if parent else '', ' replies' if parent else '',
                     page_num, comment_prog_str)
 
@@ -5255,7 +5255,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                 'params': watch_endpoint.get('params') or 'OAE%3D',
             }
             response = self._extract_response(
-                item_id='%s page %d' % (playlist_id, page_num),
+                item_id=f'{playlist_id} page {page_num}',
                 query=query, ep='next', headers=headers, ytcfg=ytcfg,
                 check_get_keys='contents',
             )

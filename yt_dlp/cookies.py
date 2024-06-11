@@ -1305,7 +1305,7 @@ class YoutubeDLCookieJar(http.cookiejar.MozillaCookieJar):
                 return line
             cookie_list = line.split('\t')
             if len(cookie_list) != self._ENTRY_LEN:
-                raise http.cookiejar.LoadError('invalid length %d' % len(cookie_list))
+                raise http.cookiejar.LoadError(f'invalid length {len(cookie_list)}')
             cookie = self._CookieFileEntry(*cookie_list)
             if cookie.expires_at and not cookie.expires_at.isdigit():
                 raise http.cookiejar.LoadError(f'invalid expires at {cookie.expires_at}')

@@ -524,7 +524,7 @@ class NRKTVSerieBaseIE(NRKBaseIE):
                 break
             data = self._call_api(
                 next_url_path, display_id,
-                note='Downloading %s JSON page %d' % (assets_key, page_num),
+                note=f'Downloading {assets_key} JSON page {page_num}',
                 fatal=False)
             if not data:
                 break

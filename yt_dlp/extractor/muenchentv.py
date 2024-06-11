@@ -47,7 +47,7 @@ class MuenchenTVIE(InfoExtractor):
             ext = determine_ext(s['file'], None)
             label_str = s.get('label')
             if label_str is None:
-                label_str = '_%d' % format_num
+                label_str = f'_{format_num}'
 
             if ext is None:
                 format_id = label_str

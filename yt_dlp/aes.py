@@ -499,7 +499,7 @@ def block_product(block_x, block_y):
     # NIST SP 800-38D, Algorithm 1
 
     if len(block_x) != BLOCK_SIZE_BYTES or len(block_y) != BLOCK_SIZE_BYTES:
-        raise ValueError('Length of blocks need to be %d bytes' % BLOCK_SIZE_BYTES)
+        raise ValueError(f'Length of blocks need to be {BLOCK_SIZE_BYTES} bytes')
 
     block_r = [0xE1] + [0] * (BLOCK_SIZE_BYTES - 1)
     block_v = block_y[:]
@@ -522,7 +522,7 @@ def ghash(subkey, data):
     # NIST SP 800-38D, Algorithm 2
 
     if len(data) % BLOCK_SIZE_BYTES:
-        raise ValueError('Length of data should be %d bytes' % BLOCK_SIZE_BYTES)
+        raise ValueError(f'Length of data should be {BLOCK_SIZE_BYTES} bytes')
 
     last_y = [0] * BLOCK_SIZE_BYTES
     for i in range(0, len(data), BLOCK_SIZE_BYTES):

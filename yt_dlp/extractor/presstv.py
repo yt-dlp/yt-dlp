@@ -41,7 +41,7 @@ class PressTVIE(InfoExtractor):
 
         formats = [{
             'url': base_url + video_url[:-4] + extension,
-            'format_id': '%dp' % height,
+            'format_id': f'{height}p',
             'height': height,
         } for height, extension in _formats]
 

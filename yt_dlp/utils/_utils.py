@@ -717,7 +717,7 @@ def extract_basic_auth(url):
         return url, None
     url = urllib.parse.urlunsplit(parts._replace(netloc=(
         parts.hostname if parts.port is None
-        else '%s:%d' % (parts.hostname, parts.port))))
+        else f'{parts.hostname}:{parts.port}')))
     auth_payload = base64.b64encode(
         ('{}:{}'.format(parts.username, parts.password or '')).encode())
     return url, f'Basic {auth_payload.decode()}'

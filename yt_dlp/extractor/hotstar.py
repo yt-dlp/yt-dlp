@@ -31,7 +31,7 @@ class HotStarBaseIE(InfoExtractor):
     def _call_api_impl(self, path, video_id, query, st=None, cookies=None):
         st = int_or_none(st) or int(time.time())
         exp = st + 6000
-        auth = 'st=%d~exp=%d~acl=/*' % (st, exp)
+        auth = f'st={st}~exp={exp}~acl=/*'
         auth += '~hmac=' + hmac.new(self._AKAMAI_ENCRYPTION_KEY, auth.encode(), hashlib.sha256).hexdigest()
 
         if cookies and cookies.get('userUP'):

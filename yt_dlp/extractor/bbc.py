@@ -394,7 +394,7 @@ class BBCCoUkIE(InfoExtractor):
                             href, programme_id, f4m_id=format_id, fatal=False))
                     else:
                         if not supplier and bitrate:
-                            format_id += '-%d' % bitrate
+                            format_id += f'-{bitrate}'
                         fmt = {
                             'format_id': format_id,
                             'filesize': file_size,
@@ -1573,7 +1573,7 @@ class BBCCoUkPlaylistBaseIE(InfoExtractor):
                 break
             webpage = self._download_webpage(
                 urllib.parse.urljoin(url, next_page), playlist_id,
-                'Downloading page %d' % page_num, page_num)
+                f'Downloading page {page_num}', page_num)
 
     def _real_extract(self, url):
         playlist_id = self._match_id(url)

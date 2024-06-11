@@ -140,7 +140,7 @@ class YouPornIE(InfoExtractor):
                     height = int(mobj.group('height'))
                 bitrate = int(mobj.group('bitrate'))
                 f.update({
-                    'format_id': '%dp-%dk' % (height, bitrate),
+                    'format_id': f'{height}p-{bitrate}k',
                     'tbr': bitrate,
                 })
             f['height'] = height

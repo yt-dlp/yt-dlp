@@ -233,7 +233,7 @@ class VikiIE(VikiBaseIE):
         title = try_get(video, lambda x: x['titles']['en'], str)
         episode_number = int_or_none(video.get('number'))
         if not title:
-            title = 'Episode %d' % episode_number if video.get('type') == 'episode' else video.get('id') or video_id
+            title = f'Episode {episode_number}' if video.get('type') == 'episode' else video.get('id') or video_id
             container_titles = try_get(video, lambda x: x['container']['titles'], dict) or {}
             container_title = self.dict_selection(container_titles, 'en')
             title = f'{container_title} - {title}'
@@ -329,7 +329,7 @@ class VikiChannelIE(VikiBaseIE):
                 params['page'] = page_num
                 res = self._call_api(
                     f'containers/{channel_id}/{video_type}.json', channel_id, query=params, fatal=False,
-                    note='Downloading %s JSON page %d' % (video_type.title(), page_num))
+                    note=f'Downloading {video_type.title()} JSON page {page_num}')
 
                 for video_id in res.get('response') or []:
                     yield self.url_result(f'https://www.viki.com/videos/{video_id}', VikiIE.ie_key(), video_id)

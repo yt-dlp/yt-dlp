@@ -150,7 +150,7 @@ class AdobeTVPlaylistBaseIE(AdobeTVBaseIE):
         page += 1
         query['page'] = page
         for element_data in self._call_api(
-                self._RESOURCE, display_id, query, 'Download Page %d' % page):
+                self._RESOURCE, display_id, query, f'Download Page {page}'):
             yield self._process_data(element_data)
 
     def _extract_playlist_entries(self, display_id, query):

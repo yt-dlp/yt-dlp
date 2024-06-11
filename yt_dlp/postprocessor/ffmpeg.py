@@ -342,7 +342,7 @@ class FFmpegPostProcessor(PostProcessor):
             cmd += [encodeArgument('-loglevel'), encodeArgument('repeat+info')]
 
         def make_args(file, args, name, number):
-            keys = ['_%s%d' % (name, number), f'_{name}']
+            keys = [f'_{name}{number}', f'_{name}']
             if name == 'o':
                 args += ['-movflags', '+faststart']
                 if number == 1:
@@ -650,12 +650,12 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
             '-map', '-0:s',
         ]
         for i, (lang, name) in enumerate(zip(sub_langs, sub_names)):
-            opts.extend(['-map', '%d:0' % (i + 1)])
+            opts.extend(['-map', f'{i + 1}:0'])
             lang_code = ISO639Utils.short2long(lang) or lang
-            opts.extend(['-metadata:s:s:%d' % i, f'language={lang_code}'])
+            opts.extend([f'-metadata:s:s:{i}', f'language={lang_code}'])
             if name:
-                opts.extend(['-metadata:s:s:%d' % i, f'handler_name={name}',
-                             '-metadata:s:s:%d' % i, f'title={name}'])
+                opts.extend([f'-metadata:s:s:{i}', f'handler_name={name}',
+                             f'-metadata:s:s:{i}', f'title={name}'])
 
         temp_filename = prepend_extension(filename, 'temp')
         self.to_screen(f'Embedding subtitles in "{filename}"')
@@ -807,7 +807,7 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
 
         old_stream, new_stream = self.get_stream_number(info['filepath'], ('tags', 'mimetype'), 'application/json')
         if old_stream is not None:
-            yield ('-map', '-0:%d' % old_stream)
+            yield ('-map', f'-0:{old_stream}')
             new_stream -= 1
 
         yield (
@@ -834,7 +834,7 @@ class FFmpegMergerPP(FFmpegPostProcessor):
                     args.extend([f'-bsf:a:{audio_streams}', 'aac_adtstoasc'])
                 audio_streams += 1
             if fmt.get('vcodec') != 'none':
-                args.extend(['-map', '%u:v:0' % (i)])
+                args.extend(['-map', f'{i}:v:0'])
         self.to_screen(f'Merging formats into "{filename}"')
         self.run_ffmpeg_multiple_files(info['__files_to_merge'], temp_filename, args)
         os.rename(encodeFilename(temp_filename), encodeFilename(filename))
@@ -1059,7 +1059,7 @@ class FFmpegSplitChaptersPP(FFmpegPostProcessor):
         in_file = info['filepath']
         if self._force_keyframes and len(chapters) > 1:
             in_file = self.force_keyframes(in_file, (c['start_time'] for c in chapters))
-        self.to_screen('Splitting video by chapters; %d chapters found' % len(chapters))
+        self.to_screen(f'Splitting video by chapters; {len(chapters)} chapters found')
         for idx, chapter in enumerate(chapters):
             destination, opts = self._ffmpeg_args_for_chapter(idx + 1, chapter, info)
             self.real_run_ffmpeg([(in_file, opts)], [(destination, self.stream_copy_opts())])

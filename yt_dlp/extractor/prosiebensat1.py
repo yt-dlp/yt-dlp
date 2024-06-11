@@ -147,13 +147,13 @@ class ProSiebenSat1BaseIE(InfoExtractor):
                                 'page_url': 'http://www.prosieben.de',
                                 'tbr': tbr,
                                 'ext': 'flv',
-                                'format_id': 'rtmp%s' % ('-%d' % tbr if tbr else ''),
+                                'format_id': 'rtmp{}'.format(f'-{tbr}' if tbr else ''),
                             })
                         else:
                             formats.append({
                                 'url': source_url,
                                 'tbr': tbr,
-                                'format_id': 'http%s' % ('-%d' % tbr if tbr else ''),
+                                'format_id': 'http{}'.format(f'-{tbr}' if tbr else ''),
                             })
 
         return {

@@ -92,7 +92,7 @@ class UstudioEmbedIE(InfoExtractor):
                     continue
                 height = int_or_none(quality.get('height'))
                 formats.append({
-                    'format_id': '%s-%dp' % (ext, height) if height else ext,
+                    'format_id': f'{ext}-{height}p' if height else ext,
                     'url': quality_url,
                     'width': int_or_none(quality.get('width')),
                     'height': height,

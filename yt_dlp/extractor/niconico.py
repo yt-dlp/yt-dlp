@@ -464,7 +464,7 @@ class NiconicoIE(InfoExtractor):
         except ExtractorError as e:
             try:
                 api_data = self._download_json(
-                    'https://www.nicovideo.jp/api/watch/v3/%s?_frontendId=6&_frontendVersion=0&actionTrackId=AAAAAAAAAA_%d' % (video_id, round(time.time() * 1000)), video_id,
+                    f'https://www.nicovideo.jp/api/watch/v3/{video_id}?_frontendId=6&_frontendVersion=0&actionTrackId=AAAAAAAAAA_{round(time.time() * 1000)}', video_id,
                     note='Downloading API JSON', errnote='Unable to fetch data')['data']
             except ExtractorError:
                 if not isinstance(e.cause, HTTPError):
@@ -601,7 +601,7 @@ class NiconicoPlaylistBaseIE(InfoExtractor):
 
     def _fetch_page(self, list_id, page):
         page += 1
-        resp = self._call_api(list_id, 'page %d' % page, {
+        resp = self._call_api(list_id, f'page {page}', {
             'page': page,
             'pageSize': self._PAGE_SIZE,
         })
@@ -895,7 +895,7 @@ class NiconicoUserIE(InfoExtractor):
             json_parsed = self._download_json(
                 self._API_URL % (list_id, self._PAGE_SIZE, page_num + 1), list_id,
                 headers=self._API_HEADERS,
-                note='Downloading JSON metadata%s' % (' page %d' % page_num if page_num else ''))
+                note='Downloading JSON metadata%s' % (f' page {page_num}' if page_num else ''))
             if not page_num:
                 total_count = int_or_none(json_parsed['data'].get('totalCount'))
             for entry in json_parsed['data']['items']:

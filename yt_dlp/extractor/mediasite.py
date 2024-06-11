@@ -149,7 +149,7 @@ class MediasiteIE(InfoExtractor):
             })
 
         return {
-            'format_id': '%s-%u.slides' % (stream_id, snum),
+            'format_id': f'{stream_id}-{snum}.slides',
             'ext': 'mhtml',
             'url': slide_base_url,
             'protocol': 'mhtml',
@@ -222,16 +222,16 @@ class MediasiteIE(InfoExtractor):
                 if media_type == 'SS':
                     stream_formats.extend(self._extract_ism_formats(
                         video_url, resource_id,
-                        ism_id='%s-%u.%u' % (stream_id, snum, unum),
+                        ism_id=f'{stream_id}-{snum}.{unum}',
                         fatal=False))
                 elif media_type == 'Dash':
                     stream_formats.extend(self._extract_mpd_formats(
                         video_url, resource_id,
-                        mpd_id='%s-%u.%u' % (stream_id, snum, unum),
+                        mpd_id=f'{stream_id}-{snum}.{unum}',
                         fatal=False))
                 else:
                     stream_formats.append({
-                        'format_id': '%s-%u.%u' % (stream_id, snum, unum),
+                        'format_id': f'{stream_id}-{snum}.{unum}',
                         'url': video_url,
                         'ext': mimetype2ext(video_url.get('MimeType')),
                     })
@@ -254,7 +254,7 @@ class MediasiteIE(InfoExtractor):
             thumbnail_url = stream.get('ThumbnailUrl')
             if thumbnail_url:
                 thumbnails.append({
-                    'id': '%s-%u' % (stream_id, snum),
+                    'id': f'{stream_id}-{snum}',
                     'url': urljoin(redirect_url, thumbnail_url),
                     'preference': -1 if stream_type != 0 else 0,
                 })

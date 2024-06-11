@@ -219,10 +219,10 @@ class CSpanIE(InfoExtractor):
                     m3u8_id='hls') if determine_ext(path) == 'm3u8' else [{'url': path}]
             add_referer(formats)
             entries.append({
-                'id': '%s_%d' % (video_id, partnum + 1),
+                'id': f'{video_id}_{partnum + 1}',
                 'title': (
                     title if len(files) == 1 else
-                    '%s part %d' % (title, partnum + 1)),
+                    f'{title} part {partnum + 1}'),
                 'formats': formats,
                 'description': description,
                 'thumbnail': thumbnail,

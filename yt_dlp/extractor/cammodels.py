@@ -36,7 +36,7 @@ class CamModelsIE(InfoExtractor):
                 format_id_list = [format_id]
                 height = int_or_none(media.get('videoHeight'))
                 if height is not None:
-                    format_id_list.append('%dp' % height)
+                    format_id_list.append(f'{height}p')
                 f = {
                     'url': media_url,
                     'format_id': '-'.join(format_id_list),

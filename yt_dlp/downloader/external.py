@@ -172,7 +172,7 @@ class ExternalFD(FragmentFD):
         decrypt_fragment = self.decrypter(info_dict)
         dest, _ = self.sanitize_open(tmpfilename, 'wb')
         for frag_index, fragment in enumerate(info_dict['fragments']):
-            fragment_filename = '%s-Frag%d' % (tmpfilename, frag_index)
+            fragment_filename = f'{tmpfilename}-Frag{frag_index}'
             try:
                 src, _ = self.sanitize_open(fragment_filename, 'rb')
             except OSError as err:
@@ -339,7 +339,7 @@ class Aria2cFD(ExternalFD):
             url_list_file = f'{tmpfilename}.frag.urls'
             url_list = []
             for frag_index, fragment in enumerate(info_dict['fragments']):
-                fragment_filename = '%s-Frag%d' % (os.path.basename(tmpfilename), frag_index)
+                fragment_filename = f'{os.path.basename(tmpfilename)}-Frag{frag_index}'
                 url_list.append('{}\n\tout={}'.format(fragment['url'], self._aria2c_filename(fragment_filename)))
             stream, _ = self.sanitize_open(url_list_file, 'wb')
             stream.write('\n'.join(url_list).encode())
