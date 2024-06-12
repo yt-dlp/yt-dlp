@@ -28,7 +28,7 @@ class DVTVIE(InfoExtractor):
             'duration': 1484,
             'upload_date': '20141217',
             'timestamp': 1418792400,
-        }
+        },
     }, {
         'url': 'http://video.aktualne.cz/dvtv/dvtv-16-12-2014-utok-talibanu-boj-o-kliniku-uprchlici/r~973eb3bc854e11e498be002590604f2e/',
         'info_dict': {
@@ -44,7 +44,7 @@ class DVTVIE(InfoExtractor):
                 'description': 'md5:0916925dea8e30fe84222582280b47a0',
                 'timestamp': 1418760010,
                 'upload_date': '20141216',
-            }
+            },
         }, {
             'md5': '5f7652a08b05009c1292317b449ffea2',
             'info_dict': {
@@ -54,7 +54,7 @@ class DVTVIE(InfoExtractor):
                 'description': 'md5:ff2f9f6de73c73d7cef4f756c1c1af42',
                 'timestamp': 1418760010,
                 'upload_date': '20141216',
-            }
+            },
         }, {
             'md5': '498eb9dfa97169f409126c617e2a3d64',
             'info_dict': {
@@ -64,7 +64,7 @@ class DVTVIE(InfoExtractor):
                 'description': 'md5:889fe610a70fee5511dc3326a089188e',
                 'timestamp': 1418760010,
                 'upload_date': '20141216',
-            }
+            },
         }, {
             'md5': 'b8dc6b744844032dab6ba3781a7274b9',
             'info_dict': {
@@ -74,7 +74,7 @@ class DVTVIE(InfoExtractor):
                 'description': 'md5:544f86de6d20c4815bea11bf2ac3004f',
                 'timestamp': 1418760010,
                 'upload_date': '20141216',
-            }
+            },
         }],
     }, {
         'url': 'https://video.aktualne.cz/dvtv/zeman-si-jen-leci-mindraky-sobotku-nenavidi-a-babis-se-mu-te/r~960cdb3a365a11e7a83b0025900fea04/',
@@ -150,7 +150,7 @@ class DVTVIE(InfoExtractor):
             'thumbnail': data.get('image'),
             'duration': int_or_none(data.get('duration')),
             'timestamp': int_or_none(timestamp),
-            'formats': formats
+            'formats': formats,
         }
 
     def _real_extract(self, url):
@@ -170,7 +170,7 @@ class DVTVIE(InfoExtractor):
             webpage, 'video', default=None)
         if item:
             # remove function calls (ex. htmldeentitize)
-            # TODO this should be fixed in a general way in the js_to_json
+            # TODO: this should be fixed in a general way in the js_to_json
             item = re.sub(r'\w+?\((.+)\)', r'\1', item)
             return self._parse_video_metadata(item, video_id, timestamp)
 

@@ -4,7 +4,6 @@ import re
 import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import compat_urllib_parse_unquote
 from ..utils import (
     int_or_none,
     parse_duration,
@@ -100,7 +99,7 @@ class MailRuIE(InfoExtractor):
         {
             'url': 'https://videoapi.my.mail.ru/videos/embed/mail/cloud-strife/Games/2009.html',
             'only_matching': True,
-        }
+        },
     ]
 
     def _real_extract(self, url):
@@ -109,7 +108,7 @@ class MailRuIE(InfoExtractor):
 
         video_id = None
         if meta_id:
-            meta_url = 'https://my.mail.ru/+/video/meta/%s' % meta_id
+            meta_url = f'https://my.mail.ru/+/video/meta/{meta_id}'
         else:
             video_id = mobj.group('idv1')
             if not video_id:
@@ -138,7 +137,7 @@ class MailRuIE(InfoExtractor):
         # Fallback old approach
         if not video_data:
             video_data = self._download_json(
-                'http://api.video.mail.ru/videos/%s.json?new=1' % video_id,
+                f'http://api.video.mail.ru/videos/{video_id}.json?new=1',
                 video_id, 'Downloading video JSON')
 
         video_key = self._get_cookies('https://my.mail.ru').get('video_key')
@@ -169,7 +168,7 @@ class MailRuIE(InfoExtractor):
 
         acc_id = meta_data.get('accId')
         item_id = meta_data.get('itemId')
-        content_id = '%s_%s' % (acc_id, item_id) if acc_id and item_id else video_id
+        content_id = f'{acc_id}_{item_id}' if acc_id and item_id else video_id
 
         thumbnail = meta_data.get('poster')
         duration = int_or_none(meta_data.get('duration'))
@@ -192,7 +191,7 @@ class MailRuMusicSearchBaseIE(InfoExtractor):
     def _search(self, query, url, audio_id, limit=100, offset=0):
         search = self._download_json(
             'https://my.mail.ru/cgi-bin/my/ajax', audio_id,
-            'Downloading songs JSON page %d' % (offset // limit + 1),
+            f'Downloading songs JSON page {offset // limit + 1}',
             headers={
                 'Referer': url,
                 'X-Requested-With': 'XMLHttpRequest',
@@ -236,7 +235,7 @@ class MailRuMusicSearchBaseIE(InfoExtractor):
         artist = t.get('Author') or t.get('Author_Text_HTML')
 
         if track:
-            title = '%s - %s' % (artist, track) if artist else track
+            title = f'{artist} - {track}' if artist else track
         else:
             title = audio_id
 
@@ -307,7 +306,7 @@ class MailRuMusicSearchIE(MailRuMusicSearchBaseIE):
     }]
 
     def _real_extract(self, url):
-        query = compat_urllib_parse_unquote(self._match_id(url))
+        query = urllib.parse.unquote(self._match_id(url))
 
         entries = []
 

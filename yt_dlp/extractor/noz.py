@@ -1,5 +1,6 @@
+import urllib.parse
+
 from .common import InfoExtractor
-from ..compat import compat_urllib_parse_unquote
 from ..utils import (
     find_xpath_attr,
     int_or_none,
@@ -35,9 +36,9 @@ class NozIE(InfoExtractor):
 
         config_url_encoded = self._search_regex(
             r'so\.addVariable\("config_url","[^,]*,(.*?)"',
-            edge_content, 'config URL'
+            edge_content, 'config URL',
         )
-        config_url = compat_urllib_parse_unquote(config_url_encoded)
+        config_url = urllib.parse.unquote(config_url_encoded)
 
         doc = self._download_xml(config_url, 'video configuration')
         title = xpath_text(doc, './/title')
@@ -53,7 +54,7 @@ class NozIE(InfoExtractor):
                 formats.append({
                     'url': http_url,
                     'format_name': xpath_text(qnode, './name'),
-                    'format_id': '%s-%s' % ('http', xpath_text(qnode, './id')),
+                    'format_id': '{}-{}'.format('http', xpath_text(qnode, './id')),
                     'height': int_or_none(xpath_text(qnode, './height')),
                     'width': int_or_none(xpath_text(qnode, './width')),
                     'tbr': int_or_none(xpath_text(qnode, './bitrate'), scale=1000),

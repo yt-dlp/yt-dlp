@@ -23,7 +23,7 @@ class WallaIE(InfoExtractor):
         'params': {
             # rtmp download
             'skip_download': True,
-        }
+        },
     }
 
     _SUBTITLE_LANGS = {
@@ -36,7 +36,7 @@ class WallaIE(InfoExtractor):
         display_id = mobj.group('display_id')
 
         video = self._download_xml(
-            'http://video2.walla.co.il/?w=null/null/%s/@@/video/flv_pl' % video_id,
+            f'http://video2.walla.co.il/?w=null/null/{video_id}/@@/video/flv_pl',
             display_id)
 
         item = video.find('./items/item')
