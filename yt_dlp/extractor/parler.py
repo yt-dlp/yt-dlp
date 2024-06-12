@@ -14,7 +14,7 @@ from ..utils import (
 
 class ParlerIE(InfoExtractor):
     IE_DESC = 'Posts on parler.com'
-    _VALID_URL = r'https://parler\.com/feed/(?P<id>[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12})'
+    _VALID_URL = r'https?://parler\.com/feed/(?P<id>[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12})'
     _TESTS = [
         {
             'url': 'https://parler.com/feed/df79fdba-07cc-48fe-b085-3293897520d7',
@@ -87,5 +87,5 @@ class ParlerIE(InfoExtractor):
                 'view_count': ('views', {int_or_none}),
                 'comment_count': ('total_comments', {int_or_none}),
                 'repost_count': ('echos', {int_or_none}),
-            })
+            }),
         }

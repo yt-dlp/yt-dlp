@@ -35,7 +35,7 @@ class SponSkrubPP(PostProcessor):
 
         if not ignoreerror and self.path is None:
             if path:
-                raise PostProcessingError('sponskrub not found in "%s"' % path)
+                raise PostProcessingError(f'sponskrub not found in "{path}"')
             else:
                 raise PostProcessingError('sponskrub not found. Please install or provide the path using --sponskrub-path')
 
@@ -83,7 +83,7 @@ class SponSkrubPP(PostProcessor):
         cmd += ['--', information['id'], filename, temp_filename]
         cmd = [encodeArgument(i) for i in cmd]
 
-        self.write_debug('sponskrub command line: %s' % shell_quote(cmd))
+        self.write_debug(f'sponskrub command line: {shell_quote(cmd)}')
         stdout, _, returncode = Popen.run(cmd, text=True, stdout=None if self.get_param('verbose') else subprocess.PIPE)
 
         if not returncode:

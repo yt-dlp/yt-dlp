@@ -3,7 +3,7 @@ from .youtube import YoutubeIE, YoutubeTabIE
 
 
 class BeatBumpVideoIE(InfoExtractor):
-    _VALID_URL = r'https://beatbump\.(?:ml|io)/listen\?id=(?P<id>[\w-]+)'
+    _VALID_URL = r'https?://beatbump\.(?:ml|io)/listen\?id=(?P<id>[\w-]+)'
     _TESTS = [{
         'url': 'https://beatbump.ml/listen?id=MgNrAu2pzNs',
         'md5': '5ff3fff41d3935b9810a9731e485fe66',
@@ -48,7 +48,7 @@ class BeatBumpVideoIE(InfoExtractor):
 
 
 class BeatBumpPlaylistIE(InfoExtractor):
-    _VALID_URL = r'https://beatbump\.(?:ml|io)/(?:release\?id=|artist/|playlist/)(?P<id>[\w-]+)'
+    _VALID_URL = r'https?://beatbump\.(?:ml|io)/(?:release\?id=|artist/|playlist/)(?P<id>[\w-]+)'
     _TESTS = [{
         'url': 'https://beatbump.ml/release?id=MPREb_gTAcphH99wE',
         'playlist_count': 50,

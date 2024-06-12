@@ -1,4 +1,4 @@
-import datetime
+import datetime as dt
 import re
 import urllib.parse
 
@@ -115,10 +115,10 @@ class MotherlessIE(InfoExtractor):
         if any(p in webpage for p in (
                 '<title>404 - MOTHERLESS.COM<',
                 ">The page you're looking for cannot be found.<")):
-            raise ExtractorError('Video %s does not exist' % video_id, expected=True)
+            raise ExtractorError(f'Video {video_id} does not exist', expected=True)
 
         if '>The content you are trying to view is for friends only.' in webpage:
-            raise ExtractorError('Video %s is for friends only' % video_id, expected=True)
+            raise ExtractorError(f'Video {video_id} is for friends only', expected=True)
 
         title = self._html_search_regex(
             (r'(?s)<div[^>]+\bclass=["\']media-meta-title[^>]+>(.+?)</div>',
@@ -127,7 +127,7 @@ class MotherlessIE(InfoExtractor):
             (r'setup\(\{\s*["\']file["\']\s*:\s*(["\'])(?P<url>(?:(?!\1).)+)\1',
              r'fileurl\s*=\s*(["\'])(?P<url>(?:(?!\1).)+)\1'),
             webpage, 'video URL', default=None, group='url')
-            or 'http://cdn4.videos.motherlessmedia.com/videos/%s.mp4?fs=opencloud' % video_id)
+            or f'http://cdn4.videos.motherlessmedia.com/videos/{video_id}.mp4?fs=opencloud')
         age_limit = self._rta_search(webpage)
         view_count = str_to_int(self._html_search_regex(
             (r'>([\d,.]+)\s+Views<', r'<strong>Views</strong>\s+([^<]+)<'),
@@ -151,7 +151,7 @@ class MotherlessIE(InfoExtractor):
                     'd': 'days',
                 }
                 kwargs = {_AGO_UNITS.get(uploaded_ago[-1]): delta}
-                upload_date = (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(**kwargs)).strftime('%Y%m%d')
+                upload_date = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(**kwargs)).strftime('%Y%m%d')
 
         comment_count = len(re.findall(r'''class\s*=\s*['"]media-comment-contents\b''', webpage))
         uploader_id = self._html_search_regex(

@@ -2,6 +2,7 @@ from .common import InfoExtractor
 
 
 class LentaIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?lenta\.ru/[^/]+/\d+/\d+/\d+/(?P<id>[^/?#&]+)'
     _TESTS = [{
         'url': 'https://lenta.ru/news/2018/03/22/savshenko_go/',
@@ -44,7 +45,7 @@ class LentaIE(InfoExtractor):
             default=None)
         if video_id:
             return self.url_result(
-                'eagleplatform:lentaru.media.eagleplatform.com:%s' % video_id,
+                f'eagleplatform:lentaru.media.eagleplatform.com:{video_id}',
                 ie='EaglePlatform', video_id=video_id)
 
         return self.url_result(url, ie='Generic')

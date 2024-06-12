@@ -43,7 +43,7 @@ class Vbox7IE(InfoExtractor):
             'uploader': 'svideteliat_ot_varshava',
             'view_count': int,
             'timestamp': 1360215023,
-            'thumbnail': 'https://i49.vbox7.com/design/iconci/png/noimg6.png',
+            'thumbnail': 'https://i49.vbox7.com/o/249/249bb972c20.jpg',
             'description': 'Смях! Чудо - чист за секунди - Скрита камера',
             'upload_date': '20130207',
             'duration': 83,

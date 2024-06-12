@@ -1,9 +1,9 @@
+import hashlib
 import itertools
 import json
+import random
 import re
 import time
-from hashlib import md5
-from random import randint
 
 from .common import InfoExtractor
 from ..aes import aes_ecb_encrypt, pkcs7_padding
@@ -34,7 +34,7 @@ class NetEaseMusicBaseIE(InfoExtractor):
         request_text = json.dumps({**query_body, 'header': cookies}, separators=(',', ':'))
 
         message = f'nobody{api_path}use{request_text}md5forencrypt'.encode('latin1')
-        msg_digest = md5(message).hexdigest()
+        msg_digest = hashlib.md5(message).hexdigest()
 
         data = pkcs7_padding(list(str.encode(
             f'{api_path}-36cd479b6b5-{request_text}-36cd479b6b5-{msg_digest}')))
@@ -53,10 +53,10 @@ class NetEaseMusicBaseIE(InfoExtractor):
             '__csrf': '',
             'os': 'pc',
             'channel': 'undefined',
-            'requestId': f'{int(time.time() * 1000)}_{randint(0, 1000):04}',
+            'requestId': f'{int(time.time() * 1000)}_{random.randint(0, 1000):04}',
             **traverse_obj(self._get_cookies(self._API_BASE), {
                 'MUSIC_U': ('MUSIC_U', {lambda i: i.value}),
-            })
+            }),
         }
         return self._download_json(
             urljoin('https://interface3.music.163.com/', f'/eapi{path}'), video_id,
@@ -140,7 +140,7 @@ class NetEaseMusicIE(NetEaseMusicBaseIE):
             'upload_date': '20180405',
             'description': 'md5:3650af9ee22c87e8637cb2dde22a765c',
             'subtitles': {'lyrics': [{'ext': 'lrc'}]},
-            "duration": 256,
+            'duration': 256,
             'thumbnail': r're:^http.*\.jpg',
             'album': '偶像练习生 表演曲目合集',
             'average_rating': int,
@@ -418,7 +418,7 @@ class NetEaseMusicListIE(NetEaseMusicBaseIE):
         info = self._download_eapi_json(
             '/v3/playlist/detail', list_id,
             {'id': list_id, 't': '-1', 'n': '500', 's': '0'},
-            note="Downloading playlist info")
+            note='Downloading playlist info')
 
         metainfo = traverse_obj(info, ('playlist', {
             'title': ('name', {str}),
@@ -543,7 +543,7 @@ class NetEaseMusicProgramIE(NetEaseMusicBaseIE):
             'duration': 1104,
         },
         'params': {
-            'noplaylist': True
+            'noplaylist': True,
         },
     }]
 
@@ -561,7 +561,8 @@ class NetEaseMusicProgramIE(NetEaseMusicBaseIE):
             'timestamp': ('createTime', {self.kilo_or_none}),
         })
 
-        if not self._yes_playlist(info['songs'] and program_id, info['mainSong']['id']):
+        if not self._yes_playlist(
+                info['songs'] and program_id, info['mainSong']['id'], playlist_label='program', video_label='song'):
             formats = self.extract_formats(info['mainSong'])
 
             return {
@@ -584,7 +585,7 @@ class NetEaseMusicDjRadioIE(NetEaseMusicBaseIE):
         'info_dict': {
             'id': '42',
             'title': '声音蔓延',
-            'description': 'md5:c7381ebd7989f9f367668a5aee7d5f08'
+            'description': 'md5:c7381ebd7989f9f367668a5aee7d5f08',
         },
         'playlist_mincount': 40,
     }

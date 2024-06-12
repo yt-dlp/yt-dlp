@@ -16,14 +16,14 @@ class PrankCastIE(InfoExtractor):
             'display_id': 'Beverly-is-back-like-a-heart-attack-',
             'timestamp': 1661391575,
             'uploader': 'Devonanustart',
-            'channel_id': 4,
+            'channel_id': '4',
             'duration': 7918,
             'cast': ['Devonanustart', 'Phonelosers'],
             'description': '',
             'categories': ['prank'],
             'tags': ['prank call', 'prank', 'live show'],
-            'upload_date': '20220825'
-        }
+            'upload_date': '20220825',
+        },
     }, {
         'url': 'https://prankcast.com/phonelosers/showreel/2048-NOT-COOL',
         'info_dict': {
@@ -33,14 +33,14 @@ class PrankCastIE(InfoExtractor):
             'display_id': 'NOT-COOL',
             'timestamp': 1665028364,
             'uploader': 'phonelosers',
-            'channel_id': 6,
+            'channel_id': '6',
             'duration': 4044,
             'cast': ['phonelosers'],
             'description': '',
             'categories': ['prank'],
             'tags': ['prank call', 'prank', 'live show'],
-            'upload_date': '20221006'
-        }
+            'upload_date': '20221006',
+        },
     }]
 
     def _real_extract(self, url):
@@ -60,12 +60,12 @@ class PrankCastIE(InfoExtractor):
             'url': f'{json_info["broadcast_url"]}{json_info["recording_hash"]}.mp3',
             'timestamp': start_date,
             'uploader': uploader,
-            'channel_id': json_info.get('user_id'),
+            'channel_id': str_or_none(json_info.get('user_id')),
             'duration': try_call(lambda: parse_iso8601(json_info['end_date']) - start_date),
-            'cast': list(filter(None, [uploader] + traverse_obj(guests_json, (..., 'name')))),
+            'cast': list(filter(None, [uploader, *traverse_obj(guests_json, (..., 'name'))])),
             'description': json_info.get('broadcast_description'),
             'categories': [json_info.get('broadcast_category')],
-            'tags': try_call(lambda: json_info['broadcast_tags'].split(','))
+            'tags': try_call(lambda: json_info['broadcast_tags'].split(',')),
         }
 
 
@@ -85,8 +85,8 @@ class PrankCastPostIE(InfoExtractor):
             'cast': ['Devonanustart'],
             'description': '',
             'categories': ['prank call'],
-            'upload_date': '20240104'
-        }
+            'upload_date': '20240104',
+        },
     }, {
         'url': 'https://prankcast.com/despicabledogs/posts/6217-jake-the-work-crow-',
         'info_dict': {
@@ -101,8 +101,8 @@ class PrankCastPostIE(InfoExtractor):
             'cast': ['despicabledogs'],
             'description': 'https://imgur.com/a/vtxLvKU',
             'categories': [],
-            'upload_date': '20240104'
-        }
+            'upload_date': '20240104',
+        },
     }]
 
     def _real_extract(self, url):
@@ -124,7 +124,7 @@ class PrankCastPostIE(InfoExtractor):
             'uploader': uploader,
             'channel_id': str_or_none(post.get('user_id')),
             'duration': float_or_none(content.get('duration')),
-            'cast': list(filter(None, [uploader] + traverse_obj(guests_json, (..., 'name')))),
+            'cast': list(filter(None, [uploader, *traverse_obj(guests_json, (..., 'name'))])),
             'description': post.get('post_body'),
             'categories': list(filter(None, [content.get('category')])),
             'tags': try_call(lambda: list(filter('', post['post_tags'].split(',')))),
@@ -133,5 +133,5 @@ class PrankCastPostIE(InfoExtractor):
                     'url': f'https://prankcast.com/api/private/chat/select-broadcast?id={post["content_id"]}&cache=',
                     'ext': 'json',
                 }],
-            } if post.get('content_id') else None
+            } if post.get('content_id') else None,
         }

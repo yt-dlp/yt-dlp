@@ -22,7 +22,7 @@ class AitubeKZVideoIE(InfoExtractor):
             'timestamp': 1667370519,
             'title': 'Ангел хранитель 1 серия',
             'channel_follower_count': int,
-        }
+        },
     }, {
         # embed url
         'url': 'https://aitube.kz/embed/?id=9291d29b-c038-49a1-ad42-3da2051d353c',
