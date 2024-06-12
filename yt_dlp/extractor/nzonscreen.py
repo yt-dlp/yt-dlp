@@ -89,5 +89,5 @@ class NZOnScreenIE(InfoExtractor):
             'http_headers': {
                 'Referer': 'https://www.nzonscreen.com/',
                 'Origin': 'https://www.nzonscreen.com/',
-            }
+            },
         }

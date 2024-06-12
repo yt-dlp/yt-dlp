@@ -20,11 +20,11 @@ class ManotoTVIE(InfoExtractor):
             'title': 'کارول و جان',
             'description': 'md5:d0fff1f8ba5c6775d312a00165d1a97e',
             'thumbnail': r're:^https?://.*\.(jpeg|png|jpg)$',
-            'ext': 'mp4'
+            'ext': 'mp4',
         },
         'params': {
             'skip_download': 'm3u8',
-        }
+        },
     }, {
         'url': 'https://www.manototv.com/episode/12576',
         'info_dict': {
@@ -37,11 +37,11 @@ class ManotoTVIE(InfoExtractor):
             'title': 'سه ماه تعطیلی',
             'description': 'سه ماه تعطیلی فیلمی به کارگردانی و نویسندگی شاپور قریب ساختهٔ سال ۱۳۵۶ است.',
             'thumbnail': r're:^https?://.*\.(jpeg|png|jpg)$',
-            'ext': 'mp4'
+            'ext': 'mp4',
         },
         'params': {
             'skip_download': 'm3u8',
-        }
+        },
     }]
 
     def _real_extract(self, url):
@@ -93,7 +93,7 @@ class ManotoTVShowIE(InfoExtractor):
 
         entries = [
             self.url_result(
-                'https://www.manototv.com/episode/%s' % item['slideID'], ie=ManotoTVIE.ie_key(), video_id=item['slideID'])
+                'https://www.manototv.com/episode/{}'.format(item['slideID']), ie=ManotoTVIE.ie_key(), video_id=item['slideID'])
             for item in playlist]
         return self.playlist_result(entries, show_id, title, description)
 
@@ -111,7 +111,7 @@ class ManotoTVLiveIE(InfoExtractor):
         },
         'params': {
             'skip_download': 'm3u8',
-        }
+        },
     }
 
     def _real_extract(self, url):

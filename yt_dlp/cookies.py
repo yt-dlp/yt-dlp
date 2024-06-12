@@ -146,7 +146,7 @@ def _extract_firefox_cookies(profile, container, logger):
             identities = json.load(containers).get('identities', [])
         container_id = next((context.get('userContextId') for context in identities if container in (
             context.get('name'),
-            try_call(lambda: re.fullmatch(r'userContext([^\.]+)\.label', context['l10nID']).group())
+            try_call(lambda: re.fullmatch(r'userContext([^\.]+)\.label', context['l10nID']).group()),
         )), None)
         if not isinstance(container_id, int):
             raise ValueError(f'could not find firefox container "{container}" in containers.json')
@@ -263,7 +263,7 @@ def _get_chromium_based_browser_settings(browser_name):
     return {
         'browser_dir': browser_dir,
         'keyring_name': keyring_name,
-        'supports_profiles': browser_name not in browsers_without_profiles
+        'supports_profiles': browser_name not in browsers_without_profiles,
     }
 
 
@@ -826,7 +826,7 @@ def _choose_linux_keyring(logger):
     elif desktop_environment == _LinuxDesktopEnvironment.KDE6:
         linux_keyring = _LinuxKeyring.KWALLET6
     elif desktop_environment in (
-        _LinuxDesktopEnvironment.KDE3, _LinuxDesktopEnvironment.LXQT, _LinuxDesktopEnvironment.OTHER
+        _LinuxDesktopEnvironment.KDE3, _LinuxDesktopEnvironment.LXQT, _LinuxDesktopEnvironment.OTHER,
     ):
         linux_keyring = _LinuxKeyring.BASICTEXT
     else:
@@ -861,7 +861,7 @@ def _get_kwallet_network_wallet(keyring, logger):
             'dbus-send', '--session', '--print-reply=literal',
             f'--dest={service_name}',
             wallet_path,
-            'org.kde.KWallet.networkWallet'
+            'org.kde.KWallet.networkWallet',
         ], text=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
 
         if returncode:
@@ -891,7 +891,7 @@ def _get_kwallet_password(browser_keyring_name, keyring, logger):
             'kwallet-query',
             '--read-password', f'{browser_keyring_name} Safe Storage',
             '--folder', f'{browser_keyring_name} Keys',
-            network_wallet
+            network_wallet,
         ], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
 
         if returncode:
@@ -931,9 +931,8 @@ def _get_gnome_keyring_password(browser_keyring_name, logger):
         for item in col.get_all_items():
             if item.get_label() == f'{browser_keyring_name} Safe Storage':
                 return item.get_secret()
-        else:
-            logger.error('failed to read from keyring')
-            return b''
+        logger.error('failed to read from keyring')
+        return b''
 
 
 def _get_linux_keyring_password(browser_keyring_name, keyring, logger):
@@ -1053,7 +1052,7 @@ def _decrypt_windows_dpapi(ciphertext, logger):
         None,  # pvReserved: must be NULL
         None,  # pPromptStruct: information about prompts to display
         0,  # dwFlags
-        ctypes.byref(blob_out)  # pDataOut
+        ctypes.byref(blob_out),  # pDataOut
     )
     if not ret:
         logger.warning('failed to decrypt with DPAPI', only_once=True)
@@ -1129,24 +1128,24 @@ class LenientSimpleCookie(http.cookies.SimpleCookie):
     _LEGAL_VALUE_CHARS = _LEGAL_KEY_CHARS + re.escape('(),/<=>?@[]{}')
 
     _RESERVED = {
-        "expires",
-        "path",
-        "comment",
-        "domain",
-        "max-age",
-        "secure",
-        "httponly",
-        "version",
-        "samesite",
+        'expires',
+        'path',
+        'comment',
+        'domain',
+        'max-age',
+        'secure',
+        'httponly',
+        'version',
+        'samesite',
     }
 
-    _FLAGS = {"secure", "httponly"}
+    _FLAGS = {'secure', 'httponly'}
 
     # Added 'bad' group to catch the remaining value
-    _COOKIE_PATTERN = re.compile(r"""
+    _COOKIE_PATTERN = re.compile(r'''
         \s*                            # Optional whitespace at start of cookie
         (?P<key>                       # Start of group 'key'
-        [""" + _LEGAL_KEY_CHARS + r"""]+?# Any word of at least one letter
+        [''' + _LEGAL_KEY_CHARS + r''']+?# Any word of at least one letter
         )                              # End of group 'key'
         (                              # Optional group: there may not be a value.
         \s*=\s*                          # Equal Sign
@@ -1156,7 +1155,7 @@ class LenientSimpleCookie(http.cookies.SimpleCookie):
         |                                    # or
         \w{3},\s[\w\d\s-]{9,11}\s[\d:]{8}\sGMT # Special case for "expires" attr
         |                                    # or
-        [""" + _LEGAL_VALUE_CHARS + r"""]*     # Any word or empty string
+        [''' + _LEGAL_VALUE_CHARS + r''']*     # Any word or empty string
         )                                  # End of group 'val'
         |                                  # or
         (?P<bad>(?:\\;|[^;])*?)            # 'bad' group fallback for invalid values
@@ -1164,7 +1163,7 @@ class LenientSimpleCookie(http.cookies.SimpleCookie):
         )?                             # End of optional value group
         \s*                            # Any number of spaces.
         (\s+|;|$)                      # Ending either at space, semicolon, or EOS.
-        """, re.ASCII | re.VERBOSE)
+        ''', re.ASCII | re.VERBOSE)
 
     def load(self, data):
         # Workaround for https://github.com/yt-dlp/yt-dlp/issues/4776
@@ -1260,14 +1259,14 @@ class YoutubeDLCookieJar(http.cookiejar.MozillaCookieJar):
                 # with no name, whereas http.cookiejar regards it as a
                 # cookie with no value.
                 name, value = '', name
-            f.write('%s\n' % '\t'.join((
+            f.write('{}\n'.format('\t'.join((
                 cookie.domain,
                 self._true_or_false(cookie.domain.startswith('.')),
                 cookie.path,
                 self._true_or_false(cookie.secure),
                 str_or_none(cookie.expires, default=''),
-                name, value
-            )))
+                name, value,
+            ))))
 
     def save(self, filename=None, ignore_discard=True, ignore_expires=True):
         """
@@ -1306,10 +1305,10 @@ class YoutubeDLCookieJar(http.cookiejar.MozillaCookieJar):
                 return line
             cookie_list = line.split('\t')
             if len(cookie_list) != self._ENTRY_LEN:
-                raise http.cookiejar.LoadError('invalid length %d' % len(cookie_list))
+                raise http.cookiejar.LoadError(f'invalid length {len(cookie_list)}')
             cookie = self._CookieFileEntry(*cookie_list)
             if cookie.expires_at and not cookie.expires_at.isdigit():
-                raise http.cookiejar.LoadError('invalid expires at %s' % cookie.expires_at)
+                raise http.cookiejar.LoadError(f'invalid expires at {cookie.expires_at}')
             return line
 
         cf = io.StringIO()

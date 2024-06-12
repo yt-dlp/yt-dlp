@@ -24,7 +24,7 @@ def get_new_version(version, revision):
     else:
         old_version = read_version().split('.')
         if version.split('.') == old_version[:3]:
-            revision = str(int((old_version + [0])[3]) + 1)
+            revision = str(int(([*old_version, 0])[3]) + 1)
 
     return f'{version}.{revision}' if revision else version
 

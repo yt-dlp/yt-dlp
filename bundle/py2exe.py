@@ -44,7 +44,7 @@ def main():
                 'Cryptodome',
                 # requests >=2.32.0 breaks py2exe builds due to certifi dependency
                 'requests',
-                'urllib3'
+                'urllib3',
             ],
             'dll_excludes': ['w9xpopen.exe', 'crypt32.dll'],
             # Modules that are only imported dynamically must be added here

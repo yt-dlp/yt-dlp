@@ -37,7 +37,7 @@ class TelecaribePlayIE(InfoExtractor):
         },
         'params': {
             'skip_download': 'Livestream',
-        }
+        },
     }, {
         'url': 'https://www.play.telecaribe.co/liveplus',
         'info_dict': {

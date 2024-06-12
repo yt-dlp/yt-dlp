@@ -87,8 +87,8 @@ class RTVSLOIE(InfoExtractor):
             },
         }, {
             'url': 'https://4d.rtvslo.si/arhiv/dnevnik/174842550',
-            'only_matching': True
-        }
+            'only_matching': True,
+        },
     ]
 
     def _real_extract(self, url):
@@ -127,7 +127,7 @@ class RTVSLOIE(InfoExtractor):
                     'format_note': 'Sign language interpretation', 'preference': -10,
                     'language': (
                         'slv' if f.get('language') == 'eng' and f.get('acodec') != 'none'
-                        else f.get('language'))
+                        else f.get('language')),
                 })
 
         for mediafile in traverse_obj(media, ('mediaFiles', lambda _, v: url_or_none(v['streams']['https']))):
