@@ -1,9 +1,9 @@
 import base64
 import os.path
 import re
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import compat_urllib_parse_unquote
 from ..utils import (
     ExtractorError,
     update_url_query,
@@ -19,8 +19,8 @@ class DropboxIE(InfoExtractor):
             'info_dict': {
                 'id': 'nelirfsxnmcfbfh',
                 'ext': 'mp4',
-                'title': 'youtube-dl test video \'ä"BaW_jenozKc'
-            }
+                'title': 'youtube-dl test video \'ä"BaW_jenozKc',
+            },
         }, {
             'url': 'https://www.dropbox.com/s/nelirfsxnmcfbfh',
             'only_matching': True,
@@ -40,7 +40,7 @@ class DropboxIE(InfoExtractor):
         mobj = self._match_valid_url(url)
         video_id = mobj.group('id')
         webpage = self._download_webpage(url, video_id)
-        fn = compat_urllib_parse_unquote(url_basename(url))
+        fn = urllib.parse.unquote(url_basename(url))
         title = os.path.splitext(fn)[0]
 
         password = self.get_param('videopassword')
@@ -51,7 +51,7 @@ class DropboxIE(InfoExtractor):
                 content_id = self._search_regex(r'content_id=(.*?)["\']', webpage, 'content_id')
                 payload = f'is_xhr=true&t={self._get_cookies("https://www.dropbox.com").get("t").value}&content_id={content_id}&password={password}&url={url}'
                 response = self._download_json(
-                    'https://www.dropbox.com/sm/auth', video_id, 'POSTing video password', data=payload.encode('UTF-8'),
+                    'https://www.dropbox.com/sm/auth', video_id, 'POSTing video password', data=payload.encode(),
                     headers={'content-type': 'application/x-www-form-urlencoded; charset=UTF-8'})
 
                 if response.get('status') != 'authed':
@@ -81,12 +81,12 @@ class DropboxIE(InfoExtractor):
                 'url': update_url_query(url, {'dl': '1'}),
                 'format_id': 'original',
                 'format_note': 'Original',
-                'quality': 1
+                'quality': 1,
             })
 
         return {
             'id': video_id,
             'title': title,
             'formats': formats,
-            'subtitles': subtitles
+            'subtitles': subtitles,
         }

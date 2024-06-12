@@ -21,7 +21,7 @@ class ZenPornIE(InfoExtractor):
             'upload_date': '20230925',
             'uploader': 'md5:9fae59847f1f58d1da8f2772016c12f3',
             'age_limit': 18,
-        }
+        },
     }, {
         'url': 'https://zenporn.com/video/15570701',
         'md5': 'acba0d080d692664fcc8c4e5502b1a67',
@@ -35,7 +35,7 @@ class ZenPornIE(InfoExtractor):
             'upload_date': '20230921',
             'uploader': 'Lois Clarke',
             'age_limit': 18,
-        }
+        },
     }, {
         'url': 'https://zenporn.com/video/8531117/amateur-students-having-a-fuck-fest-at-club/',
         'md5': '67411256aa9451449e4d29f3be525541',
@@ -49,7 +49,7 @@ class ZenPornIE(InfoExtractor):
             'upload_date': '20191005',
             'uploader': 'Jackopenass',
             'age_limit': 18,
-        }
+        },
     }, {
         'url': 'https://zenporn.com/video/15872038/glad-you-came/',
         'md5': '296ccab437f5bac6099433768449d8e1',
@@ -63,7 +63,7 @@ class ZenPornIE(InfoExtractor):
             'upload_date': '20231024',
             'uploader': 'Martin Rudenko',
             'age_limit': 18,
-        }
+        },
     }]
 
     def _gen_info_url(self, ext_domain, extr_id, lifetime=86400):

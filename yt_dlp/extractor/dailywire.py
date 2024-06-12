@@ -81,7 +81,7 @@ class DailyWireIE(DailyWireBaseIE):
             'upload_date': '20220218',
             'creators': ['Caroline Roberts'],
             'timestamp': 1645182003,
-        }
+        },
     }, {
         'url': 'https://www.dailywire.com/videos/the-hyperions',
         'only_matching': True,
@@ -196,7 +196,7 @@ class DailyWirePodcastIE(DailyWireBaseIE):
             'season': '2022',
             'series': 'Morning Wire',
             'upload_date': '20220615',
-        }
+        },
     }, {
         'url': 'https://www.dailywire.com/podcasts/enough',
         'info_dict': {

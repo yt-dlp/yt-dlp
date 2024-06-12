@@ -29,8 +29,8 @@ class PodchaserIE(InfoExtractor):
             'duration': 3708,
             'timestamp': 1636531259,
             'upload_date': '20211110',
-            'average_rating': 4.0
-        }
+            'average_rating': 4.0,
+        },
     }, {
         'url': 'https://www.podchaser.com/podcasts/the-bone-zone-28853',
         'info_dict': {
@@ -38,15 +38,15 @@ class PodchaserIE(InfoExtractor):
             'title': 'The Bone Zone',
             'description': 'Podcast by The Bone Zone',
         },
-        'playlist_count': 275
+        'playlist_count': 275,
     }, {
         'url': 'https://www.podchaser.com/podcasts/sean-carrolls-mindscape-scienc-699349/episodes',
         'info_dict': {
             'id': '699349',
             'title': 'Sean Carroll\'s Mindscape: Science, Society, Philosophy, Culture, Arts, and Ideas',
-            'description': 'md5:2cbd8f4749891a84dc8235342e0b5ff1'
+            'description': 'md5:2cbd8f4749891a84dc8235342e0b5ff1',
         },
-        'playlist_mincount': 225
+        'playlist_mincount': 225,
     }]
 
     @staticmethod
@@ -77,9 +77,9 @@ class PodchaserIE(InfoExtractor):
                 'count': self._PAGE_SIZE,
                 'sort_order': 'SORT_ORDER_RECENT',
                 'filters': {
-                    'podcast_id': podcast_id
+                    'podcast_id': podcast_id,
                 },
-                'options': {}
+                'options': {},
             }).encode())
 
         for episode in json_response['entities']:
