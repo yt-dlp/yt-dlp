@@ -112,7 +112,7 @@ class LBRYBaseIE(InfoExtractor):
 
             next_metapage_params = {
                 **params,
-                "release_time": "<=%s" % metapage[-1]["release_timestamp"]
+                'release_time': '<={}'.format(metapage[-1]['release_timestamp']),
             }
             last_metapage = metapage
             metapage = OnDemandPagedList(
@@ -150,7 +150,7 @@ class LBRYBaseIE(InfoExtractor):
         if qs.get('order', ['new'])[0] == 'new':
             entries = self._metapage_entries(display_id, url, params)
         else:
-            self.report_warning("Extraction is limited to 1000 Videos when not sorting by newest.")
+            self.report_warning('Extraction is limited to 1000 Videos when not sorting by newest.')
             entries = OnDemandPagedList(
                 functools.partial(self._fetch_page, display_id, url, params),
                 self._PAGE_SIZE)
