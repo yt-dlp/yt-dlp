@@ -5,6 +5,7 @@ from .common import InfoExtractor
 from .dailymotion import DailymotionIE
 from ..networking import HEADRequest
 from ..utils import (
+    clean_html,
     determine_ext,
     filter_dict,
     format_field,
@@ -68,6 +69,7 @@ class FranceTVIE(InfoExtractor):
     def _extract_video(self, video_id, hostname=None):
         is_live = None
         videos = []
+        drm_formats = False
         title = None
         subtitle = None
         episode_number = None
@@ -85,13 +87,12 @@ class FranceTVIE(InfoExtractor):
                     'device_type': device_type,
                     'browser': browser,
                     'domain': hostname,
-                }), fatal=False)
+                }), fatal=False, expected_status=422)  # 422 json gives detailed error code/message
 
             if not dinfo:
                 continue
 
-            video = traverse_obj(dinfo, ('video', {dict}))
-            if video:
+            if video := traverse_obj(dinfo, ('video', {dict})):
                 videos.append(video)
                 if duration is None:
                     duration = video.get('duration')
@@ -99,9 +100,19 @@ class FranceTVIE(InfoExtractor):
                     is_live = video.get('is_live')
                 if spritesheets is None:
                     spritesheets = video.get('spritesheets')
+            elif code := traverse_obj(dinfo, ('code', {int})):
+                if code == 2009:
+                    self.raise_geo_restricted(countries=self._GEO_COUNTRIES)
+                elif code in (2015, 2017):
+                    # 2015: L'accès à cette vidéo est impossible. (DRM-only)
+                    # 2017: Cette vidéo n'est pas disponible depuis le site web mobile (b/c DRM)
+                    drm_formats = True
+                    continue
+                self.report_warning(
+                    f'{self.IE_NAME} said: {code} "{clean_html(dinfo.get("message"))}"')
+                continue
 
-            meta = traverse_obj(dinfo, ('meta', {dict}))
-            if meta:
+            if meta := traverse_obj(dinfo, ('meta', {dict})):
                 if title is None:
                     title = meta.get('title')
                 # meta['pre_title'] contains season and episode number for series in format "S<ID> E<ID>"
@@ -113,6 +124,9 @@ class FranceTVIE(InfoExtractor):
                     image = meta.get('image_url')
                 if timestamp is None:
                     timestamp = parse_iso8601(meta.get('broadcasted_at'))
+
+        if not videos and drm_formats:
+            self.report_drm(video_id)
 
         formats, subtitles, video_url = [], {}, None
         for video in traverse_obj(videos, lambda _, v: url_or_none(v['url'])):
