@@ -18,6 +18,7 @@ from ..utils import (
     fix_xml_ampersands,
     float_or_none,
     int_or_none,
+    join_nonempty,
     js_to_json,
     mimetype2ext,
     parse_iso8601,
@@ -538,12 +539,7 @@ class BrightcoveNewBaseIE(AdobePassIE):
                     })
 
                 def build_format_id(kind):
-                    format_id = kind
-                    if tbr:
-                        format_id += f'-{int(tbr)}k'
-                    if height:
-                        format_id += f'-{height}p'
-                    return format_id
+                    return join_nonempty(kind, tbr and f'{int(tbr)}k', height and f'{height}p')
 
                 if src or streaming_src:
                     f.update({
