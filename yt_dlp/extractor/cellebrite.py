@@ -14,7 +14,7 @@ class CellebriteIE(InfoExtractor):
             'title': 'Ask the Expert: Chat Capture - Collect Data from Android Devices in Cellebrite UFED',
             'duration': 455,
             'tags': [],
-        }
+        },
     }, {
         'url': 'https://cellebrite.com/en/how-to-lawfully-collect-the-maximum-amount-of-data-from-android-devices/',
         'info_dict': {
@@ -25,7 +25,7 @@ class CellebriteIE(InfoExtractor):
             'description': 'md5:e9a3d124c7287b0b07bad2547061cacf',
             'thumbnail': 'https://cellebrite.com/wp-content/uploads/2022/07/How-to-Lawfully-Collect-the-Maximum-Amount-of-Data-From-Android-Devices.png',
             'title': 'Android Extractions Explained',
-        }
+        },
     }]
 
     def _get_formats_and_subtitles(self, json_data, display_id):

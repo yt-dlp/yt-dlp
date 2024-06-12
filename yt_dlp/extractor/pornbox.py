@@ -29,8 +29,8 @@ class PornboxIE(InfoExtractor):
             'cast': ['Lily Strong', 'John Strong'],
             'tags': 'count:11',
             'description': 'md5:589c7f33e183aa8aa939537300efb859',
-            'thumbnail': r're:^https?://cdn-image\.gtflixtv\.com.*\.jpg.*$'
-        }
+            'thumbnail': r're:^https?://cdn-image\.gtflixtv\.com.*\.jpg.*$',
+        },
     }, {
         'url': 'https://pornbox.com/application/watch-page/216045',
         'info_dict': {
@@ -46,15 +46,15 @@ class PornboxIE(InfoExtractor):
             'cast': 'count:3',
             'tags': 'count:29',
             'thumbnail': r're:^https?://cdn-image\.gtflixtv\.com.*\.jpg.*$',
-            'subtitles': 'count:6'
+            'subtitles': 'count:6',
         },
         'params': {
             'skip_download': True,
-            'ignore_no_formats_error': True
+            'ignore_no_formats_error': True,
         },
         'expected_warnings': [
             'You are either not logged in or do not have access to this scene',
-            'No video formats found', 'Requested format is not available']
+            'No video formats found', 'Requested format is not available'],
     }]
 
     def _real_extract(self, url):
@@ -64,7 +64,7 @@ class PornboxIE(InfoExtractor):
 
         subtitles = {country_code: [{
             'url': f'https://pornbox.com/contents/{video_id}/subtitles/{country_code}',
-            'ext': 'srt'
+            'ext': 'srt',
         }] for country_code in traverse_obj(public_data, ('subtitles', ..., {str}))}
 
         is_free_scene = traverse_obj(

@@ -41,9 +41,9 @@ class CTVIE(InfoExtractor):
       }
     }
   }
-}''' % display_id,
+}''' % display_id,  # noqa: UP031
             })['data']['resolvedPath']['lastSegment']['content']
         video_id = content['axisId']
         return self.url_result(
-            '9c9media:%s:%s' % (content['videoPlayerDestCode'], video_id),
+            '9c9media:{}:{}'.format(content['videoPlayerDestCode'], video_id),
             'NineCNineMedia', video_id)

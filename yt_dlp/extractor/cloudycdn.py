@@ -22,7 +22,7 @@ class CloudyCDNIE(InfoExtractor):
             'upload_date': '20231121',
             'title': 'D23-6000-105_cetstud',
             'thumbnail': 'https://store.cloudycdn.services/tmsp00060/assets/media/660858/placeholder1700589200.jpg',
-        }
+        },
     }, {
         'url': 'https://embed.cloudycdn.services/izm/media/26e_lv-8-5-1',
         'md5': '798828a479151e2444d8dcfbec76e482',
@@ -34,7 +34,7 @@ class CloudyCDNIE(InfoExtractor):
             'thumbnail': 'https://store.cloudycdn.services/tmsp00120/assets/media/488306/placeholder1679423604.jpg',
             'duration': 1205,
             'upload_date': '20221130',
-        }
+        },
     }]
     _WEBPAGE_TESTS = [{
         'url': 'https://www.tavaklase.lv/video/es-esmu-mina-um-2/',
@@ -47,7 +47,7 @@ class CloudyCDNIE(InfoExtractor):
             'thumbnail': 'https://store.cloudycdn.services/tmsp00120/assets/media/518407/placeholder1678748124.jpg',
             'timestamp': 1677181513,
             'title': 'LIB-2',
-        }
+        },
     }]
 
     def _real_extract(self, url):

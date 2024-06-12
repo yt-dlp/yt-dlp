@@ -1,5 +1,4 @@
 from .prosiebensat1 import ProSiebenSat1BaseIE
-from ..compat import compat_str
 from ..utils import parse_duration, unified_strdate
 
 
@@ -37,7 +36,7 @@ class Puls4IE(ProSiebenSat1BaseIE):
         player_content = media['playerContent']
         info = self._extract_video_info(url, player_content['id'])
         info.update({
-            'id': compat_str(media['objectId']),
+            'id': str(media['objectId']),
             'title': player_content['title'],
             'description': media.get('description'),
             'thumbnail': media.get('previewLink'),

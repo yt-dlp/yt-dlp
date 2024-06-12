@@ -18,7 +18,7 @@ class SubstackIE(InfoExtractor):
             'thumbnail': 'md5:bec758a34d8ee9142d43bcebdf33af18',
             'uploader': 'Maybe Baby',
             'uploader_id': '33628',
-        }
+        },
     }, {
         'url': 'https://haleynahman.substack.com/p/-dear-danny-i-found-my-boyfriends?s=r',
         'md5': '0a63eacec877a1171a62cfa69710fcea',
@@ -30,7 +30,7 @@ class SubstackIE(InfoExtractor):
             'thumbnail': 'md5:daa40b6b79249417c14ff8103db29639',
             'uploader': 'Maybe Baby',
             'uploader_id': '33628',
-        }
+        },
     }, {
         'url': 'https://andrewzimmern.substack.com/p/mussels-with-black-bean-sauce-recipe',
         'md5': 'fd3c07077b02444ff0130715b5f632bb',
@@ -42,7 +42,7 @@ class SubstackIE(InfoExtractor):
             'thumbnail': 'md5:e30bfaa9da40e82aa62354263a9dd232',
             'uploader': "Andrew Zimmern's Spilled Milk ",
             'uploader_id': '577659',
-        }
+        },
     }]
 
     @classmethod
@@ -54,7 +54,7 @@ class SubstackIE(InfoExtractor):
         if mobj:
             parsed = urllib.parse.urlparse(url)
             yield parsed._replace(netloc=f'{mobj.group("subdomain")}.substack.com').geturl()
-            raise cls.StopExtraction()
+            raise cls.StopExtraction
 
     def _extract_video_formats(self, video_id, url):
         formats, subtitles = [], {}
