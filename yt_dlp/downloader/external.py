@@ -55,7 +55,7 @@ class ExternalFD(FragmentFD):
             # correct and expected termination thus all postprocessing
             # should take place
             retval = 0
-            self.to_screen('[%s] Interrupted by user' % self.get_basename())
+            self.to_screen(f'[{self.get_basename()}] Interrupted by user')
         finally:
             if self._cookies_tempfile:
                 self.try_remove(self._cookies_tempfile)
@@ -172,7 +172,7 @@ class ExternalFD(FragmentFD):
         decrypt_fragment = self.decrypter(info_dict)
         dest, _ = self.sanitize_open(tmpfilename, 'wb')
         for frag_index, fragment in enumerate(info_dict['fragments']):
-            fragment_filename = '%s-Frag%d' % (tmpfilename, frag_index)
+            fragment_filename = f'{tmpfilename}-Frag{frag_index}'
             try:
                 src, _ = self.sanitize_open(fragment_filename, 'rb')
             except OSError as err:
@@ -186,7 +186,7 @@ class ExternalFD(FragmentFD):
             if not self.params.get('keep_fragments', False):
                 self.try_remove(encodeFilename(fragment_filename))
         dest.close()
-        self.try_remove(encodeFilename('%s.frag.urls' % tmpfilename))
+        self.try_remove(encodeFilename(f'{tmpfilename}.frag.urls'))
         return 0
 
     def _call_process(self, cmd, info_dict):
@@ -336,11 +336,11 @@ class Aria2cFD(ExternalFD):
 
         if 'fragments' in info_dict:
             cmd += ['--uri-selector=inorder']
-            url_list_file = '%s.frag.urls' % tmpfilename
+            url_list_file = f'{tmpfilename}.frag.urls'
             url_list = []
             for frag_index, fragment in enumerate(info_dict['fragments']):
-                fragment_filename = '%s-Frag%d' % (os.path.basename(tmpfilename), frag_index)
-                url_list.append('%s\n\tout=%s' % (fragment['url'], self._aria2c_filename(fragment_filename)))
+                fragment_filename = f'{os.path.basename(tmpfilename)}-Frag{frag_index}'
+                url_list.append('{}\n\tout={}'.format(fragment['url'], self._aria2c_filename(fragment_filename)))
             stream, _ = self.sanitize_open(url_list_file, 'wb')
             stream.write('\n'.join(url_list).encode())
             stream.close()
@@ -357,7 +357,7 @@ class Aria2cFD(ExternalFD):
             'id': sanitycheck,
             'method': method,
             'params': [f'token:{rpc_secret}', *params],
-        }).encode('utf-8')
+        }).encode()
         request = Request(
             f'http://localhost:{rpc_port}/jsonrpc',
             data=d, headers={
@@ -416,7 +416,7 @@ class Aria2cFD(ExternalFD):
                     'total_bytes_estimate': total,
                     'eta': (total - downloaded) / (speed or 1),
                     'fragment_index': min(frag_count, len(completed) + 1) if fragmented else None,
-                    'elapsed': time.time() - started
+                    'elapsed': time.time() - started,
                 })
                 self._hook_progress(status, info_dict)
 
@@ -509,12 +509,12 @@ class FFmpegFD(ExternalFD):
         proxy = self.params.get('proxy')
         if proxy:
             if not re.match(r'^[\da-zA-Z]+://', proxy):
-                proxy = 'http://%s' % proxy
+                proxy = f'http://{proxy}'
 
             if proxy.startswith('socks'):
                 self.report_warning(
-                    '%s does not support SOCKS proxies. Downloading is likely to fail. '
-                    'Consider adding --hls-prefer-native to your command.' % self.get_basename())
+                    f'{self.get_basename()} does not support SOCKS proxies. Downloading is likely to fail. '
+                    'Consider adding --hls-prefer-native to your command.')
 
             # Since December 2015 ffmpeg supports -http_proxy option (see
             # http://git.videolan.org/?p=ffmpeg.git;a=commit;h=b4eb1f29ebddd60c41a2eb39f5af701e38e0d3fd)
@@ -575,7 +575,7 @@ class FFmpegFD(ExternalFD):
             if end_time:
                 args += ['-t', str(end_time - start_time)]
 
-            args += self._configuration_args((f'_i{i + 1}', '_i')) + ['-i', fmt['url']]
+            args += [*self._configuration_args((f'_i{i + 1}', '_i')), '-i', fmt['url']]
 
         if not (start_time or end_time) or not self.params.get('force_keyframes_at_cuts'):
             args += ['-c', 'copy']

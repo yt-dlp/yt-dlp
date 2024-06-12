@@ -15,7 +15,7 @@ class ElPaisIE(InfoExtractor):
             'title': 'Tiempo nuevo, recetas viejas',
             'description': 'De lunes a viernes, a partir de las ocho de la mañana, Iñaki Gabilondo nos cuenta su visión de la actualidad nacional e internacional.',
             'upload_date': '20140206',
-        }
+        },
     }, {
         'url': 'http://elcomidista.elpais.com/elcomidista/2016/02/24/articulo/1456340311_668921.html#?id_externo_nwl=newsletter_diaria20160303t',
         'md5': '3bd5b09509f3519d7d9e763179b013de',
@@ -25,7 +25,7 @@ class ElPaisIE(InfoExtractor):
             'title': 'Cómo hacer el mejor café con cafetera italiana',
             'description': 'Que sí, que las cápsulas son cómodas. Pero si le pides algo más a la vida, quizá deberías aprender a usar bien la cafetera italiana. No tienes más que ver este vídeo y seguir sus siete normas básicas.',
             'upload_date': '20160303',
-        }
+        },
     }, {
         'url': 'http://elpais.com/elpais/2017/01/26/ciencia/1485456786_417876.html',
         'md5': '9c79923a118a067e1a45789e1e0b0f9c',

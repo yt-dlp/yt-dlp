@@ -25,7 +25,7 @@ class MeipaiIE(InfoExtractor):
             'view_count': 35511,
             'creator': '她她-TATA',
             'tags': ['葉子', '阿桑', '余姿昀', '超級女聲'],
-        }
+        },
     }, {
         # record of live streaming
         'url': 'http://www.meipai.com/media/585526361',
@@ -41,7 +41,7 @@ class MeipaiIE(InfoExtractor):
             'upload_date': '20160919',
             'view_count': 1215,
             'creator': '她她-TATA',
-        }
+        },
     }]
 
     def _real_extract(self, url):

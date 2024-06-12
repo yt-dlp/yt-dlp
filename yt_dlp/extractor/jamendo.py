@@ -2,7 +2,6 @@ import hashlib
 import random
 
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     clean_html,
     int_or_none,
@@ -40,20 +39,20 @@ class JamendoIE(InfoExtractor):
             'like_count': int,
             'average_rating': int,
             'tags': ['piano', 'peaceful', 'newage', 'strings', 'upbeat'],
-        }
+        },
     }, {
         'url': 'https://licensing.jamendo.com/en/track/1496667/energetic-rock',
         'only_matching': True,
     }]
 
     def _call_api(self, resource, resource_id, fatal=True):
-        path = '/api/%ss' % resource
-        rand = compat_str(random.random())
+        path = f'/api/{resource}s'
+        rand = str(random.random())
         return self._download_json(
             'https://www.jamendo.com' + path, resource_id, fatal=fatal, query={
                 'id[]': resource_id,
             }, headers={
-                'X-Jam-Call': '$%s*%s~' % (hashlib.sha1((path + rand).encode()).hexdigest(), rand)
+                'X-Jam-Call': f'${hashlib.sha1((path + rand).encode()).hexdigest()}*{rand}~',
             })[0]
 
     def _real_extract(self, url):
@@ -72,12 +71,11 @@ class JamendoIE(InfoExtractor):
         # if artist_name:
         #     title = '%s - %s' % (artist_name, title)
         # album = get_model('album')
-        artist = self._call_api("artist", track.get('artistId'), fatal=False)
-        album = self._call_api("album", track.get('albumId'), fatal=False)
+        artist = self._call_api('artist', track.get('artistId'), fatal=False)
+        album = self._call_api('album', track.get('albumId'), fatal=False)
 
         formats = [{
-            'url': 'https://%s.jamendo.com/?trackid=%s&format=%s&from=app-97dab294'
-                   % (sub_domain, track_id, format_id),
+            'url': f'https://{sub_domain}.jamendo.com/?trackid={track_id}&format={format_id}&from=app-97dab294',
             'format_id': format_id,
             'ext': ext,
             'quality': quality,
@@ -111,7 +109,7 @@ class JamendoIE(InfoExtractor):
             tags.append(tag_name)
 
         stats = track.get('stats') or {}
-        license = track.get('licenseCC') or []
+        video_license = track.get('licenseCC') or []
 
         return {
             'id': track_id,
@@ -124,7 +122,7 @@ class JamendoIE(InfoExtractor):
             'track': track_name,
             'album': album.get('name'),
             'formats': formats,
-            'license': '-'.join(license) if license else None,
+            'license': '-'.join(video_license) if video_license else None,
             'timestamp': int_or_none(track.get('dateCreated')),
             'view_count': int_or_none(stats.get('listenedAll')),
             'like_count': int_or_none(stats.get('favorited')),
@@ -160,7 +158,7 @@ class JamendoAlbumIE(JamendoIE):  # XXX: Do not subclass from concrete IE
                 'average_rating': 4,
                 'tags': ['rock', 'drums', 'bass', 'world', 'punk', 'neutral'],
                 'like_count': int,
-            }
+            },
         }, {
             'md5': '1f358d7b2f98edfe90fd55dac0799d50',
             'info_dict': {
@@ -179,11 +177,11 @@ class JamendoAlbumIE(JamendoIE):  # XXX: Do not subclass from concrete IE
                 'average_rating': 4,
                 'license': 'by',
                 'like_count': int,
-            }
+            },
         }],
         'params': {
-            'playlistend': 2
-        }
+            'playlistend': 2,
+        },
     }]
 
     def _real_extract(self, url):
@@ -196,7 +194,7 @@ class JamendoAlbumIE(JamendoIE):  # XXX: Do not subclass from concrete IE
             track_id = track.get('id')
             if not track_id:
                 continue
-            track_id = compat_str(track_id)
+            track_id = str(track_id)
             entries.append({
                 '_type': 'url_transparent',
                 'url': 'https://www.jamendo.com/track/' + track_id,
@@ -207,4 +205,4 @@ class JamendoAlbumIE(JamendoIE):  # XXX: Do not subclass from concrete IE
 
         return self.playlist_result(
             entries, album_id, album_name,
-            clean_html(try_get(album, lambda x: x['description']['en'], compat_str)))
+            clean_html(try_get(album, lambda x: x['description']['en'], str)))

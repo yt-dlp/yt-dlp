@@ -183,21 +183,84 @@ line-length = 120
 
 [tool.ruff.lint]
 ignore = [
-    "E402",  # module level import not at top of file
-    "E501",  # line too long
-    "E731",  # do not assign a lambda expression, use a def
-    "E741",  # ambiguous variable name
+    "E402",    # module-import-not-at-top-of-file
+    "E501",    # line-too-long
+    "E731",    # lambda-assignment
+    "E741",    # ambiguous-variable-name
+    "UP036",   # outdated-version-block
+    "B006",    # mutable-argument-default
+    "B008",    # function-call-in-default-argument
+    "B011",    # assert-false
+    "B017",    # assert-raises-exception
+    "B023",    # function-uses-loop-variable (false positives)
+    "B028",    # no-explicit-stacklevel
+    "B904",    # raise-without-from-inside-except
+    "C401",    # unnecessary-generator-set
+    "C402",    # unnecessary-generator-dict
+    "PIE790",  # unnecessary-placeholder
+    "SIM102",  # collapsible-if
+    "SIM108",  # if-else-block-instead-of-if-exp
+    "SIM112",  # uncapitalized-environment-variables
+    "SIM113",  # enumerate-for-loop
+    "SIM114",  # if-with-same-arms
+    "SIM115",  # open-file-with-context-handler
+    "SIM117",  # multiple-with-statements
+    "SIM223",  # expr-and-false
+    "SIM300",  # yoda-conditions
+    "TD001",   # invalid-todo-tag
+    "TD002",   # missing-todo-author
+    "TD003",   # missing-todo-link
+    "PLE0604", # invalid-all-object (false positives)
+    "PLW0603", # global-statement
+    "PLW1510", # subprocess-run-without-check
+    "PLW2901", # redefined-loop-name
+    "RUF001",  # ambiguous-unicode-character-string
+    "RUF012",  # mutable-class-default
+    "RUF100",  # unused-noqa (flake8 has slightly different behavior)
 ]
 select = [
-    "E",  # pycodestyle errors
-    "W",  # pycodestyle warnings
-    "F",  # pyflakes
-    "I",  # import order
+    "E",      # pycodestyle Error
+    "W",      # pycodestyle Warning
+    "F",      # Pyflakes
+    "I",      # isort
+    "Q",      # flake8-quotes
+    "N803",   # invalid-argument-name
+    "N804",   # invalid-first-argument-name-for-class-method
+    "UP",     # pyupgrade
+    "B",      # flake8-bugbear
+    "A",      # flake8-builtins
+    "COM",    # flake8-commas
+    "C4",     # flake8-comprehensions
+    "FA",     # flake8-future-annotations
+    "ISC",    # flake8-implicit-str-concat
+    "ICN003", # banned-import-from
+    "PIE",    # flake8-pie
+    "T20",    # flake8-print
+    "RSE",    # flake8-raise
+    "RET504", # unnecessary-assign
+    "SIM",    # flake8-simplify
+    "TID251", # banned-api
+    "TD",     # flake8-todos
+    "PLC",    # Pylint Convention
+    "PLE",    # Pylint Error
+    "PLW",    # Pylint Warning
+    "RUF",    # Ruff-specific rules
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"devscripts/lazy_load_template.py" = ["F401"]
-"!yt_dlp/extractor/**.py" = ["I"]
+"devscripts/lazy_load_template.py" = [
+    "F401",   # unused-import
+]
+"!yt_dlp/extractor/**.py" = [
+    "I",      # isort
+    "ICN003", # banned-import-from
+    "T20",    # flake8-print
+    "A002",   # builtin-argument-shadowing
+    "C408",   # unnecessary-collection-call
+]
+"yt_dlp/jsinterp.py" = [
+    "UP031",  # printf-string-formatting
+]
 
 [tool.ruff.lint.isort]
 known-first-party = [
@@ -206,6 +269,50 @@ known-first-party = [
     "test",
 ]
 relative-imports-order = "closest-to-furthest"
+
+[tool.ruff.lint.flake8-quotes]
+docstring-quotes = "double"
+multiline-quotes = "single"
+inline-quotes = "single"
+avoid-escape = false
+
+[tool.ruff.lint.pep8-naming]
+classmethod-decorators = [
+    "yt_dlp.utils.classproperty",
+]
+
+[tool.ruff.lint.flake8-import-conventions]
+banned-from = [
+    "base64",
+    "datetime",
+    "functools",
+    "glob",
+    "hashlib",
+    "itertools",
+    "json",
+    "math",
+    "os",
+    "pathlib",
+    "random",
+    "re",
+    "string",
+    "sys",
+    "time",
+    "urllib",
+    "uuid",
+    "xml",
+]
+
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"yt_dlp.compat.compat_str".msg = "Use `str` instead."
+"yt_dlp.compat.compat_b64decode".msg = "Use `base64.b64decode` instead."
+"yt_dlp.compat.compat_urlparse".msg = "Use `urllib.parse` instead."
+"yt_dlp.compat.compat_parse_qs".msg = "Use `urllib.parse.parse_qs` instead."
+"yt_dlp.compat.compat_urllib_parse_unquote".msg = "Use `urllib.parse.unquote` instead."
+"yt_dlp.compat.compat_urllib_parse_urlencode".msg = "Use `urllib.parse.urlencode` instead."
+"yt_dlp.compat.compat_urllib_parse_urlparse".msg = "Use `urllib.parse.urlparse` instead."
+"yt_dlp.compat.compat_shlex_quote".msg = "Use `yt_dlp.utils.shell_quote` instead."
+"yt_dlp.utils.error_to_compat_str".msg = "Use `str` instead."
 
 [tool.autopep8]
 max_line_length = 120

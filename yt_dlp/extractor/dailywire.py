@@ -35,7 +35,7 @@ class DailyWireIE(DailyWireBaseIE):
             'creator': 'Caroline Roberts',
             'series_id': 'ckzplm0a097fn0826r2vc3j7h',
             'series': 'China: The Enemy Within',
-        }
+        },
     }, {
         'url': 'https://www.dailywire.com/episode/ep-124-bill-maher',
         'info_dict': {
@@ -48,7 +48,7 @@ class DailyWireIE(DailyWireBaseIE):
             'description': 'md5:adb0de584bcfa9c41374999d9e324e98',
             'series_id': 'cjzvep7270hp00786l9hwccob',
             'series': 'The Sunday Special',
-        }
+        },
     }, {
         'url': 'https://www.dailywire.com/videos/the-hyperions',
         'only_matching': True,
@@ -95,7 +95,7 @@ class DailyWirePodcastIE(DailyWireBaseIE):
             'description': 'md5:c4afbadda4e1c38a4496f6d62be55634',
             'thumbnail': 'https://daily-wire-production.imgix.net/podcasts/ckx4otgd71jm508699tzb6hf4-1639506575562.jpg',
             'duration': 900.117667,
-        }
+        },
     }]
 
     def _real_extract(self, url):

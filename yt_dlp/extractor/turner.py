@@ -1,7 +1,6 @@
 import re
 
 from .adobepass import AdobePassIE
-from ..compat import compat_str
 from ..utils import (
     ExtractorError,
     determine_ext,
@@ -79,7 +78,7 @@ class TurnerBaseIE(AdobePassIE):
             ext = determine_ext(video_url)
             if video_url.startswith('/mp4:protected/'):
                 continue
-                # TODO Correct extraction for these files
+                # TODO: Correct extraction for these files
                 # protected_path_data = path_data.get('protected')
                 # if not protected_path_data or not rtmp_src:
                 #     continue
@@ -160,7 +159,7 @@ class TurnerBaseIE(AdobePassIE):
                         'height': int(mobj.group('height')),
                         'tbr': int_or_none(mobj.group('bitrate')),
                     })
-                elif isinstance(format_id, compat_str):
+                elif isinstance(format_id, str):
                     if format_id.isdigit():
                         f['tbr'] = int(format_id)
                     else:
@@ -187,7 +186,7 @@ class TurnerBaseIE(AdobePassIE):
                         'scc': 'scc',
                         'webvtt': 'vtt',
                         'smptett': 'tt',
-                    }.get(source.get('format'))
+                    }.get(source.get('format')),
                 })
 
         thumbnails.extend({
@@ -219,7 +218,7 @@ class TurnerBaseIE(AdobePassIE):
     def _extract_ngtv_info(self, media_id, tokenizer_query, ap_data=None):
         is_live = ap_data.get('is_live')
         streams_data = self._download_json(
-            'http://medium.ngtv.io/media/%s/tv' % media_id,
+            f'http://medium.ngtv.io/media/{media_id}/tv',
             media_id)['media']['tv']
         duration = None
         chapters = []

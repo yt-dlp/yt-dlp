@@ -39,7 +39,7 @@ class BitChuteIE(InfoExtractor):
             'upload_date': '20170103',
             'uploader_url': 'https://www.bitchute.com/profile/I5NgtHZn9vPj/',
             'channel': 'BitChute',
-            'channel_url': 'https://www.bitchute.com/channel/bitchute/'
+            'channel_url': 'https://www.bitchute.com/channel/bitchute/',
         },
     }, {
         # test case: video with different channel and uploader
@@ -55,7 +55,7 @@ class BitChuteIE(InfoExtractor):
             'upload_date': '20231106',
             'uploader_url': 'https://www.bitchute.com/profile/9K0kUWA9zmd9/',
             'channel': 'Full Measure with Sharyl Attkisson',
-            'channel_url': 'https://www.bitchute.com/channel/sharylattkisson/'
+            'channel_url': 'https://www.bitchute.com/channel/sharylattkisson/',
         },
     }, {
         # video not downloadable in browser, but we can recover it
@@ -72,7 +72,7 @@ class BitChuteIE(InfoExtractor):
             'upload_date': '20181113',
             'uploader_url': 'https://www.bitchute.com/profile/I5NgtHZn9vPj/',
             'channel': 'BitChute',
-            'channel_url': 'https://www.bitchute.com/channel/bitchute/'
+            'channel_url': 'https://www.bitchute.com/channel/bitchute/',
         },
         'params': {'check_formats': None},
     }, {
@@ -115,7 +115,7 @@ class BitChuteIE(InfoExtractor):
                 continue
             return {
                 'url': url,
-                'filesize': int_or_none(response.headers.get('Content-Length'))
+                'filesize': int_or_none(response.headers.get('Content-Length')),
             }
 
     def _raise_if_restricted(self, webpage):
@@ -196,7 +196,7 @@ class BitChuteChannelIE(InfoExtractor):
                     'duration': 16,
                     'view_count': int,
                 },
-            }
+            },
         ],
         'params': {
             'skip_download': True,
@@ -209,7 +209,7 @@ class BitChuteChannelIE(InfoExtractor):
             'id': 'wV9Imujxasw9',
             'title': 'Bruce MacDonald and "The Light of Darkness"',
             'description': 'md5:747724ef404eebdfc04277714f81863e',
-        }
+        },
     }]
 
     _TOKEN = 'zyG6tQcGPE5swyAEFLqKUwMuMMuF6IO2DZ6ZDQjGfsL0e4dcTLwqkTTul05Jdve7'
@@ -224,7 +224,7 @@ class BitChuteChannelIE(InfoExtractor):
             'container': 'playlist-video',
             'title': 'title',
             'description': 'description',
-        }
+        },
 
     }
 

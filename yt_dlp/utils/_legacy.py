@@ -17,7 +17,7 @@ from ..networking._urllib import HTTPHandler
 
 # isort: split
 from .networking import escape_rfc3986  # noqa: F401
-from .networking import normalize_url as escape_url  # noqa: F401
+from .networking import normalize_url as escape_url
 from .networking import random_user_agent, std_headers  # noqa: F401
 from ..cookies import YoutubeDLCookieJar  # noqa: F401
 from ..networking._urllib import PUTRequest  # noqa: F401
@@ -167,7 +167,7 @@ def decode_png(png_data):
         chunks.append({
             'type': chunk_type,
             'length': length,
-            'data': chunk_data
+            'data': chunk_data,
         })
 
     ihdr = chunks[0]['data']
@@ -195,15 +195,15 @@ def decode_png(png_data):
         return pixels[y][x]
 
     for y in range(height):
-        basePos = y * (1 + stride)
-        filter_type = decompressed_data[basePos]
+        base_pos = y * (1 + stride)
+        filter_type = decompressed_data[base_pos]
 
         current_row = []
 
         pixels.append(current_row)
 
         for x in range(stride):
-            color = decompressed_data[1 + basePos + x]
+            color = decompressed_data[1 + base_pos + x]
             basex = y * stride + x
             left = 0
             up = 0
