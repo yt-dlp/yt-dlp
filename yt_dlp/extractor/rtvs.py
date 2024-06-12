@@ -21,7 +21,7 @@ class RTVSIE(InfoExtractor):
             'duration': 2854,
             'thumbnail': 'https://www.rtvs.sk/media/a501/image/file/2/0000/b1R8.rtvs.jpg',
             'display_id': '135331',
-        }
+        },
     }, {
         # tv archive
         'url': 'http://www.rtvs.sk/televizia/archiv/8249/63118',
@@ -34,7 +34,7 @@ class RTVSIE(InfoExtractor):
             'timestamp': 1428555900,
             'upload_date': '20150409',
             'duration': 4986,
-        }
+        },
     }, {
         # tv archive
         'url': 'https://www.rtvs.sk/televizia/archiv/18083?utm_source=web&utm_medium=rozcestnik&utm_campaign=Robin',
@@ -48,7 +48,7 @@ class RTVSIE(InfoExtractor):
             'duration': 831,
             'upload_date': '20211111',
             'thumbnail': 'https://www.rtvs.sk/media/a501/image/file/2/0916/robin.jpg',
-        }
+        },
     }]
 
     def _real_extract(self, url):
@@ -80,5 +80,5 @@ class RTVSIE(InfoExtractor):
             'duration': parse_duration(traverse_obj(data, ('playlist', 0, 'length'))),
             'thumbnail': traverse_obj(data, ('playlist', 0, 'image')),
             'timestamp': unified_timestamp(traverse_obj(data, ('playlist', 0, 'datetime_create'))),
-            'formats': formats
+            'formats': formats,
         }

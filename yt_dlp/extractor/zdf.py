@@ -1,7 +1,6 @@
 import re
 
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     NO_DEFAULT,
     ExtractorError,
@@ -29,11 +28,11 @@ class ZDFBaseIE(InfoExtractor):
     def _call_api(self, url, video_id, item, api_token=None, referrer=None):
         headers = {}
         if api_token:
-            headers['Api-Auth'] = 'Bearer %s' % api_token
+            headers['Api-Auth'] = f'Bearer {api_token}'
         if referrer:
             headers['Referer'] = referrer
         return self._download_json(
-            url, video_id, 'Downloading JSON %s' % item, headers=headers)
+            url, video_id, f'Downloading JSON {item}', headers=headers)
 
     @staticmethod
     def _extract_subtitles(src):
@@ -73,7 +72,7 @@ class ZDFBaseIE(InfoExtractor):
             f.update({
                 'url': format_url,
                 'format_id': join_nonempty('http', meta.get('type'), meta.get('quality')),
-                'tbr': int_or_none(self._search_regex(r'_(\d+)k_', format_url, 'tbr', default=None))
+                'tbr': int_or_none(self._search_regex(r'_(\d+)k_', format_url, 'tbr', default=None)),
             })
             new_formats = [f]
         formats.extend(merge_dicts(f, {
@@ -236,7 +235,7 @@ class ZDFIE(ZDFBaseIE):
             'timestamp': 1641355200,
             'upload_date': '20220105',
         },
-        'skip': 'No longer available "Diese Seite wurde leider nicht gefunden"'
+        'skip': 'No longer available "Diese Seite wurde leider nicht gefunden"',
     }, {
         'url': 'https://www.zdf.de/serien/soko-stuttgart/das-geld-anderer-leute-100.html',
         'info_dict': {
@@ -270,7 +269,7 @@ class ZDFIE(ZDFBaseIE):
         t = content['mainVideoContent']['http://zdf.de/rels/target']
         ptmd_path = traverse_obj(t, (
             (('streams', 'default'), None),
-            ('http://zdf.de/rels/streams/ptmd', 'http://zdf.de/rels/streams/ptmd-template')
+            ('http://zdf.de/rels/streams/ptmd', 'http://zdf.de/rels/streams/ptmd-template'),
         ), get_all=False)
         if not ptmd_path:
             raise ExtractorError('Could not extract ptmd_path')
@@ -303,7 +302,7 @@ class ZDFIE(ZDFBaseIE):
         chapters = [{
             'start_time': chap.get('anchorOffset'),
             'end_time': next_chap.get('anchorOffset'),
-            'title': chap.get('anchorLabel')
+            'title': chap.get('anchorLabel'),
         } for chap, next_chap in zip(chapter_marks, chapter_marks[1:])]
 
         return merge_dicts(info, {
@@ -312,7 +311,7 @@ class ZDFIE(ZDFBaseIE):
             'duration': int_or_none(t.get('duration')),
             'timestamp': unified_timestamp(content.get('editorialDate')),
             'thumbnails': thumbnails,
-            'chapters': chapters or None
+            'chapters': chapters or None,
         })
 
     def _extract_regular(self, url, player, video_id):
@@ -322,7 +321,7 @@ class ZDFIE(ZDFBaseIE):
 
     def _extract_mobile(self, video_id):
         video = self._download_json(
-            'https://zdf-cdn.live.cellular.de/mediathekV2/document/%s' % video_id,
+            f'https://zdf-cdn.live.cellular.de/mediathekV2/document/{video_id}',
             video_id)
 
         formats = []
@@ -341,7 +340,7 @@ class ZDFIE(ZDFBaseIE):
         if isinstance(teaser_bild, dict):
             for thumbnail_key, thumbnail in teaser_bild.items():
                 thumbnail_url = try_get(
-                    thumbnail, lambda x: x['url'], compat_str)
+                    thumbnail, lambda x: x['url'], str)
                 if thumbnail_url:
                     thumbnails.append({
                         'url': thumbnail_url,
@@ -356,7 +355,7 @@ class ZDFIE(ZDFBaseIE):
             'description': document.get('beschreibung'),
             'duration': int_or_none(document.get('length')),
             'timestamp': unified_timestamp(document.get('date')) or unified_timestamp(
-                try_get(video, lambda x: x['meta']['editorialDate'], compat_str)),
+                try_get(video, lambda x: x['meta']['editorialDate'], str)),
             'thumbnails': thumbnails,
             'subtitles': self._extract_subtitles(document),
             'formats': formats,
@@ -405,10 +404,10 @@ class ZDFChannelIE(ZDFBaseIE):
 
     @classmethod
     def suitable(cls, url):
-        return False if ZDFIE.suitable(url) else super(ZDFChannelIE, cls).suitable(url)
+        return False if ZDFIE.suitable(url) else super().suitable(url)
 
     def _og_search_title(self, webpage, fatal=False):
-        title = super(ZDFChannelIE, self)._og_search_title(webpage, fatal=fatal)
+        title = super()._og_search_title(webpage, fatal=fatal)
         return re.split(r'\s+[-|]\s+ZDF(?:mediathek)?$', title or '')[0] or None
 
     def _real_extract(self, url):
@@ -417,7 +416,7 @@ class ZDFChannelIE(ZDFBaseIE):
         webpage = self._download_webpage(url, channel_id)
 
         matches = re.finditer(
-            r'''<div\b[^>]*?\sdata-plusbar-id\s*=\s*(["'])(?P<p_id>[\w-]+)\1[^>]*?\sdata-plusbar-url=\1(?P<url>%s)\1''' % ZDFIE._VALID_URL,
+            rf'''<div\b[^>]*?\sdata-plusbar-id\s*=\s*(["'])(?P<p_id>[\w-]+)\1[^>]*?\sdata-plusbar-url=\1(?P<url>{ZDFIE._VALID_URL})\1''',
             webpage)
 
         if self._downloader.params.get('noplaylist', False):
@@ -428,11 +427,11 @@ class ZDFChannelIE(ZDFBaseIE):
             if entry:
                 return entry
         else:
-            self.to_screen('Downloading playlist %s - add --no-playlist to download just the main video' % (channel_id, ))
+            self.to_screen(f'Downloading playlist {channel_id} - add --no-playlist to download just the main video')
 
         def check_video(m):
             v_ref = self._search_regex(
-                r'''(<a\b[^>]*?\shref\s*=[^>]+?\sdata-target-id\s*=\s*(["'])%s\2[^>]*>)''' % (m.group('p_id'), ),
+                r'''(<a\b[^>]*?\shref\s*=[^>]+?\sdata-target-id\s*=\s*(["']){}\2[^>]*>)'''.format(m.group('p_id')),
                 webpage, 'check id', default='')
             v_ref = extract_attributes(v_ref)
             return v_ref.get('data-target-video-type') != 'novideo'

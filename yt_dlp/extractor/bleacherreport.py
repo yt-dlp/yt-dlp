@@ -44,7 +44,7 @@ class BleacherReportIE(InfoExtractor):
     def _real_extract(self, url):
         article_id = self._match_id(url)
 
-        article_data = self._download_json('http://api.bleacherreport.com/api/v1/articles/%s' % article_id, article_id)['article']
+        article_data = self._download_json(f'http://api.bleacherreport.com/api/v1/articles/{article_id}', article_id)['article']
 
         thumbnails = []
         primary_photo = article_data.get('primaryPhoto')
@@ -71,11 +71,11 @@ class BleacherReportIE(InfoExtractor):
         if video:
             video_type = video['type']
             if video_type in ('cms.bleacherreport.com', 'vid.bleacherreport.com'):
-                info['url'] = 'http://bleacherreport.com/video_embed?id=%s' % video['id']
+                info['url'] = 'http://bleacherreport.com/video_embed?id={}'.format(video['id'])
             elif video_type == 'youtube.com':
                 info['url'] = video['id']
             elif video_type == 'vine.co':
-                info['url'] = 'https://vine.co/v/%s' % video['id']
+                info['url'] = 'https://vine.co/v/{}'.format(video['id'])
             else:
                 info['url'] = video_type + video['id']
             return info
@@ -99,12 +99,12 @@ class BleacherReportCMSIE(AMPIE):
 
         },
         'expected_warnings': [
-            'Unable to download f4m manifest'
-        ]
+            'Unable to download f4m manifest',
+        ],
     }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        info = self._extract_feed_info('http://vid.bleacherreport.com/videos/%s.akamai' % video_id)
+        info = self._extract_feed_info(f'http://vid.bleacherreport.com/videos/{video_id}.akamai')
         info['id'] = video_id
         return info

@@ -29,7 +29,7 @@ class AnchorFMEpisodeIE(InfoExtractor):
             'release_date': '20230121',
             'release_timestamp': 1674285179,
             'episode_id': 'e1tpt3d',
-        }
+        },
     }, {
         # embed url
         'url': 'https://anchor.fm/apakatatempo/embed/episodes/S2E75-Perang-Bintang-di-Balik-Kasus-Ferdy-Sambo-dan-Ismail-Bolong-e1shjqd',
@@ -50,7 +50,7 @@ class AnchorFMEpisodeIE(InfoExtractor):
             'season': 'Season 2',
             'season_number': 2,
             'episode_id': 'e1shjqd',
-        }
+        },
     }]
 
     _WEBPAGE_TESTS = [{
@@ -72,7 +72,7 @@ class AnchorFMEpisodeIE(InfoExtractor):
             'thumbnail': 'https://s3-us-west-2.amazonaws.com/anchor-generated-image-bank/production/podcast_uploaded_episode400/2627805/2627805-1671590688729-4db3882ac9e4b.jpg',
             'uploader': 'Podcast Tempo',
             'channel': 'apakatatempo',
-        }
+        },
     }]
 
     def _real_extract(self, url):

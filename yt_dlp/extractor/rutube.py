@@ -1,9 +1,6 @@
 import itertools
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-)
 from ..utils import (
     bool_or_none,
     determine_ext,
@@ -21,7 +18,7 @@ class RutubeBaseIE(InfoExtractor):
             query = {}
         query['format'] = 'json'
         return self._download_json(
-            'http://rutube.ru/api/video/%s/' % video_id,
+            f'http://rutube.ru/api/video/{video_id}/',
             video_id, 'Downloading video JSON',
             'Unable to download video JSON', query=query)
 
@@ -44,7 +41,7 @@ class RutubeBaseIE(InfoExtractor):
             'thumbnail': video.get('thumbnail_url'),
             'duration': duration,
             'uploader': try_get(video, lambda x: x['author']['name']),
-            'uploader_id': compat_str(uploader_id) if uploader_id else None,
+            'uploader_id': str(uploader_id) if uploader_id else None,
             'timestamp': unified_timestamp(video.get('created_ts')),
             'categories': [category] if category else None,
             'age_limit': age_limit,
@@ -63,7 +60,7 @@ class RutubeBaseIE(InfoExtractor):
             query = {}
         query['format'] = 'json'
         return self._download_json(
-            'http://rutube.ru/api/play/options/%s/' % video_id,
+            f'http://rutube.ru/api/play/options/{video_id}/',
             video_id, 'Downloading options JSON',
             'Unable to download options JSON',
             headers=self.geo_verification_headers(), query=query)
@@ -171,7 +168,7 @@ class RutubeIE(RutubeBaseIE):
 
     @classmethod
     def suitable(cls, url):
-        return False if RutubePlaylistIE.suitable(url) else super(RutubeIE, cls).suitable(url)
+        return False if RutubePlaylistIE.suitable(url) else super().suitable(url)
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -236,7 +233,7 @@ class RutubePlaylistBaseIE(RutubeBaseIE):
             page = self._download_json(
                 next_page_url or self._next_page_url(
                     pagenum, playlist_id, *args, **kwargs),
-                playlist_id, 'Downloading page %s' % pagenum)
+                playlist_id, f'Downloading page {pagenum}')
 
             results = page.get('results')
             if not results or not isinstance(results, list):
@@ -335,7 +332,7 @@ class RutubePlaylistIE(RutubePlaylistBaseIE):
     def suitable(cls, url):
         from ..utils import int_or_none, parse_qs
 
-        if not super(RutubePlaylistIE, cls).suitable(url):
+        if not super().suitable(url):
             return False
         params = parse_qs(url)
         return params.get('pl_type', [None])[0] and int_or_none(params.get('pl_id', [None])[0])

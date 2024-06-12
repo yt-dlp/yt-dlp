@@ -12,7 +12,7 @@ class MinotoIE(InfoExtractor):
         mobj = self._match_valid_url(url)
         player_id = mobj.group('player_id') or '1'
         video_id = mobj.group('id')
-        video_data = self._download_json('http://play.minoto-video.com/%s/%s.js' % (player_id, video_id), video_id)
+        video_data = self._download_json(f'http://play.minoto-video.com/{player_id}/{video_id}.js', video_id)
         video_metadata = video_data['video-metadata']
         formats = []
         for fmt in video_data['video-files']:

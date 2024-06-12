@@ -1,5 +1,4 @@
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     ExtractorError,
     clean_html,
@@ -144,7 +143,7 @@ class HKETVIE(InfoExtractor):
             if not isinstance(track, dict):
                 continue
             track_kind = str_or_none(track.get('kind'))
-            if not track_kind or not isinstance(track_kind, compat_str):
+            if not track_kind or not isinstance(track_kind, str):
                 continue
             if track_kind.lower() not in ('captions', 'subtitles'):
                 continue

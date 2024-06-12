@@ -31,7 +31,7 @@ class TestPlugins(unittest.TestCase):
 
         # don't load modules with underscore prefix
         self.assertFalse(
-            f'{PACKAGE_NAME}.extractor._ignore' in sys.modules.keys(),
+            f'{PACKAGE_NAME}.extractor._ignore' in sys.modules,
             'loaded module beginning with underscore')
         self.assertNotIn('IgnorePluginIE', plugins_ie.keys())
 

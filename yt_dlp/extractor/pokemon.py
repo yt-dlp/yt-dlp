@@ -48,7 +48,7 @@ class PokemonIE(InfoExtractor):
         video_id, display_id = self._match_valid_url(url).groups()
         webpage = self._download_webpage(url, video_id or display_id)
         video_data = extract_attributes(self._search_regex(
-            r'(<[^>]+data-video-id="%s"[^>]*>)' % (video_id if video_id else '[a-z0-9]{32}'),
+            r'(<[^>]+data-video-id="{}"[^>]*>)'.format(video_id if video_id else '[a-z0-9]{32}'),
             webpage, 'video data element'))
         video_id = video_data['data-video-id']
         title = video_data.get('data-video-title') or self._html_search_meta(
@@ -57,7 +57,7 @@ class PokemonIE(InfoExtractor):
         return {
             '_type': 'url_transparent',
             'id': video_id,
-            'url': 'limelight:media:%s' % video_id,
+            'url': f'limelight:media:{video_id}',
             'title': title,
             'description': video_data.get('data-video-summary'),
             'thumbnail': video_data.get('data-video-poster'),
@@ -80,13 +80,13 @@ class PokemonWatchIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Lillier and the Staff!',
             'description': 'md5:338841b8c21b283d24bdc9b568849f04',
-        }
+        },
     }, {
         'url': 'https://watch.pokemon.com/en-us/#/player?id=3fe7752ba09141f0b0f7756d1981c6b2',
-        'only_matching': True
+        'only_matching': True,
     }, {
         'url': 'https://watch.pokemon.com/de-de/player.html?id=b3c402e111a4459eb47e12160ab0ba07',
-        'only_matching': True
+        'only_matching': True,
     }]
 
     def _extract_media(self, channel_array, video_id):
@@ -102,7 +102,7 @@ class PokemonWatchIE(InfoExtractor):
         info = {
             '_type': 'url',
             'id': video_id,
-            'url': 'limelight:media:%s' % video_id,
+            'url': f'limelight:media:{video_id}',
             'ie_key': 'LimelightMedia',
         }
 
@@ -120,7 +120,7 @@ class PokemonWatchIE(InfoExtractor):
 
         if video_data is None:
             raise ExtractorError(
-                'Video %s does not exist' % video_id, expected=True)
+                f'Video {video_id} does not exist', expected=True)
 
         info['_type'] = 'url_transparent'
         images = video_data.get('images')
