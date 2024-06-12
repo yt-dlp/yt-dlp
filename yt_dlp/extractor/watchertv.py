@@ -71,8 +71,8 @@ class WatcherTVIE(DropoutBaseIE):
                 'uploader_url': 'https://vimeo.com/user80538407',
                 'uploader': 'OTT Videos',
             },
-            'expected_warnings': ['Ignoring subtitle tracks found in the HLS manifest']
-        }
+            'expected_warnings': ['Ignoring subtitle tracks found in the HLS manifest'],
+        },
     ]
 
 
@@ -86,8 +86,8 @@ class WatcherTVSeasonIE(DropoutSeasonBaseIE):
             'playlist_count': 8,
             'info_dict': {
                 'id': 'ghost-files-season-1',
-                'title': 'Ghost Files - Season 1'
-            }
+                'title': 'Ghost Files - Season 1',
+            },
         },
         {
             'url': 'https://www.watchertv.com/are-you-scared',
@@ -95,8 +95,8 @@ class WatcherTVSeasonIE(DropoutSeasonBaseIE):
             'playlist_count': 3,
             'info_dict': {
                 'id': 'are-you-scared-season-1',
-                'title': 'Are You Scared - Season 1'
-            }
+                'title': 'Are You Scared - Season 1',
+            },
         },
         {
             'url': 'https://www.watchertv.com/watcher-one-offs',
@@ -104,7 +104,7 @@ class WatcherTVSeasonIE(DropoutSeasonBaseIE):
             'playlist_count': 16,
             'info_dict': {
                 'id': 'watcher-one-offs-season-1',
-                'title': 'Watcher One Offs - Season 1'
-            }
-        }
+                'title': 'Watcher One Offs - Season 1',
+            },
+        },
     ]
