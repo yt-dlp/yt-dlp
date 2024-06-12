@@ -31,9 +31,9 @@ class TapTapBaseIE(InfoExtractor):
         # h265 playlist contains both h265 and h264 formats
         video_url = traverse_obj(video_data, ('play_url', ('url_h265', 'url'), {url_or_none}, any))
         formats = self._extract_m3u8_formats(video_url, video_id, fatal=False)
-        for format in formats:
-            if re.search(r'^(hev|hvc|hvt)\d', format.get('vcodec', '')):
-                format['format_id'] = join_nonempty(format.get('format_id'), 'h265', delim='_')
+        for fmt in formats:
+            if re.search(r'^(hev|hvc|hvt)\d', fmt.get('vcodec', '')):
+                fmt['format_id'] = join_nonempty(fmt.get('format_id'), 'h265', delim='_')
 
         return {
             'id': str(video_id),
@@ -41,7 +41,7 @@ class TapTapBaseIE(InfoExtractor):
             **traverse_obj(video_data, ({
                 'duration': ('info', 'duration', {int_or_none}),
                 'thumbnail': ('thumbnail', ('original_url', 'url'), {url_or_none}),
-            }), get_all=False)
+            }), get_all=False),
         }
 
     def _real_extract(self, url):
@@ -54,8 +54,8 @@ class TapTapBaseIE(InfoExtractor):
         metainfo = traverse_obj(data, self._META_PATH)
         entries = [{
             **metainfo,
-            **self._extract_video(id)
-        } for id in set(traverse_obj(data, self._ID_PATH))]
+            **self._extract_video(id_),
+        } for id_ in set(traverse_obj(data, self._ID_PATH))]
 
         return self.playlist_result(entries, **metainfo, id=video_id)
 
@@ -100,7 +100,7 @@ class TapTapMomentIE(TapTapBaseIE):
                 'uploader': '乌酱',
                 'uploader_id': '532896',
                 'thumbnail': r're:^https?://.*\.(png|jpg)',
-            }
+            },
         }],
         'params': {'skip_download': 'm3u8'},
     }, {
@@ -131,7 +131,7 @@ class TapTapMomentIE(TapTapBaseIE):
                 'uploader': '崩坏：星穹铁道',
                 'uploader_id': '414732580',
                 'thumbnail': r're:^https?://.*\.(png|jpg)',
-            }
+            },
         }],
         'params': {'skip_download': 'm3u8'},
     }, {
@@ -176,7 +176,7 @@ class TapTapAppIE(TapTapBaseIE):
                 'description': 'md5:e345f39a5fea5de2a46923f70d5f76ab',
                 'duration': 26,
                 'thumbnail': r're:^https?://.*\.(png|jpg)',
-            }
+            },
         }, {
             'info_dict': {
                 'id': '4058462',
@@ -185,7 +185,7 @@ class TapTapAppIE(TapTapBaseIE):
                 'description': 'md5:e345f39a5fea5de2a46923f70d5f76ab',
                 'duration': 295,
                 'thumbnail': r're:^https?://.*\.(png|jpg)',
-            }
+            },
         }],
         'params': {'skip_download': 'm3u8'},
     }]
@@ -221,7 +221,7 @@ class TapTapAppIntlIE(TapTapIntlBase):
                 'description': 'md5:418285f9c15347fc3cf3e3a3c649f182',
                 'duration': 78,
                 'thumbnail': r're:^https?://.*\.(png|jpg)',
-            }
+            },
         }],
         'params': {'skip_download': 'm3u8'},
     }]
@@ -269,7 +269,7 @@ class TapTapPostIntlIE(TapTapIntlBase):
                 'uploader': 'TapTap Editor',
                 'uploader_id': '80224473',
                 'thumbnail': r're:^https?://.*\.(png|jpg)',
-            }
+            },
         }],
         'params': {'skip_download': 'm3u8'},
     }]

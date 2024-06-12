@@ -91,7 +91,7 @@ class RTVSLOIE(InfoExtractor):
             },
         }, {
             'url': 'https://4d.rtvslo.si/arhiv/dnevnik/174842550',
-            'only_matching': True
+            'only_matching': True,
         }, {
             'url': 'https://365.rtvslo.si/oddaja/ekipa-bled/173250997',
             'info_dict': {
@@ -99,9 +99,8 @@ class RTVSLOIE(InfoExtractor):
                 'id': '173250997',
                 'title': 'Ekipa Bled',
             },
-            'playlist_count': 18
-        }
-
+            'playlist_count': 18,
+        },
     ]
 
     def _get_video_info(self, v_id):
@@ -139,7 +138,7 @@ class RTVSLOIE(InfoExtractor):
                     'format_note': 'Sign language interpretation', 'preference': -10,
                     'language': (
                         'slv' if f.get('language') == 'eng' and f.get('acodec') != 'none'
-                        else f.get('language'))
+                        else f.get('language')),
                 })
 
         for mediafile in traverse_obj(media, ('mediaFiles', lambda _, v: url_or_none(v['streams']['https']))):

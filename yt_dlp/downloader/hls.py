@@ -72,7 +72,7 @@ class HlsFD(FragmentFD):
 
     def real_download(self, filename, info_dict):
         man_url = info_dict['url']
-        self.to_screen('[%s] Downloading m3u8 manifest' % self.FD_NAME)
+        self.to_screen(f'[{self.FD_NAME}] Downloading m3u8 manifest')
 
         urlh = self.ydl.urlopen(self._prepare_url(info_dict, man_url))
         man_url = urlh.url
@@ -228,7 +228,7 @@ class HlsFD(FragmentFD):
                         'url': frag_url,
                         'decrypt_info': decrypt_info,
                         'byte_range': byte_range,
-                        'media_sequence': media_sequence
+                        'media_sequence': media_sequence,
                     })
                     media_sequence += 1
 
@@ -350,9 +350,8 @@ class HlsFD(FragmentFD):
                             # XXX: this should probably be silent as well
                             # or verify that all segments contain the same data
                             self.report_warning(bug_reports_message(
-                                'Discarding a %s block found in the middle of the stream; '
-                                'if the subtitles display incorrectly,'
-                                % (type(block).__name__)))
+                                f'Discarding a {type(block).__name__} block found in the middle of the stream; '
+                                'if the subtitles display incorrectly,'))
                             continue
                     block.write_into(output)
 

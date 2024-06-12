@@ -96,7 +96,7 @@ class FunimationPageIE(FunimationBaseIE):
             f'{show}_{episode}', query={
                 'deviceType': 'web',
                 'region': self._REGION,
-                'locale': locale or 'en'
+                'locale': locale or 'en',
             }), ('videoList', ..., 'id'), get_all=False)
 
         return self.url_result(f'https://www.funimation.com/player/{video_id}', FunimationIE.ie_key(), video_id)
@@ -157,7 +157,7 @@ class FunimationIE(FunimationBaseIE):
                     yield lang, version.title(), f
 
     def _get_episode(self, webpage, experience_id=None, episode_id=None, fatal=True):
-        ''' Extract the episode, season and show objects given either episode/experience id '''
+        """ Extract the episode, season and show objects given either episode/experience id """
         show = self._parse_json(
             self._search_regex(
                 r'show\s*=\s*({.+?})\s*;', webpage, 'show data', fatal=fatal),
@@ -199,16 +199,16 @@ class FunimationIE(FunimationBaseIE):
                 continue
             thumbnails.append({'url': fmt.get('poster')})
             duration = max(duration, fmt.get('duration', 0))
-            format_name = '%s %s (%s)' % (version, lang, experience_id)
+            format_name = f'{version} {lang} ({experience_id})'
             self.extract_subtitles(
                 subtitles, experience_id, display_id=display_id, format_name=format_name,
                 episode=episode if experience_id == initial_experience_id else episode_id)
 
             headers = {}
             if self._TOKEN:
-                headers['Authorization'] = 'Token %s' % self._TOKEN
+                headers['Authorization'] = f'Token {self._TOKEN}'
             page = self._download_json(
-                'https://www.funimation.com/api/showexperience/%s/' % experience_id,
+                f'https://www.funimation.com/api/showexperience/{experience_id}/',
                 display_id, headers=headers, expected_status=403, query={
                     'pinst_id': ''.join(random.choices(string.digits + string.ascii_letters, k=8)),
                 }, note=f'Downloading {format_name} JSON')
@@ -216,7 +216,7 @@ class FunimationIE(FunimationBaseIE):
             if not sources:
                 error = try_get(page, lambda x: x['errors'][0], dict)
                 if error:
-                    self.report_warning('%s said: Error %s - %s' % (
+                    self.report_warning('{} said: Error {} - {}'.format(
                         self.IE_NAME, error.get('code'), error.get('detail') or error.get('title')))
                 else:
                     self.report_warning('No sources found for format')
@@ -227,11 +227,11 @@ class FunimationIE(FunimationBaseIE):
                 source_type = source.get('videoType') or determine_ext(source_url)
                 if source_type == 'm3u8':
                     current_formats.extend(self._extract_m3u8_formats(
-                        source_url, display_id, 'mp4', m3u8_id='%s-%s' % (experience_id, 'hls'), fatal=False,
+                        source_url, display_id, 'mp4', m3u8_id='{}-{}'.format(experience_id, 'hls'), fatal=False,
                         note=f'Downloading {format_name} m3u8 information'))
                 else:
                     current_formats.append({
-                        'format_id': '%s-%s' % (experience_id, source_type),
+                        'format_id': f'{experience_id}-{source_type}',
                         'url': source_url,
                     })
                 for f in current_formats:
@@ -284,7 +284,7 @@ class FunimationIE(FunimationBaseIE):
                     sub_type = sub_type if sub_type != 'FULL' else None
                     current_sub = {
                         'url': text_track['src'],
-                        'name': join_nonempty(version, text_track.get('label'), sub_type, delim=' ')
+                        'name': join_nonempty(version, text_track.get('label'), sub_type, delim=' '),
                     }
                     lang = join_nonempty(text_track.get('language', 'und'),
                                          version if version != 'Simulcast' else None,
@@ -302,7 +302,7 @@ class FunimationShowIE(FunimationBaseIE):
         'url': 'https://www.funimation.com/en/shows/sk8-the-infinity',
         'info_dict': {
             'id': '1315000',
-            'title': 'SK8 the Infinity'
+            'title': 'SK8 the Infinity',
         },
         'playlist_count': 13,
         'params': {
@@ -313,7 +313,7 @@ class FunimationShowIE(FunimationBaseIE):
         'url': 'https://www.funimation.com/shows/ouran-high-school-host-club/',
         'info_dict': {
             'id': '39643',
-            'title': 'Ouran High School Host Club'
+            'title': 'Ouran High School Host Club',
         },
         'playlist_count': 26,
         'params': {
@@ -329,11 +329,11 @@ class FunimationShowIE(FunimationBaseIE):
         base_url, locale, display_id = self._match_valid_url(url).groups()
 
         show_info = self._download_json(
-            'https://title-api.prd.funimationsvc.com/v2/shows/%s?region=%s&deviceType=web&locale=%s'
-            % (display_id, self._REGION, locale or 'en'), display_id)
+            'https://title-api.prd.funimationsvc.com/v2/shows/{}?region={}&deviceType=web&locale={}'.format(
+                display_id, self._REGION, locale or 'en'), display_id)
         items_info = self._download_json(
-            'https://prod-api-funimationnow.dadcdigital.com/api/funimation/episodes/?limit=99999&title_id=%s'
-            % show_info.get('id'), display_id)
+            'https://prod-api-funimationnow.dadcdigital.com/api/funimation/episodes/?limit=99999&title_id={}'.format(
+                show_info.get('id')), display_id)
 
         vod_items = traverse_obj(items_info, ('items', ..., lambda k, _: re.match(r'(?i)mostRecent[AS]vod', k), 'item'))
 
@@ -343,7 +343,7 @@ class FunimationShowIE(FunimationBaseIE):
             'title': show_info['name'],
             'entries': orderedSet(
                 self.url_result(
-                    '%s/%s' % (base_url, vod_item.get('episodeSlug')), FunimationPageIE.ie_key(),
+                    '{}/{}'.format(base_url, vod_item.get('episodeSlug')), FunimationPageIE.ie_key(),
                     vod_item.get('episodeId'), vod_item.get('episodeName'))
                 for vod_item in sorted(vod_items, key=lambda x: x.get('episodeOrder', -1))),
         }

@@ -28,7 +28,7 @@ class IlPostIE(InfoExtractor):
             'availability': 'public',
             'series_id': '235598',
             'description': '',
-        }
+        },
     }]
 
     def _real_extract(self, url):
