@@ -15,7 +15,7 @@ class NiconicoDmcFD(FileDownloader):
     def real_download(self, filename, info_dict):
         from ..extractor.niconico import NiconicoIE
 
-        self.to_screen('[%s] Downloading from DMC' % self.FD_NAME)
+        self.to_screen(f'[{self.FD_NAME}] Downloading from DMC')
         ie = NiconicoIE(self.ydl)
         info_dict, heartbeat_info_dict = ie._get_heartbeat_info(info_dict)
 
@@ -34,7 +34,7 @@ class NiconicoDmcFD(FileDownloader):
             try:
                 self.ydl.urlopen(request).read()
             except Exception:
-                self.to_screen('[%s] Heartbeat failed' % self.FD_NAME)
+                self.to_screen(f'[{self.FD_NAME}] Heartbeat failed')
 
             with heartbeat_lock:
                 if not download_complete:
@@ -85,14 +85,14 @@ class NiconicoLiveFD(FileDownloader):
                             'quality': live_quality,
                             'protocol': 'hls+fmp4',
                             'latency': live_latency,
-                            'chasePlay': False
+                            'chasePlay': False,
                         },
                         'room': {
                             'protocol': 'webSocket',
-                            'commentable': True
+                            'commentable': True,
                         },
                         'reconnect': True,
-                    }
+                    },
                 }))
             else:
                 ws = ws_extractor
@@ -118,7 +118,7 @@ class NiconicoLiveFD(FileDownloader):
                     elif self.ydl.params.get('verbose', False):
                         if len(recv) > 100:
                             recv = recv[:100] + '...'
-                        self.to_screen('[debug] Server said: %s' % recv)
+                        self.to_screen(f'[debug] Server said: {recv}')
 
         def ws_main():
             reconnect = False
@@ -128,7 +128,7 @@ class NiconicoLiveFD(FileDownloader):
                     if ret is True:
                         return
                 except BaseException as e:
-                    self.to_screen('[%s] %s: Connection error occured, reconnecting after 10 seconds: %s' % ('niconico:live', video_id, str_or_none(e)))
+                    self.to_screen('[{}] {}: Connection error occured, reconnecting after 10 seconds: {}'.format('niconico:live', video_id, str_or_none(e)))
                     time.sleep(10)
                     continue
                 finally:

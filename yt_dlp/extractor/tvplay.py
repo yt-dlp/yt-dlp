@@ -1,7 +1,7 @@
 import re
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import compat_urlparse
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
@@ -107,7 +107,7 @@ class TVPlayIE(InfoExtractor):
         {
             'url': 'mtg:418113',
             'only_matching': True,
-        }
+        },
     ]
 
     def _real_extract(self, url):
@@ -118,13 +118,13 @@ class TVPlayIE(InfoExtractor):
         if geo_country:
             self._initialize_geo_bypass({'countries': [geo_country.upper()]})
         video = self._download_json(
-            'http://playapi.mtgx.tv/v3/videos/%s' % video_id, video_id, 'Downloading video JSON')
+            f'http://playapi.mtgx.tv/v3/videos/{video_id}', video_id, 'Downloading video JSON')
 
         title = video['title']
 
         try:
             streams = self._download_json(
-                'http://playapi.mtgx.tv/v3/videos/stream/%s' % video_id,
+                f'http://playapi.mtgx.tv/v3/videos/stream/{video_id}',
                 video_id, 'Downloading streams JSON')
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError) and e.cause.status == 403:
@@ -143,7 +143,7 @@ class TVPlayIE(InfoExtractor):
                 formats.extend(self._extract_f4m_formats(
                     update_url_query(video_url, {
                         'hdcore': '3.5.0',
-                        'plugin': 'aasp-3.5.0.151.81'
+                        'plugin': 'aasp-3.5.0.151.81',
                     }), video_id, f4m_id='hds', fatal=False))
             elif ext == 'm3u8':
                 formats.extend(self._extract_m3u8_formats(
@@ -184,7 +184,7 @@ class TVPlayIE(InfoExtractor):
         if sami_path:
             lang = self._search_regex(
                 r'_([a-z]{2})\.xml', sami_path, 'lang',
-                default=compat_urlparse.urlparse(url).netloc.rsplit('.', 1)[-1])
+                default=urllib.parse.urlparse(url).netloc.rsplit('.', 1)[-1])
             subtitles[lang] = [{
                 'url': sami_path,
             }]
@@ -250,7 +250,7 @@ class TVPlayHomeIE(InfoExtractor):
             'description': 'md5:c6926e9710f1a126f028fbe121eddb79',
             'duration': 2440,
         },
-        'skip': '404'
+        'skip': '404',
     }, {
         'url': 'https://play.tv3.lt/lives/tv6-lt,live-2838694/optibet-a-lygos-rungtynes-marijampoles-suduva--vilniaus-riteriai,programme-3422014',
         'only_matching': True,

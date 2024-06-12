@@ -1,10 +1,7 @@
 import re
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_urllib_parse_urlparse,
-    compat_urlparse,
-)
 from ..utils import (
     determine_ext,
     extract_attributes,
@@ -48,20 +45,20 @@ class CondeNastIE(InfoExtractor):
         'wmagazine': 'W Magazine',
     }
 
-    _VALID_URL = r'''(?x)https?://(?:video|www|player(?:-backend)?)\.(?:%s)\.com/
+    _VALID_URL = r'''(?x)https?://(?:video|www|player(?:-backend)?)\.(?:{})\.com/
         (?:
             (?:
                 embed(?:js)?|
                 (?:script|inline)/video
-            )/(?P<id>[0-9a-f]{24})(?:/(?P<player_id>[0-9a-f]{24}))?(?:.+?\btarget=(?P<target>[^&]+))?|
+            )/(?P<id>[0-9a-f]{{24}})(?:/(?P<player_id>[0-9a-f]{{24}}))?(?:.+?\btarget=(?P<target>[^&]+))?|
             (?P<type>watch|series|video)/(?P<display_id>[^/?#]+)
-        )''' % '|'.join(_SITES.keys())
-    IE_DESC = 'Condé Nast media group: %s' % ', '.join(sorted(_SITES.values()))
+        )'''.format('|'.join(_SITES.keys()))
+    IE_DESC = 'Condé Nast media group: {}'.format(', '.join(sorted(_SITES.values())))
 
     _EMBED_REGEX = [r'''(?x)
         <(?:iframe|script)[^>]+?src=(["\'])(?P<url>
-            (?:https?:)?//player(?:-backend)?\.(?:%s)\.com/(?:embed(?:js)?|(?:script|inline)/video)/.+?
-        )\1''' % '|'.join(_SITES.keys())]
+            (?:https?:)?//player(?:-backend)?\.(?:{})\.com/(?:embed(?:js)?|(?:script|inline)/video)/.+?
+        )\1'''.format('|'.join(_SITES.keys()))]
 
     _TESTS = [{
         'url': 'http://video.wired.com/watch/3d-printed-speakers-lit-with-led',
@@ -74,7 +71,7 @@ class CondeNastIE(InfoExtractor):
             'uploader': 'wired',
             'upload_date': '20130314',
             'timestamp': 1363219200,
-        }
+        },
     }, {
         'url': 'http://video.gq.com/watch/the-closer-with-keith-olbermann-the-only-true-surprise-trump-s-an-idiot?c=series',
         'info_dict': {
@@ -97,7 +94,7 @@ class CondeNastIE(InfoExtractor):
             'uploader': 'arstechnica',
             'upload_date': '20150916',
             'timestamp': 1442434920,
-        }
+        },
     }, {
         'url': 'https://player.cnevids.com/inline/video/59138decb57ac36b83000005.js?target=js-cne-player',
         'only_matching': True,
@@ -110,12 +107,12 @@ class CondeNastIE(InfoExtractor):
         title = self._html_search_regex(
             r'(?s)<div class="cne-series-info">.*?<h1>(.+?)</h1>',
             webpage, 'series title')
-        url_object = compat_urllib_parse_urlparse(url)
-        base_url = '%s://%s' % (url_object.scheme, url_object.netloc)
+        url_object = urllib.parse.urlparse(url)
+        base_url = f'{url_object.scheme}://{url_object.netloc}'
         m_paths = re.finditer(
             r'(?s)<p class="cne-thumb-title">.*?<a href="(/watch/.+?)["\?]', webpage)
         paths = orderedSet(m.group(1) for m in m_paths)
-        build_url = lambda path: compat_urlparse.urljoin(base_url, path)
+        build_url = lambda path: urllib.parse.urljoin(base_url, path)
         entries = [self.url_result(build_url(path), 'CondeNast') for path in paths]
         return self.playlist_result(entries, playlist_title=title)
 
@@ -166,9 +163,9 @@ class CondeNastIE(InfoExtractor):
                 video_id, 'Downloading loader info', query=params)
         if not video_info:
             info_page = self._download_webpage(
-                'https://player.cnevids.com/inline/video/%s.js' % video_id,
+                f'https://player.cnevids.com/inline/video/{video_id}.js',
                 video_id, 'Downloading inline info', query={
-                    'target': params.get('target', 'embedplayer')
+                    'target': params.get('target', 'embedplayer'),
                 })
 
         if not video_info:
@@ -192,7 +189,7 @@ class CondeNastIE(InfoExtractor):
                 continue
             quality = fdata.get('quality')
             formats.append({
-                'format_id': ext + ('-%s' % quality if quality else ''),
+                'format_id': ext + (f'-{quality}' if quality else ''),
                 'url': src,
                 'ext': ext,
                 'quality': 1 if quality == 'high' else 0,

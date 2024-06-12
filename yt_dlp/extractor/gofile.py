@@ -20,8 +20,8 @@ class GofileIE(InfoExtractor):
                 'title': 'nuuh',
                 'release_timestamp': 1638338704,
                 'release_date': '20211201',
-            }
-        }]
+            },
+        }],
     }, {
         'url': 'https://gofile.io/d/is8lKr',
         'info_dict': {
@@ -63,7 +63,7 @@ class GofileIE(InfoExtractor):
         query_params = {'wt': '4fd6sg89d7s6'}  # From https://gofile.io/dist/js/alljs.js
         password = self.get_param('videopassword')
         if password:
-            query_params['password'] = hashlib.sha256(password.encode('utf-8')).hexdigest()
+            query_params['password'] = hashlib.sha256(password.encode()).hexdigest()
         files = self._download_json(
             f'https://api.gofile.io/contents/{file_id}', file_id, 'Getting filelist',
             query=query_params, headers={'Authorization': f'Bearer {self._TOKEN}'})
@@ -89,7 +89,7 @@ class GofileIE(InfoExtractor):
                     'title': file['name'].rsplit('.', 1)[0],
                     'url': file_url,
                     'filesize': file.get('size'),
-                    'release_timestamp': file.get('createTime')
+                    'release_timestamp': file.get('createTime'),
                 }
 
         if not found_files:

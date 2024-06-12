@@ -33,7 +33,7 @@ class PolsatGoIE(InfoExtractor):
                 continue
             yield {
                 'url': url,
-                'height': int_or_none(try_get(source, lambda x: x['quality'][:-1]))
+                'height': int_or_none(try_get(source, lambda x: x['quality'][:-1])),
             }
 
     def _real_extract(self, url):
@@ -47,7 +47,7 @@ class PolsatGoIE(InfoExtractor):
             'id': video_id,
             'title': media['displayInfo']['title'],
             'formats': formats,
-            'age_limit': int_or_none(media['displayInfo']['ageGroup'])
+            'age_limit': int_or_none(media['displayInfo']['ageGroup']),
         }
 
     def _call_api(self, endpoint, media_id, method, params):
@@ -77,7 +77,7 @@ class PolsatGoIE(InfoExtractor):
                     'clientId': rand_uuid,
                     'cpid': 1,
                 },
-            }).encode('utf-8'),
+            }).encode(),
             headers={'Content-type': 'application/json'})
         if not res.get('result'):
             if res['error']['code'] == 13404:

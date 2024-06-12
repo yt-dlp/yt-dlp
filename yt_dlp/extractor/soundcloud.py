@@ -4,13 +4,11 @@ import json
 import re
 
 from .common import InfoExtractor, SearchInfoExtractor
-from ..compat import compat_str
 from ..networking import HEADRequest
 from ..networking.exceptions import HTTPError
 from ..utils import (
     KNOWN_EXTENSIONS,
     ExtractorError,
-    error_to_compat_str,
     float_or_none,
     int_or_none,
     join_nonempty,
@@ -113,7 +111,7 @@ class SoundcloudBaseIE(InfoExtractor):
                     self._update_client_id()
                     continue
                 elif non_fatal:
-                    self.report_warning(error_to_compat_str(e))
+                    self.report_warning(str(e))
                     return False
                 raise
 
@@ -216,24 +214,20 @@ class SoundcloudBaseIE(InfoExtractor):
         t = clid  # _CLIENT_ID
 
         d = '-'.join([str(mInt) for mInt in [a, i, s, w, u, l, b, k]])
-        p = n + y + d + r + e + t + d + n
-        h = p
+        h = n + y + d + r + e + t + d + n
 
         m = 8011470
-        f = 0
 
-        for f in range(f, len(h)):
+        for f in range(len(h)):
             m = (m >> 1) + ((1 & m) << 23)
             m += ord(h[f])
             m &= 16777215
 
         # c is not even needed
-        out = str(y) + ':' + str(d) + ':' + format(m, 'x') + ':' + str(c)
-
-        return out
+        return f'{y}:{d}:{m:x}:{c}'
 
     def _extract_info_dict(self, info, full_title=None, secret_token=None, extract_flat=False):
-        track_id = compat_str(info['id'])
+        track_id = str(info['id'])
         title = info['title']
 
         format_urls = set()
@@ -360,12 +354,12 @@ class SoundcloudBaseIE(InfoExtractor):
         thumbnails = []
         artwork_url = info.get('artwork_url')
         thumbnail = artwork_url or user.get('avatar_url')
-        if isinstance(thumbnail, compat_str):
+        if isinstance(thumbnail, str):
             if re.search(self._IMAGE_REPL_RE, thumbnail):
                 for image_id, size in self._ARTWORK_MAP.items():
                     i = {
                         'id': image_id,
-                        'url': re.sub(self._IMAGE_REPL_RE, '-%s.jpg' % image_id, thumbnail),
+                        'url': re.sub(self._IMAGE_REPL_RE, f'-{image_id}.jpg', thumbnail),
                     }
                     if image_id == 'tiny' and not artwork_url:
                         size = 18
@@ -381,7 +375,7 @@ class SoundcloudBaseIE(InfoExtractor):
                 thumbnails = [{'url': thumbnail}]
 
         def extract_count(key):
-            return int_or_none(info.get('%s_count' % key))
+            return int_or_none(info.get(f'{key}_count'))
 
         return {
             'id': track_id,
@@ -400,7 +394,7 @@ class SoundcloudBaseIE(InfoExtractor):
             'comment_count': extract_count('comment'),
             'repost_count': extract_count('reposts'),
             'genres': traverse_obj(info, ('genre', {str}, {lambda x: x or None}, all)),
-            'formats': formats if not extract_flat else None
+            'formats': formats if not extract_flat else None,
         }
 
     @classmethod
@@ -452,7 +446,7 @@ class SoundcloudIE(SoundcloudBaseIE):
                 'thumbnail': 'https://i1.sndcdn.com/artworks-000031955188-rwb18x-original.jpg',
                 'uploader_url': 'https://soundcloud.com/ethmusic',
                 'genres': [],
-            }
+            },
         },
         # geo-restricted
         {
@@ -485,7 +479,7 @@ class SoundcloudIE(SoundcloudBaseIE):
                 'id': '123998367',
                 'ext': 'mp3',
                 'title': 'Youtube - Dl Test Video \'\' Ä↭',
-                'description': 'test chars:  \"\'/\\ä↭',
+                'description': 'test chars:  "\'/\\ä↭',
                 'uploader': 'jaimeMF',
                 'uploader_id': '69767071',
                 'timestamp': 1386604920,
@@ -509,7 +503,7 @@ class SoundcloudIE(SoundcloudBaseIE):
                 'id': '123998367',
                 'ext': 'mp3',
                 'title': 'Youtube - Dl Test Video \'\' Ä↭',
-                'description': 'test chars:  \"\'/\\ä↭',
+                'description': 'test chars:  "\'/\\ä↭',
                 'uploader': 'jaimeMF',
                 'uploader_id': '69767071',
                 'timestamp': 1386604920,
@@ -648,10 +642,10 @@ class SoundcloudIE(SoundcloudBaseIE):
             if token:
                 query['secret_token'] = token
         else:
-            full_title = resolve_title = '%s/%s' % mobj.group('uploader', 'title')
+            full_title = resolve_title = '{}/{}'.format(*mobj.group('uploader', 'title'))
             token = mobj.group('token')
             if token:
-                resolve_title += '/%s' % token
+                resolve_title += f'/{token}'
             info_json_url = self._resolv_url(self._BASE_URL + resolve_title)
 
         info = self._call_api(
@@ -662,13 +656,13 @@ class SoundcloudIE(SoundcloudBaseIE):
 
 class SoundcloudPlaylistBaseIE(SoundcloudBaseIE):
     def _extract_set(self, playlist, token=None):
-        playlist_id = compat_str(playlist['id'])
+        playlist_id = str(playlist['id'])
         tracks = playlist.get('tracks') or []
-        if not all([t.get('permalink_url') for t in tracks]) and token:
+        if not all(t.get('permalink_url') for t in tracks) and token:
             tracks = self._call_api(
                 self._API_V2_BASE + 'tracks', playlist_id,
                 'Downloading tracks', query={
-                    'ids': ','.join([compat_str(t['id']) for t in tracks]),
+                    'ids': ','.join([str(t['id']) for t in tracks]),
                     'playlistId': playlist_id,
                     'playlistSecretToken': token,
                 }, headers=self._HEADERS)
@@ -718,7 +712,7 @@ class SoundcloudSetIE(SoundcloudPlaylistBaseIE):
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
 
-        full_title = '%s/sets/%s' % mobj.group('uploader', 'slug_title')
+        full_title = '{}/sets/{}'.format(*mobj.group('uploader', 'slug_title'))
         token = mobj.group('token')
         if token:
             full_title += '/' + token
@@ -727,8 +721,8 @@ class SoundcloudSetIE(SoundcloudPlaylistBaseIE):
             self._BASE_URL + full_title), full_title, headers=self._HEADERS)
 
         if 'errors' in info:
-            msgs = (compat_str(err['error_message']) for err in info['errors'])
-            raise ExtractorError('unable to download video webpage: %s' % ','.join(msgs))
+            msgs = (str(err['error_message']) for err in info['errors'])
+            raise ExtractorError('unable to download video webpage: {}'.format(','.join(msgs)))
 
         return self._extract_set(info, token)
 
@@ -871,7 +865,7 @@ class SoundcloudUserIE(SoundcloudPagedPlaylistBaseIE):
         return self._extract_playlist(
             self._API_V2_BASE + self._BASE_URL_MAP[resource] % user['id'],
             str_or_none(user.get('id')),
-            '%s (%s)' % (user['username'], resource.capitalize()))
+            '{} ({})'.format(user['username'], resource.capitalize()))
 
 
 class SoundcloudUserPermalinkIE(SoundcloudPagedPlaylistBaseIE):
@@ -915,8 +909,8 @@ class SoundcloudTrackStationIE(SoundcloudPagedPlaylistBaseIE):
             r'soundcloud:track-stations:(\d+)', track['id'], 'track id')
 
         return self._extract_playlist(
-            self._API_V2_BASE + 'stations/%s/tracks' % track['id'],
-            track_id, 'Track station: %s' % track['title'])
+            self._API_V2_BASE + 'stations/{}/tracks'.format(track['id']),
+            track_id, 'Track station: {}'.format(track['title']))
 
 
 class SoundcloudRelatedIE(SoundcloudPagedPlaylistBaseIE):
@@ -964,7 +958,7 @@ class SoundcloudRelatedIE(SoundcloudPagedPlaylistBaseIE):
 
         return self._extract_playlist(
             self._API_V2_BASE + self._BASE_URL_MAP[relation] % track['id'], str(track['id']),
-            '%s (%s)' % (track.get('title') or slug, relation.capitalize()))
+            '{} ({})'.format(track.get('title') or slug, relation.capitalize()))
 
 
 class SoundcloudPlaylistIE(SoundcloudPlaylistBaseIE):
