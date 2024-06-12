@@ -20,7 +20,7 @@ class NobelPrizeIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Announcement of the 2016 Nobel Prize in Physics',
             'description': 'md5:05beba57f4f5a4bbd4cf2ef28fcff739',
-        }
+        },
     }
 
     def _real_extract(self, url):

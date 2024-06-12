@@ -17,7 +17,7 @@ class GetCourseRuPlayerIE(InfoExtractor):
             'title': '190bdf93f1b29735309853a7a19e24b3',
             'ext': 'mp4',
             'thumbnail': 'https://preview-htz.kinescopecdn.net/preview/190bdf93f1b29735309853a7a19e24b3/preview.jpg?version=1702370546&host=vh-80',
-            'duration': 1693
+            'duration': 1693,
         },
         'skip': 'JWT expired',
     }]
@@ -38,7 +38,7 @@ class GetCourseRuPlayerIE(InfoExtractor):
             }),
             'id': video_id,
             'formats': formats,
-            'subtitles': subtitles
+            'subtitles': subtitles,
         }
 
 
@@ -47,7 +47,7 @@ class GetCourseRuIE(InfoExtractor):
     _DOMAINS = [
         'academymel.online',
         'marafon.mani-beauty.com',
-        'on.psbook.ru'
+        'on.psbook.ru',
     ]
     _BASE_URL_RE = rf'https?://(?:(?!player02\.)[^.]+\.getcourse\.(?:ru|io)|{"|".join(map(re.escape, _DOMAINS))})'
     _VALID_URL = [
@@ -68,9 +68,9 @@ class GetCourseRuIE(InfoExtractor):
                 'ext': 'mp4',
                 'title': 'Промоуроки Академии МЕЛ',
                 'thumbnail': 'https://preview-htz.kinescopecdn.net/preview/190bdf93f1b29735309853a7a19e24b3/preview.jpg?version=1702370546&host=vh-80',
-                'duration': 1693
+                'duration': 1693,
             },
-        }]
+        }],
     }, {
         'url': 'https://academymel.getcourse.ru/3video_1',
         'info_dict': {
@@ -85,9 +85,9 @@ class GetCourseRuIE(InfoExtractor):
                 'ext': 'mp4',
                 'title': 'Промоуроки Академии МЕЛ',
                 'thumbnail': 'https://preview-htz.kinescopecdn.net/preview/190bdf93f1b29735309853a7a19e24b3/preview.jpg?version=1702370546&host=vh-80',
-                'duration': 1693
+                'duration': 1693,
             },
-        }]
+        }],
     }, {
         'url': 'https://academymel.getcourse.ru/pl/teach/control/lesson/view?id=319141781&editMode=0',
         'info_dict': {
@@ -101,10 +101,10 @@ class GetCourseRuIE(InfoExtractor):
                 'ext': 'mp4',
                 'title': '1. Разминка у стены',
                 'thumbnail': 'https://preview-htz.vhcdn.com/preview/5a521788e7dc25b4f70c3dff6512d90e/preview.jpg?version=1703223532&host=vh-81',
-                'duration': 704
+                'duration': 704,
             },
         }],
-        'skip': 'paid lesson'
+        'skip': 'paid lesson',
     }, {
         'url': 'https://manibeauty.getcourse.ru/pl/teach/control/lesson/view?id=272499894',
         'info_dict': {
@@ -118,10 +118,10 @@ class GetCourseRuIE(InfoExtractor):
                 'ext': 'mp4',
                 'title': 'Мотивация к тренировкам',
                 'thumbnail': 'https://preview-htz.vhcdn.com/preview/70ed5b9f489dd03b4aff55bfdff71a26/preview.jpg?version=1685115787&host=vh-71',
-                'duration': 30
+                'duration': 30,
             },
         }],
-        'skip': 'paid lesson'
+        'skip': 'paid lesson',
     }, {
         'url': 'https://gaismasmandalas.getcourse.io/ATLAUTSEVBUT',
         'only_matching': True,

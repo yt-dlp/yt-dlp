@@ -1,7 +1,7 @@
 import functools
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import compat_parse_qs
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
@@ -71,7 +71,7 @@ class RedGifsBaseInfoExtractor(InfoExtractor):
             raise ExtractorError('Unable to get temporary token')
         self._API_HEADERS['authorization'] = f'Bearer {auth["token"]}'
 
-    def _call_api(self, ep, video_id, *args, **kwargs):
+    def _call_api(self, ep, video_id, **kwargs):
         for first_attempt in True, False:
             if 'authorization' not in self._API_HEADERS:
                 self._fetch_oauth_token(video_id)
@@ -79,7 +79,7 @@ class RedGifsBaseInfoExtractor(InfoExtractor):
                 headers = dict(self._API_HEADERS)
                 headers['x-customheader'] = f'https://www.redgifs.com/watch/{video_id}'
                 data = self._download_json(
-                    f'https://api.redgifs.com/v2/{ep}', video_id, headers=headers, *args, **kwargs)
+                    f'https://api.redgifs.com/v2/{ep}', video_id, headers=headers, **kwargs)
                 break
             except ExtractorError as e:
                 if first_attempt and isinstance(e.cause, HTTPError) and e.cause.status == 401:
@@ -130,7 +130,7 @@ class RedGifsIE(RedGifsBaseInfoExtractor):
             'categories': list,
             'age_limit': 18,
             'tags': list,
-        }
+        },
     }, {
         'url': 'https://thumbs2.redgifs.com/SqueakyHelplessWisent-mobile.mp4#t=0',
         'info_dict': {
@@ -146,7 +146,7 @@ class RedGifsIE(RedGifsBaseInfoExtractor):
             'categories': list,
             'age_limit': 18,
             'tags': list,
-        }
+        },
     }]
 
     def _real_extract(self, url):
@@ -166,7 +166,7 @@ class RedGifsSearchIE(RedGifsBaseInfoExtractor):
             'info_dict': {
                 'id': 'tags=Lesbian',
                 'title': 'Lesbian',
-                'description': 'RedGifs search for Lesbian, ordered by trending'
+                'description': 'RedGifs search for Lesbian, ordered by trending',
             },
             'playlist_mincount': 100,
         },
@@ -175,7 +175,7 @@ class RedGifsSearchIE(RedGifsBaseInfoExtractor):
             'info_dict': {
                 'id': 'type=g&order=latest&tags=Lesbian',
                 'title': 'Lesbian',
-                'description': 'RedGifs search for Lesbian, ordered by latest'
+                'description': 'RedGifs search for Lesbian, ordered by latest',
             },
             'playlist_mincount': 100,
         },
@@ -184,15 +184,15 @@ class RedGifsSearchIE(RedGifsBaseInfoExtractor):
             'info_dict': {
                 'id': 'type=g&order=latest&tags=Lesbian&page=2',
                 'title': 'Lesbian',
-                'description': 'RedGifs search for Lesbian, ordered by latest'
+                'description': 'RedGifs search for Lesbian, ordered by latest',
             },
             'playlist_count': 80,
-        }
+        },
     ]
 
     def _real_extract(self, url):
         query_str = self._match_valid_url(url).group('query')
-        query = compat_parse_qs(query_str)
+        query = urllib.parse.parse_qs(query_str)
         if not query.get('tags'):
             raise ExtractorError('Invalid query tags', expected=True)
 
@@ -220,7 +220,7 @@ class RedGifsUserIE(RedGifsBaseInfoExtractor):
             'info_dict': {
                 'id': 'lamsinka89',
                 'title': 'lamsinka89',
-                'description': 'RedGifs user lamsinka89, ordered by recent'
+                'description': 'RedGifs user lamsinka89, ordered by recent',
             },
             'playlist_mincount': 100,
         },
@@ -229,7 +229,7 @@ class RedGifsUserIE(RedGifsBaseInfoExtractor):
             'info_dict': {
                 'id': 'lamsinka89?page=3',
                 'title': 'lamsinka89',
-                'description': 'RedGifs user lamsinka89, ordered by recent'
+                'description': 'RedGifs user lamsinka89, ordered by recent',
             },
             'playlist_count': 30,
         },
@@ -238,17 +238,17 @@ class RedGifsUserIE(RedGifsBaseInfoExtractor):
             'info_dict': {
                 'id': 'lamsinka89?order=best&type=g',
                 'title': 'lamsinka89',
-                'description': 'RedGifs user lamsinka89, ordered by best'
+                'description': 'RedGifs user lamsinka89, ordered by best',
             },
             'playlist_mincount': 100,
-        }
+        },
     ]
 
     def _real_extract(self, url):
         username, query_str = self._match_valid_url(url).group('username', 'query')
         playlist_id = f'{username}?{query_str}' if query_str else username
 
-        query = compat_parse_qs(query_str)
+        query = urllib.parse.parse_qs(query_str)
         order = query.get('order', ('recent',))[0]
 
         entries = self._paged_entries(f'users/{username}/search', playlist_id, query, {

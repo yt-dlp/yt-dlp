@@ -30,7 +30,7 @@ class TestURLIE(InfoExtractor):
             ), None)
             if not extractor:
                 raise ExtractorError(
-                    'Found multiple matching extractors: %s' % ' '.join(ie.IE_NAME for ie in matching_extractors),
+                    'Found multiple matching extractors: {}'.format(' '.join(ie.IE_NAME for ie in matching_extractors)),
                     expected=True)
         else:
             extractor = matching_extractors[0]

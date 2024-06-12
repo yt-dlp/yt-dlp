@@ -39,7 +39,7 @@ class OnetBaseIE(InfoExtractor):
         error = response.get('error')
         if error:
             raise ExtractorError(
-                '%s said: %s' % (self.IE_NAME, error['message']), expected=True)
+                '{} said: {}'.format(self.IE_NAME, error['message']), expected=True)
 
         video = response['result'].get('0')
 
@@ -182,7 +182,7 @@ class OnetChannelIE(OnetBaseIE):
             return self._extract_from_id(video_id, webpage)
 
         matches = re.findall(
-            r'<a[^>]+href=[\'"](%s[a-z]+/[0-9a-z-]+/[0-9a-z]+)' % self._URL_BASE_RE,
+            rf'<a[^>]+href=[\'"]({self._URL_BASE_RE}[a-z]+/[0-9a-z-]+/[0-9a-z]+)',
             webpage)
         entries = [
             self.url_result(video_link, OnetIE.ie_key())
@@ -256,4 +256,4 @@ class OnetPlIE(InfoExtractor):
             mvp_id = self._search_mvp_id(webpage)
 
         return self.url_result(
-            'onetmvp:%s' % mvp_id, OnetMVPIE.ie_key(), video_id=mvp_id)
+            f'onetmvp:{mvp_id}', OnetMVPIE.ie_key(), video_id=mvp_id)

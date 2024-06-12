@@ -45,11 +45,11 @@ class TenPlayIE(InfoExtractor):
             'timestamp': 1600770600,
             'upload_date': '20200922',
             'uploader': 'Channel 10',
-            'uploader_id': '2199827728001'
+            'uploader_id': '2199827728001',
         },
         'params': {
             'skip_download': True,
-        }
+        },
     }, {
         'url': 'https://10play.com.au/how-to-stay-married/web-extras/season-1/terrys-talks-ep-1-embracing-change/tpv190915ylupc',
         'only_matching': True,
@@ -63,7 +63,7 @@ class TenPlayIE(InfoExtractor):
         'MA': 15,
         'MA15+': 15,
         'R': 18,
-        'X': 18
+        'X': 18,
     }
 
     def _get_bearer_token(self, video_id):

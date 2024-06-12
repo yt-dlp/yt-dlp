@@ -39,7 +39,7 @@ class HSEShowIE(HSEShowBaseInfoExtractor):
             'timestamp': 1638810000,
             'upload_date': '20211206',
             'channel': 'HSE24',
-            'uploader': 'Arina Pirayesh'
+            'uploader': 'Arina Pirayesh',
         },
         'params': {'skip_download': 'm3u8'},
     }]
@@ -72,7 +72,7 @@ class HSEProductIE(HSEShowBaseInfoExtractor):
             'id': '408630',
             'ext': 'mp4',
             'title': 'Hose im Ponte-Mix',
-            'uploader': 'Judith Williams'
+            'uploader': 'Judith Williams',
         },
         'params': {'skip_download': 'm3u8'},
     }]

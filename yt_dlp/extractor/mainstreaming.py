@@ -30,9 +30,9 @@ class MainStreamingIE(InfoExtractor):
             },
             'expected_warnings': [
                 'Ignoring alternative content ID: WDAF1KOWUpH3',
-                'MainStreaming said: Live event is OFFLINE'
+                'MainStreaming said: Live event is OFFLINE',
             ],
-            'skip': 'live stream offline'
+            'skip': 'live stream offline',
         }, {
             # playlist
             'url': 'https://webtools-e18da6642b684f8aa9ae449862783a56.msvdn.net/embed/WDAF1KOWUpH3',
@@ -40,7 +40,7 @@ class MainStreamingIE(InfoExtractor):
                 'id': 'WDAF1KOWUpH3',
                 'title': 'Playlist homepage',
             },
-            'playlist_mincount': 2
+            'playlist_mincount': 2,
         }, {
             # livestream
             'url': 'https://webtools-859c1818ed614cc5b0047439470927b0.msvdn.net/embed/tDoFkZD3T1Lw',
@@ -51,7 +51,7 @@ class MainStreamingIE(InfoExtractor):
                 'ext': 'mp4',
                 'thumbnail': r're:https?://[A-Za-z0-9-]*\.msvdn.net/image/\w+/poster',
             },
-            'skip': 'live stream'
+            'skip': 'live stream',
         }, {
             'url': 'https://webtools-f5842579ff984c1c98d63b8d789673eb.msvdn.net/embed/EUlZfGWkGpOd?autoPlay=false',
             'info_dict': {
@@ -61,8 +61,8 @@ class MainStreamingIE(InfoExtractor):
                 'ext': 'mp4',
                 'live_status': 'not_live',
                 'thumbnail': r're:https?://[A-Za-z0-9-]*\.msvdn.net/image/\w+/poster',
-                'duration': 1512
-            }
+                'duration': 1512,
+            },
         }, {
             # video without webtools- prefix
             'url': 'https://f5842579ff984c1c98d63b8d789673eb.msvdn.net/embed/MfuWmzL2lGkA?autoplay=false&T=1635860445',
@@ -73,8 +73,8 @@ class MainStreamingIE(InfoExtractor):
                 'ext': 'mp4',
                 'live_status': 'not_live',
                 'thumbnail': r're:https?://[A-Za-z0-9-]*\.msvdn.net/image/\w+/poster',
-                'duration': 789.04
-            }
+                'duration': 789.04,
+            },
         }, {
             # always-on livestream with DVR
             'url': 'https://webtools-f5842579ff984c1c98d63b8d789673eb.msvdn.net/embed/HVvPMzy',
@@ -92,14 +92,14 @@ class MainStreamingIE(InfoExtractor):
         }, {
             # no host
             'url': 'https://webtools.msvdn.net/embed/MfuWmzL2lGkA',
-            'only_matching': True
+            'only_matching': True,
         }, {
             'url': 'https://859c1818ed614cc5b0047439470927b0.msvdn.net/amp_embed/tDoFkZD3T1Lw',
-            'only_matching': True
+            'only_matching': True,
         }, {
             'url': 'https://859c1818ed614cc5b0047439470927b0.msvdn.net/content/tDoFkZD3T1Lw#',
-            'only_matching': True
-        }
+            'only_matching': True,
+        },
     ]
 
     def _playlist_entries(self, host, playlist_content):
@@ -111,7 +111,7 @@ class MainStreamingIE(InfoExtractor):
                 'id': content_id,
                 'duration': int_or_none(traverse_obj(entry, ('duration', 'totalSeconds'))),
                 'title': entry.get('title'),
-                'url': f'https://{host}/embed/{content_id}'
+                'url': f'https://{host}/embed/{content_id}',
             }
 
     @staticmethod
@@ -205,5 +205,5 @@ class MainStreamingIE(InfoExtractor):
             'duration': parse_duration(content_info.get('duration')),
             'tags': content_info.get('tags'),
             'subtitles': subtitles,
-            'thumbnail': urljoin(self._get_webtools_base_url(host), f'image/{video_id}/poster')
+            'thumbnail': urljoin(self._get_webtools_base_url(host), f'image/{video_id}/poster'),
         }

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import contextlib
 import functools
 import http.client
@@ -58,13 +60,13 @@ from .exceptions import (
 from ..socks import ProxyError as SocksProxyError
 
 SUPPORTED_ENCODINGS = [
-    'gzip', 'deflate'
+    'gzip', 'deflate',
 ]
 
 if brotli is not None:
     SUPPORTED_ENCODINGS.append('br')
 
-"""
+'''
 Override urllib3's behavior to not convert lower-case percent-encoded characters
 to upper-case during url normalization process.
 
@@ -79,7 +81,7 @@ is best to avoid it in requests too for compatability reasons.
 
 1: https://tools.ietf.org/html/rfc3986#section-2.1
 2: https://github.com/streamlink/streamlink/pull/4003
-"""
+'''
 
 
 class Urllib3PercentREOverride:
@@ -96,7 +98,7 @@ class Urllib3PercentREOverride:
 
 # urllib3 >= 1.25.8 uses subn:
 # https://github.com/urllib3/urllib3/commit/a2697e7c6b275f05879b60f593c5854a816489f0
-import urllib3.util.url  # noqa: E305
+import urllib3.util.url
 
 if hasattr(urllib3.util.url, 'PERCENT_RE'):
     urllib3.util.url.PERCENT_RE = Urllib3PercentREOverride(urllib3.util.url.PERCENT_RE)
@@ -105,7 +107,7 @@ elif hasattr(urllib3.util.url, '_PERCENT_RE'):  # urllib3 >= 2.0.0
 else:
     warnings.warn('Failed to patch PERCENT_RE in urllib3 (does the attribute exist?)' + bug_reports_message())
 
-"""
+'''
 Workaround for issue in urllib.util.ssl_.py: ssl_wrap_context does not pass
 server_hostname to SSLContext.wrap_socket if server_hostname is an IP,
 however this is an issue because we set check_hostname to True in our SSLContext.
@@ -114,7 +116,7 @@ Monkey-patching IS_SECURETRANSPORT forces ssl_wrap_context to pass server_hostna
 
 This has been fixed in urllib3 2.0+.
 See: https://github.com/urllib3/urllib3/issues/517
-"""
+'''
 
 if urllib3_version < (2, 0, 0):
     with contextlib.suppress(Exception):
@@ -135,7 +137,7 @@ class RequestsResponseAdapter(Response):
 
         self._requests_response = res
 
-    def read(self, amt: int = None):
+    def read(self, amt: int | None = None):
         try:
             # Interact with urllib3 response directly.
             return self.fp.read(amt, decode_content=True)
@@ -329,7 +331,7 @@ class RequestsRH(RequestHandler, InstanceStoreMixin):
                 timeout=self._calculate_timeout(request),
                 proxies=self._get_proxies(request),
                 allow_redirects=True,
-                stream=True
+                stream=True,
             )
 
         except requests.exceptions.TooManyRedirects as e:
@@ -411,7 +413,7 @@ class SocksProxyManager(urllib3.PoolManager):
         super().__init__(num_pools, headers, **connection_pool_kw)
         self.pool_classes_by_scheme = {
             'http': SocksHTTPConnectionPool,
-            'https': SocksHTTPSConnectionPool
+            'https': SocksHTTPSConnectionPool,
         }
 
 

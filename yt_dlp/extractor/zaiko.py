@@ -106,7 +106,7 @@ class ZaikoIE(ZaikoBaseIE):
             **traverse_obj(player_meta, ('initial_event_info', {
                 'alt_title': ('title', {str}),
             })),
-            'thumbnails': [{'url': url, 'id': url_basename(url)} for url in thumbnail_urls if url_or_none(url)]
+            'thumbnails': [{'url': url, 'id': url_basename(url)} for url in thumbnail_urls if url_or_none(url)],
         }
 
 

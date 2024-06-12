@@ -13,7 +13,7 @@ from ..utils import (
 class MicrosoftVirtualAcademyBaseIE(InfoExtractor):
     def _extract_base_url(self, course_id, display_id):
         return self._download_json(
-            'https://api-mlxprod.microsoft.com/services/products/anonymous/%s' % course_id,
+            f'https://api-mlxprod.microsoft.com/services/products/anonymous/{course_id}',
             display_id, 'Downloading course base URL')
 
     def _extract_chapter_and_title(self, title):
@@ -26,7 +26,7 @@ class MicrosoftVirtualAcademyBaseIE(InfoExtractor):
 class MicrosoftVirtualAcademyIE(MicrosoftVirtualAcademyBaseIE):
     IE_NAME = 'mva'
     IE_DESC = 'Microsoft Virtual Academy videos'
-    _VALID_URL = r'(?:%s:|https?://(?:mva\.microsoft|(?:www\.)?microsoftvirtualacademy)\.com/[^/]+/training-courses/[^/?#&]+-)(?P<course_id>\d+)(?::|\?l=)(?P<id>[\da-zA-Z]+_\d+)' % IE_NAME
+    _VALID_URL = rf'(?:{IE_NAME}:|https?://(?:mva\.microsoft|(?:www\.)?microsoftvirtualacademy)\.com/[^/]+/training-courses/[^/?#&]+-)(?P<course_id>\d+)(?::|\?l=)(?P<id>[\da-zA-Z]+_\d+)'
 
     _TESTS = [{
         'url': 'https://mva.microsoft.com/en-US/training-courses/microsoft-azure-fundamentals-virtual-machines-11788?l=gfVXISmEB_6804984382',
@@ -41,7 +41,7 @@ class MicrosoftVirtualAcademyIE(MicrosoftVirtualAcademyBaseIE):
                     'ext': 'ttml',
                 }],
             },
-        }
+        },
     }, {
         'url': 'mva:11788:gfVXISmEB_6804984382',
         'only_matching': True,
@@ -57,7 +57,7 @@ class MicrosoftVirtualAcademyIE(MicrosoftVirtualAcademyBaseIE):
         base_url = smuggled_data.get('base_url') or self._extract_base_url(course_id, video_id)
 
         settings = self._download_xml(
-            '%s/content/content_%s/videosettings.xml?v=1' % (base_url, video_id),
+            f'{base_url}/content/content_{video_id}/videosettings.xml?v=1',
             video_id, 'Downloading video settings XML')
 
         _, title = self._extract_chapter_and_title(xpath_text(
@@ -100,7 +100,7 @@ class MicrosoftVirtualAcademyIE(MicrosoftVirtualAcademyBaseIE):
             if not subtitle_url:
                 continue
             subtitles.setdefault('en', []).append({
-                'url': '%s/%s' % (base_url, subtitle_url),
+                'url': f'{base_url}/{subtitle_url}',
                 'ext': source.get('type'),
             })
 
@@ -108,14 +108,14 @@ class MicrosoftVirtualAcademyIE(MicrosoftVirtualAcademyBaseIE):
             'id': video_id,
             'title': title,
             'subtitles': subtitles,
-            'formats': formats
+            'formats': formats,
         }
 
 
 class MicrosoftVirtualAcademyCourseIE(MicrosoftVirtualAcademyBaseIE):
     IE_NAME = 'mva:course'
     IE_DESC = 'Microsoft Virtual Academy courses'
-    _VALID_URL = r'(?:%s:|https?://(?:mva\.microsoft|(?:www\.)?microsoftvirtualacademy)\.com/[^/]+/training-courses/(?P<display_id>[^/?#&]+)-)(?P<id>\d+)' % IE_NAME
+    _VALID_URL = rf'(?:{IE_NAME}:|https?://(?:mva\.microsoft|(?:www\.)?microsoftvirtualacademy)\.com/[^/]+/training-courses/(?P<display_id>[^/?#&]+)-)(?P<id>\d+)'
 
     _TESTS = [{
         'url': 'https://mva.microsoft.com/en-US/training-courses/microsoft-azure-fundamentals-virtual-machines-11788',
@@ -142,8 +142,7 @@ class MicrosoftVirtualAcademyCourseIE(MicrosoftVirtualAcademyBaseIE):
 
     @classmethod
     def suitable(cls, url):
-        return False if MicrosoftVirtualAcademyIE.suitable(url) else super(
-            MicrosoftVirtualAcademyCourseIE, cls).suitable(url)
+        return False if MicrosoftVirtualAcademyIE.suitable(url) else super().suitable(url)
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
@@ -153,7 +152,7 @@ class MicrosoftVirtualAcademyCourseIE(MicrosoftVirtualAcademyBaseIE):
         base_url = self._extract_base_url(course_id, display_id)
 
         manifest = self._download_json(
-            '%s/imsmanifestlite.json' % base_url,
+            f'{base_url}/imsmanifestlite.json',
             display_id, 'Downloading course manifest JSON')['manifest']
 
         organization = manifest['organizations']['organization'][0]
@@ -175,7 +174,7 @@ class MicrosoftVirtualAcademyCourseIE(MicrosoftVirtualAcademyBaseIE):
                 entries.append({
                     '_type': 'url_transparent',
                     'url': smuggle_url(
-                        'mva:%s:%s' % (course_id, item_id), {'base_url': base_url}),
+                        f'mva:{course_id}:{item_id}', {'base_url': base_url}),
                     'title': title,
                     'description': description,
                     'duration': duration,

@@ -20,8 +20,8 @@ class CGTNIE(InfoExtractor):
                 'categories': ['Video'],
             },
             'params': {
-                'skip_download': True
-            }
+                'skip_download': True,
+            },
         }, {
             'url': 'https://news.cgtn.com/news/2021-06-06/China-Indonesia-vow-to-further-deepen-maritime-cooperation-10REvJCewCY/index.html',
             'info_dict': {
@@ -36,9 +36,9 @@ class CGTNIE(InfoExtractor):
                 'upload_date': '20210606',
             },
             'params': {
-                'skip_download': False
-            }
-        }
+                'skip_download': False,
+            },
+        },
     ]
 
     def _real_extract(self, url):
