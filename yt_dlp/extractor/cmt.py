@@ -1,6 +1,6 @@
 from .mtv import MTVIE
 
-# TODO Remove - Reason: Outdated Site
+# TODO: Remove - Reason: Outdated Site
 
 
 class CMTIE(MTVIE):  # XXX: Do not subclass from concrete IE
@@ -52,4 +52,4 @@ class CMTIE(MTVIE):  # XXX: Do not subclass from concrete IE
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
         mgid = self._extract_mgid(webpage, url)
-        return self.url_result('http://media.mtvnservices.com/embed/%s' % mgid)
+        return self.url_result(f'http://media.mtvnservices.com/embed/{mgid}')

@@ -6,7 +6,7 @@ import sys
 
 import pytest
 
-from yt_dlp.networking.common import Features
+from yt_dlp.networking.common import Features, DEFAULT_TIMEOUT
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -375,10 +375,10 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
         with handler() as rh:
             for bad_status in (400, 500, 599, 302):
                 with pytest.raises(HTTPError):
-                    validate_and_send(rh, Request('http://127.0.0.1:%d/gen_%d' % (self.http_port, bad_status)))
+                    validate_and_send(rh, Request(f'http://127.0.0.1:{self.http_port}/gen_{bad_status}'))
 
             # Should not raise an error
-            validate_and_send(rh, Request('http://127.0.0.1:%d/gen_200' % self.http_port)).close()
+            validate_and_send(rh, Request(f'http://127.0.0.1:{self.http_port}/gen_200')).close()
 
     def test_response_url(self, handler):
         with handler() as rh:
@@ -472,7 +472,7 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
     def test_incompleteread(self, handler):
         with handler(timeout=2) as rh:
             with pytest.raises(IncompleteRead, match='13 bytes read, 234221 more expected'):
-                validate_and_send(rh, Request('http://127.0.0.1:%d/incompleteread' % self.http_port)).read()
+                validate_and_send(rh, Request(f'http://127.0.0.1:{self.http_port}/incompleteread')).read()
 
     def test_cookies(self, handler):
         cookiejar = YoutubeDLCookieJar()
@@ -523,20 +523,17 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
     def test_connect_timeout(self, handler):
         # nothing should be listening on this port
         connect_timeout_url = 'http://10.255.255.255'
-        with handler(timeout=0.01) as rh:
+        with handler(timeout=0.01) as rh, pytest.raises(TransportError):
             now = time.time()
-            with pytest.raises(TransportError):
-                validate_and_send(
-                    rh, Request(connect_timeout_url))
-            assert 0.01 <= time.time() - now < 20
+            validate_and_send(rh, Request(connect_timeout_url))
+        assert time.time() - now < DEFAULT_TIMEOUT
 
-        with handler() as rh:
-            with pytest.raises(TransportError):
-                # Per request timeout, should override handler timeout
-                now = time.time()
-                validate_and_send(
-                    rh, Request(connect_timeout_url, extensions={'timeout': 0.01}))
-                assert 0.01 <= time.time() - now < 20
+        # Per request timeout, should override handler timeout
+        request = Request(connect_timeout_url, extensions={'timeout': 0.01})
+        with handler() as rh, pytest.raises(TransportError):
+            now = time.time()
+            validate_and_send(rh, request)
+        assert time.time() - now < DEFAULT_TIMEOUT
 
     def test_source_address(self, handler):
         source_address = f'127.0.0.{random.randint(5, 255)}'
@@ -743,7 +740,7 @@ class TestRequestHandlerMisc:
     @pytest.mark.parametrize('handler,logger_name', [
         ('Requests', 'urllib3'),
         ('Websockets', 'websockets.client'),
-        ('Websockets', 'websockets.server')
+        ('Websockets', 'websockets.server'),
     ], indirect=['handler'])
     def test_remove_logging_handler(self, handler, logger_name):
         # Ensure any logging handlers, which may contain a YoutubeDL instance,
@@ -797,7 +794,7 @@ class TestUrllibRequestHandler(TestRequestHandlerBase):
         with handler() as rh:
             with pytest.raises(
                 CertificateVerifyError,
-                match=r'\[SSL: CERTIFICATE_VERIFY_FAILED\] certificate verify failed: self.signed certificate'
+                match=r'\[SSL: CERTIFICATE_VERIFY_FAILED\] certificate verify failed: self.signed certificate',
             ):
                 validate_and_send(rh, Request(f'https://127.0.0.1:{self.https_port}/headers'))
 
@@ -807,14 +804,14 @@ class TestUrllibRequestHandler(TestRequestHandlerBase):
         (
             Request('http://127.0.0.1', method='GET\n'),
             'method can\'t contain control characters',
-            lambda v: v < (3, 7, 9) or (3, 8, 0) <= v < (3, 8, 5)
+            lambda v: v < (3, 7, 9) or (3, 8, 0) <= v < (3, 8, 5),
         ),
         # https://github.com/python/cpython/blob/987b712b4aeeece336eed24fcc87a950a756c3e2/Lib/http/client.py#L1265
         # bpo-38576: Check implemented in 3.7.8+, 3.8.3+
         (
             Request('http://127.0.0. 1', method='GET'),
             'URL can\'t contain control characters',
-            lambda v: v < (3, 7, 8) or (3, 8, 0) <= v < (3, 8, 3)
+            lambda v: v < (3, 7, 8) or (3, 8, 0) <= v < (3, 8, 3),
         ),
         # https://github.com/python/cpython/blob/987b712b4aeeece336eed24fcc87a950a756c3e2/Lib/http/client.py#L1288C31-L1288C50
         (Request('http://127.0.0.1', headers={'foo\n': 'bar'}), 'Invalid header name', None),
@@ -843,7 +840,7 @@ class TestRequestsRequestHandler(TestRequestHandlerBase):
         (lambda: requests.exceptions.InvalidHeader(), RequestError),
         # catch-all: https://github.com/psf/requests/blob/main/src/requests/adapters.py#L535
         (lambda: urllib3.exceptions.HTTPError(), TransportError),
-        (lambda: requests.exceptions.RequestException(), RequestError)
+        (lambda: requests.exceptions.RequestException(), RequestError),
         #  (lambda: requests.exceptions.TooManyRedirects(), HTTPError) - Needs a response object
     ])
     def test_request_error_mapping(self, handler, monkeypatch, raised, expected):
@@ -871,12 +868,12 @@ class TestRequestsRequestHandler(TestRequestHandlerBase):
         (
             lambda: urllib3.exceptions.ProtocolError('error', http.client.IncompleteRead(partial=b'abc', expected=4)),
             IncompleteRead,
-            '3 bytes read, 4 more expected'
+            '3 bytes read, 4 more expected',
         ),
         (
             lambda: urllib3.exceptions.ProtocolError('error', urllib3.exceptions.IncompleteRead(partial=3, expected=5)),
             IncompleteRead,
-            '3 bytes read, 5 more expected'
+            '3 bytes read, 5 more expected',
         ),
     ])
     def test_response_error_mapping(self, handler, monkeypatch, raised, expected, match):
@@ -1128,7 +1125,7 @@ class TestRequestHandlerValidation:
             ('https', False, {}),
         ]),
         (NoCheckRH, [('http', False, {})]),
-        (ValidationRH, [('http', UnsupportedRequest, {})])
+        (ValidationRH, [('http', UnsupportedRequest, {})]),
     ]
 
     PROXY_SCHEME_TESTS = [
@@ -1222,7 +1219,7 @@ class TestRequestHandlerValidation:
             ({'impersonate': ImpersonateTarget('chrome', None, None, None)}, False),
             ({'impersonate': ImpersonateTarget(None, None, None, None)}, False),
             ({'impersonate': ImpersonateTarget()}, False),
-            ({'impersonate': 'chrome'}, AssertionError)
+            ({'impersonate': 'chrome'}, AssertionError),
         ]),
         (NoCheckRH, 'http', [
             ({'cookiejar': 'notacookiejar'}, False),
@@ -1238,7 +1235,7 @@ class TestRequestHandlerValidation:
         ('Urllib', False, 'http'),
         ('Requests', False, 'http'),
         ('CurlCFFI', False, 'http'),
-        ('Websockets', False, 'ws')
+        ('Websockets', False, 'ws'),
     ], indirect=['handler'])
     def test_no_proxy(self, handler, fail, scheme):
         run_validation(handler, fail, Request(f'{scheme}://', proxies={'no': '127.0.0.1,github.com'}))
@@ -1249,7 +1246,7 @@ class TestRequestHandlerValidation:
         (HTTPSupportedRH, 'http'),
         ('Requests', 'http'),
         ('CurlCFFI', 'http'),
-        ('Websockets', 'ws')
+        ('Websockets', 'ws'),
     ], indirect=['handler'])
     def test_empty_proxy(self, handler, scheme):
         run_validation(handler, False, Request(f'{scheme}://', proxies={scheme: None}))
@@ -1261,7 +1258,7 @@ class TestRequestHandlerValidation:
         (HTTPSupportedRH, 'http'),
         ('Requests', 'http'),
         ('CurlCFFI', 'http'),
-        ('Websockets', 'ws')
+        ('Websockets', 'ws'),
     ], indirect=['handler'])
     def test_invalid_proxy_url(self, handler, scheme, proxy_url):
         run_validation(handler, UnsupportedRequest, Request(f'{scheme}://', proxies={scheme: proxy_url}))
@@ -1477,7 +1474,7 @@ class TestYoutubeDLNetworking:
     @pytest.mark.parametrize('proxy,expected', [
         ('http://127.0.0.1:8080', {'all': 'http://127.0.0.1:8080'}),
         ('', {'all': '__noproxy__'}),
-        (None, {'http': 'http://127.0.0.1:8081', 'https': 'http://127.0.0.1:8081'})  # env, set https
+        (None, {'http': 'http://127.0.0.1:8081', 'https': 'http://127.0.0.1:8081'}),  # env, set https
     ])
     def test_proxy(self, proxy, expected, monkeypatch):
         monkeypatch.setenv('HTTP_PROXY', 'http://127.0.0.1:8081')
@@ -1549,7 +1546,7 @@ class TestYoutubeDLNetworking:
         with FakeImpersonationRHYDL() as ydl:
             with pytest.raises(
                 RequestError,
-                match=r'Impersonate target "test" is not available'
+                match=r'Impersonate target "test" is not available',
             ):
                 ydl.urlopen(Request('http://', extensions={'impersonate': ImpersonateTarget('test', None, None, None)}))
 
@@ -1561,7 +1558,7 @@ class TestYoutubeDLNetworking:
                         pass
 
                     _SUPPORTED_URL_SCHEMES = ('http',)
-                    _SUPPORTED_IMPERSONATE_TARGET_MAP = {ImpersonateTarget('abc',): 'test'}
+                    _SUPPORTED_IMPERSONATE_TARGET_MAP = {ImpersonateTarget('abc'): 'test'}
                     _SUPPORTED_PROXY_SCHEMES = None
 
                 super().__init__(*args, **kwargs)
@@ -1570,14 +1567,14 @@ class TestYoutubeDLNetworking:
         with FakeHTTPRHYDL() as ydl:
             with pytest.raises(
                 RequestError,
-                match=r'Impersonate target "test" is not available'
+                match=r'Impersonate target "test" is not available',
             ):
                 ydl.urlopen(Request('http://', extensions={'impersonate': ImpersonateTarget('test', None, None, None)}))
 
     def test_raise_impersonate_error(self):
         with pytest.raises(
             YoutubeDLError,
-            match=r'Impersonate target "test" is not available'
+            match=r'Impersonate target "test" is not available',
         ):
             FakeYDL({'impersonate': ImpersonateTarget('test', None, None, None)})
 
@@ -1595,7 +1592,7 @@ class TestYoutubeDLNetworking:
         monkeypatch.setattr(FakeYDL, 'build_request_director', lambda cls, handlers, preferences=None: brh(cls, handlers=[IRH]))
 
         with FakeYDL({
-            'impersonate': ImpersonateTarget('abc', None, None, None)
+            'impersonate': ImpersonateTarget('abc', None, None, None),
         }) as ydl:
             rh = self.build_handler(ydl, IRH)
             assert rh.impersonate == ImpersonateTarget('abc', None, None, None)
@@ -1607,7 +1604,7 @@ class TestYoutubeDLNetworking:
                 def _send(self, request: Request):
                     pass
                 _SUPPORTED_URL_SCHEMES = ('http',)
-                _SUPPORTED_IMPERSONATE_TARGET_MAP = {ImpersonateTarget(target_client,): 'test'}
+                _SUPPORTED_IMPERSONATE_TARGET_MAP = {ImpersonateTarget(target_client): 'test'}
                 RH_KEY = target_client
                 RH_NAME = target_client
             handlers.append(TestRH)
@@ -1617,7 +1614,7 @@ class TestYoutubeDLNetworking:
             assert set(ydl._get_available_impersonate_targets()) == {
                 (ImpersonateTarget('xyz'), 'xyz'),
                 (ImpersonateTarget('abc'), 'abc'),
-                (ImpersonateTarget('asd'), 'asd')
+                (ImpersonateTarget('asd'), 'asd'),
             }
             assert ydl._impersonate_target_available(ImpersonateTarget('abc'))
             assert ydl._impersonate_target_available(ImpersonateTarget())
@@ -1840,7 +1837,7 @@ class TestRequest:
             extensions={'cookiejar': CookieJar()},
             headers={'Accept-Encoding': 'br'},
             proxies={'http': 'http://127.0.0.1'},
-            data=[b'123']
+            data=[b'123'],
         )
         req_copy = req.copy()
         assert req_copy is not req
@@ -1866,7 +1863,7 @@ class TestRequest:
         assert isinstance(req.copy(), AnotherRequest)
 
     def test_url(self):
-        req = Request(url='https://фtest.example.com/ some spaceв?ä=c',)
+        req = Request(url='https://фtest.example.com/ some spaceв?ä=c')
         assert req.url == 'https://xn--test-z6d.example.com/%20some%20space%D0%B2?%C3%A4=c'
 
         assert Request(url='//example.com').url == 'http://example.com'
@@ -1881,7 +1878,7 @@ class TestResponse:
         ('custom', 200, 'custom'),
         (None, 404, 'Not Found'),  # fallback status
         ('', 403, 'Forbidden'),
-        (None, 999, None)
+        (None, 999, None),
     ])
     def test_reason(self, reason, status, expected):
         res = Response(io.BytesIO(b''), url='test://', headers={}, status=status, reason=reason)
@@ -1936,7 +1933,7 @@ class TestImpersonateTarget:
 
     @pytest.mark.parametrize('target_str', [
         '-120', ':-12.0', '-12:-12', '-:-',
-        '::', 'a-c-d:', 'a-c-d:e-f-g', 'a:b:'
+        '::', 'a-c-d:', 'a-c-d:e-f-g', 'a:b:',
     ])
     def test_target_from_invalid_str(self, target_str):
         with pytest.raises(ValueError):
@@ -1952,7 +1949,7 @@ class TestImpersonateTarget:
         (ImpersonateTarget('abc', '120', 'xyz', None), 'abc-120:xyz'),
         (ImpersonateTarget('abc', None, 'xyz'), 'abc:xyz'),
         (ImpersonateTarget(None, None, 'xyz', '6.5'), ':xyz-6.5'),
-        (ImpersonateTarget('abc', ), 'abc'),
+        (ImpersonateTarget('abc'), 'abc'),
         (ImpersonateTarget(None, None, None, None), ''),
     ])
     def test_str(self, target, expected):

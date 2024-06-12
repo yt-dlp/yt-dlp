@@ -37,7 +37,7 @@ class DLFBaseIE(InfoExtractor):
                 'webpage_url': ('data-audio-download-tracking-path', {url_or_none}),
             }, get_all=False),
             'formats': (self._extract_m3u8_formats(url, audio_id, fatal=False)
-                        if ext == 'm3u8' else [{'url': url, 'ext': ext, 'vcodec': 'none'}])
+                        if ext == 'm3u8' else [{'url': url, 'ext': ext, 'vcodec': 'none'}]),
         }
 
 
@@ -56,12 +56,12 @@ class DLFIE(DLFBaseIE):
                 'thumbnail': 'https://assets.deutschlandfunk.de/FALLBACK-IMAGE-AUDIO/512x512.png?t=1603714364673',
                 'uploader': 'Deutschlandfunk',
                 'series': 'On Stage',
-                'channel': 'deutschlandfunk'
+                'channel': 'deutschlandfunk',
             },
             'params': {
-                'skip_download': 'm3u8'
+                'skip_download': 'm3u8',
             },
-            'skip': 'This webpage no longer exists'
+            'skip': 'This webpage no longer exists',
         }, {
             'url': 'https://www.deutschlandfunk.de/russische-athleten-kehren-zurueck-auf-die-sportbuehne-ein-gefaehrlicher-tueroeffner-dlf-d9cc1856-100.html',
             'info_dict': {
@@ -72,8 +72,8 @@ class DLFIE(DLFBaseIE):
                 'thumbnail': 'https://assets.deutschlandfunk.de/FALLBACK-IMAGE-AUDIO/512x512.png?t=1603714364673',
                 'uploader': 'Deutschlandfunk',
                 'series': 'Kommentare und Themen der Woche',
-                'channel': 'deutschlandfunk'
-            }
+                'channel': 'deutschlandfunk',
+            },
         },
     ]
 
@@ -96,7 +96,7 @@ class DLFCorpusIE(DLFBaseIE):
             'info_dict': {
                 'id': 'fechten-russland-belarus-ukraine-protest-100',
                 'title': r're:Wiederzulassung als neutrale Athleten [-/] Was die Rückkehr russischer und belarussischer Sportler beim Fechten bedeutet',
-                'description': 'md5:91340aab29c71aa7518ad5be13d1e8ad'
+                'description': 'md5:91340aab29c71aa7518ad5be13d1e8ad',
             },
             'playlist_mincount': 5,
             'playlist': [{
@@ -108,8 +108,8 @@ class DLFCorpusIE(DLFBaseIE):
                     'thumbnail': 'https://assets.deutschlandfunk.de/aad16241-6b76-4a09-958b-96d0ee1d6f57/512x512.jpg?t=1679480020313',
                     'uploader': 'Deutschlandfunk',
                     'series': 'Sport',
-                    'channel': 'deutschlandfunk'
-                }
+                    'channel': 'deutschlandfunk',
+                },
             }, {
                 'info_dict': {
                     'id': '2ada145f',
@@ -119,8 +119,8 @@ class DLFCorpusIE(DLFBaseIE):
                     'thumbnail': 'https://assets.deutschlandfunk.de/FILE_93982766f7317df30409b8a184ac044a/512x512.jpg?t=1678547581005',
                     'uploader': 'Deutschlandfunk',
                     'series': 'Deutschlandfunk Nova',
-                    'channel': 'deutschlandfunk-nova'
-                }
+                    'channel': 'deutschlandfunk-nova',
+                },
             }, {
                 'info_dict': {
                     'id': '5e55e8c9',
@@ -130,8 +130,8 @@ class DLFCorpusIE(DLFBaseIE):
                     'thumbnail': 'https://assets.deutschlandfunk.de/a595989d-1ed1-4a2e-8370-b64d7f11d757/512x512.jpg?t=1679173825412',
                     'uploader': 'Deutschlandfunk',
                     'series': 'Sport am Samstag',
-                    'channel': 'deutschlandfunk'
-                }
+                    'channel': 'deutschlandfunk',
+                },
             }, {
                 'info_dict': {
                     'id': '47e1a096',
@@ -141,8 +141,8 @@ class DLFCorpusIE(DLFBaseIE):
                     'thumbnail': 'https://assets.deutschlandfunk.de/da4c494a-21cc-48b4-9cc7-40e09fd442c2/512x512.jpg?t=1678562155770',
                     'uploader': 'Deutschlandfunk',
                     'series': 'Sport am Samstag',
-                    'channel': 'deutschlandfunk'
-                }
+                    'channel': 'deutschlandfunk',
+                },
             }, {
                 'info_dict': {
                     'id': '5e55e8c9',
@@ -152,9 +152,9 @@ class DLFCorpusIE(DLFBaseIE):
                     'thumbnail': 'https://assets.deutschlandfunk.de/a595989d-1ed1-4a2e-8370-b64d7f11d757/512x512.jpg?t=1679173825412',
                     'uploader': 'Deutschlandfunk',
                     'series': 'Sport am Samstag',
-                    'channel': 'deutschlandfunk'
-                }
-            }]
+                    'channel': 'deutschlandfunk',
+                },
+            }],
         },
         # Podcast feed with tag buttons, playlist count fluctuates
         {

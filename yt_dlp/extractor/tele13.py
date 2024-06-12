@@ -1,9 +1,9 @@
 from .common import InfoExtractor
 from .youtube import YoutubeIE
 from ..utils import (
+    determine_ext,
     js_to_json,
     qualities,
-    determine_ext,
 )
 
 
@@ -36,7 +36,7 @@ class Tele13IE(InfoExtractor):
                 'uploader_id': 'UCnLY_3ezwNcDSC_Wc6suZxw',
             },
             'add_ie': ['Youtube'],
-        }
+        },
     ]
 
     def _real_extract(self, url):

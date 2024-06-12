@@ -81,10 +81,10 @@ class Cache:
 
         cachedir = self._get_root_dir()
         if not any((term in cachedir) for term in ('cache', 'tmp')):
-            raise Exception('Not removing directory %s - this does not look like a cache dir' % cachedir)
+            raise Exception(f'Not removing directory {cachedir} - this does not look like a cache dir')
 
         self._ydl.to_screen(
-            'Removing cache dir %s .' % cachedir, skip_eol=True)
+            f'Removing cache dir {cachedir} .', skip_eol=True)
         if os.path.exists(cachedir):
             self._ydl.to_screen('.', skip_eol=True)
             shutil.rmtree(cachedir)

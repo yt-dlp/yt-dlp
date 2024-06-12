@@ -1,7 +1,10 @@
+import urllib.parse
+
 from .common import InfoExtractor
-from ..compat import compat_urlparse
 from ..utils import (
     ExtractorError,
+    clean_html,
+    get_element_by_class,
     parse_duration,
     parse_filesize,
     str_to_int,
@@ -28,7 +31,7 @@ class PiaproIE(InfoExtractor):
             'thumbnail': r're:^https?://.*\.(?:png|jpg)$',
             'upload_date': '20090901',
             'view_count': int,
-        }
+        },
     }, {
         'note': 'There are break lines in description, mandating (?s) flag',
         'url': 'https://piapro.jp/t/9cSd',
@@ -45,13 +48,13 @@ class PiaproIE(InfoExtractor):
             'view_count': int,
             'thumbnail': r're:^https?://.*\.(?:png|jpg)$',
             'uploader_id': 'cyankino',
-        }
+        },
     }, {
         'url': 'https://piapro.jp/content/hcw0z3a169wtemz6',
-        'only_matching': True
+        'only_matching': True,
     }, {
         'url': 'https://piapro.jp/t/-SO-',
-        'only_matching': True
+        'only_matching': True,
     }]
 
     _login_status = False
@@ -62,7 +65,7 @@ class PiaproIE(InfoExtractor):
             '_username': username,
             '_password': password,
             '_remember_me': 'on',
-            'login': 'ログイン'
+            'login': 'ログイン',
         }
         self._request_webpage('https://piapro.jp/login/', None)
         urlh = self._request_webpage(
@@ -72,7 +75,7 @@ class PiaproIE(InfoExtractor):
         if urlh is False:
             login_ok = False
         else:
-            parts = compat_urlparse.urlparse(urlh.url)
+            parts = urllib.parse.urlparse(urlh.url)
             if parts.path != '/':
                 login_ok = False
         if not login_ok:
@@ -88,34 +91,22 @@ class PiaproIE(InfoExtractor):
         if category_id not in ('1', '2', '21', '22', '23', '24', '25'):
             raise ExtractorError('The URL does not contain audio.', expected=True)
 
-        str_duration, str_filesize = self._search_regex(
-            r'サイズ：</span>(.+?)/\(([0-9,]+?[KMG]?B)）', webpage, 'duration and size',
-            group=(1, 2), default=(None, None))
-        str_viewcount = self._search_regex(r'閲覧数：</span>([0-9,]+)\s+', webpage, 'view count', fatal=False)
-
-        uploader_id, uploader = self._search_regex(
-            r'<a\s+class="cd_user-name"\s+href="/(.*)">([^<]+)さん<', webpage, 'uploader',
-            group=(1, 2), default=(None, None))
-        content_id = self._search_regex(r'contentId\:\'(.+)\'', webpage, 'content ID')
-        create_date = self._search_regex(r'createDate\:\'(.+)\'', webpage, 'timestamp')
-
-        player_webpage = self._download_webpage(
-            f'https://piapro.jp/html5_player_popup/?id={content_id}&cdate={create_date}',
-            video_id, note='Downloading player webpage')
+        def extract_info(name, description):
+            return self._search_regex(rf'{name}[：:]\s*([\d\s,:/]+)\s*</p>', webpage, description, default=None)
 
         return {
             'id': video_id,
-            'title': self._html_search_regex(r'<h1\s+class="cd_works-title">(.+?)</h1>', webpage, 'title', fatal=False),
-            'description': self._html_search_regex(r'(?s)<p\s+class="cd_dtl_cap">(.+?)</p>\s*<div', webpage, 'description', fatal=False),
-            'uploader': uploader,
-            'uploader_id': uploader_id,
-            'timestamp': unified_timestamp(create_date, False),
-            'duration': parse_duration(str_duration),
-            'view_count': str_to_int(str_viewcount),
+            'title': clean_html(get_element_by_class('contents_title', webpage)),
+            'description': clean_html(get_element_by_class('contents_description', webpage)),
+            'uploader': clean_html(get_element_by_class('contents_creator_txt', webpage)),
+            'uploader_id': self._search_regex(
+                r'<a\s+href="/([^"]+)"', get_element_by_class('contents_creator', webpage), 'uploader id', default=None),
+            'timestamp': unified_timestamp(extract_info('投稿日', 'timestamp'), False),
+            'duration': parse_duration(extract_info('長さ', 'duration')),
+            'view_count': str_to_int(extract_info('閲覧数', 'view count')),
             'thumbnail': self._html_search_meta('twitter:image', webpage),
-
-            'filesize_approx': parse_filesize(str_filesize.replace(',', '')),
-            'url': self._search_regex(r'mp3:\s*\'(.*?)\'\}', player_webpage, 'url'),
+            'filesize_approx': parse_filesize((extract_info('サイズ', 'size') or '').replace(',', '')),
+            'url': self._search_regex(r'\"url\":\s*\"(.*?)\"', webpage, 'url'),
             'ext': 'mp3',
             'vcodec': 'none',
         }

@@ -20,7 +20,7 @@ class AtresPlayerIE(InfoExtractor):
                 'description': 'md5:7634cdcb4d50d5381bedf93efb537fbc',
                 'duration': 3413,
             },
-            'skip': 'This video is only available for registered users'
+            'skip': 'This video is only available for registered users',
         },
         {
             'url': 'https://www.atresplayer.com/lasexta/programas/el-club-de-la-comedia/temporada-4/capitulo-10-especial-solidario-nochebuena_5ad08edf986b2855ed47adc4/',
@@ -49,7 +49,7 @@ class AtresPlayerIE(InfoExtractor):
             target_url = self._download_json(
                 'https://account.atresmedia.com/api/login', None,
                 'Logging in', headers={
-                    'Content-Type': 'application/x-www-form-urlencoded'
+                    'Content-Type': 'application/x-www-form-urlencoded',
                 }, data=urlencode_postdata({
                     'username': username,
                     'password': password,

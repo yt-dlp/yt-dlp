@@ -94,7 +94,7 @@ def generator(test_case, tname):
             'playlist', [] if is_playlist else [test_case])
 
         def print_skipping(reason):
-            print('Skipping %s: %s' % (test_case['name'], reason))
+            print('Skipping {}: {}'.format(test_case['name'], reason))
             self.skipTest(reason)
 
         if not ie.working():
@@ -117,7 +117,7 @@ def generator(test_case, tname):
 
         for other_ie in other_ies:
             if not other_ie.working():
-                print_skipping('test depends on %sIE, marked as not WORKING' % other_ie.ie_key())
+                print_skipping(f'test depends on {other_ie.ie_key()}IE, marked as not WORKING')
 
         params = get_params(test_case.get('params', {}))
         params['outtmpl'] = tname + '_' + params['outtmpl']
@@ -148,10 +148,7 @@ def generator(test_case, tname):
                 return False
             if err.__class__.__name__ == expected_exception:
                 return True
-            for exc in err.exc_info:
-                if exc.__class__.__name__ == expected_exception:
-                    return True
-            return False
+            return any(exc.__class__.__name__ == expected_exception for exc in err.exc_info)
 
         def try_rm_tcs_files(tcs=None):
             if tcs is None:
@@ -181,7 +178,7 @@ def generator(test_case, tname):
                         raise
 
                     if try_num == RETRIES:
-                        report_warning('%s failed due to network errors, skipping...' % tname)
+                        report_warning(f'{tname} failed due to network errors, skipping...')
                         return
 
                     print(f'Retrying: {try_num} failed tries\n\n##########\n\n')
@@ -244,9 +241,8 @@ def generator(test_case, tname):
                         got_fsize = os.path.getsize(tc_filename)
                         assertGreaterEqual(
                             self, got_fsize, expected_minsize,
-                            'Expected %s to be at least %s, but it\'s only %s ' %
-                            (tc_filename, format_bytes(expected_minsize),
-                                format_bytes(got_fsize)))
+                            f'Expected {tc_filename} to be at least {format_bytes(expected_minsize)}, '
+                            f'but it\'s only {format_bytes(got_fsize)} ')
                     if 'md5' in tc:
                         md5_for_file = _file_md5(tc_filename)
                         self.assertEqual(tc['md5'], md5_for_file)
@@ -255,7 +251,7 @@ def generator(test_case, tname):
                 info_json_fn = os.path.splitext(tc_filename)[0] + '.info.json'
                 self.assertTrue(
                     os.path.exists(info_json_fn),
-                    'Missing info file %s' % info_json_fn)
+                    f'Missing info file {info_json_fn}')
                 with open(info_json_fn, encoding='utf-8') as infof:
                     info_dict = json.load(infof)
                 expect_info_dict(self, info_dict, tc.get('info_dict', {}))
