@@ -31,7 +31,7 @@ class ListenNotesIE(InfoExtractor):
             'thumbnail': 'https://production.listennotes.com/podcasts/thriving-on-overload-ross-dawson-1wb_KospA3P-ed84wITivxF.300x300.jpg',
             'channel_url': 'https://www.listennotes.com/podcasts/thriving-on-overload-ross-dawson-ed84wITivxF/',
             'cast': ['Tim O’Reilly', 'Cookie Monster', 'Lao Tzu', 'Wallace Steven', 'Eric Raymond', 'Christine Peterson', 'John Maynard Keyne', 'Ross Dawson'],
-        }
+        },
     }, {
         'url': 'https://www.listennotes.com/podcasts/ask-noah-show/episode-177-wireguard-with-lwEA3154JzG/',
         'md5': '62fb4ffe7fc525632a1138bf72a5ce53',
@@ -47,7 +47,7 @@ class ListenNotesIE(InfoExtractor):
             'channel_url': 'https://www.listennotes.com/podcasts/ask-noah-show-noah-j-chelliah-4DQTzdS5-j7/',
             'thumbnail': 'https://production.listennotes.com/podcasts/ask-noah-show-noah-j-chelliah-cfbRUw9Gs3F-4DQTzdS5-j7.300x300.jpg',
             'cast': ['noah showlink', 'noah show', 'noah dashboard', 'jason donenfeld'],
-        }
+        },
     }]
 
     def _clean_description(self, description):
@@ -82,5 +82,5 @@ class ListenNotesIE(InfoExtractor):
                 'cast': ('nlp_entities', ..., 'name'),
                 'channel_url': 'channel_url',
                 'channel_id': 'channel_short_uuid',
-            })
+            }),
         }

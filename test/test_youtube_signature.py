@@ -46,17 +46,17 @@ _SIG_TESTS = [
     (
         'https://s.ytimg.com/yts/jsbin/html5player-en_US-vflBb0OQx.js',
         84,
-        '123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQ0STUVWXYZ!"#$%&\'()*+,@./:;<=>'
+        '123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQ0STUVWXYZ!"#$%&\'()*+,@./:;<=>',
     ),
     (
         'https://s.ytimg.com/yts/jsbin/html5player-en_US-vfl9FYC6l.js',
         83,
-        '123456789abcdefghijklmnopqr0tuvwxyzABCDETGHIJKLMNOPQRS>UVWXYZ!"#$%&\'()*+,-./:;<=F'
+        '123456789abcdefghijklmnopqr0tuvwxyzABCDETGHIJKLMNOPQRS>UVWXYZ!"#$%&\'()*+,-./:;<=F',
     ),
     (
         'https://s.ytimg.com/yts/jsbin/html5player-en_US-vflCGk6yw/html5player.js',
         '4646B5181C6C3020DF1D9C7FCFEA.AD80ABF70C39BD369CCCAE780AFBB98FA6B6CB42766249D9488C288',
-        '82C8849D94266724DC6B6AF89BBFA087EACCD963.B93C07FBA084ACAEFCF7C9D1FD0203C6C1815B6B'
+        '82C8849D94266724DC6B6AF89BBFA087EACCD963.B93C07FBA084ACAEFCF7C9D1FD0203C6C1815B6B',
     ),
     (
         'https://s.ytimg.com/yts/jsbin/html5player-en_US-vflKjOTVq/html5player.js',
@@ -207,7 +207,7 @@ class TestSignature(unittest.TestCase):
 def t_factory(name, sig_func, url_pattern):
     def make_tfunc(url, sig_input, expected_sig):
         m = url_pattern.match(url)
-        assert m, '%r should follow URL format' % url
+        assert m, f'{url!r} should follow URL format'
         test_id = m.group('id')
 
         def test_func(self):

@@ -61,7 +61,7 @@ ACODECS = {
 
 
 def create_mapping_re(supported):
-    return re.compile(r'{0}(?:/{0})*$'.format(r'(?:\s*\w+\s*>)?\s*(?:%s)\s*' % '|'.join(supported)))
+    return re.compile(r'{0}(?:/{0})*$'.format(r'(?:\s*\w+\s*>)?\s*(?:{})\s*'.format('|'.join(supported))))
 
 
 def resolve_mapping(source, mapping):
@@ -119,7 +119,7 @@ class FFmpegPostProcessor(PostProcessor):
             filename = os.path.basename(location)
             basename = next((p for p in programs if p in filename), 'ffmpeg')
             dirname = os.path.dirname(os.path.abspath(location))
-            if basename in self._ffmpeg_to_avconv.keys():
+            if basename in self._ffmpeg_to_avconv:
                 self._prefer_ffmpeg = True
 
         paths = {p: os.path.join(dirname, p) for p in programs}
@@ -169,12 +169,12 @@ class FFmpegPostProcessor(PostProcessor):
 
     @functools.cached_property
     def basename(self):
-        self._version  # run property
+        _ = self._version  # run property
         return self.basename
 
     @functools.cached_property
     def probe_basename(self):
-        self._probe_version  # run property
+        _ = self._probe_version  # run property
         return self.probe_basename
 
     def _get_version(self, kind):
@@ -342,7 +342,7 @@ class FFmpegPostProcessor(PostProcessor):
             cmd += [encodeArgument('-loglevel'), encodeArgument('repeat+info')]
 
         def make_args(file, args, name, number):
-            keys = ['_%s%d' % (name, number), '_%s' % name]
+            keys = [f'_{name}{number}', f'_{name}']
             if name == 'o':
                 args += ['-movflags', '+faststart']
                 if number == 1:
@@ -359,7 +359,7 @@ class FFmpegPostProcessor(PostProcessor):
                 make_args(path, list(opts), arg_type, i + 1)
                 for i, (path, opts) in enumerate(path_opts) if path)
 
-        self.write_debug('ffmpeg command line: %s' % shell_quote(cmd))
+        self.write_debug(f'ffmpeg command line: {shell_quote(cmd)}')
         _, stderr, returncode = Popen.run(
             cmd, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
         if returncode not in variadic(expected_retcodes):
@@ -437,7 +437,7 @@ class FFmpegPostProcessor(PostProcessor):
 
 
 class FFmpegExtractAudioPP(FFmpegPostProcessor):
-    COMMON_AUDIO_EXTS = MEDIA_EXTENSIONS.common_audio + ('wma', )
+    COMMON_AUDIO_EXTS = (*MEDIA_EXTENSIONS.common_audio, 'wma')
     SUPPORTED_EXTS = tuple(ACODECS.keys())
     FORMAT_RE = create_mapping_re(('best', *SUPPORTED_EXTS))
 
@@ -474,7 +474,7 @@ class FFmpegExtractAudioPP(FFmpegPostProcessor):
             acodec_opts = []
         else:
             acodec_opts = ['-acodec', codec]
-        opts = ['-vn'] + acodec_opts + more_opts
+        opts = ['-vn', *acodec_opts, *more_opts]
         try:
             FFmpegPostProcessor.run_ffmpeg(self, path, out_path, opts)
         except FFmpegPostProcessorError as err:
@@ -523,7 +523,7 @@ class FFmpegExtractAudioPP(FFmpegPostProcessor):
             temp_path = prepend_extension(path, 'temp')
         if (self._nopostoverwrites and os.path.exists(encodeFilename(new_path))
                 and os.path.exists(encodeFilename(orig_path))):
-            self.to_screen('Post-process file %s exists, skipping' % new_path)
+            self.to_screen(f'Post-process file {new_path} exists, skipping')
             return [], information
 
         self.to_screen(f'Destination: {new_path}')
@@ -641,7 +641,7 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
         if not sub_langs:
             return [], info
 
-        input_files = [filename] + sub_filenames
+        input_files = [filename, *sub_filenames]
 
         opts = [
             *self.stream_copy_opts(ext=info['ext']),
@@ -650,15 +650,15 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
             '-map', '-0:s',
         ]
         for i, (lang, name) in enumerate(zip(sub_langs, sub_names)):
-            opts.extend(['-map', '%d:0' % (i + 1)])
+            opts.extend(['-map', f'{i + 1}:0'])
             lang_code = ISO639Utils.short2long(lang) or lang
-            opts.extend(['-metadata:s:s:%d' % i, 'language=%s' % lang_code])
+            opts.extend([f'-metadata:s:s:{i}', f'language={lang_code}'])
             if name:
-                opts.extend(['-metadata:s:s:%d' % i, 'handler_name=%s' % name,
-                             '-metadata:s:s:%d' % i, 'title=%s' % name])
+                opts.extend([f'-metadata:s:s:{i}', f'handler_name={name}',
+                             f'-metadata:s:s:{i}', f'title={name}'])
 
         temp_filename = prepend_extension(filename, 'temp')
-        self.to_screen('Embedding subtitles in "%s"' % filename)
+        self.to_screen(f'Embedding subtitles in "{filename}"')
         self.run_ffmpeg_multiple_files(input_files, temp_filename, opts)
         os.replace(temp_filename, filename)
 
@@ -707,7 +707,7 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
             return [], info
 
         temp_filename = prepend_extension(filename, 'temp')
-        self.to_screen('Adding metadata to "%s"' % filename)
+        self.to_screen(f'Adding metadata to "{filename}"')
         self.run_ffmpeg_multiple_files(
             (filename, metadata_filename), temp_filename,
             itertools.chain(self._options(info['ext']), *options))
@@ -728,7 +728,7 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
                 metadata_file_content += 'END=%d\n' % (chapter['end_time'] * 1000)
                 chapter_title = chapter.get('title')
                 if chapter_title:
-                    metadata_file_content += 'title=%s\n' % ffmpeg_escape(chapter_title)
+                    metadata_file_content += f'title={ffmpeg_escape(chapter_title)}\n'
             f.write(metadata_file_content)
         yield ('-map_metadata', '1')
 
@@ -738,7 +738,7 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
 
         def add(meta_list, info_list=None):
             value = next((
-                info[key] for key in [f'{meta_prefix}_'] + list(variadic(info_list or meta_list))
+                info[key] for key in [f'{meta_prefix}_', *variadic(info_list or meta_list)]
                 if info.get(key) is not None), None)
             if value not in ('', None):
                 value = ', '.join(map(str, variadic(value)))
@@ -807,7 +807,7 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
 
         old_stream, new_stream = self.get_stream_number(info['filepath'], ('tags', 'mimetype'), 'application/json')
         if old_stream is not None:
-            yield ('-map', '-0:%d' % old_stream)
+            yield ('-map', f'-0:{old_stream}')
             new_stream -= 1
 
         yield (
@@ -834,8 +834,8 @@ class FFmpegMergerPP(FFmpegPostProcessor):
                     args.extend([f'-bsf:a:{audio_streams}', 'aac_adtstoasc'])
                 audio_streams += 1
             if fmt.get('vcodec') != 'none':
-                args.extend(['-map', '%u:v:0' % (i)])
-        self.to_screen('Merging formats into "%s"' % filename)
+                args.extend(['-map', f'{i}:v:0'])
+        self.to_screen(f'Merging formats into "{filename}"')
         self.run_ffmpeg_multiple_files(info['__files_to_merge'], temp_filename, args)
         os.rename(encodeFilename(temp_filename), encodeFilename(filename))
         return info['__files_to_merge'], info
@@ -848,10 +848,9 @@ class FFmpegMergerPP(FFmpegPostProcessor):
         required_version = '10-0'
         if is_outdated_version(
                 self._versions[self.basename], required_version):
-            warning = ('Your copy of %s is outdated and unable to properly mux separate video and audio files, '
+            warning = (f'Your copy of {self.basename} is outdated and unable to properly mux separate video and audio files, '
                        'yt-dlp will download single file media. '
-                       'Update %s to version %s or newer to fix this.') % (
-                           self.basename, self.basename, required_version)
+                       f'Update {self.basename} to version {required_version} or newer to fix this.')
             self.report_warning(warning)
             return False
         return True
@@ -873,7 +872,7 @@ class FFmpegFixupStretchedPP(FFmpegFixupPostProcessor):
         stretched_ratio = info.get('stretched_ratio')
         if stretched_ratio not in (None, 1):
             self._fixup('Fixing aspect ratio', info['filepath'], [
-                *self.stream_copy_opts(), '-aspect', '%f' % stretched_ratio])
+                *self.stream_copy_opts(), '-aspect', f'{stretched_ratio:f}'])
         return [], info
 
 
@@ -925,7 +924,7 @@ class FFmpegFixupTimestampPP(FFmpegFixupPostProcessor):
             opts = ['-vf', 'setpts=PTS-STARTPTS']
         else:
             opts = ['-c', 'copy', '-bsf', 'setts=ts=TS-STARTPTS']
-        self._fixup('Fixing frame timestamp', info['filepath'], opts + [*self.stream_copy_opts(False), '-ss', self.trim])
+        self._fixup('Fixing frame timestamp', info['filepath'], [*opts, *self.stream_copy_opts(False), '-ss', self.trim])
         return [], info
 
 
@@ -970,7 +969,7 @@ class FFmpegSubtitlesConvertorPP(FFmpegPostProcessor):
                 continue
             ext = sub['ext']
             if ext == new_ext:
-                self.to_screen('Subtitle file for %s is already in the requested format' % new_ext)
+                self.to_screen(f'Subtitle file for {new_ext} is already in the requested format')
                 continue
             elif ext == 'json':
                 self.to_screen(
@@ -1060,7 +1059,7 @@ class FFmpegSplitChaptersPP(FFmpegPostProcessor):
         in_file = info['filepath']
         if self._force_keyframes and len(chapters) > 1:
             in_file = self.force_keyframes(in_file, (c['start_time'] for c in chapters))
-        self.to_screen('Splitting video by chapters; %d chapters found' % len(chapters))
+        self.to_screen(f'Splitting video by chapters; {len(chapters)} chapters found')
         for idx, chapter in enumerate(chapters):
             destination, opts = self._ffmpeg_args_for_chapter(idx + 1, chapter, info)
             self.real_run_ffmpeg([(in_file, opts)], [(destination, self.stream_copy_opts())])
@@ -1087,7 +1086,7 @@ class FFmpegThumbnailsConvertorPP(FFmpegPostProcessor):
         _, thumbnail_ext = os.path.splitext(thumbnail_filename)
         if thumbnail_ext:
             if thumbnail_ext.lower() != '.webp' and imghdr.what(thumbnail_filename) == 'webp':
-                self.to_screen('Correcting thumbnail "%s" extension to webp' % thumbnail_filename)
+                self.to_screen(f'Correcting thumbnail "{thumbnail_filename}" extension to webp')
                 webp_filename = replace_extension(thumbnail_filename, 'webp')
                 os.replace(thumbnail_filename, webp_filename)
                 info['thumbnails'][idx]['filepath'] = webp_filename

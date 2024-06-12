@@ -1,15 +1,12 @@
 import base64
 import re
 import struct
+import urllib.parse
 import xml.etree.ElementTree
 
 from .adobepass import AdobePassIE
 from .common import InfoExtractor
-from ..compat import (
-    compat_etree_fromstring,
-    compat_parse_qs,
-    compat_urlparse,
-)
+from ..compat import compat_etree_fromstring
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
@@ -142,7 +139,7 @@ class BrightcoveLegacyIE(InfoExtractor):
             # from http://www.un.org/chinese/News/story.asp?NewsID=27724
             'url': 'https://link.brightcove.com/services/player/bcpid1722935254001/?bctid=5360463607001&autoStart=false&secureConnections=true&width=650&height=350',
             'only_matching': True,  # Tested in GenericIE
-        }
+        },
     ]
 
     _WEBPAGE_TESTS = [{
@@ -315,7 +312,7 @@ class BrightcoveLegacyIE(InfoExtractor):
         object_str = fix_xml_ampersands(object_str)
 
         try:
-            object_doc = compat_etree_fromstring(object_str.encode('utf-8'))
+            object_doc = compat_etree_fromstring(object_str.encode())
         except xml.etree.ElementTree.ParseError:
             return
 
@@ -323,7 +320,7 @@ class BrightcoveLegacyIE(InfoExtractor):
         if fv_el is not None:
             flashvars = dict(
                 (k, v[0])
-                for k, v in compat_parse_qs(fv_el.attrib['value']).items())
+                for k, v in urllib.parse.parse_qs(fv_el.attrib['value']).items())
         else:
             flashvars = {}
 
@@ -340,32 +337,32 @@ class BrightcoveLegacyIE(InfoExtractor):
 
         params = {}
 
-        playerID = find_param('playerID') or find_param('playerId')
-        if playerID is None:
+        player_id = find_param('playerID') or find_param('playerId')
+        if player_id is None:
             raise ExtractorError('Cannot find player ID')
-        params['playerID'] = playerID
+        params['playerID'] = player_id
 
-        playerKey = find_param('playerKey')
+        player_key = find_param('playerKey')
         # Not all pages define this value
-        if playerKey is not None:
-            params['playerKey'] = playerKey
+        if player_key is not None:
+            params['playerKey'] = player_key
         # These fields hold the id of the video
-        videoPlayer = find_param('@videoPlayer') or find_param('videoId') or find_param('videoID') or find_param('@videoList')
-        if videoPlayer is not None:
-            if isinstance(videoPlayer, list):
-                videoPlayer = videoPlayer[0]
-            videoPlayer = videoPlayer.strip()
+        video_player = find_param('@videoPlayer') or find_param('videoId') or find_param('videoID') or find_param('@videoList')
+        if video_player is not None:
+            if isinstance(video_player, list):
+                video_player = video_player[0]
+            video_player = video_player.strip()
             # UUID is also possible for videoPlayer (e.g.
             # http://www.popcornflix.com/hoodies-vs-hooligans/7f2d2b87-bbf2-4623-acfb-ea942b4f01dd
             # or http://www8.hp.com/cn/zh/home.html)
             if not (re.match(
                     r'^(?:\d+|[\da-fA-F]{8}-?[\da-fA-F]{4}-?[\da-fA-F]{4}-?[\da-fA-F]{4}-?[\da-fA-F]{12})$',
-                    videoPlayer) or videoPlayer.startswith('ref:')):
+                    video_player) or video_player.startswith('ref:')):
                 return None
-            params['@videoPlayer'] = videoPlayer
-        linkBase = find_param('linkBaseURL')
-        if linkBase is not None:
-            params['linkBaseURL'] = linkBase
+            params['@videoPlayer'] = video_player
+        link_base = find_param('linkBaseURL')
+        if link_base is not None:
+            params['linkBaseURL'] = link_base
         return cls._make_brightcove_url(params)
 
     @classmethod
@@ -448,13 +445,13 @@ class BrightcoveLegacyIE(InfoExtractor):
         url = re.sub(r'(?<=[?&])bckey', 'playerKey', url)
         mobj = self._match_valid_url(url)
         query_str = mobj.group('query')
-        query = compat_urlparse.parse_qs(query_str)
+        query = urllib.parse.parse_qs(query_str)
 
-        videoPlayer = query.get('@videoPlayer')
-        if videoPlayer:
+        video_player = query.get('@videoPlayer')
+        if video_player:
             # We set the original url as the default 'Referer' header
             referer = query.get('linkBaseURL', [None])[0] or smuggled_data.get('Referer', url)
-            video_id = videoPlayer[0]
+            video_id = video_player[0]
             if 'playerID' not in query:
                 mobj = re.search(r'/bcpid(\d+)', url)
                 if mobj is not None:
@@ -483,7 +480,7 @@ class BrightcoveLegacyIE(InfoExtractor):
                     enc_pub_id = player_key.split(',')[1].replace('~', '=')
                     publisher_id = struct.unpack('>Q', base64.urlsafe_b64decode(enc_pub_id))[0]
             if publisher_id:
-                brightcove_new_url = 'http://players.brightcove.net/%s/default_default/index.html?videoId=%s' % (publisher_id, video_id)
+                brightcove_new_url = f'http://players.brightcove.net/{publisher_id}/default_default/index.html?videoId={video_id}'
                 if referer:
                     brightcove_new_url = smuggle_url(brightcove_new_url, {'referrer': referer})
                 return self.url_result(brightcove_new_url, BrightcoveNewIE.ie_key(), video_id)
@@ -543,9 +540,9 @@ class BrightcoveNewBaseIE(AdobePassIE):
                 def build_format_id(kind):
                     format_id = kind
                     if tbr:
-                        format_id += '-%dk' % int(tbr)
+                        format_id += f'-{int(tbr)}k'
                     if height:
-                        format_id += '-%dp' % height
+                        format_id += f'-{height}p'
                     return format_id
 
                 if src or streaming_src:
@@ -654,7 +651,7 @@ class BrightcoveNewIE(BrightcoveNewBaseIE):
         'params': {
             # m3u8 download
             'skip_download': True,
-        }
+        },
     }, {
         # playlist stream
         'url': 'https://players.brightcove.net/1752604059001/S13cJdUBz_default/index.html?playlistId=5718313430001',
@@ -666,7 +663,7 @@ class BrightcoveNewIE(BrightcoveNewBaseIE):
         'params': {
             # m3u8 download
             'skip_download': True,
-        }
+        },
     }, {
         'url': 'http://players.brightcove.net/5690807595001/HyZNerRl7_default/index.html?playlistId=5743160747001',
         'only_matching': True,
@@ -833,8 +830,7 @@ class BrightcoveNewIE(BrightcoveNewBaseIE):
             player_id = player_id or attrs.get('data-player') or 'default'
             embed = embed or attrs.get('data-embed') or 'default'
 
-            bc_url = 'http://players.brightcove.net/%s/%s_%s/index.html?videoId=%s' % (
-                account_id, player_id, embed, video_id)
+            bc_url = f'http://players.brightcove.net/{account_id}/{player_id}_{embed}/index.html?videoId={video_id}'
 
             # Some brightcove videos may be embedded with video tag only and
             # without script tag or any mentioning of brightcove at all. Such
@@ -865,13 +861,13 @@ class BrightcoveNewIE(BrightcoveNewBaseIE):
 
         account_id, player_id, embed, content_type, video_id = self._match_valid_url(url).groups()
 
-        policy_key_id = '%s_%s' % (account_id, player_id)
+        policy_key_id = f'{account_id}_{player_id}'
         policy_key = self.cache.load('brightcove', policy_key_id)
         policy_key_extracted = False
         store_pk = lambda x: self.cache.store('brightcove', policy_key_id, x)
 
         def extract_policy_key():
-            base_url = 'http://players.brightcove.net/%s/%s_%s/' % (account_id, player_id, embed)
+            base_url = f'http://players.brightcove.net/{account_id}/{player_id}_{embed}/'
             config = self._download_json(
                 base_url + 'config.json', video_id, fatal=False) or {}
             policy_key = try_get(
@@ -910,7 +906,7 @@ class BrightcoveNewIE(BrightcoveNewBaseIE):
             if not policy_key:
                 policy_key = extract_policy_key()
                 policy_key_extracted = True
-            headers['Accept'] = 'application/json;pk=%s' % policy_key
+            headers['Accept'] = f'application/json;pk={policy_key}'
             try:
                 json_data = self._download_json(api_url, video_id, headers=headers)
                 break
@@ -936,7 +932,7 @@ class BrightcoveNewIE(BrightcoveNewBaseIE):
                 custom_fields['bcadobepassresourceid'])
             json_data = self._download_json(
                 api_url, video_id, headers={
-                    'Accept': 'application/json;pk=%s' % policy_key
+                    'Accept': f'application/json;pk={policy_key}',
                 }, query={
                     'tveToken': tve_token,
                 })

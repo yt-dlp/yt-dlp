@@ -63,7 +63,7 @@ class NetverseIE(NetverseBaseIE):
             'timestamp': 1626919804,
             'like_count': int,
             'uploader': 'Net Prime',
-        }
+        },
     }, {
         # series
         'url': 'https://www.netverse.id/watch/jadoo-seorang-model',
@@ -87,7 +87,7 @@ class NetverseIE(NetverseBaseIE):
             'uploader': 'Net Prime',
             'age_limit': 0,
         },
-        'skip': 'video get Geo-blocked for some country'
+        'skip': 'video get Geo-blocked for some country',
     }, {
         # non www host
         'url': 'https://netverse.id/watch/tetangga-baru',
@@ -135,7 +135,7 @@ class NetverseIE(NetverseBaseIE):
             'timestamp': 1645764984,
             'upload_date': '20220225',
         },
-        'skip': 'This video get Geo-blocked for some country'
+        'skip': 'This video get Geo-blocked for some country',
     }, {
         # video with comments
         'url': 'https://netverse.id/video/episode-1-season-2016-ok-food',
@@ -161,8 +161,8 @@ class NetverseIE(NetverseBaseIE):
             'comment_count': int,
         },
         'params': {
-            'getcomments': True
-        }
+            'getcomments': True,
+        },
     }, {
         # video with multiple page comment
         'url': 'https://netverse.id/video/match-island-eps-1-fix',
@@ -188,8 +188,8 @@ class NetverseIE(NetverseBaseIE):
             'comment_count': int,
         },
         'params': {
-            'getcomments': True
-        }
+            'getcomments': True,
+        },
     }]
 
     def _real_extract(self, url):

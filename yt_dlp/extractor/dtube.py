@@ -49,16 +49,16 @@ class DTubeIE(InfoExtractor):
 
         formats = []
         for q in ('240', '480', '720', '1080', ''):
-            video_url = canonical_url(content.get('video%shash' % q))
+            video_url = canonical_url(content.get(f'video{q}hash'))
             if not video_url:
                 continue
             format_id = (q + 'p') if q else 'Source'
             try:
-                self.to_screen('%s: Checking %s video format URL' % (video_id, format_id))
+                self.to_screen(f'{video_id}: Checking {format_id} video format URL')
                 self._downloader._opener.open(video_url, timeout=5).close()
             except socket.timeout:
                 self.to_screen(
-                    '%s: %s URL is invalid, skipping' % (video_id, format_id))
+                    f'{video_id}: {format_id} URL is invalid, skipping')
                 continue
             formats.append({
                 'format_id': format_id,

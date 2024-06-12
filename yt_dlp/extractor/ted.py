@@ -46,11 +46,11 @@ class TedTalkIE(TedBaseIE):
         webpage = self._download_webpage(url, display_id)
         talk_info = self._search_nextjs_data(webpage, display_id)['props']['pageProps']['videoData']
         video_id = talk_info['id']
-        playerData = self._parse_json(talk_info.get('playerData'), video_id)
+        player_data = self._parse_json(talk_info.get('playerData'), video_id)
 
         http_url = None
         formats, subtitles = [], {}
-        for format_id, resources in (playerData.get('resources') or {}).items():
+        for format_id, resources in (player_data.get('resources') or {}).items():
             if format_id == 'hls':
                 stream_url = url_or_none(try_get(resources, lambda x: x['stream']))
                 if not stream_url:
@@ -71,7 +71,7 @@ class TedTalkIE(TedBaseIE):
                     bitrate = int_or_none(resource.get('bitrate'))
                     formats.append({
                         'url': h264_url,
-                        'format_id': '%s-%sk' % (format_id, bitrate),
+                        'format_id': f'{format_id}-{bitrate}k',
                         'tbr': bitrate,
                     })
                     if re.search(r'\d+k', h264_url):
@@ -81,7 +81,7 @@ class TedTalkIE(TedBaseIE):
                 if not streamer:
                     continue
                 formats.extend({
-                    'format_id': '%s-%s' % (format_id, resource.get('name')),
+                    'format_id': '{}-{}'.format(format_id, resource.get('name')),
                     'url': streamer,
                     'play_path': resource['file'],
                     'ext': 'flv',
@@ -98,7 +98,7 @@ class TedTalkIE(TedBaseIE):
                     continue
                 bitrate_url = re.sub(r'\d+k', bitrate, http_url)
                 if not self._is_valid_url(
-                        bitrate_url, video_id, '%s bitrate' % bitrate):
+                        bitrate_url, video_id, f'{bitrate} bitrate'):
                     continue
                 f = m3u8_format.copy()
                 f.update({
@@ -119,12 +119,12 @@ class TedTalkIE(TedBaseIE):
             })
 
         if not formats:
-            external = playerData.get('external') or {}
+            external = player_data.get('external') or {}
             service = external.get('service') or ''
             ext_url = external.get('code') if service.lower() == 'youtube' else None
             return self.url_result(ext_url or external['uri'])
 
-        thumbnail = playerData.get('thumb') or self._og_search_property('image', webpage)
+        thumbnail = player_data.get('thumb') or self._og_search_property('image', webpage)
         if thumbnail:
             # trim thumbnail resize parameters
             thumbnail = thumbnail.split('?')[0]
@@ -141,7 +141,7 @@ class TedTalkIE(TedBaseIE):
             'view_count': str_to_int(talk_info.get('viewedCount')),
             'upload_date': unified_strdate(talk_info.get('publishedAt')),
             'release_date': unified_strdate(talk_info.get('recordedOn')),
-            'tags': try_get(playerData, lambda x: x['targeting']['tag'].split(',')),
+            'tags': try_get(player_data, lambda x: x['targeting']['tag'].split(',')),
         }
 
 
@@ -153,7 +153,7 @@ class TedSeriesIE(TedBaseIE):
             'id': '3',
             'title': 'Small Thing Big Idea',
             'series': 'Small Thing Big Idea',
-            'description': 'md5:6869ca52cec661aef72b3e9f7441c55c'
+            'description': 'md5:6869ca52cec661aef72b3e9f7441c55c',
         },
         'playlist_mincount': 16,
     }, {
@@ -163,7 +163,7 @@ class TedSeriesIE(TedBaseIE):
             'title': 'The Way We Work Season 2',
             'series': 'The Way We Work',
             'description': 'md5:59469256e533e1a48c4aa926a382234c',
-            'season_number': 2
+            'season_number': 2,
         },
         'playlist_mincount': 8,
     }]
@@ -194,7 +194,7 @@ class TedPlaylistIE(TedBaseIE):
         'info_dict': {
             'id': '171',
             'title': 'The most popular talks of all time',
-            'description': 'md5:d2f22831dc86c7040e733a3cb3993d78'
+            'description': 'md5:d2f22831dc86c7040e733a3cb3993d78',
         },
         'playlist_mincount': 25,
     }]
