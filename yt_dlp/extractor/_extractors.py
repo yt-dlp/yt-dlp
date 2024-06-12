@@ -216,6 +216,9 @@ from .bbc import (
     BBCCoUkIPlayerGroupIE,
     BBCCoUkPlaylistIE,
 )
+from .bbcmaestro import (
+    BBCMaestroComIE,
+)
 from .beatbump import (
     BeatBumpPlaylistIE,
     BeatBumpVideoIE,
