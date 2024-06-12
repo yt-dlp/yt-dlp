@@ -703,7 +703,7 @@ class NhkRadiruIE(InfoExtractor):
 
         full_meta = traverse_obj(response, ('list', service, 0, {dict}))
 
-        station = ' '.join(traverse_obj(full_meta, (('service', 'area',), 'name', {str})))
+        station = ' '.join(traverse_obj(full_meta, (('service', 'area'), 'name', {str})))
         description = join_nonempty('subtitle', 'content', 'act', 'music', delim='\n\n', from_dict=full_meta)
 
         thumbnails = []
@@ -744,7 +744,7 @@ class NhkRadiruIE(InfoExtractor):
 #        if extended_metadata.get("thumbnails") != []:
 #            series_meta["thumbnail"] = None
 
-        fallback_start_time, _, fallback_end_time = aa_vinfo[4].partition("_")
+        fallback_start_time, _, fallback_end_time = aa_vinfo[4].partition('_')
 
         return {
             **series_meta,
@@ -774,7 +774,7 @@ class NhkRadiruIE(InfoExtractor):
 
         meta = self._download_json(json_url, programme_id)
 
-        fallback_station = join_nonempty("NHK", meta.get("radio_broadcast"), delim=' ')
+        fallback_station = join_nonempty('NHK', meta.get('radio_broadcast'), delim=' ')
 
         series_meta = {
             'series': join_nonempty('title', 'corner_name', delim=' ', from_dict=meta),
