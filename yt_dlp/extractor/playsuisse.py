@@ -36,7 +36,7 @@ class PlaySuisseIE(InfoExtractor):
                 'episode': 'Knochen',
                 'episode_number': 1,
                 'thumbnail': 're:https://playsuisse-img.akamaized.net/',
-            }
+            },
         }, {
             # film
             'url': 'https://www.playsuisse.ch/watch/808675',
@@ -48,7 +48,7 @@ class PlaySuisseIE(InfoExtractor):
                 'description': 'md5:9f61265c7e6dcc3e046137a792b275fd',
                 'duration': 5280,
                 'thumbnail': 're:https://playsuisse-img.akamaized.net/',
-            }
+            },
         }, {
             # series (treated as a playlist)
             'url': 'https://www.playsuisse.ch/detail/1115687',
@@ -70,7 +70,7 @@ class PlaySuisseIE(InfoExtractor):
                     'series': 'They all came out to Montreux',
                     'thumbnail': 're:https://playsuisse-img.akamaized.net/',
                     'title': 'Folge 1',
-                    'ext': 'mp4'
+                    'ext': 'mp4',
                 },
             }, {
                 'info_dict': {
@@ -84,7 +84,7 @@ class PlaySuisseIE(InfoExtractor):
                     'series': 'They all came out to Montreux',
                     'thumbnail': 're:https://playsuisse-img.akamaized.net/',
                     'title': 'Folge 2',
-                    'ext': 'mp4'
+                    'ext': 'mp4',
                 },
             }, {
                 'info_dict': {
@@ -98,10 +98,10 @@ class PlaySuisseIE(InfoExtractor):
                     'series': 'They all came out to Montreux',
                     'thumbnail': 're:https://playsuisse-img.akamaized.net/',
                     'title': 'Folge 3',
-                    'ext': 'mp4'
-                }
+                    'ext': 'mp4',
+                },
             }],
-        }
+        },
     ]
 
     _GRAPHQL_QUERY = '''
@@ -160,7 +160,7 @@ class PlaySuisseIE(InfoExtractor):
             query=query, headers={'X-CSRF-TOKEN': csrf_token}, data=urlencode_postdata({
                 'request_type': 'RESPONSE',
                 'signInName': username,
-                'password': password
+                'password': password,
             }), expected_status=400), ('status', {int_or_none}))
         if status == 400:
             raise ExtractorError('Invalid username or password', expected=True)
@@ -186,8 +186,8 @@ class PlaySuisseIE(InfoExtractor):
             media_id, data=json.dumps({
                 'operationName': 'AssetWatch',
                 'query': self._GRAPHQL_QUERY,
-                'variables': {'assetId': media_id}
-            }).encode('utf-8'),
+                'variables': {'assetId': media_id},
+            }).encode(),
             headers={'Content-Type': 'application/json', 'locale': 'de'})
 
         return response['data']['assetV2']

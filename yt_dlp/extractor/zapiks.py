@@ -55,11 +55,11 @@ class ZapiksIE(InfoExtractor):
                 r'data-media-id="(\d+)"', webpage, 'video id')
 
         playlist = self._download_xml(
-            'http://www.zapiks.fr/view/index.php?action=playlist&media_id=%s&lang=en' % video_id,
+            f'http://www.zapiks.fr/view/index.php?action=playlist&media_id={video_id}&lang=en',
             display_id)
 
         NS_MAP = {
-            'jwplayer': 'http://rss.jwpcdn.com/'
+            'jwplayer': 'http://rss.jwpcdn.com/',
         }
 
         def ns(path):

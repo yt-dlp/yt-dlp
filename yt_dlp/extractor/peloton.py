@@ -36,12 +36,12 @@ class PelotonIE(InfoExtractor):
             'chapters': 'count:1',
             'subtitles': {'en': [{
                 'url': r're:^https?://.+',
-                'ext': 'vtt'
+                'ext': 'vtt',
             }]},
         }, 'params': {
             'skip_download': 'm3u8',
         },
-        '_skip': 'Account needed'
+        '_skip': 'Account needed',
     }, {
         'url': 'https://members.onepeloton.com/classes/player/26603d53d6bb4de1b340514864a6a6a8',
         'info_dict': {
@@ -57,11 +57,11 @@ class PelotonIE(InfoExtractor):
             'duration': 1802,
             'categories': ['Running'],
             'is_live': False,
-            'chapters': 'count:3'
+            'chapters': 'count:3',
         }, 'params': {
             'skip_download': 'm3u8',
         },
-        '_skip': 'Account needed'
+        '_skip': 'Account needed',
     }]
 
     _MANIFEST_URL_TEMPLATE = '%s?hdnea=%s'
@@ -79,7 +79,7 @@ class PelotonIE(InfoExtractor):
                 data=json.dumps({
                     'username_or_email': username,
                     'password': password,
-                    'with_pubsub': False
+                    'with_pubsub': False,
                 }).encode(),
                 headers={'Content-Type': 'application/json', 'User-Agent': 'web'})
         except ExtractorError as e:
@@ -115,7 +115,7 @@ class PelotonIE(InfoExtractor):
             else:
                 raise
 
-        metadata = self._download_json('https://api.onepeloton.com/api/ride/%s/details?stream_source=multichannel' % video_id, video_id)
+        metadata = self._download_json(f'https://api.onepeloton.com/api/ride/{video_id}/details?stream_source=multichannel', video_id)
         ride_data = metadata.get('ride')
         if not ride_data:
             raise ExtractorError('Missing stream metadata')
@@ -133,7 +133,7 @@ class PelotonIE(InfoExtractor):
             subtitles = {}
         else:
             if ride_data.get('vod_stream_url'):
-                url = 'https://members.onepeloton.com/.netlify/functions/m3u8-proxy?displayLanguage=en&acceptedSubtitles=%s&url=%s?hdnea=%s' % (
+                url = 'https://members.onepeloton.com/.netlify/functions/m3u8-proxy?displayLanguage=en&acceptedSubtitles={}&url={}?hdnea={}'.format(
                     ','.join([re.sub('^([a-z]+)-([A-Z]+)$', r'\1', caption) for caption in ride_data['captions']]),
                     ride_data['vod_stream_url'],
                     urllib.parse.quote(urllib.parse.quote(token)))
@@ -147,14 +147,14 @@ class PelotonIE(InfoExtractor):
         if metadata.get('instructor_cues'):
             subtitles['cues'] = [{
                 'data': json.dumps(metadata.get('instructor_cues')),
-                'ext': 'json'
+                'ext': 'json',
             }]
 
         category = ride_data.get('fitness_discipline_display_name')
         chapters = [{
             'start_time': segment.get('start_time_offset'),
             'end_time': segment.get('start_time_offset') + segment.get('length'),
-            'title': segment.get('name')
+            'title': segment.get('name'),
         } for segment in traverse_obj(metadata, ('segments', 'segment_list'))]
 
         return {
@@ -171,7 +171,7 @@ class PelotonIE(InfoExtractor):
             'categories': [category] if category else None,
             'tags': traverse_obj(ride_data, ('equipment_tags', ..., 'name')),
             'is_live': is_live,
-            'chapters': chapters
+            'chapters': chapters,
         }
 
 
@@ -194,12 +194,12 @@ class PelotonLiveIE(InfoExtractor):
             'duration': 2014,
             'categories': ['Cycling'],
             'is_live': False,
-            'chapters': 'count:3'
+            'chapters': 'count:3',
         },
         'params': {
             'skip_download': 'm3u8',
         },
-        '_skip': 'Account needed'
+        '_skip': 'Account needed',
     }
 
     def _real_extract(self, url):
@@ -208,7 +208,7 @@ class PelotonLiveIE(InfoExtractor):
 
         if peloton.get('ride_id'):
             if not peloton.get('is_live') or peloton.get('is_encore') or peloton.get('status') != 'PRE_START':
-                return self.url_result('https://members.onepeloton.com/classes/player/%s' % peloton['ride_id'])
+                return self.url_result('https://members.onepeloton.com/classes/player/{}'.format(peloton['ride_id']))
             else:
                 raise ExtractorError('Ride has not started', expected=True)
         else:

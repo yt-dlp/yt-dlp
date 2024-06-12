@@ -19,12 +19,12 @@ class AMPIE(InfoExtractor):  # XXX: Conventionally, base classes should end with
             'Unable to download Akamai AMP feed', transform_source=strip_jsonp)
         item = feed.get('channel', {}).get('item')
         if not item:
-            raise ExtractorError('%s said: %s' % (self.IE_NAME, feed['error']))
+            raise ExtractorError('{} said: {}'.format(self.IE_NAME, feed['error']))
 
         video_id = item['guid']
 
         def get_media_node(name, default=None):
-            media_name = 'media-%s' % name
+            media_name = f'media-{name}'
             media_group = item.get('media-group') or item
             return media_group.get(media_name) or item.get(media_name) or item.get(name, default)
 

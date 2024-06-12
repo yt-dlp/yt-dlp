@@ -5,7 +5,6 @@ import urllib.parse
 import uuid
 
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     ExtractorError,
     int_or_none,
@@ -68,7 +67,7 @@ class ViuIE(ViuBaseIE):
             'clip/load', video_id, 'Downloading video data', query={
                 'appid': 'viu_desktop',
                 'fmt': 'json',
-                'id': video_id
+                'id': video_id,
             })['item'][0]
 
         title = video_data['title']
@@ -82,7 +81,7 @@ class ViuIE(ViuBaseIE):
         # hls_file = video_data.get('hlsfile')
         hls_file = video_data.get('jwhlsfile')
         if url_path and tdirforwhole and hls_file:
-            m3u8_url = '%s/%s/%s' % (url_path, tdirforwhole, hls_file)
+            m3u8_url = f'{url_path}/{tdirforwhole}/{hls_file}'
         else:
             # m3u8_url = re.sub(
             #     r'(/hlsc_)[a-z]+(\d+\.m3u8)',
@@ -96,7 +95,7 @@ class ViuIE(ViuBaseIE):
                 continue
             subtitles.setdefault(mobj.group('lang'), []).append({
                 'url': value,
-                'ext': mobj.group('ext')
+                'ext': mobj.group('ext'),
             })
 
         return {
@@ -132,7 +131,7 @@ class ViuPlaylistIE(ViuBaseIE):
             'Downloading playlist info', query={
                 'appid': 'viu_desktop',
                 'fmt': 'json',
-                'id': 'playlist-' + playlist_id
+                'id': 'playlist-' + playlist_id,
             })['container']
 
         entries = []
@@ -140,7 +139,7 @@ class ViuPlaylistIE(ViuBaseIE):
             item_id = item.get('id')
             if not item_id:
                 continue
-            item_id = compat_str(item_id)
+            item_id = str(item_id)
             entries.append(self.url_result(
                 'viu:' + item_id, 'Viu', item_id))
 
@@ -227,14 +226,14 @@ class ViuOTTIE(InfoExtractor):
                 return
             headers = {
                 'Authorization': f'Bearer {self._auth_codes[country_code]}',
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
             }
             data = self._download_json(
                 'https://api-gateway-global.viu.com/api/account/validate',
                 video_id, 'Validating email address', headers=headers,
                 data=json.dumps({
                     'principal': username,
-                    'provider': 'email'
+                    'provider': 'email',
                 }).encode())
             if not data.get('exists'):
                 raise ExtractorError('Invalid email address')
@@ -264,8 +263,8 @@ class ViuOTTIE(InfoExtractor):
                 'platformFlagLabel': 'web',
                 'language': 'en',
                 'uuid': str(uuid.uuid4()),
-                'carrierId': '0'
-            }).encode('utf-8'))['token']
+                'carrierId': '0',
+            }).encode())['token']
 
     def _real_extract(self, url):
         url, idata = unsmuggle_url(url, {})
@@ -319,7 +318,7 @@ class ViuOTTIE(InfoExtractor):
                 headers={
                     'Authorization': f'Bearer {self._auth_codes[country_code]}',
                     'Referer': url,
-                    'Origin': url
+                    'Origin': url,
                 })
             return self._detect_error(stream_data).get('stream')
 
@@ -365,7 +364,7 @@ class ViuOTTIE(InfoExtractor):
                 'url': stream_url,
                 'height': height,
                 'ext': 'mp4',
-                'filesize': try_get(stream_data, lambda x: x['size'][vid_format], int)
+                'filesize': try_get(stream_data, lambda x: x['size'][vid_format], int),
             })
 
         subtitles = {}
@@ -415,12 +414,12 @@ class ViuOTTIndonesiaBaseIE(InfoExtractor):
 
     _HEADERS = {
         'x-session-id': _SESSION_ID,
-        'x-client': 'browser'
+        'x-client': 'browser',
     }
 
     _AGE_RATINGS_MAPPER = {
         'ADULTS': 18,
-        'teens': 13
+        'teens': 13,
     }
 
     def _real_initialize(self):
@@ -447,7 +446,7 @@ class ViuOTTIndonesiaIE(ViuOTTIndonesiaBaseIE):
             'thumbnail': 'https://vuclipi-a.akamaihd.net/p/cloudinary/h_171,w_304,dpr_1.5,f_auto,c_thumb,q_auto:low/1165863189/d-1',
             'upload_date': '20210101',
             'timestamp': 1609459200,
-        }
+        },
     }, {
         'url': 'https://www.viu.com/ott/id/id/all/video-korean-reality-tv_shows-entertainment_weekly_episode_1622-1118617054',
         'info_dict': {
@@ -461,8 +460,8 @@ class ViuOTTIndonesiaIE(ViuOTTIndonesiaBaseIE):
             'thumbnail': 'https://vuclipi-a.akamaihd.net/p/cloudinary/h_171,w_304,dpr_1.5,f_auto,c_thumb,q_auto:low/1120187848/d-1',
             'timestamp': 1420070400,
             'upload_date': '20150101',
-            'cast': ['Shin Hyun-joon', 'Lee Da-Hee']
-        }
+            'cast': ['Shin Hyun-joon', 'Lee Da-Hee'],
+        },
     }, {
         # age-limit test
         'url': 'https://www.viu.com/ott/id/id/all/video-japanese-trailer-tv_shows-trailer_jujutsu_kaisen_ver_01-1166044219?containerId=playlist-26273140',
@@ -477,7 +476,7 @@ class ViuOTTIndonesiaIE(ViuOTTIndonesiaBaseIE):
             'description': 'Trailer \'Jujutsu Kaisen\' Ver.01',
             'cast': ['Junya Enoki', ' Yûichi Nakamura', ' Yuma Uchida', 'Asami Seto'],
             'age_limit': 13,
-        }
+        },
     }, {
         # json ld metadata type equal to Movie instead of TVEpisodes
         'url': 'https://www.viu.com/ott/id/id/all/video-japanese-animation-movies-demon_slayer_kimetsu_no_yaiba_the_movie_mugen_train-1165892707?containerId=1675060691786',
@@ -492,7 +491,7 @@ class ViuOTTIndonesiaIE(ViuOTTIndonesiaBaseIE):
             'thumbnail': 'https://vuclipi-a.akamaihd.net/p/cloudinary/h_171,w_304,dpr_1.5,f_auto,c_thumb,q_auto:low/1165895279/d-1',
             'description': 'md5:1ce9c35a3aeab384085533f746c87469',
             'duration': 7021,
-        }
+        },
     }]
 
     def _real_extract(self, url):
@@ -538,5 +537,5 @@ class ViuOTTIndonesiaIE(ViuOTTIndonesiaBaseIE):
             'episode_number': (traverse_obj(initial_state, 'episode_no', 'episodeno', expected_type=int_or_none)
                                or int_or_none(episode.get('episodeNumber'))),
             'cast': traverse_obj(episode, ('actor', ..., 'name'), default=None),
-            'age_limit': self._AGE_RATINGS_MAPPER.get(initial_state.get('internal_age_rating'))
+            'age_limit': self._AGE_RATINGS_MAPPER.get(initial_state.get('internal_age_rating')),
         }
