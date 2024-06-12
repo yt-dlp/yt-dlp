@@ -1,17 +1,17 @@
+import functools
 import itertools
 import json
 import re
 
 from .common import InfoExtractor, SearchInfoExtractor
-from ..compat import compat_str
 from ..networking import HEADRequest
 from ..networking.exceptions import HTTPError
 from ..utils import (
     KNOWN_EXTENSIONS,
     ExtractorError,
-    error_to_compat_str,
     float_or_none,
     int_or_none,
+    join_nonempty,
     mimetype2ext,
     parse_qs,
     str_or_none,
@@ -68,6 +68,16 @@ class SoundcloudBaseIE(InfoExtractor):
         'original': 0,
     }
 
+    _DEFAULT_FORMATS = ['http_aac', 'hls_aac', 'http_opus', 'hls_opus', 'http_mp3', 'hls_mp3']
+
+    @functools.cached_property
+    def _is_requested(self):
+        return re.compile(r'|'.join(set(
+            re.escape(pattern).replace(r'\*', r'.*') if pattern != 'default'
+            else '|'.join(map(re.escape, self._DEFAULT_FORMATS))
+            for pattern in self._configuration_arg('formats', ['default'], ie_key=SoundcloudIE)
+        ))).fullmatch
+
     def _store_client_id(self, client_id):
         self.cache.store('soundcloud', 'client_id', client_id)
 
@@ -101,7 +111,7 @@ class SoundcloudBaseIE(InfoExtractor):
                     self._update_client_id()
                     continue
                 elif non_fatal:
-                    self.report_warning(error_to_compat_str(e))
+                    self.report_warning(str(e))
                     return False
                 raise
 
@@ -184,24 +194,20 @@ class SoundcloudBaseIE(InfoExtractor):
         t = clid  # _CLIENT_ID
 
         d = '-'.join([str(mInt) for mInt in [a, i, s, w, u, l, b, k]])
-        p = n + y + d + r + e + t + d + n
-        h = p
+        h = n + y + d + r + e + t + d + n
 
         m = 8011470
-        f = 0
 
-        for f in range(f, len(h)):
+        for f in range(len(h)):
             m = (m >> 1) + ((1 & m) << 23)
             m += ord(h[f])
             m &= 16777215
 
         # c is not even needed
-        out = str(y) + ':' + str(d) + ':' + format(m, 'x') + ':' + str(c)
-
-        return out
+        return f'{y}:{d}:{m:x}:{c}'
 
     def _extract_info_dict(self, info, full_title=None, secret_token=None, extract_flat=False):
-        track_id = compat_str(info['id'])
+        track_id = str(info['id'])
         title = info['title']
 
         format_urls = set()
@@ -216,7 +222,7 @@ class SoundcloudBaseIE(InfoExtractor):
             redirect_url = (self._download_json(download_url, track_id, fatal=False) or {}).get('redirectUri')
             if redirect_url:
                 urlh = self._request_webpage(
-                    HEADRequest(redirect_url), track_id, fatal=False)
+                    HEADRequest(redirect_url), track_id, 'Checking for original download format', fatal=False)
                 if urlh:
                     format_url = urlh.url
                     format_urls.add(format_url)
@@ -258,7 +264,7 @@ class SoundcloudBaseIE(InfoExtractor):
             abr = f.get('abr')
             if abr:
                 f['abr'] = int(abr)
-            if protocol == 'hls':
+            if protocol in ('hls', 'hls-aes'):
                 protocol = 'm3u8' if ext == 'aac' else 'm3u8_native'
             else:
                 protocol = 'http'
@@ -274,11 +280,32 @@ class SoundcloudBaseIE(InfoExtractor):
             if extract_flat:
                 break
             format_url = t['url']
-            stream = None
 
+            protocol = traverse_obj(t, ('format', 'protocol', {str}))
+            if protocol == 'progressive':
+                protocol = 'http'
+            if protocol != 'hls' and '/hls' in format_url:
+                protocol = 'hls'
+            if protocol == 'encrypted-hls' or '/encrypted-hls' in format_url:
+                protocol = 'hls-aes'
+
+            ext = None
+            if preset := traverse_obj(t, ('preset', {str_or_none})):
+                ext = preset.split('_')[0]
+            if ext not in KNOWN_EXTENSIONS:
+                ext = mimetype2ext(traverse_obj(t, ('format', 'mime_type', {str})))
+
+            identifier = join_nonempty(protocol, ext, delim='_')
+            if not self._is_requested(identifier):
+                self.write_debug(f'"{identifier}" is not a requested format, skipping')
+                continue
+
+            stream = None
             for retry in self.RetryManager(fatal=False):
                 try:
-                    stream = self._download_json(format_url, track_id, query=query, headers=self._HEADERS)
+                    stream = self._download_json(
+                        format_url, track_id, f'Downloading {identifier} format info JSON',
+                        query=query, headers=self._HEADERS)
                 except ExtractorError as e:
                     if isinstance(e.cause, HTTPError) and e.cause.status == 429:
                         self.report_warning(
@@ -289,27 +316,14 @@ class SoundcloudBaseIE(InfoExtractor):
                     else:
                         self.report_warning(e.msg)
 
-            if not isinstance(stream, dict):
-                continue
-            stream_url = url_or_none(stream.get('url'))
+            stream_url = traverse_obj(stream, ('url', {url_or_none}))
             if invalid_url(stream_url):
                 continue
             format_urls.add(stream_url)
-            stream_format = t.get('format') or {}
-            protocol = stream_format.get('protocol')
-            if protocol != 'hls' and '/hls' in format_url:
-                protocol = 'hls'
-            ext = None
-            preset = str_or_none(t.get('preset'))
-            if preset:
-                ext = preset.split('_')[0]
-            if ext not in KNOWN_EXTENSIONS:
-                ext = mimetype2ext(stream_format.get('mime_type'))
             add_format({
                 'url': stream_url,
                 'ext': ext,
-            }, 'http' if protocol == 'progressive' else protocol,
-                t.get('snipped') or '/preview/' in format_url)
+            }, protocol, t.get('snipped') or '/preview/' in format_url)
 
         for f in formats:
             f['vcodec'] = 'none'
@@ -322,12 +336,12 @@ class SoundcloudBaseIE(InfoExtractor):
         thumbnails = []
         artwork_url = info.get('artwork_url')
         thumbnail = artwork_url or user.get('avatar_url')
-        if isinstance(thumbnail, compat_str):
+        if isinstance(thumbnail, str):
             if re.search(self._IMAGE_REPL_RE, thumbnail):
                 for image_id, size in self._ARTWORK_MAP.items():
                     i = {
                         'id': image_id,
-                        'url': re.sub(self._IMAGE_REPL_RE, '-%s.jpg' % image_id, thumbnail),
+                        'url': re.sub(self._IMAGE_REPL_RE, f'-{image_id}.jpg', thumbnail),
                     }
                     if image_id == 'tiny' and not artwork_url:
                         size = 18
@@ -343,7 +357,7 @@ class SoundcloudBaseIE(InfoExtractor):
                 thumbnails = [{'url': thumbnail}]
 
         def extract_count(key):
-            return int_or_none(info.get('%s_count' % key))
+            return int_or_none(info.get(f'{key}_count'))
 
         return {
             'id': track_id,
@@ -362,7 +376,7 @@ class SoundcloudBaseIE(InfoExtractor):
             'comment_count': extract_count('comment'),
             'repost_count': extract_count('reposts'),
             'genres': traverse_obj(info, ('genre', {str}, {lambda x: x or None}, all)),
-            'formats': formats if not extract_flat else None
+            'formats': formats if not extract_flat else None,
         }
 
     @classmethod
@@ -414,7 +428,7 @@ class SoundcloudIE(SoundcloudBaseIE):
                 'thumbnail': 'https://i1.sndcdn.com/artworks-000031955188-rwb18x-original.jpg',
                 'uploader_url': 'https://soundcloud.com/ethmusic',
                 'genres': [],
-            }
+            },
         },
         # geo-restricted
         {
@@ -447,7 +461,7 @@ class SoundcloudIE(SoundcloudBaseIE):
                 'id': '123998367',
                 'ext': 'mp3',
                 'title': 'Youtube - Dl Test Video \'\' Ä↭',
-                'description': 'test chars:  \"\'/\\ä↭',
+                'description': 'test chars:  "\'/\\ä↭',
                 'uploader': 'jaimeMF',
                 'uploader_id': '69767071',
                 'timestamp': 1386604920,
@@ -471,7 +485,7 @@ class SoundcloudIE(SoundcloudBaseIE):
                 'id': '123998367',
                 'ext': 'mp3',
                 'title': 'Youtube - Dl Test Video \'\' Ä↭',
-                'description': 'test chars:  \"\'/\\ä↭',
+                'description': 'test chars:  "\'/\\ä↭',
                 'uploader': 'jaimeMF',
                 'uploader_id': '69767071',
                 'timestamp': 1386604920,
@@ -610,10 +624,10 @@ class SoundcloudIE(SoundcloudBaseIE):
             if token:
                 query['secret_token'] = token
         else:
-            full_title = resolve_title = '%s/%s' % mobj.group('uploader', 'title')
+            full_title = resolve_title = '{}/{}'.format(*mobj.group('uploader', 'title'))
             token = mobj.group('token')
             if token:
-                resolve_title += '/%s' % token
+                resolve_title += f'/{token}'
             info_json_url = self._resolv_url(self._BASE_URL + resolve_title)
 
         info = self._download_json(
@@ -624,13 +638,13 @@ class SoundcloudIE(SoundcloudBaseIE):
 
 class SoundcloudPlaylistBaseIE(SoundcloudBaseIE):
     def _extract_set(self, playlist, token=None):
-        playlist_id = compat_str(playlist['id'])
+        playlist_id = str(playlist['id'])
         tracks = playlist.get('tracks') or []
-        if not all([t.get('permalink_url') for t in tracks]) and token:
+        if not all(t.get('permalink_url') for t in tracks) and token:
             tracks = self._download_json(
                 self._API_V2_BASE + 'tracks', playlist_id,
                 'Downloading tracks', query={
-                    'ids': ','.join([compat_str(t['id']) for t in tracks]),
+                    'ids': ','.join([str(t['id']) for t in tracks]),
                     'playlistId': playlist_id,
                     'playlistSecretToken': token,
                 }, headers=self._HEADERS)
@@ -680,7 +694,7 @@ class SoundcloudSetIE(SoundcloudPlaylistBaseIE):
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
 
-        full_title = '%s/sets/%s' % mobj.group('uploader', 'slug_title')
+        full_title = '{}/sets/{}'.format(*mobj.group('uploader', 'slug_title'))
         token = mobj.group('token')
         if token:
             full_title += '/' + token
@@ -689,8 +703,8 @@ class SoundcloudSetIE(SoundcloudPlaylistBaseIE):
             self._BASE_URL + full_title), full_title, headers=self._HEADERS)
 
         if 'errors' in info:
-            msgs = (compat_str(err['error_message']) for err in info['errors'])
-            raise ExtractorError('unable to download video webpage: %s' % ','.join(msgs))
+            msgs = (str(err['error_message']) for err in info['errors'])
+            raise ExtractorError('unable to download video webpage: {}'.format(','.join(msgs)))
 
         return self._extract_set(info, token)
 
@@ -833,7 +847,7 @@ class SoundcloudUserIE(SoundcloudPagedPlaylistBaseIE):
         return self._extract_playlist(
             self._API_V2_BASE + self._BASE_URL_MAP[resource] % user['id'],
             str_or_none(user.get('id')),
-            '%s (%s)' % (user['username'], resource.capitalize()))
+            '{} ({})'.format(user['username'], resource.capitalize()))
 
 
 class SoundcloudUserPermalinkIE(SoundcloudPagedPlaylistBaseIE):
@@ -877,8 +891,8 @@ class SoundcloudTrackStationIE(SoundcloudPagedPlaylistBaseIE):
             r'soundcloud:track-stations:(\d+)', track['id'], 'track id')
 
         return self._extract_playlist(
-            self._API_V2_BASE + 'stations/%s/tracks' % track['id'],
-            track_id, 'Track station: %s' % track['title'])
+            self._API_V2_BASE + 'stations/{}/tracks'.format(track['id']),
+            track_id, 'Track station: {}'.format(track['title']))
 
 
 class SoundcloudRelatedIE(SoundcloudPagedPlaylistBaseIE):
@@ -926,7 +940,7 @@ class SoundcloudRelatedIE(SoundcloudPagedPlaylistBaseIE):
 
         return self._extract_playlist(
             self._API_V2_BASE + self._BASE_URL_MAP[relation] % track['id'], str(track['id']),
-            '%s (%s)' % (track.get('title') or slug, relation.capitalize()))
+            '{} ({})'.format(track.get('title') or slug, relation.capitalize()))
 
 
 class SoundcloudPlaylistIE(SoundcloudPlaylistBaseIE):

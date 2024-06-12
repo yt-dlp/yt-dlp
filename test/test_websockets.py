@@ -3,11 +3,12 @@
 # Allow direct execution
 import os
 import sys
+import time
 
 import pytest
 
 from test.helper import verify_address_availability
-from yt_dlp.networking.common import Features
+from yt_dlp.networking.common import Features, DEFAULT_TIMEOUT
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -202,10 +203,25 @@ class TestWebsSocketRequestHandlerConformance:
         ({'timeout': sys.float_info.min}, {}),
         ({}, {'timeout': sys.float_info.min}),
     ])
-    def test_timeout(self, handler, params, extensions):
+    def test_read_timeout(self, handler, params, extensions):
         with handler(**params) as rh:
             with pytest.raises(TransportError):
                 ws_validate_and_send(rh, Request(self.ws_base_url, extensions=extensions))
+
+    def test_connect_timeout(self, handler):
+        # nothing should be listening on this port
+        connect_timeout_url = 'ws://10.255.255.255'
+        with handler(timeout=0.01) as rh, pytest.raises(TransportError):
+            now = time.time()
+            ws_validate_and_send(rh, Request(connect_timeout_url))
+        assert time.time() - now < DEFAULT_TIMEOUT
+
+        # Per request timeout, should override handler timeout
+        request = Request(connect_timeout_url, extensions={'timeout': 0.01})
+        with handler() as rh, pytest.raises(TransportError):
+            now = time.time()
+            ws_validate_and_send(rh, request)
+        assert time.time() - now < DEFAULT_TIMEOUT
 
     def test_cookies(self, handler):
         cookiejar = YoutubeDLCookieJar()
@@ -281,14 +297,14 @@ class TestWebsSocketRequestHandlerConformance:
             'client_certificate': os.path.join(MTLS_CERT_DIR, 'client.crt'),
             'client_certificate_key': os.path.join(MTLS_CERT_DIR, 'clientencrypted.key'),
             'client_certificate_password': 'foobar',
-        }
+        },
     ))
     def test_mtls(self, handler, client_cert):
         with handler(
             # Disable client-side validation of unacceptable self-signed testcert.pem
             # The test is of a check on the server side, so unaffected
             verify=False,
-            client_cert=client_cert
+            client_cert=client_cert,
         ) as rh:
             ws_validate_and_send(rh, Request(self.mtls_wss_base_url)).close()
 

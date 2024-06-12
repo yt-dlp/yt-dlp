@@ -1,8 +1,6 @@
+import urllib.parse
+
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-    compat_urlparse,
-)
 from ..utils import (
     determine_ext,
 )
@@ -20,7 +18,7 @@ class GolemIE(InfoExtractor):
             'title': 'iPhone 6 und 6 Plus - Test',
             'duration': 300.44,
             'filesize': 65309548,
-        }
+        },
     }
 
     _PREFIX = 'http://video.golem.de'
@@ -29,7 +27,7 @@ class GolemIE(InfoExtractor):
         video_id = self._match_id(url)
 
         config = self._download_xml(
-            'https://video.golem.de/xml/{0}.xml'.format(video_id), video_id)
+            f'https://video.golem.de/xml/{video_id}.xml', video_id)
 
         info = {
             'id': video_id,
@@ -44,8 +42,8 @@ class GolemIE(InfoExtractor):
                 continue
 
             formats.append({
-                'format_id': compat_str(e.tag),
-                'url': compat_urlparse.urljoin(self._PREFIX, url),
+                'format_id': str(e.tag),
+                'url': urllib.parse.urljoin(self._PREFIX, url),
                 'height': self._int(e.get('height'), 'height'),
                 'width': self._int(e.get('width'), 'width'),
                 'filesize': self._int(e.findtext('filesize'), 'filesize'),
@@ -59,7 +57,7 @@ class GolemIE(InfoExtractor):
             if not url:
                 continue
             thumbnails.append({
-                'url': compat_urlparse.urljoin(self._PREFIX, url),
+                'url': urllib.parse.urljoin(self._PREFIX, url),
                 'width': self._int(e.get('width'), 'thumbnail width'),
                 'height': self._int(e.get('height'), 'thumbnail height'),
             })

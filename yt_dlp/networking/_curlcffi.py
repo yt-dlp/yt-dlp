@@ -207,7 +207,7 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
                 impersonate=self._SUPPORTED_IMPERSONATE_TARGET_MAP.get(
                     self._get_request_target(request)),
                 interface=self.source_address,
-                stream=True
+                stream=True,
             )
         except curl_cffi.requests.errors.RequestsError as e:
             if e.code == CurlECode.PEER_FAILED_VERIFICATION:

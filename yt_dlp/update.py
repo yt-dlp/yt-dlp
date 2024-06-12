@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from zipimport import zipimporter
 
 from .compat import functools  # isort: split
-from .compat import compat_realpath, compat_shlex_quote
+from .compat import compat_realpath
 from .networking import Request
 from .networking.exceptions import HTTPError, network_exceptions
 from .utils import (
@@ -200,7 +200,7 @@ class UpdateInfo:
     requested_version: str | None = None
     commit: str | None = None
 
-    binary_name: str | None = _get_binary_name()
+    binary_name: str | None = _get_binary_name()  # noqa: RUF009: Always returns the same value
     checksum: str | None = None
 
     _has_update = True
@@ -381,7 +381,7 @@ class Updater:
             has_update = False
 
         resolved_tag = requested_version if self.requested_tag == 'latest' else self.requested_tag
-        current_label = _make_label(self._origin, self._channel.partition("@")[2] or self.current_version, self.current_version)
+        current_label = _make_label(self._origin, self._channel.partition('@')[2] or self.current_version, self.current_version)
         requested_label = _make_label(self.requested_repo, resolved_tag, requested_version)
         latest_or_requested = f'{"Latest" if self.requested_tag == "latest" else "Requested"} version: {requested_label}'
         if not has_update:
@@ -515,7 +515,7 @@ class Updater:
                 os.chmod(self.filename, mask)
             except OSError:
                 return self._report_error(
-                    f'Unable to set permissions. Run: sudo chmod a+rx {compat_shlex_quote(self.filename)}')
+                    f'Unable to set permissions. Run: sudo chmod a+rx {shell_quote(self.filename)}')
 
         self.ydl.to_screen(f'Updated yt-dlp to {update_label}')
         return True
@@ -559,7 +559,7 @@ class Updater:
             tag = self.requested_tag
         self._report_error(
             f'Unable to {action}{delim} visit  https://github.com/{self.requested_repo}/releases/'
-            + tag if tag == "latest" else f"tag/{tag}", True)
+            + tag if tag == 'latest' else f'tag/{tag}', True)
 
     # XXX: Everything below this line in this class is deprecated / for compat only
     @property

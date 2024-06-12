@@ -1,15 +1,11 @@
+import functools
 import json
 import random
 import re
+import urllib.parse
 
 from .common import InfoExtractor
 from .periscope import PeriscopeBaseIE, PeriscopeIE
-from ..compat import functools  # isort: split
-from ..compat import (
-    compat_parse_qs,
-    compat_urllib_parse_unquote,
-    compat_urllib_parse_urlparse,
-)
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
@@ -34,8 +30,8 @@ from ..utils import (
 
 class TwitterBaseIE(InfoExtractor):
     _NETRC_MACHINE = 'twitter'
-    _API_BASE = 'https://api.twitter.com/1.1/'
-    _GRAPHQL_API_BASE = 'https://twitter.com/i/api/graphql/'
+    _API_BASE = 'https://api.x.com/1.1/'
+    _GRAPHQL_API_BASE = 'https://x.com/i/api/graphql/'
     _BASE_REGEX = r'https?://(?:(?:www|m(?:obile)?)\.)?(?:(?:twitter|x)\.com|twitter3e4tixl4xyajtrzo62zg5vztmjuricljdp2c5kshju4avyoid\.onion)/'
     _AUTH = 'AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA'
     _LEGACY_AUTH = 'AAAAAAAAAAAAAAAAAAAAAIK1zgAAAAAA2tUWuhGZ2JceoId5GwYWU5GspY4%3DUq7gzFoCZs1QfwGoVdvSac3IniczZEYXIcDyumCauIXpcAPorE'
@@ -46,9 +42,9 @@ class TwitterBaseIE(InfoExtractor):
             'flow_context': {
                 'debug_overrides': {},
                 'start_location': {
-                    'location': 'unknown'
-                }
-            }
+                    'location': 'unknown',
+                },
+            },
         },
         'subtask_versions': {
             'action_list': 2,
@@ -91,8 +87,8 @@ class TwitterBaseIE(InfoExtractor):
             'user_recommendations_list': 4,
             'user_recommendations_urt': 1,
             'wait_spinner': 3,
-            'web_modal': 1
-        }
+            'web_modal': 1,
+        },
     }, separators=(',', ':')).encode()
 
     def _extract_variant_formats(self, variant, video_id):
@@ -111,7 +107,7 @@ class TwitterBaseIE(InfoExtractor):
             tbr = int_or_none(dict_get(variant, ('bitrate', 'bit_rate')), 1000) or None
             f = {
                 'url': variant_url,
-                'format_id': 'http' + ('-%d' % tbr if tbr else ''),
+                'format_id': 'http' + (f'-{tbr}' if tbr else ''),
                 'tbr': tbr,
             }
             self._search_dimensions_in_video_url(f, variant_url)
@@ -126,7 +122,7 @@ class TwitterBaseIE(InfoExtractor):
         subtitles = {}
         urls = []
         for video_variant in vmap_data.findall('.//{http://twitter.com/schema/videoVMapV2.xsd}videoVariant'):
-            video_variant.attrib['url'] = compat_urllib_parse_unquote(
+            video_variant.attrib['url'] = urllib.parse.unquote(
                 video_variant.attrib['url'])
             urls.append(video_variant.attrib['url'])
             fmts, subs = self._extract_variant_formats(
@@ -152,6 +148,14 @@ class TwitterBaseIE(InfoExtractor):
     @property
     def is_logged_in(self):
         return bool(self._get_cookies(self._API_BASE).get('auth_token'))
+
+    # XXX: Temporary workaround until twitter.com => x.com migration is completed
+    def _real_initialize(self):
+        if self.is_logged_in or not self._get_cookies('https://twitter.com/').get('auth_token'):
+            return
+        # User has not yet been migrated to x.com and has passed twitter.com cookies
+        TwitterBaseIE._API_BASE = 'https://api.twitter.com/1.1/'
+        TwitterBaseIE._GRAPHQL_API_BASE = 'https://twitter.com/i/api/graphql/'
 
     @functools.cached_property
     def _selected_api(self):
@@ -196,23 +200,21 @@ class TwitterBaseIE(InfoExtractor):
         if self.is_logged_in:
             return
 
-        webpage = self._download_webpage('https://twitter.com/', None, 'Downloading login page')
-        guest_token = self._search_regex(
-            r'\.cookie\s*=\s*["\']gt=(\d+);', webpage, 'gt', default=None) or self._fetch_guest_token(None)
+        guest_token = self._fetch_guest_token(None)
         headers = {
             **self._set_base_headers(),
             'content-type': 'application/json',
             'x-guest-token': guest_token,
             'x-twitter-client-language': 'en',
             'x-twitter-active-user': 'yes',
-            'Referer': 'https://twitter.com/',
-            'Origin': 'https://twitter.com',
+            'Referer': 'https://x.com/',
+            'Origin': 'https://x.com',
         }
 
         def build_login_json(*subtask_inputs):
             return json.dumps({
                 'flow_token': self._flow_token,
-                'subtask_inputs': subtask_inputs
+                'subtask_inputs': subtask_inputs,
             }, separators=(',', ':')).encode()
 
         def input_dict(subtask_id, text):
@@ -220,8 +222,8 @@ class TwitterBaseIE(InfoExtractor):
                 'subtask_id': subtask_id,
                 'enter_text': {
                     'text': text,
-                    'link': 'next_link'
-                }
+                    'link': 'next_link',
+                },
             }
 
         next_subtask = self._call_login_api(
@@ -234,8 +236,8 @@ class TwitterBaseIE(InfoExtractor):
                         'subtask_id': next_subtask,
                         'js_instrumentation': {
                             'response': '{}',
-                            'link': 'next_link'
-                        }
+                            'link': 'next_link',
+                        },
                     }))
 
             elif next_subtask == 'LoginEnterUserIdentifierSSO':
@@ -247,12 +249,12 @@ class TwitterBaseIE(InfoExtractor):
                                 'key': 'user_identifier',
                                 'response_data': {
                                     'text_data': {
-                                        'result': username
-                                    }
-                                }
+                                        'result': username,
+                                    },
+                                },
                             }],
-                            'link': 'next_link'
-                        }
+                            'link': 'next_link',
+                        },
                     }))
 
             elif next_subtask == 'LoginEnterAlternateIdentifierSubtask':
@@ -267,8 +269,8 @@ class TwitterBaseIE(InfoExtractor):
                         'subtask_id': next_subtask,
                         'enter_password': {
                             'password': password,
-                            'link': 'next_link'
-                        }
+                            'link': 'next_link',
+                        },
                     }))
 
             elif next_subtask == 'AccountDuplicationCheck':
@@ -276,8 +278,8 @@ class TwitterBaseIE(InfoExtractor):
                     'Submitting account duplication check', headers, data=build_login_json({
                         'subtask_id': next_subtask,
                         'check_logged_in_account': {
-                            'link': 'AccountDuplicationCheck_false'
-                        }
+                            'link': 'AccountDuplicationCheck_false',
+                        },
                     }))
 
             elif next_subtask == 'LoginTwoFactorAuthChallenge':
@@ -311,7 +313,7 @@ class TwitterBaseIE(InfoExtractor):
             'x-twitter-client-language': 'en',
             'x-twitter-active-user': 'yes',
         } if self.is_logged_in else {
-            'x-guest-token': self._fetch_guest_token(video_id)
+            'x-guest-token': self._fetch_guest_token(video_id),
         })
         allowed_status = {400, 401, 403, 404} if graphql else {403}
         result = self._download_json(
@@ -382,7 +384,7 @@ class TwitterCardIE(InfoExtractor):
                 'repost_count': int,
                 'tags': ['PlutoFlyby'],
             },
-            'params': {'format': '[protocol=https]'}
+            'params': {'format': '[protocol=https]'},
         },
         {
             'url': 'https://twitter.com/i/cards/tfw/v1/654001591733886977',
@@ -1215,7 +1217,7 @@ class TwitterIE(TwitterBaseIE):
             'thumbnail': r're:https://pbs\.twimg\.com/amplify_video_thumb/.+',
             'age_limit': 0,
             '_old_archive_ids': ['twitter 1790637656616943991'],
-        }
+        },
     }, {
         # onion route
         'url': 'https://twitter3e4tixl4xyajtrzo62zg5vztmjuricljdp2c5kshju4avyoid.onion/TwitterBlue/status/1484226494708662273',
@@ -1368,11 +1370,11 @@ class TwitterIE(TwitterBaseIE):
                 'responsive_web_media_download_video_enabled': False,
                 'responsive_web_graphql_skip_user_profile_image_extensions_enabled': False,
                 'responsive_web_graphql_timeline_navigation_enabled': True,
-                'responsive_web_enhance_cards_enabled': False
+                'responsive_web_enhance_cards_enabled': False,
             },
             'fieldToggles': {
-                'withArticleRichContentState': False
-            }
+                'withArticleRichContentState': False,
+            },
         }
 
     def _call_syndication_api(self, twid):
@@ -1638,9 +1640,9 @@ class TwitterAmplifyIE(TwitterBaseIE):
 
         def _find_dimension(target):
             w = int_or_none(self._html_search_meta(
-                'twitter:%s:width' % target, webpage, fatal=False))
+                f'twitter:{target}:width', webpage, fatal=False))
             h = int_or_none(self._html_search_meta(
-                'twitter:%s:height' % target, webpage, fatal=False))
+                f'twitter:{target}:height', webpage, fatal=False))
             return w, h
 
         if thumbnail:
@@ -1734,7 +1736,7 @@ class TwitterBroadcastIE(TwitterBaseIE, PeriscopeBaseIE):
         m3u8_url = source.get('noRedirectPlaybackUrl') or source['location']
         if '/live_video_stream/geoblocked/' in m3u8_url:
             self.raise_geo_restricted()
-        m3u8_id = compat_parse_qs(compat_urllib_parse_urlparse(
+        m3u8_id = urllib.parse.parse_qs(urllib.parse.urlparse(
             m3u8_url).query).get('type', [None])[0]
         state, width, height = self._extract_common_format_info(broadcast)
         info['formats'] = self._extract_pscp_m3u8_formats(
@@ -1889,12 +1891,12 @@ class TwitterShortenerIE(TwitterBaseIE):
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
-        eid, id = mobj.group('eid', 'id')
+        eid, shortcode = mobj.group('eid', 'id')
         if eid:
-            id = eid
-            url = self._BASE_URL + id
-        new_url = self._request_webpage(url, id, headers={'User-Agent': 'curl'}).url
-        __UNSAFE_LINK = "https://twitter.com/safety/unsafe_link_warning?unsafe_link="
+            shortcode = eid
+            url = self._BASE_URL + shortcode
+        new_url = self._request_webpage(url, shortcode, headers={'User-Agent': 'curl'}).url
+        __UNSAFE_LINK = 'https://twitter.com/safety/unsafe_link_warning?unsafe_link='
         if new_url.startswith(__UNSAFE_LINK):
-            new_url = new_url.replace(__UNSAFE_LINK, "")
+            new_url = new_url.replace(__UNSAFE_LINK, '')
         return self.url_result(new_url)

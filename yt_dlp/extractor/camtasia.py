@@ -17,7 +17,7 @@ class CamtasiaEmbedIE(InfoExtractor):
                     'title': 'Fenn-AA_PA_Radar_Course_Lecture_1c_Final - video1',
                     'ext': 'flv',
                     'duration': 2235.90,
-                }
+                },
             }, {
                 'md5': '10e4bb3aaca9fd630e273ff92d9f3c63',
                 'info_dict': {
@@ -25,12 +25,12 @@ class CamtasiaEmbedIE(InfoExtractor):
                     'title': 'Fenn-AA_PA_Radar_Course_Lecture_1c_Final - pip',
                     'ext': 'flv',
                     'duration': 2235.93,
-                }
+                },
             }],
             'info_dict': {
                 'title': 'Fenn-AA_PA_Radar_Course_Lecture_1c_Final',
             },
-            'skip': 'webpage dead'
+            'skip': 'webpage dead',
         },
 
     ]
