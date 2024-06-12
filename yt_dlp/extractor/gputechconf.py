@@ -11,7 +11,7 @@ class GPUTechConfIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Coordinating More Than 3 Million CUDA Threads for Social Network Analysis',
             'duration': 1219,
-        }
+        },
     }
 
     def _real_extract(self, url):
@@ -27,6 +27,6 @@ class GPUTechConfIE(InfoExtractor):
         return {
             '_type': 'url_transparent',
             'id': video_id,
-            'url': '%sxml/%s.xml' % (root_path, xml_file_id),
+            'url': f'{root_path}xml/{xml_file_id}.xml',
             'ie_key': 'DigitallySpeaking',
         }

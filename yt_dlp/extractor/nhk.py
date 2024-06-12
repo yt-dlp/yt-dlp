@@ -104,7 +104,7 @@ class NhkBaseIE(InfoExtractor):
             if not img_path:
                 continue
             thumbnails.append({
-                'id': '%dp' % h,
+                'id': f'{h}p',
                 'height': h,
                 'width': w,
                 'url': 'https://www3.nhk.or.jp' + img_path,
@@ -211,7 +211,7 @@ class NhkVodIE(NhkBaseIE):
             'series': 'Living in Japan',
             'description': 'md5:0a0e2077d8f07a03071e990a6f51bfab',
             'thumbnail': r're:https://.+/.+\.jpg',
-            'episode': 'Tips for Travelers to Japan / Ramen Vending Machines'
+            'episode': 'Tips for Travelers to Japan / Ramen Vending Machines',
         },
     }, {
         'url': 'https://www3.nhk.or.jp/nhkworld/en/ondemand/video/2015173/',
@@ -458,7 +458,7 @@ class NhkForSchoolBangumiIE(InfoExtractor):
             'upload_date': '20140402',
             'ext': 'mp4',
 
-            'chapters': 'count:12'
+            'chapters': 'count:12',
         },
         'params': {
             # m3u8 download
@@ -521,7 +521,8 @@ class NhkForSchoolSubjectIE(InfoExtractor):
         'eigo', 'tokkatsu',
         'tokushi', 'sonota',
     )
-    _VALID_URL = r'https?://www\.nhk\.or\.jp/school/(?P<id>%s)/?(?:[\?#].*)?$' % '|'.join(re.escape(s) for s in KNOWN_SUBJECTS)
+    _VALID_URL = r'https?://www\.nhk\.or\.jp/school/(?P<id>{})/?(?:[\?#].*)?$'.format(
+        '|'.join(re.escape(s) for s in KNOWN_SUBJECTS))
 
     _TESTS = [{
         'url': 'https://www.nhk.or.jp/school/sougou/',
@@ -551,9 +552,8 @@ class NhkForSchoolSubjectIE(InfoExtractor):
 
 
 class NhkForSchoolProgramListIE(InfoExtractor):
-    _VALID_URL = r'https?://www\.nhk\.or\.jp/school/(?P<id>(?:%s)/[a-zA-Z0-9_-]+)' % (
-        '|'.join(re.escape(s) for s in NhkForSchoolSubjectIE.KNOWN_SUBJECTS)
-    )
+    _VALID_URL = r'https?://www\.nhk\.or\.jp/school/(?P<id>(?:{})/[a-zA-Z0-9_-]+)'.format(
+        '|'.join(re.escape(s) for s in NhkForSchoolSubjectIE.KNOWN_SUBJECTS))
     _TESTS = [{
         'url': 'https://www.nhk.or.jp/school/sougou/q/',
         'info_dict': {
@@ -747,7 +747,7 @@ class NhkRadioNewsPageIE(InfoExtractor):
             'channel': 'NHKラジオ第1',
             'uploader': 'NHKラジオ第1',
             'title': 'NHKラジオニュース',
-        }
+        },
     }]
 
     def _real_extract(self, url):
@@ -789,7 +789,7 @@ class NhkRadiruLiveIE(InfoExtractor):
             'ext': 'm4a',
             'thumbnail': 'https://www.nhk.or.jp/common/img/media/fm-200x200.png',
             'live_status': 'is_live',
-        }
+        },
     }]
 
     _NOA_STATION_IDS = {'r1': 'n1', 'r2': 'n2', 'fm': 'n3'}
@@ -803,8 +803,8 @@ class NhkRadiruLiveIE(InfoExtractor):
         data = config.find(f'.//data//area[.="{area}"]/..')
 
         if not data:
-            raise ExtractorError('Invalid area. Valid areas are: %s' % ', '.join(
-                [i.text for i in config.findall('.//data//area')]), expected=True)
+            raise ExtractorError('Invalid area. Valid areas are: {}'.format(', '.join(
+                [i.text for i in config.findall('.//data//area')])), expected=True)
 
         noa_info = self._download_json(
             f'https:{config.find(".//url_program_noa").text}'.format(area=data.find('areakey').text),
@@ -812,7 +812,7 @@ class NhkRadiruLiveIE(InfoExtractor):
         present_info = traverse_obj(noa_info, ('nowonair_list', self._NOA_STATION_IDS.get(station), 'present'))
 
         return {
-            'title': ' '.join(traverse_obj(present_info, (('service', 'area',), 'name', {str}))),
+            'title': ' '.join(traverse_obj(present_info, (('service', 'area'), 'name', {str}))),
             'id': join_nonempty(station, area),
             'thumbnails': traverse_obj(present_info, ('service', 'images', ..., {
                 'url': 'url',

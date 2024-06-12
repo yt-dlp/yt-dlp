@@ -98,7 +98,7 @@ class HungamaIE(HungamaBaseIE):
                 'en': [{
                     'url': video_json['sub_title'],
                     'ext': 'vtt',
-                }]
+                }],
             } if video_json.get('sub_title') else None,
         }
 
@@ -136,7 +136,7 @@ class HungamaSongIE(InfoExtractor):
         audio_id = self._match_id(url)
 
         data = self._download_json(
-            'https://www.hungama.com/audio-player-data/track/%s' % audio_id,
+            f'https://www.hungama.com/audio-player-data/track/{audio_id}',
             audio_id, query={'_country': 'IN'})[0]
         track = data['song_name']
         artist = data.get('singer_name')
@@ -153,7 +153,7 @@ class HungamaSongIE(InfoExtractor):
                 'acodec': media_type,
             })
 
-        title = '%s - %s' % (artist, track) if artist else track
+        title = f'{artist} - {track}' if artist else track
         thumbnail = data.get('img_src') or data.get('album_image')
 
         return {
