@@ -22,7 +22,7 @@ class StarTrekIE(InfoExtractor):
             }, {
                 'url': 'https://media.startrek.com/2022/06/16/2043801155561/1069981_hls/trr_snw_107_v4-c4bfc25d/stream_vtt.m3u8',
             }]},
-        }
+        },
     }, {
         'url': 'https://www.startrek.com/videos/watch-ethan-peck-and-gia-sandhu-beam-down-to-the-ready-room',
         'md5': 'f5ad74fbb86e91e0882fc0a333178d1d',
@@ -38,7 +38,7 @@ class StarTrekIE(InfoExtractor):
             'subtitles': {'en-US': [{
                 'url': r're:https://(?:intl|www)\.startrek\.com/sites/default/files/video/captions/2022-06/TRR_SNW_105_v5\.vtt',
             }]},
-        }
+        },
     }]
 
     def _real_extract(self, url):

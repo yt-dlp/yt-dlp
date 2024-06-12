@@ -34,7 +34,7 @@ class FujiTVFODPlus7IE(InfoExtractor):
             'series': 'ちびまる子ちゃん',
             'series_id': '5d40',
             'thumbnail': 'https://i.fod.fujitv.co.jp/img/program/5d40/episode/5d40810083_a.jpg'},
-        'skip': 'Video available only in one week'
+        'skip': 'Video available only in one week',
     }]
 
     def _real_extract(self, url):
@@ -43,7 +43,9 @@ class FujiTVFODPlus7IE(InfoExtractor):
         json_info = {}
         token = self._get_cookies(url).get('CT')
         if token:
-            json_info = self._download_json('https://fod-sp.fujitv.co.jp/apps/api/episode/detail/?ep_id=%s&is_premium=false' % video_id, video_id, headers={'x-authorization': f'Bearer {token.value}'}, fatal=False)
+            json_info = self._download_json(
+                f'https://fod-sp.fujitv.co.jp/apps/api/episode/detail/?ep_id={video_id}&is_premium=false',
+                video_id, headers={'x-authorization': f'Bearer {token.value}'}, fatal=False)
         else:
             self.report_warning(f'The token cookie is needed to extract video metadata. {self._login_hint("cookies")}')
         formats, subtitles = [], {}
@@ -67,5 +69,5 @@ class FujiTVFODPlus7IE(InfoExtractor):
             'formats': formats,
             'subtitles': subtitles,
             'thumbnail': f'{self._BASE_URL}img/program/{series_id}/episode/{video_id}_a.jpg',
-            '_format_sort_fields': ('tbr', )
+            '_format_sort_fields': ('tbr', ),
         }

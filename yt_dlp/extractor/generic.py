@@ -62,7 +62,7 @@ class GenericIE(InfoExtractor):
                 'upload_date': '20100513',
                 'direct': True,
                 'timestamp': 1273772943.0,
-            }
+            },
         },
         # Direct link to media delivered compressed (until Accept-Encoding is *)
         {
@@ -75,7 +75,7 @@ class GenericIE(InfoExtractor):
                 'upload_date': '20140522',
             },
             'expected_warnings': [
-                'URL could be a direct video link, returning it as such.'
+                'URL could be a direct video link, returning it as such.',
             ],
             'skip': 'URL invalid',
         },
@@ -109,8 +109,8 @@ class GenericIE(InfoExtractor):
                 'timestamp': 1416498816.0,
             },
             'expected_warnings': [
-                'URL could be a direct video link, returning it as such.'
-            ]
+                'URL could be a direct video link, returning it as such.',
+            ],
         },
         # RSS feed
         {
@@ -118,7 +118,7 @@ class GenericIE(InfoExtractor):
             'info_dict': {
                 'id': 'https://phihag.de/2014/youtube-dl/rss2.xml',
                 'title': 'Zero Punctuation',
-                'description': 're:.*groundbreaking video review series.*'
+                'description': 're:.*groundbreaking video review series.*',
             },
             'playlist_mincount': 11,
         },
@@ -334,7 +334,7 @@ class GenericIE(InfoExtractor):
             },
             'params': {
                 'skip_download': False,
-            }
+            },
         },
         {
             # redirect in Refresh HTTP header
@@ -360,7 +360,7 @@ class GenericIE(InfoExtractor):
                 'ext': 'mp4',
                 'uploader': 'www.hodiho.fr',
                 'title': 'R\u00e9gis plante sa Jeep',
-            }
+            },
         },
         # bandcamp page with custom domain
         {
@@ -438,19 +438,19 @@ class GenericIE(InfoExtractor):
                     'id': '370908',
                     'title': 'Госзаказ. День 3',
                     'ext': 'mp4',
-                }
+                },
             }, {
                 'info_dict': {
                     'id': '370905',
                     'title': 'Госзаказ. День 2',
                     'ext': 'mp4',
-                }
+                },
             }, {
                 'info_dict': {
                     'id': '370902',
                     'title': 'Госзаказ. День 1',
                     'ext': 'mp4',
-                }
+                },
             }],
             'params': {
                 # m3u8 download
@@ -491,7 +491,7 @@ class GenericIE(InfoExtractor):
                 'title': 'Hidden miracles of the natural world',
                 'uploader': 'Louie Schwartzberg',
                 'description': 'md5:8145d19d320ff3e52f28401f4c4283b9',
-            }
+            },
         },
         # nowvideo embed hidden behind percent encoding
         {
@@ -516,7 +516,7 @@ class GenericIE(InfoExtractor):
                 'upload_date': '20140320',
             },
             'params': {
-                'skip_download': 'Requires rtmpdump'
+                'skip_download': 'Requires rtmpdump',
             },
             'skip': 'video gone',
         },
@@ -537,8 +537,8 @@ class GenericIE(InfoExtractor):
                 'skip_download': True,
             },
             'expected_warnings': [
-                'Forbidden'
-            ]
+                'Forbidden',
+            ],
         },
         # Condé Nast embed
         {
@@ -548,7 +548,7 @@ class GenericIE(InfoExtractor):
                 'id': '53501be369702d3275860000',
                 'ext': 'mp4',
                 'title': 'Honda’s  New Asimo Robot Is More Human Than Ever',
-            }
+            },
         },
         # Dailymotion embed
         {
@@ -595,7 +595,7 @@ class GenericIE(InfoExtractor):
             'add_ie': ['Youtube'],
             'params': {
                 'skip_download': True,
-            }
+            },
         },
         # MTVServices embed
         {
@@ -624,7 +624,7 @@ class GenericIE(InfoExtractor):
             },
             'params': {
                 'skip_download': True,
-            }
+            },
         },
         # Flowplayer
         {
@@ -636,7 +636,7 @@ class GenericIE(InfoExtractor):
                 'age_limit': 18,
                 'uploader': 'www.handjobhub.com',
                 'title': 'Busty Blonde Siri Tit Fuck While Wank at HandjobHub.com',
-            }
+            },
         },
         # MLB embed
         {
@@ -680,7 +680,7 @@ class GenericIE(InfoExtractor):
                 'uploader': 'Sophos Security',
                 'title': 'Chet Chat 171 - Oct 29, 2014',
                 'upload_date': '20141029',
-            }
+            },
         },
         # Soundcloud multiple embeds
         {
@@ -714,7 +714,7 @@ class GenericIE(InfoExtractor):
                 'ext': 'flv',
                 'upload_date': '20141112',
                 'title': 'Rosetta #CometLanding webcast HL 10',
-            }
+            },
         },
         # Another Livestream embed, without 'new.' in URL
         {
@@ -749,7 +749,7 @@ class GenericIE(InfoExtractor):
                 'title': 'Underground Wellness Radio - Jack Tips: 5 Steps to Permanent Gut Healing',
                 'thumbnail': 'https://assets.libsyn.com/secure/item/3793998/?height=90&width=90',
                 'duration': 3989.0,
-            }
+            },
         },
         # Cinerama player
         {
@@ -759,7 +759,7 @@ class GenericIE(InfoExtractor):
                 'ext': 'mp4',
                 'uploader': 'www.abc.net.au',
                 'title': 'Game of Thrones with dice - Dungeons and Dragons fantasy role-playing game gets new life - 19/01/2015',
-            }
+            },
         },
         # embedded viddler video
         {
@@ -876,7 +876,7 @@ class GenericIE(InfoExtractor):
             'info_dict': {
                 'id': 'aanslagen-kopenhagen',
                 'title': 'Aanslagen Kopenhagen',
-            }
+            },
         },
         # Zapiks embed
         {
@@ -885,7 +885,7 @@ class GenericIE(InfoExtractor):
                 'id': '118046',
                 'ext': 'mp4',
                 'title': 'EP3S5 - Bon Appétit - Baqueira Mi Corazon !',
-            }
+            },
         },
         # Kaltura embed (different embed code)
         {
@@ -924,11 +924,11 @@ class GenericIE(InfoExtractor):
             },
             'add_ie': ['Kaltura'],
             'expected_warnings': [
-                'Could not send HEAD request'
+                'Could not send HEAD request',
             ],
             'params': {
                 'skip_download': True,
-            }
+            },
         },
         {
             # Kaltura embedded, some fileExt broken (#11480)
@@ -1055,7 +1055,7 @@ class GenericIE(InfoExtractor):
             'info_dict': {
                 'id': '8RUoRhRi',
                 'ext': 'mp4',
-                'title': "Fox & Friends Says Protecting Atheists From Discrimination Is Anti-Christian!",
+                'title': 'Fox & Friends Says Protecting Atheists From Discrimination Is Anti-Christian!',
                 'description': 'md5:e1a46ad1650e3a5ec7196d432799127f',
                 'timestamp': 1428207000,
                 'upload_date': '20150405',
@@ -1131,7 +1131,7 @@ class GenericIE(InfoExtractor):
                 'uploader': 'clickhole',
                 'upload_date': '20150527',
                 'timestamp': 1432744860,
-            }
+            },
         },
         # SnagFilms embed
         {
@@ -1140,7 +1140,7 @@ class GenericIE(InfoExtractor):
                 'id': '74849a00-85a9-11e1-9660-123139220831',
                 'ext': 'mp4',
                 'title': '#whilewewatch',
-            }
+            },
         },
         # AdobeTVVideo embed
         {
@@ -1436,7 +1436,7 @@ class GenericIE(InfoExtractor):
                     'upload_date': '20211217',
                     'thumbnail': 'https://www.megatv.com/wp-content/uploads/2021/12/tsiodras-mitsotakis-1024x545.jpg',
                 },
-            }]
+            }],
         },
         {
             'url': 'https://www.ertnews.gr/video/manolis-goyalles-o-anthropos-piso-apo-ti-diadiktyaki-vasilopita/',
@@ -1547,7 +1547,7 @@ class GenericIE(InfoExtractor):
                 'id': '0f64ce6',
                 'title': 'vl14062007715967',
                 'ext': 'mp4',
-            }
+            },
         },
         {
             'url': 'http://www.heidelberg-laureate-forum.org/blog/video/lecture-friday-september-23-2016-sir-c-antony-r-hoare/',
@@ -1559,7 +1559,7 @@ class GenericIE(InfoExtractor):
                 'description': 'md5:5a51db84a62def7b7054df2ade403c6c',
                 'timestamp': 1474354800,
                 'upload_date': '20160920',
-            }
+            },
         },
         {
             'url': 'http://www.kidzworld.com/article/30935-trolls-the-beat-goes-on-interview-skylar-astin-and-amanda-leighton',
@@ -1651,7 +1651,7 @@ class GenericIE(InfoExtractor):
             'info_dict': {
                 'id': '83645793',
                 'title': 'Lock up and get excited',
-                'ext': 'mp4'
+                'ext': 'mp4',
             },
             'skip': 'TODO: fix nested playlists processing in tests',
         },
@@ -1727,7 +1727,7 @@ class GenericIE(InfoExtractor):
                 'upload_date': '20220110',
                 'thumbnail': 'https://opentv-static.siliconweb.com/imgHandler/1920/70bc39fa-895b-4918-a364-c39d2135fc6d.jpg',
 
-            }
+            },
         },
         {
             # blogger embed
@@ -1897,8 +1897,8 @@ class GenericIE(InfoExtractor):
                 'timestamp': 1501941939.0,
                 'title': 'That small heart attack.',
                 'upload_date': '20170805',
-                'uploader': 'Antw87'
-            }
+                'uploader': 'Antw87',
+            },
         },
         {
             # 1080p Reddit-hosted video that will redirect and be processed by RedditIE
@@ -1910,8 +1910,8 @@ class GenericIE(InfoExtractor):
                 'title': "The game Didn't want me to Knife that Guy I guess",
                 'uploader': 'paraf1ve',
                 'timestamp': 1636788683.0,
-                'upload_date': '20211113'
-            }
+                'upload_date': '20211113',
+            },
         },
         {
             # MainStreaming player
@@ -1923,15 +1923,15 @@ class GenericIE(InfoExtractor):
                 'ext': 'mp4',
                 'live_status': 'not_live',
                 'thumbnail': r're:https?://[A-Za-z0-9-]*\.msvdn.net/image/\w+/poster',
-                'duration': 1512
-            }
+                'duration': 1512,
+            },
         },
         {
             # Multiple gfycat iframe embeds
             'url': 'https://www.gezip.net/bbs/board.php?bo_table=entertaine&wr_id=613422',
             'info_dict': {
                 'title': '재이, 윤, 세은 황금 드레스를 입고 빛난다',
-                'id': 'board'
+                'id': 'board',
             },
             'playlist_count': 8,
         },
@@ -1940,18 +1940,18 @@ class GenericIE(InfoExtractor):
             'url': 'https://www.gezip.net/bbs/board.php?bo_table=entertaine&wr_id=612199',
             'info_dict': {
                 'title': '옳게 된 크롭 니트 스테이씨 아이사',
-                'id': 'board'
+                'id': 'board',
             },
-            'playlist_count': 6
+            'playlist_count': 6,
         },
         {
             # Multiple gfycat embeds, with uppercase "IFR" in urls
             'url': 'https://kkzz.kr/?vid=2295',
             'info_dict': {
                 'title': '지방시 앰버서더 에스파 카리나 움짤',
-                'id': '?vid=2295'
+                'id': '?vid=2295',
             },
-            'playlist_count': 9
+            'playlist_count': 9,
         },
         {
             # Panopto embeds
@@ -1984,9 +1984,9 @@ class GenericIE(InfoExtractor):
             'url': 'https://www.hs.fi/kotimaa/art-2000008762560.html',
             'info_dict': {
                 'title': 'Koronavirus | Epidemiahuippu voi olla Suomessa ohi, mutta koronaviruksen poistamista yleisvaarallisten tautien joukosta harkitaan vasta syksyllä',
-                'id': 'art-2000008762560'
+                'id': 'art-2000008762560',
             },
-            'playlist_count': 3
+            'playlist_count': 3,
         },
         {
             # Ruutu embed in hs.fi with a single video
@@ -2015,7 +2015,7 @@ class GenericIE(InfoExtractor):
                 'thumbnail': 'https://www.filmarkivet.se/wp-content/uploads/parisdmoll2.jpg',
                 'timestamp': 1652833414,
                 'age_limit': 0,
-            }
+            },
         },
         {
             'url': 'https://www.mollymovieclub.com/p/interstellar?s=r#details',
@@ -2055,7 +2055,7 @@ class GenericIE(InfoExtractor):
                 'thumbnail': 'https://cdn.jwplayer.com/v2/media/YTmgRiNU/poster.jpg?width=720',
                 'duration': 5688.0,
                 'upload_date': '20210111',
-            }
+            },
         },
         {
             'note': 'JSON LD with multiple @type',
@@ -2071,7 +2071,7 @@ class GenericIE(InfoExtractor):
                 'upload_date': '20200411',
                 'age_limit': 0,
                 'duration': 111.0,
-            }
+            },
         },
         {
             'note': 'JSON LD with unexpected data type',
@@ -2086,7 +2086,7 @@ class GenericIE(InfoExtractor):
                 'thumbnail': r're:^https://media.autoweek.nl/m/.+\.jpg$',
                 'age_limit': 0,
                 'direct': True,
-            }
+            },
         },
         {
             'note': 'server returns data in brotli compression by default if `accept-encoding: *` is specified.',
@@ -2148,7 +2148,7 @@ class GenericIE(InfoExtractor):
 
     def report_following_redirect(self, new_url):
         """Report information extraction."""
-        self._downloader.to_screen('[redirect] Following redirect to %s' % new_url)
+        self._downloader.to_screen(f'[redirect] Following redirect to {new_url}')
 
     def report_detected(self, name, num=1, note=None):
         if num > 1:
@@ -2244,29 +2244,29 @@ class GenericIE(InfoExtractor):
             return video_url  # not obfuscated
 
         parsed = urllib.parse.urlparse(video_url[len('function/0/'):])
-        license = cls._kvs_get_license_token(license_code)
+        license_token = cls._kvs_get_license_token(license_code)
         urlparts = parsed.path.split('/')
 
         HASH_LENGTH = 32
-        hash = urlparts[3][:HASH_LENGTH]
+        hash_ = urlparts[3][:HASH_LENGTH]
         indices = list(range(HASH_LENGTH))
 
         # Swap indices of hash according to the destination calculated from the license token
         accum = 0
         for src in reversed(range(HASH_LENGTH)):
-            accum += license[src]
+            accum += license_token[src]
             dest = (src + accum) % HASH_LENGTH
             indices[src], indices[dest] = indices[dest], indices[src]
 
-        urlparts[3] = ''.join(hash[index] for index in indices) + urlparts[3][HASH_LENGTH:]
+        urlparts[3] = ''.join(hash_[index] for index in indices) + urlparts[3][HASH_LENGTH:]
         return urllib.parse.urlunparse(parsed._replace(path='/'.join(urlparts)))
 
     @staticmethod
-    def _kvs_get_license_token(license):
-        license = license.replace('$', '')
-        license_values = [int(char) for char in license]
+    def _kvs_get_license_token(license_code):
+        license_code = license_code.replace('$', '')
+        license_values = [int(char) for char in license_code]
 
-        modlicense = license.replace('0', '1')
+        modlicense = license_code.replace('0', '1')
         center = len(modlicense) // 2
         fronthalf = int(modlicense[:center + 1])
         backhalf = int(modlicense[center:])
@@ -2338,18 +2338,17 @@ class GenericIE(InfoExtractor):
                     if default_search == 'auto_warning':
                         if re.match(r'^(?:url|URL)$', url):
                             raise ExtractorError(
-                                'Invalid URL:  %r . Call yt-dlp like this:  yt-dlp -v "https://www.youtube.com/watch?v=BaW_jenozKc"  ' % url,
+                                f'Invalid URL:  {url!r} . Call yt-dlp like this:  yt-dlp -v "https://www.youtube.com/watch?v=BaW_jenozKc"  ',
                                 expected=True)
                         else:
                             self.report_warning(
-                                'Falling back to youtube search for  %s . Set --default-search "auto" to suppress this warning.' % url)
+                                f'Falling back to youtube search for  {url} . Set --default-search "auto" to suppress this warning.')
                     return self.url_result('ytsearch:' + url)
 
             if default_search in ('error', 'fixup_error'):
                 raise ExtractorError(
-                    '%r is not a valid URL. '
-                    'Set --default-search "ytsearch" (or run  yt-dlp "ytsearch:%s" ) to search YouTube'
-                    % (url, url), expected=True)
+                    f'{url!r} is not a valid URL. '
+                    f'Set --default-search "ytsearch" (or run  yt-dlp "ytsearch:{url}" ) to search YouTube', expected=True)
             else:
                 if ':' not in default_search:
                     default_search += ':'
@@ -2387,7 +2386,7 @@ class GenericIE(InfoExtractor):
         info_dict = {
             'id': video_id,
             'title': self._generic_title(url),
-            'timestamp': unified_timestamp(full_response.headers.get('Last-Modified'))
+            'timestamp': unified_timestamp(full_response.headers.get('Last-Modified')),
         }
 
         # Check for direct link to a video
@@ -2401,7 +2400,7 @@ class GenericIE(InfoExtractor):
             subtitles = {}
             if format_id.endswith('mpegurl') or ext == 'm3u8':
                 formats, subtitles = self._extract_m3u8_formats_and_subtitles(url, video_id, 'mp4', headers=headers)
-            elif format_id.endswith('mpd') or format_id.endswith('dash+xml') or ext == 'mpd':
+            elif format_id.endswith(('mpd', 'dash+xml')) or ext == 'mpd':
                 formats, subtitles = self._extract_mpd_formats_and_subtitles(url, video_id, headers=headers)
             elif format_id == 'f4m' or ext == 'f4m':
                 formats = self._extract_f4m_formats(url, video_id, headers=headers)
@@ -2410,7 +2409,7 @@ class GenericIE(InfoExtractor):
                     'format_id': format_id,
                     'url': url,
                     'ext': ext,
-                    'vcodec': 'none' if m.group('type') == 'audio' else None
+                    'vcodec': 'none' if m.group('type') == 'audio' else None,
                 }]
                 info_dict['direct'] = True
             info_dict.update({
@@ -2458,7 +2457,7 @@ class GenericIE(InfoExtractor):
             try:
                 doc = compat_etree_fromstring(webpage)
             except xml.etree.ElementTree.ParseError:
-                doc = compat_etree_fromstring(webpage.encode('utf-8'))
+                doc = compat_etree_fromstring(webpage.encode())
             if doc.tag == 'rss':
                 self.report_detected('RSS feed')
                 return self._extract_rss(url, video_id, doc)
@@ -2606,7 +2605,7 @@ class GenericIE(InfoExtractor):
                     })
             # https://docs.videojs.com/player#addRemoteTextTrack
             # https://html.spec.whatwg.org/multipage/media.html#htmltrackelement
-            for sub_match in re.finditer(rf'(?s){re.escape(varname)}' r'\.addRemoteTextTrack\(({.+?})\s*,\s*(?:true|false)\)', webpage):
+            for sub_match in re.finditer(rf'(?s){re.escape(varname)}' + r'\.addRemoteTextTrack\(({.+?})\s*,\s*(?:true|false)\)', webpage):
                 sub = self._parse_json(
                     sub_match.group(1), video_id, transform_source=js_to_json, fatal=False) or {}
                 sub_src = str_or_none(sub.get('src'))
@@ -2728,7 +2727,7 @@ class GenericIE(InfoExtractor):
             REDIRECT_REGEX = r'[0-9]{,2};\s*(?:URL|url)=\'?([^\'"]+)'
             found = re.search(
                 r'(?i)<meta\s+(?=(?:[a-z-]+="[^"]+"\s+)*http-equiv="refresh")'
-                r'(?:[a-z-]+="[^"]+"\s+)*?content="%s' % REDIRECT_REGEX,
+                rf'(?:[a-z-]+="[^"]+"\s+)*?content="{REDIRECT_REGEX}',
                 webpage)
             if not found:
                 # Look also in Refresh HTTP header
@@ -2772,7 +2771,7 @@ class GenericIE(InfoExtractor):
 
             video_id = os.path.splitext(video_id)[0]
             headers = {
-                'referer': actual_url
+                'referer': actual_url,
             }
 
             entry_info_dict = {
@@ -2829,5 +2828,5 @@ class GenericIE(InfoExtractor):
             for num, e in enumerate(entries, start=1):
                 # 'url' results don't have a title
                 if e.get('title') is not None:
-                    e['title'] = '%s (%d)' % (e['title'], num)
+                    e['title'] = '{} ({})'.format(e['title'], num)
         return entries

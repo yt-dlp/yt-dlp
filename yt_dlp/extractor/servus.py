@@ -39,7 +39,7 @@ class ServusIE(InfoExtractor):
             'episode': 'Episode 8 - Vie Ferrate – Klettersteige in den Alpen',
             'episode_number': 8,
         },
-        'params': {'skip_download': 'm3u8'}
+        'params': {'skip_download': 'm3u8'},
     }, {
         'url': 'https://www.servustv.com/natur/v/aa-1xg5xwmgw2112/',
         'only_matching': True,

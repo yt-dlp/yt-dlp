@@ -56,7 +56,7 @@ class TubiTvIE(InfoExtractor):
             'description': 'A stand up comedian is forced to look at the decisions in his life while on a one week trip to the west coast.',
             'uploader_id': 'bc168bee0d18dd1cb3b86c68706ab434',
         },
-        'skip': 'Content Unavailable'
+        'skip': 'Content Unavailable',
     }, {
         'url': 'http://tubitv.com/tv-shows/321886/s01_e01_on_nom_stories',
         'only_matching': True,
@@ -70,7 +70,7 @@ class TubiTvIE(InfoExtractor):
             'uploader_id': 'd8fed30d4f24fcb22ec294421b9defc2',
             'release_year': 1979,
         },
-        'skip': 'Content Unavailable'
+        'skip': 'Content Unavailable',
     }]
 
     # DRM formats are included only to raise appropriate error
@@ -155,7 +155,7 @@ class TubiTvShowIE(InfoExtractor):
         'playlist_mincount': 390,
         'info_dict': {
             'id': 'the-joy-of-painting-with-bob-ross',
-        }
+        },
     }]
 
     def _entries(self, show_url, show_name):
@@ -165,7 +165,7 @@ class TubiTvShowIE(InfoExtractor):
             r'window\.__data\s*=\s*({[^<]+});\s*</script>',
             show_webpage, 'data'), show_name, transform_source=js_to_json)['video']
 
-        for episode_id in show_json['fullContentById'].keys():
+        for episode_id in show_json['fullContentById']:
             if traverse_obj(show_json, ('byId', episode_id, 'type')) == 's':
                 continue
             yield self.url_result(

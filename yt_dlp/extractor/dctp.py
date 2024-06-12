@@ -1,5 +1,4 @@
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     float_or_none,
     int_or_none,
@@ -37,18 +36,18 @@ class DctpTvIE(InfoExtractor):
         display_id = self._match_id(url)
 
         version = self._download_json(
-            '%s/version.json' % self._BASE_URL, display_id,
+            f'{self._BASE_URL}/version.json', display_id,
             'Downloading version JSON')
 
-        restapi_base = '%s/%s/restapi' % (
+        restapi_base = '{}/{}/restapi'.format(
             self._BASE_URL, version['version_name'])
 
         info = self._download_json(
-            '%s/slugs/%s.json' % (restapi_base, display_id), display_id,
+            f'{restapi_base}/slugs/{display_id}.json', display_id,
             'Downloading video info JSON')
 
         media = self._download_json(
-            '%s/media/%s.json' % (restapi_base, compat_str(info['object_id'])),
+            '{}/media/{}.json'.format(restapi_base, str(info['object_id'])),
             display_id, 'Downloading media JSON')
 
         uuid = media['uuid']
@@ -57,7 +56,7 @@ class DctpTvIE(InfoExtractor):
         formats = []
 
         def add_formats(suffix):
-            templ = 'https://%%s/%s_dctp_%s.m4v' % (uuid, suffix)
+            templ = f'https://%s/{uuid}_dctp_{suffix}.m4v'
             formats.extend([{
                 'format_id': 'hls-' + suffix,
                 'url': templ % 'cdn-segments.dctp.tv' + '/playlist.m3u8',

@@ -33,7 +33,7 @@ class KakaoIE(InfoExtractor):
             'view_count': int,
             'duration': 1503,
             'comment_count': int,
-        }
+        },
     }, {
         'url': 'http://tv.kakao.com/channel/2653210/cliplink/300103180',
         'md5': 'a8917742069a4dd442516b86e7d66529',
@@ -52,7 +52,7 @@ class KakaoIE(InfoExtractor):
             'view_count': int,
             'duration': 184,
             'comment_count': int,
-        }
+        },
     }, {
         # geo restricted
         'url': 'https://tv.kakao.com/channel/3643855/cliplink/412069491',
@@ -76,7 +76,7 @@ class KakaoIE(InfoExtractor):
                 'description', 'channelId', 'createTime', 'duration', 'playCount',
                 'likeCount', 'commentCount', 'tagList', 'channel', 'name',
                 'clipChapterThumbnailList', 'thumbnailUrl', 'timeInSec', 'isDefault',
-                'videoOutputList', 'width', 'height', 'kbps', 'profile', 'label'])
+                'videoOutputList', 'width', 'height', 'kbps', 'profile', 'label']),
         }
 
         api_json = self._download_json(
@@ -99,7 +99,7 @@ class KakaoIE(InfoExtractor):
             try:
                 fmt_url_json = self._download_json(
                     cdn_api_base, video_id, query=query,
-                    note='Downloading video URL for profile %s' % profile_name)
+                    note=f'Downloading video URL for profile {profile_name}')
             except ExtractorError as e:
                 if isinstance(e.cause, HTTPError) and e.cause.status == 403:
                     resp = self._parse_json(e.cause.response.read().decode(), video_id)
@@ -126,7 +126,7 @@ class KakaoIE(InfoExtractor):
             thumbs.append({
                 'url': thumb.get('thumbnailUrl'),
                 'id': str(thumb.get('timeInSec')),
-                'preference': -1 if thumb.get('isDefault') else 0
+                'preference': -1 if thumb.get('isDefault') else 0,
             })
         top_thumbnail = clip.get('thumbnailUrl')
         if top_thumbnail:

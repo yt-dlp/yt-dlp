@@ -26,9 +26,9 @@ from ..utils import (
 _ENCODING_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'
 
 
-def _pk_to_id(id):
+def _pk_to_id(media_id):
     """Source: https://stackoverflow.com/questions/24437823/getting-instagram-post-url-from-media-id"""
-    return encode_base_n(int(id.split('_')[0]), table=_ENCODING_CHARS)
+    return encode_base_n(int(media_id.split('_')[0]), table=_ENCODING_CHARS)
 
 
 def _id_to_pk(shortcode):
@@ -113,7 +113,7 @@ class InstagramBaseIE(InfoExtractor):
                     'height': self._get_dimension('height', node),
                     'http_headers': {
                         'Referer': 'https://www.instagram.com/',
-                    }
+                    },
                 }
             elif not video_id:
                 continue
@@ -148,25 +148,25 @@ class InstagramBaseIE(InfoExtractor):
             return {}
 
         formats = [{
-            'format_id': format.get('id'),
-            'url': format.get('url'),
-            'width': format.get('width'),
-            'height': format.get('height'),
+            'format_id': fmt.get('id'),
+            'url': fmt.get('url'),
+            'width': fmt.get('width'),
+            'height': fmt.get('height'),
             'vcodec': vcodec,
-        } for format in videos_list or []]
+        } for fmt in videos_list or []]
         if dash_manifest_raw:
             formats.extend(self._parse_mpd_formats(self._parse_xml(dash_manifest_raw, media_id), mpd_id='dash'))
 
         thumbnails = [{
             'url': thumbnail.get('url'),
             'width': thumbnail.get('width'),
-            'height': thumbnail.get('height')
+            'height': thumbnail.get('height'),
         } for thumbnail in traverse_obj(product_media, ('image_versions2', 'candidates')) or []]
         return {
             'id': media_id,
             'duration': float_or_none(product_media.get('video_duration')),
             'formats': formats,
-            'thumbnails': thumbnails
+            'thumbnails': thumbnails,
         }
 
     def _extract_product(self, product_info):
@@ -188,7 +188,7 @@ class InstagramBaseIE(InfoExtractor):
             '__post_extractor': self.extract_comments(_pk_to_id(product_info.get('pk'))),
             'http_headers': {
                 'Referer': 'https://www.instagram.com/',
-            }
+            },
         }
         carousel_media = product_info.get('carousel_media')
         if carousel_media:
@@ -204,7 +204,7 @@ class InstagramBaseIE(InfoExtractor):
 
         return {
             **info_dict,
-            **self._extract_product_media(product_info)
+            **self._extract_product_media(product_info),
         }
 
     def _get_comments(self, video_id):
@@ -246,7 +246,7 @@ class InstagramIOSIE(InfoExtractor):
             'comment_count': int,
             'comments': list,
         },
-        'add_ie': ['Instagram']
+        'add_ie': ['Instagram'],
     }]
 
     def _real_extract(self, url):
@@ -520,7 +520,7 @@ class InstagramIE(InstagramBaseIE):
         return {
             'id': video_id,
             'formats': formats,
-            'title': media.get('title') or 'Video by %s' % username,
+            'title': media.get('title') or f'Video by {username}',
             'description': description,
             'duration': float_or_none(media.get('video_duration')),
             'timestamp': traverse_obj(media, 'taken_at_timestamp', 'date', expected_type=int_or_none),
@@ -534,7 +534,7 @@ class InstagramIE(InstagramBaseIE):
             'thumbnails': thumbnails,
             'http_headers': {
                 'Referer': 'https://www.instagram.com/',
-            }
+            },
         }
 
 
@@ -567,10 +567,10 @@ class InstagramPlaylistBaseIE(InstagramBaseIE):
                 gis_tmpls = [self._gis_tmpl]
             else:
                 gis_tmpls = [
-                    '%s' % rhx_gis,
+                    f'{rhx_gis}',
                     '',
-                    '%s:%s' % (rhx_gis, csrf_token),
-                    '%s:%s:%s' % (rhx_gis, csrf_token, self.get_param('http_headers')['User-Agent']),
+                    f'{rhx_gis}:{csrf_token}',
+                    '{}:{}:{}'.format(rhx_gis, csrf_token, self.get_param('http_headers')['User-Agent']),
                 ]
 
             # try all of the ways to generate a GIS query, and not only use the
@@ -579,10 +579,10 @@ class InstagramPlaylistBaseIE(InstagramBaseIE):
                 try:
                     json_data = self._download_json(
                         'https://www.instagram.com/graphql/query/', uploader_id,
-                        'Downloading JSON page %d' % page_num, headers={
+                        f'Downloading JSON page {page_num}', headers={
                             'X-Requested-With': 'XMLHttpRequest',
                             'X-Instagram-GIS': hashlib.md5(
-                                ('%s:%s' % (gis_tmpl, variables)).encode('utf-8')).hexdigest(),
+                                (f'{gis_tmpl}:{variables}').encode()).hexdigest(),
                         }, query={
                             'query_hash': self._QUERY_HASH,
                             'variables': variables,
@@ -635,10 +635,10 @@ class InstagramUserIE(InstagramPlaylistBaseIE):
             'extract_flat': True,
             'skip_download': True,
             'playlistend': 5,
-        }
+        },
     }]
 
-    _QUERY_HASH = '42323d64886122307be10013ad2dcc44',
+    _QUERY_HASH = ('42323d64886122307be10013ad2dcc44',)
 
     @staticmethod
     def _parse_timeline_from(data):
@@ -650,7 +650,7 @@ class InstagramUserIE(InstagramPlaylistBaseIE):
         # returns a dictionary of variables to add to the timeline query based
         # on the GraphQL of the original page
         return {
-            'id': data['entry_data']['ProfilePage'][0]['graphql']['user']['id']
+            'id': data['entry_data']['ProfilePage'][0]['graphql']['user']['id'],
         }
 
 
@@ -669,10 +669,10 @@ class InstagramTagIE(InstagramPlaylistBaseIE):
             'extract_flat': True,
             'skip_download': True,
             'playlistend': 50,
-        }
+        },
     }]
 
-    _QUERY_HASH = 'f92f56d47dc7a55b606908374b43a314',
+    _QUERY_HASH = ('f92f56d47dc7a55b606908374b43a314',)
 
     @staticmethod
     def _parse_timeline_from(data):
@@ -685,7 +685,7 @@ class InstagramTagIE(InstagramPlaylistBaseIE):
         # on the GraphQL of the original page
         return {
             'tag_name':
-                data['entry_data']['TagPage'][0]['graphql']['hashtag']['name']
+                data['entry_data']['TagPage'][0]['graphql']['hashtag']['name'],
         }
 
 
@@ -699,7 +699,7 @@ class InstagramStoryIE(InstagramBaseIE):
             'id': '18090946048123978',
             'title': 'Rare',
         },
-        'playlist_mincount': 50
+        'playlist_mincount': 50,
     }]
 
     def _real_extract(self, url):
