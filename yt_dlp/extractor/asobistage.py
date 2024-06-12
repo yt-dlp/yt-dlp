@@ -105,7 +105,7 @@ class AsobiStageIE(InfoExtractor):
         video_type = {'archive': 'archives', 'player': 'broadcasts'}[type_]
         webpage = self._download_webpage(url, video_id)
         event_data = traverse_obj(
-            self._search_nextjs_data(webpage, video_id, default='{}'),
+            self._search_nextjs_data(webpage, video_id, default={}),
             ('props', 'pageProps', 'eventCMSData', {
                 'title': ('event_name', {str}),
                 'thumbnail': ('event_thumbnail_image', {url_or_none}),

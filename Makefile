@@ -10,9 +10,12 @@ tar: yt-dlp.tar.gz
 # intended use: when building a source distribution,
 # make pypi-files && python3 -m build -sn .
 pypi-files: AUTHORS Changelog.md LICENSE README.md README.txt supportedsites \
-	        completions yt-dlp.1 pyproject.toml setup.cfg devscripts/* test/*
+            completions yt-dlp.1 pyproject.toml setup.cfg devscripts/* test/*
 
-.PHONY: all clean install test tar pypi-files completions ot offlinetest codetest supportedsites
+.PHONY: all clean clean-all clean-test clean-dist clean-cache \
+        completions completion-bash completion-fish completion-zsh \
+        doc issuetemplates supportedsites ot offlinetest codetest test \
+        tar pypi-files lazy-extractors install uninstall
 
 clean-test:
 	rm -rf test/testdata/sigs/player-*.js tmp/ *.annotations.xml *.aria2 *.description *.dump *.frag \
@@ -24,7 +27,7 @@ clean-dist:
 	yt_dlp/extractor/lazy_extractors.py *.spec CONTRIBUTING.md.tmp yt-dlp yt-dlp.exe yt_dlp.egg-info/ AUTHORS
 clean-cache:
 	find . \( \
-		-type d -name .pytest_cache -o -type d -name __pycache__ -o -name "*.pyc" -o -name "*.class" \
+		-type d -name ".*_cache" -o -type d -name __pycache__ -o -name "*.pyc" -o -name "*.class" \
 	\) -prune -exec rm -rf {} \;
 
 completion-bash: completions/bash/yt-dlp
@@ -67,14 +70,15 @@ uninstall:
 	rm -f $(DESTDIR)$(SHAREDIR)/fish/vendor_completions.d/yt-dlp.fish
 
 codetest:
-	flake8 .
+	ruff check .
+	autopep8 --diff .
 
 test:
-	$(PYTHON) -m pytest
+	$(PYTHON) -m pytest -Werror
 	$(MAKE) codetest
 
 offlinetest: codetest
-	$(PYTHON) -m pytest -k "not download"
+	$(PYTHON) -m pytest -Werror -m "not download"
 
 CODE_FOLDERS_CMD = find yt_dlp -type f -name '__init__.py' | sed 's,/__init__.py,,' | grep -v '/__' | sort
 CODE_FOLDERS != $(CODE_FOLDERS_CMD)
@@ -148,7 +152,7 @@ yt-dlp.tar.gz: all
 		--exclude '*.pyo' \
 		--exclude '*~' \
 		--exclude '__pycache__' \
-		--exclude '.pytest_cache' \
+		--exclude '.*_cache' \
 		--exclude '.git' \
 		-- \
 		README.md supportedsites.md Changelog.md LICENSE \

@@ -42,17 +42,25 @@ def parse_args():
 def main():
     args = parse_args()
     project_table = parse_toml(read_file(args.input))['project']
+    recursive_pattern = re.compile(rf'{project_table["name"]}\[(?P<group_name>[\w-]+)\]')
     optional_groups = project_table['optional-dependencies']
     excludes = args.exclude or []
+
+    def yield_deps(group):
+        for dep in group:
+            if mobj := recursive_pattern.fullmatch(dep):
+                yield from optional_groups.get(mobj.group('group_name'), [])
+            else:
+                yield dep
 
     targets = []
     if not args.only_optional:  # `-o` should exclude 'dependencies' and the 'default' group
         targets.extend(project_table['dependencies'])
         if 'default' not in excludes:  # `--exclude default` should exclude entire 'default' group
-            targets.extend(optional_groups['default'])
+            targets.extend(yield_deps(optional_groups['default']))
 
     for include in filter(None, map(optional_groups.get, args.include or [])):
-        targets.extend(include)
+        targets.extend(yield_deps(include))
 
     targets = [t for t in targets if re.match(r'[\w-]+', t).group(0).lower() not in excludes]
 

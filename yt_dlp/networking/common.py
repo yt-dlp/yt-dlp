@@ -31,6 +31,8 @@ from ..utils import (
 )
 from ..utils.networking import HTTPHeaderDict, normalize_url
 
+DEFAULT_TIMEOUT = 20
+
 
 def register_preference(*handlers: type[RequestHandler]):
     assert all(issubclass(handler, RequestHandler) for handler in handlers)
@@ -81,8 +83,8 @@ class RequestDirector:
             rh: sum(pref(rh, request) for pref in self.preferences)
             for rh in self.handlers.values()
         }
-        self._print_verbose('Handler preferences for this request: %s' % ', '.join(
-            f'{rh.RH_NAME}={pref}' for rh, pref in preferences.items()))
+        self._print_verbose('Handler preferences for this request: {}'.format(', '.join(
+            f'{rh.RH_NAME}={pref}' for rh, pref in preferences.items())))
         return sorted(self.handlers.values(), key=preferences.get, reverse=True)
 
     def _print_verbose(self, msg):
@@ -222,11 +224,11 @@ class RequestHandler(abc.ABC):
         headers: HTTPHeaderDict = None,
         cookiejar: YoutubeDLCookieJar = None,
         timeout: float | int | None = None,
-        proxies: dict = None,
-        source_address: str = None,
+        proxies: dict | None = None,
+        source_address: str | None = None,
         verbose: bool = False,
         prefer_system_certs: bool = False,
-        client_cert: dict[str, str | None] = None,
+        client_cert: dict[str, str | None] | None = None,
         verify: bool = True,
         legacy_ssl_support: bool = False,
         **_,
@@ -235,7 +237,7 @@ class RequestHandler(abc.ABC):
         self._logger = logger
         self.headers = headers or {}
         self.cookiejar = cookiejar if cookiejar is not None else YoutubeDLCookieJar()
-        self.timeout = float(timeout or 20)
+        self.timeout = float(timeout or DEFAULT_TIMEOUT)
         self.proxies = proxies or {}
         self.source_address = source_address
         self.verbose = verbose
@@ -339,7 +341,7 @@ class RequestHandler(abc.ABC):
         """Handle a request from start to finish. Redefine in subclasses."""
         pass
 
-    def close(self):
+    def close(self):  # noqa: B027
         pass
 
     @classproperty
@@ -376,11 +378,11 @@ class Request:
             self,
             url: str,
             data: RequestData = None,
-            headers: typing.Mapping = None,
-            proxies: dict = None,
-            query: dict = None,
-            method: str = None,
-            extensions: dict = None
+            headers: typing.Mapping | None = None,
+            proxies: dict | None = None,
+            query: dict | None = None,
+            method: str | None = None,
+            extensions: dict | None = None,
     ):
 
         self._headers = HTTPHeaderDict()
@@ -497,6 +499,7 @@ class Response(io.IOBase):
     @param headers: response headers.
     @param status: Response HTTP status code. Default is 200 OK.
     @param reason: HTTP status reason. Will use built-in reasons based on status code if not provided.
+    @param extensions: Dictionary of handler-specific response extensions.
     """
 
     def __init__(
@@ -505,7 +508,9 @@ class Response(io.IOBase):
             url: str,
             headers: Mapping[str, str],
             status: int = 200,
-            reason: str = None):
+            reason: str | None = None,
+            extensions: dict | None = None,
+    ):
 
         self.fp = fp
         self.headers = Message()
@@ -517,11 +522,12 @@ class Response(io.IOBase):
             self.reason = reason or HTTPStatus(status).phrase
         except ValueError:
             self.reason = None
+        self.extensions = extensions or {}
 
     def readable(self):
         return self.fp.readable()
 
-    def read(self, amt: int = None) -> bytes:
+    def read(self, amt: int | None = None) -> bytes:
         # Expected errors raised here should be of type RequestError or subclasses.
         # Subclasses should redefine this method with more precise error handling.
         try:

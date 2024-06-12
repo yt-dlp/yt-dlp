@@ -80,7 +80,7 @@ class JoqrAgIE(InfoExtractor):
             note='Downloading metadata', errnote='Failed to download metadata')
         title = self._extract_metadata('Program_name', metadata)
 
-        if title == '放送休止':
+        if not title or title == '放送休止':
             formats = []
             live_status = 'is_upcoming'
             release_timestamp = self._extract_start_timestamp(video_id, False)

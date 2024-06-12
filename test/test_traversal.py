@@ -26,33 +26,12 @@ _TEST_DATA = {
 
 
 class TestTraversal:
-    def test_dict_get(self):
-        FALSE_VALUES = {
-            'none': None,
-            'false': False,
-            'zero': 0,
-            'empty_string': '',
-            'empty_list': [],
-        }
-        d = {**FALSE_VALUES, 'a': 42}
-        assert dict_get(d, 'a') == 42
-        assert dict_get(d, 'b') is None
-        assert dict_get(d, 'b', 42) == 42
-        assert dict_get(d, ('a',)) == 42
-        assert dict_get(d, ('b', 'a')) == 42
-        assert dict_get(d, ('b', 'c', 'a', 'd')) == 42
-        assert dict_get(d, ('b', 'c')) is None
-        assert dict_get(d, ('b', 'c'), 42) == 42
-        for key, false_value in FALSE_VALUES.items():
-            assert dict_get(d, ('b', 'c', key)) is None
-            assert dict_get(d, ('b', 'c', key), skip_false_values=False) == false_value
-
     def test_traversal_base(self):
         assert traverse_obj(_TEST_DATA, ('str',)) == 'str', \
             'allow tuple path'
         assert traverse_obj(_TEST_DATA, ['str']) == 'str', \
             'allow list path'
-        assert traverse_obj(_TEST_DATA, (value for value in ("str",))) == 'str', \
+        assert traverse_obj(_TEST_DATA, (value for value in ('str',))) == 'str', \
             'allow iterable path'
         assert traverse_obj(_TEST_DATA, 'str') == 'str', \
             'single items should be treated as a path'
@@ -91,7 +70,7 @@ class TestTraversal:
 
     def test_traversal_set(self):
         # transformation/type, like `expected_type`
-        assert traverse_obj(_TEST_DATA, (..., {str.upper}, )) == ['STR'], \
+        assert traverse_obj(_TEST_DATA, (..., {str.upper})) == ['STR'], \
             'Function in set should be a transformation'
         assert traverse_obj(_TEST_DATA, (..., {str})) == ['str'], \
             'Type in set should be a type filter'
@@ -297,7 +276,7 @@ class TestTraversal:
             '`...` should result in string (same value) if `traverse_string`'
         assert traverse_obj(_TRAVERSE_STRING_DATA, ('str', slice(0, None, 2)), traverse_string=True) == 'sr', \
             '`slice` should result in string if `traverse_string`'
-        assert traverse_obj(_TRAVERSE_STRING_DATA, ('str', lambda i, v: i or v == "s"), traverse_string=True) == 'str', \
+        assert traverse_obj(_TRAVERSE_STRING_DATA, ('str', lambda i, v: i or v == 's'), traverse_string=True) == 'str', \
             'function should result in string if `traverse_string`'
         assert traverse_obj(_TRAVERSE_STRING_DATA, ('str', (0, 2)), traverse_string=True) == ['s', 'r'], \
             'branching should result in list if `traverse_string`'
@@ -440,3 +419,26 @@ class TestTraversal:
             'function key should yield all values'
         assert traverse_obj(morsel, [(None,), any]) == morsel, \
             'Morsel should not be implicitly changed to dict on usage'
+
+
+class TestDictGet:
+    def test_dict_get(self):
+        FALSE_VALUES = {
+            'none': None,
+            'false': False,
+            'zero': 0,
+            'empty_string': '',
+            'empty_list': [],
+        }
+        d = {**FALSE_VALUES, 'a': 42}
+        assert dict_get(d, 'a') == 42
+        assert dict_get(d, 'b') is None
+        assert dict_get(d, 'b', 42) == 42
+        assert dict_get(d, ('a',)) == 42
+        assert dict_get(d, ('b', 'a')) == 42
+        assert dict_get(d, ('b', 'c', 'a', 'd')) == 42
+        assert dict_get(d, ('b', 'c')) is None
+        assert dict_get(d, ('b', 'c'), 42) == 42
+        for key, false_value in FALSE_VALUES.items():
+            assert dict_get(d, ('b', 'c', key)) is None
+            assert dict_get(d, ('b', 'c', key), skip_false_values=False) == false_value

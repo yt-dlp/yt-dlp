@@ -34,8 +34,8 @@ class YleAreenaIE(InfoExtractor):
                 'timestamp': 1543916210,
                 'subtitles': {'fin': [{'url': r're:^https?://', 'ext': 'srt'}]},
                 'age_limit': 7,
-                'webpage_url': 'https://areena.yle.fi/1-4371942'
-            }
+                'webpage_url': 'https://areena.yle.fi/1-4371942',
+            },
         },
         {
             'url': 'https://areena.yle.fi/1-2158940',
@@ -55,8 +55,8 @@ class YleAreenaIE(InfoExtractor):
                 'timestamp': 1638448202,
                 'subtitles': {},
                 'age_limit': 0,
-                'webpage_url': 'https://areena.yle.fi/1-2158940'
-            }
+                'webpage_url': 'https://areena.yle.fi/1-2158940',
+            },
         },
         {
             'url': 'https://areena.yle.fi/1-64829589',
@@ -83,7 +83,7 @@ class YleAreenaIE(InfoExtractor):
             video_id, headers={
                 'origin': 'https://areena.yle.fi',
                 'referer': 'https://areena.yle.fi/',
-                'content-type': 'application/json'
+                'content-type': 'application/json',
             })
 
         # Example title: 'K1, J2: Pouchit | Modernit miehet'

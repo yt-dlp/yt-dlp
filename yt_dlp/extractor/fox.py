@@ -1,11 +1,8 @@
 import json
+import urllib.parse
 import uuid
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-    compat_urllib_parse_unquote,
-)
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
@@ -80,7 +77,7 @@ class FOXIE(InfoExtractor):
     _HOME_PAGE_URL = 'https://www.fox.com/'
     _API_KEY = '6E9S4bmcoNnZwVLOHywOv8PJEdu76cM9'  # sports: 'cf289e299efdfa39fb6316f259d1de93'
     _access_token = None
-    _device_id = compat_str(uuid.uuid4())
+    _device_id = str(uuid.uuid4())
     _XML_NS = {
         'vmap': 'http://www.iab.net/videosuite/vmap',
         'yospacenet': 'http://www.yospace.com/extension',
@@ -113,7 +110,7 @@ class FOXIE(InfoExtractor):
         if not self._access_token:
             mvpd_auth = self._get_cookies(self._HOME_PAGE_URL).get('mvpd-auth')
             if mvpd_auth:
-                self._access_token = (self._parse_json(compat_urllib_parse_unquote(
+                self._access_token = (self._parse_json(urllib.parse.unquote(
                     mvpd_auth.value), None, fatal=False) or {}).get('accessToken')
             if not self._access_token:
                 self._access_token = self._call_api(
@@ -125,7 +122,7 @@ class FOXIE(InfoExtractor):
         video_id = self._match_id(url)
 
         self._access_token = self._call_api(
-            'previewpassmvpd?device_id=%s&mvpd_id=TempPass_fbcfox_60min' % self._device_id,
+            f'previewpassmvpd?device_id={self._device_id}&mvpd_id=TempPass_fbcfox_60min',
             video_id)['accessToken']
 
         video = self._call_api('https://prod.api.video.fox/v2.0/watch', video_id, data=json.dumps({
@@ -138,7 +135,7 @@ class FOXIE(InfoExtractor):
             'provider': {
                 'freewheel': {'did': self._device_id},
                 'vdms': {'rays': ''},
-                'dmp': {'kuid': '', 'seg': ''}
+                'dmp': {'kuid': '', 'seg': ''},
             },
             'playlist': '',
             'privacy': {'us': '1---'},
