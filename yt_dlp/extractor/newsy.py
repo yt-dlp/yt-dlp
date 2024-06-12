@@ -19,9 +19,9 @@ class NewsyIE(InfoExtractor):
             'timestamp': 1621339200,
             'duration': 339630,
             'thumbnail': 'https://cdn.newsy.com/images/videos/x/1620927824_xyrrP4.jpg',
-            'upload_date': '20210518'
+            'upload_date': '20210518',
         },
-        'params': {'skip_download': True}
+        'params': {'skip_download': True},
     }]
 
     def _real_extract(self, url):

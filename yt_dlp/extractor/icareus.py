@@ -65,19 +65,19 @@ class IcareusIE(InfoExtractor):
         },
     }, {
         'url': 'https://asahitv.fi/fi/web/asahi/player/vod?assetId=89415818',
-        'only_matching': True
+        'only_matching': True,
     }, {
         'url': 'https://hyvinvointitv.fi/fi/web/hyvinvointitv/player/vod?assetId=89149730',
-        'only_matching': True
+        'only_matching': True,
     }, {
         'url': 'https://inez.fi/fi/web/inez-media/player/vod?assetId=71328822',
-        'only_matching': True
+        'only_matching': True,
     }, {
         'url': 'https://www.permanto.fi/fi/web/alfatv/player/vod?assetId=135497515',
-        'only_matching': True
+        'only_matching': True,
     }, {
         'url': 'https://videos.minifiddlers.org/web/international-minifiddlers/player/vod?assetId=1982759',
-        'only_matching': True
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
@@ -166,7 +166,7 @@ class IcareusIE(InfoExtractor):
             }
 
         thumbnails = info.get('thumbnails') or [{
-            'url': url_or_none(info.get('thumbnail') or assets.get('thumbnail'))
+            'url': url_or_none(info.get('thumbnail') or assets.get('thumbnail')),
         }]
 
         return merge_dicts({

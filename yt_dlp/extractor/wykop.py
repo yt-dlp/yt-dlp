@@ -209,7 +209,7 @@ class WykopPostIE(WykopBaseExtractor):
         'playlist_mincount': 15,
         'params': {
             'flat_playlist': True,
-        }
+        },
     }]
 
     @classmethod

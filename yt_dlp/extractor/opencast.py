@@ -2,8 +2,8 @@ import re
 
 from .common import InfoExtractor
 from ..utils import (
-    determine_ext,
     ExtractorError,
+    determine_ext,
     int_or_none,
     parse_iso8601,
     traverse_obj,
@@ -126,7 +126,7 @@ class OpencastIE(OpencastBaseIE):
                 'series': 'Kryptographie - WiSe 15/16',
                 'creator': 'Alexander May',
             },
-        }
+        },
     ]
 
     def _real_extract(self, url):

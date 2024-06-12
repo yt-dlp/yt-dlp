@@ -12,20 +12,21 @@ import urllib.parse
 import urllib.request
 import urllib.response
 import uuid
-from ..utils.networking import clean_proxies
+
 from .common import InfoExtractor
 from ..aes import aes_ecb_decrypt
 from ..utils import (
     ExtractorError,
+    OnDemandPagedList,
     bytes_to_intlist,
     decode_base_n,
     int_or_none,
     intlist_to_bytes,
-    OnDemandPagedList,
     time_seconds,
     traverse_obj,
     update_url_query,
 )
+from ..utils.networking import clean_proxies
 
 
 def add_opener(ydl, handler):  # FIXME: Create proper API in .networking
@@ -65,8 +66,8 @@ class AbemaLicenseHandler(urllib.request.BaseHandler):
             query={'t': media_token},
             data=json.dumps({
                 'kv': 'a',
-                'lt': ticket
-            }).encode('utf-8'),
+                'lt': ticket,
+            }).encode(),
             headers={
                 'Content-Type': 'application/json',
             })
@@ -76,7 +77,7 @@ class AbemaLicenseHandler(urllib.request.BaseHandler):
 
         h = hmac.new(
             binascii.unhexlify(self.HKEY),
-            (license_response['cid'] + self.ie._DEVICE_ID).encode('utf-8'),
+            (license_response['cid'] + self.ie._DEVICE_ID).encode(),
             digestmod=hashlib.sha256)
         enckey = bytes_to_intlist(h.digest())
 
@@ -102,11 +103,11 @@ class AbemaTVBaseIE(InfoExtractor):
 
     @classmethod
     def _generate_aks(cls, deviceid):
-        deviceid = deviceid.encode('utf-8')
+        deviceid = deviceid.encode()
         # add 1 hour and then drop minute and secs
         ts_1hour = int((time_seconds() // 3600 + 1) * 3600)
         time_struct = time.gmtime(ts_1hour)
-        ts_1hour_str = str(ts_1hour).encode('utf-8')
+        ts_1hour_str = str(ts_1hour).encode()
 
         tmp = None
 
@@ -118,7 +119,7 @@ class AbemaTVBaseIE(InfoExtractor):
 
         def mix_tmp(count):
             nonlocal tmp
-            for i in range(count):
+            for _ in range(count):
                 mix_once(tmp)
 
         def mix_twist(nonce):
@@ -159,7 +160,7 @@ class AbemaTVBaseIE(InfoExtractor):
             data=json.dumps({
                 'deviceId': self._DEVICE_ID,
                 'applicationKeySecret': aks,
-            }).encode('utf-8'),
+            }).encode(),
             headers={
                 'Content-Type': 'application/json',
             })
@@ -179,7 +180,7 @@ class AbemaTVBaseIE(InfoExtractor):
                 'osLang': 'ja_JP',
                 'osTimezone': 'Asia/Tokyo',
                 'appId': 'tv.abema',
-                'appVersion': '3.27.1'
+                'appVersion': '3.27.1',
             }, headers={
                 'Authorization': f'bearer {self._get_device_token()}',
             })['token']
@@ -201,8 +202,8 @@ class AbemaTVBaseIE(InfoExtractor):
             f'https://api.abema.io/v1/auth/{ep}', None, note='Logging in',
             data=json.dumps({
                 method: username,
-                'password': password
-            }).encode('utf-8'), headers={
+                'password': password,
+            }).encode(), headers={
                 'Authorization': f'bearer {self._get_device_token()}',
                 'Origin': 'https://abema.tv',
                 'Referer': 'https://abema.tv/',
@@ -343,7 +344,7 @@ class AbemaTVIE(AbemaTVBaseIE):
 
         description = self._html_search_regex(
             (r'<p\s+class="com-video-EpisodeDetailsBlock__content"><span\s+class=".+?">(.+?)</span></p><div',
-             r'<span\s+class=".+?SlotSummary.+?">(.+?)</span></div><div',),
+             r'<span\s+class=".+?SlotSummary.+?">(.+?)</span></div><div'),
             webpage, 'description', default=None, group=1)
         if not description:
             og_desc = self._html_search_meta(

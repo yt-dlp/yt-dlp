@@ -175,7 +175,7 @@ class FranceTVIE(InfoExtractor):
         for f in formats:
             if f.get('acodec') != 'none' and f.get('language') in ('qtz', 'qad'):
                 f['language_preference'] = -10
-                f['format_note'] = 'audio description%s' % format_field(f, 'format_note', ', %s')
+                f['format_note'] = 'audio description{}'.format(format_field(f, 'format_note', ', %s'))
 
         if spritesheets:
             formats.append({
@@ -189,10 +189,10 @@ class FranceTVIE(InfoExtractor):
                 'fragments': [{
                     'url': sheet,
                     # XXX: not entirely accurate; each spritesheet seems to be
-                    # a 10×10 grid of thumbnails corresponding to approximately
+                    # a 10x10 grid of thumbnails corresponding to approximately
                     # 2 seconds of the video; the last spritesheet may be shorter
                     'duration': 200,
-                } for sheet in traverse_obj(spritesheets, (..., {url_or_none}))]
+                } for sheet in traverse_obj(spritesheets, (..., {url_or_none}))],
             })
 
         return {

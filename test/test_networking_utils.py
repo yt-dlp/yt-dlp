@@ -39,7 +39,7 @@ class TestNetworkingUtils:
         proxies = {
             'all': 'socks5://example.com',
             'http': 'http://example.com:1080',
-            'no': 'bypass.example.com,yt-dl.org'
+            'no': 'bypass.example.com,yt-dl.org',
         }
 
         assert select_proxy('https://example.com', proxies) == proxies['all']
@@ -54,7 +54,7 @@ class TestNetworkingUtils:
             'port': 1080,
             'rdns': True,
             'username': None,
-            'password': None
+            'password': None,
         }),
         ('socks5://user:@example.com:5555', {
             'proxytype': ProxyType.SOCKS5,
@@ -62,7 +62,7 @@ class TestNetworkingUtils:
             'port': 5555,
             'rdns': False,
             'username': 'user',
-            'password': ''
+            'password': '',
         }),
         ('socks4://u%40ser:pa%20ss@127.0.0.1:1080', {
             'proxytype': ProxyType.SOCKS4,
@@ -70,7 +70,7 @@ class TestNetworkingUtils:
             'port': 1080,
             'rdns': False,
             'username': 'u@ser',
-            'password': 'pa ss'
+            'password': 'pa ss',
         }),
         ('socks4a://:pa%20ss@127.0.0.1', {
             'proxytype': ProxyType.SOCKS4A,
@@ -78,8 +78,8 @@ class TestNetworkingUtils:
             'port': 1080,
             'rdns': True,
             'username': '',
-            'password': 'pa ss'
-        })
+            'password': 'pa ss',
+        }),
     ])
     def test_make_socks_proxy_opts(self, socks_proxy, expected):
         assert make_socks_proxy_opts(socks_proxy) == expected

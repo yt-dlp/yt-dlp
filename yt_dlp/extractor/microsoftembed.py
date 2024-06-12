@@ -15,8 +15,8 @@ class MicrosoftEmbedIE(InfoExtractor):
             'thumbnail': 'http://img-prod-cms-rt-microsoft-com.akamaized.net/cms/api/am/imageFileData/RWL7Ju?ver=cae5',
             'age_limit': 0,
             'timestamp': 1631658316,
-            'upload_date': '20210914'
-        }
+            'upload_date': '20210914',
+        },
     }]
     _API_URL = 'https://prod-video-cms-rt-microsoft-com.akamaized.net/vhs/api/videos/'
 
