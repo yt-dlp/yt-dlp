@@ -27,9 +27,9 @@ class WatcherTVIE(DropoutBaseIE):
                 'duration': 3853,
                 'uploader_id': 'user80538407',
                 'uploader_url': 'https://vimeo.com/user80538407',
-                'uploader': 'OTT Videos'
+                'uploader': 'OTT Videos',
             },
-            'expected_warnings': ['Ignoring subtitle tracks found in the HLS manifest']
+            'expected_warnings': ['Ignoring subtitle tracks found in the HLS manifest'],
         },
         {
             'url': 'https://www.watchertv.com/road-files/season:1/videos/rf101',
@@ -50,9 +50,9 @@ class WatcherTVIE(DropoutBaseIE):
                 'duration': 516,
                 'uploader_id': 'user80538407',
                 'uploader_url': 'https://vimeo.com/user80538407',
-                'uploader': 'OTT Videos'
+                'uploader': 'OTT Videos',
             },
-            'expected_warnings': ['Ignoring subtitle tracks found in the HLS manifest']
+            'expected_warnings': ['Ignoring subtitle tracks found in the HLS manifest'],
         },
         {
             'url': 'https://www.watchertv.com/videos/welcome-beta-users',
@@ -69,7 +69,7 @@ class WatcherTVIE(DropoutBaseIE):
                 'duration': 92,
                 'uploader_id': 'user80538407',
                 'uploader_url': 'https://vimeo.com/user80538407',
-                'uploader': 'OTT Videos'
+                'uploader': 'OTT Videos',
             },
             'expected_warnings': ['Ignoring subtitle tracks found in the HLS manifest']
         }
