@@ -78,7 +78,7 @@ class LBRYBaseIE(InfoExtractor):
 
         return info
 
-    def _fetch_page(self, display_id, url, params, page):
+    def _fetch_page(self, display_id, url, params, metapage_nr, page):
         page += 1
         page_params = {
             'no_totals': True,
@@ -86,8 +86,12 @@ class LBRYBaseIE(InfoExtractor):
             'page_size': self._PAGE_SIZE,
             **params,
         }
+        if metapage_nr == 0:
+            resource = f'page {page}'
+        else:
+            resource = f'page {metapage_nr+1}_{page}'
         result = self._call_api_proxy(
-            'claim_search', display_id, page_params, f'page {page}')
+            'claim_search', display_id, page_params, resource)
         for item in traverse_obj(result, ('items', lambda _, v: v['name'] and v['claim_id'])):
             yield {
                 **self._parse_stream(item, url),
@@ -104,9 +108,10 @@ class LBRYBaseIE(InfoExtractor):
 
         last_metapage = []
         metapage = OnDemandPagedList(
-            functools.partial(self._fetch_page, display_id, url, params),
+            functools.partial(self._fetch_page, display_id, url, params, 0),
             self._PAGE_SIZE).getslice()
 
+        metapage_nr = 1
         while len(metapage) > 0:
             yield from metapage
 
@@ -116,9 +121,10 @@ class LBRYBaseIE(InfoExtractor):
             }
             last_metapage = metapage
             metapage = OnDemandPagedList(
-                functools.partial(self._fetch_page, display_id, url, next_metapage_params),
+                functools.partial(self._fetch_page, display_id, url, next_metapage_params, metapage_nr),
                 self._PAGE_SIZE).getslice()
             metapage = [x for x in metapage if x not in last_metapage]
+            metapage_nr += 1
 
     def _playlist_entries(self, url, display_id, claim_param, metadata):
         qs = parse_qs(url)
@@ -152,7 +158,7 @@ class LBRYBaseIE(InfoExtractor):
         else:
             self.report_warning('Extraction is limited to 1000 Videos when not sorting by newest.')
             entries = OnDemandPagedList(
-                functools.partial(self._fetch_page, display_id, url, params),
+                functools.partial(self._fetch_page, display_id, url, params, 0),
                 self._PAGE_SIZE)
 
         return self.playlist_result(
