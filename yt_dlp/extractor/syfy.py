@@ -30,9 +30,9 @@ class SyfyIE(AdobePassIE):
     def _real_extract(self, url):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
-        syfy_mpx = list(self._parse_json(self._search_regex(
+        syfy_mpx = next(iter(self._parse_json(self._search_regex(
             r'jQuery\.extend\(Drupal\.settings\s*,\s*({.+?})\);', webpage, 'drupal settings'),
-            display_id)['syfy']['syfy_mpx'].values())[0]
+            display_id)['syfy']['syfy_mpx'].values()))
         video_id = syfy_mpx['mpxGUID']
         title = syfy_mpx['episodeTitle']
         query = {

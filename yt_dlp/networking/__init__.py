@@ -30,7 +30,7 @@ except Exception as e:
     warnings.warn(f'Failed to import "websockets" request handler: {e}' + bug_reports_message())
 
 try:
-    from . import _curlcffi  # noqa: F401
+    from . import _curlcffi
 except ImportError:
     pass
 except Exception as e:

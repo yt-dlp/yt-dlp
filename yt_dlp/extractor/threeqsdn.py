@@ -14,7 +14,7 @@ class ThreeQSDNIE(InfoExtractor):
     IE_NAME = '3qsdn'
     IE_DESC = '3Q SDN'
     _VALID_URL = r'https?://playout\.3qsdn\.com/(?P<id>[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12})'
-    _EMBED_REGEX = [r'<iframe[^>]+\b(?:data-)?src=(["\'])(?P<url>%s.*?)\1' % _VALID_URL]
+    _EMBED_REGEX = [rf'<iframe[^>]+\b(?:data-)?src=(["\'])(?P<url>{_VALID_URL}.*?)\1']
     _TESTS = [{
         # https://player.3qsdn.com/demo.html
         'url': 'https://playout.3qsdn.com/7201c779-6b3c-11e7-a40e-002590c750be',
@@ -121,7 +121,7 @@ class ThreeQSDNIE(InfoExtractor):
                     height = int_or_none(s.get('height'))
                     formats.append({
                         'ext': ext,
-                        'format_id': join_nonempty('http', ext, height and '%dp' % height),
+                        'format_id': join_nonempty('http', ext, height and f'{height}p'),
                         'height': height,
                         'source_preference': 0,
                         'url': src,
@@ -152,5 +152,5 @@ class ThreeQSDNIE(InfoExtractor):
             # It seems like this would be correctly handled by default
             # However, unless someone can confirm this, the old
             # behaviour is being kept as-is
-            '_format_sort_fields': ('res', 'source_preference')
+            '_format_sort_fields': ('res', 'source_preference'),
         }

@@ -18,7 +18,7 @@ class TVN24IE(InfoExtractor):
             'title': '"Święta mają być wesołe, dlatego, ludziska, wszyscy pod jemiołę"',
             'description': 'Wyjątkowe orędzie Artura Andrusa, jednego z gości Szkła kontaktowego.',
             'thumbnail': 're:https?://.*[.]jpeg',
-        }
+        },
     }, {
         # different layout
         'url': 'https://tvnmeteo.tvn24.pl/magazyny/maja-w-ogrodzie,13/odcinki-online,1,4,1,0/pnacza-ptaki-i-iglaki-odc-691-hgtv-odc-29,1771763.html',
@@ -58,7 +58,7 @@ class TVN24IE(InfoExtractor):
         def extract_json(attr, name, default=NO_DEFAULT, fatal=True):
             return self._parse_json(
                 self._search_regex(
-                    r'\b%s=(["\'])(?P<json>(?!\1).+?)\1' % attr, webpage,
+                    rf'\b{attr}=(["\'])(?P<json>(?!\1).+?)\1', webpage,
                     name, group='json', default=default, fatal=fatal) or '{}',
                 display_id, transform_source=unescapeHTML, fatal=fatal)
 

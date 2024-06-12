@@ -16,7 +16,7 @@ class JoveIE(InfoExtractor):
                 'description': 'md5:015dd4509649c0908bc27f049e0262c6',
                 'thumbnail': r're:^https?://.*\.png$',
                 'upload_date': '20110523',
-            }
+            },
         },
         {
             'url': 'http://www.jove.com/video/51796/culturing-caenorhabditis-elegans-axenic-liquid-media-creation',
@@ -28,7 +28,7 @@ class JoveIE(InfoExtractor):
                 'description': 'md5:35ff029261900583970c4023b70f1dc9',
                 'thumbnail': r're:^https?://.*\.png$',
                 'upload_date': '20140802',
-            }
+            },
         },
 
     ]

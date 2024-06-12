@@ -22,7 +22,7 @@ class NuvidIE(InfoExtractor):
             'duration': 321.0,
             'age_limit': 18,
             'thumbnail': r're:https?://.+\.jpg',
-        }
+        },
     }, {
         'url': 'https://m.nuvid.com/video/6523263',
         'md5': 'ebd22ce8e47e1d9a4d0756a15c67da52',
@@ -34,7 +34,7 @@ class NuvidIE(InfoExtractor):
             'age_limit': 18,
             'thumbnail': r're:https?://.+\.jpg',
             'thumbnails': list,
-        }
+        },
     }, {
         'url': 'http://m.nuvid.com/video/6415801/',
         'md5': '638d5ececb138d5753593f751ae3f697',
@@ -45,7 +45,7 @@ class NuvidIE(InfoExtractor):
             'duration': 1882,
             'age_limit': 18,
             'thumbnail': r're:https?://.+\.jpg',
-        }
+        },
     }]
 
     def _real_extract(self, url):
@@ -64,7 +64,7 @@ class NuvidIE(InfoExtractor):
             })
 
         webpage = self._download_webpage(
-            'http://m.nuvid.com/video/%s' % (video_id, ),
+            f'http://m.nuvid.com/video/{video_id}',
             video_id, 'Downloading video page', fatal=False) or ''
 
         title = strip_or_none(video_data.get('title') or self._html_search_regex(

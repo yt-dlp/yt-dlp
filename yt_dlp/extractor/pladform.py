@@ -39,7 +39,7 @@ class PladformIE(InfoExtractor):
             'uploader': 'Comedy Club',
             'duration': 367,
         },
-        'expected_warnings': ['HTTP Error 404: Not Found']
+        'expected_warnings': ['HTTP Error 404: Not Found'],
     }, {
         'url': 'https://out.pladform.ru/player?pl=64471&videoid=3777899&vk_puid15=0&vk_puid34=0',
         'md5': '53362fac3a27352da20fa2803cc5cd6f',
@@ -73,14 +73,14 @@ class PladformIE(InfoExtractor):
 
         def fail(text):
             raise ExtractorError(
-                '%s returned error: %s' % (self.IE_NAME, text),
+                f'{self.IE_NAME} returned error: {text}',
                 expected=True)
 
         if not video:
-            targetUrl = self._request_webpage(url, video_id, note='Resolving final URL').url
-            if targetUrl == url:
+            target_url = self._request_webpage(url, video_id, note='Resolving final URL').url
+            if target_url == url:
                 raise ExtractorError('Can\'t parse page')
-            return self.url_result(targetUrl)
+            return self.url_result(target_url)
 
         if video.tag == 'error':
             fail(video.text)
@@ -111,7 +111,7 @@ class PladformIE(InfoExtractor):
                 fail(error)
 
         webpage = self._download_webpage(
-            'http://video.pladform.ru/catalog/video/videoid/%s' % video_id,
+            f'http://video.pladform.ru/catalog/video/videoid/{video_id}',
             video_id)
 
         title = self._og_search_title(webpage, fatal=False) or xpath_text(

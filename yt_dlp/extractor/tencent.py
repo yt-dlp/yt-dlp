@@ -25,7 +25,7 @@ class TencentBaseIE(InfoExtractor):
         if api_response.get('code') != '0.0' and msg is not None:
             if msg in (
                 '您所在区域暂无此内容版权（如设置VPN请关闭后重试）',
-                'This content is not available in your area due to copyright restrictions. Please choose other videos.'
+                'This content is not available in your area due to copyright restrictions. Please choose other videos.',
             ):
                 self.raise_geo_restricted()
             raise ExtractorError(f'Tencent said: {msg}')
