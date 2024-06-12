@@ -8,9 +8,9 @@ from ..utils import (
 
 
 class MusicdexBaseIE(InfoExtractor):
-    def _return_info(self, track_json, album_json, id):
+    def _return_info(self, track_json, album_json, video_id):
         return {
-            'id': str(id),
+            'id': str(video_id),
             'title': track_json.get('name'),
             'track': track_json.get('name'),
             'description': track_json.get('description'),
@@ -50,15 +50,16 @@ class MusicdexSongIE(MusicdexBaseIE):
             'album_artists': ['fripSide'],
             'thumbnail': 'https://www.musicdex.org/storage/album/9iDIam1DHTVqUG4UclFIEq1WAFGXfPW4y0TtZa91.png',
             'album': 'To Aru Kagaku no Railgun T OP2 Single - dual existence',
-            'release_year': 2020
+            'release_year': 2020,
         },
-        'params': {'skip_download': True}
+        'params': {'skip_download': True},
     }]
 
     def _real_extract(self, url):
-        id = self._match_id(url)
-        data_json = self._download_json(f'https://www.musicdex.org/secure/tracks/{id}?defaultRelations=true', id)['track']
-        return self._return_info(data_json, data_json.get('album') or {}, id)
+        video_id = self._match_id(url)
+        data_json = self._download_json(
+            f'https://www.musicdex.org/secure/tracks/{video_id}?defaultRelations=true', video_id)['track']
+        return self._return_info(data_json, data_json.get('album') or {}, video_id)
 
 
 class MusicdexAlbumIE(MusicdexBaseIE):
@@ -79,13 +80,15 @@ class MusicdexAlbumIE(MusicdexBaseIE):
     }]
 
     def _real_extract(self, url):
-        id = self._match_id(url)
-        data_json = self._download_json(f'https://www.musicdex.org/secure/albums/{id}?defaultRelations=true', id)['album']
-        entries = [self._return_info(track, data_json, track['id']) for track in data_json.get('tracks') or [] if track.get('id')]
+        playlist_id = self._match_id(url)
+        data_json = self._download_json(
+            f'https://www.musicdex.org/secure/albums/{playlist_id}?defaultRelations=true', playlist_id)['album']
+        entries = [self._return_info(track, data_json, track['id'])
+                   for track in data_json.get('tracks') or [] if track.get('id')]
 
         return {
             '_type': 'playlist',
-            'id': id,
+            'id': playlist_id,
             'title': data_json.get('name'),
             'description': data_json.get('description'),
             'genres': [genre.get('name') for genre in data_json.get('genres') or []],
@@ -98,12 +101,11 @@ class MusicdexAlbumIE(MusicdexBaseIE):
 
 
 class MusicdexPageIE(MusicdexBaseIE):  # XXX: Conventionally, base classes should end with BaseIE/InfoExtractor
-    def _entries(self, id):
-        next_page_url = self._API_URL % id
+    def _entries(self, playlist_id):
+        next_page_url = self._API_URL % playlist_id
         while next_page_url:
-            data_json = self._download_json(next_page_url, id)['pagination']
-            for data in data_json.get('data') or []:
-                yield data
+            data_json = self._download_json(next_page_url, playlist_id)['pagination']
+            yield from data_json.get('data') or []
             next_page_url = data_json.get('next_page_url')
 
 
@@ -123,15 +125,15 @@ class MusicdexArtistIE(MusicdexPageIE):
     }]
 
     def _real_extract(self, url):
-        id = self._match_id(url)
-        data_json = self._download_json(f'https://www.musicdex.org/secure/artists/{id}', id)['artist']
+        playlist_id = self._match_id(url)
+        data_json = self._download_json(f'https://www.musicdex.org/secure/artists/{playlist_id}', playlist_id)['artist']
         entries = []
-        for album in self._entries(id):
+        for album in self._entries(playlist_id):
             entries.extend(self._return_info(track, album, track['id']) for track in album.get('tracks') or [] if track.get('id'))
 
         return {
             '_type': 'playlist',
-            'id': id,
+            'id': playlist_id,
             'title': data_json.get('name'),
             'view_count': data_json.get('plays'),
             'thumbnail': format_field(data_json, 'image_small', 'https://www.musicdex.org/%s'),
@@ -156,14 +158,14 @@ class MusicdexPlaylistIE(MusicdexPageIE):
     }]
 
     def _real_extract(self, url):
-        id = self._match_id(url)
-        data_json = self._download_json(f'https://www.musicdex.org/secure/playlists/{id}', id)['playlist']
+        playlist_id = self._match_id(url)
+        data_json = self._download_json(f'https://www.musicdex.org/secure/playlists/{playlist_id}', playlist_id)['playlist']
         entries = [self._return_info(track, track.get('album') or {}, track['id'])
-                   for track in self._entries(id) or [] if track.get('id')]
+                   for track in self._entries(playlist_id) or [] if track.get('id')]
 
         return {
             '_type': 'playlist',
-            'id': id,
+            'id': playlist_id,
             'title': data_json.get('name'),
             'description': data_json.get('description'),
             'view_count': data_json.get('plays'),

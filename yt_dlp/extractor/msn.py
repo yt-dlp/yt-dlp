@@ -1,7 +1,6 @@
 import re
 
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     ExtractorError,
     determine_ext,
@@ -139,7 +138,7 @@ class MSNIE(InfoExtractor):
                 format_code = file_.get('formatCode')
                 if not format_url or not format_code:
                     continue
-                if compat_str(format_code) == '3100':
+                if str(format_code) == '3100':
                     subtitles.setdefault(file_.get('culture', 'en'), []).append({
                         'ext': determine_ext(format_url, 'ttml'),
                         'url': format_url,
@@ -163,6 +162,6 @@ class MSNIE(InfoExtractor):
             error = unescapeHTML(self._search_regex(
                 r'data-error=(["\'])(?P<error>.+?)\1',
                 webpage, 'error', group='error'))
-            raise ExtractorError('%s said: %s' % (self.IE_NAME, error), expected=True)
+            raise ExtractorError(f'{self.IE_NAME} said: {error}', expected=True)
 
         return self.playlist_result(entries, page_id)

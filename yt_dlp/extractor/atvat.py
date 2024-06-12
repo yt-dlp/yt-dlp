@@ -19,7 +19,7 @@ class ATVAtIE(InfoExtractor):
             'id': 'v-ce9cgn1e70n5-1',
             'ext': 'mp4',
             'title': 'Bauer sucht Frau - Staffel 18 Folge 3 - Die Hofwochen',
-        }
+        },
     }, {
         'url': 'https://www.atv.at/tv/bauer-sucht-frau/staffel-18/episode-01/bauer-sucht-frau-staffel-18-vorstellungsfolge-1',
         'only_matching': True,
@@ -66,10 +66,10 @@ class ATVAtIE(InfoExtractor):
             video_id=video_id)
 
         video_title = json_data['views']['default']['page']['title']
-        contentResource = json_data['views']['default']['page']['contentResource']
-        content_id = contentResource[0]['id']
-        content_ids = [{'id': id, 'subclip_start': content['start'], 'subclip_end': content['end']}
-                       for id, content in enumerate(contentResource)]
+        content_resource = json_data['views']['default']['page']['contentResource']
+        content_id = content_resource[0]['id']
+        content_ids = [{'id': id_, 'subclip_start': content['start'], 'subclip_end': content['end']}
+                       for id_, content in enumerate(content_resource)]
 
         time_of_request = dt.datetime.now()
         not_before = time_of_request - dt.timedelta(minutes=5)
@@ -87,17 +87,17 @@ class ATVAtIE(InfoExtractor):
         videos = self._download_json(
             'https://vas-v4.p7s1video.net/4.0/getsources',
             content_id, 'Downloading videos JSON', query={
-                'token': jwt_token.decode('utf-8')
+                'token': jwt_token.decode('utf-8'),
             })
 
-        video_id, videos_data = list(videos['data'].items())[0]
+        video_id, videos_data = next(iter(videos['data'].items()))
         error_msg = try_get(videos_data, lambda x: x['error']['title'])
         if error_msg == 'Geo check failed':
             self.raise_geo_restricted(error_msg)
         elif error_msg:
             raise ExtractorError(error_msg)
         entries = [
-            self._extract_video_info(url, contentResource[video['id']], video)
+            self._extract_video_info(url, content_resource[video['id']], video)
             for video in videos_data]
 
         return {

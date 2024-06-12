@@ -41,7 +41,7 @@ class IwaraBaseIE(InfoExtractor):
                 'https://api.iwara.tv/user/login', None, note='Logging in',
                 headers={'Content-Type': 'application/json'}, data=json.dumps({
                     'email': username,
-                    'password': password
+                    'password': password,
                 }).encode(), expected_status=lambda x: True)
             user_token = traverse_obj(response, ('token', {str}))
             if not user_token:
@@ -65,7 +65,7 @@ class IwaraBaseIE(InfoExtractor):
                 'https://api.iwara.tv/user/token', None, note='Fetching media token',
                 data=b'', headers={
                     'Authorization': f'Bearer {IwaraBaseIE._USERTOKEN}',
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
                 })['accessToken']
 
         return {'Authorization': f'Bearer {IwaraBaseIE._MEDIATOKEN}'}
@@ -107,7 +107,7 @@ class IwaraIE(IwaraBaseIE):
             'uploader': 'Lyu ya',
             'uploader_id': 'user792540',
             'tags': [
-                'uncategorized'
+                'uncategorized',
             ],
             'like_count': int,
             'view_count': int,
@@ -129,7 +129,7 @@ class IwaraIE(IwaraBaseIE):
             'uploader': 'Fe_Kurosabi',
             'uploader_id': 'fekurosabi',
             'tags': [
-                'pee'
+                'pee',
             ],
             'like_count': int,
             'view_count': int,

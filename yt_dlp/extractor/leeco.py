@@ -1,15 +1,12 @@
+import base64
 import datetime as dt
 import hashlib
 import re
 import time
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_b64decode,
-    compat_ord,
-    compat_str,
-    compat_urllib_parse_urlencode,
-)
+from ..compat import compat_ord
 from ..utils import (
     ExtractorError,
     determine_ext,
@@ -140,7 +137,7 @@ class LeIE(InfoExtractor):
         def get_flash_urls(media_url, format_id):
             nodes_data = self._download_json(
                 media_url, media_id,
-                'Download JSON metadata for format %s' % format_id,
+                f'Download JSON metadata for format {format_id}',
                 query={
                     'm3v': 1,
                     'format': 1,
@@ -150,7 +147,7 @@ class LeIE(InfoExtractor):
 
             req = self._request_webpage(
                 nodes_data['nodelist'][0]['location'], media_id,
-                note='Downloading m3u8 information for format %s' % format_id)
+                note=f'Downloading m3u8 information for format {format_id}')
 
             m3u8_data = self.decrypt_m3u8(req.read())
 
@@ -173,7 +170,7 @@ class LeIE(InfoExtractor):
                 f = {
                     'url': format_url,
                     'ext': determine_ext(format_data[1]),
-                    'format_id': '%s-%s' % (protocol, format_id),
+                    'format_id': f'{protocol}-{format_id}',
                     'protocol': 'm3u8_native' if protocol == 'hls' else 'http',
                     'quality': int_or_none(format_id),
                 }
@@ -207,18 +204,18 @@ class LePlaylistIE(InfoExtractor):
         'info_dict': {
             'id': '46177',
             'title': '美人天下',
-            'description': 'md5:395666ff41b44080396e59570dbac01c'
+            'description': 'md5:395666ff41b44080396e59570dbac01c',
         },
-        'playlist_count': 35
+        'playlist_count': 35,
     }, {
         'url': 'http://tv.le.com/izt/wuzetian/index.html',
         'info_dict': {
             'id': 'wuzetian',
             'title': '武媚娘传奇',
-            'description': 'md5:e12499475ab3d50219e5bba00b3cb248'
+            'description': 'md5:e12499475ab3d50219e5bba00b3cb248',
         },
         # This playlist contains some extra videos other than the drama itself
-        'playlist_mincount': 96
+        'playlist_mincount': 96,
     }, {
         'url': 'http://tv.le.com/pzt/lswjzzjc/index.shtml',
         # This series is moved to http://www.le.com/tv/10005297.html
@@ -233,7 +230,7 @@ class LePlaylistIE(InfoExtractor):
 
     @classmethod
     def suitable(cls, url):
-        return False if LeIE.suitable(url) else super(LePlaylistIE, cls).suitable(url)
+        return False if LeIE.suitable(url) else super().suitable(url)
 
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
@@ -294,7 +291,7 @@ class LetvCloudIE(InfoExtractor):
             salt = 'fbeh5player12c43eccf2bec3300344'
             items = ['cf', 'ran', 'uu', 'bver', 'vu']
         input_data = ''.join([item + obj[item] for item in items]) + salt
-        obj['sign'] = hashlib.md5(input_data.encode('utf-8')).hexdigest()
+        obj['sign'] = hashlib.md5(input_data.encode()).hexdigest()
 
     def _get_formats(self, cf, uu, vu, media_id):
         def get_play_json(cf, timestamp):
@@ -305,12 +302,12 @@ class LetvCloudIE(InfoExtractor):
                 'format': 'json',
                 'uu': uu,
                 'vu': vu,
-                'ran': compat_str(timestamp),
+                'ran': str(timestamp),
             }
             self.sign_data(data)
             return self._download_json(
-                'http://api.letvcloud.com/gpc.php?' + compat_urllib_parse_urlencode(data),
-                media_id, 'Downloading playJson data for type %s' % cf)
+                'http://api.letvcloud.com/gpc.php?' + urllib.parse.urlencode(data),
+                media_id, f'Downloading playJson data for type {cf}')
 
         play_json = get_play_json(cf, time.time())
         # The server time may be different from local time
@@ -319,14 +316,14 @@ class LetvCloudIE(InfoExtractor):
 
         if not play_json.get('data'):
             if play_json.get('message'):
-                raise ExtractorError('Letv cloud said: %s' % play_json['message'], expected=True)
+                raise ExtractorError('Letv cloud said: {}'.format(play_json['message']), expected=True)
             elif play_json.get('code'):
                 raise ExtractorError('Letv cloud returned error %d' % play_json['code'], expected=True)
             else:
                 raise ExtractorError('Letv cloud returned an unknown error')
 
         def b64decode(s):
-            return compat_b64decode(s).decode('utf-8')
+            return base64.b64decode(s).decode('utf-8')
 
         formats = []
         for media in play_json['data']['video_info']['media'].values():
@@ -349,7 +346,7 @@ class LetvCloudIE(InfoExtractor):
         vu_mobj = re.search(r'vu=([\w]+)', url)
 
         if not uu_mobj or not vu_mobj:
-            raise ExtractorError('Invalid URL: %s' % url, expected=True)
+            raise ExtractorError(f'Invalid URL: {url}', expected=True)
 
         uu = uu_mobj.group(1)
         vu = vu_mobj.group(1)
@@ -359,6 +356,6 @@ class LetvCloudIE(InfoExtractor):
 
         return {
             'id': media_id,
-            'title': 'Video %s' % media_id,
+            'title': f'Video {media_id}',
             'formats': formats,
         }

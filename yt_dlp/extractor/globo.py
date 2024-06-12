@@ -5,9 +5,6 @@ import random
 import re
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-)
 from ..networking import HEADRequest
 from ..utils import (
     ExtractorError,
@@ -88,7 +85,7 @@ class GloboIE(InfoExtractor):
             video_id, 'Getting cookies')
 
         video = self._download_json(
-            'http://api.globovideos.com/videos/%s/playlist' % video_id,
+            f'http://api.globovideos.com/videos/{video_id}/playlist',
             video_id)['videos'][0]
         if not self.get_param('allow_unplayable_formats') and video.get('encrypted') is True:
             self.report_drm(video_id)
@@ -97,14 +94,14 @@ class GloboIE(InfoExtractor):
 
         formats = []
         security = self._download_json(
-            'https://playback.video.globo.com/v2/video-session', video_id, 'Downloading security hash for %s' % video_id,
+            'https://playback.video.globo.com/v2/video-session', video_id, f'Downloading security hash for {video_id}',
             headers={'content-type': 'application/json'}, data=json.dumps({
-                "player_type": "desktop",
-                "video_id": video_id,
-                "quality": "max",
-                "content_protection": "widevine",
-                "vsid": "581b986b-4c40-71f0-5a58-803e579d5fa2",
-                "tz": "-3.0:00"
+                'player_type': 'desktop',
+                'video_id': video_id,
+                'quality': 'max',
+                'content_protection': 'widevine',
+                'vsid': '581b986b-4c40-71f0-5a58-803e579d5fa2',
+                'tz': '-3.0:00',
             }).encode())
 
         self._request_webpage(HEADRequest(security['sources'][0]['url_template']), video_id, 'Getting locksession cookie')
@@ -114,7 +111,7 @@ class GloboIE(InfoExtractor):
             message = security.get('message')
             if message:
                 raise ExtractorError(
-                    '%s returned error: %s' % (self.IE_NAME, message), expected=True)
+                    f'{self.IE_NAME} returned error: {message}', expected=True)
 
         hash_code = security_hash[:2]
         padding = '%010d' % random.randint(1, 10000000000)
@@ -128,13 +125,13 @@ class GloboIE(InfoExtractor):
             padding += '1'
             hash_prefix = '05' + security_hash[:22]
 
-        padded_sign_time = compat_str(int(received_time) + 86400) + padding
+        padded_sign_time = str(int(received_time) + 86400) + padding
         md5_data = (received_md5 + padded_sign_time + '0xAC10FD').encode()
         signed_md5 = base64.urlsafe_b64encode(hashlib.md5(md5_data).digest()).decode().strip('=')
         signed_hash = hash_prefix + padded_sign_time + signed_md5
         source = security['sources'][0]['url_parts']
         resource_url = source['scheme'] + '://' + source['domain'] + source['path']
-        signed_url = '%s?h=%s&k=html5&a=%s' % (resource_url, signed_hash, 'F' if video.get('subscriber_only') else 'A')
+        signed_url = '{}?h={}&k=html5&a={}'.format(resource_url, signed_hash, 'F' if video.get('subscriber_only') else 'A')
 
         fmts, subtitles = self._extract_m3u8_formats_and_subtitles(
             signed_url, video_id, 'mp4', entry_protocol='m3u8_native', m3u8_id='hls', fatal=False)
@@ -230,7 +227,7 @@ class GloboArticleIE(InfoExtractor):
 
     @classmethod
     def suitable(cls, url):
-        return False if GloboIE.suitable(url) else super(GloboArticleIE, cls).suitable(url)
+        return False if GloboIE.suitable(url) else super().suitable(url)
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
@@ -239,7 +236,7 @@ class GloboArticleIE(InfoExtractor):
         for video_regex in self._VIDEOID_REGEXES:
             video_ids.extend(re.findall(video_regex, webpage))
         entries = [
-            self.url_result('globo:%s' % video_id, GloboIE.ie_key())
+            self.url_result(f'globo:{video_id}', GloboIE.ie_key())
             for video_id in orderedSet(video_ids)]
         title = self._og_search_title(webpage).strip()
         description = self._html_search_meta('description', webpage)

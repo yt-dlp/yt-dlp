@@ -198,6 +198,6 @@ class Pr0grammIE(InfoExtractor):
                 'dislike_count': ('down', {int}),
                 'timestamp': ('created', {int}),
                 'upload_date': ('created', {int}, {dt.date.fromtimestamp}, {lambda x: x.strftime('%Y%m%d')}),
-                'thumbnail': ('thumb', {lambda x: urljoin('https://thumb.pr0gramm.com', x)})
+                'thumbnail': ('thumb', {lambda x: urljoin('https://thumb.pr0gramm.com', x)}),
             }),
         }

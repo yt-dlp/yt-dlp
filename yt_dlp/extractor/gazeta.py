@@ -33,7 +33,7 @@ class GazetaIE(InfoExtractor):
         mobj = self._match_valid_url(url)
 
         display_id = mobj.group('id')
-        embed_url = '%s?p=embed' % mobj.group('url')
+        embed_url = '{}?p=embed'.format(mobj.group('url'))
         embed_page = self._download_webpage(
             embed_url, display_id, 'Downloading embed page')
 
@@ -41,4 +41,4 @@ class GazetaIE(InfoExtractor):
             r'<div[^>]*?class="eagleplayer"[^>]*?data-id="([^"]+)"', embed_page, 'video id')
 
         return self.url_result(
-            'eagleplatform:gazeta.media.eagleplatform.com:%s' % video_id, 'EaglePlatform')
+            f'eagleplatform:gazeta.media.eagleplatform.com:{video_id}', 'EaglePlatform')

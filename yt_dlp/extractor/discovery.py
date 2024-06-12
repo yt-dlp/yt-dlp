@@ -1,8 +1,8 @@
 import random
 import string
+import urllib.parse
 
 from .discoverygo import DiscoveryGoBaseIE
-from ..compat import compat_urllib_parse_unquote
 from ..networking.exceptions import HTTPError
 from ..utils import ExtractorError
 
@@ -42,7 +42,7 @@ class DiscoveryIE(DiscoveryGoBaseIE):
         },
         'params': {
             'skip_download': True,  # requires ffmpeg
-        }
+        },
     }, {
         'url': 'https://www.investigationdiscovery.com/tv-shows/final-vision/full-episodes/final-vision',
         'only_matching': True,
@@ -67,14 +67,14 @@ class DiscoveryIE(DiscoveryGoBaseIE):
         # prefer Affiliate Auth Token over Anonymous Auth Token
         auth_storage_cookie = cookies.get('eosAf') or cookies.get('eosAn')
         if auth_storage_cookie and auth_storage_cookie.value:
-            auth_storage = self._parse_json(compat_urllib_parse_unquote(
-                compat_urllib_parse_unquote(auth_storage_cookie.value)),
+            auth_storage = self._parse_json(urllib.parse.unquote(
+                urllib.parse.unquote(auth_storage_cookie.value)),
                 display_id, fatal=False) or {}
             access_token = auth_storage.get('a') or auth_storage.get('access_token')
 
         if not access_token:
             access_token = self._download_json(
-                'https://%s.com/anonymous' % site, display_id,
+                f'https://{site}.com/anonymous', display_id,
                 'Downloading token JSON metadata', query={
                     'authRel': 'authorization',
                     'client_id': '3020a40c2356a645b4b4',
