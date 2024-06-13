@@ -88,7 +88,7 @@ class VTVvnIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
         data_vid = self._html_search_regex(r'(\"vtv\.mediacdn\.vn/.+\.mp4\")', webpage, 'data-vid', group=1)
-        parsed = urlparse(f'https://{data_vid[1:][:-1]}') # type: ignore
+        parsed = urlparse(f'https://{data_vid[1:][:-1]}')  # type: ignore
         m3u8_url = f'https://cdn-videos.vtv.vn/{parsed.path}/master.m3u8'
         formats = self._extract_m3u8_formats(m3u8_url, video_id, 'mp4')
         return {
