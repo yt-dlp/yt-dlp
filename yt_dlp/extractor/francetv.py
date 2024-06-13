@@ -33,6 +33,7 @@ class FranceTVIE(InfoExtractor):
     _GEO_BYPASS = False
 
     _TESTS = [{
+        # tokenized url is in dinfo['video']['token']
         'url': 'francetv:ec217ecc-0733-48cf-ac06-af1347b849d1',
         'info_dict': {
             'id': 'ec217ecc-0733-48cf-ac06-af1347b849d1',
@@ -42,6 +43,19 @@ class FranceTVIE(InfoExtractor):
             'duration': 2580,
             'thumbnail': r're:^https?://.*\.jpg$',
             'upload_date': '20170813',
+        },
+        'params': {'skip_download': 'm3u8'},
+    }, {
+        # tokenized url is in dinfo['video']['token']['akamai']
+        'url': 'francetv:c5bda21d-2c6f-4470-8849-3d8327adb2ba',
+        'info_dict': {
+            'id': 'c5bda21d-2c6f-4470-8849-3d8327adb2ba',
+            'ext': 'mp4',
+            'title': '13h15, le dimanche... - Les mystères de Jésus',
+            'timestamp': 1514118300,
+            'duration': 2880,
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'upload_date': '20171224',
         },
         'params': {'skip_download': 'm3u8'},
     }, {
