@@ -213,8 +213,19 @@ class TikTokBaseIE(InfoExtractor):
         return self._parse_aweme_video_app(aweme_detail)
 
     def _extract_web_data_and_status(self, url, video_id, fatal=True):
-        webpage = self._download_webpage(url, video_id, headers={'User-Agent': 'Mozilla/5.0'}, fatal=fatal) or ''
-        video_data, status = {}, None
+        video_data, status = {}, -1
+
+        res = self._download_webpage_handle(url, video_id, fatal=fatal, headers={'User-Agent': 'Mozilla/5.0'})
+        if res is False:
+            return video_data, status
+
+        webpage, urlh = res
+        if urllib.parse.urlparse(urlh.url).path == '/login':
+            message = 'TikTok is requiring login for access to this content'
+            if fatal:
+                self.raise_login_required(message)
+            self.report_warning(f'{message}. {self._login_hint()}')
+            return video_data, status
 
         if universal_data := self._get_universal_data(webpage, video_id):
             self.write_debug('Found universal data for rehydration')
