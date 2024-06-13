@@ -1,9 +1,9 @@
 import datetime as dt
+import functools
 import json
 import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import functools
 from ..utils import (
     ExtractorError,
     float_or_none,
