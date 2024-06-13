@@ -115,26 +115,6 @@ class SoundcloudBaseIE(InfoExtractor):
                     return False
                 raise
 
-    def _request_format_info(self, url, track_id, format_id, query, original=False):
-        # _call_api's additional error handling is harmful to original download format requests
-        method = self._download_json if original else self._call_api
-        for retry in self.RetryManager(fatal=False):
-            try:
-                return method(
-                    url, track_id, f'Downloading {format_id} format info JSON',
-                    query=query, headers=self._HEADERS)
-            except ExtractorError as e:
-                if isinstance(e.cause, HTTPError) and e.cause.status == 429:
-                    self.report_warning(
-                        'You have reached the API rate limit, which is ~600 requests per '
-                        '10 minutes. Use the --extractor-retries and --retry-sleep options '
-                        'to configure an appropriate retry count and wait time', only_once=True)
-                    retry.error = e.cause
-                elif original:
-                    raise  # original download format extraction code handles errors externally
-                else:
-                    self.report_warning(e.msg)
-
     def _initialize_pre_login(self):
         self._CLIENT_ID = self.cache.load('soundcloud', 'client_id') or 'a3e059563d7fd3372b49b37f00a00bcf'
 
@@ -238,9 +218,10 @@ class SoundcloudBaseIE(InfoExtractor):
 
         if not extract_flat and info.get('downloadable') and info.get('has_downloads_left'):
             try:
-                download_data = self._request_format_info(
+                # Do not use _call_api(); HTTP Error codes have different meanings for this request
+                download_data = self._download_json(
                     f'{self._API_V2_BASE}tracks/{track_id}/download', track_id,
-                    'original download', query, original=True)
+                    'Downloading original download format info JSON', query=query, headers=self._HEADERS)
             except ExtractorError as e:
                 if isinstance(e.cause, HTTPError) and e.cause.status == 401:
                     self.report_warning(
@@ -333,7 +314,22 @@ class SoundcloudBaseIE(InfoExtractor):
                 self.write_debug(f'"{identifier}" is not a requested format, skipping')
                 continue
 
-            stream = self._request_format_info(format_url, track_id, identifier, query)
+            stream = None
+            for retry in self.RetryManager(fatal=False):
+                try:
+                    stream = self._call_api(
+                        format_url, track_id, f'Downloading {identifier} format info JSON',
+                        query=query, headers=self._HEADERS)
+                except ExtractorError as e:
+                    if isinstance(e.cause, HTTPError) and e.cause.status == 429:
+                        self.report_warning(
+                            'You have reached the API rate limit, which is ~600 requests per '
+                            '10 minutes. Use the --extractor-retries and --retry-sleep options '
+                            'to configure an appropriate retry count and wait time', only_once=True)
+                        retry.error = e.cause
+                    else:
+                        self.report_warning(e.msg)
+
             stream_url = traverse_obj(stream, ('url', {url_or_none}))
             if invalid_url(stream_url):
                 continue
