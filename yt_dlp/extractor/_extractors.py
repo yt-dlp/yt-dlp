@@ -2372,6 +2372,7 @@ from .vrt import (
     VrtNUIE,
 )
 from .vtm import VTMIE
+from .vtvgo import VTVgoVideoIE
 from .vuclip import VuClipIE
 from .vvvvid import (
     VVVVIDIE,
@@ -2586,4 +2587,3 @@ from .zingmp3 import (
 )
 from .zoom import ZoomIE
 from .zype import ZypeIE
-from .vtvgo import VTVgoVideoIE
