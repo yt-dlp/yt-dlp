@@ -75,7 +75,7 @@ class CWTVIE(InfoExtractor):
             raise ExtractorError(data['msg'], expected=True)
         video_data = data['video']
         title = video_data['title']
-        mpx_url = video_data.get('mpx_url') or 'http://link.theplatform.com/s/cwtv/media/guid/2703454149/%s?formats=M3U' % video_id
+        mpx_url = video_data.get('mpx_url') or f'http://link.theplatform.com/s/cwtv/media/guid/2703454149/{video_id}?formats=M3U'
 
         season = str_or_none(video_data.get('season'))
         episode = str_or_none(video_data.get('episode'))
@@ -95,5 +95,5 @@ class CWTVIE(InfoExtractor):
             'timestamp': parse_iso8601(video_data.get('start_time')),
             'age_limit': parse_age_limit(video_data.get('rating')),
             'ie_key': 'ThePlatform',
-            'thumbnail': video_data.get('large_thumbnail')
+            'thumbnail': video_data.get('large_thumbnail'),
         }

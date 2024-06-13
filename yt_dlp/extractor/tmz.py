@@ -174,8 +174,7 @@ class TMZIE(InfoExtractor):
             # see https://developers.google.com/youtube/iframe_api_reference#Video_Queueing_Functions
             match_obj = re.search(r'\.cueVideoById\(\s*(?P<quote>[\'"])(?P<id>.*?)(?P=quote)', webpage)
             if match_obj:
-                res = self.url_result(match_obj.group('id'))
-                return res
+                return self.url_result(match_obj.group('id'))
             # try to extract from twitter
             blockquote_el = get_element_by_attribute('class', 'twitter-tweet', webpage)
             if blockquote_el:
@@ -185,8 +184,7 @@ class TMZIE(InfoExtractor):
                 if matches:
                     for _, match in matches:
                         if '/status/' in match:
-                            res = self.url_result(match)
-                            return res
+                            return self.url_result(match)
             raise ExtractorError('No video found!')
         if id not in jsonld:
             jsonld['id'] = url

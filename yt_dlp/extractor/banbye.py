@@ -1,13 +1,10 @@
 import math
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_urllib_parse_urlparse,
-    compat_parse_qs,
-)
 from ..utils import (
-    format_field,
     InAdvancePagedList,
+    format_field,
     traverse_obj,
     unified_timestamp,
 )
@@ -20,8 +17,8 @@ class BanByeBaseIE(InfoExtractor):
 
     @staticmethod
     def _extract_playlist_id(url, param='playlist'):
-        return compat_parse_qs(
-            compat_urllib_parse_urlparse(url).query).get(param, [None])[0]
+        return urllib.parse.parse_qs(
+            urllib.parse.urlparse(url).query).get(param, [None])[0]
 
     def _extract_playlist(self, playlist_id):
         data = self._download_json(f'{self._API_BASE}/playlists/{playlist_id}', playlist_id)

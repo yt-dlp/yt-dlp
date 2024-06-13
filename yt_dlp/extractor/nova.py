@@ -58,7 +58,7 @@ class NovaEmbedIE(InfoExtractor):
         duration = None
         formats = []
 
-        def process_format_list(format_list, format_id=""):
+        def process_format_list(format_list, format_id=''):
             nonlocal formats, has_drm
             if not isinstance(format_list, list):
                 format_list = [format_list]
@@ -144,7 +144,7 @@ class NovaIE(InfoExtractor):
             'description': 'md5:f0a42dd239c26f61c28f19e62d20ef53',
             'thumbnail': r're:^https?://.*\.(?:jpg)',
             'duration': 151,
-        }
+        },
     }, {
         'url': 'http://fanda.nova.cz/clanek/fun-and-games/krvavy-epos-zaklinac-3-divoky-hon-vychazi-vyhrajte-ho-pro-sebe.html',
         'info_dict': {
@@ -216,11 +216,11 @@ class NovaIE(InfoExtractor):
         if embed_id:
             return {
                 '_type': 'url_transparent',
-                'url': 'https://media.cms.nova.cz/embed/%s' % embed_id,
+                'url': f'https://media.cms.nova.cz/embed/{embed_id}',
                 'ie_key': NovaEmbedIE.ie_key(),
                 'id': embed_id,
                 'description': description,
-                'upload_date': upload_date
+                'upload_date': upload_date,
             }
 
         video_id = self._search_regex(

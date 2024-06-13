@@ -1,5 +1,4 @@
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     ExtractorError,
     int_or_none,
@@ -52,13 +51,13 @@ class WatIE(InfoExtractor):
                 'ext': 'mp4',
             },
             'params': {'skip_download': 'm3u8'},
-        }
+        },
     ]
     _GEO_BYPASS = False
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        video_id = video_id if video_id.isdigit() and len(video_id) > 6 else compat_str(int(video_id, 36))
+        video_id = video_id if video_id.isdigit() and len(video_id) > 6 else str(int(video_id, 36))
 
         # 'contentv4' is used in the website, but it also returns the related
         # videos, we don't need them

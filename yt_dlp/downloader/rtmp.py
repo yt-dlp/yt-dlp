@@ -180,9 +180,9 @@ class RtmpFD(FileDownloader):
 
         while retval in (RD_INCOMPLETE, RD_FAILED) and not test and not live:
             prevsize = os.path.getsize(encodeFilename(tmpfilename))
-            self.to_screen('[rtmpdump] Downloaded %s bytes' % prevsize)
+            self.to_screen(f'[rtmpdump] Downloaded {prevsize} bytes')
             time.sleep(5.0)  # This seems to be needed
-            args = basic_args + ['--resume']
+            args = [*basic_args, '--resume']
             if retval == RD_FAILED:
                 args += ['--skip', '1']
             args = [encodeArgument(a) for a in args]
@@ -197,7 +197,7 @@ class RtmpFD(FileDownloader):
                 break
         if retval == RD_SUCCESS or (test and retval == RD_INCOMPLETE):
             fsize = os.path.getsize(encodeFilename(tmpfilename))
-            self.to_screen('[rtmpdump] Downloaded %s bytes' % fsize)
+            self.to_screen(f'[rtmpdump] Downloaded {fsize} bytes')
             self.try_rename(tmpfilename, filename)
             self._hook_progress({
                 'downloaded_bytes': fsize,

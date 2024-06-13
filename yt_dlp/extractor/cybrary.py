@@ -61,9 +61,9 @@ class CybraryIE(CybraryBaseIE):
             'series': 'Cybrary Orientation',
             'uploader': 'Cybrary',
             'chapter': 'Cybrary Orientation Series',
-            'chapter_id': '63110'
+            'chapter_id': '63110',
         },
-        'expected_warnings': ['No authenticators for vimeo']
+        'expected_warnings': ['No authenticators for vimeo'],
     }, {
         'url': 'https://app.cybrary.it/immersive/12747143/activity/52686',
         'md5': '62f26547dccc59c44363e2a13d4ad08d',
@@ -79,9 +79,9 @@ class CybraryIE(CybraryBaseIE):
             'series': 'AZ-500: Microsoft Azure Security Technologies',
             'uploader': 'Cybrary',
             'chapter': 'Implement Network Security',
-            'chapter_id': '52693'
+            'chapter_id': '52693',
         },
-        'expected_warnings': ['No authenticators for vimeo']
+        'expected_warnings': ['No authenticators for vimeo'],
     }]
 
     def _real_extract(self, url):
@@ -93,7 +93,7 @@ class CybraryIE(CybraryBaseIE):
             raise ExtractorError('The activity is not a video', expected=True)
 
         module = next((m for m in course.get('learning_modules') or []
-                      if int(activity_id) in traverse_obj(m, ('activities', ..., 'id') or [])), None)
+                      if int(activity_id) in traverse_obj(m, ('activities', ..., 'id'))), None)
 
         vimeo_id = self._get_vimeo_id(activity_id)
 
@@ -105,7 +105,7 @@ class CybraryIE(CybraryBaseIE):
             'chapter': module.get('title'),
             'chapter_id': str_or_none(module.get('id')),
             'title': activity.get('title'),
-            'url': smuggle_url(f'https://player.vimeo.com/video/{vimeo_id}', {'referer': 'https://api.cybrary.it'})
+            'url': smuggle_url(f'https://player.vimeo.com/video/{vimeo_id}', {'referer': 'https://api.cybrary.it'}),
         }
 
 
@@ -116,17 +116,17 @@ class CybraryCourseIE(CybraryBaseIE):
         'info_dict': {
             'id': '898',
             'title': 'AZ-500: Microsoft Azure Security Technologies',
-            'description': 'md5:69549d379c0fc1dec92926d4e8b6fbd4'
+            'description': 'md5:69549d379c0fc1dec92926d4e8b6fbd4',
         },
-        'playlist_count': 59
+        'playlist_count': 59,
     }, {
         'url': 'https://app.cybrary.it/browse/course/cybrary-orientation',
         'info_dict': {
             'id': '1245',
             'title': 'Cybrary Orientation',
-            'description': 'md5:9e69ff66b32fe78744e0ad4babe2e88e'
+            'description': 'md5:9e69ff66b32fe78744e0ad4babe2e88e',
         },
-        'playlist_count': 4
+        'playlist_count': 4,
     }]
 
     def _real_extract(self, url):
