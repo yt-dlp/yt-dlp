@@ -1755,7 +1755,10 @@ from .rtve import (
     RTVETelevisionIE,
 )
 from .rtvs import RTVSIE
-from .rtvslo import RTVSLOIE
+from .rtvslo import (
+    RTVSLOIE,
+    RTVSLOShowIE,
+)
 from .rudovideo import RudoVideoIE
 from .rule34video import Rule34VideoIE
 from .rumble import (
