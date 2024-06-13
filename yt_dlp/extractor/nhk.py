@@ -4,6 +4,7 @@ from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     clean_html,
+    filter_dict,
     get_element_by_class,
     int_or_none,
     join_nonempty,
@@ -644,20 +645,19 @@ class NhkRadiruIE(InfoExtractor):
                               'Failed to get extended metadata. API returned Error 1: Invalid parameters'],
     }, {
         # news
-        'url': 'https://www.nhk.or.jp/radio/player/ondemand.html?p=F261_01_3855109',
-        'skip': 'Expires on 2023-04-17',
+        'url': 'https://www.nhk.or.jp/radio/player/ondemand.html?p=F261_01_4012173',
         'info_dict': {
-            'id': 'F261_01_3855109',
+            'id': 'F261_01_4012173',
             'ext': 'm4a',
             'channel': 'NHKラジオ第1',
             'uploader': 'NHKラジオ第1',
-            'timestamp': 1681635900,
-            'release_date': '20230416',
             'series': 'NHKラジオニュース',
-            'title': '午後６時のNHKニュース',
+            'title': '午前０時のNHKニュース',
             'thumbnail': 'https://www.nhk.or.jp/radioondemand/json/F261/img/RADIONEWS_640.jpg',
-            'upload_date': '20230416',
-            'release_timestamp': 1681635600,
+            'release_timestamp': 1718290800,
+            'release_date': '20240613',
+            'timestamp': 1718291400,
+            'upload_date': '20240613',
         },
     }, {
         # fallback when extended metadata fails
@@ -684,67 +684,59 @@ class NhkRadiruIE(InfoExtractor):
     _API_URL_TMPL = None
 
     def _extract_extended_metadata(self, episode_id, aa_vinfo):
-        service, _, area = traverse_obj(aa_vinfo[2], ({str}, {lambda x: (x or '').partition(',')}))
-
+        service, _, area = traverse_obj(aa_vinfo, (2, {str}, {lambda x: (x or '').partition(',')}))
         detail_url = try_call(
             lambda: self._API_URL_TMPL.format(area=area, service=service, dateid=aa_vinfo[3]))
-
         if not detail_url:
             return {}
-        response = self._download_json(detail_url, episode_id, 'Downloading extended metadata', fatal=False, expected_status=400)
 
-        error = response.get('error')
-        if error:
-            self.report_warning(f'Failed to get extended metadata. API returned Error {error.get("code")}: {error.get("message")}')
+        response = self._download_json(
+            detail_url, episode_id, 'Downloading extended metadata',
+            'Failed to download extended metadata', fatal=False, expected_status=400)
+        if not response:
             return {}
-        if response.get('list') is None:
-            self.report_warning('Failed to get extended metadata. API returned empty list.')
+
+        if error := traverse_obj(response, ('error', {dict})):
+            self.report_warning(
+                'Failed to get extended metadata. API returned '
+                f'Error {join_nonempty("code", "message", from_dict=error, delim=": ")}')
             return {}
 
         full_meta = traverse_obj(response, ('list', service, 0, {dict}))
+        if not full_meta:
+            self.report_warning('Failed to get extended metadata. API returned empty list.')
+            return {}
 
-        station = ' '.join(traverse_obj(full_meta, (('service', 'area'), 'name', {str})))
-        description = join_nonempty('subtitle', 'content', 'act', 'music', delim='\n\n', from_dict=full_meta)
+        station = ' '.join(traverse_obj(full_meta, (('service', 'area'), 'name', {str}))) or None
+        thumbnails = [{
+            'id': str(id_),
+            'preference': 1 if id_.startswith('thumbnail') else -2 if id_.startswith('logo') else -1,
+            **traverse_obj(thumb, {
+                'url': 'url',
+                'width': ('width', {int_or_none}),
+                'height': ('height', {int_or_none}),
+            }),
+        } for id_, thumb in traverse_obj(full_meta, ('images', {dict.items}, lambda _, v: v[1]['url']))]
 
-        thumbnails = []
-        for img_id, img_info in full_meta.get('images').items():
-            if img_info.get('url') != '':  # can happen
-                thumb_dict = {
-                    'id': img_id,
-                    **traverse_obj(img_info, {
-                        'url': 'url',
-                        'width': ('width', {int_or_none}),
-                        'height': ('height', {int_or_none}),
-                    }),
-                }
-                if img_id.startswith('thumbnail'):
-                    thumb_dict['preference'] = 1
-                elif img_id.startswith('logo'):
-                    thumb_dict['preference'] = -2
-                thumbnails.append(thumb_dict)
-
-        return {
+        return filter_dict({
             'channel': station,
             'uploader': station,
-            'description': description,
+            'description': join_nonempty(
+                'subtitle', 'content', 'act', 'music', delim='\n\n', from_dict=full_meta),
             'thumbnails': thumbnails,
             **traverse_obj(full_meta, {
-                'title': 'title',
+                'title': ('title', {str}),
                 'timestamp': ('end_time', {unified_timestamp}),
                 'release_timestamp': ('start_time', {unified_timestamp}),
             }),
-        }
+        })
 
     def _extract_episode_info(self, episode, programme_id, series_meta):
         episode_id = f'{programme_id}_{episode["id"]}'
-
-        aa_vinfo = episode.get('aa_contents_id').split(';')
-
+        aa_vinfo = traverse_obj(episode, ('aa_contents_id', {lambda x: x.split(';')}))
         extended_metadata = self._extract_extended_metadata(episode_id, aa_vinfo)
-#        if extended_metadata.get("thumbnails") != []:
-#            series_meta["thumbnail"] = None
-
-        fallback_start_time, _, fallback_end_time = aa_vinfo[4].partition('_')
+        fallback_start_time, _, fallback_end_time = traverse_obj(
+            aa_vinfo, (4, {str}, {lambda x: (x or '').partition('_')}))
 
         return {
             **series_meta,
@@ -759,6 +751,25 @@ class NhkRadiruIE(InfoExtractor):
             **extended_metadata,
         }
 
+    def _extract_news_info(self, headline, programme_id, series_meta):
+        episode_id = f'{programme_id}_{headline["headline_id"]}'
+        episode = traverse_obj(headline, ('file_list', 0, {dict}))
+
+        return {
+            **series_meta,
+            'id': episode_id,
+            'formats': self._extract_m3u8_formats(episode.get('file_name'), episode_id, fatal=False),
+            'container': 'm4a_dash',  # force fixup, AAC-only HLS
+            'was_live': True,
+            'series': series_meta.get('title'),
+            'thumbnail': url_or_none(headline.get('headline_image')) or series_meta.get('thumbnail'),
+            **traverse_obj(episode, {
+                'title': 'file_title',
+                'timestamp': ('open_time', {unified_timestamp}),
+                'release_timestamp': ('aa_vinfo4', {lambda x: x.split('_')[0]}, {unified_timestamp}),
+            }),
+        }
+
     def _real_initialize(self):
         if self._API_URL_TMPL:
             return
@@ -770,30 +781,54 @@ class NhkRadiruIE(InfoExtractor):
         site_id, corner_id, headline_id = self._match_valid_url(url).group('site', 'corner', 'headline')
         programme_id = f'{site_id}_{corner_id}'
 
-        json_url = f'https://www.nhk.or.jp/radio-api/app/v1/web/ondemand/series?site_id={site_id}&corner_site_id={corner_id}'
+        if site_id == 'F261':  # XXX: News programmes use old API (for now?)
+            meta = self._download_json(
+                'https://www.nhk.or.jp/s-media/news/news-site/list/v1/all.json', programme_id)['main']
+            series_meta = traverse_obj(meta, {
+                'title': ('program_name', {str}),
+                'channel': ('media_name', {str}),
+                'uploader': ('media_name', {str}),
+                'thumbnail': (('thumbnail_c', 'thumbnail_p'), {url_or_none}),
+            }, get_all=False)
 
-        meta = self._download_json(json_url, programme_id)
+            if headline_id:
+                headline = traverse_obj(
+                    meta, ('detail_list', lambda _, v: v['headline_id'] == headline_id, any))
+                if not headline:
+                    raise ExtractorError('Content not found; it has most likely expired', expected=True)
+                return self._extract_news_info(headline, programme_id, series_meta)
 
-        fallback_station = join_nonempty('NHK', meta.get('radio_broadcast'), delim=' ')
+            def news_entries():
+                for headline in traverse_obj(meta, ('detail_list', ..., {dict})):
+                    yield self._extract_news_info(headline, programme_id, series_meta)
 
+            return self.playlist_result(
+                news_entries(), programme_id, description=meta.get('site_detail'), **series_meta)
+
+        meta = self._download_json(
+            'https://www.nhk.or.jp/radio-api/app/v1/web/ondemand/series', programme_id, query={
+                'site_id': site_id,
+                'corner_site_id': corner_id,
+            })
+
+        fallback_station = join_nonempty('NHK', traverse_obj(meta, ('radio_broadcast', {str})), delim=' ')
         series_meta = {
             'series': join_nonempty('title', 'corner_name', delim=' ', from_dict=meta),
             'series_id': programme_id,
-            'thumbnail': meta.get('thumbnail_url'),
-
+            'thumbnail': traverse_obj(meta, ('thumbnail_url', {url_or_none})),
             'channel': fallback_station,
             'uploader': fallback_station,
         }
 
         if headline_id:
-            return self._extract_episode_info(
-                traverse_obj(meta, (
-                    'episodes', lambda _, v: v['id'] == int(headline_id)), get_all=False),
-                programme_id, series_meta)
+            episode = traverse_obj(meta, ('episodes', lambda _, v: v['id'] == int(headline_id), any))
+            if not episode:
+                raise ExtractorError('Content not found; it has most likely expired', expected=True)
+            return self._extract_episode_info(episode, programme_id, series_meta)
 
         def entries():
-            for headline in traverse_obj(meta, ('episodes', ..., {dict})):
-                yield self._extract_episode_info(headline, programme_id, series_meta)
+            for episode in traverse_obj(meta, ('episodes', ..., {dict})):
+                yield self._extract_episode_info(episode, programme_id, series_meta)
 
         return self.playlist_result(
             entries(), programme_id, title=series_meta.get('series'),
@@ -801,7 +836,6 @@ class NhkRadiruIE(InfoExtractor):
 
 
 class NhkRadioNewsPageIE(InfoExtractor):
-    _WORKING = False
     _VALID_URL = r'https?://www\.nhk\.or\.jp/radionews/?(?:$|[?#])'
     _TESTS = [{
         # airs daily, on-the-hour most hours
