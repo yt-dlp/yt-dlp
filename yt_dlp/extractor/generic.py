@@ -2171,7 +2171,7 @@ class GenericIE(InfoExtractor):
         if key_query is not None:
             info['extra_param_to_key_url'] = (
                 urllib.parse.urlparse(key_query).query or key_query
-                or urllib.parse.urlparse(key_query).query or None)
+                or urllib.parse.urlparse(manifest_url).query or None)
 
         def hex_or_none(value):
             return value if re.fullmatch(r'(0x)?[\da-f]+', value, re.IGNORECASE) else None
