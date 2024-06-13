@@ -60,7 +60,9 @@ class VTVgoVideoIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
-        m3u8_url = self._search_regex(r'(https://vtvgo-vods\.vtvdigital\.vn/.*/index\.m3u8)', webpage, 'm3u8_url', fatal=False)
+        m3u8_url = self._search_regex(
+            r'(https://vtvgo-vods\.vtvdigital\.vn/.*/index\.m3u8)', webpage, 'm3u8_url', fatal=False,
+        )
         if not m3u8_url:
             self.raise_no_formats('no m3u8 url found', video_id=video_id)
         formats = self._extract_m3u8_formats(m3u8_url, video_id, 'mp4')
@@ -72,17 +74,20 @@ class VTVgoVideoIE(InfoExtractor):
             'formats': formats,
         }
 
+
 class VTVvnIE(InfoExtractor):
     _VALID_URL = r'(?:https://)?(?:www\.)?vtv\.vn/video/(?P<id>.+)\.htm'
-    _TESTS = [{
-        'url': 'https://vtv.vn/video/thoi-su-20h-vtv1-12-6-2024-680411.htm',
-        'info_dict': {
-            'id': 'thoi-su-20h-vtv1-12-6-2024-680411',
-            'ext': 'mp4',
-            'title': 'Thời sự 20h VTV1 - 12/6/2024 - Video đã phát trên VTV1 | VTV.VN',
-            'thumbnail': 'https://cdn-images.vtv.vn/zoom/600_315/66349b6076cb4dee98746cf1/2024/06/12/thumb/1206-ts-20h-02929741475480320806760.mp4/thumb0.jpg',
+    _TESTS = [
+        {
+            'url': 'https://vtv.vn/video/thoi-su-20h-vtv1-12-6-2024-680411.htm',
+            'info_dict': {
+                'id': 'thoi-su-20h-vtv1-12-6-2024-680411',
+                'ext': 'mp4',
+                'title': 'Thời sự 20h VTV1 - 12/6/2024 - Video đã phát trên VTV1 | VTV.VN',
+                'thumbnail': 'https://cdn-images.vtv.vn/zoom/600_315/66349b6076cb4dee98746cf1/2024/06/12/thumb/1206-ts-20h-02929741475480320806760.mp4/thumb0.jpg',
+            },
         },
-    }]
+    ]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
