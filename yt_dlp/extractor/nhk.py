@@ -764,7 +764,8 @@ class NhkRadiruIE(InfoExtractor):
             'series': series_meta.get('title'),
             'thumbnail': url_or_none(headline.get('headline_image')) or series_meta.get('thumbnail'),
             **traverse_obj(episode, {
-                'title': 'file_title',
+                'title': ('file_title', {str}),
+                'description': ('file_title_sub', {str}),
                 'timestamp': ('open_time', {unified_timestamp}),
                 'release_timestamp': ('aa_vinfo4', {lambda x: x.split('_')[0]}, {unified_timestamp}),
             }),
