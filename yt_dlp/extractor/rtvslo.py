@@ -4,7 +4,6 @@ from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     int_or_none,
-    orderedSet,
     parse_duration,
     traverse_obj,
     unified_timestamp,
@@ -175,7 +174,6 @@ class RTVSLOShowIE(InfoExtractor):
     _TESTS = [{
         'url': 'https://365.rtvslo.si/oddaja/ekipa-bled/173250997',
         'info_dict': {
-            '_type': 'playlist',
             'id': '173250997',
             'title': 'Ekipa Bled',
         },
@@ -184,10 +182,9 @@ class RTVSLOShowIE(InfoExtractor):
 
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
-
         webpage = self._download_webpage(url, playlist_id)
-        all_urls = orderedSet(re.findall(r'<a[^>]+href="(/arhiv/[^"]+)"', webpage))
 
         return self.playlist_from_matches(
-            all_urls, playlist_id, self._html_extract_title(webpage, playlist_id),
+            re.findall(r'<a [^>]*\bhref="(/arhiv/[^"]+)"', webpage),
+            playlist_id, self._html_extract_title(webpage),
             getter=lambda x: urljoin('https://365.rtvslo.si', x), ie=RTVSLOIE)
