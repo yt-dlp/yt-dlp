@@ -237,27 +237,43 @@ jobs:
   macos:
     needs: process
     if: inputs.macos
+    permissions:
+      contents: read
+      actions: write  # For cleaning up cache
     runs-on: macos-12
 
     steps:
       - uses: actions/checkout@v4
       # NB: Building universal2 does not work with python from actions/setup-python
+
+      - name: Restore cached requirements
+        id: restore-cache
+        uses: actions/cache/restore@v4
+        env:
+          SEGMENT_DOWNLOAD_TIMEOUT_MINS: 1
+        with:
+          path: |
+            ~/yt-dlp-build-venv
+          key: cache-reqs-${{ github.job }}
+
       - name: Install Requirements
         run: |
           brew install coreutils
-          python3 devscripts/install_deps.py --user -o --include build
+          python3 -m venv ~/yt-dlp-build-venv
+          source ~/yt-dlp-build-venv/bin/activate
+          python3 devscripts/install_deps.py -o --include build
           python3 devscripts/install_deps.py --print --include pyinstaller > requirements.txt
           # We need to ignore wheels otherwise we break universal2 builds
-          python3 -m pip install -U --user --no-binary :all: -r requirements.txt
+          python3 -m pip install -U --no-binary :all: -r requirements.txt
           # We need to fuse our own universal2 wheels for curl_cffi
-          python3 -m pip install -U --user delocate
+          python3 -m pip install -U delocate
           mkdir curl_cffi_whls curl_cffi_universal2
           python3 devscripts/install_deps.py --print -o --include curl-cffi > requirements.txt
           for platform in "macosx_11_0_arm64" "macosx_11_0_x86_64"; do
             python3 -m pip download \
               --only-binary=:all: \
               --platform "${platform}" \
-              --pre -d curl_cffi_whls \
+              -d curl_cffi_whls \
               -r requirements.txt
           done
           ( # Overwrite x86_64-only libs with fat/universal2 libs or else Pyinstaller will do the opposite
@@ -274,9 +290,10 @@ jobs:
           )
           python3 -m delocate.cmd.delocate_fuse curl_cffi_whls/curl_cffi*.whl -w curl_cffi_universal2
           python3 -m delocate.cmd.delocate_fuse curl_cffi_whls/cffi*.whl -w curl_cffi_universal2
-          cd curl_cffi_universal2
-          for wheel in ./*cffi*.whl; do mv -n -- "${wheel}" "${wheel/x86_64/universal2}"; done
-          python3 -m pip install -U --user ./*cffi*.whl
+          for wheel in curl_cffi_universal2/*cffi*.whl; do
+            mv -n -- "${wheel}" "${wheel/x86_64/universal2}"
+          done
+          python3 -m pip install --force-reinstall -U curl_cffi_universal2/*cffi*.whl
 
       - name: Prepare
         run: |
@@ -284,6 +301,7 @@ jobs:
           python3 devscripts/make_lazy_extractors.py
       - name: Build
         run: |
+          source ~/yt-dlp-build-venv/bin/activate
           python3 -m bundle.pyinstaller --target-architecture universal2 --onedir
           (cd ./dist/yt-dlp_macos && zip -r ../yt-dlp_macos.zip .)
           python3 -m bundle.pyinstaller --target-architecture universal2
@@ -306,6 +324,24 @@ jobs:
             dist/yt-dlp_macos
             dist/yt-dlp_macos.zip
           compression-level: 0
+
+      - name: Cleanup cache
+        if: steps.restore-cache.outputs.cache-hit == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          cache_key: cache-reqs-${{ github.job }}
+          repository: ${{ github.repository }}
+          branch: ${{ github.ref }}
+        run: |
+          gh extension install actions/gh-actions-cache
+          gh actions-cache delete "${cache_key}" -R "${repository}" -B "${branch}" --confirm
+
+      - name: Cache requirements
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ~/yt-dlp-build-venv
+          key: cache-reqs-${{ github.job }}
 
   macos_legacy:
     needs: process
