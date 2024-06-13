@@ -298,7 +298,7 @@ banned-from = [
     "string",
     "sys",
     "time",
-    "urllib",
+    "urllib.parse",
     "uuid",
     "xml",
 ]
