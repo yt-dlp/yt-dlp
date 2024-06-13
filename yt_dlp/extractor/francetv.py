@@ -119,7 +119,7 @@ class FranceTVIE(InfoExtractor):
             video_url = video['url']
             format_id = video.get('format')
 
-            if token_url := url_or_none(video.get('token')):
+            if token_url := traverse_obj(video, ('token', (None, 'akamai'), {url_or_none}, any)):
                 tokenized_url = traverse_obj(self._download_json(
                     token_url, video_id, f'Downloading signed {format_id} manifest URL',
                     fatal=False, query={
