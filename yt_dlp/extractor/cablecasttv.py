@@ -2,7 +2,7 @@ from .common import InfoExtractor
 
 
 class CableCastTVIE(InfoExtractor):
-    _VALID_URL = r'https:\/\/[a-zA-Z0-9-]+\.cablecast\.tv\/show\/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:[a-z\-\.]+\.cablecast\.tv/show/|[a-z\-\.]+/CablecastPublicSite/show/)(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://wctv.wilmette.com/CablecastPublicSite/show/532',
         'md5': '17e7ed129582babf6d1ae5c3b9d70d18',
