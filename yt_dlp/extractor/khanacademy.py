@@ -36,7 +36,7 @@ class KhanAcademyBaseIE(InfoExtractor):
             query={
                 'fastly_cacheable': 'persist_until_publish',
                 'pcv': 'ed4ab10116ed36d2be4827b16479959e1d151e86',
-                'hash': '1803571204',
+                'hash': '1242644265',
                 'variables': json.dumps({
                     'path': display_id,
                     'countryCode': 'US',
@@ -91,7 +91,7 @@ class KhanAcademyIE(KhanAcademyBaseIE):
         return {
             **self._parse_video(video),
             **traverse_obj(video, {
-                'uploader': ('authorNames', {lambda x: ', '.join(x)}),
+                'creators': ('authorNames', ..., {str}),
                 'timestamp': ('dateAdded', {str}, {parse_iso8601}),
                 'license': ('kaUserLicense', {str}),
             }),
