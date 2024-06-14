@@ -6,7 +6,7 @@ from ..compat import shutil
 from ..utils import (
     PostProcessingError,
     make_dir,
-    replace_extension
+    replace_extension,
 )
 
 
@@ -15,7 +15,7 @@ class MoveFilesAfterDownloadPP(PostProcessor):
     # for generating the output filename
     CHILD_KEYS = {
         'thumbnails': 'thumbnail',
-        'requested_subtitles': 'subtitle'
+        'requested_subtitles': 'subtitle',
     }
 
     def __init__(self, downloader=None, downloaded=True):
@@ -93,7 +93,7 @@ class MoveFilesAfterDownloadPP(PostProcessor):
             if key not in info:
                 continue
 
-            if isinstance(info[key], list) or isinstance(info[key], dict):
+            if isinstance(info[key], (dict, list)):
                 iterable = info[key].values() if isinstance(info[key], dict) else info[key]
 
                 for file_dict in iterable:

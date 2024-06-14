@@ -2106,7 +2106,7 @@ def check_executable(exe, args=[]):
     try:
         Popen.run([exe, *args], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     except OSError:
-        return False    
+        return False
     return exe
 
 
