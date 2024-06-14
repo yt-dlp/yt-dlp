@@ -123,15 +123,24 @@ class KhanAcademyUnitIE(KhanAcademyBaseIE):
 
     def _parse_component_props(self, component_props, display_id):
         course = component_props['course']
-        unit = traverse_obj(course, ('unitChildren', lambda _, v: v['relativeUrl'] == f'/{display_id}'), get_all=False)
-        # unit should traverse to None when url is course-level
+        selected_unit = traverse_obj(course, (
+            'unitChildren', lambda _, v: v['relativeUrl'] == f'/{display_id}'), get_all=False) or course
 
-        entries = traverse_obj([unit] if unit else course['unitChildren'], (
-            ..., 'allOrderedChildren', ..., 'curatedChildren', lambda _, v: v['contentKind'] == 'Video',
-            {lambda x: self.url_result(urljoin('https://www.khanacademy.org', x['canonicalUrl']), KhanAcademyIE)}))
+        def build_entry(entry):
+            return self.url_result(urljoin(
+                'https://www.khanacademy.org', entry['canonicalUrl']),
+                KhanAcademyIE, title=entry.get('translatedTitle'))
 
-        return self.playlist_result(entries, **traverse_obj(unit or course, {
-            'id': ('slug', {str}),
-            'title': ('translatedTitle', {str}),
-            'description': ('translatedDescription', {str}),
-        }))
+        entries = traverse_obj(selected_unit, (
+            (('unitChildren', ...), None), 'allOrderedChildren', ..., 'curatedChildren',
+            lambda _, v: v['contentKind'] == 'Video' and v['canonicalUrl'], {build_entry}))
+
+        return self.playlist_result(
+            entries,
+            display_id=display_id,
+            **traverse_obj(selected_unit, {
+                'id': ('id', {str}),
+                'title': ('translatedTitle', {str}),
+                'description': ('translatedDescription', {str}),
+                '_old_archive_ids': ('slug', {str}, {lambda x: make_archive_id(self, x)}),
+            }))
