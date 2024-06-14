@@ -3,6 +3,7 @@ import json
 from .common import InfoExtractor
 from ..utils import (
     int_or_none,
+    make_archive_id,
     parse_iso8601,
     str_or_none,
     traverse_obj,
@@ -106,17 +107,21 @@ class KhanAcademyUnitIE(KhanAcademyBaseIE):
     _TESTS = [{
         'url': 'https://www.khanacademy.org/computing/computer-science/cryptography',
         'info_dict': {
-            'id': 'cryptography',
+            'id': 'x48c910b6',
             'title': 'Cryptography',
             'description': 'How have humans protected their secret messages through history? What has changed today?',
+            'display_id': 'computing/computer-science/cryptography',
+            '_old_archive_ids': ['khanacademyunit cryptography'],
         },
         'playlist_mincount': 31,
     }, {
         'url': 'https://www.khanacademy.org/computing/computer-science',
         'info_dict': {
-            'id': 'computer-science',
+            'id': 'x301707a0',
             'title': 'Computer science theory',
             'description': 'md5:4b472a4646e6cf6ec4ccb52c4062f8ba',
+            'display_id': 'computing/computer-science',
+            '_old_archive_ids': ['khanacademyunit computer-science'],
         },
         'playlist_mincount': 50,
     }]
@@ -142,5 +147,5 @@ class KhanAcademyUnitIE(KhanAcademyBaseIE):
                 'id': ('id', {str}),
                 'title': ('translatedTitle', {str}),
                 'description': ('translatedDescription', {str}),
-                '_old_archive_ids': ('slug', {str}, {lambda x: make_archive_id(self, x)}),
+                '_old_archive_ids': ('slug', {str}, {lambda x: [make_archive_id(self, x)]}),
             }))
