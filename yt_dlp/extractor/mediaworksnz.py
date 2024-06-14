@@ -24,8 +24,8 @@ class MediaWorksNZVODIE(InfoExtractor):
             'timestamp': 1604268608,
             'upload_date': '20201101',
             'thumbnail': r're:^https?://.*\.jpg$',
-            'channel': 'George FM'
-        }
+            'channel': 'George FM',
+        },
     }, {
         # has audio-only format
         'url': 'https://vodupload-api.mediaworks.nz/library/asset/published/VID02627',
@@ -40,7 +40,7 @@ class MediaWorksNZVODIE(InfoExtractor):
             'upload_date': '20220822',
             'timestamp': 1661152289,
         },
-        'params': {'format': 'ba[ext=mp3]'}
+        'params': {'format': 'ba[ext=mp3]'},
     }]
 
     _WEBPAGE_TESTS = [{
@@ -55,7 +55,7 @@ class MediaWorksNZVODIE(InfoExtractor):
             'thumbnail': r're:^https?://.*\.jpg$',
             'description': 'Socrates Walks Into A Bar Podcast Episode 1',
             'upload_date': '20220720',
-        }
+        },
     }]
 
     @classmethod
@@ -63,7 +63,7 @@ class MediaWorksNZVODIE(InfoExtractor):
         for mobj in re.finditer(
             rf'''(?x)<div\s+\bid=["']Player-Attributes-JWID[^>]+\b
             data-request-url=["']{cls._VALID_URL_BASE_RE}["'][^>]+\b
-            data-asset-id=["']{cls._VALID_URL_ID_RE}["']''', webpage
+            data-asset-id=["']{cls._VALID_URL_ID_RE}["']''', webpage,
         ):
             yield f'https://vodupload-api.mediaworks.nz/library/asset/published/{mobj.group("id")}'
 

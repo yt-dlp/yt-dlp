@@ -100,8 +100,8 @@ class RadikoBaseIE(InfoExtractor):
 
     def _find_program(self, video_id, station, cursor):
         station_program = self._download_xml(
-            'https://radiko.jp/v3/program/station/weekly/%s.xml' % station, video_id,
-            note='Downloading radio program for %s station' % station)
+            f'https://radiko.jp/v3/program/station/weekly/{station}.xml', video_id,
+            note=f'Downloading radio program for {station} station')
 
         prog = None
         for p in station_program.findall('.//prog'):
@@ -207,8 +207,8 @@ class RadikoIE(RadikoBaseIE):
                     'ft': radio_begin,
                     'end_at': radio_end,
                     'to': radio_end,
-                    'seek': video_id
-                }
+                    'seek': video_id,
+                },
             ),
         }
 

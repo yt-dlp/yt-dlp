@@ -40,7 +40,7 @@ class DiscoveryGoBaseIE(InfoExtractor):
         formats = []
         for stream_kind in ('', 'hds'):
             suffix = STREAM_URL_SUFFIX.capitalize() if stream_kind else STREAM_URL_SUFFIX
-            stream_url = stream.get('%s%s' % (stream_kind, suffix))
+            stream_url = stream.get(f'{stream_kind}{suffix}')
             if not stream_url:
                 continue
             if stream_kind == '':
@@ -143,8 +143,7 @@ class DiscoveryGoPlaylistIE(DiscoveryGoBaseIE):
 
     @classmethod
     def suitable(cls, url):
-        return False if DiscoveryGoIE.suitable(url) else super(
-            DiscoveryGoPlaylistIE, cls).suitable(url)
+        return False if DiscoveryGoIE.suitable(url) else super().suitable(url)
 
     def _real_extract(self, url):
         display_id = self._match_id(url)

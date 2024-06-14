@@ -140,7 +140,7 @@ class VKIE(VKBaseIE):
                 'comment_count': int,
                 'like_count': int,
                 'thumbnail': r're:https?://.+(?:\.jpg|getVideoPreview.*)$',
-            }
+            },
         },
         {
             'note': 'Embedded video',
@@ -220,7 +220,7 @@ class VKIE(VKBaseIE):
                 'like_count': int,
                 'view_count': int,
                 'thumbnail': r're:https?://.+x1080$',
-                'tags': list
+                'tags': list,
             },
         },
         {
@@ -335,7 +335,7 @@ class VKIE(VKBaseIE):
             mv_data = opts.get('mvData') or {}
             player = opts.get('player') or {}
         else:
-            video_id = '%s_%s' % (mobj.group('oid'), mobj.group('id'))
+            video_id = '{}_{}'.format(mobj.group('oid'), mobj.group('id'))
 
             info_page = self._download_webpage(
                 'http://vk.com/video_ext.php?' + mobj.group('embed_query'), video_id)
@@ -530,7 +530,7 @@ class VKUserVideosIE(VKBaseIE):
         'url': 'https://vk.com/video/playlist/-174476437_2',
         'info_dict': {
             'id': '-174476437_playlist_2',
-            'title': 'Анонсы'
+            'title': 'Анонсы',
         },
         'playlist_mincount': 108,
     }]
@@ -580,7 +580,7 @@ class VKUserVideosIE(VKBaseIE):
             section = 'all'
 
         playlist_title = clean_html(get_element_by_class('VideoInfoPanel__title', webpage))
-        return self.playlist_result(self._entries(page_id, section), '%s_%s' % (page_id, section), playlist_title)
+        return self.playlist_result(self._entries(page_id, section), f'{page_id}_{section}', playlist_title)
 
 
 class VKWallPostIE(VKBaseIE):

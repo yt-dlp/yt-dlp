@@ -199,7 +199,7 @@ class FragmentFD(FileDownloader):
                         '.ytdl file is corrupt' if is_corrupt else
                         'Inconsistent state of incomplete fragment download')
                     self.report_warning(
-                        '%s. Restarting from the beginning ...' % message)
+                        f'{message}. Restarting from the beginning ...')
                     ctx['fragment_index'] = resume_len = 0
                     if 'ytdl_corrupt' in ctx:
                         del ctx['ytdl_corrupt']
@@ -366,10 +366,10 @@ class FragmentFD(FileDownloader):
         return decrypt_fragment
 
     def download_and_append_fragments_multiple(self, *args, **kwargs):
-        '''
+        """
         @params (ctx1, fragments1, info_dict1), (ctx2, fragments2, info_dict2), ...
                 all args must be either tuple or list
-        '''
+        """
         interrupt_trigger = [True]
         max_progress = len(args)
         if max_progress == 1:
@@ -424,7 +424,7 @@ class FragmentFD(FileDownloader):
             finally:
                 tpe.shutdown(wait=True)
         if not interrupt_trigger[0] and not is_live:
-            raise KeyboardInterrupt()
+            raise KeyboardInterrupt
         # we expect the user wants to stop and DO WANT the preceding postprocessors to run;
         # so returning a intermediate result here instead of KeyboardInterrupt on live
         return result
