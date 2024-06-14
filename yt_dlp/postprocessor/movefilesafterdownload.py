@@ -68,17 +68,15 @@ class MoveFilesAfterDownloadPP(PostProcessor):
             return final_filepath
 
         if not os.path.exists(current_filepath):
-            self.report_warning('File "%s" cannot be found' % current_filepath)
+            self.report_warning(f'File "{current_filepath}" cannot be found')
             return
 
         if os.path.exists(final_filepath):
             if self.get_param('overwrites', True):
-                self.report_warning('Replacing existing file "%s"' % final_filepath)
+                self.report_warning(f'Replacing existing file "{final_filepath}"')
                 os.remove(final_filepath)
             else:
-                self.report_warning(
-                    'Cannot move file "%s" out of temporary directory since "%s" already exists. '
-                    % (current_filepath, final_filepath))
+                self.report_warning(f'Cannot move file "{current_filepath}" out of temporary directory since "{final_filepath}" already exists. ')
                 return
 
         make_dir(final_filepath, PostProcessingError)

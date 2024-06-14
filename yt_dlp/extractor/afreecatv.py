@@ -55,7 +55,7 @@ class AfreecaTVBaseIE(InfoExtractor):
         if result != 1:
             error = _ERRORS.get(result, 'You have failed to log in.')
             raise ExtractorError(
-                'Unable to login: %s said: %s' % (self.IE_NAME, error),
+                f'Unable to login: {self.IE_NAME} said: {error}',
                 expected=True)
 
 
@@ -227,7 +227,7 @@ class AfreecaTVIE(AfreecaTVBaseIE):
                 **traverse_obj(file_element, {
                     'duration': ('duration', {functools.partial(int_or_none, scale=1000)}),
                     'timestamp': ('file_start', {unified_timestamp}),
-                })
+                }),
             })
 
         if traverse_obj(data, ('adult_status', {str})) == 'notLogin':

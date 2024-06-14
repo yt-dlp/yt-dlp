@@ -2,7 +2,6 @@ import re
 
 from .common import InfoExtractor
 from .vimeo import VimeoIE
-from ..compat import compat_str
 from ..utils import (
     ExtractorError,
     int_or_none,
@@ -67,12 +66,12 @@ class RayWenderlichIE(InfoExtractor):
                     continue
                 video_id = content.get('identifier')
                 if video_id:
-                    return compat_str(video_id)
+                    return str(video_id)
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
         course_id, lesson_id = mobj.group('course_id', 'id')
-        display_id = '%s/%s' % (course_id, lesson_id)
+        display_id = f'{course_id}/{lesson_id}'
 
         webpage = self._download_webpage(url, display_id)
 
@@ -110,8 +109,8 @@ class RayWenderlichIE(InfoExtractor):
             if csrf_token:
                 headers['X-CSRF-Token'] = csrf_token
             video = self._download_json(
-                'https://videos.raywenderlich.com/api/v1/videos/%s.json'
-                % video_id, display_id, headers=headers)['video']
+                f'https://videos.raywenderlich.com/api/v1/videos/{video_id}.json',
+                display_id, headers=headers)['video']
             vimeo_id = video['clips'][0]['provider_id']
             info.update({
                 '_type': 'url_transparent',
@@ -124,7 +123,7 @@ class RayWenderlichIE(InfoExtractor):
 
         return merge_dicts(info, self.url_result(
             VimeoIE._smuggle_referrer(
-                'https://player.vimeo.com/video/%s' % vimeo_id, url),
+                f'https://player.vimeo.com/video/{vimeo_id}', url),
             ie=VimeoIE.ie_key(), video_id=vimeo_id))
 
 
@@ -152,8 +151,7 @@ class RayWenderlichCourseIE(InfoExtractor):
 
     @classmethod
     def suitable(cls, url):
-        return False if RayWenderlichIE.suitable(url) else super(
-            RayWenderlichCourseIE, cls).suitable(url)
+        return False if RayWenderlichIE.suitable(url) else super().suitable(url)
 
     def _real_extract(self, url):
         course_id = self._match_id(url)
@@ -163,7 +161,7 @@ class RayWenderlichCourseIE(InfoExtractor):
         entries = []
         lesson_urls = set()
         for lesson_url in re.findall(
-                r'<a[^>]+\bhref=["\'](/%s/lessons/\d+)' % course_id, webpage):
+                rf'<a[^>]+\bhref=["\'](/{course_id}/lessons/\d+)', webpage):
             if lesson_url in lesson_urls:
                 continue
             lesson_urls.add(lesson_url)

@@ -89,10 +89,10 @@ class YandexVideoIE(InfoExtractor):
     title
     views_count
   }
-}''' % video_id).encode(), fatal=False)), lambda x: x['player']['content'])
+}''' % video_id).encode(), fatal=False)), lambda x: x['player']['content'])  # noqa: UP031
         if not player or player.get('error'):
             player = self._download_json(
-                'https://frontend.vh.yandex.ru/v23/player/%s.json' % video_id,
+                f'https://frontend.vh.yandex.ru/v23/player/{video_id}.json',
                 video_id, query={
                     'stream_options': 'hires',
                     'disable_trackings': 1,
@@ -179,10 +179,10 @@ class YandexVideoPreviewIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        id = self._match_id(url)
-        webpage = self._download_webpage(url, id)
+        video_id = self._match_id(url)
+        webpage = self._download_webpage(url, video_id)
         data_raw = self._search_regex(r'window.Ya.__inline_params__\s*=\s*JSON.parse\(\'([^"]+?\\u0022video\\u0022:[^"]+?})\'\);', webpage, 'data_raw')
-        data_json = self._parse_json(data_raw, id, transform_source=lowercase_escape)
+        data_json = self._parse_json(data_raw, video_id, transform_source=lowercase_escape)
         return self.url_result(data_json['video']['url'])
 
 
@@ -196,7 +196,7 @@ class ZenYandexIE(InfoExtractor):
             'title': 'ВОТ ЭТО Focus. Деды Морозы на гидроциклах',
             'description': 'md5:8684912f6086f298f8078d4af0e8a600',
             'thumbnail': 're:^https://avatars.dzeninfra.ru/',
-            'uploader': 'AcademeG DailyStream'
+            'uploader': 'AcademeG DailyStream',
         },
         'params': {
             'skip_download': 'm3u8',
@@ -259,15 +259,15 @@ class ZenYandexIE(InfoExtractor):
             webpage = self._download_webpage(redirect, video_id, note='Redirecting')
         data_json = self._search_json(
             r'("data"\s*:|data\s*=)', webpage, 'metadata', video_id, contains_pattern=r'{["\']_*serverState_*video.+}')
-        serverstate = self._search_regex(r'(_+serverState_+video-site_[^_]+_+)',
-                                         webpage, 'server state').replace('State', 'Settings')
+        serverstate = self._search_regex(r'(_+serverState_+video-site_[^_]+_+)', webpage, 'server state')
         uploader = self._search_regex(r'(<a\s*class=["\']card-channel-link[^"\']+["\'][^>]+>)',
                                       webpage, 'uploader', default='<a>')
         uploader_name = extract_attributes(uploader).get('aria-label')
-        video_json = try_get(data_json, lambda x: x[serverstate]['exportData']['video'], dict)
-        stream_urls = try_get(video_json, lambda x: x['video']['streams'])
+        item_id = traverse_obj(data_json, (serverstate, 'videoViewer', 'openedItemId', {str}))
+        video_json = traverse_obj(data_json, (serverstate, 'videoViewer', 'items', item_id, {dict})) or {}
+
         formats, subtitles = [], {}
-        for s_url in stream_urls:
+        for s_url in traverse_obj(video_json, ('video', 'streams', ..., {url_or_none})):
             ext = determine_ext(s_url)
             if ext == 'mpd':
                 fmts, subs = self._extract_mpd_formats_and_subtitles(s_url, video_id, mpd_id='dash')

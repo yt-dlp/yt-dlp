@@ -27,7 +27,7 @@ class On24IE(InfoExtractor):
             'upload_date': '20200219',
             'timestamp': 1582149600.0,
             'view_count': int,
-        }
+        },
     }, {
         'url': 'https://event.on24.com/wcc/r/2639291/82829018E813065A122363877975752E?mode=login&email=johnsmith@gmail.com',
         'only_matching': True,
@@ -47,7 +47,7 @@ class On24IE(InfoExtractor):
                 'eventId': event_id,
                 'displayProfile': 'player',
                 'key': event_key,
-                'contentType': 'A'
+                'contentType': 'A',
             })
         event_id = str(try_get(event_data, lambda x: x['presentationLogInfo']['eventid'])) or event_id
         language = event_data.get('localelanguagecode')
@@ -74,7 +74,7 @@ class On24IE(InfoExtractor):
                     'language': language,
                     'ext': 'wav',
                     'vcodec': 'none',
-                    'acodec': 'wav'
+                    'acodec': 'wav',
                 })
 
         return {

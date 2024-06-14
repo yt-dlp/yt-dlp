@@ -139,7 +139,7 @@ class TwitCastingIE(InfoExtractor):
             webpage, 'datetime', None))
 
         stream_server_data = self._download_json(
-            'https://twitcasting.tv/streamserver.php?target=%s&mode=client' % uploader_id, video_id,
+            f'https://twitcasting.tv/streamserver.php?target={uploader_id}&mode=client', video_id,
             'Downloading live info', fatal=False)
 
         is_live = any(f'data-{x}' in webpage for x in ['is-onlive="true"', 'live-type="live"', 'status="online"'])
@@ -189,7 +189,7 @@ class TwitCastingIE(InfoExtractor):
                 for mode, ws_url in streams.items():
                     formats.append({
                         'url': ws_url,
-                        'format_id': 'ws-%s' % mode,
+                        'format_id': f'ws-{mode}',
                         'ext': 'mp4',
                         'quality': qq(mode),
                         'source_preference': -10,
@@ -244,8 +244,8 @@ class TwitCastingLiveIE(InfoExtractor):
     def _real_extract(self, url):
         uploader_id = self._match_id(url)
         self.to_screen(
-            'Downloading live video of user {0}. '
-            'Pass "https://twitcasting.tv/{0}/show" to download the history'.format(uploader_id))
+            f'Downloading live video of user {uploader_id}. '
+            f'Pass "https://twitcasting.tv/{uploader_id}/show" to download the history')
 
         is_live = traverse_obj(self._download_json(
             f'https://frontendapi.twitcasting.tv/watch/user/{uploader_id}',
@@ -284,10 +284,10 @@ class TwitCastingUserIE(InfoExtractor):
     }]
 
     def _entries(self, uploader_id):
-        base_url = next_url = 'https://twitcasting.tv/%s/show' % uploader_id
+        base_url = next_url = f'https://twitcasting.tv/{uploader_id}/show'
         for page_num in itertools.count(1):
             webpage = self._download_webpage(
-                next_url, uploader_id, query={'filter': 'watchable'}, note='Downloading page %d' % page_num)
+                next_url, uploader_id, query={'filter': 'watchable'}, note=f'Downloading page {page_num}')
             matches = re.finditer(
                 r'(?s)<a\s+class="tw-movie-thumbnail2"\s+href="(?P<url>/[^/"]+/movie/\d+)"', webpage)
             for mobj in matches:
@@ -303,4 +303,4 @@ class TwitCastingUserIE(InfoExtractor):
     def _real_extract(self, url):
         uploader_id = self._match_id(url)
         return self.playlist_result(
-            self._entries(uploader_id), uploader_id, '%s - Live History' % uploader_id)
+            self._entries(uploader_id), uploader_id, f'{uploader_id} - Live History')

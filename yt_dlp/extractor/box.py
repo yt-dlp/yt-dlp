@@ -72,20 +72,20 @@ class BoxIE(InfoExtractor):
                 'BoxApi': 'shared_link=' + shared_link,
                 'X-Rep-Hints': '[dash]',  # TODO: extract `hls` formats
             }, query={
-                'fields': 'authenticated_download_url,created_at,created_by,description,extension,is_download_available,name,representations,size'
+                'fields': 'authenticated_download_url,created_at,created_by,description,extension,is_download_available,name,representations,size',
             })
         title = f['name']
 
         query = {
             'access_token': access_token,
-            'shared_link': shared_link
+            'shared_link': shared_link,
         }
 
         formats = []
 
         for url_tmpl in traverse_obj(f, (
             'representations', 'entries', lambda _, v: v['representation'] == 'dash',
-            'content', 'url_template', {url_or_none}
+            'content', 'url_template', {url_or_none},
         )):
             manifest_url = update_url_query(url_tmpl.replace('{+asset_path}', 'manifest.mpd'), query)
             fmts = self._extract_mpd_formats(manifest_url, file_id)

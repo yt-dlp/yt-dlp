@@ -70,7 +70,7 @@ class YahooIE(InfoExtractor):
             'duration': 128,
             'timestamp': 1385722202,
             'upload_date': '20131129',
-        }
+        },
     }, {
         'url': 'https://www.yahoo.com/movies/v/true-story-trailer-173000497.html',
         'md5': '2a9752f74cb898af5d1083ea9f661b58',
@@ -177,7 +177,7 @@ class YahooIE(InfoExtractor):
 
     def _extract_yahoo_video(self, video_id, country):
         video = self._download_json(
-            'https://%s.yahoo.com/_td/api/resource/VideoService.videos;view=full;video_ids=["%s"]' % (country, video_id),
+            f'https://{country}.yahoo.com/_td/api/resource/VideoService.videos;view=full;video_ids=["{video_id}"]',
             video_id, 'Downloading video JSON metadata')[0]
         title = video['title']
 
@@ -193,7 +193,7 @@ class YahooIE(InfoExtractor):
         for fmt in fmts:
             media_obj = self._download_json(
                 'https://video-api.yql.yahoo.com/v1/video/sapi/streams/' + video_id,
-                video_id, 'Downloading %s JSON metadata' % fmt,
+                video_id, f'Downloading {fmt} JSON metadata',
                 headers=self.geo_verification_headers(), query={
                     'format': fmt,
                     'region': country.upper(),
@@ -213,7 +213,7 @@ class YahooIE(InfoExtractor):
                 tbr = int_or_none(s.get('bitrate'))
                 formats.append({
                     'url': s_url,
-                    'format_id': fmt + ('-%d' % tbr if tbr else ''),
+                    'format_id': fmt + (f'-{tbr}' if tbr else ''),
                     'width': int_or_none(s.get('width')),
                     'height': int_or_none(s.get('height')),
                     'tbr': tbr,
@@ -277,9 +277,9 @@ class YahooIE(InfoExtractor):
             country = country.split('-')[0]
 
         items = self._download_json(
-            'https://%s.yahoo.com/caas/content/article' % country, display_id,
+            f'https://{country}.yahoo.com/caas/content/article', display_id,
             'Downloading content JSON metadata', query={
-                'url': url
+                'url': url,
             })['items'][0]
 
         item = items['data']['partnerData']
@@ -327,7 +327,7 @@ class YahooSearchIE(SearchInfoExtractor):
 
     def _search_results(self, query):
         for pagenum in itertools.count(0):
-            result_url = 'http://video.search.yahoo.com/search/?p=%s&fr=screen&o=js&gs=0&b=%d' % (urllib.parse.quote_plus(query), pagenum * 30)
+            result_url = f'http://video.search.yahoo.com/search/?p={urllib.parse.quote_plus(query)}&fr=screen&o=js&gs=0&b={pagenum * 30}'
             info = self._download_json(result_url, query,
                                        note='Downloading results page ' + str(pagenum + 1))
             yield from (self.url_result(result['rurl']) for result in info['results'])
@@ -354,7 +354,7 @@ class YahooJapanNewsIE(InfoExtractor):
         },
     }, {
         'url': 'https://news.yahoo.co.jp/feature/1356',
-        'only_matching': True
+        'only_matching': True,
     }]
 
     def _extract_formats(self, json_data, content_id):
