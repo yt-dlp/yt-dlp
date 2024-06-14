@@ -883,11 +883,11 @@ class TestYoutubeDL(unittest.TestCase):
                     f.write('EXAMPLE')
                 return [info['filepath']], info
 
-        def run_pp(params, PP):
+        def run_pp(params, pp):
             with open(video_file, 'w') as f:
                 f.write('EXAMPLE')
             ydl = YoutubeDL(params)
-            ydl.add_post_processor(PP())
+            ydl.add_post_processor(pp())
             ydl.post_process(video_file, {'filepath': video_file})
 
         run_pp({'keepvideo': True, 'outtmpl': filename}, SimplePP)
