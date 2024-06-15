@@ -83,11 +83,11 @@ class MicrosoftMediusBaseIE(InfoExtractor):
 
     def _extract_ism(self, ism_url, video_id):
         formats = self._extract_ism_formats(ism_url, video_id)
-        for format in formats:
-            if format.get('language') == 'eng' or 'English' in format.get('format_id', ''):
-                format['language_preference'] = -1
+        for fmt in formats:
+            if fmt.get('language') == 'eng' or 'English' in fmt.get('format_id', ''):
+                fmt['language_preference'] = -1
             else:
-                format['language_preference'] = -10
+                fmt['language_preference'] = -10
         return formats
 
 
@@ -224,10 +224,10 @@ class MicrosoftLearnIE(MicrosoftMediusBaseIE):
 
         if video_type == 'events':
             return self.url_result(
-                self._search_regex(r'<meta\s+name="externalVideoUrl"\s+content="([^"]+)"', webpage, 'videoUrl'), url_transparent=True, **metainfo, **{
-                    'timestamp': parse_iso8601(self._search_regex(
-                        r'<meta\s+name="startDate"\s+content="([^"]+)"', webpage, 'date', default=None)),
-                })
+                self._search_regex(r'<meta\s+name="externalVideoUrl"\s+content="([^"]+)"', webpage, 'videoUrl'),
+                url_transparent=True, **metainfo, timestamp=parse_iso8601(self._search_regex(
+                    r'<meta\s+name="startDate"\s+content="([^"]+)"', webpage, 'date', default=None)),
+            )
 
         entry_id = self._search_regex(r'<meta name="entryId" content="([^"]+)"', webpage, 'entryId')
         video_info = self._download_json(
