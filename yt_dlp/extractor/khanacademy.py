@@ -15,6 +15,8 @@ from ..utils import (
 class KhanAcademyBaseIE(InfoExtractor):
     _VALID_URL_TEMPL = r'https?://(?:www\.)?khanacademy\.org/(?P<id>(?:[^/]+/){%s}%s[^?#/&]+)'
 
+    _PUBLISHED_CONTENT_VERSION = '171419ab20465d931b356f22d20527f13969bb70'
+
     def _parse_video(self, video):
         return {
             '_type': 'url_transparent',
@@ -36,13 +38,13 @@ class KhanAcademyBaseIE(InfoExtractor):
             'https://www.khanacademy.org/api/internal/graphql/ContentForPath', display_id,
             query={
                 'fastly_cacheable': 'persist_until_publish',
-                'pcv': 'ed4ab10116ed36d2be4827b16479959e1d151e86',
+                'pcv': self._PUBLISHED_CONTENT_VERSION,
                 'hash': '1242644265',
                 'variables': json.dumps({
                     'path': display_id,
                     'countryCode': 'US',
                     'kaLocale': 'en',
-                    'clientPublishedContentVersion': 'ed4ab10116ed36d2be4827b16479959e1d151e86',
+                    'clientPublishedContentVersion': self._PUBLISHED_CONTENT_VERSION,
                 }),
                 'lang': 'en',
             })['data']['contentRoute']['listedPathData']
