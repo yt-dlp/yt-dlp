@@ -1,5 +1,6 @@
 from .common import InfoExtractor
 
+
 class MatchTVIE(InfoExtractor):
     _VALID_URL = r'https?://matchtv\.ru/on-air'
     _TESTS = [{
