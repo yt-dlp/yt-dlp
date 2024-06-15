@@ -137,7 +137,7 @@ class WebsocketsRH(WebSocketRequestHandler):
         wsuri = parse_uri(request.url)
         create_conn_kwargs = {
             'source_address': (self.source_address, 0) if self.source_address else None,
-            'timeout': timeout
+            'timeout': timeout,
         }
         proxy = select_proxy(request.url, self._get_proxies(request))
         try:
@@ -147,12 +147,12 @@ class WebsocketsRH(WebSocketRequestHandler):
                     address=(socks_proxy_options['addr'], socks_proxy_options['port']),
                     _create_socket_func=functools.partial(
                         create_socks_proxy_socket, (wsuri.host, wsuri.port), socks_proxy_options),
-                    **create_conn_kwargs
+                    **create_conn_kwargs,
                 )
             else:
                 sock = create_connection(
                     address=(wsuri.host, wsuri.port),
-                    **create_conn_kwargs
+                    **create_conn_kwargs,
                 )
             conn = websockets.sync.client.connect(
                 sock=sock,

@@ -6,9 +6,6 @@ import urllib.parse
 import xml.etree.ElementTree
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-)
 from ..utils import (
     ExtractorError,
     int_or_none,
@@ -99,7 +96,7 @@ class CBCIE(InfoExtractor):
         # multiple CBC.APP.Caffeine.initInstance(...)
         'url': 'http://www.cbc.ca/news/canada/calgary/dog-indoor-exercise-winter-1.3928238',
         'info_dict': {
-            'title': 'Keep Rover active during the deep freeze with doggie pushups and other fun indoor tasks',  # FIXME
+            'title': 'Keep Rover active during the deep freeze with doggie pushups and other fun indoor tasks',  # FIXME: actual title includes " | CBC News"
             'id': 'dog-indoor-exercise-winter-1.3928238',
             'description': 'md5:c18552e41726ee95bd75210d1ca9194c',
         },
@@ -108,7 +105,7 @@ class CBCIE(InfoExtractor):
 
     @classmethod
     def suitable(cls, url):
-        return False if CBCPlayerIE.suitable(url) else super(CBCIE, cls).suitable(url)
+        return False if CBCPlayerIE.suitable(url) else super().suitable(url)
 
     def _extract_player_init(self, player_init, display_id):
         player_info = self._parse_json(player_init, display_id, js_to_json)
@@ -116,15 +113,15 @@ class CBCIE(InfoExtractor):
         if not media_id:
             clip_id = player_info['clipId']
             feed = self._download_json(
-                'http://tpfeed.cbc.ca/f/ExhSPC/vms_5akSXx4Ng_Zn?byCustomValue={:mpsReleases}{%s}' % clip_id,
+                f'http://tpfeed.cbc.ca/f/ExhSPC/vms_5akSXx4Ng_Zn?byCustomValue={{:mpsReleases}}{{{clip_id}}}',
                 clip_id, fatal=False)
             if feed:
-                media_id = try_get(feed, lambda x: x['entries'][0]['guid'], compat_str)
+                media_id = try_get(feed, lambda x: x['entries'][0]['guid'], str)
             if not media_id:
                 media_id = self._download_json(
                     'http://feed.theplatform.com/f/h9dtGB/punlNGjMlc1F?fields=id&byContent=byReleases%3DbyId%253D' + clip_id,
                     clip_id)['entries'][0]['id'].split('/')[-1]
-        return self.url_result('cbcplayer:%s' % media_id, 'CBCPlayer', media_id)
+        return self.url_result(f'cbcplayer:{media_id}', 'CBCPlayer', media_id)
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
@@ -142,7 +139,7 @@ class CBCIE(InfoExtractor):
                 r'guid["\']\s*:\s*["\'](\d+)'):
             media_ids.extend(re.findall(media_id_re, webpage))
         entries.extend([
-            self.url_result('cbcplayer:%s' % media_id, 'CBCPlayer', media_id)
+            self.url_result(f'cbcplayer:{media_id}', 'CBCPlayer', media_id)
             for media_id in orderedSet(media_ids)])
         return self.playlist_result(
             entries, display_id, strip_or_none(title),
@@ -322,11 +319,11 @@ class CBCPlayerIE(InfoExtractor):
             '_type': 'url_transparent',
             'ie_key': 'ThePlatform',
             'url': smuggle_url(
-                'http://link.theplatform.com/s/ExhSPC/media/guid/2655402169/%s?mbr=true&formats=MPEG4,FLV,MP3' % video_id, {
-                    'force_smil_url': True
+                f'http://link.theplatform.com/s/ExhSPC/media/guid/2655402169/{video_id}?mbr=true&formats=MPEG4,FLV,MP3', {
+                    'force_smil_url': True,
                 }),
             'id': video_id,
-            '_format_sort_fields': ('res', 'proto')  # Prioritize direct http formats over HLS
+            '_format_sort_fields': ('res', 'proto'),  # Prioritize direct http formats over HLS
         }
 
 
@@ -338,13 +335,13 @@ class CBCPlayerPlaylistIE(InfoExtractor):
         'playlist_mincount': 25,
         'info_dict': {
             'id': 'news/tv shows/the national/latest broadcast',
-        }
+        },
     }, {
         'url': 'https://www.cbc.ca/player/news/Canada/North',
         'playlist_mincount': 25,
         'info_dict': {
             'id': 'news/canada/north',
-        }
+        },
     }]
 
     def _real_extract(self, url):
@@ -355,7 +352,7 @@ class CBCPlayerPlaylistIE(InfoExtractor):
 
         def entries():
             for video_id in traverse_obj(json_content, (
-                'video', 'clipsByCategory', lambda k, _: k.lower() == playlist_id, 'items', ..., 'id'
+                'video', 'clipsByCategory', lambda k, _: k.lower() == playlist_id, 'items', ..., 'id',
             )):
                 yield self.url_result(f'https://www.cbc.ca/player/play/{video_id}', CBCPlayerIE)
 
@@ -453,7 +450,7 @@ class CBCGemIE(InfoExtractor):
         # JWT is decoded here and 'exp' field is extracted
         # It is a Unix timestamp for when the token expires
         b64_data = self._claims_token.split('.')[1]
-        data = base64.urlsafe_b64decode(b64_data + "==")
+        data = base64.urlsafe_b64decode(b64_data + '==')
         return json.loads(data)['exp']
 
     def claims_token_expired(self):
@@ -535,17 +532,17 @@ class CBCGemIE(InfoExtractor):
         self._remove_duplicate_formats(formats)
         formats.extend(self._find_secret_formats(formats, video_id))
 
-        for format in formats:
-            if format.get('vcodec') == 'none':
-                if format.get('ext') is None:
-                    format['ext'] = 'm4a'
-                if format.get('acodec') is None:
-                    format['acodec'] = 'mp4a.40.2'
+        for fmt in formats:
+            if fmt.get('vcodec') == 'none':
+                if fmt.get('ext') is None:
+                    fmt['ext'] = 'm4a'
+                if fmt.get('acodec') is None:
+                    fmt['acodec'] = 'mp4a.40.2'
 
                 # Put described audio at the beginning of the list, so that it
                 # isn't chosen by default, as most people won't want it.
-                if 'descriptive' in format['format_id'].lower():
-                    format['preference'] = -2
+                if 'descriptive' in fmt['format_id'].lower():
+                    fmt['preference'] = -2
 
         return {
             'id': video_id,
@@ -670,7 +667,7 @@ class CBCGemLiveIE(InfoExtractor):
                 'title': r're:^Ottawa [0-9\-: ]+',
                 'description': 'The live TV channel and local programming from Ottawa',
                 'live_status': 'is_live',
-                'thumbnail': r're:https://images.gem.cbc.ca/v1/cbc-gem/live/.*'
+                'thumbnail': r're:https://images.gem.cbc.ca/v1/cbc-gem/live/.*',
             },
             'params': {'skip_download': True},
             'skip': 'Live might have ended',
@@ -690,7 +687,7 @@ class CBCGemLiveIE(InfoExtractor):
             },
             'params': {'skip_download': True},
             'skip': 'Live might have ended',
-        }
+        },
     ]
 
     def _real_extract(self, url):
@@ -729,5 +726,5 @@ class CBCGemLiveIE(InfoExtractor):
                 'description': 'description',
                 'thumbnail': ('images', 'card', 'url'),
                 'timestamp': ('airDate', {parse_iso8601}),
-            })
+            }),
         }

@@ -19,7 +19,7 @@ class PornoXOIE(InfoExtractor):
             'categories': list,  # NSFW
             'thumbnail': r're:https?://.*\.jpg$',
             'age_limit': 18,
-        }
+        },
     }
 
     def _real_extract(self, url):

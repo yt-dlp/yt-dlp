@@ -21,8 +21,8 @@ from ..utils import (
 class QQMusicBaseIE(InfoExtractor):
     def _get_g_tk(self):
         n = 5381
-        for chr in self._get_cookies('https://y.qq.com').get('qqmusic_key', ''):
-            n += (n << 5) + ord(chr)
+        for c in self._get_cookies('https://y.qq.com').get('qqmusic_key', ''):
+            n += (n << 5) + ord(c)
         return n & 2147483647
 
     def _get_uin(self):
@@ -48,9 +48,8 @@ class QQMusicBaseIE(InfoExtractor):
                 'format': 'json',
                 'uin': self._get_uin(),
             },
-            **req_dict
+            **req_dict,
         }, separators=(',', ':')).encode('utf-8')
-
         return self._download_json('https://u.y.qq.com/cgi-bin/musicu.fcg',
                                    mid, data=payload, **kwargs)
 
@@ -144,7 +143,7 @@ class QQMusicIE(QQMusicBaseIE):
             'param': {
                 'song_mid': mid,
                 'song_type': 0,
-            }
+            },
         }}, mid, note='Downloading song info')['info']['data']['track_info']
 
         media_mid = info_data['file']['media_mid']
@@ -161,7 +160,7 @@ class QQMusicIE(QQMusicBaseIE):
                     'loginflag': 1,
                     'platform': '20',
                     'filename': [f'{f["prefix"]}{media_mid}.{f["ext"]}' for f in self._FORMATS.values()],
-                }
+                },
             },
             'req_2': {
                 'module': 'music.musichallSong.PlayLyricInfo',
@@ -251,7 +250,7 @@ class QQMusicSingerIE(QQMusicBaseIE):
     def _entries(self, mid, init_data):
         page_size = 50
         max_num = traverse_obj(init_data, ('singerDetail', 'songTotalNum'))
-        for page in range(0, max_num // page_size + 1):
+        for page in range(max_num // page_size + 1):
             data = self.make_fcu_req({'req_1': {
                 'module': 'music.web_singer_info_svr',
                 'method': 'get_singer_detail_info',
@@ -427,12 +426,11 @@ class QQMusicVideoIE(QQMusicBaseIE):
     }]
 
     def _parse_url_formats(self, url_data):
-        formats = traverse_obj(url_data, ('mp4', lambda _, v: v.get('freeflow_url'), {
+        return traverse_obj(url_data, ('mp4', lambda _, v: v.get('freeflow_url'), {
             'url': ('freeflow_url', 0, {url_or_none}),
             'filesize': ('fileSize', {int_or_none}),
             'format_id': ('newFileType', {str_or_none}),
         }))
-        return formats
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -446,14 +444,14 @@ class QQMusicVideoIE(QQMusicBaseIE):
                     'required': [
                         'vid', 'type', 'sid', 'cover_pic', 'duration', 'singers',
                         'video_pay', 'hint', 'code', 'msg', 'name', 'desc',
-                        'playcnt', 'pubdate', 'play_forbid_reason']
-                }
+                        'playcnt', 'pubdate', 'play_forbid_reason'],
+                },
             },
             'mvUrl': {
                 'module': 'music.stream.MvUrlProxy',
                 'method': 'GetMvUrls',
-                'param': {'vids': [video_id]}
-            }
+                'param': {'vids': [video_id]},
+            },
         }, video_id)
         if traverse_obj(video_info, ('mvInfo', 'data', video_id, 'play_forbid_reason')) == 3:
             self.raise_geo_restricted()

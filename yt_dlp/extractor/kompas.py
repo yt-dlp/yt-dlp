@@ -16,7 +16,7 @@ class KompasVideoIE(JixieBaseIE):
             'categories': ['news'],
             'thumbnail': 'https://video.jixie.media/1001/164474/164474_1280x720.jpg',
             'tags': 'count:9',
-        }
+        },
     }]
 
     def _real_extract(self, url):

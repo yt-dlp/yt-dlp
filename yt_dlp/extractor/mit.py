@@ -28,7 +28,7 @@ class TechTVMITIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         raw_page = self._download_webpage(
-            'http://techtv.mit.edu/videos/%s' % video_id, video_id)
+            f'http://techtv.mit.edu/videos/{video_id}', video_id)
         clean_page = re.compile(r'<!--.*?-->', re.S).sub('', raw_page)
 
         base_url = self._proto_relative_url(self._search_regex(
@@ -79,7 +79,7 @@ class OCWMITIE(InfoExtractor):
                 'upload_date': '20121109',
                 'uploader_id': 'MIT',
                 'uploader': 'MIT OpenCourseWare',
-            }
+            },
         },
         {
             'url': 'http://ocw.mit.edu/courses/mathematics/18-01sc-single-variable-calculus-fall-2010/1.-differentiation/part-a-definition-and-basic-rules/session-1-introduction-to-derivatives/',
@@ -91,8 +91,8 @@ class OCWMITIE(InfoExtractor):
                 'uploader_id': 'MIT',
                 'uploader': 'MIT OpenCourseWare',
                 'description': 'This section contains lecture video excerpts, lecture notes, an interactive mathlet with supporting documents, and problem solving videos.',
-            }
-        }
+            },
+        },
     ]
 
     def _real_extract(self, url):

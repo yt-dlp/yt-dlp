@@ -26,8 +26,8 @@ class TheGuardianPodcastIE(InfoExtractor):
             'description': 'md5:cfd3df2791d394d2ab62cd571d5207ee',
             'creator': 'Stephen Buranyi',
             'thumbnail': 'md5:73c12558fcb3b0e2a59422bfb33b3f79',
-            'release_date': '20231103'
-        }
+            'release_date': '20231103',
+        },
     }, {
         'url': 'https://www.theguardian.com/news/audio/2023/oct/30/the-trials-of-robert-habeck-is-the-worlds-most-powerful-green-politician-doomed-to-fail-podcast',
         'md5': 'd1771744681789b4cd7da2a08e487702',
@@ -38,8 +38,8 @@ class TheGuardianPodcastIE(InfoExtractor):
             'description': 'md5:1b5cf6582d1771c6b7077784b5456994',
             'creator': 'Philip Oltermann',
             'thumbnail': 'md5:6e5c5ec43843e956e20be793722e9080',
-            'release_date': '20231030'
-        }
+            'release_date': '20231030',
+        },
     }, {
         'url': 'https://www.theguardian.com/football/audio/2023/nov/06/arsenal-feel-hard-done-by-and-luton-hold-liverpool-football-weekly',
         'md5': 'a2fcff6f8e060a95b1483295273dc35e',
@@ -50,8 +50,8 @@ class TheGuardianPodcastIE(InfoExtractor):
             'description': 'md5:286a9fbddaeb7c83cc65d1c4a5330b2a',
             'creator': 'Max Rushden',
             'thumbnail': 'md5:93eb7d6440f1bb94eb3a6cad63f48afd',
-            'release_date': '20231106'
-        }
+            'release_date': '20231106',
+        },
     }, {
         'url': 'https://www.theguardian.com/politics/audio/2023/nov/02/the-covid-inquiry-politics-weekly-uk-podcast',
         'md5': '06a0f7e9701a80c8064a5d35690481ec',
@@ -62,8 +62,8 @@ class TheGuardianPodcastIE(InfoExtractor):
             'description': 'md5:207c98859c14903582b17d25b014046e',
             'creator': 'Gaby Hinsliff',
             'thumbnail': 'md5:28932a7b5a25b057be330d2ed70ea7f3',
-            'release_date': '20231102'
-        }
+            'release_date': '20231102',
+        },
     }]
 
     def _real_extract(self, url):
@@ -88,25 +88,25 @@ class TheGuardianPodcastPlaylistIE(InfoExtractor):
         'info_dict': {
             'id': 'theguardianswomensfootballweekly',
             'title': "The Guardian's Women's Football Weekly",
-            'description': 'md5:e2cc021311e582d29935a73614a43f51'
+            'description': 'md5:e2cc021311e582d29935a73614a43f51',
         },
-        'playlist_mincount': 69
+        'playlist_mincount': 69,
     }, {
         'url': 'https://www.theguardian.com/news/series/todayinfocus?page=2',
         'info_dict': {
             'id': 'todayinfocus',
             'title': 'Today in Focus',
-            'description': 'md5:0f097764fc0d359e0b6eb537be0387e2'
+            'description': 'md5:0f097764fc0d359e0b6eb537be0387e2',
         },
-        'playlist_mincount': 1261
+        'playlist_mincount': 1261,
     }, {
         'url': 'https://www.theguardian.com/news/series/the-audio-long-read',
         'info_dict': {
             'id': 'the-audio-long-read',
             'title': 'The Audio Long Read',
-            'description': 'md5:5462994a27527309562b25b6defc4ef3'
+            'description': 'md5:5462994a27527309562b25b6defc4ef3',
         },
-        'playlist_mincount': 996
+        'playlist_mincount': 996,
     }]
 
     def _entries(self, url, playlist_id):
@@ -117,8 +117,7 @@ class TheGuardianPodcastPlaylistIE(InfoExtractor):
                 break
 
             episodes = get_elements_html_by_class('fc-item--type-media', webpage)
-            for url_path in traverse_obj(episodes, (..., {extract_attributes}, 'data-id')):
-                yield url_path
+            yield from traverse_obj(episodes, (..., {extract_attributes}, 'data-id'))
 
     def _real_extract(self, url):
         podcast_id = self._match_id(url)

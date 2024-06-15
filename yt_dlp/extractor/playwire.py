@@ -48,7 +48,7 @@ class PlaywireIE(InfoExtractor):
         publisher_id, video_id = mobj.group('publisher_id'), mobj.group('id')
 
         player = self._download_json(
-            'http://config.playwire.com/%s/videos/v2/%s/zeus.json' % (publisher_id, video_id),
+            f'http://config.playwire.com/{publisher_id}/videos/v2/{video_id}/zeus.json',
             video_id)
 
         title = player['settings']['title']

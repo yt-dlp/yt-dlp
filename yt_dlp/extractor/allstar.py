@@ -33,27 +33,27 @@ _QUERIES = {
         video: getClip(clipIdentifier: $id) {
             %s %s
         }
-    }''' % (_FIELDS, _EXTRA_FIELDS),
+    }''' % (_FIELDS, _EXTRA_FIELDS),  # noqa: UP031
     'montage': '''query ($id: String!) {
         video: getMontage(clipIdentifier: $id) {
             %s
         }
-    }''' % _FIELDS,
+    }''' % _FIELDS,  # noqa: UP031
     'Clips': '''query ($page: Int!, $user: String!, $game: Int) {
         videos: clips(search: createdDate, page: $page, user: $user, mobile: false, game: $game) {
             data { %s %s }
         }
-    }''' % (_FIELDS, _EXTRA_FIELDS),
+    }''' % (_FIELDS, _EXTRA_FIELDS),  # noqa: UP031
     'Montages': '''query ($page: Int!, $user: String!) {
         videos: montages(search: createdDate, page: $page, user: $user) {
             data { %s }
         }
-    }''' % _FIELDS,
+    }''' % _FIELDS,  # noqa: UP031
     'Mobile Clips': '''query ($page: Int!, $user: String!) {
         videos: clips(search: createdDate, page: $page, user: $user, mobile: true) {
             data { %s %s }
         }
-    }''' % (_FIELDS, _EXTRA_FIELDS),
+    }''' % (_FIELDS, _EXTRA_FIELDS),  # noqa: UP031
 }
 
 
@@ -121,7 +121,7 @@ class AllstarIE(AllstarBaseIE):
             'uploader_url': 'https://allstar.gg/u/62b8bdfc9021052f7905882d',
             'upload_date': '20230425',
             'view_count': int,
-        }
+        },
     }, {
         'url': 'https://allstar.gg/clip?clip=8LJLY4JKB',
         'info_dict': {
@@ -139,7 +139,7 @@ class AllstarIE(AllstarBaseIE):
             'uploader_url': 'https://allstar.gg/u/62b8bdfc9021052f7905882d',
             'upload_date': '20230702',
             'view_count': int,
-        }
+        },
     }, {
         'url': 'https://allstar.gg/montage?montage=643e64089da7e9363e1fa66c',
         'info_dict': {
@@ -155,7 +155,7 @@ class AllstarIE(AllstarBaseIE):
             'uploader_url': 'https://allstar.gg/u/62b8bdfc9021052f7905882d',
             'upload_date': '20230418',
             'view_count': int,
-        }
+        },
     }, {
         'url': 'https://allstar.gg/montage?montage=RILJMH6QOS',
         'info_dict': {
@@ -171,7 +171,7 @@ class AllstarIE(AllstarBaseIE):
             'uploader_url': 'https://allstar.gg/u/62b8bdfc9021052f7905882d',
             'upload_date': '20230703',
             'view_count': int,
-        }
+        },
     }]
 
     def _real_extract(self, url):
@@ -191,28 +191,28 @@ class AllstarProfileIE(AllstarBaseIE):
             'id': '62b8bdfc9021052f7905882d-clips',
             'title': 'cherokee - Clips',
         },
-        'playlist_mincount': 15
+        'playlist_mincount': 15,
     }, {
         'url': 'https://allstar.gg/u/cherokee?game=730&view=Clips',
         'info_dict': {
             'id': '62b8bdfc9021052f7905882d-clips-730',
             'title': 'cherokee - Clips - 730',
         },
-        'playlist_mincount': 15
+        'playlist_mincount': 15,
     }, {
         'url': 'https://allstar.gg/u/62b8bdfc9021052f7905882d?view=Montages',
         'info_dict': {
             'id': '62b8bdfc9021052f7905882d-montages',
             'title': 'cherokee - Montages',
         },
-        'playlist_mincount': 4
+        'playlist_mincount': 4,
     }, {
         'url': 'https://allstar.gg/profile?user=cherokee&view=Mobile Clips',
         'info_dict': {
             'id': '62b8bdfc9021052f7905882d-mobile',
             'title': 'cherokee - Mobile Clips',
         },
-        'playlist_mincount': 1
+        'playlist_mincount': 1,
     }]
 
     _PAGE_SIZE = 10

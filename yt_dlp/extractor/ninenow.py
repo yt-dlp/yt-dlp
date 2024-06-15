@@ -1,5 +1,4 @@
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     ExtractorError,
     float_or_none,
@@ -55,7 +54,7 @@ class NineNowIE(InfoExtractor):
         'expected_warnings': ['Ignoring subtitle tracks'],
         'params': {
             'skip_download': True,
-        }
+        },
     }]
     BRIGHTCOVE_URL_TEMPLATE = 'http://players.brightcove.net/4460760524001/default_default/index.html?videoId=%s'
 
@@ -72,15 +71,15 @@ class NineNowIE(InfoExtractor):
 
         for kind in ('episode', 'clip'):
             current_key = page_data.get(kind, {}).get(
-                'current%sKey' % kind.capitalize())
+                f'current{kind.capitalize()}Key')
             if not current_key:
                 continue
-            cache = page_data.get(kind, {}).get('%sCache' % kind, {})
+            cache = page_data.get(kind, {}).get(f'{kind}Cache', {})
             if not cache:
                 continue
             common_data = {
-                'episode': (cache.get(current_key) or list(cache.values())[0])[kind],
-                'season': (cache.get(current_key) or list(cache.values())[0]).get('season', None)
+                'episode': (cache.get(current_key) or next(iter(cache.values())))[kind],
+                'season': (cache.get(current_key) or next(iter(cache.values()))).get('season', None),
             }
             break
         else:
@@ -89,14 +88,14 @@ class NineNowIE(InfoExtractor):
         if not self.get_param('allow_unplayable_formats') and try_get(common_data, lambda x: x['episode']['video']['drm'], bool):
             self.report_drm(display_id)
         brightcove_id = try_get(
-            common_data, lambda x: x['episode']['video']['brightcoveId'], compat_str) or 'ref:%s' % common_data['episode']['video']['referenceId']
+            common_data, lambda x: x['episode']['video']['brightcoveId'], str) or 'ref:{}'.format(common_data['episode']['video']['referenceId'])
         video_id = str_or_none(try_get(common_data, lambda x: x['episode']['video']['id'])) or brightcove_id
 
-        title = try_get(common_data, lambda x: x['episode']['name'], compat_str)
+        title = try_get(common_data, lambda x: x['episode']['name'], str)
         season_number = try_get(common_data, lambda x: x['season']['seasonNumber'], int)
         episode_number = try_get(common_data, lambda x: x['episode']['episodeNumber'], int)
-        timestamp = unified_timestamp(try_get(common_data, lambda x: x['episode']['airDate'], compat_str))
-        release_date = unified_strdate(try_get(common_data, lambda x: x['episode']['availability'], compat_str))
+        timestamp = unified_timestamp(try_get(common_data, lambda x: x['episode']['airDate'], str))
+        release_date = unified_strdate(try_get(common_data, lambda x: x['episode']['availability'], str))
         thumbnails_data = try_get(common_data, lambda x: x['episode']['image']['sizes'], dict) or {}
         thumbnails = [{
             'id': thumbnail_id,
@@ -111,7 +110,7 @@ class NineNowIE(InfoExtractor):
                 {'geo_countries': self._GEO_COUNTRIES}),
             'id': video_id,
             'title': title,
-            'description': try_get(common_data, lambda x: x['episode']['description'], compat_str),
+            'description': try_get(common_data, lambda x: x['episode']['description'], str),
             'duration': float_or_none(try_get(common_data, lambda x: x['episode']['video']['duration'], float), 1000),
             'thumbnails': thumbnails,
             'ie_key': 'BrightcoveNew',

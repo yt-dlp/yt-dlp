@@ -13,7 +13,7 @@ class ElTreceTVIE(InfoExtractor):
                 'ext': 'mp4',
                 'title': 'AHORA CAIGO - Programa 06/10/23',
                 'thumbnail': 'https://thumbs.vodgc.net/AHCA05102023145553329621094.JPG?649339',
-            }
+            },
         },
         {
             'url': 'https://www.eltrecetv.com.ar/poco-correctos/capitulos/temporada-2023/programa-del-250923-invitada-dalia-gutmann/',
@@ -34,7 +34,7 @@ class ElTreceTVIE(InfoExtractor):
         {
             'url': 'https://www.eltrecetv.com.ar/el-galpon/capitulos/temporada-2023/programa-del-160923-invitado-raul-lavie/',
             'only_matching': True,
-        }
+        },
     ]
 
     def _real_extract(self, url):
