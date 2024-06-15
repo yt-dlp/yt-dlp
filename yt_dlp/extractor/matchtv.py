@@ -1,8 +1,4 @@
-import random
-
 from .common import InfoExtractor
-from ..utils import xpath_text
-
 
 class MatchTVIE(InfoExtractor):
     _VALID_URL = r'https?://matchtv\.ru/on-air'
@@ -24,7 +20,7 @@ class MatchTVIE(InfoExtractor):
         webpage_url = 'https://video.matchtv.ru/iframe/channel/106'
         webpage = self._download_webpage(webpage_url, video_id)
         video_url = self._html_search_regex(
-            r'data-config="config=([^?]*)?', webpage, u'video URL').replace('feed', 'media') + '.m3u8'
+            r'data-config="config=([^?]*)?', webpage, 'video URL').replace('feed', 'media') + '.m3u8'
         formats = self._extract_m3u8_formats(video_url, video_id, 'mp4')
         return {
             'id': video_id,
