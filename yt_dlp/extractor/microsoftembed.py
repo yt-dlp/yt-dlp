@@ -254,14 +254,14 @@ class MicrosoftBuildIE(MicrosoftMediusBaseIE):
     ]
 
     _TESTS = [{
-        'url': 'https://build.microsoft.com/en-US/sessions/49e81029-20f0-485b-b641-73b7f9622656?source=sessions',
+        'url': 'https://build.microsoft.com/en-US/sessions/b49feb31-afcd-4217-a538-d3ca1d171198?source=sessions',
         'info_dict': {
-            'id': '81215af5-c813-4dcd-aede-94f4e1a7daa3',
+            'id': 'aee55fb5-fcf9-4b38-b764-a3527cb57554',
             'ext': 'ismv',
-            'title': 'Microsoft Build opening',
-            'description': 'md5:756ab1fb60bdc6923d627803694e9cc5',
-            'timestamp': 1684857600,
-            'upload_date': '20230523',
+            'title': 'Microsoft Build opening keynote',
+            'description': 'md5:d38338f336ef4b6ef9ad2a7466a76655',
+            'timestamp': 1716307200,
+            'upload_date': '20240521',
             'thumbnail': r're:https://mediusimg\.event\.microsoft\.com/video-\d+/thumbnail\.jpg.*',
         },
     }, {
@@ -283,7 +283,7 @@ class MicrosoftBuildIE(MicrosoftMediusBaseIE):
                 'timestamp': ('startDateTime', {parse_iso8601}),
             }))
             for video_info in self._download_json(
-                'https://api.build.microsoft.com/api/session/all/en-US', video_id, 'Downloading video info')
+                'https://api-v2.build.microsoft.com/api/session/all/en-US', video_id, 'Downloading video info')
         ]
         if video_id == 'sessions':
             return self.playlist_result(entries, video_id)
