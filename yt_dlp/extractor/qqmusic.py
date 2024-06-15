@@ -19,14 +19,21 @@ from ..utils import (
 
 
 class QQMusicBaseIE(InfoExtractor):
+    def _get_cookie(self, key, default=None):
+        return getattr(self._get_cookies('https://y.qq.com').get(key), 'value', default)
+
     def _get_g_tk(self):
         n = 5381
-        for c in self._get_cookies('https://y.qq.com').get('qqmusic_key', ''):
+        for c in self._get_cookie('qqmusic_key', ''):
             n += (n << 5) + ord(c)
         return n & 2147483647
 
     def _get_uin(self):
-        return int_or_none(self._get_cookies('https://y.qq.com').get('o_cookie')) or 0
+        return int_or_none(self._get_cookie('uin')) or 0
+
+    @property
+    def is_logged_in(self):
+        return bool(self._get_uin() and self._get_cookie('fqm_pvqid'))
 
     # Reference: m_r_GetRUin() in top_player.js
     # http://imgcache.gtimg.cn/music/portal_v3/y/top_player.js
@@ -180,6 +187,9 @@ class QQMusicIE(QQMusicBaseIE):
             'quality': ('filename', {lambda x: self._FORMATS[x[:4]]['preference']}),
             'abr': ('filename', {lambda x: self._FORMATS[x[:4]]['abr']}),
         }))
+
+        if not formats and not self.is_logged_in:
+            self.raise_login_required()
 
         if traverse_obj(data, ('req_2', 'code')):
             self.report_warning(f'Failed to download lyric, error {data["req_2"]["code"]}')
