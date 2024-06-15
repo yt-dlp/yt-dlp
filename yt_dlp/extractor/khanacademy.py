@@ -95,7 +95,7 @@ class KhanAcademyIE(KhanAcademyBaseIE):
             **self._parse_video(video),
             **traverse_obj(video, {
                 'creators': ('authorNames', ..., {str}),
-                'timestamp': ('dateAdded', {str}, {parse_iso8601}),
+                'timestamp': ('dateAdded', {parse_iso8601}),
                 'license': ('kaUserLicense', {str}),
             }),
         }
@@ -129,7 +129,7 @@ class KhanAcademyUnitIE(KhanAcademyBaseIE):
     def _parse_component_props(self, component_props, display_id):
         course = component_props['course']
         selected_unit = traverse_obj(course, (
-            'unitChildren', lambda _, v: v['relativeUrl'] == f'/{display_id}'), get_all=False) or course
+            'unitChildren', lambda _, v: v['relativeUrl'] == f'/{display_id}', any)) or course
 
         def build_entry(entry):
             return self.url_result(urljoin(
@@ -147,5 +147,5 @@ class KhanAcademyUnitIE(KhanAcademyBaseIE):
                 'id': ('id', {str}),
                 'title': ('translatedTitle', {str}),
                 'description': ('translatedDescription', {str}),
-                '_old_archive_ids': ('slug', {str}, {lambda x: [make_archive_id(self, x)]}),
+                '_old_archive_ids': ('slug', {str}, {lambda x: [make_archive_id(self, x)] if x else None}),
             }))
