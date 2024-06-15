@@ -885,14 +885,14 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         return count
 
     @staticmethod
-    def _extract_thumbnails(data, *path_list):
+    def _extract_thumbnails(data, *path_list, final_key='thumbnails'):
         """
         Extract thumbnails from thumbnails dict
         @param path_list: path list to level that contains 'thumbnails' key
         """
         thumbnails = []
         for path in path_list or [()]:
-            for thumbnail in traverse_obj(data, (*variadic(path), 'thumbnails', ...)):
+            for thumbnail in traverse_obj(data, (*variadic(path), final_key, ...)):
                 thumbnail_url = url_or_none(thumbnail.get('url'))
                 if not thumbnail_url:
                     continue
@@ -5124,6 +5124,10 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         else:
             metadata_renderer = traverse_obj(data, ('metadata', 'playlistMetadataRenderer'), expected_type=dict)
 
+        # pageHeaderViewModel slow rollout began April 2024
+        page_header_view_model = traverse_obj(data, (
+            'header', 'pageHeaderRenderer', 'content', 'pageHeaderViewModel', {dict}))
+
         # We can get the uncropped banner/avatar by replacing the crop params with '=s0'
         # See: https://github.com/yt-dlp/yt-dlp/issues/2237#issuecomment-1013694714
         def _get_uncropped(url):
@@ -5139,8 +5143,10 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                     'preference': 1,
                 })
 
-        channel_banners = self._extract_thumbnails(
-            data, ('header', ..., ('banner', 'mobileBanner', 'tvBanner')))
+        channel_banners = (
+            self._extract_thumbnails(data, ('header', ..., ('banner', 'mobileBanner', 'tvBanner')))
+            or self._extract_thumbnails(
+                page_header_view_model, ('banner', 'imageBannerViewModel', 'image'), final_key='sources'))
         for banner in channel_banners:
             banner['preference'] = -10
 
@@ -5167,7 +5173,11 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                       or self._get_text(data, ('header', 'hashtagHeaderRenderer', 'hashtag'))
                       or info['id']),
             'availability': self._extract_availability(data),
-            'channel_follower_count': self._get_count(data, ('header', ..., 'subscriberCountText')),
+            'channel_follower_count': (
+                self._get_count(data, ('header', ..., 'subscriberCountText'))
+                or traverse_obj(page_header_view_model, (
+                    'metadata', 'contentMetadataViewModel', 'metadataRows', ..., 'metadataParts',
+                    lambda _, v: 'subscribers' in v['text']['content'], 'text', 'content', {parse_count}, any))),
             'description': try_get(metadata_renderer, lambda x: x.get('description', '')),
             'tags': (traverse_obj(data, ('microformat', 'microformatDataRenderer', 'tags', ..., {str}))
                      or traverse_obj(metadata_renderer, ('keywords', {lambda x: x and shlex.split(x)}, ...))),
