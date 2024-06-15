@@ -221,7 +221,7 @@ class NRKIE(NRKBaseIE):
                 'url': sub_url,
             })
 
-        chapters = None
+        chapters = []
         if data.get('skipDialogInfo'):
             chapters = [item for item in [{
                     'start_time': float_or_none(traverse_obj(data, ('skipDialogInfo', 'startIntroInSeconds'))),
