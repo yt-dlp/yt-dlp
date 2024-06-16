@@ -41,6 +41,30 @@ class SproutVideoIE(InfoExtractor):
             'duration': 703,
             'thumbnail': r're:https?://images\.sproutvideo\.com/.+\.jpg',
         },
+    }, {
+        # http formats 'sd' and 'hd' are available
+        'url': 'https://videos.sproutvideo.com/embed/119cd6bc1a18e6cd98/30751a1761ae5b90',
+        'md5': 'f368c78df07e78a749508b221528672c',
+        'info_dict': {
+            'id': '119cd6bc1a18e6cd98',
+            'ext': 'mp4',
+            'title': '3. Updating your Partner details',
+            'thumbnail': r're:https?://images\.sproutvideo\.com/.+\.jpg',
+            'duration': 60,
+        },
+        'params': {'format': 'hd'},
+    }, {
+        # subtitles
+        'url': 'https://videos.sproutvideo.com/embed/119dd8ba121ee0cc98/4ee50c88a343215d?type=hd',
+        'md5': '7f6798f037d7a3e3e07e67959de68fc6',
+        'info_dict': {
+            'id': '119dd8ba121ee0cc98',
+            'ext': 'mp4',
+            'title': 'Recipients Setup - Domestic Wire Only',
+            'thumbnail': r're:https?://images\.sproutvideo\.com/.+\.jpg',
+            'duration': 77,
+            'subtitles': {'en': 'count:1'},
+        },
     }]
     _WEBPAGE_TESTS = [{
         'url': 'https://www.solidarum.org/vivre-ensemble/adrien-labaeye-berlin-des-communautes-aux-communs',
