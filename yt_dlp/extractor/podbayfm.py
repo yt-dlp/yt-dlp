@@ -47,7 +47,7 @@ class PodbayFMIE(InfoExtractor):
 
 
 class PodbayFMChannelIE(InfoExtractor):
-    _VALID_URL = r'https?://podbay\.fm/p/(?P<id>[^/?#]+)'
+    _VALID_URL = r'https?://podbay\.fm/p/(?P<id>[^/?#]+)/?(?:$|[?#])'
     _TESTS = [{
         'url': 'https://podbay.fm/p/behind-the-bastards',
         'info_dict': {
