@@ -77,7 +77,7 @@ class SproutVideoIE(InfoExtractor):
             r'var\s+dat\s*=\s*["\']', webpage, 'data', video_id, contains_pattern=r'[A-Za-z0-9+/=]+',
             end_pattern=r'["\'];', transform_source=lambda x: base64.b64decode(x).decode())
 
-        query = SproutVideoIE._policy_to_qs(data, 'm')
+        query = self._policy_to_qs(data, 'm')
         headers = {
             'Accept': '*/*',
             'Origin': 'https://videos.sproutvideo.com',
@@ -93,8 +93,8 @@ class SproutVideoIE(InfoExtractor):
         return {
             'id': video_id,
             'formats': formats,
-            'extra_param_to_segment_url': SproutVideoIE._policy_to_qs(data, 't', as_string=True),
-            'extra_param_to_key_url': SproutVideoIE._policy_to_qs(data, 'k', as_string=True),
+            'extra_param_to_segment_url': self._policy_to_qs(data, 't', as_string=True),
+            'extra_param_to_key_url': self._policy_to_qs(data, 'k', as_string=True),
             'http_headers': headers,
             **traverse_obj(data, {
                 'title': ('title', {str}),
