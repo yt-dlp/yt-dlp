@@ -110,6 +110,7 @@ class SproutVideoIE(InfoExtractor):
             'Referer': url,
         }
 
+        # HLS extraction is fatal; only attempt it if the JSON data says it's available
         if traverse_obj(data, 'hls'):
             manifest_query = self._policy_to_qs(data, 'm')
             fragment_query = self._policy_to_qs(data, 't', as_string=True)
@@ -127,7 +128,7 @@ class SproutVideoIE(InfoExtractor):
 
         if downloads := traverse_obj(data, ('downloads', {dict.items}, lambda _, v: url_or_none(v[1]))):
             quality = qualities(self._QUALITIES)
-            acodec = 'none' if traverse_obj(data, 'has_audio') is False else None
+            acodec = 'none' if data.get('has_audio') is False else None
             formats.extend([{
                 'format_id': str(format_id),
                 'url': format_url,
