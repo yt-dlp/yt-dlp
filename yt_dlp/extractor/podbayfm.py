@@ -24,7 +24,7 @@ def result_from_props(props):
 
 
 class PodbayFMIE(InfoExtractor):
-    _VALID_URL = r'https?://podbay\.fm/p/[^/]*/e/(?P<id>[^/]*)/?(?:[\?#].*)?$'
+    _VALID_URL = r'https?://podbay\.fm/p/[^/?#]+/e/(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://podbay.fm/p/behind-the-bastards/e/1647338400',
         'md5': '895ac8505de349515f5ee8a4a3195c93',
@@ -47,7 +47,7 @@ class PodbayFMIE(InfoExtractor):
 
 
 class PodbayFMChannelIE(InfoExtractor):
-    _VALID_URL = r'https?://podbay\.fm/p/(?P<id>[^/]*)/?(?:[\?#].*)?$'
+    _VALID_URL = r'https?://podbay\.fm/p/(?P<id>[^/?#]+)'
     _TESTS = [{
         'url': 'https://podbay.fm/p/behind-the-bastards',
         'info_dict': {
