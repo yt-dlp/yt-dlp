@@ -1,6 +1,7 @@
 from .common import InfoExtractor
 from ..utils import (
     OnDemandPagedList,
+    clean_html,
     int_or_none,
     jwt_decode_hs256,
     url_or_none,
@@ -14,6 +15,7 @@ def result_from_props(props):
             'id': ('_id', {str}),
             'title': ('title', {str}),
             'url': ('mediaURL', {url_or_none}),
+            'description': ('description', {clean_html}),
             'thumbnail': ('image', {jwt_decode_hs256}, 'url', {url_or_none}),
             'timestamp': ('timestamp', {int_or_none}),
             'duration': ('duration', {int_or_none}),
@@ -32,6 +34,7 @@ class PodbayFMIE(InfoExtractor):
             'id': '62306451f4a48e58d0c4d6a8',
             'title': 'Part One: Kissinger',
             'ext': 'mp3',
+            'description': r're:^We begin our epic six part series on Henry Kissinger.+',
             'thumbnail': r're:^https?://.*\.jpg',
             'timestamp': 1647338400,
             'duration': 5001,
