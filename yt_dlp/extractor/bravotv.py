@@ -185,5 +185,5 @@ class BravoTVIE(AdobePassIE):
                 'episode_number': ('episodeNumber', {int_or_none}),
                 'episode': 'episodeTitle',
                 'series': 'show',
-            }))
+            })),
         }

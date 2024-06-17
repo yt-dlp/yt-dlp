@@ -24,7 +24,7 @@ class TVCIE(InfoExtractor):
         video_id = self._match_id(url)
 
         video = self._download_json(
-            'http://www.tvc.ru/video/json/id/%s' % video_id, video_id)
+            f'http://www.tvc.ru/video/json/id/{video_id}', video_id)
 
         formats = []
         for info in video.get('path', {}).get('quality', []):

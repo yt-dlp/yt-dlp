@@ -1,10 +1,10 @@
+import re
+
 from .common import InfoExtractor
 from ..utils import (
     parse_iso8601,
     qualities,
 )
-
-import re
 
 
 class ClippitIE(InfoExtractor):
@@ -23,7 +23,7 @@ class ClippitIE(InfoExtractor):
             'upload_date': '20160826',
             'description': 'BattleBots | ABC',
             'thumbnail': r're:^https?://.*\.jpg$',
-        }
+        },
     }
 
     def _real_extract(self, url):
@@ -36,7 +36,7 @@ class ClippitIE(InfoExtractor):
         quality = qualities(FORMATS)
         formats = []
         for format_id in FORMATS:
-            url = self._html_search_regex(r'data-%s-file="(.+?)"' % format_id,
+            url = self._html_search_regex(rf'data-{format_id}-file="(.+?)"',
                                           webpage, 'url', fatal=False)
             if not url:
                 continue

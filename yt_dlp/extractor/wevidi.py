@@ -15,7 +15,7 @@ class WeVidiIE(InfoExtractor):
             'description': 'md5:73a27d0a87d49fbcc5584566326ebeed',
             'uploader': 'eclecRC',
             'duration': 932.098,
-        }
+        },
     }, {
         'url': 'https://wevidi.net/watch/ievRuuQHbPS',
         'md5': 'ce8a94989a959bff9003fa27ee572935',
@@ -27,7 +27,7 @@ class WeVidiIE(InfoExtractor):
             'description': 'md5:32cdfca272687390d9bd9b0c9c6153ee',
             'uploader': 'WeVidi',
             'duration': 36.1999,
-        }
+        },
     }, {
         'url': 'https://wevidi.net/watch/PcMzDWaQSWb',
         'md5': '55ee0d3434be5d9e5cc76b83f2bb57ec',
@@ -39,7 +39,7 @@ class WeVidiIE(InfoExtractor):
             'description': 'md5:e2c9e2b54b8bb424cc64937c8fdc068f',
             'uploader': 'WeVidi',
             'duration': 41.972,
-        }
+        },
     }, {
         'url': 'https://wevidi.net/watch/wJnRqDHNe_u',
         'md5': 'c8f263dd47e66cc17546b3abf47b5a77',
@@ -51,7 +51,7 @@ class WeVidiIE(InfoExtractor):
             'description': 'md5:e65036f0d4af80e0af191bd11af5195e',
             'uploader': 'GissyEva',
             'duration': 630.451,
-        }
+        },
     }, {
         'url': 'https://wevidi.net/watch/4m1c4yJR_yc',
         'md5': 'c63ce5ca6990dce86855fc02ca5bc1ed',
@@ -63,7 +63,7 @@ class WeVidiIE(InfoExtractor):
             'description': 'md5:96af99dd63468b2dfab3020560e3e9b2',
             'uploader': 'eclecRC',
             'duration': 6.804,
-        }
+        },
     }]
 
     def _extract_formats(self, wvplayer_props):
@@ -74,7 +74,7 @@ class WeVidiIE(InfoExtractor):
             3: 360,
             4: 480,
             5: 720,
-            6: 1080
+            6: 1080,
         }
 
         src_path = f'{wvplayer_props["srcVID"]}/{wvplayer_props["srcUID"]}/{wvplayer_props["srcNAME"]}'

@@ -19,7 +19,7 @@ class MagentaMusikIE(InfoExtractor):
             'categories': ['Musikkonzert'],
             'release_year': 2023,
             'location': 'Deutschland',
-        }
+        },
     }]
 
     def _real_extract(self, url):

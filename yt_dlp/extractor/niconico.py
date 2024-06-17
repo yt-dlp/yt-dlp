@@ -213,7 +213,7 @@ class NiconicoIE(InfoExtractor):
                 urljoin('https://account.nicovideo.jp', post_url), None,
                 note='Performing MFA', errnote='Unable to complete MFA',
                 data=urlencode_postdata({
-                    'otp': self._get_tfa_info('6 digits code')
+                    'otp': self._get_tfa_info('6 digits code'),
                 }), headers={
                     'Content-Type': 'application/x-www-form-urlencoded',
                 })
@@ -264,7 +264,7 @@ class NiconicoIE(InfoExtractor):
                 'http_output_download_parameters': {
                     'use_ssl': yesno(session_api_data['urls'][0]['isSsl']),
                     'use_well_known_port': yesno(session_api_data['urls'][0]['isWellKnownPort']),
-                }
+                },
             }
         elif dmc_protocol == 'hls':
             protocol = 'm3u8'
@@ -277,14 +277,14 @@ class NiconicoIE(InfoExtractor):
                     'transfer_preset': '',
                     'use_ssl': yesno(session_api_data['urls'][0]['isSsl']),
                     'use_well_known_port': yesno(session_api_data['urls'][0]['isWellKnownPort']),
-                }
+                },
             }
             if 'hls_encryption' in parsed_token and encryption:
                 protocol_parameters['hls_parameters']['encryption'] = {
                     parsed_token['hls_encryption']: {
                         'encrypted_key': encryption['encryptedKey'],
                         'key_uri': encryption['keyUri'],
-                    }
+                    },
                 }
             else:
                 protocol = 'm3u8_native'
@@ -295,7 +295,7 @@ class NiconicoIE(InfoExtractor):
             session_api_endpoint['url'], video_id,
             query={'_format': 'json'},
             headers={'Content-Type': 'application/json'},
-            note='Downloading JSON metadata for %s' % info_dict['format_id'],
+            note='Downloading JSON metadata for {}'.format(info_dict['format_id']),
             data=json.dumps({
                 'session': {
                     'client_info': {
@@ -305,7 +305,7 @@ class NiconicoIE(InfoExtractor):
                         'auth_type': try_get(session_api_data, lambda x: x['authTypes'][session_api_data['protocols'][0]]),
                         'content_key_timeout': session_api_data.get('contentKeyTimeout'),
                         'service_id': 'nicovideo',
-                        'service_user_id': session_api_data.get('serviceUserId')
+                        'service_user_id': session_api_data.get('serviceUserId'),
                     },
                     'content_id': session_api_data.get('contentId'),
                     'content_src_id_sets': [{
@@ -313,34 +313,34 @@ class NiconicoIE(InfoExtractor):
                             'src_id_to_mux': {
                                 'audio_src_ids': [audio_src_id],
                                 'video_src_ids': [video_src_id],
-                            }
-                        }]
+                            },
+                        }],
                     }],
                     'content_type': 'movie',
                     'content_uri': '',
                     'keep_method': {
                         'heartbeat': {
-                            'lifetime': session_api_data.get('heartbeatLifetime')
-                        }
+                            'lifetime': session_api_data.get('heartbeatLifetime'),
+                        },
                     },
                     'priority': session_api_data['priority'],
                     'protocol': {
                         'name': 'http',
                         'parameters': {
                             'http_parameters': {
-                                'parameters': protocol_parameters
-                            }
-                        }
+                                'parameters': protocol_parameters,
+                            },
+                        },
                     },
                     'recipe_id': session_api_data.get('recipeId'),
                     'session_operation_auth': {
                         'session_operation_auth_by_signature': {
                             'signature': session_api_data.get('signature'),
                             'token': session_api_data.get('token'),
-                        }
+                        },
                     },
-                    'timing_constraint': 'unlimited'
-                }
+                    'timing_constraint': 'unlimited',
+                },
             }).encode())
 
         info_dict['url'] = session_response['data']['session']['content_uri']
@@ -352,7 +352,7 @@ class NiconicoIE(InfoExtractor):
             'data': json.dumps(session_response['data']),
             # interval, convert milliseconds to seconds, then halve to make a buffer.
             'interval': float_or_none(session_api_data.get('heartbeatLifetime'), scale=3000),
-            'ping': ping
+            'ping': ping,
         }
 
         return info_dict, heartbeat_info_dict
@@ -368,7 +368,7 @@ class NiconicoIE(InfoExtractor):
         vid_qual_label = traverse_obj(video_quality, ('metadata', 'label'))
 
         return {
-            'url': 'niconico_dmc:%s/%s/%s' % (video_id, video_quality['id'], audio_quality['id']),
+            'url': 'niconico_dmc:{}/{}/{}'.format(video_id, video_quality['id'], audio_quality['id']),
             'format_id': format_id,
             'format_note': join_nonempty('DMC', vid_qual_label, dmc_protocol.upper(), delim=' '),
             'ext': 'mp4',  # Session API are used in HTML5, which always serves mp4
@@ -389,7 +389,7 @@ class NiconicoIE(InfoExtractor):
             'http_headers': {
                 'Origin': 'https://www.nicovideo.jp',
                 'Referer': 'https://www.nicovideo.jp/watch/' + video_id,
-            }
+            },
         }
 
     def _yield_dmc_formats(self, api_data, video_id):
@@ -416,7 +416,7 @@ class NiconicoIE(InfoExtractor):
         dms_m3u8_url = self._download_json(
             f'https://nvapi.nicovideo.jp/v1/watch/{video_id}/access-rights/hls', video_id,
             data=json.dumps({
-                'outputs': list(itertools.product((v['id'] for v in videos), (a['id'] for a in audios)))
+                'outputs': list(itertools.product((v['id'] for v in videos), (a['id'] for a in audios))),
             }).encode(), query={'actionTrackId': track_id}, headers={
                 'x-access-right-key': access_key,
                 'x-frontend-id': 6,
@@ -464,7 +464,7 @@ class NiconicoIE(InfoExtractor):
         except ExtractorError as e:
             try:
                 api_data = self._download_json(
-                    'https://www.nicovideo.jp/api/watch/v3/%s?_frontendId=6&_frontendVersion=0&actionTrackId=AAAAAAAAAA_%d' % (video_id, round(time.time() * 1000)), video_id,
+                    f'https://www.nicovideo.jp/api/watch/v3/{video_id}?_frontendId=6&_frontendVersion=0&actionTrackId=AAAAAAAAAA_{round(time.time() * 1000)}', video_id,
                     note='Downloading API JSON', errnote='Unable to fetch data')['data']
             except ExtractorError:
                 if not isinstance(e.cause, HTTPError):
@@ -586,7 +586,7 @@ class NiconicoPlaylistBaseIE(InfoExtractor):
     _API_HEADERS = {
         'X-Frontend-ID': '6',
         'X-Frontend-Version': '0',
-        'X-Niconico-Language': 'en-us'
+        'X-Niconico-Language': 'en-us',
     }
 
     def _call_api(self, list_id, resource, query):
@@ -601,7 +601,7 @@ class NiconicoPlaylistBaseIE(InfoExtractor):
 
     def _fetch_page(self, list_id, page):
         page += 1
-        resp = self._call_api(list_id, 'page %d' % page, {
+        resp = self._call_api(list_id, f'page {page}', {
             'page': page,
             'pageSize': self._PAGE_SIZE,
         })
@@ -789,14 +789,14 @@ class NicovideoSearchURLIE(NicovideoSearchBaseIE):
         'url': 'http://www.nicovideo.jp/search/sm9',
         'info_dict': {
             'id': 'sm9',
-            'title': 'sm9'
+            'title': 'sm9',
         },
         'playlist_mincount': 40,
     }, {
         'url': 'https://www.nicovideo.jp/search/sm9?sort=h&order=d&end=2020-12-31&start=2020-01-01',
         'info_dict': {
             'id': 'sm9',
-            'title': 'sm9'
+            'title': 'sm9',
         },
         'playlist_count': 31,
     }]
@@ -814,7 +814,7 @@ class NicovideoSearchDateIE(NicovideoSearchBaseIE, SearchInfoExtractor):
         'url': 'nicosearchdateall:a',
         'info_dict': {
             'id': 'a',
-            'title': 'a'
+            'title': 'a',
         },
         'playlist_mincount': 1610,
     }]
@@ -861,7 +861,7 @@ class NicovideoTagURLIE(NicovideoSearchBaseIE):
         'url': 'https://www.nicovideo.jp/tag/ドキュメンタリー淫夢',
         'info_dict': {
             'id': 'ドキュメンタリー淫夢',
-            'title': 'ドキュメンタリー淫夢'
+            'title': 'ドキュメンタリー淫夢',
         },
         'playlist_mincount': 400,
     }]
@@ -880,12 +880,12 @@ class NiconicoUserIE(InfoExtractor):
         },
         'playlist_mincount': 101,
     }
-    _API_URL = "https://nvapi.nicovideo.jp/v1/users/%s/videos?sortKey=registeredAt&sortOrder=desc&pageSize=%s&page=%s"
+    _API_URL = 'https://nvapi.nicovideo.jp/v1/users/%s/videos?sortKey=registeredAt&sortOrder=desc&pageSize=%s&page=%s'
     _PAGE_SIZE = 100
 
     _API_HEADERS = {
         'X-Frontend-ID': '6',
-        'X-Frontend-Version': '0'
+        'X-Frontend-Version': '0',
     }
 
     def _entries(self, list_id):
@@ -895,12 +895,12 @@ class NiconicoUserIE(InfoExtractor):
             json_parsed = self._download_json(
                 self._API_URL % (list_id, self._PAGE_SIZE, page_num + 1), list_id,
                 headers=self._API_HEADERS,
-                note='Downloading JSON metadata%s' % (' page %d' % page_num if page_num else ''))
+                note='Downloading JSON metadata%s' % (f' page {page_num}' if page_num else ''))
             if not page_num:
                 total_count = int_or_none(json_parsed['data'].get('totalCount'))
-            for entry in json_parsed["data"]["items"]:
+            for entry in json_parsed['data']['items']:
                 count += 1
-                yield self.url_result('https://www.nicovideo.jp/watch/%s' % entry['id'])
+                yield self.url_result('https://www.nicovideo.jp/watch/{}'.format(entry['id']))
             page_num += 1
 
     def _real_extract(self, url):
@@ -917,7 +917,7 @@ class NiconicoLiveIE(InfoExtractor):
         'url': 'https://live.nicovideo.jp/watch/lv339533123',
         'info_dict': {
             'id': 'lv339533123',
-            'title': '激辛ペヤング食べます‪( ;ᯅ; )‬（歌枠オーディション参加中）',
+            'title': '激辛ペヤング食べます\u202a( ;ᯅ; )\u202c（歌枠オーディション参加中）',
             'view_count': 1526,
             'comment_count': 1772,
             'description': '初めましてもかって言います❕\nのんびり自由に適当に暮らしてます',
@@ -973,14 +973,14 @@ class NiconicoLiveIE(InfoExtractor):
                     'quality': 'abr',
                     'protocol': 'hls+fmp4',
                     'latency': latency,
-                    'chasePlay': False
+                    'chasePlay': False,
                 },
                 'room': {
                     'protocol': 'webSocket',
-                    'commentable': True
+                    'commentable': True,
                 },
                 'reconnect': False,
-            }
+            },
         }))
 
         while True:
@@ -1004,7 +1004,7 @@ class NiconicoLiveIE(InfoExtractor):
             elif self.get_param('verbose', False):
                 if len(recv) > 100:
                     recv = recv[:100] + '...'
-                self.write_debug('Server said: %s' % recv)
+                self.write_debug(f'Server said: {recv}')
 
         title = traverse_obj(embedded_data, ('program', 'title')) or self._html_search_meta(
             ('og:title', 'twitter:title'), webpage, 'live title', fatal=False)

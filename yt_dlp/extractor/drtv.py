@@ -220,7 +220,7 @@ class DRTVIE(InfoExtractor):
                 lang = sub_track.get('language') or 'da'
                 subtitles.setdefault(self.SUBTITLE_LANGS.get(lang, lang) + subtitle_suffix, []).append({
                     'url': sub_track['link'],
-                    'ext': mimetype2ext(sub_track.get('format')) or 'vtt'
+                    'ext': mimetype2ext(sub_track.get('format')) or 'vtt',
                 })
 
         if not formats and traverse_obj(item, ('season', 'customFields', 'IsGeoRestricted')):
@@ -284,14 +284,14 @@ class DRTVLiveIE(InfoExtractor):
                     if not stream_path:
                         continue
                     stream_url = update_url_query(
-                        '%s/%s' % (server, stream_path), {'b': ''})
+                        f'{server}/{stream_path}', {'b': ''})
                     if link_type == 'HLS':
                         formats.extend(self._extract_m3u8_formats(
                             stream_url, channel_id, 'mp4',
                             m3u8_id=link_type, fatal=False, live=True))
                     elif link_type == 'HDS':
                         formats.extend(self._extract_f4m_formats(update_url_query(
-                            '%s/%s' % (server, stream_path), {'hdcore': '3.7.0'}),
+                            f'{server}/{stream_path}', {'hdcore': '3.7.0'}),
                             channel_id, f4m_id=link_type, fatal=False))
 
         return {
@@ -317,7 +317,7 @@ class DRTVSeasonIE(InfoExtractor):
             'season_number': 2008,
             'alt_title': 'Season 2008',
         },
-        'playlist_mincount': 8
+        'playlist_mincount': 8,
     }, {
         'url': 'https://www.dr.dk/drtv/saeson/frank-and-kastaniegaarden_8761',
         'info_dict': {
@@ -328,7 +328,7 @@ class DRTVSeasonIE(InfoExtractor):
             'season_number': 2009,
             'alt_title': 'Season 2009',
         },
-        'playlist_mincount': 19
+        'playlist_mincount': 19,
     }]
 
     def _real_extract(self, url):
@@ -356,7 +356,7 @@ class DRTVSeasonIE(InfoExtractor):
             'alt_title': traverse_obj(data, ('entries', 0, 'item', 'contextualTitle')),
             'series': traverse_obj(data, ('entries', 0, 'item', 'title')),
             'entries': entries,
-            'season_number': traverse_obj(data, ('entries', 0, 'item', 'seasonNumber'))
+            'season_number': traverse_obj(data, ('entries', 0, 'item', 'seasonNumber')),
         }
 
 
@@ -373,7 +373,7 @@ class DRTVSeriesIE(InfoExtractor):
             'series': 'Frank & Kastaniegaarden',
             'alt_title': '',
         },
-        'playlist_mincount': 15
+        'playlist_mincount': 15,
     }]
 
     def _real_extract(self, url):
@@ -387,7 +387,7 @@ class DRTVSeriesIE(InfoExtractor):
             'title': season.get('title'),
             'alt_title': season.get('contextualTitle'),
             'series': traverse_obj(data, ('entries', 0, 'item', 'title')),
-            'season_number': traverse_obj(data, ('entries', 0, 'item', 'seasonNumber'))
+            'season_number': traverse_obj(data, ('entries', 0, 'item', 'seasonNumber')),
         } for season in traverse_obj(data, ('entries', 0, 'item', 'show', 'seasons', 'items'))]
 
         return {
@@ -397,5 +397,5 @@ class DRTVSeriesIE(InfoExtractor):
             'title': traverse_obj(data, ('entries', 0, 'item', 'title')),
             'alt_title': traverse_obj(data, ('entries', 0, 'item', 'contextualTitle')),
             'series': traverse_obj(data, ('entries', 0, 'item', 'title')),
-            'entries': entries
+            'entries': entries,
         }

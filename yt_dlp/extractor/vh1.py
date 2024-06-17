@@ -1,6 +1,6 @@
 from .mtv import MTVServicesInfoExtractor
 
-# TODO Remove - Reason: Outdated Site
+# TODO: Remove - Reason: Outdated Site
 
 
 class VH1IE(MTVServicesInfoExtractor):

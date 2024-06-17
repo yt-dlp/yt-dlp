@@ -11,7 +11,7 @@ class FuyinTVIE(InfoExtractor):
             'ext': 'mp4',
             'title': '第1集',
             'description': 'md5:21a3d238dc8d49608e1308e85044b9c3',
-        }
+        },
     }]
 
     def _real_extract(self, url):

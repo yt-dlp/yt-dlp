@@ -16,13 +16,31 @@ class EplusIbIE(InfoExtractor):
     _VALID_URL = [r'https?://live\.eplus\.jp/ex/player\?ib=(?P<id>(?:\w|%2B|%2F){86}%3D%3D)',
                   r'https?://live\.eplus\.jp/(?P<id>sample|\d+)']
     _TESTS = [{
-        'url': 'https://live.eplus.jp/ex/player?ib=YEFxb3Vyc2Dombnjg7blkrLlrablnJLjgrnjgq%2Fjg7zjg6vjgqLjgqTjg4njg6vlkIzlpb3kvJpgTGllbGxhIQ%3D%3D',
+        'url': 'https://live.eplus.jp/ex/player?ib=41K6Wzbr3PlcMD%2FOKHFlC%2FcZCe2Eaw7FK%2BpJS1ooUHki8d0vGSy2mYqxillQBe1dSnOxU%2B8%2FzXKls4XPBSb3vw%3D%3D',
         'info_dict': {
-            'id': '354502-0001-002',
-            'title': 'LoveLive!Series Presents COUNTDOWN LoveLive! 2021→2022～LIVE with a smile!～【Streaming+(配信)】',
+            'id': '335699-0001-006',
+            'title': '少女☆歌劇 レヴュースタァライト -The LIVE 青嵐- BLUE GLITTER <定点映像配信>【Streaming+(配信)】',
             'live_status': 'was_live',
-            'release_date': '20211231',
-            'release_timestamp': 1640952000,
+            'release_date': '20201221',
+            'release_timestamp': 1608544800,
+        },
+        'params': {
+            'skip_download': True,
+            'ignore_no_formats_error': True,
+        },
+        'expected_warnings': [
+            'This event may not be accessible',
+            'No video formats found',
+            'Requested format is not available',
+        ],
+    }, {
+        'url': 'https://live.eplus.jp/ex/player?ib=6QSsQdyRAwOFZrEHWlhRm7vocgV%2FO0YzBZ%2BaBEBg1XR%2FmbLn0R%2F048dUoAY038%2F%2F92MJ73BsoAtvUpbV6RLtDQ%3D%3D&show_id=2371511',
+        'info_dict': {
+            'id': '348021-0054-001',
+            'title': 'ラブライブ!スーパースター!! Liella! First LoveLive! Tour ～Starlines～【東京/DAY.1】',
+            'live_status': 'was_live',
+            'release_date': '20220115',
+            'release_timestamp': 1642233600,
             'description': str,
         },
         'params': {
@@ -123,6 +141,10 @@ class EplusIbIE(InfoExtractor):
 
         if data_json.get('drm_mode') == 'ON':
             self.report_drm(video_id)
+
+        if data_json.get('is_pass_ticket') == 'YES':
+            raise ExtractorError(
+                'This URL is for a pass ticket instead of a player page', expected=True)
 
         delivery_status = data_json.get('delivery_status')
         archive_mode = data_json.get('archive_mode')
