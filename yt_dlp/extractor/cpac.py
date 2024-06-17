@@ -1,5 +1,4 @@
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     int_or_none,
     str_or_none,
@@ -38,11 +37,11 @@ class CPACIE(InfoExtractor):
         content = self._download_json(
             'https://www.cpac.ca/api/1/services/contentModel.json?url=/site/website/episode/index.xml&crafterSite=cpacca&id=' + video_id,
             video_id)
-        video_url = try_get(content, lambda x: x['page']['details']['videoUrl'], compat_str)
+        video_url = try_get(content, lambda x: x['page']['details']['videoUrl'], str)
         formats = []
         if video_url:
             content = content['page']
-            title = str_or_none(content['details']['title_%s_t' % (url_lang, )])
+            title = str_or_none(content['details'][f'title_{url_lang}_t'])
             formats = self._extract_m3u8_formats(video_url, video_id, m3u8_id='hls', ext='mp4')
             for fmt in formats:
                 # prefer language to match URL
@@ -54,7 +53,7 @@ class CPACIE(InfoExtractor):
                 else:
                     fmt['language_preference'] = -10
 
-        category = str_or_none(content['details']['category_%s_t' % (url_lang, )])
+        category = str_or_none(content['details'][f'category_{url_lang}_t'])
 
         def is_live(v_type):
             return (v_type == 'live') if v_type is not None else None
@@ -63,10 +62,10 @@ class CPACIE(InfoExtractor):
             'id': video_id,
             'formats': formats,
             'title': title,
-            'description': str_or_none(content['details'].get('description_%s_t' % (url_lang, ))),
+            'description': str_or_none(content['details'].get(f'description_{url_lang}_t')),
             'timestamp': unified_timestamp(content['details'].get('liveDateTime')),
             'categories': [category] if category else None,
-            'thumbnail': urljoin(url, str_or_none(content['details'].get('image_%s_s' % (url_lang, )))),
+            'thumbnail': urljoin(url, str_or_none(content['details'].get(f'image_{url_lang}_s'))),
             'is_live': is_live(content['details'].get('type')),
         }
 
@@ -110,27 +109,26 @@ class CPACPlaylistIE(InfoExtractor):
         url_lang = 'fr' if any(x in url for x in ('/emission?', '/rechercher?')) else 'en'
         pl_type, list_type = ('program', 'itemList') if any(x in url for x in ('/program?', '/emission?')) else ('search', 'searchResult')
         api_url = (
-            'https://www.cpac.ca/api/1/services/contentModel.json?url=/site/website/%s/index.xml&crafterSite=cpacca&%s'
-            % (pl_type, video_id, ))
+            f'https://www.cpac.ca/api/1/services/contentModel.json?url=/site/website/{pl_type}/index.xml&crafterSite=cpacca&{video_id}')
         content = self._download_json(api_url, video_id)
         entries = []
         total_pages = int_or_none(try_get(content, lambda x: x['page'][list_type]['totalPages']), default=1)
         for page in range(1, total_pages + 1):
             if page > 1:
-                api_url = update_url_query(api_url, {'page': '%d' % (page, ), })
+                api_url = update_url_query(api_url, {'page': page})
                 content = self._download_json(
                     api_url, video_id,
-                    note='Downloading continuation - %d' % (page, ),
+                    note=f'Downloading continuation - {page}',
                     fatal=False)
 
             for item in try_get(content, lambda x: x['page'][list_type]['item'], list) or []:
-                episode_url = urljoin(url, try_get(item, lambda x: x['url_%s_s' % (url_lang, )]))
+                episode_url = urljoin(url, try_get(item, lambda x: x[f'url_{url_lang}_s']))
                 if episode_url:
                     entries.append(episode_url)
 
         return self.playlist_result(
             (self.url_result(entry) for entry in entries),
             playlist_id=video_id,
-            playlist_title=try_get(content, lambda x: x['page']['program']['title_%s_t' % (url_lang, )]) or video_id.split('=')[-1],
-            playlist_description=try_get(content, lambda x: x['page']['program']['description_%s_t' % (url_lang, )]),
+            playlist_title=try_get(content, lambda x: x['page']['program'][f'title_{url_lang}_t']) or video_id.split('=')[-1],
+            playlist_description=try_get(content, lambda x: x['page']['program'][f'description_{url_lang}_t']),
         )

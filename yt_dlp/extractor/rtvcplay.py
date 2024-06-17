@@ -213,7 +213,7 @@ class RTVCPlayEmbedIE(RTVCPlayBaseIE):
             'title': 'Tráiler: Señoritas',
             'thumbnail': r're:^https?://.*\.(?:jpg|png)',
             'ext': 'mp4',
-        }
+        },
     }]
 
     def _real_extract(self, url):
@@ -235,7 +235,7 @@ class RTVCPlayEmbedIE(RTVCPlayBaseIE):
                 'title': 'title',
                 'description': 'description',
                 'thumbnail': ('image', ..., 'thumbnail', 'path'),
-            }, get_all=False)
+            }, get_all=False),
         }
 
 
@@ -282,5 +282,5 @@ class RTVCKalturaIE(RTVCPlayBaseIE):
                 'title': 'title',
                 'description': 'description',
                 'thumbnail': ('channel', 'image', 'logo', 'path'),
-            })
+            }),
         }

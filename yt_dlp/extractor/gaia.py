@@ -1,8 +1,6 @@
+import urllib.parse
+
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-    compat_urllib_parse_unquote,
-)
 from ..utils import (
     ExtractorError,
     int_or_none,
@@ -52,7 +50,7 @@ class GaiaIE(InfoExtractor):
     def _real_initialize(self):
         auth = self._get_cookies('https://www.gaia.com/').get('auth')
         if auth:
-            auth = self._parse_json(compat_urllib_parse_unquote(auth.value), None, fatal=False)
+            auth = self._parse_json(urllib.parse.unquote(auth.value), None, fatal=False)
             self._jwt = auth.get('jwt')
 
     def _perform_login(self, username, password):
@@ -62,7 +60,7 @@ class GaiaIE(InfoExtractor):
             'https://auth.gaia.com/v1/login',
             None, data=urlencode_postdata({
                 'username': username,
-                'password': password
+                'password': password,
             }))
         if auth.get('success') is False:
             raise ExtractorError(', '.join(auth['messages']), expected=True)
@@ -77,7 +75,7 @@ class GaiaIE(InfoExtractor):
         node = self._download_json(
             'https://brooklyn.gaia.com/node/%d' % node_id, node_id)
         vdata = node[vtype]
-        media_id = compat_str(vdata['nid'])
+        media_id = str(vdata['nid'])
         title = node['title']
 
         headers = None
@@ -115,7 +113,7 @@ class GaiaIE(InfoExtractor):
             'like_count': int_or_none(try_get(fivestar, lambda x: x['up_count']['value'])),
             'dislike_count': int_or_none(try_get(fivestar, lambda x: x['down_count']['value'])),
             'comment_count': int_or_none(node.get('comment_count')),
-            'series': try_get(node, lambda x: x['series']['title'], compat_str),
+            'series': try_get(node, lambda x: x['series']['title'], str),
             'season_number': int_or_none(get_field_value('season')),
             'season_id': str_or_none(get_field_value('series_nid', 'nid')),
             'episode_number': int_or_none(get_field_value('episode')),

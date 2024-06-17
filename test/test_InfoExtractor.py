@@ -262,19 +262,19 @@ class TestInfoExtractor(unittest.TestCase):
                 ''',
                 {
                     'chapters': [
-                        {"title": "Explosie Turnhout", "start_time": 70, "end_time": 440},
-                        {"title": "Jaarwisseling", "start_time": 440, "end_time": 1179},
-                        {"title": "Natuurbranden Colorado", "start_time": 1179, "end_time": 1263},
-                        {"title": "Klimaatverandering", "start_time": 1263, "end_time": 1367},
-                        {"title": "Zacht weer", "start_time": 1367, "end_time": 1383},
-                        {"title": "Financiële balans", "start_time": 1383, "end_time": 1484},
-                        {"title": "Club Brugge", "start_time": 1484, "end_time": 1575},
-                        {"title": "Mentale gezondheid bij topsporters", "start_time": 1575, "end_time": 1728},
-                        {"title": "Olympische Winterspelen", "start_time": 1728, "end_time": 1873},
-                        {"title": "Sober oudjaar in Nederland", "start_time": 1873, "end_time": 2079.23}
+                        {'title': 'Explosie Turnhout', 'start_time': 70, 'end_time': 440},
+                        {'title': 'Jaarwisseling', 'start_time': 440, 'end_time': 1179},
+                        {'title': 'Natuurbranden Colorado', 'start_time': 1179, 'end_time': 1263},
+                        {'title': 'Klimaatverandering', 'start_time': 1263, 'end_time': 1367},
+                        {'title': 'Zacht weer', 'start_time': 1367, 'end_time': 1383},
+                        {'title': 'Financiële balans', 'start_time': 1383, 'end_time': 1484},
+                        {'title': 'Club Brugge', 'start_time': 1484, 'end_time': 1575},
+                        {'title': 'Mentale gezondheid bij topsporters', 'start_time': 1575, 'end_time': 1728},
+                        {'title': 'Olympische Winterspelen', 'start_time': 1728, 'end_time': 1873},
+                        {'title': 'Sober oudjaar in Nederland', 'start_time': 1873, 'end_time': 2079.23},
                     ],
-                    'title': 'Het journaal - Aflevering 365 (Seizoen 2021)'
-                }, {}
+                    'title': 'Het journaal - Aflevering 365 (Seizoen 2021)',
+                }, {},
             ),
             (
                 # test multiple thumbnails in a list
@@ -301,13 +301,13 @@ class TestInfoExtractor(unittest.TestCase):
                     'thumbnails': [{'url': 'https://www.rainews.it/cropgd/640x360/dl/img/2021/12/30/1640886376927_GettyImages.jpg'}],
                 },
                 {},
-            )
+            ),
         ]
         for html, expected_dict, search_json_ld_kwargs in _TESTS:
             expect_dict(
                 self,
                 self.ie._search_json_ld(html, None, **search_json_ld_kwargs),
-                expected_dict
+                expected_dict,
             )
 
     def test_download_json(self):
@@ -366,7 +366,7 @@ class TestInfoExtractor(unittest.TestCase):
                     'height': 740,
                     'tbr': 1500,
                 }],
-                'thumbnail': '//pics.r18.com/digital/amateur/mgmr105/mgmr105jp.jpg'
+                'thumbnail': '//pics.r18.com/digital/amateur/mgmr105/mgmr105jp.jpg',
             })
 
         # from https://www.csfd.cz/
@@ -419,9 +419,9 @@ class TestInfoExtractor(unittest.TestCase):
                     'height': 1080,
                 }],
                 'subtitles': {
-                    'cs': [{'url': 'https://video.csfd.cz/files/subtitles/163/344/163344115_4c388b.srt'}]
+                    'cs': [{'url': 'https://video.csfd.cz/files/subtitles/163/344/163344115_4c388b.srt'}],
                 },
-                'thumbnail': 'https://img.csfd.cz/files/images/film/video/preview/163/344/163344118_748d20.png?h360'
+                'thumbnail': 'https://img.csfd.cz/files/images/film/video/preview/163/344/163344118_748d20.png?h360',
             })
 
         # from https://tamasha.com/v/Kkdjw
@@ -452,7 +452,7 @@ class TestInfoExtractor(unittest.TestCase):
                     'ext': 'mp4',
                     'format_id': '144p',
                     'height': 144,
-                }]
+                }],
             })
 
         # from https://www.directvnow.com
@@ -470,7 +470,7 @@ class TestInfoExtractor(unittest.TestCase):
                 'formats': [{
                     'ext': 'mp4',
                     'url': 'https://cdn.directv.com/content/dam/dtv/prod/website_directvnow-international/videos/DTVN_hdr_HBO_v3.mp4',
-                }]
+                }],
             })
 
         # from https://www.directvnow.com
@@ -488,7 +488,7 @@ class TestInfoExtractor(unittest.TestCase):
                 'formats': [{
                     'url': 'https://cdn.directv.com/content/dam/dtv/prod/website_directvnow-international/videos/DTVN_hdr_HBO_v3.mp4',
                     'ext': 'mp4',
-                }]
+                }],
             })
 
         # from https://www.klarna.com/uk/
@@ -547,8 +547,8 @@ class TestInfoExtractor(unittest.TestCase):
                 'id': 'XEgvuql4',
                 'formats': [{
                     'url': 'rtmp://192.138.214.154/live/sjclive',
-                    'ext': 'flv'
-                }]
+                    'ext': 'flv',
+                }],
             })
 
         # from https://www.pornoxo.com/videos/7564/striptease-from-sexy-secretary/
@@ -588,8 +588,8 @@ class TestInfoExtractor(unittest.TestCase):
                 'thumbnail': 'https://t03.vipstreamservice.com/thumbs/pxo-full/2009-12/14/a4b2157147afe5efa93ce1978e0265289c193874e02597.flv-full-13.jpg',
                 'formats': [{
                     'url': 'https://cdn.pornoxo.com/key=MF+oEbaxqTKb50P-w9G3nA,end=1489689259,ip=104.199.146.27/ip=104.199.146.27/speed=6573765/buffer=3.0/2009-12/4b2157147afe5efa93ce1978e0265289c193874e02597.flv',
-                    'ext': 'flv'
-                }]
+                    'ext': 'flv',
+                }],
             })
 
         # from http://www.indiedb.com/games/king-machine/videos
@@ -610,12 +610,12 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                 'formats': [{
                     'url': 'http://cdn.dbolical.com/cache/videos/games/1/50/49678/encode_mp4/king-machine-trailer.mp4',
                     'height': 360,
-                    'ext': 'mp4'
+                    'ext': 'mp4',
                 }, {
                     'url': 'http://cdn.dbolical.com/cache/videos/games/1/50/49678/encode720p_mp4/king-machine-trailer.mp4',
                     'height': 720,
-                    'ext': 'mp4'
-                }]
+                    'ext': 'mp4',
+                }],
             })
 
     def test_parse_m3u8_formats(self):
@@ -866,7 +866,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'height': 1080,
                     'vcodec': 'avc1.64002a',
                 }],
-                {}
+                {},
             ),
             (
                 'bipbop_16x9',
@@ -990,45 +990,45 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'en': [{
                         'url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/subtitles/eng/prog_index.m3u8',
                         'ext': 'vtt',
-                        'protocol': 'm3u8_native'
+                        'protocol': 'm3u8_native',
                     }, {
                         'url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/subtitles/eng_forced/prog_index.m3u8',
                         'ext': 'vtt',
-                        'protocol': 'm3u8_native'
+                        'protocol': 'm3u8_native',
                     }],
                     'fr': [{
                         'url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/subtitles/fra/prog_index.m3u8',
                         'ext': 'vtt',
-                        'protocol': 'm3u8_native'
+                        'protocol': 'm3u8_native',
                     }, {
                         'url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/subtitles/fra_forced/prog_index.m3u8',
                         'ext': 'vtt',
-                        'protocol': 'm3u8_native'
+                        'protocol': 'm3u8_native',
                     }],
                     'es': [{
                         'url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/subtitles/spa/prog_index.m3u8',
                         'ext': 'vtt',
-                        'protocol': 'm3u8_native'
+                        'protocol': 'm3u8_native',
                     }, {
                         'url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/subtitles/spa_forced/prog_index.m3u8',
                         'ext': 'vtt',
-                        'protocol': 'm3u8_native'
+                        'protocol': 'm3u8_native',
                     }],
                     'ja': [{
                         'url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/subtitles/jpn/prog_index.m3u8',
                         'ext': 'vtt',
-                        'protocol': 'm3u8_native'
+                        'protocol': 'm3u8_native',
                     }, {
                         'url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/subtitles/jpn_forced/prog_index.m3u8',
                         'ext': 'vtt',
-                        'protocol': 'm3u8_native'
+                        'protocol': 'm3u8_native',
                     }],
-                }
+                },
             ),
         ]
 
         for m3u8_file, m3u8_url, expected_formats, expected_subs in _TEST_CASES:
-            with open('./test/testdata/m3u8/%s.m3u8' % m3u8_file, encoding='utf-8') as f:
+            with open(f'./test/testdata/m3u8/{m3u8_file}.m3u8', encoding='utf-8') as f:
                 formats, subs = self.ie._parse_m3u8_formats_and_subtitles(
                     f.read(), m3u8_url, ext='mp4')
                 self.ie._sort_formats(formats)
@@ -1366,14 +1366,14 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                             'url': 'https://sdn-global-streaming-cache-3qsdn.akamaized.net/stream/3144/files/17/07/672975/3144-kZT4LWMQw6Rh7Kpd.ism/manifest.mpd',
                             'fragment_base_url': 'https://sdn-global-streaming-cache-3qsdn.akamaized.net/stream/3144/files/17/07/672975/3144-kZT4LWMQw6Rh7Kpd.ism/dash/',
                             'protocol': 'http_dash_segments',
-                        }
-                    ]
+                        },
+                    ],
                 },
-            )
+            ),
         ]
 
         for mpd_file, mpd_url, mpd_base_url, expected_formats, expected_subtitles in _TEST_CASES:
-            with open('./test/testdata/mpd/%s.mpd' % mpd_file, encoding='utf-8') as f:
+            with open(f'./test/testdata/mpd/{mpd_file}.mpd', encoding='utf-8') as f:
                 formats, subtitles = self.ie._parse_mpd_formats_and_subtitles(
                     compat_etree_fromstring(f.read().encode()),
                     mpd_base_url=mpd_base_url, mpd_url=mpd_url)
@@ -1408,7 +1408,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                         'sampling_rate': 48000,
                         'channels': 2,
                         'bits_per_sample': 16,
-                        'nal_unit_length_field': 4
+                        'nal_unit_length_field': 4,
                     },
                 }, {
                     'format_id': 'video-100',
@@ -1431,7 +1431,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                         'codec_private_data': '00000001674D401FDA0544EFFC2D002CBC40000003004000000C03C60CA80000000168EF32C8',
                         'channels': 2,
                         'bits_per_sample': 16,
-                        'nal_unit_length_field': 4
+                        'nal_unit_length_field': 4,
                     },
                 }, {
                     'format_id': 'video-326',
@@ -1454,7 +1454,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                         'codec_private_data': '00000001674D401FDA0241FE23FFC3BC83BA44000003000400000300C03C60CA800000000168EF32C8',
                         'channels': 2,
                         'bits_per_sample': 16,
-                        'nal_unit_length_field': 4
+                        'nal_unit_length_field': 4,
                     },
                 }, {
                     'format_id': 'video-698',
@@ -1477,7 +1477,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                         'codec_private_data': '00000001674D401FDA0350BFB97FF06AF06AD1000003000100000300300F1832A00000000168EF32C8',
                         'channels': 2,
                         'bits_per_sample': 16,
-                        'nal_unit_length_field': 4
+                        'nal_unit_length_field': 4,
                     },
                 }, {
                     'format_id': 'video-1493',
@@ -1500,7 +1500,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                         'codec_private_data': '00000001674D401FDA011C3DE6FFF0D890D871000003000100000300300F1832A00000000168EF32C8',
                         'channels': 2,
                         'bits_per_sample': 16,
-                        'nal_unit_length_field': 4
+                        'nal_unit_length_field': 4,
                     },
                 }, {
                     'format_id': 'video-4482',
@@ -1523,7 +1523,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                         'codec_private_data': '00000001674D401FDA01A816F97FFC1ABC1AB440000003004000000C03C60CA80000000168EF32C8',
                         'channels': 2,
                         'bits_per_sample': 16,
-                        'nal_unit_length_field': 4
+                        'nal_unit_length_field': 4,
                     },
                 }],
                 {
@@ -1538,10 +1538,10 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                                 'duration': 8880746666,
                                 'timescale': 10000000,
                                 'fourcc': 'TTML',
-                                'codec_private_data': ''
-                            }
-                        }
-                    ]
+                                'codec_private_data': '',
+                            },
+                        },
+                    ],
                 },
             ),
             (
@@ -1571,7 +1571,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                         'sampling_rate': 48000,
                         'channels': 2,
                         'bits_per_sample': 16,
-                        'nal_unit_length_field': 4
+                        'nal_unit_length_field': 4,
                     },
                 }, {
                     'format_id': 'audio_deu_1-224',
@@ -1597,7 +1597,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                         'sampling_rate': 48000,
                         'channels': 6,
                         'bits_per_sample': 16,
-                        'nal_unit_length_field': 4
+                        'nal_unit_length_field': 4,
                     },
                 }, {
                     'format_id': 'video_deu-23',
@@ -1622,7 +1622,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                         'codec_private_data': '000000016742C00CDB06077E5C05A808080A00000300020000030009C0C02EE0177CC6300F142AE00000000168CA8DC8',
                         'channels': 2,
                         'bits_per_sample': 16,
-                        'nal_unit_length_field': 4
+                        'nal_unit_length_field': 4,
                     },
                 }, {
                     'format_id': 'video_deu-403',
@@ -1647,7 +1647,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                         'codec_private_data': '00000001674D4014E98323B602D4040405000003000100000300320F1429380000000168EAECF2',
                         'channels': 2,
                         'bits_per_sample': 16,
-                        'nal_unit_length_field': 4
+                        'nal_unit_length_field': 4,
                     },
                 }, {
                     'format_id': 'video_deu-680',
@@ -1672,7 +1672,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                         'codec_private_data': '00000001674D401EE981405FF2E02D4040405000000300100000030320F162D3800000000168EAECF2',
                         'channels': 2,
                         'bits_per_sample': 16,
-                        'nal_unit_length_field': 4
+                        'nal_unit_length_field': 4,
                     },
                 }, {
                     'format_id': 'video_deu-1253',
@@ -1698,7 +1698,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                         'codec_private_data': '00000001674D401EE981405FF2E02D4040405000000300100000030320F162D3800000000168EAECF2',
                         'channels': 2,
                         'bits_per_sample': 16,
-                        'nal_unit_length_field': 4
+                        'nal_unit_length_field': 4,
                     },
                 }, {
                     'format_id': 'video_deu-2121',
@@ -1723,7 +1723,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                         'codec_private_data': '00000001674D401EECA0601BD80B50101014000003000400000300C83C58B6580000000168E93B3C80',
                         'channels': 2,
                         'bits_per_sample': 16,
-                        'nal_unit_length_field': 4
+                        'nal_unit_length_field': 4,
                     },
                 }, {
                     'format_id': 'video_deu-3275',
@@ -1748,7 +1748,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                         'codec_private_data': '00000001674D4020ECA02802DD80B501010140000003004000000C83C60C65800000000168E93B3C80',
                         'channels': 2,
                         'bits_per_sample': 16,
-                        'nal_unit_length_field': 4
+                        'nal_unit_length_field': 4,
                     },
                 }, {
                     'format_id': 'video_deu-5300',
@@ -1773,7 +1773,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                         'codec_private_data': '00000001674D4028ECA03C0113F2E02D4040405000000300100000030320F18319600000000168E93B3C80',
                         'channels': 2,
                         'bits_per_sample': 16,
-                        'nal_unit_length_field': 4
+                        'nal_unit_length_field': 4,
                     },
                 }, {
                     'format_id': 'video_deu-8079',
@@ -1798,7 +1798,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                         'codec_private_data': '00000001674D4028ECA03C0113F2E02D4040405000000300100000030320F18319600000000168E93B3C80',
                         'channels': 2,
                         'bits_per_sample': 16,
-                        'nal_unit_length_field': 4
+                        'nal_unit_length_field': 4,
                     },
                 }],
                 {},
@@ -1806,7 +1806,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
         ]
 
         for ism_file, ism_url, expected_formats, expected_subtitles in _TEST_CASES:
-            with open('./test/testdata/ism/%s.Manifest' % ism_file, encoding='utf-8') as f:
+            with open(f'./test/testdata/ism/{ism_file}.Manifest', encoding='utf-8') as f:
                 formats, subtitles = self.ie._parse_ism_formats_and_subtitles(
                     compat_etree_fromstring(f.read().encode()), ism_url=ism_url)
                 self.ie._sort_formats(formats)
@@ -1827,12 +1827,12 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'tbr': 2148,
                     'width': 1280,
                     'height': 720,
-                }]
+                }],
             ),
         ]
 
         for f4m_file, f4m_url, expected_formats in _TEST_CASES:
-            with open('./test/testdata/f4m/%s.f4m' % f4m_file, encoding='utf-8') as f:
+            with open(f'./test/testdata/f4m/{f4m_file}.f4m', encoding='utf-8') as f:
                 formats = self.ie._parse_f4m_formats(
                     compat_etree_fromstring(f.read().encode()),
                     f4m_url, None)
@@ -1873,13 +1873,13 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     }, {
                         'manifest_url': 'https://example.org/src/foo_xspf.xspf',
                         'url': 'https://example.com/track3.mp3',
-                    }]
-                }]
+                    }],
+                }],
             ),
         ]
 
         for xspf_file, xspf_url, expected_entries in _TEST_CASES:
-            with open('./test/testdata/xspf/%s.xspf' % xspf_file, encoding='utf-8') as f:
+            with open(f'./test/testdata/xspf/{xspf_file}.xspf', encoding='utf-8') as f:
                 entries = self.ie._parse_xspf(
                     compat_etree_fromstring(f.read().encode()),
                     xspf_file, xspf_url=xspf_url, xspf_base_url=xspf_url)
@@ -1902,7 +1902,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
         server_thread.start()
 
         (content, urlh) = self.ie._download_webpage_handle(
-            'http://127.0.0.1:%d/teapot' % port, None,
+            f'http://127.0.0.1:{port}/teapot', None,
             expected_status=TEAPOT_RESPONSE_STATUS)
         self.assertEqual(content, TEAPOT_RESPONSE_BODY)
 

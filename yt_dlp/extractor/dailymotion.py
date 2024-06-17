@@ -87,7 +87,7 @@ class DailymotionBaseInfoExtractor(InfoExtractor):
   %s(xid: "%s"%s) {
     %s
   }
-}''' % (object_type, xid, ', ' + filter_extra if filter_extra else '', object_fields),
+}''' % (object_type, xid, ', ' + filter_extra if filter_extra else '', object_fields),  # noqa: UP031
             }).encode(), headers=self._HEADERS)
         obj = resp['data'][object_type]
         if not obj:
@@ -143,7 +143,7 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
             'like_count': int,
             'tags': ['en_quete_d_esprit'],
             'thumbnail': r're:https://(?:s[12]\.)dmcdn\.net/v/Tncwi1YNg_RUl7ueu/x1080',
-        }
+        },
     }, {
         'url': 'https://www.dailymotion.com/video/x2iuewm_steam-machine-models-pricing-listed-on-steam-store-ign-news_videogames',
         'md5': '2137c41a8e78554bb09225b8eb322406',
@@ -260,8 +260,8 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
       %s
       audienceCount
       isOnAir
-    }''' % (self._COMMON_MEDIA_FIELDS, self._COMMON_MEDIA_FIELDS), 'Downloading media JSON metadata',
-            'password: "%s"' % self.get_param('videopassword') if password else None)
+    }''' % (self._COMMON_MEDIA_FIELDS, self._COMMON_MEDIA_FIELDS), 'Downloading media JSON metadata',  # noqa: UP031
+            'password: "{}"'.format(self.get_param('videopassword')) if password else None)
         xid = media['xid']
 
         metadata = self._download_json(
@@ -277,7 +277,7 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
                 allowed_countries = try_get(media, lambda x: x['geoblockedCountries']['allowed'], list)
                 self.raise_geo_restricted(msg=title, countries=allowed_countries)
             raise ExtractorError(
-                '%s said: %s' % (self.IE_NAME, title), expected=True)
+                f'{self.IE_NAME} said: {title}', expected=True)
 
         title = metadata['title']
         is_live = media.get('isOnAir')
@@ -363,7 +363,7 @@ class DailymotionPlaylistBaseIE(DailymotionBaseInfoExtractor):
         }
       }
     }''' % ('false' if self._FAMILY_FILTER else 'true', self._PAGE_SIZE, page),
-            'Downloading page %d' % page)['videos']
+            f'Downloading page {page}')['videos']
         for edge in videos['edges']:
             node = edge['node']
             yield self.url_result(
@@ -396,7 +396,7 @@ class DailymotionPlaylistIE(DailymotionPlaylistBaseIE):
                 r'<iframe[^>]+?src=(["\'])(?P<url>(?:https?:)?//(?:www\.)?dailymotion\.[a-z]{2,3}/widget/jukebox\?.+?)\1',
                 webpage):
             for p in re.findall(r'list\[\]=/playlist/([^/]+)/', unescapeHTML(mobj.group('url'))):
-                yield '//dailymotion.com/playlist/%s' % p
+                yield f'//dailymotion.com/playlist/{p}'
 
 
 class DailymotionSearchIE(DailymotionPlaylistBaseIE):
@@ -424,7 +424,7 @@ class DailymotionSearchIE(DailymotionPlaylistBaseIE):
                     'limit': 20,
                     'page': page,
                     'query': term,
-                }
+                },
             }).encode(), headers=self._HEADERS)
         obj = traverse_obj(resp, ('data', 'search', {dict}))
         if not obj:

@@ -1,5 +1,4 @@
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     determine_protocol,
     int_or_none,
@@ -19,7 +18,7 @@ class DailyMailIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'The Mountain appears in sparkling water ad for \'Heavy Bubbles\'',
             'description': 'md5:a93d74b6da172dd5dc4d973e0b766a84',
-        }
+        },
     }, {
         'url': 'http://www.dailymail.co.uk/embed/video/1295863.html',
         'only_matching': True,
@@ -35,8 +34,8 @@ class DailyMailIE(InfoExtractor):
         sources_url = (try_get(
             video_data,
             (lambda x: x['plugins']['sources']['url'],
-             lambda x: x['sources']['url']), compat_str)
-            or 'http://www.dailymail.co.uk/api/player/%s/video-sources.json' % video_id)
+             lambda x: x['sources']['url']), str)
+            or f'http://www.dailymail.co.uk/api/player/{video_id}/video-sources.json')
 
         video_sources = self._download_json(sources_url, video_id)
         body = video_sources.get('body')
@@ -53,7 +52,7 @@ class DailyMailIE(InfoExtractor):
             is_hls = container == 'M2TS'
             protocol = 'm3u8_native' if is_hls else determine_protocol({'url': rendition_url})
             formats.append({
-                'format_id': ('hls' if is_hls else protocol) + ('-%d' % tbr if tbr else ''),
+                'format_id': ('hls' if is_hls else protocol) + (f'-{tbr}' if tbr else ''),
                 'url': rendition_url,
                 'width': int_or_none(rendition.get('frameWidth')),
                 'height': int_or_none(rendition.get('frameHeight')),
