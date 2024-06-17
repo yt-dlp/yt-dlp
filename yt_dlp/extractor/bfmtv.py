@@ -7,7 +7,7 @@ from ..utils import extract_attributes
 class BFMTVBaseIE(InfoExtractor):
     _VALID_URL_BASE = r'https?://(?:www\.|rmc\.)?bfmtv\.com/'
     _VALID_URL_TMPL = _VALID_URL_BASE + r'(?:[^/]+/)*[^/?&#]+_%s[A-Z]-(?P<id>\d{12})\.html'
-    _VIDEO_BLOCK_REGEX = r'(<div[^>]+class="video_block"[^>]*>)'
+    _VIDEO_BLOCK_REGEX = r'(<div[^>]+class="video_block[^"]*"[^>]*>)'
     BRIGHTCOVE_URL_TEMPLATE = 'http://players.brightcove.net/%s/%s_default/index.html?videoId=%s'
 
     def _brightcove_url_result(self, video_id, video_block):
@@ -55,8 +55,11 @@ class BFMTVLiveIE(BFMTVIE):  # XXX: Do not subclass from concrete IE
             'ext': 'mp4',
             'title': r're:^le direct BFMTV WEB \d{4}-\d{2}-\d{2} \d{2}:\d{2}$',
             'uploader_id': '876450610001',
-            'upload_date': '20171018',
-            'timestamp': 1508329950,
+            'upload_date': '20220926',
+            'timestamp': 1664207191,
+            'live_status': 'is_live',
+            'thumbnail': r're:https://.+/image\.jpg',
+            'tags': [],
         },
         'params': {
             'skip_download': True,
@@ -90,14 +93,13 @@ class BFMTVArticleIE(BFMTVBaseIE):
             'id': '6318445464112',
             'ext': 'mp4',
             'title': 'Le plein de bioéthanol fait de plus en plus mal à la pompe',
-            'description': None,
             'uploader_id': '876630703001',
             'upload_date': '20230110',
             'timestamp': 1673341692,
             'duration': 109.269,
             'tags': ['rmc', 'show', 'apolline de malherbe', 'info', 'talk', 'matinale', 'radio'],
-            'thumbnail': 'https://cf-images.eu-west-1.prod.boltdns.net/v1/static/876630703001/5bef74b8-9d5e-4480-a21f-60c2e2480c46/96c88b74-f9db-45e1-8040-e199c5da216c/1920x1080/match/image.jpg'
-        }
+            'thumbnail': 'https://cf-images.eu-west-1.prod.boltdns.net/v1/static/876630703001/5bef74b8-9d5e-4480-a21f-60c2e2480c46/96c88b74-f9db-45e1-8040-e199c5da216c/1920x1080/match/image.jpg',
+        },
     }]
 
     def _real_extract(self, url):

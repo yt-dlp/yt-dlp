@@ -2,7 +2,7 @@ from .common import InfoExtractor
 
 
 class MediaiteIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?mediaite.com(?!/category)(?:/[\w-]+){2}'
+    _VALID_URL = r'https?://(?:www\.)?mediaite\.com(?!/category)(?:/[\w-]+){2}'
     _TESTS = [{
         'url': 'https://www.mediaite.com/sports/bill-burr-roasts-nfl-for-promoting-black-lives-matter-while-scheduling-more-games-after-all-the-sht-they-know-about-cte/',
         'info_dict': {
@@ -15,7 +15,7 @@ class MediaiteIE(InfoExtractor):
             'timestamp': 1631630185,
             'upload_date': '20210914',
         },
-        'params': {'skip_download': True}
+        'params': {'skip_download': True},
     }, {
         'url': 'https://www.mediaite.com/tv/joe-scarborough-goes-off-on-tax-breaks-for-super-wealthy-largest-income-redistribution-scam-in-american-history/',
         'info_dict': {
@@ -28,7 +28,7 @@ class MediaiteIE(InfoExtractor):
             'timestamp': 1631618057,
             'upload_date': '20210914',
         },
-        'params': {'skip_download': True}
+        'params': {'skip_download': True},
     }, {
         'url': 'https://www.mediaite.com/politics/watch-rudy-giuliani-impersonates-queen-elizabeth-calls-mark-milley-an-asshle-in-bizarre-9-11-speech/',
         'info_dict': {
@@ -41,7 +41,7 @@ class MediaiteIE(InfoExtractor):
             'timestamp': 1631536476,
             'upload_date': '20210913',
         },
-        'params': {'skip_download': True}
+        'params': {'skip_download': True},
     }, {
         'url': 'https://www.mediaite.com/podcasts/clarissa-ward-says-she-decided-to-become-a-journalist-on-9-11/',
         'info_dict': {
@@ -54,7 +54,7 @@ class MediaiteIE(InfoExtractor):
             'timestamp': 1631311188,
             'upload_date': '20210910',
         },
-        'params': {'skip_download': True}
+        'params': {'skip_download': True},
     }, {
         'url': 'https://www.mediaite.com/opinion/mainstream-media-ignores-rose-mcgowans-bombshell-allegation-that-newsoms-wife-tried-to-silence-her-on-weinstein/',
         'info_dict': {
@@ -67,7 +67,7 @@ class MediaiteIE(InfoExtractor):
             'timestamp': 1631553328,
             'upload_date': '20210913',
         },
-        'params': {'skip_download': True}
+        'params': {'skip_download': True},
     }, {
         'url': 'https://www.mediaite.com/news/watch-cnbcs-jim-cramer-says-nobody-wants-to-die-getting-infected-by-unvaccinated-coworker-even-for-22-an-hour/',
         'info_dict': {
@@ -80,11 +80,25 @@ class MediaiteIE(InfoExtractor):
             'timestamp': 1633014214,
             'upload_date': '20210930',
         },
-        'params': {'skip_download': True}
+        'params': {'skip_download': True},
+    }, {
+        'url': 'https://www.mediaite.com/politics/i-cant-read-it-fast-enough-while-defending-trump-larry-kudlow-overwhelmed-by-volume-of-ex-presidents-legal-troubles/',
+        'info_dict': {
+            'id': 'E6EhDX5z',
+            'ext': 'mp4',
+            'title': 'Fox Business Network - 4:00 PM - 5:00 PM - 1:39:42 pm - 1:42:20 pm',
+            'description': '',
+            'thumbnail': 'https://cdn.jwplayer.com/v2/media/E6EhDX5z/poster.jpg?width=720',
+            'duration': 157,
+            'timestamp': 1691015535,
+            'upload_date': '20230802',
+        },
+        'params': {'skip_download': True},
     }]
 
     def _real_extract(self, url):
         webpage = self._download_webpage(url, None)
-        id = self._search_regex(r'data-video-id\s?=\s?\"([^\"]+)\"', webpage, 'id')
-        data_json = self._download_json(f'https://cdn.jwplayer.com/v2/media/{id}', id)
+        video_id = self._search_regex(
+            [r'"https://cdn\.jwplayer\.com/players/(\w+)', r'data-video-id\s*=\s*\"([^\"]+)\"'], webpage, 'id')
+        data_json = self._download_json(f'https://cdn.jwplayer.com/v2/media/{video_id}', video_id)
         return self._parse_jwplayer_data(data_json)

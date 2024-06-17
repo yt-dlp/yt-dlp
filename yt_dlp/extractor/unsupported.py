@@ -23,7 +23,7 @@ class KnownDRMIE(UnsupportedInfoExtractor):
 
     Add to this list only if:
     * You are reasonably certain that the site uses DRM for ALL their videos
-    * Multiple users have asked about this site on github/reddit/discord
+    * Multiple users have asked about this site on github/discord
     """
 
     URLS = (
@@ -48,6 +48,7 @@ class KnownDRMIE(UnsupportedInfoExtractor):
         r'joyn\.de',
         r'amazon\.(?:\w{2}\.)?\w+/gp/video',
         r'music\.amazon\.(?:\w{2}\.)?\w+',
+        r'(?:watch|front)\.njpwworld\.com',
     )
 
     _TESTS = [{
@@ -141,6 +142,13 @@ class KnownDRMIE(UnsupportedInfoExtractor):
         # https://github.com/yt-dlp/yt-dlp/issues/5767
         'url': 'https://www.hulu.com/movie/anthem-6b25fac9-da2b-45a3-8e09-e4156b0471cc',
         'only_matching': True,
+    }, {
+        # https://github.com/yt-dlp/yt-dlp/pull/8570
+        'url': 'https://watch.njpwworld.com/player/36447/series?assetType=series',
+        'only_matching': True,
+    }, {
+        'url': 'https://front.njpwworld.com/p/s_series_00563_16_bs',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
@@ -164,10 +172,28 @@ class KnownPiracyIE(UnsupportedInfoExtractor):
         r'viewsb\.com',
         r'filemoon\.sx',
         r'hentai\.animestigma\.com',
+        r'thisav\.com',
+        r'gounlimited\.to',
+        r'highstream\.tv',
+        r'uqload\.com',
+        r'vedbam\.xyz',
+        r'vadbam\.net'
+        r'vidlo\.us',
+        r'wolfstream\.tv',
+        r'xvideosharing\.com',
+        r'(?:\w+\.)?viidshar\.com',
+        r'sxyprn\.com',
+        r'jable\.tv',
+        r'91porn\.com',
+        r'einthusan\.(?:tv|com|ca)',
+        r'yourupload\.com',
     )
 
     _TESTS = [{
         'url': 'http://dood.to/e/5s1wmbdacezb',
+        'only_matching': True,
+    }, {
+        'url': 'https://thisav.com/en/terms',
         'only_matching': True,
     }]
 

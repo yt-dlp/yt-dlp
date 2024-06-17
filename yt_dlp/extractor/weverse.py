@@ -45,10 +45,10 @@ class WeverseBaseIE(InfoExtractor):
             'x-acc-trace-id': str(uuid.uuid4()),
             'x-clog-user-device-id': str(uuid.uuid4()),
         }
-        check_username = self._download_json(
-            f'{self._ACCOUNT_API_BASE}/signup/email/status', None,
-            note='Checking username', query={'email': username}, headers=headers)
-        if not check_username.get('hasPassword'):
+        valid_username = traverse_obj(self._download_json(
+            f'{self._ACCOUNT_API_BASE}/signup/email/status', None, note='Checking username',
+            query={'email': username}, headers=headers, expected_status=(400, 404)), 'hasPassword')
+        if not valid_username:
             raise ExtractorError('Invalid username provided', expected=True)
 
         headers['content-type'] = 'application/json'
@@ -70,10 +70,8 @@ class WeverseBaseIE(InfoExtractor):
             return
 
         token = try_call(lambda: self._get_cookies('https://weverse.io/')['we2_access_token'].value)
-        if not token:
-            self.raise_login_required()
-
-        WeverseBaseIE._API_HEADERS['Authorization'] = f'Bearer {token}'
+        if token:
+            WeverseBaseIE._API_HEADERS['Authorization'] = f'Bearer {token}'
 
     def _call_api(self, ep, video_id, data=None, note='Downloading API JSON'):
         # Ref: https://ssl.pstatic.net/static/wevweb/2_3_2_11101725/public/static/js/2488.a09b41ff.chunk.js
@@ -101,11 +99,14 @@ class WeverseBaseIE(InfoExtractor):
                 self.raise_login_required(
                     'Session token has expired. Log in again or refresh cookies in browser')
             elif isinstance(e.cause, HTTPError) and e.cause.status == 403:
-                raise ExtractorError('Your account does not have access to this content', expected=True)
+                if 'Authorization' in self._API_HEADERS:
+                    raise ExtractorError('Your account does not have access to this content', expected=True)
+                self.raise_login_required()
             raise
 
     def _call_post_api(self, video_id):
-        return self._call_api(f'/post/v1.0/post-{video_id}?fieldSet=postV1', video_id)
+        path = '' if 'Authorization' in self._API_HEADERS else '/preview'
+        return self._call_api(f'/post/v1.0/post-{video_id}{path}?fieldSet=postV1', video_id)
 
     def _get_community_id(self, channel):
         return str(self._call_api(
@@ -181,7 +182,7 @@ class WeverseBaseIE(InfoExtractor):
 
 
 class WeverseIE(WeverseBaseIE):
-    _VALID_URL = r'https?://(?:www\.|m\.)?weverse.io/(?P<artist>[^/?#]+)/live/(?P<id>[\d-]+)'
+    _VALID_URL = r'https?://(?:www\.|m\.)?weverse\.io/(?P<artist>[^/?#]+)/live/(?P<id>[\d-]+)'
     _TESTS = [{
         'url': 'https://weverse.io/billlie/live/0-107323480',
         'md5': '1fa849f00181eef9100d3c8254c47979',
@@ -343,7 +344,7 @@ class WeverseIE(WeverseBaseIE):
 
 
 class WeverseMediaIE(WeverseBaseIE):
-    _VALID_URL = r'https?://(?:www\.|m\.)?weverse.io/(?P<artist>[^/?#]+)/media/(?P<id>[\d-]+)'
+    _VALID_URL = r'https?://(?:www\.|m\.)?weverse\.io/(?P<artist>[^/?#]+)/media/(?P<id>[\d-]+)'
     _TESTS = [{
         'url': 'https://weverse.io/billlie/media/4-116372884',
         'md5': '8efc9cfd61b2f25209eb1a5326314d28',
@@ -419,7 +420,7 @@ class WeverseMediaIE(WeverseBaseIE):
 
 
 class WeverseMomentIE(WeverseBaseIE):
-    _VALID_URL = r'https?://(?:www\.|m\.)?weverse.io/(?P<artist>[^/?#]+)/moment/(?P<uid>[\da-f]+)/post/(?P<id>[\d-]+)'
+    _VALID_URL = r'https?://(?:www\.|m\.)?weverse\.io/(?P<artist>[^/?#]+)/moment/(?P<uid>[\da-f]+)/post/(?P<id>[\d-]+)'
     _TESTS = [{
         'url': 'https://weverse.io/secretnumber/moment/66a07e164b56a696ee71c99315ffe27b/post/1-117229444',
         'md5': '87733ac19a54081b7dfc2442036d282b',
@@ -515,7 +516,7 @@ class WeverseTabBaseIE(WeverseBaseIE):
 
 
 class WeverseLiveTabIE(WeverseTabBaseIE):
-    _VALID_URL = r'https?://(?:www\.|m\.)?weverse.io/(?P<id>[^/?#]+)/live/?(?:[?#]|$)'
+    _VALID_URL = r'https?://(?:www\.|m\.)?weverse\.io/(?P<id>[^/?#]+)/live/?(?:[?#]|$)'
     _TESTS = [{
         'url': 'https://weverse.io/billlie/live/',
         'playlist_mincount': 55,
@@ -533,7 +534,7 @@ class WeverseLiveTabIE(WeverseTabBaseIE):
 
 
 class WeverseMediaTabIE(WeverseTabBaseIE):
-    _VALID_URL = r'https?://(?:www\.|m\.)?weverse.io/(?P<id>[^/?#]+)/media(?:/|/all|/new)?(?:[?#]|$)'
+    _VALID_URL = r'https?://(?:www\.|m\.)?weverse\.io/(?P<id>[^/?#]+)/media(?:/|/all|/new)?(?:[?#]|$)'
     _TESTS = [{
         'url': 'https://weverse.io/billlie/media/',
         'playlist_mincount': 231,
@@ -557,7 +558,7 @@ class WeverseMediaTabIE(WeverseTabBaseIE):
 
 
 class WeverseLiveIE(WeverseBaseIE):
-    _VALID_URL = r'https?://(?:www\.|m\.)?weverse.io/(?P<id>[^/?#]+)/?(?:[?#]|$)'
+    _VALID_URL = r'https?://(?:www\.|m\.)?weverse\.io/(?P<id>[^/?#]+)/?(?:[?#]|$)'
     _TESTS = [{
         'url': 'https://weverse.io/purplekiss',
         'info_dict': {

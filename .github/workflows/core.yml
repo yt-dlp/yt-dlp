@@ -1,7 +1,31 @@
 name: Core Tests
-on: [push, pull_request]
+on:
+  push:
+    paths:
+      - .github/**
+      - devscripts/**
+      - test/**
+      - yt_dlp/**.py
+      - '!yt_dlp/extractor/*.py'
+      - yt_dlp/extractor/__init__.py
+      - yt_dlp/extractor/common.py
+      - yt_dlp/extractor/extractors.py
+  pull_request:
+    paths:
+      - .github/**
+      - devscripts/**
+      - test/**
+      - yt_dlp/**.py
+      - '!yt_dlp/extractor/*.py'
+      - yt_dlp/extractor/__init__.py
+      - yt_dlp/extractor/common.py
+      - yt_dlp/extractor/extractors.py
 permissions:
   contents: read
+
+concurrency:
+  group: core-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   tests:
@@ -12,27 +36,26 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        # CPython 3.11 is in quick-test
-        python-version: ['3.8', '3.9', '3.10', pypy-3.7, pypy-3.8]
-        run-tests-ext: [sh]
+        # CPython 3.8 is in quick-test
+        python-version: ['3.9', '3.10', '3.11', '3.12', pypy-3.8, pypy-3.10]
         include:
         # atleast one of each CPython/PyPy tests must be in windows
         - os: windows-latest
-          python-version: '3.7'
-          run-tests-ext: bat
+          python-version: '3.8'
+        - os: windows-latest
+          python-version: '3.12'
         - os: windows-latest
           python-version: pypy-3.9
-          run-tests-ext: bat
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Install pytest
-      run: pip install pytest
+    - name: Install test requirements
+      run: python3 ./devscripts/install_deps.py --include test --include curl-cffi
     - name: Run tests
       continue-on-error: False
       run: |
         python3 -m yt_dlp -v || true  # Print debug head
-        ./devscripts/run_tests.${{ matrix.run-tests-ext }} core
+        python3 ./devscripts/run_tests.py core

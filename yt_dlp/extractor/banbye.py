@@ -1,13 +1,10 @@
 import math
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_urllib_parse_urlparse,
-    compat_parse_qs,
-)
 from ..utils import (
-    format_field,
     InAdvancePagedList,
+    format_field,
     traverse_obj,
     unified_timestamp,
 )
@@ -20,8 +17,8 @@ class BanByeBaseIE(InfoExtractor):
 
     @staticmethod
     def _extract_playlist_id(url, param='playlist'):
-        return compat_parse_qs(
-            compat_urllib_parse_urlparse(url).query).get(param, [None])[0]
+        return urllib.parse.parse_qs(
+            urllib.parse.urlparse(url).query).get(param, [None])[0]
 
     def _extract_playlist(self, playlist_id):
         data = self._download_json(f'{self._API_BASE}/playlists/{playlist_id}', playlist_id)
@@ -31,7 +28,7 @@ class BanByeBaseIE(InfoExtractor):
 
 
 class BanByeIE(BanByeBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?banbye.com/(?:en/)?watch/(?P<id>\w+)'
+    _VALID_URL = r'https?://(?:www\.)?banbye\.com/(?:en/)?watch/(?P<id>[\w-]+)'
     _TESTS = [{
         'url': 'https://banbye.com/watch/v_ytfmvkVYLE8T',
         'md5': '2f4ea15c5ca259a73d909b2cfd558eb5',
@@ -59,7 +56,27 @@ class BanByeIE(BanByeBaseIE):
             'title': 'Krzysztof Karoń',
             'id': 'p_Ld82N6gBw_OJ',
         },
-        'playlist_count': 9,
+        'playlist_mincount': 9,
+    }, {
+        'url': 'https://banbye.com/watch/v_kb6_o1Kyq-CD',
+        'info_dict': {
+            'id': 'v_kb6_o1Kyq-CD',
+            'ext': 'mp4',
+            'title': 'Co tak naprawdę dzieje się we Francji?! Czy Warszawa a potem cała Polska będzie drugim Paryżem?!🤔🇵🇱',
+            'description': 'md5:82be4c0e13eae8ea1ca8b9f2e07226a8',
+            'uploader': 'Marcin Rola - MOIM ZDANIEM!🇵🇱',
+            'channel_id': 'ch_QgWnHvDG2fo5',
+            'channel_url': 'https://banbye.com/channel/ch_QgWnHvDG2fo5',
+            'duration': 597,
+            'timestamp': 1688642656,
+            'upload_date': '20230706',
+            'thumbnail': 'https://cdn.banbye.com/video/v_kb6_o1Kyq-CD/96.webp',
+            'tags': ['Paryż', 'Francja', 'Polska', 'Imigranci', 'Morawiecki', 'Tusk'],
+            'like_count': int,
+            'dislike_count': int,
+            'view_count': int,
+            'comment_count': int,
+        },
     }]
 
     def _real_extract(self, url):
@@ -100,7 +117,7 @@ class BanByeIE(BanByeBaseIE):
 
 
 class BanByeChannelIE(BanByeBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?banbye.com/(?:en/)?channel/(?P<id>\w+)'
+    _VALID_URL = r'https?://(?:www\.)?banbye\.com/(?:en/)?channel/(?P<id>\w+)'
     _TESTS = [{
         'url': 'https://banbye.com/channel/ch_wrealu24',
         'info_dict': {
@@ -132,7 +149,7 @@ class BanByeChannelIE(BanByeBaseIE):
                 'sort': 'new',
                 'limit': self._PAGE_SIZE,
                 'offset': page_num * self._PAGE_SIZE,
-            }, note=f'Downloading page {page_num+1}')
+            }, note=f'Downloading page {page_num + 1}')
             return [
                 self.url_result(f"{self._VIDEO_BASE}/{video['_id']}", BanByeIE)
                 for video in data['items']

@@ -9,7 +9,7 @@ class AudiodraftBaseIE(InfoExtractor):
             headers={
                 'Content-type': 'application/x-www-form-urlencoded; charset=UTF-8',
                 'X-Requested-With': 'XMLHttpRequest',
-            }, data=f'id={player_entry_id}'.encode('utf-8'))
+            }, data=f'id={player_entry_id}'.encode())
 
         return {
             'id': str(data_json['entry_id']),
@@ -65,9 +65,10 @@ class AudiodraftCustomIE(AudiodraftBaseIE):
     }]
 
     def _real_extract(self, url):
-        id = self._match_id(url)
-        webpage = self._download_webpage(url, id)
-        player_entry_id = self._search_regex(r'playAudio\(\'(player_entry_\d+)\'\);', webpage, id, 'play entry id')
+        video_id = self._match_id(url)
+        webpage = self._download_webpage(url, video_id)
+        player_entry_id = self._search_regex(
+            r'playAudio\(\'(player_entry_\d+)\'\);', webpage, video_id, 'play entry id')
         return self._audiodraft_extract_from_id(player_entry_id)
 
 
@@ -89,5 +90,5 @@ class AudiodraftGenericIE(AudiodraftBaseIE):
     }]
 
     def _real_extract(self, url):
-        id = self._match_id(url)
-        return self._audiodraft_extract_from_id(f'player_entry_{id}')
+        video_id = self._match_id(url)
+        return self._audiodraft_extract_from_id(f'player_entry_{video_id}')

@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..utils import int_or_none, traverse_obj
+from ..utils import ExtractorError, int_or_none, traverse_obj
 
 
 class SwearnetEpisodeIE(InfoExtractor):
@@ -17,7 +17,7 @@ class SwearnetEpisodeIE(InfoExtractor):
             'title': 'Episode 1 - Grilled Cheese Sammich',
             'season_number': 1,
             'thumbnail': 'https://cdn.vidyard.com/thumbnails/232819/_RX04IKIq60a2V6rIRqq_Q_small.jpg',
-        }
+        },
     }]
 
     def _get_formats_and_subtitle(self, video_source, video_id):
@@ -32,7 +32,7 @@ class SwearnetEpisodeIE(InfoExtractor):
             else:
                 formats.extend({
                     'url': video_mp4.get('url'),
-                    'ext': 'mp4'
+                    'ext': 'mp4',
                 } for video_mp4 in value)
 
         return formats, subtitles
@@ -42,7 +42,7 @@ class SwearnetEpisodeIE(InfoExtractor):
         for caption in caption_json:
             subs.setdefault(caption.get('language') or 'und', []).append({
                 'url': caption.get('vttUrl'),
-                'name': caption.get('name')
+                'name': caption.get('name'),
             })
 
         return subs
@@ -51,7 +51,13 @@ class SwearnetEpisodeIE(InfoExtractor):
         display_id, season_number, episode_number = self._match_valid_url(url).group('id', 'season_num', 'episode_num')
         webpage = self._download_webpage(url, display_id)
 
-        external_id = self._search_regex(r'externalid\s*=\s*"([^"]+)', webpage, 'externalid')
+        try:
+            external_id = self._search_regex(r'externalid\s*=\s*"([^"]+)', webpage, 'externalid')
+        except ExtractorError:
+            if 'Upgrade Now' in webpage:
+                self.raise_login_required()
+            raise
+
         json_data = self._download_json(
             f'https://play.vidyard.com/player/{external_id}.json', display_id)['payload']['chapters'][0]
 
@@ -69,5 +75,5 @@ class SwearnetEpisodeIE(InfoExtractor):
             'season_number': int_or_none(season_number),
             'episode_number': int_or_none(episode_number),
             'thumbnails': [{'url': thumbnail_url}
-                           for thumbnail_url in traverse_obj(json_data, ('thumbnailUrls', ...))]
+                           for thumbnail_url in traverse_obj(json_data, ('thumbnailUrls', ...))],
         }

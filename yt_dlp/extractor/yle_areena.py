@@ -34,8 +34,8 @@ class YleAreenaIE(InfoExtractor):
                 'timestamp': 1543916210,
                 'subtitles': {'fin': [{'url': r're:^https?://', 'ext': 'srt'}]},
                 'age_limit': 7,
-                'webpage_url': 'https://areena.yle.fi/1-4371942'
-            }
+                'webpage_url': 'https://areena.yle.fi/1-4371942',
+            },
         },
         {
             'url': 'https://areena.yle.fi/1-2158940',
@@ -46,10 +46,6 @@ class YleAreenaIE(InfoExtractor):
                 'title': 'Albi haluaa vessan',
                 'description': 'md5:15236d810c837bed861fae0e88663c33',
                 'series': 'Albi Lumiukko',
-                'season': None,
-                'season_number': None,
-                'episode': None,
-                'episode_number': None,
                 'thumbnail': 'http://cfvod.kaltura.com/p/1955031/sp/195503100/thumbnail/entry_id/1_l38iz9ur/version/100021',
                 'uploader_id': 'ovp@yle.fi',
                 'duration': 319,
@@ -59,8 +55,8 @@ class YleAreenaIE(InfoExtractor):
                 'timestamp': 1638448202,
                 'subtitles': {},
                 'age_limit': 0,
-                'webpage_url': 'https://areena.yle.fi/1-2158940'
-            }
+                'webpage_url': 'https://areena.yle.fi/1-2158940',
+            },
         },
         {
             'url': 'https://areena.yle.fi/1-64829589',
@@ -87,7 +83,7 @@ class YleAreenaIE(InfoExtractor):
             video_id, headers={
                 'origin': 'https://areena.yle.fi',
                 'referer': 'https://areena.yle.fi/',
-                'content-type': 'application/json'
+                'content-type': 'application/json',
             })
 
         # Example title: 'K1, J2: Pouchit | Modernit miehet'
