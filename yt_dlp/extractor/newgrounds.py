@@ -86,7 +86,7 @@ class NewgroundsIE(InfoExtractor):
             'description': 'md5:9246c181614e23754571995104da92e0',
             'age_limit': 13,
             'thumbnail': r're:^https://picon\.ngfiles\.com/297000/flash_297383_card\.png',
-        }
+        },
     }, {
         'url': 'https://www.newgrounds.com/portal/view/297383/format/flash',
         'md5': '5d05585a9a0caca059f5abfbd3865524',
@@ -101,7 +101,7 @@ class NewgroundsIE(InfoExtractor):
             'view_count': int,
             'age_limit': 13,
             'thumbnail': r're:^https://picon\.ngfiles\.com/297000/flash_297383_card\.png',
-        }
+        },
     }, {
         'url': 'https://www.newgrounds.com/portal/view/823109',
         'info_dict': {
@@ -115,7 +115,7 @@ class NewgroundsIE(InfoExtractor):
             'view_count': int,
             'age_limit': 18,
             'thumbnail': r're:^https://picon\.ngfiles\.com/823000/flash_823109_card\.png',
-        }
+        },
     }]
     _AGE_LIMIT = {
         'e': 0,
@@ -132,7 +132,7 @@ class NewgroundsIE(InfoExtractor):
         result = self._download_json(login_url, None, 'Logging in', headers={
             'Accept': 'application/json',
             'Referer': self._LOGIN_URL,
-            'X-Requested-With': 'XMLHttpRequest'
+            'X-Requested-With': 'XMLHttpRequest',
         }, data=urlencode_postdata({
             **self._hidden_inputs(login_webpage),
             'username': username,
@@ -164,7 +164,7 @@ class NewgroundsIE(InfoExtractor):
             json_video = self._download_json(f'https://www.newgrounds.com/portal/video/{media_id}', media_id, headers={
                 'Accept': 'application/json',
                 'Referer': url,
-                'X-Requested-With': 'XMLHttpRequest'
+                'X-Requested-With': 'XMLHttpRequest',
             })
 
             formats = []

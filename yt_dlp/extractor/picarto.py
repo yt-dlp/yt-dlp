@@ -17,14 +17,14 @@ class PicartoIE(InfoExtractor):
             'ext': 'mp4',
             'title': 're:^Setz [0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}$',
             'timestamp': int,
-            'is_live': True
+            'is_live': True,
         },
         'skip': 'Stream is offline',
     }
 
     @classmethod
     def suitable(cls, url):
-        return False if PicartoVodIE.suitable(url) else super(PicartoIE, cls).suitable(url)
+        return False if PicartoVodIE.suitable(url) else super().suitable(url)
 
     def _real_extract(self, url):
         channel_id = self._match_id(url)
@@ -42,7 +42,7 @@ class PicartoIE(InfoExtractor):
   getLoadBalancerUrl(channel_name: "%s") {
     url
   }
-}''' % (channel_id, channel_id),
+}''' % (channel_id, channel_id),  # noqa: UP031
             })['data']
         metadata = data['channel']
 
@@ -80,7 +80,7 @@ class PicartoIE(InfoExtractor):
             'is_live': True,
             'channel': channel_id,
             'channel_id': metadata.get('id'),
-            'channel_url': 'https://picarto.tv/%s' % channel_id,
+            'channel_url': f'https://picarto.tv/{channel_id}',
             'age_limit': age_limit,
             'formats': formats,
         }
@@ -95,7 +95,7 @@ class PicartoVodIE(InfoExtractor):
             'id': 'ArtofZod_2017.12.12.00.13.23.flv',
             'ext': 'mp4',
             'title': 'ArtofZod_2017.12.12.00.13.23.flv',
-            'thumbnail': r're:^https?://.*\.jpg'
+            'thumbnail': r're:^https?://.*\.jpg',
         },
         'skip': 'The VOD does not exist',
     }, {
@@ -108,7 +108,7 @@ class PicartoVodIE(InfoExtractor):
             'thumbnail': r're:^https?://.*\.jpg',
             'channel': 'ArtofZod',
             'age_limit': 18,
-        }
+        },
     }, {
         'url': 'https://picarto.tv/videopopout/Plague',
         'only_matching': True,
@@ -130,7 +130,7 @@ class PicartoVodIE(InfoExtractor):
       name
     }}
   }}
-}}'''
+}}''',
             })['data']['video']
 
         file_name = data['file_name']

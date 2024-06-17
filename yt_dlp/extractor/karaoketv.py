@@ -13,7 +13,7 @@ class KaraoketvIE(InfoExtractor):
         'params': {
             # rtmp download
             'skip_download': True,
-        }
+        },
     }
 
     def _real_extract(self, url):
@@ -45,7 +45,7 @@ class KaraoketvIE(InfoExtractor):
             servers = ('wowzail.video-cdn.com:80/vodcdn', )
 
         formats = [{
-            'url': 'rtmp://%s' % server if not server.startswith('rtmp') else server,
+            'url': f'rtmp://{server}' if not server.startswith('rtmp') else server,
             'play_path': play_path,
             'app': 'vodcdn',
             'page_url': video_cdn_url,

@@ -112,7 +112,7 @@ def clean_proxies(proxies: dict, headers: HTTPHeaderDict):
 
             replace_scheme = {
                 'socks5': 'socks5h',  # compat: socks5 was treated as socks5h
-                'socks': 'socks4'  # compat: non-standard
+                'socks': 'socks4',  # compat: non-standard
             }
             if proxy_scheme in replace_scheme:
                 proxies[proxy_key] = urllib.parse.urlunparse(
@@ -160,5 +160,5 @@ def normalize_url(url):
         path=escape_rfc3986(remove_dot_segments(url_parsed.path)),
         params=escape_rfc3986(url_parsed.params),
         query=escape_rfc3986(url_parsed.query),
-        fragment=escape_rfc3986(url_parsed.fragment)
+        fragment=escape_rfc3986(url_parsed.fragment),
     ).geturl()

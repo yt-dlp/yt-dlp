@@ -100,13 +100,13 @@ class ESPNIE(OnceIE):
     }, {
         'url': 'http://www.espn.com/watch/player?bucketId=257&id=19505875',
         'only_matching': True,
-    }, ]
+    }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
         clip = self._download_json(
-            'http://api-app.espn.com/v1/video/clips/%s' % video_id,
+            f'http://api-app.espn.com/v1/video/clips/{video_id}',
             video_id)['videos'][0]
 
         title = clip['headline']
@@ -115,16 +115,16 @@ class ESPNIE(OnceIE):
         formats = []
 
         def traverse_source(source, base_source_id=None):
-            for source_id, source in source.items():
-                if source_id == 'alert':
+            for src_id, src_item in source.items():
+                if src_id == 'alert':
                     continue
-                elif isinstance(source, str):
-                    extract_source(source, base_source_id)
-                elif isinstance(source, dict):
+                elif isinstance(src_item, str):
+                    extract_source(src_item, base_source_id)
+                elif isinstance(src_item, dict):
                     traverse_source(
-                        source,
-                        '%s-%s' % (base_source_id, source_id)
-                        if base_source_id else source_id)
+                        src_item,
+                        f'{base_source_id}-{src_id}'
+                        if base_source_id else src_id)
 
         def extract_source(source_url, source_id=None):
             if source_url in format_urls:
@@ -209,7 +209,7 @@ class ESPNArticleIE(InfoExtractor):
             webpage, 'video id', group='id')
 
         return self.url_result(
-            'http://espn.go.com/video/clip?id=%s' % video_id, ESPNIE.ie_key())
+            f'http://espn.go.com/video/clip?id={video_id}', ESPNIE.ie_key())
 
 
 class FiveThirtyEightIE(InfoExtractor):
@@ -251,7 +251,7 @@ class ESPNCricInfoIE(InfoExtractor):
             'upload_date': '20211113',
             'duration': 96,
         },
-        'params': {'skip_download': True}
+        'params': {'skip_download': True},
     }, {
         'url': 'https://www.espncricinfo.com/cricket-videos/daryl-mitchell-mitchell-santner-is-one-of-the-best-white-ball-spinners-india-vs-new-zealand-1356225',
         'info_dict': {
@@ -266,12 +266,13 @@ class ESPNCricInfoIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        id = self._match_id(url)
-        data_json = self._download_json(f'https://hs-consumer-api.espncricinfo.com/v1/pages/video/video-details?videoId={id}', id)['video']
+        video_id = self._match_id(url)
+        data_json = self._download_json(
+            f'https://hs-consumer-api.espncricinfo.com/v1/pages/video/video-details?videoId={video_id}', video_id)['video']
         formats, subtitles = [], {}
         for item in data_json.get('playbacks') or []:
             if item.get('type') == 'HLS' and item.get('url'):
-                m3u8_frmts, m3u8_subs = self._extract_m3u8_formats_and_subtitles(item['url'], id)
+                m3u8_frmts, m3u8_subs = self._extract_m3u8_formats_and_subtitles(item['url'], video_id)
                 formats.extend(m3u8_frmts)
                 subtitles = self._merge_subtitles(subtitles, m3u8_subs)
             elif item.get('type') == 'AUDIO' and item.get('url'):
@@ -280,7 +281,7 @@ class ESPNCricInfoIE(InfoExtractor):
                     'vcodec': 'none',
                 })
         return {
-            'id': id,
+            'id': video_id,
             'title': data_json.get('title'),
             'description': data_json.get('summary'),
             'upload_date': unified_strdate(dict_get(data_json, ('publishedAt', 'recordedAt'))),
@@ -366,28 +367,28 @@ class WatchESPNIE(AdobePassIE):
                     'subject_token': assertion,
                     'subject_token_type': 'urn:bamtech:params:oauth:token-type:device',
                     'platform': 'android',
-                    'grant_type': 'urn:ietf:params:oauth:grant-type:token-exchange'
+                    'grant_type': 'urn:ietf:params:oauth:grant-type:token-exchange',
                 })['access_token']
 
             assertion = self._call_bamgrid_api(
                 'accounts/grant', video_id, payload={'id_token': cookie.value.split('|')[1]},
                 headers={
                     'Authorization': token,
-                    'Content-Type': 'application/json; charset=UTF-8'
+                    'Content-Type': 'application/json; charset=UTF-8',
                 })['assertion']
             token = self._call_bamgrid_api(
                 'token', video_id, payload={
                     'subject_token': assertion,
                     'subject_token_type': 'urn:bamtech:params:oauth:token-type:account',
                     'platform': 'android',
-                    'grant_type': 'urn:ietf:params:oauth:grant-type:token-exchange'
+                    'grant_type': 'urn:ietf:params:oauth:grant-type:token-exchange',
                 })['access_token']
 
             playback = self._download_json(
                 video_data['videoHref'].format(scenario='browser~ssai'), video_id,
                 headers={
                     'Accept': 'application/vnd.media-service+json; version=5',
-                    'Authorization': token
+                    'Authorization': token,
                 })
             m3u8_url, headers = playback['stream']['complete'][0]['url'], {'authorization': token}
 

@@ -24,7 +24,7 @@ class KelbyOneIE(InfoExtractor):
                 'duration': 90,
                 'upload_date': '20201001',
             },
-        }]
+        }],
     }]
 
     def _entries(self, playlist):

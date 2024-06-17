@@ -223,10 +223,10 @@ class Changelog:
 
         return message if not sep else f'{message}{sep}{rest}'
 
-    def _format_message_link(self, message, hash):
-        assert message or hash, 'Improperly defined commit message or override'
-        message = message if message else hash[:HASH_LENGTH]
-        return f'[{message}]({self.repo_url}/commit/{hash})' if hash else message
+    def _format_message_link(self, message, commit_hash):
+        assert message or commit_hash, 'Improperly defined commit message or override'
+        message = message if message else commit_hash[:HASH_LENGTH]
+        return f'[{message}]({self.repo_url}/commit/{commit_hash})' if commit_hash else message
 
     def _format_issues(self, issues):
         return ', '.join(f'[#{issue}]({self.repo_url}/issues/{issue})' for issue in issues)
@@ -356,7 +356,7 @@ class CommitRange:
                 logger.info(f'CHANGE {self._commits[commit.hash]} -> {commit}')
                 self._commits[commit.hash] = commit
 
-        self._commits = {key: value for key, value in reversed(self._commits.items())}
+        self._commits = dict(reversed(self._commits.items()))
 
     def groups(self):
         group_dict = defaultdict(list)
