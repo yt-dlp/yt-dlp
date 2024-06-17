@@ -43,7 +43,6 @@ class KodikIE(InfoExtractor):
                     'thumbnail' : 'https:' + tb,
                     'quality': re.findall(r'(\d+).mp4', link)[0]
                 })
-
             formats.extend(fmt)
         
         return {
