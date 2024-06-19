@@ -4010,6 +4010,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 f['format_id'] = itag
 
             if original_language and f.get('language') == original_language:
+                f['format_note'] = join_nonempty(f.get('format_note'), '(default)', delim=' ')
                 f['language_preference'] = PREFERRED_LANG_VALUE
 
             if f.get('source_preference') is None:
