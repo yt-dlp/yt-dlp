@@ -3797,6 +3797,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
     def _extract_formats_and_subtitles(self, streaming_data, video_id, player_url, live_status, duration):
         CHUNK_SIZE = 10 << 20
+        PREFERRED_LANG_VALUE = 10
+        original_language = None
         itags, stream_ids = collections.defaultdict(set), []
         itag_qualities, res_qualities = {}, {0: None}
         q = qualities([
@@ -3820,8 +3822,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     'range': f'{range_start}-{min(range_start + CHUNK_SIZE - 1, f["filesize"])}',
                 }),
             } for range_start in range(0, f['filesize'], CHUNK_SIZE))
-
-        original_language = None
 
         for fmt in streaming_formats:
             if fmt.get('targetDurationSec'):
@@ -3898,7 +3898,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             tbr = float_or_none(fmt.get('averageBitrate') or fmt.get('bitrate'), 1000)
             is_default = audio_track.get('audioIsDefault')
             is_descriptive = 'descriptive' in (audio_track.get('displayName') or '').lower()
-            language_preference = 10 if is_default else -10 if is_descriptive else -1
+            language_preference = PREFERRED_LANG_VALUE if is_default else -10 if is_descriptive else -1
             language_code = audio_track.get('id', '').split('.')[0]
             if language_code and is_default:
                 original_language = language_code
@@ -4013,7 +4013,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 f['format_id'] = itag
 
             if original_language and f.get('language') == original_language:
-                f['language_preference'] = 10
+                f['language_preference'] = PREFERRED_LANG_VALUE
 
             if f.get('source_preference') is None:
                 f['source_preference'] = -1

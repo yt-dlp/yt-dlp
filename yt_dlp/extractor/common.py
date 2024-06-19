@@ -2216,7 +2216,7 @@ class InfoExtractor:
                         'has_drm': has_drm,
                     }
 
-                    # YouTube Specific
+                    # YouTube-specific
                     if yt_audio_content_id := last_stream_inf.get('YT-EXT-AUDIO-CONTENT-ID'):
                         f['language'] = yt_audio_content_id.split('.')[0]
 
