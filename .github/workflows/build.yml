@@ -525,6 +525,10 @@ jobs:
           # make sure SHA sums are also printed to stdout
           sha256sum -- * | tee ../SHA2-256SUMS
           sha512sum -- * | tee ../SHA2-512SUMS
+          # also print as permanent annotations to the summary page
+          while read -r shasum; do
+            echo "::notice title=${shasum##* }::sha256: ${shasum% *}"
+          done < ../SHA2-256SUMS
 
       - name: Make Update spec
         run: |
