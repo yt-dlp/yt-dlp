@@ -3896,12 +3896,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     throttled = True
 
             tbr = float_or_none(fmt.get('averageBitrate') or fmt.get('bitrate'), 1000)
-            language_preference = (
-                10 if audio_track.get('audioIsDefault') and 10
-                else -10 if 'descriptive' in (audio_track.get('displayName') or '').lower() and -10
-                else -1)
+            is_default = audio_track.get('audioIsDefault')
+            is_descriptive = 'descriptive' in (audio_track.get('displayName') or '').lower()
+            language_preference = 10 if is_default else -10 if is_descriptive else -1
             language_code = audio_track.get('id', '').split('.')[0]
-            if language_preference == 10 and language_code:
+            if language_code and is_default:
                 original_language = language_code
 
             format_duration = traverse_obj(fmt, ('approxDurationMs', {lambda x: float_or_none(x, 1000)}))
