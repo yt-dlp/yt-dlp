@@ -3898,7 +3898,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             tbr = float_or_none(fmt.get('averageBitrate') or fmt.get('bitrate'), 1000)
             is_default = audio_track.get('audioIsDefault')
             is_descriptive = 'descriptive' in (audio_track.get('displayName') or '').lower()
-            language_preference = PREFERRED_LANG_VALUE if is_default else -10 if is_descriptive else -1
             language_code = audio_track.get('id', '').split('.')[0]
             if language_code and is_default:
                 original_language = language_code
@@ -3929,8 +3928,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'filesize': int_or_none(fmt.get('contentLength')),
                 'format_id': f'{itag}{"-drc" if fmt.get("isDrc") else ""}',
                 'format_note': join_nonempty(
-                    join_nonempty(audio_track.get('displayName'),
-                                  language_preference > 0 and ' (default)', delim=''),
+                    join_nonempty(audio_track.get('displayName'), is_default and ' (default)', delim=''),
                     name, fmt.get('isDrc') and 'DRC',
                     try_get(fmt, lambda x: x['projectionType'].replace('RECTANGULAR', '').lower()),
                     try_get(fmt, lambda x: x['spatialAudioType'].replace('SPATIAL_AUDIO_TYPE_', '').lower()),
@@ -3949,9 +3947,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'filesize_approx': filesize_from_tbr(tbr, format_duration),
                 'url': fmt_url,
                 'width': int_or_none(fmt.get('width')),
-                'language': join_nonempty(
-                    language_code, 'desc' if language_preference < -1 else '') or None,
-                'language_preference': language_preference,
+                'language': join_nonempty(language_code, 'desc' if is_descriptive else '') or None,
+                'language_preference': PREFERRED_LANG_VALUE if is_default else -10 if is_descriptive else -1,
                 # Strictly de-prioritize broken, damaged and 3gp formats
                 'preference': -20 if is_broken else -10 if is_damaged else -2 if itag == '17' else None,
             }
