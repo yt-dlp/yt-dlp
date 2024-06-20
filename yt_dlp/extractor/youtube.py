@@ -3797,6 +3797,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
     def _extract_formats_and_subtitles(self, streaming_data, video_id, player_url, live_status, duration):
         CHUNK_SIZE = 10 << 20
+        PREFERRED_LANG_VALUE = 10
+        original_language = None
         itags, stream_ids = collections.defaultdict(set), []
         itag_qualities, res_qualities = {}, {0: None}
         q = qualities([
@@ -3894,10 +3896,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     throttled = True
 
             tbr = float_or_none(fmt.get('averageBitrate') or fmt.get('bitrate'), 1000)
-            language_preference = (
-                10 if audio_track.get('audioIsDefault') and 10
-                else -10 if 'descriptive' in (audio_track.get('displayName') or '').lower() and -10
-                else -1)
+            is_default = audio_track.get('audioIsDefault')
+            is_descriptive = 'descriptive' in (audio_track.get('displayName') or '').lower()
+            language_code = audio_track.get('id', '').split('.')[0]
+            if language_code and is_default:
+                original_language = language_code
+
             format_duration = traverse_obj(fmt, ('approxDurationMs', {lambda x: float_or_none(x, 1000)}))
             # Some formats may have much smaller duration than others (possibly damaged during encoding)
             # E.g. 2-nOtRESiUc Ref: https://github.com/yt-dlp/yt-dlp/issues/2823
@@ -3924,8 +3928,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'filesize': int_or_none(fmt.get('contentLength')),
                 'format_id': f'{itag}{"-drc" if fmt.get("isDrc") else ""}',
                 'format_note': join_nonempty(
-                    join_nonempty(audio_track.get('displayName'),
-                                  language_preference > 0 and ' (default)', delim=''),
+                    join_nonempty(audio_track.get('displayName'), is_default and ' (default)', delim=''),
                     name, fmt.get('isDrc') and 'DRC',
                     try_get(fmt, lambda x: x['projectionType'].replace('RECTANGULAR', '').lower()),
                     try_get(fmt, lambda x: x['spatialAudioType'].replace('SPATIAL_AUDIO_TYPE_', '').lower()),
@@ -3944,9 +3947,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'filesize_approx': filesize_from_tbr(tbr, format_duration),
                 'url': fmt_url,
                 'width': int_or_none(fmt.get('width')),
-                'language': join_nonempty(audio_track.get('id', '').split('.')[0],
-                                          'desc' if language_preference < -1 else '') or None,
-                'language_preference': language_preference,
+                'language': join_nonempty(language_code, 'desc' if is_descriptive else '') or None,
+                'language_preference': PREFERRED_LANG_VALUE if is_default else -10 if is_descriptive else -1,
                 # Strictly de-prioritize broken, damaged and 3gp formats
                 'preference': -20 if is_broken else -10 if is_damaged else -2 if itag == '17' else None,
             }
@@ -4006,6 +4008,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 f['format_id'] = f'{itag}-{proto}'
             elif itag:
                 f['format_id'] = itag
+
+            if original_language and f.get('language') == original_language:
+                f['format_note'] = join_nonempty(f.get('format_note'), '(default)', delim=' ')
+                f['language_preference'] = PREFERRED_LANG_VALUE
 
             if f.get('source_preference') is None:
                 f['source_preference'] = -1
