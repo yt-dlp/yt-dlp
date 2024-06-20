@@ -253,25 +253,25 @@ class CBCPlayerIE(InfoExtractor):
         # Has subtitles
         # These broadcasts expire after ~1 month, can find new test URL here:
         # https://www.cbc.ca/player/news/TV%20Shows/The%20National/Latest%20Broadcast
-        'url': 'https://www.cbc.ca/player/play/1.7159484',
-        'md5': '6ed6cd0fc2ef568d2297ba68a763d455',
+        'url': 'https://www.cbc.ca/player/play/video/9.6424403',
+        'md5': '6ed6cd0fc2ef568d2297ba68a763d455', # needs update
         'info_dict': {
-            'id': '2324213316001',
+            'id': '9.6424403',
             'ext': 'mp4',
-            'title': 'The National | School boards sue social media giants',
-            'description': 'md5:4b4db69322fa32186c3ce426da07402c',
-            'timestamp': 1711681200,
-            'duration': 2743.400,
+            'title': 'The National | N.W.T. wildfire emergency',
+            'description': 'md5:ada33d36d1df69347ed575905bfd496c',
+            'timestamp': 1718589600,
+            'duration': 2692.833,
             'subtitles': {'eng': [{'ext': 'vtt', 'protocol': 'm3u8_native'}]},
-            'thumbnail': 'https://thumbnails.cbc.ca/maven_legacy/thumbnails/607/559/thumbnail.jpeg',
-            'uploader': 'CBCC-NEW',
+            'thumbnail': 'https://i.cbc.ca/ais/6272b5c6-5e78-4c05-915d-0e36672e33d1,1714756287822/full/max/0/default.jpg',
+            'uploader': 'CBCC-NEW', # probably not
             'chapters': 'count:5',
-            'upload_date': '20240329',
-            'categories': 'count:4',
+            'upload_date': '20240329', # possibly not?
+            'categories': 'count:3',
             'series': 'The National - Full Show',
             'tags': 'count:1',
-            'creators': ['News'],
-            'location': 'Canada',
+            'creators': ['News'], # probably not?
+            'location': 'Canada', # also apparently probably not
             'media_type': 'Full Program',
         },
     }, {
@@ -311,9 +311,29 @@ class CBCPlayerIE(InfoExtractor):
         video_id = self._match_id(url)
         if '.' in video_id:
             webpage = self._download_webpage(f'https://www.cbc.ca/player/play/{video_id}', video_id)
-            video_id = self._search_json(
+            json_data = self._search_json(
                 r'window\.__INITIAL_STATE__\s*=', webpage,
-                'initial state', video_id)['video']['currentClip']['mediaId']
+                'initial state', video_id)
+            mediaID = json_data['video']['currentClip']['mediaId']
+            if mediaID is None:
+                video_info_link = json_data['video']['currentClip']['media']['assets'][0]['key']
+                video_info = self._download_json(video_info_link, video_id)
+                m3u8_url = video_info['url']
+                formats, subtitles = self._extract_m3u8_formats_and_subtitles(m3u8_url, video_id)
+                return {
+                    'id': video_id, # switch to media ID?
+                    'title': json_data['video']['currentClip']['title'],
+                    'formats': formats,
+                    'subtitles': subtitles,
+                    'description': json_data['video']['currentClip']['description'],
+                    'thumbnail': json_data['video']['currentClip']['image']['url'], # fix the URL to remove the crop
+                    'timestamp': int(json_data['video']['currentClip']['publishedAt']),
+                    # chapters: video/currentClip/media/chapters
+                    'media_type': json_data['video']['currentClip']['media']['clipType'],
+                    'series': json_data['video']['currentClip']['showName'],
+                }
+            else:
+                video_id = mediaID
 
         return {
             '_type': 'url_transparent',
