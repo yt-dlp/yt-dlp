@@ -212,7 +212,7 @@ class TikTokBaseIE(InfoExtractor):
                 'multi/aweme/detail', {}, aweme_id, data=urlencode_postdata({
                     'aweme_ids': f'[{aweme_id}]',
                     'request_source': '0',
-                }), note='Downloading video feed', errnote='Unable to download video feed'),
+                }), note='Downloading aweme detail JSON', errnote='Unable to download aweme detail JSON'),
             ('aweme_details', 0, {dict}))
         if not aweme_detail:
             raise ExtractorError('Unable to find video in feed', video_id=aweme_id)
