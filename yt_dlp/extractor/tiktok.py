@@ -115,7 +115,7 @@ class TikTokBaseIE(InfoExtractor):
             'universal data', display_id, end_pattern=r'</script>', default={}),
             ('__DEFAULT_SCOPE__', {dict})) or {}
 
-    def _call_api_impl(self, ep, query, video_id, data=None, fatal=True,
+    def _call_api_impl(self, ep, video_id, query=None, data=None, headers=None, fatal=True,
                        note='Downloading API JSON', errnote='Unable to download API page'):
         self._set_cookie(self._API_HOSTNAME, 'odin_tt', ''.join(random.choices('0123456789abcdef', k=160)))
         webpage_cookies = self._get_cookies(self._WEBPAGE_HOST)
@@ -126,7 +126,7 @@ class TikTokBaseIE(InfoExtractor):
             fatal=fatal, note=note, errnote=errnote, headers={
                 'User-Agent': self._APP_USER_AGENT,
                 'Accept': 'application/json',
-                'X-Argus': '',
+                **(headers or {}),
             }, query=query, data=data)
 
     def _build_api_query(self, query):
@@ -176,7 +176,7 @@ class TikTokBaseIE(InfoExtractor):
             'openudid': ''.join(random.choices('0123456789abcdef', k=16)),
         })
 
-    def _call_api(self, ep, query, video_id, data=None, fatal=True,
+    def _call_api(self, ep, video_id, query=None, data=None, headers=None, fatal=True,
                   note='Downloading API JSON', errnote='Unable to download API page'):
         if not self._APP_INFO and not self._get_next_app_info():
             message = 'No working app info is available'
@@ -189,10 +189,11 @@ class TikTokBaseIE(InfoExtractor):
         max_tries = len(self._APP_INFO_POOL) + 1  # _APP_INFO_POOL + _APP_INFO
         for count in itertools.count(1):
             self.write_debug(str(self._APP_INFO))
-            real_query = self._build_api_query(query)
+            real_query = self._build_api_query(query or {})
             try:
                 return self._call_api_impl(
-                    ep, real_query, video_id, data=data, fatal=fatal, note=note, errnote=errnote)
+                    ep, video_id, query=real_query, data=data, headers=headers,
+                    fatal=fatal, note=note, errnote=errnote)
             except ExtractorError as e:
                 if isinstance(e.cause, json.JSONDecodeError) and e.cause.pos == 0:
                     message = str(e.cause or e.msg)
@@ -208,14 +209,12 @@ class TikTokBaseIE(InfoExtractor):
 
     def _extract_aweme_app(self, aweme_id):
         aweme_detail = traverse_obj(
-            self._call_api(
-                'multi/aweme/detail', {}, aweme_id, data=urlencode_postdata({
-                    'aweme_ids': f'[{aweme_id}]',
-                    'request_source': '0',
-                }), note='Downloading aweme detail JSON', errnote='Unable to download aweme detail JSON'),
-            ('aweme_details', 0, {dict}))
+            self._call_api('multi/aweme/detail', aweme_id, data=urlencode_postdata({
+                'aweme_ids': f'[{aweme_id}]',
+                'request_source': '0',
+            }), headers={'X-Argus': ''}), ('aweme_details', 0, {dict}))
         if not aweme_detail:
-            raise ExtractorError('Unable to find video in feed', video_id=aweme_id)
+            raise ExtractorError('Unable to extract aweme detail info', video_id=aweme_id)
         return self._parse_aweme_video_app(aweme_detail)
 
     def _extract_web_data_and_status(self, url, video_id, fatal=True):
@@ -1043,7 +1042,8 @@ class TikTokBaseListIE(TikTokBaseIE):  # XXX: Conventionally, base classes shoul
             for retry in self.RetryManager():
                 try:
                     post_list = self._call_api(
-                        self._API_ENDPOINT, query, display_id, note=f'Downloading video list page {page}',
+                        self._API_ENDPOINT, display_id, query=query,
+                        note=f'Downloading video list page {page}',
                         errnote='Unable to download video list')
                 except ExtractorError as e:
                     if isinstance(e.cause, json.JSONDecodeError) and e.cause.pos == 0:
