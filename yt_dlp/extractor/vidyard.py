@@ -11,14 +11,14 @@ class VidyardBaseInfoExtractor(InfoExtractor):
             if key == 'hls':
                 for video_hls in value:
                     fmts, subs = self._extract_m3u8_formats_and_subtitles(video_hls.get('url'), video_id, headers={
-                        'referer': 'https://play.vidyard.com/'
+                        'referer': 'https://play.vidyard.com/',
                     })
                     formats.extend(fmts)
                     self._merge_subtitles(subs, target=subtitles)
             else:
                 formats.extend({
                     'url': video_mp4.get('url'),
-                    'ext': 'mp4'
+                    'ext': 'mp4',
                 } for video_mp4 in value)
 
         return formats, subtitles
@@ -28,7 +28,7 @@ class VidyardBaseInfoExtractor(InfoExtractor):
         for caption in caption_json:
             subs.setdefault(caption.get('language') or 'und', []).append({
                 'url': caption.get('vttUrl'),
-                'name': caption.get('name')
+                'name': caption.get('name'),
             })
 
         return subs
@@ -56,8 +56,8 @@ class VidyardBaseInfoExtractor(InfoExtractor):
             'thumbnails': [{'url': thumbnail_url}
                            for thumbnail_url in traverse_obj(json_data, ('thumbnailUrls', ...))],
             'http_headers': {
-                'referer': 'https://play.vidyard.com/'
-            }
+                'referer': 'https://play.vidyard.com/',
+            },
         }
 
 
@@ -73,7 +73,7 @@ class VidyardWatchIE(VidyardBaseInfoExtractor):
                 'description': 'Look I changed the description.',
                 'thumbnail': 'https://cdn.vidyard.com/thumbnails/50347/OUPa5LTKV46849sLYngMqQ_small.jpg',
                 'duration': 99,
-            }
+            },
         },
         {
             'url': 'https://share.vidyard.com/watch/PaQzDAT1h8JqB8ivEu2j6Y?',
@@ -84,7 +84,7 @@ class VidyardWatchIE(VidyardBaseInfoExtractor):
                 'description': 'Vidyard video',
                 'thumbnail': 'https://cdn.vidyard.com/thumbnails/spacer.gif',
                 'duration': 41,
-            }
+            },
         },
     ]
 
@@ -101,8 +101,8 @@ class VidyardEmbedIE(VidyardBaseInfoExtractor):
                 'description': 'Look I changed the description.',
                 'thumbnail': 'https://cdn.vidyard.com/thumbnails/50347/OUPa5LTKV46849sLYngMqQ_small.jpg',
                 'duration': 99,
-            }
-        }
+            },
+        },
     ]
 
 
@@ -118,7 +118,7 @@ class VidyardPlayIE(VidyardBaseInfoExtractor):
                 'title': 'Lightbox Embed',
                 'thumbnail': 'https://cdn.vidyard.com/thumbnails/spacer.gif',
                 'duration': 39,
-            }
+            },
         },
         {
             # URL of inline/lightbox embed src
@@ -129,7 +129,7 @@ class VidyardPlayIE(VidyardBaseInfoExtractor):
                 'title': 'Lightbox Embed',
                 'thumbnail': 'https://cdn.vidyard.com/thumbnails/spacer.gif',
                 'duration': 39,
-            }
+            },
         },
     ]
     _EMBED_REGEX = [
@@ -148,7 +148,7 @@ class VidyardPlayIE(VidyardBaseInfoExtractor):
                 'title': 'The Extreme Importance of PC Board Stack Up',
                 'thumbnail': 'https://cdn.vidyard.com/thumbnails/73_Q3_hBexWX7Og1sae6cg/9998fa4faec921439e2c04_small.jpg',
                 'duration': 3422,
-            }
+            },
         },
     ]
 
