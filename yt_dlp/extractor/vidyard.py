@@ -4,7 +4,7 @@ from ..utils import int_or_none, traverse_obj
 
 class VidyardBaseInfoExtractor(InfoExtractor):
 
-    def _get_formats_and_subtitle(self, video_source, video_id):
+    def _get_formats_and_subtitles(self, video_source, video_id):
         video_source = video_source or {}
         formats, subtitles = [], {}
         for key, value in video_source.items():
@@ -23,7 +23,7 @@ class VidyardBaseInfoExtractor(InfoExtractor):
 
         return formats, subtitles
 
-    def _get_direct_subtitle(self, caption_json):
+    def _get_direct_subtitles(self, caption_json):
         subs = {}
         for caption in caption_json:
             subs.setdefault(caption.get('language') or 'und', []).append({
@@ -43,12 +43,12 @@ class VidyardBaseInfoExtractor(InfoExtractor):
         json_data = self._download_json(
             f'https://play.vidyard.com/player/{video_id}.json', video_id)['payload']['chapters'][0]
 
-        formats, subtitles = self._get_formats_and_subtitle(json_data['sources'], video_id)
-        self._merge_subtitles(self._get_direct_subtitle(json_data.get('captions')), target=subtitles)
+        formats, subtitles = self._get_formats_and_subtitles(json_data['sources'], video_id)
+        self._merge_subtitles(self._get_direct_subtitles(json_data.get('captions')), target=subtitles)
 
         return {
             'id': str(json_data['videoId']),
-            'title': json_data.get('name') or self._og_search_title(webpage, default=None) or self._html_extract_title(),
+            'title': json_data.get('name') or self._og_search_title(webpage, default=None) or self._html_extract_title(webpage),
             'description': json_data.get('description') or self._og_search_description(webpage, default=None),
             'duration': int_or_none(json_data.get('seconds')),
             'formats': formats,
