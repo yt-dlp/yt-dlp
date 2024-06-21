@@ -92,6 +92,7 @@ class TestJSInterpreter(unittest.TestCase):
         self._test('function f(){return 0 && 1 || 2;}', 2)
         self._test('function f(){return 0 ?? 42;}', 0)
         self._test('function f(){return "life, the universe and everything" < 42;}', False)
+        self._test('function f(){return 0  - 7 * - 6;}', 42)
 
     def test_array_access(self):
         self._test('function f(){var x = [1,2,3]; x[0] = 4; x[0] = 5; x[2.0] = 7; return x;}', [5, 2, 7])
