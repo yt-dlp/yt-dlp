@@ -3847,6 +3847,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     itag_qualities[itag] = quality
                 if height:
                     res_qualities[height] = quality
+
+            is_default = audio_track.get('audioIsDefault')
+            is_descriptive = 'descriptive' in (audio_track.get('displayName') or '').lower()
+            language_code = audio_track.get('id', '').split('.')[0]
+            if language_code and is_default:
+                original_language = language_code
+
             # FORMAT_STREAM_TYPE_OTF(otf=1) requires downloading the init fragment
             # (adding `&sq=0` to the URL) and parsing emsg box to determine the
             # number of fragment that would subsequently requested with (`&sq=N`)
@@ -3872,7 +3879,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     continue
 
             query = parse_qs(fmt_url)
-            throttled = False
             if query.get('n'):
                 try:
                     decrypt_nsig = self._cached(self._decrypt_nsig, 'nsig', query['n'][0])
@@ -3886,22 +3892,16 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                                           f'to workaround the issue. {PhantomJSwrapper.INSTALL_HINT}\n')
                     if player_url:
                         self.report_warning(
-                            f'nsig extraction failed: You may experience throttling for some formats\n{phantomjs_hint}'
+                            f'nsig extraction failed: Some formats may be missing\n{phantomjs_hint}'
                             f'         n = {query["n"][0]} ; player = {player_url}', video_id=video_id, only_once=True)
                         self.write_debug(e, only_once=True)
                     else:
                         self.report_warning(
-                            'Cannot decrypt nsig without player_url: You may experience throttling for some formats',
+                            'Cannot decrypt nsig without player_url: Some formats may be missing',
                             video_id=video_id, only_once=True)
-                    throttled = True
+                    continue
 
             tbr = float_or_none(fmt.get('averageBitrate') or fmt.get('bitrate'), 1000)
-            is_default = audio_track.get('audioIsDefault')
-            is_descriptive = 'descriptive' in (audio_track.get('displayName') or '').lower()
-            language_code = audio_track.get('id', '').split('.')[0]
-            if language_code and is_default:
-                original_language = language_code
-
             format_duration = traverse_obj(fmt, ('approxDurationMs', {lambda x: float_or_none(x, 1000)}))
             # Some formats may have much smaller duration than others (possibly damaged during encoding)
             # E.g. 2-nOtRESiUc Ref: https://github.com/yt-dlp/yt-dlp/issues/2823
@@ -3932,12 +3932,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     name, fmt.get('isDrc') and 'DRC',
                     try_get(fmt, lambda x: x['projectionType'].replace('RECTANGULAR', '').lower()),
                     try_get(fmt, lambda x: x['spatialAudioType'].replace('SPATIAL_AUDIO_TYPE_', '').lower()),
-                    throttled and 'THROTTLED', is_damaged and 'DAMAGED', is_broken and 'BROKEN',
+                    is_damaged and 'DAMAGED', is_broken and 'BROKEN',
                     (self.get_param('verbose') or all_formats) and client_name,
                     delim=', '),
                 # Format 22 is likely to be damaged. See https://github.com/yt-dlp/yt-dlp/issues/3372
-                'source_preference': ((-10 if throttled else -5 if itag == '22' else -1)
-                                      + (100 if 'Premium' in name else 0)),
+                'source_preference': (-5 if itag == '22' else -1) + (100 if 'Premium' in name else 0),
                 'fps': fps if fps > 1 else None,  # For some formats, fps is wrongly returned as 1
                 'audio_channels': fmt.get('audioChannels'),
                 'height': height,
@@ -4357,7 +4356,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'playable_in_embed': get_first(playability_statuses, 'playableInEmbed'),
             'live_status': live_status,
             'release_timestamp': live_start_time,
-            '_format_sort_fields': (  # source_preference is lower for throttled/potentially damaged formats
+            '_format_sort_fields': (  # source_preference is lower for potentially damaged formats
                 'quality', 'res', 'fps', 'hdr:12', 'source', 'vcodec:vp9.2', 'channels', 'acodec', 'lang', 'proto'),
         }
 
