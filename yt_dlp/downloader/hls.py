@@ -72,7 +72,7 @@ class HlsFD(FragmentFD):
 
     def real_download(self, filename, info_dict):
         man_url = info_dict['url']
-        self.to_screen('[%s] Downloading m3u8 manifest' % self.FD_NAME)
+        self.to_screen(f'[{self.FD_NAME}] Downloading m3u8 manifest')
 
         urlh = self.ydl.urlopen(self._prepare_url(info_dict, man_url))
         man_url = urlh.url
@@ -160,10 +160,12 @@ class HlsFD(FragmentFD):
         extra_state = ctx.setdefault('extra_state', {})
 
         format_index = info_dict.get('format_index')
-        extra_query = None
-        extra_param_to_segment_url = info_dict.get('extra_param_to_segment_url')
-        if extra_param_to_segment_url:
-            extra_query = urllib.parse.parse_qs(extra_param_to_segment_url)
+        extra_segment_query = None
+        if extra_param_to_segment_url := info_dict.get('extra_param_to_segment_url'):
+            extra_segment_query = urllib.parse.parse_qs(extra_param_to_segment_url)
+        extra_key_query = None
+        if extra_param_to_key_url := info_dict.get('extra_param_to_key_url'):
+            extra_key_query = urllib.parse.parse_qs(extra_param_to_key_url)
         i = 0
         media_sequence = 0
         decrypt_info = {'METHOD': 'NONE'}
@@ -190,8 +192,8 @@ class HlsFD(FragmentFD):
                     if frag_index <= ctx['fragment_index']:
                         continue
                     frag_url = urljoin(man_url, line)
-                    if extra_query:
-                        frag_url = update_url_query(frag_url, extra_query)
+                    if extra_segment_query:
+                        frag_url = update_url_query(frag_url, extra_segment_query)
 
                     fragments.append({
                         'frag_index': frag_index,
@@ -212,8 +214,8 @@ class HlsFD(FragmentFD):
                     frag_index += 1
                     map_info = parse_m3u8_attributes(line[11:])
                     frag_url = urljoin(man_url, map_info.get('URI'))
-                    if extra_query:
-                        frag_url = update_url_query(frag_url, extra_query)
+                    if extra_segment_query:
+                        frag_url = update_url_query(frag_url, extra_segment_query)
 
                     if map_info.get('BYTERANGE'):
                         splitted_byte_range = map_info.get('BYTERANGE').split('@')
@@ -228,7 +230,7 @@ class HlsFD(FragmentFD):
                         'url': frag_url,
                         'decrypt_info': decrypt_info,
                         'byte_range': byte_range,
-                        'media_sequence': media_sequence
+                        'media_sequence': media_sequence,
                     })
                     media_sequence += 1
 
@@ -244,8 +246,10 @@ class HlsFD(FragmentFD):
                             decrypt_info['KEY'] = external_aes_key
                         else:
                             decrypt_info['URI'] = urljoin(man_url, decrypt_info['URI'])
-                            if extra_query:
-                                decrypt_info['URI'] = update_url_query(decrypt_info['URI'], extra_query)
+                            if extra_key_query or extra_segment_query:
+                                # Fall back to extra_segment_query to key for backwards compat
+                                decrypt_info['URI'] = update_url_query(
+                                    decrypt_info['URI'], extra_key_query or extra_segment_query)
                             if decrypt_url != decrypt_info['URI']:
                                 decrypt_info['KEY'] = None
 
@@ -350,9 +354,8 @@ class HlsFD(FragmentFD):
                             # XXX: this should probably be silent as well
                             # or verify that all segments contain the same data
                             self.report_warning(bug_reports_message(
-                                'Discarding a %s block found in the middle of the stream; '
-                                'if the subtitles display incorrectly,'
-                                % (type(block).__name__)))
+                                f'Discarding a {type(block).__name__} block found in the middle of the stream; '
+                                'if the subtitles display incorrectly,'))
                             continue
                     block.write_into(output)
 

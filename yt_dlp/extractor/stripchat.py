@@ -22,7 +22,7 @@ class StripchatIE(InfoExtractor):
         'skip': 'Room is offline',
     }, {
         'url': 'https://stripchat.com/Rakhijaan@xh',
-        'only_matching': True
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):

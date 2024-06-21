@@ -51,7 +51,7 @@ class SverigesRadioBaseIE(InfoExtractor):
             query['quality'] = quality
             audio_url_data = self._download_json(
                 self._BASE_URL + 'getaudiourl', audio_id,
-                'Downloading %s format JSON metadata' % quality,
+                f'Downloading {quality} format JSON metadata',
                 fatal=False, query=query) or {}
             audio_url = audio_url_data.get('audioUrl')
             if not audio_url or audio_url in urls:

@@ -16,11 +16,11 @@ class XanimuIE(InfoExtractor):
             'thumbnail': 'https://xanimu.com/storage/2020/09/the-princess-and-the-frog-hentai.jpg',
             'description': r're:^Enjoy The Princess \+ The Frog Hentai',
             'duration': 207.0,
-            'age_limit': 18
-        }
+            'age_limit': 18,
+        },
     }, {
         'url': 'https://xanimu.com/huge-expansion/',
-        'only_matching': True
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
@@ -28,14 +28,15 @@ class XanimuIE(InfoExtractor):
         webpage = self._download_webpage(url, video_id)
 
         formats = []
-        for format in ['videoHigh', 'videoLow']:
-            format_url = self._search_json(r'var\s+%s\s*=' % re.escape(format), webpage, format,
-                                           video_id, default=None, contains_pattern=r'[\'"]([^\'"]+)[\'"]')
+        for format_id in ['videoHigh', 'videoLow']:
+            format_url = self._search_json(
+                rf'var\s+{re.escape(format_id)}\s*=', webpage, format_id,
+                video_id, default=None, contains_pattern=r'[\'"]([^\'"]+)[\'"]')
             if format_url:
                 formats.append({
                     'url': format_url,
-                    'format_id': format,
-                    'quality': -2 if format.endswith('Low') else None,
+                    'format_id': format_id,
+                    'quality': -2 if format_id.endswith('Low') else None,
                 })
 
         return {
@@ -47,5 +48,5 @@ class XanimuIE(InfoExtractor):
             'description': self._html_search_meta('description', webpage, default=None),
             'duration': int_or_none(self._search_regex(r'duration:\s*[\'"]([^\'"]+?)[\'"]',
                                     webpage, 'duration', fatal=False)),
-            'age_limit': 18
+            'age_limit': 18,
         }

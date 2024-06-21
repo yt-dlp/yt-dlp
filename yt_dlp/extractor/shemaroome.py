@@ -1,8 +1,7 @@
+import base64
+
 from .common import InfoExtractor
 from ..aes import aes_cbc_decrypt, unpad_pkcs7
-from ..compat import (
-    compat_b64decode,
-)
 from ..utils import (
     ExtractorError,
     bytes_to_intlist,
@@ -24,8 +23,8 @@ class ShemarooMeIE(InfoExtractor):
             'description': 'md5:2782c4127807103cf5a6ae2ca33645ce',
         },
         'params': {
-            'skip_download': True
-        }
+            'skip_download': True,
+        },
     }, {
         'url': 'https://www.shemaroome.com/shows/jurm-aur-jazbaat/laalach',
         'info_dict': {
@@ -37,9 +36,9 @@ class ShemarooMeIE(InfoExtractor):
             'release_date': '20210507',
         },
         'params': {
-            'skip_download': True
+            'skip_download': True,
         },
-        'skip': 'Premium videos cannot be downloaded yet.'
+        'skip': 'Premium videos cannot be downloaded yet.',
     }, {
         'url': 'https://www.shemaroome.com/shows/jai-jai-jai-bajrang-bali/jai-jai-jai-bajrang-bali-episode-99',
         'info_dict': {
@@ -51,8 +50,8 @@ class ShemarooMeIE(InfoExtractor):
             'release_date': '20110101',
         },
         'params': {
-            'skip_download': True
-        }
+            'skip_download': True,
+        },
     }]
 
     def _real_extract(self, url):
@@ -69,8 +68,8 @@ class ShemarooMeIE(InfoExtractor):
         data_json = self._download_json('https://www.shemaroome.com/users/user_all_lists', video_id, data=data.encode())
         if not data_json.get('status'):
             raise ExtractorError('Premium videos cannot be downloaded yet.', expected=True)
-        url_data = bytes_to_intlist(compat_b64decode(data_json['new_play_url']))
-        key = bytes_to_intlist(compat_b64decode(data_json['key']))
+        url_data = bytes_to_intlist(base64.b64decode(data_json['new_play_url']))
+        key = bytes_to_intlist(base64.b64decode(data_json['key']))
         iv = [0] * 16
         m3u8_url = unpad_pkcs7(intlist_to_bytes(aes_cbc_decrypt(url_data, key, iv))).decode('ascii')
         headers = {'stream_key': data_json['stream_key']}

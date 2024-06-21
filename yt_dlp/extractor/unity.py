@@ -16,7 +16,7 @@ class UnityIE(InfoExtractor):
             'uploader': 'Unity',
             'uploader_id': 'Unity3D',
             'upload_date': '20140926',
-        }
+        },
     }, {
         'url': 'https://unity3d.com/learn/tutorials/projects/2d-ufo-tutorial/following-player-camera?playlist=25844',
         'only_matching': True,

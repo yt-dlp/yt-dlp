@@ -17,12 +17,12 @@ class NFHSNetworkIE(InfoExtractor):
             'uploader_url': 'https://www.nfhsnetwork.com/schools/rockford-high-school-rockford-mi',
             'location': 'Rockford, Michigan',
             'timestamp': 1616859000,
-            'upload_date': '20210327'
+            'upload_date': '20210327',
         },
         'params': {
             # m3u8 download
             'skip_download': True,
-        }
+        },
     }, {
         # Non-sport activity with description
         'url': 'https://www.nfhsnetwork.com/events/limon-high-school-limon-co/evt4a30e3726c',
@@ -36,12 +36,12 @@ class NFHSNetworkIE(InfoExtractor):
             'uploader_url': 'https://www.nfhsnetwork.com/schools/limon-high-school-limon-co',
             'location': 'Limon, Colorado',
             'timestamp': 1607893200,
-            'upload_date': '20201213'
+            'upload_date': '20201213',
         },
         'params': {
             # m3u8 download
             'skip_download': True,
-        }
+        },
     }, {
         # Postseason game
         'url': 'https://www.nfhsnetwork.com/events/nfhs-network-special-events/dd8de71d45',
@@ -54,12 +54,12 @@ class NFHSNetworkIE(InfoExtractor):
             'uploader_url': 'https://www.nfhsnetwork.com/affiliates/socal-sports-productions',
             'location': 'San Diego, California',
             'timestamp': 1451187000,
-            'upload_date': '20151226'
+            'upload_date': '20151226',
         },
         'params': {
             # m3u8 download
             'skip_download': True,
-        }
+        },
     }, {
         # Video with no broadcasts object
         'url': 'https://www.nfhsnetwork.com/events/wiaa-wi/9aa2f92f82',
@@ -73,13 +73,13 @@ class NFHSNetworkIE(InfoExtractor):
             'uploader_url': 'https://www.nfhsnetwork.com/associations/wiaa-wi',
             'location': 'Stevens Point, Wisconsin',
             'timestamp': 1421856000,
-            'upload_date': '20150121'
+            'upload_date': '20150121',
         },
         'params': {
             # m3u8 download
             'skip_download': True,
-        }
-    }
+        },
+    },
     ]
 
     def _real_extract(self, url):
@@ -91,17 +91,17 @@ class NFHSNetworkIE(InfoExtractor):
         publisher = data.get('publishers')[0]  # always exists
         broadcast = (publisher.get('broadcasts') or publisher.get('vods'))[0]  # some (older) videos don't have a broadcasts object
         uploader = publisher.get('formatted_name') or publisher.get('name')
-        uploaderID = publisher.get('publisher_key')
-        pubType = publisher.get('type')
-        uploaderPrefix = (
-            "schools" if pubType == "school"
-            else "associations" if "association" in pubType
-            else "affiliates" if (pubType == "publisher" or pubType == "affiliate")
-            else "schools")
-        uploaderPage = 'https://www.nfhsnetwork.com/%s/%s' % (uploaderPrefix, publisher.get('slug'))
-        location = '%s, %s' % (data.get('city'), data.get('state_name'))
+        uploader_id = publisher.get('publisher_key')
+        pub_type = publisher.get('type')
+        uploader_prefix = (
+            'schools' if pub_type == 'school'
+            else 'associations' if 'association' in pub_type
+            else 'affiliates' if (pub_type == 'publisher' or pub_type == 'affiliate')
+            else 'schools')
+        uploader_page = 'https://www.nfhsnetwork.com/{}/{}'.format(uploader_prefix, publisher.get('slug'))
+        location = '{}, {}'.format(data.get('city'), data.get('state_name'))
         description = broadcast.get('description')
-        isLive = broadcast.get('on_air') or broadcast.get('status') == 'on_air' or False
+        is_live = broadcast.get('on_air') or broadcast.get('status') == 'on_air' or False
 
         timestamp = unified_timestamp(data.get('local_start_time'))
         upload_date = unified_strdate(data.get('local_start_time'))
@@ -111,13 +111,13 @@ class NFHSNetworkIE(InfoExtractor):
             or self._html_search_regex(r'<h1 class="sr-hidden">(.*?)</h1>', webpage, 'title'))
         title = title.split('|')[0].strip()
 
-        video_type = 'broadcasts' if isLive else 'vods'
-        key = broadcast.get('key') if isLive else try_get(publisher, lambda x: x['vods'][0]['key'])
+        video_type = 'broadcasts' if is_live else 'vods'
+        key = broadcast.get('key') if is_live else try_get(publisher, lambda x: x['vods'][0]['key'])
         m3u8_url = self._download_json(
-            'https://cfunity.nfhsnetwork.com/v2/%s/%s/url' % (video_type, key),
+            f'https://cfunity.nfhsnetwork.com/v2/{video_type}/{key}/url',
             video_id).get('video_url')
 
-        formats = self._extract_m3u8_formats(m3u8_url, video_id, 'mp4', live=isLive)
+        formats = self._extract_m3u8_formats(m3u8_url, video_id, 'mp4', live=is_live)
 
         return {
             'id': video_id,
@@ -126,10 +126,10 @@ class NFHSNetworkIE(InfoExtractor):
             'description': description,
             'timestamp': timestamp,
             'uploader': uploader,
-            'uploader_id': uploaderID,
-            'uploader_url': uploaderPage,
+            'uploader_id': uploader_id,
+            'uploader_url': uploader_page,
             'location': location,
             'upload_date': upload_date,
-            'is_live': isLive,
+            'is_live': is_live,
             '_format_sort_fields': ('res', 'tbr'),
         }

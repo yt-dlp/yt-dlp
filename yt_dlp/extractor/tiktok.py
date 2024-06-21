@@ -5,10 +5,10 @@ import random
 import re
 import string
 import time
+import urllib.parse
 import uuid
 
 from .common import InfoExtractor
-from ..compat import compat_urllib_parse_urlparse
 from ..networking import HEADRequest
 from ..utils import (
     ExtractorError,
@@ -121,7 +121,7 @@ class TikTokBaseIE(InfoExtractor):
         if webpage_cookies.get('sid_tt'):
             self._set_cookie(self._API_HOSTNAME, 'sid_tt', webpage_cookies['sid_tt'].value)
         return self._download_json(
-            'https://%s/aweme/v1/%s/' % (self._API_HOSTNAME, ep), video_id=video_id,
+            f'https://{self._API_HOSTNAME}/aweme/v1/{ep}/', video_id=video_id,
             fatal=fatal, note=note, errnote=errnote, headers={
                 'User-Agent': self._APP_USER_AGENT,
                 'Accept': 'application/json',
@@ -138,7 +138,7 @@ class TikTokBaseIE(InfoExtractor):
             'channel': 'googleplay',
             'aid': self._APP_INFO['aid'],
             'app_name': self._APP_INFO['app_name'],
-            'version_code': ''.join((f'{int(v):02d}' for v in self._APP_INFO['app_version'].split('.'))),
+            'version_code': ''.join(f'{int(v):02d}' for v in self._APP_INFO['app_version'].split('.')),
             'version_name': self._APP_INFO['app_version'],
             'manifest_version_code': self._APP_INFO['manifest_app_version'],
             'update_version_code': self._APP_INFO['manifest_app_version'],
@@ -213,8 +213,19 @@ class TikTokBaseIE(InfoExtractor):
         return self._parse_aweme_video_app(aweme_detail)
 
     def _extract_web_data_and_status(self, url, video_id, fatal=True):
-        webpage = self._download_webpage(url, video_id, headers={'User-Agent': 'Mozilla/5.0'}, fatal=fatal) or ''
-        video_data, status = {}, None
+        video_data, status = {}, -1
+
+        res = self._download_webpage_handle(url, video_id, fatal=fatal, headers={'User-Agent': 'Mozilla/5.0'})
+        if res is False:
+            return video_data, status
+
+        webpage, urlh = res
+        if urllib.parse.urlparse(urlh.url).path == '/login':
+            message = 'TikTok is requiring login for access to this content'
+            if fatal:
+                self.raise_login_required(message)
+            self.report_warning(f'{message}. {self._login_hint()}')
+            return video_data, status
 
         if universal_data := self._get_universal_data(webpage, video_id):
             self.write_debug('Found universal data for rehydration')
@@ -254,7 +265,7 @@ class TikTokBaseIE(InfoExtractor):
                 'ext': 'srt',
                 'data': '\n\n'.join(
                     f'{i + 1}\n{srt_subtitles_timecode(line["start_time"] / 1000)} --> {srt_subtitles_timecode(line["end_time"] / 1000)}\n{line["text"]}'
-                    for i, line in enumerate(caption_json['utterances']) if line.get('text'))
+                    for i, line in enumerate(caption_json['utterances']) if line.get('text')),
             })
         # feed endpoint subs
         if not subtitles:
@@ -382,7 +393,7 @@ class TikTokBaseIE(InfoExtractor):
         auth_cookie = self._get_cookies(self._WEBPAGE_HOST).get('sid_tt')
         if auth_cookie:
             for f in formats:
-                self._set_cookie(compat_urllib_parse_urlparse(f['url']).hostname, 'sid_tt', auth_cookie.value)
+                self._set_cookie(urllib.parse.urlparse(f['url']).hostname, 'sid_tt', auth_cookie.value)
 
         thumbnails = []
         for cover_id in ('cover', 'ai_dynamic_cover', 'animated_cover', 'ai_dynamic_cover_bak',
@@ -402,7 +413,7 @@ class TikTokBaseIE(InfoExtractor):
         contained_music_author = traverse_obj(
             music_info, ('matched_song', 'author'), ('matched_pgc_sound', 'author'), 'author', expected_type=str)
 
-        is_generic_og_trackname = music_info.get('is_original_sound') and music_info.get('title') == 'original sound - %s' % music_info.get('owner_handle')
+        is_generic_og_trackname = music_info.get('is_original_sound') and music_info.get('title') == 'original sound - {}'.format(music_info.get('owner_handle'))
         if is_generic_og_trackname:
             music_track, music_author = contained_music_track or 'original sound', contained_music_author
         else:
@@ -792,7 +803,7 @@ class TikTokIE(TikTokBaseIE):
         'expected_warnings': ['Unable to find video in feed'],
     }, {
         # 1080p format
-        'url': 'https://www.tiktok.com/@tatemcrae/video/7107337212743830830',  # FIXME
+        'url': 'https://www.tiktok.com/@tatemcrae/video/7107337212743830830',  # FIXME: Web can only get audio
         'md5': '982512017a8a917124d5a08c8ae79621',
         'info_dict': {
             'id': '7107337212743830830',
@@ -846,7 +857,7 @@ class TikTokIE(TikTokBaseIE):
     }, {
         # Auto-captions available
         'url': 'https://www.tiktok.com/@hankgreen1/video/7047596209028074758',
-        'only_matching': True
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
@@ -1059,17 +1070,17 @@ class TikTokSoundIE(TikTokBaseListIE):
         'url': 'https://www.tiktok.com/music/Build-a-Btch-6956990112127585029?lang=en',
         'playlist_mincount': 100,
         'info_dict': {
-            'id': '6956990112127585029'
+            'id': '6956990112127585029',
         },
-        'expected_warnings': ['Retrying']
+        'expected_warnings': ['Retrying'],
     }, {
         # Actual entries are less than listed video count
         'url': 'https://www.tiktok.com/music/jiefei-soap-remix-7036843036118469381',
         'playlist_mincount': 2182,
         'info_dict': {
-            'id': '7036843036118469381'
+            'id': '7036843036118469381',
         },
-        'expected_warnings': ['Retrying']
+        'expected_warnings': ['Retrying'],
     }]
 
 
@@ -1085,11 +1096,11 @@ class TikTokEffectIE(TikTokBaseListIE):
         'info_dict': {
             'id': '1258156',
         },
-        'expected_warnings': ['Retrying']
+        'expected_warnings': ['Retrying'],
     }, {
         # Different entries between mobile and web, depending on region
         'url': 'https://www.tiktok.com/sticker/Elf-Friend-479565',
-        'only_matching': True
+        'only_matching': True,
     }]
 
 
@@ -1106,16 +1117,16 @@ class TikTokTagIE(TikTokBaseListIE):
             'id': '46294678',
             'title': 'hello2018',
         },
-        'expected_warnings': ['Retrying']
+        'expected_warnings': ['Retrying'],
     }, {
         'url': 'https://tiktok.com/tag/fypシ?is_copy_url=0&is_from_webapp=v1',
-        'only_matching': True
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id, headers={
-            'User-Agent': 'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)'
+            'User-Agent': 'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)',
         })
         tag_id = self._html_search_regex(r'snssdk\d*://challenge/detail/(\d+)', webpage, 'tag ID')
         return self.playlist_result(self._entries(tag_id, display_id), tag_id, display_id)
@@ -1129,17 +1140,17 @@ class TikTokCollectionIE(TikTokBaseIE):
         'url': 'https://www.tiktok.com/@imanoreotwe/collection/count-test-7371330159376370462',
         'info_dict': {
             'id': '7371330159376370462',
-            'title': 'imanoreotwe-count-test'
+            'title': 'imanoreotwe-count-test',
         },
-        'playlist_count': 9
+        'playlist_count': 9,
     }, {
         # tests returning multiple pages of a large collection
         'url': 'https://www.tiktok.com/@imanoreotwe/collection/%F0%9F%98%82-7111887189571160875',
         'info_dict': {
             'id': '7111887189571160875',
-            'title': 'imanoreotwe-%F0%9F%98%82'
+            'title': 'imanoreotwe-%F0%9F%98%82',
         },
-        'playlist_mincount': 100
+        'playlist_mincount': 100,
     }]
     _API_BASE_URL = 'https://www.tiktok.com/api/collection/item_list/'
     _PAGE_COUNT = 30

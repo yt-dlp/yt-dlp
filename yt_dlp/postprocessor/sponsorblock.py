@@ -27,7 +27,7 @@ class SponsorBlockPP(FFmpegPostProcessor):
         'filler': 'Filler Tangent',
         'interaction': 'Interaction Reminder',
         'music_offtopic': 'Non-Music Section',
-        **NON_SKIPPABLE_CATEGORIES
+        **NON_SKIPPABLE_CATEGORIES,
     }
 
     def __init__(self, downloader, categories=None, api='https://sponsor.ajay.app'):
@@ -57,7 +57,7 @@ class SponsorBlockPP(FFmpegPostProcessor):
             if start_end[0] <= 1:
                 start_end[0] = 0
             # Make POI chapters 1 sec so that we can properly mark them
-            if s['category'] in self.POI_CATEGORIES.keys():
+            if s['category'] in self.POI_CATEGORIES:
                 start_end[1] += 1
             # Ignore milliseconds difference at the end.
             # Never allow the segment to exceed the video.
@@ -91,12 +91,12 @@ class SponsorBlockPP(FFmpegPostProcessor):
         return sponsor_chapters
 
     def _get_sponsor_segments(self, video_id, service):
-        hash = hashlib.sha256(video_id.encode('ascii')).hexdigest()
+        video_hash = hashlib.sha256(video_id.encode('ascii')).hexdigest()
         # SponsorBlock API recommends using first 4 hash characters.
-        url = f'{self._API_URL}/api/skipSegments/{hash[:4]}?' + urllib.parse.urlencode({
+        url = f'{self._API_URL}/api/skipSegments/{video_hash[:4]}?' + urllib.parse.urlencode({
             'service': service,
             'categories': json.dumps(self._categories),
-            'actionTypes': json.dumps(['skip', 'poi', 'chapter'])
+            'actionTypes': json.dumps(['skip', 'poi', 'chapter']),
         })
         for d in self._download_json(url) or []:
             if d['videoID'] == video_id:
