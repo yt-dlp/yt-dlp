@@ -121,8 +121,6 @@ class TikTokBaseIE(InfoExtractor):
         webpage_cookies = self._get_cookies(self._WEBPAGE_HOST)
         if webpage_cookies.get('sid_tt'):
             self._set_cookie(self._API_HOSTNAME, 'sid_tt', webpage_cookies['sid_tt'].value)
-        if data is not None:
-            data = urlencode_postdata(data)
         return self._download_json(
             f'https://{self._API_HOSTNAME}/aweme/v1/{ep}/', video_id=video_id,
             fatal=fatal, note=note, errnote=errnote, headers={
@@ -211,10 +209,10 @@ class TikTokBaseIE(InfoExtractor):
     def _extract_aweme_app(self, aweme_id):
         aweme_detail = traverse_obj(
             self._call_api(
-                'multi/aweme/detail', {}, aweme_id, data={
+                'multi/aweme/detail', {}, aweme_id, data=urlencode_postdata({
                     'aweme_ids': f'[{aweme_id}]',
                     'request_source': '0',
-                }, note='Downloading video feed', errnote='Unable to download video feed'),
+                }), note='Downloading video feed', errnote='Unable to download video feed'),
             ('aweme_details', 0, {dict}))
         if not aweme_detail:
             raise ExtractorError('Unable to find video in feed', video_id=aweme_id)
