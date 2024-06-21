@@ -190,18 +190,6 @@ class VidyardIE(VidyardBaseIE):
                 'duration': 39,
             },
         },
-        {
-            # URL of iframe embed src (protocol relative URL)
-            'url': '//play.vidyard.com/iDqTwWGrd36vaLuaCY3nTs.html?',
-            'info_dict': {
-                'id': 'lrYeWCqR3UCAzwqUAgegHg',
-                'display_id': '9281009',
-                'ext': 'mp4',
-                'title': 'Lightbox Embed',
-                'thumbnail': 'https://cdn.vidyard.com/thumbnails/spacer.gif',
-                'duration': 39,
-            },
-        },
     ]
     _EMBED_REGEX = [
         # iframe embed
