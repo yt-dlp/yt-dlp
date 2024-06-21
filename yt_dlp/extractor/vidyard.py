@@ -1,8 +1,14 @@
+import re
+
 from .common import InfoExtractor
-from ..utils import int_or_none, traverse_obj
+from ..utils import (
+    extract_attributes,
+    int_or_none,
+    traverse_obj,
+)
 
 
-class VidyardBaseInfoExtractor(InfoExtractor):
+class VidyardBaseIE(InfoExtractor):
 
     def _get_formats_and_subtitles(self, video_source, video_id):
         video_source = video_source or {}
@@ -36,33 +42,13 @@ class VidyardBaseInfoExtractor(InfoExtractor):
     def _webpage_url(self, url, video_id):
         return url
 
-    def _real_extract(self, url):
-        video_id = self._match_valid_url(url).group('id')
-        webpage = self._download_webpage(self._webpage_url(url, video_id), video_id)
 
-        json_data = self._download_json(
-            f'https://play.vidyard.com/player/{video_id}.json', video_id)['payload']['chapters'][0]
-
-        formats, subtitles = self._get_formats_and_subtitles(json_data['sources'], video_id)
-        self._merge_subtitles(self._get_direct_subtitles(json_data.get('captions')), target=subtitles)
-
-        return {
-            'id': str(json_data['videoId']),
-            'title': json_data.get('name') or self._og_search_title(webpage, default=None) or self._html_extract_title(webpage),
-            'description': json_data.get('description') or self._og_search_description(webpage, default=None),
-            'duration': int_or_none(json_data.get('seconds')),
-            'formats': formats,
-            'subtitles': subtitles,
-            'thumbnails': [{'url': thumbnail_url}
-                           for thumbnail_url in traverse_obj(json_data, ('thumbnailUrls', ...))],
-            'http_headers': {
-                'referer': 'https://play.vidyard.com/',
-            },
-        }
-
-
-class VidyardWatchIE(VidyardBaseInfoExtractor):
-    _VALID_URL = r'https?://(?:[\w-]+\.hubs|share)\.vidyard\.com/watch/(?P<id>[\w-]+)'
+class VidyardIE(VidyardBaseIE):
+    _VALID_URL = [
+        r'https?://(?:[\w-]+\.hubs|share)\.vidyard\.com/watch/(?P<id>[\w-]+)',
+        r'https?://embed\.vidyard\.com/share/(?P<id>[\w-]+)',
+        r'https?://play\.vidyard\.com/(?P<id>[\w-]+)\.html',
+    ]
     _TESTS = [
         {
             'url': 'https://vyexample03.hubs.vidyard.com/watch/oTDMPlUv--51Th455G5u7Q',
@@ -86,12 +72,6 @@ class VidyardWatchIE(VidyardBaseInfoExtractor):
                 'duration': 41,
             },
         },
-    ]
-
-
-class VidyardEmbedIE(VidyardBaseInfoExtractor):
-    _VALID_URL = r'https?://embed\.vidyard\.com/share/(?P<id>[\w-]+)'
-    _TESTS = [
         {
             'url': 'https://embed.vidyard.com/share/oTDMPlUv--51Th455G5u7Q',
             'info_dict': {
@@ -103,12 +83,6 @@ class VidyardEmbedIE(VidyardBaseInfoExtractor):
                 'duration': 99,
             },
         },
-    ]
-
-
-class VidyardPlayIE(VidyardBaseInfoExtractor):
-    _VALID_URL = r'https?://play\.vidyard\.com/(?P<id>[\w-]+)\.[\w]+'
-    _TESTS = [
         {
             # URL of iframe embed src
             'url': 'https://play.vidyard.com/iDqTwWGrd36vaLuaCY3nTs.html',
@@ -121,8 +95,8 @@ class VidyardPlayIE(VidyardBaseInfoExtractor):
             },
         },
         {
-            # URL of inline/lightbox embed src
-            'url': 'https://play.vidyard.com/iDqTwWGrd36vaLuaCY3nTs.jpg',
+            # URL of iframe embed src (protocol relative URL)
+            'url': '//play.vidyard.com/iDqTwWGrd36vaLuaCY3nTs.html?',
             'info_dict': {
                 'id': '9281009',
                 'ext': 'mp4',
@@ -134,13 +108,11 @@ class VidyardPlayIE(VidyardBaseInfoExtractor):
     ]
     _EMBED_REGEX = [
         # iframe embed
-        r'<iframe[^>]+?src=(["\'])(?P<url>(?:https?:)?//play\.vidyard\.com/[\w-]+.html)\1',
-        # inline/lightbox embed
-        r'<img[^>]+?src=(["\'])(?P<url>(?:https?:)?//play\.vidyard\.com/[\w-]+.jpg)\1',
+        r'<iframe[^>]+?src=(["\'])(?P<url>(?:https?:)?//play\.vidyard\.com/[\w-]+.\w+)\1',
     ]
     _WEBPAGE_TESTS = [
         {
-            # URL containing embedded video
+            # URL containing inline/lightbox embedded video
             'url': 'https://resources.altium.com/p/2-the-extreme-importance-of-pc-board-stack-up',
             'info_dict': {
                 'id': '3225198',
@@ -152,5 +124,41 @@ class VidyardPlayIE(VidyardBaseInfoExtractor):
         },
     ]
 
-    def _webpage_url(self, url, video_id):
-        return f'https://play.vidyard.com/{video_id}.html'
+    @classmethod
+    def _extract_embed_urls(cls, url, webpage):
+        # Handle protocol-less embed URLs
+        for embed_url in super()._extract_embed_urls(url, webpage):
+            if embed_url.startswith('//'):
+                embed_url = f'https:{embed_url}'
+            yield embed_url
+
+        # Extract inline/lightbox embeds
+        for embed_elm in re.findall(r'(<img[^>]+class=(["\'])(?:[^>"\']* )?vidyard-player-embed(?: [^>"\']*)?\2[^>]+[^>]*>)', webpage):
+            embed = extract_attributes(embed_elm[0]) or {}
+            uuid = embed.get('data-uuid')
+            if uuid:
+                yield f'https://play.vidyard.com/{uuid}.html'
+
+    def _real_extract(self, url):
+        video_id = self._match_valid_url(url).group('id')
+        webpage = self._download_webpage(self._webpage_url(url, video_id), video_id)
+
+        json_data = self._download_json(
+            f'https://play.vidyard.com/player/{video_id}.json', video_id)['payload']['chapters'][0]
+
+        formats, subtitles = self._get_formats_and_subtitles(json_data['sources'], video_id)
+        self._merge_subtitles(self._get_direct_subtitles(json_data.get('captions')), target=subtitles)
+
+        return {
+            'id': str(json_data['videoId']),
+            'title': json_data.get('name') or self._og_search_title(webpage, default=None) or self._html_extract_title(webpage),
+            'description': json_data.get('description') or self._og_search_description(webpage, default=None),
+            'duration': int_or_none(json_data.get('seconds')),
+            'formats': formats,
+            'subtitles': subtitles,
+            'thumbnails': [{'url': thumbnail_url}
+                           for thumbnail_url in traverse_obj(json_data, ('thumbnailUrls', ...))],
+            'http_headers': {
+                'referer': 'https://play.vidyard.com/',
+            },
+        }
