@@ -731,6 +731,8 @@ class _LinuxKeyring(Enum):
 
 SUPPORTED_KEYRINGS = _LinuxKeyring.__members__.keys()
 
+SUPPORTED_DESKTOP_ENVS = {'Unity', 'Deepin', 'GNOME', 'X-Cinnamon', 'KDE', 'Pantheon', 'XFCE', 'UKUI', 'LXQt'}
+
 
 def _get_linux_desktop_environment(env, logger):
     """
@@ -740,7 +742,9 @@ def _get_linux_desktop_environment(env, logger):
     xdg_current_desktop = env.get('XDG_CURRENT_DESKTOP', None)
     desktop_session = env.get('DESKTOP_SESSION', None)
     if xdg_current_desktop is not None:
-        xdg_current_desktop = xdg_current_desktop.split(':')[0].strip()
+        xdg_current_desktop = [env.strip() for env in xdg_current_desktop.split(':')]
+        xdg_current_desktop = next(
+            (env for env in xdg_current_desktop if env in SUPPORTED_DESKTOP_ENVS), xdg_current_desktop[0])
 
         if xdg_current_desktop == 'Unity':
             if desktop_session is not None and 'gnome-fallback' in desktop_session:
