@@ -72,7 +72,7 @@ class AfreecaTVIE(AfreecaTVBaseIE):
                             )\?.*?\bnTitleNo=|
                             vod\.afreecatv\.com/(PLAYER/STATION|player)/
                         )
-                        (?P<id>\d+)
+                        (?P<id>\d+)[^/]*$
                     '''
     _TESTS = [{
         'url': 'http://live.afreecatv.com:8079/app/index.cgi?szType=read_ucc_bbs&szBjId=dailyapril&nStationNo=16711924&nBbsNo=18605867&nTitleNo=36164052&szSkin=',
@@ -251,6 +251,50 @@ class AfreecaTVIE(AfreecaTVBaseIE):
         common_info['timestamp'] = traverse_obj(entries, (..., 'timestamp'), get_all=False)
 
         return self.playlist_result(entries, video_id, multi_video=True, **common_info)
+
+
+class AfreecaTVCatchStoryIE(AfreecaTVBaseIE):
+    IE_NAME = 'afreecatv:catchstory'
+    IE_DESC = 'afreecatv.com catch story'
+    _VALID_URL = r'https?://vod\.afreecatv\.com/player/(?P<id>\d+)/catchstory'
+    _TESTS = [{
+        'url': 'https://vod.afreecatv.com/player/103247/catchstory',
+        'info_dict': {
+            '_type': 'playlist',
+            'id': '103247',
+        },
+        'playlist_count': 2,
+    }]
+
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+        data = self._download_json(
+            'http://api.m.afreecatv.com/catchstory/a/view', video_id, headers={'Referer': url},
+            query={'aStoryListIdx': '', 'nStoryIdx': video_id}).get('data', [])
+        entries = []
+        for story in data:
+            if story.get('story_type') != 'catch':
+                break
+            for catch in story.get('catch_list', []):
+                # files is always a list of length 1
+                files = catch.get('files', [])
+                if not files:
+                    continue
+                file = files[0]
+                entries.append({
+                    'id': file.get('file_info_key'),
+                    'title': catch.get('title'),
+                    'uploader': catch.get('writer_nick'),
+                    'uploader_id': catch.get('writer_id'),
+                    'thumbnail': catch.get('thumb'),
+                    'duration': file.get('duration'),
+                    'formats': [{
+                        'url': file.get('file'),
+                        'format_id': 'http',
+                    }],
+                    'timestamp': file.get('write_timestamp'),
+                })
+        return self.playlist_result(entries, video_id)
 
 
 class AfreecaTVLiveIE(AfreecaTVBaseIE):

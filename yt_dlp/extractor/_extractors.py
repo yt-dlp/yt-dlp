@@ -76,6 +76,7 @@ from .aenetworks import (
 )
 from .aeonco import AeonCoIE
 from .afreecatv import (
+    AfreecaTVCatchStoryIE,
     AfreecaTVIE,
     AfreecaTVLiveIE,
     AfreecaTVUserIE,
