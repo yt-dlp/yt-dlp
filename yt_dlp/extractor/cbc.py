@@ -17,6 +17,7 @@ from ..utils import (
     strip_or_none,
     traverse_obj,
     try_get,
+    float_or_none,
 )
 
 
@@ -320,6 +321,34 @@ class CBCPlayerIE(InfoExtractor):
                 video_info = self._download_json(video_info_link, video_id)
                 m3u8_url = video_info['url']
                 formats, subtitles = self._extract_m3u8_formats_and_subtitles(m3u8_url, video_id)
+                duration = json_data['video']['currentClip']['media']['duration']
+                def _process_chapters(tp_chapters, duration):
+                    
+                    # tp_chapters = json_data['video']['currentClip']['media']['chapters'] # info.get('chapters', [])
+                    chapters = []
+                    def _add_chapter(start_time, end_time, title=None):
+                        start_time = float_or_none(start_time, 1000)
+                        end_time = float_or_none(end_time, 1000)
+                        if start_time is None or end_time is None:
+                            return
+                        chapters.append({
+                            'start_time': start_time,
+                            'end_time': end_time,
+                            'title': title,
+                        })
+                    for x in range(len(tp_chapters) - 1):
+                        #if tp_chapters[x].get('endTime') is None:
+                           # add_chapter(tp_chapters[x].get('startTime'), tp_chapters[x + 1].get('startTime'), chapter.get('name'))
+                        #else:
+                        _add_chapter(tp_chapters[x].get('startTime'), tp_chapters[x].get('endTime') or tp_chapters[x + 1].get('startTime'), tp_chapters[x].get('name'))
+
+                    #for chapter in tp_chapters[:-1]:
+                        
+                        #_add_chapter(chapter.get('startTime'), chapter.get('endTime'), chapter.get('name'))
+                    _add_chapter(tp_chapters[-1].get('startTime'), tp_chapters[-1].get('endTime') or duration, tp_chapters[-1].get('name'))
+                    return chapters
+                
+                
                 return {
                     'id': video_id, # switch to media ID?
                     'title': json_data['video']['currentClip']['title'],
@@ -328,9 +357,15 @@ class CBCPlayerIE(InfoExtractor):
                     'description': json_data['video']['currentClip']['description'],
                     'thumbnail': json_data['video']['currentClip']['image']['url'], # fix the URL to remove the crop
                     'timestamp': int(json_data['video']['currentClip']['publishedAt']),
-                    # chapters: video/currentClip/media/chapters
+                    'chapters': _process_chapters(json_data['video']['currentClip']['media']['chapters'], json_data['video']['currentClip']['media']['duration']) if json_data['video']['currentClip']['media']['chapters'] is not None else None,
                     'media_type': json_data['video']['currentClip']['media']['clipType'],
                     'series': json_data['video']['currentClip']['showName'],
+                    'duration': json_data['video']['currentClip']['media']['duration'],
+                    # tags: json_data['video']['currentClip']['
+                    'location': json_data['video']['currentClip']['media']['region']
+                    # json_data['video']['currentClip']['media']['genre']
+                    # 'is_live': True if (json_data['vidoe']['currentClip']['media']['streamType'] == 'Live') else False
+                    # json_data['video']['currentClip']['categories']
                 }
             else:
                 video_id = mediaID
