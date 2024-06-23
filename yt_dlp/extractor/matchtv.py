@@ -9,7 +9,7 @@ class MatchTVIE(InfoExtractor):
             'id': 'matchtv-live',
             'ext': 'mp4',
             'title': r're:^Матч ТВ - Прямой эфир \d{4}-\d{2}-\d{2} \d{2}:\d{2}$',
-            'is_live': True,
+            'live_status': 'is_live',
         },
         'params': {
             'skip_download': True,
