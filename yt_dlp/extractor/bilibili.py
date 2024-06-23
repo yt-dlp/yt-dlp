@@ -736,10 +736,10 @@ class BiliBiliIE(BilibiliBaseIE):
                     if not self._configuration_arg('_prefer_multi_flv'):
                         # `_prefer_multi_flv` is mainly for writing test case, user should hardly need this
                         dropping = ', '.join(traverse_obj(formats, (
-                            lambda _, v: v['fragments'], {lambda x: f'{x["format"]} ({x["format_id"]})'})))
+                            lambda _, v: v['fragments'], {lambda x: f'"{x["format_note"]}" ({x["format_id"]})'})))
                         formats = traverse_obj(formats, lambda _, v: not v.get('fragments'))
                         if dropping:
-                            self.to_screen(f'Dropping incompatible flv format(s) {dropping} when mp4 exists')
+                            self.to_screen(f'Dropping incompatible flv format(s) {dropping} when mp4 exists. Use `--extractor-args "bilibili:_prefer_multi_flv=1"` if you require flv formats.')
                     else:
                         formats = traverse_obj(
                             formats, lambda _, v: v['quality'] == int(self._configuration_arg('_prefer_multi_flv')[0]),
