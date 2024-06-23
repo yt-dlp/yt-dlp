@@ -187,7 +187,7 @@ While all the other dependencies are optional, `ffmpeg` and `ffprobe` are highly
 * [**ffmpeg** and **ffprobe**](https://www.ffmpeg.org) - Required for [merging separate video and audio files](#format-selection) as well as for various [post-processing](#post-processing-options) tasks. License [depends on the build](https://www.ffmpeg.org/legal.html)
 
     There are bugs in ffmpeg that cause various issues when used alongside yt-dlp. Since ffmpeg is such an important dependency, we provide [custom builds](https://github.com/yt-dlp/FFmpeg-Builds#ffmpeg-static-auto-builds) with patches for some of these issues at [yt-dlp/FFmpeg-Builds](https://github.com/yt-dlp/FFmpeg-Builds). See [the readme](https://github.com/yt-dlp/FFmpeg-Builds#patches-applied) for details on the specific issues solved by these builds
-
+    
     **Important**: What you need is ffmpeg *binary*, **NOT** [the Python package of the same name](https://pypi.org/project/ffmpeg)
 
 ### Networking
@@ -198,7 +198,7 @@ While all the other dependencies are optional, `ffmpeg` and `ffprobe` are highly
 
 #### Impersonation
 
-The following provide support for impersonating browser requests. This may be required for some sites that employ TLS fingerprinting.
+The following provide support for impersonating browser requests. This may be required for some sites that employ TLS fingerprinting. 
 
 * [**curl_cffi**](https://github.com/yifeikong/curl_cffi) (recommended) - Python binding for [curl-impersonate](https://github.com/lwthiker/curl-impersonate). Provides impersonation targets for Chrome, Edge and Safari. Licensed under [MIT](https://github.com/yifeikong/curl_cffi/blob/main/LICENSE)
   * Can be installed with the `curl-cffi` group, e.g. `pip install "yt-dlp[default,curl-cffi]"`
@@ -437,7 +437,7 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
     --max-filesize SIZE             Abort download if filesize is larger than
                                     SIZE, e.g. 50k or 44.6M
     --date DATE                     Download only videos uploaded on this date.
-                                    The date can be "YYYYMMDD" or in the format
+                                    The date can be "YYYYMMDD" or in the format 
                                     [now|today|yesterday][-N[day|week|month|year]].
                                     E.g. "--date today-2weeks" downloads only
                                     videos uploaded on the same day two weeks ago
@@ -1347,9 +1347,9 @@ Available only when used in `--print`:
  - `thumbnails_table` (table): The thumbnail format table as printed by `--list-thumbnails`
  - `subtitles_table` (table): The subtitle format table as printed by `--list-subs`
  - `automatic_captions_table` (table): The automatic subtitle format table as printed by `--list-subs`
-
+ 
  Available only after the video is downloaded (`post_process`/`after_move`):
-
+ 
  - `filepath`: Actual path of downloaded video file
 
 Available only in `--sponsorblock-chapter-title`:
@@ -1544,7 +1544,7 @@ The available fields are:
  - `abr`: Average audio bitrate in [kbps](## "1000 bits/sec")
  - `br`: Average bitrate in [kbps](## "1000 bits/sec"), `tbr`/`vbr`/`abr`
  - `asr`: Audio sample rate in Hz
-
+ 
 **Deprecation warning**: Many of these fields have (currently undocumented) aliases, that may be removed in a future version. It is recommended to use only the documented field names.
 
 All fields, unless specified otherwise, are sorted in descending order. To reverse this, prefix the field with a `+`. E.g. `+res` prefers format with the smallest resolution. Additionally, you can suffix a preferred value for the fields, separated by a `:`. E.g. `res:720` prefers larger videos, but no larger than 720p and the smallest video if there are no videos less than 720p. For `codec` and `ext`, you can provide two preferred values, the first for video and the second for audio. E.g. `+codec:avc:m4a` (equivalent to `+vcodec:avc,+acodec:m4a`) sets the video codec preference to `h264` > `h265` > `vp9` > `vp9.2` > `av01` > `vp8` > `h263` > `theora` and audio codec preference to `mp4a` > `aac` > `vorbis` > `opus` > `mp3` > `ac3` > `dts`. You can also make the sorting prefer the nearest values to the provided by using `~` as the delimiter. E.g. `filesize~1G` prefers the format with filesize closest to 1 GiB.
@@ -1862,8 +1862,8 @@ The following extractors use this feature:
 
 Note that **all** plugins are imported even if not invoked, and that **there are no checks** performed on plugin code. **Use plugins at your own risk and only if you trust the code!**
 
-Plugins can be of `<type>`s `extractor` or `postprocessor`.
-- Extractor plugins do not need to be enabled from the CLI and are automatically invoked when the input URL is suitable for it.
+Plugins can be of `<type>`s `extractor` or `postprocessor`. 
+- Extractor plugins do not need to be enabled from the CLI and are automatically invoked when the input URL is suitable for it. 
 - Extractor plugins take priority over builtin extractors.
 - Postprocessor plugins can be invoked using `--use-postprocessor NAME`.
 
@@ -1871,7 +1871,7 @@ Plugins can be of `<type>`s `extractor` or `postprocessor`.
 Plugins are loaded from the namespace packages `yt_dlp_plugins.extractor` and `yt_dlp_plugins.postprocessor`.
 
 In other words, the file structure on the disk looks something like:
-
+    
         yt_dlp_plugins/
             extractor/
                 myplugin.py
