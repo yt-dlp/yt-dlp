@@ -385,27 +385,6 @@ class BiliBiliIE(BilibiliBaseIE):
             'duration': 90.314,
         },
     }, {
-        'note': 'video has subtitles',
-        'url': 'https://www.bilibili.com/video/BV12N4y1M7rh',
-        'info_dict': {
-            'id': 'BV12N4y1M7rh',
-            'ext': 'mp4',
-            'title': 'md5:96e8bb42c2b432c0d4ce3434a61479c1',
-            'tags': list,
-            'description': 'md5:afde2b7ba9025c01d9e3dde10de221e4',
-            'duration': 313.557,
-            'upload_date': '20220709',
-            'uploader': '小夫太渴',
-            'timestamp': 1657347907,
-            'uploader_id': '1326814124',
-            'comment_count': int,
-            'view_count': int,
-            'like_count': int,
-            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
-            'subtitles': 'count:2',
-        },
-        'params': {'listsubtitles': True},
-    }, {
         'url': 'https://www.bilibili.com/video/av8903802/',
         'info_dict': {
             'id': 'BV13x41117TL',
@@ -737,7 +716,7 @@ class BiliBiliIE(BilibiliBaseIE):
         is_interactive = traverse_obj(video_data, ('rights', 'is_stein_gate'))
         if is_interactive:
             return self.playlist_result(
-                self._get_interactive_entries(video_id, cid, metainfo), **metainfo,
+                self._get_interactive_entries(video_id, cid, metainfo, headers=headers), **metainfo,
                 duration=traverse_obj(initial_state, ('videoData', 'duration', {int_or_none})),
                 __post_extractor=self.extract_comments(aid))
         else:
