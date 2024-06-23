@@ -1,5 +1,8 @@
 def what(file=None, h=None):
-    """ Detect format of image (Currently supports jpeg, png, webp, gif only) """
+    """Detect format of image (Currently supports jpeg, png, webp, gif only)
+    Ref: https://github.com/python/cpython/blob/3.11/Lib/imghdr.py
+    Ref: https://www.w3.org/Graphics/JPEG/itu-t81.pdf
+    """
     if h is None:
         with open(file, 'rb') as f:
             h = f.read(12)
