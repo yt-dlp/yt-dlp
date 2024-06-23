@@ -2,7 +2,10 @@ from .common import InfoExtractor
 
 
 class MatchTVIE(InfoExtractor):
-    _VALID_URL = r'https?://matchtv\.ru/on-air'
+    _VALID_URL = [
+        r'https?://matchtv\.ru/on-air',
+        r'https?://video\.matchtv\.ru/iframe/channel/106',
+    ]
     _TESTS = [{
         'url': 'http://matchtv.ru/on-air/',
         'info_dict': {
