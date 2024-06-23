@@ -120,9 +120,9 @@ class BilibiliBaseIE(InfoExtractor):
                     'quality': ('quality', {int_or_none}),
                     'format_id': ('quality', {str_or_none}),
                     'format_note': ('quality', {lambda x: format_names.get(x)}),
-                    'resolution': ('quality', {lambda x: format_names.get(x)}),
                     'duration': ('timelength', {lambda x: float_or_none(x, scale=1000)}),
                 }),
+                **parse_resolution(format_names.get(play_info.get('quality'))),
             })
         return formats
 
