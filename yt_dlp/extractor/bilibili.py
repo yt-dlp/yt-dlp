@@ -30,6 +30,7 @@ from ..utils import (
     merge_dicts,
     mimetype2ext,
     parse_count,
+    parse_resolution,
     parse_qs,
     qualities,
     smuggle_url,
@@ -742,14 +743,16 @@ class BiliBiliIE(BilibiliBaseIE):
         else:
             formats = self.extract_formats(play_info)
 
-            if not traverse_obj(play_info, ('dash')):  # for legacy-only formats
+            if not traverse_obj(play_info, ('dash')):
+                # we only have legacy formats and need additional work
                 has_qn = lambda x: x in traverse_obj(formats, (..., 'quality'))
                 for qn in traverse_obj(play_info, ('accept_quality', lambda _, v: not has_qn(v), {int})):
                     formats.extend(traverse_obj(
                         self.extract_formats(self._download_playinfo(video_id, cid, headers=headers, qn=qn)),
                         (lambda _, v: not has_qn(v.get('quality')))))
                 self.check_missing_formats(play_info, formats)
-                if traverse_obj(formats, lambda _, v: v['fragments']):
+                if traverse_obj(formats, lambda _, v: v['fragments']) and traverse_obj(formats, lambda _, v: not v['fragments']):  # We are having both flv and mp4 formats here
+                    # Flv and mp4 are incompatible due to `multi_video` workaround, so we need to drop one of them
                     if not self._configuration_arg('_prefer_multi_flv'):
                         # `_prefer_multi_flv` is mainly for writing test case, user should hardly need this
                         dropping = ', '.join(traverse_obj(formats, (
@@ -762,7 +765,9 @@ class BiliBiliIE(BilibiliBaseIE):
                             formats, lambda _, v: v['quality'] == int(self._configuration_arg('_prefer_multi_flv')[0]),
                         ) or [max(traverse_obj(formats, lambda _, v: v['fragments']), key=lambda x: x['quality'])]
 
-            if formats[0].get('fragments'):  # transform multi_video format
+            if formats[0].get('fragments'):
+                # We have flv formats, which are individual short videos with their own timestamps and metainfo
+                # Binary concatenation corrupts their timestamps, so we need a `multi_video` workaround
                 return {
                     **metainfo,
                     '_type': 'multi_video',
