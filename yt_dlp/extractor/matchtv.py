@@ -25,5 +25,5 @@ class MatchTVIE(InfoExtractor):
             'id': video_id,
             'title': 'Матч ТВ - Прямой эфир',
             'is_live': True,
-            'formats': formats,
+            'formats': self._extract_m3u8_formats(video_url, video_id, 'mp4', live=True),
         }
