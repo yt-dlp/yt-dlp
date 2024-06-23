@@ -383,6 +383,7 @@ class BiliBiliIE(BilibiliBaseIE):
             'view_count': int,
             'description': 'md5:e3c401cf7bc363118d1783dd74068a68',
             'duration': 90.314,
+            '_old_archive_ids': ['bilibili 498159642_part1'],
         },
     }, {
         'url': 'https://www.bilibili.com/video/av8903802/',
@@ -730,7 +731,7 @@ class BiliBiliIE(BilibiliBaseIE):
                         self.extract_formats(self._download_playinfo(video_id, cid, headers=headers, qn=qn)),
                         (lambda _, v: not has_qn(v.get('quality')))))
                 self.check_missing_formats(play_info, formats)
-                if traverse_obj(formats, lambda _, v: v['fragments']) and traverse_obj(formats, lambda _, v: not v['fragments']):  # We are having both flv and mp4 formats here
+                if traverse_obj(formats, lambda _, v: v['fragments']) and traverse_obj(formats, lambda _, v: not v.get('fragments')):  # We are having both flv and mp4 formats here
                     # Flv and mp4 are incompatible due to `multi_video` workaround, so we need to drop one of them
                     if not self._configuration_arg('_prefer_multi_flv'):
                         # `_prefer_multi_flv` is mainly for writing test case, user should hardly need this
