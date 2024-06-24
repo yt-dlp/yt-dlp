@@ -64,7 +64,7 @@ class VidyardBaseIE(InfoExtractor):
 
 class VidyardIE(VidyardBaseIE):
     _VALID_URL = [
-        r'https?://(?:[\w-]+\.hubs|share)\.vidyard\.com/watch/(?P<id>[\w-]+)',
+        r'https?://[\w-]+(?:\.hubs)?\.vidyard\.com/watch/(?P<id>[\w-]+)',
         r'https?://embed\.vidyard\.com/share/(?P<id>[\w-]+)',
         r'https?://play\.vidyard\.com/(?P<id>[\w-]+)\.html',
     ]
@@ -177,6 +177,82 @@ class VidyardIE(VidyardBaseIE):
                 ],
             },
             'playlist_count': 6,
+        },
+        {
+            # Non hubs.vidyard.com playlist
+            'url': 'https://salesforce.vidyard.com/watch/d4vqPjs7Q5EzVEis5QT3jd',
+            'info_dict': {
+                '_type': 'playlist',
+                'id': 'd4vqPjs7Q5EzVEis5QT3jd',
+                'title': 'How To: Service Cloud: Import External Content in Lightning Knowledge',
+                'entries': [
+                    {
+                        'id': 'hUaOp14oFlhM9N7kuDcJ-g',
+                        'display_id': '29479036',
+                        'ext': 'mp4',
+                        'title': 'Welcome to this Expert Coaching Series',
+                        'thumbnail': 'https://cdn.vidyard.com/thumbnails/ouyQi9WuwyiOupChUWNmjQ/7170d3485ba602e012df05_small.jpg',
+                        'duration': 38,
+                    },
+                    {
+                        'id': 'tcNu8E0Yj64sfni0EcsajA',
+                        'display_id': '21820704',
+                        'ext': 'mp4',
+                        'title': 'Chapter 1 - Title + Agenda',
+                        'thumbnail': 'https://cdn.vidyard.com/thumbnails/HFPN0ZgQq4Ow8BghGcQSow/bfaa30123c8f6601e7d7f2_small.jpg',
+                        'duration': 98,
+                    },
+                    {
+                        'id': '7i2kzbuT-pXSg69q0EJ8lw',
+                        'display_id': '21820707',
+                        'ext': 'mp4',
+                        'title': 'Chapter 2 - Import Options',
+                        'thumbnail': 'https://cdn.vidyard.com/thumbnails/rGRIF5nFjPI9OOA2qJ_Dbg/86a8d02bfec9a566845dd4_small.jpg',
+                        'duration': 199,
+                    },
+                    {
+                        'id': 'IgM4X2Oph_EU55ooqiRDAA',
+                        'display_id': '21820710',
+                        'ext': 'mp4',
+                        'title': 'Chapter 3 - Importing Article Translations',
+                        'thumbnail': 'https://cdn.vidyard.com/thumbnails/IVX4XR8zpSsiNIHx45kz-A/1ccbf8a29a33856d06b3ed_small.jpg',
+                        'duration': 184,
+                    },
+                    {
+                        'id': 'nXg8k1mQLjhO7eQTsLNNhA',
+                        'display_id': '21820716',
+                        'ext': 'mp4',
+                        'title': 'Chapter 4 - Best Practices',
+                        'thumbnail': 'https://cdn.vidyard.com/thumbnails/BtrRrQpRDLbA4AT95YQyog/1f1e6b8e7fdc3fa95ec8d3_small.jpg',
+                        'duration': 296,
+                    },
+                    {
+                        'id': 'MFJsA-g_Y5i8bpKbSHD3Ag',
+                        'display_id': '21820727',
+                        'ext': 'mp4',
+                        'title': 'Chapter 5 - Migration Steps',
+                        'thumbnail': 'https://cdn.vidyard.com/thumbnails/K2CdQOXDfLcrVTF60r0bdw/a09239ada28b6ffce12b1f_small.jpg',
+                        'duration': 620,
+                    },
+                    {
+                        'id': 'U3rozs4apZv5xHiqdDgL6g',
+                        'display_id': '21820733',
+                        'ext': 'mp4',
+                        'title': 'Chapter 6 - Demo',
+                        'thumbnail': 'https://cdn.vidyard.com/thumbnails/rsmhP-cO8dAa8ilvFGCX0g/7911ef415167cd14032068_small.jpg',
+                        'duration': 631,
+                    },
+                    {
+                        'id': 'yzbL1YiT6TYmEF4zM4_Rfg',
+                        'display_id': '29479037',
+                        'ext': 'mp4',
+                        'title': 'Schedule Your Follow-Up',
+                        'thumbnail': 'https://cdn.vidyard.com/thumbnails/Rtwc7X4PEkF4Ae5kHi-Jvw/174ebed3f34227b1ffa1d0_small.jpg',
+                        'duration': 33,
+                    },
+                ],
+            },
+            'playlist_count': 8,
         },
         {
             # URL of iframe embed src
