@@ -3,8 +3,8 @@ from .common import InfoExtractor
 
 class MatchTVIE(InfoExtractor):
     _VALID_URL = [
-        r'https?://matchtv\.ru/on-air',
-        r'https?://video\.matchtv\.ru/iframe/channel/106',
+        r'https?://matchtv\.ru/on-air/?(?:$|[?#])',
+        r'https?://video\.matchtv\.ru/iframe/channel/106/?(?:$|[?#])',
     ]
     _TESTS = [{
         'url': 'http://matchtv.ru/on-air/',
@@ -17,13 +17,16 @@ class MatchTVIE(InfoExtractor):
         'params': {
             'skip_download': True,
         },
+    }, {
+        'url': 'https://video.matchtv.ru/iframe/channel/106',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
         video_id = 'matchtv-live'
         webpage = self._download_webpage('https://video.matchtv.ru/iframe/channel/106', video_id)
         video_url = self._html_search_regex(
-            r'data-config="config=([^?"]*)[?"]', webpage, 'video URL').replace('feed', 'media') + '.m3u8'
+            r'data-config="config=(https?://[^?"]+)[?"]', webpage, 'video URL').replace('/feed/', '/media/') + '.m3u8'
         return {
             'id': video_id,
             'title': 'Матч ТВ - Прямой эфир',
