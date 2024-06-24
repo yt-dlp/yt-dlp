@@ -14,11 +14,10 @@ class VidyardBaseIE(InfoExtractor):
     _HEADERS = {}
 
     def _get_formats_and_subtitles(self, video_source, video_id):
-        video_source = video_source or {}
         formats, subtitles = [], {}
-        for key, value in video_source.items():
-            if key == 'hls':
-                for video_hls in value:
+        for source_type, sources in traverse_obj(video_source, ({dict.items}, lambda _, v: v[1][0])):
+            if source_type == 'hls':
+                for video_hls in sources:
                     fmts, subs = self._extract_m3u8_formats_and_subtitles(video_hls.get('url'), video_id, headers=self._HEADERS)
                     formats.extend(fmts)
                     self._merge_subtitles(subs, target=subtitles)
@@ -26,7 +25,7 @@ class VidyardBaseIE(InfoExtractor):
                 formats.extend({
                     'url': video_mp4.get('url'),
                     'ext': 'mp4',
-                } for video_mp4 in value)
+                } for video_mp4 in sources)
 
         return formats, subtitles
 
