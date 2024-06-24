@@ -22,7 +22,7 @@ from ..utils import (
 
 
 class NetEaseMusicBaseIE(InfoExtractor):
-    _FORMATS = ['bMusic', 'mMusic', 'hMusic']
+    _LEVELS = ['standard', 'exhigh', 'lossless', 'hires', 'jyeffect', 'sky', 'jymaster']
     _API_BASE = 'http://music.163.com/api/'
     _GEO_BYPASS = False
 
@@ -66,27 +66,22 @@ class NetEaseMusicBaseIE(InfoExtractor):
                 **headers,
             }, **kwargs)
 
-    def _call_player_api(self, song_id, bitrate):
+    def _call_player_api(self, song_id, level):
         return self._download_eapi_json(
-            '/song/enhance/player/url', song_id, {'ids': f'[{song_id}]', 'br': bitrate},
-            note=f'Downloading song URL info: bitrate {bitrate}')
+            '/song/enhance/player/url/v1', song_id, {'ids': f'[{song_id}]', 'level': level, 'encodeType': 'flac'},
+            note=f'Downloading song URL info: level {level}')
 
     def extract_formats(self, info):
         err = 0
         formats = []
         song_id = info['id']
-        for song_format in self._FORMATS:
-            details = info.get(song_format)
-            if not details:
-                continue
-            bitrate = int_or_none(details.get('bitrate')) or 999000
-            for song in traverse_obj(self._call_player_api(song_id, bitrate), ('data', lambda _, v: url_or_none(v['url']))):
+        for song_level in self._LEVELS:
+            for song in traverse_obj(self._call_player_api(song_id, song_level), ('data', lambda _, v: url_or_none(v['url']))):
                 song_url = song['url']
                 if self._is_valid_url(song_url, info['id'], 'song'):
                     formats.append({
                         'url': song_url,
-                        'format_id': song_format,
-                        'asr': traverse_obj(details, ('sr', {int_or_none})),
+                        'format_id': song_level,
                         **traverse_obj(song, {
                             'ext': ('type', {str}),
                             'abr': ('br', {self.kilo_or_none}),
