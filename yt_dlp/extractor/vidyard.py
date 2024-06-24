@@ -3,6 +3,7 @@ import re
 from .common import InfoExtractor
 from ..utils import (
     extract_attributes,
+    float_or_none,
     int_or_none,
     traverse_obj,
 )
@@ -53,7 +54,7 @@ class VidyardBaseIE(InfoExtractor):
             'display_id': str(json_data['videoId']),
             'title': json_data.get('name') or None,
             'description': json_data.get('description') or None,
-            'duration': int_or_none(json_data.get('seconds')),
+            'duration': float_or_none(json_data.get('milliseconds'), 1000) or int_or_none(json_data.get('seconds')),
             'formats': formats,
             'subtitles': subtitles,
             'thumbnails': [{'url': thumbnail_url}
@@ -90,7 +91,7 @@ class VidyardIE(VidyardBaseIE):
                 'title': 'Inline Embed',
                 'description': 'Vidyard video',
                 'thumbnail': 'https://cdn.vidyard.com/thumbnails/spacer.gif',
-                'duration': 41,
+                'duration': 41.186,
             },
         },
         {
@@ -115,7 +116,7 @@ class VidyardIE(VidyardBaseIE):
                 'title': 'Prepare the Frame and Track for Palm Beach Polysatin Shutters With BiFold Track',
                 'description': 'In this video, you will learn how to prepare the frame and track on Palm Beach shutters with a Bi-Fold Track system.',
                 'thumbnail': 'https://cdn.vidyard.com/thumbnails/41974005/IJw7oCaJcF1h7WWu3OVZ8A_small.png',
-                'duration': 259,
+                'duration': 258.666,
             },
         },
         {
@@ -132,7 +133,7 @@ class VidyardIE(VidyardBaseIE):
                         'ext': 'mp4',
                         'title': 'Prepare the Frame and Track for Palm Beach Polysatin Shutters With BiFold Track',
                         'thumbnail': 'https://cdn.vidyard.com/thumbnails/41974005/IJw7oCaJcF1h7WWu3OVZ8A_small.png',
-                        'duration': 259,
+                        'duration': 258.666,
                     },
                     {
                         'id': '1Fw4B84jZTXLXWqkE71RiM',
@@ -140,7 +141,7 @@ class VidyardIE(VidyardBaseIE):
                         'ext': 'mp4',
                         'title': 'Palm Beach - Bi-Fold Track System "Frame Installation"',
                         'thumbnail': 'https://cdn.vidyard.com/thumbnails/5861113/29CJ54s5g1_aP38zkKLHew_small.jpg',
-                        'duration': 167,
+                        'duration': 167.858,
                     },
                     {
                         'id': 'DqP3wBvLXSpxrcqpT5kEeo',
@@ -148,7 +149,7 @@ class VidyardIE(VidyardBaseIE):
                         'ext': 'mp4',
                         'title': 'Install the Track for Palm Beach Polysatin Shutters With BiFold Track',
                         'thumbnail': 'https://cdn.vidyard.com/thumbnails/5861090/RwG2VaTylUa6KhSTED1r1Q_small.png',
-                        'duration': 94,
+                        'duration': 94.229,
                     },
                     {
                         'id': 'opfybfxpzQArxqtQYB6oBU',
@@ -156,7 +157,7 @@ class VidyardIE(VidyardBaseIE):
                         'ext': 'mp4',
                         'title': 'Install the Panel for Palm Beach Polysatin Shutters With BiFold Track',
                         'thumbnail': 'https://cdn.vidyard.com/thumbnails/5860926/JIOaJR08dM4QgXi_iQ2zGA_small.png',
-                        'duration': 191,
+                        'duration': 191.467,
                     },
                     {
                         'id': 'rWrXvkbTNNaNqD6189HJya',
@@ -164,7 +165,7 @@ class VidyardIE(VidyardBaseIE):
                         'ext': 'mp4',
                         'title': 'Adjust the Panels for Palm Beach Polysatin Shutters With BiFold Track',
                         'thumbnail': 'https://cdn.vidyard.com/thumbnails/5860687/CwHxBv4UudAhOh43FVB4tw_small.png',
-                        'duration': 138,
+                        'duration': 138.155,
                     },
                     {
                         'id': 'eYPTB521MZ9TPEArSethQ5',
@@ -172,7 +173,7 @@ class VidyardIE(VidyardBaseIE):
                         'ext': 'mp4',
                         'title': 'Assemble and Install the Valance for Palm Beach Polysatin Shutters With BiFold Track',
                         'thumbnail': 'https://cdn.vidyard.com/thumbnails/5861425/0y68qlMU4O5VKU7bJ8i_AA_small.png',
-                        'duration': 148,
+                        'duration': 148.224,
                     },
                 ],
             },
@@ -192,7 +193,7 @@ class VidyardIE(VidyardBaseIE):
                         'ext': 'mp4',
                         'title': 'Welcome to this Expert Coaching Series',
                         'thumbnail': 'https://cdn.vidyard.com/thumbnails/ouyQi9WuwyiOupChUWNmjQ/7170d3485ba602e012df05_small.jpg',
-                        'duration': 38,
+                        'duration': 38.205,
                     },
                     {
                         'id': '84bPYwpg243G6xYEfJdYw9',
@@ -200,7 +201,7 @@ class VidyardIE(VidyardBaseIE):
                         'ext': 'mp4',
                         'title': 'Chapter 1 - Title + Agenda',
                         'thumbnail': 'https://cdn.vidyard.com/thumbnails/HFPN0ZgQq4Ow8BghGcQSow/bfaa30123c8f6601e7d7f2_small.jpg',
-                        'duration': 98,
+                        'duration': 98.016,
                     },
                     {
                         'id': 'nP17fMuvA66buVHUrzqjTi',
@@ -208,7 +209,7 @@ class VidyardIE(VidyardBaseIE):
                         'ext': 'mp4',
                         'title': 'Chapter 2 - Import Options',
                         'thumbnail': 'https://cdn.vidyard.com/thumbnails/rGRIF5nFjPI9OOA2qJ_Dbg/86a8d02bfec9a566845dd4_small.jpg',
-                        'duration': 199,
+                        'duration': 199.136,
                     },
                     {
                         'id': 'm54EcwXdpA5gDBH5rgCYoV',
@@ -216,7 +217,7 @@ class VidyardIE(VidyardBaseIE):
                         'ext': 'mp4',
                         'title': 'Chapter 3 - Importing Article Translations',
                         'thumbnail': 'https://cdn.vidyard.com/thumbnails/IVX4XR8zpSsiNIHx45kz-A/1ccbf8a29a33856d06b3ed_small.jpg',
-                        'duration': 184,
+                        'duration': 184.352,
                     },
                     {
                         'id': 'j4nzS42oq4hE9oRV73w3eQ',
@@ -224,7 +225,7 @@ class VidyardIE(VidyardBaseIE):
                         'ext': 'mp4',
                         'title': 'Chapter 4 - Best Practices',
                         'thumbnail': 'https://cdn.vidyard.com/thumbnails/BtrRrQpRDLbA4AT95YQyog/1f1e6b8e7fdc3fa95ec8d3_small.jpg',
-                        'duration': 296,
+                        'duration': 296.960,
                     },
                     {
                         'id': 'y28PYfW5pftvers9PXzisC',
@@ -232,7 +233,7 @@ class VidyardIE(VidyardBaseIE):
                         'ext': 'mp4',
                         'title': 'Chapter 5 - Migration Steps',
                         'thumbnail': 'https://cdn.vidyard.com/thumbnails/K2CdQOXDfLcrVTF60r0bdw/a09239ada28b6ffce12b1f_small.jpg',
-                        'duration': 620,
+                        'duration': 620.640,
                     },
                     {
                         'id': 'YWU1eQxYvhj29SjYoPw5jH',
@@ -240,7 +241,7 @@ class VidyardIE(VidyardBaseIE):
                         'ext': 'mp4',
                         'title': 'Chapter 6 - Demo',
                         'thumbnail': 'https://cdn.vidyard.com/thumbnails/rsmhP-cO8dAa8ilvFGCX0g/7911ef415167cd14032068_small.jpg',
-                        'duration': 631,
+                        'duration': 631.456,
                     },
                     {
                         'id': 'nmEvVqpwdJUgb74zKsLGxn',
@@ -248,7 +249,7 @@ class VidyardIE(VidyardBaseIE):
                         'ext': 'mp4',
                         'title': 'Schedule Your Follow-Up',
                         'thumbnail': 'https://cdn.vidyard.com/thumbnails/Rtwc7X4PEkF4Ae5kHi-Jvw/174ebed3f34227b1ffa1d0_small.jpg',
-                        'duration': 33,
+                        'duration': 33.608,
                     },
                 ],
             },
@@ -263,7 +264,7 @@ class VidyardIE(VidyardBaseIE):
                 'ext': 'mp4',
                 'title': 'Lightbox Embed',
                 'thumbnail': 'https://cdn.vidyard.com/thumbnails/spacer.gif',
-                'duration': 39,
+                'duration': 39.035,
             },
         },
     ]
@@ -281,7 +282,7 @@ class VidyardIE(VidyardBaseIE):
                 'ext': 'mp4',
                 'title': 'The Extreme Importance of PC Board Stack Up',
                 'thumbnail': 'https://cdn.vidyard.com/thumbnails/73_Q3_hBexWX7Og1sae6cg/9998fa4faec921439e2c04_small.jpg',
-                'duration': 3422,
+                'duration': 3422.742,
             },
         },
     ]
