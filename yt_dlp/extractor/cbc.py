@@ -18,6 +18,9 @@ from ..utils import (
     traverse_obj,
     try_get,
     float_or_none,
+    url_basename,
+    base_url,
+    urljoin,
 )
 
 
@@ -317,11 +320,12 @@ class CBCPlayerIE(InfoExtractor):
                 'initial state', video_id)
             mediaID = json_data['video']['currentClip']['mediaId']
             if mediaID is None:
-                video_info_link = json_data['video']['currentClip']['media']['assets'][0]['key']
-                video_info = self._download_json(video_info_link, video_id)
-                m3u8_url = video_info['url']
+                video_info = json_data['video']['currentClip']
+                info_link = video_info['media']['assets'][0]['key']
+                #info_dl = (self._download_json(info_link, video_id))
+                m3u8_url = (self._download_json(info_link, video_id))['url'] #video_info['url']
                 formats, subtitles = self._extract_m3u8_formats_and_subtitles(m3u8_url, video_id)
-                duration = json_data['video']['currentClip']['media']['duration']
+                duration = video_info['media']['duration']
                 def _process_chapters(tp_chapters, duration):
                     
                     # tp_chapters = json_data['video']['currentClip']['media']['chapters'] # info.get('chapters', [])
@@ -336,6 +340,7 @@ class CBCPlayerIE(InfoExtractor):
                             'end_time': end_time,
                             'title': title,
                         })
+                    if len(tp_chapters)==0: return []
                     for x in range(len(tp_chapters) - 1):
                         #if tp_chapters[x].get('endTime') is None:
                            # add_chapter(tp_chapters[x].get('startTime'), tp_chapters[x + 1].get('startTime'), chapter.get('name'))
@@ -351,21 +356,22 @@ class CBCPlayerIE(InfoExtractor):
                 
                 return {
                     'id': video_id, # switch to media ID?
-                    'title': json_data['video']['currentClip']['title'],
+                    'title': video_info['title'],
                     'formats': formats,
                     'subtitles': subtitles,
-                    'description': json_data['video']['currentClip']['description'],
-                    'thumbnail': json_data['video']['currentClip']['image']['url'], # fix the URL to remove the crop
-                    'timestamp': int(json_data['video']['currentClip']['publishedAt']),
-                    'chapters': _process_chapters(json_data['video']['currentClip']['media']['chapters'], json_data['video']['currentClip']['media']['duration']) if json_data['video']['currentClip']['media']['chapters'] is not None else None,
-                    'media_type': json_data['video']['currentClip']['media']['clipType'],
-                    'series': json_data['video']['currentClip']['showName'],
-                    'duration': json_data['video']['currentClip']['media']['duration'],
-                    # tags: json_data['video']['currentClip']['
-                    'location': json_data['video']['currentClip']['media']['region']
-                    # json_data['video']['currentClip']['media']['genre']
-                    # 'is_live': True if (json_data['vidoe']['currentClip']['media']['streamType'] == 'Live') else False
-                    # json_data['video']['currentClip']['categories']
+                    'description': video_info['description'],
+                    'thumbnail': urljoin(base_url(video_info['image']['url']), url_basename(video_info['image']['url'])), # fix the URL to remove the crop
+                    'timestamp': int(video_info['publishedAt']),
+                    'chapters': _process_chapters(video_info['media']['chapters'], video_info['media']['duration']) if video_info['media']['chapters'] is not None else None,
+                    'media_type': video_info['media']['clipType'],
+                    'series': video_info['showName'],
+                    'duration': video_info['media']['duration'],
+                    'tags': traverse_obj(video_info, ('tags', lambda _, v: v.get('label') in ('tags', None), 'name', {str})) or None,
+                    'location': video_info['media']['region'],
+                    'genres': [video_info['media']['genre']],
+                    'is_live': True if (video_info['media']['streamType'] == 'Live') else False,
+                    'categories': traverse_obj(video_info, (
+                        'categories', lambda _, v: v.get('label') in ('category', None), 'name', {str})) or None,
                 }
             else:
                 video_id = mediaID
