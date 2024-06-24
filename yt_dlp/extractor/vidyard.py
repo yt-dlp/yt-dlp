@@ -10,15 +10,15 @@ from ..utils import (
 
 class VidyardBaseIE(InfoExtractor):
 
+    _HEADERS = {}
+
     def _get_formats_and_subtitles(self, video_source, video_id):
         video_source = video_source or {}
         formats, subtitles = [], {}
         for key, value in video_source.items():
             if key == 'hls':
                 for video_hls in value:
-                    fmts, subs = self._extract_m3u8_formats_and_subtitles(video_hls.get('url'), video_id, headers={
-                        'referer': 'https://play.vidyard.com/',
-                    })
+                    fmts, subs = self._extract_m3u8_formats_and_subtitles(video_hls.get('url'), video_id, headers=self._HEADERS)
                     formats.extend(fmts)
                     self._merge_subtitles(subs, target=subtitles)
             else:
@@ -44,12 +44,11 @@ class VidyardBaseIE(InfoExtractor):
         return self._download_json(
             f'https://play.vidyard.com/player/{video_uuid}.json', video_id)['payload']
 
-    def _process_video_json(self, json_data, video_id, **kwargs):
+    def _process_video_json(self, json_data, video_id):
         formats, subtitles = self._get_formats_and_subtitles(json_data['sources'], video_id)
         self._merge_subtitles(self._get_direct_subtitles(json_data.get('captions')), target=subtitles)
 
         return {
-            **kwargs,
             'id': str(json_data['videoUuid']),
             'display_id': str(json_data['videoId']),
             'title': json_data.get('name') or None,
@@ -59,6 +58,7 @@ class VidyardBaseIE(InfoExtractor):
             'subtitles': subtitles,
             'thumbnails': [{'url': thumbnail_url}
                            for thumbnail_url in traverse_obj(json_data, ('thumbnailUrls', ...))],
+            'http_headers': self._HEADERS,
         }
 
 
@@ -209,6 +209,9 @@ class VidyardIE(VidyardBaseIE):
             },
         },
     ]
+    _HEADERS = {
+        'referer': 'https://play.vidyard.com/',
+    }
 
     @classmethod
     def _extract_embed_urls(cls, url, webpage):
@@ -229,14 +232,8 @@ class VidyardIE(VidyardBaseIE):
         video_id = self._match_valid_url(url).group('id')
         video_json = self._fetch_video_json(video_id)
 
-        common_info = {
-            'http_headers': {
-                'referer': 'https://play.vidyard.com/',
-            },
-        }
-
         if len(video_json['chapters']) == 1:
-            video_info = self._process_video_json(video_json['chapters'][0], video_id, **common_info)
+            video_info = self._process_video_json(video_json['chapters'][0], video_id)
 
             if video_info['title'] is None or video_info['description'] is None:
                 webpage = self._download_webpage(url, video_id, fatal=False)
@@ -251,6 +248,6 @@ class VidyardIE(VidyardBaseIE):
 
         # Playlist
         return self.playlist_result(
-            [self._process_video_json(chapter, video_id, **common_info) for chapter in video_json['chapters']],
+            [self._process_video_json(chapter, video_id) for chapter in video_json['chapters']],
             playlist_id=str(video_json['playerUuid']),
             playlist_title=video_json.get('name'))
