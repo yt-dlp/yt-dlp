@@ -2233,3 +2233,22 @@ class BiliLiveIE(InfoExtractor):
                 'Referer': url,
             },
         }
+
+
+class BiliBiliSearchPageIE(BilibiliBaseIE):
+    _VALID_URL = r'https?://search\.bilibili\.com/(?:all|bangumi)/?\?keyword=(?P<id>[^/?#&]+)'
+    _TESTS = [{
+        'url': r'https://search.bilibili.com/all?keyword=yt+-+dlp+%E4%B8%8B%E8%BD%BD%E5%99%A8',
+        'info_dict': {
+            'id': 'None',
+            'title': 'None',
+            'ext': 'None',
+        },
+    }]
+
+    def _real_extract(self, url):
+        # video_id = self._match_id(url)
+        # webpage = self._download_webpage(url, video_id=video_id)
+        # title = self._search_regex(r'(?s)<title\b[^>]*>([^<]+)-哔哩哔哩_bilibili', webpage, 'uploader', fatal=False)
+        return self.url_result(r'https://www.bilibili.com/video/BV1yt4y1Q7SS/',
+                               )
