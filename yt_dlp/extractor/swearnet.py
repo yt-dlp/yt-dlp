@@ -39,10 +39,10 @@ class SwearnetEpisodeIE(VidyardBaseIE):
             'episode_number': int_or_none(episode_number),
         }
 
-        if video_info['title'] is None:
+        if not video_info.get('title'):
             video_info['title'] = self._html_search_meta(['og:title', 'twitter:title'], webpage)
 
-        if video_info['description'] is None:
+        if not video_info.get('description'):
             video_info['description'] = self._html_search_meta(['og:description', 'twitter:description'], webpage)
 
         return video_info

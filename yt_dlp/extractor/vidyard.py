@@ -300,13 +300,13 @@ class VidyardIE(VidyardBaseIE):
 
         # Extract inline/lightbox embeds
         for embed_elm in re.findall(r'(<img[^>]+class=(["\'])(?:[^>"\']* )?vidyard-player-embed(?: [^>"\']*)?\2[^>]+[^>]*>)', webpage):
-            embed = extract_attributes(embed_elm[0]) or {}
+            embed = extract_attributes(embed_elm[0])
             uuid = embed.get('data-uuid')
             if uuid:
                 yield f'https://play.vidyard.com/{uuid}.html'
 
     def _real_extract(self, url):
-        video_id = self._match_valid_url(url).group('id')
+        video_id = self._match_id(url)
         video_json = self._fetch_video_json(video_id)
 
         if len(video_json['chapters']) == 1:
