@@ -1,11 +1,12 @@
+import base64
 import re
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import compat_urlparse
 from ..utils import (
+    ExtractorError,
     clean_html,
     extract_attributes,
-    ExtractorError,
     get_elements_by_class,
     int_or_none,
     js_to_json,
@@ -22,23 +23,23 @@ def _get_elements_by_tag_and_attrib(html, tag=None, attribute=None, value=None, 
     if attribute is None:
         attribute = ''
     else:
-        attribute = r'\s+(?P<attribute>%s)' % re.escape(attribute)
+        attribute = rf'\s+(?P<attribute>{re.escape(attribute)})'
     if value is None:
         value = ''
     else:
         value = re.escape(value) if escape_value else value
-        value = '=[\'"]?(?P<value>%s)[\'"]?' % value
+        value = f'=[\'"]?(?P<value>{value})[\'"]?'
 
     retlist = []
-    for m in re.finditer(r'''(?xs)
-        <(?P<tag>%s)
+    for m in re.finditer(rf'''(?xs)
+        <(?P<tag>{tag})
          (?:\s+[a-zA-Z0-9:._-]+(?:=[a-zA-Z0-9:._-]*|="[^"]*"|='[^']*'|))*?
-         %s%s
+         {attribute}{value}
          (?:\s+[a-zA-Z0-9:._-]+(?:=[a-zA-Z0-9:._-]*|="[^"]*"|='[^']*'|))*?
         \s*>
         (?P<content>.*?)
         </\1>
-    ''' % (tag, attribute, value), html):
+    ''', html):
         retlist.append(m)
 
     return retlist
@@ -99,7 +100,7 @@ class DubokuIE(InfoExtractor):
         season_id = temp[1]
         episode_id = temp[2]
 
-        webpage_url = 'https://w.duboku.io/vodplay/%s.html' % video_id
+        webpage_url = f'https://w.duboku.io/vodplay/{video_id}.html'
         webpage_html = self._download_webpage(webpage_url, video_id)
 
         # extract video url
@@ -129,11 +130,15 @@ class DubokuIE(InfoExtractor):
         data_url = player_data.get('url')
         if not data_url:
             raise ExtractorError('Cannot find url in player_data')
-        data_from = player_data.get('from')
+        player_encrypt = player_data.get('encrypt')
+        if player_encrypt == 1:
+            data_url = urllib.parse.unquote(data_url)
+        elif player_encrypt == 2:
+            data_url = urllib.parse.unquote(base64.b64decode(data_url).decode('ascii'))
 
         # if it is an embedded iframe, maybe it's an external source
         headers = {'Referer': webpage_url}
-        if data_from == 'iframe':
+        if player_data.get('from') == 'iframe':
             # use _type url_transparent to retain the meaningful details
             # of the video.
             return {
@@ -159,7 +164,7 @@ class DubokuIE(InfoExtractor):
             'episode_number': int_or_none(episode_id),
             'episode_id': episode_id,
             'formats': formats,
-            'http_headers': headers
+            'http_headers': headers,
         }
 
 
@@ -187,11 +192,11 @@ class DubokuPlaylistIE(InfoExtractor):
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
         if mobj is None:
-            raise ExtractorError('Invalid URL: %s' % url)
+            raise ExtractorError(f'Invalid URL: {url}')
         series_id = mobj.group('id')
-        fragment = compat_urlparse.urlparse(url).fragment
+        fragment = urllib.parse.urlparse(url).fragment
 
-        webpage_url = 'https://w.duboku.io/voddetail/%s.html' % series_id
+        webpage_url = f'https://w.duboku.io/voddetail/{series_id}.html'
         webpage_html = self._download_webpage(webpage_url, series_id)
 
         # extract title
@@ -215,7 +220,7 @@ class DubokuPlaylistIE(InfoExtractor):
                     div.group('content'), 'a', 'href', value='[^\'"]+?', escape_value=False):
                 playlist.append({
                     'href': unescapeHTML(a.group('value')),
-                    'title': unescapeHTML(a.group('content'))
+                    'title': unescapeHTML(a.group('content')),
                 })
             playlists[playlist_id] = playlist
 
@@ -231,11 +236,11 @@ class DubokuPlaylistIE(InfoExtractor):
                 (playlist_id, playlist) = first
         if not playlist:
             raise ExtractorError(
-                'Cannot find %s' % fragment if fragment else 'Cannot extract playlist')
+                f'Cannot find {fragment}' if fragment else 'Cannot extract playlist')
 
         # return url results
         return self.playlist_result([
             self.url_result(
-                compat_urlparse.urljoin('https://w.duboku.io', x['href']),
+                urllib.parse.urljoin('https://w.duboku.io', x['href']),
                 ie=DubokuIE.ie_key(), video_title=x.get('title'))
             for x in playlist], series_id + '#' + playlist_id, title)

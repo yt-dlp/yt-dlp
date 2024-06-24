@@ -93,14 +93,13 @@ class BFMTVArticleIE(BFMTVBaseIE):
             'id': '6318445464112',
             'ext': 'mp4',
             'title': 'Le plein de bioéthanol fait de plus en plus mal à la pompe',
-            'description': None,
             'uploader_id': '876630703001',
             'upload_date': '20230110',
             'timestamp': 1673341692,
             'duration': 109.269,
             'tags': ['rmc', 'show', 'apolline de malherbe', 'info', 'talk', 'matinale', 'radio'],
-            'thumbnail': 'https://cf-images.eu-west-1.prod.boltdns.net/v1/static/876630703001/5bef74b8-9d5e-4480-a21f-60c2e2480c46/96c88b74-f9db-45e1-8040-e199c5da216c/1920x1080/match/image.jpg'
-        }
+            'thumbnail': 'https://cf-images.eu-west-1.prod.boltdns.net/v1/static/876630703001/5bef74b8-9d5e-4480-a21f-60c2e2480c46/96c88b74-f9db-45e1-8040-e199c5da216c/1920x1080/match/image.jpg',
+        },
     }]
 
     def _real_extract(self, url):

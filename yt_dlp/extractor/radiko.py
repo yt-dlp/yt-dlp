@@ -100,8 +100,8 @@ class RadikoBaseIE(InfoExtractor):
 
     def _find_program(self, video_id, station, cursor):
         station_program = self._download_xml(
-            'https://radiko.jp/v3/program/station/weekly/%s.xml' % station, video_id,
-            note='Downloading radio program for %s station' % station)
+            f'https://radiko.jp/v3/program/station/weekly/{station}.xml', video_id,
+            note=f'Downloading radio program for {station} station')
 
         prog = None
         for p in station_program.findall('.//prog'):
@@ -162,10 +162,8 @@ class RadikoBaseIE(InfoExtractor):
         return formats
 
     def _extract_performers(self, prog):
-        performers = traverse_obj(prog, (
-            'pfm/text()', ..., {lambda x: re.split(r'[/／、　,，]', x)}, ..., {str.strip}))
-        # TODO: change 'artist' fields to 'artists' and return traversal list instead of str
-        return ', '.join(performers) or None
+        return traverse_obj(prog, (
+            'pfm/text()', ..., {lambda x: re.split(r'[/／、　,，]', x)}, ..., {str.strip})) or None
 
 
 class RadikoIE(RadikoBaseIE):
@@ -194,7 +192,7 @@ class RadikoIE(RadikoBaseIE):
         return {
             'id': video_id,
             'title': try_call(lambda: prog.find('title').text),
-            'artist': self._extract_performers(prog),
+            'cast': self._extract_performers(prog),
             'description': clean_html(try_call(lambda: prog.find('info').text)),
             'uploader': try_call(lambda: station_program.find('.//name').text),
             'uploader_id': station,
@@ -209,8 +207,8 @@ class RadikoIE(RadikoBaseIE):
                     'ft': radio_begin,
                     'end_at': radio_end,
                     'to': radio_end,
-                    'seek': video_id
-                }
+                    'seek': video_id,
+                },
             ),
         }
 
@@ -253,7 +251,7 @@ class RadikoRadioIE(RadikoBaseIE):
         return {
             'id': station,
             'title': title,
-            'artist': self._extract_performers(prog),
+            'cast': self._extract_performers(prog),
             'description': description,
             'uploader': station_name,
             'uploader_id': station,

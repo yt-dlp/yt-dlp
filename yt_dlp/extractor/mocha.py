@@ -20,8 +20,8 @@ class MochaVideoIE(InfoExtractor):
             'timestamp': 1652254203,
             'upload_date': '20220511',
             'comment_count': int,
-            'categories': ['Kids']
-        }
+            'categories': ['Kids'],
+        },
     }]
 
     def _real_extract(self, url):

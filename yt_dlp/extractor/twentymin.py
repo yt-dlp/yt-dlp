@@ -47,14 +47,14 @@ class TwentyMinutenIE(InfoExtractor):
         video_id = self._match_id(url)
 
         video = self._download_json(
-            'http://api.20min.ch/video/%s/show' % video_id,
+            f'http://api.20min.ch/video/{video_id}/show',
             video_id)['content']
 
         title = video['title']
 
         formats = [{
             'format_id': format_id,
-            'url': 'http://podcast.20min-tv.ch/podcast/20min/%s%s.mp4' % (video_id, p),
+            'url': f'http://podcast.20min-tv.ch/podcast/20min/{video_id}{p}.mp4',
             'quality': quality,
         } for quality, (format_id, p) in enumerate([('sd', ''), ('hd', 'h')])]
 
@@ -64,7 +64,7 @@ class TwentyMinutenIE(InfoExtractor):
         def extract_count(kind):
             return try_get(
                 video,
-                lambda x: int_or_none(x['communityobject']['thumbs_%s' % kind]))
+                lambda x: int_or_none(x['communityobject'][f'thumbs_{kind}']))
 
         like_count = extract_count('up')
         dislike_count = extract_count('down')

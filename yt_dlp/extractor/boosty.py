@@ -1,7 +1,11 @@
+import json
+import urllib.parse
+
 from .common import InfoExtractor
 from .youtube import YoutubeIE
 from ..utils import (
     ExtractorError,
+    bug_reports_message,
     int_or_none,
     qualities,
     str_or_none,
@@ -162,9 +166,19 @@ class BoostyIE(InfoExtractor):
 
     def _real_extract(self, url):
         user, post_id = self._match_valid_url(url).group('user', 'post_id')
+
+        auth_headers = {}
+        auth_cookie = self._get_cookies('https://boosty.to/').get('auth')
+        if auth_cookie is not None:
+            try:
+                auth_data = json.loads(urllib.parse.unquote(auth_cookie.value))
+                auth_headers['Authorization'] = f'Bearer {auth_data["accessToken"]}'
+            except (json.JSONDecodeError, KeyError):
+                self.report_warning(f'Failed to extract token from auth cookie{bug_reports_message()}')
+
         post = self._download_json(
             f'https://api.boosty.to/v1/blog/{user}/post/{post_id}', post_id,
-            note='Downloading post data', errnote='Unable to download post data')
+            note='Downloading post data', errnote='Unable to download post data', headers=auth_headers)
 
         post_title = post.get('title')
         if not post_title:
@@ -202,7 +216,9 @@ class BoostyIE(InfoExtractor):
                         'thumbnail': (('previewUrl', 'defaultPreview'), {url_or_none}),
                     }, get_all=False)})
 
-        if not entries:
+        if not entries and not post.get('hasAccess'):
+            self.raise_login_required('This post requires a subscription', metadata_available=True)
+        elif not entries:
             raise ExtractorError('No videos found', expected=True)
         if len(entries) == 1:
             return entries[0]
