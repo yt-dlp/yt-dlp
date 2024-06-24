@@ -7,7 +7,7 @@ class SwearnetEpisodeIE(VidyardBaseIE):
     _TESTS = [{
         'url': 'https://www.swearnet.com/shows/gettin-learnt-with-ricky/seasons/1/episodes/1',
         'info_dict': {
-            'id': 'APKGwroXAeCmGxc0mg3sWQ',
+            'id': 'wicK2EOzjOdxkUXGDIgcPw',
             'display_id': '232819',
             'ext': 'mp4',
             'episode_number': 1,

@@ -49,7 +49,7 @@ class VidyardBaseIE(InfoExtractor):
         self._merge_subtitles(self._get_direct_subtitles(json_data.get('captions')), target=subtitles)
 
         return {
-            'id': str(json_data['videoUuid']),
+            'id': str(json_data.get('facadeUuid') or json_data['videoUuid']),
             'display_id': str(json_data['videoId']),
             'title': json_data.get('name') or None,
             'description': json_data.get('description') or None,
@@ -72,7 +72,7 @@ class VidyardIE(VidyardBaseIE):
         {
             'url': 'https://vyexample03.hubs.vidyard.com/watch/oTDMPlUv--51Th455G5u7Q',
             'info_dict': {
-                'id': 'WcqshZjX7-vEe1l_hNc3Qg',
+                'id': 'oTDMPlUv--51Th455G5u7Q',
                 'display_id': '50347',
                 'ext': 'mp4',
                 'title': 'Homepage Video',
@@ -84,7 +84,7 @@ class VidyardIE(VidyardBaseIE):
         {
             'url': 'https://share.vidyard.com/watch/PaQzDAT1h8JqB8ivEu2j6Y?',
             'info_dict': {
-                'id': 'GBL8gBrBaqC-JVG_6HTMyg',
+                'id': 'PaQzDAT1h8JqB8ivEu2j6Y',
                 'display_id': '9281024',
                 'ext': 'mp4',
                 'title': 'Inline Embed',
@@ -96,7 +96,7 @@ class VidyardIE(VidyardBaseIE):
         {
             'url': 'https://embed.vidyard.com/share/oTDMPlUv--51Th455G5u7Q',
             'info_dict': {
-                'id': 'WcqshZjX7-vEe1l_hNc3Qg',
+                'id': 'oTDMPlUv--51Th455G5u7Q',
                 'display_id': '50347',
                 'ext': 'mp4',
                 'title': 'Homepage Video',
@@ -109,7 +109,7 @@ class VidyardIE(VidyardBaseIE):
             # First video from playlist below
             'url': 'https://embed.vidyard.com/share/SyStyHtYujcBHe5PkZc5DL',
             'info_dict': {
-                'id': 'p5vsX0bzLxetOJbfGZ6Z6Q',
+                'id': 'SyStyHtYujcBHe5PkZc5DL',
                 'display_id': '41974005',
                 'ext': 'mp4',
                 'title': 'Prepare the Frame and Track for Palm Beach Polysatin Shutters With BiFold Track',
@@ -127,7 +127,7 @@ class VidyardIE(VidyardBaseIE):
                 'title': 'PLAYLIST - Palm Beach Shutters- Bi-Fold Track System Installation',
                 'entries': [
                     {
-                        'id': 'p5vsX0bzLxetOJbfGZ6Z6Q',
+                        'id': 'SyStyHtYujcBHe5PkZc5DL',
                         'display_id': '41974005',
                         'ext': 'mp4',
                         'title': 'Prepare the Frame and Track for Palm Beach Polysatin Shutters With BiFold Track',
@@ -135,7 +135,7 @@ class VidyardIE(VidyardBaseIE):
                         'duration': 259,
                     },
                     {
-                        'id': 'tn_0u7-ONJd2Pd8i3kxIeg',
+                        'id': '1Fw4B84jZTXLXWqkE71RiM',
                         'display_id': '5861113',
                         'ext': 'mp4',
                         'title': 'Palm Beach - Bi-Fold Track System "Frame Installation"',
@@ -143,7 +143,7 @@ class VidyardIE(VidyardBaseIE):
                         'duration': 167,
                     },
                     {
-                        'id': 'fU7rvJu-nQKNnJzV_hOt6A',
+                        'id': 'DqP3wBvLXSpxrcqpT5kEeo',
                         'display_id': '41976334',
                         'ext': 'mp4',
                         'title': 'Install the Track for Palm Beach Polysatin Shutters With BiFold Track',
@@ -151,7 +151,7 @@ class VidyardIE(VidyardBaseIE):
                         'duration': 94,
                     },
                     {
-                        'id': 'ueXUJagJso7KO_tnBkYo2Q',
+                        'id': 'opfybfxpzQArxqtQYB6oBU',
                         'display_id': '41976364',
                         'ext': 'mp4',
                         'title': 'Install the Panel for Palm Beach Polysatin Shutters With BiFold Track',
@@ -159,7 +159,7 @@ class VidyardIE(VidyardBaseIE):
                         'duration': 191,
                     },
                     {
-                        'id': 'U9hEsKlpPTMasqEf5n0KQg',
+                        'id': 'rWrXvkbTNNaNqD6189HJya',
                         'display_id': '41976382',
                         'ext': 'mp4',
                         'title': 'Adjust the Panels for Palm Beach Polysatin Shutters With BiFold Track',
@@ -167,7 +167,7 @@ class VidyardIE(VidyardBaseIE):
                         'duration': 138,
                     },
                     {
-                        'id': 'gBdBzCvGXK5j2f20lAF-vg',
+                        'id': 'eYPTB521MZ9TPEArSethQ5',
                         'display_id': '41976409',
                         'ext': 'mp4',
                         'title': 'Assemble and Install the Valance for Palm Beach Polysatin Shutters With BiFold Track',
@@ -187,7 +187,7 @@ class VidyardIE(VidyardBaseIE):
                 'title': 'How To: Service Cloud: Import External Content in Lightning Knowledge',
                 'entries': [
                     {
-                        'id': 'hUaOp14oFlhM9N7kuDcJ-g',
+                        'id': 'mcjDpSZir2iSttbvFkx6Rv',
                         'display_id': '29479036',
                         'ext': 'mp4',
                         'title': 'Welcome to this Expert Coaching Series',
@@ -195,7 +195,7 @@ class VidyardIE(VidyardBaseIE):
                         'duration': 38,
                     },
                     {
-                        'id': 'tcNu8E0Yj64sfni0EcsajA',
+                        'id': '84bPYwpg243G6xYEfJdYw9',
                         'display_id': '21820704',
                         'ext': 'mp4',
                         'title': 'Chapter 1 - Title + Agenda',
@@ -203,7 +203,7 @@ class VidyardIE(VidyardBaseIE):
                         'duration': 98,
                     },
                     {
-                        'id': '7i2kzbuT-pXSg69q0EJ8lw',
+                        'id': 'nP17fMuvA66buVHUrzqjTi',
                         'display_id': '21820707',
                         'ext': 'mp4',
                         'title': 'Chapter 2 - Import Options',
@@ -211,7 +211,7 @@ class VidyardIE(VidyardBaseIE):
                         'duration': 199,
                     },
                     {
-                        'id': 'IgM4X2Oph_EU55ooqiRDAA',
+                        'id': 'm54EcwXdpA5gDBH5rgCYoV',
                         'display_id': '21820710',
                         'ext': 'mp4',
                         'title': 'Chapter 3 - Importing Article Translations',
@@ -219,7 +219,7 @@ class VidyardIE(VidyardBaseIE):
                         'duration': 184,
                     },
                     {
-                        'id': 'nXg8k1mQLjhO7eQTsLNNhA',
+                        'id': 'j4nzS42oq4hE9oRV73w3eQ',
                         'display_id': '21820716',
                         'ext': 'mp4',
                         'title': 'Chapter 4 - Best Practices',
@@ -227,7 +227,7 @@ class VidyardIE(VidyardBaseIE):
                         'duration': 296,
                     },
                     {
-                        'id': 'MFJsA-g_Y5i8bpKbSHD3Ag',
+                        'id': 'y28PYfW5pftvers9PXzisC',
                         'display_id': '21820727',
                         'ext': 'mp4',
                         'title': 'Chapter 5 - Migration Steps',
@@ -235,7 +235,7 @@ class VidyardIE(VidyardBaseIE):
                         'duration': 620,
                     },
                     {
-                        'id': 'U3rozs4apZv5xHiqdDgL6g',
+                        'id': 'YWU1eQxYvhj29SjYoPw5jH',
                         'display_id': '21820733',
                         'ext': 'mp4',
                         'title': 'Chapter 6 - Demo',
@@ -243,7 +243,7 @@ class VidyardIE(VidyardBaseIE):
                         'duration': 631,
                     },
                     {
-                        'id': 'yzbL1YiT6TYmEF4zM4_Rfg',
+                        'id': 'nmEvVqpwdJUgb74zKsLGxn',
                         'display_id': '29479037',
                         'ext': 'mp4',
                         'title': 'Schedule Your Follow-Up',
@@ -258,7 +258,7 @@ class VidyardIE(VidyardBaseIE):
             # URL of iframe embed src
             'url': 'https://play.vidyard.com/iDqTwWGrd36vaLuaCY3nTs.html',
             'info_dict': {
-                'id': 'lrYeWCqR3UCAzwqUAgegHg',
+                'id': 'iDqTwWGrd36vaLuaCY3nTs',
                 'display_id': '9281009',
                 'ext': 'mp4',
                 'title': 'Lightbox Embed',
@@ -276,7 +276,7 @@ class VidyardIE(VidyardBaseIE):
             # URL containing inline/lightbox embedded video
             'url': 'https://resources.altium.com/p/2-the-extreme-importance-of-pc-board-stack-up',
             'info_dict': {
-                'id': 'rGGKQEAu8X-APkU68K8U_w',
+                'id': 'GDx1oXrFWj4XHbipfoXaMn',
                 'display_id': '3225198',
                 'ext': 'mp4',
                 'title': 'The Extreme Importance of PC Board Stack Up',
