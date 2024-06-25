@@ -22,7 +22,7 @@ from ..utils import (
 
 
 class NetEaseMusicBaseIE(InfoExtractor):
-    _LEVELS = ['standard', 'exhigh', 'lossless', 'hires', 'jyeffect', 'sky', 'jymaster']
+    _LEVELS = ('standard', 'exhigh', 'lossless', 'hires', 'jyeffect', 'sky', 'jymaster')
     _API_BASE = 'http://music.163.com/api/'
     _GEO_BYPASS = False
 
@@ -72,32 +72,27 @@ class NetEaseMusicBaseIE(InfoExtractor):
             note=f'Downloading song URL info: level {level}')
 
     def extract_formats(self, info):
-        err = 0
         formats = []
         song_id = info['id']
-        for song_level in self._LEVELS:
-            for song in traverse_obj(self._call_player_api(song_id, song_level), ('data', lambda _, v: url_or_none(v['url']))):
-                song_url = song['url']
-                if self._is_valid_url(song_url, info['id'], 'song'):
-                    formats.append({
-                        'url': song_url,
-                        'format_id': song_level,
-                        'vcodec': 'none',
-                        **traverse_obj(song, {
-                            'ext': ('type', {str}),
-                            'abr': ('br', {self.kilo_or_none}),
-                            'filesize': ('size', {int_or_none}),
-                        }),
-                    })
-                elif err == 0:
-                    err = traverse_obj(song, ('code', {int})) or 0
-
+        for level in self._LEVELS:
+            song = traverse_obj(self._call_player_api(song_id, level), ('data', 0, {dict})) or {}
+            if song.get('level') != level:
+                break  # We have already extracted the highest level the user has access to
+            if not url_or_none(song.get('url')):
+                continue
+            formats.append({
+                'url': song['url'],
+                'format_id': level,
+                'vcodec': 'none',
+                **traverse_obj(song, {
+                    'ext': ('type', {str}),
+                    'abr': ('br', {self.kilo_or_none}),
+                    'filesize': ('size', {int_or_none}),
+                }),
+            })
         if not formats:
-            if err != 0 and (err < 200 or err >= 400):
-                raise ExtractorError(f'No media links found (site code {err})', expected=True)
-            else:
-                self.raise_geo_restricted(
-                    'No media links found: probably due to geo restriction.', countries=['CN'])
+            self.raise_geo_restricted(
+                'No media links found; possibly due to geo restriction', countries=['CN'])
         return formats
 
     def query_api(self, endpoint, video_id, note):
