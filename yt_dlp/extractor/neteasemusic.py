@@ -142,8 +142,8 @@ class NetEaseMusicIE(NetEaseMusicBaseIE):
             'average_rating': int,
             'album_artist': '偶像练习生',
         },
+        'skip': 'Blocked outside Mainland China',
     }, {
-        'note': 'No lyrics.',
         'url': 'http://music.163.com/song?id=17241424',
         'info_dict': {
             'id': '17241424',
@@ -157,10 +157,14 @@ class NetEaseMusicIE(NetEaseMusicBaseIE):
             'album': 'Piano Solos Vol. 2',
             'album_artist': 'Dustin O\'Halloran',
             'average_rating': int,
+            'description': '[00:05.00]纯音乐，请欣赏\n',
+            'album_artists': ['Dustin O\'Halloran'],
+            'creators': ['Dustin O\'Halloran'],
+            'subtitles': {'lyrics': [{'ext': 'lrc'}]},
         },
     }, {
         'url': 'https://y.music.163.com/m/song?app_version=8.8.45&id=95670&uct2=sKnvS4+0YStsWkqsPhFijw%3D%3D&dlt=0846',
-        'md5': '95826c73ea50b1c288b22180ec9e754d',
+        'md5': 'b896be78d8d34bd7bb665b26710913ff',
         'info_dict': {
             'id': '95670',
             'ext': 'mp3',
@@ -176,6 +180,8 @@ class NetEaseMusicIE(NetEaseMusicBaseIE):
             'average_rating': int,
             'album': '红色摇滚',
             'album_artist': '侯牧人',
+            'creators': ['马备'],
+            'album_artists': ['侯牧人'],
         },
     }, {
         'url': 'http://music.163.com/#/song?id=32102397',
