@@ -71,7 +71,7 @@ class NetEaseMusicBaseIE(InfoExtractor):
             '/song/enhance/player/url/v1', song_id, {'ids': f'[{song_id}]', 'level': level, 'encodeType': 'flac'},
             note=f'Downloading song URL info: level {level}')
 
-    def extract_formats(self, info):
+    def _extract_formats(self, info):
         formats = []
         song_id = info['id']
         for level in self._LEVELS:
@@ -251,7 +251,7 @@ class NetEaseMusicIE(NetEaseMusicBaseIE):
         info = self.query_api(
             f'song/detail?id={song_id}&ids=%5B{song_id}%5D', song_id, 'Downloading song info')['songs'][0]
 
-        formats = self.extract_formats(info)
+        formats = self._extract_formats(info)
 
         lyrics = self._process_lyrics(self.query_api(
             f'song/lyric?id={song_id}&lv=-1&tv=-1', song_id, 'Downloading lyrics data'))
@@ -560,7 +560,7 @@ class NetEaseMusicProgramIE(NetEaseMusicBaseIE):
 
         if not self._yes_playlist(
                 info['songs'] and program_id, info['mainSong']['id'], playlist_label='program', video_label='song'):
-            formats = self.extract_formats(info['mainSong'])
+            formats = self._extract_formats(info['mainSong'])
 
             return {
                 'id': str(info['mainSong']['id']),
