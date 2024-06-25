@@ -779,6 +779,7 @@ from .gopro import GoProIE
 from .goshgay import GoshgayIE
 from .gotostage import GoToStageIE
 from .gputechconf import GPUTechConfIE
+from .graspop import GraspopIE
 from .gronkh import (
     GronkhFeedIE,
     GronkhIE,
