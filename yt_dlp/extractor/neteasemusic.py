@@ -82,6 +82,7 @@ class NetEaseMusicBaseIE(InfoExtractor):
                     formats.append({
                         'url': song_url,
                         'format_id': song_level,
+                        'vcodec': 'none',
                         **traverse_obj(song, {
                             'ext': ('type', {str}),
                             'abr': ('br', {self.kilo_or_none}),
