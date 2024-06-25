@@ -21,6 +21,8 @@ from ..utils import (
     url_basename,
     base_url,
     urljoin,
+    remove_end,
+    unified_timestamp,
 )
 
 
@@ -258,7 +260,7 @@ class CBCPlayerIE(InfoExtractor):
         # These broadcasts expire after ~1 month, can find new test URL here:
         # https://www.cbc.ca/player/news/TV%20Shows/The%20National/Latest%20Broadcast
         'url': 'https://www.cbc.ca/player/play/video/9.6424403',
-        'md5': '6ed6cd0fc2ef568d2297ba68a763d455', # needs update
+        'md5': 'b0ad20f236068180df378bb68fa343fd',
         'info_dict': {
             'id': '9.6424403',
             'ext': 'mp4',
@@ -268,15 +270,14 @@ class CBCPlayerIE(InfoExtractor):
             'duration': 2692.833,
             'subtitles': {'eng': [{'ext': 'vtt', 'protocol': 'm3u8_native'}]},
             'thumbnail': 'https://i.cbc.ca/ais/6272b5c6-5e78-4c05-915d-0e36672e33d1,1714756287822/full/max/0/default.jpg',
-            'uploader': 'CBCC-NEW', # probably not
             'chapters': 'count:5',
-            'upload_date': '20240329', # possibly not?
+            'upload_date': '20240617',
             'categories': 'count:3',
             'series': 'The National - Full Show',
             'tags': 'count:1',
-            'creators': ['News'], # probably not?
-            'location': 'Canada', # also apparently probably not
+            'location': 'Canada',
             'media_type': 'Full Program',
+            'genres': ['News'],
         },
     }, {
         'url': 'https://www.cbc.ca/player/play/video/1.7194274',
@@ -292,13 +293,13 @@ class CBCPlayerIE(InfoExtractor):
             'thumbnail': 'https://thumbnails.cbc.ca/maven_legacy/thumbnails/201/543/THE_MOMENT.jpg',
             'uploader': 'CBCC-NEW',
             'chapters': 'count:0',
-            'upload_date': '20240504',
             'categories': 'count:3',
             'series': 'The National',
             'tags': 'count:15',
             'creators': ['encoder'],
             'location': 'Canada',
             'media_type': 'Excerpt',
+            'upload_date': '20240504',
         },
     }, {
         'url': 'cbcplayer:1.7159484',
@@ -318,18 +319,15 @@ class CBCPlayerIE(InfoExtractor):
             json_data = self._search_json(
                 r'window\.__INITIAL_STATE__\s*=', webpage,
                 'initial state', video_id)
-            mediaID = json_data['video']['currentClip']['mediaId']
+            mediaID = json_data['video']['currentClip'].get('mediaId') # switch to traverse_obj, including later
             if mediaID is None:
-                video_info = json_data['video']['currentClip']
-                info_link = video_info['media']['assets'][0]['key']
-                #info_dl = (self._download_json(info_link, video_id))
-                m3u8_url = (self._download_json(info_link, video_id))['url'] #video_info['url']
+                info = json_data['video']['currentClip']
+                m3u8_url = self._download_json(info['media']['assets'][0]['key'], video_id)['url']
                 formats, subtitles = self._extract_m3u8_formats_and_subtitles(m3u8_url, video_id)
-                duration = video_info['media']['duration']
+
                 def _process_chapters(tp_chapters, duration):
-                    
-                    # tp_chapters = json_data['video']['currentClip']['media']['chapters'] # info.get('chapters', [])
                     chapters = []
+
                     def _add_chapter(start_time, end_time, title=None):
                         start_time = float_or_none(start_time, 1000)
                         end_time = float_or_none(end_time, 1000)
@@ -340,37 +338,37 @@ class CBCPlayerIE(InfoExtractor):
                             'end_time': end_time,
                             'title': title,
                         })
-                    if len(tp_chapters)==0: return []
-                    for x in range(len(tp_chapters) - 1):
-                        #if tp_chapters[x].get('endTime') is None:
-                           # add_chapter(tp_chapters[x].get('startTime'), tp_chapters[x + 1].get('startTime'), chapter.get('name'))
-                        #else:
-                        _add_chapter(tp_chapters[x].get('startTime'), tp_chapters[x].get('endTime') or tp_chapters[x + 1].get('startTime'), tp_chapters[x].get('name'))
 
-                    #for chapter in tp_chapters[:-1]:
-                        
-                        #_add_chapter(chapter.get('startTime'), chapter.get('endTime'), chapter.get('name'))
-                    _add_chapter(tp_chapters[-1].get('startTime'), tp_chapters[-1].get('endTime') or duration, tp_chapters[-1].get('name'))
+                    if len(tp_chapters) == 0:
+                        return []
+                    for x in range(len(tp_chapters) - 1):
+                        _add_chapter(tp_chapters[x].get('startTime'), tp_chapters[x].get('endTime')
+                        or tp_chapters[x + 1].get('startTime'), tp_chapters[x].get('name'))
+                    _add_chapter(tp_chapters[-1].get('startTime'), tp_chapters[-1].get('endTime')
+                    or duration, tp_chapters[-1].get('name'))
                     return chapters
-                
-                
+
                 return {
                     'id': video_id, # switch to media ID?
-                    'title': video_info['title'],
+                    'title': info.get('title'),
                     'formats': formats,
                     'subtitles': subtitles,
-                    'description': video_info['description'],
-                    'thumbnail': urljoin(base_url(video_info['image']['url']), url_basename(video_info['image']['url'])), # fix the URL to remove the crop
-                    'timestamp': int(video_info['publishedAt']),
-                    'chapters': _process_chapters(video_info['media']['chapters'], video_info['media']['duration']) if video_info['media']['chapters'] is not None else None,
-                    'media_type': video_info['media']['clipType'],
-                    'series': video_info['showName'],
-                    'duration': video_info['media']['duration'],
-                    'tags': traverse_obj(video_info, ('tags', lambda _, v: v.get('label') in ('tags', None), 'name', {str})) or None,
-                    'location': video_info['media']['region'],
-                    'genres': [video_info['media']['genre']],
-                    'is_live': True if (video_info['media']['streamType'] == 'Live') else False,
-                    'categories': traverse_obj(video_info, (
+                    'description': remove_end(info.get('description'),' \n'),
+                    'thumbnail': urljoin(base_url(
+                        info.get('image').get('url')), 
+                        url_basename(info.get('image').get('url'))), # strip the arguments from the URL to remove the crop
+                    'timestamp': int_or_none(info.get('publishedAt'))/1000, # unified_timestamp(info.get('publishedAt')),
+                    'chapters': _process_chapters(info['media'].get('chapters'), info['media'].get('duration')) if 
+                        info['media'].get('chapters') is not None and info['media'].get('duration') is not None else None,
+                    'media_type': info['media'].get('clipType'),
+                    'series': info.get('showName'),
+                    'duration': info['media'].get('duration'),
+                    'tags': traverse_obj(info, (
+                        'tags', lambda _, v: v.get('label') in ('tags', None), 'name', {str})) or None,
+                    'location': info['media'].get('region'),
+                    'genres': [info['media'].get('genre')],
+                    'is_live': True if (info['media'].get('streamType') == 'Live') else False,
+                    'categories': traverse_obj(info, (
                         'categories', lambda _, v: v.get('label') in ('category', None), 'name', {str})) or None,
                 }
             else:
