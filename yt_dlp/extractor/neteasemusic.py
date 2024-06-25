@@ -95,7 +95,7 @@ class NetEaseMusicBaseIE(InfoExtractor):
                 'No media links found; possibly due to geo restriction', countries=['CN'])
         return formats
 
-    def query_api(self, endpoint, video_id, note):
+    def _query_api(self, endpoint, video_id, note):
         result = self._download_json(
             f'{self._API_BASE}{endpoint}', video_id, note, headers={'Referer': self._API_BASE})
         code = traverse_obj(result, ('code', {int}))
@@ -248,12 +248,12 @@ class NetEaseMusicIE(NetEaseMusicBaseIE):
     def _real_extract(self, url):
         song_id = self._match_id(url)
 
-        info = self.query_api(
+        info = self._query_api(
             f'song/detail?id={song_id}&ids=%5B{song_id}%5D', song_id, 'Downloading song info')['songs'][0]
 
         formats = self._extract_formats(info)
 
-        lyrics = self._process_lyrics(self.query_api(
+        lyrics = self._process_lyrics(self._query_api(
             f'song/lyric?id={song_id}&lv=-1&tv=-1', song_id, 'Downloading lyrics data'))
         lyric_data = {
             'description': traverse_obj(lyrics, (('lyrics_merged', 'lyrics'), 0, 'data'), get_all=False),
@@ -355,7 +355,7 @@ class NetEaseMusicSingerIE(NetEaseMusicBaseIE):
     def _real_extract(self, url):
         singer_id = self._match_id(url)
 
-        info = self.query_api(
+        info = self._query_api(
             f'artist/{singer_id}?id={singer_id}', singer_id, note='Downloading singer data')
 
         name = join_nonempty(
@@ -470,7 +470,7 @@ class NetEaseMusicMvIE(NetEaseMusicBaseIE):
     def _real_extract(self, url):
         mv_id = self._match_id(url)
 
-        info = self.query_api(
+        info = self._query_api(
             f'mv/detail?id={mv_id}&type=mp4', mv_id, 'Downloading mv info')['data']
 
         formats = [
@@ -547,7 +547,7 @@ class NetEaseMusicProgramIE(NetEaseMusicBaseIE):
     def _real_extract(self, url):
         program_id = self._match_id(url)
 
-        info = self.query_api(
+        info = self._query_api(
             f'dj/program/detail?id={program_id}', program_id, note='Downloading program info')['program']
 
         metainfo = traverse_obj(info, {
@@ -594,7 +594,7 @@ class NetEaseMusicDjRadioIE(NetEaseMusicBaseIE):
         metainfo = {}
         entries = []
         for offset in itertools.count(start=0, step=self._PAGE_SIZE):
-            info = self.query_api(
+            info = self._query_api(
                 f'dj/program/byradio?asc=false&limit={self._PAGE_SIZE}&radioId={dj_id}&offset={offset}',
                 dj_id, note=f'Downloading dj programs - {offset}')
 
