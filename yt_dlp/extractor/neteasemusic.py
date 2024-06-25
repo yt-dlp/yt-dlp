@@ -142,7 +142,7 @@ class NetEaseMusicIE(NetEaseMusicBaseIE):
             'average_rating': int,
             'album_artist': '偶像练习生',
         },
-        'skip': 'Blocked outside Mainland China',
+        'skip': 'No longer available',
     }, {
         'url': 'http://music.163.com/song?id=17241424',
         'info_dict': {
