@@ -22,7 +22,18 @@ from ..utils import (
 
 
 class NetEaseMusicBaseIE(InfoExtractor):
-    _LEVELS = ('standard', 'exhigh', 'lossless', 'hires', 'jyeffect', 'sky', 'jymaster')
+    # XXX: _extract_formats logic depends on the order of the levels in each tier
+    _LEVELS = (
+        'standard',  # free tier; 标准; 128kbps mp3 or aac
+        'higher',    # free tier; 192kbps mp3 or aac
+        'exhigh',    # free tier; 极高 (HQ); 320kbps mp3 or aac
+        'lossless',  # VIP  tier; 无损 (SQ); 48kHz/16bit flac
+        'hires',     # VIP  tier; 高解析度无损 (Hi-Res); 192kHz/24bit flac
+        'jyeffect',  # VIP  tier; 高清臻音 (Spatial Audio); 96kHz/24bit flac
+        'jymaster',  # SVIP tier; 超清母带 (Master); 192kHz/24bit flac
+        'dolby',     # SVIP tier; 杜比全景声 (Dolby Atmos); flac
+        'sky',       # SVIP tier; 沉浸环绕声 (Surround Audio); flac
+    )
     _API_BASE = 'http://music.163.com/api/'
     _GEO_BYPASS = False
 
@@ -68,7 +79,8 @@ class NetEaseMusicBaseIE(InfoExtractor):
 
     def _call_player_api(self, song_id, level):
         return self._download_eapi_json(
-            '/song/enhance/player/url/v1', song_id, {'ids': f'[{song_id}]', 'level': level, 'encodeType': 'flac'},
+            '/song/enhance/player/url/v1', song_id,
+            {'ids': f'[{song_id}]', 'level': level, 'encodeType': 'flac'},
             note=f'Downloading song URL info: level {level}')
 
     def _extract_formats(self, info):
@@ -81,7 +93,9 @@ class NetEaseMusicBaseIE(InfoExtractor):
                 break  # Media is not available due to removal or geo-restriction
             actual_level = song.get('level')
             if actual_level and actual_level != level:
-                continue  # Server returns a different level from requested one
+                if level in ('lossless', 'jymaster'):
+                    break  # We've already extracted the highest level of the user's account tier
+                continue  # Skip incorrect/duplicate format and keep requesting the next levels
             formats.append({
                 'url': song['url'],
                 'format_id': level,
