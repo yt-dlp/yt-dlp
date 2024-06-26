@@ -94,7 +94,7 @@ class NetEaseMusicBaseIE(InfoExtractor):
             if actual_level and actual_level != level:
                 if level in ('lossless', 'jymaster'):
                     break  # We've already extracted the highest level of the user's account tier
-                continue  # Skip incorrect/duplicate format and keep requesting the next levels
+                continue
             formats.append({
                 'url': song['url'],
                 'format_id': level,
