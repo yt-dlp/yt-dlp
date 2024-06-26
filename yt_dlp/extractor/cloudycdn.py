@@ -37,6 +37,18 @@ class CloudyCDNIE(InfoExtractor):
             'duration': 1205,
             'upload_date': '20221130',
         },
+    }, {
+        'url': 'https://embed.cloudycdn.services/ltv/media/08j_d24-6000-074',
+        'md5': 'fc472e40f6e6238446509be411c920e2',
+        'info_dict': {
+            'id': '08j_d24-6000-074',
+            'ext': 'mp4',
+            'upload_date': '20240620',
+            'duration': 1673,
+            'title': 'D24-6000-074-cetstud',
+            'timestamp': 1718902233,
+            'thumbnail': 'https://store.cloudycdn.services/tmsp00060/assets/media/788392/placeholder1718903938.jpg',
+        },
     }]
     _WEBPAGE_TESTS = [{
         'url': 'https://www.tavaklase.lv/video/es-esmu-mina-um-2/',
