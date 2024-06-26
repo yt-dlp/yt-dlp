@@ -22,7 +22,6 @@ from ..utils import (
     base_url,
     urljoin,
     remove_end,
-    unified_timestamp,
 )
 
 
@@ -319,7 +318,7 @@ class CBCPlayerIE(InfoExtractor):
             json_data = self._search_json(
                 r'window\.__INITIAL_STATE__\s*=', webpage,
                 'initial state', video_id)
-            mediaID = json_data['video']['currentClip'].get('mediaId') # switch to traverse_obj, including later
+            mediaID = traverse_obj(json_data, ('video', 'currentClip', 'mediaId'))
             if mediaID is None:
                 info = json_data['video']['currentClip']
                 m3u8_url = self._download_json(info['media']['assets'][0]['key'], video_id)['url']
@@ -339,35 +338,35 @@ class CBCPlayerIE(InfoExtractor):
                             'title': title,
                         })
 
-                    if len(tp_chapters) == 0:
+                    if len(tp_chapters) == 0 or tp_chapters is None:
                         return []
                     for x in range(len(tp_chapters) - 1):
                         _add_chapter(tp_chapters[x].get('startTime'), tp_chapters[x].get('endTime')
-                        or tp_chapters[x + 1].get('startTime'), tp_chapters[x].get('name'))
+                            or tp_chapters[x + 1].get('startTime'), tp_chapters[x].get('name'))
                     _add_chapter(tp_chapters[-1].get('startTime'), tp_chapters[-1].get('endTime')
-                    or duration, tp_chapters[-1].get('name'))
+                        or duration, tp_chapters[-1].get('name'))
                     return chapters
 
                 return {
-                    'id': video_id, # switch to media ID?
+                    'id': video_id,  # switch to media ID?
                     'title': info.get('title'),
                     'formats': formats,
                     'subtitles': subtitles,
-                    'description': remove_end(info.get('description'),' \n'),
+                    'description': remove_end(info.get('description'), ' \n'),
                     'thumbnail': urljoin(base_url(
-                        info.get('image').get('url')), 
-                        url_basename(info.get('image').get('url'))), # strip the arguments from the URL to remove the crop
-                    'timestamp': int_or_none(info.get('publishedAt'))/1000, # unified_timestamp(info.get('publishedAt')),
-                    'chapters': _process_chapters(info['media'].get('chapters'), info['media'].get('duration')) if 
-                        info['media'].get('chapters') is not None and info['media'].get('duration') is not None else None,
-                    'media_type': info['media'].get('clipType'),
+                        info.get('image').get('url')),
+                        url_basename(info.get('image').get('url'))),  # strip the arguments from the URL to remove the crop
+                    'timestamp': int_or_none(info.get('publishedAt'), 1000) or None,
+                    'chapters': _process_chapters(traverse_obj(info, ('media', 'chapters')),
+                        traverse_obj(info, ('media', 'duration'))),
+                    'media_type': traverse_obj(info, ('media', 'clipType')),
                     'series': info.get('showName'),
-                    'duration': info['media'].get('duration'),
+                    'duration': traverse_obj(info, ('media', 'duration')),
                     'tags': traverse_obj(info, (
                         'tags', lambda _, v: v.get('label') in ('tags', None), 'name', {str})) or None,
-                    'location': info['media'].get('region'),
-                    'genres': [info['media'].get('genre')],
-                    'is_live': True if (info['media'].get('streamType') == 'Live') else False,
+                    'location': traverse_obj(info, ('media', 'region')),
+                    'genres': [traverse_obj(info, ('media', 'genre'))],
+                    'is_live': True if (traverse_obj(info, ('media', 'streamType')) == 'Live') else False,
                     'categories': traverse_obj(info, (
                         'categories', lambda _, v: v.get('label') in ('category', None), 'name', {str})) or None,
                 }
