@@ -73,6 +73,7 @@ class NetEaseMusicBaseIE(InfoExtractor):
 
     def _extract_formats(self, info):
         formats = []
+        format_MD5s = []
         song_id = info['id']
         for level in self._LEVELS:
             song = traverse_obj(self._call_player_api(song_id, level), ('data', 0, {dict})) or {}
@@ -80,6 +81,8 @@ class NetEaseMusicBaseIE(InfoExtractor):
                 break  # API returns existing level - the user have no access to further ones
             if not url_or_none(song.get('url')):
                 continue
+            if 'md5' in song and song['md5'] in format_MD5s:
+                continue  # API returns existing audio file - this level is the same as existing ones
             formats.append({
                 'url': song['url'],
                 'format_id': level,
@@ -90,6 +93,7 @@ class NetEaseMusicBaseIE(InfoExtractor):
                     'filesize': ('size', {int_or_none}),
                 }),
             })
+            format_MD5s.append(song.get('md5'))
         if not formats:
             self.raise_geo_restricted(
                 'No media links found; possibly due to geo restriction', countries=['CN'])
