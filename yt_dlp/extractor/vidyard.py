@@ -18,7 +18,7 @@ class VidyardBaseIE(InfoExtractor):
         for source_type, sources in traverse_obj(video_source, ({dict.items}, lambda _, v: v[1][0])):
             if source_type == 'hls':
                 for video_hls in sources:
-                    fmts, subs = self._extract_m3u8_formats_and_subtitles(video_hls.get('url'), video_id, headers=self._HEADERS)
+                    fmts, subs = self._extract_m3u8_formats_and_subtitles(video_hls.get('url'), video_id, headers=self._HEADERS, fatal=False)
                     formats.extend(fmts)
                     self._merge_subtitles(subs, target=subtitles)
             else:
