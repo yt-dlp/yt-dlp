@@ -76,9 +76,9 @@ class NetEaseMusicBaseIE(InfoExtractor):
         song_id = info['id']
         for level in self._LEVELS:
             song = traverse_obj(self._call_player_api(song_id, level), ('data', 0, {dict})) or {}
-            level = song.get('level')
-            if level in [song_format.get('format_id') for song_format in formats]:
-                break  # API returns existing level - the user have no access to further ones
+            actual_level = song.get('level')
+            if actual_level and actual_level != level:
+                break  # We have already extracted the highest level the user has access to
             if not url_or_none(song.get('url')):
                 continue
             formats.append({
@@ -91,6 +91,8 @@ class NetEaseMusicBaseIE(InfoExtractor):
                     'filesize': ('size', {int_or_none}),
                 }),
             })
+            if not actual_level:
+                break  # Only 1 level is available if API does not return a value (netease:program)
         if not formats:
             self.raise_geo_restricted(
                 'No media links found; possibly due to geo restriction', countries=['CN'])
