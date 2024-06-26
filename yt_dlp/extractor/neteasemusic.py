@@ -77,7 +77,8 @@ class NetEaseMusicBaseIE(InfoExtractor):
         song_id = info['id']
         for level in self._LEVELS:
             song = traverse_obj(self._call_player_api(song_id, level), ('data', 0, {dict})) or {}
-            if song.get('level') in [song_format.get('level') for song_format in formats]:
+            level = song.get('level')
+            if level in [song_format.get('format_id') for song_format in formats]:
                 break  # API returns existing level - the user have no access to further ones
             if not url_or_none(song.get('url')):
                 continue
