@@ -38,6 +38,7 @@ class CloudyCDNIE(InfoExtractor):
             'upload_date': '20221130',
         },
     }, {
+        # Video-only m3u8 formats need manual fixup
         'url': 'https://embed.cloudycdn.services/ltv/media/08j_d24-6000-074',
         'md5': 'fc472e40f6e6238446509be411c920e2',
         'info_dict': {
@@ -49,6 +50,7 @@ class CloudyCDNIE(InfoExtractor):
             'timestamp': 1718902233,
             'thumbnail': 'https://store.cloudycdn.services/tmsp00060/assets/media/788392/placeholder1718903938.jpg',
         },
+        'params': {'format': 'bv'},
     }]
     _WEBPAGE_TESTS = [{
         'url': 'https://www.tavaklase.lv/video/es-esmu-mina-um-2/',
