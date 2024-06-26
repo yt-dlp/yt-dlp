@@ -81,7 +81,7 @@ class NetEaseMusicBaseIE(InfoExtractor):
                 break  # Media is not available due to removal or geo-restriction
             actual_level = song.get('level')
             if actual_level and actual_level != level:
-                break  # We have already extracted the highest level the user has access to
+                continue  # Server returns a different level from requested one
             formats.append({
                 'url': song['url'],
                 'format_id': level,
