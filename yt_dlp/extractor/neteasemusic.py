@@ -31,7 +31,6 @@ class NetEaseMusicBaseIE(InfoExtractor):
         'hires',     # VIP  tier; 高解析度无损 (Hi-Res); 192kHz/24bit flac
         'jyeffect',  # VIP  tier; 高清臻音 (Spatial Audio); 96kHz/24bit flac
         'jymaster',  # SVIP tier; 超清母带 (Master); 192kHz/24bit flac
-        'dolby',     # SVIP tier; 杜比全景声 (Dolby Atmos); flac
         'sky',       # SVIP tier; 沉浸环绕声 (Surround Audio); flac
     )
     _API_BASE = 'http://music.163.com/api/'
