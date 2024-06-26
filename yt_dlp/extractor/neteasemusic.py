@@ -143,7 +143,7 @@ class NetEaseMusicIE(NetEaseMusicBaseIE):
             'id': '550136151',
             'ext': 'mp3',
             'title': 'It\'s Ok (Live)',
-            'creators': ['董又霖', 'Lil Ghost小鬼', 'ONER灵超', '黄明昊 (Justin)', '郑艺彬', '李希侃', '毕雯珺', '林彦俊', '尤长靖', '林超泽'],
+            'creators': 'count:10',
             'timestamp': 1522944000,
             'upload_date': '20180405',
             'description': 'md5:9fd07059c2ccee3950dc8363429a3135',
