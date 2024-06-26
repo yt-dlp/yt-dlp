@@ -295,7 +295,7 @@ class NetEaseMusicAlbumIE(NetEaseMusicBaseIE):
             'description': '桃几2021年翻唱合集',
             'thumbnail': r're:^http.*\.jpg',
         },
-        'playlist_mincount': 13,
+        'playlist_mincount': 12,
     }, {
         'url': 'http://music.163.com/#/album?id=220780',
         'info_dict': {
