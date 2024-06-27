@@ -329,14 +329,19 @@ class ABCIViewIE(InfoExtractor):
                 'hdnea': token,
             })
 
-        for sd_url in traverse_obj(stream, ('streams', 'hls-latest', ('1080', '720', 'sd', 'sd-low'), {str})):
-            if not sd_url:
-                continue
-            formats = self._extract_m3u8_formats(
-                tokenize_url(sd_url, token), video_id, 'mp4',
-                entry_protocol='m3u8_native', m3u8_id='hls', fatal=False)
-            if formats:
-                break
+        formats = []
+        # hls: pre-merged formats
+        # hls-latest: same as hls, but sometimes has separate audio tracks
+        # Note: pre-merged formats in hls-latest are treated as video-only if audio-only tracks
+        # are present, so we extract both types
+        for label in ('hls', 'hls-latest'):
+            for sd_url in traverse_obj(stream, ('streams', label, ('1080', '720', 'sd', 'sd-low'), {str})):
+                fmts = self._extract_m3u8_formats(
+                    tokenize_url(sd_url, token), video_id, 'mp4',
+                    entry_protocol='m3u8_native', m3u8_id=label, fatal=False)
+                if fmts:
+                    formats.extend(fmts)
+                    break
 
         subtitles = {}
         src_vtt = traverse_obj(stream, ('captions', 'src-vtt'))
