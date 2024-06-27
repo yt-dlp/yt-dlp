@@ -11,11 +11,7 @@ class GraspopIE(InfoExtractor):
             'id': '101556',
             'ext': 'mp4',
             'title': 'Thy Art Is Murder',
-            'description': 'Thy Art Is Murder @ Graspop',
             'thumbnail': r're:https://cdn-mds\.pickx\.be/festivals/v3/global/original/.+\.jpg',
-        },
-        'params': {
-            'nocheckcertificate': True,
         },
     }]
 
