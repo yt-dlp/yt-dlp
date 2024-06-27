@@ -415,11 +415,15 @@ class NetEaseMusicListIE(NetEaseMusicBaseIE):
         'url': 'http://music.163.com/#/discover/toplist?id=3733003',
         'info_dict': {
             'id': '3733003',
-            'title': 're:韩国Melon排行榜周榜 [0-9]{4}-[0-9]{2}-[0-9]{2}',
+            'title': 're:韩国Melon排行榜周榜(?: [0-9]{4}-[0-9]{2}-[0-9]{2})?',
             'description': 'md5:73ec782a612711cadc7872d9c1e134fc',
+            'upload_date': '20200109',
+            'uploader_id': '2937386',
+            'tags': ['韩语', '榜单'],
+            'uploader': 'Melon榜单',
+            'timestamp': 1578569373,
         },
         'playlist_count': 50,
-        'skip': 'Blocked outside Mainland China',
     }]
 
     def _real_extract(self, url):
