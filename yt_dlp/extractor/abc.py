@@ -186,7 +186,7 @@ class ABCIViewIE(InfoExtractor):
         'info_dict': {
             'id': 'CO1211V001S00',
             'ext': 'mp4',
-            'title': 'Series 1 Ep 1 Wood For The Trees',
+            'title': 'Series 1 Episode 1 Wood For The Trees',
             'series': 'Utopia',
             'description': 'md5:0cfb2c183c1b952d1548fd65c8a95c00',
             'upload_date': '20230726',
@@ -209,6 +209,11 @@ class ABCIViewIE(InfoExtractor):
                     'end_time': 24,
                     'title': 'opening-credits',
                 },
+                {
+                    'start_time': 1564,
+                    'end_time': 1584,
+                    'title': 'end-credits',
+                },
             ],
             'thumbnail': 'https://cdn.iview.abc.net.au/thumbs/i/co/CO1211V001S00_5ad8353f4df09_1280.jpg',
             'timestamp': 1690403700,
@@ -218,24 +223,26 @@ class ABCIViewIE(InfoExtractor):
         },
     }, {
         'note': 'No episode name',
-        'url': 'https://iview.abc.net.au/show/gruen/series/11/video/LE1927H001S00',
+        'url': 'https://iview.abc.net.au/show/gruen/series/15/video/LE2327H001S00',
         'md5': '67715ce3c78426b11ba167d875ac6abf',
         'info_dict': {
-            'id': 'LE1927H001S00',
+            'id': 'LE2327H001S00',
             'ext': 'mp4',
-            'title': 'Series 11 Ep 1',
+            'title': 'Series 15 Episode 1',
             'series': 'Gruen',
-            'description': 'md5:52cc744ad35045baf6aded2ce7287f67',
-            'upload_date': '20190925',
+            'description': 'md5:ac3bf529d467d8436954db1e90d2f06d',
+            'upload_date': '20230621',
             'uploader_id': 'abc1',
-            'series_id': 'LE1927H',
-            'episode_id': 'LE1927H001S00',
-            'season_number': 11,
-            'season': 'Season 11',
+            'series_id': 'LE2327H',
+            'episode_id': 'LE2327H001S00',
+            'season_number': 15,
+            'season': 'Season 15',
             'episode_number': 1,
             'episode': 'Episode 1',
-            'thumbnail': 'https://cdn.iview.abc.net.au/thumbs/i/le/LE1927H001S00_5d954fbd79e25_1280.jpg',
-            'timestamp': 1569445289,
+            'thumbnail': 'https://cdn.iview.abc.net.au/thumbs/i/le/LE2327H001S00_649279152faea_3600.jpg',
+            'timestamp': 1687379421,
+            'duration': 2117,
+            'chapters': 'count:2',
         },
         'expected_warnings': ['Ignoring subtitle tracks found in the HLS manifest'],
         'params': {
@@ -260,7 +267,8 @@ class ABCIViewIE(InfoExtractor):
             'episode': 'Locking Up Kids',
             'thumbnail': 'https://cdn.iview.abc.net.au/thumbs/i/nc/NC2203H039S00_636d8a0944a22_1920.jpg',
             'timestamp': 1668460497,
-
+            'duration': 2802,
+            'chapters': 'count:2',
         },
         'expected_warnings': ['Ignoring subtitle tracks found in the HLS manifest'],
         'params': {
@@ -284,7 +292,8 @@ class ABCIViewIE(InfoExtractor):
             'season': 'Season 2021',
             'thumbnail': 'https://cdn.iview.abc.net.au/thumbs/i/rf/RF2004Q043S00_61a950639dbc0_1920.jpg',
             'timestamp': 1638710705,
-
+            'duration': 3381,
+            'chapters': 'count:2',
         },
         'expected_warnings': ['Ignoring subtitle tracks found in the HLS manifest'],
         'params': {
@@ -361,10 +370,10 @@ class ABCIViewIE(InfoExtractor):
             'season_number': int_or_none(self._search_regex(
                 r'\bSeries\s+(\d+)\b', title, 'season number', default=None)),
             'episode_number': int_or_none(self._search_regex(
-                r'\bEp\s+(\d+)\b', title, 'episode number', default=None)),
+                r'\bEp(?:isode)?\s+(\d+)\b', title, 'episode number', default=None)),
             'episode_id': house_number,
             'episode': self._search_regex(
-                r'^(?:Series\s+\d+)?\s*(?:Ep\s+\d+)?\s*(.*)$', title, 'episode', default='') or None,
+                r'^(?:Series\s+\d+)?\s*(?:Ep(?:isode)?\s+\d+)?\s*(.*)$', title, 'episode', default='') or None,
             'uploader_id': video_params.get('channel'),
             'formats': formats,
             'subtitles': subtitles,
