@@ -2236,19 +2236,79 @@ class BiliLiveIE(InfoExtractor):
 
 
 class BiliBiliSearchPageIE(BilibiliBaseIE):
-    _VALID_URL = r'https?://search\.bilibili\.com/(?:all|bangumi)/?\?keyword=(?P<id>[^/?#&]+)'
+    _VALID_URL = r'https?://search\.bilibili\.com/(?P<type>all|video|bangumi|pgc|live|upuser)/?\?keyword=(?P<id>[^/?#&]+)'
     _TESTS = [{
         'url': r'https://search.bilibili.com/all?keyword=yt+-+dlp+%E4%B8%8B%E8%BD%BD%E5%99%A8',
+        'playlist_count': 20,
         'info_dict': {
-            'id': 'None',
-            'title': 'None',
-            'ext': 'None',
+            'id': 'yt - dlp 下载器',
+            'title': 'yt - dlp 下载器',
         },
     }]
 
     def _real_extract(self, url):
-        # video_id = self._match_id(url)
-        # webpage = self._download_webpage(url, video_id=video_id)
-        # title = self._search_regex(r'(?s)<title\b[^>]*>([^<]+)-哔哩哔哩_bilibili', webpage, 'uploader', fatal=False)
-        return self.url_result(r'https://www.bilibili.com/video/BV1yt4y1Q7SS/',
-                               )
+        entries = []
+        if not self._get_cookies('https://api.bilibili.com').get('buvid3'):
+            self._set_cookie('.bilibili.com', 'buvid3', f'{uuid.uuid4()}infoc')
+        search_type, raw_playlist_id = self._match_valid_url(url).group('type', 'id')
+        playlist_id = urllib.parse.unquote_plus(raw_playlist_id)
+        search_type_mapping = {
+            'video': 'video',
+            'bangumi': 'media_bangumi',
+            'pgc': 'media_ft',
+            'live': 'live_room',
+            'upuser': 'bili_user',
+        }
+        live_room_prefix = 'https://live.bilibili.com/'
+        bili_user_prefix = 'https://space.bilibili.com/'
+        if search_type == 'all':
+            try:
+                search_all_result = self._download_json(
+                    r'https://api.bilibili.com/x/web-interface/search/all/v2',
+                    video_id=playlist_id, query={
+                        'keyword': playlist_id,
+                    })
+            except ExtractorError as e:
+                if isinstance(e.cause, HTTPError) and e.cause.status == 412:
+                    raise ExtractorError('Request is blocked by server (-412).', expected=True)
+            status_code = search_all_result['code']
+            if status_code == -400:
+                raise ExtractorError('Invalid request (-400).', expected=True)
+
+            result_list = search_all_result['data']['result']
+            for result_type_dict in result_list:
+                for result_data in result_type_dict['data']:
+                    if result_data['type'] == 'video':
+                        entries.append(self.url_result(result_data['arcurl']))
+                    elif result_data['type'] == 'live_room':
+                        entries.append(self.url_result(live_room_prefix + str(result_data['roomid'])))
+                    elif result_data['type'] in ['media_ft', 'media_bangumi']:
+                        entries.append(self.url_result(result_data['url']))
+                    elif result_data['type'] == 'bili_user':
+                        entries.append(self.url_result(bili_user_prefix + str(result_data['mid'])))
+        else:
+            try:
+                search_type_result = self._download_json(
+                    r'https://api.bilibili.com/x/web-interface/search/type',
+                    video_id=playlist_id, query={
+                        'keyword': playlist_id,
+                        'search_type': search_type_mapping[search_type],
+                    })
+            except ExtractorError as e:
+                if isinstance(e.cause, HTTPError) and e.cause.status == 412:
+                    raise ExtractorError('Request is blocked by server (-412).', expected=True)
+            status_code = search_type_result['code']
+            if status_code == -400:
+                raise ExtractorError('Invalid request (-400).', expected=True)
+            result_list = search_type_result['data']['result']
+            for result_data in result_list:
+                if result_data['type'] == 'video':
+                    entries.append(self.url_result(result_data['arcurl']))
+                elif result_data['type'] == 'live_room':
+                    entries.append(self.url_result(live_room_prefix + str(result_data['roomid'])))
+                elif result_data['type'] in ['media_ft', 'media_bangumi']:
+                    entries.append(self.url_result(result_data['url']))
+                elif result_data['type'] == 'bili_user':
+                    entries.append(self.url_result(bili_user_prefix + str(result_data['mid'])))
+
+        return self.playlist_result(entries, playlist_id=playlist_id, playlist_title=playlist_id)
