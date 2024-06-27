@@ -302,7 +302,6 @@ class ABCIViewIE(InfoExtractor):
             video_params = self._download_json(
                 'https://iview.abc.net.au/api/programs/' + video_id, video_id,
                 note='Downloading legacy API JSON')
-        title = unescapeHTML(video_params.get('title') or video_params['seriesTitle'])
         stream = traverse_obj(video_params, (
             ('_embedded', None), 'playlist', lambda _, v: v['type'] in ('program', 'livestream')),
             get_all=False)
@@ -349,6 +348,8 @@ class ABCIViewIE(InfoExtractor):
         chapters = traverse_obj(
             video_params, ('cuePoints', ..., {'start_time': 'start', 'end_time': 'end', 'title': 'type'}))
 
+        title = unescapeHTML(traverse_obj(video_params, 'title', 'seriesTitle', 'showTitle'))
+
         return {
             'id': video_id,
             'title': title,
@@ -357,7 +358,7 @@ class ABCIViewIE(InfoExtractor):
             'chapters': chapters,
             'duration': int_or_none(traverse_obj(video_params, 'duration', 'eventDuration')),
             'timestamp': parse_iso8601(video_params.get('pubDate'), ' '),
-            'series': unescapeHTML(video_params.get('seriesTitle')),
+            'series': unescapeHTML(traverse_obj(video_params, 'seriesTitle', 'showTitle')),
             'series_id': series_id,
             'season_number': int_or_none(self._search_regex(
                 r'\bSeries\s+(\d+)\b', title, 'season number', default=None)),
