@@ -21,7 +21,7 @@ class NineNewsIE(InfoExtractor):
             'upload_date': '20231222',
             'uploader_id': '664969388001',
             'tags': ['networkclip', 'aunews_aunationalninenews', 'christmas presents', 'toys', 'fair trading', 'au_news'],
-        }
+        },
     }, {
         'url': 'https://www.9news.com.au/world/tape-reveals-donald-trump-pressured-michigan-officials-not-to-certify-2020-vote-a-new-report-says/0b8b880e-7d3c-41b9-b2bd-55bc7e492259',
         'md5': 'a885c44d20898c3e70e9a53e8188cea1',
@@ -36,7 +36,7 @@ class NineNewsIE(InfoExtractor):
             'upload_date': '20231220',
             'uploader_id': '664969388001',
             'tags': ['networkclip', 'aunews_aunationalninenews', 'ineligible', 'presidential candidate', 'donald trump', 'au_news'],
-        }
+        },
     }, {
         'url': 'https://www.9news.com.au/national/outrage-as-parents-banned-from-giving-gifts-to-kindergarten-teachers/e19b49d4-a1a4-4533-9089-6e10e2d9386a',
         'info_dict': {

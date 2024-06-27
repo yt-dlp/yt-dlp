@@ -126,7 +126,7 @@ class OpencastIE(OpencastBaseIE):
                 'series': 'Kryptographie - WiSe 15/16',
                 'creator': 'Alexander May',
             },
-        }
+        },
     ]
 
     def _real_extract(self, url):

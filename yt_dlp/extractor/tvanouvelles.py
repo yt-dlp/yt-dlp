@@ -42,7 +42,7 @@ class TVANouvellesArticleIE(InfoExtractor):
 
     @classmethod
     def suitable(cls, url):
-        return False if TVANouvellesIE.suitable(url) else super(TVANouvellesArticleIE, cls).suitable(url)
+        return False if TVANouvellesIE.suitable(url) else super().suitable(url)
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
@@ -51,7 +51,7 @@ class TVANouvellesArticleIE(InfoExtractor):
 
         entries = [
             self.url_result(
-                'http://www.tvanouvelles.ca/videos/%s' % mobj.group('id'),
+                'http://www.tvanouvelles.ca/videos/{}'.format(mobj.group('id')),
                 ie=TVANouvellesIE.ie_key(), video_id=mobj.group('id'))
             for mobj in re.finditer(
                 r'data-video-id=(["\'])?(?P<id>\d+)', webpage)]

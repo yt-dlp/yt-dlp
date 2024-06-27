@@ -1,8 +1,6 @@
+import urllib.parse
+
 from .common import InfoExtractor
-from ..compat import (
-    compat_parse_qs,
-    compat_urllib_parse_urlparse,
-)
 from ..utils import (
     dict_get,
     int_or_none,
@@ -56,7 +54,7 @@ class SkyItPlayerIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        domain = compat_parse_qs(compat_urllib_parse_urlparse(
+        domain = urllib.parse.parse_qs(urllib.parse.urlparse(
             url).query).get('domain', [None])[0]
         token = dict_get(self._TOKEN_MAP, (domain, 'sky'))
         video = self._download_json(
@@ -64,7 +62,7 @@ class SkyItPlayerIE(InfoExtractor):
             video_id, query={
                 'caller': 'sky',
                 'id': video_id,
-                'token': token
+                'token': token,
             }, headers=self.geo_verification_headers())
         return self._parse_video(video, video_id)
 

@@ -105,7 +105,7 @@ if urllib3:
                 self.incoming,
                 self.outgoing,
                 server_hostname=server_hostname,
-                server_side=server_side
+                server_side=server_side,
             )
             self._ssl_io_loop(self.sslobj.do_handshake)
 
@@ -333,7 +333,7 @@ class TestHTTPConnectProxy:
 
     @pytest.mark.skip_handler(
         'Requests',
-        'bug in urllib3 causes unclosed socket: https://github.com/urllib3/urllib3/issues/3374'
+        'bug in urllib3 causes unclosed socket: https://github.com/urllib3/urllib3/issues/3374',
     )
     def test_http_connect_bad_auth(self, handler, ctx):
         with ctx.http_server(HTTPConnectProxyHandler, username='test', password='test') as server_address:

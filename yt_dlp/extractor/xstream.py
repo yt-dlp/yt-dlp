@@ -41,8 +41,7 @@ class XstreamIE(InfoExtractor):
 
     def _extract_video_info(self, partner_id, video_id):
         data = self._download_xml(
-            'http://frontend.xstream.dk/%s/feed/video/?platform=web&id=%s'
-            % (partner_id, video_id),
+            f'http://frontend.xstream.dk/{partner_id}/feed/video/?platform=web&id={video_id}',
             video_id)
 
         NS_MAP = {
@@ -71,7 +70,7 @@ class XstreamIE(InfoExtractor):
             if mobj:
                 formats.append({
                     'url': mobj.group('url'),
-                    'play_path': 'mp4:%s' % mobj.group('playpath'),
+                    'play_path': 'mp4:{}'.format(mobj.group('playpath')),
                     'app': mobj.group('app'),
                     'ext': 'flv',
                     'tbr': tbr,

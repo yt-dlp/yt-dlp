@@ -24,7 +24,7 @@ class SportDeutschlandIE(InfoExtractor):
             'duration': 32447,
             'upload_date': '20230114',
             'timestamp': 1673733618,
-        }
+        },
     }, {
         'url': 'https://sportdeutschland.tv/deutscherbadmintonverband/bwf-tour-1-runde-feld-1-yonex-gainward-german-open-2022-0',
         'info_dict': {
@@ -40,7 +40,7 @@ class SportDeutschlandIE(InfoExtractor):
             'duration': 41097,
             'upload_date': '20220309',
             'timestamp': 1646860727.0,
-        }
+        },
     }, {
         'url': 'https://sportdeutschland.tv/ggcbremen/formationswochenende-latein-2023',
         'info_dict': {
@@ -66,8 +66,8 @@ class SportDeutschlandIE(InfoExtractor):
                 'upload_date': '20230225',
                 'timestamp': 1677349909,
                 'live_status': 'was_live',
-            }
-        }]
+            },
+        }],
     }, {
         'url': 'https://sportdeutschland.tv/dtb/gymnastik-international-tag-1',
         'info_dict': {
@@ -99,7 +99,7 @@ class SportDeutschlandIE(InfoExtractor):
             **traverse_obj(video, {
                 'id': 'id',
                 'duration': ('duration', {lambda x: float(x) > 0 and float(x)}),
-                'timestamp': ('created_at', {unified_timestamp})
+                'timestamp': ('created_at', {unified_timestamp}),
             }),
         }
 
@@ -120,7 +120,7 @@ class SportDeutschlandIE(InfoExtractor):
                 'is_live': 'currently_live',
                 'was_live': 'was_live',
                 'channel_url': ('profile', 'slug', {lambda x: f'https://sportdeutschland.tv/{x}'}),
-            }, get_all=False)
+            }, get_all=False),
         }
 
         parts = traverse_obj(meta, (('livestream', ('videos', ...)), ))

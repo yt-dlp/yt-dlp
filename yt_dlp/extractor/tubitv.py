@@ -13,6 +13,7 @@ from ..utils import (
 
 
 class TubiTvIE(InfoExtractor):
+    IE_NAME = 'tubitv'
     _VALID_URL = r'https?://(?:www\.)?tubitv\.com/(?P<type>video|movies|tv-shows)/(?P<id>\d+)'
     _LOGIN_URL = 'http://tubitv.com/login'
     _NETRC_MACHINE = 'tubitv'
@@ -56,7 +57,7 @@ class TubiTvIE(InfoExtractor):
             'description': 'A stand up comedian is forced to look at the decisions in his life while on a one week trip to the west coast.',
             'uploader_id': 'bc168bee0d18dd1cb3b86c68706ab434',
         },
-        'skip': 'Content Unavailable'
+        'skip': 'Content Unavailable',
     }, {
         'url': 'http://tubitv.com/tv-shows/321886/s01_e01_on_nom_stories',
         'only_matching': True,
@@ -70,7 +71,7 @@ class TubiTvIE(InfoExtractor):
             'uploader_id': 'd8fed30d4f24fcb22ec294421b9defc2',
             'release_year': 1979,
         },
-        'skip': 'Content Unavailable'
+        'skip': 'Content Unavailable',
     }]
 
     # DRM formats are included only to raise appropriate error
@@ -148,30 +149,54 @@ class TubiTvIE(InfoExtractor):
 
 
 class TubiTvShowIE(InfoExtractor):
-    _WORKING = False
-    _VALID_URL = r'https?://(?:www\.)?tubitv\.com/series/[0-9]+/(?P<show_name>[^/?#]+)'
+    IE_NAME = 'tubitv:series'
+    _VALID_URL = r'https?://(?:www\.)?tubitv\.com/series/\d+/(?P<show_name>[^/?#]+)(?:/season-(?P<season>\d+))?'
     _TESTS = [{
         'url': 'https://tubitv.com/series/3936/the-joy-of-painting-with-bob-ross?start=true',
-        'playlist_mincount': 390,
+        'playlist_mincount': 389,
         'info_dict': {
             'id': 'the-joy-of-painting-with-bob-ross',
-        }
+        },
+    }, {
+        'url': 'https://tubitv.com/series/2311/the-saddle-club/season-1',
+        'playlist_count': 26,
+        'info_dict': {
+            'id': 'the-saddle-club-season-1',
+        },
+    }, {
+        'url': 'https://tubitv.com/series/2311/the-saddle-club/season-3',
+        'playlist_count': 19,
+        'info_dict': {
+            'id': 'the-saddle-club-season-3',
+        },
+    }, {
+        'url': 'https://tubitv.com/series/2311/the-saddle-club/',
+        'playlist_mincount': 71,
+        'info_dict': {
+            'id': 'the-saddle-club',
+        },
     }]
 
-    def _entries(self, show_url, show_name):
-        show_webpage = self._download_webpage(show_url, show_name)
+    def _entries(self, show_url, playlist_id, selected_season):
+        webpage = self._download_webpage(show_url, playlist_id)
 
-        show_json = self._parse_json(self._search_regex(
-            r'window\.__data\s*=\s*({[^<]+});\s*</script>',
-            show_webpage, 'data'), show_name, transform_source=js_to_json)['video']
+        data = self._search_json(
+            r'window\.__data\s*=', webpage, 'data', playlist_id,
+            transform_source=js_to_json)['video']
 
-        for episode_id in show_json['fullContentById'].keys():
-            if traverse_obj(show_json, ('byId', episode_id, 'type')) == 's':
-                continue
-            yield self.url_result(
-                f'https://tubitv.com/tv-shows/{episode_id}/',
-                ie=TubiTvIE.ie_key(), video_id=episode_id)
+        # v['number'] is already a decimal string, but stringify to protect against API changes
+        path = [lambda _, v: str(v['number']) == selected_season] if selected_season else [..., {dict}]
+
+        for season in traverse_obj(data, ('byId', lambda _, v: v['type'] == 's', 'seasons', *path)):
+            season_number = int_or_none(season.get('number'))
+            for episode in traverse_obj(season, ('episodes', lambda _, v: v['id'])):
+                episode_id = episode['id']
+                yield self.url_result(
+                    f'https://tubitv.com/tv-shows/{episode_id}/', TubiTvIE, episode_id,
+                    season_number=season_number, episode_number=int_or_none(episode.get('num')))
 
     def _real_extract(self, url):
-        show_name = self._match_valid_url(url).group('show_name')
-        return self.playlist_result(self._entries(url, show_name), playlist_id=show_name)
+        playlist_id, selected_season = self._match_valid_url(url).group('show_name', 'season')
+        if selected_season:
+            playlist_id = f'{playlist_id}-season-{selected_season}'
+        return self.playlist_result(self._entries(url, playlist_id, selected_season), playlist_id)

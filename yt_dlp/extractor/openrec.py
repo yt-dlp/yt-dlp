@@ -1,5 +1,4 @@
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     ExtractorError,
     get_first,
@@ -120,9 +119,9 @@ class OpenRecCaptureIE(OpenRecBaseIE):
             'title': capture_data.get('title'),
             'thumbnail': capture_data.get('thumbnailUrl'),
             'formats': formats,
-            'timestamp': unified_timestamp(traverse_obj(movie_store, 'createdAt', expected_type=compat_str)),
-            'uploader': traverse_obj(movie_store, ('channel', 'name'), expected_type=compat_str),
-            'uploader_id': traverse_obj(movie_store, ('channel', 'id'), expected_type=compat_str),
+            'timestamp': unified_timestamp(traverse_obj(movie_store, 'createdAt', expected_type=str)),
+            'uploader': traverse_obj(movie_store, ('channel', 'name'), expected_type=str),
+            'uploader_id': traverse_obj(movie_store, ('channel', 'id'), expected_type=str),
             'upload_date': unified_strdate(capture_data.get('createdAt')),
             'http_headers': self._M3U8_HEADERS,
         }

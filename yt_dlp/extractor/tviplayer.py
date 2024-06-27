@@ -14,7 +14,7 @@ class TVIPlayerIE(InfoExtractor):
             'thumbnail': 'https://www.iol.pt/multimedia/oratvi/multimedia/imagem/id/61c8ee630cf2cc58e7d98d9f/',
             'season_number': 8,
             'season': 'Season 8',
-        }
+        },
     }, {
         'url': 'https://tviplayer.iol.pt/programa/isabel/62b471090cf26256cd2a8594/video/62be445f0cf2ea4f0a5218e5',
         'info_dict': {
@@ -25,7 +25,7 @@ class TVIPlayerIE(InfoExtractor):
             'title': 'Isabel - Episódio 1',
             'thumbnail': 'https://www.iol.pt/multimedia/oratvi/multimedia/imagem/id/62beac200cf2f9a86eab856b/',
             'season_number': 1,
-        }
+        },
     }, {
         # no /programa/
         'url': 'https://tviplayer.iol.pt/video/62c4131c0cf2f9a86eac06bb',
@@ -37,7 +37,7 @@ class TVIPlayerIE(InfoExtractor):
             'season': 'Season 2',
             'duration': 148,
             'season_number': 2,
-        }
+        },
     }, {
         # episodio url
         'url': 'https://tviplayer.iol.pt/programa/para-sempre/61716c360cf2365a5ed894c4/episodio/t1e187',
@@ -49,7 +49,7 @@ class TVIPlayerIE(InfoExtractor):
             'thumbnail': 'https://www.iol.pt/multimedia/oratvi/multimedia/imagem/id/62eda30b0cf2ea367d48973b/',
             'duration': 1250,
             'season_number': 1,
-        }
+        },
     }]
 
     def _real_initialize(self):
