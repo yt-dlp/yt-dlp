@@ -2244,9 +2244,17 @@ class BiliBiliSearchPageIE(BilibiliBaseIE):
             'id': 'yt - dlp 下载器',
             'title': 'yt - dlp 下载器',
         },
+    }, {
+        'url': r'https://search.bilibili.com/bangumi?keyword=%E5%AD%A4%E7%8B%AC%E6%91%87%E6%BB%9A&from_source=webtop_search&spm_id_from=333.1007&search_source=5',
+        'playlist_mincount': 1,
+        'info_dict': {
+            'id': '孤独摇滚',
+            'title': '孤独摇滚',
+        },
     }]
 
     def _real_extract(self, url):
+        headers = self.geo_verification_headers()
         entries = []
         if not self._get_cookies('https://api.bilibili.com').get('buvid3'):
             self._set_cookie('.bilibili.com', 'buvid3', f'{uuid.uuid4()}infoc')
@@ -2267,15 +2275,18 @@ class BiliBiliSearchPageIE(BilibiliBaseIE):
                     r'https://api.bilibili.com/x/web-interface/search/all/v2',
                     video_id=playlist_id, query={
                         'keyword': playlist_id,
-                    })
+                    }, headers=headers)
             except ExtractorError as e:
                 if isinstance(e.cause, HTTPError) and e.cause.status == 412:
                     raise ExtractorError('Request is blocked by server (-412).', expected=True)
             status_code = search_all_result['code']
             if status_code == -400:
                 raise ExtractorError('Invalid request (-400).', expected=True)
-
-            result_list = search_all_result['data']['result']
+            result_list = search_all_result['data'].get('result')
+            if result_list is None:
+                self.write_debug(f'Response: {search_all_result}')
+                raise ExtractorError(f'Result not found in the response ({status_code}).',
+                                     expected=True)
             for result_type_dict in result_list:
                 for result_data in result_type_dict['data']:
                     if result_data['type'] == 'video':
@@ -2293,14 +2304,18 @@ class BiliBiliSearchPageIE(BilibiliBaseIE):
                     video_id=playlist_id, query={
                         'keyword': playlist_id,
                         'search_type': search_type_mapping[search_type],
-                    })
+                    }, headers=headers)
             except ExtractorError as e:
                 if isinstance(e.cause, HTTPError) and e.cause.status == 412:
                     raise ExtractorError('Request is blocked by server (-412).', expected=True)
             status_code = search_type_result['code']
             if status_code == -400:
                 raise ExtractorError('Invalid request (-400).', expected=True)
-            result_list = search_type_result['data']['result']
+            result_list = search_type_result['data'].get('result')
+            if result_list is None:
+                self.write_debug(f'Response: {search_type_result}')
+                raise ExtractorError(f'Result not found in the response ({status_code}).',
+                                     expected=True)
             for result_data in result_list:
                 if result_data['type'] == 'video':
                     entries.append(self.url_result(result_data['arcurl']))
