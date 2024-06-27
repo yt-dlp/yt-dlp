@@ -97,8 +97,8 @@ class GiphyBaseIE(InfoExtractor):
             'subtitles': subtitles,
         }
 
-    def _api_channel_feed(self, channel_id, max_offset=_GIPHY_MAX):
-        offset = 0
+    def _api_channel_feed(self, channel_id):
+        count, offset = 0, 0
         query_url = f'https://giphy.com/api/v4/channels/{channel_id}/feed/?offset={offset}'
         for _ in itertools.count(1):
             search_results = self._download_json(query_url, channel_id, fatal=False,
@@ -110,10 +110,13 @@ class GiphyBaseIE(InfoExtractor):
                     **self._extract_info(video, video['id']),
                     'webpage_url': video['url'],
                 }
+            count += len(search_results.get('results'))
+            if count >= (int_or_none(self.get_param('playlistend')) or (self._GIPHY_MAX + 1)):
+                return
             query_url = url_or_none(search_results.get('next')) or ''
             offset = int(self._search_regex(r'offset=(\d+)', query_url, 'offset', default=0))
             # offset cannot exceed 5000
-            if not query_url or offset > min((max_offset or self._GIPHY_MAX) + 1, self._GIPHY_MAX):
+            if not query_url or offset > self._GIPHY_MAX:
                 return
 
 
@@ -242,7 +245,7 @@ class GiphyIE(GiphyBaseIE):
         if channel_id := self._html_search_regex(r'\{"channelId":\s*([^\}]+)\}', webpage, 'channel_id', default=None):
             uploader_id = self._html_search_meta('twitter:creator', webpage).replace('@', '').lower()
             entries = []
-            for i in self._api_channel_feed(channel_id, int_or_none(self.get_param('playlistend'))):
+            for i in self._api_channel_feed(channel_id):
                 entries.append(i)
 
             return {
