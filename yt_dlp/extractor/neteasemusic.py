@@ -136,7 +136,7 @@ class NetEaseMusicBaseIE(InfoExtractor):
 class NetEaseMusicIE(NetEaseMusicBaseIE):
     IE_NAME = 'netease:song'
     IE_DESC = '网易云音乐'
-    _VALID_URL = r'https?://(y\.)?music\.163\.com/(?:[#m]/)?song\?.*?\bid=(?P<id>[0-9]+)'
+    _VALID_URL = r'https?://(?:y\.)?music\.163\.com/(?:[#m]/)?song\?.*?\bid=(?P<id>[0-9]+)'
     _TESTS = [{
         'url': 'https://music.163.com/#/song?id=550136151',
         'info_dict': {
@@ -294,7 +294,7 @@ class NetEaseMusicIE(NetEaseMusicBaseIE):
 class NetEaseMusicAlbumIE(NetEaseMusicBaseIE):
     IE_NAME = 'netease:album'
     IE_DESC = '网易云音乐 - 专辑'
-    _VALID_URL = r'https?://music\.163\.com/(#/)?album\?id=(?P<id>[0-9]+)'
+    _VALID_URL = r'https?://music\.163\.com/(?:#/)?album\?id=(?P<id>[0-9]+)'
     _TESTS = [{
         'url': 'https://music.163.com/#/album?id=133153666',
         'info_dict': {
@@ -338,7 +338,7 @@ class NetEaseMusicAlbumIE(NetEaseMusicBaseIE):
 class NetEaseMusicSingerIE(NetEaseMusicBaseIE):
     IE_NAME = 'netease:singer'
     IE_DESC = '网易云音乐 - 歌手'
-    _VALID_URL = r'https?://music\.163\.com/(#/)?artist\?id=(?P<id>[0-9]+)'
+    _VALID_URL = r'https?://music\.163\.com/(?:#/)?artist\?id=(?P<id>[0-9]+)'
     _TESTS = [{
         'note': 'Singer has aliases.',
         'url': 'http://music.163.com/#/artist?id=10559',
@@ -382,7 +382,7 @@ class NetEaseMusicSingerIE(NetEaseMusicBaseIE):
 class NetEaseMusicListIE(NetEaseMusicBaseIE):
     IE_NAME = 'netease:playlist'
     IE_DESC = '网易云音乐 - 歌单'
-    _VALID_URL = r'https?://music\.163\.com/(#/)?(playlist|discover/toplist)\?id=(?P<id>[0-9]+)'
+    _VALID_URL = r'https?://music\.163\.com/(?:#/)?(?:playlist|discover/toplist)\?id=(?P<id>[0-9]+)'
     _TESTS = [{
         'url': 'http://music.163.com/#/playlist?id=79177352',
         'info_dict': {
@@ -451,7 +451,7 @@ class NetEaseMusicListIE(NetEaseMusicBaseIE):
 class NetEaseMusicMvIE(NetEaseMusicBaseIE):
     IE_NAME = 'netease:mv'
     IE_DESC = '网易云音乐 - MV'
-    _VALID_URL = r'https?://music\.163\.com/(#/)?mv\?id=(?P<id>[0-9]+)'
+    _VALID_URL = r'https?://music\.163\.com/(?:#/)?mv\?id=(?P<id>[0-9]+)'
     _TESTS = [{
         'url': 'https://music.163.com/#/mv?id=10958064',
         'info_dict': {
@@ -531,7 +531,7 @@ class NetEaseMusicMvIE(NetEaseMusicBaseIE):
 class NetEaseMusicProgramIE(NetEaseMusicBaseIE):
     IE_NAME = 'netease:program'
     IE_DESC = '网易云音乐 - 电台节目'
-    _VALID_URL = r'https?://music\.163\.com/(#/?)program\?id=(?P<id>[0-9]+)'
+    _VALID_URL = r'https?://music\.163\.com/(?:#/)?program\?id=(?P<id>[0-9]+)'
     _TESTS = [{
         'url': 'http://music.163.com/#/program?id=10109055',
         'info_dict': {
@@ -609,7 +609,7 @@ class NetEaseMusicProgramIE(NetEaseMusicBaseIE):
 class NetEaseMusicDjRadioIE(NetEaseMusicBaseIE):
     IE_NAME = 'netease:djradio'
     IE_DESC = '网易云音乐 - 电台'
-    _VALID_URL = r'https?://music\.163\.com/(#/)?djradio\?id=(?P<id>[0-9]+)'
+    _VALID_URL = r'https?://music\.163\.com/(?:#/)?djradio\?id=(?P<id>[0-9]+)'
     _TEST = {
         'url': 'http://music.163.com/#/djradio?id=42',
         'info_dict': {
