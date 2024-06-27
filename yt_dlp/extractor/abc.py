@@ -1,3 +1,4 @@
+import functools
 import hashlib
 import hmac
 import re
@@ -338,35 +339,21 @@ class ABCIViewIE(InfoExtractor):
                 break
 
         subtitles = {}
-        src_vtt = stream.get('captions', {}).get('src-vtt')
+        src_vtt = traverse_obj(stream, ('captions', 'src-vtt'))
         if src_vtt:
             subtitles['en'] = [{
                 'url': src_vtt,
                 'ext': 'vtt',
             }]
 
-        is_live = video_params.get('livestream') == '1' or stream['type'] == 'livestream'
-        thumbnail = traverse_obj(
-            video_params,
-            ('images', lambda _, v: v['name'] == 'episodeThumbnail', 'url'),
-            'thumbnail', expected_type=str, get_all=False)
-        series_id = traverse_obj(
-            video_params, ('analytics', 'oztam', 'seriesId'), 'seriesHouseNumber') or video_id[:7]
-        chapters = traverse_obj(
-            video_params, ('cuePoints', ..., {'start_time': 'start', 'end_time': 'end', 'title': 'type'}))
-
         title = unescapeHTML(traverse_obj(video_params, 'title', 'seriesTitle', 'showTitle'))
 
         return {
             'id': video_id,
             'title': title,
-            'description': video_params.get('description'),
-            'thumbnail': thumbnail,
-            'chapters': chapters,
-            'duration': int_or_none(traverse_obj(video_params, 'duration', 'eventDuration')),
-            'timestamp': parse_iso8601(video_params.get('pubDate'), ' '),
-            'series': unescapeHTML(traverse_obj(video_params, 'seriesTitle', 'showTitle')),
-            'series_id': series_id,
+            'series_id': traverse_obj(
+                video_params,
+                ('analytics', 'oztam', 'seriesId'), 'seriesHouseNumber') or video_id[:7],
             'season_number': int_or_none(self._search_regex(
                 r'\bSeries\s+(\d+)\b', title, 'season number', default=None)),
             'episode_number': int_or_none(self._search_regex(
@@ -374,10 +361,23 @@ class ABCIViewIE(InfoExtractor):
             'episode_id': house_number,
             'episode': self._search_regex(
                 r'^(?:Series\s+\d+)?\s*(?:Ep(?:isode)?\s+\d+)?\s*(.*)$', title, 'episode', default='') or None,
-            'uploader_id': video_params.get('channel'),
+            'is_live': video_params.get('livestream') == '1' or stream['type'] == 'livestream',
             'formats': formats,
             'subtitles': subtitles,
-            'is_live': is_live,
+            **traverse_obj(video_params, {
+                'description': ('description', {str}),
+                'thumbnail': ((
+                    ('images', lambda _, v: v['name'] == 'episodeThumbnail', 'url'), 'thumbnail'), {str}, any),
+                'chapters': ('cuePoints', ..., {
+                    'start_time': ('start', {int_or_none}),
+                    'end_time': ('end', {int_or_none}),
+                    'title': ('type', {str}),
+                }),
+                'duration': (('duration', 'eventDuration'), {int_or_none}, any),
+                'timestamp': ('pubDate', {functools.partial(parse_iso8601, delimiter=' ')}),
+                'series': (('seriesTitle', 'showTitle'), {unescapeHTML}, any),
+                'uploader_id': ('channel', {str}),
+            }),
         }
 
 
