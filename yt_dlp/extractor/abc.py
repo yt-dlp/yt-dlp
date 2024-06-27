@@ -319,9 +319,7 @@ class ABCIViewIE(InfoExtractor):
                 'hdnea': token,
             })
 
-        for sd in ('1080', '720', 'sd', 'sd-low'):
-            sd_url = try_get(
-                stream, lambda x: x['streams']['hls'][sd], str)
+        for sd_url in traverse_obj(stream, ('streams', 'hls-latest', ('1080', '720', 'sd', 'sd-low'), {str})):
             if not sd_url:
                 continue
             formats = self._extract_m3u8_formats(
