@@ -185,11 +185,11 @@ class AfreecaTVIE(AfreecaTVBaseIE):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         data = self._download_json(
-            'http://api.m.afreecatv.com/station/video/a/view', video_id,
+            'https://api.m.afreecatv.com/station/video/a/view', video_id,
             headers={'Referer': url}, data=urlencode_postdata({
                 'nTitleNo': video_id,
                 'nApiLevel': 10,
-            }))['data']
+            }), impersonate=True)['data']
 
         error_code = traverse_obj(data, ('code', {int}))
         if error_code == -6221:
