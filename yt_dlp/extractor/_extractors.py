@@ -254,6 +254,7 @@ from .bilibili import (
     BiliBiliIE,
     BiliBiliPlayerIE,
     BilibiliPlaylistIE,
+    BiliBiliSearchAllIE,
     BiliBiliSearchIE,
     BiliBiliSearchPageIE,
     BilibiliSeriesListIE,
