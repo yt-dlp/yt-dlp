@@ -305,18 +305,17 @@ class ABCIViewIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         video_params = self._download_json(
-            'https://api.iview.abc.net.au/v3/video/' + video_id, video_id,
+            f'https://api.iview.abc.net.au/v3/video/{video_id}', video_id,
             errnote='Failed to download API V3 JSON', fatal=False)
         # fallback to legacy API, which will return some useful info even if the video is unavailable
         if not video_params:
             video_params = self._download_json(
-                'https://iview.abc.net.au/api/programs/' + video_id, video_id,
-                note='Downloading legacy API JSON')
+                f'https://iview.abc.net.au/api/programs/{video_id}', video_id,
+                note='Falling back to legacy API JSON')
         stream = traverse_obj(video_params, (
-            ('_embedded', None), 'playlist', lambda _, v: v['type'] in ('program', 'livestream')),
-            get_all=False)
+            ('_embedded', None), 'playlist', lambda _, v: v['type'] in ('program', 'livestream'), any)) or {}
 
-        house_number = traverse_obj(video_params, ('houseNumber', 'episodeHouseNumber')) or video_id
+        house_number = traverse_obj(video_params, 'houseNumber', 'episodeHouseNumber') or video_id
         path = f'/auth/hls/sign?ts={int(time.time())}&hn={house_number}&d=android-tablet'
         sig = hmac.new(
             b'android.content.res.Resources',
@@ -344,8 +343,7 @@ class ABCIViewIE(InfoExtractor):
                     break
 
         subtitles = {}
-        src_vtt = traverse_obj(stream, ('captions', 'src-vtt'))
-        if src_vtt:
+        if src_vtt := traverse_obj(stream, ('captions', 'src-vtt', {url_or_none})):
             subtitles['en'] = [{
                 'url': src_vtt,
                 'ext': 'vtt',
@@ -357,8 +355,7 @@ class ABCIViewIE(InfoExtractor):
             'id': video_id,
             'title': title,
             'series_id': traverse_obj(
-                video_params,
-                ('analytics', 'oztam', 'seriesId'), 'seriesHouseNumber') or video_id[:7],
+                video_params, ('analytics', 'oztam', 'seriesId'), 'seriesHouseNumber') or video_id[:7],
             'season_number': int_or_none(self._search_regex(
                 r'\bSeries\s+(\d+)\b', title, 'season number', default=None)),
             'episode_number': int_or_none(self._search_regex(
@@ -366,14 +363,14 @@ class ABCIViewIE(InfoExtractor):
             'episode_id': house_number,
             'episode': self._search_regex(
                 r'^(?:Series\s+\d+)?\s*(?:Ep(?:isode)?\s+\d+)?\s*(.*)$', title, 'episode', default='') or None,
-            'is_live': video_params.get('livestream') == '1' or stream['type'] == 'livestream',
+            'is_live': video_params.get('livestream') == '1' or stream.get('type') == 'livestream',
             'formats': formats,
             'subtitles': subtitles,
             **traverse_obj(video_params, {
                 'description': ('description', {str}),
                 'thumbnail': ((
-                    ('images', lambda _, v: v['name'] == 'episodeThumbnail', 'url'), 'thumbnail'), {str}, any),
-                'chapters': ('cuePoints', ..., {
+                    ('images', lambda _, v: v['name'] == 'episodeThumbnail', 'url'), 'thumbnail'), {url_or_none}, any),
+                'chapters': ('cuePoints', lambda _, v: int(v['start']) is not None, {
                     'start_time': ('start', {int_or_none}),
                     'end_time': ('end', {int_or_none}),
                     'title': ('type', {str}),
