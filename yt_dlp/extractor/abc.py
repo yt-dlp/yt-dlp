@@ -334,10 +334,9 @@ class ABCIViewIE(InfoExtractor):
         # Note: pre-merged formats in hls-latest are treated as video-only if audio-only tracks
         # are present, so we extract both types
         for label in ('hls', 'hls-latest'):
-            for sd_url in traverse_obj(stream, ('streams', label, ('1080', '720', 'sd', 'sd-low'), {str})):
+            for sd_url in traverse_obj(stream, ('streams', label, ('1080', '720', 'sd', 'sd-low'), {url_or_none})):
                 fmts = self._extract_m3u8_formats(
-                    tokenize_url(sd_url, token), video_id, 'mp4',
-                    entry_protocol='m3u8_native', m3u8_id=label, fatal=False)
+                    tokenize_url(sd_url, token), video_id, 'mp4', m3u8_id=label, fatal=False)
                 if fmts:
                     formats.extend(fmts)
                     break
@@ -349,7 +348,7 @@ class ABCIViewIE(InfoExtractor):
                 'ext': 'vtt',
             }]
 
-        title = unescapeHTML(traverse_obj(video_params, 'title', 'seriesTitle', 'showTitle'))
+        title = traverse_obj(video_params, 'title', 'seriesTitle', 'showTitle', expected_type=unescapeHTML)
 
         return {
             'id': video_id,
