@@ -270,30 +270,24 @@ class AfreecaTVCatchStoryIE(AfreecaTVBaseIE):
         data = self._download_json(
             'http://api.m.afreecatv.com/catchstory/a/view', video_id, headers={'Referer': url},
             query={'aStoryListIdx': '', 'nStoryIdx': video_id}).get('data', [])
-        entries = []
-        for story in data:
-            if story.get('story_type') != 'catch':
-                break
-            for catch in story.get('catch_list', []):
-                # files is always a list of length 1
-                files = catch.get('files', [])
-                if not files:
-                    continue
-                file = files[0]
-                entries.append({
-                    'id': file.get('file_info_key'),
-                    'title': catch.get('title'),
-                    'uploader': catch.get('writer_nick'),
-                    'uploader_id': catch.get('writer_id'),
-                    'thumbnail': catch.get('thumb'),
-                    'duration': file.get('duration'),
-                    'formats': [{
-                        'url': file.get('file'),
-                        'format_id': 'http',
-                    }],
-                    'timestamp': file.get('write_timestamp'),
-                })
-        return self.playlist_result(entries, video_id)
+
+        return self.playlist_result(self._entries(data), video_id)
+
+    @staticmethod
+    def _entries(data):
+        # 'files' is always a list with 1 element
+        yield from traverse_obj(data, (
+            'data', lambda _, v: v['story_type'] == 'catch',
+            'catch_list', lambda _, v: v['files'][0]['file'], {
+                'id': ('files', 0, 'file_info_key', {str}),
+                'url': ('files', 0, 'file', {url_or_none}),
+                'duration': ('files', 0, 'duration', {functools.partial(int_or_none, scale=1000)}),
+                'title': ('title', {str}),
+                'uploader': ('writer_nick', {str}),
+                'uploader_id': ('writer_id', {str}),
+                'thumbnail': ('thumb', {url_or_none}),
+                'timestamp': ('write_timestamp', {int_or_none}),
+            }))
 
 
 class AfreecaTVLiveIE(AfreecaTVBaseIE):
