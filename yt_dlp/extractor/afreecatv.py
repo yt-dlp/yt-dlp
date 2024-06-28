@@ -72,7 +72,7 @@ class AfreecaTVIE(AfreecaTVBaseIE):
                             )\?.*?\bnTitleNo=|
                             vod\.afreecatv\.com/(PLAYER/STATION|player)/
                         )
-                        (?P<id>\d+)[^/]*$
+                        (?P<id>\d+)/?(?:$|[?#&])
                     '''
     _TESTS = [{
         'url': 'http://live.afreecatv.com:8079/app/index.cgi?szType=read_ucc_bbs&szBjId=dailyapril&nStationNo=16711924&nBbsNo=18605867&nTitleNo=36164052&szSkin=',
