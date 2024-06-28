@@ -341,6 +341,11 @@ class ABCIViewIE(InfoExtractor):
                     formats.extend(fmts)
                     break
 
+        # deprioritize audio description tracks
+        for f in formats:
+            if 'description' in (f.get('format_note') or '').lower():
+                f['language_preference'] = -10
+
         subtitles = {}
         if src_vtt := traverse_obj(stream, ('captions', 'src-vtt', {url_or_none})):
             subtitles['en'] = [{
