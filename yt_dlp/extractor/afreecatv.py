@@ -260,7 +260,6 @@ class AfreecaTVCatchStoryIE(AfreecaTVBaseIE):
     _TESTS = [{
         'url': 'https://vod.afreecatv.com/player/103247/catchstory',
         'info_dict': {
-            '_type': 'playlist',
             'id': '103247',
         },
         'playlist_count': 2,
