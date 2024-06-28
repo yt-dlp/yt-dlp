@@ -740,40 +740,38 @@ def _get_linux_desktop_environment(env, logger):
     xdg_current_desktop = env.get('XDG_CURRENT_DESKTOP', None)
     desktop_session = env.get('DESKTOP_SESSION', None)
     if xdg_current_desktop is not None:
-        xdg_current_desktop = xdg_current_desktop.split(':')[0].strip()
-
-        if xdg_current_desktop == 'Unity':
-            if desktop_session is not None and 'gnome-fallback' in desktop_session:
+        for part in map(str.strip, xdg_current_desktop.split(':')):
+            if part == 'Unity':
+                if desktop_session is not None and 'gnome-fallback' in desktop_session:
+                    return _LinuxDesktopEnvironment.GNOME
+                else:
+                    return _LinuxDesktopEnvironment.UNITY
+            elif part == 'Deepin':
+                return _LinuxDesktopEnvironment.DEEPIN
+            elif part == 'GNOME':
                 return _LinuxDesktopEnvironment.GNOME
-            else:
-                return _LinuxDesktopEnvironment.UNITY
-        elif xdg_current_desktop == 'Deepin':
-            return _LinuxDesktopEnvironment.DEEPIN
-        elif xdg_current_desktop == 'GNOME':
-            return _LinuxDesktopEnvironment.GNOME
-        elif xdg_current_desktop == 'X-Cinnamon':
-            return _LinuxDesktopEnvironment.CINNAMON
-        elif xdg_current_desktop == 'KDE':
-            kde_version = env.get('KDE_SESSION_VERSION', None)
-            if kde_version == '5':
-                return _LinuxDesktopEnvironment.KDE5
-            elif kde_version == '6':
-                return _LinuxDesktopEnvironment.KDE6
-            elif kde_version == '4':
-                return _LinuxDesktopEnvironment.KDE4
-            else:
-                logger.info(f'unknown KDE version: "{kde_version}". Assuming KDE4')
-                return _LinuxDesktopEnvironment.KDE4
-        elif xdg_current_desktop == 'Pantheon':
-            return _LinuxDesktopEnvironment.PANTHEON
-        elif xdg_current_desktop == 'XFCE':
-            return _LinuxDesktopEnvironment.XFCE
-        elif xdg_current_desktop == 'UKUI':
-            return _LinuxDesktopEnvironment.UKUI
-        elif xdg_current_desktop == 'LXQt':
-            return _LinuxDesktopEnvironment.LXQT
-        else:
-            logger.info(f'XDG_CURRENT_DESKTOP is set to an unknown value: "{xdg_current_desktop}"')
+            elif part == 'X-Cinnamon':
+                return _LinuxDesktopEnvironment.CINNAMON
+            elif part == 'KDE':
+                kde_version = env.get('KDE_SESSION_VERSION', None)
+                if kde_version == '5':
+                    return _LinuxDesktopEnvironment.KDE5
+                elif kde_version == '6':
+                    return _LinuxDesktopEnvironment.KDE6
+                elif kde_version == '4':
+                    return _LinuxDesktopEnvironment.KDE4
+                else:
+                    logger.info(f'unknown KDE version: "{kde_version}". Assuming KDE4')
+                    return _LinuxDesktopEnvironment.KDE4
+            elif part == 'Pantheon':
+                return _LinuxDesktopEnvironment.PANTHEON
+            elif part == 'XFCE':
+                return _LinuxDesktopEnvironment.XFCE
+            elif part == 'UKUI':
+                return _LinuxDesktopEnvironment.UKUI
+            elif part == 'LXQt':
+                return _LinuxDesktopEnvironment.LXQT
+        logger.info(f'XDG_CURRENT_DESKTOP is set to an unknown value: "{xdg_current_desktop}"')
 
     elif desktop_session is not None:
         if desktop_session == 'deepin':

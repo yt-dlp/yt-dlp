@@ -119,14 +119,21 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
             if not mutagen or prefer_atomicparsley:
                 success = False
             else:
+                self._report_run('mutagen', filename)
+                f = {'jpeg': MP4Cover.FORMAT_JPEG, 'png': MP4Cover.FORMAT_PNG}
                 try:
-                    self._report_run('mutagen', filename)
+                    with open(thumbnail_filename, 'rb') as thumbfile:
+                        thumb_data = thumbfile.read()
+
+                    type_ = imghdr.what(h=thumb_data)
+                    if not type_:
+                        raise ValueError('could not determine image type')
+                    elif type_ not in f:
+                        raise ValueError(f'incompatible image type: {type_}')
+
                     meta = MP4(filename)
                     # NOTE: the 'covr' atom is a non-standard MPEG-4 atom,
                     # Apple iTunes 'M4A' files include the 'moov.udta.meta.ilst' atom.
-                    f = {'jpeg': MP4Cover.FORMAT_JPEG, 'png': MP4Cover.FORMAT_PNG}[imghdr.what(thumbnail_filename)]
-                    with open(thumbnail_filename, 'rb') as thumbfile:
-                        thumb_data = thumbfile.read()
                     meta.tags['covr'] = [MP4Cover(data=thumb_data, imageformat=f)]
                     meta.save()
                     temp_filename = filename
@@ -160,9 +167,10 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
                     stdout, stderr, returncode = Popen.run(cmd, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                     if returncode:
                         self.report_warning(f'Unable to embed thumbnails using AtomicParsley; {stderr.strip()}')
+                        success = False
                     # for formats that don't support thumbnails (like 3gp) AtomicParsley
                     # won't create to the temporary file
-                    if 'No changes' in stdout:
+                    elif 'No changes' in stdout:
                         self.report_warning('The file format doesn\'t support embedding a thumbnail')
                         success = False
 
