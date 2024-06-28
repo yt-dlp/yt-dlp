@@ -281,6 +281,7 @@ class AfreecaTVCatchStoryIE(AfreecaTVBaseIE):
             'catch_list', lambda _, v: v['files'][0]['file'], {
                 'id': ('files', 0, 'file_info_key', {str}),
                 'url': ('files', 0, 'file', {url_or_none}),
+                'ext': ('src_movie', {lambda v: determine_ext(v, 'mp4')}),
                 'duration': ('files', 0, 'duration', {functools.partial(int_or_none, scale=1000)}),
                 'title': ('title', {str}),
                 'uploader': ('writer_nick', {str}),
