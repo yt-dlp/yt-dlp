@@ -268,8 +268,8 @@ class AfreecaTVCatchStoryIE(AfreecaTVBaseIE):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         data = self._download_json(
-            'http://api.m.afreecatv.com/catchstory/a/view', video_id, headers={'Referer': url},
-            query={'aStoryListIdx': '', 'nStoryIdx': video_id}).get('data', [])
+            'https://api.m.afreecatv.com/catchstory/a/view', video_id, headers={'Referer': url},
+            query={'aStoryListIdx': '', 'nStoryIdx': video_id}, impersonate=True)
 
         return self.playlist_result(self._entries(data), video_id)
 
