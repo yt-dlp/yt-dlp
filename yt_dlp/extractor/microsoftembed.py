@@ -247,7 +247,7 @@ class MicrosoftLearnIE(MicrosoftMediusBaseIE):
         }
 
 
-class MicrosoftBuildIE(MicrosoftMediusBaseIE):
+class MicrosoftBuildIE(InfoExtractor):
     _VALID_URL = [
         r'https?://build\.microsoft\.com/[\w\-]+/sessions/(?P<id>[0-9a-f\-]+)',
         r'https?://build\.microsoft\.com/[\w\-]+/(?P<id>sessions)/?(?:[?#]|$)',
