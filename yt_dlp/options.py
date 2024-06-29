@@ -1781,7 +1781,7 @@ def create_parser():
             'It can be one of "pre_process" (after video extraction), "after_filter" (after video passes filter), '
             '"video" (after --format; before --print/--output), "before_dl" (before each video download), '
             '"post_process" (after each video download; default), '
-            '"after_move" (after moving video file to it\'s final locations), '
+            '"after_move" (after moving video file to its final locations), '
             '"after_video" (after downloading and processing all formats of a video), '
             'or "playlist" (at end of playlist). '
             'This option can be used multiple times to add different postprocessors'))
