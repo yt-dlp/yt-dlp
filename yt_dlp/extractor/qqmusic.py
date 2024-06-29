@@ -1,10 +1,12 @@
 import base64
+import functools
 import json
 import random
 import time
 
 from .common import InfoExtractor
 from ..utils import (
+    OnDemandPagedList,
     ExtractorError,
     clean_html,
     int_or_none,
@@ -266,28 +268,28 @@ class QQMusicSingerIE(QQMusicBaseIE):
         }],
     }]
 
-    def _entries(self, mid, init_data):
-        page_size = 50
-        max_num = traverse_obj(init_data, ('singerDetail', 'songTotalNum'))
-        for page in range(max_num // page_size + 1):
-            data = self.make_fcu_req({'req_1': {
-                'module': 'music.web_singer_info_svr',
-                'method': 'get_singer_detail_info',
-                'param': {
-                    'sort': 5,
-                    'singermid': mid,
-                    'sin': page * page_size,
-                    'num': page_size,
-                }}}, mid, note=f'Downloading page {page}')
-            yield from traverse_obj(data, ('req_1', 'data', 'songlist', ..., {lambda x: self.url_result(
-                f'https://y.qq.com/n/ryqq/songDetail/{x["mid"]}', QQMusicIE, x['mid'], x.get('title'))}))
+    _PAGE_SIZE = 50
+
+    def _fetch_page(self, mid, page_size, page_num):
+        data = self.make_fcu_req({'req_1': {
+            'module': 'music.web_singer_info_svr',
+            'method': 'get_singer_detail_info',
+            'param': {
+                'sort': 5,
+                'singermid': mid,
+                'sin': page_num * page_size,
+                'num': page_size,
+            }}}, mid, note=f'Downloading page {page_num}')
+        yield from traverse_obj(data, ('req_1', 'data', 'songlist', ..., {lambda x: self.url_result(
+            f'https://y.qq.com/n/ryqq/songDetail/{x["mid"]}', QQMusicIE, x['mid'], x.get('title'))}))
 
     def _real_extract(self, url):
         mid = self._match_id(url)
-
         init_data = self.download_init_data(url, mid)
+
         return self.playlist_result(
-            self._entries(mid, init_data), mid, **traverse_obj(init_data, ('singerDetail', {
+            OnDemandPagedList(functools.partial(self._fetch_page, mid, self._PAGE_SIZE), self._PAGE_SIZE),
+            mid, **traverse_obj(init_data, ('singerDetail', {
                 'title': ('basic_info', 'name', {str}),
                 'description': ('ex_info', 'desc', {str}),
                 'thumbnail': ('pic', 'pic', {url_or_none}),
