@@ -78,7 +78,7 @@ class MicrosoftMediusBaseIE(InfoExtractor):
     def _sub_to_dict(subtitle_list):
         subtitles = {}
         for sub in subtitle_list:
-            subtitles.setdefault(sub.pop('tag', None) or 'unknown', []).append(sub)
+            subtitles.setdefault(sub.pop('tag', 'unknown'), []).append(sub)
         return subtitles
 
     def _extract_ism(self, ism_url, video_id):
