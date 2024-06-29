@@ -174,7 +174,9 @@
  - **BilibiliFavoritesList**
  - **BiliBiliPlayer**
  - **BilibiliPlaylist**
+ - **BiliBiliSearchAll**: Bilibili all search; "bilisearchall:" prefix
  - **BiliBiliSearch**: Bilibili video search; "bilisearch:" prefix
+ - **BiliBiliSearchPage**
  - **BilibiliSeriesList**
  - **BilibiliSpaceAudio**
  - **BilibiliSpaceVideo**

@@ -2312,7 +2312,7 @@ class BiliLiveIE(InfoExtractor):
 
 
 class BiliBiliSearchPageIE(BilibiliBaseIE):
-    _VALID_URL = r'https?://search\.bilibili\.com/(?P<type>all|video|bangumi|pgc|live|upuser)/?\?keyword=(?P<id>[^/?#&]+)'
+    _VALID_URL = r'https?://search\.bilibili\.com/(?P<type>all|video|bangumi|pgc|live|upuser).*'
     _TESTS = [{
         'url': r'https://search.bilibili.com/all?keyword=yt+-+dlp+%E4%B8%8B%E8%BD%BD%E5%99%A8',
         'playlist_count': 20,
@@ -2321,20 +2321,33 @@ class BiliBiliSearchPageIE(BilibiliBaseIE):
             'title': 'yt - dlp 下载器',
         },
     }, {
-        'url': r'https://search.bilibili.com/bangumi?keyword=%E5%AD%A4%E7%8B%AC%E6%91%87%E6%BB%9A&from_source=webtop_search&spm_id_from=333.1007&search_source=5',
+        'url': r'https://search.bilibili.com/bangumi/?keyword=%E5%AD%A4%E7%8B%AC%E6%91%87%E6%BB%9A&from_source=webtop_search&spm_id_from=333.1007&search_source=5',
         'playlist_mincount': 1,
         'info_dict': {
             'id': '孤独摇滚',
             'title': '孤独摇滚',
+        },
+        'skip': 'geo-restricted',
+    }, {
+        'url': r'https://search.bilibili.com/video?keyword=%E8%AE%A9%E5%AD%90%E5%BC%B9%E9%A3%9E&from_source=webtop_search&spm_id_from=333.1007&search_source=5&order=dm&duration=4&tids=181&page=3&o=72',
+        'playlist_mincount': 5,
+        'info_dict': {
+            'id': '让子弹飞',
+            'title': '让子弹飞',
         },
     }]
 
     def _real_extract(self, url):
         headers = self.geo_verification_headers()
         entries = []
+        params = parse_qs(url)
+        query = {}
         if not self._get_cookies('https://api.bilibili.com').get('buvid3'):
             self._set_cookie('.bilibili.com', 'buvid3', f'{uuid.uuid4()}infoc')
-        search_type, raw_playlist_id = self._match_valid_url(url).group('type', 'id')
+        search_type = self._match_valid_url(url).group('type')
+        raw_playlist_id = traverse_obj(params, ('keyword', 0))
+        if raw_playlist_id is None:
+            raise ExtractorError('Please specify the keyword to search for!', expected=True)
         playlist_id = urllib.parse.unquote_plus(raw_playlist_id)
         search_type_mapping = {
             'video': 'video',
@@ -2343,24 +2356,38 @@ class BiliBiliSearchPageIE(BilibiliBaseIE):
             'live': 'live_room',
             'upuser': 'bili_user',
         }
+        valid_params = [
+            'keyword',
+            'page',
+            'order',
+            'duration',
+            'tids',
+            'search_type',
+            'order_sort',
+            'user_type',
+        ]
+        for valid_param in valid_params:
+            param_value = traverse_obj(params, (valid_param, 0))
+            if param_value is not None:
+                query[valid_param] = param_value
         live_room_prefix = 'https://live.bilibili.com/'
         bili_user_prefix = 'https://space.bilibili.com/'
+        if search_type == 'live' and traverse_obj(params, ('search_type', 0)) == 'live_user':
+            raise ExtractorError('Live users are not downloadable!', expected=True)
         if search_type == 'all':
             try:
                 search_all_result = self._download_json(
                     r'https://api.bilibili.com/x/web-interface/search/all/v2',
-                    video_id=playlist_id, query={
-                        'keyword': playlist_id,
-                    }, headers=headers)
+                    video_id=playlist_id, query=query, headers=headers)
             except ExtractorError as e:
                 if isinstance(e.cause, HTTPError) and e.cause.status == 412:
                     raise ExtractorError('Request is blocked by server (-412).', expected=True)
+                raise
             status_code = search_all_result['code']
             if status_code == -400:
                 raise ExtractorError('Invalid request (-400).', expected=True)
             result_list = search_all_result['data'].get('result')
             if result_list is None:
-                self.write_debug(f'Response: {search_all_result}')
                 raise ExtractorError(f'Result not found in the response ({status_code}).',
                                      expected=True)
             for result_type_dict in result_list:
@@ -2378,20 +2405,21 @@ class BiliBiliSearchPageIE(BilibiliBaseIE):
                 search_type_result = self._download_json(
                     r'https://api.bilibili.com/x/web-interface/search/type',
                     video_id=playlist_id, query={
-                        'keyword': playlist_id,
                         'search_type': search_type_mapping[search_type],
+                        **query,  # search_type in type is overridden when specified in url params
                     }, headers=headers)
             except ExtractorError as e:
                 if isinstance(e.cause, HTTPError) and e.cause.status == 412:
-                    raise ExtractorError('Request is blocked by server (-412).', expected=True)
+                    raise ExtractorError('Request is blocked by server (-412).')
+                raise
             status_code = search_type_result['code']
             if status_code == -400:
-                raise ExtractorError('Invalid request (-400).', expected=True)
+                raise ExtractorError('Invalid request (-400).')
             result_list = search_type_result['data'].get('result')
             if result_list is None:
-                self.write_debug(f'Response: {search_type_result}')
-                raise ExtractorError(f'Result not found in the response ({status_code}).',
-                                     expected=True)
+                raise ExtractorError(
+                    f'Result not found in the response ({status_code}). '
+                    'You might want to try a VPN or a proxy server (with --proxy)', expected=True)
             for result_data in result_list:
                 if result_data['type'] == 'video':
                     entries.append(self.url_result(result_data['arcurl']))
