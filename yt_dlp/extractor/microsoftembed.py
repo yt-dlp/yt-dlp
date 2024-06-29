@@ -276,12 +276,13 @@ class MicrosoftBuildIE(MicrosoftMediusBaseIE):
         video_id = self._match_id(url)
 
         entries = [
-            self.url_result(video_info['onDemand'], url_transparent=True, **traverse_obj(video_info, {
-                'id': ('sessionId', {str}),
-                'title': ('title', {str}),
-                'description': ('description', {str}),
-                'timestamp': ('startDateTime', {parse_iso8601}),
-            }))
+            self.url_result(
+                video_info['onDemand'], ie=MicrosoftMediusIE, url_transparent=True, **traverse_obj(video_info, {
+                    'id': ('sessionId', {str}),
+                    'title': ('title', {str}),
+                    'description': ('description', {str}),
+                    'timestamp': ('startDateTime', {parse_iso8601}),
+                }))
             for video_info in self._download_json(
                 'https://api-v2.build.microsoft.com/api/session/all/en-US', video_id, 'Downloading video info')
         ]
