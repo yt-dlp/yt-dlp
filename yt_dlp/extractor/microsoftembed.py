@@ -114,7 +114,6 @@ class MicrosoftMediusIE(MicrosoftMediusBaseIE):
             'thumbnail': r're:https://mediusimg\.event\.microsoft\.com/video-\d+/thumbnail\.jpg.*',
             'subtitles': 'count:31',
         },
-        'params': {'listsubtitles': True},
     }, {
         'url': 'https://medius.microsoft.com/Embed/VideoDetails/78493569-9b3b-4a85-a409-ee76e789e25c',
         'info_dict': {
@@ -125,7 +124,6 @@ class MicrosoftMediusIE(MicrosoftMediusBaseIE):
             'thumbnail': r're:https://mediusdownload.event.microsoft.com/asset.*\.jpg.*',
             'subtitles': 'count:17',
         },
-        'params': {'listsubtitles': True},
     }, {
         'url': 'https://medius.microsoft.com/Embed/Video?id=0dc69bda-079b-4070-a7db-a8da1a06a9c7',
         'only_matching': True,
