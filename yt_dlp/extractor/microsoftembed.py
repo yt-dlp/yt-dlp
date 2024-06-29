@@ -92,7 +92,7 @@ class MicrosoftMediusBaseIE(InfoExtractor):
 
 
 class MicrosoftMediusIE(MicrosoftMediusBaseIE):
-    _VALID_URL = r'https?://medius\.microsoft\.com/[^?#]+/(?P<id>[0-9a-f\-]+)'
+    _VALID_URL = r'https?://medius\.microsoft\.com/Embed/(?:Video\?id=|video-nc/|VideoDetails/)(?P<id>[0-9a-f\-]+)'
 
     _TESTS = [{
         'url': 'https://medius.microsoft.com/Embed/video-nc/9640d86c-f513-4889-959e-5dace86e7d2b',
@@ -116,6 +116,23 @@ class MicrosoftMediusIE(MicrosoftMediusBaseIE):
             'subtitles': 'count:31',
         },
         'params': {'listsubtitles': True},
+    }, {
+        'url': 'https://medius.microsoft.com/Embed/VideoDetails/78493569-9b3b-4a85-a409-ee76e789e25c',
+        'info_dict': {
+            'id': '78493569-9b3b-4a85-a409-ee76e789e25c',
+            'ext': 'ismv',
+            'title': ' Anomaly Detection & Root cause at Edge',
+            'description': 'md5:f8f1ad93d7918649bfb97fa081b03b83',
+            'thumbnail': r're:https://mediusdownload.event.microsoft.com/asset.*\.jpg.*',
+            'subtitles': 'count:17',
+        },
+        'params': {'listsubtitles': True},
+    }, {
+        'url': 'https://medius.microsoft.com/Embed/Video?id=0dc69bda-079b-4070-a7db-a8da1a06a9c7',
+        'only_matching': True,
+    }, {
+        'url': 'https://medius.microsoft.com/Embed/video-nc/fe823a91-959c-465b-96d4-8f4db624f72c',
+        'only_matching': True,
     }]
 
     def _extract_subtitle(self, webpage, video_id):
@@ -135,7 +152,7 @@ class MicrosoftMediusIE(MicrosoftMediusBaseIE):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        webpage = self._download_webpage(url, video_id)
+        webpage = self._download_webpage(f'https://medius.microsoft.com/Embed/video-nc/{video_id}', video_id)
 
         ism_url = self._search_regex(r'StreamUrl\s*=\s*"([^"]+manifest)"', webpage, 'ism url')
 
