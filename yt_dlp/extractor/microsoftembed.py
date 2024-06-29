@@ -229,11 +229,6 @@ class MicrosoftLearnEpisodeIE(MicrosoftMediusBaseIE):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        metainfo = {
-            'title': self._og_search_title(webpage),
-            'description': self._og_search_description(webpage),
-        }
-
         entry_id = self._search_regex(r'<meta name="entryId" content="([^"]+)"', webpage, 'entryId')
         video_info = self._download_json(
             f'https://learn.microsoft.com/api/video/public/v1/entries/{entry_id}', video_id)
@@ -244,7 +239,8 @@ class MicrosoftLearnEpisodeIE(MicrosoftMediusBaseIE):
                 'tag': ('language', {str}),
                 'url': ('url', {url_or_none}),
             }))),
-            **metainfo,
+            'title': self._og_search_title(webpage),
+            'description': self._og_search_description(webpage),
             **traverse_obj(video_info, {
                 'timestamp': ('createTime', {parse_iso8601}),
                 'thumbnails': ('publicVideo', 'thumbnailOtherSizes', ..., {lambda x: {'url': x}}),
