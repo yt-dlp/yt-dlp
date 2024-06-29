@@ -104,7 +104,6 @@ class MicrosoftMediusIE(MicrosoftMediusBaseIE):
             'thumbnail': r're:https://mediusimg\.event\.microsoft\.com/video-\d+/thumbnail\.jpg.*',
             'subtitles': 'count:30',
         },
-        'params': {'listsubtitles': True},
     }, {
         'url': 'https://medius.microsoft.com/Embed/video-nc/81215af5-c813-4dcd-aede-94f4e1a7daa3',
         'info_dict': {
