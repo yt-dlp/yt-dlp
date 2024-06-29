@@ -15,6 +15,7 @@ from ..utils import (
     traverse_obj,
     unescapeHTML,
     url_or_none,
+    urljoin,
 )
 
 
@@ -295,7 +296,7 @@ class QQMusicSingerIE(QQMusicBaseIE):
 
 class QQPlaylistBaseIE(InfoExtractor):
     def _extract_entries(self, info_json, path):
-        for entry in traverse_obj(info_json, *path):
+        for song in traverse_obj(info_json, path):
             song_mid = song['songmid']
             yield self.url_result(
                 f'https://y.qq.com/n/ryqq/songDetail/{song_mid}',
