@@ -178,15 +178,23 @@ class QQMusicIE(QQMusicBaseIE):
         code = traverse_obj(data, ('req_1', 'code', {int}))
         if code != 0:
             raise ExtractorError(f'Failed to download format info, error code {code or "unknown"}')
-        formats = traverse_obj(data, ('req_1', 'data', 'midurlinfo', lambda _, v: v['songmid'] == mid and v['purl'], {
-            'url': ('purl', {str}, {lambda x: f'https://dl.stream.qqmusic.qq.com/{x}'}),
-            'format': ('filename', {lambda x: self._FORMATS[x[:4]]['name']}),
-            'format_id': ('filename', {lambda x: self._FORMATS[x[:4]]['name']}),
-            'size': ('filename', {lambda x: self._FORMATS[x[:4]]['name']},
-                     {lambda x: traverse_obj(info_data, ('file', f'size_{x}'), get_all=False)}),
-            'quality': ('filename', {lambda x: self._FORMATS[x[:4]]['preference']}),
-            'abr': ('filename', {lambda x: self._FORMATS[x[:4]]['abr']}),
-        }))
+        formats = []
+        for media_info in traverse_obj(data, (
+            'req_1', 'data', 'midurlinfo', lambda _, v: v['songmid'] == mid and v['purl']),
+        ):
+            format_key = traverse_obj(media_info, ('filename', {str}, {lambda x: x[:4]}))
+            format_info = self._FORMATS.get(format_key) or {}
+            format_id = format_info.get('name')
+            formats.append({
+                'url': urljoin('https://dl.stream.qqmusic.qq.com', media_info['purl']),
+                'format': format_id,
+                'format_id': format_id,
+                'size': traverse_obj(info_data, ('file', f'size_{format_id}', {int_or_none})),
+                'quality': format_info.get('preference'),
+                'abr': format_info.get('abr'),
+                'ext': format_info.get('ext'),
+                'vcodec': 'none',
+            })
 
         if not formats and not self.is_logged_in:
             self.raise_login_required()
