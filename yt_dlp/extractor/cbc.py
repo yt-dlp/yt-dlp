@@ -318,11 +318,11 @@ class CBCPlayerIE(InfoExtractor):
             json_data = self._search_json(
                 r'window\.__INITIAL_STATE__\s*=', webpage,
                 'initial state', video_id)
-            mediaID = traverse_obj(json_data, ('video', 'currentClip', 'mediaId'))
+            mediaID = traverse_obj(json_data, ('video', 'currentClip', 'mediaId')) or None
             if mediaID is None:
                 info = json_data['video']['currentClip']
-                m3u8_url = self._download_json(info['media']['assets'][0]['key'], video_id)['url']
-                formats, subtitles = self._extract_m3u8_formats_and_subtitles(m3u8_url, video_id)
+                formats, subtitles = self._extract_m3u8_formats_and_subtitles(
+                    self._download_json(info['media']['assets'][0]['key'], video_id)['url'], video_id)
 
                 def _process_chapters(tp_chapters, duration):
                     chapters = []
@@ -338,13 +338,16 @@ class CBCPlayerIE(InfoExtractor):
                             'title': title,
                         })
 
-                    if len(tp_chapters) == 0 or tp_chapters is None:
+                    if tp_chapters is None or len(tp_chapters) == 0:
                         return []
+
                     for x in range(len(tp_chapters) - 1):
-                        _add_chapter(tp_chapters[x].get('startTime'), tp_chapters[x].get('endTime')
-                            or tp_chapters[x + 1].get('startTime'), tp_chapters[x].get('name'))
-                    _add_chapter(tp_chapters[-1].get('startTime'), tp_chapters[-1].get('endTime')
-                        or duration, tp_chapters[-1].get('name'))
+                        _add_chapter(tp_chapters[x].get('startTime'),
+                                     tp_chapters[x].get('endTime') or tp_chapters[x + 1].get('startTime'),
+                                     tp_chapters[x].get('name'))
+                    _add_chapter(tp_chapters[-1].get('startTime'),
+                                 tp_chapters[-1].get('endTime') or duration, tp_chapters[-1].get('name'))
+
                     return chapters
 
                 return {
@@ -357,7 +360,8 @@ class CBCPlayerIE(InfoExtractor):
                         info.get('image').get('url')),
                         url_basename(info.get('image').get('url'))),  # strip the arguments from the URL to remove the crop
                     'timestamp': int_or_none(info.get('publishedAt'), 1000) or None,
-                    'chapters': _process_chapters(traverse_obj(info, ('media', 'chapters')),
+                    'chapters': _process_chapters(
+                        traverse_obj(info, ('media', 'chapters')),
                         traverse_obj(info, ('media', 'duration'))),
                     'media_type': traverse_obj(info, ('media', 'clipType')),
                     'series': info.get('showName'),
