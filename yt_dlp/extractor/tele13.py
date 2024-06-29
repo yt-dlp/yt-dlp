@@ -36,7 +36,7 @@ class Tele13IE(InfoExtractor):
                 'uploader_id': 'UCnLY_3ezwNcDSC_Wc6suZxw',
             },
             'add_ie': ['Youtube'],
-        }
+        },
     ]
 
     def _real_extract(self, url):

@@ -78,7 +78,7 @@ class DigitalConcertHallIE(InfoExtractor):
                 }), headers={
                     'Content-Type': 'application/x-www-form-urlencoded',
                     'Referer': 'https://www.digitalconcerthall.com',
-                    'Authorization': f'Bearer {self._ACCESS_TOKEN}'
+                    'Authorization': f'Bearer {self._ACCESS_TOKEN}',
                 })
         except ExtractorError:
             self.raise_login_required(msg='Login info incorrect')
@@ -94,7 +94,7 @@ class DigitalConcertHallIE(InfoExtractor):
                 self._proto_relative_url(item['_links']['streams']['href']), video_id, headers={
                     'Accept': 'application/json',
                     'Authorization': f'Bearer {self._ACCESS_TOKEN}',
-                    'Accept-Language': language
+                    'Accept-Language': language,
                 })
 
             m3u8_url = traverse_obj(
@@ -128,13 +128,13 @@ class DigitalConcertHallIE(InfoExtractor):
             self._download_webpage(url, video_id), 'thumbnail')
         thumbnails = [{
             'url': thumbnail_url,
-            **parse_resolution(thumbnail_url)
+            **parse_resolution(thumbnail_url),
         }]
 
         vid_info = self._download_json(
             f'https://api.digitalconcerthall.com/v2/{type_}/{video_id}', video_id, headers={
                 'Accept': 'application/json',
-                'Accept-Language': language
+                'Accept-Language': language,
             })
         album_artist = ' / '.join(traverse_obj(vid_info, ('_links', 'artist', ..., 'name')) or '')
         videos = [vid_info] if type_ == 'film' else traverse_obj(vid_info, ('_embedded', ..., ...))

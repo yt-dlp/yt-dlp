@@ -24,8 +24,8 @@ class WikimediaIE(InfoExtractor):
             'description': 'md5:7cd84f76e7081f1be033d0b155b4a460',
             'license': 'Creative Commons Attribution 4.0 International',
             'uploader': 'ZDF/Terra X/Gruppe 5/Luise Wagner, Jonas Sichert, Andreas Hougardy',
-            'subtitles': 'count:4'
-        }
+            'subtitles': 'count:4',
+        },
     }]
 
     def _real_extract(self, url):

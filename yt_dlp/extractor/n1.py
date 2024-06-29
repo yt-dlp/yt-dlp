@@ -16,7 +16,7 @@ class N1InfoAssetIE(InfoExtractor):
             'id': 'ljsottomazilirija3060921-n1info-si-worldwide',
             'ext': 'mp4',
             'title': 'ljsottomazilirija3060921-n1info-si-worldwide',
-        }
+        },
     }]
 
     def _real_extract(self, url):
@@ -46,7 +46,7 @@ class N1InfoIIE(InfoExtractor):
             'description': 'md5:467f330af1effedd2e290f10dc31bb8e',
             'uploader': 'Sport Klub',
             'uploader_id': 'sportklub',
-        }
+        },
     }, {
         'url': 'https://rs.n1info.com/vesti/djilas-los-plan-za-metro-nece-resiti-nijedan-saobracajni-problem/',
         'info_dict': {
@@ -102,7 +102,7 @@ class N1InfoIIE(InfoExtractor):
             'title': 'Ćuta: Biti u Kosovskoj Mitrovici znači da te dočekaju eksplozivnim napravama',
             'upload_date': '20230620',
             'timestamp': 1687290536,
-            'thumbnail': 'https://cdn.brid.tv/live/partners/26827/snapshot/1332368_th_6492013a8356f_1687290170.jpg'
+            'thumbnail': 'https://cdn.brid.tv/live/partners/26827/snapshot/1332368_th_6492013a8356f_1687290170.jpg',
         },
     }, {
         'url': 'https://hr.n1info.com/vijesti/pravobraniteljica-o-ubojstvu-u-zagrebu-radi-se-o-doista-nezapamcenoj-situaciji/',

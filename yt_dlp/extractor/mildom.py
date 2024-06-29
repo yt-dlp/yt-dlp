@@ -18,7 +18,7 @@ class MildomBaseIE(InfoExtractor):
 
     def _call_api(self, url, video_id, query=None, note='Downloading JSON metadata', body=None):
         if not self._GUEST_ID:
-            self._GUEST_ID = f'pc-gp-{str(uuid.uuid4())}'
+            self._GUEST_ID = f'pc-gp-{uuid.uuid4()}'
 
         content = self._download_json(
             url, video_id, note=note, data=json.dumps(body).encode() if body else None,
@@ -150,18 +150,18 @@ class MildomVodIE(MildomBaseIE):
             'protocol': 'm3u8_native',
             'vcodec': 'none',
             'acodec': 'aac',
-            'ext': 'm4a'
+            'ext': 'm4a',
         }]
         for fmt in autoplay['video_link']:
             formats.append({
-                'format_id': 'video-%s' % fmt['name'],
+                'format_id': 'video-{}'.format(fmt['name']),
                 'url': fmt['url'],
                 'protocol': 'm3u8_native',
                 'width': fmt['level'] * autoplay['video_width'] // autoplay['video_height'],
                 'height': fmt['level'],
                 'vcodec': 'h264',
                 'acodec': 'aac',
-                'ext': 'mp4'
+                'ext': 'mp4',
             })
 
         return {
@@ -280,7 +280,7 @@ class MildomUserVodIE(MildomBaseIE):
 
     def _real_extract(self, url):
         user_id = self._match_id(url)
-        self.to_screen('This will download all VODs belonging to user. To download ongoing live video, use "https://www.mildom.com/%s" instead' % user_id)
+        self.to_screen(f'This will download all VODs belonging to user. To download ongoing live video, use "https://www.mildom.com/{user_id}" instead')
 
         profile = self._call_api(
             'https://cloudac.mildom.com/nonolive/gappserv/user/profileV2', user_id,

@@ -153,7 +153,7 @@ class Art19IE(InfoExtractor):
                 'series_id': ('series_id', {str}),
                 'timestamp': ('created_at', {parse_iso8601}),
                 'release_timestamp': ('released_at', {parse_iso8601}),
-                'modified_timestamp': ('updated_at', {parse_iso8601})
+                'modified_timestamp': ('updated_at', {parse_iso8601}),
             })),
             **traverse_obj(rss_metadata, ('content', {
                 'title': ('episode_title', {str}),

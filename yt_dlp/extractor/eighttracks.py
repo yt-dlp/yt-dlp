@@ -2,9 +2,6 @@ import json
 import random
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-)
 from ..utils import (
     ExtractorError,
 )
@@ -29,8 +26,8 @@ class EightTracksIE(InfoExtractor):
                     'id': '11885610',
                     'ext': 'm4a',
                     'title': "youtue-dl project<>\"' - youtube-dl test track 1 \"'/\\\u00e4\u21ad",
-                    'uploader_id': 'ytdl'
-                }
+                    'uploader_id': 'ytdl',
+                },
             },
             {
                 'md5': '4ab26f05c1f7291ea460a3920be8021f',
@@ -38,8 +35,8 @@ class EightTracksIE(InfoExtractor):
                     'id': '11885608',
                     'ext': 'm4a',
                     'title': "youtube-dl project - youtube-dl test track 2 \"'/\\\u00e4\u21ad",
-                    'uploader_id': 'ytdl'
-                }
+                    'uploader_id': 'ytdl',
+                },
             },
             {
                 'md5': 'd30b5b5f74217410f4689605c35d1fd7',
@@ -47,8 +44,8 @@ class EightTracksIE(InfoExtractor):
                     'id': '11885679',
                     'ext': 'm4a',
                     'title': "youtube-dl project as well - youtube-dl test track 3 \"'/\\\u00e4\u21ad",
-                    'uploader_id': 'ytdl'
-                }
+                    'uploader_id': 'ytdl',
+                },
             },
             {
                 'md5': '4eb0a669317cd725f6bbd336a29f923a',
@@ -56,8 +53,8 @@ class EightTracksIE(InfoExtractor):
                     'id': '11885680',
                     'ext': 'm4a',
                     'title': "youtube-dl project as well - youtube-dl test track 4 \"'/\\\u00e4\u21ad",
-                    'uploader_id': 'ytdl'
-                }
+                    'uploader_id': 'ytdl',
+                },
             },
             {
                 'md5': '1893e872e263a2705558d1d319ad19e8',
@@ -65,8 +62,8 @@ class EightTracksIE(InfoExtractor):
                     'id': '11885682',
                     'ext': 'm4a',
                     'title': "PH - youtube-dl test track 5 \"'/\\\u00e4\u21ad",
-                    'uploader_id': 'ytdl'
-                }
+                    'uploader_id': 'ytdl',
+                },
             },
             {
                 'md5': 'b673c46f47a216ab1741ae8836af5899',
@@ -74,8 +71,8 @@ class EightTracksIE(InfoExtractor):
                     'id': '11885683',
                     'ext': 'm4a',
                     'title': "PH - youtube-dl test track 6 \"'/\\\u00e4\u21ad",
-                    'uploader_id': 'ytdl'
-                }
+                    'uploader_id': 'ytdl',
+                },
             },
             {
                 'md5': '1d74534e95df54986da7f5abf7d842b7',
@@ -83,8 +80,8 @@ class EightTracksIE(InfoExtractor):
                     'id': '11885684',
                     'ext': 'm4a',
                     'title': "phihag - youtube-dl test track 7 \"'/\\\u00e4\u21ad",
-                    'uploader_id': 'ytdl'
-                }
+                    'uploader_id': 'ytdl',
+                },
             },
             {
                 'md5': 'f081f47af8f6ae782ed131d38b9cd1c0',
@@ -92,10 +89,10 @@ class EightTracksIE(InfoExtractor):
                     'id': '11885685',
                     'ext': 'm4a',
                     'title': "phihag - youtube-dl test track 8 \"'/\\\u00e4\u21ad",
-                    'uploader_id': 'ytdl'
-                }
-            }
-        ]
+                    'uploader_id': 'ytdl',
+                },
+            },
+        ],
     }
 
     def _real_extract(self, url):
@@ -105,7 +102,7 @@ class EightTracksIE(InfoExtractor):
 
         data = self._parse_json(
             self._search_regex(
-                r"(?s)PAGE\.mix\s*=\s*({.+?});\n", webpage, 'trax information'),
+                r'(?s)PAGE\.mix\s*=\s*({.+?});\n', webpage, 'trax information'),
             playlist_id)
 
         session = str(random.randint(0, 1000000000))
@@ -116,7 +113,7 @@ class EightTracksIE(InfoExtractor):
         # duration is sometimes negative, use predefined avg duration
         if avg_song_duration <= 0:
             avg_song_duration = 300
-        first_url = 'http://8tracks.com/sets/%s/play?player=sm&mix_id=%s&format=jsonh' % (session, mix_id)
+        first_url = f'http://8tracks.com/sets/{session}/play?player=sm&mix_id={mix_id}&format=jsonh'
         next_url = first_url
         entries = []
 
@@ -140,7 +137,7 @@ class EightTracksIE(InfoExtractor):
             api_data = json.loads(api_json)
             track_data = api_data['set']['track']
             info = {
-                'id': compat_str(track_data['id']),
+                'id': str(track_data['id']),
                 'url': track_data['track_file_stream_url'],
                 'title': track_data['performer'] + ' - ' + track_data['name'],
                 'raw_title': track_data['name'],
@@ -149,12 +146,12 @@ class EightTracksIE(InfoExtractor):
             }
             entries.append(info)
 
-            next_url = 'http://8tracks.com/sets/%s/next?player=sm&mix_id=%s&format=jsonh&track_id=%s' % (
+            next_url = 'http://8tracks.com/sets/{}/next?player=sm&mix_id={}&format=jsonh&track_id={}'.format(
                 session, mix_id, track_data['id'])
         return {
             '_type': 'playlist',
             'entries': entries,
-            'id': compat_str(mix_id),
+            'id': str(mix_id),
             'display_id': playlist_id,
             'title': data.get('name'),
             'description': data.get('description'),

@@ -1,5 +1,6 @@
+import urllib.parse
+
 from .common import InfoExtractor
-from ..compat import compat_str, compat_urllib_parse_unquote
 from ..utils import (
     ExtractorError,
     traverse_obj,
@@ -22,7 +23,7 @@ class MediaKlikkIE(InfoExtractor):
             'title': 'Hazajáró, DÉLNYUGAT-BÁCSKA – A Duna mentén Palánkától Doroszlóig',
             'ext': 'mp4',
             'upload_date': '20210901',
-            'thumbnail': 'http://mediaklikk.hu/wp-content/uploads/sites/4/2014/02/hazajarouj_JO.jpg'
+            'thumbnail': 'http://mediaklikk.hu/wp-content/uploads/sites/4/2014/02/hazajarouj_JO.jpg',
         },
         'skip': 'Webpage redirects to 404 page',
     }, {
@@ -34,8 +35,8 @@ class MediaKlikkIE(InfoExtractor):
             'display_id': 'hazajaro-fabova-hegyseg-kishont-koronaja',
             'ext': 'mp4',
             'upload_date': '20230903',
-            'thumbnail': 'https://mediaklikk.hu/wp-content/uploads/sites/4/2014/02/hazajarouj_JO.jpg'
-        }
+            'thumbnail': 'https://mediaklikk.hu/wp-content/uploads/sites/4/2014/02/hazajarouj_JO.jpg',
+        },
     }, {
         # (old) m4sport
         'url': 'https://m4sport.hu/video/2021/08/30/gyemant-liga-parizs/',
@@ -44,7 +45,7 @@ class MediaKlikkIE(InfoExtractor):
             'title': 'Gyémánt Liga, Párizs',
             'ext': 'mp4',
             'upload_date': '20210830',
-            'thumbnail': 'http://m4sport.hu/wp-content/uploads/sites/4/2021/08/vlcsnap-2021-08-30-18h21m20s10-1024x576.jpg'
+            'thumbnail': 'http://m4sport.hu/wp-content/uploads/sites/4/2021/08/vlcsnap-2021-08-30-18h21m20s10-1024x576.jpg',
         },
         'skip': 'Webpage redirects to 404 page',
     }, {
@@ -56,8 +57,8 @@ class MediaKlikkIE(InfoExtractor):
             'display_id': 'atletika-gyemant-liga-brusszel',
             'ext': 'mp4',
             'upload_date': '20230908',
-            'thumbnail': 'https://m4sport.hu/wp-content/uploads/sites/4/2023/09/vlcsnap-2023-09-08-22h43m18s691.jpg'
-        }
+            'thumbnail': 'https://m4sport.hu/wp-content/uploads/sites/4/2023/09/vlcsnap-2023-09-08-22h43m18s691.jpg',
+        },
     }, {
         # m4sport with *video/ url and no date
         'url': 'https://m4sport.hu/bl-video/real-madrid-chelsea-1-1/',
@@ -66,8 +67,8 @@ class MediaKlikkIE(InfoExtractor):
             'title': 'Real Madrid - Chelsea 1-1',
             'display_id': 'real-madrid-chelsea-1-1',
             'ext': 'mp4',
-            'thumbnail': 'https://m4sport.hu/wp-content/uploads/sites/4/2021/04/Sequence-01.Still001-1024x576.png'
-        }
+            'thumbnail': 'https://m4sport.hu/wp-content/uploads/sites/4/2021/04/Sequence-01.Still001-1024x576.png',
+        },
     }, {
         # (old) hirado
         'url': 'https://hirado.hu/videok/felteteleket-szabott-a-fovaros/',
@@ -75,7 +76,7 @@ class MediaKlikkIE(InfoExtractor):
             'id': '4760120',
             'title': 'Feltételeket szabott a főváros',
             'ext': 'mp4',
-            'thumbnail': 'http://hirado.hu/wp-content/uploads/sites/4/2021/09/vlcsnap-2021-09-01-20h20m37s165.jpg'
+            'thumbnail': 'http://hirado.hu/wp-content/uploads/sites/4/2021/09/vlcsnap-2021-09-01-20h20m37s165.jpg',
         },
         'skip': 'Webpage redirects to video list page',
     }, {
@@ -87,8 +88,8 @@ class MediaKlikkIE(InfoExtractor):
             'display_id': 'marad-az-eves-elszamolas-a-napelemekre-beruhazo-csaladoknal',
             'ext': 'mp4',
             'upload_date': '20230911',
-            'thumbnail': 'https://hirado.hu/wp-content/uploads/sites/4/2023/09/vlcsnap-2023-09-11-09h16m09s882.jpg'
-        }
+            'thumbnail': 'https://hirado.hu/wp-content/uploads/sites/4/2023/09/vlcsnap-2023-09-11-09h16m09s882.jpg',
+        },
     }, {
         # (old) petofilive
         'url': 'https://petofilive.hu/video/2021/06/07/tha-shudras-az-akusztikban/',
@@ -97,7 +98,7 @@ class MediaKlikkIE(InfoExtractor):
             'title': 'Tha Shudras az Akusztikban',
             'ext': 'mp4',
             'upload_date': '20210607',
-            'thumbnail': 'http://petofilive.hu/wp-content/uploads/sites/4/2021/06/vlcsnap-2021-06-07-22h14m23s915-1024x576.jpg'
+            'thumbnail': 'http://petofilive.hu/wp-content/uploads/sites/4/2021/06/vlcsnap-2021-06-07-22h14m23s915-1024x576.jpg',
         },
         'skip': 'Webpage redirects to empty page',
     }, {
@@ -109,8 +110,8 @@ class MediaKlikkIE(InfoExtractor):
             'display_id': 'futball-fesztival-a-margitszigeten',
             'ext': 'mp4',
             'upload_date': '20230909',
-            'thumbnail': 'https://petofilive.hu/wp-content/uploads/sites/4/2023/09/Clipboard11-2.jpg'
-        }
+            'thumbnail': 'https://petofilive.hu/wp-content/uploads/sites/4/2023/09/Clipboard11-2.jpg',
+        },
     }]
 
     def _real_extract(self, url):
@@ -120,13 +121,13 @@ class MediaKlikkIE(InfoExtractor):
 
         player_data_str = self._html_search_regex(
             r'mtva_player_manager\.player\(document.getElementById\(.*\),\s?(\{.*\}).*\);', webpage, 'player data')
-        player_data = self._parse_json(player_data_str, display_id, compat_urllib_parse_unquote)
-        video_id = compat_str(player_data['contentId'])
+        player_data = self._parse_json(player_data_str, display_id, urllib.parse.unquote)
+        video_id = str(player_data['contentId'])
         title = player_data.get('title') or self._og_search_title(webpage, fatal=False) or \
             self._html_search_regex(r'<h\d+\b[^>]+\bclass="article_title">([^<]+)<', webpage, 'title')
 
         upload_date = unified_strdate(
-            '%s-%s-%s' % (mobj.group('year'), mobj.group('month'), mobj.group('day')))
+            '{}-{}-{}'.format(mobj.group('year'), mobj.group('month'), mobj.group('day')))
         if not upload_date:
             upload_date = unified_strdate(self._html_search_regex(
                 r'<p+\b[^>]+\bclass="article_date">([^<]+)<', webpage, 'upload date', default=None))
@@ -149,5 +150,5 @@ class MediaKlikkIE(InfoExtractor):
             'display_id': display_id,
             'formats': formats,
             'upload_date': upload_date,
-            'thumbnail': player_data.get('bgImage') or self._og_search_thumbnail(webpage)
+            'thumbnail': player_data.get('bgImage') or self._og_search_thumbnail(webpage),
         }

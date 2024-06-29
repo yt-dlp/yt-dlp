@@ -25,7 +25,7 @@ class AlphaPornoIE(InfoExtractor):
             'tbr': 1145,
             'categories': list,
             'age_limit': 18,
-        }
+        },
     }
 
     def _real_extract(self, url):
