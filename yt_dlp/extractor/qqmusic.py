@@ -113,6 +113,7 @@ class QQMusicIE(QQMusicBaseIE):
             'release_date': '20050626',
             'duration': 220,
             'creators': ['李季美'],
+            'genres': [],
             'description': 'md5:fc711212aa623b28534954dc4bd67385',
             'size': 3535730,
             'thumbnail': r're:^https?://.*\.jpg(?:$|[#?])',
