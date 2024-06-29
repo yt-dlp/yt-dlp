@@ -275,7 +275,7 @@ class MicrosoftLearnSessionIE(InfoExtractor):
         }
 
         return self.url_result(
-            self._search_regex(r'<meta\s+name="externalVideoUrl"\s+content="([^"]+)"', webpage, 'videoUrl'),
+            self._html_search_meta('externalVideoUrl', webpage, 'videoUrl', fatal=True),
             url_transparent=True, ie=MicrosoftMediusIE, **metainfo)
 
 
