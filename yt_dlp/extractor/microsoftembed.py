@@ -161,7 +161,26 @@ class MicrosoftMediusIE(MicrosoftMediusBaseIE):
         }
 
 
-class MicrosoftLearnBaseIE(MicrosoftMediusBaseIE):
+class MicrosoftLearnPlaylistIE(InfoExtractor):
+    _VALID_URL = r'https?://learn\.microsoft\.com/(?:[\w\-]+/)?(?P<type>shows|events)/(?P<id>[\w\-]+)/?(?:[?#]|$)'
+    _TESTS = [{
+        'url': 'https://learn.microsoft.com/en-us/shows/bash-for-beginners',
+        'info_dict': {
+            'id': 'bash-for-beginners',
+            'title': 'Bash for Beginners',
+            'description': 'md5:16a91c07222117d1e00912f0dbc02c2c',
+        },
+        'playlist_count': 20,
+    }, {
+        'url': 'https://learn.microsoft.com/en-us/events/build-2022',
+        'info_dict': {
+            'id': 'build-2022',
+            'title': 'Microsoft Build 2022 - Events',
+            'description': 'md5:c16b43848027df837b22c6fbac7648d3',
+        },
+        'playlist_count': 201,
+    }]
+
     def _entries(self, url_base, video_id):
         skip = 0
         while True:
@@ -176,9 +195,22 @@ class MicrosoftLearnBaseIE(MicrosoftMediusBaseIE):
             if skip >= playlist_info['count'] or not items:
                 break
 
+    def _real_extract(self, url):
+        playlist_id, playlist_type = self._match_valid_url(url).group('id', 'type')
+        webpage = self._download_webpage(url, playlist_id)
 
-class MicrosoftLearnShowsIE(MicrosoftLearnBaseIE):
-    _VALID_URL = r'https?://learn\.microsoft\.com/(?:[\w\-]+/)?shows/(?P<series>[\w\-]+)(?:/(?P<id>[^?#/]+))?'
+        metainfo = {
+            'title': self._og_search_title(webpage),
+            'description': self._og_search_description(webpage),
+        }
+        sub_type = 'episodes' if playlist_type == 'shows' else 'sessions'
+
+        url_base = f'https://learn.microsoft.com/api/contentbrowser/search/{playlist_type}/{playlist_id}/{sub_type}'
+        return self.playlist_result(self._entries(url_base, playlist_id), playlist_id, **metainfo)
+
+
+class MicrosoftLearnEpisodeIE(MicrosoftMediusBaseIE):
+    _VALID_URL = r'https?://learn\.microsoft\.com/(?:[\w\-]+/)?shows/[\w\-]+/(?P<id>[^?#/]+)'
     _TESTS = [{
         'url': 'https://learn.microsoft.com/en-us/shows/bash-for-beginners/what-is-the-difference-between-a-terminal-and-a-shell-2-of-20-bash-for-beginners/',
         'info_dict': {
@@ -191,30 +223,16 @@ class MicrosoftLearnShowsIE(MicrosoftLearnBaseIE):
             'thumbnail': r're:https://learn\.microsoft\.com/video/media/.*\.png',
             'subtitles': 'count:14',
         },
-        'params': {'listsubtitles': True},
-    }, {
-        'url': 'https://learn.microsoft.com/en-us/shows/bash-for-beginners',
-        'info_dict': {
-            'id': 'bash-for-beginners',
-            'title': 'Bash for Beginners',
-            'description': 'md5:16a91c07222117d1e00912f0dbc02c2c',
-        },
-        'playlist_count': 20,
     }]
 
     def _real_extract(self, url):
-        series, slug = self._match_valid_url(url).groups()
-        video_id = slug or series
+        video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
         metainfo = {
             'title': self._og_search_title(webpage),
             'description': self._og_search_description(webpage),
         }
-
-        if not slug:
-            url_base = f'https://learn.microsoft.com/api/contentbrowser/search/shows/{series}/episodes'
-            return self.playlist_result(self._entries(url_base, video_id), video_id, **metainfo)
 
         entry_id = self._search_regex(r'<meta name="entryId" content="([^"]+)"', webpage, 'entryId')
         video_info = self._download_json(
@@ -234,8 +252,8 @@ class MicrosoftLearnShowsIE(MicrosoftLearnBaseIE):
         }
 
 
-class MicrosoftLearnEventsIE(MicrosoftLearnBaseIE):
-    _VALID_URL = r'https?://learn\.microsoft\.com/(?:[\w\-]+/)?events/(?P<series>[\w\-]+)(?:/(?P<id>[^?#/]+))?'
+class MicrosoftLearnSessionIE(InfoExtractor):
+    _VALID_URL = r'https?://learn\.microsoft\.com/(?:[\w\-]+/)?events/[\w\-]+/(?P<id>[^?#/]+)'
     _TESTS = [{
         'url': 'https://learn.microsoft.com/en-us/events/build-2022/ts01-rapidly-code-test-ship-from-secure-cloud-developer-environments',
         'info_dict': {
@@ -247,35 +265,22 @@ class MicrosoftLearnEventsIE(MicrosoftLearnBaseIE):
             'upload_date': '20220524',
             'thumbnail': r're:https://mediusimg\.event\.microsoft\.com/video-\d+/thumbnail\.jpg.*',
         },
-    }, {
-        'url': 'https://learn.microsoft.com/en-us/events/build-2022',
-        'info_dict': {
-            'id': 'build-2022',
-            'title': 'Microsoft Build 2022 - Events',
-            'description': 'md5:c16b43848027df837b22c6fbac7648d3',
-        },
-        'playlist_count': 201,
     }]
 
     def _real_extract(self, url):
-        series, slug = self._match_valid_url(url).groups()
-        video_id = slug or series
+        video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
         metainfo = {
             'title': self._og_search_title(webpage),
             'description': self._og_search_description(webpage),
+            'timestamp': parse_iso8601(self._search_regex(
+                r'<meta\s+name="startDate"\s+content="([^"]+)"', webpage, 'date', default=None)),
         }
-
-        if not slug:
-            url_base = f'https://learn.microsoft.com/api/contentbrowser/search/events/{series}/sessions'
-            return self.playlist_result(self._entries(url_base, video_id), video_id, **metainfo)
 
         return self.url_result(
             self._search_regex(r'<meta\s+name="externalVideoUrl"\s+content="([^"]+)"', webpage, 'videoUrl'),
-            url_transparent=True, ie=MicrosoftMediusIE, **metainfo, timestamp=parse_iso8601(self._search_regex(
-                r'<meta\s+name="startDate"\s+content="([^"]+)"', webpage, 'date', default=None)),
-        )
+            url_transparent=True, ie=MicrosoftMediusIE, **metainfo)
 
 
 class MicrosoftBuildIE(InfoExtractor):
