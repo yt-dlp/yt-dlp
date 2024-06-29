@@ -6,8 +6,8 @@ import time
 
 from .common import InfoExtractor
 from ..utils import (
-    OnDemandPagedList,
     ExtractorError,
+    OnDemandPagedList,
     clean_html,
     int_or_none,
     join_nonempty,
