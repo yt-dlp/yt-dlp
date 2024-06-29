@@ -381,12 +381,12 @@ class QQMusicToplistIE(QQPlaylistBaseIE):
             note='Download toplist page',
             query={'type': 'toplist', 'topid': list_id, 'format': 'json'})
 
-        entries = self._extract_entries(toplist_json, ('songlist', ..., 'data'))
-
-        list_name = join_nonempty(*traverse_obj(toplist_json, ((('topinfo', 'ListName'), 'update_time'),)), delim=' ')
-        list_description = traverse_obj(toplist_json, ('topinfo', 'info'))
-
-        return self.playlist_result(entries, list_id, list_name, list_description)
+        return self.playlist_result(
+            self._extract_entries(toplist_json, ('songlist', ..., 'data')),
+            list_id,
+            playlist_title=join_nonempty(*traverse_obj(
+                toplist_json, ((('topinfo', 'ListName'), 'update_time'),)), delim=' '),
+            playlist_description=traverse_obj(toplist_json, ('topinfo', 'info')))
 
 
 class QQMusicPlaylistIE(QQPlaylistBaseIE):
