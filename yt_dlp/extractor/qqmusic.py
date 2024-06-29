@@ -39,26 +39,25 @@ class QQMusicBaseIE(InfoExtractor):
     # http://imgcache.gtimg.cn/music/portal_v3/y/top_player.js
     @staticmethod
     def m_r_get_ruin():
-        curMs = int(time.time() * 1000) % 1000
-        return int(round(random.random() * 2147483647) * curMs % 1E10)
+        cur_ms = int(time.time() * 1000) % 1000
+        return int(round(random.random() * 2147483647) * cur_ms % 1E10)
 
     def download_init_data(self, url, mid, fatal=True):
         webpage = self._download_webpage(url, mid, fatal=fatal)
-        return self._search_json(r'window\.__INITIAL_DATA__\s*=\s*', webpage,
+        return self._search_json(r'window\.__INITIAL_DATA__\s*=', webpage,
                                  'init data', mid, transform_source=js_to_json, fatal=fatal)
 
     def make_fcu_req(self, req_dict, mid, **kwargs):
-        payload = json.dumps({
-            'comm': {
-                'cv': 0,
-                'ct': 24,
-                'format': 'json',
-                'uin': self._get_uin(),
-            },
-            **req_dict,
-        }, separators=(',', ':')).encode('utf-8')
-        return self._download_json('https://u.y.qq.com/cgi-bin/musicu.fcg',
-                                   mid, data=payload, **kwargs)
+        return self._download_json(
+            'https://u.y.qq.com/cgi-bin/musicu.fcg', mid, data=json.dumps({
+                'comm': {
+                    'cv': 0,
+                    'ct': 24,
+                    'format': 'json',
+                    'uin': self._get_uin(),
+                },
+                **req_dict,
+            }, separators=(',', ':')).encode(), **kwargs)
 
 
 class QQMusicIE(QQMusicBaseIE):
@@ -176,8 +175,9 @@ class QQMusicIE(QQMusicBaseIE):
             },
         }, mid, note='Downloading formats and lyric')
 
-        if data['req_1']['code'] != 0:
-            raise ExtractorError(f'Failed to download formats, error {data["req_1"]["code"]}')
+        code = traverse_obj(data, ('req_1', 'code', {int}))
+        if code != 0:
+            raise ExtractorError(f'Failed to download format info, error code {code or "unknown"}')
         formats = traverse_obj(data, ('req_1', 'data', 'midurlinfo', lambda _, v: v['songmid'] == mid and v['purl'], {
             'url': ('purl', {str}, {lambda x: f'https://dl.stream.qqmusic.qq.com/{x}'}),
             'format': ('filename', {lambda x: self._FORMATS[x[:4]]['name']}),
@@ -287,8 +287,11 @@ class QQMusicSingerIE(QQMusicBaseIE):
 
 class QQPlaylistBaseIE(InfoExtractor):
     def _extract_entries(self, info_json, path):
-        return traverse_obj(info_json, (*path, {lambda song: self.url_result(
-            f'https://y.qq.com/n/ryqq/songDetail/{song["songmid"]}', QQMusicIE, song['songmid'], song['songname'])}))
+        for entry in traverse_obj(info_json, *path):
+            song_mid = song['songmid']
+            yield self.url_result(
+                f'https://y.qq.com/n/ryqq/songDetail/{song_mid}',
+                QQMusicIE, song_mid, song.get('songname'))
 
 
 class QQMusicAlbumIE(QQPlaylistBaseIE):
@@ -401,16 +404,16 @@ class QQMusicPlaylistIE(QQPlaylistBaseIE):
             query={'type': 1, 'json': 1, 'utf8': 1, 'onlysong': 0, 'disstid': list_id},
             transform_source=strip_jsonp, headers={'Referer': url})
         if not len(list_json.get('cdlist', [])):
-            error_msg = ''
-            if list_json.get('code') or list_json.get('subcode'):
-                error_msg = f': Error {list_json.get("code")}-{list_json["subcode"]}: {list_json.get("msg", "")}'
-            raise ExtractorError(f'Unable to get playlist info{error_msg}')
+            raise ExtractorError(join_nonempty(
+                'Unable to get playlist info',
+                join_nonempty('code', 'subcode', from_dict=list_json),
+                list_json.get('msg'), delim=': '))
 
         entries = self._extract_entries(list_json, ('cdlist', 0, 'songlist', ...))
 
         return self.playlist_result(entries, list_id, **traverse_obj(list_json, ('cdlist', 0, {
             'title': ('dissname', {str}),
-            'description': ('desc', {lambda x: clean_html(unescapeHTML(x))}),
+            'description': ('desc', {unescapeHTML}, {clean_html}),
         })))
 
 
@@ -436,7 +439,7 @@ class QQMusicVideoIE(QQMusicBaseIE):
     }]
 
     def _parse_url_formats(self, url_data):
-        return traverse_obj(url_data, ('mp4', lambda _, v: v.get('freeflow_url'), {
+        return traverse_obj(url_data, ('mp4', lambda _, v: v['freeflow_url'], {
             'url': ('freeflow_url', 0, {url_or_none}),
             'filesize': ('fileSize', {int_or_none}),
             'format_id': ('newFileType', {str_or_none}),
