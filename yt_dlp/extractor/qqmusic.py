@@ -220,7 +220,7 @@ class QQMusicIE(QQMusicBaseIE):
             **traverse_obj(init_data, ('detail', {
                 'thumbnail': ('picurl', {url_or_none}),
                 'description': ('info', 'intro', 'content', ..., 'value', {str}),
-                'genres': ('info', 'genre', 'content', ..., 'value', {str}, {lambda x: [x]}),
+                'genres': ('info', 'genre', 'content', ..., 'value', {str}, all),
             }), get_all=False),
         }
         if lrc_content:
