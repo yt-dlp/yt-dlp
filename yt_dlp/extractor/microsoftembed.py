@@ -270,8 +270,7 @@ class MicrosoftLearnSessionIE(InfoExtractor):
         metainfo = {
             'title': self._og_search_title(webpage),
             'description': self._og_search_description(webpage),
-            'timestamp': parse_iso8601(self._search_regex(
-                r'<meta\s+name="startDate"\s+content="([^"]+)"', webpage, 'date', default=None)),
+            'timestamp': parse_iso8601(self._html_search_meta('startDate', webpage, 'startDate')),
         }
 
         return self.url_result(
