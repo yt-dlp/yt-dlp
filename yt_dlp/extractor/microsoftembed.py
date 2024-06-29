@@ -142,9 +142,7 @@ class MicrosoftMediusIE(MicrosoftMediusBaseIE):
                 'url': ('src', {url_or_none}),
                 'tag': ('srclang', {str}),
                 'name': ('kind', {str}),
-            }))
-
-        captions = captions or traverse_obj(
+            })) or traverse_obj(
             re.findall(r'var\s+file\s+=\s+\{[^}]+\'(https://[^\']+\.vtt\?[^\']+)', webpage),
             (lambda _, v: url_or_none(v), {lambda x: {'url': x, 'tag': x.split('.vtt?')[0].split('_')[-1]}}))
 
