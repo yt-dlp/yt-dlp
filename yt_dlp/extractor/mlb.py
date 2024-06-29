@@ -336,8 +336,6 @@ class MLBTVIE(InfoExtractor):
                 })['stream']['complete']
             f, s = self._extract_m3u8_formats_and_subtitles(
                 m3u8_url, video_id, 'mp4', m3u8_id=format_id, fatal=False)
-            if not f:
-                continue
             formats.extend(f)
             self._merge_subtitles(s, target=subtitles)
 
