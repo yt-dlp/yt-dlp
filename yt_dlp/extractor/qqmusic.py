@@ -48,7 +48,7 @@ class QQMusicBaseIE(InfoExtractor):
         return self._search_json(r'window\.__INITIAL_DATA__\s*=', webpage,
                                  'init data', mid, transform_source=js_to_json, fatal=fatal)
 
-    def make_fcu_req(self, req_dict, mid, **kwargs):
+    def make_fcu_req(self, req_dict, mid, headers={}, **kwargs):
         return self._download_json(
             'https://u.y.qq.com/cgi-bin/musicu.fcg', mid, data=json.dumps({
                 'comm': {
@@ -58,7 +58,7 @@ class QQMusicBaseIE(InfoExtractor):
                     'uin': self._get_uin(),
                 },
                 **req_dict,
-            }, separators=(',', ':')).encode(), **kwargs)
+            }, separators=(',', ':')).encode(), headers=headers, **kwargs)
 
 
 class QQMusicIE(QQMusicBaseIE):
@@ -174,7 +174,7 @@ class QQMusicIE(QQMusicBaseIE):
                 'method': 'GetPlayLyricInfo',
                 'param': {'songMID': mid},
             },
-        }, mid, note='Downloading formats and lyric')
+        }, mid, note='Downloading formats and lyric', headers=self.geo_verification_headers())
 
         code = traverse_obj(data, ('req_1', 'code', {int}))
         if code != 0:
@@ -474,7 +474,7 @@ class QQMusicVideoIE(QQMusicBaseIE):
                 'method': 'GetMvUrls',
                 'param': {'vids': [video_id]},
             },
-        }, video_id)
+        }, video_id, headers=self.geo_verification_headers())
         if traverse_obj(video_info, ('mvInfo', 'data', video_id, 'play_forbid_reason')) == 3:
             self.raise_geo_restricted()
 
