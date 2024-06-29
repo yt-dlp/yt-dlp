@@ -166,29 +166,25 @@ class MicrosoftMediusIE(MicrosoftMediusBaseIE):
         }
 
 
-class MicrosoftLearnIE(MicrosoftMediusBaseIE):
-    _VALID_URL = r'https?://learn\.microsoft\.com/(?:[\w\-]+/)?(?P<type>events|shows)/(?P<series>[\w\-]+)(?:/(?P<id>[^?#/]+))?'
+class MicrosoftLearnBaseIE(MicrosoftMediusBaseIE):
+    def _entries(self, url_base, video_id):
+        skip = 0
+        while True:
+            playlist_info = self._download_json(url_base, video_id, f'Downloading entries {skip}', query={
+                'locale': 'en-us',
+                '$skip': skip,
+            })
+            items = traverse_obj(playlist_info, (
+                'results', ..., 'url', {lambda x: self.url_result(f'https://learn.microsoft.com/en-us{x}')}))
+            yield from items
+            skip += len(items)
+            if skip >= playlist_info['count'] or not items:
+                break
 
+
+class MicrosoftLearnShowsIE(MicrosoftLearnBaseIE):
+    _VALID_URL = r'https?://learn\.microsoft\.com/(?:[\w\-]+/)?shows/(?P<series>[\w\-]+)(?:/(?P<id>[^?#/]+))?'
     _TESTS = [{
-        'url': 'https://learn.microsoft.com/en-us/events/build-2022/ts01-rapidly-code-test-ship-from-secure-cloud-developer-environments',
-        'info_dict': {
-            'id': '9640d86c-f513-4889-959e-5dace86e7d2b',
-            'ext': 'ismv',
-            'title': 'Rapidly code, test and ship from secure cloud developer environments - Events',
-            'description': 'md5:f26c1a85d41c1cffd27a0279254a25c3',
-            'timestamp': 1653408600,
-            'upload_date': '20220524',
-            'thumbnail': r're:https://mediusimg\.event\.microsoft\.com/video-\d+/thumbnail\.jpg.*',
-        },
-    }, {
-        'url': 'https://learn.microsoft.com/en-us/events/build-2022',
-        'info_dict': {
-            'id': 'build-2022',
-            'title': 'Microsoft Build 2022 - Events',
-            'description': 'md5:c16b43848027df837b22c6fbac7648d3',
-        },
-        'playlist_count': 201,
-    }, {
         'url': 'https://learn.microsoft.com/en-us/shows/bash-for-beginners/what-is-the-difference-between-a-terminal-and-a-shell-2-of-20-bash-for-beginners/',
         'info_dict': {
             'id': 'd44e1a03-a0e5-45c2-9496-5c9fa08dc94c',
@@ -211,22 +207,8 @@ class MicrosoftLearnIE(MicrosoftMediusBaseIE):
         'playlist_count': 20,
     }]
 
-    def _entries(self, url_base, video_id):
-        skip = 0
-        while True:
-            playlist_info = self._download_json(url_base, video_id, f'Downloading entries {skip}', query={
-                'locale': 'en-us',
-                '$skip': skip,
-            })
-            items = traverse_obj(playlist_info, (
-                'results', ..., 'url', {lambda x: self.url_result(f'https://learn.microsoft.com/en-us{x}')}))
-            yield from items
-            skip += len(items)
-            if skip >= playlist_info['count'] or not items:
-                break
-
     def _real_extract(self, url):
-        video_type, series, slug = self._match_valid_url(url).groups()
+        series, slug = self._match_valid_url(url).groups()
         video_id = slug or series
         webpage = self._download_webpage(url, video_id)
 
@@ -236,15 +218,8 @@ class MicrosoftLearnIE(MicrosoftMediusBaseIE):
         }
 
         if not slug:
-            url_base = f'https://learn.microsoft.com/api/contentbrowser/search/{video_type}/{series}/{"sessions" if video_type == "events" else "episodes"}'
+            url_base = f'https://learn.microsoft.com/api/contentbrowser/search/shows/{series}/episodes'
             return self.playlist_result(self._entries(url_base, video_id), video_id, **metainfo)
-
-        if video_type == 'events':
-            return self.url_result(
-                self._search_regex(r'<meta\s+name="externalVideoUrl"\s+content="([^"]+)"', webpage, 'videoUrl'),
-                url_transparent=True, **metainfo, timestamp=parse_iso8601(self._search_regex(
-                    r'<meta\s+name="startDate"\s+content="([^"]+)"', webpage, 'date', default=None)),
-            )
 
         entry_id = self._search_regex(r'<meta name="entryId" content="([^"]+)"', webpage, 'entryId')
         video_info = self._download_json(
@@ -262,6 +237,50 @@ class MicrosoftLearnIE(MicrosoftMediusBaseIE):
                 'thumbnails': ('publicVideo', 'thumbnailOtherSizes', ..., {lambda x: {'url': x}}),
             }),
         }
+
+
+class MicrosoftLearnEventsIE(MicrosoftLearnBaseIE):
+    _VALID_URL = r'https?://learn\.microsoft\.com/(?:[\w\-]+/)?events/(?P<series>[\w\-]+)(?:/(?P<id>[^?#/]+))?'
+    _TESTS = [{
+        'url': 'https://learn.microsoft.com/en-us/events/build-2022/ts01-rapidly-code-test-ship-from-secure-cloud-developer-environments',
+        'info_dict': {
+            'id': '9640d86c-f513-4889-959e-5dace86e7d2b',
+            'ext': 'ismv',
+            'title': 'Rapidly code, test and ship from secure cloud developer environments - Events',
+            'description': 'md5:f26c1a85d41c1cffd27a0279254a25c3',
+            'timestamp': 1653408600,
+            'upload_date': '20220524',
+            'thumbnail': r're:https://mediusimg\.event\.microsoft\.com/video-\d+/thumbnail\.jpg.*',
+        },
+    }, {
+        'url': 'https://learn.microsoft.com/en-us/events/build-2022',
+        'info_dict': {
+            'id': 'build-2022',
+            'title': 'Microsoft Build 2022 - Events',
+            'description': 'md5:c16b43848027df837b22c6fbac7648d3',
+        },
+        'playlist_count': 201,
+    }]
+
+    def _real_extract(self, url):
+        series, slug = self._match_valid_url(url).groups()
+        video_id = slug or series
+        webpage = self._download_webpage(url, video_id)
+
+        metainfo = {
+            'title': self._og_search_title(webpage),
+            'description': self._og_search_description(webpage),
+        }
+
+        if not slug:
+            url_base = f'https://learn.microsoft.com/api/contentbrowser/search/events/{series}/sessions'
+            return self.playlist_result(self._entries(url_base, video_id), video_id, **metainfo)
+
+        return self.url_result(
+            self._search_regex(r'<meta\s+name="externalVideoUrl"\s+content="([^"]+)"', webpage, 'videoUrl'),
+            url_transparent=True, ie=MicrosoftMediusIE, **metainfo, timestamp=parse_iso8601(self._search_regex(
+                r'<meta\s+name="startDate"\s+content="([^"]+)"', webpage, 'date', default=None)),
+        )
 
 
 class MicrosoftBuildIE(InfoExtractor):
