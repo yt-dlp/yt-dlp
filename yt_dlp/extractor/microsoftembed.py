@@ -78,7 +78,7 @@ class MicrosoftMediusBaseIE(InfoExtractor):
     def _sub_to_dict(subtitle_list):
         subtitles = {}
         for sub in subtitle_list:
-            subtitles.setdefault(sub.pop('tag', None) or 'unknown', []).append(sub)
+            subtitles.setdefault(sub.pop('tag', 'unknown'), []).append(sub)
         return subtitles
 
     def _extract_ism(self, ism_url, video_id):
@@ -137,7 +137,7 @@ class MicrosoftMediusIE(MicrosoftMediusBaseIE):
 
     def _extract_subtitle(self, webpage, video_id):
         captions = traverse_obj(
-            self._search_json(r'const\s+captionsConfiguration\s*=\s*', webpage, 'captions', video_id, default=False),
+            self._search_json(r'const\s+captionsConfiguration\s*=', webpage, 'captions', video_id, default=None),
             ('languageList', ..., {
                 'url': ('src', {url_or_none}),
                 'tag': ('srclang', {str}),
