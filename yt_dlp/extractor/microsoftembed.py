@@ -120,7 +120,7 @@ class MicrosoftMediusIE(MicrosoftMediusBaseIE):
 
     def _extract_subtitle(self, webpage, video_id):
         captions = traverse_obj(
-            self._search_json(r'const\s+captionsConfiguration\s*=\s*', webpage, 'captions', video_id, default=False),
+            self._search_json(r'const\s+captionsConfiguration\s*=', webpage, 'captions', video_id, default=None),
             ('languageList', ..., {
                 'url': ('src', {url_or_none}),
                 'tag': ('srclang', {str}),
