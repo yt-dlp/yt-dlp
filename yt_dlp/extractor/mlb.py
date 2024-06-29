@@ -9,9 +9,9 @@ from ..utils import (
     join_nonempty,
     parse_duration,
     parse_iso8601,
-    traverse_obj,
     try_get,
 )
+from ..utils.traversal import traverse_obj
 
 
 class MLBBaseIE(InfoExtractor):
@@ -326,7 +326,7 @@ class MLBTVIE(InfoExtractor):
             video_id)['data']['Airings']
 
         formats, subtitles = [], {}
-        for airing in airings:
+        for airing in traverse_obj(airings, lambda _, v: v['playbackUrls'][0]['href']):
             m3u8_url = self._download_json(
                 airing['playbackUrls'][0]['href'].format(scenario='browser~csai'), video_id,
                 headers={
