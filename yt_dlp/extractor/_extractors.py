@@ -1116,8 +1116,8 @@ from .mgtv import MGTVIE
 from .microsoftembed import (
     MicrosoftBuildIE,
     MicrosoftEmbedIE,
-    MicrosoftLearnShowsIE,
     MicrosoftLearnEventsIE,
+    MicrosoftLearnShowsIE,
     MicrosoftMediusIE,
 )
 from .microsoftstream import MicrosoftStreamIE
