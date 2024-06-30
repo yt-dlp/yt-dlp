@@ -364,6 +364,13 @@ class JioCinemaSeriesIE(JioCinemaBaseIE):
             'title': 'naagin',
         },
         'playlist_mincount': 120,
+    }, {
+        'url': 'https://www.jiocinema.com/tv-shows/mtv-splitsvilla-x5/3499820',
+        'info_dict': {
+            'id': '3499820',
+            'title': 'MTV Splitsvilla X5',
+        },
+        'playlist_mincount': 310,
     }]
 
     def _entries(self, series_id):
