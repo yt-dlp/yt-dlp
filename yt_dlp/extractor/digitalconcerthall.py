@@ -148,14 +148,15 @@ class DigitalConcertHallIE(InfoExtractor):
             videos = [videos[int(part) - 1]]
 
         thumbnail = traverse_obj(vid_info, (
-            'image', ..., {lambda x: f'https:{x}' if x.startswith('//') else x},
-            {lambda x: x.replace('{width}x{height}', '0x0')}, {url_or_none}, any))  # NB: 0x0 is the original size
+            'image', ..., {self._proto_relative_url}, {url_or_none},
+            {lambda x: x.format(width=0, height=0)}, any))  # NB: 0x0 is the original size
 
         return {
             '_type': 'playlist',
             'id': video_id,
             'title': vid_info.get('title'),
-            'entries': self._entries(videos, language, thumbnail=thumbnail, album_artists=album_artists, type_=type_),
+            'entries': self._entries(
+                videos, language, type_, thumbnail=thumbnail, album_artists=album_artists),
             'thumbnail': thumbnail,
             'album_artists': album_artists,
         }
