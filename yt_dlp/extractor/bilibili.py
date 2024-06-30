@@ -1492,9 +1492,9 @@ class BilibiliCategoryIE(InfoExtractor):
 class BiliBiliSearchAllIE(SearchInfoExtractor):
     IE_DESC = 'Bilibili all search'
     _MAX_RESULTS = 100000
-    _SEARCH_KEY = 'bilisearchall'
+    _SEARCH_KEY = 'biliallsearch'
     _TESTS = [{
-        'url': 'bilisearchall3:靡烟 出道一年，我怎么还在等你单推的女人睡觉后开播啊',
+        'url': 'biliallsearch3:靡烟 出道一年，我怎么还在等你单推的女人睡觉后开播啊',
         'playlist_count': 3,
         'info_dict': {
             'id': '靡烟 出道一年，我怎么还在等你单推的女人睡觉后开播啊',
@@ -1520,7 +1520,7 @@ class BiliBiliSearchAllIE(SearchInfoExtractor):
             },
         }],
     }, {
-        'url': 'bilisearchall:LOL',
+        'url': 'biliallsearch:LOL',
         'playlist_count': 1,
         'info_dict': {
             'id': 'LOL',
