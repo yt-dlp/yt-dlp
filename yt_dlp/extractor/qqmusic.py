@@ -285,7 +285,7 @@ class QQMusicSingerIE(QQMusicBaseIE):
 
     def _real_extract(self, url):
         mid = self._match_id(url)
-        init_data = self.download_init_data(url, mid)
+        init_data = self.download_init_data(url, mid, fatal=False)
 
         return self.playlist_result(
             OnDemandPagedList(functools.partial(self._fetch_page, mid, self._PAGE_SIZE), self._PAGE_SIZE),
