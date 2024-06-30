@@ -17,12 +17,12 @@ from ..utils.traversal import traverse_obj
 
 
 class LaracastsBaseIE(InfoExtractor):
-    def get_prop_data(self, url, display_id):
+    def _get_prop_data(self, url, display_id):
         webpage = self._download_webpage(url, display_id)
         return traverse_obj(
             get_element_html_by_id('app', webpage), ({extract_attributes}, 'data-page', {json.loads}, 'props'))
 
-    def parse_episode(self, episode):
+    def _parse_episode(self, episode):
         if not episode.get('vimeoId'):
             self.raise_login_required('This video is only available for subscribers.')
         return self.url_result(
@@ -68,7 +68,7 @@ class LaracastsIE(LaracastsBaseIE):
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
-        return self.parse_episode(self.get_prop_data(url, display_id)['lesson'])
+        return self._parse_episode(self._get_prop_data(url, display_id)['lesson'])
 
 
 class LaracastsPlaylistIE(LaracastsBaseIE):
@@ -90,14 +90,9 @@ class LaracastsPlaylistIE(LaracastsBaseIE):
         'playlist_count': 30,
     }]
 
-    def _entries(self, series, episode_count):
-        for current_episode in range(1, episode_count + 1):
-            webpage_url = f'https://laracasts.com/series/{series}/episodes/{current_episode}'
-            yield self.url_result(webpage_url, LaracastsIE)
-
     def _real_extract(self, url):
         display_id = self._match_id(url)
-        series = self.get_prop_data(url, display_id)['series']
+        series = self._get_prop_data(url, display_id)['series']
 
         metadata = {
             'display_id': display_id,
@@ -114,4 +109,4 @@ class LaracastsPlaylistIE(LaracastsBaseIE):
         }
 
         return self.playlist_result(traverse_obj(
-            series, ('chapters', ..., 'episodes', lambda _, v: v['vimeoId'], {self.parse_episode})), **metadata)
+            series, ('chapters', ..., 'episodes', lambda _, v: v['vimeoId'], {self._parse_episode})), **metadata)
