@@ -84,7 +84,6 @@ class QQMusicIE(QQMusicBaseIE):
             'thumbnail': r're:^https?://.*\.jpg(?:$|[#?])',
             'subtitles': 'count:1',
         },
-        'params': {'listsubtitles': True},
     }, {
         'url': 'https://y.qq.com/n/ryqq/songDetail/004295Et37taLD',
         'md5': '5f1e6cea39e182857da7ffc5ef5e6bb8',
