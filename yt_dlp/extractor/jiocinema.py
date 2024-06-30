@@ -368,7 +368,7 @@ class JioCinemaSeriesIE(JioCinemaBaseIE):
         'url': 'https://www.jiocinema.com/tv-shows/mtv-splitsvilla-x5/3499820',
         'info_dict': {
             'id': '3499820',
-            'title': 'MTV Splitsvilla X5',
+            'title': 'mtv-splitsvilla-x5',
         },
         'playlist_mincount': 310,
     }]
