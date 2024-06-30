@@ -105,7 +105,7 @@ class LaracastsPlaylistIE(LaracastsBaseIE):
                 'title': ('title', {str}),
                 'id': ('id', {int}, {str_or_none}),
                 'description': ('body', {clean_html}),
-                'thumbnail': (('large_thumbnail', 'thumbnail'), any, {url_or_none}),
+                'thumbnail': (('large_thumbnail', 'thumbnail'), {url_or_none}, any),
                 'duration': ('runTime', {parse_duration}),
                 'categories': ('taxonomy', 'name', {str}, {lambda x: x and [x]}),
                 'tags': ('topics', ..., 'name', {str}),
@@ -114,4 +114,4 @@ class LaracastsPlaylistIE(LaracastsBaseIE):
         }
 
         return self.playlist_result(traverse_obj(
-            series, ('chapters', ..., 'episodes', ..., {self.parse_episode})), **metadata)
+            series, ('chapters', ..., 'episodes', lambda _, v: v['vimeoId'], {self.parse_episode})), **metadata)
