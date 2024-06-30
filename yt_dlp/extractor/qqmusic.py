@@ -203,7 +203,7 @@ class QQMusicIE(QQMusicBaseIE):
             self.raise_login_required()
 
         if traverse_obj(data, ('req_2', 'code')):
-            self.report_warning(f'Failed to download lyric, error {data["req_2"]["code"]}')
+            self.report_warning(f'Failed to download lyric, error {data["req_2"]["code"]!r}')
         lrc_content = traverse_obj(data, ('req_2', 'data', 'lyric', {lambda x: base64.b64decode(x).decode('utf-8')}))
 
         info_dict = {
