@@ -1,9 +1,10 @@
+import base64
 import random
 import string
 import struct
 
 from .common import InfoExtractor
-from ..compat import compat_b64decode, compat_ord
+from ..compat import compat_ord
 from ..utils import (
     ExtractorError,
     int_or_none,
@@ -118,7 +119,7 @@ class VideaIE(InfoExtractor):
         l = nonce[:32]
         s = nonce[32:]
         result = ''
-        for i in range(0, 32):
+        for i in range(32):
             result += s[i - (self._STATIC_SECRET.index(l[i]) - 31)]
 
         query = parse_qs(player_url)
@@ -133,7 +134,7 @@ class VideaIE(InfoExtractor):
         else:
             key = result[16:] + random_seed + handle.headers['x-videa-xs']
             info = self._parse_xml(self.rc4(
-                compat_b64decode(b64_info), key), video_id)
+                base64.b64decode(b64_info), key), video_id)
 
         video = xpath_element(info, './video', 'video')
         if video is None:

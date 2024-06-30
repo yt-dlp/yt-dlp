@@ -297,14 +297,14 @@ class TestWebsSocketRequestHandlerConformance:
             'client_certificate': os.path.join(MTLS_CERT_DIR, 'client.crt'),
             'client_certificate_key': os.path.join(MTLS_CERT_DIR, 'clientencrypted.key'),
             'client_certificate_password': 'foobar',
-        }
+        },
     ))
     def test_mtls(self, handler, client_cert):
         with handler(
             # Disable client-side validation of unacceptable self-signed testcert.pem
             # The test is of a check on the server side, so unaffected
             verify=False,
-            client_cert=client_cert
+            client_cert=client_cert,
         ) as rh:
             ws_validate_and_send(rh, Request(self.mtls_wss_base_url)).close()
 

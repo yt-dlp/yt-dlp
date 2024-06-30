@@ -157,11 +157,11 @@ class JioCinemaBaseIE(InfoExtractor):
                     'info': {
                         'platform': {'name': 'iPhone OS' if is_iphone else 'Android'},
                         'androidId': self._DEVICE_ID,
-                        'type': 'iOS' if is_iphone else 'Android'
-                    }
+                        'type': 'iOS' if is_iphone else 'Android',
+                    },
                 },
                 **initial_data,
-                'otp': self._get_tfa_info('the one-time password sent to your phone')
+                'otp': self._get_tfa_info('the one-time password sent to your phone'),
             }, 'Submitting OTP')
             if traverse_obj(response, 'code') == 1043:
                 raise ExtractorError('Wrong OTP', expected=True)
@@ -276,12 +276,12 @@ class JioCinemaIE(JioCinemaBaseIE):
                         'aesSupport': 'yes',
                         'fairPlayDrmSupport': 'none',
                         'playreadyDrmSupport': 'none',
-                        'widevineDRMSupport': 'none'
+                        'widevineDRMSupport': 'none',
                     },
                     'frameRateCapability': [{
                         'frameRateSupport': '30fps',
-                        'videoQuality': '1440p'
-                    }]
+                        'videoQuality': '1440p',
+                    }],
                 },
                 'continueWatchingRequired': False,
                 'dolby': False,
@@ -293,7 +293,7 @@ class JioCinemaIE(JioCinemaBaseIE):
                 'multiAudioRequired': True,
                 'osVersion': '10',
                 'parentalPinValid': True,
-                'x-apisignatures': self._API_SIGNATURES
+                'x-apisignatures': self._API_SIGNATURES,
             })
 
         status_code = traverse_obj(playback, ('code', {int}))

@@ -1,12 +1,9 @@
+import base64
 import itertools
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_b64decode,
-    compat_ord,
-    compat_str,
-    compat_urllib_parse_unquote,
-)
+from ..compat import compat_ord
 from ..utils import (
     ExtractorError,
     int_or_none,
@@ -25,7 +22,7 @@ class MixcloudBaseIE(InfoExtractor):
   %s(lookup: {username: "%s"%s}) {
     %s
   }
-}''' % (lookup_key, username, ', slug: "%s"' % slug if slug else '', object_fields)
+}''' % (lookup_key, username, f', slug: "{slug}"' if slug else '', object_fields),  # noqa: UP031
             })['data'][lookup_key]
 
 
@@ -91,8 +88,8 @@ class MixcloudIE(MixcloudBaseIE):
 
     def _real_extract(self, url):
         username, slug = self._match_valid_url(url).groups()
-        username, slug = compat_urllib_parse_unquote(username), compat_urllib_parse_unquote(slug)
-        track_id = '%s_%s' % (username, slug)
+        username, slug = urllib.parse.unquote(username), urllib.parse.unquote(slug)
+        track_id = f'{username}_{slug}'
 
         cloudcast = self._call_api('cloudcast', '''audioLength
     comments(first: 100) {
@@ -162,7 +159,7 @@ class MixcloudIE(MixcloudBaseIE):
             if not format_url:
                 continue
             decrypted = self._decrypt_xor_cipher(
-                self._DECRYPTION_KEY, compat_b64decode(format_url))
+                self._DECRYPTION_KEY, base64.b64decode(format_url))
             if url_key == 'hlsUrl':
                 formats.extend(self._extract_m3u8_formats(
                     decrypted, track_id, 'mp4', entry_protocol='m3u8_native',
@@ -200,7 +197,7 @@ class MixcloudIE(MixcloudBaseIE):
 
         tags = []
         for t in cloudcast.get('tags'):
-            tag = try_get(t, lambda x: x['tag']['name'], compat_str)
+            tag = try_get(t, lambda x: x['tag']['name'], str)
             if not tag:
                 tags.append(tag)
 
@@ -213,7 +210,7 @@ class MixcloudIE(MixcloudBaseIE):
             'title': title,
             'formats': formats,
             'description': cloudcast.get('description'),
-            'thumbnail': try_get(cloudcast, lambda x: x['picture']['url'], compat_str),
+            'thumbnail': try_get(cloudcast, lambda x: x['picture']['url'], str),
             'uploader': owner.get('displayName'),
             'timestamp': parse_iso8601(cloudcast.get('publishDate')),
             'uploader_id': owner.get('username'),
@@ -238,12 +235,12 @@ class MixcloudPlaylistBaseIE(MixcloudBaseIE):
 
     def _real_extract(self, url):
         username, slug = self._match_valid_url(url).groups()
-        username = compat_urllib_parse_unquote(username)
+        username = urllib.parse.unquote(username)
         if not slug:
             slug = 'uploads'
         else:
-            slug = compat_urllib_parse_unquote(slug)
-        playlist_id = '%s_%s' % (username, slug)
+            slug = urllib.parse.unquote(slug)
+        playlist_id = f'{username}_{slug}'
 
         is_playlist_type = self._ROOT_TYPE == 'playlist'
         playlist_type = 'items' if is_playlist_type else slug
@@ -265,7 +262,7 @@ class MixcloudPlaylistBaseIE(MixcloudBaseIE):
         endCursor
         hasNextPage
       }
-    }''' % (self._TITLE_KEY, self._DESCRIPTION_KEY, playlist_type, list_filter, self._NODE_TEMPLATE),
+    }''' % (self._TITLE_KEY, self._DESCRIPTION_KEY, playlist_type, list_filter, self._NODE_TEMPLATE),  # noqa: UP031
                 playlist_id, username, slug if is_playlist_type else None)
 
             items = playlist.get(playlist_type) or {}
@@ -274,15 +271,15 @@ class MixcloudPlaylistBaseIE(MixcloudBaseIE):
                 cloudcast_url = cloudcast.get('url')
                 if not cloudcast_url:
                     continue
-                item_slug = try_get(cloudcast, lambda x: x['slug'], compat_str)
-                owner_username = try_get(cloudcast, lambda x: x['owner']['username'], compat_str)
+                item_slug = try_get(cloudcast, lambda x: x['slug'], str)
+                owner_username = try_get(cloudcast, lambda x: x['owner']['username'], str)
                 video_id = f'{owner_username}_{item_slug}' if item_slug and owner_username else None
                 entries.append(self.url_result(
                     cloudcast_url, MixcloudIE.ie_key(), video_id))
 
             page_info = items['pageInfo']
             has_next_page = page_info['hasNextPage']
-            list_filter = ', after: "%s"' % page_info['endCursor']
+            list_filter = ', after: "{}"'.format(page_info['endCursor'])
 
         return self.playlist_result(
             entries, playlist_id,
@@ -351,7 +348,7 @@ class MixcloudUserIE(MixcloudPlaylistBaseIE):
           owner { username }'''
 
     def _get_playlist_title(self, title, slug):
-        return '%s (%s)' % (title, slug)
+        return f'{title} ({slug})'
 
 
 class MixcloudPlaylistIE(MixcloudPlaylistBaseIE):

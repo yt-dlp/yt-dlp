@@ -37,6 +37,7 @@ jobs:
       source: nightly
     permissions:
       contents: write
-      packages: write
+      packages: write  # For package cache
+      actions: write  # For cleaning up cache
       id-token: write  # mandatory for trusted publishing
     secrets: inherit

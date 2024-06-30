@@ -11,7 +11,7 @@ from ..utils import (
 
 class ArcPublishingIE(InfoExtractor):
     _UUID_REGEX = r'[\da-f]{8}-(?:[\da-f]{4}-){3}[\da-f]{12}'
-    _VALID_URL = r'arcpublishing:(?P<org>[a-z]+):(?P<id>%s)' % _UUID_REGEX
+    _VALID_URL = rf'arcpublishing:(?P<org>[a-z]+):(?P<id>{_UUID_REGEX})'
     _TESTS = [{
         # https://www.adn.com/politics/2020/11/02/video-senate-candidates-campaign-in-anchorage-on-eve-of-election-day/
         'url': 'arcpublishing:adn:8c99cb6e-b29c-4bc9-9173-7bf9979225ab',
@@ -74,12 +74,12 @@ class ArcPublishingIE(InfoExtractor):
     def _extract_embed_urls(cls, url, webpage):
         entries = []
         # https://arcpublishing.atlassian.net/wiki/spaces/POWA/overview
-        for powa_el in re.findall(r'(<div[^>]+class="[^"]*\bpowa\b[^"]*"[^>]+data-uuid="%s"[^>]*>)' % ArcPublishingIE._UUID_REGEX, webpage):
+        for powa_el in re.findall(rf'(<div[^>]+class="[^"]*\bpowa\b[^"]*"[^>]+data-uuid="{ArcPublishingIE._UUID_REGEX}"[^>]*>)', webpage):
             powa = extract_attributes(powa_el) or {}
             org = powa.get('data-org')
             uuid = powa.get('data-uuid')
             if org and uuid:
-                entries.append('arcpublishing:%s:%s' % (org, uuid))
+                entries.append(f'arcpublishing:{org}:{uuid}')
         return entries
 
     def _real_extract(self, url):
@@ -122,7 +122,7 @@ class ArcPublishingIE(InfoExtractor):
             elif stream_type in ('ts', 'hls'):
                 m3u8_formats = self._extract_m3u8_formats(
                     s_url, uuid, 'mp4', live=is_live, m3u8_id='hls', fatal=False)
-                if all([f.get('acodec') == 'none' for f in m3u8_formats]):
+                if all(f.get('acodec') == 'none' for f in m3u8_formats):
                     continue
                 for f in m3u8_formats:
                     height = f.get('height')
@@ -136,7 +136,7 @@ class ArcPublishingIE(InfoExtractor):
             else:
                 vbr = int_or_none(s.get('bitrate'))
                 formats.append({
-                    'format_id': '%s-%d' % (stream_type, vbr) if vbr else stream_type,
+                    'format_id': f'{stream_type}-{vbr}' if vbr else stream_type,
                     'vbr': vbr,
                     'width': int_or_none(s.get('width')),
                     'height': int_or_none(s.get('height')),
