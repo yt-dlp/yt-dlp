@@ -374,13 +374,13 @@ class JioCinemaSeriesIE(JioCinemaBaseIE):
     }]
 
     def _entries(self, series_id):
-        seasons = self._download_json(
+        seasons = traverse_obj(self._download_json(
             f'{self._METADATA_API_BASE}/voot/v1/voot-web/view/show/{series_id}', series_id,
-            'Downloading series metadata JSON', query={
-                'responseType': 'common',
-            })
+            'Downloading series metadata JSON', query={'responseType': 'common'}), (
+            'trays', lambda _, v: v['trayId'] == 'season-by-show-multifilter',
+            'trayTabs', lambda _, v: v['id']))
 
-        for season_num, season in enumerate(traverse_obj(seasons, ('trays', lambda _, v: v['trayId'] == 'season-by-show-multifilter', 'trayTabs', lambda _, v: v['id'])), 1):
+        for season_num, season in enumerate(seasons, start=1):
             season_id = season['id']
             label = season.get('label') or season_num
             for page_num in itertools.count(1):
