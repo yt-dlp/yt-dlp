@@ -118,7 +118,6 @@ class DigitalConcertHallIE(InfoExtractor):
                 'id': video_id,
                 'title': item.get('title'),
                 'composer': item.get('name_composer'),
-                'url': m3u8_url,
                 'formats': formats,
                 'duration': item.get('duration_total'),
                 'timestamp': traverse_obj(item, ('date', 'published')),
