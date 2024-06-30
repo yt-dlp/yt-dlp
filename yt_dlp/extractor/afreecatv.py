@@ -189,7 +189,7 @@ class AfreecaTVIE(AfreecaTVBaseIE):
             headers={'Referer': url}, data=urlencode_postdata({
                 'nTitleNo': video_id,
                 'nApiLevel': 10,
-            }))['data']
+            }), impersonate=True)['data']
 
         error_code = traverse_obj(data, ('code', {int}))
         if error_code == -6221:
