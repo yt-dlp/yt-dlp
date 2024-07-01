@@ -1288,7 +1288,9 @@ The available fields are:
  - `playlist_autonumber` (numeric): Position of the video in the playlist download queue padded with leading zeros according to the total length of the playlist
  - `playlist_uploader` (string): Full name of the playlist uploader
  - `playlist_uploader_id` (string): Nickname or id of the playlist uploader
- - `webpage_url` (string): A URL to the video webpage which, if given to yt-dlp, should allow to get the same result again
+ - `playlist_channel` (string): Display name of the channel that uploaded the playlist
+ - `playlist_channel_id` (string): Identifier of the channel that uploaded the playlist
+ - `webpage_url` (string): A URL to the video webpage which, if given to yt-dlp, should yield the same result again
  - `webpage_url_basename` (string): The basename of the webpage URL
  - `webpage_url_domain` (string): The domain of the webpage URL
  - `original_url` (string): The URL given by the user (or same as `webpage_url` for playlist entries)
@@ -1850,6 +1852,12 @@ The following extractors use this feature:
 
 #### soundcloud
 * `formats`: Formats to request from the API. Requested values should be in the format of `{protocol}_{extension}` (omitting the bitrate), e.g. `hls_opus,http_aac`. The `*` character functions as a wildcard, e.g. `*_mp3`, and can be passed by itself to request all formats. Known protocols include `http`, `hls` and `hls-aes`; known extensions include `aac`, `opus` and `mp3`. Original `download` formats are always extracted. Default is `http_aac,hls_aac,http_opus,hls_opus,http_mp3,hls_mp3`
+
+#### orfon (orf:on)
+* `prefer_segments_playlist`: Prefer a playlist of program segments instead of a single complete video when available. If individual segments are desired, use `--concat-playlist never --extractor-args "orfon:prefer_segments_playlist"`
+
+#### bilibili
+* `prefer_multi_flv`: Prefer extracting flv formats over mp4 for older videos that still provide legacy formats
 
 **Note**: These options may be changed/removed in the future without concern for backward compatibility
 

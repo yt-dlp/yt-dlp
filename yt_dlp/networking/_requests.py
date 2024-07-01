@@ -230,9 +230,7 @@ class Urllib3LoggingFilter(logging.Filter):
 
     def filter(self, record):
         # Ignore HTTP request messages since HTTPConnection prints those
-        if record.msg == '%s://%s:%s "%s %s %s" %s %s':
-            return False
-        return True
+        return record.msg != '%s://%s:%s "%s %s %s" %s %s'
 
 
 class Urllib3LoggingHandler(logging.Handler):
