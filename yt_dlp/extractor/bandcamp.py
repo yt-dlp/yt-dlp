@@ -475,7 +475,7 @@ class BandcampUserIE(InfoExtractor):
 
     def _extract_data_attr(self, webpage, video_id, attr, fatal=True):
         return self._parse_json(self._html_search_regex(
-            r'data-%s=(["\'])(.+?)\1' % attr, webpage,
+            fr'data-{attr}=(["\'])(\[.+?\])\1', webpage,
             attr + ' data', group=2), video_id, fatal=fatal)
 
     def _real_extract(self, url):
