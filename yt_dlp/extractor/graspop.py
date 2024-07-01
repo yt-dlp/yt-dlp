@@ -21,7 +21,9 @@ class GraspopIE(InfoExtractor):
             f'https://tv.proximus.be/MWC/videocenter/festivals/{video_id}/stream', video_id)
         return {
             'id': video_id,
-            'formats': self._extract_m3u8_formats(metadata['source']['assetUri'], video_id, 'mp4'),
+            'formats': self._extract_m3u8_formats(
+                # Downgrade manifest request to avoid incomplete certificate chain error
+                update_url(metadata['source']['assetUri'], scheme='http'), video_id, 'mp4'),
             **traverse_obj(metadata, {
                 'title': ('name', {str}),
                 'thumbnail': ('source', 'poster', {url_or_none}),
