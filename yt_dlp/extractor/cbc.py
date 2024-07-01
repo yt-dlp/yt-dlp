@@ -8,15 +8,20 @@ import xml.etree.ElementTree
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
+    base_url,
+    float_or_none,
     int_or_none,
     join_nonempty,
     js_to_json,
     orderedSet,
     parse_iso8601,
+    remove_end,
     smuggle_url,
     strip_or_none,
     traverse_obj,
     try_get,
+    url_basename,
+    urljoin,
 )
 
 
@@ -253,26 +258,25 @@ class CBCPlayerIE(InfoExtractor):
         # Has subtitles
         # These broadcasts expire after ~1 month, can find new test URL here:
         # https://www.cbc.ca/player/news/TV%20Shows/The%20National/Latest%20Broadcast
-        'url': 'https://www.cbc.ca/player/play/1.7159484',
-        'md5': '6ed6cd0fc2ef568d2297ba68a763d455',
+        'url': 'https://www.cbc.ca/player/play/video/9.6424403',
+        'md5': 'b0ad20f236068180df378bb68fa343fd',
         'info_dict': {
-            'id': '2324213316001',
+            'id': '9.6424403',
             'ext': 'mp4',
-            'title': 'The National | School boards sue social media giants',
-            'description': 'md5:4b4db69322fa32186c3ce426da07402c',
-            'timestamp': 1711681200,
-            'duration': 2743.400,
+            'title': 'The National | N.W.T. wildfire emergency',
+            'description': 'md5:ada33d36d1df69347ed575905bfd496c',
+            'timestamp': 1718589600,
+            'duration': 2692.833,
             'subtitles': {'eng': [{'ext': 'vtt', 'protocol': 'm3u8_native'}]},
-            'thumbnail': 'https://thumbnails.cbc.ca/maven_legacy/thumbnails/607/559/thumbnail.jpeg',
-            'uploader': 'CBCC-NEW',
+            'thumbnail': 'https://i.cbc.ca/ais/6272b5c6-5e78-4c05-915d-0e36672e33d1,1714756287822/full/max/0/default.jpg',
             'chapters': 'count:5',
-            'upload_date': '20240329',
-            'categories': 'count:4',
+            'upload_date': '20240617',
+            'categories': 'count:3',
             'series': 'The National - Full Show',
             'tags': 'count:1',
-            'creators': ['News'],
             'location': 'Canada',
             'media_type': 'Full Program',
+            'genres': ['News'],
         },
     }, {
         'url': 'https://www.cbc.ca/player/play/video/1.7194274',
@@ -288,13 +292,13 @@ class CBCPlayerIE(InfoExtractor):
             'thumbnail': 'https://thumbnails.cbc.ca/maven_legacy/thumbnails/201/543/THE_MOMENT.jpg',
             'uploader': 'CBCC-NEW',
             'chapters': 'count:0',
-            'upload_date': '20240504',
             'categories': 'count:3',
             'series': 'The National',
             'tags': 'count:15',
             'creators': ['encoder'],
             'location': 'Canada',
             'media_type': 'Excerpt',
+            'upload_date': '20240504',
         },
     }, {
         'url': 'cbcplayer:1.7159484',
@@ -311,9 +315,67 @@ class CBCPlayerIE(InfoExtractor):
         video_id = self._match_id(url)
         if '.' in video_id:
             webpage = self._download_webpage(f'https://www.cbc.ca/player/play/{video_id}', video_id)
-            video_id = self._search_json(
+            json_data = self._search_json(
                 r'window\.__INITIAL_STATE__\s*=', webpage,
-                'initial state', video_id)['video']['currentClip']['mediaId']
+                'initial state', video_id)
+            mediaID = traverse_obj(json_data, ('video', 'currentClip', 'mediaId')) or None
+            if mediaID is None:
+                info = json_data['video']['currentClip']
+                formats, subtitles = self._extract_m3u8_formats_and_subtitles(
+                    self._download_json(info['media']['assets'][0]['key'], video_id)['url'], video_id)
+
+                def _process_chapters(tp_chapters, duration):
+                    chapters = []
+
+                    def _add_chapter(start_time, end_time, title=None):
+                        start_time = float_or_none(start_time, 1000)
+                        end_time = float_or_none(end_time, 1000)
+                        if start_time is None or end_time is None:
+                            return
+                        chapters.append({
+                            'start_time': start_time,
+                            'end_time': end_time,
+                            'title': title,
+                        })
+
+                    if tp_chapters is None or len(tp_chapters) == 0:
+                        return []
+
+                    for x in range(len(tp_chapters) - 1):
+                        _add_chapter(tp_chapters[x].get('startTime'),
+                                     tp_chapters[x].get('endTime') or tp_chapters[x + 1].get('startTime'),
+                                     tp_chapters[x].get('name'))
+                    _add_chapter(tp_chapters[-1].get('startTime'),
+                                 tp_chapters[-1].get('endTime') or duration, tp_chapters[-1].get('name'))
+
+                    return chapters
+
+                return {
+                    'id': video_id,  # switch to media ID?
+                    'title': info.get('title'),
+                    'formats': formats,
+                    'subtitles': subtitles,
+                    'description': remove_end(info.get('description'), ' \n'),
+                    'thumbnail': urljoin(base_url(
+                        info.get('image').get('url')),
+                        url_basename(info.get('image').get('url'))),  # strip the arguments from the URL to remove the crop
+                    'timestamp': int_or_none(info.get('publishedAt'), 1000) or None,
+                    'chapters': _process_chapters(
+                        traverse_obj(info, ('media', 'chapters')),
+                        traverse_obj(info, ('media', 'duration'))),
+                    'media_type': traverse_obj(info, ('media', 'clipType')),
+                    'series': info.get('showName'),
+                    'duration': traverse_obj(info, ('media', 'duration')),
+                    'tags': traverse_obj(info, (
+                        'tags', lambda _, v: v.get('label') in ('tags', None), 'name', {str})) or None,
+                    'location': traverse_obj(info, ('media', 'region')),
+                    'genres': [traverse_obj(info, ('media', 'genre'))],
+                    'is_live': traverse_obj(info, ('media', 'streamType')) == 'Live',
+                    'categories': traverse_obj(info, (
+                        'categories', lambda _, v: v.get('label') in ('category', None), 'name', {str})) or None,
+                }
+            else:
+                video_id = mediaID
 
         return {
             '_type': 'url_transparent',
