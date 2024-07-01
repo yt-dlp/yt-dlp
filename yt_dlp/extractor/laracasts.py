@@ -20,20 +20,22 @@ class LaracastsBaseIE(InfoExtractor):
     def _get_prop_data(self, url, display_id):
         webpage = self._download_webpage(url, display_id)
         return traverse_obj(
-            get_element_html_by_id('app', webpage), ({extract_attributes}, 'data-page', {json.loads}, 'props'))
+            get_element_html_by_id('app', webpage),
+            ({extract_attributes}, 'data-page', {json.loads}, 'props'))
 
     def _parse_episode(self, episode):
-        if not episode.get('vimeoId'):
+        if not traverse_obj(episode, 'vimeoId'):
             self.raise_login_required('This video is only available for subscribers.')
         return self.url_result(
-            VimeoIE._smuggle_referrer(f'https://player.vimeo.com/video/{episode["vimeoId"]}', 'https://laracasts.com/'),
+            VimeoIE._smuggle_referrer(
+                f'https://player.vimeo.com/video/{episode["vimeoId"]}', 'https://laracasts.com/'),
             VimeoIE, url_transparent=True,
             **traverse_obj(episode, {
                 'id': ('id', {int}, {str_or_none}),
                 'webpage_url': ('path', {lambda x: urljoin('https://laracasts.com', x)}),
                 'title': ('title', {clean_html}),
-                'season_number': ('chapter', {int}),
-                'episode_number': ('position', {int}),
+                'season_number': ('chapter', {int_or_none}),
+                'episode_number': ('position', {int_or_none}),
                 'description': ('body', {clean_html}),
                 'thumbnail': ('largeThumbnail', {url_or_none}),
                 'duration': ('length', {int_or_none}),
@@ -43,7 +45,7 @@ class LaracastsBaseIE(InfoExtractor):
 
 class LaracastsIE(LaracastsBaseIE):
     IE_NAME = 'laracasts'
-    _VALID_URL = r'https?://(?:www\.)?laracasts\.com/series/(?P<id>[\w\d-]+/episodes/[0-9]+)/?(?:[?#]|$)'
+    _VALID_URL = r'https?://(?:www\.)?laracasts\.com/series/(?P<id>[\w-]+/episodes/\d+)/?(?:[?#]|$)'
     _TESTS = [{
         'url': 'https://laracasts.com/series/30-days-to-learn-laravel-11/episodes/1',
         'md5': 'c8f5e7b02ad0e438ef9280a08c8493dc',
@@ -73,7 +75,7 @@ class LaracastsIE(LaracastsBaseIE):
 
 class LaracastsPlaylistIE(LaracastsBaseIE):
     IE_NAME = 'laracasts:series'
-    _VALID_URL = r'https?://(?:www\.)?laracasts\.com/series/(?P<id>[\w\d-]+)/?(?:[?#]|$)'
+    _VALID_URL = r'https?://(?:www\.)?laracasts\.com/series/(?P<id>[\w-]+)/?(?:[?#]|$)'
     _TESTS = [{
         'url': 'https://laracasts.com/series/30-days-to-learn-laravel-11',
         'info_dict': {
