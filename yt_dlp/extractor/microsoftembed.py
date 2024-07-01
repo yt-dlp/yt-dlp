@@ -147,13 +147,12 @@ class MicrosoftMediusIE(MicrosoftMediusBaseIE):
         video_id = self._match_id(url)
         webpage = self._download_webpage(f'https://medius.microsoft.com/Embed/video-nc/{video_id}', video_id)
 
-        ism_url = self._search_regex(r'StreamUrl\s*=\s*"([^"]+manifest)"', webpage, 'ism url')
-
         return {
             'id': video_id,
             'title': self._og_search_title(webpage),
             'description': self._og_search_description(webpage),
-            'formats': self._extract_ism(ism_url, video_id),
+            'formats': self._extract_ism(
+                self._search_regex(r'StreamUrl\s*=\s*"([^"]+manifest)"', webpage, 'ism url'), video_id),
             'thumbnail': self._og_search_thumbnail(webpage),
             'subtitles': self._extract_subtitle(webpage, video_id),
         }
