@@ -836,7 +836,6 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 url, video_id, headers=headers, impersonate=is_secure)
             redirect_url = urlh.url
         except ExtractorError as ee:
-            # 429 == player.vimeo.com TLS fingerprinting block; 403 == vimeo.com TLS/IP/embed block
             if not isinstance(ee.cause, HTTPError) or ee.cause.status not in (403, 429):
                 raise
             errmsg = ee.cause.response.read()
@@ -844,6 +843,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 raise ExtractorError(
                     'Cannot download embed-only video without embedding URL. Please call yt-dlp '
                     'with the URL of the page that embeds this video.', expected=True)
+            # 403 == vimeo.com TLS fingerprint or DC IP block; 429 == player.vimeo.com TLS FP block
             status = ee.cause.status
             dcip_msg = 'If you are using a data center IP or VPN/proxy, your IP may be blocked.'
             if target := ee.cause.response.extensions.get('impersonate'):
