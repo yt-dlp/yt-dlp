@@ -65,7 +65,13 @@ class PokerGoIE(PokerGoBaseIE):
             'width': image.get('width'),
             'height': image.get('height'),
         } for image in data_json.get('images') or [] if image.get('url')]
-        series_json = next(dct for dct in data_json.get('show_tags') or [] if dct.get('video_id') == video_id) or {}
+
+        series_json = {}
+        try:
+            series_json = next(dct for dct in data_json.get('show_tags') or [] if dct.get('video_id') == id) or {}
+        except StopIteration:
+            # sometimes API returns no show_tags for the video
+            pass
 
         return {
             '_type': 'url_transparent',
