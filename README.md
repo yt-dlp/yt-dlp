@@ -1856,6 +1856,9 @@ The following extractors use this feature:
 #### orfon (orf:on)
 * `prefer_segments_playlist`: Prefer a playlist of program segments instead of a single complete video when available. If individual segments are desired, use `--concat-playlist never --extractor-args "orfon:prefer_segments_playlist"`
 
+#### bilibili
+* `prefer_multi_flv`: Prefer extracting flv formats over mp4 for older videos that still provide legacy formats
+
 **Note**: These options may be changed/removed in the future without concern for backward compatibility
 
 <!-- MANPAGE: MOVE "INSTALLATION" SECTION HERE -->
