@@ -110,7 +110,7 @@ class PhantomJSwrapper:
     def __init__(self, extractor, required_version=None, timeout=10000):
         self._TMP_FILES = {}
 
-        self.exe = check_executable('phantomjs', ['-v'])
+        self.exe = check_executable(extractor.get_param('phantomjs'), ['-v'])
         if not self.exe:
             raise ExtractorError(f'PhantomJS not found, {self.INSTALL_HINT}', expected=True)
 
