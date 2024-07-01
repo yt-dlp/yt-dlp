@@ -78,21 +78,19 @@ class MicrosoftMediusBaseIE(InfoExtractor):
     def _sub_to_dict(subtitle_list):
         subtitles = {}
         for sub in subtitle_list:
-            subtitles.setdefault(sub.pop('tag', 'unknown'), []).append(sub)
+            subtitles.setdefault(sub.pop('tag', 'und'), []).append(sub)
         return subtitles
 
     def _extract_ism(self, ism_url, video_id):
         formats = self._extract_ism_formats(ism_url, video_id)
         for fmt in formats:
-            if fmt.get('language') == 'eng' or 'English' in fmt.get('format_id', ''):
-                fmt['language_preference'] = -1
-            else:
+            if fmt['language'] != 'eng' and 'English' not in fmt['format_id']:
                 fmt['language_preference'] = -10
         return formats
 
 
 class MicrosoftMediusIE(MicrosoftMediusBaseIE):
-    _VALID_URL = r'https?://medius\.microsoft\.com/Embed/(?:Video\?id=|video-nc/|VideoDetails/)(?P<id>[0-9a-f\-]+)'
+    _VALID_URL = r'https?://medius\.microsoft\.com/Embed/(?:Video\?id=|video-nc/|VideoDetails/)(?P<id>[\da-f-]+)'
 
     _TESTS = [{
         'url': 'https://medius.microsoft.com/Embed/video-nc/9640d86c-f513-4889-959e-5dace86e7d2b',
@@ -135,13 +133,12 @@ class MicrosoftMediusIE(MicrosoftMediusBaseIE):
     def _extract_subtitle(self, webpage, video_id):
         captions = traverse_obj(
             self._search_json(r'const\s+captionsConfiguration\s*=', webpage, 'captions', video_id, default=None),
-            ('languageList', ..., {
-                'url': ('src', {url_or_none}),
+            ('languageList', lambda _, v: url_or_none(v['src']), {
+                'url': 'src',
                 'tag': ('srclang', {str}),
                 'name': ('kind', {str}),
-            })) or traverse_obj(
-            re.findall(r'var\s+file\s+=\s+\{[^}]+\'(https://[^\']+\.vtt\?[^\']+)', webpage),
-            (lambda _, v: url_or_none(v), {lambda x: {'url': x, 'tag': x.split('.vtt?')[0].split('_')[-1]}}))
+            })) or [{'url': url, 'tag': url_basename(url).split('.vtt')[0].split('_')[-1]}
+                    for url in re.findall(r'var\s+file\s+=\s+\{[^}]+\'(https://[^\']+\.vtt\?[^\']+)', webpage)]
 
         return self._sub_to_dict(captions)
 
@@ -162,7 +159,7 @@ class MicrosoftMediusIE(MicrosoftMediusBaseIE):
 
 
 class MicrosoftLearnPlaylistIE(InfoExtractor):
-    _VALID_URL = r'https?://learn\.microsoft\.com/(?:[\w\-]+/)?(?P<type>shows|events)/(?P<id>[\w\-]+)/?(?:[?#]|$)'
+    _VALID_URL = r'https?://learn\.microsoft\.com/(?:[\w-]+/)?(?P<type>shows|events)/(?P<id>[\w-]+)/?(?:[?#]|$)'
     _TESTS = [{
         'url': 'https://learn.microsoft.com/en-us/shows/bash-for-beginners',
         'info_dict': {
@@ -210,7 +207,7 @@ class MicrosoftLearnPlaylistIE(InfoExtractor):
 
 
 class MicrosoftLearnEpisodeIE(MicrosoftMediusBaseIE):
-    _VALID_URL = r'https?://learn\.microsoft\.com/(?:[\w\-]+/)?shows/[\w\-]+/(?P<id>[^?#/]+)'
+    _VALID_URL = r'https?://learn\.microsoft\.com/(?:[\w-]+/)?shows/[\w-]+/(?P<id>[^?#/]+)'
     _TESTS = [{
         'url': 'https://learn.microsoft.com/en-us/shows/bash-for-beginners/what-is-the-difference-between-a-terminal-and-a-shell-2-of-20-bash-for-beginners/',
         'info_dict': {
@@ -235,21 +232,22 @@ class MicrosoftLearnEpisodeIE(MicrosoftMediusBaseIE):
         return {
             'id': entry_id,
             'formats': self._extract_ism(video_info['publicVideo']['adaptiveVideoUrl'], video_id),
-            'subtitles': self._sub_to_dict(traverse_obj(video_info, ('publicVideo', 'captions', ..., {
-                'tag': ('language', {str}),
-                'url': ('url', {url_or_none}),
-            }))),
+            'subtitles': self._sub_to_dict(traverse_obj(video_info, (
+                'publicVideo', 'captions', lambda _, v: url_or_none(v['url']), {
+                    'tag': ('language', {str}),
+                    'url': 'url',
+                }))),
             'title': self._og_search_title(webpage),
             'description': self._og_search_description(webpage),
             **traverse_obj(video_info, {
                 'timestamp': ('createTime', {parse_iso8601}),
-                'thumbnails': ('publicVideo', 'thumbnailOtherSizes', ..., {url_or_none}, {lambda x: x and {'url': x}}),
+                'thumbnails': ('publicVideo', 'thumbnailOtherSizes', ..., {'url': {url_or_none}}),
             }),
         }
 
 
 class MicrosoftLearnSessionIE(InfoExtractor):
-    _VALID_URL = r'https?://learn\.microsoft\.com/(?:[\w\-]+/)?events/[\w\-]+/(?P<id>[^?#/]+)'
+    _VALID_URL = r'https?://learn\.microsoft\.com/(?:[\w-]+/)?events/[\w-]+/(?P<id>[^?#/]+)'
     _TESTS = [{
         'url': 'https://learn.microsoft.com/en-us/events/build-2022/ts01-rapidly-code-test-ship-from-secure-cloud-developer-environments',
         'info_dict': {
@@ -280,8 +278,8 @@ class MicrosoftLearnSessionIE(InfoExtractor):
 
 class MicrosoftBuildIE(InfoExtractor):
     _VALID_URL = [
-        r'https?://build\.microsoft\.com/[\w\-]+/sessions/(?P<id>[0-9a-f\-]+)',
-        r'https?://build\.microsoft\.com/[\w\-]+/(?P<id>sessions)/?(?:[?#]|$)',
+        r'https?://build\.microsoft\.com/[\w-]+/sessions/(?P<id>[\da-f-]+)',
+        r'https?://build\.microsoft\.com/[\w-]+/(?P<id>sessions)/?(?:[?#]|$)',
     ]
 
     _TESTS = [{
