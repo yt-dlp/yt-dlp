@@ -7,21 +7,21 @@ import xml.etree.ElementTree
 
 from .common import InfoExtractor
 from ..utils import (
+    base_url,
     ExtractorError,
+    float_or_none,
     int_or_none,
     join_nonempty,
     js_to_json,
     orderedSet,
     parse_iso8601,
+    remove_end,
     smuggle_url,
     strip_or_none,
     traverse_obj,
     try_get,
-    float_or_none,
     url_basename,
-    base_url,
     urljoin,
-    remove_end,
 )
 
 
@@ -370,7 +370,7 @@ class CBCPlayerIE(InfoExtractor):
                         'tags', lambda _, v: v.get('label') in ('tags', None), 'name', {str})) or None,
                     'location': traverse_obj(info, ('media', 'region')),
                     'genres': [traverse_obj(info, ('media', 'genre'))],
-                    'is_live': True if (traverse_obj(info, ('media', 'streamType')) == 'Live') else False,
+                    'is_live': traverse_obj(info, ('media', 'streamType')) == 'Live',
                     'categories': traverse_obj(info, (
                         'categories', lambda _, v: v.get('label') in ('category', None), 'name', {str})) or None,
                 }
