@@ -43,18 +43,17 @@ class NuumBaseIE(InfoExtractor):
         is_live = media.get('media_status') == 'RUNNING'
 
         formats, subtitles = None, None
+        headers = {'Referer': 'https://nuum.ru/'}
         if extract_formats:
-            headers = {'Referer': 'https://nuum.ru/'}
             formats, subtitles = self._extract_m3u8_formats_and_subtitles(
                 media_url, video_id, 'mp4', live=is_live, headers=headers)
-            for format in formats:
-                format.update({'http_headers': headers})
 
         return filter_dict({
             'id': video_id,
             'is_live': is_live,
             'formats': formats,
             'subtitles': subtitles,
+            'http_headers': headers,
             **traverse_obj(container, {
                 'title': ('media_container_name', {str}),
                 'description': ('media_container_description', {str}),
