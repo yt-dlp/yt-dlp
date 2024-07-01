@@ -4,6 +4,7 @@ import copy
 import datetime as dt
 import errno
 import fileinput
+import functools
 import http.cookiejar
 import io
 import itertools
@@ -24,7 +25,7 @@ import traceback
 import unicodedata
 
 from .cache import Cache
-from .compat import functools, urllib  # isort: split
+from .compat import urllib  # isort: split
 from .compat import compat_os_name, urllib_req_to_req
 from .cookies import LenientSimpleCookie, load_cookies
 from .downloader import FFmpegFD, get_suitable_downloader, shorten_protocol_name
