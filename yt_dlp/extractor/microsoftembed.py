@@ -6,6 +6,7 @@ from ..utils import (
     parse_iso8601,
     traverse_obj,
     unified_timestamp,
+    url_basename,
     url_or_none,
 )
 
@@ -268,7 +269,7 @@ class MicrosoftLearnSessionIE(InfoExtractor):
         metainfo = {
             'title': self._og_search_title(webpage),
             'description': self._og_search_description(webpage),
-            'timestamp': parse_iso8601(self._html_search_meta('startDate', webpage, 'startDate')),
+            'timestamp': parse_iso8601(self._html_search_meta('startDate', webpage, 'startDate', fatal=False)),
         }
 
         return self.url_result(
