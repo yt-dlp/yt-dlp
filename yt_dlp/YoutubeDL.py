@@ -2190,9 +2190,8 @@ class YoutubeDL:
                                    or all(f.get('acodec') == 'none' for f in formats)),  # OR, No formats with audio
         }))
 
-    def _default_format_spec(self, info_dict, download=True):
-        download = download and not self.params.get('simulate')
-        prefer_best = download and (
+    def _default_format_spec(self, info_dict):
+        prefer_best = (
             self.params['outtmpl']['default'] == '-'
             or info_dict.get('is_live') and not self.params.get('live_from_start'))
 
@@ -2200,7 +2199,7 @@ class YoutubeDL:
             merger = FFmpegMergerPP(self)
             return merger.available and merger.can_merge()
 
-        if not prefer_best and download and not can_merge():
+        if not prefer_best and not can_merge():
             prefer_best = True
             formats = self._get_formats(info_dict)
             evaluate_formats = lambda spec: self._select_formats(formats, self.build_format_selector(spec))
@@ -2959,7 +2958,7 @@ class YoutubeDL:
                     continue
 
             if format_selector is None:
-                req_format = self._default_format_spec(info_dict, download=download)
+                req_format = self._default_format_spec(info_dict)
                 self.write_debug(f'Default format spec: {req_format}')
                 format_selector = self.build_format_selector(req_format)
 
