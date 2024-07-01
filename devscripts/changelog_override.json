@@ -169,5 +169,11 @@
         "when": "5c019f6328ad40d66561eac3c4de0b3cd070d0f6",
         "short": "[cleanup] Misc (#9765)",
         "authors": ["bashonly", "Grub4K", "seproDev"]
+    },
+    {
+        "action": "change",
+        "when": "e6a22834df1776ec4e486526f6df2bf53cb7e06f",
+        "short": "[ie/orf:on] Add `prefer_segments_playlist` extractor-arg (#10314)",
+        "authors": ["seproDev"]
     }
 ]
