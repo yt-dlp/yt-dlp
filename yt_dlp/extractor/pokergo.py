@@ -6,6 +6,7 @@ from ..utils import (
     ExtractorError,
     try_get,
 )
+from ..utils.traversal import traverse_obj
 
 
 class PokerGoBaseIE(InfoExtractor):
@@ -67,10 +68,7 @@ class PokerGoIE(PokerGoBaseIE):
             'height': image.get('height'),
         } for image in data_json.get('images') or [] if image.get('url')]
 
-        series_json = {}
-        with contextlib.suppress(StopIteration):
-            # sometimes API returns no show_tags for the video
-            series_json = next(dct for dct in data_json.get('show_tags') or [] if dct.get('video_id') == id) or {}
+        series_json = traverse_obj(data_json, ('show_tags', (lambda _, v: v['video_id'] == video_id), any)) or {}
 
         return {
             '_type': 'url_transparent',
