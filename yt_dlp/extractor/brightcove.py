@@ -386,7 +386,7 @@ class BrightcoveLegacyIE(InfoExtractor):
     @classmethod
     def _make_brightcove_url(cls, params):
         return update_url_query(
-            'http://c.brightcove.com/services/viewer/htmlFederated', params)
+            'https://c.brightcove.com/services/viewer/htmlFederated', params)
 
     @classmethod
     def _extract_brightcove_url(cls, webpage):
@@ -470,7 +470,7 @@ class BrightcoveLegacyIE(InfoExtractor):
                         if referer:
                             headers['Referer'] = referer
                         player_page = self._download_webpage(
-                            'http://link.brightcove.com/services/player/bcpid' + player_id[0],
+                            'https://link.brightcove.com/services/player/bcpid' + player_id[0],
                             video_id, headers=headers, fatal=False)
                         if player_page:
                             player_key = self._search_regex(
@@ -480,7 +480,7 @@ class BrightcoveLegacyIE(InfoExtractor):
                     enc_pub_id = player_key.split(',')[1].replace('~', '=')
                     publisher_id = struct.unpack('>Q', base64.urlsafe_b64decode(enc_pub_id))[0]
             if publisher_id:
-                brightcove_new_url = f'http://players.brightcove.net/{publisher_id}/default_default/index.html?videoId={video_id}'
+                brightcove_new_url = f'https://players.brightcove.net/{publisher_id}/default_default/index.html?videoId={video_id}'
                 if referer:
                     brightcove_new_url = smuggle_url(brightcove_new_url, {'referrer': referer})
                 return self.url_result(brightcove_new_url, BrightcoveNewIE.ie_key(), video_id)
@@ -801,7 +801,7 @@ class BrightcoveNewIE(BrightcoveNewBaseIE):
         # Look for iframe embeds [1]
         for _, url in re.findall(
                 r'<iframe[^>]+src=(["\'])((?:https?:)?//players\.brightcove\.net/\d+/[^/]+/index\.html.+?)\1', webpage):
-            entries.append(url if url.startswith('http') else 'http:' + url)
+            entries.append(url if url.startswith(('http:', 'https:')) else 'https:' + url)
 
         # Look for <video> tags [2] and embed_in_page embeds [3]
         # [2] looks like:
@@ -830,7 +830,7 @@ class BrightcoveNewIE(BrightcoveNewBaseIE):
             player_id = player_id or attrs.get('data-player') or 'default'
             embed = embed or attrs.get('data-embed') or 'default'
 
-            bc_url = f'http://players.brightcove.net/{account_id}/{player_id}_{embed}/index.html?videoId={video_id}'
+            bc_url = f'https://players.brightcove.net/{account_id}/{player_id}_{embed}/index.html?videoId={video_id}'
 
             # Some brightcove videos may be embedded with video tag only and
             # without script tag or any mentioning of brightcove at all. Such
@@ -867,7 +867,7 @@ class BrightcoveNewIE(BrightcoveNewBaseIE):
         store_pk = lambda x: self.cache.store('brightcove', policy_key_id, x)
 
         def extract_policy_key():
-            base_url = f'http://players.brightcove.net/{account_id}/{player_id}_{embed}/'
+            base_url = f'https://players.brightcove.net/{account_id}/{player_id}_{embed}/'
             config = self._download_json(
                 base_url + 'config.json', video_id, fatal=False) or {}
             policy_key = try_get(
