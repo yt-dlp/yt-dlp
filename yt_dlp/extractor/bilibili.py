@@ -140,6 +140,7 @@ class BilibiliBaseIE(InfoExtractor):
             'data', 'wbi_img', ('img_url', 'sub_url'),
             {lambda x: x.rpartition('/')[2].partition('.')[0]})))
 
+        # from getMixinKey() in the vendor js
         mixin_key_enc_tab = [
             46, 47, 18, 2, 53, 8, 23, 32, 15, 50, 10, 31, 58, 3, 45, 35, 27, 43, 5, 49,
             33, 9, 42, 19, 29, 28, 14, 39, 12, 38, 41, 13, 37, 48, 7, 16, 24, 55, 40,
