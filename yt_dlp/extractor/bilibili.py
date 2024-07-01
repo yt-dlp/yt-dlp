@@ -55,14 +55,15 @@ class BilibiliBaseIE(InfoExtractor):
         return bool(self._get_cookies('https://api.bilibili.com').get('SESSDATA'))
 
     def _check_missing_formats(self, play_info, formats):
-        parsed_qualites = set(traverse_obj(formats, (..., 'quality')))
-        missing_formats = [
-            traverse_obj(missing, 'new_description', 'display_desc', 'quality')
-            for missing in traverse_obj(play_info, (
-                'support_formats', lambda _, v: v['quality'] not in parsed_qualites))]
+        parsed_qualities = set(traverse_obj(formats, (..., 'quality')))
+        missing_formats = join_nonempty(*[
+            traverse_obj(fmt, 'new_description', 'display_desc', 'quality')
+            for fmt in traverse_obj(play_info, (
+                'support_formats', lambda _, v: v['quality'] not in parsed_qualities))], delim=', ')
         if missing_formats:
-            self.to_screen(f'Format(s) {", ".join(map(str, missing_formats))} are missing; '
-                           f'you have to login or become premium member to download them. {self._login_hint()}')
+            self.to_screen(
+                f'Format(s) {missing_formats} are missing; you have to login or '
+                f'become a premium member to download them. {self._login_hint()}')
 
     def extract_formats(self, play_info):
         format_names = {
