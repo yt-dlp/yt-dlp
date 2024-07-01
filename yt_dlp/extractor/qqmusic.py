@@ -41,16 +41,16 @@ class QQMusicBaseIE(InfoExtractor):
     # Reference: m_r_GetRUin() in top_player.js
     # http://imgcache.gtimg.cn/music/portal_v3/y/top_player.js
     @staticmethod
-    def m_r_get_ruin():
+    def _m_r_get_ruin():
         cur_ms = int(time.time() * 1000) % 1000
         return int(round(random.random() * 2147483647) * cur_ms % 1E10)
 
-    def download_init_data(self, url, mid, fatal=True):
+    def _download_init_data(self, url, mid, fatal=True):
         webpage = self._download_webpage(url, mid, fatal=fatal)
         return self._search_json(r'window\.__INITIAL_DATA__\s*=', webpage,
                                  'init data', mid, transform_source=js_to_json, fatal=fatal)
 
-    def make_fcu_req(self, req_dict, mid, headers={}, **kwargs):
+    def _make_fcu_req(self, req_dict, mid, headers={}, **kwargs):
         return self._download_json(
             'https://u.y.qq.com/cgi-bin/musicu.fcg', mid, data=json.dumps({
                 'comm': {
@@ -145,8 +145,8 @@ class QQMusicIE(QQMusicBaseIE):
     def _real_extract(self, url):
         mid = self._match_id(url)
 
-        init_data = self.download_init_data(url, mid, fatal=False)
-        info_data = self.make_fcu_req({'info': {
+        init_data = self._download_init_data(url, mid, fatal=False)
+        info_data = self._make_fcu_req({'info': {
             'module': 'music.pf_song_detail_svr',
             'method': 'get_song_detail_yqq',
             'param': {
@@ -157,12 +157,12 @@ class QQMusicIE(QQMusicBaseIE):
 
         media_mid = info_data['file']['media_mid']
 
-        data = self.make_fcu_req({
+        data = self._make_fcu_req({
             'req_1': {
                 'module': 'vkey.GetVkeyServer',
                 'method': 'CgiGetVkey',
                 'param': {
-                    'guid': str(self.m_r_get_ruin()),
+                    'guid': str(self._m_r_get_ruin()),
                     'songmid': [mid] * len(self._FORMATS),
                     'songtype': [0] * len(self._FORMATS),
                     'uin': str(self._get_uin()),
@@ -271,7 +271,7 @@ class QQMusicSingerIE(QQMusicBaseIE):
     _PAGE_SIZE = 50
 
     def _fetch_page(self, mid, page_size, page_num):
-        data = self.make_fcu_req({'req_1': {
+        data = self._make_fcu_req({'req_1': {
             'module': 'music.web_singer_info_svr',
             'method': 'get_singer_detail_info',
             'param': {
@@ -285,7 +285,7 @@ class QQMusicSingerIE(QQMusicBaseIE):
 
     def _real_extract(self, url):
         mid = self._match_id(url)
-        init_data = self.download_init_data(url, mid, fatal=False)
+        init_data = self._download_init_data(url, mid, fatal=False)
 
         return self.playlist_result(
             OnDemandPagedList(functools.partial(self._fetch_page, mid, self._PAGE_SIZE), self._PAGE_SIZE),
@@ -461,7 +461,7 @@ class QQMusicVideoIE(QQMusicBaseIE):
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        video_info = self.make_fcu_req({
+        video_info = self._make_fcu_req({
             'mvInfo': {
                 'module': 'music.video.VideoData',
                 'method': 'get_video_info_batch',
