@@ -19,6 +19,7 @@ class GraspopIE(InfoExtractor):
         video_id = self._match_id(url)
         metadata = self._download_json(
             f'https://tv.proximus.be/MWC/videocenter/festivals/{video_id}/stream', video_id)
+
         return {
             'id': video_id,
             'formats': self._extract_m3u8_formats(
