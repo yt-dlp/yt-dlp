@@ -1,4 +1,5 @@
 import base64
+import contextlib
 
 from .common import InfoExtractor
 from ..utils import (
@@ -67,11 +68,9 @@ class PokerGoIE(PokerGoBaseIE):
         } for image in data_json.get('images') or [] if image.get('url')]
 
         series_json = {}
-        try:
-            series_json = next(dct for dct in data_json.get('show_tags') or [] if dct.get('video_id') == id) or {}
-        except StopIteration:
+        with contextlib.suppress(StopIteration):
             # sometimes API returns no show_tags for the video
-            pass
+            series_json = next(dct for dct in data_json.get('show_tags') or [] if dct.get('video_id') == id) or {}
 
         return {
             '_type': 'url_transparent',
