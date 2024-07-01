@@ -835,18 +835,18 @@ class VimeoIE(VimeoBaseInfoExtractor):
             webpage, urlh = self._download_webpage_handle(
                 url, video_id, headers=headers, impersonate=is_secure)
             redirect_url = urlh.url
-        except ExtractorError as ee:
-            if not isinstance(ee.cause, HTTPError) or ee.cause.status not in (403, 429):
+        except ExtractorError as error:
+            if not isinstance(error.cause, HTTPError) or error.cause.status not in (403, 429):
                 raise
-            errmsg = ee.cause.response.read()
+            errmsg = error.cause.response.read()
             if b'Because of its privacy settings, this video cannot be played here' in errmsg:
                 raise ExtractorError(
                     'Cannot download embed-only video without embedding URL. Please call yt-dlp '
                     'with the URL of the page that embeds this video.', expected=True)
             # 403 == vimeo.com TLS fingerprint or DC IP block; 429 == player.vimeo.com TLS FP block
-            status = ee.cause.status
+            status = error.cause.status
             dcip_msg = 'If you are using a data center IP or VPN/proxy, your IP may be blocked.'
-            if target := ee.cause.response.extensions.get('impersonate'):
+            if target := error.cause.response.extensions.get('impersonate'):
                 raise ExtractorError(
                     f'Got HTTP Error {status} when using impersonate target "{target}". {dcip_msg}')
             elif not is_secure:
