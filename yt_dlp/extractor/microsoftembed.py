@@ -185,11 +185,11 @@ class MicrosoftLearnPlaylistIE(InfoExtractor):
                 'locale': 'en-us',
                 '$skip': skip,
             })
-            items = traverse_obj(playlist_info, (
-                'results', ..., 'url', {lambda x: self.url_result(f'https://learn.microsoft.com/en-us{x}')}))
-            yield from items
-            skip += len(items)
-            if skip >= playlist_info['count'] or not items:
+            url_paths = traverse_obj(playlist_info, ('results', ..., 'url', {str}))
+            for url_path in url_paths:
+                yield self.url_result(f'https://learn.microsoft.com/en-us{url_path}')
+            skip += len(url_paths)
+            if skip >= playlist_info.get('count', 0) or not url_paths:
                 break
 
     def _real_extract(self, url):
