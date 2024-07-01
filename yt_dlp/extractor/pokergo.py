@@ -66,7 +66,6 @@ class PokerGoIE(PokerGoBaseIE):
             'width': image.get('width'),
             'height': image.get('height'),
         } for image in data_json.get('images') or [] if image.get('url')]
-
         series_json = traverse_obj(data_json, ('show_tags', lambda _, v: v['video_id'] == video_id, any)) or {}
 
         return {
