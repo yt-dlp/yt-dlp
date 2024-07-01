@@ -1288,6 +1288,8 @@ The available fields are:
  - `playlist_autonumber` (numeric): Position of the video in the playlist download queue padded with leading zeros according to the total length of the playlist
  - `playlist_uploader` (string): Full name of the playlist uploader
  - `playlist_uploader_id` (string): Nickname or id of the playlist uploader
+ - `playlist_channel` (string): Display name of the channel that uploaded the playlist
+ - `playlist_channel_id` (string): Identifier of the channel that uploaded the playlist
  - `webpage_url` (string): A URL to the video webpage which if given to yt-dlp should allow to get the same result again
  - `webpage_url_basename` (string): The basename of the webpage URL
  - `webpage_url_domain` (string): The domain of the webpage URL
