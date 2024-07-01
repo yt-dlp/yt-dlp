@@ -487,6 +487,6 @@ class BandcampUserIE(InfoExtractor):
                                 or re.findall(r'<div[^>]+trackTitle["\'][^"\']+["\']([^"\']+)', webpage)):
             matches += (urljoin(url, path) for path in discography_data)
         if music_grid := self._extract_data_attr(webpage, uploader, 'client-items', fatal=False):
-            matches += (urljoin(url, album['page_url']) for album in music_grid)
+            matches += (urljoin(url, album.get('page_url')) for album in music_grid)
 
         return self.playlist_from_matches(matches, uploader, f'Discography of {uploader}')
