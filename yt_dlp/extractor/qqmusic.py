@@ -299,7 +299,9 @@ class QQMusicSingerIE(QQMusicBaseIE):
 class QQPlaylistBaseIE(InfoExtractor):
     def _extract_entries(self, info_json, path):
         for song in traverse_obj(info_json, path):
-            song_mid = song['songmid']
+            song_mid = song.get('songmid')
+            if not song_mid:
+                continue
             yield self.url_result(
                 f'https://y.qq.com/n/ryqq/songDetail/{song_mid}',
                 QQMusicIE, song_mid, song.get('songname'))
