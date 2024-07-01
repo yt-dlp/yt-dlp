@@ -456,8 +456,8 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
                                     is not present, and "&" to check multiple
                                     conditions. Use a "\" to escape "&" or
                                     quotes if needed. If used multiple times,
-                                    the filter matches if atleast one of the
-                                    conditions are met. E.g. --match-filter
+                                    the filter matches if at least one of the
+                                    conditions is met. E.g. --match-filter
                                     !is_live --match-filter "like_count>?100 &
                                     description~='(?i)\bcats \& dogs\b'" matches
                                     only videos that are not live OR those that
@@ -674,7 +674,7 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
                                     PROFILE to load cookies from, and the
                                     CONTAINER name (if Firefox) ("none" for no
                                     container) can be given with their
-                                    respective seperators. By default, all
+                                    respective separators. By default, all
                                     containers of the most recently accessed
                                     profile are used. Currently supported
                                     keyrings are: basictext, gnomekeyring,
@@ -1036,7 +1036,7 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
                                     --print/--output), "before_dl" (before each
                                     video download), "post_process" (after each
                                     video download; default), "after_move"
-                                    (after moving video file to it's final
+                                    (after moving video file to its final
                                     locations), "after_video" (after downloading
                                     and processing all formats of a video), or
                                     "playlist" (at end of playlist). This option
