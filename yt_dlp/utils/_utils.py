@@ -2095,7 +2095,9 @@ def prepend_extension(filename, ext, expected_real_ext=None):
 
 def replace_extension(filename, ext, expected_real_ext=None):
     name, real_ext = os.path.splitext(filename)
-    return f'{name if not expected_real_ext or real_ext[1:] == expected_real_ext else filename}.{ext}'
+    ext = ext if ext.startswith('.') else '.' + ext
+
+    return f'{name if not expected_real_ext or real_ext[1:] == expected_real_ext else filename}{ext}'
 
 
 def check_executable(exe, args=[]):
