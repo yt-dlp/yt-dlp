@@ -1,5 +1,4 @@
 import base64
-import contextlib
 
 from .common import InfoExtractor
 from ..utils import (
