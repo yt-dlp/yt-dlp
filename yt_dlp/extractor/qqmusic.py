@@ -342,7 +342,7 @@ class QQMusicAlbumIE(QQPlaylistBaseIE):
 
         return self.playlist_result(entries, mid, **traverse_obj(album_json, {
             'title': ('name', {str}),
-            'description': ('desc', {str}, {str.strip}),
+            'description': ('desc', {str.strip}),
         }))
 
 
