@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..utils import url_or_none
+from ..utils import update_url, url_or_none
 from ..utils.traversal import traverse_obj
 
 
