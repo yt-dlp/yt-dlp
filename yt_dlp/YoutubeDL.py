@@ -159,7 +159,7 @@ from .utils import (
     write_json_file,
     write_string,
 )
-from .utils._utils import _YDLLogger
+from .utils._utils import _UnsafeExtensionError, _YDLLogger
 from .utils.networking import (
     HTTPHeaderDict,
     clean_headers,
@@ -170,6 +170,20 @@ from .version import CHANNEL, ORIGIN, RELEASE_GIT_HEAD, VARIANT, __version__
 
 if compat_os_name == 'nt':
     import ctypes
+
+
+def _catch_unsafe_extension_error(func):
+    @functools.wraps(func)
+    def wrapper(self, *args, **kwargs):
+        try:
+            return func(self, *args, **kwargs)
+        except _UnsafeExtensionError as error:
+            self.report_error(
+                f'The extracted extension ({error.extension!r}) is unusual '
+                'and will be skipped for safety reasons. '
+                f'If you believe this is an error{bug_reports_message(",")}')
+
+    return wrapper
 
 
 class YoutubeDL:
@@ -454,8 +468,9 @@ class YoutubeDL:
                        Set the value to 'native' to use the native downloader
     compat_opts:       Compatibility options. See "Differences in default behavior".
                        The following options do not work when used through the API:
-                       filename, abort-on-error, multistreams, no-live-chat, format-sort
-                       no-clean-infojson, no-playlist-metafiles, no-keep-subs, no-attach-info-json.
+                       filename, abort-on-error, multistreams, no-live-chat,
+                       format-sort, no-clean-infojson, no-playlist-metafiles,
+                       no-keep-subs, no-attach-info-json, allow-unsafe-ext.
                        Refer __init__.py for their implementation
     progress_template: Dictionary of templates for progress outputs.
                        Allowed keys are 'download', 'postprocess',
@@ -1400,6 +1415,7 @@ class YoutubeDL:
         outtmpl, info_dict = self.prepare_outtmpl(outtmpl, info_dict, *args, **kwargs)
         return self.escape_outtmpl(outtmpl) % info_dict
 
+    @_catch_unsafe_extension_error
     def _prepare_filename(self, info_dict, *, outtmpl=None, tmpl_type=None):
         assert None in (outtmpl, tmpl_type), 'outtmpl and tmpl_type are mutually exclusive'
         if outtmpl is None:
@@ -3192,6 +3208,7 @@ class YoutubeDL:
             os.remove(file)
         return None
 
+    @_catch_unsafe_extension_error
     def process_info(self, info_dict):
         """Process a single resolved IE result. (Modifies it in-place)"""
 

@@ -2229,6 +2229,14 @@ For ease of use, a few more compat options are available:
 * `--compat-options 2022`: Same as `--compat-options 2023,playlist-match-filter,no-external-downloader-progress,prefer-legacy-http-handler,manifest-filesize-approx`
 * `--compat-options 2023`: Currently does nothing. Use this to enable all future compat options
 
+The following compat options restore vulnerable behavior from before security patches:
+
+* `--compat-options allow-unsafe-ext`: Allow files with any extension (including unsafe ones) to be downloaded ([GHSA-79w7-vh3h-8g4j](<https://github.com/yt-dlp/yt-dlp/security/advisories/GHSA-79w7-vh3h-8g4j>))
+
+    > :warning: Only use if a valid file download is rejected because its extension is detected as uncommon
+    >
+    > **This option can enable remote code execution! Consider [opening an issue](<https://github.com/yt-dlp/yt-dlp/issues/new/choose>) instead!**
+
 ### Deprecated options
 
 These are all the deprecated options and the current alternative to achieve the same effect
