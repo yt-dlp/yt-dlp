@@ -386,8 +386,7 @@ class QQMusicToplistIE(QQPlaylistBaseIE):
             query={'type': 'toplist', 'topid': list_id, 'format': 'json'})
 
         return self.playlist_result(
-            self._extract_entries(toplist_json, ('songlist', ..., 'data')),
-            list_id,
+            self._extract_entries(toplist_json, ('songlist', ..., 'data')), list_id,
             playlist_title=join_nonempty(*traverse_obj(
                 toplist_json, ((('topinfo', 'ListName'), 'update_time'), None)), delim=' '),
             playlist_description=traverse_obj(toplist_json, ('topinfo', 'info')))
