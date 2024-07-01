@@ -845,7 +845,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
                     'with the URL of the page that embeds this video.', expected=True)
             # 403 == vimeo.com TLS fingerprint or DC IP block; 429 == player.vimeo.com TLS FP block
             status = error.cause.status
-            dcip_msg = 'If you are using a data center IP or VPN/proxy, your IP may be blocked.'
+            dcip_msg = 'If you are using a data center IP or VPN/proxy, your IP may be blocked'
             if target := error.cause.response.extensions.get('impersonate'):
                 raise ExtractorError(
                     f'Got HTTP Error {status} when using impersonate target "{target}". {dcip_msg}')
