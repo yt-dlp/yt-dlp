@@ -50,10 +50,11 @@ class BilibiliBaseIE(InfoExtractor):
     _WBI_KEY_CACHE_TIMEOUT = 30  # exact expire timeout is unclear, use 30s for one session
     _wbi_key_cache = {}
 
-    def _has_no_login_cookie(self):
-        return self._get_cookies('https://api.bilibili.com').get('SESSDATA') is None
+    @property
+    def is_logged_in(self):
+        return bool(self._get_cookies('https://api.bilibili.com').get('SESSDATA'))
 
-    def check_missing_formats(self, play_info, formats):
+    def _check_missing_formats(self, play_info, formats):
         parsed_qualites = set(traverse_obj(formats, (..., 'quality')))
         missing_formats = [
             traverse_obj(missing, 'new_description', 'display_desc', 'quality')
@@ -102,11 +103,11 @@ class BilibiliBaseIE(InfoExtractor):
         } for video in traverse_obj(play_info, ('dash', 'video', ...)))
 
         if formats:
-            self.check_missing_formats(play_info, formats)
+            self._check_missing_formats(play_info, formats)
 
         fragments = traverse_obj(play_info, ('durl', lambda _, v: url_or_none(v['url']), {
             'url': ('url', {url_or_none}),
-            'duration': ('length', {lambda x: float_or_none(x, scale=1000)}),
+            'duration': ('length', {functools.partial(float_or_none, scale=1000)}),
             'filesize': ('size', {int_or_none}),
         }))
         if fragments:
@@ -121,7 +122,7 @@ class BilibiliBaseIE(InfoExtractor):
                     'quality': ('quality', {int_or_none}),
                     'format_id': ('quality', {str_or_none}),
                     'format_note': ('quality', {lambda x: format_names.get(x)}),
-                    'duration': ('timelength', {lambda x: float_or_none(x, scale=1000)}),
+                    'duration': ('timelength', {functools.partial(float_or_none, scale=1000)}),
                 }),
                 **parse_resolution(format_names.get(play_info.get('quality'))),
             })
@@ -191,11 +192,10 @@ class BilibiliBaseIE(InfoExtractor):
             query={'aid': aid, 'cid': cid} if aid else {'bvid': video_id, 'cid': cid},
             note=f'Extracting subtitle info {cid}')
         if traverse_obj(video_info, ('data', 'need_login_subtitle')):
-            self.report_warning(f'subtitles are only available when logged in. {self._login_hint()}', only_once=True)
-        subs_list = traverse_obj(video_info, ('data', 'subtitle', 'subtitles',
-                                              lambda _, v: v['subtitle_url'] and v['lan']))
-
-        for s in subs_list:
+            self.report_warning(
+                f'Subtitles are only available when logged in. {self._login_hint()}', only_once=True)
+        for s in traverse_obj(video_info, (
+                'data', 'subtitle', 'subtitles', lambda _, v: v['subtitle_url'] and v['lan'])):
             subtitles.setdefault(s['lan'], []).append({
                 'ext': 'srt',
                 'data': self.json2srt(self._download_json(s['subtitle_url'], video_id)),
@@ -484,7 +484,7 @@ class BiliBiliIE(BilibiliBaseIE):
             'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
             '_old_archive_ids': ['bilibili 4120229_part4'],
         },
-        'params': {'extractor_args': {'bilibili': {'_prefer_multi_flv': ['32']}}},
+        'params': {'extractor_args': {'bilibili': {'prefer_multi_flv': ['32']}}},
         'playlist_count': 19,
         'playlist': [{
             'info_dict': {
@@ -629,7 +629,7 @@ class BiliBiliIE(BilibiliBaseIE):
         if not self._match_valid_url(urlh.url):
             return self.url_result(urlh.url)
 
-        headers = {**headers, 'Referer': url}
+        headers['Referer'] = url
 
         initial_state = self._search_json(r'window\.__INITIAL_STATE__\s*=', webpage, 'initial state', video_id)
         is_festival = 'videoData' not in initial_state
@@ -729,23 +729,26 @@ class BiliBiliIE(BilibiliBaseIE):
                 for qn in traverse_obj(play_info, ('accept_quality', lambda _, v: not has_qn(v), {int})):
                     formats.extend(traverse_obj(
                         self.extract_formats(self._download_playinfo(video_id, cid, headers=headers, qn=qn)),
-                        (lambda _, v: not has_qn(v.get('quality')))))
-                self.check_missing_formats(play_info, formats)
-                if traverse_obj(formats, lambda _, v: v['fragments']) and traverse_obj(formats, lambda _, v: not v.get('fragments')):  # We are having both flv and mp4 formats here
-                    # Flv and mp4 are incompatible due to `multi_video` workaround, so we need to drop one of them
-                    if not self._configuration_arg('_prefer_multi_flv'):
-                        # `_prefer_multi_flv` is mainly for writing test case, user should hardly need this
-                        dropping = ', '.join(traverse_obj(formats, (
-                            lambda _, v: v['fragments'], {lambda x: f'"{x["format_note"]}" ({x["format_id"]})'})))
+                        lambda _, v: not has_qn(v['quality'])))
+                self._check_missing_formats(play_info, formats)
+                flv_formats = traverse_obj(formats, lambda _, v: v['fragments'])
+                if flv_formats and len(flv_formats) < len(formats):
+                    # Flv and mp4 are incompatible due to `multi_video` workaround, so drop one
+                    if not self._configuration_arg('prefer_multi_flv'):
+                        dropped_fmts = ', '.join(
+                            f'{f.get("format_note")} ({f.get("format_id")})' for f in flv_formats)
                         formats = traverse_obj(formats, lambda _, v: not v.get('fragments'))
-                        if dropping:
-                            self.to_screen(f'Dropping incompatible flv format(s) {dropping} when mp4 exists. Use `--extractor-args "bilibili:_prefer_multi_flv=1"` if you require flv formats.')
+                        if dropped_fmts:
+                            self.to_screen(
+                                f'Dropping incompatible flv format(s) {dropped_fmts} since mp4 is available. '
+                                'To extract flv, pass --extractor-args "bilibili:prefer_multi_flv"')
                     else:
                         formats = traverse_obj(
-                            formats, lambda _, v: v['quality'] == int(self._configuration_arg('_prefer_multi_flv')[0]),
-                        ) or [max(traverse_obj(formats, lambda _, v: v['fragments']), key=lambda x: x['quality'])]
+                            # XXX: Filtering by extractor-arg is for testing purposes
+                            formats, lambda _, v: v['quality'] == int(self._configuration_arg('prefer_multi_flv')[0]),
+                        ) or [max(flv_formats, key=lambda x: x['quality'])]
 
-            if formats[0].get('fragments'):
+            if traverse_obj(formats, (0, 'fragments')):
                 # We have flv formats, which are individual short videos with their own timestamps and metainfo
                 # Binary concatenation corrupts their timestamps, so we need a `multi_video` workaround
                 return {
@@ -849,8 +852,7 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
         elif '正在观看预览，大会员免费看全片' in webpage:
             self.raise_login_required('This video is for premium members only')
 
-        headers = {**headers, 'Referer': url}
-
+        headers['Referer'] = url
         play_info = self._download_json(
             'https://api.bilibili.com/pgc/player/web/v2/playurl', episode_id,
             'Extracting episode', query={'fnval': '4048', 'ep_id': episode_id},
@@ -1207,7 +1209,7 @@ class BilibiliSpaceVideoIE(BilibiliSpaceBaseIE):
             if status_code == -401:
                 raise ExtractorError(
                     'Request is blocked by server (401), please add cookies, wait and try later.', expected=True)
-            elif status_code == -352 and self._has_no_login_cookie():
+            elif status_code == -352 and not self.is_logged_in:
                 self.raise_login_required('Request is rejected, you need to login to access playlist')
             elif status_code != 0:
                 raise ExtractorError(f'Request failed ({status_code}): {response.get("message") or "Unknown error"}')
