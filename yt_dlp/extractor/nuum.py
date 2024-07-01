@@ -44,8 +44,11 @@ class NuumBaseIE(InfoExtractor):
 
         formats, subtitles = None, None
         if extract_formats:
+            headers = {'Referer': 'https://nuum.ru/'}
             formats, subtitles = self._extract_m3u8_formats_and_subtitles(
-                media_url, video_id, 'mp4', live=is_live)
+                media_url, video_id, 'mp4', live=is_live, headers=headers)
+            for format in formats:
+                format.update({'http_headers': headers})
 
         return filter_dict({
             'id': video_id,
@@ -78,7 +81,7 @@ class NuumMediaIE(NuumBaseIE):
         'only_matching': True,
     }, {
         'url': 'https://nuum.ru/videos/1567547-toxi-hurtz',
-        'md5': 'f1d9118a30403e32b702a204eb03aca3',
+        'md5': 'ce28837a5bbffe6952d7bfd3d39811b0',
         'info_dict': {
             'id': '1567547',
             'ext': 'mp4',
