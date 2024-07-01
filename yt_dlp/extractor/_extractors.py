@@ -1609,6 +1609,7 @@ from .qqmusic import (
     QQMusicPlaylistIE,
     QQMusicSingerIE,
     QQMusicToplistIE,
+    QQMusicVideoIE,
 )
 from .r7 import (
     R7IE,
