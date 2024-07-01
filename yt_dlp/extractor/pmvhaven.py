@@ -1,6 +1,7 @@
 import json
 
 from .common import InfoExtractor
+from ..utils import traverse_obj
 
 
 class PMVHavenIE(InfoExtractor):
@@ -90,10 +91,10 @@ class PMVHavenProfileIE(InfoExtractor):
 
         def transform(data):
             return {
-                'id': data['_id'],
-                'title': data['title'],
-                'uploader': data['uploader'],
-                'url': data['url'],
+                'id': traverse_obj(data, ('_id')),
+                'title': traverse_obj(data, ('title')),
+                'uploader': traverse_obj(data, ('uploader')),
+                'url': traverse_obj(data, ('url')),
                 'thumbnails': [{'url': i} for i in data['thumbnails'] if i != 'placeholder'],
             }
         entries = map(transform, entries)
