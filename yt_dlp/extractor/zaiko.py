@@ -66,7 +66,7 @@ class ZaikoIE(ZaikoBaseIE):
             stream_meta['stream-access']['video_source'], video_id,
             'Downloading player page', headers={'referer': 'https://zaiko.io/'})
         player_meta = self._parse_vue_element_attr('player', player_page, video_id)
-        initial_event_info = player_meta['initial_event_info']
+        initial_event_info = traverse_obj(player_meta, ('initial_event_info', {dict})) or {}
 
         status = traverse_obj(initial_event_info, ('status', {str}))
         live_status, msg, expected = {
