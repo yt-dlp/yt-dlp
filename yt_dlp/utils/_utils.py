@@ -395,17 +395,13 @@ class HTMLBreakOnClosingTagParser(html.parser.HTMLParser):
         pass
 
     def handle_starttag(self, tag, _):
-        self.tagstack.append(tag)
+        self.tagstack.appendleft(tag)
 
     def handle_endtag(self, tag):
         if not self.tagstack:
             raise compat_HTMLParseError('no tags in the stack')
-        while self.tagstack:
-            inner_tag = self.tagstack.pop()
-            if inner_tag == tag:
-                break
-        else:
-            raise compat_HTMLParseError(f'matching opening tag for closing {tag} tag not found')
+        with contextlib.suppress(ValueError):
+            self.tagstack.remove(tag)
         if not self.tagstack:
             raise self.HTMLBreakOnClosingTagException
 
@@ -439,6 +435,8 @@ def get_element_text_and_html_by_tag(tag, html):
             next_closing_tag_end = next_closing_tag_start + len(closing_tag)
             try:
                 parser.feed(html[offset:offset + next_closing_tag_end])
+                if tag not in parser.tagstack:
+                    raise HTMLBreakOnClosingTagParser.HTMLBreakOnClosingTagException()
                 offset += next_closing_tag_end
             except HTMLBreakOnClosingTagParser.HTMLBreakOnClosingTagException:
                 return html[content_start:offset + next_closing_tag_start], \
