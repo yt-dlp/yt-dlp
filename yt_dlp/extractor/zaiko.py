@@ -66,7 +66,9 @@ class ZaikoIE(ZaikoBaseIE):
             stream_meta['stream-access']['video_source'], video_id,
             'Downloading player page', headers={'referer': 'https://zaiko.io/'})
         player_meta = self._parse_vue_element_attr('player', player_page, video_id)
-        status = traverse_obj(player_meta, ('initial_event_info', 'status', {str}))
+        initial_event_info = player_meta['initial_event_info']
+
+        status = traverse_obj(initial_event_info, ('status', {str}))
         live_status, msg, expected = {
             'vod': ('was_live', 'No VOD stream URL was found', False),
             'archiving': ('post_live', 'Event VOD is still being processed', True),
@@ -80,14 +82,21 @@ class ZaikoIE(ZaikoBaseIE):
             'cancelled': ('not_live', 'Event has been cancelled', True),
         }.get(status) or ('not_live', f'Unknown event status "{status}"', False)
 
-        stream_url = traverse_obj(player_meta, ('initial_event_info', 'endpoint', {url_or_none}))
+        if traverse_obj(initial_event_info, ('is_jwt_protected', {bool})):
+            stream_url = self._download_json(traverse_obj(
+                initial_event_info, ('jwt_token_url', {url_or_none})), video_id,
+                note='Downloading jwt-protected stream url',
+                errnote='Failed to download jwt-protected stream url')['playback_url']
+        else:
+            stream_url = traverse_obj(initial_event_info, ('endpoint', {url_or_none}))
+
         formats = self._extract_m3u8_formats(
             stream_url, video_id, live=True, fatal=False) if stream_url else []
         if not formats:
             self.raise_no_formats(msg, expected=expected)
 
         thumbnail_urls = [
-            traverse_obj(player_meta, ('initial_event_info', 'poster_url')),
+            traverse_obj(initial_event_info, ('poster_url', {url_or_none})),
             self._og_search_thumbnail(self._download_webpage(
                 f'https://zaiko.io/event/{video_id}', video_id, 'Downloading event page', fatal=False) or ''),
         ]
@@ -103,9 +112,7 @@ class ZaikoIE(ZaikoBaseIE):
                 'release_timestamp': ('stream', 'start', 'timestamp', {int_or_none}),
                 'categories': ('event', 'genres', ..., {lambda x: x or None}),
             }),
-            **traverse_obj(player_meta, ('initial_event_info', {
-                'alt_title': ('title', {str}),
-            })),
+            'alt_title': traverse_obj(initial_event_info, ('title', {str})),
             'thumbnails': [{'url': url, 'id': url_basename(url)} for url in thumbnail_urls if url_or_none(url)],
         }
 
