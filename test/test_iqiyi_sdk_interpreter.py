@@ -29,11 +29,11 @@ class WarningLogger:
 @is_download_test
 class TestIqiyiSDKInterpreter(unittest.TestCase):
     def test_iqiyi_sdk_interpreter(self):
-        '''
+        """
         Test the functionality of IqiyiSDKInterpreter by trying to log in
 
         If `sign` is incorrect, /validate call throws an HTTP 556 error
-        '''
+        """
         logger = WarningLogger()
         ie = IqiyiIE(FakeYDL({'logger': logger}))
         ie._perform_login('foo', 'bar')

@@ -25,7 +25,7 @@ class ViddlerIE(InfoExtractor):
             'view_count': int,
             'comment_count': int,
             'categories': ['video content', 'high quality video', 'video made easy', 'how to produce video with limited resources', 'viddler'],
-        }
+        },
     }, {
         'url': 'http://www.viddler.com/v/4d03aad9/',
         'md5': 'f12c5a7fa839c47a79363bfdf69404fb',
@@ -38,7 +38,7 @@ class ViddlerIE(InfoExtractor):
             'timestamp': 1422285291,
             'view_count': int,
             'comment_count': int,
-        }
+        },
     }, {
         'url': 'http://www.viddler.com/player/221ebbbd/0/',
         'md5': '740511f61d3d1bb71dc14a0fe01a1c10',
@@ -52,7 +52,7 @@ class ViddlerIE(InfoExtractor):
             'timestamp': 1411997190,
             'view_count': int,
             'comment_count': int,
-        }
+        },
     }, {
         # secret protected
         'url': 'http://www.viddler.com/v/890c0985?secret=34051570',

@@ -76,6 +76,23 @@ class ImgurIE(ImgurBaseIE):
             'thumbnail': 'https://i.imgur.com/jxBXAMCh.jpg',
             'dislike_count': int,
         },
+    }, {
+        # needs Accept header, ref: https://github.com/yt-dlp/yt-dlp/issues/9458
+        'url': 'https://imgur.com/zV03bd5',
+        'md5': '59df97884e8ba76143ff6b640a0e2904',
+        'info_dict': {
+            'id': 'zV03bd5',
+            'ext': 'mp4',
+            'title': 'Ive - Liz',
+            'timestamp': 1710491255,
+            'upload_date': '20240315',
+            'like_count': int,
+            'dislike_count': int,
+            'duration': 56.92,
+            'comment_count': int,
+            'release_timestamp': 1710491255,
+            'release_date': '20240315',
+        },
     }]
 
     def _real_extract(self, url):
@@ -192,6 +209,7 @@ class ImgurIE(ImgurBaseIE):
             'id': video_id,
             'formats': formats,
             'thumbnail': url_or_none(search('thumbnailUrl')),
+            'http_headers': {'Accept': '*/*'},
         }
 
 
@@ -210,21 +228,18 @@ class ImgurGalleryBaseIE(ImgurBaseIE):
 
         if traverse_obj(data, 'is_album'):
 
-            def yield_media_ids():
-                for m_id in traverse_obj(data, (
-                        'media', lambda _, v: v.get('type') == 'video' or v['metadata']['is_animated'],
-                        'id', {lambda x: str_or_none(x) or None})):
-                    yield m_id
+            items = traverse_obj(data, (
+                'media', lambda _, v: v.get('type') == 'video' or v['metadata']['is_animated'],
+                'id', {lambda x: str_or_none(x) or None}))
 
             # if a gallery with exactly one video, apply album metadata to video
-            media_id = (
-                self._GALLERY
-                and traverse_obj(data, ('image_count', {lambda c: c == 1}))
-                and next(yield_media_ids(), None))
+            media_id = None
+            if self._GALLERY and len(items) == 1:
+                media_id = items[0]
 
             if not media_id:
                 result = self.playlist_result(
-                    map(self._imgur_result, yield_media_ids()), gallery_id)
+                    map(self._imgur_result, items), gallery_id)
                 result.update(info)
                 return result
             gallery_id = media_id
@@ -354,13 +369,13 @@ class ImgurAlbumIE(ImgurGalleryBaseIE):
         'url': 'https://imgur.com/a/iX265HX',
         'info_dict': {
             'id': 'iX265HX',
-            'title': 'enen-no-shouboutai'
+            'title': 'enen-no-shouboutai',
         },
         'playlist_count': 2,
     }, {
         'url': 'https://imgur.com/a/8pih2Ed',
         'info_dict': {
-            'id': '8pih2Ed'
+            'id': '8pih2Ed',
         },
         'playlist_mincount': 1,
     }]

@@ -20,7 +20,7 @@ class CultureUnpluggedIE(InfoExtractor):
             'creator': 'Coldstream Creative',
             'duration': 2203,
             'view_count': int,
-        }
+        },
     }, {
         'url': 'http://www.cultureunplugged.com/documentary/watch-online/play/53662',
         'only_matching': True,
@@ -35,7 +35,7 @@ class CultureUnpluggedIE(InfoExtractor):
         self._request_webpage(HEADRequest(
             'http://www.cultureunplugged.com/setClientTimezone.php?timeOffset=%d' % -(time.timezone / 3600)), display_id)
         movie_data = self._download_json(
-            'http://www.cultureunplugged.com/movie-data/cu-%s.json' % video_id, display_id)
+            f'http://www.cultureunplugged.com/movie-data/cu-{video_id}.json', display_id)
 
         video_url = movie_data['url']
         title = movie_data['title']
@@ -46,11 +46,11 @@ class CultureUnpluggedIE(InfoExtractor):
         view_count = int_or_none(movie_data.get('views'))
 
         thumbnails = [{
-            'url': movie_data['%s_thumb' % size],
+            'url': movie_data[f'{size}_thumb'],
             'id': size,
             'preference': preference,
         } for preference, size in enumerate((
-            'small', 'large')) if movie_data.get('%s_thumb' % size)]
+            'small', 'large')) if movie_data.get(f'{size}_thumb')]
 
         return {
             'id': video_id,

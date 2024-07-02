@@ -9,22 +9,22 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import argparse
 import contextlib
+import datetime as dt
 import sys
-from datetime import datetime, timezone
 
 from devscripts.utils import read_version, run_process, write_file
 
 
 def get_new_version(version, revision):
     if not version:
-        version = datetime.now(timezone.utc).strftime('%Y.%m.%d')
+        version = dt.datetime.now(dt.timezone.utc).strftime('%Y.%m.%d')
 
     if revision:
         assert revision.isdecimal(), 'Revision must be a number'
     else:
         old_version = read_version().split('.')
         if version.split('.') == old_version[:3]:
-            revision = str(int((old_version + [0])[3]) + 1)
+            revision = str(int(([*old_version, 0])[3]) + 1)
 
     return f'{version}.{revision}' if revision else version
 

@@ -1,5 +1,5 @@
+import functools
 import re
-from functools import partial
 
 from .common import InfoExtractor
 from ..utils import (
@@ -85,7 +85,7 @@ class ARDMediathekBaseIE(InfoExtractor):
                         formats.extend(self._extract_f4m_formats(
                             update_url_query(stream_url, {
                                 'hdcore': '3.1.1',
-                                'plugin': 'aasp-3.1.1.69.124'
+                                'plugin': 'aasp-3.1.1.69.124',
                             }), video_id, f4m_id='hds', fatal=False))
                     elif ext == 'm3u8':
                         formats.extend(self._extract_m3u8_formats(
@@ -96,12 +96,12 @@ class ARDMediathekBaseIE(InfoExtractor):
                             f = {
                                 'url': server,
                                 'play_path': stream_url,
-                                'format_id': 'a%s-rtmp-%s' % (num, quality),
+                                'format_id': f'a{num}-rtmp-{quality}',
                             }
                         else:
                             f = {
                                 'url': stream_url,
-                                'format_id': 'a%s-%s-%s' % (num, ext, quality)
+                                'format_id': f'a{num}-{ext}-{quality}',
                             }
                         m = re.search(
                             r'_(?P<width>\d+)x(?P<height>\d+)\.mp4$',
@@ -349,7 +349,7 @@ class ARDBetaMediathekIE(InfoExtractor):
             r'(?P<title>.*)',
         ]
 
-        return traverse_obj(patterns, (..., {partial(re.match, string=title)}, {
+        return traverse_obj(patterns, (..., {functools.partial(re.match, string=title)}, {
             'season_number': ('season_number', {int_or_none}),
             'episode_number': ('episode_number', {int_or_none}),
             'episode': ((

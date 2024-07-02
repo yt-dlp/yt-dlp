@@ -13,7 +13,7 @@ from ..utils import (
 
 
 class CamFMShowIE(InfoExtractor):
-    _VALID_URL = r'https://(?:www\.)?camfm\.co\.uk/shows/(?P<id>[^/]+)'
+    _VALID_URL = r'https?://(?:www\.)?camfm\.co\.uk/shows/(?P<id>[^/]+)'
     _TESTS = [{
         'playlist_mincount': 5,
         'url': 'https://camfm.co.uk/shows/soul-mining/',
@@ -37,12 +37,12 @@ class CamFMShowIE(InfoExtractor):
             'thumbnail': urljoin('https://camfm.co.uk', self._search_regex(
                 r'<img[^>]+class="thumb-expand"[^>]+src="([^"]+)"', page, 'thumbnail', fatal=False)),
             'title': self._html_search_regex('<h1>([^<]+)</h1>', page, 'title', fatal=False),
-            'description': clean_html(get_element_by_class('small-12 medium-8 cell', page))
+            'description': clean_html(get_element_by_class('small-12 medium-8 cell', page)),
         }
 
 
 class CamFMEpisodeIE(InfoExtractor):
-    _VALID_URL = r'https://(?:www\.)?camfm\.co\.uk/player/(?P<id>[^/]+)'
+    _VALID_URL = r'https?://(?:www\.)?camfm\.co\.uk/player/(?P<id>[^/]+)'
     _TESTS = [{
         'url': 'https://camfm.co.uk/player/43336',
         'skip': 'Episode will expire - don\'t actually know when, but it will go eventually',
@@ -56,7 +56,7 @@ class CamFMEpisodeIE(InfoExtractor):
             'series': 'AITAA: Am I the Agony Aunt?',
             'thumbnail': 'md5:5980a831360d0744c3764551be3d09c1',
             'categories': ['Entertainment'],
-        }
+        },
     }]
 
     def _real_extract(self, url):

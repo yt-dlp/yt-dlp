@@ -2,10 +2,10 @@
 
 # Allow direct execution
 import os
-import re
 import sys
 import unittest
 import warnings
+import datetime as dt
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -28,6 +28,7 @@ from yt_dlp.utils import (
     ExtractorError,
     InAdvancePagedList,
     LazyList,
+    NO_DEFAULT,
     OnDemandPagedList,
     Popen,
     age_restricted,
@@ -45,7 +46,6 @@ from yt_dlp.utils import (
     determine_ext,
     determine_file_encoding,
     dfxp2srt,
-    dict_get,
     encode_base_n,
     encode_compat_str,
     encodeFilename,
@@ -106,13 +106,11 @@ from yt_dlp.utils import (
     sanitize_url,
     shell_quote,
     smuggle_url,
-    str_or_none,
     str_to_int,
     strip_jsonp,
     strip_or_none,
     subtitles_filename,
     timeconvert,
-    traverse_obj,
     try_call,
     unescapeHTML,
     unified_strdate,
@@ -132,6 +130,7 @@ from yt_dlp.utils import (
     xpath_text,
     xpath_with_ns,
 )
+from yt_dlp.utils._utils import _UnsafeExtensionError
 from yt_dlp.utils.networking import (
     HTTPHeaderDict,
     escape_rfc3986,
@@ -278,10 +277,17 @@ class TestUtil(unittest.TestCase):
             self.assertEqual(expand_path(env('HOME')), os.getenv('HOME'))
             self.assertEqual(expand_path('~'), os.getenv('HOME'))
             self.assertEqual(
-                expand_path('~/%s' % env('yt_dlp_EXPATH_PATH')),
-                '%s/expanded' % os.getenv('HOME'))
+                expand_path('~/{}'.format(env('yt_dlp_EXPATH_PATH'))),
+                '{}/expanded'.format(os.getenv('HOME')))
         finally:
             os.environ['HOME'] = old_home or ''
+
+    _uncommon_extensions = [
+        ('exe', 'abc.exe.ext'),
+        ('de', 'abc.de.ext'),
+        ('../.mp4', None),
+        ('..\\.mp4', None),
+    ]
 
     def test_prepend_extension(self):
         self.assertEqual(prepend_extension('abc.ext', 'temp'), 'abc.temp.ext')
@@ -291,6 +297,19 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(prepend_extension('.abc', 'temp'), '.abc.temp')
         self.assertEqual(prepend_extension('.abc.ext', 'temp'), '.abc.temp.ext')
 
+        # Test uncommon extensions
+        self.assertEqual(prepend_extension('abc.ext', 'bin'), 'abc.bin.ext')
+        for ext, result in self._uncommon_extensions:
+            with self.assertRaises(_UnsafeExtensionError):
+                prepend_extension('abc', ext)
+            if result:
+                self.assertEqual(prepend_extension('abc.ext', ext, 'ext'), result)
+            else:
+                with self.assertRaises(_UnsafeExtensionError):
+                    prepend_extension('abc.ext', ext, 'ext')
+            with self.assertRaises(_UnsafeExtensionError):
+                prepend_extension('abc.unexpected_ext', ext, 'ext')
+
     def test_replace_extension(self):
         self.assertEqual(replace_extension('abc.ext', 'temp'), 'abc.temp')
         self.assertEqual(replace_extension('abc.ext', 'temp', 'ext'), 'abc.temp')
@@ -298,6 +317,16 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(replace_extension('abc', 'temp'), 'abc.temp')
         self.assertEqual(replace_extension('.abc', 'temp'), '.abc.temp')
         self.assertEqual(replace_extension('.abc.ext', 'temp'), '.abc.temp')
+
+        # Test uncommon extensions
+        self.assertEqual(replace_extension('abc.ext', 'bin'), 'abc.unknown_video')
+        for ext, _ in self._uncommon_extensions:
+            with self.assertRaises(_UnsafeExtensionError):
+                replace_extension('abc', ext)
+            with self.assertRaises(_UnsafeExtensionError):
+                replace_extension('abc.ext', ext, 'ext')
+            with self.assertRaises(_UnsafeExtensionError):
+                replace_extension('abc.unexpected_ext', ext, 'ext')
 
     def test_subtitles_filename(self):
         self.assertEqual(subtitles_filename('abc.ext', 'en', 'vtt'), 'abc.en.vtt')
@@ -358,12 +387,12 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(datetime_from_str('now+23hours', precision='hour'), datetime_from_str('now+23hours', precision='auto'))
 
     def test_daterange(self):
-        _20century = DateRange("19000101", "20000101")
-        self.assertFalse("17890714" in _20century)
-        _ac = DateRange("00010101")
-        self.assertTrue("19690721" in _ac)
-        _firstmilenium = DateRange(end="10000101")
-        self.assertTrue("07110427" in _firstmilenium)
+        _20century = DateRange('19000101', '20000101')
+        self.assertFalse('17890714' in _20century)
+        _ac = DateRange('00010101')
+        self.assertTrue('19690721' in _ac)
+        _firstmilenium = DateRange(end='10000101')
+        self.assertTrue('07110427' in _firstmilenium)
 
     def test_unified_dates(self):
         self.assertEqual(unified_strdate('December 21, 2010'), '20101221')
@@ -508,7 +537,7 @@ class TestUtil(unittest.TestCase):
         self.assertRaises(ExtractorError, xpath_attr, doc, 'div/p', 'y', fatal=True)
 
     def test_smuggle_url(self):
-        data = {"ö": "ö", "abc": [3]}
+        data = {'ö': 'ö', 'abc': [3]}
         url = 'https://foo.bar/baz?x=y#a'
         smug_url = smuggle_url(url, data)
         unsmug_url, unsmug_data = unsmuggle_url(smug_url)
@@ -755,28 +784,6 @@ class TestUtil(unittest.TestCase):
         self.assertRaises(
             ValueError, multipart_encode, {b'field': b'value'}, boundary='value')
 
-    def test_dict_get(self):
-        FALSE_VALUES = {
-            'none': None,
-            'false': False,
-            'zero': 0,
-            'empty_string': '',
-            'empty_list': [],
-        }
-        d = FALSE_VALUES.copy()
-        d['a'] = 42
-        self.assertEqual(dict_get(d, 'a'), 42)
-        self.assertEqual(dict_get(d, 'b'), None)
-        self.assertEqual(dict_get(d, 'b', 42), 42)
-        self.assertEqual(dict_get(d, ('a', )), 42)
-        self.assertEqual(dict_get(d, ('b', 'a', )), 42)
-        self.assertEqual(dict_get(d, ('b', 'c', 'a', 'd', )), 42)
-        self.assertEqual(dict_get(d, ('b', 'c', )), None)
-        self.assertEqual(dict_get(d, ('b', 'c', ), 42), 42)
-        for key, false_value in FALSE_VALUES.items():
-            self.assertEqual(dict_get(d, ('b', 'c', key, )), None)
-            self.assertEqual(dict_get(d, ('b', 'c', key, ), skip_false_values=False), false_value)
-
     def test_merge_dicts(self):
         self.assertEqual(merge_dicts({'a': 1}, {'b': 2}), {'a': 1, 'b': 2})
         self.assertEqual(merge_dicts({'a': 1}, {'a': 2}), {'a': 1})
@@ -794,6 +801,11 @@ class TestUtil(unittest.TestCase):
 
     def test_parse_iso8601(self):
         self.assertEqual(parse_iso8601('2014-03-23T23:04:26+0100'), 1395612266)
+        self.assertEqual(parse_iso8601('2014-03-23T23:04:26-07:00'), 1395641066)
+        self.assertEqual(parse_iso8601('2014-03-23T23:04:26', timezone=dt.timedelta(hours=-7)), 1395641066)
+        self.assertEqual(parse_iso8601('2014-03-23T23:04:26', timezone=NO_DEFAULT), None)
+        # default does not override timezone in date_str
+        self.assertEqual(parse_iso8601('2014-03-23T23:04:26-07:00', timezone=dt.timedelta(hours=-10)), 1395641066)
         self.assertEqual(parse_iso8601('2014-03-23T22:04:26+0000'), 1395612266)
         self.assertEqual(parse_iso8601('2014-03-23T22:04:26Z'), 1395612266)
         self.assertEqual(parse_iso8601('2014-03-23T22:04:26.1234Z'), 1395612266)
@@ -803,7 +815,7 @@ class TestUtil(unittest.TestCase):
     def test_strip_jsonp(self):
         stripped = strip_jsonp('cb ([ {"id":"532cb",\n\n\n"x":\n3}\n]\n);')
         d = json.loads(stripped)
-        self.assertEqual(d, [{"id": "532cb", "x": 3}])
+        self.assertEqual(d, [{'id': '532cb', 'x': 3}])
 
         stripped = strip_jsonp('parseMetadata({"STATUS":"OK"})\n\n\n//epc')
         d = json.loads(stripped)
@@ -941,19 +953,19 @@ class TestUtil(unittest.TestCase):
     def test_normalize_url(self):
         self.assertEqual(
             normalize_url('http://wowza.imust.org/srv/vod/telemb/new/UPLOAD/UPLOAD/20224_IncendieHavré_FD.mp4'),
-            'http://wowza.imust.org/srv/vod/telemb/new/UPLOAD/UPLOAD/20224_IncendieHavre%CC%81_FD.mp4'
+            'http://wowza.imust.org/srv/vod/telemb/new/UPLOAD/UPLOAD/20224_IncendieHavre%CC%81_FD.mp4',
         )
         self.assertEqual(
             normalize_url('http://www.ardmediathek.de/tv/Sturm-der-Liebe/Folge-2036-Zu-Mann-und-Frau-erklärt/Das-Erste/Video?documentId=22673108&bcastId=5290'),
-            'http://www.ardmediathek.de/tv/Sturm-der-Liebe/Folge-2036-Zu-Mann-und-Frau-erkl%C3%A4rt/Das-Erste/Video?documentId=22673108&bcastId=5290'
+            'http://www.ardmediathek.de/tv/Sturm-der-Liebe/Folge-2036-Zu-Mann-und-Frau-erkl%C3%A4rt/Das-Erste/Video?documentId=22673108&bcastId=5290',
         )
         self.assertEqual(
             normalize_url('http://тест.рф/фрагмент'),
-            'http://xn--e1aybc.xn--p1ai/%D1%84%D1%80%D0%B0%D0%B3%D0%BC%D0%B5%D0%BD%D1%82'
+            'http://xn--e1aybc.xn--p1ai/%D1%84%D1%80%D0%B0%D0%B3%D0%BC%D0%B5%D0%BD%D1%82',
         )
         self.assertEqual(
             normalize_url('http://тест.рф/абв?абв=абв#абв'),
-            'http://xn--e1aybc.xn--p1ai/%D0%B0%D0%B1%D0%B2?%D0%B0%D0%B1%D0%B2=%D0%B0%D0%B1%D0%B2#%D0%B0%D0%B1%D0%B2'
+            'http://xn--e1aybc.xn--p1ai/%D0%B0%D0%B1%D0%B2?%D0%B0%D0%B1%D0%B2=%D0%B0%D0%B1%D0%B2#%D0%B0%D0%B1%D0%B2',
         )
         self.assertEqual(normalize_url('http://vimeo.com/56015672#at=0'), 'http://vimeo.com/56015672#at=0')
 
@@ -998,7 +1010,7 @@ class TestUtil(unittest.TestCase):
                     'e': 'false',
                     'f': '"false"',
                     'g': 'var',
-                }
+                },
             )),
             {
                 'null': None,
@@ -1007,8 +1019,8 @@ class TestUtil(unittest.TestCase):
                 'trueStr': 'true',
                 'false': False,
                 'falseStr': 'false',
-                'unresolvedVar': 'var'
-            }
+                'unresolvedVar': 'var',
+            },
         )
 
         self.assertDictEqual(
@@ -1024,14 +1036,14 @@ class TestUtil(unittest.TestCase):
                     'b': '"123"',
                     'c': '1.23',
                     'd': '"1.23"',
-                }
+                },
             )),
             {
                 'int': 123,
                 'intStr': '123',
                 'float': 1.23,
                 'floatStr': '1.23',
-            }
+            },
         )
 
         self.assertDictEqual(
@@ -1047,14 +1059,14 @@ class TestUtil(unittest.TestCase):
                     'b': '"{}"',
                     'c': '[]',
                     'd': '"[]"',
-                }
+                },
             )),
             {
                 'object': {},
                 'objectStr': '{}',
                 'array': [],
                 'arrayStr': '[]',
-            }
+            },
         )
 
     def test_js_to_json_realworld(self):
@@ -1100,7 +1112,7 @@ class TestUtil(unittest.TestCase):
 
     def test_js_to_json_edgecases(self):
         on = js_to_json("{abc_def:'1\\'\\\\2\\\\\\'3\"4'}")
-        self.assertEqual(json.loads(on), {"abc_def": "1'\\2\\'3\"4"})
+        self.assertEqual(json.loads(on), {'abc_def': "1'\\2\\'3\"4"})
 
         on = js_to_json('{"abc": true}')
         self.assertEqual(json.loads(on), {'abc': True})
@@ -1132,9 +1144,9 @@ class TestUtil(unittest.TestCase):
             'c': 0,
             'd': 42.42,
             'e': [],
-            'f': "abc",
-            'g': "",
-            '42': 42
+            'f': 'abc',
+            'g': '',
+            '42': 42,
         })
 
         on = js_to_json('["abc", "def",]')
@@ -1228,8 +1240,8 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(json.loads(js_to_json('Array(5, 10)')), [5, 10])
         self.assertEqual(json.loads(js_to_json('new Array(15,5)')), [15, 5])
         self.assertEqual(json.loads(js_to_json('new Map([Array(5, 10),new Array(15,5)])')), {'5': 10, '15': 5})
-        self.assertEqual(json.loads(js_to_json('new Date("123")')), "123")
-        self.assertEqual(json.loads(js_to_json('new Date(\'2023-10-19\')')), "2023-10-19")
+        self.assertEqual(json.loads(js_to_json('new Date("123")')), '123')
+        self.assertEqual(json.loads(js_to_json('new Date(\'2023-10-19\')')), '2023-10-19')
 
     def test_extract_attributes(self):
         self.assertEqual(extract_attributes('<e x="y">'), {'x': 'y'})
@@ -1284,7 +1296,7 @@ class TestUtil(unittest.TestCase):
     def test_args_to_str(self):
         self.assertEqual(
             args_to_str(['foo', 'ba/r', '-baz', '2 be', '']),
-            'foo ba/r -baz \'2 be\' \'\'' if compat_os_name != 'nt' else 'foo ba/r -baz "2 be" ""'
+            'foo ba/r -baz \'2 be\' \'\'' if compat_os_name != 'nt' else 'foo ba/r -baz "2 be" ""',
         )
 
     def test_parse_filesize(self):
@@ -1367,10 +1379,10 @@ ffmpeg version 2.4.4 Copyright (c) 2000-2014 the FFmpeg ...'''), '2.4.4')
         self.assertTrue(is_html(  # UTF-8 with BOM
             b'\xef\xbb\xbf<!DOCTYPE foo>\xaaa'))
         self.assertTrue(is_html(  # UTF-16-LE
-            b'\xff\xfe<\x00h\x00t\x00m\x00l\x00>\x00\xe4\x00'
+            b'\xff\xfe<\x00h\x00t\x00m\x00l\x00>\x00\xe4\x00',
         ))
         self.assertTrue(is_html(  # UTF-16-BE
-            b'\xfe\xff\x00<\x00h\x00t\x00m\x00l\x00>\x00\xe4'
+            b'\xfe\xff\x00<\x00h\x00t\x00m\x00l\x00>\x00\xe4',
         ))
         self.assertTrue(is_html(  # UTF-32-BE
             b'\x00\x00\xFE\xFF\x00\x00\x00<\x00\x00\x00h\x00\x00\x00t\x00\x00\x00m\x00\x00\x00l\x00\x00\x00>\x00\x00\x00\xe4'))
@@ -1954,7 +1966,7 @@ Line 1
                             with locked_file(FILE, test_mode, False):
                                 pass
                         except (BlockingIOError, PermissionError):
-                            if not testing_write:  # FIXME
+                            if not testing_write:  # FIXME: blocked read access
                                 print(f'Known issue: Exclusive lock ({lock_mode}) blocks read access ({test_mode})')
                                 continue
                             self.assertTrue(testing_write, f'{test_mode} is blocked by {lock_mode}')
@@ -2022,7 +2034,7 @@ Line 1
                          msg='int fn with expected_type int should give int')
         self.assertEqual(try_call(lambda: 1, expected_type=dict), None,
                          msg='int fn with wrong expected_type should give None')
-        self.assertEqual(try_call(total, args=(0, 1, 0, ), expected_type=int), 1,
+        self.assertEqual(try_call(total, args=(0, 1, 0), expected_type=int), 1,
                          msg='fn should accept arglist')
         self.assertEqual(try_call(total, kwargs={'a': 0, 'b': 1, 'c': 0}, expected_type=int), 1,
                          msg='fn should accept kwargs')
@@ -2038,359 +2050,6 @@ Line 1
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
             self.assertEqual(variadic('spam', allowed_types=[dict]), 'spam')
-
-    def test_traverse_obj(self):
-        _TEST_DATA = {
-            100: 100,
-            1.2: 1.2,
-            'str': 'str',
-            'None': None,
-            '...': ...,
-            'urls': [
-                {'index': 0, 'url': 'https://www.example.com/0'},
-                {'index': 1, 'url': 'https://www.example.com/1'},
-            ],
-            'data': (
-                {'index': 2},
-                {'index': 3},
-            ),
-            'dict': {},
-        }
-
-        # Test base functionality
-        self.assertEqual(traverse_obj(_TEST_DATA, ('str',)), 'str',
-                         msg='allow tuple path')
-        self.assertEqual(traverse_obj(_TEST_DATA, ['str']), 'str',
-                         msg='allow list path')
-        self.assertEqual(traverse_obj(_TEST_DATA, (value for value in ("str",))), 'str',
-                         msg='allow iterable path')
-        self.assertEqual(traverse_obj(_TEST_DATA, 'str'), 'str',
-                         msg='single items should be treated as a path')
-        self.assertEqual(traverse_obj(_TEST_DATA, None), _TEST_DATA)
-        self.assertEqual(traverse_obj(_TEST_DATA, 100), 100)
-        self.assertEqual(traverse_obj(_TEST_DATA, 1.2), 1.2)
-
-        # Test Ellipsis behavior
-        self.assertCountEqual(traverse_obj(_TEST_DATA, ...),
-                              (item for item in _TEST_DATA.values() if item not in (None, {})),
-                              msg='`...` should give all non discarded values')
-        self.assertCountEqual(traverse_obj(_TEST_DATA, ('urls', 0, ...)), _TEST_DATA['urls'][0].values(),
-                              msg='`...` selection for dicts should select all values')
-        self.assertEqual(traverse_obj(_TEST_DATA, (..., ..., 'url')),
-                         ['https://www.example.com/0', 'https://www.example.com/1'],
-                         msg='nested `...` queries should work')
-        self.assertCountEqual(traverse_obj(_TEST_DATA, (..., ..., 'index')), range(4),
-                              msg='`...` query result should be flattened')
-        self.assertEqual(traverse_obj(iter(range(4)), ...), list(range(4)),
-                         msg='`...` should accept iterables')
-
-        # Test function as key
-        self.assertEqual(traverse_obj(_TEST_DATA, lambda x, y: x == 'urls' and isinstance(y, list)),
-                         [_TEST_DATA['urls']],
-                         msg='function as query key should perform a filter based on (key, value)')
-        self.assertCountEqual(traverse_obj(_TEST_DATA, lambda _, x: isinstance(x[0], str)), {'str'},
-                              msg='exceptions in the query function should be catched')
-        self.assertEqual(traverse_obj(iter(range(4)), lambda _, x: x % 2 == 0), [0, 2],
-                         msg='function key should accept iterables')
-        if __debug__:
-            with self.assertRaises(Exception, msg='Wrong function signature should raise in debug'):
-                traverse_obj(_TEST_DATA, lambda a: ...)
-            with self.assertRaises(Exception, msg='Wrong function signature should raise in debug'):
-                traverse_obj(_TEST_DATA, lambda a, b, c: ...)
-
-        # Test set as key (transformation/type, like `expected_type`)
-        self.assertEqual(traverse_obj(_TEST_DATA, (..., {str.upper}, )), ['STR'],
-                         msg='Function in set should be a transformation')
-        self.assertEqual(traverse_obj(_TEST_DATA, (..., {str})), ['str'],
-                         msg='Type in set should be a type filter')
-        self.assertEqual(traverse_obj(_TEST_DATA, {dict}), _TEST_DATA,
-                         msg='A single set should be wrapped into a path')
-        self.assertEqual(traverse_obj(_TEST_DATA, (..., {str.upper})), ['STR'],
-                         msg='Transformation function should not raise')
-        self.assertEqual(traverse_obj(_TEST_DATA, (..., {str_or_none})),
-                         [item for item in map(str_or_none, _TEST_DATA.values()) if item is not None],
-                         msg='Function in set should be a transformation')
-        self.assertEqual(traverse_obj(_TEST_DATA, ('fail', {lambda _: 'const'})), 'const',
-                         msg='Function in set should always be called')
-        if __debug__:
-            with self.assertRaises(Exception, msg='Sets with length != 1 should raise in debug'):
-                traverse_obj(_TEST_DATA, set())
-            with self.assertRaises(Exception, msg='Sets with length != 1 should raise in debug'):
-                traverse_obj(_TEST_DATA, {str.upper, str})
-
-        # Test `slice` as a key
-        _SLICE_DATA = [0, 1, 2, 3, 4]
-        self.assertEqual(traverse_obj(_TEST_DATA, ('dict', slice(1))), None,
-                         msg='slice on a dictionary should not throw')
-        self.assertEqual(traverse_obj(_SLICE_DATA, slice(1)), _SLICE_DATA[:1],
-                         msg='slice key should apply slice to sequence')
-        self.assertEqual(traverse_obj(_SLICE_DATA, slice(1, 2)), _SLICE_DATA[1:2],
-                         msg='slice key should apply slice to sequence')
-        self.assertEqual(traverse_obj(_SLICE_DATA, slice(1, 4, 2)), _SLICE_DATA[1:4:2],
-                         msg='slice key should apply slice to sequence')
-
-        # Test alternative paths
-        self.assertEqual(traverse_obj(_TEST_DATA, 'fail', 'str'), 'str',
-                         msg='multiple `paths` should be treated as alternative paths')
-        self.assertEqual(traverse_obj(_TEST_DATA, 'str', 100), 'str',
-                         msg='alternatives should exit early')
-        self.assertEqual(traverse_obj(_TEST_DATA, 'fail', 'fail'), None,
-                         msg='alternatives should return `default` if exhausted')
-        self.assertEqual(traverse_obj(_TEST_DATA, (..., 'fail'), 100), 100,
-                         msg='alternatives should track their own branching return')
-        self.assertEqual(traverse_obj(_TEST_DATA, ('dict', ...), ('data', ...)), list(_TEST_DATA['data']),
-                         msg='alternatives on empty objects should search further')
-
-        # Test branch and path nesting
-        self.assertEqual(traverse_obj(_TEST_DATA, ('urls', (3, 0), 'url')), ['https://www.example.com/0'],
-                         msg='tuple as key should be treated as branches')
-        self.assertEqual(traverse_obj(_TEST_DATA, ('urls', [3, 0], 'url')), ['https://www.example.com/0'],
-                         msg='list as key should be treated as branches')
-        self.assertEqual(traverse_obj(_TEST_DATA, ('urls', ((1, 'fail'), (0, 'url')))), ['https://www.example.com/0'],
-                         msg='double nesting in path should be treated as paths')
-        self.assertEqual(traverse_obj(['0', [1, 2]], [(0, 1), 0]), [1],
-                         msg='do not fail early on branching')
-        self.assertCountEqual(traverse_obj(_TEST_DATA, ('urls', ((1, ('fail', 'url')), (0, 'url')))),
-                              ['https://www.example.com/0', 'https://www.example.com/1'],
-                              msg='tripple nesting in path should be treated as branches')
-        self.assertEqual(traverse_obj(_TEST_DATA, ('urls', ('fail', (..., 'url')))),
-                         ['https://www.example.com/0', 'https://www.example.com/1'],
-                         msg='ellipsis as branch path start gets flattened')
-
-        # Test dictionary as key
-        self.assertEqual(traverse_obj(_TEST_DATA, {0: 100, 1: 1.2}), {0: 100, 1: 1.2},
-                         msg='dict key should result in a dict with the same keys')
-        self.assertEqual(traverse_obj(_TEST_DATA, {0: ('urls', 0, 'url')}),
-                         {0: 'https://www.example.com/0'},
-                         msg='dict key should allow paths')
-        self.assertEqual(traverse_obj(_TEST_DATA, {0: ('urls', (3, 0), 'url')}),
-                         {0: ['https://www.example.com/0']},
-                         msg='tuple in dict path should be treated as branches')
-        self.assertEqual(traverse_obj(_TEST_DATA, {0: ('urls', ((1, 'fail'), (0, 'url')))}),
-                         {0: ['https://www.example.com/0']},
-                         msg='double nesting in dict path should be treated as paths')
-        self.assertEqual(traverse_obj(_TEST_DATA, {0: ('urls', ((1, ('fail', 'url')), (0, 'url')))}),
-                         {0: ['https://www.example.com/1', 'https://www.example.com/0']},
-                         msg='tripple nesting in dict path should be treated as branches')
-        self.assertEqual(traverse_obj(_TEST_DATA, {0: 'fail'}), {},
-                         msg='remove `None` values when top level dict key fails')
-        self.assertEqual(traverse_obj(_TEST_DATA, {0: 'fail'}, default=...), {0: ...},
-                         msg='use `default` if key fails and `default`')
-        self.assertEqual(traverse_obj(_TEST_DATA, {0: 'dict'}), {},
-                         msg='remove empty values when dict key')
-        self.assertEqual(traverse_obj(_TEST_DATA, {0: 'dict'}, default=...), {0: ...},
-                         msg='use `default` when dict key and `default`')
-        self.assertEqual(traverse_obj(_TEST_DATA, {0: {0: 'fail'}}), {},
-                         msg='remove empty values when nested dict key fails')
-        self.assertEqual(traverse_obj(None, {0: 'fail'}), {},
-                         msg='default to dict if pruned')
-        self.assertEqual(traverse_obj(None, {0: 'fail'}, default=...), {0: ...},
-                         msg='default to dict if pruned and default is given')
-        self.assertEqual(traverse_obj(_TEST_DATA, {0: {0: 'fail'}}, default=...), {0: {0: ...}},
-                         msg='use nested `default` when nested dict key fails and `default`')
-        self.assertEqual(traverse_obj(_TEST_DATA, {0: ('dict', ...)}), {},
-                         msg='remove key if branch in dict key not successful')
-
-        # Testing default parameter behavior
-        _DEFAULT_DATA = {'None': None, 'int': 0, 'list': []}
-        self.assertEqual(traverse_obj(_DEFAULT_DATA, 'fail'), None,
-                         msg='default value should be `None`')
-        self.assertEqual(traverse_obj(_DEFAULT_DATA, 'fail', 'fail', default=...), ...,
-                         msg='chained fails should result in default')
-        self.assertEqual(traverse_obj(_DEFAULT_DATA, 'None', 'int'), 0,
-                         msg='should not short cirquit on `None`')
-        self.assertEqual(traverse_obj(_DEFAULT_DATA, 'fail', default=1), 1,
-                         msg='invalid dict key should result in `default`')
-        self.assertEqual(traverse_obj(_DEFAULT_DATA, 'None', default=1), 1,
-                         msg='`None` is a deliberate sentinel and should become `default`')
-        self.assertEqual(traverse_obj(_DEFAULT_DATA, ('list', 10)), None,
-                         msg='`IndexError` should result in `default`')
-        self.assertEqual(traverse_obj(_DEFAULT_DATA, (..., 'fail'), default=1), 1,
-                         msg='if branched but not successful return `default` if defined, not `[]`')
-        self.assertEqual(traverse_obj(_DEFAULT_DATA, (..., 'fail'), default=None), None,
-                         msg='if branched but not successful return `default` even if `default` is `None`')
-        self.assertEqual(traverse_obj(_DEFAULT_DATA, (..., 'fail')), [],
-                         msg='if branched but not successful return `[]`, not `default`')
-        self.assertEqual(traverse_obj(_DEFAULT_DATA, ('list', ...)), [],
-                         msg='if branched but object is empty return `[]`, not `default`')
-        self.assertEqual(traverse_obj(None, ...), [],
-                         msg='if branched but object is `None` return `[]`, not `default`')
-        self.assertEqual(traverse_obj({0: None}, (0, ...)), [],
-                         msg='if branched but state is `None` return `[]`, not `default`')
-
-        branching_paths = [
-            ('fail', ...),
-            (..., 'fail'),
-            100 * ('fail',) + (...,),
-            (...,) + 100 * ('fail',),
-        ]
-        for branching_path in branching_paths:
-            self.assertEqual(traverse_obj({}, branching_path), [],
-                             msg='if branched but state is `None`, return `[]` (not `default`)')
-            self.assertEqual(traverse_obj({}, 'fail', branching_path), [],
-                             msg='if branching in last alternative and previous did not match, return `[]` (not `default`)')
-            self.assertEqual(traverse_obj({0: 'x'}, 0, branching_path), 'x',
-                             msg='if branching in last alternative and previous did match, return single value')
-            self.assertEqual(traverse_obj({0: 'x'}, branching_path, 0), 'x',
-                             msg='if branching in first alternative and non-branching path does match, return single value')
-            self.assertEqual(traverse_obj({}, branching_path, 'fail'), None,
-                             msg='if branching in first alternative and non-branching path does not match, return `default`')
-
-        # Testing expected_type behavior
-        _EXPECTED_TYPE_DATA = {'str': 'str', 'int': 0}
-        self.assertEqual(traverse_obj(_EXPECTED_TYPE_DATA, 'str', expected_type=str),
-                         'str', msg='accept matching `expected_type` type')
-        self.assertEqual(traverse_obj(_EXPECTED_TYPE_DATA, 'str', expected_type=int),
-                         None, msg='reject non matching `expected_type` type')
-        self.assertEqual(traverse_obj(_EXPECTED_TYPE_DATA, 'int', expected_type=lambda x: str(x)),
-                         '0', msg='transform type using type function')
-        self.assertEqual(traverse_obj(_EXPECTED_TYPE_DATA, 'str', expected_type=lambda _: 1 / 0),
-                         None, msg='wrap expected_type fuction in try_call')
-        self.assertEqual(traverse_obj(_EXPECTED_TYPE_DATA, ..., expected_type=str),
-                         ['str'], msg='eliminate items that expected_type fails on')
-        self.assertEqual(traverse_obj(_TEST_DATA, {0: 100, 1: 1.2}, expected_type=int),
-                         {0: 100}, msg='type as expected_type should filter dict values')
-        self.assertEqual(traverse_obj(_TEST_DATA, {0: 100, 1: 1.2, 2: 'None'}, expected_type=str_or_none),
-                         {0: '100', 1: '1.2'}, msg='function as expected_type should transform dict values')
-        self.assertEqual(traverse_obj(_TEST_DATA, ({0: 1.2}, 0, {int_or_none}), expected_type=int),
-                         1, msg='expected_type should not filter non final dict values')
-        self.assertEqual(traverse_obj(_TEST_DATA, {0: {0: 100, 1: 'str'}}, expected_type=int),
-                         {0: {0: 100}}, msg='expected_type should transform deep dict values')
-        self.assertEqual(traverse_obj(_TEST_DATA, [({0: '...'}, {0: '...'})], expected_type=type(...)),
-                         [{0: ...}, {0: ...}], msg='expected_type should transform branched dict values')
-        self.assertEqual(traverse_obj({1: {3: 4}}, [(1, 2), 3], expected_type=int),
-                         [4], msg='expected_type regression for type matching in tuple branching')
-        self.assertEqual(traverse_obj(_TEST_DATA, ['data', ...], expected_type=int),
-                         [], msg='expected_type regression for type matching in dict result')
-
-        # Test get_all behavior
-        _GET_ALL_DATA = {'key': [0, 1, 2]}
-        self.assertEqual(traverse_obj(_GET_ALL_DATA, ('key', ...), get_all=False), 0,
-                         msg='if not `get_all`, return only first matching value')
-        self.assertEqual(traverse_obj(_GET_ALL_DATA, ..., get_all=False), [0, 1, 2],
-                         msg='do not overflatten if not `get_all`')
-
-        # Test casesense behavior
-        _CASESENSE_DATA = {
-            'KeY': 'value0',
-            0: {
-                'KeY': 'value1',
-                0: {'KeY': 'value2'},
-            },
-        }
-        self.assertEqual(traverse_obj(_CASESENSE_DATA, 'key'), None,
-                         msg='dict keys should be case sensitive unless `casesense`')
-        self.assertEqual(traverse_obj(_CASESENSE_DATA, 'keY',
-                                      casesense=False), 'value0',
-                         msg='allow non matching key case if `casesense`')
-        self.assertEqual(traverse_obj(_CASESENSE_DATA, (0, ('keY',)),
-                                      casesense=False), ['value1'],
-                         msg='allow non matching key case in branch if `casesense`')
-        self.assertEqual(traverse_obj(_CASESENSE_DATA, (0, ((0, 'keY'),)),
-                                      casesense=False), ['value2'],
-                         msg='allow non matching key case in branch path if `casesense`')
-
-        # Test traverse_string behavior
-        _TRAVERSE_STRING_DATA = {'str': 'str', 1.2: 1.2}
-        self.assertEqual(traverse_obj(_TRAVERSE_STRING_DATA, ('str', 0)), None,
-                         msg='do not traverse into string if not `traverse_string`')
-        self.assertEqual(traverse_obj(_TRAVERSE_STRING_DATA, ('str', 0),
-                                      traverse_string=True), 's',
-                         msg='traverse into string if `traverse_string`')
-        self.assertEqual(traverse_obj(_TRAVERSE_STRING_DATA, (1.2, 1),
-                                      traverse_string=True), '.',
-                         msg='traverse into converted data if `traverse_string`')
-        self.assertEqual(traverse_obj(_TRAVERSE_STRING_DATA, ('str', ...),
-                                      traverse_string=True), 'str',
-                         msg='`...` should result in string (same value) if `traverse_string`')
-        self.assertEqual(traverse_obj(_TRAVERSE_STRING_DATA, ('str', slice(0, None, 2)),
-                                      traverse_string=True), 'sr',
-                         msg='`slice` should result in string if `traverse_string`')
-        self.assertEqual(traverse_obj(_TRAVERSE_STRING_DATA, ('str', lambda i, v: i or v == "s"),
-                                      traverse_string=True), 'str',
-                         msg='function should result in string if `traverse_string`')
-        self.assertEqual(traverse_obj(_TRAVERSE_STRING_DATA, ('str', (0, 2)),
-                                      traverse_string=True), ['s', 'r'],
-                         msg='branching should result in list if `traverse_string`')
-        self.assertEqual(traverse_obj({}, (0, ...), traverse_string=True), [],
-                         msg='branching should result in list if `traverse_string`')
-        self.assertEqual(traverse_obj({}, (0, lambda x, y: True), traverse_string=True), [],
-                         msg='branching should result in list if `traverse_string`')
-        self.assertEqual(traverse_obj({}, (0, slice(1)), traverse_string=True), [],
-                         msg='branching should result in list if `traverse_string`')
-
-        # Test re.Match as input obj
-        mobj = re.fullmatch(r'0(12)(?P<group>3)(4)?', '0123')
-        self.assertEqual(traverse_obj(mobj, ...), [x for x in mobj.groups() if x is not None],
-                         msg='`...` on a `re.Match` should give its `groups()`')
-        self.assertEqual(traverse_obj(mobj, lambda k, _: k in (0, 2)), ['0123', '3'],
-                         msg='function on a `re.Match` should give groupno, value starting at 0')
-        self.assertEqual(traverse_obj(mobj, 'group'), '3',
-                         msg='str key on a `re.Match` should give group with that name')
-        self.assertEqual(traverse_obj(mobj, 2), '3',
-                         msg='int key on a `re.Match` should give group with that name')
-        self.assertEqual(traverse_obj(mobj, 'gRoUp', casesense=False), '3',
-                         msg='str key on a `re.Match` should respect casesense')
-        self.assertEqual(traverse_obj(mobj, 'fail'), None,
-                         msg='failing str key on a `re.Match` should return `default`')
-        self.assertEqual(traverse_obj(mobj, 'gRoUpS', casesense=False), None,
-                         msg='failing str key on a `re.Match` should return `default`')
-        self.assertEqual(traverse_obj(mobj, 8), None,
-                         msg='failing int key on a `re.Match` should return `default`')
-        self.assertEqual(traverse_obj(mobj, lambda k, _: k in (0, 'group')), ['0123', '3'],
-                         msg='function on a `re.Match` should give group name as well')
-
-        # Test xml.etree.ElementTree.Element as input obj
-        etree = xml.etree.ElementTree.fromstring('''<?xml version="1.0"?>
-        <data>
-            <country name="Liechtenstein">
-                <rank>1</rank>
-                <year>2008</year>
-                <gdppc>141100</gdppc>
-                <neighbor name="Austria" direction="E"/>
-                <neighbor name="Switzerland" direction="W"/>
-            </country>
-            <country name="Singapore">
-                <rank>4</rank>
-                <year>2011</year>
-                <gdppc>59900</gdppc>
-                <neighbor name="Malaysia" direction="N"/>
-            </country>
-            <country name="Panama">
-                <rank>68</rank>
-                <year>2011</year>
-                <gdppc>13600</gdppc>
-                <neighbor name="Costa Rica" direction="W"/>
-                <neighbor name="Colombia" direction="E"/>
-            </country>
-        </data>''')
-        self.assertEqual(traverse_obj(etree, ''), etree,
-                         msg='empty str key should return the element itself')
-        self.assertEqual(traverse_obj(etree, 'country'), list(etree),
-                         msg='str key should lead all children with that tag name')
-        self.assertEqual(traverse_obj(etree, ...), list(etree),
-                         msg='`...` as key should return all children')
-        self.assertEqual(traverse_obj(etree, lambda _, x: x[0].text == '4'), [etree[1]],
-                         msg='function as key should get element as value')
-        self.assertEqual(traverse_obj(etree, lambda i, _: i == 1), [etree[1]],
-                         msg='function as key should get index as key')
-        self.assertEqual(traverse_obj(etree, 0), etree[0],
-                         msg='int key should return the nth child')
-        self.assertEqual(traverse_obj(etree, './/neighbor/@name'),
-                         ['Austria', 'Switzerland', 'Malaysia', 'Costa Rica', 'Colombia'],
-                         msg='`@<attribute>` at end of path should give that attribute')
-        self.assertEqual(traverse_obj(etree, '//neighbor/@fail'), [None, None, None, None, None],
-                         msg='`@<nonexistant>` at end of path should give `None`')
-        self.assertEqual(traverse_obj(etree, ('//neighbor/@', 2)), {'name': 'Malaysia', 'direction': 'N'},
-                         msg='`@` should give the full attribute dict')
-        self.assertEqual(traverse_obj(etree, '//year/text()'), ['2008', '2011', '2011'],
-                         msg='`text()` at end of path should give the inner text')
-        self.assertEqual(traverse_obj(etree, '//*[@direction]/@direction'), ['E', 'W', 'N', 'W', 'E'],
-                         msg='full python xpath features should be supported')
-        self.assertEqual(traverse_obj(etree, (0, '@name')), 'Liechtenstein',
-                         msg='special transformations should act on current element')
-        self.assertEqual(traverse_obj(etree, ('country', 0, ..., 'text()', {int_or_none})), [1, 2008, 141100],
-                         msg='special transformations should act on current element')
 
     def test_http_header_dict(self):
         headers = HTTPHeaderDict()
@@ -2438,7 +2097,22 @@ Line 1
         assert extract_basic_auth('http://user:pass@foo.bar') == ('http://foo.bar', 'Basic dXNlcjpwYXNz')
 
     @unittest.skipUnless(compat_os_name == 'nt', 'Only relevant on Windows')
-    def test_Popen_windows_escaping(self):
+    def test_windows_escaping(self):
+        tests = [
+            'test"&',
+            '%CMDCMDLINE:~-1%&',
+            'a\nb',
+            '"',
+            '\\',
+            '!',
+            '^!',
+            'a \\ b',
+            'a \\" b',
+            'a \\ b\\',
+            # We replace \r with \n
+            ('a\r\ra', 'a\n\na'),
+        ]
+
         def run_shell(args):
             stdout, stderr, error = Popen.run(
                 args, text=True, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -2446,11 +2120,15 @@ Line 1
             assert not error
             return stdout
 
-        # Test escaping
-        assert run_shell(['echo', 'test"&']) == '"test""&"\n'
-        # Test if delayed expansion is disabled
-        assert run_shell(['echo', '^!']) == '"^!"\n'
-        assert run_shell('echo "^!"') == '"^!"\n'
+        for argument in tests:
+            if isinstance(argument, str):
+                expected = argument
+            else:
+                argument, expected = argument
+
+            args = [sys.executable, '-c', 'import sys; print(end=sys.argv[1])', argument, 'end']
+            assert run_shell(args) == expected
+            assert run_shell(shell_quote(args, shell=True)) == expected
 
 
 if __name__ == '__main__':

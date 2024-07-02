@@ -10,7 +10,7 @@ class OnePlacePodcastIE(InfoExtractor):
             'ext': 'mp3',
             'title': 'Living in the Last Days Part 2 | A Daily Walk with John Randall',
             'description': 'md5:fbb8f1cf21447ac54ecaa2887fc20c6e',
-        }
+        },
     }, {
         'url': 'https://www.oneplace.com/ministries/ankerberg-show/listen/ep-3-relying-on-the-constant-companionship-of-the-holy-spirit-part-2-922513.html',
         'info_dict': {
@@ -18,7 +18,7 @@ class OnePlacePodcastIE(InfoExtractor):
             'ext': 'mp3',
             'description': 'md5:8b810b4349aa40a5d033b4536fe428e1',
             'title': 'md5:ce10f7d8d5ddcf485ed8905ef109659d',
-        }
+        },
     }]
 
     def _real_extract(self, url):

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import contextlib
 import functools
 import http.client
@@ -21,13 +23,14 @@ urllib3_version = tuple(int_or_none(x, default=0) for x in urllib3.__version__.s
 if urllib3_version < (1, 26, 17):
     raise ImportError('Only urllib3 >= 1.26.17 is supported')
 
-if requests.__build__ < 0x023100:
-    raise ImportError('Only requests >= 2.31.0 is supported')
+if requests.__build__ < 0x023202:
+    raise ImportError('Only requests >= 2.32.2 is supported')
 
 import requests.adapters
 import requests.utils
 import urllib3.connection
 import urllib3.exceptions
+import urllib3.util
 
 from ._helper import (
     InstanceStoreMixin,
@@ -57,13 +60,13 @@ from .exceptions import (
 from ..socks import ProxyError as SocksProxyError
 
 SUPPORTED_ENCODINGS = [
-    'gzip', 'deflate'
+    'gzip', 'deflate',
 ]
 
 if brotli is not None:
     SUPPORTED_ENCODINGS.append('br')
 
-"""
+'''
 Override urllib3's behavior to not convert lower-case percent-encoded characters
 to upper-case during url normalization process.
 
@@ -78,7 +81,7 @@ is best to avoid it in requests too for compatability reasons.
 
 1: https://tools.ietf.org/html/rfc3986#section-2.1
 2: https://github.com/streamlink/streamlink/pull/4003
-"""
+'''
 
 
 class Urllib3PercentREOverride:
@@ -95,7 +98,7 @@ class Urllib3PercentREOverride:
 
 # urllib3 >= 1.25.8 uses subn:
 # https://github.com/urllib3/urllib3/commit/a2697e7c6b275f05879b60f593c5854a816489f0
-import urllib3.util.url  # noqa: E305
+import urllib3.util.url
 
 if hasattr(urllib3.util.url, 'PERCENT_RE'):
     urllib3.util.url.PERCENT_RE = Urllib3PercentREOverride(urllib3.util.url.PERCENT_RE)
@@ -104,7 +107,7 @@ elif hasattr(urllib3.util.url, '_PERCENT_RE'):  # urllib3 >= 2.0.0
 else:
     warnings.warn('Failed to patch PERCENT_RE in urllib3 (does the attribute exist?)' + bug_reports_message())
 
-"""
+'''
 Workaround for issue in urllib.util.ssl_.py: ssl_wrap_context does not pass
 server_hostname to SSLContext.wrap_socket if server_hostname is an IP,
 however this is an issue because we set check_hostname to True in our SSLContext.
@@ -113,10 +116,10 @@ Monkey-patching IS_SECURETRANSPORT forces ssl_wrap_context to pass server_hostna
 
 This has been fixed in urllib3 2.0+.
 See: https://github.com/urllib3/urllib3/issues/517
-"""
+'''
 
 if urllib3_version < (2, 0, 0):
-    with contextlib.suppress():
+    with contextlib.suppress(Exception):
         urllib3.util.IS_SECURETRANSPORT = urllib3.util.ssl_.IS_SECURETRANSPORT = True
 
 
@@ -134,7 +137,7 @@ class RequestsResponseAdapter(Response):
 
         self._requests_response = res
 
-    def read(self, amt: int = None):
+    def read(self, amt: int | None = None):
         try:
             # Interact with urllib3 response directly.
             return self.fp.read(amt, decode_content=True)
@@ -180,9 +183,19 @@ class RequestsHTTPAdapter(requests.adapters.HTTPAdapter):
             extra_kwargs['proxy_ssl_context'] = self._proxy_ssl_context
         return super().proxy_manager_for(proxy, **proxy_kwargs, **self._pm_args, **extra_kwargs)
 
+    # Skip `requests` internal verification; we use our own SSLContext
     def cert_verify(*args, **kwargs):
-        # lean on SSLContext for cert verification
         pass
+
+    # requests 2.32.2+: Reimplementation without `_urllib3_request_context`
+    def get_connection_with_tls_context(self, request, verify, proxies=None, cert=None):
+        url = urllib3.util.parse_url(request.url).url
+
+        manager = self.poolmanager
+        if proxy := select_proxy(url, proxies):
+            manager = self.proxy_manager_for(proxy)
+
+        return manager.connection_from_url(url)
 
 
 class RequestsSession(requests.sessions.Session):
@@ -217,9 +230,7 @@ class Urllib3LoggingFilter(logging.Filter):
 
     def filter(self, record):
         # Ignore HTTP request messages since HTTPConnection prints those
-        if record.msg == '%s://%s:%s "%s %s %s" %s %s':
-            return False
-        return True
+        return record.msg != '%s://%s:%s "%s %s %s" %s %s'
 
 
 class Urllib3LoggingHandler(logging.Handler):
@@ -307,8 +318,7 @@ class RequestsRH(RequestHandler, InstanceStoreMixin):
 
         max_redirects_exceeded = False
 
-        session = self._get_instance(
-            cookiejar=request.extensions.get('cookiejar') or self.cookiejar)
+        session = self._get_instance(cookiejar=self._get_cookiejar(request))
 
         try:
             requests_res = session.request(
@@ -316,10 +326,10 @@ class RequestsRH(RequestHandler, InstanceStoreMixin):
                 url=request.url,
                 data=request.data,
                 headers=headers,
-                timeout=float(request.extensions.get('timeout') or self.timeout),
-                proxies=request.proxies or self.proxies,
+                timeout=self._calculate_timeout(request),
+                proxies=self._get_proxies(request),
                 allow_redirects=True,
-                stream=True
+                stream=True,
             )
 
         except requests.exceptions.TooManyRedirects as e:
@@ -401,7 +411,7 @@ class SocksProxyManager(urllib3.PoolManager):
         super().__init__(num_pools, headers, **connection_pool_kw)
         self.pool_classes_by_scheme = {
             'http': SocksHTTPConnectionPool,
-            'https': SocksHTTPSConnectionPool
+            'https': SocksHTTPSConnectionPool,
         }
 
 

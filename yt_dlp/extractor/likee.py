@@ -162,7 +162,7 @@ class LikeeUserIE(InfoExtractor):
                     'count': self._PAGE_SIZE,
                     'lastPostId': last_post_id,
                     'tabType': 0,
-                }).encode('utf-8'),
+                }).encode(),
                 headers={'content-type': 'application/json'},
                 note=f'Get user info with lastPostId #{last_post_id}')
             items = traverse_obj(user_videos, ('data', 'videoList'))

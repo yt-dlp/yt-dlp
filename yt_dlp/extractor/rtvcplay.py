@@ -1,16 +1,17 @@
 import re
 
-from .common import InfoExtractor, ExtractorError
+from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
     clean_html,
     determine_ext,
-    int_or_none,
     float_or_none,
+    int_or_none,
     js_to_json,
     mimetype2ext,
     traverse_obj,
-    urljoin,
     url_or_none,
+    urljoin,
 )
 
 
@@ -212,7 +213,7 @@ class RTVCPlayEmbedIE(RTVCPlayBaseIE):
             'title': 'Tráiler: Señoritas',
             'thumbnail': r're:^https?://.*\.(?:jpg|png)',
             'ext': 'mp4',
-        }
+        },
     }]
 
     def _real_extract(self, url):
@@ -234,7 +235,7 @@ class RTVCPlayEmbedIE(RTVCPlayBaseIE):
                 'title': 'title',
                 'description': 'description',
                 'thumbnail': ('image', ..., 'thumbnail', 'path'),
-            }, get_all=False)
+            }, get_all=False),
         }
 
 
@@ -281,5 +282,5 @@ class RTVCKalturaIE(RTVCPlayBaseIE):
                 'title': 'title',
                 'description': 'description',
                 'thumbnail': ('channel', 'image', 'logo', 'path'),
-            })
+            }),
         }

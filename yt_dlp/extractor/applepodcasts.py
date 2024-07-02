@@ -24,7 +24,7 @@ class ApplePodcastsIE(InfoExtractor):
             'duration': 6454,
             'series': 'The Tim Dillon Show',
             'thumbnail': 're:.+[.](png|jpe?g|webp)',
-        }
+        },
     }, {
         'url': 'https://podcasts.apple.com/podcast/207-whitney-webb-returns/id1135137367?i=1000482637777',
         'only_matching': True,
