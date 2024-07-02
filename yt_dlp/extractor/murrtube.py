@@ -75,7 +75,7 @@ class MurrtubeIE(InfoExtractor):
         video_page = self._download_webpage(url, video_id)
         video_attrs = extract_attributes(get_element_html_by_id('video', video_page))
         playlist = update_url(video_attrs['data-url'], query=None)
-        video_id = self._search_regex(r'/([^/?#]+)/index.m3u8', playlist, 'video id')
+        video_id = self._search_regex(r'/([\da-f]+)/index.m3u8', playlist, 'video id')
 
         return {
             'id': video_id,
