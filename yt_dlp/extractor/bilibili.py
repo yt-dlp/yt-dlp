@@ -1657,7 +1657,7 @@ class BilibiliCategoryIE(InfoExtractor):
         return self.playlist_result(self._entries(category, subcategory, query), query, query)
 
 
-class BiliBiliSearchAllIE(SearchInfoExtractor):
+class BiliBiliSearchAllIE(SearchInfoExtractor, BilibiliBaseIE):
     IE_DESC = 'Bilibili all search'
     _MAX_RESULTS = 100000
     _SEARCH_KEY = 'biliallsearch'
@@ -1698,6 +1698,7 @@ class BiliBiliSearchAllIE(SearchInfoExtractor):
 
     def _search_results(self, query):
         headers = self.geo_verification_headers()
+        headers['Referer'] = 'https://www.bilibili.com/'
         page_size = 50
         live_room_prefix = 'https://live.bilibili.com/'
         bili_user_prefix = 'https://space.bilibili.com/'
@@ -1710,10 +1711,12 @@ class BiliBiliSearchAllIE(SearchInfoExtractor):
                 'dynamic_offset': (page_num - 1) * page_size,
                 'platform': 'pc',
             }
-            api_url = r'https://api.bilibili.com/x/web-interface/search/all/v2'
+            api_url = r'https://api.bilibili.com/x/web-interface/wbi/search/all/v2'
             try:
                 search_all_result = self._download_json(
-                    api_url, video_id=query, query=query_params, headers=headers)
+                    api_url, video_id=query, query=self._sign_wbi(query_params, query),
+                    headers=headers,
+                )
             except ExtractorError as e:
                 if isinstance(e.cause, HTTPError) and e.cause.status == 412:
                     raise ExtractorError('Request is blocked by server (-412).', expected=True)
@@ -2517,6 +2520,7 @@ class BiliBiliSearchPageIE(BilibiliBaseIE):
         live_room_prefix = 'https://live.bilibili.com/'
         bili_user_prefix = 'https://space.bilibili.com/'
         headers = self.geo_verification_headers()
+        headers['Referer'] = url
         entries = []
         params = parse_qs(url)
         query = {
@@ -2565,8 +2569,8 @@ class BiliBiliSearchPageIE(BilibiliBaseIE):
         if search_type == 'all' and page_num == 1:
             try:
                 search_all_result = self._download_json(
-                    r'https://api.bilibili.com/x/web-interface/search/all/v2',
-                    video_id=playlist_id, query=query, headers=headers)
+                    r'https://api.bilibili.com/x/web-interface/wbi/search/all/v2',
+                    video_id=playlist_id, query=self._sign_wbi(query, playlist_id), headers=headers)
             except ExtractorError as e:
                 if isinstance(e.cause, HTTPError) and e.cause.status == 412:
                     raise ExtractorError('Request is blocked by server (-412).', expected=True)
@@ -2591,13 +2595,15 @@ class BiliBiliSearchPageIE(BilibiliBaseIE):
                     elif result_type == 'bili_user':
                         entries.append(self.url_result(bili_user_prefix + str(result_data['mid'])))
         else:
+            query = {
+                'search_type': search_type_mapping[search_type],
+                **query,  # search_type in type is overridden when specified in url params
+            }
             try:
                 search_type_result = self._download_json(
-                    r'https://api.bilibili.com/x/web-interface/search/type',
-                    video_id=playlist_id, query={
-                        'search_type': search_type_mapping[search_type],
-                        **query,  # search_type in type is overridden when specified in url params
-                    }, headers=headers)
+                    r'https://api.bilibili.com/x/web-interface/wbi/search/type',
+                    video_id=playlist_id, query=self._sign_wbi(query, playlist_id), headers=headers,
+                )
             except ExtractorError as e:
                 if isinstance(e.cause, HTTPError) and e.cause.status == 412:
                     raise ExtractorError('Request is blocked by server (-412).')
