@@ -4,9 +4,12 @@ import urllib.parse
 from .common import InfoExtractor
 from ..utils import (
     InAdvancePagedList,
+    determine_ext,
     format_field,
+    int_or_none,
     traverse_obj,
     unified_timestamp,
+    url_or_none,
 )
 
 
@@ -91,11 +94,27 @@ class BanByeIE(BanByeBaseIE):
             'id': f'{quality}p',
             'url': f'{self._CDN_BASE}/video/{video_id}/{quality}.webp',
         } for quality in [48, 96, 144, 240, 512, 1080]]
-        formats = [{
-            'format_id': f'http-{quality}p',
-            'quality': quality,
-            'url': f'{self._CDN_BASE}/video/{video_id}/{quality}.mp4',
-        } for quality in data['quality']]
+        formats = []
+        url_data = self._download_json(f'{self._API_BASE}/videos/{video_id}/url', video_id, data=b'')
+        master_playlist_url = traverse_obj(url_data, ('src', 'hls', 'masterPlaylist'))
+
+        if master_playlist_url:
+            formats = self._extract_m3u8_formats(master_playlist_url, video_id, 'mp4', m3u8_id='hls', fatal=False)
+
+        if not formats:
+            for format_id, url in traverse_obj(url_data, (
+                    'src', ('mp4', 'hls'), 'levels', {dict.items}, lambda _, v: url_or_none(v[1]))):
+                if determine_ext(url) == 'm3u8':
+                    fmts = self._extract_m3u8_formats(url, video_id, 'mp4', m3u8_id='hls', fatal=False)
+                    for f in fmts:
+                        f['height'] = int_or_none(format_id)
+                    formats.extend(fmts)
+                else:
+                    formats.append({
+                        'url': url,
+                        'format_id': format_id,
+                        'height': int_or_none(format_id),
+                    })
 
         return {
             'id': video_id,
