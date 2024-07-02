@@ -188,7 +188,7 @@ class PBSIE(InfoExtractor):
            # Direct video URL
            (?:{})/(?:(?:vir|port)alplayer|video)/(?P<id>[0-9]+)(?:[?/]|$) |
            # Article with embedded player (or direct video)
-           (?:www\.)?pbs\.org/(?:[^/]+/){{1,5}}(?P<presumptive_id>[^/]+?)(?:\.html)?/?(?:$|[?\#]) |
+           (?:www\.)?pbs(?:socal)?\.org/(?:[^/]+/){{1,5}}(?P<presumptive_id>[^/]+?)(?:\.html)?/?(?:$|[?\#]) |
            # Player
            (?:video|player)\.pbs\.org/(?:widget/)?partnerplayer/(?P<player_id>[^/]+)
         )
@@ -402,6 +402,19 @@ class PBSIE(InfoExtractor):
                 'skip_download': True,
             },
             'expected_warnings': ['HTTP Error 403: Forbidden'],
+        },
+        {
+            'url': 'https://www.pbssocal.org/shows/newshour/clip/capehart-johnson-1715984001',
+            'info_dict': {
+                'id': '3091549094',
+                'ext': 'mp4',
+                'title': 'PBS NewsHour - Capehart and Johnson on the unusual Biden-Trump debate plans',
+                'description': 'Capehart and Johnson on how the Biden-Trump debates could shape the campaign season',
+                'display_id': 'capehart-johnson-1715984001',
+                'duration': 593,
+                'thumbnail': 'https://image.pbs.org/video-assets/mF3oSVn-asset-mezzanine-16x9-QeXjXPy.jpg',
+                'chapters': [],
+            },
         },
         {
             'url': 'http://player.pbs.org/widget/partnerplayer/2365297708/?start=0&end=0&chapterbar=false&endscreen=false&topbar=true',
