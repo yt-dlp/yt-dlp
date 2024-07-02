@@ -323,12 +323,12 @@ class VimeoIE(VimeoBaseInfoExtractor):
                                      play_redirect_hls|
                                      moogaloop\.swf)\?clip_id=
                              )?
-                             (?:videos?/)?
-                         )
+                             (?(q)|videos?/)?)
                          (?P<id>[0-9]+)
                          (?(u)
                              /(?!videos|likes)[^/?#]+/?|
-                             (?(q)|/(?P<unlisted_hash>[\da-f]{10}))?
+                             (?(q)|/(?P<unlisted_hash>[\da-f]{10})?)?
+                             (?(unlisted_hash)/?)
                          )
                          (?:(?(q)[&]|(?(u)|/?)[?]).*?)?(?:[#].*)?$
                  '''
