@@ -620,13 +620,19 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
         webm_vtt_warn = False
         mp4_ass_warn = False
 
+        json_names, json_filenames = [], []
+
         for lang, sub_info in subtitles.items():
             if not os.path.exists(sub_info.get('filepath', '')):
                 self.report_warning(f'Skipping embedding {lang} subtitle because the file is missing')
                 continue
             sub_ext = sub_info['ext']
             if sub_ext == 'json':
-                self.report_warning('JSON subtitles cannot be embedded')
+                if info['ext'] in ('mkv', 'mka'):
+                    json_names.append(lang)
+                    json_filenames.append(sub_info['filepath'])
+                else:
+                    self.report_warning('JSON subtitles can only be embedded in mkv/mka files.')
             elif ext != 'webm' or ext == 'webm' and sub_ext == 'vtt':
                 sub_langs.append(lang)
                 sub_names.append(sub_info.get('name'))
@@ -645,11 +651,15 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
         input_files = [filename, *sub_filenames]
 
         opts = [
+            # Attached JSON subtitles don't have a codec id and we have to
+            # instruct FFMPEG to not discard them because of that.
+            '-copy_unknown',
             *self.stream_copy_opts(ext=info['ext']),
             # Don't copy the existing subtitles, we may be running the
             # postprocessor a second time
             '-map', '-0:s',
         ]
+
         for i, (lang, name) in enumerate(zip(sub_langs, sub_names)):
             opts.extend(['-map', f'{i + 1}:0'])
             lang_code = ISO639Utils.short2long(lang) or lang
@@ -658,12 +668,21 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
                 opts.extend([f'-metadata:s:s:{i}', f'handler_name={name}',
                              f'-metadata:s:s:{i}', f'title={name}'])
 
+        for (json_filename, json_name) in zip(json_filenames, json_names):
+            escaped_json_filename = self._ffmpeg_filename_argument(json_filename)
+            opts.extend([
+                '-map', f'-0:m:filename:{json_name}.json?',
+                '-attach', escaped_json_filename,
+                f'-metadata:s:m:filename:{escaped_json_filename}', 'mimetype=application/json',
+                f'-metadata:s:m:filename:{escaped_json_filename}', f'filename={json_name}.json',
+            ])
+
         temp_filename = prepend_extension(filename, 'temp')
         self.to_screen(f'Embedding subtitles in "{filename}"')
         self.run_ffmpeg_multiple_files(input_files, temp_filename, opts)
         os.replace(temp_filename, filename)
 
-        files_to_delete = [] if self._already_have_subtitle else sub_filenames
+        files_to_delete = [] if self._already_have_subtitle else sub_filenames + json_filenames
         return files_to_delete, info
 
 
@@ -806,15 +825,19 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
             write_json_file(self._downloader.sanitize_info(info, self.get_param('clean_infojson', True)), infofn)
             info['infojson_filename'] = infofn
 
-        old_stream, new_stream = self.get_stream_number(info['filepath'], ('tags', 'mimetype'), 'application/json')
-        if old_stream is not None:
-            yield ('-map', f'-0:{old_stream}')
-            new_stream -= 1
+        escaped_name = self._ffmpeg_filename_argument(infofn)
 
         yield (
-            '-attach', self._ffmpeg_filename_argument(infofn),
-            f'-metadata:s:{new_stream}', 'mimetype=application/json',
-            f'-metadata:s:{new_stream}', 'filename=info.json',
+            # In order to override any old info.json reliably we need to
+            # instruct FFmpeg to consider valid tracks without a codec id, like
+            # JSON attachments.
+            '-copy_unknown',
+            # This map operation allows us to actually replace any previous
+            # info.json data.
+            '-map', '-0:m:filename:info.json?',
+            '-attach', escaped_name,
+            f'-metadata:s:m:filename:{escaped_name}', 'mimetype=application/json',
+            f'-metadata:s:m:filename:{escaped_name}', 'filename=info.json',
         )
 
 
