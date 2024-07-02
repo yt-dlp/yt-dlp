@@ -24,40 +24,37 @@ class MurrtubeIE(InfoExtractor):
                         (?P<id>[A-Z0-9]{4}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})
                     '''
 
-    _TESTS = [
-        {
-            'url': 'https://murrtube.net/videos/inferno-x-skyler-148b6f2a-fdcc-4902-affe-9c0f41aaaca0',
-            'md5': '70380878a77e8565d4aea7f68b8bbb35',
-            'info_dict': {
-                'id': 'ca885d8456b95de529b6723b158032e11115d',
-                'ext': 'mp4',
-                'title': 'Inferno X Skyler',
-                'description': 'Humping a very good slutty sheppy (roomate)',
-                'uploader': 'Inferno Wolf',
-                'age_limit': 18,
-                'thumbnail': 'https://storage.murrtube.net/murrtube-production/ekbs3zcfvuynnqfx72nn2tkokvsd',
-                'comment_count': int,
-                'view_count': int,
-                'like_count': int,
-            },
+    _TESTS = [{
+        'url': 'https://murrtube.net/videos/inferno-x-skyler-148b6f2a-fdcc-4902-affe-9c0f41aaaca0',
+        'md5': '70380878a77e8565d4aea7f68b8bbb35',
+        'info_dict': {
+            'id': 'ca885d8456b95de529b6723b158032e11115d',
+            'ext': 'mp4',
+            'title': 'Inferno X Skyler',
+            'description': 'Humping a very good slutty sheppy (roomate)',
+            'uploader': 'Inferno Wolf',
+            'age_limit': 18,
+            'thumbnail': 'https://storage.murrtube.net/murrtube-production/ekbs3zcfvuynnqfx72nn2tkokvsd',
+            'comment_count': int,
+            'view_count': int,
+            'like_count': int,
         },
-        {
-            'url': 'https://murrtube.net/v/0J2Q',
-            'md5': '31262f6ac56f0ca75e5a54a0f3fefcb6',
-            'info_dict': {
-                'id': '8442998c52134968d9caa36e473e1a6bac6ca',
-                'ext': 'mp4',
-                'uploader': 'Hayel',
-                'title': 'Who\'s in charge now?',
-                'description': 'md5:795791e97e5b0f1805ea84573f02a997',
-                'age_limit': 18,
-                'thumbnail': 'https://storage.murrtube.net/murrtube-production/fb1ojjwiucufp34ya6hxu5vfqi5s',
-                'comment_count': int,
-                'view_count': int,
-                'like_count': int,
-            },
+    }, {
+        'url': 'https://murrtube.net/v/0J2Q',
+        'md5': '31262f6ac56f0ca75e5a54a0f3fefcb6',
+        'info_dict': {
+            'id': '8442998c52134968d9caa36e473e1a6bac6ca',
+            'ext': 'mp4',
+            'uploader': 'Hayel',
+            'title': 'Who\'s in charge now?',
+            'description': 'md5:795791e97e5b0f1805ea84573f02a997',
+            'age_limit': 18,
+            'thumbnail': 'https://storage.murrtube.net/murrtube-production/fb1ojjwiucufp34ya6hxu5vfqi5s',
+            'comment_count': int,
+            'view_count': int,
+            'like_count': int,
         },
-    ]
+    }]
 
     def _extract_count(self, name, html):
         return parse_count(self._search_regex(
@@ -95,15 +92,13 @@ class MurrtubeUserIE(MurrtubeIE):  # XXX: Do not subclass from concrete IE
     _WORKING = False
     IE_DESC = 'Murrtube user profile'
     _VALID_URL = r'https?://murrtube\.net/(?P<id>[^/]+)$'
-    _TESTS = [
-        {
-            'url': 'https://murrtube.net/stormy',
-            'info_dict': {
-                'id': 'stormy',
-            },
-            'playlist_mincount': 27,
+    _TESTS = [{
+        'url': 'https://murrtube.net/stormy',
+        'info_dict': {
+            'id': 'stormy',
         },
-    ]
+        'playlist_mincount': 27,
+    }]
     _PAGE_SIZE = 10
 
     def _fetch_page(self, username, user_id, page):
