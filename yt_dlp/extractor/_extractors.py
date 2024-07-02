@@ -1168,6 +1168,7 @@ from .mlb import (
 from .mlssoccer import MLSSoccerIE
 from .mocha import MochaVideoIE
 from .mojvideo import MojvideoIE
+from .mojevideo import MojevideoIE
 from .monstercat import MonstercatIE
 from .motherless import (
     MotherlessGalleryIE,
