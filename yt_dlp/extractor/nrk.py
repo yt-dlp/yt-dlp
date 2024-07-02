@@ -1,6 +1,7 @@
 import itertools
 import random
 import re
+import json
 
 from .common import InfoExtractor
 from ..networking.exceptions import HTTPError
@@ -10,7 +11,9 @@ from ..utils import (
     int_or_none,
     parse_duration,
     parse_iso8601,
+    float_or_none,
     str_or_none,
+    traverse_obj,
     try_get,
     url_or_none,
     urljoin,
@@ -25,6 +28,9 @@ class NRKBaseIE(InfoExtractor):
             nrk-od-no\.telenorcdn\.net|
             minicdn-od\.nrk\.no/od/nrkhd-osl-rr\.netwerk\.no/no
         )/'''
+    _NETRC_MACHINE = 'nrk'
+    _LOGIN_URL = 'https://innlogging.nrk.no/logginn'
+    _AUTH_TOKEN = ''
 
     def _extract_nrk_formats(self, asset_url, video_id):
         if re.match(r'https?://[^/]+\.akamaihd\.net/i/', asset_url):
@@ -58,7 +64,7 @@ class NRKBaseIE(InfoExtractor):
         return self._download_json(
             urljoin('https://psapi.nrk.no/', path),
             video_id, note or f'Downloading {item} JSON',
-            fatal=fatal, query=query)
+            fatal=fatal, query=query, headers={'authorization': f'Bearer {self._AUTH_TOKEN}'} if self._AUTH_TOKEN else None)
 
 
 class NRKIE(NRKBaseIE):
@@ -144,16 +150,11 @@ class NRKIE(NRKBaseIE):
     def _real_extract(self, url):
         video_id = self._match_id(url).split('/')[-1]
 
-        def call_playback_api(item, query=None):
-            try:
-                return self._call_api(f'playback/{item}/program/{video_id}', video_id, item, query=query)
-            except ExtractorError as e:
-                if isinstance(e.cause, HTTPError) and e.cause.status == 400:
-                    return self._call_api(f'playback/{item}/{video_id}', video_id, item, query=query)
-                raise
-
         # known values for preferredCdn: akamai, iponly, minicdn and telenor
-        manifest = call_playback_api('manifest', {'preferredCdn': 'akamai'})
+        manifest = self._call_api(f'playback/manifest/{video_id}', video_id, "manifest", query={'preferredCdn': 'akamai'})
+
+        type = try_get(manifest, lambda x: x['_links']['self']['href'], str).split("/")[3]
+
 
         video_id = try_get(manifest, lambda x: x['id'], str) or video_id
 
@@ -167,7 +168,7 @@ class NRKIE(NRKBaseIE):
             if not isinstance(asset, dict):
                 continue
             if asset.get('encrypted'):
-                continue
+                pass # Unencrypted stream no longer available
             format_url = url_or_none(asset.get('url'))
             if not format_url:
                 continue
@@ -181,12 +182,12 @@ class NRKIE(NRKBaseIE):
                     'vcodec': 'none',
                 })
 
-        data = call_playback_api('metadata')
+        data = self._call_api(try_get(manifest, lambda x: x['_links']['metadata']['href']), video_id, 'metadata')
 
-        preplay = data['preplay']
-        titles = preplay['titles']
-        title = titles['title']
-        alt_title = titles.get('subtitle')
+        preplay = try_get(data, lambda x: x['preplay'])
+        titles = try_get(preplay, lambda x: x['titles'])
+        title = try_get(titles, lambda x: x['title'])
+        alt_title = try_get(titles, lambda x: x['subtitle'])
 
         description = try_get(preplay, lambda x: x['description'].replace('\r', '\n'))
         duration = parse_duration(playable.get('duration')) or parse_duration(data.get('duration'))
@@ -220,6 +221,26 @@ class NRKIE(NRKBaseIE):
                 'url': sub_url,
             })
 
+        chapters = []
+        if data.get('skipDialogInfo'):
+            chapters = [item for item in [{
+                    'start_time': float_or_none(traverse_obj(data, ('skipDialogInfo', 'startIntroInSeconds'))),
+                    'end_time': float_or_none(traverse_obj(data, ('skipDialogInfo', 'endIntroInSeconds'))),
+                    'title': 'Intro'
+                }, {
+                    'start_time': float_or_none(traverse_obj(data, ('skipDialogInfo', 'startCreditsInSeconds'))),
+                    'end_time': duration,
+                    'title': 'Outro'
+                }] if item['start_time'] != item['end_time']]
+
+        if try_get(data, lambda x: x['preplay']['indexPoints']):
+            seconds_or_none = lambda x: float_or_none(parse_duration(x))
+            chapters += traverse_obj(data['preplay'], ('indexPoints', ..., {
+                'start_time': ('startPoint', {seconds_or_none}),
+                'end_time': ('endPoint', {seconds_or_none}),
+                'title': ('title', {lambda x: x})
+            }))
+        chapters = sorted(chapters, key=lambda x: x['start_time']) if chapters else None
         legal_age = try_get(
             data, lambda x: x['legalAge']['body']['rating']['code'], str)
         # https://en.wikipedia.org/wiki/Norwegian_Media_Authority
@@ -242,13 +263,17 @@ class NRKIE(NRKBaseIE):
             'age_limit': age_limit,
             'formats': formats,
             'subtitles': subtitles,
-            'timestamp': parse_iso8601(try_get(manifest, lambda x: x['availability']['onDemand']['from'], str)),
+            'chapters': chapters,
+            'timestamp': parse_iso8601(try_get(data, lambda x: x['availability']['onDemand']['from'], str))
         }
-
         if is_series:
             series = season_id = season_number = episode = episode_number = None
+
             programs = self._call_api(
-                f'programs/{video_id}', video_id, 'programs', fatal=False)
+            f'programs/{video_id}', video_id, 'programs', fatal=False)
+            match = re.search(r"\d+", try_get(programs, lambda x: x['firstTimeTransmitted']['publicationDate'] or x['usageRights']['availableFrom'], str) or try_get(programs, lambda x: x['usageRights']['availableFrom'], str))
+            if match:
+                info.update({'timestamp': min(info['timestamp'], int(match.group()) // 1000)})
             if programs and isinstance(programs, dict):
                 series = str_or_none(programs.get('seriesTitle'))
                 season_id = str_or_none(programs.get('seasonId'))
@@ -284,11 +309,41 @@ class NRKIE(NRKBaseIE):
 
         return info
 
+    def _perform_login(self, username, password):
+       try:
+           self._download_json(
+               self._LOGIN_URL, None, headers={'Content-Type': 'application/json; charset=UTF-8', 'accept': 'application/json; charset=utf-8'},
+               data=json.dumps({
+                  'clientId': "",
+                  'hashedPassword': {'current': {
+                      'hash': password,
+                      'recipe': {
+                          'algorithm': "cleartext",
+                          'salt': ""
+                          }
+                      }
+                   },
+                   'password': password,
+                   'username': username,
+               }).encode())
+
+           self._download_webpage("https://tv.nrk.no/auth/web/login/opsession", None)
+           response = self._download_json("https://tv.nrk.no/auth/session/tokenforsub/_", None)
+           self._AUTH_TOKEN = try_get(response, lambda x: x['session']['accessToken'])
+       except ExtractorError as e:
+           message = None
+           if isinstance(e.cause, HTTPError) and e.cause.status in (401, 400):
+               resp = self._parse_json(
+                   e.cause.response.read().decode(), None, fatal=False) or {}
+               message = next((error['message'] for error in resp['errors'] if error['field'] == 'Password'), None)
+           self.report_warning(message or 'Unable to log in')
+
 
 class NRKTVIE(InfoExtractor):
     IE_DESC = 'NRK TV and NRK Radio'
     _EPISODE_RE = r'(?P<id>[a-zA-Z]{4}\d{8})'
     _VALID_URL = rf'https?://(?:tv|radio)\.nrk(?:super)?\.no/(?:[^/]+/)*{_EPISODE_RE}'
+    _NETRC_MACHINE = 'nrk'
     _TESTS = [{
         'url': 'https://tv.nrk.no/program/MDDP12000117',
         'md5': 'c4a5960f1b00b40d47db65c1064e0ab1',
@@ -482,6 +537,9 @@ class NRKTVSerieBaseIE(NRKBaseIE):
         entries = []
         for episode in entry_list:
             nrk_id = episode.get('prfId') or episode.get('episodeId')
+            if try_get(episode, lambda x: x['availability']['status'], str) == "expired":
+                self.report_warning(episode["availability"].get("label"), nrk_id)
+                continue
             if not nrk_id or not isinstance(nrk_id, str):
                 continue
             entries.append(self.url_result(
