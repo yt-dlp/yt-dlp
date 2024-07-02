@@ -1,6 +1,5 @@
 import itertools
 import re
-import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import (
@@ -237,7 +236,8 @@ class RadioFranceLiveIE(RadioFranceBaseIE):
 
         if substation_id:
             webpage = self._download_webpage(url, station_id)
-            api_response = self._extract_data_from_webpage(webpage, station_id, 'webRadioData')
+            api_response = self._search_json(r'webradioLive:\s*', webpage, station_id, substation_id,
+                                             transform_source=js_to_json)
         else:
             api_response = self._download_json(
                 f'https://www.radiofrance.fr/{station_id}/api/live', station_id)
@@ -267,10 +267,10 @@ class RadioFranceLiveIE(RadioFranceBaseIE):
 class RadioFrancePlaylistBaseIE(RadioFranceBaseIE):
     """Subclasses must set _METADATA_KEY"""
 
-    def _call_api(self, content_id, cursor, page_num):
+    def _call_api(self, station, content_id, cursor):
         raise NotImplementedError('This method must be implemented by subclasses')
 
-    def _generate_playlist_entries(self, content_id, content_response):
+    def _generate_playlist_entries(self, station, content_id, content_response):
         for page_num in itertools.count(2):
             for entry in content_response['items']:
                 yield self.url_result(
@@ -281,28 +281,30 @@ class RadioFrancePlaylistBaseIE(RadioFranceBaseIE):
                         'thumbnail': ('visual', 'src'),
                     }))
 
-            next_cursor = traverse_obj(content_response, (('pagination', None), 'next'), get_all=False)
-            if not next_cursor:
+            if not content_response['next']:
                 break
 
-            content_response = self._call_api(content_id, next_cursor, page_num)
+            content_response = self._call_api(station, content_id, content_response['next'])
 
     def _real_extract(self, url):
-        display_id = self._match_id(url)
+        playlist_id = self._match_id(url)
+        # If it is a podcast playlist, get the name of the station it is on
+        # profile page playlists are not attached to a station currently
+        station = self._match_valid_url(url).group('station') if isinstance(self, RadioFrancePodcastIE) else None
 
-        metadata = self._download_json(
-            'https://www.radiofrance.fr/api/v2.1/path', display_id,
-            query={'value': urllib.parse.urlparse(url).path})['content']
-
-        content_id = metadata['id']
+        # Get data for the first page, and the uuid for the playlist
+        metadata = self._call_api(station, playlist_id, 1)
+        uuid = traverse_obj(metadata, ('metadata', 'id'))
 
         return self.playlist_result(
-            self._generate_playlist_entries(content_id, metadata[self._METADATA_KEY]), content_id,
-            display_id=display_id, **{**traverse_obj(metadata, {
+            self._generate_playlist_entries(station, playlist_id, metadata),
+            uuid,
+            display_id=playlist_id,
+            **{**traverse_obj(metadata['metadata'], {
                 'title': 'title',
                 'description': 'standFirst',
                 'thumbnail': ('visual', 'src'),
-            }), **traverse_obj(metadata, {
+            }), **traverse_obj(metadata['metadata'], {
                 'title': 'name',
                 'description': 'role',
             })})
@@ -311,7 +313,7 @@ class RadioFrancePlaylistBaseIE(RadioFranceBaseIE):
 class RadioFrancePodcastIE(RadioFrancePlaylistBaseIE):
     _VALID_URL = rf'''(?x)
         {RadioFranceBaseIE._VALID_URL_BASE}
-        /(?:{RadioFranceBaseIE._STATIONS_RE})
+        /(?P<station>{RadioFranceBaseIE._STATIONS_RE})
         /podcasts/(?P<id>[\w-]+)/?(?:[?#]|$)
     '''
 
@@ -326,15 +328,15 @@ class RadioFrancePodcastIE(RadioFrancePlaylistBaseIE):
         },
         'playlist_mincount': 11,
     }, {
-        'url': 'https://www.radiofrance.fr/franceinter/podcasts/jean-marie-le-pen-l-obsession-nationale',
+        'url': 'https://www.radiofrance.fr/franceinter/podcasts/avec-la-langue',
         'info_dict': {
-            'id': '566fd524-3074-4fbc-ac69-8696f2152a54',
-            'display_id': 'jean-marie-le-pen-l-obsession-nationale',
-            'title': 'Jean-Marie Le Pen, l\'obsession nationale',
-            'description': 'md5:a07c0cfb894f6d07a62d0ad12c4b7d73',
+            'id': '53a95989-7c61-48c7-873c-6a71009101bb',
+            'display_id': 'avec-la-langue',
+            'title': 'Avec la langue',
+            'description': 'md5:4ddb6d4ed46dbbdee611b8e16e4af868',
             'thumbnail': r're:^https?://.*\.(?:jpg|png)',
         },
-        'playlist_count': 7,
+        'playlist_mincount': 36,
     }, {
         'url': 'https://www.radiofrance.fr/franceculture/podcasts/serie-thomas-grjebine',
         'info_dict': {
@@ -349,7 +351,7 @@ class RadioFrancePodcastIE(RadioFrancePlaylistBaseIE):
             'id': '143dff38-e956-4a5d-8576-1c0b7242b99e',
             'display_id': 'certains-l-aiment-fip',
             'title': 'Certains l’aiment Fip',
-            'description': 'md5:ff974672ba00d4fd5be80fb001c5b27e',
+            'description': 'md5:7c373cdcec7a024f12fa34de7612e44e',
             'thumbnail': r're:^https?://.*\.(?:jpg|png)',
         },
         'playlist_mincount': 321,
@@ -363,10 +365,27 @@ class RadioFrancePodcastIE(RadioFrancePlaylistBaseIE):
 
     _METADATA_KEY = 'expressions'
 
-    def _call_api(self, podcast_id, cursor, page_num):
-        return self._download_json(
-            f'https://www.radiofrance.fr/api/v2.1/concepts/{podcast_id}/expressions', podcast_id,
-            note=f'Downloading page {page_num}', query={'pageCursor': cursor})
+    def _call_api(self, station, podcast_id, cursor):
+        # The data is stored in the last <script> tag on a page
+        url = 'https://www.radiofrance.fr/' + station + '/podcasts/' + podcast_id + '?p=' + str(cursor)
+        webpage = self._download_webpage(url, podcast_id, note=f'Downloading {podcast_id} page {cursor}')
+
+        resp = dict()
+
+        # _search_json cannot parse the data as it contains javascript
+        # Therefore, parse the episodes objects array separately
+        resp['items'] = self._search_json(r'a.items\s*=\s*', webpage, podcast_id, podcast_id,
+                                          contains_pattern=r'\[.+\]', transform_source=js_to_json)
+
+        # the pagination data is stored in a javascript object 'a'
+        lastPage = int(re.search(r'a\.lastPage\s*=\s*(\d+);', webpage).group(1))
+        hasMorePages = cursor < lastPage
+        resp['next'] = cursor + 1 if hasMorePages else None
+
+        resp['metadata'] = self._search_json(r'content:\s*', webpage, podcast_id, podcast_id,
+                                             transform_source=js_to_json)
+
+        return resp
 
 
 class RadioFranceProfileIE(RadioFrancePlaylistBaseIE):
@@ -380,7 +399,7 @@ class RadioFranceProfileIE(RadioFrancePlaylistBaseIE):
             'title': 'Thomas Pesquet',
             'description': 'Astronaute à l\'agence spatiale européenne',
         },
-        'playlist_mincount': 212,
+        'playlist_mincount': 100,
     }, {
         'url': 'https://www.radiofrance.fr/personnes/eugenie-bastie',
         'info_dict': {
@@ -398,15 +417,43 @@ class RadioFranceProfileIE(RadioFrancePlaylistBaseIE):
 
     _METADATA_KEY = 'documents'
 
-    def _call_api(self, profile_id, cursor, page_num):
-        resp = self._download_json(
-            f'https://www.radiofrance.fr/api/v2.1/taxonomy/{profile_id}/documents', profile_id,
-            note=f'Downloading page {page_num}', query={
-                'relation': 'personality',
-                'cursor': cursor,
-            })
+    def _call_api(self, station, profile_id, cursor):
+        url = 'https://www.radiofrance.fr/personnes/' + profile_id + '?p=' + str(cursor)
+        webpage = self._download_webpage(url, profile_id, note=f'Downloading {profile_id} page {cursor}')
 
-        resp['next'] = traverse_obj(resp, ('pagination', 'next'))
+        resp = dict()
+
+        # On profile pages, the data is stored in a javascript array in the final <script>
+        # Each episode is stored as
+        # a[0] = { id: ... }; a[1] = [ id: ... ]; on page 2->
+        # If a page had a thumbnail, the a variable contains image data,
+        # and episode data is stored in b[0]...
+        resp['items'] = []
+        podcastindex = 0
+        nextmatch = True
+        while nextmatch:
+            nextmatch = self._search_json(r'\w+\[' + str(podcastindex) + r'\]\s*=\s*', webpage, profile_id,
+                                          profile_id, transform_source=js_to_json, fatal=False, default=None)
+            podcastindex += 1
+            if nextmatch is not None:
+                resp['items'].append(nextmatch)
+
+        # There is more than one pagination key in the final <script>
+        # We should use pick the pagination object which is within a documents object
+        pagedata = self._search_json(r'documents\s*:\s*', webpage, profile_id, profile_id,
+                                     transform_source=js_to_json)
+        lastPage = traverse_obj(pagedata, ('pagination', 'lastPage'))
+        hasMorePages = cursor < lastPage
+        resp['next'] = cursor + 1 if hasMorePages else None
+
+        resp['metadata'] = self._search_json(r'content:\s*', webpage, profile_id, profile_id,
+                                             transform_source=js_to_json)
+        # If the image data is stored separately rather than in the main content area
+        if resp['metadata']['visual'] and isinstance(resp['metadata']['visual'], str):
+            imagedata = dict()
+            imagedata['src'] = self._og_search_thumbnail(webpage)
+            resp['metadata']['visual'] = imagedata
+
         return resp
 
 
