@@ -473,12 +473,20 @@ class BandcampUserIE(InfoExtractor):
         },
     }]
 
+    def _extract_data_attr(self, webpage, video_id, attr, fatal=True):
+        return self._parse_json(self._html_search_regex(
+            fr'data-{attr}=(["\'])(\[.+?\])\1', webpage,
+            attr + ' data', group=2), video_id, fatal=fatal)
+
     def _real_extract(self, url):
         uploader = self._match_id(url)
         webpage = self._download_webpage(url, uploader)
 
-        discography_data = (re.findall(r'<li data-item-id=["\'][^>]+>\s*<a href=["\'](?![^"\'/]*?/merch)([^"\']+)', webpage)
-                            or re.findall(r'<div[^>]+trackTitle["\'][^"\']+["\']([^"\']+)', webpage))
+        matches = []
+        if discography_data := (re.findall(r'<li data-item-id=["\'][^>]+>\s*<a href=["\'](?![^"\'/]*?/merch)([^"\']+)', webpage)
+                                or re.findall(r'<div[^>]+trackTitle["\'][^"\']+["\']([^"\']+)', webpage)):
+            matches += (urljoin(url, path) for path in discography_data)
+        if music_grid := self._extract_data_attr(webpage, uploader, 'client-items', fatal=False):
+            matches += (urljoin(url, album.get('page_url')) for album in music_grid)
 
-        return self.playlist_from_matches(
-            discography_data, uploader, f'Discography of {uploader}', getter=lambda x: urljoin(url, x))
+        return self.playlist_from_matches(matches, uploader, f'Discography of {uploader}')
