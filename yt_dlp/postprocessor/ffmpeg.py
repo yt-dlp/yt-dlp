@@ -1049,6 +1049,34 @@ class FFmpegSplitChaptersPP(FFmpegPostProcessor):
             ['-ss', str(chapter['start_time']),
              '-t', str(chapter['end_time'] - chapter['start_time'])])
 
+    # Extends opts with chapter specific metadata for the supported formats.
+    #
+    # Tested and supported on opus, m4a, webm and mp4.
+    def _set_metadata_arg(self, opts, ext, key, value):
+        if ext == 'opus':
+            # opus file requires a stream to keep title, artist etc metadata.
+            # FFmpegMetadataPP already set metadata and created that stream.
+            # Futher metadata updates should be set on the stream(:s)
+            # -metadata will do nothing and needs to be -metadata:s
+            opts.extend(['-metadata:s', f'{key}={value}'])
+        elif ext in ['m4a', 'webm', 'mp4']:
+            opts.extend(['-metadata', f'{key}={value}'])
+
+    # FFmpeg adds metadata about all chapters from parent file to all split m4a files.
+    # This is incorrect since there must be only single chapter in each file after split.
+    # Such behavior confuses players who think multiple chapters present
+    def _set_out_opts(self, ext, chapter_title, track_number):
+        out_opts = [*self.stream_copy_opts()]
+        out_opts.extend(['-map_metadata', '0'])
+        # exclude chapters metadata but keep everything else
+        out_opts.extend(['-map_chapters', '-1'])
+
+        # replace global title with chapter specific title in split files
+        if chapter_title:
+            self._set_metadata_arg(out_opts, ext, "title", chapter_title)
+        self._set_metadata_arg(out_opts, ext, "track", track_number)
+        return out_opts
+
     @PostProcessor._restrict_to(images=False)
     def run(self, info):
         self._fixup_chapters(info)
@@ -1063,7 +1091,8 @@ class FFmpegSplitChaptersPP(FFmpegPostProcessor):
         self.to_screen(f'Splitting video by chapters; {len(chapters)} chapters found')
         for idx, chapter in enumerate(chapters):
             destination, opts = self._ffmpeg_args_for_chapter(idx + 1, chapter, info)
-            self.real_run_ffmpeg([(in_file, opts)], [(destination, self.stream_copy_opts())])
+            out_file_opts = self._set_out_opts(info['ext'], chapter.get('title', ''), str(idx + 1))
+            self.real_run_ffmpeg([(in_file, opts)], [(destination, out_file_opts)])
         if in_file != info['filepath']:
             self._delete_downloaded_files(in_file, msg=None)
         return [], info
