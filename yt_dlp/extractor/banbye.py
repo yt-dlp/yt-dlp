@@ -7,6 +7,7 @@ from ..utils import (
     determine_ext,
     format_field,
     int_or_none,
+    join_nonempty,
     traverse_obj,
     unified_timestamp,
     url_or_none,
@@ -96,25 +97,19 @@ class BanByeIE(BanByeBaseIE):
         } for quality in [48, 96, 144, 240, 512, 1080]]
         formats = []
         url_data = self._download_json(f'{self._API_BASE}/videos/{video_id}/url', video_id, data=b'')
-        master_playlist_url = traverse_obj(url_data, ('src', 'hls', 'masterPlaylist'))
+        if master_url := traverse_obj(url_data, ('src', 'hls', 'masterPlaylist', {url_or_none})):
+            formats = self._extract_m3u8_formats(master_url, video_id, 'mp4', m3u8_id='hls', fatal=False)
 
-        if master_playlist_url:
-            formats = self._extract_m3u8_formats(master_playlist_url, video_id, 'mp4', m3u8_id='hls', fatal=False)
-
-        if not formats:
-            for format_id, url in traverse_obj(url_data, (
-                    'src', ('mp4', 'hls'), 'levels', {dict.items}, lambda _, v: url_or_none(v[1]))):
-                if determine_ext(url) == 'm3u8':
-                    fmts = self._extract_m3u8_formats(url, video_id, 'mp4', m3u8_id='hls', fatal=False)
-                    for f in fmts:
-                        f['height'] = int_or_none(format_id)
-                    formats.extend(fmts)
-                else:
-                    formats.append({
-                        'url': url,
-                        'format_id': format_id,
-                        'height': int_or_none(format_id),
-                    })
+        for format_id, format_url in traverse_obj(url_data, (
+                'src', ('mp4', 'hls'), 'levels', {dict.items}, lambda _, v: url_or_none(v[1]))):
+            is_hls = determine_ext(format_url) == 'm3u8'
+            formats.append({
+                'url': format_url,
+                'format_id': join_nonempty(is_hls and 'hls', format_id),
+                'protocol': 'm3u8_native' if is_hls else 'https',
+                'height': int_or_none(format_id),
+            })
+        self._remove_duplicate_formats(formats)
 
         return {
             'id': video_id,
