@@ -95,7 +95,7 @@ class SoundcloudBaseIE(InfoExtractor):
                     return
         raise ExtractorError('Unable to extract client id')
 
-    def _download_json(self, *args, **kwargs):
+    def _call_api(self, *args, **kwargs):
         non_fatal = kwargs.get('fatal') is False
         if non_fatal:
             del kwargs['fatal']
@@ -104,7 +104,7 @@ class SoundcloudBaseIE(InfoExtractor):
             query['client_id'] = self._CLIENT_ID
             kwargs['query'] = query
             try:
-                return super()._download_json(*args, **kwargs)
+                return self._download_json(*args, **kwargs)
             except ExtractorError as e:
                 if isinstance(e.cause, HTTPError) and e.cause.status in (401, 403):
                     self._store_client_id(None)
@@ -163,7 +163,7 @@ class SoundcloudBaseIE(InfoExtractor):
             'user_agent': self._USER_AGENT
         }
 
-        response = self._download_json(
+        response = self._call_api(
             self._API_AUTH_URL_PW % (self._API_AUTH_QUERY_TEMPLATE % self._CLIENT_ID),
             None, note='Verifying login token...', fatal=False,
             data=json.dumps(payload).encode())
@@ -217,12 +217,26 @@ class SoundcloudBaseIE(InfoExtractor):
             query['secret_token'] = secret_token
 
         if not extract_flat and info.get('downloadable') and info.get('has_downloads_left'):
-            download_url = update_url_query(
-                self._API_V2_BASE + 'tracks/' + track_id + '/download', query)
-            redirect_url = (self._download_json(download_url, track_id, fatal=False) or {}).get('redirectUri')
-            if redirect_url:
+            try:
+                # Do not use _call_api(); HTTP Error codes have different meanings for this request
+                download_data = self._download_json(
+                    f'{self._API_V2_BASE}tracks/{track_id}/download', track_id,
+                    'Downloading original download format info JSON', query=query, headers=self._HEADERS)
+            except ExtractorError as e:
+                if isinstance(e.cause, HTTPError) and e.cause.status == 401:
+                    self.report_warning(
+                        'Original download format is only available '
+                        f'for registered users. {self._login_hint()}')
+                elif isinstance(e.cause, HTTPError) and e.cause.status == 403:
+                    self.write_debug('Original download format is not available for this client')
+                else:
+                    self.report_warning(e.msg)
+                download_data = None
+
+            if redirect_url := traverse_obj(download_data, ('redirectUri', {url_or_none})):
                 urlh = self._request_webpage(
-                    HEADRequest(redirect_url), track_id, 'Checking for original download format', fatal=False)
+                    HEADRequest(redirect_url), track_id, 'Checking original download format availability',
+                    'Original download format is not available', fatal=False)
                 if urlh:
                     format_url = urlh.url
                     format_urls.add(format_url)
@@ -303,7 +317,7 @@ class SoundcloudBaseIE(InfoExtractor):
             stream = None
             for retry in self.RetryManager(fatal=False):
                 try:
-                    stream = self._download_json(
+                    stream = self._call_api(
                         format_url, track_id, f'Downloading {identifier} format info JSON',
                         query=query, headers=self._HEADERS)
                 except ExtractorError as e:
@@ -630,7 +644,7 @@ class SoundcloudIE(SoundcloudBaseIE):
                 resolve_title += f'/{token}'
             info_json_url = self._resolv_url(self._BASE_URL + resolve_title)
 
-        info = self._download_json(
+        info = self._call_api(
             info_json_url, full_title, 'Downloading info JSON', query=query, headers=self._HEADERS)
 
         return self._extract_info_dict(info, full_title, token)
@@ -641,7 +655,7 @@ class SoundcloudPlaylistBaseIE(SoundcloudBaseIE):
         playlist_id = str(playlist['id'])
         tracks = playlist.get('tracks') or []
         if not all(t.get('permalink_url') for t in tracks) and token:
-            tracks = self._download_json(
+            tracks = self._call_api(
                 self._API_V2_BASE + 'tracks', playlist_id,
                 'Downloading tracks', query={
                     'ids': ','.join([str(t['id']) for t in tracks]),
@@ -699,7 +713,7 @@ class SoundcloudSetIE(SoundcloudPlaylistBaseIE):
         if token:
             full_title += '/' + token
 
-        info = self._download_json(self._resolv_url(
+        info = self._call_api(self._resolv_url(
             self._BASE_URL + full_title), full_title, headers=self._HEADERS)
 
         if 'errors' in info:
@@ -730,7 +744,7 @@ class SoundcloudPagedPlaylistBaseIE(SoundcloudBaseIE):
         for i in itertools.count():
             for retry in self.RetryManager():
                 try:
-                    response = self._download_json(
+                    response = self._call_api(
                         url, playlist_id, query=query, headers=self._HEADERS,
                         note=f'Downloading track page {i + 1}')
                     break
@@ -838,7 +852,7 @@ class SoundcloudUserIE(SoundcloudPagedPlaylistBaseIE):
         mobj = self._match_valid_url(url)
         uploader = mobj.group('user')
 
-        user = self._download_json(
+        user = self._call_api(
             self._resolv_url(self._BASE_URL + uploader),
             uploader, 'Downloading user info', headers=self._HEADERS)
 
@@ -864,7 +878,7 @@ class SoundcloudUserPermalinkIE(SoundcloudPagedPlaylistBaseIE):
 
     def _real_extract(self, url):
         user_id = self._match_id(url)
-        user = self._download_json(
+        user = self._call_api(
             self._resolv_url(url), user_id, 'Downloading user info', headers=self._HEADERS)
 
         return self._extract_playlist(
@@ -886,7 +900,7 @@ class SoundcloudTrackStationIE(SoundcloudPagedPlaylistBaseIE):
     def _real_extract(self, url):
         track_name = self._match_id(url)
 
-        track = self._download_json(self._resolv_url(url), track_name, headers=self._HEADERS)
+        track = self._call_api(self._resolv_url(url), track_name, headers=self._HEADERS)
         track_id = self._search_regex(
             r'soundcloud:track-stations:(\d+)', track['id'], 'track id')
 
@@ -930,7 +944,7 @@ class SoundcloudRelatedIE(SoundcloudPagedPlaylistBaseIE):
     def _real_extract(self, url):
         slug, relation = self._match_valid_url(url).group('slug', 'relation')
 
-        track = self._download_json(
+        track = self._call_api(
             self._resolv_url(self._BASE_URL + slug),
             slug, 'Downloading track info', headers=self._HEADERS)
 
@@ -965,7 +979,7 @@ class SoundcloudPlaylistIE(SoundcloudPlaylistBaseIE):
         if token:
             query['secret_token'] = token
 
-        data = self._download_json(
+        data = self._call_api(
             self._API_V2_BASE + 'playlists/' + playlist_id,
             playlist_id, 'Downloading playlist', query=query, headers=self._HEADERS)
 
@@ -1000,7 +1014,7 @@ class SoundcloudSearchIE(SoundcloudBaseIE, SearchInfoExtractor):
         next_url = update_url_query(self._API_V2_BASE + endpoint, query)
 
         for i in itertools.count(1):
-            response = self._download_json(
+            response = self._call_api(
                 next_url, collection_id, f'Downloading page {i}',
                 'Unable to download API page', headers=self._HEADERS)
 

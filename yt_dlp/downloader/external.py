@@ -1,4 +1,5 @@
 import enum
+import functools
 import json
 import os
 import re
@@ -9,7 +10,6 @@ import time
 import uuid
 
 from .fragment import FragmentFD
-from ..compat import functools
 from ..networking import Request
 from ..postprocessor.ffmpeg import EXT_TO_OUT_FORMATS, FFmpegPostProcessor
 from ..utils import (
@@ -108,7 +108,7 @@ class ExternalFD(FragmentFD):
         return all((
             not info_dict.get('to_stdout') or Features.TO_STDOUT in cls.SUPPORTED_FEATURES,
             '+' not in info_dict['protocol'] or Features.MULTIPLE_FORMATS in cls.SUPPORTED_FEATURES,
-            not traverse_obj(info_dict, ('hls_aes', ...), 'extra_param_to_segment_url'),
+            not traverse_obj(info_dict, ('hls_aes', ...), 'extra_param_to_segment_url', 'extra_param_to_key_url'),
             all(proto in cls.SUPPORTED_PROTOCOLS for proto in info_dict['protocol'].split('+')),
         ))
 

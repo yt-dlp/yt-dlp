@@ -5,6 +5,7 @@ from ..utils import (
     ExtractorError,
     determine_ext,
     int_or_none,
+    join_nonempty,
     parse_age_limit,
     remove_end,
     remove_start,
@@ -287,7 +288,7 @@ class GoIE(AdobePassIE):
                     if mobj:
                         height = int(mobj.group(2))
                         f.update({
-                            'format_id': (f'{format_id}-' if format_id else '') + f'{height}P',
+                            'format_id': join_nonempty(format_id, f'{height}P'),
                             'width': int(mobj.group(1)),
                             'height': height,
                         })
