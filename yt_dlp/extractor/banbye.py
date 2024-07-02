@@ -34,6 +34,7 @@ class BanByeBaseIE(InfoExtractor):
 class BanByeIE(BanByeBaseIE):
     _VALID_URL = r'https?://(?:www\.)?banbye\.com/(?:en/)?watch/(?P<id>[\w-]+)'
     _TESTS = [{
+        # ['src']['mp4']['levels'] direct mp4 urls only
         'url': 'https://banbye.com/watch/v_ytfmvkVYLE8T',
         'md5': '2f4ea15c5ca259a73d909b2cfd558eb5',
         'info_dict': {
@@ -62,6 +63,7 @@ class BanByeIE(BanByeBaseIE):
         },
         'playlist_mincount': 9,
     }, {
+        # ['src']['mp4']['levels'] direct mp4 urls only
         'url': 'https://banbye.com/watch/v_kb6_o1Kyq-CD',
         'info_dict': {
             'id': 'v_kb6_o1Kyq-CD',
@@ -80,6 +82,48 @@ class BanByeIE(BanByeBaseIE):
             'dislike_count': int,
             'view_count': int,
             'comment_count': int,
+        },
+    }, {
+        # ['src']['hls']['levels'] variant m3u8 urls only; master m3u8 is 404
+        'url': 'https://banbye.com/watch/v_a_gPFuC9LoW5',
+        'info_dict': {
+            'id': 'v_a_gPFuC9LoW5',
+            'ext': 'mp4',
+            'title': 'md5:183524056bebdfa245fd6d214f63c0fe',
+            'description': 'md5:943ac87287ca98d28d8b8797719827c6',
+            'uploader': 'wRealu24',
+            'channel_id': 'ch_wrealu24',
+            'channel_url': 'https://banbye.com/channel/ch_wrealu24',
+            'upload_date': '20231113',
+            'timestamp': 1699874062,
+            'view_count': int,
+            'like_count': int,
+            'dislike_count': int,
+            'comment_count': int,
+            'thumbnail': 'https://cdn.banbye.com/video/v_a_gPFuC9LoW5/96.webp',
+            'tags': ['jaszczur', 'sejm', 'lewica', 'polska', 'ukrainizacja', 'pierwszeposiedzeniesejmu'],
+        },
+        'expected_warnings': ['Failed to download m3u8']
+    }, {
+        # ['src']['hls']['masterPlaylist'] m3u8 only
+        'url': 'https://banbye.com/watch/v_B0rsKWsr-aaa',
+        'info_dict': {
+            'id': 'v_B0rsKWsr-aaa',
+            'ext': 'mp4',
+            'title': 'md5:00b254164b82101b3f9e5326037447ed',
+            'description': 'md5:3fd8b48aa81954ba024bc60f5de6e167',
+            'uploader': 'PSTV Piotr Szlachtowicz ',
+            'channel_id': 'ch_KV9EVObkB9wB',
+            'channel_url': 'https://banbye.com/channel/ch_KV9EVObkB9wB',
+            'upload_date': '20240629',
+            'timestamp': 1719646816,
+            'duration': 2377,
+            'view_count': int,
+            'like_count': int,
+            'dislike_count': int,
+            'comment_count': int,
+            'thumbnail': 'https://cdn.banbye.com/video/v_B0rsKWsr-aaa/96.webp',
+            'tags': ['Biden', 'Trump', 'Wybory', 'USA'],
         },
     }]
 
