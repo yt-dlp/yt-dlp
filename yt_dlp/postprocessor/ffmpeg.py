@@ -252,7 +252,8 @@ class FFmpegPostProcessor(PostProcessor):
             cmd.append(encodeFilename(self._ffmpeg_filename_argument(path), True))
             self.write_debug(f'{self.basename} command line: {shell_quote(cmd)}')
             stdout, stderr, returncode = Popen.run(
-                cmd, text=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                cmd, text=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE, creationflags=subprocess.CREATE_NO_WINDOW)
             if returncode != (0 if self.probe_available else 1):
                 return None
         except OSError:
@@ -293,7 +294,8 @@ class FFmpegPostProcessor(PostProcessor):
         cmd += opts
         cmd.append(self._ffmpeg_filename_argument(path))
         self.write_debug(f'ffprobe command line: {shell_quote(cmd)}')
-        stdout, _, _ = Popen.run(cmd, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+        stdout, _, _ = Popen.run(cmd, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                 stdin=subprocess.PIPE, creationflags=subprocess.CREATE_NO_WINDOW)
         return json.loads(stdout)
 
     def get_stream_number(self, path, keys, value):
@@ -362,7 +364,8 @@ class FFmpegPostProcessor(PostProcessor):
 
         self.write_debug(f'ffmpeg command line: {shell_quote(cmd)}')
         _, stderr, returncode = Popen.run(
-            cmd, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+            cmd, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            stdin=subprocess.PIPE, creationflags=subprocess.CREATE_NO_WINDOW)
         if returncode not in variadic(expected_retcodes):
             self.write_debug(stderr)
             raise FFmpegPostProcessorError(stderr.strip().splitlines()[-1])
