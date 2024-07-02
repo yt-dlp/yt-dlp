@@ -68,6 +68,7 @@ class ZaikoIE(ZaikoBaseIE):
         player_meta = self._parse_vue_element_attr('player', player_page, video_id)
         initial_event_info = traverse_obj(player_meta, ('initial_event_info', {dict})) or {}
 
+        status = traverse_obj(initial_event_info, ('status', {str}))
         live_status, msg, expected = {
             'vod': ('was_live', 'No VOD stream URL was found', False),
             'archiving': ('post_live', 'Event VOD is still being processed', True),
@@ -79,7 +80,7 @@ class ZaikoIE(ZaikoBaseIE):
             'live': ('is_live', 'No livestream URL found was found', False),
             'waiting': ('is_upcoming', 'Live event has not yet started', True),
             'cancelled': ('not_live', 'Event has been cancelled', True),
-        }.get(initial_event_info.get('status')) or ('not_live', f'Unknown event status "{status}"', False)
+        }.get(status) or ('not_live', f'Unknown event status "{status}"', False)
 
         if traverse_obj(initial_event_info, ('is_jwt_protected', {bool})):
             stream_url = self._download_json(
