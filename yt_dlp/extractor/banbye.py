@@ -139,6 +139,7 @@ class BanByeIE(BanByeBaseIE):
             'id': f'{quality}p',
             'url': f'{self._CDN_BASE}/video/{video_id}/{quality}.webp',
         } for quality in [48, 96, 144, 240, 512, 1080]]
+
         formats = []
         url_data = self._download_json(f'{self._API_BASE}/videos/{video_id}/url', video_id, data=b'')
         if master_url := traverse_obj(url_data, ('src', 'hls', 'masterPlaylist', {url_or_none})):
