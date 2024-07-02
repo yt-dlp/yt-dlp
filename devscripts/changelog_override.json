@@ -179,6 +179,6 @@
     {
         "action": "add",
         "when": "6aaf96a3d6e7d0d426e97e11a2fcf52fda00e733",
-        "short": "[priority] Security: [[CVE-2024-10123](https://nvd.nist.gov/vuln/detail/CVE-2024-10123)] [Properly sanitize file-extension to prevent file system modification and RCE](https://github.com/yt-dlp/yt-dlp/security/advisories/GHSA-79w7-vh3h-8g4j)\n    - Unsafe extensions are now blocked from being downloaded"
+        "short": "[priority] Security: [[CVE-2024-38519](https://nvd.nist.gov/vuln/detail/CVE-2024-38519)] [Properly sanitize file-extension to prevent file system modification and RCE](https://github.com/yt-dlp/yt-dlp/security/advisories/GHSA-79w7-vh3h-8g4j)\n    - Unsafe extensions are now blocked from being downloaded"
     }
 ]

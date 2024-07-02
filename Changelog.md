@@ -7,7 +7,7 @@
 ### 2024.07.01
 
 #### Important changes
-- Security: [[CVE-2024-10123](https://nvd.nist.gov/vuln/detail/CVE-2024-10123)] [Properly sanitize file-extension to prevent file system modification and RCE](https://github.com/yt-dlp/yt-dlp/security/advisories/GHSA-79w7-vh3h-8g4j)
+- Security: [[CVE-2024-38519](https://nvd.nist.gov/vuln/detail/CVE-2024-38519)] [Properly sanitize file-extension to prevent file system modification and RCE](https://github.com/yt-dlp/yt-dlp/security/advisories/GHSA-79w7-vh3h-8g4j)
     - Unsafe extensions are now blocked from being downloaded
 
 #### Core changes
