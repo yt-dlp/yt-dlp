@@ -4,6 +4,7 @@ import collections
 import copy
 import datetime as dt
 import enum
+import functools
 import hashlib
 import itertools
 import json
@@ -20,7 +21,6 @@ import urllib.parse
 
 from .common import InfoExtractor, SearchInfoExtractor
 from .openload import PhantomJSwrapper
-from ..compat import functools
 from ..jsinterp import JSInterpreter
 from ..networking.exceptions import HTTPError, network_exceptions
 from ..utils import (

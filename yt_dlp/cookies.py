@@ -2,7 +2,9 @@ import base64
 import collections
 import contextlib
 import datetime as dt
+import functools
 import glob
+import hashlib
 import http.cookiejar
 import http.cookies
 import io
@@ -17,14 +19,12 @@ import tempfile
 import time
 import urllib.request
 from enum import Enum, auto
-from hashlib import pbkdf2_hmac
 
 from .aes import (
     aes_cbc_decrypt_bytes,
     aes_gcm_decrypt_and_verify_bytes,
     unpad_pkcs7,
 )
-from .compat import functools  # isort: split
 from .compat import compat_os_name
 from .dependencies import (
     _SECRETSTORAGE_UNAVAILABLE_REASON,
@@ -999,7 +999,7 @@ def _get_windows_v10_key(browser_root, logger):
 
 
 def pbkdf2_sha1(password, salt, iterations, key_length):
-    return pbkdf2_hmac('sha1', password, salt, iterations, key_length)
+    return hashlib.pbkdf2_hmac('sha1', password, salt, iterations, key_length)
 
 
 def _decrypt_aes_cbc_multi(ciphertext, keys, logger, initialization_vector=b' ' * 16):

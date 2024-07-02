@@ -829,21 +829,33 @@ class VimeoIE(VimeoBaseInfoExtractor):
             url = 'https://vimeo.com/' + video_id
 
         self._try_album_password(url)
+        is_secure = urllib.parse.urlparse(url).scheme == 'https'
         try:
             # Retrieve video webpage to extract further information
             webpage, urlh = self._download_webpage_handle(
-                url, video_id, headers=headers)
+                url, video_id, headers=headers, impersonate=is_secure)
             redirect_url = urlh.url
-        except ExtractorError as ee:
-            if isinstance(ee.cause, HTTPError) and ee.cause.status == 403:
-                errmsg = ee.cause.response.read()
-                if b'Because of its privacy settings, this video cannot be played here' in errmsg:
-                    raise ExtractorError(
-                        'Cannot download embed-only video without embedding '
-                        'URL. Please call yt-dlp with the URL of the page '
-                        'that embeds this video.',
-                        expected=True)
-            raise
+        except ExtractorError as error:
+            if not isinstance(error.cause, HTTPError) or error.cause.status not in (403, 429):
+                raise
+            errmsg = error.cause.response.read()
+            if b'Because of its privacy settings, this video cannot be played here' in errmsg:
+                raise ExtractorError(
+                    'Cannot download embed-only video without embedding URL. Please call yt-dlp '
+                    'with the URL of the page that embeds this video.', expected=True)
+            # 403 == vimeo.com TLS fingerprint or DC IP block; 429 == player.vimeo.com TLS FP block
+            status = error.cause.status
+            dcip_msg = 'If you are using a data center IP or VPN/proxy, your IP may be blocked'
+            if target := error.cause.response.extensions.get('impersonate'):
+                raise ExtractorError(
+                    f'Got HTTP Error {status} when using impersonate target "{target}". {dcip_msg}')
+            elif not is_secure:
+                raise ExtractorError(f'Got HTTP Error {status}. {dcip_msg}', expected=True)
+            raise ExtractorError(
+                'This request has been blocked due to its TLS fingerprint. Install a '
+                'required impersonation dependency if possible, or else if you are okay with '
+                f'{self._downloader._format_err("compromising your security/cookies", "light red")}, '
+                f'try replacing "https:" with "http:" in the input URL. {dcip_msg}.', expected=True)
 
         if '://player.vimeo.com/video/' in url:
             config = self._search_json(
