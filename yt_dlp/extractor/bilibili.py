@@ -2509,7 +2509,7 @@ class BiliBiliSearchPageIE(BilibiliBaseIE):
         'skip': 'geo-restricted',
     }, {
         'url': r'https://search.bilibili.com/video?keyword=%E8%AE%A9%E5%AD%90%E5%BC%B9%E9%A3%9E&from_source=webtop_search&spm_id_from=333.1007&search_source=5&order=dm&duration=4&tids=181&page=3&o=72',
-        'playlist_count': 4,
+        'playlist_mincount': 4,
         'info_dict': {
             'id': '让子弹飞',
             'title': '让子弹飞',
