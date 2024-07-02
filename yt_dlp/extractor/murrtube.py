@@ -55,8 +55,8 @@ class MurrtubeIE(InfoExtractor):
                 'comment_count': int,
                 'view_count': int,
                 'like_count': int,
-            }
-        }
+            },
+        },
     ]
 
     def _extract_count(self, name, html):
@@ -88,7 +88,7 @@ class MurrtubeIE(InfoExtractor):
             'uploader': clean_html(get_element_by_class('pl-1 is-size-6 has-text-lighter', video_page)),
             'view_count': self._extract_count('Views', video_page),
             'like_count': self._extract_count('Likes', video_page),
-            'comment_count': self._extract_count('Comments', video_page)
+            'comment_count': self._extract_count('Comments', video_page),
         }
 
 
@@ -103,7 +103,7 @@ class MurrtubeUserIE(MurrtubeIE):  # XXX: Do not subclass from concrete IE
                 'id': 'stormy',
             },
             'playlist_mincount': 27,
-        }
+        },
     ]
     _PAGE_SIZE = 10
 
