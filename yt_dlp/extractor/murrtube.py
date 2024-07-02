@@ -5,39 +5,103 @@ from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     OnDemandPagedList,
-    determine_ext,
-    int_or_none,
-    try_get,
+    clean_html,
+    extract_attributes,
+    get_element_by_class,
+    get_element_html_by_id,
+    parse_count,
+    remove_end,
+    update_url,
+    urlencode_postdata,
 )
 
 
 class MurrtubeIE(InfoExtractor):
-    _WORKING = False
     _VALID_URL = r'''(?x)
                         (?:
                             murrtube:|
-                            https?://murrtube\.net/videos/(?P<slug>[a-z0-9\-]+)\-
+                            https?://murrtube\.net/(?:v/|videos/(?P<slug>[a-z0-9-]+?)-)
                         )
-                        (?P<id>[a-f0-9]{8}\-[a-f0-9]{4}\-[a-f0-9]{4}\-[a-f0-9]{4}\-[a-f0-9]{12})
+                        (?P<id>[A-Z0-9]{4}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})
                     '''
-    _TEST = {
+    _TESTS = [{
         'url': 'https://murrtube.net/videos/inferno-x-skyler-148b6f2a-fdcc-4902-affe-9c0f41aaaca0',
-        'md5': '169f494812d9a90914b42978e73aa690',
+        'md5': '70380878a77e8565d4aea7f68b8bbb35',
         'info_dict': {
-            'id': '148b6f2a-fdcc-4902-affe-9c0f41aaaca0',
+            'id': 'ca885d8456b95de529b6723b158032e11115d',
             'ext': 'mp4',
             'title': 'Inferno X Skyler',
             'description': 'Humping a very good slutty sheppy (roomate)',
-            'thumbnail': r're:^https?://.*\.jpg$',
-            'duration': 284,
             'uploader': 'Inferno Wolf',
             'age_limit': 18,
+            'thumbnail': 'https://storage.murrtube.net/murrtube-production/ekbs3zcfvuynnqfx72nn2tkokvsd',
             'comment_count': int,
             'view_count': int,
             'like_count': int,
-            'tags': ['hump', 'breed', 'Fursuit', 'murrsuit', 'bareback'],
         },
-    }
+    }, {
+        'url': 'https://murrtube.net/v/0J2Q',
+        'md5': '31262f6ac56f0ca75e5a54a0f3fefcb6',
+        'info_dict': {
+            'id': '8442998c52134968d9caa36e473e1a6bac6ca',
+            'ext': 'mp4',
+            'uploader': 'Hayel',
+            'title': 'Who\'s in charge now?',
+            'description': 'md5:795791e97e5b0f1805ea84573f02a997',
+            'age_limit': 18,
+            'thumbnail': 'https://storage.murrtube.net/murrtube-production/fb1ojjwiucufp34ya6hxu5vfqi5s',
+            'comment_count': int,
+            'view_count': int,
+            'like_count': int,
+        },
+    }]
+
+    def _extract_count(self, name, html):
+        return parse_count(self._search_regex(
+            rf'([\d,]+)\s+<span[^>]*>{name}</span>', html, name, default=None))
+
+    def _real_initialize(self):
+        homepage = self._download_webpage(
+            'https://murrtube.net', None, note='Getting session token')
+        self._request_webpage(
+            'https://murrtube.net/accept_age_check', None, 'Setting age cookie',
+            data=urlencode_postdata(self._hidden_inputs(homepage)))
+
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+        if video_id.startswith('murrtube:'):
+            raise ExtractorError('Support for murrtube: prefix URLs is broken')
+        video_page = self._download_webpage(url, video_id)
+        video_attrs = extract_attributes(get_element_html_by_id('video', video_page))
+        playlist = update_url(video_attrs['data-url'], query=None)
+        video_id = self._search_regex(r'/([\da-f]+)/index.m3u8', playlist, 'video id')
+
+        return {
+            'id': video_id,
+            'title': remove_end(self._og_search_title(video_page), ' - Murrtube'),
+            'age_limit': 18,
+            'formats': self._extract_m3u8_formats(playlist, video_id, 'mp4'),
+            'description': self._og_search_description(video_page),
+            'thumbnail': update_url(self._og_search_thumbnail(video_page, default=''), query=None) or None,
+            'uploader': clean_html(get_element_by_class('pl-1 is-size-6 has-text-lighter', video_page)),
+            'view_count': self._extract_count('Views', video_page),
+            'like_count': self._extract_count('Likes', video_page),
+            'comment_count': self._extract_count('Comments', video_page),
+        }
+
+
+class MurrtubeUserIE(InfoExtractor):
+    _WORKING = False
+    IE_DESC = 'Murrtube user profile'
+    _VALID_URL = r'https?://murrtube\.net/(?P<id>[^/]+)$'
+    _TESTS = [{
+        'url': 'https://murrtube.net/stormy',
+        'info_dict': {
+            'id': 'stormy',
+        },
+        'playlist_mincount': 27,
+    }]
+    _PAGE_SIZE = 10
 
     def _download_gql(self, video_id, op, note=None, fatal=True):
         result = self._download_json(
@@ -45,73 +109,6 @@ class MurrtubeIE(InfoExtractor):
             video_id, note, data=json.dumps(op).encode(), fatal=fatal,
             headers={'Content-Type': 'application/json'})
         return result['data']
-
-    def _real_extract(self, url):
-        video_id = self._match_id(url)
-        data = self._download_gql(video_id, {
-            'operationName': 'Medium',
-            'variables': {
-                'id': video_id,
-            },
-            'query': '''\
-query Medium($id: ID!) {
-  medium(id: $id) {
-    title
-    description
-    key
-    duration
-    commentsCount
-    likesCount
-    viewsCount
-    thumbnailKey
-    tagList
-    user {
-      name
-      __typename
-    }
-    __typename
-  }
-}'''})
-        meta = data['medium']
-
-        storage_url = 'https://storage.murrtube.net/murrtube/'
-        format_url = storage_url + meta.get('key', '')
-        thumbnail = storage_url + meta.get('thumbnailKey', '')
-
-        if determine_ext(format_url) == 'm3u8':
-            formats = self._extract_m3u8_formats(
-                format_url, video_id, 'mp4', entry_protocol='m3u8_native', fatal=False)
-        else:
-            formats = [{'url': format_url}]
-
-        return {
-            'id': video_id,
-            'title': meta.get('title'),
-            'description': meta.get('description'),
-            'formats': formats,
-            'thumbnail': thumbnail,
-            'duration': int_or_none(meta.get('duration')),
-            'uploader': try_get(meta, lambda x: x['user']['name']),
-            'view_count': meta.get('viewsCount'),
-            'like_count': meta.get('likesCount'),
-            'comment_count': meta.get('commentsCount'),
-            'tags': meta.get('tagList'),
-            'age_limit': 18,
-        }
-
-
-class MurrtubeUserIE(MurrtubeIE):  # XXX: Do not subclass from concrete IE
-    _WORKING = False
-    IE_DESC = 'Murrtube user profile'
-    _VALID_URL = r'https?://murrtube\.net/(?P<id>[^/]+)$'
-    _TEST = {
-        'url': 'https://murrtube.net/stormy',
-        'info_dict': {
-            'id': 'stormy',
-        },
-        'playlist_mincount': 27,
-    }
-    _PAGE_SIZE = 10
 
     def _fetch_page(self, username, user_id, page):
         data = self._download_gql(username, {
