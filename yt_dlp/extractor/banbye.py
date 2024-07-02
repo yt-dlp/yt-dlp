@@ -103,7 +103,7 @@ class BanByeIE(BanByeBaseIE):
             'thumbnail': 'https://cdn.banbye.com/video/v_a_gPFuC9LoW5/96.webp',
             'tags': ['jaszczur', 'sejm', 'lewica', 'polska', 'ukrainizacja', 'pierwszeposiedzeniesejmu'],
         },
-        'expected_warnings': ['Failed to download m3u8']
+        'expected_warnings': ['Failed to download m3u8'],
     }, {
         # ['src']['hls']['masterPlaylist'] m3u8 only
         'url': 'https://banbye.com/watch/v_B0rsKWsr-aaa',
