@@ -743,6 +743,13 @@ from .gettr import (
     GettrStreamingIE,
 )
 from .giantbomb import GiantBombIE
+from .giphy import (
+    GiphyChannelIE,
+    GiphyIE,
+    GiphySearchIE,
+    GiphySearchURLIE,
+    GiphyStoriesIE,
+)
 from .glide import GlideIE
 from .globalplayer import (
     GlobalPlayerAudioEpisodeIE,
