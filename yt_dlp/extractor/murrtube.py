@@ -23,7 +23,6 @@ class MurrtubeIE(InfoExtractor):
                         )
                         (?P<id>[A-Z0-9]{4}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})
                     '''
-
     _TESTS = [{
         'url': 'https://murrtube.net/videos/inferno-x-skyler-148b6f2a-fdcc-4902-affe-9c0f41aaaca0',
         'md5': '70380878a77e8565d4aea7f68b8bbb35',
