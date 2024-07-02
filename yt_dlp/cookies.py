@@ -654,14 +654,17 @@ def _parse_safari_cookies_record(data, jar, logger):
     _creation_date = _mac_absolute_time_to_posix(p.read_double())  # noqa: F841
 
     try:
-        p.skip_to(domain_offset)
-        domain = p.read_cstring()
+        temp = DataParser(data, logger)
+        temp.skip_to(domain_offset)
+        domain = temp.read_cstring()
 
-        p.skip_to(name_offset)
-        name = p.read_cstring()
+        temp = DataParser(data, logger)
+        temp.skip_to(name_offset)
+        name = temp.read_cstring()
 
-        p.skip_to(path_offset)
-        path = p.read_cstring()
+        temp = DataParser(data, logger)
+        temp.skip_to(path_offset)
+        path = temp.read_cstring()
 
         p.skip_to(value_offset)
         value = p.read_cstring()
