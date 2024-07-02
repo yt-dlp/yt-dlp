@@ -217,6 +217,7 @@ from .bbc import (
     BBCCoUkIPlayerGroupIE,
     BBCCoUkPlaylistIE,
 )
+from .beacon import BeaconTvIE
 from .beatbump import (
     BeatBumpPlaylistIE,
     BeatBumpVideoIE,
