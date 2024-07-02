@@ -199,19 +199,21 @@ jobs:
             GITHUB_WORKFLOW: build
           githubToken: ${{ github.token }} # To cache image
           arch: ${{ matrix.architecture }}
-          distro: ubuntu18.04 # Standalone executable should be built on minimum supported OS
+          distro: ubuntu20.04 # Standalone executable should be built on minimum supported OS
           dockerRunArgs: --volume "${PWD}/repo:/repo"
           install: | # Installing Python 3.10 from the Deadsnakes repo raises errors
             apt update
-            apt -y install zlib1g-dev libffi-dev python3.8 python3.8-dev python3.8-distutils python3-pip
+            apt -y install zlib1g-dev libffi-dev python3.8 python3.8-dev python3.8-distutils python3-pip \
+              python3-secretstorage  # Cannot build cryptography wheel in virtual armv7 environment
             python3.8 -m pip install -U pip setuptools wheel
-            # Cannot access any files from the repo directory at this stage
-            python3.8 -m pip install -U Pyinstaller mutagen pycryptodomex websockets brotli certifi secretstorage cffi
+            # XXX: Keep this in sync with pyproject.toml (it can't be accessed at this stage) and exclude secretstorage
+            python3.8 -m pip install -U Pyinstaller mutagen pycryptodomex websockets brotli certifi cffi \
+              'requests>=2.31.0,<3' 'urllib3>=1.26.17,<3' 'websockets>=12.0'
 
           run: |
             cd repo
             python3.8 devscripts/install_deps.py -o --include build
-            python3.8 devscripts/install_deps.py --include pyinstaller --include secretstorage  # Cached version may be out of date
+            python3.8 devscripts/install_deps.py --include pyinstaller  # Cached versions may be out of date
             python3.8 devscripts/update-version.py -c "${{ inputs.channel }}" -r "${{ needs.process.outputs.origin }}" "${{ inputs.version }}"
             python3.8 devscripts/make_lazy_extractors.py
             python3.8 -m bundle.pyinstaller
@@ -537,13 +539,17 @@ jobs:
           lock 2022.08.18.36 .+ Python 3\.6
           lock 2023.11.16 (?!win_x86_exe).+ Python 3\.7
           lock 2023.11.16 win_x86_exe .+ Windows-(?:Vista|2008Server)
+          lock 2023.11.16 linux_(?:armv7l|aarch64)_exe .+ glibc 2\.(?:[12]|30)
           lockV2 yt-dlp/yt-dlp 2022.08.18.36 .+ Python 3\.6
           lockV2 yt-dlp/yt-dlp 2023.11.16 (?!win_x86_exe).+ Python 3\.7
           lockV2 yt-dlp/yt-dlp 2023.11.16 win_x86_exe .+ Windows-(?:Vista|2008Server)
+          lockV2 yt-dlp/yt-dlp 2023.11.16 linux_(?:armv7l|aarch64)_exe .+ glibc 2\.(?:[12]|30)
           lockV2 yt-dlp/yt-dlp-nightly-builds 2023.11.15.232826 (?!win_x86_exe).+ Python 3\.7
           lockV2 yt-dlp/yt-dlp-nightly-builds 2023.11.15.232826 win_x86_exe .+ Windows-(?:Vista|2008Server)
           lockV2 yt-dlp/yt-dlp-master-builds 2023.11.15.232812 (?!win_x86_exe).+ Python 3\.7
           lockV2 yt-dlp/yt-dlp-master-builds 2023.11.15.232812 win_x86_exe .+ Windows-(?:Vista|2008Server)
+          lockV2 yt-dlp/yt-dlp-nightly-builds 2023.11.20.123456 linux_(?:armv7l|aarch64)_exe .+ glibc 2\.(?:[12]|30)
+          lockV2 yt-dlp/yt-dlp-master-builds 2023.11.20.987654 linux_(?:armv7l|aarch64)_exe .+ glibc 2\.(?:[12]|30)
           EOF
 
       - name: Sign checksum files
