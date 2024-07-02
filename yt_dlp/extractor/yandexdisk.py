@@ -5,6 +5,7 @@ from ..utils import (
     determine_ext,
     float_or_none,
     int_or_none,
+    join_nonempty,
     mimetype2ext,
     try_get,
     urljoin,
@@ -116,12 +117,9 @@ class YandexDiskIE(InfoExtractor):
             else:
                 size = video.get('size') or {}
                 height = int_or_none(size.get('height'))
-                format_id = 'hls'
-                if height:
-                    format_id += f'-{height}p'
                 formats.append({
                     'ext': 'mp4',
-                    'format_id': format_id,
+                    'format_id': join_nonempty('hls', height and f'{height}p'),
                     'height': height,
                     'protocol': 'm3u8_native',
                     'url': format_url,

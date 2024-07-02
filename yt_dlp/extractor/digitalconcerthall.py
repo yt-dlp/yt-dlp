@@ -1,16 +1,16 @@
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
-    parse_resolution,
-    traverse_obj,
     try_get,
+    url_or_none,
     urlencode_postdata,
 )
+from ..utils.traversal import traverse_obj
 
 
 class DigitalConcertHallIE(InfoExtractor):
     IE_DESC = 'DigitalConcertHall extractor'
-    _VALID_URL = r'https?://(?:www\.)?digitalconcerthall\.com/(?P<language>[a-z]+)/(?P<type>film|concert)/(?P<id>[0-9]+)'
+    _VALID_URL = r'https?://(?:www\.)?digitalconcerthall\.com/(?P<language>[a-z]+)/(?P<type>film|concert|work)/(?P<id>[0-9]+)-?(?P<part>[0-9]+)?'
     _OAUTH_URL = 'https://api.digitalconcerthall.com/v2/oauth2/token'
     _ACCESS_TOKEN = None
     _NETRC_MACHINE = 'digitalconcerthall'
@@ -26,7 +26,8 @@ class DigitalConcertHallIE(InfoExtractor):
             'upload_date': '20210624',
             'timestamp': 1624548600,
             'duration': 2798,
-            'album_artist': 'Members of the Berliner Philharmoniker / Simon Rössler',
+            'album_artists': ['Members of the Berliner Philharmoniker', 'Simon Rössler'],
+            'composers': ['Kurt Weill'],
         },
         'params': {'skip_download': 'm3u8'},
     }, {
@@ -34,8 +35,9 @@ class DigitalConcertHallIE(InfoExtractor):
         'url': 'https://www.digitalconcerthall.com/en/concert/53785',
         'info_dict': {
             'id': '53785',
-            'album_artist': 'Berliner Philharmoniker / Kirill Petrenko',
+            'album_artists': ['Berliner Philharmoniker', 'Kirill Petrenko'],
             'title': 'Kirill Petrenko conducts Mendelssohn and Shostakovich',
+            'thumbnail': r're:^https?://images.digitalconcerthall.com/cms/thumbnails.*\.jpg$',
         },
         'params': {'skip_download': 'm3u8'},
         'playlist_count': 3,
@@ -49,9 +51,20 @@ class DigitalConcertHallIE(InfoExtractor):
             'thumbnail': r're:^https?://images.digitalconcerthall.com/cms/thumbnails.*\.jpg$',
             'upload_date': '20220714',
             'timestamp': 1657785600,
-            'album_artist': 'Frank Peter Zimmermann / Benedikt von Bernstorff / Jakob von Bernstorff',
+            'album_artists': ['Frank Peter Zimmermann', 'Benedikt von Bernstorff', 'Jakob von Bernstorff'],
         },
         'params': {'skip_download': 'm3u8'},
+    }, {
+        'note': 'Concert with several works and an interview',
+        'url': 'https://www.digitalconcerthall.com/en/work/53785-1',
+        'info_dict': {
+            'id': '53785',
+            'album_artists': ['Berliner Philharmoniker', 'Kirill Petrenko'],
+            'title': 'Kirill Petrenko conducts Mendelssohn and Shostakovich',
+            'thumbnail': r're:^https?://images.digitalconcerthall.com/cms/thumbnails.*\.jpg$',
+        },
+        'params': {'skip_download': 'm3u8'},
+        'playlist_count': 1,
     }]
 
     def _perform_login(self, username, password):
@@ -97,15 +110,14 @@ class DigitalConcertHallIE(InfoExtractor):
                     'Accept-Language': language,
                 })
 
-            m3u8_url = traverse_obj(
-                stream_info, ('channel', lambda k, _: k.startswith('vod_mixed'), 'stream', 0, 'url'), get_all=False)
-            formats = self._extract_m3u8_formats(m3u8_url, video_id, 'mp4', 'm3u8_native', fatal=False)
+            formats = []
+            for m3u8_url in traverse_obj(stream_info, ('channel', ..., 'stream', ..., 'url', {url_or_none})):
+                formats.extend(self._extract_m3u8_formats(m3u8_url, video_id, 'mp4', fatal=False))
 
             yield {
                 'id': video_id,
                 'title': item.get('title'),
                 'composer': item.get('name_composer'),
-                'url': m3u8_url,
                 'formats': formats,
                 'duration': item.get('duration_total'),
                 'timestamp': traverse_obj(item, ('date', 'published')),
@@ -119,31 +131,32 @@ class DigitalConcertHallIE(InfoExtractor):
             }
 
     def _real_extract(self, url):
-        language, type_, video_id = self._match_valid_url(url).group('language', 'type', 'id')
+        language, type_, video_id, part = self._match_valid_url(url).group('language', 'type', 'id', 'part')
         if not language:
             language = 'en'
 
-        thumbnail_url = self._html_search_regex(
-            r'(https?://images\.digitalconcerthall\.com/cms/thumbnails/.*\.jpg)',
-            self._download_webpage(url, video_id), 'thumbnail')
-        thumbnails = [{
-            'url': thumbnail_url,
-            **parse_resolution(thumbnail_url),
-        }]
-
+        api_type = 'concert' if type_ == 'work' else type_
         vid_info = self._download_json(
-            f'https://api.digitalconcerthall.com/v2/{type_}/{video_id}', video_id, headers={
+            f'https://api.digitalconcerthall.com/v2/{api_type}/{video_id}', video_id, headers={
                 'Accept': 'application/json',
                 'Accept-Language': language,
             })
-        album_artist = ' / '.join(traverse_obj(vid_info, ('_links', 'artist', ..., 'name')) or '')
+        album_artists = traverse_obj(vid_info, ('_links', 'artist', ..., 'name'))
         videos = [vid_info] if type_ == 'film' else traverse_obj(vid_info, ('_embedded', ..., ...))
+
+        if type_ == 'work':
+            videos = [videos[int(part) - 1]]
+
+        thumbnail = traverse_obj(vid_info, (
+            'image', ..., {self._proto_relative_url}, {url_or_none},
+            {lambda x: x.format(width=0, height=0)}, any))  # NB: 0x0 is the original size
 
         return {
             '_type': 'playlist',
             'id': video_id,
             'title': vid_info.get('title'),
-            'entries': self._entries(videos, language, thumbnails=thumbnails, album_artist=album_artist, type_=type_),
-            'thumbnails': thumbnails,
-            'album_artist': album_artist,
+            'entries': self._entries(
+                videos, language, type_, thumbnail=thumbnail, album_artists=album_artists),
+            'thumbnail': thumbnail,
+            'album_artists': album_artists,
         }

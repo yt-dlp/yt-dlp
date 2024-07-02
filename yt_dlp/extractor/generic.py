@@ -2167,7 +2167,15 @@ class GenericIE(InfoExtractor):
                 urllib.parse.urlparse(fragment_query).query or fragment_query
                 or urllib.parse.urlparse(manifest_url).query or None)
 
-        hex_or_none = lambda x: x if re.fullmatch(r'(0x)?[\da-f]+', x, re.IGNORECASE) else None
+        key_query = self._configuration_arg('key_query', [None], casesense=True)[0]
+        if key_query is not None:
+            info['extra_param_to_key_url'] = (
+                urllib.parse.urlparse(key_query).query or key_query
+                or urllib.parse.urlparse(manifest_url).query or None)
+
+        def hex_or_none(value):
+            return value if re.fullmatch(r'(0x)?[\da-f]+', value, re.IGNORECASE) else None
+
         info['hls_aes'] = traverse_obj(self._configuration_arg('hls_key', casesense=True), {
             'uri': (0, {url_or_none}), 'key': (0, {hex_or_none}), 'iv': (1, {hex_or_none}),
         }) or None
