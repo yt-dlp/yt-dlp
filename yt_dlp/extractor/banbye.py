@@ -102,9 +102,11 @@ class BanByeIE(BanByeBaseIE):
 
         for format_id, format_url in traverse_obj(url_data, (
                 'src', ('mp4', 'hls'), 'levels', {dict.items}, lambda _, v: url_or_none(v[1]))):
-            is_hls = determine_ext(format_url) == 'm3u8'
+            ext = determine_ext(format_url)
+            is_hls = ext == 'm3u8'
             formats.append({
                 'url': format_url,
+                'ext': 'mp4' if is_hls else ext,
                 'format_id': join_nonempty(is_hls and 'hls', format_id),
                 'protocol': 'm3u8_native' if is_hls else 'https',
                 'height': int_or_none(format_id),
