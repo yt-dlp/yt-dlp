@@ -2711,7 +2711,7 @@ class InfoExtractor:
                             r = int(s.get('r', 0))
                             ms_info['total_number'] += 1 + r
                             ms_info['s'].append({
-                                't': int(s.get('t', 0)),
+                                't': int_or_none(s.get('t')),
                                 # @d is mandatory (see [1, 5.3.9.6.2, Table 17, page 60])
                                 'd': int(s.attrib['d']),
                                 'r': r,
@@ -2753,8 +2753,14 @@ class InfoExtractor:
             return ms_info
 
         mpd_duration = parse_duration(mpd_doc.get('mediaPresentationDuration'))
+        availability_start_time = unified_timestamp(
+            mpd_doc.get('availabilityStartTime'), with_milliseconds=True) or 0
         stream_numbers = collections.defaultdict(int)
         for period_idx, period in enumerate(mpd_doc.findall(_add_ns('Period'))):
+            # segmentIngestTime is completely out of spec, but YT Livestream do this
+            segment_ingest_time = period.get('{http://youtube.com/yt/2012/10/10}segmentIngestTime')
+            if segment_ingest_time:
+                availability_start_time = unified_timestamp(segment_ingest_time, with_milliseconds=True)
             period_entry = {
                 'id': period.get('id', f'period-{period_idx}'),
                 'formats': [],
@@ -2933,13 +2939,17 @@ class InfoExtractor:
                                     'Bandwidth': bandwidth,
                                     'Number': segment_number,
                                 }
+                                duration = float_or_none(segment_d, representation_ms_info['timescale'])
+                                start = float_or_none(segment_time, representation_ms_info['timescale'])
                                 representation_ms_info['fragments'].append({
                                     media_location_key: segment_url,
-                                    'duration': float_or_none(segment_d, representation_ms_info['timescale']),
+                                    'duration': duration,
+                                    'start': availability_start_time + start,
+                                    'end': availability_start_time + start + duration,
                                 })
 
                             for s in representation_ms_info['s']:
-                                segment_time = s.get('t') or segment_time
+                                segment_time = s['t'] if s.get('t') is not None else segment_time
                                 segment_d = s['d']
                                 add_segment_url()
                                 segment_number += 1
@@ -2955,6 +2965,7 @@ class InfoExtractor:
                         fragments = []
                         segment_index = 0
                         timescale = representation_ms_info['timescale']
+                        start = 0
                         for s in representation_ms_info['s']:
                             duration = float_or_none(s['d'], timescale)
                             for _ in range(s.get('r', 0) + 1):
@@ -2962,8 +2973,11 @@ class InfoExtractor:
                                 fragments.append({
                                     location_key(segment_uri): segment_uri,
                                     'duration': duration,
+                                    'start': availability_start_time + start,
+                                    'end': availability_start_time + start + duration,
                                 })
                                 segment_index += 1
+                                start += duration
                         representation_ms_info['fragments'] = fragments
                     elif 'segment_urls' in representation_ms_info:
                         # Segment URLs with no SegmentTimeline

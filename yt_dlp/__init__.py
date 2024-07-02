@@ -12,6 +12,7 @@ import itertools
 import optparse
 import os
 import re
+import time
 import traceback
 
 from .compat import compat_os_name
@@ -333,12 +334,13 @@ def validate_options(opts):
             (?P<end_sign>-?)(?P<end>[^-]+)
         )?'''
 
+        current_time = time.time()
         chapters, ranges, from_url = [], [], False
         for regex in value or []:
             if advanced and regex == '*from-url':
                 from_url = True
                 continue
-            elif not regex.startswith('*'):
+            elif not regex.startswith('*') and not regex.startswith('#'):
                 try:
                     chapters.append(re.compile(regex))
                 except re.error as err:
@@ -355,9 +357,14 @@ def validate_options(opts):
                     err = 'Must be of the form "*start-end"'
                 elif not advanced and any(signs):
                     err = 'Negative timestamps are not allowed'
-                else:
+                elif regex.startswith('*'):
                     dur[0] *= -1 if signs[0] else 1
                     dur[1] *= -1 if signs[1] else 1
+                    if dur[1] == float('-inf'):
+                        err = '"-inf" is not a valid end'
+                elif regex.startswith('#'):
+                    dur[0] = dur[0] * (-1 if signs[0] else 1) + current_time
+                    dur[1] = dur[1] * (-1 if signs[1] else 1) + current_time
                     if dur[1] == float('-inf'):
                         err = '"-inf" is not a valid end'
                 if err:

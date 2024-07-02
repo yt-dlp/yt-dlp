@@ -1212,7 +1212,7 @@ def unified_strdate(date_str, day_first=True):
         return str(upload_date)
 
 
-def unified_timestamp(date_str, day_first=True):
+def unified_timestamp(date_str, day_first=True, with_milliseconds=False):
     if not isinstance(date_str, str):
         return None
 
@@ -1238,7 +1238,7 @@ def unified_timestamp(date_str, day_first=True):
     for expression in date_formats(day_first):
         with contextlib.suppress(ValueError):
             dt_ = dt.datetime.strptime(date_str, expression) - timezone + dt.timedelta(hours=pm_delta)
-            return calendar.timegm(dt_.timetuple())
+            return calendar.timegm(dt_.timetuple()) + (dt_.microsecond / 1e6 if with_milliseconds else 0)
 
     timetuple = email.utils.parsedate_tz(date_str)
     if timetuple:
@@ -2038,16 +2038,19 @@ def parse_duration(s):
 
     days, hours, mins, secs, ms = [None] * 5
     m = re.match(r'''(?x)
+            (?P<sign>[+-])?
             (?P<before_secs>
                 (?:(?:(?P<days>[0-9]+):)?(?P<hours>[0-9]+):)?(?P<mins>[0-9]+):)?
             (?P<secs>(?(before_secs)[0-9]{1,2}|[0-9]+))
             (?P<ms>[.:][0-9]+)?Z?$
         ''', s)
     if m:
-        days, hours, mins, secs, ms = m.group('days', 'hours', 'mins', 'secs', 'ms')
+        sign, days, hours, mins, secs, ms = m.group('sign', 'days', 'hours', 'mins', 'secs', 'ms')
     else:
         m = re.match(
-            r'''(?ix)(?:P?
+            r'''(?ix)(?:
+                (?P<sign>[+-])?
+                P?
                 (?:
                     [0-9]+\s*y(?:ears?)?,?\s*
                 )?
@@ -2071,17 +2074,19 @@ def parse_duration(s):
                     (?P<secs>[0-9]+)(?P<ms>\.[0-9]+)?\s*s(?:ec(?:ond)?s?)?\s*
                 )?Z?$''', s)
         if m:
-            days, hours, mins, secs, ms = m.groups()
+            sign, days, hours, mins, secs, ms = m.groups()
         else:
-            m = re.match(r'(?i)(?:(?P<hours>[0-9.]+)\s*(?:hours?)|(?P<mins>[0-9.]+)\s*(?:mins?\.?|minutes?)\s*)Z?$', s)
+            m = re.match(r'(?i)(?P<sign>[+-])?(?:(?P<days>[0-9.]+)\s*(?:days?)|(?P<hours>[0-9.]+)\s*(?:hours?)|(?P<mins>[0-9.]+)\s*(?:mins?\.?|minutes?)\s*)Z?$', s)
             if m:
-                hours, mins = m.groups()
+                sign, days, hours, mins = m.groups()
             else:
                 return None
 
+    sign = -1 if sign == '-' else 1
+
     if ms:
         ms = ms.replace(':', '.')
-    return sum(float(part or 0) * mult for part, mult in (
+    return sign * sum(float(part or 0) * mult for part, mult in (
         (days, 86400), (hours, 3600), (mins, 60), (secs, 1), (ms, 1)))
 
 
