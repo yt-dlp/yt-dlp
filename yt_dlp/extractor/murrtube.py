@@ -63,7 +63,6 @@ class MurrtubeIE(InfoExtractor):
         return parse_count(self._search_regex(
             rf'([\d,]+)\s+<span[^>]*>{name}</span>', html, name, default=None))
 
-
     def _real_initialize(self):
         homepage = self._download_webpage(
             'https://murrtube.net', None, note='Getting session token')
