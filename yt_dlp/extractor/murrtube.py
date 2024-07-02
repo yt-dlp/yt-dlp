@@ -1,4 +1,5 @@
 import functools
+import json
 
 from .common import InfoExtractor
 from ..utils import (
@@ -68,6 +69,8 @@ class MurrtubeIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
+        if video_id.startswith('murrtube:'):
+            raise ExtractorError('Support for murrtube: prefix URLs is broken')
         video_page = self._download_webpage(url, video_id)
         video_attrs = extract_attributes(get_element_html_by_id('video', video_page))
         playlist = update_url(video_attrs['data-url'], query=None)
@@ -87,7 +90,7 @@ class MurrtubeIE(InfoExtractor):
         }
 
 
-class MurrtubeUserIE(MurrtubeIE):  # XXX: Do not subclass from concrete IE
+class MurrtubeUserIE(InfoExtractor):
     _WORKING = False
     IE_DESC = 'Murrtube user profile'
     _VALID_URL = r'https?://murrtube\.net/(?P<id>[^/]+)$'
@@ -99,6 +102,13 @@ class MurrtubeUserIE(MurrtubeIE):  # XXX: Do not subclass from concrete IE
         'playlist_mincount': 27,
     }]
     _PAGE_SIZE = 10
+
+    def _download_gql(self, video_id, op, note=None, fatal=True):
+        result = self._download_json(
+            'https://murrtube.net/graphql',
+            video_id, note, data=json.dumps(op).encode(), fatal=fatal,
+            headers={'Content-Type': 'application/json'})
+        return result['data']
 
     def _fetch_page(self, username, user_id, page):
         data = self._download_gql(username, {
