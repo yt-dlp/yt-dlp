@@ -2448,21 +2448,65 @@ class YoutubeDL:
 
             elif selector.type == SINGLE:  # atom
                 format_spec = selector.selector or 'best'
+                mobj = re.match(
+                    r'(?P<m>merge)?all(?P<t>video|audio)?(?P<l>lang)?', format_spec)
+                if mobj:
+                    mg, tp, la = mobj.group('m', 't', 'l')
 
-                # TODO: Add allvideo, allaudio etc by generalizing the code with best/worst selector
-                if format_spec == 'all':
                     def selector_function(ctx):
-                        yield from _check_formats(ctx['formats'][::-1])
-                elif format_spec == 'mergeall':
-                    def selector_function(ctx):
-                        formats = list(_check_formats(
-                            f for f in ctx['formats'] if f.get('vcodec') != 'none' or f.get('acodec') != 'none'))
-                        if not formats:
-                            return
-                        merged_format = formats[-1]
-                        for f in formats[-2::-1]:
-                            merged_format = _merge((merged_format, f))
-                        yield merged_format
+                        formats = ctx['formats'][::-1]
+
+                        if tp == 'video':
+                            formats = (f for f in formats if f.get('vcodec') != 'none')
+                        elif tp == 'audio':
+                            formats = (f for f in formats if f.get('acodec') != 'none')
+                        elif mg:
+                            # exclude storyboards
+                            formats = (
+                                f for f in formats if f.get('vcodec') != 'none' or f.get('acodec') != 'none')
+
+                        if la:
+                            all_fmts = formats if isinstance(formats, list) else list(formats)
+                            langs = set(filter(None, traverse_obj(all_fmts, (..., 'language'), default=[])))
+                            formats = []
+                            if not langs:
+                                self.report_warning('This video has no track with language tag')
+                                formats = all_fmts
+                            elif tp:
+                                # only audio or video
+                                for f in all_fmts:
+                                    if not langs:
+                                        break
+                                    lang = f.get('language')
+                                    if not lang or lang not in langs:
+                                        continue
+                                    langs.remove(lang)
+                                    formats.append(f)
+                            else:
+                                # no video/audio specified
+                                # vcodec, acodec, language
+                                langs = set(itertools.product((True, False), (True, False), langs))
+                                for f in all_fmts:
+                                    if not langs:
+                                        break
+                                    lang = f.get('language')
+                                    tu = (f.get('vcodec') != 'none', f.get('acodec') != 'none', lang)
+                                    if not lang or tu not in langs:
+                                        continue
+                                    langs.remove(tu)
+                                    formats.append(f)
+
+                        formats = _check_formats(formats)
+                        if mg:
+                            formats = iter(formats)
+                            merged_format = next(formats, None)
+                            if merged_format is None:
+                                return
+                            for f in formats:
+                                merged_format = _merge((merged_format, f))
+                            yield merged_format
+                        else:
+                            yield from formats
 
                 else:
                     format_fallback, seperate_fallback, format_reverse, format_idx = False, None, True, 1
