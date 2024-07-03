@@ -37,7 +37,7 @@ class DouyuBaseIE(InfoExtractor):
 
     def _get_cryptojs_md5(self, video_id):
         return self.cache.load(
-            'douyu', 'crypto-js-md5', min_ver='2024.07.03') or self._download_cryptojs_md5(video_id)
+            'douyu', 'crypto-js-md5', min_ver='2024.07.04') or self._download_cryptojs_md5(video_id)
 
     def _calc_sign(self, sign_func, video_id, a):
         b = uuid.uuid4().hex
