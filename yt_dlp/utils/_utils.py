@@ -5120,6 +5120,9 @@ class _UnsafeExtensionError(Exception):
 
     @classmethod
     def sanitize_extension(cls, extension, /, *, prepend=False):
+        if extension is None:
+            return None
+
         if '/' in extension or '\\' in extension:
             raise cls(extension)
 
