@@ -14,6 +14,7 @@ from ..utils import (
     float_or_none,
     format_field,
     int_or_none,
+    join_nonempty,
     make_archive_id,
     remove_end,
     str_or_none,
@@ -107,7 +108,7 @@ class TwitterBaseIE(InfoExtractor):
             tbr = int_or_none(dict_get(variant, ('bitrate', 'bit_rate')), 1000) or None
             f = {
                 'url': variant_url,
-                'format_id': 'http' + (f'-{tbr}' if tbr else ''),
+                'format_id': join_nonempty('http', tbr),
                 'tbr': tbr,
             }
             self._search_dimensions_in_video_url(f, variant_url)

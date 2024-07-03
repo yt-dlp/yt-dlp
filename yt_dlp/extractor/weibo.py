@@ -52,6 +52,7 @@ class WeiboBaseIE(InfoExtractor):
             })
 
     def _weibo_download_json(self, url, video_id, *args, fatal=True, note='Downloading JSON metadata', **kwargs):
+        # XXX: Always fatal; _download_webpage_handle only returns False (not a tuple) on error
         webpage, urlh = self._download_webpage_handle(url, video_id, *args, fatal=fatal, note=note, **kwargs)
         if urllib.parse.urlparse(urlh.url).netloc == 'passport.weibo.com':
             self._update_visitor_cookies(urlh.url, video_id)

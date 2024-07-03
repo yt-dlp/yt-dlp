@@ -316,7 +316,8 @@ class PatreonIE(PatreonBaseIE):
                 r'(https(?:%3A%2F%2F|://)player\.vimeo\.com.+app_id(?:=|%3D)+\d+)',
                 traverse_obj(attributes, ('embed', 'html', {str})), 'vimeo url', fatal=False) or '')
             if url_or_none(v_url) and self._request_webpage(
-                    v_url, video_id, 'Checking Vimeo embed URL', headers=headers, fatal=False, errnote=False):
+                    v_url, video_id, 'Checking Vimeo embed URL', headers=headers,
+                    fatal=False, errnote=False, expected_status=429):  # 429 is TLS fingerprint rejection
                 entries.append(self.url_result(
                     VimeoIE._smuggle_referrer(v_url, 'https://patreon.com/'),
                     VimeoIE, url_transparent=True))
