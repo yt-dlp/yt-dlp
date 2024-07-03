@@ -25,7 +25,8 @@ class DouyuBaseIE(InfoExtractor):
     def _download_cryptojs_md5(self, video_id):
         for url in [
             'https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.2/rollups/md5.js',
-            'https://cdn.bootcdn.net/ajax/libs/crypto-js/3.1.2/rollups/md5.js',
+            # XXX: Do NOT use cdn.bootcdn.net; ref: https://sansec.io/research/polyfill-supply-chain-attack
+            'https://unpkg.com/cryptojslib@3.1.2/rollups/md5.js',
         ]:
             js_code = self._download_webpage(
                 url, video_id, note='Downloading signing dependency', fatal=False)
