@@ -1,5 +1,5 @@
 from .vidyard import VidyardBaseIE
-from ..utils import ExtractorError, int_or_none
+from ..utils import ExtractorError, int_or_none, make_archive_id
 
 
 class SwearnetEpisodeIE(VidyardBaseIE):
@@ -18,6 +18,7 @@ class SwearnetEpisodeIE(VidyardBaseIE):
             'title': 'Episode 1 - Grilled Cheese Sammich',
             'season_number': 1,
             'thumbnail': 'https://cdn.vidyard.com/thumbnails/custom/0dd74f9b-388a-452e-b570-b407fb64435b_small.jpg',
+            '_old_archive_ids': ['swearnetepisode 232819'],
         },
     }]
 
@@ -32,17 +33,13 @@ class SwearnetEpisodeIE(VidyardBaseIE):
                 self.raise_login_required()
             raise
 
-        video_json = self._fetch_video_json(external_id, display_id)
-        video_info = {
-            **self._process_video_json(video_json['chapters'][0], display_id),
+        info = self._process_video_json(
+            self._fetch_video_json(external_id, display_id)['chapters'][0], display_id)
+        if info.get('display_id'):
+            info['_old_archive_ids'] = [make_archive_id(self, info['display_id'])]
+
+        return {
+            **info,
             'season_number': int_or_none(season_number),
             'episode_number': int_or_none(episode_number),
         }
-
-        if not video_info.get('title'):
-            video_info['title'] = self._html_search_meta(['og:title', 'twitter:title'], webpage)
-
-        if not video_info.get('description'):
-            video_info['description'] = self._html_search_meta(['og:description', 'twitter:description'], webpage)
-
-        return video_info
