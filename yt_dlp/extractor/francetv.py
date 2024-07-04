@@ -456,7 +456,7 @@ class FranceTVSiteShowIE(FranceTVBaseInfoExtractor):
     _VALID_URL = r'''(?x)
     https?://(?:(?:www\.)?france\.tv|mobile\.france\.tv)/
     (?:[^/]+)/(?P<id>[^/]+)/
-    (?:toutes-les-videos|saison-(?P<season_number>\d+))/?'''
+    (?:toutes-les-videos|saison-(?P<season_number>\d+))/?$'''
 
     _TESTS = [{
         'url': 'https://www.france.tv/france-3/wakfu/saison-1/',
