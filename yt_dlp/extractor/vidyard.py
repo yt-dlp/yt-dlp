@@ -105,7 +105,6 @@ class VidyardIE(VidyardBaseIE):
                 'display_id': '9281024',
                 'ext': 'mp4',
                 'title': 'Inline Embed',
-                'description': 'Vidyard video',
                 'thumbnail': 'https://cdn.vidyard.com/thumbnails/spacer.gif',
                 'duration': 41.186,
             },
@@ -326,20 +325,8 @@ class VidyardIE(VidyardBaseIE):
         video_json = self._fetch_video_json(video_id)
 
         if len(video_json['chapters']) == 1:
-            video_info = self._process_video_json(video_json['chapters'][0], video_id)
+            return self._process_video_json(video_json['chapters'][0], video_id)
 
-            if video_info['title'] is None or video_info['description'] is None:
-                webpage = self._download_webpage(url, video_id, fatal=False)
-
-                if video_info['title'] is None:
-                    video_info['title'] = self._og_search_title(webpage, default=None) or self._html_extract_title(webpage)
-
-                if video_info['description'] is None:
-                    video_info['description'] = self._og_search_description(webpage, default=None)
-
-            return video_info
-
-        # Playlist
         return self.playlist_result(
             [self._process_video_json(chapter, video_id) for chapter in video_json['chapters']],
             playlist_id=str(video_json['playerUuid']),
