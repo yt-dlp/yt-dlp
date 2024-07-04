@@ -314,10 +314,9 @@ class VidyardIE(VidyardBaseIE):
             yield embed_url
 
         # Extract inline/lightbox embeds
-        for embed_elm in re.findall(r'(<img[^>]+class=(["\'])(?:[^>"\']* )?vidyard-player-embed(?: [^>"\']*)?\2[^>]+[^>]*>)', webpage):
+        for embed_elm in re.findall(r'(<img[^>]+class=(["\'])(?:[^>"\']* )?vidyard-player-embed(?: [^>"\']*)?\2[^>]+>)', webpage):
             embed = extract_attributes(embed_elm[0])
-            uuid = embed.get('data-uuid')
-            if uuid:
+            if uuid := embed.get('data-uuid'):
                 yield f'https://play.vidyard.com/{uuid}.html'
 
     def _real_extract(self, url):
@@ -329,5 +328,4 @@ class VidyardIE(VidyardBaseIE):
 
         return self.playlist_result(
             [self._process_video_json(chapter, video_id) for chapter in video_json['chapters']],
-            playlist_id=str(video_json['playerUuid']),
-            playlist_title=video_json.get('name'))
+            str(video_json['playerUuid']), video_json.get('name'))
