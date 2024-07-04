@@ -1,3 +1,4 @@
+import functools
 import re
 
 from .common import InfoExtractor
@@ -8,6 +9,7 @@ from ..utils import (
     join_nonempty,
     mimetype2ext,
     parse_resolution,
+    str_or_none,
     url_or_none,
 )
 from ..utils.traversal import traverse_obj
@@ -65,15 +67,18 @@ class VidyardBaseIE(InfoExtractor):
         self._merge_subtitles(self._get_direct_subtitles(json_data.get('captions')), target=subtitles)
 
         return {
-            'id': str(json_data.get('facadeUuid') or json_data['videoUuid']),
-            'display_id': str(json_data['videoId']),
-            'title': json_data.get('name') or None,
-            'description': json_data.get('description') or None,
-            'duration': float_or_none(json_data.get('milliseconds'), 1000) or int_or_none(json_data.get('seconds')),
+            **traverse_obj(json_data, {
+                'id': ('facadeUuid', {str}),
+                'display_id': ('videoId', {str_or_none}),
+                'title': ('name', {str}),
+                'description': ('description', {str}, {lambda x: x or None}),
+                'duration': ((
+                    ('milliseconds', {functools.partial(float_or_none, scale=1000)}),
+                    ('seconds', {int_or_none})), any),
+                'thumbnails': ('thumbnailUrls', ..., {'url': {url_or_none}}),
+            }),
             'formats': formats,
             'subtitles': subtitles,
-            'thumbnails': [{'url': thumbnail_url}
-                           for thumbnail_url in traverse_obj(json_data, ('thumbnailUrls', ...))],
             'http_headers': self._HEADERS,
         }
 
