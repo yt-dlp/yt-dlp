@@ -23,8 +23,8 @@ class SwearnetEpisodeIE(VidyardBaseIE):
     }]
 
     def _real_extract(self, url):
-        display_id, season_number, episode_number = self._match_valid_url(url).group('id', 'season_num', 'episode_num')
-        webpage = self._download_webpage(url, display_id)
+        slug, season_number, episode_number = self._match_valid_url(url).group('id', 'season_num', 'episode_num')
+        webpage = self._download_webpage(url, slug)
 
         try:
             external_id = self._search_regex(r'externalid\s*=\s*"([^"]+)', webpage, 'externalid')
@@ -33,8 +33,7 @@ class SwearnetEpisodeIE(VidyardBaseIE):
                 self.raise_login_required()
             raise
 
-        info = self._process_video_json(
-            self._fetch_video_json(external_id, display_id)['chapters'][0], display_id)
+        info = self._process_video_json(self._fetch_video_json(external_id)['chapters'][0], external_id)
         if info.get('display_id'):
             info['_old_archive_ids'] = [make_archive_id(self, info['display_id'])]
 

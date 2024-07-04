@@ -56,10 +56,9 @@ class VidyardBaseIE(InfoExtractor):
 
         return subs
 
-    def _fetch_video_json(self, video_uuid, video_id=None):
-        video_id = video_id or video_uuid
+    def _fetch_video_json(self, video_id):
         return self._download_json(
-            f'https://play.vidyard.com/player/{video_uuid}.json', video_id)['payload']
+            f'https://play.vidyard.com/player/{video_id}.json', video_id)['payload']
 
     def _process_video_json(self, json_data, video_id):
         formats, subtitles = self._get_formats_and_subtitles(json_data['sources'], video_id)
