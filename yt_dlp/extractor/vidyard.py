@@ -5,35 +5,52 @@ from ..utils import (
     extract_attributes,
     float_or_none,
     int_or_none,
-    traverse_obj,
+    join_nonempty,
+    mimetype2ext,
+    parse_resolution,
+    url_or_none,
 )
+from ..utils.traversal import traverse_obj
 
 
 class VidyardBaseIE(InfoExtractor):
-
     _HEADERS = {}
 
-    def _get_formats_and_subtitles(self, video_source, video_id):
+    def _get_formats_and_subtitles(self, sources, video_id):
         formats, subtitles = [], {}
-        for source_type, sources in traverse_obj(video_source, ({dict.items}, lambda _, v: v[1][0])):
-            if source_type == 'hls':
-                for video_hls in sources:
-                    fmts, subs = self._extract_m3u8_formats_and_subtitles(video_hls.get('url'), video_id, headers=self._HEADERS, fatal=False)
-                    formats.extend(fmts)
-                    self._merge_subtitles(subs, target=subtitles)
-            else:
-                formats.extend({
-                    'url': video_mp4.get('url'),
-                    'ext': 'mp4',
-                } for video_mp4 in sources)
 
+        def add_hls_fmts_and_subs(m3u8_url):
+            fmts, subs = self._extract_m3u8_formats_and_subtitles(
+                m3u8_url, video_id, 'mp4', m3u8_id='hls', headers=self._HEADERS, fatal=False)
+            formats.extend(fmts)
+            self._merge_subtitles(subs, target=subtitles)
+
+        hls_list = isinstance(sources, dict) and sources.pop('hls', None)
+        if master_m3u8_url := traverse_obj(
+                hls_list, (lambda _, v: v['profile'] == 'auto', 'url', {url_or_none}, any)):
+            add_hls_fmts_and_subs(master_m3u8_url)
+        else:  # Only extract variant urls if no master; some are single variant "master" m3u8s
+            for variant_m3u8_url in traverse_obj(hls_list, (..., 'url', {url_or_none})):
+                add_hls_fmts_and_subs(variant_m3u8_url)
+
+        for source_type, source_list in traverse_obj(sources, ({dict.items}, ...)):
+            for source in traverse_obj(source_list, lambda _, v: url_or_none(v['url'])):
+                profile = source.get('profile')
+                formats.append({
+                    'url': source['url'],
+                    'ext': mimetype2ext(source.get('mimeType'), default=None),
+                    'format_id': join_nonempty('http', source_type, profile),
+                    **parse_resolution(profile),
+                })
+
+        self._remove_duplicate_formats(formats)
         return formats, subtitles
 
     def _get_direct_subtitles(self, caption_json):
         subs = {}
-        for caption in caption_json:
+        for caption in traverse_obj(caption_json, lambda _, v: url_or_none(v['vttUrl'])):
             subs.setdefault(caption.get('language') or 'und', []).append({
-                'url': caption.get('vttUrl'),
+                'url': caption['vttUrl'],
                 'name': caption.get('name'),
             })
 
