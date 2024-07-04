@@ -85,6 +85,7 @@ class VidyardIE(VidyardBaseIE):
         r'https?://embed\.vidyard\.com/share/(?P<id>[\w-]+)',
         r'https?://play\.vidyard\.com/(?P<id>[\w-]+)\.html',
     ]
+    _EMBED_REGEX = [r'<iframe[^>]* src=(["\'])(?P<url>(?:https?:)?//play\.vidyard\.com/[\w-]+.html)\1']
     _TESTS = [{
         'url': 'https://vyexample03.hubs.vidyard.com/watch/oTDMPlUv--51Th455G5u7Q',
         'info_dict': {
@@ -257,10 +258,6 @@ class VidyardIE(VidyardBaseIE):
             'duration': 39.035,
         },
     }]
-    _EMBED_REGEX = [
-        # iframe embed
-        r'<iframe[^>]+?src=(["\'])(?P<url>(?:https?:)?//play\.vidyard\.com/[\w-]+.\w+)\1',
-    ]
     _WEBPAGE_TESTS = [{
         # URL containing inline/lightbox embedded video
         'url': 'https://resources.altium.com/p/2-the-extreme-importance-of-pc-board-stack-up',
@@ -273,9 +270,7 @@ class VidyardIE(VidyardBaseIE):
             'duration': 3422.742,
         },
     }]
-    _HEADERS = {
-        'referer': 'https://play.vidyard.com/',
-    }
+    _HEADERS = {'Referer': 'https://play.vidyard.com/'}
 
     @classmethod
     def _extract_embed_urls(cls, url, webpage):
