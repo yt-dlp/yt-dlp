@@ -17,7 +17,7 @@ from ..utils.traversal import traverse_obj
 
 
 class VidyardBaseIE(InfoExtractor):
-    _HEADERS = {}
+    _HEADERS = {'Referer': 'https://play.vidyard.com/'}
 
     def _get_formats_and_subtitles(self, sources, video_id):
         formats, subtitles = [], {}
@@ -396,7 +396,6 @@ class VidyardIE(VidyardBaseIE):
         }],
         'playlist_count': 3,
     }]
-    _HEADERS = {'Referer': 'https://play.vidyard.com/'}
 
     @classmethod
     def _extract_embed_urls(cls, url, webpage):
