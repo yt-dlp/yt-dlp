@@ -76,7 +76,7 @@ class VidyardBaseIE(InfoExtractor):
                 'duration': ((
                     ('milliseconds', {functools.partial(float_or_none, scale=1000)}),
                     ('seconds', {int_or_none})), any),
-                'thumbnails': ('thumbnailUrls', ..., {'url': {url_or_none}}),
+                'thumbnails': ('thumbnailUrls', ('small', 'normal'), {'url': {url_or_none}}),
             }),
             'formats': formats,
             'subtitles': subtitles,

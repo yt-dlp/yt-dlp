@@ -13,7 +13,7 @@ class SwearnetEpisodeIE(VidyardBaseIE):
             'episode_number': 1,
             'episode': 'Episode 1',
             'duration': 719,
-            'description': 'md5:c48ef71440ce466284c07085cd7bd761',
+            'description': r're:Are you drunk and high and craving a grilled cheese sandwich.+',
             'season': 'Season 1',
             'title': 'Episode 1 - Grilled Cheese Sammich',
             'season_number': 1,
