@@ -32,7 +32,7 @@ class VidyardBaseIE(InfoExtractor):
         if master_m3u8_url := traverse_obj(
                 hls_list, (lambda _, v: v['profile'] == 'auto', 'url', {url_or_none}, any)):
             add_hls_fmts_and_subs(master_m3u8_url)
-        else:  # Only extract variant urls if no master; some are single variant "master" m3u8s
+        if not formats:  # These are duplicate and unnecesary requests if we got 'auto' hls fmts
             for variant_m3u8_url in traverse_obj(hls_list, (..., 'url', {url_or_none})):
                 add_hls_fmts_and_subs(variant_m3u8_url)
 
