@@ -5059,12 +5059,14 @@ class _UnsafeExtensionError(Exception):
 
         # video
         *MEDIA_EXTENSIONS.video,
+        'asx',
         'avif',
         'ismv',
         'm2ts',
         'm4s',
         'mng',
         'mpeg',
+        'mxf',
         'qt',
         'swf',
         'ts',
@@ -5077,6 +5079,7 @@ class _UnsafeExtensionError(Exception):
         'mid',
         'mpga',
         'ra',
+        'shn',
 
         # image
         *MEDIA_EXTENSIONS.thumbnails,
@@ -5096,11 +5099,16 @@ class _UnsafeExtensionError(Exception):
         'dfxp',
         'fs',
         'ismt',
+        'json3',
         'sami',
         'scc',
+        'srv1',
+        'srv2',
+        'srv3',
         'ssa',
         'tt',
         'ttml',
+        'xml',
 
         # others
         *MEDIA_EXTENSIONS.manifests,
@@ -5111,7 +5119,6 @@ class _UnsafeExtensionError(Exception):
         'sbv',
         'url',
         'webloc',
-        'xml',
     ])
 
     def __init__(self, extension, /):
