@@ -86,10 +86,10 @@ class VidyardBaseIE(InfoExtractor):
 class VidyardIE(VidyardBaseIE):
     _VALID_URL = [
         r'https?://[\w-]+(?:\.hubs)?\.vidyard\.com/watch/(?P<id>[\w-]+)',
-        r'https?://embed\.vidyard\.com/share/(?P<id>[\w-]+)',
-        r'https?://play\.vidyard\.com/(?P<id>[\w-]+)\.html',
+        r'https?://(?:embed|share)\.vidyard\.com/share/(?P<id>[\w-]+)',
+        r'https?://play\.vidyard\.com/(?P<id>[\w-]+)',
     ]
-    _EMBED_REGEX = [r'<iframe[^>]* src=(["\'])(?P<url>(?:https?:)?//play\.vidyard\.com/[\w-]+.html)\1']
+    _EMBED_REGEX = [r'<iframe[^>]* src=["\'](?P<url>(?:https?:)?//play\.vidyard\.com/[\w-])']
     _TESTS = [{
         'url': 'https://vyexample03.hubs.vidyard.com/watch/oTDMPlUv--51Th455G5u7Q',
         'info_dict': {
@@ -261,6 +261,15 @@ class VidyardIE(VidyardBaseIE):
             'thumbnail': 'https://cdn.vidyard.com/thumbnails/spacer.gif',
             'duration': 39.035,
         },
+    }, {
+        'url': 'http://share.vidyard.com/share/diYeo6YR2yiGgL8odvS8Ri',
+        'only_matching': True,
+    }, {
+        'url': 'https://play.vidyard.com/FFlz3ZpxhIfKQ1fd9DAryA',
+        'only_matching': True,
+    }, {
+        'url': 'https://play.vidyard.com/qhMAu5A76GZVrFzOPgSf9A/type/standalone',
+        'only_matching': True,
     }]
     _WEBPAGE_TESTS = [{
         # URL containing inline/lightbox embedded video
