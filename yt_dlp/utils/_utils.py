@@ -5059,27 +5059,53 @@ class _UnsafeExtensionError(Exception):
 
         # video
         *MEDIA_EXTENSIONS.video,
-        'avif',
+        'asx',
         'ismv',
+        'm2t',
         'm2ts',
+        'm2v',
         'm4s',
         'mng',
+        'mp2v',
+        'mp4v',
+        'mpe',
         'mpeg',
+        'mpeg1',
+        'mpeg2',
+        'mpeg4',
+        'mxf',
+        'ogm',
         'qt',
+        'rm',
         'swf',
         'ts',
+        'vob',
         'vp9',
-        'wvm',
 
         # audio
         *MEDIA_EXTENSIONS.audio,
+        '3ga',
+        'ac3',
+        'adts',
+        'aif',
+        'au',
+        'dts',
         'isma',
+        'it',
         'mid',
+        'mod',
         'mpga',
+        'mp1',
+        'mp2',
+        'mp4a',
+        'mpa',
         'ra',
+        'shn',
+        'xm',
 
         # image
         *MEDIA_EXTENSIONS.thumbnails,
+        'avif',
         'bmp',
         'gif',
         'heic',
@@ -5089,6 +5115,7 @@ class _UnsafeExtensionError(Exception):
         'jxl',
         'svg',
         'tif',
+        'tiff',
         'wbmp',
 
         # subtitle
@@ -5096,11 +5123,16 @@ class _UnsafeExtensionError(Exception):
         'dfxp',
         'fs',
         'ismt',
+        'json3',
         'sami',
         'scc',
+        'srv1',
+        'srv2',
+        'srv3',
         'ssa',
         'tt',
         'ttml',
+        'xml',
 
         # others
         *MEDIA_EXTENSIONS.manifests,
@@ -5111,7 +5143,6 @@ class _UnsafeExtensionError(Exception):
         'sbv',
         'url',
         'webloc',
-        'xml',
     ])
 
     def __init__(self, extension, /):
