@@ -18,6 +18,7 @@ class SwearnetEpisodeIE(VidyardBaseIE):
             'title': 'Episode 1 - Grilled Cheese Sammich',
             'season_number': 1,
             'thumbnail': 'https://cdn.vidyard.com/thumbnails/custom/0dd74f9b-388a-452e-b570-b407fb64435b_small.jpg',
+            'tags': ['Getting Learnt with Ricky', 'drunk', 'grilled cheese', 'high'],
             '_old_archive_ids': ['swearnetepisode 232819'],
         },
     }]

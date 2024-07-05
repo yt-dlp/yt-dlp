@@ -70,13 +70,14 @@ class VidyardBaseIE(InfoExtractor):
         return {
             **traverse_obj(json_data, {
                 'id': ('facadeUuid', {str}),
-                'display_id': ('videoId', {str_or_none}),
+                'display_id': ('videoId', {int}, {str_or_none}),
                 'title': ('name', {str}),
                 'description': ('description', {str}, {unescapeHTML}, {lambda x: x or None}),
                 'duration': ((
                     ('milliseconds', {functools.partial(float_or_none, scale=1000)}),
                     ('seconds', {int_or_none})), any),
                 'thumbnails': ('thumbnailUrls', ('small', 'normal'), {'url': {url_or_none}}),
+                'tags': ('tags', ..., 'name', {str}),
             }),
             'formats': formats,
             'subtitles': subtitles,
@@ -88,7 +89,7 @@ class VidyardIE(VidyardBaseIE):
     _VALID_URL = [
         r'https?://[\w-]+(?:\.hubs)?\.vidyard\.com/watch/(?P<id>[\w-]+)',
         r'https?://(?:embed|share)\.vidyard\.com/share/(?P<id>[\w-]+)',
-        r'https?://play\.vidyard\.com/(?P<id>[\w-]+)',
+        r'https?://play\.vidyard\.com/(?:player/)?(?P<id>[\w-]+)',
     ]
     _EMBED_REGEX = [r'<iframe[^>]* src=["\'](?P<url>(?:https?:)?//play\.vidyard\.com/[\w-]+)']
     _TESTS = [{
@@ -101,6 +102,7 @@ class VidyardIE(VidyardBaseIE):
             'description': 'Look I changed the description.',
             'thumbnail': 'https://cdn.vidyard.com/thumbnails/50347/OUPa5LTKV46849sLYngMqQ_small.jpg',
             'duration': 99,
+            'tags': ['these', 'are', 'all', 'tags'],
         },
     }, {
         'url': 'https://share.vidyard.com/watch/PaQzDAT1h8JqB8ivEu2j6Y?',
@@ -122,6 +124,7 @@ class VidyardIE(VidyardBaseIE):
             'description': 'Look I changed the description.',
             'thumbnail': 'https://cdn.vidyard.com/thumbnails/50347/OUPa5LTKV46849sLYngMqQ_small.jpg',
             'duration': 99,
+            'tags': ['these', 'are', 'all', 'tags'],
         },
     }, {
         # First video from playlist below
@@ -261,6 +264,18 @@ class VidyardIE(VidyardBaseIE):
             'title': 'Lightbox Embed',
             'thumbnail': 'https://cdn.vidyard.com/thumbnails/spacer.gif',
             'duration': 39.035,
+        },
+    }, {
+        # Player JSON URL
+        'url': 'https://play.vidyard.com/player/7GAApnNNbcZZ46k6JqJQSh.json?disable_analytics=0',
+        'info_dict': {
+            'id': '7GAApnNNbcZZ46k6JqJQSh',
+            'display_id': '820026',
+            'ext': 'mp4',
+            'title': 'The Art of Storytelling: How to Deliver Your Brand Story with Content & Social',
+            'thumbnail': 'https://cdn.vidyard.com/thumbnails/MhbE-5sEFQu4x3fI6FkNlA/41eb5717c557cd19456910_small.jpg',
+            'duration': 2153.013,
+            'tags': ['Summit2017'],
         },
     }, {
         'url': 'http://share.vidyard.com/share/diYeo6YR2yiGgL8odvS8Ri',
