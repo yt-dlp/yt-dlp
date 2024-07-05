@@ -759,13 +759,14 @@ class VimeoIE(VimeoBaseInfoExtractor):
             try:
                 video = self._call_videos_api(video_id, viewer['jwt'], unlisted_hash)
             except ExtractorError as e:
-                if not retry and isinstance(e.cause, HTTPError) and e.cause.status == 400:
-                    if 'password' in traverse_obj(e.cause.response.read(), (
-                        {bytes.decode}, {json.loads}, 'invalid_parameters', ..., 'field',
-                    )):
-                        self._verify_video_password(
-                            video_id, self._get_video_password(), viewer['xsrft'])
-                        continue
+                if (not retry and isinstance(e.cause, HTTPError) and e.cause.status == 400
+                    and 'password' in traverse_obj(
+                        e.cause.response.read(),
+                        ({bytes.decode}, {json.loads}, 'invalid_parameters', ..., 'field'),
+                )):
+                    self._verify_video_password(
+                        video_id, self._get_video_password(), viewer['xsrft'])
+                    continue
                 raise
 
         info = self._parse_config(self._download_json(
