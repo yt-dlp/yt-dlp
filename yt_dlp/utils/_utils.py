@@ -5060,7 +5060,6 @@ class _UnsafeExtensionError(Exception):
         # video
         *MEDIA_EXTENSIONS.video,
         'asx',
-        'avif',
         'ismv',
         'm2t',
         'm2ts',
@@ -5077,6 +5076,7 @@ class _UnsafeExtensionError(Exception):
         'mxf',
         'ogm',
         'qt',
+        'rm',
         'swf',
         'ts',
         'vob',
@@ -5105,6 +5105,7 @@ class _UnsafeExtensionError(Exception):
 
         # image
         *MEDIA_EXTENSIONS.thumbnails,
+        'avif',
         'bmp',
         'gif',
         'heic',
