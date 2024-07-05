@@ -328,7 +328,7 @@ class VidyardIE(VidyardBaseIE):
             # These values come from the generic extractor and don't matter
             'id': str,
             'title': str,
-            'age_limit': int,
+            'age_limit': 0,
             'upload_date': str,
             'description': str,
             'thumbnail': str,
@@ -362,7 +362,7 @@ class VidyardIE(VidyardBaseIE):
             'id': str,
             'title': str,
             'description': str,
-            'age_limit': int,
+            'age_limit': 0,
         },
         'playlist': [{
             'info_dict': {
