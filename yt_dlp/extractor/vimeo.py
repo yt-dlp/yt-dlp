@@ -104,15 +104,6 @@ class VimeoBaseInfoExtractor(InfoExtractor):
                 raise ExtractorError('Wrong password', expected=True)
             raise
 
-    def _extract_xsrft_and_vuid(self, webpage):
-        xsrft = self._search_regex(
-            r'(?:(?P<q1>["\'])xsrft(?P=q1)\s*:|xsrft\s*[=:])\s*(?P<q>["\'])(?P<xsrft>.+?)(?P=q)',
-            webpage, 'login token', group='xsrft')
-        vuid = self._search_regex(
-            r'["\']vuid["\']\s*:\s*(["\'])(?P<vuid>.+?)\1',
-            webpage, 'vuid', group='vuid')
-        return xsrft, vuid
-
     def _extract_vimeo_config(self, webpage, video_id, *args, **kwargs):
         vimeo_config = self._search_regex(
             r'vimeo\.config\s*=\s*(?:({.+?})|_extend\([^,]+,\s+({.+?})\));',
