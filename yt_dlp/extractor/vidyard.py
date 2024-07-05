@@ -10,6 +10,7 @@ from ..utils import (
     mimetype2ext,
     parse_resolution,
     str_or_none,
+    unescapeHTML,
     url_or_none,
 )
 from ..utils.traversal import traverse_obj
@@ -71,7 +72,7 @@ class VidyardBaseIE(InfoExtractor):
                 'id': ('facadeUuid', {str}),
                 'display_id': ('videoId', {str_or_none}),
                 'title': ('name', {str}),
-                'description': ('description', {str}, {lambda x: x or None}),
+                'description': ('description', {str}, {unescapeHTML}, {lambda x: x or None}),
                 'duration': ((
                     ('milliseconds', {functools.partial(float_or_none, scale=1000)}),
                     ('seconds', {int_or_none})), any),
@@ -89,7 +90,7 @@ class VidyardIE(VidyardBaseIE):
         r'https?://(?:embed|share)\.vidyard\.com/share/(?P<id>[\w-]+)',
         r'https?://play\.vidyard\.com/(?P<id>[\w-]+)',
     ]
-    _EMBED_REGEX = [r'<iframe[^>]* src=["\'](?P<url>(?:https?:)?//play\.vidyard\.com/[\w-])']
+    _EMBED_REGEX = [r'<iframe[^>]* src=["\'](?P<url>(?:https?:)?//play\.vidyard\.com/[\w-]+)']
     _TESTS = [{
         'url': 'https://vyexample03.hubs.vidyard.com/watch/oTDMPlUv--51Th455G5u7Q',
         'info_dict': {
@@ -282,6 +283,103 @@ class VidyardIE(VidyardBaseIE):
             'thumbnail': 'https://cdn.vidyard.com/thumbnails/73_Q3_hBexWX7Og1sae6cg/9998fa4faec921439e2c04_small.jpg',
             'duration': 3422.742,
         },
+    }, {
+        # <script ... id="vidyard_embed_code_DXx2sW4WaLA6hTdGFz7ja8" src="//play.vidyard.com/DXx2sW4WaLA6hTdGFz7ja8.js?
+        'url': 'http://videos.vivint.com/watch/DXx2sW4WaLA6hTdGFz7ja8',
+        'info_dict': {
+            'id': 'DXx2sW4WaLA6hTdGFz7ja8',
+            'display_id': '2746529',
+            'ext': 'mp4',
+            'title': 'How To Powercycle the Smart Hub Panel',
+            'duration': 30.613,
+            'thumbnail': 'https://cdn.vidyard.com/thumbnails/_-6cw8xQUJ3qiCs_JENc_A/b21d7a5e47967f49399d30_small.jpg',
+        },
+    }, {
+        # <script id="vidyard_embed_code_MIBHhiLVTxga7wqLsuoDjQ" src="//embed.vidyard.com/embed/MIBHhiLVTxga7wqLsuoDjQ/inline?v=2.1">
+        'url': 'https://www.babypips.com/learn/forex/introduction-to-metatrader4',
+        'info_dict': {
+            'id': 'MIBHhiLVTxga7wqLsuoDjQ',
+            'display_id': '20291',
+            'ext': 'mp4',
+            'title': 'Lesson 1 - Opening an MT4 Account',
+            'description': 'Never heard of MetaTrader4? Here\'s the 411 on the popular trading platform!',
+            'duration': 168,
+            'thumbnail': 'https://cdn.vidyard.com/thumbnails/20291/IM-G2WXQR9VBLl2Cmzvftg_small.jpg',
+        },
+    }, {
+        # <iframe ... src="//play.vidyard.com/d61w8EQoZv1LDuPxDkQP2Q/type/background?preview=1"
+        'url': 'https://www.avaya.com/en/',
+        'info_dict': {
+            # These values come from the generic extractor and don't matter
+            'id': str,
+            'title': str,
+            'age_limit': int,
+            'upload_date': str,
+            'description': str,
+            'thumbnail': str,
+            'timestamp': float,
+        },
+        'playlist': [{
+            'info_dict': {
+                'id': 'd61w8EQoZv1LDuPxDkQP2Q',
+                'display_id': '42456529',
+                'ext': 'mp4',
+                'title': 'GettyImages-1027',
+                'duration': 6.0,
+                'thumbnail': 'https://cdn.vidyard.com/thumbnails/42061563/p6bY08d2N4e4IDz-7J4_wkgsPq3-qgcx_small.jpg',
+            },
+        }, {
+            'info_dict': {
+                'id': 'VAsYDi7eiqZRbHodUA2meC',
+                'display_id': '42456569',
+                'ext': 'mp4',
+                'title': 'GettyImages-1325598833',
+                'duration': 6.083,
+                'thumbnail': 'https://cdn.vidyard.com/thumbnails/42052358/y3qrbDpn_2quWr_5XBi7yzS3UvEI__ZM_small.jpg',
+            },
+        }],
+        'playlist_count': 2,
+    }, {
+        # <div class="vidyard-player-embed" data-uuid="vpCWTVHw3qrciLtVY94YkS"
+        'url': 'https://www.gogoair.com/',
+        'info_dict': {
+            # These values come from the generic extractor and don't matter
+            'id': str,
+            'title': str,
+            'description': str,
+            'age_limit': int,
+        },
+        'playlist': [{
+            'info_dict': {
+                'id': 'vpCWTVHw3qrciLtVY94YkS',
+                'display_id': '40780699',
+                'ext': 'mp4',
+                'title': 'Upgrade to AVANCE 100% worth it - Jason Talley, Owner and Pilot, Testimonial',
+                'description': 'md5:f609824839439a51990cef55ffc472aa',
+                'duration': 70.737,
+                'thumbnail': 'https://cdn.vidyard.com/thumbnails/40780699/KzjfYZz5MZl2gHF_e-4i2c6ib1cLDweQ_small.jpg',
+            },
+        }, {
+            'info_dict': {
+                'id': 'xAmV9AsLbnitCw35paLBD8',
+                'display_id': '31130867',
+                'ext': 'mp4',
+                'title': 'Brad Keselowski goes faster with Gogo AVANCE inflight Wi-Fi',
+                'duration': 132.565,
+                'thumbnail': 'https://cdn.vidyard.com/thumbnails/31130867/HknyDtLdm2Eih9JZ4A5XLjhfBX_6HRw5_small.jpg',
+            },
+        }, {
+            'info_dict': {
+                'id': 'RkkrFRNxfP79nwCQavecpF',
+                'display_id': '39009815',
+                'ext': 'mp4',
+                'title': 'Live Demo of Gogo Galileo',
+                'description': 'md5:e2df497236f4e12c3fef8b392b5f23e0',
+                'duration': 112.128,
+                'thumbnail': 'https://cdn.vidyard.com/thumbnails/38144873/CWLlxfUbJ4Gh0ThbUum89IsEM4yupzMb_small.jpg',
+            },
+        }],
+        'playlist_count': 3,
     }]
     _HEADERS = {'Referer': 'https://play.vidyard.com/'}
 
@@ -294,10 +392,13 @@ class VidyardIE(VidyardBaseIE):
             yield embed_url
 
         # Extract inline/lightbox embeds
-        for embed_elm in re.findall(r'(<img[^>]+class=(["\'])(?:[^>"\']* )?vidyard-player-embed(?: [^>"\']*)?\2[^>]+>)', webpage):
-            embed = extract_attributes(embed_elm[0])
-            if uuid := embed.get('data-uuid'):
-                yield f'https://play.vidyard.com/{uuid}.html'
+        for embed_element in re.findall(
+                r'(<(?:img|div)[^>]* class=(["\'])(?:[^>"\']* )?vidyard-player-embed(?: [^>"\']*)?\2[^>]+>)', webpage):
+            if video_id := extract_attributes(embed_element[0]).get('data-uuid'):
+                yield f'https://play.vidyard.com/{video_id}'
+
+        for embed_id in re.findall(r'<script[^>]* id=["\']vidyard_embed_code_([\w-]+)["\']', webpage):
+            yield f'https://play.vidyard.com/{embed_id}'
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
