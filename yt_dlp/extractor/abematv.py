@@ -368,6 +368,7 @@ class AbemaTVIE(AbemaTVBaseIE):
             info['episode_number'] = epis if epis < 2000 else None
 
         is_live, m3u8_url = False, None
+        availability = 'public'
         if video_type == 'now-on-air':
             is_live = True
             channel_url = 'https://api.abema.io/v1/channels'
@@ -389,6 +390,7 @@ class AbemaTVIE(AbemaTVBaseIE):
             if 3 not in ondemand_types:
                 # cannot acquire decryption key for these streams
                 self.report_warning('This is a premium-only stream')
+                availability = 'premium_only'
             info.update(traverse_obj(api_response, {
                 'series': ('series', 'title'),
                 'season': ('season', 'name'),
@@ -408,6 +410,7 @@ class AbemaTVIE(AbemaTVBaseIE):
                 headers=headers)
             if not traverse_obj(api_response, ('slot', 'flags', 'timeshiftFree'), default=False):
                 self.report_warning('This is a premium-only stream')
+                availability = 'premium_only'
 
             m3u8_url = f'https://vod-abematv.akamaized.net/slot/{video_id}/playlist.m3u8'
         else:
@@ -425,6 +428,7 @@ class AbemaTVIE(AbemaTVBaseIE):
             'description': description,
             'formats': formats,
             'is_live': is_live,
+            'availability': availability,
         })
         return info
 
