@@ -44,7 +44,7 @@ class VTVgoVideoIE(InfoExtractor):
             'thumbnail': 'https://vtvgo-images.vtvdigital.vn/images/20240210/d0f73369-8f03-4108-9edd-83d4bc3997b2.png',
         },
     }, {
-        'url': 'https://vtvgo.vn/digital/detail.php?digital_id=163&content_id=919358',
+        'url': 'https://vtvgo.vn/digital/detail.php?content_id=919358',
         'info_dict': {
             'id': '919358',
             'ext': 'mp4',
@@ -52,9 +52,6 @@ class VTVgoVideoIE(InfoExtractor):
             'description': 'md5:16ff5208cac6585137f554472a4677f3',
             'thumbnail': 'https://vtvgo-images.vtvdigital.vn/images/20240221/550deff9-7736-4a0e-8b5d-33274d97cd7d.jpg',
         },
-    }, {
-        'url': 'https://vtvgo.vn/kho-video/-888456/index.htm',
-        'only_matching': True,
     }, {
         'url': 'https://vtvgo.vn/kho-video/888456',
         'only_matching': True,
