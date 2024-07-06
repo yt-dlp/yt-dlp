@@ -2372,7 +2372,7 @@ from .vrt import (
     VrtNUIE,
 )
 from .vtm import VTMIE
-from .vtvgo import VTVgoVideoIE, VTVvnIE
+from .vtv import VTVIE, VTVgoIE
 from .vuclip import VuClipIE
 from .vvvvid import (
     VVVVIDIE,
