@@ -106,6 +106,39 @@ class CHZZKVideoIE(InfoExtractor):
             'upload_date': '20231219',
             'view_count': int,
         },
+        'skip': 'Replay video is expired',
+    }, {
+        # Manually uploaded video
+        'url': 'https://chzzk.naver.com/video/1980',
+        'info_dict': {
+            'id': '1980',
+            'ext': 'mp4',
+            'title': '※시청주의※한번보면 잊기 힘든 영상',
+            'channel': '라디유radiyu',
+            'channel_id': '68f895c59a1043bc5019b5e08c83a5c5',
+            'channel_is_verified': False,
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'duration': 95,
+            'timestamp': 1703102631.722,
+            'upload_date': '20231220',
+            'view_count': int,
+        },
+    }, {
+        # Partner channel replay video
+        'url': 'https://chzzk.naver.com/video/2458',
+        'info_dict': {
+            'id': '2458',
+            'ext': 'mp4',
+            'title': '첫 방송',
+            'channel': '강지',
+            'channel_id': 'b5ed5db484d04faf4d150aedd362f34b',
+            'channel_is_verified': True,
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'duration': 4433,
+            'timestamp': 1703307460.214,
+            'upload_date': '20231223',
+            'view_count': int,
+        },
     }]
 
     def _real_extract(self, url):
