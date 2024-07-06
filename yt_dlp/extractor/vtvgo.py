@@ -7,59 +7,58 @@ class VTVgoVideoIE(InfoExtractor):
         r'(?:https://)?(?:www\.)?vtvgo\.vn/(kho-video|tin-tuc)/[\w.-]*?(?P<id>\d+)(?:\.[a-z]+|/)?(?:$|[?#])',
         r'(?:https://)?(?:www\.)?vtvgo\.vn/digital/detail\.php\?(?:[^#]+&)?content_id=(?P<id>\d+)',
     ]
-    _TESTS = [
-        {
-            'url': 'https://vtvgo.vn/kho-video/bep-vtv-vit-chao-rieng-so-24-888456.html',
-            'info_dict': {
-                'id': '888456',
-                'ext': 'mp4',
-                'title': 'Bếp VTV | Vịt chao riềng | Số 24',
-                'description': 'md5:2b4e93ec2b954304170d32be288ce2c8',
-                'thumbnail': 'https://vtvgo-images.vtvdigital.vn/images/20230201/VIT-CHAO-RIENG_VTV_638108894672812459.jpg',
-            },
-        }, {
-            'url': 'https://vtvgo.vn/tin-tuc/hot-search-1-zlife-khong-ngo-toi-phai-khong-862074',
-            'info_dict': {
-                'id': '862074',
-                'ext': 'mp4',
-                'title': 'Hot Search #1 | Zlife | Không ngờ tới phải không? ',
-                'description': 'md5:e967d0e2efbbebbee8814a55799b4d0f',
-                'thumbnail': 'https://vtvgo-images.vtvdigital.vn/images/20220504/6b9a8552-e71c-46ce-bc9d-50c9bb506f9c.jpeg',
-            },
-        }, {
-            'url': 'https://vtvgo.vn/kho-video/918311.html',
-            'info_dict': {
-                'id': '918311',
-                'title': 'Cà phê sáng | 05/02/2024 | Tái hiện hình ảnh Hà Nội xưa tại ngôi nhà di sản',
-                'ext': 'mp4',
-                'thumbnail': 'https://vtvgo-images.vtvdigital.vn/images/20240205/0506_ca_phe_sang_638427226021318322.jpg',
-                'description': 'md5:b121c67948f1ce58e6a036042fc14c1b',
-            },
-        }, {
-            'url': 'https://vtvgo.vn/digital/detail.php?digital_id=168&content_id=918634',
-            'info_dict': {
-                'id': '918634',
-                'ext': 'mp4',
-                'title': 'Gặp nhau cuối năm | Táo quân 2024',
-                'description': 'md5:a1c221e78e5954d29d49b2a11c20513c',
-                'thumbnail': 'https://vtvgo-images.vtvdigital.vn/images/20240210/d0f73369-8f03-4108-9edd-83d4bc3997b2.png',
-            },
-        }, {
-            'url': 'https://vtvgo.vn/digital/detail.php?digital_id=163&content_id=919358',
-            'info_dict': {
-                'id': '919358',
-                'ext': 'mp4',
-                'title': 'Chúng ta của 8 năm sau | Tập 45 | Dương có bằng chứng, nhân chứng vạch mặt ông Khiêm',
-                'description': 'md5:16ff5208cac6585137f554472a4677f3',
-                'thumbnail': 'https://vtvgo-images.vtvdigital.vn/images/20240221/550deff9-7736-4a0e-8b5d-33274d97cd7d.jpg',
-            },
-        }, {
-            'url': 'https://vtvgo.vn/kho-video/-888456/index.htm',
-            'only_matching': True,
-        }, {
-            'url': 'https://vtvgo.vn/kho-video/888456',
-            'only_matching': True,
-        }]
+    _TESTS = [{
+        'url': 'https://vtvgo.vn/kho-video/bep-vtv-vit-chao-rieng-so-24-888456.html',
+        'info_dict': {
+            'id': '888456',
+            'ext': 'mp4',
+            'title': 'Bếp VTV | Vịt chao riềng | Số 24',
+            'description': 'md5:2b4e93ec2b954304170d32be288ce2c8',
+            'thumbnail': 'https://vtvgo-images.vtvdigital.vn/images/20230201/VIT-CHAO-RIENG_VTV_638108894672812459.jpg',
+        },
+    }, {
+        'url': 'https://vtvgo.vn/tin-tuc/hot-search-1-zlife-khong-ngo-toi-phai-khong-862074',
+        'info_dict': {
+            'id': '862074',
+            'ext': 'mp4',
+            'title': 'Hot Search #1 | Zlife | Không ngờ tới phải không? ',
+            'description': 'md5:e967d0e2efbbebbee8814a55799b4d0f',
+            'thumbnail': 'https://vtvgo-images.vtvdigital.vn/images/20220504/6b9a8552-e71c-46ce-bc9d-50c9bb506f9c.jpeg',
+        },
+    }, {
+        'url': 'https://vtvgo.vn/kho-video/918311.html',
+        'info_dict': {
+            'id': '918311',
+            'title': 'Cà phê sáng | 05/02/2024 | Tái hiện hình ảnh Hà Nội xưa tại ngôi nhà di sản',
+            'ext': 'mp4',
+            'thumbnail': 'https://vtvgo-images.vtvdigital.vn/images/20240205/0506_ca_phe_sang_638427226021318322.jpg',
+            'description': 'md5:b121c67948f1ce58e6a036042fc14c1b',
+        },
+    }, {
+        'url': 'https://vtvgo.vn/digital/detail.php?digital_id=168&content_id=918634',
+        'info_dict': {
+            'id': '918634',
+            'ext': 'mp4',
+            'title': 'Gặp nhau cuối năm | Táo quân 2024',
+            'description': 'md5:a1c221e78e5954d29d49b2a11c20513c',
+            'thumbnail': 'https://vtvgo-images.vtvdigital.vn/images/20240210/d0f73369-8f03-4108-9edd-83d4bc3997b2.png',
+        },
+    }, {
+        'url': 'https://vtvgo.vn/digital/detail.php?digital_id=163&content_id=919358',
+        'info_dict': {
+            'id': '919358',
+            'ext': 'mp4',
+            'title': 'Chúng ta của 8 năm sau | Tập 45 | Dương có bằng chứng, nhân chứng vạch mặt ông Khiêm',
+            'description': 'md5:16ff5208cac6585137f554472a4677f3',
+            'thumbnail': 'https://vtvgo-images.vtvdigital.vn/images/20240221/550deff9-7736-4a0e-8b5d-33274d97cd7d.jpg',
+        },
+    }, {
+        'url': 'https://vtvgo.vn/kho-video/-888456/index.htm',
+        'only_matching': True,
+    }, {
+        'url': 'https://vtvgo.vn/kho-video/888456',
+        'only_matching': True,
+    }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
