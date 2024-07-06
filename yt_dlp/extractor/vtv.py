@@ -2,7 +2,7 @@ from .common import InfoExtractor
 from ..utils import extract_attributes, get_element_html_by_class, remove_start
 
 
-class VTVgoIE(InfoExtractor):
+class VTVGoIE(InfoExtractor):
     _VALID_URL = [
         r'(?:https://)?(?:www\.)?vtvgo\.vn/(kho-video|tin-tuc)/[\w.-]*?(?P<id>\d+)(?:\.[a-z]+|/)?(?:$|[?#])',
         r'(?:https://)?(?:www\.)?vtvgo\.vn/digital/detail\.php\?(?:[^#]+&)?content_id=(?P<id>\d+)',
