@@ -25,7 +25,7 @@ class PMVHavenIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        data = self._html_search_regex(r'<script.*id="__NUXT_DATA__".*>(.+?)</script>', webpage, 'json data')
+        data = self._search_regex(r'<script.*id="__NUXT_DATA__".*>(.+?)</script>', webpage, 'json data search')
         data = json.loads(data)
 
         # Data contains "pointers", so we gotta follow them
