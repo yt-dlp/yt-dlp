@@ -110,10 +110,12 @@ class YleAreenaIE(InfoExtractor):
                 'ie_key': KalturaIE.ie_key(),
             }
         else:
+            formats, subs = self._extract_m3u8_formats_and_subtitles(
+                video_data['data']['ongoing_ondemand']['manifest_url'], video_id, 'mp4', m3u8_id='hls')
+            self._merge_subtitles(subs, target=subtitles)
             info_dict = {
                 'id': video_id,
-                'formats': self._extract_m3u8_formats(
-                    video_data['data']['ongoing_ondemand']['manifest_url'], video_id, 'mp4', m3u8_id='hls'),
+                'formats': formats,
             }
 
         return {
@@ -129,6 +131,6 @@ class YleAreenaIE(InfoExtractor):
                                or int_or_none(episode_number)),
             'thumbnails': traverse_obj(info, ('thumbnails', ..., {'url': 'url'})),
             'age_limit': traverse_obj(video_data, ('data', 'ongoing_ondemand', 'content_rating', 'age_restriction'), expected_type=int_or_none),
-            'subtitles': subtitles,
+            'subtitles': subtitles or None,
             'release_date': unified_strdate(traverse_obj(video_data, ('data', 'ongoing_ondemand', 'start_time'), expected_type=str)),
         }
