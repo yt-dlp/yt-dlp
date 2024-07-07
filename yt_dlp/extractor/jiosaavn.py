@@ -158,7 +158,7 @@ class JioSaavnAlbumIE(JioSaavnBaseIE):
 
 class JioSaavnPlaylistIE(JioSaavnBaseIE):
     IE_NAME = 'jiosaavn:playlist'
-    _VALID_URL = r'https?://(?:www\.)?(?:jio)?saavn\.com/(?:s/playlist/(?:[^/?#]+/){2}|featured/[^/?#]+/)(?P<id>[^/?#_]+)'
+    _VALID_URL = r'https?://(?:www\.)?(?:jio)?saavn\.com/(?:s/playlist/(?:[^/?#]+/){2}|featured/[^/?#]+/)(?P<id>[^/?#]+)'
     _TESTS = [{
         'url': 'https://www.jiosaavn.com/s/playlist/2279fbe391defa793ad7076929a2f5c9/mood-english/LlJ8ZWT1ibN5084vKHRj2Q__',
         'info_dict': {
