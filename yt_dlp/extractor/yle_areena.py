@@ -11,6 +11,7 @@ from ..utils import (
 
 class YleAreenaIE(InfoExtractor):
     _VALID_URL = r'https?://areena\.yle\.fi/(?P<id>[\d-]+)'
+    _GEO_COUNTRIES = ['FI']
     _TESTS = [
         {
             'url': 'https://areena.yle.fi/1-4371942',
@@ -19,7 +20,7 @@ class YleAreenaIE(InfoExtractor):
                 'id': '0_a3tjk92c',
                 'ext': 'mp4',
                 'title': 'Pouchit',
-                'description': 'md5:d487309c3abbe5650265bbd1742d2f82',
+                'description': 'md5:01071d7056ceec375f63960f90c35366',
                 'series': 'Modernit miehet',
                 'season': 'Season 1',
                 'season_number': 1,
@@ -87,8 +88,8 @@ class YleAreenaIE(InfoExtractor):
             })
 
         # Example title: 'K1, J2: Pouchit | Modernit miehet'
-        series, season_number, episode_number, episode = self._search_regex(
-            r'K(?P<season_no>[\d]+),\s*J(?P<episode_no>[\d]+):?\s*\b(?P<episode>[^|]+)\s*|\s*(?P<series>.+)',
+        season_number, episode_number, episode, series = self._search_regex(
+            r'K(?P<season_no>\d+),\s*J(?P<episode_no>\d+):?\s*\b(?P<episode>[^|]+)\s*|\s*(?P<series>.+)',
             info.get('title') or '', 'episode metadata', group=('season_no', 'episode_no', 'episode', 'series'),
             default=(None, None, None, None))
         description = traverse_obj(video_data, ('data', 'ongoing_ondemand', 'description', 'fin'), expected_type=str)
