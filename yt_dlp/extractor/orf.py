@@ -550,7 +550,8 @@ class ORFONIE(InfoExtractor):
             return self._extract_video_info(segment_id, selected_segment)
 
         # Even some segmented videos have an unsegmented version available in API response root
-        if not traverse_obj(api_json, ('sources', ..., ..., 'src', {url_or_none})):
+        if (self._configuration_arg('prefer_segments_playlist')
+                or not traverse_obj(api_json, ('sources', ..., ..., 'src', {url_or_none}))):
             return self.playlist_result(
                 (self._extract_video_info(str(segment['id']), segment) for segment in segments),
                 video_id, **self._parse_metadata(api_json), multi_video=True)

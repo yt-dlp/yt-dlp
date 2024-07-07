@@ -160,10 +160,12 @@ class HlsFD(FragmentFD):
         extra_state = ctx.setdefault('extra_state', {})
 
         format_index = info_dict.get('format_index')
-        extra_query = None
-        extra_param_to_segment_url = info_dict.get('extra_param_to_segment_url')
-        if extra_param_to_segment_url:
-            extra_query = urllib.parse.parse_qs(extra_param_to_segment_url)
+        extra_segment_query = None
+        if extra_param_to_segment_url := info_dict.get('extra_param_to_segment_url'):
+            extra_segment_query = urllib.parse.parse_qs(extra_param_to_segment_url)
+        extra_key_query = None
+        if extra_param_to_key_url := info_dict.get('extra_param_to_key_url'):
+            extra_key_query = urllib.parse.parse_qs(extra_param_to_key_url)
         i = 0
         media_sequence = 0
         decrypt_info = {'METHOD': 'NONE'}
@@ -190,8 +192,8 @@ class HlsFD(FragmentFD):
                     if frag_index <= ctx['fragment_index']:
                         continue
                     frag_url = urljoin(man_url, line)
-                    if extra_query:
-                        frag_url = update_url_query(frag_url, extra_query)
+                    if extra_segment_query:
+                        frag_url = update_url_query(frag_url, extra_segment_query)
 
                     fragments.append({
                         'frag_index': frag_index,
@@ -212,8 +214,8 @@ class HlsFD(FragmentFD):
                     frag_index += 1
                     map_info = parse_m3u8_attributes(line[11:])
                     frag_url = urljoin(man_url, map_info.get('URI'))
-                    if extra_query:
-                        frag_url = update_url_query(frag_url, extra_query)
+                    if extra_segment_query:
+                        frag_url = update_url_query(frag_url, extra_segment_query)
 
                     if map_info.get('BYTERANGE'):
                         splitted_byte_range = map_info.get('BYTERANGE').split('@')
@@ -244,8 +246,10 @@ class HlsFD(FragmentFD):
                             decrypt_info['KEY'] = external_aes_key
                         else:
                             decrypt_info['URI'] = urljoin(man_url, decrypt_info['URI'])
-                            if extra_query:
-                                decrypt_info['URI'] = update_url_query(decrypt_info['URI'], extra_query)
+                            if extra_key_query or extra_segment_query:
+                                # Fall back to extra_segment_query to key for backwards compat
+                                decrypt_info['URI'] = update_url_query(
+                                    decrypt_info['URI'], extra_key_query or extra_segment_query)
                             if decrypt_url != decrypt_info['URI']:
                                 decrypt_info['KEY'] = None
 

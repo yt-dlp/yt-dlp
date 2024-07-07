@@ -2085,17 +2085,20 @@ def parse_duration(s):
         (days, 86400), (hours, 3600), (mins, 60), (secs, 1), (ms, 1)))
 
 
-def prepend_extension(filename, ext, expected_real_ext=None):
+def _change_extension(prepend, filename, ext, expected_real_ext=None):
     name, real_ext = os.path.splitext(filename)
-    return (
-        f'{name}.{ext}{real_ext}'
-        if not expected_real_ext or real_ext[1:] == expected_real_ext
-        else f'{filename}.{ext}')
+
+    if not expected_real_ext or real_ext[1:] == expected_real_ext:
+        filename = name
+        if prepend and real_ext:
+            _UnsafeExtensionError.sanitize_extension(ext, prepend=True)
+            return f'{filename}.{ext}{real_ext}'
+
+    return f'{filename}.{_UnsafeExtensionError.sanitize_extension(ext)}'
 
 
-def replace_extension(filename, ext, expected_real_ext=None):
-    name, real_ext = os.path.splitext(filename)
-    return f'{name if not expected_real_ext or real_ext[1:] == expected_real_ext else filename}.{ext}'
+prepend_extension = functools.partial(_change_extension, True)
+replace_extension = functools.partial(_change_extension, False)
 
 
 def check_executable(exe, args=[]):
@@ -5023,7 +5026,7 @@ MEDIA_EXTENSIONS = Namespace(
     common_video=('avi', 'flv', 'mkv', 'mov', 'mp4', 'webm'),
     video=('3g2', '3gp', 'f4v', 'mk3d', 'divx', 'mpg', 'ogv', 'm4v', 'wmv'),
     common_audio=('aiff', 'alac', 'flac', 'm4a', 'mka', 'mp3', 'ogg', 'opus', 'wav'),
-    audio=('aac', 'ape', 'asf', 'f4a', 'f4b', 'm4b', 'm4p', 'm4r', 'oga', 'ogx', 'spx', 'vorbis', 'wma', 'weba'),
+    audio=('aac', 'ape', 'asf', 'f4a', 'f4b', 'm4b', 'm4r', 'oga', 'ogx', 'spx', 'vorbis', 'wma', 'weba'),
     thumbnails=('jpg', 'png', 'webp'),
     storyboards=('mhtml', ),
     subtitles=('srt', 'vtt', 'ass', 'lrc'),
@@ -5033,6 +5036,135 @@ MEDIA_EXTENSIONS.video += MEDIA_EXTENSIONS.common_video
 MEDIA_EXTENSIONS.audio += MEDIA_EXTENSIONS.common_audio
 
 KNOWN_EXTENSIONS = (*MEDIA_EXTENSIONS.video, *MEDIA_EXTENSIONS.audio, *MEDIA_EXTENSIONS.manifests)
+
+
+class _UnsafeExtensionError(Exception):
+    """
+    Mitigation exception for uncommon/malicious file extensions
+    This should be caught in YoutubeDL.py alongside a warning
+
+    Ref: https://github.com/yt-dlp/yt-dlp/security/advisories/GHSA-79w7-vh3h-8g4j
+    """
+    ALLOWED_EXTENSIONS = frozenset([
+        # internal
+        'description',
+        'json',
+        'meta',
+        'orig',
+        'part',
+        'temp',
+        'uncut',
+        'unknown_video',
+        'ytdl',
+
+        # video
+        *MEDIA_EXTENSIONS.video,
+        'asx',
+        'ismv',
+        'm2t',
+        'm2ts',
+        'm2v',
+        'm4s',
+        'mng',
+        'mp2v',
+        'mp4v',
+        'mpe',
+        'mpeg',
+        'mpeg1',
+        'mpeg2',
+        'mpeg4',
+        'mxf',
+        'ogm',
+        'qt',
+        'rm',
+        'swf',
+        'ts',
+        'vob',
+        'vp9',
+
+        # audio
+        *MEDIA_EXTENSIONS.audio,
+        '3ga',
+        'ac3',
+        'adts',
+        'aif',
+        'au',
+        'dts',
+        'isma',
+        'it',
+        'mid',
+        'mod',
+        'mpga',
+        'mp1',
+        'mp2',
+        'mp4a',
+        'mpa',
+        'ra',
+        'shn',
+        'xm',
+
+        # image
+        *MEDIA_EXTENSIONS.thumbnails,
+        'avif',
+        'bmp',
+        'gif',
+        'heic',
+        'ico',
+        'jng',
+        'jpeg',
+        'jxl',
+        'svg',
+        'tif',
+        'tiff',
+        'wbmp',
+
+        # subtitle
+        *MEDIA_EXTENSIONS.subtitles,
+        'dfxp',
+        'fs',
+        'ismt',
+        'json3',
+        'sami',
+        'scc',
+        'srv1',
+        'srv2',
+        'srv3',
+        'ssa',
+        'tt',
+        'ttml',
+        'xml',
+
+        # others
+        *MEDIA_EXTENSIONS.manifests,
+        *MEDIA_EXTENSIONS.storyboards,
+        'desktop',
+        'ism',
+        'm3u',
+        'sbv',
+        'url',
+        'webloc',
+    ])
+
+    def __init__(self, extension, /):
+        super().__init__(f'unsafe file extension: {extension!r}')
+        self.extension = extension
+
+    @classmethod
+    def sanitize_extension(cls, extension, /, *, prepend=False):
+        if extension is None:
+            return None
+
+        if '/' in extension or '\\' in extension:
+            raise cls(extension)
+
+        if not prepend:
+            _, _, last = extension.rpartition('.')
+            if last == 'bin':
+                extension = last = 'unknown_video'
+            if last.lower() not in cls.ALLOWED_EXTENSIONS:
+                raise cls(extension)
+
+        return extension
 
 
 class RetryManager:
