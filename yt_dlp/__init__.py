@@ -64,6 +64,7 @@ from .utils import (
     write_string,
 )
 from .utils.networking import std_headers
+from .utils._utils import _UnsafeExtensionError
 from .YoutubeDL import YoutubeDL
 
 _IN_CLI = False
@@ -592,6 +593,13 @@ def validate_options(opts):
         opts.password = getpass.getpass('Type account password and press [Return]: ')
     if opts.ap_username is not None and opts.ap_password is None:
         opts.ap_password = getpass.getpass('Type TV provider account password and press [Return]: ')
+
+    # compat option changes global state destructively; only allow from cli
+    if 'allow-unsafe-ext' in opts.compat_opts:
+        warnings.append(
+            'Using allow-unsafe-ext opens you up to potential attacks. '
+            'Use with great care!')
+        _UnsafeExtensionError.sanitize_extension = lambda x, prepend=False: x
 
     return warnings, deprecation_warnings
 

@@ -21,7 +21,7 @@ class TubeTuGrazBaseIE(InfoExtractor):
         if not urlh:
             return
 
-        content, urlh = self._download_webpage_handle(
+        response = self._download_webpage_handle(
             urlh.url, None, fatal=False, headers={'referer': urlh.url},
             note='logging in', errnote='unable to log in',
             data=urlencode_postdata({
@@ -30,7 +30,11 @@ class TubeTuGrazBaseIE(InfoExtractor):
                 'j_username': username,
                 'j_password': password,
             }))
-        if not urlh or urlh.url == 'https://tube.tugraz.at/paella/ui/index.html':
+        if not response:
+            return
+
+        content, urlh = response
+        if urlh.url == 'https://tube.tugraz.at/paella/ui/index.html':
             return
 
         if not self._html_search_regex(
@@ -39,7 +43,7 @@ class TubeTuGrazBaseIE(InfoExtractor):
             self.report_warning('unable to login: incorrect password')
             return
 
-        content, urlh = self._download_webpage_handle(
+        urlh = self._request_webpage(
             urlh.url, None, fatal=False, headers={'referer': urlh.url},
             note='logging in with TFA', errnote='unable to log in with TFA',
             data=urlencode_postdata({

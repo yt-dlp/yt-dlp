@@ -41,7 +41,7 @@ class BandcampIE(InfoExtractor):
             'uploader_id': 'youtube-dl',
             'thumbnail': 'https://f4.bcbits.com/img/a3216802731_5.jpg',
         },
-        '_skip': 'There is a limit of 200 free downloads / month for the test song',
+        'skip': 'There is a limit of 200 free downloads / month for the test song',
     }, {
         # free download
         'url': 'http://benprunty.bandcamp.com/track/lanius-battle',
