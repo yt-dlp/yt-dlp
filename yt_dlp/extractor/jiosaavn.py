@@ -173,6 +173,13 @@ class JioSaavnPlaylistIE(JioSaavnBaseIE):
             'title': 'Mood Hindi',
         },
         'playlist_mincount': 801,
+    }, {
+        'url': 'https://www.jiosaavn.com/featured/taaza-tunes/Me5RridRfDk_',
+        'info_dict': {
+            'id': 'Me5RridRfDk_',
+            'title': 'Taaza Tunes',
+        },
+        'playlist_mincount': 301,
     }]
     _PAGE_SIZE = 50
 
