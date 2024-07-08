@@ -20,7 +20,7 @@ class RTVEALaCartaIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?rtve\.es/(m/)?(alacarta/videos|filmoteca)/[^/]+/[^/]+/(?P<id>\d+)'
 
     _TESTS = [{
-        'url': 'http://www.rtve.es/alacarta/videos/balonmano/o-swiss-cup-masculina-final-espana-suecia/2491869/',
+        'url': 'https://www.rtve.es/play/videos/balonmano/liga-guerreras-iberdrola-4-jornada/6974343/',
         'md5': '1d49b7e1ca7a7502c56a4bf1b60f1b43',
         'info_dict': {
             'id': '2491869',
@@ -70,43 +70,62 @@ class RTVEALaCartaIE(InfoExtractor):
     def _decrypt_url(png):
         encrypted_data = io.BytesIO(base64.b64decode(png)[8:])
         while True:
-            length = struct.unpack('!I', encrypted_data.read(4))[0]
+            length_data = encrypted_data.read(4)
+            length = struct.unpack('!I', length_data)[0]
             chunk_type = encrypted_data.read(4)
             if chunk_type == b'IEND':
                 break
             data = encrypted_data.read(length)
             if chunk_type == b'tEXt':
-                alphabet_data, text = data.split(b'\0')
-                quality, url_data = text.split(b'%%')
-                alphabet = []
-                e = 0
-                d = 0
-                for l in alphabet_data.decode('iso-8859-1'):
-                    if d == 0:
-                        alphabet.append(l)
-                        d = e = (e + 1) % 4
-                    else:
-                        d -= 1
-                url = ''
-                f = 0
-                e = 3
-                b = 1
-                for letter in url_data.decode('iso-8859-1'):
-                    if f == 0:
-                        l = int(letter) * 10
-                        f = 1
-                    else:
-                        if e == 0:
-                            l += int(letter)
-                            url += alphabet[l]
-                            e = (b + 3) % 4
-                            f = 0
-                            b += 1
-                        else:
-                            e -= 1
+                if b'%%' in data:
+                    alphabet_data, text = data.split(b'\0')
+                    quality, url_data = text.split(b'%%')
+                    alphabet = RTVEPlayIE._get_alfabet(alphabet_data)
+                    url = RTVEPlayIE._get_url(alphabet, url_data)
+                    quality_str = quality.decode()
+                else:
+                    data = bytes(filter(None, data))
+                    alphabet_data, url_data = data.split(b'#')
+                    alphabet = RTVEPlayIE._get_alfabet(alphabet_data)
 
-                yield quality.decode(), url
+                    url = RTVEPlayIE._get_url(alphabet, url_data)
+                    quality_str = ""
+                yield quality_str, url
             encrypted_data.read(4)  # CRC
+
+    @staticmethod
+    def _get_url(alphabet, url_data):
+        url = ''
+        f = 0
+        e = 3
+        b = 1
+        for letter in url_data.decode('iso-8859-1'):
+            if f == 0:
+                l = int(letter) * 10
+                f = 1
+            else:
+                if e == 0:
+                    l += int(letter)
+                    url += alphabet[l]
+                    e = (b + 3) % 4
+                    f = 0
+                    b += 1
+                else:
+                    e -= 1
+        return url
+
+    @staticmethod
+    def _get_alfabet(alphabet_data):
+        alphabet = []
+        e = 0
+        d = 0
+        for l in alphabet_data.decode('iso-8859-1'):
+            if d == 0:
+                alphabet.append(l)
+                d = e = (e + 1) % 4
+            else:
+                d -= 1
+        return alphabet
 
     def _extract_png_formats(self, video_id):
         png = self._download_webpage(
@@ -141,10 +160,8 @@ class RTVEALaCartaIE(InfoExtractor):
         title = info['title'].strip()
         formats = self._extract_png_formats(video_id)
 
-        subtitles = None
-        sbt_file = info.get('sbtFile')
-        if sbt_file:
-            subtitles = self.extract_subtitles(video_id, sbt_file)
+        sbt_file = "https://api2.rtve.es/api/videos/%s/subtitulos.json" % video_id
+        subtitles = self.extract_subtitles(video_id, sbt_file)
 
         is_live = info.get('live') is True
 
@@ -161,7 +178,7 @@ class RTVEALaCartaIE(InfoExtractor):
 
     def _get_subtitles(self, video_id, sub_file):
         subs = self._download_json(
-            sub_file + '.json', video_id,
+            sub_file, video_id,
             'Downloading subtitles info')['page']['items']
         return dict(
             (s['lang'], [{'ext': 'vtt', 'url': s['src']}])
@@ -340,3 +357,9 @@ class RTVETelevisionIE(InfoExtractor):
                 'The webpage doesn\'t contain any video', expected=True)
 
         return self.url_result(alacarta_url, ie=RTVEALaCartaIE.ie_key())
+
+
+class RTVEPlayIE(RTVEALaCartaIE):
+    IE_NAME = 'rtve.es:play'
+    IE_DESC = 'RTVE play'
+    _VALID_URL = r'https?://(?:www\.)?rtve\.es/(m/)?play/videos/[^/]+/[^/]+/(?P<id>\d+)'

@@ -1764,6 +1764,7 @@ from .rtve import (
     RTVEInfantilIE,
     RTVELiveIE,
     RTVETelevisionIE,
+    RTVEPlayIE,
 )
 from .rtvs import RTVSIE
 from .rtvslo import (
