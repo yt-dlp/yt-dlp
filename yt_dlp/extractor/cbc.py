@@ -7,8 +7,8 @@ import xml.etree.ElementTree
 
 from .common import InfoExtractor
 from ..utils import (
-    base_url,
     ExtractorError,
+    base_url,
     float_or_none,
     int_or_none,
     join_nonempty,
