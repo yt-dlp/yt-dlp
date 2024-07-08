@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import contextlib
+import functools
 import io
 import logging
 import ssl
@@ -22,7 +23,6 @@ from .exceptions import (
     TransportError,
 )
 from .websocket import WebSocketRequestHandler, WebSocketResponse
-from ..compat import functools
 from ..dependencies import websockets
 from ..socks import ProxyError as SocksProxyError
 from ..utils import int_or_none

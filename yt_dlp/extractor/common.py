@@ -234,7 +234,14 @@ class InfoExtractor:
                                  'maybe' if the format may have DRM and has to be tested before download.
                     * extra_param_to_segment_url  A query string to append to each
                                  fragment's URL, or to update each existing query string
-                                 with. Only applied by the native HLS/DASH downloaders.
+                                 with. If it is an HLS stream with an AES-128 decryption key,
+                                 the query paramaters will be passed to the key URI as well,
+                                 unless there is an `extra_param_to_key_url` given,
+                                 or unless an external key URI is provided via `hls_aes`.
+                                 Only applied by the native HLS/DASH downloaders.
+                    * extra_param_to_key_url  A query string to append to the URL
+                                 of the format's HLS AES-128 decryption key.
+                                 Only applied by the native HLS downloader.
                     * hls_aes    A dictionary of HLS AES-128 decryption information
                                  used by the native HLS downloader to override the
                                  values in the media playlist when an '#EXT-X-KEY' tag
@@ -2215,6 +2222,11 @@ class InfoExtractor:
                         'quality': quality,
                         'has_drm': has_drm,
                     }
+
+                    # YouTube-specific
+                    if yt_audio_content_id := last_stream_inf.get('YT-EXT-AUDIO-CONTENT-ID'):
+                        f['language'] = yt_audio_content_id.split('.')[0]
+
                     resolution = last_stream_inf.get('RESOLUTION')
                     if resolution:
                         mobj = re.search(r'(?P<width>\d+)[xX](?P<height>\d+)', resolution)
