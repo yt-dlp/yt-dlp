@@ -267,7 +267,7 @@ class CBCPlayerIE(InfoExtractor):
             'description': 'md5:ada33d36d1df69347ed575905bfd496c',
             'timestamp': 1718589600,
             'duration': 2692.833,
-            'subtitles': {'eng': [{'ext': 'vtt', 'protocol': 'm3u8_native'}]},
+            'subtitles': {'en-US': [{'name': 'English Captions', 'url': 'https://cbchls.akamaized.net/delivery/news-shows/2024/06/17/NAT_JUN16-00-55-00/NAT_JUN16_cc.vtt'}]},
             'thumbnail': 'https://i.cbc.ca/ais/6272b5c6-5e78-4c05-915d-0e36672e33d1,1714756287822/full/max/0/default.jpg',
             'chapters': 'count:5',
             'upload_date': '20240617',
@@ -323,6 +323,11 @@ class CBCPlayerIE(InfoExtractor):
                 info = json_data['video']['currentClip']
                 formats, subtitles = self._extract_m3u8_formats_and_subtitles(
                     self._download_json(info['media']['assets'][0]['key'], video_id)['url'], video_id)
+                subtitlesdata = traverse_obj(info, ('media', 'textTracks')) or None
+                if subtitlesdata is not None:
+                    subtitles = {}
+                    for t in subtitlesdata:
+                        subtitles[t['language']] = [{'url': t['src'], 'name': t['label']}]
 
                 def _process_chapters(tp_chapters, duration):
                     chapters = []
