@@ -49,7 +49,7 @@ class MoveFilesAfterDownloadPP(PostProcessor):
         else:
             desired_extension = Path(current_filepath).suffix
 
-        return current_filepath, replace_extension(prepared_filepath, desired_extension)
+        return current_filepath, replace_extension(prepared_filepath, desired_extension[1:])
 
     def move_file(self, info_dict, current_filepath, final_filepath):
         if not current_filepath or not final_filepath:
