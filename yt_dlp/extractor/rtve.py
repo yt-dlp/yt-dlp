@@ -80,15 +80,15 @@ class RTVEALaCartaIE(InfoExtractor):
                 if b'%%' in data:
                     alphabet_data, text = data.split(b'\0')
                     quality, url_data = text.split(b'%%')
-                    alphabet = RTVEPlayIE._get_alfabet(alphabet_data)
-                    url = RTVEPlayIE._get_url(alphabet, url_data)
+                    alphabet = RTVEALaCartaIE._get_alfabet(alphabet_data)
+                    url = RTVEALaCartaIE._get_url(alphabet, url_data)
                     quality_str = quality.decode()
                 else:
                     data = bytes(filter(None, data))
                     alphabet_data, url_data = data.split(b'#')
-                    alphabet = RTVEPlayIE._get_alfabet(alphabet_data)
+                    alphabet = RTVEALaCartaIE._get_alfabet(alphabet_data)
 
-                    url = RTVEPlayIE._get_url(alphabet, url_data)
+                    url = RTVEALaCartaIE._get_url(alphabet, url_data)
                     quality_str = ""
                 yield quality_str, url
             encrypted_data.read(4)  # CRC
