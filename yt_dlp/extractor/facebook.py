@@ -621,6 +621,9 @@ class FacebookIE(InfoExtractor):
                                 'url': playable_url,
                             })
                     extract_dash_manifest(video, formats)
+                    if not formats:
+                        # Do not append false positive entry w/o any formats
+                        return
 
                     automatic_captions, subtitles = {}, {}
                     is_broadcast = traverse_obj(video, ('is_video_broadcast', {bool}))

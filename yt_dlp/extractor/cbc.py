@@ -455,10 +455,8 @@ class CBCGemIE(InfoExtractor):
 
     def claims_token_expired(self):
         exp = self._get_claims_token_expiry()
-        if exp - time.time() < 10:
-            # It will expire in less than 10 seconds, or has already expired
-            return True
-        return False
+        # It will expire in less than 10 seconds, or has already expired
+        return exp - time.time() < 10
 
     def claims_token_valid(self):
         return self._claims_token is not None and not self.claims_token_expired()

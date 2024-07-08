@@ -46,6 +46,7 @@
  - **aenetworks:show**
  - **AeonCo**
  - **afreecatv**: [*afreecatv*](## "netrc machine") afreecatv.com
+ - **afreecatv:catchstory**: [*afreecatv*](## "netrc machine") afreecatv.com catch story
  - **afreecatv:live**: [*afreecatv*](## "netrc machine") afreecatv.com livestreams
  - **afreecatv:user**
  - **AirTV**
@@ -542,6 +543,7 @@
  - **Goshgay**
  - **GoToStage**
  - **GPUTechConf**
+ - **Graspop**
  - **Gronkh**
  - **gronkh:feed**
  - **gronkh:vods**
@@ -678,6 +680,8 @@
  - **la7.it**
  - **la7.it:​pod:episode**
  - **la7.it:podcast**
+ - **laracasts**
+ - **laracasts:series**
  - **LastFM**
  - **LastFMPlaylist**
  - **LastFMUser**
@@ -775,7 +779,12 @@
  - **MelonVOD**
  - **Metacritic**
  - **mewatch**
+ - **MicrosoftBuild**
  - **MicrosoftEmbed**
+ - **MicrosoftLearnEpisode**
+ - **MicrosoftLearnPlaylist**
+ - **MicrosoftLearnSession**
+ - **MicrosoftMedius**
  - **microsoftstream**: Microsoft Stream
  - **mildom**: Record ongoing live by specific user in Mildom
  - **mildom:clip**: Clip in Mildom
@@ -830,7 +839,7 @@
  - **MTVUutisetArticle**: (**Currently broken**)
  - **MuenchenTV**: münchen.tv (**Currently broken**)
  - **MujRozhlas**
- - **Murrtube**: (**Currently broken**)
+ - **Murrtube**
  - **MurrtubeUser**: Murrtube user profile (**Currently broken**)
  - **MuseAI**
  - **MuseScore**
@@ -838,8 +847,6 @@
  - **MusicdexArtist**
  - **MusicdexPlaylist**
  - **MusicdexSong**
- - **mva**: Microsoft Virtual Academy videos
- - **mva:course**: Microsoft Virtual Academy courses
  - **Mx3**
  - **Mx3Neo**
  - **Mx3Volksmusik**
@@ -1131,6 +1138,7 @@
  - **QingTing**
  - **qqmusic**: QQ音乐
  - **qqmusic:album**: QQ音乐 - 专辑
+ - **qqmusic:mv**: QQ音乐 - MV
  - **qqmusic:playlist**: QQ音乐 - 歌单
  - **qqmusic:singer**: QQ音乐 - 歌手
  - **qqmusic:toplist**: QQ音乐 - 排行榜
@@ -1237,6 +1245,7 @@
  - **rtve.es:television**
  - **RTVS**
  - **rtvslo.si**
+ - **rtvslo.si:show**
  - **RudoVideo**
  - **Rule34Video**
  - **Rumble**
@@ -1360,6 +1369,7 @@
  - **SpreakerShowPage**
  - **SpringboardPlatform**
  - **Sprout**
+ - **SproutVideo**
  - **sr:mediathek**: Saarländischer Rundfunk (**Currently broken**)
  - **SRGSSR**
  - **SRGSSRPlay**: srf.ch, rts.ch, rsi.ch, rtr.ch and swissinfo.ch play sites
@@ -1494,8 +1504,8 @@
  - **Tube8**: (**Currently broken**)
  - **TubeTuGraz**: [*tubetugraz*](## "netrc machine") tube.tugraz.at
  - **TubeTuGrazSeries**: [*tubetugraz*](## "netrc machine")
- - **TubiTv**: [*tubitv*](## "netrc machine")
- - **TubiTvShow**
+ - **tubitv**: [*tubitv*](## "netrc machine")
+ - **tubitv:series**
  - **Tumblr**: [*tumblr*](## "netrc machine")
  - **TuneInPodcast**
  - **TuneInPodcastEpisode**
@@ -1607,6 +1617,8 @@
  - **VidioPremier**: [*vidio*](## "netrc machine")
  - **VidLii**
  - **Vidly**
+ - **vids.io**
+ - **Vidyard**
  - **viewlift**
  - **viewlift:embed**
  - **Viidea**
@@ -1654,6 +1666,8 @@
  - **VRT**: VRT NWS, Flanders News, Flandern Info and Sporza
  - **VrtNU**: [*vrtnu*](## "netrc machine") VRT MAX
  - **VTM**: (**Currently broken**)
+ - **VTV**
+ - **VTVGo**
  - **VTXTV**: [*vtxtv*](## "netrc machine")
  - **VTXTVLive**: [*vtxtv*](## "netrc machine")
  - **VTXTVRecordings**: [*vtxtv*](## "netrc machine")
