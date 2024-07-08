@@ -635,7 +635,7 @@ class SoundcloudIE(SoundcloudBaseIE):
         info = self._call_api(
             info_json_url, full_title, 'Downloading info JSON', query=query, headers=self._HEADERS)
 
-        for retry in self.RetryManager(fatal=False):
+        for retry in self.RetryManager():
             try:
                 return self._extract_info_dict(info, full_title, token)
             except ExtractorError as e:
