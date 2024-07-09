@@ -271,7 +271,7 @@ class TVPlayHomeIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        country, category, video_id = self._match_valid_url(url).groups()
+        country, category, video_id = self._match_valid_url(url).group('country', 'category', 'id')
 
         api_path = {
             'live': 'lives',
