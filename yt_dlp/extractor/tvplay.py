@@ -292,7 +292,7 @@ class TVPlayHomeIE(InfoExtractor):
             stream['sources']['HLS'][0]['src'], video_id, 'mp4', 'm3u8_native', m3u8_id='hls')
 
         thumbnails = set(traverse_obj(
-            data, (('galary', 'images', 'artworks'), ..., ..., ('miniUrl', 'mainUrl')), expected_type=url_or_none))
+            data, (('images', 'artworks'), ..., ..., ('miniUrl', 'mainUrl')), expected_type=url_or_none))
 
         return {
             'id': video_id,
@@ -304,7 +304,7 @@ class TVPlayHomeIE(InfoExtractor):
             'episode': data.get('title'),
             'episode_number': int_or_none(data.get('episode')),
             'release_year': int_or_none(traverse_obj(data, ('season', 'serial', 'year'))),
-            'thumbnails': [{'url': url, 'ext': 'jpg'} for url in thumbnails],
+            'thumbnails': [{'url': f'https:{url}', 'ext': 'jpg'} for url in thumbnails],
             'formats': formats,
             'subtitles': subtitles,
         }
