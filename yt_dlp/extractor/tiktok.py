@@ -457,7 +457,7 @@ class TikTokBaseIE(InfoExtractor):
             'thumbnails': thumbnails,
             'duration': (traverse_obj(video_info, (
                 (None, 'download_addr'), 'duration', {functools.partial(int_or_none, scale=1000)}, any))
-                         or traverse_obj(music_info, ('duration', {int_or_none}))),
+                or traverse_obj(music_info, ('duration', {int_or_none}))),
             'availability': self._availability(
                 is_private='Private' in labels,
                 needs_subscription='Friends only' in labels,
@@ -1458,12 +1458,11 @@ class TikTokLiveIE(TikTokBaseIE):
 
         if webpage:
             data = self._get_sigi_state(webpage, uploader or room_id)
-
-            # first traverse_obj appears to be deprecated, but remains for now to ensure backwards compatability
-            room_id = (traverse_obj(data, ('UserModule', 'users', ..., 'roomId', {str_or_none}), get_all=False)
-                       or self._search_regex(r'snssdk\d*://live\?room_id=(\d+)', webpage, 'room ID', default=None)
-                       or (traverse_obj(data, ('LiveRoom', 'liveRoomUserInfo', 'user', 'roomId'), get_all=False))
-                       or room_id)
+            room_id = (
+                traverse_obj(data, ((
+                    ('LiveRoom', 'liveRoomUserInfo', 'user'),
+                    ('UserModule', 'users', ...)), 'roomId', {str}, any))
+                or self._search_regex(r'snssdk\d*://live\?room_id=(\d+)', webpage, 'room ID', default=room_id))
             uploader = uploader or traverse_obj(
                 data, ('LiveRoom', 'liveRoomUserInfo', 'user', 'uniqueId'),
                 ('UserModule', 'users', ..., 'uniqueId'), get_all=False, expected_type=str)
