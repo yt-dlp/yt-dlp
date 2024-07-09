@@ -216,8 +216,8 @@ class TVPlayHomeIE(InfoExtractor):
             https?://
             (?:tv3?)?
             play\.(?:tv3|skaties)\.(?P<country>lv|lt|ee)/
-            (?P<live>lives/)?
-            [^?#&]+(?:episode|programme|clip)-(?P<id>\d+)
+            (lives/)?
+            [^?#&]+(?P<category>episode|programme|clip|live)-(?P<id>\d+)
     '''
     _TESTS = [{
         'url': 'https://play.tv3.lt/series/gauju-karai-karveliai,serial-2343791/serija-8,episode-2343828',
@@ -263,18 +263,30 @@ class TVPlayHomeIE(InfoExtractor):
     }, {
         'url': 'https://tv3play.skaties.lv/clips/tv3-zinas-valsti-lidz-15novembrim-bus-majsede,clip-3464509',
         'only_matching': True,
+    }, {
+        'url': 'https://play.tv3.lt/lives/power-hit-radio,live-4856680',
+        'only_matching': True,
+    }, {
+        'url': 'https://play.tv3.lt/show/tv3-plus,live-4929289',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
-        country, is_live, video_id = self._match_valid_url(url).groups()
+        country, category, video_id = self._match_valid_url(url).groups()
 
-        api_path = 'lives/programmes' if is_live else 'vods'
+        api_path = {
+            'live': 'lives',
+            'programme': 'lives/programmes',
+        }.get(category) or 'vods'
         data = self._download_json(
             urljoin(url, f'/api/products/{api_path}/{video_id}?platform=BROWSER&lang={country.upper()}'),
             video_id)
 
-        video_type = 'CATCHUP' if is_live else 'MOVIE'
-        stream_id = data['programRecordingId'] if is_live else video_id
+        video_type = {
+            'live': 'LIVE',
+            'programme': 'CATCHUP',
+        }.get(category) or 'MOVIE'
+        stream_id = data.get('programRecordingId') or video_id
         stream = self._download_json(
             urljoin(url, f'/api/products/{stream_id}/videos/playlist?videoType={video_type}&platform=BROWSER'), video_id)
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
