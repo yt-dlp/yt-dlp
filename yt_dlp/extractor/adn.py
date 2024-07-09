@@ -31,7 +31,7 @@ from ..utils.traversal import traverse_obj
 class ADNBaseIE(InfoExtractor):
     IE_DESC = 'Animation Digital Network'
     _NETRC_MACHINE = 'animationdigitalnetwork'
-    _BASE = 'animationdigitalnetwork.fr'
+    _BASE = 'animationdigitalnetwork.com'
     _API_BASE_URL = f'https://gw.api.{_BASE}/'
     _PLAYER_BASE_URL = f'{_API_BASE_URL}player/'
     _HEADERS = {}
@@ -48,9 +48,9 @@ class ADNBaseIE(InfoExtractor):
 
 
 class ADNIE(ADNBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?(?:animation|anime)digitalnetwork\.(?P<lang>fr|de)/video/[^/?#]+/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?(?:animation|anime)digitalnetwork\.(com/)?(?P<lang>fr|de)/video/[^/?#]+/(?P<id>\d+)'
     _TESTS = [{
-        'url': 'https://animationdigitalnetwork.fr/video/fruits-basket/9841-episode-1-a-ce-soir',
+        'url': 'https://animationdigitalnetwork.com/fr/video/fruits-basket/9841-episode-1-a-ce-soir',
         'md5': '1c9ef066ceb302c86f80c2b371615261',
         'info_dict': {
             'id': '9841',
@@ -70,10 +70,10 @@ class ADNIE(ADNBaseIE):
         },
         'skip': 'Only available in French and German speaking Europe',
     }, {
-        'url': 'http://animedigitalnetwork.fr/video/blue-exorcist-kyoto-saga/7778-episode-1-debut-des-hostilites',
+        'url': 'http://animedigitalnetwork.com/fr/video/blue-exorcist-kyoto-saga/7778-episode-1-debut-des-hostilites',
         'only_matching': True,
     }, {
-        'url': 'https://animationdigitalnetwork.de/video/the-eminence-in-shadow/23550-folge-1',
+        'url': 'https://animationdigitalnetwork.com/de/video/the-eminence-in-shadow/23550-folge-1',
         'md5': '5c5651bf5791fa6fcd7906012b9d94e8',
         'info_dict': {
             'id': '23550',
@@ -298,9 +298,9 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
 
 
 class ADNSeasonIE(ADNBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?(?:animation|anime)digitalnetwork\.(?P<lang>fr|de)/video/(?P<id>[^/?#]+)/?(?:$|[#?])'
+    _VALID_URL = r'https?://(?:www\.)?(?:animation|anime)digitalnetwork\.(com/)?(?P<lang>fr|de)/video/(?P<id>[^/?#]+)/?(?:$|[#?])'
     _TESTS = [{
-        'url': 'https://animationdigitalnetwork.fr/video/tokyo-mew-mew-new',
+        'url': 'https://animationdigitalnetwork.com/fr/video/tokyo-mew-mew-new',
         'playlist_count': 12,
         'info_dict': {
             'id': '911',
@@ -328,7 +328,7 @@ class ADNSeasonIE(ADNBaseIE):
         def entries():
             for episode_id in traverse_obj(episodes, ('videos', ..., 'id', {str_or_none})):
                 yield self.url_result(
-                    f'https://animationdigitalnetwork.{lang}/video/{video_show_slug}/{episode_id}',
+                    f'https://animationdigitalnetwork.com/{lang}/video/{video_show_slug}/{episode_id}',
                     ADNIE, episode_id)
 
         return self.playlist_result(entries(), show_id, show.get('title'))
