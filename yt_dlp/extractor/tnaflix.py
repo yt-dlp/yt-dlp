@@ -221,7 +221,7 @@ class TNAEMPFlixBaseIE(TNAFlixNetworkBaseIE):
 
 
 class TNAFlixIE(TNAEMPFlixBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?(?P<host>tnaflix)\.com/[^/]+/(?P<display_id>[^/]+)/video(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:(morigin|m|www)\.)?(?P<host>tnaflix)\.com/(?:[^/]+/){1,2}(?P<display_id>[^/]+)/video(?P<id>\d+)'
 
     _TITLE_REGEX = r'<title>(.+?) - (?:TNAFlix Porn Videos|TNAFlix\.com)</title>'
 
@@ -234,6 +234,7 @@ class TNAFlixIE(TNAEMPFlixBaseIE):
             'display_id': 'Carmella-Decesare-striptease',
             'ext': 'mp4',
             'title': 'Carmella Decesare - striptease',
+            'description': 'No description provided',
             'thumbnail': r're:https?://.*\.jpg$',
             'duration': 91,
             'age_limit': 18,
@@ -252,7 +253,20 @@ class TNAFlixIE(TNAEMPFlixBaseIE):
             'thumbnail': r're:https?://.*\.jpg$',
             'duration': 164,
             'age_limit': 18,
-            'uploader': 'bobwhite39',
+            'categories': list,
+        },
+    }, {
+        'url': 'https://morigin.tnaflix.com/he/amateur-porn/Dirty-minded-girl-is-very-hot/video11310952',
+        'md5': 'b5a5da17899a3ab929586be5450f7adc',
+        'info_dict': {
+            'id': '11310952',
+            'display_id': 'Dirty-minded-girl-is-very-hot',
+            'ext': 'mp4',
+            'thumbnail': r're:https?://.*\.jpg$',
+            'age_limit': 18,
+            'title': 'Dirty minded girl is very hot',
+            'description': 'md5:69631ce458c36cd631be55121a9630f1',
+            'duration': 322,
             'categories': list,
         },
     }, {
