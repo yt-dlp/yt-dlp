@@ -1458,9 +1458,12 @@ class TikTokLiveIE(TikTokBaseIE):
 
         if webpage:
             data = self._get_sigi_state(webpage, uploader or room_id)
+
+            # first traverse_obj appears to be deprecated, but remains for now to ensure backwards compatability
             room_id = (traverse_obj(data, ('UserModule', 'users', ..., 'roomId', {str_or_none}), get_all=False)
                        or self._search_regex(r'snssdk\d*://live\?room_id=(\d+)', webpage, 'room ID', default=None)
-                       or room_id)
+                       or room_id
+                       or (traverse_obj(data, ('LiveRoom', "liveRoomUserInfo", "user", "roomId"), get_all=False)))
             uploader = uploader or traverse_obj(
                 data, ('LiveRoom', 'liveRoomUserInfo', 'user', 'uniqueId'),
                 ('UserModule', 'users', ..., 'uniqueId'), get_all=False, expected_type=str)
