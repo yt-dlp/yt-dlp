@@ -216,8 +216,7 @@ class TVPlayHomeIE(InfoExtractor):
             https?://
             (?:tv3?)?
             play\.(?:tv3|skaties)\.(?P<country>lv|lt|ee)/
-            (lives/)?
-            [^?#&]+(?P<category>episode|programme|clip|live)-(?P<id>\d+)
+            [^?#&]+,(?P<category>episode|programme|clip|live)-(?P<id>\d+)
     '''
     _TESTS = [{
         'url': 'https://play.tv3.lt/series/gauju-karai-karveliai,serial-2343791/serija-8,episode-2343828',
