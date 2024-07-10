@@ -2324,6 +2324,7 @@ from .vidio import (
 )
 from .vidlii import VidLiiIE
 from .vidly import VidlyIE
+from .vidyard import VidyardIE
 from .viewlift import (
     ViewLiftEmbedIE,
     ViewLiftIE,
@@ -2389,6 +2390,10 @@ from .vrt import (
     VrtNUIE,
 )
 from .vtm import VTMIE
+from .vtv import (
+    VTVIE,
+    VTVGoIE,
+)
 from .vuclip import VuClipIE
 from .vvvvid import (
     VVVVIDIE,

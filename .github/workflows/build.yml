@@ -468,7 +468,7 @@ jobs:
       - name: Install Requirements
         run: |
           python devscripts/install_deps.py -o --include build
-          python devscripts/install_deps.py
+          python devscripts/install_deps.py --include curl-cffi
           python -m pip install -U "https://yt-dlp.github.io/Pyinstaller-Builds/i686/pyinstaller-6.7.0-py3-none-any.whl"
 
       - name: Prepare
