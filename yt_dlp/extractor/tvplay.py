@@ -280,12 +280,10 @@ class TVPlayHomeIE(InfoExtractor):
         data = self._download_json(
             urljoin(url, f'/api/products/{api_path}/{video_id}?platform=BROWSER&lang={country.upper()}'),
             video_id)
-
-        video_type = {
-            'live': 'LIVE',
-            'programme': 'CATCHUP',
-        }.get(category) or 'MOVIE'
-        stream_id = data.get('programRecordingId') or video_id
+        video_type = 'MOVIE'
+        if category not in ('episode', 'clip'):
+            video_type = traverse_obj(data, ('mainCategory', 'categoryType')) or 'MOVIE'
+        stream_id = traverse_obj(data, ('live', 'id')) or data.get('programRecordingId') or video_id
         stream = self._download_json(
             urljoin(url, f'/api/products/{stream_id}/videos/playlist?videoType={video_type}&platform=BROWSER'), video_id)
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
