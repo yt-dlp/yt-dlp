@@ -78,7 +78,7 @@ class BoxIE(InfoExtractor):
             })[file_id]['read']
         shared_link = 'https://app.box.com/s/' + shared_name
         f = self._download_json(
-            f'https://{service}.box.com/2.0/files/' + file_id, file_id,
+            'https://api.box.com/2.0/files/' + file_id, file_id,
             'Downloading file JSON metadata', headers={
                 'Authorization': 'Bearer ' + access_token,
                 'BoxApi': 'shared_link=' + shared_link,
