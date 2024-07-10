@@ -18,7 +18,6 @@ class RTVEALaCartaIE(InfoExtractor):
     _VALID_URL = [
         r'https?://(?:www\.)?rtve\.es/(m/)?(alacarta/videos|filmoteca)/[^/]+/[^/]+/(?P<id>\d+)',
         r'https?://(?:www\.)?rtve\.es/(m/)?play/videos/[^/]+/[^/]+/(?P<id>\d+)',
-        r'https?://(?:www\.)?rtve\.es/infantil/serie/[^/]+/video/[^/]+/(?P<id>[0-9]+)/',
     ]
 
     _TESTS = [{
@@ -65,18 +64,6 @@ class RTVEALaCartaIE(InfoExtractor):
     }, {
         'url': 'http://www.rtve.es/filmoteca/no-do/not-1-introduccion-primer-noticiario-espanol/1465256/',
         'only_matching': True,
-    }, {
-        'url': 'https://www.rtve.es/infantil/serie/agus-lui-churros-crafts/video/gusano/7048976/',
-        'md5': '7da8391b203a2d9cb665f11fae025e72',
-        'info_dict': {
-            'id': '7048976',
-            'ext': 'mp4',
-            'title': 'Gusano',
-            'thumbnail': r're:https://img2\.rtve\.es/v/.*\.png',
-            'duration': 292.86,
-            'series': 'Agus & Lui: Churros y Crafts',
-        },
-        'expected_warnings': ['Failed to download MPD manifest', 'Failed to download m3u8 information'],
     }, {
         'url': 'https://www.rtve.es/play/videos/saber-vivir/07-07-24/16177116/',
         'md5': '9eebcf6e8d6306c3b7c46e86a0115f55',
@@ -298,6 +285,26 @@ class RTVEAudioIE(RTVEALaCartaIE):  # XXX: Do not subclass from concrete IE
             'series': try_get(info, lambda x: x['programInfo']['title']),
             'formats': self._extract_png_formats(audio_id),
         }
+
+
+class RTVEInfantilIE(RTVEALaCartaIE):  # XXX: Do not subclass from concrete IE
+    IE_NAME = 'rtve.es:infantil'
+    IE_DESC = 'RTVE infantil'
+    _VALID_URL = r'https?://(?:www\.)?rtve\.es/infantil/serie/[^/]+/video/[^/]+/(?P<id>[0-9]+)/'
+
+    _TESTS = [{
+        'url': 'https://www.rtve.es/infantil/serie/agus-lui-churros-crafts/video/gusano/7048976/',
+        'md5': '7da8391b203a2d9cb665f11fae025e72',
+        'info_dict': {
+            'id': '7048976',
+            'ext': 'mp4',
+            'title': 'Gusano',
+            'thumbnail': r're:https://img2\.rtve\.es/v/.*\.png',
+            'duration': 292.86,
+            'series': 'Agus & Lui: Churros y Crafts',
+        },
+        'expected_warnings': ['Failed to download MPD manifest', 'Failed to download m3u8 information'],
+    }]
 
 
 class RTVELiveIE(RTVEALaCartaIE):  # XXX: Do not subclass from concrete IE
