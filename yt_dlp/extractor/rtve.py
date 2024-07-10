@@ -8,28 +8,30 @@ from ..utils import (
     determine_ext,
     float_or_none,
     qualities,
-    remove_end,
-    remove_start,
     try_get,
 )
 
 
 class RTVEALaCartaIE(InfoExtractor):
     IE_NAME = 'rtve.es:alacarta'
-    IE_DESC = 'RTVE a la carta'
-    _VALID_URL = r'https?://(?:www\.)?rtve\.es/(m/)?(alacarta/videos|filmoteca)/[^/]+/[^/]+/(?P<id>\d+)'
+    IE_DESC = 'RTVE a la carta, play and infantil'
+    _VALID_URL = [
+        r'https?://(?:www\.)?rtve\.es/(m/)?(alacarta/videos|filmoteca)/[^/]+/[^/]+/(?P<id>\d+)',
+        r'https?://(?:www\.)?rtve\.es/(m/)?play/videos/[^/]+/[^/]+/(?P<id>\d+)',
+        r'https?://(?:www\.)?rtve\.es/infantil/serie/[^/]+/video/[^/]+/(?P<id>[0-9]+)/',
+    ]
 
     _TESTS = [{
-        'url': 'https://www.rtve.es/play/videos/balonmano/liga-guerreras-iberdrola-4-jornada/6974343/',
-        'md5': '1d49b7e1ca7a7502c56a4bf1b60f1b43',
+        'url': 'http://www.rtve.es/alacarta/videos/la-aventura-del-saber/aventuraentornosilla/3088905/',
+        'md5': 'a964547824359a5753aef09d79fe984b',
         'info_dict': {
-            'id': '2491869',
+            'id': '3088905',
             'ext': 'mp4',
-            'title': 'Balonmano - Swiss Cup masculina. Final: España-Suecia',
-            'duration': 5024.566,
-            'series': 'Balonmano',
+            'title': 'En torno a la silla',
+            'duration': 1216.981,
+            'series': 'La aventura del Saber',
+            'thumbnail': 'https://img2.rtve.es/v/aventuraentornosilla_3088905.png',
         },
-        'expected_warnings': ['Failed to download MPD manifest', 'Failed to download m3u8 information'],
     }, {
         'note': 'Live stream',
         'url': 'http://www.rtve.es/alacarta/videos/television/24h-live/1694255/',
@@ -38,18 +40,23 @@ class RTVEALaCartaIE(InfoExtractor):
             'ext': 'mp4',
             'title': 're:^24H LIVE [0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}$',
             'is_live': True,
+            'live_status': 'is_live',
+            'thumbnail': r're:https://img2\.rtve\.es/v/.*\.png',
         },
         'params': {
             'skip_download': 'live stream',
         },
+        'expected_warnings': ['Ignoring subtitle tracks found in the HLS manifest'],
     }, {
         'url': 'http://www.rtve.es/alacarta/videos/servir-y-proteger/servir-proteger-capitulo-104/4236788/',
-        'md5': 'd850f3c8731ea53952ebab489cf81cbf',
+        'md5': 'f3cf0d1902d008c48c793e736706c174',
         'info_dict': {
             'id': '4236788',
             'ext': 'mp4',
-            'title': 'Servir y proteger - Capítulo 104',
-            'duration': 3222.0,
+            'title': 'Episodio 104',
+            'duration': 3222.8,
+            'thumbnail': r're:https://img2\.rtve\.es/v/.*\.png',
+            'series': 'Servir y proteger',
         },
         'expected_warnings': ['Failed to download MPD manifest', 'Failed to download m3u8 information'],
     }, {
@@ -58,6 +65,30 @@ class RTVEALaCartaIE(InfoExtractor):
     }, {
         'url': 'http://www.rtve.es/filmoteca/no-do/not-1-introduccion-primer-noticiario-espanol/1465256/',
         'only_matching': True,
+    }, {
+        'url': 'https://www.rtve.es/infantil/serie/agus-lui-churros-crafts/video/gusano/7048976/',
+        'md5': '7da8391b203a2d9cb665f11fae025e72',
+        'info_dict': {
+            'id': '7048976',
+            'ext': 'mp4',
+            'title': 'Gusano',
+            'thumbnail': r're:https://img2\.rtve\.es/v/.*\.png',
+            'duration': 292.86,
+            'series': 'Agus & Lui: Churros y Crafts',
+        },
+        'expected_warnings': ['Failed to download MPD manifest', 'Failed to download m3u8 information'],
+    }, {
+        'url': 'https://www.rtve.es/play/videos/saber-vivir/07-07-24/16177116/',
+        'md5': '9eebcf6e8d6306c3b7c46e86a0115f55',
+        'info_dict': {
+            'id': '16177116',
+            'ext': 'mp4',
+            'title': 'Saber vivir - 07/07/24',
+            'thumbnail': r're:https://img2\.rtve\.es/v/.*\.png',
+            'duration': 2162.68,
+            'series': 'Saber vivir',
+        },
+        'expected_warnings': ['Failed to download MPD manifest', 'Failed to download m3u8 information'],
     }]
 
     def _real_initialize(self):
@@ -89,7 +120,7 @@ class RTVEALaCartaIE(InfoExtractor):
                     alphabet = RTVEALaCartaIE._get_alfabet(alphabet_data)
 
                     url = RTVEALaCartaIE._get_url(alphabet, url_data)
-                    quality_str = ""
+                    quality_str = ''
                 yield quality_str, url
             encrypted_data.read(4)  # CRC
 
@@ -160,7 +191,7 @@ class RTVEALaCartaIE(InfoExtractor):
         title = info['title'].strip()
         formats = self._extract_png_formats(video_id)
 
-        sbt_file = "https://api2.rtve.es/api/videos/%s/subtitulos.json" % video_id
+        sbt_file = f'https://api2.rtve.es/api/videos/{video_id}/subtitulos.json'
         subtitles = self.extract_subtitles(video_id, sbt_file)
 
         is_live = info.get('live') is True
@@ -197,7 +228,6 @@ class RTVEAudioIE(RTVEALaCartaIE):  # XXX: Do not subclass from concrete IE
             'id': '5889192',
             'ext': 'mp3',
             'title': 'Códigos informáticos',
-            'thumbnail': r're:https?://.+/1598856591583.jpg',
             'duration': 349.440,
             'series': 'A hombros de gigantes',
         },
@@ -270,25 +300,6 @@ class RTVEAudioIE(RTVEALaCartaIE):  # XXX: Do not subclass from concrete IE
         }
 
 
-class RTVEInfantilIE(RTVEALaCartaIE):  # XXX: Do not subclass from concrete IE
-    IE_NAME = 'rtve.es:infantil'
-    IE_DESC = 'RTVE infantil'
-    _VALID_URL = r'https?://(?:www\.)?rtve\.es/infantil/serie/[^/]+/video/[^/]+/(?P<id>[0-9]+)/'
-
-    _TESTS = [{
-        'url': 'http://www.rtve.es/infantil/serie/cleo/video/maneras-vivir/3040283/',
-        'md5': '5747454717aedf9f9fdf212d1bcfc48d',
-        'info_dict': {
-            'id': '3040283',
-            'ext': 'mp4',
-            'title': 'Maneras de vivir',
-            'thumbnail': r're:https?://.+/1426182947956\.JPG',
-            'duration': 357.958,
-        },
-        'expected_warnings': ['Failed to download MPD manifest', 'Failed to download m3u8 information'],
-    }]
-
-
 class RTVELiveIE(RTVEALaCartaIE):  # XXX: Do not subclass from concrete IE
     IE_NAME = 'rtve.es:live'
     IE_DESC = 'RTVE.es live streams'
@@ -299,11 +310,13 @@ class RTVELiveIE(RTVEALaCartaIE):  # XXX: Do not subclass from concrete IE
         'info_dict': {
             'id': 'la-1',
             'ext': 'mp4',
-            'title': 're:^La 1 [0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}$',
+            'title': str,
+            'live_status': 'is_live',
         },
         'params': {
             'skip_download': 'live stream',
         },
+        'expected_warnings': ['Ignoring subtitle tracks found in the HLS manifest'],
     }]
 
     def _real_extract(self, url):
@@ -311,19 +324,18 @@ class RTVELiveIE(RTVEALaCartaIE):  # XXX: Do not subclass from concrete IE
         video_id = mobj.group('id')
 
         webpage = self._download_webpage(url, video_id)
-        title = remove_end(self._og_search_title(webpage), ' en directo en RTVE.es')
-        title = remove_start(title, 'Estoy viendo ')
+        title = self._html_extract_title(webpage)
 
-        vidplayer_id = self._search_regex(
-            (r'playerId=player([0-9]+)',
-             r'class=["\'].*?\blive_mod\b.*?["\'][^>]+data-assetid=["\'](\d+)',
-             r'data-id=["\'](\d+)'),
-            webpage, 'internal video ID')
+        data_setup = self._search_regex(
+            r'<div[^>]+class="[^"]*videoPlayer[^"]*"[^>]*data-setup=\'([^\']*)\'',
+            webpage, 'data_setup',
+        )
+        data_setup = self._parse_json(data_setup, video_id)
 
         return {
             'id': video_id,
             'title': title,
-            'formats': self._extract_png_formats(vidplayer_id),
+            'formats': self._extract_png_formats(data_setup.get('idAsset')),
             'is_live': True,
         }
 
@@ -333,12 +345,14 @@ class RTVETelevisionIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?rtve\.es/television/[^/]+/[^/]+/(?P<id>\d+).shtml'
 
     _TEST = {
-        'url': 'http://www.rtve.es/television/20160628/revolucion-del-movil/1364141.shtml',
+        'url': 'https://www.rtve.es/television/20091103/video-inedito-del-8o-programa/299020.shtml',
         'info_dict': {
-            'id': '3069778',
+            'id': '572515',
             'ext': 'mp4',
-            'title': 'Documentos TV - La revolución del móvil',
-            'duration': 3496.948,
+            'title': 'Clase inédita',
+            'duration': 335.817,
+            'thumbnail': r're:https://img2\.rtve\.es/v/.*\.png',
+            'series': 'El coro de la cárcel',
         },
         'params': {
             'skip_download': True,
@@ -349,17 +363,8 @@ class RTVETelevisionIE(InfoExtractor):
         page_id = self._match_id(url)
         webpage = self._download_webpage(url, page_id)
 
-        alacarta_url = self._search_regex(
-            r'data-location="alacarta_videos"[^<]+url&quot;:&quot;(http://www\.rtve\.es/alacarta.+?)&',
-            webpage, 'alacarta url', default=None)
-        if alacarta_url is None:
-            raise ExtractorError(
-                'The webpage doesn\'t contain any video', expected=True)
+        play_url = self._html_search_meta('contentUrl', webpage)
+        if play_url is None:
+            raise ExtractorError('The webpage doesn\'t contain any video', expected=True)
 
-        return self.url_result(alacarta_url, ie=RTVEALaCartaIE.ie_key())
-
-
-class RTVEPlayIE(RTVEALaCartaIE):
-    IE_NAME = 'rtve.es:play'
-    IE_DESC = 'RTVE play'
-    _VALID_URL = r'https?://(?:www\.)?rtve\.es/(m/)?play/videos/[^/]+/[^/]+/(?P<id>\d+)'
+        return self.url_result(play_url, ie=RTVEALaCartaIE.ie_key())
