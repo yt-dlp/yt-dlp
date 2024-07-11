@@ -5,6 +5,7 @@ from ..utils import (
     ExtractorError,
     str_or_none,
     traverse_obj,
+    update_url,
 )
 
 
@@ -43,24 +44,17 @@ class PicartoIE(InfoExtractor):
     url
   }
 }''' % (channel_id, channel_id),  # noqa: UP031
-            },
-            headers={
-                'Accept': '*/*',
-                'Content-Type': 'application/json',
-            },
-        )['data']
+            }, headers={'Accept': '*/*', 'Content-Type': 'application/json'})['data']
         metadata = data['channel']
 
         if metadata.get('online') == 0:
             raise ExtractorError('Stream is offline', expected=True)
         title = metadata['title']
 
-        url = data['getLoadBalancerUrl']['url']
-        https_url = url.replace('http', 'https', 1) if url.startswith('http:') else url
-        cdn_data = self._download_json(
-            https_url + '/stream/json_' + metadata['stream_name'] + '.js',
-            channel_id, 'Downloading load balancing info',
-        )
+        cdn_data = self._download_json(''.join((
+            update_url(data['getLoadBalancerUrl']['url'], scheme='https'),
+            '/stream/json_', metadata['stream_name'], '.js')),
+            channel_id, 'Downloading load balancing info')
 
         formats = []
         for source in (cdn_data.get('source') or []):
@@ -139,12 +133,7 @@ class PicartoVodIE(InfoExtractor):
     }}
   }}
 }}''',
-            },
-            headers={
-                'Accept': '*/*',
-                'Content-Type': 'application/json',
-            },
-        )['data']['video']
+            }, headers={'Accept': '*/*', 'Content-Type': 'application/json'})['data']['video']
 
         file_name = data['file_name']
         netloc = urllib.parse.urlparse(data['video_recording_image_url']).netloc
