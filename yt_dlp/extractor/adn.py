@@ -31,7 +31,7 @@ from ..utils.traversal import traverse_obj
 class ADNBaseIE(InfoExtractor):
     IE_DESC = 'Animation Digital Network'
     _NETRC_MACHINE = 'animationdigitalnetwork'
-    _BASE = 'animationdigitalnetwork.com'
+    _BASE = 'animationdigitalnetwork.fr'
     _API_BASE_URL = f'https://gw.api.{_BASE}/'
     _PLAYER_BASE_URL = f'{_API_BASE_URL}player/'
     _HEADERS = {}
