@@ -134,7 +134,7 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
                     meta = MP4(filename)
                     # NOTE: the 'covr' atom is a non-standard MPEG-4 atom,
                     # Apple iTunes 'M4A' files include the 'moov.udta.meta.ilst' atom.
-                    meta.tags['covr'] = [MP4Cover(data=thumb_data, imageformat=f)]
+                    meta.tags['covr'] = [MP4Cover(data=thumb_data, imageformat=f[type_])]
                     meta.save()
                     temp_filename = filename
                 except Exception as err:

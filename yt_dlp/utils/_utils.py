@@ -5026,7 +5026,7 @@ MEDIA_EXTENSIONS = Namespace(
     common_video=('avi', 'flv', 'mkv', 'mov', 'mp4', 'webm'),
     video=('3g2', '3gp', 'f4v', 'mk3d', 'divx', 'mpg', 'ogv', 'm4v', 'wmv'),
     common_audio=('aiff', 'alac', 'flac', 'm4a', 'mka', 'mp3', 'ogg', 'opus', 'wav'),
-    audio=('aac', 'ape', 'asf', 'f4a', 'f4b', 'm4b', 'm4p', 'm4r', 'oga', 'ogx', 'spx', 'vorbis', 'wma', 'weba'),
+    audio=('aac', 'ape', 'asf', 'f4a', 'f4b', 'm4b', 'm4r', 'oga', 'ogx', 'spx', 'vorbis', 'wma', 'weba'),
     thumbnails=('jpg', 'png', 'webp'),
     storyboards=('mhtml', ),
     subtitles=('srt', 'vtt', 'ass', 'lrc'),
@@ -5059,27 +5059,53 @@ class _UnsafeExtensionError(Exception):
 
         # video
         *MEDIA_EXTENSIONS.video,
-        'avif',
+        'asx',
         'ismv',
+        'm2t',
         'm2ts',
+        'm2v',
         'm4s',
         'mng',
+        'mp2v',
+        'mp4v',
+        'mpe',
         'mpeg',
+        'mpeg1',
+        'mpeg2',
+        'mpeg4',
+        'mxf',
+        'ogm',
         'qt',
+        'rm',
         'swf',
         'ts',
+        'vob',
         'vp9',
-        'wvm',
 
         # audio
         *MEDIA_EXTENSIONS.audio,
+        '3ga',
+        'ac3',
+        'adts',
+        'aif',
+        'au',
+        'dts',
         'isma',
+        'it',
         'mid',
+        'mod',
         'mpga',
+        'mp1',
+        'mp2',
+        'mp4a',
+        'mpa',
         'ra',
+        'shn',
+        'xm',
 
         # image
         *MEDIA_EXTENSIONS.thumbnails,
+        'avif',
         'bmp',
         'gif',
         'heic',
@@ -5089,6 +5115,7 @@ class _UnsafeExtensionError(Exception):
         'jxl',
         'svg',
         'tif',
+        'tiff',
         'wbmp',
 
         # subtitle
@@ -5096,11 +5123,16 @@ class _UnsafeExtensionError(Exception):
         'dfxp',
         'fs',
         'ismt',
+        'json3',
         'sami',
         'scc',
+        'srv1',
+        'srv2',
+        'srv3',
         'ssa',
         'tt',
         'ttml',
+        'xml',
 
         # others
         *MEDIA_EXTENSIONS.manifests,
@@ -5111,7 +5143,6 @@ class _UnsafeExtensionError(Exception):
         'sbv',
         'url',
         'webloc',
-        'xml',
     ])
 
     def __init__(self, extension, /):
@@ -5120,6 +5151,9 @@ class _UnsafeExtensionError(Exception):
 
     @classmethod
     def sanitize_extension(cls, extension, /, *, prepend=False):
+        if extension is None:
+            return None
+
         if '/' in extension or '\\' in extension:
             raise cls(extension)
 

@@ -839,7 +839,7 @@
  - **MTVUutisetArticle**: (**Currently broken**)
  - **MuenchenTV**: münchen.tv (**Currently broken**)
  - **MujRozhlas**
- - **Murrtube**: (**Currently broken**)
+ - **Murrtube**
  - **MurrtubeUser**: Murrtube user profile (**Currently broken**)
  - **MuseAI**
  - **MuseScore**
@@ -1618,6 +1618,7 @@
  - **VidLii**
  - **Vidly**
  - **vids.io**
+ - **Vidyard**
  - **viewlift**
  - **viewlift:embed**
  - **Viidea**
@@ -1665,6 +1666,8 @@
  - **VRT**: VRT NWS, Flanders News, Flandern Info and Sporza
  - **VrtNU**: [*vrtnu*](## "netrc machine") VRT MAX
  - **VTM**: (**Currently broken**)
+ - **VTV**
+ - **VTVGo**
  - **VTXTV**: [*vtxtv*](## "netrc machine")
  - **VTXTVLive**: [*vtxtv*](## "netrc machine")
  - **VTXTVRecordings**: [*vtxtv*](## "netrc machine")

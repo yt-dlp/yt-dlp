@@ -599,7 +599,7 @@ def validate_options(opts):
         warnings.append(
             'Using allow-unsafe-ext opens you up to potential attacks. '
             'Use with great care!')
-        _UnsafeExtensionError.sanitize_extension = lambda x: x
+        _UnsafeExtensionError.sanitize_extension = lambda x, prepend=False: x
 
     return warnings, deprecation_warnings
 
