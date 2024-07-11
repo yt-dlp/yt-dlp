@@ -314,23 +314,11 @@ class SoundcloudBaseIE(InfoExtractor):
                 self.write_debug(f'"{identifier}" is not a requested format, skipping')
                 continue
 
-            stream = None
-            for retry in self.RetryManager(fatal=False):
-                try:
-                    stream = self._call_api(
-                        format_url, track_id, f'Downloading {identifier} format info JSON',
-                        query=query, headers=self._HEADERS)
-                except ExtractorError as e:
-                    if isinstance(e.cause, HTTPError) and e.cause.status == 429:
-                        self.report_warning(
-                            'You have reached the API rate limit, which is ~600 requests per '
-                            '10 minutes. Use the --extractor-retries and --retry-sleep options '
-                            'to configure an appropriate retry count and wait time', only_once=True)
-                        retry.error = e.cause
-                    else:
-                        self.report_warning(e.msg)
+            # XXX: if not extract_flat, 429 error must be caught where _extract_info_dict is called
+            stream_url = traverse_obj(self._call_api(
+                format_url, track_id, f'Downloading {identifier} format info JSON',
+                query=query, headers=self._HEADERS), ('url', {url_or_none}))
 
-            stream_url = traverse_obj(stream, ('url', {url_or_none}))
             if invalid_url(stream_url):
                 continue
             format_urls.add(stream_url)
@@ -647,7 +635,17 @@ class SoundcloudIE(SoundcloudBaseIE):
         info = self._call_api(
             info_json_url, full_title, 'Downloading info JSON', query=query, headers=self._HEADERS)
 
-        return self._extract_info_dict(info, full_title, token)
+        for retry in self.RetryManager():
+            try:
+                return self._extract_info_dict(info, full_title, token)
+            except ExtractorError as e:
+                if not isinstance(e.cause, HTTPError) or not e.cause.status == 429:
+                    raise
+                self.report_warning(
+                    'You have reached the API rate limit, which is ~600 requests per '
+                    '10 minutes. Use the --extractor-retries and --retry-sleep options '
+                    'to configure an appropriate retry count and wait time', only_once=True)
+                retry.error = e.cause
 
 
 class SoundcloudPlaylistBaseIE(SoundcloudBaseIE):
