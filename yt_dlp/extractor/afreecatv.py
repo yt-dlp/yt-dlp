@@ -33,7 +33,8 @@ class AfreecaTVBaseIE(InfoExtractor):
 
         response = self._download_json(
             'https://login.afreecatv.com/app/LoginAction.php', None,
-            'Logging in', data=urlencode_postdata(login_form))
+            'Logging in', data=urlencode_postdata(login_form),
+            impersonate=not self.get_param('legacyserverconnect'))
 
         _ERRORS = {
             -4: 'Your account has been suspended due to a violation of our terms and policies.',
@@ -189,7 +190,7 @@ class AfreecaTVIE(AfreecaTVBaseIE):
             headers={'Referer': url}, data=urlencode_postdata({
                 'nTitleNo': video_id,
                 'nApiLevel': 10,
-            }), impersonate=True)['data']
+            }), impersonate=not self.get_param('legacyserverconnect'))['data']
 
         error_code = traverse_obj(data, ('code', {int}))
         if error_code == -6221:
@@ -269,7 +270,8 @@ class AfreecaTVCatchStoryIE(AfreecaTVBaseIE):
         video_id = self._match_id(url)
         data = self._download_json(
             'https://api.m.afreecatv.com/catchstory/a/view', video_id, headers={'Referer': url},
-            query={'aStoryListIdx': '', 'nStoryIdx': video_id}, impersonate=True)
+            query={'aStoryListIdx': '', 'nStoryIdx': video_id},
+            impersonate=not self.get_param('legacyserverconnect'))
 
         return self.playlist_result(self._entries(data), video_id)
 
