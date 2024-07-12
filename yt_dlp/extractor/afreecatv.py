@@ -20,6 +20,10 @@ from ..utils.traversal import traverse_obj
 class AfreecaTVBaseIE(InfoExtractor):
     _NETRC_MACHINE = 'afreecatv'
 
+    @property
+    def is_impersonation_needed(self):
+        return not self.get_param('legacyserverconnect')
+
     def _perform_login(self, username, password):
         login_form = {
             'szWork': 'login',
@@ -34,7 +38,7 @@ class AfreecaTVBaseIE(InfoExtractor):
         response = self._download_json(
             'https://login.afreecatv.com/app/LoginAction.php', None,
             'Logging in', data=urlencode_postdata(login_form),
-            impersonate=not self.get_param('legacyserverconnect'))
+            impersonate=self.is_impersonation_needed)
 
         _ERRORS = {
             -4: 'Your account has been suspended due to a violation of our terms and policies.',
@@ -190,7 +194,7 @@ class AfreecaTVIE(AfreecaTVBaseIE):
             headers={'Referer': url}, data=urlencode_postdata({
                 'nTitleNo': video_id,
                 'nApiLevel': 10,
-            }), impersonate=not self.get_param('legacyserverconnect'))['data']
+            }), impersonate=self.is_impersonation_needed)['data']
 
         error_code = traverse_obj(data, ('code', {int}))
         if error_code == -6221:
@@ -271,7 +275,7 @@ class AfreecaTVCatchStoryIE(AfreecaTVBaseIE):
         data = self._download_json(
             'https://api.m.afreecatv.com/catchstory/a/view', video_id, headers={'Referer': url},
             query={'aStoryListIdx': '', 'nStoryIdx': video_id},
-            impersonate=not self.get_param('legacyserverconnect'))
+            impersonate=self.is_impersonation_needed)
 
         return self.playlist_result(self._entries(data), video_id)
 
