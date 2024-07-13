@@ -1,6 +1,7 @@
 import functools
 
 from .common import InfoExtractor
+from ..networking import Request
 from ..utils import (
     ExtractorError,
     OnDemandPagedList,
@@ -20,10 +21,6 @@ from ..utils.traversal import traverse_obj
 class AfreecaTVBaseIE(InfoExtractor):
     _NETRC_MACHINE = 'afreecatv'
 
-    @property
-    def is_impersonation_needed(self):
-        return not self.get_param('legacyserverconnect')
-
     def _perform_login(self, username, password):
         login_form = {
             'szWork': 'login',
@@ -37,8 +34,7 @@ class AfreecaTVBaseIE(InfoExtractor):
 
         response = self._download_json(
             'https://login.afreecatv.com/app/LoginAction.php', None,
-            'Logging in', data=urlencode_postdata(login_form),
-            impersonate=self.is_impersonation_needed)
+            'Logging in', data=urlencode_postdata(login_form))
 
         _ERRORS = {
             -4: 'Your account has been suspended due to a violation of our terms and policies.',
@@ -62,6 +58,13 @@ class AfreecaTVBaseIE(InfoExtractor):
             raise ExtractorError(
                 f'Unable to login: {self.IE_NAME} said: {error}',
                 expected=True)
+
+    def _call_api(self, endpoint, display_id, data=None, headers=None, query=None):
+        return self._download_json(Request(
+            f'https://api.m.afreecatv.com/{endpoint}',
+            data=data, headers=headers, query=query,
+            extensions={'legacy_ssl': True}), display_id,
+            'Downloading API JSON', 'Unable to download API JSON')
 
 
 class AfreecaTVIE(AfreecaTVBaseIE):
@@ -189,12 +192,12 @@ class AfreecaTVIE(AfreecaTVBaseIE):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        data = self._download_json(
-            'https://api.m.afreecatv.com/station/video/a/view', video_id,
-            headers={'Referer': url}, data=urlencode_postdata({
+        data = self._call_api(
+            'station/video/a/view', video_id, headers={'Referer': url},
+            data=urlencode_postdata({
                 'nTitleNo': video_id,
                 'nApiLevel': 10,
-            }), impersonate=self.is_impersonation_needed)['data']
+            }))['data']
 
         error_code = traverse_obj(data, ('code', {int}))
         if error_code == -6221:
@@ -272,10 +275,9 @@ class AfreecaTVCatchStoryIE(AfreecaTVBaseIE):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        data = self._download_json(
-            'https://api.m.afreecatv.com/catchstory/a/view', video_id, headers={'Referer': url},
-            query={'aStoryListIdx': '', 'nStoryIdx': video_id},
-            impersonate=self.is_impersonation_needed)
+        data = self._call_api(
+            'catchstory/a/view', video_id, headers={'Referer': url},
+            query={'aStoryListIdx': '', 'nStoryIdx': video_id})
 
         return self.playlist_result(self._entries(data), video_id)
 
