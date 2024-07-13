@@ -106,6 +106,15 @@ def create_mtls_wss_websocket_server():
     return create_websocket_server(ssl_context=sslctx)
 
 
+def create_legacy_wss_websocket_server():
+    certfn = os.path.join(TEST_DIR, 'testcert.pem')
+    sslctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    sslctx.maximum_version = ssl.TLSVersion.TLSv1_2
+    sslctx.set_ciphers('SHA1:AESCCM:aDSS:eNULL:aNULL')
+    sslctx.load_cert_chain(certfn, None)
+    return create_websocket_server(ssl_context=sslctx)
+
+
 def ws_validate_and_send(rh, req):
     rh.validate(req)
     max_tries = 3
@@ -135,6 +144,9 @@ class TestWebsSocketRequestHandlerConformance:
 
         cls.mtls_wss_thread, cls.mtls_wss_port = create_mtls_wss_websocket_server()
         cls.mtls_wss_base_url = f'wss://127.0.0.1:{cls.mtls_wss_port}'
+
+        cls.legacy_wss_thread, cls.legacy_wss_port = create_legacy_wss_websocket_server()
+        cls.legacy_wss_host = f'wss://127.0.0.1:{cls.legacy_wss_port}'
 
     def test_basic_websockets(self, handler):
         with handler() as rh:
@@ -170,50 +182,21 @@ class TestWebsSocketRequestHandlerConformance:
                 ws_validate_and_send(rh, Request(self.bad_wss_host))
             assert not issubclass(exc_info.type, CertificateVerifyError)
 
-    # TODO: implement for websockets
-    # def test_legacy_ssl_extension(self, handler):
-    #     # HTTPS server with old ciphers
-    #     # XXX: is there a better way to test this than to create a new server?
-    #     https_httpd = http.server.ThreadingHTTPServer(
-    #         ('127.0.0.1', 0), HTTPTestRequestHandler)
-    #     sslctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-    # sslctx.maximum_version = ssl.TLSVersion.TLSv1_2
-    # sslctx.set_ciphers('SHA1:AESCCM:aDSS:eNULL:aNULL')
-    #     sslctx.load_cert_chain(os.path.join(TEST_DIR, 'testcert.pem'), None)
-    #     https_httpd.socket = sslctx.wrap_socket(https_httpd.socket, server_side=True)
-    #     https_port = http_server_port(https_httpd)
-    #     https_server_thread = threading.Thread(target=https_httpd.serve_forever)
-    #     https_server_thread.daemon = True
-    #     https_server_thread.start()
-    #
-    #     with handler(verify=False) as rh:
-    #         res = validate_and_send(rh, Request(f'https://127.0.0.1:{https_port}/headers', extensions={'legacy_ssl': True}))
-    #         assert res.status == 200
-    #         res.close()
-    #
-    #         # Ensure only applies to request extension
-    #         with pytest.raises(SSLError, match=r'<ssl error>') as exc_info:
-    #             validate_and_send(rh, Request(f'https://127.0.0.1:{https_port}/headers'))
-    #         assert not issubclass(exc_info.type, SSLError)
-    #
-    # def test_legacy_ssl_support(self, handler):
-    #     # HTTPS server with old ciphers
-    #     # XXX: is there a better way to test this than to create a new server?
-    #     https_httpd = http.server.ThreadingHTTPServer(
-    #         ('127.0.0.1', 0), HTTPTestRequestHandler)
-    # sslctx.maximum_version = ssl.TLSVersion.TLSv1_2
-    # sslctx.set_ciphers('SHA1:AESCCM:aDSS:eNULL:aNULL')
-    #     sslctx.load_cert_chain(os.path.join(TEST_DIR, 'testcert.pem'), None)
-    #     https_httpd.socket = sslctx.wrap_socket(https_httpd.socket, server_side=True)
-    #     https_port = http_server_port(https_httpd)
-    #     https_server_thread = threading.Thread(target=https_httpd.serve_forever)
-    #     https_server_thread.daemon = True
-    #     https_server_thread.start()
-    #
-    #     with handler(verify=False, legacy_ssl_support=True) as rh:
-    #         res = validate_and_send(rh, Request(f'https://127.0.0.1:{https_port}/headers', extensions={'legacy_ssl': True}))
-    #         assert res.status == 200
-    #         res.close()
+    def test_legacy_ssl_extension(self, handler):
+        with handler(verify=False) as rh:
+            ws = ws_validate_and_send(rh, Request(self.legacy_wss_host, extensions={'legacy_ssl': True}))
+            assert ws.status == 101
+            ws.close()
+
+            # Ensure only applies to request extension
+            with pytest.raises(SSLError):
+                ws_validate_and_send(rh, Request(self.legacy_wss_host))
+
+    def test_legacy_ssl_support(self, handler):
+        with handler(verify=False, legacy_ssl_support=True) as rh:
+            ws = ws_validate_and_send(rh, Request(self.legacy_wss_host))
+            assert ws.status == 101
+            ws.close()
 
     @pytest.mark.parametrize('path,expected', [
         # Unicode characters should be encoded with uppercase percent-encoding

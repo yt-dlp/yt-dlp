@@ -350,7 +350,7 @@ class UrllibRH(RequestHandler, InstanceStoreMixin):
         extensions.pop('timeout', None)
         extensions.pop('legacy_ssl', None)
 
-    def _create_instance(self, proxies, cookiejar, legacy_ssl_support):
+    def _create_instance(self, proxies, cookiejar, legacy_ssl_support=None):
         opener = urllib.request.OpenerDirector()
         handlers = [
             ProxyHandler(proxies),

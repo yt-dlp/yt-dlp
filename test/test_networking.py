@@ -1305,8 +1305,9 @@ class TestRequestHandlerValidation:
         ('Websockets', 'ws', [
             ({'cookiejar': YoutubeDLCookieJar()}, False),
             ({'timeout': 2}, False),
-            ({'legacy_ssl': False}, UnsupportedRequest),
-            ({'legacy_ssl': True}, UnsupportedRequest),
+            ({'legacy_ssl': False}, False),
+            ({'legacy_ssl': True}, False),
+            ({'legacy_ssl': 'notabool'}, AssertionError),
         ]),
     ]
 
