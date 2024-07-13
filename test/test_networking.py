@@ -353,6 +353,51 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
                 validate_and_send(rh, Request(f'https://127.0.0.1:{https_port}/headers'))
             assert not issubclass(exc_info.type, CertificateVerifyError)
 
+    @pytest.mark.skip_handler('CurlCFFI', 'not supported by curl-cffi')
+    def test_legacy_ssl_extension(self, handler):
+        # HTTPS server with old ciphers
+        # XXX: is there a better way to test this than to create a new server?
+        https_httpd = http.server.ThreadingHTTPServer(
+            ('127.0.0.1', 0), HTTPTestRequestHandler)
+        sslctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        sslctx.set_ciphers('TODO: OPENSSL CIPHER STRING SUPPORTED BY "DEFAULT" CIPHERS BUT NOT YT-DLP CIPHER STRING')
+        sslctx.load_cert_chain(os.path.join(TEST_DIR, 'testcert.pem'), None)
+        https_httpd.socket = sslctx.wrap_socket(https_httpd.socket, server_side=True)
+        https_port = http_server_port(https_httpd)
+        https_server_thread = threading.Thread(target=https_httpd.serve_forever)
+        https_server_thread.daemon = True
+        https_server_thread.start()
+
+        with handler(verify=False) as rh:
+            res = validate_and_send(rh, Request(f'https://127.0.0.1:{https_port}/headers', extensions={'legacy_ssl': True}))
+            assert res.status == 200
+            res.close()
+
+            # Ensure only applies to request extension
+            with pytest.raises(SSLError, match=r'<ssl error>') as exc_info:
+                validate_and_send(rh, Request(f'https://127.0.0.1:{https_port}/headers'))
+            assert not issubclass(exc_info.type, SSLError)
+
+    @pytest.mark.skip_handler('CurlCFFI', 'not supported by curl-cffi')
+    def test_legacy_ssl_support(self, handler):
+        # HTTPS server with old ciphers
+        # XXX: is there a better way to test this than to create a new server?
+        https_httpd = http.server.ThreadingHTTPServer(
+            ('127.0.0.1', 0), HTTPTestRequestHandler)
+        sslctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        sslctx.set_ciphers('TODO: OPENSSL CIPHER STRING SUPPORTED BY "DEFAULT" CIPHERS BUT NOT YT-DLP CIPHER STRING')
+        sslctx.load_cert_chain(os.path.join(TEST_DIR, 'testcert.pem'), None)
+        https_httpd.socket = sslctx.wrap_socket(https_httpd.socket, server_side=True)
+        https_port = http_server_port(https_httpd)
+        https_server_thread = threading.Thread(target=https_httpd.serve_forever)
+        https_server_thread.daemon = True
+        https_server_thread.start()
+
+        with handler(verify=False, legacy_ssl_support=True) as rh:
+            res = validate_and_send(rh, Request(f'https://127.0.0.1:{https_port}/headers', extensions={'legacy_ssl': True}))
+            assert res.status == 200
+            res.close()
+
     def test_percent_encode(self, handler):
         with handler() as rh:
             # Unicode characters should be encoded with uppercase percent-encoding
@@ -523,6 +568,7 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
             data = validate_and_send(rh, Request(f'http://127.0.0.1:{self.http_port}/headers')).read()
             assert b'cookie: test=ytdlp' not in data.lower()
 
+    @pytest.mark.skip_handler('CurlCFFI', 'broken - see https://github.com/yifeikong/curl_cffi/issues/348')
     def test_cookie_domain_specified(self, handler):
         # Ensure domain_specified is being set correctly
         # Regression test for https://github.com/yifeikong/curl_cffi/issues/348

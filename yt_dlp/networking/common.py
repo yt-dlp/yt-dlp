@@ -247,10 +247,10 @@ class RequestHandler(abc.ABC):
         self.legacy_ssl_support = legacy_ssl_support
         super().__init__()
 
-    def _make_sslcontext(self):
+    def _make_sslcontext(self, legacy_ssl_support=None):
         return make_ssl_context(
             verify=self.verify,
-            legacy_support=self.legacy_ssl_support,
+            legacy_support=legacy_ssl_support if legacy_ssl_support is not None else self.legacy_ssl_support,
             use_certifi=not self.prefer_system_certs,
             **self._client_cert,
         )
