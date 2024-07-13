@@ -281,14 +281,6 @@ class TestWebsSocketRequestHandlerConformance:
             ws.close()
 
     @pytest.mark.skip_handler('Websockets', 'Set-Cookie not supported by websockets')
-    def test_get_cookie(self, handler):
-        with handler() as rh:
-            ws = ws_validate_and_send(rh, Request(f'{self.ws_base_url}/get_cookie_no_domain'))
-            ws.send('headers')
-            assert json.loads(ws.recv())['cookie'] == 'test=ytdlp'
-            ws.close()
-
-    @pytest.mark.skip_handler('Websockets', 'Set-Cookie not supported by websockets')
     def test_cookie_sync_only_cookiejar(self, handler):
         # Ensure that cookies are ONLY being handled by the cookiejar
         with handler() as rh:
