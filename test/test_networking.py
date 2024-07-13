@@ -343,14 +343,15 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
                 validate_and_send(rh, Request(f'https://127.0.0.1:{https_port}/headers'))
             assert not issubclass(exc_info.type, CertificateVerifyError)
 
-    @pytest.mark.skip_handler('CurlCFFI', 'not supported by curl-cffi')
+    @pytest.mark.skip_handler('CurlCFFI', 'legacy_ssl ignored by CurlCFFI')
     def test_legacy_ssl_extension(self, handler):
         # HTTPS server with old ciphers
         # XXX: is there a better way to test this than to create a new server?
         https_httpd = http.server.ThreadingHTTPServer(
             ('127.0.0.1', 0), HTTPTestRequestHandler)
         sslctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-        sslctx.set_ciphers('TODO: OPENSSL CIPHER STRING SUPPORTED BY "DEFAULT" CIPHERS BUT NOT YT-DLP CIPHER STRING')
+        sslctx.maximum_version = ssl.TLSVersion.TLSv1_2
+        sslctx.set_ciphers('SHA1:AESCCM:aDSS:eNULL:aNULL')
         sslctx.load_cert_chain(os.path.join(TEST_DIR, 'testcert.pem'), None)
         https_httpd.socket = sslctx.wrap_socket(https_httpd.socket, server_side=True)
         https_port = http_server_port(https_httpd)
@@ -364,18 +365,18 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
             res.close()
 
             # Ensure only applies to request extension
-            with pytest.raises(SSLError, match=r'<ssl error>') as exc_info:
+            with pytest.raises(SSLError):
                 validate_and_send(rh, Request(f'https://127.0.0.1:{https_port}/headers'))
-            assert not issubclass(exc_info.type, SSLError)
 
-    @pytest.mark.skip_handler('CurlCFFI', 'not supported by curl-cffi')
+    @pytest.mark.skip_handler('CurlCFFI', 'legacy_ssl ignored by CurlCFFI')
     def test_legacy_ssl_support(self, handler):
         # HTTPS server with old ciphers
         # XXX: is there a better way to test this than to create a new server?
         https_httpd = http.server.ThreadingHTTPServer(
             ('127.0.0.1', 0), HTTPTestRequestHandler)
         sslctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-        sslctx.set_ciphers('TODO: OPENSSL CIPHER STRING SUPPORTED BY "DEFAULT" CIPHERS BUT NOT YT-DLP CIPHER STRING')
+        sslctx.maximum_version = ssl.TLSVersion.TLSv1_2
+        sslctx.set_ciphers('SHA1:AESCCM:aDSS:eNULL:aNULL')
         sslctx.load_cert_chain(os.path.join(TEST_DIR, 'testcert.pem'), None)
         https_httpd.socket = sslctx.wrap_socket(https_httpd.socket, server_side=True)
         https_port = http_server_port(https_httpd)
@@ -384,7 +385,7 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
         https_server_thread.start()
 
         with handler(verify=False, legacy_ssl_support=True) as rh:
-            res = validate_and_send(rh, Request(f'https://127.0.0.1:{https_port}/headers', extensions={'legacy_ssl': True}))
+            res = validate_and_send(rh, Request(f'https://127.0.0.1:{https_port}/headers'))
             assert res.status == 200
             res.close()
 
@@ -1267,6 +1268,9 @@ class TestRequestHandlerValidation:
             ({'timeout': 1}, False),
             ({'timeout': 'notatimeout'}, AssertionError),
             ({'unsupported': 'value'}, UnsupportedRequest),
+            ({'legacy_ssl': False}, False),
+            ({'legacy_ssl': True}, False),
+            ({'legacy_ssl': 'notabool'}, AssertionError),
         ]),
         ('Requests', 'http', [
             ({'cookiejar': 'notacookiejar'}, AssertionError),
@@ -1274,6 +1278,9 @@ class TestRequestHandlerValidation:
             ({'timeout': 1}, False),
             ({'timeout': 'notatimeout'}, AssertionError),
             ({'unsupported': 'value'}, UnsupportedRequest),
+            ({'legacy_ssl': False}, False),
+            ({'legacy_ssl': True}, False),
+            ({'legacy_ssl': 'notabool'}, AssertionError),
         ]),
         ('CurlCFFI', 'http', [
             ({'cookiejar': 'notacookiejar'}, AssertionError),
@@ -1287,6 +1294,9 @@ class TestRequestHandlerValidation:
             ({'impersonate': ImpersonateTarget(None, None, None, None)}, False),
             ({'impersonate': ImpersonateTarget()}, False),
             ({'impersonate': 'chrome'}, AssertionError),
+            ({'legacy_ssl': False}, False),
+            ({'legacy_ssl': True}, False),
+            ({'legacy_ssl': 'notabool'}, AssertionError),
         ]),
         (NoCheckRH, 'http', [
             ({'cookiejar': 'notacookiejar'}, False),
@@ -1295,6 +1305,8 @@ class TestRequestHandlerValidation:
         ('Websockets', 'ws', [
             ({'cookiejar': YoutubeDLCookieJar()}, False),
             ({'timeout': 2}, False),
+            ({'legacy_ssl': False}, UnsupportedRequest),
+            ({'legacy_ssl': True}, UnsupportedRequest),
         ]),
     ]
 

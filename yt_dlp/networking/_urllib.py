@@ -350,13 +350,13 @@ class UrllibRH(RequestHandler, InstanceStoreMixin):
         extensions.pop('timeout', None)
         extensions.pop('legacy_ssl', None)
 
-    def _create_instance(self, proxies, cookiejar, legacy_ssl):
+    def _create_instance(self, proxies, cookiejar, legacy_ssl_support):
         opener = urllib.request.OpenerDirector()
         handlers = [
             ProxyHandler(proxies),
             HTTPHandler(
                 debuglevel=int(bool(self.verbose)),
-                context=self._make_sslcontext(legacy_ssl_support=legacy_ssl),
+                context=self._make_sslcontext(legacy_ssl_support=legacy_ssl_support),
                 source_address=self.source_address),
             HTTPCookieProcessor(cookiejar),
             DataHandler(),
@@ -392,7 +392,7 @@ class UrllibRH(RequestHandler, InstanceStoreMixin):
         opener = self._get_instance(
             proxies=self._get_proxies(request),
             cookiejar=self._get_cookiejar(request),
-            legacy_ssl=request.extensions.get('legacy_ssl'),
+            legacy_ssl_support=request.extensions.get('legacy_ssl'),
         )
         try:
             res = opener.open(urllib_req, timeout=self._calculate_timeout(request))

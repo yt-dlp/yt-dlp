@@ -177,7 +177,8 @@ class TestWebsSocketRequestHandlerConformance:
     #     https_httpd = http.server.ThreadingHTTPServer(
     #         ('127.0.0.1', 0), HTTPTestRequestHandler)
     #     sslctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-    #     sslctx.set_ciphers('TODO: OPENSSL CIPHER STRING SUPPORTED BY "DEFAULT" CIPHERS BUT NOT YT-DLP CIPHER STRING')
+    # sslctx.maximum_version = ssl.TLSVersion.TLSv1_2
+    # sslctx.set_ciphers('SHA1:AESCCM:aDSS:eNULL:aNULL')
     #     sslctx.load_cert_chain(os.path.join(TEST_DIR, 'testcert.pem'), None)
     #     https_httpd.socket = sslctx.wrap_socket(https_httpd.socket, server_side=True)
     #     https_port = http_server_port(https_httpd)
@@ -200,8 +201,8 @@ class TestWebsSocketRequestHandlerConformance:
     #     # XXX: is there a better way to test this than to create a new server?
     #     https_httpd = http.server.ThreadingHTTPServer(
     #         ('127.0.0.1', 0), HTTPTestRequestHandler)
-    #     sslctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-    #     sslctx.set_ciphers('TODO: OPENSSL CIPHER STRING SUPPORTED BY "DEFAULT" CIPHERS BUT NOT YT-DLP CIPHER STRING')
+    # sslctx.maximum_version = ssl.TLSVersion.TLSv1_2
+    # sslctx.set_ciphers('SHA1:AESCCM:aDSS:eNULL:aNULL')
     #     sslctx.load_cert_chain(os.path.join(TEST_DIR, 'testcert.pem'), None)
     #     https_httpd.socket = sslctx.wrap_socket(https_httpd.socket, server_side=True)
     #     https_port = http_server_port(https_httpd)
