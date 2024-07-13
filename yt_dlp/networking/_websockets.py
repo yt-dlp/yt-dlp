@@ -161,6 +161,7 @@ class WebsocketsRH(WebSocketRequestHandler):
         super()._check_extensions(extensions)
         extensions.pop('timeout', None)
         extensions.pop('cookiejar', None)
+        extensions.pop('legacy_ssl', None)
 
     def close(self):
         # Remove the logging handler that contains a reference to our logger
@@ -218,7 +219,7 @@ class WebsocketsRH(WebSocketRequestHandler):
             ssl_context = None
             sock = self._make_sock(proxy, request.url, timeout)
             if parse_uri(request.url).secure:
-                ssl_context = WebsocketsSSLContext(self._make_sslcontext())
+                ssl_context = WebsocketsSSLContext(self._make_sslcontext(legacy_ssl_support=request.extensions.get('legacy_ssl')))
             conn = websockets.sync.client.connect(
                 sock=sock,
                 uri=request.url,
