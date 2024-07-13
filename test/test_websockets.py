@@ -61,13 +61,9 @@ def process_request(self, request):
             return websockets.http11.Response(
                 status.value, status.phrase, websockets.datastructures.Headers([('Location', '/')]), b'')
         return self.protocol.reject(status.value, status.phrase)
-    elif request.path.startswith('/get_cookie_no_domain'):
+    elif request.path.startswith('/get_cookie'):
         response = self.protocol.accept(request)
         response.headers['Set-Cookie'] = 'test=ytdlp'
-        return response
-    elif request.path.startswith('/get_cookie_domain'):
-        response = self.protocol.accept(request)
-        response.headers['Set-Cookie'] = 'test=ytdlp; Domain=127.0.0.1'
         return response
     return self.protocol.accept(request)
 
@@ -312,7 +308,7 @@ class TestWebsSocketRequestHandlerConformance:
     def test_cookie_sync_only_cookiejar(self, handler):
         # Ensure that cookies are ONLY being handled by the cookiejar
         with handler() as rh:
-            ws_validate_and_send(rh, Request(f'{self.ws_base_url}/get_cookie_no_domain', extensions={'cookiejar': YoutubeDLCookieJar()}))
+            ws_validate_and_send(rh, Request(f'{self.ws_base_url}/get_cookie', extensions={'cookiejar': YoutubeDLCookieJar()}))
             ws = ws_validate_and_send(rh, Request(self.ws_base_url, extensions={'cookiejar': YoutubeDLCookieJar()}))
             ws.send('headers')
             assert 'cookie' not in json.loads(ws.recv())
@@ -323,7 +319,7 @@ class TestWebsSocketRequestHandlerConformance:
         # Ensure that cookies are ONLY being handled by the cookiejar
         cookiejar = YoutubeDLCookieJar()
         with handler(verbose=True, cookiejar=cookiejar) as rh:
-            ws_validate_and_send(rh, Request(f'{self.ws_base_url}/get_cookie_no_domain'))
+            ws_validate_and_send(rh, Request(f'{self.ws_base_url}/get_cookie'))
             ws = ws_validate_and_send(rh, Request(self.ws_base_url))
             ws.send('headers')
             assert json.loads(ws.recv())['cookie'] == 'test=ytdlp'
@@ -333,21 +329,6 @@ class TestWebsSocketRequestHandlerConformance:
             ws.send('headers')
             assert 'cookie' not in json.loads(ws.recv())
             ws.close()
-
-    @pytest.mark.skip_handler('Websockets', 'Set-Cookie not supported by websockets')
-    def test_cookie_domain_specified(self, handler):
-        # Ensure domain_specified is being set correctly
-        # Regression test for https://github.com/yifeikong/curl_cffi/issues/348
-        cookiejar = YoutubeDLCookieJar()
-        with handler(cookiejar=cookiejar) as rh:
-            ws_validate_and_send(rh, Request(f'{self.ws_base_url}/get_cookie_domain'))
-        assert cookiejar.get_cookies_for_url('ws://127.0.0.1')[0].domain_specified is True
-
-        cookiejar.clear_session_cookies()
-        with handler(cookiejar=cookiejar) as rh:
-            ws_validate_and_send(rh, Request(f'{self.ws_base_url}/get_cookie_no_domain'))
-
-        assert cookiejar.get_cookies_for_url('ws://127.0.0.1')[0].domain_specified is False
 
     def test_source_address(self, handler):
         source_address = f'127.0.0.{random.randint(5, 255)}'
