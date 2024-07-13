@@ -3754,11 +3754,22 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 player_url = self._download_player_url(video_id)
                 tried_iframe_fallback = True
 
-            try:
-                pr = initial_pr if client == 'web' and initial_pr else self._extract_player_response(
-                    client, video_id, player_ytcfg or master_ytcfg, player_ytcfg, player_url if require_js_player else None, initial_pr, smuggled_data)
-            except ExtractorError as e:
-                self.report_warning(e)
+            pr = initial_pr if client == 'web' and initial_pr else None
+            for retry in self.RetryManager(fatal=False):
+                try:
+                    pr = pr or self._extract_player_response(
+                        client, video_id, player_ytcfg or master_ytcfg, player_ytcfg,
+                        player_url if require_js_player else None, initial_pr, smuggled_data)
+                except ExtractorError as e:
+                    self.report_warning(e)
+                    break
+                experiments = traverse_obj(pr, (
+                    'responseContext', 'serviceTrackingParams', lambda _, v: v['service'] == 'GFEEDBACK',
+                    'params', lambda _, v: v['key'] == 'e', 'value', {lambda x: x.split(',')}, ..., {str}))
+                if all(x in experiments for x in self._POTOKEN_EXPERIMENTS):
+                    pr = None
+                    retry.error = ExtractorError('API returned broken formats (poToken experiment detected)', expected=True)
+            if not pr:
                 continue
 
             if pr_id := self._invalid_player_response(pr, video_id):
