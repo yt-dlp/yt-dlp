@@ -346,8 +346,16 @@ class HGTVDeIE(DPlayBaseIE):
 
 
 class DiscoveryPlusBaseIE(DPlayBaseIE):
+    """Subclasses must set _PRODUCT, _DISCO_API_PARAMS"""
+
+    _DISCO_CLIENT_VER = '27.43.0'
+
     def _update_disco_api_headers(self, headers, disco_base, display_id, realm):
-        headers['x-disco-client'] = f'WEB:UNKNOWN:{self._PRODUCT}:25.2.6'
+        headers.update({
+            'x-disco-params': f'realm={realm},siteLookupKey={self._PRODUCT}',
+            'x-disco-client': f'WEB:UNKNOWN:{self._PRODUCT}:{self._DISCO_CLIENT_VER}',
+            'Authorization': self._get_auth(disco_base, display_id, realm),
+        })
 
     def _download_video_playback_info(self, disco_base, video_id, headers):
         return self._download_json(
@@ -802,7 +810,7 @@ class MotorTrendOnDemandIE(DiscoveryPlusBaseIE):
 
 
 class DiscoveryPlusIE(DiscoveryPlusBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?discoveryplus\.com/(?!it/)(?:\w{2}/)?video' + DPlayBaseIE._PATH_REGEX
+    _VALID_URL = r'https?://(?:www\.)?discoveryplus\.com/(?!it/)(?:(?P<country>[a-z]{2})/)?video' + DPlayBaseIE._PATH_REGEX
     _TESTS = [{
         'url': 'https://www.discoveryplus.com/video/property-brothers-forever-home/food-and-family',
         'info_dict': {
@@ -831,6 +839,27 @@ class DiscoveryPlusIE(DiscoveryPlusBaseIE):
         'realm': 'go',
         'country': 'us',
     }
+
+    def _update_disco_api_headers(self, headers, disco_base, display_id, realm):
+        headers.update({
+            'x-disco-params': f'realm={realm},siteLookupKey={self._PRODUCT}',
+            'x-disco-client': f'WEB:UNKNOWN:dplus_us:{self._DISCO_CLIENT_VER}',
+            'Authorization': self._get_auth(disco_base, display_id, realm),
+        })
+
+    def _real_extract(self, url):
+        video_id, country = self._match_valid_url(url).group('id', 'country')
+        if country:
+            country = country.lower()
+            self._PRODUCT = f'dplus_{country}'
+            self._DISCO_API_PARAMS['country'] = country
+            if country not in ('ca', 'us'):
+                self._DISCO_API_PARAMS.update({
+                    'disco_host': 'eu1-prod-direct.discoveryplus.com',
+                    'realm': 'dplay',
+                })
+
+        return self._get_disco_api_info(url, video_id, **self._DISCO_API_PARAMS)
 
 
 class DiscoveryPlusIndiaIE(DiscoveryPlusBaseIE):
