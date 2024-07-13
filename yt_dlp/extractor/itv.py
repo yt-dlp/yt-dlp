@@ -2,7 +2,6 @@ import json
 
 from .brightcove import BrightcoveNewIE
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     JSON_LD_RE,
     ExtractorError,
@@ -34,7 +33,7 @@ class ITVIE(InfoExtractor):
             'series': 'Plebs',
             'season_number': 1,
             'episode_number': 1,
-            'thumbnail': r're:https?://hubimages\.itv\.com/episode/2_1873_0002'
+            'thumbnail': r're:https?://hubimages\.itv\.com/episode/2_1873_0002',
         },
         'params': {
             # m3u8 download
@@ -50,7 +49,7 @@ class ITVIE(InfoExtractor):
             'series': 'The Jonathan Ross Show',
             'episode_number': 8,
             'season_number': 17,
-            'thumbnail': r're:https?://hubimages\.itv\.com/episode/2_1873_0002'
+            'thumbnail': r're:https?://hubimages\.itv\.com/episode/2_1873_0002',
         },
         'params': {
             # m3u8 download
@@ -83,7 +82,7 @@ class ITVIE(InfoExtractor):
                 'user': {
                     'itvUserId': '',
                     'entitlements': [],
-                    'token': ''
+                    'token': '',
                 },
                 'device': {
                     'manufacturer': 'Safari',
@@ -91,20 +90,20 @@ class ITVIE(InfoExtractor):
                     'os': {
                         'name': 'Windows NT',
                         'version': '6.1',
-                        'type': 'desktop'
-                    }
+                        'type': 'desktop',
+                    },
                 },
                 'client': {
                     'version': '4.1',
-                    'id': 'browser'
+                    'id': 'browser',
                 },
                 'variantAvailability': {
                     'featureset': {
                         'min': featureset,
-                        'max': featureset
+                        'max': featureset,
                     },
-                    'platformTag': platform_tag
-                }
+                    'platformTag': platform_tag,
+                },
             }).encode(), headers=headers, fatal=fatal)
 
     def _get_subtitles(self, video_id, variants, ios_playlist_url, headers, *args, **kwargs):
@@ -136,7 +135,7 @@ class ITVIE(InfoExtractor):
         params = extract_attributes(self._search_regex(
             r'(?s)(<[^>]+id="video"[^>]*>)', webpage, 'params'))
         variants = self._parse_json(
-            try_get(params, lambda x: x['data-video-variants'], compat_str) or '{}',
+            try_get(params, lambda x: x['data-video-variants'], str) or '{}',
             video_id, fatal=False)
         # Prefer last matching featureset
         # See: https://github.com/yt-dlp/yt-dlp/issues/986
@@ -185,7 +184,7 @@ class ITVIE(InfoExtractor):
                         break
 
         thumbnails = []
-        thumbnail_url = try_get(params, lambda x: x['data-video-posterframe'], compat_str)
+        thumbnail_url = try_get(params, lambda x: x['data-video-posterframe'], str)
         if thumbnail_url:
             thumbnails.extend([{
                 'url': thumbnail_url.format(width=1920, height=1080, quality=100, blur=0, bg='false'),
@@ -193,7 +192,7 @@ class ITVIE(InfoExtractor):
                 'height': 1080,
             }, {
                 'url': urljoin(base_url(thumbnail_url), url_basename(thumbnail_url)),
-                'preference': -2
+                'preference': -2,
             }])
 
         thumbnail_url = self._html_search_meta(['og:image', 'twitter:image'], webpage, default=None)
@@ -210,7 +209,7 @@ class ITVIE(InfoExtractor):
             'subtitles': self.extract_subtitles(video_id, variants, ios_playlist_url, headers),
             'duration': parse_duration(video_data.get('Duration')),
             'description': clean_html(get_element_by_class('episode-info__synopsis', webpage)),
-            'thumbnails': thumbnails
+            'thumbnails': thumbnails,
         }, info)
 
 
@@ -227,9 +226,9 @@ class ITVBTCCIE(InfoExtractor):
         'url': 'https://www.itv.com/news/2021-10-27/i-have-to-protect-the-country-says-rishi-sunak-as-uk-faces-interest-rate-hike',
         'info_dict': {
             'id': 'i-have-to-protect-the-country-says-rishi-sunak-as-uk-faces-interest-rate-hike',
-            'title': 'md5:6ef054dd9f069330db3dcc66cb772d32'
+            'title': 'md5:6ef054dd9f069330db3dcc66cb772d32',
         },
-        'playlist_count': 4
+        'playlist_count': 4,
     }]
     BRIGHTCOVE_URL_TEMPLATE = 'http://players.brightcove.net/%s/%s_default/index.html?videoId=%s'
 
@@ -254,7 +253,7 @@ class ITVBTCCIE(InfoExtractor):
                     # ITV does not like some GB IP ranges, so here are some
                     # IP blocks it accepts
                     'geo_ip_blocks': [
-                        '193.113.0.0/16', '54.36.162.0/23', '159.65.16.0/21'
+                        '193.113.0.0/16', '54.36.162.0/23', '159.65.16.0/21',
                     ],
                     'referrer': url,
                 }),

@@ -32,7 +32,7 @@ class RadioComercialIE(InfoExtractor):
             'thumbnail': r're:https://radiocomercial.pt/upload/[^.]+.jpg',
             'season': 'Season 6',
             'season_number': 6,
-        }
+        },
     }, {
         'url': 'https://radiocomercial.pt/podcasts/convenca-me-num-minuto/t3/convenca-me-num-minuto-que-os-lobisomens-existem',
         'md5': '47e96c273aef96a8eb160cd6cf46d782',
@@ -44,7 +44,7 @@ class RadioComercialIE(InfoExtractor):
             'thumbnail': r're:https://radiocomercial.pt/upload/[^.]+.jpg',
             'season': 'Season 3',
             'season_number': 3,
-        }
+        },
     }, {
         'url': 'https://radiocomercial.pt/podcasts/inacreditavel-by-ines-castel-branco/t2/o-desastre-de-aviao',
         'md5': '69be64255420fec23b7259955d771e54',
@@ -73,7 +73,7 @@ class RadioComercialIE(InfoExtractor):
             'thumbnail': r're:https://radiocomercial.pt/upload/[^.]+.jpg',
             'season': 'Season 2023',
             'season_number': 2023,
-        }
+        },
     }]
 
     def _real_extract(self, url):
@@ -99,28 +99,28 @@ class RadioComercialPlaylistIE(InfoExtractor):
             'id': 'convenca-me-num-minuto_t3',
             'title': 'Convença-me num Minuto - Temporada 3',
         },
-        'playlist_mincount': 32
+        'playlist_mincount': 32,
     }, {
         'url': 'https://radiocomercial.pt/podcasts/o-homem-que-mordeu-o-cao',
         'info_dict': {
             'id': 'o-homem-que-mordeu-o-cao',
             'title': 'O Homem Que Mordeu o Cão',
         },
-        'playlist_mincount': 19
+        'playlist_mincount': 19,
     }, {
         'url': 'https://radiocomercial.pt/podcasts/as-minhas-coisas-favoritas',
         'info_dict': {
             'id': 'as-minhas-coisas-favoritas',
             'title': 'As Minhas Coisas Favoritas',
         },
-        'playlist_mincount': 131
+        'playlist_mincount': 131,
     }, {
         'url': 'https://radiocomercial.pt/podcasts/tnt-todos-no-top/t2023',
         'info_dict': {
             'id': 'tnt-todos-no-top_t2023',
             'title': 'TNT - Todos No Top - Temporada 2023',
         },
-        'playlist_mincount': 39
+        'playlist_mincount': 39,
     }]
 
     def _entries(self, url, playlist_id):

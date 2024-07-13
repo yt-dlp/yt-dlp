@@ -182,7 +182,7 @@ class WebsocketsRH(WebSocketRequestHandler):
                     address=(socks_proxy_options['addr'], socks_proxy_options['port']),
                     _create_socket_func=functools.partial(
                         create_socks_proxy_socket, (parsed_url.host, parsed_url.port), socks_proxy_options),
-                    **create_conn_kwargs
+                    **create_conn_kwargs,
                 )
 
             elif parsed_proxy_url.scheme in ('http', 'https'):
@@ -200,7 +200,7 @@ class WebsocketsRH(WebSocketRequestHandler):
                 )
         return create_connection(
             address=(parsed_url.host, parsed_url.port),
-            **create_conn_kwargs
+            **create_conn_kwargs,
         )
 
     def _send(self, request):

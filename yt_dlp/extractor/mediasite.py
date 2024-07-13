@@ -1,11 +1,8 @@
 import json
 import re
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-    compat_urlparse,
-)
 from ..utils import (
     ExtractorError,
     float_or_none,
@@ -23,8 +20,8 @@ _ID_RE = r'(?:[0-9a-f]{32,34}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0
 
 
 class MediasiteIE(InfoExtractor):
-    _VALID_URL = r'(?xi)https?://[^/]+/Mediasite/(?:Play|Showcase/[^/#?]+/Presentation)/(?P<id>%s)(?P<query>\?[^#]+|)' % _ID_RE
-    _EMBED_REGEX = [r'(?xi)<iframe\b[^>]+\bsrc=(["\'])(?P<url>(?:(?:https?:)?//[^/]+)?/Mediasite/Play/%s(?:\?.*?)?)\1' % _ID_RE]
+    _VALID_URL = rf'(?xi)https?://[^/]+/Mediasite/(?:Play|Showcase/[^/#?]+/Presentation)/(?P<id>{_ID_RE})(?P<query>\?[^#]+|)'
+    _EMBED_REGEX = [rf'(?xi)<iframe\b[^>]+\bsrc=(["\'])(?P<url>(?:(?:https?:)?//[^/]+)?/Mediasite/Play/{_ID_RE}(?:\?.*?)?)\1']
     _TESTS = [
         {
             'url': 'https://hitsmediaweb.h-its.org/mediasite/Play/2db6c271681e4f199af3c60d1f82869b1d',
@@ -86,7 +83,7 @@ class MediasiteIE(InfoExtractor):
                 'upload_date': '20120409',
                 'timestamp': 1333983600,
                 'duration': 7794,
-            }
+            },
         },
         {
             'url': 'https://collegerama.tudelft.nl/Mediasite/Showcase/livebroadcast/Presentation/ada7020854f743c49fbb45c9ec7dbb351d',
@@ -100,7 +97,7 @@ class MediasiteIE(InfoExtractor):
             # dashed id
             'url': 'https://hitsmediaweb.h-its.org/mediasite/Play/2db6c271-681e-4f19-9af3-c60d1f82869b1d',
             'only_matching': True,
-        }
+        },
     ]
 
     # look in Mediasite.Core.js (Mediasite.ContentStreamType[*])
@@ -117,16 +114,16 @@ class MediasiteIE(InfoExtractor):
         for embed_url in super()._extract_embed_urls(url, webpage):
             yield smuggle_url(embed_url, {'UrlReferrer': url})
 
-    def __extract_slides(self, *, stream_id, snum, Stream, duration, images):
-        slide_base_url = Stream['SlideBaseUrl']
+    def __extract_slides(self, *, stream_id, snum, stream, duration, images):
+        slide_base_url = stream['SlideBaseUrl']
 
-        fname_template = Stream['SlideImageFileNameTemplate']
+        fname_template = stream['SlideImageFileNameTemplate']
         if fname_template != 'slide_{0:D4}.jpg':
             self.report_warning('Unusual slide file name template; report a bug if slide downloading fails')
         fname_template = re.sub(r'\{0:D([0-9]+)\}', r'{0:0\1}', fname_template)
 
         fragments = []
-        for i, slide in enumerate(Stream['Slides']):
+        for i, slide in enumerate(stream['Slides']):
             if i == 0:
                 if slide['Time'] > 0:
                     default_slide = images.get('DefaultSlide')
@@ -141,18 +138,18 @@ class MediasiteIE(InfoExtractor):
                         })
 
             next_time = try_call(
-                lambda: Stream['Slides'][i + 1]['Time'],
+                lambda: stream['Slides'][i + 1]['Time'],
                 lambda: duration,
                 lambda: slide['Time'],
                 expected_type=(int, float))
 
             fragments.append({
                 'path': fname_template.format(slide.get('Number', i + 1)),
-                'duration': (next_time - slide['Time']) / 1000
+                'duration': (next_time - slide['Time']) / 1000,
             })
 
         return {
-            'format_id': '%s-%u.slides' % (stream_id, snum),
+            'format_id': f'{stream_id}-{snum}.slides',
             'ext': 'mhtml',
             'url': slide_base_url,
             'protocol': 'mhtml',
@@ -173,12 +170,12 @@ class MediasiteIE(InfoExtractor):
         redirect_url = urlh.url
 
         # XXX: might have also extracted UrlReferrer and QueryString from the html
-        service_path = compat_urlparse.urljoin(redirect_url, self._html_search_regex(
+        service_path = urllib.parse.urljoin(redirect_url, self._html_search_regex(
             r'<div[^>]+\bid=["\']ServicePath[^>]+>(.+?)</div>', webpage, resource_id,
             default='/Mediasite/PlayerService/PlayerService.svc/json'))
 
         player_options = self._download_json(
-            '%s/GetPlayerOptions' % service_path, resource_id,
+            f'{service_path}/GetPlayerOptions', resource_id,
             headers={
                 'Content-type': 'application/json; charset=utf-8',
                 'X-Requested-With': 'XMLHttpRequest',
@@ -189,25 +186,25 @@ class MediasiteIE(InfoExtractor):
                     'QueryString': query,
                     'UrlReferrer': data.get('UrlReferrer', ''),
                     'UseScreenReader': False,
-                }
-            }).encode('utf-8'))['d']
+                },
+            }).encode())['d']
 
         presentation = player_options['Presentation']
         title = presentation['Title']
 
         if presentation is None:
             raise ExtractorError(
-                'Mediasite says: %s' % player_options['PlayerPresentationStatusMessage'],
+                'Mediasite says: {}'.format(player_options['PlayerPresentationStatusMessage']),
                 expected=True)
 
         thumbnails = []
         formats = []
-        for snum, Stream in enumerate(presentation['Streams']):
-            stream_type = Stream.get('StreamType')
+        for snum, stream in enumerate(presentation['Streams']):
+            stream_type = stream.get('StreamType')
             if stream_type is None:
                 continue
 
-            video_urls = Stream.get('VideoUrls')
+            video_urls = stream.get('VideoUrls')
             if not isinstance(video_urls, list):
                 video_urls = []
 
@@ -215,36 +212,36 @@ class MediasiteIE(InfoExtractor):
                 stream_type, 'type%u' % stream_type)
 
             stream_formats = []
-            for unum, VideoUrl in enumerate(video_urls):
-                video_url = url_or_none(VideoUrl.get('Location'))
+            for unum, video_url in enumerate(video_urls):
+                video_url = url_or_none(video_url.get('Location'))
                 if not video_url:
                     continue
                 # XXX: if Stream.get('CanChangeScheme', False), switch scheme to HTTP/HTTPS
 
-                media_type = VideoUrl.get('MediaType')
+                media_type = video_url.get('MediaType')
                 if media_type == 'SS':
                     stream_formats.extend(self._extract_ism_formats(
                         video_url, resource_id,
-                        ism_id='%s-%u.%u' % (stream_id, snum, unum),
+                        ism_id=f'{stream_id}-{snum}.{unum}',
                         fatal=False))
                 elif media_type == 'Dash':
                     stream_formats.extend(self._extract_mpd_formats(
                         video_url, resource_id,
-                        mpd_id='%s-%u.%u' % (stream_id, snum, unum),
+                        mpd_id=f'{stream_id}-{snum}.{unum}',
                         fatal=False))
                 else:
                     stream_formats.append({
-                        'format_id': '%s-%u.%u' % (stream_id, snum, unum),
+                        'format_id': f'{stream_id}-{snum}.{unum}',
                         'url': video_url,
-                        'ext': mimetype2ext(VideoUrl.get('MimeType')),
+                        'ext': mimetype2ext(video_url.get('MimeType')),
                     })
 
-            if Stream.get('HasSlideContent', False):
+            if stream.get('HasSlideContent', False):
                 images = player_options['PlayerLayoutOptions']['Images']
                 stream_formats.append(self.__extract_slides(
                     stream_id=stream_id,
                     snum=snum,
-                    Stream=Stream,
+                    stream=stream,
                     duration=presentation.get('Duration'),
                     images=images,
                 ))
@@ -254,10 +251,10 @@ class MediasiteIE(InfoExtractor):
                 for fmt in stream_formats:
                     fmt['quality'] = -10
 
-            thumbnail_url = Stream.get('ThumbnailUrl')
+            thumbnail_url = stream.get('ThumbnailUrl')
             if thumbnail_url:
                 thumbnails.append({
-                    'id': '%s-%u' % (stream_id, snum),
+                    'id': f'{stream_id}-{snum}',
                     'url': urljoin(redirect_url, thumbnail_url),
                     'preference': -1 if stream_type != 0 else 0,
                 })
@@ -278,15 +275,15 @@ class MediasiteIE(InfoExtractor):
 
 
 class MediasiteCatalogIE(InfoExtractor):
-    _VALID_URL = r'''(?xi)
+    _VALID_URL = rf'''(?xi)
                         (?P<url>https?://[^/]+/Mediasite)
                         /Catalog/Full/
-                        (?P<catalog_id>{0})
+                        (?P<catalog_id>{_ID_RE})
                         (?:
-                            /(?P<current_folder_id>{0})
-                            /(?P<root_dynamic_folder_id>{0})
+                            /(?P<current_folder_id>{_ID_RE})
+                            /(?P<root_dynamic_folder_id>{_ID_RE})
                         )?
-                    '''.format(_ID_RE)
+                    '''
     _TESTS = [{
         'url': 'http://events7.mediasite.com/Mediasite/Catalog/Full/631f9e48530d454381549f955d08c75e21',
         'info_dict': {
@@ -368,7 +365,7 @@ class MediasiteCatalogIE(InfoExtractor):
             headers[anti_forgery_header] = anti_forgery_token
 
         catalog = self._download_json(
-            '%s/Catalog/Data/GetPresentationsForFolder' % mediasite_url,
+            f'{mediasite_url}/Catalog/Data/GetPresentationsForFolder',
             catalog_id, data=json.dumps(data).encode(), headers=headers)
 
         entries = []
@@ -379,13 +376,13 @@ class MediasiteCatalogIE(InfoExtractor):
             if not video_id:
                 continue
             entries.append(self.url_result(
-                '%s/Play/%s' % (mediasite_url, video_id),
+                f'{mediasite_url}/Play/{video_id}',
                 ie=MediasiteIE.ie_key(), video_id=video_id))
 
         title = try_get(
-            catalog, lambda x: x['CurrentFolder']['Name'], compat_str)
+            catalog, lambda x: x['CurrentFolder']['Name'], str)
 
-        return self.playlist_result(entries, catalog_id, title,)
+        return self.playlist_result(entries, catalog_id, title)
 
 
 class MediasiteNamedCatalogIE(InfoExtractor):
@@ -403,8 +400,8 @@ class MediasiteNamedCatalogIE(InfoExtractor):
         webpage = self._download_webpage(url, catalog_name)
 
         catalog_id = self._search_regex(
-            r'CatalogId\s*:\s*["\'](%s)' % _ID_RE, webpage, 'catalog id')
+            rf'CatalogId\s*:\s*["\']({_ID_RE})', webpage, 'catalog id')
 
         return self.url_result(
-            '%s/Catalog/Full/%s' % (mediasite_url, catalog_id),
+            f'{mediasite_url}/Catalog/Full/{catalog_id}',
             ie=MediasiteCatalogIE.ie_key(), video_id=catalog_id)

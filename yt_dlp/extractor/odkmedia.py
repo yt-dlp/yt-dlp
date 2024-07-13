@@ -24,7 +24,7 @@ class OnDemandChinaEpisodeIE(InfoExtractor):
             'thumbnail': 'https://d2y2efdi5wgkcl.cloudfront.net/fit-in/256x256/media-io/2020/9/11/image.d9816e81.jpg',
             'description': '疫情严峻，党政军民学、东西南北中协同应考',
             'tags': ['Social Humanities', 'Documentary', 'Medical', 'Social'],
-        }
+        },
     }]
 
     _QUERY = '''
@@ -101,5 +101,5 @@ class OnDemandChinaEpisodeIE(InfoExtractor):
                 or self._html_search_meta(['og:description', 'twitter:description', 'description'], webpage)),
             'formats': formats,
             'subtitles': subtitles,
-            'tags': try_call(lambda: self._html_search_meta('keywords', webpage).split(', '))
+            'tags': try_call(lambda: self._html_search_meta('keywords', webpage).split(', ')),
         }

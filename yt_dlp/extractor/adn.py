@@ -7,7 +7,6 @@ import time
 
 from .common import InfoExtractor
 from ..aes import aes_cbc_decrypt_bytes, unpad_pkcs7
-from ..compat import compat_b64decode
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
@@ -111,9 +110,9 @@ class ADNIE(ADNBaseIE):
 
         # http://animationdigitalnetwork.fr/components/com_vodvideo/videojs/adn-vjs.min.js
         dec_subtitles = unpad_pkcs7(aes_cbc_decrypt_bytes(
-            compat_b64decode(enc_subtitles[24:]),
+            base64.b64decode(enc_subtitles[24:]),
             binascii.unhexlify(self._K + '7fac1178830cfe0c'),
-            compat_b64decode(enc_subtitles[:24])))
+            base64.b64decode(enc_subtitles[:24])))
         subtitles_json = self._parse_json(dec_subtitles.decode(), None, fatal=False)
         if not subtitles_json:
             return None
@@ -136,7 +135,7 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
                 if start is None or end is None or text is None:
                     continue
                 alignment = self._POS_ALIGN_MAP.get(position_align, 2) + self._LINE_ALIGN_MAP.get(line_align, 0)
-                ssa += os.linesep + 'Dialogue: Marked=0,%s,%s,Default,,0,0,0,,%s%s' % (
+                ssa += os.linesep + 'Dialogue: Marked=0,{},{},Default,,0,0,0,,{}{}'.format(
                     ass_subtitles_timecode(start),
                     ass_subtitles_timecode(end),
                     '{\\a%d}' % alignment if alignment != 2 else '',
@@ -178,7 +177,7 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
 
     def _real_extract(self, url):
         lang, video_id = self._match_valid_url(url).group('lang', 'id')
-        video_base_url = self._PLAYER_BASE_URL + 'video/%s/' % video_id
+        video_base_url = self._PLAYER_BASE_URL + f'video/{video_id}/'
         player = self._download_json(
             video_base_url + 'configuration', video_id,
             'Downloading player config JSON metadata',
@@ -219,12 +218,12 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
                     links_url, video_id, 'Downloading links JSON metadata', headers={
                         'X-Player-Token': authorization,
                         'X-Target-Distribution': lang,
-                        **self._HEADERS
+                        **self._HEADERS,
                     }, query={
                         'freeWithAds': 'true',
                         'adaptive': 'false',
                         'withMetadata': 'true',
-                        'source': 'Web'
+                        'source': 'Web',
                     })
                 break
             except ExtractorError as e:
@@ -256,7 +255,7 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
             for quality, load_balancer_url in qualities.items():
                 load_balancer_data = self._download_json(
                     load_balancer_url, video_id,
-                    'Downloading %s %s JSON metadata' % (format_id, quality),
+                    f'Downloading {format_id} {quality} JSON metadata',
                     fatal=False) or {}
                 m3u8_url = load_balancer_data.get('location')
                 if not m3u8_url:
@@ -276,7 +275,7 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
             self.raise_login_required('This video requires a subscription', method='password')
 
         video = (self._download_json(
-            self._API_BASE_URL + 'video/%s' % video_id, video_id,
+            self._API_BASE_URL + f'video/{video_id}', video_id,
             'Downloading additional video metadata', fatal=False) or {}).get('video') or {}
         show = video.get('show') or {}
 
@@ -320,7 +319,7 @@ class ADNSeasonIE(ADNBaseIE):
             f'{self._API_BASE_URL}video/show/{show_id}', video_show_slug,
             'Downloading episode list', headers={
                 'X-Target-Distribution': lang,
-                **self._HEADERS
+                **self._HEADERS,
             }, query={
                 'order': 'asc',
                 'limit': '-1',

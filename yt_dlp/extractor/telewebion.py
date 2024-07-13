@@ -72,7 +72,7 @@ class TelewebionIE(InfoExtractor):
         result = self._download_json('https://graph.telewebion.com/graphql', video_id, note, data=json.dumps({
             'operationName': operation,
             'query': f'query {operation}{parameters} @cacheControl(maxAge: 60) {{{query}\n}}\n',
-            'variables': {name: value for name, (_, value) in (variables or {}).items()}
+            'variables': {name: value for name, (_, value) in (variables or {}).items()},
         }, separators=(',', ':')).encode(), headers={
             'Content-Type': 'application/json',
             'Accept': 'application/json',

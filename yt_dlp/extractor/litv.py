@@ -113,7 +113,7 @@ class LiTVIE(InfoExtractor):
                 endpoint = 'getMainUrlNoAuth'
             video_data = self._download_json(
                 f'https://www.litv.tv/vod/ajax/{endpoint}', video_id,
-                data=json.dumps(payload).encode('utf-8'),
+                data=json.dumps(payload).encode(),
                 headers={'Content-Type': 'application/json'})
 
         if not video_data.get('fullpath'):
@@ -121,8 +121,8 @@ class LiTVIE(InfoExtractor):
             if error_msg == 'vod.error.outsideregionerror':
                 self.raise_geo_restricted('This video is available in Taiwan only')
             if error_msg:
-                raise ExtractorError('%s said: %s' % (self.IE_NAME, error_msg), expected=True)
-            raise ExtractorError('Unexpected result from %s' % self.IE_NAME)
+                raise ExtractorError(f'{self.IE_NAME} said: {error_msg}', expected=True)
+            raise ExtractorError(f'Unexpected result from {self.IE_NAME}')
 
         formats = self._extract_m3u8_formats(
             video_data['fullpath'], video_id, ext='mp4',
