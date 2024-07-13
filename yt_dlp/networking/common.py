@@ -262,7 +262,7 @@ class RequestHandler(abc.ABC):
         return float(request.extensions.get('timeout') or self.timeout)
 
     def _get_cookiejar(self, request):
-        return request.extensions.get('cookiejar') or self.cookiejar
+        return c if (c := request.extensions.get('cookiejar')) is not None else self.cookiejar
 
     def _get_proxies(self, request):
         return (request.proxies or self.proxies).copy()

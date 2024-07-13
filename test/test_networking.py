@@ -265,6 +265,21 @@ class HTTPTestRequestHandler(http.server.BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(payload)
             self.finish()
+        elif self.path == '/get_cookies':
+            self.send_response(200)
+            self.send_header('Set-Cookie', 'test=ytdlp; path=/')
+            self.end_headers()
+            self.finish()
+        elif self.path == '/get_cookie_domain':
+            self.send_response(200)
+            self.send_header('Set-Cookie', 'test=ytdlp; path=/; domain=127.0.0.1')
+            self.end_headers()
+            self.finish()
+        elif self.path == '/get_cookie_no_domain':
+            self.send_response(200)
+            self.send_header('Set-Cookie', 'test=ytdlp; path=/')
+            self.end_headers()
+            self.finish()
         else:
             self._status(404)
 
@@ -489,6 +504,38 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
             data = validate_and_send(
                 rh, Request(f'http://127.0.0.1:{self.http_port}/headers', extensions={'cookiejar': cookiejar})).read()
             assert b'cookie: test=ytdlp' in data.lower()
+
+    def test_cookie_sync_only_cookiejar(self, handler):
+        # Ensure that cookies are ONLY being handled by the cookiejar
+        with handler() as rh:
+            validate_and_send(rh, Request(f'http://127.0.0.1:{self.http_port}/get_cookie_no_domain', extensions={'cookiejar': YoutubeDLCookieJar()}))
+            data = validate_and_send(rh, Request(f'http://127.0.0.1:{self.http_port}/headers', extensions={'cookiejar': YoutubeDLCookieJar()})).read()
+            assert b'cookie: test=ytdlp' not in data.lower()
+
+    def test_cookie_sync_delete_cookie(self, handler):
+        # Ensure that cookies are ONLY being handled by the cookiejar
+        cookiejar = YoutubeDLCookieJar()
+        with handler(cookiejar=cookiejar) as rh:
+            validate_and_send(rh, Request(f'http://127.0.0.1:{self.http_port}/get_cookie_no_domain'))
+            data = validate_and_send(rh, Request(f'http://127.0.0.1:{self.http_port}/headers')).read()
+            assert b'cookie: test=ytdlp' in data.lower()
+            cookiejar.clear_session_cookies()
+            data = validate_and_send(rh, Request(f'http://127.0.0.1:{self.http_port}/headers')).read()
+            assert b'cookie: test=ytdlp' not in data.lower()
+
+    def test_cookie_domain_specified(self, handler):
+        # Ensure domain_specified is being set correctly
+        # Regression test for https://github.com/yifeikong/curl_cffi/issues/348
+        cookiejar = YoutubeDLCookieJar()
+        with handler(cookiejar=cookiejar) as rh:
+            validate_and_send(rh, Request(f'http://127.0.0.1:{self.http_port}/get_cookie_domain'))
+        assert cookiejar.get_cookies_for_url('http://127.0.0.1')[0].domain_specified is True
+
+        cookiejar.clear_session_cookies()
+        with handler(cookiejar=cookiejar) as rh:
+            validate_and_send(rh, Request(f'http://127.0.0.1:{self.http_port}/get_cookie_no_domain'))
+
+        assert cookiejar.get_cookies_for_url('http://127.0.0.1')[0].domain_specified is False
 
     def test_headers(self, handler):
 
