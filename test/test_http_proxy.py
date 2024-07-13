@@ -388,7 +388,7 @@ class TestHTTPProxy:
         ('Requests', 'https'),
         ('CurlCFFI', 'https'),
         ('Websockets', 'ws'),
-        ('Websockets', 'wss')
+        ('Websockets', 'wss'),
     ], indirect=True)
 class TestHTTPConnectProxy:
     def test_http_connect_no_auth(self, handler, ctx):
@@ -418,7 +418,7 @@ class TestHTTPConnectProxy:
 
     @pytest.mark.skip_handler(
         'Requests',
-        'bug in urllib3 causes unclosed socket: https://github.com/urllib3/urllib3/issues/3374'
+        'bug in urllib3 causes unclosed socket: https://github.com/urllib3/urllib3/issues/3374',
     )
     def test_http_connect_http_error(self, handler, ctx):
         with ctx.http_server(HTTPConnectProxyHandler, username='http_error', password='test') as server_address:

@@ -9,9 +9,10 @@ from ..utils import (
     join_nonempty,
     parse_duration,
     parse_iso8601,
-    traverse_obj,
     try_get,
+    url_or_none,
 )
+from ..utils.traversal import traverse_obj
 
 
 class MLBBaseIE(InfoExtractor):
@@ -326,15 +327,20 @@ class MLBTVIE(InfoExtractor):
             video_id)['data']['Airings']
 
         formats, subtitles = [], {}
-        for airing in airings:
-            m3u8_url = self._download_json(
+        for airing in traverse_obj(airings, lambda _, v: v['playbackUrls'][0]['href']):
+            format_id = join_nonempty('feedType', 'feedLanguage', from_dict=airing)
+            m3u8_url = traverse_obj(self._download_json(
                 airing['playbackUrls'][0]['href'].format(scenario='browser~csai'), video_id,
-                headers={
+                note=f'Downloading {format_id} stream info JSON',
+                errnote=f'Failed to download {format_id} stream info, skipping',
+                fatal=False, headers={
                     'Authorization': self._access_token,
                     'Accept': 'application/vnd.media-service+json; version=2',
-                })['stream']['complete']
+                }), ('stream', 'complete', {url_or_none}))
+            if not m3u8_url:
+                continue
             f, s = self._extract_m3u8_formats_and_subtitles(
-                m3u8_url, video_id, 'mp4', m3u8_id=join_nonempty(airing.get('feedType'), airing.get('feedLanguage')))
+                m3u8_url, video_id, 'mp4', m3u8_id=format_id, fatal=False)
             formats.extend(f)
             self._merge_subtitles(s, target=subtitles)
 

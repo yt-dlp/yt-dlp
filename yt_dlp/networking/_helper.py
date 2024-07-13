@@ -314,7 +314,7 @@ def create_http_connect_connection(
 
     if username is not None or password is not None:
         proxy_headers['Proxy-Authorization'] = 'Basic ' + base64.b64encode(
-            f'{username or ""}:{password or ""}'.encode('utf-8')).decode('utf-8')
+            f'{username or ""}:{password or ""}'.encode()).decode('utf-8')
 
     conn = HTTPConnection(proxy_host, port=proxy_port, timeout=timeout)
     conn.set_debuglevel(int(debug))

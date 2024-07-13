@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import contextlib
+import functools
 import io
 import logging
 import ssl
@@ -24,7 +25,6 @@ from .exceptions import (
     UnsupportedRequest,
 )
 from .websocket import WebSocketRequestHandler, WebSocketResponse
-from ..compat import functools
 from ..dependencies import urllib3, websockets
 from ..socks import ProxyError as SocksProxyError
 from ..utils import int_or_none
@@ -171,7 +171,7 @@ class WebsocketsRH(WebSocketRequestHandler):
     def _make_sock(self, proxy, url, timeout):
         create_conn_kwargs = {
             'source_address': (self.source_address, 0) if self.source_address else None,
-            'timeout': timeout
+            'timeout': timeout,
         }
         parsed_url = parse_uri(url)
         parsed_proxy_url = urllib.parse.urlparse(proxy)
@@ -259,6 +259,7 @@ if urllib3_supported:
         """
         Modified version of urllib3 SSLTransport to support additional operations used by websockets
         """
+
         def setsockopt(self, *args, **kwargs):
             self.socket.setsockopt(*args, **kwargs)
 
@@ -281,6 +282,7 @@ class WebsocketsSSLContext:
     Dummy SSL Context for websockets which returns a WebsocketsSSLTransport instance
     for wrap socket when using TLS-in-TLS.
     """
+
     def __init__(self, ssl_context: ssl.SSLContext):
         self.ssl_context = ssl_context
 

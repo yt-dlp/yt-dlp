@@ -53,7 +53,10 @@ dependencies = [
 
 [project.optional-dependencies]
 default = []
-curl-cffi = ["curl-cffi==0.5.10; implementation_name=='cpython'"]
+curl-cffi = [
+    "curl-cffi==0.5.10; os_name=='nt' and implementation_name=='cpython'",
+    "curl-cffi>=0.5.10,!=0.6.*,<0.8; os_name!='nt' and implementation_name=='cpython'",
+]
 secretstorage = [
     "cffi",
     "secretstorage",
@@ -72,7 +75,7 @@ dev = [
 ]
 static-analysis = [
     "autopep8~=2.0",
-    "ruff~=0.4.4",
+    "ruff~=0.5.0",
 ]
 test = [
     "pytest~=8.1",
@@ -211,6 +214,7 @@ ignore = [
     "TD002",   # missing-todo-author
     "TD003",   # missing-todo-link
     "PLE0604", # invalid-all-object (false positives)
+    "PLE0643", # potential-index-error (false positives)
     "PLW0603", # global-statement
     "PLW1510", # subprocess-run-without-check
     "PLW2901", # redefined-loop-name
@@ -298,7 +302,7 @@ banned-from = [
     "string",
     "sys",
     "time",
-    "urllib",
+    "urllib.parse",
     "uuid",
     "xml",
 ]
