@@ -462,6 +462,7 @@ def create_parser():
             'the STREAM (stdout or stderr) to apply the setting to. '
             'Can be one of "always", "auto" (default), "never", or '
             '"no_color" (use non color terminal sequences). '
+            'Use "auto-tty" or "no_color-tty" to ignore the NO_COLOR environment variable. '
             'Can be used multiple times'))
     general.add_option(
         '--compat-options',
