@@ -118,6 +118,7 @@ class WebsocketsRH(WebSocketRequestHandler):
         super()._check_extensions(extensions)
         extensions.pop('timeout', None)
         extensions.pop('cookiejar', None)
+        extensions.pop('legacy_ssl', None)
 
     def close(self):
         # Remove the logging handler that contains a reference to our logger
@@ -154,13 +155,14 @@ class WebsocketsRH(WebSocketRequestHandler):
                     address=(wsuri.host, wsuri.port),
                     **create_conn_kwargs,
                 )
+            ssl_ctx = self._make_sslcontext(legacy_ssl_support=request.extensions.get('legacy_ssl'))
             conn = websockets.sync.client.connect(
                 sock=sock,
                 uri=request.url,
                 additional_headers=headers,
                 open_timeout=timeout,
                 user_agent_header=None,
-                ssl_context=self._make_sslcontext() if wsuri.secure else None,
+                ssl_context=ssl_ctx if wsuri.secure else None,
                 close_timeout=0,  # not ideal, but prevents yt-dlp hanging
             )
             return WebsocketsResponseAdapter(conn, url=request.url)
