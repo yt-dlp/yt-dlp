@@ -3168,11 +3168,12 @@ class YoutubeDL:
 
         if test:
             verbose = self.params.get('verbose')
+            quiet = self.params.get('quiet') or not verbose
             params = {
                 'test': True,
-                'quiet': self.params.get('quiet') or not verbose,
+                'quiet': quiet,
                 'verbose': verbose,
-                'noprogress': not verbose,
+                'noprogress': quiet,
                 'nopart': True,
                 'skip_unavailable_fragments': False,
                 'keep_fragments': False,
