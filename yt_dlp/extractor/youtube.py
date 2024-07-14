@@ -3704,12 +3704,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     def _extract_player_responses(self, clients, video_id, webpage, master_ytcfg, smuggled_data):
         initial_pr = ignore_initial_response = None
         if webpage:
-            experiments = traverse_obj(master_ytcfg, (
-                'WEB_PLAYER_CONTEXT_CONFIGS', ..., 'serializedExperimentIds', {lambda x: x.split(',')}, ...))
-            if 'web' in clients and all(x in experiments for x in self._POTOKEN_EXPERIMENTS):
-                self.report_warning(
-                    'Webpage contains broken formats (poToken experiment detected). Ignoring initial player response')
-                ignore_initial_response = True
+            if 'web' in clients:
+                experiments = traverse_obj(master_ytcfg, (
+                    'WEB_PLAYER_CONTEXT_CONFIGS', ..., 'serializedExperimentIds', {lambda x: x.split(',')}, ...))
+                if all(x in experiments for x in self._POTOKEN_EXPERIMENTS):
+                    self.report_warning(
+                        'Webpage contains broken formats (poToken experiment detected). Ignoring initial player response')
+                    ignore_initial_response = True
             initial_pr = self._search_json(
                 self._YT_INITIAL_PLAYER_RESPONSE_RE, webpage, 'initial player response', video_id, fatal=False)
 
