@@ -78,7 +78,7 @@ class EpidemicSoundIE(InfoExtractor):
     def _real_extract(self, url):
         video_id, is_sfx = self._match_valid_url(url).group('id', 'sfx')
         json_data = self._download_json(join_nonempty(
-            'https://www.epidemicsound.com/json/track'
+            'https://www.epidemicsound.com/json/track',
             is_sfx and 'kosmos-id', video_id, delim='/'), video_id)
 
         thumbnails = traverse_obj(json_data, [('imageUrl', 'cover')])
