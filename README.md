@@ -1859,6 +1859,9 @@ The following extractors use this feature:
 #### bilibili
 * `prefer_multi_flv`: Prefer extracting flv formats over mp4 for older videos that still provide legacy formats
 
+#### digitalconcerthall
+* `prefer_combined_hls`: Prefer extracting combined/pre-merged video and audio HLS formats. This will exclude 4K/HEVC video and lossless/FLAC audio formats, which are only available as split video/audio HLS formats
+
 **Note**: These options may be changed/removed in the future without concern for backward compatibility
 
 <!-- MANPAGE: MOVE "INSTALLATION" SECTION HERE -->
