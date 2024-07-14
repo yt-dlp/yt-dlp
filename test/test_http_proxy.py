@@ -160,7 +160,7 @@ class WebSocketProxyHandler(BaseRequestHandler):
         import websockets.sync.server
         self.request.settimeout(None)
         protocol = websockets.ServerProtocol()
-        connection = websockets.sync.server.ServerConnection(socket=self.request, protocol=protocol, close_timeout=0)
+        connection = websockets.sync.server.ServerConnection(socket=self.request, protocol=protocol, close_timeout=10)
         connection.handshake()
         for message in connection:
             if message == 'proxy_info':
@@ -241,7 +241,7 @@ def proxy_server(proxy_server_class, request_handler, bind_ip=None, **proxy_serv
             yield f'{bind_address}:{server_port}'
     finally:
         server.shutdown()
-        server.server_close()
+        server_thread.join()
 
 
 class HTTPProxyTestContext(abc.ABC):
