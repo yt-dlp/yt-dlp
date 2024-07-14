@@ -8,7 +8,7 @@ import re
 import socket
 import warnings
 
-from ..dependencies import brotli, requests, urllib3
+from ..dependencies import requests, urllib3
 from ..utils import bug_reports_message, int_or_none, variadic
 from ..utils.networking import normalize_url
 
@@ -59,12 +59,7 @@ from .exceptions import (
 )
 from ..socks import ProxyError as SocksProxyError
 
-SUPPORTED_ENCODINGS = [
-    'gzip', 'deflate',
-]
-
-if brotli is not None:
-    SUPPORTED_ENCODINGS.append('br')
+SUPPORTED_ENCODINGS = urllib3.util.request.ACCEPT_ENCODING.split(',')
 
 '''
 Override urllib3's behavior to not convert lower-case percent-encoded characters
@@ -259,7 +254,6 @@ class RequestsRH(RequestHandler, InstanceStoreMixin):
     https://github.com/psf/requests
     """
     _SUPPORTED_URL_SCHEMES = ('http', 'https')
-    _SUPPORTED_ENCODINGS = tuple(SUPPORTED_ENCODINGS)
     _SUPPORTED_PROXY_SCHEMES = ('http', 'https', 'socks4', 'socks4a', 'socks5', 'socks5h')
     _SUPPORTED_FEATURES = (Features.NO_PROXY, Features.ALL_PROXY)
     RH_NAME = 'requests'
