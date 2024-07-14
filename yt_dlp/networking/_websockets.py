@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import contextlib
+import functools
 import io
 import logging
 import ssl
@@ -21,7 +23,6 @@ from .exceptions import (
     TransportError,
 )
 from .websocket import WebSocketRequestHandler, WebSocketResponse
-from ..compat import functools
 from ..dependencies import websockets
 from ..socks import ProxyError as SocksProxyError
 from ..utils import int_or_none
@@ -38,27 +39,40 @@ if websockets_version < (12, 0):
 import websockets.sync.client
 from websockets.uri import parse_uri
 
+# In websockets Connection, recv_exc and recv_events_exc are defined
+# after the recv events handler thread is started [1].
+# On our CI using PyPy, in some cases a race condition may occur
+# where the recv events handler thread tries to use these attributes before they are defined [2].
+# 1: https://github.com/python-websockets/websockets/blame/de768cf65e7e2b1a3b67854fb9e08816a5ff7050/src/websockets/sync/connection.py#L93
+# 2: "AttributeError: 'ClientConnection' object has no attribute 'recv_events_exc'. Did you mean: 'recv_events'?"
+import websockets.sync.connection  # isort: split
+with contextlib.suppress(Exception):
+    # > 12.0
+    websockets.sync.connection.Connection.recv_exc = None
+    # 12.0
+    websockets.sync.connection.Connection.recv_events_exc = None
+
 
 class WebsocketsResponseAdapter(WebSocketResponse):
 
-    def __init__(self, wsw: websockets.sync.client.ClientConnection, url):
+    def __init__(self, ws: websockets.sync.client.ClientConnection, url):
         super().__init__(
-            fp=io.BytesIO(wsw.response.body or b''),
+            fp=io.BytesIO(ws.response.body or b''),
             url=url,
-            headers=wsw.response.headers,
-            status=wsw.response.status_code,
-            reason=wsw.response.reason_phrase,
+            headers=ws.response.headers,
+            status=ws.response.status_code,
+            reason=ws.response.reason_phrase,
         )
-        self.wsw = wsw
+        self._ws = ws
 
     def close(self):
-        self.wsw.close()
+        self._ws.close()
         super().close()
 
     def send(self, message):
         # https://websockets.readthedocs.io/en/stable/reference/sync/client.html#websockets.sync.client.ClientConnection.send
         try:
-            return self.wsw.send(message)
+            return self._ws.send(message)
         except (websockets.exceptions.WebSocketException, RuntimeError, TimeoutError) as e:
             raise TransportError(cause=e) from e
         except SocksProxyError as e:
@@ -69,7 +83,7 @@ class WebsocketsResponseAdapter(WebSocketResponse):
     def recv(self):
         # https://websockets.readthedocs.io/en/stable/reference/sync/client.html#websockets.sync.client.ClientConnection.recv
         try:
-            return self.wsw.recv()
+            return self._ws.recv()
         except SocksProxyError as e:
             raise ProxyError(cause=e) from e
         except (websockets.exceptions.WebSocketException, RuntimeError, TimeoutError) as e:
@@ -104,6 +118,7 @@ class WebsocketsRH(WebSocketRequestHandler):
         super()._check_extensions(extensions)
         extensions.pop('timeout', None)
         extensions.pop('cookiejar', None)
+        extensions.pop('legacy_ssl', None)
 
     def close(self):
         # Remove the logging handler that contains a reference to our logger
@@ -123,7 +138,7 @@ class WebsocketsRH(WebSocketRequestHandler):
         wsuri = parse_uri(request.url)
         create_conn_kwargs = {
             'source_address': (self.source_address, 0) if self.source_address else None,
-            'timeout': timeout
+            'timeout': timeout,
         }
         proxy = select_proxy(request.url, self._get_proxies(request))
         try:
@@ -133,20 +148,21 @@ class WebsocketsRH(WebSocketRequestHandler):
                     address=(socks_proxy_options['addr'], socks_proxy_options['port']),
                     _create_socket_func=functools.partial(
                         create_socks_proxy_socket, (wsuri.host, wsuri.port), socks_proxy_options),
-                    **create_conn_kwargs
+                    **create_conn_kwargs,
                 )
             else:
                 sock = create_connection(
                     address=(wsuri.host, wsuri.port),
-                    **create_conn_kwargs
+                    **create_conn_kwargs,
                 )
+            ssl_ctx = self._make_sslcontext(legacy_ssl_support=request.extensions.get('legacy_ssl'))
             conn = websockets.sync.client.connect(
                 sock=sock,
                 uri=request.url,
                 additional_headers=headers,
                 open_timeout=timeout,
                 user_agent_header=None,
-                ssl_context=self._make_sslcontext() if wsuri.secure else None,
+                ssl_context=ssl_ctx if wsuri.secure else None,
                 close_timeout=0,  # not ideal, but prevents yt-dlp hanging
             )
             return WebsocketsResponseAdapter(conn, url=request.url)

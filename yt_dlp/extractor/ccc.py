@@ -25,7 +25,7 @@ class CCCIE(InfoExtractor):
             'timestamp': 1388188800,
             'duration': 3710,
             'tags': list,
-        }
+        },
     }, {
         'url': 'https://media.ccc.de/v/32c3-7368-shopshifting#download',
         'only_matching': True,
@@ -35,7 +35,7 @@ class CCCIE(InfoExtractor):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
         event_id = self._search_regex(r"data-id='(\d+)'", webpage, 'event id')
-        event_data = self._download_json('https://media.ccc.de/public/events/%s' % event_id, event_id)
+        event_data = self._download_json(f'https://media.ccc.de/public/events/{event_id}', event_id)
 
         formats = []
         for recording in event_data.get('recordings', []):
@@ -96,7 +96,7 @@ class CCCPlaylistIE(InfoExtractor):
             'title': 'Datenspuren 2023',
             'id': 'DS2023',
         },
-        'playlist_count': 37
+        'playlist_count': 37,
     }]
 
     def _real_extract(self, url):

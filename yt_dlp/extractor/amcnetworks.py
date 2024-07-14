@@ -64,8 +64,8 @@ class AMCNetworksIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
         site, display_id = self._match_valid_url(url).groups()
         requestor_id = self._REQUESTOR_ID_MAP[site]
         page_data = self._download_json(
-            'https://content-delivery-gw.svc.ds.amcn.com/api/v2/content/amcn/%s/url/%s'
-            % (requestor_id.lower(), display_id), display_id)['data']
+            f'https://content-delivery-gw.svc.ds.amcn.com/api/v2/content/amcn/{requestor_id.lower()}/url/{display_id}',
+            display_id)['data']
         properties = page_data.get('properties') or {}
         query = {
             'mbr': 'true',
@@ -76,15 +76,15 @@ class AMCNetworksIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
         try:
             for v in page_data['children']:
                 if v.get('type') == 'video-player':
-                    releasePid = v['properties']['currentVideo']['meta']['releasePid']
-                    tp_path = 'M_UwQC/' + releasePid
+                    release_pid = v['properties']['currentVideo']['meta']['releasePid']
+                    tp_path = 'M_UwQC/' + release_pid
                     media_url = 'https://link.theplatform.com/s/' + tp_path
                     video_player_count += 1
         except KeyError:
             pass
         if video_player_count > 1:
             self.report_warning(
-                'The JSON data has %d video players. Only one will be extracted' % video_player_count)
+                f'The JSON data has {video_player_count} video players. Only one will be extracted')
 
         # Fall back to videoPid if releasePid not found.
         # TODO: Fall back to videoPid if releasePid manifest uses DRM.
@@ -131,7 +131,7 @@ class AMCNetworksIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
         })
         ns_keys = theplatform_metadata.get('$xmlns', {}).keys()
         if ns_keys:
-            ns = list(ns_keys)[0]
+            ns = next(iter(ns_keys))
             episode = theplatform_metadata.get(ns + '$episodeTitle') or None
             episode_number = int_or_none(
                 theplatform_metadata.get(ns + '$episode'))

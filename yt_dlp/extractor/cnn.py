@@ -26,7 +26,7 @@ class CNNIE(TurnerBaseIE):
             'id': 'us/2013/08/21/sot-student-gives-epic-speech.georgia-institute-of-technology',
             'ext': 'mp4',
             'title': "Student's epic speech stuns new freshmen",
-            'description': "A Georgia Tech student welcomes the incoming freshmen with an epic speech backed by music from \"2001: A Space Odyssey.\"",
+            'description': 'A Georgia Tech student welcomes the incoming freshmen with an epic speech backed by music from "2001: A Space Odyssey."',
             'upload_date': '20130821',
         },
         'expected_warnings': ['Failed to download m3u8 information'],
@@ -161,7 +161,7 @@ class CNNIndonesiaIE(InfoExtractor):
             'release_timestamp': 1662859088,
             'release_date': '20220911',
             'uploader': 'Asfahan Yahsyi',
-        }
+        },
     }, {
         'url': 'https://www.cnnindonesia.com/internasional/20220911104341-139-846189/video-momen-charles-disambut-meriah-usai-dilantik-jadi-raja-inggris',
         'info_dict': {
@@ -178,7 +178,7 @@ class CNNIndonesiaIE(InfoExtractor):
             'release_date': '20220911',
             'uploader': 'REUTERS',
             'release_timestamp': 1662869995,
-        }
+        },
     }]
 
     def _real_extract(self, url):
@@ -194,5 +194,5 @@ class CNNIndonesiaIE(InfoExtractor):
             '_type': 'url_transparent',
             'url': embed_url,
             'upload_date': upload_date,
-            'tags': try_call(lambda: self._html_search_meta('keywords', webpage).split(', '))
+            'tags': try_call(lambda: self._html_search_meta('keywords', webpage).split(', ')),
         })

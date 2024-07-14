@@ -1,7 +1,7 @@
 import base64
+import datetime as dt
 import functools
 import itertools
-from datetime import datetime
 
 from .common import InfoExtractor
 from ..networking import HEADRequest
@@ -45,11 +45,11 @@ class TenPlayIE(InfoExtractor):
             'timestamp': 1600770600,
             'upload_date': '20200922',
             'uploader': 'Channel 10',
-            'uploader_id': '2199827728001'
+            'uploader_id': '2199827728001',
         },
         'params': {
             'skip_download': True,
-        }
+        },
     }, {
         'url': 'https://10play.com.au/how-to-stay-married/web-extras/season-1/terrys-talks-ep-1-embracing-change/tpv190915ylupc',
         'only_matching': True,
@@ -63,14 +63,14 @@ class TenPlayIE(InfoExtractor):
         'MA': 15,
         'MA15+': 15,
         'R': 18,
-        'X': 18
+        'X': 18,
     }
 
     def _get_bearer_token(self, video_id):
         username, password = self._get_login_info()
         if username is None or password is None:
             self.raise_login_required('Your 10play account\'s details must be provided with --username and --password.')
-        _timestamp = datetime.now().strftime('%Y%m%d000000')
+        _timestamp = dt.datetime.now().strftime('%Y%m%d000000')
         _auth_header = base64.b64encode(_timestamp.encode('ascii')).decode('ascii')
         data = self._download_json('https://10play.com.au/api/user/auth', video_id, 'Getting bearer token', headers={
             'X-Network-Ten-Auth': _auth_header,

@@ -37,7 +37,7 @@ class ChaturbateIE(InfoExtractor):
         video_id = self._match_id(url)
 
         webpage = self._download_webpage(
-            'https://chaturbate.com/%s/' % video_id, video_id,
+            f'https://chaturbate.com/{video_id}/', video_id,
             headers=self.geo_verification_headers())
 
         found_m3u8_urls = []
@@ -85,7 +85,7 @@ class ChaturbateIE(InfoExtractor):
         formats = []
         for m3u8_url in m3u8_urls:
             for known_id in ('fast', 'slow'):
-                if '_%s' % known_id in m3u8_url:
+                if f'_{known_id}' in m3u8_url:
                     m3u8_id = known_id
                     break
             else:
@@ -99,7 +99,7 @@ class ChaturbateIE(InfoExtractor):
         return {
             'id': video_id,
             'title': video_id,
-            'thumbnail': 'https://roomimg.stream.highwebmedia.com/ri/%s.jpg' % video_id,
+            'thumbnail': f'https://roomimg.stream.highwebmedia.com/ri/{video_id}.jpg',
             'age_limit': self._rta_search(webpage),
             'is_live': True,
             'formats': formats,

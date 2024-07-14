@@ -1,8 +1,6 @@
+import urllib.parse
+
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-    compat_urlparse,
-)
 from ..utils import (
     int_or_none,
     qualities,
@@ -60,12 +58,12 @@ class FirstTVIE(InfoExtractor):
         display_id = self._match_id(url)
 
         webpage = self._download_webpage(url, display_id)
-        playlist_url = compat_urlparse.urljoin(url, self._search_regex(
+        playlist_url = urllib.parse.urljoin(url, self._search_regex(
             r'data-playlist-url=(["\'])(?P<url>(?:(?!\1).)+)\1',
             webpage, 'playlist url', group='url'))
 
-        parsed_url = compat_urlparse.urlparse(playlist_url)
-        qs = compat_urlparse.parse_qs(parsed_url.query)
+        parsed_url = urllib.parse.urlparse(playlist_url)
+        qs = urllib.parse.parse_qs(parsed_url.query)
         item_ids = qs.get('videos_ids[]') or qs.get('news_ids[]')
 
         items = self._download_json(playlist_url, display_id)
@@ -73,12 +71,12 @@ class FirstTVIE(InfoExtractor):
         if item_ids:
             items = [
                 item for item in items
-                if item.get('uid') and compat_str(item['uid']) in item_ids]
+                if item.get('uid') and str(item['uid']) in item_ids]
         else:
             items = [items[0]]
 
         entries = []
-        QUALITIES = ('ld', 'sd', 'hd', )
+        QUALITIES = ('ld', 'sd', 'hd')
 
         for item in items:
             title = item['title']
@@ -116,11 +114,10 @@ class FirstTVIE(InfoExtractor):
                 if len(formats) == 1:
                     m3u8_path = ','
                 else:
-                    tbrs = [compat_str(t) for t in sorted(f['tbr'] for f in formats)]
-                    m3u8_path = '_,%s,%s' % (','.join(tbrs), '.mp4')
+                    tbrs = [str(t) for t in sorted(f['tbr'] for f in formats)]
+                    m3u8_path = '_,{},{}'.format(','.join(tbrs), '.mp4')
                 formats.extend(self._extract_m3u8_formats(
-                    'http://balancer-vod.1tv.ru/%s%s.urlset/master.m3u8'
-                    % (path, m3u8_path),
+                    f'http://balancer-vod.1tv.ru/{path}{m3u8_path}.urlset/master.m3u8',
                     display_id, 'mp4',
                     entry_protocol='m3u8_native', m3u8_id='hls', fatal=False))
 
@@ -131,12 +128,12 @@ class FirstTVIE(InfoExtractor):
                 'ya:ovs:upload_date', webpage, 'upload date', default=None))
 
             entries.append({
-                'id': compat_str(item.get('id') or item['uid']),
+                'id': str(item.get('id') or item['uid']),
                 'thumbnail': thumbnail,
                 'title': title,
                 'upload_date': upload_date,
                 'duration': int_or_none(duration),
-                'formats': formats
+                'formats': formats,
             })
 
         title = self._html_search_regex(

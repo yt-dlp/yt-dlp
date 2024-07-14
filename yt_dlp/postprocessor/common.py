@@ -79,7 +79,7 @@ class PostProcessor(metaclass=PostProcessorMetaClass):
 
     def to_screen(self, text, prefix=True, *args, **kwargs):
         if self._downloader:
-            tag = '[%s] ' % self.PP_NAME if prefix else ''
+            tag = f'[{self.PP_NAME}] ' if prefix else ''
             return self._downloader.to_screen(f'{tag}{text}', *args, **kwargs)
 
     def report_warning(self, text, *args, **kwargs):
@@ -146,7 +146,7 @@ class PostProcessor(metaclass=PostProcessorMetaClass):
                 if allowed[format_type]:
                     return func(self, info)
                 else:
-                    self.to_screen('Skipping %s' % format_type)
+                    self.to_screen(f'Skipping {format_type}')
                     return [], info
             return wrapper
         return decorator
