@@ -7,6 +7,7 @@ import os
 import random
 import ssl
 import threading
+import time
 from http.server import BaseHTTPRequestHandler
 from socketserver import BaseRequestHandler, ThreadingTCPServer
 
@@ -160,11 +161,15 @@ class WebSocketProxyHandler(BaseRequestHandler):
         self.request.settimeout(None)
         protocol = websockets.ServerProtocol()
         connection = websockets.sync.server.ServerConnection(socket=self.request, protocol=protocol, close_timeout=10)
-        connection.handshake()
-        for message in connection:
-            if message == 'proxy_info':
-                connection.send(json.dumps(self.proxy_info))
-        connection.close()
+        try:
+            connection.handshake()
+            for message in connection:
+                if message == 'proxy_info':
+                    connection.send(json.dumps(self.proxy_info))
+        except Exception as e:
+            print(f'Error in websocket proxy: {e}')
+        finally:
+            connection.close(code=1001)
 
 
 class WebSocketSecureProxyHandler(WebSocketProxyHandler):
@@ -244,13 +249,14 @@ def proxy_server(proxy_server_class, request_handler, bind_ip=None, **proxy_serv
         server_thread.join()
 
 
-
 class HTTPProxyTestContext(abc.ABC):
     REQUEST_HANDLER_CLASS = None
     REQUEST_PROTO = None
 
     def http_server(self, server_class, *args, **kwargs):
-        return proxy_server(server_class, self.REQUEST_HANDLER_CLASS, *args, **kwargs)
+        server = proxy_server(server_class, self.REQUEST_HANDLER_CLASS, *args, **kwargs)
+        time.sleep(1)  # ensure server is up
+        return server
 
     @abc.abstractmethod
     def proxy_info_request(self, handler, target_domain=None, target_port=None, **req_kwargs) -> dict:
