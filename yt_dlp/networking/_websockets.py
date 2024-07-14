@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import contextlib
+import functools
 import io
 import logging
 import ssl
@@ -22,7 +23,6 @@ from .exceptions import (
     TransportError,
 )
 from .websocket import WebSocketRequestHandler, WebSocketResponse
-from ..compat import functools
 from ..dependencies import websockets
 from ..socks import ProxyError as SocksProxyError
 from ..utils import int_or_none
@@ -118,6 +118,7 @@ class WebsocketsRH(WebSocketRequestHandler):
         super()._check_extensions(extensions)
         extensions.pop('timeout', None)
         extensions.pop('cookiejar', None)
+        extensions.pop('legacy_ssl', None)
 
     def close(self):
         # Remove the logging handler that contains a reference to our logger
@@ -137,7 +138,7 @@ class WebsocketsRH(WebSocketRequestHandler):
         wsuri = parse_uri(request.url)
         create_conn_kwargs = {
             'source_address': (self.source_address, 0) if self.source_address else None,
-            'timeout': timeout
+            'timeout': timeout,
         }
         proxy = select_proxy(request.url, self._get_proxies(request))
         try:
@@ -147,20 +148,21 @@ class WebsocketsRH(WebSocketRequestHandler):
                     address=(socks_proxy_options['addr'], socks_proxy_options['port']),
                     _create_socket_func=functools.partial(
                         create_socks_proxy_socket, (wsuri.host, wsuri.port), socks_proxy_options),
-                    **create_conn_kwargs
+                    **create_conn_kwargs,
                 )
             else:
                 sock = create_connection(
                     address=(wsuri.host, wsuri.port),
-                    **create_conn_kwargs
+                    **create_conn_kwargs,
                 )
+            ssl_ctx = self._make_sslcontext(legacy_ssl_support=request.extensions.get('legacy_ssl'))
             conn = websockets.sync.client.connect(
                 sock=sock,
                 uri=request.url,
                 additional_headers=headers,
                 open_timeout=timeout,
                 user_agent_header=None,
-                ssl_context=self._make_sslcontext() if wsuri.secure else None,
+                ssl_context=ssl_ctx if wsuri.secure else None,
                 close_timeout=0,  # not ideal, but prevents yt-dlp hanging
             )
             return WebsocketsResponseAdapter(conn, url=request.url)

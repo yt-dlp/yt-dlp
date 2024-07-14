@@ -61,3 +61,10 @@ You can also find lists of all [contributors of yt-dlp](CONTRIBUTORS) and [autho
 * Reworked internals like `traverse_obj`, various core refactors and bugs fixes
 * Implemented proper progress reporting for parallel downloads
 * Improved/fixed/added Bundestag, crunchyroll, pr0gramm, Twitter, WrestleUniverse etc
+
+
+## [sepro](https://github.com/seproDev)
+
+* UX improvements: Warn when ffmpeg is missing, warn when double-clicking exe
+* Code cleanup: Remove dead extractors, mark extractors as broken, enable/apply ruff rules
+* Improved/fixed/added ArdMediathek, DRTV, Floatplane, MagentaMusik, Naver, Nebula, OnDemandKorea, Vbox7 etc

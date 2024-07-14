@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 import json
 import re
 import urllib.parse
 
 from .common import InfoExtractor
 from .youtube import YoutubeBaseInfoExtractor, YoutubeIE
-from ..compat import compat_urllib_parse_unquote
 from ..networking import HEADRequest
 from ..networking.exceptions import HTTPError
 from ..utils import (
@@ -145,7 +146,7 @@ class ArchiveOrgIE(InfoExtractor):
             'title': 'Bells Of Rostov',
             'ext': 'mp3',
         },
-        'skip': 'restricted'
+        'skip': 'restricted',
     }, {
         'url': 'https://archive.org/details/lp_the-music-of-russia_various-artists-a-askaryan-alexander-melik/disc1/02.02.+Song+And+Chorus+In+The+Polovetsian+Camp+From+%22Prince+Igor%22+(Act+2%2C+Scene+1).mp3',
         'md5': '1d0aabe03edca83ca58d9ed3b493a3c3',
@@ -158,7 +159,7 @@ class ArchiveOrgIE(InfoExtractor):
             'description': 'md5:012b2d668ae753be36896f343d12a236',
             'upload_date': '20190928',
         },
-        'skip': 'restricted'
+        'skip': 'restricted',
     }, {
         # Original formats are private
         'url': 'https://archive.org/details/irelandthemakingofarepublic',
@@ -202,8 +203,8 @@ class ArchiveOrgIE(InfoExtractor):
                     'thumbnail': 'https://archive.org/download/irelandthemakingofarepublic/irelandthemakingofarepublic.thumbs/irelandthemakingofarepublicreel2_001554.jpg',
                     'display_id': 'irelandthemakingofarepublicreel2.mov',
                 },
-            }
-        ]
+            },
+        ],
     }]
 
     @staticmethod
@@ -220,7 +221,7 @@ class ArchiveOrgIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = urllib.parse.unquote_plus(self._match_id(url))
-        identifier, entry_id = (video_id.split('/', 1) + [None])[:2]
+        identifier, _, entry_id = video_id.partition('/')
 
         # Archive.org metadata API doesn't clearly demarcate playlist entries
         # or subtitle tracks, so we get them from the embeddable player.
@@ -246,7 +247,7 @@ class ArchiveOrgIE(InfoExtractor):
                 if track['kind'] != 'subtitles':
                     continue
                 entries[p['orig']][track['label']] = {
-                    'url': 'https://archive.org/' + track['file'].lstrip('/')
+                    'url': 'https://archive.org/' + track['file'].lstrip('/'),
                 }
 
         metadata = self._download_json('http://archive.org/metadata/' + identifier, identifier)
@@ -293,7 +294,9 @@ class ArchiveOrgIE(InfoExtractor):
                     'height': int_or_none(f.get('width')),
                     'filesize': int_or_none(f.get('size'))})
 
-            extension = (f['name'].rsplit('.', 1) + [None])[1]
+            _, has_ext, extension = f['name'].rpartition('.')
+            if not has_ext:
+                extension = None
 
             # We don't want to skip private formats if the user has access to them,
             # however without access to an account with such privileges we can't implement/test this.
@@ -308,7 +311,7 @@ class ArchiveOrgIE(InfoExtractor):
                     'filesize': int_or_none(f.get('size')),
                     'protocol': 'https',
                     'source_preference': 0 if f.get('source') == 'original' else -1,
-                    'format_note': f.get('source')
+                    'format_note': f.get('source'),
                 })
 
         for entry in entries.values():
@@ -371,7 +374,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'uploader_url': 'https://www.youtube.com/user/Zeurel',
                 'thumbnail': r're:https?://.*\.(jpg|webp)',
                 'channel_url': 'https://www.youtube.com/channel/UCukCyHaD-bK3in_pKpfH9Eg',
-            }
+            },
         }, {
             # Internal link
             'url': 'https://web.archive.org/web/2oe/http://wayback-fakeurl.archive.org/yt/97t7Xj_iBv0',
@@ -388,7 +391,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'uploader_url': 'https://www.youtube.com/user/1veritasium',
                 'thumbnail': r're:https?://.*\.(jpg|webp)',
                 'channel_url': 'https://www.youtube.com/channel/UCHnyfMqiRRG1u-2MsSQLbXA',
-            }
+            },
         }, {
             # Video from 2012, webm format itag 45. Newest capture is deleted video, with an invalid description.
             # Should use the date in the link. Title ends with '- Youtube'. Capture has description in eow-description
@@ -403,8 +406,8 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'uploader_id': 'machinima',
                 'uploader_url': 'https://www.youtube.com/user/machinima',
                 'thumbnail': r're:https?://.*\.(jpg|webp)',
-                'uploader': 'machinima'
-            }
+                'uploader': 'machinima',
+            },
         }, {
             # FLV video. Video file URL does not provide itag information
             'url': 'https://web.archive.org/web/20081211103536/http://www.youtube.com/watch?v=jNQXAC9IVRw',
@@ -421,7 +424,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'channel_url': 'https://www.youtube.com/channel/UC4QobU6STFB0P71PMvOGN5A',
                 'thumbnail': r're:https?://.*\.(jpg|webp)',
                 'uploader': 'jawed',
-            }
+            },
         }, {
             'url': 'https://web.archive.org/web/20110712231407/http://www.youtube.com/watch?v=lTx3G6h2xyA',
             'info_dict': {
@@ -437,7 +440,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'uploader_url': 'https://www.youtube.com/user/itsmadeon',
                 'channel_url': 'https://www.youtube.com/channel/UCqMDNf3Pn5L7pcNkuSEeO3w',
                 'thumbnail': r're:https?://.*\.(jpg|webp)',
-            }
+            },
         }, {
             # First capture is of dead video, second is the oldest from CDX response.
             'url': 'https://web.archive.org/https://www.youtube.com/watch?v=1JYutPM8O6E',
@@ -454,7 +457,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'channel_url': 'https://www.youtube.com/channel/UCdIaNUarhzLSXGoItz7BHVA',
                 'thumbnail': r're:https?://.*\.(jpg|webp)',
                 'uploader': 'ETC News',
-            }
+            },
         }, {
             # First capture of dead video, capture date in link links to dead capture.
             'url': 'https://web.archive.org/web/20180803221945/https://www.youtube.com/watch?v=6FPhZJGvf4E',
@@ -473,15 +476,15 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'uploader': 'ETC News',
             },
             'expected_warnings': [
-                r'unable to download capture webpage \(it may not be archived\)'
-            ]
+                r'unable to download capture webpage \(it may not be archived\)',
+            ],
         }, {   # Very old YouTube page, has - YouTube in title.
             'url': 'http://web.archive.org/web/20070302011044/http://youtube.com/watch?v=-06-KB9XTzg',
             'info_dict': {
                 'id': '-06-KB9XTzg',
                 'ext': 'flv',
-                'title': 'New Coin Hack!! 100% Safe!!'
-            }
+                'title': 'New Coin Hack!! 100% Safe!!',
+            },
         }, {
             'url': 'web.archive.org/https://www.youtube.com/watch?v=dWW7qP423y8',
             'info_dict': {
@@ -495,7 +498,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'description': 'md5:7b567f898d8237b256f36c1a07d6d7bc',
                 'thumbnail': r're:https?://.*\.(jpg|webp)',
                 'uploader': 'DankPods',
-            }
+            },
         }, {
             # player response contains '};' See: https://github.com/ytdl-org/youtube-dl/issues/27093
             'url': 'https://web.archive.org/web/20200827003909if_/http://www.youtube.com/watch?v=6Dh-RL__uN4',
@@ -512,7 +515,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'uploader_id': 'PewDiePie',
                 'uploader_url': 'https://www.youtube.com/user/PewDiePie',
                 'thumbnail': r're:https?://.*\.(jpg|webp)',
-            }
+            },
         }, {
             # ~June 2010 Capture. swfconfig
             'url': 'https://web.archive.org/web/0/https://www.youtube.com/watch?v=8XeW5ilk-9Y',
@@ -527,7 +530,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'thumbnail': r're:https?://.*\.(jpg|webp)',
                 'uploader_url': 'https://www.youtube.com/user/HowTheWorldWorks',
                 'upload_date': '20090520',
-            }
+            },
         }, {
             # Jan 2011: watch-video-date/eow-date surrounded by whitespace
             'url': 'https://web.archive.org/web/20110126141719/http://www.youtube.com/watch?v=Q_yjX80U7Yc',
@@ -542,7 +545,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'thumbnail': r're:https?://.*\.(jpg|webp)',
                 'duration': 132,
                 'uploader_url': 'https://www.youtube.com/user/claybutlermusic',
-            }
+            },
         }, {
             # ~May 2009 swfArgs. ytcfg is spread out over various vars
             'url': 'https://web.archive.org/web/0/https://www.youtube.com/watch?v=c5uJgG05xUY',
@@ -557,7 +560,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'description': 'md5:4ca77d79538064e41e4cc464e93f44f0',
                 'thumbnail': r're:https?://.*\.(jpg|webp)',
                 'duration': 754,
-            }
+            },
         }, {
             # ~June 2012. Upload date is in another lang so cannot extract.
             'url': 'https://web.archive.org/web/20120607174520/http://www.youtube.com/watch?v=xWTLLl-dQaA',
@@ -571,7 +574,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'uploader': 'BlackNerdComedy',
                 'duration': 182,
                 'thumbnail': r're:https?://.*\.(jpg|webp)',
-            }
+            },
         }, {
             # ~July 2013
             'url': 'https://web.archive.org/web/*/https://www.youtube.com/watch?v=9eO1aasHyTM',
@@ -587,7 +590,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'channel_url': 'https://www.youtube.com/channel/UC62R2cBezNBOqxSerfb1nMQ',
                 'upload_date': '20060428',
                 'uploader': 'punkybird',
-            }
+            },
         }, {
             # April 2020: Player response in player config
             'url': 'https://web.archive.org/web/20200416034815/https://www.youtube.com/watch?v=Cf7vS8jc7dY&gl=US&hl=en',
@@ -604,7 +607,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'thumbnail': r're:https?://.*\.(jpg|webp)',
                 'description': 'md5:c625bb3c02c4f5fb4205971e468fa341',
                 'uploader_url': 'https://www.youtube.com/user/GameGrumps',
-            }
+            },
         }, {
             # watch7-user-header with yt-user-info
             'url': 'ytarchive:kbh4T_b4Ixw:20160307085057',
@@ -619,7 +622,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'thumbnail': r're:https?://.*\.(jpg|webp)',
                 'upload_date': '20150503',
                 'channel_id': 'UCnTaGvsHmMy792DWeT6HbGA',
-            }
+            },
         }, {
             # April 2012
             'url': 'https://web.archive.org/web/0/https://www.youtube.com/watch?v=SOm7mPoPskU',
@@ -634,35 +637,35 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'duration': 200,
                 'upload_date': '20120407',
                 'uploader_id': 'thecomputernerd01',
-            }
+            },
         }, {
             'url': 'https://web.archive.org/web/http://www.youtube.com/watch?v=kH-G_aIBlFw',
-            'only_matching': True
+            'only_matching': True,
         }, {
             'url': 'https://web.archive.org/web/20050214000000_if/http://www.youtube.com/watch?v=0altSZ96U4M',
-            'only_matching': True
+            'only_matching': True,
         }, {
             # Video not archived, only capture is unavailable video page
             'url': 'https://web.archive.org/web/20210530071008/https://www.youtube.com/watch?v=lHJTf93HL1s&spfreload=10',
-            'only_matching': True
+            'only_matching': True,
         }, {   # Encoded url
             'url': 'https://web.archive.org/web/20120712231619/http%3A//www.youtube.com/watch%3Fgl%3DUS%26v%3DAkhihxRKcrs%26hl%3Den',
-            'only_matching': True
+            'only_matching': True,
         }, {
             'url': 'https://web.archive.org/web/20120712231619/http%3A//www.youtube.com/watch%3Fv%3DAkhihxRKcrs%26gl%3DUS%26hl%3Den',
-            'only_matching': True
+            'only_matching': True,
         }, {
             'url': 'https://web.archive.org/web/20060527081937/http://www.youtube.com:80/watch.php?v=ELTFsLT73fA&amp;search=soccer',
-            'only_matching': True
+            'only_matching': True,
         }, {
             'url': 'https://web.archive.org/http://www.youtube.com:80/watch?v=-05VVye-ffg',
-            'only_matching': True
+            'only_matching': True,
         }, {
             'url': 'ytarchive:BaW_jenozKc:20050214000000',
-            'only_matching': True
+            'only_matching': True,
         }, {
             'url': 'ytarchive:BaW_jenozKc',
-            'only_matching': True
+            'only_matching': True,
         },
     ]
     _YT_INITIAL_DATA_RE = YoutubeBaseInfoExtractor._YT_INITIAL_DATA_RE
@@ -673,13 +676,13 @@ class YoutubeWebArchiveIE(InfoExtractor):
 
     _YT_DEFAULT_THUMB_SERVERS = ['i.ytimg.com']  # thumbnails most likely archived on these servers
     _YT_ALL_THUMB_SERVERS = orderedSet(
-        _YT_DEFAULT_THUMB_SERVERS + ['img.youtube.com', *[f'{c}{n or ""}.ytimg.com' for c in ('i', 's') for n in (*range(0, 5), 9)]])
+        [*_YT_DEFAULT_THUMB_SERVERS, 'img.youtube.com', *[f'{c}{n or ""}.ytimg.com' for c in ('i', 's') for n in (*range(5), 9)]])
 
     _WAYBACK_BASE_URL = 'https://web.archive.org/web/%sif_/'
     _OLDEST_CAPTURE_DATE = 20050214000000
     _NEWEST_CAPTURE_DATE = 20500101000000
 
-    def _call_cdx_api(self, item_id, url, filters: list = None, collapse: list = None, query: dict = None, note=None, fatal=False):
+    def _call_cdx_api(self, item_id, url, filters: list | None = None, collapse: list | None = None, query: dict | None = None, note=None, fatal=False):
         # CDX docs: https://github.com/internetarchive/wayback/blob/master/wayback-cdx-server/README.md
         query = {
             'url': url,
@@ -688,14 +691,14 @@ class YoutubeWebArchiveIE(InfoExtractor):
             'limit': 500,
             'filter': ['statuscode:200'] + (filters or []),
             'collapse': collapse or [],
-            **(query or {})
+            **(query or {}),
         }
         res = self._download_json(
             'https://web.archive.org/cdx/search/cdx', item_id,
             note or 'Downloading CDX API JSON', query=query, fatal=fatal)
         if isinstance(res, list) and len(res) >= 2:
             # format response to make it easier to use
-            return list(dict(zip(res[0], v)) for v in res[1:])
+            return [dict(zip(res[0], v)) for v in res[1:]]
         elif not isinstance(res, list) or len(res) != 0:
             self.report_warning('Error while parsing CDX API response' + bug_reports_message())
 
@@ -852,7 +855,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 {
                     'url': (self._WAYBACK_BASE_URL % (int_or_none(thumbnail_dict.get('timestamp')) or self._OLDEST_CAPTURE_DATE)) + thumbnail_dict.get('original'),
                     'filesize': int_or_none(thumbnail_dict.get('length')),
-                    'preference': int_or_none(thumbnail_dict.get('length'))
+                    'preference': int_or_none(thumbnail_dict.get('length')),
                 } for thumbnail_dict in response)
             if not try_all:
                 break
@@ -893,7 +896,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
         for retry in retry_manager:
             try:
                 urlh = self._request_webpage(
-                    HEADRequest('https://web.archive.org/web/2oe_/http://wayback-fakeurl.archive.org/yt/%s' % video_id),
+                    HEADRequest(f'https://web.archive.org/web/2oe_/http://wayback-fakeurl.archive.org/yt/{video_id}'),
                     video_id, note='Fetching archived video file url', expected_status=True)
             except ExtractorError as e:
                 # HTTP Error 404 is expected if the video is not saved.
@@ -924,21 +927,21 @@ class YoutubeWebArchiveIE(InfoExtractor):
         info['thumbnails'] = self._extract_thumbnails(video_id)
 
         if urlh:
-            url = compat_urllib_parse_unquote(urlh.url)
+            url = urllib.parse.unquote(urlh.url)
             video_file_url_qs = parse_qs(url)
             # Attempt to recover any ext & format info from playback url & response headers
-            format = {'url': url, 'filesize': int_or_none(urlh.headers.get('x-archive-orig-content-length'))}
+            fmt = {'url': url, 'filesize': int_or_none(urlh.headers.get('x-archive-orig-content-length'))}
             itag = try_get(video_file_url_qs, lambda x: x['itag'][0])
             if itag and itag in YoutubeIE._formats:
-                format.update(YoutubeIE._formats[itag])
-                format.update({'format_id': itag})
+                fmt.update(YoutubeIE._formats[itag])
+                fmt.update({'format_id': itag})
             else:
                 mime = try_get(video_file_url_qs, lambda x: x['mime'][0])
                 ext = (mimetype2ext(mime)
                        or urlhandle_detect_ext(urlh)
                        or mimetype2ext(urlh.headers.get('x-archive-guessed-content-type')))
-                format.update({'ext': ext})
-            info['formats'] = [format]
+                fmt.update({'ext': ext})
+            info['formats'] = [fmt]
             if not info.get('duration'):
                 info['duration'] = str_to_int(try_get(video_file_url_qs, lambda x: x['dur'][0]))
 

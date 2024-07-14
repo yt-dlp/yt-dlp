@@ -29,7 +29,7 @@ class TelecincoIE(InfoExtractor):
                 'title': 'Con Martín Berasategui, hacer un bacalao al pil-pil es fácil y divertido',
                 'duration': 662,
             },
-        }]
+        }],
     }, {
         'url': 'http://www.cuatro.com/deportes/futbol/barcelona/Leo_Messi-Champions-Roma_2_2052780128.html',
         'md5': 'c86fe0d99e3bdb46b7950d38bf6ef12a',

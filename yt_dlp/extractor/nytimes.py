@@ -251,7 +251,7 @@ class NYTimesArticleIE(NYTimesBaseIE):
             'thumbnails': self._extract_thumbnails(traverse_obj(
                 block, ('promotionalMedia', 'crops', ..., 'renditions', ...))),
             'formats': formats,
-            'subtitles': subtitles
+            'subtitles': subtitles,
         }
 
     def _real_extract(self, url):

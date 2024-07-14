@@ -33,7 +33,7 @@ class GMANetworkVideoIE(InfoExtractor):
             'channel': 'YoüLOL',
             'availability': 'public',
             'release_date': '20220919',
-        }
+        },
     }, {
         'url': 'https://www.gmanetwork.com/fullepisodes/home/more_than_words/87059/more-than-words-full-episode-80/video?section=home',
         'info_dict': {
@@ -60,7 +60,7 @@ class GMANetworkVideoIE(InfoExtractor):
             'tags': 'count:29',
             'view_count': int,
             'uploader_url': 'http://www.youtube.com/user/GMANETWORK',
-        }
+        },
     }]
 
     def _real_extract(self, url):

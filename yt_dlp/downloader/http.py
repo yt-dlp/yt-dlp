@@ -176,7 +176,7 @@ class HttpFD(FileDownloader):
                                 'downloaded_bytes': ctx.resume_len,
                                 'total_bytes': ctx.resume_len,
                             }, info_dict)
-                            raise SucceedDownload()
+                            raise SucceedDownload
                         else:
                             # The length does not match, we start the download over
                             self.report_unable_to_resume()
@@ -194,7 +194,7 @@ class HttpFD(FileDownloader):
 
         def close_stream():
             if ctx.stream is not None:
-                if not ctx.tmpfilename == '-':
+                if ctx.tmpfilename != '-':
                     ctx.stream.close()
                 ctx.stream = None
 
@@ -268,20 +268,20 @@ class HttpFD(FileDownloader):
                         ctx.filename = self.undo_temp_name(ctx.tmpfilename)
                         self.report_destination(ctx.filename)
                     except OSError as err:
-                        self.report_error('unable to open for writing: %s' % str(err))
+                        self.report_error(f'unable to open for writing: {err}')
                         return False
 
                     if self.params.get('xattr_set_filesize', False) and data_len is not None:
                         try:
                             write_xattr(ctx.tmpfilename, 'user.ytdl.filesize', str(data_len).encode())
                         except (XAttrUnavailableError, XAttrMetadataError) as err:
-                            self.report_error('unable to set filesize xattr: %s' % str(err))
+                            self.report_error(f'unable to set filesize xattr: {err}')
 
                 try:
                     ctx.stream.write(data_block)
                 except OSError as err:
                     self.to_stderr('\n')
-                    self.report_error('unable to write data: %s' % str(err))
+                    self.report_error(f'unable to write data: {err}')
                     return False
 
                 # Apply rate limit
@@ -327,7 +327,7 @@ class HttpFD(FileDownloader):
                     elif now - ctx.throttle_start > 3:
                         if ctx.stream is not None and ctx.tmpfilename != '-':
                             ctx.stream.close()
-                        raise ThrottledDownload()
+                        raise ThrottledDownload
                 elif speed:
                     ctx.throttle_start = None
 
@@ -338,7 +338,7 @@ class HttpFD(FileDownloader):
 
             if not is_test and ctx.chunk_size and ctx.content_len is not None and byte_counter < ctx.content_len:
                 ctx.resume_len = byte_counter
-                raise NextFragment()
+                raise NextFragment
 
             if ctx.tmpfilename != '-':
                 ctx.stream.close()

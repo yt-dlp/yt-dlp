@@ -84,7 +84,7 @@ class FptplayIE(InfoExtractor):
             a = [0, 0, 0, 0]
             s = len(e)
             c = 0
-            for z in range(s, 0, -1):
+            for _ in range(s, 0, -1):
                 if n <= 3:
                     i[n] = e[c]
                 n += 1

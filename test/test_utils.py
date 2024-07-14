@@ -5,6 +5,7 @@ import os
 import sys
 import unittest
 import warnings
+import datetime as dt
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -27,6 +28,7 @@ from yt_dlp.utils import (
     ExtractorError,
     InAdvancePagedList,
     LazyList,
+    NO_DEFAULT,
     OnDemandPagedList,
     Popen,
     age_restricted,
@@ -128,6 +130,7 @@ from yt_dlp.utils import (
     xpath_text,
     xpath_with_ns,
 )
+from yt_dlp.utils._utils import _UnsafeExtensionError
 from yt_dlp.utils.networking import (
     HTTPHeaderDict,
     escape_rfc3986,
@@ -274,10 +277,17 @@ class TestUtil(unittest.TestCase):
             self.assertEqual(expand_path(env('HOME')), os.getenv('HOME'))
             self.assertEqual(expand_path('~'), os.getenv('HOME'))
             self.assertEqual(
-                expand_path('~/%s' % env('yt_dlp_EXPATH_PATH')),
-                '%s/expanded' % os.getenv('HOME'))
+                expand_path('~/{}'.format(env('yt_dlp_EXPATH_PATH'))),
+                '{}/expanded'.format(os.getenv('HOME')))
         finally:
             os.environ['HOME'] = old_home or ''
+
+    _uncommon_extensions = [
+        ('exe', 'abc.exe.ext'),
+        ('de', 'abc.de.ext'),
+        ('../.mp4', None),
+        ('..\\.mp4', None),
+    ]
 
     def test_prepend_extension(self):
         self.assertEqual(prepend_extension('abc.ext', 'temp'), 'abc.temp.ext')
@@ -287,6 +297,19 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(prepend_extension('.abc', 'temp'), '.abc.temp')
         self.assertEqual(prepend_extension('.abc.ext', 'temp'), '.abc.temp.ext')
 
+        # Test uncommon extensions
+        self.assertEqual(prepend_extension('abc.ext', 'bin'), 'abc.bin.ext')
+        for ext, result in self._uncommon_extensions:
+            with self.assertRaises(_UnsafeExtensionError):
+                prepend_extension('abc', ext)
+            if result:
+                self.assertEqual(prepend_extension('abc.ext', ext, 'ext'), result)
+            else:
+                with self.assertRaises(_UnsafeExtensionError):
+                    prepend_extension('abc.ext', ext, 'ext')
+            with self.assertRaises(_UnsafeExtensionError):
+                prepend_extension('abc.unexpected_ext', ext, 'ext')
+
     def test_replace_extension(self):
         self.assertEqual(replace_extension('abc.ext', 'temp'), 'abc.temp')
         self.assertEqual(replace_extension('abc.ext', 'temp', 'ext'), 'abc.temp')
@@ -294,6 +317,16 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(replace_extension('abc', 'temp'), 'abc.temp')
         self.assertEqual(replace_extension('.abc', 'temp'), '.abc.temp')
         self.assertEqual(replace_extension('.abc.ext', 'temp'), '.abc.temp')
+
+        # Test uncommon extensions
+        self.assertEqual(replace_extension('abc.ext', 'bin'), 'abc.unknown_video')
+        for ext, _ in self._uncommon_extensions:
+            with self.assertRaises(_UnsafeExtensionError):
+                replace_extension('abc', ext)
+            with self.assertRaises(_UnsafeExtensionError):
+                replace_extension('abc.ext', ext, 'ext')
+            with self.assertRaises(_UnsafeExtensionError):
+                replace_extension('abc.unexpected_ext', ext, 'ext')
 
     def test_subtitles_filename(self):
         self.assertEqual(subtitles_filename('abc.ext', 'en', 'vtt'), 'abc.en.vtt')
@@ -354,12 +387,12 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(datetime_from_str('now+23hours', precision='hour'), datetime_from_str('now+23hours', precision='auto'))
 
     def test_daterange(self):
-        _20century = DateRange("19000101", "20000101")
-        self.assertFalse("17890714" in _20century)
-        _ac = DateRange("00010101")
-        self.assertTrue("19690721" in _ac)
-        _firstmilenium = DateRange(end="10000101")
-        self.assertTrue("07110427" in _firstmilenium)
+        _20century = DateRange('19000101', '20000101')
+        self.assertFalse('17890714' in _20century)
+        _ac = DateRange('00010101')
+        self.assertTrue('19690721' in _ac)
+        _firstmilenium = DateRange(end='10000101')
+        self.assertTrue('07110427' in _firstmilenium)
 
     def test_unified_dates(self):
         self.assertEqual(unified_strdate('December 21, 2010'), '20101221')
@@ -504,7 +537,7 @@ class TestUtil(unittest.TestCase):
         self.assertRaises(ExtractorError, xpath_attr, doc, 'div/p', 'y', fatal=True)
 
     def test_smuggle_url(self):
-        data = {"ö": "ö", "abc": [3]}
+        data = {'ö': 'ö', 'abc': [3]}
         url = 'https://foo.bar/baz?x=y#a'
         smug_url = smuggle_url(url, data)
         unsmug_url, unsmug_data = unsmuggle_url(smug_url)
@@ -768,6 +801,11 @@ class TestUtil(unittest.TestCase):
 
     def test_parse_iso8601(self):
         self.assertEqual(parse_iso8601('2014-03-23T23:04:26+0100'), 1395612266)
+        self.assertEqual(parse_iso8601('2014-03-23T23:04:26-07:00'), 1395641066)
+        self.assertEqual(parse_iso8601('2014-03-23T23:04:26', timezone=dt.timedelta(hours=-7)), 1395641066)
+        self.assertEqual(parse_iso8601('2014-03-23T23:04:26', timezone=NO_DEFAULT), None)
+        # default does not override timezone in date_str
+        self.assertEqual(parse_iso8601('2014-03-23T23:04:26-07:00', timezone=dt.timedelta(hours=-10)), 1395641066)
         self.assertEqual(parse_iso8601('2014-03-23T22:04:26+0000'), 1395612266)
         self.assertEqual(parse_iso8601('2014-03-23T22:04:26Z'), 1395612266)
         self.assertEqual(parse_iso8601('2014-03-23T22:04:26.1234Z'), 1395612266)
@@ -777,7 +815,7 @@ class TestUtil(unittest.TestCase):
     def test_strip_jsonp(self):
         stripped = strip_jsonp('cb ([ {"id":"532cb",\n\n\n"x":\n3}\n]\n);')
         d = json.loads(stripped)
-        self.assertEqual(d, [{"id": "532cb", "x": 3}])
+        self.assertEqual(d, [{'id': '532cb', 'x': 3}])
 
         stripped = strip_jsonp('parseMetadata({"STATUS":"OK"})\n\n\n//epc')
         d = json.loads(stripped)
@@ -915,19 +953,19 @@ class TestUtil(unittest.TestCase):
     def test_normalize_url(self):
         self.assertEqual(
             normalize_url('http://wowza.imust.org/srv/vod/telemb/new/UPLOAD/UPLOAD/20224_IncendieHavré_FD.mp4'),
-            'http://wowza.imust.org/srv/vod/telemb/new/UPLOAD/UPLOAD/20224_IncendieHavre%CC%81_FD.mp4'
+            'http://wowza.imust.org/srv/vod/telemb/new/UPLOAD/UPLOAD/20224_IncendieHavre%CC%81_FD.mp4',
         )
         self.assertEqual(
             normalize_url('http://www.ardmediathek.de/tv/Sturm-der-Liebe/Folge-2036-Zu-Mann-und-Frau-erklärt/Das-Erste/Video?documentId=22673108&bcastId=5290'),
-            'http://www.ardmediathek.de/tv/Sturm-der-Liebe/Folge-2036-Zu-Mann-und-Frau-erkl%C3%A4rt/Das-Erste/Video?documentId=22673108&bcastId=5290'
+            'http://www.ardmediathek.de/tv/Sturm-der-Liebe/Folge-2036-Zu-Mann-und-Frau-erkl%C3%A4rt/Das-Erste/Video?documentId=22673108&bcastId=5290',
         )
         self.assertEqual(
             normalize_url('http://тест.рф/фрагмент'),
-            'http://xn--e1aybc.xn--p1ai/%D1%84%D1%80%D0%B0%D0%B3%D0%BC%D0%B5%D0%BD%D1%82'
+            'http://xn--e1aybc.xn--p1ai/%D1%84%D1%80%D0%B0%D0%B3%D0%BC%D0%B5%D0%BD%D1%82',
         )
         self.assertEqual(
             normalize_url('http://тест.рф/абв?абв=абв#абв'),
-            'http://xn--e1aybc.xn--p1ai/%D0%B0%D0%B1%D0%B2?%D0%B0%D0%B1%D0%B2=%D0%B0%D0%B1%D0%B2#%D0%B0%D0%B1%D0%B2'
+            'http://xn--e1aybc.xn--p1ai/%D0%B0%D0%B1%D0%B2?%D0%B0%D0%B1%D0%B2=%D0%B0%D0%B1%D0%B2#%D0%B0%D0%B1%D0%B2',
         )
         self.assertEqual(normalize_url('http://vimeo.com/56015672#at=0'), 'http://vimeo.com/56015672#at=0')
 
@@ -972,7 +1010,7 @@ class TestUtil(unittest.TestCase):
                     'e': 'false',
                     'f': '"false"',
                     'g': 'var',
-                }
+                },
             )),
             {
                 'null': None,
@@ -981,8 +1019,8 @@ class TestUtil(unittest.TestCase):
                 'trueStr': 'true',
                 'false': False,
                 'falseStr': 'false',
-                'unresolvedVar': 'var'
-            }
+                'unresolvedVar': 'var',
+            },
         )
 
         self.assertDictEqual(
@@ -998,14 +1036,14 @@ class TestUtil(unittest.TestCase):
                     'b': '"123"',
                     'c': '1.23',
                     'd': '"1.23"',
-                }
+                },
             )),
             {
                 'int': 123,
                 'intStr': '123',
                 'float': 1.23,
                 'floatStr': '1.23',
-            }
+            },
         )
 
         self.assertDictEqual(
@@ -1021,14 +1059,14 @@ class TestUtil(unittest.TestCase):
                     'b': '"{}"',
                     'c': '[]',
                     'd': '"[]"',
-                }
+                },
             )),
             {
                 'object': {},
                 'objectStr': '{}',
                 'array': [],
                 'arrayStr': '[]',
-            }
+            },
         )
 
     def test_js_to_json_realworld(self):
@@ -1074,7 +1112,7 @@ class TestUtil(unittest.TestCase):
 
     def test_js_to_json_edgecases(self):
         on = js_to_json("{abc_def:'1\\'\\\\2\\\\\\'3\"4'}")
-        self.assertEqual(json.loads(on), {"abc_def": "1'\\2\\'3\"4"})
+        self.assertEqual(json.loads(on), {'abc_def': "1'\\2\\'3\"4"})
 
         on = js_to_json('{"abc": true}')
         self.assertEqual(json.loads(on), {'abc': True})
@@ -1106,9 +1144,9 @@ class TestUtil(unittest.TestCase):
             'c': 0,
             'd': 42.42,
             'e': [],
-            'f': "abc",
-            'g': "",
-            '42': 42
+            'f': 'abc',
+            'g': '',
+            '42': 42,
         })
 
         on = js_to_json('["abc", "def",]')
@@ -1202,8 +1240,8 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(json.loads(js_to_json('Array(5, 10)')), [5, 10])
         self.assertEqual(json.loads(js_to_json('new Array(15,5)')), [15, 5])
         self.assertEqual(json.loads(js_to_json('new Map([Array(5, 10),new Array(15,5)])')), {'5': 10, '15': 5})
-        self.assertEqual(json.loads(js_to_json('new Date("123")')), "123")
-        self.assertEqual(json.loads(js_to_json('new Date(\'2023-10-19\')')), "2023-10-19")
+        self.assertEqual(json.loads(js_to_json('new Date("123")')), '123')
+        self.assertEqual(json.loads(js_to_json('new Date(\'2023-10-19\')')), '2023-10-19')
 
     def test_extract_attributes(self):
         self.assertEqual(extract_attributes('<e x="y">'), {'x': 'y'})
@@ -1258,7 +1296,7 @@ class TestUtil(unittest.TestCase):
     def test_args_to_str(self):
         self.assertEqual(
             args_to_str(['foo', 'ba/r', '-baz', '2 be', '']),
-            'foo ba/r -baz \'2 be\' \'\'' if compat_os_name != 'nt' else 'foo ba/r -baz "2 be" ""'
+            'foo ba/r -baz \'2 be\' \'\'' if compat_os_name != 'nt' else 'foo ba/r -baz "2 be" ""',
         )
 
     def test_parse_filesize(self):
@@ -1341,10 +1379,10 @@ ffmpeg version 2.4.4 Copyright (c) 2000-2014 the FFmpeg ...'''), '2.4.4')
         self.assertTrue(is_html(  # UTF-8 with BOM
             b'\xef\xbb\xbf<!DOCTYPE foo>\xaaa'))
         self.assertTrue(is_html(  # UTF-16-LE
-            b'\xff\xfe<\x00h\x00t\x00m\x00l\x00>\x00\xe4\x00'
+            b'\xff\xfe<\x00h\x00t\x00m\x00l\x00>\x00\xe4\x00',
         ))
         self.assertTrue(is_html(  # UTF-16-BE
-            b'\xfe\xff\x00<\x00h\x00t\x00m\x00l\x00>\x00\xe4'
+            b'\xfe\xff\x00<\x00h\x00t\x00m\x00l\x00>\x00\xe4',
         ))
         self.assertTrue(is_html(  # UTF-32-BE
             b'\x00\x00\xFE\xFF\x00\x00\x00<\x00\x00\x00h\x00\x00\x00t\x00\x00\x00m\x00\x00\x00l\x00\x00\x00>\x00\x00\x00\xe4'))
@@ -1928,7 +1966,7 @@ Line 1
                             with locked_file(FILE, test_mode, False):
                                 pass
                         except (BlockingIOError, PermissionError):
-                            if not testing_write:  # FIXME
+                            if not testing_write:  # FIXME: blocked read access
                                 print(f'Known issue: Exclusive lock ({lock_mode}) blocks read access ({test_mode})')
                                 continue
                             self.assertTrue(testing_write, f'{test_mode} is blocked by {lock_mode}')
@@ -1996,7 +2034,7 @@ Line 1
                          msg='int fn with expected_type int should give int')
         self.assertEqual(try_call(lambda: 1, expected_type=dict), None,
                          msg='int fn with wrong expected_type should give None')
-        self.assertEqual(try_call(total, args=(0, 1, 0, ), expected_type=int), 1,
+        self.assertEqual(try_call(total, args=(0, 1, 0), expected_type=int), 1,
                          msg='fn should accept arglist')
         self.assertEqual(try_call(total, kwargs={'a': 0, 'b': 1, 'c': 0}, expected_type=int), 1,
                          msg='fn should accept kwargs')
@@ -2059,7 +2097,22 @@ Line 1
         assert extract_basic_auth('http://user:pass@foo.bar') == ('http://foo.bar', 'Basic dXNlcjpwYXNz')
 
     @unittest.skipUnless(compat_os_name == 'nt', 'Only relevant on Windows')
-    def test_Popen_windows_escaping(self):
+    def test_windows_escaping(self):
+        tests = [
+            'test"&',
+            '%CMDCMDLINE:~-1%&',
+            'a\nb',
+            '"',
+            '\\',
+            '!',
+            '^!',
+            'a \\ b',
+            'a \\" b',
+            'a \\ b\\',
+            # We replace \r with \n
+            ('a\r\ra', 'a\n\na'),
+        ]
+
         def run_shell(args):
             stdout, stderr, error = Popen.run(
                 args, text=True, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -2067,15 +2120,15 @@ Line 1
             assert not error
             return stdout
 
-        # Test escaping
-        assert run_shell(['echo', 'test"&']) == '"test""&"\n'
-        assert run_shell(['echo', '%CMDCMDLINE:~-1%&']) == '"%CMDCMDLINE:~-1%&"\n'
-        assert run_shell(['echo', 'a\nb']) == '"a"\n"b"\n'
-        assert run_shell(['echo', '"']) == '""""\n'
-        assert run_shell(['echo', '\\']) == '\\\n'
-        # Test if delayed expansion is disabled
-        assert run_shell(['echo', '^!']) == '"^!"\n'
-        assert run_shell('echo "^!"') == '"^!"\n'
+        for argument in tests:
+            if isinstance(argument, str):
+                expected = argument
+            else:
+                argument, expected = argument
+
+            args = [sys.executable, '-c', 'import sys; print(end=sys.argv[1])', argument, 'end']
+            assert run_shell(args) == expected
+            assert run_shell(shell_quote(args, shell=True)) == expected
 
 
 if __name__ == '__main__':
