@@ -836,12 +836,8 @@ class DiscoveryPlusIE(DiscoveryPlusBaseIE):
         'only_matching': True,
     }]
 
-    _PRODUCT = 'dplus_us'
-    _DISCO_API_PARAMS = {
-        'disco_host': 'us1-prod-direct.discoveryplus.com',
-        'realm': 'go',
-        'country': 'us',
-    }
+    _PRODUCT = None
+    _DISCO_API_PARAMS = None
 
     def _update_disco_api_headers(self, headers, disco_base, display_id, realm):
         headers.update({
@@ -852,15 +848,23 @@ class DiscoveryPlusIE(DiscoveryPlusBaseIE):
 
     def _real_extract(self, url):
         video_id, country = self._match_valid_url(url).group('id', 'country')
-        if country:
-            country = country.lower()
-            self._PRODUCT = f'dplus_{country}'
-            self._DISCO_API_PARAMS['country'] = country
-            if country not in ('br', 'ca', 'us'):
-                self._DISCO_API_PARAMS.update({
-                    'disco_host': 'eu1-prod-direct.discoveryplus.com',
-                    'realm': 'dplay',
-                })
+        if not country:
+            country = 'us'
+
+        self._PRODUCT = f'dplus_{country}'
+
+        if country in ('br', 'ca', 'us'):
+            self._DISCO_API_PARAMS = {
+                'disco_host': 'us1-prod-direct.discoveryplus.com',
+                'realm': 'go',
+                'country': country,
+            }
+        else:
+            self._DISCO_API_PARAMS = {
+                'disco_host': 'eu1-prod-direct.discoveryplus.com',
+                'realm': 'dplay',
+                'country': country,
+            }
 
         return self._get_disco_api_info(url, video_id, **self._DISCO_API_PARAMS)
 
