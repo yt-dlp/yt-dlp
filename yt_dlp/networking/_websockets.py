@@ -227,7 +227,7 @@ class WebsocketsRH(WebSocketRequestHandler):
                 open_timeout=timeout,
                 user_agent_header=None,
                 ssl_context=ssl_context,
-                close_timeout=0,  # not ideal, but prevents yt-dlp hanging
+                close_timeout=0.1,  # not ideal, but prevents yt-dlp hanging
             )
             return WebsocketsResponseAdapter(conn, url=request.url)
 

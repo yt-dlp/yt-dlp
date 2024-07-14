@@ -163,7 +163,7 @@ class WebSocketProxyHandler(BaseRequestHandler):
         protocol = websockets.ServerProtocol()
         connection = websockets.sync.server.ServerConnection(socket=self.request, protocol=protocol, close_timeout=10)
         try:
-            connection.handshake()
+            connection.handshake(timeout=5.0)
             for message in connection:
                 if message == 'proxy_info':
                     connection.send(json.dumps(self.proxy_info))
@@ -256,7 +256,7 @@ class HTTPProxyTestContext(abc.ABC):
 
     def http_server(self, server_class, *args, **kwargs):
         server = proxy_server(server_class, self.REQUEST_HANDLER_CLASS, *args, **kwargs)
-        time.sleep(1)  # ensure server is up
+        time.sleep(1)
         return server
 
     @abc.abstractmethod
