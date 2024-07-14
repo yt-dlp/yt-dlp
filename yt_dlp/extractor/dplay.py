@@ -1022,7 +1022,7 @@ class DiscoveryPlusItalyIE(DiscoveryPlusBaseIE):
         'only_matching': True,
     }]
 
-    _PRODUCT = 'dplus_us'
+    _PRODUCT = 'dplus_it'
     _DISCO_API_PARAMS = {
         'disco_host': 'eu1-prod-direct.discoveryplus.com',
         'realm': 'dplay',
@@ -1031,8 +1031,8 @@ class DiscoveryPlusItalyIE(DiscoveryPlusBaseIE):
 
     def _update_disco_api_headers(self, headers, disco_base, display_id, realm):
         headers.update({
-            'x-disco-params': f'realm={realm}',
-            'x-disco-client': f'WEB:UNKNOWN:{self._PRODUCT}:25.2.6',
+            'x-disco-params': f'realm={realm},siteLookupKey={self._PRODUCT}',
+            'x-disco-client': f'WEB:UNKNOWN:dplus_us:{self._DISCO_CLIENT_VER}',
             'Authorization': self._get_auth(disco_base, display_id, realm),
         })
 
