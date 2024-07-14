@@ -32,8 +32,7 @@ class EpidemicSoundIE(InfoExtractor):
             'release_timestamp': 1700535606,
             'release_date': '20231121',
         },
-    },
-        {
+    }, {
         'url': 'https://www.epidemicsound.com/sound-effects/tracks/2f02f54b-9faa-4daf-abac-1cfe9e9cef69/',
         'md5': '35d7cf05bd8b614a84f0495a05de9388',
         'info_dict': {
@@ -78,8 +77,9 @@ class EpidemicSoundIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id, is_sfx = self._match_valid_url(url).group('id', 'sfx')
-
-        json_data = self._download_json(join_nonempty('https://www.epidemicsound.com/json/track', is_sfx and 'kosmos-id', video_id, delim='/'), video_id)
+        json_data = self._download_json(join_nonempty(
+            'https://www.epidemicsound.com/json/track'
+            is_sfx and 'kosmos-id', video_id, delim='/'), video_id)
 
         thumbnails = traverse_obj(json_data, [('imageUrl', 'cover')])
         thumb_base_url = traverse_obj(json_data, ('coverArt', 'baseUrl', {url_or_none}))
