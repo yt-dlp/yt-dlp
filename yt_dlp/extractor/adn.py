@@ -16,6 +16,7 @@ from ..utils import (
     float_or_none,
     int_or_none,
     intlist_to_bytes,
+    join_nonempty,
     long_to_bytes,
     parse_iso8601,
     pkcs1pad,
@@ -217,7 +218,7 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
                 links_data = self._download_json(
                     links_url, video_id, 'Downloading links JSON metadata', headers={
                         'X-Player-Token': authorization,
-                        'X-Target-Distribution': lang,
+                        'X-Target-Distribution': lang or 'fr',
                         **self._HEADERS,
                     }, query={
                         'freeWithAds': 'true',
@@ -318,7 +319,7 @@ class ADNSeasonIE(ADNBaseIE):
         episodes = self._download_json(
             f'{self._API_BASE_URL}video/show/{show_id}', video_show_slug,
             'Downloading episode list', headers={
-                'X-Target-Distribution': lang,
+                'X-Target-Distribution': lang or 'fr',
                 **self._HEADERS,
             }, query={
                 'order': 'asc',
@@ -328,8 +329,8 @@ class ADNSeasonIE(ADNBaseIE):
         def entries():
             for episode_id in traverse_obj(episodes, ('videos', ..., 'id', {str_or_none})):
                 baseurl = 'https://animationdigitalnetwork.com' + ('/' + lang if lang != 'fr' else '')
-                yield self.url_result(
-                    f'{baseurl}/video/{video_show_slug}/{episode_id}',
-                    ADNIE, episode_id)
+                yield self.url_result(join_nonempty(
+                    'https://animationdigitalnetwork.com', lang, 'video',
+                    video_show_slug, episode_id, delim='/'), ADNIE, episode_id)
 
         return self.playlist_result(entries(), show_id, show.get('title'))
