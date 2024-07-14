@@ -16,6 +16,22 @@ from ..utils import (
 class EpidemicSoundIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?epidemicsound\.com/(?:(?P<sfx>sound-effects/tracks)|track)/(?P<id>[0-9a-zA-Z-]+)'
     _TESTS = [{
+        'url': 'https://www.epidemicsound.com/track/yFfQVRpSPz/',
+        'md5': 'd98ff2ddb49e8acab9716541cbc9dfac',
+        'info_dict': {
+            'id': '45014',
+            'display_id': 'yFfQVRpSPz',
+            'ext': 'mp3',
+            'title': 'Door Knock Door 1',
+            'alt_title': 'Door Knock Door 1',
+            'tags': ['foley', 'door', 'knock', 'glass', 'window', 'glass door knock'],
+            'categories': ['Misc. Door'],
+            'duration': 1,
+            'thumbnail': 'https://cdn.epidemicsound.com/curation-assets/commercial-release-cover-images/default-sfx/3000x3000.jpg',
+            'timestamp': 1415320353,
+            'upload_date': '20141107',
+        },
+    }, {
         'url': 'https://www.epidemicsound.com/track/mj8GTTwsZd/',
         'md5': 'c82b745890f9baf18dc2f8d568ee3830',
         'info_dict': {
