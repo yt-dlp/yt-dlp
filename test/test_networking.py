@@ -407,7 +407,7 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
         '/redirect_dotsegments_absolute',
     ])
     def test_remove_dot_segments(self, handler, path):
-        with handler(verbose=True) as rh:
+        with handler() as rh:
             # This isn't a comprehensive test,
             # but it should be enough to check whether the handler is removing dot segments in required scenarios
             res = validate_and_send(rh, Request(f'http://127.0.0.1:{self.http_port}{path}'))
