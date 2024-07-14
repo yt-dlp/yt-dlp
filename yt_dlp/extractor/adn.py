@@ -328,7 +328,6 @@ class ADNSeasonIE(ADNBaseIE):
 
         def entries():
             for episode_id in traverse_obj(episodes, ('videos', ..., 'id', {str_or_none})):
-                baseurl = 'https://animationdigitalnetwork.com' + ('/' + lang if lang != 'fr' else '')
                 yield self.url_result(join_nonempty(
                     'https://animationdigitalnetwork.com', lang, 'video',
                     video_show_slug, episode_id, delim='/'), ADNIE, episode_id)
