@@ -853,7 +853,7 @@ class DiscoveryPlusIE(DiscoveryPlusBaseIE):
             country = country.lower()
             self._PRODUCT = f'dplus_{country}'
             self._DISCO_API_PARAMS['country'] = country
-            if country not in ('ca', 'us'):
+            if country not in ('br', 'ca', 'us'):
                 self._DISCO_API_PARAMS.update({
                     'disco_host': 'eu1-prod-direct.discoveryplus.com',
                     'realm': 'dplay',
