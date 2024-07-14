@@ -4,7 +4,6 @@ import contextlib
 import functools
 import json
 import os
-import platform
 import random
 import ssl
 import threading
@@ -241,7 +240,9 @@ def proxy_server(proxy_server_class, request_handler, bind_ip=None, **proxy_serv
             yield f'{bind_address}:{server_port}'
     finally:
         server.shutdown()
+        server.server_close()
         server_thread.join()
+
 
 
 class HTTPProxyTestContext(abc.ABC):
