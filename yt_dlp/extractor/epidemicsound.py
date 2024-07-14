@@ -1,9 +1,8 @@
-import re
-
 from .common import InfoExtractor
 from ..utils import (
     float_or_none,
     int_or_none,
+    join_nonempty,
     orderedSet,
     parse_iso8601,
     parse_qs,
@@ -15,27 +14,8 @@ from ..utils import (
 
 
 class EpidemicSoundIE(InfoExtractor):
-    # set an attribute to indicate if it's a sound effect or a track based on this regex (r'https?://(?:www\.)?epidemicsound\.com/sound-effects/tracks/(?P<id>[0-9a-zA-Z-]+)')
-    _IS_SFX = False
-    _SFX_REGEX = re.compile(r'https?://(?:www\.)?epidemicsound\.com/sound-effects/tracks/(?P<id>[0-9a-zA-Z-]+)')
-    _VALID_URL = r'https?://(?:www\.)?epidemicsound\.com/(?:sound-effects/tracks|track)/(?P<id>[0-9a-zA-Z-]+)'
+    _VALID_URL = r'https?://(?:www\.)?epidemicsound\.com/(?:(?P<sfx>sound-effects/tracks)|track)/(?P<id>[0-9a-zA-Z-]+)'
     _TESTS = [{
-        'url': 'https://www.epidemicsound.com/track/yFfQVRpSPz/',
-        'md5': 'd98ff2ddb49e8acab9716541cbc9dfac',
-        'info_dict': {
-            'id': '45014',
-            'display_id': 'yFfQVRpSPz',
-            'ext': 'mp3',
-            'title': 'Door Knock Door 1',
-            'alt_title': 'Door Knock Door 1',
-            'tags': ['foley', 'door', 'knock', 'glass', 'window', 'glass door knock'],
-            'categories': ['Misc. Door'],
-            'duration': 1,
-            'thumbnail': 'https://cdn.epidemicsound.com/curation-assets/commercial-release-cover-images/default-sfx/3000x3000.jpg',
-            'timestamp': 1415320353,
-            'upload_date': '20141107',
-        },
-    }, {
         'url': 'https://www.epidemicsound.com/track/mj8GTTwsZd/',
         'md5': 'c82b745890f9baf18dc2f8d568ee3830',
         'info_dict': {
@@ -51,6 +31,21 @@ class EpidemicSoundIE(InfoExtractor):
             'upload_date': '20230911',
             'release_timestamp': 1700535606,
             'release_date': '20231121',
+        },
+    },
+        {
+        'url': 'https://www.epidemicsound.com/sound-effects/tracks/2f02f54b-9faa-4daf-abac-1cfe9e9cef69/',
+        'md5': '35d7cf05bd8b614a84f0495a05de9388',
+        'info_dict': {
+            'id': '208931',
+            'ext': 'mp3',
+            'upload_date': '20240603',
+            'timestamp': 1717436529,
+            'categories': ['appliance'],
+            'display_id': '6b2NXLURPr',
+            'duration': 1.0,
+            'title': 'Oven, Grill, Door Open 01',
+            'thumbnail': 'https://cdn.epidemicsound.com/curation-assets/commercial-release-cover-images/default-sfx/3000x3000.jpg',
         },
     }]
 
@@ -82,15 +77,9 @@ class EpidemicSoundIE(InfoExtractor):
         return f
 
     def _real_extract(self, url):
-        if self._SFX_REGEX.match(url):
-            self._IS_SFX = True
+        video_id, is_sfx = self._match_valid_url(url).group('id', 'sfx')
 
-        video_id = self._match_id(url)
-
-        if self._IS_SFX:
-            json_data = self._download_json(f'https://www.epidemicsound.com/json/track/kosmos-id/{video_id}', video_id)
-        else:
-            json_data = self._download_json(f'https://www.epidemicsound.com/json/track/{video_id}', video_id)
+        json_data = self._download_json(join_nonempty('https://www.epidemicsound.com/json/track', is_sfx and 'kosmos-id', video_id, delim='/'), video_id)
 
         thumbnails = traverse_obj(json_data, [('imageUrl', 'cover')])
         thumb_base_url = traverse_obj(json_data, ('coverArt', 'baseUrl', {url_or_none}))
