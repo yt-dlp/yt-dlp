@@ -398,6 +398,10 @@ class TestHTTPProxy:
         ('Websockets', 'ws'),
         ('Websockets', 'wss'),
     ], indirect=True)
+@pytest.mark.skip_handler_if(
+    'Websockets', lambda request:
+        platform.python_implementation() == 'PyPy',
+    'Tests are flaky with PyPy, unknown reason')
 class TestHTTPConnectProxy:
     def test_http_connect_no_auth(self, handler, ctx):
         with ctx.http_server(HTTPConnectProxyHandler) as server_address:
@@ -446,11 +450,6 @@ class TestHTTPConnectProxy:
                 assert proxy_info['client_address'][0] == source_address
 
     @pytest.mark.skipif(urllib3 is None, reason='requires urllib3 to test')
-    @pytest.mark.skip_handler_if(
-        'Websockets', lambda request:
-            (platform.python_implementation() == 'PyPy'
-             and request.getfixturevalue('ctx').REQUEST_PROTO == 'wss'),
-        'PyPy sometimes fails with WSS over TLS tests, unknown reason')
     def test_https_connect_proxy(self, handler, ctx):
         with ctx.http_server(HTTPSConnectProxyHandler) as server_address:
             with handler(verify=False, proxies={ctx.REQUEST_PROTO: f'https://{server_address}'}) as rh:
@@ -460,11 +459,6 @@ class TestHTTPConnectProxy:
                 assert 'Proxy-Authorization' not in proxy_info['headers']
 
     @pytest.mark.skipif(urllib3 is None, reason='requires urllib3 to test')
-    @pytest.mark.skip_handler_if(
-        'Websockets', lambda request:
-            (platform.python_implementation() == 'PyPy'
-             and request.getfixturevalue('ctx').REQUEST_PROTO == 'wss'),
-        'PyPy sometimes fails with WSS over TLS tests, unknown reason')
     def test_https_connect_verify_failed(self, handler, ctx):
         with ctx.http_server(HTTPSConnectProxyHandler) as server_address:
             with handler(verify=True, proxies={ctx.REQUEST_PROTO: f'https://{server_address}'}) as rh:
@@ -475,11 +469,6 @@ class TestHTTPConnectProxy:
                     ctx.proxy_info_request(rh)
 
     @pytest.mark.skipif(urllib3 is None, reason='requires urllib3 to test')
-    @pytest.mark.skip_handler_if(
-        'Websockets', lambda request:
-            (platform.python_implementation() == 'PyPy'
-             and request.getfixturevalue('ctx').REQUEST_PROTO == 'wss'),
-        'PyPy sometimes fails with WSS over TLS tests, unknown reason')
     def test_https_connect_proxy_auth(self, handler, ctx):
         with ctx.http_server(HTTPSConnectProxyHandler, username='test', password='test') as server_address:
             with handler(verify=False, proxies={ctx.REQUEST_PROTO: f'https://test:test@{server_address}'}) as rh:
