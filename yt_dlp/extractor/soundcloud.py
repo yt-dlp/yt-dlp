@@ -871,7 +871,7 @@ class SoundcloudUserPermalinkIE(SoundcloudPagedPlaylistBaseIE):
             'id': '30909869',
             'title': 'neilcic',
         },
-        'playlist_mincount': 23,
+        'playlist_mincount': 22,
     }]
 
     def _real_extract(self, url):
