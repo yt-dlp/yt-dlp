@@ -48,7 +48,7 @@ class ADNBaseIE(InfoExtractor):
 
 
 class ADNIE(ADNBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?(?:animation|anime)digitalnetwork\.com/((?P<lang>de)/)?video/[^/?#]+/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?(?:animation|anime)digitalnetwork\.com/(?:(?P<lang>de)/)?video/[^/?#]+/(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://animationdigitalnetwork.com/video/fruits-basket/9841-episode-1-a-ce-soir',
         'md5': '1c9ef066ceb302c86f80c2b371615261',
@@ -177,8 +177,6 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
 
     def _real_extract(self, url):
         lang, video_id = self._match_valid_url(url).group('lang', 'id')
-        if not lang:
-            lang = 'fr'
         video_base_url = self._PLAYER_BASE_URL + f'video/{video_id}/'
         player = self._download_json(
             video_base_url + 'configuration', video_id,
@@ -300,7 +298,7 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
 
 
 class ADNSeasonIE(ADNBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?(?:animation|anime)digitalnetwork\.com/((?P<lang>de)/)?video/(?P<id>[^/?#]+)/?(?:$|[#?])'
+    _VALID_URL = r'https?://(?:www\.)?(?:animation|anime)digitalnetwork\.com/(?:(?P<lang>de)/)?video/(?P<id>[^/?#]+)/?(?:$|[#?])'
     _TESTS = [{
         'url': 'https://animationdigitalnetwork.com/video/tokyo-mew-mew-new',
         'playlist_count': 12,
@@ -313,8 +311,6 @@ class ADNSeasonIE(ADNBaseIE):
 
     def _real_extract(self, url):
         lang, video_show_slug = self._match_valid_url(url).group('lang', 'id')
-        if not lang:
-            lang = 'fr'
         show = self._download_json(
             f'{self._API_BASE_URL}show/{video_show_slug}/', video_show_slug,
             'Downloading show JSON metadata', headers=self._HEADERS)['show']
