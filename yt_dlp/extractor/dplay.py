@@ -962,6 +962,7 @@ class TLCIE(DiscoveryPlusBaseIE):
 
 
 class MotorTrendIE(DiscoveryPlusBaseIE):
+    _WORKING = False  # TODO: Remove: motortrend content has moved to go.discovery.com
     _VALID_URL = r'https?://(?:watch\.)?motortrend\.com/video' + DPlayBaseIE._PATH_REGEX
     _TESTS = [{
         'url': 'https://watch.motortrend.com/video/car-issues-motortrend-atve-us/double-dakotas',
