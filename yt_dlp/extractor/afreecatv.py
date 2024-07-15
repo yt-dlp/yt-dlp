@@ -1,6 +1,7 @@
 import functools
 
 from .common import InfoExtractor
+from ..networking import Request
 from ..utils import (
     ExtractorError,
     OnDemandPagedList,
@@ -55,8 +56,15 @@ class AfreecaTVBaseIE(InfoExtractor):
         if result != 1:
             error = _ERRORS.get(result, 'You have failed to log in.')
             raise ExtractorError(
-                'Unable to login: %s said: %s' % (self.IE_NAME, error),
+                f'Unable to login: {self.IE_NAME} said: {error}',
                 expected=True)
+
+    def _call_api(self, endpoint, display_id, data=None, headers=None, query=None):
+        return self._download_json(Request(
+            f'https://api.m.afreecatv.com/{endpoint}',
+            data=data, headers=headers, query=query,
+            extensions={'legacy_ssl': True}), display_id,
+            'Downloading API JSON', 'Unable to download API JSON')
 
 
 class AfreecaTVIE(AfreecaTVBaseIE):
@@ -72,7 +80,7 @@ class AfreecaTVIE(AfreecaTVBaseIE):
                             )\?.*?\bnTitleNo=|
                             vod\.afreecatv\.com/(PLAYER/STATION|player)/
                         )
-                        (?P<id>\d+)
+                        (?P<id>\d+)/?(?:$|[?#&])
                     '''
     _TESTS = [{
         'url': 'http://live.afreecatv.com:8079/app/index.cgi?szType=read_ucc_bbs&szBjId=dailyapril&nStationNo=16711924&nBbsNo=18605867&nTitleNo=36164052&szSkin=',
@@ -184,9 +192,9 @@ class AfreecaTVIE(AfreecaTVBaseIE):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        data = self._download_json(
-            'https://api.m.afreecatv.com/station/video/a/view', video_id,
-            headers={'Referer': url}, data=urlencode_postdata({
+        data = self._call_api(
+            'station/video/a/view', video_id, headers={'Referer': url},
+            data=urlencode_postdata({
                 'nTitleNo': video_id,
                 'nApiLevel': 10,
             }))['data']
@@ -227,7 +235,7 @@ class AfreecaTVIE(AfreecaTVBaseIE):
                 **traverse_obj(file_element, {
                     'duration': ('duration', {functools.partial(int_or_none, scale=1000)}),
                     'timestamp': ('file_start', {unified_timestamp}),
-                })
+                }),
             })
 
         if traverse_obj(data, ('adult_status', {str})) == 'notLogin':
@@ -251,6 +259,43 @@ class AfreecaTVIE(AfreecaTVBaseIE):
         common_info['timestamp'] = traverse_obj(entries, (..., 'timestamp'), get_all=False)
 
         return self.playlist_result(entries, video_id, multi_video=True, **common_info)
+
+
+class AfreecaTVCatchStoryIE(AfreecaTVBaseIE):
+    IE_NAME = 'afreecatv:catchstory'
+    IE_DESC = 'afreecatv.com catch story'
+    _VALID_URL = r'https?://vod\.afreecatv\.com/player/(?P<id>\d+)/catchstory'
+    _TESTS = [{
+        'url': 'https://vod.afreecatv.com/player/103247/catchstory',
+        'info_dict': {
+            'id': '103247',
+        },
+        'playlist_count': 2,
+    }]
+
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+        data = self._call_api(
+            'catchstory/a/view', video_id, headers={'Referer': url},
+            query={'aStoryListIdx': '', 'nStoryIdx': video_id})
+
+        return self.playlist_result(self._entries(data), video_id)
+
+    @staticmethod
+    def _entries(data):
+        # 'files' is always a list with 1 element
+        yield from traverse_obj(data, (
+            'data', lambda _, v: v['story_type'] == 'catch',
+            'catch_list', lambda _, v: v['files'][0]['file'], {
+                'id': ('files', 0, 'file_info_key', {str}),
+                'url': ('files', 0, 'file', {url_or_none}),
+                'duration': ('files', 0, 'duration', {functools.partial(int_or_none, scale=1000)}),
+                'title': ('title', {str}),
+                'uploader': ('writer_nick', {str}),
+                'uploader_id': ('writer_id', {str}),
+                'thumbnail': ('thumb', {url_or_none}),
+                'timestamp': ('write_timestamp', {int_or_none}),
+            }))
 
 
 class AfreecaTVLiveIE(AfreecaTVBaseIE):

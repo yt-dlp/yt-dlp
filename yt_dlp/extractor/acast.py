@@ -67,7 +67,7 @@ class ACastIE(ACastBaseIE):
             'display_id': '2.raggarmordet-rosterurdetforflutna',
             'season_number': 4,
             'season': 'Season 4',
-        }
+        },
     }, {
         'url': 'http://embed.acast.com/adambuxton/ep.12-adam-joeschristmaspodcast2015',
         'only_matching': True,
@@ -93,13 +93,13 @@ class ACastIE(ACastBaseIE):
             'series': 'Democracy Sausage with Mark Kenny',
             'timestamp': 1684826362,
             'description': 'md5:feabe1fc5004c78ee59c84a46bf4ba16',
-        }
+        },
     }]
 
     def _real_extract(self, url):
         channel, display_id = self._match_valid_url(url).groups()
         episode = self._call_api(
-            '%s/episodes/%s' % (channel, display_id),
+            f'{channel}/episodes/{display_id}',
             display_id, {'showInfo': 'true'})
         return self._extract_episode(
             episode, self._extract_show_info(episode.get('show') or {}))
@@ -130,7 +130,7 @@ class ACastChannelIE(ACastBaseIE):
 
     @classmethod
     def suitable(cls, url):
-        return False if ACastIE.suitable(url) else super(ACastChannelIE, cls).suitable(url)
+        return False if ACastIE.suitable(url) else super().suitable(url)
 
     def _real_extract(self, url):
         show_slug = self._match_id(url)

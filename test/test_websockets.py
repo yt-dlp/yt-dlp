@@ -61,6 +61,10 @@ def process_request(self, request):
             return websockets.http11.Response(
                 status.value, status.phrase, websockets.datastructures.Headers([('Location', '/')]), b'')
         return self.protocol.reject(status.value, status.phrase)
+    elif request.path.startswith('/get_cookie'):
+        response = self.protocol.accept(request)
+        response.headers['Set-Cookie'] = 'test=ytdlp'
+        return response
     return self.protocol.accept(request)
 
 
@@ -102,6 +106,15 @@ def create_mtls_wss_websocket_server():
     return create_websocket_server(ssl_context=sslctx)
 
 
+def create_legacy_wss_websocket_server():
+    certfn = os.path.join(TEST_DIR, 'testcert.pem')
+    sslctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    sslctx.maximum_version = ssl.TLSVersion.TLSv1_2
+    sslctx.set_ciphers('SHA1:AESCCM:aDSS:eNULL:aNULL')
+    sslctx.load_cert_chain(certfn, None)
+    return create_websocket_server(ssl_context=sslctx)
+
+
 def ws_validate_and_send(rh, req):
     rh.validate(req)
     max_tries = 3
@@ -131,6 +144,9 @@ class TestWebsSocketRequestHandlerConformance:
 
         cls.mtls_wss_thread, cls.mtls_wss_port = create_mtls_wss_websocket_server()
         cls.mtls_wss_base_url = f'wss://127.0.0.1:{cls.mtls_wss_port}'
+
+        cls.legacy_wss_thread, cls.legacy_wss_port = create_legacy_wss_websocket_server()
+        cls.legacy_wss_host = f'wss://127.0.0.1:{cls.legacy_wss_port}'
 
     def test_basic_websockets(self, handler):
         with handler() as rh:
@@ -165,6 +181,22 @@ class TestWebsSocketRequestHandlerConformance:
             with pytest.raises(SSLError, match=r'ssl(?:v3|/tls) alert handshake failure') as exc_info:
                 ws_validate_and_send(rh, Request(self.bad_wss_host))
             assert not issubclass(exc_info.type, CertificateVerifyError)
+
+    def test_legacy_ssl_extension(self, handler):
+        with handler(verify=False) as rh:
+            ws = ws_validate_and_send(rh, Request(self.legacy_wss_host, extensions={'legacy_ssl': True}))
+            assert ws.status == 101
+            ws.close()
+
+            # Ensure only applies to request extension
+            with pytest.raises(SSLError):
+                ws_validate_and_send(rh, Request(self.legacy_wss_host))
+
+    def test_legacy_ssl_support(self, handler):
+        with handler(verify=False, legacy_ssl_support=True) as rh:
+            ws = ws_validate_and_send(rh, Request(self.legacy_wss_host))
+            assert ws.status == 101
+            ws.close()
 
     @pytest.mark.parametrize('path,expected', [
         # Unicode characters should be encoded with uppercase percent-encoding
@@ -248,6 +280,32 @@ class TestWebsSocketRequestHandlerConformance:
             assert json.loads(ws.recv())['cookie'] == 'test=ytdlp'
             ws.close()
 
+    @pytest.mark.skip_handler('Websockets', 'Set-Cookie not supported by websockets')
+    def test_cookie_sync_only_cookiejar(self, handler):
+        # Ensure that cookies are ONLY being handled by the cookiejar
+        with handler() as rh:
+            ws_validate_and_send(rh, Request(f'{self.ws_base_url}/get_cookie', extensions={'cookiejar': YoutubeDLCookieJar()}))
+            ws = ws_validate_and_send(rh, Request(self.ws_base_url, extensions={'cookiejar': YoutubeDLCookieJar()}))
+            ws.send('headers')
+            assert 'cookie' not in json.loads(ws.recv())
+            ws.close()
+
+    @pytest.mark.skip_handler('Websockets', 'Set-Cookie not supported by websockets')
+    def test_cookie_sync_delete_cookie(self, handler):
+        # Ensure that cookies are ONLY being handled by the cookiejar
+        cookiejar = YoutubeDLCookieJar()
+        with handler(verbose=True, cookiejar=cookiejar) as rh:
+            ws_validate_and_send(rh, Request(f'{self.ws_base_url}/get_cookie'))
+            ws = ws_validate_and_send(rh, Request(self.ws_base_url))
+            ws.send('headers')
+            assert json.loads(ws.recv())['cookie'] == 'test=ytdlp'
+            ws.close()
+            cookiejar.clear_session_cookies()
+            ws = ws_validate_and_send(rh, Request(self.ws_base_url))
+            ws.send('headers')
+            assert 'cookie' not in json.loads(ws.recv())
+            ws.close()
+
     def test_source_address(self, handler):
         source_address = f'127.0.0.{random.randint(5, 255)}'
         verify_address_availability(source_address)
@@ -297,14 +355,14 @@ class TestWebsSocketRequestHandlerConformance:
             'client_certificate': os.path.join(MTLS_CERT_DIR, 'client.crt'),
             'client_certificate_key': os.path.join(MTLS_CERT_DIR, 'clientencrypted.key'),
             'client_certificate_password': 'foobar',
-        }
+        },
     ))
     def test_mtls(self, handler, client_cert):
         with handler(
             # Disable client-side validation of unacceptable self-signed testcert.pem
             # The test is of a check on the server side, so unaffected
             verify=False,
-            client_cert=client_cert
+            client_cert=client_cert,
         ) as rh:
             ws_validate_and_send(rh, Request(self.mtls_wss_base_url)).close()
 

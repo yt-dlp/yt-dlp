@@ -83,7 +83,7 @@ class MixchArchiveIE(InfoExtractor):
             'id': '421',
             'ext': 'mp4',
             'title': '96NEKO SHOW TIME',
-        }
+        },
     }, {
         'url': 'https://mixch.tv/archive/1213',
         'skip': 'paid video, no DRM. expires at Dec 31, 2023',
@@ -93,7 +93,7 @@ class MixchArchiveIE(InfoExtractor):
             'title': '【特別トーク番組アーカイブス】Merm4id×燐舞曲 2nd LIVE「VERSUS」',
             'release_date': '20231201',
             'thumbnail': str,
-        }
+        },
     }, {
         'url': 'https://mixch.tv/archive/1214',
         'only_matching': True,
