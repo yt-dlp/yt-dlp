@@ -470,6 +470,26 @@ class TravelChannelIE(DiscoveryPlusBaseIE):
 class CookingChannelIE(DiscoveryPlusBaseIE):
     _VALID_URL = r'https?://(?:watch\.)?cookingchanneltv\.com/video' + DPlayBaseIE._PATH_REGEX
     _TESTS = [{
+        'url': 'https://watch.cookingchanneltv.com/video/bobbys-triple-threat-food-network-atve-us/titans-vs-marcus-samuelsson',
+        'info_dict': {
+            'id': '5350005',
+            'ext': 'mp4',
+            'display_id': 'bobbys-triple-threat-food-network-atve-us/titans-vs-marcus-samuelsson',
+            'title': 'Titans vs Marcus Samuelsson',
+            'description': 'Marcus Samuelsson throws his legendary global tricks at the Titans.',
+            'episode_number': 1,
+            'episode': 'Episode 1',
+            'season_number': 3,
+            'season': 'Season 3',
+            'series': 'Bobby\'s Triple Threat',
+            'duration': 2520.851,
+            'upload_date': '20240710',
+            'timestamp': 1720573200,
+            'tags': [],
+            'creators': ['Food Network'],
+            'thumbnail': 'https://us1-prod-images.disco-api.com/2024/07/04/529cd095-27ec-35c5-84e9-90ebd3e5d2da.jpeg',
+        },
+    }, {
         'url': 'https://watch.cookingchanneltv.com/video/carnival-eats-cooking-channel/the-postman-always-brings-rice-2348634',
         'info_dict': {
             'id': '2348634',
