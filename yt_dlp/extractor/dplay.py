@@ -560,6 +560,26 @@ class HGTVUsaIE(DiscoveryPlusBaseIE):
 class FoodNetworkIE(DiscoveryPlusBaseIE):
     _VALID_URL = r'https?://(?:watch\.)?foodnetwork\.com/video' + DPlayBaseIE._PATH_REGEX
     _TESTS = [{
+        'url': 'https://watch.foodnetwork.com/video/guys-grocery-games-food-network/wild-in-the-aisles',
+        'info_dict': {
+            'id': '2152549',
+            'display_id': 'guys-grocery-games-food-network/wild-in-the-aisles',
+            'ext': 'mp4',
+            'title': 'Wild in the Aisles',
+            'description': 'The chefs make spaghetti and meatballs with "Out of Stock" ingredients.',
+            'season_number': 1,
+            'season': 'Season 1',
+            'episode_number': 1,
+            'episode': 'Episode 1',
+            'series': 'Guy\'s Grocery Games',
+            'tags': [],
+            'creators': ['Food Network'],
+            'duration': 2520.651,
+            'upload_date': '20230623',
+            'timestamp': 1687492800,
+            'thumbnail': 'https://us1-prod-images.disco-api.com/2022/06/15/37fb5333-cad2-3dbb-af7c-c20ec77c89c6.jpeg',
+        },
+    }, {
         'url': 'https://watch.foodnetwork.com/video/kids-baking-championship-food-network/float-like-a-butterfly',
         'info_dict': {
             'id': '4116449',
