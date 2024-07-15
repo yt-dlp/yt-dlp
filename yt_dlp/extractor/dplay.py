@@ -990,6 +990,7 @@ class MotorTrendIE(DiscoveryPlusBaseIE):
 
 
 class MotorTrendOnDemandIE(DiscoveryPlusBaseIE):
+    _WORKING = False  # TODO: Remove
     _VALID_URL = r'https?://(?:www\.)?motortrend(?:ondemand\.com|\.com/plus)/detail' + DPlayBaseIE._PATH_REGEX
     _TESTS = [{
         'url': 'https://www.motortrendondemand.com/detail/wheelstanding-dump-truck-stubby-bobs-comeback/37699/784',
