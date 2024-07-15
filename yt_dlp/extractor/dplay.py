@@ -701,6 +701,26 @@ class InvestigationDiscoveryIE(DiscoveryPlusBaseIE):
 class AmHistoryChannelIE(DiscoveryPlusBaseIE):
     _VALID_URL = r'https?://(?:www\.)?ahctv\.com/video' + DPlayBaseIE._PATH_REGEX
     _TESTS = [{
+        'url': 'https://www.ahctv.com/video/blood-and-fury-americas-civil-war-ahc/battle-of-bull-run',
+        'info_dict': {
+            'id': '2139199',
+            'display_id': 'blood-and-fury-americas-civil-war-ahc/battle-of-bull-run',
+            'ext': 'mp4',
+            'title': 'Battle of Bull Run',
+            'description': 'Two untested armies clash in the first real battle of the Civil War.',
+            'season_number': 1,
+            'season': 'Season 1',
+            'episode_number': 1,
+            'episode': 'Episode 1',
+            'series': 'Blood and Fury: America\'s Civil War',
+            'duration': 2612.509,
+            'upload_date': '20220923',
+            'timestamp': 1663905600,
+            'creators': ['AHC'],
+            'tags': [],
+            'thumbnail': 'https://us1-prod-images.disco-api.com/2020/05/11/4af61bd7-d705-3108-82c4-1a6e541e20fa.jpeg',
+        },
+    }, {
         'url': 'https://www.ahctv.com/video/modern-sniper-ahc/army',
         'info_dict': {
             'id': '2309730',
