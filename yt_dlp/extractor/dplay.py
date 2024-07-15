@@ -1322,6 +1322,7 @@ class DiscoveryPlusIndiaShowIE(DiscoveryPlusShowBaseIE):
 
 
 class GlobalCyclingNetworkPlusIE(DiscoveryPlusBaseIE):
+    _WORKING = False  # TODO: Remove: site no longer affiliated with dplus
     _VALID_URL = r'https?://plus\.globalcyclingnetwork\.com/watch/(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://plus.globalcyclingnetwork.com/watch/1397691',
