@@ -538,6 +538,26 @@ class DestinationAmericaIE(DiscoveryPlusBaseIE):
 class InvestigationDiscoveryIE(DiscoveryPlusBaseIE):
     _VALID_URL = r'https?://(?:www\.)?investigationdiscovery\.com/video' + DPlayBaseIE._PATH_REGEX
     _TESTS = [{
+        'url': 'https://www.investigationdiscovery.com/video/deadly-influence-the-social-media-murders-investigation-discovery-atve-us/rip-bianca',
+        'info_dict': {
+            'id': '5341132',
+            'display_id': 'deadly-influence-the-social-media-murders-investigation-discovery-atve-us/rip-bianca',
+            'ext': 'mp4',
+            'title': 'RIP Bianca',
+            'description': 'A teenage influencer discovers an online world of threat, harm and danger.',
+            'season_number': 1,
+            'season': 'Season 1',
+            'episode_number': 3,
+            'episode': 'Episode 3',
+            'series': 'Deadly Influence: The Social Media Murders',
+            'creators': ['Investigation Discovery'],
+            'tags': [],
+            'duration': 2490.888,
+            'upload_date': '20240618',
+            'timestamp': 1718672400,
+            'thumbnail': 'https://us1-prod-images.disco-api.com/2024/06/15/b567c774-9e44-3c6c-b0ba-db860a73e812.jpeg',
+        },
+    }, {
         'url': 'https://www.investigationdiscovery.com/video/unmasked-investigation-discovery/the-killer-clown',
         'info_dict': {
             'id': '2139409',
