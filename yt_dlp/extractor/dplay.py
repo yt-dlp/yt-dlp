@@ -823,6 +823,26 @@ class DIYNetworkIE(DiscoveryPlusBaseIE):
 class DiscoveryLifeIE(DiscoveryPlusBaseIE):
     _VALID_URL = r'https?://(?:www\.)?discoverylife\.com/video' + DPlayBaseIE._PATH_REGEX
     _TESTS = [{
+        'url': 'https://www.discoverylife.com/video/er-files-discovery-life-atve-us/sweet-charity',
+        'info_dict': {
+            'id': '2347614',
+            'display_id': 'er-files-discovery-life-atve-us/sweet-charity',
+            'ext': 'mp4',
+            'title': 'Sweet Charity',
+            'description': 'The staff at Charity Hospital treat a serious foot infection.',
+            'season_number': 1,
+            'season': 'Season 1',
+            'episode_number': 1,
+            'episode': 'Episode 1',
+            'series': 'ER Files',
+            'duration': 2364.261,
+            'upload_date': '20230721',
+            'timestamp': 1689912000,
+            'creators': ['Discovery Life'],
+            'tags': [],
+            'thumbnail': 'https://us1-prod-images.disco-api.com/2021/03/16/4b6f0124-360b-3546-b6a4-5552db886b86.jpeg',
+        },
+    }, {
         'url': 'https://www.discoverylife.com/video/surviving-death-discovery-life-atve-us/bodily-trauma',
         'info_dict': {
             'id': '2218238',
