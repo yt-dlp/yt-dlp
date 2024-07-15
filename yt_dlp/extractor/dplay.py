@@ -376,6 +376,26 @@ class DiscoveryPlusBaseIE(DPlayBaseIE):
 class GoDiscoveryIE(DiscoveryPlusBaseIE):
     _VALID_URL = r'https?://(?:go\.)?discovery\.com/video' + DPlayBaseIE._PATH_REGEX
     _TESTS = [{
+        'url': 'https://go.discovery.com/video/in-the-eye-of-the-storm-discovery-atve-us/trapped-in-a-twister',
+        'info_dict': {
+            'id': '5352642',
+            'display_id': 'in-the-eye-of-the-storm-discovery-atve-us/trapped-in-a-twister',
+            'ext': 'mp4',
+            'title': 'Trapped in a Twister',
+            'description': 'Twisters destroy Midwest towns, trapping spotters in the eye of the storm.',
+            'episode_number': 1,
+            'episode': 'Episode 1',
+            'season_number': 1,
+            'season': 'Season 1',
+            'series': 'In The Eye Of The Storm',
+            'duration': 2490.237,
+            'upload_date': '20240715',
+            'timestamp': 1721008800,
+            'tags': [],
+            'creators': ['Discovery'],
+            'thumbnail': 'https://us1-prod-images.disco-api.com/2024/07/10/5e39637d-cabf-3ab3-8e9a-f4e9d37bc036.jpeg',
+        },
+    }, {
         'url': 'https://go.discovery.com/video/dirty-jobs-discovery-atve-us/rodbuster-galvanizer',
         'info_dict': {
             'id': '4164906',
