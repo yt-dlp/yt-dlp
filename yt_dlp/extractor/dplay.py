@@ -793,6 +793,7 @@ class ScienceChannelIE(DiscoveryPlusBaseIE):
 
 
 class DIYNetworkIE(DiscoveryPlusBaseIE):
+    _WORKING = False  # TODO: Remove: DIYNetwork is now Magnolia Network, magnolia.com has no content
     _VALID_URL = r'https?://(?:watch\.)?diynetwork\.com/video' + DPlayBaseIE._PATH_REGEX
     _TESTS = [{
         'url': 'https://watch.diynetwork.com/video/pool-kings-diy-network/bringing-beach-life-to-texas',
