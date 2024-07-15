@@ -607,6 +607,26 @@ class FoodNetworkIE(DiscoveryPlusBaseIE):
 class DestinationAmericaIE(DiscoveryPlusBaseIE):
     _VALID_URL = r'https?://(?:www\.)?destinationamerica\.com/video' + DPlayBaseIE._PATH_REGEX
     _TESTS = [{
+        'url': 'https://www.destinationamerica.com/video/bbq-pit-wars-destination-america/smoke-on-the-water',
+        'info_dict': {
+            'id': '2218409',
+            'display_id': 'bbq-pit-wars-destination-america/smoke-on-the-water',
+            'ext': 'mp4',
+            'title': 'Smoke on the Water',
+            'description': 'The pitmasters head to Georgia for the Smoke on the Water BBQ Festival.',
+            'season_number': 2,
+            'season': 'Season 2',
+            'episode_number': 1,
+            'episode': 'Episode 1',
+            'series': 'BBQ Pit Wars',
+            'tags': [],
+            'creators': ['Destination America'],
+            'duration': 2614.878,
+            'upload_date': '20230623',
+            'timestamp': 1687492800,
+            'thumbnail': 'https://us1-prod-images.disco-api.com/2020/05/11/c0f8e85d-9a10-3e6f-8e43-f6faafa81ba2.jpeg',
+        },
+    }, {
         'url': 'https://www.destinationamerica.com/video/alaska-monsters-destination-america-atve-us/central-alaskas-bigfoot',
         'info_dict': {
             'id': '4210904',
