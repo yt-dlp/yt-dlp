@@ -423,6 +423,26 @@ class GoDiscoveryIE(DiscoveryPlusBaseIE):
 class TravelChannelIE(DiscoveryPlusBaseIE):
     _VALID_URL = r'https?://(?:watch\.)?travelchannel\.com/video' + DPlayBaseIE._PATH_REGEX
     _TESTS = [{
+        'url': 'https://watch.travelchannel.com/video/the-dead-files-travel-channel/protect-the-children',
+        'info_dict': {
+            'id': '4710177',
+            'display_id': 'the-dead-files-travel-channel/protect-the-children',
+            'ext': 'mp4',
+            'title': 'Protect the Children',
+            'description': 'An evil presence threatens an Ohio woman\'s children and marriage.',
+            'season_number': 14,
+            'season': 'Season 14',
+            'episode_number': 10,
+            'episode': 'Episode 10',
+            'series': 'The Dead Files',
+            'duration': 2550.481,
+            'timestamp': 1664510400,
+            'upload_date': '20220930',
+            'tags': [],
+            'creators': ['Travel Channel'],
+            'thumbnail': 'https://us1-prod-images.disco-api.com/2022/03/17/5e45eace-de5d-343a-9293-f400a2aa77d5.jpeg',
+        },
+    }, {
         'url': 'https://watch.travelchannel.com/video/ghost-adventures-travel-channel/ghost-train-of-ely',
         'info_dict': {
             'id': '2220256',
