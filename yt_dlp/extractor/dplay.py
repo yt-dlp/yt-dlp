@@ -870,6 +870,26 @@ class DiscoveryLifeIE(DiscoveryPlusBaseIE):
 class AnimalPlanetIE(DiscoveryPlusBaseIE):
     _VALID_URL = r'https?://(?:www\.)?animalplanet\.com/video' + DPlayBaseIE._PATH_REGEX
     _TESTS = [{
+        'url': 'https://www.animalplanet.com/video/mysterious-creatures-with-forrest-galante-animal-planet-atve-us/the-demon-of-peru',
+        'info_dict': {
+            'id': '4650835',
+            'display_id': 'mysterious-creatures-with-forrest-galante-animal-planet-atve-us/the-demon-of-peru',
+            'ext': 'mp4',
+            'title': 'The Demon of Peru',
+            'description': 'In Peru, a farming village is being terrorized by a “man-like beast.”',
+            'season_number': 1,
+            'season': 'Season 1',
+            'episode_number': 4,
+            'episode': 'Episode 4',
+            'series': 'Mysterious Creatures with Forrest Galante',
+            'duration': 2490.488,
+            'upload_date': '20230111',
+            'timestamp': 1673413200,
+            'creators': ['Animal Planet'],
+            'tags': [],
+            'thumbnail': 'https://us1-prod-images.disco-api.com/2022/03/01/6dbaa833-9a2e-3fee-9381-c19eddf67c0c.jpeg',
+        },
+    }, {
         'url': 'https://www.animalplanet.com/video/north-woods-law-animal-planet/squirrel-showdown',
         'info_dict': {
             'id': '3338923',
