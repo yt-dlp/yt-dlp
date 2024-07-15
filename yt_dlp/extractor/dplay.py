@@ -517,6 +517,22 @@ class CookingChannelIE(DiscoveryPlusBaseIE):
 class HGTVUsaIE(DiscoveryPlusBaseIE):
     _VALID_URL = r'https?://(?:watch\.)?hgtv\.com/video' + DPlayBaseIE._PATH_REGEX
     _TESTS = [{
+        'url': 'https://watch.hgtv.com/video/flip-or-flop-the-final-flip-hgtv-atve-us/flip-or-flop-the-final-flip',
+        'info_dict': {
+            'id': '5025585',
+            'display_id': 'flip-or-flop-the-final-flip-hgtv-atve-us/flip-or-flop-the-final-flip',
+            'ext': 'mp4',
+            'title': 'Flip or Flop: The Final Flip',
+            'description': 'Tarek and Christina are going their separate ways after one last flip!',
+            'series': 'Flip or Flop: The Final Flip',
+            'duration': 2580.644,
+            'upload_date': '20231101',
+            'timestamp': 1698811200,
+            'tags': [],
+            'creators': ['HGTV'],
+            'thumbnail': 'https://us1-prod-images.disco-api.com/2022/11/27/455caa6c-1462-3f14-b63d-a026d7a5e6d3.jpeg',
+        },
+    }, {
         'url': 'https://watch.hgtv.com/video/home-inspector-joe-hgtv-atve-us/this-mold-house',
         'info_dict': {
             'id': '4289736',
