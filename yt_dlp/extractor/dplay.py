@@ -917,6 +917,26 @@ class AnimalPlanetIE(DiscoveryPlusBaseIE):
 class TLCIE(DiscoveryPlusBaseIE):
     _VALID_URL = r'https?://(?:go\.)?tlc\.com/video' + DPlayBaseIE._PATH_REGEX
     _TESTS = [{
+        'url': 'https://go.tlc.com/video/90-day-the-last-resort-tlc-atve-us/the-last-chance',
+        'info_dict': {
+            'id': '5186422',
+            'display_id': '90-day-the-last-resort-tlc-atve-us/the-last-chance',
+            'ext': 'mp4',
+            'title': 'The Last Chance',
+            'description': 'Infidelity shakes Kalani and Asuelu\'s world, and Angela threatens divorce.',
+            'season_number': 1,
+            'season': 'Season 1',
+            'episode_number': 1,
+            'episode': 'Episode 1',
+            'series': '90 Day: The Last Resort',
+            'duration': 5123.91,
+            'upload_date': '20230815',
+            'timestamp': 1692061200,
+            'creators': ['TLC'],
+            'tags': [],
+            'thumbnail': 'https://us1-prod-images.disco-api.com/2023/08/08/0ee367e2-ac76-334d-bf23-dbf796696a24.jpeg',
+        },
+    }, {
         'url': 'https://go.tlc.com/video/my-600-lb-life-tlc/melissas-story-part-1',
         'info_dict': {
             'id': '2206540',
