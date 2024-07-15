@@ -748,6 +748,26 @@ class AmHistoryChannelIE(DiscoveryPlusBaseIE):
 class ScienceChannelIE(DiscoveryPlusBaseIE):
     _VALID_URL = r'https?://(?:www\.)?sciencechannel\.com/video' + DPlayBaseIE._PATH_REGEX
     _TESTS = [{
+        'url': 'https://www.sciencechannel.com/video/spaces-deepest-secrets-science-atve-us/mystery-of-the-dead-planets',
+        'info_dict': {
+            'id': '2347335',
+            'display_id': 'spaces-deepest-secrets-science-atve-us/mystery-of-the-dead-planets',
+            'ext': 'mp4',
+            'title': 'Mystery of the Dead Planets',
+            'description': 'Astronomers unmask the truly destructive nature of the cosmos.',
+            'season_number': 7,
+            'season': 'Season 7',
+            'episode_number': 1,
+            'episode': 'Episode 1',
+            'series': 'Space\'s Deepest Secrets',
+            'duration': 2524.989,
+            'upload_date': '20230128',
+            'timestamp': 1674882000,
+            'creators': ['Science'],
+            'tags': [],
+            'thumbnail': 'https://us1-prod-images.disco-api.com/2021/03/30/3796829d-aead-3f9a-bd8d-e49048b3cdca.jpeg',
+        },
+    }, {
         'url': 'https://www.sciencechannel.com/video/strangest-things-science-atve-us/nazi-mystery-machine',
         'info_dict': {
             'id': '2842849',
