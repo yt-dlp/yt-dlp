@@ -792,34 +792,6 @@ class ScienceChannelIE(DiscoveryPlusBaseIE):
     }
 
 
-class DIYNetworkIE(DiscoveryPlusBaseIE):
-    _WORKING = False  # TODO: Remove: DIYNetwork is now Magnolia Network, magnolia.com has no content
-    _VALID_URL = r'https?://(?:watch\.)?diynetwork\.com/video' + DPlayBaseIE._PATH_REGEX
-    _TESTS = [{
-        'url': 'https://watch.diynetwork.com/video/pool-kings-diy-network/bringing-beach-life-to-texas',
-        'info_dict': {
-            'id': '2309730',
-            'display_id': 'pool-kings-diy-network/bringing-beach-life-to-texas',
-            'ext': 'mp4',
-            'title': 'Bringing Beach Life to Texas',
-            'description': 'The Pool Kings give a family a day at the beach in their own backyard.',
-            'season_number': 10,
-            'episode_number': 2,
-        },
-        'skip': 'Available for Premium users',
-    }, {
-        'url': 'https://watch.diynetwork.com/video/pool-kings-diy-network/bringing-beach-life-to-texas',
-        'only_matching': True,
-    }]
-
-    _PRODUCT = 'diy'
-    _DISCO_API_PARAMS = {
-        'disco_host': 'us1-prod-direct.watch.diynetwork.com',
-        'realm': 'go',
-        'country': 'us',
-    }
-
-
 class DiscoveryLifeIE(DiscoveryPlusBaseIE):
     _VALID_URL = r'https?://(?:www\.)?discoverylife\.com/video' + DPlayBaseIE._PATH_REGEX
     _TESTS = [{
@@ -959,93 +931,6 @@ class TLCIE(DiscoveryPlusBaseIE):
         'realm': 'go',
         'country': 'us',
     }
-
-
-class MotorTrendIE(DiscoveryPlusBaseIE):
-    _WORKING = False  # TODO: Remove: motortrend content has moved to go.discovery.com
-    _VALID_URL = r'https?://(?:watch\.)?motortrend\.com/video' + DPlayBaseIE._PATH_REGEX
-    _TESTS = [{
-        'url': 'https://watch.motortrend.com/video/car-issues-motortrend-atve-us/double-dakotas',
-        'info_dict': {
-            'id': '"4859182"',
-            'display_id': 'double-dakotas',
-            'ext': 'mp4',
-            'title': 'Double Dakotas',
-            'description': 'Tylers buy-one-get-one Dakota deal has the Wizard pulling double duty.',
-            'season_number': 2,
-            'episode_number': 3,
-        },
-        'skip': 'Available for Premium users',
-    }, {
-        'url': 'https://watch.motortrend.com/video/car-issues-motortrend-atve-us/double-dakotas',
-        'only_matching': True,
-    }]
-
-    _PRODUCT = 'vel'
-    _DISCO_API_PARAMS = {
-        'disco_host': 'us1-prod-direct.watch.motortrend.com',
-        'realm': 'go',
-        'country': 'us',
-    }
-
-
-class MotorTrendOnDemandIE(DiscoveryPlusBaseIE):
-    _WORKING = False  # TODO: Remove
-    _VALID_URL = r'https?://(?:www\.)?motortrend(?:ondemand\.com|\.com/plus)/detail' + DPlayBaseIE._PATH_REGEX
-    _TESTS = [{
-        'url': 'https://www.motortrendondemand.com/detail/wheelstanding-dump-truck-stubby-bobs-comeback/37699/784',
-        'info_dict': {
-            'id': '37699',
-            'display_id': 'wheelstanding-dump-truck-stubby-bobs-comeback/37699',
-            'ext': 'mp4',
-            'title': 'Wheelstanding Dump Truck! Stubby Bob’s Comeback',
-            'description': 'md5:996915abe52a1c3dfc83aecea3cce8e7',
-            'season_number': 5,
-            'episode_number': 52,
-            'episode': 'Episode 52',
-            'season': 'Season 5',
-            'thumbnail': r're:^https?://.+\.jpe?g$',
-            'timestamp': 1388534401,
-            'duration': 1887.345,
-            'creator': 'Originals',
-            'series': 'Roadkill',
-            'upload_date': '20140101',
-            'tags': [],
-        },
-    }, {
-        'url': 'https://www.motortrend.com/plus/detail/roadworthy-rescues-teaser-trailer/4922860/',
-        'info_dict': {
-            'id': '4922860',
-            'ext': 'mp4',
-            'title': 'Roadworthy Rescues | Teaser Trailer',
-            'description': 'Derek Bieri helps Freiburger and Finnegan with their \'68 big-block Dart.',
-            'display_id': 'roadworthy-rescues-teaser-trailer/4922860',
-            'creator': 'Originals',
-            'series': 'Roadworthy Rescues',
-            'thumbnail': r're:^https?://.+\.jpe?g$',
-            'upload_date': '20220907',
-            'timestamp': 1662523200,
-            'duration': 1066.356,
-            'tags': [],
-        },
-    }, {
-        'url': 'https://www.motortrend.com/plus/detail/ugly-duckling/2450033/12439',
-        'only_matching': True,
-    }]
-
-    _PRODUCT = 'MTOD'
-    _DISCO_API_PARAMS = {
-        'disco_host': 'us1-prod-direct.motortrendondemand.com',
-        'realm': 'motortrend',
-        'country': 'us',
-    }
-
-    def _update_disco_api_headers(self, headers, disco_base, display_id, realm):
-        headers.update({
-            'x-disco-params': f'realm={realm}',
-            'x-disco-client': f'WEB:UNKNOWN:{self._PRODUCT}:4.39.1-gi1',
-            'Authorization': self._get_auth(disco_base, display_id, realm),
-        })
 
 
 class DiscoveryPlusIE(DiscoveryPlusBaseIE):
@@ -1319,40 +1204,3 @@ class DiscoveryPlusIndiaShowIE(DiscoveryPlusShowBaseIE):
     _SHOW_STR = 'show'
     _INDEX = 4
     _VIDEO_IE = DiscoveryPlusIndiaIE
-
-
-class GlobalCyclingNetworkPlusIE(DiscoveryPlusBaseIE):
-    _WORKING = False  # TODO: Remove: site no longer affiliated with dplus
-    _VALID_URL = r'https?://plus\.globalcyclingnetwork\.com/watch/(?P<id>\d+)'
-    _TESTS = [{
-        'url': 'https://plus.globalcyclingnetwork.com/watch/1397691',
-        'info_dict': {
-            'id': '1397691',
-            'ext': 'mp4',
-            'title': 'The Athertons: Mountain Biking\'s Fastest Family',
-            'description': 'md5:75a81937fcd8b989eec6083a709cd837',
-            'thumbnail': 'https://us1-prod-images.disco-api.com/2021/03/04/eb9e3026-4849-3001-8281-9356466f0557.png',
-            'series': 'gcn',
-            'creator': 'Gcn',
-            'upload_date': '20210309',
-            'timestamp': 1615248000,
-            'duration': 2531.0,
-            'tags': [],
-        },
-        'skip': 'Subscription required',
-        'params': {'skip_download': 'm3u8'},
-    }]
-
-    _PRODUCT = 'web'
-    _DISCO_API_PARAMS = {
-        'disco_host': 'disco-api-prod.globalcyclingnetwork.com',
-        'realm': 'gcn',
-        'country': 'us',
-    }
-
-    def _update_disco_api_headers(self, headers, disco_base, display_id, realm):
-        headers.update({
-            'x-disco-params': f'realm={realm}',
-            'x-disco-client': f'WEB:UNKNOWN:{self._PRODUCT}:27.3.2',
-            'Authorization': self._get_auth(disco_base, display_id, realm),
-        })
