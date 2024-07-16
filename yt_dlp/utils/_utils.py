@@ -5111,6 +5111,7 @@ class _UnsafeExtensionError(Exception):
         'gif',
         'heic',
         'ico',
+        'image',
         'jng',
         'jpeg',
         'jxl',
