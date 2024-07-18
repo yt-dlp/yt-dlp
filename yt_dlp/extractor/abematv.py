@@ -14,6 +14,7 @@ import uuid
 from .common import InfoExtractor
 from ..aes import aes_ecb_decrypt
 from ..networking import RequestHandler, Response
+from ..networking.exceptions import TransportError
 from ..utils import (
     ExtractorError,
     OnDemandPagedList,
@@ -43,7 +44,12 @@ class AbemaLicenseRH(RequestHandler):
     def _send(self, request):
         url = request.url
         ticket = urllib.parse.urlparse(url).netloc
-        response_data = self._get_videokey_from_ticket(ticket)
+
+        try:
+            response_data = self._get_videokey_from_ticket(ticket)
+        except ExtractorError as e:
+            raise TransportError(cause=e.cause) from e
+
         return Response(
             io.BytesIO(response_data), url,
             headers={'Content-Length': str(len(response_data))})
