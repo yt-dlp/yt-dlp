@@ -49,6 +49,8 @@ class AbemaLicenseRH(RequestHandler):
             response_data = self._get_videokey_from_ticket(ticket)
         except ExtractorError as e:
             raise TransportError(cause=e.cause) from e
+        except (IndexError, KeyError, TypeError) as e:
+            raise TransportError(cause=repr(e)) from e
 
         return Response(
             io.BytesIO(response_data), url,
