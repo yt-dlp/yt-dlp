@@ -40,12 +40,6 @@ class AbemaLicenseRH(RequestHandler):
         super().__init__(**kwargs)
         self.ie = ie
 
-    def _check_extensions(self, extensions):
-        super()._check_extensions(extensions)
-        extensions.pop('cookiejar', None)
-        extensions.pop('timeout', None)
-        extensions.pop('legacy_ssl', None)
-
     def _send(self, request):
         url = request.url
         ticket = urllib.parse.urlparse(url).netloc
