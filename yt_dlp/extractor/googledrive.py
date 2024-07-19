@@ -1,4 +1,3 @@
-import json
 import re
 import urllib.parse
 
@@ -298,23 +297,69 @@ class GoogleDriveFolderIE(InfoExtractor):
             'title': 'Forrest',
         },
         'playlist_count': 3,
+    }, {
+        # Contains various formats
+        'url': 'https://drive.google.com/drive/folders/1CkqRsNlzZ0o3IL083j17s6sH5Q83DcGo',
+        'info_dict': {
+            'id': '1CkqRsNlzZ0o3IL083j17s6sH5Q83DcGo',
+            'title': 'public folder',
+        },
+        'playlist_count': 4,
     }]
+    _JSON_DS_RE = r'key\s*?:\s*?([\'"])ds:\s*?%d\1,[^}]*data:'
+    _JSON_HASH_RE = r'hash\s*?:\s*?([\'"])%d\1,[^}]*data:'
+    _ARRAY_RE = r'\[(?s:.+)\]'
 
-    def _extract_json(self, idx, webpage):
-        RE = r'AF_initDataCallback\(\{key:\s*([\'"])ds:\s*%d\1,[^}]*data:(?P<data>\[.*?\]),\s*sideChannel:\s\{'
-        return json.loads(self._html_search_regex(RE % idx, webpage, 'JSON', group='data'))
+    def _extract_json_ds(self, dsval, webpage, video_id, **kwargs):
+        """
+        Searches for json with the 'ds' value(0~5) from the webpage with regex.
+        Folder info: ds=0; Folder items: ds=4.
+        For example, if the webpage contains the line below, the empty data array
+        can be got by passing dsval=3 to this function.
+            AF_initDataCallback({key: 'ds:3', hash: '2', data:[], sideChannel: {}});
+        """
+        return self._search_json(self._JSON_DS_RE % dsval, webpage,
+                                    f'webpage JSON ds:{dsval}', video_id,
+                                    contains_pattern=self._ARRAY_RE, **kwargs)
 
-    def _get_folder_items(self, results):
-        yield from results
+    def _extract_json_hash(self, hashval, webpage, video_id, **kwargs):
+        """
+        Searches for json with the 'hash' value(1~6) from the webpage with regex.
+        Folder info: hash=1; Folder items: hash=6.
+        For example, if the webpage contains the line below, the empty data array
+        can be got by passing hashval=2 to this function.
+            AF_initDataCallback({key: 'ds:3', hash: '2', data:[], sideChannel: {}});
+        """
+        return self._search_json(self._JSON_HASH_RE % hashval, webpage,
+                                      f'webpage JSON hash:{hashval}', video_id,
+                                      contains_pattern=self._ARRAY_RE, **kwargs)
 
     def _real_extract(self, url):
+        def item_url_getter(item):
+            url_from_0 = f'https://drive.google.com/file/d/{item[0]}'
+            if GoogleDriveIE.suitable(url_from_0):
+                return url_from_0
+            else:
+                for attr in item:
+                    if isinstance(attr, str) and GoogleDriveIE.suitable(attr):
+                        return attr
+            self.write_debug('Failed to extract url!')
+            return None
+
         folder_id = self._match_id(url)
+        headers = self.geo_verification_headers()
 
-        webpage = self._download_webpage(url, folder_id)
+        webpage = self._download_webpage(url, folder_id, headers=headers)
+        json_folder_info = (
+            self._extract_json_ds(0, webpage, folder_id, default=None)
+            or self._extract_json_hash(1, webpage, folder_id)
+        )
+        json_items = (
+            self._extract_json_ds(4, webpage, folder_id, default=None)
+            or self._extract_json_hash(6, webpage, folder_id)
+        )
+        title = json_folder_info[1][2]
+        items = json_items[-1]
 
-        title = self._extract_json(0, webpage)[1][2]
-        results_4 = self._extract_json(4, webpage)[-1]
-
-        return self.playlist_from_matches(
-            self._get_folder_items(results_4), folder_id, title,
-            ie=GoogleDriveIE, getter=lambda item: f'https://drive.google.com/file/d/{item[0]}')
+        return self.playlist_from_matches((item for item in items), folder_id, title,
+                                          ie=GoogleDriveIE, getter=item_url_getter)
