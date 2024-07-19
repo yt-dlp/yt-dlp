@@ -1742,7 +1742,7 @@ class BiliBiliSearchAllIE(SearchInfoExtractor, BilibiliBaseIE):
                         yield self.url_result(bili_user_prefix + str(result_data['mid']))
 
 
-class BiliBiliSearchIE(SearchInfoExtractor):
+class BiliBiliSearchIE(SearchInfoExtractor, BilibiliBaseIE):
     IE_DESC = 'Bilibili video search'
     _MAX_RESULTS = 100000
     _SEARCH_KEY = 'bilisearch'
@@ -1777,21 +1777,16 @@ class BiliBiliSearchIE(SearchInfoExtractor):
     def _search_results(self, query):
         if not self._get_cookies('https://api.bilibili.com').get('buvid3'):
             self._set_cookie('.bilibili.com', 'buvid3', f'{uuid.uuid4()}infoc')
+        headers = self.geo_verification_headers()
+        headers['Referer'] = 'https://www.bilibili.com/'
         for page_num in itertools.count(1):
             videos = self._download_json(
-                'https://api.bilibili.com/x/web-interface/search/type', query,
-                note=f'Extracting results from page {page_num}', query={
-                    'Search_key': query,
+                'https://api.bilibili.com/x/web-interface/wbi/search/type', query,
+                note=f'Extracting results from page {page_num}', query=self._sign_wbi({
                     'keyword': query,
                     'page': page_num,
-                    'context': '',
-                    'duration': 0,
-                    'tids_2': '',
-                    '__refresh__': 'true',
                     'search_type': 'video',
-                    'tids': 0,
-                    'highlight': 1,
-                })['data'].get('result')
+                }, query), headers=headers)['data'].get('result')
             if not videos:
                 break
             for video in videos:
