@@ -302,7 +302,7 @@ class GoogleDriveFolderIE(InfoExtractor):
         'url': 'https://drive.google.com/drive/folders/1CkqRsNlzZ0o3IL083j17s6sH5Q83DcGo',
         'info_dict': {
             'id': '1CkqRsNlzZ0o3IL083j17s6sH5Q83DcGo',
-            'title': 'public folder',
+            'title': r'], sideChannel: {}});',
         },
         'playlist_count': 4,
     }]
@@ -319,8 +319,8 @@ class GoogleDriveFolderIE(InfoExtractor):
             AF_initDataCallback({key: 'ds:3', hash: '2', data:[], sideChannel: {}});
         """
         return self._search_json(self._JSON_DS_RE % dsval, webpage,
-                                    f'webpage JSON ds:{dsval}', video_id,
-                                    contains_pattern=self._ARRAY_RE, **kwargs)
+                                 f'webpage JSON ds:{dsval}', video_id,
+                                 contains_pattern=self._ARRAY_RE, **kwargs)
 
     def _extract_json_hash(self, hashval, webpage, video_id, **kwargs):
         """
@@ -331,8 +331,8 @@ class GoogleDriveFolderIE(InfoExtractor):
             AF_initDataCallback({key: 'ds:3', hash: '2', data:[], sideChannel: {}});
         """
         return self._search_json(self._JSON_HASH_RE % hashval, webpage,
-                                      f'webpage JSON hash:{hashval}', video_id,
-                                      contains_pattern=self._ARRAY_RE, **kwargs)
+                                 f'webpage JSON hash:{hashval}', video_id,
+                                 contains_pattern=self._ARRAY_RE, **kwargs)
 
     def _real_extract(self, url):
         def item_url_getter(item):
