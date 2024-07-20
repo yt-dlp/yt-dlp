@@ -1,16 +1,16 @@
+import json
 import re
-import urllib.parse
 import uuid
 
 from .common import InfoExtractor
 from ..utils import (
     determine_ext,
     int_or_none,
-    join_nonempty,
     parse_duration,
     parse_iso8601,
     try_get,
     url_or_none,
+    urlencode_postdata,
 )
 from ..utils.traversal import traverse_obj
 
@@ -276,7 +276,6 @@ class MLBVideoIE(MLBBaseIE):
 class MLBTVIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?mlb\.com/tv/g(?P<id>\d{6})'
     _NETRC_MACHINE = 'mlb'
-
     _TESTS = [{
         'url': 'https://www.mlb.com/tv/g661581/vee2eff5f-a7df-4c20-bdb4-7b926fa12638',
         'info_dict': {
@@ -288,69 +287,160 @@ class MLBTVIE(InfoExtractor):
             'skip_download': True,
         },
     }]
-    _access_token = None
+    _GRAPHQL_INIT_QUERY = '''mutation initSession($device: InitSessionInput!, $clientType: ClientType!, $experience: ExperienceTypeInput) {
+    initSession(device: $device, clientType: $clientType, experience: $experience) {
+        deviceId
+        sessionId
+        entitlements {
+            code
+        }
+        location {
+            countryCode
+            regionName
+            zipCode
+            latitude
+            longitude
+        }
+        clientExperience
+        features
+    }
+  }'''
+    _GRAPHQL_PLAYBACK_QUERY = '''mutation initPlaybackSession(
+        $adCapabilities: [AdExperienceType]
+        $mediaId: String!
+        $deviceId: String!
+        $sessionId: String!
+        $quality: PlaybackQuality
+    ) {
+        initPlaybackSession(
+            adCapabilities: $adCapabilities
+            mediaId: $mediaId
+            deviceId: $deviceId
+            sessionId: $sessionId
+            quality: $quality
+        ) {
+            playbackSessionId
+            playback {
+                url
+                token
+                expiration
+                cdn
+            }
+        }
+    }'''
+    _APP_VERSION = '7.8.2'
+    _device_id = str(uuid.uuid4())
+    _headers = {}
 
     def _real_initialize(self):
-        if not self._access_token:
+        if not self._headers:
             self.raise_login_required(
                 'All videos are only available to registered users', method='password')
 
     def _perform_login(self, username, password):
-        data = f'grant_type=password&username={urllib.parse.quote(username)}&password={urllib.parse.quote(password)}&scope=openid offline_access&client_id=0oa3e1nutA1HLzAKG356'
         access_token = self._download_json(
             'https://ids.mlb.com/oauth2/aus1m088yK07noBfh356/v1/token', None,
-            headers={
+            'Logging in', headers={
                 'User-Agent': 'okhttp/3.12.1',
                 'Content-Type': 'application/x-www-form-urlencoded',
-            }, data=data.encode())['access_token']
+            }, data=urlencode_postdata({
+                'grant_type': 'password',
+                'username': username,
+                'password': password,
+                'scope': 'openid offline_access',
+                'client_id': '0oa3e1nutA1HLzAKG356',
+            }))['access_token']
+        self._headers['Authorization'] = f'Bearer {access_token}'
 
-        entitlement = self._download_webpage(
-            f'https://media-entitlement.mlb.com/api/v3/jwt?os=Android&appname=AtBat&did={uuid.uuid4()}', None,
+    def _call_api(self, data, video_id, description='GraphQL JSON', fatal=True):
+        return self._download_json(
+            'https://media-gateway.mlb.com/graphql', video_id,
+            f'Downloading {description}', f'Unable to download {description}', fatal=fatal,
             headers={
-                'User-Agent': 'okhttp/3.12.1',
-                'Authorization': f'Bearer {access_token}',
-            })
-
-        data = f'grant_type=urn:ietf:params:oauth:grant-type:token-exchange&subject_token={entitlement}&subject_token_type=urn:ietf:params:oauth:token-type:jwt&platform=android-tv'
-        self._access_token = self._download_json(
-            'https://us.edge.bamgrid.com/token', None,
-            headers={
+                **self._headers,
                 'Accept': 'application/json',
-                'Authorization': 'Bearer bWxidHYmYW5kcm9pZCYxLjAuMA.6LZMbH2r--rbXcgEabaDdIslpo4RyZrlVfWZhsAgXIk',
-                'Content-Type': 'application/x-www-form-urlencoded',
-            }, data=data.encode())['access_token']
+                'Content-Type': 'application/json',
+                'x-client-name': 'WEB',
+                'x-client-version': self._APP_VERSION,
+            }, data=json.dumps(data, separators=(',', ':')).encode())
+
+    def _extract_formats_and_subtitles(self, media_id, video_id, format_id, session_id):
+        playback = traverse_obj(
+            self._call_api({
+                'operationName': 'initPlaybackSession',
+                'query': self._GRAPHQL_PLAYBACK_QUERY,
+                'variables': {
+                    'adCapabilities': ['GOOGLE_STANDALONE_AD_PODS'],
+                    'deviceId': self._device_id,
+                    'mediaId': media_id,
+                    'quality': 'PLACEHOLDER',
+                    'sessionId': session_id,
+                },
+            }, video_id, f'{format_id} feed info JSON', fatal=False),
+            ('data', 'initPlaybackSession', 'playback', {dict})) or {}
+
+        if not playback.get('token') or not traverse_obj(playback, ('url', {url_or_none})):
+            return [], {}
+
+        token = playback['token']
+        headers = {'x-cdn-token': token}
+        fmts, subs = self._extract_m3u8_formats_and_subtitles(
+            playback['url'].replace(f'/{token}/', '/'), video_id, 'mp4',
+            m3u8_id=format_id, fatal=False, headers=headers)
+        for fmt in fmts:
+            fmt['http_headers'] = headers
+
+        return fmts, subs
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        airings = self._download_json(
-            f'https://search-api-mlbtv.mlb.com/svc/search/v2/graphql/persisted/query/core/Airings?variables=%7B%22partnerProgramIds%22%3A%5B%22{video_id}%22%5D%2C%22applyEsniMediaRightsLabels%22%3Atrue%7D',
-            video_id)['data']['Airings']
+        metadata = traverse_obj(self._download_json(
+            'https://search-api-mlbtv.mlb.com/svc/search/v2/graphql/persisted/query/core/Airings',
+            video_id, query={
+                'variables': f'%7B%22partnerProgramIds%22%3A%5B%22{video_id}%22%5D%2C%22applyEsniMediaRightsLabels%22%3Atrue%7D',
+            }, fatal=False), ('data', 'Airings', ..., {dict}))
+
+        data = self._download_json(
+            'https://mastapi.mobile.mlbinfra.com/api/epg/v3/search', video_id,
+            'Downloading API JSON', query={
+                'gamePk': video_id,
+                'exp': 'MLB',
+            }, headers=self._headers)['results'][0]
+
+        session_id = self._call_api({
+            'operationName': 'initSession',
+            'query': self._GRAPHQL_INIT_QUERY,
+            'variables': {
+                'device': {
+                    'appVersion': self._APP_VERSION,
+                    'deviceFamily': 'desktop',
+                    'knownDeviceId': self._device_id,
+                    'languagePreference': 'ENGLISH',
+                    'manufacturer': '',
+                    'model': '',
+                    'os': '',
+                    'osVersion': '',
+                },
+                'clientType': 'WEB',
+            },
+        }, video_id, 'session ID')['data']['initSession']['sessionId']
 
         formats, subtitles = [], {}
-        for airing in traverse_obj(airings, lambda _, v: v['playbackUrls'][0]['href']):
-            format_id = join_nonempty('feedType', 'feedLanguage', from_dict=airing)
-            m3u8_url = traverse_obj(self._download_json(
-                airing['playbackUrls'][0]['href'].format(scenario='browser~csai'), video_id,
-                note=f'Downloading {format_id} stream info JSON',
-                errnote=f'Failed to download {format_id} stream info, skipping',
-                fatal=False, headers={
-                    'Authorization': self._access_token,
-                    'Accept': 'application/vnd.media-service+json; version=2',
-                }), ('stream', 'complete', {url_or_none}))
-            if not m3u8_url:
+        for feed in traverse_obj(data, ('videoFeeds', lambda _, v: v['mediaId'] and v['mediaFeedType'])):
+            f_id = feed['mediaFeedType']
+            fmts, subs = self._extract_formats_and_subtitles(feed['mediaId'], video_id, f_id, session_id)
+            if not fmts:
+                self.report_warning(f'No formats could be extracted for {f_id} feed, skipping')
                 continue
-            f, s = self._extract_m3u8_formats_and_subtitles(
-                m3u8_url, video_id, 'mp4', m3u8_id=format_id, fatal=False)
-            formats.extend(f)
-            self._merge_subtitles(s, target=subtitles)
+            formats.extend(fmts)
+            self._merge_subtitles(subs, target=subtitles)
 
         return {
             'id': video_id,
-            'title': traverse_obj(airings, (..., 'titles', 0, 'episodeName'), get_all=False),
-            'is_live': traverse_obj(airings, (..., 'mediaConfig', 'productType'), get_all=False) == 'LIVE',
+            'title': traverse_obj(metadata, (..., 'titles', 0, 'episodeName', {str}, any)),
+            'is_live': traverse_obj(data, ('videoFeeds', ..., 'mediaState', {str}, any)) == 'MEDIA_ON',
             'formats': formats,
             'subtitles': subtitles,
-            'http_headers': {'Authorization': f'Bearer {self._access_token}'},
         }
 
 
