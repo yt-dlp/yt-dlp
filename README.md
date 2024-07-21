@@ -202,7 +202,7 @@ The following provide support for impersonating browser requests. This may be re
 
 * [**curl_cffi**](https://github.com/yifeikong/curl_cffi) (recommended) - Python binding for [curl-impersonate](https://github.com/lwthiker/curl-impersonate). Provides impersonation targets for Chrome, Edge and Safari. Licensed under [MIT](https://github.com/yifeikong/curl_cffi/blob/main/LICENSE)
   * Can be installed with the `curl-cffi` group, e.g. `pip install "yt-dlp[default,curl-cffi]"`
-  * Currently included in `yt-dlp.exe`, `yt-dlp_x86.exe`, `yt-dlp_linux` and `yt-dlp_macos` builds
+  * Currently included in `yt-dlp.exe`, `yt-dlp_linux` and `yt-dlp_macos` builds
 
 
 ### Metadata
@@ -368,7 +368,9 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
                                     stderr) to apply the setting to. Can be one
                                     of "always", "auto" (default), "never", or
                                     "no_color" (use non color terminal
-                                    sequences). Can be used multiple times
+                                    sequences). Use "auto-tty" or "no_color-tty"
+                                    to decide based on terminal support only.
+                                    Can be used multiple times
     --compat-options OPTS           Options that can help keep compatibility
                                     with youtube-dl or youtube-dlc
                                     configurations by reverting some of the
@@ -1858,6 +1860,9 @@ The following extractors use this feature:
 
 #### bilibili
 * `prefer_multi_flv`: Prefer extracting flv formats over mp4 for older videos that still provide legacy formats
+
+#### digitalconcerthall
+* `prefer_combined_hls`: Prefer extracting combined/pre-merged video and audio HLS formats. This will exclude 4K/HEVC video and lossless/FLAC audio formats, which are only available as split video/audio HLS formats
 
 **Note**: These options may be changed/removed in the future without concern for backward compatibility
 

@@ -122,8 +122,9 @@ class TV5MondePlusIE(InfoExtractor):
                     if not token:
                         continue
                     deferred_json = self._download_json(
-                        f'https://api.tv5monde.com/player/asset/{d_param}/resolve?condenseKS=true', display_id,
-                        note='Downloading deferred info', headers={'Authorization': f'Bearer {token}'}, fatal=False)
+                        f'https://api.tv5monde.com/player/asset/{d_param}/resolve?condenseKS=true',
+                        display_id, 'Downloading deferred info', fatal=False, impersonate=True,
+                        headers={'Authorization': f'Bearer {token}'})
                     v_url = traverse_obj(deferred_json, (0, 'url', {url_or_none}))
                     if not v_url:
                         continue
