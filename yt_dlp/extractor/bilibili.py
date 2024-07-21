@@ -2486,6 +2486,7 @@ class BiliLiveIE(InfoExtractor):
 
 
 class BiliBiliSearchPageIE(BilibiliBaseIE):
+    IE_DESC = 'Bilibili Search Page URL Extractor'
     _VALID_URL = r'https?://search\.bilibili\.com/(?P<type>all|video|bangumi|pgc|live|upuser).*'
     _TESTS = [{
         'url': r'https://search.bilibili.com/all?keyword=yt+-+dlp+%E4%B8%8B%E8%BD%BD%E5%99%A8',
