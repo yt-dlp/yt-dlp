@@ -391,7 +391,7 @@ class MLBTVIE(InfoExtractor):
 
         if not (m3u8_url and token):
             errors = '; '.join(traverse_obj(response, ('errors', ..., 'message', {str})))
-            if 'blacked out' in errors:
+            if 'blacked out' in errors or 'not entitled' in errors:
                 raise ExtractorError(errors, expected=True)
             elif errors:
                 self.report_warning(f'GraphQL API returned errors: {errors}')
