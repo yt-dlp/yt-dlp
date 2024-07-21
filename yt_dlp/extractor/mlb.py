@@ -332,10 +332,10 @@ class MLBTVIE(InfoExtractor):
     }'''
     _APP_VERSION = '7.8.2'
     _device_id = str(uuid.uuid4())
-    _headers = {}
+    _api_headers = {}
 
     def _real_initialize(self):
-        if not self._headers:
+        if not self._api_headers:
             self.raise_login_required(
                 'All videos are only available to registered users', method='password')
 
@@ -358,14 +358,14 @@ class MLBTVIE(InfoExtractor):
                 raise ExtractorError('Invalid username or password', expected=True)
             raise
 
-        self._headers['Authorization'] = f'Bearer {access_token}'
+        self._api_headers['Authorization'] = f'Bearer {access_token}'
 
     def _call_api(self, data, video_id, description='GraphQL JSON', fatal=True):
         return self._download_json(
             'https://media-gateway.mlb.com/graphql', video_id,
             f'Downloading {description}', f'Unable to download {description}', fatal=fatal,
             headers={
-                **self._headers,
+                **self._api_headers,
                 'Accept': 'application/json',
                 'Content-Type': 'application/json',
                 'x-client-name': 'WEB',
@@ -383,7 +383,7 @@ class MLBTVIE(InfoExtractor):
                 'quality': 'PLACEHOLDER',
                 'sessionId': session_id,
             },
-        }, video_id, f'{format_id} feed info JSON', fatal=False)
+        }, video_id, f'{format_id} feed JSON', fatal=False)
 
         playback = traverse_obj(response, ('data', 'initPlaybackSession', 'playback', {dict})) or {}
         errors = '; '.join(traverse_obj(response, ('errors', ..., 'message', {str})))
@@ -417,7 +417,7 @@ class MLBTVIE(InfoExtractor):
             'Downloading API JSON', query={
                 'gamePk': video_id,
                 'exp': 'MLB',
-            }, headers=self._headers)['results'][0]
+            }, headers=self._api_headers)['results'][0]
 
         session_id = self._call_api({
             'operationName': 'initSession',
