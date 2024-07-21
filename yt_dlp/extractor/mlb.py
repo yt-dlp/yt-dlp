@@ -373,21 +373,25 @@ class MLBTVIE(InfoExtractor):
             }, data=json.dumps(data, separators=(',', ':')).encode())
 
     def _extract_formats_and_subtitles(self, media_id, video_id, format_id, session_id):
-        playback = traverse_obj(
-            self._call_api({
-                'operationName': 'initPlaybackSession',
-                'query': self._GRAPHQL_PLAYBACK_QUERY,
-                'variables': {
-                    'adCapabilities': ['GOOGLE_STANDALONE_AD_PODS'],
-                    'deviceId': self._device_id,
-                    'mediaId': media_id,
-                    'quality': 'PLACEHOLDER',
-                    'sessionId': session_id,
-                },
-            }, video_id, f'{format_id} feed info JSON', fatal=False),
-            ('data', 'initPlaybackSession', 'playback', {dict})) or {}
+        response = self._call_api({
+            'operationName': 'initPlaybackSession',
+            'query': self._GRAPHQL_PLAYBACK_QUERY,
+            'variables': {
+                'adCapabilities': ['GOOGLE_STANDALONE_AD_PODS'],
+                'deviceId': self._device_id,
+                'mediaId': media_id,
+                'quality': 'PLACEHOLDER',
+                'sessionId': session_id,
+            },
+        }, video_id, f'{format_id} feed info JSON', fatal=False)
 
-        if not playback.get('token') or not traverse_obj(playback, ('url', {url_or_none})):
+        playback = traverse_obj(response, ('data', 'initPlaybackSession', 'playback', {dict})) or {}
+        errors = '; '.join(traverse_obj(response, ('errors', ..., 'message', {str})))
+        if not playback and 'blacked out' in errors:
+            raise ExtractorError(errors, expected=True)
+        elif not playback.get('token') or not traverse_obj(playback, ('url', {url_or_none})):
+            if errors:
+                self.report_warning(f'GraphQL API returned errors: {errors}')
             return [], {}
 
         token = playback['token']
