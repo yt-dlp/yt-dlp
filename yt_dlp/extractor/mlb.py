@@ -385,22 +385,24 @@ class MLBTVIE(InfoExtractor):
             },
         }, video_id, f'{format_id} feed JSON', fatal=False)
 
-        playback = traverse_obj(response, ('data', 'initPlaybackSession', 'playback', {dict})) or {}
-        errors = '; '.join(traverse_obj(response, ('errors', ..., 'message', {str})))
-        if not playback and 'blacked out' in errors:
-            raise ExtractorError(errors, expected=True)
-        elif not playback.get('token') or not traverse_obj(playback, ('url', {url_or_none})):
-            if errors:
+        playback = traverse_obj(response, ('data', 'initPlaybackSession', 'playback', {dict}))
+        m3u8_url = traverse_obj(playback, ('url', {url_or_none}))
+        token = traverse_obj(playback, ('token', {str}))
+
+        if not (m3u8_url and token):
+            errors = '; '.join(traverse_obj(response, ('errors', ..., 'message', {str})))
+            if 'blacked out' in errors:
+                raise ExtractorError(errors, expected=True)
+            elif errors:
                 self.report_warning(f'GraphQL API returned errors: {errors}')
             return [], {}
 
-        token = playback['token']
-        headers = {'x-cdn-token': token}
+        cdn_headers = {'x-cdn-token': token}
         fmts, subs = self._extract_m3u8_formats_and_subtitles(
-            playback['url'].replace(f'/{token}/', '/'), video_id, 'mp4',
-            m3u8_id=format_id, fatal=False, headers=headers)
+            m3u8_url.replace(f'/{token}/', '/'), video_id, 'mp4',
+            m3u8_id=format_id, fatal=False, headers=cdn_headers)
         for fmt in fmts:
-            fmt['http_headers'] = headers
+            fmt['http_headers'] = cdn_headers
 
         return fmts, subs
 
