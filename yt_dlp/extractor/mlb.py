@@ -3,7 +3,9 @@ import re
 import uuid
 
 from .common import InfoExtractor
+from ..networking.exceptions import HTTPError
 from ..utils import (
+    ExtractorError,
     determine_ext,
     int_or_none,
     parse_duration,
@@ -338,18 +340,24 @@ class MLBTVIE(InfoExtractor):
                 'All videos are only available to registered users', method='password')
 
     def _perform_login(self, username, password):
-        access_token = self._download_json(
-            'https://ids.mlb.com/oauth2/aus1m088yK07noBfh356/v1/token', None,
-            'Logging in', headers={
-                'User-Agent': 'okhttp/3.12.1',
-                'Content-Type': 'application/x-www-form-urlencoded',
-            }, data=urlencode_postdata({
-                'grant_type': 'password',
-                'username': username,
-                'password': password,
-                'scope': 'openid offline_access',
-                'client_id': '0oa3e1nutA1HLzAKG356',
-            }))['access_token']
+        try:
+            access_token = self._download_json(
+                'https://ids.mlb.com/oauth2/aus1m088yK07noBfh356/v1/token', None,
+                'Logging in', 'Unable to log in', headers={
+                    'User-Agent': 'okhttp/3.12.1',
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                }, data=urlencode_postdata({
+                    'grant_type': 'password',
+                    'username': username,
+                    'password': password,
+                    'scope': 'openid offline_access',
+                    'client_id': '0oa3e1nutA1HLzAKG356',
+                }))['access_token']
+        except ExtractorError as error:
+            if isinstance(error.cause, HTTPError) and error.cause.status == 400:
+                raise ExtractorError('Invalid username or password', expected=True)
+            raise
+
         self._headers['Authorization'] = f'Bearer {access_token}'
 
     def _call_api(self, data, video_id, description='GraphQL JSON', fatal=True):
