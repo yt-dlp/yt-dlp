@@ -452,7 +452,8 @@ class YoutubeDL:
                        Can also just be a single color policy,
                        in which case it applies to all outputs.
                        Valid stream names are 'stdout' and 'stderr'.
-                       Valid color policies are one of 'always', 'auto', 'no_color' or 'never'.
+                       Valid color policies are one of 'always', 'auto',
+                       'no_color', 'never', 'auto-tty' or 'no_color-tty'.
     geo_bypass:        Bypass geographic restriction via faking X-Forwarded-For
                        HTTP header
     geo_bypass_country:
@@ -659,12 +660,15 @@ class YoutubeDL:
             self.params['color'] = 'no_color'
 
         term_allow_color = os.getenv('TERM', '').lower() != 'dumb'
-        no_color = bool(os.getenv('NO_COLOR'))
+        base_no_color = bool(os.getenv('NO_COLOR'))
 
         def process_color_policy(stream):
             stream_name = {sys.stdout: 'stdout', sys.stderr: 'stderr'}[stream]
-            policy = traverse_obj(self.params, ('color', (stream_name, None), {str}), get_all=False)
-            if policy in ('auto', None):
+            policy = traverse_obj(self.params, ('color', (stream_name, None), {str}, any)) or 'auto'
+            if policy in ('auto', 'auto-tty', 'no_color-tty'):
+                no_color = base_no_color
+                if policy.endswith('tty'):
+                    no_color = policy.startswith('no_color')
                 if term_allow_color and supports_terminal_sequences(stream):
                     return 'no_color' if no_color else True
                 return False
@@ -3168,11 +3172,12 @@ class YoutubeDL:
 
         if test:
             verbose = self.params.get('verbose')
+            quiet = self.params.get('quiet') or not verbose
             params = {
                 'test': True,
-                'quiet': self.params.get('quiet') or not verbose,
+                'quiet': quiet,
                 'verbose': verbose,
-                'noprogress': not verbose,
+                'noprogress': quiet,
                 'nopart': True,
                 'skip_unavailable_fragments': False,
                 'keep_fragments': False,

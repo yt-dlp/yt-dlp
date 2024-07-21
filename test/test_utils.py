@@ -929,6 +929,11 @@ class TestUtil(unittest.TestCase):
             'acodec': 'none',
             'dynamic_range': 'DV',
         })
+        self.assertEqual(parse_codecs('fLaC'), {
+            'vcodec': 'none',
+            'acodec': 'flac',
+            'dynamic_range': None,
+        })
         self.assertEqual(parse_codecs('theora, vorbis'), {
             'vcodec': 'theora',
             'acodec': 'vorbis',

@@ -9,12 +9,12 @@ import re
 import struct
 import time
 import urllib.parse
-import urllib.request
-import urllib.response
 import uuid
 
 from .common import InfoExtractor
 from ..aes import aes_ecb_decrypt
+from ..networking import RequestHandler, Response
+from ..networking.exceptions import TransportError
 from ..utils import (
     ExtractorError,
     OnDemandPagedList,
@@ -26,36 +26,35 @@ from ..utils import (
     traverse_obj,
     update_url_query,
 )
-from ..utils.networking import clean_proxies
 
 
-def add_opener(ydl, handler):  # FIXME: Create proper API in .networking
-    """Add a handler for opening URLs, like _download_webpage"""
-    # https://github.com/python/cpython/blob/main/Lib/urllib/request.py#L426
-    # https://github.com/python/cpython/blob/main/Lib/urllib/request.py#L605
-    rh = ydl._request_director.handlers['Urllib']
-    if 'abematv-license' in rh._SUPPORTED_URL_SCHEMES:
-        return
-    headers = ydl.params['http_headers'].copy()
-    proxies = ydl.proxies.copy()
-    clean_proxies(proxies, headers)
-    opener = rh._get_instance(cookiejar=ydl.cookiejar, proxies=proxies)
-    assert isinstance(opener, urllib.request.OpenerDirector)
-    opener.add_handler(handler)
-    rh._SUPPORTED_URL_SCHEMES = (*rh._SUPPORTED_URL_SCHEMES, 'abematv-license')
+class AbemaLicenseRH(RequestHandler):
+    _SUPPORTED_URL_SCHEMES = ('abematv-license',)
+    _SUPPORTED_PROXY_SCHEMES = None
+    _SUPPORTED_FEATURES = None
+    RH_NAME = 'abematv_license'
 
+    _STRTABLE = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
+    _HKEY = b'3AF0298C219469522A313570E8583005A642E73EDD58E3EA2FB7339D3DF1597E'
 
-class AbemaLicenseHandler(urllib.request.BaseHandler):
-    handler_order = 499
-    STRTABLE = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
-    HKEY = b'3AF0298C219469522A313570E8583005A642E73EDD58E3EA2FB7339D3DF1597E'
-
-    def __init__(self, ie: 'AbemaTVIE'):
-        # the protocol that this should really handle is 'abematv-license://'
-        # abematv_license_open is just a placeholder for development purposes
-        # ref. https://github.com/python/cpython/blob/f4c03484da59049eb62a9bf7777b963e2267d187/Lib/urllib/request.py#L510
-        setattr(self, 'abematv-license_open', getattr(self, 'abematv_license_open', None))
+    def __init__(self, *, ie: 'AbemaTVIE', **kwargs):
+        super().__init__(**kwargs)
         self.ie = ie
+
+    def _send(self, request):
+        url = request.url
+        ticket = urllib.parse.urlparse(url).netloc
+
+        try:
+            response_data = self._get_videokey_from_ticket(ticket)
+        except ExtractorError as e:
+            raise TransportError(cause=e.cause) from e
+        except (IndexError, KeyError, TypeError) as e:
+            raise TransportError(cause=repr(e)) from e
+
+        return Response(
+            io.BytesIO(response_data), url,
+            headers={'Content-Length': str(len(response_data))})
 
     def _get_videokey_from_ticket(self, ticket):
         to_show = self.ie.get_param('verbose', False)
@@ -72,24 +71,16 @@ class AbemaLicenseHandler(urllib.request.BaseHandler):
                 'Content-Type': 'application/json',
             })
 
-        res = decode_base_n(license_response['k'], table=self.STRTABLE)
+        res = decode_base_n(license_response['k'], table=self._STRTABLE)
         encvideokey = bytes_to_intlist(struct.pack('>QQ', res >> 64, res & 0xffffffffffffffff))
 
         h = hmac.new(
-            binascii.unhexlify(self.HKEY),
+            binascii.unhexlify(self._HKEY),
             (license_response['cid'] + self.ie._DEVICE_ID).encode(),
             digestmod=hashlib.sha256)
         enckey = bytes_to_intlist(h.digest())
 
         return intlist_to_bytes(aes_ecb_decrypt(encvideokey, enckey))
-
-    def abematv_license_open(self, url):
-        url = url.get_full_url() if isinstance(url, urllib.request.Request) else url
-        ticket = urllib.parse.urlparse(url).netloc
-        response_data = self._get_videokey_from_ticket(ticket)
-        return urllib.response.addinfourl(io.BytesIO(response_data), headers={
-            'Content-Length': str(len(response_data)),
-        }, url=url, code=200)
 
 
 class AbemaTVBaseIE(InfoExtractor):
@@ -139,7 +130,7 @@ class AbemaTVBaseIE(InfoExtractor):
         if self._USERTOKEN:
             return self._USERTOKEN
 
-        add_opener(self._downloader, AbemaLicenseHandler(self))
+        self._downloader._request_director.add_handler(AbemaLicenseRH(ie=self, logger=None))
 
         username, _ = self._get_login_info()
         auth_cache = username and self.cache.load(self._NETRC_MACHINE, username, min_ver='2024.01.19')

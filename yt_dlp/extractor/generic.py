@@ -43,6 +43,7 @@ from ..utils import (
     xpath_text,
     xpath_with_ns,
 )
+from ..utils._utils import _UnsafeExtensionError
 
 
 class GenericIE(InfoExtractor):
@@ -2446,9 +2447,13 @@ class GenericIE(InfoExtractor):
         if not is_html(first_bytes):
             self.report_warning(
                 'URL could be a direct video link, returning it as such.')
+            ext = determine_ext(url)
+            if ext not in _UnsafeExtensionError.ALLOWED_EXTENSIONS:
+                ext = 'unknown_video'
             info_dict.update({
                 'direct': True,
                 'url': url,
+                'ext': ext,
             })
             return info_dict
 
