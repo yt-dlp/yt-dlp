@@ -228,6 +228,18 @@ INNERTUBE_CLIENTS = {
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 2,
     },
+    # This client can access premium audio high quality formats
+    # See: https://github.com/zerodytrash/YouTube-Internal-Clients
+    'tv_audio': {
+        'INNERTUBE_API_KEY': 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8',
+        'INNERTUBE_CONTEXT': {
+            'client': {
+                'clientName': 'TVHTML5_AUDIO',
+                'clientVersion': '2.0',
+            },
+        },
+        'INNERTUBE_CONTEXT_CLIENT_NAME': 57,
+    },
     # This client can access age restricted videos (unless the uploader has disabled the 'allow embedding' option)
     # See: https://github.com/zerodytrash/YouTube-Internal-Clients
     'tv_embedded': {
