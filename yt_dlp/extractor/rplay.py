@@ -1,19 +1,19 @@
-import time
-import re
 import random
-from .common import (
-    InfoExtractor,
-)
-from ..utils import (
-    ExtractorError,
-    encode_data_uri,
-    float_or_none,
-    traverse_obj,
-    parse_iso8601,
-    url_or_none,
-)
+import re
+import time
 
 from playwright.sync_api import sync_playwright
+
+from .common import InfoExtractor
+from ..utils import (
+    ExtractorError,
+    UserNotLive,
+    encode_data_uri,
+    float_or_none,
+    parse_iso8601,
+    traverse_obj,
+    url_or_none,
+)
 
 
 class RPlayBaseIE(InfoExtractor):
@@ -69,15 +69,12 @@ class RPlayBaseIE(InfoExtractor):
             page = browser.new_page()
             if goto:
                 page.goto(goto)
-            value = page.evaluate('''
+            page.evaluate('''
             const proxy = new Proxy(window.navigator, {get(target, prop, receiver) {
                 if (prop == "webdriver") return false;
-                throw new Error(prop);
                 return target[prop];
             }});
-            Object.defineProperty(window, "navigator", {get: ()=> proxy});
-            window.navigator.webdriver;
-            ''')
+            Object.defineProperty(window, "navigator", {get: ()=> proxy});''')
             value = page.evaluate(jscode)
             browser.close()
         return value
@@ -93,7 +90,7 @@ class RPlayBaseIE(InfoExtractor):
             __wbg_init_memory(t);
             const {module, instance} = await WebAssembly.instantiate(Uint8Array.from(%s), t);
             __wbg_finalize_init(instance, module);
-        };''' % butter_wasm_array
+        };''' % butter_wasm_array  # noqa: UP031
         butter_js += '__new_init().then(() => (new ButterFactory()).generate_butter())'
         return self._playwrite_eval(butter_js, goto='https://rplay.live/')
 
@@ -122,8 +119,8 @@ class RPlayVideoIE(RPlayBaseIE):
             'thumbnail': r're:https://[\w\d]+.cloudfront.net/.*',
             'uploader': '杏都める',
             'uploader_id': '667adc9e9aa7f739a2158ff3',
-            'tags': ["杏都める", "めいどるーちぇ", "無料", "耳舐め", "ASMR"],
-        }
+            'tags': ['杏都める', 'めいどるーちぇ', '無料', '耳舐め', 'ASMR'],
+        },
     }]
 
     def _real_extract(self, url):
@@ -172,7 +169,7 @@ class RPlayVideoIE(RPlayBaseIE):
                     'creatorOid': metainfo.get('uploader_id'),
                     **({
                         'requestorOid': self.user_id,
-                        'loginType': self.login_type
+                        'loginType': self.login_type,
                     } if self.user_id else {}),
                 }, fatal=False))
 
@@ -206,7 +203,7 @@ class RPlayUserIE(RPlayBaseIE):
             'id': '667adc9e9aa7f739a2158ff3',
             'title': '杏都める',
         },
-        'playlist_mincount': 33,
+        'playlist_mincount': 34,
     }, {
         'url': 'https://rplay.live/c/furachi?page=contents',
         'info_dict': {
@@ -235,10 +232,13 @@ class RPlayLiveIE(RPlayBaseIE):
         user_id = self._match_id(url)
 
         user_id = self._download_json(f'https://api.rplay.live/account/getuser?customUrl={user_id}', user_id)['_id']
-        live_info = self._download_json('https://api.rplay.live/live/play', user_id, query={
-            'creatorOid': user_id,
-        })
-        if live_info['streamState'] == 'youtube':
+        live_info = self._download_json('https://api.rplay.live/live/play', user_id,
+                                        query={'creatorOid': user_id})
+
+        stream_state = live_info['streamState']
+        if stream_state == 'youtube':
             return self.url_result(f'https://www.youtube.com/watch?v={live_info["liveStreamId"]}')
+        elif stream_state == 'offline':
+            raise UserNotLive
         else:
-            raise ExtractorError(f'Unknow streamState: {live_info["streamState"]}')
+            raise ExtractorError(f'Unknow streamState: {stream_state}')

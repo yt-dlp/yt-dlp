@@ -1727,9 +1727,9 @@ from .rozhlas import (
     RozhlasVltavaIE,
 )
 from .rplay import (
-    RPlayVideoIE,
-    RPlayUserIE,
     RPlayLiveIE,
+    RPlayUserIE,
+    RPlayVideoIE,
 )
 from .rte import (
     RteIE,
