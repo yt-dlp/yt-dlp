@@ -367,5 +367,7 @@ class GoogleDriveFolderIE(InfoExtractor):
         )
         title = json_folder_info[1][2]
         items = json_items[-1]
+        if not isinstance(items, list):
+            return self.playlist_result([], folder_id, title)
 
         return make_playlist(items, folder_id)
