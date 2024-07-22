@@ -578,8 +578,10 @@ class FacebookIE(InfoExtractor):
         def extract_relay_data(_filter):
             return next(yield_all_relay_data(_filter), {})
 
-        def extract_relay_prefetched_data(_filter, required_key=None):
-            path = 'data' if required_key is None else lambda k, v: k == 'data' and required_key in v
+        def extract_relay_prefetched_data(_filter, target_keys=None):
+            path = 'data'
+            if target_keys is not None:
+                path = lambda k, v: k == 'data' and any(target in v for target in variadic(target_keys))
             return traverse_obj(yield_all_relay_data(_filter), (
                 ..., 'require', (None, (..., ..., ..., '__bbox', 'require')),
                 lambda _, v: any(key.startswith('RelayPrefetchedStreamCache') for key in v),
@@ -594,7 +596,8 @@ class FacebookIE(InfoExtractor):
 
         if not video_data:
             data = extract_relay_prefetched_data(
-                r'"(?:dash_manifest|playable_url(?:_quality_hd)?)', required_key='video')
+                r'"(?:dash_manifest|playable_url(?:_quality_hd)?)',
+                target_keys=('video', 'event', 'nodes', 'node', 'mediaset'))
             if data:
                 entries = []
 
