@@ -1,5 +1,3 @@
-import json
-
 from .common import InfoExtractor
 from ..utils import ExtractorError, int_or_none, traverse_obj, try_get
 
@@ -13,13 +11,13 @@ class AmazonMiniTVBaseIE(InfoExtractor):
 
     def _call_api(self, asin, data=None, note=None):
         query = {
-            'contentId':asin,
+            'contentId': asin,
         }
         if data:
             query.update(data)
 
         resp = self._download_json(
-            f'https://www.amazon.in/minitv-pr/api/web/page/title',
+            'https://www.amazon.in/minitv-pr/api/web/page/title',
             asin, note=note, headers={
                 'Content-Type': 'application/json',
                 'accounttype': 'NEW_GUEST_ACCOUNT',
@@ -106,11 +104,11 @@ class AmazonMiniTVIE(AmazonMiniTVBaseIE):
             'subtitles': subtitles,
             'language': traverse_obj(title_info, ('audioTracks', 0)),
             'thumbnails': [{
-                'id': "thumbnailImage",
+                'id': 'thumbnailImage',
                 'url': title_info.get('thumbnailImage'),
             },{
-                'id':"seasonThumbnailImage",
-                'url': title_info.get('thumbnailImage')
+                'id':'seasonThumbnailImage',
+                'url': title_info.get('thumbnailImage'),
             }],
             'description': traverse_obj(title_info_, ('description', 'synopsis')),
             'release_timestamp': int_or_none(try_get(title_info_, lambda x: x['publicReleaseDateUTC'] / 1000)),
