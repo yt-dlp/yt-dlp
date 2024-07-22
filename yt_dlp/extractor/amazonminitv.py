@@ -88,7 +88,7 @@ class AmazonMiniTVIE(AmazonMiniTVBaseIE):
         title_info_ = prs['metaData']['contentDetails']
 
         formats, subtitles = [], {}
-        for mpd in playback_info:            
+        for mpd in playback_info:
             mpd_fmts, mpd_subs = self._extract_mpd_formats_and_subtitles(
                 mpd['manifestURL'], asin, mpd_id=mpd['codec'], fatal=False)
             formats.extend(mpd_fmts)
@@ -106,8 +106,8 @@ class AmazonMiniTVIE(AmazonMiniTVBaseIE):
             'thumbnails': [{
                 'id': 'thumbnailImage',
                 'url': title_info.get('thumbnailImage'),
-            },{
-                'id':'seasonThumbnailImage',
+            }, {
+                'id': 'seasonThumbnailImage',
                 'url': title_info.get('thumbnailImage'),
             }],
             'description': traverse_obj(title_info_, ('description', 'synopsis')),
