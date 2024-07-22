@@ -571,16 +571,19 @@ class FacebookIE(InfoExtractor):
                 # Formats larger than ~500MB will return error 403 unless chunk size is regulated
                 f.setdefault('downloader_options', {})['http_chunk_size'] = 250 << 20
 
-        def extract_relay_data(_filter):
-            return self._parse_json(self._search_regex(
-                rf'data-sjs>({{.*?{_filter}.*?}})</script>',
-                webpage, 'replay data', default='{}'), video_id, fatal=False) or {}
+        def yield_all_relay_data(_filter):
+            for relay_data in re.findall(rf'data-sjs>({{.*?{_filter}.*?}})</script>', webpage):
+                yield self._parse_json(relay_data, video_id, fatal=False) or {}
 
-        def extract_relay_prefetched_data(_filter):
-            return traverse_obj(extract_relay_data(_filter), (
-                'require', (None, (..., ..., ..., '__bbox', 'require')),
+        def extract_relay_data(_filter):
+            return next(yield_all_relay_data(_filter), {})
+
+        def extract_relay_prefetched_data(_filter, required_key=None):
+            path = 'data' if required_key is None else lambda k, v: k == 'data' and required_key in v
+            return traverse_obj(yield_all_relay_data(_filter), (
+                ..., 'require', (None, (..., ..., ..., '__bbox', 'require')),
                 lambda _, v: any(key.startswith('RelayPrefetchedStreamCache') for key in v),
-                ..., ..., '__bbox', 'result', 'data', {dict}), get_all=False) or {}
+                ..., ..., '__bbox', 'result', path, {dict}), get_all=False) or {}
 
         if not video_data:
             server_js_data = self._parse_json(self._search_regex([
@@ -591,7 +594,7 @@ class FacebookIE(InfoExtractor):
 
         if not video_data:
             data = extract_relay_prefetched_data(
-                r'"(?:dash_manifest|playable_url(?:_quality_hd)?)')
+                r'"(?:dash_manifest|playable_url(?:_quality_hd)?)', required_key='video')
             if data:
                 entries = []
 
