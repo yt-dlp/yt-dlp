@@ -145,7 +145,7 @@ class AmazonMiniTVSeasonIE(AmazonMiniTVBaseIE):
     def _entries(self, asin):
         season_info = self._call_api(
             asin, note='Downloading season info',
-            data={'cursor': '8e0cefec-e190-46ba-854d-1f3ca7978b4a:::'}
+            data={'cursor': '8e0cefec-e190-46ba-854d-1f3ca7978b4a:::'},
         )
 
         for season in season_info['widgets'][0]['data']['options']:
