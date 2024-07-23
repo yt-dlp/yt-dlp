@@ -274,18 +274,77 @@ class RPlayUserIE(RPlayBaseIE):
 
 
 class RPlayLiveIE(RPlayBaseIE):
-    _VALID_URL = r'https://rplay.live/c/(?P<id>[\d\w]+)/live'
+    _VALID_URL = [
+        r'https://rplay.live/(?P<short>c)/(?P<id>[\d\w]+)/live',
+        r'https://rplay.live/(?P<short>live)/(?P<id>[\d\w]+)',
+    ]
+    _TESTS = [{
+        'url': 'https://rplay.live/c/chachamaru/live',
+        'info_dict': {
+            'id': '667e4cd99aa7f739a2c91852',
+            'ext': 'mp4',
+            'title': r're:【ASMR】ん～っやば//スキスキ耐久.*',
+            'description': 'md5:7f88ac0a7a3d5d0b926a0baecd1d40e1',
+            'timestamp': 1721739947,
+            'upload_date': '20240723',
+            'live_status': 'is_live',
+            'thumbnail': 'https://pb.rplay.live/liveChannelThumbnails/667e4cd99aa7f739a2c91852',
+            'uploader': '愛犬茶々丸',
+            'uploader_id': '667e4cd99aa7f739a2c91852',
+            'tags': 'count:9',
+        },
+        'skip': 'live',
+    }, {
+        'url': 'https://rplay.live/live/667adc9e9aa7f739a2158ff3',
+        'only_matching': True,
+    }]
 
     def _real_extract(self, url):
-        user_id = self._match_id(url)
+        user_id, short = self._match_valid_url(url).group('id', 'short')
 
-        user_id = self._download_json(f'https://api.rplay.live/account/getuser?customUrl={user_id}', user_id)['_id']
-        live_info = self._download_json('https://api.rplay.live/live/play', user_id,
-                                        query={'creatorOid': user_id})
+        if short == 'c':
+            user_info = self._download_json(f'https://api.rplay.live/account/getuser?customUrl={user_id}', user_id)
+            user_id = user_info['_id']
+        else:
+            user_info = self._download_json(f'https://api.rplay.live/account/getuser?userOid={user_id}', user_id)
+
+        live_info = self._download_json('https://api.rplay.live/live/play', user_id, query={'creatorOid': user_id})
 
         stream_state = live_info['streamState']
         if stream_state == 'youtube':
             return self.url_result(f'https://www.youtube.com/watch?v={live_info["liveStreamId"]}')
+        elif stream_state == 'live':
+            if self._configuration_arg('jwt_token') and not self.user_id:
+                self._login_by_token(self._configuration_arg('jwt_token', casesense=True)[0], user_id)
+            if not live_info.get('allowAnonymous') and not self.user_id:
+                self.raise_login_required()
+            key2 = self._download_webpage(
+                'https://api.rplay.live/live/key2', user_id, 'getting live key',
+                headers={'Authorization': self.jwt_token},
+                query={
+                    'requestorOid': self.user_id,
+                    'loginType': self.login_type,
+                })
+            formats = self._extract_m3u8_formats('https://api.rplay.live/live/stream/playlist.m3u8', user_id, query={
+                'creatorOid': user_id,
+                'key2': key2,
+            })
+            return {
+                'id': user_id,
+                'formats': formats,
+                'is_live': True,
+                'http_headers': {'Referer': 'https://rplay.live'},
+                'thumbnail': f'https://pb.rplay.live/liveChannelThumbnails/{user_id}',
+                'uploader': traverse_obj(user_info, ('nickname', {str})),
+                'uploader_id': user_id,
+                **traverse_obj(live_info, {
+                    'title': ('title', {str}),
+                    'description': ('description', {str}),
+                    'timestamp': ('streamStartTime', {parse_iso8601}),
+                    'tags': ('hashtags', ..., {str}),
+                    'age_limit': ('isAdultContent', {lambda x: 18 if x else None}),
+                }),
+            }
         elif stream_state == 'offline':
             raise UserNotLive
         else:
