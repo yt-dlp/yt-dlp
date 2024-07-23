@@ -83,9 +83,9 @@ class AmazonMiniTVIE(AmazonMiniTVBaseIE):
     def _real_extract(self, url):
         asin = f'amzn1.dv.gti.{self._match_id(url)}'
         prs = self._call_api(asin, note='Downloading playback info')
-        playback_info = prs['widgets'][0]['data']['playbackAssets']['manifestData']
-        title_info = prs['widgets'][0]['data']['contentDetails']
-        title_info_ = prs['metaData']['contentDetails']
+        playback_info = traverse_obj(prs, ('widgets', 0, 'data', 'playbackAssets', 'manifestData'))
+        title_info = traverse_obj(prs, ('widgets', 0, 'data', 'contentDetails'))
+        title_info_ = traverse_obj(prs, ('metaData', 'contentDetails'))
 
         formats, subtitles = [], {}
         for mpd in playback_info:
