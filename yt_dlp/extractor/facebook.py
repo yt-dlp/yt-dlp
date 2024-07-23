@@ -576,7 +576,7 @@ class FacebookIE(InfoExtractor):
                 yield self._parse_json(relay_data, video_id, fatal=False) or {}
 
         def extract_relay_data(_filter):
-            return next(yield_all_relay_data(_filter), {})
+            return next(filter(None, yield_all_relay_data(_filter)), {})
 
         def extract_relay_prefetched_data(_filter, target_keys=None):
             path = 'data'
