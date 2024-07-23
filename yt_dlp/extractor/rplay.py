@@ -137,7 +137,7 @@ class RPlayVideoIE(RPlayBaseIE):
         'info_dict': {
             'id': '669203d25223214e67579dc3',
             'ext': 'mp4',
-            'title': '〖ASMR/SR3D〗密着♥じっくり奥ゾリゾリ耳舐め♡〖杏都める〗Earlicking,Mouthsound,舔耳,힐링,귀 핥기',
+            'title': 'md5:6ab0a76410b40b1f5fb48a2ad7571264',
             'description': 'md5:d2fb2f74a623be439cf454df5ff3344a',
             'release_timestamp': 1720846360,
             'release_date': '20240713',
