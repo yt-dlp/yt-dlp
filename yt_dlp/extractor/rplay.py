@@ -73,7 +73,7 @@ class RPlayBaseIE(InfoExtractor):
                     try:
                         start = time.time()
                         await page.goto(goto, wait_until=wait_until)
-                        self.write_debug(f'{wait_until} loaded in {time.time() - start} s')
+                        self.write_debug(f'{wait_until} loaded in {time.time() - start:.3f}s')
                         if stop_loading:
                             await page.evaluate('window.stop();')
                     except Exception as e:
@@ -83,7 +83,7 @@ class RPlayBaseIE(InfoExtractor):
                 try:
                     start = time.time()
                     value = await asyncio.wait_for(page.evaluate(jscode), timeout=10)
-                    self.write_debug(f'JS execution finished in {time.time() - start} s')
+                    self.write_debug(f'JS execution finished in {time.time() - start:.3f}s')
                 except asyncio.TimeoutError:
                     self.report_warning('PlayWright JS evaluation timed out')
                     value = None
@@ -139,6 +139,8 @@ class RPlayVideoIE(RPlayBaseIE):
             'ext': 'mp4',
             'title': 'md5:6ab0a76410b40b1f5fb48a2ad7571264',
             'description': 'md5:d2fb2f74a623be439cf454df5ff3344a',
+            'timestamp': 1720845266,
+            'upload_date': '20240713',
             'release_timestamp': 1720846360,
             'release_date': '20240713',
             'duration': 5349.0,
@@ -146,6 +148,24 @@ class RPlayVideoIE(RPlayBaseIE):
             'uploader': '杏都める',
             'uploader_id': '667adc9e9aa7f739a2158ff3',
             'tags': ['杏都める', 'めいどるーちぇ', '無料', '耳舐め', 'ASMR'],
+        },
+    }, {
+        'url': 'https://rplay.live/play/660bee4fd3c1d09d69db6870/',
+        'info_dict': {
+            'id': '660bee4fd3c1d09d69db6870',
+            'ext': 'mp4',
+            'title': 'md5:7de162a0f1c2266ec428234620a124fc',
+            'description': 'md5:c6d12cc8110b748d5588d5f00787cd35',
+            'timestamp': 1712057935,
+            'upload_date': '20240402',
+            'release_timestamp': 1712061900,
+            'release_date': '20240402',
+            'duration': 6791.0,
+            'thumbnail': r're:https://[\w\d]+.cloudfront.net/.*',
+            'uploader': '狐月れんげ',
+            'uploader_id': '65eeb4b237043dc0b5654f86',
+            'tags': 'count:10',
+            'age_limit': 18,
         },
     }]
 
@@ -175,10 +195,12 @@ class RPlayVideoIE(RPlayBaseIE):
             'title': ('title', {str}),
             'description': ('introText', {str}),
             'release_timestamp': ('publishedAt', {parse_iso8601}),
+            'timestamp': ('createdAt', {parse_iso8601}),
             'duration': ('length', {float_or_none}),
             'uploader': ('nickname', {str}),
             'uploader_id': ('creatorOid', {str}),
             'tags': ('hashtags', lambda _, v: v[0] != '_'),
+            'age_limit': (('hideContent', 'isAdultContent'), {lambda x: 18 if x else None}, any),
         })
 
         m3u8_url = traverse_obj(content, ('canView', 'url'))
