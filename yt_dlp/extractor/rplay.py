@@ -1,8 +1,9 @@
+import asyncio
 import random
 import re
 import time
 
-from playwright.sync_api import sync_playwright
+from playwright.async_api import async_playwright
 
 from .common import InfoExtractor
 from ..utils import (
@@ -63,43 +64,68 @@ class RPlayBaseIE(InfoExtractor):
         self.cache.store('rplay', 'butter-code', {'js': butter_js, 'wasm': butter_wasm_array, 'date': time.time()})
         return butter_js, butter_wasm_array
 
-    def _playwrite_eval(self, jscode, goto=None):
-        with sync_playwright() as p:
-            browser = p.chromium.launch()
-            page = browser.new_page()
-            if goto:
-                page.goto(goto)
-            page.evaluate('''
-            const proxy = new Proxy(window.navigator, {get(target, prop, receiver) {
-                if (prop == "webdriver") return false;
-                return target[prop];
-            }});
-            Object.defineProperty(window, "navigator", {get: ()=> proxy});''')
-            value = page.evaluate(jscode)
-            browser.close()
-        return value
+    def _playwright_eval(self, jscode, goto=None, wait_until='commit', stop_loading=True):
+        async def __aeval():
+            async with async_playwright() as p:
+                browser = await p.chromium.launch(chromium_sandbox=True)
+                page = await browser.new_page()
+                if goto:
+                    try:
+                        start = time.time()
+                        await page.goto(goto, wait_until=wait_until)
+                        self.write_debug(f'{wait_until} loaded in {time.time() - start} s')
+                        if stop_loading:
+                            await page.evaluate('window.stop();')
+                    except Exception as e:
+                        self.report_warning(f'Failed to navigate to {goto}: {e}')
+                        await browser.close()
+                        return
+                try:
+                    start = time.time()
+                    value = await asyncio.wait_for(page.evaluate(jscode), timeout=10)
+                    self.write_debug(f'JS execution finished in {time.time() - start} s')
+                except asyncio.TimeoutError:
+                    self.report_warning('PlayWright JS evaluation timed out')
+                    value = None
+                finally:
+                    await browser.close()
+            return value
 
-    def _get_butter_token(self):
+        try:
+            return asyncio.run(__aeval())
+        except asyncio.InvalidStateError:
+            pass
+
+    def _calc_butter_token(self):
         butter_js, butter_wasm_array = self._get_butter_files()
         butter_js = butter_js.replace('export{initSync};export default __wbg_init;', '')
         butter_js = butter_js.replace('export class', 'class')
         butter_js = butter_js.replace('new URL("smooth_like_butter_bg.wasm",import.meta.url)', '""')
 
-        butter_js += ''';__new_init = async () => {
+        butter_js += ''';const proxy = new Proxy(window.navigator, {get(target, prop, receiver) {
+            if (prop == "webdriver") return false;
+            return target[prop];
+        }});
+        Object.defineProperty(window, "navigator", {get: ()=> proxy});'''
+
+        butter_js += '''__new_init = async () => {
             const t = __wbg_get_imports();
             __wbg_init_memory(t);
             const {module, instance} = await WebAssembly.instantiate(Uint8Array.from(%s), t);
             __wbg_finalize_init(instance, module);
         };''' % butter_wasm_array  # noqa: UP031
+
         butter_js += '__new_init().then(() => (new ButterFactory()).generate_butter())'
-        return self._playwrite_eval(butter_js, goto='https://rplay.live/')
+
+        # The generator checks `navigator` and `location` to generate correct token
+        return self._playwright_eval(butter_js, goto='https://rplay.live/')
 
     def get_butter_token(self):
         cache = self.cache.load('rplay', 'butter-token') or {}
         timestamp = str(int(time.time() / 360))
         if cache.get(timestamp):
             return cache[timestamp]
-        token = self._get_butter_token()
+        token = self._calc_butter_token()
         self.cache.store('rplay', 'butter-token', {timestamp: token})
         return token
 
