@@ -15,7 +15,46 @@ class GermanupaIE(InfoExtractor):
             'id': '909179246',
             'title': 'Tutorial: #4 Figma Beratung - Deine Sprechstunde für Figma-Fragen',
             'ext': 'mp4',
+            'uploader': 'German UPA',
+            'uploader_id': 'germanupa',
+            'thumbnail': 'https://i.vimeocdn.com/video/1792564420-7415283ccef8bf8702dab8c6b7515555ceeb7a1c11371ffcc133b8e887dbf70e-d_1280',
+            'uploader_url': 'https://vimeo.com/germanupa',
+            'duration': 3987,
         },
+        'expected_warnings': ['Failed to parse XML'],
+        'params': {
+            'skip_download': 'm3u8',
+        },
+    }, {
+        'url': 'https://germanupa.de/mediathek/live-vom-ux-festival-neuigkeiten-von-figma-jobmarkt-agenturszene-interview-zu-sustainable',
+        'info_dict': {
+            'id': '1867346676',
+            'title': 'Live vom UX Festival: Neuigkeiten von Figma, Jobmarkt, Agenturszene & Interview zu Sustainable UX',
+            'ext': 'opus',
+            'timestamp': 1720545088,
+            'upload_date': '20240709',
+            'duration': 3910.557,
+            'like_count': int,
+            'description': 'md5:db2aed5ff131e177a7b33901e9a8db05',
+            'uploader': 'German UPA',
+            'repost_count': int,
+            'genres': ['Science'],
+            'license': 'all-rights-reserved',
+            'uploader_url': 'https://soundcloud.com/user-80097677',
+            'uploader_id': '471579486',
+            'view_count': int,
+            'comment_count': int,
+            'thumbnail': 'https://i1.sndcdn.com/artworks-oCti2e9GhaZFWBqY-48ybGw-original.jpg',
+        },
+    }, {
+        # Nur für Mitglieder, info_dict INCOMPLETE
+        'url': 'https://germanupa.de/mediathek/ux-festival-2024-usability-tests-und-ai',
+        'info_dict': {
+            'id': '0',
+            'title': 'UX Festival 2024 "Usability Tests und AI"',
+            'ext': 'mp4',
+        },
+        'skip': 'login required',
     }]
 
     def _real_extract(self, url):
