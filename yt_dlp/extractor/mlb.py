@@ -289,7 +289,8 @@ class MLBTVIE(InfoExtractor):
             'skip_download': True,
         },
     }]
-    _GRAPHQL_INIT_QUERY = '''mutation initSession($device: InitSessionInput!, $clientType: ClientType!, $experience: ExperienceTypeInput) {
+    _GRAPHQL_INIT_QUERY = '''\
+mutation initSession($device: InitSessionInput!, $clientType: ClientType!, $experience: ExperienceTypeInput) {
     initSession(device: $device, clientType: $clientType, experience: $experience) {
         deviceId
         sessionId
@@ -307,7 +308,8 @@ class MLBTVIE(InfoExtractor):
         features
     }
   }'''
-    _GRAPHQL_PLAYBACK_QUERY = '''mutation initPlaybackSession(
+    _GRAPHQL_PLAYBACK_QUERY = '''\
+mutation initPlaybackSession(
         $adCapabilities: [AdExperienceType]
         $mediaId: String!
         $deviceId: String!
