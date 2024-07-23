@@ -14,7 +14,6 @@
  - **6play**
  - **7plus**
  - **8tracks**
- - **91porn**
  - **9c9media**
  - **9gag**: 9GAG
  - **9News**
@@ -47,6 +46,7 @@
  - **aenetworks:show**
  - **AeonCo**
  - **afreecatv**: [*afreecatv*](## "netrc machine") afreecatv.com
+ - **afreecatv:catchstory**: [*afreecatv*](## "netrc machine") afreecatv.com catch story
  - **afreecatv:live**: [*afreecatv*](## "netrc machine") afreecatv.com livestreams
  - **afreecatv:user**
  - **AirTV**
@@ -220,7 +220,7 @@
  - **BusinessInsider**
  - **BuzzFeed**
  - **BYUtv**: (**Currently broken**)
- - **CableAV**
+ - **CaffeineTV**
  - **Callin**
  - **Caltrans**
  - **CAM4**
@@ -333,6 +333,8 @@
  - **DailyWirePodcast**
  - **damtomo:record**
  - **damtomo:video**
+ - **dangalplay**: [*dangalplay*](## "netrc machine")
+ - **dangalplay:season**: [*dangalplay*](## "netrc machine")
  - **daum.net**
  - **daum.net:clip**
  - **daum.net:playlist**
@@ -352,7 +354,6 @@
  - **DigitallySpeaking**
  - **Digiteka**
  - **DiscogsReleasePlaylist**
- - **Discovery**
  - **DiscoveryLife**
  - **DiscoveryNetworksDe**
  - **DiscoveryPlus**
@@ -361,7 +362,6 @@
  - **DiscoveryPlusItaly**
  - **DiscoveryPlusItalyShow**
  - **Disney**
- - **DIYNetwork**
  - **dlf**
  - **dlf:corpus**: DLF Multi-feed Archives
  - **dlive:stream**
@@ -396,7 +396,6 @@
  - **EinsUndEinsTV**: [*1und1tv*](## "netrc machine")
  - **EinsUndEinsTVLive**: [*1und1tv*](## "netrc machine")
  - **EinsUndEinsTVRecordings**: [*1und1tv*](## "netrc machine")
- - **Einthusan**
  - **eitb.tv**
  - **ElementorEmbed**
  - **Elonet**
@@ -498,6 +497,7 @@
  - **GameStar**
  - **Gaskrank**
  - **Gazeta**: (**Currently broken**)
+ - **GBNews**: GB News clips, features and live streams
  - **GDCVault**: [*gdcvault*](## "netrc machine") (**Currently broken**)
  - **GediDigital**
  - **gem.cbc.ca**: [*cbcgem*](## "netrc machine")
@@ -514,7 +514,6 @@
  - **GlattvisionTVLive**: [*glattvisiontv*](## "netrc machine")
  - **GlattvisionTVRecordings**: [*glattvisiontv*](## "netrc machine")
  - **Glide**: Glide mobile video messages (glide.me)
- - **GlobalCyclingNetworkPlus**
  - **GlobalPlayerAudio**
  - **GlobalPlayerAudioEpisode**
  - **GlobalPlayerLive**
@@ -527,6 +526,7 @@
  - **GMANetworkVideo**
  - **Go**
  - **GoDiscovery**
+ - **GodResource**
  - **GodTube**: (**Currently broken**)
  - **Gofile**
  - **Golem**
@@ -540,6 +540,7 @@
  - **Goshgay**
  - **GoToStage**
  - **GPUTechConf**
+ - **Graspop**
  - **Gronkh**
  - **gronkh:feed**
  - **gronkh:vods**
@@ -630,11 +631,11 @@
  - **iwara:user**: [*iwara*](## "netrc machine")
  - **Ixigua**
  - **Izlesene**
- - **Jable**
- - **JablePlaylist**
  - **Jamendo**
  - **JamendoAlbum**
  - **JeuxVideo**: (**Currently broken**)
+ - **jiocinema**: [*jiocinema*](## "netrc machine")
+ - **jiocinema:series**: [*jiocinema*](## "netrc machine")
  - **jiosaavn:album**
  - **jiosaavn:playlist**
  - **jiosaavn:song**
@@ -676,6 +677,8 @@
  - **la7.it**
  - **la7.it:​pod:episode**
  - **la7.it:podcast**
+ - **laracasts**
+ - **laracasts:series**
  - **LastFM**
  - **LastFMPlaylist**
  - **LastFMUser**
@@ -773,7 +776,12 @@
  - **MelonVOD**
  - **Metacritic**
  - **mewatch**
+ - **MicrosoftBuild**
  - **MicrosoftEmbed**
+ - **MicrosoftLearnEpisode**
+ - **MicrosoftLearnPlaylist**
+ - **MicrosoftLearnSession**
+ - **MicrosoftMedius**
  - **microsoftstream**: Microsoft Stream
  - **mildom**: Record ongoing live by specific user in Mildom
  - **mildom:clip**: Clip in Mildom
@@ -809,8 +817,6 @@
  - **MotherlessGroup**
  - **MotherlessUploader**
  - **Motorsport**: motorsport.com (**Currently broken**)
- - **MotorTrend**
- - **MotorTrendOnDemand**
  - **MovieFap**
  - **Moviepilot**
  - **MoviewPlay**
@@ -828,7 +834,7 @@
  - **MTVUutisetArticle**: (**Currently broken**)
  - **MuenchenTV**: münchen.tv (**Currently broken**)
  - **MujRozhlas**
- - **Murrtube**: (**Currently broken**)
+ - **Murrtube**
  - **MurrtubeUser**: Murrtube user profile (**Currently broken**)
  - **MuseAI**
  - **MuseScore**
@@ -836,8 +842,6 @@
  - **MusicdexArtist**
  - **MusicdexPlaylist**
  - **MusicdexSong**
- - **mva**: Microsoft Virtual Academy videos
- - **mva:course**: Microsoft Virtual Academy courses
  - **Mx3**
  - **Mx3Neo**
  - **Mx3Volksmusik**
@@ -974,6 +978,7 @@
  - **NRKTVSeason**
  - **NRKTVSeries**
  - **NRLTV**: (**Currently broken**)
+ - **nts.live**
  - **ntv.ru**
  - **NubilesPorn**: [*nubiles-porn*](## "netrc machine")
  - **nuum:live**
@@ -1015,7 +1020,6 @@
  - **orf:on**
  - **orf:podcast**
  - **orf:radio**
- - **orf:tvthek**: ORF TVthek
  - **OsnatelTV**: [*osnateltv*](## "netrc machine")
  - **OsnatelTVLive**: [*osnateltv*](## "netrc machine")
  - **OsnatelTVRecordings**: [*osnateltv*](## "netrc machine")
@@ -1129,6 +1133,7 @@
  - **QingTing**
  - **qqmusic**: QQ音乐
  - **qqmusic:album**: QQ音乐 - 专辑
+ - **qqmusic:mv**: QQ音乐 - MV
  - **qqmusic:playlist**: QQ音乐 - 歌单
  - **qqmusic:singer**: QQ音乐 - 歌手
  - **qqmusic:toplist**: QQ音乐 - 排行榜
@@ -1235,6 +1240,7 @@
  - **rtve.es:television**
  - **RTVS**
  - **rtvslo.si**
+ - **rtvslo.si:show**
  - **RudoVideo**
  - **Rule34Video**
  - **Rumble**
@@ -1358,6 +1364,7 @@
  - **SpreakerShowPage**
  - **SpringboardPlatform**
  - **Sprout**
+ - **SproutVideo**
  - **sr:mediathek**: Saarländischer Rundfunk (**Currently broken**)
  - **SRGSSR**
  - **SRGSSRPlay**: srf.ch, rts.ch, rsi.ch, rtr.ch and swissinfo.ch play sites
@@ -1394,6 +1401,10 @@
  - **SztvHu**
  - **t-online.de**: (**Currently broken**)
  - **Tagesschau**: (**Currently broken**)
+ - **TapTapApp**
+ - **TapTapAppIntl**
+ - **TapTapMoment**
+ - **TapTapPostIntl**
  - **Tass**: (**Currently broken**)
  - **TBS**
  - **TBSJPEpisode**
@@ -1412,7 +1423,7 @@
  - **TedSeries**
  - **TedTalk**
  - **Tele13**
- - **Tele5**: (**Currently broken**)
+ - **Tele5**
  - **TeleBruxelles**
  - **TelecaribePlay**
  - **Telecinco**: telecinco.es, cuatro.com and mediaset.es
@@ -1454,11 +1465,12 @@
  - **ThreeSpeak**
  - **ThreeSpeakUser**
  - **TikTok**
+ - **tiktok:collection**
  - **tiktok:effect**: (**Currently broken**)
  - **tiktok:live**
  - **tiktok:sound**: (**Currently broken**)
  - **tiktok:tag**: (**Currently broken**)
- - **tiktok:user**: (**Currently broken**)
+ - **tiktok:user**
  - **TLC**
  - **TMZ**
  - **TNAFlix**
@@ -1489,8 +1501,8 @@
  - **Tube8**: (**Currently broken**)
  - **TubeTuGraz**: [*tubetugraz*](## "netrc machine") tube.tugraz.at
  - **TubeTuGrazSeries**: [*tubetugraz*](## "netrc machine")
- - **TubiTv**: [*tubitv*](## "netrc machine")
- - **TubiTvShow**
+ - **tubitv**: [*tubitv*](## "netrc machine")
+ - **tubitv:series**
  - **Tumblr**: [*tumblr*](## "netrc machine")
  - **TuneInPodcast**
  - **TuneInPodcastEpisode**
@@ -1503,7 +1515,7 @@
  - **tv2play.hu**
  - **tv2playseries.hu**
  - **TV4**: tv4.se and tv4play.se
- - **TV5MondePlus**: TV5MONDE+
+ - **TV5MONDE**
  - **tv5unis**
  - **tv5unis:video**
  - **tv8.it**
@@ -1602,6 +1614,8 @@
  - **VidioPremier**: [*vidio*](## "netrc machine")
  - **VidLii**
  - **Vidly**
+ - **vids.io**
+ - **Vidyard**
  - **viewlift**
  - **viewlift:embed**
  - **Viidea**
@@ -1641,8 +1655,6 @@
  - **voicy**: (**Currently broken**)
  - **voicy:channel**: (**Currently broken**)
  - **VolejTV**
- - **Voot**: [*voot*](## "netrc machine") (**Currently broken**)
- - **VootSeries**: [*voot*](## "netrc machine") (**Currently broken**)
  - **VoxMedia**
  - **VoxMediaVolume**
  - **vpro**: npo.nl, ntr.nl, omroepwnl.nl, zapp.nl and npo3.nl
@@ -1651,6 +1663,8 @@
  - **VRT**: VRT NWS, Flanders News, Flandern Info and Sporza
  - **VrtNU**: [*vrtnu*](## "netrc machine") VRT MAX
  - **VTM**: (**Currently broken**)
+ - **VTV**
+ - **VTVGo**
  - **VTXTV**: [*vtxtv*](## "netrc machine")
  - **VTXTVLive**: [*vtxtv*](## "netrc machine")
  - **VTXTVRecordings**: [*vtxtv*](## "netrc machine")
@@ -1717,10 +1731,10 @@
  - **wykop:​post:comment**
  - **Xanimu**
  - **XboxClips**
- - **XFileShare**: XFileShare based sites: Aparat, ClipWatching, GoUnlimited, GoVid, HolaVid, Streamty, TheVideoBee, Uqload, VidBom, vidlo, VidLocker, VidShare, VUp, WolfStream, XVideoSharing
  - **XHamster**
  - **XHamsterEmbed**
  - **XHamsterUser**
+ - **XiaoHongShu**: 小红书
  - **ximalaya**: 喜马拉雅FM
  - **ximalaya:album**: 喜马拉雅FM 专辑
  - **xinpianchang**: xinpianchang.com (**Currently broken**)
@@ -1751,8 +1765,12 @@
  - **YouNowLive**
  - **YouNowMoment**
  - **YouPorn**
- - **YourPorn**
- - **YourUpload**
+ - **YouPornCategory**: YouPorn category, with sorting, filtering and pagination
+ - **YouPornChannel**: YouPorn channel, with sorting and pagination
+ - **YouPornCollection**: YouPorn collection (user playlist), with sorting and pagination
+ - **YouPornStar**: YouPorn Pornstar, with description, sorting and pagination
+ - **YouPornTag**: YouPorn tag (porntags), with sorting, filtering and pagination
+ - **YouPornVideos**: YouPorn video (browse) playlists, with sorting, filtering and pagination
  - **youtube**: YouTube
  - **youtube:clip**
  - **youtube:favorites**: YouTube liked videos; ":ytfav" keyword (requires cookies)

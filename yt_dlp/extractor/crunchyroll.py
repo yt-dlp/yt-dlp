@@ -2,6 +2,7 @@ import base64
 import uuid
 
 from .common import InfoExtractor
+from ..networking import Request
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
@@ -24,6 +25,7 @@ class CrunchyrollBaseIE(InfoExtractor):
     _BASE_URL = 'https://www.crunchyroll.com'
     _API_BASE = 'https://api.crunchyroll.com'
     _NETRC_MACHINE = 'crunchyroll'
+    _SWITCH_USER_AGENT = 'Crunchyroll/1.8.0 Nintendo Switch/12.3.12.0 UE4/4.27'
     _REFRESH_TOKEN = None
     _AUTH_HEADERS = None
     _AUTH_EXPIRY = None
@@ -53,15 +55,19 @@ class CrunchyrollBaseIE(InfoExtractor):
         CrunchyrollBaseIE._AUTH_EXPIRY = time_seconds(seconds=traverse_obj(response, ('expires_in', {float_or_none}), default=300) - 10)
 
     def _request_token(self, headers, data, note='Requesting token', errnote='Failed to request token'):
-        try:  # TODO: Add impersonation support here
+        try:
             return self._download_json(
                 f'{self._BASE_URL}/auth/v1/token', None, note=note, errnote=errnote,
-                headers=headers, data=urlencode_postdata(data))
+                headers=headers, data=urlencode_postdata(data), impersonate=True)
         except ExtractorError as error:
             if not isinstance(error.cause, HTTPError) or error.cause.status != 403:
                 raise
+            if target := error.cause.response.extensions.get('impersonate'):
+                raise ExtractorError(f'Got HTTP Error 403 when using impersonate target "{target}"')
             raise ExtractorError(
-                'Request blocked by Cloudflare; navigate to Crunchyroll in your browser, '
+                'Request blocked by Cloudflare. '
+                'Install the required impersonation dependency if possible, '
+                'or else navigate to Crunchyroll in your browser, '
                 'then pass the fresh cookies (with --cookies-from-browser or --cookies) '
                 'and your browser\'s User-Agent (with --user-agent)', expected=True)
 
@@ -175,10 +181,19 @@ class CrunchyrollBaseIE(InfoExtractor):
             display_id = identifier
 
         self._update_auth()
-        stream_response = self._download_json(
-            f'https://cr-play-service.prd.crunchyrollsvc.com/v1/{identifier}/console/switch/play',
-            display_id, note='Downloading stream info', errnote='Failed to download stream info',
-            headers=CrunchyrollBaseIE._AUTH_HEADERS)
+        headers = {**CrunchyrollBaseIE._AUTH_HEADERS, 'User-Agent': self._SWITCH_USER_AGENT}
+        try:
+            stream_response = self._download_json(
+                f'https://cr-play-service.prd.crunchyrollsvc.com/v1/{identifier}/console/switch/play',
+                display_id, note='Downloading stream info', errnote='Failed to download stream info', headers=headers)
+        except ExtractorError as error:
+            if self.get_param('ignore_no_formats_error'):
+                self.report_warning(error.orig_msg)
+                return [], {}
+            elif isinstance(error.cause, HTTPError) and error.cause.status == 420:
+                raise ExtractorError(
+                    'You have reached the rate-limit for active streams; try again later', expected=True)
+            raise
 
         available_formats = {'': ('', '', stream_response['url'])}
         for hardsub_lang, stream in traverse_obj(stream_response, ('hardSubs', {dict.items}, lambda _, v: v[1]['url'])):
@@ -207,7 +222,7 @@ class CrunchyrollBaseIE(InfoExtractor):
                     fatal=False, note=f'Downloading {f"{format_id} " if hardsub_lang else ""}MPD manifest')
                 self._merge_subtitles(dash_subs, target=subtitles)
             else:
-                continue  # XXX: Update this if/when meta mpd formats are working
+                continue  # XXX: Update this if meta mpd formats work; will be tricky with token invalidation
             for f in adaptive_formats:
                 if f.get('acodec') != 'none':
                     f['language'] = audio_locale
@@ -216,6 +231,15 @@ class CrunchyrollBaseIE(InfoExtractor):
 
         for locale, subtitle in traverse_obj(stream_response, (('subtitles', 'captions'), {dict.items}, ...)):
             subtitles.setdefault(locale, []).append(traverse_obj(subtitle, {'url': 'url', 'ext': 'format'}))
+
+        # Invalidate stream token to avoid rate-limit
+        error_msg = 'Unable to invalidate stream token; you may experience rate-limiting'
+        if stream_token := stream_response.get('token'):
+            self._request_webpage(Request(
+                f'https://cr-play-service.prd.crunchyrollsvc.com/v1/token/{identifier}/{stream_token}/inactive',
+                headers=headers, method='PATCH'), display_id, 'Invalidating stream token', error_msg, fatal=False)
+        else:
+            self.report_warning(error_msg)
 
         return formats, subtitles
 
@@ -394,10 +418,11 @@ class CrunchyrollBetaIE(CrunchyrollCmsBaseIE):
         if not self._IS_PREMIUM and traverse_obj(response, (f'{object_type}_metadata', 'is_premium_only')):
             message = f'This {object_type} is for premium members only'
             if CrunchyrollBaseIE._REFRESH_TOKEN:
-                raise ExtractorError(message, expected=True)
-            self.raise_login_required(message, method='password')
-
-        result['formats'], result['subtitles'] = self._extract_stream(internal_id)
+                self.raise_no_formats(message, expected=True, video_id=internal_id)
+            else:
+                self.raise_login_required(message, method='password', metadata_available=True)
+        else:
+            result['formats'], result['subtitles'] = self._extract_stream(internal_id)
 
         result['chapters'] = self._extract_chapters(internal_id)
 
@@ -417,7 +442,7 @@ class CrunchyrollBetaIE(CrunchyrollCmsBaseIE):
         return {
             'id': data['id'],
             'title': ' \u2013 '.join((
-                ('%s%s' % (
+                ('{}{}'.format(
                     format_field(metadata, 'season_title'),
                     format_field(metadata, 'episode', ' Episode %s'))),
                 format_field(data, 'title'))),
@@ -494,7 +519,7 @@ class CrunchyrollBetaShowIE(CrunchyrollCmsBaseIE):
             seasons_response = self._call_cms_api_signed(f'seasons?series_id={internal_id}', internal_id, lang, 'seasons')
             for season in traverse_obj(seasons_response, ('items', ..., {dict})):
                 episodes_response = self._call_cms_api_signed(
-                    f'episodes?season_id={season["id"]}', season["id"], lang, 'episode list')
+                    f'episodes?season_id={season["id"]}', season['id'], lang, 'episode list')
                 for episode_response in traverse_obj(episodes_response, ('items', ..., {dict})):
                     yield self.url_result(
                         f'{self._BASE_URL}/{lang}watch/{episode_response["id"]}',
@@ -510,7 +535,7 @@ class CrunchyrollBetaShowIE(CrunchyrollCmsBaseIE):
                     'url': ('source', {url_or_none}),
                     'width': ('width', {int_or_none}),
                     'height': ('height', {int_or_none}),
-                })
+                }),
             })))
 
 
@@ -583,14 +608,16 @@ class CrunchyrollMusicIE(CrunchyrollBaseIE):
         if not response:
             raise ExtractorError(f'No video with id {internal_id} could be found (possibly region locked?)', expected=True)
 
+        result = self._transform_music_response(response)
+
         if not self._IS_PREMIUM and response.get('isPremiumOnly'):
             message = f'This {response.get("type") or "media"} is for premium members only'
             if CrunchyrollBaseIE._REFRESH_TOKEN:
-                raise ExtractorError(message, expected=True)
-            self.raise_login_required(message, method='password')
-
-        result = self._transform_music_response(response)
-        result['formats'], _ = self._extract_stream(f'music/{internal_id}', internal_id)
+                self.raise_no_formats(message, expected=True, video_id=internal_id)
+            else:
+                self.raise_login_required(message, method='password', metadata_available=True)
+        else:
+            result['formats'], _ = self._extract_stream(f'music/{internal_id}', internal_id)
 
         return result
 
