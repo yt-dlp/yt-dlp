@@ -104,12 +104,9 @@ class AmazonMiniTVIE(AmazonMiniTVBaseIE):
             'subtitles': subtitles,
             'language': traverse_obj(title_info, ('audioTracks', 0)),
             'thumbnails': [{
-                'id': 'thumbnailImage',
-                'url': title_info.get('thumbnailImage'),
-            }, {
-                'id': 'seasonThumbnailImage',
-                'url': title_info.get('thumbnailImage'),
-            }],
+                'id': 'imageSrc',
+                'url': title_info.get('imageSrc'),
+            }] if title_info.get('imageSrc') else [],
             'description': traverse_obj(title_info_, ('description', 'synopsis')),
             'release_timestamp': int_or_none(try_get(title_info_, lambda x: x['publicReleaseDateUTC'] / 1000)),
             'duration': traverse_obj(title_info, ('description', 'contentLengthInSeconds')),
