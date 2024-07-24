@@ -338,7 +338,8 @@ mutation initPlaybackSession(
         }
     }'''
     _APP_VERSION = '7.8.2'
-    _device_id = str(uuid.uuid4())
+    _device_id = None
+    _session_id = None
     _access_token = None
     _token_expiry = 0
 
@@ -353,6 +354,15 @@ mutation initPlaybackSession(
         if not self._access_token:
             self.raise_login_required(
                 'All videos are only available to registered users', method='password')
+
+    def _set_device_id(self, username):
+        if not self._device_id:
+            self._device_id = self.cache.load(
+                self._NETRC_MACHINE, 'device_ids', default={}).get(username)
+        if self._device_id:
+            return
+        self._device_id = str(uuid.uuid4())
+        self.cache.store(self._NETRC_MACHINE, 'device_ids', {username: self._device_id})
 
     def _perform_login(self, username, password):
         try:
@@ -374,6 +384,25 @@ mutation initPlaybackSession(
             raise
 
         self._token_expiry = traverse_obj(self._access_token, ({jwt_decode_hs256}, 'exp', {int})) or 0
+        self._set_device_id(username)
+
+        self._session_id = self._call_api({
+            'operationName': 'initSession',
+            'query': self._GRAPHQL_INIT_QUERY,
+            'variables': {
+                'device': {
+                    'appVersion': self._APP_VERSION,
+                    'deviceFamily': 'desktop',
+                    'knownDeviceId': self._device_id,
+                    'languagePreference': 'ENGLISH',
+                    'manufacturer': '',
+                    'model': '',
+                    'os': '',
+                    'osVersion': '',
+                },
+                'clientType': 'WEB',
+            },
+        }, None, 'session ID')['data']['initSession']['sessionId']
 
     def _call_api(self, data, video_id, description='GraphQL JSON', fatal=True):
         return self._download_json(
@@ -387,7 +416,7 @@ mutation initPlaybackSession(
                 'x-client-version': self._APP_VERSION,
             }, data=json.dumps(data, separators=(',', ':')).encode())
 
-    def _extract_formats_and_subtitles(self, broadcast, video_id, session_id):
+    def _extract_formats_and_subtitles(self, broadcast, video_id):
         feed = traverse_obj(broadcast, ('homeAway', {str.title}))
         medium = traverse_obj(broadcast, ('type', {str}))
         language = traverse_obj(broadcast, ('language', {str.lower}))
@@ -401,7 +430,7 @@ mutation initPlaybackSession(
                 'deviceId': self._device_id,
                 'mediaId': broadcast['mediaId'],
                 'quality': 'PLACEHOLDER',
-                'sessionId': session_id,
+                'sessionId': self._session_id,
             },
         }, video_id, f'{format_id} broadcast JSON', fatal=False)
 
@@ -434,24 +463,6 @@ mutation initPlaybackSession(
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        session_id = self._call_api({
-            'operationName': 'initSession',
-            'query': self._GRAPHQL_INIT_QUERY,
-            'variables': {
-                'device': {
-                    'appVersion': self._APP_VERSION,
-                    'deviceFamily': 'desktop',
-                    'knownDeviceId': self._device_id,
-                    'languagePreference': 'ENGLISH',
-                    'manufacturer': '',
-                    'model': '',
-                    'os': '',
-                    'osVersion': '',
-                },
-                'clientType': 'WEB',
-            },
-        }, video_id, 'session ID')['data']['initSession']['sessionId']
-
         metadata = traverse_obj(self._download_json(
             'https://statsapi.mlb.com/api/v1/schedule', video_id, query={
                 'gamePk': video_id,
@@ -463,7 +474,7 @@ mutation initPlaybackSession(
 
         formats, subtitles = [], {}
         for broadcast in broadcasts:
-            fmts, subs = self._extract_formats_and_subtitles(broadcast, video_id, session_id)
+            fmts, subs = self._extract_formats_and_subtitles(broadcast, video_id)
             formats.extend(fmts)
             self._merge_subtitles(subs, target=subtitles)
 
