@@ -345,14 +345,6 @@ class GoogleDriveFolderIE(InfoExtractor):
             self.to_screen(f'Failed to find a suitable extractor for {item[2]}.')
             return None
 
-        def make_playlist(items, playlist_id):
-            entries = []
-            for item in items:
-                entry = item_url_getter(item, playlist_id)
-                if entry:
-                    entries.append(entry)
-            return self.playlist_result(entries, playlist_id, title)
-
         folder_id = self._match_id(url)
         headers = self.geo_verification_headers()
 
@@ -365,9 +357,12 @@ class GoogleDriveFolderIE(InfoExtractor):
             self._extract_json_ds(4, webpage, folder_id, default=None)
             or self._extract_json_hash(6, webpage, folder_id)
         )
+
         title = json_folder_info[1][2]
         items = json_items[-1]
         if not isinstance(items, list):
             return self.playlist_result([], folder_id, title)
 
-        return make_playlist(items, folder_id)
+        return self.playlist_result(
+            (entry for item in items if (entry := item_url_getter(item, folder_id))),
+            folder_id, title)
