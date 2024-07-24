@@ -20,7 +20,7 @@ class GermanupaIE(InfoExtractor):
             'uploader_url': 'https://vimeo.com/germanupa',
             'duration': 3987,
         },
-        'expected_warnings': ['Failed to parse XML'],
+        'expected_warnings': ['Failed to parse XML: not well-formed'],
         'params': {
             'skip_download': 'm3u8',
         },
@@ -49,10 +49,23 @@ class GermanupaIE(InfoExtractor):
         # Nur für Mitglieder, info_dict INCOMPLETE
         'url': 'https://germanupa.de/mediathek/ux-festival-2024-usability-tests-und-ai',
         'info_dict': {
-            'id': '0',
-            'title': 'UX Festival 2024 "Usability Tests und AI"',
+            'id': '986994430',
+            'title': 'UX Festival 2024 "Usability Tests und AI" von Lennart Weber',
             'ext': 'mp4',
+            'release_date': '20240719',
+            'uploader_url': 'https://vimeo.com/germanupa',
+            'timestamp': 1721373980,
+            'license': 'by-sa',
+            'like_count': int,
+            'thumbnail': 'https://i.vimeocdn.com/video/1904187064-2a672630c30f9ad787bd390bff3f51d7506a3e8416763ba6dbf465732b165c5c-d_1280',
+            'duration': 2146,
+            'release_timestamp': 1721373980,
+            'uploader': 'German UPA',
+            'uploader_id': 'germanupa',
+            'upload_date': '20240719',
+            'comment_count': int,
         },
+        'expected_warnings': ['Failed to parse XML: not well-formed'],
         'skip': 'login required',
     }]
     _IFRAME_RE = r'<iframe[^>]+data-src\s*?=\s*?([\'"])(?P<url>https://germanupa\.de/media/oembed\?url=(?:(?!\1).)+)\1'
