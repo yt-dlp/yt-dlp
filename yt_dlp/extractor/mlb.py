@@ -1,5 +1,6 @@
 import json
 import re
+import time
 import uuid
 
 from .common import InfoExtractor
@@ -9,6 +10,7 @@ from ..utils import (
     determine_ext,
     int_or_none,
     join_nonempty,
+    jwt_decode_hs256,
     parse_duration,
     parse_iso8601,
     try_get,
@@ -337,16 +339,24 @@ mutation initPlaybackSession(
     }'''
     _APP_VERSION = '7.8.2'
     _device_id = str(uuid.uuid4())
-    _api_headers = {}
+    _access_token = None
+    _token_expiry = 0
+
+    @property
+    def _api_headers(self):
+        if (self._token_expiry - 120) <= time.time():
+            self.write_debug('Access token has expired; re-logging in')
+            self._perform_login(*self._get_login_info())
+        return {'Authorization': f'Bearer {self._access_token}'}
 
     def _real_initialize(self):
-        if not self._api_headers:
+        if not self._access_token:
             self.raise_login_required(
                 'All videos are only available to registered users', method='password')
 
     def _perform_login(self, username, password):
         try:
-            access_token = self._download_json(
+            self._access_token = self._download_json(
                 'https://ids.mlb.com/oauth2/aus1m088yK07noBfh356/v1/token', None,
                 'Logging in', 'Unable to log in', headers={
                     'User-Agent': 'okhttp/3.12.1',
@@ -363,7 +373,7 @@ mutation initPlaybackSession(
                 raise ExtractorError('Invalid username or password', expected=True)
             raise
 
-        self._api_headers['Authorization'] = f'Bearer {access_token}'
+        self._token_expiry = traverse_obj(self._access_token, ({jwt_decode_hs256}, 'exp', {int})) or 0
 
     def _call_api(self, data, video_id, description='GraphQL JSON', fatal=True):
         return self._download_json(
