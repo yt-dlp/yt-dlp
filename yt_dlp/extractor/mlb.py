@@ -8,6 +8,7 @@ from ..utils import (
     ExtractorError,
     determine_ext,
     int_or_none,
+    join_nonempty,
     parse_duration,
     parse_iso8601,
     try_get,
@@ -284,6 +285,8 @@ class MLBTVIE(InfoExtractor):
             'id': '661581',
             'ext': 'mp4',
             'title': '2022-07-02 - St. Louis Cardinals @ Philadelphia Phillies',
+            'release_date': '20220702',
+            'release_timestamp': 1656792300,
         },
         'params': {
             'skip_download': True,
@@ -374,18 +377,23 @@ mutation initPlaybackSession(
                 'x-client-version': self._APP_VERSION,
             }, data=json.dumps(data, separators=(',', ':')).encode())
 
-    def _extract_formats_and_subtitles(self, media_id, video_id, format_id, session_id):
+    def _extract_formats_and_subtitles(self, broadcast, video_id, session_id):
+        feed = traverse_obj(broadcast, ('homeAway', {str.title}))
+        medium = traverse_obj(broadcast, ('type', {str}))
+        language = traverse_obj(broadcast, ('language', {str.lower}))
+        format_id = join_nonempty(feed, medium, language)
+
         response = self._call_api({
             'operationName': 'initPlaybackSession',
             'query': self._GRAPHQL_PLAYBACK_QUERY,
             'variables': {
                 'adCapabilities': ['GOOGLE_STANDALONE_AD_PODS'],
                 'deviceId': self._device_id,
-                'mediaId': media_id,
+                'mediaId': broadcast['mediaId'],
                 'quality': 'PLACEHOLDER',
                 'sessionId': session_id,
             },
-        }, video_id, f'{format_id} feed JSON', fatal=False)
+        }, video_id, f'{format_id} broadcast JSON', fatal=False)
 
         playback = traverse_obj(response, ('data', 'initPlaybackSession', 'playback', {dict}))
         m3u8_url = traverse_obj(playback, ('url', {url_or_none}))
@@ -393,10 +401,12 @@ mutation initPlaybackSession(
 
         if not (m3u8_url and token):
             errors = '; '.join(traverse_obj(response, ('errors', ..., 'message', {str})))
-            if 'blacked out' in errors or 'not entitled' in errors:
+            if 'not entitled' in errors:
                 raise ExtractorError(errors, expected=True)
-            elif errors:
-                self.report_warning(f'GraphQL API returned errors: {errors}')
+            elif errors:  # Only warn when 'blacked out' since radio formats are available
+                self.report_warning(f'API returned errors for {format_id}: {errors}')
+            else:
+                self.report_warning(f'No formats available for {format_id} broadcast; skipping')
             return [], {}
 
         cdn_headers = {'x-cdn-token': token}
@@ -405,24 +415,15 @@ mutation initPlaybackSession(
             m3u8_id=format_id, fatal=False, headers=cdn_headers)
         for fmt in fmts:
             fmt['http_headers'] = cdn_headers
+            fmt.setdefault('format_note', join_nonempty(feed, medium, delim=' '))
+            fmt.setdefault('language', language)
+            if fmt.get('vcodec') == 'none' and fmt['language'] == 'en':
+                fmt['source_preference'] = 10
 
         return fmts, subs
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        metadata = traverse_obj(self._download_json(
-            'https://search-api-mlbtv.mlb.com/svc/search/v2/graphql/persisted/query/core/Airings',
-            video_id, query={
-                'variables': f'%7B%22partnerProgramIds%22%3A%5B%22{video_id}%22%5D%2C%22applyEsniMediaRightsLabels%22%3Atrue%7D',
-            }, fatal=False), ('data', 'Airings', ..., {dict}))
-
-        data = self._download_json(
-            'https://mastapi.mobile.mlbinfra.com/api/epg/v3/search', video_id,
-            'Downloading API JSON', query={
-                'gamePk': video_id,
-                'exp': 'MLB',
-            }, headers=self._api_headers)['results'][0]
-
         session_id = self._call_api({
             'operationName': 'initSession',
             'query': self._GRAPHQL_INIT_QUERY,
@@ -441,20 +442,29 @@ mutation initPlaybackSession(
             },
         }, video_id, 'session ID')['data']['initSession']['sessionId']
 
+        metadata = traverse_obj(self._download_json(
+            'https://statsapi.mlb.com/api/v1/schedule', video_id, query={
+                'gamePk': video_id,
+                'hydrate': 'broadcasts(all),statusFlags',
+            }), ('dates', ..., 'games', lambda _, v: str(v['gamePk']) == video_id and v['broadcasts'], any))
+
+        broadcasts = traverse_obj(metadata, (
+            'broadcasts', lambda _, v: v['mediaId'] and v['mediaState']['mediaStateCode'] != 'MEDIA_OFF'))
+
         formats, subtitles = [], {}
-        for feed in traverse_obj(data, ('videoFeeds', lambda _, v: v['mediaId'] and v['mediaFeedType'])):
-            f_id = feed['mediaFeedType']
-            fmts, subs = self._extract_formats_and_subtitles(feed['mediaId'], video_id, f_id, session_id)
-            if not fmts:
-                self.report_warning(f'No formats could be extracted for {f_id} feed, skipping')
-                continue
+        for broadcast in broadcasts:
+            fmts, subs = self._extract_formats_and_subtitles(broadcast, video_id, session_id)
             formats.extend(fmts)
             self._merge_subtitles(subs, target=subtitles)
 
         return {
             'id': video_id,
-            'title': traverse_obj(metadata, (..., 'titles', 0, 'episodeName', {str}, any)),
-            'is_live': traverse_obj(data, ('videoFeeds', ..., 'mediaState', {str}, any)) == 'MEDIA_ON',
+            'title': join_nonempty(
+                traverse_obj(metadata, ('officialDate', {str})),
+                traverse_obj(metadata, ('teams', ('away', 'home'), 'team', 'name', {str}, all, {' @ '.join})),
+                delim=' - '),
+            'is_live': traverse_obj(broadcasts, (..., 'mediaState', 'mediaStateCode', {str}, any)) == 'MEDIA_ON',
+            'release_timestamp': traverse_obj(metadata, ('gameDate', {parse_iso8601})),
             'formats': formats,
             'subtitles': subtitles,
         }
