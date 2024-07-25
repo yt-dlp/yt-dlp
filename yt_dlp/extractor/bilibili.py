@@ -164,14 +164,12 @@ class BilibiliBaseIE(InfoExtractor):
         params['w_rid'] = hashlib.md5(f'{query}{self._get_wbi_key(video_id)}'.encode()).hexdigest()
         return params
 
-    def _download_playinfo(self, bvid, cid, headers=None, qn=None):
-        params = {'bvid': bvid, 'cid': cid, 'fnval': 4048}
-        if qn:
-            params['qn'] = qn
+    def _download_playinfo(self, bvid, cid, headers=None, **kwargs):
+        params = {'bvid': bvid, 'cid': cid, 'fnval': 4048, **kwargs}
         return self._download_json(
             'https://api.bilibili.com/x/player/wbi/playurl', bvid,
             query=self._sign_wbi(params, bvid), headers=headers,
-            note=f'Downloading video formats for cid {cid} {qn or ""}')['data']
+            note=f'Downloading video formats for cid {cid} {kwargs.get("qn", "")}')['data']
 
     def json2srt(self, json_data):
         srt_data = ''
@@ -723,6 +721,7 @@ class BiliBiliIE(BilibiliBaseIE):
                 duration=traverse_obj(initial_state, ('videoData', 'duration', {int_or_none})),
                 __post_extractor=self.extract_comments(aid))
         else:
+            play_info = self._download_playinfo(video_id, cid, headers=headers, try_look=1)
             formats = self.extract_formats(play_info)
 
             if not traverse_obj(play_info, ('dash')):
