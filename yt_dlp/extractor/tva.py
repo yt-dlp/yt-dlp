@@ -49,9 +49,6 @@ class TVAIE(InfoExtractor):
             'series': 'Le Baiser du barbu',
             'channel': 'TVA',
         },
-    }, {
-        'url': 'https://www.qub.ca/tele/video/lcn-ca-vous-regarde-rev-30s-ap369664-1009357943',
-        'only_matching': True,
     }]
     _BC_URL_TMPL = 'https://players.brightcove.net/5481942443001/default_default/index.html?videoId={}'
 
