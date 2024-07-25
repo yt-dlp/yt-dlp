@@ -25,7 +25,7 @@ class XiaoHongShuIE(InfoExtractor):
             'tags': ['今日快乐今日发', '吃货薯看这里', '香妃蛋糕', '小五卷蛋糕', '新手蛋糕卷'],
             'duration': 101.726,
             'thumbnail': r're:https?://sns-webpic-qc\.xhscdn\.com/\d+/[a-z0-9]+/[\w]+',
-        }
+        },
     }]
 
     def _real_extract(self, url):
@@ -51,7 +51,7 @@ class XiaoHongShuIE(InfoExtractor):
                 'tbr': ('avgBitrate', {int_or_none}),
                 'format': ('qualityType', {str}),
                 'filesize': ('size', {int_or_none}),
-                'duration': ('duration', {functools.partial(float_or_none, scale=1000)})
+                'duration': ('duration', {functools.partial(float_or_none, scale=1000)}),
             })
 
             formats.extend(traverse_obj(info, (('mediaUrl', ('backupUrls', ...)), {

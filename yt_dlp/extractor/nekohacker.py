@@ -38,8 +38,8 @@ class NekoHackerIE(InfoExtractor):
                     'artist': 'Neko Hacker',
                     'track': 'Spaceship',
                     'track_number': 1,
-                    'duration': 195.0
-                }
+                    'duration': 195.0,
+                },
             },
             {
                 'url': 'https://nekohacker.com/wp-content/uploads/2022/11/02-City-Runner.mp3',
@@ -56,8 +56,8 @@ class NekoHackerIE(InfoExtractor):
                     'artist': 'Neko Hacker',
                     'track': 'City Runner',
                     'track_number': 2,
-                    'duration': 148.0
-                }
+                    'duration': 148.0,
+                },
             },
             {
                 'url': 'https://nekohacker.com/wp-content/uploads/2022/11/03-Nature-Talk.mp3',
@@ -74,8 +74,8 @@ class NekoHackerIE(InfoExtractor):
                     'artist': 'Neko Hacker',
                     'track': 'Nature Talk',
                     'track_number': 3,
-                    'duration': 174.0
-                }
+                    'duration': 174.0,
+                },
             },
             {
                 'url': 'https://nekohacker.com/wp-content/uploads/2022/11/04-Crystal-World.mp3',
@@ -92,10 +92,10 @@ class NekoHackerIE(InfoExtractor):
                     'artist': 'Neko Hacker',
                     'track': 'Crystal World',
                     'track_number': 4,
-                    'duration': 199.0
-                }
-            }
-        ]
+                    'duration': 199.0,
+                },
+            },
+        ],
     }, {
         'url': 'https://nekohacker.com/susume/',
         'info_dict': {
@@ -118,7 +118,7 @@ class NekoHackerIE(InfoExtractor):
                     'artist': 'Neko Hacker',
                     'track': 'md5:1a5fcbc96ca3c3265b1c6f9f79f30fd0',
                     'track_number': 1,
-                }
+                },
             },
             {
                 'url': 'https://nekohacker.com/wp-content/uploads/2021/01/むじな-de-なじむ-feat.-六科なじむ-CV_-日高里菜-.mp3',
@@ -135,7 +135,7 @@ class NekoHackerIE(InfoExtractor):
                     'artist': 'Neko Hacker',
                     'track': 'むじな de なじむ feat. 六科なじむ (CV: 日高里菜 )',
                     'track_number': 2,
-                }
+                },
             },
             {
                 'url': 'https://nekohacker.com/wp-content/uploads/2021/01/進め！むじなカンパニー-instrumental.mp3',
@@ -152,7 +152,7 @@ class NekoHackerIE(InfoExtractor):
                     'artist': 'Neko Hacker',
                     'track': '進め！むじなカンパニー (instrumental)',
                     'track_number': 3,
-                }
+                },
             },
             {
                 'url': 'https://nekohacker.com/wp-content/uploads/2021/01/むじな-de-なじむ-instrumental.mp3',
@@ -169,9 +169,9 @@ class NekoHackerIE(InfoExtractor):
                     'artist': 'Neko Hacker',
                     'track': 'むじな de なじむ (instrumental)',
                     'track_number': 4,
-                }
-            }
-        ]
+                },
+            },
+        ],
     }]
 
     def _real_extract(self, url):

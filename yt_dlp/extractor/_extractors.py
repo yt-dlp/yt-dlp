@@ -76,6 +76,7 @@ from .aenetworks import (
 )
 from .aeonco import AeonCoIE
 from .afreecatv import (
+    AfreecaTVCatchStoryIE,
     AfreecaTVIE,
     AfreecaTVLiveIE,
     AfreecaTVUserIE,
@@ -503,7 +504,6 @@ from .dhm import DHMIE
 from .digitalconcerthall import DigitalConcertHallIE
 from .digiteka import DigitekaIE
 from .discogs import DiscogsReleasePlaylistIE
-from .discovery import DiscoveryIE
 from .disney import DisneyIE
 from .dispeak import DigitallySpeakingIE
 from .dlf import (
@@ -531,16 +531,12 @@ from .dplay import (
     DiscoveryPlusIndiaShowIE,
     DiscoveryPlusItalyIE,
     DiscoveryPlusItalyShowIE,
-    DIYNetworkIE,
     DPlayIE,
     FoodNetworkIE,
-    GlobalCyclingNetworkPlusIE,
     GoDiscoveryIE,
     HGTVDeIE,
     HGTVUsaIE,
     InvestigationDiscoveryIE,
-    MotorTrendIE,
-    MotorTrendOnDemandIE,
     ScienceChannelIE,
     TravelChannelIE,
 )
@@ -779,6 +775,7 @@ from .gopro import GoProIE
 from .goshgay import GoshgayIE
 from .gotostage import GoToStageIE
 from .gputechconf import GPUTechConfIE
+from .graspop import GraspopIE
 from .gronkh import (
     GronkhFeedIE,
     GronkhIE,
@@ -969,6 +966,10 @@ from .la7 import (
     LA7PodcastEpisodeIE,
     LA7PodcastIE,
 )
+from .laracasts import (
+    LaracastsIE,
+    LaracastsPlaylistIE,
+)
 from .lastfm import (
     LastFMIE,
     LastFMPlaylistIE,
@@ -1113,12 +1114,15 @@ from .meipai import MeipaiIE
 from .melonvod import MelonVODIE
 from .metacritic import MetacriticIE
 from .mgtv import MGTVIE
-from .microsoftembed import MicrosoftEmbedIE
-from .microsoftstream import MicrosoftStreamIE
-from .microsoftvirtualacademy import (
-    MicrosoftVirtualAcademyCourseIE,
-    MicrosoftVirtualAcademyIE,
+from .microsoftembed import (
+    MicrosoftBuildIE,
+    MicrosoftEmbedIE,
+    MicrosoftLearnEpisodeIE,
+    MicrosoftLearnPlaylistIE,
+    MicrosoftLearnSessionIE,
+    MicrosoftMediusIE,
 )
+from .microsoftstream import MicrosoftStreamIE
 from .mildom import (
     MildomClipIE,
     MildomIE,
@@ -1603,6 +1607,7 @@ from .qqmusic import (
     QQMusicPlaylistIE,
     QQMusicSingerIE,
     QQMusicToplistIE,
+    QQMusicVideoIE,
 )
 from .r7 import (
     R7IE,
@@ -1755,7 +1760,10 @@ from .rtve import (
     RTVETelevisionIE,
 )
 from .rtvs import RTVSIE
-from .rtvslo import RTVSLOIE
+from .rtvslo import (
+    RTVSLOIE,
+    RTVSLOShowIE,
+)
 from .rudovideo import RudoVideoIE
 from .rule34video import Rule34VideoIE
 from .rumble import (
@@ -1925,6 +1933,10 @@ from .spreaker import (
 )
 from .springboardplatform import SpringboardPlatformIE
 from .sprout import SproutIE
+from .sproutvideo import (
+    SproutVideoIE,
+    VidsIoIE,
+)
 from .srgssr import (
     SRGSSRIE,
     SRGSSRPlayIE,
@@ -2311,6 +2323,7 @@ from .vidio import (
 )
 from .vidlii import VidLiiIE
 from .vidly import VidlyIE
+from .vidyard import VidyardIE
 from .viewlift import (
     ViewLiftEmbedIE,
     ViewLiftIE,
@@ -2376,6 +2389,10 @@ from .vrt import (
     VrtNUIE,
 )
 from .vtm import VTMIE
+from .vtv import (
+    VTVIE,
+    VTVGoIE,
+)
 from .vuclip import VuClipIE
 from .vvvvid import (
     VVVVIDIE,

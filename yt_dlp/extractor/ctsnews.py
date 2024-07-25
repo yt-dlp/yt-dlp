@@ -16,7 +16,7 @@ class CtsNewsIE(InfoExtractor):
             'description': '以色列和黎巴嫩真主黨，爆發五年最嚴重衝突，雙方砲轟交火，兩名以軍死亡，還有一名西班牙籍的聯合國維和人員也不幸罹難。大陸陝西、河南、安徽、江蘇和湖北五個省份出現大暴雪，嚴重影響陸空交通，不過九華山卻出現...',
             'timestamp': 1422528540,
             'upload_date': '20150129',
-        }
+        },
     }, {
         # News count not appear on page but still available in database
         'url': 'http://news.cts.com.tw/cts/international/201309/201309031304098.html',
@@ -29,7 +29,7 @@ class CtsNewsIE(InfoExtractor):
             'thumbnail': r're:^https?://.*\.jpg$',
             'timestamp': 1378205880,
             'upload_date': '20130903',
-        }
+        },
     }, {
         # With Youtube embedded video
         'url': 'http://news.cts.com.tw/cts/money/201501/201501291578003.html',

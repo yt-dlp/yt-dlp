@@ -33,7 +33,7 @@ class LSMLREmbedIE(InfoExtractor):
             'duration': 1823,
             'title': '#138 Nepilnīgā kompensējamo zāļu sistēma pat mēnešiem dzenā pacientus pa aptiekām',
             'thumbnail': 'https://pic.latvijasradio.lv/public/assets/media/9/d/gallery_fd4675ac.jpg',
-        }
+        },
     }, {
         'url': 'https://radioteatris.lsm.lv/lv/embed/?id=&show=1270&theme=white&size=16x9',
         'info_dict': {
@@ -59,7 +59,7 @@ class LSMLREmbedIE(InfoExtractor):
             'title': 'Jens Ahlboms "Spārni". Radioizrāde ar Mārtiņa Freimaņa mūziku',
             'thumbnail': 'https://radioteatris.lsm.lv/public/assets/shows/62f13023a457c.jpg',
             'duration': 1788,
-        }
+        },
     }, {
         'url': 'https://lr1.lsm.lv/lv/embed/?id=166557&show=0&theme=white&size=16x9',
         'info_dict': {
@@ -168,7 +168,7 @@ class LSMLTVEmbedIE(InfoExtractor):
             'upload_date': '20231121',
             'title': 'D23-6000-105_cetstud',
             'thumbnail': 'https://store.cloudycdn.services/tmsp00060/assets/media/660858/placeholder1700589200.jpg',
-        }
+        },
     }, {
         'url': 'https://ltv.lsm.lv/embed?enablesdkjs=1&c=eyJpdiI6IncwVzZmUFk2MU12enVWK1I3SUcwQ1E9PSIsInZhbHVlIjoid3FhV29vamc3T2sxL1RaRmJ5Rm1GTXozU0o2dVczdUtLK0cwZEZJMDQ2a3ZIRG5DK2pneGlnbktBQy9uazVleHN6VXhxdWIweWNvcHRDSnlISlNYOHlVZ1lpcTUrcWZSTUZPQW14TVdkMW9aOUtRWVNDcFF4eWpHNGcrT0VZbUNFQStKQk91cGpndW9FVjJIa0lpbkh3PT0iLCJtYWMiOiIyZGI1NDJlMWRlM2QyMGNhOGEwYTM2MmNlN2JlOGRhY2QyYjdkMmEzN2RlOTEzYTVkNzI1ODlhZDlhZjU4MjQ2IiwidGFnIjoiIn0=',
         'md5': 'a1711e190fe680fdb68fd8413b378e87',
@@ -198,7 +198,7 @@ class LSMLTVEmbedIE(InfoExtractor):
             'uploader_url': 'https://www.youtube.com/@LTV16plus',
             'like_count': int,
             'description': 'md5:7ff0c42ba971e3c13e4b8a2ff03b70b5',
-        }
+        },
     }]
 
     def _real_extract(self, url):
@@ -239,7 +239,7 @@ class LSMReplayIE(InfoExtractor):
             'upload_date': '20231121',
             'title': '4. studija. Zolitūdes traģēdija un Inčupes stacija',
             'thumbnail': 'https://ltv.lsm.lv/storage/media/8/7/large/5/1f9604e1.jpg',
-        }
+        },
     }, {
         'url': 'https://replay.lsm.lv/lv/ieraksts/lr/183522/138-nepilniga-kompensejamo-zalu-sistema-pat-menesiem-dzena-pacientus-pa-aptiekam',
         'md5': '719b33875cd1429846eeeaeec6df2830',
@@ -252,7 +252,7 @@ class LSMReplayIE(InfoExtractor):
             'upload_date': '20231102',
             'timestamp': 1698921060,
             'description': 'md5:7bac3b2dd41e44325032943251c357b1',
-        }
+        },
     }, {
         'url': 'https://replay.lsm.lv/ru/statja/ltv/311130/4-studija-zolitudes-tragedija-un-incupes-stacija',
         'only_matching': True,

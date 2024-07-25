@@ -43,7 +43,7 @@ class SRMediathekIE(ARDMediathekBaseIE):
         webpage = self._download_webpage(url, video_id)
 
         if '>Der gew&uuml;nschte Beitrag ist leider nicht mehr verf&uuml;gbar.<' in webpage:
-            raise ExtractorError('Video %s is no longer available' % video_id, expected=True)
+            raise ExtractorError(f'Video {video_id} is no longer available', expected=True)
 
         media_collection_url = self._search_regex(
             r'data-mediacollection-ardplayer="([^"]+)"', webpage, 'media collection url')

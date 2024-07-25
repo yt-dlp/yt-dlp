@@ -10,7 +10,7 @@ from ..utils import (
 
 
 class SteamIE(InfoExtractor):
-    _VALID_URL = r"""(?x)
+    _VALID_URL = r'''(?x)
         https?://(?:store\.steampowered|steamcommunity)\.com/
             (?:agecheck/)?
             (?P<urltype>video|app)/ #If the page is only for videos or for a game
@@ -18,7 +18,7 @@ class SteamIE(InfoExtractor):
             (?P<videoID>\d*)(?P<extra>\??) # For urltype == video we sometimes get the videoID
         |
         https?://(?:www\.)?steamcommunity\.com/sharedfiles/filedetails/\?id=(?P<fileID>[0-9]+)
-    """
+    '''
     _VIDEO_PAGE_TEMPLATE = 'http://store.steampowered.com/video/%s/'
     _AGECHECK_TEMPLATE = 'http://store.steampowered.com/agecheck/video/%s/?snr=1_agecheck_agecheck__age-gate&ageDay=1&ageMonth=January&ageYear=1970'
     _TESTS = [{
@@ -31,7 +31,7 @@ class SteamIE(InfoExtractor):
                     'ext': 'mp4',
                     'title': 'Terraria video 256785003',
                     'thumbnail': r're:^https://cdn\.[^\.]+\.steamstatic\.com',
-                }
+                },
             },
             {
                 'md5': '6a294ee0c4b1f47f5bb76a65e31e3592',
@@ -40,8 +40,8 @@ class SteamIE(InfoExtractor):
                     'ext': 'mp4',
                     'title': 'Terraria video 2040428',
                     'thumbnail': r're:^https://cdn\.[^\.]+\.steamstatic\.com',
-                }
-            }
+                },
+            },
         ],
         'info_dict': {
             'id': '105600',
@@ -49,7 +49,7 @@ class SteamIE(InfoExtractor):
         },
         'params': {
             'playlistend': 2,
-        }
+        },
     }, {
         'url': 'https://store.steampowered.com/app/271590/Grand_Theft_Auto_V/',
         'info_dict': {
@@ -61,13 +61,13 @@ class SteamIE(InfoExtractor):
 
     def _real_extract(self, url):
         m = self._match_valid_url(url)
-        fileID = m.group('fileID')
-        if fileID:
+        file_id = m.group('fileID')
+        if file_id:
             video_url = url
-            playlist_id = fileID
+            playlist_id = file_id
         else:
-            gameID = m.group('gameID')
-            playlist_id = gameID
+            game_id = m.group('gameID')
+            playlist_id = game_id
             video_url = self._VIDEO_PAGE_TEMPLATE % playlist_id
 
         self._set_cookie('steampowered.com', 'wants_mature_content', '1')
@@ -99,7 +99,7 @@ class SteamIE(InfoExtractor):
                 entry['thumbnail'] = movie.get('data-poster')
                 for quality in ('', '-hd'):
                     for ext in ('webm', 'mp4'):
-                        video_url = movie.get('data-%s%s-source' % (ext, quality))
+                        video_url = movie.get(f'data-{ext}{quality}-source')
                         if video_url:
                             formats.append({
                                 'format_id': ext + quality,
