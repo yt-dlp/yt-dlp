@@ -934,7 +934,7 @@ class TLCIE(DiscoveryPlusBaseIE):
 
 
 class DiscoveryPlusIE(DiscoveryPlusBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?discoveryplus\.com/(?!it/)(?:(?P<country>[a-z]{2})/)?video(?:/sport)?' + DPlayBaseIE._PATH_REGEX
+    _VALID_URL = r'https?://(?:www\.)?discoveryplus\.com/(?!it/)(?:(?P<country>[a-z]{2})/)?video(?:/sport|/olympics)?' + DPlayBaseIE._PATH_REGEX
     _TESTS = [{
         'url': 'https://www.discoveryplus.com/video/property-brothers-forever-home/food-and-family',
         'info_dict': {
