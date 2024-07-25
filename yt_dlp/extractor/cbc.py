@@ -686,6 +686,22 @@ class CBCGemLiveIE(InfoExtractor):
             'params': {'skip_download': True},
             'skip': 'Live might have ended',
         },
+        {
+            'url': 'https://gem.cbc.ca/live-event/42314',
+            'md5': '297a9600f554f2258aed01514226a697',
+            'info_dict': {
+                'id': '42314',
+                'ext': 'mp4',
+                'is_live': False,
+                'title': 'Women\'s Soccer - Canada vs New Zealand',
+                'description': 'md5:36200e5f1a70982277b5a6ecea86155d',
+                'thumbnail': 'https://i.cbc.ca/ais/87f0a05b-b612-4266-97ee-b2fe8f8dffd2,1720704630124/full/max/0/default.jpg?im=Crop%2Crect%3D%280%2C0%2C3000%2C1687%29%3BResize%3D%28620%29?impolicy=ott&im=Resize=(_Size_)&quality=75',
+                'timestamp': 1721917200,
+                'upload_date': '20240725',
+            },
+            'params': {'skip_download': True},
+            'skip': 'Replay might no longer be available',
+        },
     ]
 
     def _real_extract(self, url):
@@ -694,10 +710,17 @@ class CBCGemLiveIE(InfoExtractor):
         video_info = self._search_nextjs_data(webpage, video_id)['props']['pageProps']['data']
 
         # Two types of metadata JSON
+        appCode = 'mpx'
+        isLive = True
         if not video_info.get('formattedIdMedia'):
-            video_info = traverse_obj(
-                video_info, (('freeTv', ('streams', ...)), 'items', lambda _, v: v['key'] == video_id, {dict}),
-                get_all=False, default={})
+            if video_info.get('event') and video_info['event']['key'] == video_id:
+                video_info = video_info['event']
+                appCode = 'medianetlive'
+                isLive = False
+            else:
+                video_info = traverse_obj(
+                    video_info, (('freeTv', ('streams', ...)), 'items', lambda _, v: v['key'] == video_id, {dict}),
+                    get_all=False, default={})
 
         video_stream_id = video_info.get('formattedIdMedia')
         if not video_stream_id:
@@ -705,7 +728,7 @@ class CBCGemLiveIE(InfoExtractor):
 
         stream_data = self._download_json(
             'https://services.radio-canada.ca/media/validation/v2/', video_id, query={
-                'appCode': 'mpx',
+                'appCode': appCode,
                 'connectionType': 'hd',
                 'deviceType': 'ipad',
                 'idMedia': video_stream_id,
@@ -718,7 +741,7 @@ class CBCGemLiveIE(InfoExtractor):
         return {
             'id': video_id,
             'formats': self._extract_m3u8_formats(stream_data['url'], video_id, 'mp4', live=True),
-            'is_live': True,
+            'is_live': isLive,
             **traverse_obj(video_info, {
                 'title': 'title',
                 'description': 'description',
