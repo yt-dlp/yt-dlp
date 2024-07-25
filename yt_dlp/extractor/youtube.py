@@ -270,7 +270,7 @@ def build_innertube_clients():
     THIRD_PARTY = {
         'embedUrl': 'https://www.youtube.com/',  # Can be any valid URL
     }
-    BASE_CLIENTS = ('ios', 'android', 'web', 'tv', 'mweb')
+    BASE_CLIENTS = ('ios', 'web', 'tv', 'mweb', 'android')
     priority = qualities(BASE_CLIENTS[::-1])
 
     for client, ytcfg in tuple(INNERTUBE_CLIENTS.items()):
@@ -3131,7 +3131,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
     def _extract_n_function_name(self, jscode):
         funcname, idx = self._search_regex(
-            r'''(?x)(?:\.get\("n"\)\)&&\(b=|b=String\.fromCharCode\(110\),c=a\.get\(b\)\)&&\(c=)
+            r'''(?x)
+            (?:
+                \.get\("n"\)\)&&\(b=|
+                (?:
+                    b=String\.fromCharCode\(110\)|
+                    ([a-zA-Z0-9$.]+)&&\(b="nn"\[\+\1\]
+                ),c=a\.get\(b\)\)&&\(c=
+            )
             (?P<nfunc>[a-zA-Z0-9$]+)(?:\[(?P<idx>\d+)\])?\([a-zA-Z0-9]\)''',
             jscode, 'Initial JS player n function name', group=('nfunc', 'idx'))
         if not idx:
@@ -3702,17 +3709,17 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             return pr_id
 
     def _extract_player_responses(self, clients, video_id, webpage, master_ytcfg, smuggled_data):
-        initial_pr = None
+        initial_pr = ignore_initial_response = None
         if webpage:
-            experiments = traverse_obj(master_ytcfg, (
-                'WEB_PLAYER_CONTEXT_CONFIGS', ..., 'serializedExperimentIds', {str}, {lambda x: x.split(',')}, ..., {str}))
-            if all(x in experiments for x in self._POTOKEN_EXPERIMENTS):
-                self.report_warning(
-                    'Webpage contains broken formats (poToken experiment detected). Ignoring initial player response')
-                master_ytcfg = self._get_default_ytcfg()
-            else:
-                initial_pr = self._search_json(
-                    self._YT_INITIAL_PLAYER_RESPONSE_RE, webpage, 'initial player response', video_id, fatal=False)
+            if 'web' in clients:
+                experiments = traverse_obj(master_ytcfg, (
+                    'WEB_PLAYER_CONTEXT_CONFIGS', ..., 'serializedExperimentIds', {lambda x: x.split(',')}, ...))
+                if all(x in experiments for x in self._POTOKEN_EXPERIMENTS):
+                    self.report_warning(
+                        'Webpage contains broken formats (poToken experiment detected). Ignoring initial player response')
+                    ignore_initial_response = True
+            initial_pr = self._search_json(
+                self._YT_INITIAL_PLAYER_RESPONSE_RE, webpage, 'initial player response', video_id, fatal=False)
 
         prs = []
         if initial_pr and not self._invalid_player_response(initial_pr, video_id):
@@ -3740,8 +3747,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         skipped_clients = {}
         while clients:
             client, base_client, variant = _split_innertube_client(clients.pop())
-            player_ytcfg = master_ytcfg if client == 'web' else {}
-            if 'configs' not in self._configuration_arg('player_skip') and client != 'web':
+            player_ytcfg = {}
+            if client == 'web':
+                player_ytcfg = self._get_default_ytcfg() if ignore_initial_response else master_ytcfg
+            elif 'configs' not in self._configuration_arg('player_skip'):
                 player_ytcfg = self._download_ytcfg(client, video_id) or player_ytcfg
 
             player_url = player_url or self._extract_player_url(master_ytcfg, player_ytcfg, webpage=webpage)
@@ -3754,7 +3763,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 player_url = self._download_player_url(video_id)
                 tried_iframe_fallback = True
 
-            pr = initial_pr if client == 'web' and initial_pr else None
+            pr = initial_pr if client == 'web' and not ignore_initial_response else None
             for retry in self.RetryManager(fatal=False):
                 try:
                     pr = pr or self._extract_player_response(
@@ -3765,7 +3774,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     break
                 experiments = traverse_obj(pr, (
                     'responseContext', 'serviceTrackingParams', lambda _, v: v['service'] == 'GFEEDBACK',
-                    'params', lambda _, v: v['key'] == 'e', 'value', {lambda x: x.split(',')}, ..., {str}))
+                    'params', lambda _, v: v['key'] == 'e', 'value', {lambda x: x.split(',')}, ...))
                 if all(x in experiments for x in self._POTOKEN_EXPERIMENTS):
                     pr = None
                     retry.error = ExtractorError('API returned broken formats (poToken experiment detected)', expected=True)

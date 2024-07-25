@@ -354,7 +354,6 @@
  - **DigitallySpeaking**
  - **Digiteka**
  - **DiscogsReleasePlaylist**
- - **Discovery**
  - **DiscoveryLife**
  - **DiscoveryNetworksDe**
  - **DiscoveryPlus**
@@ -363,7 +362,6 @@
  - **DiscoveryPlusItaly**
  - **DiscoveryPlusItalyShow**
  - **Disney**
- - **DIYNetwork**
  - **dlf**
  - **dlf:corpus**: DLF Multi-feed Archives
  - **dlive:stream**
@@ -516,7 +514,6 @@
  - **GlattvisionTVLive**: [*glattvisiontv*](## "netrc machine")
  - **GlattvisionTVRecordings**: [*glattvisiontv*](## "netrc machine")
  - **Glide**: Glide mobile video messages (glide.me)
- - **GlobalCyclingNetworkPlus**
  - **GlobalPlayerAudio**
  - **GlobalPlayerAudioEpisode**
  - **GlobalPlayerLive**
@@ -820,8 +817,6 @@
  - **MotherlessGroup**
  - **MotherlessUploader**
  - **Motorsport**: motorsport.com (**Currently broken**)
- - **MotorTrend**
- - **MotorTrendOnDemand**
  - **MovieFap**
  - **Moviepilot**
  - **MoviewPlay**

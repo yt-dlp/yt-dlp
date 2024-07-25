@@ -9,6 +9,7 @@ maintainers = [
     {name = "Grub4K", email = "contact@grub4k.xyz"},
     {name = "bashonly", email = "bashonly@protonmail.com"},
     {name = "coletdjnz", email = "coletdjnz@protonmail.com"},
+    {name = "sepro", email = "sepro@sepr0.com"},
 ]
 description = "A feature-rich command-line audio/video downloader"
 readme = "README.md"
@@ -65,7 +66,7 @@ build = [
     "build",
     "hatchling",
     "pip",
-    "setuptools",
+    "setuptools>=71.0.2",  # 71.0.0 broke pyinstaller
     "wheel",
 ]
 dev = [

@@ -871,7 +871,7 @@ class SoundcloudUserPermalinkIE(SoundcloudPagedPlaylistBaseIE):
             'id': '30909869',
             'title': 'neilcic',
         },
-        'playlist_mincount': 23,
+        'playlist_mincount': 22,
     }]
 
     def _real_extract(self, url):
@@ -880,7 +880,7 @@ class SoundcloudUserPermalinkIE(SoundcloudPagedPlaylistBaseIE):
             self._resolv_url(url), user_id, 'Downloading user info', headers=self._HEADERS)
 
         return self._extract_playlist(
-            f'{self._API_V2_BASE}stream/users/{user["id"]}', str(user['id']), user.get('username'))
+            f'{self._API_V2_BASE}users/{user["id"]}/tracks', str(user['id']), user.get('username'))
 
 
 class SoundcloudTrackStationIE(SoundcloudPagedPlaylistBaseIE):
