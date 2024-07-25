@@ -166,6 +166,8 @@ class BilibiliBaseIE(InfoExtractor):
 
     def _download_playinfo(self, bvid, cid, headers=None, **kwargs):
         params = {'bvid': bvid, 'cid': cid, 'fnval': 4048, **kwargs}
+        if self.is_logged_in:
+            params.pop('try_look', None)
         return self._download_json(
             'https://api.bilibili.com/x/player/wbi/playurl', bvid,
             query=self._sign_wbi(params, bvid), headers=headers,
