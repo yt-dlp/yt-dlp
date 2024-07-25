@@ -958,6 +958,9 @@ class DiscoveryPlusIE(DiscoveryPlusBaseIE):
     }, {
         'url': 'https://www.discoveryplus.com/gb/video/sport/eurosport-1-british-eurosport-1-british-sport/6-hours-of-spa-review',
         'only_matching': True,
+    }, {
+        'url': 'https://www.discoveryplus.com/gb/video/olympics/dplus-sport-dplus-sport-sport/rugby-sevens-australia-samoa',
+        'only_matching': True,
     }]
 
     _PRODUCT = None
