@@ -647,7 +647,8 @@ class BiliBiliIE(BilibiliBaseIE):
                     raise ExtractorError(
                         'This video may be deleted or geo-restricted. '
                         'You might want to try a VPN or a proxy server (with --proxy)', expected=True)
-            if not traverse_obj(play_info_obj, ('data', {dict})):
+            play_info = traverse_obj(play_info_obj, ('data', {dict}))
+            if not play_info:
                 if traverse_obj(play_info_obj, 'code') == 87007:
                     toast = get_element_by_class('tips-toast', webpage) or ''
                     msg = clean_html(
@@ -682,7 +683,9 @@ class BiliBiliIE(BilibiliBaseIE):
         aid = video_data.get('aid')
         old_video_id = format_field(aid, None, f'%s_part{part_id or 1}')
         cid = traverse_obj(video_data, ('pages', part_id - 1, 'cid')) if part_id else video_data.get('cid')
-        play_info = self._download_playinfo(video_id, cid, headers=headers, try_look=1)
+        if is_festival or not self.is_logged_in:
+            query = {'try_look': 1} if not self.is_logged_in else {}
+            play_info = self._download_playinfo(video_id, cid, headers=headers, **query)
 
         festival_info = {}
         if is_festival:
