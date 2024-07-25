@@ -934,7 +934,7 @@ class TLCIE(DiscoveryPlusBaseIE):
 
 
 class DiscoveryPlusIE(DiscoveryPlusBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?discoveryplus\.com/(?!it/)(?:(?P<country>[a-z]{2})/)?video(?:/sport)?' + DPlayBaseIE._PATH_REGEX
+    _VALID_URL = r'https?://(?:www\.)?discoveryplus\.com/(?!it/)(?:(?P<country>[a-z]{2})/)?video(?:/sport|/olympics)?' + DPlayBaseIE._PATH_REGEX
     _TESTS = [{
         'url': 'https://www.discoveryplus.com/video/property-brothers-forever-home/food-and-family',
         'info_dict': {
@@ -957,6 +957,9 @@ class DiscoveryPlusIE(DiscoveryPlusBaseIE):
         'only_matching': True,
     }, {
         'url': 'https://www.discoveryplus.com/gb/video/sport/eurosport-1-british-eurosport-1-british-sport/6-hours-of-spa-review',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.discoveryplus.com/gb/video/olympics/dplus-sport-dplus-sport-sport/rugby-sevens-australia-samoa',
         'only_matching': True,
     }]
 
