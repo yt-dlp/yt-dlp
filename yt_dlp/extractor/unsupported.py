@@ -49,7 +49,7 @@ class KnownDRMIE(UnsupportedInfoExtractor):
         r'amazon\.(?:\w{2}\.)?\w+/gp/video',
         r'music\.amazon\.(?:\w{2}\.)?\w+',
         r'(?:watch|front)\.njpwworld\.com',
-        r'qub\.ca/vrai'
+        r'qub\.ca/vrai',
     )
 
     _TESTS = [{
