@@ -10,9 +10,9 @@ from ..utils.traversal import traverse_obj
 class TVAIE(InfoExtractor):
     IE_NAME = 'tvaplus'
     IE_DESC = 'TVA+'
-    _VALID_URL = r'https?://(?:www\.)?(?:qub|tvaplus)\.ca/(?:[^/?#]+/)*[\w-]+-(?P<id>\d+)(?:$|[#?])'
+    _VALID_URL = r'https?://(?:www\.)?tvaplus\.ca/(?:[^/?#]+/)*[\w-]+-(?P<id>\d+)(?:$|[#?])'
     _TESTS = [{
-        'url': 'https://www.qub.ca/tvaplus/tva/alerte-amber/saison-1/episode-01-1000036619',
+        'url': 'https://www.tvaplus.ca/tva/alerte-amber/saison-1/episode-01-1000036619',
         'md5': '949490fd0e7aee11d0543777611fbd53',
         'info_dict': {
             'id': '6084352463001',
