@@ -211,6 +211,15 @@ INNERTUBE_CLIENTS = {
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 2,
     },
+    'tv': {
+        'INNERTUBE_CONTEXT': {
+            'client': {
+                'clientName': 'TVHTML5',
+                'clientVersion': '7.20240618.10.00',
+            },
+        },
+        'INNERTUBE_CONTEXT_CLIENT_NAME': 7,
+    },
     # This client can access age restricted videos (unless the uploader has disabled the 'allow embedding' option)
     # See: https://github.com/zerodytrash/YouTube-Internal-Clients
     'tv_embedded': {
