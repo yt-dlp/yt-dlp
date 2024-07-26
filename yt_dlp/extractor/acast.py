@@ -43,10 +43,10 @@ class ACastIE(ACastBaseIE):
     _VALID_URL = r'''(?x:
                     https?://
                         (?:
-                            (?:(?:embed|www)\.)?acast\.com/|
+                            (?:(?:embed|www|shows)\.)?acast\.com/|
                             play\.acast\.com/s/
                         )
-                        (?P<channel>[^/]+)/(?P<id>[^/#?"]+)
+                        (?P<channel>[^/]+)/(?:episodes/)?(?P<id>[^/#?"]+)
                     )'''
     _EMBED_REGEX = [rf'(?x)<iframe[^>]+\bsrc=[\'"](?P<url>{_VALID_URL})']
     _TESTS = [{
