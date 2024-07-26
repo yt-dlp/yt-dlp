@@ -156,6 +156,18 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT_CLIENT_NAME': 14,
         'REQUIRE_JS_PLAYER': False,
     },
+    'android_testsuite': {
+        'INNERTUBE_CONTEXT': {
+            'client': {
+                'clientName': 'ANDROID_TESTSUITE',
+                'clientVersion': '1.9',
+                'androidSdkVersion': 30,
+                'userAgent': 'com.google.android.youtube/1.9 (Linux; U; Android 11; US) gzip',
+            },
+        },
+        'INNERTUBE_CONTEXT_CLIENT_NAME': 30,
+        'REQUIRE_JS_PLAYER': False,
+    },
     # iOS clients have HLS live streams. Setting device model to get 60fps formats.
     # See: https://github.com/TeamNewPipe/NewPipeExtractor/issues/680#issuecomment-1002724558
     'ios': {
@@ -3649,6 +3661,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         yt_query = {
             'videoId': video_id,
         }
+
+        if _split_innertube_client(client)[0] == 'android_testsuite':
+            yt_query['params'] = '2AMB'
 
         pp_arg = self._configuration_arg('player_params', [None], casesense=True)[0]
         if pp_arg:
