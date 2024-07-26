@@ -1,4 +1,9 @@
 import asyncio
+import base64
+import datetime as dt
+import hashlib
+import hmac
+import json
 import random
 import re
 import time
@@ -18,6 +23,7 @@ from ..utils import (
 
 
 class RPlayBaseIE(InfoExtractor):
+    _NETRC_MACHINE = 'rplaylive'
     _TOKEN_CACHE = {}
     _user_id = None
     _login_type = None
@@ -35,22 +41,40 @@ class RPlayBaseIE(InfoExtractor):
     def jwt_token(self):
         return self._jwt_token
 
-    def _perform_login(self, username, password):
-        _ = {
-            'alg': 'HS256',
-            'typ': 'JWT',
-        }
-        raise NotImplementedError
+    def _jwt_encode_hs256(self, payload: dict, key: str):
+        # ..utils.jwt_encode_hs256() uses slightly different details that would fails
+        # and we need to re-implement it with minor changes
+        b64encode = lambda x: base64.urlsafe_b64encode(
+            json.dumps(x, separators=(',', ':')).encode()).strip(b'=')
 
-    def _login_by_token(self, jwt_token, video_id):
+        header_b64 = b64encode({'alg': 'HS256', 'typ': 'JWT'})
+        payload_b64 = b64encode(payload)
+        h = hmac.new(key.encode(), header_b64 + b'.' + payload_b64, hashlib.sha256)
+        signature_b64 = base64.urlsafe_b64encode(h.digest()).strip(b'=')
+        return header_b64 + b'.' + payload_b64 + b'.' + signature_b64
+
+    def _perform_login(self, username, password):
+        payload = {
+            'eml': username,
+            'dat': dt.datetime.now(dt.timezone.utc).isoformat(timespec='milliseconds').replace('+00:00', 'Z'),
+            'iat': int(time.time()),
+        }
+        key = hashlib.sha256(password.encode()).hexdigest()
+
+        self._login_by_token(self._jwt_encode_hs256(payload, key).decode())
+
+    def _login_by_token(self, jwt_token):
         user_info = self._download_json(
-            'https://api.rplay.live/account/login', video_id, note='performing login', errnote='Failed to login',
+            'https://api.rplay.live/account/login', 'login', note='performing login', errnote='Failed to login',
             data=f'{{"token":"{jwt_token}","lang":"en","loginType":null,"checkAdmin":null}}'.encode(),
             headers={'Content-Type': 'application/json', 'Authorization': 'null'}, fatal=False)
+
         if user_info:
             self._user_id = traverse_obj(user_info, 'oid')
             self._login_type = traverse_obj(user_info, 'accountType')
-            self._jwt_token = jwt_token
+            self._jwt_token = jwt_token if self._user_id else None
+        if not self._user_id:
+            self.report_warning('Failed to login, possibly due to wrong password or website change')
 
     def _get_butter_files(self):
         cache = self.cache.load('rplay', 'butter-code') or {}
@@ -172,11 +196,8 @@ class RPlayVideoIE(RPlayBaseIE):
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        if self._configuration_arg('jwt_token') and not self.user_id:
-            self._login_by_token(self._configuration_arg('jwt_token', casesense=True)[0], video_id)
-
         headers = {'Origin': 'https://rplay.live', 'Referer': 'https://rplay.live/'}
-        content = self._download_json('https://api.rplay.live/content', video_id, query={
+        video_info = self._download_json('https://api.rplay.live/content', video_id, query={
             'contentOid': video_id,
             'status': 'published',
             'withComments': True,
@@ -186,12 +207,10 @@ class RPlayVideoIE(RPlayBaseIE):
                 'loginType': self.login_type,
             } if self.user_id else {}),
         }, headers={**headers, 'Authorization': self.jwt_token or 'null'})
-        if content.get('drm'):
+        if video_info.get('drm'):
             raise ExtractorError('This video is DRM-protected')
-        content.pop('daily_views', None)
-        content.get('creatorInfo', {}).pop('subscriptionTiers', None)
 
-        metainfo = traverse_obj(content, {
+        metainfo = traverse_obj(video_info, {
             'title': ('title', {str}),
             'description': ('introText', {str}),
             'release_timestamp': ('publishedAt', {parse_iso8601}),
@@ -203,12 +222,16 @@ class RPlayVideoIE(RPlayBaseIE):
             'age_limit': (('hideContent', 'isAdultContent'), {lambda x: 18 if x else None}, any),
         })
 
-        m3u8_url = traverse_obj(content, ('canView', 'url'))
+        m3u8_url = traverse_obj(video_info, ('canView', 'url'))
         if not m3u8_url:
-            raise ExtractorError('You do not have access to this video. '
-                                 'Passing JWT token using --extractor-args RPlayVideo:jwt_token=xxx.xxxxx.xxx to login')
+            msg = 'You do not have access to this video'
+            if traverse_obj(video_info, ('viewableTiers', 'free')):
+                msg += '. This video requires a free subscription'
+            if not self.user_id:
+                msg += f'. {self._login_hint(method="password")}'
+            raise ExtractorError(msg)
 
-        thumbnail_key = traverse_obj(content, ('streamables', lambda _, v: v['type'].startswith('image/'), 's3key', any))
+        thumbnail_key = traverse_obj(video_info, ('streamables', lambda _, v: v['type'].startswith('image/'), 's3key', any))
         if thumbnail_key:
             metainfo['thumbnail'] = url_or_none(self._download_webpage(
                 'https://api.rplay.live/upload/privateasset', video_id, 'getting cover url', query={
@@ -231,7 +254,7 @@ class RPlayVideoIE(RPlayBaseIE):
                 urlh = self._request_webpage(match[1], video_id, 'getting hls key', headers={
                     **headers,
                     'rplay-private-content-requestor': self.user_id or 'not-logged-in',
-                    'age': random.randint(100, 10000),
+                    'age': random.randint(1, 4999),
                 })
                 fmt['hls_aes'] = {'key': urlh.read().hex()}
 
@@ -261,14 +284,26 @@ class RPlayUserIE(RPlayBaseIE):
         'playlist_mincount': 77,
     }]
 
+    def _perform_login(self, username, password):
+        # This playlist extractor does not require login
+        return
+
     def _real_extract(self, url):
         user_id, short = self._match_valid_url(url).group('id', 'short')
         key = 'customUrl' if short == 'c' else 'userOid'
 
         user_info = self._download_json(
             f'https://api.rplay.live/account/getuser?{key}={user_id}&filter[]=nickname&filter[]=published', user_id)
+        replays = self._download_json(
+            'https://api.rplay.live/live/replays?=667e4cd99aa7f739a2c91852', user_id, query={
+                'creatorOid': user_info.get('_id')})
+
         entries = traverse_obj(user_info, ('published', ..., {
             lambda x: self.url_result(f'https://rplay.live/play/{x}/', ie=RPlayVideoIE, video_id=x)}))
+        for entry_id in traverse_obj(replays, (..., '_id', {str})):
+            if entry_id in user_info.get('published', []):
+                continue
+            entries.append(self.url_result(f'https://rplay.live/play/{entry_id}/', ie=RPlayVideoIE, video_id=entry_id))
 
         return self.playlist_result(entries, user_info.get('_id', user_id), user_info.get('nickname'))
 
@@ -314,10 +349,8 @@ class RPlayLiveIE(RPlayBaseIE):
         if stream_state == 'youtube':
             return self.url_result(f'https://www.youtube.com/watch?v={live_info["liveStreamId"]}')
         elif stream_state == 'live':
-            if self._configuration_arg('jwt_token') and not self.user_id:
-                self._login_by_token(self._configuration_arg('jwt_token', casesense=True)[0], user_id)
-            if not live_info.get('allowAnonymous') and not self.user_id:
-                self.raise_login_required()
+            if not self.user_id:
+                self.raise_login_required(method='password')
             key2 = self._download_webpage(
                 'https://api.rplay.live/live/key2', user_id, 'getting live key',
                 headers={'Authorization': self.jwt_token},
