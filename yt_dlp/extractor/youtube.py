@@ -240,6 +240,7 @@ INNERTUBE_CLIENTS = {
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 95,
+        'REQUIRE_JS_PLAYER': False,
     },
 }
 
