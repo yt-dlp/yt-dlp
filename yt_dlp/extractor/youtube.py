@@ -156,15 +156,18 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT_CLIENT_NAME': 14,
         'REQUIRE_JS_PLAYER': False,
     },
-    # Despite being a VR client, this client can't get the 8K VR180 SBS formats that ANDROID can get.
-    # Also, YouTube Kids videos aren't returned on this client for some reason
+    # YouTube Kids videos aren't returned on this client for some reason
     'android_vr': {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'ANDROID_VR',
-                'clientVersion': '1.40.51',
-                'androidSdkVersion': 30,
-                'userAgent': 'com.google.android.apps.youtube.vr.oculus/1.40.51 (Linux; Android 11; Quest) gzip',
+                'clientVersion': '1.57.29',
+                'deviceMake': 'Oculus',
+                'deviceModel': 'Quest 3',
+                'androidSdkVersion': 32,
+                'userAgent': 'com.google.android.apps.youtube.vr.oculus/1.57.29 (Linux; U; Android 12L; eureka-user Build/SQ3A.220605.009.A1) gzip',
+                'osName': 'Android',
+                'osVersion': '12L',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 28,
