@@ -210,9 +210,12 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'IOS_CREATOR',
-                'clientVersion': '22.33.101',
-                'deviceModel': 'iPhone14,3',
-                'userAgent': 'com.google.ios.ytcreator/22.33.101 (iPhone14,3; U; CPU iOS 15_6 like Mac OS X)',
+                'clientVersion': '24.30.100',
+                'deviceMake': 'Apple',
+                'deviceModel': 'iPhone16,2',
+                'userAgent': 'com.google.ios.ytcreator/24.30.100 (iPhone16,2; U; CPU iOS 17_5_1 like Mac OS X;)',
+                'osName': 'iPhone',
+                'osVersion': '17.5.1.21F91',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 15,
