@@ -120,18 +120,6 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT_CLIENT_NAME': 3,
         'REQUIRE_JS_PLAYER': False,
     },
-    'android_embedded': {
-        'INNERTUBE_CONTEXT': {
-            'client': {
-                'clientName': 'ANDROID_EMBEDDED_PLAYER',
-                'clientVersion': '19.09.37',
-                'androidSdkVersion': 30,
-                'userAgent': 'com.google.android.youtube/19.09.37 (Linux; U; Android 11) gzip',
-            },
-        },
-        'INNERTUBE_CONTEXT_CLIENT_NAME': 55,
-        'REQUIRE_JS_PLAYER': False,
-    },
     'android_music': {
         'INNERTUBE_CONTEXT': {
             'client': {
