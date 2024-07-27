@@ -285,7 +285,7 @@ class BilibiliBaseIE(InfoExtractor):
             ('data', 'interaction', 'graph_version', {int_or_none}))
         cid_edges = self._get_divisions(video_id, graph_version, {1: {'cid': cid}}, 1)
         for cid, edges in cid_edges.items():
-            play_info = self._download_playinfo(video_id, cid, headers=headers)
+            play_info = self._download_playinfo(video_id, cid, headers=headers, try_look=1)
             yield {
                 **metainfo,
                 'id': f'{video_id}_{cid}',
