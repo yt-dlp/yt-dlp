@@ -112,9 +112,9 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'ANDROID',
-                'clientVersion': '19.09.37',
+                'clientVersion': '19.29.37',
                 'androidSdkVersion': 30,
-                'userAgent': 'com.google.android.youtube/19.09.37 (Linux; U; Android 11) gzip',
+                'userAgent': 'com.google.android.youtube/19.29.37 (Linux; U; Android 11) gzip',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 3,
@@ -124,9 +124,9 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'ANDROID_MUSIC',
-                'clientVersion': '6.42.52',
+                'clientVersion': '7.11.50',
                 'androidSdkVersion': 30,
-                'userAgent': 'com.google.android.apps.youtube.music/6.42.52 (Linux; U; Android 11) gzip',
+                'userAgent': 'com.google.android.apps.youtube.music/7.11.50 (Linux; U; Android 11) gzip',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 21,
@@ -136,9 +136,9 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'ANDROID_CREATOR',
-                'clientVersion': '22.30.100',
+                'clientVersion': '24.30.100',
                 'androidSdkVersion': 30,
-                'userAgent': 'com.google.android.apps.youtube.creator/22.30.100 (Linux; U; Android 11) gzip',
+                'userAgent': 'com.google.android.apps.youtube.creator/24.30.100 (Linux; U; Android 11) gzip',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 14,
@@ -167,7 +167,7 @@ INNERTUBE_CLIENTS = {
                 'clientName': 'ANDROID_TESTSUITE',
                 'clientVersion': '1.9',
                 'androidSdkVersion': 30,
-                'userAgent': 'com.google.android.youtube/1.9 (Linux; U; Android 11; US) gzip',
+                'userAgent': 'com.google.android.youtube/1.9 (Linux; U; Android 11) gzip',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 30,
