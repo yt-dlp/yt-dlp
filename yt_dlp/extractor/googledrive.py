@@ -12,6 +12,7 @@ from ..utils import (
     get_element_html_by_id,
     int_or_none,
     lowercase_escape,
+    traverse_obj,
     try_get,
     update_url_query,
 )
@@ -304,7 +305,7 @@ class GoogleDriveFolderIE(InfoExtractor):
             'id': '1CkqRsNlzZ0o3IL083j17s6sH5Q83DcGo',
             'title': r'], sideChannel: {}});',
         },
-        'playlist_count': 5,
+        'playlist_count': 6,
     }]
     _JSON_DS_RE = r'key\s*?:\s*?([\'"])ds:\s*?%d\1,[^}]*data:'
     _JSON_HASH_RE = r'hash\s*?:\s*?([\'"])%d\1,[^}]*data:'
@@ -337,13 +338,17 @@ class GoogleDriveFolderIE(InfoExtractor):
     def _real_extract(self, url):
         def item_url_getter(item, video_id):
             available_IEs = [GoogleDriveFolderIE, GoogleDriveIE]
-            for attr in item:
-                if isinstance(attr, str):
-                    for available_IE in available_IEs:
-                        if available_IE.suitable(attr):
-                            return self.url_result(attr, available_IE, video_id, item[2])
-            self.to_screen(f'Failed to find a suitable extractor for {item[2]}.')
-            return None
+            if 'application/vnd.google-apps.shortcut' in item:
+                entry_url = traverse_obj(
+                    item, (..., ..., lambda _, v: any(ie.suitable(v) for ie in available_IEs),
+                           {str}, any))
+            else:
+                entry_url = traverse_obj(
+                    item, (lambda _, v: any(ie.suitable(v) for ie in available_IEs),
+                           {str}, any))
+            if not entry_url:
+                return None
+            return self.url_result(entry_url, video_id=video_id, video_title=item[2])
 
         folder_id = self._match_id(url)
         headers = self.geo_verification_headers()
