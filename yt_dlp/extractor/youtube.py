@@ -3705,7 +3705,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 requested_clients.extend(allowed_clients)
             elif client not in allowed_clients:
                 self.report_warning(f'Skipping unsupported client {client}')
-            elif client.startswith('android'):
+            elif client.startswith('android') and not client.endswith(('_testsuite', '_vr')):
                 android_clients.append(client)
             else:
                 requested_clients.append(client)
@@ -3955,7 +3955,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             client_name = fmt.get(STREAMING_DATA_CLIENT_NAME)
             # Android client formats are broken due to integrity check enforcement
             # Ref: https://github.com/yt-dlp/yt-dlp/issues/9554
-            is_broken = client_name and client_name.startswith(short_client_name('android'))
+            is_broken = (
+                client_name and client_name.startswith(short_client_name('android'))
+                and client_name not in map(short_client_name, ['android_testsuite', 'android_vr']))
             if is_broken:
                 self.report_warning(
                     f'{video_id}: Android client formats are broken and may yield HTTP Error 403. '
