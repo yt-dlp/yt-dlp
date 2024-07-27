@@ -3977,7 +3977,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 and client_name not in map(short_client_name, ['android_producer', 'android_testsuite', 'android_vr']))
             if is_broken:
                 self.report_warning(
-                    f'{video_id}: Android client formats are broken and may yield HTTP Error 403. '
+                    f'{video_id}: Some Android client formats are broken and may yield HTTP Error 403. '
                     'They will be deprioritized', only_once=True)
 
             name = fmt.get('qualityLabel') or quality.replace('audio_quality_', '') or ''
