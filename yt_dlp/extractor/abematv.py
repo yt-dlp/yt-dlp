@@ -377,7 +377,7 @@ class AbemaTVIE(AbemaTVBaseIE):
                 f'https://api.abema.io/v1/video/programs/{video_id}', video_id,
                 note='Checking playability',
                 headers=headers)
-            if not traverse_obj(api_response, ('label', 'free'), default=False):
+            if not traverse_obj(api_response, ('label', 'free', {bool})):
                 # cannot acquire decryption key for these streams
                 self.report_warning('This is a premium-only stream')
                 availability = 'premium_only'
