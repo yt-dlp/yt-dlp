@@ -726,7 +726,7 @@ class BiliBiliIE(BilibiliBaseIE):
         else:
             formats = self.extract_formats(play_info)
 
-            if not traverse_obj(play_info, ('dash')):
+            if not play_info.get('dash'):
                 # we only have legacy formats and need additional work
                 has_qn = lambda x: x in traverse_obj(formats, (..., 'quality'))
                 for qn in traverse_obj(play_info, ('accept_quality', lambda _, v: not has_qn(v), {int})):
@@ -858,7 +858,7 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
         headers['Referer'] = url
         play_info = self._download_json(
             'https://api.bilibili.com/pgc/player/web/v2/playurl', episode_id,
-            'Extracting episode', query={'fnval': '4048', 'ep_id': episode_id},
+            'Extracting episode', query={'fnval': 12240, 'ep_id': episode_id},
             headers=headers)
         premium_only = play_info.get('code') == -10403
         play_info = traverse_obj(play_info, ('result', 'video_info', {dict})) or {}
