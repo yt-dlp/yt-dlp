@@ -174,6 +174,19 @@ INNERTUBE_CLIENTS = {
         'REQUIRE_JS_PLAYER': False,
         'PLAYER_PARAMS': '2AMB',
     },
+    # This client only has legacy formats and storyboards
+    'android_producer': {
+        'INNERTUBE_CONTEXT': {
+            'client': {
+                'clientName': 'ANDROID_PRODUCER',
+                'clientVersion': '0.111.1',
+                'androidSdkVersion': 30,
+                'userAgent': 'com.google.android.apps.youtube.producer/0.111.1 (Linux; U; Android 11) gzip',
+            },
+        },
+        'INNERTUBE_CONTEXT_CLIENT_NAME': 91,
+        'REQUIRE_JS_PLAYER': False,
+    },
     # iOS clients have HLS live streams. Setting device model to get 60fps formats.
     # See: https://github.com/TeamNewPipe/NewPipeExtractor/issues/680#issuecomment-1002724558
     'ios': {
@@ -3699,7 +3712,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 requested_clients.extend(allowed_clients)
             elif client not in allowed_clients:
                 self.report_warning(f'Skipping unsupported client {client}')
-            elif client.startswith('android') and not client.endswith(('_testsuite', '_vr')):
+            elif client.startswith('android') and not client.endswith(('_producer', '_testsuite', '_vr')):
                 android_clients.append(client)
             else:
                 requested_clients.append(client)
@@ -3951,7 +3964,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             # Ref: https://github.com/yt-dlp/yt-dlp/issues/9554
             is_broken = (
                 client_name and client_name.startswith(short_client_name('android'))
-                and client_name not in map(short_client_name, ['android_testsuite', 'android_vr']))
+                and client_name not in map(short_client_name, ['android_producer', 'android_testsuite', 'android_vr']))
             if is_broken:
                 self.report_warning(
                     f'{video_id}: Android client formats are broken and may yield HTTP Error 403. '
