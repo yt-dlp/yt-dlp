@@ -181,6 +181,7 @@ INNERTUBE_CLIENTS = {
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 30,
         'REQUIRE_JS_PLAYER': False,
+        'PLAYER_PARAMS': '2AMB',
     },
     # iOS clients have HLS live streams. Setting device model to get 60fps formats.
     # See: https://github.com/TeamNewPipe/NewPipeExtractor/issues/680#issuecomment-1002724558
@@ -294,6 +295,7 @@ def build_innertube_clients():
     for client, ytcfg in tuple(INNERTUBE_CLIENTS.items()):
         ytcfg.setdefault('INNERTUBE_HOST', 'www.youtube.com')
         ytcfg.setdefault('REQUIRE_JS_PLAYER', True)
+        ytcfg.setdefault('PLAYER_PARAMS', None)
         ytcfg['INNERTUBE_CONTEXT']['client'].setdefault('hl', 'en')
 
         _, base_client, variant = _split_innertube_client(client)
@@ -3676,12 +3678,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'videoId': video_id,
         }
 
-        if _split_innertube_client(client)[0] == 'android_testsuite':
-            yt_query['params'] = '2AMB'
-
-        pp_arg = self._configuration_arg('player_params', [None], casesense=True)[0]
-        if pp_arg:
-            yt_query['params'] = pp_arg
+        default_pp = traverse_obj(INNERTUBE_CLIENTS, (
+            _split_innertube_client(client)[0], 'PLAYER_PARAMS', {str}))
+        if player_params := self._configuration_arg('player_params', [default_pp], casesense=True)[0]:
+            yt_query['params'] = player_params
 
         yt_query.update(self._generate_player_context(sts))
         return self._extract_response(
