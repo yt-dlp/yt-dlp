@@ -167,6 +167,10 @@ class GoogleDriveIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
+        _, webpage_urlh = self._download_webpage_handle(url, video_id)
+        if webpage_urlh.url != url:
+            return self.url_result(webpage_urlh.url)
+
         video_info = urllib.parse.parse_qs(self._download_webpage(
             'https://drive.google.com/get_video_info',
             video_id, 'Downloading video webpage', query={'docid': video_id}))
