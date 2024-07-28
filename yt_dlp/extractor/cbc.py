@@ -439,7 +439,7 @@ class CBCPlayerIE(InfoExtractor):
                 'thumbnail': ('image', 'url', {url_or_none}, {functools.partial(update_url, query=None)}),
                 'timestamp': ('publishedAt', {functools.partial(float_or_none, scale=1000)}),
                 'media_type': ('media', 'clipType', {str}),
-                'is_live': ('streamType', {lambda x: x == 'Live'}),
+                'is_live': ('media', 'streamType', {lambda x: x == 'Live'}),
                 'series': ('showName', {str}),
                 'season_number': ('media', 'season', {int_or_none}),
                 'duration': ('media', 'duration', {float_or_none}),
