@@ -3843,13 +3843,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 prs.append(pr)
 
             # creator clients can bypass AGE_VERIFICATION_REQUIRED if logged in
-            if variant == 'embedded' and self._is_unplayable(pr) and self.is_authenticated:
+            if variant == 'tv_embedded' and self._is_unplayable(pr) and self.is_authenticated:
                 append_client(f'{base_client}_creator')
-            elif self._is_agegated(pr):
-                if variant == 'tv_embedded':
-                    append_client(f'{base_client}_embedded')
-                elif not variant:
-                    append_client(f'tv_embedded.{base_client}', f'{base_client}_embedded')
+            elif variant != 'tv_embedded' and self._is_agegated(pr):
+                if self.is_authenticated:
+                    append_client(f'{base_client}_creator')
+                append_client(f'tv_embedded.{base_client}')
 
         if skipped_clients:
             self.report_warning(
