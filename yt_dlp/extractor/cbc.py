@@ -7,10 +7,9 @@ import urllib.parse
 import xml.etree.ElementTree
 
 from .common import InfoExtractor
-from ..networking import HEADRequest, Request
+from ..networking import HEADRequest
 from ..utils import (
     ExtractorError,
-    determine_ext,
     float_or_none,
     int_or_none,
     join_nonempty,
@@ -412,6 +411,7 @@ class CBCPlayerIE(InfoExtractor):
             if ext == 'm3u8':
                 formats, subtitles = self._extract_m3u8_formats_and_subtitles(
                     asset_data['url'], video_id, 'mp4', m3u8_id='hls')
+
                 # check for full video file
                 sortedformats = sorted([d for d in formats if d.get('tbr') is not None], key=lambda d: d['tbr'])
                 if sortedformats != []:
