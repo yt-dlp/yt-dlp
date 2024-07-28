@@ -3726,14 +3726,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         allowed_clients = sorted(
             (client for client in INNERTUBE_CLIENTS if client[:1] != '_'),
             key=lambda client: INNERTUBE_CLIENTS[client]['priority'], reverse=True)
-        for client in self._configuration_arg('player_client'):
+        for client_arg in self._configuration_arg('player_client'):
+            client, base_client, variant = _split_innertube_client(client_arg)
             if client == 'default':
                 requested_clients.extend(default)
             elif client == 'all':
                 requested_clients.extend(allowed_clients)
             elif client not in allowed_clients:
                 self.report_warning(f'Skipping unsupported client {client}')
-            elif client.startswith('android') and not client.endswith(('_producer', '_testsuite', '_vr')):
+            elif base_client == 'android' and variant not in ('producer', 'testsuite', 'vr'):
                 android_clients.append(client)
             else:
                 requested_clients.append(client)
