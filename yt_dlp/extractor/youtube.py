@@ -309,7 +309,7 @@ def _split_innertube_client(client_name):
 
 
 def short_client_name(client_name):
-    main, *parts = _split_innertube_client(client_name)[0].replace('embedscreen', 'e_s').split('_')
+    main, *parts = _split_innertube_client(client_name)[0].split('_')
     return join_nonempty(main[:4], ''.join(x[0] for x in parts)).upper()
 
 
@@ -329,12 +329,7 @@ def build_innertube_clients():
         _, base_client, variant = _split_innertube_client(client)
         ytcfg['priority'] = 10 * priority(base_client)
 
-        if not variant and base_client in ('ios', 'web', 'mweb', 'android'):
-            INNERTUBE_CLIENTS[f'{client}_embedscreen'] = embedscreen = copy.deepcopy(ytcfg)
-            embedscreen['INNERTUBE_CONTEXT']['client']['clientScreen'] = 'EMBED'
-            embedscreen['INNERTUBE_CONTEXT']['thirdParty'] = THIRD_PARTY
-            embedscreen['priority'] -= 3
-        elif variant == 'embedded':
+        if variant == 'embedded':
             ytcfg['INNERTUBE_CONTEXT']['thirdParty'] = THIRD_PARTY
             ytcfg['priority'] -= 2
         elif variant:
