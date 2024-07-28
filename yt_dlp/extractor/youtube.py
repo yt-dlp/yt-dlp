@@ -1335,6 +1335,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     }
     _SUBTITLE_FORMATS = ('json3', 'srv1', 'srv2', 'srv3', 'ttml', 'vtt')
     _POTOKEN_EXPERIMENTS = ('51217476', '51217102')
+    _BROKEN_CLIENTS = ('android', 'android_creator', 'android_music')
 
     _GEO_BYPASS = False
 
@@ -3716,25 +3717,24 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
     def _get_requested_clients(self, url, smuggled_data):
         requested_clients = []
-        android_clients = []
+        deferred_clients = []
         default = ['ios', 'web']
         allowed_clients = sorted(
             (client for client in INNERTUBE_CLIENTS if client[:1] != '_'),
             key=lambda client: INNERTUBE_CLIENTS[client]['priority'], reverse=True)
-        for client_arg in self._configuration_arg('player_client'):
-            client, base_client, variant = _split_innertube_client(client_arg)
+        for client in self._configuration_arg('player_client'):
             if client == 'default':
                 requested_clients.extend(default)
             elif client == 'all':
                 requested_clients.extend(allowed_clients)
             elif client not in allowed_clients:
                 self.report_warning(f'Skipping unsupported client {client}')
-            elif base_client == 'android' and variant not in ('producer', 'testsuite', 'vr'):
-                android_clients.append(client)
+            elif client in self._BROKEN_CLIENTS:
+                deferred_clients.append(client)
             else:
                 requested_clients.append(client)
         # Force deprioritization of broken Android clients for format de-duplication
-        requested_clients.extend(android_clients)
+        requested_clients.extend(deferred_clients)
         if not requested_clients:
             requested_clients = default
 
@@ -3979,11 +3979,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     f'{video_id}: Some formats are possibly damaged. They will be deprioritized', only_once=True)
 
             client_name = fmt.get(STREAMING_DATA_CLIENT_NAME)
-            # Android client formats are broken due to integrity check enforcement
+            # Formats returned by some Android clients are broken due to integrity check enforcement
             # Ref: https://github.com/yt-dlp/yt-dlp/issues/9554
-            is_broken = (
-                client_name and client_name.startswith(short_client_name('android'))
-                and client_name not in map(short_client_name, ['android_producer', 'android_testsuite', 'android_vr']))
+            is_broken = client_name in map(short_client_name, self._BROKEN_CLIENTS)
             if is_broken:
                 self.report_warning(
                     f'{video_id}: Some Android client formats are broken and may yield HTTP Error 403. '
