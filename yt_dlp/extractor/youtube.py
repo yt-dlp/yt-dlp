@@ -3701,8 +3701,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'videoId': video_id,
         }
 
-        default_pp = traverse_obj(INNERTUBE_CLIENTS, (
-            _split_innertube_client(client)[0], 'PLAYER_PARAMS', {str}))
+        default_pp = traverse_obj(
+            INNERTUBE_CLIENTS, (_split_innertube_client(client)[0], 'PLAYER_PARAMS', {str}))
         if player_params := self._configuration_arg('player_params', [default_pp], casesense=True)[0]:
             yt_query['params'] = player_params
 
