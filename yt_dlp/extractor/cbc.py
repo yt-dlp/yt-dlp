@@ -7,8 +7,10 @@ import urllib.parse
 import xml.etree.ElementTree
 
 from .common import InfoExtractor
+from ..networking import HEADRequest, Request
 from ..utils import (
     ExtractorError,
+    determine_ext,
     float_or_none,
     int_or_none,
     join_nonempty,
@@ -16,6 +18,7 @@ from ..utils import (
     mimetype2ext,
     orderedSet,
     parse_iso8601,
+    replace_extension,
     smuggle_url,
     strip_or_none,
     traverse_obj,
@@ -409,6 +412,18 @@ class CBCPlayerIE(InfoExtractor):
             if ext == 'm3u8':
                 formats, subtitles = self._extract_m3u8_formats_and_subtitles(
                     asset_data['url'], video_id, 'mp4', m3u8_id='hls')
+                # check for full video file
+                sortedformats = sorted([d for d in formats if d.get('tbr') is not None], key=lambda d: d['tbr'])
+                if sortedformats != []:
+                    full_file = dict(sortedformats[-1])
+                    full_file['url'] = replace_extension(re.sub(r'/hdntl=.+/', '/', full_file.get('url')), full_file.get('ext'))
+                    if self._request_webpage(HEADRequest(full_file['url']), video_id,
+                            'Checking for full video file', 'Full video file not found', fatal=False):
+                        full_file.pop('manifest_url')
+                        full_file.pop('acodec')
+                        full_file['protocol'] = 'https'
+                        formats.append(full_file)
+
             else:
                 formats.append({
                     'url': asset_data['url'],
