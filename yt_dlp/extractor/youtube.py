@@ -3733,7 +3733,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 broken_clients.append(client)
             else:
                 requested_clients.append(client)
-        # Force deprioritization of broken Android clients for format de-duplication
+        # Force deprioritization of _BROKEN_CLIENTS for format de-duplication
         requested_clients.extend(broken_clients)
         if not requested_clients:
             requested_clients = default
@@ -3979,12 +3979,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     f'{video_id}: Some formats are possibly damaged. They will be deprioritized', only_once=True)
 
             client_name = fmt.get(STREAMING_DATA_CLIENT_NAME)
-            # Formats returned by some Android clients are broken due to integrity check enforcement
+            # _BROKEN_CLIENTS return videoplayback URLs that expire after 30 seconds
             # Ref: https://github.com/yt-dlp/yt-dlp/issues/9554
             is_broken = client_name in map(short_client_name, self._BROKEN_CLIENTS)
             if is_broken:
                 self.report_warning(
-                    f'{video_id}: Some Android client formats are broken and may yield HTTP Error 403. '
+                    f'{video_id}: {client_name} client formats are broken and may yield HTTP Error 403. '
                     'They will be deprioritized', only_once=True)
 
             name = fmt.get('qualityLabel') or quality.replace('audio_quality_', '') or ''
