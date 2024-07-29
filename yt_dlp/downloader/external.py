@@ -1,4 +1,5 @@
 import enum
+import functools
 import json
 import os
 import re
@@ -9,7 +10,6 @@ import time
 import uuid
 
 from .fragment import FragmentFD
-from ..compat import functools
 from ..networking import Request
 from ..postprocessor.ffmpeg import EXT_TO_OUT_FORMATS, FFmpegPostProcessor
 from ..utils import (

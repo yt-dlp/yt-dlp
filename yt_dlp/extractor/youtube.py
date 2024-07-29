@@ -4,6 +4,7 @@ import collections
 import copy
 import datetime as dt
 import enum
+import functools
 import hashlib
 import itertools
 import json
@@ -20,7 +21,6 @@ import urllib.parse
 
 from .common import InfoExtractor, SearchInfoExtractor
 from .openload import PhantomJSwrapper
-from ..compat import functools
 from ..jsinterp import JSInterpreter
 from ..networking.exceptions import HTTPError, network_exceptions
 from ..utils import (
@@ -270,7 +270,7 @@ def build_innertube_clients():
     THIRD_PARTY = {
         'embedUrl': 'https://www.youtube.com/',  # Can be any valid URL
     }
-    BASE_CLIENTS = ('ios', 'android', 'web', 'tv', 'mweb')
+    BASE_CLIENTS = ('ios', 'web', 'tv', 'mweb', 'android')
     priority = qualities(BASE_CLIENTS[::-1])
 
     for client, ytcfg in tuple(INNERTUBE_CLIENTS.items()):
@@ -468,7 +468,10 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         'si', 'th', 'lo', 'my', 'ka', 'am', 'km', 'zh-CN', 'zh-TW', 'zh-HK', 'ja', 'ko',
     ]
 
-    _IGNORED_WARNINGS = {'Unavailable videos will be hidden during playback'}
+    _IGNORED_WARNINGS = {
+        'Unavailable videos will be hidden during playback',
+        'Unavailable videos are hidden',
+    }
 
     _YT_HANDLE_RE = r'@[\w.-]{3,30}'  # https://support.google.com/youtube/answer/11585688?hl=en
     _YT_CHANNEL_UCID_RE = r'UC[\w-]{22}'
@@ -1291,6 +1294,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         '401': {'ext': 'mp4', 'height': 2160, 'format_note': 'DASH video', 'vcodec': 'av01.0.12M.08'},
     }
     _SUBTITLE_FORMATS = ('json3', 'srv1', 'srv2', 'srv3', 'ttml', 'vtt')
+    _POTOKEN_EXPERIMENTS = ('51217476', '51217102')
 
     _GEO_BYPASS = False
 
@@ -3127,7 +3131,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
     def _extract_n_function_name(self, jscode):
         funcname, idx = self._search_regex(
-            r'\.get\("n"\)\)&&\(b=(?P<nfunc>[a-zA-Z0-9$]+)(?:\[(?P<idx>\d+)\])?\([a-zA-Z0-9]\)',
+            r'''(?x)
+            (?:
+                \.get\("n"\)\)&&\(b=|
+                (?:
+                    b=String\.fromCharCode\(110\)|
+                    ([a-zA-Z0-9$.]+)&&\(b="nn"\[\+\1\]
+                ),c=a\.get\(b\)\)&&\(c=
+            )
+            (?P<nfunc>[a-zA-Z0-9$]+)(?:\[(?P<idx>\d+)\])?\([a-zA-Z0-9]\)''',
             jscode, 'Initial JS player n function name', group=('nfunc', 'idx'))
         if not idx:
             return funcname
@@ -3138,7 +3150,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
     def _extract_n_function_code(self, video_id, player_url):
         player_id = self._extract_player_info(player_url)
-        func_code = self.cache.load('youtube-nsig', player_id, min_ver='2022.09.1')
+        func_code = self.cache.load('youtube-nsig', player_id, min_ver='2024.07.09')
         jscode = func_code or self._load_player(video_id, player_url)
         jsi = JSInterpreter(jscode)
 
@@ -3147,17 +3159,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         func_name = self._extract_n_function_name(jscode)
 
-        # For redundancy
-        func_code = self._search_regex(
-            rf'''(?xs){func_name}\s*=\s*function\s*\((?P<var>[\w$]+)\)\s*
-                     # NB: The end of the regex is intentionally kept strict
-                     {{(?P<code>.+?}}\s*return\ [\w$]+.join\(""\))}};''',
-            jscode, 'nsig function', group=('var', 'code'), default=None)
-        if func_code:
-            func_code = ([func_code[0]], func_code[1])
-        else:
-            self.write_debug('Extracting nsig function with jsinterp')
-            func_code = jsi.extract_function_code(func_name)
+        func_code = jsi.extract_function_code(func_name)
 
         self.cache.store('youtube-nsig', player_id, func_code)
         return jsi, player_id, func_code
@@ -3707,8 +3709,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             return pr_id
 
     def _extract_player_responses(self, clients, video_id, webpage, master_ytcfg, smuggled_data):
-        initial_pr = None
+        initial_pr = ignore_initial_response = None
         if webpage:
+            if 'web' in clients:
+                experiments = traverse_obj(master_ytcfg, (
+                    'WEB_PLAYER_CONTEXT_CONFIGS', ..., 'serializedExperimentIds', {lambda x: x.split(',')}, ...))
+                if all(x in experiments for x in self._POTOKEN_EXPERIMENTS):
+                    self.report_warning(
+                        'Webpage contains broken formats (poToken experiment detected). Ignoring initial player response')
+                    ignore_initial_response = True
             initial_pr = self._search_json(
                 self._YT_INITIAL_PLAYER_RESPONSE_RE, webpage, 'initial player response', video_id, fatal=False)
 
@@ -3738,8 +3747,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         skipped_clients = {}
         while clients:
             client, base_client, variant = _split_innertube_client(clients.pop())
-            player_ytcfg = master_ytcfg if client == 'web' else {}
-            if 'configs' not in self._configuration_arg('player_skip') and client != 'web':
+            player_ytcfg = {}
+            if client == 'web':
+                player_ytcfg = self._get_default_ytcfg() if ignore_initial_response else master_ytcfg
+            elif 'configs' not in self._configuration_arg('player_skip'):
                 player_ytcfg = self._download_ytcfg(client, video_id) or player_ytcfg
 
             player_url = player_url or self._extract_player_url(master_ytcfg, player_ytcfg, webpage=webpage)
@@ -3752,11 +3763,22 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 player_url = self._download_player_url(video_id)
                 tried_iframe_fallback = True
 
-            try:
-                pr = initial_pr if client == 'web' and initial_pr else self._extract_player_response(
-                    client, video_id, player_ytcfg or master_ytcfg, player_ytcfg, player_url if require_js_player else None, initial_pr, smuggled_data)
-            except ExtractorError as e:
-                self.report_warning(e)
+            pr = initial_pr if client == 'web' and not ignore_initial_response else None
+            for retry in self.RetryManager(fatal=False):
+                try:
+                    pr = pr or self._extract_player_response(
+                        client, video_id, player_ytcfg or master_ytcfg, player_ytcfg,
+                        player_url if require_js_player else None, initial_pr, smuggled_data)
+                except ExtractorError as e:
+                    self.report_warning(e)
+                    break
+                experiments = traverse_obj(pr, (
+                    'responseContext', 'serviceTrackingParams', lambda _, v: v['service'] == 'GFEEDBACK',
+                    'params', lambda _, v: v['key'] == 'e', 'value', {lambda x: x.split(',')}, ...))
+                if all(x in experiments for x in self._POTOKEN_EXPERIMENTS):
+                    pr = None
+                    retry.error = ExtractorError('API returned broken formats (poToken experiment detected)', expected=True)
+            if not pr:
                 continue
 
             if pr_id := self._invalid_player_response(pr, video_id):
@@ -3797,6 +3819,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
     def _extract_formats_and_subtitles(self, streaming_data, video_id, player_url, live_status, duration):
         CHUNK_SIZE = 10 << 20
+        PREFERRED_LANG_VALUE = 10
+        original_language = None
         itags, stream_ids = collections.defaultdict(set), []
         itag_qualities, res_qualities = {}, {0: None}
         q = qualities([
@@ -3845,6 +3869,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     itag_qualities[itag] = quality
                 if height:
                     res_qualities[height] = quality
+
+            is_default = audio_track.get('audioIsDefault')
+            is_descriptive = 'descriptive' in (audio_track.get('displayName') or '').lower()
+            language_code = audio_track.get('id', '').split('.')[0]
+            if language_code and is_default:
+                original_language = language_code
+
             # FORMAT_STREAM_TYPE_OTF(otf=1) requires downloading the init fragment
             # (adding `&sq=0` to the URL) and parsing emsg box to determine the
             # number of fragment that would subsequently requested with (`&sq=N`)
@@ -3870,7 +3901,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     continue
 
             query = parse_qs(fmt_url)
-            throttled = False
             if query.get('n'):
                 try:
                     decrypt_nsig = self._cached(self._decrypt_nsig, 'nsig', query['n'][0])
@@ -3884,20 +3914,16 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                                           f'to workaround the issue. {PhantomJSwrapper.INSTALL_HINT}\n')
                     if player_url:
                         self.report_warning(
-                            f'nsig extraction failed: You may experience throttling for some formats\n{phantomjs_hint}'
+                            f'nsig extraction failed: Some formats may be missing\n{phantomjs_hint}'
                             f'         n = {query["n"][0]} ; player = {player_url}', video_id=video_id, only_once=True)
                         self.write_debug(e, only_once=True)
                     else:
                         self.report_warning(
-                            'Cannot decrypt nsig without player_url: You may experience throttling for some formats',
+                            'Cannot decrypt nsig without player_url: Some formats may be missing',
                             video_id=video_id, only_once=True)
-                    throttled = True
+                    continue
 
             tbr = float_or_none(fmt.get('averageBitrate') or fmt.get('bitrate'), 1000)
-            language_preference = (
-                10 if audio_track.get('audioIsDefault') and 10
-                else -10 if 'descriptive' in (audio_track.get('displayName') or '').lower() and -10
-                else -1)
             format_duration = traverse_obj(fmt, ('approxDurationMs', {lambda x: float_or_none(x, 1000)}))
             # Some formats may have much smaller duration than others (possibly damaged during encoding)
             # E.g. 2-nOtRESiUc Ref: https://github.com/yt-dlp/yt-dlp/issues/2823
@@ -3924,17 +3950,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'filesize': int_or_none(fmt.get('contentLength')),
                 'format_id': f'{itag}{"-drc" if fmt.get("isDrc") else ""}',
                 'format_note': join_nonempty(
-                    join_nonempty(audio_track.get('displayName'),
-                                  language_preference > 0 and ' (default)', delim=''),
+                    join_nonempty(audio_track.get('displayName'), is_default and ' (default)', delim=''),
                     name, fmt.get('isDrc') and 'DRC',
                     try_get(fmt, lambda x: x['projectionType'].replace('RECTANGULAR', '').lower()),
                     try_get(fmt, lambda x: x['spatialAudioType'].replace('SPATIAL_AUDIO_TYPE_', '').lower()),
-                    throttled and 'THROTTLED', is_damaged and 'DAMAGED', is_broken and 'BROKEN',
+                    is_damaged and 'DAMAGED', is_broken and 'BROKEN',
                     (self.get_param('verbose') or all_formats) and client_name,
                     delim=', '),
                 # Format 22 is likely to be damaged. See https://github.com/yt-dlp/yt-dlp/issues/3372
-                'source_preference': ((-10 if throttled else -5 if itag == '22' else -1)
-                                      + (100 if 'Premium' in name else 0)),
+                'source_preference': (-5 if itag == '22' else -1) + (100 if 'Premium' in name else 0),
                 'fps': fps if fps > 1 else None,  # For some formats, fps is wrongly returned as 1
                 'audio_channels': fmt.get('audioChannels'),
                 'height': height,
@@ -3944,9 +3968,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'filesize_approx': filesize_from_tbr(tbr, format_duration),
                 'url': fmt_url,
                 'width': int_or_none(fmt.get('width')),
-                'language': join_nonempty(audio_track.get('id', '').split('.')[0],
-                                          'desc' if language_preference < -1 else '') or None,
-                'language_preference': language_preference,
+                'language': join_nonempty(language_code, 'desc' if is_descriptive else '') or None,
+                'language_preference': PREFERRED_LANG_VALUE if is_default else -10 if is_descriptive else -1,
                 # Strictly de-prioritize broken, damaged and 3gp formats
                 'preference': -20 if is_broken else -10 if is_damaged else -2 if itag == '17' else None,
             }
@@ -4006,6 +4029,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 f['format_id'] = f'{itag}-{proto}'
             elif itag:
                 f['format_id'] = itag
+
+            if original_language and f.get('language') == original_language:
+                f['format_note'] = join_nonempty(f.get('format_note'), '(default)', delim=' ')
+                f['language_preference'] = PREFERRED_LANG_VALUE
 
             if f.get('source_preference') is None:
                 f['source_preference'] = -1
@@ -4351,7 +4378,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'playable_in_embed': get_first(playability_statuses, 'playableInEmbed'),
             'live_status': live_status,
             'release_timestamp': live_start_time,
-            '_format_sort_fields': (  # source_preference is lower for throttled/potentially damaged formats
+            '_format_sort_fields': (  # source_preference is lower for potentially damaged formats
                 'quality', 'res', 'fps', 'hdr:12', 'source', 'vcodec:vp9.2', 'channels', 'acodec', 'lang', 'proto'),
         }
 
