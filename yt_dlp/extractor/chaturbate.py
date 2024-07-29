@@ -37,7 +37,7 @@ class ChaturbateIE(InfoExtractor):
         video_id, tld = self._match_valid_url(url).group('id', 'tld')
 
         webpage = self._download_webpage(
-            f'https://chaturbate.{domain}/{video_id}/', video_id,
+            f'https://chaturbate.{tld}/{video_id}/', video_id,
             headers=self.geo_verification_headers())
 
         found_m3u8_urls = []
