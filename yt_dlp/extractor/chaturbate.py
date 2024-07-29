@@ -34,9 +34,7 @@ class ChaturbateIE(InfoExtractor):
     _ROOM_OFFLINE = 'Room is currently offline'
 
     def _real_extract(self, url):
-        mobj = self._match_valid_url(url)
-        video_id = mobj.group('id')
-        domain = mobj.group('domain')
+        video_id, tld = self._match_valid_url(url).group('id', 'tld')
 
         webpage = self._download_webpage(
             f'https://chaturbate.{domain}/{video_id}/', video_id,
