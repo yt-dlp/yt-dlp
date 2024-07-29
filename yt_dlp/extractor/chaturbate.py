@@ -9,7 +9,7 @@ from ..utils import (
 
 
 class ChaturbateIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:[^/]+\.)?chaturbate\.com/(?:fullvideo/?\?.*?\bb=)?(?P<id>[^/?&#]+)'
+    _VALID_URL = r'https?://(?:[^/]+\.)?chaturbate\.(?P<domain>com|eu|global)/(?:>fullvideo/?\?.*?\bb=)?(?P<id>[^/?&#]+)'
     _TESTS = [{
         'url': 'https://www.chaturbate.com/siswet19/',
         'info_dict': {
@@ -34,10 +34,12 @@ class ChaturbateIE(InfoExtractor):
     _ROOM_OFFLINE = 'Room is currently offline'
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
+        mobj = self._match_valid_url(url)
+        video_id = mobj.group('id')
+        domain = mobj.group('domain')
 
         webpage = self._download_webpage(
-            f'https://chaturbate.com/{video_id}/', video_id,
+            f'https://chaturbate.{domain}/{video_id}/', video_id,
             headers=self.geo_verification_headers())
 
         found_m3u8_urls = []
