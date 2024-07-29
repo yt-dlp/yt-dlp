@@ -23,6 +23,7 @@ from ..utils import (
     traverse_obj,
     try_get,
     update_url,
+    url_basename,
     url_or_none,
 )
 
@@ -399,6 +400,8 @@ class CBCPlayerIE(InfoExtractor):
                 '_format_sort_fields': ('res', 'proto'),  # Prioritize direct http formats over HLS
             }
 
+        is_live = traverse_obj(data, ('media', 'streamType', {str})) == 'Live'
+
         formats, subtitles = [], {}
         for asset in assets:
             asset_key = asset['key']
@@ -410,20 +413,29 @@ class CBCPlayerIE(InfoExtractor):
             ext = mimetype2ext(self._parse_param(asset_data, 'contentType'))
             if ext == 'm3u8':
                 formats, subtitles = self._extract_m3u8_formats_and_subtitles(
-                    asset_data['url'], video_id, 'mp4', m3u8_id='hls')
-
-                # check for full video file
-                sortedformats = sorted([d for d in formats if d.get('tbr') is not None], key=lambda d: d['tbr'])
-                if sortedformats != []:
-                    full_file = dict(sortedformats[-1])
-                    full_file['url'] = replace_extension(re.sub(r'/hdntl=.+/', '/', full_file.get('url')), full_file.get('ext'))
-                    if self._request_webpage(HEADRequest(full_file['url']), video_id,
-                            'Checking for full video file', 'Full video file not found', fatal=False):
-                        full_file.pop('manifest_url')
-                        full_file.pop('acodec')
-                        full_file['protocol'] = 'https'
-                        formats.append(full_file)
-
+                    asset_data['url'], video_id, 'mp4', m3u8_id='hls', live=is_live)
+                if is_live or not formats:
+                    continue
+                # Check for direct https mp4 format
+                best_video_fmt = traverse_obj(formats, (
+                    lambda _, v: v.get('vcodec') != 'none' and v['tbr'], all,
+                    {functools.partial(sorted, key=lambda x: x['tbr'])}, -1, {dict})) or {}
+                base_url = self._search_regex(
+                    r'(https?://[^?#]+?/)hdntl=', best_video_fmt.get('url'), 'base url', default=None)
+                if not base_url or '/live/' in base_url:
+                    continue
+                mp4_url = base_url + replace_extension(url_basename(best_video_fmt['url']), 'mp4')
+                if self._request_webpage(
+                        HEADRequest(mp4_url), video_id, 'Checking for https format',
+                        errnote=False, fatal=False):
+                    formats.append({
+                        **best_video_fmt,
+                        'url': mp4_url,
+                        'format_id': 'https-mp4',
+                        'protocol': 'https',
+                        'manifest_url': None,
+                        'acodec': None,
+                    })
             else:
                 formats.append({
                     'url': asset_data['url'],
@@ -454,10 +466,9 @@ class CBCPlayerIE(InfoExtractor):
                 'thumbnail': ('image', 'url', {url_or_none}, {functools.partial(update_url, query=None)}),
                 'timestamp': ('publishedAt', {functools.partial(float_or_none, scale=1000)}),
                 'media_type': ('media', 'clipType', {str}),
-                'is_live': ('media', 'streamType', {lambda x: x == 'Live'}),
                 'series': ('showName', {str}),
                 'season_number': ('media', 'season', {int_or_none}),
-                'duration': ('media', 'duration', {float_or_none}),
+                'duration': ('media', 'duration', {float_or_none}, {lambda x: None if is_live else x}),
                 'location': ('media', 'region', {str}),
                 'tags': ('tags', ..., 'name', {str}),
                 'genres': ('media', 'genre', all),
@@ -467,6 +478,7 @@ class CBCPlayerIE(InfoExtractor):
             'formats': formats,
             'subtitles': subtitles,
             'chapters': chapters,
+            'is_live': is_live,
         }
 
 
