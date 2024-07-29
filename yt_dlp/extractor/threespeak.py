@@ -19,7 +19,7 @@ class ThreeSpeakIE(InfoExtractor):
             'uploader': 'dannyshine',
             'description': 'md5:181aa7ccb304afafa089b5af3bca7a10',
             'tags': ['sex', 'covid', 'antinatalism', 'comedy', 'vaccines'],
-            'thumbnail': 'https://img.3speakcontent.co/wjgoxyfy/thumbnails/default.png',
+            'thumbnail': 'https://media.3speak.tv/wjgoxyfy/thumbnails/default.png',
             'upload_date': '20211021',
             'duration': 2703.867833,
             'filesize': 1620054781,
