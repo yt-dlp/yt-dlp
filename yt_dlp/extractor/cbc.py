@@ -401,8 +401,14 @@ class CBCPlayerIE(InfoExtractor):
             }
 
         is_live = traverse_obj(data, ('media', 'streamType', {str})) == 'Live'
-
         formats, subtitles = [], {}
+
+        for sub in traverse_obj(data, ('media', 'textTracks', lambda _, v: url_or_none(v['src']))):
+            subtitles.setdefault(sub.get('language') or 'und', []).append({
+                'url': sub['src'],
+                'name': sub.get('label'),
+            })
+
         for asset in assets:
             asset_key = asset['key']
             asset_type = asset['type']
@@ -415,7 +421,9 @@ class CBCPlayerIE(InfoExtractor):
                 fmts, subs = self._extract_m3u8_formats_and_subtitles(
                     asset_data['url'], video_id, 'mp4', m3u8_id='hls', live=is_live)
                 formats.extend(fmts)
-                self._merge_subtitles(subs, target=subtitles)
+                # Avoid slow/error-prone webvtt-over-m3u8 if direct https vtt is available
+                if not subtitles:
+                    self._merge_subtitles(subs, target=subtitles)
                 if is_live or not fmts:
                     continue
                 # Check for direct https mp4 format
@@ -444,12 +452,6 @@ class CBCPlayerIE(InfoExtractor):
                     'ext': ext,
                     'vcodec': 'none' if self._parse_param(asset_data, 'mediaType') == 'audio' else None,
                 })
-
-        for sub in traverse_obj(data, ('media', 'textTracks', lambda _, v: url_or_none(v['src']))):
-            subtitles.setdefault(sub.get('language') or 'und', []).append({
-                'url': sub['src'],
-                'name': sub.get('label'),
-            })
 
         chapters = traverse_obj(data, (
             'media', 'chapters', lambda _, v: float(v['startTime']) is not None, {
