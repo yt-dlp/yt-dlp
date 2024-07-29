@@ -261,7 +261,7 @@ class CBCPlayerIE(InfoExtractor):
         # These broadcasts expire after ~1 month, can find new test URL here:
         # https://www.cbc.ca/player/news/TV%20Shows/The%20National/Latest%20Broadcast
         'url': 'https://www.cbc.ca/player/play/video/9.6424403',
-        'md5': 'b0ad20f236068180df378bb68fa343fd',
+        'md5': '8025909eaffcf0adf59922904def9a5e',
         'info_dict': {
             'id': '9.6424403',
             'ext': 'mp4',
@@ -287,6 +287,7 @@ class CBCPlayerIE(InfoExtractor):
         },
     }, {
         'url': 'https://www.cbc.ca/player/play/video/1.7194274',
+        'md5': '188b96cf6bdcb2540e178a6caa957128',
         'info_dict': {
             'id': '1.7194274',
             'ext': 'mp4',
@@ -305,7 +306,6 @@ class CBCPlayerIE(InfoExtractor):
             'upload_date': '20240504',
             'genres': ['News'],
         },
-        'params': {'skip_download': 'm3u8'},
     }, {
         'url': 'https://www.cbc.ca/player/play/video/9.6427282',
         'info_dict': {
@@ -328,7 +328,7 @@ class CBCPlayerIE(InfoExtractor):
         'params': {'skip_download': 'm3u8'},
     }, {
         'url': 'https://www.cbc.ca/player/play/video/9.6459530',
-        'md5': '941e5bf2b5bd19d16ff8aecb1b9b9335',
+        'md5': '6c1bb76693ab321a2e99c347a1d5ecbc',
         'info_dict': {
             'id': '9.6459530',
             'ext': 'mp4',
@@ -347,7 +347,7 @@ class CBCPlayerIE(InfoExtractor):
         },
     }, {
         'url': 'https://www.cbc.ca/player/play/video/9.6420651',
-        'md5': '8f9da1e875570686ffd2cb1853c8a858',
+        'md5': '71a850c2c6ee5e912de169f5311bb533',
         'info_dict': {
             'id': '9.6420651',
             'ext': 'mp4',
