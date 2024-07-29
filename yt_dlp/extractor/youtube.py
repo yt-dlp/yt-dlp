@@ -1335,7 +1335,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     }
     _SUBTITLE_FORMATS = ('json3', 'srv1', 'srv2', 'srv3', 'ttml', 'vtt')
     _POTOKEN_EXPERIMENTS = ('51217476', '51217102')
-    _BROKEN_CLIENTS = ('android', 'android_creator', 'android_music')
+    _BROKEN_CLIENTS = {
+        short_client_name(client): client
+        for client in ('android', 'android_creator', 'android_music')
+    }
 
     _GEO_BYPASS = False
 
@@ -3729,7 +3732,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 requested_clients.extend(allowed_clients)
             elif client not in allowed_clients:
                 self.report_warning(f'Skipping unsupported client {client}')
-            elif client in self._BROKEN_CLIENTS:
+            elif client in self._BROKEN_CLIENTS.values():
                 broken_clients.append(client)
             else:
                 requested_clients.append(client)
@@ -3981,11 +3984,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             client_name = fmt.get(STREAMING_DATA_CLIENT_NAME)
             # _BROKEN_CLIENTS return videoplayback URLs that expire after 30 seconds
             # Ref: https://github.com/yt-dlp/yt-dlp/issues/9554
-            is_broken = client_name in map(short_client_name, self._BROKEN_CLIENTS)
+            is_broken = client_name in self._BROKEN_CLIENTS
             if is_broken:
                 self.report_warning(
-                    f'{video_id}: {client_name} client formats are broken and may yield HTTP Error 403. '
-                    'They will be deprioritized', only_once=True)
+                    f'{video_id}: {self._BROKEN_CLIENTS[client_name]} client formats are broken '
+                    'and may yield HTTP Error 403. They will be deprioritized', only_once=True)
 
             name = fmt.get('qualityLabel') or quality.replace('audio_quality_', '') or ''
             fps = int_or_none(fmt.get('fps')) or 0
