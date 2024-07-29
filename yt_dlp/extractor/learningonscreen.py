@@ -62,18 +62,17 @@ class LearningOnScreenIE(InfoExtractor):
         if not entries:
             raise ExtractorError('No video found')
 
-        is_playlist = len(entries) > 1
-        playlist_duration = None
-        if is_playlist:
-            playlist_duration = details.pop('duration', None)
+        if len(entries) > 1:
+            duration = details.pop('duration', None)
+            for idx, entry in enumerate(entries, start=1):
+                entry.update(details)
+                entry['id'] = join_nonempty(video_id, idx)
+                entry['title'] = join_nonempty(title, idx)
+            return self.playlist_result(entries, video_id, title, duration=duration)
 
-        for idx, entry in enumerate(entries, start=1):
-            entry.update({
-                **details,
-                'id': join_nonempty(video_id, is_playlist and idx),
-                'title': join_nonempty(title, is_playlist and idx),
-            })
-
-        if not is_playlist:
-            return entries[0]
-        return self.playlist_result(entries, video_id, title, duration=playlist_duration)
+        return {
+            **entries[0],
+            **details,
+            'id': video_id,
+            'title': title,
+        }
