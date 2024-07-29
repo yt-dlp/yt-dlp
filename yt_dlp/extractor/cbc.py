@@ -412,12 +412,14 @@ class CBCPlayerIE(InfoExtractor):
             asset_data = self._download_json(asset_key, video_id, f'Downloading {asset_type} JSON')
             ext = mimetype2ext(self._parse_param(asset_data, 'contentType'))
             if ext == 'm3u8':
-                formats, subtitles = self._extract_m3u8_formats_and_subtitles(
+                fmts, subs = self._extract_m3u8_formats_and_subtitles(
                     asset_data['url'], video_id, 'mp4', m3u8_id='hls', live=is_live)
-                if is_live or not formats:
+                formats.extend(fmts)
+                self._merge_subtitles(subs, target=subtitles)
+                if is_live or not fmts:
                     continue
                 # Check for direct https mp4 format
-                best_video_fmt = traverse_obj(formats, (
+                best_video_fmt = traverse_obj(fmts, (
                     lambda _, v: v.get('vcodec') != 'none' and v['tbr'], all,
                     {functools.partial(sorted, key=lambda x: x['tbr'])}, -1, {dict})) or {}
                 base_url = self._search_regex(
