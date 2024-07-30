@@ -3174,18 +3174,32 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         return ret
 
     def _extract_n_function_name(self, jscode):
+        # Examples (with placeholders nfunc, narray, idx):
+        # *  .get("n"))&&(b=nfunc(b)
+        # *  .get("n"))&&(b=narray[idx](b)
+        # *  b=String.fromCharCode(110),c=a.get(b))&&c=narray[idx](c)
+        # *  a.D&&(b="nn"[+a.D],c=a.get(b))&&(c=narray[idx](c),a.set(b,c),narray.length||nfunc("")
+        # *  a.D&&(PL(a),b=a.j.n||null)&&(b=narray[0](b),a.set("n",b),narray.length||nfunc("")
         funcname, idx = self._search_regex(
             r'''(?x)
             (?:
                 \.get\("n"\)\)&&\(b=|
                 (?:
                     b=String\.fromCharCode\(110\)|
-                    ([a-zA-Z0-9$.]+)&&\(b="nn"\[\+\1\]
-                ),c=a\.get\(b\)\)&&\(c=
-            )
-            (?P<nfunc>[a-zA-Z0-9$]+)(?:\[(?P<idx>\d+)\])?\([a-zA-Z0-9]\)''',
-            jscode, 'Initial JS player n function name', group=('nfunc', 'idx'))
-        if not idx:
+                    (?P<str_idx>[a-zA-Z0-9_$.]+)&&\(b="nn"\[\+(?P=str_idx)\]
+                ),c=a\.get\(b\)\)&&\(c=|
+                \b(?P<var>[a-zA-Z0-9_$]+)=
+            )(?P<nfunc>[a-zA-Z0-9_$]+)(?:\[(?P<idx>\d+)\])?\([a-zA-Z]\)
+            (?(var),[a-zA-Z0-9_$]+\.set\("n"\,(?P=var)\),(?P=nfunc)\.length)''',
+            jscode, 'n function name', group=('nfunc', 'idx'), default=(None, None))
+        if not funcname:
+            self.report_warning('Falling back to generic n function search')
+            return self._search_regex(
+                r'''(?xs)
+                \b(?P<name>[a-zA-Z0-9_$]+)\s*=\s*function\([a-zA-Z0-9_$]+\)
+                \s*\{(?:(?!\};).)+?["\']enhanced_except_''',
+                jscode, 'Initial JS player n function name', group='name')
+        elif not idx:
             return funcname
 
         return json.loads(js_to_json(self._search_regex(
