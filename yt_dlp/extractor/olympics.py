@@ -72,12 +72,7 @@ class OlympicsReplayIE(InfoExtractor):
         if traverse_obj(data, ('geoRestrictedVideo', {bool})):
             self.raise_geo_restricted(countries=geo_countries)
 
-        is_live = False
-        m3u8_url = traverse_obj(data, ('videoUrl', {url_or_none}))
-        if not m3u8_url:
-            m3u8_url = data['streamUrl']
-            is_live = True
-
+        m3u8_url = traverse_obj(data, ('videoUrl', {url_or_none})) or data['streamUrl']
         tokenized_url = self._tokenize_url(m3u8_url, video_id)
 
         try:
