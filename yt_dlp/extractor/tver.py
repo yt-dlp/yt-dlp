@@ -29,6 +29,9 @@ class TVerIE(InfoExtractor):
     }, {
         'url': 'https://tver.jp/lp/f0033031',
         'only_matching': True,
+    }, {
+        'url': 'https://tver.jp/olympic/paris2024/video/6359578055112/',
+        'only_matching': True,
     }]
     BRIGHTCOVE_URL_TEMPLATE = 'http://players.brightcove.net/%s/default_default/index.html?videoId=%s'
     _PLATFORM_UID = None
