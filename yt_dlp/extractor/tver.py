@@ -10,7 +10,7 @@ from ..utils import (
 
 
 class TVerIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?tver\.jp/(?:(?P<type>lp|corner|series|episodes?|feature|tokyo2020/video)/)+(?P<id>[a-zA-Z0-9]+)'
+    _VALID_URL = r'https?://(?:www\.)?tver\.jp/(?:(?P<type>lp|corner|series|episodes?|feature|tokyo2020/video|olympic/paris2024/video)/)+(?P<id>[a-zA-Z0-9]+)'
     _TESTS = [{
         'skip': 'videos are only available for 7 days',
         'url': 'https://tver.jp/episodes/ep83nf3w4p',
@@ -52,6 +52,27 @@ class TVerIE(InfoExtractor):
             video_id = self._match_id(self._search_regex(
                 (r'canonical"\s*href="(https?://tver\.jp/[^"]+)"', r'&link=(https?://tver\.jp/[^?&]+)[?&]'),
                 webpage, 'url regex'))
+
+        if video_type == 'olympic/paris2024/video':
+            olympic_api_info = self._download_json(
+                'https://tver.jp/olympic/paris2024/req/api/hook?q=https%3A%2F%2Folympic-assets.tver.jp%2Fweb-static%2Fjson%2Fconfig.json&d=',
+                video_id,
+                fatal=False,
+            )
+            p_id = traverse_obj(
+                olympic_api_info,
+                ('content', 'brightcove', 'E200', 'pro', 'pc', 'account_id'),
+                get_all=False,
+            )
+            r_id = video_id
+            return {
+                '_type': 'url_transparent',
+                'url': smuggle_url(
+                    self.BRIGHTCOVE_URL_TEMPLATE % (p_id, r_id),
+                    {'geo_countries': ['JP']},
+                ),
+                'ie_key': 'BrightcoveNew',
+            }
 
         episode_info = self._download_json(
             f'https://platform-api.tver.jp/service/api/v1/callEpisode/{video_id}?require_data=mylist,later[epefy106ur],good[epefy106ur],resume[epefy106ur]',
