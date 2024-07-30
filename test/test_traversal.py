@@ -420,6 +420,16 @@ class TestTraversal:
         assert traverse_obj(morsel, [(None,), any]) == morsel, \
             'Morsel should not be implicitly changed to dict on usage'
 
+    def test_traversal_filter(self):
+        assert traverse_obj(_TEST_DATA, ['None', filter]) is None, \
+            '`filter` should filter falsy values'
+        assert traverse_obj(_TEST_DATA, ['dict', filter]) is None, \
+            '`filter` should filter falsy values'
+        assert traverse_obj(_TEST_DATA, ['urls', 'index', filter]) is None, \
+            '`filter` should filter falsy values'
+        assert traverse_obj(_TEST_DATA, ['str', filter]) == 'str', \
+            '`filter` should leave truthy values'
+
 
 class TestDictGet:
     def test_dict_get(self):

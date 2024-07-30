@@ -54,6 +54,7 @@ def traverse_obj(
                             Read as: `{key: traverse_obj(obj, path) for key, path in dct.items()}`.
         - `any`-builtin:    Take the first matching object and return it, resetting branching.
         - `all`-builtin:    Take all matching objects and return them as a list, resetting branching.
+        - `filter`-builtin: Return the value if it is truthy, `None` otherwise.
 
         `tuple`, `list`, and `dict` all support nested paths and branches.
 
@@ -245,6 +246,10 @@ def traverse_obj(
                     objs = (next(filtered_objs, None),)
                 else:
                     objs = (list(filtered_objs),)
+                continue
+
+            if key is filter:
+                obj = filter(None, objs)
                 continue
 
             if __debug__ and callable(key):
