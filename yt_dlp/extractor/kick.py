@@ -4,6 +4,7 @@ from .common import InfoExtractor
 from ..networking import HEADRequest
 from ..utils import (
     UserNotLive,
+    determine_ext,
     float_or_none,
     int_or_none,
     merge_dicts,
@@ -180,6 +181,32 @@ class KickClipIE(KickBaseIE):
             'skip_download': 'm3u8',
         },
         'expected_warnings': [r'impersonation'],
+    }, {
+        'url': 'https://kick.com/destiny?clip=clip_01H9SKET879NE7N9RJRRDS98J3',
+
+        'info_dict': {
+            'id': 'clip_01H9SKET879NE7N9RJRRDS98J3',
+            'title': 'W jews',
+            'ext': 'mp4',
+            'view_count': int,
+            'like_count': int,
+            'is_mature': False,
+            'duration': 49.0,
+            'thumbnail': 'https://clips.kick.com/clips/j3/clip_01H9SKET879NE7N9RJRRDS98J3/thumbnail.png',
+            'uploader_id': 2027722,
+            'channel': 'Destiny',
+            'channel_id': 1772249,
+            'category_id': 15,
+            'uploader': 'punished_furry',
+            'category': 'Just Chatting',
+            'livestream_id': 14549749,
+            'upload_date': '20230908',
+        },
+        'params': {
+            'skip_download': 'm3u8',
+        },
+        'expected_warnings': [r'impersonation'],
+
     }]
 
     def _real_extract(self, url):
@@ -187,15 +214,17 @@ class KickClipIE(KickBaseIE):
         channel_slug, clip_id = self._match_valid_url(url).groups()
         response = self._call_api(f'v2/clips/{clip_id}/play', clip_id, note='Getting clip information')
         clip = traverse_obj(response, 'clip', expected_type=dict)
+        clip_url = traverse_obj(clip, 'clip_url')
+
+        if determine_ext(clip_url) == 'm3u8':
+            formats = self._extract_m3u8_formats(clip_url, clip_id, 'mp4')
+        else:
+            formats = [{'url': clip_url}]
 
         return {
             'id': clip_id,
-            'formats': [
-                {
-                    'url': traverse_obj(clip, 'video_url'),
-                    'ext': 'mp4',
-                },
-            ],
+            'formats': formats,
+            'ext': 'mp4',
             'title': traverse_obj(clip, 'title', default=''),
             'livestream_id': int_or_none(traverse_obj(clip, 'livestream_id')),
             'category_id': int_or_none(traverse_obj(clip, 'category_id')),
