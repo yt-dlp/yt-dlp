@@ -1,8 +1,8 @@
 import functools
 import re
 
-from yt_dlp.extractor.common import InfoExtractor
-from yt_dlp.utils import (
+from .common import InfoExtractor
+from ..utils import (
     ExtractorError,
     clean_html,
     extract_attributes,
@@ -12,7 +12,7 @@ from yt_dlp.utils import (
     parse_duration,
     unified_timestamp,
 )
-from yt_dlp.utils.traversal import traverse_obj
+from ..utils.traversal import traverse_obj
 
 
 class LearningOnScreenIE(InfoExtractor):
