@@ -72,14 +72,15 @@ class OlympicsReplayIE(InfoExtractor):
         if traverse_obj(data, ('geoRestrictedVideo', {bool})):
             self.raise_geo_restricted(countries=geo_countries)
 
+        is_live = traverse_obj(data, ('streamingStatus', {str})) == 'LIVE'
         m3u8_url = traverse_obj(data, ('videoUrl', {url_or_none})) or data['streamUrl']
-        tokenized_url = self._tokenize_url(m3u8_url, video_id)
+        tokenized_url = m3u8_url if is_live else self._tokenize_url(m3u8_url, video_id)
 
         try:
             formats, subtitles = self._extract_m3u8_formats_and_subtitles(
                 tokenized_url, video_id, 'mp4', m3u8_id='hls')
         except ExtractorError as e:
-            if isinstance(e.cause, HTTPError) and e.cause.status == 403:
+            if isinstance(e.cause, HTTPError) and 'georestricted' in e.cause.msg:
                 self.raise_geo_restricted(countries=geo_countries)
             raise
 
