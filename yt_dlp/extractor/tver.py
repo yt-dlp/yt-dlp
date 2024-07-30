@@ -54,25 +54,11 @@ class TVerIE(InfoExtractor):
                 webpage, 'url regex'))
 
         if video_type == 'olympic/paris2024/video':
-            olympic_api_info = self._download_json(
-                'https://tver.jp/olympic/paris2024/req/api/hook?q=https%3A%2F%2Folympic-assets.tver.jp%2Fweb-static%2Fjson%2Fconfig.json&d=',
-                video_id,
-                fatal=False,
-            )
-            p_id = traverse_obj(
-                olympic_api_info,
-                ('content', 'brightcove', 'E200', 'pro', 'pc', 'account_id'),
-                get_all=False,
-            )
-            r_id = video_id
-            return {
-                '_type': 'url_transparent',
-                'url': smuggle_url(
-                    self.BRIGHTCOVE_URL_TEMPLATE % (p_id, r_id),
-                    {'geo_countries': ['JP']},
-                ),
-                'ie_key': 'BrightcoveNew',
-            }
+            # Player ID is taken from .content.brightcove.E200.pro.pc.account_id:
+            # https://tver.jp/olympic/paris2024/req/api/hook?q=https%3A%2F%2Folympic-assets.tver.jp%2Fweb-static%2Fjson%2Fconfig.json&d=
+            return self.url_result(smuggle_url(
+                self.BRIGHTCOVE_URL_TEMPLATE % ('4774017240001', video_id),
+                {'geo_countries': ['JP']}), 'BrightcoveNew')
 
         episode_info = self._download_json(
             f'https://platform-api.tver.jp/service/api/v1/callEpisode/{video_id}?require_data=mylist,later[epefy106ur],good[epefy106ur],resume[epefy106ur]',
