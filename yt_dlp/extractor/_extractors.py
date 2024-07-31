@@ -504,7 +504,6 @@ from .dhm import DHMIE
 from .digitalconcerthall import DigitalConcertHallIE
 from .digiteka import DigitekaIE
 from .discogs import DiscogsReleasePlaylistIE
-from .discovery import DiscoveryIE
 from .disney import DisneyIE
 from .dispeak import DigitallySpeakingIE
 from .dlf import (
@@ -532,16 +531,12 @@ from .dplay import (
     DiscoveryPlusIndiaShowIE,
     DiscoveryPlusItalyIE,
     DiscoveryPlusItalyShowIE,
-    DIYNetworkIE,
     DPlayIE,
     FoodNetworkIE,
-    GlobalCyclingNetworkPlusIE,
     GoDiscoveryIE,
     HGTVDeIE,
     HGTVUsaIE,
     InvestigationDiscoveryIE,
-    MotorTrendIE,
-    MotorTrendOnDemandIE,
     ScienceChannelIE,
     TravelChannelIE,
 )
@@ -991,6 +986,7 @@ from .lcp import (
     LcpIE,
     LcpPlayIE,
 )
+from .learningonscreen import LearningOnScreenIE
 from .lecture2go import Lecture2GoIE
 from .lecturio import (
     LecturioCourseIE,
@@ -2174,10 +2170,7 @@ from .tv5unis import (
     TV5UnisVideoIE,
 )
 from .tv24ua import TV24UAVideoIE
-from .tva import (
-    TVAIE,
-    QubIE,
-)
+from .tva import TVAIE
 from .tvanouvelles import (
     TVANouvellesArticleIE,
     TVANouvellesIE,

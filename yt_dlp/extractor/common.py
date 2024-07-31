@@ -3150,7 +3150,7 @@ class InfoExtractor:
                     })
         return formats, subtitles
 
-    def _parse_html5_media_entries(self, base_url, webpage, video_id, m3u8_id=None, m3u8_entry_protocol='m3u8_native', mpd_id=None, preference=None, quality=None):
+    def _parse_html5_media_entries(self, base_url, webpage, video_id, m3u8_id=None, m3u8_entry_protocol='m3u8_native', mpd_id=None, preference=None, quality=None, _headers=None):
         def absolute_url(item_url):
             return urljoin(base_url, item_url)
 
@@ -3174,11 +3174,11 @@ class InfoExtractor:
                 formats = self._extract_m3u8_formats(
                     full_url, video_id, ext='mp4',
                     entry_protocol=m3u8_entry_protocol, m3u8_id=m3u8_id,
-                    preference=preference, quality=quality, fatal=False)
+                    preference=preference, quality=quality, fatal=False, headers=_headers)
             elif ext == 'mpd':
                 is_plain_url = False
                 formats = self._extract_mpd_formats(
-                    full_url, video_id, mpd_id=mpd_id, fatal=False)
+                    full_url, video_id, mpd_id=mpd_id, fatal=False, headers=_headers)
             else:
                 is_plain_url = True
                 formats = [{
@@ -3272,6 +3272,8 @@ class InfoExtractor:
                         })
             for f in media_info['formats']:
                 f.setdefault('http_headers', {})['Referer'] = base_url
+                if _headers:
+                    f['http_headers'].update(_headers)
             if media_info['formats'] or media_info['subtitles']:
                 entries.append(media_info)
         return entries

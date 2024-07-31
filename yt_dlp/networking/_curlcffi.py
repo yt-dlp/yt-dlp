@@ -146,6 +146,9 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
         extensions.pop('impersonate', None)
         extensions.pop('cookiejar', None)
         extensions.pop('timeout', None)
+        # CurlCFFIRH ignores legacy ssl options currently.
+        # Impersonation generally uses a looser SSL configuration than urllib/requests.
+        extensions.pop('legacy_ssl', None)
 
     def send(self, request: Request) -> Response:
         target = self._get_request_target(request)
