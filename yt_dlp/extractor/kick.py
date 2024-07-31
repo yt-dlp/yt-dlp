@@ -97,7 +97,7 @@ class KickIE(KickBaseIE):
 
 
 class KickVODIE(KickBaseIE):
-    IE_NAME = 'kick:vods'
+    IE_NAME = 'kick:vod'
     _VALID_URL = r'https?://(?:www\.)?kick\.com/video/(?P<id>[\da-f]{8}-(?:[\da-f]{4}-){3}[\da-f]{12})'
     _TESTS = [{
         'url': 'https://kick.com/video/e74614f4-5270-4319-90ad-32179f19a45c',
