@@ -3173,7 +3173,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         self.write_debug(f'Decrypted nsig {s} => {ret}')
         return ret
 
-    def _extract_n_function_name(self, jscode):
+    def _extract_n_function_name(self, jscode, player_url=None):
         # Examples (with placeholders nfunc, narray, idx):
         # *  .get("n"))&&(b=nfunc(b)
         # *  .get("n"))&&(b=narray[idx](b)
@@ -3193,7 +3193,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             (?(var),[a-zA-Z0-9_$]+\.set\("n"\,(?P=var)\),(?P=nfunc)\.length)''',
             jscode, 'n function name', group=('nfunc', 'idx'), default=(None, None))
         if not funcname:
-            self.report_warning('Falling back to generic n function search')
+            self.report_warning(join_nonempty(
+                'Falling back to generic n function search',
+                player_url and f'         player = {player_url}', delim='\n'))
             return self._search_regex(
                 r'''(?xs)
                 ;\s*(?P<name>[a-zA-Z0-9_$]+)\s*=\s*function\([a-zA-Z0-9_$]+\)
@@ -3215,7 +3217,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if func_code:
             return jsi, player_id, func_code
 
-        func_name = self._extract_n_function_name(jscode)
+        func_name = self._extract_n_function_name(jscode, player_url=player_url)
 
         func_code = jsi.extract_function_code(func_name)
 
