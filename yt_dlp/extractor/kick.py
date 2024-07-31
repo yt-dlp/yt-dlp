@@ -12,6 +12,8 @@ from ..utils import (
     unified_timestamp,
     url_or_none,
 )
+
+
 class KickBaseIE(InfoExtractor):
     def _real_initialize(self):
         self._request_webpage(
