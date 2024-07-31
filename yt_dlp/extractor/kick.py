@@ -1,5 +1,3 @@
-from yt_dlp.utils._utils import unified_strdate
-
 from .common import InfoExtractor
 from ..networking import HEADRequest
 from ..utils import (
@@ -8,26 +6,12 @@ from ..utils import (
     float_or_none,
     int_or_none,
     merge_dicts,
+    parse_iso8601,
+    str_or_none,
     traverse_obj,
     unified_timestamp,
     url_or_none,
 )
-
-# Routes ----------------------
-
-# Clips
-# https://kick.com/mxddy?clip=clip_01GYXVB5Y8PWAPWCWMSBCFB05X
-# https://kick.com/api/v2/clips/clip_01GYXVB5Y8PWAPWCWMSBCFB05X
-
-# Livestream
-# https://kick.com/xqc
-# https://kick.com/api/v2/channels/xqc
-
-# VODs
-# https://kick.com/video/e74614f4-5270-4319-90ad-32179f19a45c
-# https://kick.com/api/v1/video/e74614f4-5270-4319-90ad-32179f19a45c
-
-
 class KickBaseIE(InfoExtractor):
     def _real_initialize(self):
         self._request_webpage(
@@ -100,8 +84,6 @@ class KickIE(KickBaseIE):
             'thumbnail': traverse_obj(
                 response, ('livestream', 'thumbnail', 'url'), expected_type=url_or_none),
             'categories': traverse_obj(response, ('recent_categories', ..., 'name')),
-            'language': traverse_obj(
-                response, ('livestream', ('language')), get_all=False, default=''),
         }
 
 
@@ -156,7 +138,7 @@ class KickVODIE(KickBaseIE):
 
 class KickClipIE(KickBaseIE):
     IE_NAME = 'kick:clips'
-    _VALID_URL = r'https?://(?:www\.)?kick\.com/(?P<channel>[\w-]+)\?clip=(?P<id>clip_[\w-]+)'
+    _VALID_URL = r'https?://(?:www\.)?kick\.com/[\w-]+/?\?(?:[^#]+&)?clip=(?P<id>clip_[\w-]+)'
     _TESTS = [{
         'url': 'https://kick.com/mxddy?clip=clip_01GYXVB5Y8PWAPWCWMSBCFB05X',
         'info_dict': {
@@ -211,10 +193,9 @@ class KickClipIE(KickBaseIE):
 
     def _real_extract(self, url):
 
-        channel_slug, clip_id = self._match_valid_url(url).groups()
-        response = self._call_api(f'v2/clips/{clip_id}/play', clip_id, note='Getting clip information')
-        clip = traverse_obj(response, 'clip', expected_type=dict)
-        clip_url = traverse_obj(clip, 'clip_url')
+        clip_id = self._match_id(url)
+        clip = self._call_api(f'v2/clips/{clip_id}/play', clip_id)['clip']
+        clip_url = clip['clip_url']
 
         if determine_ext(clip_url) == 'm3u8':
             formats = self._extract_m3u8_formats(clip_url, clip_id, 'mp4')
@@ -225,18 +206,19 @@ class KickClipIE(KickBaseIE):
             'id': clip_id,
             'formats': formats,
             'ext': 'mp4',
-            'title': traverse_obj(clip, 'title', default=''),
-            'livestream_id': int_or_none(traverse_obj(clip, 'livestream_id')),
-            'category_id': int_or_none(traverse_obj(clip, 'category_id')),
-            'channel': traverse_obj(clip, ('channel', 'username')),
-            'channel_id': int_or_none(traverse_obj(clip, ('channel', 'id'))),
-            'uploader': traverse_obj(clip, ('creator', 'username')),
-            'uploader_id': int_or_none(traverse_obj(clip, ('creator', 'id'))),
-            'thumbnail': url_or_none(traverse_obj(clip, 'thumbnail_url')),
-            'duration': float_or_none(traverse_obj(clip, 'duration')),
-            'category': traverse_obj(clip, ('category', 'name'), default=''),
-            'upload_date': unified_strdate(traverse_obj(clip, 'created_at')),
-            'view_count': int_or_none(traverse_obj(clip, 'likes')),
-            'like_count': int_or_none(traverse_obj(clip, 'views')),
-            'is_mature': traverse_obj(clip, 'is_mature'),
+            **traverse_obj(clip, {
+                'title': ('title', {str}),
+                'description': ('livestream_id', {str}, {lambda x: f'Clipped from {x}' if x else None}),
+                'channel': ('channel', 'username', {str}),
+                'channel_id': ('channel', 'id', {int}, {str_or_none}),
+                'uploader': ('creator', 'username', {str}),
+                'uploader_id': ('creator', 'id', {int}, {str_or_none}),
+                'thumbnail': ('thumbnail_url', {url_or_none}),
+                'duration': ('duration', {float_or_none}),
+                'categories': ('category', 'name', {str}, all),
+                'timestamp': ('created_at', {parse_iso8601}),
+                'view_count': ('views', {int_or_none}),
+                'like_count': ('likes', {int_or_none}),
+                'age_limit': ('is_mature', {bool}, {lambda x: 18 if x else 0}),
+            }),
         }
