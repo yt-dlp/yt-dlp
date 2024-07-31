@@ -3854,13 +3854,27 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     f[STREAMING_DATA_CLIENT_NAME] = name
                 prs.append(pr)
 
-            # creator clients can bypass AGE_VERIFICATION_REQUIRED if logged in
-            if variant == 'tv_embedded' and self._is_unplayable(pr) and self.is_authenticated:
-                append_client(f'{base_client}_creator')
-            elif variant != 'tv_embedded' and self._is_agegated(pr):
-                if self.is_authenticated:
-                    append_client(f'{base_client}_creator')
+            # tv_embedded can work around age-gate and age-verification IF the video is embeddable
+            if self._is_agegated(pr) and variant != 'tv_embedded':
                 append_client(f'tv_embedded.{base_client}')
+
+            # Unauthenticated users will only get tv_embedded client formats if age-gated
+            if self._is_agegated(pr) and not self.is_authenticated:
+                self.to_screen(
+                    f'{video_id}: This video is age-restricted; some formats may be missing '
+                    f'without authentication. {self._login_hint()}', only_once=True)
+
+            # EU countries require age-verification for accounts to access age-restricted videos
+            # If account is not age-verified, _is_agegated() will be truthy for non-embedded clients
+            # If embedding is disabled for the video, _is_unplayable() will be truthy for tv_embedded
+            embedding_is_disabled = variant == 'tv_embedded' and self._is_unplayable(pr)
+            if self.is_authenticated and (self._is_agegated(pr) or embedding_is_disabled):
+                self.to_screen(
+                    f'{video_id}: This video is age-restricted and YouTube is requiring '
+                    'account age-verification; some formats may be missing', only_once=True)
+                # web_creator and mediaconnect can work around the age-verification requirement
+                # _producer, _testsuite, & _vr variants can also work around age-verification
+                append_client('web_creator', 'mediaconnect')
 
         if skipped_clients:
             self.report_warning(
