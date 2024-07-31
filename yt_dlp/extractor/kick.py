@@ -76,9 +76,9 @@ class KickIE(KickBaseIE):
                 response, ('livestream', ('session_title', 'slug')), get_all=False, default=''),
             'description': traverse_obj(response, ('user', 'bio')),
             'channel': channel,
-            'channel_id': int_or_none(traverse_obj(response, 'id', ('livestream', 'channel_id'))),
+            'channel_id': str_or_none(traverse_obj(response, 'id', ('livestream', 'channel_id'))),
             'uploader': traverse_obj(response, 'name', ('user', 'username')),
-            'uploader_id': int_or_none(traverse_obj(response, 'user_id', ('user', 'id'))),
+            'uploader_id': str_or_none(traverse_obj(response, 'user_id', ('user', 'id'))),
             'is_live': True,
             'timestamp': unified_timestamp(traverse_obj(response, ('livestream', 'created_at'))),
             'thumbnail': traverse_obj(
@@ -125,9 +125,9 @@ class KickVODIE(KickBaseIE):
                 response, ('livestream', ('session_title', 'slug')), get_all=False, default=''),
             'description': traverse_obj(response, ('livestream', 'channel', 'user', 'bio')),
             'channel': traverse_obj(response, ('livestream', 'channel', 'slug')),
-            'channel_id': int_or_none(traverse_obj(response, ('livestream', 'channel', 'id'))),
+            'channel_id': str_or_none(traverse_obj(response, ('livestream', 'channel', 'id'))),
             'uploader': traverse_obj(response, ('livestream', 'channel', 'user', 'username')),
-            'uploader_id': int_or_none(traverse_obj(response, ('livestream', 'channel', 'user_id'))),
+            'uploader_id': str_or_none(traverse_obj(response, ('livestream', 'channel', 'user_id'))),
             'timestamp': unified_timestamp(response.get('created_at')),
             'duration': float_or_none(traverse_obj(response, ('livestream', 'duration')), scale=1000),
             'thumbnail': traverse_obj(
