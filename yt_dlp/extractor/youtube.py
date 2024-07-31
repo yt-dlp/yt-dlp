@@ -3790,13 +3790,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         all_clients.add(actual_client)
                         return
 
-        def age_verification_bypass(video_id):
-            self.to_screen(
-                f'{video_id}: This video is age-restricted, and YouTube is requiring '
-                'account age-verification; some formats may be missing', only_once=True)
-            # android_producer, android_testsuite, android_vr can also bypass age-verification
-            append_client('web_creator', 'mediaconnect')
-
         tried_iframe_fallback = False
         player_url = None
         skipped_clients = {}
@@ -3847,17 +3840,27 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     f[STREAMING_DATA_CLIENT_NAME] = name
                 prs.append(pr)
 
-            if variant == 'tv_embedded' and self._is_unplayable(pr) and self.is_authenticated:
-                age_verification_bypass(video_id)
-            elif self._is_agegated(pr):
-                if not self.is_authenticated:
-                    self.to_screen(
-                        f'{video_id}: This video is age-restricted; some formats may be missing '
-                        f'without authentication. {self._login_hint()}', only_once=True)
-                if variant != 'tv_embedded':
-                    append_client(f'tv_embedded.{base_client}')
-                elif self.is_authenticated:
-                    age_verification_bypass(video_id)
+            # tv_embedded can work around age-gate and age-verification IF the video is embeddable
+            if self._is_agegated(pr) and variant != 'tv_embedded':
+                append_client(f'tv_embedded.{base_client}')
+
+            # Unauthenticated users will only get tv_embedded client formats if age-gated
+            if self._is_agegated(pr) and not self.is_authenticated:
+                self.to_screen(
+                    f'{video_id}: This video is age-restricted; some formats may be missing '
+                    f'without authentication. {self._login_hint()}', only_once=True)
+
+            # EU countries require age-verification for accounts to access age-restricted videos
+            # If account is not age-verified, _is_agegated() will be truthy for non-embedded clients
+            # If embedding is disabled for the video, _is_unplayable() will be truthy for tv_embedded
+            embedding_is_disabled = variant == 'tv_embedded' and self._is_unplayable(pr)
+            if self.is_authenticated and (self._is_agegated(pr) or embedding_is_disabled):
+                self.to_screen(
+                    f'{video_id}: This video is age-restricted and YouTube is requiring '
+                    'account age-verification; some formats may be missing', only_once=True)
+                # web_creator and mediaconnect can work around the age-verification requirement
+                # _producer, _testsuite, & _vr variants can also work around age-verification
+                append_client('web_creator', 'mediaconnect')
 
         if skipped_clients:
             self.report_warning(
