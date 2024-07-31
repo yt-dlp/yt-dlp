@@ -55,7 +55,7 @@ class KickIE(KickBaseIE):
             'live_status': 'is_live',
             'concurrent_view_count': int,
             'release_timestamp': int,
-            'age_limit': int,
+            'age_limit': 18,
             'release_date': str,
         },
         'params': {'skip_download': 'livestream'},
