@@ -3790,6 +3790,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         all_clients.add(actual_client)
                         return
 
+        def age_verification_bypass(video_id):
+            self.to_screen(
+                f'{video_id}: This video is age-restricted, and YouTube is requiring '
+                'account age-verification; some formats may be missing', only_once=True)
+            # android_producer, android_testsuite, android_vr can also bypass age-verification
+            append_client('web_creator', 'mediaconnect')
+
         tried_iframe_fallback = False
         player_url = None
         skipped_clients = {}
@@ -3840,13 +3847,17 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     f[STREAMING_DATA_CLIENT_NAME] = name
                 prs.append(pr)
 
-            # creator clients can bypass AGE_VERIFICATION_REQUIRED if logged in
             if variant == 'tv_embedded' and self._is_unplayable(pr) and self.is_authenticated:
-                append_client(f'{base_client}_creator')
-            elif variant != 'tv_embedded' and self._is_agegated(pr):
-                if self.is_authenticated:
-                    append_client(f'{base_client}_creator')
-                append_client(f'tv_embedded.{base_client}')
+                age_verification_bypass(video_id)
+            elif self._is_agegated(pr):
+                if not self.is_authenticated:
+                    self.to_screen(
+                        f'{video_id}: This video is age-restricted; some formats may be missing '
+                        f'without authentication. {self._login_hint()}', only_once=True)
+                if variant != 'tv_embedded':
+                    append_client(f'tv_embedded.{base_client}')
+                elif self.is_authenticated:
+                    age_verification_bypass(video_id)
 
         if skipped_clients:
             self.report_warning(
