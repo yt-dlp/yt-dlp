@@ -3196,7 +3196,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             self.report_warning('Falling back to generic n function search')
             return self._search_regex(
                 r'''(?xs)
-                \b(?P<name>[a-zA-Z0-9_$]+)\s*=\s*function\([a-zA-Z0-9_$]+\)
+                ;\s*(?P<name>[a-zA-Z0-9_$]+)\s*=\s*function\([a-zA-Z0-9_$]+\)
                 \s*\{(?:(?!};).)+?["']enhanced_except_''',
                 jscode, 'Initial JS player n function name', group='name')
         elif not idx:
