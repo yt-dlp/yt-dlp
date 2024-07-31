@@ -24,13 +24,24 @@ class TVerIE(InfoExtractor):
         },
         'add_ie': ['BrightcoveNew'],
     }, {
+        'url': 'https://tver.jp/olympic/paris2024/video/6359578055112/',
+        'info_dict': {
+            'id': '6359578055112',
+            'ext': 'mp4',
+            'title': '堀米雄斗 金メダルで五輪連覇！「みんなの応援が最後に乗れたカギ」',
+            'timestamp': 1722279928,
+            'upload_date': '20240729',
+            'tags': ['20240729', 'japanese', 'japanmedal', 'paris'],
+            'uploader_id': '4774017240001',
+            'thumbnail': r're:https?://[^/?#]+boltdns\.net/[^?#]+/1920x1080/match/image\.jpg',
+            'duration': 670.571,
+        },
+        'params': {'skip_download': 'm3u8'},
+    }, {
         'url': 'https://tver.jp/corner/f0103888',
         'only_matching': True,
     }, {
         'url': 'https://tver.jp/lp/f0033031',
-        'only_matching': True,
-    }, {
-        'url': 'https://tver.jp/olympic/paris2024/video/6359578055112/',
         'only_matching': True,
     }]
     BRIGHTCOVE_URL_TEMPLATE = 'http://players.brightcove.net/%s/default_default/index.html?videoId=%s'
@@ -50,11 +61,6 @@ class TVerIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id, video_type = self._match_valid_url(url).group('id', 'type')
-        if video_type not in {'series', 'episodes'}:
-            webpage = self._download_webpage(url, video_id, note='Resolving to new URL')
-            video_id = self._match_id(self._search_regex(
-                (r'canonical"\s*href="(https?://tver\.jp/[^"]+)"', r'&link=(https?://tver\.jp/[^?&]+)[?&]'),
-                webpage, 'url regex'))
 
         if video_type == 'olympic/paris2024/video':
             # Player ID is taken from .content.brightcove.E200.pro.pc.account_id:
@@ -62,6 +68,12 @@ class TVerIE(InfoExtractor):
             return self.url_result(smuggle_url(
                 self.BRIGHTCOVE_URL_TEMPLATE % ('4774017240001', video_id),
                 {'geo_countries': ['JP']}), 'BrightcoveNew')
+
+        elif video_type not in {'series', 'episodes'}:
+            webpage = self._download_webpage(url, video_id, note='Resolving to new URL')
+            video_id = self._match_id(self._search_regex(
+                (r'canonical"\s*href="(https?://tver\.jp/[^"]+)"', r'&link=(https?://tver\.jp/[^?&]+)[?&]'),
+                webpage, 'url regex'))
 
         episode_info = self._download_json(
             f'https://platform-api.tver.jp/service/api/v1/callEpisode/{video_id}?require_data=mylist,later[epefy106ur],good[epefy106ur],resume[epefy106ur]',
