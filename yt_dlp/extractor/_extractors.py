@@ -2377,10 +2377,10 @@ from .voxmedia import (
     VoxMediaVolumeIE,
 )
 from .vrt import (
+    VRTIE,
     DagelijkseKostIE,
     KetnetIE,
     Radio1BeIE,
-    VRTIE,
     VRTMaxRadioIE,
     VrtNUIE,
 )
