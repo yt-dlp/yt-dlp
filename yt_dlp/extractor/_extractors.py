@@ -2394,9 +2394,9 @@ from .vrsquare import (
     VrSquareSectionIE,
 )
 from .vrt import (
+    VRTIE,
     DagelijkseKostIE,
     Radio1BeIE,
-    VRTIE,
     VRTMaxRadioIE,
     VrtNUIE,
 )
