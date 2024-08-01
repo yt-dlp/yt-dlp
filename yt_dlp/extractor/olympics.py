@@ -95,11 +95,10 @@ class OlympicsReplayIE(InfoExtractor):
         }
 
     def _tokenize_url(self, url, token, is_live, video_id):
-        params = parse_qs(url)
         return self._download_json(
             'https://metering.olympics.com/tokengenerator', video_id,
             'Downloading tokenized m3u8 url', query={
-                **params,
+                **parse_qs(url),
                 'url': update_url(url, query=None),
                 'service-id': 'live' if is_live else 'vod',
                 'user-auth': token,
