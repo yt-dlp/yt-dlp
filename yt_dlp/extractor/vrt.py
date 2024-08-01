@@ -492,7 +492,7 @@ class Radio1BeIE(VRTBaseIE):
 
 class VRTMaxRadioIE(VRTBaseIE):
     IE_DESC = 'VRT MAX (radio)'
-    _VALID_URL = r'https?://(?:www\.)?vrt\.be/(?:vrtmax|vrtnu)/luister/radio/(?P<show1l>[^/])/(?P<show>[^/]+)/(?P<id>[^/?#&]+)/?'
+    _VALID_URL = r'https?://(?:www\.)?vrt\.be/(?:vrtmax|vrtnu)/luister/radio/(?P<show1l>[^/])/(?P<show>[^/]+)/(?P<episode_id>[^/?#&]+)/?'
     _TESTS = [{
         'url': 'https://www.vrt.be/vrtmax/luister/radio/d/duyster~11-177/duyster~11-27934-0/',
         'md5': '14d002b1ebd8591ae360ff54a9b51515',  # ... of first Fragment.
@@ -564,17 +564,17 @@ class VRTMaxRadioIE(VRTBaseIE):
   }
 }'''
 
-    def get_metadata(self, show1l, show, id):
+    def get_metadata(self, show1l, show, episode_id):
         # Rather fragile, download responds with nothing but "400: Bad Request" if any
         # GraphQL part or header is out of place.  Best to keep them minimal.
-        graphqlvar = f"/vrtnu/luister/radio/{show1l}/{show}/{id}/"
+        graphqlvar = f'/vrtnu/luister/radio/{show1l}/{show}/{episode_id}/'
         postdata = json.dumps({
             'query': self._GRAPHQUERY,
-            'variables': {"pageId": graphqlvar},
+            'variables': {'pageId': graphqlvar},
         }).encode()
         return self._download_json(
-            'https://www.vrt.be/vrtnu-api/graphql/public/v1', id,
-            note="Downloading GraphQL metadata", data=postdata,
+            'https://www.vrt.be/vrtnu-api/graphql/public/v1', episode_id,
+            note='Downloading GraphQL metadata', data=postdata,
             headers={
                 'content-type': 'application/json',
                 'Accept': 'application/graphql+json, application/json',
@@ -583,15 +583,15 @@ class VRTMaxRadioIE(VRTBaseIE):
             })
 
     def _real_extract(self, url):
-        (show1l, show, id) = self._match_valid_url(url).groups()
-        metadata = self.get_metadata(show1l, show, id)['data']['page']
+        (show1l, show, episode_id) = self._match_valid_url(url).groups()
+        metadata = self.get_metadata(show1l, show, episode_id)['data']['page']
 
         audio_id = traverse_obj(metadata, ('player', 'listenAction', 'streamId'))
         media_items = self._call_api(audio_id, 'vrtnu-web@PROD', version='v2')
         formats, _ = self._extract_formats_and_subtitles(media_items, audio_id)
 
         return {
-            'id': id,
+            'id': episode_id,
             'formats': formats,
             **traverse_obj(metadata, {
                 'title': 'title',
@@ -607,5 +607,5 @@ class VRTMaxRadioIE(VRTBaseIE):
                 'channel_url': ('radioEpisode', 'actionItems', ..., 'action', all,
                                 lambda _, act: act.get('linkType') == 'channel', any,
                                 'link', {lambda link: 'https://www.vrt.be' + link}),
-            })
+            }),
         }
