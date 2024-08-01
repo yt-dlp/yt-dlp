@@ -4,7 +4,9 @@ from ..utils import (
     ExtractorError,
     int_or_none,
     parse_iso8601,
+    parse_qs,
     try_get,
+    update_url,
     url_or_none,
 )
 from ..utils.traversal import traverse_obj
@@ -93,12 +95,14 @@ class OlympicsReplayIE(InfoExtractor):
         }
 
     def _tokenize_url(self, url, token, is_live, video_id):
+        params = parse_qs(url)
         return self._download_json(
             'https://metering.olympics.com/tokengenerator', video_id,
             'Downloading tokenized m3u8 url', query={
-                'url': url,
+                'url': update_url(url, query=None),
                 'service-id': 'live' if is_live else 'vod',
                 'user-auth': token,
+                **params,
             })['data']['url']
 
     def _legacy_tokenize_url(self, url, video_id):
