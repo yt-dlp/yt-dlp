@@ -265,6 +265,11 @@ class HTTPTestRequestHandler(http.server.BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(payload)
             self.finish()
+        elif self.path == '/get_cookie':
+            self.send_response(200)
+            self.send_header('Set-Cookie', 'test=ytdlp; path=/')
+            self.end_headers()
+            self.finish()
         else:
             self._status(404)
 
@@ -337,6 +342,52 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
             with pytest.raises(SSLError, match=r'(?i)ssl(?:v3|/tls).alert.handshake.failure') as exc_info:
                 validate_and_send(rh, Request(f'https://127.0.0.1:{https_port}/headers'))
             assert not issubclass(exc_info.type, CertificateVerifyError)
+
+    @pytest.mark.skip_handler('CurlCFFI', 'legacy_ssl ignored by CurlCFFI')
+    def test_legacy_ssl_extension(self, handler):
+        # HTTPS server with old ciphers
+        # XXX: is there a better way to test this than to create a new server?
+        https_httpd = http.server.ThreadingHTTPServer(
+            ('127.0.0.1', 0), HTTPTestRequestHandler)
+        sslctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        sslctx.maximum_version = ssl.TLSVersion.TLSv1_2
+        sslctx.set_ciphers('SHA1:AESCCM:aDSS:eNULL:aNULL')
+        sslctx.load_cert_chain(os.path.join(TEST_DIR, 'testcert.pem'), None)
+        https_httpd.socket = sslctx.wrap_socket(https_httpd.socket, server_side=True)
+        https_port = http_server_port(https_httpd)
+        https_server_thread = threading.Thread(target=https_httpd.serve_forever)
+        https_server_thread.daemon = True
+        https_server_thread.start()
+
+        with handler(verify=False) as rh:
+            res = validate_and_send(rh, Request(f'https://127.0.0.1:{https_port}/headers', extensions={'legacy_ssl': True}))
+            assert res.status == 200
+            res.close()
+
+            # Ensure only applies to request extension
+            with pytest.raises(SSLError):
+                validate_and_send(rh, Request(f'https://127.0.0.1:{https_port}/headers'))
+
+    @pytest.mark.skip_handler('CurlCFFI', 'legacy_ssl ignored by CurlCFFI')
+    def test_legacy_ssl_support(self, handler):
+        # HTTPS server with old ciphers
+        # XXX: is there a better way to test this than to create a new server?
+        https_httpd = http.server.ThreadingHTTPServer(
+            ('127.0.0.1', 0), HTTPTestRequestHandler)
+        sslctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        sslctx.maximum_version = ssl.TLSVersion.TLSv1_2
+        sslctx.set_ciphers('SHA1:AESCCM:aDSS:eNULL:aNULL')
+        sslctx.load_cert_chain(os.path.join(TEST_DIR, 'testcert.pem'), None)
+        https_httpd.socket = sslctx.wrap_socket(https_httpd.socket, server_side=True)
+        https_port = http_server_port(https_httpd)
+        https_server_thread = threading.Thread(target=https_httpd.serve_forever)
+        https_server_thread.daemon = True
+        https_server_thread.start()
+
+        with handler(verify=False, legacy_ssl_support=True) as rh:
+            res = validate_and_send(rh, Request(f'https://127.0.0.1:{https_port}/headers'))
+            assert res.status == 200
+            res.close()
 
     def test_percent_encode(self, handler):
         with handler() as rh:
@@ -489,6 +540,24 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
             data = validate_and_send(
                 rh, Request(f'http://127.0.0.1:{self.http_port}/headers', extensions={'cookiejar': cookiejar})).read()
             assert b'cookie: test=ytdlp' in data.lower()
+
+    def test_cookie_sync_only_cookiejar(self, handler):
+        # Ensure that cookies are ONLY being handled by the cookiejar
+        with handler() as rh:
+            validate_and_send(rh, Request(f'http://127.0.0.1:{self.http_port}/get_cookie', extensions={'cookiejar': YoutubeDLCookieJar()}))
+            data = validate_and_send(rh, Request(f'http://127.0.0.1:{self.http_port}/headers', extensions={'cookiejar': YoutubeDLCookieJar()})).read()
+            assert b'cookie: test=ytdlp' not in data.lower()
+
+    def test_cookie_sync_delete_cookie(self, handler):
+        # Ensure that cookies are ONLY being handled by the cookiejar
+        cookiejar = YoutubeDLCookieJar()
+        with handler(cookiejar=cookiejar) as rh:
+            validate_and_send(rh, Request(f'http://127.0.0.1:{self.http_port}/get_cookie'))
+            data = validate_and_send(rh, Request(f'http://127.0.0.1:{self.http_port}/headers')).read()
+            assert b'cookie: test=ytdlp' in data.lower()
+            cookiejar.clear_session_cookies()
+            data = validate_and_send(rh, Request(f'http://127.0.0.1:{self.http_port}/headers')).read()
+            assert b'cookie: test=ytdlp' not in data.lower()
 
     def test_headers(self, handler):
 
@@ -914,7 +983,6 @@ class TestRequestsRequestHandler(TestRequestHandlerBase):
 class TestCurlCFFIRequestHandler(TestRequestHandlerBase):
 
     @pytest.mark.parametrize('params,extensions', [
-        ({}, {'impersonate': ImpersonateTarget('chrome')}),
         ({'impersonate': ImpersonateTarget('chrome', '110')}, {}),
         ({'impersonate': ImpersonateTarget('chrome', '99')}, {'impersonate': ImpersonateTarget('chrome', '110')}),
     ])
@@ -1200,6 +1268,9 @@ class TestRequestHandlerValidation:
             ({'timeout': 1}, False),
             ({'timeout': 'notatimeout'}, AssertionError),
             ({'unsupported': 'value'}, UnsupportedRequest),
+            ({'legacy_ssl': False}, False),
+            ({'legacy_ssl': True}, False),
+            ({'legacy_ssl': 'notabool'}, AssertionError),
         ]),
         ('Requests', 'http', [
             ({'cookiejar': 'notacookiejar'}, AssertionError),
@@ -1207,6 +1278,9 @@ class TestRequestHandlerValidation:
             ({'timeout': 1}, False),
             ({'timeout': 'notatimeout'}, AssertionError),
             ({'unsupported': 'value'}, UnsupportedRequest),
+            ({'legacy_ssl': False}, False),
+            ({'legacy_ssl': True}, False),
+            ({'legacy_ssl': 'notabool'}, AssertionError),
         ]),
         ('CurlCFFI', 'http', [
             ({'cookiejar': 'notacookiejar'}, AssertionError),
@@ -1220,6 +1294,9 @@ class TestRequestHandlerValidation:
             ({'impersonate': ImpersonateTarget(None, None, None, None)}, False),
             ({'impersonate': ImpersonateTarget()}, False),
             ({'impersonate': 'chrome'}, AssertionError),
+            ({'legacy_ssl': False}, False),
+            ({'legacy_ssl': True}, False),
+            ({'legacy_ssl': 'notabool'}, AssertionError),
         ]),
         (NoCheckRH, 'http', [
             ({'cookiejar': 'notacookiejar'}, False),
@@ -1228,6 +1305,9 @@ class TestRequestHandlerValidation:
         ('Websockets', 'ws', [
             ({'cookiejar': YoutubeDLCookieJar()}, False),
             ({'timeout': 2}, False),
+            ({'legacy_ssl': False}, False),
+            ({'legacy_ssl': True}, False),
+            ({'legacy_ssl': 'notabool'}, AssertionError),
         ]),
     ]
 

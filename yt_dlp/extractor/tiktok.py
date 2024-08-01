@@ -23,7 +23,6 @@ from ..utils import (
     mimetype2ext,
     parse_qs,
     qualities,
-    remove_start,
     srt_subtitles_timecode,
     str_or_none,
     traverse_obj,
@@ -254,7 +253,16 @@ class TikTokBaseIE(InfoExtractor):
 
     def _get_subtitles(self, aweme_detail, aweme_id, user_name):
         # TODO: Extract text positioning info
+
+        EXT_MAP = {  # From lowest to highest preference
+            'creator_caption': 'json',
+            'srt': 'srt',
+            'webvtt': 'vtt',
+        }
+        preference = qualities(tuple(EXT_MAP.values()))
+
         subtitles = {}
+
         # aweme/detail endpoint subs
         captions_info = traverse_obj(
             aweme_detail, ('interaction_stickers', ..., 'auto_video_caption_info', 'auto_captions', ...), expected_type=dict)
@@ -278,8 +286,8 @@ class TikTokBaseIE(InfoExtractor):
                 if not caption.get('url'):
                     continue
                 subtitles.setdefault(caption.get('lang') or 'en', []).append({
-                    'ext': remove_start(caption.get('caption_format'), 'web'),
                     'url': caption['url'],
+                    'ext': EXT_MAP.get(caption.get('Format')),
                 })
         # webpage subs
         if not subtitles:
@@ -288,9 +296,14 @@ class TikTokBaseIE(InfoExtractor):
                     self._create_url(user_name, aweme_id), aweme_id, fatal=False)
             for caption in traverse_obj(aweme_detail, ('video', 'subtitleInfos', lambda _, v: v['Url'])):
                 subtitles.setdefault(caption.get('LanguageCodeName') or 'en', []).append({
-                    'ext': remove_start(caption.get('Format'), 'web'),
                     'url': caption['Url'],
+                    'ext': EXT_MAP.get(caption.get('Format')),
                 })
+
+        # Deprioritize creator_caption json since it can't be embedded or used by media players
+        for lang, subs_list in subtitles.items():
+            subtitles[lang] = sorted(subs_list, key=lambda x: preference(x['ext']))
+
         return subtitles
 
     def _parse_url_key(self, url_key):
@@ -1458,9 +1471,11 @@ class TikTokLiveIE(TikTokBaseIE):
 
         if webpage:
             data = self._get_sigi_state(webpage, uploader or room_id)
-            room_id = (traverse_obj(data, ('UserModule', 'users', ..., 'roomId', {str_or_none}), get_all=False)
-                       or self._search_regex(r'snssdk\d*://live\?room_id=(\d+)', webpage, 'room ID', default=None)
-                       or room_id)
+            room_id = (
+                traverse_obj(data, ((
+                    ('LiveRoom', 'liveRoomUserInfo', 'user'),
+                    ('UserModule', 'users', ...)), 'roomId', {str}, any))
+                or self._search_regex(r'snssdk\d*://live\?room_id=(\d+)', webpage, 'room ID', default=room_id))
             uploader = uploader or traverse_obj(
                 data, ('LiveRoom', 'liveRoomUserInfo', 'user', 'uniqueId'),
                 ('UserModule', 'users', ..., 'uniqueId'), get_all=False, expected_type=str)

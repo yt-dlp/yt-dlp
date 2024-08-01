@@ -212,16 +212,6 @@ class VimeoBaseInfoExtractor(InfoExtractor):
         owner = video_data.get('owner') or {}
         video_uploader_url = owner.get('url')
 
-        duration = int_or_none(video_data.get('duration'))
-        chapter_data = try_get(config, lambda x: x['embed']['chapters']) or []
-        chapters = [{
-            'title': current_chapter.get('title'),
-            'start_time': current_chapter.get('timecode'),
-            'end_time': next_chapter.get('timecode'),
-        } for current_chapter, next_chapter in zip(chapter_data, chapter_data[1:] + [{'timecode': duration}])]
-        if chapters and chapters[0]['start_time']:  # Chapters may not start from 0
-            chapters[:0] = [{'title': '<Untitled>', 'start_time': 0, 'end_time': chapters[0]['start_time']}]
-
         return {
             'id': str_or_none(video_data.get('id')) or video_id,
             'title': video_title,
@@ -229,8 +219,12 @@ class VimeoBaseInfoExtractor(InfoExtractor):
             'uploader_id': video_uploader_url.split('/')[-1] if video_uploader_url else None,
             'uploader_url': video_uploader_url,
             'thumbnails': thumbnails,
-            'duration': duration,
-            'chapters': chapters or None,
+            'duration': int_or_none(video_data.get('duration')),
+            'chapters': sorted(traverse_obj(config, (
+                'embed', 'chapters', lambda _, v: int(v['timecode']) is not None, {
+                    'title': ('title', {str}),
+                    'start_time': ('timecode', {int_or_none}),
+                })), key=lambda c: c['start_time']) or None,
             'formats': formats,
             'subtitles': subtitles,
             'live_status': live_status,
@@ -707,6 +701,39 @@ class VimeoIE(VimeoBaseInfoExtractor):
             'params': {
                 'skip_download': True,
             },
+        },
+        {
+            # chapters must be sorted, see: https://github.com/yt-dlp/yt-dlp/issues/5308
+            'url': 'https://player.vimeo.com/video/756714419',
+            'info_dict': {
+                'id': '756714419',
+                'ext': 'mp4',
+                'title': 'Dr Arielle Schwartz - Therapeutic yoga for optimum sleep',
+                'uploader': 'Alex Howard',
+                'uploader_id': 'user54729178',
+                'uploader_url': 'https://vimeo.com/user54729178',
+                'thumbnail': r're:https://i\.vimeocdn\.com/video/1520099929-[\da-f]+-d_1280',
+                'duration': 2636,
+                'chapters': [
+                    {'start_time': 0, 'end_time': 10, 'title': '<Untitled Chapter 1>'},
+                    {'start_time': 10, 'end_time': 106, 'title': 'Welcoming Dr Arielle Schwartz'},
+                    {'start_time': 106, 'end_time': 305, 'title': 'What is therapeutic yoga?'},
+                    {'start_time': 305, 'end_time': 594, 'title': 'Vagal toning practices'},
+                    {'start_time': 594, 'end_time': 888, 'title': 'Trauma and difficulty letting go'},
+                    {'start_time': 888, 'end_time': 1059, 'title': "Dr Schwartz' insomnia experience"},
+                    {'start_time': 1059, 'end_time': 1471, 'title': 'A strategy for helping sleep issues'},
+                    {'start_time': 1471, 'end_time': 1667, 'title': 'Yoga nidra'},
+                    {'start_time': 1667, 'end_time': 2121, 'title': 'Wisdom in stillness'},
+                    {'start_time': 2121, 'end_time': 2386, 'title': 'What helps us be more able to let go?'},
+                    {'start_time': 2386, 'end_time': 2510, 'title': 'Practical tips to help ourselves'},
+                    {'start_time': 2510, 'end_time': 2636, 'title': 'Where to find out more'},
+                ],
+            },
+            'params': {
+                'http_headers': {'Referer': 'https://sleepsuperconference.com'},
+                'skip_download': 'm3u8',
+            },
+            'expected_warnings': ['Failed to parse XML: not well-formed'],
         },
         {
             # user playlist alias -> https://vimeo.com/258705797
@@ -1240,7 +1267,7 @@ class VimeoGroupsIE(VimeoChannelIE):  # XXX: Do not subclass from concrete IE
 class VimeoReviewIE(VimeoBaseInfoExtractor):
     IE_NAME = 'vimeo:review'
     IE_DESC = 'Review pages on vimeo'
-    _VALID_URL = r'(?P<url>https://vimeo\.com/[^/]+/review/(?P<id>[^/]+)/[0-9a-f]{10})'
+    _VALID_URL = r'https?://vimeo\.com/(?P<user>[^/?#]+)/review/(?P<id>\d+)/(?P<hash>[\da-f]{10})'
     _TESTS = [{
         'url': 'https://vimeo.com/user21297594/review/75524534/3c257a1b5d',
         'md5': 'c507a72f780cacc12b2248bb4006d253',
@@ -1286,26 +1313,22 @@ class VimeoReviewIE(VimeoBaseInfoExtractor):
     }]
 
     def _real_extract(self, url):
-        page_url, video_id = self._match_valid_url(url).groups()
-        data = self._download_json(
-            page_url.replace('/review/', '/review/data/'), video_id)
+        user, video_id, review_hash = self._match_valid_url(url).group('user', 'id', 'hash')
+        data_url = f'https://vimeo.com/{user}/review/data/{video_id}/{review_hash}'
+        data = self._download_json(data_url, video_id)
         if data.get('isLocked') is True:
             video_password = self._get_video_password()
             viewer = self._download_json(
                 'https://vimeo.com/_rv/viewer', video_id)
-            webpage = self._verify_video_password(video_id, video_password, viewer['xsrft'])
-            clip_page_config = self._parse_json(self._search_regex(
-                r'window\.vimeo\.clip_page_config\s*=\s*({.+?});',
-                webpage, 'clip page config'), video_id)
-            config_url = clip_page_config['player']['config_url']
-            clip_data = clip_page_config.get('clip') or {}
-        else:
-            clip_data = data['clipData']
-            config_url = clip_data['configUrl']
+            self._verify_video_password(video_id, video_password, viewer['xsrft'])
+            data = self._download_json(data_url, video_id)
+        clip_data = data['clipData']
+        config_url = clip_data['configUrl']
         config = self._download_json(config_url, video_id)
         info_dict = self._parse_config(config, video_id)
         source_format = self._extract_original_format(
-            page_url + '/action', video_id)
+            f'https://vimeo.com/{user}/review/{video_id}/{review_hash}/action', video_id,
+            unlisted_hash=traverse_obj(config_url, ({parse_qs}, 'h', -1)))
         if source_format:
             info_dict['formats'].append(source_format)
         info_dict['description'] = clean_html(clip_data.get('description'))
