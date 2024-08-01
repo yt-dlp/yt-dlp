@@ -2382,6 +2382,7 @@ from .vrt import (
     KetnetIE,
     Radio1BeIE,
     VrtNUIE,
+    VRTMaxRadioIE,
 )
 from .vtm import VTMIE
 from .vtv import (
