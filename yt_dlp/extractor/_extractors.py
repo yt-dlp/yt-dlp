@@ -2394,11 +2394,11 @@ from .vrsquare import (
     VrSquareSectionIE,
 )
 from .vrt import (
-    VRTIE,
     DagelijkseKostIE,
     Radio1BeIE,
-    VrtNUIE,
+    VRTIE,
     VRTMaxRadioIE,
+    VrtNUIE,
 )
 from .vtm import VTMIE
 from .vtv import (
