@@ -77,7 +77,7 @@ class DenoWrapper:
             with contextlib.suppress(OSError):
                 os.remove(js_file.name)
 
-    def deno_execute(self, jscode, video_id=None, *, note='Executing JS in Deno', allow_net=None):
+    def deno_execute(self, jscode, video_id=None, *, note='Executing JS in Deno', allow_net=None, jit_less=True):
         """Execute JS directly in Deno environment and return stdout"""
 
         base_js = 'delete window.Deno; global = window;'
@@ -88,6 +88,8 @@ class DenoWrapper:
             cmd = [self.exe, 'run', js_file.name]
             if allow_net:
                 cmd.append('--allow-net' if isinstance(allow_net, bool) else f'--allow-net={allow_net}')
+            if jit_less:
+                cmd.append('--v8-flags=--jitless')
 
             self.extractor.write_debug(f'Deno command line: {shell_quote(cmd)}')
             try:
