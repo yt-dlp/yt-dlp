@@ -76,6 +76,7 @@ from .aenetworks import (
 )
 from .aeonco import AeonCoIE
 from .afreecatv import (
+    AfreecaTVCatchStoryIE,
     AfreecaTVIE,
     AfreecaTVLiveIE,
     AfreecaTVUserIE,
@@ -503,7 +504,6 @@ from .dhm import DHMIE
 from .digitalconcerthall import DigitalConcertHallIE
 from .digiteka import DigitekaIE
 from .discogs import DiscogsReleasePlaylistIE
-from .discovery import DiscoveryIE
 from .disney import DisneyIE
 from .dispeak import DigitallySpeakingIE
 from .dlf import (
@@ -531,16 +531,12 @@ from .dplay import (
     DiscoveryPlusIndiaShowIE,
     DiscoveryPlusItalyIE,
     DiscoveryPlusItalyShowIE,
-    DIYNetworkIE,
     DPlayIE,
     FoodNetworkIE,
-    GlobalCyclingNetworkPlusIE,
     GoDiscoveryIE,
     HGTVDeIE,
     HGTVUsaIE,
     InvestigationDiscoveryIE,
-    MotorTrendIE,
-    MotorTrendOnDemandIE,
     ScienceChannelIE,
     TravelChannelIE,
 )
@@ -779,6 +775,7 @@ from .gopro import GoProIE
 from .goshgay import GoshgayIE
 from .gotostage import GoToStageIE
 from .gputechconf import GPUTechConfIE
+from .graspop import GraspopIE
 from .gronkh import (
     GronkhFeedIE,
     GronkhIE,
@@ -942,6 +939,7 @@ from .khanacademy import (
     KhanAcademyUnitIE,
 )
 from .kick import (
+    KickClipIE,
     KickIE,
     KickVODIE,
 )
@@ -969,6 +967,10 @@ from .la7 import (
     LA7PodcastEpisodeIE,
     LA7PodcastIE,
 )
+from .laracasts import (
+    LaracastsIE,
+    LaracastsPlaylistIE,
+)
 from .lastfm import (
     LastFMIE,
     LastFMPlaylistIE,
@@ -985,6 +987,7 @@ from .lcp import (
     LcpIE,
     LcpPlayIE,
 )
+from .learningonscreen import LearningOnScreenIE
 from .lecture2go import Lecture2GoIE
 from .lecturio import (
     LecturioCourseIE,
@@ -1113,12 +1116,15 @@ from .meipai import MeipaiIE
 from .melonvod import MelonVODIE
 from .metacritic import MetacriticIE
 from .mgtv import MGTVIE
-from .microsoftembed import MicrosoftEmbedIE
-from .microsoftstream import MicrosoftStreamIE
-from .microsoftvirtualacademy import (
-    MicrosoftVirtualAcademyCourseIE,
-    MicrosoftVirtualAcademyIE,
+from .microsoftembed import (
+    MicrosoftBuildIE,
+    MicrosoftEmbedIE,
+    MicrosoftLearnEpisodeIE,
+    MicrosoftLearnPlaylistIE,
+    MicrosoftLearnSessionIE,
+    MicrosoftMediusIE,
 )
+from .microsoftstream import MicrosoftStreamIE
 from .mildom import (
     MildomClipIE,
     MildomIE,
@@ -1603,6 +1609,7 @@ from .qqmusic import (
     QQMusicPlaylistIE,
     QQMusicSingerIE,
     QQMusicToplistIE,
+    QQMusicVideoIE,
 )
 from .r7 import (
     R7IE,
@@ -2164,10 +2171,7 @@ from .tv5unis import (
     TV5UnisVideoIE,
 )
 from .tv24ua import TV24UAVideoIE
-from .tva import (
-    TVAIE,
-    QubIE,
-)
+from .tva import TVAIE
 from .tvanouvelles import (
     TVANouvellesArticleIE,
     TVANouvellesIE,
@@ -2314,6 +2318,7 @@ from .vidio import (
 )
 from .vidlii import VidLiiIE
 from .vidly import VidlyIE
+from .vidyard import VidyardIE
 from .viewlift import (
     ViewLiftEmbedIE,
     ViewLiftIE,
@@ -2379,6 +2384,10 @@ from .vrt import (
     VrtNUIE,
 )
 from .vtm import VTMIE
+from .vtv import (
+    VTVIE,
+    VTVGoIE,
+)
 from .vuclip import VuClipIE
 from .vvvvid import (
     VVVVIDIE,

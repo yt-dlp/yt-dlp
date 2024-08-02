@@ -33,14 +33,6 @@ class AtresPlayerIE(InfoExtractor):
     ]
     _API_BASE = 'https://api.atresplayer.com/'
 
-    def _handle_error(self, e, code):
-        if isinstance(e.cause, HTTPError) and e.cause.status == code:
-            error = self._parse_json(e.cause.response.read(), None)
-            if error.get('error') == 'required_registered':
-                self.raise_login_required()
-            raise ExtractorError(error['error_description'], expected=True)
-        raise
-
     def _perform_login(self, username, password):
         self._request_webpage(
             self._API_BASE + 'login', None, 'Downloading login page')
@@ -55,7 +47,9 @@ class AtresPlayerIE(InfoExtractor):
                     'password': password,
                 }))['targetUrl']
         except ExtractorError as e:
-            self._handle_error(e, 400)
+            if isinstance(e.cause, HTTPError) and e.cause.status == 400:
+                raise ExtractorError('Invalid username and/or password', expected=True)
+            raise
 
         self._request_webpage(target_url, None, 'Following Target URL')
 
@@ -66,7 +60,12 @@ class AtresPlayerIE(InfoExtractor):
             episode = self._download_json(
                 self._API_BASE + 'client/v1/player/episode/' + video_id, video_id)
         except ExtractorError as e:
-            self._handle_error(e, 403)
+            if isinstance(e.cause, HTTPError) and e.cause.status == 403:
+                error = self._parse_json(e.cause.response.read(), None)
+                if error.get('error') == 'required_registered':
+                    self.raise_login_required()
+                raise ExtractorError(error['error_description'], expected=True)
+            raise
 
         title = episode['titulo']
 

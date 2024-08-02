@@ -4,6 +4,7 @@
 import os
 import sys
 import unittest
+from unittest.mock import patch
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -520,7 +521,33 @@ class TestFormatSelection(unittest.TestCase):
             ydl.process_ie_result(info_dict)
         self.assertEqual(ydl.downloaded_info_dicts, [])
 
-    def test_default_format_spec(self):
+    @patch('yt_dlp.postprocessor.ffmpeg.FFmpegMergerPP.available', False)
+    def test_default_format_spec_without_ffmpeg(self):
+        ydl = YDL({})
+        self.assertEqual(ydl._default_format_spec({}), 'best/bestvideo+bestaudio')
+
+        ydl = YDL({'simulate': True})
+        self.assertEqual(ydl._default_format_spec({}), 'best/bestvideo+bestaudio')
+
+        ydl = YDL({})
+        self.assertEqual(ydl._default_format_spec({'is_live': True}), 'best/bestvideo+bestaudio')
+
+        ydl = YDL({'simulate': True})
+        self.assertEqual(ydl._default_format_spec({'is_live': True}), 'best/bestvideo+bestaudio')
+
+        ydl = YDL({'outtmpl': '-'})
+        self.assertEqual(ydl._default_format_spec({}), 'best/bestvideo+bestaudio')
+
+        ydl = YDL({})
+        self.assertEqual(ydl._default_format_spec({}), 'best/bestvideo+bestaudio')
+        self.assertEqual(ydl._default_format_spec({'is_live': True}), 'best/bestvideo+bestaudio')
+
+    @patch('yt_dlp.postprocessor.ffmpeg.FFmpegMergerPP.available', True)
+    @patch('yt_dlp.postprocessor.ffmpeg.FFmpegMergerPP.can_merge', lambda _: True)
+    def test_default_format_spec_with_ffmpeg(self):
+        ydl = YDL({})
+        self.assertEqual(ydl._default_format_spec({}), 'bestvideo*+bestaudio/best')
+
         ydl = YDL({'simulate': True})
         self.assertEqual(ydl._default_format_spec({}), 'bestvideo*+bestaudio/best')
 
@@ -528,13 +555,13 @@ class TestFormatSelection(unittest.TestCase):
         self.assertEqual(ydl._default_format_spec({'is_live': True}), 'best/bestvideo+bestaudio')
 
         ydl = YDL({'simulate': True})
-        self.assertEqual(ydl._default_format_spec({'is_live': True}), 'bestvideo*+bestaudio/best')
+        self.assertEqual(ydl._default_format_spec({'is_live': True}), 'best/bestvideo+bestaudio')
 
         ydl = YDL({'outtmpl': '-'})
         self.assertEqual(ydl._default_format_spec({}), 'best/bestvideo+bestaudio')
 
         ydl = YDL({})
-        self.assertEqual(ydl._default_format_spec({}, download=False), 'bestvideo*+bestaudio/best')
+        self.assertEqual(ydl._default_format_spec({}), 'bestvideo*+bestaudio/best')
         self.assertEqual(ydl._default_format_spec({'is_live': True}), 'best/bestvideo+bestaudio')
 
 
