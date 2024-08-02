@@ -209,7 +209,7 @@ class ViuOTTIE(InfoExtractor):
             'episode': 'Detective Conan - Episode 1150',
             'episode_number': 1150,
             'thumbnail': r're:https?://prod-images\.viu\.com/clip_asset_v6/\d+/\d+/[a-f0-9]+',
-        }
+        },
     }]
 
     _AREA_ID = {
@@ -341,7 +341,7 @@ class ViuOTTIE(InfoExtractor):
             'ccs_product_id': video_data['ccs_product_id'],
             'language_flag_id': self._LANGUAGE_FLAG.get(lang_code.lower()) or runtime_info.get('languageFlagId') or '3',
             'platform_flag_label': 'web',
-            'countryCode': country_code.upper()
+            'countryCode': country_code.upper(),
         }
 
         def download_playback():
@@ -432,7 +432,7 @@ class ViuOTTIE(InfoExtractor):
             'thumbnails': 'thumbnails',
             'title': 'title',
             'episode': 'episode',
-            'episode_number': 'episode_number'
+            'episode_number': 'episode_number',
         }))
 
 
