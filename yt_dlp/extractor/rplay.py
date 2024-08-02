@@ -114,7 +114,7 @@ class RPlayBaseIE(InfoExtractor):
 
         butter_js += '''const navProxy = new Proxy(window.navigator, { get: (target, prop, receiver) => {
                 if (prop === 'webdriver') return false;
-                return target[prop];});
+                return target[prop];}});
             Object.defineProperty(window, "navigator", {get: () => navProxy});
             window.location = {origin: "https://rplay.live"};'''
 

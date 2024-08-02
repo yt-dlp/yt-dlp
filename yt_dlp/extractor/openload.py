@@ -80,7 +80,7 @@ class DenoWrapper:
     def deno_execute(self, jscode, video_id=None, *, note='Executing JS in Deno', allow_net=None):
         """Execute JS directly in Deno environment and return stdout"""
 
-        base_js = 'delete window.Deno; global = window'
+        base_js = 'delete window.Deno; global = window;'
 
         with self._create_temp_js(base_js + jscode) as js_file:
             self.extractor.to_screen(f'{format_field(video_id, None, "%s: ")}{note}')
