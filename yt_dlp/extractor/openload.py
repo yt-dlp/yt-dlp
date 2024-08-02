@@ -48,26 +48,7 @@ def cookie_jar_to_list(cookie_jar):
 
 
 class DenoWrapper:
-    """Deno wrapper class
-
-    This class is experimental.
-    """
-
     INSTALL_HINT = 'Please install deno following https://docs.deno.com/runtime/manual/getting_started/installation/ or download its binary from https://github.com/denoland/deno/releases'
-    _BASE_JS = '''
-        delete window.Deno;
-        global = window;
-        const navProxy = new Proxy(window.navigator, { get: (target, prop, receiver) => ({
-            appCodeName: 'Mozilla',
-            appName: 'Netscape',
-            appVersion: '5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.6533.17 Safari/537.36',
-            language: 'en',
-            languages: ['en'],
-            userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.6533.17 Safari/537.36',
-            webdriver: false,
-        }[prop])});
-        Object.defineProperty(window, "navigator", {get: () => navProxy})
-    '''
 
     @staticmethod
     def _version():
@@ -96,26 +77,12 @@ class DenoWrapper:
             with contextlib.suppress(OSError):
                 os.remove(js_file.name)
 
-    @staticmethod
-    def _location_js(location: str):
-        parsed = urllib.parse.urlparse(location)
-        return f'''
-            window.location = {{
-                href: "{location}",
-                origin: "{parsed.scheme}://{parsed.netloc}",
-                host: "{parsed.netloc}",
-                hostname: "{parsed.netloc.split(':')[0]}",
-                hash: "{parsed.fragment}",
-                protocol: "{parsed.scheme}:",
-            }};
-        '''
+    def deno_execute(self, jscode, video_id=None, *, note='Executing JS in Deno', allow_net=None):
+        """Execute JS directly in Deno environment and return stdout"""
 
-    def execute(self, jscode, video_id=None, *, note='Executing JS', allow_net=None, location=None):
-        """Execute JS and return stdout"""
-        if location:
-            jscode = self._location_js(location) + jscode
+        base_js = 'delete window.Deno; global = window'
 
-        with self._create_temp_js(self._BASE_JS + jscode) as js_file:
+        with self._create_temp_js(base_js + jscode) as js_file:
             self.extractor.to_screen(f'{format_field(video_id, None, "%s: ")}{note}')
 
             cmd = [self.exe, 'run', js_file.name]

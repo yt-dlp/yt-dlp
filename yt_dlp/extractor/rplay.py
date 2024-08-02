@@ -112,10 +112,16 @@ class RPlayBaseIE(InfoExtractor):
             __wbg_finalize_init(instance, module);
         };''' % butter_wasm_array  # noqa: UP031
 
+        butter_js += '''const navProxy = new Proxy(window.navigator, { get: (target, prop, receiver) => {
+                if (prop === 'webdriver') return false;
+                return target[prop];});
+            Object.defineProperty(window, "navigator", {get: () => navProxy});
+            window.location = {origin: "https://rplay.live"};'''
+
         butter_js += '__new_init().then(() => console.log((new ButterFactory()).generate_butter()));'
 
         jsi = DenoWrapper(self)
-        return jsi.execute(butter_js, location='https://rplay.live/')
+        return jsi.deno_execute(butter_js)
 
     def get_butter_token(self):
         cache = self.cache.load('rplay', 'butter-token') or {}
