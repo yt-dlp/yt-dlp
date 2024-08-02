@@ -1,4 +1,3 @@
-import asyncio
 import base64
 import datetime as dt
 import hashlib
@@ -8,9 +7,8 @@ import random
 import re
 import time
 
-from playwright.async_api import async_playwright
-
 from .common import InfoExtractor
+from .openload import DenoWrapper
 from ..utils import (
     ExtractorError,
     UserNotLive,
@@ -53,11 +51,11 @@ class RPlayBaseIE(InfoExtractor):
     def jwt_header(self):
         return {
             'Referer': 'https://rplay.live/',
-            'Authorization': self.jwt_token or 'null'
+            'Authorization': self.jwt_token or 'null',
         }
 
     def _jwt_encode_hs256(self, payload: dict, key: str):
-        # ..utils.jwt_encode_hs256() uses slightly different details that would fails
+        # yt_dlp.utils.jwt_encode_hs256() uses slightly different details that would fails
         # and we need to re-implement it with minor changes
         b64encode = lambda x: base64.urlsafe_b64encode(
             json.dumps(x, separators=(',', ':')).encode()).strip(b'=')
@@ -75,7 +73,6 @@ class RPlayBaseIE(InfoExtractor):
             'iat': int(time.time()),
         }
         key = hashlib.sha256(password.encode()).hexdigest()
-
         self._login_by_token(self._jwt_encode_hs256(payload, key).decode())
 
     def _login_by_token(self, jwt_token):
@@ -103,55 +100,22 @@ class RPlayBaseIE(InfoExtractor):
         self.cache.store('rplay', 'butter-code', {'js': butter_js, 'wasm': butter_wasm_array, 'date': time.time()})
         return butter_js, butter_wasm_array
 
-    def _playwright_eval(self, jscode, location='about:blank', body=''):
-        async def __aeval():
-            async with async_playwright() as p:
-                browser = await p.chromium.launch(chromium_sandbox=True)
-                page = await browser.new_page()
-                # use page.route to skip network request while allowing changing window.location
-                await page.route('**', lambda route: route.fulfill(status=200, body=body))
-                # mock navigator to mimic regular browser
-                await page.add_init_script('''const proxy = new Proxy(window.navigator, {get(target, prop, receiver) {
-                        if (prop === "webdriver") return false;
-                        if (prop === "appVersion" || prop === "userAgent") return target[prop].replace(/Headless/g, '');
-                        return target[prop];
-                    }});
-                    Object.defineProperty(window, "navigator", {get: ()=> proxy});''')
-
-                def _page_eval_js(exp, timeout=10):
-                    return asyncio.wait_for(page.evaluate(exp), timeout=timeout)
-                try:
-                    await page.goto(location)  # always navigate once to trigger init script
-                    start = time.time()
-                    value = await _page_eval_js(jscode)
-                    self.write_debug(f'JS execution finished in {time.time() - start:.3f}s')
-                    return value
-                except asyncio.TimeoutError:
-                    self.report_warning('PlayWright JS evaluation timed out')
-                finally:
-                    await browser.close()
-
-        try:
-            return asyncio.run(__aeval())
-        except asyncio.InvalidStateError:
-            self.report_warning('PlayWright failed to evaluate JS')
-
     def _calc_butter_token(self):
         butter_js, butter_wasm_array = self._get_butter_files()
         butter_js = re.sub(r'export(?:\s+default)?([\s{])', r'\1', butter_js)
         butter_js = butter_js.replace('import.meta', '{}')
 
-        butter_js += '''__new_init = async () => {
+        butter_js += '''const __new_init = async () => {
             const t = __wbg_get_imports();
             __wbg_init_memory(t);
             const {module, instance} = await WebAssembly.instantiate(Uint8Array.from(%s), t);
             __wbg_finalize_init(instance, module);
         };''' % butter_wasm_array  # noqa: UP031
 
-        butter_js += '__new_init().then(() => (new ButterFactory()).generate_butter())'
+        butter_js += '__new_init().then(() => console.log((new ButterFactory()).generate_butter()));'
 
-        # The script checks `navigator.webdriver` and `location.origin` to generate correct token
-        return self._playwright_eval(butter_js, location='https://rplay.live')
+        jsi = DenoWrapper(self)
+        return jsi.execute(butter_js, location='https://rplay.live/')
 
     def get_butter_token(self):
         cache = self.cache.load('rplay', 'butter-token') or {}

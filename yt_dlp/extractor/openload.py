@@ -6,6 +6,7 @@ import subprocess
 import tempfile
 import urllib.parse
 
+from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     Popen,
@@ -44,6 +45,95 @@ def cookie_to_dict(cookie):
 
 def cookie_jar_to_list(cookie_jar):
     return [cookie_to_dict(cookie) for cookie in cookie_jar]
+
+
+class DenoWrapper:
+    """Deno wrapper class
+
+    This class is experimental.
+    """
+
+    INSTALL_HINT = 'Please install deno following https://docs.deno.com/runtime/manual/getting_started/installation/ or download its binary from https://github.com/denoland/deno/releases'
+    _BASE_JS = '''
+        delete window.Deno;
+        global = window;
+        const navProxy = new Proxy(window.navigator, { get: (target, prop, receiver) => ({
+            appCodeName: 'Mozilla',
+            appName: 'Netscape',
+            appVersion: '5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.6533.17 Safari/537.36',
+            language: 'en',
+            languages: ['en'],
+            userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.6533.17 Safari/537.36',
+            webdriver: false,
+        }[prop])});
+        Object.defineProperty(window, "navigator", {get: () => navProxy})
+    '''
+
+    @staticmethod
+    def _version():
+        return get_exe_version('deno', version_re=r'([0-9.]+)')
+
+    def __init__(self, extractor: InfoExtractor, required_version=None, timeout=10000):
+        self.extractor = extractor
+        self.timeout = timeout
+
+        self.exe = check_executable('deno', ['-V'])
+        if not self.exe:
+            raise ExtractorError(f'Deno not found, {self.INSTALL_HINT}', expected=True)
+        if required_version:
+            if is_outdated_version(self._version(), required_version):
+                self.extractor.report_warning(
+                    f'Deno is outdated, update it to version {required_version} or newer if you encounter any errors.')
+
+    @contextlib.contextmanager
+    def _create_temp_js(self, jscode):
+        js_file = tempfile.NamedTemporaryFile('wt', encoding='utf-8', suffix='.js', delete=False)
+        try:
+            js_file.write(jscode)
+            js_file.close()
+            yield js_file
+        finally:
+            with contextlib.suppress(OSError):
+                os.remove(js_file.name)
+
+    @staticmethod
+    def _location_js(location: str):
+        parsed = urllib.parse.urlparse(location)
+        return f'''
+            window.location = {{
+                href: "{location}",
+                origin: "{parsed.scheme}://{parsed.netloc}",
+                host: "{parsed.netloc}",
+                hostname: "{parsed.netloc.split(':')[0]}",
+                hash: "{parsed.fragment}",
+                protocol: "{parsed.scheme}:",
+            }};
+        '''
+
+    def execute(self, jscode, video_id=None, *, note='Executing JS', allow_net=None, location=None):
+        """Execute JS and return stdout"""
+        if location:
+            jscode = self._location_js(location) + jscode
+
+        with self._create_temp_js(self._BASE_JS + jscode) as js_file:
+            self.extractor.to_screen(f'{format_field(video_id, None, "%s: ")}{note}')
+
+            cmd = [self.exe, 'run', js_file.name]
+            if allow_net:
+                cmd.append('--allow-net' if isinstance(allow_net, bool) else f'--allow-net={allow_net}')
+
+            self.extractor.write_debug(f'Deno command line: {shell_quote(cmd)}')
+            try:
+                stdout, stderr, returncode = Popen.run(cmd, timeout=self.timeout / 1000, text=True,
+                                                       stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            except Exception as e:
+                raise ExtractorError(f'{note} failed: Unable to run Deno binary', cause=e)
+            if returncode:
+                raise ExtractorError(f'{note} failed with returncode {returncode}:\n{stderr}')
+            elif stderr:
+                self.extractor.report_warning(f'JS console error msg:\n{stderr.strip()}', video_id=video_id)
+
+            return stdout.strip()
 
 
 class PhantomJSwrapper:
