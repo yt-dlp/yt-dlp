@@ -121,7 +121,7 @@ class RPlayBaseIE(InfoExtractor):
         butter_js += '__new_init().then(() => console.log((new ButterFactory()).generate_butter()));'
 
         jsi = DenoWrapper(self)
-        return jsi.deno_execute(butter_js)
+        return jsi.execute(butter_js)
 
     def get_butter_token(self):
         cache = self.cache.load('rplay', 'butter-token') or {}

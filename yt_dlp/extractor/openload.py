@@ -10,7 +10,7 @@ from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     Popen,
-    check_executable,
+    classproperty,
     format_field,
     get_exe_version,
     is_outdated_version,
@@ -47,22 +47,32 @@ def cookie_jar_to_list(cookie_jar):
     return [cookie_to_dict(cookie) for cookie in cookie_jar]
 
 
-class DenoWrapper:
-    INSTALL_HINT = 'Please install deno following https://docs.deno.com/runtime/manual/getting_started/installation/ or download its binary from https://github.com/denoland/deno/releases'
+class ExternalJSI:
+    @classproperty(cache=True)
+    def version(cls):
+        return get_exe_version(cls.EXE_NAME, args=getattr(cls, 'V_ARGS', ['--version']), version_re=r'([0-9.]+)')
 
-    @staticmethod
-    def _version():
-        return get_exe_version('deno', version_re=r'([0-9.]+)')
+    @classproperty
+    def exe(cls):
+        return cls.EXE_NAME if cls.version else None
+
+    @classproperty
+    def is_available(cls):
+        return bool(cls.exe)
+
+
+class DenoWrapper(ExternalJSI):
+    EXE_NAME = 'deno'
+    INSTALL_HINT = 'Please install deno following https://docs.deno.com/runtime/manual/getting_started/installation/ or download its binary from https://github.com/denoland/deno/releases'
 
     def __init__(self, extractor: InfoExtractor, required_version=None, timeout=10000):
         self.extractor = extractor
         self.timeout = timeout
 
-        self.exe = check_executable('deno', ['-V'])
         if not self.exe:
             raise ExtractorError(f'Deno not found, {self.INSTALL_HINT}', expected=True)
         if required_version:
-            if is_outdated_version(self._version(), required_version):
+            if is_outdated_version(self.version, required_version):
                 self.extractor.report_warning(
                     f'Deno is outdated, update it to version {required_version} or newer if you encounter any errors.')
 
@@ -77,10 +87,11 @@ class DenoWrapper:
             with contextlib.suppress(OSError):
                 os.remove(js_file.name)
 
-    def deno_execute(self, jscode, video_id=None, *, note='Executing JS in Deno', allow_net=None, jit_less=True):
-        """Execute JS directly in Deno environment and return stdout"""
+    def execute(self, jscode, video_id=None, *, note='Executing JS in Deno',
+                allow_net=None, jit_less=True, base_js=None):
+        """Execute JS directly in Deno runtime and return stdout"""
 
-        base_js = 'delete window.Deno; global = window;'
+        base_js = base_js if base_js is not None else 'delete window.Deno; global = window;'
 
         with self._create_temp_js(base_js + jscode) as js_file:
             self.extractor.to_screen(f'{format_field(video_id, None, "%s: ")}{note}')
@@ -105,13 +116,13 @@ class DenoWrapper:
             return stdout.strip()
 
 
-class PhantomJSwrapper:
+class PhantomJSwrapper(ExternalJSI):
     """PhantomJS wrapper class
 
     This class is experimental.
     """
-
-    INSTALL_HINT = 'Please download it from https://phantomjs.org/download.html'
+    EXE_NAME = 'phantomjs'
+    INSTALL_HINT = 'Please download PhantomJS from https://phantomjs.org/download.html'
 
     _BASE_JS = R'''
         phantom.onError = function(msg, trace) {{
@@ -162,22 +173,20 @@ class PhantomJSwrapper:
 
     _TMP_FILE_NAMES = ['script', 'html', 'cookies']
 
-    @staticmethod
-    def _version():
-        return get_exe_version('phantomjs', version_re=r'([0-9.]+)')
+    @classmethod
+    def _version(cls):
+        return cls.version
 
     def __init__(self, extractor, required_version=None, timeout=10000):
         self._TMP_FILES = {}
 
-        self.exe = check_executable('phantomjs', ['-v'])
         if not self.exe:
             raise ExtractorError(f'PhantomJS not found, {self.INSTALL_HINT}', expected=True)
 
         self.extractor = extractor
 
         if required_version:
-            version = self._version()
-            if is_outdated_version(version, required_version):
+            if is_outdated_version(self.version, required_version):
                 self.extractor._downloader.report_warning(
                     'Your copy of PhantomJS is outdated, update it to version '
                     f'{required_version} or newer if you encounter any errors.')

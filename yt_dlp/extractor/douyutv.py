@@ -4,7 +4,7 @@ import urllib
 import uuid
 
 from .common import InfoExtractor
-from .openload import PhantomJSwrapper
+from .openload import DenoWrapper, PhantomJSwrapper
 from ..utils import (
     ExtractorError,
     UserNotLive,
@@ -43,9 +43,14 @@ class DouyuBaseIE(InfoExtractor):
         b = uuid.uuid4().hex
         c = round(time.time())
         js_script = f'{self._get_cryptojs_md5(video_id)};{sign_func};console.log(ub98484234("{a}","{b}","{c}"))'
-        phantom = PhantomJSwrapper(self)
-        result = phantom.execute(js_script, video_id,
-                                 note='Executing JS signing script').strip()
+        if DenoWrapper.is_available:
+            jsi = DenoWrapper(self)
+        elif PhantomJSwrapper.is_available:
+            jsi = PhantomJSwrapper(self)
+        else:
+            raise ExtractorError('You need to install either Deno or PhantomJS. '
+                                 f'{DenoWrapper.INSTALL_HINT}. {PhantomJSwrapper.INSTALL_HINT}', expected=True)
+        result = jsi.execute(js_script, video_id, note='Executing JS signing script').strip()
         return {i: v[0] for i, v in urllib.parse.parse_qs(result).items()}
 
     def _search_js_sign_func(self, webpage, fatal=True):
