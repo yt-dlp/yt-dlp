@@ -9,6 +9,7 @@ import xml.etree.ElementTree
 from ._utils import (
     IDENTITY,
     NO_DEFAULT,
+    ExtractorError,
     LazyList,
     deprecation_warning,
     is_iterable_like,
@@ -282,11 +283,31 @@ def traverse_obj(
         return results[0] if results else {} if allow_empty and is_dict else None
 
     for index, path in enumerate(paths, 1):
-        result = _traverse_obj(obj, path, index == len(paths), True)
-        if result is not None:
-            return result
+        is_last = index == len(paths)
+        try:
+            result = _traverse_obj(obj, path, is_last, True)
+            if result is not None:
+                return result
+        except _RequiredError as e:
+            if is_last:
+                # Reraise to get cleaner stack trace
+                raise ExtractorError(e.orig_msg, expected=e.expected) from None
 
     return None if default is NO_DEFAULT else default
+
+
+def require(name, /, *, expected=False):
+    def func(value):
+        if value is None:
+            raise _RequiredError(f'Unable to extract {name}', expected=expected)
+
+        return value
+
+    return func
+
+
+class _RequiredError(ExtractorError):
+    pass
 
 
 def get_first(obj, *paths, **kwargs):

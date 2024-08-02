@@ -4,8 +4,8 @@ import xml.etree.ElementTree
 
 import pytest
 
-from yt_dlp.utils import dict_get, int_or_none, str_or_none
-from yt_dlp.utils.traversal import traverse_obj
+from yt_dlp.utils import ExtractorError, dict_get, int_or_none, str_or_none
+from yt_dlp.utils.traversal import traverse_obj, require
 
 _TEST_DATA = {
     100: 100,
@@ -429,6 +429,12 @@ class TestTraversal:
             '`filter` should filter falsy values'
         assert traverse_obj(_TEST_DATA, ['str', filter]) == 'str', \
             '`filter` should leave truthy values'
+
+    def test_traversal_require(self):
+        with pytest.raises(ExtractorError):
+            traverse_obj(_TEST_DATA, ['None', {require('value')}])
+        assert traverse_obj(_TEST_DATA, ['str', {require('value')}]) == 'str', \
+            '`require` should pass through non `None` values'
 
 
 class TestDictGet:
