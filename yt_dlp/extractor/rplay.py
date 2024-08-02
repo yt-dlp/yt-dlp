@@ -17,6 +17,7 @@ from ..utils import (
     encode_data_uri,
     float_or_none,
     parse_iso8601,
+    parse_qs,
     traverse_obj,
     url_or_none,
 )
@@ -40,6 +41,20 @@ class RPlayBaseIE(InfoExtractor):
     @property
     def jwt_token(self):
         return self._jwt_token
+
+    @property
+    def requestor_query(self):
+        return {
+            'requestorOid': self.user_id,
+            'loginType': self.login_type,
+        } if self.user_id else {}
+
+    @property
+    def jwt_header(self):
+        return {
+            'Referer': 'https://rplay.live/',
+            'Authorization': self.jwt_token or 'null'
+        }
 
     def _jwt_encode_hs256(self, payload: dict, key: str):
         # ..utils.jwt_encode_hs256() uses slightly different details that would fails
@@ -66,7 +81,7 @@ class RPlayBaseIE(InfoExtractor):
     def _login_by_token(self, jwt_token):
         user_info = self._download_json(
             'https://api.rplay.live/account/login', 'login', note='performing login', errnote='Failed to login',
-            data=f'{{"token":"{jwt_token}","lang":"en","loginType":null,"checkAdmin":null}}'.encode(),
+            data=f'{{"token":"{jwt_token}","loginType":null,"checkAdmin":null}}'.encode(),
             headers={'Content-Type': 'application/json', 'Authorization': 'null'}, fatal=False)
 
         if user_info:
@@ -80,57 +95,51 @@ class RPlayBaseIE(InfoExtractor):
         cache = self.cache.load('rplay', 'butter-code') or {}
         if cache.get('date', 0) > time.time() - 86400:
             return cache['js'], cache['wasm']
-        butter_js = self._download_webpage('https://pb.rplay.live/kr/public/smooth_like_butter.js', 'butter',
-                                           'getting butter-sign js')
-        urlh = self._request_webpage('https://pb.rplay.live/kr/public/smooth_like_butter_bg.wasm', 'butter',
-                                     'getting butter-sign wasm')
+        butter_js = self._download_webpage(
+            'https://pb.rplay.live/kr/public/smooth_like_butter.js', 'butter', 'getting butter-sign js')
+        urlh = self._request_webpage(
+            'https://pb.rplay.live/kr/public/smooth_like_butter_bg.wasm', 'butter', 'getting butter-sign wasm')
         butter_wasm_array = list(urlh.read())
         self.cache.store('rplay', 'butter-code', {'js': butter_js, 'wasm': butter_wasm_array, 'date': time.time()})
         return butter_js, butter_wasm_array
 
-    def _playwright_eval(self, jscode, goto=None, wait_until='commit', stop_loading=True):
+    def _playwright_eval(self, jscode, location='about:blank', body=''):
         async def __aeval():
             async with async_playwright() as p:
                 browser = await p.chromium.launch(chromium_sandbox=True)
                 page = await browser.new_page()
-                if goto:
-                    try:
-                        start = time.time()
-                        await page.goto(goto, wait_until=wait_until)
-                        self.write_debug(f'{wait_until} loaded in {time.time() - start:.3f}s')
-                        if stop_loading:
-                            await page.evaluate('window.stop();')
-                    except Exception as e:
-                        self.report_warning(f'Failed to navigate to {goto}: {e}')
-                        await browser.close()
-                        return
+                # use page.route to skip network request while allowing changing window.location
+                await page.route('**', lambda route: route.fulfill(status=200, body=body))
+                # mock navigator to mimic regular browser
+                await page.add_init_script('''const proxy = new Proxy(window.navigator, {get(target, prop, receiver) {
+                        if (prop === "webdriver") return false;
+                        if (prop === "appVersion" || prop === "userAgent") return target[prop].replace(/Headless/g, '');
+                        return target[prop];
+                    }});
+                    Object.defineProperty(window, "navigator", {get: ()=> proxy});''')
+
+                def _page_eval_js(exp, timeout=10):
+                    return asyncio.wait_for(page.evaluate(exp), timeout=timeout)
                 try:
+                    await page.goto(location)  # always navigate once to trigger init script
                     start = time.time()
-                    value = await asyncio.wait_for(page.evaluate(jscode), timeout=10)
+                    value = await _page_eval_js(jscode)
                     self.write_debug(f'JS execution finished in {time.time() - start:.3f}s')
+                    return value
                 except asyncio.TimeoutError:
                     self.report_warning('PlayWright JS evaluation timed out')
-                    value = None
                 finally:
                     await browser.close()
-            return value
 
         try:
             return asyncio.run(__aeval())
         except asyncio.InvalidStateError:
-            pass
+            self.report_warning('PlayWright failed to evaluate JS')
 
     def _calc_butter_token(self):
         butter_js, butter_wasm_array = self._get_butter_files()
-        butter_js = butter_js.replace('export{initSync};export default __wbg_init;', '')
-        butter_js = butter_js.replace('export class', 'class')
-        butter_js = butter_js.replace('new URL("smooth_like_butter_bg.wasm",import.meta.url)', '""')
-
-        butter_js += ''';const proxy = new Proxy(window.navigator, {get(target, prop, receiver) {
-            if (prop == "webdriver") return false;
-            return target[prop];
-        }});
-        Object.defineProperty(window, "navigator", {get: ()=> proxy});'''
+        butter_js = re.sub(r'export(?:\s+default)?([\s{])', r'\1', butter_js)
+        butter_js = butter_js.replace('import.meta', '{}')
 
         butter_js += '''__new_init = async () => {
             const t = __wbg_get_imports();
@@ -141,8 +150,8 @@ class RPlayBaseIE(InfoExtractor):
 
         butter_js += '__new_init().then(() => (new ButterFactory()).generate_butter())'
 
-        # The generator checks `navigator` and `location` to generate correct token
-        return self._playwright_eval(butter_js, goto='https://rplay.live/')
+        # The script checks `navigator.webdriver` and `location.origin` to generate correct token
+        return self._playwright_eval(butter_js, location='https://rplay.live')
 
     def get_butter_token(self):
         cache = self.cache.load('rplay', 'butter-token') or {}
@@ -173,6 +182,7 @@ class RPlayVideoIE(RPlayBaseIE):
             'uploader_id': '667adc9e9aa7f739a2158ff3',
             'tags': ['杏都める', 'めいどるーちぇ', '無料', '耳舐め', 'ASMR'],
         },
+        'params': {'cachedir': False},
     }, {
         'url': 'https://rplay.live/play/660bee4fd3c1d09d69db6870/',
         'info_dict': {
@@ -196,17 +206,26 @@ class RPlayVideoIE(RPlayBaseIE):
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        headers = {'Origin': 'https://rplay.live', 'Referer': 'https://rplay.live/'}
+        playlist_id = traverse_obj(parse_qs(url), ('playlist', ..., any))
+        if playlist_id and self._yes_playlist(playlist_id, video_id):
+            playlist_info = self._download_json(
+                'https://api.rplay.live/content/playlist', playlist_id,
+                query={'playlistOid': playlist_id, **self.requestor_query},
+                headers=self.jwt_header, fatal=False)
+            if playlist_info:
+                entries = traverse_obj(playlist_info, ('contentData', ..., '_id', {
+                    lambda x: self.url_result(f'https://rplay.live/play/{x}/', ie=RPlayVideoIE, video_id=x)}))
+                return self.playlist_result(entries, playlist_id, playlist_info.get('name'))
+            else:
+                self.report_warning('Failed to get playlist, downloading video only')
+
         video_info = self._download_json('https://api.rplay.live/content', video_id, query={
             'contentOid': video_id,
             'status': 'published',
             'withComments': True,
             'requestCanView': True,
-            **({
-                'requestorOid': self.user_id,
-                'loginType': self.login_type,
-            } if self.user_id else {}),
-        }, headers={**headers, 'Authorization': self.jwt_token or 'null'})
+            **self.requestor_query,
+        }, headers=self.jwt_header)
         if video_info.get('drm'):
             raise ExtractorError('This video is DRM-protected')
 
@@ -222,37 +241,36 @@ class RPlayVideoIE(RPlayBaseIE):
             'age_limit': (('hideContent', 'isAdultContent'), {lambda x: 18 if x else None}, any),
         })
 
-        m3u8_url = traverse_obj(video_info, ('canView', 'url'))
+        m3u8_url = traverse_obj(video_info, ('canView', 'url', {url_or_none}))
         if not m3u8_url:
             msg = 'You do not have access to this video'
             if traverse_obj(video_info, ('viewableTiers', 'free')):
-                msg += '. This video requires a free subscription'
+                msg = 'This video requires a free subscription to access'
             if not self.user_id:
                 msg += f'. {self._login_hint(method="password")}'
-            raise ExtractorError(msg)
+            raise ExtractorError(msg, expected=True)
 
-        thumbnail_key = traverse_obj(video_info, ('streamables', lambda _, v: v['type'].startswith('image/'), 's3key', any))
+        thumbnail_key = traverse_obj(video_info, (
+            'streamables', lambda _, v: v['type'].startswith('image/'), 's3key', any))
         if thumbnail_key:
             metainfo['thumbnail'] = url_or_none(self._download_webpage(
                 'https://api.rplay.live/upload/privateasset', video_id, 'getting cover url', query={
                     'key': thumbnail_key,
                     'contentOid': video_id,
                     'creatorOid': metainfo.get('uploader_id'),
-                    **({
-                        'requestorOid': self.user_id,
-                        'loginType': self.login_type,
-                    } if self.user_id else {}),
+                    **self.requestor_query,
                 }, fatal=False))
 
-        formats = self._extract_m3u8_formats(m3u8_url, video_id, headers={**headers, 'Butter': self.get_butter_token()})
+        formats = self._extract_m3u8_formats(m3u8_url, video_id, headers={
+            'Referer': 'https://rplay.live/', 'Butter': self.get_butter_token()})
         for fmt in formats:
-            m3u8_doc = self._download_webpage(fmt['url'], video_id, 'getting m3u8 contents',
-                                              headers={**headers, 'Butter': self.get_butter_token()})
+            m3u8_doc = self._download_webpage(fmt['url'], video_id, 'getting m3u8 contents', headers={
+                'Referer': 'https://rplay.live/', 'Butter': self.get_butter_token()})
             fmt['url'] = encode_data_uri(m3u8_doc.encode(), 'application/x-mpegurl')
             match = re.search(r'^#EXT-X-KEY.*?URI="([^"]+)"', m3u8_doc, flags=re.M)
             if match:
                 urlh = self._request_webpage(match[1], video_id, 'getting hls key', headers={
-                    **headers,
+                    'Referer': 'https://rplay.live/',
                     'rplay-private-content-requestor': self.user_id or 'not-logged-in',
                     'age': random.randint(1, 4999),
                 })
@@ -262,11 +280,11 @@ class RPlayVideoIE(RPlayBaseIE):
             'id': video_id,
             'formats': formats,
             **metainfo,
-            'http_headers': {'Origin': 'https://rplay.live', 'Referer': 'https://rplay.live/'},
+            'http_headers': {'Referer': 'https://rplay.live/'},
         }
 
 
-class RPlayUserIE(RPlayBaseIE):
+class RPlayUserIE(InfoExtractor):
     _VALID_URL = r'https://rplay.live/(?P<short>c|creatorhome)/(?P<id>[\d\w]+)/?(?:[#?]|$)'
     _TESTS = [{
         'url': 'https://rplay.live/creatorhome/667adc9e9aa7f739a2158ff3?page=contents',
@@ -283,10 +301,6 @@ class RPlayUserIE(RPlayBaseIE):
         },
         'playlist_mincount': 77,
     }]
-
-    def _perform_login(self, username, password):
-        # This playlist extractor does not require login
-        return
 
     def _real_extract(self, url):
         user_id, short = self._match_valid_url(url).group('id', 'short')
@@ -349,19 +363,15 @@ class RPlayLiveIE(RPlayBaseIE):
         if stream_state == 'youtube':
             return self.url_result(f'https://www.youtube.com/watch?v={live_info["liveStreamId"]}')
         elif stream_state == 'live':
-            if not self.user_id:
+            if not self.user_id and not live_info.get('allowAnonymous'):
                 self.raise_login_required(method='password')
             key2 = self._download_webpage(
                 'https://api.rplay.live/live/key2', user_id, 'getting live key',
-                headers={'Authorization': self.jwt_token},
-                query={
-                    'requestorOid': self.user_id,
-                    'loginType': self.login_type,
-                })
-            formats = self._extract_m3u8_formats('https://api.rplay.live/live/stream/playlist.m3u8', user_id, query={
-                'creatorOid': user_id,
-                'key2': key2,
-            })
+                headers=self.jwt_header, query=self.requestor_query) if self.user_id else ''
+            formats = self._extract_m3u8_formats(
+                'https://api.rplay.live/live/stream/playlist.m3u8', user_id,
+                query={'creatorOid': user_id, 'key2': key2})
+
             return {
                 'id': user_id,
                 'formats': formats,
