@@ -1587,6 +1587,21 @@ from .prankcast import (
 from .premiershiprugby import PremiershipRugbyIE
 from .presstv import PressTVIE
 from .projectveritas import ProjectVeritasIE
+from .promodj import (
+    PromoDJPageIE,
+    PromoDJUserIE,
+    PromoDJUserMediaIE,
+    PromoDJUserPagesIE,
+    PromoDJUserPageIE,
+    PromoDJBlogPageIE,
+    PromoDJPlaylistIE,
+    PromoDJMusicPlaylistIE,
+    PromoDJVideoPlaylistIE,
+    PromoDJIE,
+    PromoDJEmbedIE,
+    PromoDJShortIE,
+    PromoDJRadioIE,
+)
 from .prosiebensat1 import ProSiebenSat1IE
 from .prx import (
     PRXAccountIE,
