@@ -649,7 +649,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
         data = {'context': context} if context else {'context': self._extract_context(default_client=default_client)}
         data.update(query)
-        if po_token := self._configuration_arg('po_token', ie_key=YoutubeIE, default=[None], casesense=True)[0]:
+        if po_token := self._configuration_arg('po_token', [None], ie_key=YoutubeIE, casesense=True)[0]:
             data.setdefault('serviceIntegrityDimensions', {})['poToken'] = po_token
         real_headers = self.generate_api_headers(default_client=default_client)
         real_headers.update({'content-type': 'application/json'})
@@ -714,7 +714,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         Extracts visitorData from an API response or ytcfg
         Appears to be used to track session state
         """
-        if visitor_data := self._configuration_arg('visitor_data', ie_key=YoutubeIE, default=[None], casesense=True)[0]:
+        if visitor_data := self._configuration_arg('visitor_data', [None], ie_key=YoutubeIE, casesense=True)[0]:
             return visitor_data
         return get_first(
             args, [('VISITOR_DATA', ('INNERTUBE_CONTEXT', 'client', 'visitorData'), ('responseContext', 'visitorData'))],
