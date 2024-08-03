@@ -649,6 +649,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
         data = {'context': context} if context else {'context': self._extract_context(default_client=default_client)}
         data.update(query)
+        if po_token := self._configuration_arg('po_token', ie_key=YoutubeIE, default=[None], casesense=True)[0]:
+            data.setdefault('serviceIntegrityDimensions', {})['poToken'] = po_token
         real_headers = self.generate_api_headers(default_client=default_client)
         real_headers.update({'content-type': 'application/json'})
         if headers:
@@ -707,12 +709,13 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 # and just "user_syncid||" for primary channel. We only want the channel_syncid
                 return sync_ids[0]
 
-    @staticmethod
-    def _extract_visitor_data(*args):
+    def _extract_visitor_data(self, *args):
         """
         Extracts visitorData from an API response or ytcfg
         Appears to be used to track session state
         """
+        if visitor_data := self._configuration_arg('visitor_data', ie_key=YoutubeIE, default=[None], casesense=True)[0]:
+            return visitor_data
         return get_first(
             args, [('VISITOR_DATA', ('INNERTUBE_CONTEXT', 'client', 'visitorData'), ('responseContext', 'visitorData'))],
             expected_type=str)
@@ -3775,6 +3778,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     def _extract_player_responses(self, clients, video_id, webpage, master_ytcfg, smuggled_data):
         initial_pr = ignore_initial_response = None
         if webpage:
+            if self._configuration_arg('po_token', ie_key=YoutubeIE):
+                ignore_initial_response = True
             if 'web' in clients:
                 experiments = traverse_obj(master_ytcfg, (
                     'WEB_PLAYER_CONTEXT_CONFIGS', ..., 'serializedExperimentIds', {lambda x: x.split(',')}, ...))
