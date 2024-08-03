@@ -26,7 +26,7 @@ import unicodedata
 
 from .cache import Cache
 from .compat import urllib  # isort: split
-from .compat import compat_os_name, urllib_req_to_req
+from .compat import urllib_req_to_req
 from .cookies import LenientSimpleCookie, load_cookies
 from .downloader import FFmpegFD, get_suitable_downloader, shorten_protocol_name
 from .downloader.rtmp import rtmpdump_version
@@ -168,7 +168,7 @@ from .utils.networking import (
 )
 from .version import CHANNEL, ORIGIN, RELEASE_GIT_HEAD, VARIANT, __version__
 
-if compat_os_name == 'nt':
+if os.name == 'nt':
     import ctypes
 
 
