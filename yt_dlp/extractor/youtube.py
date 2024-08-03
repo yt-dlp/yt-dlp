@@ -3844,7 +3844,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 experiments = traverse_obj(pr, (
                     'responseContext', 'serviceTrackingParams', lambda _, v: v['service'] == 'GFEEDBACK',
                     'params', lambda _, v: v['key'] == 'e', 'value', {lambda x: x.split(',')}, ...))
-                if all(x in experiments for x in self._POTOKEN_EXPERIMENTS):
+                if all(x in experiments for x in self._POTOKEN_EXPERIMENTS) and not self._configuration_arg('po_token', ie_key=YoutubeIE):
                     pr = None
                     retry.error = ExtractorError('API returned broken formats (poToken experiment detected)', expected=True)
             if not pr:
