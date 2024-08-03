@@ -3780,7 +3780,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if webpage:
             if self._configuration_arg('po_token', ie_key=YoutubeIE):
                 ignore_initial_response = True
-            if 'web' in clients:
+            elif 'web' in clients:
                 experiments = traverse_obj(master_ytcfg, (
                     'WEB_PLAYER_CONTEXT_CONFIGS', ..., 'serializedExperimentIds', {lambda x: x.split(',')}, ...))
                 if all(x in experiments for x in self._POTOKEN_EXPERIMENTS):
