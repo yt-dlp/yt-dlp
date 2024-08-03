@@ -4010,7 +4010,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     continue
 
             if self.po_token:
-                update_url_query(fmt_url, {'pot': self.po_token})
+                fmt_url = update_url_query(fmt_url, {'pot': self.po_token})
 
             tbr = float_or_none(fmt.get('averageBitrate') or fmt.get('bitrate'), 1000)
             format_duration = traverse_obj(fmt, ('approxDurationMs', {lambda x: float_or_none(x, 1000)}))
