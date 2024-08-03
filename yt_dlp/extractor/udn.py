@@ -1,4 +1,5 @@
 import re
+import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import (
@@ -6,14 +7,13 @@ from ..utils import (
     int_or_none,
     js_to_json,
 )
-from ..compat import compat_urlparse
 
 
 class UDNEmbedIE(InfoExtractor):
     IE_DESC = '聯合影音'
     _PROTOCOL_RELATIVE_VALID_URL = r'//video\.udn\.com/(?:embed|play)/news/(?P<id>\d+)'
     _VALID_URL = r'https?:' + _PROTOCOL_RELATIVE_VALID_URL
-    _EMBED_REGEX = [r'<iframe[^>]+src="(?:https?:)?(?P<url>%s)"' % _PROTOCOL_RELATIVE_VALID_URL]
+    _EMBED_REGEX = [rf'<iframe[^>]+src="(?:https?:)?(?P<url>{_PROTOCOL_RELATIVE_VALID_URL})"']
     _TESTS = [{
         'url': 'http://video.udn.com/embed/news/300040',
         'info_dict': {
@@ -66,8 +66,8 @@ class UDNEmbedIE(InfoExtractor):
                 continue
 
             video_url = self._download_webpage(
-                compat_urlparse.urljoin(url, api_url), video_id,
-                note='retrieve url for %s video' % video_type)
+                urllib.parse.urljoin(url, api_url), video_id,
+                note=f'retrieve url for {video_type} video')
 
             ext = determine_ext(video_url)
             if ext == 'm3u8':

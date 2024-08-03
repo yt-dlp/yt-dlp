@@ -20,7 +20,7 @@ def main():
         'py2exe builds do not support pycryptodomex and needs VC++14 to run. '
         'It is recommended to run "pyinst.py" to build using pyinstaller instead')
 
-    return freeze(
+    freeze(
         console=[{
             'script': './yt_dlp/__main__.py',
             'dest_base': 'yt-dlp',
@@ -28,7 +28,7 @@ def main():
         }],
         version_info={
             'version': VERSION,
-            'description': 'A youtube-dl fork with additional features and patches',
+            'description': 'A feature-rich command-line audio/video downloader',
             'comments': 'Official repository: <https://github.com/yt-dlp/yt-dlp>',
             'product_name': 'yt-dlp',
             'product_version': VERSION,
@@ -42,9 +42,9 @@ def main():
                 # py2exe cannot import Crypto
                 'Crypto',
                 'Cryptodome',
-                # py2exe appears to confuse this with our socks library.
-                # We don't use pysocks and urllib3.contrib.socks would fail to import if tried.
-                'urllib3.contrib.socks'
+                # requests >=2.32.0 breaks py2exe builds due to certifi dependency
+                'requests',
+                'urllib3',
             ],
             'dll_excludes': ['w9xpopen.exe', 'crypt32.dll'],
             # Modules that are only imported dynamically must be added here

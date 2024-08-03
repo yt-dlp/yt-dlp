@@ -16,7 +16,7 @@ class EurosportIE(InfoExtractor):
             'display_id': 'vid1694147',
             'timestamp': 1654446698,
             'upload_date': '20220605',
-        }
+        },
     }, {
         'url': 'https://www.eurosport.com/tennis/roland-garros/2022/watch-the-top-five-shots-from-men-s-final-as-rafael-nadal-beats-casper-ruud-to-seal-14th-french-open_vid1694283/video.shtml',
         'info_dict': {
@@ -29,7 +29,7 @@ class EurosportIE(InfoExtractor):
             'display_id': 'vid1694283',
             'timestamp': 1654456090,
             'upload_date': '20220605',
-        }
+        },
     }, {
         # geo-fence but can bypassed by xff
         'url': 'https://www.eurosport.com/cycling/tour-de-france-femmes/2022/incredible-ride-marlen-reusser-storms-to-stage-4-win-at-tour-de-france-femmes_vid1722221/video.shtml',
@@ -43,7 +43,7 @@ class EurosportIE(InfoExtractor):
             'thumbnail': 'https://imgresizer.eurosport.com/unsafe/1280x960/smart/filters:format(jpeg)/origin-imgresizer.eurosport.com/2022/07/27/3423347-69852108-2560-1440.jpg',
             'description': 'md5:32bbe3a773ac132c57fb1e8cca4b7c71',
             'upload_date': '20220727',
-        }
+        },
     }, {
         'url': 'https://www.eurosport.com/football/champions-league/2022-2023/pep-guardiola-emotionally-destroyed-after-manchester-city-win-over-bayern-munich-in-champions-league_vid1896254/video.shtml',
         'info_dict': {
@@ -56,7 +56,7 @@ class EurosportIE(InfoExtractor):
             'timestamp': 1681292028,
             'upload_date': '20230412',
             'display_id': 'vid1896254',
-        }
+        },
     }, {
         'url': 'https://www.eurosport.com/football/last-year-s-semi-final-pain-was-still-there-pep-guardiola-after-man-city-reach-cl-final_vid1914115/video.shtml',
         'info_dict': {
@@ -69,7 +69,7 @@ class EurosportIE(InfoExtractor):
             'thumbnail': 'https://imgresizer.eurosport.com/unsafe/1280x960/smart/filters:format(jpeg)/origin-imgresizer.eurosport.com/2023/05/18/3707254-75435008-2560-1440.jpg',
             'duration': 105.0,
             'upload_date': '20230518',
-        }
+        },
     }]
 
     _TOKEN = None

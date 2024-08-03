@@ -1,13 +1,15 @@
-from .common import InfoExtractor
 from .amp import AMPIE
+from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     int_or_none,
     parse_iso8601,
+    str_or_none,
 )
 
 
 class BleacherReportIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?bleacherreport\.com/articles/(?P<id>\d+)'
     _TESTS = [{
         'url': 'http://bleacherreport.com/articles/2496438-fsu-stat-projections-is-jalen-ramsey-best-defensive-player-in-college-football',
@@ -16,7 +18,7 @@ class BleacherReportIE(InfoExtractor):
             'id': '2496438',
             'ext': 'mp4',
             'title': 'FSU Stat Projections: Is Jalen Ramsey Best Defensive Player in College Football?',
-            'uploader_id': 3992341,
+            'uploader_id': '3992341',
             'description': 'CFB, ACC, Florida State',
             'timestamp': 1434380212,
             'upload_date': '20150615',
@@ -33,7 +35,7 @@ class BleacherReportIE(InfoExtractor):
             'timestamp': 1446839961,
             'uploader': 'Sean Fay',
             'description': 'md5:b1601e2314c4d8eec23b6eafe086a757',
-            'uploader_id': 6466954,
+            'uploader_id': '6466954',
             'upload_date': '20151011',
         },
         'add_ie': ['Youtube'],
@@ -42,7 +44,7 @@ class BleacherReportIE(InfoExtractor):
     def _real_extract(self, url):
         article_id = self._match_id(url)
 
-        article_data = self._download_json('http://api.bleacherreport.com/api/v1/articles/%s' % article_id, article_id)['article']
+        article_data = self._download_json(f'http://api.bleacherreport.com/api/v1/articles/{article_id}', article_id)['article']
 
         thumbnails = []
         primary_photo = article_data.get('primaryPhoto')
@@ -58,7 +60,7 @@ class BleacherReportIE(InfoExtractor):
             'id': article_id,
             'title': article_data['title'],
             'uploader': article_data.get('author', {}).get('name'),
-            'uploader_id': article_data.get('authorId'),
+            'uploader_id': str_or_none(article_data.get('authorId')),
             'timestamp': parse_iso8601(article_data.get('createdAt')),
             'thumbnails': thumbnails,
             'comment_count': int_or_none(article_data.get('commentsCount')),
@@ -69,11 +71,11 @@ class BleacherReportIE(InfoExtractor):
         if video:
             video_type = video['type']
             if video_type in ('cms.bleacherreport.com', 'vid.bleacherreport.com'):
-                info['url'] = 'http://bleacherreport.com/video_embed?id=%s' % video['id']
+                info['url'] = 'http://bleacherreport.com/video_embed?id={}'.format(video['id'])
             elif video_type == 'youtube.com':
                 info['url'] = video['id']
             elif video_type == 'vine.co':
-                info['url'] = 'https://vine.co/v/%s' % video['id']
+                info['url'] = 'https://vine.co/v/{}'.format(video['id'])
             else:
                 info['url'] = video_type + video['id']
             return info
@@ -82,6 +84,7 @@ class BleacherReportIE(InfoExtractor):
 
 
 class BleacherReportCMSIE(AMPIE):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?bleacherreport\.com/video_embed\?id=(?P<id>[0-9a-f-]{36}|\d{5})'
     _TESTS = [{
         'url': 'http://bleacherreport.com/video_embed?id=8fd44c2f-3dc5-4821-9118-2c825a98c0e1&library=video-cms',
@@ -96,12 +99,12 @@ class BleacherReportCMSIE(AMPIE):
 
         },
         'expected_warnings': [
-            'Unable to download f4m manifest'
-        ]
+            'Unable to download f4m manifest',
+        ],
     }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        info = self._extract_feed_info('http://vid.bleacherreport.com/videos/%s.akamai' % video_id)
+        info = self._extract_feed_info(f'http://vid.bleacherreport.com/videos/{video_id}.akamai')
         info['id'] = video_id
         return info

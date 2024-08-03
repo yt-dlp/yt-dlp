@@ -3,11 +3,11 @@ import re
 from .common import InfoExtractor
 from ..networking import HEADRequest
 from ..utils import (
+    ExtractorError,
+    GeoRestrictedError,
     clean_html,
     determine_ext,
-    ExtractorError,
     filter_dict,
-    GeoRestrictedError,
     int_or_none,
     join_nonempty,
     parse_duration,
@@ -27,6 +27,29 @@ class RaiBaseIE(InfoExtractor):
     _UUID_RE = r'[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}'
     _GEO_COUNTRIES = ['IT']
     _GEO_BYPASS = False
+
+    def _fix_m3u8_formats(self, media_url, video_id):
+        fmts = self._extract_m3u8_formats(
+            media_url, video_id, 'mp4', m3u8_id='hls', fatal=False)
+
+        # Fix malformed m3u8 manifests by setting audio-only/video-only formats
+        for f in fmts:
+            if not f.get('acodec'):
+                f['acodec'] = 'mp4a'
+            if not f.get('vcodec'):
+                f['vcodec'] = 'avc1'
+            man_url = f['url']
+            if re.search(r'chunklist(?:_b\d+)*_ao[_.]', man_url):  # audio only
+                f['vcodec'] = 'none'
+            elif re.search(r'chunklist(?:_b\d+)*_vo[_.]', man_url):  # video only
+                f['acodec'] = 'none'
+            else:  # video+audio
+                if f['acodec'] == 'none':
+                    f['acodec'] = 'mp4a'
+                if f['vcodec'] == 'none':
+                    f['vcodec'] = 'avc1'
+
+        return fmts
 
     def _extract_relinker_info(self, relinker_url, video_id, audio_only=False):
         def fix_cdata(s):
@@ -69,8 +92,7 @@ class RaiBaseIE(InfoExtractor):
                 'format_id': 'https-mp3',
             })
         elif ext == 'm3u8' or 'format=m3u8' in media_url:
-            formats.extend(self._extract_m3u8_formats(
-                media_url, video_id, 'mp4', m3u8_id='hls', fatal=False))
+            formats.extend(self._fix_m3u8_formats(media_url, video_id))
         elif ext == 'f4m':
             # very likely no longer needed. Cannot find any url that uses it.
             manifest_url = update_url_query(
@@ -121,7 +143,7 @@ class RaiBaseIE(InfoExtractor):
         }
 
         def percentage(number, target, pc=20, roof=125):
-            '''check if the target is in the range of number +/- percent'''
+            """check if the target is in the range of number +/- percent"""
             if not number or number < 0:
                 return False
             return abs(target - number) < min(float(number) * float(pc) / 100.0, roof)
@@ -153,10 +175,10 @@ class RaiBaseIE(InfoExtractor):
                 'format_id': f'https-{tbr}',
                 'width': format_copy.get('width'),
                 'height': format_copy.get('height'),
-                'tbr': format_copy.get('tbr'),
-                'vcodec': format_copy.get('vcodec'),
-                'acodec': format_copy.get('acodec'),
-                'fps': format_copy.get('fps'),
+                'tbr': format_copy.get('tbr') or tbr,
+                'vcodec': format_copy.get('vcodec') or 'avc1',
+                'acodec': format_copy.get('acodec') or 'mp4a',
+                'fps': format_copy.get('fps') or 25,
             } if format_copy else {
                 'format_id': f'https-{tbr}',
                 'width': _QUALITY[tbr][0],
@@ -177,7 +199,7 @@ class RaiBaseIE(InfoExtractor):
 
         # filter out single-stream formats
         fmts = [f for f in fmts
-                if not f.get('vcodec') == 'none' and not f.get('acodec') == 'none']
+                if f.get('vcodec') != 'none' and f.get('acodec') != 'none']
 
         mobj = re.search(_MANIFEST_REG, manifest_url)
         if not mobj:
@@ -191,7 +213,7 @@ class RaiBaseIE(InfoExtractor):
                 'url': _MP4_TMPL % (relinker_url, q),
                 'protocol': 'https',
                 'ext': 'mp4',
-                **get_format_info(q)
+                **get_format_info(q),
             })
         return formats
 
@@ -245,7 +267,7 @@ class RaiPlayIE(RaiBaseIE):
             'series': 'Report',
             'season': '2013/14',
             'subtitles': {'it': 'count:4'},
-            'release_year': 2022,
+            'release_year': 2024,
             'episode': 'Espresso nel caffè - 07/04/2014',
             'timestamp': 1396919880,
             'upload_date': '20140408',
@@ -253,7 +275,7 @@ class RaiPlayIE(RaiBaseIE):
         },
         'params': {'skip_download': True},
     }, {
-        # 1080p direct mp4 url
+        # 1080p
         'url': 'https://www.raiplay.it/video/2021/11/Blanca-S1E1-Senza-occhi-b1255a4a-8e72-4a2f-b9f3-fc1308e00736.html',
         'md5': 'aeda7243115380b2dd5e881fd42d949a',
         'info_dict': {
@@ -274,10 +296,10 @@ class RaiPlayIE(RaiBaseIE):
             'episode': 'Senza occhi',
             'timestamp': 1637318940,
             'upload_date': '20211119',
-            'formats': 'count:12',
+            'formats': 'count:7',
         },
         'params': {'skip_download': True},
-        'expected_warnings': ['Video not available. Likely due to geo-restriction.']
+        'expected_warnings': ['Video not available. Likely due to geo-restriction.'],
     }, {
         # 1500 quality
         'url': 'https://www.raiplay.it/video/2012/09/S1E11---Tutto-cio-che-luccica-0cab3323-732e-45d6-8e86-7704acab6598.html',
@@ -351,7 +373,7 @@ class RaiPlayIE(RaiBaseIE):
             'episode_number': int_or_none(media.get('episode')),
             'subtitles': self._extract_subtitles(url, video),
             'release_year': int_or_none(traverse_obj(media, ('track_info', 'edit_year'))),
-            **relinker_info
+            **relinker_info,
         }
 
 
@@ -527,7 +549,7 @@ class RaiPlaySoundPlaylistIE(InfoExtractor):
         'info_dict': {
             'id': 'ilruggitodelconiglio',
             'title': 'Il Ruggito del Coniglio',
-            'description': 'md5:48cff6972435964284614d70474132e6',
+            'description': 'md5:62a627b3a2d0635d08fa8b6e0a04f27e',
         },
         'playlist_mincount': 65,
     }, {
@@ -574,7 +596,7 @@ class RaiIE(RaiBaseIE):
             'upload_date': '20140612',
         },
         'params': {'skip_download': True},
-        'expected_warnings': ['Video not available. Likely due to geo-restriction.']
+        'expected_warnings': ['Video not available. Likely due to geo-restriction.'],
     }, {
         'url': 'https://www.rai.it/dl/RaiTV/programmi/media/ContentItem-efb17665-691c-45d5-a60c-5301333cbb0c.html',
         'info_dict': {
@@ -584,7 +606,7 @@ class RaiIE(RaiBaseIE):
             'description': 'TG1 edizione integrale ore 20:00 del giorno 03/11/2016',
             'thumbnail': r're:^https?://.*\.jpg$',
             'duration': 2214,
-            'upload_date': '20161103'
+            'upload_date': '20161103',
         },
         'params': {'skip_download': True},
     }, {
@@ -610,7 +632,7 @@ class RaiIE(RaiBaseIE):
                     'ext': media.get('formatoAudio'),
                     'vcodec': 'none',
                     'acodec': media.get('formatoAudio'),
-                }]
+                }],
             }
         elif 'Video' in media['type']:
             relinker_info = self._extract_relinker_info(media['mediaUri'], content_id)
@@ -630,23 +652,24 @@ class RaiIE(RaiBaseIE):
             'upload_date': unified_strdate(media.get('date')),
             'duration': parse_duration(media.get('length')),
             'subtitles': self._extract_subtitles(url, media),
-            **relinker_info
+            **relinker_info,
         }
 
 
-class RaiNewsIE(RaiIE):  # XXX: Do not subclass from concrete IE
+class RaiNewsIE(RaiBaseIE):
     _VALID_URL = rf'https?://(www\.)?rainews\.it/(?!articoli)[^?#]+-(?P<id>{RaiBaseIE._UUID_RE})(?:-[^/?#]+)?\.html'
     _EMBED_REGEX = [rf'<iframe[^>]+data-src="(?P<url>/iframe/[^?#]+?{RaiBaseIE._UUID_RE}\.html)']
     _TESTS = [{
         # new rainews player (#3911)
-        'url': 'https://www.rainews.it/rubriche/24mm/video/2022/05/24mm-del-29052022-12cf645d-1ffd-4220-b27c-07c226dbdecf.html',
+        'url': 'https://www.rainews.it/video/2024/02/membri-della-croce-rossa-evacuano-gli-abitanti-di-un-villaggio-nella-regione-ucraina-di-kharkiv-il-filmato-dallucraina--31e8017c-845c-43f5-9c48-245b43c3a079.html',
         'info_dict': {
-            'id': '12cf645d-1ffd-4220-b27c-07c226dbdecf',
+            'id': '31e8017c-845c-43f5-9c48-245b43c3a079',
             'ext': 'mp4',
-            'title': 'Puntata del 29/05/2022',
-            'duration': 1589,
-            'upload_date': '20220529',
+            'title': 'md5:1e81364b09de4a149042bac3c7d36f0b',
+            'duration': 196,
+            'upload_date': '20240225',
             'uploader': 'rainews',
+            'formats': 'count:2',
         },
         'params': {'skip_download': True},
     }, {
@@ -659,7 +682,8 @@ class RaiNewsIE(RaiIE):  # XXX: Do not subclass from concrete IE
             'description': 'I film in uscita questa settimana.',
             'thumbnail': r're:^https?://.*\.png$',
             'duration': 833,
-            'upload_date': '20161103'
+            'upload_date': '20161103',
+            'formats': 'count:8',
         },
         'params': {'skip_download': True},
         'expected_warnings': ['unable to extract player_data'],
@@ -684,7 +708,7 @@ class RaiNewsIE(RaiIE):  # XXX: Do not subclass from concrete IE
         if not relinker_url:
             # fallback on old implementation for some old content
             try:
-                return self._extract_from_content_id(video_id, url)
+                return RaiIE._real_extract(self, url)
             except GeoRestrictedError:
                 raise
             except ExtractorError as e:
@@ -697,7 +721,7 @@ class RaiNewsIE(RaiIE):  # XXX: Do not subclass from concrete IE
             'title': player_data.get('title') or track_info.get('title') or self._og_search_title(webpage),
             'upload_date': unified_strdate(track_info.get('date')),
             'uploader': strip_or_none(track_info.get('editor') or None),
-            **relinker_info
+            **relinker_info,
         }
 
 

@@ -10,7 +10,7 @@ class SkebIE(InfoExtractor):
         'info_dict': {
             'id': '466853',
             'title': '内容はおまかせします！ by 姫ノ森りぃる@一周年',
-            'descripion': 'md5:1ec50901efc3437cfbfe3790468d532d',
+            'description': 'md5:1ec50901efc3437cfbfe3790468d532d',
             'uploader': '姫ノ森りぃる@一周年',
             'uploader_id': 'riiru_wm',
             'age_limit': 0,
@@ -20,8 +20,8 @@ class SkebIE(InfoExtractor):
             'subtitles': {
                 'jpn': [{
                     'url': r're:https://skeb.+',
-                    'ext': 'vtt'
-                }]
+                    'ext': 'vtt',
+                }],
             },
             'width': 720,
             'height': 405,
@@ -34,7 +34,7 @@ class SkebIE(InfoExtractor):
         'info_dict': {
             'id': '489408',
             'title': 'いつもお世話になってお... by 古川ノブ@音楽とVlo...',
-            'descripion': 'md5:5adc2e41d06d33b558bf7b1faeb7b9c2',
+            'description': 'md5:5adc2e41d06d33b558bf7b1faeb7b9c2',
             'uploader': '古川ノブ@音楽とVlogのVtuber',
             'uploader_id': 'furukawa_nob',
             'age_limit': 0,
@@ -48,8 +48,8 @@ class SkebIE(InfoExtractor):
             'subtitles': {
                 'jpn': [{
                     'url': r're:https://skeb.+',
-                    'ext': 'vtt'
-                }]
+                    'ext': 'vtt',
+                }],
             },
             'duration': 98,
             'ext': 'mp3',
@@ -61,17 +61,17 @@ class SkebIE(InfoExtractor):
         'info_dict': {
             'id': '6',
             'title': 'ヒロ。\n\n私のキャラク... by 諸々',
-            'descripion': 'md5:aa6cbf2ba320b50bce219632de195f07',
+            'description': 'md5:aa6cbf2ba320b50bce219632de195f07',
             '_type': 'playlist',
             'entries': [{
                 'id': '486430',
                 'title': 'ヒロ。\n\n私のキャラク... by 諸々',
-                'descripion': 'md5:aa6cbf2ba320b50bce219632de195f07',
+                'description': 'md5:aa6cbf2ba320b50bce219632de195f07',
             }, {
                 'id': '486431',
                 'title': 'ヒロ。\n\n私のキャラク... by 諸々',
-            }]
-        }
+            }],
+        },
     }]
 
     def _real_extract(self, url):
@@ -81,7 +81,7 @@ class SkebIE(InfoExtractor):
         parent = {
             'id': video_id,
             'title': nuxt_data.get('title'),
-            'descripion': nuxt_data.get('description'),
+            'description': nuxt_data.get('description'),
             'uploader': traverse_obj(nuxt_data, ('creator', 'name')),
             'uploader_id': traverse_obj(nuxt_data, ('creator', 'screen_name')),
             'age_limit': 18 if nuxt_data.get('nsfw') else 0,
@@ -106,7 +106,7 @@ class SkebIE(InfoExtractor):
             if width is not None and height is not None:
                 # the longest side is at most 720px for non-client viewers
                 max_size = max(width, height)
-                width, height = list(x * 720 // max_size for x in (width, height))
+                width, height = (x * 720 // max_size for x in (width, height))
             entries.append({
                 **parent,
                 'id': str(item['id']),
@@ -116,7 +116,7 @@ class SkebIE(InfoExtractor):
                     'jpn': [{
                         'url': item.get('vtt_url'),
                         'ext': 'vtt',
-                    }]
+                    }],
                 } if item.get('vtt_url') else None,
                 'width': width,
                 'height': height,

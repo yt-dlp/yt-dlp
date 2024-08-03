@@ -42,11 +42,11 @@ class YoukuIE(InfoExtractor):
             'uploader_id': '322014285',
             'uploader_url': 'http://i.youku.com/u/UMTI4ODA1NzE0MA==',
             'tags': list,
-            'skip': '404',
         },
         'params': {
             'videopassword': '100600',
         },
+        'skip': '404',
     }, {
         # /play/get.json contains streams with "channel_type":"tail"
         'url': 'http://v.youku.com/v_show/id_XOTUxMzg4NDMy.html',
@@ -104,7 +104,7 @@ class YoukuIE(InfoExtractor):
 
     @staticmethod
     def get_ysuid():
-        return '%d%s' % (int(time.time()), ''.join(
+        return '{}{}'.format(int(time.time()), ''.join(
             random.choices(string.ascii_letters, k=3)))
 
     def get_format_name(self, fm):
@@ -136,7 +136,7 @@ class YoukuIE(InfoExtractor):
         # request basic data
         basic_data_params = {
             'vid': video_id,
-            'ccode': '0524',
+            'ccode': '0564',
             'client_ip': '192.168.1.1',
             'utid': cna,
             'client_ts': time.time() / 1000,
@@ -273,7 +273,7 @@ class YoukuShowIE(InfoExtractor):
                 continue
             _, new_entries = self._extract_entries(
                 'http://list.youku.com/show/episode', show_id,
-                note='Downloading playlist data page %d' % (idx + 1),
+                note=f'Downloading playlist data page {idx + 1}',
                 query={
                     'id': page_config['showid'],
                     'stage': reload_id,

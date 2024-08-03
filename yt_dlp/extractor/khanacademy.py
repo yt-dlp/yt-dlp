@@ -3,43 +3,52 @@ import json
 from .common import InfoExtractor
 from ..utils import (
     int_or_none,
+    make_archive_id,
     parse_iso8601,
-    try_get,
+    str_or_none,
+    traverse_obj,
+    url_or_none,
+    urljoin,
 )
 
 
 class KhanAcademyBaseIE(InfoExtractor):
     _VALID_URL_TEMPL = r'https?://(?:www\.)?khanacademy\.org/(?P<id>(?:[^/]+/){%s}%s[^?#/&]+)'
 
+    _PUBLISHED_CONTENT_VERSION = '171419ab20465d931b356f22d20527f13969bb70'
+
     def _parse_video(self, video):
         return {
             '_type': 'url_transparent',
             'url': video['youtubeId'],
-            'id': video.get('slug'),
-            'title': video.get('title'),
-            'thumbnail': video.get('imageUrl') or video.get('thumbnailUrl'),
-            'duration': int_or_none(video.get('duration')),
-            'description': video.get('description'),
+            'id': video['youtubeId'],
             'ie_key': 'Youtube',
+            **traverse_obj(video, {
+                'display_id': ('id', {str_or_none}),
+                'title': ('translatedTitle', {str}),
+                'thumbnail': ('thumbnailUrls', ..., 'url', {url_or_none}),
+                'duration': ('duration', {int_or_none}),
+                'description': ('description', {str}),
+            }, get_all=False),
         }
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
         content = self._download_json(
-            'https://www.khanacademy.org/api/internal/graphql/FetchContentData',
-            display_id, query={
+            'https://www.khanacademy.org/api/internal/graphql/ContentForPath', display_id,
+            query={
                 'fastly_cacheable': 'persist_until_publish',
-                'hash': '4134764944',
-                'lang': 'en',
+                'pcv': self._PUBLISHED_CONTENT_VERSION,
+                'hash': '1242644265',
                 'variables': json.dumps({
                     'path': display_id,
-                    'queryParams': 'lang=en',
-                    'isModal': False,
-                    'followRedirects': True,
                     'countryCode': 'US',
+                    'kaLocale': 'en',
+                    'clientPublishedContentVersion': self._PUBLISHED_CONTENT_VERSION,
                 }),
-            })['data']['contentJson']
-        return self._parse_component_props(self._parse_json(content, display_id)['componentProps'])
+                'lang': 'en',
+            })['data']['contentRoute']['listedPathData']
+        return self._parse_component_props(content, display_id)
 
 
 class KhanAcademyIE(KhanAcademyBaseIE):
@@ -47,64 +56,98 @@ class KhanAcademyIE(KhanAcademyBaseIE):
     _VALID_URL = KhanAcademyBaseIE._VALID_URL_TEMPL % ('4', 'v/')
     _TEST = {
         'url': 'https://www.khanacademy.org/computing/computer-science/cryptography/crypt/v/one-time-pad',
-        'md5': '9c84b7b06f9ebb80d22a5c8dedefb9a0',
+        'md5': '1d5c2e70fa6aa29c38eca419f12515ce',
         'info_dict': {
             'id': 'FlIG3TvQCBQ',
             'ext': 'mp4',
             'title': 'The one-time pad',
             'description': 'The perfect cipher',
+            'display_id': '716378217',
             'duration': 176,
-            'uploader': 'Brit Cruise',
-            'uploader_id': 'khanacademy',
+            'uploader': 'Khan Academy',
+            'uploader_id': '@khanacademy',
+            'uploader_url': 'https://www.youtube.com/@khanacademy',
             'upload_date': '20120411',
             'timestamp': 1334170113,
             'license': 'cc-by-nc-sa',
+            'live_status': 'not_live',
+            'channel': 'Khan Academy',
+            'channel_id': 'UC4a-Gbdw7vOaccHmFo40b9g',
+            'channel_url': 'https://www.youtube.com/channel/UC4a-Gbdw7vOaccHmFo40b9g',
+            'channel_is_verified': True,
+            'playable_in_embed': True,
+            'categories': ['Education'],
+            'creators': ['Brit Cruise'],
+            'tags': [],
+            'age_limit': 0,
+            'availability': 'public',
+            'comment_count': int,
+            'channel_follower_count': int,
+            'thumbnail': str,
+            'view_count': int,
+            'like_count': int,
+            'heatmap': list,
         },
         'add_ie': ['Youtube'],
     }
 
-    def _parse_component_props(self, component_props):
-        video = component_props['tutorialPageData']['contentModel']
-        info = self._parse_video(video)
-        author_names = video.get('authorNames')
-        info.update({
-            'uploader': ', '.join(author_names) if author_names else None,
-            'timestamp': parse_iso8601(video.get('dateAdded')),
-            'license': video.get('kaUserLicense'),
-        })
-        return info
+    def _parse_component_props(self, component_props, display_id):
+        video = component_props['content']
+        return {
+            **self._parse_video(video),
+            **traverse_obj(video, {
+                'creators': ('authorNames', ..., {str}),
+                'timestamp': ('dateAdded', {parse_iso8601}),
+                'license': ('kaUserLicense', {str}),
+            }),
+        }
 
 
 class KhanAcademyUnitIE(KhanAcademyBaseIE):
     IE_NAME = 'khanacademy:unit'
-    _VALID_URL = (KhanAcademyBaseIE._VALID_URL_TEMPL % ('2', '')) + '/?(?:[?#&]|$)'
-    _TEST = {
+    _VALID_URL = (KhanAcademyBaseIE._VALID_URL_TEMPL % ('1,2', '')) + '/?(?:[?#&]|$)'
+    _TESTS = [{
         'url': 'https://www.khanacademy.org/computing/computer-science/cryptography',
         'info_dict': {
-            'id': 'cryptography',
+            'id': 'x48c910b6',
             'title': 'Cryptography',
             'description': 'How have humans protected their secret messages through history? What has changed today?',
+            'display_id': 'computing/computer-science/cryptography',
+            '_old_archive_ids': ['khanacademyunit cryptography'],
         },
         'playlist_mincount': 31,
-    }
+    }, {
+        'url': 'https://www.khanacademy.org/computing/computer-science',
+        'info_dict': {
+            'id': 'x301707a0',
+            'title': 'Computer science theory',
+            'description': 'md5:4b472a4646e6cf6ec4ccb52c4062f8ba',
+            'display_id': 'computing/computer-science',
+            '_old_archive_ids': ['khanacademyunit computer-science'],
+        },
+        'playlist_mincount': 50,
+    }]
 
-    def _parse_component_props(self, component_props):
-        curation = component_props['curation']
+    def _parse_component_props(self, component_props, display_id):
+        course = component_props['course']
+        selected_unit = traverse_obj(course, (
+            'unitChildren', lambda _, v: v['relativeUrl'] == f'/{display_id}', any)) or course
 
-        entries = []
-        tutorials = try_get(curation, lambda x: x['tabs'][0]['modules'][0]['tutorials'], list) or []
-        for tutorial_number, tutorial in enumerate(tutorials, 1):
-            chapter_info = {
-                'chapter': tutorial.get('title'),
-                'chapter_number': tutorial_number,
-                'chapter_id': tutorial.get('id'),
-            }
-            for content_item in (tutorial.get('contentItems') or []):
-                if content_item.get('kind') == 'Video':
-                    info = self._parse_video(content_item)
-                    info.update(chapter_info)
-                    entries.append(info)
+        def build_entry(entry):
+            return self.url_result(urljoin(
+                'https://www.khanacademy.org', entry['canonicalUrl']),
+                KhanAcademyIE, title=entry.get('translatedTitle'))
+
+        entries = traverse_obj(selected_unit, (
+            (('unitChildren', ...), None), 'allOrderedChildren', ..., 'curatedChildren',
+            lambda _, v: v['contentKind'] == 'Video' and v['canonicalUrl'], {build_entry}))
 
         return self.playlist_result(
-            entries, curation.get('unit'), curation.get('title'),
-            curation.get('description'))
+            entries,
+            display_id=display_id,
+            **traverse_obj(selected_unit, {
+                'id': ('id', {str}),
+                'title': ('translatedTitle', {str}),
+                'description': ('translatedDescription', {str}),
+                '_old_archive_ids': ('slug', {str}, {lambda x: [make_archive_id(self, x)] if x else None}),
+            }))

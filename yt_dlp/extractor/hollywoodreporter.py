@@ -53,7 +53,7 @@ class HollywoodReporterPlaylistIE(InfoExtractor):
         'info_dict': {
             'id': '57822',
             'title': 'heat-vision-breakdown',
-        }
+        },
     }]
 
     def _fetch_page(self, slug, pl_id, page):
