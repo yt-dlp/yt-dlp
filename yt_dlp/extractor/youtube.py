@@ -649,8 +649,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
         data = {'context': context} if context else {'context': self._extract_context(default_client=default_client)}
         data.update(query)
-        if po_token := self._configuration_arg('po_token', [None], ie_key=YoutubeIE, casesense=True)[0]:
-            data.setdefault('serviceIntegrityDimensions', {})['poToken'] = po_token
+        if self.po_token:
+            data.setdefault('serviceIntegrityDimensions', {})['poToken'] = self.po_token
         real_headers = self.generate_api_headers(default_client=default_client)
         real_headers.update({'content-type': 'application/json'})
         if headers:
@@ -3778,7 +3778,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     def _extract_player_responses(self, clients, video_id, webpage, master_ytcfg, smuggled_data):
         initial_pr = ignore_initial_response = None
         if webpage:
-            if self._configuration_arg('po_token'):
+            if self.po_token:
                 ignore_initial_response = True
             elif 'web' in clients:
                 experiments = traverse_obj(master_ytcfg, (
@@ -3844,7 +3844,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 experiments = traverse_obj(pr, (
                     'responseContext', 'serviceTrackingParams', lambda _, v: v['service'] == 'GFEEDBACK',
                     'params', lambda _, v: v['key'] == 'e', 'value', {lambda x: x.split(',')}, ...))
-                if all(x in experiments for x in self._POTOKEN_EXPERIMENTS) and not self._configuration_arg('po_token'):
+                if all(x in experiments for x in self._POTOKEN_EXPERIMENTS) and not self.po_token:
                     pr = None
                     retry.error = ExtractorError('API returned broken formats (poToken experiment detected)', expected=True)
             if not pr:
@@ -4004,6 +4004,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                             'Cannot decrypt nsig without player_url: Some formats may be missing',
                             video_id=video_id, only_once=True)
                     continue
+
+            if self.po_token:
+                update_url_query(fmt_url, {'pot': self.po_token})
 
             tbr = float_or_none(fmt.get('averageBitrate') or fmt.get('bitrate'), 1000)
             format_duration = traverse_obj(fmt, ('approxDurationMs', {lambda x: float_or_none(x, 1000)}))
@@ -5477,6 +5480,10 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
     @functools.cached_property
     def skip_webpage(self):
         return 'webpage' in self._configuration_arg('skip', ie_key=YoutubeTabIE.ie_key())
+
+    @functools.cached_property
+    def po_token(self):
+        return self._configuration_arg('po_token', [None], ie_key=YoutubeIE, casesense=True)[0]
 
     def _extract_webpage(self, url, item_id, fatal=True):
         webpage, data = None, None
