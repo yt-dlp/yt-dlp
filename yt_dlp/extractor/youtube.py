@@ -724,6 +724,10 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     def is_authenticated(self):
         return bool(self._generate_sapisidhash_header())
 
+    @functools.cached_property
+    def po_token(self):
+        return self._configuration_arg('po_token', [None], ie_key=YoutubeIE, casesense=True)[0]
+
     def extract_ytcfg(self, video_id, webpage):
         if not webpage:
             return {}
@@ -5480,10 +5484,6 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
     @functools.cached_property
     def skip_webpage(self):
         return 'webpage' in self._configuration_arg('skip', ie_key=YoutubeTabIE.ie_key())
-
-    @functools.cached_property
-    def po_token(self):
-        return self._configuration_arg('po_token', [None], ie_key=YoutubeIE, casesense=True)[0]
 
     def _extract_webpage(self, url, item_id, fatal=True):
         webpage, data = None, None
