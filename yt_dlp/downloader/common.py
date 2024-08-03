@@ -368,6 +368,7 @@ class FileDownloader:
                 '_speed_str': self.format_speed(speed).strip(),
                 '_total_bytes_str': _format_bytes('total_bytes'),
                 '_elapsed_str': self.format_seconds(s.get('elapsed')),
+                '_percent': 100.0,
                 '_percent_str': self.format_percent(100),
             })
             self._report_progress_status(s, join_nonempty(
