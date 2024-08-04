@@ -579,6 +579,7 @@ from .egghead import (
 )
 from .eighttracks import EightTracksIE
 from .eitb import EitbIE
+from .elemental_tv import ElementalTVIE
 from .elementorembed import ElementorEmbedIE
 from .elonet import ElonetIE
 from .elpais import ElPaisIE
