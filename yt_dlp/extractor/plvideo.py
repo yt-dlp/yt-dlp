@@ -34,7 +34,6 @@ class PlVideoVideoIE(InfoExtractor):
                 'url': hlsurl,
                 'ext': 'mp4',
                 'quality': 0 if len(formats) == 0 else 0 - len(formats),
-                'thumbnail': thumbnail,
                 'format_id': key,
                 'protocol': 'm3u8_native',
             }
@@ -45,4 +44,5 @@ class PlVideoVideoIE(InfoExtractor):
             'id': video_id,
             'title': item.get('title'),
             'formats': formats,
+            'thumbnails': [{'url': thumbnail}],
         }
