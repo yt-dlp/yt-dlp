@@ -35,18 +35,13 @@ class PlVideoVideoIE(InfoExtractor):
                 'quality': 0 if len(formats) == 0 else 0 - len(formats),
                 'thumbnail': thumbnail,
                 'format_id': key,
-                'protocol': 'm3u8_native'
+                'protocol': 'm3u8_native',
             }
 
             formats.append(fmt)
-
 
         return {
             'id': video_id,
             'title': item.get('title'),
             'formats': formats,
         }
-        
-
-
-
