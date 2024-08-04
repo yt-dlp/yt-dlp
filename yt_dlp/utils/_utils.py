@@ -446,46 +446,6 @@ def get_element_text_and_html_by_tag(tag, html):
         raise compat_HTMLParseError('unexpected end of html')
 
 
-def find_element(tag=None, id=None, cls=None, attr=None, value=None, html=False):
-    # deliberately using `id=` and `cls=` for ease of readability
-    assert tag or id or cls or (attr and value), 'One of tag, id, cls or (attr AND value) is required'
-    if not tag:
-        tag = r'[\w:.-]+'
-
-    if attr and value:
-        assert not cls, 'Cannot match both attr and cls'
-        assert not id, 'Cannot match both attr and id'
-        func = get_element_html_by_attribute if html else get_element_by_attribute
-        return functools.partial(func, attr, value, tag=tag)
-
-    elif cls:
-        assert not id, 'Cannot match both cls and id'
-        assert tag is None, 'Cannot match both cls and tag'
-        func = get_element_html_by_class if html else get_elements_by_class
-        return functools.partial(func, cls)
-
-    elif id:
-        func = get_element_html_by_id if html else get_element_by_id
-        return functools.partial(func, id, tag=tag)
-
-    index = int(bool(html))
-    return lambda html: get_element_text_and_html_by_tag(tag, html)[index]
-
-
-def find_elements(tag=None, cls=None, attr=None, value=None, html=False):
-    # deliberately using `cls=` for ease of readability
-    assert cls or (attr and value), 'One of cls or (attr AND value) is required'
-
-    if attr and value:
-        assert not cls, 'Cannot match both attr and cls'
-        func = get_elements_html_by_attribute if html else get_elements_by_attribute
-        return functools.partial(func, attr, value, tag=tag or r'[\w:.-]+')
-
-    assert not tag, 'Cannot match both cls and tag'
-    func = get_elements_html_by_class if html else get_elements_by_class
-    return functools.partial(func, cls)
-
-
 class HTMLAttributeParser(html.parser.HTMLParser):
     """Trivial HTML parser to gather the attributes for a single element"""
 
