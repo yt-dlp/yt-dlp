@@ -503,6 +503,7 @@ from .dfb import DFBIE
 from .dhm import DHMIE
 from .digitalconcerthall import DigitalConcertHallIE
 from .digiteka import DigitekaIE
+from .digiview import DigiviewIE
 from .discogs import DiscogsReleasePlaylistIE
 from .disney import DisneyIE
 from .dispeak import DigitallySpeakingIE
