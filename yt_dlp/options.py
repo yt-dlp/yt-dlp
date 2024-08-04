@@ -899,13 +899,14 @@ def create_parser():
     subtitles.add_option(
         '--sub-format',
         action='store', dest='subtitlesformat', metavar='FORMAT', default='best',
-        help='Subtitle format; accepts formats preference, e.g. "srt" or "ass/srt/best"')
+        help='Subtitle format; accepts formats preference, separated by "/" e.g. "srt" or "ass/srt/best"')
     subtitles.add_option(
         '--sub-langs', '--srt-langs',
         action='callback', dest='subtitleslangs', metavar='LANGS', type='str',
         default=[], callback=_list_from_options_callback,
         help=(
             'Languages of the subtitles to download (can be regex) or "all" separated by commas, e.g. --sub-langs "en.*,ja". '
+            'Example: "en.*" will download both subtitles "en" and "en-GB", while "en" will only download the former. '
             'You can prefix the language code with a "-" to exclude it from the requested languages, e.g. --sub-langs all,-live_chat. '
             'Use --list-subs for a list of available language tags'))
 

@@ -844,14 +844,17 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
     --list-subs                     List available subtitles of each video.
                                     Simulate unless --no-simulate is used
     --sub-format FORMAT             Subtitle format; accepts formats preference,
-                                    e.g. "srt" or "ass/srt/best"
+                                    separated by "/" e.g. "srt" or "ass/srt/best"
     --sub-langs LANGS               Languages of the subtitles to download (can
                                     be regex) or "all" separated by commas, e.g.
-                                    --sub-langs "en.*,ja". You can prefix the
-                                    language code with a "-" to exclude it from
-                                    the requested languages, e.g. --sub-langs
-                                    all,-live_chat. Use --list-subs for a list
-                                    of available language tags
+                                    --sub-langs "en.*,ja". Example: "en.*" will
+                                    download both subtitles "en" and "en-GB", 
+                                    while "en" will only download the former. 
+                                    You can prefix the language code with a "-"
+                                    to exclude it from the requested languages, 
+                                    e.g. --sub-langs all,-live_chat. Use 
+                                    --list-subs for a list of available 
+                                    language tags
 
 ## Authentication Options:
     -u, --username USERNAME         Login with this account ID
