@@ -1601,6 +1601,7 @@ from .puhutv import (
 )
 from .puls4 import Puls4IE
 from .pyvideo import PyvideoIE
+from .plvideo import PlVideoVideoIE
 from .qdance import QDanceIE
 from .qingting import QingTingIE
 from .qqmusic import (
