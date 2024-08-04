@@ -4398,13 +4398,12 @@ class YoutubeDL:
             else:
                 self.to_screen(f'[info] Downloading {thumb_display_id} ...')
                 try:
-                    uf = self.urlopen(Request(t['url'], headers=t.get('http_headers', {})))
+                    thumb_copy = t.copy()
                     self.to_screen(f'[info] Writing {thumb_display_id} to: {thumb_filename}')
-                    with open(encodeFilename(thumb_filename), 'wb') as thumbf:
-                        shutil.copyfileobj(uf, thumbf)
+                    self.dl(thumb_filename, thumb_copy)
                     ret.append((thumb_filename, thumb_filename_final))
                     t['filepath'] = thumb_filename
-                except network_exceptions as err:
+                except (DownloadError, ExtractorError, IOError, OSError, ValueError) + network_exceptions as err:
                     if isinstance(err, HTTPError) and err.status == 404:
                         self.to_screen(f'[info] {thumb_display_id.title()} does not exist')
                     else:
