@@ -403,6 +403,16 @@ class InfoExtractor:
                     extracted will not be available to output template and
                     match_filter. So, only "comments" and "comment_count" are
                     currently allowed to be extracted via this method.
+    _fragment_hook_before_dl: A function to be called just before fragment is
+                    downloaded. It should take three positional arguments:
+                    'fragment_filename', 'fragment_info_dict' and 'ctx'.
+                    This is useful for special sites that need to change
+                    access cookies on every fragment/every few seconds.
+    _fragment_hook_after_dl: A function to be called right after fragment is
+                    downloaded. It should take three positional arguments:
+                    'fragment_filename', 'fragment_info_dict' and 'ctx'.
+                    This is useful for special sites that need to change
+                    access cookies on every fragment/every few seconds.
 
     The following fields should only be used when the video belongs to some logical
     chapter or section:
