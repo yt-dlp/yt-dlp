@@ -1541,6 +1541,7 @@ from .pluralsight import (
     PluralsightIE,
 )
 from .plutotv import PlutoTVIE
+from .plvideo import PlVideoVideoIE
 from .podbayfm import (
     PodbayFMChannelIE,
     PodbayFMIE,
@@ -1601,7 +1602,6 @@ from .puhutv import (
 )
 from .puls4 import Puls4IE
 from .pyvideo import PyvideoIE
-from .plvideo import PlVideoVideoIE
 from .qdance import QDanceIE
 from .qingting import QingTingIE
 from .qqmusic import (

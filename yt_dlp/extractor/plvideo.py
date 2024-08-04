@@ -1,7 +1,8 @@
-from yt_dlp.extractor.common import InfoExtractor
+from .common import InfoExtractor
+
 
 class PlVideoVideoIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?plvideo\.ru/watch\?v=(?P<id>\w+)&?(.+)?' # type: ignore
+    _VALID_URL = r'https?://(?:www\.)?plvideo\.ru/watch\?v=(?P<id>\w+)&?(.+)?'  # type: ignore
     _TESTS = [
         {
             'url': 'https://plvideo.ru/watch?v=lYmu2gcUKOa9',
@@ -9,8 +10,8 @@ class PlVideoVideoIE(InfoExtractor):
                 'id': 'lYmu2gcUKOa9',
                 'ext': 'mp4',
                 'title': 'test',
-            }
-        }
+            },
+        },
     ]
 
     def _real_extract(self, url):
