@@ -159,6 +159,11 @@ class TestUtil(unittest.TestCase):
         self.assertEqual('yes no', sanitize_filename('yes? no', is_id=False))
         self.assertEqual('this - that', sanitize_filename('this: that', is_id=False))
 
+        self.assertEqual('abc_<>\\*|de', sanitize_filename('abc/<>\\*|de', keep_bad_win_chars=True, is_id=False))
+        self.assertEqual('xxx_<>\\*|', sanitize_filename('xxx/<>\\*|', keep_bad_win_chars=True, is_id=False))
+        self.assertEqual('yes? no', sanitize_filename('yes? no', keep_bad_win_chars=True, is_id=False))
+        self.assertEqual('this: that', sanitize_filename('this: that', keep_bad_win_chars=True, is_id=False))
+
         self.assertEqual(sanitize_filename('AT&T'), 'AT&T')
         aumlaut = 'ä'
         self.assertEqual(sanitize_filename(aumlaut), aumlaut)
@@ -168,6 +173,10 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(
             sanitize_filename('New World record at 0:12:34'),
             'New World record at 0_12_34')
+
+        self.assertEqual(
+            sanitize_filename('New World record at 0:12:34', keep_bad_win_chars=True),
+            'New World record at 0:12:34')
 
         self.assertEqual(sanitize_filename('--gasdgf'), '--gasdgf')
         self.assertEqual(sanitize_filename('--gasdgf', is_id=True), '--gasdgf')
@@ -219,6 +228,10 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(sanitize_filename('_n_cd26wFpw', is_id=True), '_n_cd26wFpw')
         self.assertEqual(sanitize_filename('_BD_eEpuzXw', is_id=True), '_BD_eEpuzXw')
         self.assertEqual(sanitize_filename('N0Y__7-UOdI', is_id=True), 'N0Y__7-UOdI')
+
+        self.assertEqual(sanitize_filename('_n_cd26wFpw', keep_bad_win_chars=True, is_id=True), '_n_cd26wFpw')
+        self.assertEqual(sanitize_filename('_BD_eEpuzXw', keep_bad_win_chars=True, is_id=True), '_BD_eEpuzXw')
+        self.assertEqual(sanitize_filename('N0Y__7-UOdI', keep_bad_win_chars=True, is_id=True), 'N0Y__7-UOdI')
 
     def test_sanitize_path(self):
         if sys.platform != 'win32':

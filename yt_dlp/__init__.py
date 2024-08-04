@@ -824,6 +824,7 @@ def parse_options(argv=None):
         'autonumber_start': opts.autonumber_start,
         'restrictfilenames': opts.restrictfilenames,
         'windowsfilenames': opts.windowsfilenames,
+        'keep_bad_win_chars': opts.keep_bad_win_chars,
         'ignoreerrors': opts.ignoreerrors,
         'force_generic_extractor': opts.force_generic_extractor,
         'allowed_extractors': opts.allowed_extractors or ['default'],
