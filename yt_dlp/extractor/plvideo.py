@@ -1,7 +1,4 @@
-
-from pprint import pprint
 from yt_dlp.extractor.common import InfoExtractor
-
 
 class PlVideoVideoIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?plvideo\.ru/watch\?v=(?P<id>\w+)&?(.+)?' # type: ignore
@@ -18,20 +15,20 @@ class PlVideoVideoIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        api_url = f"https://api.g1.plvideo.ru/v1/videos/{video_id}?Aud=18"
+        api_url = f'https://api.g1.plvideo.ru/v1/videos/{video_id}?Aud=18'
 
-        result = self._download_json(api_url, video_id, "Downloading video JSON")
-        assert result.get("code") == 200, "Failed to download video JSON"
+        result = self._download_json(api_url, video_id, 'Downloading video JSON')
+        assert result.get('code') == 200, 'Failed to download video JSON'
 
-        item = result.get("item")
-        assert item is not None, "Bad API response"
+        item = result.get('item')
+        assert item is not None, 'Bad API response'
 
-        thumbnail = item.get("cover").get("paths").get("original").get("src")
+        thumbnail = item.get('cover').get('paths').get('original').get('src')
 
         formats = []
 
-        for key, value in item.get("profiles").items():
-            hlsurl = value.get("hls")
+        for key, value in item.get('profiles').items():
+            hlsurl = value.get('hls')
             fmt = {
                 'url': hlsurl,
                 'ext': 'mp4',
@@ -46,7 +43,7 @@ class PlVideoVideoIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'title': item.get("title"),
+            'title': item.get('title'),
             'formats': formats,
         }
         
