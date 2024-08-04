@@ -649,6 +649,8 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
             # Don't copy the existing subtitles, we may be running the
             # postprocessor a second time
             '-map', '-0:s',
+            # Mark the first subtitle track as default
+            '-disposition:s:0', 'default',
         ]
         for i, (lang, name) in enumerate(zip(sub_langs, sub_names)):
             opts.extend(['-map', f'{i + 1}:0'])
