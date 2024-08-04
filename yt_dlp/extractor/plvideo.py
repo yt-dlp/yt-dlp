@@ -21,17 +21,17 @@ class PlVideoVideoIE(InfoExtractor):
         api_url = f"https://api.g1.plvideo.ru/v1/videos/{video_id}?Aud=18"
 
         result = self._download_json(api_url, video_id, "Downloading video JSON")
-        assert result["code"] == 200, "Failed to download video JSON"
+        assert result.get("code") == 200, "Failed to download video JSON"
 
-        item = result["item"]
+        item = result.get("item")
         assert item is not None, "Bad API response"
 
-        thumbnail = item["cover"]["paths"]["original"]["src"]
+        thumbnail = item.get("cover").get("paths").get("original").get("src")
 
         formats = []
 
-        for key, value in item["profiles"].items():
-            hlsurl = value["hls"]
+        for key, value in item.get("profiles").items():
+            hlsurl = value.get("hls")
             fmt = {
                 'url': hlsurl,
                 'ext': 'mp4',
@@ -46,7 +46,7 @@ class PlVideoVideoIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'title': item["title"],
+            'title': item.get("title"),
             'formats': formats,
         }
         
