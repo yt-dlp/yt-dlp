@@ -1652,10 +1652,8 @@ from .rai import (
     RaiIE,
     RaiNewsIE,
     RaiPlayIE,
-    RaiPlayLiveIE,
     RaiPlayPlaylistIE,
     RaiPlaySoundIE,
-    RaiPlaySoundLiveIE,
     RaiPlaySoundPlaylistIE,
     RaiSudtirolIE,
 )
