@@ -3708,6 +3708,9 @@ class YoutubeDL:
                 return infodict
             raise
 
+        if pp.PP_NAME == 'SubtitlesConvertor' and self.params.get('keepintermediate', False) == 'ConvertSubs':
+            files_to_delete = []
+
         if not files_to_delete:
             return infodict
         if self.params.get('keepvideo', False):
