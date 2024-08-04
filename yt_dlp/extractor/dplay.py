@@ -1157,6 +1157,9 @@ class DiscoveryPlusItalyIE(DiscoveryPlusBaseIE):
     }, {
         'url': 'https://www.discoveryplus.com/it/video/olympics/dplus-sport-dplus-sport-sport/water-polo-greece-italy',
         'only_matching': True,
+    }, {
+        'url': 'https://www.discoveryplus.com/it/video/sport/dplus-sport-dplus-sport-sport/lisa-vittozzi-allinferno-e-ritorno',
+        'only_matching': True,
     }]
 
     _PRODUCT = 'dplus_it'
