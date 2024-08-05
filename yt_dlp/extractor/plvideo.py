@@ -48,7 +48,7 @@ class PlVideoVideoIE(InfoExtractor):
             'title': item.get('title'),
             'formats': formats,
             'thumbnails': [{'url': thumbnail}],
-            'uploader': f'{item.get('channel').get('name')}',
+            'uploader': item.get('channel').get('name'),
             'duration': item.get('uploadFile').get('videoDuration'),
             'uploader_id': item.get('channel').get('id'),
             'view_count': item.get('stats').get('viewTotalCount'),
