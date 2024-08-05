@@ -686,7 +686,7 @@ class CBCGemLiveIE(InfoExtractor):
             'params': {'skip_download': True},
             'skip': 'Live might have ended',
         },
-        {
+        {   # event replay (medianetlive)
             'url': 'https://gem.cbc.ca/live-event/42314',
             'md5': '297a9600f554f2258aed01514226a697',
             'info_dict': {
@@ -695,7 +695,7 @@ class CBCGemLiveIE(InfoExtractor):
                 'is_live': False,
                 'title': 'Women\'s Soccer - Canada vs New Zealand',
                 'description': 'md5:36200e5f1a70982277b5a6ecea86155d',
-                'thumbnail': 'https://i.cbc.ca/ais/87f0a05b-b612-4266-97ee-b2fe8f8dffd2,1720704630124/full/max/0/default.jpg?im=Crop%2Crect%3D%280%2C0%2C3000%2C1687%29%3BResize%3D%28620%29?impolicy=ott&im=Resize=(_Size_)&quality=75',
+                'thumbnail': r're:https://.+default\.jpg',
                 'timestamp': 1721917200,
                 'upload_date': '20240725',
             },
