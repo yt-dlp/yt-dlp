@@ -684,6 +684,11 @@ def get_postprocessors(opts):
             'add_metadata': opts.addmetadata,
             'add_infojson': opts.embed_infojson,
         }
+    # MutagenMetadata must run after FFmpegMetadata
+    if opts.addmetadata:
+        yield {
+            'key': 'MutagenMetadata',
+        }
     # Deprecated
     # This should be above EmbedThumbnail since sponskrub removes the thumbnail attachment
     # but must be below EmbedSubtitle and FFmpegMetadata
