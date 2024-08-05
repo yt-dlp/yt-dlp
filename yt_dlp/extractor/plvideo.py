@@ -16,6 +16,17 @@ class PlVideoVideoIE(InfoExtractor):
         },
     ]
 
+    def _quality_to_dimensions(self, quality):
+        mapped = {
+            '240p': (426, 240),
+            '360p': (640, 360),
+            '468p': (720, 468),
+            '480p': (720, 480),
+            '720p': (1280, 720),
+            '1080p': (1920, 1080),
+        }
+        return mapped.get(quality)
+
     def _real_extract(self, url):
         video_id = self._match_id(url)
         api_url = f'https://api.g1.plvideo.ru/v1/videos/{video_id}?Aud=18'
@@ -33,12 +44,16 @@ class PlVideoVideoIE(InfoExtractor):
 
         for key, value in item.get('profiles').items():
             hlsurl = value.get('hls')
+            dimensions = self._quality_to_dimensions(key)
             fmt = {
                 'url': hlsurl,
                 'ext': 'mp4',
                 'quality': preference(key),
+                'width': dimensions[0],
+                'height': dimensions[1],
                 'format_id': key,
                 'protocol': 'm3u8_native',
+                'aspect_ratio': float(value.get('aspectRatio')),
             }
 
             formats.append(fmt)
