@@ -1,3 +1,5 @@
+from yt_dlp.utils._utils import qualities
+
 from .common import InfoExtractor
 
 
@@ -27,22 +29,37 @@ class PlVideoVideoIE(InfoExtractor):
         thumbnail = item.get('cover').get('paths').get('original').get('src')
 
         formats = []
+        preference = qualities(['240p', '360p', '468p', '480p', '720p', '1080p'])
 
         for key, value in item.get('profiles').items():
             hlsurl = value.get('hls')
             fmt = {
                 'url': hlsurl,
                 'ext': 'mp4',
-                'quality': 0 if len(formats) == 0 else 0 - len(formats),
+                'quality': preference(key),
                 'format_id': key,
                 'protocol': 'm3u8_native',
             }
 
             formats.append(fmt)
 
-        return {
+        result = {
             'id': video_id,
             'title': item.get('title'),
             'formats': formats,
             'thumbnails': [{'url': thumbnail}],
+            'uploader': f'{item.get('channel').get('name')}',
+            'duration': item.get('uploadFile').get('videoDuration'),
+            'uploader_id': item.get('channel').get('id'),
+            'view_count': item.get('stats').get('viewTotalCount'),
+            'like_count': item.get('stats').get('likeCount'),
+            'comment_count': item.get('stats').get('commentCount'),
+            'dislike_count': item.get('stats').get('dislikeCount'),
+            'type': item.get('type'),
         }
+
+        description = item.get('description')
+        if description:
+            result['description'] = description
+
+        return result
