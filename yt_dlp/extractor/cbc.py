@@ -702,21 +702,26 @@ class CBCGemLiveIE(InfoExtractor):
             'params': {'skip_download': True},
             'skip': 'Replay might no longer be available',
         },
+        {   # event replay (medianetlive)
+            'url': 'https://gem.cbc.ca/live-event/43273',
+            'only_matching': True,
+        },
     ]
+    _GEO_COUNTRIES = ['CA']
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
         video_info = self._search_nextjs_data(webpage, video_id)['props']['pageProps']['data']
 
-        # Two types of metadata JSON
-        appCode = 'mpx'
-        isLive = True
+        # Three types of video_info JSON: root (mpx), freeTv stream (mpx), event replay (medianetlive)
+        app_code = 'mpx'
+        is_live = True
         if not video_info.get('formattedIdMedia'):
-            if video_info.get('event') and video_info['event']['key'] == video_id:
+            if traverse_obj(video_info, ('event', 'key')) == video_id:
                 video_info = video_info['event']
-                appCode = 'medianetlive'
-                isLive = False
+                app_code = 'medianetlive'
+                is_live = False
             else:
                 video_info = traverse_obj(
                     video_info, (('freeTv', ('streams', ...)), 'items', lambda _, v: v['key'] == video_id, {dict}),
@@ -728,7 +733,7 @@ class CBCGemLiveIE(InfoExtractor):
 
         stream_data = self._download_json(
             'https://services.radio-canada.ca/media/validation/v2/', video_id, query={
-                'appCode': appCode,
+                'appCode': app_code,
                 'connectionType': 'hd',
                 'deviceType': 'ipad',
                 'idMedia': video_stream_id,
@@ -741,7 +746,7 @@ class CBCGemLiveIE(InfoExtractor):
         return {
             'id': video_id,
             'formats': self._extract_m3u8_formats(stream_data['url'], video_id, 'mp4', live=True),
-            'is_live': isLive,
+            'is_live': is_live,
             **traverse_obj(video_info, {
                 'title': 'title',
                 'description': 'description',
