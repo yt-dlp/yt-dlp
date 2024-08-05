@@ -709,9 +709,14 @@ class JSInterpreter:
                     obj.reverse()
                     return obj
                 elif member == 'slice':
-                    assertion(isinstance(obj, list), 'must be applied on a list')
-                    assertion(len(argvals) == 1, 'takes exactly one argument')
-                    return obj[argvals[0]:]
+                    assertion(isinstance(obj, (list, str)), 'must be applied on a list or string')
+                    assertion(len(argvals) <= 2, 'takes between 0 and 2 arguments')
+                    if len(argvals) == 0:
+                        return obj
+                    if len(argvals) == 1:
+                        return obj[argvals[0]:]
+                    if len(argvals) == 2:
+                        return obj[argvals[0]:argvals[1]]
                 elif member == 'splice':
                     assertion(isinstance(obj, list), 'must be applied on a list')
                     assertion(argvals, 'takes one or more arguments')
