@@ -900,32 +900,33 @@ class TestYoutubeDL(unittest.TestCase):
         }), r'^30fps$')
 
     def test_postprocessors(self):
-        filename = 'post-processor-testfile.mp4'
-        audiofile = filename + '.mp3'
+        filename = 'post-processor-testfile'
+        video_file = filename + '.mp4'
+        audio_file = filename + '.mp3'
 
         class SimplePP(PostProcessor):
             def run(self, info):
-                with open(audiofile, 'w') as f:
+                with open(audio_file, 'w') as f:
                     f.write('EXAMPLE')
                 return [info['filepath']], info
 
         def run_pp(params, pp):
-            with open(filename, 'w') as f:
+            with open(video_file, 'w') as f:
                 f.write('EXAMPLE')
             ydl = YoutubeDL(params)
             ydl.add_post_processor(pp())
-            ydl.post_process(filename, {'filepath': filename})
+            ydl.post_process(video_file, {'filepath': video_file})
 
-        run_pp({'keepvideo': True}, SimplePP)
-        self.assertTrue(os.path.exists(filename), f'{filename} doesn\'t exist')
-        self.assertTrue(os.path.exists(audiofile), f'{audiofile} doesn\'t exist')
-        os.unlink(filename)
-        os.unlink(audiofile)
+        run_pp({'keepvideo': True, 'outtmpl': filename}, SimplePP)
+        self.assertTrue(os.path.exists(video_file), f'{video_file} doesn\'t exist')
+        self.assertTrue(os.path.exists(audio_file), f'{audio_file} doesn\'t exist')
+        os.unlink(video_file)
+        os.unlink(audio_file)
 
-        run_pp({'keepvideo': False}, SimplePP)
-        self.assertFalse(os.path.exists(filename), f'{filename} exists')
-        self.assertTrue(os.path.exists(audiofile), f'{audiofile} doesn\'t exist')
-        os.unlink(audiofile)
+        run_pp({'keepvideo': False, 'outtmpl': filename}, SimplePP)
+        self.assertFalse(os.path.exists(video_file), f'{video_file} exists')
+        self.assertTrue(os.path.exists(audio_file), f'{audio_file} doesn\'t exist')
+        os.unlink(audio_file)
 
         class ModifierPP(PostProcessor):
             def run(self, info):
@@ -933,9 +934,9 @@ class TestYoutubeDL(unittest.TestCase):
                     f.write('MODIFIED')
                 return [], info
 
-        run_pp({'keepvideo': False}, ModifierPP)
-        self.assertTrue(os.path.exists(filename), f'{filename} doesn\'t exist')
-        os.unlink(filename)
+        run_pp({'keepvideo': False, 'outtmpl': filename}, ModifierPP)
+        self.assertTrue(os.path.exists(video_file), f'{video_file} doesn\'t exist')
+        os.unlink(video_file)
 
     def test_match_filter(self):
         first = {

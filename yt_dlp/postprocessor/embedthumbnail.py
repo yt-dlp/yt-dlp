@@ -231,4 +231,8 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
             thumbnail_filename if converted or not self._already_have_thumbnail else None,
             original_thumbnail if converted and not self._already_have_thumbnail else None,
             info=info)
+
+        if not self._already_have_thumbnail:
+            info['thumbnails'][idx].pop('filepath', None)
+
         return [], info

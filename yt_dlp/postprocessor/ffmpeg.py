@@ -663,6 +663,10 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
         self.run_ffmpeg_multiple_files(input_files, temp_filename, opts)
         os.replace(temp_filename, filename)
 
+        if not self._already_have_subtitle:
+            for _, subtitle in subtitles.items():
+                subtitle.pop('filepath', None)
+
         files_to_delete = [] if self._already_have_subtitle else sub_filenames
         return files_to_delete, info
 
@@ -699,6 +703,7 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
                 infojson_filename = info.get('infojson_filename')
                 options.extend(self._get_infojson_opts(info, infojson_filename))
                 if not infojson_filename:
+                    info.pop('infojson_filename', None)
                     files_to_delete.append(info.get('infojson_filename'))
             elif self._add_infojson is True:
                 self.to_screen('The info-json can only be attached to mkv/mka files')
@@ -1016,9 +1021,6 @@ class FFmpegSubtitlesConvertorPP(FFmpegPostProcessor):
                     'filepath': new_file,
                 }
 
-            info['__files_to_move'][new_file] = replace_extension(
-                info['__files_to_move'][sub['filepath']], new_ext)
-
         return sub_filenames, info
 
 
@@ -1083,16 +1085,15 @@ class FFmpegThumbnailsConvertorPP(FFmpegPostProcessor):
         return imghdr.what(path) == 'webp'
 
     def fixup_webp(self, info, idx=-1):
-        thumbnail_filename = info['thumbnails'][idx]['filepath']
+        thumbnail = info['thumbnails'][idx]
+        thumbnail_filename = thumbnail['filepath']
         _, thumbnail_ext = os.path.splitext(thumbnail_filename)
         if thumbnail_ext:
             if thumbnail_ext.lower() != '.webp' and imghdr.what(thumbnail_filename) == 'webp':
                 self.to_screen(f'Correcting thumbnail "{thumbnail_filename}" extension to webp')
                 webp_filename = replace_extension(thumbnail_filename, 'webp')
                 os.replace(thumbnail_filename, webp_filename)
-                info['thumbnails'][idx]['filepath'] = webp_filename
-                info['__files_to_move'][webp_filename] = replace_extension(
-                    info['__files_to_move'].pop(thumbnail_filename), 'webp')
+                thumbnail['filepath'] = webp_filename
 
     @staticmethod
     def _options(target_ext):
@@ -1130,8 +1131,6 @@ class FFmpegThumbnailsConvertorPP(FFmpegPostProcessor):
                 continue
             thumbnail_dict['filepath'] = self.convert_thumbnail(original_thumbnail, target_ext)
             files_to_delete.append(original_thumbnail)
-            info['__files_to_move'][thumbnail_dict['filepath']] = replace_extension(
-                info['__files_to_move'][original_thumbnail], target_ext)
 
         if not has_thumbnail:
             self.to_screen('There aren\'t any thumbnails to convert')
