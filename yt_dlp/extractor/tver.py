@@ -10,7 +10,7 @@ from ..utils import (
 
 
 class TVerIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?tver\.jp/(?:(?P<type>lp|corner|series|episodes?|feature|tokyo2020/video)/)+(?P<id>[a-zA-Z0-9]+)'
+    _VALID_URL = r'https?://(?:www\.)?tver\.jp/(?:(?P<type>lp|corner|series|episodes?|feature|tokyo2020/video|olympic/paris2024/video)/)+(?P<id>[a-zA-Z0-9]+)'
     _TESTS = [{
         'skip': 'videos are only available for 7 days',
         'url': 'https://tver.jp/episodes/ep83nf3w4p',
@@ -23,6 +23,20 @@ class TVerIE(InfoExtractor):
             'channel': 'テレビ朝日',
         },
         'add_ie': ['BrightcoveNew'],
+    }, {
+        'url': 'https://tver.jp/olympic/paris2024/video/6359578055112/',
+        'info_dict': {
+            'id': '6359578055112',
+            'ext': 'mp4',
+            'title': '堀米雄斗 金メダルで五輪連覇！「みんなの応援が最後に乗れたカギ」',
+            'timestamp': 1722279928,
+            'upload_date': '20240729',
+            'tags': ['20240729', 'japanese', 'japanmedal', 'paris'],
+            'uploader_id': '4774017240001',
+            'thumbnail': r're:https?://[^/?#]+boltdns\.net/[^?#]+/1920x1080/match/image\.jpg',
+            'duration': 670.571,
+        },
+        'params': {'skip_download': 'm3u8'},
     }, {
         'url': 'https://tver.jp/corner/f0103888',
         'only_matching': True,
@@ -47,7 +61,15 @@ class TVerIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id, video_type = self._match_valid_url(url).group('id', 'type')
-        if video_type not in {'series', 'episodes'}:
+
+        if video_type == 'olympic/paris2024/video':
+            # Player ID is taken from .content.brightcove.E200.pro.pc.account_id:
+            # https://tver.jp/olympic/paris2024/req/api/hook?q=https%3A%2F%2Folympic-assets.tver.jp%2Fweb-static%2Fjson%2Fconfig.json&d=
+            return self.url_result(smuggle_url(
+                self.BRIGHTCOVE_URL_TEMPLATE % ('4774017240001', video_id),
+                {'geo_countries': ['JP']}), 'BrightcoveNew')
+
+        elif video_type not in {'series', 'episodes'}:
             webpage = self._download_webpage(url, video_id, note='Resolving to new URL')
             video_id = self._match_id(self._search_regex(
                 (r'canonical"\s*href="(https?://tver\.jp/[^"]+)"', r'&link=(https?://tver\.jp/[^?&]+)[?&]'),
