@@ -1,5 +1,9 @@
 from .common import InfoExtractor
-from ..utils import traverse_obj, str_or_none, url_or_none
+from ..utils import (
+    str_or_none,
+    traverse_obj,
+    url_or_none,
+)
 
 
 class ElPaisIE(InfoExtractor):
@@ -40,7 +44,7 @@ class ElPaisIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
-        video_info = self._search_json_ld(webpage, video_id) 
+        video_info = self._search_json_ld(webpage, video_id)
 
         return {
             'id': video_id,
