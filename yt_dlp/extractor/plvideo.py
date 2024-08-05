@@ -8,10 +8,21 @@ class PlVideoVideoIE(InfoExtractor):
     _TESTS = [
         {
             'url': 'https://plvideo.ru/watch?v=lYmu2gcUKOa9',
+            'md5': 'eb3e7830abb375a782d943f593d2646b',
             'info_dict': {
                 'id': 'lYmu2gcUKOa9',
                 'ext': 'mp4',
-                'title': 'test',
+                'title': 'Запретная страсть. Премьера 2024. 18+Мелодрама. Триллер. 18+',
+                'uploader_id': 'y__S081jJiUt',
+                'uploader': 'Tvoja Mediateka',
+                'duration': 6238333,
+                'like_count': int,
+                'description': str,
+                'comment_count': int,
+                'thumbnail': r're:^https?://.*\.jpg',
+                'type': 'video',
+                'view_count': int,
+                'dislike_count': int,
             },
         },
     ]
