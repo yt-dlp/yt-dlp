@@ -3188,7 +3188,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 (?:
                     b=String\.fromCharCode\(110\)|
                     (?P<str_idx>[a-zA-Z0-9_$.]+)&&\(b="nn"\[\+(?P=str_idx)\]
-                )(?:,[a-zA-Z0-9_$]+\(a\))?,c=a\.(?:get\(b\)|[a-zA-Z0-9_$]+\[b\]\|\|null)\)&&\(c=|
+                )
+                (?:,[a-zA-Z0-9_$]+\(a\))?,c=a\.
+                (?:
+                    get\(b\)|
+                    [a-zA-Z0-9_$]+\[b\]\|\|null
+                )\)&&\(c=|
                 \b(?P<var>[a-zA-Z0-9_$]+)=
             )(?P<nfunc>[a-zA-Z0-9_$]+)(?:\[(?P<idx>\d+)\])?\([a-zA-Z]\)
             (?(var),[a-zA-Z0-9_$]+\.set\("n"\,(?P=var)\),(?P=nfunc)\.length)''',
