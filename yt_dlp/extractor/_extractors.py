@@ -2381,6 +2381,7 @@ from .vrt import (
     DagelijkseKostIE,
     KetnetIE,
     Radio1BeIE,
+    VRTMaxRadioIE,
     VrtNUIE,
 )
 from .vtm import VTMIE

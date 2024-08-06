@@ -22,6 +22,7 @@ from ..utils import (
     str_or_none,
     strip_or_none,
     traverse_obj,
+    try_call,
     url_or_none,
     urlencode_postdata,
 )
@@ -487,3 +488,124 @@ class Radio1BeIE(VRTBaseIE):
                     'description': self._html_search_meta(['description', 'og:description', 'twitter:description'], webpage),
                     'thumbnail': self._html_search_meta(['og:image', 'twitter:image'], webpage),
             }))
+
+
+class VRTMaxRadioIE(VRTBaseIE):
+    IE_DESC = 'VRT MAX (radio)'
+    _VALID_URL = r'https?://(?:www\.)?vrt\.be/(?:vrtmax|vrtnu)/luister/radio/(?P<show1l>[^/])/(?P<show>[^/]+)/(?P<episode_id>[^/?#&]+)/?'
+    _TESTS = [{
+        'url': 'https://www.vrt.be/vrtmax/luister/radio/d/duyster~11-177/duyster~11-27934-0/',
+        'md5': '14d002b1ebd8591ae360ff54a9b51515',  # ... of first Fragment.
+        'info_dict': {
+            'id': 'duyster~11-27934-0',
+            'ext': 'mp4',
+            'title': 'DUYSTER.',
+            'description': 'DUYSTER. - maandag 10 juni 2024 om 22:00 | VRT MAX',
+            'thumbnail': 'https://images.vrt.be/vrtmax_prog_radio1/2023/10/05/1266f9e6-633c-11ee-91d7-02b7b76bf47f.png',
+            'timestamp': 1718049600,
+            'upload_date': '20240610',
+            'duration': 7200,
+            'channel': 'Radio 1',
+            'channel_url': 'https://www.vrt.be/vrtmax/kanalen/radio-1/',
+            'display_id': 'duyster~11-27934-0',
+        },
+    }, {
+        'url': 'https://www.vrt.be/vrtnu/luister/radio/n/nachtbaders~31-182/nachtbaders~31-22512-0/',
+        'md5': '85e9b0edf133f6638aa8d56581ac8773',
+        'info_dict': {
+            'id': 'nachtbaders~31-22512-0',
+            'ext': 'mp4',
+            'title': 'Nachtbaders',
+            'description': 'Nachtbaders - vrijdag 5 januari 2024 om 22:00 | VRT MAX | Nachtbaders Tom Soetaert en Niels Van Paemel dompelen je onder in de dromerige wereld van de neoklassiek. In hun queeste naar het beste uit het genre leggen ze de luisteraar te week in een bad van bedwelmende muziek van onder meer Max Richter, Bon Iver, Sigur Rós, Nils Frahm en Jóhann Jóhannson.',
+            'thumbnail': 'https://images.vrt.be/orig/2021/10/20/fdd5992e-31ad-11ec-b07d-02b7b76bf47f.jpg',
+            'timestamp': 1704488400.0,
+            'upload_date': '20240105',
+            'duration': 7200.0,
+            'channel': 'Klara',
+            'channel_url': 'https://www.vrt.be/vrtmax/kanalen/klara/',
+            'display_id': 'nachtbaders~31-22512-0',
+        },
+    }]
+
+    _GRAPHQUERY = '''query RadioEpisodePage($pageId: ID!) {
+  page(id: $pageId) {
+    ... on RadioEpisodePage {
+      title
+      socialSharing {
+        title
+      }
+      player {
+        listenAction {
+          ... on RadioEpisodeListenAction {
+            streamId
+            startDate
+            endDate
+          }
+        }
+      }
+      radioEpisode {
+        richDescription {
+          text
+        }
+        brand
+        image {
+          templateUrl
+        }
+        actionItems {
+          action {
+            ... on LinkAction {
+              link
+              linkType
+            }
+          }
+        }
+      }
+    }
+  }
+}'''
+
+    def get_metadata(self, show1l, show, episode_id):
+        # Rather fragile, download responds with nothing but "400: Bad Request" if any
+        # GraphQL part or header is out of place.  Best to keep them minimal.
+        graphqlvar = f'/vrtnu/luister/radio/{show1l}/{show}/{episode_id}/'
+        postdata = json.dumps({
+            'query': self._GRAPHQUERY,
+            'variables': {'pageId': graphqlvar},
+        }).encode()
+        return self._download_json(
+            'https://www.vrt.be/vrtnu-api/graphql/public/v1', episode_id,
+            note='Downloading GraphQL metadata', data=postdata,
+            headers={
+                'content-type': 'application/json',
+                'Accept': 'application/graphql+json, application/json',
+                'Accept-Encoding': 'gzip, deflate, br',
+                'x-vrt-client-name': 'WEB',
+            })
+
+    def _real_extract(self, url):
+        (show1l, show, episode_id) = self._match_valid_url(url).groups()
+        metadata = self.get_metadata(show1l, show, episode_id)['data']['page']
+
+        audio_id = traverse_obj(metadata, ('player', 'listenAction', 'streamId'))
+        media_items = self._call_api(audio_id, 'vrtnu-web@PROD', version='v2')
+        formats, _ = self._extract_formats_and_subtitles(media_items, audio_id)
+
+        return {
+            'id': episode_id,
+            'formats': formats,
+            **traverse_obj(metadata, {
+                'title': 'title',
+                'description': ([('socialSharing', 'title'),
+                                 ('radioEpisode', 'richDescription', 'text')],
+                                all, {lambda txts: ' | '.join(txts) or None}),
+                'thumbnail': ('radioEpisode', 'image', 'templateUrl'),
+                'timestamp': ('player', 'listenAction', 'startDate', {lambda x: x / 1000}),
+                # Duration of original transmission, downloaded file is sometimes shorter:
+                'duration': ('player', 'listenAction',
+                             {lambda a: try_call(lambda: (a['endDate'] - a['startDate']) / 1000)}),
+                'channel': ('radioEpisode', 'brand'),
+                'channel_url': ('radioEpisode', 'actionItems', ..., 'action', all,
+                                lambda _, act: act.get('linkType') == 'channel', any,
+                                'link', {lambda link: 'https://www.vrt.be' + link}),
+            }),
+        }
