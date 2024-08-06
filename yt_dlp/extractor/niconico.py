@@ -458,8 +458,11 @@ class NiconicoIE(InfoExtractor):
             if video_id.startswith('so'):
                 video_id = self._match_id(handle.url)
 
-            api_data = self._parse_json(
-                self._html_search_meta('server-response', webpage), video_id)['data']['response']
+            api_data = traverse_obj(
+                self._parse_json(self._html_search_meta('server-response', webpage) or '', video_id),
+                ('data', 'response', {dict}))
+            if not api_data:
+                raise ExtractorError('Server response data not found')
         except ExtractorError as e:
             try:
                 api_data = self._download_json(
