@@ -29,7 +29,7 @@ if curl_cffi is None:
     raise ImportError('curl_cffi is not installed')
 
 
-curl_cffi_version = tuple(map(int, re.split(r'[^\d]+', curl_cffi.__version__)[:3]))
+curl_cffi_version = tuple(map(int, re.split(r'\D+', curl_cffi.__version__)[:3]))
 
 if curl_cffi_version != (0, 5, 10) and not ((0, 7, 0) <= curl_cffi_version < (0, 8, 0)):
     curl_cffi._yt_dlp__version = f'{curl_cffi.__version__} (unsupported)'
