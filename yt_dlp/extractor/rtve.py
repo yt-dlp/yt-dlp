@@ -14,7 +14,7 @@ from ..utils import (
 
 class RTVEALaCartaIE(InfoExtractor):
     IE_NAME = 'rtve.es:alacarta'
-    IE_DESC = 'RTVE a la carta, play and infantil'
+    IE_DESC = 'RTVE a la carta and Play'
     _VALID_URL = [
         r'https?://(?:www\.)?rtve\.es/(m/)?(alacarta/videos|filmoteca)/[^/]+/[^/]+/(?P<id>\d+)',
         r'https?://(?:www\.)?rtve\.es/(m/)?play/videos/[^/]+/[^/]+/(?P<id>\d+)',
@@ -147,12 +147,12 @@ class RTVEALaCartaIE(InfoExtractor):
 
     def _extract_png_formats(self, video_id):
         formats = []
-
+        q = qualities(['Media', 'Alta', 'HQ', 'HD_READY', 'HD_FULL'])
         for manager in (self._manager, 'rtveplayw'):
             png = self._download_webpage(
                 f'http://www.rtve.es/ztnr/movil/thumbnail/{manager}/videos/{video_id}.png',
                 video_id, 'Downloading url information', query={'q': 'v2'})
-            q = qualities(['Media', 'Alta', 'HQ', 'HD_READY', 'HD_FULL'])
+
             for quality, video_url in self._decrypt_url(png):
                 ext = determine_ext(video_url)
                 if ext == 'm3u8':
