@@ -337,6 +337,15 @@ class FileDownloader:
             progress_template.get('download-title') or 'yt-dlp %(progress._default_template)s',
             progress_dict))
 
+        percent = s.get('_percent')
+        if s['status'] not in ('downloading', 'error', 'finished') or percent is None:
+            return
+        if s['status'] == 'finished':
+            self.ydl._send_console_code('\033]9;4;3\007')
+            return
+        state = 1 if s['status'] == 'downloading' else 2
+        self.ydl._send_console_code(f'\033]9;4;{state};{int(percent)}\007')
+
     def _format_progress(self, *args, **kwargs):
         return self.ydl._format_text(
             self._multiline.stream, self._multiline.allow_colors, *args, **kwargs)
@@ -359,6 +368,7 @@ class FileDownloader:
                 '_speed_str': self.format_speed(speed).strip(),
                 '_total_bytes_str': _format_bytes('total_bytes'),
                 '_elapsed_str': self.format_seconds(s.get('elapsed')),
+                '_percent': 100.0,
                 '_percent_str': self.format_percent(100),
             })
             self._report_progress_status(s, join_nonempty(
@@ -377,13 +387,15 @@ class FileDownloader:
                     return
                 self._progress_delta_time += update_delta
 
+        progress = try_call(
+            lambda: 100 * s['downloaded_bytes'] / s['total_bytes'],
+            lambda: 100 * s['downloaded_bytes'] / s['total_bytes_estimate'],
+            lambda: s['downloaded_bytes'] == 0 and 0)
         s.update({
             '_eta_str': self.format_eta(s.get('eta')).strip(),
             '_speed_str': self.format_speed(s.get('speed')),
-            '_percent_str': self.format_percent(try_call(
-                lambda: 100 * s['downloaded_bytes'] / s['total_bytes'],
-                lambda: 100 * s['downloaded_bytes'] / s['total_bytes_estimate'],
-                lambda: s['downloaded_bytes'] == 0 and 0)),
+            '_percent': progress,
+            '_percent_str': self.format_percent(progress),
             '_total_bytes_str': _format_bytes('total_bytes'),
             '_total_bytes_estimate_str': _format_bytes('total_bytes_estimate'),
             '_downloaded_bytes_str': _format_bytes('downloaded_bytes'),

@@ -26,7 +26,7 @@ import unicodedata
 
 from .cache import Cache
 from .compat import urllib  # isort: split
-from .compat import compat_os_name, urllib_req_to_req
+from .compat import urllib_req_to_req
 from .cookies import LenientSimpleCookie, load_cookies
 from .downloader import FFmpegFD, get_suitable_downloader, shorten_protocol_name
 from .downloader.rtmp import rtmpdump_version
@@ -168,7 +168,7 @@ from .utils.networking import (
 )
 from .version import CHANNEL, ORIGIN, RELEASE_GIT_HEAD, VARIANT, __version__
 
-if compat_os_name == 'nt':
+if os.name == 'nt':
     import ctypes
 
 
@@ -639,19 +639,18 @@ class YoutubeDL:
         self.cache = Cache(self)
         self.__header_cookies = []
 
+        try:
+            windows_enable_vt_mode()
+        except Exception as e:
+            self.write_debug(f'Failed to enable VT mode: {e}')
+
         stdout = sys.stderr if self.params.get('logtostderr') else sys.stdout
         self._out_files = Namespace(
             out=stdout,
             error=sys.stderr,
             screen=sys.stderr if self.params.get('quiet') else stdout,
-            console=None if compat_os_name == 'nt' else next(
-                filter(supports_terminal_sequences, (sys.stderr, sys.stdout)), None),
+            console=next(filter(supports_terminal_sequences, (sys.stderr, sys.stdout)), None),
         )
-
-        try:
-            windows_enable_vt_mode()
-        except Exception as e:
-            self.write_debug(f'Failed to enable VT mode: {e}')
 
         if self.params.get('no_color'):
             if self.params.get('color') is not None:
@@ -953,21 +952,18 @@ class YoutubeDL:
             self._write_string(f'{self._bidi_workaround(message)}\n', self._out_files.error, only_once=only_once)
 
     def _send_console_code(self, code):
-        if compat_os_name == 'nt' or not self._out_files.console:
-            return
+        if not supports_terminal_sequences(self._out_files.console):
+            return False
         self._write_string(code, self._out_files.console)
+        return True
 
     def to_console_title(self, message):
-        if not self.params.get('consoletitle', False):
+        if not self.params.get('consoletitle'):
             return
         message = remove_terminal_sequences(message)
-        if compat_os_name == 'nt':
-            if ctypes.windll.kernel32.GetConsoleWindow():
-                # c_wchar_p() might not be necessary if `message` is
-                # already of type unicode()
-                ctypes.windll.kernel32.SetConsoleTitleW(ctypes.c_wchar_p(message))
-        else:
-            self._send_console_code(f'\033]0;{message}\007')
+        if not self._send_console_code(f'\033]0;{message}\007'):
+            if os.name == 'nt' and ctypes.windll.kernel32.GetConsoleWindow():
+                ctypes.windll.kernel32.SetConsoleTitleW(message)
 
     def save_console_title(self):
         if not self.params.get('consoletitle') or self.params.get('simulate'):
@@ -981,6 +977,9 @@ class YoutubeDL:
 
     def __enter__(self):
         self.save_console_title()
+        if self.params.get('consoletitle'):
+            # Set progress bar to "indeterminate"
+            self._send_console_code('\033]9;4;3\007')
         return self
 
     def save_cookies(self):
@@ -989,6 +988,9 @@ class YoutubeDL:
 
     def __exit__(self, *args):
         self.restore_console_title()
+        if self.params.get('consoletitle'):
+            # Set progress bar to "disabled"
+            self._send_console_code('\033]9;4;0\007')
         self.close()
 
     def close(self):

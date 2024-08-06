@@ -192,6 +192,15 @@ class PostProcessor(metaclass=PostProcessorMetaClass):
             progress_template.get('postprocess-title') or 'yt-dlp %(progress._default_template)s',
             progress_dict))
 
+        percent = s.get('_percent')
+        if s['status'] not in ('downloading', 'error', 'finished') or percent is None:
+            return
+        if s['status'] == 'finished':
+            self._downloader._send_console_code('\033]9;4;3\007')
+            return
+        state = 1 if s['status'] == 'downloading' else 2
+        self._downloader._send_console_code(f'\033]9;4;{state};{int(percent)}\007')
+
     def _retry_download(self, err, count, retries):
         # While this is not an extractor, it behaves similar to one and
         # so obey extractor_retries and "--retry-sleep extractor"
