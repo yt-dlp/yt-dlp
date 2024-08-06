@@ -146,26 +146,28 @@ class RTVEALaCartaIE(InfoExtractor):
         return alphabet
 
     def _extract_png_formats(self, video_id):
-        png = self._download_webpage(
-            f'http://www.rtve.es/ztnr/movil/thumbnail/{self._manager}/videos/{video_id}.png',
-            video_id, 'Downloading url information', query={'q': 'v2'})
-        q = qualities(['Media', 'Alta', 'HQ', 'HD_READY', 'HD_FULL'])
         formats = []
-        for quality, video_url in self._decrypt_url(png):
-            ext = determine_ext(video_url)
-            if ext == 'm3u8':
-                formats.extend(self._extract_m3u8_formats(
-                    video_url, video_id, 'mp4', 'm3u8_native',
-                    m3u8_id='hls', fatal=False))
-            elif ext == 'mpd':
-                formats.extend(self._extract_mpd_formats(
-                    video_url, video_id, 'dash', fatal=False))
-            else:
-                formats.append({
-                    'format_id': quality,
-                    'quality': q(quality),
-                    'url': video_url,
-                })
+
+        for manager in (self._manager, 'rtveplayw'):
+            png = self._download_webpage(
+                f'http://www.rtve.es/ztnr/movil/thumbnail/{manager}/videos/{video_id}.png',
+                video_id, 'Downloading url information', query={'q': 'v2'})
+            q = qualities(['Media', 'Alta', 'HQ', 'HD_READY', 'HD_FULL'])
+            for quality, video_url in self._decrypt_url(png):
+                ext = determine_ext(video_url)
+                if ext == 'm3u8':
+                    formats.extend(self._extract_m3u8_formats(
+                        video_url, video_id, 'mp4', 'm3u8_native',
+                        m3u8_id='hls', fatal=False))
+                elif ext == 'mpd':
+                    formats.extend(self._extract_mpd_formats(
+                        video_url, video_id, 'dash', fatal=False))
+                else:
+                    formats.append({
+                        'format_id': quality,
+                        'quality': q(quality),
+                        'url': video_url,
+                    })
         return formats
 
     def _real_extract(self, url):
