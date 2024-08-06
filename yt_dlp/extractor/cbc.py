@@ -647,11 +647,11 @@ class CBCGemLiveIE(InfoExtractor):
                 'title': 'Ottawa',
                 'description': 'The live TV channel and local programming from Ottawa',
                 'thumbnail': 'https://thumbnails.cbc.ca/maven_legacy/thumbnails/CBC_OTT_VMS/Live_Channel_Static_Images/Ottawa_2880x1620.jpg',
-                'is_live': True,
+                'live_status': 'is_live',
                 'id': 'AyqZwxRqh8EH',
                 'ext': 'mp4',
-                'timestamp': 1492106160,
-                'upload_date': '20170413',
+                'release_timestamp': 1492106160,
+                'release_date': '20170413',
                 'uploader': 'CBCC-NEW',
             },
             'skip': 'Live might have ended',
@@ -680,8 +680,8 @@ class CBCGemLiveIE(InfoExtractor):
                 'description': 'March 24, 2023 | President Biden’s Ottawa visit ends with big pledges from both countries. Plus, Gwyneth Paltrow testifies in her ski collision trial.',
                 'live_status': 'is_live',
                 'thumbnail': r're:https://images.gem.cbc.ca/v1/cbc-gem/live/.*',
-                'timestamp': 1679706000,
-                'upload_date': '20230325',
+                'release_timestamp': 1679706000,
+                'release_date': '20230325',
             },
             'params': {'skip_download': True},
             'skip': 'Live might have ended',
@@ -692,12 +692,12 @@ class CBCGemLiveIE(InfoExtractor):
             'info_dict': {
                 'id': '42314',
                 'ext': 'mp4',
-                'is_live': False,
+                'live_status': 'was_live',
                 'title': 'Women\'s Soccer - Canada vs New Zealand',
                 'description': 'md5:36200e5f1a70982277b5a6ecea86155d',
                 'thumbnail': r're:https://.+default\.jpg',
-                'timestamp': 1721917200,
-                'upload_date': '20240725',
+                'release_timestamp': 1721917200,
+                'release_date': '20240725',
             },
             'params': {'skip_download': True},
             'skip': 'Replay might no longer be available',
@@ -714,43 +714,50 @@ class CBCGemLiveIE(InfoExtractor):
         webpage = self._download_webpage(url, video_id)
         video_info = self._search_nextjs_data(webpage, video_id)['props']['pageProps']['data']
 
-        # Three types of video_info JSON: root (mpx), freeTv stream (mpx), event replay (medianetlive)
-        app_code = 'mpx'
-        is_live = True
+        # Three types of video_info JSON: info in root, freeTv stream/item, event replay
         if not video_info.get('formattedIdMedia'):
             if traverse_obj(video_info, ('event', 'key')) == video_id:
                 video_info = video_info['event']
-                app_code = 'medianetlive'
-                is_live = False
             else:
-                video_info = traverse_obj(
-                    video_info, (('freeTv', ('streams', ...)), 'items', lambda _, v: v['key'] == video_id, {dict}),
-                    get_all=False, default={})
+                video_info = traverse_obj(video_info, (
+                    ('freeTv', ('streams', ...)), 'items',
+                    lambda _, v: v['key'].partition('-')[0] == video_id, any)) or {}
 
         video_stream_id = video_info.get('formattedIdMedia')
         if not video_stream_id:
-            raise ExtractorError('Couldn\'t find video metadata, maybe this livestream is now offline', expected=True)
+            raise ExtractorError(
+                'Couldn\'t find video metadata, maybe this livestream is now offline', expected=True)
 
-        stream_data = self._download_json(
-            'https://services.radio-canada.ca/media/validation/v2/', video_id, query={
-                'appCode': app_code,
-                'connectionType': 'hd',
-                'deviceType': 'ipad',
-                'idMedia': video_stream_id,
-                'multibitrate': 'true',
-                'output': 'json',
-                'tech': 'hls',
-                'manifestType': 'desktop',
-            })
+        live_status = 'was_live' if video_info.get('isVodEnabled') else 'is_live'
+        release_timestamp = traverse_obj(video_info, ('airDate', {parse_iso8601}))
+
+        if live_status == 'is_live' and release_timestamp and release_timestamp > time.time():
+            formats = []
+            live_status = 'is_upcoming'
+            self.raise_no_formats('This livestream has not yet started', expected=True)
+        else:
+            stream_data = self._download_json(
+                'https://services.radio-canada.ca/media/validation/v2/', video_id, query={
+                    'appCode': 'medianetlive',
+                    'connectionType': 'hd',
+                    'deviceType': 'ipad',
+                    'idMedia': video_stream_id,
+                    'multibitrate': 'true',
+                    'output': 'json',
+                    'tech': 'hls',
+                    'manifestType': 'desktop',
+                })
+            formats = self._extract_m3u8_formats(
+                stream_data['url'], video_id, 'mp4', live=live_status == 'is_live')
 
         return {
             'id': video_id,
-            'formats': self._extract_m3u8_formats(stream_data['url'], video_id, 'mp4', live=True),
-            'is_live': is_live,
+            'formats': formats,
+            'live_status': live_status,
+            'release_timestamp': release_timestamp,
             **traverse_obj(video_info, {
-                'title': 'title',
-                'description': 'description',
+                'title': ('title', {str}),
+                'description': ('description', {str}),
                 'thumbnail': ('images', 'card', 'url'),
-                'timestamp': ('airDate', {parse_iso8601}),
             }),
         }
