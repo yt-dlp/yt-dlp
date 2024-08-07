@@ -72,133 +72,169 @@ STREAMING_DATA_CLIENT_NAME = '__yt_dlp_client'
 # any clients starting with _ cannot be explicitly requested by the user
 INNERTUBE_CLIENTS = {
     'web': {
-        'INNERTUBE_API_KEY': 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8',
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'WEB',
-                'clientVersion': '2.20220801.00.00',
+                'clientVersion': '2.20240726.00.00',
+            },
+        },
+        'INNERTUBE_CONTEXT_CLIENT_NAME': 1,
+    },
+    # Safari UA returns pre-merged video+audio 144p/240p/360p/720p/1080p HLS formats
+    'web_safari': {
+        'INNERTUBE_CONTEXT': {
+            'client': {
+                'clientName': 'WEB',
+                'clientVersion': '2.20240726.00.00',
+                'userAgent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.5 Safari/605.1.15,gzip(gfe)',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 1,
     },
     'web_embedded': {
-        'INNERTUBE_API_KEY': 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8',
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'WEB_EMBEDDED_PLAYER',
-                'clientVersion': '1.20220731.00.00',
+                'clientVersion': '1.20240723.01.00',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 56,
     },
     'web_music': {
-        'INNERTUBE_API_KEY': 'AIzaSyC9XL3ZjWddXya6X74dJoCTL-WEYFDNX30',
         'INNERTUBE_HOST': 'music.youtube.com',
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'WEB_REMIX',
-                'clientVersion': '1.20220727.01.00',
+                'clientVersion': '1.20240724.00.00',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 67,
     },
     'web_creator': {
-        'INNERTUBE_API_KEY': 'AIzaSyBUPetSUmoZL-OhlxA7wSac5XinrygCqMo',
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'WEB_CREATOR',
-                'clientVersion': '1.20220726.00.00',
+                'clientVersion': '1.20240723.03.00',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 62,
     },
     'android': {
-        'INNERTUBE_API_KEY': 'AIzaSyA8eiZmM1FaDVjRy-df2KTyQ_vz_yYM39w',
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'ANDROID',
-                'clientVersion': '19.09.37',
+                'clientVersion': '19.29.37',
                 'androidSdkVersion': 30,
-                'userAgent': 'com.google.android.youtube/19.09.37 (Linux; U; Android 11) gzip',
+                'userAgent': 'com.google.android.youtube/19.29.37 (Linux; U; Android 11) gzip',
+                'osName': 'Android',
+                'osVersion': '11',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 3,
         'REQUIRE_JS_PLAYER': False,
     },
-    'android_embedded': {
-        'INNERTUBE_API_KEY': 'AIzaSyCjc_pVEDi4qsv5MtC2dMXzpIaDoRFLsxw',
-        'INNERTUBE_CONTEXT': {
-            'client': {
-                'clientName': 'ANDROID_EMBEDDED_PLAYER',
-                'clientVersion': '19.09.37',
-                'androidSdkVersion': 30,
-                'userAgent': 'com.google.android.youtube/19.09.37 (Linux; U; Android 11) gzip',
-            },
-        },
-        'INNERTUBE_CONTEXT_CLIENT_NAME': 55,
-        'REQUIRE_JS_PLAYER': False,
-    },
     'android_music': {
-        'INNERTUBE_API_KEY': 'AIzaSyAOghZGza2MQSZkY_zfZ370N-PUdXEo8AI',
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'ANDROID_MUSIC',
-                'clientVersion': '6.42.52',
+                'clientVersion': '7.11.50',
                 'androidSdkVersion': 30,
-                'userAgent': 'com.google.android.apps.youtube.music/6.42.52 (Linux; U; Android 11) gzip',
+                'userAgent': 'com.google.android.apps.youtube.music/7.11.50 (Linux; U; Android 11) gzip',
+                'osName': 'Android',
+                'osVersion': '11',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 21,
         'REQUIRE_JS_PLAYER': False,
     },
     'android_creator': {
-        'INNERTUBE_API_KEY': 'AIzaSyD_qjV8zaaUMehtLkrKFgVeSX_Iqbtyws8',
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'ANDROID_CREATOR',
-                'clientVersion': '22.30.100',
+                'clientVersion': '24.30.100',
                 'androidSdkVersion': 30,
-                'userAgent': 'com.google.android.apps.youtube.creator/22.30.100 (Linux; U; Android 11) gzip',
+                'userAgent': 'com.google.android.apps.youtube.creator/24.30.100 (Linux; U; Android 11) gzip',
+                'osName': 'Android',
+                'osVersion': '11',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 14,
         'REQUIRE_JS_PLAYER': False,
     },
+    # YouTube Kids videos aren't returned on this client for some reason
+    'android_vr': {
+        'INNERTUBE_CONTEXT': {
+            'client': {
+                'clientName': 'ANDROID_VR',
+                'clientVersion': '1.57.29',
+                'deviceMake': 'Oculus',
+                'deviceModel': 'Quest 3',
+                'androidSdkVersion': 32,
+                'userAgent': 'com.google.android.apps.youtube.vr.oculus/1.57.29 (Linux; U; Android 12L; eureka-user Build/SQ3A.220605.009.A1) gzip',
+                'osName': 'Android',
+                'osVersion': '12L',
+            },
+        },
+        'INNERTUBE_CONTEXT_CLIENT_NAME': 28,
+        'REQUIRE_JS_PLAYER': False,
+    },
+    'android_testsuite': {
+        'INNERTUBE_CONTEXT': {
+            'client': {
+                'clientName': 'ANDROID_TESTSUITE',
+                'clientVersion': '1.9',
+                'androidSdkVersion': 30,
+                'userAgent': 'com.google.android.youtube/1.9 (Linux; U; Android 11) gzip',
+                'osName': 'Android',
+                'osVersion': '11',
+            },
+        },
+        'INNERTUBE_CONTEXT_CLIENT_NAME': 30,
+        'REQUIRE_JS_PLAYER': False,
+        'PLAYER_PARAMS': '2AMB',
+    },
+    # This client only has legacy formats and storyboards
+    'android_producer': {
+        'INNERTUBE_CONTEXT': {
+            'client': {
+                'clientName': 'ANDROID_PRODUCER',
+                'clientVersion': '0.111.1',
+                'androidSdkVersion': 30,
+                'userAgent': 'com.google.android.apps.youtube.producer/0.111.1 (Linux; U; Android 11) gzip',
+                'osName': 'Android',
+                'osVersion': '11',
+            },
+        },
+        'INNERTUBE_CONTEXT_CLIENT_NAME': 91,
+        'REQUIRE_JS_PLAYER': False,
+    },
     # iOS clients have HLS live streams. Setting device model to get 60fps formats.
     # See: https://github.com/TeamNewPipe/NewPipeExtractor/issues/680#issuecomment-1002724558
     'ios': {
-        'INNERTUBE_API_KEY': 'AIzaSyB-63vPrdThhKuerbB2N_l7Kwwcxj6yUAc',
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'IOS',
-                'clientVersion': '19.09.3',
-                'deviceModel': 'iPhone14,3',
-                'userAgent': 'com.google.ios.youtube/19.09.3 (iPhone14,3; U; CPU iOS 15_6 like Mac OS X)',
+                'clientVersion': '19.29.1',
+                'deviceMake': 'Apple',
+                'deviceModel': 'iPhone16,2',
+                'userAgent': 'com.google.ios.youtube/19.29.1 (iPhone16,2; U; CPU iOS 17_5_1 like Mac OS X;)',
+                'osName': 'iPhone',
+                'osVersion': '17.5.1.21F90',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 5,
         'REQUIRE_JS_PLAYER': False,
     },
-    'ios_embedded': {
-        'INNERTUBE_CONTEXT': {
-            'client': {
-                'clientName': 'IOS_MESSAGES_EXTENSION',
-                'clientVersion': '19.09.3',
-                'deviceModel': 'iPhone14,3',
-                'userAgent': 'com.google.ios.youtube/19.09.3 (iPhone14,3; U; CPU iOS 15_6 like Mac OS X)',
-            },
-        },
-        'INNERTUBE_CONTEXT_CLIENT_NAME': 66,
-        'REQUIRE_JS_PLAYER': False,
-    },
     'ios_music': {
-        'INNERTUBE_API_KEY': 'AIzaSyBAETezhkwP0ZWA02RsqT1zu78Fpt0bC_s',
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'IOS_MUSIC',
-                'clientVersion': '6.33.3',
-                'deviceModel': 'iPhone14,3',
-                'userAgent': 'com.google.ios.youtubemusic/6.33.3 (iPhone14,3; U; CPU iOS 15_6 like Mac OS X)',
+                'clientVersion': '7.08.2',
+                'deviceMake': 'Apple',
+                'deviceModel': 'iPhone16,2',
+                'userAgent': 'com.google.ios.youtubemusic/7.08.2 (iPhone16,2; U; CPU iOS 17_5_1 like Mac OS X;)',
+                'osName': 'iPhone',
+                'osVersion': '17.5.1.21F90',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 26,
@@ -208,9 +244,12 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'IOS_CREATOR',
-                'clientVersion': '22.33.101',
-                'deviceModel': 'iPhone14,3',
-                'userAgent': 'com.google.ios.ytcreator/22.33.101 (iPhone14,3; U; CPU iOS 15_6 like Mac OS X)',
+                'clientVersion': '24.30.100',
+                'deviceMake': 'Apple',
+                'deviceModel': 'iPhone16,2',
+                'userAgent': 'com.google.ios.ytcreator/24.30.100 (iPhone16,2; U; CPU iOS 17_5_1 like Mac OS X;)',
+                'osName': 'iPhone',
+                'osVersion': '17.5.1.21F90',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 15,
@@ -219,19 +258,26 @@ INNERTUBE_CLIENTS = {
     # mweb has 'ultralow' formats
     # See: https://github.com/yt-dlp/yt-dlp/pull/557
     'mweb': {
-        'INNERTUBE_API_KEY': 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8',
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'MWEB',
-                'clientVersion': '2.20220801.00.00',
+                'clientVersion': '2.20240726.01.00',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 2,
     },
+    'tv': {
+        'INNERTUBE_CONTEXT': {
+            'client': {
+                'clientName': 'TVHTML5',
+                'clientVersion': '7.20240724.13.00',
+            },
+        },
+        'INNERTUBE_CONTEXT_CLIENT_NAME': 7,
+    },
     # This client can access age restricted videos (unless the uploader has disabled the 'allow embedding' option)
     # See: https://github.com/zerodytrash/YouTube-Internal-Clients
     'tv_embedded': {
-        'INNERTUBE_API_KEY': 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8',
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'TVHTML5_SIMPLY_EMBEDDED_PLAYER',
@@ -249,6 +295,7 @@ INNERTUBE_CLIENTS = {
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 95,
+        'REQUIRE_JS_PLAYER': False,
     },
 }
 
@@ -262,7 +309,7 @@ def _split_innertube_client(client_name):
 
 
 def short_client_name(client_name):
-    main, *parts = _split_innertube_client(client_name)[0].replace('embedscreen', 'e_s').split('_')
+    main, *parts = _split_innertube_client(client_name)[0].split('_')
     return join_nonempty(main[:4], ''.join(x[0] for x in parts)).upper()
 
 
@@ -274,23 +321,18 @@ def build_innertube_clients():
     priority = qualities(BASE_CLIENTS[::-1])
 
     for client, ytcfg in tuple(INNERTUBE_CLIENTS.items()):
-        ytcfg.setdefault('INNERTUBE_API_KEY', 'AIzaSyDCU8hByM-4DrUqRUYnGn-3llEO78bcxq8')
         ytcfg.setdefault('INNERTUBE_HOST', 'www.youtube.com')
         ytcfg.setdefault('REQUIRE_JS_PLAYER', True)
+        ytcfg.setdefault('PLAYER_PARAMS', None)
         ytcfg['INNERTUBE_CONTEXT']['client'].setdefault('hl', 'en')
 
         _, base_client, variant = _split_innertube_client(client)
         ytcfg['priority'] = 10 * priority(base_client)
 
-        if not variant:
-            INNERTUBE_CLIENTS[f'{client}_embedscreen'] = embedscreen = copy.deepcopy(ytcfg)
-            embedscreen['INNERTUBE_CONTEXT']['client']['clientScreen'] = 'EMBED'
-            embedscreen['INNERTUBE_CONTEXT']['thirdParty'] = THIRD_PARTY
-            embedscreen['priority'] -= 3
-        elif variant == 'embedded':
+        if variant == 'embedded':
             ytcfg['INNERTUBE_CONTEXT']['thirdParty'] = THIRD_PARTY
             ytcfg['priority'] -= 2
-        else:
+        elif variant:
             ytcfg['priority'] -= 3
 
 
@@ -566,9 +608,6 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         return (self._configuration_arg('innertube_host', [''], ie_key=YoutubeIE.ie_key())[0]
                 or req_api_hostname or self._get_innertube_host(default_client or 'web'))
 
-    def _extract_api_key(self, ytcfg=None, default_client='web'):
-        return self._ytcfg_get_safe(ytcfg, lambda x: x['INNERTUBE_API_KEY'], str, default_client)
-
     def _extract_context(self, ytcfg=None, default_client='web'):
         context = get_first(
             (ytcfg, self._get_default_ytcfg(default_client)), 'INNERTUBE_CONTEXT', expected_type=dict)
@@ -614,13 +653,15 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         real_headers.update({'content-type': 'application/json'})
         if headers:
             real_headers.update(headers)
-        api_key = (self._configuration_arg('innertube_key', [''], ie_key=YoutubeIE.ie_key(), casesense=True)[0]
-                   or api_key or self._extract_api_key(default_client=default_client))
         return self._download_json(
             f'https://{self._select_api_hostname(api_hostname, default_client)}/youtubei/v1/{ep}',
             video_id=video_id, fatal=fatal, note=note, errnote=errnote,
             data=json.dumps(data).encode('utf8'), headers=real_headers,
-            query={'key': api_key, 'prettyPrint': 'false'})
+            query=filter_dict({
+                'key': self._configuration_arg(
+                    'innertube_key', [api_key], ie_key=YoutubeIE.ie_key(), casesense=True)[0],
+                'prettyPrint': 'false',
+            }, cndn=lambda _, v: v))
 
     def extract_yt_initial_data(self, item_id, webpage, fatal=True):
         return self._search_json(self._YT_INITIAL_DATA_RE, webpage, 'yt initial data', item_id, fatal=fatal)
@@ -972,7 +1013,6 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                     ep=ep, fatal=True, headers=headers,
                     video_id=item_id, query=query, note=note,
                     context=self._extract_context(ytcfg, default_client),
-                    api_key=self._extract_api_key(ytcfg, default_client),
                     api_hostname=api_hostname, default_client=default_client)
             except ExtractorError as e:
                 if not isinstance(e.cause, network_exceptions):
@@ -1295,6 +1335,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     }
     _SUBTITLE_FORMATS = ('json3', 'srv1', 'srv2', 'srv3', 'ttml', 'vtt')
     _POTOKEN_EXPERIMENTS = ('51217476', '51217102')
+    _BROKEN_CLIENTS = {
+        short_client_name(client): client
+        for client in ('android', 'android_creator', 'android_music')
+    }
 
     _GEO_BYPASS = False
 
@@ -3129,12 +3173,42 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         self.write_debug(f'Decrypted nsig {s} => {ret}')
         return ret
 
-    def _extract_n_function_name(self, jscode):
+    def _extract_n_function_name(self, jscode, player_url=None):
+        # Examples (with placeholders nfunc, narray, idx):
+        # *  .get("n"))&&(b=nfunc(b)
+        # *  .get("n"))&&(b=narray[idx](b)
+        # *  b=String.fromCharCode(110),c=a.get(b))&&c=narray[idx](c)
+        # *  a.D&&(b="nn"[+a.D],c=a.get(b))&&(c=narray[idx](c),a.set(b,c),narray.length||nfunc("")
+        # *  a.D&&(PL(a),b=a.j.n||null)&&(b=narray[0](b),a.set("n",b),narray.length||nfunc("")
+        # *  a.D&&(b="nn"[+a.D],vL(a),c=a.j[b]||null)&&(c=narray[idx](c),a.set(b,c),narray.length||nfunc("")
         funcname, idx = self._search_regex(
-            r'''(?x)(?:\.get\("n"\)\)&&\(b=|b=String\.fromCharCode\(110\),c=a\.get\(b\)\)&&\(c=)
-            (?P<nfunc>[a-zA-Z0-9$]+)(?:\[(?P<idx>\d+)\])?\([a-zA-Z0-9]\)''',
-            jscode, 'Initial JS player n function name', group=('nfunc', 'idx'))
-        if not idx:
+            r'''(?x)
+            (?:
+                \.get\("n"\)\)&&\(b=|
+                (?:
+                    b=String\.fromCharCode\(110\)|
+                    (?P<str_idx>[a-zA-Z0-9_$.]+)&&\(b="nn"\[\+(?P=str_idx)\]
+                )
+                (?:
+                    ,[a-zA-Z0-9_$]+\(a\))?,c=a\.
+                    (?:
+                        get\(b\)|
+                        [a-zA-Z0-9_$]+\[b\]\|\|null
+                    )\)&&\(c=|
+                \b(?P<var>[a-zA-Z0-9_$]+)=
+            )(?P<nfunc>[a-zA-Z0-9_$]+)(?:\[(?P<idx>\d+)\])?\([a-zA-Z]\)
+            (?(var),[a-zA-Z0-9_$]+\.set\("n"\,(?P=var)\),(?P=nfunc)\.length)''',
+            jscode, 'n function name', group=('nfunc', 'idx'), default=(None, None))
+        if not funcname:
+            self.report_warning(join_nonempty(
+                'Falling back to generic n function search',
+                player_url and f'         player = {player_url}', delim='\n'))
+            return self._search_regex(
+                r'''(?xs)
+                ;\s*(?P<name>[a-zA-Z0-9_$]+)\s*=\s*function\([a-zA-Z0-9_$]+\)
+                \s*\{(?:(?!};).)+?["']enhanced_except_''',
+                jscode, 'Initial JS player n function name', group='name')
+        elif not idx:
             return funcname
 
         return json.loads(js_to_json(self._search_regex(
@@ -3150,7 +3224,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if func_code:
             return jsi, player_id, func_code
 
-        func_name = self._extract_n_function_name(jscode)
+        func_name = self._extract_n_function_name(jscode, player_url=player_url)
 
         func_code = jsi.extract_function_code(func_name)
 
@@ -3654,9 +3728,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'videoId': video_id,
         }
 
-        pp_arg = self._configuration_arg('player_params', [None], casesense=True)[0]
-        if pp_arg:
-            yt_query['params'] = pp_arg
+        default_pp = traverse_obj(
+            INNERTUBE_CLIENTS, (_split_innertube_client(client)[0], 'PLAYER_PARAMS', {str}))
+        if player_params := self._configuration_arg('player_params', [default_pp], casesense=True)[0]:
+            yt_query['params'] = player_params
 
         yt_query.update(self._generate_player_context(sts))
         return self._extract_response(
@@ -3668,8 +3743,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
     def _get_requested_clients(self, url, smuggled_data):
         requested_clients = []
-        android_clients = []
-        default = ['ios', 'web']
+        broken_clients = []
+        default = ['ios', 'web_creator']
         allowed_clients = sorted(
             (client for client in INNERTUBE_CLIENTS if client[:1] != '_'),
             key=lambda client: INNERTUBE_CLIENTS[client]['priority'], reverse=True)
@@ -3680,18 +3755,21 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 requested_clients.extend(allowed_clients)
             elif client not in allowed_clients:
                 self.report_warning(f'Skipping unsupported client {client}')
-            elif client.startswith('android'):
-                android_clients.append(client)
+            elif client in self._BROKEN_CLIENTS.values():
+                broken_clients.append(client)
             else:
                 requested_clients.append(client)
-        # Force deprioritization of broken Android clients for format de-duplication
-        requested_clients.extend(android_clients)
+        # Force deprioritization of _BROKEN_CLIENTS for format de-duplication
+        requested_clients.extend(broken_clients)
         if not requested_clients:
             requested_clients = default
 
         if smuggled_data.get('is_music_url') or self.is_music_url(url):
-            requested_clients.extend(
-                f'{client}_music' for client in requested_clients if f'{client}_music' in INNERTUBE_CLIENTS)
+            for requested_client in requested_clients:
+                _, base_client, variant = _split_innertube_client(requested_client)
+                music_client = f'{base_client}_music'
+                if variant != 'music' and music_client in INNERTUBE_CLIENTS:
+                    requested_clients.append(music_client)
 
         return orderedSet(requested_clients)
 
@@ -3785,14 +3863,27 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     f[STREAMING_DATA_CLIENT_NAME] = name
                 prs.append(pr)
 
-            # creator clients can bypass AGE_VERIFICATION_REQUIRED if logged in
-            if variant == 'embedded' and self._is_unplayable(pr) and self.is_authenticated:
-                append_client(f'{base_client}_creator')
-            elif self._is_agegated(pr):
-                if variant == 'tv_embedded':
-                    append_client(f'{base_client}_embedded')
-                elif not variant:
-                    append_client(f'tv_embedded.{base_client}', f'{base_client}_embedded')
+            # tv_embedded can work around age-gate and age-verification IF the video is embeddable
+            if self._is_agegated(pr) and variant != 'tv_embedded':
+                append_client(f'tv_embedded.{base_client}')
+
+            # Unauthenticated users will only get tv_embedded client formats if age-gated
+            if self._is_agegated(pr) and not self.is_authenticated:
+                self.to_screen(
+                    f'{video_id}: This video is age-restricted; some formats may be missing '
+                    f'without authentication. {self._login_hint()}', only_once=True)
+
+            # EU countries require age-verification for accounts to access age-restricted videos
+            # If account is not age-verified, _is_agegated() will be truthy for non-embedded clients
+            # If embedding is disabled for the video, _is_unplayable() will be truthy for tv_embedded
+            embedding_is_disabled = variant == 'tv_embedded' and self._is_unplayable(pr)
+            if self.is_authenticated and (self._is_agegated(pr) or embedding_is_disabled):
+                self.to_screen(
+                    f'{video_id}: This video is age-restricted and YouTube is requiring '
+                    'account age-verification; some formats may be missing', only_once=True)
+                # web_creator and mediaconnect can work around the age-verification requirement
+                # _producer, _testsuite, & _vr variants can also work around age-verification
+                append_client('web_creator', 'mediaconnect')
 
         if skipped_clients:
             self.report_warning(
@@ -3928,13 +4019,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     f'{video_id}: Some formats are possibly damaged. They will be deprioritized', only_once=True)
 
             client_name = fmt.get(STREAMING_DATA_CLIENT_NAME)
-            # Android client formats are broken due to integrity check enforcement
+            # _BROKEN_CLIENTS return videoplayback URLs that expire after 30 seconds
             # Ref: https://github.com/yt-dlp/yt-dlp/issues/9554
-            is_broken = client_name and client_name.startswith(short_client_name('android'))
+            is_broken = client_name in self._BROKEN_CLIENTS
             if is_broken:
                 self.report_warning(
-                    f'{video_id}: Android client formats are broken and may yield HTTP Error 403. '
-                    'They will be deprioritized', only_once=True)
+                    f'{video_id}: {self._BROKEN_CLIENTS[client_name]} client formats are broken '
+                    'and may yield HTTP Error 403. They will be deprioritized', only_once=True)
 
             name = fmt.get('qualityLabel') or quality.replace('audio_quality_', '') or ''
             fps = int_or_none(fmt.get('fps')) or 0

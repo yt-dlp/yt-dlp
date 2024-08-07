@@ -1,4 +1,5 @@
 import base64
+import functools
 import json
 import re
 import time
@@ -6,17 +7,24 @@ import urllib.parse
 import xml.etree.ElementTree
 
 from .common import InfoExtractor
+from ..networking import HEADRequest
 from ..utils import (
     ExtractorError,
+    float_or_none,
     int_or_none,
     join_nonempty,
     js_to_json,
+    mimetype2ext,
     orderedSet,
     parse_iso8601,
+    replace_extension,
     smuggle_url,
     strip_or_none,
     traverse_obj,
     try_get,
+    update_url,
+    url_basename,
+    url_or_none,
 )
 
 
@@ -149,6 +157,7 @@ class CBCIE(InfoExtractor):
 class CBCPlayerIE(InfoExtractor):
     IE_NAME = 'cbc.ca:player'
     _VALID_URL = r'(?:cbcplayer:|https?://(?:www\.)?cbc\.ca/(?:player/play/(?:video/)?|i/caffeine/syndicate/\?mediaId=))(?P<id>(?:\d\.)?\d+)'
+    _GEO_COUNTRIES = ['CA']
     _TESTS = [{
         'url': 'http://www.cbc.ca/player/play/2683190193',
         'md5': '64d25f841ddf4ddb28a235338af32e2c',
@@ -172,21 +181,20 @@ class CBCPlayerIE(InfoExtractor):
             'description': 'md5:dd3b692f0a139b0369943150bd1c46a9',
             'timestamp': 1425704400,
             'upload_date': '20150307',
-            'uploader': 'CBCC-NEW',
-            'thumbnail': 'http://thumbnails.cbc.ca/maven_legacy/thumbnails/sonali-karnick-220.jpg',
+            'thumbnail': 'https://i.cbc.ca/ais/1.2985700,1717262248558/full/max/0/default.jpg',
             'chapters': [],
             'duration': 494.811,
-            'categories': ['AudioMobile/All in a Weekend Montreal'],
-            'tags': 'count:8',
+            'categories': ['All in a Weekend Montreal'],
+            'tags': 'count:11',
             'location': 'Quebec',
             'series': 'All in a Weekend Montreal',
             'season': 'Season 2015',
             'season_number': 2015,
             'media_type': 'Excerpt',
+            'genres': ['Other'],
         },
     }, {
         'url': 'http://www.cbc.ca/i/caffeine/syndicate/?mediaId=2164402062',
-        'md5': '33fcd8f6719b9dd60a5e73adcb83b9f6',
         'info_dict': {
             'id': '2164402062',
             'ext': 'mp4',
@@ -194,107 +202,168 @@ class CBCPlayerIE(InfoExtractor):
             'description': 'Tim Mayer has beaten three different forms of cancer four times in five years.',
             'timestamp': 1320410746,
             'upload_date': '20111104',
-            'uploader': 'CBCC-NEW',
-            'thumbnail': 'https://thumbnails.cbc.ca/maven_legacy/thumbnails/277/67/cancer_852x480_2164412612.jpg',
+            'thumbnail': 'https://i.cbc.ca/ais/1.1711287,1717139372111/full/max/0/default.jpg',
             'chapters': [],
             'duration': 186.867,
             'series': 'CBC News: Windsor at 6:00',
-            'categories': ['News/Canada/Windsor'],
+            'categories': ['Windsor'],
             'location': 'Windsor',
-            'tags': ['cancer'],
-            'creators': ['Allison Johnson'],
+            'tags': ['Cancer', 'News/Canada/Windsor', 'Windsor'],
             'media_type': 'Excerpt',
+            'genres': ['News'],
         },
+        'params': {'skip_download': 'm3u8'},
     }, {
         # Redirected from http://www.cbc.ca/player/AudioMobile/All%20in%20a%20Weekend%20Montreal/ID/2657632011/
         'url': 'https://www.cbc.ca/player/play/1.2985700',
         'md5': 'e5e708c34ae6fca156aafe17c43e8b75',
         'info_dict': {
-            'id': '2657631896',
+            'id': '1.2985700',
             'ext': 'mp3',
             'title': 'CBC Montreal is organizing its first ever community hackathon!',
             'description': 'The modern technology we tend to depend on so heavily, is never without it\'s share of hiccups and headaches. Next weekend - CBC Montreal will be getting members of the public for its first Hackathon.',
             'timestamp': 1425704400,
             'upload_date': '20150307',
-            'uploader': 'CBCC-NEW',
-            'thumbnail': 'http://thumbnails.cbc.ca/maven_legacy/thumbnails/sonali-karnick-220.jpg',
+            'thumbnail': 'https://i.cbc.ca/ais/1.2985700,1717262248558/full/max/0/default.jpg',
             'chapters': [],
             'duration': 494.811,
-            'categories': ['AudioMobile/All in a Weekend Montreal'],
-            'tags': 'count:8',
+            'categories': ['All in a Weekend Montreal'],
+            'tags': 'count:11',
             'location': 'Quebec',
             'series': 'All in a Weekend Montreal',
             'season': 'Season 2015',
             'season_number': 2015,
             'media_type': 'Excerpt',
+            'genres': ['Other'],
         },
     }, {
         'url': 'https://www.cbc.ca/player/play/1.1711287',
-        'md5': '33fcd8f6719b9dd60a5e73adcb83b9f6',
         'info_dict': {
-            'id': '2164402062',
+            'id': '1.1711287',
             'ext': 'mp4',
             'title': 'Cancer survivor four times over',
             'description': 'Tim Mayer has beaten three different forms of cancer four times in five years.',
             'timestamp': 1320410746,
             'upload_date': '20111104',
-            'uploader': 'CBCC-NEW',
-            'thumbnail': 'https://thumbnails.cbc.ca/maven_legacy/thumbnails/277/67/cancer_852x480_2164412612.jpg',
+            'thumbnail': 'https://i.cbc.ca/ais/1.1711287,1717139372111/full/max/0/default.jpg',
             'chapters': [],
             'duration': 186.867,
             'series': 'CBC News: Windsor at 6:00',
-            'categories': ['News/Canada/Windsor'],
+            'categories': ['Windsor'],
             'location': 'Windsor',
-            'tags': ['cancer'],
-            'creators': ['Allison Johnson'],
+            'tags': ['Cancer', 'News/Canada/Windsor', 'Windsor'],
             'media_type': 'Excerpt',
+            'genres': ['News'],
         },
+        'params': {'skip_download': 'm3u8'},
     }, {
         # Has subtitles
         # These broadcasts expire after ~1 month, can find new test URL here:
         # https://www.cbc.ca/player/news/TV%20Shows/The%20National/Latest%20Broadcast
-        'url': 'https://www.cbc.ca/player/play/1.7159484',
-        'md5': '6ed6cd0fc2ef568d2297ba68a763d455',
+        'url': 'https://www.cbc.ca/player/play/video/9.6424403',
+        'md5': '8025909eaffcf0adf59922904def9a5e',
         'info_dict': {
-            'id': '2324213316001',
+            'id': '9.6424403',
             'ext': 'mp4',
-            'title': 'The National | School boards sue social media giants',
-            'description': 'md5:4b4db69322fa32186c3ce426da07402c',
-            'timestamp': 1711681200,
-            'duration': 2743.400,
-            'subtitles': {'eng': [{'ext': 'vtt', 'protocol': 'm3u8_native'}]},
-            'thumbnail': 'https://thumbnails.cbc.ca/maven_legacy/thumbnails/607/559/thumbnail.jpeg',
-            'uploader': 'CBCC-NEW',
+            'title': 'The National | N.W.T. wildfire emergency',
+            'description': 'md5:ada33d36d1df69347ed575905bfd496c',
+            'timestamp': 1718589600,
+            'duration': 2692.833,
+            'subtitles': {
+                'en-US': [{
+                    'name': 'English Captions',
+                    'url': 'https://cbchls.akamaized.net/delivery/news-shows/2024/06/17/NAT_JUN16-00-55-00/NAT_JUN16_cc.vtt',
+                }],
+            },
+            'thumbnail': 'https://i.cbc.ca/ais/6272b5c6-5e78-4c05-915d-0e36672e33d1,1714756287822/full/max/0/default.jpg',
             'chapters': 'count:5',
-            'upload_date': '20240329',
-            'categories': 'count:4',
+            'upload_date': '20240617',
+            'categories': ['News', 'The National', 'The National Latest Broadcasts'],
             'series': 'The National - Full Show',
-            'tags': 'count:1',
-            'creators': ['News'],
+            'tags': ['The National'],
             'location': 'Canada',
             'media_type': 'Full Program',
+            'genres': ['News'],
         },
     }, {
         'url': 'https://www.cbc.ca/player/play/video/1.7194274',
         'md5': '188b96cf6bdcb2540e178a6caa957128',
         'info_dict': {
-            'id': '2334524995812',
+            'id': '1.7194274',
             'ext': 'mp4',
             'title': '#TheMoment a rare white spirit moose was spotted in Alberta',
             'description': 'md5:18ae269a2d0265c5b0bbe4b2e1ac61a3',
             'timestamp': 1714788791,
             'duration': 77.678,
             'subtitles': {'eng': [{'ext': 'vtt', 'protocol': 'm3u8_native'}]},
-            'thumbnail': 'https://thumbnails.cbc.ca/maven_legacy/thumbnails/201/543/THE_MOMENT.jpg',
-            'uploader': 'CBCC-NEW',
-            'chapters': 'count:0',
-            'upload_date': '20240504',
+            'thumbnail': 'https://i.cbc.ca/ais/1.7194274,1717224990425/full/max/0/default.jpg',
+            'chapters': [],
             'categories': 'count:3',
             'series': 'The National',
-            'tags': 'count:15',
-            'creators': ['encoder'],
+            'tags': 'count:17',
             'location': 'Canada',
             'media_type': 'Excerpt',
+            'upload_date': '20240504',
+            'genres': ['News'],
+        },
+    }, {
+        'url': 'https://www.cbc.ca/player/play/video/9.6427282',
+        'info_dict': {
+            'id': '9.6427282',
+            'ext': 'mp4',
+            'title': 'Men\'s Soccer - Argentina vs Morocco',
+            'description': 'Argentina faces Morocco on the football pitch at Saint Etienne Stadium.',
+            'series': 'CBC Sports',
+            'media_type': 'Event Coverage',
+            'thumbnail': 'https://i.cbc.ca/ais/a4c5c0c2-99fa-4bd3-8061-5a63879c1b33,1718828053500/full/max/0/default.jpg',
+            'timestamp': 1721825400.0,
+            'upload_date': '20240724',
+            'duration': 10568.0,
+            'chapters': [],
+            'genres': [],
+            'tags': ['2024 Paris Olympic Games'],
+            'categories': ['Olympics Summer Soccer', 'Summer Olympics Replays', 'Summer Olympics Soccer Replays'],
+            'location': 'Canada',
+        },
+        'params': {'skip_download': 'm3u8'},
+    }, {
+        'url': 'https://www.cbc.ca/player/play/video/9.6459530',
+        'md5': '6c1bb76693ab321a2e99c347a1d5ecbc',
+        'info_dict': {
+            'id': '9.6459530',
+            'ext': 'mp4',
+            'title': 'Parts of Jasper incinerated as wildfire rages',
+            'description': 'md5:6f1caa8d128ad3f629257ef5fecf0962',
+            'series': 'The National',
+            'media_type': 'Excerpt',
+            'thumbnail': 'https://i.cbc.ca/ais/507c0086-31a2-494d-96e4-bffb1048d045,1721953984375/full/max/0/default.jpg',
+            'timestamp': 1721964091.012,
+            'upload_date': '20240726',
+            'duration': 952.285,
+            'chapters': [],
+            'genres': [],
+            'tags': 'count:23',
+            'categories': ['News (FAST)', 'News', 'The National', 'TV News Shows', 'The National '],
+        },
+    }, {
+        'url': 'https://www.cbc.ca/player/play/video/9.6420651',
+        'md5': '71a850c2c6ee5e912de169f5311bb533',
+        'info_dict': {
+            'id': '9.6420651',
+            'ext': 'mp4',
+            'title': 'Is it a breath of fresh air? Measuring air quality in Edmonton',
+            'description': 'md5:3922b92cc8b69212d739bd9dd095b1c3',
+            'series': 'CBC News Edmonton',
+            'media_type': 'Excerpt',
+            'thumbnail': 'https://i.cbc.ca/ais/73c4ab9c-7ad4-46ee-bb9b-020fdc01c745,1718214547576/full/max/0/default.jpg',
+            'timestamp': 1718220065.768,
+            'upload_date': '20240612',
+            'duration': 286.086,
+            'chapters': [],
+            'genres': ['News'],
+            'categories': ['News', 'Edmonton'],
+            'tags': 'count:7',
+            'location': 'Edmonton',
         },
     }, {
         'url': 'cbcplayer:1.7159484',
@@ -307,23 +376,113 @@ class CBCPlayerIE(InfoExtractor):
         'only_matching': True,
     }]
 
+    def _parse_param(self, asset_data, name):
+        return traverse_obj(asset_data, ('params', lambda _, v: v['name'] == name, 'value', {str}, any))
+
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        if '.' in video_id:
-            webpage = self._download_webpage(f'https://www.cbc.ca/player/play/{video_id}', video_id)
-            video_id = self._search_json(
-                r'window\.__INITIAL_STATE__\s*=', webpage,
-                'initial state', video_id)['video']['currentClip']['mediaId']
+        webpage = self._download_webpage(f'https://www.cbc.ca/player/play/{video_id}', video_id)
+        data = self._search_json(
+            r'window\.__INITIAL_STATE__\s*=', webpage, 'initial state', video_id)['video']['currentClip']
+        assets = traverse_obj(
+            data, ('media', 'assets', lambda _, v: url_or_none(v['key']) and v['type']))
+
+        if not assets and (media_id := traverse_obj(data, ('mediaId', {str}))):
+            # XXX: Deprecated; CBC is migrating off of ThePlatform
+            return {
+                '_type': 'url_transparent',
+                'ie_key': 'ThePlatform',
+                'url': smuggle_url(
+                    f'http://link.theplatform.com/s/ExhSPC/media/guid/2655402169/{media_id}?mbr=true&formats=MPEG4,FLV,MP3', {
+                        'force_smil_url': True,
+                    }),
+                'id': media_id,
+                '_format_sort_fields': ('res', 'proto'),  # Prioritize direct http formats over HLS
+            }
+
+        is_live = traverse_obj(data, ('media', 'streamType', {str})) == 'Live'
+        formats, subtitles = [], {}
+
+        for sub in traverse_obj(data, ('media', 'textTracks', lambda _, v: url_or_none(v['src']))):
+            subtitles.setdefault(sub.get('language') or 'und', []).append({
+                'url': sub['src'],
+                'name': sub.get('label'),
+            })
+
+        for asset in assets:
+            asset_key = asset['key']
+            asset_type = asset['type']
+            if asset_type != 'medianet':
+                self.report_warning(f'Skipping unsupported asset type "{asset_type}": {asset_key}')
+                continue
+            asset_data = self._download_json(asset_key, video_id, f'Downloading {asset_type} JSON')
+            ext = mimetype2ext(self._parse_param(asset_data, 'contentType'))
+            if ext == 'm3u8':
+                fmts, subs = self._extract_m3u8_formats_and_subtitles(
+                    asset_data['url'], video_id, 'mp4', m3u8_id='hls', live=is_live)
+                formats.extend(fmts)
+                # Avoid slow/error-prone webvtt-over-m3u8 if direct https vtt is available
+                if not subtitles:
+                    self._merge_subtitles(subs, target=subtitles)
+                if is_live or not fmts:
+                    continue
+                # Check for direct https mp4 format
+                best_video_fmt = traverse_obj(fmts, (
+                    lambda _, v: v.get('vcodec') != 'none' and v['tbr'], all,
+                    {functools.partial(sorted, key=lambda x: x['tbr'])}, -1, {dict})) or {}
+                base_url = self._search_regex(
+                    r'(https?://[^?#]+?/)hdntl=', best_video_fmt.get('url'), 'base url', default=None)
+                if not base_url or '/live/' in base_url:
+                    continue
+                mp4_url = base_url + replace_extension(url_basename(best_video_fmt['url']), 'mp4')
+                if self._request_webpage(
+                        HEADRequest(mp4_url), video_id, 'Checking for https format',
+                        errnote=False, fatal=False):
+                    formats.append({
+                        **best_video_fmt,
+                        'url': mp4_url,
+                        'format_id': 'https-mp4',
+                        'protocol': 'https',
+                        'manifest_url': None,
+                        'acodec': None,
+                    })
+            else:
+                formats.append({
+                    'url': asset_data['url'],
+                    'ext': ext,
+                    'vcodec': 'none' if self._parse_param(asset_data, 'mediaType') == 'audio' else None,
+                })
+
+        chapters = traverse_obj(data, (
+            'media', 'chapters', lambda _, v: float(v['startTime']) is not None, {
+                'start_time': ('startTime', {functools.partial(float_or_none, scale=1000)}),
+                'end_time': ('endTime', {functools.partial(float_or_none, scale=1000)}),
+                'title': ('name', {str}),
+            }))
+        # Filter out pointless single chapters with start_time==0 and no end_time
+        if len(chapters) == 1 and not (chapters[0].get('start_time') or chapters[0].get('end_time')):
+            chapters = []
 
         return {
-            '_type': 'url_transparent',
-            'ie_key': 'ThePlatform',
-            'url': smuggle_url(
-                f'http://link.theplatform.com/s/ExhSPC/media/guid/2655402169/{video_id}?mbr=true&formats=MPEG4,FLV,MP3', {
-                    'force_smil_url': True,
-                }),
+            **traverse_obj(data, {
+                'title': ('title', {str}),
+                'description': ('description', {str.strip}),
+                'thumbnail': ('image', 'url', {url_or_none}, {functools.partial(update_url, query=None)}),
+                'timestamp': ('publishedAt', {functools.partial(float_or_none, scale=1000)}),
+                'media_type': ('media', 'clipType', {str}),
+                'series': ('showName', {str}),
+                'season_number': ('media', 'season', {int_or_none}),
+                'duration': ('media', 'duration', {float_or_none}, {lambda x: None if is_live else x}),
+                'location': ('media', 'region', {str}),
+                'tags': ('tags', ..., 'name', {str}),
+                'genres': ('media', 'genre', all),
+                'categories': ('categories', ..., 'name', {str}),
+            }),
             'id': video_id,
-            '_format_sort_fields': ('res', 'proto'),  # Prioritize direct http formats over HLS
+            'formats': formats,
+            'subtitles': subtitles,
+            'chapters': chapters,
+            'is_live': is_live,
         }
 
 
@@ -647,11 +806,11 @@ class CBCGemLiveIE(InfoExtractor):
                 'title': 'Ottawa',
                 'description': 'The live TV channel and local programming from Ottawa',
                 'thumbnail': 'https://thumbnails.cbc.ca/maven_legacy/thumbnails/CBC_OTT_VMS/Live_Channel_Static_Images/Ottawa_2880x1620.jpg',
-                'is_live': True,
+                'live_status': 'is_live',
                 'id': 'AyqZwxRqh8EH',
                 'ext': 'mp4',
-                'timestamp': 1492106160,
-                'upload_date': '20170413',
+                'release_timestamp': 1492106160,
+                'release_date': '20170413',
                 'uploader': 'CBCC-NEW',
             },
             'skip': 'Live might have ended',
@@ -680,49 +839,84 @@ class CBCGemLiveIE(InfoExtractor):
                 'description': 'March 24, 2023 | President Biden’s Ottawa visit ends with big pledges from both countries. Plus, Gwyneth Paltrow testifies in her ski collision trial.',
                 'live_status': 'is_live',
                 'thumbnail': r're:https://images.gem.cbc.ca/v1/cbc-gem/live/.*',
-                'timestamp': 1679706000,
-                'upload_date': '20230325',
+                'release_timestamp': 1679706000,
+                'release_date': '20230325',
             },
             'params': {'skip_download': True},
             'skip': 'Live might have ended',
         },
+        {   # event replay (medianetlive)
+            'url': 'https://gem.cbc.ca/live-event/42314',
+            'md5': '297a9600f554f2258aed01514226a697',
+            'info_dict': {
+                'id': '42314',
+                'ext': 'mp4',
+                'live_status': 'was_live',
+                'title': 'Women\'s Soccer - Canada vs New Zealand',
+                'description': 'md5:36200e5f1a70982277b5a6ecea86155d',
+                'thumbnail': r're:https://.+default\.jpg',
+                'release_timestamp': 1721917200,
+                'release_date': '20240725',
+            },
+            'params': {'skip_download': True},
+            'skip': 'Replay might no longer be available',
+        },
+        {   # event replay (medianetlive)
+            'url': 'https://gem.cbc.ca/live-event/43273',
+            'only_matching': True,
+        },
     ]
+    _GEO_COUNTRIES = ['CA']
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
         video_info = self._search_nextjs_data(webpage, video_id)['props']['pageProps']['data']
 
-        # Two types of metadata JSON
+        # Three types of video_info JSON: info in root, freeTv stream/item, event replay
         if not video_info.get('formattedIdMedia'):
-            video_info = traverse_obj(
-                video_info, (('freeTv', ('streams', ...)), 'items', lambda _, v: v['key'] == video_id, {dict}),
-                get_all=False, default={})
+            if traverse_obj(video_info, ('event', 'key')) == video_id:
+                video_info = video_info['event']
+            else:
+                video_info = traverse_obj(video_info, (
+                    ('freeTv', ('streams', ...)), 'items',
+                    lambda _, v: v['key'].partition('-')[0] == video_id, any)) or {}
 
         video_stream_id = video_info.get('formattedIdMedia')
         if not video_stream_id:
-            raise ExtractorError('Couldn\'t find video metadata, maybe this livestream is now offline', expected=True)
+            raise ExtractorError(
+                'Couldn\'t find video metadata, maybe this livestream is now offline', expected=True)
 
-        stream_data = self._download_json(
-            'https://services.radio-canada.ca/media/validation/v2/', video_id, query={
-                'appCode': 'mpx',
-                'connectionType': 'hd',
-                'deviceType': 'ipad',
-                'idMedia': video_stream_id,
-                'multibitrate': 'true',
-                'output': 'json',
-                'tech': 'hls',
-                'manifestType': 'desktop',
-            })
+        live_status = 'was_live' if video_info.get('isVodEnabled') else 'is_live'
+        release_timestamp = traverse_obj(video_info, ('airDate', {parse_iso8601}))
+
+        if live_status == 'is_live' and release_timestamp and release_timestamp > time.time():
+            formats = []
+            live_status = 'is_upcoming'
+            self.raise_no_formats('This livestream has not yet started', expected=True)
+        else:
+            stream_data = self._download_json(
+                'https://services.radio-canada.ca/media/validation/v2/', video_id, query={
+                    'appCode': 'medianetlive',
+                    'connectionType': 'hd',
+                    'deviceType': 'ipad',
+                    'idMedia': video_stream_id,
+                    'multibitrate': 'true',
+                    'output': 'json',
+                    'tech': 'hls',
+                    'manifestType': 'desktop',
+                })
+            formats = self._extract_m3u8_formats(
+                stream_data['url'], video_id, 'mp4', live=live_status == 'is_live')
 
         return {
             'id': video_id,
-            'formats': self._extract_m3u8_formats(stream_data['url'], video_id, 'mp4', live=True),
-            'is_live': True,
+            'formats': formats,
+            'live_status': live_status,
+            'release_timestamp': release_timestamp,
             **traverse_obj(video_info, {
-                'title': 'title',
-                'description': 'description',
+                'title': ('title', {str}),
+                'description': ('description', {str}),
                 'thumbnail': ('images', 'card', 'url'),
-                'timestamp': ('airDate', {parse_iso8601}),
             }),
         }

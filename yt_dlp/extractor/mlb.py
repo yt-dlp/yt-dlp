@@ -1,16 +1,21 @@
+import json
 import re
-import urllib.parse
+import time
 import uuid
 
 from .common import InfoExtractor
+from ..networking.exceptions import HTTPError
 from ..utils import (
+    ExtractorError,
     determine_ext,
     int_or_none,
     join_nonempty,
+    jwt_decode_hs256,
     parse_duration,
     parse_iso8601,
     try_get,
     url_or_none,
+    urlencode_postdata,
 )
 from ..utils.traversal import traverse_obj
 
@@ -276,81 +281,225 @@ class MLBVideoIE(MLBBaseIE):
 class MLBTVIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?mlb\.com/tv/g(?P<id>\d{6})'
     _NETRC_MACHINE = 'mlb'
-
     _TESTS = [{
         'url': 'https://www.mlb.com/tv/g661581/vee2eff5f-a7df-4c20-bdb4-7b926fa12638',
         'info_dict': {
             'id': '661581',
             'ext': 'mp4',
             'title': '2022-07-02 - St. Louis Cardinals @ Philadelphia Phillies',
+            'release_date': '20220702',
+            'release_timestamp': 1656792300,
         },
-        'params': {
-            'skip_download': True,
+        'params': {'skip_download': 'm3u8'},
+    }, {
+        # makeup game: has multiple dates, need to avoid games with 'rescheduleDate'
+        'url': 'https://www.mlb.com/tv/g747039/vd22541c4-5a29-45f7-822b-635ec041cf5e',
+        'info_dict': {
+            'id': '747039',
+            'ext': 'mp4',
+            'title': '2024-07-29 - Toronto Blue Jays @ Baltimore Orioles',
+            'release_date': '20240729',
+            'release_timestamp': 1722280200,
         },
+        'params': {'skip_download': 'm3u8'},
     }]
+    _GRAPHQL_INIT_QUERY = '''\
+mutation initSession($device: InitSessionInput!, $clientType: ClientType!, $experience: ExperienceTypeInput) {
+    initSession(device: $device, clientType: $clientType, experience: $experience) {
+        deviceId
+        sessionId
+        entitlements {
+            code
+        }
+        location {
+            countryCode
+            regionName
+            zipCode
+            latitude
+            longitude
+        }
+        clientExperience
+        features
+    }
+  }'''
+    _GRAPHQL_PLAYBACK_QUERY = '''\
+mutation initPlaybackSession(
+        $adCapabilities: [AdExperienceType]
+        $mediaId: String!
+        $deviceId: String!
+        $sessionId: String!
+        $quality: PlaybackQuality
+    ) {
+        initPlaybackSession(
+            adCapabilities: $adCapabilities
+            mediaId: $mediaId
+            deviceId: $deviceId
+            sessionId: $sessionId
+            quality: $quality
+        ) {
+            playbackSessionId
+            playback {
+                url
+                token
+                expiration
+                cdn
+            }
+        }
+    }'''
+    _APP_VERSION = '7.8.2'
+    _device_id = None
+    _session_id = None
     _access_token = None
+    _token_expiry = 0
+
+    @property
+    def _api_headers(self):
+        if (self._token_expiry - 120) <= time.time():
+            self.write_debug('Access token has expired; re-logging in')
+            self._perform_login(*self._get_login_info())
+        return {'Authorization': f'Bearer {self._access_token}'}
 
     def _real_initialize(self):
         if not self._access_token:
             self.raise_login_required(
                 'All videos are only available to registered users', method='password')
 
+    def _set_device_id(self, username):
+        if not self._device_id:
+            self._device_id = self.cache.load(
+                self._NETRC_MACHINE, 'device_ids', default={}).get(username)
+        if self._device_id:
+            return
+        self._device_id = str(uuid.uuid4())
+        self.cache.store(self._NETRC_MACHINE, 'device_ids', {username: self._device_id})
+
     def _perform_login(self, username, password):
-        data = f'grant_type=password&username={urllib.parse.quote(username)}&password={urllib.parse.quote(password)}&scope=openid offline_access&client_id=0oa3e1nutA1HLzAKG356'
-        access_token = self._download_json(
-            'https://ids.mlb.com/oauth2/aus1m088yK07noBfh356/v1/token', None,
-            headers={
-                'User-Agent': 'okhttp/3.12.1',
-                'Content-Type': 'application/x-www-form-urlencoded',
-            }, data=data.encode())['access_token']
+        try:
+            self._access_token = self._download_json(
+                'https://ids.mlb.com/oauth2/aus1m088yK07noBfh356/v1/token', None,
+                'Logging in', 'Unable to log in', headers={
+                    'User-Agent': 'okhttp/3.12.1',
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                }, data=urlencode_postdata({
+                    'grant_type': 'password',
+                    'username': username,
+                    'password': password,
+                    'scope': 'openid offline_access',
+                    'client_id': '0oa3e1nutA1HLzAKG356',
+                }))['access_token']
+        except ExtractorError as error:
+            if isinstance(error.cause, HTTPError) and error.cause.status == 400:
+                raise ExtractorError('Invalid username or password', expected=True)
+            raise
 
-        entitlement = self._download_webpage(
-            f'https://media-entitlement.mlb.com/api/v3/jwt?os=Android&appname=AtBat&did={uuid.uuid4()}', None,
-            headers={
-                'User-Agent': 'okhttp/3.12.1',
-                'Authorization': f'Bearer {access_token}',
-            })
+        self._token_expiry = traverse_obj(self._access_token, ({jwt_decode_hs256}, 'exp', {int})) or 0
+        self._set_device_id(username)
 
-        data = f'grant_type=urn:ietf:params:oauth:grant-type:token-exchange&subject_token={entitlement}&subject_token_type=urn:ietf:params:oauth:token-type:jwt&platform=android-tv'
-        self._access_token = self._download_json(
-            'https://us.edge.bamgrid.com/token', None,
+        self._session_id = self._call_api({
+            'operationName': 'initSession',
+            'query': self._GRAPHQL_INIT_QUERY,
+            'variables': {
+                'device': {
+                    'appVersion': self._APP_VERSION,
+                    'deviceFamily': 'desktop',
+                    'knownDeviceId': self._device_id,
+                    'languagePreference': 'ENGLISH',
+                    'manufacturer': '',
+                    'model': '',
+                    'os': '',
+                    'osVersion': '',
+                },
+                'clientType': 'WEB',
+            },
+        }, None, 'session ID')['data']['initSession']['sessionId']
+
+    def _call_api(self, data, video_id, description='GraphQL JSON', fatal=True):
+        return self._download_json(
+            'https://media-gateway.mlb.com/graphql', video_id,
+            f'Downloading {description}', f'Unable to download {description}', fatal=fatal,
             headers={
+                **self._api_headers,
                 'Accept': 'application/json',
-                'Authorization': 'Bearer bWxidHYmYW5kcm9pZCYxLjAuMA.6LZMbH2r--rbXcgEabaDdIslpo4RyZrlVfWZhsAgXIk',
-                'Content-Type': 'application/x-www-form-urlencoded',
-            }, data=data.encode())['access_token']
+                'Content-Type': 'application/json',
+                'x-client-name': 'WEB',
+                'x-client-version': self._APP_VERSION,
+            }, data=json.dumps(data, separators=(',', ':')).encode())
+
+    def _extract_formats_and_subtitles(self, broadcast, video_id):
+        feed = traverse_obj(broadcast, ('homeAway', {str.title}))
+        medium = traverse_obj(broadcast, ('type', {str}))
+        language = traverse_obj(broadcast, ('language', {str.lower}))
+        format_id = join_nonempty(feed, medium, language)
+
+        response = self._call_api({
+            'operationName': 'initPlaybackSession',
+            'query': self._GRAPHQL_PLAYBACK_QUERY,
+            'variables': {
+                'adCapabilities': ['GOOGLE_STANDALONE_AD_PODS'],
+                'deviceId': self._device_id,
+                'mediaId': broadcast['mediaId'],
+                'quality': 'PLACEHOLDER',
+                'sessionId': self._session_id,
+            },
+        }, video_id, f'{format_id} broadcast JSON', fatal=False)
+
+        playback = traverse_obj(response, ('data', 'initPlaybackSession', 'playback', {dict}))
+        m3u8_url = traverse_obj(playback, ('url', {url_or_none}))
+        token = traverse_obj(playback, ('token', {str}))
+
+        if not (m3u8_url and token):
+            errors = '; '.join(traverse_obj(response, ('errors', ..., 'message', {str})))
+            if 'not entitled' in errors:
+                raise ExtractorError(errors, expected=True)
+            elif errors:  # Only warn when 'blacked out' since radio formats are available
+                self.report_warning(f'API returned errors for {format_id}: {errors}')
+            else:
+                self.report_warning(f'No formats available for {format_id} broadcast; skipping')
+            return [], {}
+
+        cdn_headers = {'x-cdn-token': token}
+        fmts, subs = self._extract_m3u8_formats_and_subtitles(
+            m3u8_url.replace(f'/{token}/', '/'), video_id, 'mp4',
+            m3u8_id=format_id, fatal=False, headers=cdn_headers)
+        for fmt in fmts:
+            fmt['http_headers'] = cdn_headers
+            fmt.setdefault('format_note', join_nonempty(feed, medium, delim=' '))
+            fmt.setdefault('language', language)
+            if fmt.get('vcodec') == 'none' and fmt['language'] == 'en':
+                fmt['source_preference'] = 10
+
+        return fmts, subs
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        airings = self._download_json(
-            f'https://search-api-mlbtv.mlb.com/svc/search/v2/graphql/persisted/query/core/Airings?variables=%7B%22partnerProgramIds%22%3A%5B%22{video_id}%22%5D%2C%22applyEsniMediaRightsLabels%22%3Atrue%7D',
-            video_id)['data']['Airings']
+        data = self._download_json(
+            'https://statsapi.mlb.com/api/v1/schedule', video_id, query={
+                'gamePk': video_id,
+                'hydrate': 'broadcasts(all),statusFlags',
+            })
+        metadata = traverse_obj(data, (
+            'dates', ..., 'games',
+            lambda _, v: str(v['gamePk']) == video_id and not v.get('rescheduleDate'), any))
+
+        broadcasts = traverse_obj(metadata, (
+            'broadcasts', lambda _, v: v['mediaId'] and v['mediaState']['mediaStateCode'] != 'MEDIA_OFF'))
 
         formats, subtitles = [], {}
-        for airing in traverse_obj(airings, lambda _, v: v['playbackUrls'][0]['href']):
-            format_id = join_nonempty('feedType', 'feedLanguage', from_dict=airing)
-            m3u8_url = traverse_obj(self._download_json(
-                airing['playbackUrls'][0]['href'].format(scenario='browser~csai'), video_id,
-                note=f'Downloading {format_id} stream info JSON',
-                errnote=f'Failed to download {format_id} stream info, skipping',
-                fatal=False, headers={
-                    'Authorization': self._access_token,
-                    'Accept': 'application/vnd.media-service+json; version=2',
-                }), ('stream', 'complete', {url_or_none}))
-            if not m3u8_url:
-                continue
-            f, s = self._extract_m3u8_formats_and_subtitles(
-                m3u8_url, video_id, 'mp4', m3u8_id=format_id, fatal=False)
-            formats.extend(f)
-            self._merge_subtitles(s, target=subtitles)
+        for broadcast in broadcasts:
+            fmts, subs = self._extract_formats_and_subtitles(broadcast, video_id)
+            formats.extend(fmts)
+            self._merge_subtitles(subs, target=subtitles)
 
         return {
             'id': video_id,
-            'title': traverse_obj(airings, (..., 'titles', 0, 'episodeName'), get_all=False),
-            'is_live': traverse_obj(airings, (..., 'mediaConfig', 'productType'), get_all=False) == 'LIVE',
+            'title': join_nonempty(
+                traverse_obj(metadata, ('officialDate', {str})),
+                traverse_obj(metadata, ('teams', ('away', 'home'), 'team', 'name', {str}, all, {' @ '.join})),
+                delim=' - '),
+            'is_live': traverse_obj(broadcasts, (..., 'mediaState', 'mediaStateCode', {str}, any)) == 'MEDIA_ON',
+            'release_timestamp': traverse_obj(metadata, ('gameDate', {parse_iso8601})),
             'formats': formats,
             'subtitles': subtitles,
-            'http_headers': {'Authorization': f'Bearer {self._access_token}'},
         }
 
 
