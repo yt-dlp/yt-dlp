@@ -7,16 +7,20 @@ import urllib.parse
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
+    determine_ext,
     int_or_none,
+    parse_duration,
     str_or_none,
+    traverse_obj,
     try_get,
     unescapeHTML,
+    unified_strdate,
     update_url_query,
 )
 
 
 class HuyaLiveIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.|m\.)?huya\.com/(?P<id>[^/#?&]+)(?:\D|$)'
+    _VALID_URL = r'https?://(?:www\.|m\.)?huya\.com/(?!(?:video/play/))(?P<id>[^/#?&]+)(?:\D|$)'
     IE_NAME = 'huya:live'
     IE_DESC = 'huya.com'
     TESTS = [{
@@ -24,6 +28,7 @@ class HuyaLiveIE(InfoExtractor):
         'info_dict': {
             'id': '572329',
             'title': str,
+            'ext': 'flv',
             'description': str,
             'is_live': True,
             'view_count': int,
@@ -131,3 +136,120 @@ class HuyaLiveIE(InfoExtractor):
         fm = base64.b64decode(params['fm']).decode().split('_', 1)[0]
         ss = hashlib.md5('|'.join([params['seqid'], params['ctype'], params['t']]))
         return fm, ss
+
+
+class HuyaVideoIE(InfoExtractor):
+    _VALID_URL = r'https://(?:www\.)?huya\.com/video/play/(?P<id>\d+)\.html'
+
+    IE_NAME = 'huya:video'
+    IE_DESC = '虎牙视频'
+
+    _TESTS = [{
+        'url': 'https://www.huya.com/video/play/1002412640.html',
+        'info_dict': {
+            'id': '1002412640',
+            'title': '8月3日',
+            'thumbnail': r're:https://.*\.jpg*',
+            'format_id': '1080P',
+            'url': r're:https?://.*\.mp4*',
+            'ext': 'mp4',
+            'width': 1728,
+            'height': 1080,
+            'filesize': 5854080,
+            'protocol': 'http',
+            'format_note': '1080P - 1728x1080',
+            'duration': 14,
+            'uploader': '虎牙-ATS欧卡车队青木',
+            'uploader_id': '1564376151',
+            'upload_date': '20240803',
+            'view_count': int,
+            'comment_count': int,
+            'like_count': int,
+        }, 'params': {
+            'skip_download': True,
+        },
+    },
+        {
+        'url': 'https://www.huya.com/video/play/556054543.html',
+        'info_dict': {
+            'id': '556054543',
+            'title': '我不挑事 也不怕事',
+            'thumbnail': r're:https://.*\.jpg*',
+            'format_id': '1080P',
+            'url': r're:https?://.*\.mp4*',
+            'ext': 'mp4',
+            'width': 1920,
+            'height': 1080,
+            'filesize': 368724330,
+            'protocol': 'http',
+            'format_note': '1080P - 1920x1080',
+            'duration': 1864,
+            'uploader': '卡尔',
+            'uploader_id': '367138632',
+            'upload_date': '20210811',
+            'view_count': int,
+            'comment_count': int,
+            'like_count': int,
+        }, 'params': {
+            'skip_download': True,
+        },
+    }]
+
+    def _real_extract(self, url: str) -> dict:
+        video_id = self._match_id(url)
+        api_url = f'https://liveapi.huya.com/moment/getMomentContent?videoId={video_id}'
+
+        try:
+            response = self._download_json(api_url, video_id)
+        except Exception as e:
+            raise ExtractorError(f'Failed to download JSON data: {e}', expected=True)
+
+        video_data = traverse_obj(response, ('data', 'moment', 'videoInfo'))
+
+        if not isinstance(video_data, dict):
+            raise ExtractorError('No video data found')
+
+        formats = []
+        for definition in video_data.get('definitions', []):
+            format_info = {
+                'format_id': definition.get('defName'),
+                'url': definition.get('url'),
+                'ext': determine_ext(definition.get('url', '')),
+                'width': int_or_none(definition.get('width')),
+                'height': int_or_none(definition.get('height')),
+                'filesize': int_or_none(definition.get('size')),
+                'protocol': 'http',  # Assuming HTTP protocol
+                'format_note': f'{definition.get("defName", "")} - {definition.get("width", "")}x{definition.get("height", "")}',
+            }
+            formats.append(format_info)
+
+        return {
+            'id': video_id,
+            'title': video_data.get('videoTitle', 'Untitled'),
+            'thumbnail': video_data.get('videoCover'),
+            'formats': formats,
+            'duration': self._parse_duration(video_data.get('videoDuration', '0')),
+            'uploader': video_data.get('nickName'),
+            'uploader_id': str_or_none(video_data.get('uid')),
+            'upload_date': self._parse_date(video_data.get('videoUploadTime', '')),
+            'view_count': video_data.get('videoPlayNum'),
+            'comment_count': video_data.get('videoCommentNum'),
+            'like_count': video_data.get('favorCount'),
+        }
+
+    def _parse_duration(self, duration_str: str) -> int:
+        """Parse duration string (e.g., '00:14' or '01:23:45') into seconds."""
+        try:
+            duration = parse_duration(duration_str)
+            return int(duration) if duration is not None else 0
+        except ValueError:
+            return 0
+
+    def _parse_date(self, date_str: str) -> str:
+        """Convert date string to YYYYMMDD format using yt-dlp's unified_strdate method."""
+        try:
+            # Use yt-dlp's unified_strdate method to parse the date string
+            parsed_date = unified_strdate(date_str)
+            return parsed_date if parsed_date is not None else ''
+        except ValueError:
+            return ''
