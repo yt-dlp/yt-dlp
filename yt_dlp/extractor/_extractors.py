@@ -822,7 +822,10 @@ from .hungama import (
     HungamaIE,
     HungamaSongIE,
 )
-from .huya import HuyaLiveIE
+from .huya import (
+    HuyaLiveIE,
+    HuyaVideoIE,
+)
 from .hypem import HypemIE
 from .hypergryph import MonsterSirenHypergryphMusicIE
 from .hytale import HytaleIE
