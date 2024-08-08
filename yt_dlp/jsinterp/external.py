@@ -6,7 +6,7 @@ import subprocess
 import tempfile
 import urllib.parse
 
-from .common import InfoExtractor
+from ..extractor.common import InfoExtractor
 from ..utils import (
     ExtractorError,
     Popen,
@@ -47,14 +47,29 @@ def cookie_jar_to_list(cookie_jar):
     return [cookie_to_dict(cookie) for cookie in cookie_jar]
 
 
+@contextlib.contextmanager
+def _temp_file(content, *, mode='wt', encoding='utf-8', suffix=None, close=True):
+    if 'r' in mode:
+        encoding = None
+    temp_file_handle = tempfile.NamedTemporaryFile(mode, encoding=encoding, suffix=suffix, delete=False)
+    try:
+        temp_file_handle.write(content)
+        if close:
+            temp_file_handle.close()
+        yield temp_file_handle
+    finally:
+        with contextlib.suppress(OSError):
+            os.remove(temp_file_handle.name)
+
+
 class ExternalJSI:
     @classproperty(cache=True)
     def version(cls):
-        return get_exe_version(cls.EXE_NAME, args=getattr(cls, 'V_ARGS', ['--version']), version_re=r'([0-9.]+)')
+        return get_exe_version(cls._EXE_NAME, args=getattr(cls, 'V_ARGS', ['--version']), version_re=r'([0-9.]+)')
 
     @classproperty
     def exe(cls):
-        return cls.EXE_NAME if cls.version else None
+        return cls._EXE_NAME if cls.version else None
 
     @classproperty
     def is_available(cls):
@@ -62,7 +77,7 @@ class ExternalJSI:
 
 
 class DenoWrapper(ExternalJSI):
-    EXE_NAME = 'deno'
+    _EXE_NAME = 'deno'
     INSTALL_HINT = 'Please install deno following https://docs.deno.com/runtime/manual/getting_started/installation/ or download its binary from https://github.com/denoland/deno/releases'
 
     def __init__(self, extractor: InfoExtractor, required_version=None, timeout=10000):
@@ -76,31 +91,19 @@ class DenoWrapper(ExternalJSI):
                 self.extractor.report_warning(
                     f'Deno is outdated, update it to version {required_version} or newer if you encounter any errors.')
 
-    @contextlib.contextmanager
-    def _create_temp_js(self, jscode):
-        js_file = tempfile.NamedTemporaryFile('wt', encoding='utf-8', suffix='.js', delete=False)
-        try:
-            js_file.write(jscode)
-            js_file.close()
-            yield js_file
-        finally:
-            with contextlib.suppress(OSError):
-                os.remove(js_file.name)
-
-    def execute(self, jscode, video_id=None, *, note='Executing JS in Deno',
-                allow_net=None, jit_less=True, base_js=None):
+    def execute(self, jscode, video_id=None, *, note='Executing JS in Deno', flags=[], jit_less=True, base_js=None):
         """Execute JS directly in Deno runtime and return stdout"""
 
         base_js = base_js if base_js is not None else 'delete window.Deno; global = window;'
 
-        with self._create_temp_js(base_js + jscode) as js_file:
-            self.extractor.to_screen(f'{format_field(video_id, None, "%s: ")}{note}')
+        with _temp_file(base_js + jscode, suffix='.js') as js_file:
+            if note:
+                self.extractor.to_screen(f'{format_field(video_id, None, "%s: ")}{note}')
 
-            cmd = [self.exe, 'run', js_file.name]
-            if allow_net:
-                cmd.append('--allow-net' if isinstance(allow_net, bool) else f'--allow-net={allow_net}')
+            cmd = [self.exe, 'run'] + flags
             if jit_less:
                 cmd.append('--v8-flags=--jitless')
+            cmd.append(js_file.name)
 
             self.extractor.write_debug(f'Deno command line: {shell_quote(cmd)}')
             try:
@@ -116,12 +119,80 @@ class DenoWrapper(ExternalJSI):
             return stdout.strip()
 
 
+class PuppeteerWrapper:
+    version = '16.2.0'
+    _HEADLESS = False
+
+    @classproperty
+    def is_available(cls):
+        return DenoWrapper.is_available
+
+    @classproperty
+    def INSTALL_HINT(cls):
+        msg = 'Run "deno run -A https://deno.land/x/puppeteer@16.2.0/install.ts" to install puppeteer'
+        if not DenoWrapper.is_available:
+            msg = f'{DenoWrapper.INSTALL_HINT}. Then {msg}'
+        return msg
+
+    def __init__(self, extractor: InfoExtractor, required_version=None, timeout=10000):
+        self.deno = DenoWrapper(extractor, timeout=(timeout + 30000))
+        self.timeout = timeout
+        self.extractor = extractor
+
+        if required_version:
+            self.extractor.report_warning(f'required_version is not supported on {self.__class__.__name__}')
+
+    def _deno_execute(self, jscode, note=None):
+        return self.deno.execute(f'''
+            import puppeteer from "https://deno.land/x/puppeteer@16.2.0/mod.ts";
+            const browser = await puppeteer.launch({{
+                headless: {json.dumps(bool(self._HEADLESS))}, args: ["--disable-web-security"]}});
+            try {{
+                {jscode}
+            }} finally {{
+                await browser.close();
+            }}''', note=note, flags=['--allow-all'], jit_less=False, base_js='')
+
+    def evaluate(self, jscode, video_id=None, note='Executing JS in Puppeteer', url='about:blank'):
+        self.extractor.to_screen(f'{format_field(video_id, None, "%s: ")}{note}')
+        return json.loads(self._deno_execute(f'''
+            const page = await browser.newPage();
+            window.setTimeout(async () => {{
+                console.error('Puppeteer execution timed out');
+                await browser.close();
+                Deno.exit(1);
+            }}, {int(self.timeout)});
+            page.resourceTimeout = {int(self.timeout)};
+
+            await page.setRequestInterception(true);
+            page.on("request", request => request.abort());
+
+            const url = {json.dumps(str(url))};
+            await page.evaluate(`window.history.replaceState('', '', ${{JSON.stringify(url)}})`);
+
+            console.log(JSON.stringify(await page.evaluate({json.dumps(str(jscode))})));
+            await browser.close();
+            Deno.exit(0);
+        '''))
+
+    def execute(self, jscode, **args):
+        return self.evaluate('''
+            (() => {{
+                const results = [];
+                const origConsole = console;
+                const console = new Proxy(console, { get: (target, prop, receiver) => {
+                    if (prop === 'log') return (...data) => data.forEach(i => results.push(i));
+                    return target[prop]}})
+            }})();
+        ''')
+
+
 class PhantomJSwrapper(ExternalJSI):
     """PhantomJS wrapper class
 
     This class is experimental.
     """
-    EXE_NAME = 'phantomjs'
+    _EXE_NAME = 'phantomjs'
     INSTALL_HINT = 'Please download PhantomJS from https://phantomjs.org/download.html'
 
     _BASE_JS = R'''
@@ -288,7 +359,7 @@ class PhantomJSwrapper(ExternalJSI):
 
         return html, stdout
 
-    def execute(self, jscode, video_id=None, *, note='Executing JS'):
+    def execute(self, jscode, video_id=None, *, note='Executing JS in PhantomJS'):
         """Execute JS and return stdout"""
         if 'phantom.exit();' not in jscode:
             jscode += ';\nphantom.exit();'

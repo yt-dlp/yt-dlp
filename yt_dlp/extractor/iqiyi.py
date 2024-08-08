@@ -5,7 +5,7 @@ import time
 import urllib.parse
 
 from .common import InfoExtractor
-from .openload import PhantomJSwrapper
+from ..jsinterp import PhantomJSwrapper
 from ..utils import (
     ExtractorError,
     clean_html,

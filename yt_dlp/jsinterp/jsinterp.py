@@ -6,7 +6,7 @@ import math
 import operator
 import re
 
-from .utils import (
+from ..utils import (
     NO_DEFAULT,
     ExtractorError,
     function_with_repr,

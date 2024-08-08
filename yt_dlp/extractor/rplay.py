@@ -8,7 +8,7 @@ import re
 import time
 
 from .common import InfoExtractor
-from .openload import DenoWrapper
+from ..jsinterp import DenoWrapper
 from ..utils import (
     ExtractorError,
     UserNotLive,
@@ -121,7 +121,7 @@ class RPlayBaseIE(InfoExtractor):
         butter_js += '__new_init().then(() => console.log((new ButterFactory()).generate_butter()));'
 
         jsi = DenoWrapper(self)
-        return jsi.execute(butter_js)
+        return jsi.execute(butter_js, jit_less=False)
 
     def get_butter_token(self):
         cache = self.cache.load('rplay', 'butter-token') or {}
@@ -229,7 +229,7 @@ class RPlayVideoIE(RPlayBaseIE):
                     'contentOid': video_id,
                     'creatorOid': metainfo.get('uploader_id'),
                     **self.requestor_query,
-                }, fatal=False))
+                }, errnote='Failed to get thumbnail url', fatal=False))
 
         formats = self._extract_m3u8_formats(m3u8_url, video_id, headers={
             'Referer': 'https://rplay.live/', 'Butter': self.get_butter_token()})
