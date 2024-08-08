@@ -1147,12 +1147,18 @@ class DiscoveryPlusShowBaseIE(DPlayBaseIE):
 
 
 class DiscoveryPlusItalyIE(DiscoveryPlusBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?discoveryplus\.com/it/video' + DPlayBaseIE._PATH_REGEX
+    _VALID_URL = r'https?://(?:www\.)?discoveryplus\.com/it/video(?:/sport|/olympics)?' + DPlayBaseIE._PATH_REGEX
     _TESTS = [{
         'url': 'https://www.discoveryplus.com/it/video/i-signori-della-neve/stagione-2-episodio-1-i-preparativi',
         'only_matching': True,
     }, {
         'url': 'https://www.discoveryplus.com/it/video/super-benny/trailer',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.discoveryplus.com/it/video/olympics/dplus-sport-dplus-sport-sport/water-polo-greece-italy',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.discoveryplus.com/it/video/sport/dplus-sport-dplus-sport-sport/lisa-vittozzi-allinferno-e-ritorno',
         'only_matching': True,
     }]
 
