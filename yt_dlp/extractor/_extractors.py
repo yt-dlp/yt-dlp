@@ -1726,11 +1726,6 @@ from .rozhlas import (
     RozhlasIE,
     RozhlasVltavaIE,
 )
-from .rplay import (
-    RPlayLiveIE,
-    RPlayUserIE,
-    RPlayVideoIE,
-)
 from .rte import (
     RteIE,
     RteRadioIE,
