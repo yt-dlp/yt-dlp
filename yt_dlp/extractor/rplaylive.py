@@ -110,28 +110,29 @@ class RPlayVideoIE(RPlayBaseIE):
             'release_timestamp': 1720846360,
             'release_date': '20240713',
             'duration': 5349.0,
-            'thumbnail': r're:https://[\w\d]+.cloudfront.net/.*',
+            'thumbnail': 'https://pb.rplay.live/thumbnail/669203d25223214e67579dc3',
             'uploader': '杏都める',
             'uploader_id': '667adc9e9aa7f739a2158ff3',
             'tags': ['杏都める', 'めいどるーちぇ', '無料', '耳舐め', 'ASMR'],
         },
     }, {
-        'url': 'https://rplay.live/play/660bee4fd3c1d09d69db6870/',
+        'url': 'https://rplay.live/play/66783c65dcd1c768a8a69f24/',
         'info_dict': {
-            'id': '660bee4fd3c1d09d69db6870',
+            'id': '66783c65dcd1c768a8a69f24',
             'ext': 'mp4',
-            'title': 'md5:7de162a0f1c2266ec428234620a124fc',
-            'description': 'md5:c6d12cc8110b748d5588d5f00787cd35',
-            'timestamp': 1712057935,
-            'upload_date': '20240402',
-            'release_timestamp': 1712061900,
-            'release_date': '20240402',
-            'duration': 6791.0,
-            'thumbnail': r're:https://[\w\d]+.cloudfront.net/.*',
+            'title': 'md5:9be2febe48cee1b7536e3e9d4d5f8e56',
+            'description': 'md5:a71374d3dcd1db0f852b96a69b41b699',
+            'timestamp': 1719155813,
+            'upload_date': '20240623',
+            'release_timestamp': 1719155813,
+            'release_date': '20240623',
+            'duration': 4237.0,
+            'thumbnail': 'https://pb.rplay.live/thumbnail/66783c65dcd1c768a8a69f24',
             'uploader': '狐月れんげ',
             'uploader_id': '65eeb4b237043dc0b5654f86',
-            'tags': 'count:10',
+            'tags': 'count:4',
             'age_limit': 18,
+            'live_status': 'was_live',
         },
     }]
 
@@ -173,6 +174,7 @@ class RPlayVideoIE(RPlayBaseIE):
             'uploader_id': ('creatorOid', {str}),
             'tags': ('hashtags', lambda _, v: v[0] != '_'),
             'age_limit': (('hideContent', 'isAdultContent'), {lambda x: 18 if x else None}, any),
+            'live_status': ('isReplayContent', {lambda x: 'was_live' if x else None}),
         })
 
         m3u8_url = traverse_obj(video_info, ('canView', 'url', {url_or_none}))
@@ -184,17 +186,6 @@ class RPlayVideoIE(RPlayBaseIE):
                 # browser credential is stored in localStorage
                 msg += f'. {self._login_hint(method="password")}'
             raise ExtractorError(msg, expected=True)
-
-        thumbnail_key = traverse_obj(video_info, (
-            'streamables', lambda _, v: v['type'].startswith('image/'), 's3key', any))
-        if thumbnail_key:
-            metainfo['thumbnail'] = url_or_none(self._download_webpage(
-                'https://api.rplay.live/upload/privateasset', video_id, 'getting cover url', query={
-                    'key': thumbnail_key,
-                    'contentOid': video_id,
-                    'creatorOid': metainfo.get('uploader_id'),
-                    **self.requestor_query,
-                }, fatal=False))
 
         formats = self._extract_m3u8_formats(m3u8_url, video_id, headers={
             'Referer': 'https://rplay.live/', 'Butter': self.get_butter_token()})
@@ -215,6 +206,7 @@ class RPlayVideoIE(RPlayBaseIE):
             'id': video_id,
             'formats': formats,
             **metainfo,
+            'thumbnail': f'https://pb.rplay.live/thumbnail/{video_id}',
             'http_headers': {'Referer': 'https://rplay.live/'},
         }
 
