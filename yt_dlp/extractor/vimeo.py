@@ -1267,7 +1267,7 @@ class VimeoGroupsIE(VimeoChannelIE):  # XXX: Do not subclass from concrete IE
 class VimeoReviewIE(VimeoBaseInfoExtractor):
     IE_NAME = 'vimeo:review'
     IE_DESC = 'Review pages on vimeo'
-    _VALID_URL = r'(?P<url>https://vimeo\.com/[^/]+/review/(?P<id>[^/]+)/[0-9a-f]{10})'
+    _VALID_URL = r'https?://vimeo\.com/(?P<user>[^/?#]+)/review/(?P<id>\d+)/(?P<hash>[\da-f]{10})'
     _TESTS = [{
         'url': 'https://vimeo.com/user21297594/review/75524534/3c257a1b5d',
         'md5': 'c507a72f780cacc12b2248bb4006d253',
@@ -1313,26 +1313,22 @@ class VimeoReviewIE(VimeoBaseInfoExtractor):
     }]
 
     def _real_extract(self, url):
-        page_url, video_id = self._match_valid_url(url).groups()
-        data = self._download_json(
-            page_url.replace('/review/', '/review/data/'), video_id)
+        user, video_id, review_hash = self._match_valid_url(url).group('user', 'id', 'hash')
+        data_url = f'https://vimeo.com/{user}/review/data/{video_id}/{review_hash}'
+        data = self._download_json(data_url, video_id)
         if data.get('isLocked') is True:
             video_password = self._get_video_password()
             viewer = self._download_json(
                 'https://vimeo.com/_rv/viewer', video_id)
-            webpage = self._verify_video_password(video_id, video_password, viewer['xsrft'])
-            clip_page_config = self._parse_json(self._search_regex(
-                r'window\.vimeo\.clip_page_config\s*=\s*({.+?});',
-                webpage, 'clip page config'), video_id)
-            config_url = clip_page_config['player']['config_url']
-            clip_data = clip_page_config.get('clip') or {}
-        else:
-            clip_data = data['clipData']
-            config_url = clip_data['configUrl']
+            self._verify_video_password(video_id, video_password, viewer['xsrft'])
+            data = self._download_json(data_url, video_id)
+        clip_data = data['clipData']
+        config_url = clip_data['configUrl']
         config = self._download_json(config_url, video_id)
         info_dict = self._parse_config(config, video_id)
         source_format = self._extract_original_format(
-            page_url + '/action', video_id)
+            f'https://vimeo.com/{user}/review/{video_id}/{review_hash}/action', video_id,
+            unlisted_hash=traverse_obj(config_url, ({parse_qs}, 'h', -1)))
         if source_format:
             info_dict['formats'].append(source_format)
         info_dict['description'] = clean_html(clip_data.get('description'))
