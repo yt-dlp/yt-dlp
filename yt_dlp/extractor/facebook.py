@@ -1034,6 +1034,7 @@ class FacebookAdsIE(InfoExtractor):
             title = join_nonempty('display_format', 'page_name', delim=' by ', from_dict=data)
 
         info_dict = traverse_obj(data, {
+            'title': ({lambda x: title}),
             'description': ('link_description', {str}, {lambda x: x if x != '{{product.description}}' else None}),
             'uploader': ('page_name', {str}),
             'uploader_id': ('page_id', {str_or_none}),
