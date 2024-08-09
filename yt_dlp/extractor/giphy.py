@@ -1,4 +1,5 @@
 import itertools
+import re
 
 from .common import InfoExtractor, SearchInfoExtractor
 from ..utils import (
@@ -215,7 +216,7 @@ class GiphyIE(GiphyBaseIE):
         # search for:  \"gif\":{\"type\":\"...},
         if json_str := self._html_search_regex(r'\\"\w+\\":({\\"type\\":\\"(?!emoji).*?is_dynamic\\":\w+}),',
                                                webpage, 'video_data', default=None):
-            gif_data = self._parse_json(json_str.encode('utf-8').decode('unicode_escape'), video_id)
+            gif_data = self._parse_json(json_str.replace(r'\"', '"'), video_id)
         # search for:  gif: {"...},
         elif json_str := self._html_search_regex(r'\s+\w+:\s*({".*?}),\n\s+', webpage, 'video_data', default='{}'):
             gif_data = self._parse_json(json_str, video_id)
@@ -253,9 +254,10 @@ class GiphyIE(GiphyBaseIE):
             if data := gif_data.get('user'):
                 if isinstance(data, str):
                     idx = data.replace('$', '')
-                    if json_str := self._html_search_regex(rf'"{idx}:({{.*?}})\\n"]\)</script>',
+                    if json_str := self._html_search_regex(rf'\\n{idx}:({{.*?}})\\n\w+:',
                                                            webpage, 'uploader_data', default=None):
-                        data = self._parse_json(json_str.encode('utf-8').decode('unicode_escape'), video_id, fatal=False)
+                        json_str = re.sub(r'"\]\)self\.__next_f\.push\(\[\d+,"', '', json_str).replace(r'\"', '"')
+                        data = self._parse_json(json_str, video_id, fatal=False)
                     if isinstance(data, dict):
                         uploader = traverse_obj(data, {
                             'uploader': (('display_name', 'name', 'attribution_display_name', 'username'),
