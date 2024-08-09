@@ -75,7 +75,7 @@ class ThreadsIE(InfoExtractor):
                     thumbnails = []
 
                     # Videos
-                    if (post.get('carousel_media') is not None):  # Handle multiple videos posts
+                    if post.get('carousel_media') is not None:  # Handle multiple videos posts
                         media_list = post.get('carousel_media')
                     else:
                         media_list = [post]
@@ -83,13 +83,14 @@ class ThreadsIE(InfoExtractor):
                     for media in media_list:
                         videos = media.get('video_versions')
 
-                        for video in videos:
-                            formats.append({
-                                'format_id': '%s-%s' % (media.get('pk'), video['type']),  # id-type
-                                'url': video['url'],
-                                'width': media.get('original_width'),
-                                'height': media.get('original_height'),
-                            })
+                        if videos:
+                            for video in videos:
+                                formats.append({
+                                    'format_id': '%s-%s' % (media.get('pk'), video['type']),  # id-type
+                                    'url': video['url'],
+                                    'width': media.get('original_width'),
+                                    'height': media.get('original_height'),
+                                })
 
                     # Thumbnails
                     thumbs = traverse_obj(post, ('image_versions2', 'candidates'))
