@@ -649,6 +649,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
         data = {'context': context} if context else {'context': self._extract_context(default_client=default_client)}
         data.update(query)
+        if self.po_token:
+            data.setdefault('serviceIntegrityDimensions', {})['poToken'] = self.po_token
         real_headers = self.generate_api_headers(default_client=default_client)
         real_headers.update({'content-type': 'application/json'})
         if headers:
@@ -707,12 +709,13 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 # and just "user_syncid||" for primary channel. We only want the channel_syncid
                 return sync_ids[0]
 
-    @staticmethod
-    def _extract_visitor_data(*args):
+    def _extract_visitor_data(self, *args):
         """
         Extracts visitorData from an API response or ytcfg
         Appears to be used to track session state
         """
+        if visitor_data := self._configuration_arg('visitor_data', [None], ie_key=YoutubeIE, casesense=True)[0]:
+            return visitor_data
         return get_first(
             args, [('VISITOR_DATA', ('INNERTUBE_CONTEXT', 'client', 'visitorData'), ('responseContext', 'visitorData'))],
             expected_type=str)
@@ -720,6 +723,10 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     @functools.cached_property
     def is_authenticated(self):
         return bool(self._generate_sapisidhash_header())
+
+    @functools.cached_property
+    def po_token(self):
+        return self._configuration_arg('po_token', [None], ie_key=YoutubeIE, casesense=True)[0]
 
     def extract_ytcfg(self, video_id, webpage):
         if not webpage:
@@ -3782,7 +3789,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     def _extract_player_responses(self, clients, video_id, webpage, master_ytcfg, smuggled_data):
         initial_pr = ignore_initial_response = None
         if webpage:
-            if 'web' in clients:
+            if self.po_token:
+                ignore_initial_response = True
+            elif 'web' in clients:
                 experiments = traverse_obj(master_ytcfg, (
                     'WEB_PLAYER_CONTEXT_CONFIGS', ..., 'serializedExperimentIds', {lambda x: x.split(',')}, ...))
                 if all(x in experiments for x in self._POTOKEN_EXPERIMENTS):
@@ -3818,10 +3827,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         skipped_clients = {}
         while clients:
             client, base_client, variant = _split_innertube_client(clients.pop())
-            player_ytcfg = {}
-            if client == 'web':
-                player_ytcfg = self._get_default_ytcfg() if ignore_initial_response else master_ytcfg
-            elif 'configs' not in self._configuration_arg('player_skip'):
+            player_ytcfg = master_ytcfg if client == 'web' else {}
+            if 'configs' not in self._configuration_arg('player_skip') and client != 'web':
                 player_ytcfg = self._download_ytcfg(client, video_id) or player_ytcfg
 
             player_url = player_url or self._extract_player_url(master_ytcfg, player_ytcfg, webpage=webpage)
@@ -3846,8 +3853,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 experiments = traverse_obj(pr, (
                     'responseContext', 'serviceTrackingParams', lambda _, v: v['service'] == 'GFEEDBACK',
                     'params', lambda _, v: v['key'] == 'e', 'value', {lambda x: x.split(',')}, ...))
-                if all(x in experiments for x in self._POTOKEN_EXPERIMENTS):
+                if all(x in experiments for x in self._POTOKEN_EXPERIMENTS) and not self.po_token:
                     pr = None
+                    # Generate a new session. Note this will have a new visitor ID and auth may not work correctly.
+                    player_ytcfg = self._get_default_ytcfg(client)
+                    if 'configs' not in self._configuration_arg('player_skip'):
+                        player_ytcfg = self._download_ytcfg(client, video_id) or player_ytcfg
                     retry.error = ExtractorError('API returned broken formats (poToken experiment detected)', expected=True)
             if not pr:
                 continue
@@ -4006,6 +4017,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                             'Cannot decrypt nsig without player_url: Some formats may be missing',
                             video_id=video_id, only_once=True)
                     continue
+
+            if self.po_token:
+                fmt_url = update_url_query(fmt_url, {'pot': self.po_token})
 
             tbr = float_or_none(fmt.get('averageBitrate') or fmt.get('bitrate'), 1000)
             format_duration = traverse_obj(fmt, ('approxDurationMs', {lambda x: float_or_none(x, 1000)}))
