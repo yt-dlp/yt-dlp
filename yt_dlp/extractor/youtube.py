@@ -3827,10 +3827,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         skipped_clients = {}
         while clients:
             client, base_client, variant = _split_innertube_client(clients.pop())
-            player_ytcfg = {}
-            if client == 'web':
-                player_ytcfg = self._get_default_ytcfg() if ignore_initial_response else master_ytcfg
-            elif 'configs' not in self._configuration_arg('player_skip'):
+            player_ytcfg = master_ytcfg if client == 'web' else {}
+            if 'configs' not in self._configuration_arg('player_skip') and client != 'web':
                 player_ytcfg = self._download_ytcfg(client, video_id) or player_ytcfg
 
             player_url = player_url or self._extract_player_url(master_ytcfg, player_ytcfg, webpage=webpage)
@@ -3857,6 +3855,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     'params', lambda _, v: v['key'] == 'e', 'value', {lambda x: x.split(',')}, ...))
                 if all(x in experiments for x in self._POTOKEN_EXPERIMENTS) and not self.po_token:
                     pr = None
+                    # Generate a new session. Note this will have a new visitor ID and auth may not work correctly.
+                    player_ytcfg = self._get_default_ytcfg(client)
+                    if 'configs' not in self._configuration_arg('player_skip'):
+                        player_ytcfg = self._download_ytcfg(client, video_id) or player_ytcfg
                     retry.error = ExtractorError('API returned broken formats (poToken experiment detected)', expected=True)
             if not pr:
                 continue
