@@ -139,8 +139,6 @@ class RPlayVideoIE(RPlayBaseIE):
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        self.get_butter_token()
-
         playlist_id = traverse_obj(parse_qs(url), ('playlist', ..., any))
         if playlist_id and self._yes_playlist(playlist_id, video_id):
             playlist_info = self._download_json(
@@ -170,7 +168,7 @@ class RPlayVideoIE(RPlayBaseIE):
             'release_timestamp': ('publishedAt', {parse_iso8601}),
             'timestamp': ('createdAt', {parse_iso8601}),
             'duration': ('length', {float_or_none}),
-            'uploader': ('nickname', {str}),
+            'uploader': ('creatorInfo', 'nickname', {str}),
             'uploader_id': ('creatorOid', {str}),
             'tags': ('hashtags', lambda _, v: v[0] != '_'),
             'age_limit': (('hideContent', 'isAdultContent'), {lambda x: 18 if x else None}, any),
