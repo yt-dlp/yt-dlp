@@ -2081,7 +2081,7 @@ from .thisvid import (
 )
 from .threads import (
     ThreadsIE,
-    ThreadsIOSIE
+    ThreadsIOSIE,
 )
 from .threeqsdn import ThreeQSDNIE
 from .threespeak import (

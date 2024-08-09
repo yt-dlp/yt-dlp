@@ -1,10 +1,10 @@
 from .common import InfoExtractor
 from ..utils import (
-    strftime_or_none,
-    traverse_obj,
     remove_end,
-    strip_or_none
+    strftime_or_none,
+    strip_or_none,
 )
+from ..utils.traversal import traverse_obj
 
 
 class ThreadsIE(InfoExtractor):
@@ -26,8 +26,8 @@ class ThreadsIE(InfoExtractor):
             'upload_date': '20240502',
             'like_count': int,
             'channel_is_verified': bool,
-            'thumbnail': r're:^https?://.*\.jpg'
-        }
+            'thumbnail': r're:^https?://.*\.jpg',
+        },
     }, {
         'url': 'https://www.threads.net/@felipebecari/post/C6cM_yNPHCF',
         'info_dict': {
@@ -44,8 +44,8 @@ class ThreadsIE(InfoExtractor):
             'upload_date': '20240501',
             'like_count': int,
             'channel_is_verified': bool,
-            'thumbnail': r're:^https?://.*\.jpg'
-        }
+            'thumbnail': r're:^https?://.*\.jpg',
+        },
     }]
 
     def _real_extract(self, url):
@@ -55,7 +55,7 @@ class ThreadsIE(InfoExtractor):
 
         # Try getting videos from json
         json_data = self._search_regex(
-            r'<script[^>]+>(.*"code":"%s".*)</script>' % video_id,
+            rf'<script[^>]+>(.*"code":"{video_id}".*)</script>',
             webpage, 'main json', fatal=True)
 
         result = self._search_json(
@@ -86,7 +86,7 @@ class ThreadsIE(InfoExtractor):
                         if videos:
                             for video in videos:
                                 formats.append({
-                                    'format_id': '%s-%s' % (media.get('pk'), video['type']),  # id-type
+                                    'format_id': '{}-{}'.format(media.get('pk'), video['type']),  # id-type
                                     'url': video['url'],
                                     'width': media.get('original_width'),
                                     'height': media.get('original_height'),
@@ -105,7 +105,7 @@ class ThreadsIE(InfoExtractor):
                     # Metadata
                     metadata.setdefault('uploader_id', traverse_obj(post, ('user', 'username')))
                     metadata.setdefault('channel_is_verified', traverse_obj(post, ('user', 'is_verified')))
-                    metadata.setdefault('uploader_url', 'https://www.threads.net/@%s' % traverse_obj(post, ('user', 'username')))
+                    metadata.setdefault('uploader_url', 'https://www.threads.net/@{}'.format(traverse_obj(post, ('user', 'username'))))
                     metadata.setdefault('timestamp', post.get('taken_at'))
                     metadata.setdefault('like_count', post.get('like_count'))
 
@@ -122,7 +122,7 @@ class ThreadsIE(InfoExtractor):
         return {
             **metadata,
             'formats': formats,
-            'thumbnails': thumbnails
+            'thumbnails': thumbnails,
         }
 
 
@@ -145,9 +145,9 @@ class ThreadsIOSIE(InfoExtractor):
             'upload_date': '20240502',
             'like_count': int,
             'channel_is_verified': bool,
-            'thumbnail': r're:^https?://.*\.jpg'
+            'thumbnail': r're:^https?://.*\.jpg',
         },
-        'add_ie': ['Threads']
+        'add_ie': ['Threads'],
     }]
 
     def _real_extract(self, url):
