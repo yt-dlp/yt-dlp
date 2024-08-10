@@ -1777,7 +1777,7 @@ The following extractors use this feature:
 * `innertube_host`: Innertube API host to use for all API requests; e.g. `studio.youtube.com`, `youtubei.googleapis.com`. Note that cookies exported from one subdomain will not work on others
 * `innertube_key`: Innertube API key to use for all API requests. By default, no API key is used
 * `raise_incomplete_data`: `Incomplete Data Received` raises an error instead of reporting a warning
-* `visitor_data`: Overwrites the visitor data used in api requests
+* `visitor_data`: Overwrites the visitor data used in Innertube API requests. This should be used with `player_skip=webpage,configs` and without cookies. Note: this may have adverse effects if used improperly. If a session from a browser is wanted, you should pass cookies instead (which contain the visitor ID).
 * `po_token`: Passes a PO token to the player api request. Needs to be used with a matching visitor data value
 
 #### youtubetab (YouTube playlists, channels, feeds, etc.)
