@@ -1340,10 +1340,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     }
     _SUBTITLE_FORMATS = ('json3', 'srv1', 'srv2', 'srv3', 'ttml', 'vtt')
     _POTOKEN_EXPERIMENTS = ('51217476', '51217102')
-    _BROKEN_CLIENTS = {
-        short_client_name(client): client
-        for client in ('android', 'android_creator', 'android_music')
-    }
+    _BROKEN_CLIENTS = ('android', 'android_creator', 'android_music')
 
     _GEO_BYPASS = False
 
@@ -3763,7 +3760,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 requested_clients.extend(allowed_clients)
             elif client not in allowed_clients:
                 self.report_warning(f'Skipping unsupported client {client}')
-            elif client in self._BROKEN_CLIENTS.values():
+            elif client in self._BROKEN_CLIENTS:
                 broken_clients.append(client)
             else:
                 requested_clients.append(client)
@@ -3866,11 +3863,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 skipped_clients[client] = pr_id
             elif pr:
                 # Save client name for introspection later
-                name = short_client_name(client)
                 sd = traverse_obj(pr, ('streamingData', {dict})) or {}
-                sd[STREAMING_DATA_CLIENT_NAME] = name
+                sd[STREAMING_DATA_CLIENT_NAME] = client
                 for f in traverse_obj(sd, (('formats', 'adaptiveFormats'), ..., {dict})):
-                    f[STREAMING_DATA_CLIENT_NAME] = name
+                    f[STREAMING_DATA_CLIENT_NAME] = client
                 prs.append(pr)
 
             # tv_embedded can work around age-gate and age-verification IF the video is embeddable
@@ -4037,7 +4033,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             is_broken = client_name in self._BROKEN_CLIENTS
             if is_broken:
                 self.report_warning(
-                    f'{video_id}: {self._BROKEN_CLIENTS[client_name]} client formats are broken '
+                    f'{video_id}: {client_name} client formats are broken '
                     'and may yield HTTP Error 403. They will be deprioritized', only_once=True)
 
             name = fmt.get('qualityLabel') or quality.replace('audio_quality_', '') or ''
@@ -4161,7 +4157,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     hls_manifest_url, video_id, 'mp4', fatal=False, live=live_status == 'is_live')
                 subtitles = self._merge_subtitles(subs, subtitles)
                 for f in fmts:
-                    if process_manifest_format(f, 'hls', client_name, self._search_regex(
+                    if process_manifest_format(f, 'hls', short_client_name(client_name), self._search_regex(
                             r'/itag/(\d+)', f['url'], 'itag', default=None)):
                         yield f
 
@@ -4170,7 +4166,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 formats, subs = self._extract_mpd_formats_and_subtitles(dash_manifest_url, video_id, fatal=False)
                 subtitles = self._merge_subtitles(subs, subtitles)  # Prioritize HLS subs over DASH
                 for f in formats:
-                    if process_manifest_format(f, 'dash', client_name, f['format_id']):
+                    if process_manifest_format(f, 'dash', short_client_name(client_name), f['format_id']):
                         f['filesize'] = int_or_none(self._search_regex(
                             r'/clen/(\d+)', f.get('fragment_base_url') or f['url'], 'file size', default=None))
                         if needs_live_processing:
