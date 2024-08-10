@@ -3744,6 +3744,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     def _get_requested_clients(self, url, smuggled_data):
         requested_clients = []
         broken_clients = []
+        skip_clients = []
         default = ['ios', 'web_creator']
         allowed_clients = sorted(
             (client for client in INNERTUBE_CLIENTS if client[:1] != '_'),
@@ -3753,6 +3754,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 requested_clients.extend(default)
             elif client == 'all':
                 requested_clients.extend(allowed_clients)
+            elif client.startswith('-'):
+                skip_clients.append(client[1:])
             elif client not in allowed_clients:
                 self.report_warning(f'Skipping unsupported client {client}')
             elif client in self._BROKEN_CLIENTS.values():
@@ -3761,6 +3764,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 requested_clients.append(client)
         # Force deprioritization of _BROKEN_CLIENTS for format de-duplication
         requested_clients.extend(broken_clients)
+        for skip_client in skip_clients:
+            if skip_client in requested_clients:
+                requested_clients.remove(skip_client)
         if not requested_clients:
             requested_clients = default
 
