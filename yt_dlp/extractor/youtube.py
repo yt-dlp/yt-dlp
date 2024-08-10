@@ -3794,7 +3794,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             elif 'web' in clients:
                 experiments = traverse_obj(master_ytcfg, (
                     'WEB_PLAYER_CONTEXT_CONFIGS', ..., 'serializedExperimentIds', {lambda x: x.split(',')}, ...))
-                if all(x in experiments for x in self._POTOKEN_EXPERIMENTS):
+                if not self.po_token and all(x in experiments for x in self._POTOKEN_EXPERIMENTS):
                     self.report_warning(
                         'Webpage contains broken formats (poToken experiment detected). Ignoring initial player response')
                     ignore_initial_response = True
