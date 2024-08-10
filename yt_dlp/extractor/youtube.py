@@ -649,8 +649,6 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
         data = {'context': context} if context else {'context': self._extract_context(default_client=default_client)}
         data.update(query)
-        if self.po_token:
-            data.setdefault('serviceIntegrityDimensions', {})['poToken'] = self.po_token
         real_headers = self.generate_api_headers(default_client=default_client)
         real_headers.update({'content-type': 'application/json'})
         if headers:
@@ -3740,6 +3738,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if player_params := self._configuration_arg('player_params', [default_pp], casesense=True)[0]:
             yt_query['params'] = player_params
 
+        if self.po_token:
+            yt_query['serviceIntegrityDimensions'] = {'poToken': self.po_token}
+
         yt_query.update(self._generate_player_context(sts))
         return self._extract_response(
             item_id=video_id, ep='player', query=yt_query,
@@ -3789,7 +3790,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     def _extract_player_responses(self, clients, video_id, webpage, master_ytcfg, smuggled_data):
         initial_pr = ignore_initial_response = None
         if webpage:
-            elif 'web' in clients:
+            if 'web' in clients:
                 experiments = traverse_obj(master_ytcfg, (
                     'WEB_PLAYER_CONTEXT_CONFIGS', ..., 'serializedExperimentIds', {lambda x: x.split(',')}, ...))
                 if not self.po_token and all(x in experiments for x in self._POTOKEN_EXPERIMENTS):
