@@ -79,6 +79,7 @@ INNERTUBE_CLIENTS = {
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 1,
+        'REQUIRE_PO_TOKEN': True,
     },
     # Safari UA returns pre-merged video+audio 144p/240p/360p/720p/1080p HLS formats
     'web_safari': {
@@ -90,6 +91,7 @@ INNERTUBE_CLIENTS = {
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 1,
+        'REQUIRE_PO_TOKEN': True,
     },
     'web_embedded': {
         'INNERTUBE_CONTEXT': {
@@ -132,6 +134,7 @@ INNERTUBE_CLIENTS = {
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 3,
         'REQUIRE_JS_PLAYER': False,
+        'REQUIRE_PO_TOKEN': True,
     },
     'android_music': {
         'INNERTUBE_CONTEXT': {
@@ -146,6 +149,7 @@ INNERTUBE_CLIENTS = {
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 21,
         'REQUIRE_JS_PLAYER': False,
+        'REQUIRE_PO_TOKEN': True,
     },
     'android_creator': {
         'INNERTUBE_CONTEXT': {
@@ -160,6 +164,7 @@ INNERTUBE_CLIENTS = {
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 14,
         'REQUIRE_JS_PLAYER': False,
+        'REQUIRE_PO_TOKEN': True,
     },
     # YouTube Kids videos aren't returned on this client for some reason
     'android_vr': {
@@ -323,6 +328,7 @@ def build_innertube_clients():
     for client, ytcfg in tuple(INNERTUBE_CLIENTS.items()):
         ytcfg.setdefault('INNERTUBE_HOST', 'www.youtube.com')
         ytcfg.setdefault('REQUIRE_JS_PLAYER', True)
+        ytcfg.setdefault('REQUIRE_PO_TOKEN', False)
         ytcfg.setdefault('PLAYER_PARAMS', None)
         ytcfg['INNERTUBE_CONTEXT']['client'].setdefault('hl', 'en')
 
@@ -1373,7 +1379,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     }
     _SUBTITLE_FORMATS = ('json3', 'srv1', 'srv2', 'srv3', 'ttml', 'vtt')
     _POTOKEN_EXPERIMENTS = ('51217476', '51217102')
-    _BROKEN_CLIENTS = ('android', 'android_creator', 'android_music')
+    _BROKEN_CLIENTS = ()
 
     _GEO_BYPASS = False
 
@@ -3825,7 +3831,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 experiments = traverse_obj(master_ytcfg, (
                     'WEB_PLAYER_CONTEXT_CONFIGS', ..., 'serializedExperimentIds', {lambda x: x.split(',')}, ...))
                 if (
-                    not self.fetch_po_token(client='web', visitor_data=self._extract_visitor_data(master_ytcfg))
+                    self._get_default_ytcfg('web').get('REQUIRE_PO_TOKEN')
+                    and not self.fetch_po_token(client='web', visitor_data=self._extract_visitor_data(master_ytcfg))
                     and all(x in experiments for x in self._POTOKEN_EXPERIMENTS)
                 ):
                     self.report_warning(
@@ -4067,10 +4074,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if po_token:
                 fmt_url = update_url_query(fmt_url, {'pot': po_token})
 
-            # _BROKEN_CLIENTS return videoplayback URLs that expire after 30 seconds
+            # Clients that require poToken return videoplayback URLs that expire after 30 seconds if not supplied.
             # Ref: https://github.com/yt-dlp/yt-dlp/issues/9554
-            # TODO: mark clients as requiring a po token to function
-            is_broken = client_name in self._BROKEN_CLIENTS
+            is_broken = (
+                client_name in self._BROKEN_CLIENTS
+                or (not po_token and self._get_default_ytcfg(client_name).get('REQUIRE_PO_TOKEN'))
+            )
             if is_broken:
                 self.report_warning(
                     f'{video_id}: {client_name} client formats are broken '
