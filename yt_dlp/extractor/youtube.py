@@ -1339,6 +1339,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         short_client_name(client): client
         for client in ('android', 'android_creator', 'android_music')
     }
+    _DEFAULT_CLIENTS = ('ios', 'web_creator')
 
     _GEO_BYPASS = False
 
@@ -3745,13 +3746,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         requested_clients = []
         broken_clients = []
         skip_clients = []
-        default = ['ios', 'web_creator']
         allowed_clients = sorted(
             (client for client in INNERTUBE_CLIENTS if client[:1] != '_'),
             key=lambda client: INNERTUBE_CLIENTS[client]['priority'], reverse=True)
         for client in self._configuration_arg('player_client'):
             if client == 'default':
-                requested_clients.extend(default)
+                requested_clients.extend(self._DEFAULT_CLIENTS)
             elif client == 'all':
                 requested_clients.extend(allowed_clients)
             elif client.startswith('-'):
@@ -3768,7 +3768,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if skip_client in requested_clients:
                 requested_clients.remove(skip_client)
         if not requested_clients:
-            requested_clients = default
+            requested_clients.extend(self._DEFAULT_CLIENTS)
 
         if smuggled_data.get('is_music_url') or self.is_music_url(url):
             for requested_client in requested_clients:
