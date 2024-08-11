@@ -64,6 +64,8 @@ class HttpFD(FileDownloader):
 
         ctx.is_resume = ctx.resume_len > 0
 
+        ctx.retry_status_function = self.params.get('retry_status_function', lambda status: status >= 500 and status < 600)
+
         class SucceedDownload(Exception):
             pass
 
@@ -155,7 +157,7 @@ class HttpFD(FileDownloader):
                             Request(url, request_data, headers))
                         content_length = ctx.data.headers['Content-Length']
                     except HTTPError as err:
-                        if err.status < 500 or err.status >= 600:
+                        if not ctx.retry_status_function(err.status):
                             raise
                     else:
                         # Examine the reported length
@@ -183,7 +185,7 @@ class HttpFD(FileDownloader):
                             ctx.resume_len = 0
                             ctx.open_mode = 'wb'
                             return
-                elif err.status < 500 or err.status >= 600:
+                elif not ctx.retry_status_function(err.status):
                     # Unexpected HTTP error
                     raise
                 raise RetryDownload(err)
