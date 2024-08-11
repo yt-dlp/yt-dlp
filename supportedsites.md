@@ -854,6 +854,7 @@
  - **MySpass**
  - **MyVideoGe**
  - **MyVidster**
+ - **MyVrSpot**
  - **Mzaalo**
  - **n-tv.de**
  - **N1Info:article**
