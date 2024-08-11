@@ -730,7 +730,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
     _PO_TOKEN_CACHE = None
 
-    def get_cached_po_token(self, client='web', **kwargs):
+    def _get_cached_po_token(self, client='web', **kwargs):
         if not self._PO_TOKEN_CACHE:
             self._PO_TOKEN_CACHE = {}
 
@@ -746,7 +746,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         return self._PO_TOKEN_CACHE.get(base_client)
 
     def fetch_po_token(self, client='web', visitor_data=None, **kwargs):
-        cached_pot = self.get_cached_po_token(client)
+        cached_pot = self._get_cached_po_token(client)
         if cached_pot:
             return cached_pot
 
@@ -3902,7 +3902,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 experiments = traverse_obj(pr, (
                     'responseContext', 'serviceTrackingParams', lambda _, v: v['service'] == 'GFEEDBACK',
                     'params', lambda _, v: v['key'] == 'e', 'value', {lambda x: x.split(',')}, ...))
-                if all(x in experiments for x in self._POTOKEN_EXPERIMENTS) and not self.get_cached_po_token(client=client):
+                if all(x in experiments for x in self._POTOKEN_EXPERIMENTS) and not self._get_cached_po_token(client=client):
                     pr = None
                     # Generate a new session. Note this will have a new visitor ID and auth may not work correctly.
                     player_ytcfg = self._get_default_ytcfg(client)
@@ -4078,7 +4078,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     f'{video_id}: Some formats are possibly damaged. They will be deprioritized', only_once=True)
 
             client_name = fmt.get(STREAMING_DATA_CLIENT_NAME)
-            po_token = self.get_cached_po_token(client=client_name)
+            po_token = self._get_cached_po_token(client=client_name)
 
             if po_token:
                 fmt_url = update_url_query(fmt_url, {'pot': po_token})
