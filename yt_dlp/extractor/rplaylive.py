@@ -287,6 +287,8 @@ class RPlayLiveIE(RPlayBaseIE):
         stream_state = live_info['streamState']
         if stream_state == 'youtube':
             return self.url_result(f'https://www.youtube.com/watch?v={live_info["liveStreamId"]}')
+        elif stream_state == 'twitch':
+            return self.url_result(f'https://www.twitch.tv/{live_info["twitchLogin"]}')
         elif stream_state == 'live':
             if not self.user_id and not live_info.get('allowAnonymous'):
                 self.raise_login_required(method='password')
