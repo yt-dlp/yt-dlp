@@ -763,13 +763,14 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
         return po_token
 
-    def _fetch_po_token(self, client='web', visitor_data=None, **kwargs):
+    def _fetch_po_token(self, client, visitor_data, **kwargs):
         po_tokens = self._configuration_arg('po_token', [], ie_key=YoutubeIE, casesense=True)
         for token_str in po_tokens:
             if ':' in token_str:
                 po_token_client, po_token = token_str.split(':')
             else:
-                po_token_client, po_token = 'web', token_str
+                # if no client specified, use for all clients
+                po_token_client, po_token = client or 'web', token_str
             if po_token_client == client:
                 return po_token
 
