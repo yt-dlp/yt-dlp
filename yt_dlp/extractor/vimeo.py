@@ -234,12 +234,22 @@ class VimeoBaseInfoExtractor(InfoExtractor):
             '_format_sort_fields': ('quality', 'res', 'fps', 'hdr:12', 'source'),
         }
 
-    def _extract_original_format(self, url, video_id, unlisted_hash=None):
+    def _call_videos_api(self, video_id, jwt_token, unlisted_hash=None, **kwargs):
+        return self._download_json(
+            join_nonempty(f'https://api.vimeo.com/videos/{video_id}', unlisted_hash, delim=':'),
+            video_id, 'Downloading API JSON', headers={
+                'Authorization': f'jwt {jwt_token}',
+                'Accept': 'application/json',
+            }, query={
+                'fields': 'config_url,created_time,description,download,license,metadata.connections.comments.total,metadata.connections.likes.total,release_time,stats.plays',
+            }, **kwargs)
+
+    def _extract_original_format(self, url, video_id, unlisted_hash=None, jwt=None, api_data=None):
         query = {'action': 'load_download_config'}
         if unlisted_hash:
             query['unlisted_hash'] = unlisted_hash
         download_data = self._download_json(
-            url, video_id, fatal=False, query=query,
+            url, video_id, 'Loading download config JSON', fatal=False, query=query,
             headers={'X-Requested-With': 'XMLHttpRequest'},
             expected_status=(403, 404)) or {}
         source_file = download_data.get('source_file')
@@ -261,15 +271,13 @@ class VimeoBaseInfoExtractor(InfoExtractor):
                     'quality': 1,
                 }
 
-        jwt_response = self._download_json(
-            'https://vimeo.com/_rv/viewer', video_id, note='Downloading jwt token', fatal=False) or {}
-        if not jwt_response.get('jwt'):
+        jwt = jwt or traverse_obj(self._download_json(
+            'https://vimeo.com/_rv/viewer', video_id, 'Downloading jwt token', fatal=False), ('jwt', {str}))
+        if not jwt:
             return
-        headers = {'Authorization': 'jwt {}'.format(jwt_response['jwt']), 'Accept': 'application/json'}
-        original_response = self._download_json(
-            f'https://api.vimeo.com/videos/{video_id}', video_id,
-            headers=headers, fatal=False, expected_status=(403, 404)) or {}
-        for download_data in original_response.get('download') or []:
+        original_response = api_data or self._call_videos_api(
+            video_id, jwt, unlisted_hash, fatal=False, expected_status=(403, 404))
+        for download_data in traverse_obj(original_response, ('download', ..., {dict})):
             download_url = download_data.get('link')
             if not download_url or download_data.get('quality') != 'source':
                 continue
@@ -768,16 +776,6 @@ class VimeoIE(VimeoBaseInfoExtractor):
             raise ExtractorError('Wrong video password', expected=True)
         return checked
 
-    def _call_videos_api(self, video_id, jwt_token, unlisted_hash=None):
-        return self._download_json(
-            join_nonempty(f'https://api.vimeo.com/videos/{video_id}', unlisted_hash, delim=':'),
-            video_id, 'Downloading API JSON', headers={
-                'Authorization': f'jwt {jwt_token}',
-                'Accept': 'application/json',
-            }, query={
-                'fields': 'config_url,created_time,description,license,metadata.connections.comments.total,metadata.connections.likes.total,release_time,stats.plays',
-            })
-
     def _extract_from_api(self, video_id, unlisted_hash=None):
         viewer = self._download_json(
             'https://vimeo.com/_next/viewer', video_id, 'Downloading viewer info')
@@ -798,6 +796,11 @@ class VimeoIE(VimeoBaseInfoExtractor):
 
         info = self._parse_config(self._download_json(
             video['config_url'], video_id), video_id)
+        source_format = self._extract_original_format(
+            f'https://vimeo.com/{video_id}', video_id, unlisted_hash, jwt=viewer['jwt'], api_data=video)
+        if source_format:
+            info['formats'].append(source_format)
+
         get_timestamp = lambda x: parse_iso8601(video.get(x + '_time'))
         info.update({
             'description': video.get('description'),
@@ -899,7 +902,12 @@ class VimeoIE(VimeoBaseInfoExtractor):
             if config.get('view') == 4:
                 config = self._verify_player_video_password(
                     redirect_url, video_id, headers)
-            return self._parse_config(config, video_id)
+            info = self._parse_config(config, video_id)
+            source_format = self._extract_original_format(
+                f'https://vimeo.com/{video_id}', video_id, unlisted_hash)
+            if source_format:
+                info['formats'].append(source_format)
+            return info
 
         vimeo_config = self._extract_vimeo_config(webpage, video_id, default=None)
         if vimeo_config:
@@ -1316,6 +1324,7 @@ class VimeoReviewIE(VimeoBaseInfoExtractor):
         user, video_id, review_hash = self._match_valid_url(url).group('user', 'id', 'hash')
         data_url = f'https://vimeo.com/{user}/review/data/{video_id}/{review_hash}'
         data = self._download_json(data_url, video_id)
+        viewer = {}
         if data.get('isLocked') is True:
             video_password = self._get_video_password()
             viewer = self._download_json(
@@ -1328,7 +1337,7 @@ class VimeoReviewIE(VimeoBaseInfoExtractor):
         info_dict = self._parse_config(config, video_id)
         source_format = self._extract_original_format(
             f'https://vimeo.com/{user}/review/{video_id}/{review_hash}/action', video_id,
-            unlisted_hash=traverse_obj(config_url, ({parse_qs}, 'h', -1)))
+            unlisted_hash=traverse_obj(config_url, ({parse_qs}, 'h', -1)), jwt=viewer.get('jwt'))
         if source_format:
             info_dict['formats'].append(source_format)
         info_dict['description'] = clean_html(clip_data.get('description'))
