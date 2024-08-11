@@ -181,7 +181,7 @@ class RPlayVideoIE(RPlayBaseIE):
             if traverse_obj(video_info, ('viewableTiers', 'free')):
                 msg = 'This video requires a free subscription to access'
             if not self.user_id:
-                # browser credential is stored in localStorage
+                # credential is in browser localStorage only, no cookies to use
                 msg += f'. {self._login_hint(method="password")}'
             raise ExtractorError(msg, expected=True)
 
@@ -219,7 +219,7 @@ class RPlayUserIE(InfoExtractor):
         },
         'playlist_mincount': 35,
     }, {
-        'url': 'https://rplay.live/c/furachi?page=contents',
+        'url': 'https://rplay.live/c/furachi',
         'info_dict': {
             'id': '65e07e60850f4527aab74757',
             'title': '逢瀬ふらち OuseFurachi',
@@ -229,11 +229,9 @@ class RPlayUserIE(InfoExtractor):
 
     def _real_extract(self, url):
         user_id, short = self._match_valid_url(url).group('id', 'short')
-        key = 'customUrl' if short == 'c' else 'userOid'
 
         user_info = self._download_json('https://api.rplay.live/account/getuser', user_id, query={
-            key: user_id, 'filter[]': ['nickname', 'published', 'publishedClips'],
-            'options': '{"includeContentMetadata":true}'})
+            'customUrl' if short == 'c' else 'userOid': user_id, 'options': '{"includeContentMetadata":true}'})
         replays = self._download_json(
             'https://api.rplay.live/live/replays', user_id, query={'creatorOid': user_info.get('_id')})
 
@@ -278,11 +276,11 @@ class RPlayLiveIE(RPlayBaseIE):
     def _real_extract(self, url):
         user_id, short = self._match_valid_url(url).group('id', 'short')
 
-        if short == 'c':
-            user_info = self._download_json(f'https://api.rplay.live/account/getuser?customUrl={user_id}', user_id)
-            user_id = user_info['_id']
-        else:
-            user_info = self._download_json(f'https://api.rplay.live/account/getuser?userOid={user_id}', user_id)
+        user_info = self._download_json('https://api.rplay.live/account/getuser', user_id, query={
+            'customUrl' if short == 'c' else 'userOid': user_id})
+        if user_info.get('isLive') is False:
+            raise UserNotLive
+        user_id = user_info['_id']
 
         live_info = self._download_json('https://api.rplay.live/live/play', user_id, query={'creatorOid': user_id})
 
