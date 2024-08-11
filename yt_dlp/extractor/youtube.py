@@ -750,9 +750,17 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         if cached_pot:
             return cached_pot
 
+        if not visitor_data:
+            self.report_warning(
+                f'Unable to fetch PO token for {client} client: Missing required visitor_data. '
+                f'You may need to pass visitor_data with --extractor-args youtube:visitor_data=XXX',
+            )
+            return
+
         po_token = self._fetch_po_token(visitor_data=visitor_data, client=client)
         if po_token:
             self._PO_TOKEN_CACHE[_split_innertube_client(client)[1]] = po_token
+
         return po_token
 
     def _fetch_po_token(self, client='web', visitor_data=None, **kwargs):
