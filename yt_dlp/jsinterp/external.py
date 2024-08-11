@@ -49,7 +49,7 @@ def cookie_jar_to_list(cookie_jar):
 
 @contextlib.contextmanager
 def _temp_file(content, *, mode='wt', encoding='utf-8', suffix=None, close=True):
-    if 'r' in mode:
+    if 'b' in mode:
         encoding = None
     temp_file_handle = tempfile.NamedTemporaryFile(mode, encoding=encoding, suffix=suffix, delete=False)
     try:
@@ -60,6 +60,26 @@ def _temp_file(content, *, mode='wt', encoding='utf-8', suffix=None, close=True)
     finally:
         with contextlib.suppress(OSError):
             os.remove(temp_file_handle.name)
+
+
+@contextlib.contextmanager
+def _tempfile_context():
+    handles = []
+
+    def _creater(content, *, mode='wt', encoding='utf-8', suffix=None, close=True):
+        encoding = None if 'b' in mode else encoding
+        handle = tempfile.NamedTemporaryFile(mode, encoding=encoding, suffix=suffix, delete=False)
+        handles.append(handle)
+        handle.write(content)
+        if close:
+            handle.close()
+        return handle
+    try:
+        yield _creater
+    finally:
+        for handle in handles:
+            with contextlib.suppress(OSError):
+                os.remove(handle.name)
 
 
 class ExternalJSI:
