@@ -15,7 +15,7 @@ import urllib.request
 
 from test.helper import FakeYDL, is_download_test
 from yt_dlp.extractor import YoutubeIE
-from yt_dlp.jsinterp import JSInterpreter
+from yt_dlp.jsinterp import NativeJSI
 
 _SIG_TESTS = [
     (
@@ -243,7 +243,7 @@ def signature(jscode, sig_input):
 
 def n_sig(jscode, sig_input):
     funcname = YoutubeIE(FakeYDL())._extract_n_function_name(jscode)
-    return JSInterpreter(jscode).call_function(funcname, sig_input)
+    return NativeJSI(jscode).call_function(funcname, sig_input)
 
 
 make_sig_test = t_factory(

@@ -9,7 +9,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import math
 
-from yt_dlp.jsinterp.jsinterp import JS_Undefined, JSInterpreter
+from yt_dlp.jsinterp.native import JS_Undefined, JSInterpreter
 
 
 class NaN:
