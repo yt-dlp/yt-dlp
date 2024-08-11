@@ -112,16 +112,19 @@ class DenoWrapper(ExternalJSI):
                 extractor.report_warning(f'JS console error msg:\n{stderr.strip()}', video_id=video_id)
             return stdout.strip()
 
-    def execute(self, jscode, video_id=None, *, note='Executing JS in Deno', flags=[], jit_less=True, base_js=None):
+    def execute(self, jscode, video_id=None, *, note='Executing JS in Deno', flags=[], base_js=None):
         """Execute JS directly in Deno runtime and return stdout"""
 
         base_js = base_js if base_js is not None else 'delete window.Deno; global = window;'
 
-        if jit_less:
-            flags = [*flags, '--v8-flags=--jitless']
-
         return self._execute(base_js + jscode, extractor=self.extractor, video_id=video_id, note=note,
                              flags=flags, timeout=self.timeout)
+
+
+class DenoJITlessJSI(DenoWrapper):
+    def execute(self, jscode, video_id=None, *, note='Executing JS in Deno', flags=[], base_js=None):
+        return super().execute(jscode, video_id, note=note, base_js=base_js,
+                               flags=[*flags, '--v8-flags=--jitless,--noexpose-wasm'])
 
 
 class PuppeteerWrapper:
@@ -176,9 +179,9 @@ class PuppeteerWrapper:
                 await browser.close();
             }}''', note=note, flags=['--allow-all'], base_js='')
 
-    def evaluate(self, jscode, video_id=None, note='Executing JS in Puppeteer', url='about:blank'):
+    def execute(self, jscode, video_id=None, note='Executing JS in Puppeteer', url='about:blank'):
         self.extractor.to_screen(f'{format_field(video_id, None, "%s: ")}{note}')
-        return json.loads(self._deno_execute(f'''
+        return self._deno_execute(f'''
             const page = await browser.newPage();
             window.setTimeout(async () => {{
                 console.error('Puppeteer execution timed out');
@@ -187,26 +190,21 @@ class PuppeteerWrapper:
             }}, {int(self.timeout)});
             page.resourceTimeout = {int(self.timeout)};
 
+            // drop network requests
             await page.setRequestInterception(true);
             page.on("request", request => request.abort());
+            // capture console output
+            page.on("console", msg => {{
+                msg.type() === 'log' && console.log(msg.text());
+                msg.type() === 'error' && console.error(msg.text());
+            }});
 
             const url = {json.dumps(str(url))};
             await page.evaluate(`window.history.replaceState('', '', ${{JSON.stringify(url)}})`);
 
-            console.log(JSON.stringify(await page.evaluate({json.dumps(str(jscode))})));
+            await page.evaluate({json.dumps(str(jscode))});
             await browser.close();
             Deno.exit(0);
-        '''))
-
-    def execute(self, jscode, **args):
-        return self.evaluate('''
-            (() => {{
-                const results = [];
-                const origConsole = console;
-                const console = new Proxy(console, { get: (target, prop, receiver) => {
-                    if (prop === 'log') return (...data) => data.forEach(i => results.push(i));
-                    return target[prop]}})
-            }})();
         ''')
 
 
