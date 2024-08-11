@@ -68,6 +68,10 @@ class ExternalJSI:
         return get_exe_version(cls._EXE_NAME, args=getattr(cls, 'V_ARGS', ['--version']), version_re=r'([0-9.]+)')
 
     @classproperty
+    def full_version(cls):
+        return cls.version
+
+    @classproperty
     def exe(cls):
         return cls._EXE_NAME if cls.version else None
 
@@ -78,7 +82,7 @@ class ExternalJSI:
 
 class DenoWrapper(ExternalJSI):
     _EXE_NAME = 'deno'
-    INSTALL_HINT = 'Please install deno following https://docs.deno.com/runtime/manual/getting_started/installation/ or download its binary from https://github.com/denoland/deno/releases'
+    INSTALL_HINT = 'Please install Deno from https://docs.deno.com/runtime/manual/getting_started/installation/ or download binary from https://github.com/denoland/deno/releases'
 
     def __init__(self, extractor: InfoExtractor, required_version=None, timeout=10000):
         self.extractor = extractor
@@ -91,48 +95,67 @@ class DenoWrapper(ExternalJSI):
                 self.extractor.report_warning(
                     f'Deno is outdated, update it to version {required_version} or newer if you encounter any errors.')
 
+    @classmethod
+    def _execute(cls, jscode, extractor=None, video_id=None, note='', flags=[], timeout=10000):
+        with _temp_file(jscode, suffix='.js') as js_file:
+            if note and extractor:
+                extractor.to_screen(f'{format_field(video_id, None, "%s: ")}{note}')
+            cmd = [cls.exe, 'run', *flags, js_file.name]
+            try:
+                stdout, stderr, returncode = Popen.run(
+                    cmd, timeout=timeout / 1000, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            except Exception as e:
+                raise ExtractorError('Unable to run Deno binary', cause=e)
+            if returncode:
+                raise ExtractorError(f'Failed with returncode {returncode}:\n{stderr}')
+            elif stderr and extractor:
+                extractor.report_warning(f'JS console error msg:\n{stderr.strip()}', video_id=video_id)
+            return stdout.strip()
+
     def execute(self, jscode, video_id=None, *, note='Executing JS in Deno', flags=[], jit_less=True, base_js=None):
         """Execute JS directly in Deno runtime and return stdout"""
 
         base_js = base_js if base_js is not None else 'delete window.Deno; global = window;'
 
-        with _temp_file(base_js + jscode, suffix='.js') as js_file:
-            if note:
-                self.extractor.to_screen(f'{format_field(video_id, None, "%s: ")}{note}')
+        if jit_less:
+            flags = [*flags, '--v8-flags=--jitless']
 
-            cmd = [self.exe, 'run'] + flags
-            if jit_less:
-                cmd.append('--v8-flags=--jitless')
-            cmd.append(js_file.name)
-
-            self.extractor.write_debug(f'Deno command line: {shell_quote(cmd)}')
-            try:
-                stdout, stderr, returncode = Popen.run(cmd, timeout=self.timeout / 1000, text=True,
-                                                       stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            except Exception as e:
-                raise ExtractorError(f'{note} failed: Unable to run Deno binary', cause=e)
-            if returncode:
-                raise ExtractorError(f'{note} failed with returncode {returncode}:\n{stderr}')
-            elif stderr:
-                self.extractor.report_warning(f'JS console error msg:\n{stderr.strip()}', video_id=video_id)
-
-            return stdout.strip()
+        return self._execute(base_js + jscode, extractor=self.extractor, video_id=video_id, note=note,
+                             flags=flags, timeout=self.timeout)
 
 
 class PuppeteerWrapper:
-    version = '16.2.0'
+    _PACKAGE_VERSION = '16.2.0'
     _HEADLESS = False
 
     @classproperty
-    def is_available(cls):
-        return DenoWrapper.is_available
-
-    @classproperty
     def INSTALL_HINT(cls):
-        msg = 'Run "deno run -A https://deno.land/x/puppeteer@16.2.0/install.ts" to install puppeteer'
+        msg = f'Run "deno run -A https://deno.land/x/puppeteer@{cls._PACKAGE_VERSION}/install.ts" to install puppeteer'
         if not DenoWrapper.is_available:
             msg = f'{DenoWrapper.INSTALL_HINT}. Then {msg}'
         return msg
+
+    @classproperty(cache=True)
+    def full_version(cls):
+        if not DenoWrapper.is_available:
+            return
+        try:
+            browser_version = DenoWrapper._execute(f'''
+                import puppeteer from "https://deno.land/x/puppeteer@16.2.0/mod.ts";
+                const browser = await puppeteer.launch({{headless: {json.dumps(bool(cls._HEADLESS))}}});
+                try {{
+                    //await (new )
+                    console.log(await browser.version())
+                }} finally {{
+                    await browser.close();
+                }}''', flags=['--allow-all'])
+            return f'puppeteer={cls._PACKAGE_VERSION} browser={browser_version}'
+        except ExtractorError:
+            return None
+
+    @classproperty
+    def version(cls):
+        return cls._PACKAGE_VERSION if cls.full_version else None
 
     def __init__(self, extractor: InfoExtractor, required_version=None, timeout=10000):
         self.deno = DenoWrapper(extractor, timeout=(timeout + 30000))
@@ -144,14 +167,14 @@ class PuppeteerWrapper:
 
     def _deno_execute(self, jscode, note=None):
         return self.deno.execute(f'''
-            import puppeteer from "https://deno.land/x/puppeteer@16.2.0/mod.ts";
+            import puppeteer from "https://deno.land/x/puppeteer@{self._PACKAGE_VERSION}/mod.ts";
             const browser = await puppeteer.launch({{
                 headless: {json.dumps(bool(self._HEADLESS))}, args: ["--disable-web-security"]}});
             try {{
                 {jscode}
             }} finally {{
                 await browser.close();
-            }}''', note=note, flags=['--allow-all'], jit_less=False, base_js='')
+            }}''', note=note, flags=['--allow-all'], base_js='')
 
     def evaluate(self, jscode, video_id=None, note='Executing JS in Puppeteer', url='about:blank'):
         self.extractor.to_screen(f'{format_field(video_id, None, "%s: ")}{note}')
