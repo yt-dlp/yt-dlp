@@ -771,7 +771,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             else:
                 # if no client specified, use for all clients
                 po_token_client, po_token = client or 'web', token_str
-            if po_token_client == client:
+            if not client or po_token_client == client:
                 return po_token
 
     def extract_ytcfg(self, video_id, webpage):
