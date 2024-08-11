@@ -217,34 +217,36 @@ class RPlayUserIE(InfoExtractor):
             'id': '667adc9e9aa7f739a2158ff3',
             'title': '杏都める',
         },
-        'playlist_mincount': 34,
+        'playlist_mincount': 35,
     }, {
         'url': 'https://rplay.live/c/furachi?page=contents',
         'info_dict': {
             'id': '65e07e60850f4527aab74757',
             'title': '逢瀬ふらち OuseFurachi',
         },
-        'playlist_mincount': 77,
+        'playlist_mincount': 94,
     }]
 
     def _real_extract(self, url):
         user_id, short = self._match_valid_url(url).group('id', 'short')
         key = 'customUrl' if short == 'c' else 'userOid'
 
-        user_info = self._download_json(
-            f'https://api.rplay.live/account/getuser?{key}={user_id}&filter[]=nickname&filter[]=published', user_id)
+        user_info = self._download_json('https://api.rplay.live/account/getuser', user_id, query={
+            key: user_id, 'filter[]': ['nickname', 'published', 'publishedClips'],
+            'options': '{"includeContentMetadata":true}'})
         replays = self._download_json(
-            'https://api.rplay.live/live/replays?=667e4cd99aa7f739a2c91852', user_id, query={
-                'creatorOid': user_info.get('_id')})
+            'https://api.rplay.live/live/replays', user_id, query={'creatorOid': user_info.get('_id')})
 
-        entries = traverse_obj(user_info, ('published', ..., {
-            lambda x: self.url_result(f'https://rplay.live/play/{x}/', ie=RPlayVideoIE, video_id=x)}))
-        for entry_id in traverse_obj(replays, (..., '_id', {str})):
-            if entry_id in user_info.get('published', []):
-                continue
-            entries.append(self.url_result(f'https://rplay.live/play/{entry_id}/', ie=RPlayVideoIE, video_id=entry_id))
+        def _entries():
+            def _entry_ids():
+                for entry in traverse_obj(user_info, ('metadataSet', ..., lambda _, v: v['_id'])):
+                    yield entry['_id'], entry.get('title')
+                for entry in traverse_obj(replays, lambda _, v: v['_id']):
+                    yield entry['_id'], entry.get('title')
+            for vid, title in dict(_entry_ids()).items():
+                yield self.url_result(f'https://rplay.live/play/{vid}', ie=RPlayVideoIE, id=vid, title=title)
 
-        return self.playlist_result(entries, user_info.get('_id', user_id), user_info.get('nickname'))
+        return self.playlist_result(_entries(), user_info.get('_id', user_id), user_info.get('nickname'))
 
 
 class RPlayLiveIE(RPlayBaseIE):
