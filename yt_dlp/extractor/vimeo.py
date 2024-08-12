@@ -369,7 +369,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
             'skip': 'No longer available',
         },
         {
-            'url': 'http://player.vimeo.com/video/54469442',
+            'url': 'https://player.vimeo.com/video/54469442',
             'md5': '619b811a4417aa4abe78dc653becf511',
             'note': 'Videos that embed the url in the player page',
             'info_dict': {
@@ -385,6 +385,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
             'params': {
                 'format': 'best[protocol=https]',
             },
+            'expected_warnings': ['Failed to parse XML: not well-formed'],
         },
         {
             'url': 'http://vimeo.com/68375962',
@@ -394,22 +395,23 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'id': '68375962',
                 'ext': 'mp4',
                 'title': 'youtube-dl password protected test video',
-                'timestamp': 1371200155,
+                'timestamp': 1371214555,
                 'upload_date': '20130614',
+                'release_timestamp': 1371214555,
+                'release_date': '20130614',
                 'uploader_url': r're:https?://(?:www\.)?vimeo\.com/user18948128',
                 'uploader_id': 'user18948128',
                 'uploader': 'Jaime Marquínez Ferrándiz',
                 'duration': 10,
-                'description': 'md5:6173f270cd0c0119f22817204b3eb86c',
-                'thumbnail': 'https://i.vimeocdn.com/video/440665496-b2c5aee2b61089442c794f64113a8e8f7d5763c3e6b3ebfaf696ae6413f8b1f4-d_1280',
-                'view_count': int,
                 'comment_count': int,
                 'like_count': int,
+                'thumbnail': 'https://i.vimeocdn.com/video/440665496-b2c5aee2b61089442c794f64113a8e8f7d5763c3e6b3ebfaf696ae6413f8b1f4-d_1280',
             },
             'params': {
                 'format': 'best[protocol=https]',
                 'videopassword': 'youtube-dl',
             },
+            'expected_warnings': ['Failed to parse XML: not well-formed'],
         },
         {
             'url': 'http://vimeo.com/channels/keypeele/75629013',
@@ -433,29 +435,38 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'like_count': int,
             },
             'params': {'format': 'http-1080p'},
+            'expected_warnings': ['Failed to parse XML: not well-formed'],
         },
         {
             'url': 'http://vimeo.com/76979871',
             'note': 'Video with subtitles',
             'info_dict': {
                 'id': '76979871',
-                'ext': 'mov',
+                'ext': 'mp4',
                 'title': 'The New Vimeo Player (You Know, For Videos)',
-                'description': 'md5:2ec900bf97c3f389378a96aee11260ea',
-                'timestamp': 1381846109,
+                'description': str,  # FIXME: Dynamic SEO spam description
+                'timestamp': 1381860509,
                 'upload_date': '20131015',
+                'release_timestamp': 1381860509,
+                'release_date': '20131015',
                 'uploader_url': r're:https?://(?:www\.)?vimeo\.com/staff',
                 'uploader_id': 'staff',
-                'uploader': 'Vimeo Staff',
+                'uploader': 'Vimeo',
                 'duration': 62,
+                'comment_count': int,
+                'like_count': int,
+                'thumbnail': 'https://i.vimeocdn.com/video/452001751-8216e0571c251a09d7a8387550942d89f7f86f6398f8ed886e639b0dd50d3c90-d_1280',
                 'subtitles': {
-                    'de': [{'ext': 'vtt'}],
-                    'en': [{'ext': 'vtt'}],
-                    'es': [{'ext': 'vtt'}],
-                    'fr': [{'ext': 'vtt'}],
+                    'de': 'count:3',
+                    'en': 'count:3',
+                    'es': 'count:3',
+                    'fr': 'count:3',
                 },
             },
-            'expected_warnings': ['Ignoring subtitle tracks found in the HLS manifest'],
+            'expected_warnings': [
+                'Ignoring subtitle tracks found in the HLS manifest',
+                'Failed to parse XML: not well-formed',
+            ],
         },
         {
             # from https://www.ouya.tv/game/Pier-Solar-and-the-Great-Architects/
@@ -471,11 +482,12 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'duration': 118,
                 'thumbnail': 'https://i.vimeocdn.com/video/478636036-c18440305ef3df9decfb6bf207a61fe39d2d17fa462a96f6f2d93d30492b037d-d_1280',
             },
+            'expected_warnings': ['Failed to parse XML: not well-formed'],
         },
         {
-            # contains original format
+            # contains Original format
             'url': 'https://vimeo.com/33951933',
-            'md5': '53c688fa95a55bf4b7293d37a89c5c53',
+            # 'md5': '53c688fa95a55bf4b7293d37a89c5c53',
             'info_dict': {
                 'id': '33951933',
                 'ext': 'mp4',
@@ -491,15 +503,19 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'view_count': int,
                 'thumbnail': 'https://i.vimeocdn.com/video/231174622-dd07f015e9221ff529d451e1cc31c982b5d87bfafa48c4189b1da72824ee289a-d_1280',
                 'like_count': int,
+                'tags': 'count:11',
             },
+            # 'params': {'format': 'Original'},
+            'expected_warnings': ['Failed to parse XML: not well-formed'],
         },
         {
-            'note': 'Contains original format not accessible in webpage',
+            'note': 'Contains source format not accessible in webpage',
             'url': 'https://vimeo.com/393756517',
-            'md5': 'c464af248b592190a5ffbb5d33f382b0',
+            # 'md5': 'c464af248b592190a5ffbb5d33f382b0',
             'info_dict': {
                 'id': '393756517',
-                'ext': 'mov',
+                # 'ext': 'mov',
+                'ext': 'mp4',
                 'timestamp': 1582642091,
                 'uploader_id': 'frameworkla',
                 'title': 'Straight To Hell - Sabrina: Netflix',
@@ -510,6 +526,8 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'thumbnail': 'https://i.vimeocdn.com/video/859377297-836494a4ef775e9d4edbace83937d9ad34dc846c688c0c419c0e87f7ab06c4b3-d_1280',
                 'uploader_url': 'https://vimeo.com/frameworkla',
             },
+            # 'params': {'format': 'source'},
+            'expected_warnings': ['Failed to parse XML: not well-formed'],
         },
         {
             # only available via https://vimeo.com/channels/tributes/6213729 and
@@ -526,16 +544,18 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'channel_id': 'tributes',
                 'timestamp': 1250886430,
                 'upload_date': '20090821',
-                'description': 'md5:bdbf314014e58713e6e5b66eb252f4a6',
+                'description': str,  # FIXME: Dynamic SEO spam description
                 'duration': 321,
                 'comment_count': int,
                 'view_count': int,
                 'thumbnail': 'https://i.vimeocdn.com/video/22728298-bfc22146f930de7cf497821c7b0b9f168099201ecca39b00b6bd31fcedfca7a6-d_1280',
                 'like_count': int,
+                'tags': ['[the shining', 'vimeohq', 'cv', 'vimeo tribute]'],
             },
             'params': {
                 'skip_download': True,
             },
+            'expected_warnings': ['Failed to parse XML: not well-formed'],
         },
         {
             # redirects to ondemand extractor and should be passed through it
@@ -558,28 +578,23 @@ class VimeoIE(VimeoBaseInfoExtractor):
             'skip': 'this page is no longer available.',
         },
         {
-            'url': 'http://player.vimeo.com/video/68375962',
+            'url': 'https://player.vimeo.com/video/68375962',
             'md5': 'aaf896bdb7ddd6476df50007a0ac0ae7',
             'info_dict': {
                 'id': '68375962',
                 'ext': 'mp4',
                 'title': 'youtube-dl password protected test video',
-                'timestamp': 1371200155,
-                'upload_date': '20130614',
                 'uploader_url': r're:https?://(?:www\.)?vimeo\.com/user18948128',
                 'uploader_id': 'user18948128',
                 'uploader': 'Jaime Marquínez Ferrándiz',
                 'duration': 10,
-                'description': 'md5:6173f270cd0c0119f22817204b3eb86c',
                 'thumbnail': 'https://i.vimeocdn.com/video/440665496-b2c5aee2b61089442c794f64113a8e8f7d5763c3e6b3ebfaf696ae6413f8b1f4-d_1280',
-                'view_count': int,
-                'comment_count': int,
-                'like_count': int,
             },
             'params': {
                 'format': 'best[protocol=https]',
                 'videopassword': 'youtube-dl',
             },
+            'expected_warnings': ['Failed to parse XML: not well-formed'],
         },
         {
             'url': 'http://vimeo.com/moogaloop.swf?clip_id=2539741',
@@ -607,7 +622,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'title': "youtube-dl test video '' ä↭𝕐-BaW jenozKc",
                 'uploader': 'Philipp Hagemeister',
                 'uploader_id': 'user20132939',
-                'description': 'md5:fa7b6c6d8db0bdc353893df2f111855b',
+                'description': str,  # FIXME: Dynamic SEO spam description
                 'upload_date': '20150209',
                 'timestamp': 1423518307,
                 'thumbnail': 'https://i.vimeocdn.com/video/default_1280',
@@ -621,6 +636,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'format': 'best[protocol=https]',
                 'videopassword': 'youtube-dl',
             },
+            'expected_warnings': ['Failed to parse XML: not well-formed'],
         },
         {
             # source file returns 403: Forbidden
@@ -648,11 +664,13 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'release_date': '20160329',
             },
             'params': {'skip_download': True},
+            'expected_warnings': ['Failed to parse XML: not well-formed'],
         },
         {
             'url': 'https://vimeo.com/138909882',
             'info_dict': {
                 'id': '138909882',
+                # 'ext': 'm4v',
                 'ext': 'mp4',
                 'title': 'Eastnor Castle 2015 Firework Champions - The Promo!',
                 'description': 'md5:5967e090768a831488f6e74b7821b3c1',
@@ -660,11 +678,19 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'uploader': 'Firework Champions',
                 'upload_date': '20150910',
                 'timestamp': 1441901895,
+                'thumbnail': 'https://i.vimeocdn.com/video/534715882-6ff8e4660cbf2fea68282876d8d44f318825dfe572cc4016e73b3266eac8ae3a-d_1280',
+                'uploader_url': 'https://vimeo.com/fireworkchampions',
+                'tags': 'count:6',
+                'duration': 229,
+                'view_count': int,
+                'like_count': int,
+                'comment_count': int,
             },
             'params': {
                 'skip_download': True,
-                'format': 'Original',
+                # 'format': 'source',
             },
+            'expected_warnings': ['Failed to parse XML: not well-formed'],
         },
         {
             'url': 'https://vimeo.com/channels/staffpicks/143603739',
@@ -685,8 +711,10 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'like_count': int,
                 'uploader_url': 'https://vimeo.com/karimhd',
                 'channel_url': 'https://vimeo.com/channels/staffpicks',
+                'tags': 'count:6',
             },
             'params': {'skip_download': 'm3u8'},
+            'expected_warnings': ['Failed to parse XML: not well-formed'],
         },
         {
             # requires passing unlisted_hash(a52724358e) to load_download_config request
@@ -716,6 +744,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
             'params': {
                 'skip_download': True,
             },
+            'expected_warnings': ['Failed to parse XML: not well-formed'],
         },
         {
             # chapters must be sorted, see: https://github.com/yt-dlp/yt-dlp/issues/5308
@@ -748,6 +777,48 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'http_headers': {'Referer': 'https://sleepsuperconference.com'},
                 'skip_download': 'm3u8',
             },
+            'expected_warnings': ['Failed to parse XML: not well-formed'],
+        },
+        {
+            # vimeo.com URL with unlisted hash and Original format
+            'url': 'https://vimeo.com/144579403/ec02229140',
+            # 'md5': '6b662c2884e0373183fbde2a0d15cb78',
+            'info_dict': {
+                'id': '144579403',
+                'ext': 'mp4',
+                'title': 'SALESMANSHIP',
+                'description': 'md5:4338302f347a1ff8841b4a3aecaa09f0',
+                'uploader': 'Off the Picture Pictures',
+                'uploader_id': 'offthepicturepictures',
+                'uploader_url': 'https://vimeo.com/offthepicturepictures',
+                'duration': 669,
+                'upload_date': '20151104',
+                'timestamp': 1446607180,
+                'release_date': '20151104',
+                'release_timestamp': 1446607180,
+                'like_count': int,
+                'view_count': int,
+                'comment_count': int,
+                'thumbnail': r're:https://i\.vimeocdn\.com/video/1018638656-[\da-f]+-d_1280',
+            },
+            # 'params': {'format': 'Original'},
+            'expected_warnings': ['Failed to parse XML: not well-formed'],
+        },
+        {
+            # player.vimeo.com URL with source format
+            'url': 'https://player.vimeo.com/video/859028877',
+            # 'md5': '19ca3d2463441dee2d2f0671ac2916a2',
+            'info_dict': {
+                'id': '859028877',
+                'ext': 'mp4',
+                'title': 'Ariana Grande - Honeymoon Avenue (Live from London)',
+                'uploader': 'Raja Virdi',
+                'uploader_id': 'rajavirdi',
+                'uploader_url': 'https://vimeo.com/rajavirdi',
+                'duration': 309,
+                'thumbnail': r're:https://i\.vimeocdn\.com/video/1716727772-[\da-f]+-d_1280',
+            },
+            # 'params': {'format': 'source'},
             'expected_warnings': ['Failed to parse XML: not well-formed'],
         },
         {
