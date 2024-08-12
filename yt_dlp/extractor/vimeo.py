@@ -256,8 +256,8 @@ class VimeoBaseInfoExtractor(InfoExtractor):
         if unlisted_hash:
             query['unlisted_hash'] = unlisted_hash
         download_data = self._download_json(
-            url, video_id, 'Loading download config JSON', fatal=False, query=query,
-            headers={'X-Requested-With': 'XMLHttpRequest'},
+            url, video_id, 'Loading download config JSON', fatal=False,
+            query=query, headers={'X-Requested-With': 'XMLHttpRequest'},
             expected_status=(403, 404)) or {}
         source_file = download_data.get('source_file')
         download_url = try_get(source_file, lambda x: x['download_url'])
