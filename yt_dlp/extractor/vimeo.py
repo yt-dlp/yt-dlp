@@ -1343,8 +1343,8 @@ class VimeoReviewIE(VimeoBaseInfoExtractor):
         config = self._download_json(config_url, video_id)
         info_dict = self._parse_config(config, video_id)
         source_format = self._extract_original_format(
-            f'https://vimeo.com/{user}/review/{video_id}/{review_hash}/action', video_id,
-            unlisted_hash=traverse_obj(config_url, ({parse_qs}, 'h', -1)), jwt=viewer.get('jwt'))
+            f'https://vimeo.com/{user}/review/{video_id}/{review_hash}/action',
+            video_id, unlisted_hash=clip_data.get('unlistedHash'), jwt=viewer.get('jwt'))
         if source_format:
             info_dict['formats'].append(source_format)
         info_dict['description'] = clean_html(clip_data.get('description'))
