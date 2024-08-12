@@ -248,6 +248,10 @@ class VimeoBaseInfoExtractor(InfoExtractor):
             }, **kwargs)
 
     def _extract_original_format(self, url, video_id, unlisted_hash=None, jwt=None, api_data=None):
+        # Original/source formats are only available when logged in
+        if not self._get_cookies('https://vimeo.com/').get('is_logged_in'):
+            return
+
         query = {'action': 'load_download_config'}
         if unlisted_hash:
             query['unlisted_hash'] = unlisted_hash
