@@ -3764,11 +3764,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 requested_clients.append(client)
         # Force deprioritization of _BROKEN_CLIENTS for format de-duplication
         requested_clients.extend(broken_clients)
+        if not requested_clients:
+            requested_clients.extend(self._DEFAULT_CLIENTS)
         for excluded_client in excluded_clients:
             if excluded_client in requested_clients:
                 requested_clients.remove(excluded_client)
         if not requested_clients:
-            requested_clients.extend(self._DEFAULT_CLIENTS)
+            raise ExtractorError('No player clients have been requested', expected=True)
 
         if smuggled_data.get('is_music_url') or self.is_music_url(url):
             for requested_client in requested_clients:
