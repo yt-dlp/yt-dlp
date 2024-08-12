@@ -1284,6 +1284,20 @@ class VimeoReviewIE(VimeoBaseInfoExtractor):
     IE_DESC = 'Review pages on vimeo'
     _VALID_URL = r'https?://vimeo\.com/(?P<user>[^/?#]+)/review/(?P<id>\d+)/(?P<hash>[\da-f]{10})'
     _TESTS = [{
+        'url': 'https://vimeo.com/user170863801/review/996447483/a316d6ed8d',
+        'info_dict': {
+            'id': '996447483',
+            'ext': 'mp4',
+            'title': 'Rodeo day 1-_2',
+            'uploader': 'BROADKAST',
+            'uploader_id': 'user170863801',
+            'uploader_url': 'https://vimeo.com/user170863801',
+            'duration': 30,
+            'thumbnail': 'https://i.vimeocdn.com/video/1912612821-09a43bd2e75c203d503aed89de7534f28fc4474a48f59c51999716931a246af5-d_1280',
+        },
+        'params': {'skip_download': 'm3u8'},
+        'expected_warnings': ['Failed to parse XML'],
+    }, {
         'url': 'https://vimeo.com/user21297594/review/75524534/3c257a1b5d',
         'md5': 'c507a72f780cacc12b2248bb4006d253',
         'info_dict': {
@@ -1297,6 +1311,7 @@ class VimeoReviewIE(VimeoBaseInfoExtractor):
             'thumbnail': 'https://i.vimeocdn.com/video/450115033-43303819d9ebe24c2630352e18b7056d25197d09b3ae901abdac4c4f1d68de71-d_1280',
             'uploader_url': 'https://vimeo.com/user21297594',
         },
+        'skip': '404 Not Found',
     }, {
         'note': 'video player needs Referer',
         'url': 'https://vimeo.com/user22258446/review/91613211/13f927e053',
