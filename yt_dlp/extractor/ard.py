@@ -627,7 +627,8 @@ class ARDAudiothekIE(InfoExtractor):
         }
     }'''
 
-    _QUERY_ITEM = '''item(id: "%s") {
+    _QUERY_ITEM = '''\
+    item(id: "%s") {
         audioList {
             href
             distributionType
@@ -671,12 +672,10 @@ class ARDAudiothekIE(InfoExtractor):
                     entries.append(self.url_result(
                         episode['url'],
                         ie=ARDAudiothekIE.ie_key()))
-            data = self.playlist_result(entries, video_id, playlist_title=display_id)
-            data.update({
-                'title': playlist_info.get('title'),
-                'description': playlist_info.get('description'),
-            })
-            return data
+            return self.playlist_result(entries, video_id, playlist_title=display_id, **traverse_obj(playlist_info, {
+                'title': ('title', {str}),
+                'description': ('description', {str}),
+            }))
 
         item = self.graphql_query(display_id, self._QUERY_ITEM % video_id)['item']
         audio_list = item.get('audioList', [])
@@ -684,12 +683,12 @@ class ARDAudiothekIE(InfoExtractor):
             'display_id': display_id,
             'formats': [{'url': x['href'], 'format_id': x['distributionType']} for x in audio_list],
             'id': video_id,
-            **traverse_obj(item, ({
-                'description': 'synopsis',
+            **traverse_obj(item, {
+                'description': ('synopsis', {str}),
                 'duration': ('duration', {int_or_none}),
                 'series': ('show', 'title'),
                 'thumbnail': ('image', 'url', {url_or_none}),
                 'timestamp': ('startDate', {parse_iso8601}),
-                'title': 'title',
-            })),
+                'title': ('title', {str}),
+            }),
         }
