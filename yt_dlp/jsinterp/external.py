@@ -49,6 +49,7 @@ def cookie_jar_to_list(cookie_jar):
 
 class TempFileWrapper:
     """Wrapper for NamedTemporaryFile, auto closes file after io and deletes file upon wrapper object gc"""
+
     def __init__(self, content=None, text=True, encoding='utf-8', suffix=None):
         self.encoding = None if not text else encoding
         self.text = text
