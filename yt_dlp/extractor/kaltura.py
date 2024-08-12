@@ -1,12 +1,10 @@
 import base64
+import contextlib
 import json
 import re
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_parse_qs,
-    compat_urlparse,
-)
 from ..utils import (
     ExtractorError,
     clean_html,
@@ -57,7 +55,7 @@ class KalturaIE(InfoExtractor):
                 'thumbnail': 're:^https?://.*/thumbnail/.*',
                 'timestamp': int,
             },
-            'skip': 'The access to this service is forbidden since the specified partner is blocked'
+            'skip': 'The access to this service is forbidden since the specified partner is blocked',
         },
         {
             'url': 'http://www.kaltura.com/index.php/kwidget/cache_st/1300318621/wid/_269692/uiconf_id/3873291/entry_id/1_1jc2y3e4',
@@ -124,14 +122,14 @@ class KalturaIE(InfoExtractor):
                 'view_count': int,
                 'upload_date': '20140815',
                 'thumbnail': 'http://cfvod.kaltura.com/p/691292/sp/69129200/thumbnail/entry_id/0_c076mna6/version/100022',
-            }
+            },
         },
         {
             # html5lib playlist URL using kwidget player
             'url': 'https://cdnapisec.kaltura.com/html5/html5lib/v2.89/mwEmbedFrame.php/p/2019031/uiconf_id/40436601?wid=1_4j3m32cv&iframeembed=true&playerId=kaltura_player_&flashvars[playlistAPI.kpl0Id]=1_jovey5nu&flashvars[ks]=&&flashvars[imageDefaultDuration]=30&flashvars[localizationCode]=en&flashvars[leadWithHTML5]=true&flashvars[forceMobileHTML5]=true&flashvars[nextPrevBtn.plugin]=true&flashvars[hotspots.plugin]=true&flashvars[sideBarContainer.plugin]=true&flashvars[sideBarContainer.position]=left&flashvars[sideBarContainer.clickToClose]=true&flashvars[chapters.plugin]=true&flashvars[chapters.layout]=vertical&flashvars[chapters.thumbnailRotator]=false&flashvars[streamSelector.plugin]=true&flashvars[EmbedPlayer.SpinnerTarget]=videoHolder&flashvars[dualScreen.plugin]=true&flashvars[playlistAPI.playlistUrl]=https://canvasgatechtest.kaf.kaltura.com/playlist/details/{playlistAPI.kpl0Id}/categoryid/126428551',
             'info_dict': {
                 'id': '1_jovey5nu',
-                'title': '00-00 Introduction'
+                'title': '00-00 Introduction',
             },
             'playlist': [
                 {
@@ -145,7 +143,7 @@ class KalturaIE(InfoExtractor):
                         'timestamp': 1533154447,
                         'upload_date': '20180801',
                         'uploader_id': 'djoyner3',
-                    }
+                    },
                 }, {
                     'info_dict': {
                         'id': '1_jfb7mdpn',
@@ -157,7 +155,7 @@ class KalturaIE(InfoExtractor):
                         'timestamp': 1533154489,
                         'upload_date': '20180801',
                         'uploader_id': 'djoyner3',
-                    }
+                    },
                 }, {
                     'info_dict': {
                         'id': '1_8xflxdp7',
@@ -169,7 +167,7 @@ class KalturaIE(InfoExtractor):
                         'timestamp': 1533154512,
                         'upload_date': '20180801',
                         'uploader_id': 'djoyner3',
-                    }
+                    },
                 }, {
                     'info_dict': {
                         'id': '1_3hqew8kn',
@@ -181,10 +179,10 @@ class KalturaIE(InfoExtractor):
                         'timestamp': 1533154536,
                         'upload_date': '20180801',
                         'uploader_id': 'djoyner3',
-                    }
-                }
-            ]
-        }
+                    },
+                },
+            ],
+        },
     ]
 
     @classmethod
@@ -192,14 +190,14 @@ class KalturaIE(InfoExtractor):
         # Embed codes: https://knowledge.kaltura.com/embedding-kaltura-media-players-your-site
         finditer = (
             list(re.finditer(
-                r"""(?xs)
+                r'''(?xs)
                     kWidget\.(?:thumb)?[Ee]mbed\(
                     \{.*?
                         (?P<q1>['"])wid(?P=q1)\s*:\s*
                         (?P<q2>['"])_?(?P<partner_id>(?:(?!(?P=q2)).)+)(?P=q2),.*?
                         (?P<q3>['"])entry_?[Ii]d(?P=q3)\s*:\s*
                         (?P<q4>['"])(?P<id>(?:(?!(?P=q4)).)+)(?P=q4)(?:,|\s*\})
-                """, webpage))
+                ''', webpage))
             or list(re.finditer(
                 r'''(?xs)
                     (?P<q1>["'])
@@ -230,34 +228,34 @@ class KalturaIE(InfoExtractor):
             for k, v in embed_info.items():
                 if v:
                     embed_info[k] = v.strip()
-            embed_url = 'kaltura:%(partner_id)s:%(id)s' % embed_info
+            embed_url = 'kaltura:{partner_id}:{id}'.format(**embed_info)
             escaped_pid = re.escape(embed_info['partner_id'])
             service_mobj = re.search(
-                r'<script[^>]+src=(["\'])(?P<id>(?:https?:)?//(?:(?!\1).)+)/p/%s/sp/%s00/embedIframeJs' % (escaped_pid, escaped_pid),
+                rf'<script[^>]+src=(["\'])(?P<id>(?:https?:)?//(?:(?!\1).)+)/p/{escaped_pid}/sp/{escaped_pid}00/embedIframeJs',
                 webpage)
             if service_mobj:
                 embed_url = smuggle_url(embed_url, {'service_url': service_mobj.group('id')})
             urls.append(embed_url)
         return urls
 
-    def _kaltura_api_call(self, video_id, actions, service_url=None, *args, **kwargs):
+    def _kaltura_api_call(self, video_id, actions, service_url=None, **kwargs):
         params = actions[0]
-        params.update({i: a for i, a in enumerate(actions[1:], start=1)})
+        params.update(dict(enumerate(actions[1:], start=1)))
 
         data = self._download_json(
             (service_url or self._SERVICE_URL) + self._SERVICE_BASE,
-            video_id, data=json.dumps(params).encode('utf-8'),
+            video_id, data=json.dumps(params).encode(),
             headers={
                 'Content-Type': 'application/json',
                 'Accept-Encoding': 'gzip, deflate, br',
-            }, *args, **kwargs)
+            }, **kwargs)
 
         for idx, status in enumerate(data):
             if not isinstance(status, dict):
                 continue
             if status.get('objectType') == 'KalturaAPIException':
                 raise ExtractorError(
-                    '%s said: %s (%d)' % (self.IE_NAME, status['message'], idx))
+                    '{} said: {} ({})'.format(self.IE_NAME, status['message'], idx))
 
         data[1] = traverse_obj(data, (1, 'objects', 0))
 
@@ -342,7 +340,7 @@ class KalturaIE(InfoExtractor):
                 'apiVersion': '3.1',
                 'clientTag': 'kwidget:v2.89',
                 'ignoreNull': 1,
-                'ks': '{1:result:ks}'
+                'ks': '{1:result:ks}',
             },
             # info
             {
@@ -397,10 +395,10 @@ class KalturaIE(InfoExtractor):
                 raise ExtractorError('Invalid URL', expected=True)
             params = {}
             if query:
-                params = compat_parse_qs(query)
+                params = urllib.parse.parse_qs(query)
             if path:
                 splitted_path = path.split('/')
-                params.update(dict((zip(splitted_path[::2], [[v] for v in splitted_path[1::2]]))))
+                params.update(dict(zip(splitted_path[::2], [[v] for v in splitted_path[1::2]])))
             if 'wid' in params:
                 partner_id = remove_start(params['wid'][0], '_')
             elif 'p' in params:
@@ -423,14 +421,11 @@ class KalturaIE(InfoExtractor):
                 # Unfortunately, data returned in kalturaIframePackageData lacks
                 # captions so we will try requesting the complete data using
                 # regular approach since we now know the entry_id
-                try:
+                # Even if this fails we already have everything extracted
+                # apart from captions and can process at least with this
+                with contextlib.suppress(ExtractorError):
                     _, info, flavor_assets, captions = self._get_video_info(
                         entry_id, partner_id, player_type=player_type)
-                except ExtractorError:
-                    # Regular scenario failed but we already have everything
-                    # extracted apart from captions and can process at least
-                    # with this
-                    pass
             elif 'uiconf_id' in params and 'flashvars[playlistAPI.kpl0Id]' in params:
                 playlist_id = params['flashvars[playlistAPI.kpl0Id]'][0]
                 webpage = self._download_webpage(url, playlist_id)
@@ -451,16 +446,16 @@ class KalturaIE(InfoExtractor):
         source_url = smuggled_data.get('source_url')
         if source_url:
             referrer = base64.b64encode(
-                '://'.join(compat_urlparse.urlparse(source_url)[:2])
-                .encode('utf-8')).decode('utf-8')
+                '://'.join(urllib.parse.urlparse(source_url)[:2])
+                .encode()).decode('utf-8')
         else:
             referrer = None
 
         def sign_url(unsigned_url):
             if ks:
-                unsigned_url += '/ks/%s' % ks
+                unsigned_url += f'/ks/{ks}'
             if referrer:
-                unsigned_url += '?referrer=%s' % referrer
+                unsigned_url += f'?referrer={referrer}'
             return unsigned_url
 
         data_url = info['dataUrl']
@@ -487,8 +482,8 @@ class KalturaIE(InfoExtractor):
                 else:
                     f['fileExt'] = 'mp4'
             video_url = sign_url(
-                '%s/flavorId/%s' % (data_url, f['id']))
-            format_id = '%(fileExt)s-%(bitrate)s' % f
+                '{}/flavorId/{}'.format(data_url, f['id']))
+            format_id = '{fileExt}-{bitrate}'.format(**f)
             # Source format may not be available (e.g. kaltura:513551:1_66x4rg7o)
             if f.get('isOriginal') is True and not self._is_valid_url(
                     video_url, entry_id, format_id):
@@ -527,7 +522,7 @@ class KalturaIE(InfoExtractor):
                     continue
                 caption_format = int_or_none(caption.get('format'))
                 subtitles.setdefault(caption.get('languageCode') or caption.get('language'), []).append({
-                    'url': '%s/api_v3/service/caption_captionasset/action/serve/captionAssetId/%s' % (self._SERVICE_URL, caption['id']),
+                    'url': '{}/api_v3/service/caption_captionasset/action/serve/captionAssetId/{}'.format(self._SERVICE_URL, caption['id']),
                     'ext': caption.get('fileExt') or self._CAPTION_TYPES.get(caption_format) or 'ttml',
                 })
 

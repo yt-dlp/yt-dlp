@@ -1,10 +1,7 @@
 import re
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-    compat_urlparse,
-)
 from ..utils import (
     ExtractorError,
     determine_ext,
@@ -39,7 +36,7 @@ class WDRIE(InfoExtractor):
 
     def _asset_url(self, wdr_id):
         id_len = max(len(wdr_id), 5)
-        return ''.join(('https:', self.__API_URL_TPL % (wdr_id[:id_len - 4], wdr_id, ), '.js'))
+        return ''.join(('https:', self.__API_URL_TPL % (wdr_id[:id_len - 4], wdr_id), '.js'))
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -94,7 +91,7 @@ class WDRIE(InfoExtractor):
                         medium_url, 'stream', fatal=False))
                 else:
                     a_format = {
-                        'url': medium_url
+                        'url': medium_url,
                     }
                     if ext == 'unknown_video':
                         urlh = self._request_webpage(
@@ -168,7 +165,7 @@ class WDRPageIE(WDRIE):  # XXX: Do not subclass from concrete IE
                 'upload_date': '20160312',
                 'description': 'md5:e127d320bc2b1f149be697ce044a3dd7',
                 'is_live': False,
-                'subtitles': {}
+                'subtitles': {},
             },
             'skip': 'HTTP Error 404: Not Found',
         },
@@ -202,7 +199,7 @@ class WDRPageIE(WDRIE):  # XXX: Do not subclass from concrete IE
                 'upload_date': 're:^[0-9]{8}$',
                 'title': 're:^Die Sendung (?:mit der Maus )?vom [0-9.]{10}$',
             },
-            'skip': 'The id changes from week to week because of the new episode'
+            'skip': 'The id changes from week to week because of the new episode',
         },
         {
             'url': 'http://www.wdrmaus.de/filme/sachgeschichten/achterbahn.php5',
@@ -228,7 +225,7 @@ class WDRPageIE(WDRIE):  # XXX: Do not subclass from concrete IE
             },
             'params': {
                 'skip_download': True,  # m3u8 download
-            }
+            },
         },
         {
             'url': 'http://www.sportschau.de/handballem2018/handball-nationalmannschaft-em-stolperstein-vorrunde-100.html',
@@ -260,7 +257,7 @@ class WDRPageIE(WDRIE):  # XXX: Do not subclass from concrete IE
                 'alt_title': 'Rockpalast',
                 'upload_date': '20220725',
             },
-        }
+        },
     ]
 
     def _real_extract(self, url):
@@ -289,14 +286,14 @@ class WDRPageIE(WDRIE):  # XXX: Do not subclass from concrete IE
             if not media_link_obj:
                 continue
             jsonp_url = try_get(
-                media_link_obj, lambda x: x['mediaObj']['url'], compat_str)
+                media_link_obj, lambda x: x['mediaObj']['url'], str)
             if jsonp_url:
                 # metadata, or player JS with ['ref'] giving WDR id, or just media, perhaps
                 clip_id = media_link_obj['mediaObj'].get('ref')
                 if jsonp_url.endswith('.assetjsonp'):
                     asset = self._download_json(
                         jsonp_url, display_id, fatal=False, transform_source=strip_jsonp)
-                    clip_id = try_get(asset, lambda x: x['trackerData']['trackerClipId'], compat_str)
+                    clip_id = try_get(asset, lambda x: x['trackerData']['trackerClipId'], str)
                 if clip_id:
                     jsonp_url = self._asset_url(clip_id[4:])
                 entries.append(self.url_result(jsonp_url, ie=WDRIE.ie_key()))
@@ -305,7 +302,7 @@ class WDRPageIE(WDRIE):  # XXX: Do not subclass from concrete IE
         if not entries:
             entries = [
                 self.url_result(
-                    compat_urlparse.urljoin(url, mobj.group('href')),
+                    urllib.parse.urljoin(url, mobj.group('href')),
                     ie=WDRPageIE.ie_key())
                 for mobj in re.finditer(
                     r'<a[^>]+\bhref=(["\'])(?P<href>(?:(?!\1).)+)\1[^>]+\bdata-extension(?:-ard)?=',
@@ -324,7 +321,7 @@ class WDRElefantIE(InfoExtractor):
             'title': 'Wippe',
             'id': 'mdb-1198320',
             'ext': 'mp4',
-            'upload_date': '20071003'
+            'upload_date': '20071003',
         },
     }
 
@@ -348,7 +345,7 @@ class WDRElefantIE(InfoExtractor):
         zmdb_url_element = xml_metadata.find('./movie/zmdb_url')
         if zmdb_url_element is None:
             raise ExtractorError(
-                '%s is not a video' % display_id, expected=True)
+                f'{display_id} is not a video', expected=True)
         return self.url_result(zmdb_url_element.text, ie=WDRIE.ie_key())
 
 
@@ -368,7 +365,7 @@ class WDRMobileIE(InfoExtractor):
             'ext': 'mp4',
             'age_limit': 0,
         },
-        'skip': 'Problems with loading data.'
+        'skip': 'Problems with loading data.',
     }
 
     def _real_extract(self, url):

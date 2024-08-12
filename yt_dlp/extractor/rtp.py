@@ -35,7 +35,7 @@ class RTPIE(InfoExtractor):
             data = self._RX_OBFUSCATION.sub(
                 lambda m: json.dumps(
                     base64.b64decode(urllib.parse.unquote(
-                        ''.join(self._parse_json(m.group(1), video_id))
+                        ''.join(self._parse_json(m.group(1), video_id)),
                     )).decode('iso-8859-1')),
                 data)
         return js_to_json(data)
