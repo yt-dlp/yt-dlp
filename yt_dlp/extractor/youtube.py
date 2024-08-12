@@ -20,8 +20,7 @@ import traceback
 import urllib.parse
 
 from .common import InfoExtractor, SearchInfoExtractor
-from ..jsinterp import PhantomJSwrapper
-from ..jsinterp import NativeJSI
+from ..jsinterp import NativeJSI, PhantomJSwrapper
 from ..networking.exceptions import HTTPError, network_exceptions
 from ..utils import (
     NO_DEFAULT,

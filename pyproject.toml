@@ -263,7 +263,7 @@ select = [
     "A002",   # builtin-argument-shadowing
     "C408",   # unnecessary-collection-call
 ]
-"yt_dlp/jsinterp.py" = [
+"yt_dlp/jsinterp/native.py" = [
     "UP031",  # printf-string-formatting
 ]
 

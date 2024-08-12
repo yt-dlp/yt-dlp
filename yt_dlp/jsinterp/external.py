@@ -48,6 +48,7 @@ def cookie_jar_to_list(cookie_jar):
 
 
 class TempFileWrapper:
+    """Wrapper for NamedTemporaryFile, auto closes file after io and deletes file upon wrapper object gc"""
     def __init__(self, content=None, text=True, encoding='utf-8', suffix=None):
         self.encoding = None if not text else encoding
         self.text = text
@@ -70,11 +71,11 @@ class TempFileWrapper:
 
     def write(self, s, seek=None, seek_whence=0):
         with self.opened_file('w', seek=seek, seek_whence=seek_whence) as f:
-            f.write(s)
+            return f.write(s)
 
     def append_write(self, s, seek=None, seek_whence=0):
         with self.opened_file('a', seek=seek, seek_whence=seek_whence) as f:
-            f.write(s)
+            return f.write(s)
 
     def read(self, n=-1, seek=None, seek_whence=0):
         with self.opened_file('r', seek=seek, seek_whence=seek_whence) as f:
@@ -123,7 +124,7 @@ class DenoWrapper(ExternalJSI):
 
     @classmethod
     def _execute(cls, jscode, extractor=None, video_id=None, note='', flags=[], timeout=10000):
-        js_file = TempFileWrapper(jscode)
+        js_file = TempFileWrapper(jscode, suffix='.js')
         if note and extractor:
             extractor.to_screen(f'{format_field(video_id, None, "%s: ")}{note}')
         cmd = [cls.exe, 'run', *flags, js_file.name]
