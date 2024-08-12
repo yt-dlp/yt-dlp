@@ -3757,7 +3757,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             elif client.startswith('-'):
                 excluded_clients.append(client[1:])
             elif client not in allowed_clients:
-                self.report_warning(f'Skipping unsupported client {client}')
+                self.report_warning(f'Skipping unsupported client "{client}"')
             elif client in self._BROKEN_CLIENTS.values():
                 broken_clients.append(client)
             else:
