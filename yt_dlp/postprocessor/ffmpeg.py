@@ -655,9 +655,6 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
         input_files = [filename, *sub_filenames]
 
         opts = [
-            # Attached JSON subtitles don't have a codec id and we have to
-            # instruct FFMPEG to not discard them because of that.
-            '-copy_unknown',
             *self.stream_copy_opts(ext=info['ext']),
             # Don't copy the existing subtitles, we may be running the
             # postprocessor a second time
