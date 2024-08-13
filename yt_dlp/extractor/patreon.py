@@ -457,6 +457,7 @@ class PatreonCampaignIE(PatreonBaseIE):
         'playlist_mincount': 71,
     }, {
         'url': 'https://www.patreon.com/api/campaigns/4767637/posts',
+        'only_matching': True,
         'info_dict': {
             'title': 'Not Just Bikes',
             'channel_follower_count': int,
