@@ -116,7 +116,7 @@ class ThreadsIE(InfoExtractor):
 
         metadata['channel'] = metadata.get('uploader_id')
         metadata['channel_url'] = metadata.get('uploader_url')
-        metadata['uploader'] = self._search_regex(r'(.*?) \(', self._og_search_title(webpage), 'uploader')
+        metadata['uploader'] = self._search_regex(r'(.*?) \(', self._og_search_title(webpage), 'uploader', metadata.get('uploader_id'))
         metadata['upload_date'] = strftime_or_none(metadata.get('timestamp'))
 
         return {
