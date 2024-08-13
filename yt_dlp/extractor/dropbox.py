@@ -42,18 +42,24 @@ class DropboxIE(InfoExtractor):
         webpage = self._download_webpage(url, video_id)
         fn = urllib.parse.unquote(url_basename(url))
         title = os.path.splitext(fn)[0]
-
         password = self.get_param('videopassword')
+        thumbnail = None
+
+        for encoded in reversed(re.findall(r'registerStreamedPrefetch\s*\(\s*"[\w/+=]+"\s*,\s*"([\w/+=]+)"', webpage)):
+            part = base64.b64decode(encoded).decode('utf-8', 'ignore')
+            if 'sm/password' in part:
+                webpage = self._download_webpage(
+                    'https://www.dropbox.com/sm/password?' + part.split('?')[1], video_id)
+
         if (self._og_search_title(webpage) == 'Dropbox - Password Required'
                 or 'Enter the password for this link' in webpage):
 
             if password:
                 content_id = self._search_regex(r'content_id=(.*?)["\']', webpage, 'content_id')
-                payload = f'is_xhr=true&t={self._get_cookies("https://www.dropbox.com").get("t").value}&content_id={content_id}&password={password}&url={url}'
+                payload = f'is_xhr=true&t={self._get_cookies("https://www.dropbox.com").get("t").value}&content_id={content_id}&password={password}&url={url.replace("https://www.dropbox.com", "")}'
                 response = self._download_json(
                     'https://www.dropbox.com/sm/auth', video_id, 'POSTing video password', data=payload.encode(),
                     headers={'content-type': 'application/x-www-form-urlencoded; charset=UTF-8'})
-
                 if response.get('status') != 'authed':
                     raise ExtractorError('Authentication failed!', expected=True)
                 webpage = self._download_webpage(url, video_id)
@@ -73,6 +79,8 @@ class DropboxIE(InfoExtractor):
             if not transcode_url:
                 continue
             formats, subtitles = self._extract_m3u8_formats_and_subtitles(transcode_url, video_id, 'mp4')
+            thumbnail = self._search_regex(
+                r'(https://www\.dropbox\.com/temp_thumb_from_token/c/(.*?)\?preserve_transparency=False&rlkey=(.*?)&secure_hash=&size=(.*?)&size_mode=4)', decoded, 'thumbnail url', default=None)
             break
 
         # downloads enabled we can get the original file
@@ -86,6 +94,7 @@ class DropboxIE(InfoExtractor):
 
         return {
             'id': video_id,
+            'thumbnail': thumbnail,
             'title': title,
             'formats': formats,
             'subtitles': subtitles,
