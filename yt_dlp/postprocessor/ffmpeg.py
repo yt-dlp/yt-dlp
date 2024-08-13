@@ -221,7 +221,12 @@ class FFmpegPostProcessor(PostProcessor):
         yield from ('-map', '0')
         # Don't copy Apple TV chapters track, bin_data
         # See https://github.com/yt-dlp/yt-dlp/issues/2, #19042, #19024, https://trac.ffmpeg.org/ticket/6016
-        yield from ('-dn', '-ignore_unknown')
+        yield '-dn'
+
+        # Some streams, such as JSON attachments, are considered of unknown
+        # type by FFmpeg but we still want to copy them.
+        yield '-copy_unknown'
+
         if copy:
             yield from ('-c', 'copy')
         if ext in ('mp4', 'mov', 'm4a'):
