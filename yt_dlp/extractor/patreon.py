@@ -471,7 +471,7 @@ class PatreonCampaignIE(PatreonBaseIE):
             'uploader_id': '32718287',
             'thumbnail': r're:^https?://.*$',
         },
-        'playlist_mincount': 12,
+        'playlist_mincount': 201,
     }, {
         'url': 'https://www.patreon.com/dissonancepod/posts',
         'only_matching': True,
