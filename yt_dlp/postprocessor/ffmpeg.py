@@ -624,7 +624,7 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
         webm_vtt_warn = False
         mp4_ass_warn = False
 
-        json_names, json_filenames = [], []
+        json_subs = {}
 
         for lang, sub_info in subtitles.items():
             if not os.path.exists(sub_info.get('filepath', '')):
@@ -633,8 +633,7 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
             sub_ext = sub_info['ext']
             if sub_ext == 'json':
                 if info['ext'] in ('mkv', 'mka'):
-                    json_names.append(lang)
-                    json_filenames.append(sub_info['filepath'])
+                    json_subs[lang] = sub_info['filepath']
                 else:
                     self.report_warning('JSON subtitles can only be embedded in mkv/mka files.')
             elif ext != 'webm' or ext == 'webm' and sub_ext == 'vtt':
@@ -672,13 +671,13 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
                 opts.extend([f'-metadata:s:s:{i}', f'handler_name={name}',
                              f'-metadata:s:s:{i}', f'title={name}'])
 
-        for (json_filename, json_name) in zip(json_filenames, json_names):
+        for json_lang, json_filename in json_subs.items():
             escaped_json_filename = self._ffmpeg_filename_argument(json_filename)
             opts.extend([
-                '-map', f'-0:m:filename:{json_name}.json?',
+                '-map', f'-0:m:filename:{json_lang}.json?',
                 '-attach', escaped_json_filename,
                 f'-metadata:s:m:filename:{escaped_json_filename}', 'mimetype=application/json',
-                f'-metadata:s:m:filename:{escaped_json_filename}', f'filename={json_name}.json',
+                f'-metadata:s:m:filename:{escaped_json_filename}', f'filename={json_lang}.json',
             ])
 
         temp_filename = prepend_extension(filename, 'temp')
@@ -686,7 +685,7 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
         self.run_ffmpeg_multiple_files(input_files, temp_filename, opts)
         os.replace(temp_filename, filename)
 
-        files_to_delete = [] if self._already_have_subtitle else sub_filenames + json_filenames
+        files_to_delete = [] if self._already_have_subtitle else sub_filenames + list(json_subs.values())
         return files_to_delete, info
 
 
