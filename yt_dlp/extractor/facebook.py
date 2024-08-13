@@ -973,6 +973,22 @@ class FacebookAdsIE(InfoExtractor):
             'like_count': int,
         },
     }, {
+        # key 'watermarked_video_sd_url' missing
+        'url': 'https://www.facebook.com/ads/library/?id=2021317858297251',
+        'info_dict': {
+            'id': '2021317858297251',
+            'ext': 'mp4',
+            'title': 'carousel by Ginohome',
+            'description': 'md5:790accf1a5c95a547a1653ba4bbef74d',
+            'uploader': 'Ginohome',
+            'uploader_id': '1694035087527283',
+            'uploader_url': r're:^https?://.*',
+            'timestamp': 1723545823,
+            'thumbnail': r're:^https?://.*',
+            'upload_date': '20240813',
+            'like_count': int,
+        },
+    }, {
         'url': 'https://www.facebook.com/ads/library/?id=893637265423481',
         'info_dict': {
             'id': '893637265423481',
@@ -1052,7 +1068,7 @@ class FacebookAdsIE(InfoExtractor):
 
         entries = []
         for idx, entry in enumerate(traverse_obj(
-            data, (('videos', 'cards'), lambda _, v: any(url_or_none(v[f]) for f in self._FORMATS_MAP))), 1,
+            data, (('videos', 'cards'), lambda _, v: any(url_or_none(v.get(f)) for f in self._FORMATS_MAP))), 1,
         ):
             entries.append({
                 'id': f'{video_id}_{idx}',
