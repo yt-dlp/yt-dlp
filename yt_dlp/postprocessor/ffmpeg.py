@@ -1,5 +1,6 @@
 import collections
 import contextvars
+import functools
 import itertools
 import json
 import os
@@ -8,7 +9,7 @@ import subprocess
 import time
 
 from .common import PostProcessor
-from ..compat import functools, imghdr
+from ..compat import imghdr
 from ..utils import (
     MEDIA_EXTENSIONS,
     ISO639Utils,

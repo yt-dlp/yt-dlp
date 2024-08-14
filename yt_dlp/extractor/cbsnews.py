@@ -1,6 +1,5 @@
 import base64
 import re
-import urllib.error
 import urllib.parse
 import zlib
 

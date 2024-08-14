@@ -234,7 +234,14 @@ class InfoExtractor:
                                  'maybe' if the format may have DRM and has to be tested before download.
                     * extra_param_to_segment_url  A query string to append to each
                                  fragment's URL, or to update each existing query string
-                                 with. Only applied by the native HLS/DASH downloaders.
+                                 with. If it is an HLS stream with an AES-128 decryption key,
+                                 the query paramaters will be passed to the key URI as well,
+                                 unless there is an `extra_param_to_key_url` given,
+                                 or unless an external key URI is provided via `hls_aes`.
+                                 Only applied by the native HLS/DASH downloaders.
+                    * extra_param_to_key_url  A query string to append to the URL
+                                 of the format's HLS AES-128 decryption key.
+                                 Only applied by the native HLS downloader.
                     * hls_aes    A dictionary of HLS AES-128 decryption information
                                  used by the native HLS downloader to override the
                                  values in the media playlist when an '#EXT-X-KEY' tag
@@ -2215,6 +2222,11 @@ class InfoExtractor:
                         'quality': quality,
                         'has_drm': has_drm,
                     }
+
+                    # YouTube-specific
+                    if yt_audio_content_id := last_stream_inf.get('YT-EXT-AUDIO-CONTENT-ID'):
+                        f['language'] = yt_audio_content_id.split('.')[0]
+
                     resolution = last_stream_inf.get('RESOLUTION')
                     if resolution:
                         mobj = re.search(r'(?P<width>\d+)[xX](?P<height>\d+)', resolution)
@@ -3138,7 +3150,7 @@ class InfoExtractor:
                     })
         return formats, subtitles
 
-    def _parse_html5_media_entries(self, base_url, webpage, video_id, m3u8_id=None, m3u8_entry_protocol='m3u8_native', mpd_id=None, preference=None, quality=None):
+    def _parse_html5_media_entries(self, base_url, webpage, video_id, m3u8_id=None, m3u8_entry_protocol='m3u8_native', mpd_id=None, preference=None, quality=None, _headers=None):
         def absolute_url(item_url):
             return urljoin(base_url, item_url)
 
@@ -3162,11 +3174,11 @@ class InfoExtractor:
                 formats = self._extract_m3u8_formats(
                     full_url, video_id, ext='mp4',
                     entry_protocol=m3u8_entry_protocol, m3u8_id=m3u8_id,
-                    preference=preference, quality=quality, fatal=False)
+                    preference=preference, quality=quality, fatal=False, headers=_headers)
             elif ext == 'mpd':
                 is_plain_url = False
                 formats = self._extract_mpd_formats(
-                    full_url, video_id, mpd_id=mpd_id, fatal=False)
+                    full_url, video_id, mpd_id=mpd_id, fatal=False, headers=_headers)
             else:
                 is_plain_url = True
                 formats = [{
@@ -3260,6 +3272,8 @@ class InfoExtractor:
                         })
             for f in media_info['formats']:
                 f.setdefault('http_headers', {})['Referer'] = base_url
+                if _headers:
+                    f['http_headers'].update(_headers)
             if media_info['formats'] or media_info['subtitles']:
                 entries.append(media_info)
         return entries

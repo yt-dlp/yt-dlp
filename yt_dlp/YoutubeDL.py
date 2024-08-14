@@ -4,6 +4,7 @@ import copy
 import datetime as dt
 import errno
 import fileinput
+import functools
 import http.cookiejar
 import io
 import itertools
@@ -24,7 +25,7 @@ import traceback
 import unicodedata
 
 from .cache import Cache
-from .compat import functools, urllib  # isort: split
+from .compat import urllib  # isort: split
 from .compat import compat_os_name, urllib_req_to_req
 from .cookies import LenientSimpleCookie, load_cookies
 from .downloader import FFmpegFD, get_suitable_downloader, shorten_protocol_name
@@ -158,7 +159,7 @@ from .utils import (
     write_json_file,
     write_string,
 )
-from .utils._utils import _YDLLogger
+from .utils._utils import _UnsafeExtensionError, _YDLLogger
 from .utils.networking import (
     HTTPHeaderDict,
     clean_headers,
@@ -169,6 +170,20 @@ from .version import CHANNEL, ORIGIN, RELEASE_GIT_HEAD, VARIANT, __version__
 
 if compat_os_name == 'nt':
     import ctypes
+
+
+def _catch_unsafe_extension_error(func):
+    @functools.wraps(func)
+    def wrapper(self, *args, **kwargs):
+        try:
+            return func(self, *args, **kwargs)
+        except _UnsafeExtensionError as error:
+            self.report_error(
+                f'The extracted extension ({error.extension!r}) is unusual '
+                'and will be skipped for safety reasons. '
+                f'If you believe this is an error{bug_reports_message(",")}')
+
+    return wrapper
 
 
 class YoutubeDL:
@@ -437,7 +452,8 @@ class YoutubeDL:
                        Can also just be a single color policy,
                        in which case it applies to all outputs.
                        Valid stream names are 'stdout' and 'stderr'.
-                       Valid color policies are one of 'always', 'auto', 'no_color' or 'never'.
+                       Valid color policies are one of 'always', 'auto',
+                       'no_color', 'never', 'auto-tty' or 'no_color-tty'.
     geo_bypass:        Bypass geographic restriction via faking X-Forwarded-For
                        HTTP header
     geo_bypass_country:
@@ -453,8 +469,9 @@ class YoutubeDL:
                        Set the value to 'native' to use the native downloader
     compat_opts:       Compatibility options. See "Differences in default behavior".
                        The following options do not work when used through the API:
-                       filename, abort-on-error, multistreams, no-live-chat, format-sort
-                       no-clean-infojson, no-playlist-metafiles, no-keep-subs, no-attach-info-json.
+                       filename, abort-on-error, multistreams, no-live-chat,
+                       format-sort, no-clean-infojson, no-playlist-metafiles,
+                       no-keep-subs, no-attach-info-json, allow-unsafe-ext.
                        Refer __init__.py for their implementation
     progress_template: Dictionary of templates for progress outputs.
                        Allowed keys are 'download', 'postprocess',
@@ -581,8 +598,9 @@ class YoutubeDL:
         'vbr', 'fps', 'vcodec', 'container', 'filesize', 'filesize_approx', 'rows', 'columns',
         'player_url', 'protocol', 'fragment_base_url', 'fragments', 'is_from_start', 'is_dash_periods', 'request_data',
         'preference', 'language', 'language_preference', 'quality', 'source_preference', 'cookies',
-        'http_headers', 'stretched_ratio', 'no_resume', 'has_drm', 'extra_param_to_segment_url', 'hls_aes', 'downloader_options',
-        'page_url', 'app', 'play_path', 'tc_url', 'flash_version', 'rtmp_live', 'rtmp_conn', 'rtmp_protocol', 'rtmp_real_time',
+        'http_headers', 'stretched_ratio', 'no_resume', 'has_drm', 'extra_param_to_segment_url', 'extra_param_to_key_url',
+        'hls_aes', 'downloader_options', 'page_url', 'app', 'play_path', 'tc_url', 'flash_version',
+        'rtmp_live', 'rtmp_conn', 'rtmp_protocol', 'rtmp_real_time',
     }
     _deprecated_multivalue_fields = {
         'album_artist': 'album_artists',
@@ -642,12 +660,15 @@ class YoutubeDL:
             self.params['color'] = 'no_color'
 
         term_allow_color = os.getenv('TERM', '').lower() != 'dumb'
-        no_color = bool(os.getenv('NO_COLOR'))
+        base_no_color = bool(os.getenv('NO_COLOR'))
 
         def process_color_policy(stream):
             stream_name = {sys.stdout: 'stdout', sys.stderr: 'stderr'}[stream]
-            policy = traverse_obj(self.params, ('color', (stream_name, None), {str}), get_all=False)
-            if policy in ('auto', None):
+            policy = traverse_obj(self.params, ('color', (stream_name, None), {str}, any)) or 'auto'
+            if policy in ('auto', 'auto-tty', 'no_color-tty'):
+                no_color = base_no_color
+                if policy.endswith('tty'):
+                    no_color = policy.startswith('no_color')
                 if term_allow_color and supports_terminal_sequences(stream):
                     return 'no_color' if no_color else True
                 return False
@@ -1398,6 +1419,7 @@ class YoutubeDL:
         outtmpl, info_dict = self.prepare_outtmpl(outtmpl, info_dict, *args, **kwargs)
         return self.escape_outtmpl(outtmpl) % info_dict
 
+    @_catch_unsafe_extension_error
     def _prepare_filename(self, info_dict, *, outtmpl=None, tmpl_type=None):
         assert None in (outtmpl, tmpl_type), 'outtmpl and tmpl_type are mutually exclusive'
         if outtmpl is None:
@@ -1925,6 +1947,8 @@ class YoutubeDL:
             'playlist_title': ie_result.get('title'),
             'playlist_uploader': ie_result.get('uploader'),
             'playlist_uploader_id': ie_result.get('uploader_id'),
+            'playlist_channel': ie_result.get('channel'),
+            'playlist_channel_id': ie_result.get('channel_id'),
             **kwargs,
         }
         if strict:
@@ -2170,9 +2194,8 @@ class YoutubeDL:
                                    or all(f.get('acodec') == 'none' for f in formats)),  # OR, No formats with audio
         }))
 
-    def _default_format_spec(self, info_dict, download=True):
-        download = download and not self.params.get('simulate')
-        prefer_best = download and (
+    def _default_format_spec(self, info_dict):
+        prefer_best = (
             self.params['outtmpl']['default'] == '-'
             or info_dict.get('is_live') and not self.params.get('live_from_start'))
 
@@ -2180,7 +2203,7 @@ class YoutubeDL:
             merger = FFmpegMergerPP(self)
             return merger.available and merger.can_merge()
 
-        if not prefer_best and download and not can_merge():
+        if not prefer_best and not can_merge():
             prefer_best = True
             formats = self._get_formats(info_dict)
             evaluate_formats = lambda spec: self._select_formats(formats, self.build_format_selector(spec))
@@ -2939,7 +2962,7 @@ class YoutubeDL:
                     continue
 
             if format_selector is None:
-                req_format = self._default_format_spec(info_dict, download=download)
+                req_format = self._default_format_spec(info_dict)
                 self.write_debug(f'Default format spec: {req_format}')
                 format_selector = self.build_format_selector(req_format)
 
@@ -3149,11 +3172,12 @@ class YoutubeDL:
 
         if test:
             verbose = self.params.get('verbose')
+            quiet = self.params.get('quiet') or not verbose
             params = {
                 'test': True,
-                'quiet': self.params.get('quiet') or not verbose,
+                'quiet': quiet,
                 'verbose': verbose,
-                'noprogress': not verbose,
+                'noprogress': quiet,
                 'nopart': True,
                 'skip_unavailable_fragments': False,
                 'keep_fragments': False,
@@ -3188,6 +3212,7 @@ class YoutubeDL:
             os.remove(file)
         return None
 
+    @_catch_unsafe_extension_error
     def process_info(self, info_dict):
         """Process a single resolved IE result. (Modifies it in-place)"""
 
