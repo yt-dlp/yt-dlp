@@ -219,14 +219,24 @@ class FFmpegPostProcessor(PostProcessor):
 
     @staticmethod
     def stream_copy_opts(copy=True, *, ext=None):
-        yield from ('-map', '0')
+        if ext in ('mkv', 'mka'):
+            yield from ('-map', '0')
+
+            # Some streams, such as JSON attachments, are considered of unknown
+            # type by FFmpeg but we still want to copy them.
+            yield '-copy_unknown'
+        else:
+            # Other containers can get angry at malformed or unknown streams,
+            # so we'll keep only the ones that are "usable".
+            yield from ('-map', '0:u')
+
+            # Most containers don't really like unknown streams. Let's make
+            # sure to get rid of them.
+            yield '-ignore_unknown'
+
         # Don't copy Apple TV chapters track, bin_data
         # See https://github.com/yt-dlp/yt-dlp/issues/2, #19042, #19024, https://trac.ffmpeg.org/ticket/6016
         yield '-dn'
-
-        # Some streams, such as JSON attachments, are considered of unknown
-        # type by FFmpeg but we still want to copy them.
-        yield '-copy_unknown'
 
         if copy:
             yield from ('-c', 'copy')
@@ -588,7 +598,7 @@ class FFmpegVideoRemuxerPP(FFmpegVideoConvertorPP):
 
     @staticmethod
     def _options(target_ext):
-        return FFmpegPostProcessor.stream_copy_opts()
+        return FFmpegPostProcessor.stream_copy_opts(ext=target_ext)
 
 
 class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
