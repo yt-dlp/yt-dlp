@@ -301,10 +301,6 @@ class BiliBiliIE(BilibiliBaseIE):
     _VALID_URL = r'https?://(?:www\.)?bilibili\.com/(?:video/|festival/[^/?#]+\?(?:[^#]*&)?bvid=)[aAbB][vV](?P<id>[^/?#&]+)'
 
     _TESTS = [{
-        'note': 'has `-` in its url',
-        'url': 'https://www.bilibili.com/festival/bh3-7th?bvid=BV1tr4y1f7p2&',
-        'only_matching': True,
-    }, {
         'url': 'https://www.bilibili.com/video/BV13x41117TL',
         'info_dict': {
             'id': 'BV13x41117TL',
@@ -626,6 +622,10 @@ class BiliBiliIE(BilibiliBaseIE):
             'ext': 'mp4',
         },
         'skip': 'geo-restricted',
+    }, {
+        'note': 'has `-` in its url',
+        'url': 'https://www.bilibili.com/festival/bh3-7th?bvid=BV1tr4y1f7p2&',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
