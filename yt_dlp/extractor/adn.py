@@ -71,9 +71,6 @@ class ADNIE(ADNBaseIE):
         },
         'skip': 'Only available in French and German speaking Europe',
     }, {
-        'url': 'https://animationdigitalnetwork.com/video/1188-my-deer-friend-nokotan/26192-folge-1',
-        'only_matching': True,
-    }, {
         'url': 'https://animationdigitalnetwork.com/de/video/973-the-eminence-in-shadow/23550-folge-1',
         'md5': '5c5651bf5791fa6fcd7906012b9d94e8',
         'info_dict': {
