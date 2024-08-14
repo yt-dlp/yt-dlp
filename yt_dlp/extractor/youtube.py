@@ -3768,11 +3768,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     def _is_unplayable(player_response):
         return traverse_obj(player_response, ('playabilityStatus', 'status')) == 'UNPLAYABLE'
 
-    def _extract_player_response(self, client, video_id, master_ytcfg, player_ytcfg, player_url, initial_pr, smuggled_data, po_token):
-
-        session_index = self._extract_session_index(player_ytcfg, master_ytcfg)
-        syncid = self._extract_account_syncid(player_ytcfg, master_ytcfg, initial_pr)
-        visitor_data = self._extract_visitor_data(player_ytcfg, master_ytcfg, initial_pr)
+    def _extract_player_response(self, client, video_id, master_ytcfg, player_ytcfg, player_url, initial_pr, visitor_data, po_token):
+        session_index = self._extract_session_index(master_ytcfg, player_ytcfg)
+        syncid = self._extract_account_syncid(master_ytcfg, player_ytcfg, initial_pr)
         sts = self._extract_signature_timestamp(video_id, player_url, master_ytcfg, fatal=False) if player_url else None
         headers = self.generate_api_headers(
             ytcfg=player_ytcfg, account_syncid=syncid, session_index=session_index, default_client=client, visitor_data=visitor_data)
@@ -3859,7 +3857,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         all_clients = set(clients)
         clients = clients[::-1]
 
-
         def append_client(*client_names):
             """ Append the first client name that exists but not already used """
             for client_name in client_names:
@@ -3897,7 +3894,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 try:
                     pr = pr or self._extract_player_response(
                         client, video_id, player_ytcfg or master_ytcfg, player_ytcfg,
-                        player_url if require_js_player else None, initial_pr, smuggled_data, po_token)
+                        player_url if require_js_player else None, initial_pr, visitor_data, po_token)
                 except ExtractorError as e:
                     self.report_warning(e)
                     break
