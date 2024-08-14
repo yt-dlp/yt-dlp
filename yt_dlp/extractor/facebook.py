@@ -974,18 +974,18 @@ class FacebookAdsIE(InfoExtractor):
         },
     }, {
         # key 'watermarked_video_sd_url' missing
-        'url': 'https://www.facebook.com/ads/library/?id=2021317858297251',
+        'url': 'https://www.facebook.com/ads/library/?id=501152689226254',
         'info_dict': {
-            'id': '2021317858297251',
+            'id': '501152689226254',
             'ext': 'mp4',
-            'title': 'carousel by Ginohome',
-            'description': 'md5:790accf1a5c95a547a1653ba4bbef74d',
-            'uploader': 'Ginohome',
-            'uploader_id': '1694035087527283',
+            'title': 'video by mat.nawrocki',
+            'description': 'md5:02a446ace7ff8c3c37a2892922492490',
+            'uploader': 'mat.nawrocki',
+            'uploader_id': '148586968341456',
             'uploader_url': r're:^https?://.*',
-            'timestamp': 1723545823,
+            'timestamp': 1723452305,
             'thumbnail': r're:^https?://.*',
-            'upload_date': '20240813',
+            'upload_date': '20240812',
             'like_count': int,
         },
     }, {
