@@ -740,6 +740,7 @@ from .gettr import (
 from .giantbomb import GiantBombIE
 from .giphy import (
     GiphyChannelIE,
+    GiphyChannelPageIE,
     GiphyIE,
     GiphySearchIE,
     GiphySearchURLIE,
