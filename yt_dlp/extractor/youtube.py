@@ -69,6 +69,8 @@ from ..utils import (
 )
 
 STREAMING_DATA_CLIENT_NAME = '__yt_dlp_client'
+STREAMING_DATA_PO_TOKEN = '__yt_dlp_po_token'
+
 # any clients starting with _ cannot be explicitly requested by the user
 INNERTUBE_CLIENTS = {
     'web': {
@@ -730,23 +732,16 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
     _PO_TOKEN_CACHE = None
 
-    def _get_cached_po_token(self, client='web', **kwargs):
-        if not self._PO_TOKEN_CACHE:
-            self._PO_TOKEN_CACHE = {}
+    def fetch_po_token(self, client='web', visitor_data=None, **kwargs):
 
         if client not in INNERTUBE_CLIENTS:
             self.report_warning(f'Bad innertube client "{client}"')
             return None
 
-        # Cache poToken based on base client.
-        # assuming the po token can work across base clients
-        # (e.g. web:web_embedded:web_music:web_creator, android:android_music, ios:ios_music, etc.)
-        base_client = _split_innertube_client(client)[1]
+        if not self._PO_TOKEN_CACHE:
+            self._PO_TOKEN_CACHE = {}
 
-        return self._PO_TOKEN_CACHE.get(base_client)
-
-    def fetch_po_token(self, client='web', visitor_data=None, **kwargs):
-        cached_pot = self._get_cached_po_token(client)
+        cached_pot = self._PO_TOKEN_CACHE.get(client)
         if cached_pot:
             return cached_pot
 
@@ -3773,7 +3768,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     def _is_unplayable(player_response):
         return traverse_obj(player_response, ('playabilityStatus', 'status')) == 'UNPLAYABLE'
 
-    def _extract_player_response(self, client, video_id, master_ytcfg, player_ytcfg, player_url, initial_pr, smuggled_data):
+    def _extract_player_response(self, client, video_id, master_ytcfg, player_ytcfg, player_url, initial_pr, smuggled_data, po_token):
 
         session_index = self._extract_session_index(player_ytcfg, master_ytcfg)
         syncid = self._extract_account_syncid(player_ytcfg, master_ytcfg, initial_pr)
@@ -3791,7 +3786,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if player_params := self._configuration_arg('player_params', [default_pp], casesense=True)[0]:
             yt_query['params'] = player_params
 
-        if po_token := self.fetch_po_token(client=client, visitor_data=visitor_data):
+        if po_token:
             yt_query['serviceIntegrityDimensions'] = {'poToken': po_token}
 
         yt_query.update(self._generate_player_context(sts))
@@ -3864,6 +3859,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         all_clients = set(clients)
         clients = clients[::-1]
 
+
         def append_client(*client_names):
             """ Append the first client name that exists but not already used """
             for client_name in client_names:
@@ -3875,13 +3871,16 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         return
 
         tried_iframe_fallback = False
-        player_url = None
+        player_url = visitor_data = None
         skipped_clients = {}
         while clients:
             client, base_client, variant = _split_innertube_client(clients.pop())
             player_ytcfg = master_ytcfg if client == 'web' else {}
             if 'configs' not in self._configuration_arg('player_skip') and client != 'web':
                 player_ytcfg = self._download_ytcfg(client, video_id) or player_ytcfg
+
+            visitor_data = visitor_data or self._extract_visitor_data(master_ytcfg, initial_pr, player_ytcfg)
+            po_token = self.fetch_po_token(client=client, visitor_data=visitor_data)
 
             player_url = player_url or self._extract_player_url(master_ytcfg, player_ytcfg, webpage=webpage)
             require_js_player = self._get_default_ytcfg(client).get('REQUIRE_JS_PLAYER')
@@ -3894,15 +3893,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 tried_iframe_fallback = True
 
             pr = initial_pr if client == 'web' else None
-            if client == 'web' and initial_pr:
-                # Fetch the PO Token to cache it for later
-                self.fetch_po_token(
-                    client, visitor_data=self._extract_visitor_data(player_ytcfg, master_ytcfg, initial_pr))
             for retry in self.RetryManager(fatal=False):
                 try:
                     pr = pr or self._extract_player_response(
                         client, video_id, player_ytcfg or master_ytcfg, player_ytcfg,
-                        player_url if require_js_player else None, initial_pr, smuggled_data)
+                        player_url if require_js_player else None, initial_pr, smuggled_data, po_token)
                 except ExtractorError as e:
                     self.report_warning(e)
                     break
@@ -3910,9 +3905,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     'responseContext', 'serviceTrackingParams', lambda _, v: v['service'] == 'GFEEDBACK',
                     'params', lambda _, v: v['key'] == 'e', 'value', {lambda x: x.split(',')}, ...))
                 if (
-                    all(x in experiments for x in self._POTOKEN_EXPERIMENTS)
-                    and not self._get_cached_po_token(client=client)
+                    not po_token
                     and not self._get_default_ytcfg(client).get('REQUIRE_PO_TOKEN')
+                    and all(x in experiments for x in self._POTOKEN_EXPERIMENTS)
                 ):
                     # For clients that were previously not known to require a PO Token
                     # Generate a new session and retry in attempt to not get the experiment.
@@ -3931,8 +3926,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 # Save client name for introspection later
                 sd = traverse_obj(pr, ('streamingData', {dict})) or {}
                 sd[STREAMING_DATA_CLIENT_NAME] = client
+                sd[STREAMING_DATA_PO_TOKEN] = po_token
                 for f in traverse_obj(sd, (('formats', 'adaptiveFormats'), ..., {dict})):
                     f[STREAMING_DATA_CLIENT_NAME] = client
+                    sd[STREAMING_DATA_PO_TOKEN] = po_token
                 prs.append(pr)
 
             # tv_embedded can work around age-gate and age-verification IF the video is embeddable
@@ -4091,7 +4088,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     f'{video_id}: Some formats are possibly damaged. They will be deprioritized', only_once=True)
 
             client_name = fmt.get(STREAMING_DATA_CLIENT_NAME)
-            po_token = self._get_cached_po_token(client=client_name)
+            po_token = fmt.get(STREAMING_DATA_PO_TOKEN)
 
             if po_token:
                 fmt_url = update_url_query(fmt_url, {'pot': po_token})
