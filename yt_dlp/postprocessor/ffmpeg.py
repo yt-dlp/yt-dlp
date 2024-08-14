@@ -674,7 +674,7 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
                 '-map', '-0:s',
 
                 '-map', f'{i + 1}:0',
-                f'-metadata:s:s:{i}', f'language={lang_code}'
+                f'-metadata:s:s:{i}', f'language={lang_code}',
             ])
 
             if name:
