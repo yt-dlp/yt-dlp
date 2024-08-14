@@ -761,6 +761,12 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         if po_token:
             self._PO_TOKEN_CACHE[_split_innertube_client(client)[1]] = po_token
 
+        if not po_token and self._get_default_ytcfg(client).get('REQUIRE_PO_TOKEN'):
+            self.report_warning(
+                f'{client} client requires a PO Token for working formats. '
+                f'You can manually pass a PO Token with --extractor-args youtube:po_token=XXX',
+                only_once=True
+            )
         return po_token
 
     def _fetch_po_token(self, client, visitor_data, **kwargs):
@@ -3842,19 +3848,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             return pr_id
 
     def _extract_player_responses(self, clients, video_id, webpage, master_ytcfg, smuggled_data):
-        initial_pr = ignore_initial_response = None
+        initial_pr = None
         if webpage:
-            if 'web' in clients:
-                experiments = traverse_obj(master_ytcfg, (
-                    'WEB_PLAYER_CONTEXT_CONFIGS', ..., 'serializedExperimentIds', {lambda x: x.split(',')}, ...))
-                if (
-                    self._get_default_ytcfg('web').get('REQUIRE_PO_TOKEN')
-                    and not self.fetch_po_token(client='web', visitor_data=self._extract_visitor_data(master_ytcfg))
-                    and all(x in experiments for x in self._POTOKEN_EXPERIMENTS)
-                ):
-                    self.report_warning(
-                        'Webpage contains broken formats (poToken experiment detected). Ignoring initial player response')
-                    ignore_initial_response = True
             initial_pr = self._search_json(
                 self._YT_INITIAL_PLAYER_RESPONSE_RE, webpage, 'initial player response', video_id, fatal=False)
 
@@ -3898,7 +3893,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 player_url = self._download_player_url(video_id)
                 tried_iframe_fallback = True
 
-            pr = initial_pr if client == 'web' and not ignore_initial_response else None
+            pr = initial_pr if client == 'web' else None
+            if client == 'web' and initial_pr:
+                # Fetch the PO Token to cache it for later
+                self.fetch_po_token(
+                    client, visitor_data=self._extract_visitor_data(player_ytcfg, master_ytcfg, initial_pr))
             for retry in self.RetryManager(fatal=False):
                 try:
                     pr = pr or self._extract_player_response(
@@ -3910,9 +3909,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 experiments = traverse_obj(pr, (
                     'responseContext', 'serviceTrackingParams', lambda _, v: v['service'] == 'GFEEDBACK',
                     'params', lambda _, v: v['key'] == 'e', 'value', {lambda x: x.split(',')}, ...))
-                if all(x in experiments for x in self._POTOKEN_EXPERIMENTS) and not self._get_cached_po_token(client=client):
+                if (
+                    all(x in experiments for x in self._POTOKEN_EXPERIMENTS)
+                    and not self._get_cached_po_token(client=client)
+                    and not self._get_default_ytcfg(client).get('REQUIRE_PO_TOKEN')
+                ):
+                    # For clients that were previously not known to require a PO Token
+                    # Generate a new session and retry in attempt to not get the experiment.
+                    # Note this will have a new visitor ID and auth may not work correctly.
                     pr = None
-                    # Generate a new session. Note this will have a new visitor ID and auth may not work correctly.
                     player_ytcfg = self._get_default_ytcfg(client)
                     if 'configs' not in self._configuration_arg('player_skip'):
                         player_ytcfg = self._download_ytcfg(client, video_id) or player_ytcfg
