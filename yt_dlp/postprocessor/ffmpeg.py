@@ -654,17 +654,19 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
 
         input_files = [filename, *sub_filenames]
 
-        opts = [
-            *self.stream_copy_opts(ext=info['ext']),
-            # Don't copy the existing subtitles, we may be running the
-            # postprocessor a second time
-            '-map', '-0:s',
-        ]
+        opts = [*self.stream_copy_opts(ext=info['ext'])]
 
         for i, (lang, name) in enumerate(zip(sub_langs, sub_names)):
-            opts.extend(['-map', f'{i + 1}:0'])
             lang_code = ISO639Utils.short2long(lang) or lang
-            opts.extend([f'-metadata:s:s:{i}', f'language={lang_code}'])
+            opts.extend([
+                # Don't copy the existing subtitles, we may be running the
+                # postprocessor a second time
+                '-map', '-0:s',
+
+                '-map', f'{i + 1}:0',
+                f'-metadata:s:s:{i}', f'language={lang_code}'
+            ])
+
             if name:
                 opts.extend([f'-metadata:s:s:{i}', f'handler_name={name}',
                              f'-metadata:s:s:{i}', f'title={name}'])
