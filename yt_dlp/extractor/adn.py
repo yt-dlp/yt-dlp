@@ -299,7 +299,7 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
 
 
 class ADNSeasonIE(ADNBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?(?:animation|anime)digitalnetwork\.com/(?:(?P<lang>de)/)?video/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?(?:animation|anime)digitalnetwork\.com/(?:(?P<lang>de)/)?video/(?P<id>\d+)[^/?#]*/?(?:$|[#?])'
     _TESTS = [{
         'url': 'https://animationdigitalnetwork.com/video/tokyo-mew-mew-new',
         'playlist_count': 12,
