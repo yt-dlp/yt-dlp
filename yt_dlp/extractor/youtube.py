@@ -3913,7 +3913,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 sd[STREAMING_DATA_PO_TOKEN] = po_token
                 for f in traverse_obj(sd, (('formats', 'adaptiveFormats'), ..., {dict})):
                     f[STREAMING_DATA_CLIENT_NAME] = client
-                    sd[STREAMING_DATA_PO_TOKEN] = po_token
+                    f[STREAMING_DATA_PO_TOKEN] = po_token
                 prs.append(pr)
 
             # tv_embedded can work around age-gate and age-verification IF the video is embeddable
