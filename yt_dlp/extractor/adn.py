@@ -51,7 +51,7 @@ class ADNBaseIE(InfoExtractor):
 class ADNIE(ADNBaseIE):
     _VALID_URL = r'https?://(?:www\.)?(?:animation|anime)digitalnetwork\.com/(?:(?P<lang>de)/)?video/[^/?#]+/(?P<id>\d+)'
     _TESTS = [{
-        'url': 'https://animationdigitalnetwork.com/video/fruits-basket/9841-episode-1-a-ce-soir',
+        'url': 'https://animationdigitalnetwork.com/video/558-fruits-basket/9841-episode-1-a-ce-soir',
         'md5': '1c9ef066ceb302c86f80c2b371615261',
         'info_dict': {
             'id': '9841',
@@ -71,10 +71,10 @@ class ADNIE(ADNBaseIE):
         },
         'skip': 'Only available in French and German speaking Europe',
     }, {
-        'url': 'http://animedigitalnetwork.com/video/blue-exorcist-kyoto-saga/7778-episode-1-debut-des-hostilites',
+        'url': 'https://animationdigitalnetwork.com/video/1188-my-deer-friend-nokotan/26192-folge-1',
         'only_matching': True,
     }, {
-        'url': 'https://animationdigitalnetwork.com/de/video/the-eminence-in-shadow/23550-folge-1',
+        'url': 'https://animationdigitalnetwork.com/de/video/973-the-eminence-in-shadow/23550-folge-1',
         'md5': '5c5651bf5791fa6fcd7906012b9d94e8',
         'info_dict': {
             'id': '23550',
@@ -299,7 +299,7 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
 
 
 class ADNSeasonIE(ADNBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?(?:animation|anime)digitalnetwork\.com/(?:(?P<lang>de)/)?video/(?P<id>[^/?#]+)/?(?:$|[#?])'
+    _VALID_URL = r'https?://(?:www\.)?(?:animation|anime)digitalnetwork\.com/(?:(?P<lang>de)/)?video/(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://animationdigitalnetwork.com/video/tokyo-mew-mew-new',
         'playlist_count': 12,
