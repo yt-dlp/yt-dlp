@@ -614,7 +614,8 @@ class ARDAudiothekIE(InfoExtractor):
         },
     }]
 
-    _QUERY_PLAYLIST = '''show(id: "%s") {
+    _QUERY_PLAYLIST = '''\
+    show(id: "%s") {
         title
         description
         items {
