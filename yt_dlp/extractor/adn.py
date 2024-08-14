@@ -257,6 +257,7 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
                 load_balancer_data = self._download_json(
                     load_balancer_url, video_id,
                     f'Downloading {format_id} {quality} JSON metadata',
+                    headers=self._HEADERS,
                     fatal=False) or {}
                 m3u8_url = load_balancer_data.get('location')
                 if not m3u8_url:
@@ -277,7 +278,7 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
 
         video = (self._download_json(
             self._API_BASE_URL + f'video/{video_id}', video_id,
-            'Downloading additional video metadata', fatal=False) or {}).get('video') or {}
+            'Downloading additional video metadata', fatal=False, headers=self._HEADERS) or {}).get('video') or {}
         show = video.get('show') or {}
 
         return {
