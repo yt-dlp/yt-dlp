@@ -730,51 +730,6 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     def is_authenticated(self):
         return bool(self._generate_sapisidhash_header())
 
-    _PO_TOKEN_CACHE = None
-
-    def fetch_po_token(self, client='web', visitor_data=None, **kwargs):
-
-        if client not in INNERTUBE_CLIENTS:
-            self.report_warning(f'Bad innertube client "{client}"')
-            return None
-
-        if not self._PO_TOKEN_CACHE:
-            self._PO_TOKEN_CACHE = {}
-
-        cached_pot = self._PO_TOKEN_CACHE.get(client)
-        if cached_pot:
-            return cached_pot
-
-        if not visitor_data:
-            self.report_warning(
-                f'Unable to fetch PO token for {client} client: Missing required visitor_data. '
-                f'You may need to pass visitor_data with --extractor-args youtube:visitor_data=XXX',
-            )
-            return
-
-        po_token = self._fetch_po_token(visitor_data=visitor_data, client=client)
-        if po_token:
-            self._PO_TOKEN_CACHE[_split_innertube_client(client)[1]] = po_token
-
-        if not po_token and self._get_default_ytcfg(client).get('REQUIRE_PO_TOKEN'):
-            self.report_warning(
-                f'{client} client requires a PO Token for working formats. '
-                f'You can manually pass a PO Token with --extractor-args youtube:po_token=XXX',
-                only_once=True
-            )
-        return po_token
-
-    def _fetch_po_token(self, client, visitor_data, **kwargs):
-        po_tokens = self._configuration_arg('po_token', [], ie_key=YoutubeIE, casesense=True)
-        for token_str in po_tokens:
-            if ':' in token_str:
-                po_token_client, po_token = token_str.split(':')
-            else:
-                # if no client specified, use for all clients
-                po_token_client, po_token = client or 'web', token_str
-            if not client or po_token_client == client:
-                return po_token
-
     def extract_ytcfg(self, video_id, webpage):
         if not webpage:
             return {}
@@ -3751,6 +3706,50 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             },
             **cls._get_checkok_params(),
         }
+
+    _PO_TOKEN_CACHE = None
+
+    def fetch_po_token(self, client='web', visitor_data=None, **kwargs):
+        if client not in INNERTUBE_CLIENTS:
+            self.report_warning(f'Bad innertube client "{client}"')
+            return None
+
+        if not self._PO_TOKEN_CACHE:
+            self._PO_TOKEN_CACHE = {}
+
+        cached_pot = self._PO_TOKEN_CACHE.get(client)
+        if cached_pot:
+            return cached_pot
+
+        if not visitor_data:
+            self.report_warning(
+                f'Unable to fetch PO token for {client} client: Missing required visitor_data. '
+                f'You may need to pass visitor_data with --extractor-args youtube:visitor_data=XXX',
+            )
+            return
+
+        po_token = self._fetch_po_token(visitor_data=visitor_data, client=client)
+        if po_token:
+            self._PO_TOKEN_CACHE[_split_innertube_client(client)[1]] = po_token
+
+        if not po_token and self._get_default_ytcfg(client).get('REQUIRE_PO_TOKEN'):
+            self.report_warning(
+                f'{client} client requires a PO Token for working formats. '
+                f'You can manually pass a PO Token with --extractor-args youtube:po_token=XXX',
+                only_once=True
+            )
+        return po_token
+
+    def _fetch_po_token(self, client, visitor_data, **kwargs):
+        po_tokens = self._configuration_arg('po_token', [], ie_key=YoutubeIE, casesense=True)
+        for token_str in po_tokens:
+            if ':' in token_str:
+                po_token_client, po_token = token_str.split(':')
+            else:
+                # if no client specified, use for all clients
+                po_token_client, po_token = client or 'web', token_str
+            if not client or po_token_client == client:
+                return po_token
 
     @staticmethod
     def _is_agegated(player_response):
