@@ -1045,12 +1045,10 @@ class FacebookAdsIE(InfoExtractor):
         title = data.get('title')
         if not title or title == '{{product.name}}':
             title = join_nonempty('display_format', 'page_name', delim=' by ', from_dict=data)
-        markup = None
-        if markup_id := traverse_obj(data, ('body', '__m', {str_or_none}), get_all=False):
-            markup = clean_html(traverse_obj(post_data, (
-                ..., 'require', ..., ..., ..., '__bbox', 'markup', lambda _, v: v[0].startswith(markup_id),
-                ..., '__html', {lambda x: x if x and not x.startswith('&#123;&#123;product.') else None}),
-                get_all=False))
+        markup_id = traverse_obj(data, ('body', '__m', {str}))
+        markup = traverse_obj(post_data, (
+            ..., 'require', ..., ..., ..., '__bbox', 'markup', lambda _, v: v[0].startswith(markup_id),
+            ..., '__html', {clean_html}, {lambda x: not x.startswith('{{product.') and x}, any))
 
         info_dict = traverse_obj(data, {
             'title': ({lambda x: title}),
