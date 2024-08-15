@@ -95,21 +95,21 @@ class AmazonMiniTVIE(AmazonMiniTVBaseIE):
             subtitles = self._merge_subtitles(subtitles, mpd_subs)
 
         credits_time = try_get(title_info, lambda x: x['skipData']['INTRO']['endTime'])
-        is_episode = title_info.get('vodType') == 'EPISODE'
+        is_episode = title_info_.get('vodType') == 'EPISODE'
 
         return {
             'id': asin,
-            'title': title_info.get('name'),
+            'title': title_info_.get('name'),
             'formats': formats,
             'subtitles': subtitles,
             'language': traverse_obj(title_info, ('audioTracks', 0)),
             'thumbnails': [{
                 'id': 'imageSrc',
-                'url': title_info.get('imageSrc'),
-            }] if title_info.get('imageSrc') else [],
-            'description': traverse_obj(title_info_, ('description', 'synopsis')),
+                'url': title_info_.get('imageSrc'),
+            }] if title_info_.get('imageSrc') else [],
+            'description': traverse_obj(title_info_, ('synopsis')),
             'release_timestamp': int_or_none(try_get(title_info_, lambda x: x['publicReleaseDateUTC'] / 1000)),
-            'duration': traverse_obj(title_info, ('description', 'contentLengthInSeconds')),
+            'duration': traverse_obj(title_info_, ('contentLengthInSeconds')),
             'chapters': [{
                 'start_time': credits_time,
                 'title': 'End Credits',
