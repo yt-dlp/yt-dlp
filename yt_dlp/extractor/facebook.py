@@ -1034,15 +1034,11 @@ class FacebookAdsIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        if post_data := [self._parse_json(j, video_id, fatal=False)
-                         for j in re.findall(r'data-sjs>({.*?ScheduledServerJS.*?})</script>', webpage)]:
-            data = traverse_obj(post_data, (
-                ..., 'require', ..., ..., ..., '__bbox', 'require', ..., ..., ...,
-                'entryPointRoot', 'otherProps', 'deeplinkAdCard', 'snapshot', {dict}), get_all=False)
-        elif post_data := [self._parse_json(j, video_id, fatal=False)
-                           for j in re.findall(r's\.handle\(({.*})\);requireLazy\(', webpage)]:
-            data = traverse_obj(post_data, (
-                ..., 'require', ..., ..., ..., 'props', 'deeplinkAdCard', 'snapshot', {dict}), get_all=False)
+        post_data = traverse_obj(
+            re.findall(r'data-sjs>({.*?ScheduledServerJS.*?})</script>', webpage), (..., {json.loads}))
+        data = get_first(post_data, (
+            'require', ..., ..., ..., '__bbox', 'require', ..., ..., ...,
+            'entryPointRoot', 'otherProps', 'deeplinkAdCard', 'snapshot', {dict}))
         if not data:
             raise ExtractorError('Unable to extract ad data')
 
