@@ -623,7 +623,7 @@ class BiliBiliIE(BilibiliBaseIE):
         },
         'skip': 'geo-restricted',
     }, {
-        'note': 'has `-` in its url',
+        'note': 'has - in the last path segment of the url',
         'url': 'https://www.bilibili.com/festival/bh3-7th?bvid=BV1tr4y1f7p2&',
         'only_matching': True,
     }]
