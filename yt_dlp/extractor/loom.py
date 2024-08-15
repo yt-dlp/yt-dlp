@@ -293,7 +293,10 @@ class LoomIE(InfoExtractor):
                 format_url = format_url.replace('-split.m3u8', '.m3u8')
                 m3u8_formats = self._extract_m3u8_formats(
                     format_url, video_id, 'mp4', m3u8_id=f'hls-{format_id}', fatal=False, quality=quality)
+                audio_only = traverse_obj(m3u8_formats, lambda _, v: v['format_note'] == 'audio', get_all=False)
                 for fmt in m3u8_formats:
+                    if audio_only and fmt != audio_only:
+                        fmt['acodec'] = 'none'
                     yield {
                         **fmt,
                         'url': update_url(fmt['url'], query=query),
