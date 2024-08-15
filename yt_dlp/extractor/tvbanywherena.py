@@ -6,13 +6,21 @@ from ..utils import (
     get_elements_by_class,
     int_or_none,
     smuggle_url,
-    traverse_obj,
     urljoin,
 )
 
 
+def _get_program_url(lang, pid):
+    if lang == 'english':
+        return f'https://api.tvbaw.com/EN/getProgramByPid?value={pid}'
+    if lang == 'viet':
+        return f'https://api.tvbaw.com/VN/getProgramByPid?value={pid}'
+
+    return f'https://api.tvbaw.com/getProgramByPid?value={pid}'
+
+
 class TvbAnywhereNaIE(InfoExtractor):
-    _VALID_URL = r'https://(?:www\.)?tvbanywherena\.com/(?P<lang>[^/]+)/videos/[^/]+/(?P<id>\d+)'
+    _VALID_URL = r'https://(?:www\.)?tvbanywherena\.com/(?P<lang>cantonese|english|viet)/videos/[^/]+/(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://www.tvbanywherena.com/cantonese/videos/437-SuperTrioShow/6007674088001',
         'info_dict': {
@@ -59,8 +67,9 @@ class TvbAnywhereNaIE(InfoExtractor):
         brightcove = self.BRIGHTCOVE_URL_TEMPLATE % (
             attrs.get('data-account'), attrs.get('data-player'), attrs.get('data-video-id'))
 
-        metainfo = self._search_json(r'<script[^>]+type="application/ld\+json"[^>]*>', webpage, 'info', content_id)
-        seriesname = metainfo.get('alternateName' if lang == 'cantonese' else 'name')
+        pid = self._search_regex(r'\'pid\':\s*\'(\d+)\'', webpage, 'pid')
+        program = self._download_json(_get_program_url(lang, pid), content_id)
+        seriesname = program.get('title' if lang == 'cantonese' else 'subtitle')
         episodeinfo = get_element_html_by_id(content_id, webpage)
         episodename = get_element_by_class('episodeName', episodeinfo)
 
@@ -75,18 +84,18 @@ class TvbAnywhereNaIE(InfoExtractor):
             'title': f'{seriesname} {episodename}',
             'description': get_element_by_class(episodeinfo, 'episodeDescription'),
             'series': seriesname,
-            'genres': metainfo.get('genre', []),
-            'cast': traverse_obj(metainfo, ('actor', ..., 'name')),
-            'release_year': int_or_none(metainfo.get('datePublished')),
+            'genres': program.get('genres', []),
+            'cast': program.get('char', []),
+            'release_year': int_or_none(program.get('year')),
         }
 
 
 class TvbAnywhereNaSeriesIE(InfoExtractor):
-    _VALID_URL = r'https://(?:www\.)?tvbanywherena\.com/(?P<lang>[^/]+)/series/(?P<id>[^/]+)'
+    _VALID_URL = r'https://(?:www\.)?tvbanywherena\.com/(?P<lang>cantonese|english|viet)/series/(?P<id>\d+)-'
     _TESTS = [{
         'url': 'https://tvbanywherena.com/cantonese/series/2594-ForensicHeroesV',
         'info_dict': {
-            'id': '2594-ForensicHeroesV',
+            'id': '2594',
             'title': '法證先鋒V',
             'description': 'md5:ada77595c0b4bfe9fbc859087fc659b6',
             'genres': ['警匪', '動作', '劇情'],
@@ -98,7 +107,7 @@ class TvbAnywhereNaSeriesIE(InfoExtractor):
     }, {
         'url': 'https://www.tvbanywherena.com/viet/series/1034-Ngh%E1%BB%8BchThi%C3%AAnK%E1%BB%B3%C3%81n2',
         'info_dict': {
-            'id': '1034-Ngh%E1%BB%8BchThi%C3%AAnK%E1%BB%B3%C3%81n2',
+            'id': '1034',
             'title': 'Nghịch Thiên Kỳ Án 2',
             'description': 'md5:9cb8cc2aa86e97b040e805c3b1eff1be',
             'genres': ['Phim Hình Sự'],
@@ -112,7 +121,8 @@ class TvbAnywhereNaSeriesIE(InfoExtractor):
     def _real_extract(self, url):
         lang, content_id = self._match_valid_url(url).group('lang', 'id')
         webpage = self._download_webpage(url, content_id)
-        metainfo = self._search_json(r'<script[^>]+type="application/ld\+json"[^>]*>', webpage, 'info', content_id)
+        program = self._download_json(_get_program_url(lang, content_id), content_id)
+        # brightcove_playlist_id = program.get('bcov')
 
         def get_entries(page_data):
             for episode in get_elements_by_class('item', page_data):
@@ -121,11 +131,11 @@ class TvbAnywhereNaSeriesIE(InfoExtractor):
         return {
             '_type': 'playlist',
             'id': content_id,
-            'title': metainfo.get('alternateName' if lang == 'cantonese' else 'name'),
-            'description': metainfo.get('description'),
-            'genres': metainfo.get('genre', []),
-            'cast': traverse_obj(metainfo, ('actor', ..., 'name')),
-            'release_year': int_or_none(metainfo.get('datePublished')),
-            'thumbnail': metainfo.get('image'),
+            'title': program.get('title' if lang == 'cantonese' else 'subtitle'),
+            'description': program.get('synopsis'),
+            'genres': program.get('genres', []),
+            'cast': program.get('char', []),
+            'release_year': int_or_none(program.get('year')),
+            'thumbnail': program.get('large'),
             'entries': get_entries(webpage),
         }
