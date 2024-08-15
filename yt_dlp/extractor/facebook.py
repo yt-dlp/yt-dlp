@@ -1050,15 +1050,17 @@ class FacebookAdsIE(InfoExtractor):
             ..., 'require', ..., ..., ..., '__bbox', 'markup', lambda _, v: v[0].startswith(markup_id),
             ..., '__html', {clean_html}, {lambda x: not x.startswith('{{product.') and x}, any))
 
-        info_dict = traverse_obj(data, {
-            'title': ({lambda x: title}),
-            'description': ('link_description', {lambda x: markup or (x if x and not x.startswith('{{product.') else None)}),
+        info_dict = merge_dicts({
+            'title': title,
+            'description': markup or None,
+        }, traverse_obj(data, {
+            'description': ('link_description', {lambda x: x if not x.startswith('{{product.') else None}),
             'uploader': ('page_name', {str}),
             'uploader_id': ('page_id', {str_or_none}),
             'uploader_url': ('page_profile_uri', {url_or_none}),
             'timestamp': ('creation_time', {int_or_none}),
             'like_count': ('page_like_count', {int_or_none}),
-        })
+        }))
 
         entries = []
         for idx, entry in enumerate(traverse_obj(
