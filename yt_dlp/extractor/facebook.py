@@ -1067,7 +1067,7 @@ class FacebookAdsIE(InfoExtractor):
             entries.append({
                 'id': f'{video_id}_{idx}',
                 'title': entry.get('title') or title,
-                'description': entry.get('body') or entry.get('link_description') or info_dict.get('description'),
+                'description': traverse_obj(entry, 'body', 'link_description') or info_dict.get('description'),
                 'thumbnail': url_or_none(entry.get('video_preview_image_url')),
                 'formats': self._extract_formats(entry),
             })
