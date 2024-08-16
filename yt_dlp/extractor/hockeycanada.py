@@ -86,8 +86,8 @@ class HockeyCanadaIE(InfoExtractor):
                 yield from self._extract_m3u8_formats(media_url, video_id, fatal=False, m3u8_id='hls')
             elif media_type == 'mp4':
                 fmt = {
-                    'url': media_url,
                     'format_id': 'http',
+                    'url': media_url,
                     'ext': 'mp4',
                     'vcodec': 'avc1',
                     'acodec': 'mp4a.40.2',
