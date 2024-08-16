@@ -3744,12 +3744,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             return
 
         po_token = self._fetch_po_token(visitor_data=visitor_data, client=client)
-
         if not po_token and self._get_default_ytcfg(client).get('REQUIRE_PO_TOKEN'):
             self.report_warning(
-                f'{client} client requires a PO Token for working formats. '
-                f'You can manually pass a PO Token with --extractor-args youtube:po_token=XXX',
-            )
+                f'No PO Token provided for {client} client. '
+                f'A PO Token is required by this client for working formats. '
+                f'You can manually pass a PO Token for this client with '
+                f'--extractor-args youtube:po_token={client}:XXX',
+                only_once=True)
         return po_token
 
     def _fetch_po_token(self, client, visitor_data, **kwargs):
