@@ -10,7 +10,7 @@ from ..utils import (
 
 
 class HockeyCanadaIE(InfoExtractor):
-    _VALID_URL = r'https://video.hockeycanada.ca/(en(?:-\w+)?|fr)/c/.+\.(?P<id>\d+)'
+    _VALID_URL = r'https?://video\.hockeycanada\.ca/[a-z]{2}(?:-[a-z]{2})?/c/[\w-]+\.(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://video.hockeycanada.ca/en/c/nwt-micd-up-with-jamie-lee-rattray.107486',
         'only_matching': True,
