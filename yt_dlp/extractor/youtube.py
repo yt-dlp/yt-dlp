@@ -3730,16 +3730,16 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         # PO Token is bound to visitor_data when logged out
         if not visitor_data and not self.is_authenticated:
             self.report_warning(
-                f'Unable to fetch PO token for {client} client: Missing required visitor_data. '
-                f'You may need to pass visitor_data with --extractor-args youtube:visitor_data=XXX',
+                f'Unable to fetch PO Token for {client} client: Missing required Visitor Data. '
+                f'You may need to pass Visitor Data with --extractor-args youtube:visitor_data=XXX',
             )
             return
 
         # PO token is bound to data_sync_id / account session ID when logged in
         if not data_sync_id and self.is_authenticated:
             self.report_warning(
-                f'Unable to fetch PO token for {client} client: Missing required data_sync_id for account. '
-                f'You may need to pass data_sync_id with --extractor-args youtube:data_sync_id=XXX',
+                f'Unable to fetch PO Token for {client} client: Missing required Data Sync ID for account. '
+                f'You may need to pass a Data Sync ID with --extractor-args youtube:data_sync_id=XXX',
             )
             return
 
