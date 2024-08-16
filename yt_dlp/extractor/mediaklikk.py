@@ -133,7 +133,9 @@ class MediaKlikkIE(InfoExtractor):
                 r'<p+\b[^>]+\bclass="article_date">([^<]+)<', webpage, 'upload date', default=None))
 
         player_data['video'] = player_data.pop('token')
-        player_page = self._download_webpage('https://player.mediaklikk.hu/playernew/player.php', video_id, query=player_data)
+        player_page = self._download_webpage(
+            'https://player.mediaklikk.hu/playernew/player.php', video_id,
+            query=player_data, headers={'Referer': url})
         player_json = self._search_json(
             r'\bpl\.setup\s*\(', player_page, 'player json', video_id, end_pattern=r'\);')
         playlist_url = traverse_obj(
