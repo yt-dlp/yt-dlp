@@ -169,5 +169,21 @@
         "when": "5c019f6328ad40d66561eac3c4de0b3cd070d0f6",
         "short": "[cleanup] Misc (#9765)",
         "authors": ["bashonly", "Grub4K", "seproDev"]
+    },
+    {
+        "action": "change",
+        "when": "e6a22834df1776ec4e486526f6df2bf53cb7e06f",
+        "short": "[ie/orf:on] Add `prefer_segments_playlist` extractor-arg (#10314)",
+        "authors": ["seproDev"]
+    },
+    {
+        "action": "add",
+        "when": "6aaf96a3d6e7d0d426e97e11a2fcf52fda00e733",
+        "short": "[priority] Security: [[CVE-2024-38519](https://nvd.nist.gov/vuln/detail/CVE-2024-38519)] [Properly sanitize file-extension to prevent file system modification and RCE](https://github.com/yt-dlp/yt-dlp/security/advisories/GHSA-79w7-vh3h-8g4j)\n    - Unsafe extensions are now blocked from being downloaded"
+    },
+    {
+        "action": "add",
+        "when": "6075a029dba70a89675ae1250e7cdfd91f0eba41",
+        "short": "[priority] Security: [[ie/douyutv] Do not use dangerous javascript source/URL](https://github.com/yt-dlp/yt-dlp/security/advisories/GHSA-3v33-3wmw-3785)\n    - A dependency on potentially malicious third-party JavaScript code has been removed from the Douyu extractors"
     }
 ]

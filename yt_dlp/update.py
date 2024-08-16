@@ -310,6 +310,7 @@ class Updater:
                 if isinstance(error, HTTPError) and error.status == 404:
                     continue
                 self._report_network_error(f'fetch update spec: {error}')
+                return None
 
         self._report_error(
             f'The requested tag {self.requested_tag} does not exist for {self.requested_repo}', True)
@@ -557,9 +558,10 @@ class Updater:
     def _report_network_error(self, action, delim=';', tag=None):
         if not tag:
             tag = self.requested_tag
+        path = tag if tag == 'latest' else f'tag/{tag}'
         self._report_error(
-            f'Unable to {action}{delim} visit  https://github.com/{self.requested_repo}/releases/'
-            + tag if tag == 'latest' else f'tag/{tag}', True)
+            f'Unable to {action}{delim} visit  '
+            f'https://github.com/{self.requested_repo}/releases/{path}', True)
 
     # XXX: Everything below this line in this class is deprecated / for compat only
     @property

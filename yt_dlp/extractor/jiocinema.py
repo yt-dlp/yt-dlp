@@ -364,20 +364,25 @@ class JioCinemaSeriesIE(JioCinemaBaseIE):
             'title': 'naagin',
         },
         'playlist_mincount': 120,
+    }, {
+        'url': 'https://www.jiocinema.com/tv-shows/mtv-splitsvilla-x5/3499820',
+        'info_dict': {
+            'id': '3499820',
+            'title': 'mtv-splitsvilla-x5',
+        },
+        'playlist_mincount': 310,
     }]
 
     def _entries(self, series_id):
-        seasons = self._download_json(
-            f'{self._METADATA_API_BASE}/voot/v1/voot-web/content/generic/season-by-show', series_id,
-            'Downloading series metadata JSON', query={
-                'sort': 'season:asc',
-                'id': series_id,
-                'responseType': 'common',
-            })
+        seasons = traverse_obj(self._download_json(
+            f'{self._METADATA_API_BASE}/voot/v1/voot-web/view/show/{series_id}', series_id,
+            'Downloading series metadata JSON', query={'responseType': 'common'}), (
+            'trays', lambda _, v: v['trayId'] == 'season-by-show-multifilter',
+            'trayTabs', lambda _, v: v['id']))
 
-        for season_num, season in enumerate(traverse_obj(seasons, ('result', lambda _, v: v['id'])), 1):
+        for season_num, season in enumerate(seasons, start=1):
             season_id = season['id']
-            label = season.get('season') or season_num
+            label = season.get('label') or season_num
             for page_num in itertools.count(1):
                 episodes = traverse_obj(self._download_json(
                     f'{self._METADATA_API_BASE}/voot/v1/voot-web/content/generic/series-wise-episode',

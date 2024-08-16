@@ -20,7 +20,6 @@ from test.helper import (
     gettestcases,
     getwebpagetestcases,
     is_download_test,
-    report_warning,
     try_rm,
 )
 
@@ -178,8 +177,7 @@ def generator(test_case, tname):
                         raise
 
                     if try_num == RETRIES:
-                        report_warning(f'{tname} failed due to network errors, skipping...')
-                        return
+                        raise
 
                     print(f'Retrying: {try_num} failed tries\n\n##########\n\n')
 

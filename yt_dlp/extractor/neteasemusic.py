@@ -22,12 +22,22 @@ from ..utils import (
 
 
 class NetEaseMusicBaseIE(InfoExtractor):
-    _FORMATS = ['bMusic', 'mMusic', 'hMusic']
+    # XXX: _extract_formats logic depends on the order of the levels in each tier
+    _LEVELS = (
+        'standard',  # free tier; 标准; 128kbps mp3 or aac
+        'higher',    # free tier; 192kbps mp3 or aac
+        'exhigh',    # free tier; 极高 (HQ); 320kbps mp3 or aac
+        'lossless',  # VIP  tier; 无损 (SQ); 48kHz/16bit flac
+        'hires',     # VIP  tier; 高解析度无损 (Hi-Res); 192kHz/24bit flac
+        'jyeffect',  # VIP  tier; 高清臻音 (Spatial Audio); 96kHz/24bit flac
+        'jymaster',  # SVIP tier; 超清母带 (Master); 192kHz/24bit flac
+        'sky',       # SVIP tier; 沉浸环绕声 (Surround Audio); flac
+    )
     _API_BASE = 'http://music.163.com/api/'
     _GEO_BYPASS = False
 
     @staticmethod
-    def kilo_or_none(value):
+    def _kilo_or_none(value):
         return int_or_none(value, scale=1000)
 
     def _create_eapi_cipher(self, api_path, query_body, cookies):
@@ -66,45 +76,43 @@ class NetEaseMusicBaseIE(InfoExtractor):
                 **headers,
             }, **kwargs)
 
-    def _call_player_api(self, song_id, bitrate):
+    def _call_player_api(self, song_id, level):
         return self._download_eapi_json(
-            '/song/enhance/player/url', song_id, {'ids': f'[{song_id}]', 'br': bitrate},
-            note=f'Downloading song URL info: bitrate {bitrate}')
+            '/song/enhance/player/url/v1', song_id,
+            {'ids': f'[{song_id}]', 'level': level, 'encodeType': 'flac'},
+            note=f'Downloading song URL info: level {level}')
 
-    def extract_formats(self, info):
-        err = 0
+    def _extract_formats(self, info):
         formats = []
         song_id = info['id']
-        for song_format in self._FORMATS:
-            details = info.get(song_format)
-            if not details:
+        for level in self._LEVELS:
+            song = traverse_obj(
+                self._call_player_api(song_id, level), ('data', lambda _, v: url_or_none(v['url']), any))
+            if not song:
+                break  # Media is not available due to removal or geo-restriction
+            actual_level = song.get('level')
+            if actual_level and actual_level != level:
+                if level in ('lossless', 'jymaster'):
+                    break  # We've already extracted the highest level of the user's account tier
                 continue
-            bitrate = int_or_none(details.get('bitrate')) or 999000
-            for song in traverse_obj(self._call_player_api(song_id, bitrate), ('data', lambda _, v: url_or_none(v['url']))):
-                song_url = song['url']
-                if self._is_valid_url(song_url, info['id'], 'song'):
-                    formats.append({
-                        'url': song_url,
-                        'format_id': song_format,
-                        'asr': traverse_obj(details, ('sr', {int_or_none})),
-                        **traverse_obj(song, {
-                            'ext': ('type', {str}),
-                            'abr': ('br', {self.kilo_or_none}),
-                            'filesize': ('size', {int_or_none}),
-                        }),
-                    })
-                elif err == 0:
-                    err = traverse_obj(song, ('code', {int})) or 0
-
+            formats.append({
+                'url': song['url'],
+                'format_id': level,
+                'vcodec': 'none',
+                **traverse_obj(song, {
+                    'ext': ('type', {str}),
+                    'abr': ('br', {self._kilo_or_none}),
+                    'filesize': ('size', {int_or_none}),
+                }),
+            })
+            if not actual_level:
+                break  # Only 1 level is available if API does not return a value (netease:program)
         if not formats:
-            if err != 0 and (err < 200 or err >= 400):
-                raise ExtractorError(f'No media links found (site code {err})', expected=True)
-            else:
-                self.raise_geo_restricted(
-                    'No media links found: probably due to geo restriction.', countries=['CN'])
+            self.raise_geo_restricted(
+                'No media links found; possibly due to geo restriction', countries=['CN'])
         return formats
 
-    def query_api(self, endpoint, video_id, note):
+    def _query_api(self, endpoint, video_id, note):
         result = self._download_json(
             f'{self._API_BASE}{endpoint}', video_id, note, headers={'Referer': self._API_BASE})
         code = traverse_obj(result, ('code', {int}))
@@ -128,32 +136,29 @@ class NetEaseMusicBaseIE(InfoExtractor):
 class NetEaseMusicIE(NetEaseMusicBaseIE):
     IE_NAME = 'netease:song'
     IE_DESC = '网易云音乐'
-    _VALID_URL = r'https?://(y\.)?music\.163\.com/(?:[#m]/)?song\?.*?\bid=(?P<id>[0-9]+)'
+    _VALID_URL = r'https?://(?:y\.)?music\.163\.com/(?:[#m]/)?song\?.*?\bid=(?P<id>[0-9]+)'
     _TESTS = [{
-        'url': 'https://music.163.com/#/song?id=548648087',
+        'url': 'https://music.163.com/#/song?id=550136151',
         'info_dict': {
-            'id': '548648087',
+            'id': '550136151',
             'ext': 'mp3',
-            'title': '戒烟 (Live)',
-            'creator': '李荣浩 / 朱正廷 / 陈立农 / 尤长靖 / ONER灵超 / ONER木子洋 / 杨非同 / 陆定昊',
+            'title': 'It\'s Ok (Live)',
+            'creators': 'count:10',
             'timestamp': 1522944000,
             'upload_date': '20180405',
-            'description': 'md5:3650af9ee22c87e8637cb2dde22a765c',
-            'subtitles': {'lyrics': [{'ext': 'lrc'}]},
-            'duration': 256,
+            'description': 'md5:9fd07059c2ccee3950dc8363429a3135',
+            'duration': 197,
             'thumbnail': r're:^http.*\.jpg',
             'album': '偶像练习生 表演曲目合集',
             'average_rating': int,
-            'album_artist': '偶像练习生',
+            'album_artists': ['偶像练习生'],
         },
     }, {
-        'note': 'No lyrics.',
         'url': 'http://music.163.com/song?id=17241424',
         'info_dict': {
             'id': '17241424',
             'ext': 'mp3',
             'title': 'Opus 28',
-            'creator': 'Dustin O\'Halloran',
             'upload_date': '20080211',
             'timestamp': 1202745600,
             'duration': 263,
@@ -161,15 +166,18 @@ class NetEaseMusicIE(NetEaseMusicBaseIE):
             'album': 'Piano Solos Vol. 2',
             'album_artist': 'Dustin O\'Halloran',
             'average_rating': int,
+            'description': '[00:05.00]纯音乐，请欣赏\n',
+            'album_artists': ['Dustin O\'Halloran'],
+            'creators': ['Dustin O\'Halloran'],
+            'subtitles': {'lyrics': [{'ext': 'lrc'}]},
         },
     }, {
         'url': 'https://y.music.163.com/m/song?app_version=8.8.45&id=95670&uct2=sKnvS4+0YStsWkqsPhFijw%3D%3D&dlt=0846',
-        'md5': '95826c73ea50b1c288b22180ec9e754d',
+        'md5': 'b896be78d8d34bd7bb665b26710913ff',
         'info_dict': {
             'id': '95670',
             'ext': 'mp3',
             'title': '国际歌',
-            'creator': '马备',
             'upload_date': '19911130',
             'timestamp': 691516800,
             'description': 'md5:1ba2f911a2b0aa398479f595224f2141',
@@ -180,6 +188,8 @@ class NetEaseMusicIE(NetEaseMusicBaseIE):
             'average_rating': int,
             'album': '红色摇滚',
             'album_artist': '侯牧人',
+            'creators': ['马备'],
+            'album_artists': ['侯牧人'],
         },
     }, {
         'url': 'http://music.163.com/#/song?id=32102397',
@@ -188,7 +198,7 @@ class NetEaseMusicIE(NetEaseMusicBaseIE):
             'id': '32102397',
             'ext': 'mp3',
             'title': 'Bad Blood',
-            'creator': 'Taylor Swift / Kendrick Lamar',
+            'creators': ['Taylor Swift', 'Kendrick Lamar'],
             'upload_date': '20150516',
             'timestamp': 1431792000,
             'description': 'md5:21535156efb73d6d1c355f95616e285a',
@@ -207,7 +217,7 @@ class NetEaseMusicIE(NetEaseMusicBaseIE):
             'id': '22735043',
             'ext': 'mp3',
             'title': '소원을 말해봐 (Genie)',
-            'creator': '少女时代',
+            'creators': ['少女时代'],
             'upload_date': '20100127',
             'timestamp': 1264608000,
             'description': 'md5:03d1ffebec3139aa4bafe302369269c5',
@@ -251,12 +261,12 @@ class NetEaseMusicIE(NetEaseMusicBaseIE):
     def _real_extract(self, url):
         song_id = self._match_id(url)
 
-        info = self.query_api(
+        info = self._query_api(
             f'song/detail?id={song_id}&ids=%5B{song_id}%5D', song_id, 'Downloading song info')['songs'][0]
 
-        formats = self.extract_formats(info)
+        formats = self._extract_formats(info)
 
-        lyrics = self._process_lyrics(self.query_api(
+        lyrics = self._process_lyrics(self._query_api(
             f'song/lyric?id={song_id}&lv=-1&tv=-1', song_id, 'Downloading lyrics data'))
         lyric_data = {
             'description': traverse_obj(lyrics, (('lyrics_merged', 'lyrics'), 0, 'data'), get_all=False),
@@ -267,14 +277,14 @@ class NetEaseMusicIE(NetEaseMusicBaseIE):
             'id': song_id,
             'formats': formats,
             'alt_title': '/'.join(traverse_obj(info, (('transNames', 'alias'), ...))) or None,
-            'creator': ' / '.join(traverse_obj(info, ('artists', ..., 'name'))) or None,
-            'album_artist': ' / '.join(traverse_obj(info, ('album', 'artists', ..., 'name'))) or None,
+            'creators': traverse_obj(info, ('artists', ..., 'name')) or None,
+            'album_artists': traverse_obj(info, ('album', 'artists', ..., 'name')) or None,
             **lyric_data,
             **traverse_obj(info, {
                 'title': ('name', {str}),
-                'timestamp': ('album', 'publishTime', {self.kilo_or_none}),
+                'timestamp': ('album', 'publishTime', {self._kilo_or_none}),
                 'thumbnail': ('album', 'picUrl', {url_or_none}),
-                'duration': ('duration', {self.kilo_or_none}),
+                'duration': ('duration', {self._kilo_or_none}),
                 'album': ('album', 'name', {str}),
                 'average_rating': ('score', {int_or_none}),
             }),
@@ -284,7 +294,7 @@ class NetEaseMusicIE(NetEaseMusicBaseIE):
 class NetEaseMusicAlbumIE(NetEaseMusicBaseIE):
     IE_NAME = 'netease:album'
     IE_DESC = '网易云音乐 - 专辑'
-    _VALID_URL = r'https?://music\.163\.com/(#/)?album\?id=(?P<id>[0-9]+)'
+    _VALID_URL = r'https?://music\.163\.com/(?:#/)?album\?id=(?P<id>[0-9]+)'
     _TESTS = [{
         'url': 'https://music.163.com/#/album?id=133153666',
         'info_dict': {
@@ -294,7 +304,7 @@ class NetEaseMusicAlbumIE(NetEaseMusicBaseIE):
             'description': '桃几2021年翻唱合集',
             'thumbnail': r're:^http.*\.jpg',
         },
-        'playlist_mincount': 13,
+        'playlist_mincount': 12,
     }, {
         'url': 'http://music.163.com/#/album?id=220780',
         'info_dict': {
@@ -328,7 +338,7 @@ class NetEaseMusicAlbumIE(NetEaseMusicBaseIE):
 class NetEaseMusicSingerIE(NetEaseMusicBaseIE):
     IE_NAME = 'netease:singer'
     IE_DESC = '网易云音乐 - 歌手'
-    _VALID_URL = r'https?://music\.163\.com/(#/)?artist\?id=(?P<id>[0-9]+)'
+    _VALID_URL = r'https?://music\.163\.com/(?:#/)?artist\?id=(?P<id>[0-9]+)'
     _TESTS = [{
         'note': 'Singer has aliases.',
         'url': 'http://music.163.com/#/artist?id=10559',
@@ -358,7 +368,7 @@ class NetEaseMusicSingerIE(NetEaseMusicBaseIE):
     def _real_extract(self, url):
         singer_id = self._match_id(url)
 
-        info = self.query_api(
+        info = self._query_api(
             f'artist/{singer_id}?id={singer_id}', singer_id, note='Downloading singer data')
 
         name = join_nonempty(
@@ -372,7 +382,7 @@ class NetEaseMusicSingerIE(NetEaseMusicBaseIE):
 class NetEaseMusicListIE(NetEaseMusicBaseIE):
     IE_NAME = 'netease:playlist'
     IE_DESC = '网易云音乐 - 歌单'
-    _VALID_URL = r'https?://music\.163\.com/(#/)?(playlist|discover/toplist)\?id=(?P<id>[0-9]+)'
+    _VALID_URL = r'https?://music\.163\.com/(?:#/)?(?:playlist|discover/toplist)\?id=(?P<id>[0-9]+)'
     _TESTS = [{
         'url': 'http://music.163.com/#/playlist?id=79177352',
         'info_dict': {
@@ -405,11 +415,15 @@ class NetEaseMusicListIE(NetEaseMusicBaseIE):
         'url': 'http://music.163.com/#/discover/toplist?id=3733003',
         'info_dict': {
             'id': '3733003',
-            'title': 're:韩国Melon排行榜周榜 [0-9]{4}-[0-9]{2}-[0-9]{2}',
+            'title': 're:韩国Melon排行榜周榜(?: [0-9]{4}-[0-9]{2}-[0-9]{2})?',
             'description': 'md5:73ec782a612711cadc7872d9c1e134fc',
+            'upload_date': '20200109',
+            'uploader_id': '2937386',
+            'tags': ['韩语', '榜单'],
+            'uploader': 'Melon榜单',
+            'timestamp': 1578569373,
         },
         'playlist_count': 50,
-        'skip': 'Blocked outside Mainland China',
     }]
 
     def _real_extract(self, url):
@@ -426,7 +440,7 @@ class NetEaseMusicListIE(NetEaseMusicBaseIE):
             'tags': ('tags', ..., {str}),
             'uploader': ('creator', 'nickname', {str}),
             'uploader_id': ('creator', 'userId', {str_or_none}),
-            'timestamp': ('updateTime', {self.kilo_or_none}),
+            'timestamp': ('updateTime', {self._kilo_or_none}),
         }))
         if traverse_obj(info, ('playlist', 'specialType')) == 10:
             metainfo['title'] = f'{metainfo.get("title")} {strftime_or_none(metainfo.get("timestamp"), "%Y-%m-%d")}'
@@ -437,7 +451,7 @@ class NetEaseMusicListIE(NetEaseMusicBaseIE):
 class NetEaseMusicMvIE(NetEaseMusicBaseIE):
     IE_NAME = 'netease:mv'
     IE_DESC = '网易云音乐 - MV'
-    _VALID_URL = r'https?://music\.163\.com/(#/)?mv\?id=(?P<id>[0-9]+)'
+    _VALID_URL = r'https?://music\.163\.com/(?:#/)?mv\?id=(?P<id>[0-9]+)'
     _TESTS = [{
         'url': 'https://music.163.com/#/mv?id=10958064',
         'info_dict': {
@@ -445,7 +459,7 @@ class NetEaseMusicMvIE(NetEaseMusicBaseIE):
             'ext': 'mp4',
             'title': '交换余生',
             'description': 'md5:e845872cff28820642a2b02eda428fea',
-            'creator': '林俊杰',
+            'creators': ['林俊杰'],
             'upload_date': '20200916',
             'thumbnail': r're:http.*\.jpg',
             'duration': 364,
@@ -460,7 +474,7 @@ class NetEaseMusicMvIE(NetEaseMusicBaseIE):
             'ext': 'mp4',
             'title': '이럴거면 그러지말지',
             'description': '白雅言自作曲唱甜蜜爱情',
-            'creator': '白娥娟',
+            'creators': ['白娥娟'],
             'upload_date': '20150520',
             'thumbnail': r're:http.*\.jpg',
             'duration': 216,
@@ -468,12 +482,28 @@ class NetEaseMusicMvIE(NetEaseMusicBaseIE):
             'like_count': int,
             'comment_count': int,
         },
+        'skip': 'Blocked outside Mainland China',
+    }, {
+        'note': 'This MV has multiple creators.',
+        'url': 'https://music.163.com/#/mv?id=22593543',
+        'info_dict': {
+            'id': '22593543',
+            'ext': 'mp4',
+            'title': '老北京杀器',
+            'creators': ['秃子2z', '辉子', 'Saber梁维嘉'],
+            'duration': 206,
+            'upload_date': '20240618',
+            'like_count': int,
+            'comment_count': int,
+            'thumbnail': r're:http.*\.jpg',
+            'view_count': int,
+        },
     }]
 
     def _real_extract(self, url):
         mv_id = self._match_id(url)
 
-        info = self.query_api(
+        info = self._query_api(
             f'mv/detail?id={mv_id}&type=mp4', mv_id, 'Downloading mv info')['data']
 
         formats = [
@@ -484,13 +514,13 @@ class NetEaseMusicMvIE(NetEaseMusicBaseIE):
         return {
             'id': mv_id,
             'formats': formats,
+            'creators': traverse_obj(info, ('artists', ..., 'name')) or [info.get('artistName')],
             **traverse_obj(info, {
                 'title': ('name', {str}),
                 'description': (('desc', 'briefDesc'), {str}, {lambda x: x or None}),
-                'creator': ('artistName', {str}),
                 'upload_date': ('publishTime', {unified_strdate}),
                 'thumbnail': ('cover', {url_or_none}),
-                'duration': ('duration', {self.kilo_or_none}),
+                'duration': ('duration', {self._kilo_or_none}),
                 'view_count': ('playCount', {int_or_none}),
                 'like_count': ('likeCount', {int_or_none}),
                 'comment_count': ('commentCount', {int_or_none}),
@@ -501,7 +531,7 @@ class NetEaseMusicMvIE(NetEaseMusicBaseIE):
 class NetEaseMusicProgramIE(NetEaseMusicBaseIE):
     IE_NAME = 'netease:program'
     IE_DESC = '网易云音乐 - 电台节目'
-    _VALID_URL = r'https?://music\.163\.com/(#/?)program\?id=(?P<id>[0-9]+)'
+    _VALID_URL = r'https?://music\.163\.com/(?:#/)?program\?id=(?P<id>[0-9]+)'
     _TESTS = [{
         'url': 'http://music.163.com/#/program?id=10109055',
         'info_dict': {
@@ -509,7 +539,7 @@ class NetEaseMusicProgramIE(NetEaseMusicBaseIE):
             'ext': 'mp3',
             'title': '不丹足球背后的故事',
             'description': '喜马拉雅人的足球梦 ...',
-            'creator': '大话西藏',
+            'creators': ['大话西藏'],
             'timestamp': 1434179287,
             'upload_date': '20150613',
             'thumbnail': r're:http.*\.jpg',
@@ -522,7 +552,7 @@ class NetEaseMusicProgramIE(NetEaseMusicBaseIE):
             'id': '10141022',
             'title': '滚滚电台的有声节目',
             'description': 'md5:8d594db46cc3e6509107ede70a4aaa3b',
-            'creator': '滚滚电台ORZ',
+            'creators': ['滚滚电台ORZ'],
             'timestamp': 1434450733,
             'upload_date': '20150616',
             'thumbnail': r're:http.*\.jpg',
@@ -536,7 +566,7 @@ class NetEaseMusicProgramIE(NetEaseMusicBaseIE):
             'ext': 'mp3',
             'title': '滚滚电台的有声节目',
             'description': 'md5:8d594db46cc3e6509107ede70a4aaa3b',
-            'creator': '滚滚电台ORZ',
+            'creators': ['滚滚电台ORZ'],
             'timestamp': 1434450733,
             'upload_date': '20150616',
             'thumbnail': r're:http.*\.jpg',
@@ -550,7 +580,7 @@ class NetEaseMusicProgramIE(NetEaseMusicBaseIE):
     def _real_extract(self, url):
         program_id = self._match_id(url)
 
-        info = self.query_api(
+        info = self._query_api(
             f'dj/program/detail?id={program_id}', program_id, note='Downloading program info')['program']
 
         metainfo = traverse_obj(info, {
@@ -558,17 +588,17 @@ class NetEaseMusicProgramIE(NetEaseMusicBaseIE):
             'description': ('description', {str}),
             'creator': ('dj', 'brand', {str}),
             'thumbnail': ('coverUrl', {url_or_none}),
-            'timestamp': ('createTime', {self.kilo_or_none}),
+            'timestamp': ('createTime', {self._kilo_or_none}),
         })
 
         if not self._yes_playlist(
                 info['songs'] and program_id, info['mainSong']['id'], playlist_label='program', video_label='song'):
-            formats = self.extract_formats(info['mainSong'])
+            formats = self._extract_formats(info['mainSong'])
 
             return {
                 'id': str(info['mainSong']['id']),
                 'formats': formats,
-                'duration': traverse_obj(info, ('mainSong', 'duration', {self.kilo_or_none})),
+                'duration': traverse_obj(info, ('mainSong', 'duration', {self._kilo_or_none})),
                 **metainfo,
             }
 
@@ -579,7 +609,7 @@ class NetEaseMusicProgramIE(NetEaseMusicBaseIE):
 class NetEaseMusicDjRadioIE(NetEaseMusicBaseIE):
     IE_NAME = 'netease:djradio'
     IE_DESC = '网易云音乐 - 电台'
-    _VALID_URL = r'https?://music\.163\.com/(#/)?djradio\?id=(?P<id>[0-9]+)'
+    _VALID_URL = r'https?://music\.163\.com/(?:#/)?djradio\?id=(?P<id>[0-9]+)'
     _TEST = {
         'url': 'http://music.163.com/#/djradio?id=42',
         'info_dict': {
@@ -597,7 +627,7 @@ class NetEaseMusicDjRadioIE(NetEaseMusicBaseIE):
         metainfo = {}
         entries = []
         for offset in itertools.count(start=0, step=self._PAGE_SIZE):
-            info = self.query_api(
+            info = self._query_api(
                 f'dj/program/byradio?asc=false&limit={self._PAGE_SIZE}&radioId={dj_id}&offset={offset}',
                 dj_id, note=f'Downloading dj programs - {offset}')
 

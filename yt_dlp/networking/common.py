@@ -205,6 +205,7 @@ class RequestHandler(abc.ABC):
     The following extensions are defined for RequestHandler:
     - `cookiejar`: Cookiejar to use for this request.
     - `timeout`: socket timeout to use for this request.
+    - `legacy_ssl`: Enable legacy SSL options for this request. See legacy_ssl_support.
     To enable these, add extensions.pop('<extension>', None) to _check_extensions
 
     Apart from the url protocol, proxies dict may contain the following keys:
@@ -247,10 +248,10 @@ class RequestHandler(abc.ABC):
         self.legacy_ssl_support = legacy_ssl_support
         super().__init__()
 
-    def _make_sslcontext(self):
+    def _make_sslcontext(self, legacy_ssl_support=None):
         return make_ssl_context(
             verify=self.verify,
-            legacy_support=self.legacy_ssl_support,
+            legacy_support=legacy_ssl_support if legacy_ssl_support is not None else self.legacy_ssl_support,
             use_certifi=not self.prefer_system_certs,
             **self._client_cert,
         )
@@ -262,7 +263,8 @@ class RequestHandler(abc.ABC):
         return float(request.extensions.get('timeout') or self.timeout)
 
     def _get_cookiejar(self, request):
-        return request.extensions.get('cookiejar') or self.cookiejar
+        cookiejar = request.extensions.get('cookiejar')
+        return self.cookiejar if cookiejar is None else cookiejar
 
     def _get_proxies(self, request):
         return (request.proxies or self.proxies).copy()
@@ -314,6 +316,7 @@ class RequestHandler(abc.ABC):
         """Check extensions for unsupported extensions. Subclasses should extend this."""
         assert isinstance(extensions.get('cookiejar'), (YoutubeDLCookieJar, NoneType))
         assert isinstance(extensions.get('timeout'), (float, int, NoneType))
+        assert isinstance(extensions.get('legacy_ssl'), (bool, NoneType))
 
     def _validate(self, request):
         self._check_url_scheme(request)
