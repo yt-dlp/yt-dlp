@@ -65,7 +65,7 @@ class HockeyCanadaIE(InfoExtractor):
         webpage = self._download_webpage(url, video_id)
 
         data_url = self._html_search_regex(
-            r'content_api:\s*(["\'])(?P<url>.+?)\1', webpage, 'content api url', group='url')
+            r'content_api:\s*(["\'])(?P<url>https?://.+?)\1', webpage, 'content api url', group='url')
         media_config = traverse_obj(
             self._download_json(data_url, video_id),
             ('config', {base64.b64decode}, {bytes.decode}, {json.loads}, {dict}))
