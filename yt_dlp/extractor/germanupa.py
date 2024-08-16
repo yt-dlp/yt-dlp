@@ -1,8 +1,9 @@
-import urllib.parse
-
 from .common import InfoExtractor
 from .vimeo import VimeoIE
-from ..utils import traverse_obj
+from ..utils import (
+    parse_qs,
+    traverse_obj,
+)
 
 
 class GermanupaIE(InfoExtractor):
@@ -23,6 +24,7 @@ class GermanupaIE(InfoExtractor):
         'expected_warnings': ['Failed to parse XML: not well-formed'],
         'params': {'skip_download': 'm3u8'},
     }, {
+        'note': 'audio, uses GenericIE',
         'url': 'https://germanupa.de/mediathek/live-vom-ux-festival-neuigkeiten-von-figma-jobmarkt-agenturszene-interview-zu-sustainable',
         'info_dict': {
             'id': '1867346676',
@@ -73,16 +75,15 @@ class GermanupaIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        embed_url = self._search_regex(self._IFRAME_RE, webpage, 'iframe embed', None, group='url')
+        embed_url = self._search_regex(self._IFRAME_RE, webpage, 'embed video', None, group='url')
         if not embed_url:
             return self.url_result(url, 'Generic')  # Fall back to generic to extract audio
 
-        param_url = traverse_obj(urllib.parse.parse_qs(urllib.parse.urlparse(embed_url).query),
-                                 ('url', 0), None)
+        param_url = traverse_obj(parse_qs(embed_url), ('url', 0))
         if not param_url:
             if self._search_regex(self._LOGIN_REQUIRED_RE, webpage, 'login wrapper', default=None):
                 self.raise_login_required('This video is only available for members')
             return self.url_result(url)  # Fall back
 
         real_url = param_url.replace('https://vimeo.com/', 'https://player.vimeo.com/video/')
-        return self.url_result(VimeoIE._smuggle_referrer(real_url, url), VimeoIE)
+        return self.url_result(VimeoIE._smuggle_referrer(real_url, url), VimeoIE, video_id)
