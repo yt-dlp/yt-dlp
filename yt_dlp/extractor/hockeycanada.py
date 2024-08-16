@@ -79,13 +79,9 @@ class HockeyCanadaIE(InfoExtractor):
             self._download_json(data_url, video_id),
             ('config', {lambda x: json.loads(base64.b64decode(x).decode())}))
 
-        for media_source in traverse_obj(media_config, ('media', 'source', ..., {
-            'url': ('src', {url_or_none}),
-            'type': ('type', {mimetype2ext}),
-        })):
-            if not (media_url := media_source.get('url')):
-                continue
-            media_type = media_source.get('type')
+        for media_source in traverse_obj(media_config, ('media', 'source', lambda _, v: url_or_none(v['src']))):
+            media_url = media_source['src']
+            media_type = mimetype2ext(media_source.get('type'))
 
             if media_type == 'm3u8':
                 yield from self._extract_m3u8_formats(media_url, video_id)
