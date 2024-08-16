@@ -462,6 +462,7 @@ def create_parser():
             'the STREAM (stdout or stderr) to apply the setting to. '
             'Can be one of "always", "auto" (default), "never", or '
             '"no_color" (use non color terminal sequences). '
+            'Use "auto-tty" or "no_color-tty" to decide based on terminal support only. '
             'Can be used multiple times'))
     general.add_option(
         '--compat-options',
@@ -476,8 +477,8 @@ def create_parser():
                 'no-youtube-channel-redirect', 'no-youtube-unavailable-videos', 'no-youtube-prefer-utc-upload-date',
                 'prefer-legacy-http-handler', 'manifest-filesize-approx', 'allow-unsafe-ext',
             }, 'aliases': {
-                'youtube-dl': ['all', '-multistreams', '-playlist-match-filter', '-manifest-filesize-approx'],
-                'youtube-dlc': ['all', '-no-youtube-channel-redirect', '-no-live-chat', '-playlist-match-filter', '-manifest-filesize-approx'],
+                'youtube-dl': ['all', '-multistreams', '-playlist-match-filter', '-manifest-filesize-approx', '-allow-unsafe-ext'],
+                'youtube-dlc': ['all', '-no-youtube-channel-redirect', '-no-live-chat', '-playlist-match-filter', '-manifest-filesize-approx', '-allow-unsafe-ext'],
                 '2021': ['2022', 'no-certifi', 'filename-sanitization'],
                 '2022': ['2023', 'no-external-downloader-progress', 'playlist-match-filter', 'prefer-legacy-http-handler', 'manifest-filesize-approx'],
                 '2023': [],

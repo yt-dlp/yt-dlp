@@ -298,7 +298,7 @@ class BilibiliBaseIE(InfoExtractor):
 
 
 class BiliBiliIE(BilibiliBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?bilibili\.com/(?:video/|festival/\w+\?(?:[^#]*&)?bvid=)[aAbB][vV](?P<id>[^/?#&]+)'
+    _VALID_URL = r'https?://(?:www\.)?bilibili\.com/(?:video/|festival/[^/?#]+\?(?:[^#]*&)?bvid=)[aAbB][vV](?P<id>[^/?#&]+)'
 
     _TESTS = [{
         'url': 'https://www.bilibili.com/video/BV13x41117TL',
@@ -622,6 +622,10 @@ class BiliBiliIE(BilibiliBaseIE):
             'ext': 'mp4',
         },
         'skip': 'geo-restricted',
+    }, {
+        'note': 'has - in the last path segment of the url',
+        'url': 'https://www.bilibili.com/festival/bh3-7th?bvid=BV1tr4y1f7p2&',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):

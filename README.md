@@ -202,7 +202,7 @@ The following provide support for impersonating browser requests. This may be re
 
 * [**curl_cffi**](https://github.com/yifeikong/curl_cffi) (recommended) - Python binding for [curl-impersonate](https://github.com/lwthiker/curl-impersonate). Provides impersonation targets for Chrome, Edge and Safari. Licensed under [MIT](https://github.com/yifeikong/curl_cffi/blob/main/LICENSE)
   * Can be installed with the `curl-cffi` group, e.g. `pip install "yt-dlp[default,curl-cffi]"`
-  * Currently only included in `yt-dlp.exe` and `yt-dlp_macos` builds
+  * Currently included in `yt-dlp.exe`, `yt-dlp_linux` and `yt-dlp_macos` builds
 
 
 ### Metadata
@@ -368,7 +368,9 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
                                     stderr) to apply the setting to. Can be one
                                     of "always", "auto" (default), "never", or
                                     "no_color" (use non color terminal
-                                    sequences). Can be used multiple times
+                                    sequences). Use "auto-tty" or "no_color-tty"
+                                    to decide based on terminal support only.
+                                    Can be used multiple times
     --compat-options OPTS           Options that can help keep compatibility
                                     with youtube-dl or youtube-dlc
                                     configurations by reverting some of the
@@ -1756,7 +1758,7 @@ $ yt-dlp --replace-in-metadata "title,uploader" "[ _]" "-"
 
 # EXTRACTOR ARGUMENTS
 
-Some extractors accept additional arguments which can be passed using `--extractor-args KEY:ARGS`. `ARGS` is a `;` (semicolon) separated string of `ARG=VAL1,VAL2`. E.g. `--extractor-args "youtube:player-client=android_embedded,web;formats=incomplete" --extractor-args "funimation:version=uncut"`
+Some extractors accept additional arguments which can be passed using `--extractor-args KEY:ARGS`. `ARGS` is a `;` (semicolon) separated string of `ARG=VAL1,VAL2`. E.g. `--extractor-args "youtube:player-client=mediaconnect,web;formats=incomplete" --extractor-args "funimation:version=uncut"`
 
 Note: In CLI, `ARG` can use `-` instead of `_`; e.g. `youtube:player-client"` becomes `youtube:player_client"`
 
@@ -1765,7 +1767,7 @@ The following extractors use this feature:
 #### youtube
 * `lang`: Prefer translated metadata (`title`, `description` etc) of this language code (case-sensitive). By default, the video primary language metadata is preferred, with a fallback to `en` translated. See [youtube.py](https://github.com/yt-dlp/yt-dlp/blob/c26f9b991a0681fd3ea548d535919cec1fbbd430/yt_dlp/extractor/youtube.py#L381-L390) for list of supported content language codes
 * `skip`: One or more of `hls`, `dash` or `translated_subs` to skip extraction of the m3u8 manifests, dash manifests and [auto-translated subtitles](https://github.com/yt-dlp/yt-dlp/issues/4090#issuecomment-1158102032) respectively
-* `player_client`: Clients to extract video data from. The main clients are `web`, `ios` and `android`, with variants `_music`, `_embedded`, `_embedscreen`, `_creator` (e.g. `web_embedded`); and `mediaconnect`, `mweb`, `mweb_embedscreen` and `tv_embedded` (agegate bypass) with no variants. By default, `ios,web` is used, but `tv_embedded` and `creator` variants are added as required for age-gated videos. Similarly, the music variants are added for `music.youtube.com` urls. The `android` clients will always be given lowest priority since their formats are broken. You can use `all` to use all the clients, and `default` for the default clients.
+* `player_client`: Clients to extract video data from. The main clients are `web`, `ios` and `android`, with variants `_music` and `_creator` (e.g. `ios_creator`); and `mediaconnect`, `mweb`, `android_producer`, `android_testsuite`, `android_vr`, `web_safari`, `web_embedded`, `tv` and `tv_embedded` with no variants. By default, `ios,web_creator` is used, and `tv_embedded`, `web_creator` and `mediaconnect` are added as required for age-gated videos. Similarly, the music variants are added for `music.youtube.com` urls. Most `android` clients will be given lowest priority since their formats are broken. You can use `all` to use all the clients, and `default` for the default clients.
 * `player_skip`: Skip some network requests that are generally needed for robust extraction. One or more of `configs` (skip client configs), `webpage` (skip initial webpage), `js` (skip js player). While these options can help reduce the number of requests needed or avoid some rate-limiting, they could cause some issues. See [#860](https://github.com/yt-dlp/yt-dlp/pull/860) for more details
 * `player_params`: YouTube player parameters to use for player requests. Will overwrite any default ones set by yt-dlp.
 * `comment_sort`: `top` or `new` (default) - choose comment sorting mode (on YouTube's side)
@@ -1773,7 +1775,7 @@ The following extractors use this feature:
     * E.g. `all,all,1000,10` will get a maximum of 1000 replies total, with up to 10 replies per thread. `1000,all,100` will get a maximum of 1000 comments, with a maximum of 100 replies total
 * `formats`: Change the types of formats to return. `dashy` (convert HTTP to DASH), `duplicate` (identical content but different URLs or protocol; includes `dashy`), `incomplete` (cannot be downloaded completely - live dash and post-live m3u8)
 * `innertube_host`: Innertube API host to use for all API requests; e.g. `studio.youtube.com`, `youtubei.googleapis.com`. Note that cookies exported from one subdomain will not work on others
-* `innertube_key`: Innertube API key to use for all API requests
+* `innertube_key`: Innertube API key to use for all API requests. By default, no API key is used
 * `raise_incomplete_data`: `Incomplete Data Received` raises an error instead of reporting a warning
 
 #### youtubetab (YouTube playlists, channels, feeds, etc.)
@@ -1858,6 +1860,9 @@ The following extractors use this feature:
 
 #### bilibili
 * `prefer_multi_flv`: Prefer extracting flv formats over mp4 for older videos that still provide legacy formats
+
+#### digitalconcerthall
+* `prefer_combined_hls`: Prefer extracting combined/pre-merged video and audio HLS formats. This will exclude 4K/HEVC video and lossless/FLAC audio formats, which are only available as split video/audio HLS formats
 
 **Note**: These options may be changed/removed in the future without concern for backward compatibility
 
@@ -2219,12 +2224,13 @@ Some of yt-dlp's default options are different from that of youtube-dl and youtu
 * yt-dlp versions between 2021.11.10 and 2023.06.21 estimated `filesize_approx` values for fragmented/manifest formats. This was added for convenience in [f2fe69](https://github.com/yt-dlp/yt-dlp/commit/f2fe69c7b0d208bdb1f6292b4ae92bc1e1a7444a), but was reverted in [0dff8e](https://github.com/yt-dlp/yt-dlp/commit/0dff8e4d1e6e9fb938f4256ea9af7d81f42fd54f) due to the potentially extreme inaccuracy of the estimated values. Use `--compat-options manifest-filesize-approx` to keep extracting the estimated values
 * yt-dlp uses modern http client backends such as `requests`. Use `--compat-options prefer-legacy-http-handler` to prefer the legacy http handler (`urllib`) to be used for standard http requests.
 * The sub-modules `swfinterp`, `casefold` are removed.
+* Passing `--simulate` (or calling `extract_info` with `download=False`) no longer alters the default format selection. See [#9843](https://github.com/yt-dlp/yt-dlp/issues/9843) for details.
 
 For ease of use, a few more compat options are available:
 
-* `--compat-options all`: Use all compat options (Do NOT use)
-* `--compat-options youtube-dl`: Same as `--compat-options all,-multistreams,-playlist-match-filter,-manifest-filesize-approx`
-* `--compat-options youtube-dlc`: Same as `--compat-options all,-no-live-chat,-no-youtube-channel-redirect,-playlist-match-filter,-manifest-filesize-approx`
+* `--compat-options all`: Use all compat options (**Do NOT use this!**)
+* `--compat-options youtube-dl`: Same as `--compat-options all,-multistreams,-playlist-match-filter,-manifest-filesize-approx,-allow-unsafe-ext`
+* `--compat-options youtube-dlc`: Same as `--compat-options all,-no-live-chat,-no-youtube-channel-redirect,-playlist-match-filter,-manifest-filesize-approx,-allow-unsafe-ext`
 * `--compat-options 2021`: Same as `--compat-options 2022,no-certifi,filename-sanitization,no-youtube-prefer-utc-upload-date`
 * `--compat-options 2022`: Same as `--compat-options 2023,playlist-match-filter,no-external-downloader-progress,prefer-legacy-http-handler,manifest-filesize-approx`
 * `--compat-options 2023`: Currently does nothing. Use this to enable all future compat options

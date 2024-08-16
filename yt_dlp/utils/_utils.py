@@ -1217,7 +1217,7 @@ def unified_timestamp(date_str, day_first=True):
         return None
 
     date_str = re.sub(r'\s+', ' ', re.sub(
-        r'(?i)[,|]|(mon|tues?|wed(nes)?|thu(rs)?|fri|sat(ur)?)(day)?', '', date_str))
+        r'(?i)[,|]|(mon|tues?|wed(nes)?|thu(rs)?|fri|sat(ur)?|sun)(day)?', '', date_str))
 
     pm_delta = 12 if re.search(r'(?i)PM', date_str) else 0
     timezone, date_str = extract_timezone(date_str)
@@ -2984,6 +2984,7 @@ def parse_codecs(codecs_str):
         str.strip, codecs_str.strip().strip(',').split(','))))
     vcodec, acodec, scodec, hdr = None, None, None, None
     for full_codec in split_codecs:
+        full_codec = re.sub(r'^([^.]+)', lambda m: m.group(1).lower(), full_codec)
         parts = re.sub(r'0+(?=\d)', '', full_codec).split('.')
         if parts[0] in ('avc1', 'avc2', 'avc3', 'avc4', 'vp9', 'vp8', 'hev1', 'hev2',
                         'h263', 'h264', 'mp4v', 'hvc1', 'av1', 'theora', 'dvh1', 'dvhe'):
@@ -5026,7 +5027,7 @@ MEDIA_EXTENSIONS = Namespace(
     common_video=('avi', 'flv', 'mkv', 'mov', 'mp4', 'webm'),
     video=('3g2', '3gp', 'f4v', 'mk3d', 'divx', 'mpg', 'ogv', 'm4v', 'wmv'),
     common_audio=('aiff', 'alac', 'flac', 'm4a', 'mka', 'mp3', 'ogg', 'opus', 'wav'),
-    audio=('aac', 'ape', 'asf', 'f4a', 'f4b', 'm4b', 'm4p', 'm4r', 'oga', 'ogx', 'spx', 'vorbis', 'wma', 'weba'),
+    audio=('aac', 'ape', 'asf', 'f4a', 'f4b', 'm4b', 'm4r', 'oga', 'ogx', 'spx', 'vorbis', 'wma', 'weba'),
     thumbnails=('jpg', 'png', 'webp'),
     storyboards=('mhtml', ),
     subtitles=('srt', 'vtt', 'ass', 'lrc'),
@@ -5059,36 +5060,64 @@ class _UnsafeExtensionError(Exception):
 
         # video
         *MEDIA_EXTENSIONS.video,
-        'avif',
+        'asx',
         'ismv',
+        'm2t',
         'm2ts',
+        'm2v',
         'm4s',
         'mng',
+        'mp2v',
+        'mp4v',
+        'mpe',
         'mpeg',
+        'mpeg1',
+        'mpeg2',
+        'mpeg4',
+        'mxf',
+        'ogm',
         'qt',
+        'rm',
         'swf',
         'ts',
+        'vob',
         'vp9',
-        'wvm',
 
         # audio
         *MEDIA_EXTENSIONS.audio,
+        '3ga',
+        'ac3',
+        'adts',
+        'aif',
+        'au',
+        'dts',
         'isma',
+        'it',
         'mid',
+        'mod',
         'mpga',
+        'mp1',
+        'mp2',
+        'mp4a',
+        'mpa',
         'ra',
+        'shn',
+        'xm',
 
         # image
         *MEDIA_EXTENSIONS.thumbnails,
+        'avif',
         'bmp',
         'gif',
         'heic',
         'ico',
+        'image',
         'jng',
         'jpeg',
         'jxl',
         'svg',
         'tif',
+        'tiff',
         'wbmp',
 
         # subtitle
@@ -5096,11 +5125,16 @@ class _UnsafeExtensionError(Exception):
         'dfxp',
         'fs',
         'ismt',
+        'json3',
         'sami',
         'scc',
+        'srv1',
+        'srv2',
+        'srv3',
         'ssa',
         'tt',
         'ttml',
+        'xml',
 
         # others
         *MEDIA_EXTENSIONS.manifests,
@@ -5111,7 +5145,6 @@ class _UnsafeExtensionError(Exception):
         'sbv',
         'url',
         'webloc',
-        'xml',
     ])
 
     def __init__(self, extension, /):
@@ -5120,6 +5153,9 @@ class _UnsafeExtensionError(Exception):
 
     @classmethod
     def sanitize_extension(cls, extension, /, *, prepend=False):
+        if extension is None:
+            return None
+
         if '/' in extension or '\\' in extension:
             raise cls(extension)
 
