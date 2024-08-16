@@ -325,7 +325,7 @@ jobs:
               "(https://github.com/yt-dlp/yt-dlp-master-builds/releases/latest \"Master builds\")"' || '' }} > ./RELEASE_NOTES
           printf '\n\n' >> ./RELEASE_NOTES
           cat >> ./RELEASE_NOTES << EOF
-          #### A description of the various files are in the [README](https://github.com/${{ github.repository }}#release-files)
+          #### A description of the various files is in the [README](https://github.com/${{ github.repository }}#release-files)
           ---
           $(python ./devscripts/make_changelog.py -vv --collapsible)
           EOF
