@@ -696,24 +696,43 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 r'\bID_TOKEN["\']\s*:\s*["\'](.+?)["\']', webpage,
                 'identity token', default=None, fatal=False)
 
-    @staticmethod
-    def _extract_account_syncid(*args):
+    def _data_sync_id_to_delegated_session_id(self, data_sync_id):
+        if not data_sync_id:
+            return
+        # datasyncid is of the form "channel_syncid||user_syncid" for secondary channel
+        # and just "user_syncid||" for primary channel. We only want the channel_syncid
+        session_ids = data_sync_id.split('||')
+        if len(session_ids) >= 2 and session_ids[1]:
+            return session_ids[0]
+
+    def _extract_account_syncid(self, *args):
         """
-        Extract syncId required to download private playlists of secondary channels
+        Extract current session ID required to download private playlists of secondary channels
         @params response and/or ytcfg
         """
-        for data in args:
-            # ytcfg includes channel_syncid if on secondary channel
-            delegated_sid = try_get(data, lambda x: x['DELEGATED_SESSION_ID'], str)
-            if delegated_sid:
-                return delegated_sid
-            sync_ids = (try_get(
-                data, (lambda x: x['responseContext']['mainAppWebResponseContext']['datasyncId'],
-                       lambda x: x['DATASYNC_ID']), str) or '').split('||')
-            if len(sync_ids) >= 2 and sync_ids[1]:
-                # datasyncid is of the form "channel_syncid||user_syncid" for secondary channel
-                # and just "user_syncid||" for primary channel. We only want the channel_syncid
-                return sync_ids[0]
+        # ytcfg includes channel_syncid if on secondary channel
+        delegated_sid = traverse_obj(
+            args, (..., 'DELEGATED_SESSION_ID'), expected_type=str, get_all=False)
+        if delegated_sid:
+            return delegated_sid
+
+        data_sync_id = self._extract_data_sync_id(*args)
+        return self._data_sync_id_to_delegated_session_id(data_sync_id)
+
+    def _extract_data_sync_id(self, *args):
+        """
+        Extract current account dataSyncId.
+        In the format DELEGATED_SESSION_ID||USER_SESSION_ID or USER_SESSION_ID||
+        @params response and/or ytcfg
+        """
+        if data_sync_id := self._configuration_arg('data_sync_id', [None], ie_key=YoutubeIE, casesense=True)[0]:
+            return data_sync_id
+
+        return traverse_obj(
+            args, (
+                ..., ('DATASYNC_ID', (
+                    'responseContext', 'mainAppWebResponseContext', 'datasyncId'))),
+            expected_type=str, get_all=False)
 
     def _extract_visitor_data(self, *args):
         """
@@ -3707,15 +3726,20 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             **cls._get_checkok_params(),
         }
 
-    def fetch_po_token(self, client='web', visitor_data=None, **kwargs):
-        if client not in INNERTUBE_CLIENTS:
-            self.report_warning(f'Bad innertube client "{client}"')
-            return None
-
-        if not visitor_data:
+    def fetch_po_token(self, client='web', visitor_data=None, data_sync_id=None, **kwargs):
+        # PO Token is bound to visitor_data when logged out
+        if not visitor_data and not self.is_authenticated:
             self.report_warning(
                 f'Unable to fetch PO token for {client} client: Missing required visitor_data. '
                 f'You may need to pass visitor_data with --extractor-args youtube:visitor_data=XXX',
+            )
+            return
+
+        # PO token is bound to data_sync_id / account session ID when logged in
+        if not data_sync_id and self.is_authenticated:
+            self.report_warning(
+                f'Unable to fetch PO token for {client} client: Missing required data_sync_id for account. '
+                f'You may need to pass data_sync_id with --extractor-args youtube:data_sync_id=XXX',
             )
             return
 
@@ -3755,12 +3779,17 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     def _is_unplayable(player_response):
         return traverse_obj(player_response, ('playabilityStatus', 'status')) == 'UNPLAYABLE'
 
-    def _extract_player_response(self, client, video_id, master_ytcfg, player_ytcfg, player_url, initial_pr, visitor_data, po_token):
-        session_index = self._extract_session_index(master_ytcfg, player_ytcfg)
-        syncid = self._extract_account_syncid(master_ytcfg, player_ytcfg, initial_pr)
-        sts = self._extract_signature_timestamp(video_id, player_url, master_ytcfg, fatal=False) if player_url else None
+    def _extract_player_response(self, client, video_id, master_ytcfg, player_ytcfg, player_url, initial_pr, visitor_data, data_sync_id, po_token):
         headers = self.generate_api_headers(
-            ytcfg=player_ytcfg, account_syncid=syncid, session_index=session_index, default_client=client, visitor_data=visitor_data)
+            ytcfg=player_ytcfg,
+            default_client=client,
+            visitor_data=visitor_data,
+            session_index=self._extract_session_index(master_ytcfg, player_ytcfg),
+            account_syncid=(
+                self._data_sync_id_to_delegated_session_id(data_sync_id)
+                or self._extract_account_syncid(master_ytcfg, initial_pr, player_ytcfg)
+            ),
+        )
 
         yt_query = {
             'videoId': video_id,
@@ -3774,6 +3803,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if po_token:
             yt_query['serviceIntegrityDimensions'] = {'poToken': po_token}
 
+        sts = self._extract_signature_timestamp(video_id, player_url, master_ytcfg, fatal=False) if player_url else None
         yt_query.update(self._generate_player_context(sts))
         return self._extract_response(
             item_id=video_id, ep='player', query=yt_query,
@@ -3855,7 +3885,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         return
 
         tried_iframe_fallback = False
-        player_url = visitor_data = None
+        player_url = visitor_data = data_sync_id = None
         skipped_clients = {}
         while clients:
             client, base_client, variant = _split_innertube_client(clients.pop())
@@ -3864,7 +3894,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 player_ytcfg = self._download_ytcfg(client, video_id) or player_ytcfg
 
             visitor_data = visitor_data or self._extract_visitor_data(master_ytcfg, initial_pr, player_ytcfg)
-            po_token = self.fetch_po_token(client=client, visitor_data=visitor_data)
+            data_sync_id = data_sync_id or self._extract_data_sync_id(master_ytcfg, initial_pr, player_ytcfg)
+            po_token = self.fetch_po_token(client=client, visitor_data=visitor_data, data_sync_id=data_sync_id)
 
             player_url = player_url or self._extract_player_url(master_ytcfg, player_ytcfg, webpage=webpage)
             require_js_player = self._get_default_ytcfg(client).get('REQUIRE_JS_PLAYER')
@@ -3880,8 +3911,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             for retry in self.RetryManager(fatal=False):
                 try:
                     pr = pr or self._extract_player_response(
-                        client, video_id, player_ytcfg or master_ytcfg, player_ytcfg,
-                        player_url if require_js_player else None, initial_pr, visitor_data, po_token)
+                        client, video_id,
+                        master_ytcfg=player_ytcfg or master_ytcfg,
+                        player_ytcfg=player_ytcfg,
+                        player_url=player_url if require_js_player else None,
+                        initial_pr=initial_pr,
+                        visitor_data=visitor_data,
+                        data_sync_id=data_sync_id,
+                        po_token=po_token,
+                    )
                 except ExtractorError as e:
                     self.report_warning(e)
                     break
