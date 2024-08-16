@@ -3743,15 +3743,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             )
             return
 
-        po_token = self._fetch_po_token(visitor_data=visitor_data, client=client)
-        if not po_token and self._get_default_ytcfg(client).get('REQUIRE_PO_TOKEN'):
-            self.report_warning(
-                f'No PO Token provided for {client} client. '
-                f'A PO Token is required by this client for working formats. '
-                f'You can manually pass a PO Token for this client with '
-                f'--extractor-args youtube:po_token={client}:XXX',
-                only_once=True)
-        return po_token
+        return self._fetch_po_token(
+            client=client, visitor_data=visitor_data, data_sync_id=data_sync_id, **kwargs)
 
     def _fetch_po_token(self, client, visitor_data, **kwargs):
         po_tokens = self._configuration_arg('po_token', [], ie_key=YoutubeIE, casesense=True)
@@ -3865,6 +3858,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 self._YT_INITIAL_PLAYER_RESPONSE_RE, webpage, 'initial player response', video_id, fatal=False)
 
         prs = []
+        deprioritized_prs = []
+
         if initial_pr and not self._invalid_player_response(initial_pr, video_id):
             # Android player_response does not have microFormats which are needed for
             # extraction of some data. So we return the initial_pr with formats
@@ -3889,6 +3884,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         player_url = visitor_data = data_sync_id = None
         skipped_clients = {}
         while clients:
+            deprioritize_pr = False
             client, base_client, variant = _split_innertube_client(clients.pop())
             player_ytcfg = master_ytcfg if client == 'web' else {}
             if 'configs' not in self._configuration_arg('player_skip') and client != 'web':
@@ -3897,6 +3893,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             visitor_data = visitor_data or self._extract_visitor_data(master_ytcfg, initial_pr, player_ytcfg)
             data_sync_id = data_sync_id or self._extract_data_sync_id(master_ytcfg, initial_pr, player_ytcfg)
             po_token = self.fetch_po_token(client=client, visitor_data=visitor_data, data_sync_id=data_sync_id)
+
+            if not po_token and self._get_default_ytcfg(client).get('REQUIRE_PO_TOKEN'):
+                self.report_warning(
+                    f'No PO Token provided for {client} client. '
+                    f'A PO Token is required by this client for working formats. '
+                    f'You can manually pass a PO Token for this client with '
+                    f'--extractor-args youtube:po_token={client}:XXX',
+                    only_once=True)
+                deprioritize_pr = True
 
             player_url = player_url or self._extract_player_url(master_ytcfg, player_ytcfg, webpage=webpage)
             require_js_player = self._get_default_ytcfg(client).get('REQUIRE_JS_PLAYER')
@@ -3939,7 +3944,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     player_ytcfg = self._get_default_ytcfg(client)
                     if 'configs' not in self._configuration_arg('player_skip'):
                         player_ytcfg = self._download_ytcfg(client, video_id) or player_ytcfg
-                    retry.error = ExtractorError('API returned broken formats (poToken experiment detected)', expected=True)
+                    retry.error = ExtractorError('API returned broken formats (PO Token experiment detected)', expected=True)
             if not pr:
                 continue
 
@@ -3953,7 +3958,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 for f in traverse_obj(sd, (('formats', 'adaptiveFormats'), ..., {dict})):
                     f[STREAMING_DATA_CLIENT_NAME] = client
                     f[STREAMING_DATA_PO_TOKEN] = po_token
-                prs.append(pr)
+                if deprioritize_pr:
+                    deprioritized_prs.append(pr)
+                else:
+                    prs.append(pr)
 
             # tv_embedded can work around age-gate and age-verification IF the video is embeddable
             if self._is_agegated(pr) and variant != 'tv_embedded':
@@ -3976,6 +3984,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 # web_creator and mediaconnect can work around the age-verification requirement
                 # _producer, _testsuite, & _vr variants can also work around age-verification
                 append_client('web_creator', 'mediaconnect')
+
+        prs.extend(deprioritized_prs)
 
         if skipped_clients:
             self.report_warning(
