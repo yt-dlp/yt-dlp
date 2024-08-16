@@ -21,9 +21,7 @@ class GermanupaIE(InfoExtractor):
             'duration': 3987,
         },
         'expected_warnings': ['Failed to parse XML: not well-formed'],
-        'params': {
-            'skip_download': 'm3u8',
-        },
+        'params': {'skip_download': 'm3u8'},
     }, {
         'url': 'https://germanupa.de/mediathek/live-vom-ux-festival-neuigkeiten-von-figma-jobmarkt-agenturszene-interview-zu-sustainable',
         'info_dict': {
@@ -46,7 +44,7 @@ class GermanupaIE(InfoExtractor):
             'thumbnail': 'https://i1.sndcdn.com/artworks-oCti2e9GhaZFWBqY-48ybGw-original.jpg',
         },
     }, {
-        # Nur für Mitglieder, info_dict INCOMPLETE
+        'note': 'Nur für Mitglieder/Just for members',
         'url': 'https://germanupa.de/mediathek/ux-festival-2024-usability-tests-und-ai',
         'info_dict': {
             'id': '986994430',
