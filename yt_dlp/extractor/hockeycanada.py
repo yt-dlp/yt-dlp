@@ -66,19 +66,18 @@ class HockeyCanadaIE(InfoExtractor):
 
         data_url = self._html_search_regex(
             r'content_api:\s*(["\'])(?P<url>.+?)\1', webpage, 'content api url', group='url')
+        media_config = traverse_obj(
+            self._download_json(data_url, video_id),
+            ('config', {base64.b64decode}, {bytes.decode}, {json.loads}, {dict}))
 
         return {
             'id': video_id,
-            'formats': [*self._yield_formats(data_url, video_id)],
+            'formats': [*self._yield_formats(media_config, video_id)],
             **self._search_json_ld(
                 webpage.replace('/*<![CDATA[*/', '').replace('/*]]>*/', ''), video_id),
         }
 
-    def _yield_formats(self, data_url, video_id):
-        media_config = traverse_obj(
-            self._download_json(data_url, video_id),
-            ('config', {lambda x: json.loads(base64.b64decode(x).decode())}))
-
+    def _yield_formats(self, media_config, video_id):
         for media_source in traverse_obj(media_config, ('media', 'source', lambda _, v: url_or_none(v['src']))):
             media_url = media_source['src']
             media_type = mimetype2ext(media_source.get('type'))
