@@ -3738,7 +3738,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
     def fetch_po_token(self, client='web', visitor_data=None, data_sync_id=None, player_url=None, **kwargs):
         # PO Token is bound to visitor_data / Visitor ID when logged out. Must have visitor_data for it to function.
-        if not visitor_data and not self.is_authenticated:
+        if not visitor_data and not self.is_authenticated and player_url:
             self.report_warning(
                 f'Unable to fetch PO Token for {client} client: Missing required Visitor Data. '
                 f'You may need to pass Visitor Data with --extractor-args youtube:visitor_data=XXX',
@@ -3749,7 +3749,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if config_po_token:
             # PO token is bound to data_sync_id / account Session ID when logged in. However, for the config po_token,
             # if using first channel in an account then we don't need the data_sync_id anymore...
-            if not data_sync_id and self.is_authenticated:
+            if not data_sync_id and self.is_authenticated and player_url:
                 self.report_warning(
                     f'Got a PO Token for {client} client, but missing Data Sync ID for account. Formats may not work.'
                     f'You may need to pass a Data Sync ID with --extractor-args youtube:data_sync_id=XXX',
@@ -3758,7 +3758,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             return config_po_token
 
         # Require PO Token if logged in for external fetching
-        if not data_sync_id and self.is_authenticated:
+        if not data_sync_id and self.is_authenticated and player_url:
             self.report_warning(
                 f'Unable to fetch PO Token for {client} client: Missing required Data Sync ID for account. '
                 f'You may need to pass a Data Sync ID with --extractor-args youtube:data_sync_id=XXX',
@@ -3922,7 +3922,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             visitor_data = visitor_data or self._extract_visitor_data(master_ytcfg, initial_pr, player_ytcfg)
             data_sync_id = data_sync_id or self._extract_data_sync_id(master_ytcfg, initial_pr, player_ytcfg)
             po_token = self.fetch_po_token(
-                client=client, visitor_data=visitor_data, data_sync_id=data_sync_id,
+                client=client, visitor_data=visitor_data,
+                data_sync_id=data_sync_id if self.is_authenticated else None,
                 player_url=player_url if require_js_player else None,
             )
 
