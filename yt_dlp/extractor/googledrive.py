@@ -295,7 +295,7 @@ class GoogleDriveIE(InfoExtractor):
 
 class GoogleDriveFolderIE(InfoExtractor):
     IE_NAME = 'GoogleDrive:Folder'
-    _VALID_URL = r'https?://(?:docs|drive)\.google\.com/drive/folders/(?P<id>[\w-]{28,})'
+    _VALID_URL = r'https?://(?:docs|drive)\.google\.com/drive/(?:folders/(?P<id>[\w-]{28,})|my-drive)'
     _TESTS = [{
         'url': 'https://drive.google.com/drive/folders/1dQ4sx0-__Nvg65rxTSgQrl7VyW_FZ9QI',
         'info_dict': {
@@ -318,7 +318,7 @@ class GoogleDriveFolderIE(InfoExtractor):
         """
         Uses regex to search for json metadata with 'ds' value(0-5) or 'hash' value(1-6)
         from the webpage.
-        Folder info: ds=0, hash=1; Folder items: ds=4, hash=6.
+        Folder info: ds=0, hash=1; Folder items: ds=4(public folder)/5(private folder), hash=6.
         For example, if the webpage contains the line below, the empty data array
         can be got by passing dsval=3 or hashval=2 to this method.
             AF_initDataCallback({key: 'ds:3', hash: '2', data:[], sideChannel: {}});
@@ -341,6 +341,8 @@ class GoogleDriveFolderIE(InfoExtractor):
 
     def _real_extract(self, url):
         def item_url_getter(item, video_id):
+            if not isinstance(item, list):
+                return None
             available_IEs = [GoogleDriveFolderIE, GoogleDriveIE]  # subfolder or item
             if 'application/vnd.google-apps.shortcut' in item:  # extract real link
                 entry_url = traverse_obj(
@@ -354,7 +356,7 @@ class GoogleDriveFolderIE(InfoExtractor):
                 return None
             return self.url_result(entry_url, video_id=video_id, video_title=item[2])
 
-        folder_id = self._match_id(url)
+        folder_id = self._match_id(url) or 'my-drive'
         headers = self.geo_verification_headers()
 
         try:
@@ -370,13 +372,10 @@ class GoogleDriveFolderIE(InfoExtractor):
             self.raise_login_required('This video is only available for registered users')
 
         json_folder_info = (
-            self._extract_json_meta(webpage, folder_id, dsval=0, name='folder info', default=None)
-            or self._extract_json_meta(webpage, folder_id, hashval=1)
+            self._extract_json_meta(webpage, folder_id, hashval=1, name='folder info', default=None)
+            or self._extract_json_meta(webpage, folder_id, dsval=0, name='folder info - fallback')
         )
-        json_items = (
-            self._extract_json_meta(webpage, folder_id, dsval=4, name='folder items', default=None)
-            or self._extract_json_meta(webpage, folder_id, hashval=6)
-        )
+        json_items = self._extract_json_meta(webpage, folder_id, hashval=6, name='folder items')
 
         title = json_folder_info[1][2]
         items = json_items[-1]
