@@ -26,8 +26,12 @@ class TubiTvIE(InfoExtractor):
             'description': 'md5:bb2f2dd337f0dc58c06cb509943f54c8',
             'uploader_id': 'abc2558d54505d4f0f32be94f2e7108c',
             'release_year': 1935,
-            'thumbnail': r're:^https?://.+\.(jpe?g|png)$',
+            'thumbnail': r're:^https?://.+$',
             'duration': 5187,
+            'cast': ['Robert Donat', 'Madeleine Carroll', 'Lucie Mannheim', 'Godfrey Tearle', 'Peggy Ashcroft'],
+            'categories': ['Crime', 'Mystery', 'Thriller'],
+            'tags': ['Crime', 'Mystery', 'Thriller'],
+            'creators': ['Alfred Hitchcock'],
         },
         'params': {'skip_download': 'm3u8'},
     }, {
@@ -41,10 +45,15 @@ class TubiTvIE(InfoExtractor):
             'episode_number': 1,
             'season': 'Season 1',
             'season_number': 1,
+            'series': 'LEGO Ninjago Masters of Spinjitzu',
             'uploader_id': '2a9273e728c510d22aa5c57d0646810b',
             'release_year': 2011,
-            'thumbnail': r're:^https?://.+\.(jpe?g|png)$',
+            'thumbnail': r're:^https?://.+$',
             'duration': 1376,
+            'cast': ['Michael Adamthwaite', 'Kelly Metzger', 'Kirby Morrow', 'Vincent Tong', 'Brent Miller', 'Paul Dobson'],
+            'categories': ['Kids & Family', 'Animation'],
+            'tags': ['Kids & Family', 'Animation'],
+            'creators': ['Peter Hausner'],
         },
         'params': {'skip_download': 'm3u8'},
     }, {
@@ -96,9 +105,15 @@ class TubiTvIE(InfoExtractor):
     def _real_extract(self, url):
         video_id, video_type = self._match_valid_url(url).group('id', 'type')
         webpage = self._download_webpage(f'https://tubitv.com/{video_type}/{video_id}/', video_id)
-        video_data = self._search_json(
+
+        page_json = self._search_json(
             r'window\.__data\s*=', webpage, 'data', video_id,
-            transform_source=js_to_json)['video']['byId'][video_id]
+            transform_source=js_to_json)
+        video_data = traverse_obj(page_json, ('video', 'byId', video_id))
+        series_id = video_data.get('series_id')
+        series = None
+        if series_id:
+            series = traverse_obj(page_json, ('video', 'byId', '0' + series_id, 'title'))
 
         formats = []
         drm_formats = False
@@ -130,6 +145,8 @@ class TubiTvIE(InfoExtractor):
         season_number, episode_number, episode_title = self._search_regex(
             r'^S(\d+):E(\d+) - (.+)', title, 'episode info', fatal=False, group=(1, 2, 3), default=(None, None, None))
 
+        tags = traverse_obj(video_data, 'tags')
+
         return {
             'id': video_id,
             'title': title,
@@ -138,12 +155,17 @@ class TubiTvIE(InfoExtractor):
             'season_number': int_or_none(season_number),
             'episode_number': int_or_none(episode_number),
             'episode': episode_title,
+            'series': series,
+            'tags': tags,
+            'categories': tags,
             **traverse_obj(video_data, {
                 'description': ('description', {str}),
                 'duration': ('duration', {int_or_none}),
                 'uploader_id': ('publisher_id', {str}),
                 'release_year': ('year', {int_or_none}),
                 'thumbnails': ('thumbnails', ..., {url_or_none}, {'url': {self._proto_relative_url}}),
+                'cast': 'actors',
+                'creators': 'directors',
             }),
         }
 
