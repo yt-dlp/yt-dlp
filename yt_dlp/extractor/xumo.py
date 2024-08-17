@@ -1,46 +1,39 @@
 from .common import InfoExtractor
-from ..utils import (
-    determine_ext,
-    int_or_none,
-    smuggle_url,
-    traverse_obj,
-    unsmuggle_url,
-    url_or_none
-)
+from ..utils import determine_ext, int_or_none, smuggle_url, traverse_obj, unsmuggle_url, url_or_none
 
 
 class XumoIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?xumo\.tv/[^?#]+/(?P<id>XM[A-Z0-9]{12})'
+    _VALID_URL = r'https?://play\.?xumo\.com/[^?#]+/(?P<id>XM[A-Z0-9]{12})'
     _TESTS = [{
         # movie
-        'url': 'https://www.xumo.tv/free-movies/zombie-high/XM01OEG1MIJVJR',
+        'url': 'https://play.xumo.com/free-movies/a-circus-tale-and-a-love-song/XM041I5U497VD3',
         'params': {
-            'check_formats': True
+            'check_formats': True,
         },
-        'md5': '2843529c1abf5f86f61165637f89cbae',
+        'md5': 'eaac858a8db4ee5a67d6d16920c24e15',
         'info_dict': {
-            'id': 'XM01OEG1MIJVJR',
-            'title': 'Zombie High',
+            'id': 'XM041I5U497VD3',
+            'title': 'A Circus Tale & A Love Song',
             'ext': 'mp4',
-            'description': 'md5:b620cc0afc18a91fb69275047f6c4d22',
-            'duration': 5436,
-            'release_year': 1987,
-            'thumbnail': r're:^https?://.*\.jpg$'
-        }
+            'description': 'md5:aa6372f4785c528ff04c94a275f63446',
+            'duration': 6887,
+            'release_year': 2016,
+            'thumbnail': r're:^https?://.*\.jpg$',
+        },
     }, {
-        # series
-        'url': 'https://www.xumo.tv/tv-shows/super-mario-world/XM0AN69OG47PRN',
+        # entire series
+        'url': 'https://play.xumo.com/tv-shows/super-mario-world/XM0AN69OG47PRN',
         'params': {
-            'skip_download': True
+            'skip_download': True,
         },
         'playlist_count': 10,
         'info_dict': {
             'id': 'XM0AN69OG47PRN',
-            'title': 'Super Mario World'
-        }
+            'title': 'Super Mario World',
+        },
     }, {
-        # video from network URL
-        'url': 'https://www.xumo.tv/networks/free-movies/99991299/XM02D369HADFRR',
+        # episode of series
+        'url': 'https://play.xumo.com/tv-shows/99991299/XM02D369HADFRR',
         'md5': 'ed2f396272b39f2e0fe47f02b9ae34cc',
         'info_dict': {
             'id': 'XM02D369HADFRR',
@@ -54,10 +47,10 @@ class XumoIE(InfoExtractor):
             'thumbnail': r're:^https?://.*\.jpg$',
             'season': 'Season 1',
             'duration': 1368,
-        }
+        },
     }, {
-        # episode from generated URL
-        'url': 'https://www.xumo.tv/free-movies/x/XM02D369HADFRR',
+        # video from network-based alternate URL scheme
+        'url': 'https://play.xumo.com/networks/fakenetworkname/99991299/XM02D369HADFRR',
         'md5': 'ed2f396272b39f2e0fe47f02b9ae34cc',
         'info_dict': {
             'id': 'XM02D369HADFRR',
@@ -71,7 +64,7 @@ class XumoIE(InfoExtractor):
             'thumbnail': r're:^https?://.*\.jpg$',
             'season': 'Season 1',
             'duration': 1368,
-        }
+        },
     }]
 
     _INFO_URL = 'https://valencia-app-mds.xumo.com/v2/assets/asset/'
@@ -97,7 +90,7 @@ class XumoIE(InfoExtractor):
             'episodes.descriptions',
             'episodes.hasCaptions',
             'episodes.ratings',
-        ]
+        ],
     }
 
     def _get_video_links(self, video_id, info_json):
@@ -127,14 +120,10 @@ class XumoIE(InfoExtractor):
             formats.extend(fmts)
             subtitles = self._merge_subtitles(subtitles, subs)
 
-        for caption in traverse_obj(info_json, ('providers', ..., 'captions', ...)) or []:
-            sub_url = caption.get('url')
-            ext = determine_ext(sub_url)
-            if ext not in ('vtt', 'srt'):
-                continue
-            lang = caption.get('lang') or 'und'
-            subtitles.setdefault(lang, []).append({'ext': ext, 'url': caption.get('url')})
-
+        for caption in traverse_obj(info_json, ('providers', ..., 'captions', ...)):
+            subtitles.setdefault(caption.get('lang') or 'und', []).append({
+                'url': caption.get('url'),
+            })
         return formats, subtitles
 
     def _real_extract(self, url):
@@ -148,12 +137,13 @@ class XumoIE(InfoExtractor):
         content_type = media_metadata['contentType']
 
         if content_type == 'SERIES':
-            # series => return set of URLs pointing to episodes
-            video_links = []
-            for episode in traverse_obj(media_metadata, ('seasons', ..., 'episodes', ...)) or []:
-                smuggled_url = smuggle_url('https://www.xumo.tv/free-movies/x/' + episode['id'], {'series_title': traverse_obj(media_metadata, 'title')})
-                video_links.append(self.url_result(smuggled_url, video_title=episode.get('episodeTitle')))
-            return self.playlist_result(video_links, playlist_id=media_id, playlist_title=title)
+            # series => return set of URLs pointing to individual episodes and smuggle series title to avoid extra API call for each episode
+            return self.playlist_result([
+                self.url_result(
+                    smuggle_url(f'https://play.xumo.com/tv-shows/x/{episode["id"]}', {'series': title}),
+                    XumoIE, episode['id'], episode.get('episodeTitle'))
+                for episode in traverse_obj(media_metadata, ('seasons', ..., 'episodes', ...))
+            ], media_id, title)
 
         # video => return video info
 
@@ -165,7 +155,7 @@ class XumoIE(InfoExtractor):
         if is_episode:
             season_number = int_or_none(media_metadata.get('season'))
             if smuggled_data:
-                series_title = traverse_obj(smuggled_data, 'series_title')
+                series_title = traverse_obj(smuggled_data, 'series')
             else:
                 series_data = self._download_json(f'{self._INFO_URL}{media_metadata["connectorId"]}.json', media_id, query=self._INFO_QUERY_PARAMS)
                 series_title = traverse_obj(series_data, 'title')
@@ -184,5 +174,5 @@ class XumoIE(InfoExtractor):
             'episode_number': media_metadata.get('episode'),
             'season_number': season_number,
             'episode': title if is_episode else None,
-            'series': series_title
+            'series': series_title,
         }
