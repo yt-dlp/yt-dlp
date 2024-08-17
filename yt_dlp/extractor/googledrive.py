@@ -303,7 +303,7 @@ class GoogleDriveFolderIE(InfoExtractor):
         },
         'playlist_count': 3,
     }, {
-        # Contains various formats and a subfolder
+        'note': 'Contains various formats and a subfolder, folder name was formerly mismatched',
         'url': 'https://drive.google.com/drive/folders/1CkqRsNlzZ0o3IL083j17s6sH5Q83DcGo',
         'info_dict': {
             'id': '1CkqRsNlzZ0o3IL083j17s6sH5Q83DcGo',
@@ -311,45 +311,43 @@ class GoogleDriveFolderIE(InfoExtractor):
         },
         'playlist_count': 6,
     }]
-    _JSON_DS_RE = r'key\s*?:\s*?([\'"])ds:\s*?%d\1,[^}]*data:'
-    _JSON_HASH_RE = r'hash\s*?:\s*?([\'"])%d\1,[^}]*data:'
-    _ARRAY_RE = r'\[(?s:.+)\]'
 
-    def _extract_json_ds(self, dsval, webpage, video_id, **kwargs):
+    def _extract_json_meta(self, webpage, video_id, dsval=None, hashval=None, name=None, **kwargs):
         """
-        Searches for json with the 'ds' value(0~5) from the webpage with regex.
-        Folder info: ds=0; Folder items: ds=4.
+        Uses regex to search for json metadata with 'ds' value(0-5) or 'hash' value(1-6)
+        from the webpage.
+        Folder info: ds=0, hash=1; Folder items: ds=4, hash=6.
         For example, if the webpage contains the line below, the empty data array
-        can be got by passing dsval=3 to this function.
+        can be got by passing dsval=3 or hashval=2 to this method.
             AF_initDataCallback({key: 'ds:3', hash: '2', data:[], sideChannel: {}});
         """
-        return self._search_json(self._JSON_DS_RE % dsval, webpage,
-                                 f'webpage JSON ds:{dsval}', video_id,
-                                 contains_pattern=self._ARRAY_RE, **kwargs)
-
-    def _extract_json_hash(self, hashval, webpage, video_id, **kwargs):
-        """
-        Searches for json with the 'hash' value(1~6) from the webpage with regex.
-        Folder info: hash=1; Folder items: hash=6.
-        For example, if the webpage contains the line below, the empty data array
-        can be got by passing hashval=2 to this function.
-            AF_initDataCallback({key: 'ds:3', hash: '2', data:[], sideChannel: {}});
-        """
-        return self._search_json(self._JSON_HASH_RE % hashval, webpage,
-                                 f'webpage JSON hash:{hashval}', video_id,
-                                 contains_pattern=self._ARRAY_RE, **kwargs)
+        _ARRAY_RE = r'\[(?s:.+)\]'
+        _META_END_RE = r', sideChannel: \{\}\}\);'  # greedy match to deal with the 2nd test case
+        if dsval:
+            if not name:
+                name = f'webpage JSON metadata ds:{dsval}'
+            return self._search_json(
+                rf'''key\s*?:\s*?(['"])ds:\s*?{dsval}\1,[^\[]*?data:''', webpage, name, video_id,
+                end_pattern=_META_END_RE, contains_pattern=_ARRAY_RE, **kwargs)
+        elif hashval:
+            if not name:
+                name = f'webpage JSON metadata hash:{hashval}'
+            return self._search_json(
+                rf'''hash\s*?:\s*?(['"]){hashval}\1,[^\[]*?data:''', webpage, name, video_id,
+                end_pattern=_META_END_RE, contains_pattern=_ARRAY_RE, **kwargs)
+        return None
 
     def _real_extract(self, url):
         def item_url_getter(item, video_id):
-            available_IEs = [GoogleDriveFolderIE, GoogleDriveIE]
-            if 'application/vnd.google-apps.shortcut' in item:
+            available_IEs = [GoogleDriveFolderIE, GoogleDriveIE]  # subfolder or item
+            if 'application/vnd.google-apps.shortcut' in item:  # extract real link
                 entry_url = traverse_obj(
-                    item, (..., ..., lambda _, v: any(ie.suitable(v) for ie in available_IEs),
-                           {str}, any))
+                    item,
+                    (..., ..., lambda _, v: any(ie.suitable(v) for ie in available_IEs), any))
             else:
                 entry_url = traverse_obj(
-                    item, (lambda _, v: any(ie.suitable(v) for ie in available_IEs),
-                           {str}, any))
+                    item,
+                    (lambda _, v: any(ie.suitable(v) for ie in available_IEs), any))
             if not entry_url:
                 return None
             return self.url_result(entry_url, video_id=video_id, video_title=item[2])
@@ -359,17 +357,17 @@ class GoogleDriveFolderIE(InfoExtractor):
 
         webpage = self._download_webpage(url, folder_id, headers=headers)
         json_folder_info = (
-            self._extract_json_ds(0, webpage, folder_id, default=None)
-            or self._extract_json_hash(1, webpage, folder_id)
+            self._extract_json_meta(webpage, folder_id, dsval=0, name='folder info', default=None)
+            or self._extract_json_meta(webpage, folder_id, hashval=1)
         )
         json_items = (
-            self._extract_json_ds(4, webpage, folder_id, default=None)
-            or self._extract_json_hash(6, webpage, folder_id)
+            self._extract_json_meta(webpage, folder_id, dsval=4, name='folder items', default=None)
+            or self._extract_json_meta(webpage, folder_id, hashval=6)
         )
 
         title = json_folder_info[1][2]
         items = json_items[-1]
-        if not isinstance(items, list):
+        if not isinstance(items, list):  # empty folder
             return self.playlist_result([], folder_id, title)
 
         return self.playlist_result(
