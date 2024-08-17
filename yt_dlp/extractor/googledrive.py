@@ -360,8 +360,11 @@ class GoogleDriveFolderIE(InfoExtractor):
         try:
             webpage, urlh = self._download_webpage_handle(url, folder_id, headers=headers)
         except ExtractorError as e:
-            if isinstance(e.cause, HTTPError) and e.cause.status == 404:
-                self.raise_no_formats(e.cause.msg)
+            if isinstance(e.cause, HTTPError):
+                if e.cause.status == 404:
+                    self.raise_no_formats(e.cause.msg)
+                elif e.cause.status == 403:
+                    self.raise_login_required('Access Denied!')
             raise
         if urllib.parse.urlparse(urlh.url).netloc == 'accounts.google.com':
             self.raise_login_required('This video is only available for registered users')
