@@ -57,7 +57,7 @@ class VocarooIE(InfoExtractor):
             'title': '',
             'url': url,
             'ext': 'mp3',
-            'timestamp': float_or_none(resp.getheader('x-bz-upload-timestamp'), scale=1000),
+            'timestamp': float_or_none(resp.headers.get('x-bz-upload-timestamp'), scale=1000),
             'vcodec': 'none',
             'http_headers': http_headers,
         }

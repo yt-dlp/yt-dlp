@@ -29,7 +29,7 @@ class TelecincoIE(InfoExtractor):
                 'title': 'Con Martín Berasategui, hacer un bacalao al pil-pil es fácil y divertido',
                 'duration': 662,
             },
-        }]
+        }],
     }, {
         'url': 'http://www.cuatro.com/deportes/futbol/barcelona/Leo_Messi-Champions-Roma_2_2052780128.html',
         'md5': 'c86fe0d99e3bdb46b7950d38bf6ef12a',
@@ -77,7 +77,6 @@ class TelecincoIE(InfoExtractor):
         'url': 'http://www.telecinco.es/espanasinirmaslejos/Espana-gran-destino-turistico_2_1240605043.html',
         'only_matching': True,
     }, {
-        # ooyala video
         'url': 'http://www.cuatro.com/chesterinlove/a-carta/chester-chester_in_love-chester_edu_2_2331030022.html',
         'only_matching': True,
     }]

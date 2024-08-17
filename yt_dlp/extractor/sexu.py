@@ -2,6 +2,7 @@ from .common import InfoExtractor
 
 
 class SexuIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?sexu\.com/(?P<id>\d+)'
     _TEST = {
         'url': 'http://sexu.com/961791/',
@@ -14,7 +15,7 @@ class SexuIE(InfoExtractor):
             'categories': list,  # NSFW
             'thumbnail': r're:https?://.*\.jpg$',
             'age_limit': 18,
-        }
+        },
     }
 
     def _real_extract(self, url):

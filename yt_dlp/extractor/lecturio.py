@@ -2,9 +2,9 @@ import re
 
 from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
     clean_html,
     determine_ext,
-    ExtractorError,
     float_or_none,
     int_or_none,
     str_or_none,
@@ -49,7 +49,7 @@ class LecturioBaseIE(InfoExtractor):
             r'(?s)<ul[^>]+class=["\']error_list[^>]+>(.+?)</ul>', response,
             'errors', default=None)
         if errors:
-            raise ExtractorError('Unable to login: %s' % errors, expected=True)
+            raise ExtractorError(f'Unable to login: {errors}', expected=True)
         raise ExtractorError('Unable to log in')
 
 
@@ -130,7 +130,7 @@ class LecturioIE(LecturioBaseIE):
             f = {
                 'url': file_url,
                 'format_id': label,
-                'filesize': float_or_none(filesize, invscale=1000)
+                'filesize': float_or_none(filesize, invscale=1000),
             }
             if label:
                 mobj = re.match(r'(\d+)p\s*\(([^)]+)\)', label)
@@ -172,7 +172,7 @@ class LecturioIE(LecturioBaseIE):
 
 
 class LecturioCourseIE(LecturioBaseIE):
-    _VALID_URL = r'https://app\.lecturio\.com/(?:[^/]+/(?P<nt>[^/?#&]+)\.course|(?:#/)?course/c/(?P<id>\d+))'
+    _VALID_URL = r'https?://app\.lecturio\.com/(?:[^/]+/(?P<nt>[^/?#&]+)\.course|(?:#/)?course/c/(?P<id>\d+))'
     _TESTS = [{
         'url': 'https://app.lecturio.com/medical-courses/microbiology-introduction.course#/',
         'info_dict': {
@@ -200,7 +200,7 @@ class LecturioCourseIE(LecturioBaseIE):
             if lecture_url:
                 lecture_url = urljoin(url, lecture_url)
             else:
-                lecture_url = 'https://app.lecturio.com/#/lecture/c/%s/%s' % (course_id, lecture_id)
+                lecture_url = f'https://app.lecturio.com/#/lecture/c/{course_id}/{lecture_id}'
             entries.append(self.url_result(
                 lecture_url, ie=LecturioIE.ie_key(), video_id=lecture_id))
         return self.playlist_result(
@@ -209,7 +209,7 @@ class LecturioCourseIE(LecturioBaseIE):
 
 
 class LecturioDeCourseIE(LecturioBaseIE):
-    _VALID_URL = r'https://(?:www\.)?lecturio\.de/[^/]+/(?P<id>[^/?#&]+)\.kurs'
+    _VALID_URL = r'https?://(?:www\.)?lecturio\.de/[^/]+/(?P<id>[^/?#&]+)\.kurs'
     _TEST = {
         'url': 'https://www.lecturio.de/jura/grundrechte.kurs',
         'only_matching': True,

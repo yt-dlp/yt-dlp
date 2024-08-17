@@ -195,7 +195,7 @@ class NFLIE(NFLBaseIE):
             'tags': 'count:6',
             'duration': 157,
             'categories': 'count:3',
-        }
+        },
     }, {
         'url': 'https://www.chiefs.com/listen/patrick-mahomes-travis-kelce-react-to-win-over-dolphins-the-breakdown',
         'md5': '6886b32c24b463038c760ceb55a34566',
@@ -247,7 +247,7 @@ class NFLArticleIE(NFLBaseIE):
 
 class NFLPlusReplayIE(NFLBaseIE):
     IE_NAME = 'nfl.com:plus:replay'
-    _VALID_URL = r'https?://(?:www\.)?nfl.com/plus/games/(?P<slug>[\w-]+)(?:/(?P<id>\d+))?'
+    _VALID_URL = r'https?://(?:www\.)?nfl\.com/plus/games/(?P<slug>[\w-]+)(?:/(?P<id>\d+))?'
     _TESTS = [{
         'url': 'https://www.nfl.com/plus/games/giants-at-vikings-2022-post-1/1572108',
         'info_dict': {
@@ -332,7 +332,7 @@ class NFLPlusReplayIE(NFLBaseIE):
 
         def entries():
             for replay in traverse_obj(
-                replays, ('items', lambda _, v: v['mcpPlaybackId'] and v['subType'] in requested_types)
+                replays, ('items', lambda _, v: v['mcpPlaybackId'] and v['subType'] in requested_types),
             ):
                 video_id = replay['mcpPlaybackId']
                 yield self.url_result(f'{self._ANVATO_PREFIX}{video_id}', AnvatoIE, video_id)
@@ -342,7 +342,7 @@ class NFLPlusReplayIE(NFLBaseIE):
 
 class NFLPlusEpisodeIE(NFLBaseIE):
     IE_NAME = 'nfl.com:plus:episode'
-    _VALID_URL = r'https?://(?:www\.)?nfl.com/plus/episodes/(?P<id>[\w-]+)'
+    _VALID_URL = r'https?://(?:www\.)?nfl\.com/plus/episodes/(?P<id>[\w-]+)'
     _TESTS = [{
         'note': 'Subscription required',
         'url': 'https://www.nfl.com/plus/episodes/kurt-s-qb-insider-conference-championships',

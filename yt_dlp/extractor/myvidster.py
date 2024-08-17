@@ -2,7 +2,7 @@ from .common import InfoExtractor
 
 
 class MyVidsterIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?myvidster\.com/video/(?P<id>\d+)/'
+    _VALID_URL = r'https?://(?:www\.)?myvidster\.com/video/(?P<id>\d+)'
 
     _TEST = {
         'url': 'http://www.myvidster.com/video/32059805/Hot_chemistry_with_raw_love_making',

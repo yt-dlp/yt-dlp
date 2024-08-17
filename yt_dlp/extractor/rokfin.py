@@ -1,8 +1,8 @@
+import datetime as dt
 import itertools
 import json
 import re
 import urllib.parse
-from datetime import datetime
 
 from .common import InfoExtractor, SearchInfoExtractor
 from ..utils import (
@@ -38,14 +38,14 @@ class RokfinIE(InfoExtractor):
             'upload_date': '20211023',
             'timestamp': 1634998029,
             'channel': 'Jimmy Dore',
-            'channel_id': 65429,
+            'channel_id': '65429',
             'channel_url': 'https://rokfin.com/TheJimmyDoreShow',
             'availability': 'public',
             'live_status': 'not_live',
             'dislike_count': int,
             'like_count': int,
             'duration': 213,
-        }
+        },
     }, {
         'url': 'https://rokfin.com/post/223/Julian-Assange-Arrested-Streaming-In-Real-Time',
         'info_dict': {
@@ -56,14 +56,14 @@ class RokfinIE(InfoExtractor):
             'upload_date': '20190412',
             'timestamp': 1555052644,
             'channel': 'Ron Placone',
-            'channel_id': 10,
+            'channel_id': '10',
             'channel_url': 'https://rokfin.com/RonPlacone',
             'availability': 'public',
             'live_status': 'not_live',
             'dislike_count': int,
             'like_count': int,
             'tags': ['FreeThinkingMedia^', 'RealProgressives^'],
-        }
+        },
     }, {
         'url': 'https://www.rokfin.com/stream/10543/Its-A-Crazy-Mess-Regional-Director-Blows-Whistle-On-Pfizers-Vaccine-Trial-Data',
         'info_dict': {
@@ -73,7 +73,7 @@ class RokfinIE(InfoExtractor):
             'thumbnail': r're:https://img\.production\.rokfin\.com/.+',
             'description': 'md5:324ce2d3e3b62e659506409e458b9d8e',
             'channel': 'TLAVagabond',
-            'channel_id': 53856,
+            'channel_id': '53856',
             'channel_url': 'https://rokfin.com/TLAVagabond',
             'availability': 'public',
             'is_live': False,
@@ -86,8 +86,7 @@ class RokfinIE(InfoExtractor):
             'dislike_count': int,
             'like_count': int,
             'tags': ['FreeThinkingMedia^'],
-            'duration': None,
-        }
+        },
     }, {
         'url': 'https://rokfin.com/post/126703/Brave-New-World--Aldous-Huxley-DEEPDIVE--Chpts-13--Quite-Frankly--Jay-Dyer',
         'info_dict': {
@@ -96,7 +95,7 @@ class RokfinIE(InfoExtractor):
             'title': 'Brave New World - Aldous Huxley DEEPDIVE!  (Chpts 1-3) - Quite Frankly & Jay Dyer',
             'thumbnail': r're:https://img\.production\.rokfin\.com/.+',
             'channel': 'Jay Dyer',
-            'channel_id': 186881,
+            'channel_id': '186881',
             'channel_url': 'https://rokfin.com/jaydyer',
             'availability': 'premium_only',
             'live_status': 'not_live',
@@ -107,7 +106,7 @@ class RokfinIE(InfoExtractor):
             'tags': ['FreeThinkingMedia^', 'OpenMind^'],
             'description': 'md5:cb04e32e68326c9b2b251b297bacff35',
             'duration': 3100,
-        }
+        },
     }, {
         'url': 'https://rokfin.com/stream/31332/The-Grayzone-live-on-Nordstream-blame-game',
         'info_dict': {
@@ -116,7 +115,7 @@ class RokfinIE(InfoExtractor):
             'title': 'The Grayzone live on Nordstream blame game',
             'thumbnail': r're:https://image\.v\.rokfin\.com/.+',
             'channel': 'Max Blumenthal',
-            'channel_id': 248902,
+            'channel_id': '248902',
             'channel_url': 'https://rokfin.com/MaxBlumenthal',
             'availability': 'premium_only',
             'live_status': 'was_live',
@@ -127,7 +126,7 @@ class RokfinIE(InfoExtractor):
             'release_date': '20230310',
             'upload_date': '20230310',
             'tags': ['FreeThinkingMedia^'],
-        }
+        },
     }]
 
     def _real_extract(self, url):
@@ -157,7 +156,7 @@ class RokfinIE(InfoExtractor):
                 self.raise_login_required('This video is only available to premium users', True, method='cookies')
             elif scheduled:
                 self.raise_no_formats(
-                    f'Stream is offline; scheduled for {datetime.fromtimestamp(scheduled).strftime("%Y-%m-%d %H:%M:%S")}',
+                    f'Stream is offline; scheduled for {dt.datetime.fromtimestamp(scheduled).strftime("%Y-%m-%d %H:%M:%S")}',
                     video_id=video_id, expected=True)
 
         uploader = traverse_obj(metadata, ('createdBy', 'username'), ('creator', 'username'))
@@ -174,7 +173,7 @@ class RokfinIE(InfoExtractor):
             'like_count': int_or_none(metadata.get('likeCount')),
             'dislike_count': int_or_none(metadata.get('dislikeCount')),
             'channel': str_or_none(traverse_obj(metadata, ('createdBy', 'name'), ('creator', 'name'))),
-            'channel_id': traverse_obj(metadata, ('createdBy', 'id'), ('creator', 'id')),
+            'channel_id': str_or_none(traverse_obj(metadata, ('createdBy', 'id'), ('creator', 'id'))),
             'channel_url': url_or_none(f'https://rokfin.com/{uploader}') if uploader else None,
             'timestamp': timestamp,
             'release_timestamp': timestamp if live_status != 'not_live' else None,
@@ -204,7 +203,7 @@ class RokfinIE(InfoExtractor):
                     'parent': 'root',
                     'like_count': int_or_none(comment.get('numLikes')),
                     'dislike_count': int_or_none(comment.get('numDislikes')),
-                    'timestamp': unified_timestamp(comment.get('postedAt'))
+                    'timestamp': unified_timestamp(comment.get('postedAt')),
                 }
 
             pages_total = int_or_none(raw_comments.get('totalPages')) or None
@@ -247,7 +246,7 @@ class RokfinIE(InfoExtractor):
                 'code': urllib.parse.parse_qs(urllib.parse.urldefrag(urlh.url).fragment).get('code')[0],
                 'client_id': 'web',
                 'grant_type': 'authorization_code',
-                'redirect_uri': 'https://rokfin.com/silent-check-sso.html'
+                'redirect_uri': 'https://rokfin.com/silent-check-sso.html',
             }))
 
     def _authentication_active(self):
@@ -277,7 +276,7 @@ class RokfinIE(InfoExtractor):
             data=urlencode_postdata({
                 'grant_type': 'refresh_token',
                 'refresh_token': refresh_token,
-                'client_id': 'web'
+                'client_id': 'web',
             }))
         headers['authorization'] = self._get_auth_token()
         if headers['authorization'] is None:
@@ -400,7 +399,7 @@ class RokfinSearchIE(SearchInfoExtractor):
         'info_dict': {
             'id': '"zelenko"',
             'title': '"zelenko"',
-        }
+        },
     }]
     _db_url = None
     _db_access_key = None

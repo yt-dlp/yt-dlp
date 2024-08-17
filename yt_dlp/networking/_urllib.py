@@ -3,7 +3,6 @@ from __future__ import annotations
 import functools
 import http.client
 import io
-import socket
 import ssl
 import urllib.error
 import urllib.parse
@@ -24,6 +23,7 @@ from ._helper import (
     InstanceStoreMixin,
     add_accept_encoding_header,
     create_connection,
+    create_socks_proxy_socket,
     get_redirect_method,
     make_socks_proxy_opts,
     select_proxy,
@@ -40,7 +40,6 @@ from .exceptions import (
 )
 from ..dependencies import brotli
 from ..socks import ProxyError as SocksProxyError
-from ..socks import sockssocket
 from ..utils import update_url_query
 from ..utils.networking import normalize_url
 
@@ -168,7 +167,7 @@ class HTTPHandler(urllib.request.AbstractHTTPHandler):
         if 300 <= resp.code < 400:
             location = resp.headers.get('Location')
             if location:
-                # As of RFC 2616 default charset is iso-8859-1 that is respected by python 3
+                # As of RFC 2616 default charset is iso-8859-1 that is respected by Python 3
                 location = location.encode('iso-8859-1').decode()
                 location_escaped = normalize_url(location)
                 if location != location_escaped:
@@ -190,25 +189,12 @@ def make_socks_conn_class(base_class, socks_proxy):
         _create_connection = create_connection
 
         def connect(self):
-            def sock_socket_connect(ip_addr, timeout, source_address):
-                af, socktype, proto, canonname, sa = ip_addr
-                sock = sockssocket(af, socktype, proto)
-                try:
-                    connect_proxy_args = proxy_args.copy()
-                    connect_proxy_args.update({'addr': sa[0], 'port': sa[1]})
-                    sock.setproxy(**connect_proxy_args)
-                    if timeout is not socket._GLOBAL_DEFAULT_TIMEOUT:  # noqa: E721
-                        sock.settimeout(timeout)
-                    if source_address:
-                        sock.bind(source_address)
-                    sock.connect((self.host, self.port))
-                    return sock
-                except socket.error:
-                    sock.close()
-                    raise
             self.sock = create_connection(
-                (proxy_args['addr'], proxy_args['port']), timeout=self.timeout,
-                source_address=self.source_address, _create_socket_func=sock_socket_connect)
+                (proxy_args['addr'], proxy_args['port']),
+                timeout=self.timeout,
+                source_address=self.source_address,
+                _create_socket_func=functools.partial(
+                    create_socks_proxy_socket, (self.host, self.port), proxy_args))
             if isinstance(self, http.client.HTTPSConnection):
                 self.sock = self._context.wrap_socket(self.sock, server_hostname=self.host)
 
@@ -260,8 +246,8 @@ class ProxyHandler(urllib.request.BaseHandler):
     def __init__(self, proxies=None):
         self.proxies = proxies
         # Set default handlers
-        for type in ('http', 'https', 'ftp'):
-            setattr(self, '%s_open' % type, lambda r, meth=self.proxy_open: meth(r))
+        for scheme in ('http', 'https', 'ftp'):
+            setattr(self, f'{scheme}_open', lambda r, meth=self.proxy_open: meth(r))
 
     def proxy_open(self, req):
         proxy = select_proxy(req.get_full_url(), self.proxies)
@@ -362,14 +348,15 @@ class UrllibRH(RequestHandler, InstanceStoreMixin):
         super()._check_extensions(extensions)
         extensions.pop('cookiejar', None)
         extensions.pop('timeout', None)
+        extensions.pop('legacy_ssl', None)
 
-    def _create_instance(self, proxies, cookiejar):
+    def _create_instance(self, proxies, cookiejar, legacy_ssl_support=None):
         opener = urllib.request.OpenerDirector()
         handlers = [
             ProxyHandler(proxies),
             HTTPHandler(
                 debuglevel=int(bool(self.verbose)),
-                context=self._make_sslcontext(),
+                context=self._make_sslcontext(legacy_ssl_support=legacy_ssl_support),
                 source_address=self.source_address),
             HTTPCookieProcessor(cookiejar),
             DataHandler(),
@@ -399,15 +386,16 @@ class UrllibRH(RequestHandler, InstanceStoreMixin):
             url=request.url,
             data=request.data,
             headers=dict(headers),
-            method=request.method
+            method=request.method,
         )
 
         opener = self._get_instance(
-            proxies=request.proxies or self.proxies,
-            cookiejar=request.extensions.get('cookiejar') or self.cookiejar
+            proxies=self._get_proxies(request),
+            cookiejar=self._get_cookiejar(request),
+            legacy_ssl_support=request.extensions.get('legacy_ssl'),
         )
         try:
-            res = opener.open(urllib_req, timeout=float(request.extensions.get('timeout') or self.timeout))
+            res = opener.open(urllib_req, timeout=self._calculate_timeout(request))
         except urllib.error.HTTPError as e:
             if isinstance(e.fp, (http.client.HTTPResponse, urllib.response.addinfourl)):
                 # Prevent file object from being closed when urllib.error.HTTPError is destroyed.

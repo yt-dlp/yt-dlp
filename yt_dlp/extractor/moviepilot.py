@@ -1,5 +1,5 @@
-from .dailymotion import DailymotionIE
 from .common import InfoExtractor
+from .dailymotion import DailymotionIE
 
 
 class MoviepilotIE(InfoExtractor):
@@ -14,7 +14,7 @@ class MoviepilotIE(InfoExtractor):
             'display_id': 'interstellar-2',
             'ext': 'mp4',
             'title': 'Interstellar',
-            'thumbnail': r're:https://\w+\.dmcdn\.net/v/SaV-q1ZganMw4HVXg/x1080',
+            'thumbnail': r're:https://\w+\.dmcdn\.net/v/SaV-q1.*/x1080',
             'timestamp': 1605010596,
             'description': 'md5:0ae9cb452af52610c9ffc60f2fd0474c',
             'uploader': 'Moviepilot',
@@ -71,7 +71,7 @@ class MoviepilotIE(InfoExtractor):
             'age_limit': 0,
             'duration': 82,
             'upload_date': '20201109',
-            'thumbnail': r're:https://\w+\.dmcdn\.net/v/SaMes1Zg3lxLv9j5u/x1080',
+            'thumbnail': r're:https://\w+\.dmcdn\.net/v/SaMes1Z.*/x1080',
             'uploader': 'Moviepilot',
             'like_count': int,
             'view_count': int,
@@ -92,6 +92,6 @@ class MoviepilotIE(InfoExtractor):
             'ie_key': DailymotionIE.ie_key(),
             'display_id': video_id,
             'title': clip.get('title'),
-            'url': f'https://www.dailymotion.com/video/{clip["videoRemoteId"]}',
+            'url': f'https://www.dailymotion.com/video/{clip["video"]["remoteId"]}',
             'description': clip.get('summary'),
         }

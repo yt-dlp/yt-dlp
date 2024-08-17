@@ -1,5 +1,5 @@
-import time
 import hashlib
+import time
 import urllib
 import uuid
 
@@ -24,8 +24,9 @@ from ..utils import (
 class DouyuBaseIE(InfoExtractor):
     def _download_cryptojs_md5(self, video_id):
         for url in [
+            # XXX: Do NOT use cdn.bootcdn.net; ref: https://sansec.io/research/polyfill-supply-chain-attack
             'https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.2/rollups/md5.js',
-            'https://cdn.bootcdn.net/ajax/libs/crypto-js/3.1.2/rollups/md5.js',
+            'https://unpkg.com/cryptojslib@3.1.2/rollups/md5.js',
         ]:
             js_code = self._download_webpage(
                 url, video_id, note='Downloading signing dependency', fatal=False)
@@ -35,7 +36,8 @@ class DouyuBaseIE(InfoExtractor):
         raise ExtractorError('Unable to download JS dependency (crypto-js/md5)')
 
     def _get_cryptojs_md5(self, video_id):
-        return self.cache.load('douyu', 'crypto-js-md5') or self._download_cryptojs_md5(video_id)
+        return self.cache.load(
+            'douyu', 'crypto-js-md5', min_ver='2024.07.04') or self._download_cryptojs_md5(video_id)
 
     def _calc_sign(self, sign_func, video_id, a):
         b = uuid.uuid4().hex
@@ -187,7 +189,7 @@ class DouyuTVIE(DouyuBaseIE):
         }
         stream_formats = [self._download_json(
             f'https://www.douyu.com/lapi/live/getH5Play/{room_id}',
-            video_id, note="Downloading livestream format",
+            video_id, note='Downloading livestream format',
             data=urlencode_postdata(form_data))]
 
         for rate_id in traverse_obj(stream_formats[0], ('data', 'multirates', ..., 'rate')):
@@ -208,7 +210,7 @@ class DouyuTVIE(DouyuBaseIE):
                 'description': ('show_details', {str}),
                 'uploader': ('nickname', {str}),
                 'thumbnail': ('room_src', {url_or_none}),
-            })
+            }),
         }
 
 
@@ -270,7 +272,7 @@ class DouyuShowIE(DouyuBaseIE):
         }
         url_info = self._download_json(
             'https://v.douyu.com/api/stream/getStreamUrl', video_id,
-            data=urlencode_postdata(form_data), note="Downloading video formats")
+            data=urlencode_postdata(form_data), note='Downloading video formats')
 
         formats = []
         for name, url in traverse_obj(url_info, ('data', 'thumb_video', {dict.items}, ...)):
@@ -284,7 +286,7 @@ class DouyuShowIE(DouyuBaseIE):
                     'quality': self._QUALITIES.get(name),
                     'ext': 'mp4' if ext == 'm3u8' else ext,
                     'protocol': 'm3u8_native' if ext == 'm3u8' else 'https',
-                    **parse_resolution(self._RESOLUTIONS.get(name))
+                    **parse_resolution(self._RESOLUTIONS.get(name)),
                 })
             else:
                 self.to_screen(
@@ -302,5 +304,5 @@ class DouyuShowIE(DouyuBaseIE):
                 'timestamp': ('content', 'create_time', {int_or_none}),
                 'view_count': ('content', 'view_num', {int_or_none}),
                 'tags': ('videoTag', ..., 'tagName', {str}),
-            }))
+            })),
         }

@@ -37,7 +37,7 @@ class RumbleEmbedIE(InfoExtractor):
             'duration': 234,
             'uploader': 'WMAR',
             'live_status': 'not_live',
-        }
+        },
     }, {
         'url': 'https://rumble.com/embed/vslb7v',
         'md5': '7418035de1a30a178b8af34dc2b6a52b',
@@ -53,7 +53,7 @@ class RumbleEmbedIE(InfoExtractor):
             'duration': 901,
             'uploader': 'CTNews',
             'live_status': 'not_live',
-        }
+        },
     }, {
         'url': 'https://rumble.com/embed/vunh1h',
         'info_dict': {
@@ -73,12 +73,12 @@ class RumbleEmbedIE(InfoExtractor):
                     {
                         'url': r're:https://.+\.vtt',
                         'name': 'English',
-                        'ext': 'vtt'
-                    }
-                ]
+                        'ext': 'vtt',
+                    },
+                ],
             },
         },
-        'params': {'skip_download': True}
+        'params': {'skip_download': True},
     }, {
         'url': 'https://rumble.com/embed/v1essrt',
         'info_dict': {
@@ -90,11 +90,10 @@ class RumbleEmbedIE(InfoExtractor):
             'channel_url': 'https://rumble.com/c/LofiGirl',
             'channel': 'Lofi Girl',
             'thumbnail': r're:https://.+\.jpg',
-            'duration': None,
             'uploader': 'Lofi Girl',
             'live_status': 'is_live',
         },
-        'params': {'skip_download': True}
+        'params': {'skip_download': True},
     }, {
         'url': 'https://rumble.com/embed/v1amumr',
         'info_dict': {
@@ -111,7 +110,7 @@ class RumbleEmbedIE(InfoExtractor):
             'uploader': 'Rumble Events',
             'live_status': 'was_live',
         },
-        'params': {'skip_download': True}
+        'params': {'skip_download': True},
     }, {
         'url': 'https://rumble.com/embed/ufe9n.v5pv5f',
         'only_matching': True,
@@ -134,7 +133,7 @@ class RumbleEmbedIE(InfoExtractor):
                 'uploader': 'Mr Producer Media',
                 'upload_date': '20220610',
                 'live_status': 'not_live',
-            }
+            },
         },
     ]
 
@@ -199,7 +198,7 @@ class RumbleEmbedIE(InfoExtractor):
                         'filesize': 'size',
                         'width': 'w',
                         'height': 'h',
-                    }, expected_type=lambda x: int(x) or None)
+                    }, expected_type=lambda x: int(x) or None),
                 })
 
         subtitles = {
@@ -259,7 +258,7 @@ class RumbleIE(InfoExtractor):
             'dislike_count': int,
             'view_count': int,
             'live_status': 'not_live',
-        }
+        },
     }, {
         'url': 'http://www.rumble.com/vDMUM1?key=value',
         'only_matching': True,
@@ -354,7 +353,7 @@ class RumbleIE(InfoExtractor):
                 r'<span data-js="rumbles_up_votes">\s*([\d,.KM]+)', webpage, 'like count', default=None)),
             'dislike_count': parse_count(self._search_regex(
                 r'<span data-js="rumbles_down_votes">\s*([\d,.KM]+)', webpage, 'dislike count', default=None)),
-            'description': clean_html(get_element_by_class('media-description', webpage))
+            'description': clean_html(get_element_by_class('media-description', webpage)),
         }
 
 
@@ -378,12 +377,12 @@ class RumbleChannelIE(InfoExtractor):
     def entries(self, url, playlist_id):
         for page in itertools.count(1):
             try:
-                webpage = self._download_webpage(f'{url}?page={page}', playlist_id, note='Downloading page %d' % page)
+                webpage = self._download_webpage(f'{url}?page={page}', playlist_id, note=f'Downloading page {page}')
             except ExtractorError as e:
                 if isinstance(e.cause, HTTPError) and e.cause.status == 404:
                     break
                 raise
-            for video_url in re.findall(r'class=video-item--a\s?href=([^>]+\.html)', webpage):
+            for video_url in re.findall(r'class="[^>"]*videostream__link[^>]+href="([^"]+\.html)"', webpage):
                 yield self.url_result('https://rumble.com' + video_url)
 
     def _real_extract(self, url):

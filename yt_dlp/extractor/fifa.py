@@ -1,5 +1,4 @@
 from .common import InfoExtractor
-
 from ..utils import (
     int_or_none,
     traverse_obj,
@@ -8,7 +7,7 @@ from ..utils import (
 
 
 class FifaIE(InfoExtractor):
-    _VALID_URL = r'https?://www.fifa.com/fifaplus/(?P<locale>\w{2})/watch/([^#?]+/)?(?P<id>\w+)'
+    _VALID_URL = r'https?://www\.fifa\.com/fifaplus/(?P<locale>\w{2})/watch/([^#?]+/)?(?P<id>\w+)'
     _TESTS = [{
         'url': 'https://www.fifa.com/fifaplus/en/watch/7on10qPcnyLajDDU3ntg6y',
         'info_dict': {

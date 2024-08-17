@@ -1,7 +1,7 @@
 import re
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import compat_urllib_parse_urlencode
 from ..utils import (
     ExtractorError,
     merge_dicts,
@@ -38,7 +38,7 @@ class EroProfileIE(InfoExtractor):
     }]
 
     def _perform_login(self, username, password):
-        query = compat_urllib_parse_urlencode({
+        query = urllib.parse.urlencode({
             'username': username,
             'password': password,
             'url': 'http://www.eroprofile.com/',
@@ -91,7 +91,7 @@ class EroProfileAlbumIE(InfoExtractor):
         'url': 'https://www.eroprofile.com/m/videos/album/BBW-2-893',
         'info_dict': {
             'id': 'BBW-2-893',
-            'title': 'BBW 2'
+            'title': 'BBW 2',
         },
         'playlist_mincount': 486,
     },

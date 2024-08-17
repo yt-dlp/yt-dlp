@@ -1,15 +1,12 @@
 import functools
 import re
+import urllib.parse
 
 from .turner import TurnerBaseIE
-from ..compat import (
-    compat_str,
-    compat_urllib_parse_unquote,
-)
 from ..utils import (
+    OnDemandPagedList,
     int_or_none,
     merge_dicts,
-    OnDemandPagedList,
     parse_duration,
     parse_iso8601,
     parse_qs,
@@ -22,7 +19,7 @@ from ..utils import (
 class NBACVPBaseIE(TurnerBaseIE):
     def _extract_nba_cvp_info(self, path, video_id, fatal=False):
         return self._extract_cvp_info(
-            'http://secure.nba.com/%s' % path, video_id, {
+            f'http://secure.nba.com/{path}', video_id, {
                 'default': {
                     'media_src': 'http://nba.cdn.turner.com/nba/big',
                 },
@@ -97,7 +94,7 @@ class NBAWatchBaseIE(NBACVPBaseIE):
 
 
 class NBAWatchEmbedIE(NBAWatchBaseIE):
-    IENAME = 'nba:watch:embed'
+    IE_NAME = 'nba:watch:embed'
     _VALID_URL = NBAWatchBaseIE._VALID_URL_BASE + r'embed\?.*?\bid=(?P<id>\d+)'
     _TESTS = [{
         'url': 'http://watch.nba.com/embed?id=659395',
@@ -185,7 +182,7 @@ class NBAWatchCollectionIE(NBAWatchBaseIE):
         page += 1
         videos = self._download_json(
             'https://content-api-prod.nba.com/public/1/endeavor/video-list/collection/' + collection_id,
-            collection_id, 'Downloading page %d JSON metadata' % page, query={
+            collection_id, f'Downloading page {page} JSON metadata', query={
                 'count': self._PAGE_SIZE,
                 'page': page,
             })['results']['videos']
@@ -260,14 +257,14 @@ class NBABaseIE(NBACVPBaseIE):
 
     def _call_api(self, team, content_id, query, resource):
         return self._download_json(
-            'https://api.nba.net/2/%s/video,imported_video,wsc/' % team,
-            content_id, 'Download %s JSON metadata' % resource,
+            f'https://api.nba.net/2/{team}/video,imported_video,wsc/',
+            content_id, f'Download {resource} JSON metadata',
             query=query, headers={
                 'accessToken': 'internal|bb88df6b4c2244e78822812cecf1ee1b',
             })['response']['result']
 
     def _extract_video(self, video, team, extract_all=True):
-        video_id = compat_str(video['nid'])
+        video_id = str(video['nid'])
         team = video['brand']
 
         info = {
@@ -330,7 +327,7 @@ class NBABaseIE(NBACVPBaseIE):
     def _real_extract(self, url):
         team, display_id = self._match_valid_url(url).groups()
         if '/play#/' in url:
-            display_id = compat_urllib_parse_unquote(display_id)
+            display_id = urllib.parse.unquote(display_id)
         else:
             webpage = self._download_webpage(url, display_id)
             display_id = self._search_regex(
@@ -339,7 +336,7 @@ class NBABaseIE(NBACVPBaseIE):
 
 
 class NBAEmbedIE(NBABaseIE):
-    IENAME = 'nba:embed'
+    IE_NAME = 'nba:embed'
     _VALID_URL = r'https?://secure\.nba\.com/assets/amp/include/video/(?:topI|i)frame\.html\?.*?\bcontentId=(?P<id>[^?#&]+)'
     _TESTS = [{
         'url': 'https://secure.nba.com/assets/amp/include/video/topIframe.html?contentId=teams/bulls/2020/12/04/3478774/1607105587854-20201204_SCHEDULE_RELEASE_FINAL_DRUPAL-3478774&team=bulls&adFree=false&profile=71&videoPlayerName=TAMPCVP&baseUrl=&videoAdsection=nba.com_mobile_web_teamsites_chicagobulls&ampEnv=',
@@ -361,8 +358,8 @@ class NBAEmbedIE(NBABaseIE):
 
 
 class NBAIE(NBABaseIE):
-    IENAME = 'nba'
-    _VALID_URL = NBABaseIE._VALID_URL_BASE + '(?!%s)video/(?P<id>(?:[^/]+/)*[^/?#&]+)' % NBABaseIE._CHANNEL_PATH_REGEX
+    IE_NAME = 'nba'
+    _VALID_URL = NBABaseIE._VALID_URL_BASE + f'(?!{NBABaseIE._CHANNEL_PATH_REGEX})video/(?P<id>(?:[^/]+/)*[^/?#&]+)'
     _TESTS = [{
         'url': 'https://www.nba.com/bulls/video/teams/bulls/2020/12/04/3478774/1607105587854-20201204schedulereleasefinaldrupal-3478774',
         'info_dict': {
@@ -388,8 +385,8 @@ class NBAIE(NBABaseIE):
 
 
 class NBAChannelIE(NBABaseIE):
-    IENAME = 'nba:channel'
-    _VALID_URL = NBABaseIE._VALID_URL_BASE + '(?:%s)/(?P<id>[^/?#&]+)' % NBABaseIE._CHANNEL_PATH_REGEX
+    IE_NAME = 'nba:channel'
+    _VALID_URL = NBABaseIE._VALID_URL_BASE + f'(?:{NBABaseIE._CHANNEL_PATH_REGEX})/(?P<id>[^/?#&]+)'
     _TESTS = [{
         'url': 'https://www.nba.com/blazers/video/channel/summer_league',
         'info_dict': {
@@ -408,7 +405,7 @@ class NBAChannelIE(NBABaseIE):
             'channels': channel,
             'count': self._PAGE_SIZE,
             'offset': page * self._PAGE_SIZE,
-        }, 'page %d' % (page + 1))
+        }, f'page {page + 1}')
         for video in results:
             yield self._extract_video(video, team, False)
 

@@ -1,5 +1,6 @@
-import random
 import itertools
+import json
+import random
 import urllib.parse
 
 from .common import InfoExtractor
@@ -18,33 +19,43 @@ from ..utils import (
 
 
 class WeiboBaseIE(InfoExtractor):
-    def _update_visitor_cookies(self, video_id):
+    def _update_visitor_cookies(self, visitor_url, video_id):
+        headers = {'Referer': visitor_url}
+        chrome_ver = self._search_regex(
+            r'Chrome/(\d+)', self.get_param('http_headers')['User-Agent'], 'user agent version', default='90')
         visitor_data = self._download_json(
             'https://passport.weibo.com/visitor/genvisitor', video_id,
             note='Generating first-visit guest request',
-            transform_source=strip_jsonp,
+            headers=headers, transform_source=strip_jsonp,
             data=urlencode_postdata({
                 'cb': 'gen_callback',
-                'fp': '{"os":"2","browser":"Gecko57,0,0,0","fonts":"undefined","screenInfo":"1440*900*24","plugins":""}',
-            }))
+                'fp': json.dumps({
+                    'os': '1',
+                    'browser': f'Chrome{chrome_ver},0,0,0',
+                    'fonts': 'undefined',
+                    'screenInfo': '1920*1080*24',
+                    'plugins': '',
+                }, separators=(',', ':'))}))['data']
 
         self._download_webpage(
             'https://passport.weibo.com/visitor/visitor', video_id,
             note='Running first-visit callback to get guest cookies',
-            query={
+            headers=headers, query={
                 'a': 'incarnate',
-                't': visitor_data['data']['tid'],
-                'w': 2,
-                'c': '%03d' % visitor_data['data']['confidence'],
+                't': visitor_data['tid'],
+                'w': 3 if visitor_data.get('new_tid') else 2,
+                'c': f'{visitor_data.get("confidence", 100):03d}',
+                'gc': '',
                 'cb': 'cross_domain',
                 'from': 'weibo',
                 '_rand': random.random(),
             })
 
     def _weibo_download_json(self, url, video_id, *args, fatal=True, note='Downloading JSON metadata', **kwargs):
+        # XXX: Always fatal; _download_webpage_handle only returns False (not a tuple) on error
         webpage, urlh = self._download_webpage_handle(url, video_id, *args, fatal=fatal, note=note, **kwargs)
         if urllib.parse.urlparse(urlh.url).netloc == 'passport.weibo.com':
-            self._update_visitor_cookies(video_id)
+            self._update_visitor_cookies(urlh.url, video_id)
             webpage = self._download_webpage(url, video_id, *args, fatal=fatal, note=note, **kwargs)
         return self._parse_json(webpage, video_id, fatal=fatal)
 
@@ -80,7 +91,7 @@ class WeiboBaseIE(InfoExtractor):
                             'video_details', lambda _, v: v['label'].startswith(format_id), {
                                 'size': ('size', {int_or_none}),
                                 'tbr': ('bitrate', {int_or_none}),
-                            }
+                            },
                         ), get_all=False),
                     })
         return formats
@@ -152,7 +163,7 @@ class WeiboIE(WeiboBaseIE):
             'view_count': int,
             'like_count': int,
             'repost_count': int,
-        }
+        },
     }, {
         'url': 'https://weibo.com/0/4224132150961381',
         'note': 'no playback_list example',
@@ -175,7 +186,7 @@ class WeiboVideoIE(WeiboBaseIE):
             'ext': 'mp4',
             'display_id': 'LEZDodaiW',
             'title': '呃，稍微了解了一下靡烟miya，感觉这东西也太二了',
-            'description': '呃，稍微了解了一下靡烟miya，感觉这东西也太二了 http://t.cn/A6aerGsM ​​​',
+            'description': '呃，稍微了解了一下靡烟miya，感觉这东西也太二了 http://t.cn/A6aerGsM \u200b\u200b\u200b',
             'duration': 76,
             'timestamp': 1659344278,
             'upload_date': '20220801',
@@ -186,7 +197,7 @@ class WeiboVideoIE(WeiboBaseIE):
             'view_count': int,
             'like_count': int,
             'repost_count': int,
-        }
+        },
     }]
 
     def _real_extract(self, url):
