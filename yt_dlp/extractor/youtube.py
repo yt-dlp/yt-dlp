@@ -4235,11 +4235,25 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         elif skip_bad_formats and live_status == 'is_live' and needs_live_processing != 'is_live':
             skip_manifests.add('dash')
 
-        def process_manifest_format(f, proto, client_name, itag):
+        def process_manifest_format(f, proto, client_name, itag, po_token):
             key = (proto, f.get('language'))
             if not all_formats and key in itags[itag]:
                 return False
             itags[itag].add(key)
+
+            # Clients that require poToken return videoplayback URLs that expire after 30 seconds if not supplied.
+            # Ref: https://github.com/yt-dlp/yt-dlp/issues/9554
+            is_broken = (
+                client_name in self._BROKEN_CLIENTS
+                # hls proto does not appear to require PO Token currently
+                or (not po_token and self._get_default_ytcfg(client_name).get('REQUIRE_PO_TOKEN') and proto != 'hls')
+            )
+
+            if is_broken:
+                self.report_warning(
+                    f'{video_id}: {client_name} client {proto} formats are broken '
+                    'and may yield HTTP Error 403. They will be deprioritized', only_once=True)
+                f['format_note'] = join_nonempty(f.get('format_note'), 'BROKEN', delim=' ')
 
             if itag and all_formats:
                 f['format_id'] = f'{itag}-{proto}'
@@ -4284,8 +4298,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     hls_manifest_url, video_id, 'mp4', fatal=False, live=live_status == 'is_live')
                 subtitles = self._merge_subtitles(subs, subtitles)
                 for f in fmts:
-                    if process_manifest_format(f, 'hls', short_client_name(client_name), self._search_regex(
-                            r'/itag/(\d+)', f['url'], 'itag', default=None)):
+                    if process_manifest_format(f, 'hls', client_name, self._search_regex(
+                            r'/itag/(\d+)', f['url'], 'itag', default=None), po_token):
                         yield f
 
             dash_manifest_url = 'dash' not in skip_manifests and sd.get('dashManifestUrl')
@@ -4295,7 +4309,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 formats, subs = self._extract_mpd_formats_and_subtitles(dash_manifest_url, video_id, fatal=False)
                 subtitles = self._merge_subtitles(subs, subtitles)  # Prioritize HLS subs over DASH
                 for f in formats:
-                    if process_manifest_format(f, 'dash', short_client_name(client_name), f['format_id']):
+                    if process_manifest_format(f, 'dash', client_name, f['format_id'], po_token):
                         f['filesize'] = int_or_none(self._search_regex(
                             r'/clen/(\d+)', f.get('fragment_base_url') or f['url'], 'file size', default=None))
                         if needs_live_processing:
