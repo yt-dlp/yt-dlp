@@ -3945,9 +3945,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         master_ytcfg=player_ytcfg or master_ytcfg,
                         player_ytcfg=player_ytcfg,
                         player_url=player_url if require_js_player else None,
-                        initial_pr=initial_pr,
-                        visitor_data=visitor_data if not retry else None,
-                        data_sync_id=data_sync_id if not retry else None,
+                        initial_pr=initial_pr if retry.attempt == 1 else None,
+                        visitor_data=visitor_data if retry.attempt == 1 else None,
+                        data_sync_id=data_sync_id if retry.attempt == 1 else None,
                         po_token=po_token,
                     )
                 except ExtractorError as e:
