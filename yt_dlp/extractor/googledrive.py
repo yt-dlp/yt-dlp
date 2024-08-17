@@ -3,6 +3,7 @@ import urllib.parse
 
 from .common import InfoExtractor
 from .youtube import YoutubeIE
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     bug_reports_message,
@@ -303,13 +304,14 @@ class GoogleDriveFolderIE(InfoExtractor):
         },
         'playlist_count': 3,
     }, {
-        'note': 'Contains various formats and a subfolder, folder name was formerly mismatched',
-        'url': 'https://drive.google.com/drive/folders/1CkqRsNlzZ0o3IL083j17s6sH5Q83DcGo',
+        'note': 'Contains various formats and a subfolder, folder name was formerly mismatched.'
+                'also contains loop shortcut, shortcut to non-downloadable files, etc.',
+        'url': 'https://drive.google.com/drive/folders/1jjrhqi94d8TSHSVMSdBjD49MOiHYpHfF',
         'info_dict': {
-            'id': '1CkqRsNlzZ0o3IL083j17s6sH5Q83DcGo',
-            'title': r'], sideChannel: {}});',
+            'id': '1jjrhqi94d8TSHSVMSdBjD49MOiHYpHfF',
+            'title': '], sideChannel: {}});',
         },
-        'playlist_count': 6,
+        'playlist_count': 8,
     }]
 
     def _extract_json_meta(self, webpage, video_id, dsval=None, hashval=None, name=None, **kwargs):
@@ -355,7 +357,14 @@ class GoogleDriveFolderIE(InfoExtractor):
         folder_id = self._match_id(url)
         headers = self.geo_verification_headers()
 
-        webpage = self._download_webpage(url, folder_id, headers=headers)
+        try:
+            webpage, urlh = self._download_webpage_handle(url, folder_id, headers=headers)
+        except ExtractorError as e:
+            if isinstance(e.cause, HTTPError) and e.cause.status == 404:
+                self.raise_no_formats(e.cause.msg)
+        if urllib.parse.urlparse(urlh.url).netloc == 'accounts.google.com':
+            self.raise_login_required('This video is only available for registered users')
+
         json_folder_info = (
             self._extract_json_meta(webpage, folder_id, dsval=0, name='folder info', default=None)
             or self._extract_json_meta(webpage, folder_id, hashval=1)
