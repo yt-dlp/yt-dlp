@@ -1665,7 +1665,6 @@ class BiliBiliSearchBaseIE(BilibiliBaseIE):
     def _extract_search_result(self, result_data):
         live_room_prefix = 'https://live.bilibili.com/'
         bili_user_prefix = 'https://space.bilibili.com/'
-        self.write_debug('debug_ entry ext reslt')
         result_type = result_data.get('type')
         if result_type == 'video':
             return self.url_result(result_data['arcurl'])
