@@ -3737,8 +3737,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if not client or po_token_client == client:
                 return po_token
 
-    def fetch_po_token(self, client='web', visitor_data=None, data_sync_id=None, **kwargs):
-        # PO Token is bound to visitor_data when logged out. Must have visitor_data for it to function.
+    def fetch_po_token(self, client='web', visitor_data=None, data_sync_id=None, player_url=None, **kwargs):
+        # PO Token is bound to visitor_data / Visitor ID when logged out. Must have visitor_data for it to function.
         if not visitor_data and not self.is_authenticated:
             self.report_warning(
                 f'Unable to fetch PO Token for {client} client: Missing required Visitor Data. '
@@ -3748,7 +3748,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         config_po_token = self._get_config_po_token(client)
         if config_po_token:
-            # PO token is bound to data_sync_id / account session ID when logged in. However, for the config po_token,
+            # PO token is bound to data_sync_id / account Session ID when logged in. However, for the config po_token,
             # if using first channel in an account then we don't need the data_sync_id anymore...
             if not data_sync_id and self.is_authenticated:
                 self.report_warning(
@@ -3767,9 +3767,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             return
 
         return self._fetch_po_token(
-            client=client, visitor_data=visitor_data, data_sync_id=data_sync_id, **kwargs)
+            client=client,
+            visitor_data=visitor_data,
+            data_sync_id=data_sync_id,
+            player_url=player_url,
+            **kwargs,
+        )
 
-    def _fetch_po_token(self, client, visitor_data=None, data_sync_id=None, **kwargs):
+    def _fetch_po_token(self, client, visitor_data=None, data_sync_id=None, player_url=None, **kwargs):
         """External PO Token fetch stub"""
 
     @staticmethod
@@ -3905,20 +3910,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if 'configs' not in self._configuration_arg('player_skip') and client != 'web':
                 player_ytcfg = self._download_ytcfg(client, video_id) or player_ytcfg
 
-            visitor_data = visitor_data or self._extract_visitor_data(master_ytcfg, initial_pr, player_ytcfg)
-            data_sync_id = data_sync_id or self._extract_data_sync_id(master_ytcfg, initial_pr, player_ytcfg)
-            po_token = self.fetch_po_token(client=client, visitor_data=visitor_data, data_sync_id=data_sync_id)
-            require_po_token = self._get_default_ytcfg(client).get('REQUIRE_PO_TOKEN')
-
-            if not po_token and require_po_token:
-                self.report_warning(
-                    f'No PO Token provided for {client} client. '
-                    f'A PO Token is required by this client for working formats. '
-                    f'You can manually pass a PO Token for this client with '
-                    f'--extractor-args youtube:po_token={client}:XXX',
-                    only_once=True)
-                deprioritize_pr = True
-
             player_url = player_url or self._extract_player_url(master_ytcfg, player_ytcfg, webpage=webpage)
             require_js_player = self._get_default_ytcfg(client).get('REQUIRE_JS_PLAYER')
             if 'js' in self._configuration_arg('player_skip'):
@@ -3928,6 +3919,23 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if not player_url and not tried_iframe_fallback and require_js_player:
                 player_url = self._download_player_url(video_id)
                 tried_iframe_fallback = True
+
+            visitor_data = visitor_data or self._extract_visitor_data(master_ytcfg, initial_pr, player_ytcfg)
+            data_sync_id = data_sync_id or self._extract_data_sync_id(master_ytcfg, initial_pr, player_ytcfg)
+            po_token = self.fetch_po_token(
+                client=client, visitor_data=visitor_data, data_sync_id=data_sync_id,
+                player_url=player_url if require_js_player else None,
+            )
+
+            require_po_token = self._get_default_ytcfg(client).get('REQUIRE_PO_TOKEN')
+            if not po_token and require_po_token:
+                self.report_warning(
+                    f'No PO Token provided for {client} client. '
+                    f'A PO Token is required by this client for working formats. '
+                    f'You can manually pass a PO Token for this client with '
+                    f'--extractor-args youtube:po_token={client}:XXX',
+                    only_once=True)
+                deprioritize_pr = True
 
             pr = initial_pr if client == 'web' else None
             for retry in self.RetryManager(fatal=False):
