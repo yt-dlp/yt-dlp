@@ -4278,6 +4278,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             po_token = sd.get(STREAMING_DATA_PO_TOKEN)
             hls_manifest_url = 'hls' not in skip_manifests and sd.get('hlsManifestUrl')
             if hls_manifest_url:
+                if po_token:
+                    hls_manifest_url = hls_manifest_url.rstrip('/') + f'/pot/{po_token}'
                 fmts, subs = self._extract_m3u8_formats_and_subtitles(
                     hls_manifest_url, video_id, 'mp4', fatal=False, live=live_status == 'is_live')
                 subtitles = self._merge_subtitles(subs, subtitles)
