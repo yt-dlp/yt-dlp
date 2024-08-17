@@ -4275,7 +4275,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         subtitles = {}
         for sd in streaming_data:
             client_name = sd.get(STREAMING_DATA_CLIENT_NAME)
-
+            po_token = sd.get(STREAMING_DATA_PO_TOKEN)
             hls_manifest_url = 'hls' not in skip_manifests and sd.get('hlsManifestUrl')
             if hls_manifest_url:
                 fmts, subs = self._extract_m3u8_formats_and_subtitles(
@@ -4288,6 +4288,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
             dash_manifest_url = 'dash' not in skip_manifests and sd.get('dashManifestUrl')
             if dash_manifest_url:
+                if po_token:
+                    dash_manifest_url = dash_manifest_url.rstrip('/') + f'/pot/{po_token}'
                 formats, subs = self._extract_mpd_formats_and_subtitles(dash_manifest_url, video_id, fatal=False)
                 subtitles = self._merge_subtitles(subs, subtitles)  # Prioritize HLS subs over DASH
                 for f in formats:
