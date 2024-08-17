@@ -362,6 +362,7 @@ class GoogleDriveFolderIE(InfoExtractor):
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError) and e.cause.status == 404:
                 self.raise_no_formats(e.cause.msg)
+            raise
         if urllib.parse.urlparse(urlh.url).netloc == 'accounts.google.com':
             self.raise_login_required('This video is only available for registered users')
 
