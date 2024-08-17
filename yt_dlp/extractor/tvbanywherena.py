@@ -20,7 +20,7 @@ def _get_program_url(lang, pid):
 
 
 class TvbAnywhereNaIE(InfoExtractor):
-    _VALID_URL = r'https://(?:www\.)?tvbanywherena\.com/(?P<lang>cantonese|english|viet)/videos/[^/]+/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?tvbanywherena\.com/(?P<lang>cantonese|english|viet)/videos/[^/]+/(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://www.tvbanywherena.com/cantonese/videos/437-SuperTrioShow/6007674088001',
         'info_dict': {
@@ -40,21 +40,22 @@ class TvbAnywhereNaIE(InfoExtractor):
             'release_year': None,
         },
     }, {
-        'url': 'https://tvbanywherena.com/english/videos/362-ForensicHeroesV/1749048584749039545',
+        'url': 'https://tvbanywherena.com/english/videos/221-BirthOfAHero/5998951339001',
         'info_dict': {
-            'id': '1749048584749039545',
+            'id': '5998951339001',
             'ext': 'mp4',
-            'title': 'Forensic Heroes V Episode 02',
-            'upload_date': '20221111',
-            'timestamp': 1668193134,
+            'title': 'Birth Of A Hero Episode 04',
+            'description': 'WAN-LUNG is severely beaten up and lapses into a coma. After regaining his consciousness, he pretends lunacy on purpose...',
+            'upload_date': '20190206',
+            'timestamp': 1549419051,
             'uploader_id': '5324042807001',
-            'series': 'Forensic Heroes V',
-            'duration': 2579.264,
-            'tags': ['forensicheroesven'],
-            'genres': ['Crime', 'Action'],
-            'cast': [''],
+            'series': 'Birth Of A Hero',
+            'duration': 2593.984,
+            'tags': ['en_birthofahero'],
+            'genres': ['Historical'],
+            'cast': ['Edwin Siu', 'Ben Wong', 'Grace Chan', 'David Chiang '],
             'thumbnail': r're:^https?://.*\.jpg$',
-            'release_year': 2022,
+            'release_year': 2018,
         },
     }]
     BRIGHTCOVE_URL_TEMPLATE = 'http://players.brightcove.net/%s/%s_default/index.html?videoId=%s'
@@ -82,7 +83,7 @@ class TvbAnywhereNaIE(InfoExtractor):
             }),
             'ie_key': 'BrightcoveNew',
             'title': f'{seriesname} {episodename}',
-            'description': get_element_by_class(episodeinfo, 'episodeDescription'),
+            'description': get_element_by_class('episodeDescription', episodeinfo),
             'series': seriesname,
             'genres': program.get('genres', []),
             'cast': program.get('char', []),
@@ -91,7 +92,7 @@ class TvbAnywhereNaIE(InfoExtractor):
 
 
 class TvbAnywhereNaSeriesIE(InfoExtractor):
-    _VALID_URL = r'https://(?:www\.)?tvbanywherena\.com/(?P<lang>cantonese|english|viet)/series/(?P<id>\d+)-'
+    _VALID_URL = r'https?://(?:www\.)?tvbanywherena\.com/(?P<lang>cantonese|english|viet)/series/(?P<id>\d+)-'
     _TESTS = [{
         'url': 'https://tvbanywherena.com/cantonese/series/2594-ForensicHeroesV',
         'info_dict': {
