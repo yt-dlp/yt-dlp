@@ -60,8 +60,7 @@ class PiramideTVIE(InfoExtractor):
             video, next_video = extract_video(video_id, (not entries))
             if video.get('formats'):
                 entries.append(video)
-            if next_video != video_id:
-                video_id = next_video
+            video_id = next_video if next_video != video_id else None
 
         if len(entries) == 1:
             return entries[0]
