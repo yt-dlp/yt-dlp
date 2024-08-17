@@ -89,8 +89,6 @@ class HockeyCanadaIE(InfoExtractor):
                     'format_id': 'http',
                     'url': media_url,
                     'ext': 'mp4',
-                    'vcodec': 'avc1',
-                    'acodec': 'mp4a.40.2',
                 }
                 if bitrate := self._search_regex(r'_(\d+)k\.mp4', media_url, 'bitrate', default=None):
                     fmt.update({
