@@ -1661,7 +1661,23 @@ class BilibiliCategoryIE(InfoExtractor):
         return self.playlist_result(self._entries(category, subcategory, query), query, query)
 
 
-class BiliBiliSearchAllIE(SearchInfoExtractor, BilibiliBaseIE):
+class BiliBiliSearchBaseIE(BilibiliBaseIE):
+    def _extract_search_result(self, result_data):
+        live_room_prefix = 'https://live.bilibili.com/'
+        bili_user_prefix = 'https://space.bilibili.com/'
+        self.write_debug('debug_ entry ext reslt')
+        result_type = result_data.get('type')
+        if result_type == 'video':
+            return self.url_result(result_data['arcurl'])
+        elif result_type == 'live_room':
+            return self.url_result(live_room_prefix + str(result_data['roomid']))
+        elif result_type in ['media_ft', 'media_bangumi']:
+            return self.url_result(result_data['url'])
+        elif result_type == 'bili_user':
+            return self.url_result(bili_user_prefix + str(result_data['mid']))
+
+
+class BiliBiliSearchAllIE(SearchInfoExtractor, BiliBiliSearchBaseIE):
     IE_DESC = 'Bilibili all search'
     _MAX_RESULTS = 100000
     _SEARCH_KEY = 'biliallsearch'
@@ -1704,8 +1720,6 @@ class BiliBiliSearchAllIE(SearchInfoExtractor, BilibiliBaseIE):
         headers = self.geo_verification_headers()
         headers['Referer'] = 'https://www.bilibili.com/'
         page_size = 50
-        live_room_prefix = 'https://live.bilibili.com/'
-        bili_user_prefix = 'https://space.bilibili.com/'
         if not self._get_cookies('https://api.bilibili.com').get('buvid3'):
             self._set_cookie('.bilibili.com', 'buvid3', f'{uuid.uuid4()}infoc')
         for page_num in itertools.count(1):
@@ -1733,17 +1747,8 @@ class BiliBiliSearchAllIE(SearchInfoExtractor, BilibiliBaseIE):
                 self.write_debug(f'Response: {search_all_result}')
                 raise ExtractorError(f'Result not found in the response ({status_code}).',
                                      expected=True)
-            for result_type_dict in result_list:
-                for result_data in result_type_dict['data']:
-                    result_type = result_data.get('type')
-                    if result_type == 'video':
-                        yield self.url_result(result_data['arcurl'])
-                    elif result_type == 'live_room':
-                        yield self.url_result(live_room_prefix + str(result_data['roomid']))
-                    elif result_type in ['media_ft', 'media_bangumi']:
-                        yield self.url_result(result_data['url'])
-                    elif result_type == 'bili_user':
-                        yield self.url_result(bili_user_prefix + str(result_data['mid']))
+            for result_data in traverse_obj(result_list, (..., 'data', ...)):
+                yield self._extract_search_result(result_data)
 
 
 class BiliBiliSearchIE(SearchInfoExtractor, BilibiliBaseIE):
@@ -2489,7 +2494,7 @@ class BiliLiveIE(InfoExtractor):
         }
 
 
-class BiliBiliSearchPageIE(BilibiliBaseIE):
+class BiliBiliSearchPageIE(BiliBiliSearchBaseIE):
     IE_DESC = 'Bilibili Search Page URL Extractor'
     _VALID_URL = r'https?://search\.bilibili\.com/(?P<type>all|video|bangumi|pgc|live|upuser).*'
     _TESTS = [{
@@ -2517,8 +2522,6 @@ class BiliBiliSearchPageIE(BilibiliBaseIE):
     }]
 
     def _real_extract(self, url):
-        live_room_prefix = 'https://live.bilibili.com/'
-        bili_user_prefix = 'https://space.bilibili.com/'
         headers = self.geo_verification_headers()
         headers['Referer'] = url
         entries = []
@@ -2583,17 +2586,8 @@ class BiliBiliSearchPageIE(BilibiliBaseIE):
                 self.write_debug(f'Response: {search_all_result}')
                 raise ExtractorError(f'Result not found in the response ({status_code}).',
                                      expected=True)
-            for result_type_dict in result_list:
-                for result_data in result_type_dict['data']:
-                    result_type = result_data.get('type')
-                    if result_type == 'video':
-                        entries.append(self.url_result(result_data['arcurl']))
-                    elif result_type == 'live_room':
-                        entries.append(self.url_result(live_room_prefix + str(result_data['roomid'])))
-                    elif result_type in ['media_ft', 'media_bangumi']:
-                        entries.append(self.url_result(result_data['url']))
-                    elif result_type == 'bili_user':
-                        entries.append(self.url_result(bili_user_prefix + str(result_data['mid'])))
+
+            entries = [self._extract_search_result(result_data) for result_data in traverse_obj(result_list, (..., 'data', ...))]
         else:
             query = {
                 'search_type': search_type_mapping[search_type],
@@ -2617,15 +2611,7 @@ class BiliBiliSearchPageIE(BilibiliBaseIE):
                 raise ExtractorError(
                     f'Result not found in the response ({status_code}). '
                     'You might want to try a VPN or a proxy server (with --proxy)', expected=True)
-            for result_data in result_list:
-                result_type = result_data.get('type')
-                if result_type == 'video':
-                    entries.append(self.url_result(result_data['arcurl']))
-                elif result_type == 'live_room':
-                    entries.append(self.url_result(live_room_prefix + str(result_data['roomid'])))
-                elif result_type in ['media_ft', 'media_bangumi']:
-                    entries.append(self.url_result(result_data['url']))
-                elif result_type == 'bili_user':
-                    entries.append(self.url_result(bili_user_prefix + str(result_data['mid'])))
+
+            entries = [self._extract_search_result(result_data) for result_data in result_list]
 
         return self.playlist_result(entries, playlist_id=playlist_id, playlist_title=playlist_id)
