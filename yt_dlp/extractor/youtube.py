@@ -3727,13 +3727,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         }
 
     def _get_config_po_token(self, client):
-        po_tokens = self._configuration_arg('po_token', [], ie_key=YoutubeIE, casesense=True)
-        for token_str in po_tokens:
-            if ':' in token_str:
-                po_token_client, po_token = token_str.split(':')
-            else:
-                # if no client specified, use for all clients
-                po_token_client, po_token = client, token_str
+        po_token_strs = self._configuration_arg('po_token', [], ie_key=YoutubeIE, casesense=True)
+        for token_str in po_token_strs:
+            if '+' not in token_str:
+                self.report_warning('Invalid po_token configuration format. Expected "client+po_token"')
+                continue
+            po_token_client, po_token = token_str.split('+')
             if not client or po_token_client == client:
                 return po_token
 
@@ -3933,7 +3932,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     f'No PO Token provided for {client} client. '
                     f'A PO Token is required by this client for working formats. '
                     f'You can manually pass a PO Token for this client with '
-                    f'--extractor-args youtube:po_token={client}:XXX',
+                    f'--extractor-args youtube:po_token={client}+XXX',
                     only_once=True)
                 deprioritize_pr = True
 
