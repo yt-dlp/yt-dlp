@@ -9,8 +9,8 @@ from ..utils import (
 )
 
 
-class HockeyCanadaIE(InfoExtractor):
-    _VALID_URL = r'https?://video\.hockeycanada\.ca/[a-z]{2}(?:-[a-z]{2})?/c/[\w-]+\.(?P<id>\d+)'
+class VidflexIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:[^/]+)/[a-z]{2}(?:-[a-z]{2})?/c/[\w-]+\.(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://video.hockeycanada.ca/en/c/nwt-micd-up-with-jamie-lee-rattray.107486',
         'only_matching': True,
@@ -58,6 +58,27 @@ class HockeyCanadaIE(InfoExtractor):
             'thumbnail': 're:^https?://wpmedia01-a.akamaihd.net/en/asset/public/image/.+',
         },
         'params': {'skip_download': True},
+    }, {
+        'url': 'https://myfbcgreenville.vidflex.tv/en/c/may-12th-2024.658',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.figureitoutbaseball.com/en/c/fiob-podcast-14-dan-bertolini-ncaa-d1-head-coach-recorded-11-29-2018.1367',
+        'only_matching': True,
+    }, {
+        'url': 'https://videos.telusworldofscienceedmonton.ca/en/c/the-aurora-project-timelapse-4.577',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.tuffhedemantv.com/en/c/2022-tuff-hedeman-tour-hobbs-nm-january-22.227',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.albertalacrossetv.com/en/c/up-floor-ground-balls-one-more.3449',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.silenticetv.com/en/c/jp-unlocked-day-in-the-life-of-langley-ha-15u.5197',
+        'only_matching': True,
+    }, {
+        'url': 'https://jphl.vidflex.tv/en/c/jp-unlocked-day-in-the-life-of-langley-ha-15u.5197',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):

@@ -792,7 +792,6 @@ from .hidive import HiDiveIE
 from .historicfilms import HistoricFilmsIE
 from .hitrecord import HitRecordIE
 from .hketv import HKETVIE
-from .hockeycanada import HockeyCanadaIE
 from .hollywoodreporter import (
     HollywoodReporterIE,
     HollywoodReporterPlaylistIE,
@@ -2324,6 +2323,7 @@ from .viewlift import (
     ViewLiftEmbedIE,
     ViewLiftIE,
 )
+from .vidflex import VidflexIE
 from .viidea import ViideaIE
 from .viki import (
     VikiChannelIE,
