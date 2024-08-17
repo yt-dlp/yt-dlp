@@ -372,8 +372,8 @@ class GoogleDriveFolderIE(InfoExtractor):
             self.raise_login_required('This video is only available for registered users')
 
         json_folder_info = (
-            self._extract_json_meta(webpage, folder_id, hashval=1, name='folder info', default=None)
-            or self._extract_json_meta(webpage, folder_id, dsval=0, name='folder info - fallback')
+            self._extract_json_meta(webpage, folder_id, dsval=0, name='folder info', default=None)
+            or self._extract_json_meta(webpage, folder_id, hashval=1, name='folder info - fallback')
         )
         json_items = self._extract_json_meta(webpage, folder_id, hashval=6, name='folder items')
 
