@@ -2311,6 +2311,7 @@ from .videomore import (
     VideomoreVideoIE,
 )
 from .videopress import VideoPressIE
+from .vidflex import VidflexIE
 from .vidio import (
     VidioIE,
     VidioLiveIE,
@@ -2323,7 +2324,6 @@ from .viewlift import (
     ViewLiftEmbedIE,
     ViewLiftIE,
 )
-from .vidflex import VidflexIE
 from .viidea import ViideaIE
 from .viki import (
     VikiChannelIE,
