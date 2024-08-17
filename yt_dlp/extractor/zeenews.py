@@ -3,6 +3,8 @@ from ..utils import ExtractorError, traverse_obj
 
 
 class ZeeNewsIE(InfoExtractor):
+    _WORKING = False
+    _ENABLED = None  # XXX: pass through to GenericIE
     _VALID_URL = r'https?://zeenews\.india\.com/[^#?]+/video/(?P<display_id>[^#/?]+)/(?P<id>\d+)'
     _TESTS = [
         {
@@ -18,7 +20,7 @@ class ZeeNewsIE(InfoExtractor):
                 'view_count': int,
                 'duration': 97,
                 'description': 'ग्रेटर नोएडा जारचा थाना क्षेत्र के प्याबली में दिनदहाड़े दुकान में घुसकर अज्ञात हमलावरों ने हमला कर',
-            }
+            },
         },
         {
             'url': 'https://zeenews.india.com/hindi/india/video/videsh-superfast-queen-elizabeth-iis-funeral-today/1357710',
@@ -33,8 +35,8 @@ class ZeeNewsIE(InfoExtractor):
                 'view_count': int,
                 'duration': 133,
                 'description': 'सेगमेंट विदेश सुपराफास्ट में देखिए देश और दुनिया की सभी बड़ी खबरें, वो भी हर खबर फटाफट अंदाज में.',
-            }
-        }
+            },
+        },
     ]
 
     def _real_extract(self, url):

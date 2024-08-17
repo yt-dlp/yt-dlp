@@ -1,7 +1,7 @@
 import json
 
 from .radiocanada import RadioCanadaIE
-from ..compat import compat_HTTPError
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     int_or_none,
@@ -52,8 +52,8 @@ class TouTvIE(RadioCanadaIE):  # XXX: Do not subclass from concrete IE
                     'Content-Type': 'application/json;charset=utf-8',
                 })['access_token']
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 401:
-                error = self._parse_json(e.cause.read().decode(), None)['Message']
+            if isinstance(e.cause, HTTPError) and e.cause.status == 401:
+                error = self._parse_json(e.cause.response.read().decode(), None)['Message']
                 raise ExtractorError(error, expected=True)
             raise
         self._claims = self._call_api('validation/v2/getClaims')['claims']
@@ -61,7 +61,7 @@ class TouTvIE(RadioCanadaIE):  # XXX: Do not subclass from concrete IE
     def _real_extract(self, url):
         path = self._match_id(url)
         metadata = self._download_json(
-            'https://services.radio-canada.ca/toutv/presentation/%s' % path, path, query={
+            f'https://services.radio-canada.ca/toutv/presentation/{path}', path, query={
                 'client_key': self._CLIENT_KEY,
                 'device': 'web',
                 'version': 4,

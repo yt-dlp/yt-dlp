@@ -1,37 +1,35 @@
 import base64
 import functools
-import re
 import itertools
-import urllib.error
+import json
+import re
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_HTTPError,
-    compat_str,
-    compat_urlparse,
-)
+from ..networking import HEADRequest, Request
+from ..networking.exceptions import HTTPError
 from ..utils import (
+    ExtractorError,
+    OnDemandPagedList,
     clean_html,
     determine_ext,
-    ExtractorError,
     get_element_by_class,
-    HEADRequest,
-    js_to_json,
     int_or_none,
+    join_nonempty,
+    js_to_json,
     merge_dicts,
-    OnDemandPagedList,
     parse_filesize,
     parse_iso8601,
     parse_qs,
-    sanitized_Request,
     smuggle_url,
     str_or_none,
+    traverse_obj,
     try_get,
     unified_timestamp,
     unsmuggle_url,
     urlencode_postdata,
-    urljoin,
     urlhandle_detect_ext,
+    urljoin,
 )
 
 
@@ -42,28 +40,26 @@ class VimeoBaseInfoExtractor(InfoExtractor):
 
     @staticmethod
     def _smuggle_referrer(url, referrer_url):
-        return smuggle_url(url, {'http_headers': {'Referer': referrer_url}})
+        return smuggle_url(url, {'referer': referrer_url})
 
     def _unsmuggle_headers(self, url):
         """@returns (url, smuggled_data, headers)"""
         url, data = unsmuggle_url(url, {})
         headers = self.get_param('http_headers').copy()
-        if 'http_headers' in data:
-            headers.update(data['http_headers'])
+        if 'referer' in data:
+            headers['Referer'] = data['referer']
         return url, data, headers
 
     def _perform_login(self, username, password):
-        webpage = self._download_webpage(
-            self._LOGIN_URL, None, 'Downloading login page')
-        token, vuid = self._extract_xsrft_and_vuid(webpage)
+        viewer = self._download_json('https://vimeo.com/_next/viewer', None, 'Downloading login token')
         data = {
             'action': 'login',
             'email': username,
             'password': password,
             'service': 'vimeo',
-            'token': token,
+            'token': viewer['xsrft'],
         }
-        self._set_vimeo_cookie('vuid', vuid)
+        self._set_vimeo_cookie('vuid', viewer['vuid'])
         try:
             self._download_webpage(
                 self._LOGIN_URL, None, 'Logging in',
@@ -72,7 +68,7 @@ class VimeoBaseInfoExtractor(InfoExtractor):
                     'Referer': self._LOGIN_URL,
                 })
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 418:
+            if isinstance(e.cause, HTTPError) and e.cause.status == 418:
                 raise ExtractorError(
                     'Unable to log in: bad username or password',
                     expected=True)
@@ -90,29 +86,23 @@ class VimeoBaseInfoExtractor(InfoExtractor):
                 expected=True)
         return password
 
-    def _verify_video_password(self, url, video_id, password, token, vuid):
-        if url.startswith('http://'):
-            # vimeo only supports https now, but the user can give an http url
-            url = url.replace('http://', 'https://')
-        self._set_vimeo_cookie('vuid', vuid)
-        return self._download_webpage(
-            url + '/password', video_id, 'Verifying the password',
-            'Wrong password', data=urlencode_postdata({
-                'password': password,
-                'token': token,
-            }), headers={
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'Referer': url,
-            })
-
-    def _extract_xsrft_and_vuid(self, webpage):
-        xsrft = self._search_regex(
-            r'(?:(?P<q1>["\'])xsrft(?P=q1)\s*:|xsrft\s*[=:])\s*(?P<q>["\'])(?P<xsrft>.+?)(?P=q)',
-            webpage, 'login token', group='xsrft')
-        vuid = self._search_regex(
-            r'["\']vuid["\']\s*:\s*(["\'])(?P<vuid>.+?)\1',
-            webpage, 'vuid', group='vuid')
-        return xsrft, vuid
+    def _verify_video_password(self, video_id, password, token):
+        url = f'https://vimeo.com/{video_id}'
+        try:
+            return self._download_webpage(
+                f'{url}/password', video_id,
+                'Submitting video password', data=json.dumps({
+                    'password': password,
+                    'token': token,
+                }, separators=(',', ':')).encode(), headers={
+                    'Accept': '*/*',
+                    'Content-Type': 'application/json',
+                    'Referer': url,
+                }, impersonate=True)
+        except ExtractorError as error:
+            if isinstance(error.cause, HTTPError) and error.cause.status == 418:
+                raise ExtractorError('Wrong password', expected=True)
+            raise
 
     def _extract_vimeo_config(self, webpage, video_id, *args, **kwargs):
         vimeo_config = self._search_regex(
@@ -128,7 +118,13 @@ class VimeoBaseInfoExtractor(InfoExtractor):
         video_data = config['video']
         video_title = video_data.get('title')
         live_event = video_data.get('live_event') or {}
-        is_live = live_event.get('status') == 'started'
+        live_status = {
+            'pending': 'is_upcoming',
+            'active': 'is_upcoming',
+            'started': 'is_live',
+            'ended': 'post_live',
+        }.get(live_event.get('status'))
+        is_live = live_status == 'is_live'
         request = config.get('request') or {}
 
         formats = []
@@ -141,7 +137,7 @@ class VimeoBaseInfoExtractor(InfoExtractor):
                 continue
             formats.append({
                 'url': video_url,
-                'format_id': 'http-%s' % f.get('quality'),
+                'format_id': 'http-{}'.format(f.get('quality')),
                 'source_preference': 10,
                 'width': int_or_none(f.get('width')),
                 'height': int_or_none(f.get('height')),
@@ -156,19 +152,19 @@ class VimeoBaseInfoExtractor(InfoExtractor):
                 manifest_url = cdn_data.get('url')
                 if not manifest_url:
                     continue
-                format_id = '%s-%s' % (files_type, cdn_name)
+                format_id = f'{files_type}-{cdn_name}'
                 sep_manifest_urls = []
                 if re.search(sep_pattern, manifest_url):
                     for suffix, repl in (('', 'video'), ('_sep', 'sep/video')):
                         sep_manifest_urls.append((format_id + suffix, re.sub(
-                            sep_pattern, '/%s/' % repl, manifest_url)))
+                            sep_pattern, f'/{repl}/', manifest_url)))
                 else:
                     sep_manifest_urls = [(format_id, manifest_url)]
                 for f_id, m_url in sep_manifest_urls:
                     if files_type == 'hls':
                         fmts, subs = self._extract_m3u8_formats_and_subtitles(
                             m_url, video_id, 'mp4', live=is_live, m3u8_id=f_id,
-                            note='Downloading %s m3u8 information' % cdn_name,
+                            note=f'Downloading {cdn_name} m3u8 information',
                             fatal=False)
                         formats.extend(fmts)
                         self._merge_subtitles(subs, target=subtitles)
@@ -179,7 +175,7 @@ class VimeoBaseInfoExtractor(InfoExtractor):
                                 m_url = real_m_url
                         fmts, subs = self._extract_mpd_formats_and_subtitles(
                             m_url.replace('/master.json', '/master.mpd'), video_id, f_id,
-                            'Downloading %s MPD information' % cdn_name,
+                            f'Downloading {cdn_name} MPD information',
                             fatal=False)
                         formats.extend(fmts)
                         self._merge_subtitles(subs, target=subtitles)
@@ -216,16 +212,6 @@ class VimeoBaseInfoExtractor(InfoExtractor):
         owner = video_data.get('owner') or {}
         video_uploader_url = owner.get('url')
 
-        duration = int_or_none(video_data.get('duration'))
-        chapter_data = try_get(config, lambda x: x['embed']['chapters']) or []
-        chapters = [{
-            'title': current_chapter.get('title'),
-            'start_time': current_chapter.get('timecode'),
-            'end_time': next_chapter.get('timecode'),
-        } for current_chapter, next_chapter in zip(chapter_data, chapter_data[1:] + [{'timecode': duration}])]
-        if chapters and chapters[0]['start_time']:  # Chapters may not start from 0
-            chapters[:0] = [{'title': '<Untitled>', 'start_time': 0, 'end_time': chapters[0]['start_time']}]
-
         return {
             'id': str_or_none(video_data.get('id')) or video_id,
             'title': video_title,
@@ -233,11 +219,16 @@ class VimeoBaseInfoExtractor(InfoExtractor):
             'uploader_id': video_uploader_url.split('/')[-1] if video_uploader_url else None,
             'uploader_url': video_uploader_url,
             'thumbnails': thumbnails,
-            'duration': duration,
-            'chapters': chapters or None,
+            'duration': int_or_none(video_data.get('duration')),
+            'chapters': sorted(traverse_obj(config, (
+                'embed', 'chapters', lambda _, v: int(v['timecode']) is not None, {
+                    'title': ('title', {str}),
+                    'start_time': ('timecode', {int_or_none}),
+                })), key=lambda c: c['start_time']) or None,
             'formats': formats,
             'subtitles': subtitles,
-            'is_live': is_live,
+            'live_status': live_status,
+            'release_timestamp': traverse_obj(live_event, ('ingest', 'scheduled_start_time', {parse_iso8601})),
             # Note: Bitrates are completely broken. Single m3u8 may contain entries in kbps and bps
             # at the same time without actual units specified.
             '_format_sort_fields': ('quality', 'res', 'fps', 'hdr:12', 'source'),
@@ -255,10 +246,10 @@ class VimeoBaseInfoExtractor(InfoExtractor):
         download_url = try_get(source_file, lambda x: x['download_url'])
         if download_url and not source_file.get('is_cold') and not source_file.get('is_defrosting'):
             source_name = source_file.get('public_name', 'Original')
-            if self._is_valid_url(download_url, video_id, '%s video' % source_name):
+            if self._is_valid_url(download_url, video_id, f'{source_name} video'):
                 ext = (try_get(
                     source_file, lambda x: x['extension'],
-                    compat_str) or determine_ext(
+                    str) or determine_ext(
                     download_url, None) or 'mp4').lower()
                 return {
                     'url': download_url,
@@ -274,7 +265,7 @@ class VimeoBaseInfoExtractor(InfoExtractor):
             'https://vimeo.com/_rv/viewer', video_id, note='Downloading jwt token', fatal=False) or {}
         if not jwt_response.get('jwt'):
             return
-        headers = {'Authorization': 'jwt %s' % jwt_response['jwt']}
+        headers = {'Authorization': 'jwt {}'.format(jwt_response['jwt']), 'Accept': 'application/json'}
         original_response = self._download_json(
             f'https://api.vimeo.com/videos/{video_id}', video_id,
             headers=headers, fatal=False, expected_status=(403, 404)) or {}
@@ -360,7 +351,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
             'params': {
                 'format': 'best[protocol=https]',
             },
-            'skip': 'No longer available'
+            'skip': 'No longer available',
         },
         {
             'url': 'http://player.vimeo.com/video/54469442',
@@ -374,7 +365,6 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'uploader_url': r're:https?://(?:www\.)?vimeo\.com/businessofsoftware',
                 'uploader_id': 'businessofsoftware',
                 'duration': 3610,
-                'description': None,
                 'thumbnail': 'https://i.vimeocdn.com/video/376682406-f34043e7b766af6bef2af81366eacd6724f3fc3173179a11a97a1e26587c9529-d_1280',
             },
             'params': {
@@ -713,6 +703,39 @@ class VimeoIE(VimeoBaseInfoExtractor):
             },
         },
         {
+            # chapters must be sorted, see: https://github.com/yt-dlp/yt-dlp/issues/5308
+            'url': 'https://player.vimeo.com/video/756714419',
+            'info_dict': {
+                'id': '756714419',
+                'ext': 'mp4',
+                'title': 'Dr Arielle Schwartz - Therapeutic yoga for optimum sleep',
+                'uploader': 'Alex Howard',
+                'uploader_id': 'user54729178',
+                'uploader_url': 'https://vimeo.com/user54729178',
+                'thumbnail': r're:https://i\.vimeocdn\.com/video/1520099929-[\da-f]+-d_1280',
+                'duration': 2636,
+                'chapters': [
+                    {'start_time': 0, 'end_time': 10, 'title': '<Untitled Chapter 1>'},
+                    {'start_time': 10, 'end_time': 106, 'title': 'Welcoming Dr Arielle Schwartz'},
+                    {'start_time': 106, 'end_time': 305, 'title': 'What is therapeutic yoga?'},
+                    {'start_time': 305, 'end_time': 594, 'title': 'Vagal toning practices'},
+                    {'start_time': 594, 'end_time': 888, 'title': 'Trauma and difficulty letting go'},
+                    {'start_time': 888, 'end_time': 1059, 'title': "Dr Schwartz' insomnia experience"},
+                    {'start_time': 1059, 'end_time': 1471, 'title': 'A strategy for helping sleep issues'},
+                    {'start_time': 1471, 'end_time': 1667, 'title': 'Yoga nidra'},
+                    {'start_time': 1667, 'end_time': 2121, 'title': 'Wisdom in stillness'},
+                    {'start_time': 2121, 'end_time': 2386, 'title': 'What helps us be more able to let go?'},
+                    {'start_time': 2386, 'end_time': 2510, 'title': 'Practical tips to help ourselves'},
+                    {'start_time': 2510, 'end_time': 2636, 'title': 'Where to find out more'},
+                ],
+            },
+            'params': {
+                'http_headers': {'Referer': 'https://sleepsuperconference.com'},
+                'skip_download': 'm3u8',
+            },
+            'expected_warnings': ['Failed to parse XML: not well-formed'],
+        },
+        {
             # user playlist alias -> https://vimeo.com/258705797
             'url': 'https://vimeo.com/user26785108/newspiritualguide',
             'only_matching': True,
@@ -739,26 +762,40 @@ class VimeoIE(VimeoBaseInfoExtractor):
             'Content-Type': 'application/x-www-form-urlencoded',
         })
         checked = self._download_json(
-            f'{compat_urlparse.urlsplit(url)._replace(query=None).geturl()}/check-password',
+            f'{urllib.parse.urlsplit(url)._replace(query=None).geturl()}/check-password',
             video_id, 'Verifying the password', data=data, headers=headers)
         if checked is False:
             raise ExtractorError('Wrong video password', expected=True)
         return checked
 
-    def _extract_from_api(self, video_id, unlisted_hash=None):
-        token = self._download_json(
-            'https://vimeo.com/_rv/jwt', video_id, headers={
-                'X-Requested-With': 'XMLHttpRequest'
-            })['token']
-        api_url = 'https://api.vimeo.com/videos/' + video_id
-        if unlisted_hash:
-            api_url += ':' + unlisted_hash
-        video = self._download_json(
-            api_url, video_id, headers={
-                'Authorization': 'jwt ' + token,
+    def _call_videos_api(self, video_id, jwt_token, unlisted_hash=None):
+        return self._download_json(
+            join_nonempty(f'https://api.vimeo.com/videos/{video_id}', unlisted_hash, delim=':'),
+            video_id, 'Downloading API JSON', headers={
+                'Authorization': f'jwt {jwt_token}',
+                'Accept': 'application/json',
             }, query={
                 'fields': 'config_url,created_time,description,license,metadata.connections.comments.total,metadata.connections.likes.total,release_time,stats.plays',
             })
+
+    def _extract_from_api(self, video_id, unlisted_hash=None):
+        viewer = self._download_json(
+            'https://vimeo.com/_next/viewer', video_id, 'Downloading viewer info')
+
+        for retry in (False, True):
+            try:
+                video = self._call_videos_api(video_id, viewer['jwt'], unlisted_hash)
+            except ExtractorError as e:
+                if (not retry and isinstance(e.cause, HTTPError) and e.cause.status == 400
+                    and 'password' in traverse_obj(
+                        e.cause.response.read(),
+                        ({bytes.decode}, {json.loads}, 'invalid_parameters', ..., 'field'),
+                )):
+                    self._verify_video_password(
+                        video_id, self._get_video_password(), viewer['xsrft'])
+                    continue
+                raise
+
         info = self._parse_config(self._download_json(
             video['config_url'], video_id), video_id)
         get_timestamp = lambda x: parse_iso8601(video.get(x + '_time'))
@@ -790,7 +827,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
         jwt = viewer['jwt']
         album = self._download_json(
             'https://api.vimeo.com/albums/' + album_id,
-            album_id, headers={'Authorization': 'jwt ' + jwt},
+            album_id, headers={'Authorization': 'jwt ' + jwt, 'Accept': 'application/json'},
             query={'fields': 'description,name,privacy'})
         if try_get(album, lambda x: x['privacy']['view']) == 'password':
             password = self.get_param('videopassword')
@@ -801,7 +838,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
             self._set_vimeo_cookie('vuid', viewer['vuid'])
             try:
                 self._download_json(
-                    'https://vimeo.com/showcase/%s/auth' % album_id,
+                    f'https://vimeo.com/showcase/{album_id}/auth',
                     album_id, 'Verifying the password', data=urlencode_postdata({
                         'password': password,
                         'token': viewer['xsrft'],
@@ -809,7 +846,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
                         'X-Requested-With': 'XMLHttpRequest',
                     })
             except ExtractorError as e:
-                if isinstance(e.cause, compat_HTTPError) and e.cause.code == 401:
+                if isinstance(e.cause, HTTPError) and e.cause.status == 401:
                     raise ExtractorError('Wrong password', expected=True)
                 raise
 
@@ -828,21 +865,33 @@ class VimeoIE(VimeoBaseInfoExtractor):
             url = 'https://vimeo.com/' + video_id
 
         self._try_album_password(url)
+        is_secure = urllib.parse.urlparse(url).scheme == 'https'
         try:
             # Retrieve video webpage to extract further information
             webpage, urlh = self._download_webpage_handle(
-                url, video_id, headers=headers)
-            redirect_url = urlh.geturl()
-        except ExtractorError as ee:
-            if isinstance(ee.cause, compat_HTTPError) and ee.cause.code == 403:
-                errmsg = ee.cause.read()
-                if b'Because of its privacy settings, this video cannot be played here' in errmsg:
-                    raise ExtractorError(
-                        'Cannot download embed-only video without embedding '
-                        'URL. Please call yt-dlp with the URL of the page '
-                        'that embeds this video.',
-                        expected=True)
-            raise
+                url, video_id, headers=headers, impersonate=is_secure)
+            redirect_url = urlh.url
+        except ExtractorError as error:
+            if not isinstance(error.cause, HTTPError) or error.cause.status not in (403, 429):
+                raise
+            errmsg = error.cause.response.read()
+            if b'Because of its privacy settings, this video cannot be played here' in errmsg:
+                raise ExtractorError(
+                    'Cannot download embed-only video without embedding URL. Please call yt-dlp '
+                    'with the URL of the page that embeds this video.', expected=True)
+            # 403 == vimeo.com TLS fingerprint or DC IP block; 429 == player.vimeo.com TLS FP block
+            status = error.cause.status
+            dcip_msg = 'If you are using a data center IP or VPN/proxy, your IP may be blocked'
+            if target := error.cause.response.extensions.get('impersonate'):
+                raise ExtractorError(
+                    f'Got HTTP Error {status} when using impersonate target "{target}". {dcip_msg}')
+            elif not is_secure:
+                raise ExtractorError(f'Got HTTP Error {status}. {dcip_msg}', expected=True)
+            raise ExtractorError(
+                'This request has been blocked due to its TLS fingerprint. Install a '
+                'required impersonation dependency if possible, or else if you are okay with '
+                f'{self._downloader._format_err("compromising your security/cookies", "light red")}, '
+                f'try replacing "https:" with "http:" in the input URL. {dcip_msg}.', expected=True)
 
         if '://player.vimeo.com/video/' in url:
             config = self._search_json(
@@ -852,18 +901,12 @@ class VimeoIE(VimeoBaseInfoExtractor):
                     redirect_url, video_id, headers)
             return self._parse_config(config, video_id)
 
-        if re.search(r'<form[^>]+?id="pw_form"', webpage):
-            video_password = self._get_video_password()
-            token, vuid = self._extract_xsrft_and_vuid(webpage)
-            webpage = self._verify_video_password(
-                redirect_url, video_id, video_password, token, vuid)
-
         vimeo_config = self._extract_vimeo_config(webpage, video_id, default=None)
         if vimeo_config:
             seed_status = vimeo_config.get('seed_status') or {}
             if seed_status.get('state') == 'failed':
                 raise ExtractorError(
-                    '%s said: %s' % (self.IE_NAME, seed_status['title']),
+                    '{} said: {}'.format(self.IE_NAME, seed_status['title']),
                     expected=True)
 
         cc_license = None
@@ -915,7 +958,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
             feature_id = vod.get('feature_id')
             if feature_id and not data.get('force_feature_id', False):
                 return self.url_result(smuggle_url(
-                    'https://player.vimeo.com/player/%s' % feature_id,
+                    f'https://player.vimeo.com/player/{feature_id}',
                     {'force_feature_id': True}), 'Vimeo')
 
         if not video_description:
@@ -1050,7 +1093,7 @@ class VimeoChannelIE(VimeoBaseInfoExtractor):
     _BASE_URL_TEMPL = 'https://vimeo.com/channels/%s'
 
     def _page_url(self, base_url, pagenum):
-        return '%s/videos/page:%d/' % (base_url, pagenum)
+        return f'{base_url}/videos/page:{pagenum}/'
 
     def _extract_list_title(self, webpage):
         return self._TITLE or self._html_search_regex(
@@ -1061,7 +1104,7 @@ class VimeoChannelIE(VimeoBaseInfoExtractor):
             page_url = self._page_url(base_url, pagenum)
             webpage = self._download_webpage(
                 page_url, list_id,
-                'Downloading page %s' % pagenum)
+                f'Downloading page {pagenum}')
 
             if pagenum == 1:
                 yield self._extract_list_title(webpage)
@@ -1073,13 +1116,13 @@ class VimeoChannelIE(VimeoBaseInfoExtractor):
             if clips:
                 for video_id, video_url, video_title in clips:
                     yield self.url_result(
-                        compat_urlparse.urljoin(base_url, video_url),
+                        urllib.parse.urljoin(base_url, video_url),
                         VimeoIE.ie_key(), video_id=video_id, video_title=video_title)
             # More relaxed fallback
             else:
                 for video_id in re.findall(r'id=["\']clip_(\d+)', webpage):
                     yield self.url_result(
-                        'https://vimeo.com/%s' % video_id,
+                        f'https://vimeo.com/{video_id}',
                         VimeoIE.ie_key(), video_id=video_id)
 
             if re.search(self._MORE_PAGES_INDICATOR, webpage, re.DOTALL) is None:
@@ -1134,7 +1177,7 @@ class VimeoAlbumIE(VimeoBaseInfoExtractor):
         'playlist_count': 1,
         'params': {
             'videopassword': 'youtube-dl',
-        }
+        },
     }]
     _PAGE_SIZE = 100
 
@@ -1149,13 +1192,15 @@ class VimeoAlbumIE(VimeoBaseInfoExtractor):
             query['_hashed_pass'] = hashed_pass
         try:
             videos = self._download_json(
-                'https://api.vimeo.com/albums/%s/videos' % album_id,
-                album_id, 'Downloading page %d' % api_page, query=query, headers={
+                f'https://api.vimeo.com/albums/{album_id}/videos',
+                album_id, f'Downloading page {api_page}', query=query, headers={
                     'Authorization': 'jwt ' + authorization,
+                    'Accept': 'application/json',
                 })['data']
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 400:
+            if isinstance(e.cause, HTTPError) and e.cause.status == 400:
                 return
+            raise
         for video in videos:
             link = video.get('link')
             if not link:
@@ -1176,7 +1221,7 @@ class VimeoAlbumIE(VimeoBaseInfoExtractor):
         jwt = viewer['jwt']
         album = self._download_json(
             'https://api.vimeo.com/albums/' + album_id,
-            album_id, headers={'Authorization': 'jwt ' + jwt},
+            album_id, headers={'Authorization': 'jwt ' + jwt, 'Accept': 'application/json'},
             query={'fields': 'description,name,privacy'})
         hashed_pass = None
         if try_get(album, lambda x: x['privacy']['view']) == 'password':
@@ -1188,7 +1233,7 @@ class VimeoAlbumIE(VimeoBaseInfoExtractor):
             self._set_vimeo_cookie('vuid', viewer['vuid'])
             try:
                 hashed_pass = self._download_json(
-                    'https://vimeo.com/showcase/%s/auth' % album_id,
+                    f'https://vimeo.com/showcase/{album_id}/auth',
                     album_id, 'Verifying the password', data=urlencode_postdata({
                         'password': password,
                         'token': viewer['xsrft'],
@@ -1196,7 +1241,7 @@ class VimeoAlbumIE(VimeoBaseInfoExtractor):
                         'X-Requested-With': 'XMLHttpRequest',
                     })['hashed_pass']
             except ExtractorError as e:
-                if isinstance(e.cause, compat_HTTPError) and e.cause.code == 401:
+                if isinstance(e.cause, HTTPError) and e.cause.status == 401:
                     raise ExtractorError('Wrong password', expected=True)
                 raise
         entries = OnDemandPagedList(functools.partial(
@@ -1222,7 +1267,7 @@ class VimeoGroupsIE(VimeoChannelIE):  # XXX: Do not subclass from concrete IE
 class VimeoReviewIE(VimeoBaseInfoExtractor):
     IE_NAME = 'vimeo:review'
     IE_DESC = 'Review pages on vimeo'
-    _VALID_URL = r'(?P<url>https://vimeo\.com/[^/]+/review/(?P<id>[^/]+)/[0-9a-f]{10})'
+    _VALID_URL = r'https?://vimeo\.com/(?P<user>[^/?#]+)/review/(?P<id>\d+)/(?P<hash>[\da-f]{10})'
     _TESTS = [{
         'url': 'https://vimeo.com/user21297594/review/75524534/3c257a1b5d',
         'md5': 'c507a72f780cacc12b2248bb4006d253',
@@ -1268,28 +1313,22 @@ class VimeoReviewIE(VimeoBaseInfoExtractor):
     }]
 
     def _real_extract(self, url):
-        page_url, video_id = self._match_valid_url(url).groups()
-        data = self._download_json(
-            page_url.replace('/review/', '/review/data/'), video_id)
+        user, video_id, review_hash = self._match_valid_url(url).group('user', 'id', 'hash')
+        data_url = f'https://vimeo.com/{user}/review/data/{video_id}/{review_hash}'
+        data = self._download_json(data_url, video_id)
         if data.get('isLocked') is True:
             video_password = self._get_video_password()
             viewer = self._download_json(
                 'https://vimeo.com/_rv/viewer', video_id)
-            webpage = self._verify_video_password(
-                'https://vimeo.com/' + video_id, video_id,
-                video_password, viewer['xsrft'], viewer['vuid'])
-            clip_page_config = self._parse_json(self._search_regex(
-                r'window\.vimeo\.clip_page_config\s*=\s*({.+?});',
-                webpage, 'clip page config'), video_id)
-            config_url = clip_page_config['player']['config_url']
-            clip_data = clip_page_config.get('clip') or {}
-        else:
-            clip_data = data['clipData']
-            config_url = clip_data['configUrl']
+            self._verify_video_password(video_id, video_password, viewer['xsrft'])
+            data = self._download_json(data_url, video_id)
+        clip_data = data['clipData']
+        config_url = clip_data['configUrl']
         config = self._download_json(config_url, video_id)
         info_dict = self._parse_config(config, video_id)
         source_format = self._extract_original_format(
-            page_url + '/action', video_id)
+            f'https://vimeo.com/{user}/review/{video_id}/{review_hash}/action', video_id,
+            unlisted_hash=traverse_obj(config_url, ({parse_qs}, 'h', -1)))
         if source_format:
             info_dict['formats'].append(source_format)
         info_dict['description'] = clean_html(clip_data.get('description'))
@@ -1308,11 +1347,11 @@ class VimeoWatchLaterIE(VimeoChannelIE):  # XXX: Do not subclass from concrete I
     }]
 
     def _page_url(self, base_url, pagenum):
-        url = '%s/page:%d/' % (base_url, pagenum)
-        request = sanitized_Request(url)
+        url = f'{base_url}/page:{pagenum}/'
+        request = Request(url)
         # Set the header to get a partial html page with the ids,
         # the normal page doesn't contain them.
-        request.add_header('X-Requested-With', 'XMLHttpRequest')
+        request.headers['X-Requested-With'] = 'XMLHttpRequest'
         return request
 
     def _real_extract(self, url):
@@ -1336,11 +1375,11 @@ class VimeoLikesIE(VimeoChannelIE):  # XXX: Do not subclass from concrete IE
     }]
 
     def _page_url(self, base_url, pagenum):
-        return '%s/page:%d/' % (base_url, pagenum)
+        return f'{base_url}/page:{pagenum}/'
 
     def _real_extract(self, url):
         user_id = self._match_id(url)
-        return self._extract_videos(user_id, 'https://vimeo.com/%s/likes' % user_id)
+        return self._extract_videos(user_id, f'https://vimeo.com/{user_id}/likes')
 
 
 class VHXEmbedIE(VimeoBaseInfoExtractor):
@@ -1432,7 +1471,7 @@ class VimeoProIE(VimeoBaseInfoExtractor):
                     **self._hidden_inputs(password_form),
                 }), note='Logging in with video password')
             except ExtractorError as e:
-                if isinstance(e.cause, urllib.error.HTTPError) and e.cause.code == 418:
+                if isinstance(e.cause, HTTPError) and e.cause.status == 418:
                     raise ExtractorError('Wrong video password', expected=True)
                 raise
 

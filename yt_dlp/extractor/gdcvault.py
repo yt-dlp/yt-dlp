@@ -2,16 +2,12 @@ import re
 
 from .common import InfoExtractor
 from .kaltura import KalturaIE
-from ..utils import (
-    HEADRequest,
-    remove_start,
-    sanitized_Request,
-    smuggle_url,
-    urlencode_postdata,
-)
+from ..networking import HEADRequest, Request
+from ..utils import remove_start, smuggle_url, urlencode_postdata
 
 
 class GDCVaultIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?gdcvault\.com/play/(?P<id>\d+)(?:/(?P<name>[\w-]+))?'
     _NETRC_MACHINE = 'gdcvault'
     _TESTS = [
@@ -22,8 +18,8 @@ class GDCVaultIE(InfoExtractor):
                 'id': '201311826596_AWNY',
                 'display_id': 'Doki-Doki-Universe-Sweet-Simple',
                 'ext': 'mp4',
-                'title': 'Doki-Doki Universe: Sweet, Simple and Genuine (GDC Next 10)'
-            }
+                'title': 'Doki-Doki Universe: Sweet, Simple and Genuine (GDC Next 10)',
+            },
         },
         {
             'url': 'http://www.gdcvault.com/play/1015683/Embracing-the-Dark-Art-of',
@@ -31,11 +27,11 @@ class GDCVaultIE(InfoExtractor):
                 'id': '201203272_1330951438328RSXR',
                 'display_id': 'Embracing-the-Dark-Art-of',
                 'ext': 'flv',
-                'title': 'Embracing the Dark Art of Mathematical Modeling in AI'
+                'title': 'Embracing the Dark Art of Mathematical Modeling in AI',
             },
             'params': {
                 'skip_download': True,  # Requires rtmpdump
-            }
+            },
         },
         {
             'url': 'http://www.gdcvault.com/play/1015301/Thexder-Meets-Windows-95-or',
@@ -138,8 +134,8 @@ class GDCVaultIE(InfoExtractor):
             'password': password,
         }
 
-        request = sanitized_Request(login_url, urlencode_postdata(login_form))
-        request.add_header('Content-Type', 'application/x-www-form-urlencoded')
+        request = Request(login_url, urlencode_postdata(login_form))
+        request.headers['Content-Type'] = 'application/x-www-form-urlencoded'
         self._download_webpage(request, display_id, 'Logging in')
         start_page = self._download_webpage(webpage_url, display_id, 'Getting authenticated video page')
         self._download_webpage(logout_url, display_id, 'Logging out')
@@ -163,7 +159,7 @@ class GDCVaultIE(InfoExtractor):
             video_url = 'http://www.gdcvault.com' + direct_url
             # resolve the url so that we can detect the correct extension
             video_url = self._request_webpage(
-                HEADRequest(video_url), video_id).geturl()
+                HEADRequest(video_url), video_id).url
 
             return {
                 'id': video_id,
@@ -206,7 +202,7 @@ class GDCVaultIE(InfoExtractor):
                     'display_id': display_id,
                 })
                 return info
-            embed_url = '%s/xml/%s' % (xml_root, xml_name)
+            embed_url = f'{xml_root}/xml/{xml_name}'
             ie_key = 'DigitallySpeaking'
 
         return {

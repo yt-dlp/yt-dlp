@@ -10,14 +10,14 @@ import types
 import yt_dlp.extractor
 from yt_dlp import YoutubeDL
 from yt_dlp.compat import compat_os_name
-from yt_dlp.utils import preferredencoding, write_string
+from yt_dlp.utils import preferredencoding, try_call, write_string, find_available_port
 
 if 'pytest' in sys.modules:
     import pytest
     is_download_test = pytest.mark.download
 else:
-    def is_download_test(testClass):
-        return testClass
+    def is_download_test(test_class):
+        return test_class
 
 
 def get_params(override=None):
@@ -45,10 +45,10 @@ def try_rm(filename):
 
 
 def report_warning(message, *args, **kwargs):
-    '''
+    """
     Print the message to stderr, it will be prefixed with 'WARNING:'
     If stderr is a tty file the 'WARNING:' will be colored
-    '''
+    """
     if sys.stderr.isatty() and compat_os_name != 'nt':
         _msg_header = '\033[0;33mWARNING:\033[0m'
     else:
@@ -138,15 +138,14 @@ def expect_value(self, got, expected, field):
     elif isinstance(expected, list) and isinstance(got, list):
         self.assertEqual(
             len(expected), len(got),
-            'Expect a list of length %d, but got a list of length %d for field %s' % (
-                len(expected), len(got), field))
+            f'Expect a list of length {len(expected)}, but got a list of length {len(got)} for field {field}')
         for index, (item_got, item_expected) in enumerate(zip(got, expected)):
             type_got = type(item_got)
             type_expected = type(item_expected)
             self.assertEqual(
                 type_expected, type_got,
-                'Type mismatch for list item at index %d for field %s, expected %r, got %r' % (
-                    index, field, type_expected, type_got))
+                f'Type mismatch for list item at index {index} for field {field}, '
+                f'expected {type_expected!r}, got {type_got!r}')
             expect_value(self, item_got, item_expected, field)
     else:
         if isinstance(expected, str) and expected.startswith('md5:'):
@@ -194,8 +193,8 @@ def sanitize_got_info_dict(got_dict):
         'formats', 'thumbnails', 'subtitles', 'automatic_captions', 'comments', 'entries',
 
         # Auto-generated
-        'autonumber', 'playlist', 'format_index', 'video_ext', 'audio_ext', 'duration_string', 'epoch',
-        'fulltitle', 'extractor', 'extractor_key', 'filepath', 'infojson_filename', 'original_url', 'n_entries',
+        'autonumber', 'playlist', 'format_index', 'video_ext', 'audio_ext', 'duration_string', 'epoch', 'n_entries',
+        'fulltitle', 'extractor', 'extractor_key', 'filename', 'filepath', 'infojson_filename', 'original_url',
 
         # Only live_status needs to be checked
         'is_live', 'was_live',
@@ -214,13 +213,22 @@ def sanitize_got_info_dict(got_dict):
 
     test_info_dict = {
         key: sanitize(key, value) for key, value in got_dict.items()
-        if value is not None and key not in IGNORED_FIELDS and not any(
-            key.startswith(f'{prefix}_') for prefix in IGNORED_PREFIXES)
+        if value is not None and key not in IGNORED_FIELDS and (
+            not any(key.startswith(f'{prefix}_') for prefix in IGNORED_PREFIXES)
+            or key == '_old_archive_ids')
     }
 
     # display_id may be generated from id
     if test_info_dict.get('display_id') == test_info_dict.get('id'):
         test_info_dict.pop('display_id')
+
+    # Remove deprecated fields
+    for old in YoutubeDL._deprecated_multivalue_fields:
+        test_info_dict.pop(old, None)
+
+    # release_year may be generated from release_date
+    if try_call(lambda: test_info_dict['release_year'] == int(test_info_dict['release_date'][:4])):
+        test_info_dict.pop('release_year')
 
     # Check url for flat entries
     if got_dict.get('_type', 'video') != 'video' and got_dict.get('url'):
@@ -237,11 +245,11 @@ def expect_info_dict(self, got_dict, expected_dict):
         if expected_dict.get('ext'):
             mandatory_fields.extend(('url', 'ext'))
         for key in mandatory_fields:
-            self.assertTrue(got_dict.get(key), 'Missing mandatory field %s' % key)
+            self.assertTrue(got_dict.get(key), f'Missing mandatory field {key}')
     # Check for mandatory fields that are automatically set by YoutubeDL
     if got_dict.get('_type', 'video') == 'video':
         for key in ['webpage_url', 'extractor', 'extractor_key']:
-            self.assertTrue(got_dict.get(key), 'Missing field: %s' % key)
+            self.assertTrue(got_dict.get(key), f'Missing field: {key}')
 
     test_info_dict = sanitize_got_info_dict(got_dict)
 
@@ -249,7 +257,7 @@ def expect_info_dict(self, got_dict, expected_dict):
     if missing_keys:
         def _repr(v):
             if isinstance(v, str):
-                return "'%s'" % v.replace('\\', '\\\\').replace("'", "\\'").replace('\n', '\\n')
+                return "'{}'".format(v.replace('\\', '\\\\').replace("'", "\\'").replace('\n', '\\n'))
             elif isinstance(v, type):
                 return v.__name__
             else:
@@ -266,8 +274,7 @@ def expect_info_dict(self, got_dict, expected_dict):
         write_string(info_dict_str.replace('\n', '\n        '), out=sys.stderr)
         self.assertFalse(
             missing_keys,
-            'Missing keys in test definition: %s' % (
-                ', '.join(sorted(missing_keys))))
+            'Missing keys in test definition: {}'.format(', '.join(sorted(missing_keys))))
 
 
 def assertRegexpMatches(self, text, regexp, msg=None):
@@ -276,9 +283,9 @@ def assertRegexpMatches(self, text, regexp, msg=None):
     else:
         m = re.match(regexp, text)
         if not m:
-            note = 'Regexp didn\'t match: %r not found' % (regexp)
+            note = f'Regexp didn\'t match: {regexp!r} not found'
             if len(text) < 1000:
-                note += ' in %r' % text
+                note += f' in {text!r}'
             if msg is None:
                 msg = note
             else:
@@ -301,7 +308,7 @@ def assertLessEqual(self, got, expected, msg=None):
 
 
 def assertEqual(self, got, expected, msg=None):
-    if not (got == expected):
+    if got != expected:
         if msg is None:
             msg = f'{got!r} not equal to {expected!r}'
         self.assertTrue(got == expected, msg)
@@ -324,3 +331,13 @@ def http_server_port(httpd):
     else:
         sock = httpd.socket
     return sock.getsockname()[1]
+
+
+def verify_address_availability(address):
+    if find_available_port(address) is None:
+        pytest.skip(f'Unable to bind to source address {address} (address may not exist)')
+
+
+def validate_and_send(rh, req):
+    rh.validate(req)
+    return rh.send(req)

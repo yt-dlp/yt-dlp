@@ -2,13 +2,16 @@ import itertools
 import re
 
 from .common import InfoExtractor
-from ..compat import compat_HTTPError
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     UnsupportedError,
     clean_html,
+    determine_ext,
+    format_field,
     get_element_by_class,
     int_or_none,
+    join_nonempty,
     parse_count,
     parse_iso8601,
     traverse_obj,
@@ -30,11 +33,11 @@ class RumbleEmbedIE(InfoExtractor):
             'upload_date': '20191020',
             'channel_url': 'https://rumble.com/c/WMAR',
             'channel': 'WMAR',
-            'thumbnail': 'https://sp.rmbl.ws/s8/1/5/M/z/1/5Mz1a.OvCc-small-WMAR-2-News-Latest-Headline.jpg',
+            'thumbnail': 'https://sp.rmbl.ws/s8/1/5/M/z/1/5Mz1a.qR4e-small-WMAR-2-News-Latest-Headline.jpg',
             'duration': 234,
             'uploader': 'WMAR',
             'live_status': 'not_live',
-        }
+        },
     }, {
         'url': 'https://rumble.com/embed/vslb7v',
         'md5': '7418035de1a30a178b8af34dc2b6a52b',
@@ -50,7 +53,7 @@ class RumbleEmbedIE(InfoExtractor):
             'duration': 901,
             'uploader': 'CTNews',
             'live_status': 'not_live',
-        }
+        },
     }, {
         'url': 'https://rumble.com/embed/vunh1h',
         'info_dict': {
@@ -70,33 +73,32 @@ class RumbleEmbedIE(InfoExtractor):
                     {
                         'url': r're:https://.+\.vtt',
                         'name': 'English',
-                        'ext': 'vtt'
-                    }
-                ]
+                        'ext': 'vtt',
+                    },
+                ],
             },
         },
-        'params': {'skip_download': True}
+        'params': {'skip_download': True},
     }, {
         'url': 'https://rumble.com/embed/v1essrt',
         'info_dict': {
             'id': 'v1essrt',
             'ext': 'mp4',
-            'title': 'startswith:lofi hip hop radio - beats to relax/study',
+            'title': 'startswith:lofi hip hop radio 📚 - beats to relax/study to',
             'timestamp': 1661519399,
             'upload_date': '20220826',
             'channel_url': 'https://rumble.com/c/LofiGirl',
             'channel': 'Lofi Girl',
             'thumbnail': r're:https://.+\.jpg',
-            'duration': None,
             'uploader': 'Lofi Girl',
             'live_status': 'is_live',
         },
-        'params': {'skip_download': True}
+        'params': {'skip_download': True},
     }, {
         'url': 'https://rumble.com/embed/v1amumr',
         'info_dict': {
             'id': 'v1amumr',
-            'ext': 'webm',
+            'ext': 'mp4',
             'fps': 60,
             'title': 'Turning Point USA 2022 Student Action Summit DAY 1  - Rumble Exclusive Live',
             'timestamp': 1658518457,
@@ -108,7 +110,7 @@ class RumbleEmbedIE(InfoExtractor):
             'uploader': 'Rumble Events',
             'live_status': 'was_live',
         },
-        'params': {'skip_download': True}
+        'params': {'skip_download': True},
     }, {
         'url': 'https://rumble.com/embed/ufe9n.v5pv5f',
         'only_matching': True,
@@ -126,12 +128,12 @@ class RumbleEmbedIE(InfoExtractor):
                 'duration': 92,
                 'title': '911 Audio From The Man Who Wanted To Kill Supreme Court Justice Kavanaugh',
                 'channel_url': 'https://rumble.com/c/RichSementa',
-                'thumbnail': 'https://sp.rmbl.ws/s8/1/P/j/f/A/PjfAe.OvCc-small-911-Audio-From-The-Man-Who-.jpg',
+                'thumbnail': 'https://sp.rmbl.ws/s8/1/P/j/f/A/PjfAe.qR4e-small-911-Audio-From-The-Man-Who-.jpg',
                 'timestamp': 1654892716,
                 'uploader': 'Mr Producer Media',
                 'upload_date': '20220610',
                 'live_status': 'not_live',
-            }
+            },
         },
     ]
 
@@ -141,7 +143,7 @@ class RumbleEmbedIE(InfoExtractor):
         if embeds:
             return embeds
         return [f'https://rumble.com/embed/{mobj.group("id")}' for mobj in re.finditer(
-            r'<script>\s*Rumble\(\s*"play"\s*,\s*{\s*[\'"]video[\'"]\s*:\s*[\'"](?P<id>[0-9a-z]+)[\'"]', webpage)]
+            r'<script>[^<]*\bRumble\(\s*"play"\s*,\s*{[^}]*[\'"]?video[\'"]?\s*:\s*[\'"](?P<id>[0-9a-z]+)[\'"]', webpage)]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -164,7 +166,13 @@ class RumbleEmbedIE(InfoExtractor):
 
         formats = []
         for ext, ext_info in (video.get('ua') or {}).items():
-            for height, video_info in (ext_info or {}).items():
+            if isinstance(ext_info, dict):
+                for height, video_info in ext_info.items():
+                    if not traverse_obj(video_info, ('meta', 'h', {int_or_none})):
+                        video_info.setdefault('meta', {})['h'] = height
+                ext_info = ext_info.values()
+
+            for video_info in ext_info:
                 meta = video_info.get('meta') or {}
                 if not video_info.get('url'):
                     continue
@@ -175,18 +183,22 @@ class RumbleEmbedIE(InfoExtractor):
                         video_info['url'], video_id,
                         ext='mp4', m3u8_id='hls', fatal=False, live=live_status == 'is_live'))
                     continue
+                timeline = ext == 'timeline'
+                if timeline:
+                    ext = determine_ext(video_info['url'])
                 formats.append({
                     'ext': ext,
+                    'acodec': 'none' if timeline else None,
                     'url': video_info['url'],
-                    'format_id': '%s-%sp' % (ext, height),
-                    'height': int_or_none(height),
-                    'fps': video.get('fps'),
+                    'format_id': join_nonempty(ext, format_field(meta, 'h', '%sp')),
+                    'format_note': 'Timeline' if timeline else None,
+                    'fps': None if timeline else video.get('fps'),
                     **traverse_obj(meta, {
                         'tbr': 'bitrate',
                         'filesize': 'size',
                         'width': 'w',
                         'height': 'h',
-                    }, expected_type=lambda x: int(x) or None)
+                    }, expected_type=lambda x: int(x) or None),
                 })
 
         subtitles = {
@@ -223,7 +235,9 @@ class RumbleEmbedIE(InfoExtractor):
 
 class RumbleIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?rumble\.com/(?P<id>v(?!ideos)[\w.-]+)[^/]*$'
-    _EMBED_REGEX = [r'<a class=video-item--a href=(?P<url>/v[\w.-]+\.html)>']
+    _EMBED_REGEX = [
+        r'<a class=video-item--a href=(?P<url>/v[\w.-]+\.html)>',
+        r'<a[^>]+class="videostream__link link"[^>]+href=(?P<url>/v[\w.-]+\.html)[^>]*>']
     _TESTS = [{
         'add_ie': ['RumbleEmbed'],
         'url': 'https://rumble.com/vdmum1-moose-the-dog-helps-girls-dig-a-snow-fort.html',
@@ -241,17 +255,61 @@ class RumbleIE(InfoExtractor):
             'thumbnail': r're:https://.+\.jpg',
             'duration': 103,
             'like_count': int,
+            'dislike_count': int,
             'view_count': int,
             'live_status': 'not_live',
-        }
+        },
     }, {
         'url': 'http://www.rumble.com/vDMUM1?key=value',
         'only_matching': True,
+    }, {
+        'note': 'timeline format',
+        'url': 'https://rumble.com/v2ea9qb-the-u.s.-cannot-hide-this-in-ukraine-anymore-redacted-with-natali-and-clayt.html',
+        'md5': '40d61fec6c0945bca3d0e1dc1aa53d79',
+        'params': {'format': 'wv'},
+        'info_dict': {
+            'id': 'v2bou5f',
+            'ext': 'mp4',
+            'uploader': 'Redacted News',
+            'upload_date': '20230322',
+            'timestamp': 1679445010,
+            'title': 'The U.S. CANNOT hide this in Ukraine anymore | Redacted with Natali and Clayton Morris',
+            'duration': 892,
+            'channel': 'Redacted News',
+            'description': 'md5:aaad0c5c3426d7a361c29bdaaced7c42',
+            'channel_url': 'https://rumble.com/c/Redacted',
+            'live_status': 'not_live',
+            'thumbnail': 'https://sp.rmbl.ws/s8/1/d/x/2/O/dx2Oi.qR4e-small-The-U.S.-CANNOT-hide-this-i.jpg',
+            'like_count': int,
+            'dislike_count': int,
+            'view_count': int,
+        },
+    }, {
+        'url': 'https://rumble.com/v2e7fju-the-covid-twitter-files-drop-protecting-fauci-while-censoring-the-truth-wma.html',
+        'info_dict': {
+            'id': 'v2blzyy',
+            'ext': 'mp4',
+            'live_status': 'was_live',
+            'release_timestamp': 1679446804,
+            'description': 'md5:2ac4908ccfecfb921f8ffa4b30c1e636',
+            'release_date': '20230322',
+            'timestamp': 1679445692,
+            'duration': 4435,
+            'upload_date': '20230322',
+            'title': 'The Covid Twitter Files Drop: Protecting Fauci While Censoring The Truth w/Matt Taibbi',
+            'uploader': 'Kim Iversen',
+            'channel_url': 'https://rumble.com/c/KimIversen',
+            'channel': 'Kim Iversen',
+            'thumbnail': 'https://sp.rmbl.ws/s8/1/6/b/w/O/6bwOi.qR4e-small-The-Covid-Twitter-Files-Dro.jpg',
+            'like_count': int,
+            'dislike_count': int,
+            'view_count': int,
+        },
     }]
 
     _WEBPAGE_TESTS = [{
         'url': 'https://rumble.com/videos?page=2',
-        'playlist_count': 25,
+        'playlist_mincount': 24,
         'info_dict': {
             'id': 'videos?page=2',
             'title': 'All videos',
@@ -259,17 +317,16 @@ class RumbleIE(InfoExtractor):
             'age_limit': 0,
         },
     }, {
-        'url': 'https://rumble.com/live-videos',
-        'playlist_mincount': 19,
+        'url': 'https://rumble.com/browse/live',
+        'playlist_mincount': 25,
         'info_dict': {
-            'id': 'live-videos',
-            'title': 'Live Videos',
-            'description': 'Live videos on Rumble.com',
+            'id': 'live',
+            'title': 'Browse',
             'age_limit': 0,
         },
     }, {
         'url': 'https://rumble.com/search/video?q=rumble&sort=views',
-        'playlist_count': 24,
+        'playlist_mincount': 24,
         'info_dict': {
             'id': 'video?q=rumble&sort=views',
             'title': 'Search results for: rumble',
@@ -284,19 +341,20 @@ class RumbleIE(InfoExtractor):
         if not url_info:
             raise UnsupportedError(url)
 
-        release_ts_str = self._search_regex(
-            r'(?:Livestream begins|Streamed on):\s+<time datetime="([^"]+)',
-            webpage, 'release date', fatal=False, default=None)
-        view_count_str = self._search_regex(r'<span class="media-heading-info">([\d,]+) Views',
-                                            webpage, 'view count', fatal=False, default=None)
-
-        return self.url_result(
-            url_info['url'], ie_key=url_info['ie_key'], url_transparent=True,
-            view_count=parse_count(view_count_str),
-            release_timestamp=parse_iso8601(release_ts_str),
-            like_count=parse_count(get_element_by_class('rumbles-count', webpage)),
-            description=clean_html(get_element_by_class('media-description', webpage)),
-        )
+        return {
+            '_type': 'url_transparent',
+            'ie_key': url_info['ie_key'],
+            'url': url_info['url'],
+            'release_timestamp': parse_iso8601(self._search_regex(
+                r'(?:Livestream begins|Streamed on):\s+<time datetime="([^"]+)', webpage, 'release date', default=None)),
+            'view_count': int_or_none(self._search_regex(
+                r'"userInteractionCount"\s*:\s*(\d+)', webpage, 'view count', default=None)),
+            'like_count': parse_count(self._search_regex(
+                r'<span data-js="rumbles_up_votes">\s*([\d,.KM]+)', webpage, 'like count', default=None)),
+            'dislike_count': parse_count(self._search_regex(
+                r'<span data-js="rumbles_down_votes">\s*([\d,.KM]+)', webpage, 'dislike count', default=None)),
+            'description': clean_html(get_element_by_class('media-description', webpage)),
+        }
 
 
 class RumbleChannelIE(InfoExtractor):
@@ -319,12 +377,12 @@ class RumbleChannelIE(InfoExtractor):
     def entries(self, url, playlist_id):
         for page in itertools.count(1):
             try:
-                webpage = self._download_webpage(f'{url}?page={page}', playlist_id, note='Downloading page %d' % page)
+                webpage = self._download_webpage(f'{url}?page={page}', playlist_id, note=f'Downloading page {page}')
             except ExtractorError as e:
-                if isinstance(e.cause, compat_HTTPError) and e.cause.code == 404:
+                if isinstance(e.cause, HTTPError) and e.cause.status == 404:
                     break
                 raise
-            for video_url in re.findall(r'class=video-item--a\s?href=([^>]+\.html)', webpage):
+            for video_url in re.findall(r'class="[^>"]*videostream__link[^>]+href="([^"]+\.html)"', webpage):
                 yield self.url_result('https://rumble.com' + video_url)
 
     def _real_extract(self, url):

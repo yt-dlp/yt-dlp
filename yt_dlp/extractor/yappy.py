@@ -1,13 +1,15 @@
 from .common import InfoExtractor
 from ..utils import (
+    OnDemandPagedList,
     int_or_none,
     traverse_obj,
     unified_timestamp,
-    url_or_none
+    url_or_none,
 )
 
 
 class YappyIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://yappy\.media/video/(?P<id>\w+)'
     _TESTS = [{
         'url': 'https://yappy.media/video/47fea6d8586f48d1a0cf96a7342aabd2',
@@ -25,7 +27,7 @@ class YappyIE(InfoExtractor):
             'categories': ['Образование и наука', 'Лайфхак', 'Технологии', 'Арт/искусство'],
             'repost_count': int,
             'uploader': 'YAPPY',
-        }
+        },
     }, {
         'url': 'https://yappy.media/video/3862451954ad4bd58ae2ccefddb0bd33',
         'info_dict': {
@@ -41,7 +43,7 @@ class YappyIE(InfoExtractor):
             'uploader': 'LENA SHTURMAN',
             'upload_date': '20230126',
             'thumbnail': 'https://cdn-st.ritm.media/static/pic/user_thumbnails/6e76bb4bbad640b6/9ec84c115b2b1967/1674716171.jpg',
-        }
+        },
     }]
 
     def _real_extract(self, url):
@@ -62,13 +64,13 @@ class YappyIE(InfoExtractor):
             'url': media_url,
             'ext': 'mp4',
             'format_note': 'Watermarked' if has_watermark else None,
-            'preference': -10 if has_watermark else None
+            'preference': -10 if has_watermark else None,
         }] if media_url else []
 
         if has_watermark:
             formats.append({
                 'url': media_url.replace('-wm.mp4', '.mp4'),
-                'ext': 'mp4'
+                'ext': 'mp4',
             })
 
         audio_link = traverse_obj(media_data, ('audio', 'link'))
@@ -77,7 +79,7 @@ class YappyIE(InfoExtractor):
                 'url': audio_link,
                 'ext': 'mp3',
                 'acodec': 'mp3',
-                'vcodec': 'none'
+                'vcodec': 'none',
             })
 
         return {
@@ -95,5 +97,32 @@ class YappyIE(InfoExtractor):
             'uploader': traverse_obj(media_data, ('creator', 'firstName')),
             'uploader_id': traverse_obj(media_data, ('creator', ('uuid', 'nickname')), get_all=False),
             'categories': traverse_obj(media_data, ('categories', ..., 'name')) or None,
-            'repost_count': int_or_none(media_data.get('sharingCount'))
+            'repost_count': int_or_none(media_data.get('sharingCount')),
         }
+
+
+class YappyProfileIE(InfoExtractor):
+    _VALID_URL = r'https?://yappy\.media/profile/(?P<id>\w+)'
+    _TESTS = [{
+        'url': 'https://yappy.media/profile/59a0c8c485e5410b9c43474bf4c6a373',
+        'info_dict': {
+            'id': '59a0c8c485e5410b9c43474bf4c6a373',
+        },
+        'playlist_mincount': 527,
+    }]
+
+    def _real_extract(self, url):
+        profile_id = self._match_id(url)
+
+        def fetch_page(page_num):
+            page_num += 1
+            videos = self._download_json(
+                f'https://yappy.media/api/video/list/{profile_id}?page={page_num}',
+                profile_id, f'Downloading profile page {page_num} JSON')
+
+            for video in traverse_obj(videos, ('results', lambda _, v: v['uuid'])):
+                yield self.url_result(
+                    f'https://yappy.media/video/{video["uuid"]}', YappyIE,
+                    video['uuid'], video.get('description'))
+
+        return self.playlist_result(OnDemandPagedList(fetch_page, 15), profile_id)

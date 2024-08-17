@@ -1,4 +1,3 @@
-import random
 import urllib.parse
 
 from .common import InfoExtractor
@@ -6,15 +5,19 @@ from ..utils import (
     ExtractorError,
     float_or_none,
     int_or_none,
+    parse_qs,
     traverse_obj,
     try_get,
     unescapeHTML,
+    update_url_query,
     url_or_none,
+    urlencode_postdata,
 )
 
 
 class RedditIE(InfoExtractor):
-    _VALID_URL = r'https?://(?P<subdomain>[^/]+\.)?reddit(?:media)?\.com/(?P<slug>(?:r|user)/[^/]+/comments/(?P<id>[^/?#&]+))'
+    _NETRC_MACHINE = 'reddit'
+    _VALID_URL = r'https?://(?P<host>(?:\w+\.)?reddit(?:media)?\.com)/(?P<slug>(?:(?:r|user)/[^/]+/)?comments/(?P<id>[^/?#&]+))'
     _TESTS = [{
         'url': 'https://www.reddit.com/r/videos/comments/6rrwyj/that_small_heart_attack/',
         'info_dict': {
@@ -75,7 +78,7 @@ class RedditIE(InfoExtractor):
             'like_count': int,
             'dislike_count': int,
             'comment_count': int,
-            'age_limit': 0,
+            'age_limit': 18,
             'channel_id': 'u_creepyt0es',
         },
         'params': {
@@ -110,6 +113,91 @@ class RedditIE(InfoExtractor):
             'channel_id': 'dumbfuckers_club',
         },
     }, {
+        # post link without subreddit
+        'url': 'https://www.reddit.com/comments/124pp33',
+        'md5': '15eec9d828adcef4468b741a7e45a395',
+        'info_dict': {
+            'id': 'antsenjc2jqa1',
+            'ext': 'mp4',
+            'display_id': '124pp33',
+            'title': 'Harmless prank of some old friends',
+            'uploader': 'Dudezila',
+            'channel_id': 'ContagiousLaughter',
+            'duration': 17,
+            'upload_date': '20230328',
+            'timestamp': 1680012043,
+            'thumbnail': r're:^https?://.*\.(?:jpg|png)',
+            'age_limit': 0,
+            'comment_count': int,
+            'dislike_count': int,
+            'like_count': int,
+        },
+    }, {
+        # quarantined subreddit post
+        'url': 'https://old.reddit.com/r/GenZedong/comments/12fujy3/based_hasan/',
+        'md5': '3156ea69e3c1f1b6259683c5abd36e71',
+        'info_dict': {
+            'id': '8bwtclfggpsa1',
+            'ext': 'mp4',
+            'display_id': '12fujy3',
+            'title': 'Based Hasan?',
+            'uploader': 'KingNigelXLII',
+            'channel_id': 'GenZedong',
+            'duration': 16,
+            'upload_date': '20230408',
+            'timestamp': 1680979138,
+            'age_limit': 0,
+            'comment_count': int,
+            'dislike_count': int,
+            'like_count': int,
+        },
+        'skip': 'Requires account that has opted-in to the GenZedong subreddit',
+    }, {
+        # subtitles in HLS manifest
+        'url': 'https://www.reddit.com/r/Unexpected/comments/1cl9h0u/the_insurance_claim_will_be_interesting/',
+        'info_dict': {
+            'id': 'a2mdj5d57qyc1',
+            'ext': 'mp4',
+            'display_id': '1cl9h0u',
+            'title': 'The insurance claim will be interesting',
+            'uploader': 'darrenpauli',
+            'channel_id': 'Unexpected',
+            'duration': 53,
+            'upload_date': '20240506',
+            'timestamp': 1714966382,
+            'age_limit': 0,
+            'comment_count': int,
+            'dislike_count': int,
+            'like_count': int,
+            'subtitles': {'en': 'mincount:1'},
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }, {
+        # subtitles from caption-url
+        'url': 'https://www.reddit.com/r/soccer/comments/1cxwzso/tottenham_1_0_newcastle_united_james_maddison_31/',
+        'info_dict': {
+            'id': 'xbmj4t3igy1d1',
+            'ext': 'mp4',
+            'display_id': '1cxwzso',
+            'title': 'Tottenham [1] - 0 Newcastle United - James Maddison 31\'',
+            'uploader': 'Woodstovia',
+            'channel_id': 'soccer',
+            'duration': 30,
+            'upload_date': '20240522',
+            'timestamp': 1716373798,
+            'age_limit': 0,
+            'comment_count': int,
+            'dislike_count': int,
+            'like_count': int,
+            'subtitles': {'en': 'mincount:1'},
+        },
+        'params': {
+            'skip_download': True,
+            'writesubtitles': True,
+        },
+    }, {
         'url': 'https://www.reddit.com/r/videos/comments/6rrwyj',
         'only_matching': True,
     }, {
@@ -137,21 +225,51 @@ class RedditIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    @staticmethod
-    def _gen_session_id():
-        id_length = 16
-        rand_max = 1 << (id_length * 4)
-        return '%0.*x' % (id_length, random.randrange(rand_max))
+    def _perform_login(self, username, password):
+        captcha = self._download_json(
+            'https://www.reddit.com/api/requires_captcha/login.json', None,
+            'Checking login requirement')['required']
+        if captcha:
+            raise ExtractorError('Reddit is requiring captcha before login', expected=True)
+        login = self._download_json(
+            f'https://www.reddit.com/api/login/{username}', None, data=urlencode_postdata({
+                'op': 'login-main',
+                'user': username,
+                'passwd': password,
+                'api_type': 'json',
+            }), note='Logging in', errnote='Login request failed')
+        errors = '; '.join(traverse_obj(login, ('json', 'errors', ..., 1)))
+        if errors:
+            raise ExtractorError(f'Unable to login, Reddit API says {errors}', expected=True)
+        elif not traverse_obj(login, ('json', 'data', 'cookie', {str})):
+            raise ExtractorError('Unable to login, no cookie was returned')
+
+    def _get_subtitles(self, video_id):
+        # Fallback if there were no subtitles provided by DASH or HLS manifests
+        caption_url = f'https://v.redd.it/{video_id}/wh_ben_en.vtt'
+        if self._is_valid_url(caption_url, video_id, item='subtitles'):
+            return {'en': [{'url': caption_url}]}
 
     def _real_extract(self, url):
-        subdomain, slug, video_id = self._match_valid_url(url).group('subdomain', 'slug', 'id')
+        host, slug, video_id = self._match_valid_url(url).group('host', 'slug', 'id')
 
-        self._set_cookie('.reddit.com', 'reddit_session', self._gen_session_id())
-        self._set_cookie('.reddit.com', '_options', '%7B%22pref_quarantine_optin%22%3A%20true%7D')
-        data = self._download_json(f'https://{subdomain}reddit.com/{slug}/.json', video_id, fatal=False)
+        data = self._download_json(
+            f'https://{host}/{slug}/.json', video_id, fatal=False, expected_status=403)
         if not data:
-            # Fall back to old.reddit.com in case the requested subdomain fails
-            data = self._download_json(f'https://old.reddit.com/{slug}/.json', video_id)
+            fallback_host = 'old.reddit.com' if host != 'old.reddit.com' else 'www.reddit.com'
+            self.to_screen(f'{host} request failed, retrying with {fallback_host}')
+            data = self._download_json(
+                f'https://{fallback_host}/{slug}/.json', video_id, expected_status=403)
+
+        if traverse_obj(data, 'error') == 403:
+            reason = data.get('reason')
+            if reason == 'quarantined':
+                self.raise_login_required('Quarantined subreddit; an account that has opted in is required')
+            elif reason == 'private':
+                self.raise_login_required('Private subreddit; an account that has been approved is required')
+            else:
+                raise ExtractorError(f'HTTP Error 403 Forbidden; reason given: {reason}')
+
         data = data[0]['data']['children'][0]['data']
         video_url = data['url']
 
@@ -175,6 +293,7 @@ class RedditIE(InfoExtractor):
                 'url': unescapeHTML(thumbnail_url),
                 'width': int_or_none(src.get('width')),
                 'height': int_or_none(src.get('height')),
+                'http_headers': {'Accept': '*/*'},
             })
 
         for image in try_get(data, lambda x: x['preview']['images']) or []:
@@ -241,6 +360,10 @@ class RedditIE(InfoExtractor):
 
             dash_playlist_url = playlist_urls[0] or f'https://v.redd.it/{video_id}/DASHPlaylist.mpd'
             hls_playlist_url = playlist_urls[1] or f'https://v.redd.it/{video_id}/HLSPlaylist.m3u8'
+            qs = traverse_obj(parse_qs(hls_playlist_url), {
+                'f': ('f', 0, {lambda x: ','.join([x, 'subsAll']) if x else 'hd,subsAll'}),
+            })
+            hls_playlist_url = update_url_query(hls_playlist_url, qs)
 
             formats = [{
                 'url': unescapeHTML(reddit_video['fallback_url']),
@@ -253,16 +376,20 @@ class RedditIE(InfoExtractor):
                 'format_id': 'fallback',
                 'format_note': 'DASH video, mp4_dash',
             }]
-            formats.extend(self._extract_m3u8_formats(
-                hls_playlist_url, display_id, 'mp4', m3u8_id='hls', fatal=False))
-            formats.extend(self._extract_mpd_formats(
-                dash_playlist_url, display_id, mpd_id='dash', fatal=False))
+            hls_fmts, subtitles = self._extract_m3u8_formats_and_subtitles(
+                hls_playlist_url, display_id, 'mp4', m3u8_id='hls', fatal=False)
+            formats.extend(hls_fmts)
+            dash_fmts, dash_subs = self._extract_mpd_formats_and_subtitles(
+                dash_playlist_url, display_id, mpd_id='dash', fatal=False)
+            formats.extend(dash_fmts)
+            self._merge_subtitles(dash_subs, target=subtitles)
 
             return {
                 **info,
                 'id': video_id,
                 'display_id': display_id,
                 'formats': formats,
+                'subtitles': subtitles or self.extract_subtitles(video_id),
                 'duration': int_or_none(reddit_video.get('duration')),
             }
 

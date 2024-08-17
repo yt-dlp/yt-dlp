@@ -1,7 +1,7 @@
 import math
 
 from .common import InfoExtractor
-from ..utils import traverse_obj, try_call, InAdvancePagedList
+from ..utils import InAdvancePagedList, str_or_none, traverse_obj, try_call
 
 
 class XimalayaBaseIE(InfoExtractor):
@@ -19,10 +19,10 @@ class XimalayaIE(XimalayaBaseIE):
                 'id': '47740352',
                 'ext': 'm4a',
                 'uploader': '小彬彬爱听书',
-                'uploader_id': 61425525,
+                'uploader_id': '61425525',
                 'uploader_url': 'http://www.ximalaya.com/zhubo/61425525/',
                 'title': '261.唐诗三百首.卷八.送孟浩然之广陵.李白',
-                'description': "contains:《送孟浩然之广陵》\n作者：李白\n故人西辞黄鹤楼，烟花三月下扬州。\n孤帆远影碧空尽，惟见长江天际流。",
+                'description': 'contains:《送孟浩然之广陵》\n作者：李白\n故人西辞黄鹤楼，烟花三月下扬州。\n孤帆远影碧空尽，惟见长江天际流。',
                 'thumbnail': r're:^https?://.*\.jpg',
                 'thumbnails': [
                     {
@@ -33,14 +33,14 @@ class XimalayaIE(XimalayaBaseIE):
                         'name': 'cover_url_142',
                         'url': r're:^https?://.*\.jpg',
                         'width': 180,
-                        'height': 180
-                    }
+                        'height': 180,
+                    },
                 ],
                 'categories': ['其他'],
                 'duration': 93,
                 'view_count': int,
                 'like_count': int,
-            }
+            },
         },
         {
             'url': 'http://m.ximalaya.com/61425525/sound/47740352/',
@@ -48,10 +48,10 @@ class XimalayaIE(XimalayaBaseIE):
                 'id': '47740352',
                 'ext': 'm4a',
                 'uploader': '小彬彬爱听书',
-                'uploader_id': 61425525,
+                'uploader_id': '61425525',
                 'uploader_url': 'http://www.ximalaya.com/zhubo/61425525/',
                 'title': '261.唐诗三百首.卷八.送孟浩然之广陵.李白',
-                'description': "contains:《送孟浩然之广陵》\n作者：李白\n故人西辞黄鹤楼，烟花三月下扬州。\n孤帆远影碧空尽，惟见长江天际流。",
+                'description': 'contains:《送孟浩然之广陵》\n作者：李白\n故人西辞黄鹤楼，烟花三月下扬州。\n孤帆远影碧空尽，惟见长江天际流。',
                 'thumbnail': r're:^https?://.*\.jpg',
                 'thumbnails': [
                     {
@@ -62,35 +62,35 @@ class XimalayaIE(XimalayaBaseIE):
                         'name': 'cover_url_142',
                         'url': r're:^https?://.*\.jpg',
                         'width': 180,
-                        'height': 180
-                    }
+                        'height': 180,
+                    },
                 ],
                 'categories': ['人文'],
                 'duration': 93,
                 'view_count': int,
                 'like_count': int,
-            }
-        }
+            },
+        },
     ]
 
     def _real_extract(self, url):
         scheme = 'https' if url.startswith('https') else 'http'
 
         audio_id = self._match_id(url)
-        audio_info_file = '%s://m.ximalaya.com/tracks/%s.json' % (scheme, audio_id)
-        audio_info = self._download_json(audio_info_file, audio_id,
-                                         'Downloading info json %s' % audio_info_file,
-                                         'Unable to download info file')
+        audio_info_file = f'{scheme}://m.ximalaya.com/tracks/{audio_id}.json'
+        audio_info = self._download_json(
+            audio_info_file, audio_id,
+            f'Downloading info json {audio_info_file}', 'Unable to download info file')
 
         formats = [{
             'format_id': f'{bps}k',
             'url': audio_info[k],
             'abr': bps,
-            'vcodec': 'none'
+            'vcodec': 'none',
         } for bps, k in ((24, 'play_path_32'), (64, 'play_path_64')) if audio_info.get(k)]
 
         thumbnails = []
-        for k in audio_info.keys():
+        for k in audio_info:
             # cover pics kyes like: cover_url', 'cover_url_142'
             if k.startswith('cover_url'):
                 thumbnail = {'name': k, 'url': audio_info[k]}
@@ -107,7 +107,7 @@ class XimalayaIE(XimalayaBaseIE):
         return {
             'id': audio_id,
             'uploader': audio_info.get('nickname'),
-            'uploader_id': audio_uploader_id,
+            'uploader_id': str_or_none(audio_uploader_id),
             'uploader_url': f'{scheme}://www.ximalaya.com/zhubo/{audio_uploader_id}/' if audio_uploader_id else None,
             'title': audio_info['title'],
             'thumbnails': thumbnails,
@@ -158,7 +158,7 @@ class XimalayaAlbumIE(XimalayaBaseIE):
         return self._download_json(
             'https://www.ximalaya.com/revision/album/v1/getTracksList',
             playlist_id, note=f'Downloading tracks list page {page_idx}',
-            query={'albumId': playlist_id, 'pageNum': page_idx, 'sort': 1})['data']
+            query={'albumId': playlist_id, 'pageNum': page_idx})['data']
 
     def _get_entries(self, page_data):
         for e in page_data['tracks']:

@@ -1,0 +1,189 @@
+[
+    {
+        "action": "add",
+        "when": "29cb20bd563c02671b31dd840139e93dd37150a1",
+        "short": "[priority] **A new release type has been added!**\n    * [`nightly`](https://github.com/yt-dlp/yt-dlp/releases/tag/nightly) builds will be made after each push, containing the latest fixes (but also possibly bugs).\n    * When using `--update`/`-U`, a release binary will only update to its current channel (either `stable` or `nightly`).\n    * The `--update-to` option has been added allowing the user more control over program upgrades (or downgrades).\n    * `--update-to` can change the release channel (`stable`, `nightly`) and also upgrade or downgrade to specific tags.\n    * **Usage**: `--update-to CHANNEL`, `--update-to TAG`, `--update-to CHANNEL@TAG`"
+    },
+    {
+        "action": "add",
+        "when": "5038f6d713303e0967d002216e7a88652401c22a",
+        "short": "[priority] **YouTube throttling fixes!**"
+    },
+    {
+        "action": "remove",
+        "when": "2e023649ea4e11151545a34dc1360c114981a236"
+    },
+    {
+        "action": "add",
+        "when": "01aba2519a0884ef17d5f85608dbd2a455577147",
+        "short": "[priority] YouTube: Improved throttling and signature fixes"
+    },
+    {
+        "action": "change",
+        "when": "c86e433c35fe5da6cb29f3539eef97497f84ed38",
+        "short": "[extractor/niconico:series] Fix extraction (#6898)",
+        "authors": ["sqrtNOT"]
+    },
+    {
+        "action": "change",
+        "when": "69a40e4a7f6caa5662527ebd2f3c4e8aa02857a2",
+        "short": "[extractor/youtube:music_search_url] Extract title (#7102)",
+        "authors": ["kangalio"]
+    },
+    {
+        "action": "change",
+        "when": "8417f26b8a819cd7ffcd4e000ca3e45033e670fb",
+        "short": "Add option `--color` (#6904)",
+        "authors": ["Grub4K"]
+    },
+    {
+        "action": "change",
+        "when": "b4e0d75848e9447cee2cd3646ce54d4744a7ff56",
+        "short": "Improve `--download-sections`\n    - Support negative time-ranges\n    - Add `*from-url` to obey time-ranges in URL",
+        "authors": ["pukkandan"]
+    },
+    {
+        "action": "change",
+        "when": "1e75d97db21152acc764b30a688e516f04b8a142",
+        "short": "[extractor/youtube] Add `ios` to default clients used\n        - IOS is affected neither by 403 nor by nsig so helps mitigate them preemptively\n        - IOS also has higher bit-rate 'premium' formats though they are not labeled as such",
+        "authors": ["pukkandan"]
+    },
+    {
+        "action": "change",
+        "when": "f2ff0f6f1914b82d4a51681a72cc0828115dcb4a",
+        "short": "[extractor/motherless] Add gallery support, fix groups (#7211)",
+        "authors": ["rexlambert22", "Ti4eeT4e"]
+    },
+    {
+        "action": "change",
+        "when": "a4486bfc1dc7057efca9dd3fe70d7fa25c56f700",
+        "short": "[misc] Revert \"Add automatic duplicate issue detection\"",
+        "authors": ["pukkandan"]
+    },
+    {
+        "action": "add",
+        "when": "1ceb657bdd254ad961489e5060f2ccc7d556b729",
+        "short": "[priority] Security: [[CVE-2023-35934](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2023-35934)] Fix [Cookie leak](https://github.com/yt-dlp/yt-dlp/security/advisories/GHSA-v8mc-9377-rwjj)\n    - `--add-header Cookie:` is deprecated and auto-scoped to input URL domains\n    - Cookies are scoped when passed to external downloaders\n    - Add `cookies` field to info.json and deprecate `http_headers.Cookie`"
+    },
+    {
+        "action": "change",
+        "when": "b03fa7834579a01cc5fba48c0e73488a16683d48",
+        "short": "[ie/twitter] Revert 92315c03774cfabb3a921884326beb4b981f786b",
+        "authors": ["pukkandan"]
+    },
+    {
+        "action": "change",
+        "when": "fcd6a76adc49d5cd8783985c7ce35384b72e545f",
+        "short": "[test] Add tests for socks proxies (#7908)",
+        "authors": ["coletdjnz"]
+    },
+    {
+        "action": "change",
+        "when": "4bf912282a34b58b6b35d8f7e6be535770c89c76",
+        "short": "[rh:urllib] Remove dot segments during URL normalization (#7662)",
+        "authors": ["coletdjnz"]
+    },
+    {
+        "action": "change",
+        "when": "59e92b1f1833440bb2190f847eb735cf0f90bc85",
+        "short": "[rh:urllib] Simplify gzip decoding (#7611)",
+        "authors": ["Grub4K"]
+    },
+    {
+        "action": "add",
+        "when": "c1d71d0d9f41db5e4306c86af232f5f6220a130b",
+        "short": "[priority] **The minimum *recommended* Python version has been raised to 3.8**\nSince Python 3.7 has reached end-of-life, support for it will be dropped soon. [Read more](https://github.com/yt-dlp/yt-dlp/issues/7803)"
+    },
+    {
+        "action": "add",
+        "when": "61bdf15fc7400601c3da1aa7a43917310a5bf391",
+        "short": "[priority] Security: [[CVE-2023-40581](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2023-40581)] [Prevent RCE when using `--exec` with `%q` on Windows](https://github.com/yt-dlp/yt-dlp/security/advisories/GHSA-42h4-v29r-42qg)\n    - The shell escape function is now using `\"\"` instead of `\\\"`.\n    - `utils.Popen` has been patched to properly quote commands."
+    },
+    {
+        "action": "change",
+        "when": "8a8b54523addf46dfd50ef599761a81bc22362e6",
+        "short": "[rh:requests] Add handler for `requests` HTTP library (#3668)\n\n\tAdds support for HTTPS proxies and persistent connections (keep-alive)",
+        "authors": ["bashonly", "coletdjnz", "Grub4K"]
+    },
+    {
+        "action": "add",
+        "when": "1d03633c5a1621b9f3a756f0a4f9dc61fab3aeaa",
+        "short": "[priority] **The release channels have been adjusted!**\n\t* [`master`](https://github.com/yt-dlp/yt-dlp-master-builds) builds are made after each push, containing the latest fixes (but also possibly bugs). This was previously the `nightly` channel.\n\t* [`nightly`](https://github.com/yt-dlp/yt-dlp-nightly-builds) builds are now made once a day, if there were any changes."
+    },
+    {
+        "action": "add",
+        "when": "f04b5bedad7b281bee9814686bba1762bae092eb",
+        "short": "[priority] Security: [[CVE-2023-46121](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2023-46121)] Patch [Generic Extractor MITM Vulnerability via Arbitrary Proxy Injection](https://github.com/yt-dlp/yt-dlp/security/advisories/GHSA-3ch3-jhc6-5r8x)\n\t- Disallow smuggling of arbitrary `http_headers`; extractors now only use specific headers"
+    },
+    {
+        "action": "change",
+        "when": "15f22b4880b6b3f71f350c64d70976ae65b9f1ca",
+        "short": "[webvtt] Allow spaces before newlines for CueBlock (#7681)",
+        "authors": ["TSRBerry"]
+    },
+    {
+        "action": "change",
+        "when": "4ce57d3b873c2887814cbec03d029533e82f7db5",
+        "short": "[ie] Support multi-period MPD streams (#6654)",
+        "authors": ["alard", "pukkandan"]
+    },
+    {
+        "action": "change",
+        "when": "aa7e9ae4f48276bd5d0173966c77db9484f65a0a",
+        "short": "[ie/xvideos] Support new URL format (#9502)",
+        "authors": ["sta1us"]
+    },
+    {
+        "action": "remove",
+        "when": "22e4dfacb61f62dfbb3eb41b31c7b69ba1059b80"
+    },
+    {
+        "action": "change",
+        "when": "e3a3ed8a981d9395c4859b6ef56cd02bc3148db2",
+        "short": "[cleanup:ie] No `from` stdlib imports in extractors",
+        "authors": ["pukkandan"]
+    },
+    {
+        "action": "add",
+        "when": "9590cc6b4768e190183d7d071a6c78170889116a",
+        "short": "[priority] Security: [[CVE-2024-22423](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2024-22423)] [Prevent RCE when using `--exec` with `%q` on Windows](https://github.com/yt-dlp/yt-dlp/security/advisories/GHSA-hjq6-52gw-2g7p)\n    - The shell escape function now properly escapes `%`, `\\` and `\\n`.\n    - `utils.Popen` has been patched accordingly."
+    },
+    {
+        "action": "change",
+        "when": "41ba4a808b597a3afed78c89675a30deb6844450",
+        "short": "[ie/tiktok] Extract via mobile API only if extractor-arg is passed (#9938)",
+        "authors": ["bashonly"]
+    },
+    {
+        "action": "remove",
+        "when": "6e36d17f404556f0e3a43f441c477a71a91877d9"
+    },
+    {
+        "action": "change",
+        "when": "beaf832c7a9d57833f365ce18f6115b88071b296",
+        "short": "[ie/soundcloud] Add `formats` extractor-arg (#10004)",
+        "authors": ["bashonly", "Grub4K"]
+    },
+    {
+        "action": "change",
+        "when": "5c019f6328ad40d66561eac3c4de0b3cd070d0f6",
+        "short": "[cleanup] Misc (#9765)",
+        "authors": ["bashonly", "Grub4K", "seproDev"]
+    },
+    {
+        "action": "change",
+        "when": "e6a22834df1776ec4e486526f6df2bf53cb7e06f",
+        "short": "[ie/orf:on] Add `prefer_segments_playlist` extractor-arg (#10314)",
+        "authors": ["seproDev"]
+    },
+    {
+        "action": "add",
+        "when": "6aaf96a3d6e7d0d426e97e11a2fcf52fda00e733",
+        "short": "[priority] Security: [[CVE-2024-38519](https://nvd.nist.gov/vuln/detail/CVE-2024-38519)] [Properly sanitize file-extension to prevent file system modification and RCE](https://github.com/yt-dlp/yt-dlp/security/advisories/GHSA-79w7-vh3h-8g4j)\n    - Unsafe extensions are now blocked from being downloaded"
+    },
+    {
+        "action": "add",
+        "when": "6075a029dba70a89675ae1250e7cdfd91f0eba41",
+        "short": "[priority] Security: [[ie/douyutv] Do not use dangerous javascript source/URL](https://github.com/yt-dlp/yt-dlp/security/advisories/GHSA-3v33-3wmw-3785)\n    - A dependency on potentially malicious third-party JavaScript code has been removed from the Douyu extractors"
+    }
+]

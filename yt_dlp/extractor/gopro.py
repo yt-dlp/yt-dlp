@@ -23,7 +23,7 @@ class GoProIE(InfoExtractor):
             'upload_date': '20210919',
             'uploader_id': 'fireydive30018',
             'duration': 396062,
-        }
+        },
     }, {
         'url': 'https://gopro.com/v/KRm6Vgp2peg4e',
         'info_dict': {
@@ -36,7 +36,7 @@ class GoProIE(InfoExtractor):
             'uploader_id': 'dc9bcb8b-47d2-47c6-afbc-4c48f9a3769e',
             'duration': 45187,
             'track': 'The Sky Machine',
-        }
+        },
     }, {
         'url': 'https://gopro.com/v/kVrK9wlJvBMwn',
         'info_dict': {
@@ -50,19 +50,19 @@ class GoProIE(InfoExtractor):
             'duration': 313075,
             'track': 'Battery (Live)',
             'artist': 'Metallica',
-        }
+        },
     }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        metadata = self._parse_json(
-            self._html_search_regex(r'window\.__reflectData\s*=\s*([^;]+)', webpage, 'metadata'), video_id)
+        metadata = self._search_json(
+            r'window\.__reflectData\s*=', webpage, 'metadata', video_id)
 
         video_info = metadata['collectionMedia'][0]
         media_data = self._download_json(
-            'https://api.gopro.com/media/%s/download' % video_info['id'], video_id)
+            'https://api.gopro.com/media/{}/download'.format(video_info['id']), video_id)
 
         formats = []
         for fmt in try_get(media_data, lambda x: x['_embedded']['variations']) or []:
@@ -99,7 +99,7 @@ class GoProIE(InfoExtractor):
             'duration': int_or_none(
                 video_info.get('source_duration')),
             'artist': str_or_none(
-                video_info.get('music_track_artist')),
+                video_info.get('music_track_artist')) or None,
             'track': str_or_none(
-                video_info.get('music_track_name')),
+                video_info.get('music_track_name')) or None,
         }

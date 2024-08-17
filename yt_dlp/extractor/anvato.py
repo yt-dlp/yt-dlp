@@ -238,7 +238,7 @@ class AnvatoIE(InfoExtractor):
         'gray': 'anvato_mcp_gray_web_prod_4c10f067c393ed8fc453d3930f8ab2b159973900',
         'hearst': 'anvato_mcp_hearst_web_prod_5356c3de0fc7c90a3727b4863ca7fec3a4524a99',
         'cbs': 'anvato_mcp_cbs_web_prod_02f26581ff80e5bda7aad28226a8d369037f2cbe',
-        'telemundo': 'anvato_mcp_telemundo_web_prod_c5278d51ad46fda4b6ca3d0ea44a7846a054f582'
+        'telemundo': 'anvato_mcp_telemundo_web_prod_c5278d51ad46fda4b6ca3d0ea44a7846a054f582',
     }
 
     def _generate_nfl_token(self, anvack, mcp_id):
@@ -255,7 +255,7 @@ class AnvatoIE(InfoExtractor):
       token
     }
   }
-}''' % (anvack, mcp_id),
+}''' % (anvack, mcp_id),  # noqa: UP031
             }).encode(), headers={
                 'Authorization': auth_token,
                 'Content-Type': 'application/json',
@@ -299,7 +299,7 @@ class AnvatoIE(InfoExtractor):
 
         return self._download_json(
             video_data_url, video_id, transform_source=strip_jsonp, query=query,
-            data=json.dumps({'api': api}, separators=(',', ':')).encode('utf-8'))
+            data=json.dumps({'api': api}, separators=(',', ':')).encode())
 
     def _get_anvato_videos(self, access_key, video_id, token):
         video_data = self._get_video_json(access_key, video_id, token)
@@ -336,7 +336,7 @@ class AnvatoIE(InfoExtractor):
             elif media_format == 'm3u8-variant' or ext == 'm3u8':
                 # For some videos the initial m3u8 URL returns JSON instead
                 manifest_json = self._download_json(
-                    video_url, video_id, note='Downloading manifest JSON', errnote=False)
+                    video_url, video_id, note='Downloading manifest JSON', fatal=False)
                 if manifest_json:
                     video_url = manifest_json.get('master_m3u8')
                     if not video_url:
@@ -358,7 +358,7 @@ class AnvatoIE(InfoExtractor):
         for caption in video_data.get('captions', []):
             a_caption = {
                 'url': caption['url'],
-                'ext': 'tt' if caption.get('format') == 'SMPTE-TT' else None
+                'ext': 'tt' if caption.get('format') == 'SMPTE-TT' else None,
             }
             subtitles.setdefault(caption['language'], []).append(a_caption)
         subtitles = self._merge_subtitles(subtitles, hls_subs, vtt_subs)
@@ -391,14 +391,6 @@ class AnvatoIE(InfoExtractor):
             if anvplayer_data.get('token'):
                 url = smuggle_url(url, {'token': anvplayer_data['token']})
             yield cls.url_result(url, AnvatoIE, video_id)
-
-    def _extract_anvato_videos(self, webpage, video_id):
-        anvplayer_data = self._parse_json(
-            self._html_search_regex(
-                self._ANVP_RE, webpage, 'Anvato player data', group='anvp'),
-            video_id)
-        return self._get_anvato_videos(
-            anvplayer_data['accessKey'], anvplayer_data['video'], 'default')  # cbslocal token = 'default'
 
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url, {})

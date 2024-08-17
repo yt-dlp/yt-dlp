@@ -11,13 +11,16 @@ from .vimeo import VimeoIE
 from .youtube import YoutubeIE
 from ..utils import (
     ExtractorError,
+    UserNotLive,
     clean_html,
     get_element_by_class,
     get_element_html_by_id,
     int_or_none,
     join_nonempty,
+    parse_resolution,
     str_or_none,
     str_to_int,
+    traverse_obj,
     try_call,
     unescapeHTML,
     unified_timestamp,
@@ -33,7 +36,7 @@ class VKBaseIE(InfoExtractor):
 
     def _download_webpage_handle(self, url_or_request, video_id, *args, fatal=True, **kwargs):
         response = super()._download_webpage_handle(url_or_request, video_id, *args, fatal=fatal, **kwargs)
-        challenge_url, cookie = response[1].geturl() if response else '', None
+        challenge_url, cookie = response[1].url if response else '', None
         if challenge_url.startswith('https://vk.com/429.html?'):
             cookie = self._get_cookies(challenge_url).get('hash429')
         if not cookie:
@@ -94,12 +97,12 @@ class VKIE(VKBaseIE):
                         (?:
                             (?:
                                 (?:(?:m|new)\.)?vk\.com/video_|
-                                (?:www\.)?daxab.com/
+                                (?:www\.)?daxab\.com/
                             )
                             ext\.php\?(?P<embed_query>.*?\boid=(?P<oid>-?\d+).*?\bid=(?P<id>\d+).*)|
                             (?:
                                 (?:(?:m|new)\.)?vk\.com/(?:.+?\?.*?z=)?(?:video|clip)|
-                                (?:www\.)?daxab.com/embed/
+                                (?:www\.)?daxab\.com/embed/
                             )
                             (?P<videoid>-?\d+_\d+)(?:.*\blist=(?P<list_id>([\da-f]+)|(ln-[\da-zA-Z]+)))?
                         )
@@ -137,7 +140,7 @@ class VKIE(VKBaseIE):
                 'comment_count': int,
                 'like_count': int,
                 'thumbnail': r're:https?://.+(?:\.jpg|getVideoPreview.*)$',
-            }
+            },
         },
         {
             'note': 'Embedded video',
@@ -217,7 +220,7 @@ class VKIE(VKBaseIE):
                 'like_count': int,
                 'view_count': int,
                 'thumbnail': r're:https?://.+x1080$',
-                'tags': list
+                'tags': list,
             },
         },
         {
@@ -332,7 +335,7 @@ class VKIE(VKBaseIE):
             mv_data = opts.get('mvData') or {}
             player = opts.get('player') or {}
         else:
-            video_id = '%s_%s' % (mobj.group('oid'), mobj.group('id'))
+            video_id = '{}_{}'.format(mobj.group('oid'), mobj.group('id'))
 
             info_page = self._download_webpage(
                 'http://vk.com/video_ext.php?' + mobj.group('embed_query'), video_id)
@@ -448,6 +451,7 @@ class VKIE(VKBaseIE):
             info_page, 'view count', default=None))
 
         formats = []
+        subtitles = {}
         for format_id, format_url in data.items():
             format_url = url_or_none(format_url)
             if not format_url or not format_url.startswith(('http', '//', 'rtmp')):
@@ -459,12 +463,21 @@ class VKIE(VKBaseIE):
                 formats.append({
                     'format_id': format_id,
                     'url': format_url,
+                    'ext': 'mp4',
+                    'source_preference': 1,
                     'height': height,
                 })
-            elif format_id == 'hls':
-                formats.extend(self._extract_m3u8_formats(
+            elif format_id.startswith('hls') and format_id != 'hls_live_playback':
+                fmts, subs = self._extract_m3u8_formats_and_subtitles(
                     format_url, video_id, 'mp4', 'm3u8_native',
-                    m3u8_id=format_id, fatal=False, live=is_live))
+                    m3u8_id=format_id, fatal=False, live=is_live)
+                formats.extend(fmts)
+                self._merge_subtitles(subs, target=subtitles)
+            elif format_id.startswith('dash') and format_id not in ('dash_live_playback', 'dash_uni'):
+                fmts, subs = self._extract_mpd_formats_and_subtitles(
+                    format_url, video_id, mpd_id=format_id, fatal=False)
+                formats.extend(fmts)
+                self._merge_subtitles(subs, target=subtitles)
             elif format_id == 'rtmp':
                 formats.append({
                     'format_id': format_id,
@@ -472,7 +485,6 @@ class VKIE(VKBaseIE):
                     'ext': 'flv',
                 })
 
-        subtitles = {}
         for sub in data.get('subs') or {}:
             subtitles.setdefault(sub.get('lang', 'en'), []).append({
                 'ext': sub.get('title', '.srt').split('.')[-1],
@@ -493,6 +505,7 @@ class VKIE(VKBaseIE):
             'comment_count': int_or_none(mv_data.get('commcount')),
             'is_live': is_live,
             'subtitles': subtitles,
+            '_format_sort_fields': ('res', 'source'),
         }
 
 
@@ -517,7 +530,7 @@ class VKUserVideosIE(VKBaseIE):
         'url': 'https://vk.com/video/playlist/-174476437_2',
         'info_dict': {
             'id': '-174476437_playlist_2',
-            'title': 'Анонсы'
+            'title': 'Анонсы',
         },
         'playlist_mincount': 108,
     }]
@@ -567,7 +580,7 @@ class VKUserVideosIE(VKBaseIE):
             section = 'all'
 
         playlist_title = clean_html(get_element_by_class('VideoInfoPanel__title', webpage))
-        return self.playlist_result(self._entries(page_id, section), '%s_%s' % (page_id, section), playlist_title)
+        return self.playlist_result(self._entries(page_id, section), f'{page_id}_{section}', playlist_title)
 
 
 class VKWallPostIE(VKBaseIE):
@@ -701,3 +714,146 @@ class VKWallPostIE(VKBaseIE):
         return self.playlist_result(
             entries, post_id, join_nonempty(uploader, f'Wall post {post_id}', delim=' - '),
             clean_html(get_element_by_class('wall_post_text', webpage)))
+
+
+class VKPlayBaseIE(InfoExtractor):
+    _BASE_URL_RE = r'https?://(?:vkplay\.live|live\.vkplay\.ru)/'
+    _RESOLUTIONS = {
+        'tiny': '256x144',
+        'lowest': '426x240',
+        'low': '640x360',
+        'medium': '852x480',
+        'high': '1280x720',
+        'full_hd': '1920x1080',
+        'quad_hd': '2560x1440',
+    }
+
+    def _extract_from_initial_state(self, url, video_id, path):
+        webpage = self._download_webpage(url, video_id)
+        video_info = traverse_obj(self._search_json(
+            r'<script[^>]+\bid="initial-state"[^>]*>', webpage, 'initial state', video_id),
+            path, expected_type=dict)
+        if not video_info:
+            raise ExtractorError('Unable to extract video info from html inline initial state')
+        return video_info
+
+    def _extract_formats(self, stream_info, video_id):
+        formats = []
+        for stream in traverse_obj(stream_info, (
+                'data', 0, 'playerUrls', lambda _, v: url_or_none(v['url']) and v['type'])):
+            url = stream['url']
+            format_id = str_or_none(stream['type'])
+            if format_id in ('hls', 'live_hls', 'live_playback_hls') or '.m3u8' in url:
+                formats.extend(self._extract_m3u8_formats(url, video_id, m3u8_id=format_id, fatal=False))
+            elif format_id == 'dash':
+                formats.extend(self._extract_mpd_formats(url, video_id, mpd_id=format_id, fatal=False))
+            elif format_id in ('live_dash', 'live_playback_dash'):
+                self.write_debug(f'Not extracting unsupported format "{format_id}"')
+            else:
+                formats.append({
+                    'url': url,
+                    'ext': 'mp4',
+                    'format_id': format_id,
+                    **parse_resolution(self._RESOLUTIONS.get(format_id)),
+                })
+        return formats
+
+    def _extract_common_meta(self, stream_info):
+        return traverse_obj(stream_info, {
+            'id': ('id', {str_or_none}),
+            'title': ('title', {str}),
+            'release_timestamp': ('startTime', {int_or_none}),
+            'thumbnail': ('previewUrl', {url_or_none}),
+            'view_count': ('count', 'views', {int_or_none}),
+            'like_count': ('count', 'likes', {int_or_none}),
+            'categories': ('category', 'title', {str}, {lambda x: [x] if x else None}),
+            'uploader': (('user', ('blog', 'owner')), 'nick', {str}),
+            'uploader_id': (('user', ('blog', 'owner')), 'id', {str_or_none}),
+            'duration': ('duration', {int_or_none}),
+            'is_live': ('isOnline', {bool}),
+            'concurrent_view_count': ('count', 'viewers', {int_or_none}),
+        }, get_all=False)
+
+
+class VKPlayIE(VKPlayBaseIE):
+    _VALID_URL = rf'{VKPlayBaseIE._BASE_URL_RE}(?P<username>[^/#?]+)/record/(?P<id>[\da-f-]+)'
+    _TESTS = [{
+        'url': 'https://vkplay.live/zitsmann/record/f5e6e3b5-dc52-4d14-965d-0680dd2882da',
+        'info_dict': {
+            'id': 'f5e6e3b5-dc52-4d14-965d-0680dd2882da',
+            'ext': 'mp4',
+            'title': 'Atomic Heart (пробуем!) спасибо подписчику EKZO!',
+            'uploader': 'ZitsmanN',
+            'uploader_id': '13159830',
+            'release_timestamp': 1683461378,
+            'release_date': '20230507',
+            'thumbnail': r're:https://[^/]+/public_video_stream/record/f5e6e3b5-dc52-4d14-965d-0680dd2882da/preview',
+            'duration': 10608,
+            'view_count': int,
+            'like_count': int,
+            'categories': ['Atomic Heart'],
+        },
+        'params': {'skip_download': 'm3u8'},
+    }, {
+        'url': 'https://live.vkplay.ru/lebwa/record/33a4e4ce-e3ef-49db-bb14-f006cc6fabc9/records',
+        'only_matching': True,
+    }]
+
+    def _real_extract(self, url):
+        username, video_id = self._match_valid_url(url).groups()
+
+        record_info = traverse_obj(self._download_json(
+            f'https://api.vkplay.live/v1/blog/{username}/public_video_stream/record/{video_id}', video_id, fatal=False),
+            ('data', 'record', {dict}))
+        if not record_info:
+            record_info = self._extract_from_initial_state(url, video_id, ('record', 'currentRecord', 'data'))
+
+        return {
+            **self._extract_common_meta(record_info),
+            'id': video_id,
+            'formats': self._extract_formats(record_info, video_id),
+        }
+
+
+class VKPlayLiveIE(VKPlayBaseIE):
+    _VALID_URL = rf'{VKPlayBaseIE._BASE_URL_RE}(?P<id>[^/#?]+)/?(?:[#?]|$)'
+    _TESTS = [{
+        'url': 'https://vkplay.live/bayda',
+        'info_dict': {
+            'id': 'f02c321e-427b-408d-b12f-ae34e53e0ea2',
+            'ext': 'mp4',
+            'title': r're:эскапизм крута .*',
+            'uploader': 'Bayda',
+            'uploader_id': '12279401',
+            'release_timestamp': 1687209962,
+            'release_date': '20230619',
+            'thumbnail': r're:https://[^/]+/public_video_stream/12279401/preview',
+            'view_count': int,
+            'concurrent_view_count': int,
+            'like_count': int,
+            'categories': ['EVE Online'],
+            'live_status': 'is_live',
+        },
+        'skip': 'livestream',
+        'params': {'skip_download': True},
+    }, {
+        'url': 'https://live.vkplay.ru/lebwa',
+        'only_matching': True,
+    }]
+
+    def _real_extract(self, url):
+        username = self._match_id(url)
+
+        stream_info = self._download_json(
+            f'https://api.vkplay.live/v1/blog/{username}/public_video_stream', username, fatal=False)
+        if not stream_info:
+            stream_info = self._extract_from_initial_state(url, username, ('stream', 'stream', 'data', 'stream'))
+
+        formats = self._extract_formats(stream_info, username)
+        if not formats and not traverse_obj(stream_info, ('isOnline', {bool})):
+            raise UserNotLive(video_id=username)
+
+        return {
+            **self._extract_common_meta(stream_info),
+            'formats': formats,
+        }

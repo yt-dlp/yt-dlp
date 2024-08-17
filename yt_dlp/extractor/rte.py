@@ -1,15 +1,15 @@
 import re
 
 from .common import InfoExtractor
-from ..compat import compat_HTTPError
+from ..networking.exceptions import HTTPError
 from ..utils import (
+    ExtractorError,
     float_or_none,
     parse_iso8601,
     str_or_none,
     try_get,
     unescapeHTML,
     url_or_none,
-    ExtractorError,
 )
 
 
@@ -31,11 +31,11 @@ class RteBaseIE(InfoExtractor):
             except ExtractorError as ee:
                 if num < len(ENDPOINTS) or formats:
                     continue
-                if isinstance(ee.cause, compat_HTTPError) and ee.cause.code == 404:
-                    error_info = self._parse_json(ee.cause.read().decode(), item_id, fatal=False)
+                if isinstance(ee.cause, HTTPError) and ee.cause.status == 404:
+                    error_info = self._parse_json(ee.cause.response.read().decode(), item_id, fatal=False)
                     if error_info:
                         raise ExtractorError(
-                            '%s said: %s' % (self.IE_NAME, error_info['message']),
+                            '{} said: {}'.format(self.IE_NAME, error_info['message']),
                             expected=True)
                 raise
 

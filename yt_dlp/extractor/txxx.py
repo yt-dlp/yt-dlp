@@ -10,6 +10,7 @@ from ..utils import (
     parse_duration,
     traverse_obj,
     try_call,
+    url_or_none,
     urljoin,
     variadic,
 )
@@ -83,7 +84,8 @@ class TxxxIE(InfoExtractor):
             'like_count': int,
             'dislike_count': int,
             'age_limit': 18,
-        }
+            'thumbnail': 'https://tn.txxx.tube/contents/videos_sources/16574000/16574965/screenshots/1.jpg',
+        },
     }, {
         'url': 'https://txxx.tube/videos/16574965/digital-desire-malena-morgan/',
         'md5': 'c54e4ace54320aaf8e2a72df87859391',
@@ -98,7 +100,8 @@ class TxxxIE(InfoExtractor):
             'like_count': int,
             'dislike_count': int,
             'age_limit': 18,
-        }
+            'thumbnail': 'https://tn.txxx.tube/contents/videos_sources/16574000/16574965/screenshots/1.jpg',
+        },
     }, {
         'url': 'https://vxxx.com/video-68925/',
         'md5': '1fcff3748b0c5b41fe41d0afa22409e1',
@@ -113,7 +116,8 @@ class TxxxIE(InfoExtractor):
             'like_count': int,
             'dislike_count': int,
             'age_limit': 18,
-        }
+            'thumbnail': 'https://tn.vxxx.com/contents/videos_sources/68000/68925/screenshots/1.jpg',
+        },
     }, {
         'url': 'https://hclips.com/videos/6291073/malena-morgan-masturbates-her-sweet/',
         'md5': 'a5dd4f83363972ee043313cff85e7e26',
@@ -128,7 +132,8 @@ class TxxxIE(InfoExtractor):
             'like_count': int,
             'dislike_count': int,
             'age_limit': 18,
-        }
+            'thumbnail': 'https://hctn.nv7s.com/contents/videos_sources/6291000/6291073/screenshots/1.jpg',
+        },
     }, {
         'url': 'https://hdzog.com/videos/67063/gorgeous-malena-morgan-will-seduce-you-at-the-first-glance/',
         'md5': 'f8bdedafd45d1ec2875c43fe33a846d3',
@@ -143,7 +148,8 @@ class TxxxIE(InfoExtractor):
             'like_count': int,
             'dislike_count': int,
             'age_limit': 18,
-        }
+            'thumbnail': 'https://tn.hdzog.com/contents/videos_sources/67000/67063/screenshots/1.jpg',
+        },
     }, {
         'url': 'https://hdzog.tube/videos/67063/gorgeous-malena-morgan-will-seduce-you-at-the-first-glance/',
         'md5': 'f8bdedafd45d1ec2875c43fe33a846d3',
@@ -158,7 +164,8 @@ class TxxxIE(InfoExtractor):
             'like_count': int,
             'dislike_count': int,
             'age_limit': 18,
-        }
+            'thumbnail': 'https://tn.hdzog.com/contents/videos_sources/67000/67063/screenshots/1.jpg',
+        },
     }, {
         'url': 'https://hotmovs.com/videos/8789287/unbelievable-malena-morgan-performing-in-incredible-masturantion/',
         'md5': '71d32c51584876472db87e561171a386',
@@ -173,7 +180,8 @@ class TxxxIE(InfoExtractor):
             'like_count': int,
             'dislike_count': int,
             'age_limit': 18,
-        }
+            'thumbnail': 'https://tn.hotmovs.com/contents/videos_sources/8789000/8789287/screenshots/10.jpg',
+        },
     }, {
         'url': 'https://hotmovs.tube/videos/8789287/unbelievable-malena-morgan-performing-in-incredible-masturantion/',
         'md5': '71d32c51584876472db87e561171a386',
@@ -188,7 +196,8 @@ class TxxxIE(InfoExtractor):
             'like_count': int,
             'dislike_count': int,
             'age_limit': 18,
-        }
+            'thumbnail': 'https://tn.hotmovs.com/contents/videos_sources/8789000/8789287/screenshots/10.jpg',
+        },
     }, {
         'url': 'https://inporn.com/video/517897/malena-morgan-solo/',
         'md5': '344db467481edf78f193cdf5820a7cfb',
@@ -203,7 +212,8 @@ class TxxxIE(InfoExtractor):
             'like_count': int,
             'dislike_count': int,
             'age_limit': 18,
-        }
+            'thumbnail': 'https://iptn.m3pd.com/media/tn/sources/517897_1.jpg',
+        },
     }, {
         'url': 'https://privatehomeclips.com/videos/3630599/malena-morgan-cam-show/',
         'md5': 'ea657273e352493c5fb6357fbfa4f126',
@@ -218,7 +228,8 @@ class TxxxIE(InfoExtractor):
             'like_count': int,
             'dislike_count': int,
             'age_limit': 18,
-        }
+            'thumbnail': 'https://hctn.nv7s.com/contents/videos_sources/3630000/3630599/screenshots/15.jpg',
+        },
     }, {
         'url': 'https://tubepornclassic.com/videos/1015455/mimi-rogers-full-body-massage-nude-compilation/',
         'md5': '2e9a6cf610c9862e86e0ce24f08f4427',
@@ -233,7 +244,8 @@ class TxxxIE(InfoExtractor):
             'like_count': int,
             'dislike_count': int,
             'age_limit': 18,
-        }
+            'thumbnail': 'https://tn.tubepornclassic.com/contents/videos_sources/1015000/1015455/screenshots/6.jpg',
+        },
     }, {
         'url': 'https://upornia.com/videos/1498858/twistys-malena-morgan-starring-at-dr-morgan-baller/',
         'md5': '7ff7033340bc88a173198b7c22600e4f',
@@ -248,7 +260,8 @@ class TxxxIE(InfoExtractor):
             'like_count': int,
             'dislike_count': int,
             'age_limit': 18,
-        }
+            'thumbnail': 'https://tn.upornia.com/contents/videos_sources/1498000/1498858/screenshots/1.jpg',
+        },
     }, {
         'url': 'https://upornia.tube/videos/1498858/twistys-malena-morgan-starring-at-dr-morgan-baller/',
         'md5': '7ff7033340bc88a173198b7c22600e4f',
@@ -263,7 +276,8 @@ class TxxxIE(InfoExtractor):
             'like_count': int,
             'dislike_count': int,
             'age_limit': 18,
-        }
+            'thumbnail': 'https://tn.upornia.com/contents/videos_sources/1498000/1498858/screenshots/1.jpg',
+        },
     }, {
         'url': 'https://vjav.com/videos/11761/yui-hatano-in-if-yui-was-my-girlfriend2/',
         'md5': '6de5bc1f13bdfc3491a77f23edb1676f',
@@ -278,7 +292,8 @@ class TxxxIE(InfoExtractor):
             'like_count': int,
             'dislike_count': int,
             'age_limit': 18,
-        }
+            'thumbnail': 'https://tn.vjav.com/contents/videos_sources/11000/11761/screenshots/23.jpg',
+        },
     }, {
         'url': 'https://vjav.tube/videos/11761/yui-hatano-in-if-yui-was-my-girlfriend2/',
         'md5': '6de5bc1f13bdfc3491a77f23edb1676f',
@@ -293,7 +308,8 @@ class TxxxIE(InfoExtractor):
             'like_count': int,
             'dislike_count': int,
             'age_limit': 18,
-        }
+            'thumbnail': 'https://tn.vjav.com/contents/videos_sources/11000/11761/screenshots/23.jpg',
+        },
     }, {
         'url': 'https://voyeurhit.com/videos/332875/charlotte-stokely-elle-alexandra-malena-morgan-lingerie/',
         'md5': '12b4666e9c3e60dafe9182e5d12aae33',
@@ -308,7 +324,8 @@ class TxxxIE(InfoExtractor):
             'like_count': int,
             'dislike_count': int,
             'age_limit': 18,
-        }
+            'thumbnail': 'https://tn.voyeurhit.com/contents/videos_sources/332000/332875/screenshots/1.jpg',
+        },
     }, {
         'url': 'https://voyeurhit.tube/videos/332875/charlotte-stokely-elle-alexandra-malena-morgan-lingerie/',
         'md5': '12b4666e9c3e60dafe9182e5d12aae33',
@@ -323,7 +340,8 @@ class TxxxIE(InfoExtractor):
             'like_count': int,
             'dislike_count': int,
             'age_limit': 18,
-        }
+            'thumbnail': 'https://tn.voyeurhit.com/contents/videos_sources/332000/332875/screenshots/1.jpg',
+        },
     }]
     _WEBPAGE_TESTS = [{
         'url': 'https://pornzog.com/video/9125519/michelle-malone-dreamgirls-wild-wet-3/',
@@ -338,7 +356,8 @@ class TxxxIE(InfoExtractor):
             'like_count': int,
             'dislike_count': int,
             'age_limit': 18,
-        }
+            'thumbnail': 'https://hctn.nv7s.com/contents/videos_sources/5119000/5119660/screenshots/1.jpg',
+        },
     }]
 
     def _call_api(self, url, video_id, fatal=False, **kwargs):
@@ -371,6 +390,7 @@ class TxxxIE(InfoExtractor):
             'like_count': int_or_none(traverse_obj(video_info, ('video', 'statistics', 'likes'))),
             'dislike_count': int_or_none(traverse_obj(video_info, ('video', 'statistics', 'dislikes'))),
             'age_limit': 18,
+            'thumbnail': traverse_obj(video_info, ('video', 'thumbsrc', {url_or_none})),
             'formats': get_formats(host, video_file),
         }
 
@@ -395,7 +415,7 @@ class PornTopIE(InfoExtractor):
             'timestamp': 1609455029,
             'upload_date': '20201231',
             'thumbnail': 'https://tn.porntop.com/media/tn/sources/101569_1.jpg',
-        }
+        },
     }]
 
     def _real_extract(self, url):

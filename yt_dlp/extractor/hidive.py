@@ -47,16 +47,17 @@ class HiDiveIE(InfoExtractor):
         login_webpage = self._download_webpage(
             self._LOGIN_URL, None, 'Logging in', data=urlencode_postdata(data))
         # If the user has multiple profiles on their account, select one. For now pick the first profile.
-        profile_id = self._search_regex(r'<button [^>]+?data-profile-id="(\w+)"', login_webpage, 'profile_id')
+        profile_id = self._search_regex(
+            r'<button [^>]+?data-profile-id="(\w+)"', login_webpage, 'profile id', default=None)
         if profile_id is None:
             return  # If only one profile, Hidive auto-selects it
-        profile_id_hash = self._search_regex(r'\<button [^>]+?data-hash="(\w+)"', login_webpage, 'profile_id_hash')
         self._request_webpage(
             'https://www.hidive.com/ajax/chooseprofile', None,
             data=urlencode_postdata({
                 'profileId': profile_id,
-                'hash': profile_id_hash,
-                'returnUrl': '/dashboard'
+                'hash': self._search_regex(
+                    r'\<button [^>]+?data-hash="(\w+)"', login_webpage, 'profile id hash'),
+                'returnUrl': '/dashboard',
             }))
 
     def _call_api(self, video_id, title, key, data={}, **kwargs):
@@ -79,7 +80,7 @@ class HiDiveIE(InfoExtractor):
             self.raise_geo_restricted()
         if restriction and restriction != 'None':
             raise ExtractorError(
-                '%s said: %s' % (self.IE_NAME, restriction), expected=True)
+                f'{self.IE_NAME} said: {restriction}', expected=True)
 
         formats, parsed_urls = [], {None}
         for rendition_id, rendition in settings['renditions'].items():
@@ -114,5 +115,5 @@ class HiDiveIE(InfoExtractor):
                 self._search_regex(r's(\d+)', key, 'season number', default=None)),
             'episode_number': int_or_none(
                 self._search_regex(r'e(\d+)', key, 'episode number', default=None)),
-            'http_headers': {'Referer': url}
+            'http_headers': {'Referer': url},
         }

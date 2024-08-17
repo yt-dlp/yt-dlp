@@ -1,28 +1,6 @@
-import ast
-import os
 import sys
-from pathlib import Path
 
-from PyInstaller.utils.hooks import collect_submodules
-
-
-def find_attribute_accesses(node, name, path=()):
-    if isinstance(node, ast.Attribute):
-        path = [*path, node.attr]
-        if isinstance(node.value, ast.Name) and node.value.id == name:
-            yield path[::-1]
-    for child in ast.iter_child_nodes(node):
-        yield from find_attribute_accesses(child, name, path)
-
-
-def collect_used_submodules(name, level):
-    for dirpath, _, filenames in os.walk(Path(__file__).parent.parent):
-        for filename in filenames:
-            if not filename.endswith('.py'):
-                continue
-            with open(Path(dirpath) / filename, encoding='utf8') as f:
-                for submodule in find_attribute_accesses(ast.parse(f.read()), name):
-                    yield '.'.join(submodule[:level])
+from PyInstaller.utils.hooks import collect_submodules, collect_data_files
 
 
 def pycryptodome_module():
@@ -32,7 +10,7 @@ def pycryptodome_module():
         try:
             import Crypto  # noqa: F401
             print('WARNING: Using Crypto since Cryptodome is not available. '
-                  'Install with: pip install pycryptodomex', file=sys.stderr)
+                  'Install with: python3 -m pip install pycryptodomex', file=sys.stderr)
             return 'Crypto'
         except ImportError:
             pass
@@ -40,18 +18,19 @@ def pycryptodome_module():
 
 
 def get_hidden_imports():
-    yield 'yt_dlp.compat._legacy'
-    yield from collect_submodules('websockets')
-
-    crypto = pycryptodome_module()
-    for sm in set(collect_used_submodules('Cryptodome', 2)):
-        yield f'{crypto}.{sm}'
-
+    yield from ('yt_dlp.compat._legacy', 'yt_dlp.compat._deprecated')
+    yield from ('yt_dlp.utils._legacy', 'yt_dlp.utils._deprecated')
+    yield pycryptodome_module()
+    # Only `websockets` is required, others are collected just in case
+    for module in ('websockets', 'requests', 'urllib3'):
+        yield from collect_submodules(module)
     # These are auto-detected, but explicitly add them just in case
-    yield from ('mutagen', 'brotli', 'certifi')
+    yield from ('mutagen', 'brotli', 'certifi', 'secretstorage', 'curl_cffi')
 
 
 hiddenimports = list(get_hidden_imports())
 print(f'Adding imports: {hiddenimports}')
 
-excludedimports = ['youtube_dl', 'youtube_dlc', 'test', 'ytdlp_plugins', 'devscripts']
+excludedimports = ['youtube_dl', 'youtube_dlc', 'test', 'ytdlp_plugins', 'devscripts', 'bundle']
+
+datas = collect_data_files('curl_cffi', includes=['cacert.pem'])

@@ -1,6 +1,7 @@
+import urllib.parse
+
 from .common import InfoExtractor
 from .once import OnceIE
-from ..compat import compat_urllib_parse_unquote
 from ..utils import (
     ExtractorError,
     int_or_none,
@@ -51,8 +52,8 @@ class VoxMediaVolumeIE(OnceIE):
             info['duration'] = int_or_none(asset.get('duration'))
             return info
 
-        for provider_video_type in ('ooyala', 'youtube', 'brightcove'):
-            provider_video_id = video_data.get('%s_id' % provider_video_type)
+        for provider_video_type in ('youtube', 'brightcove'):
+            provider_video_id = video_data.get(f'{provider_video_type}_id')
             if not provider_video_id:
                 continue
             if provider_video_type == 'brightcove':
@@ -60,7 +61,7 @@ class VoxMediaVolumeIE(OnceIE):
             else:
                 info.update({
                     '_type': 'url_transparent',
-                    'url': provider_video_id if provider_video_type == 'youtube' else '%s:%s' % (provider_video_type, provider_video_id),
+                    'url': provider_video_id if provider_video_type == 'youtube' else f'{provider_video_type}:{provider_video_id}',
                     'ie_key': provider_video_type.capitalize(),
                 })
             return info
@@ -172,12 +173,11 @@ class VoxMediaIE(InfoExtractor):
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
-        webpage = compat_urllib_parse_unquote(self._download_webpage(url, display_id))
+        webpage = urllib.parse.unquote(self._download_webpage(url, display_id))
 
         def create_entry(provider_video_id, provider_video_type, title=None, description=None):
             video_url = {
                 'youtube': '%s',
-                'ooyala': 'ooyala:%s',
                 'volume': 'http://volume.vox-cdn.com/embed/%s',
             }[provider_video_type] % provider_video_id
             return {
@@ -204,11 +204,6 @@ class VoxMediaIE(InfoExtractor):
                     entries.append(create_entry(
                         provider_video_id, provider_video_type,
                         video_data.get('title'), video_data.get('description')))
-
-        provider_video_id = self._search_regex(
-            r'data-ooyala-id="([^"]+)"', webpage, 'ooyala id', default=None)
-        if provider_video_id:
-            entries.append(create_entry(provider_video_id, 'ooyala'))
 
         volume_uuid = self._search_regex(
             r'data-volume-uuid="([^"]+)"', webpage, 'volume uuid', default=None)
