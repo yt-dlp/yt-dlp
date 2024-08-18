@@ -1854,13 +1854,16 @@ class TwitterSpacesIE(TwitterBaseIE):
             source = traverse_obj(
                 self._call_api(f'live_video_stream/status/{metadata["media_key"]}', metadata['media_key']),
                 ('source', ('noRedirectPlaybackUrl', 'location'), {url_or_none}), get_all=False)
-            formats = self._extract_m3u8_formats(  # XXX: Some Spaces need ffmpeg as downloader
-                source, metadata['media_key'], 'm4a', entry_protocol='m3u8', live=is_live,
-                headers=headers, fatal=False) if source else []
-            for fmt in formats:
-                fmt.update({'vcodec': 'none', 'acodec': 'aac'})
-                if not is_live:
-                    fmt['container'] = 'm4a_dash'
+            is_audio_space = source and 'audio-space' in source
+            formats = self._extract_m3u8_formats(
+                source, metadata['media_key'], 'm4a' if is_audio_space else 'mp4',
+                entry_protocol='m3u8',  # XXX: Some Spaces need ffmpeg as downloader
+                live=is_live, headers=headers, fatal=False) if source else []
+            if is_audio_space:
+                for fmt in formats:
+                    fmt.update({'vcodec': 'none', 'acodec': 'aac'})
+                    if not is_live:
+                        fmt['container'] = 'm4a_dash'
 
         participants = ', '.join(traverse_obj(
             space_data, ('participants', 'speakers', ..., 'display_name'))) or 'nobody yet'
