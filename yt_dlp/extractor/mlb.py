@@ -290,9 +290,18 @@ class MLBTVIE(InfoExtractor):
             'release_date': '20220702',
             'release_timestamp': 1656792300,
         },
-        'params': {
-            'skip_download': True,
+        'params': {'skip_download': 'm3u8'},
+    }, {
+        # makeup game: has multiple dates, need to avoid games with 'rescheduleDate'
+        'url': 'https://www.mlb.com/tv/g747039/vd22541c4-5a29-45f7-822b-635ec041cf5e',
+        'info_dict': {
+            'id': '747039',
+            'ext': 'mp4',
+            'title': '2024-07-29 - Toronto Blue Jays @ Baltimore Orioles',
+            'release_date': '20240729',
+            'release_timestamp': 1722280200,
         },
+        'params': {'skip_download': 'm3u8'},
     }]
     _GRAPHQL_INIT_QUERY = '''\
 mutation initSession($device: InitSessionInput!, $clientType: ClientType!, $experience: ExperienceTypeInput) {
@@ -463,11 +472,14 @@ mutation initPlaybackSession(
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        metadata = traverse_obj(self._download_json(
+        data = self._download_json(
             'https://statsapi.mlb.com/api/v1/schedule', video_id, query={
                 'gamePk': video_id,
                 'hydrate': 'broadcasts(all),statusFlags',
-            }), ('dates', ..., 'games', lambda _, v: str(v['gamePk']) == video_id and v['broadcasts'], any))
+            })
+        metadata = traverse_obj(data, (
+            'dates', ..., 'games',
+            lambda _, v: str(v['gamePk']) == video_id and not v.get('rescheduleDate'), any))
 
         broadcasts = traverse_obj(metadata, (
             'broadcasts', lambda _, v: v['mediaId'] and v['mediaState']['mediaStateCode'] != 'MEDIA_OFF'))
