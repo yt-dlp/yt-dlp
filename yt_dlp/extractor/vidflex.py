@@ -12,12 +12,29 @@ from ..utils import (
 class VidflexIE(InfoExtractor):
     _DOMAINS_RE = [
         r'[^.]+\.vidflex\.tv',
-        r'(?:www\.)?figureitoutbaseball\.com',
-        r'(?:www\.)?tuffhedemantv\.com',
+        r'(?:www\.)?acactv\.ca',
         r'(?:www\.)?albertalacrossetv\.com',
+        r'(?:www\.)?cjfltv\.com',
+        r'(?:www\.)?figureitoutbaseball\.com',
+        r'(?:www\.)?ocaalive\.com',
+        r'(?:www\.)?pegasussports\.tv',
+        r'(?:www\.)?praxisseries\.ca',
         r'(?:www\.)?silenticetv\.com',
+        r'(?:www\.)?tuffhedemantv\.com',
+        r'(?:www\.)?watchfuntv\.com',
+        r'live\.ofsaa\.on\.ca',
+        r'tv\.procoro\.ca',
+        r'tv\.realcastmedia\.net',
+        r'tv\.fringetheatre\.ca',
+        r'video\.haisla\.ca',
         r'video\.hockeycanada\.ca',
+        r'video\.huuayaht\.org',
+        r'video\.turningpointensemble\.ca',
+        r'videos\.livingworks\.net',
         r'videos\.telusworldofscienceedmonton\.ca',
+        r'watch\.binghamtonbulldogs\.com',
+        r'watch\.rekindle\.tv',
+        r'watch\.wpca\.com',
         # TODO: Add more domains
     ]
     _VALID_URL = rf'^https?://(?:{"|".join(_DOMAINS_RE)})/[a-z]{{2}}(?:-[a-z]{{2}})?/c/[\w-]+\.(?P<id>\d+)'
