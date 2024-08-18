@@ -132,17 +132,13 @@ class VidflexIE(InfoExtractor):
             if media_type == 'm3u8':
                 yield from self._extract_m3u8_formats(media_url, video_id, fatal=False, m3u8_id='hls')
             elif media_type == 'mp4':
-                fmt = {
-                    'format_id': 'http',
+                bitrate = self._search_regex(r'_(\d+)k\.mp4', media_url, 'bitrate', default=None)
+                yield {
+                    'format_id': join_nonempty('http', bitrate),
                     'url': media_url,
                     'ext': 'mp4',
+                    'tbr': int_or_none(bitrate),
                 }
-                if bitrate := self._search_regex(r'_(\d+)k\.mp4', media_url, 'bitrate', default=None):
-                    fmt.update({
-                        'format_id': f'http-{bitrate}',
-                        'tbr': int(bitrate),
-                    })
-                yield fmt
             else:
                 yield {
                     'url': media_url,
