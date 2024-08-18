@@ -36,7 +36,7 @@ class VidflexIE(InfoExtractor):
         r'watch\.rekindle\.tv',
         r'watch\.wpca\.com',
     ]
-    _VALID_URL = rf'^https?://(?:{"|".join(_DOMAINS_RE)})/[a-z]{{2}}(?:-[a-z]{{2}})?/c/[\w-]+\.(?P<id>\d+)'
+    _VALID_URL = rf'https?://(?:{"|".join(_DOMAINS_RE)})/[a-z]{{2}}(?:-[a-z]{{2}})?/c/[\w-]+\.(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://video.hockeycanada.ca/en/c/nwt-micd-up-with-jamie-lee-rattray.107486',
         'only_matching': True,
@@ -112,7 +112,7 @@ class VidflexIE(InfoExtractor):
         webpage = self._download_webpage(url, video_id)
 
         data_url = self._html_search_regex(
-            r'content_api:\s*(["\'])(?P<url>https?://.+?)\1', webpage, 'content api url', group='url')
+            r'content_api:\s*(["\'])(?P<url>https?://(?:(?!\1).)+)\1', webpage, 'content api url', group='url')
         media_config = traverse_obj(
             self._download_json(data_url, video_id),
             ('config', {base64.b64decode}, {bytes.decode}, {json.loads}, {dict}))
