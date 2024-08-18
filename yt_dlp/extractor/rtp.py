@@ -8,7 +8,7 @@ from ..utils import js_to_json
 
 
 class RTPIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?rtp\.pt/play/p(?P<program_id>[0-9]+)/(?P<id>[^/?#]+)/?'
+    _VALID_URL = r'https?://(?:www\.)?rtp\.pt/play/(?:zigzag/)?p(?P<program_id>[0-9]+)/(?P<id>[^/?#]+)/?'
     _TESTS = [{
         'url': 'http://www.rtp.pt/play/p405/e174042/paixoes-cruzadas',
         'md5': 'e736ce0c665e459ddb818546220b4ef8',
@@ -17,6 +17,16 @@ class RTPIE(InfoExtractor):
             'ext': 'mp3',
             'title': 'Paixões Cruzadas',
             'description': 'As paixões musicais de António Cartaxo e António Macedo',
+            'thumbnail': r're:^https?://.*\.jpg',
+        },
+    }, {
+        'url': 'https://www.rtp.pt/play/zigzag/p13166/e757904/25-curiosidades-25-de-abril',
+        'md5': '9a81ed53f2b2197cfa7ed455b12f8ade',
+        'info_dict': {
+            'id': 'e757904',
+            'ext': 'mp4',
+            'title': '25 Curiosidades, 25 de Abril',
+            'description': 'Estudar ou não estudar - Em cada um dos episódios descobrimos uma curiosidade acerca de como era viver em Portugal antes da revolução do 25 de abr',
             'thumbnail': r're:^https?://.*\.jpg',
         },
     }, {
@@ -49,16 +59,16 @@ class RTPIE(InfoExtractor):
 
         f, config = self._search_regex(
             r'''(?sx)
-                var\s+f\s*=\s*(?P<f>".*?"|{[^;]+?});\s*
+                (?:var\s+f\s*=\s*(?P<f>".*?"|{[^;]+?});\s*)?
                 var\s+player1\s+=\s+new\s+RTPPlayer\s*\((?P<config>{(?:(?!\*/).)+?})\);(?!\s*\*/)
             ''', webpage,
             'player config', group=('f', 'config'))
 
-        f = self._parse_json(
-            f, video_id,
-            lambda data: self.__unobfuscate(data, video_id=video_id))
         config = self._parse_json(
             config, video_id,
+            lambda data: self.__unobfuscate(data, video_id=video_id))
+        f = config.get('file') if not f else self._parse_json(
+            f, video_id,
             lambda data: self.__unobfuscate(data, video_id=video_id))
 
         formats = []
