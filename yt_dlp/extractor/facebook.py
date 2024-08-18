@@ -963,12 +963,29 @@ class FacebookAdsIE(InfoExtractor):
             'id': '899206155126718',
             'ext': 'mp4',
             'title': 'video by Kandao',
+            'description': 'md5:0822724069e3aca97cbed5dabbab282e',
             'uploader': 'Kandao',
             'uploader_id': '774114102743284',
             'uploader_url': r're:^https?://.*',
             'timestamp': 1702548330,
             'thumbnail': r're:^https?://.*',
             'upload_date': '20231214',
+            'like_count': int,
+        },
+    }, {
+        # key 'watermarked_video_sd_url' missing
+        'url': 'https://www.facebook.com/ads/library/?id=501152689226254',
+        'info_dict': {
+            'id': '501152689226254',
+            'ext': 'mp4',
+            'title': 'video by mat.nawrocki',
+            'description': 'md5:02a446ace7ff8c3c37a2892922492490',
+            'uploader': 'mat.nawrocki',
+            'uploader_id': '148586968341456',
+            'uploader_url': r're:^https?://.*',
+            'timestamp': 1723452305,
+            'thumbnail': r're:^https?://.*',
+            'upload_date': '20240812',
             'like_count': int,
         },
     }, {
@@ -1017,34 +1034,42 @@ class FacebookAdsIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        post_data = [self._parse_json(j, video_id, fatal=False)
-                     for j in re.findall(r's\.handle\(({.*})\);requireLazy\(', webpage)]
-        data = traverse_obj(post_data, (
-            ..., 'require', ..., ..., ..., 'props', 'deeplinkAdCard', 'snapshot', {dict}), get_all=False)
+        post_data = traverse_obj(
+            re.findall(r'data-sjs>({.*?ScheduledServerJS.*?})</script>', webpage), (..., {json.loads}))
+        data = get_first(post_data, (
+            'require', ..., ..., ..., '__bbox', 'require', ..., ..., ...,
+            'entryPointRoot', 'otherProps', 'deeplinkAdCard', 'snapshot', {dict}))
         if not data:
             raise ExtractorError('Unable to extract ad data')
 
         title = data.get('title')
         if not title or title == '{{product.name}}':
             title = join_nonempty('display_format', 'page_name', delim=' by ', from_dict=data)
+        markup_id = traverse_obj(data, ('body', '__m', {str}))
+        markup = traverse_obj(post_data, (
+            ..., 'require', ..., ..., ..., '__bbox', 'markup', lambda _, v: v[0].startswith(markup_id),
+            ..., '__html', {clean_html}, {lambda x: not x.startswith('{{product.') and x}, any))
 
-        info_dict = traverse_obj(data, {
-            'description': ('link_description', {str}, {lambda x: x if x != '{{product.description}}' else None}),
+        info_dict = merge_dicts({
+            'title': title,
+            'description': markup or None,
+        }, traverse_obj(data, {
+            'description': ('link_description', {lambda x: x if not x.startswith('{{product.') else None}),
             'uploader': ('page_name', {str}),
             'uploader_id': ('page_id', {str_or_none}),
             'uploader_url': ('page_profile_uri', {url_or_none}),
             'timestamp': ('creation_time', {int_or_none}),
             'like_count': ('page_like_count', {int_or_none}),
-        })
+        }))
 
         entries = []
         for idx, entry in enumerate(traverse_obj(
-            data, (('videos', 'cards'), lambda _, v: any(url_or_none(v[f]) for f in self._FORMATS_MAP))), 1,
+            data, (('videos', 'cards'), lambda _, v: any(url_or_none(v.get(f)) for f in self._FORMATS_MAP))), 1,
         ):
             entries.append({
                 'id': f'{video_id}_{idx}',
                 'title': entry.get('title') or title,
-                'description': entry.get('link_description') or info_dict.get('description'),
+                'description': traverse_obj(entry, 'body', 'link_description') or info_dict.get('description'),
                 'thumbnail': url_or_none(entry.get('video_preview_image_url')),
                 'formats': self._extract_formats(entry),
             })

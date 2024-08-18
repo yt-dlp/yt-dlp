@@ -4,6 +4,47 @@
 # To create a release, dispatch the https://github.com/yt-dlp/yt-dlp/actions/workflows/release.yml workflow on master
 -->
 
+### 2024.08.06
+
+#### Core changes
+- **jsinterp**: [Improve `slice` implementation](https://github.com/yt-dlp/yt-dlp/commit/bb8bf1db993f59752d20b73b861bd55e40cf0e31) ([#10664](https://github.com/yt-dlp/yt-dlp/issues/10664)) by [seproDev](https://github.com/seproDev)
+
+#### Extractor changes
+- **discoveryplusitaly**: [Support sport and olympics URLs](https://github.com/yt-dlp/yt-dlp/commit/e7d73bc4531ee3f91a46b15e218dcc1fbeb6226c) ([#10655](https://github.com/yt-dlp/yt-dlp/issues/10655)) by [bashonly](https://github.com/bashonly)
+- **gem.cbc.ca**: live: [Fix extractor](https://github.com/yt-dlp/yt-dlp/commit/fc5eecfa31c9571b6031cc3968aaa0394be55d7a) ([#10565](https://github.com/yt-dlp/yt-dlp/issues/10565)) by [bashonly](https://github.com/bashonly), [scribblemaniac](https://github.com/scribblemaniac)
+- **niconico**: [Fix extractor](https://github.com/yt-dlp/yt-dlp/commit/4d9231208332d4c32364b8cd814bff8b20232cae) ([#10677](https://github.com/yt-dlp/yt-dlp/issues/10677)) by [bashonly](https://github.com/bashonly)
+- **olympics**: [Fix extraction](https://github.com/yt-dlp/yt-dlp/commit/919540a9644e55deb78cdd6751757ec8fdaf76f4) ([#10625](https://github.com/yt-dlp/yt-dlp/issues/10625)) by [bashonly](https://github.com/bashonly)
+- **youku**: [Fix extractor](https://github.com/yt-dlp/yt-dlp/commit/0088c6de23d832b117061a33e984dc452d992e9c) ([#10626](https://github.com/yt-dlp/yt-dlp/issues/10626)) by [hugepower](https://github.com/hugepower)
+- **youtube**
+    - [Change default player clients to `ios,web_creator`](https://github.com/yt-dlp/yt-dlp/commit/406f4c2e47502fffc1b0c210b4ee6487c89a44cb) ([#10674](https://github.com/yt-dlp/yt-dlp/issues/10674)) by [bashonly](https://github.com/bashonly)
+    - [Fix `n` function name extraction for player `b12cc44b`](https://github.com/yt-dlp/yt-dlp/commit/c86891eb9434b4d7eec426d38c0c625b5e13cb2f) ([#10668](https://github.com/yt-dlp/yt-dlp/issues/10668)) by [seproDev](https://github.com/seproDev)
+
+### 2024.08.01
+
+#### Core changes
+- **utils**: `unified_timestamp`: [Recognize Sunday](https://github.com/yt-dlp/yt-dlp/commit/6daf2c27c0464fba98337be30de0b66d520d0db1) ([#10589](https://github.com/yt-dlp/yt-dlp/issues/10589)) by [bashonly](https://github.com/bashonly)
+
+#### Extractor changes
+- **abematv**: [Fix availability extraction](https://github.com/yt-dlp/yt-dlp/commit/ef36d517f9b05785d61abca7691d9ab7d63cc75c) ([#10569](https://github.com/yt-dlp/yt-dlp/issues/10569)) by [middlingphys](https://github.com/middlingphys)
+- **cbc.ca**: player: [Fix extractor](https://github.com/yt-dlp/yt-dlp/commit/94a1c5e642e468cebeb51f74c6c220434cb47d96) ([#10302](https://github.com/yt-dlp/yt-dlp/issues/10302)) by [bashonly](https://github.com/bashonly), [trainman261](https://github.com/trainman261)
+- **discoveryplus**: [Support olympics URLs](https://github.com/yt-dlp/yt-dlp/commit/0b7728618417e1aa382722a4d29b916b594d4459) ([#10566](https://github.com/yt-dlp/yt-dlp/issues/10566)) by [bashonly](https://github.com/bashonly)
+- **kick**: clips: [Add extractor](https://github.com/yt-dlp/yt-dlp/commit/bb3936ae2b3ce96d0b53f9e17cad1082058f032b) ([#10572](https://github.com/yt-dlp/yt-dlp/issues/10572)) by [luvyana](https://github.com/luvyana)
+- **learningonscreen**: [Add extractor](https://github.com/yt-dlp/yt-dlp/commit/fe15d3178e242803ae7a934b90137f13598eba2e) ([#10590](https://github.com/yt-dlp/yt-dlp/issues/10590)) by [bashonly](https://github.com/bashonly), [Grub4K](https://github.com/Grub4K)
+- **mediaklikk**: [Fix extractor](https://github.com/yt-dlp/yt-dlp/commit/7e3e4779ad13e4511c9ba3869879e53f0267bd7a) ([#10605](https://github.com/yt-dlp/yt-dlp/issues/10605)) by [szantnerb](https://github.com/szantnerb)
+- **mlbtv**: [Fix makeup game extraction](https://github.com/yt-dlp/yt-dlp/commit/4b69e1b53ea21e631cd5dd68ff531e2f1671ec17) ([#10607](https://github.com/yt-dlp/yt-dlp/issues/10607)) by [bashonly](https://github.com/bashonly)
+- **olympics**: [Fix extractor](https://github.com/yt-dlp/yt-dlp/commit/2f1ddfe12a2c174bc777264c5c8ffe7ca0922d94) ([#10604](https://github.com/yt-dlp/yt-dlp/issues/10604)) by [bashonly](https://github.com/bashonly)
+- **tva**: [Fix extractor](https://github.com/yt-dlp/yt-dlp/commit/28d485714fef88937c82635438afba5db81f9089) ([#10567](https://github.com/yt-dlp/yt-dlp/issues/10567)) by [bashonly](https://github.com/bashonly)
+- **tver**: [Support olympic URLs](https://github.com/yt-dlp/yt-dlp/commit/5260696b1cba77161828941fdb38f09f14ac6c60) ([#10600](https://github.com/yt-dlp/yt-dlp/issues/10600)) by [vvto33](https://github.com/vvto33)
+- **vimeo**: review: [Fix password-protected video extraction](https://github.com/yt-dlp/yt-dlp/commit/2b6df93a243bdfb9d6bb5c1e18020625cd02d465) ([#10598](https://github.com/yt-dlp/yt-dlp/issues/10598)) by [bashonly](https://github.com/bashonly)
+- **youtube**
+    - [Change default player clients to `ios,tv`](https://github.com/yt-dlp/yt-dlp/commit/efb42763dec23ccf6a2e3bac3afbfefce8efd012) ([#10457](https://github.com/yt-dlp/yt-dlp/issues/10457)) by [seproDev](https://github.com/seproDev)
+    - [Fix `n` function name extraction for player `20dfca59`](https://github.com/yt-dlp/yt-dlp/commit/011b4a04db2a636c3ef0a0ad4e2d3ae482c9fd76) ([#10611](https://github.com/yt-dlp/yt-dlp/issues/10611)) by [bashonly](https://github.com/bashonly)
+    - [Fix age-verification workaround](https://github.com/yt-dlp/yt-dlp/commit/d19fcb934269465fd707e68a87f735ec6983e93d) ([#10610](https://github.com/yt-dlp/yt-dlp/issues/10610)) by [bashonly](https://github.com/bashonly), [Grub4K](https://github.com/Grub4K)
+    - [Player client maintenance](https://github.com/yt-dlp/yt-dlp/commit/0e539617a41913c7da1edd74fb6543c10ad727b3) ([#10573](https://github.com/yt-dlp/yt-dlp/issues/10573)) by [bashonly](https://github.com/bashonly)
+
+#### Misc. changes
+- **cleanup**: Miscellaneous: [ffd7781](https://github.com/yt-dlp/yt-dlp/commit/ffd7781d6588926f820b44a34b9e6e3068fb9f97) by [bashonly](https://github.com/bashonly)
+
 ### 2024.07.25
 
 #### Extractor changes
