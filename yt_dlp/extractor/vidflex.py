@@ -3,6 +3,8 @@ import json
 
 from .common import InfoExtractor
 from ..utils import (
+    int_or_none,
+    join_nonempty,
     mimetype2ext,
     traverse_obj,
     url_or_none,
