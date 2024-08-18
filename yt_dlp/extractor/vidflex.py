@@ -35,7 +35,6 @@ class VidflexIE(InfoExtractor):
         r'watch\.binghamtonbulldogs\.com',
         r'watch\.rekindle\.tv',
         r'watch\.wpca\.com',
-        # TODO: Add more domains
     ]
     _VALID_URL = rf'^https?://(?:{"|".join(_DOMAINS_RE)})/[a-z]{{2}}(?:-[a-z]{{2}})?/c/[\w-]+\.(?P<id>\d+)'
     _TESTS = [{
