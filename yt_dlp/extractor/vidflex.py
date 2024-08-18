@@ -10,7 +10,17 @@ from ..utils import (
 
 
 class VidflexIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:[^/]+)/[a-z]{2}(?:-[a-z]{2})?/c/[\w-]+\.(?P<id>\d+)'
+    _DOMAINS_RE = [
+        r'[^.]+\.vidflex\.tv',
+        r'(?:www\.)?figureitoutbaseball\.com',
+        r'(?:www\.)?tuffhedemantv\.com',
+        r'(?:www\.)?albertalacrossetv\.com',
+        r'(?:www\.)?silenticetv\.com',
+        r'video\.hockeycanada\.ca',
+        r'videos\.telusworldofscienceedmonton\.ca',
+        # TODO: Add more domains
+    ]
+    _VALID_URL = rf'^https?://(?:{"|".join(_DOMAINS_RE)})/[a-z]{{2}}(?:-[a-z]{{2}})?/c/[\w-]+\.(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://video.hockeycanada.ca/en/c/nwt-micd-up-with-jamie-lee-rattray.107486',
         'only_matching': True,
