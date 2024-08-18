@@ -137,26 +137,37 @@ class NDTVIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        title = clean_html(self._html_search_meta('taboola:title', webpage, 'title', default=None) or self._html_search_meta('name', webpage, 'title', default=None) or self._og_search_title(webpage))
+        title = clean_html(
+            self._html_search_meta('taboola:title', webpage, 'title', default=None)
+            or self._html_search_meta('name', webpage, 'title', default=None)
+            or self._og_search_title(webpage))
 
         # in "movies" sub-site pages, filename is URL
         # in "food" sub-site pages, url string contains escape characters
         video_url = (self._html_search_meta('contentUrl', webpage, 'video-url', default=None)
-                     or self._search_regex(r'\"media_mp4\"\s*:\s*\"([^\"]+)\"', webpage, 'video-url')).replace('\\/', '/')
+                     or self._search_regex(r'"media_mp4"\s*:\s*"([^"]+)', webpage, 'video-url'))
+        if video_url is not None:
+            video_url = video_url.replace('\\/', '/')
 
         # "doctor" sub-site has MM:SS format
-        duration = parse_duration(self._html_search_meta('video:duration', webpage, 'duration', default=None) or self._search_regex(r'\"dur\"\s*:\s*\"([^\"]+)\"', webpage, 'duration'))
+        duration = parse_duration(
+            self._html_search_meta('video:duration', webpage, 'duration', default=None)
+            or self._search_regex(r'"dur"\s*:\s*"([^"]+)', webpage, 'duration', fatal=False, default=None))
 
         # "sports", "doctor", "swirlster" sub-sites don't have 'publish-date'
-        upload_date = unified_strdate(self._html_search_meta(
-            'publish-date', webpage, 'upload date', default=None) or self._html_search_meta(
-            'uploadDate', webpage, 'upload date', default=None) or self._search_regex(
-            r'datePublished"\s*:\s*"([^"]+)"', webpage, 'upload date', fatal=False))
+        upload_date = unified_strdate(
+            self._html_search_meta('publish-date', webpage, 'upload date', default=None)
+            or self._html_search_meta('uploadDate', webpage, 'upload date', default=None)
+            or self._search_regex(r'datePublished"\s*:\s*"([^"]+)', webpage, 'upload date', fatal=False, default=None))
 
-        description = clean_html(self._html_search_meta('description', webpage, 'description', default=None)
-                                 or remove_end(self._og_search_description(webpage), ' (Read more)'))
+        description = clean_html(
+            self._html_search_meta('description', webpage, 'description', default=None)
+            or remove_end(self._og_search_description(webpage, default=None), ' (Read more)'))
 
-        thumbnail = (self._html_search_meta('thumbnailUrl', webpage, 'thumbnail', default=None) or self._search_regex(r'\"image\"\s*:\s*\"([^\"]+)\"', webpage, 'thumbnail')).replace('\\/', '/')
+        thumbnail = (self._html_search_meta('thumbnailUrl', webpage, 'thumbnail', default=None)
+                     or self._search_regex(r'"image"\s*:\s*"([^\"]+)', webpage, 'thumbnail', fatal=False, default=None))
+        if thumbnail is not None:
+            thumbnail = thumbnail.replace('\\/', '/')
 
         return {
             'id': video_id,
