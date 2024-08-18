@@ -184,7 +184,7 @@ class RadikoIE(RadikoBaseIE):
     }]
 
     def _real_extract(self, url):
-        station, timestring = self._match_valid_url(url).groups()
+        station, timestring = self._match_valid_url(url).group('station', 'timestring')
         video_id = join_nonempty(station, timestring)
         vid_int = unified_timestamp(timestring, False)
         prog, station_program, ft, radio_begin, radio_end = self._find_program(video_id, station, vid_int)
@@ -212,7 +212,6 @@ class RadikoIE(RadikoBaseIE):
                     'seek': timestring,
                 },
             ),
-            '_old_archive_ids': [timestring],
         }
 
 
