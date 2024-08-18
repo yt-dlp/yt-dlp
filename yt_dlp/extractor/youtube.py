@@ -1362,7 +1362,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         '401': {'ext': 'mp4', 'height': 2160, 'format_note': 'DASH video', 'vcodec': 'av01.0.12M.08'},
     }
     _SUBTITLE_FORMATS = ('json3', 'srv1', 'srv2', 'srv3', 'ttml', 'vtt')
-    _POTOKEN_EXPERIMENTS = ('51217476', '51217102')
     _BROKEN_CLIENTS = ()
     _DEFAULT_CLIENTS = ('ios', 'web_creator')
 
@@ -3938,38 +3937,19 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 deprioritize_pr = True
 
             pr = initial_pr if client == 'web' else None
-            for retry in self.RetryManager(fatal=False):
-                try:
-                    pr = pr or self._extract_player_response(
-                        client, video_id,
-                        master_ytcfg=player_ytcfg or master_ytcfg,
-                        player_ytcfg=player_ytcfg,
-                        player_url=player_url if require_js_player else None,
-                        initial_pr=initial_pr if retry.attempt == 1 else None,
-                        visitor_data=visitor_data if retry.attempt == 1 else None,
-                        data_sync_id=data_sync_id if retry.attempt == 1 else None,
-                        po_token=po_token,
-                    )
-                except ExtractorError as e:
-                    self.report_warning(e)
-                    break
-                experiments = traverse_obj(pr, (
-                    'responseContext', 'serviceTrackingParams', lambda _, v: v['service'] == 'GFEEDBACK',
-                    'params', lambda _, v: v['key'] == 'e', 'value', {lambda x: x.split(',')}, ...))
-                if (
-                    not po_token
-                    and not require_po_token
-                    and all(x in experiments for x in self._POTOKEN_EXPERIMENTS)
-                ):
-                    # For clients that were previously not known to require a PO Token
-                    # Generate a new session and retry in attempt to not get the experiment.
-                    # Note this will have a new visitor ID and auth may not work correctly.
-                    pr = None
-                    player_ytcfg = self._get_default_ytcfg(client)
-                    if 'configs' not in self._configuration_arg('player_skip'):
-                        player_ytcfg = self._download_ytcfg(client, video_id) or player_ytcfg
-                    retry.error = ExtractorError('API returned broken formats (PO Token experiment detected)', expected=True)
-            if not pr:
+            try:
+                pr = pr or self._extract_player_response(
+                    client, video_id,
+                    master_ytcfg=player_ytcfg or master_ytcfg,
+                    player_ytcfg=player_ytcfg,
+                    player_url=player_url,
+                    initial_pr=initial_pr,
+                    visitor_data=visitor_data,
+                    data_sync_id=data_sync_id,
+                    po_token=po_token,
+                )
+            except ExtractorError as e:
+                self.report_warning(e)
                 continue
 
             if pr_id := self._invalid_player_response(pr, video_id):
