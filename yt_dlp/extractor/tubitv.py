@@ -137,7 +137,7 @@ class TubiTvIE(InfoExtractor):
             'subtitles': subtitles,
             'season_number': int_or_none(season_number),
             'episode_number': int_or_none(episode_number),
-            'episode': episode_title,
+            'episode': episode_title.strip() if episode_title else "",
             **traverse_obj(video_data, {
                 'description': ('description', {str}),
                 'duration': ('duration', {int_or_none}),
