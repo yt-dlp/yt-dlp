@@ -1764,7 +1764,7 @@ class TwitterSpacesIE(TwitterBaseIE):
             'release_timestamp': 1659904215,
             'release_date': '20220807',
         },
-        'params': {'skip_download': 'm3u8'},
+        'skip': 'No longer available',
     }, {
         # post_live/TimedOut but downloadable
         'url': 'https://twitter.com/i/spaces/1vAxRAVQWONJl',
@@ -1780,6 +1780,8 @@ class TwitterSpacesIE(TwitterBaseIE):
             'upload_date': '20230413',
             'release_timestamp': 1681839000,
             'release_date': '20230418',
+            'protocol': 'm3u8',  # ffmpeg is forced
+            'container': 'm4a_dash',  # audio-only format fixup is applied
         },
         'params': {'skip_download': 'm3u8'},
     }, {
@@ -1790,11 +1792,31 @@ class TwitterSpacesIE(TwitterBaseIE):
             'ext': 'm4a',
             'title': 'あ',
             'description': 'Twitter Space participated by nobody yet',
-            'uploader': '息根とめる🔪Twitchで復活',
+            'uploader': '息根とめる',
             'uploader_id': 'tomeru_ikinone',
             'live_status': 'was_live',
             'timestamp': 1685617198,
             'upload_date': '20230601',
+            'protocol': 'm3u8',  # ffmpeg is forced
+            'container': 'm4a_dash',  # audio-only format fixup is applied
+        },
+        'params': {'skip_download': 'm3u8'},
+    }, {
+        # Video Space
+        'url': 'https://x.com/i/spaces/1DXGydznBYWKM',
+        'info_dict': {
+            'id': '1DXGydznBYWKM',
+            'ext': 'mp4',
+            'title': 'America and Israel’s “special relationship”',
+            'description': 'Twitter Space participated by nobody yet',
+            'uploader': 'Candace Owens',
+            'uploader_id': 'RealCandaceO',
+            'live_status': 'was_live',
+            'timestamp': 1723931351,
+            'upload_date': '20240817',
+            'release_timestamp': 1723932000,
+            'release_date': '20240817',
+            'protocol': 'm3u8_native',  # not ffmpeg, detected as video space
         },
         'params': {'skip_download': 'm3u8'},
     }]
