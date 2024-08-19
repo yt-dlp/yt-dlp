@@ -135,13 +135,13 @@ class EurosportIE(InfoExtractor):
         for stream_type in json_data['attributes']['streaming']:
             if stream_type == 'hls':
                 fmts, subs = self._extract_m3u8_formats_and_subtitles(
-                    traverse_obj(json_data, ('attributes', 'streaming', stream_type, 'url')), display_id, ext='mp4')
+                    traverse_obj(json_data, ('attributes', 'streaming', stream_type, 'url')), display_id, ext='mp4', fatal=False)
             elif stream_type == 'dash':
                 fmts, subs = self._extract_mpd_formats_and_subtitles(
-                    traverse_obj(json_data, ('attributes', 'streaming', stream_type, 'url')), display_id)
+                    traverse_obj(json_data, ('attributes', 'streaming', stream_type, 'url')), display_id, fatal=False)
             elif stream_type == 'mss':
                 fmts, subs = self._extract_ism_formats_and_subtitles(
-                    traverse_obj(json_data, ('attributes', 'streaming', stream_type, 'url')), display_id)
+                    traverse_obj(json_data, ('attributes', 'streaming', stream_type, 'url')), display_id, fatal=False)
 
             formats.extend(fmts)
             self._merge_subtitles(subs, target=subtitles)
