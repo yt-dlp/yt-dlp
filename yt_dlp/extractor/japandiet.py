@@ -194,7 +194,7 @@ class ShugiinItvVodIE(ShugiinItvBaseIE):
 
 
 class SangiinInstructionIE(InfoExtractor):
-    _VALID_URL = r'^https?://www\.webtv\.sangiin\.go\.jp/webtv/index\.php'
+    _VALID_URL = r'https?://www\.webtv\.sangiin\.go\.jp/webtv/index\.php'
     IE_DESC = False  # this shouldn't be listed as a supported site
 
     def _real_extract(self, url):
