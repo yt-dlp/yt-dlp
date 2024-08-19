@@ -8,7 +8,7 @@ from ..utils import js_to_json
 
 
 class RTPIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?rtp\.pt/play/(?:zigzag/)?p(?P<program_id>[0-9]+)/(?P<id>[^/?#]+)/?'
+    _VALID_URL = r'https?://(?:www\.)?rtp\.pt/play/(?:(?:estudoemcasa|palco|zigzag)/)?p(?P<program_id>[0-9]+)/(?P<id>[^/?#]+)/?'
     _TESTS = [{
         'url': 'http://www.rtp.pt/play/p405/e174042/paixoes-cruzadas',
         'md5': 'e736ce0c665e459ddb818546220b4ef8',
@@ -31,6 +31,12 @@ class RTPIE(InfoExtractor):
         },
     }, {
         'url': 'http://www.rtp.pt/play/p831/a-quimica-das-coisas',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.rtp.pt/play/estudoemcasa/p7776/portugues-1-ano',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.rtp.pt/play/palco/p13785/l7nnon',
         'only_matching': True,
     }]
 
