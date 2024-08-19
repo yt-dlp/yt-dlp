@@ -17,7 +17,7 @@ from ..utils import (
 class SpankBangIE(InfoExtractor):
     _VALID_URL = r'''(?x)
                     https?://
-                        (?:[^/]+\.)?spankbang\.com/
+                        (?:[^/]+\.)?spankbang\.(?:com|party)/
                         (?:
                             (?P<id>[\da-z]+)/(?:video|play|embed)\b|
                             [\da-z]+-(?P<id_2>[\da-z]+)/playlist/[^/?#&]+
@@ -111,9 +111,10 @@ class SpankBangIE(InfoExtractor):
             stream_key = self._search_regex(
                 r'data-streamkey\s*=\s*(["\'])(?P<value>(?:(?!\1).)+)\1',
                 webpage, 'stream key', group='value')
-
+            stream_domain = re.search(r'https?://(?:[^/]+\.)?(spankbang\.(?:com|party))/', url).group(1)
+            stream_url = 'https://' + stream_domain + '/api/videos/stream'
             stream = self._download_json(
-                'https://spankbang.com/api/videos/stream', video_id,
+                stream_url, video_id,
                 'Downloading stream JSON', data=urlencode_postdata({
                     'id': stream_key,
                     'data': 0,
@@ -163,7 +164,7 @@ class SpankBangIE(InfoExtractor):
 
 
 class SpankBangPlaylistIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:[^/]+\.)?spankbang\.com/(?P<id>[\da-z]+)/playlist/(?P<display_id>[^/]+)'
+    _VALID_URL = r'https?://(?:[^/]+\.)?spankbang\.(?:com|party)/(?P<id>[\da-z]+)/playlist/(?P<display_id>[^/]+)'
     _TEST = {
         'url': 'https://spankbang.com/ug0k/playlist/big+ass+titties',
         'info_dict': {
