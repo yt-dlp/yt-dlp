@@ -3,7 +3,12 @@ from ..utils import traverse_obj
 
 
 class EurosportIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:(?:www\.)?eurosport\.(?:com(?:\.tr)?|de|dk|es|fr|hu|it|nl|no|ro)|eurosport.tvn24.pl)/[\w-]+/(?:[\w-]+/[\d-]+/)?[\w.-]+_(?P<id>vid\d+)'
+    _VALID_URL = r'''(?x)
+        https?://(?:
+            (?:(?:www|espanol)\.)?eurosport\.(?:com(?:\.tr)?|de|dk|es|fr|hu|it|nl|no|ro)|
+            eurosport\.tvn24\.pl
+        )/[\w-]+/(?:[\w-]+/[\d-]+/)?[\w.-]+_(?P<id>vid\d+)
+    '''
     _TESTS = [{
         'url': 'https://www.eurosport.com/tennis/roland-garros/2022/highlights-rafael-nadal-brushes-aside-caper-ruud-to-win-record-extending-14th-french-open-title_vid1694147/video.shtml',
         'info_dict': {
