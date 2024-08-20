@@ -26,7 +26,7 @@ class NiconicoDmcFD(FileDownloader):
     def real_download(self, filename, info_dict):
         from ..extractor.niconico import NiconicoIE
 
-        self.to_screen('[%s] Downloading from DMC' % self.FD_NAME)
+        self.to_screen(f'[{self.FD_NAME}] Downloading from DMC')
         ie = NiconicoIE(self.ydl)
         info_dict, heartbeat_info_dict = ie._get_heartbeat_info(info_dict)
 
@@ -45,7 +45,7 @@ class NiconicoDmcFD(FileDownloader):
             try:
                 self.ydl.urlopen(request).read()
             except Exception:
-                self.to_screen('[%s] Heartbeat failed' % self.FD_NAME)
+                self.to_screen(f'[{self.FD_NAME}] Heartbeat failed')
 
             with heartbeat_lock:
                 if not download_complete:
@@ -97,14 +97,14 @@ class NiconicoLiveFD(FragmentFD):
                         'quality': 'abr',
                         'protocol': 'hls',
                         'latency': live_latency,
-                        'chasePlay': False
+                        'chasePlay': False,
                     },
                     'room': {
                         'protocol': 'webSocket',
-                        'commentable': True
+                        'commentable': True,
                     },
                     'reconnect': True,
-                }
+                },
             }))
             with self.ws:
                 while True:
@@ -131,7 +131,7 @@ class NiconicoLiveFD(FragmentFD):
                     elif self.ydl.params.get('verbose', False):
                         if len(recv) > 100:
                             recv = recv[:100] + '...'
-                        self.to_screen('[debug] Server said: %s' % recv)
+                        self.to_screen(f'[debug] Server said: {recv}')
 
         stopped = threading.Event()
 
@@ -146,7 +146,7 @@ class NiconicoLiveFD(FragmentFD):
 
                     self.m3u8_lock.clear()  # m3u8 url may be changed
 
-                    self.to_screen('[%s] %s: Connection error occured, reconnecting after %d seconds: %s' % ('niconico:live', video_id, self._WEBSOCKET_RECONNECT_DELAY, str_or_none(e)))
+                    self.to_screen('[{}] {}: Connection error occured, reconnecting after {} seconds: {}'.format('niconico:live', video_id, self._WEBSOCKET_RECONNECT_DELAY, str_or_none(e)))
                     time.sleep(self._WEBSOCKET_RECONNECT_DELAY)
 
             self.m3u8_lock.set()  # Release possible locks
@@ -216,7 +216,7 @@ class NiconicoLiveFD(FragmentFD):
                         # Refresh master m3u8 (if possible) and get the url of the previously-chose format
                         master_m3u8_url = ws_context._master_m3u8_url()
                         formats = ie._extract_m3u8_formats(
-                            master_m3u8_url, video_id, query={"start": downloaded_duration}, live=False, note=False, fatal=False)
+                            master_m3u8_url, video_id, query={'start': downloaded_duration}, live=False, note=False, fatal=False)
                         media_m3u8_url = traverse_obj(formats, (format_index, {dict}, 'url'), get_all=False)
                         if not media_m3u8_url:
                             raise DownloadError('Unable to get playlist')
@@ -244,7 +244,7 @@ class NiconicoLiveFD(FragmentFD):
 
             return self._finish_frag_download(ctx, info_dict)
 
-    class DurationLimiter():
+    class DurationLimiter:
         def __init__(self, target):
             self.target = target
 
