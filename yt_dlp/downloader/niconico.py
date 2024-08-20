@@ -181,11 +181,7 @@ class NiconicoLiveFD(FragmentFD):
             ie = NiconicoIE(self.ydl)
 
             video_id = info_dict['id']
-
-            # Get format index
-            for format_index, fmt in enumerate(info_dict['formats']):
-                if fmt['format_id'] == info_dict['format_id']:
-                    break
+            format_index = next((i for i, fmt in enumerate(info_dict['formats']) if fmt['format_id'] == info_dict['format_id']))
 
             # Get video info
             total_duration = 0
