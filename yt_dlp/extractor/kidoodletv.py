@@ -40,6 +40,7 @@ class KidoodleTVBaseIE(InfoExtractor):
                                             field_name, default=None, group=('a', 'b'))
             return value[1] if value[1] != value[0] else (data.get(value[0]) or value[0])
 
+        idx = idx.replace('$', r'\$')
         video_id = get_field('id', idx, webpage, data)
         title = get_field('title', idx, webpage, data)
         brief = get_field('shortSummary', idx, webpage, data) or ''
@@ -138,7 +139,7 @@ class KidoodleTVIE(KidoodleTVBaseIE):
         description = self._html_search_meta('description', webpage, 'description', default=None)
         data_set = self._extract_data(webpage, video_id)
         info = {}
-        if idx := self._html_search_regex(rf'([\w-]{{2}})\.seasonAndEpisode="{season_episode}";',
+        if idx := self._html_search_regex(rf'([\w\$]{{2,4}})\.seasonAndEpisode="{season_episode}";',
                                           webpage, 'data_idx', default=None):
             info = self._extract_by_idx(idx, webpage, data_set, video_id)
 
@@ -179,7 +180,7 @@ class KidoodleTVSeriesIE(KidoodleTVBaseIE):
                                               'description', default=None)
         data_set = self._extract_data(webpage, series_id)
         entries = []
-        for idx_se in sorted(re.findall(r'([\w-]{2})\.seasonAndEpisode="([^"]+)";', webpage),
+        for idx_se in sorted(re.findall(r'([\w\$]{2,4})\.seasonAndEpisode="([^"]+)";', webpage),
                              key=lambda x: x[1]):
             if entry := self._extract_by_idx(idx_se[0], webpage, data_set):
                 entry['series_id'] = series_id
