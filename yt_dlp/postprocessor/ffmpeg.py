@@ -968,7 +968,7 @@ class FFmpegSubtitlesConvertorPP(FFmpegPostProcessor):
         sub_filenames = []
         for lang, sub in subs.items():
             if not os.path.exists(sub.get('filepath', '')):
-                self.report_warning(f'Skipping embedding {lang} subtitle because the file is missing')
+                self.report_warning(f'Skipping converting {lang} subtitle because the file is missing')
                 continue
             ext = sub['ext']
             if ext == new_ext:
