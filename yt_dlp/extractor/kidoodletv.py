@@ -37,7 +37,7 @@ class KidoodleTVBaseIE(InfoExtractor):
 
         def get_field(field_name, idx, webpage, data):
             value = self._html_search_regex(rf'{idx}\.{field_name}=(?P<a>"?(?P<b>.+?)"?);', webpage,
-                                                field_name, default=None, group=('a', 'b'))
+                                            field_name, default=None, group=('a', 'b'))
             return value[1] if value[1] != value[0] else (data.get(value[0]) or value[0])
 
         video_id = get_field('id', idx, webpage, data)
@@ -45,7 +45,7 @@ class KidoodleTVBaseIE(InfoExtractor):
         brief = get_field('shortSummary', idx, webpage, data) or ''
         summary = get_field('summary', idx, webpage, data) or ''
         description = (summary if brief[:-3] in summary else join_nonempty(brief, summary, delim='\n')
-                       ).replace('\\\"', '\"')
+                       ).replace(r'\"', '"')
         series = get_field('seriesName', idx, webpage, data)
         season_episode = get_field('seasonAndEpisode', idx, webpage, data)
         season, episode = self._search_regex(r'^S(?P<season>\d+)E(?P<episode>\d+)', season_episode,
@@ -84,7 +84,7 @@ class KidoodleTVBaseIE(InfoExtractor):
 
 
 class KidoodleTVIE(KidoodleTVBaseIE):
-    _VALID_URL = r'https?://kidoodle\.tv/(?P<series_id>\d+)/[^/]+/(?P<id>(?P<season_episode>S\d+E\d+)[^/\?]*)'
+    _VALID_URL = r'https?://kidoodle\.tv/(?P<series_id>\d+)/(?P<series>[^/]+)/(?P<id>(?P<season_episode>S\d+E\d+)[^/\?]*)'
     _TESTS = [{
         'url': 'https://kidoodle.tv/2376/regal-academy/S1E01-a-school-for-fairy-tales',
         'info_dict': {
@@ -124,12 +124,16 @@ class KidoodleTVIE(KidoodleTVBaseIE):
     }]
 
     def _real_extract(self, url):
-        video_id, series_id, season_episode = self._match_valid_url(url).group('id', 'series_id', 'season_episode')
-        qs = urlencode_postdata({'origin': urllib.parse.urlparse(url).path})
-        self._download_webpage(f'https://kidoodle.tv/welcome?{qs}', video_id, note='Downloading welcome page')
-        self._download_webpage(f'https://kidoodle.tv/welcome/verify?{qs}', video_id, note='Performing age verification')
-        # the above lines download the webpages to change verification status, not really get verified
-        webpage = self._download_webpage(url, video_id)
+        video_id, series_id, series, season_episode = self._match_valid_url(url).group(
+            'id', 'series_id', 'series', 'season_episode')
+        webpage = self._download_webpage(f'https://kidoodle.tv/{series_id}/{series}', video_id,
+                                         fatal=False, expected_status=(404, 500))
+        if 'Server error' in webpage or 'Something went wrong' in webpage:
+            qs = urlencode_postdata({'origin': urllib.parse.urlparse(url).path})
+            self._download_webpage(f'https://kidoodle.tv/welcome?{qs}', video_id, note='Downloading welcome page')
+            self._download_webpage(f'https://kidoodle.tv/welcome/verify?{qs}', video_id, note='Performing age verification')
+            # the above lines download the webpages to change verification status, not really get verified
+            webpage = self._download_webpage(url, video_id)
 
         description = self._html_search_meta('description', webpage, 'description', default=None)
         data_set = self._extract_data(webpage, video_id)
