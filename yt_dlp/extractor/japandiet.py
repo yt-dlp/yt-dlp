@@ -198,7 +198,10 @@ class SangiinInstructionIE(InfoExtractor):
     IE_DESC = False  # this shouldn't be listed as a supported site
 
     def _real_extract(self, url):
-        raise ExtractorError('Copy the link from the botton below the video description or player, and use the link to download. If there are no button in the frame, get the URL of the frame showing the video.', expected=True)
+        raise ExtractorError(
+            'Copy the link from the button below the video description/player '
+            'and use that link to download. If there is no button in the frame, '
+            'get the URL of the frame showing the video.', expected=True)
 
 
 class SangiinIE(InfoExtractor):
