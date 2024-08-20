@@ -948,6 +948,8 @@ class FFmpegFixupDuplicateMoovPP(FFmpegCopyStreamPP):
 
 class FFmpegSubtitlesConvertorPP(FFmpegPostProcessor):
     SUPPORTED_EXTS = MEDIA_EXTENSIONS.subtitles
+    _DFXP_EXTS = ('dfxp', 'ttml', 'tt')
+    _SUPPORTED_INPUT_EXTS = (*SUPPORTED_EXTS, *_DFXP_EXTS)
 
     def __init__(self, downloader=None, format=None):
         super().__init__(downloader)
@@ -972,7 +974,7 @@ class FFmpegSubtitlesConvertorPP(FFmpegPostProcessor):
             if ext == new_ext:
                 self.to_screen(f'Subtitle file for {new_ext} is already in the requested format')
                 continue
-            elif ext not in self.SUPPORTED_EXTS:
+            elif ext not in self._SUPPORTED_INPUT_EXTS:
                 self.to_screen(
                     f'You have requested to convert {ext} subtitles into another format, '
                     'which is currently not possible')
@@ -981,7 +983,7 @@ class FFmpegSubtitlesConvertorPP(FFmpegPostProcessor):
             sub_filenames.append(old_file)
             new_file = replace_extension(old_file, new_ext)
 
-            if ext in ('dfxp', 'ttml', 'tt'):
+            if ext in self._DFXP_EXTS:
                 self.report_warning(
                     'You have requested to convert dfxp (TTML) subtitles into another format, '
                     'which results in style information loss')
