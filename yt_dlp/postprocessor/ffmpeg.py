@@ -888,7 +888,7 @@ class FFmpegFixupM4aPP(FFmpegFixupPostProcessor):
 class FFmpegFixupM3u8PP(FFmpegFixupPostProcessor):
     def _needs_fixup(self, info):
         yield info['ext'] in ('mp4', 'm4a')
-        yield info['protocol'].startswith('m3u8')
+        yield info['protocol'].startswith('m3u8') or info['protocol'] == 'niconico_live'
         try:
             metadata = self.get_metadata_object(info['filepath'])
         except PostProcessingError as e:

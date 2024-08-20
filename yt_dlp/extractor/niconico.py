@@ -1007,7 +1007,7 @@ class NiconicoLiveIE(NiconicoBaseIE):
         for fmt, q in zip(formats, reversed(qualities[1:])):
             fmt.update({
                 'format_id': q,
-                'protocol': 'm3u8_niconico_live',
+                'protocol': 'niconico_live',
             })
             yield fmt
 
