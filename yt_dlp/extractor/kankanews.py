@@ -19,7 +19,7 @@ class KankaNewsIE(InfoExtractor):
             'ext': 'mp4',
             'title': '视频｜第23个中国记者节，我们在进博切蛋糕',
             'thumbnail': r're:^https?://.*\.jpg*',
-        }
+        },
     }]
 
     def _real_extract(self, url):

@@ -87,5 +87,5 @@ class ParlerIE(InfoExtractor):
                 'view_count': ('views', {int_or_none}),
                 'comment_count': ('total_comments', {int_or_none}),
                 'repost_count': ('echos', {int_or_none}),
-            })
+            }),
         }

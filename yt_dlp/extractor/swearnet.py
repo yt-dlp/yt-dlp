@@ -17,7 +17,7 @@ class SwearnetEpisodeIE(InfoExtractor):
             'title': 'Episode 1 - Grilled Cheese Sammich',
             'season_number': 1,
             'thumbnail': 'https://cdn.vidyard.com/thumbnails/232819/_RX04IKIq60a2V6rIRqq_Q_small.jpg',
-        }
+        },
     }]
 
     def _get_formats_and_subtitle(self, video_source, video_id):
@@ -32,7 +32,7 @@ class SwearnetEpisodeIE(InfoExtractor):
             else:
                 formats.extend({
                     'url': video_mp4.get('url'),
-                    'ext': 'mp4'
+                    'ext': 'mp4',
                 } for video_mp4 in value)
 
         return formats, subtitles
@@ -42,7 +42,7 @@ class SwearnetEpisodeIE(InfoExtractor):
         for caption in caption_json:
             subs.setdefault(caption.get('language') or 'und', []).append({
                 'url': caption.get('vttUrl'),
-                'name': caption.get('name')
+                'name': caption.get('name'),
             })
 
         return subs
@@ -75,5 +75,5 @@ class SwearnetEpisodeIE(InfoExtractor):
             'season_number': int_or_none(season_number),
             'episode_number': int_or_none(episode_number),
             'thumbnails': [{'url': thumbnail_url}
-                           for thumbnail_url in traverse_obj(json_data, ('thumbnailUrls', ...))]
+                           for thumbnail_url in traverse_obj(json_data, ('thumbnailUrls', ...))],
         }

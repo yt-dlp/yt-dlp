@@ -33,7 +33,7 @@ class PatreonBaseIE(InfoExtractor):
         try:
             return self._download_json(
                 f'https://www.patreon.com/api/{ep}',
-                item_id, note='Downloading API JSON' if not note else note,
+                item_id, note=note if note else 'Downloading API JSON',
                 query=query, fatal=fatal, headers=headers)
         except ExtractorError as e:
             if not isinstance(e.cause, HTTPError) or mimetype2ext(e.cause.response.headers.get('Content-Type')) != 'json':
@@ -113,7 +113,7 @@ class PatreonIE(PatreonBaseIE):
         'params': {
             'noplaylist': True,
             'skip_download': True,
-        }
+        },
     }, {
         'url': 'https://www.patreon.com/posts/episode-166-of-743933',
         'only_matching': True,
@@ -133,7 +133,7 @@ class PatreonIE(PatreonBaseIE):
             'description': 'md5:557a409bd79d3898689419094934ba79',
             'uploader_id': '14936315',
         },
-        'skip': 'Patron-only content'
+        'skip': 'Patron-only content',
     }, {
         # m3u8 video (https://github.com/yt-dlp/yt-dlp/issues/2277)
         'url': 'https://www.patreon.com/posts/video-sketchbook-32452882',
@@ -154,7 +154,7 @@ class PatreonIE(PatreonBaseIE):
             'channel_id': '1641751',
             'channel_url': 'https://www.patreon.com/loish',
             'channel_follower_count': int,
-        }
+        },
     }, {
         # bad videos under media (if media is included). Real one is under post_file
         'url': 'https://www.patreon.com/posts/premium-access-70282931',
@@ -378,7 +378,7 @@ class PatreonIE(PatreonBaseIE):
 
             params.update({'page[cursor]': cursor} if cursor else {})
             response = self._call_api(
-                f'posts/{post_id}/comments', post_id, query=params, note='Downloading comments page %d' % page)
+                f'posts/{post_id}/comments', post_id, query=params, note=f'Downloading comments page {page}')
 
             cursor = None
             for comment in traverse_obj(response, (('data', ('included', lambda _, v: v['type'] == 'comment')), ...)):
@@ -446,18 +446,18 @@ class PatreonCampaignIE(PatreonBaseIE):
             'uploader_id': '37306634',
             'thumbnail': r're:^https?://.*$',
         },
-        'playlist_mincount': 71
+        'playlist_mincount': 71,
     }, {
         'url': 'https://www.patreon.com/dissonancepod/posts',
-        'only_matching': True
+        'only_matching': True,
     }, {
         'url': 'https://www.patreon.com/m/5932659',
-        'only_matching': True
+        'only_matching': True,
     }]
 
     @classmethod
     def suitable(cls, url):
-        return False if PatreonIE.suitable(url) else super(PatreonCampaignIE, cls).suitable(url)
+        return False if PatreonIE.suitable(url) else super().suitable(url)
 
     def _entries(self, campaign_id):
         cursor = None
@@ -472,7 +472,7 @@ class PatreonCampaignIE(PatreonBaseIE):
         for page in itertools.count(1):
 
             params.update({'page[cursor]': cursor} if cursor else {})
-            posts_json = self._call_api('posts', campaign_id, query=params, note='Downloading posts page %d' % page)
+            posts_json = self._call_api('posts', campaign_id, query=params, note=f'Downloading posts page {page}')
 
             cursor = traverse_obj(posts_json, ('meta', 'pagination', 'cursors', 'next'))
             for post_url in traverse_obj(posts_json, ('data', ..., 'attributes', 'patreon_url')):
@@ -493,7 +493,7 @@ class PatreonCampaignIE(PatreonBaseIE):
             'json-api-use-default-includes': 'false',
             'fields[user]': 'full_name,url',
             'fields[campaign]': 'name,summary,url,patron_count,creation_count,is_nsfw,avatar_photo_url',
-            'include': 'creator'
+            'include': 'creator',
         }
 
         campaign_response = self._call_api(

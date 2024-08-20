@@ -36,7 +36,7 @@ class MurrtubeIE(InfoExtractor):
             'view_count': int,
             'like_count': int,
             'tags': ['hump', 'breed', 'Fursuit', 'murrsuit', 'bareback'],
-        }
+        },
     }
 
     def _download_gql(self, video_id, op, note=None, fatal=True):
@@ -129,14 +129,14 @@ query Media($q: String, $sort: String, $userId: ID, $offset: Int!, $limit: Int!)
     __typename
   }
 }'''},
-            'Downloading page {0}'.format(page + 1))
+            f'Downloading page {page + 1}')
         if data is None:
             raise ExtractorError(f'Failed to retrieve video list for page {page + 1}')
 
         media = data['media']
 
         for entry in media:
-            yield self.url_result('murrtube:{0}'.format(entry['id']), MurrtubeIE.ie_key())
+            yield self.url_result('murrtube:{}'.format(entry['id']), MurrtubeIE.ie_key())
 
     def _real_extract(self, url):
         username = self._match_id(url)
