@@ -972,9 +972,9 @@ class FFmpegSubtitlesConvertorPP(FFmpegPostProcessor):
             if ext == new_ext:
                 self.to_screen(f'Subtitle file for {new_ext} is already in the requested format')
                 continue
-            elif ext == 'json':
+            elif ext not in self.SUPPORTED_EXTS:
                 self.to_screen(
-                    'You have requested to convert json subtitles into another format, '
+                    f'You have requested to convert {ext} subtitles into another format, '
                     'which is currently not possible')
                 continue
             old_file = sub['filepath']
