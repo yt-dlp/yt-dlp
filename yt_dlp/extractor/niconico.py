@@ -84,7 +84,6 @@ class NiconicoIE(NiconicoBaseIE):
 
     _TESTS = [{
         'url': 'http://www.nicovideo.jp/watch/sm22312215',
-        'md5': 'd1a75c0823e2f629128c43e1212760f9',
         'info_dict': {
             'id': 'sm22312215',
             'ext': 'mp4',
@@ -100,8 +99,8 @@ class NiconicoIE(NiconicoBaseIE):
             'comment_count': int,
             'genres': ['未設定'],
             'tags': [],
-            'expected_protocol': str,
         },
+        'params': {'skip_download': 'm3u8'},
     }, {
         # File downloaded with and without credentials are different, so omit
         # the md5 field
@@ -121,8 +120,8 @@ class NiconicoIE(NiconicoBaseIE):
             'view_count': int,
             'genres': ['音楽・サウンド'],
             'tags': ['Translation_Request', 'Kagamine_Rin', 'Rin_Original'],
-            'expected_protocol': str,
         },
+        'params': {'skip_download': 'm3u8'},
     }, {
         # 'video exists but is marked as "deleted"
         # md5 is unstable
@@ -156,7 +155,6 @@ class NiconicoIE(NiconicoBaseIE):
     }, {
         # video not available via `getflv`; "old" HTML5 video
         'url': 'http://www.nicovideo.jp/watch/sm1151009',
-        'md5': 'f95a3d259172667b293530cc2e41ebda',
         'info_dict': {
             'id': 'sm1151009',
             'ext': 'mp4',
@@ -172,11 +170,10 @@ class NiconicoIE(NiconicoBaseIE):
             'comment_count': int,
             'genres': ['ゲーム'],
             'tags': [],
-            'expected_protocol': str,
         },
+        'params': {'skip_download': 'm3u8'},
     }, {
         # "New" HTML5 video
-        # md5 is unstable
         'url': 'http://www.nicovideo.jp/watch/sm31464864',
         'info_dict': {
             'id': 'sm31464864',
@@ -193,12 +190,11 @@ class NiconicoIE(NiconicoBaseIE):
             'comment_count': int,
             'genres': ['アニメ'],
             'tags': [],
-            'expected_protocol': str,
         },
+        'params': {'skip_download': 'm3u8'},
     }, {
         # Video without owner
         'url': 'http://www.nicovideo.jp/watch/sm18238488',
-        'md5': 'd265680a1f92bdcbbd2a507fc9e78a9e',
         'info_dict': {
             'id': 'sm18238488',
             'ext': 'mp4',
@@ -212,8 +208,8 @@ class NiconicoIE(NiconicoBaseIE):
             'comment_count': int,
             'genres': ['エンターテイメント'],
             'tags': [],
-            'expected_protocol': str,
         },
+        'params': {'skip_download': 'm3u8'},
     }, {
         'url': 'http://sp.nicovideo.jp/watch/sm28964488?ss_pos=1&cp_in=wt_tg',
         'only_matching': True,
@@ -461,9 +457,11 @@ class NiconicoIE(NiconicoBaseIE):
             if video_id.startswith('so'):
                 video_id = self._match_id(handle.url)
 
-            api_data = self._parse_json(self._html_search_regex(
-                'data-api-data="([^"]+)"', webpage,
-                'API data', default='{}'), video_id)
+            api_data = traverse_obj(
+                self._parse_json(self._html_search_meta('server-response', webpage) or '', video_id),
+                ('data', 'response', {dict}))
+            if not api_data:
+                raise ExtractorError('Server response data not found')
         except ExtractorError as e:
             try:
                 api_data = self._download_json(

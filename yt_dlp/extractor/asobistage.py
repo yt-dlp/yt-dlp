@@ -101,9 +101,10 @@ class AsobiStageIE(InfoExtractor):
         self._HEADERS['Authorization'] = f'Bearer {token}'
 
     def _real_extract(self, url):
-        video_id, event, type_, slug = self._match_valid_url(url).group('id', 'event', 'type', 'slug')
+        webpage, urlh = self._download_webpage_handle(url, self._match_id(url))
+        video_id, event, type_, slug = self._match_valid_url(urlh.url).group('id', 'event', 'type', 'slug')
         video_type = {'archive': 'archives', 'player': 'broadcasts'}[type_]
-        webpage = self._download_webpage(url, video_id)
+
         event_data = traverse_obj(
             self._search_nextjs_data(webpage, video_id, default={}),
             ('props', 'pageProps', 'eventCMSData', {

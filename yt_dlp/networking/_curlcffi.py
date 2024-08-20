@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import io
 import math
+import re
 import urllib.parse
 
 from ._helper import InstanceStoreMixin, select_proxy
@@ -27,11 +28,12 @@ from ..utils import int_or_none
 if curl_cffi is None:
     raise ImportError('curl_cffi is not installed')
 
-curl_cffi_version = tuple(int_or_none(x, default=0) for x in curl_cffi.__version__.split('.'))
 
-if curl_cffi_version != (0, 5, 10):
+curl_cffi_version = tuple(map(int, re.split(r'[^\d]+', curl_cffi.__version__)[:3]))
+
+if curl_cffi_version != (0, 5, 10) and not ((0, 7, 0) <= curl_cffi_version < (0, 8, 0)):
     curl_cffi._yt_dlp__version = f'{curl_cffi.__version__} (unsupported)'
-    raise ImportError('Only curl_cffi 0.5.10 is supported')
+    raise ImportError('Only curl_cffi versions 0.5.10, 0.7.X are supported')
 
 import curl_cffi.requests
 from curl_cffi.const import CurlECode, CurlOpt
@@ -110,6 +112,13 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
     _SUPPORTED_FEATURES = (Features.NO_PROXY, Features.ALL_PROXY)
     _SUPPORTED_PROXY_SCHEMES = ('http', 'https', 'socks4', 'socks4a', 'socks5', 'socks5h')
     _SUPPORTED_IMPERSONATE_TARGET_MAP = {
+        **({
+            ImpersonateTarget('chrome', '124', 'macos', '14'): curl_cffi.requests.BrowserType.chrome124,
+            ImpersonateTarget('chrome', '123', 'macos', '14'): curl_cffi.requests.BrowserType.chrome123,
+            ImpersonateTarget('chrome', '120', 'macos', '14'): curl_cffi.requests.BrowserType.chrome120,
+            ImpersonateTarget('chrome', '119', 'macos', '14'): curl_cffi.requests.BrowserType.chrome119,
+            ImpersonateTarget('chrome', '116', 'windows', '10'): curl_cffi.requests.BrowserType.chrome116,
+        } if curl_cffi_version >= (0, 7, 0) else {}),
         ImpersonateTarget('chrome', '110', 'windows', '10'): curl_cffi.requests.BrowserType.chrome110,
         ImpersonateTarget('chrome', '107', 'windows', '10'): curl_cffi.requests.BrowserType.chrome107,
         ImpersonateTarget('chrome', '104', 'windows', '10'): curl_cffi.requests.BrowserType.chrome104,
@@ -118,9 +127,15 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
         ImpersonateTarget('chrome', '99', 'windows', '10'): curl_cffi.requests.BrowserType.chrome99,
         ImpersonateTarget('edge', '101', 'windows', '10'): curl_cffi.requests.BrowserType.edge101,
         ImpersonateTarget('edge', '99', 'windows', '10'): curl_cffi.requests.BrowserType.edge99,
+        **({
+            ImpersonateTarget('safari', '17.0', 'macos', '14'): curl_cffi.requests.BrowserType.safari17_0,
+        } if curl_cffi_version >= (0, 7, 0) else {}),
         ImpersonateTarget('safari', '15.5', 'macos', '12'): curl_cffi.requests.BrowserType.safari15_5,
         ImpersonateTarget('safari', '15.3', 'macos', '11'): curl_cffi.requests.BrowserType.safari15_3,
         ImpersonateTarget('chrome', '99', 'android', '12'): curl_cffi.requests.BrowserType.chrome99_android,
+        **({
+            ImpersonateTarget('safari', '17.2', 'ios', '17.2'): curl_cffi.requests.BrowserType.safari17_2_ios,
+        } if curl_cffi_version >= (0, 7, 0) else {}),
     }
 
     def _create_instance(self, cookiejar=None):
@@ -131,6 +146,9 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
         extensions.pop('impersonate', None)
         extensions.pop('cookiejar', None)
         extensions.pop('timeout', None)
+        # CurlCFFIRH ignores legacy ssl options currently.
+        # Impersonation generally uses a looser SSL configuration than urllib/requests.
+        extensions.pop('legacy_ssl', None)
 
     def send(self, request: Request) -> Response:
         target = self._get_request_target(request)
@@ -187,7 +205,7 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
         timeout = self._calculate_timeout(request)
 
         # set CURLOPT_LOW_SPEED_LIMIT and CURLOPT_LOW_SPEED_TIME to act as a read timeout. [1]
-        # curl_cffi does not currently do this. [2]
+        # This is required only for 0.5.10 [2]
         # Note: CURLOPT_LOW_SPEED_TIME is in seconds, so we need to round up to the nearest second. [3]
         # [1] https://unix.stackexchange.com/a/305311
         # [2] https://github.com/yifeikong/curl_cffi/issues/156
@@ -203,7 +221,7 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
                 data=request.data,
                 verify=self.verify,
                 max_redirects=5,
-                timeout=timeout,
+                timeout=(timeout, timeout),
                 impersonate=self._SUPPORTED_IMPERSONATE_TARGET_MAP.get(
                     self._get_request_target(request)),
                 interface=self.source_address,
@@ -222,7 +240,7 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
 
             elif (
                 e.code == CurlECode.PROXY
-                or (e.code == CurlECode.RECV_ERROR and 'Received HTTP code 407 from proxy after CONNECT' in str(e))
+                or (e.code == CurlECode.RECV_ERROR and 'CONNECT' in str(e))
             ):
                 raise ProxyError(cause=e) from e
             else:

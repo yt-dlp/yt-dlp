@@ -2,6 +2,7 @@ import itertools
 import urllib.parse
 
 from .common import InfoExtractor
+from .sproutvideo import VidsIoIE
 from .vimeo import VimeoIE
 from ..networking.exceptions import HTTPError
 from ..utils import (
@@ -12,6 +13,7 @@ from ..utils import (
     int_or_none,
     mimetype2ext,
     parse_iso8601,
+    smuggle_url,
     str_or_none,
     traverse_obj,
     url_or_none,
@@ -305,22 +307,28 @@ class PatreonIE(PatreonBaseIE):
                     'channel_follower_count': ('attributes', 'patron_count', {int_or_none}),
                 }))
 
+        # all-lowercase 'referer' so we can smuggle it to Generic, SproutVideo, Vimeo
+        headers = {'referer': 'https://patreon.com/'}
+
         # handle Vimeo embeds
         if traverse_obj(attributes, ('embed', 'provider')) == 'Vimeo':
             v_url = urllib.parse.unquote(self._html_search_regex(
                 r'(https(?:%3A%2F%2F|://)player\.vimeo\.com.+app_id(?:=|%3D)+\d+)',
                 traverse_obj(attributes, ('embed', 'html', {str})), 'vimeo url', fatal=False) or '')
             if url_or_none(v_url) and self._request_webpage(
-                    v_url, video_id, 'Checking Vimeo embed URL',
-                    headers={'Referer': 'https://patreon.com/'},
-                    fatal=False, errnote=False):
+                    v_url, video_id, 'Checking Vimeo embed URL', headers=headers,
+                    fatal=False, errnote=False, expected_status=429):  # 429 is TLS fingerprint rejection
                 entries.append(self.url_result(
                     VimeoIE._smuggle_referrer(v_url, 'https://patreon.com/'),
                     VimeoIE, url_transparent=True))
 
         embed_url = traverse_obj(attributes, ('embed', 'url', {url_or_none}))
-        if embed_url and self._request_webpage(embed_url, video_id, 'Checking embed URL', fatal=False, errnote=False):
-            entries.append(self.url_result(embed_url))
+        if embed_url and (urlh := self._request_webpage(
+                embed_url, video_id, 'Checking embed URL', headers=headers,
+                fatal=False, errnote=False, expected_status=403)):
+            # Password-protected vids.io embeds return 403 errors w/o --video-password or session cookie
+            if urlh.status != 403 or VidsIoIE.suitable(embed_url):
+                entries.append(self.url_result(smuggle_url(embed_url, headers)))
 
         post_file = traverse_obj(attributes, ('post_file', {dict}))
         if post_file:
@@ -412,7 +420,7 @@ class PatreonIE(PatreonBaseIE):
 
 class PatreonCampaignIE(PatreonBaseIE):
 
-    _VALID_URL = r'https?://(?:www\.)?patreon\.com/(?!rss)(?:(?:m/(?P<campaign_id>\d+))|(?P<vanity>[-\w]+))'
+    _VALID_URL = r'https?://(?:www\.)?patreon\.com/(?!rss)(?:(?:m|api/campaigns)/(?P<campaign_id>\d+)|(?P<vanity>[-\w]+))'
     _TESTS = [{
         'url': 'https://www.patreon.com/dissonancepod/',
         'info_dict': {
@@ -434,24 +442,43 @@ class PatreonCampaignIE(PatreonBaseIE):
         'url': 'https://www.patreon.com/m/4767637/posts',
         'info_dict': {
             'title': 'Not Just Bikes',
-            'channel_follower_count': int,
             'id': '4767637',
             'channel_id': '4767637',
             'channel_url': 'https://www.patreon.com/notjustbikes',
-            'description': 'md5:595c6e7dca76ae615b1d38c298a287a1',
+            'description': 'md5:9f4b70051216c4d5c58afe580ffc8d0f',
             'age_limit': 0,
             'channel': 'Not Just Bikes',
             'uploader_url': 'https://www.patreon.com/notjustbikes',
-            'uploader': 'Not Just Bikes',
+            'uploader': 'Jason',
             'uploader_id': '37306634',
             'thumbnail': r're:^https?://.*$',
         },
         'playlist_mincount': 71,
     }, {
+        'url': 'https://www.patreon.com/api/campaigns/4243769/posts',
+        'info_dict': {
+            'title': 'Second Thought',
+            'channel_follower_count': int,
+            'id': '4243769',
+            'channel_id': '4243769',
+            'channel_url': 'https://www.patreon.com/secondthought',
+            'description': 'md5:69c89a3aba43efdb76e85eb023e8de8b',
+            'age_limit': 0,
+            'channel': 'Second Thought',
+            'uploader_url': 'https://www.patreon.com/secondthought',
+            'uploader': 'JT Chapman',
+            'uploader_id': '32718287',
+            'thumbnail': r're:^https?://.*$',
+        },
+        'playlist_mincount': 201,
+    }, {
         'url': 'https://www.patreon.com/dissonancepod/posts',
         'only_matching': True,
     }, {
         'url': 'https://www.patreon.com/m/5932659',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.patreon.com/api/campaigns/4243769',
         'only_matching': True,
     }]
 

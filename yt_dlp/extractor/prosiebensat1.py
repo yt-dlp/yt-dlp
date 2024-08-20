@@ -7,6 +7,7 @@ from ..utils import (
     determine_ext,
     float_or_none,
     int_or_none,
+    join_nonempty,
     merge_dicts,
     unified_strdate,
 )
@@ -147,13 +148,13 @@ class ProSiebenSat1BaseIE(InfoExtractor):
                                 'page_url': 'http://www.prosieben.de',
                                 'tbr': tbr,
                                 'ext': 'flv',
-                                'format_id': 'rtmp{}'.format(f'-{tbr}' if tbr else ''),
+                                'format_id': join_nonempty('rtmp', tbr),
                             })
                         else:
                             formats.append({
                                 'url': source_url,
                                 'tbr': tbr,
-                                'format_id': 'http{}'.format(f'-{tbr}' if tbr else ''),
+                                'format_id': join_nonempty('http', tbr),
                             })
 
         return {
