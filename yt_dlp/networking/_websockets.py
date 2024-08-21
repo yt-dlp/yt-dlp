@@ -47,10 +47,7 @@ from websockets.uri import parse_uri
 # 2: "AttributeError: 'ClientConnection' object has no attribute 'recv_events_exc'. Did you mean: 'recv_events'?"
 import websockets.sync.connection  # isort: split
 with contextlib.suppress(Exception):
-    # > 12.0
     websockets.sync.connection.Connection.recv_exc = None
-    # 12.0
-    websockets.sync.connection.Connection.recv_events_exc = None
 
 
 class WebsocketsResponseAdapter(WebSocketResponse):
