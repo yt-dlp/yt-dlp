@@ -1510,8 +1510,9 @@ from .pgatour import PGATourIE
 from .philharmoniedeparis import PhilharmonieDeParisIE
 from .phoenix import PhoenixIE
 from .photobucket import PhotobucketIE
+from .pialive import PiaLiveIE
 from .piapro import PiaproIE
-from .piaulizaportal import PIAULIZAPortalIE
+from .piaulizaportal import PIAULIZAPortalAPIIE, PIAULIZAPortalIE
 from .picarto import (
     PicartoIE,
     PicartoVodIE,
