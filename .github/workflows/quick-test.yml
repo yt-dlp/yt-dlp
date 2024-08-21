@@ -17,6 +17,7 @@ jobs:
     - name: Install test requirements
       run: python3 ./devscripts/install_deps.py --include test
     - name: Run tests
+      timeout-minutes: 15
       run: |
         python3 -m yt_dlp -v || true
         python3 ./devscripts/run_tests.py core
