@@ -1,6 +1,8 @@
 from .common import InfoExtractor
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
+    parse_codecs,
     try_get,
     url_or_none,
     urlencode_postdata,
@@ -12,6 +14,7 @@ class DigitalConcertHallIE(InfoExtractor):
     IE_DESC = 'DigitalConcertHall extractor'
     _VALID_URL = r'https?://(?:www\.)?digitalconcerthall\.com/(?P<language>[a-z]+)/(?P<type>film|concert|work)/(?P<id>[0-9]+)-?(?P<part>[0-9]+)?'
     _OAUTH_URL = 'https://api.digitalconcerthall.com/v2/oauth2/token'
+    _USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Safari/605.1.15'
     _ACCESS_TOKEN = None
     _NETRC_MACHINE = 'digitalconcerthall'
     _TESTS = [{
@@ -68,33 +71,42 @@ class DigitalConcertHallIE(InfoExtractor):
     }]
 
     def _perform_login(self, username, password):
-        token_response = self._download_json(
+        login_token = self._download_json(
             self._OAUTH_URL,
             None, 'Obtaining token', errnote='Unable to obtain token', data=urlencode_postdata({
                 'affiliate': 'none',
                 'grant_type': 'device',
                 'device_vendor': 'unknown',
+                # device_model 'Safari' gets split streams of 4K/HEVC video and lossless/FLAC audio
+                'device_model': 'unknown' if self._configuration_arg('prefer_combined_hls') else 'Safari',
                 'app_id': 'dch.webapp',
-                'app_version': '1.0.0',
+                'app_distributor': 'berlinphil',
+                'app_version': '1.84.0',
                 'client_secret': '2ySLN+2Fwb',
             }), headers={
-                'Content-Type': 'application/x-www-form-urlencoded',
-            })
-        self._ACCESS_TOKEN = token_response['access_token']
+                'Accept': 'application/json',
+                'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+                'User-Agent': self._USER_AGENT,
+            })['access_token']
         try:
-            self._download_json(
+            login_response = self._download_json(
                 self._OAUTH_URL,
                 None, note='Logging in', errnote='Unable to login', data=urlencode_postdata({
                     'grant_type': 'password',
                     'username': username,
                     'password': password,
                 }), headers={
-                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
                     'Referer': 'https://www.digitalconcerthall.com',
-                    'Authorization': f'Bearer {self._ACCESS_TOKEN}',
+                    'Authorization': f'Bearer {login_token}',
+                    'User-Agent': self._USER_AGENT,
                 })
-        except ExtractorError:
-            self.raise_login_required(msg='Login info incorrect')
+        except ExtractorError as error:
+            if isinstance(error.cause, HTTPError) and error.cause.status == 401:
+                raise ExtractorError('Invalid username or password', expected=True)
+            raise
+        self._ACCESS_TOKEN = login_response['access_token']
 
     def _real_initialize(self):
         if not self._ACCESS_TOKEN:
@@ -108,11 +120,15 @@ class DigitalConcertHallIE(InfoExtractor):
                     'Accept': 'application/json',
                     'Authorization': f'Bearer {self._ACCESS_TOKEN}',
                     'Accept-Language': language,
+                    'User-Agent': self._USER_AGENT,
                 })
 
             formats = []
             for m3u8_url in traverse_obj(stream_info, ('channel', ..., 'stream', ..., 'url', {url_or_none})):
-                formats.extend(self._extract_m3u8_formats(m3u8_url, video_id, 'mp4', fatal=False))
+                formats.extend(self._extract_m3u8_formats(m3u8_url, video_id, 'mp4', m3u8_id='hls', fatal=False))
+            for fmt in formats:
+                if fmt.get('format_note') and fmt.get('vcodec') == 'none':
+                    fmt.update(parse_codecs(fmt['format_note']))
 
             yield {
                 'id': video_id,
@@ -140,13 +156,15 @@ class DigitalConcertHallIE(InfoExtractor):
             f'https://api.digitalconcerthall.com/v2/{api_type}/{video_id}', video_id, headers={
                 'Accept': 'application/json',
                 'Accept-Language': language,
+                'User-Agent': self._USER_AGENT,
+                'Authorization': f'Bearer {self._ACCESS_TOKEN}',
             })
-        album_artists = traverse_obj(vid_info, ('_links', 'artist', ..., 'name'))
         videos = [vid_info] if type_ == 'film' else traverse_obj(vid_info, ('_embedded', ..., ...))
 
         if type_ == 'work':
             videos = [videos[int(part) - 1]]
 
+        album_artists = traverse_obj(vid_info, ('_links', 'artist', ..., 'name', {str}))
         thumbnail = traverse_obj(vid_info, (
             'image', ..., {self._proto_relative_url}, {url_or_none},
             {lambda x: x.format(width=0, height=0)}, any))  # NB: 0x0 is the original size
