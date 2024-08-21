@@ -15,7 +15,7 @@ from ..utils import (
 
 
 class ListenNotesIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?listennotes\.com/podcasts/[^/]+/[^/]+-(?P<id>.+)/'
+    _VALID_URL = r'https?://(?:www\.)?listennotes\.com(?:/\w+)?/podcasts/[^/]+/[^/]+-(?P<id>.+)/'
     _TESTS = [{
         'url': 'https://www.listennotes.com/podcasts/thriving-on-overload/tim-oreilly-on-noticing-KrDgvNb_u1n/',
         'md5': '5b91a32f841e5788fb82b72a1a8af7f7',
@@ -23,13 +23,13 @@ class ListenNotesIE(InfoExtractor):
             'id': 'KrDgvNb_u1n',
             'ext': 'mp3',
             'title': 'md5:32236591a921adf17bbdbf0441b6c0e9',
-            'description': 'md5:c581ed197eeddcee55a67cdb547c8cbd',
-            'duration': 2148.0,
-            'channel': 'Thriving on Overload',
+            'description': 'md5:397ca2eb42b6fb4083c4d3d3ebd568cd',
+            'duration': 2215.0,
+            'channel': 'Amplifying Cognition',
             'channel_id': 'ed84wITivxF',
             'episode_id': 'e1312583fa7b4e24acfbb5131050be00',
-            'thumbnail': 'https://production.listennotes.com/podcasts/thriving-on-overload-ross-dawson-1wb_KospA3P-ed84wITivxF.300x300.jpg',
-            'channel_url': 'https://www.listennotes.com/podcasts/thriving-on-overload-ross-dawson-ed84wITivxF/',
+            'thumbnail': 'https://cdn-images-3.listennotes.com/podcasts/amplifying-cognition-ross-dawson-Iemft4Gdr0k-ed84wITivxF.300x300.jpg',
+            'channel_url': 'https://www.listennotes.com/podcasts/amplifying-cognition-ross-dawson-ed84wITivxF/',
             'cast': ['Tim O’Reilly', 'Cookie Monster', 'Lao Tzu', 'Wallace Steven', 'Eric Raymond', 'Christine Peterson', 'John Maynard Keyne', 'Ross Dawson'],
         },
     }, {
@@ -45,8 +45,24 @@ class ListenNotesIE(InfoExtractor):
             'channel_id': '4DQTzdS5-j7',
             'episode_id': '8c8954b95e0b4859ad1eecec8bf6d3a4',
             'channel_url': 'https://www.listennotes.com/podcasts/ask-noah-show-noah-j-chelliah-4DQTzdS5-j7/',
-            'thumbnail': 'https://production.listennotes.com/podcasts/ask-noah-show-noah-j-chelliah-cfbRUw9Gs3F-4DQTzdS5-j7.300x300.jpg',
+            'thumbnail': 'https://cdn-images-3.listennotes.com/podcasts/ask-noah-show-noah-j-chelliah-gD7vG150cxf-4DQTzdS5-j7.300x300.jpg',
             'cast': ['noah showlink', 'noah show', 'noah dashboard', 'jason donenfeld'],
+        },
+    }, {
+        'url': 'https://www.listennotes.com/es/podcasts/cl%C3%ADmax/cl%C3%ADmax-11082024-pvezIxrZJ6U/',
+        'md5': 'e0f3703b5036ebbaefd2d081c4e0716f',
+        'info_dict': {
+            'id': 'pvezIxrZJ6U',
+            'ext': 'mp3',
+            'title': 'md5:9e081c1685e13aa558d295ee09ba7a5b',
+            'description': 'md5:d14d88387fc65fdc46fdd2ea47aa7a6c',
+            'duration': 3600.0,
+            'channel': 'Clímax',
+            'channel_id': 'A5vWP_fxE37',
+            'episode_id': '76ef936f8cf34fcab95e73a49e5b7926',
+            'thumbnail': 'https://cdn-images-3.listennotes.com/podcasts/clímax-los40-Hz3YXx0kj8q-A5vWP_fxE37.300x300.jpg',
+            'channel_url': 'https://www.listennotes.com/podcasts/clímax-los40-A5vWP_fxE37/',
+            'cast': None,
         },
     }]
 
