@@ -4,7 +4,8 @@ from ..utils import ExtractorError, int_or_none, parse_qs, smuggle_url, time_sec
 
 class PIAULIZAPortalAPIIE(InfoExtractor):
     IE_DESC = 'https://player-api.p.uliza.jp - PIA ULIZA m3u8'
-    SCRIPT_TAG_REGEX_PATTERN = r'<script [^>]*\bsrc="(https://player-api\.p\.uliza\.jp/v1/players/[^"]+)"'
+    BASE_URL = 'https://player-api.p.uliza.jp'
+    TAG_REGEX_PATTERN = r'<script [^>]*\bsrc="(https://player-api\.p\.uliza\.jp/v1/players/[^"]+)"'
 
     _VALID_URL = r'https://player-api\.p\.uliza\.jp/v1/players/(?P<id>.*)'
     _TESTS = [
@@ -112,7 +113,7 @@ class PIAULIZAPortalIE(InfoExtractor):
         webpage = self._download_webpage(url, video_id)
 
         player_data_url = self._search_regex(
-            PIAULIZAPortalAPIIE.SCRIPT_TAG_REGEX_PATTERN,
+            PIAULIZAPortalAPIIE.TAG_REGEX_PATTERN,
             webpage, 'player data url')
         return self.url_result(
             smuggle_url(
