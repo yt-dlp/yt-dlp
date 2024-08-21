@@ -12,8 +12,8 @@ class PIAULIZAPortalAPIIE(InfoExtractor):
         {
             'url': 'https://player-api.p.uliza.jp/v1/players/timeshift-disabled/pia/admin?type=normal&playerobjectname=ulizaPlayer&name=livestream01_dvr&repeatable=true',
             'info_dict': {
-                'id': 'timeshift-disabled/pia/admin?type=normal&playerobjectname=ulizaPlayer&name=livestream01_dvr&repeatable=true',
-                'title': 'livestream01_dvr',
+                'id': '88f3109a-f503-4d0f-a9f7-9f39ac745d84',
+                'title': '88f3109a-f503-4d0f-a9f7-9f39ac745d84',
                 'live_status': 'was_live',
             },
             'params': {
@@ -24,8 +24,8 @@ class PIAULIZAPortalAPIIE(InfoExtractor):
         {
             'url': 'https://player-api.p.uliza.jp/v1/players/uliza_jp_gallery_normal/promotion/admin?type=presentation&name=cookings&targetid=player1',
             'info_dict': {
-                'id': 'uliza_jp_gallery_normal/promotion/admin?type=presentation&name=cookings&targetid=player1',
-                'title': 'cookings',
+                'id': 'ae350126-5e22-4a7f-a8ac-8d0fd448b800',
+                'title': 'ae350126-5e22-4a7f-a8ac-8d0fd448b800',
                 'live_status': 'not_live',
             },
             'params': {
@@ -36,8 +36,8 @@ class PIAULIZAPortalAPIIE(InfoExtractor):
         {
             'url': 'https://player-api.p.uliza.jp/v1/players/default-player/pia/admin?type=normal&name=pia_movie_uliza_fix&targetid=ulizahtml5&repeatable=true',
             'info_dict': {
-                'id': 'default-player/pia/admin?type=normal&name=pia_movie_uliza_fix&targetid=ulizahtml5&repeatable=true',
-                'title': 'pia_movie_uliza_fix',
+                'id': '0644ecc8-e354-41b4-b957-3b08a2d63df1',
+                'title': '0644ecc8-e354-41b4-b957-3b08a2d63df1',
                 'live_status': 'not_live',
             },
             'params': {
@@ -49,18 +49,22 @@ class PIAULIZAPortalAPIIE(InfoExtractor):
 
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url, {})
-        video_id = smuggled_data.get('video_id') or self._search_regex(r'&name=([^&]+)', self._match_id(url), 'video id')
+        tmp_video_id = smuggled_data.get('video_id') or self._search_regex(r'&name=([^&]+)', self._match_id(url), 'video id', default='unknown')
         player_data = self._download_webpage(
             url,
-            video_id,
+            tmp_video_id,
             headers={'Referer': smuggled_data.get('referer') or 'https://player-api.p.uliza.jp/'},
             note='Fetching player data', errnote='Unable to fetch player data',
         )
 
+        m3u8_url = self._search_regex(
+            r'["\'](https://vms-api\.p\.uliza\.jp/v1/prog-index\.m3u8[^"\']+)', player_data,
+            'm3u8 url', default=None)
+
+        video_id = smuggled_data.get('video_id') or self._search_regex(r'&?ss=([\da-f]{8}-(?:[\da-f]{4}-){3}[\da-f]{12})&?', m3u8_url, 'video id', default=tmp_video_id)
+
         formats = self._extract_m3u8_formats(
-            self._search_regex(
-                r'["\'](https://vms-api\.p\.uliza\.jp/v1/prog-index\.m3u8[^"\']+)', player_data,
-                'm3u8 url', default=None),
+            m3u8_url,
             video_id, fatal=False)
         m3u8_type = self._search_regex(
             r'/hls/(dvr|video)/', traverse_obj(formats, (0, 'url')), 'm3u8 type', default=None)
