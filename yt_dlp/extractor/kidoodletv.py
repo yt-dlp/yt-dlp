@@ -38,7 +38,7 @@ class KidoodleTVBaseIE(InfoExtractor):
         def get_field(field_name, idx, webpage, data):
             value = self._html_search_regex(rf'{idx}\.{field_name}=(?P<a>"?(?P<b>.+?)"?);', webpage,
                                             field_name, default=None, group=('a', 'b'))
-            return value[1] if value[1] != value[0] else (data[value[0]] if value[0] in data else value[0])
+            return value[1] if value[1] != value[0] else (data.get(value[0]) or value[0])
 
         idx = idx.replace('$', r'\$')
         video_id = get_field('id', idx, webpage, data)
