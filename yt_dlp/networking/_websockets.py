@@ -162,7 +162,7 @@ class WebsocketsRH(WebSocketRequestHandler):
                 additional_headers=headers,
                 open_timeout=timeout,
                 user_agent_header=None,
-                ssl_context=ssl_ctx if wsuri.secure else None,
+                ssl=ssl_ctx if wsuri.secure else None,
                 close_timeout=0,  # not ideal, but prevents yt-dlp hanging
             )
             return WebsocketsResponseAdapter(conn, url=request.url)
