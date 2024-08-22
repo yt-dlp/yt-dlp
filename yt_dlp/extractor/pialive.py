@@ -36,10 +36,10 @@ class PiaLiveIE(InfoExtractor):
     ]
 
     def handle_embed_player(self, player_tag, video_id, info_dict={}):
-        player_data_url = self._search_regex([PIAULIZAPortalAPIIE.TAG_REGEX_PATTERN],
+        player_data_url = self._search_regex([PIAULIZAPortalAPIIE.TAG_REGEX],
                                              player_tag, 'player data url', fatal=False)
 
-        if PIAULIZAPortalAPIIE.BASE_URL in player_data_url:
+        if player_data_url.startswith(PIAULIZAPortalAPIIE.BASE_URL):
             return self.url_result(
                 smuggle_url(
                     player_data_url,
@@ -57,8 +57,7 @@ class PiaLiveIE(InfoExtractor):
 
         prod_configure = self._download_webpage(
             self.PLAYER_ROOT_URL + self._search_regex(r'<script [^>]*\bsrc="(/statics/js/s_prod[^"]+)"', webpage, 'prod configure page'),
-            program_code,
-            headers={'Referer': self.PLAYER_ROOT_URL},
+            program_code, headers={'Referer': self.PLAYER_ROOT_URL},
             note='Fetching prod configure page', errnote='Unable to fetch prod configure page',
         )
 
@@ -69,11 +68,7 @@ class PiaLiveIE(InfoExtractor):
         })
         player_tag_list = self._download_json(
             f'{self.PIA_LIVE_API_URL}/perf/player-tag-list/{program_code}',
-            program_code,
-            data=payload,
-            headers={
-                'Content-Type': content_type,
-            },
+            program_code, data=payload, headers={'Content-Type': content_type, 'Referer': self.PLAYER_ROOT_URL},
         )
 
         return self.handle_embed_player(
