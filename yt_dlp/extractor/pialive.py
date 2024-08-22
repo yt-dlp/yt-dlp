@@ -1,6 +1,5 @@
 from .common import InfoExtractor
 from .piaulizaportal import PIAULIZAPortalAPIIE
-from ..networking import Request
 from ..utils import ExtractorError, multipart_encode, smuggle_url
 
 
@@ -8,6 +7,33 @@ class PiaLiveIE(InfoExtractor):
     PLAYER_ROOT_URL = 'https://player.pia-live.jp'
     PIA_LIVE_API_URL = 'https://api.pia-live.jp'
     _VALID_URL = r'https?://player\.pia-live\.jp/stream/(?P<id>[\w-]+)'
+
+    _TESTS = [
+        {
+            'url': 'https://player.pia-live.jp/stream/4JagFBEIM14s_hK9aXHKf3k3F3bY5eoHFQxu68TC6krUDqGOwN4d61dCWQYOd6CTxl4hjya9dsfEZGsM4uGOUdax60lEI4twsXGXf7crmz8Gk__GhupTrWxA7RFRVt76',
+            'info_dict': {
+                'id': '2431867_001',
+                'title': 'こながめでたい日２０２４の視聴ページ | PIA LIVE STREAM(ぴあライブストリーム)',
+                'live_status': 'was_live',
+            },
+            'params': {
+                'skip_download': True,
+                'ignore_no_formats_error': True,
+            },
+        },
+        {
+            'url': 'https://player.pia-live.jp/stream/4JagFBEIM14s_hK9aXHKf3k3F3bY5eoHFQxu68TC6krJdu0GVBVbVy01IwpJ6J3qBEm3d9TCTt1d0eWpsZGj7DrOjVOmS7GAWGwyscMgiThopJvzgWC4H5b-7XQjAfRZ',
+            'info_dict': {
+                'id': '2431867_002',
+                'title': 'こながめでたい日２０２４の視聴ページ | PIA LIVE STREAM(ぴあライブストリーム)',
+                'live_status': 'was_live',
+            },
+            'params': {
+                'skip_download': True,
+                'ignore_no_formats_error': True,
+            },
+        },
+    ]
 
     def handle_embed_player(self, player_tag, video_id, info_dict={}):
         player_data_url = self._search_regex([PIAULIZAPortalAPIIE.TAG_REGEX_PATTERN],
@@ -42,15 +68,12 @@ class PiaLiveIE(InfoExtractor):
             'api_key': api_key,
         })
         player_tag_list = self._download_json(
-            Request(
-                url=f'{self.PIA_LIVE_API_URL}/perf/player-tag-list/{program_code}',
-                method='POST',
-                data=payload,
-                headers={
-                    'Content-Type': content_type,
-                },
-            ),
+            f'{self.PIA_LIVE_API_URL}/perf/player-tag-list/{program_code}',
             program_code,
+            data=payload,
+            headers={
+                'Content-Type': content_type,
+            },
         )
 
         return self.handle_embed_player(
