@@ -1,6 +1,6 @@
 from .common import InfoExtractor
 from .piaulizaportal import PIAULIZAPortalAPIIE
-from ..utils import ExtractorError, multipart_encode, smuggle_url
+from ..utils import ExtractorError, extract_attributes, multipart_encode, smuggle_url, traverse_obj
 
 
 class PiaLiveIE(InfoExtractor):
@@ -15,6 +15,7 @@ class PiaLiveIE(InfoExtractor):
                 'id': '2431867_001',
                 'title': 'こながめでたい日２０２４の視聴ページ | PIA LIVE STREAM(ぴあライブストリーム)',
                 'live_status': 'was_live',
+                'comment_count': 1000,
             },
             'params': {
                 'skip_download': True,
@@ -27,6 +28,7 @@ class PiaLiveIE(InfoExtractor):
                 'id': '2431867_002',
                 'title': 'こながめでたい日２０２４の視聴ページ | PIA LIVE STREAM(ぴあライブストリーム)',
                 'live_status': 'was_live',
+                'comment_count': 1000,
             },
             'params': {
                 'skip_download': True,
@@ -36,8 +38,7 @@ class PiaLiveIE(InfoExtractor):
     ]
 
     def handle_embed_player(self, player_tag, video_id, info_dict={}):
-        player_data_url = self._search_regex([PIAULIZAPortalAPIIE.TAG_REGEX],
-                                             player_tag, 'player data url', fatal=False)
+        player_data_url = extract_attributes(player_tag)['src']
 
         if player_data_url.startswith(PIAULIZAPortalAPIIE.BASE_URL):
             return self.url_result(
@@ -71,11 +72,32 @@ class PiaLiveIE(InfoExtractor):
             program_code, data=payload, headers={'Content-Type': content_type, 'Referer': self.PLAYER_ROOT_URL},
         )
 
+        article_code = self._search_regex(r"const articleCode = '(.*?)';", webpage, 'article code')
+        chat_info = self._download_json(
+            f'{self.PIA_LIVE_API_URL}/perf/chat-tag-list/{program_code}/{article_code}',
+            article_code, data=payload, headers={'Content-Type': content_type, 'Referer': self.PLAYER_ROOT_URL},
+        )['data']['chat_one_tag']
+        chat_room_url = extract_attributes(chat_info)['src']
+        comment_page = self._download_webpage(
+            chat_room_url, program_code, headers={'Referer': f'{self.PLAYER_ROOT_URL}/'}, note='Fetching comment page', errnote='Unable to fetch comment page')
+        comment_list = self._search_json(
+            r'var\s+_history\s*=', comment_page, 'comment list', program_code,
+            contains_pattern=r'\[(?s:.+)\]') or []
+        comments = traverse_obj(comment_list, (..., {
+            'timestamp': (0),
+            'author_is_uploader': (1, {lambda x: x == 2}),
+            'author': (2),
+            'text': (3),
+            'id': (4),
+        }))
+
         return self.handle_embed_player(
             player_tag_list['data']['movie_one_tag'],
             video_id=program_code,
             info_dict={
                 'id': program_code,
                 'title': self._html_extract_title(webpage),
+                'comments': comments,
+                'comment_count': len(comments),
             },
         )
