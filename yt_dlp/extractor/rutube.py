@@ -6,6 +6,7 @@ from ..utils import (
     determine_ext,
     int_or_none,
     parse_qs,
+    traverse_obj,
     try_get,
     unified_timestamp,
     url_or_none,
@@ -80,6 +81,8 @@ class RutubeBaseIE(InfoExtractor):
                     'url': format_url,
                     'format_id': format_id,
                 })
+        for hls_url in traverse_obj(options, ('live_streams', 'hls', ..., 'url', {url_or_none})):
+            formats += self._extract_m3u8_formats(hls_url, video_id, ext='mp4')
         return formats
 
     def _download_and_extract_formats(self, video_id, query=None):

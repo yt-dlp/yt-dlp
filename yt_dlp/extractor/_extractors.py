@@ -1874,6 +1874,7 @@ from .skynewsau import SkyNewsAUIE
 from .slideshare import SlideshareIE
 from .slideslive import SlidesLiveIE
 from .slutload import SlutloadIE
+from .smotrettv import SmotretTVIE, SmotretTVLiveIE
 from .smotrim import SmotrimIE
 from .snotr import SnotrIE
 from .sohu import (
