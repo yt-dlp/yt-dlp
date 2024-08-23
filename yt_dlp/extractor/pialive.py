@@ -37,14 +37,14 @@ class PiaLiveIE(InfoExtractor):
         },
     ]
 
-    def handle_embed_player(self, player_tag, video_id, info_dict={}):
+    def handle_embed_player(self, player_tag, info_dict={}):
         player_data_url = extract_attributes(player_tag)['src']
 
         if player_data_url.startswith(PIAULIZAPortalAPIIE.BASE_URL):
             return self.url_result(
                 smuggle_url(
                     player_data_url,
-                    {'video_id': video_id, 'referer': self.PLAYER_ROOT_URL},
+                    {'referer': self.PLAYER_ROOT_URL},
                 ),
                 ie=PIAULIZAPortalAPIIE.ie_key(),
                 url_transparent=True,
@@ -77,7 +77,7 @@ class PiaLiveIE(InfoExtractor):
         article_code = self._search_regex(r"const articleCode = '(.*?)';", webpage, 'article code')
         chat_info = self._download_json(
             f'{self.PIA_LIVE_API_URL}/perf/chat-tag-list/{program_code}/{article_code}',
-            article_code, data=payload, headers={'Content-Type': content_type, 'Referer': self.PLAYER_ROOT_URL},
+            program_code, data=payload, headers={'Content-Type': content_type, 'Referer': self.PLAYER_ROOT_URL},
         )['data']['chat_one_tag']
         chat_room_url = extract_attributes(chat_info)['src']
         comment_page = self._download_webpage(
@@ -95,7 +95,6 @@ class PiaLiveIE(InfoExtractor):
 
         return self.handle_embed_player(
             player_tag_list['data']['movie_one_tag'],
-            video_id=program_code,
             info_dict={
                 'id': program_code,
                 'title': self._html_extract_title(webpage),

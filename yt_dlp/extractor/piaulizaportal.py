@@ -49,7 +49,7 @@ class PIAULIZAPortalAPIIE(InfoExtractor):
 
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url, {})
-        tmp_video_id = smuggled_data.get('video_id') or self._search_regex(r'&name=([^&]+)', self._match_id(url), 'video id', default='unknown')
+        tmp_video_id = self._search_regex(r'&name=([^&]+)', self._match_id(url), 'video id', default='unknown')
         player_data = self._download_webpage(
             url,
             tmp_video_id,
@@ -61,7 +61,7 @@ class PIAULIZAPortalAPIIE(InfoExtractor):
             r'["\'](https://vms-api\.p\.uliza\.jp/v1/prog-index\.m3u8[^"\']+)', player_data,
             'm3u8 url', default=None)
 
-        video_id = smuggled_data.get('video_id') or self._search_regex(r'&?ss=([\da-f]{8}-(?:[\da-f]{4}-){3}[\da-f]{12})&?', m3u8_url, 'video id', default=tmp_video_id)
+        video_id = self._search_regex(r'&?ss=([\da-f]{8}-(?:[\da-f]{4}-){3}[\da-f]{12})&?', m3u8_url, 'video id', default=tmp_video_id)
 
         formats = self._extract_m3u8_formats(
             m3u8_url,
@@ -70,7 +70,7 @@ class PIAULIZAPortalAPIIE(InfoExtractor):
             r'/hls/(dvr|video)/', traverse_obj(formats, (0, 'url')), 'm3u8 type', default=None)
         return {
             'id': video_id,
-            'title': smuggled_data.get('video_title') or video_id,
+            'title': video_id,
             'formats': formats,
             'live_status': {
                 'video': 'is_live',
@@ -121,7 +121,7 @@ class PIAULIZAPortalIE(InfoExtractor):
         return self.url_result(
             smuggle_url(
                 player_data_url,
-                {'video_id': video_id, 'referer': 'https://ulizaportal.jp/'},
+                {'referer': 'https://ulizaportal.jp/'},
             ),
             ie=PIAULIZAPortalAPIIE.ie_key(),
             url_transparent=True,
