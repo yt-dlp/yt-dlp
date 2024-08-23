@@ -340,7 +340,7 @@ class ImgurGalleryIE(ImgurGalleryBaseIE):
         'info_dict': {
             'id': 'JCAP4io',
             'ext': 'mp4',
-            'title': 're:I got the blues$',
+            'title': 're:I got the blues',
             'description': 'Luka’s vocal stylings.\n\nFP edit: don’t encourage me. I’ll never stop posting Luka and friends.',
             'timestamp': 1527809525,
             'upload_date': '20180531',
