@@ -74,7 +74,7 @@ class XimalayaIE(XimalayaBaseIE):
         },
         {
             # VIP-restricted audio
-            'url': 'https://www.ximalaya.com/album/70349771',
+            'url': 'https://www.ximalaya.com/sound/562111701',
             'only_matching': True,
         },
     ]
