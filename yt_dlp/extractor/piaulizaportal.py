@@ -53,7 +53,7 @@ class PIAULIZAPortalAPIIE(InfoExtractor):
         player_data = self._download_webpage(
             url,
             tmp_video_id,
-            headers={'Referer': smuggled_data.get('referer') or 'https://player-api.p.uliza.jp/'},
+            headers={'Referer': smuggled_data.get('referer') or f'{self.BASE_URL}/'},
             note='Fetching player data', errnote='Unable to fetch player data',
         )
 
@@ -76,7 +76,6 @@ class PIAULIZAPortalAPIIE(InfoExtractor):
                 'video': 'is_live',
                 'dvr': 'was_live',  # short-term archives
             }.get(m3u8_type, 'not_live'),  # VOD or long-term archives
-            **smuggled_data.get('info_dict', {}),
         }
 
 
@@ -122,10 +121,10 @@ class PIAULIZAPortalIE(InfoExtractor):
         return self.url_result(
             smuggle_url(
                 player_data_url,
-                {'video_id': video_id, 'referer': 'https://ulizaportal.jp/', 'info_dict': {
-                    'id': video_id,
-                    'title': self._html_extract_title(webpage),
-                }},
+                {'video_id': video_id, 'referer': 'https://ulizaportal.jp/'},
             ),
             ie=PIAULIZAPortalAPIIE.ie_key(),
+            url_transparent=True,
+            video_id=video_id,
+            video_title=self._html_extract_title(webpage),
         )

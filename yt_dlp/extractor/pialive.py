@@ -44,9 +44,11 @@ class PiaLiveIE(InfoExtractor):
             return self.url_result(
                 smuggle_url(
                     player_data_url,
-                    {'video_id': video_id, 'referer': self.PLAYER_ROOT_URL, 'info_dict': info_dict},
+                    {'video_id': video_id, 'referer': self.PLAYER_ROOT_URL},
                 ),
                 ie=PIAULIZAPortalAPIIE.ie_key(),
+                url_transparent=True,
+                **info_dict,
             )
 
         raise ExtractorError('Unsupported streaming platform', expected=True)
