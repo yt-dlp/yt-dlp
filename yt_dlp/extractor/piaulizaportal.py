@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..utils import ExtractorError, int_or_none, parse_qs, smuggle_url, time_seconds, traverse_obj, unsmuggle_url
+from ..utils import ExtractorError, int_or_none, parse_qs, time_seconds, traverse_obj
 
 
 class PIAULIZAPortalAPIIE(InfoExtractor):
@@ -48,12 +48,9 @@ class PIAULIZAPortalAPIIE(InfoExtractor):
     ]
 
     def _real_extract(self, url):
-        url, smuggled_data = unsmuggle_url(url, {})
         tmp_video_id = self._search_regex(r'&name=([^&]+)', self._match_id(url), 'video id', default='unknown')
         player_data = self._download_webpage(
-            url,
-            tmp_video_id,
-            headers={'Referer': smuggled_data.get('referer') or f'{self.BASE_URL}/'},
+            url, tmp_video_id, headers={'Referer': 'https://player-api.p.uliza.jp/'},
             note='Fetching player data', errnote='Unable to fetch player data',
         )
 
@@ -119,10 +116,7 @@ class PIAULIZAPortalIE(InfoExtractor):
             PIAULIZAPortalAPIIE.TAG_REGEX,
             webpage, 'player data url')
         return self.url_result(
-            smuggle_url(
-                player_data_url,
-                {'referer': 'https://ulizaportal.jp/'},
-            ),
+            player_data_url,
             ie=PIAULIZAPortalAPIIE.ie_key(),
             url_transparent=True,
             video_id=video_id,

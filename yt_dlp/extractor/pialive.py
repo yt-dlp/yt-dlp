@@ -1,10 +1,10 @@
 from .common import InfoExtractor
 from .piaulizaportal import PIAULIZAPortalAPIIE
-from ..utils import ExtractorError, extract_attributes, multipart_encode, smuggle_url, traverse_obj
+from ..utils import ExtractorError, extract_attributes, multipart_encode, traverse_obj
 
 
 class PiaLiveIE(InfoExtractor):
-    PLAYER_ROOT_URL = 'https://player.pia-live.jp'
+    PLAYER_ROOT_URL = 'https://player.pia-live.jp/'
     PIA_LIVE_API_URL = 'https://api.pia-live.jp'
     _VALID_URL = r'https?://player\.pia-live\.jp/stream/(?P<id>[\w-]+)'
 
@@ -42,10 +42,7 @@ class PiaLiveIE(InfoExtractor):
 
         if player_data_url.startswith(PIAULIZAPortalAPIIE.BASE_URL):
             return self.url_result(
-                smuggle_url(
-                    player_data_url,
-                    {'referer': self.PLAYER_ROOT_URL},
-                ),
+                player_data_url,
                 ie=PIAULIZAPortalAPIIE.ie_key(),
                 url_transparent=True,
                 **info_dict,
@@ -81,7 +78,7 @@ class PiaLiveIE(InfoExtractor):
         )['data']['chat_one_tag']
         chat_room_url = extract_attributes(chat_info)['src']
         comment_page = self._download_webpage(
-            chat_room_url, program_code, headers={'Referer': f'{self.PLAYER_ROOT_URL}/'}, note='Fetching comment page', errnote='Unable to fetch comment page')
+            chat_room_url, program_code, headers={'Referer': f'{self.PLAYER_ROOT_URL}'}, note='Fetching comment page', errnote='Unable to fetch comment page')
         comment_list = self._search_json(
             r'var\s+_history\s*=', comment_page, 'comment list', program_code,
             contains_pattern=r'\[(?s:.+)\]') or []
