@@ -57,16 +57,19 @@ class PiaLiveIE(InfoExtractor):
         player_tag_list = self._download_json(
             f'{self.PIA_LIVE_API_URL}/perf/player-tag-list/{program_code}',
             program_code, data=payload, headers={'Content-Type': content_type, 'Referer': self.PLAYER_ROOT_URL},
+            note='Fetching player tag list', errnote='Unable to fetch player tag list',
         )
 
         article_code = self._search_regex(r"const articleCode = '(.*?)';", webpage, 'article code')
         chat_info = self._download_json(
             f'{self.PIA_LIVE_API_URL}/perf/chat-tag-list/{program_code}/{article_code}',
             program_code, data=payload, headers={'Content-Type': content_type, 'Referer': self.PLAYER_ROOT_URL},
+            note='Fetching chat info', errnote='Unable to fetch chat info',
         )['data']['chat_one_tag']
         chat_room_url = extract_attributes(chat_info)['src']
         comment_page = self._download_webpage(
-            chat_room_url, program_code, headers={'Referer': f'{self.PLAYER_ROOT_URL}'}, note='Fetching comment page', errnote='Unable to fetch comment page')
+            chat_room_url, program_code, headers={'Referer': f'{self.PLAYER_ROOT_URL}'},
+            note='Fetching comment page', errnote='Unable to fetch comment page')
         comment_list = self._search_json(
             r'var\s+_history\s*=', comment_page, 'comment list', program_code,
             contains_pattern=r'\[(?s:.+)\]') or []
