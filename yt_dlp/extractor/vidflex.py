@@ -67,7 +67,7 @@ class VidflexIE(InfoExtractor):
             'timestamp': 1716235607,
             'upload_date': '20240520',
             'tags': ['English', '2024', "National Men's Team", 'IIHF World Championship', 'Fan'],
-            'description': 'md5:fa853281d3e8e0b1463166dc49e975b7',
+            'description': 're:.+Canada’s National Men’s Team+',
             'thumbnail': 're:^https?://wpmedia01-a.akamaihd.net/en/asset/public/image/.+',
         },
         'params': {'skip_download': True},
