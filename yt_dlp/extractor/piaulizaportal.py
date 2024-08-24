@@ -82,7 +82,8 @@ class PIAULIZAPortalIE(InfoExtractor):
     _TESTS = [{
         'url': 'https://ulizaportal.jp/pages/005f18b7-e810-5618-cb82-0987c5755d44',
         'info_dict': {
-            'id': '005f18b7-e810-5618-cb82-0987c5755d44',
+            'id': 'ae350126-5e22-4a7f-a8ac-8d0fd448b800',
+            'display_id': '005f18b7-e810-5618-cb82-0987c5755d44',
             'title': 'プレゼンテーションプレイヤーのサンプル',
             'live_status': 'not_live',
         },
@@ -93,7 +94,8 @@ class PIAULIZAPortalIE(InfoExtractor):
     }, {
         'url': 'https://ulizaportal.jp/pages/005e1b23-fe93-5780-19a0-98e917cc4b7d?expires=4102412400&signature=f422a993b683e1068f946caf406d211c17d1ef17da8bef3df4a519502155aa91&version=1',
         'info_dict': {
-            'id': '005e1b23-fe93-5780-19a0-98e917cc4b7d',
+            'id': '0644ecc8-e354-41b4-b957-3b08a2d63df1',
+            'display_id': '005e1b23-fe93-5780-19a0-98e917cc4b7d',
             'title': '【確認用】視聴サンプルページ（ULIZA）',
             'live_status': 'not_live',
         },
@@ -119,6 +121,6 @@ class PIAULIZAPortalIE(InfoExtractor):
             player_data_url,
             ie=PIAULIZAPortalAPIIE.ie_key(),
             url_transparent=True,
-            video_id=video_id,
+            display_id=video_id,
             video_title=self._html_extract_title(webpage),
         )

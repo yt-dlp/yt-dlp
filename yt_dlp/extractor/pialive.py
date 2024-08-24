@@ -12,7 +12,8 @@ class PiaLiveIE(InfoExtractor):
         {
             'url': 'https://player.pia-live.jp/stream/4JagFBEIM14s_hK9aXHKf3k3F3bY5eoHFQxu68TC6krUDqGOwN4d61dCWQYOd6CTxl4hjya9dsfEZGsM4uGOUdax60lEI4twsXGXf7crmz8Gk__GhupTrWxA7RFRVt76',
             'info_dict': {
-                'id': '2431867_001',
+                'id': '88f3109a-f503-4d0f-a9f7-9f39ac745d84',
+                'display_id': '2431867_001',
                 'title': 'こながめでたい日２０２４の視聴ページ | PIA LIVE STREAM(ぴあライブストリーム)',
                 'live_status': 'was_live',
                 'comment_count': 1000,
@@ -25,7 +26,8 @@ class PiaLiveIE(InfoExtractor):
         {
             'url': 'https://player.pia-live.jp/stream/4JagFBEIM14s_hK9aXHKf3k3F3bY5eoHFQxu68TC6krJdu0GVBVbVy01IwpJ6J3qBEm3d9TCTt1d0eWpsZGj7DrOjVOmS7GAWGwyscMgiThopJvzgWC4H5b-7XQjAfRZ',
             'info_dict': {
-                'id': '2431867_002',
+                'id': '9ce8b8ba-f6d1-4d1f-83a0-18c3148ded93',
+                'display_id': '2431867_002',
                 'title': 'こながめでたい日２０２４の視聴ページ | PIA LIVE STREAM(ぴあライブストリーム)',
                 'live_status': 'was_live',
                 'comment_count': 1000,
@@ -93,7 +95,7 @@ class PiaLiveIE(InfoExtractor):
         return self.handle_embed_player(
             player_tag_list['data']['movie_one_tag'],
             info_dict={
-                'id': program_code,
+                'display_id': program_code,
                 'title': self._html_extract_title(webpage),
                 'comments': comments,
                 'comment_count': len(comments),
