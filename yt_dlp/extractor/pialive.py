@@ -1,6 +1,5 @@
 from .common import InfoExtractor
-from .piaulizaportal import PIAULIZAPortalAPIIE
-from ..utils import ExtractorError, extract_attributes, multipart_encode, traverse_obj
+from ..utils import extract_attributes, multipart_encode, traverse_obj
 
 
 class PiaLiveIE(InfoExtractor):
@@ -38,19 +37,6 @@ class PiaLiveIE(InfoExtractor):
             },
         },
     ]
-
-    def handle_embed_player(self, player_tag, info_dict={}):
-        player_data_url = extract_attributes(player_tag)['src']
-
-        if player_data_url.startswith(PIAULIZAPortalAPIIE.BASE_URL):
-            return self.url_result(
-                player_data_url,
-                ie=PIAULIZAPortalAPIIE.ie_key(),
-                url_transparent=True,
-                **info_dict,
-            )
-
-        raise ExtractorError('Unsupported streaming platform', expected=True)
 
     def _real_extract(self, url):
         video_key = self._match_id(url)
@@ -92,12 +78,15 @@ class PiaLiveIE(InfoExtractor):
             'id': (4),
         }))
 
-        return self.handle_embed_player(
-            player_tag_list['data']['movie_one_tag'],
-            info_dict={
-                'display_id': program_code,
-                'title': self._html_extract_title(webpage),
-                'comments': comments,
-                'comment_count': len(comments),
-            },
+        player_data_url = extract_attributes(player_tag_list['data']['movie_one_tag'])['src']
+        info_dict = {
+            'display_id': program_code,
+            'title': self._html_extract_title(webpage),
+            'comments': comments,
+            'comment_count': len(comments),
+        }
+        return self.url_result(
+            player_data_url,
+            url_transparent=True,
+            **info_dict,
         )

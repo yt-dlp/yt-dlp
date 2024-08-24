@@ -4,8 +4,6 @@ from ..utils import ExtractorError, int_or_none, parse_qs, time_seconds, travers
 
 class PIAULIZAPortalAPIIE(InfoExtractor):
     IE_DESC = 'https://player-api.p.uliza.jp - PIA ULIZA m3u8'
-    BASE_URL = 'https://player-api.p.uliza.jp'
-    TAG_REGEX = r'<script [^>]*\bsrc="(https://player-api\.p\.uliza\.jp/v1/players/[^"]+)"'
 
     _VALID_URL = r'https://player-api\.p\.uliza\.jp/v1/players/(?P<id>.*)'
     _TESTS = [
@@ -115,11 +113,10 @@ class PIAULIZAPortalIE(InfoExtractor):
         webpage = self._download_webpage(url, video_id)
 
         player_data_url = self._search_regex(
-            PIAULIZAPortalAPIIE.TAG_REGEX,
+            r'<script [^>]*\bsrc="(https://player-api\.p\.uliza\.jp/v1/players/[^"]+)"',
             webpage, 'player data url')
         return self.url_result(
             player_data_url,
-            ie=PIAULIZAPortalAPIIE.ie_key(),
             url_transparent=True,
             display_id=video_id,
             video_title=self._html_extract_title(webpage),
