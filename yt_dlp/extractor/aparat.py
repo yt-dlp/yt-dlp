@@ -1,9 +1,12 @@
+import urllib.parse
+
 from .common import InfoExtractor
 from ..utils import (
     get_element_by_id,
     int_or_none,
     merge_dicts,
     mimetype2ext,
+    traverse_obj,
     url_or_none,
 )
 
@@ -86,3 +89,69 @@ class AparatIE(InfoExtractor):
             'duration': int_or_none(options.get('duration')),
             'formats': formats,
         })
+
+
+class AparatPlaylistIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:www\.)?aparat\.com/playlist/(?P<id>\d+)'
+
+    _TESTS = [{
+        'url': 'https://www.aparat.com/playlist/1001307',
+        'info_dict': {
+            'id': '1001307',
+            'title': 'مبانی یادگیری عمیق',
+            'description': '',
+            'thumbnails': 'count:2',
+            'channel': 'mrmohammadi_iust',
+            'channel_id': '6463423',
+            'channel_url': 'https://www.aparat.com/mrmohammadi_iust',
+            'channel_follower_count': int,
+        },
+        'playlist_mincount': 1,
+        'params': {
+            'skip_download': True,
+        },
+    }, {
+        'url': 'https://www.aparat.com/playlist/1234567',
+        'info_dict': {
+            'id': '1234567',
+            'title': 'ساخت اکانت',
+            'description': '',
+            'thumbnails': 'count:0',
+            'channel': 'reza.shadow',
+            'channel_id': '8159952',
+            'channel_url': 'https://www.aparat.com/reza.shadow',
+            'channel_follower_count': int,
+        },
+        'playlist_count': 0,
+        'params': {
+            'skip_download': True,
+        },
+    }, {
+        'url': 'https://www.aparat.com/playlist/1256882',
+        'only_matching': True,
+    }]
+
+    def _real_extract(self, url):
+        playlist_id = self._match_id(url)
+        info = self._download_json(
+            f'https://www.aparat.com/api/fa/v1/video/playlist/one/playlist_id/{playlist_id}', playlist_id)
+
+        info_dict = traverse_obj(info, ('data', 'attributes', {
+            'playlist_title': ('title'),
+            'description': ('description'),
+        }), default={})
+        info_dict.update(thumbnails=traverse_obj([
+            traverse_obj(info, ('data', 'attributes', {'url': ('big_poster', {url_or_none})})),
+            traverse_obj(info, ('data', 'attributes', {'url': ('small_poster', {url_or_none})})),
+        ], (...), default=[]))
+        info_dict.update(**traverse_obj(info, ('included', lambda _, v: v['type'] == 'channel', 'attributes', {
+            'channel': ('username'),
+            'channel_id': ('id'),
+            'channel_url': ('link', {lambda x: urllib.parse.urljoin(url, x)}),  # starts with a slash
+            'channel_follower_count': ('follower_cnt', {int_or_none}),
+        }), get_all=False))
+
+        return self.playlist_result(traverse_obj(info, (
+            'included', lambda _, v: v['type'] == 'Video', 'attributes', 'uid',
+            {lambda uid: self.url_result(f'https://www.aparat.com/v/{uid}?playlist={playlist_id}')},
+        ), default=[]), playlist_id, **info_dict)
