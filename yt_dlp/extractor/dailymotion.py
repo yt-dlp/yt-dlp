@@ -10,11 +10,13 @@ from ..utils import (
     OnDemandPagedList,
     age_restricted,
     clean_html,
+    extract_attributes,
     int_or_none,
     traverse_obj,
     try_get,
     unescapeHTML,
     unsmuggle_url,
+    url_or_none,
     urlencode_postdata,
 )
 
@@ -232,6 +234,13 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
         for mobj in re.finditer(
                 r'(?s)DM\.player\([^,]+,\s*{.*?video[\'"]?\s*:\s*["\']?(?P<id>[0-9a-zA-Z]+).+?}\s*\);', webpage):
             yield from 'https://www.dailymotion.com/embed/video/' + mobj.group('id')
+        for mobj in re.finditer(
+                r'(?s)<script\s+?[^>]*?\bsrc=(["\'])((?:https?:)?//[^>]+\.dailymotion\.com/player/(?:(?!\1).)+)\1[^>]*?>', webpage):
+            attrs = extract_attributes(mobj.group(0))
+            player_url = url_or_none(attrs.get('src'))
+            video_id = attrs.get('data-video')
+            if all((player_url, video_id)):
+                yield f'{player_url.replace(".js", ".html")}?video={video_id}'
 
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url)
