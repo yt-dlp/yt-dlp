@@ -93,7 +93,7 @@ class RutubeBaseIE(InfoExtractor):
 class RutubeIE(RutubeBaseIE):
     IE_NAME = 'rutube'
     IE_DESC = 'Rutube videos'
-    _VALID_URL = r'https?://rutube\.ru/(?:video(?:/private)?|(?:play/)?embed|live/video)/(?P<id>[\da-z]{32})'
+    _VALID_URL = r'https?://rutube\.ru/(?:(?:live/)?video(?:/private)?|(?:play/)?embed)/(?P<id>[\da-z]{32})'
     _EMBED_REGEX = [r'<iframe[^>]+?src=(["\'])(?P<url>(?:https?:)?//rutube\.ru/(?:play/)?embed/[\da-z]{32}.*?)\1']
 
     _TESTS = [{
@@ -186,6 +186,9 @@ class RutubeIE(RutubeBaseIE):
         },
     }, {
         'url': 'https://rutube.ru/video/5ab908fccfac5bb43ef2b1e4182256b0/',
+        'only_matching': True,
+    }, {
+        'url': 'https://rutube.ru/live/video/private/c58f502c7bb34a8fcdd976b221fca292/',
         'only_matching': True,
     }]
 
