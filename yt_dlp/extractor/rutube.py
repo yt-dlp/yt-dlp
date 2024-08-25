@@ -172,7 +172,6 @@ class RutubeIE(RutubeBaseIE):
         'info_dict': {
             'id': 'c58f502c7bb34a8fcdd976b221fca292',
             'ext': 'mp4',
-            'chapters': None,
             'categories': ['Телепередачи'],
             'description': '',
             'thumbnail': 'http://pic.rutubelist.ru/video/14/19/14190807c0c48b40361aca93ad0867c7.jpg',
