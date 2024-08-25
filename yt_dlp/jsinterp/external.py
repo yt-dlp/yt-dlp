@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+import abc
 import collections
 import contextlib
 import json
@@ -5,8 +8,9 @@ import os
 import subprocess
 import tempfile
 import urllib.parse
+import typing
 
-from ..extractor.common import InfoExtractor
+
 from ..utils import (
     ExtractorError,
     Popen,
@@ -16,6 +20,7 @@ from ..utils import (
     is_outdated_version,
     shell_quote,
 )
+from .common import JSI, register_jsi
 
 
 def cookie_to_dict(cookie):
@@ -50,13 +55,15 @@ def cookie_jar_to_list(cookie_jar):
 class TempFileWrapper:
     """Wrapper for NamedTemporaryFile, auto closes file after io and deletes file upon wrapper object gc"""
 
-    def __init__(self, content=None, text=True, encoding='utf-8', suffix=None):
+    def __init__(self, content: str | bytes | None = None, text: bool = True,
+                 encoding='utf-8', suffix: str | None = None):
         self.encoding = None if not text else encoding
         self.text = text
-        self._file = tempfile.NamedTemporaryFile('wb', suffix=suffix, delete=False)
-        self._file.close()
+        self._file = tempfile.NamedTemporaryFile('w' if text else 'wb', encoding=self.encoding,
+                                                 suffix=suffix, delete=False)
         if content:
-            self.write(content)
+            self._file.write(content)
+        self._file.close()
 
     @property
     def name(self):
@@ -90,7 +97,9 @@ class TempFileWrapper:
         self.cleanup()
 
 
-class ExternalJSI:
+class ExternalJSI(JSI, abc.ABC):
+    _EXE_NAME: str = None
+
     @classproperty(cache=True)
     def version(cls):
         return get_exe_version(cls._EXE_NAME, args=getattr(cls, 'V_ARGS', ['--version']), version_re=r'([0-9.]+)')
@@ -104,30 +113,25 @@ class ExternalJSI:
         return cls._EXE_NAME if cls.version else None
 
     @classproperty
-    def is_available(cls):
-        return bool(cls.exe)
+    def is_available(self):
+        return bool(self.exe)
 
 
-class DenoWrapper(ExternalJSI):
+@register_jsi
+class DenoJSI(ExternalJSI):
+    """JS interpreter class using Deno binary"""
     _EXE_NAME = 'deno'
     INSTALL_HINT = 'Please install Deno from https://docs.deno.com/runtime/manual/getting_started/installation/ or download binary from https://github.com/denoland/deno/releases'
+    _SUPPORTED_FEATURES = {'js', 'wasm'}
 
-    def __init__(self, extractor: InfoExtractor, required_version=None, timeout=10000):
-        self.extractor = extractor
-        self.timeout = timeout
-
-        if not self.exe:
-            raise ExtractorError(f'Deno not found, {self.INSTALL_HINT}', expected=True)
-        if required_version:
-            if is_outdated_version(self.version, required_version):
-                self.extractor.report_warning(
-                    f'Deno is outdated, update it to version {required_version} or newer if you encounter any errors.')
+    def __init__(self, downloader: YoutubeDL, timeout: float | int | None = None, required_version=None):
+        super().__init__(downloader, timeout)
 
     @classmethod
-    def _execute(cls, jscode, extractor=None, video_id=None, note='', flags=[], timeout=10000):
+    def _execute(cls, jscode, downloader: YoutubeDL | None = None, video_id=None, note='', flags=[], timeout=10000):
         js_file = TempFileWrapper(jscode, suffix='.js')
-        if note and extractor:
-            extractor.to_screen(f'{format_field(video_id, None, "%s: ")}{note}')
+        if note and downloader:
+            downloader.to_screen(f'{format_field(video_id, None, "%s: ")}{note}')
         cmd = [cls.exe, 'run', *flags, js_file.name]
         try:
             stdout, stderr, returncode = Popen.run(
@@ -136,46 +140,57 @@ class DenoWrapper(ExternalJSI):
             raise ExtractorError('Unable to run Deno binary', cause=e)
         if returncode:
             raise ExtractorError(f'Failed with returncode {returncode}:\n{stderr}')
-        elif stderr and extractor:
-            extractor.report_warning(f'JS console error msg:\n{stderr.strip()}', video_id=video_id)
+        elif stderr and downloader:
+            downloader.report_warning(f'JS console error msg:\n{stderr.strip()}', video_id=video_id)
         return stdout.strip()
 
-    def execute(self, jscode, video_id=None, *, note='Executing JS in Deno', flags=[], base_js=None):
+    def execute(self, jscode, video_id=None, note='Executing JS in Deno', flags=[], base_js=None):
         """Execute JS directly in Deno runtime and return stdout"""
 
-        base_js = base_js if base_js is not None else 'delete window.Deno; global = window;'
+        base_js = 'delete window.Deno; global = window;\n' if base_js is None else base_js
 
-        return self._execute(base_js + jscode, extractor=self.extractor, video_id=video_id, note=note,
+        return self._execute(base_js + jscode, downloader=self._downloader, video_id=video_id, note=note,
                              flags=flags, timeout=self.timeout)
 
 
-class DenoJITlessJSI(DenoWrapper):
-    def execute(self, jscode, video_id=None, *, note='Executing JS in Deno', flags=[], base_js=None):
-        return super().execute(jscode, video_id, note=note, base_js=base_js,
-                               flags=[*flags, '--v8-flags=--jitless,--noexpose-wasm'])
+@register_jsi
+class DenoJITlessJSI(DenoJSI):
+    _EXE_NAME = DenoJSI._EXE_NAME
+    INSTALL_HINT = DenoJSI.INSTALL_HINT
+    _SUPPORTED_FEATURES = {'js'}
+
+    @classproperty
+    def version(cls):
+        return DenoJSI.version
+
+    def execute(self, jscode, video_id=None, note='Executing JS in Deno', flags=[], base_js=None):
+        # JIT-less mode does not support Wasm
+        return super().execute(jscode, video_id, note=note,
+                               flags=[*flags, '--v8-flags=--jitless,--noexpose-wasm'], base_js=base_js)
 
 
-class PuppeteerWrapper:
+@register_jsi
+class PuppeteerJSI(ExternalJSI):
     _PACKAGE_VERSION = '16.2.0'
     _HEADLESS = False
+    _EXE_NAME = DenoJSI._EXE_NAME
 
     @classproperty
     def INSTALL_HINT(cls):
         msg = f'Run "deno run -A https://deno.land/x/puppeteer@{cls._PACKAGE_VERSION}/install.ts" to install puppeteer'
-        if not DenoWrapper.is_available:
-            msg = f'{DenoWrapper.INSTALL_HINT}. Then {msg}'
+        if not DenoJSI.is_available:
+            msg = f'{DenoJSI.INSTALL_HINT}. Then {msg}'
         return msg
 
     @classproperty(cache=True)
     def full_version(cls):
-        if not DenoWrapper.is_available:
+        if not DenoJSI.is_available:
             return
         try:
-            browser_version = DenoWrapper._execute(f'''
-                import puppeteer from "https://deno.land/x/puppeteer@16.2.0/mod.ts";
+            browser_version = DenoJSI._execute(f'''
+                import puppeteer from "https://deno.land/x/puppeteer@{cls._PACKAGE_VERSION}/mod.ts";
                 const browser = await puppeteer.launch({{headless: {json.dumps(bool(cls._HEADLESS))}}});
                 try {{
-                    //await (new )
                     console.log(await browser.version())
                 }} finally {{
                     await browser.close();
@@ -186,15 +201,11 @@ class PuppeteerWrapper:
 
     @classproperty
     def version(cls):
-        return cls._PACKAGE_VERSION if cls.full_version else None
+        return DenoJSI.version if cls.full_version else None
 
-    def __init__(self, extractor: InfoExtractor, required_version=None, timeout=10000):
-        self.deno = DenoWrapper(extractor, timeout=(timeout + 30000))
-        self.timeout = timeout
-        self.extractor = extractor
-
-        if required_version:
-            self.extractor.report_warning(f'required_version is not supported on {self.__class__.__name__}')
+    def __init__(self, downloader: YoutubeDL, timeout: float | int | None = None):
+        super().__init__(downloader, timeout)
+        self.deno = DenoJSI(downloader, timeout=(self.timeout + 30000))
 
     def _deno_execute(self, jscode, note=None):
         return self.deno.execute(f'''
@@ -208,7 +219,7 @@ class PuppeteerWrapper:
             }}''', note=note, flags=['--allow-all'], base_js='')
 
     def execute(self, jscode, video_id=None, note='Executing JS in Puppeteer', url='about:blank'):
-        self.extractor.to_screen(f'{format_field(video_id, None, "%s: ")}{note}')
+        self._downloader.to_screen(f'{format_field(video_id, None, "%s: ")}{note}')
         return self._deno_execute(f'''
             const page = await browser.newPage();
             window.setTimeout(async () => {{
@@ -297,7 +308,7 @@ class PhantomJSwrapper(ExternalJSI):
     def _version(cls):
         return cls.version
 
-    def __init__(self, extractor, required_version=None, timeout=10000):
+    def __init__(self, extractor: InfoExtractor, required_version=None, timeout=10000):
         self._TMP_FILES = {}
 
         if not self.exe:
@@ -429,3 +440,9 @@ class PhantomJSwrapper(ExternalJSI):
             raise ExtractorError(f'{note} failed with returncode {returncode}:\n{stderr.strip()}')
 
         return stdout
+
+
+if typing.TYPE_CHECKING:
+    from ..YoutubeDL import YoutubeDL
+    # from .common import JSIRequest, JSIResponse
+    from ..extractor.common import InfoExtractor
