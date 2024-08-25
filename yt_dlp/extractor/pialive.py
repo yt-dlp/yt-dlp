@@ -64,8 +64,8 @@ class PiaLiveIE(InfoExtractor):
             'api_key': self._extract_vars('APIKEY', prod_configure)})
 
         player_tag_list = self._download_json(
-            f'{self.PIA_LIVE_API_URL}/perf/player-tag-list/{program_code}',
-            program_code, data=payload, headers={'Content-Type': content_type, 'Referer': self.PLAYER_ROOT_URL},
+            f'{self.PIA_LIVE_API_URL}/perf/player-tag-list/{program_code}', program_code,
+            data=payload, headers={'Content-Type': content_type, 'Referer': self.PLAYER_ROOT_URL},
             note='Fetching player tag list', errnote='Unable to fetch player tag list')
 
         chat_room_url = traverse_obj(self._download_json(
