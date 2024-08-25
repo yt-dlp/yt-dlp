@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..utils import extract_attributes, multipart_encode, traverse_obj
+from ..utils import extract_attributes, multipart_encode, traverse_obj, url_or_none
 
 
 class PiaLiveIE(InfoExtractor):
@@ -15,9 +15,10 @@ class PiaLiveIE(InfoExtractor):
                 'display_id': '2431867_001',
                 'title': 'こながめでたい日２０２４の視聴ページ | PIA LIVE STREAM(ぴあライブストリーム)',
                 'live_status': 'was_live',
-                'comment_count': 1000,
+                'comment_count': int,
             },
             'params': {
+                'getcomments': True,
                 'skip_download': True,
                 'ignore_no_formats_error': True,
             },
@@ -29,67 +30,67 @@ class PiaLiveIE(InfoExtractor):
                 'display_id': '2431867_002',
                 'title': 'こながめでたい日２０２４の視聴ページ | PIA LIVE STREAM(ぴあライブストリーム)',
                 'live_status': 'was_live',
-                'comment_count': 1000,
+                'comment_count': int,
             },
             'params': {
+                'getcomments': True,
                 'skip_download': True,
                 'ignore_no_formats_error': True,
             },
         },
     ]
 
+    def _extract_vars(self, variable, html):
+        return self._search_regex(
+            rf'(?:var|const)\s+{variable}\s*=\s*(["\'])(?P<value>(?:(?!\1).)+)\1',
+            html, 'variable', group='value', default=None)
+
     def _real_extract(self, url):
         video_key = self._match_id(url)
         webpage = self._download_webpage(url, video_key)
-        program_code = self._search_regex(r"const programCode = '(.*?)';", webpage, 'program code')
+
+        program_code = self._extract_vars('programCode', webpage)
+        article_code = self._extract_vars('articleCode', webpage)
 
         prod_configure = self._download_webpage(
-            self.PLAYER_ROOT_URL + self._search_regex(r'<script [^>]*\bsrc="(/statics/js/s_prod[^"]+)"', webpage, 'prod configure page'),
+            self.PLAYER_ROOT_URL + self._search_regex(
+                r'<script[^>]+src=(["\'])(?P<url>/statics/js/s_prod\?(?:(?!\1).)+)\1',
+                webpage, 'prod configure page url', group='url'),
             program_code, headers={'Referer': self.PLAYER_ROOT_URL},
-            note='Fetching prod configure page', errnote='Unable to fetch prod configure page',
-        )
+            note='Fetching prod configure page', errnote='Unable to fetch prod configure page')
 
-        api_key = self._search_regex(r"const APIKEY = '(.*?)';", prod_configure, 'api key')
         payload, content_type = multipart_encode({
             'play_url': video_key,
-            'api_key': api_key,
-        })
+            'api_key': self._extract_vars('APIKEY', prod_configure)})
+
         player_tag_list = self._download_json(
             f'{self.PIA_LIVE_API_URL}/perf/player-tag-list/{program_code}',
             program_code, data=payload, headers={'Content-Type': content_type, 'Referer': self.PLAYER_ROOT_URL},
-            note='Fetching player tag list', errnote='Unable to fetch player tag list',
-        )
+            note='Fetching player tag list', errnote='Unable to fetch player tag list')
 
-        article_code = self._search_regex(r"const articleCode = '(.*?)';", webpage, 'article code')
-        chat_info = self._download_json(
-            f'{self.PIA_LIVE_API_URL}/perf/chat-tag-list/{program_code}/{article_code}',
-            program_code, data=payload, headers={'Content-Type': content_type, 'Referer': self.PLAYER_ROOT_URL},
-            note='Fetching chat info', errnote='Unable to fetch chat info',
-        )['data']['chat_one_tag']
-        chat_room_url = extract_attributes(chat_info)['src']
-        comment_page = self._download_webpage(
-            chat_room_url, program_code, headers={'Referer': f'{self.PLAYER_ROOT_URL}'},
-            note='Fetching comment page', errnote='Unable to fetch comment page')
-        comment_list = self._search_json(
-            r'var\s+_history\s*=', comment_page, 'comment list', program_code,
-            contains_pattern=r'\[(?s:.+)\]') or []
-        comments = traverse_obj(comment_list, (..., {
-            'timestamp': (0),
-            'author_is_uploader': (1, {lambda x: x == 2}),
-            'author': (2),
-            'text': (3),
-            'id': (4),
-        }))
+        chat_room_url = traverse_obj(self._download_json(
+            f'{self.PIA_LIVE_API_URL}/perf/chat-tag-list/{program_code}/{article_code}', program_code,
+            data=payload, headers={'Content-Type': content_type, 'Referer': self.PLAYER_ROOT_URL},
+            note='Fetching chat info', errnote='Unable to fetch chat info', fatal=False),
+            ('data', 'chat_one_tag', {extract_attributes}, 'src', {url_or_none}))
 
-        player_data_url = extract_attributes(player_tag_list['data']['movie_one_tag'])['src']
-        info_dict = {
-            'display_id': program_code,
-            'title': self._html_extract_title(webpage),
-            'comments': comments,
-            'comment_count': len(comments),
-        }
         return self.url_result(
-            player_data_url,
-            url_transparent=True,
-            **info_dict,
-        )
+            extract_attributes(player_tag_list['data']['movie_one_tag'])['src'], url_transparent=True,
+            video_title=self._html_extract_title(webpage), display_id=program_code,
+            __post_extractor=self.extract_comments(program_code, chat_room_url))
+
+    def _get_comments(self, video_id, chat_room_url):
+        if not chat_room_url:
+            return
+        if comment_page := self._download_webpage(
+                chat_room_url, video_id, headers={'Referer': f'{self.PLAYER_ROOT_URL}'},
+                note='Fetching comment page', errnote='Unable to fetch comment page', fatal=False):
+            yield from traverse_obj(self._search_json(
+                r'var\s+_history\s*=', comment_page, 'comment list',
+                video_id, contains_pattern=r'\[(?s:.+)\]', fatal=False), (..., {
+                    'timestamp': (0),
+                    'author_is_uploader': (1, {lambda x: x == 2}),
+                    'author': (2),
+                    'text': (3),
+                    'id': (4),
+                }))
