@@ -6,9 +6,9 @@ from ..utils import (
     int_or_none,
     join_nonempty,
     mimetype2ext,
-    traverse_obj,
     url_or_none,
 )
+from ..utils.traversal import traverse_obj
 
 
 class VidflexIE(InfoExtractor):
@@ -67,7 +67,7 @@ class VidflexIE(InfoExtractor):
             'timestamp': 1716235607,
             'upload_date': '20240520',
             'tags': ['English', '2024', "National Men's Team", 'IIHF World Championship', 'Fan'],
-            'description': 're:.+Canada’s National Men’s Team+',
+            'description': 're:.+Canada’s National Men’s Team.+',
             'thumbnail': 're:^https?://wpmedia01-a.akamaihd.net/en/asset/public/image/.+',
         },
         'params': {'skip_download': True},
