@@ -121,7 +121,7 @@ class VidflexIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'formats': [*self._yield_formats(media_config, video_id)],
+            'formats': list(self._yield_formats(media_config, video_id)),
             **self._search_json_ld(
                 webpage.replace('/*<![CDATA[*/', '').replace('/*]]>*/', ''), video_id),
         }
