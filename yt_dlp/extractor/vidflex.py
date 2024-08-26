@@ -54,7 +54,7 @@ class VidflexIE(InfoExtractor):
             'upload_date': '20211015',
             'tags': ['English', '2021', "National Women's Team"],
             'description': 'md5:efb1cf6165b48cc3f5555c4262dd5b23',
-            'thumbnail': 're:^https?://wpmedia01-a.akamaihd.net/en/asset/public/image/.+',
+            'thumbnail': r're:^https?://wpmedia01-a\.akamaihd\.net/en/asset/public/image/.+',
         },
         'params': {'skip_download': True},
     }, {
@@ -67,8 +67,8 @@ class VidflexIE(InfoExtractor):
             'timestamp': 1716235607,
             'upload_date': '20240520',
             'tags': ['English', '2024', "National Men's Team", 'IIHF World Championship', 'Fan'],
-            'description': 're:.+Canada’s National Men’s Team.+',
-            'thumbnail': 're:^https?://wpmedia01-a.akamaihd.net/en/asset/public/image/.+',
+            'description': r're:.+Canada’s National Men’s Team.+',
+            'thumbnail': r're:^https?://wpmedia01-a\.akamaihd\.net/en/asset/public/image/.+',
         },
         'params': {'skip_download': True},
     }, {
@@ -83,7 +83,7 @@ class VidflexIE(InfoExtractor):
             'upload_date': '20240520',
             'tags': ['French', '2024', "National Men's Team", 'IIHF World Championship', 'Fan'],
             'description': 'md5:cf825222882a3dab1cd62cffcf3b4d1f',
-            'thumbnail': 're:^https?://wpmedia01-a.akamaihd.net/en/asset/public/image/.+',
+            'thumbnail': r're:^https?://wpmedia01-a\.akamaihd\.net/en/asset/public/image/.+',
         },
         'params': {'skip_download': True},
     }, {
