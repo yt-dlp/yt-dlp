@@ -73,7 +73,7 @@ class RTPIE(InfoExtractor):
         config = self._parse_json(
             config, video_id,
             lambda data: self.__unobfuscate(data, video_id=video_id))
-        f = config.get('file') if not f else self._parse_json(
+        f = config['file'] if not f else self._parse_json(
             f, video_id,
             lambda data: self.__unobfuscate(data, video_id=video_id))
 
