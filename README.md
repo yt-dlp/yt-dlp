@@ -290,7 +290,7 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
 <!-- MANPAGE: BEGIN EXCLUDED SECTION -->
     yt-dlp [OPTIONS] [--] URL [URL...]
 
-`Ctrl+F` is your friend :D
+`Ctrl+F`/`Command-F` is your friend :D
 <!-- MANPAGE: END EXCLUDED SECTION -->
 
 <!-- Auto generated -->
