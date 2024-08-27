@@ -1,5 +1,6 @@
 from .common import InfoExtractor
-from ..utils import extract_attributes, multipart_encode, traverse_obj, url_or_none
+from ..utils import extract_attributes, multipart_encode, url_or_none
+from ..utils.traversal import traverse_obj
 
 
 class PiaLiveIE(InfoExtractor):
@@ -88,9 +89,9 @@ class PiaLiveIE(InfoExtractor):
             yield from traverse_obj(self._search_json(
                 r'var\s+_history\s*=', comment_page, 'comment list',
                 video_id, contains_pattern=r'\[(?s:.+)\]', fatal=False), (..., {
-                    'timestamp': (0),
+                    'timestamp': 0,
                     'author_is_uploader': (1, {lambda x: x == 2}),
-                    'author': (2),
-                    'text': (3),
-                    'id': (4),
+                    'author': 2,
+                    'text': 3,
+                    'id': 4,
                 }))
