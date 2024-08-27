@@ -224,7 +224,8 @@ class JioSaavnArtistIE(JioSaavnBaseIE):
 
     def _fetch_page(self, token, page):
         return self._call_api('artist', token, f'artist page {page}', {
-            'p': page, 'n': self._PAGE_SIZE, 'api_version': '4', 'category': 'alphabetical', 'sort_order': 'asc'})
+            'p': page, 'n_song': self._PAGE_SIZE, 'n_album': self._PAGE_SIZE, 'sub_type': '',
+            'includeMetaTags': '', 'api_version': '4', 'category': 'alphabetical', 'sort_order': 'asc'})
 
     def _extract_song(self, song_data, url=None):
         info = traverse_obj(song_data, {
@@ -253,23 +254,29 @@ class JioSaavnArtistIE(JioSaavnBaseIE):
             yield self.url_result(url, JioSaavnSongIE, url_transparent=True, **song_info)
 
     def _entries(self, token, page):
-        page_data = self._fetch_page(token, page)
+        page_data = self._first_page if page == 0 else self._fetch_page(token, page)
         yield from self._yield_songs(page_data)
 
     def _generate_result(self, token):
-        pagenum = 0
+        # note:
+        # 1. the total number of songs in a page result is not constant
+        # 2. end of list is identified by 'topSongs' array being empty
+        page = 0
         result = []
-        while True:
-            entries = list(self._entries(token, pagenum))
+
+        # added static page count limit to avoid potential infinite loop
+        while page < 20000:
+            entries = list(self._entries(token, page))
             if len(entries) == 0:
                 break
             result.extend(entries)
-            pagenum += 1
+            page += 1
         return result
 
     def _real_extract(self, url):
-        artist_token_id = self._match_id(url)
-        artist_playlist_entries = self._generate_result(artist_token_id)
-        name = self._fetch_page(artist_token_id, 0).get('name')
+        display_id = self._match_id(url)
+        self._first_page = self._fetch_page(display_id, 0)
+        entries = self._generate_result(display_id)
+        name = self._first_page.get('name')
 
-        return self.playlist_result(artist_playlist_entries, artist_token_id, name)
+        return self.playlist_result(entries, display_id, name)
