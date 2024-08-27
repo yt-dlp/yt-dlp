@@ -481,6 +481,10 @@ class FacebookIE(InfoExtractor):
                 r'data-sjs>({.*?ScheduledServerJS.*?})</script>', webpage)]
             post = traverse_obj(post_data, (
                 ..., 'require', ..., ..., ..., '__bbox', 'require', ..., ..., ..., '__bbox', 'result', 'data'), expected_type=dict) or []
+            post_stats = traverse_obj(post, (
+                lambda _, v: v['short_form_video_context']['video']['id'] == video_id and v[
+                    'url'] == f'https://www.facebook.com/reel/{video_id}/'), expected_type=dict) or []
+            post_stats = get_first(post_stats, ('feedback', {dict}), default={})
             media = traverse_obj(post, (..., 'attachments', ..., lambda k, v: (
                 k == 'media' and str(v['id']) == video_id and v['__typename'] == 'Video')), expected_type=dict)
             title = get_first(media, ('title', 'text'))
@@ -524,6 +528,9 @@ class FacebookIE(InfoExtractor):
                     webpage, 'view count', default=None)),
                 'concurrent_view_count': get_first(post, (
                     ('video', (..., ..., 'attachments', ..., 'media')), 'liveViewerCount', {int_or_none})),
+                'unified_reactors_count': post_stats.get('unified_reactors', {}).get('count'),
+                'total_comment_count': post_stats.get('total_comment_count'),
+                'share_count': parse_count(post_stats.get('share_count_reduced')),
             }
 
             info_json_ld = self._search_json_ld(webpage, video_id, default={})
@@ -944,6 +951,9 @@ class FacebookReelIE(InfoExtractor):
             'timestamp': 1637502609,
             'upload_date': '20211121',
             'thumbnail': r're:^https?://.*',
+            'total_comment_count': 21,
+            'unified_reactors_count': 356,
+            'share_count': 81,
         },
     }]
 
