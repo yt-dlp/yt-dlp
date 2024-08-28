@@ -49,7 +49,8 @@ VERBOSE_TMPL = '''
   - type: markdown
     attributes:
       value: |
-        ### NOTE: Due to a recent increase in malicious spam activity, this issue will be automatically locked until it is triaged by a maintainer. If you receive any replies asking you download a file, do NOT follow the download links
+        ### NOTE: Due to a recent increase in malicious spam activity, this issue will be automatically locked until it is triaged by a maintainer.
+        ### If you receive any replies asking you download a file, do NOT follow the download links!
 '''.strip()
 
 NO_SKIP = '''
