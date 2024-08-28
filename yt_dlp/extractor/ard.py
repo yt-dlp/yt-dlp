@@ -678,11 +678,13 @@ class ARDAudiothekIE(InfoExtractor):
                 'description': ('description', {str}),
             }))
 
-        item = self.graphql_query(display_id, self._QUERY_ITEM % video_id)['item']
-        audio_list = item.get('audioList', [])
         return {
             'display_id': display_id,
-            'formats': [{'url': x['href'], 'format_id': x['distributionType']} for x in audio_list],
+            'formats': traverse_obj(self.graphql_query(display_id, self._QUERY_ITEM % video_id), (
+                'item', 'audioList', lambda _, v: url_or_none(v['href']), {
+                    'url': 'href',
+                    'format_id': ('distributionType', {str}),
+            })),
             'id': video_id,
             **traverse_obj(item, {
                 'description': ('synopsis', {str}),
