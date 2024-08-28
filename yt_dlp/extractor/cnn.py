@@ -136,11 +136,10 @@ class CNNArticleIE(InfoExtractor):
 
     def _real_extract(self, url):
         webpage = self._download_webpage(url, url_basename(url))
-        cnn_url = self._search_regex(r'"@type":"VideoObject","contentUrl":"(.*?)"', webpage, 'content URL')
+        cnn_url = self._search_json_ld(webpage, url_basename(url)).get('url')
         if (cnn_url):
             return self.url_result(cnn_url, 'Generic')
-        else:
-            return self.url_result(url, CNNIE.ie_key())
+        return self.url_result(url, CNNIE)
 
 
 class CNNIndonesiaIE(InfoExtractor):
