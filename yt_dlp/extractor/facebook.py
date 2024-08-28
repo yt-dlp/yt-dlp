@@ -485,6 +485,8 @@ class FacebookIE(InfoExtractor):
                 lambda _, v: v['short_form_video_context']['video']['id'] == video_id and v[
                     'url'] == f'https://www.facebook.com/reel/{video_id}/'), expected_type=dict) or []
             post_stats = get_first(post_stats, ('feedback', {dict}), default={})
+            owner = get_first(post, ('video', 'creation_story', 'short_form_video_context', 'video_owner', 'name'),
+                              default=None)
             media = traverse_obj(post, (..., 'attachments', ..., lambda k, v: (
                 k == 'media' and str(v['id']) == video_id and v['__typename'] == 'Video')), expected_type=dict)
             title = get_first(media, ('title', 'text'))
@@ -531,6 +533,7 @@ class FacebookIE(InfoExtractor):
                 'unified_reactors_count': post_stats.get('unified_reactors', {}).get('count'),
                 'total_comment_count': post_stats.get('total_comment_count'),
                 'share_count': parse_count(post_stats.get('share_count_reduced')),
+                'owner': owner,
             }
 
             info_json_ld = self._search_json_ld(webpage, video_id, default={})
@@ -954,6 +957,7 @@ class FacebookReelIE(InfoExtractor):
             'total_comment_count': 21,
             'unified_reactors_count': 356,
             'share_count': 81,
+            'owner': 'Beast Camp Training',
         },
     }]
 
