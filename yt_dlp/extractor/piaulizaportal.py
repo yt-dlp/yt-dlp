@@ -1,5 +1,6 @@
 from .common import InfoExtractor
-from ..utils import ExtractorError, int_or_none, parse_qs, time_seconds, traverse_obj
+from ..utils import ExtractorError, int_or_none, parse_qs, time_seconds
+from ..utils.traversal import traverse_obj
 
 
 class PIAULIZAPortalAPIIE(InfoExtractor):
@@ -116,8 +117,6 @@ class PIAULIZAPortalIE(InfoExtractor):
             r'<script [^>]*\bsrc="(https://player-api\.p\.uliza\.jp/v1/players/[^"]+)"',
             webpage, 'player data url')
         return self.url_result(
-            player_data_url,
-            url_transparent=True,
-            display_id=video_id,
-            video_title=self._html_extract_title(webpage),
+            player_data_url, url_transparent=True,
+            display_id=video_id, video_title=self._html_extract_title(webpage),
         )
