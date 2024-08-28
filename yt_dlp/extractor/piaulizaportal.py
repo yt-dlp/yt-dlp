@@ -118,5 +118,4 @@ class PIAULIZAPortalIE(InfoExtractor):
             webpage, 'player data url')
         return self.url_result(
             player_data_url, url_transparent=True,
-            display_id=video_id, video_title=self._html_extract_title(webpage),
-        )
+            display_id=video_id, video_title=self._html_extract_title(webpage))
