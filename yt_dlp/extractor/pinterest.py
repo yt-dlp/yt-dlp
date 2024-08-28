@@ -109,7 +109,7 @@ class PinterestBaseIE(InfoExtractor):
 
 
 class PinterestIE(PinterestBaseIE):
-    _VALID_URL = rf'{PinterestBaseIE._VALID_URL_BASE}/pin/(?P<id>\d+)'
+	_VALID_URL = rf'{PinterestBaseIE._VALID_URL_BASE}/pin/(?:[\w-]+--)?(?P<id>\d+)'
     _TESTS = [{
         # formats found in data['videos']
         'url': 'https://www.pinterest.com/pin/664281013778109217/',
