@@ -49,8 +49,8 @@ class UnderlinePosterIE(InfoExtractor):
         data = self._search_nextjs_data(webpage, video_id)['props']['pageProps']['fallback']
 
         m3u8_url = traverse_obj(data, (..., 'data', 'attributes', 'playlist', {url_or_none}), get_all=False)
-        subtitle_urls = filter_dict(dict(traverse_obj(data, (..., 'data', lambda _, v: v['type'] == 'transcripts', {
-            lambda x: (
+        subtitle_urls = filter_dict(dict(traverse_obj(data, (
+            ..., 'data', lambda _, v: v['type'] == 'transcripts', {lambda x: (
                 x['relationships']['language']['data']['id'],
                 url_or_none(x['attributes']['subtitleUrl']),
             )}))))
@@ -58,9 +58,9 @@ class UnderlinePosterIE(InfoExtractor):
         return {
             'id': video_id,
             'title': traverse_obj(data, (..., 'data', 'attributes', 'title', {str}), get_all=False),
-            'thumbnail': traverse_obj(
-                data, (..., 'data', 'attributes', 'originalPosterDocumentThumbnailExtractUrl', {url_or_none}), get_all=False),
-            'formats': self._extract_m3u8_formats(m3u8_url, video_id, fatal=False) if m3u8_url else [],
+            'thumbnail': traverse_obj(data, (
+                ..., 'data', 'attributes', 'originalPosterDocumentThumbnailExtractUrl', {url_or_none}), get_all=False),
+            'formats': self._extract_m3u8_formats(m3u8_url, video_id) if m3u8_url else [],
             'subtitles': filter_dict(dict(traverse_obj(data, (
                 ..., 'included', lambda _, v: v['type'] == 'transcript_languages', {lambda x: (
                     x['attributes']['locale'],
