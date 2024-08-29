@@ -2316,6 +2316,7 @@ from .videomore import (
     VideomoreVideoIE,
 )
 from .videopress import VideoPressIE
+from .vidflex import VidflexIE
 from .vidio import (
     VidioIE,
     VidioLiveIE,
