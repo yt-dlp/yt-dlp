@@ -50,6 +50,8 @@ class PiramideTVIE(InfoExtractor):
             }),
                 'formats': formats,
                 'subtitles': subtitles,
+                'webpage_url': f'https://piramide.tv/video/{video_id}',
+                'webpage_url_basename': video_id,
             }
             next_video_id = traverse_obj(video_data, ('video', 'next_video', 'id', {str}))
             return video_info, next_video_id
