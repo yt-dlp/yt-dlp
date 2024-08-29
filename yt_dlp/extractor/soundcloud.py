@@ -186,25 +186,23 @@ class SoundcloudBaseIE(InfoExtractor):
         l = 1042
         b = 37
         k = 37
-        c = 5
         n = '0763ed7314c69015fd4a0dc16bbf4b90'  # _KEY
         y = '8'  # _REV
         r = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.105 Safari/537.36'  # _USER_AGENT
         e = user  # _USERNAME
         t = clid  # _CLIENT_ID
 
-        d = '-'.join([str(mInt) for mInt in [a, i, s, w, u, l, b, k]])
+        d = f'{a}-{i}-{s}-{w}-{u}-{l}-{b}-{k}'
         h = n + y + d + r + e + t + d + n
 
         m = 8011470
 
-        for f in range(len(h)):
+        for f in h:
             m = (m >> 1) + ((1 & m) << 23)
-            m += ord(h[f])
+            m += ord(f)
             m &= 16777215
 
-        # c is not even needed
-        return f'{y}:{d}:{m:x}:{c}'
+        return f'{y}:{d}:{m:x}:5'
 
     def _extract_info_dict(self, info, full_title=None, secret_token=None, extract_flat=False):
         track_id = str(info['id'])

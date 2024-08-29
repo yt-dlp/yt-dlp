@@ -128,9 +128,7 @@ class ImpersonateRequestHandler(RequestHandler, ABC):
         if self._get_request_target(request) is not None:
             # remove all headers present in std_headers
             # TODO: change this to not depend on std_headers
-            for k, v in std_headers.items():
-                if headers.get(k) == v:
-                    headers.pop(k)
+            headers = {k: v for k, v in headers.items() if std_headers.get(k) != v}
         return headers
 
 

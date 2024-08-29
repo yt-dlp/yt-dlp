@@ -78,14 +78,14 @@ class FptplayIE(InfoExtractor):
         n = [int(f'0x{t[2 * o: 2 * o + 2]}', 16) for o in range(len(t) // 2)]
 
         def convert(e):
-            t = ''
+            t = []
             n = 0
             i = [0, 0, 0]
             a = [0, 0, 0, 0]
             s = len(e)
             c = 0
             for _ in range(s, 0, -1):
-                if n <= 3:
+                if n <= 2:
                     i[n] = e[c]
                 n += 1
                 c += 1
@@ -95,23 +95,23 @@ class FptplayIE(InfoExtractor):
                     a[2] = ((15 & i[1]) << 2) + ((192 & i[2]) >> 6)
                     a[3] = (63 & i[2])
                     for v in range(4):
-                        t += r[a[v]]
+                        t.append(r[a[v]])
                     n = 0
             if n:
                 for o in range(n, 3):
                     i[o] = 0
 
+                a[0] = (252 & i[0]) >> 2
+                a[1] = ((3 & i[0]) << 4) + ((240 & i[1]) >> 4)
+                a[2] = ((15 & i[1]) << 2) + ((192 & i[2]) >> 6)
+                a[3] = (63 & i[2])
                 for o in range(n + 1):
-                    a[0] = (252 & i[0]) >> 2
-                    a[1] = ((3 & i[0]) << 4) + ((240 & i[1]) >> 4)
-                    a[2] = ((15 & i[1]) << 2) + ((192 & i[2]) >> 6)
-                    a[3] = (63 & i[2])
-                    t += r[a[o]]
+                    t.append(r[a[o]])
                 n += 1
                 while n < 3:
-                    t += ''
+                    t.append('')
                     n += 1
-            return t
+            return ''.join(t)
 
         st_token = convert(n).replace('+', '-').replace('/', '_').replace('=', '')
         return f'https://api.fptplay.net{path}?{urllib.parse.urlencode({"st": st_token, "e": timestamp})}'

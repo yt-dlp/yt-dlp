@@ -861,7 +861,9 @@ class JSInterpreter:
         global_stack = list(global_stack) or [{}]
         argnames = tuple(argnames)
 
-        def resf(args, kwargs={}, allow_recursion=100):
+        def resf(args, kwargs=None, allow_recursion=100):
+            if kwargs is None:
+                kwargs = {}
             global_stack[0].update(itertools.zip_longest(argnames, args, fillvalue=None))
             global_stack[0].update(kwargs)
             var_stack = LocalNameSpace(*global_stack)

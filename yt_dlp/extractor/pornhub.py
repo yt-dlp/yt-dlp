@@ -355,8 +355,7 @@ class PornHubIE(PornHubBaseIE):
                 inp = re.sub(r'/\*(?:(?!\*/).)*?\*/', '', inp)
                 if '+' in inp:
                     inps = inp.split('+')
-                    return functools.reduce(
-                        operator.concat, map(parse_js_value, inps))
+                    return ''.join(map(parse_js_value, inps))
                 inp = inp.strip()
                 if inp in js_vars:
                     return js_vars[inp]
