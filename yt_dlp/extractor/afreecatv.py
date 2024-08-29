@@ -1,6 +1,7 @@
 import functools
 
 from .common import InfoExtractor
+from ..networking import Request
 from ..utils import (
     ExtractorError,
     OnDemandPagedList,
@@ -57,6 +58,13 @@ class AfreecaTVBaseIE(InfoExtractor):
             raise ExtractorError(
                 f'Unable to login: {self.IE_NAME} said: {error}',
                 expected=True)
+
+    def _call_api(self, endpoint, display_id, data=None, headers=None, query=None):
+        return self._download_json(Request(
+            f'https://api.m.afreecatv.com/{endpoint}',
+            data=data, headers=headers, query=query,
+            extensions={'legacy_ssl': True}), display_id,
+            'Downloading API JSON', 'Unable to download API JSON')
 
 
 class AfreecaTVIE(AfreecaTVBaseIE):
@@ -184,12 +192,12 @@ class AfreecaTVIE(AfreecaTVBaseIE):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        data = self._download_json(
-            'https://api.m.afreecatv.com/station/video/a/view', video_id,
-            headers={'Referer': url}, data=urlencode_postdata({
+        data = self._call_api(
+            'station/video/a/view', video_id, headers={'Referer': url},
+            data=urlencode_postdata({
                 'nTitleNo': video_id,
                 'nApiLevel': 10,
-            }), impersonate=True)['data']
+            }))['data']
 
         error_code = traverse_obj(data, ('code', {int}))
         if error_code == -6221:
@@ -267,9 +275,9 @@ class AfreecaTVCatchStoryIE(AfreecaTVBaseIE):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        data = self._download_json(
-            'https://api.m.afreecatv.com/catchstory/a/view', video_id, headers={'Referer': url},
-            query={'aStoryListIdx': '', 'nStoryIdx': video_id}, impersonate=True)
+        data = self._call_api(
+            'catchstory/a/view', video_id, headers={'Referer': url},
+            query={'aStoryListIdx': '', 'nStoryIdx': video_id})
 
         return self.playlist_result(self._entries(data), video_id)
 
