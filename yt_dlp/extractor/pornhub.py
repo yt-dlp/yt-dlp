@@ -1,7 +1,5 @@
-import functools
 import itertools
 import math
-import operator
 import re
 
 from .common import InfoExtractor
