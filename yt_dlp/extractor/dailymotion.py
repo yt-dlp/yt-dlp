@@ -227,6 +227,7 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
         'only_matching': True,
     }]
     _WEBPAGE_TESTS = [{
+        # https://geo.dailymotion.com/player/xmyye.html?video=x93blhi
         'url': 'https://www.financialounge.com/video/2024/08/01/borse-europee-in-rosso-dopo-la-fed-a-milano-volano-mediobanca-e-tim-edizione-del-1-agosto/',
         'info_dict': {
             'id': 'x93blhi',
@@ -244,6 +245,7 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
             'like_count': int,
         },
     }, {
+        # https://geo.dailymotion.com/player/xf7zn.html?playlist=x7wdsj
         'url': 'https://www.cycleworld.com/blogs/ask-kevin/ducati-continues-to-evolve-with-v4/',
         'info_dict': {
             'id': 'x7wdsj',
