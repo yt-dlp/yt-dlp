@@ -6,7 +6,6 @@ import time
 import uuid
 
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
@@ -32,7 +31,7 @@ class HotStarBaseIE(InfoExtractor):
     def _call_api_impl(self, path, video_id, query, st=None, cookies=None):
         st = int_or_none(st) or int(time.time())
         exp = st + 6000
-        auth = 'st=%d~exp=%d~acl=/*' % (st, exp)
+        auth = f'st={st}~exp={exp}~acl=/*'
         auth += '~hmac=' + hmac.new(self._AKAMAI_ENCRYPTION_KEY, auth.encode(), hashlib.sha256).hexdigest()
 
         if cookies and cookies.get('userUP'):
@@ -41,7 +40,7 @@ class HotStarBaseIE(InfoExtractor):
             token = self._download_json(
                 f'{self._API_URL}/um/v3/users',
                 video_id, note='Downloading token',
-                data=json.dumps({"device_ids": [{"id": compat_str(uuid.uuid4()), "type": "device_id"}]}).encode('utf-8'),
+                data=json.dumps({'device_ids': [{'id': str(uuid.uuid4()), 'type': 'device_id'}]}).encode(),
                 headers={
                     'hotstarauth': auth,
                     'x-hs-platform': 'PCTV',  # or 'web'
@@ -66,7 +65,7 @@ class HotStarBaseIE(InfoExtractor):
         return self._call_api_impl(
             f'{path}/content/{video_id}', video_id, st=st, cookies=cookies, query={
                 'desired-config': 'audio_channel:stereo|container:fmp4|dynamic_range:hdr|encryption:plain|ladder:tv|package:dash|resolution:fhd|subs-tag:HotstarVIP|video_codec:h265',
-                'device-id': cookies.get('device_id').value if cookies.get('device_id') else compat_str(uuid.uuid4()),
+                'device-id': cookies.get('device_id').value if cookies.get('device_id') else str(uuid.uuid4()),
                 'os-name': 'Windows',
                 'os-version': '10',
             })
@@ -122,7 +121,7 @@ class HotStarIE(HotStarBaseIE):
             'season_id': '6771',
             'episode': 'Janhvi Targets Suman',
             'episode_number': 8,
-        }
+        },
     }, {
         'url': 'https://www.hotstar.com/in/shows/anupama/1260022017/anupama-anuj-share-a-moment/1000282843',
         'info_dict': {
@@ -257,7 +256,6 @@ class HotStarIE(HotStarBaseIE):
                    for key, prefix in self._IGNORE_MAP.items()
                    for ignore in self._configuration_arg(key)):
                 continue
-            tag_dict = dict((t.split(':', 1) + [None])[:2] for t in tags.split(';'))
 
             format_url = url_or_none(playback_set.get('playbackUrl'))
             if not format_url:
@@ -286,6 +284,7 @@ class HotStarIE(HotStarBaseIE):
                     geo_restricted = True
                 continue
 
+            tag_dict = dict((*t.split(':', 1), None)[:2] for t in tags.split(';'))
             if tag_dict.get('encryption') not in ('plain', None):
                 for f in current_formats:
                     f['has_drm'] = True

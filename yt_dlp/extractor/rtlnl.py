@@ -57,7 +57,7 @@ class RtlNlIE(InfoExtractor):
             'thumbnail': r're:^https?://screenshots\.rtl\.nl/(?:[^/]+/)*sz=[0-9]+x[0-9]+/uuid=84ae5571-ac25-4225-ae0c-ef8d9efb2aed$',
             'upload_date': '20150215',
             'description': 'Er zijn nieuwe beelden vrijgegeven die vlak na de aanslag in Kopenhagen zijn gemaakt. Op de video is goed te zien hoe omstanders zich bekommeren om één van de slachtoffers, terwijl de eerste agenten ter plaatse komen.',
-        }
+        },
     }, {
         # empty synopsis and missing episodes (see https://github.com/ytdl-org/youtube-dl/issues/6275)
         # best format available nettv
@@ -99,14 +99,14 @@ class RtlNlIE(InfoExtractor):
     def _real_extract(self, url):
         uuid = self._match_id(url)
         info = self._download_json(
-            'http://www.rtl.nl/system/s4m/vfd/version=2/uuid=%s/fmt=adaptive/' % uuid,
+            f'http://www.rtl.nl/system/s4m/vfd/version=2/uuid={uuid}/fmt=adaptive/',
             uuid)
 
         material = info['material'][0]
         title = info['abstracts'][0]['name']
         subtitle = material.get('title')
         if subtitle:
-            title += ' - %s' % subtitle
+            title += f' - {subtitle}'
         description = material.get('synopsis')
 
         meta = info.get('meta', {})
@@ -129,7 +129,7 @@ class RtlNlIE(InfoExtractor):
                     r'/sz=([0-9]+)', meta[p], 'thumbnail width', fatal=False)),
                 'height': int_or_none(self._search_regex(
                     r'/sz=[0-9]+x([0-9]+)',
-                    meta[p], 'thumbnail height', fatal=False))
+                    meta[p], 'thumbnail height', fatal=False)),
             })
 
         return {
@@ -196,7 +196,7 @@ class RTLLuTeleVODIE(RTLLuBaseIE):
             'ext': 'mp4',
             'thumbnail': 'https://replay-assets.rtl.lu/2021/11/16/d3647fc4-470d-11ec-adc2-3a00abd6e90f_00008.jpg',
             'description': 'md5:b1db974408cc858c9fd241812e4a2a14',
-        }
+        },
     }, {
         'url': 'https://www.rtl.lu/video/3295215',
         'info_dict': {
@@ -205,7 +205,7 @@ class RTLLuTeleVODIE(RTLLuBaseIE):
             'ext': 'mp4',
             'thumbnail': 'https://replay-assets.rtl.lu/2022/06/28/0000_3295215_0000.jpg',
             'description': 'md5:85bcd4e0490aa6ec969d9bf16927437b',
-        }
+        },
     }]
 
 
@@ -221,7 +221,7 @@ class RTLLuArticleIE(RTLLuBaseIE):
             'thumbnail': 'https://static.rtl.lu/rtl2008.lu/nt/p/2022/06/28/19/e4b37d66ddf00bab4c45617b91a5bb9b.jpeg',
             'description': 'md5:5eab4a2a911c1fff7efc1682a38f9ef7',
             'title': 'md5:40aa85f135578fbd549d3c9370321f99',
-        }
+        },
     }, {
         # 5minutes
         'url': 'https://5minutes.rtl.lu/espace-frontaliers/frontaliers-en-questions/a/1853173.html',
@@ -231,7 +231,7 @@ class RTLLuArticleIE(RTLLuBaseIE):
             'description': 'md5:ac031da0740e997a5cf4633173634fee',
             'title': 'md5:87e17722ed21af0f24be3243f4ec0c46',
             'thumbnail': 'https://replay-assets.rtl.lu/2022/01/26/screenshot_20220126104933_3274749_12b249833469b0d6e4440a1dec83cdfa.jpg',
-        }
+        },
     }, {
         # today.lu
         'url': 'https://today.rtl.lu/entertainment/news/a/1936203.html',
@@ -241,7 +241,7 @@ class RTLLuArticleIE(RTLLuBaseIE):
             'title': 'Once Upon A Time...zu Lëtzebuerg: The Three Witches\' Tower',
             'description': 'The witchy theme continues in the latest episode of Once Upon A Time...',
             'thumbnail': 'https://replay-assets.rtl.lu/2022/07/02/screenshot_20220702122859_3290019_412dc5185951b7f6545a4039c8be9235.jpg',
-        }
+        },
     }]
 
 
@@ -256,7 +256,7 @@ class RTLLuLiveIE(RTLLuBaseIE):
             'live_status': 'is_live',
             'title': r're:RTL - Télé LIVE \d{4}-\d{2}-\d{2} \d{2}:\d{2}',
             'thumbnail': 'https://static.rtl.lu/livestream/channel1.jpg',
-        }
+        },
     }, {
         # Tele:live-2
         'url': 'https://www.rtl.lu/tele/live-2',
@@ -266,7 +266,7 @@ class RTLLuLiveIE(RTLLuBaseIE):
             'live_status': 'is_live',
             'title': r're:RTL - Télé LIVE \d{4}-\d{2}-\d{2} \d{2}:\d{2}',
             'thumbnail': 'https://static.rtl.lu/livestream/channel2.jpg',
-        }
+        },
     }, {
         # Radio:lauschteren
         'url': 'https://www.rtl.lu/radio/lauschteren',
@@ -276,7 +276,7 @@ class RTLLuLiveIE(RTLLuBaseIE):
             'live_status': 'is_live',
             'title': r're:RTL - Radio LIVE \d{4}-\d{2}-\d{2} \d{2}:\d{2}',
             'thumbnail': 'https://static.rtl.lu/livestream/rtlradiowebtv.jpg',
-        }
+        },
     }]
 
 
@@ -290,5 +290,5 @@ class RTLLuRadioIE(RTLLuBaseIE):
             'description': 'md5:f855a4f3e3235393ae47ed1db5d934b9',
             'title': '5 vir 12 - Stau um Stau',
             'thumbnail': 'https://static.rtl.lu/rtlg//2022/06/24/c9c19e5694a14be46a3647a3760e1f62.jpg',
-        }
+        },
     }]

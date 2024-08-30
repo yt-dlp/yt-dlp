@@ -59,14 +59,14 @@ class LinkedInLearningBaseIE(LinkedInBaseIE):
         if video_slug:
             query.update({
                 'videoSlug': video_slug,
-                'resolution': '_%s' % resolution,
+                'resolution': f'_{resolution}',
             })
             sub = ' %dp' % resolution
         api_url = 'https://www.linkedin.com/learning-api/detailedCourses'
         if not self._get_cookies(api_url).get('JSESSIONID'):
             self.raise_login_required()
         return self._download_json(
-            api_url, video_slug, 'Downloading%s JSON metadata' % sub, headers={
+            api_url, video_slug, f'Downloading{sub} JSON metadata', headers={
                 'Csrf-Token': self._get_cookies(api_url)['JSESSIONID'].value,
             }, query=query)['elements'][0]
 
@@ -78,7 +78,7 @@ class LinkedInLearningBaseIE(LinkedInBaseIE):
                 return mobj.group(1)
 
     def _get_video_id(self, video_data, course_slug, video_slug):
-        return self._get_urn_id(video_data) or '%s/%s' % (course_slug, video_slug)
+        return self._get_urn_id(video_data) or f'{course_slug}/{video_slug}'
 
 
 class LinkedInIE(LinkedInBaseIE):
@@ -92,7 +92,7 @@ class LinkedInIE(LinkedInBaseIE):
             'description': 'md5:2998a31f6f479376dd62831f53a80f71',
             'uploader': 'Mishal K.',
             'thumbnail': 're:^https?://media.licdn.com/dms/image/.*$',
-            'like_count': int
+            'like_count': int,
         },
     }, {
         'url': 'https://www.linkedin.com/posts/the-mathworks_2_what-is-mathworks-cloud-center-activity-7151241570371948544-4Gu7',
@@ -104,7 +104,7 @@ class LinkedInIE(LinkedInBaseIE):
             'uploader': 'MathWorks',
             'thumbnail': 're:^https?://media.licdn.com/dms/image/.*$',
             'like_count': int,
-            'subtitles': 'mincount:1'
+            'subtitles': 'mincount:1',
         },
     }]
 
@@ -159,9 +159,10 @@ class LinkedInLearningIE(LinkedInLearningBaseIE):
         for line, (line_dict, next_dict) in enumerate(itertools.zip_longest(transcript_lines, transcript_lines[1:])):
             start_time, caption = line_dict['transcriptStartAt'] / 1000, line_dict['caption']
             end_time = next_dict['transcriptStartAt'] / 1000 if next_dict else duration or start_time + 1
-            srt_data += '%d\n%s --> %s\n%s\n\n' % (line + 1, srt_subtitles_timecode(start_time),
-                                                   srt_subtitles_timecode(end_time),
-                                                   caption)
+            srt_data += (
+                f'{line + 1}\n'
+                f'{srt_subtitles_timecode(start_time)} --> {srt_subtitles_timecode(end_time)}\n'
+                f'{caption}\n\n')
         return srt_data
 
     def _real_extract(self, url):
@@ -176,7 +177,7 @@ class LinkedInLearningIE(LinkedInLearningBaseIE):
             progressive_url = video_url_data.get('progressiveUrl')
             if progressive_url:
                 formats.append({
-                    'format_id': 'progressive-%dp' % height,
+                    'format_id': f'progressive-{height}p',
                     'url': progressive_url,
                     'ext': 'mp4',
                     'height': height,
@@ -208,7 +209,7 @@ class LinkedInLearningIE(LinkedInLearningBaseIE):
         if transcript_lines:
             subtitles['en'] = [{
                 'ext': 'srt',
-                'data': self.json2srt(transcript_lines, duration)
+                'data': self.json2srt(transcript_lines, duration),
             }]
 
         return {
@@ -222,7 +223,7 @@ class LinkedInLearningIE(LinkedInLearningBaseIE):
             # It seems like this would be correctly handled by default
             # However, unless someone can confirm this, the old
             # behaviour is being kept as-is
-            '_format_sort_fields': ('res', 'source_preference')
+            '_format_sort_fields': ('res', 'source_preference'),
         }
 
 
@@ -241,7 +242,7 @@ class LinkedInLearningCourseIE(LinkedInLearningBaseIE):
 
     @classmethod
     def suitable(cls, url):
-        return False if LinkedInLearningIE.suitable(url) else super(LinkedInLearningCourseIE, cls).suitable(url)
+        return False if LinkedInLearningIE.suitable(url) else super().suitable(url)
 
     def _real_extract(self, url):
         course_slug = self._match_id(url)
@@ -259,7 +260,7 @@ class LinkedInLearningCourseIE(LinkedInLearningBaseIE):
                     '_type': 'url_transparent',
                     'id': self._get_video_id(video, course_slug, video_slug),
                     'title': video.get('title'),
-                    'url': 'https://www.linkedin.com/learning/%s/%s' % (course_slug, video_slug),
+                    'url': f'https://www.linkedin.com/learning/{course_slug}/{video_slug}',
                     'chapter': chapter_title,
                     'chapter_number': chapter_number,
                     'chapter_id': chapter_id,

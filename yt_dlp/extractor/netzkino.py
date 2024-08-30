@@ -26,7 +26,7 @@ class NetzkinoIE(InfoExtractor):
         },
         'params': {
             'skip_download': 'Download only works from Germany',
-        }
+        },
     }, {
         'url': 'https://www.netzkino.de/#!/filme/dr-jekyll-mrs-hyde-2',
         'md5': 'c7728b2dadd04ff6727814847a51ef03',
@@ -42,14 +42,14 @@ class NetzkinoIE(InfoExtractor):
         },
         'params': {
             'skip_download': 'Download only works from Germany',
-        }
+        },
     }]
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
         video_id = mobj.group('id')
 
-        api_url = 'https://api.netzkino.de.simplecache.net/capi-2.0a/movies/%s.json?d=www' % video_id
+        api_url = f'https://api.netzkino.de.simplecache.net/capi-2.0a/movies/{video_id}.json?d=www'
         info = self._download_json(api_url, video_id)
         custom_fields = info['custom_fields']
 

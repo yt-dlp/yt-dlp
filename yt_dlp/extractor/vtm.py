@@ -21,7 +21,7 @@ class VTMIE(InfoExtractor):
             'duration': 74,
             # TODO: fix url _type result processing
             # 'series': 'Op Interventie',
-        }
+        },
     }
 
     def _real_extract(self, url):
@@ -42,7 +42,7 @@ class VTMIE(InfoExtractor):
       title
     }
   }
-}''' % uuid,
+}''' % uuid,  # noqa: UP031
             }, headers={
                 'x-api-key': 'da2-lz2cab4tfnah3mve6wiye4n77e',
             })['data']['getComponent']

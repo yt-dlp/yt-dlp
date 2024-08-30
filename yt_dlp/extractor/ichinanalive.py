@@ -1,5 +1,4 @@
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import ExtractorError, str_or_none, traverse_obj, unified_strdate
 
 
@@ -27,21 +26,21 @@ class IchinanaLiveIE(InfoExtractor):
 
     @classmethod
     def suitable(cls, url):
-        return not IchinanaLiveClipIE.suitable(url) and super(IchinanaLiveIE, cls).suitable(url)
+        return not IchinanaLiveClipIE.suitable(url) and super().suitable(url)
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        url = 'https://17.live/live/%s' % video_id
+        url = f'https://17.live/live/{video_id}'
 
         enter = self._download_json(
-            'https://api-dsa.17app.co/api/v1/lives/%s/enter' % video_id, video_id,
+            f'https://api-dsa.17app.co/api/v1/lives/{video_id}/enter', video_id,
             headers={'Referer': url}, fatal=False, expected_status=420,
             data=b'\0')
         if enter and enter.get('message') == 'ended':
             raise ExtractorError('This live has ended.', expected=True)
 
         view_data = self._download_json(
-            'https://api-dsa.17app.co/api/v1/lives/%s' % video_id, video_id,
+            f'https://api-dsa.17app.co/api/v1/lives/{video_id}', video_id,
             headers={'Referer': url})
 
         uploader = traverse_obj(
@@ -52,7 +51,7 @@ class IchinanaLiveIE(InfoExtractor):
             raise ExtractorError('unable to extract live URL information')
         formats = []
         for (name, value) in video_urls[0].items():
-            if not isinstance(value, compat_str):
+            if not isinstance(value, str):
                 continue
             if not value.startswith('http'):
                 continue
@@ -106,10 +105,10 @@ class IchinanaLiveClipIE(InfoExtractor):
 
     def _real_extract(self, url):
         uploader_id, video_id = self._match_valid_url(url).groups()
-        url = 'https://17.live/profile/r/%s/clip/%s' % (uploader_id, video_id)
+        url = f'https://17.live/profile/r/{uploader_id}/clip/{video_id}'
 
         view_data = self._download_json(
-            'https://api-dsa.17app.co/api/v1/clips/%s' % video_id, video_id,
+            f'https://api-dsa.17app.co/api/v1/clips/{video_id}', video_id,
             headers={'Referer': url})
 
         uploader = traverse_obj(

@@ -1,14 +1,12 @@
 import itertools
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-)
 from ..utils import (
     bool_or_none,
     determine_ext,
     int_or_none,
     parse_qs,
+    traverse_obj,
     try_get,
     unified_timestamp,
     url_or_none,
@@ -21,7 +19,7 @@ class RutubeBaseIE(InfoExtractor):
             query = {}
         query['format'] = 'json'
         return self._download_json(
-            'http://rutube.ru/api/video/%s/' % video_id,
+            f'http://rutube.ru/api/video/{video_id}/',
             video_id, 'Downloading video JSON',
             'Unable to download video JSON', query=query)
 
@@ -44,7 +42,7 @@ class RutubeBaseIE(InfoExtractor):
             'thumbnail': video.get('thumbnail_url'),
             'duration': duration,
             'uploader': try_get(video, lambda x: x['author']['name']),
-            'uploader_id': compat_str(uploader_id) if uploader_id else None,
+            'uploader_id': str(uploader_id) if uploader_id else None,
             'timestamp': unified_timestamp(video.get('created_ts')),
             'categories': [category] if category else None,
             'age_limit': age_limit,
@@ -63,7 +61,7 @@ class RutubeBaseIE(InfoExtractor):
             query = {}
         query['format'] = 'json'
         return self._download_json(
-            'http://rutube.ru/api/play/options/%s/' % video_id,
+            f'http://rutube.ru/api/play/options/{video_id}/',
             video_id, 'Downloading options JSON',
             'Unable to download options JSON',
             headers=self.geo_verification_headers(), query=query)
@@ -83,6 +81,8 @@ class RutubeBaseIE(InfoExtractor):
                     'url': format_url,
                     'format_id': format_id,
                 })
+        for hls_url in traverse_obj(options, ('live_streams', 'hls', ..., 'url', {url_or_none})):
+            formats.extend(self._extract_m3u8_formats(hls_url, video_id, ext='mp4', fatal=False))
         return formats
 
     def _download_and_extract_formats(self, video_id, query=None):
@@ -93,7 +93,7 @@ class RutubeBaseIE(InfoExtractor):
 class RutubeIE(RutubeBaseIE):
     IE_NAME = 'rutube'
     IE_DESC = 'Rutube videos'
-    _VALID_URL = r'https?://rutube\.ru/(?:video(?:/private)?|(?:play/)?embed)/(?P<id>[\da-z]{32})'
+    _VALID_URL = r'https?://rutube\.ru/(?:(?:live/)?video(?:/private)?|(?:play/)?embed)/(?P<id>[\da-z]{32})'
     _EMBED_REGEX = [r'<iframe[^>]+?src=(["\'])(?P<url>(?:https?:)?//rutube\.ru/(?:play/)?embed/[\da-z]{32}.*?)\1']
 
     _TESTS = [{
@@ -167,11 +167,34 @@ class RutubeIE(RutubeBaseIE):
             'uploader': 'Стас Быков',
         },
         'expected_warnings': ['Unable to download f4m'],
+    }, {
+        'url': 'https://rutube.ru/live/video/c58f502c7bb34a8fcdd976b221fca292/',
+        'info_dict': {
+            'id': 'c58f502c7bb34a8fcdd976b221fca292',
+            'ext': 'mp4',
+            'categories': ['Телепередачи'],
+            'description': '',
+            'thumbnail': 'http://pic.rutubelist.ru/video/14/19/14190807c0c48b40361aca93ad0867c7.jpg',
+            'live_status': 'is_live',
+            'age_limit': 0,
+            'uploader_id': '23460655',
+            'timestamp': 1652972968,
+            'view_count': int,
+            'upload_date': '20220519',
+            'title': r're:Первый канал. Прямой эфир \d{4}-\d{2}-\d{2} \d{2}:\d{2}$',
+            'uploader': 'Первый канал',
+        },
+    }, {
+        'url': 'https://rutube.ru/video/5ab908fccfac5bb43ef2b1e4182256b0/',
+        'only_matching': True,
+    }, {
+        'url': 'https://rutube.ru/live/video/private/c58f502c7bb34a8fcdd976b221fca292/',
+        'only_matching': True,
     }]
 
     @classmethod
     def suitable(cls, url):
-        return False if RutubePlaylistIE.suitable(url) else super(RutubeIE, cls).suitable(url)
+        return False if RutubePlaylistIE.suitable(url) else super().suitable(url)
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -236,7 +259,7 @@ class RutubePlaylistBaseIE(RutubeBaseIE):
             page = self._download_json(
                 next_page_url or self._next_page_url(
                     pagenum, playlist_id, *args, **kwargs),
-                playlist_id, 'Downloading page %s' % pagenum)
+                playlist_id, f'Downloading page {pagenum}')
 
             results = page.get('results')
             if not results or not isinstance(results, list):
@@ -335,7 +358,7 @@ class RutubePlaylistIE(RutubePlaylistBaseIE):
     def suitable(cls, url):
         from ..utils import int_or_none, parse_qs
 
-        if not super(RutubePlaylistIE, cls).suitable(url):
+        if not super().suitable(url):
             return False
         params = parse_qs(url)
         return params.get('pl_type', [None])[0] and int_or_none(params.get('pl_id', [None])[0])

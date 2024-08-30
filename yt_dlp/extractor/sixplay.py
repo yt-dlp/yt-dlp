@@ -1,7 +1,4 @@
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-)
 from ..utils import (
     determine_ext,
     int_or_none,
@@ -44,9 +41,9 @@ class SixPlayIE(InfoExtractor):
         }.get(domain, ('6play', 'm6web'))
 
         data = self._download_json(
-            'https://pc.middleware.6play.fr/6play/v2/platforms/m6group_web/services/%s/videos/clip_%s' % (service, video_id),
+            f'https://pc.middleware.6play.fr/6play/v2/platforms/m6group_web/services/{service}/videos/clip_{video_id}',
             video_id, headers={
-                'x-customer-name': consumer_name
+                'x-customer-name': consumer_name,
             }, query={
                 'csa': 5,
                 'with': 'clips',
@@ -82,7 +79,7 @@ class SixPlayIE(InfoExtractor):
                         asset_url = urlh.url
                     asset_url = asset_url.replace('_drmnp.ism/', '_unpnp.ism/')
                     for i in range(3, 0, -1):
-                        asset_url = asset_url = asset_url.replace('_sd1/', '_sd%d/' % i)
+                        asset_url = asset_url.replace('_sd1/', f'_sd{i}/')
                         m3u8_formats = self._extract_m3u8_formats(
                             asset_url, video_id, 'mp4', 'm3u8_native',
                             m3u8_id='hls', fatal=False)
@@ -107,7 +104,7 @@ class SixPlayIE(InfoExtractor):
 
         def get(getter):
             for src in (data, clip_data):
-                v = try_get(src, getter, compat_str)
+                v = try_get(src, getter, str)
                 if v:
                     return v
 
