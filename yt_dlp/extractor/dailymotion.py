@@ -243,7 +243,6 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
             'view_count': int,
             'like_count': int,
         },
-        'expected_warnings': ['Ignoring subtitle tracks found in the HLS manifest'],
     }, {
         'url': 'https://www.cycleworld.com/blogs/ask-kevin/ducati-continues-to-evolve-with-v4/',
         'info_dict': {
@@ -331,6 +330,8 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
         title = metadata['title']
         is_live = media.get('isOnAir')
         formats = []
+        subtitles = {}
+
         for quality, media_list in metadata['qualities'].items():
             for m in media_list:
                 media_url = m.get('url')
@@ -338,8 +339,10 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
                 if not media_url or media_type == 'application/vnd.lumberjack.manifest':
                     continue
                 if media_type == 'application/x-mpegURL':
-                    formats.extend(self._extract_m3u8_formats(
-                        media_url, video_id, 'mp4', live=is_live, m3u8_id='hls', fatal=False))
+                    fmt, subs = self._extract_m3u8_formats_and_subtitles(
+                        media_url, video_id, 'mp4', live=is_live, m3u8_id='hls', fatal=False)
+                    formats.extend(fmt)
+                    subtitles.update(subs)
                 else:
                     f = {
                         'url': media_url,
@@ -359,7 +362,6 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
             if not f.get('fps') and f['format_id'].endswith('@60'):
                 f['fps'] = 60
 
-        subtitles = {}
         subtitles_data = try_get(metadata, lambda x: x['subtitles']['data'], dict) or {}
         for subtitle_lang, subtitle in subtitles_data.items():
             subtitles[subtitle_lang] = [{
