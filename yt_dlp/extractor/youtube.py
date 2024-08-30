@@ -4130,8 +4130,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if po_token:
                 fmt_url = update_url_query(fmt_url, {'pot': po_token})
 
-            # Clients that require poToken return videoplayback URLs that expire after 30 seconds if not supplied.
-            # Ref: https://github.com/yt-dlp/yt-dlp/issues/9554
+            # Clients that require PO Token return videoplayback URLs that may return 403
             is_broken = (
                 client_name in self._BROKEN_CLIENTS
                 or (not po_token and self._get_default_ytcfg(client_name).get('REQUIRE_PO_TOKEN'))
@@ -4221,8 +4220,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 return False
             itags[itag].add(key)
 
-            # Clients that require poToken return videoplayback URLs that expire after 30 seconds if not supplied.
-            # Ref: https://github.com/yt-dlp/yt-dlp/issues/9554
+            # Clients that require PO Token return videoplayback URLs that may return 403
             is_broken = (
                 client_name in self._BROKEN_CLIENTS
                 # hls proto does not appear to require PO Token currently
