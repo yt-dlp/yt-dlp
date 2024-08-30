@@ -16,6 +16,7 @@ from ..utils import (
     try_get,
     unescapeHTML,
     unsmuggle_url,
+    update_url,
     url_or_none,
     urlencode_postdata,
 )
@@ -101,10 +102,15 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
     _VALID_URL = r'''(?ix)
                     https?://
                         (?:
-                            (?:(?:www|touch|geo)\.)?dailymotion\.[a-z]{2,3}/(?:(?:(?:(?:embed|swf|\#)/)|player(?:/\w+)?\.html\?)?video|swf)|
-                            (?:www\.)?lequipe\.fr/video
+                            (?:(?:www|touch|geo)\.)?dailymotion\.[a-z]{2,3}|
+                            (?:www\.)?lequipe\.fr
+                        )/
+                        (?:
+                            video/|
+                            swf(?:/(?!video)|/video/)|
+                            player(?:(?:/\w+)?\.html)?(?:\?video=|/)
                         )
-                        [/=](?P<id>[^/?_&]+)(?:.+?\bplaylist=(?P<playlist_id>x[0-9a-z]+))?
+                        (?P<id>[^/?_&#]+)(?:.+?\bplaylist=(?P<playlist_id>x[0-9a-z]+))?
                     '''
     IE_NAME = 'dailymotion'
     _EMBED_REGEX = [r'<(?:(?:embed|iframe)[^>]+?src=|input[^>]+id=[\'"]dmcloudUrlEmissionSelect[\'"][^>]+value=)(["\'])(?P<url>(?:https?:)?//(?:www\.)?dailymotion\.com/(?:embed|swf)/video/.+?)\1']
@@ -220,6 +226,31 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
         'url': 'https://geo.dailymotion.com/player/xakln.html?video=x8mjju4&customConfig%5BcustomParams%5D=%2Ffr-fr%2Ftennis%2Fwimbledon-mens-singles%2Farticles-video',
         'only_matching': True,
     }]
+    _WEBPAGE_TESTS = [{
+        'url': 'https://www.financialounge.com/video/2024/08/01/borse-europee-in-rosso-dopo-la-fed-a-milano-volano-mediobanca-e-tim-edizione-del-1-agosto/',
+        'info_dict': {
+            'id': 'x93blhi',
+            'ext': 'mp4',
+            'title': 'OnAir - 01/08/24',
+            'description': '',
+            'duration': 217,
+            'timestamp': 1722505658,
+            'upload_date': '20240801',
+            'uploader': 'Financialounge',
+            'uploader_id': 'x2vtgmm',
+            'age_limit': 0,
+            'tags': [],
+            'view_count': int,
+            'like_count': int,
+        },
+        'expected_warnings': ['Ignoring subtitle tracks found in the HLS manifest'],
+    }, {
+        'url': 'https://www.cycleworld.com/blogs/ask-kevin/ducati-continues-to-evolve-with-v4/',
+        'info_dict': {
+            'id': 'x7wdsj',
+        },
+        'playlist_mincount': 50,
+    }]
     _GEO_BYPASS = False
     _COMMON_MEDIA_FIELDS = '''description
       geoblockedCountries {
@@ -235,12 +266,21 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
                 r'(?s)DM\.player\([^,]+,\s*{.*?video[\'"]?\s*:\s*["\']?(?P<id>[0-9a-zA-Z]+).+?}\s*\);', webpage):
             yield from 'https://www.dailymotion.com/embed/video/' + mobj.group('id')
         for mobj in re.finditer(
-                r'(?s)<script\s+?[^>]*?\bsrc=(["\'])((?:https?:)?//[^>]+\.dailymotion\.com/player/(?:(?!\1).)+)\1[^>]*?>', webpage):
+                r'(?s)<script [^>]*\bsrc=(["\'])(?:https?:)?//[\w-]+\.dailymotion\.com/player/(?:(?!\1).)+\1[^>]*>', webpage):
             attrs = extract_attributes(mobj.group(0))
             player_url = url_or_none(attrs.get('src'))
-            video_id = attrs.get('data-video')
-            if all((player_url, video_id)):
-                yield f'{player_url.replace(".js", ".html")}?video={video_id}'
+            if not player_url:
+                continue
+            player_url = player_url.replace('.js', '.html')
+            if player_url.startswith('//'):
+                player_url = f'https:{player_url}'
+            if video_id := attrs.get('data-video'):
+                query_string = f'video={video_id}'
+            elif playlist_id := attrs.get('data-playlist'):
+                query_string = f'playlist={playlist_id}'
+            else:
+                continue
+            yield update_url(player_url, query=query_string)
 
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url)
