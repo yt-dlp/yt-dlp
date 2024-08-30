@@ -38,9 +38,12 @@ class BeaconTvIE(InfoExtractor):
             raise ExtractorError(
                 'Failed to extract video. Either the given content is not a video, or it requires authentication', expected=True)
 
-        info = self._parse_jwplayer_data(traverse_obj(content_data, ('contentVideo', 'video', 'videoData', {json.loads})), video_id)
-        info['title'] = traverse_obj(content_data, 'title')
-        info['description'] = traverse_obj(content_data, 'description')
-        info['timestamp'] = parse_iso8601(traverse_obj(content_data, 'publishedAt'))
-
-        return info
+        return {
+            **self._parse_jwplayer_data(traverse_obj(
+                content_data, ('contentVideo', 'video', 'videoData', {json.loads})), video_id),
+            **traverse_obj(content_data, {
+                'title': ('title', {str}),
+                'description': ('description', {str}),
+                'timestamp': ('publishedAt', {parse_iso8601}),
+            }),
+        }
