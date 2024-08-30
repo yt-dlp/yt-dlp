@@ -108,9 +108,9 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
                         (?:
                             video/|
                             swf(?:/(?!video)|/video/)|
-                            player(?:(?:/\w+)?\.html)?(?:\?video=|/)
+                            player(?:/\w+)?\.html\?(?:video|playlist)=
                         )
-                        (?P<id>[^/?_&#]+)(?:.+?\bplaylist=(?P<playlist_id>x[0-9a-z]+))?
+                        (?P<id>[^/?_&#]+)
                     '''
     IE_NAME = 'dailymotion'
     _EMBED_REGEX = [r'<(?:(?:embed|iframe)[^>]+?src=|input[^>]+id=[\'"]dmcloudUrlEmissionSelect[\'"][^>]+value=)(["\'])(?P<url>(?:https?:)?//(?:www\.)?dailymotion\.com/(?:embed|swf)/video/.+?)\1']
@@ -285,13 +285,13 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
 
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url)
-        video_id, playlist_id = self._match_valid_url(url).groups()
+        video_id = self._match_id(url)
 
-        if playlist_id:
-            if self._yes_playlist(playlist_id, video_id):
+        if 'playlist=' in url:
+            if self._yes_playlist(video_id, video_id):
                 return self.url_result(
-                    'http://www.dailymotion.com/playlist/' + playlist_id,
-                    'DailymotionPlaylist', playlist_id)
+                    'http://www.dailymotion.com/playlist/' + video_id,
+                    'DailymotionPlaylist', video_id)
 
         password = self.get_param('videopassword')
         media = self._call_api(
