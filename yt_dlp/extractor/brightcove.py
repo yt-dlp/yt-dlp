@@ -600,7 +600,8 @@ class BrightcoveNewBaseIE(AdobePassIE):
         return {
             'id': video_id,
             'title': title,
-            'description': clean_html(json_data.get('description')),
+            'description': clean_html(join_nonempty('description', 'long_description',
+                                                    from_dict=json_data, delim='<br>')),
             'thumbnails': thumbnails,
             'duration': duration,
             'timestamp': parse_iso8601(json_data.get('published_at')),
