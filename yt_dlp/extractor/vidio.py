@@ -1,18 +1,27 @@
+import base64
+import hashlib
+import hmac
+import time
+
 from .common import InfoExtractor
+from ..aes import aes_cbc_encrypt
 from ..utils import (
     ExtractorError,
     clean_html,
     format_field,
     get_element_by_class,
     int_or_none,
+    join_nonempty,
     parse_iso8601,
     smuggle_url,
     str_or_none,
     strip_or_none,
     try_get,
     unsmuggle_url,
+    url_or_none,
     urlencode_postdata,
 )
+from ..utils.traversal import traverse_obj
 
 
 class VidioBaseIE(InfoExtractor):
@@ -58,6 +67,7 @@ class VidioBaseIE(InfoExtractor):
     def _initialize_pre_login(self):
         self._api_key = self._download_json(
             'https://www.vidio.com/auth', None, data=b'')['api_key']
+        self._ua = self.get_param('http_headers')['User-Agent']
 
     def _call_api(self, url, video_id, note=None):
         return self._download_json(url, video_id, note=note, headers={
@@ -234,10 +244,37 @@ class VidioLiveIE(VidioBaseIE):
         'url': 'https://www.vidio.com/live/204-sctv',
         'info_dict': {
             'id': '204',
-            'title': 'SCTV',
+            'ext': 'mp4',
+            'title': r're:SCTV \d{4}-\d{2}-\d{2} \d{2}:\d{2}',
+            'display_id': 'sctv',
             'uploader': 'SCTV',
             'uploader_id': 'sctv',
+            'uploader_url': 'https://www.vidio.com/@sctv',
             'thumbnail': r're:^https?://.*\.jpg$',
+            'live_status': 'is_live',
+            'description': r're:^SCTV merupakan stasiun televisi nasional terkemuka di Indonesia.+',
+            'like_count': int,
+            'dislike_count': int,
+            'timestamp': 1461258000,
+            'upload_date': '20160421',
+        },
+    }, {
+        'url': 'https://vidio.com/live/733-trans-tv',
+        'info_dict': {
+            'id': '733',
+            'ext': 'mp4',
+            'title': r're:TRANS TV \d{4}-\d{2}-\d{2} \d{2}:\d{2}',
+            'display_id': 'trans-tv',
+            'uploader': 'Trans TV',
+            'uploader_id': 'transtv',
+            'uploader_url': 'https://www.vidio.com/@transtv',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'live_status': 'is_live',
+            'description': r're:^Trans TV adalah stasiun televisi swasta Indonesia.+',
+            'like_count': int,
+            'dislike_count': int,
+            'timestamp': 1461355080,
+            'upload_date': '20160422',
         },
     }, {
         # Premier-exclusive livestream
@@ -251,46 +288,18 @@ class VidioLiveIE(VidioBaseIE):
 
     def _real_extract(self, url):
         video_id, display_id = self._match_valid_url(url).groups()
-        stream_data = self._call_api(
-            f'https://www.vidio.com/api/livestreamings/{video_id}/detail', display_id)
-        stream_meta = stream_data['livestreamings'][0]
-        user = stream_data.get('users', [{}])[0]
+        stream_detail = self._call_api(
+            f'https://www.vidio.com/api/livestreamings/{video_id}/detail', video_id)
+        stream_meta = traverse_obj(stream_detail, ('livestreamings', 0, {dict}), default={})
+        user = traverse_obj(stream_detail, ('users', 0, {dict}), default={})
 
         title = stream_meta.get('title')
         username = user.get('username')
 
-        formats = []
-        if stream_meta.get('is_drm'):
+        stream_data = self._get_stream_data(video_id)
+        if traverse_obj(stream_data, ('data', 'attributes', 'is_drm', {bool})):
             if not self.get_param('allow_unplayable_formats'):
                 self.report_drm(video_id)
-        if stream_meta.get('is_premium'):
-            sources = self._download_json(
-                f'https://www.vidio.com/interactions_stream.json?video_id={video_id}&type=livestreamings',
-                display_id, note='Downloading premier API JSON')
-            if not (sources.get('source') or sources.get('source_dash')):
-                self.raise_login_required('This video is only available for registered users with the appropriate subscription')
-
-            if str_or_none(sources.get('source')):
-                token_json = self._download_json(
-                    f'https://www.vidio.com/live/{video_id}/tokens',
-                    display_id, note='Downloading HLS token JSON', data=b'')
-                formats.extend(self._extract_m3u8_formats(
-                    sources['source'] + '?' + token_json.get('token', ''), display_id, 'mp4', 'm3u8_native'))
-            if str_or_none(sources.get('source_dash')):
-                pass
-        else:
-            if stream_meta.get('stream_token_url'):
-                token_json = self._download_json(
-                    f'https://www.vidio.com/live/{video_id}/tokens',
-                    display_id, note='Downloading HLS token JSON', data=b'')
-                formats.extend(self._extract_m3u8_formats(
-                    stream_meta['stream_token_url'] + '?' + token_json.get('token', ''),
-                    display_id, 'mp4', 'm3u8_native'))
-            if stream_meta.get('stream_dash_url'):
-                pass
-            if stream_meta.get('stream_url'):
-                formats.extend(self._extract_m3u8_formats(
-                    stream_meta['stream_url'], display_id, 'mp4', 'm3u8_native'))
 
         return {
             'id': video_id,
@@ -301,9 +310,40 @@ class VidioLiveIE(VidioBaseIE):
             'thumbnail': stream_meta.get('image'),
             'like_count': int_or_none(stream_meta.get('like')),
             'dislike_count': int_or_none(stream_meta.get('dislike')),
-            'formats': formats,
+            'formats': [*self._yield_hls_formats(traverse_obj(stream_data, ('data', 'attributes', 'hls', {url_or_none})), video_id),
+                        *self._yield_dash_formats(traverse_obj(stream_data, ('data', 'attributes', 'dash', {url_or_none})), video_id)],
             'uploader': user.get('name'),
             'timestamp': parse_iso8601(stream_meta.get('start_time')),
             'uploader_id': username,
             'uploader_url': format_field(username, None, 'https://www.vidio.com/@%s'),
         }
+
+    def _get_stream_data(self, video_id):
+        timestamp = str(time.time())
+
+        info, urlh = self._download_json_handle(
+            f'https://api.vidio.com/livestreamings/{video_id}/stream?initialize=true', video_id,
+            expected_status=401, note='Downloading stream info', headers={
+                'x-api-key': base64.b64encode(bytes(aes_cbc_encrypt(
+                    list(self._api_key.encode()), list(b'dPr0QImQ7bc5o9LMntNba2DOsSbZcjUh'),
+                    list(b'C8RWsrtFsoeyCyPt')))).decode(),
+                'x-api-platform': 'web-desktop',
+                'x-client': timestamp,
+                'x-secure-level': 2,
+                'x-signature': hmac.new(
+                    f'V1d10D3v:{timestamp}'.encode(), timestamp.encode(), digestmod=hashlib.sha256).hexdigest(),
+                'user-agent': self._ua,
+            })
+        if urlh.status == 401:
+            self.raise_login_required('This video is only available for registered users with the appropriate subscription')
+
+        return info
+
+    def _yield_hls_formats(self, hls_url, video_id):
+        fmts = self._extract_m3u8_formats(hls_url, video_id, fatal=False, live=True)
+        yield from traverse_obj(fmts, (..., {lambda x: {**x, 'format_id': join_nonempty(self._search_regex(
+            r'/(hls-[^/])/', x['url'], 'hls source', default=None), int_or_none(x['tbr']))}}))
+
+    def _yield_dash_formats(self, dash_url, video_id):
+        fmts = self._extract_mpd_formats(dash_url, video_id, fatal=False, mpd_id='dash', headers={'User-Agent': self._ua})
+        yield from traverse_obj(fmts, (..., {lambda x: {**x, 'http_headers': {'User-Agent': self._ua}}}))
