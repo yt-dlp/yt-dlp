@@ -169,6 +169,10 @@ from .asobichannel import (
     AsobiChannelTagURLIE,
 )
 from .asobistage import AsobiStageIE
+from .atptour import (
+    ATPTourNewsIE,
+    ATPTourVideoIE,
+)
 from .atresplayer import AtresPlayerIE
 from .atscaleconf import AtScaleConfEventIE
 from .atvat import ATVAtIE
