@@ -100,6 +100,7 @@ class KikaIE(InfoExtractor):
                     **traverse_obj(media, {
                         'width': ('frameWidth', {int_or_none}),
                         'height': ('frameHeight', {int_or_none}),
+                        # NB: filesize is 0 if unknown, bitrate is -1 if unknown
                         'filesize': ('fileSize', {int_or_none}, {lambda x: x or None}),
                         'abr': ('bitrateAudio', {int_or_none}, {lambda x: None if x == -1 else x}),
                         'vbr': ('bitrateVideo', {int_or_none}, {lambda x: None if x == -1 else x}),
