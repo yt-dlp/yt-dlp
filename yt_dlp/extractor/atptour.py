@@ -7,7 +7,7 @@ from ..utils import base_url, extract_attributes, get_element_html_by_id, traver
 
 class ATPTourVideoIE(InfoExtractor):
     IE_NAME = 'atptour:video'
-    _VALID_URL = r'https?://(?:www\.)?atptour\.com/en/video/(?P<id>[\w]+)'
+    _VALID_URL = r'https?://(?:www\.)?atptour\.com/e[ns]/video/(?P<id>[\w-]+)'
     _TESTS = [{
         'url': 'https://www.atptour.com/en/video/challenger-highlights-nishikori-wins-in-como-2024',
         'md5': '4721002227d98fe89afafa40eba3068d',
@@ -39,6 +39,21 @@ class ATPTourVideoIE(InfoExtractor):
             'timestamp': 1724183755,
         },
     }, {
+        'url': 'https://www.atptour.com/es/video/highlights-michelsen-defeats-fucsovics-in-winston-salem-2024',
+        'md5': '7ba4c3aabef9eb20a1b9877f28e6f775',
+        'info_dict': {
+            'id': '6360727636112',
+            'ext': 'mp4',
+            'description': 'md5:2c5682fdfa514e508c6d947e9e9b6eeb',
+            'upload_date': '20240821',
+            'duration': 135.424,
+            'tags': 'count:6',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'title': 'Highlights: Michelsen defeats Fucsovics in Winston-Salem 2024',
+            'uploader_id': '6057277721001',
+            'timestamp': 1724205624,
+        },
+    }, {
         'url': 'https://www.atptour.com/en/video/highlights-sonego-dominates-michelsen-for-winston-salem-open-title-2024',
         'only_matching': True,
     }]
@@ -60,10 +75,9 @@ class ATPTourVideoIE(InfoExtractor):
 
 class ATPTourNewsIE(InfoExtractor):
     IE_NAME = 'atptour:news'
-    _VALID_URL = r'https?://(?:www\.)?atptour\.com/en/news/(?P<id>[\w-]+)'
+    _VALID_URL = r'https?://(?:www\.)?atptour\.com/e[ns]/news/(?P<id>[\w-]+)'
     _TESTS = [{
         'url': 'https://www.atptour.com/en/news/sinner-zverev-cincinnati-2024-sf',
-        'md5': '4721002227d98fe89afafa40eba3068d',
         'playlist_mincount': 2,
         'info_dict': {
             'id': 'sinner-zverev-cincinnati-2024-sf',
@@ -72,12 +86,19 @@ class ATPTourNewsIE(InfoExtractor):
         },
     }, {
         'url': 'https://www.atptour.com/en/news/borges-us-open-2024-this-is-tennis',
-        'md5': 'abcd',
         'playlist_mincount': 1,
         'info_dict': {
             'id': 'borges-us-open-2024-this-is-tennis',
             'title': 'Nuno Borges: Building legos, facing Nadal, Cirque du Soleil & more | ATP Tour | Tennis',
             'description': 'md5:aaef866660c4e3ced69118c0f6ed237a',
+        },
+    }, {
+        'url': 'https://www.atptour.com/es/news/popyrin-us-open-2024-feature',
+        'playlist_mincount': 1,
+        'info_dict': {
+            'id': 'popyrin-us-open-2024-feature',
+            'title': 'Alexei Popyrin: Hamilton, pollo frito y la revancha de Djokovic | ATP Tour | Tennis',
+            'description': 'md5:b62a35720a278c9ab8410847915dc581',
         },
     }]
 
