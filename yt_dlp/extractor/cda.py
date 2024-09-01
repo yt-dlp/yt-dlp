@@ -1,6 +1,7 @@
 import base64
 import codecs
 import datetime as dt
+import functools
 import hashlib
 import hmac
 import json
@@ -12,6 +13,7 @@ from .common import InfoExtractor
 from ..compat import compat_ord
 from ..utils import (
     ExtractorError,
+    OnDemandPagedList,
     float_or_none,
     int_or_none,
     merge_dicts,
@@ -351,3 +353,56 @@ class CDAIE(InfoExtractor):
             extract_format(webpage, resolution)
 
         return merge_dicts(info_dict, info)
+
+
+class CDAFolderIE(InfoExtractor):
+    _MAX_PAGE_NUMBER = 200
+    _MAX_PAGE_SIZE = 36
+    _VALID_URL = r'https?://(?:www\.)?cda\.pl/\w+/folder/(?P<id>\d+)'
+    _TESTS = [
+        {
+            'url': 'https://www.cda.pl/domino264/folder/31188385',
+            'info_dict': {
+                'id': '31188385',
+                'title': 'SERIA DRUGA',
+            },
+            'playlist_count': 13,
+        },
+        {
+            'url': 'https://www.cda.pl/smiechawaTV/folder/2664592/vfilm',
+            'info_dict': {
+                'id': '2664592',
+                'title': 'VideoDowcipy - wszystkie odcinki',
+            },
+            'playlist_count': 71,
+        },
+        {
+            'url': 'https://www.cda.pl/DeliciousBeauty/folder/19129979/vfilm',
+            'info_dict': {
+                'id': '19129979',
+                'title': 'TESTY KOSMETYKÓW',
+            },
+            'playlist_count': 139,
+        }]
+
+    def _real_extract(self, url):
+        folder_id = self._match_id(url)
+        channel_name = self._search_regex(
+            r'cda\.pl/([^/]+)', url, 'channel name')
+
+        webpage = self._download_webpage(url, folder_id)
+
+        title = self._og_search_title(webpage)
+
+        def extract_page_entries(channel_name, folder_id, page):
+            url = f'https://www.cda.pl/{channel_name}/folder/{folder_id}/vfilm/{page+1}'
+            webpage = self._download_webpage(url, folder_id, f'Extracting videos list from {url}')
+            items = re.findall(r'<a[^>]+href="/video/([0-9a-z]+)" class=', webpage)
+            for video_id in items:
+                yield self.url_result(f'https://www.cda.pl/video/{video_id}', CDAIE.ie_key(), video_id)
+
+        entries = OnDemandPagedList(
+            functools.partial(extract_page_entries, channel_name, folder_id),
+            self._MAX_PAGE_SIZE)
+
+        return self.playlist_result(entries, folder_id, playlist_title=title)
