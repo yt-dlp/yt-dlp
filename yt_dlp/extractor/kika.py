@@ -58,12 +58,12 @@ class KikaIE(InfoExtractor):
         video_assets = self._download_json(doc['assets']['url'], video_id)
 
         subtitles = {}
-        if ttml_resource := video_assets.get('videoSubtitle'):
+        if ttml_resource := url_or_none(video_assets.get('videoSubtitle')):
             subtitles['de'] = [{
                 'url': ttml_resource,
                 'ext': 'ttml',
             }]
-        if webvtt_resource := video_assets.get('webvttUrl'):
+        if webvtt_resource := url_or_none(video_assets.get('webvttUrl')):
             subtitles.setdefault('de', []).append({
                 'url': webvtt_resource,
                 'ext': 'vtt',
@@ -87,7 +87,7 @@ class KikaIE(InfoExtractor):
         }
 
     def _extract_formats(self, media_info, video_id):
-        for media in traverse_obj(media_info, ('assets', url_or_none(lambda _, v: v['url']))):
+        for media in traverse_obj(media_info, ('assets', lambda _, v: url_or_none(v['url']))):
             stream_url = media['url']
             ext = determine_ext(stream_url)
             if ext == 'm3u8':
