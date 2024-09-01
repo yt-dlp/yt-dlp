@@ -3,6 +3,7 @@ from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     UserNotLive,
+    bool_or_none,
     int_or_none,
     str_or_none,
     url_or_none,
@@ -116,3 +117,88 @@ class MixchArchiveIE(InfoExtractor):
             'formats': self._extract_m3u8_formats(info_json['archiveURL'], video_id),
             'thumbnail': traverse_obj(info_json, ('thumbnailURL', {url_or_none})),
         }
+
+
+class MixchMovieIE(InfoExtractor):
+    IE_NAME = 'mixch:movie'
+    _VALID_URL = r'https?://(?:www\.)?mixch\.tv/m/(?P<id>\w+)'
+
+    _TESTS = [{
+        'url': 'https://mixch.tv/m/Ve8KNkJ5',
+        'info_dict': {
+            'id': 'Ve8KNkJ5',
+            'title': '夏☀️\nムービーへのポイントは本イベントに加算されないので配信にてお願い致します🙇🏻\u200d♀️\n#TGCCAMPUS #ミス東大 #ミス東大2024 ',
+            'ext': 'mp4',
+            'uploader': 'ミス東大No.5 松藤百香🍑💫',
+            'uploader_id': 12299174,
+            'channel_follower_count': int,
+            'view_count': int,
+            'like_count': int,
+            'comment_count': int,
+            'uploader_url': 'https://mixch.tv/u/12299174',
+            'live_status': 'not_live',
+        },
+    }, {
+        'url': 'https://mixch.tv/m/61DzpIKE',
+        'only_matching': True,
+    }]
+
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+        data = self._download_json(
+            f'https://mixch.tv/api-web/movies/{video_id}', video_id)
+        return {
+            'id': video_id,
+            'formats': [{'format_id': 'mp4',
+                         'url': traverse_obj(data, ('movie', 'file'), {url_or_none}),
+                         'ext': 'mp4'}],
+            **traverse_obj(data, {
+                'title': ('movie', 'title', {str_or_none}),
+                'thumbnail': ('movie', 'thumbnailURL', {url_or_none}),
+                'uploader': ('ownerInfo', 'name', {str_or_none}),
+                'uploader_id': ('ownerInfo', 'id', {int_or_none}),
+                'channel_follower_count': ('ownerInfo', 'fan', {int_or_none}),
+                'view_count': ('ownerInfo', 'view', {int_or_none}),
+                'like_count': ('movie', 'favCount', {int_or_none}),
+                'comment_count': ('movie', 'commentCount', {int_or_none}),
+            }),
+            'uploader_url': 'https://mixch.tv/u/' + traverse_obj(data, ('ownerInfo', 'id', {str_or_none})),
+            'live_status': 'not_live',
+            '__post_extractor': self.extract_comments(video_id),
+        }
+
+    def _get_comments(self, video_id):
+        data = self._download_json(f'https://mixch.tv/api-web/movies/{video_id}/comments?', video_id,
+                                   note='Downloading comments', errnote='Failed to download comments')
+        comment_dl_times = 1
+        MAX_DL_TIMES = 10
+        has_next = True
+        next_cursor = ''
+
+        # Comments are organized in a json chain, connected with 'nextCursor' property.
+        # There are up to 20 comments in one json file.
+        while has_next:
+            yield from traverse_obj(data,
+                                    ('comments', lambda k, v: v['comment'], {
+                                        'author': ('user_name', {str_or_none}),
+                                        'author_id': ('user_id', {int_or_none}),
+                                        'id': ('id', {int_or_none}),
+                                        'text': ('comment', {str_or_none}),
+                                        'timestamp': ('created', {int_or_none}),
+                                    }))
+
+            has_next = traverse_obj(data, ('hasNext'), {bool_or_none})
+            next_cursor = traverse_obj(data, ('nextCursor'), {str_or_none})
+
+            if comment_dl_times == MAX_DL_TIMES:
+                msg = '{video_id}: Comment count is {comment_count}. Only take first 200 comments into json.'.format(
+                    video_id=video_id, comment_count=traverse_obj(data, ('commentsCount', {int})))
+                self.to_screen(msg)
+                has_next = False
+
+            if has_next:
+                data = self._download_json(f'https://mixch.tv/api-web/movies/{video_id}/comments?cursor={next_cursor}&limit=20',
+                                           (video_id, next_cursor),
+                                           note='Downloading comments', errnote='Failed to download comments')
+                # Limit comments download times to avoid server forbidding.
+                comment_dl_times += 1
