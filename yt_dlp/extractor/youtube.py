@@ -1339,6 +1339,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         short_client_name(client): client
         for client in ('android', 'android_creator', 'android_music')
     }
+    _DEFAULT_CLIENTS = ('ios', 'web_creator')
 
     _GEO_BYPASS = False
 
@@ -3180,6 +3181,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         # *  b=String.fromCharCode(110),c=a.get(b))&&c=narray[idx](c)
         # *  a.D&&(b="nn"[+a.D],c=a.get(b))&&(c=narray[idx](c),a.set(b,c),narray.length||nfunc("")
         # *  a.D&&(PL(a),b=a.j.n||null)&&(b=narray[0](b),a.set("n",b),narray.length||nfunc("")
+        # *  a.D&&(b="nn"[+a.D],vL(a),c=a.j[b]||null)&&(c=narray[idx](c),a.set(b,c),narray.length||nfunc("")
         funcname, idx = self._search_regex(
             r'''(?x)
             (?:
@@ -3187,7 +3189,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 (?:
                     b=String\.fromCharCode\(110\)|
                     (?P<str_idx>[a-zA-Z0-9_$.]+)&&\(b="nn"\[\+(?P=str_idx)\]
-                ),c=a\.get\(b\)\)&&\(c=|
+                )
+                (?:
+                    ,[a-zA-Z0-9_$]+\(a\))?,c=a\.
+                    (?:
+                        get\(b\)|
+                        [a-zA-Z0-9_$]+\[b\]\|\|null
+                    )\)&&\(c=|
                 \b(?P<var>[a-zA-Z0-9_$]+)=
             )(?P<nfunc>[a-zA-Z0-9_$]+)(?:\[(?P<idx>\d+)\])?\([a-zA-Z]\)
             (?(var),[a-zA-Z0-9_$]+\.set\("n"\,(?P=var)\),(?P=nfunc)\.length)''',
@@ -3737,17 +3745,19 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     def _get_requested_clients(self, url, smuggled_data):
         requested_clients = []
         broken_clients = []
-        default = ['ios', 'tv']
+        excluded_clients = []
         allowed_clients = sorted(
             (client for client in INNERTUBE_CLIENTS if client[:1] != '_'),
             key=lambda client: INNERTUBE_CLIENTS[client]['priority'], reverse=True)
         for client in self._configuration_arg('player_client'):
             if client == 'default':
-                requested_clients.extend(default)
+                requested_clients.extend(self._DEFAULT_CLIENTS)
             elif client == 'all':
                 requested_clients.extend(allowed_clients)
+            elif client.startswith('-'):
+                excluded_clients.append(client[1:])
             elif client not in allowed_clients:
-                self.report_warning(f'Skipping unsupported client {client}')
+                self.report_warning(f'Skipping unsupported client "{client}"')
             elif client in self._BROKEN_CLIENTS.values():
                 broken_clients.append(client)
             else:
@@ -3755,7 +3765,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         # Force deprioritization of _BROKEN_CLIENTS for format de-duplication
         requested_clients.extend(broken_clients)
         if not requested_clients:
-            requested_clients = default
+            requested_clients.extend(self._DEFAULT_CLIENTS)
+        for excluded_client in excluded_clients:
+            if excluded_client in requested_clients:
+                requested_clients.remove(excluded_client)
+        if not requested_clients:
+            raise ExtractorError('No player clients have been requested', expected=True)
 
         if smuggled_data.get('is_music_url') or self.is_music_url(url):
             for requested_client in requested_clients:

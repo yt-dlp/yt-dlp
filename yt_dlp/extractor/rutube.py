@@ -6,6 +6,7 @@ from ..utils import (
     determine_ext,
     int_or_none,
     parse_qs,
+    traverse_obj,
     try_get,
     unified_timestamp,
     url_or_none,
@@ -80,6 +81,8 @@ class RutubeBaseIE(InfoExtractor):
                     'url': format_url,
                     'format_id': format_id,
                 })
+        for hls_url in traverse_obj(options, ('live_streams', 'hls', ..., 'url', {url_or_none})):
+            formats.extend(self._extract_m3u8_formats(hls_url, video_id, ext='mp4', fatal=False))
         return formats
 
     def _download_and_extract_formats(self, video_id, query=None):
@@ -90,7 +93,7 @@ class RutubeBaseIE(InfoExtractor):
 class RutubeIE(RutubeBaseIE):
     IE_NAME = 'rutube'
     IE_DESC = 'Rutube videos'
-    _VALID_URL = r'https?://rutube\.ru/(?:video(?:/private)?|(?:play/)?embed)/(?P<id>[\da-z]{32})'
+    _VALID_URL = r'https?://rutube\.ru/(?:(?:live/)?video(?:/private)?|(?:play/)?embed)/(?P<id>[\da-z]{32})'
     _EMBED_REGEX = [r'<iframe[^>]+?src=(["\'])(?P<url>(?:https?:)?//rutube\.ru/(?:play/)?embed/[\da-z]{32}.*?)\1']
 
     _TESTS = [{
@@ -164,6 +167,29 @@ class RutubeIE(RutubeBaseIE):
             'uploader': 'Стас Быков',
         },
         'expected_warnings': ['Unable to download f4m'],
+    }, {
+        'url': 'https://rutube.ru/live/video/c58f502c7bb34a8fcdd976b221fca292/',
+        'info_dict': {
+            'id': 'c58f502c7bb34a8fcdd976b221fca292',
+            'ext': 'mp4',
+            'categories': ['Телепередачи'],
+            'description': '',
+            'thumbnail': 'http://pic.rutubelist.ru/video/14/19/14190807c0c48b40361aca93ad0867c7.jpg',
+            'live_status': 'is_live',
+            'age_limit': 0,
+            'uploader_id': '23460655',
+            'timestamp': 1652972968,
+            'view_count': int,
+            'upload_date': '20220519',
+            'title': r're:Первый канал. Прямой эфир \d{4}-\d{2}-\d{2} \d{2}:\d{2}$',
+            'uploader': 'Первый канал',
+        },
+    }, {
+        'url': 'https://rutube.ru/video/5ab908fccfac5bb43ef2b1e4182256b0/',
+        'only_matching': True,
+    }, {
+        'url': 'https://rutube.ru/live/video/private/c58f502c7bb34a8fcdd976b221fca292/',
+        'only_matching': True,
     }]
 
     @classmethod

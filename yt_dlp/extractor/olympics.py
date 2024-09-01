@@ -4,7 +4,9 @@ from ..utils import (
     ExtractorError,
     int_or_none,
     parse_iso8601,
+    parse_qs,
     try_get,
+    update_url,
     url_or_none,
 )
 from ..utils.traversal import traverse_obj
@@ -23,9 +25,6 @@ class OlympicsReplayIE(InfoExtractor):
             'description': 'md5:c66af4a5bc7429dbcc43d15845ff03b3',
             'thumbnail': 'https://img.olympics.com/images/image/private/t_1-1_1280/primary/nua4o7zwyaznoaejpbk2',
             'duration': 7017.0,
-        },
-        'params': {
-            'skip_download': True,
         },
     }, {
         'url': 'https://olympics.com/en/original-series/episode/b-boys-and-b-girls-take-the-spotlight-breaking-life-road-to-paris-2024',
@@ -74,7 +73,7 @@ class OlympicsReplayIE(InfoExtractor):
 
         is_live = traverse_obj(data, ('streamingStatus', {str})) == 'LIVE'
         m3u8_url = traverse_obj(data, ('videoUrl', {url_or_none})) or data['streamUrl']
-        tokenized_url = m3u8_url if is_live else self._tokenize_url(m3u8_url, video_id)
+        tokenized_url = self._tokenize_url(m3u8_url, data['jwtToken'], is_live, video_id)
 
         try:
             formats, subtitles = self._extract_m3u8_formats_and_subtitles(
@@ -95,10 +94,20 @@ class OlympicsReplayIE(InfoExtractor):
             }),
         }
 
-    def _tokenize_url(self, url, video_id):
+    def _tokenize_url(self, url, token, is_live, video_id):
+        return self._download_json(
+            'https://metering.olympics.com/tokengenerator', video_id,
+            'Downloading tokenized m3u8 url', query={
+                **parse_qs(url),
+                'url': update_url(url, query=None),
+                'service-id': 'live' if is_live else 'vod',
+                'user-auth': token,
+            })['data']['url']
+
+    def _legacy_tokenize_url(self, url, video_id):
         return self._download_json(
             'https://olympics.com/tokenGenerator', video_id,
-            'Downloading tokenized m3u8 url', query={'url': url})
+            'Downloading legacy tokenized m3u8 url', query={'url': url})
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -130,7 +139,7 @@ class OlympicsReplayIE(InfoExtractor):
             })
 
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
-            self._tokenize_url(m3u8_url, video_uuid), video_uuid, 'mp4', m3u8_id='hls')
+            self._legacy_tokenize_url(m3u8_url, video_uuid), video_uuid, 'mp4', m3u8_id='hls')
 
         return {
             'id': video_uuid,
