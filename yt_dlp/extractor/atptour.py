@@ -7,7 +7,7 @@ from ..utils import base_url, extract_attributes, get_element_html_by_id, traver
 
 class ATPTourVideoIE(InfoExtractor):
     IE_NAME = 'atptour:video'
-    _VALID_URL = r'https?://(?:www\.)?atptour\.com/e[ns]/video/(?P<id>[\w-]+)'
+    _VALID_URL = r'https?://(?:www\.)?atptour\.com/(?:en|es)/video/(?P<id>[\w-]+)'
     _TESTS = [{
         'url': 'https://www.atptour.com/en/video/challenger-highlights-nishikori-wins-in-como-2024',
         'md5': '4721002227d98fe89afafa40eba3068d',
@@ -75,7 +75,7 @@ class ATPTourVideoIE(InfoExtractor):
 
 class ATPTourNewsIE(InfoExtractor):
     IE_NAME = 'atptour:news'
-    _VALID_URL = r'https?://(?:www\.)?atptour\.com/e[ns]/news/(?P<id>[\w-]+)'
+    _VALID_URL = r'https?://(?:www\.)?atptour\.com/(?:en|es)/news/(?P<id>[\w-]+)'
     _TESTS = [{
         'url': 'https://www.atptour.com/en/news/sinner-zverev-cincinnati-2024-sf',
         'playlist_mincount': 2,
