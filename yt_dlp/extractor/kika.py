@@ -11,7 +11,7 @@ from ..utils.traversal import traverse_obj
 
 class KikaIE(InfoExtractor):
     IE_DESC = 'KiKA.de'
-    _VALID_URL = r'https?://(?:www\.)?kika\.de/[\w-]+/videos/(?P<id>[a-z-]+\d+)'
+    _VALID_URL = r'https?://(?:www\.)?kika\.de/[\w/-]+/videos/(?P<id>[a-z-]+\d+)'
     _GEO_COUNTRIES = ['DE']
 
     _TESTS = [{
@@ -47,6 +47,24 @@ class KikaIE(InfoExtractor):
             'modified_timestamp': 1710880610,
             'episode': 'Episode 7',
             'season_number': 1,
+            'season': 'Season 1',
+        },
+    }, {
+        'url': 'https://www.kika.de/bernd-das-brot/astrobrot/videos/video90088',
+        'md5': 'ffd1b700d7de0a6616a1d08544c77294',
+        'info_dict': {
+            'id': 'video90088',
+            'ext': 'mp4',
+            'upload_date': '20221102',
+            'timestamp': 1667390580,
+            'duration': 197,
+            'modified_timestamp': 1711093771,
+            'episode_number': 8,
+            'title': 'Es ist nicht leicht, ein Astrobrot zu sein',
+            'modified_date': '20240322',
+            'description': 'md5:d3641deaf1b5515a160788b2be4159a9',
+            'season_number': 1,
+            'episode': 'Episode 8',
             'season': 'Season 1',
         },
     }]
