@@ -1,29 +1,36 @@
 from .common import InfoExtractor
 from ..utils import (
     determine_ext,
+    int_or_none,
     parse_duration,
     parse_iso8601,
-    traverse_obj
+    url_or_none,
 )
+from ..utils.traversal import traverse_obj
 
 
 class KikaIE(InfoExtractor):
     IE_DESC = 'KiKA.de'
-    _VALID_URL = r'https?://(?:www\.)?kika\.de/(?:.*)/(?P<id>[a-z-]+-?\d+)'
+    _VALID_URL = r'https?://(?:www\.)?kika\.de/[\w-]+/videos/(?P<id>[a-z-]+\d+)'
     _GEO_COUNTRIES = ['DE']
 
     _TESTS = [{
-        'url': 'https://www.kika.de/beutolomaeus-und-der-wahre-weihnachtsmann/videos/eins-der-neue-weihnachtsmann-102',
-        'md5': '25ceea8790417f3c6dcf1d4342f8a97a',
+        'url': 'https://www.kika.de/logo/videos/logo-vom-samstag-einunddreissig-august-zweitausendvierundzwanzig-100',
+        'md5': 'fbfc8da483719ef06f396e5e5b938c69',
         'info_dict': {
-            'id': 'eins-der-neue-weihnachtsmann-102',
+            'id': 'logo-vom-samstag-einunddreissig-august-zweitausendvierundzwanzig-100',
             'ext': 'mp4',
-            'title': '1. Der neue Weihnachtsmann',
-            'description': 'md5:61b1e6f32882e8ca2a0ddfd135d03c6b',
-            'duration': 787,
-            'timestamp': 1700584500,
-            'upload_date': '20231121'
-        }
+            'upload_date': '20240831',
+            'timestamp': 1725126600,
+            'season_number': 2024,
+            'modified_date': '20240831',
+            'episode': 'Episode 476',
+            'episode_number': 476,
+            'season': 'Season 2024',
+            'duration': 634,
+            'title': 'logo! vom Samstag, 31. August 2024',
+            'modified_timestamp': 1725129983,
+        },
     }, {
         'url': 'https://www.kika.de/kaltstart/videos/video92498',
         'md5': '710ece827e5055094afeb474beacb7aa',
@@ -34,8 +41,14 @@ class KikaIE(InfoExtractor):
             'description': 'md5:fb48396a5b75068bcac1df74f1524920',
             'duration': 436,
             'timestamp': 1702926876,
-            'upload_date': '20231218'
-        }
+            'upload_date': '20231218',
+            'episode_number': 7,
+            'modified_date': '20240319',
+            'modified_timestamp': 1710880610,
+            'episode': 'Episode 7',
+            'season_number': 1,
+            'season': 'Season 1',
+        },
     }]
 
     def _real_extract(self, url):
@@ -45,34 +58,37 @@ class KikaIE(InfoExtractor):
         video_assets = self._download_json(doc['assets']['url'], video_id)
 
         subtitles = {}
-        ttml_resource = video_assets.get('videoSubtitle')
-        if ttml_resource:
+        if ttml_resource := video_assets.get('videoSubtitle'):
             subtitles['de'] = [{
                 'url': ttml_resource,
                 'ext': 'ttml',
             }]
-        webvtt_resource = video_assets.get('webvttUrl')
-        if webvtt_resource:
+        if webvtt_resource := video_assets.get('webvttUrl'):
             subtitles.setdefault('de', []).append({
                 'url': webvtt_resource,
-                'ext': 'vtt'
+                'ext': 'vtt',
             })
 
         return {
             'id': video_id,
-            'title': doc.get('title'),
-            'description': doc.get('description'),
-            'timestamp': parse_iso8601(doc.get('date')),
-            'duration': parse_duration(doc.get('duration')),
             'formats': list(self._extract_formats(video_assets, video_id)),
-            'subtitles': subtitles
+            'subtitles': subtitles,
+            **traverse_obj(doc, {
+                'title': ('title', {str}),
+                'description': ('description', {str}),
+                'timestamp': ('date', {parse_iso8601}),
+                'modified_timestamp': ('modificationDate', {parse_iso8601}),
+                'duration': ((
+                    ('durationInSeconds', {int_or_none}),
+                    ('duration', {parse_duration})), any),
+                'episode_number': ('episodeNumber', {int_or_none}),
+                'season_number': ('season', {int_or_none}),
+            }),
         }
 
     def _extract_formats(self, media_info, video_id):
-        for media in media_info['assets']:
-            stream_url = media.get('url')
-            if not stream_url:
-                continue
+        for media in traverse_obj(media_info, ('assets', url_or_none(lambda _, v: v['url']))):
+            stream_url = media['url']
             ext = determine_ext(stream_url)
             if ext == 'm3u8':
                 yield from self._extract_m3u8_formats(
@@ -82,10 +98,10 @@ class KikaIE(InfoExtractor):
                     'url': stream_url,
                     'format_id': ext,
                     **traverse_obj(media, {
-                        'width': 'frameWidth',
-                        'height': 'frameHeight',
-                        'filesize': 'fileSize',
-                        'abr': 'bitrateAudio',
-                        'vbr': 'bitrateVideo'
-                    })
+                        'width': ('frameWidth', {int_or_none}),
+                        'height': ('frameHeight', {int_or_none}),
+                        'filesize': ('fileSize', {int_or_none}, {lambda x: x or None}),
+                        'abr': ('bitrateAudio', {int_or_none}, {lambda x: None if x == -1 else x}),
+                        'vbr': ('bitrateVideo', {int_or_none}, {lambda x: None if x == -1 else x}),
+                    }),
                 }
