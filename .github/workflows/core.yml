@@ -53,8 +53,9 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install test requirements
-      run: python3 ./devscripts/install_deps.py --include dev --include curl-cffi
+      run: python3 ./devscripts/install_deps.py --include test --include curl-cffi
     - name: Run tests
+      timeout-minutes: 15
       continue-on-error: False
       run: |
         python3 -m yt_dlp -v || true  # Print debug head

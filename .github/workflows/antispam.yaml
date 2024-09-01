@@ -1,0 +1,20 @@
+name: Anti-Spam
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  issues: write
+
+jobs:
+  lockdown:
+    name: Issue Lockdown
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Lock new issue"
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          gh issue lock "${ISSUE_NUMBER}" -r too_heated -R "${REPOSITORY}"

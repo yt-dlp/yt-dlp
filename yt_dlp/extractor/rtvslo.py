@@ -1,3 +1,5 @@
+import re
+
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
@@ -6,6 +8,7 @@ from ..utils import (
     traverse_obj,
     unified_timestamp,
     url_or_none,
+    urljoin,
 )
 
 
@@ -21,75 +24,73 @@ class RTVSLOIE(InfoExtractor):
     _API_BASE = 'https://api.rtvslo.si/ava/{}/{}?client_id=82013fb3a531d5414f478747c1aca622'
     SUB_LANGS_MAP = {'Slovenski': 'sl'}
 
-    _TESTS = [
-        {
-            'url': 'https://www.rtvslo.si/rtv365/arhiv/174842550?s=tv',
-            'info_dict': {
-                'id': '174842550',
-                'ext': 'mp4',
-                'release_timestamp': 1643140032,
-                'upload_date': '20220125',
-                'series': 'Dnevnik',
-                'thumbnail': 'https://img.rtvcdn.si/_up/ava/ava_misc/show_logos/92/dnevnik_3_wide2.jpg',
-                'description': 'md5:76a18692757aeb8f0f51221106277dd2',
-                'timestamp': 1643137046,
-                'title': 'Dnevnik',
-                'series_id': '92',
-                'release_date': '20220125',
-                'duration': 1789,
-            },
-        }, {
-            'url': 'https://365.rtvslo.si/arhiv/utrip/174843754',
-            'info_dict': {
-                'id': '174843754',
-                'ext': 'mp4',
-                'series_id': '94',
-                'release_date': '20220129',
-                'timestamp': 1643484455,
-                'title': 'Utrip',
-                'duration': 813,
-                'thumbnail': 'https://img.rtvcdn.si/_up/ava/ava_misc/show_logos/94/utrip_1_wide2.jpg',
-                'description': 'md5:77f2892630c7b17bb7a5bb84319020c9',
-                'release_timestamp': 1643485825,
-                'upload_date': '20220129',
-                'series': 'Utrip',
-            },
-        }, {
-            'url': 'https://365.rtvslo.si/arhiv/il-giornale-della-sera/174844609',
-            'info_dict': {
-                'id': '174844609',
-                'ext': 'mp3',
-                'series_id': '106615841',
-                'title': 'Il giornale della sera',
-                'duration': 1328,
-                'series': 'Il giornale della sera',
-                'timestamp': 1643743800,
-                'release_timestamp': 1643745424,
-                'thumbnail': 'https://img.rtvcdn.si/_up/ava/ava_misc/show_logos/il-giornale-della-sera_wide2.jpg',
-                'upload_date': '20220201',
-                'tbr': 128000,
-                'release_date': '20220201',
-            },
-        }, {
-            'url': 'https://365.rtvslo.si/arhiv/razred-zase/148350750',
-            'info_dict': {
-                'id': '148350750',
-                'ext': 'mp4',
-                'title': 'Prvi šolski dan, mozaična oddaja za mlade',
-                'series': 'Razred zase',
-                'series_id': '148185730',
-                'duration': 1481,
-                'upload_date': '20121019',
-                'timestamp': 1350672122,
-                'release_date': '20121019',
-                'release_timestamp': 1350672122,
-                'thumbnail': 'https://img.rtvcdn.si/_up/ava/ava_misc/show_logos/148185730/razred_zase_2014_logo_4d_wide2.jpg',
-            },
-        }, {
-            'url': 'https://4d.rtvslo.si/arhiv/dnevnik/174842550',
-            'only_matching': True
-        }
-    ]
+    _TESTS = [{
+        'url': 'https://www.rtvslo.si/rtv365/arhiv/174842550?s=tv',
+        'info_dict': {
+            'id': '174842550',
+            'ext': 'mp4',
+            'release_timestamp': 1643140032,
+            'upload_date': '20220125',
+            'series': 'Dnevnik',
+            'thumbnail': 'https://img.rtvcdn.si/_up/ava/ava_misc/show_logos/92/dnevnik_3_wide2.jpg',
+            'description': 'md5:76a18692757aeb8f0f51221106277dd2',
+            'timestamp': 1643137046,
+            'title': 'Dnevnik',
+            'series_id': '92',
+            'release_date': '20220125',
+            'duration': 1789,
+        },
+    }, {
+        'url': 'https://365.rtvslo.si/arhiv/utrip/174843754',
+        'info_dict': {
+            'id': '174843754',
+            'ext': 'mp4',
+            'series_id': '94',
+            'release_date': '20220129',
+            'timestamp': 1643484455,
+            'title': 'Utrip',
+            'duration': 813,
+            'thumbnail': 'https://img.rtvcdn.si/_up/ava/ava_misc/show_logos/94/utrip_1_wide2.jpg',
+            'description': 'md5:77f2892630c7b17bb7a5bb84319020c9',
+            'release_timestamp': 1643485825,
+            'upload_date': '20220129',
+            'series': 'Utrip',
+        },
+    }, {
+        'url': 'https://365.rtvslo.si/arhiv/il-giornale-della-sera/174844609',
+        'info_dict': {
+            'id': '174844609',
+            'ext': 'mp3',
+            'series_id': '106615841',
+            'title': 'Il giornale della sera',
+            'duration': 1328,
+            'series': 'Il giornale della sera',
+            'timestamp': 1643743800,
+            'release_timestamp': 1643745424,
+            'thumbnail': 'https://img.rtvcdn.si/_up/ava/ava_misc/show_logos/il-giornale-della-sera_wide2.jpg',
+            'upload_date': '20220201',
+            'tbr': 128000,
+            'release_date': '20220201',
+        },
+    }, {
+        'url': 'https://365.rtvslo.si/arhiv/razred-zase/148350750',
+        'info_dict': {
+            'id': '148350750',
+            'ext': 'mp4',
+            'title': 'Prvi šolski dan, mozaična oddaja za mlade',
+            'series': 'Razred zase',
+            'series_id': '148185730',
+            'duration': 1481,
+            'upload_date': '20121019',
+            'timestamp': 1350672122,
+            'release_date': '20121019',
+            'release_timestamp': 1350672122,
+            'thumbnail': 'https://img.rtvcdn.si/_up/ava/ava_misc/show_logos/148185730/razred_zase_2014_logo_4d_wide2.jpg',
+        },
+    }, {
+        'url': 'https://4d.rtvslo.si/arhiv/dnevnik/174842550',
+        'only_matching': True,
+    }]
 
     def _real_extract(self, url):
         v_id = self._match_id(url)
@@ -127,7 +128,7 @@ class RTVSLOIE(InfoExtractor):
                     'format_note': 'Sign language interpretation', 'preference': -10,
                     'language': (
                         'slv' if f.get('language') == 'eng' and f.get('acodec') != 'none'
-                        else f.get('language'))
+                        else f.get('language')),
                 })
 
         for mediafile in traverse_obj(media, ('mediaFiles', lambda _, v: url_or_none(v['streams']['https']))):
@@ -164,3 +165,26 @@ class RTVSLOIE(InfoExtractor):
             'series': meta.get('showName'),
             'series_id': meta.get('showId'),
         }
+
+
+class RTVSLOShowIE(InfoExtractor):
+    IE_NAME = 'rtvslo.si:show'
+    _VALID_URL = r'https?://(?:365|4d)\.rtvslo.si/oddaja/[^/?#&]+/(?P<id>\d+)'
+
+    _TESTS = [{
+        'url': 'https://365.rtvslo.si/oddaja/ekipa-bled/173250997',
+        'info_dict': {
+            'id': '173250997',
+            'title': 'Ekipa Bled',
+        },
+        'playlist_count': 18,
+    }]
+
+    def _real_extract(self, url):
+        playlist_id = self._match_id(url)
+        webpage = self._download_webpage(url, playlist_id)
+
+        return self.playlist_from_matches(
+            re.findall(r'<a [^>]*\bhref="(/arhiv/[^"]+)"', webpage),
+            playlist_id, self._html_extract_title(webpage),
+            getter=lambda x: urljoin('https://365.rtvslo.si', x), ie=RTVSLOIE)

@@ -1,28 +1,40 @@
 from .common import InfoExtractor
-from ..utils import OnDemandPagedList, int_or_none, jwt_decode_hs256, try_call
+from ..utils import (
+    OnDemandPagedList,
+    clean_html,
+    int_or_none,
+    jwt_decode_hs256,
+    url_or_none,
+)
+from ..utils.traversal import traverse_obj
 
 
-def result_from_props(props, episode_id=None):
+def result_from_props(props):
     return {
-        'id': props.get('podcast_id') or episode_id,
-        'title': props.get('title'),
-        'url': props['mediaURL'],
+        **traverse_obj(props, {
+            'id': ('_id', {str}),
+            'title': ('title', {str}),
+            'url': ('mediaURL', {url_or_none}),
+            'description': ('description', {clean_html}),
+            'thumbnail': ('image', {jwt_decode_hs256}, 'url', {url_or_none}),
+            'timestamp': ('timestamp', {int_or_none}),
+            'duration': ('duration', {int_or_none}),
+        }),
         'ext': 'mp3',
-        'thumbnail': try_call(lambda: jwt_decode_hs256(props['image'])['url']),
-        'timestamp': props.get('timestamp'),
-        'duration': int_or_none(props.get('duration')),
+        'vcodec': 'none',
     }
 
 
 class PodbayFMIE(InfoExtractor):
-    _VALID_URL = r'https?://podbay\.fm/p/[^/]*/e/(?P<id>[^/]*)/?(?:[\?#].*)?$'
+    _VALID_URL = r'https?://podbay\.fm/p/[^/?#]+/e/(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://podbay.fm/p/behind-the-bastards/e/1647338400',
-        'md5': '98b41285dcf7989d105a4ed0404054cf',
+        'md5': '895ac8505de349515f5ee8a4a3195c93',
         'info_dict': {
-            'id': '1647338400',
+            'id': '62306451f4a48e58d0c4d6a8',
             'title': 'Part One: Kissinger',
             'ext': 'mp3',
+            'description': r're:^We begin our epic six part series on Henry Kissinger.+',
             'thumbnail': r're:^https?://.*\.jpg',
             'timestamp': 1647338400,
             'duration': 5001,
@@ -34,24 +46,25 @@ class PodbayFMIE(InfoExtractor):
         episode_id = self._match_id(url)
         webpage = self._download_webpage(url, episode_id)
         data = self._search_nextjs_data(webpage, episode_id)
-        return result_from_props(data['props']['pageProps']['episode'], episode_id)
+        return result_from_props(data['props']['pageProps']['episode'])
 
 
 class PodbayFMChannelIE(InfoExtractor):
-    _VALID_URL = r'https?://podbay\.fm/p/(?P<id>[^/]*)/?(?:[\?#].*)?$'
+    _VALID_URL = r'https?://podbay\.fm/p/(?P<id>[^/?#]+)/?(?:$|[?#])'
     _TESTS = [{
         'url': 'https://podbay.fm/p/behind-the-bastards',
         'info_dict': {
             'id': 'behind-the-bastards',
             'title': 'Behind the Bastards',
         },
+        'playlist_mincount': 21,
     }]
     _PAGE_SIZE = 10
 
     def _fetch_page(self, channel_id, pagenum):
         return self._download_json(
             f'https://podbay.fm/api/podcast?reverse=true&page={pagenum}&slug={channel_id}',
-            channel_id)['podcast']
+            f'Downloading channel JSON page {pagenum + 1}', channel_id)['podcast']
 
     @staticmethod
     def _results_from_page(channel_id, page):

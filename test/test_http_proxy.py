@@ -93,6 +93,7 @@ if urllib3:
 
         This allows us to chain multiple TLS connections.
         """
+
         def __init__(self, socket, ssl_context, server_hostname=None, suppress_ragged_eofs=True, server_side=False):
             self.incoming = ssl.MemoryBIO()
             self.outgoing = ssl.MemoryBIO()
@@ -104,7 +105,7 @@ if urllib3:
                 self.incoming,
                 self.outgoing,
                 server_hostname=server_hostname,
-                server_side=server_side
+                server_side=server_side,
             )
             self._ssl_io_loop(self.sslobj.do_handshake)
 
@@ -332,7 +333,7 @@ class TestHTTPConnectProxy:
 
     @pytest.mark.skip_handler(
         'Requests',
-        'bug in urllib3 causes unclosed socket: https://github.com/urllib3/urllib3/issues/3374'
+        'bug in urllib3 causes unclosed socket: https://github.com/urllib3/urllib3/issues/3374',
     )
     def test_http_connect_bad_auth(self, handler, ctx):
         with ctx.http_server(HTTPConnectProxyHandler, username='test', password='test') as server_address:
