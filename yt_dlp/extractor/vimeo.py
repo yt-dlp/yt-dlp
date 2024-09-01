@@ -244,7 +244,7 @@ class VimeoBaseInfoExtractor(InfoExtractor):
                 'fields': ','.join((
                     'config_url', 'created_time', 'description', 'download', 'license',
                     'metadata.connections.comments.total', 'metadata.connections.likes.total',
-                    'release_time,stats.plays')),
+                    'release_time', 'stats.plays')),
             }, **kwargs)
 
     def _extract_original_format(self, url, video_id, unlisted_hash=None, jwt=None, api_data=None):
