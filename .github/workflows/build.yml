@@ -266,7 +266,7 @@ jobs:
           # We need to ignore wheels otherwise we break universal2 builds
           python3 -m pip install -U --no-binary :all: -r requirements.txt
           # We need to fuse our own universal2 wheels for curl_cffi
-          python3 -m pip install -U delocate
+          python3 -m pip install -U 'delocate==0.11.0'
           mkdir curl_cffi_whls curl_cffi_universal2
           python3 devscripts/install_deps.py --print -o --include curl-cffi > requirements.txt
           for platform in "macosx_11_0_arm64" "macosx_11_0_x86_64"; do

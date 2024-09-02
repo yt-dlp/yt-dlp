@@ -49,7 +49,7 @@ dependencies = [
     "pycryptodomex",
     "requests>=2.32.2,<3",
     "urllib3>=1.26.17,<3",
-    "websockets>=12.0",
+    "websockets>=13.0",
 ]
 
 [project.optional-dependencies]

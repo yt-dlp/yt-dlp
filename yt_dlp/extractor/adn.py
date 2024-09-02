@@ -49,9 +49,9 @@ class ADNBaseIE(InfoExtractor):
 
 
 class ADNIE(ADNBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?(?:animation|anime)digitalnetwork\.com/(?:(?P<lang>de)/)?video/[^/?#]+/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?animationdigitalnetwork\.com/(?:(?P<lang>de)/)?video/[^/?#]+/(?P<id>\d+)'
     _TESTS = [{
-        'url': 'https://animationdigitalnetwork.com/video/fruits-basket/9841-episode-1-a-ce-soir',
+        'url': 'https://animationdigitalnetwork.com/video/558-fruits-basket/9841-episode-1-a-ce-soir',
         'md5': '1c9ef066ceb302c86f80c2b371615261',
         'info_dict': {
             'id': '9841',
@@ -71,10 +71,7 @@ class ADNIE(ADNBaseIE):
         },
         'skip': 'Only available in French and German speaking Europe',
     }, {
-        'url': 'http://animedigitalnetwork.com/video/blue-exorcist-kyoto-saga/7778-episode-1-debut-des-hostilites',
-        'only_matching': True,
-    }, {
-        'url': 'https://animationdigitalnetwork.com/de/video/the-eminence-in-shadow/23550-folge-1',
+        'url': 'https://animationdigitalnetwork.com/de/video/973-the-eminence-in-shadow/23550-folge-1',
         'md5': '5c5651bf5791fa6fcd7906012b9d94e8',
         'info_dict': {
             'id': '23550',
@@ -167,7 +164,7 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
                     'username': username,
                 })) or {}).get('accessToken')
             if access_token:
-                self._HEADERS = {'authorization': 'Bearer ' + access_token}
+                self._HEADERS['Authorization'] = f'Bearer {access_token}'
         except ExtractorError as e:
             message = None
             if isinstance(e.cause, HTTPError) and e.cause.status == 401:
@@ -178,6 +175,7 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
 
     def _real_extract(self, url):
         lang, video_id = self._match_valid_url(url).group('lang', 'id')
+        self._HEADERS['X-Target-Distribution'] = lang or 'fr'
         video_base_url = self._PLAYER_BASE_URL + f'video/{video_id}/'
         player = self._download_json(
             video_base_url + 'configuration', video_id,
@@ -218,7 +216,6 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
                 links_data = self._download_json(
                     links_url, video_id, 'Downloading links JSON metadata', headers={
                         'X-Player-Token': authorization,
-                        'X-Target-Distribution': lang or 'fr',
                         **self._HEADERS,
                     }, query={
                         'freeWithAds': 'true',
@@ -257,6 +254,7 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
                 load_balancer_data = self._download_json(
                     load_balancer_url, video_id,
                     f'Downloading {format_id} {quality} JSON metadata',
+                    headers=self._HEADERS,
                     fatal=False) or {}
                 m3u8_url = load_balancer_data.get('location')
                 if not m3u8_url:
@@ -277,7 +275,7 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
 
         video = (self._download_json(
             self._API_BASE_URL + f'video/{video_id}', video_id,
-            'Downloading additional video metadata', fatal=False) or {}).get('video') or {}
+            'Downloading additional video metadata', fatal=False, headers=self._HEADERS) or {}).get('video') or {}
         show = video.get('show') or {}
 
         return {
@@ -299,9 +297,9 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
 
 
 class ADNSeasonIE(ADNBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?(?:animation|anime)digitalnetwork\.com/(?:(?P<lang>de)/)?video/(?P<id>[^/?#]+)/?(?:$|[#?])'
+    _VALID_URL = r'https?://(?:www\.)?animationdigitalnetwork\.com/(?:(?P<lang>de)/)?video/(?P<id>\d+)[^/?#]*/?(?:$|[#?])'
     _TESTS = [{
-        'url': 'https://animationdigitalnetwork.com/video/tokyo-mew-mew-new',
+        'url': 'https://animationdigitalnetwork.com/video/911-tokyo-mew-mew-new',
         'playlist_count': 12,
         'info_dict': {
             'id': '911',
@@ -312,16 +310,14 @@ class ADNSeasonIE(ADNBaseIE):
 
     def _real_extract(self, url):
         lang, video_show_slug = self._match_valid_url(url).group('lang', 'id')
+        self._HEADERS['X-Target-Distribution'] = lang or 'fr'
         show = self._download_json(
             f'{self._API_BASE_URL}show/{video_show_slug}/', video_show_slug,
             'Downloading show JSON metadata', headers=self._HEADERS)['show']
         show_id = str(show['id'])
         episodes = self._download_json(
             f'{self._API_BASE_URL}video/show/{show_id}', video_show_slug,
-            'Downloading episode list', headers={
-                'X-Target-Distribution': lang or 'fr',
-                **self._HEADERS,
-            }, query={
+            'Downloading episode list', headers=self._HEADERS, query={
                 'order': 'asc',
                 'limit': '-1',
             })
