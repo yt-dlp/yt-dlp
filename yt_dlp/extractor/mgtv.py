@@ -1,9 +1,9 @@
 import base64
 import time
-import urllib.error
 import uuid
 
 from .common import InfoExtractor
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     int_or_none,
@@ -77,17 +77,17 @@ class MGTVIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         tk2 = base64.urlsafe_b64encode(
-            f'did={str(uuid.uuid4())}|pno=1030|ver=0.3.0301|clit={int(time.time())}'.encode())[::-1]
+            f'did={uuid.uuid4()}|pno=1030|ver=0.3.0301|clit={int(time.time())}'.encode())[::-1]
         try:
             api_data = self._download_json(
                 'https://pcweb.api.mgtv.com/player/video', video_id, query={
                     'tk2': tk2,
                     'video_id': video_id,
-                    'type': 'pch5'
+                    'type': 'pch5',
                 }, headers=self.geo_verification_headers())['data']
         except ExtractorError as e:
-            if isinstance(e.cause, urllib.error.HTTPError) and e.cause.code == 401:
-                error = self._parse_json(e.cause.read().decode(), None)
+            if isinstance(e.cause, HTTPError) and e.cause.status == 401:
+                error = self._parse_json(e.cause.response.read().decode(), None)
                 if error.get('code') == 40005:
                     self.raise_geo_restricted(countries=self._GEO_COUNTRIES)
                 raise ExtractorError(error['msg'], expected=True)
@@ -160,6 +160,6 @@ class MGTVIE(InfoExtractor):
             subtitles.setdefault(locale.lower(), []).append({
                 'url': sub_url,
                 'name': sub.get('name'),
-                'ext': 'srt'
+                'ext': 'srt',
             })
         return subtitles

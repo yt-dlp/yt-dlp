@@ -40,7 +40,7 @@ from .utils import (
 from .version import CHANNEL, __version__
 
 
-def parseOpts(overrideArguments=None, ignore_config_files='if_override'):
+def parseOpts(overrideArguments=None, ignore_config_files='if_override'):  # noqa: N803
     PACKAGE_NAME = 'yt-dlp'
 
     root = Config(create_parser())
@@ -151,7 +151,7 @@ class _YoutubeDLHelpFormatter(optparse.IndentedHelpFormatter):
 
 
 class _YoutubeDLOptionParser(optparse.OptionParser):
-    # optparse is deprecated since python 3.2. So assume a stable interface even for private methods
+    # optparse is deprecated since Python 3.2. So assume a stable interface even for private methods
     ALIAS_DEST = '_triggered_aliases'
     ALIAS_TRIGGER_LIMIT = 100
 
@@ -196,9 +196,12 @@ class _YoutubeDLOptionParser(optparse.OptionParser):
                     raise
         return self.check_values(self.values, self.largs)
 
-    def error(self, msg):
+    def _generate_error_message(self, msg):
         msg = f'{self.get_prog_name()}: error: {str(msg).strip()}\n'
-        raise optparse.OptParseError(f'{self.get_usage()}\n{msg}' if self.usage else msg)
+        return f'{self.get_usage()}\n{msg}' if self.usage else msg
+
+    def error(self, msg):
+        raise optparse.OptParseError(self._generate_error_message(msg))
 
     def _get_args(self, args):
         return sys.argv[1:] if args is None else list(args)
@@ -261,7 +264,7 @@ def create_parser():
         except Exception as err:
             raise optparse.OptionValueError(f'wrong {opt_str} formatting; {err}')
         for key in keys:
-            out_dict[key] = out_dict.get(key, []) + [val] if append else val
+            out_dict[key] = [*out_dict.get(key, []), val] if append else val
         setattr(parser.values, option.dest, out_dict)
 
     def when_prefix(default):
@@ -390,7 +393,7 @@ def create_parser():
         '--ignore-config', '--no-config',
         action='store_true', dest='ignoreconfig',
         help=(
-            'Don\'t load any more configuration files except those given by --config-locations. '
+            'Don\'t load any more configuration files except those given to --config-locations. '
             'For backward compatibility, if this option is found inside the system configuration file, the user configuration is not loaded. '
             '(Alias: --no-config)'))
     general.add_option(
@@ -459,6 +462,7 @@ def create_parser():
             'the STREAM (stdout or stderr) to apply the setting to. '
             'Can be one of "always", "auto" (default), "never", or '
             '"no_color" (use non color terminal sequences). '
+            'Use "auto-tty" or "no_color-tty" to decide based on terminal support only. '
             'Can be used multiple times'))
     general.add_option(
         '--compat-options',
@@ -471,12 +475,14 @@ def create_parser():
                 'no-attach-info-json', 'embed-thumbnail-atomicparsley', 'no-external-downloader-progress',
                 'embed-metadata', 'seperate-video-versions', 'no-clean-infojson', 'no-keep-subs', 'no-certifi',
                 'no-youtube-channel-redirect', 'no-youtube-unavailable-videos', 'no-youtube-prefer-utc-upload-date',
+                'prefer-legacy-http-handler', 'manifest-filesize-approx', 'allow-unsafe-ext',
             }, 'aliases': {
-                'youtube-dl': ['all', '-multistreams', '-playlist-match-filter'],
-                'youtube-dlc': ['all', '-no-youtube-channel-redirect', '-no-live-chat', '-playlist-match-filter'],
-                '2021': ['2022', 'no-certifi', 'filename-sanitization', 'no-youtube-prefer-utc-upload-date'],
-                '2022': ['no-external-downloader-progress', 'playlist-match-filter'],
-            }
+                'youtube-dl': ['all', '-multistreams', '-playlist-match-filter', '-manifest-filesize-approx', '-allow-unsafe-ext'],
+                'youtube-dlc': ['all', '-no-youtube-channel-redirect', '-no-live-chat', '-playlist-match-filter', '-manifest-filesize-approx', '-allow-unsafe-ext'],
+                '2021': ['2022', 'no-certifi', 'filename-sanitization'],
+                '2022': ['2023', 'no-external-downloader-progress', 'playlist-match-filter', 'prefer-legacy-http-handler', 'manifest-filesize-approx'],
+                '2023': [],
+            },
         }, help=(
             'Options that can help keep compatibility with youtube-dl or youtube-dlc '
             'configurations by reverting some of the changes made in yt-dlp. '
@@ -511,6 +517,19 @@ def create_parser():
         help='Client-side IP address to bind to',
     )
     network.add_option(
+        '--impersonate',
+        metavar='CLIENT[:OS]', dest='impersonate', default=None,
+        help=(
+            'Client to impersonate for requests. E.g. chrome, chrome-110, chrome:windows-10. '
+            'Pass --impersonate="" to impersonate any client. Note that forcing impersonation '
+            'for all requests may have a detrimental impact on download speed and stability'),
+    )
+    network.add_option(
+        '--list-impersonate-targets',
+        dest='list_impersonate_targets', default=False, action='store_true',
+        help='List available clients to impersonate.',
+    )
+    network.add_option(
         '-4', '--force-ipv4',
         action='store_const', const='0.0.0.0', dest='source_address',
         help='Make all connections via IPv4',
@@ -523,7 +542,7 @@ def create_parser():
     network.add_option(
         '--enable-file-urls', action='store_true',
         dest='enable_file_urls', default=False,
-        help='Enable file:// URLs. This is disabled by default for security reasons.'
+        help='Enable file:// URLs. This is disabled by default for security reasons.',
     )
 
     geo = optparse.OptionGroup(parser, 'Geo-restriction')
@@ -628,7 +647,7 @@ def create_parser():
             'You can also simply specify a field to match if the field is present, '
             'use "!field" to check if the field is not present, and "&" to check multiple conditions. '
             'Use a "\\" to escape "&" or quotes if needed. If used multiple times, '
-            'the filter matches if atleast one of the conditions are met. E.g. --match-filter '
+            'the filter matches if at least one of the conditions is met. E.g. --match-filter '
             '!is_live --match-filter "like_count>?100 & description~=\'(?i)\\bcats \\& dogs\\b\'" '
             'matches only videos that are not live OR those that have a like count more than 100 '
             '(or the like field is not available) and also has a description '
@@ -664,7 +683,7 @@ def create_parser():
         help='Download only videos not listed in the archive file. Record the IDs of all downloaded videos in it')
     selection.add_option(
         '--no-download-archive',
-        dest='download_archive', action="store_const", const=None,
+        dest='download_archive', action='store_const', const=None,
         help='Do not use archive file (default)')
     selection.add_option(
         '--max-downloads',
@@ -674,6 +693,10 @@ def create_parser():
         '--break-on-existing',
         action='store_true', dest='break_on_existing', default=False,
         help='Stop the download process when encountering a file that is in the archive')
+    selection.add_option(
+        '--no-break-on-existing',
+        action='store_false', dest='break_on_existing',
+        help='Do not stop the download process when encountering a file that is in the archive (default)')
     selection.add_option(
         '--break-on-reject',
         action='store_true', dest='break_on_reject', default=False,
@@ -727,7 +750,7 @@ def create_parser():
     authentication.add_option(
         '--video-password',
         dest='videopassword', metavar='PASSWORD',
-        help='Video password (vimeo, youku)')
+        help='Video-specific password')
     authentication.add_option(
         '--ap-mso',
         dest='ap_mso', metavar='MSO',
@@ -1024,7 +1047,7 @@ def create_parser():
         callback_kwargs={
             'allowed_keys': 'http|ftp|m3u8|dash|rtsp|rtmp|mms',
             'default_key': 'default',
-            'process': str.strip
+            'process': str.strip,
         }, help=(
             'Name or path of the external downloader to use (optionally) prefixed by '
             'the protocols (http, ftp, m3u8, dash, rstp, rtmp, mms) to use it for. '
@@ -1038,9 +1061,9 @@ def create_parser():
         metavar='NAME:ARGS', dest='external_downloader_args', default={}, type='str',
         action='callback', callback=_dict_from_options_callback,
         callback_kwargs={
-            'allowed_keys': r'ffmpeg_[io]\d*|%s' % '|'.join(map(re.escape, list_external_downloaders())),
+            'allowed_keys': r'ffmpeg_[io]\d*|{}'.format('|'.join(map(re.escape, list_external_downloaders()))),
             'default_key': 'default',
-            'process': shlex.split
+            'process': shlex.split,
         }, help=(
             'Give these arguments to the external downloader. '
             'Specify the downloader name and the arguments separated by a colon ":". '
@@ -1188,7 +1211,9 @@ def create_parser():
     verbosity.add_option(
         '-j', '--dump-json',
         action='store_true', dest='dumpjson', default=False,
-        help='Quiet, but print JSON information for each video. Simulate unless --no-simulate is used. See "OUTPUT TEMPLATE" for a description of available keys')
+        help=(
+            'Quiet, but print JSON information for each video. Simulate unless --no-simulate is used. '
+            'See "OUTPUT TEMPLATE" for a description of available keys'))
     verbosity.add_option(
         '-J', '--dump-single-json',
         action='store_true', dest='dump_single_json', default=False,
@@ -1227,7 +1252,7 @@ def create_parser():
         action='callback', callback=_dict_from_options_callback,
         callback_kwargs={
             'allowed_keys': '(download|postprocess)(-title)?',
-            'default_key': 'download'
+            'default_key': 'download',
         }, help=(
             'Template for progress outputs, optionally prefixed with one of "download:" (default), '
             '"download-title:" (the console title), "postprocess:",  or "postprocess-title:". '
@@ -1235,6 +1260,10 @@ def create_parser():
             'the progress attributes are accessible under "progress" key. E.g. '
             # TODO: Document the fields inside "progress"
             '--console-title --progress-template "download-title:%(info.id)s-%(progress.eta)s"'))
+    verbosity.add_option(
+        '--progress-delta',
+        metavar='SECONDS', action='store', dest='progress_delta', type=float, default=0,
+        help='Time between progress output (default: 0)')
     verbosity.add_option(
         '-v', '--verbose',
         action='store_true', dest='verbose', default=False,
@@ -1289,8 +1318,8 @@ def create_parser():
         metavar='[TYPES:]PATH', dest='paths', default={}, type='str',
         action='callback', callback=_dict_from_options_callback,
         callback_kwargs={
-            'allowed_keys': 'home|temp|%s' % '|'.join(map(re.escape, OUTTMPL_TYPES.keys())),
-            'default_key': 'home'
+            'allowed_keys': 'home|temp|{}'.format('|'.join(map(re.escape, OUTTMPL_TYPES.keys()))),
+            'default_key': 'home',
         }, help=(
             'The paths where the files should be downloaded. '
             'Specify the type of file and the path separated by a colon ":". '
@@ -1305,12 +1334,12 @@ def create_parser():
         action='callback', callback=_dict_from_options_callback,
         callback_kwargs={
             'allowed_keys': '|'.join(map(re.escape, OUTTMPL_TYPES.keys())),
-            'default_key': 'default'
+            'default_key': 'default',
         }, help='Output filename template; see "OUTPUT TEMPLATE" for details')
     filesystem.add_option(
         '--output-na-placeholder',
         dest='outtmpl_na_placeholder', metavar='TEXT', default='NA',
-        help=('Placeholder for unavailable fields in "OUTPUT TEMPLATE" (default: "%default")'))
+        help=('Placeholder for unavailable fields in --output (default: "%default")'))
     filesystem.add_option(
         '--autonumber-size',
         dest='autonumber_size', metavar='NUMBER', type=int,
@@ -1451,7 +1480,7 @@ def create_parser():
             'Optionally, the KEYRING used for decrypting Chromium cookies on Linux, '
             'the name/path of the PROFILE to load cookies from, '
             'and the CONTAINER name (if Firefox) ("none" for no container) '
-            'can be given with their respective seperators. '
+            'can be given with their respective separators. '
             'By default, all containers of the most recently accessed profile are used. '
             f'Currently supported keyrings are: {", ".join(map(str.lower, sorted(SUPPORTED_KEYRINGS)))}'))
     filesystem.add_option(
@@ -1547,7 +1576,7 @@ def create_parser():
             'allowed_keys': r'\w+(?:\+\w+)?',
             'default_key': 'default-compat',
             'process': shlex.split,
-            'multiple_keys': False
+            'multiple_keys': False,
         }, help=(
             'Give these arguments to the postprocessors. '
             'Specify the postprocessor/executable name and the arguments separated by a colon ":" '
@@ -1696,8 +1725,8 @@ def create_parser():
         '--convert-subs', '--convert-sub', '--convert-subtitles',
         metavar='FORMAT', dest='convertsubtitles', default=None,
         help=(
-            'Convert the subtitles to another format (currently supported: %s) '
-            '(Alias: --convert-subtitles)' % ', '.join(sorted(FFmpegSubtitlesConvertorPP.SUPPORTED_EXTS))))
+            'Convert the subtitles to another format (currently supported: {}) '
+            '(Alias: --convert-subtitles)'.format(', '.join(sorted(FFmpegSubtitlesConvertorPP.SUPPORTED_EXTS)))))
     postproc.add_option(
         '--convert-thumbnails',
         metavar='FORMAT', dest='convertthumbnails', default=None,
@@ -1744,7 +1773,7 @@ def create_parser():
         action='callback', callback=_list_from_options_callback,
         callback_kwargs={
             'delim': None,
-            'process': lambda val: dict(_postprocessor_opts_parser(*val.split(':', 1)))
+            'process': lambda val: dict(_postprocessor_opts_parser(*val.split(':', 1))),
         }, help=(
             'The (case sensitive) name of plugin postprocessors to be enabled, '
             'and (optionally) arguments to be passed to it, separated by a colon ":". '
@@ -1753,7 +1782,7 @@ def create_parser():
             'It can be one of "pre_process" (after video extraction), "after_filter" (after video passes filter), '
             '"video" (after --format; before --print/--output), "before_dl" (before each video download), '
             '"post_process" (after each video download; default), '
-            '"after_move" (after moving video file to it\'s final locations), '
+            '"after_move" (after moving video file to its final locations), '
             '"after_video" (after downloading and processing all formats of a video), '
             'or "playlist" (at end of playlist). '
             'This option can be used multiple times to add different postprocessors'))
@@ -1766,7 +1795,7 @@ def create_parser():
         dest='sponsorblock_mark', default=set(), action='callback', type='str',
         callback=_set_from_options_callback, callback_kwargs={
             'allowed_values': SponsorBlockPP.CATEGORIES.keys(),
-            'aliases': {'default': ['all']}
+            'aliases': {'default': ['all']},
         }, help=(
             'SponsorBlock categories to create chapters for, separated by commas. '
             f'Available categories are {", ".join(SponsorBlockPP.CATEGORIES.keys())}, all and default (=all). '
@@ -1780,7 +1809,7 @@ def create_parser():
             # Note: From https://wiki.sponsor.ajay.app/w/Types:
             # The filler category is very aggressive.
             # It is strongly recommended to not use this in a client by default.
-            'aliases': {'default': ['all', '-filler']}
+            'aliases': {'default': ['all', '-filler']},
         }, help=(
             'SponsorBlock categories to be removed from the video file, separated by commas. '
             'If a category is present in both mark and remove, remove takes precedence. '
@@ -1851,7 +1880,7 @@ def create_parser():
     extractor.add_option(
         '--hls-split-discontinuity',
         dest='hls_split_discontinuity', action='store_true', default=False,
-        help='Split HLS playlists to different formats at discontinuities such as ad breaks'
+        help='Split HLS playlists to different formats at discontinuities such as ad breaks',
     )
     extractor.add_option(
         '--no-hls-split-discontinuity',
@@ -1866,7 +1895,7 @@ def create_parser():
         callback_kwargs={
             'multiple_keys': False,
             'process': lambda val: dict(
-                _extractor_arg_parser(*arg.split('=', 1)) for arg in val.split(';'))
+                _extractor_arg_parser(*arg.split('=', 1)) for arg in val.split(';')),
         }, help=(
             'Pass ARGS arguments to the IE_KEY extractor. See "EXTRACTOR ARGUMENTS" for details. '
             'You can use this option multiple times to give arguments for different extractors'))

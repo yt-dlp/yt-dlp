@@ -43,9 +43,9 @@ class DropoutIE(InfoExtractor):
                 'duration': 1180,
                 'uploader_id': 'user80538407',
                 'uploader_url': 'https://vimeo.com/user80538407',
-                'uploader': 'OTT Videos'
+                'uploader': 'OTT Videos',
             },
-            'expected_warnings': ['Ignoring subtitle tracks found in the HLS manifest']
+            'expected_warnings': ['Ignoring subtitle tracks found in the HLS manifest'],
         },
         {
             'url': 'https://www.dropout.tv/dimension-20-fantasy-high/season:1/videos/episode-1',
@@ -66,9 +66,9 @@ class DropoutIE(InfoExtractor):
                 'duration': 6838,
                 'uploader_id': 'user80538407',
                 'uploader_url': 'https://vimeo.com/user80538407',
-                'uploader': 'OTT Videos'
+                'uploader': 'OTT Videos',
             },
-            'expected_warnings': ['Ignoring subtitle tracks found in the HLS manifest']
+            'expected_warnings': ['Ignoring subtitle tracks found in the HLS manifest'],
         },
         {
             'url': 'https://www.dropout.tv/videos/misfits-magic-holiday-special',
@@ -85,10 +85,10 @@ class DropoutIE(InfoExtractor):
                 'duration': 11698,
                 'uploader_id': 'user80538407',
                 'uploader_url': 'https://vimeo.com/user80538407',
-                'uploader': 'OTT Videos'
+                'uploader': 'OTT Videos',
             },
-            'expected_warnings': ['Ignoring subtitle tracks found in the HLS manifest']
-        }
+            'expected_warnings': ['Ignoring subtitle tracks found in the HLS manifest'],
+        },
     ]
 
     def _get_authenticity_token(self, display_id):
@@ -109,7 +109,7 @@ class DropoutIE(InfoExtractor):
                 'email': username,
                 'password': password,
                 'authenticity_token': self._get_authenticity_token(display_id),
-                'utf8': True
+                'utf8': True,
             }))
 
         user_has_subscription = self._search_regex(
@@ -175,8 +175,8 @@ class DropoutSeasonIE(InfoExtractor):
             'playlist_count': 24,
             'info_dict': {
                 'id': 'dimension-20-fantasy-high-season-1',
-                'title': 'Dimension 20 Fantasy High - Season 1'
-            }
+                'title': 'Dimension 20 Fantasy High - Season 1',
+            },
         },
         {
             'url': 'https://www.dropout.tv/dimension-20-fantasy-high',
@@ -184,8 +184,8 @@ class DropoutSeasonIE(InfoExtractor):
             'playlist_count': 24,
             'info_dict': {
                 'id': 'dimension-20-fantasy-high-season-1',
-                'title': 'Dimension 20 Fantasy High - Season 1'
-            }
+                'title': 'Dimension 20 Fantasy High - Season 1',
+            },
         },
         {
             'url': 'https://www.dropout.tv/dimension-20-shriek-week',
@@ -193,8 +193,8 @@ class DropoutSeasonIE(InfoExtractor):
             'playlist_count': 4,
             'info_dict': {
                 'id': 'dimension-20-shriek-week-season-1',
-                'title': 'Dimension 20 Shriek Week - Season 1'
-            }
+                'title': 'Dimension 20 Shriek Week - Season 1',
+            },
         },
         {
             'url': 'https://www.dropout.tv/breaking-news-no-laugh-newsroom/season:3',
@@ -202,9 +202,9 @@ class DropoutSeasonIE(InfoExtractor):
             'playlist_count': 25,
             'info_dict': {
                 'id': 'breaking-news-no-laugh-newsroom-season-3',
-                'title': 'Breaking News No Laugh Newsroom - Season 3'
-            }
-        }
+                'title': 'Breaking News No Laugh Newsroom - Season 3',
+            },
+        },
     ]
 
     def _fetch_page(self, url, season_id, page):

@@ -10,10 +10,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import collections
 import hashlib
-import http.client
 import json
-import socket
-import urllib.error
 
 from test.helper import (
     assertGreaterEqual,
@@ -23,16 +20,17 @@ from test.helper import (
     gettestcases,
     getwebpagetestcases,
     is_download_test,
-    report_warning,
     try_rm,
 )
 
 import yt_dlp.YoutubeDL  # isort: split
 from yt_dlp.extractor import get_info_extractor
+from yt_dlp.networking.exceptions import HTTPError, TransportError
 from yt_dlp.utils import (
     DownloadError,
     ExtractorError,
     UnavailableVideoError,
+    YoutubeDLError,
     format_bytes,
     join_nonempty,
 )
@@ -95,13 +93,15 @@ def generator(test_case, tname):
             'playlist', [] if is_playlist else [test_case])
 
         def print_skipping(reason):
-            print('Skipping %s: %s' % (test_case['name'], reason))
+            print('Skipping {}: {}'.format(test_case['name'], reason))
             self.skipTest(reason)
 
         if not ie.working():
             print_skipping('IE marked as not _WORKING')
 
         for tc in test_cases:
+            if tc.get('expected_exception'):
+                continue
             info_dict = tc.get('info_dict', {})
             params = tc.get('params', {})
             if not info_dict.get('id'):
@@ -116,7 +116,7 @@ def generator(test_case, tname):
 
         for other_ie in other_ies:
             if not other_ie.working():
-                print_skipping('test depends on %sIE, marked as not WORKING' % other_ie.ie_key())
+                print_skipping(f'test depends on {other_ie.ie_key()}IE, marked as not WORKING')
 
         params = get_params(test_case.get('params', {}))
         params['outtmpl'] = tname + '_' + params['outtmpl']
@@ -141,6 +141,14 @@ def generator(test_case, tname):
 
         res_dict = None
 
+        def match_exception(err):
+            expected_exception = test_case.get('expected_exception')
+            if not expected_exception:
+                return False
+            if err.__class__.__name__ == expected_exception:
+                return True
+            return any(exc.__class__.__name__ == expected_exception for exc in err.exc_info)
+
         def try_rm_tcs_files(tcs=None):
             if tcs is None:
                 tcs = test_cases
@@ -162,18 +170,22 @@ def generator(test_case, tname):
                         force_generic_extractor=params.get('force_generic_extractor', False))
                 except (DownloadError, ExtractorError) as err:
                     # Check if the exception is not a network related one
-                    if (err.exc_info[0] not in (urllib.error.URLError, socket.timeout, UnavailableVideoError, http.client.BadStatusLine)
-                            or (err.exc_info[0] == urllib.error.HTTPError and err.exc_info[1].code == 503)):
+                    if not isinstance(err.exc_info[1], (TransportError, UnavailableVideoError)) or (isinstance(err.exc_info[1], HTTPError) and err.exc_info[1].status == 503):
+                        if match_exception(err):
+                            return
                         err.msg = f'{getattr(err, "msg", err)} ({tname})'
                         raise
 
                     if try_num == RETRIES:
-                        report_warning('%s failed due to network errors, skipping...' % tname)
-                        return
+                        raise
 
                     print(f'Retrying: {try_num} failed tries\n\n##########\n\n')
 
                     try_num += 1
+                except YoutubeDLError as err:
+                    if match_exception(err):
+                        return
+                    raise
                 else:
                     break
 
@@ -227,9 +239,8 @@ def generator(test_case, tname):
                         got_fsize = os.path.getsize(tc_filename)
                         assertGreaterEqual(
                             self, got_fsize, expected_minsize,
-                            'Expected %s to be at least %s, but it\'s only %s ' %
-                            (tc_filename, format_bytes(expected_minsize),
-                                format_bytes(got_fsize)))
+                            f'Expected {tc_filename} to be at least {format_bytes(expected_minsize)}, '
+                            f'but it\'s only {format_bytes(got_fsize)} ')
                     if 'md5' in tc:
                         md5_for_file = _file_md5(tc_filename)
                         self.assertEqual(tc['md5'], md5_for_file)
@@ -238,7 +249,7 @@ def generator(test_case, tname):
                 info_json_fn = os.path.splitext(tc_filename)[0] + '.info.json'
                 self.assertTrue(
                     os.path.exists(info_json_fn),
-                    'Missing info file %s' % info_json_fn)
+                    f'Missing info file {info_json_fn}')
                 with open(info_json_fn, encoding='utf-8') as infof:
                     info_dict = json.load(infof)
                 expect_info_dict(self, info_dict, tc.get('info_dict', {}))
@@ -249,7 +260,7 @@ def generator(test_case, tname):
                 # extractor returns full results even with extract_flat
                 res_tcs = [{'info_dict': e} for e in res_dict['entries']]
                 try_rm_tcs_files(res_tcs)
-
+            ydl.close()
     return test_template
 
 

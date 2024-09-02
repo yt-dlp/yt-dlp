@@ -7,6 +7,7 @@ from ..utils import (
 
 
 class ViqeoIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'''(?x)
                         (?:
                             viqeo:|
@@ -38,7 +39,7 @@ class ViqeoIE(InfoExtractor):
         video_id = self._match_id(url)
 
         webpage = self._download_webpage(
-            'https://cdn.viqeo.tv/embed/?vid=%s' % video_id, video_id)
+            f'https://cdn.viqeo.tv/embed/?vid={video_id}', video_id)
 
         data = self._parse_json(
             self._search_regex(

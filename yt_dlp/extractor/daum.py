@@ -1,9 +1,7 @@
 import itertools
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_urllib_parse_unquote,
-)
 from ..utils import parse_qs
 
 
@@ -27,7 +25,7 @@ class DaumIE(DaumBaseIE):
             'duration': 2117,
             'view_count': int,
             'comment_count': int,
-            'uploader_id': 186139,
+            'uploader_id': '186139',
             'uploader': '콘간지',
             'timestamp': 1387310323,
         },
@@ -44,7 +42,7 @@ class DaumIE(DaumBaseIE):
             'view_count': int,
             'comment_count': int,
             'uploader': 'MBC 예능',
-            'uploader_id': 132251,
+            'uploader_id': '132251',
             'timestamp': 1421604228,
         },
     }, {
@@ -63,7 +61,7 @@ class DaumIE(DaumBaseIE):
             'view_count': int,
             'comment_count': int,
             'uploader': '까칠한 墮落始祖 황비홍님의',
-            'uploader_id': 560824,
+            'uploader_id': '560824',
             'timestamp': 1203770745,
         },
     }, {
@@ -77,13 +75,13 @@ class DaumIE(DaumBaseIE):
             'description': '러블리즈 - Destiny (나의 지구) (Lovelyz - Destiny)\r\n\r\n[쇼! 음악중심] 20160611, 507회',
             'upload_date': '20170129',
             'uploader': '쇼! 음악중심',
-            'uploader_id': 2653210,
+            'uploader_id': '2653210',
             'timestamp': 1485684628,
         },
     }]
 
     def _real_extract(self, url):
-        video_id = compat_urllib_parse_unquote(self._match_id(url))
+        video_id = urllib.parse.unquote(self._match_id(url))
         if not video_id.isdigit():
             video_id += '@my'
         return self.url_result(
@@ -107,7 +105,7 @@ class DaumClipIE(DaumBaseIE):
             'duration': 3868,
             'view_count': int,
             'uploader': 'GOMeXP',
-            'uploader_id': 6667,
+            'uploader_id': '6667',
             'timestamp': 1377911092,
         },
     }, {
@@ -117,7 +115,7 @@ class DaumClipIE(DaumBaseIE):
 
     @classmethod
     def suitable(cls, url):
-        return False if DaumPlaylistIE.suitable(url) or DaumUserIE.suitable(url) else super(DaumClipIE, cls).suitable(url)
+        return False if DaumPlaylistIE.suitable(url) or DaumUserIE.suitable(url) else super().suitable(url)
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -131,12 +129,12 @@ class DaumListIE(InfoExtractor):  # XXX: Conventionally, base classes should end
         entries = []
         for pagenum in itertools.count(1):
             list_info = self._download_json(
-                'http://tvpot.daum.net/mypot/json/GetClipInfo.do?size=48&init=true&order=date&page=%d&%s=%s' % (
-                    pagenum, list_id_type, list_id), list_id, 'Downloading list info - %s' % pagenum)
+                f'http://tvpot.daum.net/mypot/json/GetClipInfo.do?size=48&init=true&order=date&page={pagenum}&{list_id_type}={list_id}',
+                list_id, f'Downloading list info - {pagenum}')
 
             entries.extend([
                 self.url_result(
-                    'http://tvpot.daum.net/v/%s' % clip['vid'])
+                    'http://tvpot.daum.net/v/{}'.format(clip['vid']))
                 for clip in list_info['clip_list']
             ])
 
@@ -169,7 +167,7 @@ class DaumPlaylistIE(DaumListIE):
             'id': '6213966',
             'title': 'Woorissica Official',
         },
-        'playlist_mincount': 181
+        'playlist_mincount': 181,
     }, {
         'note': 'Playlist url with clipid - noplaylist',
         'url': 'http://tvpot.daum.net/mypot/View.do?playlistid=6213966&clipid=73806844',
@@ -182,12 +180,12 @@ class DaumPlaylistIE(DaumListIE):
         'params': {
             'noplaylist': True,
             'skip_download': True,
-        }
+        },
     }]
 
     @classmethod
     def suitable(cls, url):
-        return False if DaumUserIE.suitable(url) else super(DaumPlaylistIE, cls).suitable(url)
+        return False if DaumUserIE.suitable(url) else super().suitable(url)
 
     def _real_extract(self, url):
         list_id = self._match_id(url)
@@ -211,7 +209,7 @@ class DaumUserIE(DaumListIE):
             'id': 'o2scDLIVbHc0',
             'title': '마이 리틀 텔레비전',
         },
-        'playlist_mincount': 213
+        'playlist_mincount': 213,
     }, {
         'url': 'http://tvpot.daum.net/mypot/View.do?ownerid=o2scDLIVbHc0&clipid=73801156',
         'info_dict': {
@@ -219,12 +217,12 @@ class DaumUserIE(DaumListIE):
             'ext': 'mp4',
             'title': '[미공개] 김구라, 오만석이 부릅니다 \'오케피\' - 마이 리틀 텔레비전 20160116',
             'upload_date': '20160117',
-            'description': 'md5:5e91d2d6747f53575badd24bd62b9f36'
+            'description': 'md5:5e91d2d6747f53575badd24bd62b9f36',
         },
         'params': {
             'noplaylist': True,
             'skip_download': True,
-        }
+        },
     }, {
         'note': 'Playlist url has ownerid and playlistid, playlistid takes precedence',
         'url': 'http://tvpot.daum.net/mypot/View.do?ownerid=o2scDLIVbHc0&playlistid=6196631',
@@ -232,7 +230,7 @@ class DaumUserIE(DaumListIE):
             'id': '6196631',
             'title': '마이 리틀 텔레비전 - 20160109',
         },
-        'playlist_count': 11
+        'playlist_count': 11,
     }, {
         'url': 'http://tvpot.daum.net/mypot/Top.do?ownerid=o2scDLIVbHc0',
         'only_matching': True,

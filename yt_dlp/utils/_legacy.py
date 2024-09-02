@@ -1,20 +1,108 @@
 """No longer used and new code should not use. Exists only for API compat."""
-
+import asyncio
+import atexit
 import platform
 import struct
 import sys
+import urllib.error
 import urllib.parse
+import urllib.request
 import zlib
 
 from ._utils import Popen, decode_base_n, preferredencoding
 from .traversal import traverse_obj
 from ..dependencies import certifi, websockets
+from ..networking._helper import make_ssl_context
+from ..networking._urllib import HTTPHandler
 
 # isort: split
+from .networking import escape_rfc3986  # noqa: F401
+from .networking import normalize_url as escape_url
+from .networking import random_user_agent, std_headers  # noqa: F401
 from ..cookies import YoutubeDLCookieJar  # noqa: F401
+from ..networking._urllib import PUTRequest  # noqa: F401
+from ..networking._urllib import SUPPORTED_ENCODINGS, HEADRequest  # noqa: F401
+from ..networking._urllib import ProxyHandler as PerRequestProxyHandler  # noqa: F401
+from ..networking._urllib import RedirectHandler as YoutubeDLRedirectHandler  # noqa: F401
+from ..networking._urllib import (  # noqa: F401
+    make_socks_conn_class,
+    update_Request,
+)
+from ..networking.exceptions import HTTPError, network_exceptions  # noqa: F401
 
 has_certifi = bool(certifi)
 has_websockets = bool(websockets)
+
+
+class WebSocketsWrapper:
+    """Wraps websockets module to use in non-async scopes"""
+    pool = None
+
+    def __init__(self, url, headers=None, connect=True, **ws_kwargs):
+        self.loop = asyncio.new_event_loop()
+        # XXX: "loop" is deprecated
+        self.conn = websockets.connect(
+            url, extra_headers=headers, ping_interval=None,
+            close_timeout=float('inf'), loop=self.loop, ping_timeout=float('inf'), **ws_kwargs)
+        if connect:
+            self.__enter__()
+        atexit.register(self.__exit__, None, None, None)
+
+    def __enter__(self):
+        if not self.pool:
+            self.pool = self.run_with_loop(self.conn.__aenter__(), self.loop)
+        return self
+
+    def send(self, *args):
+        self.run_with_loop(self.pool.send(*args), self.loop)
+
+    def recv(self, *args):
+        return self.run_with_loop(self.pool.recv(*args), self.loop)
+
+    def __exit__(self, type, value, traceback):
+        try:
+            return self.run_with_loop(self.conn.__aexit__(type, value, traceback), self.loop)
+        finally:
+            self.loop.close()
+            self._cancel_all_tasks(self.loop)
+
+    # taken from https://github.com/python/cpython/blob/3.9/Lib/asyncio/runners.py with modifications
+    # for contributors: If there's any new library using asyncio needs to be run in non-async, move these function out of this class
+    @staticmethod
+    def run_with_loop(main, loop):
+        if not asyncio.iscoroutine(main):
+            raise ValueError(f'a coroutine was expected, got {main!r}')
+
+        try:
+            return loop.run_until_complete(main)
+        finally:
+            loop.run_until_complete(loop.shutdown_asyncgens())
+            if hasattr(loop, 'shutdown_default_executor'):
+                loop.run_until_complete(loop.shutdown_default_executor())
+
+    @staticmethod
+    def _cancel_all_tasks(loop):
+        to_cancel = asyncio.all_tasks(loop)
+
+        if not to_cancel:
+            return
+
+        for task in to_cancel:
+            task.cancel()
+
+        # XXX: "loop" is removed in Python 3.10+
+        loop.run_until_complete(
+            asyncio.gather(*to_cancel, loop=loop, return_exceptions=True))
+
+        for task in to_cancel:
+            if task.cancelled():
+                continue
+            if task.exception() is not None:
+                loop.call_exception_handler({
+                    'message': 'unhandled exception during asyncio.run() shutdown',
+                    'exception': task.exception(),
+                    'task': task,
+                })
 
 
 def load_plugins(name, suffix, namespace):
@@ -79,7 +167,7 @@ def decode_png(png_data):
         chunks.append({
             'type': chunk_type,
             'length': length,
-            'data': chunk_data
+            'data': chunk_data,
         })
 
     ihdr = chunks[0]['data']
@@ -107,15 +195,15 @@ def decode_png(png_data):
         return pixels[y][x]
 
     for y in range(height):
-        basePos = y * (1 + stride)
-        filter_type = decompressed_data[basePos]
+        base_pos = y * (1 + stride)
+        filter_type = decompressed_data[base_pos]
 
         current_row = []
 
         pixels.append(current_row)
 
         for x in range(stride):
-            color = decompressed_data[1 + basePos + x]
+            color = decompressed_data[1 + base_pos + x]
             basex = y * stride + x
             left = 0
             up = 0
@@ -174,6 +262,53 @@ def handle_youtubedl_headers(headers):
         del filtered_headers['Youtubedl-no-compression']
 
     return filtered_headers
+
+
+def request_to_url(req):
+    if isinstance(req, urllib.request.Request):
+        return req.get_full_url()
+    else:
+        return req
+
+
+def sanitized_Request(url, *args, **kwargs):
+    from ..utils import extract_basic_auth, sanitize_url
+    url, auth_header = extract_basic_auth(escape_url(sanitize_url(url)))
+    if auth_header is not None:
+        headers = args[1] if len(args) >= 2 else kwargs.setdefault('headers', {})
+        headers['Authorization'] = auth_header
+    return urllib.request.Request(url, *args, **kwargs)
+
+
+class YoutubeDLHandler(HTTPHandler):
+    def __init__(self, params, *args, **kwargs):
+        self._params = params
+        super().__init__(*args, **kwargs)
+
+
+YoutubeDLHTTPSHandler = YoutubeDLHandler
+
+
+class YoutubeDLCookieProcessor(urllib.request.HTTPCookieProcessor):
+    def __init__(self, cookiejar=None):
+        urllib.request.HTTPCookieProcessor.__init__(self, cookiejar)
+
+    def http_response(self, request, response):
+        return urllib.request.HTTPCookieProcessor.http_response(self, request, response)
+
+    https_request = urllib.request.HTTPCookieProcessor.http_request
+    https_response = http_response
+
+
+def make_HTTPS_handler(params, **kwargs):
+    return YoutubeDLHTTPSHandler(params, context=make_ssl_context(
+        verify=not params.get('nocheckcertificate'),
+        client_certificate=params.get('client_certificate'),
+        client_certificate_key=params.get('client_certificate_key'),
+        client_certificate_password=params.get('client_certificate_password'),
+        legacy_support=params.get('legacyserverconnect'),
+        use_certifi='no-certifi' not in params.get('compat_opts', []),
+    ), **kwargs)
 
 
 def process_communicate_or_kill(p, *args, **kwargs):

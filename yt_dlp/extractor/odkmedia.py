@@ -1,13 +1,13 @@
 import json
-import urllib.error
 
 from .common import InfoExtractor
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     GeoRestrictedError,
     float_or_none,
     traverse_obj,
-    try_call
+    try_call,
 )
 
 
@@ -24,7 +24,7 @@ class OnDemandChinaEpisodeIE(InfoExtractor):
             'thumbnail': 'https://d2y2efdi5wgkcl.cloudfront.net/fit-in/256x256/media-io/2020/9/11/image.d9816e81.jpg',
             'description': '疫情严峻，党政军民学、东西南北中协同应考',
             'tags': ['Social Humanities', 'Documentary', 'Medical', 'Social'],
-        }
+        },
     }]
 
     _QUERY = '''
@@ -74,8 +74,8 @@ class OnDemandChinaEpisodeIE(InfoExtractor):
                 f'https://odkmedia.io/odc/api/v2/playback/{video_info["id"]}/', display_id,
                 headers={'Authorization': '', 'service-name': 'odc'})
         except ExtractorError as e:
-            if isinstance(e.cause, urllib.error.HTTPError):
-                error_data = self._parse_json(e.cause.read(), display_id)['detail']
+            if isinstance(e.cause, HTTPError):
+                error_data = self._parse_json(e.cause.response.read(), display_id)['detail']
                 raise GeoRestrictedError(error_data)
 
         formats, subtitles = [], {}
@@ -101,5 +101,5 @@ class OnDemandChinaEpisodeIE(InfoExtractor):
                 or self._html_search_meta(['og:description', 'twitter:description', 'description'], webpage)),
             'formats': formats,
             'subtitles': subtitles,
-            'tags': try_call(lambda: self._html_search_meta('keywords', webpage).split(', '))
+            'tags': try_call(lambda: self._html_search_meta('keywords', webpage).split(', ')),
         }

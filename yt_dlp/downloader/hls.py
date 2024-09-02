@@ -28,7 +28,16 @@ class HlsFD(FragmentFD):
     FD_NAME = 'hlsnative'
 
     @staticmethod
-    def can_download(manifest, info_dict, allow_unplayable_formats=False):
+    def _has_drm(manifest):  # TODO: https://github.com/yt-dlp/yt-dlp/pull/5039
+        return bool(re.search('|'.join((
+            r'#EXT-X-(?:SESSION-)?KEY:.*?URI="skd://',  # Apple FairPlay
+            r'#EXT-X-(?:SESSION-)?KEY:.*?KEYFORMAT="com\.apple\.streamingkeydelivery"',  # Apple FairPlay
+            r'#EXT-X-(?:SESSION-)?KEY:.*?KEYFORMAT="com\.microsoft\.playready"',  # Microsoft PlayReady
+            r'#EXT-X-FAXS-CM:',  # Adobe Flash Access
+        )), manifest))
+
+    @classmethod
+    def can_download(cls, manifest, info_dict, allow_unplayable_formats=False):
         UNSUPPORTED_FEATURES = [
             # r'#EXT-X-BYTERANGE',  # playlists composed of byte ranges of media files [2]
 
@@ -50,21 +59,23 @@ class HlsFD(FragmentFD):
         ]
         if not allow_unplayable_formats:
             UNSUPPORTED_FEATURES += [
-                r'#EXT-X-KEY:METHOD=(?!NONE|AES-128)',  # encrypted streams [1]
+                r'#EXT-X-KEY:METHOD=(?!NONE|AES-128)',  # encrypted streams [1], but not necessarily DRM
             ]
 
         def check_results():
             yield not info_dict.get('is_live')
             for feature in UNSUPPORTED_FEATURES:
                 yield not re.search(feature, manifest)
+            if not allow_unplayable_formats:
+                yield not cls._has_drm(manifest)
         return all(check_results())
 
     def real_download(self, filename, info_dict):
         man_url = info_dict['url']
-        self.to_screen('[%s] Downloading m3u8 manifest' % self.FD_NAME)
+        self.to_screen(f'[{self.FD_NAME}] Downloading m3u8 manifest')
 
         urlh = self.ydl.urlopen(self._prepare_url(info_dict, man_url))
-        man_url = urlh.geturl()
+        man_url = urlh.url
         s = urlh.read().decode('utf-8', 'ignore')
 
         can_download, message = self.can_download(s, info_dict, self.params.get('allow_unplayable_formats')), None
@@ -81,14 +92,13 @@ class HlsFD(FragmentFD):
                 message = ('Live HLS streams are not supported by the native downloader. If this is a livestream, '
                            f'please {install_ffmpeg}add "--downloader ffmpeg --hls-use-mpegts" to your command')
         if not can_download:
-            has_drm = re.search('|'.join([
-                r'#EXT-X-FAXS-CM:',  # Adobe Flash Access
-                r'#EXT-X-(?:SESSION-)?KEY:.*?URI="skd://',  # Apple FairPlay
-            ]), s)
-            if has_drm and not self.params.get('allow_unplayable_formats'):
-                self.report_error(
-                    'This video is DRM protected; Try selecting another format with --format or '
-                    'add --check-formats to automatically fallback to the next best format')
+            if self._has_drm(s) and not self.params.get('allow_unplayable_formats'):
+                if info_dict.get('has_drm') and self.params.get('test'):
+                    self.to_screen(f'[{self.FD_NAME}] This format is DRM protected', skip_eol=True)
+                else:
+                    self.report_error(
+                        'This format is DRM protected; Try selecting another format with --format or '
+                        'add --check-formats to automatically fallback to the next best format', tb=False)
                 return False
             message = message or 'Unsupported features have been detected'
             fd = FFmpegFD(self.ydl, self.params)
@@ -150,10 +160,12 @@ class HlsFD(FragmentFD):
         extra_state = ctx.setdefault('extra_state', {})
 
         format_index = info_dict.get('format_index')
-        extra_query = None
-        extra_param_to_segment_url = info_dict.get('extra_param_to_segment_url')
-        if extra_param_to_segment_url:
-            extra_query = urllib.parse.parse_qs(extra_param_to_segment_url)
+        extra_segment_query = None
+        if extra_param_to_segment_url := info_dict.get('extra_param_to_segment_url'):
+            extra_segment_query = urllib.parse.parse_qs(extra_param_to_segment_url)
+        extra_key_query = None
+        if extra_param_to_key_url := info_dict.get('extra_param_to_key_url'):
+            extra_key_query = urllib.parse.parse_qs(extra_param_to_key_url)
         i = 0
         media_sequence = 0
         decrypt_info = {'METHOD': 'NONE'}
@@ -180,8 +192,8 @@ class HlsFD(FragmentFD):
                     if frag_index <= ctx['fragment_index']:
                         continue
                     frag_url = urljoin(man_url, line)
-                    if extra_query:
-                        frag_url = update_url_query(frag_url, extra_query)
+                    if extra_segment_query:
+                        frag_url = update_url_query(frag_url, extra_segment_query)
 
                     fragments.append({
                         'frag_index': frag_index,
@@ -202,8 +214,8 @@ class HlsFD(FragmentFD):
                     frag_index += 1
                     map_info = parse_m3u8_attributes(line[11:])
                     frag_url = urljoin(man_url, map_info.get('URI'))
-                    if extra_query:
-                        frag_url = update_url_query(frag_url, extra_query)
+                    if extra_segment_query:
+                        frag_url = update_url_query(frag_url, extra_segment_query)
 
                     if map_info.get('BYTERANGE'):
                         splitted_byte_range = map_info.get('BYTERANGE').split('@')
@@ -218,7 +230,7 @@ class HlsFD(FragmentFD):
                         'url': frag_url,
                         'decrypt_info': decrypt_info,
                         'byte_range': byte_range,
-                        'media_sequence': media_sequence
+                        'media_sequence': media_sequence,
                     })
                     media_sequence += 1
 
@@ -234,8 +246,10 @@ class HlsFD(FragmentFD):
                             decrypt_info['KEY'] = external_aes_key
                         else:
                             decrypt_info['URI'] = urljoin(man_url, decrypt_info['URI'])
-                            if extra_query:
-                                decrypt_info['URI'] = update_url_query(decrypt_info['URI'], extra_query)
+                            if extra_key_query or extra_segment_query:
+                                # Fall back to extra_segment_query to key for backwards compat
+                                decrypt_info['URI'] = update_url_query(
+                                    decrypt_info['URI'], extra_key_query or extra_segment_query)
                             if decrypt_url != decrypt_info['URI']:
                                 decrypt_info['KEY'] = None
 
@@ -340,9 +354,8 @@ class HlsFD(FragmentFD):
                             # XXX: this should probably be silent as well
                             # or verify that all segments contain the same data
                             self.report_warning(bug_reports_message(
-                                'Discarding a %s block found in the middle of the stream; '
-                                'if the subtitles display incorrectly,'
-                                % (type(block).__name__)))
+                                f'Discarding a {type(block).__name__} block found in the middle of the stream; '
+                                'if the subtitles display incorrectly,'))
                             continue
                     block.write_into(output)
 
@@ -359,7 +372,10 @@ class HlsFD(FragmentFD):
 
                 return output.getvalue().encode()
 
-            self.download_and_append_fragments(
-                ctx, fragments, info_dict, pack_func=pack_fragment, finish_func=fin_fragments)
+            if len(fragments) == 1:
+                self.download_and_append_fragments(ctx, fragments, info_dict)
+            else:
+                self.download_and_append_fragments(
+                    ctx, fragments, info_dict, pack_func=pack_fragment, finish_func=fin_fragments)
         else:
             return self.download_and_append_fragments(ctx, fragments, info_dict)
