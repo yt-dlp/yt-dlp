@@ -957,6 +957,7 @@ class FacebookReelIE(InfoExtractor):
             'like_count': int,
             'comment_count': int,
             'repost_count': int,
+            'reactor_count': int,
         },
     }]
 
