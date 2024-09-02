@@ -1,8 +1,10 @@
+import base64
 import math
 import time
 
 from .common import InfoExtractor
-from ..utils import InAdvancePagedList, float_or_none, int_or_none, str_or_none, traverse_obj, try_call
+from .videa import VideaIE
+from ..utils import InAdvancePagedList, str_or_none, traverse_obj, try_call
 
 
 class XimalayaBaseIE(InfoExtractor):
@@ -81,146 +83,26 @@ class XimalayaIE(XimalayaBaseIE):
 
     @staticmethod
     def _decrypt_filename(audio_info):
-        seed = float_or_none(audio_info['seed'])
+        seed = float(audio_info['seed'])
         file_id = audio_info['fileId']
         cgstr = ''
         key = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ/\\:._-1234567890'
         for _ in range(len(key)):
-            j = 211 * seed + 30031
-            seed = float_or_none(int_or_none(j) % 65536)
-            ran = seed / float_or_none(65536)
-            r = int_or_none(ran * float_or_none(len(key)))
+            seed = float(int(211 * seed + 30031) % 65536)
+            r = int(seed / 65536 * len(key))
             cgstr += key[r]
             key = key.replace(key[r], '')
-        strs = file_id.split('*')
-        filename = ''
-        for n in range(len(strs) - 1):
-            if strs[n] != '':
-                index = int_or_none(strs[n])
-                filename += cgstr[index]
-        if filename[0] != '/':
+        parts = file_id.split('*')
+        filename = ''.join(cgstr[int(part)] for part in parts if part.isdigit())
+        if not filename.startswith('/'):
             filename = '/' + filename
         return filename
 
     @staticmethod
     def _decrypt_url_params(audio_info):
-        def char_code_at(s: str, n: int) -> int:
-            return ord(s[n]) if n < len(s) else 0
-
-        def decrypt(e: str, t: list) -> str:
-            r = list(range(256))
-            a = 0
-            s = ''
-
-            for o in range(256):
-                a = (a + r[o] + int_or_none(char_code_at(e, o % len(e)))) % 256
-                r[o], r[a] = r[a], r[o]
-
-            a, o = 0, 0
-            for u in range(len(t)):
-                o = (o + 1) % 256
-                a = (a + r[o]) % 256
-                r[o], r[a] = r[a], r[o]
-                s += chr(t[u] ^ r[(r[o] + r[a]) % 256])
-
-            return s
-
-        def decrypt2(key: str, key2: list) -> str:
-            n = []
-            for r in range(len(key)):
-                a = ord('a')
-                if ord('a') <= ord(key[r]) <= ord('z'):
-                    a = ord(key[r]) - 97
-                else:
-                    a = ord(key[r]) - 48 + 26
-
-                for i in range(36):
-                    if key2[i] == a:
-                        a = i
-                        break
-
-                if a > 25:
-                    n.append(chr(a - 26 + 48))
-                else:
-                    n.append(chr(a + 97))
-
-            return ''.join(n)
-
-        def decrypt3(s: str) -> list:
-            t = 0
-            n = 0
-            r = 0
-            s_len = len(s)
-            i = []
-            o = [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-                 -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-                 -1, -1, -1, 62, -1, -1, -1, 63, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, -1, -1,
-                 -1, -1, -1, -1, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
-                 17, 18, 19, 20, 21, 22, 23, 24, 25, -1, -1, -1, -1, -1, -1, 26, 27, 28, 29, 30,
-                 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50,
-                 51, -1, -1, -1, -1, -1]
-
-            while r < s_len:
-                t = o[char_code_at(s, r) & 255]
-                r += 1
-                while r < s_len and t == -1:
-                    t = o[char_code_at(s, r) & 255]
-                    r += 1
-                if t == -1:
-                    break
-
-                n = o[char_code_at(s, r) & 255]
-                r += 1
-                while r < s_len and n == -1:
-                    n = o[char_code_at(s, r) & 255]
-                    r += 1
-                if t == -1:
-                    break
-
-                i.append((t << 2) | ((n & 48) >> 4))
-
-                t = int_or_none(char_code_at(s, r)) & 255
-                r += 1
-                if t == 61:
-                    return i
-                t = o[t]
-                while r < s_len and t == -1:
-                    t = int_or_none(char_code_at(s, r)) & 255
-                    r += 1
-                    if t == 61:
-                        return i
-                    t = o[t]
-                if t == -1:
-                    break
-
-                i.append(((n & 15) << 4) | ((t & 60) >> 2))
-
-                n = int_or_none(char_code_at(s, r)) & 255
-                r += 1
-                if n == 61:
-                    return i
-                n = o[n]
-                while r < s_len and n == -1:
-                    n = int_or_none(char_code_at(s, r)) & 255
-                    r += 1
-                    if n == 61:
-                        return i
-                    n = o[n]
-                if n == -1:
-                    break
-                i.append(((t & 3) << 6) | n)
-
-            return i
-
-        o = 'g3utf1k6yxdwi0'
-        u = [19, 1, 4, 7, 30, 14, 28, 8, 24, 17, 6, 35, 34, 16, 9, 10, 13, 22,
-             32, 29, 31, 21, 18, 3, 2, 23, 25, 27, 11, 20, 5, 15, 12, 0, 33, 26]
-        s1 = decrypt3(audio_info['ep'])
-        s2 = decrypt(decrypt2('d' + o + '9', u), s1)
-        ss = s2.split('-')
-        sign = ss[1]
-        token = ss[2]
-        timestamp = ss[3]
+        params = VideaIE.rc4(base64.b64decode(audio_info['ep']),
+                             'xkt3a41psizxrh9l').split('-')
+        sign, token, timestamp = params[1], params[2], params[3]
         return sign, token, timestamp
 
     def _real_extract(self, url):
@@ -233,8 +115,8 @@ class XimalayaIE(XimalayaBaseIE):
             f'Downloading info json {audio_info_file}', 'Unable to download info file')
 
         # NOTE(xcsong): VIP-restricted audio
-        if audio_info.get('is_paid', False):
-            ts = int_or_none(time.time())
+        if audio_info.get('is_paid'):
+            ts = int(time.time())
             audio_info_file = f'{scheme}://mpay.ximalaya.com/mobile/track/pay/{audio_id}/{ts}?device=pc&isBackend=true&_={ts}'
             audio_info = self._download_json(
                 audio_info_file, audio_id,
