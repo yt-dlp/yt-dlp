@@ -353,6 +353,14 @@ class WatchESPNIE(AdobePassIE):
             if not cookie:
                 self.raise_login_required(method='cookies')
 
+            jwt = re.search(r'=(.*)\|', cookie.value).group(1)
+            import requests
+            id_token = requests.post("https://registerdisney.go.com/jgc/v6/client/ESPN-ONESITE.WEB-PROD/guest/refresh-auth",
+            json = {
+                 'refreshToken': json.loads(base64.urlsafe_b64decode(f'{jwt}==='))['refresh_token']
+                 }
+            ).json()['data']['token']['id_token']
+
             assertion = self._call_bamgrid_api(
                 'devices', video_id,
                 headers={'Content-Type': 'application/json; charset=UTF-8'},
@@ -371,7 +379,7 @@ class WatchESPNIE(AdobePassIE):
                 })['access_token']
 
             assertion = self._call_bamgrid_api(
-                'accounts/grant', video_id, payload={'id_token': cookie.value.split('|')[1]},
+                'accounts/grant', video_id, payload={'id_token': id_token},
                 headers={
                     'Authorization': token,
                     'Content-Type': 'application/json; charset=UTF-8',
