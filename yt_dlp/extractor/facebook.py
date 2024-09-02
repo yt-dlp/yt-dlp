@@ -483,8 +483,7 @@ class FacebookIE(InfoExtractor):
                 ..., 'require', ..., ..., ..., '__bbox', 'require', ..., ..., ..., '__bbox', 'result', 'data'), expected_type=dict) or []
             post_stats = traverse_obj(post, (
                 lambda _, v: v['short_form_video_context']['video']['id'] == video_id and v[
-                    'url'] == f'https://www.facebook.com/reel/{video_id}/'), expected_type=dict) or []
-            post_stats = get_first(post_stats, ('feedback', {dict}), default={})
+                    'url'] == f'https://www.facebook.com/reel/{video_id}/', 'feedback', {dict}, any)) or {}
             media = traverse_obj(post, (..., 'attachments', ..., lambda k, v: (
                 k == 'media' and str(v['id']) == video_id and v['__typename'] == 'Video')), expected_type=dict)
             title = get_first(media, ('title', 'text'))
@@ -529,9 +528,12 @@ class FacebookIE(InfoExtractor):
                     webpage, 'view count', default=None)),
                 'concurrent_view_count': get_first(post, (
                     ('video', (..., ..., 'attachments', ..., 'media')), 'liveViewerCount', {int_or_none})),
-                'like_count': post_stats.get('unified_reactors', {}).get('count'),
-                'comment_count': post_stats.get('total_comment_count'),
-                'repost_count': parse_count(post_stats.get('share_count_reduced')),
+                **traverse_obj(post_stats, {
+                    'like_count': ('likers', 'count', {int}),
+                    'comment_count': ('total_comment_count', {int}),
+                    'repost_count': ('share_count_reduced', {parse_count}),
+                    'reactor_count': ('unified_reactors', 'count', {int}),
+                }),
             }
 
             info_json_ld = self._search_json_ld(webpage, video_id, default={})
