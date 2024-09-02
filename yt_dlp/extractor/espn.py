@@ -355,10 +355,10 @@ class WatchESPNIE(AdobePassIE):
 
             jwt = re.search(r'=(.*)\|', cookie.value).group(1)
             import requests
-            id_token = requests.post("https://registerdisney.go.com/jgc/v6/client/ESPN-ONESITE.WEB-PROD/guest/refresh-auth",
+            id_token = requests.post('https://registerdisney.go.com/jgc/v6/client/ESPN-ONESITE.WEB-PROD/guest/refresh-auth',
             json = {
-                 'refreshToken': json.loads(base64.urlsafe_b64decode(f'{jwt}==='))['refresh_token']
-                 }
+                 'refreshToken': json.loads(base64.urlsafe_b64decode(f'{jwt}==='))['refresh_token'],
+                 },
             ).json()['data']['token']['id_token']
 
             assertion = self._call_bamgrid_api(
