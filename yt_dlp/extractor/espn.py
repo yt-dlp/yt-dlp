@@ -356,7 +356,7 @@ class WatchESPNIE(AdobePassIE):
             jwt = self._search_regex(r'=([^|]+)\|', cookie.value, 'cookie jwt')
             id_token = self._download_json(
                 'https://registerdisney.go.com/jgc/v6/client/ESPN-ONESITE.WEB-PROD/guest/refresh-auth',
-                None, headers={'Content-Type': 'application/json'}, data=json.dumps({
+                None, 'Refreshing token', headers={'Content-Type': 'application/json'}, data=json.dumps({
                     'refreshToken': json.loads(base64.urlsafe_b64decode(f'{jwt}==='))['refresh_token'],
                 }).encode())['data']['token']['id_token']
 
