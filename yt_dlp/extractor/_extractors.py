@@ -1086,7 +1086,11 @@ from .markiza import (
 )
 from .massengeschmacktv import MassengeschmackTVIE
 from .masters import MastersIE
-from .matchtv import MatchTVIE
+from .matchtv import (
+    MatchTVFeedIE,
+    MatchTVIE,
+    MatchTVVideoIE,
+)
 from .mbn import MBNIE
 from .mdr import MDRIE
 from .medaltv import MedalTVIE
