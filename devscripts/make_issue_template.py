@@ -49,7 +49,7 @@ VERBOSE_TMPL = '''
   - type: markdown
     attributes:
       value: |
-        ### IMPORTANT: Github is experiencing a high volume of malicious spam comments.
+        ### IMPORTANT: GitHub is experiencing a high volume of malicious spam comments.
         ### If you receive any replies asking you download a file, do NOT follow the download links!
 '''.strip()
 
