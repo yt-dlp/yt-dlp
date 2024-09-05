@@ -12,6 +12,7 @@ permissions:
 jobs:
   sanitize-comment:
     name: Sanitize comment
+    if: vars.SANITIZE_COMMENT
     runs-on: ubuntu-latest
     steps:
       - name: Sanitize comment
