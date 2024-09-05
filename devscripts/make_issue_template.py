@@ -49,7 +49,7 @@ VERBOSE_TMPL = '''
   - type: markdown
     attributes:
       value: |
-        ### NOTE: Due to a recent increase in malicious spam activity, this issue will be automatically locked until it is triaged by a maintainer.
+        ### IMPORTANT: Github is experiencing a high volume of malicious spam comments.
         ### If you receive any replies asking you download a file, do NOT follow the download links!
 '''.strip()
 
