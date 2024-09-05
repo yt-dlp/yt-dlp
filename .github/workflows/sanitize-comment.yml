@@ -12,7 +12,7 @@ permissions:
 jobs:
   sanitize-comment:
     name: Sanitize comment
-    if: vars.SANITIZE_COMMENT
+    if: vars.SANITIZE_COMMENT && !github.event.issue.pull_request
     runs-on: ubuntu-latest
     steps:
       - name: Sanitize comment
