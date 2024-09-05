@@ -1,4 +1,4 @@
-name: Anti-Spam
+name: Issue Lockdown
 on:
   issues:
     types: [opened]
@@ -9,6 +9,7 @@ permissions:
 jobs:
   lockdown:
     name: Issue Lockdown
+    if: vars.ISSUE_LOCKDOWN
     runs-on: ubuntu-latest
     steps:
       - name: "Lock new issue"
@@ -17,4 +18,4 @@ jobs:
           ISSUE_NUMBER: ${{ github.event.issue.number }}
           REPOSITORY: ${{ github.repository }}
         run: |
-          gh issue lock "${ISSUE_NUMBER}" -r too_heated -R "${REPOSITORY}"
+          gh issue lock "${ISSUE_NUMBER}" -R "${REPOSITORY}"
