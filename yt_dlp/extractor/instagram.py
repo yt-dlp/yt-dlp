@@ -58,15 +58,15 @@ class InstagramBaseIE(InfoExtractor):
         login_webpage = self._download_webpage(
             self._LOGIN_URL, None, note='Downloading login webpage', errnote='Failed to download login webpage')
 
-        shared_data = self._parse_json(self._search_regex(
-            r'window\._sharedData\s*=\s*({.+?});', login_webpage, 'shared data', default='{}'), None)
+        rollout_hash = self._search_regex(r'"rollout_hash":"(\d+)"',login_webpage,'rollout hash', default='')
+        csrf_token = self._search_regex(r'"csrf_token":"(\w+)"',login_webpage,'csrf token', default='')
 
         login = self._download_json(
             f'{self._LOGIN_URL}/ajax/', None, note='Logging in', headers={
                 **self._API_HEADERS,
                 'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRFToken': shared_data['config']['csrf_token'],
-                'X-Instagram-AJAX': shared_data['rollout_hash'],
+                'X-CSRFToken': csrf_token,
+                'X-Instagram-AJAX': rollout_hash,
                 'Referer': 'https://www.instagram.com/',
             }, data=urlencode_postdata({
                 'enc_password': f'#PWD_INSTAGRAM_BROWSER:0:{int(time.time())}:{password}',
