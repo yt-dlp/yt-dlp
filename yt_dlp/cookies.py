@@ -49,6 +49,57 @@ from .utils.networking import normalize_url
 CHROMIUM_BASED_BROWSERS = {'brave', 'chrome', 'chromium', 'edge', 'opera', 'vivaldi', 'whale', 'yandex'}
 SUPPORTED_BROWSERS = CHROMIUM_BASED_BROWSERS | {'firefox', 'safari'}
 
+if sys.platform in ('cygwin', 'win32'):
+    from ctypes import windll, byref, create_unicode_buffer, pointer, WINFUNCTYPE
+    from ctypes.wintypes import DWORD, WCHAR, UINT
+
+    ERROR_SUCCESS = 0
+    ERROR_MORE_DATA  = 234
+    RmForceShutdown = 1
+
+    @WINFUNCTYPE(None, UINT)
+    def callback(percent_complete: UINT) -> None:
+        pass
+
+    rstrtmgr = windll.LoadLibrary('Rstrtmgr')
+
+    def _mswindows_unlock_cookies(cookies_path):
+        session_handle = DWORD(0)
+        session_flags = DWORD(0)
+        session_key = (WCHAR * 256)()
+
+        result = DWORD(rstrtmgr.RmStartSession(byref(session_handle), session_flags, session_key)).value
+
+        if result != ERROR_SUCCESS:
+            raise RuntimeError(f'RmStartSession returned non-zero result: {result}')
+
+        try:
+            result = DWORD(rstrtmgr.RmRegisterResources(session_handle, 1, byref(pointer(create_unicode_buffer(cookies_path))), 0, None, 0, None)).value
+
+            if result != ERROR_SUCCESS:
+                raise RuntimeError(f'RmRegisterResources returned non-zero result: {result}')
+
+            proc_info_needed = DWORD(0)
+            proc_info = DWORD(0)
+            reboot_reasons = DWORD(0)
+
+            result = DWORD(rstrtmgr.RmGetList(session_handle, byref(proc_info_needed), byref(proc_info), None, byref(reboot_reasons))).value
+
+            if result not in (ERROR_SUCCESS, ERROR_MORE_DATA):
+                raise RuntimeError(f'RmGetList returned non-successful result: {result}')
+
+            if proc_info_needed.value:
+                result = DWORD(rstrtmgr.RmShutdown(session_handle, RmForceShutdown, callback)).value
+
+                if result != ERROR_SUCCESS:
+                    raise RuntimeError(f'RmShutdown returned non-successful result: {result}')
+            else:
+                print('File is not locked')
+        finally:
+            result = DWORD(rstrtmgr.RmEndSession(session_handle)).value
+
+            if result != ERROR_SUCCESS:
+                raise RuntimeError(f'RmEndSession returned non-successful result: {result}')
 
 class YDLLogger(_YDLLogger):
     def warning(self, message, only_once=False):  # compat
@@ -154,7 +205,7 @@ def _extract_firefox_cookies(profile, container, logger):
     with tempfile.TemporaryDirectory(prefix='yt_dlp') as tmpdir:
         cursor = None
         try:
-            cursor = _open_database_copy(cookie_database_path, tmpdir)
+            cursor = _open_database_copy(cookie_database_path, tmpdir, logger)
             if isinstance(container_id, int):
                 logger.debug(
                     f'Only loading cookies from firefox container "{container}", ID {container_id}')
@@ -303,7 +354,7 @@ def _extract_chrome_cookies(browser_name, profile, keyring, logger):
     with tempfile.TemporaryDirectory(prefix='yt_dlp') as tmpdir:
         cursor = None
         try:
-            cursor = _open_database_copy(cookie_database_path, tmpdir)
+            cursor = _open_database_copy(cookie_database_path, tmpdir, logger)
             cursor.connection.text_factory = bytes
             column_names = _get_column_names(cursor, 'cookies')
             secure_column = 'is_secure' if 'is_secure' in column_names else 'secure'
@@ -546,9 +597,13 @@ def _extract_safari_cookies(profile, logger):
             cookies_path = os.path.expanduser('~/Library/Containers/com.apple.Safari/Data/Library/Cookies/Cookies.binarycookies')
             if not os.path.isfile(cookies_path):
                 raise FileNotFoundError('could not find safari cookies database')
-
-    with open(cookies_path, 'rb') as f:
-        cookies_data = f.read()
+        try:
+            with open(cookies_path, 'rb') as f:
+                cookies_data = f.read()
+        except PermissionError:
+            message = 'Could not read Safari cookie database. Add Terminal to full disc access in settings to solve the issue.'
+            raise DownloadError(message)  # force exit
+            raise
 
     jar = parse_safari_cookies(cookies_data, logger=logger)
     logger.info(f'Extracted {len(jar)} cookies from safari')
@@ -1068,13 +1123,23 @@ def _decrypt_windows_dpapi(ciphertext, logger):
 def _config_home():
     return os.environ.get('XDG_CONFIG_HOME', os.path.expanduser('~/.config'))
 
-
-def _open_database_copy(database_path, tmpdir):
-    # cannot open sqlite databases if they are already in use (e.g. by the browser)
+def _try_open_database_copy(database_path, tmpdir):
     database_copy_path = os.path.join(tmpdir, 'temporary.sqlite')
     shutil.copy(database_path, database_copy_path)
     conn = sqlite3.connect(database_copy_path)
     return conn.cursor()
+
+
+def _open_database_copy(database_path, tmpdir, logger):
+    if sys.platform in ('cygwin', 'win32'):
+        try:
+            return _try_open_database_copy(database_path, tmpdir)
+        except PermissionError:
+            logger.info('Attempting to unlock cookies')
+            _mswindows_unlock_cookies(database_path)
+            return _try_open_database_copy(database_path, tmpdir)
+    else:
+        return _try_open_database_copy(database_path, tmpdir)
 
 
 def _get_column_names(cursor, table_name):

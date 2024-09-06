@@ -61,11 +61,9 @@ from .utils import (
     shell_quote,
     traverse_obj,
     variadic,
-    write_string
+    write_string,
 )
 
-if sys.platform in ('cygwin', 'win32'):
-    from .utils import chrome_cookie_unlock
 from .utils.networking import std_headers
 from .utils._utils import _UnsafeExtensionError
 from .YoutubeDL import YoutubeDL
