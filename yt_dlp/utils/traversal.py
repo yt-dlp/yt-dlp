@@ -266,7 +266,7 @@ def traverse_obj(
                 continue
 
             if key is filter:
-                obj = filter(None, objs)
+                objs = filter(None, objs)
                 continue
 
             if __debug__ and callable(key):
@@ -368,7 +368,23 @@ def subs_list_to_dict(subs: list[dict] | None = None, /, *, ext=None):
     return result
 
 
-def find_element(tag=None, id=None, cls=None, attr=None, value=None, html=False):
+@typing.overload
+def find_element(*, attr: str, value: str, tag: str | None = None, html=False): ...
+
+
+@typing.overload
+def find_element(*, cls: str, html=False): ...
+
+
+@typing.overload
+def find_element(*, id: str, tag: str | None = None, html=False): ...
+
+
+@typing.overload
+def find_element(*, tag: str, html=False): ...
+
+
+def find_element(*, tag=None, id=None, cls=None, attr=None, value=None, html=False):
     # deliberately using `id=` and `cls=` for ease of readability
     assert tag or id or cls or (attr and value), 'One of tag, id, cls or (attr AND value) is required'
     if not tag:
@@ -394,7 +410,15 @@ def find_element(tag=None, id=None, cls=None, attr=None, value=None, html=False)
     return lambda html: get_element_text_and_html_by_tag(tag, html)[index]
 
 
-def find_elements(tag=None, cls=None, attr=None, value=None, html=False):
+@typing.overload
+def find_elements(*, cls: str, html=False): ...
+
+
+@typing.overload
+def find_elements(*, attr: str, value: str, tag: str | None = None, html=False): ...
+
+
+def find_elements(*, tag=None, cls=None, attr=None, value=None, html=False):
     # deliberately using `cls=` for ease of readability
     assert cls or (attr and value), 'One of cls or (attr AND value) is required'
 

@@ -431,14 +431,10 @@ class TestTraversal:
             'Morsel should not be implicitly changed to dict on usage'
 
     def test_traversal_filter(self):
-        assert traverse_obj(_TEST_DATA, ['None', filter]) is None, \
+        data = [None, False, True, 0, 1, 0.0, 1.1, '', 'str', {}, {0: 0}, [], [1]]
+
+        assert traverse_obj(data, [..., filter]) == [True, 1, 1.1, 'str', {0: 0}, [1]], \
             '`filter` should filter falsy values'
-        assert traverse_obj(_TEST_DATA, ['dict', filter]) is None, \
-            '`filter` should filter falsy values'
-        assert traverse_obj(_TEST_DATA, ['urls', 'index', filter]) is None, \
-            '`filter` should filter falsy values'
-        assert traverse_obj(_TEST_DATA, ['str', filter]) == 'str', \
-            '`filter` should leave truthy values'
 
     def test_traversal_require(self):
         with pytest.raises(ExtractorError):
