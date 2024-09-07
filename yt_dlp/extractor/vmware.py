@@ -12,7 +12,7 @@ class VMwareExploreIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'VCFB1440LV',
             'description': r're:^All About vSphere 8: What\'s New in the Technology',
-            'thumbnail': 'https://cf-images.us-east-1.prod.boltdns.net/v1/jit/6164421911001/cde65c5a-51ff-4a0c-905f-ed71e25c0f2c/main/1920x1080/22m53s824ms/match/image.jpg',
+            'thumbnail': 'https://cf-images.us-east-1.prod.boltdns.net/v1/static/6164421911001/cde65c5a-51ff-4a0c-905f-ed71e25c0f2c/80d7489b-7b65-47d9-b30c-8056b132892f/1920x1080/match/image.jpg',
             'tags': 'count:6',
             'timestamp': 1724585610,
             'upload_date': '20240825',
