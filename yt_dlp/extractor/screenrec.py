@@ -1,5 +1,4 @@
 from .common import InfoExtractor
-from ..utils import url_or_none
 
 
 class ScreenRecIE(InfoExtractor):
@@ -30,5 +29,5 @@ class ScreenRecIE(InfoExtractor):
             'title': self._og_search_title(webpage, default=None) or self._html_extract_title(webpage),
             'description': self._og_search_description(webpage),
             'thumbnail': self._og_search_thumbnail(webpage),
-            'formats': self._extract_m3u8_formats(url_or_none(m3u8_url), video_id, ext='mp4'),
+            'formats': self._extract_m3u8_formats(m3u8_url, video_id, ext='mp4'),
         }
