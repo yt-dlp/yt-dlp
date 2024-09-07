@@ -5007,10 +5007,10 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             yield self.url_result(
                 f'https://www.youtube.com/shorts/{video_id}',
                 ie=YoutubeIE, video_id=video_id,
-                **traverse_obj(renderer, {
-                    'title': ('overlayMetadata', 'primaryText', 'content', {str}),
-                    'view_count': ('overlayMetadata', 'secondaryText', 'content', {parse_count}),
-                }),
+                **traverse_obj(renderer, ('overlayMetadata', {
+                    'title': ('primaryText', 'content', {str}),
+                    'view_count': ('secondaryText', 'content', {parse_count}),
+                })),
                 thumbnails=self._extract_thumbnails(renderer, 'thumbnail', final_key='sources'))
             return
 
