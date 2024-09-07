@@ -38,7 +38,7 @@ class MeritPlusIE(InfoExtractor):
             'description': r're:^Get ready for Gambler Days with the PBR! Watch elite riders battle',
             'thumbnail': 'https://cdn.jwplayer.com/v2/media/ebVUK1wS/poster.jpg?width=1920',
             'duration': 10876.0,
-            'tags': 'count:7',
+            'tags': 'count:6',
             'timestamp': 1724461200,
             'upload_date': '20240824',
         },
@@ -59,7 +59,7 @@ class MeritPlusIE(InfoExtractor):
         'url': 'https://www.meritplus.com/c/sns/jryHEWXj',
         'info_dict': {
             'id': 'jryHEWXj',
-            'title': 'Morning on Merit Street',
+            'title': 'Morning On Merit Street',
             'description': r're:^Award winning journalist Dominique Sachse and co-host Fanchon Stinger',
             'thumbnail': 'https://assets.mediabackstage.com/merit_prod/thumbnails/moms_thumbnail_1920x1080-1708708358462.jpg',
         },
