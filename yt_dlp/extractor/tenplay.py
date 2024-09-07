@@ -30,17 +30,24 @@ class TenPlayIE(InfoExtractor):
         'params': {
             'skip_download': True,
         },
-        'skip': 'Only available in Australia',
     }, {
-        'url': 'https://10play.com.au/todd-sampsons-body-hack/episodes/season-4/episode-7/tpv200921kvngh',
+        'url': 'https://10play.com.au/neighbours/episodes/season-42/episode-9107/tpv240902nzqyp',
         'info_dict': {
-            'id': '6192880312001',
+            'id': '9000000000091177',
             'ext': 'mp4',
-            'title': "Todd Sampson's Body Hack - S4 Ep. 2",
-            'description': 'md5:fa278820ad90f08ea187f9458316ac74',
+            'title': 'Neighbours - S42 Ep. 9107',
+            'alt_title': 'Thu 05 Sep',
+            'description': 'md5:37a1f4271be34b9ee2b533426a5fbaef',
+            'duration': 1388,
+            'episode': 'Episode 9107',
+            'episode_number': 9107,
+            'season': 'Season 42',
+            'season_number': 42,
+            'series': 'Neighbours',
+            'thumbnail': r're:https://.*\.jpg',
             'age_limit': 15,
-            'timestamp': 1600770600,
-            'upload_date': '20200922',
+            'timestamp': 1725517860,
+            'upload_date': '20240905',
             'uploader': 'Channel 10',
             'uploader_id': '2199827728001',
         },
@@ -51,7 +58,6 @@ class TenPlayIE(InfoExtractor):
         'url': 'https://10play.com.au/how-to-stay-married/web-extras/season-1/terrys-talks-ep-1-embracing-change/tpv190915ylupc',
         'only_matching': True,
     }]
-    _GEO_BYPASS = False
 
     _AUS_AGES = {
         'G': 0,
@@ -69,15 +75,25 @@ class TenPlayIE(InfoExtractor):
             'https://10play.com.au/api/v1/videos/' + content_id, content_id)
 
         video = self._download_json(
-            'https://pubads.g.doubleclick.net/ondemand/hls/content/2489270/vid/'
-            + data.get('altId') + '/streams', content_id, data=b'')
+            f'https://pubads.g.doubleclick.net/ondemand/hls/content/2489270/vid/{data["altId"]}/streams',
+            content_id, data=b'')
 
-        m3u8_url = video.get('stream_manifest')
-        formats = self._extract_m3u8_formats(m3u8_url, content_id, 'mp4')
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(video['stream_manifest'], content_id, 'mp4')
+        for sub in video.get('subtitles', []):
+            if ttml_url := sub.get('ttml'):
+                subtitles.setdefault(sub.get('language') or 'en', []).append({
+                    'url': ttml_url,
+                    'ext': 'ttml',
+                })
+            if webvtt_url := sub.get('webvtt'):
+                subtitles.setdefault(sub.get('language') or 'en', []).append({
+                    'url': webvtt_url,
+                    'ext': 'vtt',
+                })
 
         return {
             'formats': formats,
-            'subtitles': {subtitle.get('language'): [{'url': subtitle.get('webvtt')}] for subtitle in video.get('subtitles', [])},
+            'subtitles': subtitles,
             'id': data.get('altId') or content_id,
             'duration': data.get('duration'),
             'title': data.get('subtitle'),
