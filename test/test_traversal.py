@@ -436,14 +436,14 @@ class TestTraversal:
         assert traverse_obj(data, [..., filter]) == [True, 1, 1.1, 'str', {0: 0}, [1]], \
             '`filter` should filter falsy values'
 
+
+class TestTraversalHelpers:
     def test_traversal_require(self):
         with pytest.raises(ExtractorError):
             traverse_obj(_TEST_DATA, ['None', {require('value')}])
         assert traverse_obj(_TEST_DATA, ['str', {require('value')}]) == 'str', \
             '`require` should pass through non `None` values'
 
-
-class TestTraversalHelpers:
     def test_subs_list_to_dict(self):
         assert traverse_obj([
             {'name': 'de', 'url': 'https://example.com/subs/de.vtt'},
