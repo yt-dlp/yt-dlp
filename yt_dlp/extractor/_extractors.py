@@ -1821,6 +1821,7 @@ from .scte import (
     SCTECourseIE,
 )
 from .sejmpl import SejmIE
+from .sen import SenIE
 from .senalcolombia import SenalColombiaLiveIE
 from .senategov import (
     SenateGovIE,
