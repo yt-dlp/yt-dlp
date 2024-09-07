@@ -2,6 +2,7 @@ import functools
 import itertools
 
 from .common import InfoExtractor
+from ..networking import HEADRequest
 from ..utils import int_or_none, traverse_obj, urljoin
 
 
@@ -30,6 +31,7 @@ class TenPlayIE(InfoExtractor):
         'params': {
             'skip_download': True,
         },
+        'skip': 'Only available in Australia',
     }, {
         'url': 'https://10play.com.au/neighbours/episodes/season-42/episode-9107/tpv240902nzqyp',
         'info_dict': {
@@ -54,6 +56,7 @@ class TenPlayIE(InfoExtractor):
         'params': {
             'skip_download': True,
         },
+        'skip': 'Only available in Australia',
     }, {
         'url': 'https://10play.com.au/how-to-stay-married/web-extras/season-1/terrys-talks-ep-1-embracing-change/tpv190915ylupc',
         'only_matching': True,
@@ -74,26 +77,18 @@ class TenPlayIE(InfoExtractor):
         data = self._download_json(
             'https://10play.com.au/api/v1/videos/' + content_id, content_id)
 
-        video = self._download_json(
-            f'https://pubads.g.doubleclick.net/ondemand/hls/content/2489270/vid/{data["altId"]}/streams',
-            content_id, data=b'')
-
-        formats, subtitles = self._extract_m3u8_formats_and_subtitles(video['stream_manifest'], content_id, 'mp4')
-        for sub in video.get('subtitles', []):
-            if ttml_url := sub.get('ttml'):
-                subtitles.setdefault(sub.get('language') or 'en', []).append({
-                    'url': ttml_url,
-                    'ext': 'ttml',
-                })
-            if webvtt_url := sub.get('webvtt'):
-                subtitles.setdefault(sub.get('language') or 'en', []).append({
-                    'url': webvtt_url,
-                    'ext': 'vtt',
-                })
+        _video_url = traverse_obj(self._download_json(
+            f'https://vod.ten.com.au/api/videos/bcquery?command=find_videos_by_id&video_id={data["altId"]}',
+            content_id, 'Downloading video JSON'), ('items', 0, 'HLSURL'))
+        m3u8_url = self._request_webpage(HEADRequest(
+            _video_url), content_id).url
+        if '10play-not-in-oz' in m3u8_url:
+            self.raise_geo_restricted(countries=['AU'])
+        formats = self._extract_m3u8_formats(m3u8_url, content_id, 'mp4')
 
         return {
             'formats': formats,
-            'subtitles': subtitles,
+            'subtitles': {'en': [{'url': data.get('captionUrl')}]} if data.get('captionUrl') else None,
             'id': data.get('altId') or content_id,
             'duration': data.get('duration'),
             'title': data.get('subtitle'),
