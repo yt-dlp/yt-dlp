@@ -8,6 +8,7 @@ from ..utils import (
     merge_dicts,
     str_or_none,
     traverse_obj,
+    url_basename,
     url_or_none,
 )
 
@@ -110,6 +111,7 @@ class GiphyBaseIE(InfoExtractor):
                 yield {
                     **self._extract_info(video, video['id']),
                     'webpage_url': video['url'],
+                    'webpage_url_basename': url_basename(video['url']),
                 }
             count += len(search_results.get('results'))
             if count >= (int_or_none(self.get_param('playlistend')) or (self._GIPHY_MAX + 1)):
@@ -169,12 +171,12 @@ class GiphyIE(GiphyBaseIE):
             'ext': 'mp4',
             'title': 'You Can\'t Break Up With Me',
             'description': 'South Park, Season 20, Episode 4, Wieners Out',
-            'tags': 'count:16',
+            'tags': 'count:17',
             'thumbnail': r're:^https?://.*',
             'upload_date': '20220516',
             'uploader': 'South Park',
             'uploader_id': 'southpark',
-            'uploader_url': 'https://giphy.com/southpark',
+            'uploader_url': 'https://giphy.com/southpark/',
         },
     }, {
         'url': 'https://giphy.com/stickers/mario-PFxFYEZNUavG8',
@@ -431,6 +433,7 @@ class GiphySearchIE(GiphyBaseIE, SearchInfoExtractor):
                             yield {
                                 **self._extract_info(video, video['id']),
                                 'webpage_url': video['url'],
+                                'webpage_url_basename': url_basename(video['url']),
                             }
                         if len(search_results['data']) < limit:
                             total = offset + len(search_results['data'])
@@ -503,6 +506,7 @@ class GiphyStoriesIE(GiphyBaseIE):
                     **self._extract_info(video['gif'], video['gif']['id']),
                     'description': video['caption'],
                     'webpage_url': video['gif']['url'],
+                    'webpage_url_basename': url_basename(video['gif']['url']),
                 })
             info = traverse_obj(data, {
                 'id': ('story_id', {lambda x: x or slug}),
