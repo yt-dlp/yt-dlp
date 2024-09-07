@@ -3,7 +3,7 @@ import itertools
 
 from .common import InfoExtractor
 from ..networking import HEADRequest
-from ..utils import int_or_none, traverse_obj, urljoin
+from ..utils import int_or_none, traverse_obj, url_or_none, urljoin
 
 
 class TenPlayIE(InfoExtractor):
@@ -77,13 +77,16 @@ class TenPlayIE(InfoExtractor):
         data = self._download_json(
             'https://10play.com.au/api/v1/videos/' + content_id, content_id)
 
-        _video_url = traverse_obj(self._download_json(
+        video_data = self._download_json(
             f'https://vod.ten.com.au/api/videos/bcquery?command=find_videos_by_id&video_id={data["altId"]}',
-            content_id, 'Downloading video JSON'), ('items', 0, 'HLSURL'))
-        m3u8_url = self._request_webpage(HEADRequest(
-            _video_url), content_id).url
+            content_id, 'Downloading video JSON')
+        m3u8_url = self._request_webpage(
+            HEADRequest(traverse_obj(video_data, ('items', 0, 'HLSURL', {url_or_none}))),
+            content_id, 'Checking stream URL').url
         if '10play-not-in-oz' in m3u8_url:
             self.raise_geo_restricted(countries=['AU'])
+        # Attempt to get a higher quality stream
+        m3u8_url = m3u8_url.replace(',150,75,55,0000', ',300,150,75,55,0000')
         formats = self._extract_m3u8_formats(m3u8_url, content_id, 'mp4')
 
         return {
