@@ -9,7 +9,6 @@ from ..utils import (
 
 
 class XinpianchangIE(InfoExtractor):
-    _WORKING = False
     _VALID_URL = r'https?://www\.xinpianchang\.com/(?P<id>[^/]+?)(?:\D|$)'
     IE_NAME = 'xinpianchang'
     IE_DESC = 'xinpianchang.com'
@@ -49,10 +48,11 @@ class XinpianchangIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id=video_id)
-        domain = self.find_value_with_regex(var='requireNewDomain', webpage=webpage)
-        vid = self.find_value_with_regex(var='vid', webpage=webpage)
-        app_key = self.find_value_with_regex(var='modeServerAppKey', webpage=webpage)
-        api = update_url_query(f'{domain}/mod/api/v2/media/{vid}', {'appKey': app_key})
+        video_data = self._search_nextjs_data(webpage, video_id)['props']['pageProps']['detail']['video']
+
+        api = update_url_query(
+            f'https://mod-api.xinpianchang.com/mod/api/v2/media/{video_data["vid"]}',
+            {'appKey': video_data['appKey']})
         data = self._download_json(api, video_id=video_id)['data']
         formats, subtitles = [], {}
         for k, v in data.get('resource').items():
@@ -72,6 +72,10 @@ class XinpianchangIE(InfoExtractor):
                     'width': int_or_none(prog.get('width')),
                     'height': int_or_none(prog.get('height')),
                     'ext': 'mp4',
+                    'http_headers': {
+                        # NB: Server returns 403 without the Range header
+                        'Range': 'bytes=0-',
+                    },
                 } for prog in v if prog.get('url') or []])
 
         return {
@@ -87,6 +91,3 @@ class XinpianchangIE(InfoExtractor):
             'formats': formats,
             'subtitles': subtitles,
         }
-
-    def find_value_with_regex(self, var, webpage):
-        return self._search_regex(rf'var\s{var}\s=\s\"(?P<vid>[^\"]+)\"', webpage, name=var)
