@@ -113,9 +113,10 @@ class ServusIE(InfoExtractor):
         }
 
     def _get_description(self, next_data):
-        return join_nonempty(*traverse_obj(next_data, ('props', 'pageProps', 'data',
-                                                       ('stv_short_description', 'stv_long_description'), {str},
-                                                       {lambda x: x.replace('\n\n', '\n')}, {unescapeHTML})), delim='\n\n')
+        return join_nonempty(*traverse_obj(next_data, (
+            'props', 'pageProps', 'data',
+            ('stv_short_description', 'stv_long_description'), {str},
+            {lambda x: x.replace('\n\n', '\n')}, {unescapeHTML})), delim='\n\n')
 
     def _report_errors(self, video):
         playability_errors = traverse_obj(video, ('playabilityErrors', ...))
