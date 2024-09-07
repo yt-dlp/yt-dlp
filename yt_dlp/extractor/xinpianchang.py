@@ -3,7 +3,6 @@ from ..utils import (
     int_or_none,
     str_or_none,
     try_get,
-    update_url_query,
     url_or_none,
 )
 
@@ -50,10 +49,9 @@ class XinpianchangIE(InfoExtractor):
         webpage = self._download_webpage(url, video_id=video_id)
         video_data = self._search_nextjs_data(webpage, video_id)['props']['pageProps']['detail']['video']
 
-        api = update_url_query(
-            f'https://mod-api.xinpianchang.com/mod/api/v2/media/{video_data["vid"]}',
-            {'appKey': video_data['appKey']})
-        data = self._download_json(api, video_id=video_id)['data']
+        data = self._download_json(
+            f'https://mod-api.xinpianchang.com/mod/api/v2/media/{video_data["vid"]}', video_id,
+            query={'appKey': video_data['appKey']})['data']
         formats, subtitles = [], {}
         for k, v in data.get('resource').items():
             if k in ('dash', 'hls'):
