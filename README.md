@@ -777,6 +777,7 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
                                     that do not support RFC 5746 secure
                                     renegotiation
     --no-check-certificates         Suppress HTTPS certificate validation
+    --no-check-proxy-certificates   Suppress HTTPS Proxy certificate validation
     --prefer-insecure               Use an unencrypted connection to retrieve
                                     information about the video (Currently
                                     supported only for YouTube)
@@ -882,6 +883,18 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
                                     Password for client certificate private key,
                                     if encrypted. If not provided, and the key
                                     is encrypted, yt-dlp will ask interactively
+    --proxy-client-certificate CERTFILE
+                                    Path to client certificate file in PEM
+                                    format for HTTPS proxy. May include the
+                                    private key
+    --proxy-client-certificate-key KEYFILE
+                                    Path to private key file for client
+                                    certificate for HTTPS proxy
+    --proxy-client-certificate-password PASSWORD
+                                    Password for client certificate private key,
+                                    if encrypted, for HTTPS proxy. If not
+                                    provided, and the key is encrypted, yt-dlp
+                                    will ask interactively
 
 ## Post-Processing Options:
     -x, --extract-audio             Convert video files to audio-only files
