@@ -673,11 +673,12 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
 
         for json_lang, json_filename in json_subs.items():
             escaped_json_filename = self._ffmpeg_filename_argument(json_filename)
+            json_basename = os.path.basename(json_filename)
             opts.extend([
                 '-map', f'-0:m:filename:{json_lang}.json?',
                 '-attach', escaped_json_filename,
-                f'-metadata:s:m:filename:{escaped_json_filename}', 'mimetype=application/json',
-                f'-metadata:s:m:filename:{escaped_json_filename}', f'filename={json_lang}.json',
+                f'-metadata:s:m:filename:{json_basename}', 'mimetype=application/json',
+                f'-metadata:s:m:filename:{json_basename}', f'filename={json_lang}.json',
             ])
 
         temp_filename = prepend_extension(filename, 'temp')
