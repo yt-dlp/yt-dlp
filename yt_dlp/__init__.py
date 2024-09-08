@@ -468,7 +468,7 @@ def validate_options(opts):
             default_downloader = ed.get_basename()
 
     for policy in opts.color.values():
-        if policy not in ('always', 'auto', 'no_color', 'never'):
+        if policy not in ('always', 'auto', 'auto-tty', 'no_color', 'no_color-tty', 'never'):
             raise ValueError(f'"{policy}" is not a valid color policy')
 
     warnings, deprecation_warnings = [], []
