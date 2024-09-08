@@ -19,13 +19,15 @@ class NZZIE(InfoExtractor):
         'playlist_count': 1,
     }]
 
+    def _entries(self, webpage, page_id):
+        for script in re.findall(r'(?s)<script[^>]+data-hid="jw-video-jw[^>]+>(.*?)</script>', webpage):
+            settings = self._search_json(r'var\s+settings\s*=[^{]*', script, 'settings', page_id, fatal=False)
+            if entry := self._parse_jwplayer_data(settings, page_id):
+                yield entry
+
     def _real_extract(self, url):
         page_id = self._match_id(url)
         webpage = self._download_webpage(url, page_id)
 
-        entries = []
-        for script in re.findall(r'(?s)<script[^>]+data-hid="jw-video-jw[^>]+>(.*?)</script>', webpage):
-            settings = self._search_json(r'var\s+settings\s*=[^{]*', script, 'settings', page_id)
-            entries.append(self._parse_jwplayer_data(settings))
-
-        return self.playlist_result(entries, page_id)
+        return self.playlist_result(
+            self._entries(webpage, page_id), page_id)
