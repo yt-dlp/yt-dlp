@@ -8,7 +8,7 @@ from ..utils import (
 
 
 class XinpianchangIE(InfoExtractor):
-    _VALID_URL = r'https?://www\.xinpianchang\.com/(?P<id>[^/]+?)(?:\D|$)'
+    _VALID_URL = r'https?://(www\.)?xinpianchang\.com/(?P<id>a\d+)'
     IE_NAME = 'xinpianchang'
     IE_DESC = 'xinpianchang.com'
     _TESTS = [{
