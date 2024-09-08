@@ -152,6 +152,20 @@ class MTLSHTTPSProxyHandler(HTTPProxyHandler):
         super().__init__(request, *args, **kwargs)
 
 
+class LegacyHTTPSProxyHandler(HTTPProxyHandler):
+    def __init__(self, request, *args, **kwargs):
+        certfn = os.path.join(TEST_DIR, 'testcert.pem')
+        sslctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        sslctx.maximum_version = ssl.TLSVersion.TLSv1_2
+        sslctx.set_ciphers('SHA1:AESCCM:aDSS:eNULL:aNULL')
+        sslctx.load_cert_chain(certfn, None)
+        if isinstance(request, ssl.SSLSocket):
+            request = SSLTransport(request, ssl_context=sslctx, server_side=True)
+        else:
+            request = sslctx.wrap_socket(request, server_side=True)
+        super().__init__(request, *args, **kwargs)
+
+
 class HTTPConnectProxyHandler(BaseHTTPRequestHandler, HTTPProxyAuthMixin):
     protocol_version = 'HTTP/1.1'
     default_request_version = 'HTTP/1.1'
@@ -202,6 +216,22 @@ class MTLSHTTPSConnectProxyHandler(HTTPConnectProxyHandler):
         sslctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
         sslctx.verify_mode = ssl.CERT_REQUIRED
         sslctx.load_verify_locations(cafile=cacertfn)
+        sslctx.load_cert_chain(certfn, None)
+        request = sslctx.wrap_socket(request, server_side=True)
+        self._original_request = request
+        super().__init__(request, *args, **kwargs)
+
+    def do_CONNECT(self):
+        super().do_CONNECT()
+        self.server.close_request(self._original_request)
+
+
+class LegacyHTTPSConnectProxyHandler(HTTPConnectProxyHandler):
+    def __init__(self, request, *args, **kwargs):
+        certfn = os.path.join(TEST_DIR, 'testcert.pem')
+        sslctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        sslctx.maximum_version = ssl.TLSVersion.TLSv1_2
+        sslctx.set_ciphers('SHA1:AESCCM:aDSS:eNULL:aNULL')
         sslctx.load_cert_chain(certfn, None)
         request = sslctx.wrap_socket(request, server_side=True)
         self._original_request = request
@@ -330,6 +360,20 @@ class TestHTTPProxy:
         with ctx.http_server(HTTPSProxyHandler) as server_address:
             with handler(proxy_verify=True, verify=False, proxies={ctx.REQUEST_PROTO: f'https://{server_address}'}) as rh:
                 # Accept both ProxyError and SSLError as may not be feasible to tell if it is proxy or request error.
+                with pytest.raises((ProxyError, SSLError)):
+                    ctx.proxy_info_request(rh)
+
+    @pytest.mark.skip_handler('Urllib', 'urllib does not support https proxies')
+    @pytest.mark.skip_handler('CurlCFFI', 'legacy_ssl ignored by CurlCFFI')
+    def test_https_legacy_ssl_support(self, handler, ctx):
+        with ctx.http_server(LegacyHTTPSProxyHandler) as server_address:
+            with handler(proxy_verify=False, verify=False, proxy_legacy_ssl_support=True, proxies={ctx.REQUEST_PROTO: f'https://{server_address}'}) as rh:
+                proxy_info = ctx.proxy_info_request(rh)
+                assert proxy_info['proxy'] == server_address
+                assert proxy_info['connect'] is False
+                assert 'Proxy-Authorization' not in proxy_info['headers']
+
+            with handler(proxy_verify=False, verify=False, proxy_legacy_ssl_support=False, proxies={ctx.REQUEST_PROTO: f'https://{server_address}'}) as rh:
                 with pytest.raises((ProxyError, SSLError)):
                     ctx.proxy_info_request(rh)
 
@@ -486,5 +530,19 @@ class TestHTTPConnectProxy:
                 proxy_client_cert=None,
                 proxies={ctx.REQUEST_PROTO: f'https://{server_address}'},
             ) as rh:
+                with pytest.raises((ProxyError, SSLError)):
+                    ctx.proxy_info_request(rh)
+
+    @pytest.mark.skipif(urllib3 is None, reason='requires urllib3 to test')
+    @pytest.mark.skip_handler('CurlCFFI', 'legacy_ssl ignored by CurlCFFI')
+    def test_https_connect_legacy_ssl_support(self, handler, ctx):
+        with ctx.http_server(LegacyHTTPSConnectProxyHandler) as server_address:
+            with handler(proxy_verify=False, verify=False, proxy_legacy_ssl_support=True, proxies={ctx.REQUEST_PROTO: f'https://{server_address}'}) as rh:
+                proxy_info = ctx.proxy_info_request(rh)
+                assert proxy_info['proxy'] == server_address
+                assert proxy_info['connect'] is True
+                assert 'Proxy-Authorization' not in proxy_info['headers']
+
+            with handler(proxy_verify=False, verify=False, proxy_legacy_ssl_support=False, proxies={ctx.REQUEST_PROTO: f'https://{server_address}'}) as rh:
                 with pytest.raises((ProxyError, SSLError)):
                     ctx.proxy_info_request(rh)

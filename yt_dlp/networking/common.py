@@ -194,7 +194,7 @@ class RequestHandler(abc.ABC):
     @param verify: Verify SSL certificates
     @param proxy_verify: Verify SSL certificates of proxy connections
     @param legacy_ssl_support: Enable legacy SSL options such as legacy server connect and older cipher support.
-    @param legacy_proxy_ssl_support: Enable legacy SSL options such as legacy server connect and older cipher support for proxy connections.
+    @param proxy_legacy_ssl_support: Enable legacy SSL options such as legacy server connect and older cipher support for proxy connections.
 
     Some configuration options may be available for individual Requests too. In this case,
     either the Request configuration option takes precedence or they are merged.
@@ -238,7 +238,7 @@ class RequestHandler(abc.ABC):
         verify: bool = True,
         proxy_verify: bool = True,
         legacy_ssl_support: bool = False,
-        legacy_proxy_ssl_support: bool = False,
+        proxy_legacy_ssl_support: bool = False,
         **_,
     ):
 
@@ -255,7 +255,7 @@ class RequestHandler(abc.ABC):
         self.verify = verify
         self.proxy_verify = proxy_verify
         self.legacy_ssl_support = legacy_ssl_support
-        self.legacy_proxy_ssl_support = legacy_proxy_ssl_support
+        self.proxy_legacy_ssl_support = proxy_legacy_ssl_support
         super().__init__()
 
     def _make_sslcontext(self, legacy_ssl_support=None):
@@ -269,7 +269,7 @@ class RequestHandler(abc.ABC):
     def _make_proxy_sslcontext(self, legacy_ssl_support=None):
         return make_ssl_context(
             verify=self.proxy_verify,
-            legacy_support=legacy_ssl_support if legacy_ssl_support is not None else self.legacy_proxy_ssl_support,
+            legacy_support=legacy_ssl_support if legacy_ssl_support is not None else self.proxy_legacy_ssl_support,
             use_certifi=not self.prefer_system_certs,
             **self._proxy_client_cert,
         )
