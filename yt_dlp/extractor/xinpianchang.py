@@ -9,8 +9,7 @@ from ..utils import (
 
 class XinpianchangIE(InfoExtractor):
     _VALID_URL = r'https?://(www\.)?xinpianchang\.com/(?P<id>a\d+)'
-    IE_NAME = 'xinpianchang'
-    IE_DESC = 'xinpianchang.com'
+    IE_DESC = '新片场'
     _TESTS = [{
         'url': 'https://www.xinpianchang.com/a11766551',
         'info_dict': {
