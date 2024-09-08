@@ -10,13 +10,13 @@ from ..utils import (
     int_or_none,
     parse_duration,
     str_or_none,
-    traverse_obj,
     try_get,
     unescapeHTML,
     unified_strdate,
     update_url_query,
     url_or_none,
 )
+from ..utils.traversal import traverse_obj
 
 
 class HuyaLiveIE(InfoExtractor):
@@ -148,8 +148,9 @@ class HuyaVideoIE(InfoExtractor):
         'url': 'https://www.huya.com/video/play/1002412640.html',
         'info_dict': {
             'id': '1002412640',
+            'ext': 'mp4',
             'title': '8月3日',
-            'thumbnail': r're:https://.*\.jpg*',
+            'thumbnail': r're:https?://.*\.jpg',
             'duration': 14,
             'uploader': '虎牙-ATS欧卡车队青木',
             'uploader_id': '1564376151',
@@ -163,8 +164,9 @@ class HuyaVideoIE(InfoExtractor):
         'url': 'https://www.huya.com/video/play/556054543.html',
         'info_dict': {
             'id': '556054543',
+            'ext': 'mp4',
             'title': '我不挑事 也不怕事',
-            'thumbnail': r're:https://.*\.jpg*',
+            'thumbnail': r're:https?://.*\.jpg',
             'duration': 1864,
             'uploader': '卡尔',
             'uploader_id': '367138632',
@@ -177,7 +179,9 @@ class HuyaVideoIE(InfoExtractor):
 
     def _real_extract(self, url: str):
         video_id = self._match_id(url)
-        video_data = self._download_json('https://liveapi.huya.com/moment/getMomentContent', video_id, query={'videoId': video_id})['data']['moment']['videoInfo']
+        video_data = self._download_json(
+            'https://liveapi.huya.com/moment/getMomentContent', video_id,
+            query={'videoId': video_id})['data']['moment']['videoInfo']
 
         formats = []
         for definition in traverse_obj(video_data, ('definitions', lambda _, v: url_or_none(v['url']))):
@@ -201,8 +205,8 @@ class HuyaVideoIE(InfoExtractor):
                 'uploader': ('nickName', {str}),
                 'uploader_id': ('uid', {str_or_none}),
                 'upload_date': ('videoUploadTime', {unified_strdate}),
-                'view_count': ('videoPlayNum', {int}),
-                'comment_count': ('videoCommentNum', {int}),
-                'like_count': ('favorCount', {int}),
+                'view_count': ('videoPlayNum', {int_or_none}),
+                'comment_count': ('videoCommentNum', {int_or_none}),
+                'like_count': ('favorCount', {int_or_none}),
             }),
         }
