@@ -131,6 +131,7 @@ class IPrimaIE(InfoExtractor):
         video_id = self._search_regex((
             r'productId\s*=\s*([\'"])(?P<id>p\d+)\1',
             r'pproduct_id\s*=\s*([\'"])(?P<id>p\d+)\1',
+            r'let videos\s*=\s*([\'"])(?P<id>p\d+)\1',
         ), webpage, 'real id', group='id', default=None)
 
         if not video_id:
