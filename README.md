@@ -777,7 +777,7 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
                                     that do not support RFC 5746 secure
                                     renegotiation
     --no-check-certificates         Suppress HTTPS certificate validation
-    --no-check-proxy-certificates   Suppress HTTPS Proxy certificate validation
+    --proxy-no-check-certificates   Suppress HTTPS Proxy certificate validation
     --prefer-insecure               Use an unencrypted connection to retrieve
                                     information about the video (Currently
                                     supported only for YouTube)

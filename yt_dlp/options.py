@@ -1099,7 +1099,7 @@ def create_parser():
         action='store_true', dest='no_check_certificate', default=False,
         help='Suppress HTTPS certificate validation')
     workarounds.add_option(
-        '--no-check-proxy-certificates',
+        '--proxy-no-check-certificates',
         action='store_true', dest='proxy_no_check_certificate', default=False,
         help='Suppress HTTPS Proxy certificate validation')
     workarounds.add_option(
