@@ -340,9 +340,14 @@ class YoutubeDL:
     legacyserverconnect: Explicitly allow HTTPS connection to servers that do not
                        support RFC 5746 secure renegotiation
     nocheckcertificate:  Do not verify SSL certificates
+    proxy_nocheckcertificate:  Do not verify SSL certificates for HTTPS proxy
     client_certificate:  Path to client certificate file in PEM format. May include the private key
     client_certificate_key:  Path to private key file for client certificate
     client_certificate_password:  Password for client certificate private key, if encrypted.
+                        If not provided and the key is encrypted, yt-dlp will ask interactively
+    proxy_client_certificate:  Path to client certificate file in PEM format for HTTPS proxy. May include the private key
+    proxy_client_certificate_key:  Path to private key file for client certificate for HTTPS proxy.
+    proxy_client_certificate_password:  Password for client certificate private key, if encrypted, for HTTPS proxy.
                         If not provided and the key is encrypted, yt-dlp will ask interactively
     prefer_insecure:   Use HTTP instead of HTTPS to retrieve information.
                        (Only supported by some extractors)
@@ -4221,6 +4226,7 @@ class YoutubeDL:
                 proxies=proxies,
                 prefer_system_certs='no-certifi' in self.params['compat_opts'],
                 verify=not self.params.get('nocheckcertificate'),
+                proxy_verify=not self.params.get('proxy_nocheckcertificate'),
                 **traverse_obj(self.params, {
                     'verbose': 'debug_printtraffic',
                     'source_address': 'source_address',
@@ -4232,6 +4238,11 @@ class YoutubeDL:
                         'client_certificate': 'client_certificate',
                         'client_certificate_key': 'client_certificate_key',
                         'client_certificate_password': 'client_certificate_password',
+                    },
+                    'proxy_client_cert': {
+                        'client_certificate': 'proxy_client_certificate',
+                        'client_certificate_key': 'proxy_client_certificate_key',
+                        'client_certificate_password': 'proxy_client_certificate_password',
                     },
                 }),
             ))
