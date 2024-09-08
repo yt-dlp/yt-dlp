@@ -178,14 +178,15 @@ class MixchMovieIE(InfoExtractor):
         # Comments are organized in a json chain, connected with 'nextCursor' property.
         # There are up to 20 comments in one json file.
         while has_next:
-            yield from traverse_obj(data,
-                                    ('comments', lambda k, v: v['comment'], {
-                                        'author': ('user_name', {str_or_none}),
-                                        'author_id': ('user_id', {int_or_none}),
-                                        'id': ('id', {int_or_none}),
-                                        'text': ('comment', {str_or_none}),
-                                        'timestamp': ('created', {int_or_none}),
-                                    }))
+            yield from traverse_obj(
+                data,
+                ('comments', lambda k, v: v['comment'], {
+                    'author': ('user_name', {str_or_none}),
+                    'author_id': ('user_id', {int_or_none}),
+                    'id': ('id', {int_or_none}),
+                    'text': ('comment', {str_or_none}),
+                    'timestamp': ('created', {int_or_none}),
+                }))
 
             has_next = traverse_obj(data, ('hasNext'), {bool_or_none})
             next_cursor = traverse_obj(data, ('nextCursor'), {str_or_none})
@@ -197,8 +198,9 @@ class MixchMovieIE(InfoExtractor):
                 has_next = False
 
             if has_next:
-                data = self._download_json(f'https://mixch.tv/api-web/movies/{video_id}/comments?cursor={next_cursor}&limit=20',
-                                           (video_id, next_cursor),
-                                           note='Downloading comments', errnote='Failed to download comments')
+                data = self._download_json(
+                    f'https://mixch.tv/api-web/movies/{video_id}/comments?cursor={next_cursor}&limit=20',
+                    (video_id, next_cursor),
+                    note='Downloading comments', errnote='Failed to download comments')
                 # Limit comments download times to avoid server forbidding.
                 comment_dl_times += 1
