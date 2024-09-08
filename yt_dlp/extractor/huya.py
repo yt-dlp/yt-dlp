@@ -195,7 +195,7 @@ class HuyaVideoIE(InfoExtractor):
         },
     }]
 
-    def _real_extract(self, url: str) -> dict:
+    def _real_extract(self, url):
         video_id = self._match_id(url)
         api_url = f'https://liveapi.huya.com/moment/getMomentContent?videoId={video_id}'
 
