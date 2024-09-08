@@ -822,7 +822,7 @@ class TestRequestHandlerMisc:
         rh.close()
         assert len(logging_handlers) == before_count
 
-    def test_request_handler_errors(self):
+    def test_wrap_request_errors(self):
         class TestRequestHandler(RequestHandler):
             def _validate(self, request):
                 if request.headers.get('x-fail'):
