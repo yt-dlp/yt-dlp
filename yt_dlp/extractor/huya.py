@@ -177,7 +177,7 @@ class HuyaVideoIE(InfoExtractor):
 
     def _real_extract(self, url: str):
         video_id = self._match_id(url)
-        video_data = self._download_json('https://liveapi.huya.com/moment/getMomentContent', video_id,query={'videoId': video_id})['data']['moment']['videoInfo']
+        video_data = self._download_json('https://liveapi.huya.com/moment/getMomentContent', video_id, query={'videoId': video_id})['data']['moment']['videoInfo']
 
         formats = []
         for definition in traverse_obj(video_data, ('definitions', lambda _, v: url_or_none(v['url']))):
