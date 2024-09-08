@@ -129,7 +129,7 @@ class XimalayaIE(XimalayaBaseIE):
             filename = self._decrypt_filename(vip_info['fileId'], vip_info['seed'])
             sign, token, timestamp = self._decrypt_url_params(vip_info['ep'])
             vip_url = update_url_query(
-                f'{vip_info['domain']}/download/{vip_info['apiVersion']}{filename}', {
+                f'{vip_info["domain"]}/download/{vip_info["apiVersion"]}{filename}', {
                     'sign': sign,
                     'token': token,
                     'timestamp': timestamp,
