@@ -772,6 +772,10 @@ class TestClientCertificate:
             'client_certificate_password': 'foobar',
         })
 
+    def test_mtls_required(self, handler):
+        with pytest.raises(SSLError):
+            self._run_test(handler)
+
 
 @pytest.mark.parametrize('handler', ['CurlCFFI'], indirect=True)
 class TestHTTPImpersonateRequestHandler(TestRequestHandlerBase):
