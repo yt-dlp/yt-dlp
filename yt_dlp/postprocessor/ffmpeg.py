@@ -830,6 +830,7 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
             info['infojson_filename'] = infofn
 
         escaped_name = self._ffmpeg_filename_argument(infofn)
+        info_basename = os.path.basename(infofn)
 
         yield (
             # In order to override any old info.json reliably we need to
@@ -840,8 +841,8 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
             # info.json data.
             '-map', '-0:m:filename:info.json?',
             '-attach', escaped_name,
-            f'-metadata:s:m:filename:{escaped_name}', 'mimetype=application/json',
-            f'-metadata:s:m:filename:{escaped_name}', 'filename=info.json',
+            f'-metadata:s:m:filename:{info_basename}', 'mimetype=application/json',
+            f'-metadata:s:m:filename:{info_basename}', 'filename=info.json',
         )
 
 
