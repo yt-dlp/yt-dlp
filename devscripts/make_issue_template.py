@@ -46,6 +46,14 @@ VERBOSE_TMPL = '''
       render: shell
     validations:
       required: true
+  - type: markdown
+    attributes:
+      value: |
+        > [!CAUTION]
+        > ### GitHub is experiencing a high volume of malicious spam comments.
+        > ### If you receive any replies asking you download a file, do NOT follow the download links!
+        >
+        > Note that this issue may be temporarily locked as an anti-spam measure after it is opened.
 '''.strip()
 
 NO_SKIP = '''
