@@ -4,9 +4,7 @@ from ..utils.traversal import traverse_obj
 
 
 class PIAULIZAPortalAPIIE(InfoExtractor):
-    IE_DESC = 'https://player-api.p.uliza.jp - PIA ULIZA m3u8'
-
-    _VALID_URL = r'https://player-api\.p\.uliza\.jp/v1/players/(?P<id>.*)'
+    _VALID_URL = r'https://player-api\.p\.uliza\.jp/v1/players/[^?#]+\?(?:[^#]*&)?name=(?P<id>[^#&]+)'
     _TESTS = [
         {
             'url': 'https://player-api.p.uliza.jp/v1/players/timeshift-disabled/pia/admin?type=normal&playerobjectname=ulizaPlayer&name=livestream01_dvr&repeatable=true',
@@ -14,10 +12,6 @@ class PIAULIZAPortalAPIIE(InfoExtractor):
                 'id': '88f3109a-f503-4d0f-a9f7-9f39ac745d84',
                 'title': '88f3109a-f503-4d0f-a9f7-9f39ac745d84',
                 'live_status': 'was_live',
-            },
-            'params': {
-                'skip_download': True,
-                'ignore_no_formats_error': True,
             },
         },
         {
@@ -47,15 +41,15 @@ class PIAULIZAPortalAPIIE(InfoExtractor):
     ]
 
     def _real_extract(self, url):
-        tmp_video_id = self._search_regex(r'&name=([^&]+)', self._match_id(url), 'video id', default='unknown')
+        display_id = self._match_id(url)
         player_data = self._download_webpage(
             url, tmp_video_id, headers={'Referer': 'https://player-api.p.uliza.jp/'},
             note='Fetching player data', errnote='Unable to fetch player data',
         )
 
-        m3u8_url = self._search_regex(
-            r'["\'](https://vms-api\.p\.uliza\.jp/v1/prog-index\.m3u8[^"\']+)', player_data,
-            'm3u8 url', default=None)
+        player_data = self._search_json(
+            r'var\s+params\s*=', player_js, 'json', display_id,
+            transform_source=js_to_json)
 
         video_id = self._search_regex(r'&?ss=([\da-f]{8}-(?:[\da-f]{4}-){3}[\da-f]{12})&?', m3u8_url, 'video id', default=tmp_video_id)
 

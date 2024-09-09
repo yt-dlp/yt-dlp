@@ -43,8 +43,8 @@ class PiaLiveIE(InfoExtractor):
 
     def _extract_vars(self, variable, html):
         return self._search_regex(
-            rf'(?:var|const)\s+{variable}\s*=\s*(["\'])(?P<value>(?:(?!\1).)+)\1',
-            html, 'variable', group='value', default=None)
+            rf'(?:var|const|let)\s+{variable}\s*=\s*(["\'])(?P<value>(?:(?!\1).)+)\1',
+            html, f'variable {variable}', group='value')
 
     def _real_extract(self, url):
         video_key = self._match_id(url)
@@ -52,13 +52,6 @@ class PiaLiveIE(InfoExtractor):
 
         program_code = self._extract_vars('programCode', webpage)
         article_code = self._extract_vars('articleCode', webpage)
-
-        prod_configure = self._download_webpage(
-            self.PLAYER_ROOT_URL + self._search_regex(
-                r'<script[^>]+src=(["\'])(?P<url>/statics/js/s_prod\?(?:(?!\1).)+)\1',
-                webpage, 'prod configure page url', group='url'),
-            program_code, headers={'Referer': self.PLAYER_ROOT_URL},
-            note='Fetching prod configure page', errnote='Unable to fetch prod configure page')
 
         payload, content_type = multipart_encode({
             'play_url': video_key,
