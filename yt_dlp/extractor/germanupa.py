@@ -79,11 +79,11 @@ class GermanupaIE(InfoExtractor):
         if not embed_url:
             return self.url_result(url, 'Generic')  # Fall back to generic to extract audio
 
-        param_url = traverse_obj(parse_qs(embed_url), ('url', 0))
+        param_url = traverse_obj(parse_qs(embed_url), ('url', 0, {url_or_none}))
         if not param_url:
             if self._search_regex(self._LOGIN_REQUIRED_RE, webpage, 'login wrapper', default=None):
                 self.raise_login_required('This video is only available for members')
-            return self.url_result(url)  # Fall back
+            raise ExtractorError('Failed to extract URL from the query parameters', video_id=video_id)
 
         real_url = param_url.replace('https://vimeo.com/', 'https://player.vimeo.com/video/')
         return self.url_result(VimeoIE._smuggle_referrer(real_url, url), VimeoIE, video_id)
