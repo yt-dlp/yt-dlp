@@ -3726,11 +3726,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     def _get_config_po_token(self, client):
         po_token_strs = self._configuration_arg('po_token', [], ie_key=YoutubeIE, casesense=True)
         for token_str in po_token_strs:
-            if '+' not in token_str:
+            po_token_client, sep, po_token = token_str.partition('+')
+            if not sep:
                 self.report_warning('Invalid po_token configuration format. Expected "client+po_token"')
                 continue
-            po_token_client, po_token = token_str.split('+')
-            if not client or po_token_client == client:
+            if po_token_client == client:
                 return po_token
 
     def fetch_po_token(self, client='web', visitor_data=None, data_sync_id=None, player_url=None, **kwargs):
