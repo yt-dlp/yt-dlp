@@ -701,9 +701,9 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             return
         # datasyncid is of the form "channel_syncid||user_syncid" for secondary channel
         # and just "user_syncid||" for primary channel. We only want the channel_syncid
-        session_ids = data_sync_id.split('||')
-        if len(session_ids) >= 2 and session_ids[1]:
-            return session_ids[0]
+        channel_syncid, _, user_syncid = data_sync_id.partition('||')
+        if user_syncid:
+            return channel_syncid
 
     def _extract_account_syncid(self, *args):
         """
