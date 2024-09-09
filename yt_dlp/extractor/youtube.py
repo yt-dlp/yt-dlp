@@ -727,10 +727,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             return data_sync_id
 
         return traverse_obj(
-            args, (
-                ..., ('DATASYNC_ID', (
-                    'responseContext', 'mainAppWebResponseContext', 'datasyncId'))),
-            expected_type=str, get_all=False)
+            args, (..., ('DATASYNC_ID', ('responseContext', 'mainAppWebResponseContext', 'datasyncId'), {str}), any))
 
     def _extract_visitor_data(self, *args):
         """
