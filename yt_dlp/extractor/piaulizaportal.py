@@ -43,19 +43,16 @@ class PIAULIZAPortalAPIIE(InfoExtractor):
     def _real_extract(self, url):
         display_id = self._match_id(url)
         player_data = self._download_webpage(
-            url, tmp_video_id, headers={'Referer': 'https://player-api.p.uliza.jp/'},
+            url, display_id, headers={'Referer': 'https://player-api.p.uliza.jp/'},
             note='Fetching player data', errnote='Unable to fetch player data',
         )
 
-        player_data = self._search_json(
-            r'var\s+params\s*=', player_js, 'json', display_id,
-            transform_source=js_to_json)
+        m3u8_url = self._search_regex(
+            r'["\'](https://vms-api\.p\.uliza\.jp/v1/prog-index\.m3u8[^"\']+)', player_data,
+            'm3u8 url', default=None)
+        video_id = self._search_regex(r'&?ss=([\da-f]{8}-(?:[\da-f]{4}-){3}[\da-f]{12})&?', m3u8_url, 'video id', default=display_id)
 
-        video_id = self._search_regex(r'&?ss=([\da-f]{8}-(?:[\da-f]{4}-){3}[\da-f]{12})&?', m3u8_url, 'video id', default=tmp_video_id)
-
-        formats = self._extract_m3u8_formats(
-            m3u8_url,
-            video_id, fatal=False)
+        formats = self._extract_m3u8_formats(m3u8_url, video_id)
         m3u8_type = self._search_regex(
             r'/hls/(dvr|video)/', traverse_obj(formats, (0, 'url')), 'm3u8 type', default=None)
         return {

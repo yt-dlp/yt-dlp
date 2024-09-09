@@ -6,6 +6,7 @@ from ..utils.traversal import traverse_obj
 class PiaLiveIE(InfoExtractor):
     PLAYER_ROOT_URL = 'https://player.pia-live.jp/'
     PIA_LIVE_API_URL = 'https://api.pia-live.jp'
+    API_KEY = 'kfds)FKFps-dms9e'
     _VALID_URL = r'https?://player\.pia-live\.jp/stream/(?P<id>[\w-]+)'
 
     _TESTS = [
@@ -55,18 +56,18 @@ class PiaLiveIE(InfoExtractor):
 
         payload, content_type = multipart_encode({
             'play_url': video_key,
-            'api_key': self._extract_vars('APIKEY', prod_configure)})
+            'api_key': self.API_KEY})
 
         player_tag_list = self._download_json(
             f'{self.PIA_LIVE_API_URL}/perf/player-tag-list/{program_code}', program_code,
             data=payload, headers={'Content-Type': content_type, 'Referer': self.PLAYER_ROOT_URL},
             note='Fetching player tag list', errnote='Unable to fetch player tag list')
-
-        chat_room_url = traverse_obj(self._download_json(
-            f'{self.PIA_LIVE_API_URL}/perf/chat-tag-list/{program_code}/{article_code}', program_code,
-            data=payload, headers={'Content-Type': content_type, 'Referer': self.PLAYER_ROOT_URL},
-            note='Fetching chat info', errnote='Unable to fetch chat info', fatal=False),
-            ('data', 'chat_one_tag', {extract_attributes}, 'src', {url_or_none}))
+        if self.get_param('getcomments'):
+            chat_room_url = traverse_obj(self._download_json(
+                f'{self.PIA_LIVE_API_URL}/perf/chat-tag-list/{program_code}/{article_code}', program_code,
+                data=payload, headers={'Content-Type': content_type, 'Referer': self.PLAYER_ROOT_URL},
+                note='Fetching chat info', errnote='Unable to fetch chat info', fatal=False),
+                ('data', 'chat_one_tag', {extract_attributes}, 'src', {url_or_none}))
 
         return self.url_result(
             extract_attributes(player_tag_list['data']['movie_one_tag'])['src'], url_transparent=True,
