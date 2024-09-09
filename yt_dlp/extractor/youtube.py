@@ -711,9 +711,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         @params response and/or ytcfg
         """
         # ytcfg includes channel_syncid if on secondary channel
-        delegated_sid = traverse_obj(
-            args, (..., 'DELEGATED_SESSION_ID'), expected_type=str, get_all=False)
-        if delegated_sid:
+        if delegated_sid := traverse_obj(args, (..., 'DELEGATED_SESSION_ID', {str}, any)):
             return delegated_sid
 
         data_sync_id = self._extract_data_sync_id(*args)
@@ -3740,8 +3738,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if not visitor_data and not self.is_authenticated and player_url:
             self.report_warning(
                 f'Unable to fetch PO Token for {client} client: Missing required Visitor Data. '
-                f'You may need to pass Visitor Data with --extractor-args youtube:visitor_data=XXX',
-            )
+                f'You may need to pass Visitor Data with --extractor-args "youtube:visitor_data=XXX"')
             return
 
         config_po_token = self._get_config_po_token(client)
@@ -3929,10 +3926,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             require_po_token = self._get_default_ytcfg(client).get('REQUIRE_PO_TOKEN')
             if not po_token and require_po_token:
                 self.report_warning(
-                    f'No PO Token provided for {client} client. '
-                    f'A PO Token is required by this client for working formats. '
+                    f'No PO Token provided for {client} client, '
+                    f'which is required for working {client} formats. '
                     f'You can manually pass a PO Token for this client with '
-                    f'--extractor-args youtube:po_token={client}+XXX',
+                    f'--extractor-args "youtube:po_token={client}+XXX"',
                     only_once=True)
                 deprioritize_pr = True
 
@@ -3946,8 +3943,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     initial_pr=initial_pr,
                     visitor_data=visitor_data,
                     data_sync_id=data_sync_id,
-                    po_token=po_token,
-                )
+                    po_token=po_token)
             except ExtractorError as e:
                 self.report_warning(e)
                 continue
