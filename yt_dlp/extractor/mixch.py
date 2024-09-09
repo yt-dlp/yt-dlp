@@ -149,9 +149,11 @@ class MixchMovieIE(InfoExtractor):
             f'https://mixch.tv/api-web/movies/{video_id}', video_id)
         return {
             'id': video_id,
-            'formats': [{'format_id': 'mp4',
-                         'url': traverse_obj(data, ('movie', 'file'), {url_or_none}),
-                         'ext': 'mp4'}],
+            'formats': [{
+                'format_id': 'mp4',
+                'url': traverse_obj(data, ('movie', 'file'), {url_or_none}),
+                'ext': 'mp4',
+            }],
             **traverse_obj(data, {
                 'title': ('movie', 'title', {str_or_none}),
                 'thumbnail': ('movie', 'thumbnailURL', {url_or_none}),
