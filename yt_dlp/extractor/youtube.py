@@ -1357,7 +1357,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         '401': {'ext': 'mp4', 'height': 2160, 'format_note': 'DASH video', 'vcodec': 'av01.0.12M.08'},
     }
     _SUBTITLE_FORMATS = ('json3', 'srv1', 'srv2', 'srv3', 'ttml', 'vtt')
-    _BROKEN_CLIENTS = ()
     _DEFAULT_CLIENTS = ('ios', 'web_creator')
 
     _GEO_BYPASS = False
@@ -3820,7 +3819,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
     def _get_requested_clients(self, url, smuggled_data):
         requested_clients = []
-        broken_clients = []
         excluded_clients = []
         allowed_clients = sorted(
             (client for client in INNERTUBE_CLIENTS if client[:1] != '_'),
@@ -3834,12 +3832,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 excluded_clients.append(client[1:])
             elif client not in allowed_clients:
                 self.report_warning(f'Skipping unsupported client "{client}"')
-            elif client in self._BROKEN_CLIENTS:
-                broken_clients.append(client)
             else:
                 requested_clients.append(client)
-        # Force deprioritization of _BROKEN_CLIENTS for format de-duplication
-        requested_clients.extend(broken_clients)
         if not requested_clients:
             requested_clients.extend(self._DEFAULT_CLIENTS)
         for excluded_client in excluded_clients:
@@ -4124,14 +4118,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 fmt_url = update_url_query(fmt_url, {'pot': po_token})
 
             # Clients that require PO Token return videoplayback URLs that may return 403
-            is_broken = (
-                client_name in self._BROKEN_CLIENTS
-                or (not po_token and self._get_default_ytcfg(client_name).get('REQUIRE_PO_TOKEN'))
-            )
+            is_broken = (not po_token and self._get_default_ytcfg(client_name).get('REQUIRE_PO_TOKEN'))
             if is_broken:
                 self.report_warning(
-                    f'{video_id}: {client_name} client formats are broken '
-                    'and may yield HTTP Error 403. They will be deprioritized', only_once=True)
+                    f'{video_id}: {client_name} client formats require a PO Token which was not provided. '
+                    'They will be deprioritized as they may yield HTTP Error 403', only_once=True)
 
             name = fmt.get('qualityLabel') or quality.replace('audio_quality_', '') or ''
             fps = int_or_none(fmt.get('fps')) or 0
@@ -4213,18 +4204,17 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 return False
             itags[itag].add(key)
 
-            # Clients that require PO Token return videoplayback URLs that may return 403
-            is_broken = (
-                client_name in self._BROKEN_CLIENTS
-                # hls proto does not appear to require PO Token currently
-                or (not po_token and self._get_default_ytcfg(client_name).get('REQUIRE_PO_TOKEN') and proto != 'hls')
-            )
+            if f.get('source_preference') is None:
+                f['source_preference'] = -1
 
-            if is_broken:
+            # Clients that require PO Token return videoplayback URLs that may return 403
+            # hls does not currently require PO Token
+            if (not po_token and self._get_default_ytcfg(client_name).get('REQUIRE_PO_TOKEN')) and proto != 'hls':
                 self.report_warning(
-                    f'{video_id}: {client_name} client {proto} formats are broken '
-                    'and may yield HTTP Error 403. They will be deprioritized', only_once=True)
+                    f'{video_id}: {client_name} client {proto} formats require a PO Token which was not provided. '
+                    'They will be deprioritized as they may yield HTTP Error 403', only_once=True)
                 f['format_note'] = join_nonempty(f.get('format_note'), 'BROKEN', delim=' ')
+                f['source_preference'] -= 20
 
             if itag and all_formats:
                 f['format_id'] = f'{itag}-{proto}'
@@ -4236,9 +4226,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if original_language and f.get('language') == original_language:
                 f['format_note'] = join_nonempty(f.get('format_note'), '(default)', delim=' ')
                 f['language_preference'] = PREFERRED_LANG_VALUE
-
-            if f.get('source_preference') is None:
-                f['source_preference'] = -1
 
             if itag in ('616', '235'):
                 f['format_note'] = join_nonempty(f.get('format_note'), 'Premium', delim=' ')
