@@ -1,8 +1,10 @@
 from .common import InfoExtractor
 from .vimeo import VimeoIE
 from ..utils import (
+    ExtractorError,
     parse_qs,
     traverse_obj,
+    url_or_none,
 )
 
 
