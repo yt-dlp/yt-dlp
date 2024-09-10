@@ -171,13 +171,23 @@ class MixchMovieIE(InfoExtractor):
         }
 
     def _get_comments(self, video_id):
+        # Comments are organized in a json chain, connected with 'nextCursor' property.
+        # There are up to 20 comments in one json file.
+        COMMENTS_LIMIT = 20
+        # If json files are downloaded too frequently, the server might ban all the access from your IP.
+        comments_left = int_or_none(self._configuration_arg('max_comments', [''])[0]) or 120
+        json_fetch_interval = int_or_none(self._configuration_arg('json_fetch_interval', [''])[0])
+
         base_url = f'https://mixch.tv/api-web/movies/{video_id}/comments'
         has_next = True
         next_cursor = ''
-        while has_next:
+
+        while has_next and (comments_left > 0):
             data = self._download_json(
                 base_url, video_id, note='Downloading comments', errnote='Failed to download comments',
-                query={'cursor': next_cursor, 'limit': 20})
+                query={'cursor': next_cursor, 'limit': COMMENTS_LIMIT})
+            comments_left -= COMMENTS_LIMIT
+
             yield from traverse_obj(data, ('comments', lambda _, v: v['comment'], {
                 'author': ('user_name', {str}),
                 'author_id': ('user_id', {int_or_none}),
@@ -186,5 +196,9 @@ class MixchMovieIE(InfoExtractor):
                 'text': ('comment', {str_or_none}),
                 'timestamp': ('created', {int_or_none}),
             }))
+
+            if json_fetch_interval:
+                self._sleep(json_fetch_interval, video_id)
+
             has_next = traverse_obj(data, ('hasNext'), {bool_or_none})
             next_cursor = traverse_obj(data, ('nextCursor'), {str_or_none})
