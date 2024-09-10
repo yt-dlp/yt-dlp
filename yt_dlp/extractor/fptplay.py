@@ -51,7 +51,6 @@ class FptplayIE(InfoExtractor):
         if res['result']['episode_type'] == 0:
             # movie or single video
             manifest = self._download_json(self.get_api_with_st_token(contentId, 0), contentId, headers={'authorization': f'Bearer {token.value}'}, expected_status=406)
-            
             if manifest.get('msg') != 'success':
                 raise ExtractorError(f' - Got an error, response: {manifest.get("msg")}', expected=True)
 
