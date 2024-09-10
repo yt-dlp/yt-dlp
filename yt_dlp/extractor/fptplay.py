@@ -53,7 +53,7 @@ class FptplayIE(InfoExtractor):
             # movie or single video
             manifest = self._download_json(self.get_api_with_st_token(contentId, 0), contentId, headers={'authorization': f'Bearer {token.value}'}, expected_status=406)
             
-            if manifest.get("msg") != "success":
+            if manifest.get('msg') != 'success':
                 raise ExtractorError(f' - Got an error, response: {manifest.get("msg")}', expected=True)
 
             formats, subtitles = self._extract_m3u8_formats_and_subtitles(manifest["data"]["url"], contentId)
