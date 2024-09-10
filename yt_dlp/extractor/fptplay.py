@@ -35,7 +35,7 @@ class FptplayIE(InfoExtractor):
             'season_number': '1',
             'episode': 'Tập 1',
             'episode_number': '1',
-            'duration': '2665'
+            'duration': '2665',
         },
     }, ]
 
