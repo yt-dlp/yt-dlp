@@ -2,6 +2,7 @@ import hashlib
 import time
 import urllib.parse
 
+from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     int_or_none,
