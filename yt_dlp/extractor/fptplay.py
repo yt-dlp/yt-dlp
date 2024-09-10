@@ -44,7 +44,7 @@ class FptplayIE(InfoExtractor):
         contentId = self._match_id(url)
 
         # Need valid cookie with Bearer token, else it won't work
-        token = self._get_cookies(url).get("token")
+        token = self._get_cookies(url).get('token')
     
         res = self._download_json(self.get_api_with_st_token(contentId), contentId, expected_status=406)
 
