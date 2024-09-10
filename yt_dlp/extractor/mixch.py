@@ -135,6 +135,7 @@ class MixchMovieIE(InfoExtractor):
             'view_count': int,
             'like_count': int,
             'comment_count': int,
+            'timestamp': int,
             'uploader_url': 'https://mixch.tv/u/12299174',
             'live_status': 'not_live',
         },
@@ -163,8 +164,8 @@ class MixchMovieIE(InfoExtractor):
                 'view_count': ('ownerInfo', 'view', {int_or_none}),
                 'like_count': ('movie', 'favCount', {int_or_none}),
                 'comment_count': ('movie', 'commentCount', {int_or_none}),
+                'timestamp': ('movie', 'published', {int_or_none}),
             }),
-            'timestamp': ('movie', 'published', {int_or_none}),
             'uploader_url': ('ownerInfo', 'id', {lambda x: x and f'https://mixch.tv/u/{x}'}),
             'live_status': 'not_live',
             '__post_extractor': self.extract_comments(video_id),
@@ -181,13 +182,18 @@ class MixchMovieIE(InfoExtractor):
         base_url = f'https://mixch.tv/api-web/movies/{video_id}/comments'
         has_next = True
         next_cursor = ''
+        fragment = 1
 
         while has_next and (comments_left > 0):
             data = self._download_json(
-                base_url, video_id, note='Downloading comments', errnote='Failed to download comments',
+                base_url, video_id,
+                note=f'Downloading comments, fragment {fragment}', errnote='Failed to download comments',
                 query={'cursor': next_cursor, 'limit': COMMENTS_LIMIT})
+            fragment += 1
             comments_left -= COMMENTS_LIMIT
 
+            # Some of the 'comments' are not real comments but gifts.
+            # Only real comments are extracted here.
             yield from traverse_obj(data, ('comments', lambda _, v: v['comment'], {
                 'author': ('user_name', {str}),
                 'author_id': ('user_id', {int_or_none}),

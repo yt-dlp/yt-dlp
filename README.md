@@ -1866,7 +1866,7 @@ The following extractors use this feature:
 
 #### mixchmovie
 
-* `max_comments`: Maximum number of comments to extract - default is `120`
+* `max_comments`: Maximum number of comments to extract - default is `120`. The final amount of comments is less than the limit because gifts are filtered.
 * `fetch_interval_sec`: Comment json files fetching interval. If `max_comments` is set too large, fetch interval need to be limit
 
 **Note**: These options may be changed/removed in the future without concern for backward compatibility
