@@ -159,26 +159,26 @@ class SpreakerShowIE(InfoExtractor):
 
 
 class SpreakerShowPageIE(InfoExtractor):
-    # NOTE:the sample test doesnt work, need to futher investigate
-    # layout has changed
-    _VALID_URL = r'https?://(?:www\.)?spreaker\.com/show/(?P<id>[^/?#&]+)'
+    _VALID_URL = r'https?://(?:www\.)?spreaker\.com/show/(?P<id>[^/?#&]+)(?!/episodes/feed)'
     _TESTS = [{
         'url': 'https://www.spreaker.com/show/success-with-music',
-        'only_matching': True,
+        'info_dict': {
+            'id': '2317431',
+        },
+        'playlist_mincount': 30,
     }]
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
-        show_id = self._search_regex(
-            r'show_id\s*:\s*(?P<id>\d+)', webpage, 'show id')
+        redirect_url = self._og_search_property('url', webpage, 'redirect url')
         return self.url_result(
-            f'https://api.spreaker.com/show/{show_id}',
-            ie=SpreakerShowIE.ie_key(), video_id=show_id)
+            redirect_url,
+            SpreakerPodcastPageIE)
 
 
 class SpreakerPodcastPageIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?spreaker\.com/podcast/[\w-]+--(?P<id>[\d]{3,})'
+    _VALID_URL = r'https?://(?:www\.)?spreaker\.com/podcast/[\w-]+--(?P<id>[\d]+)'
     _TESTS = [{
         'url': 'https://www.spreaker.com/podcast/health-wealth--5918323',
         'info_dict': {
