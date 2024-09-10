@@ -9,7 +9,6 @@ from ..utils import (
 )
 
 
-        
 class FptplayIE(InfoExtractor):
     _VALID_URL = r'https?://fptplay\.vn/xem-video/[^/]+\-(?P<id>[a-f0-9]+)'
     _GEO_COUNTRIES = ['VN']
