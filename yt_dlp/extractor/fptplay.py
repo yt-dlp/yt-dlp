@@ -37,7 +37,7 @@ class FptplayIE(InfoExtractor):
             'episode_number': '1',
             'duration': '2665',
         },
-    }, ]
+    }]
 
 
     def _real_extract(self, url):
