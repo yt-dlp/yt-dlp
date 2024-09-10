@@ -3752,8 +3752,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if not data_sync_id and self.is_authenticated and player_url:
             self.report_warning(
                 f'Unable to fetch PO Token for {client} client: Missing required Data Sync ID for account. '
-                f'You may need to pass a Data Sync ID with --extractor-args youtube:data_sync_id=XXX',
-            )
+                f'You may need to pass a Data Sync ID with --extractor-args "youtube:data_sync_id=XXX"')
             return
 
         return self._fetch_po_token(
