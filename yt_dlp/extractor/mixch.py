@@ -138,6 +138,7 @@ class MixchMovieIE(InfoExtractor):
             'timestamp': int,
             'uploader_url': 'https://mixch.tv/u/12299174',
             'live_status': 'not_live',
+            'upload_date': '20240819',
         },
     }, {
         'url': 'https://mixch.tv/m/61DzpIKE',
@@ -165,8 +166,8 @@ class MixchMovieIE(InfoExtractor):
                 'like_count': ('movie', 'favCount', {int_or_none}),
                 'comment_count': ('movie', 'commentCount', {int_or_none}),
                 'timestamp': ('movie', 'published', {int_or_none}),
+                'uploader_url': ('ownerInfo', 'id', {lambda x: x and f'https://mixch.tv/u/{x}'}),
             }),
-            'uploader_url': ('ownerInfo', 'id', {lambda x: x and f'https://mixch.tv/u/{x}'}),
             'live_status': 'not_live',
             '__post_extractor': self.extract_comments(video_id),
         }
