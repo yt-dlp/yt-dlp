@@ -139,7 +139,7 @@ class HuyaLiveIE(InfoExtractor):
 
 
 class HuyaVideoIE(InfoExtractor):
-    _VALID_URL = r'https://(?:www\.)?huya\.com/video/play/(?P<id>\d+)\.html'
+    _VALID_URL = r'https?://(?:www\.)?huya\.com/video/play/(?P<id>\d+)\.html'
 
     IE_NAME = 'huya:video'
     IE_DESC = '虎牙视频'
