@@ -96,11 +96,15 @@ class MeritPlusIE(InfoExtractor):
                         'url': caption.get('file'),
                         'name': caption.get('label'),
                     })
+            is_live = bool(video.get('is_live'))
             for source in video.get('sources', []):
                 if media_url := url_or_none(source.get('file')):
                     if determine_ext(media_url) == 'm3u8':
                         hls_fmts, hls_subs = self._extract_m3u8_formats_and_subtitles(
                             media_url, video['mediaid'], fatal=None)
+                        if is_live:
+                            for f in hls_fmts:
+                                f['downloader_options'] = {'ffmpeg_args_out': ['-http_persistent', '0']}
                         formats.extend(hls_fmts)
                         self._merge_subtitles(hls_subs, target=subtitles)
                     else:
@@ -127,10 +131,10 @@ class MeritPlusIE(InfoExtractor):
                 'episode_number': ('episodeNumber', {int_or_none}),
                 'cast': ('cast', {lambda v: v.split(',') if v else None}),
                 'duration': ('duration', {float_or_none}),
-                'is_live': ('is_live', {lambda v: bool(v)}),
                 'webpage_url': ('mediaid', {lambda v: url + (f'?episodeId={v}' if v not in url else '')}),
                 'thumbnail': ('image', {lambda v: url_or_none(v) if not thumbnails else None}),
             }),
+                'is_live': is_live,
                 'thumbnails': thumbnails,
                 'formats': formats,
                 'subtitles': subtitles,
