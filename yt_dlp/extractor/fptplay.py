@@ -8,7 +8,6 @@ from ..utils import (
     int_or_none,
 )
 
-from .common import InfoExtractor
 
         
 class FptplayIE(InfoExtractor):
