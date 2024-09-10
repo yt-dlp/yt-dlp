@@ -1864,6 +1864,11 @@ The following extractors use this feature:
 #### digitalconcerthall
 * `prefer_combined_hls`: Prefer extracting combined/pre-merged video and audio HLS formats. This will exclude 4K/HEVC video and lossless/FLAC audio formats, which are only available as split video/audio HLS formats
 
+#### mixchmovie
+
+* `max_comments`: Maximum number of comments to extract - default is `120`
+* `fetch_interval_sec`: Comment json files fetching interval. If `max_comments` is set too large, fetch interval need to be limit
+
 **Note**: These options may be changed/removed in the future without concern for backward compatibility
 
 <!-- MANPAGE: MOVE "INSTALLATION" SECTION HERE -->

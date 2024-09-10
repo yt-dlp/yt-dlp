@@ -176,7 +176,7 @@ class MixchMovieIE(InfoExtractor):
         COMMENTS_LIMIT = 20
         # If json files are downloaded too frequently, the server might ban all the access from your IP.
         comments_left = int_or_none(self._configuration_arg('max_comments', [''])[0]) or 120
-        json_fetch_interval = int_or_none(self._configuration_arg('json_fetch_interval', [''])[0])
+        fetch_interval_sec = int_or_none(self._configuration_arg('fetch_interval_sec', [''])[0])
 
         base_url = f'https://mixch.tv/api-web/movies/{video_id}/comments'
         has_next = True
@@ -197,8 +197,8 @@ class MixchMovieIE(InfoExtractor):
                 'timestamp': ('created', {int_or_none}),
             }))
 
-            if json_fetch_interval:
-                self._sleep(json_fetch_interval, video_id)
+            if fetch_interval_sec:
+                self._sleep(fetch_interval_sec, video_id)
 
             has_next = traverse_obj(data, ('hasNext'), {bool_or_none})
             next_cursor = traverse_obj(data, ('nextCursor'), {str_or_none})
