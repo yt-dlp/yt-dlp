@@ -1441,6 +1441,7 @@ from .onet import (
     OnetPlIE,
 )
 from .onionstudios import OnionStudiosIE
+from .onsen import OnsenIE
 from .opencast import (
     OpencastIE,
     OpencastPlaylistIE,
