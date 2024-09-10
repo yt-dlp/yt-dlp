@@ -171,39 +171,20 @@ class MixchMovieIE(InfoExtractor):
         }
 
     def _get_comments(self, video_id):
-        data = self._download_json(f'https://mixch.tv/api-web/movies/{video_id}/comments?', video_id,
-                                   note='Downloading comments', errnote='Failed to download comments')
-        comment_dl_times = 1
-        MAX_DL_TIMES = 10
+        base_url = f'https://mixch.tv/api-web/movies/{video_id}/comments'
         has_next = True
         next_cursor = ''
-
-        # Comments are organized in a json chain, connected with 'nextCursor' property.
-        # There are up to 20 comments in one json file.
         while has_next:
-            yield from traverse_obj(
-                data,
-                ('comments', lambda k, v: v['comment'], {
-                    'author': ('user_name', {str_or_none}),
-                    'author_id': ('user_id', {int_or_none}),
-                    'id': ('id', {int_or_none}),
-                    'text': ('comment', {str_or_none}),
-                    'timestamp': ('created', {int_or_none}),
-                }))
-
+            data = self._download_json(
+                base_url, video_id, note='Downloading comments', errnote='Failed to download comments',
+                query={'cursor': next_cursor, 'limit': 20})
+            yield from traverse_obj(data, ('comments', lambda _, v: v['comment'], {
+                'author': ('user_name', {str}),
+                'author_id': ('user_id', {int_or_none}),
+                'author_thumbnail': ('profile_image_url', {url_or_none}),
+                'id': ('id', {int_or_none}),
+                'text': ('comment', {str_or_none}),
+                'timestamp': ('created', {int_or_none}),
+            }))
             has_next = traverse_obj(data, ('hasNext'), {bool_or_none})
             next_cursor = traverse_obj(data, ('nextCursor'), {str_or_none})
-
-            if comment_dl_times == MAX_DL_TIMES:
-                msg = '{video_id}: Comment count is {comment_count}. Only take first 200 comments into json.'.format(
-                    video_id=video_id, comment_count=traverse_obj(data, ('commentsCount', {int})))
-                self.to_screen(msg)
-                has_next = False
-
-            if has_next:
-                data = self._download_json(
-                    f'https://mixch.tv/api-web/movies/{video_id}/comments?cursor={next_cursor}&limit=20',
-                    (video_id, next_cursor),
-                    note='Downloading comments', errnote='Failed to download comments')
-                # Limit comments download times to avoid server forbidding.
-                comment_dl_times += 1
