@@ -56,7 +56,9 @@ class PiaLiveIE(InfoExtractor):
 
         payload, content_type = multipart_encode({
             'play_url': video_key,
-            'api_key': self.API_KEY})
+            'api_key': self.API_KEY,
+        })
+
 
         player_tag_list = self._download_json(
             f'{self.PIA_LIVE_API_URL}/perf/player-tag-list/{program_code}', program_code,
