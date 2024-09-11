@@ -92,13 +92,13 @@ class XimalayaIE(XimalayaBaseIE):
     def _decrypt_filename(file_id, seed):
         cgstr = ''
         key = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ/\\:._-1234567890'
-        for _ in range(len(key)):
+        for _ in key:
             seed = float(int(211 * seed + 30031) % 65536)
             r = int(seed / 65536 * len(key))
             cgstr += key[r]
             key = key.replace(key[r], '')
         parts = file_id.split('*')
-        filename = ''.join(cgstr[int(part)] for part in parts if part.isdigit())
+        filename = ''.join(cgstr[int(part)] for part in parts if part.isdecimal())
         if not filename.startswith('/'):
             filename = '/' + filename
         return filename
