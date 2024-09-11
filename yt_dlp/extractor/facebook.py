@@ -532,7 +532,6 @@ class FacebookIE(InfoExtractor):
                     'like_count': ('likers', 'count', {int}),
                     'comment_count': ('total_comment_count', {int}),
                     'repost_count': ('share_count_reduced', {parse_count}),
-                    'reactor_count': ('unified_reactors', 'count', {int}),
                 }),
             }
 
@@ -957,7 +956,6 @@ class FacebookReelIE(InfoExtractor):
             'like_count': int,
             'comment_count': int,
             'repost_count': int,
-            'reactor_count': int,
         },
     }]
 
