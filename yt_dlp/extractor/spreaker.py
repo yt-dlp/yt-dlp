@@ -159,7 +159,7 @@ class SpreakerShowIE(InfoExtractor):
 
 
 class SpreakerShowPageIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?spreaker\.com/show/(?P<id>[^/?#&]+)(?!/episodes/feed)'
+    _VALID_URL = r'https?://(?:www\.)?spreaker\.com/show/(?P<id>[^/?#&]+)(?:[?#]|$)(?!/episodes/feed)'
     _TESTS = [{
         'url': 'https://www.spreaker.com/show/success-with-music',
         'info_dict': {
@@ -195,7 +195,7 @@ class SpreakerPodcastPageIE(InfoExtractor):
 
 
 class SpreakerFeedPageIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?spreaker\.com/show/(?P<id>[\d]+)/episodes/feed'
+    _VALID_URL = r'https?://(?:www\.)?spreaker\.com/show/(?P<id>\d+)/episodes/feed'
     _TESTS = [{
         'url': 'https://www.spreaker.com/show/5887186/episodes/feed',
         'info_dict': {
