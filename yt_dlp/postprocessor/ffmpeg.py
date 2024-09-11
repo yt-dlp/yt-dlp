@@ -220,13 +220,19 @@ class FFmpegPostProcessor(PostProcessor):
     @staticmethod
     def stream_copy_opts(copy=True, *, ext=None):
         yield from ('-map', '0')
+
+        if ext in ('mkv', 'mka'):
+            # Some streams, such as JSON attachments, are considered of unknown
+            # type by FFmpeg but we still want to copy them.
+            yield '-copy_unknown'
+        else:
+            # Most containers don't really like unknown streams. Let's make
+            # sure to get rid of them.
+            yield '-ignore_unknown'
+
         # Don't copy Apple TV chapters track, bin_data
         # See https://github.com/yt-dlp/yt-dlp/issues/2, #19042, #19024, https://trac.ffmpeg.org/ticket/6016
         yield '-dn'
-
-        # Some streams, such as JSON attachments, are considered of unknown
-        # type by FFmpeg but we still want to copy them.
-        yield '-copy_unknown'
 
         if copy:
             yield from ('-c', 'copy')
@@ -562,7 +568,7 @@ class FFmpegVideoConvertorPP(FFmpegPostProcessor):
 
     @staticmethod
     def _options(target_ext):
-        yield from FFmpegPostProcessor.stream_copy_opts(False)
+        yield from FFmpegPostProcessor.stream_copy_opts(False, ext=target_ext)
         if target_ext == 'avi':
             yield from ('-c:v', 'libxvid', '-vtag', 'XVID')
 
@@ -588,7 +594,7 @@ class FFmpegVideoRemuxerPP(FFmpegVideoConvertorPP):
 
     @staticmethod
     def _options(target_ext):
-        return FFmpegPostProcessor.stream_copy_opts()
+        return FFmpegPostProcessor.stream_copy_opts(ext=target_ext)
 
 
 class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
@@ -701,7 +707,7 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
     @staticmethod
     def _options(target_ext):
         audio_only = target_ext == 'm4a'
-        yield from FFmpegPostProcessor.stream_copy_opts(not audio_only)
+        yield from FFmpegPostProcessor.stream_copy_opts(not audio_only, ext=target_ext)
         if audio_only:
             yield from ('-vn', '-acodec', 'copy')
 
@@ -901,7 +907,7 @@ class FFmpegFixupStretchedPP(FFmpegFixupPostProcessor):
         stretched_ratio = info.get('stretched_ratio')
         if stretched_ratio not in (None, 1):
             self._fixup('Fixing aspect ratio', info['filepath'], [
-                *self.stream_copy_opts(), '-aspect', f'{stretched_ratio:f}'])
+                *self.stream_copy_opts(ext=info['ext']), '-aspect', f'{stretched_ratio:f}'])
         return [], info
 
 
@@ -909,7 +915,7 @@ class FFmpegFixupM4aPP(FFmpegFixupPostProcessor):
     @PostProcessor._restrict_to(images=False, video=False)
     def run(self, info):
         if info.get('container') == 'm4a_dash':
-            self._fixup('Correcting container', info['filepath'], [*self.stream_copy_opts(), '-f', 'mp4'])
+            self._fixup('Correcting container', info['filepath'], [*self.stream_copy_opts(ext=info['ext']), '-f', 'mp4'])
         return [], info
 
 
@@ -932,7 +938,7 @@ class FFmpegFixupM3u8PP(FFmpegFixupPostProcessor):
             if self.get_audio_codec(info['filepath']) == 'aac':
                 args.extend(['-bsf:a', 'aac_adtstoasc'])
             self._fixup('Fixing MPEG-TS in MP4 container', info['filepath'], [
-                *self.stream_copy_opts(), *args])
+                *self.stream_copy_opts(ext=info['ext']), *args])
         return [], info
 
 
@@ -953,7 +959,7 @@ class FFmpegFixupTimestampPP(FFmpegFixupPostProcessor):
             opts = ['-vf', 'setpts=PTS-STARTPTS']
         else:
             opts = ['-c', 'copy', '-bsf', 'setts=ts=TS-STARTPTS']
-        self._fixup('Fixing frame timestamp', info['filepath'], [*opts, *self.stream_copy_opts(False), '-ss', self.trim])
+        self._fixup('Fixing frame timestamp', info['filepath'], [*opts, *self.stream_copy_opts(False, ext=info['ext']), '-ss', self.trim])
         return [], info
 
 
@@ -962,7 +968,7 @@ class FFmpegCopyStreamPP(FFmpegFixupPostProcessor):
 
     @PostProcessor._restrict_to(images=False)
     def run(self, info):
-        self._fixup(self.MESSAGE, info['filepath'], self.stream_copy_opts())
+        self._fixup(self.MESSAGE, info['filepath'], self.stream_copy_opts(ext=info['ext']))
         return [], info
 
 
@@ -1091,7 +1097,7 @@ class FFmpegSplitChaptersPP(FFmpegPostProcessor):
         self.to_screen(f'Splitting video by chapters; {len(chapters)} chapters found')
         for idx, chapter in enumerate(chapters):
             destination, opts = self._ffmpeg_args_for_chapter(idx + 1, chapter, info)
-            self.real_run_ffmpeg([(in_file, opts)], [(destination, self.stream_copy_opts())])
+            self.real_run_ffmpeg([(in_file, opts)], [(destination, self.stream_copy_opts(ext=info['ext']))])
         if in_file != info['filepath']:
             self._delete_downloaded_files(in_file, msg=None)
         return [], info
