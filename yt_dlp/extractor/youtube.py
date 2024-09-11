@@ -3724,7 +3724,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         for token_str in po_token_strs:
             po_token_client, sep, po_token = token_str.partition('+')
             if not sep:
-                self.report_warning('Invalid po_token configuration format. Expected "client+po_token"')
+                self.report_warning(
+                    f'Invalid po_token configuration format. Expected "client+po_token", got "{token_str}"', only_once=True)
                 continue
             if po_token_client == client:
                 return po_token
