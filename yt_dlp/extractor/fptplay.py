@@ -7,8 +7,7 @@ from ..utils import (
     ExtractorError,
     int_or_none,
 )
-
-
+   
 class FptplayIE(InfoExtractor):
     _VALID_URL = r'https?://fptplay\.vn/xem-video/[^/]+\-(?P<id>[a-f0-9]+)'
     _GEO_COUNTRIES = ['VN']
@@ -39,66 +38,63 @@ class FptplayIE(InfoExtractor):
         },
     }]
 
-
     def _real_extract(self, url):
         contentId = self._match_id(url)
 
         # Need valid cookie with Bearer token, else it won't work
         token = self._get_cookies(url).get('token')
-    
         res = self._download_json(self.get_api_with_st_token(contentId), contentId, expected_status=406)
 
         if res['result']['episode_type'] == 0:
             # movie or single video
             manifest = self._download_json(self.get_api_with_st_token(contentId, 0), contentId, headers={'authorization': f'Bearer {token.value}'}, expected_status=406)
             if manifest.get('msg') != 'success':
-                raise ExtractorError(f' - Got an error, response: {manifest.get("msg")}', expected=True)
-
-            formats, subtitles = self._extract_m3u8_formats_and_subtitles(manifest["data"]["url"], contentId)
+                raise ExtractorError(f" - Got an error, response: {manifest.get('msg')}", expected=True)
+            formats, subtitles = self._extract_m3u8_formats_and_subtitles(manifest['data']['url'], contentId)
             return {
                 'id': contentId,
-                'title': res["result"]["title_origin"] if res["result"]["title_origin"] else res["result"]["title_vie"],
-                'description': res["result"]["description"],
-                'thumbnail': res["result"]["thumb"],
-                'release_year': int_or_none(res["result"]["movie_release_date"]),
-                'duration': int_or_none(res["result"]["duration"]),
+                'title': res['result']['title_origin'] if res['result']['title_origin'] else res['result']['title_vie'],
+                'description': res['result']['description'],
+                'thumbnail': res['result']['thumb'],
+                'release_year': int_or_none(res['result']['movie_release_date']),
+                'duration': int_or_none(res['result']['duration']),
                 'formats': formats,
-                'subtitles': subtitles
+                'subtitles': subtitles,
             }
         else:
             # playlist
             entries = []
-            for episode in res["result"]["episodes"]:
+            for episode in res['result']['episodes']:
                 
-                if episode["is_trailer"] == 1:
+                if episode['is_trailer'] == 1:
                     continue
                 
-                manifest = self._download_json(self.get_api_with_st_token(contentId, episode["_id"]), episode["_id"], headers={'authorization': f'Bearer {token.value}'}, expected_status=406)
-                if manifest.get("msg") != "success":
-                    raise ExtractorError(f' - Got an error, response: {manifest.get("msg")}', expected=True)
+                manifest = self._download_json(self.get_api_with_st_token(contentId, episode['_id']), episode['_id'], headers={'authorization': f'Bearer {token.value}'}, expected_status=406)
+                if manifest.get('msg') != 'success':
+                    raise ExtractorError(f" - Got an error, response: {manifest.get('msg')}", expected=True)
                     
-                formats, subtitles = self._extract_m3u8_formats_and_subtitles(manifest["data"]["url"], episode["_id"])
+                formats, subtitles = self._extract_m3u8_formats_and_subtitles(manifest['data']['url'], episode['_id'])
                 
                 entry = {
-                    'id': episode["ref_episode_id"],
-                    'title': res["result"]["title_origin"] if res["result"]["title_origin"] else res["result"]["title_vie"],
-                    'description': episode["description"],
-                    'thumbnail': episode["thumb"],
-                    'release_year': int_or_none(res["result"]["movie_release_date"]),
+                    'id': episode['ref_episode_id'],
+                    'title': res['result']['title_origin'] if res['result']['title_origin'] else res['result']['title_vie'],
+                    'description': episode['description'],
+                    'thumbnail': episode['thumb'],
+                    'release_year': int_or_none(res['result']['movie_release_date']),
                     'season_number': 1,  # Assuming season 1 for simplicity
-                    'episode': episode["title"],
-                    'episode_number': episode["_id"] + 1,
-                    'duration': int_or_none(episode["duration"]),
+                    'episode': episode['title'],
+                    'episode_number': episode['_id'] + 1,
+                    'duration': int_or_none(episode['duration']),
                     'formats': formats,
-                    'subtitles': subtitles
+                    'subtitles': subtitles,
                 }
                 entries.append(entry)
             
             return {
                 '_type': 'playlist',
                 'id': contentId,
-                'title': res["result"]["title_origin"] if res["result"]["title_origin"] else res["result"]["title_vie"],
-                'entries': entries
+                'title': res['result']['title_origin'] if res['result']['title_origin'] else res['result']['title_vie'],
+                'entries': entries,
             }
 
     def get_api_with_st_token(self, video_id, episode=None):
@@ -147,4 +143,4 @@ class FptplayIE(InfoExtractor):
             return t
 
         st_token = convert(n).replace('+', '-').replace('/', '_').replace('=', '')
-        return f'https://api.fptplay.net{path}?{urllib.parse.urlencode({"st": st_token, "e": timestamp})}'
+        return f'https://api.fptplay.net{path}?{urllib.parse.urlencode({'st': st_token, 'e': timestamp})}'
