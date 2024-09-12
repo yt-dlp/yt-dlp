@@ -1,11 +1,13 @@
 import hashlib
 import time
 import urllib.parse
+
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     int_or_none,
 )
+
 class FptplayIE(InfoExtractor):
     _VALID_URL = r'https?://fptplay\.vn/xem-video/[^/]+\-(?P<id>[a-f0-9]+)'
     _GEO_COUNTRIES = ['VN']
@@ -59,7 +61,7 @@ class FptplayIE(InfoExtractor):
         else:
             # playlist
             entries = []
-            for episode in res['result']['episodes']:  
+            for episode in res['result']['episodes']:
                 if episode['is_trailer'] == 1:
                     continue
                 manifest = self._download_json(self.get_api_with_st_token(contentId, episode['_id']), episode['_id'], headers={'authorization': f'Bearer {token.value}'}, expected_status=406)
