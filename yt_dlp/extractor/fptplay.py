@@ -40,11 +40,9 @@ class FptplayIE(InfoExtractor):
 
     def _real_extract(self, url):
         contentId = self._match_id(url)
-
         # Need valid cookie with Bearer token, else it won't work
         token = self._get_cookies(url).get('token')
         res = self._download_json(self.get_api_with_st_token(contentId), contentId, expected_status=406)
-
         if res['result']['episode_type'] == 0:
             # movie or single video
             manifest = self._download_json(self.get_api_with_st_token(contentId, 0), contentId, headers={'authorization': f'Bearer {token.value}'}, expected_status=406)
@@ -143,4 +141,4 @@ class FptplayIE(InfoExtractor):
             return t
 
         st_token = convert(n).replace('+', '-').replace('/', '_').replace('=', '')
-        return f'https://api.fptplay.net{path}?{urllib.parse.urlencode({'st': st_token, 'e': timestamp})}'
+        return f"https://api.fptplay.net{path}?{urllib.parse.urlencode({'st': st_token, 'e': timestamp})}"
