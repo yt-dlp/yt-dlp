@@ -1,7 +1,15 @@
 import functools
 
 from .common import InfoExtractor
-from ..utils import InAdvancePagedList, float_or_none, int_or_none, qualities, str_or_none, traverse_obj, url_or_none
+from ..utils import (
+    InAdvancePagedList,
+    float_or_none,
+    int_or_none,
+    qualities,
+    str_or_none,
+    traverse_obj,
+    url_or_none,
+)
 
 
 class ReverbNationIE(InfoExtractor):
