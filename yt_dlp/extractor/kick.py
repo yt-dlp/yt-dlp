@@ -67,7 +67,7 @@ class KickIE(KickBaseIE):
 
     @classmethod
     def suitable(cls, url):
-        return False if KickClipIE.suitable(url) else super().suitable(url)
+        return False if (KickVODIE.suitable(url) or KickClipIE.suitable(url)) else super().suitable(url)
 
     def _real_extract(self, url):
         channel = self._match_id(url)
@@ -98,9 +98,9 @@ class KickIE(KickBaseIE):
 
 class KickVODIE(KickBaseIE):
     IE_NAME = 'kick:vod'
-    _VALID_URL = r'https?://(?:www\.)?kick\.com/video/(?P<id>[\da-f]{8}-(?:[\da-f]{4}-){3}[\da-f]{12})'
+    _VALID_URL = r'https?://(?:www\.)?kick\.com/[\w-]+/videos/(?P<id>[\da-f]{8}-(?:[\da-f]{4}-){3}[\da-f]{12})'
     _TESTS = [{
-        'url': 'https://kick.com/video/e74614f4-5270-4319-90ad-32179f19a45c',
+        'url': 'https://kick.com/xqc/videos/e74614f4-5270-4319-90ad-32179f19a45c',
         'md5': '3870f94153e40e7121a6e46c068b70cb',
         'info_dict': {
             'id': 'e74614f4-5270-4319-90ad-32179f19a45c',
