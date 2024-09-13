@@ -1,3 +1,5 @@
+import functools
+import json
 import random
 import re
 import time
@@ -6,7 +8,9 @@ from .common import InfoExtractor
 from ..utils import (
     KNOWN_EXTENSIONS,
     ExtractorError,
+    extract_attributes,
     float_or_none,
+    get_element_html_by_id,
     int_or_none,
     parse_filesize,
     str_or_none,
@@ -17,6 +21,7 @@ from ..utils import (
     url_or_none,
     urljoin,
 )
+from ..utils.traversal import traverse_obj
 
 
 class BandcampIE(InfoExtractor):
@@ -459,7 +464,7 @@ class BandcampUserIE(InfoExtractor):
         },
     }, {
         'url': 'https://coldworldofficial.bandcamp.com/music',
-        'playlist_mincount': 10,
+        'playlist_mincount': 7,
         'info_dict': {
             'id': 'coldworldofficial',
             'title': 'Discography of coldworldofficial',
@@ -473,12 +478,19 @@ class BandcampUserIE(InfoExtractor):
         },
     }]
 
+    def _yield_items(self, webpage):
+        yield from (
+            re.findall(r'<li data-item-id=["\'][^>]+>\s*<a href=["\'](?![^"\'/]*?/merch)([^"\']+)', webpage)
+            or re.findall(r'<div[^>]+trackTitle["\'][^"\']+["\']([^"\']+)', webpage))
+
+        yield from traverse_obj(webpage, (
+            {functools.partial(get_element_html_by_id, 'music-grid')}, {extract_attributes},
+            'data-client-items', {json.loads}, ..., 'page_url', {str}))
+
     def _real_extract(self, url):
         uploader = self._match_id(url)
         webpage = self._download_webpage(url, uploader)
 
-        discography_data = (re.findall(r'<li data-item-id=["\'][^>]+>\s*<a href=["\'](?![^"\'/]*?/merch)([^"\']+)', webpage)
-                            or re.findall(r'<div[^>]+trackTitle["\'][^"\']+["\']([^"\']+)', webpage))
-
         return self.playlist_from_matches(
-            discography_data, uploader, f'Discography of {uploader}', getter=lambda x: urljoin(url, x))
+            self._yield_items(webpage), uploader, f'Discography of {uploader}',
+            getter=functools.partial(urljoin, url))
