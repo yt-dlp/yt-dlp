@@ -61,6 +61,7 @@ class TenPlayIE(InfoExtractor):
         'url': 'https://10play.com.au/how-to-stay-married/web-extras/season-1/terrys-talks-ep-1-embracing-change/tpv190915ylupc',
         'only_matching': True,
     }]
+    _GEO_BYPASS = False
 
     _AUS_AGES = {
         'G': 0,
