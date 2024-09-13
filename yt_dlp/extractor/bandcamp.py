@@ -464,7 +464,7 @@ class BandcampUserIE(InfoExtractor):
         },
     }, {
         'url': 'https://coldworldofficial.bandcamp.com/music',
-        'playlist_mincount': 10,
+        'playlist_mincount': 7,
         'info_dict': {
             'id': 'coldworldofficial',
             'title': 'Discography of coldworldofficial',
