@@ -81,7 +81,7 @@ class TenPlayIE(InfoExtractor):
             f'https://vod.ten.com.au/api/videos/bcquery?command=find_videos_by_id&video_id={data["altId"]}',
             content_id, 'Downloading video JSON')
         m3u8_url = self._request_webpage(
-            HEADRequest(traverse_obj(video_data, ('items', 0, 'HLSURL', {url_or_none}))),
+            HEADRequest(video_data['items'][0]['HLSURL']),
             content_id, 'Checking stream URL').url
         if '10play-not-in-oz' in m3u8_url:
             self.raise_geo_restricted(countries=['AU'])
