@@ -4999,6 +4999,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                 ie=YoutubeTabIE.ie_key(), video_id=playlist_id,
                 video_title=self._get_text(renderer, 'title'))
             return
+        # shortsLockupViewModel extraction
         entity_id = renderer.get('entityId')
         if entity_id:
             video_id = traverse_obj(renderer, ('onTap', 'innertubeCommand', 'reelWatchEndpoint', 'videoId', {str}))
