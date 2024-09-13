@@ -1813,6 +1813,7 @@ from .screen9 import Screen9IE
 from .screencast import ScreencastIE
 from .screencastify import ScreencastifyIE
 from .screencastomatic import ScreencastOMaticIE
+from .screenrec import ScreenRecIE
 from .scrippsnetworks import (
     ScrippsNetworksIE,
     ScrippsNetworksWatchIE,
