@@ -350,20 +350,24 @@ class DiscoveryPlusBaseIE(DPlayBaseIE):
 class HGTVDeIE(DiscoveryPlusBaseIE):
     _VALID_URL = r'https?://de\.hgtv\.com/sendungen' + DPlayBaseIE._PATH_REGEX
     _TESTS = [{
-        'url': 'https://de.hgtv.com/sendungen/tiny-house-klein-aber-oho/wer-braucht-schon-eine-toilette/',
+        'url': 'https://de.hgtv.com/sendungen/mein-kleinstadt-traumhaus/vom-landleben-ins-loft',
         'info_dict': {
-            'id': '151205',
-            'display_id': 'tiny-house-klein-aber-oho/wer-braucht-schon-eine-toilette',
+            'id': '7332936',
             'ext': 'mp4',
-            'title': 'Wer braucht schon eine Toilette',
-            'description': 'md5:05b40a27e7aed2c9172de34d459134e2',
-            'duration': 1177.024,
-            'timestamp': 1595705400,
-            'upload_date': '20200725',
-            'creator': 'HGTV',
-            'series': 'Tiny House - klein, aber oho',
-            'season_number': 3,
-            'episode_number': 3,
+            'display_id': 'mein-kleinstadt-traumhaus/vom-landleben-ins-loft',
+            'title': 'Vom Landleben ins Loft',
+            'description': 'md5:e5f72c02c853970796dd3818f2e25745',
+            'episode': 'Episode 7',
+            'episode_number': 7,
+            'season': 'Season 7',
+            'season_number': 7,
+            'series': 'Mein Kleinstadt-Traumhaus',
+            'duration': 2645.0,
+            'timestamp': 1725998100,
+            'upload_date': '20240910',
+            'creators': ['HGTV'],
+            'tags': [],
+            'thumbnail': 'https://eu1-prod-images.disco-api.com/2024/08/09/82a386b9-c688-32c7-b9ff-0b13865f0bae.jpeg',
         },
     }]
 
