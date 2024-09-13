@@ -1,3 +1,5 @@
+import functools
+import json
 import random
 import re
 import time
@@ -6,7 +8,9 @@ from .common import InfoExtractor
 from ..utils import (
     KNOWN_EXTENSIONS,
     ExtractorError,
+    extract_attributes,
     float_or_none,
+    get_element_html_by_id,
     int_or_none,
     parse_filesize,
     str_or_none,
@@ -17,6 +21,7 @@ from ..utils import (
     url_or_none,
     urljoin,
 )
+from ..utils.traversal import traverse_obj
 
 
 class BandcampIE(InfoExtractor):
