@@ -476,6 +476,29 @@ class FacebookIE(InfoExtractor):
         webpage = self._download_webpage(
             url.replace('://m.facebook.com/', '://www.facebook.com/'), video_id)
 
+        def extract_follower_count(webpage):
+            post_data = [self._parse_json(j, video_id, fatal=False) for j in re.findall(
+                r'data-sjs>({.*?ScheduledServerJS.*?})</script>', webpage)]
+            post = traverse_obj(post_data, (
+                ..., 'require', ..., ..., ..., '__bbox', 'require', ..., ..., ..., '__bbox', 'result', 'data'), expected_type=dict) or []
+
+            followers = get_first(post, ('user', 'profile_header_renderer', 'user', 'profile_social_context', 'content', ..., 'text',
+                                         lambda k, v: k == 'text' and isinstance(v, str) and v.endswith('followers'))) or None
+            if not isinstance(followers, str):
+                return None
+
+            matches = re.search(r"(\d+)([K|M])?", followers)
+            if matches is None:
+                return None
+
+            count = int(matches[1])
+            unit = matches[2]
+            if unit == "K":
+                count *= 1_000
+            elif unit == "M":
+                count *= 1_000_000
+            return count
+
         def extract_metadata(webpage):
             post_data = [self._parse_json(j, video_id, fatal=False) for j in re.findall(
                 r'data-sjs>({.*?ScheduledServerJS.*?})</script>', webpage)]
@@ -513,6 +536,8 @@ class FacebookIE(InfoExtractor):
             # in https://www.facebook.com/yaroslav.korpan/videos/1417995061575415/
             if thumbnail and not re.search(r'\.(?:jpg|png)', thumbnail):
                 thumbnail = None
+            profile_url = get_first(post, ('attachments', ..., 'media', 'creation_story', 'comet_sections', 'actor_photo', 'story', 'actors', ..., 'profile_url'))
+            follower_count = extract_follower_count(self._download_webpage(profile_url, None))
             info_dict = {
                 'description': description,
                 'uploader': uploader,
@@ -524,6 +549,7 @@ class FacebookIE(InfoExtractor):
                     webpage, 'view count', default=None)),
                 'concurrent_view_count': get_first(post, (
                     ('video', (..., ..., 'attachments', ..., 'media')), 'liveViewerCount', {int_or_none})),
+                'channel_follower_count': follower_count,
             }
 
             info_json_ld = self._search_json_ld(webpage, video_id, default={})
