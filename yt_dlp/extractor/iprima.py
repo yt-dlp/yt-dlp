@@ -197,7 +197,7 @@ class IPrimaIE(InfoExtractor):
         final_result = self._search_json_ld(webpage, video_id, default={})
         final_result.update({
             'id': video_id,
-            'title': final_result.get('title', title),
+            'title': final_result.get('title') or title,
             'thumbnail': self._html_search_meta(
                 ['thumbnail', 'og:image', 'twitter:image'],
                 webpage, 'thumbnail', default=None),
