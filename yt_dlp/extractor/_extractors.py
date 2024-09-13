@@ -1042,10 +1042,7 @@ from .livestream import (
     LivestreamShortenerIE,
 )
 from .livestreamfails import LivestreamfailsIE
-from .lnkgo import (
-    LnkGoIE,
-    LnkIE,
-)
+from .lnk import LnkIE
 from .loom import (
     LoomFolderIE,
     LoomIE,
