@@ -2,7 +2,7 @@ from .common import InfoExtractor
 
 
 class ScreenRecIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?screenrec\.com/share/(?P<id>[A-Za-z0-9]{10})'
+    _VALID_URL = r'https?://(?:www\.)?screenrec\.com/share/(?P<id>\w{10})'
     _TESTS = [{
         'url': 'https://screenrec.com/share/DasLtbknYo',
         'info_dict': {
