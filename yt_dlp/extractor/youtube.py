@@ -4987,7 +4987,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
     def _rich_entries(self, rich_grid_renderer):
         renderer = traverse_obj(
             rich_grid_renderer,
-            ('content', ('videoRenderer', 'reelItemRenderer', 'playlistRenderer', 'shortsLockupViewModel')), get_all=False) or {}
+            ('content', ('videoRenderer', 'reelItemRenderer', 'playlistRenderer', 'shortsLockupViewModel'), any)) or {}
         video_id = renderer.get('videoId')
         if video_id:
             yield self._extract_video(renderer)
