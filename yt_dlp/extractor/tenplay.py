@@ -90,21 +90,24 @@ class TenPlayIE(InfoExtractor):
         formats = self._extract_m3u8_formats(m3u8_url, content_id, 'mp4')
 
         return {
+            'id': content_id,
             'formats': formats,
-            'subtitles': {'en': [{'url': data.get('captionUrl')}]} if data.get('captionUrl') else None,
-            'id': data.get('altId') or content_id,
-            'duration': data.get('duration'),
-            'title': data.get('subtitle'),
-            'alt_title': data.get('title'),
-            'description': data.get('description'),
-            'age_limit': self._AUS_AGES.get(data.get('classification')),
-            'series': data.get('tvShow'),
-            'season_number': int_or_none(data.get('season')),
-            'episode_number': int_or_none(data.get('episode')),
-            'timestamp': data.get('published'),
-            'thumbnail': data.get('imageUrl'),
+            'subtitles': {'en': [{'url': data['captionUrl']}]} if url_or_none(data.get('captionUrl')) else None,
             'uploader': 'Channel 10',
             'uploader_id': '2199827728001',
+            **traverse_obj(data, {
+                'id': ('altId', {str}),
+                'duration': ('duration', {int_or_none}),
+                'title': ('subtitle', {str}),
+                'alt_title': ('title', {str}),
+                'description': ('description', {str}),
+                'age_limit': ('classification', {self._AUS_AGES.get}),
+                'series': ('tvShow', {str}),
+                'season_number': ('season', {int_or_none}),
+                'episode_number': ('episode', {int_or_none}),
+                'timestamp': ('published', {int_or_none}),
+                'thumbnail': ('imageUrl', {url_or_none}),
+            }),
         }
 
 
