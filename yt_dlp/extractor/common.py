@@ -35,6 +35,7 @@ from ..networking import HEADRequest, Request
 from ..networking.exceptions import (
     HTTPError,
     IncompleteRead,
+    TransportError,
     network_exceptions,
 )
 from ..networking.impersonate import ImpersonateTarget
@@ -965,6 +966,9 @@ class InfoExtractor:
             return False
         content = self._webpage_read_content(urlh, url_or_request, video_id, note, errnote, fatal,
                                              encoding=encoding, data=data)
+        if content is False:
+            assert not fatal
+            return False
         return (content, urlh)
 
     @staticmethod
@@ -1039,7 +1043,15 @@ class InfoExtractor:
 
     def _webpage_read_content(self, urlh, url_or_request, video_id, note=None, errnote=None, fatal=True,
                               prefix=None, encoding=None, data=None):
-        webpage_bytes = urlh.read()
+        try:
+            webpage_bytes = urlh.read()
+        except TransportError as err:
+            errmsg = f'{video_id}: Error reading response: {err.msg}'
+            if fatal:
+                raise ExtractorError(errmsg, cause=err)
+            self.report_warning(errmsg)
+            return False
+
         if prefix is not None:
             webpage_bytes = prefix + webpage_bytes
         if self.get_param('dump_intermediate_pages', False):
