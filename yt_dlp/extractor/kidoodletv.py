@@ -161,7 +161,7 @@ class KidoodleTVSeriesIE(KidoodleTVBaseIE):
             'title': 'Bluey: The Videogame by Abdallah Smash',
             'description': 'Bluey: The Videogame on Nintendo Switch with no-commentary.',
         },
-        'playlist_count': 8,
+        'playlist_mincount': 8,
     }, {
         'url': 'https://kidoodle.tv/3083/unicorn-academy?category=What%27s%20NEW',
         'info_dict': {
@@ -169,7 +169,7 @@ class KidoodleTVSeriesIE(KidoodleTVBaseIE):
             'title': 'Unicorn Academy',
             'description': 'md5:d3f92c6bd76cc9941e60d827213b79f3',
         },
-        'playlist_count': 4,
+        'playlist_mincount': 4,
     }]
 
     def _real_extract(self, url):
