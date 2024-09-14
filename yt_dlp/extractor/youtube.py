@@ -626,24 +626,24 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         if refresh_token:
             self.cache.store(self._NETRC_MACHINE, f'oauth_refresh_token_{user}', refresh_token)
 
-        self._OAUTH_USER = user
-
     def _initialize_oauth(self, user, refresh_token):
-        if not user:
-            user = 'default'
+        self._OAUTH_USER = user or 'default'
 
-        self.write_debug(f'Logging in using oauth with user "{user}"')
+        self.write_debug(f'Logging in using oauth with user "{self._OAUTH_USER}"')
 
-        if user in YoutubeBaseInfoExtractor._OAUTH_ACCESS_TOKEN_CACHE:
-            self.write_debug(f'Using cached oauth access token for user "{user}"')
-            self._OAUTH_REFRESH_TOKEN = YoutubeBaseInfoExtractor._OAUTH_ACCESS_TOKEN_CACHE[user]['refresh_token']
+        if self._OAUTH_USER in YoutubeBaseInfoExtractor._OAUTH_ACCESS_TOKEN_CACHE:
+            self.write_debug(f'Using cached oauth access token for user "{self._OAUTH_USER}"')
+            self._OAUTH_REFRESH_TOKEN = YoutubeBaseInfoExtractor._OAUTH_ACCESS_TOKEN_CACHE[self._OAUTH_USER]['refresh_token']
             return
 
-        YoutubeBaseInfoExtractor._OAUTH_ACCESS_TOKEN_CACHE[user] = {}
+        YoutubeBaseInfoExtractor._OAUTH_ACCESS_TOKEN_CACHE[self._OAUTH_USER] = {}
 
-        refresh_token = refresh_token or self.cache.load(self._NETRC_MACHINE, f'oauth_refresh_token_{user}')
+        if refresh_token == "''":
+            refresh_token = None
+
+        refresh_token = refresh_token or self.cache.load(self._NETRC_MACHINE, f'oauth_refresh_token_{self._OAUTH_USER}')
         if refresh_token:
-            YoutubeBaseInfoExtractor._OAUTH_ACCESS_TOKEN_CACHE[user]['refresh_token'] = refresh_token
+            YoutubeBaseInfoExtractor._OAUTH_ACCESS_TOKEN_CACHE[self._OAUTH_USER]['refresh_token'] = refresh_token
             try:
                 token_response = self._refresh_token(refresh_token)
             except ExtractorError as e:
@@ -652,8 +652,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         else:
             token_response = self._oauth_authorize()
 
-        self._set_oauth_info(token_response, user)
-        self.write_debug(f'Logged in as "{user}" using oauth')
+        self._set_oauth_info(token_response, self._OAUTH_USER)
+        self.write_debug(f'Logged in as "{self._OAUTH_USER}" using oauth')
 
     def _refresh_token(self, refresh_token):
         token_response = self._download_json(
@@ -699,6 +699,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 'https://www.youtube.com/o/oauth2/token',
                 video_id='oauth',
                 note=False,
+                errnote='Failed to authorize oauth',
                 data=json.dumps({
                     'client_id': self._OAUTH_CLIENT_ID,
                     'client_secret': self._OAUTH_CLIENT_SECRET,
