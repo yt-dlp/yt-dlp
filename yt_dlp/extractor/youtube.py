@@ -603,7 +603,6 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         self._initialize_oauth(user, password)
 
     _OAUTH_USER = None
-    _OAUTH_REFRESH_TOKEN = None
     _OAUTH_ACCESS_TOKEN_CACHE = {}
 
     # YouTube TV (TVHTML5) client
@@ -896,7 +895,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         headers = {}
         account_syncid = account_syncid or self._extract_account_syncid(ytcfg)
         if account_syncid:
-            headers['X-Goog-AuthUser'] = account_syncid
+            headers['X-Goog-PageId'] = account_syncid
         if session_index is None:
             session_index = self._extract_session_index(ytcfg)
         if account_syncid or session_index is not None:
@@ -927,7 +926,6 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         return filter_dict(headers)
 
     def generate_webpage_headers(self, url):
-        # Do not need to add cookie auth headers to webpage requests - surprise - it uses hte cookies instead
         if not urllib.parse.urlparse(url).netloc.endswith('youtube.com'):
             return {}
         return self._generate_oauth_headers()
