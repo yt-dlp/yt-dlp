@@ -38,7 +38,7 @@ class CineverseIE(CineverseBaseIE):
             'cast': ['Xun Zhou', 'Xiaoming Huang', 'Yi-Lin Sie', 'Sonia Sui', 'Quniciren'],
             'duration': 5811.597,
             'description': 'md5:892fd62a05611d394141e8394ace0bc6',
-            'age_limit': 13,
+            'age_limit': 14,
             'release_year': 2014,
             'creators': ['Ho-Cheung Pang'],
             'categories': ['Comedy', 'Romance'],
@@ -104,11 +104,8 @@ class CineverseIE(CineverseBaseIE):
                 'You may be able to bypass it by using the /details/ page instead of the /watch/ page',
                 countries=smuggled_data.get('geo_countries'))
 
-        # there can be multiple age limits (e.g. PG-13 AND TV-14), so take first
-        age_limit = None
-        age_limits = traverse_obj(idetails, ('details', 'rating_code', {lambda x: x.split(', ')}))
-        if age_limits and len(age_limits) > 0:
-            age_limit = parse_age_limit(age_limits[0])
+        # there can be multiple age limits (e.g. PG-13 AND TV-14), so take highest
+        age_limit = traverse_obj(idetails, ('details', 'rating_code', {lambda x: x.split(', ')}, ..., {parse_age_limit}, all, {max}))
 
         # get type-dependent metadata
         if traverse_obj(idetails, ('details', 'type')) == 'episode':
