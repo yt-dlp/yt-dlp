@@ -613,18 +613,17 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
     def _set_oauth_info(self, token_response, user):
 
-        refresh_token = traverse_obj(token_response, 'refresh_token', {str})
-
-        YoutubeBaseInfoExtractor._OAUTH_ACCESS_TOKEN_CACHE[user] = {
+        YoutubeBaseInfoExtractor._OAUTH_ACCESS_TOKEN_CACHE.setdefault(user, {}).update({
             'access_token': token_response['access_token'],
             'token_type': token_response['token_type'],
             'expiry': time_seconds(
                 seconds=traverse_obj(token_response, ('expires_in', {float_or_none}), default=300) - 10),
-            'refresh_token': refresh_token,
-        }
+        })
 
+        refresh_token = traverse_obj(token_response, 'refresh_token', {str})
         if refresh_token:
             self.cache.store(self._NETRC_MACHINE, f'oauth_refresh_token_{user}', refresh_token)
+            YoutubeBaseInfoExtractor._OAUTH_ACCESS_TOKEN_CACHE[user]['refresh_token'] = refresh_token
 
     def _initialize_oauth(self, user, refresh_token):
         self._OAUTH_USER = user or 'default'
@@ -633,7 +632,6 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
         if self._OAUTH_USER in YoutubeBaseInfoExtractor._OAUTH_ACCESS_TOKEN_CACHE:
             self.write_debug(f'Using cached oauth access token for user "{self._OAUTH_USER}"')
-            self._OAUTH_REFRESH_TOKEN = YoutubeBaseInfoExtractor._OAUTH_ACCESS_TOKEN_CACHE[self._OAUTH_USER]['refresh_token']
             return
 
         YoutubeBaseInfoExtractor._OAUTH_ACCESS_TOKEN_CACHE[self._OAUTH_USER] = {}
