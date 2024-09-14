@@ -1852,7 +1852,7 @@ class BiliBiliPlayerIE(InfoExtractor):
 class BiliIntlBaseIE(InfoExtractor):
     _API_URL = 'https://api.bilibili.tv/intl/gateway'
     _NETRC_MACHINE = 'biliintl'
-    _HEADERS = {'Referer': 'https://www.bilibili.com/'}
+    _HEADERS = {'Referer': 'https://www.bilibili.tv/'}
 
     def _call_api(self, endpoint, *args, **kwargs):
         json = self._download_json(self._API_URL + endpoint, *args, **kwargs)
