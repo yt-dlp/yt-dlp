@@ -7125,8 +7125,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         raise ExtractorError('Unable to recognize tab page')
 
 
-# TODO: this extractor MUST subclass YoutubeBaseInfoExtractor
-class YoutubePlaylistIE(InfoExtractor):
+class YoutubePlaylistIE(YoutubeBaseInfoExtractor):
     IE_DESC = 'YouTube playlists'
     _VALID_URL = r'''(?x)(?:
                         (?:https?://)?
@@ -7240,8 +7239,7 @@ class YoutubePlaylistIE(InfoExtractor):
         return self.url_result(url, ie=YoutubeTabIE.ie_key(), video_id=playlist_id)
 
 
-# TODO: this extractor MUST subclass YoutubeBaseInfoExtractor
-class YoutubeYtBeIE(InfoExtractor):
+class YoutubeYtBeIE(YoutubeBaseInfoExtractor):
     IE_DESC = 'youtu.be'
     _VALID_URL = rf'https?://youtu\.be/(?P<id>[0-9A-Za-z_-]{{11}})/*?.*?\blist=(?P<playlist_id>{YoutubeBaseInfoExtractor._PLAYLIST_ID_RE})'
     _TESTS = [{
@@ -7292,8 +7290,7 @@ class YoutubeYtBeIE(InfoExtractor):
             }), ie=YoutubeTabIE.ie_key(), video_id=playlist_id)
 
 
-# TODO: this extractor MUST subclass YoutubeBaseInfoExtractor
-class YoutubeLivestreamEmbedIE(InfoExtractor):
+class YoutubeLivestreamEmbedIE(YoutubeBaseInfoExtractor):
     IE_DESC = 'YouTube livestream embeds'
     _VALID_URL = r'https?://(?:\w+\.)?youtube\.com/embed/live_stream/?\?(?:[^#]+&)?channel=(?P<id>[^&#]+)'
     _TESTS = [{
@@ -7308,10 +7305,10 @@ class YoutubeLivestreamEmbedIE(InfoExtractor):
             ie=YoutubeTabIE.ie_key(), video_id=channel_id)
 
 
-# TODO: this extractor MUST subclass YoutubeBaseInfoExtractor
-class YoutubeYtUserIE(InfoExtractor):
+class YoutubeYtUserIE(YoutubeBaseInfoExtractor):
     IE_DESC = 'YouTube user videos; "ytuser:" prefix'
     IE_NAME = 'youtube:user'
+    _NETRC_MACHINE = YoutubeBaseInfoExtractor._NETRC_MACHINE
     _VALID_URL = r'ytuser:(?P<id>.+)'
     _TESTS = [{
         'url': 'ytuser:phihag',
@@ -7595,19 +7592,14 @@ class YoutubeMusicSearchURLIE(YoutubeTabBaseInfoExtractor):
         title = join_nonempty(query, section, delim=' - ')
         return self.playlist_result(self._search_results(query, params, default_client='web_music'), title, title)
 
- # TODO: this extractor MUST subclass YoutubeBaseInfoExtractor
 
-
-class YoutubeFeedsInfoExtractor(InfoExtractor):
+class YoutubeFeedsInfoExtractor(YoutubeBaseInfoExtractor):
     """
     Base class for feed extractors
     Subclasses must re-define the _FEED_NAME property.
     """
     _LOGIN_REQUIRED = True
     _FEED_NAME = 'feeds'
-
-    def _real_initialize(self):
-        YoutubeBaseInfoExtractor._check_login_required(self)
 
     @classproperty
     def IE_NAME(cls):
@@ -7617,10 +7609,8 @@ class YoutubeFeedsInfoExtractor(InfoExtractor):
         return self.url_result(
             f'https://www.youtube.com/feed/{self._FEED_NAME}', ie=YoutubeTabIE.ie_key())
 
- # TODO: this extractor MUST subclass YoutubeBaseInfoExtractor
 
-
-class YoutubeWatchLaterIE(InfoExtractor):
+class YoutubeWatchLaterIE(YoutubeBaseInfoExtractor):
     IE_NAME = 'youtube:watchlater'
     IE_DESC = 'Youtube watch later list; ":ytwatchlater" keyword (requires cookies)'
     _VALID_URL = r':ytwatchlater'
@@ -7674,8 +7664,7 @@ class YoutubeHistoryIE(YoutubeFeedsInfoExtractor):
     }]
 
 
-# TODO: this extractor MUST subclass YoutubeBaseInfoExtractor
-class YoutubeShortsAudioPivotIE(InfoExtractor):
+class YoutubeShortsAudioPivotIE(YoutubeBaseInfoExtractor):
     IE_DESC = 'YouTube Shorts audio pivot (Shorts using audio of a given video)'
     IE_NAME = 'youtube:shorts:pivot:audio'
     _VALID_URL = r'https?://(?:www\.)?youtube\.com/source/(?P<id>[\w-]{11})/shorts'
@@ -7698,10 +7687,8 @@ class YoutubeShortsAudioPivotIE(InfoExtractor):
             f'https://www.youtube.com/feed/sfv_audio_pivot?bp={self._generate_audio_pivot_params(video_id)}',
             ie=YoutubeTabIE)
 
- # TODO: this extractor MUST subclass YoutubeBaseInfoExtractor
 
-
-class YoutubeTruncatedURLIE(InfoExtractor):
+class YoutubeTruncatedURLIE(YoutubeBaseInfoExtractor):
     IE_NAME = 'youtube:truncated_url'
     IE_DESC = False  # Do not list
     _VALID_URL = r'''(?x)
@@ -7857,10 +7844,8 @@ class YoutubeConsentRedirectIE(YoutubeBaseInfoExtractor):
             raise ExtractorError('Invalid cookie consent redirect URL', expected=True)
         return self.url_result(redirect_url)
 
- # TODO: this extractor MUST subclass YoutubeBaseInfoExtractor
 
-
-class YoutubeTruncatedIDIE(InfoExtractor):
+class YoutubeTruncatedIDIE(YoutubeBaseInfoExtractor):
     IE_NAME = 'youtube:truncated_id'
     IE_DESC = False  # Do not list
     _VALID_URL = r'https?://(?:www\.)?youtube\.com/watch\?v=(?P<id>[0-9A-Za-z_-]{1,10})$'
