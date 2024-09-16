@@ -5,7 +5,6 @@ from ..utils import (
     NO_DEFAULT,
     ExtractorError,
     determine_ext,
-    extract_attributes,
     float_or_none,
     int_or_none,
     join_nonempty,
@@ -410,32 +409,38 @@ class ZDFChannelIE(ZDFBaseIE):
         title = super()._og_search_title(webpage, fatal=fatal)
         return re.split(r'\s+[-|]\s+ZDF(?:mediathek)?$', title or '')[0] or None
 
+    def _extract_document_id(self, webpage):
+        matches = re.search(r'docId\s*:\s*[\'"](?P<docid>[^\'"]+)[\'"]', webpage)
+        return matches and matches.group('docid')
+
     def _real_extract(self, url):
         channel_id = self._match_id(url)
 
         webpage = self._download_webpage(url, channel_id)
 
-        matches = re.finditer(
-            rf'''<div\b[^>]*?\sdata-plusbar-id\s*=\s*(["'])(?P<p_id>[\w-]+)\1[^>]*?\sdata-plusbar-url=\1(?P<url>{ZDFIE._VALID_URL})\1''',
-            webpage)
+        main_video = None
+        playlist_videos = []
+
+        document_id = self._extract_document_id(webpage)
+        if document_id is not None:
+            data = self._download_json(
+                f'https://zdf-prod-futura.zdf.de/mediathekV2/document/{document_id}',
+                document_id)
+
+            for cluster in data['cluster']:
+                for teaser in cluster['teaser']:
+                    if cluster['type'] == 'teaserContent' and teaser['type'] == 'video':
+                        main_video = main_video or teaser['sharingUrl']
+                    elif cluster['type'] == 'teaser' and teaser['type'] == 'video':
+                        if teaser['brandId'] != document_id:
+                            # These are unrelated 'You might also like' videos, filter them out
+                            continue
+                        playlist_videos.append(teaser['sharingUrl'])
 
         if self._downloader.params.get('noplaylist', False):
-            entry = next(
-                (self.url_result(m.group('url'), ie=ZDFIE.ie_key()) for m in matches),
-                None)
-            self.to_screen('Downloading just the main video because of --no-playlist')
-            if entry:
-                return entry
+            return self.url_result(main_video)
         else:
             self.to_screen(f'Downloading playlist {channel_id} - add --no-playlist to download just the main video')
-
-        def check_video(m):
-            v_ref = self._search_regex(
-                r'''(<a\b[^>]*?\shref\s*=[^>]+?\sdata-target-id\s*=\s*(["']){}\2[^>]*>)'''.format(m.group('p_id')),
-                webpage, 'check id', default='')
-            v_ref = extract_attributes(v_ref)
-            return v_ref.get('data-target-video-type') != 'novideo'
-
-        return self.playlist_from_matches(
-            (m.group('url') for m in matches if check_video(m)),
-            channel_id, self._og_search_title(webpage, fatal=False))
+            return self.playlist_from_matches(
+                playlist_videos, channel_id,
+                self._og_search_title(webpage, fatal=False))
