@@ -1,182 +1,290 @@
-import re
+import functools
 
 from .srgssr import SRGSSRIE
 from ..utils import (
     determine_ext,
     int_or_none,
-    parse_duration,
+    orderedSet,
     parse_iso8601,
-    unescapeHTML,
-    urljoin,
+    parse_resolution,
 )
+from ..utils.traversal import traverse_obj
 
 
-class RTSIE(SRGSSRIE):  # XXX: Do not subclass from concrete IE
-    _WORKING = False
+class RTSIE(SRGSSRIE):
+    _GEO_COUNTRIES = ['CH']
     IE_DESC = 'RTS.ch'
-    _VALID_URL = r'rts:(?P<rts_id>\d+)|https?://(?:.+?\.)?rts\.ch/(?:[^/]+/){2,}(?P<id>[0-9]+)-(?P<display_id>.+?)\.html'
+    _VALID_URL = [
+        r'rts:(?P<id>\d+)',
+        r'https?://(?:.+?\.)?rts\.ch/(?:[^/]+/){2,}(?P<id>[0-9]+)-(?P<display_id>.+?)\.html',
+        r'https?://(?:.+?\.)?rts\.ch/(?:[^/]+/){2,}(?P<display_id>.+?)-(?P<id>[0-9]+)\.html',
+    ]
 
     _TESTS = [
         {
+            # article with videos
             'url': 'http://www.rts.ch/archives/tv/divers/3449373-les-enfants-terribles.html',
-            'md5': '753b877968ad8afaeddccc374d4256a5',
             'info_dict': {
                 'id': '3449373',
-                'display_id': 'les-enfants-terribles',
-                'ext': 'mp4',
-                'duration': 1488,
                 'title': 'Les Enfants Terribles',
                 'description': 'France Pommier et sa soeur Luce Feral, les deux filles de ce groupe de 5.',
-                'uploader': 'Divers',
-                'upload_date': '19680921',
-                'timestamp': -40280400,
-                'thumbnail': r're:^https?://.*\.image',
-                'view_count': int,
+                'display_id': 'les-enfants-terribles',
+                'tags': ['Divers', 'Archives TV', 'Culture et Arts', 'Les archives', 'Personnalités', 'RTS Archives', 'Années 1960', 'Autres arts', 'Décennies', 'Société'],
             },
-            'expected_warnings': ['Unable to download f4m manifest', 'Failed to download m3u8 information'],
+            'playlist': [{
+                'info_dict': {
+                    'id': '3449373',
+                    'ext': 'mp4',
+                    'title': 'Les Enfants Terribles',
+                    'description': 'France Pommier et sa soeur Luce Feral, les deux filles de ce groupe de 5.',
+                    'thumbnail': r're:^https?://.*\.image',
+                    'upload_date': '19680921',
+                    'timestamp': -40280400,
+                    'duration': 1488,
+                    'categories': ['Divers'],
+                },
+            }],
+            'params': {'skip_download': 'm3u8'},  # 700-byte first fragment
         },
         {
-            'url': 'http://www.rts.ch/emissions/passe-moi-les-jumelles/5624067-entre-ciel-et-mer.html',
-            'info_dict': {
-                'id': '5624065',
-                'title': 'Passe-moi les jumelles',
-            },
-            'playlist_mincount': 4,
-        },
-        {
+            # video without text content
             'url': 'http://www.rts.ch/video/sport/hockey/5745975-1-2-kloten-fribourg-5-2-second-but-pour-gotteron-par-kwiatowski.html',
             'info_dict': {
                 'id': '5745975',
                 'display_id': '1-2-kloten-fribourg-5-2-second-but-pour-gotteron-par-kwiatowski',
-                'ext': 'mp4',
-                'duration': 48,
                 'title': '1/2, Kloten - Fribourg (5-2): second but pour Gottéron par Kwiatowski',
                 'description': 'Hockey - Playoff',
-                'uploader': 'Hockey',
-                'upload_date': '20140403',
-                'timestamp': 1396556882,
-                'thumbnail': r're:^https?://.*\.image',
-                'view_count': int,
+                'tags': ['Hockey', 'Sport', 'RTS Sport'],
             },
-            'params': {
-                # m3u8 download
-                'skip_download': True,
-            },
-            'expected_warnings': ['Unable to download f4m manifest', 'Failed to download m3u8 information'],
+            'playlist': [{
+                'info_dict': {
+                    'id': '5745975',
+                    'ext': 'mp4',
+                    'title': '1/2, Kloten - Fribourg (5-2): second but pour Gottéron par Kwiatowski',
+                    'description': 'Hockey - Playoff',
+                    'thumbnail': r're:^https?://.*\.image',
+                    'upload_date': '20140403',
+                    'timestamp': 1396556882,
+                    'duration': 48,
+                    'categories': ['Hockey sur glace'],
+                },
+            }],
+            'params': {'skip_download': 'm3u8'},  # 700-byte first fragment
             'skip': 'Blocked outside Switzerland',
         },
         {
+            # video player; redirection: https://www.rts.ch/play/tv/lactu-en-video/video/londres-cachee-par-un-epais-smog?urn=urn:rts:video:5745356
             'url': 'http://www.rts.ch/video/info/journal-continu/5745356-londres-cachee-par-un-epais-smog.html',
-            'md5': '9bb06503773c07ce83d3cbd793cebb91',
             'info_dict': {
                 'id': '5745356',
-                'display_id': 'londres-cachee-par-un-epais-smog',
                 'ext': 'mp4',
-                'duration': 33,
+                'duration': 33.76,
                 'title': 'Londres cachée par un épais smog',
                 'description': 'Un important voile de smog recouvre Londres depuis mercredi, provoqué par la pollution et du sable du Sahara.',
-                'uploader': 'L\'actu en vidéo',
                 'upload_date': '20140403',
                 'timestamp': 1396537322,
                 'thumbnail': r're:^https?://.*\.image',
-                'view_count': int,
+                'webpage_url': 'srgssr:rts:video:5745356',
             },
-            'expected_warnings': ['Unable to download f4m manifest', 'Failed to download m3u8 information'],
+            'params': {'skip_download': 'm3u8'},  # 700-byte first fragment
         },
         {
+            # audio & podcast
             'url': 'http://www.rts.ch/audio/couleur3/programmes/la-belle-video-de-stephane-laurenceau/5706148-urban-hippie-de-damien-krisl-03-04-2014.html',
-            'md5': 'dd8ef6a22dff163d063e2a52bc8adcae',
             'info_dict': {
                 'id': '5706148',
-                'display_id': 'urban-hippie-de-damien-krisl-03-04-2014',
-                'ext': 'mp3',
-                'duration': 123,
                 'title': '"Urban Hippie", de Damien Krisl',
                 'description': 'Des Hippies super glam.',
-                'upload_date': '20140403',
-                'timestamp': 1396551600,
+                'display_id': 'urban-hippie-de-damien-krisl',
+                'tags': ['Media Radio', 'Couleur3'],
             },
+            'playlist': [{
+                'info_dict': {
+                    'id': '5706148',
+                    'ext': 'mp3',
+                    'title': '"Urban Hippie", de Damien Krisl',
+                    'description': 'Des Hippies super glam.',
+                    'thumbnail': r're:^https?://.*\.image',
+                    'upload_date': '20140403',
+                    'timestamp': 1396546481,
+                    'duration': 123,
+                    'categories': ['La belle vidéo de Stéphane Laurenceau'],
+                },
+            }, {
+                'info_dict': {
+                    'id': '5747185',
+                    'ext': 'mp3',
+                    'title': 'Le musée du psychédélisme',
+                    'description': 'md5:72f8662f48c32050ae817e3bde7e0acc',
+                    'thumbnail': r're:^https?://.*\.image',
+                    'upload_date': '20140402',
+                    'timestamp': 1396476000,
+                    'duration': 274,
+                    'categories': ['Happy Culture'],
+                },
+            }, {
+                'info_dict': {
+                    'id': '5706149',
+                    'ext': 'mp3',
+                    'title': 'Silk Art Hippie Culture',
+                    'description': 'md5:8e3b9d8d84d85ca8a1905cf50b39bba4',
+                    'thumbnail': r're:^https?://.*\.image',
+                    'upload_date': '20140403',
+                    'timestamp': 1396545649,
+                    'duration': 161,
+                    'categories': ['Happy Pics'],
+                },
+            }, {
+                'info_dict': {
+                    'id': '5706148',
+                    'ext': 'mp3',
+                    'title': '"Urban Hippie", de Damien Krisl',
+                    'description': 'Des Hippies super glam.',
+                    'thumbnail': r're:^https?://.*\.image',
+                    'upload_date': '20140403',
+                    'timestamp': 1396546481,
+                    'duration': 123,
+                    'categories': ['La belle vidéo de Stéphane Laurenceau'],
+                },
+            }],
         },
         {
             # article with videos on rhs
             'url': 'http://www.rts.ch/sport/hockey/6693917-hockey-davos-decroche-son-31e-titre-de-champion-de-suisse.html',
             'info_dict': {
                 'id': '6693917',
-                'title': 'Hockey: Davos décroche son 31e titre de champion de Suisse',
+                'title': 'Davos décroche le 31e titre de son histoire',
+                'description': 'md5:3c9a767b2a332413eda33c526024578c',
+                'display_id': 'hockey-davos-decroche-son-31e-titre-de-champion-de-suisse',
+                'tags': ['Hockey', 'Tout le sport', 'RTS Info', 'LNA', "Toute l'info", 'RTS Sport'],
             },
             'playlist_mincount': 5,
+            'skip': 'Blocked outside Switzerland',
+        },
+        {
+            # articles containing recordings of TV shows
+            'url': 'https://www.rts.ch/info/regions/valais/12865814-un-bouquetin-emporte-par-un-aigle-royal-sur-les-hauts-de-fully-vs.html',
+            'info_dict': {
+                'id': '12865814',
+                'title': 'Un bouquetin emporté par un aigle royal sur les hauts de Fully (VS)',
+                'description': 'md5:9b511f89075e2730bd2dd59915c25574',
+                'display_id': 'un-bouquetin-emporte-par-un-aigle-royal-sur-les-hauts-de-fully-vs',
+                'tags': ['Régions', 'RTS Info', 'Valais', "Toute l'info"],
+            },
+            'playlist': [{
+                'info_dict': {
+                    'id': '12861415',
+                    'ext': 'mp4',
+                    'title': 'En Valais, un bouquetin emporté dans les airs par un aigle royal. Décryptage d’une image rare.',
+                    'thumbnail': r're:^https?://.*\.image',
+                    'timestamp': 1644690600,
+                    'upload_date': '20220212',
+                    'duration': 107,
+                    'categories': ['19h30'],
+                },
+            }],
+            'params': {'skip_download': 'm3u8'},  # 700-byte first fragment
+            'expected_warnings': ['Ignoring subtitle tracks found in the HLS manifest'],
+        },
+        {
+            # new URL format; article with videos
+            'url': 'https://www.rts.ch/info/suisse/2024/article/doris-leuthard-il-y-a-des-alternatives-au-nucleaire-qui-sont-moins-risquees-28631869.html',
+            'info_dict': {
+                'id': '28631869',
+                'title': 'Doris Leuthard: "Il y a des alternatives au nucléaire qui sont moins risquées"',
+                'description': 'md5:ba9930e218dcd177801a34b89a16b86e',
+                'display_id': 'doris-leuthard-il-y-a-des-alternatives-au-nucleaire-qui-sont-moins-risquees',
+                'tags': 'count:13',
+            },
+            'playlist': [{
+                'info_dict': {
+                    'id': '15162786',
+                    'ext': 'mp4',
+                    'title': 'L\'invitée de La Matinale (vidéo) - Doris Leuthard, co-présidente du projet d\'exposition nationale Svizra27',
+                    'thumbnail': r're:^https?://.*\.image',
+                    'upload_date': '20240916',
+                    'timestamp': 1726462800,
+                    'duration': 860,
+                    'categories': ['La Matinale'],
+                },
+            }, {
+                'info_dict': {
+                    'id': '15164848',
+                    'ext': 'mp4',
+                    'title': 'Le Centre pourrait faire pencher la balance en faveur de la construction de nouvelles centrales nucléaires',
+                    'thumbnail': r're:^https?://.*\.image',
+                    'upload_date': '20240916',
+                    'timestamp': 1726502400,
+                    'duration': 227,
+                    'categories': ['Forum'],
+                },
+            }],
+            'params': {'skip_download': 'm3u8'},  # 700-byte first fragment
+            'expected_warnings': ['Ignoring subtitle tracks found in the HLS manifest'],
         },
         {
             'url': 'http://pages.rts.ch/emissions/passe-moi-les-jumelles/5624065-entre-ciel-et-mer.html',
             'only_matching': True,
         },
+        {
+            'url': 'http://www.rts.ch/emissions/passe-moi-les-jumelles/5624067-entre-ciel-et-mer.html',
+            'only_matching': True,
+        },
     ]
 
     def _real_extract(self, url):
-        m = self._match_valid_url(url)
-        media_id = m.group('rts_id') or m.group('id')
-        display_id = m.group('display_id') or media_id
+        webpage, urlh = self._download_webpage_handle(url, self._match_id(url))
+        if urlh.url != url:
+            return self.url_result(urlh.url)
 
-        def download_json(internal_id):
-            return self._download_json(
-                f'http://www.rts.ch/a/{internal_id}.html?f=json/article',
-                display_id)
+        mobj = self._match_valid_url(url)
+        display_id = traverse_obj(mobj, 'display_id', default=mobj.group('id')) or mobj.group('id')
 
-        all_info = download_json(media_id)
+        media_list = []
+        article_details = self._search_json(r'articleDetails\s*=\s*', webpage, 'article details', display_id)
+        traverse_obj(article_details, ('mainMedia', {lambda x: media_list.append(x) if x else None}))
+        traverse_obj(article_details, ('innerMediaElements', {lambda x: media_list.extend(x)}))
+        traverse_obj(article_details, ('mediaElements', {lambda x: media_list.extend(x)}))
+        media_list = orderedSet(media_list)
 
-        # media_id extracted out of URL is not always a real id
-        if 'video' not in all_info and 'audio' not in all_info:
-            entries = []
+        entries = []
+        for media in media_list:
+            media_id = media['oid']
+            media_info = self._get_media_data('rts', media['type'], media_id)
 
-            for item in all_info.get('items', []):
-                item_url = item.get('url')
-                if not item_url:
-                    continue
-                entries.append(self.url_result(item_url, 'RTS'))
+            if fmts := self._extract_formats(media_info, media_id):
+                entries.append({
+                    'id': media_info['id'],
+                    'title': media_info['title'],
+                    'formats': fmts,
+                    'description': media_info.get('description'),
+                    'thumbnails': [traverse_obj(media_info, ('imageUrl', {lambda x: {
+                        'url': x,
+                        **parse_resolution(x),
+                    }}))],
+                    'timestamp': parse_iso8601(media_info.get('date')),
+                    'duration': traverse_obj(media_info, ('duration', {functools.partial(int_or_none, scale=1000)})),
+                    'categories': [media.get('category')],
+                })
 
-            if not entries:
-                page, urlh = self._download_webpage_handle(url, display_id)
-                if re.match(self._VALID_URL, urlh.url).group('id') != media_id:
-                    return self.url_result(urlh.url, 'RTS')
+        return self.playlist_result(
+            entries, article_details.get('oid'), article_details.get('title'),
+            article_details.get('lead'), display_id=display_id,
+            tags=traverse_obj(article_details, ('tags', ..., 'name')))
 
-                # article with videos on rhs
-                videos = re.findall(
-                    r'<article[^>]+class="content-item"[^>]*>\s*<a[^>]+data-video-urn="urn:([^"]+)"',
-                    page)
-                if not videos:
-                    videos = re.findall(
-                        r'(?s)<iframe[^>]+class="srg-player"[^>]+src="[^"]+urn:([^"]+)"',
-                        page)
-                if videos:
-                    entries = [self.url_result(f'srgssr:{video_urn}', 'SRGSSR') for video_urn in videos]
-
-            if entries:
-                return self.playlist_result(entries, media_id, all_info.get('title'))
-
-            internal_id = self._html_search_regex(
-                r'<(?:video|audio) data-id="([0-9]+)"', page,
-                'internal video id')
-            all_info = download_json(internal_id)
-
-        media_type = 'video' if 'video' in all_info else 'audio'
-
-        # check for errors
-        self._get_media_data('rts', media_type, media_id)
-
-        info = all_info['video']['JSONinfo'] if 'video' in all_info else all_info['audio']
-
-        title = info['title']
-
+    def _extract_formats(self, media_info, media_id):
         def extract_bitrate(url):
             return int_or_none(self._search_regex(
                 r'-([0-9]+)k\.', url, 'bitrate', default=None))
 
         formats = []
-        streams = info.get('streams', {})
-        for format_id, format_url in streams.items():
-            if format_id == 'hds_sd' and 'hds' in streams:
+        for idx, stream in enumerate(traverse_obj(
+                media_info, ('resourceList', lambda _, v: v['url']))):
+            format_id = stream.get('protocol') or str(idx)
+            format_url = stream['url']
+            if format_id == 'hds_sd' and 'hds' in stream:
                 continue
-            if format_id == 'hls_sd' and 'hls' in streams:
+            if format_id == 'hls_sd' and 'hls' in stream:
                 continue
             ext = determine_ext(format_url)
             if ext in ('m3u8', 'f4m'):
@@ -195,37 +303,5 @@ class RTSIE(SRGSSRIE):  # XXX: Do not subclass from concrete IE
                     'tbr': extract_bitrate(format_url),
                 })
 
-        download_base = 'http://rtsww{}-d.rts.ch/'.format('-a' if media_type == 'audio' else '')
-        for media in info.get('media', []):
-            media_url = media.get('url')
-            if not media_url or re.match(r'https?://', media_url):
-                continue
-            rate = media.get('rate')
-            ext = media.get('ext') or determine_ext(media_url, 'mp4')
-            format_id = ext
-            if rate:
-                format_id += '-%dk' % rate
-            formats.append({
-                'format_id': format_id,
-                'url': urljoin(download_base, media_url),
-                'tbr': rate or extract_bitrate(media_url),
-            })
-
         self._check_formats(formats, media_id)
-
-        duration = info.get('duration') or info.get('cutout') or info.get('cutduration')
-        if isinstance(duration, str):
-            duration = parse_duration(duration)
-
-        return {
-            'id': media_id,
-            'display_id': display_id,
-            'formats': formats,
-            'title': title,
-            'description': info.get('intro'),
-            'duration': duration,
-            'view_count': int_or_none(info.get('plays')),
-            'uploader': info.get('programName'),
-            'timestamp': parse_iso8601(info.get('broadcast_date')),
-            'thumbnail': unescapeHTML(info.get('preview_image_url')),
-        }
+        return formats
