@@ -620,6 +620,11 @@ from .europeantour import EuropeanTourIE
 from .eurosport import EurosportIE
 from .euscreen import EUScreenIE
 from .expressen import ExpressenIE
+from .extrememusic import (
+    ExtremeMusicAIE,
+    ExtremeMusicIE,
+    ExtremeMusicPIE,
+)
 from .eyedotv import EyedoTVIE
 from .facebook import (
     FacebookAdsIE,
