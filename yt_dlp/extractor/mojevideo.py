@@ -4,7 +4,7 @@ from ..utils import js_to_json, remove_end
 
 class MojevideoIE(InfoExtractor):
     IE_DESC = 'mojevideo.sk'
-    _VALID_URL = r'https?://(?:www\.)?mojevideo\.sk/video/(?P<id>\w+)/(?P<display_id>\w+?)\.html'
+    _VALID_URL = r'https?://(?:www\.)?mojevideo\.sk/video/(?P<id>\w+)/(?P<display_id>[\w()]+?)\.html'
 
     _TESTS = [{
         'url': 'https://www.mojevideo.sk/video/3d17c/chlapci_dobetonovali_sme_mame_hotovo.html',
@@ -25,7 +25,58 @@ class MojevideoIE(InfoExtractor):
             'comment_count': int,
         },
     }, {
+        # 720p
         'url': 'https://www.mojevideo.sk/video/14677/den_blbec.html',
+        'md5': '517c3e111c53a67d10b429c1f344ba2f',
+        'info_dict': {
+            'id': '83575',
+            'ext': 'mp4',
+            'title': 'Deň blbec?',
+            'display_id': 'den_blbec',
+            'description': 'I maličkosť vám môže zmeniť celý deň. Nikdy nezahadzujte žuvačky na zem!',
+            'thumbnail': 'https://fs5.mojevideo.sk/imgfb/83575.jpg',
+            'duration': 100.0,
+            'upload_date': '20120515',
+            'timestamp': 1337076481,
+            'like_count': int,
+            'dislike_count': int,
+            'view_count': int,
+            'comment_count': int,
+        },
+    }, {
+        # 1080p
+        'url': 'https://www.mojevideo.sk/video/2feb2/band_maid_onset_(instrumental)_live_zepp_tokyo_(full_hd).html',
+        'md5': '64599a23d3ac31cf2fe069e4353d8162',
+        'info_dict': {
+            'id': '196274',
+            'ext': 'mp4',
+            'title': 'BAND-MAID - onset (Instrumental) Live - Zepp Tokyo (Full HD)',
+            'display_id': 'band_maid_onset_(instrumental)_live_zepp_tokyo_(full_hd)',
+            'description': 'Výborná inštrumentálna skladba od skupiny BAND-MAID.',
+            'thumbnail': 'https://fs5.mojevideo.sk/imgfb/196274.jpg',
+            'duration': 240.0,
+            'upload_date': '20190708',
+            'timestamp': 1562576592,
+            'like_count': int,
+            'dislike_count': int,
+            'view_count': int,
+            'comment_count': int,
+        },
+    }, {
+        # 720p
+        'url': 'https://www.mojevideo.sk/video/358c8/dva_nissany_skyline_strielaju_v_londyne.html',
+        'only_matching': True,
+    }, {
+        # 720p
+        'url': 'https://www.mojevideo.sk/video/2455d/gopro_hero4_session_nova_sportova_vodotesna_kamera.html',
+        'only_matching': True,
+    }, {
+        # 1080p
+        'url': 'https://www.mojevideo.sk/video/352ee/amd_rx_6800_xt_vs_nvidia_rtx_3080_(test_v_9_hrach).html',
+        'only_matching': True,
+    }, {
+        # 1080p
+        'url': 'https://www.mojevideo.sk/video/2cbeb/trailer_z_avengers_infinity_war.html',
         'only_matching': True,
     }]
 
@@ -35,14 +86,28 @@ class MojevideoIE(InfoExtractor):
 
         video_id = self._search_regex(r'\bvId\s*=\s*(\d+)', webpage, 'video id')
         video_exp = self._search_regex(r'\bvEx\s*=\s*["\'](\d+)', webpage, 'video expiry')
-        video_hash = self._search_json(
-            r'\bvHash\s*=\s*', webpage, 'video hash', video_id,
-            contains_pattern=r'\[.+\]', transform_source=js_to_json)[0]
+        video_hashes = self._search_json(
+            r'\bvHash\s*=\s*', webpage, 'video hashes', video_id,
+            contains_pattern=r'\[.+\]', transform_source=js_to_json)
+
+        formats = []
+        for video_hash, (quality, (idx, format_note)) in zip(video_hashes, {
+            '': (1, 'normálna kvalita'),
+            '_lq': (0, 'nízka kvalita'),
+            '_hd': (2, 'HD-720p'),
+            '_fhd': (3, 'FULL HD-1080p'),
+            '_2k': (4, '2K-1440p'),
+        }.items()):
+            formats.append({
+                'format_id': f'mp4-{idx}',
+                'format_note': format_note,
+                'url': f'https://cache01.mojevideo.sk/securevideos69/{video_id}{quality}.mp4?md5={video_hash}&expires={video_exp}',
+            })
 
         return {
             'id': video_id,
             'display_id': display_id,
-            'url': f'https://cache01.mojevideo.sk/securevideos69/{video_id}.mp4?md5={video_hash}&expires={video_exp}',
+            'formats': formats,
             'title': self._og_search_title(webpage, default=None)
             or remove_end(self._html_extract_title(webpage, 'title'), ' - Mojevideo'),
             'description': self._og_search_description(webpage),
