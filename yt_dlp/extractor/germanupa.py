@@ -85,7 +85,7 @@ class GermanupaIE(InfoExtractor):
         if not param_url:
             if self._search_regex(self._LOGIN_REQUIRED_RE, webpage, 'login wrapper', default=None):
                 self.raise_login_required('This video is only available for members')
-            raise ExtractorError('Failed to extract URL from the query parameters', video_id=video_id)
+            raise ExtractorError('Failed to extract URL from the query parameters')
 
         real_url = param_url.replace('https://vimeo.com/', 'https://player.vimeo.com/video/')
         return self.url_result(VimeoIE._smuggle_referrer(real_url, url), VimeoIE, video_id)
