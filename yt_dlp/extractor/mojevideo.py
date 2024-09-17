@@ -10,7 +10,7 @@ class MojevideoIE(InfoExtractor):
         'url': 'https://www.mojevideo.sk/video/3d17c/chlapci_dobetonovali_sme_mame_hotovo.html',
         'md5': '384a4628bd2bbd261c5206cf77c38c17',
         'info_dict': {
-            'id': '250236',
+            'id': '3d17c',
             'ext': 'mp4',
             'title': 'Chlapci dobetónovali sme, máme hotovo!',
             'display_id': 'chlapci_dobetonovali_sme_mame_hotovo',
@@ -29,7 +29,7 @@ class MojevideoIE(InfoExtractor):
         'url': 'https://www.mojevideo.sk/video/14677/den_blbec.html',
         'md5': '517c3e111c53a67d10b429c1f344ba2f',
         'info_dict': {
-            'id': '83575',
+            'id': '14677',
             'ext': 'mp4',
             'title': 'Deň blbec?',
             'display_id': 'den_blbec',
@@ -48,7 +48,7 @@ class MojevideoIE(InfoExtractor):
         'url': 'https://www.mojevideo.sk/video/2feb2/band_maid_onset_(instrumental)_live_zepp_tokyo_(full_hd).html',
         'md5': '64599a23d3ac31cf2fe069e4353d8162',
         'info_dict': {
-            'id': '196274',
+            'id': '2feb2',
             'ext': 'mp4',
             'title': 'BAND-MAID - onset (Instrumental) Live - Zepp Tokyo (Full HD)',
             'display_id': 'band_maid_onset_(instrumental)_live_zepp_tokyo_(full_hd)',
@@ -81,10 +81,10 @@ class MojevideoIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        page_id, display_id = self._match_valid_url(url).groups()
-        webpage = self._download_webpage(url, page_id)
+        video_id, display_id = self._match_valid_url(url).groups()
+        webpage = self._download_webpage(url, video_id)
 
-        video_id = self._search_regex(r'\bvId\s*=\s*(\d+)', webpage, 'video id')
+        video_id_dec = self._search_regex(r'\bvId\s*=\s*(\d+)', webpage, 'video id') or str(int(video_id, 16))
         video_exp = self._search_regex(r'\bvEx\s*=\s*["\'](\d+)', webpage, 'video expiry')
         video_hashes = self._search_json(
             r'\bvHash\s*=', webpage, 'video hashes', video_id,
@@ -102,7 +102,7 @@ class MojevideoIE(InfoExtractor):
                 'format_id': f'mp4-{quality}',
                 'quality': quality,
                 'format_note': format_note,
-                'url': f'https://cache01.mojevideo.sk/securevideos69/{video_id}{suffix}.mp4?md5={video_hash}&expires={video_exp}',
+                'url': f'https://cache01.mojevideo.sk/securevideos69/{video_id_dec}{suffix}.mp4?md5={video_hash}&expires={video_exp}',
             })
 
         return {
