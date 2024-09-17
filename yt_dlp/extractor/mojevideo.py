@@ -87,29 +87,30 @@ class MojevideoIE(InfoExtractor):
         video_id = self._search_regex(r'\bvId\s*=\s*(\d+)', webpage, 'video id')
         video_exp = self._search_regex(r'\bvEx\s*=\s*["\'](\d+)', webpage, 'video expiry')
         video_hashes = self._search_json(
-            r'\bvHash\s*=\s*', webpage, 'video hashes', video_id,
+            r'\bvHash\s*=', webpage, 'video hashes', video_id,
             contains_pattern=r'\[.+\]', transform_source=js_to_json)
 
         formats = []
-        for video_hash, (quality, (idx, format_note)) in zip(video_hashes, {
-            '': (1, 'normálna kvalita'),
-            '_lq': (0, 'nízka kvalita'),
-            '_hd': (2, 'HD-720p'),
-            '_fhd': (3, 'FULL HD-1080p'),
-            '_2k': (4, '2K-1440p'),
-        }.items()):
+        for video_hash, (suffix, quality, format_note) in zip(video_hashes, [
+            ('', 1, 'normálna kvalita'),
+            ('_lq', 0, 'nízka kvalita'),
+            ('_hd', 2, 'HD-720p'),
+            ('_fhd', 3, 'FULL HD-1080p'),
+            ('_2k', 4, '2K-1440p'),
+        ]):
             formats.append({
-                'format_id': f'mp4-{idx}',
+                'format_id': f'mp4-{quality}',
+                'quality': quality,
                 'format_note': format_note,
-                'url': f'https://cache01.mojevideo.sk/securevideos69/{video_id}{quality}.mp4?md5={video_hash}&expires={video_exp}',
+                'url': f'https://cache01.mojevideo.sk/securevideos69/{video_id}{suffix}.mp4?md5={video_hash}&expires={video_exp}',
             })
 
         return {
             'id': video_id,
             'display_id': display_id,
             'formats': formats,
-            'title': self._og_search_title(webpage, default=None)
-            or remove_end(self._html_extract_title(webpage, 'title'), ' - Mojevideo'),
+            'title': (self._og_search_title(webpage, default=None)
+                      or remove_end(self._html_extract_title(webpage, 'title'), ' - Mojevideo')),
             'description': self._og_search_description(webpage),
             **self._search_json_ld(webpage, video_id, default={}),
         }
