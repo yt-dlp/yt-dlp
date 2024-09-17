@@ -235,7 +235,8 @@ class XVideosQuickiesIE(InfoExtractor):
 class XVideosUserIE(InfoExtractor):
     _VALID_URL = r'''(?x)
         https?://(?:.+?\.)?xvideos\.(?:com|es)/
-        (?P<page_path>(?:channels|amateur-channels|model-channels|pornstar-channels|profiles)/(?P<id>[^/?#&]+))'''
+        (?P<page_path>(?:channels|amateur-channels|model-channels|pornstar-channels|profiles)/
+        (?P<id>[^/?#&]+))((?:(?!\#quickies).)+)?$'''
     _TESTS = [{
         # channel; "Most viewed"
         'url': 'https://www.xvideos.com/channels/college_girls_gone_bad#_tabVideos,rating',
