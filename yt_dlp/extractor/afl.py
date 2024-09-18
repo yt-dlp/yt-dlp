@@ -1,4 +1,3 @@
-
 from .brightcove import BrightcoveNewIE
 from .common import InfoExtractor
 from .omnyfm import OmnyFMShowIE
@@ -14,7 +13,7 @@ from ..utils import (
 
 class AFLVideoIE(InfoExtractor):
     IE_NAME = 'afl:video'
-    _VALID_URL = r'https?://(?:www\.)?afl\.com.au/(?:aflw/)?video/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?(?:afl|lions)\.com.au/(?:aflw/)?video/(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://www.afl.com.au/aflw/video/1217670/the-w-show-aflws-line-in-the-sand-moment-bonnies-bold-bid',
         'md5': '7000431c2bd3f96eddb5f63273aea83e',
@@ -31,10 +30,28 @@ class AFLVideoIE(InfoExtractor):
             'timestamp': 1726038522,
         },
     }, {
+        'url': 'https://www.lions.com.au/video/1655451/team-song-brisbane?videoId=1655451&modal=true&type=video&publishFrom=1726318577001',
+        'md5': '47e8c67e317b48a69787c8bc39c3c591',
+        'info_dict': {
+            'id': '6361958949112',
+            'ext': 'mp4',
+            'description': 'md5:c0fb37fcad9ec0f49ac54eb8d76641bd',
+            'upload_date': '20240914',
+            'duration': 41.0,
+            'tags': 'count:0',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'title': 'Team Song: Brisbane',
+            'uploader_id': '6057984922001',
+            'timestamp': 1726318788,
+        },
+    }, {
         'url': 'https://www.afl.com.au/video/1217264/bulldogs-season-review-gold-plated-list-going-to-waste-duos-frightening-future?videoId=1217264&modal=true&type=video&publishFrom=1725998400001',
         'only_matching': True,
     }, {
         'url': 'https://www.afl.com.au/video/1210885/wafl-showreel-ef-hamish-davis-highlights?videoId=1210885&modal=true&type=video&publishFrom=1725171238001',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.lions.com.au/video/1657551/svarc-weve-built-up-really-well?videoId=1657551&modal=true&type=video&publishFrom=1726545600001',
         'only_matching': True,
     }]
 
@@ -58,7 +75,7 @@ class AFLVideoIE(InfoExtractor):
 
 class AFLPodcastIE(InfoExtractor):
     IE_NAME = 'afl:podcast'
-    _VALID_URL = r'https?://(?:www\.)?afl\.com.au/(?:aflw/)?podcasts/(?P<id>[\w-]+)'
+    _VALID_URL = r'https?://(?:www\.)?(?:afl|carltonfc)\.com.au/(?:aflw/)?podcasts/(?P<id>[\w-]+)'
     _TESTS = [{
         'url': 'https://www.afl.com.au/podcasts/between-us',
         'md5': '7000431c2bd3f96eddb5f63273aea83e',
@@ -68,7 +85,18 @@ class AFLPodcastIE(InfoExtractor):
         },
         'playlist_mincount': 7,
     }, {
+        'url': 'https://www.carltonfc.com.au/podcasts/walk-a-mile',
+        'md5': '',
+        'info_dict': {
+            'id': '6dbb9b23-7f00-49d4-b44e-aec2017651dc',
+            'title': 'Walk a Mile in Their Shoes',
+        },
+        'playlist_mincount': 3,
+    }, {
         'url': 'https://www.afl.com.au/podcasts/afl-daily',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.carltonfc.com.au/podcasts/summer-sessions',
         'only_matching': True,
     }]
 
@@ -82,7 +110,7 @@ class AFLPodcastIE(InfoExtractor):
 
 class AFCVideoIE(InfoExtractor):
     IE_NAME = 'afc:video'
-    _VALID_URL = r'https?://(?:www\.)?afc\.com.au/video/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?(?:afc|carltonfc)\.com.au/video/(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://www.afc.com.au/video/1657583/girls-academies-be-a-pro?videoId=1657583&modal=true&type=video&publishFrom=1726548621001',
         'md5': '6b52c149ae6566abe4cfc2d24978983d',
@@ -99,10 +127,25 @@ class AFCVideoIE(InfoExtractor):
             'timestamp': 1726558062,
         },
     }, {
+        'url': 'https://www.carltonfc.com.au/video/1657596/cripps-on-taking-carlton-to-the-next-level?videoId=1657596&modal=true&type=video&publishFrom=1726555500001',
+        'md5': 'fb5d909329871aa6d182e520d1627846',
+        'info_dict': {
+            'id': '6362089476112',
+            'ext': 'mp4',
+            'description': 'md5:823db447fd9aed2033548e39283d3c0f',
+            'upload_date': '20240918',
+            'duration': 75.72,
+            'tags': 'count:0',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'title': 'The Rundown | Impact of fans',
+            'uploader_id': '6057984922001',
+            'timestamp': 1726631322,
+        },
+    }, {
         'url': 'https://www.afc.com.au/video/1586280/se10ep16-the-crows-show?videoId=1586280&modal=true&type=video&publishFrom=1719639000001&tagNames=crowsshowepisode',
         'only_matching': True,
     }, {
-        'url': 'https://www.afc.com.au/video/1647468/matthew-clarke-presser-september-6?videoId=1647468&modal=true&type=video&publishFrom=1725591002001',
+        'url': 'https://www.carltonfc.com.au/video/1658173/the-rundown-impact-of-fans?videoId=1658173&modal=true&type=video&publishFrom=1726630922001',
         'only_matching': True,
     }]
 
