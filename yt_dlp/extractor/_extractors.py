@@ -75,7 +75,10 @@ from .aenetworks import (
     HistoryTopicIE,
 )
 from .aeonco import AeonCoIE
-from .afl import AFLVideoIE
+from .afl import (
+    AFLPodcastsIE,
+    AFLVideoIE,
+)
 from .afreecatv import (
     AfreecaTVCatchStoryIE,
     AfreecaTVIE,
@@ -1427,6 +1430,7 @@ from .oftv import (
 )
 from .oktoberfesttv import OktoberfestTVIE
 from .olympics import OlympicsReplayIE
+from .omnyfm import OmnyFMShowIE
 from .on24 import On24IE
 from .ondemandkorea import (
     OnDemandKoreaIE,
