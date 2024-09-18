@@ -413,6 +413,13 @@ class ZDFChannelIE(ZDFBaseIE):
         matches = re.search(r'docId\s*:\s*[\'"](?P<docid>[^\'"]+)[\'"]', webpage)
         return matches and matches.group('docid')
 
+    def _get_playlist_description(self, page_data):
+        headline = traverse_obj(page_data, ('shortText', 'headline'))
+        text = traverse_obj(page_data, ('shortText', 'text'))
+        if headline is not None and text is not None:
+            return f'{headline}\n\n{text}'
+        return headline or text
+
     def _real_extract(self, url):
         channel_id = self._match_id(url)
 
@@ -439,8 +446,24 @@ class ZDFChannelIE(ZDFBaseIE):
 
         if self._downloader.params.get('noplaylist', False):
             return self.url_result(main_video)
-        else:
-            self.to_screen(f'Downloading playlist {channel_id} - add --no-playlist to download just the main video')
-            return self.playlist_from_matches(
-                playlist_videos, channel_id,
-                self._og_search_title(webpage, fatal=False))
+
+        self.to_screen(f'Downloading playlist {channel_id} - add --no-playlist to download just the main video')
+
+        thumbnails = (
+            traverse_obj(data, ('document', 'image'))
+            or traverse_obj(data, ('document', 'teaserBild'))
+            or traverse_obj(data, ('stageHeader', 'image'))
+            or {})
+
+        thumbnails = [{
+            'id': key,
+            'url': thumbnail_info['url'],
+            'width': int_or_none(thumbnail_info.get('width')),
+            'height': int_or_none(thumbnail_info.get('height')),
+        } for key, thumbnail_info in thumbnails.items() if url_or_none(thumbnail_info.get('url'))]
+
+        return self.playlist_from_matches(
+            playlist_videos, playlist_id=channel_id,
+            playlist_title=self._og_search_title(webpage, fatal=False),
+            description=self._get_playlist_description(data),
+            thumbnails=thumbnails, ie=ZDFIE.ie_key())
