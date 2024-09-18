@@ -78,3 +78,41 @@ class AFLPodcastIE(InfoExtractor):
         element = get_element_by_class('omny-embed', webpage)
         podcast_url = traverse_obj(extract_attributes(element), ('src', {url_or_none}))
         return self.url_result(podcast_url, OmnyFMShowIE)
+
+
+class AFCVideoIE(InfoExtractor):
+    IE_NAME = 'afc:video'
+    _VALID_URL = r'https?://(?:www\.)?afc\.com.au/video/(?P<id>\d+)'
+    _TESTS = [{
+        'url': 'https://www.afc.com.au/video/1657583/girls-academies-be-a-pro?videoId=1657583&modal=true&type=video&publishFrom=1726548621001',
+        'md5': '6b52c149ae6566abe4cfc2d24978983d',
+        'info_dict': {
+            'id': '6362050135112',
+            'ext': 'mp4',
+            'description': 'md5:35897062f9a02043ece73a410bda595c',
+            'upload_date': '20240917',
+            'duration': 103.92,
+            'tags': 'count:0',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'title': 'AFLW Jones Radiology Injury Update: R4',
+            'uploader_id': '6057984922001',
+            'timestamp': 1726558062,
+        },
+    }, {
+        'url': 'https://www.afc.com.au/video/1586280/se10ep16-the-crows-show?videoId=1586280&modal=true&type=video&publishFrom=1719639000001&tagNames=crowsshowepisode',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.afc.com.au/video/1647468/matthew-clarke-presser-september-6?videoId=1647468&modal=true&type=video&publishFrom=1725591002001',
+        'only_matching': True,
+    }]
+
+    def _real_extract(self, url):
+        display_id = self._match_id(url)
+        webpage = self._download_webpage(url, display_id)
+        video_id = self._search_regex(r'"mediaId"\s*:\s*"(\d+)"', webpage, 'video-id')
+        player_id = self._search_regex(r'data-player-id\s*=\s*"(\w+)"', webpage, 'player-id') + '_default'
+        account_id = self._search_regex(r'data-account-id\s*=\s*"(\d+)"', webpage, 'account-id')
+
+        video_url = f'https://players.brightcove.net/{account_id}/{player_id}/index.html?videoId={video_id}'
+        video_url = smuggle_url(video_url, {'referrer': url})
+        return self.url_result(video_url, BrightcoveNewIE)

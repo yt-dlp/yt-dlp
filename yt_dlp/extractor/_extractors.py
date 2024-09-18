@@ -76,6 +76,7 @@ from .aenetworks import (
 )
 from .aeonco import AeonCoIE
 from .afl import (
+    AFCVideoIE,
     AFLPodcastIE,
     AFLVideoIE,
 )
