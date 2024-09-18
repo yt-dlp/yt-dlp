@@ -221,6 +221,7 @@ from .bbc import (
     BBCCoUkIPlayerGroupIE,
     BBCCoUkPlaylistIE,
 )
+from .beacon import BeaconTvIE
 from .beatbump import (
     BeatBumpPlaylistIE,
     BeatBumpVideoIE,
@@ -826,7 +827,10 @@ from .hungama import (
     HungamaIE,
     HungamaSongIE,
 )
-from .huya import HuyaLiveIE
+from .huya import (
+    HuyaLiveIE,
+    HuyaVideoIE,
+)
 from .hypem import HypemIE
 from .hypergryph import MonsterSirenHypergryphMusicIE
 from .hytale import HytaleIE
@@ -1041,10 +1045,7 @@ from .livestream import (
     LivestreamShortenerIE,
 )
 from .livestreamfails import LivestreamfailsIE
-from .lnkgo import (
-    LnkGoIE,
-    LnkIE,
-)
+from .lnk import LnkIE
 from .loom import (
     LoomFolderIE,
     LoomIE,
@@ -1816,6 +1817,7 @@ from .screen9 import Screen9IE
 from .screencast import ScreencastIE
 from .screencastify import ScreencastifyIE
 from .screencastomatic import ScreencastOMaticIE
+from .screenrec import ScreenRecIE
 from .scrippsnetworks import (
     ScrippsNetworksIE,
     ScrippsNetworksWatchIE,
@@ -1826,6 +1828,7 @@ from .scte import (
     SCTECourseIE,
 )
 from .sejmpl import SejmIE
+from .sen import SenIE
 from .senalcolombia import SenalColombiaLiveIE
 from .senategov import (
     SenateGovIE,

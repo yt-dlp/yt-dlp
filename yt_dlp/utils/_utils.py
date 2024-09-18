@@ -2919,6 +2919,7 @@ def mimetype2ext(mt, default=NO_DEFAULT):
         'audio/webm': 'webm',
         'audio/x-matroska': 'mka',
         'audio/x-mpegurl': 'm3u',
+        'aacp': 'aac',
         'midi': 'mid',
         'ogg': 'ogg',
         'wav': 'wav',
