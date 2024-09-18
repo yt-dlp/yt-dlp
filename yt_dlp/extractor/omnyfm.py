@@ -19,6 +19,7 @@ from ..utils import (
 class OmnyFMShowIE(InfoExtractor):
     IE_NAME = 'omnyfm:show'
     _VALID_URL = r'https?://omny\.fm/shows/(?P<id>[\w-]+)'
+    _EMBED_REGEX = [r'<iframe[^>]+?src=(?:["\'])(?P<url>https?://omny\.fm/shows/.+?)\1']
     _PAGE_SIZE = 10
     _TESTS = [{
         'url': 'https://omny.fm/shows/league-leaders',
@@ -53,7 +54,8 @@ class OmnyFMShowIE(InfoExtractor):
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
-        webpage = self._download_webpage(url, display_id)
+        page_url = 'https://omny.fm/shows/' + display_id
+        webpage = self._download_webpage(page_url, display_id)
 
         data = json.loads(get_element_by_id('__NEXT_DATA__', webpage))
         org_id = traverse_obj(data, ('props', 'pageProps', 'program', 'OrganizationId', {str_or_none}))

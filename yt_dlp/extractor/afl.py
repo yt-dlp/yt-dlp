@@ -1,12 +1,14 @@
 
 from .brightcove import BrightcoveNewIE
 from .common import InfoExtractor
+from .omnyfm import OmnyFMShowIE
 from ..utils import (
     extract_attributes,
     get_element_by_class,
     smuggle_url,
     str_or_none,
     traverse_obj,
+    url_or_none,
 )
 
 
@@ -52,3 +54,27 @@ class AFLVideoIE(InfoExtractor):
         video_url = f'https://players.brightcove.net/{account_id}/{player_id}/index.html?videoId={video_id}'
         video_url = smuggle_url(video_url, {'referrer': url})
         return self.url_result(video_url, BrightcoveNewIE)
+
+
+class AFLPodcastIE(InfoExtractor):
+    IE_NAME = 'afl:podcast'
+    _VALID_URL = r'https?://(?:www\.)?afl\.com.au/(?:aflw/)?podcasts/(?P<id>[\w-]+)'
+    _TESTS = [{
+        'url': 'https://www.afl.com.au/podcasts/between-us',
+        'md5': '7000431c2bd3f96eddb5f63273aea83e',
+        'info_dict': {
+            'id': 'e0ab8454-f818-483f-bed1-b156002c021f',
+            'title': 'Between Us',
+        },
+        'playlist_mincount': 7,
+    }, {
+        'url': 'https://www.afl.com.au/podcasts/afl-daily',
+        'only_matching': True,
+    }]
+
+    def _real_extract(self, url):
+        display_id = self._match_id(url)
+        webpage = self._download_webpage(url, display_id)
+        element = get_element_by_class('omny-embed', webpage)
+        podcast_url = traverse_obj(extract_attributes(element), ('src', {url_or_none}))
+        return self.url_result(podcast_url, OmnyFMShowIE)
