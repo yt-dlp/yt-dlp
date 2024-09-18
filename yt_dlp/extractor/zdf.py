@@ -420,6 +420,25 @@ class ZDFChannelIE(ZDFBaseIE):
             return f'{headline}\n\n{text}'
         return headline or text
 
+    def _convert_thumbnails(self, thumbnails):
+        return [{
+            'id': key,
+            'url': thumbnail_info['url'],
+            'width': int_or_none(thumbnail_info.get('width')),
+            'height': int_or_none(thumbnail_info.get('height')),
+        } for key, thumbnail_info in thumbnails.items() if url_or_none(thumbnail_info.get('url'))]
+
+    def _teaser_to_url_result(self, teaser):
+        return self.url_result(
+            teaser['sharingUrl'], ie=ZDFIE.ie_key(),
+            id=teaser.get('id'), title=teaser.get('titel', ''),
+            thumbnails=self._convert_thumbnails(teaser.get('teaserBild', {})),
+            description=teaser.get('beschreibung'),
+            duration=float_or_none(teaser.get('length')),
+            media_type=teaser.get('currentVideoType') or teaser.get('contentType'),
+            season_number=int_or_none(teaser.get('seasonNumber')),
+            episode_number=int_or_none(teaser.get('episodeNumber')))
+
     def _real_extract(self, url):
         channel_id = self._match_id(url)
 
@@ -437,15 +456,15 @@ class ZDFChannelIE(ZDFBaseIE):
             for cluster in data['cluster']:
                 for teaser in cluster['teaser']:
                     if cluster['type'] == 'teaserContent' and teaser['type'] == 'video':
-                        main_video = main_video or teaser['sharingUrl']
+                        main_video = main_video or teaser
                     elif cluster['type'] == 'teaser' and teaser['type'] == 'video':
                         if teaser['brandId'] != document_id:
                             # These are unrelated 'You might also like' videos, filter them out
                             continue
-                        playlist_videos.append(teaser['sharingUrl'])
+                        playlist_videos.append(teaser)
 
         if self._downloader.params.get('noplaylist', False):
-            return self.url_result(main_video)
+            return self._teaser_to_url_result(main_video) if main_video else None
 
         self.to_screen(f'Downloading playlist {channel_id} - add --no-playlist to download just the main video')
 
@@ -455,15 +474,9 @@ class ZDFChannelIE(ZDFBaseIE):
             or traverse_obj(data, ('stageHeader', 'image'))
             or {})
 
-        thumbnails = [{
-            'id': key,
-            'url': thumbnail_info['url'],
-            'width': int_or_none(thumbnail_info.get('width')),
-            'height': int_or_none(thumbnail_info.get('height')),
-        } for key, thumbnail_info in thumbnails.items() if url_or_none(thumbnail_info.get('url'))]
-
-        return self.playlist_from_matches(
-            playlist_videos, playlist_id=channel_id,
+        return self.playlist_result(
+            (self._teaser_to_url_result(video) for video in playlist_videos),
+            playlist_id=channel_id,
             playlist_title=self._og_search_title(webpage, fatal=False),
             description=self._get_playlist_description(data),
-            thumbnails=thumbnails, ie=ZDFIE.ie_key())
+            thumbnails=self._convert_thumbnails(thumbnails))
