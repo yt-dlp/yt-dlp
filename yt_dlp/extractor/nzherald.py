@@ -2,7 +2,6 @@ import json
 
 from .brightcove import BrightcoveNewIE
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import ExtractorError, traverse_obj
 
 
@@ -24,7 +23,7 @@ class NZHeraldIE(InfoExtractor):
                 'tags': [],
                 'thumbnail': r're:https?://.*\.jpg$',
                 'description': 'md5:2f17713fcbfcfbe38bb9e7dfccbb0f2e',
-            }
+            },
         }, {
             # Webpage has brightcove embed player url
             'url': 'https://www.nzherald.co.nz/travel/pencarrow-coastal-trail/HDVTPJEPP46HJ2UEMK4EGD2DFI/',
@@ -39,7 +38,7 @@ class NZHeraldIE(InfoExtractor):
                 'thumbnail': r're:https?://.*\.jpg$',
                 'tags': ['travel', 'video'],
                 'duration': 43.627,
-            }
+            },
         }, {
             # two video embeds of the same video
             'url': 'https://www.nzherald.co.nz/nz/truck-driver-captured-cutting-off-motorist-on-state-highway-1-in-canterbury/FIHNJB7PLLPHWQPK4S7ZBDUC4I/',
@@ -50,7 +49,7 @@ class NZHeraldIE(InfoExtractor):
                 'timestamp': 1619730509,
                 'upload_date': '20210429',
                 'uploader_id': '1308227299001',
-                'description': 'md5:4cae7dfb7613ac4c73b9e73a75c6b5d7'
+                'description': 'md5:4cae7dfb7613ac4c73b9e73a75c6b5d7',
             },
             'skip': 'video removed',
         }, {
@@ -67,17 +66,17 @@ class NZHeraldIE(InfoExtractor):
                 'tags': ['video', 'nz herald focus', 'politics', 'politics videos'],
                 'thumbnail': r're:https?://.*\.jpg$',
                 'duration': 99.584,
-            }
+            },
         }, {
             'url': 'https://www.nzherald.co.nz/kahu/kaupapa-companies-my-taiao-supporting-maori-in-study-and-business/PQBO2J25WCG77VGRX7W7BVYEAI/',
-            'only_matching': True
+            'only_matching': True,
         }, {
             'url': 'https://nzherald.co.nz/the-country/video/focus-nzs-first-mass-covid-19-vaccination-event/N5I7IL3BRFLZSD33TLDLYJDGK4/',
-            'only_matching': True
+            'only_matching': True,
         }, {
             'url': 'https://www.nzherald.co.nz/the-vision-is-clear/news/tvic-damian-roper-planting-trees-an-addiction/AN2AAEPNRK5VLISDWQAJZB6ATQ',
-            'only_matching': True
-        }
+            'only_matching': True,
+        },
     ]
 
     BRIGHTCOVE_URL_TEMPLATE = 'http://players.brightcove.net/1308227299001/S1BXZn8t_default/index.html?videoId=%s'
@@ -86,7 +85,7 @@ class NZHeraldIE(InfoExtractor):
         """The initial webpage may include the brightcove player embed url"""
         bc_url = BrightcoveNewIE._extract_url(self, webpage)
         return bc_url or self._search_regex(
-            r'(?:embedUrl)\"\s*:\s*\"(?P<embed_url>%s)' % BrightcoveNewIE._VALID_URL,
+            rf'(?:embedUrl)\"\s*:\s*\"(?P<embed_url>{BrightcoveNewIE._VALID_URL})',
             webpage, 'embed url', default=None, group='embed_url')
 
     def _real_extract(self, url):
@@ -108,7 +107,7 @@ class NZHeraldIE(InfoExtractor):
             bc_video_id = traverse_obj(
                 video_metadata or fusion_metadata,  # fusion metadata is the video metadata for video-only pages
                 'brightcoveId', ('content_elements', ..., 'referent', 'id'),
-                get_all=False, expected_type=compat_str)
+                get_all=False, expected_type=str)
 
             if not bc_video_id:
                 if isinstance(video_metadata, dict) and len(video_metadata) == 0:

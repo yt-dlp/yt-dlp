@@ -25,7 +25,7 @@ class Funker530IE(InfoExtractor):
             'timestamp': 1686241321,
             'live_status': 'not_live',
             'description': 'md5:bea2e1f458095414e04b5ac189c2f980',
-        }
+        },
     }, {
         'url': 'https://funker530.com/video/my-friends-joined-the-russians-civdiv/',
         'md5': 'a42c2933391210662e93e867d7124b70',
@@ -54,7 +54,7 @@ class Funker530IE(InfoExtractor):
             'upload_date': '20230608',
             'playable_in_embed': True,
             'heatmap': 'count:100',
-        }
+        },
     }]
 
     def _real_extract(self, url):
@@ -76,5 +76,5 @@ class Funker530IE(InfoExtractor):
             '_type': 'url_transparent',
             'description': strip_or_none(self._search_regex(
                 r'(?s)(.+)About the Author', clean_html(get_element_by_class('video-desc-paragraph', webpage)),
-                'description', default=None))
+                'description', default=None)),
         }

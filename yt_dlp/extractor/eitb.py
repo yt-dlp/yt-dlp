@@ -1,6 +1,11 @@
 from .common import InfoExtractor
 from ..networking import Request
-from ..utils import float_or_none, int_or_none, parse_iso8601
+from ..utils import (
+    float_or_none,
+    int_or_none,
+    join_nonempty,
+    parse_iso8601,
+)
 
 
 class EitbIE(InfoExtractor):
@@ -26,7 +31,7 @@ class EitbIE(InfoExtractor):
         video_id = self._match_id(url)
 
         video = self._download_json(
-            'http://mam.eitb.eus/mam/REST/ServiceMultiweb/Video/MULTIWEBTV/%s/' % video_id,
+            f'http://mam.eitb.eus/mam/REST/ServiceMultiweb/Video/MULTIWEBTV/{video_id}/',
             video_id, 'Downloading video JSON')
 
         media = video['web_media'][0]
@@ -37,12 +42,9 @@ class EitbIE(InfoExtractor):
             if not video_url:
                 continue
             tbr = float_or_none(rendition.get('ENCODING_RATE'), 1000)
-            format_id = 'http'
-            if tbr:
-                format_id += '-%d' % int(tbr)
             formats.append({
                 'url': rendition['PMD_URL'],
-                'format_id': format_id,
+                'format_id': join_nonempty('http', int_or_none(tbr)),
                 'width': int_or_none(rendition.get('FRAME_WIDTH')),
                 'height': int_or_none(rendition.get('FRAME_HEIGHT')),
                 'tbr': tbr,
@@ -59,12 +61,12 @@ class EitbIE(InfoExtractor):
                 token = token_data.get('token')
                 if token:
                     formats.extend(self._extract_m3u8_formats(
-                        '%s?hdnts=%s' % (hls_url, token), video_id, m3u8_id='hls', fatal=False))
+                        f'{hls_url}?hdnts={token}', video_id, m3u8_id='hls', fatal=False))
 
         hds_url = media.get('HDS_SURL')
         if hds_url:
             formats.extend(self._extract_f4m_formats(
-                '%s?hdcore=3.7.0' % hds_url.replace('euskalsvod', 'euskalvod'),
+                '{}?hdcore=3.7.0'.format(hds_url.replace('euskalsvod', 'euskalvod')),
                 video_id, f4m_id='hds', fatal=False))
 
         return {

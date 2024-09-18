@@ -90,7 +90,7 @@ class YouPornIE(InfoExtractor):
             'timestamp': 1606147564,
             'title': 'Tinder In Real Life',
             'view_count': int,
-        }
+        },
     }]
 
     def _real_extract(self, url):
@@ -126,7 +126,7 @@ class YouPornIE(InfoExtractor):
         for definition in get_format_data(definitions, 'mp4'):
             f = traverse_obj(definition, {
                 'url': 'videoUrl',
-                'filesize': ('videoSize', {int_or_none})
+                'filesize': ('videoSize', {int_or_none}),
             })
             height = int_or_none(definition.get('quality'))
             # Video URL's path looks like this:
@@ -140,7 +140,7 @@ class YouPornIE(InfoExtractor):
                     height = int(mobj.group('height'))
                 bitrate = int(mobj.group('bitrate'))
                 f.update({
-                    'format_id': '%dp-%dk' % (height, bitrate),
+                    'format_id': f'{height}p-{bitrate}k',
                     'tbr': bitrate,
                 })
             f['height'] = height

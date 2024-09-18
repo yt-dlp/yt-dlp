@@ -24,7 +24,7 @@ from ..utils import (
 
 
 class BitChuteIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?bitchute\.com/(?:video|embed|torrent/[^/]+)/(?P<id>[^/?#&]+)'
+    _VALID_URL = r'https?://(?:(?:www|old)\.)?bitchute\.com/(?:video|embed|torrent/[^/]+)/(?P<id>[^/?#&]+)'
     _EMBED_REGEX = [rf'<(?:script|iframe)[^>]+\bsrc=(["\'])(?P<url>{_VALID_URL})']
     _TESTS = [{
         'url': 'https://www.bitchute.com/video/UGlrF9o9b-Q/',
@@ -39,7 +39,7 @@ class BitChuteIE(InfoExtractor):
             'upload_date': '20170103',
             'uploader_url': 'https://www.bitchute.com/profile/I5NgtHZn9vPj/',
             'channel': 'BitChute',
-            'channel_url': 'https://www.bitchute.com/channel/bitchute/'
+            'channel_url': 'https://www.bitchute.com/channel/bitchute/',
         },
     }, {
         # test case: video with different channel and uploader
@@ -55,7 +55,7 @@ class BitChuteIE(InfoExtractor):
             'upload_date': '20231106',
             'uploader_url': 'https://www.bitchute.com/profile/9K0kUWA9zmd9/',
             'channel': 'Full Measure with Sharyl Attkisson',
-            'channel_url': 'https://www.bitchute.com/channel/sharylattkisson/'
+            'channel_url': 'https://www.bitchute.com/channel/sharylattkisson/',
         },
     }, {
         # video not downloadable in browser, but we can recover it
@@ -72,7 +72,7 @@ class BitChuteIE(InfoExtractor):
             'upload_date': '20181113',
             'uploader_url': 'https://www.bitchute.com/profile/I5NgtHZn9vPj/',
             'channel': 'BitChute',
-            'channel_url': 'https://www.bitchute.com/channel/bitchute/'
+            'channel_url': 'https://www.bitchute.com/channel/bitchute/',
         },
         'params': {'check_formats': None},
     }, {
@@ -90,6 +90,9 @@ class BitChuteIE(InfoExtractor):
         'only_matching': True,
     }, {
         'url': 'https://www.bitchute.com/torrent/Zee5BE49045h/szoMrox2JEI.webtorrent',
+        'only_matching': True,
+    }, {
+        'url': 'https://old.bitchute.com/video/UGlrF9o9b-Q/',
         'only_matching': True,
     }]
     _GEO_BYPASS = False
@@ -115,7 +118,7 @@ class BitChuteIE(InfoExtractor):
                 continue
             return {
                 'url': url,
-                'filesize': int_or_none(response.headers.get('Content-Length'))
+                'filesize': int_or_none(response.headers.get('Content-Length')),
             }
 
     def _raise_if_restricted(self, webpage):
@@ -132,7 +135,7 @@ class BitChuteIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(
-            f'https://www.bitchute.com/video/{video_id}', video_id, headers=self._HEADERS)
+            f'https://old.bitchute.com/video/{video_id}', video_id, headers=self._HEADERS)
 
         self._raise_if_restricted(webpage)
         publish_date = clean_html(get_element_by_class('video-publish-date', webpage))
@@ -171,13 +174,13 @@ class BitChuteIE(InfoExtractor):
 
 
 class BitChuteChannelIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?bitchute\.com/(?P<type>channel|playlist)/(?P<id>[^/?#&]+)'
+    _VALID_URL = r'https?://(?:(?:www|old)\.)?bitchute\.com/(?P<type>channel|playlist)/(?P<id>[^/?#&]+)'
     _TESTS = [{
         'url': 'https://www.bitchute.com/channel/bitchute/',
         'info_dict': {
             'id': 'bitchute',
             'title': 'BitChute',
-            'description': 'md5:5329fb3866125afa9446835594a9b138',
+            'description': 'md5:2134c37d64fc3a4846787c402956adac',
         },
         'playlist': [
             {
@@ -196,7 +199,7 @@ class BitChuteChannelIE(InfoExtractor):
                     'duration': 16,
                     'view_count': int,
                 },
-            }
+            },
         ],
         'params': {
             'skip_download': True,
@@ -209,7 +212,10 @@ class BitChuteChannelIE(InfoExtractor):
             'id': 'wV9Imujxasw9',
             'title': 'Bruce MacDonald and "The Light of Darkness"',
             'description': 'md5:747724ef404eebdfc04277714f81863e',
-        }
+        },
+    }, {
+        'url': 'https://old.bitchute.com/playlist/wV9Imujxasw9/',
+        'only_matching': True,
     }]
 
     _TOKEN = 'zyG6tQcGPE5swyAEFLqKUwMuMMuF6IO2DZ6ZDQjGfsL0e4dcTLwqkTTul05Jdve7'
@@ -224,13 +230,13 @@ class BitChuteChannelIE(InfoExtractor):
             'container': 'playlist-video',
             'title': 'title',
             'description': 'description',
-        }
+        },
 
     }
 
     @staticmethod
     def _make_url(playlist_id, playlist_type):
-        return f'https://www.bitchute.com/{playlist_type}/{playlist_id}/'
+        return f'https://old.bitchute.com/{playlist_type}/{playlist_id}/'
 
     def _fetch_page(self, playlist_id, playlist_type, page_num):
         playlist_url = self._make_url(playlist_id, playlist_type)

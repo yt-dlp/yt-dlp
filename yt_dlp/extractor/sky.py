@@ -94,7 +94,7 @@ class SkyNewsStoryIE(SkyBaseIE):
             'upload_date': '20211027',
             'timestamp': 1635317494,
             'uploader_id': '6058004172001',
-        }
+        },
     }
 
     def _real_extract(self, url):

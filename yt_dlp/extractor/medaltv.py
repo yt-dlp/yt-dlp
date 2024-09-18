@@ -1,7 +1,6 @@
 import re
 
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     ExtractorError,
     float_or_none,
@@ -31,7 +30,7 @@ class MedalTVIE(InfoExtractor):
             'view_count': int,
             'like_count': int,
             'duration': 13,
-        }
+        },
     }, {
         'url': 'https://medal.tv/games/cod-cold-war/clips/2mA60jWAGQCBH',
         'md5': 'fc7a3e4552ae8993c1c4006db46be447',
@@ -50,7 +49,7 @@ class MedalTVIE(InfoExtractor):
             'view_count': int,
             'like_count': int,
             'duration': 23,
-        }
+        },
     }, {
         'url': 'https://medal.tv/games/cod-cold-war/clips/2um24TWdty0NA',
         'md5': 'b6dc76b78195fff0b4f8bf4a33ec2148',
@@ -69,7 +68,7 @@ class MedalTVIE(InfoExtractor):
             'view_count': int,
             'like_count': int,
             'duration': 9,
-        }
+        },
     }, {
         'url': 'https://medal.tv/games/valorant/clips/37rMeFpryCC-9',
         'only_matching': True,
@@ -108,13 +107,13 @@ class MedalTVIE(InfoExtractor):
                 'url': item_url,
                 id_key: item_id,
                 'width': width,
-                'height': height
+                'height': height,
             })
 
         formats = []
         thumbnails = []
         for k, v in clip.items():
-            if not (v and isinstance(v, compat_str)):
+            if not (v and isinstance(v, str)):
                 continue
             mobj = re.match(r'(contentUrl|thumbnail)(?:(\d+)p)?$', k)
             if not mobj:
@@ -136,7 +135,7 @@ class MedalTVIE(InfoExtractor):
                     expected=True, video_id=video_id)
             else:
                 self.raise_no_formats(
-                    'An unknown error occurred ({0}).'.format(error),
+                    f'An unknown error occurred ({error}).',
                     video_id=video_id)
 
         # Necessary because the id of the author is not known in advance.

@@ -41,7 +41,7 @@ class XNXXIE(InfoExtractor):
 
         def get(meta, default=NO_DEFAULT, fatal=True):
             return self._search_regex(
-                r'set%s\s*\(\s*(["\'])(?P<value>(?:(?!\1).)+)\1' % meta,
+                rf'set{meta}\s*\(\s*(["\'])(?P<value>(?:(?!\1).)+)\1',
                 webpage, meta, default=default, fatal=fatal, group='value')
 
         title = self._og_search_title(

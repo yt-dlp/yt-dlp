@@ -2,7 +2,6 @@ import json
 import re
 
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     determine_ext,
     dict_get,
@@ -100,7 +99,7 @@ class SVTBaseIE(InfoExtractor):
 
 class SVTIE(SVTBaseIE):
     _VALID_URL = r'https?://(?:www\.)?svt\.se/wd\?(?:.*?&)?widgetId=(?P<widget_id>\d+)&.*?\barticleId=(?P<id>\d+)'
-    _EMBED_REGEX = [r'(?:<iframe src|href)="(?P<url>%s[^"]*)"' % _VALID_URL]
+    _EMBED_REGEX = [rf'(?:<iframe src|href)="(?P<url>{_VALID_URL}[^"]*)"']
     _TEST = {
         'url': 'http://www.svt.se/wd?widgetId=23991&sectionId=541&articleId=2900353&type=embed&contextSectionId=123&autostart=false',
         'md5': '33e9a5d8f646523ce0868ecfb0eed77d',
@@ -119,7 +118,7 @@ class SVTIE(SVTBaseIE):
         article_id = mobj.group('id')
 
         info = self._download_json(
-            'http://www.svt.se/wd?widgetId=%s&articleId=%s&format=json&type=embed&output=json' % (widget_id, article_id),
+            f'http://www.svt.se/wd?widgetId={widget_id}&articleId={article_id}&format=json&type=embed&output=json',
             article_id)
 
         info_dict = self._extract_video(info['video'], article_id)
@@ -159,7 +158,7 @@ class SVTPlayIE(SVTPlayBaseIE):
             'subtitles': {
                 'sv': [{
                     'ext': 'vtt',
-                }]
+                }],
             },
         },
         'params': {
@@ -181,7 +180,7 @@ class SVTPlayIE(SVTPlayBaseIE):
             'episode': '1. Farlig kryssning',
             'series': 'Rederiet',
             'subtitles': {
-                'sv': 'count:3'
+                'sv': 'count:3',
             },
         },
         'params': {
@@ -236,7 +235,7 @@ class SVTPlayIE(SVTPlayBaseIE):
 
     def _extract_by_video_id(self, video_id, webpage=None):
         data = self._download_json(
-            'https://api.svt.se/videoplayer-api/video/%s' % video_id,
+            f'https://api.svt.se/videoplayer-api/video/{video_id}',
             video_id, headers=self.geo_verification_headers())
         info_dict = self._extract_video(data, video_id)
         if not info_dict.get('title'):
@@ -281,7 +280,7 @@ class SVTPlayIE(SVTPlayBaseIE):
 
             svt_id = try_get(
                 data, lambda x: x['statistics']['dataLake']['content']['id'],
-                compat_str)
+                str)
 
         if not svt_id:
             nextjs_data = self._search_nextjs_data(webpage, video_id, fatal=False)
@@ -323,7 +322,7 @@ class SVTSeriesIE(SVTPlayBaseIE):
 
     @classmethod
     def suitable(cls, url):
-        return False if SVTIE.suitable(url) or SVTPlayIE.suitable(url) else super(SVTSeriesIE, cls).suitable(url)
+        return False if SVTIE.suitable(url) or SVTPlayIE.suitable(url) else super().suitable(url)
 
     def _real_extract(self, url):
         series_slug, season_id = self._match_valid_url(url).groups()
@@ -349,7 +348,7 @@ class SVTSeriesIE(SVTPlayBaseIE):
     name
     shortDescription
   }
-}''' % series_slug,
+}''' % series_slug,  # noqa: UP031
             })['data']['listablesBySlug'][0]
 
         season_name = None
@@ -368,7 +367,7 @@ class SVTSeriesIE(SVTPlayBaseIE):
             for item in items:
                 video = item.get('item') or {}
                 content_id = video.get('videoSvtId')
-                if not content_id or not isinstance(content_id, compat_str):
+                if not content_id or not isinstance(content_id, str):
                     continue
                 entries.append(self.url_result(
                     'svt:' + content_id, SVTPlayIE.ie_key(), content_id))
@@ -377,7 +376,7 @@ class SVTSeriesIE(SVTPlayBaseIE):
         season_name = season_name or season_id
 
         if title and season_name:
-            title = '%s - %s' % (title, season_name)
+            title = f'{title} - {season_name}'
         elif season_id:
             title = season_id
 
@@ -401,32 +400,32 @@ class SVTPageIE(SVTBaseIE):
             'id': 'jXvk42E',
             'title': 'Försvarsmakten om trafikkaoset på E22: Kunde inte varit där snabbare',
             'ext': 'mp4',
-            "duration": 80,
+            'duration': 80,
             'age_limit': 0,
             'timestamp': 1704370009,
             'episode': 'Försvarsmakten om trafikkaoset på E22: Kunde inte varit där snabbare',
             'series': 'Lokala Nyheter Skåne',
-            'upload_date': '20240104'
+            'upload_date': '20240104',
         },
         'params': {
             'skip_download': True,
-        }
+        },
     }, {
         'url': 'https://www.svt.se/nyheter/svtforum/2023-tungt-ar-for-svensk-media',
         'info_dict': {
             'title': '2023 tungt år för svensk media',
             'id': 'ewqAZv4',
             'ext': 'mp4',
-            "duration": 3074,
+            'duration': 3074,
             'age_limit': 0,
             'series': '',
             'timestamp': 1702980479,
             'upload_date': '20231219',
-            'episode': 'Mediestudier'
+            'episode': 'Mediestudier',
         },
         'params': {
             'skip_download': True,
-        }
+        },
     }, {
         'url': 'https://www.svt.se/sport/ishockey/bakom-masken-lehners-kamp-mot-mental-ohalsa',
         'info_dict': {
@@ -434,7 +433,7 @@ class SVTPageIE(SVTBaseIE):
             'title': 'Bakom masken – Lehners kamp mot mental ohälsa',
         },
         'playlist_count': 4,
-        'skip': 'Video is gone'
+        'skip': 'Video is gone',
     }, {
         'url': 'https://www.svt.se/nyheter/utrikes/svenska-andrea-ar-en-mil-fran-branderna-i-kalifornien',
         'info_dict': {
@@ -442,7 +441,7 @@ class SVTPageIE(SVTBaseIE):
             'title': 'Svenska Andrea redo att fly sitt hem i Kalifornien',
         },
         'playlist_count': 2,
-        'skip': 'Video is gone'
+        'skip': 'Video is gone',
     }, {
         # only programTitle
         'url': 'http://www.svt.se/sport/ishockey/jagr-tacklar-giroux-under-intervjun',
@@ -453,7 +452,7 @@ class SVTPageIE(SVTBaseIE):
             'duration': 27,
             'age_limit': 0,
         },
-        'skip': 'Video is gone'
+        'skip': 'Video is gone',
     }, {
         'url': 'https://www.svt.se/nyheter/lokalt/vast/svt-testar-tar-nagon-upp-skrapet-1',
         'only_matching': True,
@@ -464,7 +463,7 @@ class SVTPageIE(SVTBaseIE):
 
     @classmethod
     def suitable(cls, url):
-        return False if SVTIE.suitable(url) or SVTPlayIE.suitable(url) else super(SVTPageIE, cls).suitable(url)
+        return False if SVTIE.suitable(url) or SVTPlayIE.suitable(url) else super().suitable(url)
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
@@ -479,7 +478,7 @@ class SVTPageIE(SVTBaseIE):
 
         def entries():
             for video_id in set(traverse_obj(data, (
-                'page', (('topMedia', 'svtId'), ('body', ..., 'video', 'svtId')), {str}
+                'page', (('topMedia', 'svtId'), ('body', ..., 'video', 'svtId')), {str},
             ))):
                 info = self._extract_video(
                     self._download_json(f'https://api.svt.se/video/{video_id}', video_id), video_id)
