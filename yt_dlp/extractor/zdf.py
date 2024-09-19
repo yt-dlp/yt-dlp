@@ -24,6 +24,11 @@ class ZDFBaseIE(InfoExtractor):
     _GEO_COUNTRIES = ['DE']
     _QUALITIES = ('auto', 'low', 'med', 'high', 'veryhigh', 'hd', 'fhd', 'uhd')
 
+    def _download_mediathekv2_document(self, document_id):
+        return self._download_json(
+            f'https://zdf-prod-futura.zdf.de/mediathekV2/document/{document_id}',
+            document_id)
+
     def _call_api(self, url, video_id, item, api_token=None, referrer=None):
         headers = {}
         if api_token:
@@ -319,9 +324,7 @@ class ZDFIE(ZDFBaseIE):
         return self._extract_entry(player['content'], player, content, video_id)
 
     def _extract_mobile(self, video_id):
-        video = self._download_json(
-            f'https://zdf-cdn.live.cellular.de/mediathekV2/document/{video_id}',
-            video_id)
+        video = self._download_mediathekv2_document(video_id)
 
         formats = []
         formitaeten = try_get(video, lambda x: x['document']['formitaeten'], list)
@@ -450,9 +453,7 @@ class ZDFChannelIE(ZDFBaseIE):
 
         document_id = self._extract_document_id(webpage)
         if document_id is not None:
-            data = self._download_json(
-                f'https://zdf-prod-futura.zdf.de/mediathekV2/document/{document_id}',
-                document_id)
+            data = self._download_mediathekv2_document(document_id)
 
             for cluster in data['cluster']:
                 for teaser in cluster['teaser']:
