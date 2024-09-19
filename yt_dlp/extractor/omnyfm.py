@@ -1,10 +1,9 @@
 import functools
 import json
-import math
 
 from .common import InfoExtractor
 from ..utils import (
-    InAdvancePagedList,
+    OnDemandPagedList,
     clean_html,
     float_or_none,
     get_element_by_id,
@@ -60,11 +59,8 @@ class OmnyFMShowIE(InfoExtractor):
         data = json.loads(get_element_by_id('__NEXT_DATA__', webpage))
         org_id = traverse_obj(data, ('props', 'pageProps', 'program', 'OrganizationId', {str_or_none}))
         playlist_id = traverse_obj(data, ('props', 'pageProps', 'program', 'Id', {str_or_none}))
-        playlist_count = traverse_obj(data, ('props', 'pageProps', 'program', 'DefaultPlaylist', 'NumberOfClips', {int_or_none}))
         title = traverse_obj(data, ('props', 'pageProps', 'program', 'Name', {str_or_none}))
         first_page_data = traverse_obj(data, ('props', 'pageProps', 'clips', {dict}))
-        total_pages = math.ceil(playlist_count / self._PAGE_SIZE)
 
-        return self.playlist_result(InAdvancePagedList(
-            functools.partial(self._entries, org_id, playlist_id, first_page_data),
-            total_pages, self._PAGE_SIZE), playlist_id, title)
+        entries = OnDemandPagedList(functools.partial(self._entries, org_id, playlist_id, first_page_data), self._PAGE_SIZE)
+        return self.playlist_result(entries, playlist_id, title)
