@@ -79,6 +79,7 @@ from .afl import (
     AFCVideoIE,
     AFLPodcastIE,
     AFLVideoIE,
+    CarltonFCVideoIE,
 )
 from .afreecatv import (
     AfreecaTVCatchStoryIE,

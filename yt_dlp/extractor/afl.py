@@ -4,6 +4,7 @@ from .omnyfm import OmnyFMShowIE
 from ..utils import (
     extract_attributes,
     get_element_by_class,
+    get_element_html_by_attribute,
     get_element_html_by_id,
     smuggle_url,
     str_or_none,
@@ -111,40 +112,79 @@ class AFLPodcastIE(InfoExtractor):
 
 class AFCVideoIE(InfoExtractor):
     IE_NAME = 'afc:video'
-    _VALID_URL = r'https?://(?:www\.)?(?:afc|carltonfc)\.com.au/video/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?afc\.com.au/video/(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://www.afc.com.au/video/1657583/girls-academies-be-a-pro?videoId=1657583&modal=true&type=video&publishFrom=1726548621001',
-        'md5': '6b52c149ae6566abe4cfc2d24978983d',
+        'md5': 'd0f4ec78b5a693d95c975ae3aeed8b2d',
         'info_dict': {
-            'id': '6362050135112',
+            'id': '6362048189112',
             'ext': 'mp4',
-            'description': 'md5:35897062f9a02043ece73a410bda595c',
+            'description': 'md5:5c43f1affe1a0cd8e2192358a49de9cc',
             'upload_date': '20240917',
-            'duration': 103.92,
+            'duration': 50.48,
             'tags': 'count:0',
             'thumbnail': r're:^https?://.*\.jpg$',
-            'title': 'AFLW Jones Radiology Injury Update: R4',
+            'title': 'Girls Academies – ‘Be a Pro’',
             'uploader_id': '6057984922001',
-            'timestamp': 1726558062,
-        },
-    }, {
-        'url': 'https://www.carltonfc.com.au/video/1657596/cripps-on-taking-carlton-to-the-next-level?videoId=1657596&modal=true&type=video&publishFrom=1726555500001',
-        'md5': 'fb5d909329871aa6d182e520d1627846',
-        'info_dict': {
-            'id': '6362089476112',
-            'ext': 'mp4',
-            'description': 'md5:823db447fd9aed2033548e39283d3c0f',
-            'upload_date': '20240918',
-            'duration': 75.72,
-            'tags': 'count:0',
-            'thumbnail': r're:^https?://.*\.jpg$',
-            'title': 'The Rundown | Impact of fans',
-            'uploader_id': '6057984922001',
-            'timestamp': 1726631322,
+            'timestamp': 1726548942,
         },
     }, {
         'url': 'https://www.afc.com.au/video/1586280/se10ep16-the-crows-show?videoId=1586280&modal=true&type=video&publishFrom=1719639000001&tagNames=crowsshowepisode',
+        'md5': 'bd9984d62f87b4c2299bb62ffc869189',
+        'info_dict': {
+            'id': '6355746458112',
+            'ext': 'mp4',
+            'description': 'md5:4470d107af6e749a8225fd558b98b50b',
+            'upload_date': '20240627',
+            'duration': 1193.64,
+            'tags': 'count:0',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'title': 'SE10EP16 - The Crows Show',
+            'uploader_id': '6057984922001',
+            'timestamp': 1719466601,
+        },
+    }, {
+        'url': 'https://www.afc.com.au/video/1634706/jones-radiology-injury-update-r24?videoId=1634706&modal=true&type=video&publishFrom=1724126172001',
         'only_matching': True,
+    }]
+
+    def _real_extract(self, url):
+        display_id = self._match_id(url)
+        webpage = self._download_webpage(url, display_id)
+        video_attrs = extract_attributes(get_element_html_by_id('VideoModal', webpage))
+        player_id = video_attrs['data-player-id'] + '_default'
+        account_id = video_attrs['data-account-id']
+
+        video_element_html = get_element_html_by_attribute('data-id', display_id, webpage)
+        if video_element_html is None:
+            data = self._download_json(f'https://aflapi.afc.com.au/content/aflc-adel/video/en/{display_id}', display_id)
+            video_id = traverse_obj(data, ('mediaId', {str_or_none}))
+        else:
+            video_id = self._search_regex(r'"mediaId"\s*:\s*"(\d+)"', video_element_html, 'video-id', fatal=False)
+
+        video_url = f'https://players.brightcove.net/{account_id}/{player_id}/index.html?videoId={video_id}'
+        video_url = smuggle_url(video_url, {'referrer': url})
+        return self.url_result(video_url, BrightcoveNewIE)
+
+
+class CarltonFCVideoIE(InfoExtractor):
+    IE_NAME = 'carltonfc:video'
+    _VALID_URL = r'https?://(?:www\.)?carltonfc\.com.au/video/(?P<id>\d+)'
+    _TESTS = [{
+        'url': 'https://www.carltonfc.com.au/video/1657596/cripps-on-taking-carlton-to-the-next-level?videoId=1657596&modal=true&type=video&publishFrom=1726555500001',
+        'md5': '67916ea9dd28376365184bb3869a1548',
+        'info_dict': {
+            'id': '6362046715112',
+            'ext': 'mp4',
+            'description': 'md5:02eeff6576fcd7c33e18e34b1b0ebf56',
+            'upload_date': '20240917',
+            'duration': 90.44,
+            'tags': 'count:0',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'title': 'Cripps on taking Carlton to the next level',
+            'uploader_id': '6057984922001',
+            'timestamp': 1726550622,
+        },
     }, {
         'url': 'https://www.carltonfc.com.au/video/1658173/the-rundown-impact-of-fans?videoId=1658173&modal=true&type=video&publishFrom=1726630922001',
         'only_matching': True,
@@ -153,7 +193,8 @@ class AFCVideoIE(InfoExtractor):
     def _real_extract(self, url):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
-        video_id = self._search_regex(r'"mediaId"\s*:\s*"(\d+)"', webpage, 'video-id')
+        video_tag = get_element_html_by_attribute('data-id', display_id, webpage)
+        video_id = self._search_regex(r'"mediaId"\s*:\s*"(\d+)"', video_tag, 'video-id')
         video_attrs = extract_attributes(get_element_html_by_id('VideoModal', webpage))
         player_id = video_attrs['data-player-id'] + '_default'
         account_id = video_attrs['data-account-id']
