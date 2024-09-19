@@ -13,34 +13,73 @@ class PMVHavenIE(InfoExtractor):
             # For videos, only the 'id' and 'ext' fields are required to RUN the test:
             'id': '66799ca1ca817a3e12107c75',
 
-            'thumbnail': r're:^https?://.*\.jpeg$',
+            'thumbnail': r're:^https?://.*\.(jpe?g|webp)$',
             'uploader': 'wombatpmv',
             'title': 'NEW RULES',
             'description': 'Experience the mesmerizing PMV - NEW RULES created by wombatpmv',
             'ext': 'mp4',
         },
+    }, {
+        'url': 'https://pmvhaven.com/video/The-Succubus-Sidenpose_66910e34de14153c0fbab5c9',
+        'md5': 'd86e7ad579163d9d8d4e0e434d8addce',
+        'info_dict': {
+            'id': '66910e34de14153c0fbab5c9',
+
+            'thumbnail': r're:^https?://.*\.(jpe?g|webp)$',
+            'uploader': 'sidenpose',
+            'title': 'The Succubus Sidenpose',
+            'description': 'Experience the mesmerizing PMV - The Succubus Sidenpose created by sidenpose',
+            'ext': 'mp4',
+        },
+    }, {
+        'url': 'https://pmvhaven.com/video/NASTY-TEENS-01_652e6ade99f1e372b0180107',
+        'md5': '4b612116f90a80ead2481a834b615827',
+        'info_dict': {
+            'id': '652e6ade99f1e372b0180107',
+
+            'thumbnail': r're:^https?://.*\.(jpe?g|webp)$',
+            'uploader': 'PMVArchive',
+            'title': 'NASTY TEENS 01',
+            'description': 'Experience the mesmerizing PMV - NASTY TEENS 01 created by brktnz',
+            'ext': 'mp4',
+        },
+    }, {
+        'url': 'https://pmvhaven.com/video/Indian-Girls-Do-It-Well-Brown-Girls-PMV_6679d486c73601563c51fc50',
+        'md5': 'cee8a8bcdad69fb0d3a7da92fdf7c615',
+        'info_dict': {
+            'id': '6679d486c73601563c51fc50',
+
+            'thumbnail': r're:^https?://.*\.(jpe?g|webp)$',
+            'uploader': 'shananne',
+            'title': 'Indian Girls Do It Well - Brown Girls PMV',
+            'description': 'Experience the mesmerizing PMV - Indian Girls Do It Well - Brown Girls PMV',
+            'ext': 'mp4',
+        },
     }]
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
-        webpage = self._download_webpage(url, video_id)
-
-        data = self._search_regex(r'<script.*id="__NUXT_DATA__".*>(.+?)</script>', webpage, 'json data search')
-        data = json.loads(data)
+        episode_id = self._match_id(url)
+        webpage = self._download_webpage(url, episode_id)
+        data = self._search_json(
+            r'<script[^>]+id=["\']__NUXT_DATA__["\'][^>]*>',
+            webpage, 'nuxt data', None, end_pattern=r'</script>', contains_pattern=r'\[(?s:.+)\]')
 
         # Data contains "pointers", so we gotta follow them
-        jdat = data[data[data[0][1]]['data']]
-        _idx = next(i for i in list(jdat.keys()) if 'videoInput' in i)
-        jdat = data[data[jdat[_idx]]['video']]
-        jdat = data[jdat[0]]
+        jdat = traverse_obj(data, (1, 'data'))
+        jdat = traverse_obj(data, (jdat, lambda key, _: 'videoInput' in key))
+        jdat = traverse_obj(data, (jdat, 'video'))
+        jdat = traverse_obj(data, (jdat, 0))
+        jdat = traverse_obj(data, (jdat))
+
+        thumbnails = [{'url': data[idx]} for idx in traverse_obj(data, (jdat, 'thumbnails')) if data[idx] not in ['placeholder', 'null', None]]
 
         return {
-            'id': video_id,
-            'title': data[jdat['title']],
+            'id': episode_id,
+            'title': traverse_obj(data, (jdat, 'title')),
             'description': self._og_search_description(webpage),
-            'uploader': data[jdat['uploader']],
-            'url': data[jdat['url']],
-            'thumbnails': [{'url': data[i]} for i in data[jdat['thumbnails']] if data[i] != 'placeholder'],
+            'uploader': traverse_obj(data, (jdat, 'uploader')),
+            'url': traverse_obj(data, (jdat, 'url')),
+            'thumbnails': thumbnails,
         }
 
 
