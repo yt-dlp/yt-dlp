@@ -15,7 +15,7 @@ from ..utils import (
 
 class OmnyFMShowIE(InfoExtractor):
     IE_NAME = 'omnyfm:show'
-    _VALID_URL = r'https?://omny\.fm/shows/(?P<id>[\w-]+)'
+    _VALID_URL = r'https?://omny\.fm/shows/(?P<id>[^/]+)'
     _EMBED_REGEX = [r'<iframe[^>]+?src=(["\'])(?P<url>https?://omny\.fm/shows/.+?)\1']
     _PAGE_SIZE = 10
     _TESTS = [{
