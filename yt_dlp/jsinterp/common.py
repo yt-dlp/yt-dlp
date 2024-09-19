@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import abc
 import typing
-# import dataclasses
 
 from ..utils import classproperty
 
@@ -90,6 +89,10 @@ class JSIDirector(JSIExec):
     def write_debug(self):
         return self._downloader.write_debug
 
+    @property
+    def report_warning(self):
+        return self._downloader.report_warning
+
     def _get_handlers(self, method: str, *args, **kwargs) -> list[JSI]:
         handlers = [h for h in self._handler_dict.values() if getattr(h, method, None)]
         self.write_debug(f'JSIDirector has handlers for `{method}`: {handlers}')
@@ -125,22 +128,48 @@ class JSIDirector(JSIExec):
         def handler(self: JSIDirector, *args, **kwargs):
             unavailable: list[JSI] = []
             exceptions: list[tuple[JSI, Exception]] = []
+            is_test = self._downloader.params.get('test', False)
+            results: list[tuple[JSI, typing.Any]] = []
+
             for handler in self._get_handlers(method_name, *args, **kwargs):
                 if not handler.is_available:
+                    if is_test:
+                        raise Exception(f'{handler.JSI_NAME} is not available for testing, '
+                                        f'add "{handler.JSI_KEY}" in `exclude` if it should not be used')
                     self.write_debug(f'{handler.JSI_NAME} is not available')
                     unavailable.append(handler)
                     continue
                 try:
                     self.write_debug(f'Dispatching `{method_name}` task to {handler.JSI_NAME}')
-                    return getattr(handler, method_name)(*args, **kwargs)
+                    result = getattr(handler, method_name)(*args, **kwargs)
+                    if is_test:
+                        results.append((handler, result))
+                    else:
+                        return result
                 except Exception as e:
                     if handler.JSI_KEY not in self._fallback_jsi:
                         raise
                     else:
                         exceptions.append((handler, e))
-            if not exceptions:
-                raise Exception(f'No available JSI installed, please install one of: {join_jsi_name(unavailable)}')
-            raise Exception(f'Failed to perform {method_name}, total {len(exceptions)} errors. Following JSI have been skipped and you can try installing one of them: {join_jsi_name(unavailable)}')
+                        self.write_debug(f'{handler.JSI_NAME} encountered error, fallback to next handler: {e}')
+
+            if not is_test or not results:
+                if not exceptions:
+                    msg = f'No available JSI installed, please install one of: {join_jsi_name(unavailable)}'
+                else:
+                    msg = f'Failed to perform {method_name}, total {len(exceptions)} errors'
+                    if unavailable:
+                        msg = f'{msg}. You can try installing one of unavailable JSI: {join_jsi_name(unavailable)}'
+                raise Exception(msg)
+
+            if is_test:
+                ref_handler, ref_result = results[0]
+                for handler, result in results[1:]:
+                    if result != ref_result:
+                        self.report_warning(
+                            f'Different JSI results produced from {ref_handler.JSI_NAME} and {handler.JSI_NAME}')
+                return ref_result
+
         return handler
 
     execute = _get_handler_method('execute')
