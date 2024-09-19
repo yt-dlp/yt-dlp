@@ -1,8 +1,9 @@
 import functools
+import math
 
 from .common import InfoExtractor
 from ..utils import (
-    OnDemandPagedList,
+    InAdvancePagedList,
     clean_html,
     float_or_none,
     int_or_none,
@@ -57,8 +58,11 @@ class OmnyFMShowIE(InfoExtractor):
         data = self._search_nextjs_data(webpage, display_id)
         org_id = traverse_obj(data, ('props', 'pageProps', 'program', 'OrganizationId', {str_or_none}))
         playlist_id = traverse_obj(data, ('props', 'pageProps', 'program', 'Id', {str_or_none}))
+        playlist_count = traverse_obj(data, ('props', 'pageProps', 'program', 'DefaultPlaylist', 'NumberOfClips', {int_or_none}))
         title = traverse_obj(data, ('props', 'pageProps', 'program', 'Name', {str_or_none}))
         first_page_data = traverse_obj(data, ('props', 'pageProps', 'clips', {dict}))
+        total_pages = math.ceil(playlist_count / self._PAGE_SIZE)
 
-        entries = OnDemandPagedList(functools.partial(self._entries, org_id, playlist_id, first_page_data), self._PAGE_SIZE)
-        return self.playlist_result(entries, playlist_id, title)
+        return self.playlist_result(InAdvancePagedList(
+            functools.partial(self._entries, org_id, playlist_id, first_page_data),
+            total_pages, self._PAGE_SIZE), playlist_id, title)
