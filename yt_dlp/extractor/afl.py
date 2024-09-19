@@ -15,7 +15,7 @@ from ..utils import (
 
 class AFLVideoIE(InfoExtractor):
     IE_NAME = 'afl:video'
-    _VALID_URL = r'https?://(?:www\.)?(?:afl|lions)\.com.au/(?:aflw/)?video/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?(?:afl|lions)\.com\.au/(?:aflw/)?video/(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://www.afl.com.au/aflw/video/1217670/the-w-show-aflws-line-in-the-sand-moment-bonnies-bold-bid',
         'md5': '7000431c2bd3f96eddb5f63273aea83e',
@@ -77,7 +77,7 @@ class AFLVideoIE(InfoExtractor):
 
 class AFLPodcastIE(InfoExtractor):
     IE_NAME = 'afl:podcast'
-    _VALID_URL = r'https?://(?:www\.)?(?:afl|carltonfc)\.com.au/(?:aflw/)?podcasts/(?P<id>[\w-]+)'
+    _VALID_URL = r'https?://(?:www\.)?(?:afl|carltonfc)\.com\.au/(?:aflw/)?podcasts/(?P<id>[\w-]+)'
     _TESTS = [{
         'url': 'https://www.afl.com.au/podcasts/between-us',
         'md5': '7000431c2bd3f96eddb5f63273aea83e',
@@ -112,7 +112,7 @@ class AFLPodcastIE(InfoExtractor):
 
 class AFCVideoIE(InfoExtractor):
     IE_NAME = 'afc:video'
-    _VALID_URL = r'https?://(?:www\.)?afc\.com.au/video/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?afc\.com\.au/video/(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://www.afc.com.au/video/1657583/girls-academies-be-a-pro?videoId=1657583&modal=true&type=video&publishFrom=1726548621001',
         'md5': 'd0f4ec78b5a693d95c975ae3aeed8b2d',
@@ -169,7 +169,7 @@ class AFCVideoIE(InfoExtractor):
 
 class CarltonFCVideoIE(InfoExtractor):
     IE_NAME = 'carltonfc:video'
-    _VALID_URL = r'https?://(?:www\.)?carltonfc\.com.au/video/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?carltonfc\.com\.au/video/(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://www.carltonfc.com.au/video/1657596/cripps-on-taking-carlton-to-the-next-level?videoId=1657596&modal=true&type=video&publishFrom=1726555500001',
         'md5': '67916ea9dd28376365184bb3869a1548',
