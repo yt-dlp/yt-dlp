@@ -156,11 +156,11 @@ class AFCVideoIE(InfoExtractor):
         account_id = video_attrs['data-account-id']
 
         video_element_html = get_element_html_by_attribute('data-id', display_id, webpage)
-        if video_element_html is None:
-            data = self._download_json(f'https://aflapi.afc.com.au/content/aflc-adel/video/en/{display_id}', display_id)
-            video_id = traverse_obj(data, ('mediaId', {str_or_none}))
+        if not video_element_html:
+            video_data = self._download_json(f'https://aflapi.afc.com.au/content/aflc-adel/video/en/{display_id}', display_id)
         else:
-            video_id = self._search_regex(r'"mediaId"\s*:\s*"(\d+)"', video_element_html, 'video-id', fatal=False)
+            video_data = self._search_json(r'data-ui-args\s*=\s*["\']', video_element_html, 'video-id', display_id)
+        video_id = video_data['mediaId']
 
         video_url = f'https://players.brightcove.net/{account_id}/{player_id}/index.html?videoId={video_id}'
         video_url = smuggle_url(video_url, {'referrer': url})
@@ -193,11 +193,13 @@ class CarltonFCVideoIE(InfoExtractor):
     def _real_extract(self, url):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
-        video_tag = get_element_html_by_attribute('data-id', display_id, webpage)
-        video_id = self._search_regex(r'"mediaId"\s*:\s*"(\d+)"', video_tag, 'video-id')
         video_attrs = extract_attributes(get_element_html_by_id('VideoModal', webpage))
         player_id = video_attrs['data-player-id'] + '_default'
         account_id = video_attrs['data-account-id']
+
+        video_element_html = get_element_html_by_attribute('data-id', display_id, webpage)
+        video_data = self._search_json(r'data-ui-args\s*=\s*["\']', video_element_html, 'video-id', display_id)
+        video_id = video_data['mediaId']
 
         video_url = f'https://players.brightcove.net/{account_id}/{player_id}/index.html?videoId={video_id}'
         video_url = smuggle_url(video_url, {'referrer': url})
