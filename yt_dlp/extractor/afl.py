@@ -4,6 +4,7 @@ from .omnyfm import OmnyFMShowIE
 from ..utils import (
     extract_attributes,
     get_element_by_class,
+    get_element_html_by_id,
     smuggle_url,
     str_or_none,
     traverse_obj,
@@ -153,8 +154,9 @@ class AFCVideoIE(InfoExtractor):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
         video_id = self._search_regex(r'"mediaId"\s*:\s*"(\d+)"', webpage, 'video-id')
-        player_id = self._search_regex(r'data-player-id\s*=\s*"(\w+)"', webpage, 'player-id') + '_default'
-        account_id = self._search_regex(r'data-account-id\s*=\s*"(\d+)"', webpage, 'account-id')
+        video_attrs = extract_attributes(get_element_html_by_id('VideoModal', webpage))
+        player_id = video_attrs['data-player-id'] + '_default'
+        account_id = video_attrs['data-account-id']
 
         video_url = f'https://players.brightcove.net/{account_id}/{player_id}/index.html?videoId={video_id}'
         video_url = smuggle_url(video_url, {'referrer': url})
