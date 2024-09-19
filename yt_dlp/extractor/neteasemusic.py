@@ -76,19 +76,21 @@ class NetEaseMusicBaseIE(InfoExtractor):
                 **headers,
             }, **kwargs)
 
-    def _call_player_api(self, song_id, level):
+    def _call_player_api(self, song_id, level, headers={}):
         return self._download_eapi_json(
             '/song/enhance/player/url/v1', song_id,
-            {'ids': f'[{song_id}]', 'level': level, 'encodeType': 'flac'},
-            note=f'Downloading song URL info: level {level}')
+            {'ids': f'[{song_id}]', 'level': level, 'encodeType': 'flac'}, headers=headers, note=f'Downloading song URL info: level {level}')
 
-    def _extract_formats(self, info):
+    def _extract_formats(self, info, try_geo_bypass=False):
         formats = []
         song_id = info['id']
+        headers = {'X-Real-IP': '118.88.88.88'} if try_geo_bypass else {}
         for level in self._LEVELS:
             song = traverse_obj(
-                self._call_player_api(song_id, level), ('data', lambda _, v: url_or_none(v['url']), any))
+                self._call_player_api(song_id, level, headers=headers), ('data', lambda _, v: url_or_none(v['url']), any))
             if not song:
+                if not try_geo_bypass:
+                    return self._extract_formats(info, try_geo_bypass=True)
                 break  # Media is not available due to removal or geo-restriction
             actual_level = song.get('level')
             if actual_level and actual_level != level:
