@@ -1,12 +1,10 @@
 import functools
-import json
 
 from .common import InfoExtractor
 from ..utils import (
     OnDemandPagedList,
     clean_html,
     float_or_none,
-    get_element_by_id,
     int_or_none,
     str_or_none,
     traverse_obj,
@@ -56,7 +54,7 @@ class OmnyFMShowIE(InfoExtractor):
         page_url = 'https://omny.fm/shows/' + display_id
         webpage = self._download_webpage(page_url, display_id)
 
-        data = json.loads(get_element_by_id('__NEXT_DATA__', webpage))
+        data = self._search_nextjs_data(webpage, display_id)
         org_id = traverse_obj(data, ('props', 'pageProps', 'program', 'OrganizationId', {str_or_none}))
         playlist_id = traverse_obj(data, ('props', 'pageProps', 'program', 'Id', {str_or_none}))
         title = traverse_obj(data, ('props', 'pageProps', 'program', 'Name', {str_or_none}))
