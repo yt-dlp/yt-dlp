@@ -386,18 +386,19 @@ class ZDFChannelIE(ZDFBaseIE):
         'info_dict': {
             'id': 'planet-e',
             'title': 'planet e.',
+            'description': 'md5:87e3b9c66a63cf1407ee443d2c4eb88e',
         },
         'playlist_mincount': 50,
     }, {
         'url': 'https://www.zdf.de/gesellschaft/aktenzeichen-xy-ungeloest',
         'info_dict': {
             'id': 'aktenzeichen-xy-ungeloest',
-            'title': 'Aktenzeichen XY... ungelöst',
-            'entries': "lambda x: not any('xy580-fall1-kindermoerder-gesucht-100' in e['url'] for e in x)",
+            'title': 'Aktenzeichen XY... Ungelöst',
+            'description': 'md5:623ede5819c400c6d04943fa8100e6e7',
         },
         'playlist_mincount': 2,
     }, {
-        'url': 'https://www.zdf.de/filme/taunuskrimi/',
+        'url': 'https://www.zdf.de/serien/taunuskrimi/',
         'only_matching': True,
     }]
 
