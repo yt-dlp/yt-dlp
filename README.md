@@ -1864,6 +1864,10 @@ The following extractors use this feature:
 #### digitalconcerthall
 * `prefer_combined_hls`: Prefer extracting combined/pre-merged video and audio HLS formats. This will exclude 4K/HEVC video and lossless/FLAC audio formats, which are only available as split video/audio HLS formats
 
+#### rplaylive
+
+* `jwt_token`: JWT token that can be found as value of `_AUTHORIZATION_` entry from the browser local storage. This can be used as an alternative login method.
+
 **Note**: These options may be changed/removed in the future without concern for backward compatibility
 
 <!-- MANPAGE: MOVE "INSTALLATION" SECTION HERE -->

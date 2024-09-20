@@ -27,17 +27,27 @@ class RPlayBaseIE(InfoExtractor):
     _user_id = None
     _login_type = None
     _jwt_token = None
+    _tested_jwt = False
+
+    def _check_jwt_args(self):
+        jwt_arg = self._configuration_arg('jwt_token', ie_key='rplaylive', casesense=True)
+        if self._jwt_token is None and jwt_arg and not self._tested_jwt:
+            self._login_by_token(jwt_arg[0], raw_token_hint=True)
+            self._tested_jwt = True
 
     @property
     def user_id(self):
+        self._check_jwt_args()
         return self._user_id
 
     @property
     def login_type(self):
+        self._check_jwt_args()
         return self._login_type
 
     @property
     def jwt_token(self):
+        self._check_jwt_args()
         return self._jwt_token
 
     @property
@@ -53,6 +63,10 @@ class RPlayBaseIE(InfoExtractor):
             'Referer': 'https://rplay.live/',
             'Authorization': self.jwt_token or 'null',
         }
+
+    def _login_hint(self, **kwargs):
+        return (f'Use --username and --password, --netrc-cmd, --netrc ({self._NETRC_MACHINE}) '
+                'or --extractor-args "rplaylive:jwt_token=xxx" to provide account credentials')
 
     def _jwt_encode_hs256(self, payload: dict, key: str):
         # yt_dlp.utils.jwt_encode_hs256() uses slightly different details that would fails
@@ -75,9 +89,9 @@ class RPlayBaseIE(InfoExtractor):
         key = hashlib.sha256(password.encode()).hexdigest()
         self._login_by_token(self._jwt_encode_hs256(payload, key).decode())
 
-    def _login_by_token(self, jwt_token):
+    def _login_by_token(self, jwt_token, raw_token_hint=False):
         user_info = self._download_json(
-            'https://api.rplay.live/account/login', 'login', note='performing login', errnote='Failed to login',
+            'https://api.rplay.live/account/login', 'login', note='performing login', errnote='login failed',
             data=f'{{"token":"{jwt_token}","loginType":null,"checkAdmin":null}}'.encode(),
             headers={'Content-Type': 'application/json', 'Authorization': 'null'}, fatal=False)
 
@@ -86,7 +100,10 @@ class RPlayBaseIE(InfoExtractor):
             self._login_type = traverse_obj(user_info, 'accountType')
             self._jwt_token = jwt_token if self._user_id else None
         if not self._user_id:
-            self.report_warning('Failed to login, possibly due to wrong password or website change')
+            if raw_token_hint:
+                self.report_warning('Login failed, possibly due to wrong or expired JWT token')
+            else:
+                self.report_warning('Login failed, possibly due to wrong password or website change')
 
     def get_butter_token(self):
         salt = 'QWI@(!WAS)Dj1AA(!@*DJ#@$@~1)P'
@@ -181,8 +198,7 @@ class RPlayVideoIE(RPlayBaseIE):
             if traverse_obj(video_info, ('viewableTiers', 'free')):
                 msg = 'This video requires a free subscription to access'
             if not self.user_id:
-                # credential is in browser localStorage only, no cookies to use
-                msg += f'. {self._login_hint(method="password")}'
+                msg += f'. {self._login_hint()}'
             raise ExtractorError(msg, expected=True)
 
         formats = self._extract_m3u8_formats(m3u8_url, video_id, headers={
