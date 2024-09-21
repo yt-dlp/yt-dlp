@@ -21,27 +21,31 @@ class ExtremeMusicBaseIE(InfoExtractor):
     def _process_version_arg(self, arg):
         self._version_requested = arg
 
-    def _set_request_headers(self, video_id, country=None):
+    def _set_request_headers(self, url, video_id, country=None):
         if not self._REQUEST_HEADERS:
-            # the site serves different versions of the same playlist id according to ISO country code,
-            # so use user's own country code or user-provided country code (extractor argument "country")
+            # the site serves different versions of the same playlist id due to geo-restriction,
+            # so use user's own country code or geo_bypass_country code
             if not country:
-                country = [self._download_webpage('https://ipapi.co/country_code', video_id)]
+                country = self._download_webpage('https://ipapi.co/country_code', video_id)
             env = self._download_json('https://www.extrememusic.com/env', video_id)
             self._REQUEST_HEADERS = {
+                'Accept': 'application/json',
+                'Origin': 'https://www.extrememusic.com',
+                'Referer': url,
+                'Sec-Fetch-Mode': 'cors',
                 'X-API-Auth': env['token'],
-                'X-Viewer-Country': country[0],
+                'X-Site-Id': 4,
+                'X-Viewer-Country': country.upper(),
             }
         return self._REQUEST_HEADERS
 
-    def _get_album_data(self, album_id, video_id):
+    def _get_album_data(self, album_id, video_id, fatal=True):
         self._process_version_arg(self._configuration_arg('ver') or self._configuration_arg('version'))
-        headers = self._set_request_headers(video_id)
-        album = self._download_json(f'{self._API_URL}/albums/{album_id}', video_id,
-                                    note='Downloading album data', headers=headers)
+        album = self._download_json(f'{self._API_URL}/albums/{album_id}', video_id, fatal=fatal,
+                                    note='Downloading album data', headers=self._REQUEST_HEADERS)
         if video_id == album_id:
             bio = self._download_json(f'{self._API_URL}/albums/{album_id}/bio', video_id, fatal=False,
-                                      note='Downloading album data', headers=headers)
+                                      note='Downloading album data', headers=self._REQUEST_HEADERS)
             return merge_dicts(album, bio or {})
         else:
             return album
@@ -206,6 +210,7 @@ class ExtremeMusicIE(ExtremeMusicBaseIE):
 
     def _real_extract(self, url):
         album_id, track_id, version_id = self._match_valid_url(url).group('album', 'id', 'ver')
+        self._set_request_headers(url, track_id or version_id, self.get_param('geo_bypass_country') or 'DE')
         album_data = self._get_album_data(album_id, track_id or version_id)
         if result := self._extract_track(album_data, track_id, version_id):
             return result
@@ -238,6 +243,7 @@ class ExtremeMusicAIE(ExtremeMusicBaseIE):
 
     def _real_extract(self, url):
         album_id = self._match_id(url)
+        self._set_request_headers(url, album_id, self.get_param('geo_bypass_country') or 'DE')
         album_data = self._get_album_data(album_id, album_id)
 
         entries = []
@@ -248,8 +254,8 @@ class ExtremeMusicAIE(ExtremeMusicBaseIE):
                 else:
                     entries.append(track)
 
-        subgenres = traverse_obj(album_data, ('album', 'subgenres', {str_or_none}))
         if entries:
+            subgenres = traverse_obj(album_data, ('album', 'subgenres', {str_or_none}))
             return merge_dicts(traverse_obj(album_data.get('album'), {
                 'id': ('id', {lambda v: str(v)}),
                 'album': ('title', {str_or_none}),
@@ -277,7 +283,8 @@ class ExtremeMusicPIE(ExtremeMusicBaseIE):
             'title': 'NICE',
             'thumbnail': 'https://d2oet5a29f64lj.cloudfront.net/img-data/w/2480/featureditem/square/thumbnail_PLAYLIST_Nice-square-(formerly ChristmasTraditional).jpg',
         },
-        'playlist_mincount': 35,
+        'playlist_mincount': 29,
+        'expected_warnings': ['This playlist has geo-restricted items. Try using --xff to specify a different country code.'],
     }, {
         'url': 'https://www.extrememusic.com/playlists/fUKKU5KAfK61pAAKp4U4KpKUxsRk2ki_fU117KpUUAAUKAUfpA6UAfAKK8Ul5ji',
         'info_dict': {
@@ -290,7 +297,7 @@ class ExtremeMusicPIE(ExtremeMusicBaseIE):
 
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
-        headers = self._set_request_headers(playlist_id, self._configuration_arg('country'))
+        headers = self._set_request_headers(url, playlist_id, self.get_param('geo_bypass_country'))
 
         def playlist_query(playlist_id, offset, limit):
             # playlist api: https://snapi.extrememusic.com/playlists?id={playlist_id}&range={offset}%2C{limit}'
@@ -314,7 +321,7 @@ class ExtremeMusicPIE(ExtremeMusicBaseIE):
                         album_id = traverse_obj(playlist,
                                                 ('tracks', lambda _, v: v['id'] == track_id, 'album_id', {int}), get_all=False)
                         if album_id not in album_data:
-                            album_data[album_id] = self._get_album_data(album_id, track_id)
+                            album_data[album_id] = self._get_album_data(album_id, track_id, fatal=False)
                         playlist['album'] = traverse_obj(album_data, (album_id, 'album', {dict}))
                         if track := self._extract_track(playlist, track_id=track_id):
                             if track.get('entries'):
@@ -322,8 +329,13 @@ class ExtremeMusicPIE(ExtremeMusicBaseIE):
                             else:
                                 entries.append(track)
                         track_done.append(track_id)
+            if len(entries) >= playlist['playlist']['playlist_items_count']:
+                break
 
         if entries:
+            if len(entries) < playlist['playlist']['playlist_items_count']:
+                self.report_warning('This playlist has geo-restricted items. Try using --xff to specify a different country code.')
+
             for image in traverse_obj(playlist['playlist'], ('images', 'square')):
                 thumbnails.append(traverse_obj(image, {
                     'url': ('url', {url_or_none}),
