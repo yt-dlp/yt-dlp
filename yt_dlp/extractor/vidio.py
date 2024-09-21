@@ -1,26 +1,18 @@
-import base64
-import hashlib
-import hmac
 import json
-import time
 
 from .common import InfoExtractor
-from ..aes import aes_cbc_encrypt
 from ..utils import (
     ExtractorError,
     clean_html,
     extract_attributes,
-    format_field,
     get_element_by_class,
     get_element_html_by_id,
     int_or_none,
-    join_nonempty,
     parse_iso8601,
     remove_end,
     smuggle_url,
     str_or_none,
     str_to_int,
-    strip_or_none,
     try_get,
     unsmuggle_url,
     url_or_none,
@@ -302,7 +294,7 @@ class VidioIE(VidioBaseIE):
     }]
 
     def _real_extract(self, url):
-        video_id, display_id = self._match_valid_url(url).group('id', 'display_id')
+        video_id, display_id = self._match_valid_url(url).groups()
 
         webpage = self._download_webpage(url, video_id)
         api_data = self._call_api(f'https://api.vidio.com/videos/{video_id}', display_id, 'Downloading API data')
@@ -328,9 +320,8 @@ class VidioIE(VidioBaseIE):
         # so try the other URL iff no formats extracted from the prior one.
 
         for m3u8_url in traverse_obj([
-            interactions_stream.get('source'),
-            attrs.get('data-vjs-clip-hls-url'),
-        ], (..., {url_or_none})):
+                interactions_stream.get('source'),
+                attrs.get('data-vjs-clip-hls-url')], (..., {url_or_none})):
             fmt, subs = self._extract_m3u8_formats_and_subtitles(m3u8_url, video_id, ext='mp4', m3u8_id='hls')
             formats.extend(fmt)
             self._merge_subtitles(subs, subtitles)
@@ -338,9 +329,8 @@ class VidioIE(VidioBaseIE):
                 break
 
         for mpd_url in traverse_obj([
-            interactions_stream.get('source_dash'),
-            attrs.get('data-vjs-clip-dash-url'),
-        ], (..., {url_or_none})):
+                interactions_stream.get('source_dash'),
+                attrs.get('data-vjs-clip-dash-url')], (..., {url_or_none})):
             fmt, subs = self._extract_mpd_formats_and_subtitles(mpd_url, video_id, mpd_id='dash')
             formats.extend(fmt)
             self._merge_subtitles(subs, subtitles)
@@ -461,16 +451,19 @@ class VidioLiveIE(VidioBaseIE):
             'ext': 'mp4',
             'title': r're:SCTV \d{4}-\d{2}-\d{2} \d{2}:\d{2}',
             'display_id': 'sctv',
-            'uploader': 'SCTV',
-            'uploader_id': 'sctv',
+            'uploader': 'sctv',
+            'uploader_id': '4',
             'uploader_url': 'https://www.vidio.com/@sctv',
-            'thumbnail': r're:^https?://.*\.jpg$',
+            'thumbnail': r're:^https?://thumbor\.prod\.vidiocdn\.com/.+\.jpg$',
             'live_status': 'is_live',
             'description': r're:^SCTV merupakan stasiun televisi nasional terkemuka di Indonesia.+',
             'like_count': int,
             'dislike_count': int,
             'timestamp': 1461258000,
             'upload_date': '20160421',
+            'tags': [],
+            'genres': [],
+            'age_limit': 13,
         },
     }, {
         'url': 'https://vidio.com/live/733-trans-tv',
@@ -479,16 +472,19 @@ class VidioLiveIE(VidioBaseIE):
             'ext': 'mp4',
             'title': r're:TRANS TV \d{4}-\d{2}-\d{2} \d{2}:\d{2}',
             'display_id': 'trans-tv',
-            'uploader': 'Trans TV',
-            'uploader_id': 'transtv',
+            'uploader': 'transtv',
+            'uploader_id': '551300',
             'uploader_url': 'https://www.vidio.com/@transtv',
-            'thumbnail': r're:^https?://.*\.jpg$',
+            'thumbnail': r're:^https?://thumbor\.prod\.vidiocdn\.com/.+\.jpg$',
             'live_status': 'is_live',
             'description': r're:^Trans TV adalah stasiun televisi swasta Indonesia.+',
             'like_count': int,
             'dislike_count': int,
             'timestamp': 1461355080,
             'upload_date': '20160422',
+            'tags': [],
+            'genres': [],
+            'age_limit': 13,
         },
     }, {
         # Premier-exclusive livestream
@@ -502,62 +498,60 @@ class VidioLiveIE(VidioBaseIE):
 
     def _real_extract(self, url):
         video_id, display_id = self._match_valid_url(url).groups()
-        stream_detail = self._call_api(
-            f'https://www.vidio.com/api/livestreamings/{video_id}/detail', video_id)
-        stream_meta = traverse_obj(stream_detail, ('livestreamings', 0, {dict}), default={})
-        user = traverse_obj(stream_detail, ('users', 0, {dict}), default={})
 
-        title = stream_meta.get('title')
-        username = user.get('username')
+        webpage = self._download_webpage(url, video_id)
+        stream_meta = traverse_obj(self._call_api(
+            f'https://www.vidio.com/api/livestreamings/{video_id}/detail', video_id),
+            ('livestreamings', 0, {dict}), default={})
+        tokenized_playlist_urls = self._download_json(
+            f'https://www.vidio.com/live/{video_id}/tokens', video_id,
+            query={'type': 'dash'}, note='Downloading tokenized playlist',
+            errnote='Unable to download tokenized playlist', data=b'')
+        interactions_stream = self._download_json(
+            'https://www.vidio.com/interactions_stream.json', video_id,
+            query={'video_id': video_id, 'type': 'videos'}, note='Downloading stream info',
+            errnote='Unable to download stream info')
 
-        stream_data = self._get_stream_data(video_id)
-        if traverse_obj(stream_data, ('data', 'attributes', 'is_drm', {bool})):
-            if not self.get_param('allow_unplayable_formats'):
-                self.report_drm(video_id)
+        attrs = extract_attributes(get_element_html_by_id(f'player-data-{video_id}', webpage))
+
+        if traverse_obj(attrs, ('data-drm-enabled', {lambda x: x == 'true'})):
+            self.report_drm(video_id)
+        if traverse_obj(attrs, ('data-geoblock', {lambda x: x == 'true'})):
+            self.raise_geo_restricted(
+                'This show isn\'t available in your country', countries=['ID'], metadata_available=True)
+
+        formats = []
+
+        for m3u8_url in traverse_obj([
+                tokenized_playlist_urls.get('hls_url'),
+                interactions_stream.get('source')], (..., {url_or_none})):
+            formats.extend(self._extract_m3u8_formats(m3u8_url, video_id, ext='mp4', m3u8_id='hls'))
+
+        for mpd_url in traverse_obj([
+                tokenized_playlist_urls.get('dash_url'),
+                interactions_stream.get('source_dash')], (..., {url_or_none})):
+            formats.extend(self._extract_mpd_formats(mpd_url, video_id, mpd_id='dash'))
+
+        uploader = attrs.get('data-video-username')
+        uploader_url = f'https://www.vidio.com/@{uploader}'
 
         return {
             'id': video_id,
             'display_id': display_id,
-            'title': title,
-            'is_live': True,
-            'description': strip_or_none(stream_meta.get('description')),
-            'thumbnail': stream_meta.get('image'),
+            'title': attrs.get('data-video-title'),
+            'live_status': 'is_live',
+            'formats': formats,
+            'genres': traverse_obj(attrs, ('data-genres', {str}, {lambda x: x.split(',') if x else []}), default=[]),
+            'uploader': uploader,
+            'uploader_id': traverse_obj(attrs, ('data-video-user-id', {str_or_none})),
+            'uploader_url': uploader_url,
+            'thumbnail': traverse_obj(attrs, ('data-video-image-url', {url_or_none})),
+            'description': traverse_obj(attrs, ('data-video-description', {str})),
+            'availability': self._availability(needs_premium=(attrs.get('data-access-type') == 'premium')),
+            'tags': traverse_obj(attrs, ('data-video-tags', {str}, {lambda x: x.split(',') if x else []}), default=[]),
+            'age_limit': (traverse_obj(attrs, ('data-adult', {lambda x: 18 if x == 'true' else 0}))
+                          or traverse_obj(attrs, ('data-content-rating-option', {lambda x: remove_end(x, ' or more')}, {str_to_int}))),
             'like_count': int_or_none(stream_meta.get('like')),
             'dislike_count': int_or_none(stream_meta.get('dislike')),
-            'formats': [*self._yield_hls_formats(traverse_obj(stream_data, ('data', 'attributes', 'hls', {url_or_none})), video_id),
-                        *self._yield_dash_formats(traverse_obj(stream_data, ('data', 'attributes', 'dash', {url_or_none})), video_id)],
-            'uploader': user.get('name'),
             'timestamp': parse_iso8601(stream_meta.get('start_time')),
-            'uploader_id': username,
-            'uploader_url': format_field(username, None, 'https://www.vidio.com/@%s'),
         }
-
-    def _get_stream_data(self, video_id):
-        timestamp = str(time.time())
-
-        info, urlh = self._download_json_handle(
-            f'https://api.vidio.com/livestreamings/{video_id}/stream?initialize=true', video_id,
-            expected_status=401, note='Downloading stream info', headers={
-                'x-api-key': base64.b64encode(bytes(aes_cbc_encrypt(
-                    list(self._api_key.encode()), list(b'dPr0QImQ7bc5o9LMntNba2DOsSbZcjUh'),
-                    list(b'C8RWsrtFsoeyCyPt')))).decode(),
-                'x-api-platform': 'web-desktop',
-                'x-client': timestamp,
-                'x-secure-level': 2,
-                'x-signature': hmac.new(
-                    f'V1d10D3v:{timestamp}'.encode(), timestamp.encode(), digestmod=hashlib.sha256).hexdigest(),
-                'user-agent': self._ua,
-            })
-        if urlh.status == 401:
-            self.raise_login_required('This video is only available for registered users with the appropriate subscription')
-
-        return info
-
-    def _yield_hls_formats(self, hls_url, video_id):
-        fmts = self._extract_m3u8_formats(hls_url, video_id, fatal=False, live=True)
-        yield from traverse_obj(fmts, (..., {lambda x: {**x, 'format_id': join_nonempty(self._search_regex(
-            r'/(hls-[^/])/', x['url'], 'hls source', default=None), int_or_none(x['tbr']))}}))
-
-    def _yield_dash_formats(self, dash_url, video_id):
-        fmts = self._extract_mpd_formats(dash_url, video_id, fatal=False, mpd_id='dash', headers={'User-Agent': self._ua})
-        yield from traverse_obj(fmts, (..., {lambda x: {**x, 'http_headers': {'User-Agent': self._ua}}}))
