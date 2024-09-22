@@ -85,8 +85,7 @@ class BlueskyIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
-        handle = self._search_regex(self._VALID_URL, url, 'handle', group='handle')
+        handle, video_id = self._match_valid_url(url).groups()
 
         resolve_url = 'https://bsky.social/xrpc/com.atproto.identity.resolveHandle'
         did = self._download_json(resolve_url, video_id, query={'handle': handle}, expected_status=200).get('did')
