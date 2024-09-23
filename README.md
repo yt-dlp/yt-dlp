@@ -999,10 +999,10 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
                                     be used multiple times
     --no-exec                       Remove any previously defined --exec
     --convert-subs FORMAT           Convert the subtitles to another format
-                                    (currently supported: ass, lrc, srt, vtt, none)
+                                    (currently supported: ass, lrc, srt, vtt)
                                     (Alias: --convert-subtitles)
     --convert-thumbnails FORMAT     Convert the thumbnails to another format
-                                    (currently supported: jpg, png, webp, none). You
+                                    (currently supported: jpg, png, webp). You
                                     can specify multiple rules using similar
                                     syntax as --remux-video
     --split-chapters                Split video into multiple files based on

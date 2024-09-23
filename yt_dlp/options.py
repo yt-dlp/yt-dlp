@@ -1725,14 +1725,15 @@ def create_parser():
         '--convert-subs', '--convert-sub', '--convert-subtitles',
         metavar='FORMAT', dest='convertsubtitles', default=None,
         help=(
-            'Convert the subtitles to another format (currently supported: {}) '
-            '(Alias: --convert-subtitles)'.format(', '.join(sorted(FFmpegSubtitlesConvertorPP.SUPPORTED_EXTS)))))
+            'Convert the subtitles to another '
+            f'format (currently supported: {", ".join(sorted(FFmpegSubtitlesConvertorPP.SUPPORTED_EXTS))}, none) '
+            '(Alias: --convert-subtitles)'))
     postproc.add_option(
         '--convert-thumbnails',
         metavar='FORMAT', dest='convertthumbnails', default=None,
         help=(
             'Convert the thumbnails to another format '
-            f'(currently supported: {", ".join(sorted(FFmpegThumbnailsConvertorPP.SUPPORTED_EXTS))}). '
+            f'(currently supported: {", ".join(sorted(FFmpegThumbnailsConvertorPP.SUPPORTED_EXTS))}, none). '
             'You can specify multiple rules using similar syntax as --remux-video'))
     postproc.add_option(
         '--split-chapters', '--split-tracks',
