@@ -116,7 +116,7 @@ class ModifyChaptersPP(FFmpegPostProcessor):
             if not sub_file or not os.path.exists(sub_file):
                 continue
             ext = sub['ext']
-            if ext not in FFmpegSubtitlesConvertorPP.SUPPORTED_EXTS:
+            if ext not in FFmpegSubtitlesConvertorPP.SUBTITLE_EXTS:
                 self.report_warning(f'Cannot remove chapters from external {ext} subtitles; "{sub_file}" is now out of sync')
                 continue
             # TODO: create __real_download for subs?
