@@ -76,6 +76,8 @@ def resolve_mapping(source, mapping):
             target = kv[-1].strip()
             if target == source:
                 return target, f'already is in target format {source}'
+            if target == 'none':
+                return source, 'explicitly disabled'
             return target, None
     return None, f'could not find a mapping for {source}'
 
@@ -1070,7 +1072,7 @@ class FFmpegSplitChaptersPP(FFmpegPostProcessor):
 
 
 class FFmpegThumbnailsConvertorPP(FFmpegPostProcessor):
-    SUPPORTED_EXTS = MEDIA_EXTENSIONS.thumbnails
+    SUPPORTED_EXTS = (*MEDIA_EXTENSIONS.thumbnails, 'none')
     FORMAT_RE = create_mapping_re(SUPPORTED_EXTS)
 
     def __init__(self, downloader=None, format=None):
