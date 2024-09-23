@@ -1725,8 +1725,8 @@ def create_parser():
         '--convert-subs', '--convert-sub', '--convert-subtitles',
         metavar='FORMAT', dest='convertsubtitles', default=None,
         help=(
-            'Convert the subtitles to another '
-            f'format (currently supported: {", ".join(sorted(FFmpegSubtitlesConvertorPP.SUPPORTED_EXTS))}, none) '
+            'Convert the subtitles to another format '
+            f'(currently supported: {", ".join(sorted(FFmpegSubtitlesConvertorPP.SUPPORTED_EXTS))}, none) '
             '(Alias: --convert-subtitles)'))
     postproc.add_option(
         '--convert-thumbnails',
