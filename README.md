@@ -22,62 +22,62 @@ yt-dlp is a feature-rich command-line audio/video downloader with support for [t
 <!-- MANPAGE: MOVE "USAGE AND OPTIONS" SECTION HERE -->
 
 <!-- MANPAGE: BEGIN EXCLUDED SECTION -->
-* [INSTALLATION](#installation)
-    * [Detailed instructions](https://github.com/yt-dlp/yt-dlp/wiki/Installation)
-    * [Release Files](#release-files)
-    * [Update](#update)
-    * [Dependencies](#dependencies)
-    * [Compile](#compile)
-* [USAGE AND OPTIONS](#usage-and-options)
-    * [General Options](#general-options)
-    * [Network Options](#network-options)
-    * [Geo-restriction](#geo-restriction)
-    * [Video Selection](#video-selection)
-    * [Download Options](#download-options)
-    * [Filesystem Options](#filesystem-options)
-    * [Thumbnail Options](#thumbnail-options)
-    * [Internet Shortcut Options](#internet-shortcut-options)
-    * [Verbosity and Simulation Options](#verbosity-and-simulation-options)
-    * [Workarounds](#workarounds)
-    * [Video Format Options](#video-format-options)
-    * [Subtitle Options](#subtitle-options)
-    * [Authentication Options](#authentication-options)
-    * [Post-processing Options](#post-processing-options)
-    * [SponsorBlock Options](#sponsorblock-options)
-    * [Extractor Options](#extractor-options)
-* [CONFIGURATION](#configuration)
-    * [Configuration file encoding](#configuration-file-encoding)
-    * [Authentication with netrc](#authentication-with-netrc)
-    * [Notes about environment variables](#notes-about-environment-variables)
-* [OUTPUT TEMPLATE](#output-template)
-    * [Output template examples](#output-template-examples)
-* [FORMAT SELECTION](#format-selection)
-    * [Filtering Formats](#filtering-formats)
-    * [Sorting Formats](#sorting-formats)
-    * [Format Selection examples](#format-selection-examples)
-* [MODIFYING METADATA](#modifying-metadata)
-    * [Modifying metadata examples](#modifying-metadata-examples)
-* [EXTRACTOR ARGUMENTS](#extractor-arguments)
-* [PLUGINS](#plugins)
-    * [Installing Plugins](#installing-plugins)
-    * [Developing Plugins](#developing-plugins)
-* [EMBEDDING YT-DLP](#embedding-yt-dlp)
-    * [Embedding examples](#embedding-examples)
-* [CHANGES FROM YOUTUBE-DL](#changes-from-youtube-dl)
-    * [New features](#new-features)
-    * [Differences in default behavior](#differences-in-default-behavior)
-    * [Deprecated options](#deprecated-options)
-* [CONTRIBUTING](CONTRIBUTING.md#contributing-to-yt-dlp)
-    * [Opening an Issue](CONTRIBUTING.md#opening-an-issue)
-    * [Developer Instructions](CONTRIBUTING.md#developer-instructions)
-* [WIKI](https://github.com/yt-dlp/yt-dlp/wiki)
-    * [FAQ](https://github.com/yt-dlp/yt-dlp/wiki/FAQ)
-<!-- MANPAGE: END EXCLUDED SECTION -->
 
+- [INSTALLATION](#installation)
+  - [Detailed instructions](https://github.com/yt-dlp/yt-dlp/wiki/Installation)
+  - [Release Files](#release-files)
+  - [Update](#update)
+  - [Dependencies](#dependencies)
+  - [Compile](#compile)
+- [USAGE AND OPTIONS](#usage-and-options)
+  - [General Options](#general-options)
+  - [Network Options](#network-options)
+  - [Geo-restriction](#geo-restriction)
+  - [Video Selection](#video-selection)
+  - [Download Options](#download-options)
+  - [Filesystem Options](#filesystem-options)
+  - [Thumbnail Options](#thumbnail-options)
+  - [Internet Shortcut Options](#internet-shortcut-options)
+  - [Verbosity and Simulation Options](#verbosity-and-simulation-options)
+  - [Workarounds](#workarounds)
+  - [Video Format Options](#video-format-options)
+  - [Subtitle Options](#subtitle-options)
+  - [Authentication Options](#authentication-options)
+  - [Post-processing Options](#post-processing-options)
+  - [SponsorBlock Options](#sponsorblock-options)
+  - [Extractor Options](#extractor-options)
+- [CONFIGURATION](#configuration)
+  - [Configuration file encoding](#configuration-file-encoding)
+  - [Authentication with netrc](#authentication-with-netrc)
+  - [Notes about environment variables](#notes-about-environment-variables)
+- [OUTPUT TEMPLATE](#output-template)
+  - [Output template examples](#output-template-examples)
+- [FORMAT SELECTION](#format-selection)
+  - [Filtering Formats](#filtering-formats)
+  - [Sorting Formats](#sorting-formats)
+  - [Format Selection examples](#format-selection-examples)
+- [MODIFYING METADATA](#modifying-metadata)
+  - [Modifying metadata examples](#modifying-metadata-examples)
+- [EXTRACTOR ARGUMENTS](#extractor-arguments)
+- [PLUGINS](#plugins)
+  - [Installing Plugins](#installing-plugins)
+  - [Developing Plugins](#developing-plugins)
+- [EMBEDDING YT-DLP](#embedding-yt-dlp)
+  - [Embedding examples](#embedding-examples)
+- [CHANGES FROM YOUTUBE-DL](#changes-from-youtube-dl)
+  - [New features](#new-features)
+  - [Differences in default behavior](#differences-in-default-behavior)
+  - [Deprecated options](#deprecated-options)
+- [CONTRIBUTING](CONTRIBUTING.md#contributing-to-yt-dlp)
+  - [Opening an Issue](CONTRIBUTING.md#opening-an-issue)
+  - [Developer Instructions](CONTRIBUTING.md#developer-instructions)
+- [WIKI](https://github.com/yt-dlp/yt-dlp/wiki) \* [FAQ](https://github.com/yt-dlp/yt-dlp/wiki/FAQ)
+<!-- MANPAGE: END EXCLUDED SECTION -->
 
 # INSTALLATION
 
 <!-- MANPAGE: BEGIN EXCLUDED SECTION -->
+
 [![Windows](https://img.shields.io/badge/-Windows_x64-blue.svg?style=for-the-badge&logo=windows)](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe)
 [![Unix](https://img.shields.io/badge/-Linux/BSD-red.svg?style=for-the-badge&logo=linux)](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp)
 [![MacOS](https://img.shields.io/badge/-MacOS-lightblue.svg?style=for-the-badge&logo=apple)](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos)
@@ -85,58 +85,61 @@ yt-dlp is a feature-rich command-line audio/video downloader with support for [t
 [![Source Tarball](https://img.shields.io/badge/-Source_tar-green.svg?style=for-the-badge)](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.tar.gz)
 [![Other variants](https://img.shields.io/badge/-Other-grey.svg?style=for-the-badge)](#release-files)
 [![All versions](https://img.shields.io/badge/-All_Versions-lightgrey.svg?style=for-the-badge)](https://github.com/yt-dlp/yt-dlp/releases)
+
 <!-- MANPAGE: END EXCLUDED SECTION -->
 
 You can install yt-dlp using [the binaries](#release-files), [pip](https://pypi.org/project/yt-dlp) or one using a third-party package manager. See [the wiki](https://github.com/yt-dlp/yt-dlp/wiki/Installation) for detailed instructions
 
-
 <!-- MANPAGE: BEGIN EXCLUDED SECTION -->
+
 ## RELEASE FILES
 
 #### Recommended
 
-File|Description
-:---|:---
-[yt-dlp](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp)|Platform-independent [zipimport](https://docs.python.org/3/library/zipimport.html) binary. Needs Python (recommended for **Linux/BSD**)
-[yt-dlp.exe](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe)|Windows (Win7 SP1+) standalone x64 binary (recommended for **Windows**)
-[yt-dlp_macos](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos)|Universal MacOS (10.15+) standalone executable (recommended for **MacOS**)
+| File                                                                                   | Description                                                                                                                             |
+| :------------------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------- |
+| [yt-dlp](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp)             | Platform-independent [zipimport](https://docs.python.org/3/library/zipimport.html) binary. Needs Python (recommended for **Linux/BSD**) |
+| [yt-dlp.exe](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe)     | Windows (Win7 SP1+) standalone x64 binary (recommended for **Windows**)                                                                 |
+| [yt-dlp_macos](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos) | Universal MacOS (10.15+) standalone executable (recommended for **MacOS**)                                                              |
 
 #### Alternatives
 
-File|Description
-:---|:---
-[yt-dlp_x86.exe](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_x86.exe)|Windows (Win7 SP1+) standalone x86 (32-bit) binary
-[yt-dlp_min.exe](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_min.exe)|Windows (Win7 SP1+) standalone x64 binary built with `py2exe`<br/> ([Not recommended](#standalone-py2exe-builds-windows))
-[yt-dlp_linux](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux)|Linux standalone x64 binary
-[yt-dlp_linux_armv7l](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux_armv7l)|Linux standalone armv7l (32-bit) binary
-[yt-dlp_linux_aarch64](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux_aarch64)|Linux standalone aarch64 (64-bit) binary
-[yt-dlp_win.zip](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_win.zip)|Unpackaged Windows executable (no auto-update)
-[yt-dlp_macos.zip](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos.zip)|Unpackaged MacOS (10.15+) executable (no auto-update)
-[yt-dlp_macos_legacy](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos_legacy)|MacOS (10.9+) standalone x64 executable
+| File                                                                                                   | Description                                                                                                               |
+| :----------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------ |
+| [yt-dlp_x86.exe](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_x86.exe)             | Windows (Win7 SP1+) standalone x86 (32-bit) binary                                                                        |
+| [yt-dlp_min.exe](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_min.exe)             | Windows (Win7 SP1+) standalone x64 binary built with `py2exe`<br/> ([Not recommended](#standalone-py2exe-builds-windows)) |
+| [yt-dlp_linux](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux)                 | Linux standalone x64 binary                                                                                               |
+| [yt-dlp_linux_armv7l](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux_armv7l)   | Linux standalone armv7l (32-bit) binary                                                                                   |
+| [yt-dlp_linux_aarch64](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux_aarch64) | Linux standalone aarch64 (64-bit) binary                                                                                  |
+| [yt-dlp_win.zip](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_win.zip)             | Unpackaged Windows executable (no auto-update)                                                                            |
+| [yt-dlp_macos.zip](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos.zip)         | Unpackaged MacOS (10.15+) executable (no auto-update)                                                                     |
+| [yt-dlp_macos_legacy](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos_legacy)   | MacOS (10.9+) standalone x64 executable                                                                                   |
 
 #### Misc
 
-File|Description
-:---|:---
-[yt-dlp.tar.gz](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.tar.gz)|Source tarball
-[SHA2-512SUMS](https://github.com/yt-dlp/yt-dlp/releases/latest/download/SHA2-512SUMS)|GNU-style SHA512 sums
-[SHA2-512SUMS.sig](https://github.com/yt-dlp/yt-dlp/releases/latest/download/SHA2-512SUMS.sig)|GPG signature file for SHA512 sums
-[SHA2-256SUMS](https://github.com/yt-dlp/yt-dlp/releases/latest/download/SHA2-256SUMS)|GNU-style SHA256 sums
-[SHA2-256SUMS.sig](https://github.com/yt-dlp/yt-dlp/releases/latest/download/SHA2-256SUMS.sig)|GPG signature file for SHA256 sums
+| File                                                                                           | Description                        |
+| :--------------------------------------------------------------------------------------------- | :--------------------------------- |
+| [yt-dlp.tar.gz](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.tar.gz)       | Source tarball                     |
+| [SHA2-512SUMS](https://github.com/yt-dlp/yt-dlp/releases/latest/download/SHA2-512SUMS)         | GNU-style SHA512 sums              |
+| [SHA2-512SUMS.sig](https://github.com/yt-dlp/yt-dlp/releases/latest/download/SHA2-512SUMS.sig) | GPG signature file for SHA512 sums |
+| [SHA2-256SUMS](https://github.com/yt-dlp/yt-dlp/releases/latest/download/SHA2-256SUMS)         | GNU-style SHA256 sums              |
+| [SHA2-256SUMS.sig](https://github.com/yt-dlp/yt-dlp/releases/latest/download/SHA2-256SUMS.sig) | GPG signature file for SHA256 sums |
 
 The public key that can be used to verify the GPG signatures is [available here](https://github.com/yt-dlp/yt-dlp/blob/master/public.key)
 Example usage:
+
 ```
 curl -L https://github.com/yt-dlp/yt-dlp/raw/master/public.key | gpg --import
 gpg --verify SHA2-256SUMS.sig SHA2-256SUMS
 gpg --verify SHA2-512SUMS.sig SHA2-512SUMS
 ```
+
 <!-- MANPAGE: END EXCLUDED SECTION -->
 
 **Note**: The manpages, shell completion (autocomplete) files etc. are available inside the [source tarball](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.tar.gz)
 
-
 ## UPDATE
+
 You can use `yt-dlp -U` to update if you are using the [release binaries](#release-files)
 
 If you [installed with pip](https://github.com/yt-dlp/yt-dlp/wiki/Installation#with-pip), simply re-run the same command that was used to install the program
@@ -147,9 +150,9 @@ For other third-party package managers, see [the wiki](https://github.com/yt-dlp
 
 There are currently three release channels for binaries: `stable`, `nightly` and `master`.
 
-* `stable` is the default channel, and many of its changes have been tested by users of the `nightly` and `master` channels.
-* The `nightly` channel has releases scheduled to build every day around midnight UTC, for a snapshot of the project's new patches and changes. This is the **recommended channel for regular users** of yt-dlp. The `nightly` releases are available from [yt-dlp/yt-dlp-nightly-builds](https://github.com/yt-dlp/yt-dlp-nightly-builds/releases) or as development releases of the `yt-dlp` PyPI package (which can be installed with pip's `--pre` flag).
-* The `master` channel features releases that are built after each push to the master branch, and these will have the very latest fixes and additions, but may also be more prone to regressions. They are available from [yt-dlp/yt-dlp-master-builds](https://github.com/yt-dlp/yt-dlp-master-builds/releases).
+- `stable` is the default channel, and many of its changes have been tested by users of the `nightly` and `master` channels.
+- The `nightly` channel has releases scheduled to build every day around midnight UTC, for a snapshot of the project's new patches and changes. This is the **recommended channel for regular users** of yt-dlp. The `nightly` releases are available from [yt-dlp/yt-dlp-nightly-builds](https://github.com/yt-dlp/yt-dlp-nightly-builds/releases) or as development releases of the `yt-dlp` PyPI package (which can be installed with pip's `--pre` flag).
+- The `master` channel features releases that are built after each push to the master branch, and these will have the very latest fixes and additions, but may also be more prone to regressions. They are available from [yt-dlp/yt-dlp-master-builds](https://github.com/yt-dlp/yt-dlp-master-builds/releases).
 
 When using `--update`/`-U`, a release binary will only update to its current channel.
 `--update-to CHANNEL` can be used to switch to a different channel when a newer version is available. `--update-to [CHANNEL@]TAG` can also be used to upgrade or downgrade to specific tags from a channel.
@@ -158,12 +161,13 @@ You may also use `--update-to <repository>` (`<owner>/<repository>`) to update t
 
 Example usage:
 
-* `yt-dlp --update-to master` switch to the `master` channel and update to its latest release
-* `yt-dlp --update-to stable@2023.07.06` upgrade/downgrade to release to `stable` channel tag `2023.07.06`
-* `yt-dlp --update-to 2023.10.07` upgrade/downgrade to tag `2023.10.07` if it exists on the current channel
-* `yt-dlp --update-to example/yt-dlp@2023.09.24` upgrade/downgrade to the release from the `example/yt-dlp` repository, tag `2023.09.24`
+- `yt-dlp --update-to master` switch to the `master` channel and update to its latest release
+- `yt-dlp --update-to stable@2023.07.06` upgrade/downgrade to release to `stable` channel tag `2023.07.06`
+- `yt-dlp --update-to 2023.10.07` upgrade/downgrade to tag `2023.10.07` if it exists on the current channel
+- `yt-dlp --update-to example/yt-dlp@2023.09.24` upgrade/downgrade to the release from the `example/yt-dlp` repository, tag `2023.09.24`
 
 **Important**: Any user experiencing an issue with the `stable` release should install or update to the `nightly` release before submitting a bug report:
+
 ```
 # To update to nightly from stable executable/binary:
 yt-dlp --update-to nightly
@@ -173,6 +177,7 @@ python3 -m pip install -U --pre "yt-dlp[default]"
 ```
 
 ## DEPENDENCIES
+
 Python versions 3.8+ (CPython and PyPy) are supported. Other versions and implementations may or may not work correctly.
 
 <!-- Python 3.5+ uses VC++14 and it is already embedded in the binary created
@@ -184,46 +189,46 @@ While all the other dependencies are optional, `ffmpeg` and `ffprobe` are highly
 
 ### Strongly recommended
 
-* [**ffmpeg** and **ffprobe**](https://www.ffmpeg.org) - Required for [merging separate video and audio files](#format-selection), as well as for various [post-processing](#post-processing-options) tasks. License [depends on the build](https://www.ffmpeg.org/legal.html)
+- [**ffmpeg** and **ffprobe**](https://www.ffmpeg.org) - Required for [merging separate video and audio files](#format-selection), as well as for various [post-processing](#post-processing-options) tasks. License [depends on the build](https://www.ffmpeg.org/legal.html)
 
-    There are bugs in ffmpeg that cause various issues when used alongside yt-dlp. Since ffmpeg is such an important dependency, we provide [custom builds](https://github.com/yt-dlp/FFmpeg-Builds#ffmpeg-static-auto-builds) with patches for some of these issues at [yt-dlp/FFmpeg-Builds](https://github.com/yt-dlp/FFmpeg-Builds). See [the readme](https://github.com/yt-dlp/FFmpeg-Builds#patches-applied) for details on the specific issues solved by these builds
+  There are bugs in ffmpeg that cause various issues when used alongside yt-dlp. Since ffmpeg is such an important dependency, we provide [custom builds](https://github.com/yt-dlp/FFmpeg-Builds#ffmpeg-static-auto-builds) with patches for some of these issues at [yt-dlp/FFmpeg-Builds](https://github.com/yt-dlp/FFmpeg-Builds). See [the readme](https://github.com/yt-dlp/FFmpeg-Builds#patches-applied) for details on the specific issues solved by these builds
 
-    **Important**: What you need is ffmpeg *binary*, **NOT** [the Python package of the same name](https://pypi.org/project/ffmpeg)
+  **Important**: What you need is ffmpeg _binary_, **NOT** [the Python package of the same name](https://pypi.org/project/ffmpeg)
 
 ### Networking
-* [**certifi**](https://github.com/certifi/python-certifi)\* - Provides Mozilla's root certificate bundle. Licensed under [MPLv2](https://github.com/certifi/python-certifi/blob/master/LICENSE)
-* [**brotli**](https://github.com/google/brotli)\* or [**brotlicffi**](https://github.com/python-hyper/brotlicffi) - [Brotli](https://en.wikipedia.org/wiki/Brotli) content encoding support. Both licensed under MIT <sup>[1](https://github.com/google/brotli/blob/master/LICENSE) [2](https://github.com/python-hyper/brotlicffi/blob/master/LICENSE) </sup>
-* [**websockets**](https://github.com/aaugustin/websockets)\* - For downloading over websocket. Licensed under [BSD-3-Clause](https://github.com/aaugustin/websockets/blob/main/LICENSE)
-* [**requests**](https://github.com/psf/requests)\* - HTTP library. For HTTPS proxy and persistent connections support. Licensed under [Apache-2.0](https://github.com/psf/requests/blob/main/LICENSE)
+
+- [**certifi**](https://github.com/certifi/python-certifi)\* - Provides Mozilla's root certificate bundle. Licensed under [MPLv2](https://github.com/certifi/python-certifi/blob/master/LICENSE)
+- [**brotli**](https://github.com/google/brotli)\* or [**brotlicffi**](https://github.com/python-hyper/brotlicffi) - [Brotli](https://en.wikipedia.org/wiki/Brotli) content encoding support. Both licensed under MIT <sup>[1](https://github.com/google/brotli/blob/master/LICENSE) [2](https://github.com/python-hyper/brotlicffi/blob/master/LICENSE) </sup>
+- [**websockets**](https://github.com/aaugustin/websockets)\* - For downloading over websocket. Licensed under [BSD-3-Clause](https://github.com/aaugustin/websockets/blob/main/LICENSE)
+- [**requests**](https://github.com/psf/requests)\* - HTTP library. For HTTPS proxy and persistent connections support. Licensed under [Apache-2.0](https://github.com/psf/requests/blob/main/LICENSE)
 
 #### Impersonation
 
 The following provide support for impersonating browser requests. This may be required for some sites that employ TLS fingerprinting.
 
-* [**curl_cffi**](https://github.com/yifeikong/curl_cffi) (recommended) - Python binding for [curl-impersonate](https://github.com/lwthiker/curl-impersonate). Provides impersonation targets for Chrome, Edge and Safari. Licensed under [MIT](https://github.com/yifeikong/curl_cffi/blob/main/LICENSE)
-  * Can be installed with the `curl-cffi` group, e.g. `pip install "yt-dlp[default,curl-cffi]"`
-  * Currently included in `yt-dlp.exe`, `yt-dlp_linux` and `yt-dlp_macos` builds
-
+- [**curl_cffi**](https://github.com/yifeikong/curl_cffi) (recommended) - Python binding for [curl-impersonate](https://github.com/lwthiker/curl-impersonate). Provides impersonation targets for Chrome, Edge and Safari. Licensed under [MIT](https://github.com/yifeikong/curl_cffi/blob/main/LICENSE)
+  - Can be installed with the `curl-cffi` group, e.g. `pip install "yt-dlp[default,curl-cffi]"`
+  - Currently included in `yt-dlp.exe`, `yt-dlp_linux` and `yt-dlp_macos` builds
 
 ### Metadata
 
-* [**mutagen**](https://github.com/quodlibet/mutagen)\* - For `--embed-thumbnail` in certain formats. Licensed under [GPLv2+](https://github.com/quodlibet/mutagen/blob/master/COPYING)
-* [**AtomicParsley**](https://github.com/wez/atomicparsley) - For `--embed-thumbnail` in `mp4`/`m4a` files when `mutagen`/`ffmpeg` cannot. Licensed under [GPLv2+](https://github.com/wez/atomicparsley/blob/master/COPYING)
-* [**xattr**](https://github.com/xattr/xattr), [**pyxattr**](https://github.com/iustin/pyxattr) or [**setfattr**](http://savannah.nongnu.org/projects/attr) - For writing xattr metadata (`--xattr`) on **Mac** and **BSD**. Licensed under [MIT](https://github.com/xattr/xattr/blob/master/LICENSE.txt), [LGPL2.1](https://github.com/iustin/pyxattr/blob/master/COPYING) and [GPLv2+](http://git.savannah.nongnu.org/cgit/attr.git/tree/doc/COPYING) respectively
+- [**mutagen**](https://github.com/quodlibet/mutagen)\* - For `--embed-thumbnail` in certain formats. Licensed under [GPLv2+](https://github.com/quodlibet/mutagen/blob/master/COPYING)
+- [**AtomicParsley**](https://github.com/wez/atomicparsley) - For `--embed-thumbnail` in `mp4`/`m4a` files when `mutagen`/`ffmpeg` cannot. Licensed under [GPLv2+](https://github.com/wez/atomicparsley/blob/master/COPYING)
+- [**xattr**](https://github.com/xattr/xattr), [**pyxattr**](https://github.com/iustin/pyxattr) or [**setfattr**](http://savannah.nongnu.org/projects/attr) - For writing xattr metadata (`--xattr`) on **Mac** and **BSD**. Licensed under [MIT](https://github.com/xattr/xattr/blob/master/LICENSE.txt), [LGPL2.1](https://github.com/iustin/pyxattr/blob/master/COPYING) and [GPLv2+](http://git.savannah.nongnu.org/cgit/attr.git/tree/doc/COPYING) respectively
 
 ### Misc
 
-* [**pycryptodomex**](https://github.com/Legrandin/pycryptodome)\* - For decrypting AES-128 HLS streams and various other data. Licensed under [BSD-2-Clause](https://github.com/Legrandin/pycryptodome/blob/master/LICENSE.rst)
-* [**phantomjs**](https://github.com/ariya/phantomjs) - Used in extractors where javascript needs to be run. Licensed under [BSD-3-Clause](https://github.com/ariya/phantomjs/blob/master/LICENSE.BSD)
-* [**secretstorage**](https://github.com/mitya57/secretstorage)\* - For `--cookies-from-browser` to access the **Gnome** keyring while decrypting cookies of **Chromium**-based browsers on **Linux**. Licensed under [BSD-3-Clause](https://github.com/mitya57/secretstorage/blob/master/LICENSE)
-* Any external downloader that you want to use with `--downloader`
+- [**pycryptodomex**](https://github.com/Legrandin/pycryptodome)\* - For decrypting AES-128 HLS streams and various other data. Licensed under [BSD-2-Clause](https://github.com/Legrandin/pycryptodome/blob/master/LICENSE.rst)
+- [**phantomjs**](https://github.com/ariya/phantomjs) - Used in extractors where javascript needs to be run. Licensed under [BSD-3-Clause](https://github.com/ariya/phantomjs/blob/master/LICENSE.BSD)
+- [**secretstorage**](https://github.com/mitya57/secretstorage)\* - For `--cookies-from-browser` to access the **Gnome** keyring while decrypting cookies of **Chromium**-based browsers on **Linux**. Licensed under [BSD-3-Clause](https://github.com/mitya57/secretstorage/blob/master/LICENSE)
+- Any external downloader that you want to use with `--downloader`
 
 ### Deprecated
 
-* [**avconv** and **avprobe**](https://www.libav.org) - Now **deprecated** alternative to ffmpeg. License [depends on the build](https://libav.org/legal)
-* [**sponskrub**](https://github.com/faissaloo/SponSkrub) - For using the now **deprecated** [sponskrub options](#sponskrub-options). Licensed under [GPLv3+](https://github.com/faissaloo/SponSkrub/blob/master/LICENCE.md)
-* [**rtmpdump**](http://rtmpdump.mplayerhq.hu) - For downloading `rtmp` streams. ffmpeg can be used instead with `--downloader ffmpeg`. Licensed under [GPLv2+](http://rtmpdump.mplayerhq.hu)
-* [**mplayer**](http://mplayerhq.hu/design7/info.html) or [**mpv**](https://mpv.io) - For downloading `rstp`/`mms` streams. ffmpeg can be used instead with `--downloader ffmpeg`. Licensed under [GPLv2+](https://github.com/mpv-player/mpv/blob/master/Copyright)
+- [**avconv** and **avprobe**](https://www.libav.org) - Now **deprecated** alternative to ffmpeg. License [depends on the build](https://libav.org/legal)
+- [**sponskrub**](https://github.com/faissaloo/SponSkrub) - For using the now **deprecated** [sponskrub options](#sponskrub-options). Licensed under [GPLv3+](https://github.com/faissaloo/SponSkrub/blob/master/LICENCE.md)
+- [**rtmpdump**](http://rtmpdump.mplayerhq.hu) - For downloading `rtmp` streams. ffmpeg can be used instead with `--downloader ffmpeg`. Licensed under [GPLv2+](http://rtmpdump.mplayerhq.hu)
+- [**mplayer**](http://mplayerhq.hu/design7/info.html) or [**mpv**](https://mpv.io) - For downloading `rstp`/`mms` streams. ffmpeg can be used instead with `--downloader ffmpeg`. Licensed under [GPLv2+](https://github.com/mpv-player/mpv/blob/master/Copyright)
 
 To use or redistribute the dependencies, you must agree to their respective licensing terms.
 
@@ -231,10 +236,10 @@ The standalone release binaries are built with the Python interpreter and the pa
 
 If you do not have the necessary dependencies for a task you are attempting, yt-dlp will warn you. All the currently available dependencies are visible at the top of the `--verbose` output
 
-
 ## COMPILE
 
 ### Standalone PyInstaller Builds
+
 To build the standalone executable, you must have Python and `pyinstaller` (plus any of yt-dlp's [optional dependencies](#dependencies) if needed). The executable will be built for the same CPU architecture as the Python used.
 
 You can run the following commands:
@@ -254,6 +259,7 @@ On some systems, you may need to use `py` or `python` instead of `python3`.
 **Important**: Running `pyinstaller` directly **instead of** using `python -m bundle.pyinstaller` is **not** officially supported. This may or may not work correctly.
 
 ### Platform-independent Binary (UNIX)
+
 You will need the build tools `python` (3.8+), `zip`, `make` (GNU), `pandoc`\* and `pytest`\*.
 
 After installing these, simply run `make`.
@@ -274,27 +280,32 @@ py -m bundle.py2exe
 
 ### Related scripts
 
-* **`devscripts/install_deps.py`** - Install dependencies for yt-dlp.
-* **`devscripts/update-version.py`** - Update the version number based on the current date.
-* **`devscripts/set-variant.py`** - Set the build variant of the executable.
-* **`devscripts/make_changelog.py`** - Create a markdown changelog using short commit messages and update `CONTRIBUTORS` file.
-* **`devscripts/make_lazy_extractors.py`** - Create lazy extractors. Running this before building the binaries (any variant) will improve their startup performance. Set the environment variable `YTDLP_NO_LAZY_EXTRACTORS=1` if you wish to forcefully disable lazy extractor loading.
+- **`devscripts/install_deps.py`** - Install dependencies for yt-dlp.
+- **`devscripts/update-version.py`** - Update the version number based on the current date.
+- **`devscripts/set-variant.py`** - Set the build variant of the executable.
+- **`devscripts/make_changelog.py`** - Create a markdown changelog using short commit messages and update `CONTRIBUTORS` file.
+- **`devscripts/make_lazy_extractors.py`** - Create lazy extractors. Running this before building the binaries (any variant) will improve their startup performance. Set the environment variable `YTDLP_NO_LAZY_EXTRACTORS=1` if you wish to forcefully disable lazy extractor loading.
 
 Note: See their `--help` for more info.
 
 ### Forking the project
+
 If you fork the project on GitHub, you can run your fork's [build workflow](.github/workflows/build.yml) to automatically build the selected version(s) as artifacts. Alternatively, you can run the [release workflow](.github/workflows/release.yml) or enable the [nightly workflow](.github/workflows/release-nightly.yml) to create full (pre-)releases.
 
 # USAGE AND OPTIONS
 
 <!-- MANPAGE: BEGIN EXCLUDED SECTION -->
+
     yt-dlp [OPTIONS] [--] URL [URL...]
 
 `Ctrl+F` is your friend :D
+
 <!-- MANPAGE: END EXCLUDED SECTION -->
 
 <!-- Auto generated -->
+
 ## General Options:
+
     -h, --help                      Print this help text and exit
     --version                       Print program version and exit
     -U, --update                    Update this program to the latest version
@@ -393,6 +404,7 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
                                     times. This option can be used multiple times
 
 ## Network Options:
+
     --proxy URL                     Use the specified HTTP/HTTPS/SOCKS proxy. To
                                     enable SOCKS proxy, specify a proper scheme,
                                     e.g. socks5://user:pass@127.0.0.1:1080/.
@@ -413,6 +425,7 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
                                     default for security reasons.
 
 ## Geo-restriction:
+
     --geo-verification-proxy URL    Use this proxy to verify the IP address for
                                     some geo-restricted sites. The default proxy
                                     specified by --proxy (or none, if the option
@@ -425,6 +438,7 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
                                     two-letter ISO 3166-2 country code
 
 ## Video Selection:
+
     -I, --playlist-items ITEM_SPEC  Comma separated playlist_index of the items
                                     to download. You can specify a range using
                                     "[START]:[STOP][:STEP]". For backward
@@ -439,7 +453,7 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
     --max-filesize SIZE             Abort download if filesize is larger than
                                     SIZE, e.g. 50k or 44.6M
     --date DATE                     Download only videos uploaded on this date.
-                                    The date can be "YYYYMMDD" or in the format 
+                                    The date can be "YYYYMMDD" or in the format
                                     [now|today|yesterday][-N[day|week|month|year]].
                                     E.g. "--date today-2weeks" downloads only
                                     videos uploaded on the same day two weeks ago
@@ -498,6 +512,7 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
                                     the playlist is skipped
 
 ## Download Options:
+
     -N, --concurrent-fragments N    Number of fragments of a dash/hlsnative
                                     video that should be downloaded concurrently
                                     (default is 1)
@@ -592,6 +607,7 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
                                     --external-downloader-args)
 
 ## Filesystem Options:
+
     -a, --batch-file FILE           File containing URLs to download ("-" for
                                     stdin), one URL per line. Lines starting
                                     with "#", ";" or "]" are considered as
@@ -690,6 +706,7 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
     --rm-cache-dir                  Delete all filesystem cache files
 
 ## Thumbnail Options:
+
     --write-thumbnail               Write thumbnail image to disk
     --no-write-thumbnail            Do not write thumbnail image to disk (default)
     --write-all-thumbnails          Write all thumbnail image formats to disk
@@ -697,6 +714,7 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
                                     Simulate unless --no-simulate is used
 
 ## Internet Shortcut Options:
+
     --write-link                    Write an internet shortcut file, depending
                                     on the current platform (.url, .webloc or
                                     .desktop). The URL may be cached by the OS
@@ -706,6 +724,7 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
     --write-desktop-link            Write a .desktop Linux internet shortcut
 
 ## Verbosity and Simulation Options:
+
     -q, --quiet                     Activate quiet mode. If used with --verbose,
                                     print the log to stderr
     --no-quiet                      Deactivate quiet mode. (Default)
@@ -772,6 +791,7 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
     --print-traffic                 Display sent and read HTTP traffic
 
 ## Workarounds:
+
     --encoding ENCODING             Force the specified encoding (experimental)
     --legacy-server-connect         Explicitly allow HTTPS connection to servers
                                     that do not support RFC 5746 secure
@@ -798,6 +818,7 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
                                     subtitle download
 
 ## Video Format Options:
+
     -f, --format FORMAT             Video format code, see "FORMAT SELECTION"
                                     for more details
     -S, --format-sort SORTORDER     Sort the formats by the fields given, see
@@ -835,6 +856,7 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
                                     supported: avi, flv, mkv, mov, mp4, webm)
 
 ## Subtitle Options:
+
     --write-subs                    Write subtitle file
     --no-write-subs                 Do not write subtitle file (default)
     --write-auto-subs               Write automatically generated subtitle file
@@ -854,6 +876,7 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
                                     of available language tags
 
 ## Authentication Options:
+
     -u, --username USERNAME         Login with this account ID
     -p, --password PASSWORD         Account password. If this option is left
                                     out, yt-dlp will ask interactively
@@ -884,6 +907,7 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
                                     is encrypted, yt-dlp will ask interactively
 
 ## Post-Processing Options:
+
     -x, --extract-audio             Convert video files to audio-only files
                                     (requires ffmpeg and ffprobe)
     --audio-format FORMAT           Format to convert the audio to when -x is
@@ -999,10 +1023,10 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
                                     be used multiple times
     --no-exec                       Remove any previously defined --exec
     --convert-subs FORMAT           Convert the subtitles to another format
-                                    (currently supported: ass, lrc, srt, vtt)
+                                    (currently supported: ass, lrc, srt, vtt, none)
                                     (Alias: --convert-subtitles)
     --convert-thumbnails FORMAT     Convert the thumbnails to another format
-                                    (currently supported: jpg, png, webp). You
+                                    (currently supported: jpg, png, webp, none). You
                                     can specify multiple rules using similar
                                     syntax as --remux-video
     --split-chapters                Split video into multiple files based on
@@ -1046,9 +1070,10 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
                                     postprocessors
 
 ## SponsorBlock Options:
+
 Make chapter entries for, or remove various segments (sponsor,
-    introductions, etc.) from downloaded YouTube videos using the
-    [SponsorBlock API](https://sponsor.ajay.app)
+introductions, etc.) from downloaded YouTube videos using the
+[SponsorBlock API](https://sponsor.ajay.app)
 
     --sponsorblock-mark CATS        SponsorBlock categories to create chapters
                                     for, separated by commas. Available
@@ -1081,6 +1106,7 @@ Make chapter entries for, or remove various segments (sponsor,
                                     https://sponsor.ajay.app
 
 ## Extractor Options:
+
     --extractor-retries RETRIES     Number of retries for known extractor errors
                                     (default is 3), or "infinite"
     --allow-dynamic-mpd             Process dynamic DASH manifests (default)
@@ -1102,32 +1128,35 @@ Make chapter entries for, or remove various segments (sponsor,
 You can configure yt-dlp by placing any supported command line option to a configuration file. The configuration is loaded from the following locations:
 
 1. **Main Configuration**:
-    * The file given to `--config-location`
+   - The file given to `--config-location`
 1. **Portable Configuration**: (Recommended for portable installations)
-    * If using a binary, `yt-dlp.conf` in the same directory as the binary
-    * If running from source-code, `yt-dlp.conf` in the parent directory of `yt_dlp`
+   - If using a binary, `yt-dlp.conf` in the same directory as the binary
+   - If running from source-code, `yt-dlp.conf` in the parent directory of `yt_dlp`
 1. **Home Configuration**:
-    * `yt-dlp.conf` in the home path given to `-P`
-    * If `-P` is not given, the current directory is searched
+   - `yt-dlp.conf` in the home path given to `-P`
+   - If `-P` is not given, the current directory is searched
 1. **User Configuration**:
-    * `${XDG_CONFIG_HOME}/yt-dlp.conf`
-    * `${XDG_CONFIG_HOME}/yt-dlp/config` (recommended on Linux/macOS)
-    * `${XDG_CONFIG_HOME}/yt-dlp/config.txt`
-    * `${APPDATA}/yt-dlp.conf`
-    * `${APPDATA}/yt-dlp/config` (recommended on Windows)
-    * `${APPDATA}/yt-dlp/config.txt`
-    * `~/yt-dlp.conf`
-    * `~/yt-dlp.conf.txt`
-    * `~/.yt-dlp/config`
-    * `~/.yt-dlp/config.txt`
 
-    See also: [Notes about environment variables](#notes-about-environment-variables)
+   - `${XDG_CONFIG_HOME}/yt-dlp.conf`
+   - `${XDG_CONFIG_HOME}/yt-dlp/config` (recommended on Linux/macOS)
+   - `${XDG_CONFIG_HOME}/yt-dlp/config.txt`
+   - `${APPDATA}/yt-dlp.conf`
+   - `${APPDATA}/yt-dlp/config` (recommended on Windows)
+   - `${APPDATA}/yt-dlp/config.txt`
+   - `~/yt-dlp.conf`
+   - `~/yt-dlp.conf.txt`
+   - `~/.yt-dlp/config`
+   - `~/.yt-dlp/config.txt`
+
+   See also: [Notes about environment variables](#notes-about-environment-variables)
+
 1. **System Configuration**:
-    * `/etc/yt-dlp.conf`
-    * `/etc/yt-dlp/config`
-    * `/etc/yt-dlp/config.txt`
+   - `/etc/yt-dlp.conf`
+   - `/etc/yt-dlp/config`
+   - `/etc/yt-dlp/config.txt`
 
 E.g. with the following configuration file, yt-dlp will always extract the audio, not copy the mtime, use a proxy and save all videos under `YouTube` directory in your home directory:
+
 ```
 # Lines starting with # are comments
 
@@ -1157,19 +1186,25 @@ If you want your file to be decoded differently, add `# coding: ENCODING` to the
 ### Authentication with netrc
 
 You may also want to configure automatic credentials storage for extractors that support authentication (by providing login and password with `--username` and `--password`) in order not to pass credentials as command line arguments on every yt-dlp execution and prevent tracking plain text passwords in the shell command history. You can achieve this using a [`.netrc` file](https://stackoverflow.com/tags/.netrc/info) on a per-extractor basis. For that, you will need to create a `.netrc` file in `--netrc-location` and restrict permissions to read/write by only you:
+
 ```
 touch ${HOME}/.netrc
 chmod a-rwx,u+rw ${HOME}/.netrc
 ```
-After that, you can add credentials for an extractor in the following format, where *extractor* is the name of the extractor in lowercase:
+
+After that, you can add credentials for an extractor in the following format, where _extractor_ is the name of the extractor in lowercase:
+
 ```
 machine <extractor> login <username> password <password>
 ```
+
 E.g.
+
 ```
 machine youtube login myaccount@gmail.com password my_youtube_password
 machine twitch login my_twitch_account_name password my_twitch_password
 ```
+
 To activate authentication with the `.netrc` file you should pass `--netrc` to yt-dlp or place it in the [configuration file](#configuration).
 
 The default location of the .netrc file is `~` (see below).
@@ -1177,24 +1212,27 @@ The default location of the .netrc file is `~` (see below).
 As an alternative to using the `.netrc` file, which has the disadvantage of keeping your passwords in a plain text file, you can configure a custom shell command to provide the credentials for an extractor. This is done by providing the `--netrc-cmd` parameter, it shall output the credentials in the netrc format and return `0` on success, other values will be treated as an error. `{}` in the command will be replaced by the name of the extractor to make it possible to select the credentials for the right extractor.
 
 E.g. To use an encrypted `.netrc` file stored as `.authinfo.gpg`
+
 ```
 yt-dlp --netrc-cmd 'gpg --decrypt ~/.authinfo.gpg' https://www.youtube.com/watch?v=BaW_jenozKc
 ```
 
-
 ### Notes about environment variables
-* Environment variables are normally specified as `${VARIABLE}`/`$VARIABLE` on UNIX and `%VARIABLE%` on Windows; but is always shown as `${VARIABLE}` in this documentation
-* yt-dlp also allow using UNIX-style variables on Windows for path-like options; e.g. `--output`, `--config-location`
-* If unset, `${XDG_CONFIG_HOME}` defaults to `~/.config` and `${XDG_CACHE_HOME}` to `~/.cache`
-* On Windows, `~` points to `${HOME}` if present; or, `${USERPROFILE}` or `${HOMEDRIVE}${HOMEPATH}` otherwise
-* On Windows, `${USERPROFILE}` generally points to `C:\Users\<user name>` and `${APPDATA}` to `${USERPROFILE}\AppData\Roaming`
+
+- Environment variables are normally specified as `${VARIABLE}`/`$VARIABLE` on UNIX and `%VARIABLE%` on Windows; but is always shown as `${VARIABLE}` in this documentation
+- yt-dlp also allow using UNIX-style variables on Windows for path-like options; e.g. `--output`, `--config-location`
+- If unset, `${XDG_CONFIG_HOME}` defaults to `~/.config` and `${XDG_CACHE_HOME}` to `~/.cache`
+- On Windows, `~` points to `${HOME}` if present; or, `${USERPROFILE}` or `${HOMEDRIVE}${HOMEPATH}` otherwise
+- On Windows, `${USERPROFILE}` generally points to `C:\Users\<user name>` and `${APPDATA}` to `${USERPROFILE}\AppData\Roaming`
 
 # OUTPUT TEMPLATE
 
 The `-o` option is used to indicate a template for the output file names while `-P` option is used to specify the path each type of file should be saved to.
 
 <!-- MANPAGE: BEGIN EXCLUDED SECTION -->
+
 **tl;dr:** [navigate me to examples](#output-template-examples).
+
 <!-- MANPAGE: END EXCLUDED SECTION -->
 
 The simplest usage of `-o` is not to set any template arguments when downloading a single file, like in `yt-dlp -o funny_video.flv "https://some/video"` (hard-coding file extension like this is _not_ recommended and could break some post-processing).
@@ -1211,7 +1249,7 @@ The field names themselves (the part inside the parenthesis) can also have some 
 
 1. **Alternatives**: Alternate fields can be specified separated with a `,`. E.g. `%(release_date>%Y,upload_date>%Y|Unknown)s`
 
-1. **Replacement**: A replacement value can be specified using a `&` separator according to the [`str.format` mini-language](https://docs.python.org/3/library/string.html#format-specification-mini-language). If the field is *not* empty, this replacement value will be used instead of the actual field content. This is done after alternate fields are considered; thus the replacement is used if *any* of the alternative fields is *not* empty. E.g. `%(chapters&has chapters|no chapters)s`, `%(title&TITLE={:>20}|NO TITLE)s`
+1. **Replacement**: A replacement value can be specified using a `&` separator according to the [`str.format` mini-language](https://docs.python.org/3/library/string.html#format-specification-mini-language). If the field is _not_ empty, this replacement value will be used instead of the actual field content. This is done after alternate fields are considered; thus the replacement is used if _any_ of the alternative fields is _not_ empty. E.g. `%(chapters&has chapters|no chapters)s`, `%(title&TITLE={:>20}|NO TITLE)s`
 
 1. **Default**: A literal default value can be specified for when the field is empty using a `|` separator. This overrides `--output-na-placeholder`. E.g. `%(uploader|Unknown)s`
 
@@ -1220,6 +1258,7 @@ The field names themselves (the part inside the parenthesis) can also have some 
 1. **Unicode normalization**: The format type `U` can be used for NFC [Unicode normalization](https://docs.python.org/3/library/unicodedata.html#unicodedata.normalize). The alternate form flag (`#`) changes the normalization to NFD and the conversion flag `+` can be used for NFKC/NFKD compatibility equivalence normalization. E.g. `%(title)+.100U` is NFKC
 
 To summarize, the general syntax for a field is:
+
 ```
 %(name[.keys][addition][>strf][,alternate][&replacement][|default])[flags][width][.precision][length]type
 ```
@@ -1232,139 +1271,139 @@ Additionally, you can set different output templates for the various metadata fi
 
 The available fields are:
 
- - `id` (string): Video identifier
- - `title` (string): Video title
- - `fulltitle` (string): Video title ignoring live timestamp and generic title
- - `ext` (string): Video filename extension
- - `alt_title` (string): A secondary title of the video
- - `description` (string): The description of the video
- - `display_id` (string): An alternative identifier for the video
- - `uploader` (string): Full name of the video uploader
- - `uploader_id` (string): Nickname or id of the video uploader
- - `uploader_url` (string): URL to the video uploader's profile
- - `license` (string): License name the video is licensed under
- - `creators` (list): The creators of the video
- - `creator` (string): The creators of the video; comma-separated
- - `timestamp` (numeric): UNIX timestamp of the moment the video became available
- - `upload_date` (string): Video upload date in UTC (YYYYMMDD)
- - `release_timestamp` (numeric): UNIX timestamp of the moment the video was released
- - `release_date` (string): The date (YYYYMMDD) when the video was released in UTC
- - `release_year` (numeric): Year (YYYY) when the video or album was released
- - `modified_timestamp` (numeric): UNIX timestamp of the moment the video was last modified
- - `modified_date` (string): The date (YYYYMMDD) when the video was last modified in UTC
- - `channel` (string): Full name of the channel the video is uploaded on
- - `channel_id` (string): Id of the channel
- - `channel_url` (string): URL of the channel
- - `channel_follower_count` (numeric): Number of followers of the channel
- - `channel_is_verified` (boolean): Whether the channel is verified on the platform
- - `location` (string): Physical location where the video was filmed
- - `duration` (numeric): Length of the video in seconds
- - `duration_string` (string): Length of the video (HH:mm:ss)
- - `view_count` (numeric): How many users have watched the video on the platform
- - `concurrent_view_count` (numeric): How many users are currently watching the video on the platform.
- - `like_count` (numeric): Number of positive ratings of the video
- - `dislike_count` (numeric): Number of negative ratings of the video
- - `repost_count` (numeric): Number of reposts of the video
- - `average_rating` (numeric): Average rating give by users, the scale used depends on the webpage
- - `comment_count` (numeric): Number of comments on the video (For some extractors, comments are only downloaded at the end, and so this field cannot be used)
- - `age_limit` (numeric): Age restriction for the video (years)
- - `live_status` (string): One of "not_live", "is_live", "is_upcoming", "was_live", "post_live" (was live, but VOD is not yet processed)
- - `is_live` (boolean): Whether this video is a live stream or a fixed-length video
- - `was_live` (boolean): Whether this video was originally a live stream
- - `playable_in_embed` (string): Whether this video is allowed to play in embedded players on other sites
- - `availability` (string): Whether the video is "private", "premium_only", "subscriber_only", "needs_auth", "unlisted" or "public"
- - `media_type` (string): The type of media as classified by the site, e.g. "episode", "clip", "trailer"
- - `start_time` (numeric): Time in seconds where the reproduction should start, as specified in the URL
- - `end_time` (numeric): Time in seconds where the reproduction should end, as specified in the URL
- - `extractor` (string): Name of the extractor
- - `extractor_key` (string): Key name of the extractor
- - `epoch` (numeric): Unix epoch of when the information extraction was completed
- - `autonumber` (numeric): Number that will be increased with each download, starting at `--autonumber-start`, padded with leading zeros to 5 digits
- - `video_autonumber` (numeric): Number that will be increased with each video
- - `n_entries` (numeric): Total number of extracted items in the playlist
- - `playlist_id` (string): Identifier of the playlist that contains the video
- - `playlist_title` (string): Name of the playlist that contains the video
- - `playlist` (string): `playlist_title` if available or else `playlist_id`
- - `playlist_count` (numeric): Total number of items in the playlist. May not be known if entire playlist is not extracted
- - `playlist_index` (numeric): Index of the video in the playlist padded with leading zeros according the final index
- - `playlist_autonumber` (numeric): Position of the video in the playlist download queue padded with leading zeros according to the total length of the playlist
- - `playlist_uploader` (string): Full name of the playlist uploader
- - `playlist_uploader_id` (string): Nickname or id of the playlist uploader
- - `playlist_channel` (string): Display name of the channel that uploaded the playlist
- - `playlist_channel_id` (string): Identifier of the channel that uploaded the playlist
- - `webpage_url` (string): A URL to the video webpage which, if given to yt-dlp, should yield the same result again
- - `webpage_url_basename` (string): The basename of the webpage URL
- - `webpage_url_domain` (string): The domain of the webpage URL
- - `original_url` (string): The URL given by the user (or same as `webpage_url` for playlist entries)
- - `categories` (list): List of categories the video belongs to
- - `tags` (list): List of tags assigned to the video
- - `cast` (list): List of cast members
+- `id` (string): Video identifier
+- `title` (string): Video title
+- `fulltitle` (string): Video title ignoring live timestamp and generic title
+- `ext` (string): Video filename extension
+- `alt_title` (string): A secondary title of the video
+- `description` (string): The description of the video
+- `display_id` (string): An alternative identifier for the video
+- `uploader` (string): Full name of the video uploader
+- `uploader_id` (string): Nickname or id of the video uploader
+- `uploader_url` (string): URL to the video uploader's profile
+- `license` (string): License name the video is licensed under
+- `creators` (list): The creators of the video
+- `creator` (string): The creators of the video; comma-separated
+- `timestamp` (numeric): UNIX timestamp of the moment the video became available
+- `upload_date` (string): Video upload date in UTC (YYYYMMDD)
+- `release_timestamp` (numeric): UNIX timestamp of the moment the video was released
+- `release_date` (string): The date (YYYYMMDD) when the video was released in UTC
+- `release_year` (numeric): Year (YYYY) when the video or album was released
+- `modified_timestamp` (numeric): UNIX timestamp of the moment the video was last modified
+- `modified_date` (string): The date (YYYYMMDD) when the video was last modified in UTC
+- `channel` (string): Full name of the channel the video is uploaded on
+- `channel_id` (string): Id of the channel
+- `channel_url` (string): URL of the channel
+- `channel_follower_count` (numeric): Number of followers of the channel
+- `channel_is_verified` (boolean): Whether the channel is verified on the platform
+- `location` (string): Physical location where the video was filmed
+- `duration` (numeric): Length of the video in seconds
+- `duration_string` (string): Length of the video (HH:mm:ss)
+- `view_count` (numeric): How many users have watched the video on the platform
+- `concurrent_view_count` (numeric): How many users are currently watching the video on the platform.
+- `like_count` (numeric): Number of positive ratings of the video
+- `dislike_count` (numeric): Number of negative ratings of the video
+- `repost_count` (numeric): Number of reposts of the video
+- `average_rating` (numeric): Average rating give by users, the scale used depends on the webpage
+- `comment_count` (numeric): Number of comments on the video (For some extractors, comments are only downloaded at the end, and so this field cannot be used)
+- `age_limit` (numeric): Age restriction for the video (years)
+- `live_status` (string): One of "not_live", "is_live", "is_upcoming", "was_live", "post_live" (was live, but VOD is not yet processed)
+- `is_live` (boolean): Whether this video is a live stream or a fixed-length video
+- `was_live` (boolean): Whether this video was originally a live stream
+- `playable_in_embed` (string): Whether this video is allowed to play in embedded players on other sites
+- `availability` (string): Whether the video is "private", "premium_only", "subscriber_only", "needs_auth", "unlisted" or "public"
+- `media_type` (string): The type of media as classified by the site, e.g. "episode", "clip", "trailer"
+- `start_time` (numeric): Time in seconds where the reproduction should start, as specified in the URL
+- `end_time` (numeric): Time in seconds where the reproduction should end, as specified in the URL
+- `extractor` (string): Name of the extractor
+- `extractor_key` (string): Key name of the extractor
+- `epoch` (numeric): Unix epoch of when the information extraction was completed
+- `autonumber` (numeric): Number that will be increased with each download, starting at `--autonumber-start`, padded with leading zeros to 5 digits
+- `video_autonumber` (numeric): Number that will be increased with each video
+- `n_entries` (numeric): Total number of extracted items in the playlist
+- `playlist_id` (string): Identifier of the playlist that contains the video
+- `playlist_title` (string): Name of the playlist that contains the video
+- `playlist` (string): `playlist_title` if available or else `playlist_id`
+- `playlist_count` (numeric): Total number of items in the playlist. May not be known if entire playlist is not extracted
+- `playlist_index` (numeric): Index of the video in the playlist padded with leading zeros according the final index
+- `playlist_autonumber` (numeric): Position of the video in the playlist download queue padded with leading zeros according to the total length of the playlist
+- `playlist_uploader` (string): Full name of the playlist uploader
+- `playlist_uploader_id` (string): Nickname or id of the playlist uploader
+- `playlist_channel` (string): Display name of the channel that uploaded the playlist
+- `playlist_channel_id` (string): Identifier of the channel that uploaded the playlist
+- `webpage_url` (string): A URL to the video webpage which, if given to yt-dlp, should yield the same result again
+- `webpage_url_basename` (string): The basename of the webpage URL
+- `webpage_url_domain` (string): The domain of the webpage URL
+- `original_url` (string): The URL given by the user (or same as `webpage_url` for playlist entries)
+- `categories` (list): List of categories the video belongs to
+- `tags` (list): List of tags assigned to the video
+- `cast` (list): List of cast members
 
 All the fields in [Filtering Formats](#filtering-formats) can also be used
 
 Available for the video that belongs to some logical chapter or section:
 
- - `chapter` (string): Name or title of the chapter the video belongs to
- - `chapter_number` (numeric): Number of the chapter the video belongs to
- - `chapter_id` (string): Id of the chapter the video belongs to
+- `chapter` (string): Name or title of the chapter the video belongs to
+- `chapter_number` (numeric): Number of the chapter the video belongs to
+- `chapter_id` (string): Id of the chapter the video belongs to
 
 Available for the video that is an episode of some series or program:
 
- - `series` (string): Title of the series or program the video episode belongs to
- - `series_id` (string): Id of the series or program the video episode belongs to
- - `season` (string): Title of the season the video episode belongs to
- - `season_number` (numeric): Number of the season the video episode belongs to
- - `season_id` (string): Id of the season the video episode belongs to
- - `episode` (string): Title of the video episode
- - `episode_number` (numeric): Number of the video episode within a season
- - `episode_id` (string): Id of the video episode
+- `series` (string): Title of the series or program the video episode belongs to
+- `series_id` (string): Id of the series or program the video episode belongs to
+- `season` (string): Title of the season the video episode belongs to
+- `season_number` (numeric): Number of the season the video episode belongs to
+- `season_id` (string): Id of the season the video episode belongs to
+- `episode` (string): Title of the video episode
+- `episode_number` (numeric): Number of the video episode within a season
+- `episode_id` (string): Id of the video episode
 
 Available for the media that is a track or a part of a music album:
 
- - `track` (string): Title of the track
- - `track_number` (numeric): Number of the track within an album or a disc
- - `track_id` (string): Id of the track
- - `artists` (list): Artist(s) of the track
- - `artist` (string): Artist(s) of the track; comma-separated
- - `genres` (list): Genre(s) of the track
- - `genre` (string): Genre(s) of the track; comma-separated
- - `composers` (list): Composer(s) of the piece
- - `composer` (string): Composer(s) of the piece; comma-separated
- - `album` (string): Title of the album the track belongs to
- - `album_type` (string): Type of the album
- - `album_artists` (list): All artists appeared on the album
- - `album_artist` (string): All artists appeared on the album; comma-separated
- - `disc_number` (numeric): Number of the disc or other physical medium the track belongs to
+- `track` (string): Title of the track
+- `track_number` (numeric): Number of the track within an album or a disc
+- `track_id` (string): Id of the track
+- `artists` (list): Artist(s) of the track
+- `artist` (string): Artist(s) of the track; comma-separated
+- `genres` (list): Genre(s) of the track
+- `genre` (string): Genre(s) of the track; comma-separated
+- `composers` (list): Composer(s) of the piece
+- `composer` (string): Composer(s) of the piece; comma-separated
+- `album` (string): Title of the album the track belongs to
+- `album_type` (string): Type of the album
+- `album_artists` (list): All artists appeared on the album
+- `album_artist` (string): All artists appeared on the album; comma-separated
+- `disc_number` (numeric): Number of the disc or other physical medium the track belongs to
 
 Available only when using `--download-sections` and for `chapter:` prefix when using `--split-chapters` for videos with internal chapters:
 
- - `section_title` (string): Title of the chapter
- - `section_number` (numeric): Number of the chapter within the file
- - `section_start` (numeric): Start time of the chapter in seconds
- - `section_end` (numeric): End time of the chapter in seconds
+- `section_title` (string): Title of the chapter
+- `section_number` (numeric): Number of the chapter within the file
+- `section_start` (numeric): Start time of the chapter in seconds
+- `section_end` (numeric): End time of the chapter in seconds
 
 Available only when used in `--print`:
 
- - `urls` (string): The URLs of all requested formats, one in each line
- - `filename` (string): Name of the video file. Note that the [actual filename may differ](#outtmpl-postprocess-note)
- - `formats_table` (table): The video format table as printed by `--list-formats`
- - `thumbnails_table` (table): The thumbnail format table as printed by `--list-thumbnails`
- - `subtitles_table` (table): The subtitle format table as printed by `--list-subs`
- - `automatic_captions_table` (table): The automatic subtitle format table as printed by `--list-subs`
+- `urls` (string): The URLs of all requested formats, one in each line
+- `filename` (string): Name of the video file. Note that the [actual filename may differ](#outtmpl-postprocess-note)
+- `formats_table` (table): The video format table as printed by `--list-formats`
+- `thumbnails_table` (table): The thumbnail format table as printed by `--list-thumbnails`
+- `subtitles_table` (table): The subtitle format table as printed by `--list-subs`
+- `automatic_captions_table` (table): The automatic subtitle format table as printed by `--list-subs`
 
- Available only after the video is downloaded (`post_process`/`after_move`):
+Available only after the video is downloaded (`post_process`/`after_move`):
 
- - `filepath`: Actual path of downloaded video file
+- `filepath`: Actual path of downloaded video file
 
 Available only in `--sponsorblock-chapter-title`:
 
- - `start_time` (numeric): Start time of the chapter in seconds
- - `end_time` (numeric): End time of the chapter in seconds
- - `categories` (list): The [SponsorBlock categories](https://wiki.sponsor.ajay.app/w/Types#Category) the chapter belongs to
- - `category` (string): The smallest SponsorBlock category the chapter belongs to
- - `category_names` (list): Friendly names of the categories
- - `name` (string): Friendly name of the smallest category
- - `type` (string): The [SponsorBlock action type](https://wiki.sponsor.ajay.app/w/Types#Action_Type) of the chapter
+- `start_time` (numeric): Start time of the chapter in seconds
+- `end_time` (numeric): End time of the chapter in seconds
+- `categories` (list): The [SponsorBlock categories](https://wiki.sponsor.ajay.app/w/Types#Category) the chapter belongs to
+- `category` (string): The smallest SponsorBlock category the chapter belongs to
+- `category_names` (list): Friendly names of the categories
+- `name` (string): Friendly name of the smallest category
+- `type` (string): The [SponsorBlock action type](https://wiki.sponsor.ajay.app/w/Types#Action_Type) of the chapter
 
 Each aforementioned sequence when referenced in an output template will be replaced by the actual value corresponding to the sequence name. E.g. for `-o %(title)s-%(id)s.%(ext)s` and an mp4 video with title `yt-dlp test video` and id `BaW_jenozKc`, this will result in a `yt-dlp test video-BaW_jenozKc.mp4` file created in the current directory.
 
@@ -1430,34 +1469,36 @@ This is generally equivalent to using `-f bestvideo*+bestaudio/best`. However, i
 
 **Deprecation warning**: Latest versions of yt-dlp can stream multiple formats to the stdout simultaneously using ffmpeg. So, in future versions, the default for this will be set to `-f bv*+ba/b` similar to normal downloads. If you want to preserve the `-f b/bv+ba` setting, it is recommended to explicitly specify it in the configuration options.
 
-The general syntax for format selection is `-f FORMAT` (or `--format FORMAT`) where `FORMAT` is a *selector expression*, i.e. an expression that describes format or formats you would like to download.
+The general syntax for format selection is `-f FORMAT` (or `--format FORMAT`) where `FORMAT` is a _selector expression_, i.e. an expression that describes format or formats you would like to download.
 
 <!-- MANPAGE: BEGIN EXCLUDED SECTION -->
+
 **tl;dr:** [navigate me to examples](#format-selection-examples).
+
 <!-- MANPAGE: END EXCLUDED SECTION -->
 
 The simplest case is requesting a specific format; e.g. with `-f 22` you can download the format with format code equal to 22. You can get the list of available format codes for particular video using `--list-formats` or `-F`. Note that these format codes are extractor specific.
 
 You can also use a file extension (currently `3gp`, `aac`, `flv`, `m4a`, `mp3`, `mp4`, `ogg`, `wav`, `webm` are supported) to download the best quality format of a particular file extension served as a single file, e.g. `-f webm` will download the best quality format with the `webm` extension served as a single file.
 
-You can use `-f -` to interactively provide the format selector *for each video*
+You can use `-f -` to interactively provide the format selector _for each video_
 
 You can also use special names to select particular edge case formats:
 
- - `all`: Select **all formats** separately
- - `mergeall`: Select and **merge all formats** (Must be used with `--audio-multistreams`, `--video-multistreams` or both)
- - `b*`, `best*`: Select the best quality format that **contains either** a video or an audio or both (i.e.; `vcodec!=none or acodec!=none`)
- - `b`, `best`: Select the best quality format that **contains both** video and audio. Equivalent to `best*[vcodec!=none][acodec!=none]`
- - `bv`, `bestvideo`: Select the best quality **video-only** format. Equivalent to `best*[acodec=none]`
- - `bv*`, `bestvideo*`: Select the best quality format that **contains video**. It may also contain audio. Equivalent to `best*[vcodec!=none]`
- - `ba`, `bestaudio`: Select the best quality **audio-only** format. Equivalent to `best*[vcodec=none]`
- - `ba*`, `bestaudio*`: Select the best quality format that **contains audio**. It may also contain video. Equivalent to `best*[acodec!=none]` ([Do not use!](https://github.com/yt-dlp/yt-dlp/issues/979#issuecomment-919629354))
- - `w*`, `worst*`: Select the worst quality format that contains either a video or an audio
- - `w`, `worst`: Select the worst quality format that contains both video and audio. Equivalent to `worst*[vcodec!=none][acodec!=none]`
- - `wv`, `worstvideo`: Select the worst quality video-only format. Equivalent to `worst*[acodec=none]`
- - `wv*`, `worstvideo*`: Select the worst quality format that contains video. It may also contain audio. Equivalent to `worst*[vcodec!=none]`
- - `wa`, `worstaudio`: Select the worst quality audio-only format. Equivalent to `worst*[vcodec=none]`
- - `wa*`, `worstaudio*`: Select the worst quality format that contains audio. It may also contain video. Equivalent to `worst*[acodec!=none]`
+- `all`: Select **all formats** separately
+- `mergeall`: Select and **merge all formats** (Must be used with `--audio-multistreams`, `--video-multistreams` or both)
+- `b*`, `best*`: Select the best quality format that **contains either** a video or an audio or both (i.e.; `vcodec!=none or acodec!=none`)
+- `b`, `best`: Select the best quality format that **contains both** video and audio. Equivalent to `best*[vcodec!=none][acodec!=none]`
+- `bv`, `bestvideo`: Select the best quality **video-only** format. Equivalent to `best*[acodec=none]`
+- `bv*`, `bestvideo*`: Select the best quality format that **contains video**. It may also contain audio. Equivalent to `best*[vcodec!=none]`
+- `ba`, `bestaudio`: Select the best quality **audio-only** format. Equivalent to `best*[vcodec=none]`
+- `ba*`, `bestaudio*`: Select the best quality format that **contains audio**. It may also contain video. Equivalent to `best*[acodec!=none]` ([Do not use!](https://github.com/yt-dlp/yt-dlp/issues/979#issuecomment-919629354))
+- `w*`, `worst*`: Select the worst quality format that contains either a video or an audio
+- `w`, `worst`: Select the worst quality format that contains both video and audio. Equivalent to `worst*[vcodec!=none][acodec!=none]`
+- `wv`, `worstvideo`: Select the worst quality video-only format. Equivalent to `worst*[acodec=none]`
+- `wv*`, `worstvideo*`: Select the worst quality format that contains video. It may also contain audio. Equivalent to `worst*[vcodec!=none]`
+- `wa`, `worstaudio`: Select the worst quality audio-only format. Equivalent to `worst*[vcodec=none]`
+- `wa*`, `worstaudio*`: Select the worst quality format that contains audio. It may also contain video. Equivalent to `worst*[acodec!=none]`
 
 For example, to download the worst quality video-only format you can use `-f worstvideo`. It is, however, recommended not to use `worst` and related options. When your format selector is `worst`, the format which is worst in all respects is selected. Most of the time, what you actually want is the video with the smallest filesize instead. So it is generally better to use `-S +size` or more rigorously, `-S +size,+br,+res,+fps` instead of `-f worst`. See [Sorting Formats](#sorting-formats) for more details.
 
@@ -1469,7 +1510,7 @@ If you want to download several formats of the same video use a comma as a separ
 
 You can merge the video and audio of multiple formats into a single file using `-f <format1>+<format2>+...` (requires ffmpeg installed); e.g. `-f bestvideo+bestaudio` will download the best video-only format, the best audio-only format and mux them together with ffmpeg.
 
-**Deprecation warning**: Since the *below* described behavior is complex and counter-intuitive, this will be removed and multistreams will be enabled by default in the future. A new operator will be instead added to limit formats to single audio/video
+**Deprecation warning**: Since the _below_ described behavior is complex and counter-intuitive, this will be removed and multistreams will be enabled by default in the future. A new operator will be instead added to limit formats to single audio/video
 
 Unless `--video-multistreams` is used, all formats with a video stream except the first one are ignored. Similarly, unless `--audio-multistreams` is used, all formats with an audio stream except the first one are ignored. E.g. `-f bestvideo+best+bestaudio --video-multistreams --audio-multistreams` will download and merge all 3 given formats. The resulting file will have 2 video streams and 2 audio streams. But `-f bestvideo+best+bestaudio --no-video-multistreams` will download and merge only `bestvideo` and `bestaudio`. `best` is ignored since another format containing a video stream (`bestvideo`) has already been selected. The order of the formats is therefore important. `-f best+bestaudio --no-audio-multistreams` will download only `best` while `-f bestaudio+best --no-audio-multistreams` will ignore `best` and download only `bestaudio`.
 
@@ -1479,33 +1520,33 @@ You can also filter the video formats by putting a condition in brackets, as in 
 
 The following numeric meta fields can be used with comparisons `<`, `<=`, `>`, `>=`, `=` (equals), `!=` (not equals):
 
- - `filesize`: The number of bytes, if known in advance
- - `filesize_approx`: An estimate for the number of bytes
- - `width`: Width of the video, if known
- - `height`: Height of the video, if known
- - `aspect_ratio`: Aspect ratio of the video, if known
- - `tbr`: Average bitrate of audio and video in [kbps](## "1000 bits/sec")
- - `abr`: Average audio bitrate in [kbps](## "1000 bits/sec")
- - `vbr`: Average video bitrate in [kbps](## "1000 bits/sec")
- - `asr`: Audio sampling rate in Hertz
- - `fps`: Frame rate
- - `audio_channels`: The number of audio channels
- - `stretched_ratio`: `width:height` of the video's pixels, if not square
+- `filesize`: The number of bytes, if known in advance
+- `filesize_approx`: An estimate for the number of bytes
+- `width`: Width of the video, if known
+- `height`: Height of the video, if known
+- `aspect_ratio`: Aspect ratio of the video, if known
+- `tbr`: Average bitrate of audio and video in [kbps](## "1000 bits/sec")
+- `abr`: Average audio bitrate in [kbps](## "1000 bits/sec")
+- `vbr`: Average video bitrate in [kbps](## "1000 bits/sec")
+- `asr`: Audio sampling rate in Hertz
+- `fps`: Frame rate
+- `audio_channels`: The number of audio channels
+- `stretched_ratio`: `width:height` of the video's pixels, if not square
 
 Also filtering work for comparisons `=` (equals), `^=` (starts with), `$=` (ends with), `*=` (contains), `~=` (matches regex) and following string meta fields:
 
- - `url`: Video URL
- - `ext`: File extension
- - `acodec`: Name of the audio codec in use
- - `vcodec`: Name of the video codec in use
- - `container`: Name of the container format
- - `protocol`: The protocol that will be used for the actual download, lower-case (`http`, `https`, `rtsp`, `rtmp`, `rtmpe`, `mms`, `f4m`, `ism`, `http_dash_segments`, `m3u8`, or `m3u8_native`)
- - `language`: Language code
- - `dynamic_range`: The dynamic range of the video
- - `format_id`: A short description of the format
- - `format`: A human-readable description of the format
- - `format_note`: Additional info about the format
- - `resolution`: Textual description of width and height
+- `url`: Video URL
+- `ext`: File extension
+- `acodec`: Name of the audio codec in use
+- `vcodec`: Name of the video codec in use
+- `container`: Name of the container format
+- `protocol`: The protocol that will be used for the actual download, lower-case (`http`, `https`, `rtsp`, `rtmp`, `rtmpe`, `mms`, `f4m`, `ism`, `http_dash_segments`, `m3u8`, or `m3u8_native`)
+- `language`: Language code
+- `dynamic_range`: The dynamic range of the video
+- `format_id`: A short description of the format
+- `format`: A human-readable description of the format
+- `format_note`: Additional info about the format
+- `resolution`: Textual description of width and height
 
 Any string comparison may be prefixed with negation `!` in order to produce an opposite comparison, e.g. `!*=` (does not contain). The comparand of a string comparison needs to be quoted with either double or single quotes if it contains spaces or special characters other than `._-`.
 
@@ -1521,33 +1562,33 @@ You can change the criteria for being considered the `best` by using `-S` (`--fo
 
 The available fields are:
 
- - `hasvid`: Gives priority to formats that have a video stream
- - `hasaud`: Gives priority to formats that have an audio stream
- - `ie_pref`: The format preference
- - `lang`: The language preference
- - `quality`: The quality of the format
- - `source`: The preference of the source
- - `proto`: Protocol used for download (`https`/`ftps` > `http`/`ftp` > `m3u8_native`/`m3u8` > `http_dash_segments`> `websocket_frag` > `mms`/`rtsp` > `f4f`/`f4m`)
- - `vcodec`: Video Codec (`av01` > `vp9.2` > `vp9` > `h265` > `h264` > `vp8` > `h263` > `theora` > other)
- - `acodec`: Audio Codec (`flac`/`alac` > `wav`/`aiff` > `opus` > `vorbis` > `aac` > `mp4a` > `mp3` > `ac4` > `eac3` > `ac3` > `dts` > other)
- - `codec`: Equivalent to `vcodec,acodec`
- - `vext`: Video Extension (`mp4` > `mov` > `webm` > `flv` > other). If `--prefer-free-formats` is used, `webm` is preferred.
- - `aext`: Audio Extension (`m4a` > `aac` > `mp3` > `ogg` > `opus` > `webm` > other). If `--prefer-free-formats` is used, the order changes to `ogg` > `opus` > `webm` > `mp3` > `m4a` > `aac`
- - `ext`: Equivalent to `vext,aext`
- - `filesize`: Exact filesize, if known in advance
- - `fs_approx`: Approximate filesize
- - `size`: Exact filesize if available, otherwise approximate filesize
- - `height`: Height of video
- - `width`: Width of video
- - `res`: Video resolution, calculated as the smallest dimension.
- - `fps`: Framerate of video
- - `hdr`: The dynamic range of the video (`DV` > `HDR12` > `HDR10+` > `HDR10` > `HLG` > `SDR`)
- - `channels`: The number of audio channels
- - `tbr`: Total average bitrate in [kbps](## "1000 bits/sec")
- - `vbr`: Average video bitrate in [kbps](## "1000 bits/sec")
- - `abr`: Average audio bitrate in [kbps](## "1000 bits/sec")
- - `br`: Average bitrate in [kbps](## "1000 bits/sec"), `tbr`/`vbr`/`abr`
- - `asr`: Audio sample rate in Hz
+- `hasvid`: Gives priority to formats that have a video stream
+- `hasaud`: Gives priority to formats that have an audio stream
+- `ie_pref`: The format preference
+- `lang`: The language preference
+- `quality`: The quality of the format
+- `source`: The preference of the source
+- `proto`: Protocol used for download (`https`/`ftps` > `http`/`ftp` > `m3u8_native`/`m3u8` > `http_dash_segments`> `websocket_frag` > `mms`/`rtsp` > `f4f`/`f4m`)
+- `vcodec`: Video Codec (`av01` > `vp9.2` > `vp9` > `h265` > `h264` > `vp8` > `h263` > `theora` > other)
+- `acodec`: Audio Codec (`flac`/`alac` > `wav`/`aiff` > `opus` > `vorbis` > `aac` > `mp4a` > `mp3` > `ac4` > `eac3` > `ac3` > `dts` > other)
+- `codec`: Equivalent to `vcodec,acodec`
+- `vext`: Video Extension (`mp4` > `mov` > `webm` > `flv` > other). If `--prefer-free-formats` is used, `webm` is preferred.
+- `aext`: Audio Extension (`m4a` > `aac` > `mp3` > `ogg` > `opus` > `webm` > other). If `--prefer-free-formats` is used, the order changes to `ogg` > `opus` > `webm` > `mp3` > `m4a` > `aac`
+- `ext`: Equivalent to `vext,aext`
+- `filesize`: Exact filesize, if known in advance
+- `fs_approx`: Approximate filesize
+- `size`: Exact filesize if available, otherwise approximate filesize
+- `height`: Height of video
+- `width`: Width of video
+- `res`: Video resolution, calculated as the smallest dimension.
+- `fps`: Framerate of video
+- `hdr`: The dynamic range of the video (`DV` > `HDR12` > `HDR10+` > `HDR10` > `HLG` > `SDR`)
+- `channels`: The number of audio channels
+- `tbr`: Total average bitrate in [kbps](## "1000 bits/sec")
+- `vbr`: Average video bitrate in [kbps](## "1000 bits/sec")
+- `abr`: Average audio bitrate in [kbps](## "1000 bits/sec")
+- `br`: Average bitrate in [kbps](## "1000 bits/sec"), `tbr`/`vbr`/`abr`
+- `asr`: Audio sample rate in Hz
 
 **Deprecation warning**: Many of these fields have (currently undocumented) aliases, that may be removed in a future version. It is recommended to use only the documented field names.
 
@@ -1696,35 +1737,34 @@ Note that these options preserve their relative order, allowing replacements to 
 
 This option also has a few special uses:
 
-* You can download an additional URL based on the metadata of the currently downloaded video. To do this, set the field `additional_urls` to the URL that you want to download. E.g. `--parse-metadata "description:(?P<additional_urls>https?://www\.vimeo\.com/\d+)"` will download the first vimeo video found in the description
+- You can download an additional URL based on the metadata of the currently downloaded video. To do this, set the field `additional_urls` to the URL that you want to download. E.g. `--parse-metadata "description:(?P<additional_urls>https?://www\.vimeo\.com/\d+)"` will download the first vimeo video found in the description
 
-* You can use this to change the metadata that is embedded in the media file. To do this, set the value of the corresponding field with a `meta_` prefix. For example, any value you set to `meta_description` field will be added to the `description` field in the file - you can use this to set a different "description" and "synopsis". To modify the metadata of individual streams, use the `meta<n>_` prefix (e.g. `meta1_language`). Any value set to the `meta_` field will overwrite all default values.
+- You can use this to change the metadata that is embedded in the media file. To do this, set the value of the corresponding field with a `meta_` prefix. For example, any value you set to `meta_description` field will be added to the `description` field in the file - you can use this to set a different "description" and "synopsis". To modify the metadata of individual streams, use the `meta<n>_` prefix (e.g. `meta1_language`). Any value set to the `meta_` field will overwrite all default values.
 
 **Note**: Metadata modification happens before format selection, post-extraction and other post-processing operations. Some fields may be added or changed during these steps, overriding your changes.
 
 For reference, these are the fields yt-dlp adds by default to the file metadata:
 
-Metadata fields            | From
-:--------------------------|:------------------------------------------------
-`title`                    | `track` or `title`
-`date`                     | `upload_date`
-`description`,  `synopsis` | `description`
-`purl`, `comment`          | `webpage_url`
-`track`                    | `track_number`
-`artist`                   | `artist`, `artists`, `creator`, `creators`, `uploader` or `uploader_id`
-`composer`                 | `composer` or `composers`
-`genre`                    | `genre` or `genres`
-`album`                    | `album`
-`album_artist`             | `album_artist` or `album_artists`
-`disc`                     | `disc_number`
-`show`                     | `series`
-`season_number`            | `season_number`
-`episode_id`               | `episode` or `episode_id`
-`episode_sort`             | `episode_number`
-`language` of each stream  | the format's `language`
+| Metadata fields           | From                                                                    |
+| :------------------------ | :---------------------------------------------------------------------- |
+| `title`                   | `track` or `title`                                                      |
+| `date`                    | `upload_date`                                                           |
+| `description`, `synopsis` | `description`                                                           |
+| `purl`, `comment`         | `webpage_url`                                                           |
+| `track`                   | `track_number`                                                          |
+| `artist`                  | `artist`, `artists`, `creator`, `creators`, `uploader` or `uploader_id` |
+| `composer`                | `composer` or `composers`                                               |
+| `genre`                   | `genre` or `genres`                                                     |
+| `album`                   | `album`                                                                 |
+| `album_artist`            | `album_artist` or `album_artists`                                       |
+| `disc`                    | `disc_number`                                                           |
+| `show`                    | `series`                                                                |
+| `season_number`           | `season_number`                                                         |
+| `episode_id`              | `episode` or `episode_id`                                               |
+| `episode_sort`            | `episode_number`                                                        |
+| `language` of each stream | the format's `language`                                                 |
 
 **Note**: The file format may not support some of these fields
-
 
 ## Modifying metadata examples
 
@@ -1765,122 +1805,146 @@ Note: In CLI, `ARG` can use `-` instead of `_`; e.g. `youtube:player-client"` be
 The following extractors use this feature:
 
 #### youtube
-* `lang`: Prefer translated metadata (`title`, `description` etc) of this language code (case-sensitive). By default, the video primary language metadata is preferred, with a fallback to `en` translated. See [youtube.py](https://github.com/yt-dlp/yt-dlp/blob/c26f9b991a0681fd3ea548d535919cec1fbbd430/yt_dlp/extractor/youtube.py#L381-L390) for list of supported content language codes
-* `skip`: One or more of `hls`, `dash` or `translated_subs` to skip extraction of the m3u8 manifests, dash manifests and [auto-translated subtitles](https://github.com/yt-dlp/yt-dlp/issues/4090#issuecomment-1158102032) respectively
-* `player_client`: Clients to extract video data from. The main clients are `web`, `ios` and `android`, with variants `_music` and `_creator` (e.g. `ios_creator`); and `mediaconnect`, `mweb`, `android_producer`, `android_testsuite`, `android_vr`, `web_safari`, `web_embedded`, `tv` and `tv_embedded` with no variants. By default, `ios,web_creator` is used, and `tv_embedded`, `web_creator` and `mediaconnect` are added as required for age-gated videos. Similarly, the music variants are added for `music.youtube.com` urls. Most `android` clients will be given lowest priority since their formats are broken. You can use `all` to use all the clients, and `default` for the default clients.
-* `player_skip`: Skip some network requests that are generally needed for robust extraction. One or more of `configs` (skip client configs), `webpage` (skip initial webpage), `js` (skip js player). While these options can help reduce the number of requests needed or avoid some rate-limiting, they could cause some issues. See [#860](https://github.com/yt-dlp/yt-dlp/pull/860) for more details
-* `player_params`: YouTube player parameters to use for player requests. Will overwrite any default ones set by yt-dlp.
-* `comment_sort`: `top` or `new` (default) - choose comment sorting mode (on YouTube's side)
-* `max_comments`: Limit the amount of comments to gather. Comma-separated list of integers representing `max-comments,max-parents,max-replies,max-replies-per-thread`. Default is `all,all,all,all`
-    * E.g. `all,all,1000,10` will get a maximum of 1000 replies total, with up to 10 replies per thread. `1000,all,100` will get a maximum of 1000 comments, with a maximum of 100 replies total
-* `formats`: Change the types of formats to return. `dashy` (convert HTTP to DASH), `duplicate` (identical content but different URLs or protocol; includes `dashy`), `incomplete` (cannot be downloaded completely - live dash and post-live m3u8)
-* `innertube_host`: Innertube API host to use for all API requests; e.g. `studio.youtube.com`, `youtubei.googleapis.com`. Note that cookies exported from one subdomain will not work on others
-* `innertube_key`: Innertube API key to use for all API requests. By default, no API key is used
-* `raise_incomplete_data`: `Incomplete Data Received` raises an error instead of reporting a warning
-* `data_sync_id`: Overrides the account Data Sync ID used in Innertube API requests. This may be needed if you are using an account with `youtube:player_skip=webpage,configs` or `youtubetab:skip=webpage`
-* `visitor_data`: Overrides the Visitor Data used in Innertube API requests. This should be used with `player_skip=webpage,configs` and without cookies. Note: this may have adverse effects if used improperly. If a session from a browser is wanted, you should pass cookies instead (which contain the Visitor ID)
-* `po_token`:  Proof of Origin (PO) Token(s) to use for requesting video playback. Comma seperated list of PO Tokens in the format `CLIENT+PO_TOKEN`, e.g. `youtube:po_token=web+XXX,android+YYY`
+
+- `lang`: Prefer translated metadata (`title`, `description` etc) of this language code (case-sensitive). By default, the video primary language metadata is preferred, with a fallback to `en` translated. See [youtube.py](https://github.com/yt-dlp/yt-dlp/blob/c26f9b991a0681fd3ea548d535919cec1fbbd430/yt_dlp/extractor/youtube.py#L381-L390) for list of supported content language codes
+- `skip`: One or more of `hls`, `dash` or `translated_subs` to skip extraction of the m3u8 manifests, dash manifests and [auto-translated subtitles](https://github.com/yt-dlp/yt-dlp/issues/4090#issuecomment-1158102032) respectively
+- `player_client`: Clients to extract video data from. The main clients are `web`, `ios` and `android`, with variants `_music` and `_creator` (e.g. `ios_creator`); and `mediaconnect`, `mweb`, `android_producer`, `android_testsuite`, `android_vr`, `web_safari`, `web_embedded`, `tv` and `tv_embedded` with no variants. By default, `ios,web_creator` is used, and `tv_embedded`, `web_creator` and `mediaconnect` are added as required for age-gated videos. Similarly, the music variants are added for `music.youtube.com` urls. Most `android` clients will be given lowest priority since their formats are broken. You can use `all` to use all the clients, and `default` for the default clients.
+- `player_skip`: Skip some network requests that are generally needed for robust extraction. One or more of `configs` (skip client configs), `webpage` (skip initial webpage), `js` (skip js player). While these options can help reduce the number of requests needed or avoid some rate-limiting, they could cause some issues. See [#860](https://github.com/yt-dlp/yt-dlp/pull/860) for more details
+- `player_params`: YouTube player parameters to use for player requests. Will overwrite any default ones set by yt-dlp.
+- `comment_sort`: `top` or `new` (default) - choose comment sorting mode (on YouTube's side)
+- `max_comments`: Limit the amount of comments to gather. Comma-separated list of integers representing `max-comments,max-parents,max-replies,max-replies-per-thread`. Default is `all,all,all,all`
+  - E.g. `all,all,1000,10` will get a maximum of 1000 replies total, with up to 10 replies per thread. `1000,all,100` will get a maximum of 1000 comments, with a maximum of 100 replies total
+- `formats`: Change the types of formats to return. `dashy` (convert HTTP to DASH), `duplicate` (identical content but different URLs or protocol; includes `dashy`), `incomplete` (cannot be downloaded completely - live dash and post-live m3u8)
+- `innertube_host`: Innertube API host to use for all API requests; e.g. `studio.youtube.com`, `youtubei.googleapis.com`. Note that cookies exported from one subdomain will not work on others
+- `innertube_key`: Innertube API key to use for all API requests. By default, no API key is used
+- `raise_incomplete_data`: `Incomplete Data Received` raises an error instead of reporting a warning
+- `data_sync_id`: Overrides the account Data Sync ID used in Innertube API requests. This may be needed if you are using an account with `youtube:player_skip=webpage,configs` or `youtubetab:skip=webpage`
+- `visitor_data`: Overrides the Visitor Data used in Innertube API requests. This should be used with `player_skip=webpage,configs` and without cookies. Note: this may have adverse effects if used improperly. If a session from a browser is wanted, you should pass cookies instead (which contain the Visitor ID)
+- `po_token`: Proof of Origin (PO) Token(s) to use for requesting video playback. Comma seperated list of PO Tokens in the format `CLIENT+PO_TOKEN`, e.g. `youtube:po_token=web+XXX,android+YYY`
 
 #### youtubetab (YouTube playlists, channels, feeds, etc.)
-* `skip`: One or more of `webpage` (skip initial webpage download), `authcheck` (allow the download of playlists requiring authentication when no initial webpage is downloaded. This may cause unwanted behavior, see [#1122](https://github.com/yt-dlp/yt-dlp/pull/1122) for more details)
-* `approximate_date`: Extract approximate `upload_date` and `timestamp` in flat-playlist. This may cause date-based filters to be slightly off
+
+- `skip`: One or more of `webpage` (skip initial webpage download), `authcheck` (allow the download of playlists requiring authentication when no initial webpage is downloaded. This may cause unwanted behavior, see [#1122](https://github.com/yt-dlp/yt-dlp/pull/1122) for more details)
+- `approximate_date`: Extract approximate `upload_date` and `timestamp` in flat-playlist. This may cause date-based filters to be slightly off
 
 #### generic
-* `fragment_query`: Passthrough any query in mpd/m3u8 manifest URLs to their fragments if no value is provided, or else apply the query string given as `fragment_query=VALUE`. Note that if the stream has an HLS AES-128 key, then the query parameters will be passed to the key URI as well, unless the `key_query` extractor-arg is passed, or unless an external key URI is provided via the `hls_key` extractor-arg. Does not apply to ffmpeg
-* `variant_query`: Passthrough the master m3u8 URL query to its variant playlist URLs if no value is provided, or else apply the query string given as `variant_query=VALUE`
-* `key_query`: Passthrough the master m3u8 URL query to its HLS AES-128 decryption key URI if no value is provided, or else apply the query string given as `key_query=VALUE`. Note that this will have no effect if the key URI is provided via the `hls_key` extractor-arg. Does not apply to ffmpeg
-* `hls_key`: An HLS AES-128 key URI *or* key (as hex), and optionally the IV (as hex), in the form of `(URI|KEY)[,IV]`; e.g. `generic:hls_key=ABCDEF1234567980,0xFEDCBA0987654321`. Passing any of these values will force usage of the native HLS downloader and override the corresponding values found in the m3u8 playlist
-* `is_live`: Bypass live HLS detection and manually set `live_status` - a value of `false` will set `not_live`, any other value (or no value) will set `is_live`
+
+- `fragment_query`: Passthrough any query in mpd/m3u8 manifest URLs to their fragments if no value is provided, or else apply the query string given as `fragment_query=VALUE`. Note that if the stream has an HLS AES-128 key, then the query parameters will be passed to the key URI as well, unless the `key_query` extractor-arg is passed, or unless an external key URI is provided via the `hls_key` extractor-arg. Does not apply to ffmpeg
+- `variant_query`: Passthrough the master m3u8 URL query to its variant playlist URLs if no value is provided, or else apply the query string given as `variant_query=VALUE`
+- `key_query`: Passthrough the master m3u8 URL query to its HLS AES-128 decryption key URI if no value is provided, or else apply the query string given as `key_query=VALUE`. Note that this will have no effect if the key URI is provided via the `hls_key` extractor-arg. Does not apply to ffmpeg
+- `hls_key`: An HLS AES-128 key URI _or_ key (as hex), and optionally the IV (as hex), in the form of `(URI|KEY)[,IV]`; e.g. `generic:hls_key=ABCDEF1234567980,0xFEDCBA0987654321`. Passing any of these values will force usage of the native HLS downloader and override the corresponding values found in the m3u8 playlist
+- `is_live`: Bypass live HLS detection and manually set `live_status` - a value of `false` will set `not_live`, any other value (or no value) will set `is_live`
 
 #### funimation
-* `language`: Audio languages to extract, e.g. `funimation:language=english,japanese`
-* `version`: The video version to extract - `uncut` or `simulcast`
+
+- `language`: Audio languages to extract, e.g. `funimation:language=english,japanese`
+- `version`: The video version to extract - `uncut` or `simulcast`
 
 #### crunchyrollbeta (Crunchyroll)
-* `hardsub`: One or more hardsub versions to extract (in order of preference), or `all` (default: `None` = no hardsubs will be extracted), e.g. `crunchyrollbeta:hardsub=en-US,de-DE`
+
+- `hardsub`: One or more hardsub versions to extract (in order of preference), or `all` (default: `None` = no hardsubs will be extracted), e.g. `crunchyrollbeta:hardsub=en-US,de-DE`
 
 #### vikichannel
-* `video_types`: Types of videos to download - one or more of `episodes`, `movies`, `clips`, `trailers`
+
+- `video_types`: Types of videos to download - one or more of `episodes`, `movies`, `clips`, `trailers`
 
 #### niconico
-* `segment_duration`: Segment duration in milliseconds for HLS-DMC formats. Use it at your own risk since this feature **may result in your account termination.**
+
+- `segment_duration`: Segment duration in milliseconds for HLS-DMC formats. Use it at your own risk since this feature **may result in your account termination.**
 
 #### youtubewebarchive
-* `check_all`: Try to check more at the cost of more requests. One or more of `thumbnails`, `captures`
+
+- `check_all`: Try to check more at the cost of more requests. One or more of `thumbnails`, `captures`
 
 #### gamejolt
-* `comment_sort`: `hot` (default), `you` (cookies needed), `top`, `new` - choose comment sorting mode (on GameJolt's side)
+
+- `comment_sort`: `hot` (default), `you` (cookies needed), `top`, `new` - choose comment sorting mode (on GameJolt's side)
 
 #### hotstar
-* `res`: resolution to ignore - one or more of `sd`, `hd`, `fhd`
-* `vcodec`: vcodec to ignore - one or more of `h264`, `h265`, `dvh265`
-* `dr`: dynamic range to ignore - one or more of `sdr`, `hdr10`, `dv`
+
+- `res`: resolution to ignore - one or more of `sd`, `hd`, `fhd`
+- `vcodec`: vcodec to ignore - one or more of `h264`, `h265`, `dvh265`
+- `dr`: dynamic range to ignore - one or more of `sdr`, `hdr10`, `dv`
 
 #### niconicochannelplus
-* `max_comments`: Maximum number of comments to extract - default is `120`
+
+- `max_comments`: Maximum number of comments to extract - default is `120`
 
 #### tiktok
-* `api_hostname`: Hostname to use for mobile API calls, e.g. `api22-normal-c-alisg.tiktokv.com`
-* `app_name`: Default app name to use with mobile API calls, e.g. `trill`
-* `app_version`: Default app version to use with mobile API calls - should be set along with `manifest_app_version`, e.g. `34.1.2`
-* `manifest_app_version`: Default numeric app version to use with mobile API calls, e.g. `2023401020`
-* `aid`: Default app ID to use with mobile API calls, e.g. `1180`
-* `app_info`: Enable mobile API extraction with one or more app info strings in the format of `<iid>/[app_name]/[app_version]/[manifest_app_version]/[aid]`, where `iid` is the unique app install ID. `iid` is the only required value; all other values and their `/` separators can be omitted, e.g. `tiktok:app_info=1234567890123456789` or `tiktok:app_info=123,456/trill///1180,789//34.0.1/340001`
-* `device_id`: Enable mobile API extraction with a genuine device ID to be used with mobile API calls. Default is a random 19-digit string
+
+- `api_hostname`: Hostname to use for mobile API calls, e.g. `api22-normal-c-alisg.tiktokv.com`
+- `app_name`: Default app name to use with mobile API calls, e.g. `trill`
+- `app_version`: Default app version to use with mobile API calls - should be set along with `manifest_app_version`, e.g. `34.1.2`
+- `manifest_app_version`: Default numeric app version to use with mobile API calls, e.g. `2023401020`
+- `aid`: Default app ID to use with mobile API calls, e.g. `1180`
+- `app_info`: Enable mobile API extraction with one or more app info strings in the format of `<iid>/[app_name]/[app_version]/[manifest_app_version]/[aid]`, where `iid` is the unique app install ID. `iid` is the only required value; all other values and their `/` separators can be omitted, e.g. `tiktok:app_info=1234567890123456789` or `tiktok:app_info=123,456/trill///1180,789//34.0.1/340001`
+- `device_id`: Enable mobile API extraction with a genuine device ID to be used with mobile API calls. Default is a random 19-digit string
 
 #### rokfinchannel
-* `tab`: Which tab to download - one of `new`, `top`, `videos`, `podcasts`, `streams`, `stacks`
+
+- `tab`: Which tab to download - one of `new`, `top`, `videos`, `podcasts`, `streams`, `stacks`
 
 #### twitter
-* `api`: Select one of `graphql` (default), `legacy` or `syndication` as the API for tweet extraction. Has no effect if logged in
+
+- `api`: Select one of `graphql` (default), `legacy` or `syndication` as the API for tweet extraction. Has no effect if logged in
 
 #### stacommu, wrestleuniverse
-* `device_id`: UUID value assigned by the website and used to enforce device limits for paid livestream content. Can be found in browser local storage
+
+- `device_id`: UUID value assigned by the website and used to enforce device limits for paid livestream content. Can be found in browser local storage
 
 #### twitch
-* `client_id`: Client ID value to be sent with GraphQL requests, e.g. `twitch:client_id=kimne78kx3ncx6brgo4mv6wki5h1ko`
 
-#### nhkradirulive (NHK らじる★らじる LIVE)
-* `area`: Which regional variation to extract. Valid areas are: `sapporo`, `sendai`, `tokyo`, `nagoya`, `osaka`, `hiroshima`, `matsuyama`, `fukuoka`. Defaults to `tokyo`
+- `client_id`: Client ID value to be sent with GraphQL requests, e.g. `twitch:client_id=kimne78kx3ncx6brgo4mv6wki5h1ko`
+
+#### nhkradirulive (NHK らじる ★ らじる LIVE)
+
+- `area`: Which regional variation to extract. Valid areas are: `sapporo`, `sendai`, `tokyo`, `nagoya`, `osaka`, `hiroshima`, `matsuyama`, `fukuoka`. Defaults to `tokyo`
 
 #### nflplusreplay
-* `type`: Type(s) of game replays to extract. Valid types are: `full_game`, `full_game_spanish`, `condensed_game` and `all_22`. You can use `all` to extract all available replay types, which is the default
+
+- `type`: Type(s) of game replays to extract. Valid types are: `full_game`, `full_game_spanish`, `condensed_game` and `all_22`. You can use `all` to extract all available replay types, which is the default
 
 #### jiocinema
-* `refresh_token`: The `refreshToken` UUID from browser local storage can be passed to extend the life of your login session when logging in with `token` as username and the `accessToken` from browser local storage as password
+
+- `refresh_token`: The `refreshToken` UUID from browser local storage can be passed to extend the life of your login session when logging in with `token` as username and the `accessToken` from browser local storage as password
 
 #### jiosaavn
-* `bitrate`: Audio bitrates to request. One or more of `16`, `32`, `64`, `128`, `320`. Default is `128,320`
+
+- `bitrate`: Audio bitrates to request. One or more of `16`, `32`, `64`, `128`, `320`. Default is `128,320`
 
 #### afreecatvlive
-* `cdn`: One or more CDN IDs to use with the API call for stream URLs, e.g. `gcp_cdn`, `gs_cdn_pc_app`, `gs_cdn_mobile_web`, `gs_cdn_pc_web`
+
+- `cdn`: One or more CDN IDs to use with the API call for stream URLs, e.g. `gcp_cdn`, `gs_cdn_pc_app`, `gs_cdn_mobile_web`, `gs_cdn_pc_web`
 
 #### soundcloud
-* `formats`: Formats to request from the API. Requested values should be in the format of `{protocol}_{extension}` (omitting the bitrate), e.g. `hls_opus,http_aac`. The `*` character functions as a wildcard, e.g. `*_mp3`, and can be passed by itself to request all formats. Known protocols include `http`, `hls` and `hls-aes`; known extensions include `aac`, `opus` and `mp3`. Original `download` formats are always extracted. Default is `http_aac,hls_aac,http_opus,hls_opus,http_mp3,hls_mp3`
+
+- `formats`: Formats to request from the API. Requested values should be in the format of `{protocol}_{extension}` (omitting the bitrate), e.g. `hls_opus,http_aac`. The `*` character functions as a wildcard, e.g. `*_mp3`, and can be passed by itself to request all formats. Known protocols include `http`, `hls` and `hls-aes`; known extensions include `aac`, `opus` and `mp3`. Original `download` formats are always extracted. Default is `http_aac,hls_aac,http_opus,hls_opus,http_mp3,hls_mp3`
 
 #### orfon (orf:on)
-* `prefer_segments_playlist`: Prefer a playlist of program segments instead of a single complete video when available. If individual segments are desired, use `--concat-playlist never --extractor-args "orfon:prefer_segments_playlist"`
+
+- `prefer_segments_playlist`: Prefer a playlist of program segments instead of a single complete video when available. If individual segments are desired, use `--concat-playlist never --extractor-args "orfon:prefer_segments_playlist"`
 
 #### bilibili
-* `prefer_multi_flv`: Prefer extracting flv formats over mp4 for older videos that still provide legacy formats
+
+- `prefer_multi_flv`: Prefer extracting flv formats over mp4 for older videos that still provide legacy formats
 
 #### digitalconcerthall
-* `prefer_combined_hls`: Prefer extracting combined/pre-merged video and audio HLS formats. This will exclude 4K/HEVC video and lossless/FLAC audio formats, which are only available as split video/audio HLS formats
+
+- `prefer_combined_hls`: Prefer extracting combined/pre-merged video and audio HLS formats. This will exclude 4K/HEVC video and lossless/FLAC audio formats, which are only available as split video/audio HLS formats
 
 **Note**: These options may be changed/removed in the future without concern for backward compatibility
 
 <!-- MANPAGE: MOVE "INSTALLATION" SECTION HERE -->
-
 
 # PLUGINS
 
 Note that **all** plugins are imported even if not invoked, and that **there are no checks** performed on plugin code. **Use plugins at your own risk and only if you trust the code!**
 
 Plugins can be of `<type>`s `extractor` or `postprocessor`.
+
 - Extractor plugins do not need to be enabled from the CLI and are automatically invoked when the input URL is suitable for it.
 - Extractor plugins take priority over built-in extractors.
 - Postprocessor plugins can be invoked using `--use-postprocessor NAME`.
-
 
 Plugins are loaded from the namespace packages `yt_dlp_plugins.extractor` and `yt_dlp_plugins.postprocessor`.
 
@@ -1902,30 +1966,30 @@ Plugins can be installed using various methods and locations.
 
 1. **Configuration directories**:
    Plugin packages (containing a `yt_dlp_plugins` namespace folder) can be dropped into the following standard [configuration locations](#configuration):
-    * **User Plugins**
-      * `${XDG_CONFIG_HOME}/yt-dlp/plugins/<package name>/yt_dlp_plugins/` (recommended on Linux/macOS)
-      * `${XDG_CONFIG_HOME}/yt-dlp-plugins/<package name>/yt_dlp_plugins/`
-      * `${APPDATA}/yt-dlp/plugins/<package name>/yt_dlp_plugins/` (recommended on Windows)
-      * `${APPDATA}/yt-dlp-plugins/<package name>/yt_dlp_plugins/`
-      * `~/.yt-dlp/plugins/<package name>/yt_dlp_plugins/`
-      * `~/yt-dlp-plugins/<package name>/yt_dlp_plugins/`
-    * **System Plugins**
-      * `/etc/yt-dlp/plugins/<package name>/yt_dlp_plugins/`
-      * `/etc/yt-dlp-plugins/<package name>/yt_dlp_plugins/`
+   - **User Plugins**
+     - `${XDG_CONFIG_HOME}/yt-dlp/plugins/<package name>/yt_dlp_plugins/` (recommended on Linux/macOS)
+     - `${XDG_CONFIG_HOME}/yt-dlp-plugins/<package name>/yt_dlp_plugins/`
+     - `${APPDATA}/yt-dlp/plugins/<package name>/yt_dlp_plugins/` (recommended on Windows)
+     - `${APPDATA}/yt-dlp-plugins/<package name>/yt_dlp_plugins/`
+     - `~/.yt-dlp/plugins/<package name>/yt_dlp_plugins/`
+     - `~/yt-dlp-plugins/<package name>/yt_dlp_plugins/`
+   - **System Plugins**
+     - `/etc/yt-dlp/plugins/<package name>/yt_dlp_plugins/`
+     - `/etc/yt-dlp-plugins/<package name>/yt_dlp_plugins/`
 2. **Executable location**: Plugin packages can similarly be installed in a `yt-dlp-plugins` directory under the executable location (recommended for portable installations):
-    * Binary: where `<root-dir>/yt-dlp.exe`, `<root-dir>/yt-dlp-plugins/<package name>/yt_dlp_plugins/`
-    * Source: where `<root-dir>/yt_dlp/__main__.py`, `<root-dir>/yt-dlp-plugins/<package name>/yt_dlp_plugins/`
+
+   - Binary: where `<root-dir>/yt-dlp.exe`, `<root-dir>/yt-dlp-plugins/<package name>/yt_dlp_plugins/`
+   - Source: where `<root-dir>/yt_dlp/__main__.py`, `<root-dir>/yt-dlp-plugins/<package name>/yt_dlp_plugins/`
 
 3. **pip and other locations in `PYTHONPATH`**
-    * Plugin packages can be installed and managed using `pip`. See [yt-dlp-sample-plugins](https://github.com/yt-dlp/yt-dlp-sample-plugins) for an example.
-      * Note: plugin files between plugin packages installed with pip must have unique filenames.
-    * Any path in `PYTHONPATH` is searched in for the `yt_dlp_plugins` namespace folder.
-      * Note: This does not apply for Pyinstaller/py2exe builds.
-
+   - Plugin packages can be installed and managed using `pip`. See [yt-dlp-sample-plugins](https://github.com/yt-dlp/yt-dlp-sample-plugins) for an example.
+     - Note: plugin files between plugin packages installed with pip must have unique filenames.
+   - Any path in `PYTHONPATH` is searched in for the `yt_dlp_plugins` namespace folder.
+     - Note: This does not apply for Pyinstaller/py2exe builds.
 
 `.zip`, `.egg` and `.whl` archives containing a `yt_dlp_plugins` namespace folder in their root are also supported as plugin packages.
 
-* e.g. `${XDG_CONFIG_HOME}/yt-dlp/plugins/mypluginpkg.zip` where `mypluginpkg.zip` contains `yt_dlp_plugins/<type>/myplugin.py`
+- e.g. `${XDG_CONFIG_HOME}/yt-dlp/plugins/mypluginpkg.zip` where `mypluginpkg.zip` contains `yt_dlp_plugins/<type>/myplugin.py`
 
 Run yt-dlp with `--verbose` to check if the plugin has been loaded.
 
@@ -1979,6 +2043,7 @@ with yt_dlp.YoutubeDL(ydl_opts) as ydl:
     # ℹ️ ydl.sanitize_info makes the info json-serializable
     print(json.dumps(ydl.sanitize_info(info)))
 ```
+
 #### Download using an info-json
 
 ```python
@@ -2095,7 +2160,6 @@ with yt_dlp.YoutubeDL() as ydl:
     ydl.download(URLS)
 ```
 
-
 #### Use a custom format selector
 
 ```python
@@ -2138,57 +2202,57 @@ with yt_dlp.YoutubeDL(ydl_opts) as ydl:
     ydl.download(URLS)
 ```
 
-
 # CHANGES FROM YOUTUBE-DL
 
 ### New features
 
-* Forked from [**yt-dlc@f9401f2**](https://github.com/blackjack4494/yt-dlc/commit/f9401f2a91987068139c5f757b12fc711d4c0cee) and merged with [**youtube-dl@a08f2b7**](https://github.com/ytdl-org/youtube-dl/commit/a08f2b7e4567cdc50c0614ee0a4ffdff49b8b6e6) ([exceptions](https://github.com/yt-dlp/yt-dlp/issues/21))
+- Forked from [**yt-dlc@f9401f2**](https://github.com/blackjack4494/yt-dlc/commit/f9401f2a91987068139c5f757b12fc711d4c0cee) and merged with [**youtube-dl@a08f2b7**](https://github.com/ytdl-org/youtube-dl/commit/a08f2b7e4567cdc50c0614ee0a4ffdff49b8b6e6) ([exceptions](https://github.com/yt-dlp/yt-dlp/issues/21))
 
-* **[SponsorBlock Integration](#sponsorblock-options)**: You can mark/remove sponsor sections in YouTube videos by utilizing the [SponsorBlock](https://sponsor.ajay.app) API
+- **[SponsorBlock Integration](#sponsorblock-options)**: You can mark/remove sponsor sections in YouTube videos by utilizing the [SponsorBlock](https://sponsor.ajay.app) API
 
-* **[Format Sorting](#sorting-formats)**: The default format sorting options have been changed so that higher resolution and better codecs will be now preferred instead of simply using larger bitrate. Furthermore, you can now specify the sort order using `-S`. This allows for much easier format selection than what is possible by simply using `--format` ([examples](#format-selection-examples))
+- **[Format Sorting](#sorting-formats)**: The default format sorting options have been changed so that higher resolution and better codecs will be now preferred instead of simply using larger bitrate. Furthermore, you can now specify the sort order using `-S`. This allows for much easier format selection than what is possible by simply using `--format` ([examples](#format-selection-examples))
 
-* **Merged with animelover1984/youtube-dl**: You get most of the features and improvements from [animelover1984/youtube-dl](https://github.com/animelover1984/youtube-dl) including `--write-comments`, `BiliBiliSearch`, `BilibiliChannel`, Embedding thumbnail in mp4/ogg/opus, playlist infojson etc. Note that NicoNico livestreams are not available. See [#31](https://github.com/yt-dlp/yt-dlp/pull/31) for details.
+- **Merged with animelover1984/youtube-dl**: You get most of the features and improvements from [animelover1984/youtube-dl](https://github.com/animelover1984/youtube-dl) including `--write-comments`, `BiliBiliSearch`, `BilibiliChannel`, Embedding thumbnail in mp4/ogg/opus, playlist infojson etc. Note that NicoNico livestreams are not available. See [#31](https://github.com/yt-dlp/yt-dlp/pull/31) for details.
 
-* **YouTube improvements**:
-    * Supports Clips, Stories (`ytstories:<channel UCID>`), Search (including filters)**\***, YouTube Music Search, Channel-specific search, Search prefixes (`ytsearch:`, `ytsearchdate:`)**\***, Mixes, and Feeds (`:ytfav`, `:ytwatchlater`, `:ytsubs`, `:ythistory`, `:ytrec`, `:ytnotif`)
-    * Fix for [n-sig based throttling](https://github.com/ytdl-org/youtube-dl/issues/29326) **\***
-    * Supports some (but not all) age-gated content without cookies
-    * Download livestreams from the start using `--live-from-start` (*experimental*)
-    * Channel URLs download all uploads of the channel, including shorts and live
+- **YouTube improvements**:
 
-* **Cookies from browser**: Cookies can be automatically extracted from all major web browsers using `--cookies-from-browser BROWSER[+KEYRING][:PROFILE][::CONTAINER]`
+  - Supports Clips, Stories (`ytstories:<channel UCID>`), Search (including filters)**\***, YouTube Music Search, Channel-specific search, Search prefixes (`ytsearch:`, `ytsearchdate:`)**\***, Mixes, and Feeds (`:ytfav`, `:ytwatchlater`, `:ytsubs`, `:ythistory`, `:ytrec`, `:ytnotif`)
+  - Fix for [n-sig based throttling](https://github.com/ytdl-org/youtube-dl/issues/29326) **\***
+  - Supports some (but not all) age-gated content without cookies
+  - Download livestreams from the start using `--live-from-start` (_experimental_)
+  - Channel URLs download all uploads of the channel, including shorts and live
 
-* **Download time range**: Videos can be downloaded partially based on either timestamps or chapters using `--download-sections`
+- **Cookies from browser**: Cookies can be automatically extracted from all major web browsers using `--cookies-from-browser BROWSER[+KEYRING][:PROFILE][::CONTAINER]`
 
-* **Split video by chapters**: Videos can be split into multiple files based on chapters using `--split-chapters`
+- **Download time range**: Videos can be downloaded partially based on either timestamps or chapters using `--download-sections`
 
-* **Multi-threaded fragment downloads**: Download multiple fragments of m3u8/mpd videos in parallel. Use `--concurrent-fragments` (`-N`) option to set the number of threads used
+- **Split video by chapters**: Videos can be split into multiple files based on chapters using `--split-chapters`
 
-* **Aria2c with HLS/DASH**: You can use `aria2c` as the external downloader for DASH(mpd) and HLS(m3u8) formats
+- **Multi-threaded fragment downloads**: Download multiple fragments of m3u8/mpd videos in parallel. Use `--concurrent-fragments` (`-N`) option to set the number of threads used
 
-* **New and fixed extractors**: Many new extractors have been added and a lot of existing ones have been fixed. See the [changelog](Changelog.md) or the [list of supported sites](supportedsites.md)
+- **Aria2c with HLS/DASH**: You can use `aria2c` as the external downloader for DASH(mpd) and HLS(m3u8) formats
 
-* **New MSOs**: Philo, Spectrum, SlingTV, Cablevision, RCN etc.
+- **New and fixed extractors**: Many new extractors have been added and a lot of existing ones have been fixed. See the [changelog](Changelog.md) or the [list of supported sites](supportedsites.md)
 
-* **Subtitle extraction from manifests**: Subtitles can be extracted from streaming media manifests. See [commit/be6202f](https://github.com/yt-dlp/yt-dlp/commit/be6202f12b97858b9d716e608394b51065d0419f) for details
+- **New MSOs**: Philo, Spectrum, SlingTV, Cablevision, RCN etc.
 
-* **Multiple paths and output templates**: You can give different [output templates](#output-template) and download paths for different types of files. You can also set a temporary path where intermediary files are downloaded to using `--paths` (`-P`)
+- **Subtitle extraction from manifests**: Subtitles can be extracted from streaming media manifests. See [commit/be6202f](https://github.com/yt-dlp/yt-dlp/commit/be6202f12b97858b9d716e608394b51065d0419f) for details
 
-* **Portable Configuration**: Configuration files are automatically loaded from the home and root directories. See [CONFIGURATION](#configuration) for details
+- **Multiple paths and output templates**: You can give different [output templates](#output-template) and download paths for different types of files. You can also set a temporary path where intermediary files are downloaded to using `--paths` (`-P`)
 
-* **Output template improvements**: Output templates can now have date-time formatting, numeric offsets, object traversal etc. See [output template](#output-template) for details. Even more advanced operations can also be done with the help of `--parse-metadata` and `--replace-in-metadata`
+- **Portable Configuration**: Configuration files are automatically loaded from the home and root directories. See [CONFIGURATION](#configuration) for details
 
-* **Other new options**: Many new options have been added such as `--alias`, `--print`, `--concat-playlist`, `--wait-for-video`, `--retry-sleep`, `--sleep-requests`, `--convert-thumbnails`, `--force-download-archive`, `--force-overwrites`, `--break-match-filter` etc
+- **Output template improvements**: Output templates can now have date-time formatting, numeric offsets, object traversal etc. See [output template](#output-template) for details. Even more advanced operations can also be done with the help of `--parse-metadata` and `--replace-in-metadata`
 
-* **Improvements**: Regex and other operators in `--format`/`--match-filter`, multiple `--postprocessor-args` and `--downloader-args`, faster archive checking, more [format selection options](#format-selection), merge multi-video/audio, multiple `--config-locations`, `--exec` at different stages, etc
+- **Other new options**: Many new options have been added such as `--alias`, `--print`, `--concat-playlist`, `--wait-for-video`, `--retry-sleep`, `--sleep-requests`, `--convert-thumbnails`, `--force-download-archive`, `--force-overwrites`, `--break-match-filter` etc
 
-* **Plugins**: Extractors and PostProcessors can be loaded from an external file. See [plugins](#plugins) for details
+- **Improvements**: Regex and other operators in `--format`/`--match-filter`, multiple `--postprocessor-args` and `--downloader-args`, faster archive checking, more [format selection options](#format-selection), merge multi-video/audio, multiple `--config-locations`, `--exec` at different stages, etc
 
-* **Self updater**: The releases can be updated using `yt-dlp -U`, and downgraded using `--update-to` if required
+- **Plugins**: Extractors and PostProcessors can be loaded from an external file. See [plugins](#plugins) for details
 
-* **Automated builds**: [Nightly/master builds](#update-channels) can be used with `--update-to nightly` and `--update-to master`
+- **Self updater**: The releases can be updated using `yt-dlp -U`, and downgraded using `--update-to` if required
+
+- **Automated builds**: [Nightly/master builds](#update-channels) can be used with `--update-to nightly` and `--update-to master`
 
 See [changelog](Changelog.md) or [commits](https://github.com/yt-dlp/yt-dlp/commits) for the full list of changes
 
@@ -2198,59 +2262,60 @@ Features marked with a **\*** have been back-ported to youtube-dl
 
 Some of yt-dlp's default options are different from that of youtube-dl and youtube-dlc:
 
-* yt-dlp supports only [Python 3.8+](## "Windows 7"), and *may* remove support for more versions as they [become EOL](https://devguide.python.org/versions/#python-release-cycle); while [youtube-dl still supports Python 2.6+ and 3.2+](https://github.com/ytdl-org/youtube-dl/issues/30568#issue-1118238743)
-* The options `--auto-number` (`-A`), `--title` (`-t`) and `--literal` (`-l`), no longer work. See [removed options](#Removed) for details
-* `avconv` is not supported as an alternative to `ffmpeg`
-* yt-dlp stores config files in slightly different locations to youtube-dl. See [CONFIGURATION](#configuration) for a list of correct locations
-* The default [output template](#output-template) is `%(title)s [%(id)s].%(ext)s`. There is no real reason for this change. This was changed before yt-dlp was ever made public and now there are no plans to change it back to `%(title)s-%(id)s.%(ext)s`. Instead, you may use `--compat-options filename`
-* The default [format sorting](#sorting-formats) is different from youtube-dl and prefers higher resolution and better codecs rather than higher bitrates. You can use the `--format-sort` option to change this to any order you prefer, or use `--compat-options format-sort` to use youtube-dl's sorting order
-* The default format selector is `bv*+ba/b`. This means that if a combined video + audio format that is better than the best video-only format is found, the former will be preferred. Use `-f bv+ba/b` or `--compat-options format-spec` to revert this
-* Unlike youtube-dlc, yt-dlp does not allow merging multiple audio/video streams into one file by default (since this conflicts with the use of `-f bv*+ba`). If needed, this feature must be enabled using `--audio-multistreams` and `--video-multistreams`. You can also use `--compat-options multistreams` to enable both
-* `--no-abort-on-error` is enabled by default. Use `--abort-on-error` or `--compat-options abort-on-error` to abort on errors instead
-* When writing metadata files such as thumbnails, description or infojson, the same information (if available) is also written for playlists. Use `--no-write-playlist-metafiles` or `--compat-options no-playlist-metafiles` to not write these files
-* `--add-metadata` attaches the `infojson` to `mkv` files in addition to writing the metadata when used with `--write-info-json`. Use `--no-embed-info-json` or `--compat-options no-attach-info-json` to revert this
-* Some metadata are embedded into different fields when using `--add-metadata` as compared to youtube-dl. Most notably, `comment` field contains the `webpage_url` and `synopsis` contains the `description`. You can [use `--parse-metadata`](#modifying-metadata) to modify this to your liking or use `--compat-options embed-metadata` to revert this
-* `playlist_index` behaves differently when used with options like `--playlist-reverse` and `--playlist-items`. See [#302](https://github.com/yt-dlp/yt-dlp/issues/302) for details. You can use `--compat-options playlist-index` if you want to keep the earlier behavior
-* The output of `-F` is listed in a new format. Use `--compat-options list-formats` to revert this
-* Live chats (if available) are considered as subtitles. Use `--sub-langs all,-live_chat` to download all subtitles except live chat. You can also use `--compat-options no-live-chat` to prevent any live chat/danmaku from downloading
-* YouTube channel URLs download all uploads of the channel. To download only the videos in a specific tab, pass the tab's URL. If the channel does not show the requested tab, an error will be raised. Also, `/live` URLs raise an error if there are no live videos instead of silently downloading the entire channel. You may use `--compat-options no-youtube-channel-redirect` to revert all these redirections
-* Unavailable videos are also listed for YouTube playlists. Use `--compat-options no-youtube-unavailable-videos` to remove this
-* The upload dates extracted from YouTube are in UTC [when available](https://github.com/yt-dlp/yt-dlp/blob/89e4d86171c7b7c997c77d4714542e0383bf0db0/yt_dlp/extractor/youtube.py#L3898-L3900). Use `--compat-options no-youtube-prefer-utc-upload-date` to prefer the non-UTC upload date.
-* If `ffmpeg` is used as the downloader, the downloading and merging of formats happen in a single step when possible. Use `--compat-options no-direct-merge` to revert this
-* Thumbnail embedding in `mp4` is done with mutagen if possible. Use `--compat-options embed-thumbnail-atomicparsley` to force the use of AtomicParsley instead
-* Some internal metadata such as filenames are removed by default from the infojson. Use `--no-clean-infojson` or `--compat-options no-clean-infojson` to revert this
-* When `--embed-subs` and `--write-subs` are used together, the subtitles are written to disk and also embedded in the media file. You can use just `--embed-subs` to embed the subs and automatically delete the separate file. See [#630 (comment)](https://github.com/yt-dlp/yt-dlp/issues/630#issuecomment-893659460) for more info. `--compat-options no-keep-subs` can be used to revert this
-* `certifi` will be used for SSL root certificates, if installed. If you want to use system certificates (e.g. self-signed), use `--compat-options no-certifi`
-* yt-dlp's sanitization of invalid characters in filenames is different/smarter than in youtube-dl. You can use `--compat-options filename-sanitization` to revert to youtube-dl's behavior
-* ~~yt-dlp tries to parse the external downloader outputs into the standard progress output if possible (Currently implemented: [aria2c](https://github.com/yt-dlp/yt-dlp/issues/5931)). You can use `--compat-options no-external-downloader-progress` to get the downloader output as-is~~
-* yt-dlp versions between 2021.09.01 and 2023.01.02 applies `--match-filter` to nested playlists. This was an unintentional side-effect of [8f18ac](https://github.com/yt-dlp/yt-dlp/commit/8f18aca8717bb0dd49054555af8d386e5eda3a88) and is fixed in [d7b460](https://github.com/yt-dlp/yt-dlp/commit/d7b460d0e5fc710950582baed2e3fc616ed98a80). Use `--compat-options playlist-match-filter` to revert this
-* yt-dlp versions between 2021.11.10 and 2023.06.21 estimated `filesize_approx` values for fragmented/manifest formats. This was added for convenience in [f2fe69](https://github.com/yt-dlp/yt-dlp/commit/f2fe69c7b0d208bdb1f6292b4ae92bc1e1a7444a), but was reverted in [0dff8e](https://github.com/yt-dlp/yt-dlp/commit/0dff8e4d1e6e9fb938f4256ea9af7d81f42fd54f) due to the potentially extreme inaccuracy of the estimated values. Use `--compat-options manifest-filesize-approx` to keep extracting the estimated values
-* yt-dlp uses modern http client backends such as `requests`. Use `--compat-options prefer-legacy-http-handler` to prefer the legacy http handler (`urllib`) to be used for standard http requests.
-* The sub-modules `swfinterp`, `casefold` are removed.
-* Passing `--simulate` (or calling `extract_info` with `download=False`) no longer alters the default format selection. See [#9843](https://github.com/yt-dlp/yt-dlp/issues/9843) for details.
+- yt-dlp supports only [Python 3.8+](## "Windows 7"), and _may_ remove support for more versions as they [become EOL](https://devguide.python.org/versions/#python-release-cycle); while [youtube-dl still supports Python 2.6+ and 3.2+](https://github.com/ytdl-org/youtube-dl/issues/30568#issue-1118238743)
+- The options `--auto-number` (`-A`), `--title` (`-t`) and `--literal` (`-l`), no longer work. See [removed options](#Removed) for details
+- `avconv` is not supported as an alternative to `ffmpeg`
+- yt-dlp stores config files in slightly different locations to youtube-dl. See [CONFIGURATION](#configuration) for a list of correct locations
+- The default [output template](#output-template) is `%(title)s [%(id)s].%(ext)s`. There is no real reason for this change. This was changed before yt-dlp was ever made public and now there are no plans to change it back to `%(title)s-%(id)s.%(ext)s`. Instead, you may use `--compat-options filename`
+- The default [format sorting](#sorting-formats) is different from youtube-dl and prefers higher resolution and better codecs rather than higher bitrates. You can use the `--format-sort` option to change this to any order you prefer, or use `--compat-options format-sort` to use youtube-dl's sorting order
+- The default format selector is `bv*+ba/b`. This means that if a combined video + audio format that is better than the best video-only format is found, the former will be preferred. Use `-f bv+ba/b` or `--compat-options format-spec` to revert this
+- Unlike youtube-dlc, yt-dlp does not allow merging multiple audio/video streams into one file by default (since this conflicts with the use of `-f bv*+ba`). If needed, this feature must be enabled using `--audio-multistreams` and `--video-multistreams`. You can also use `--compat-options multistreams` to enable both
+- `--no-abort-on-error` is enabled by default. Use `--abort-on-error` or `--compat-options abort-on-error` to abort on errors instead
+- When writing metadata files such as thumbnails, description or infojson, the same information (if available) is also written for playlists. Use `--no-write-playlist-metafiles` or `--compat-options no-playlist-metafiles` to not write these files
+- `--add-metadata` attaches the `infojson` to `mkv` files in addition to writing the metadata when used with `--write-info-json`. Use `--no-embed-info-json` or `--compat-options no-attach-info-json` to revert this
+- Some metadata are embedded into different fields when using `--add-metadata` as compared to youtube-dl. Most notably, `comment` field contains the `webpage_url` and `synopsis` contains the `description`. You can [use `--parse-metadata`](#modifying-metadata) to modify this to your liking or use `--compat-options embed-metadata` to revert this
+- `playlist_index` behaves differently when used with options like `--playlist-reverse` and `--playlist-items`. See [#302](https://github.com/yt-dlp/yt-dlp/issues/302) for details. You can use `--compat-options playlist-index` if you want to keep the earlier behavior
+- The output of `-F` is listed in a new format. Use `--compat-options list-formats` to revert this
+- Live chats (if available) are considered as subtitles. Use `--sub-langs all,-live_chat` to download all subtitles except live chat. You can also use `--compat-options no-live-chat` to prevent any live chat/danmaku from downloading
+- YouTube channel URLs download all uploads of the channel. To download only the videos in a specific tab, pass the tab's URL. If the channel does not show the requested tab, an error will be raised. Also, `/live` URLs raise an error if there are no live videos instead of silently downloading the entire channel. You may use `--compat-options no-youtube-channel-redirect` to revert all these redirections
+- Unavailable videos are also listed for YouTube playlists. Use `--compat-options no-youtube-unavailable-videos` to remove this
+- The upload dates extracted from YouTube are in UTC [when available](https://github.com/yt-dlp/yt-dlp/blob/89e4d86171c7b7c997c77d4714542e0383bf0db0/yt_dlp/extractor/youtube.py#L3898-L3900). Use `--compat-options no-youtube-prefer-utc-upload-date` to prefer the non-UTC upload date.
+- If `ffmpeg` is used as the downloader, the downloading and merging of formats happen in a single step when possible. Use `--compat-options no-direct-merge` to revert this
+- Thumbnail embedding in `mp4` is done with mutagen if possible. Use `--compat-options embed-thumbnail-atomicparsley` to force the use of AtomicParsley instead
+- Some internal metadata such as filenames are removed by default from the infojson. Use `--no-clean-infojson` or `--compat-options no-clean-infojson` to revert this
+- When `--embed-subs` and `--write-subs` are used together, the subtitles are written to disk and also embedded in the media file. You can use just `--embed-subs` to embed the subs and automatically delete the separate file. See [#630 (comment)](https://github.com/yt-dlp/yt-dlp/issues/630#issuecomment-893659460) for more info. `--compat-options no-keep-subs` can be used to revert this
+- `certifi` will be used for SSL root certificates, if installed. If you want to use system certificates (e.g. self-signed), use `--compat-options no-certifi`
+- yt-dlp's sanitization of invalid characters in filenames is different/smarter than in youtube-dl. You can use `--compat-options filename-sanitization` to revert to youtube-dl's behavior
+- ~~yt-dlp tries to parse the external downloader outputs into the standard progress output if possible (Currently implemented: [aria2c](https://github.com/yt-dlp/yt-dlp/issues/5931)). You can use `--compat-options no-external-downloader-progress` to get the downloader output as-is~~
+- yt-dlp versions between 2021.09.01 and 2023.01.02 applies `--match-filter` to nested playlists. This was an unintentional side-effect of [8f18ac](https://github.com/yt-dlp/yt-dlp/commit/8f18aca8717bb0dd49054555af8d386e5eda3a88) and is fixed in [d7b460](https://github.com/yt-dlp/yt-dlp/commit/d7b460d0e5fc710950582baed2e3fc616ed98a80). Use `--compat-options playlist-match-filter` to revert this
+- yt-dlp versions between 2021.11.10 and 2023.06.21 estimated `filesize_approx` values for fragmented/manifest formats. This was added for convenience in [f2fe69](https://github.com/yt-dlp/yt-dlp/commit/f2fe69c7b0d208bdb1f6292b4ae92bc1e1a7444a), but was reverted in [0dff8e](https://github.com/yt-dlp/yt-dlp/commit/0dff8e4d1e6e9fb938f4256ea9af7d81f42fd54f) due to the potentially extreme inaccuracy of the estimated values. Use `--compat-options manifest-filesize-approx` to keep extracting the estimated values
+- yt-dlp uses modern http client backends such as `requests`. Use `--compat-options prefer-legacy-http-handler` to prefer the legacy http handler (`urllib`) to be used for standard http requests.
+- The sub-modules `swfinterp`, `casefold` are removed.
+- Passing `--simulate` (or calling `extract_info` with `download=False`) no longer alters the default format selection. See [#9843](https://github.com/yt-dlp/yt-dlp/issues/9843) for details.
 
 For ease of use, a few more compat options are available:
 
-* `--compat-options all`: Use all compat options (**Do NOT use this!**)
-* `--compat-options youtube-dl`: Same as `--compat-options all,-multistreams,-playlist-match-filter,-manifest-filesize-approx,-allow-unsafe-ext`
-* `--compat-options youtube-dlc`: Same as `--compat-options all,-no-live-chat,-no-youtube-channel-redirect,-playlist-match-filter,-manifest-filesize-approx,-allow-unsafe-ext`
-* `--compat-options 2021`: Same as `--compat-options 2022,no-certifi,filename-sanitization,no-youtube-prefer-utc-upload-date`
-* `--compat-options 2022`: Same as `--compat-options 2023,playlist-match-filter,no-external-downloader-progress,prefer-legacy-http-handler,manifest-filesize-approx`
-* `--compat-options 2023`: Currently does nothing. Use this to enable all future compat options
+- `--compat-options all`: Use all compat options (**Do NOT use this!**)
+- `--compat-options youtube-dl`: Same as `--compat-options all,-multistreams,-playlist-match-filter,-manifest-filesize-approx,-allow-unsafe-ext`
+- `--compat-options youtube-dlc`: Same as `--compat-options all,-no-live-chat,-no-youtube-channel-redirect,-playlist-match-filter,-manifest-filesize-approx,-allow-unsafe-ext`
+- `--compat-options 2021`: Same as `--compat-options 2022,no-certifi,filename-sanitization,no-youtube-prefer-utc-upload-date`
+- `--compat-options 2022`: Same as `--compat-options 2023,playlist-match-filter,no-external-downloader-progress,prefer-legacy-http-handler,manifest-filesize-approx`
+- `--compat-options 2023`: Currently does nothing. Use this to enable all future compat options
 
 The following compat options restore vulnerable behavior from before security patches:
 
-* `--compat-options allow-unsafe-ext`: Allow files with any extension (including unsafe ones) to be downloaded ([GHSA-79w7-vh3h-8g4j](<https://github.com/yt-dlp/yt-dlp/security/advisories/GHSA-79w7-vh3h-8g4j>))
+- `--compat-options allow-unsafe-ext`: Allow files with any extension (including unsafe ones) to be downloaded ([GHSA-79w7-vh3h-8g4j](https://github.com/yt-dlp/yt-dlp/security/advisories/GHSA-79w7-vh3h-8g4j))
 
-    > :warning: Only use if a valid file download is rejected because its extension is detected as uncommon
-    >
-    > **This option can enable remote code execution! Consider [opening an issue](<https://github.com/yt-dlp/yt-dlp/issues/new/choose>) instead!**
+  > :warning: Only use if a valid file download is rejected because its extension is detected as uncommon
+  >
+  > **This option can enable remote code execution! Consider [opening an issue](https://github.com/yt-dlp/yt-dlp/issues/new/choose) instead!**
 
 ### Deprecated options
 
 These are all the deprecated options and the current alternative to achieve the same effect
 
 #### Almost redundant options
+
 While these options are almost the same as their new counterparts, there are some differences that prevents them being redundant
 
     -j, --dump-json                  --print "%()j"
@@ -2259,6 +2324,7 @@ While these options are almost the same as their new counterparts, there are som
     --list-subs                      --print automatic_captions_table --print subtitles_table
 
 #### Redundant options
+
 While these options are redundant, they are still expected to be used due to their ease of use
 
     --get-description                --print description
@@ -2283,6 +2349,7 @@ While these options are redundant, they are still expected to be used due to the
     --no-colors                      --color no_color
 
 #### Not recommended
+
 While these options still work, their use is not recommended since there are other alternatives to achieve the same
 
     --force-generic-extractor        --ies generic,default
@@ -2309,6 +2376,7 @@ While these options still work, their use is not recommended since there are oth
     --geo-bypass-ip-block IP_BLOCK   --xff IP_BLOCK
 
 #### Developer options
+
 These options are not intended to be used by the end-user
 
     --test                           Download only part of video for testing extractors
@@ -2318,6 +2386,7 @@ These options are not intended to be used by the end-user
     --no-allow-unplayable-formats    Default
 
 #### Old aliases
+
 These are aliases that are no longer documented for various reasons
 
     --avconv-location                --ffmpeg-location
@@ -2339,6 +2408,7 @@ These are aliases that are no longer documented for various reasons
     --yes-overwrites                 --force-overwrites
 
 #### Sponskrub Options
+
 Support for [SponSkrub](https://github.com/faissaloo/SponSkrub) has been deprecated in favor of the `--sponsorblock` options
 
     --sponskrub                      --sponsorblock-mark all
@@ -2351,6 +2421,7 @@ Support for [SponSkrub](https://github.com/faissaloo/SponSkrub) has been depreca
     --sponskrub-args                 Not applicable
 
 #### No longer supported
+
 These options may no longer work as intended
 
     --prefer-avconv                  avconv is not officially supported by yt-dlp (Alias: --no-prefer-ffmpeg)
@@ -2365,14 +2436,16 @@ These options may no longer work as intended
     --compat-options no-youtube-prefer-utc-upload-date  No longer supported
 
 #### Removed
+
 These options were deprecated since 2014 and have now been entirely removed
 
     -A, --auto-number                -o "%(autonumber)s-%(id)s.%(ext)s"
     -t, -l, --title, --literal       -o "%(title)s-%(id)s.%(ext)s"
 
-
 # CONTRIBUTING
+
 See [CONTRIBUTING.md](CONTRIBUTING.md#contributing-to-yt-dlp) for instructions on [Opening an Issue](CONTRIBUTING.md#opening-an-issue) and [Contributing code to the project](CONTRIBUTING.md#developer-instructions)
 
 # WIKI
+
 See the [Wiki](https://github.com/yt-dlp/yt-dlp/wiki) for more information
