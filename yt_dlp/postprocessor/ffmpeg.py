@@ -76,8 +76,6 @@ def resolve_mapping(source, mapping):
             target = kv[-1].strip()
             if target == source:
                 return target, f'already is in target format {source}'
-            if target == 'none':
-                return source, 'explicitly disabled'
             return target, None
     return None, f'could not find a mapping for {source}'
 
@@ -1103,6 +1101,9 @@ class FFmpegThumbnailsConvertorPP(FFmpegPostProcessor):
             yield from ('-bsf:v', 'mjpeg2jpeg')
 
     def convert_thumbnail(self, thumbnail_filename, target_ext):
+        if target_ext == 'none':
+            return thumbnail_filename
+
         thumbnail_conv_filename = replace_extension(thumbnail_filename, target_ext)
 
         self.to_screen(f'Converting thumbnail "{thumbnail_filename}" to {target_ext}')

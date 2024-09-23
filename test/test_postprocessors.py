@@ -60,6 +60,18 @@ class TestConvertThumbnail(unittest.TestCase):
         for _, out in tests:
             os.remove(file.format(out))
 
+    def test_noop_conversion(self):
+        pp = FFmpegThumbnailsConvertorPP()
+        if not pp.available:
+            print('Skipping: ffmpeg not found')
+            return
+
+        original_filepath = 'test/testdata/thumbnails/example.webp'
+        converted_filepath = pp.convert_thumbnail(original_filepath, 'none')
+
+        assert os.path.exists(converted_filepath)
+        assert converted_filepath == original_filepath
+
 
 class TestExec(unittest.TestCase):
     def test_parse_cmd(self):
