@@ -1076,7 +1076,8 @@ class FFmpegSplitChaptersPP(FFmpegPostProcessor):
 
 
 class FFmpegThumbnailsConvertorPP(FFmpegPostProcessor):
-    SUPPORTED_EXTS = (*MEDIA_EXTENSIONS.thumbnails, 'none')
+    THUMBNAIL_EXTS = MEDIA_EXTENSIONS.thumbnails
+    SUPPORTED_EXTS = (*THUMBNAIL_EXTS, 'none')
     FORMAT_RE = create_mapping_re(SUPPORTED_EXTS)
 
     def __init__(self, downloader=None, format=None):
@@ -1107,8 +1108,6 @@ class FFmpegThumbnailsConvertorPP(FFmpegPostProcessor):
             yield from ('-bsf:v', 'mjpeg2jpeg')
 
     def convert_thumbnail(self, thumbnail_filename, target_ext):
-        print(f'thumbnail_filename: {thumbnail_filename}')
-        print(f'target_ext: {target_ext}')
         if target_ext == 'none':
             return thumbnail_filename
 
