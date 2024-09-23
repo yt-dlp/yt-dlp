@@ -76,8 +76,6 @@ def resolve_mapping(source, mapping):
             target = kv[-1].strip()
             if target == source:
                 return target, f'already is in target format {source}'
-            if target == 'none':
-                return source, 'explicitly disabled'
             return target, None
     return None, f'could not find a mapping for {source}'
 
@@ -949,8 +947,7 @@ class FFmpegFixupDuplicateMoovPP(FFmpegCopyStreamPP):
 
 
 class FFmpegSubtitlesConvertorPP(FFmpegPostProcessor):
-    SUBTITLE_EXTS = MEDIA_EXTENSIONS.subtitles
-    SUPPORTED_EXTS = (*SUBTITLE_EXTS, 'none')
+    SUPPORTED_EXTS = MEDIA_EXTENSIONS.subtitles
 
     def __init__(self, downloader=None, format=None):
         super().__init__(downloader)
@@ -960,9 +957,6 @@ class FFmpegSubtitlesConvertorPP(FFmpegPostProcessor):
         subs = info.get('requested_subtitles')
         new_ext = self.format
         new_format = new_ext
-        if new_format == 'none':
-            self.to_screen('Subtitle conversion explicitly disabled')
-            return [], info
         if new_format == 'vtt':
             new_format = 'webvtt'
         if subs is None:
@@ -1076,8 +1070,7 @@ class FFmpegSplitChaptersPP(FFmpegPostProcessor):
 
 
 class FFmpegThumbnailsConvertorPP(FFmpegPostProcessor):
-    THUMBNAIL_EXTS = MEDIA_EXTENSIONS.thumbnails
-    SUPPORTED_EXTS = (*THUMBNAIL_EXTS, 'none')
+    SUPPORTED_EXTS = MEDIA_EXTENSIONS.thumbnails
     FORMAT_RE = create_mapping_re(SUPPORTED_EXTS)
 
     def __init__(self, downloader=None, format=None):
@@ -1108,9 +1101,6 @@ class FFmpegThumbnailsConvertorPP(FFmpegPostProcessor):
             yield from ('-bsf:v', 'mjpeg2jpeg')
 
     def convert_thumbnail(self, thumbnail_filename, target_ext):
-        if target_ext == 'none':
-            return thumbnail_filename
-
         thumbnail_conv_filename = replace_extension(thumbnail_filename, target_ext)
 
         self.to_screen(f'Converting thumbnail "{thumbnail_filename}" to {target_ext}')
