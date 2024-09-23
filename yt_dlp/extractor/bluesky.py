@@ -23,7 +23,7 @@ class BlueskyIE(InfoExtractor):
             'channel_url': r're:^https?://.*',
             'timestamp': int,
             'like_count': int,
-            'repost_count': None,
+            'repost_count': 0,
             'comment_count': int,
             'webpage_url': r're:^https?://.*',
             'tags': 'count:1',
@@ -49,7 +49,7 @@ class BlueskyIE(InfoExtractor):
             'channel_url': r're:^https?://.*',
             'timestamp': int,
             'like_count': int,
-            'repost_count': None,
+            'repost_count': int,
             'comment_count': int,
             'webpage_url': r're:^https?://.*',
             'tags': 'count:2',
@@ -75,61 +75,89 @@ class BlueskyIE(InfoExtractor):
             'channel_url': r're:^https?://.*',
             'timestamp': int,
             'like_count': int,
-            'repost_count': None,
+            'repost_count': int,
             'comment_count': int,
             'webpage_url': r're:^https?://.*',
             'tags': 'count:2',
             'subtitles': dict,
             'comments': list,
         },
+    }, {
+        'url': 'https://bsky.app/profile/souris.moe/post/3l4qhp7bcs52c',
+        'md5': 'bf2c5ab58f67993dc06c7a29cbc447cd',
+        'info_dict': {
+            'id': '3l4qhp7bcs52c',
+            'ext': 'mp4',
+            'title': str,
+            'upload_date': str,
+            'description': str,
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'alt-title': None,
+            'uploader': str,
+            'channel': str,
+            'uploader_id': str,
+            'channel_id': str,
+            'uploader_url': r're:^https?://.*',
+            'channel_url': r're:^https?://.*',
+            'timestamp': int,
+            'like_count': int,
+            'repost_count': int,
+            'comment_count': int,
+            'webpage_url': r're:^https?://.*',
+            'tags': list,
+            'subtitles': dict,
+            'comments': list,
+        },
     }]
+
+    def traverse_replies(self, thread_node, root_uri):
+        parent_uri = traverse_obj(thread_node, ('post', 'record', 'reply', 'parent', 'uri'))
+        parent_id = 'root' if parent_uri == root_uri else parent_uri
+        author_handle = traverse_obj(thread_node, ('post', 'author', 'handle'))
+        author_did = traverse_obj(thread_node, ('post', 'author', 'did'))
+
+        formatted_comments = [{
+            'id': traverse_obj(thread_node, ('post', 'uri')),
+            'text': traverse_obj(thread_node, ('post', 'record', 'text')),
+            'timestamp': parse_iso8601(traverse_obj(thread_node, ('post', 'record', 'createdAt'))),
+            'parent': parent_id,
+            'like_count': traverse_obj(thread_node, ('post', 'likeCount')),
+            'author': traverse_obj(thread_node, ('post', 'author', 'displayName')),
+            'author_id': author_did,
+            'author_thumbnail': traverse_obj(thread_node, ('post', 'author', 'avatar'), expected_type=url_or_none),
+            'author_url': f'https://bsky.app/profile/{author_handle}',
+            'author_is_uploader': 'Yes' if author_did in root_uri else 'No',
+        }]
+
+        if replies := thread_node.get('replies'):
+            for reply in replies:
+                formatted_comments.extend(self.traverse_replies(reply, root_uri))
+        return formatted_comments
 
     def _real_extract(self, url):
         handle, video_id = self._match_valid_url(url).groups()
+        did = self._download_json(
+            'https://bsky.social/xrpc/com.atproto.identity.resolveHandle',
+            video_id, query={'handle': handle}, expected_status=200).get('did')
 
-        resolve_url = 'https://bsky.social/xrpc/com.atproto.identity.resolveHandle'
-        did = self._download_json(resolve_url, video_id, query={'handle': handle}, expected_status=200).get('did')
+        meta = self._download_json(
+            'https://public.api.bsky.app/xrpc/app.bsky.feed.getPostThread',
+            video_id, headers={'Content-Type': 'application/json'},
+            query={'uri': f'at://{did}/app.bsky.feed.post/{video_id}',
+                   'depth': 6 if self.get_param('write_comments') else 0, 'parentHeight': 0},
+            expected_status=200)
 
-        api_url = 'https://public.api.bsky.app/xrpc/app.bsky.feed.getPostThread'
-        headers = {'Content-Type': 'application/json'}
-        depth = 80 if self.get_param('write_comments') else 0  # getPostThread default
-        params = {'uri': f'at://{did}/app.bsky.feed.post/{video_id}', 'depth': depth}
-        meta = self._download_json(api_url, video_id, headers=headers, query=params, expected_status=200)
-
-        m3u8_url = traverse_obj(meta, ('thread', 'post', 'embed', 'playlist'))
         formats, subs = self._extract_m3u8_formats_and_subtitles(
-            m3u8_url, video_id, 'mp4', 'm3u8_native', m3u8_id='hls', fatal=False,
+            traverse_obj(meta, ('thread', 'post', 'embed', 'playlist')),
+            video_id, 'mp4', 'm3u8_native', m3u8_id='hls', fatal=False,
             note='Downloading HD m3u8 information', errnote='Unable to download HD m3u8 information')
-        subtitles = self._merge_subtitles(subs)
+
+        formatted_replies = self.traverse_replies(
+            meta.get('thread'), (traverse_obj(meta, ('thread', 'post', 'record', 'reply', 'root', 'uri'))
+                                 or traverse_obj(meta, ('thread', 'post', 'uri'))))
+
         uploader = traverse_obj(meta, ('thread', 'post', 'author', 'displayName'))
         description = traverse_obj(meta, ('thread', 'post', 'record', 'text'))
-
-        formatted_replies = []
-        replies = traverse_obj(meta, ('thread', 'replies'), expected_type=list)
-        if replies:
-            for reply in replies:
-
-                parent_uri = traverse_obj(reply, ('post', 'record', 'reply', 'parent', 'uri'))
-                root_uri = traverse_obj(reply, ('post', 'record', 'reply', 'root', 'uri'))
-                parent = 'root' if parent_uri == root_uri else parent_uri
-
-                author_handle = traverse_obj(reply, ('post', 'author', 'handle'))
-                author_did = traverse_obj(reply, ('post', 'author', 'did'))
-
-                formatted_comment = {
-                    'id': traverse_obj(reply, ('post', 'uri')),
-                    'text': traverse_obj(reply, ('post', 'record', 'text')),
-                    'timestamp': parse_iso8601(traverse_obj(reply, ('post', 'record', 'createdAt'))),
-                    'parent': parent,
-                    'like_count': traverse_obj(reply, ('post', 'likeCount')),
-                    'author': traverse_obj(reply, ('post', 'author', 'displayName')),
-                    'author_id': author_did,
-                    'author_thumbnail': traverse_obj(reply, ('post', 'author', 'avatar'), expected_type=url_or_none),
-                    'author_url': f'https://bsky.app/profile/{author_handle}',
-                    'author_is_uploader': 'Yes' if author_did in root_uri else 'No',
-                }
-
-                formatted_replies.append(formatted_comment)
 
         return {
             'id': video_id,
@@ -146,10 +174,11 @@ class BlueskyIE(InfoExtractor):
             'channel_url': f'https://bsky.app/profile/{handle}',
             'timestamp': parse_iso8601(traverse_obj(meta, ('thread', 'post', 'record', 'createdAt'))),
             'like_count': traverse_obj(meta, ('thread', 'post', 'likeCount')),
-            'repost_count': traverse_obj(meta, ('thread', 'post', 'respostCount')),
+            'repost_count': traverse_obj(meta, ('thread', 'post', 'repostCount')),
             'comment_count': traverse_obj(meta, ('thread', 'post', 'replyCount')),
             'webpage_url': url,
-            'tags': traverse_obj(meta, ('thread', 'post', 'labels'), expected_type=list) + traverse_obj(meta, ('thread', 'post', 'record', 'langs'), expected_type=list),
-            'comments': formatted_replies,
-            'subtitles': subtitles,
+            'tags': (traverse_obj(meta, ('thread', 'post', 'labels'), expected_type=list)
+                     + traverse_obj(meta, ('thread', 'post', 'record', 'langs'), expected_type=list)),
+            'comments': [] if len(formatted_replies) < 2 else formatted_replies[1:],
+            'subtitles': self._merge_subtitles(subs),
         }
