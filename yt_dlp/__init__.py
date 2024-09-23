@@ -235,11 +235,16 @@ def validate_options(opts):
         validate_regex('format sorting', f, FormatSorter.regex)
 
     # Postprocessor formats
+    if opts.convertsubtitles == 'none':
+        opts.convertsubtitles = None
+    if opts.convertthumbnails == 'none':
+        opts.convertthumbnails = None
+
     validate_regex('merge output format', opts.merge_output_format,
                    r'({0})(/({0}))*'.format('|'.join(map(re.escape, FFmpegMergerPP.SUPPORTED_EXTS))))
     validate_regex('audio format', opts.audioformat, FFmpegExtractAudioPP.FORMAT_RE)
-    validate_in('subtitle format', opts.convertsubtitles, (*FFmpegSubtitlesConvertorPP.SUPPORTED_EXTS, 'none'))
-    validate_regex('thumbnail format', opts.convertthumbnails, re.compile(f'{FFmpegThumbnailsConvertorPP.FORMAT_RE.pattern}|none'))
+    validate_in('subtitle format', opts.convertsubtitles, FFmpegSubtitlesConvertorPP.SUPPORTED_EXTS)
+    validate_regex('thumbnail format', opts.convertthumbnails, FFmpegThumbnailsConvertorPP.FORMAT_RE)
     validate_regex('recode video format', opts.recodevideo, FFmpegVideoConvertorPP.FORMAT_RE)
     validate_regex('remux video format', opts.remuxvideo, FFmpegVideoRemuxerPP.FORMAT_RE)
     if opts.audioquality:
@@ -621,13 +626,13 @@ def get_postprocessors(opts):
             'api': opts.sponsorblock_api,
             'when': 'after_filter',
         }
-    if opts.convertsubtitles and opts.convertsubtitles != 'none':
+    if opts.convertsubtitles:
         yield {
             'key': 'FFmpegSubtitlesConvertor',
             'format': opts.convertsubtitles,
             'when': 'before_dl',
         }
-    if opts.convertthumbnails and opts.convertthumbnails != 'none':
+    if opts.convertthumbnails:
         yield {
             'key': 'FFmpegThumbnailsConvertor',
             'format': opts.convertthumbnails,
