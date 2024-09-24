@@ -43,7 +43,7 @@ class LiTVIE(InfoExtractor):
             'noplaylist': True,
         },
     }, {
-        'url': 'https://www.litv.tv/promo/miyuezhuan/?content_id=VOD00044841&',
+        'url': 'https://www.litv.tv/drama/watch/VOD00044841',
         'md5': '88322ea132f848d6e3e18b32a832b918',
         'info_dict': {
             'id': 'VOD00044841',
