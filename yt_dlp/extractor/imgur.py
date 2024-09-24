@@ -37,7 +37,7 @@ class ImgurBaseIE(InfoExtractor):
 
 
 class ImgurIE(ImgurBaseIE):
-    _VALID_URL = r'https?://(?:i\.)?imgur\.com/(?!(?:a|gallery|t|topic|r)/)(?P<id>[a-zA-Z0-9]+)'
+    _VALID_URL = r'https?://(?:i\.)?imgur\.com/(?!(?:a|gallery|t|topic|r)/)(?:[^/?#]+-)?(?P<id>[a-zA-Z0-9]+)'
 
     _TESTS = [{
         'url': 'https://imgur.com/A61SaA1',
@@ -53,6 +53,13 @@ class ImgurIE(ImgurBaseIE):
             'release_date': '20141120',
             'like_count': int,
             'thumbnail': 'https://i.imgur.com/A61SaA1h.jpg',
+        },
+    }, {
+        # Test with URL slug
+        'url': 'https://imgur.com/mrw-gifv-is-up-running-without-any-bugs-A61SaA1',
+        'info_dict': {
+            'id': 'A61SaA1',
+            'title': 'MRW gifv is up and running without any bugs',
         },
     }, {
         'url': 'https://i.imgur.com/A61SaA1.gifv',
@@ -252,7 +259,7 @@ class ImgurGalleryBaseIE(ImgurBaseIE):
 
 class ImgurGalleryIE(ImgurGalleryBaseIE):
     IE_NAME = 'imgur:gallery'
-    _VALID_URL = r'https?://(?:i\.)?imgur\.com/(?:gallery|(?:t(?:opic)?|r)/[^/?#]+)/(?P<id>[a-zA-Z0-9]+)'
+    _VALID_URL = r'https?://(?:i\.)?imgur\.com/(?:gallery|(?:t(?:opic)?|r)/(?:[^/?#]+-)?[^/?#]+)/(?P<id>[a-zA-Z0-9]+)'
 
     _TESTS = [{
         'url': 'http://imgur.com/gallery/Q95ko',
@@ -284,6 +291,15 @@ class ImgurGalleryIE(ImgurGalleryBaseIE):
             'comment_count': int,
             'dislike_count': int,
             'like_count': int,
+        },
+    }, {
+        # Test with slug
+        'url': 'https://imgur.com/gallery/classic-steve-carell-gif-cracks-me-up-everytime-repost-downvotes-YcAQlkx',
+        'add_ies': ['Imgur'],
+        'info_dict': {
+            'id': 'YcAQlkx',
+            'ext': 'mp4',
+            'title': 'Classic Steve Carell gif...cracks me up everytime....damn the repost downvotes....',
         },
     }, {
         # TODO: static image - replace with animated/video gallery
@@ -357,7 +373,7 @@ class ImgurGalleryIE(ImgurGalleryBaseIE):
 
 class ImgurAlbumIE(ImgurGalleryBaseIE):
     IE_NAME = 'imgur:album'
-    _VALID_URL = r'https?://(?:i\.)?imgur\.com/a/(?P<id>[a-zA-Z0-9]+)'
+    _VALID_URL = r'https?://(?:i\.)?imgur\.com/a/(?:[^/?#]+-)?(?P<id>[a-zA-Z0-9]+)'
     _GALLERY = False
     _TESTS = [{
         # TODO: only static images - replace with animated/video gallery
@@ -367,6 +383,14 @@ class ImgurAlbumIE(ImgurGalleryBaseIE):
         # from https://github.com/ytdl-org/youtube-dl/pull/21693
         {
         'url': 'https://imgur.com/a/iX265HX',
+        'info_dict': {
+            'id': 'iX265HX',
+            'title': 'enen-no-shouboutai',
+        },
+        'playlist_count': 2,
+    }, {
+        # Test with URL slug
+        'url': 'https://imgur.com/a/enen-no-shouboutai-iX265HX',
         'info_dict': {
             'id': 'iX265HX',
             'title': 'enen-no-shouboutai',
