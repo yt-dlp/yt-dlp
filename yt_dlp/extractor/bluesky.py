@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..utils import mimetype2ext, parse_iso8601, traverse_obj, url_or_none
+from ..utils import int_or_none, mimetype2ext, parse_iso8601, traverse_obj, url_or_none
 
 
 class BlueskyIE(InfoExtractor):
@@ -110,12 +110,6 @@ class BlueskyIE(InfoExtractor):
         },
     }]
 
-    def _get_subtitles(self, meta, video_id):
-        return self._extract_m3u8_formats_and_subtitles(
-            traverse_obj(meta, ('thread', 'post', 'embed', 'playlist')),
-            video_id, 'mp4', 'm3u8_native', m3u8_id='hls', fatal=False,
-            note='Downloading HD m3u8 information', errnote='Unable to download HD m3u8 information')[1]
-
     def _get_comments(self, meta):
         yield self.traverse_replies(
             meta.get('thread'),
@@ -160,8 +154,20 @@ class BlueskyIE(InfoExtractor):
                    'parentHeight': 1000 if getcomments else 0},
             expected_status=200)
 
+        formats, subs = self._extract_m3u8_formats_and_subtitles(
+            traverse_obj(meta, ('thread', 'post', 'embed', 'playlist')),
+            video_id, 'mp4', 'm3u8_native', m3u8_id='hls', fatal=False,
+            note='Downloading HD m3u8 information', errnote='Unable to download HD m3u8 information')
         blob_cid = (traverse_obj(meta, ('thread', 'post', 'embed', 'cid'))
                     or traverse_obj(meta, ('thread', 'post', 'record', 'embed', 'video', 'ref', '$link')))
+        formats.append({
+            'format_id': 'blob',
+            'url': f'https://bsky.social/xrpc/com.atproto.sync.getBlob?did={did}&cid={blob_cid}',
+            'ext': mimetype2ext(traverse_obj(meta, ('thread', 'post', 'record', 'embed', 'video', 'mimeType')), 'mp4'),
+            'width': traverse_obj(meta, ('thread', 'post', 'record', 'embed', 'aspectRatio', 'width'), expected_type=int_or_none),
+            'height': traverse_obj(meta, ('thread', 'post', 'record', 'embed', 'aspectRatio', 'height'), expected_type=int_or_none),
+            'filesize': traverse_obj(meta, ('thread', 'post', 'record', 'embed', 'video', 'size'), expected_type=int_or_none),
+        })
 
         uploader = traverse_obj(meta, ('thread', 'post', 'author', 'displayName'))
         description = traverse_obj(meta, ('thread', 'post', 'record', 'text'))
@@ -170,8 +176,7 @@ class BlueskyIE(InfoExtractor):
         return {
             'id': video_id,
             'title': f'{uploader}: "{description}"',
-            'url': f'https://bsky.social/xrpc/com.atproto.sync.getBlob?did={did}&cid={blob_cid}',
-            'ext': mimetype2ext(traverse_obj(meta, ('thread', 'post', 'record', 'embed', 'video', 'mimeType')), 'mp4'),
+            'formats': formats,
             'description': description,
             'thumbnail': traverse_obj(meta, ('thread', 'post', 'embed', 'thumbnail'), expected_type=url_or_none),
             'alt-title': traverse_obj(meta, ('thread', 'post', 'record', 'alt'), ('thread', 'post', 'embed', 'alt')),
@@ -189,5 +194,5 @@ class BlueskyIE(InfoExtractor):
             'tags': (traverse_obj(meta, ('thread', 'post', 'labels'), expected_type=list)
                      + traverse_obj(meta, ('thread', 'post', 'record', 'langs'), expected_type=list)),
             'comments': [] if not extractor else [*(extractor().get('comments'))[0]][1:],
-            'subtitles': self._merge_subtitles(self.extract_subtitles(meta, video_id)),
+            'subtitles': self._merge_subtitles(subs),
         }
