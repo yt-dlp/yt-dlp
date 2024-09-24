@@ -155,11 +155,11 @@ class AFCVideoIE(InfoExtractor):
         player_id = video_attrs['data-player-id'] + '_default'
         account_id = video_attrs['data-account-id']
 
-        video_element_html = get_element_html_by_attribute('data-id', display_id, webpage)
-        if not video_element_html:
-            video_data = self._download_json(f'https://aflapi.afc.com.au/content/aflc-adel/video/en/{display_id}', display_id)
+        video_element_html = get_element_html_by_attribute('data-id', display_id, webpage, tag='a')
+        if video_element_html:
+            video_data = self._parse_json(extract_attributes(video_element_html)['data-ui-args'], display_id)
         else:
-            video_data = self._search_json(r'data-ui-args\s*=\s*["\']', video_element_html, 'video-id', display_id)
+            video_data = self._download_json(f'https://aflapi.afc.com.au/content/aflc-adel/video/en/{display_id}', display_id)
         video_id = video_data['mediaId']
 
         video_url = f'https://players.brightcove.net/{account_id}/{player_id}/index.html?videoId={video_id}'
