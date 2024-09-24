@@ -17,6 +17,8 @@ class LiTVIE(InfoExtractor):
 
     _URL_TEMPLATE = 'https://www.litv.tv/%s/watch/%s'
 
+    _GEO_COUNTRIES = ['TW']
+
     _TESTS = [{
         'url': 'https://www.litv.tv/drama/watch/VOD00041610',
         'info_dict': {
@@ -40,7 +42,6 @@ class LiTVIE(InfoExtractor):
         'params': {
             'noplaylist': True,
         },
-        'skip': 'Georestricted to Taiwan',
     }, {
         'url': 'https://www.litv.tv/promo/miyuezhuan/?content_id=VOD00044841&',
         'md5': '88322ea132f848d6e3e18b32a832b918',
