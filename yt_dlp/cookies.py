@@ -1053,8 +1053,9 @@ def _decrypt_windows_dpapi(ciphertext, logger):
         ctypes.byref(blob_out),  # pDataOut
     )
     if not ret:
-        logger.warning('failed to decrypt with DPAPI', only_once=True)
-        return None
+        message = 'Failed to decrypt with DPAPI. See  https://github.com/yt-dlp/yt-dlp/issues/10927  for more info'
+        logger.error(message)
+        raise DownloadError(message)  # force exit
 
     result = ctypes.string_at(blob_out.pbData, blob_out.cbData)
     ctypes.windll.kernel32.LocalFree(blob_out.pbData)
