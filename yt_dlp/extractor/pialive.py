@@ -1,5 +1,14 @@
 from .common import InfoExtractor
-from ..utils import extract_attributes, multipart_encode, url_or_none
+from ..utils import (
+    ExtractorError,
+    clean_html,
+    extract_attributes,
+    get_element_by_class,
+    get_element_html_by_class,
+    multipart_encode,
+    unified_timestamp,
+    url_or_none,
+)
 from ..utils.traversal import traverse_obj
 
 
@@ -24,6 +33,7 @@ class PiaLiveIE(InfoExtractor):
                 'skip_download': True,
                 'ignore_no_formats_error': True,
             },
+            'skip': 'The video is no longer available',
         },
         {
             'url': 'https://player.pia-live.jp/stream/4JagFBEIM14s_hK9aXHKf3k3F3bY5eoHFQxu68TC6krJdu0GVBVbVy01IwpJ6J3qBEm3d9TCTt1d0eWpsZGj7DrOjVOmS7GAWGwyscMgiThopJvzgWC4H5b-7XQjAfRZ',
@@ -39,6 +49,7 @@ class PiaLiveIE(InfoExtractor):
                 'skip_download': True,
                 'ignore_no_formats_error': True,
             },
+            'skip': 'The video is no longer available',
         },
     ]
 
@@ -53,28 +64,51 @@ class PiaLiveIE(InfoExtractor):
 
         program_code = self._extract_vars('programCode', webpage)
         article_code = self._extract_vars('articleCode', webpage)
+        title = self._html_extract_title(webpage)
+
+        if get_element_html_by_class('play-end', webpage):
+            raise ExtractorError('The video is no longer available', expected=True, video_id=program_code)
+
+        if start_info := clean_html(get_element_by_class('play-waiting__date', webpage)):
+            date, time = self._search_regex(
+                r'(?P<date>\d{4}/\d{1,2}/\d{1,2})\([月火水木金土日]\)(?P<time>\d{2}:\d{2})',
+                start_info, 'start_info', fatal=False, group=('date', 'time'))
+            if all((date, time)):
+                release_timestamp_str = f'{date} {time} +09:00'
+                release_timestamp = unified_timestamp(release_timestamp_str)
+                self.raise_no_formats(f'The video will be available after {release_timestamp_str}', expected=True)
+                return {
+                    'id': program_code,
+                    'title': title,
+                    'live_status': 'is_upcoming',
+                    'release_timestamp': release_timestamp,
+                }
 
         payload, content_type = multipart_encode({
             'play_url': video_key,
             'api_key': self.API_KEY,
         })
-
+        api_kwargs = {
+            'video_id': program_code,
+            'data': payload,
+            'headers': {'Content-Type': content_type, 'Referer': self.PLAYER_ROOT_URL},
+        }
 
         player_tag_list = self._download_json(
-            f'{self.PIA_LIVE_API_URL}/perf/player-tag-list/{program_code}', program_code,
-            data=payload, headers={'Content-Type': content_type, 'Referer': self.PLAYER_ROOT_URL},
+            f'{self.PIA_LIVE_API_URL}/perf/player-tag-list/{program_code}', **api_kwargs,
             note='Fetching player tag list', errnote='Unable to fetch player tag list')
         if self.get_param('getcomments'):
             chat_room_url = traverse_obj(self._download_json(
-                f'{self.PIA_LIVE_API_URL}/perf/chat-tag-list/{program_code}/{article_code}', program_code,
-                data=payload, headers={'Content-Type': content_type, 'Referer': self.PLAYER_ROOT_URL},
+                f'{self.PIA_LIVE_API_URL}/perf/chat-tag-list/{program_code}/{article_code}', **api_kwargs,
                 note='Fetching chat info', errnote='Unable to fetch chat info', fatal=False),
                 ('data', 'chat_one_tag', {extract_attributes}, 'src', {url_or_none}))
+        else:
+            chat_room_url = None
 
         return self.url_result(
             extract_attributes(player_tag_list['data']['movie_one_tag'])['src'], url_transparent=True,
-            video_title=self._html_extract_title(webpage), display_id=program_code,
-            __post_extractor=self.extract_comments(program_code, chat_room_url))
+            video_title=title, display_id=program_code, __post_extractor=self.extract_comments(
+                program_code, chat_room_url))
 
     def _get_comments(self, video_id, chat_room_url):
         if not chat_room_url:
