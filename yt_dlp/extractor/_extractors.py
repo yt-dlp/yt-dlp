@@ -1879,6 +1879,7 @@ from .slideshare import SlideshareIE
 from .slideslive import SlidesLiveIE
 from .slutload import SlutloadIE
 from .smotrim import SmotrimIE
+from .smule import SmuleIE
 from .snotr import SnotrIE
 from .sohu import (
     SohuIE,
