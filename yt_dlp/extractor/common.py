@@ -3354,9 +3354,12 @@ class InfoExtractor:
 
         return formats, subtitles
 
-    def _extract_wowza_formats(self, url, video_id, m3u8_entry_protocol='m3u8_native', skip_protocols=[]):
+    def _extract_wowza_formats(self, url, video_id, m3u8_entry_protocol='m3u8_native', m3u8_custom_manifest_filename=None, skip_protocols=[]):
         query = urllib.parse.urlparse(url).query
-        url = re.sub(r'/(?:manifest|playlist|jwplayer)\.(?:m3u8|f4m|mpd|smil)', '', url)
+        if m3u8_custom_manifest_filename:
+            url = url.replace('/'+m3u8_custom_manifest_filename, '')
+        else:
+            url = re.sub(r'/(?:manifest|playlist|jwplayer)\.(?:m3u8|f4m|mpd|smil)', '', url)
         mobj = re.search(
             r'(?:(?:http|rtmp|rtsp)(?P<s>s)?:)?(?P<url>//[^?]+)', url)
         url_base = mobj.group('url')
@@ -3371,7 +3374,7 @@ class InfoExtractor:
 
         if 'm3u8' not in skip_protocols:
             formats.extend(self._extract_m3u8_formats(
-                manifest_url('playlist.m3u8'), video_id, 'mp4',
+                manifest_url(m3u8_custom_manifest_filename or 'playlist.m3u8'), video_id, 'mp4',
                 m3u8_entry_protocol, m3u8_id='hls', fatal=False))
         if 'f4m' not in skip_protocols:
             formats.extend(self._extract_f4m_formats(

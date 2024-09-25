@@ -144,7 +144,10 @@ class MediaKlikkIE(InfoExtractor):
             raise ExtractorError('Unable to extract playlist url')
 
         formats = self._extract_wowza_formats(
-            playlist_url, video_id, skip_protocols=['f4m', 'smil', 'dash'])
+            playlist_url,
+            video_id,
+            m3u8_custom_manifest_filename='index.m3u8',
+            skip_protocols=['f4m', 'smil', 'dash'])
 
         return {
             'id': video_id,
