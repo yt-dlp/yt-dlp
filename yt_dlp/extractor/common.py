@@ -3357,7 +3357,7 @@ class InfoExtractor:
     def _extract_wowza_formats(self, url, video_id, m3u8_entry_protocol='m3u8_native', m3u8_custom_manifest_filename=None, skip_protocols=[]):
         query = urllib.parse.urlparse(url).query
         if m3u8_custom_manifest_filename:
-            url = url.replace('/'+m3u8_custom_manifest_filename, '')
+            url = url.replace('/' + m3u8_custom_manifest_filename, '')
         else:
             url = re.sub(r'/(?:manifest|playlist|jwplayer)\.(?:m3u8|f4m|mpd|smil)', '', url)
         mobj = re.search(
