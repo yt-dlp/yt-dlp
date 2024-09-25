@@ -57,7 +57,7 @@ class BlueskyIE(InfoExtractor):
             'comments': list,
         },
     }, {
-        'url': 'https://bsky.app/profile/clockworkbanana.fun/post/3l45kdlktfe2o',
+        'url': 'https://bsky.app/profile/did:plc:3tndo2mqg2vgpxnpyrxiol6p/post/3l45kdlktfe2o',
         'md5': 'a426d7b0fc52bc89fc8f59668be3496e',
         'info_dict': {
             'id': '3l45kdlktfe2o',
@@ -77,7 +77,7 @@ class BlueskyIE(InfoExtractor):
             'like_count': int,
             'repost_count': int,
             'comment_count': int,
-            'webpage_url': 'https://bsky.app/profile/clockworkbanana.fun/post/3l45kdlktfe2o',
+            'webpage_url': 'https://bsky.app/profile/did:plc:3tndo2mqg2vgpxnpyrxiol6p/post/3l45kdlktfe2o',
             'tags': 'count:1',
             'subtitles': dict,
             'comments': list,
@@ -141,9 +141,9 @@ class BlueskyIE(InfoExtractor):
 
     def _real_extract(self, url):
         handle, video_id = self._match_valid_url(url).groups()
-        did = self._download_json(
-            'https://bsky.social/xrpc/com.atproto.identity.resolveHandle',
-            video_id, query={'handle': handle}, expected_status=200).get('did')
+        did = handle if handle.startswith('did:') else self._download_json(
+            (f'https://bsky.social/xrpc/com.atproto.identity.resolveHandle?handle={handle}'),
+            video_id, expected_status=200).get('did')
 
         getcomments = self.get_param('getcomments', False)
         meta = self._download_json(
@@ -169,6 +169,7 @@ class BlueskyIE(InfoExtractor):
             'filesize': traverse_obj(meta, ('thread', 'post', 'record', 'embed', 'video', 'size'), expected_type=int_or_none),
         })
 
+        handle = traverse_obj(meta, ('thread', 'post', 'author', 'handle'))
         uploader = traverse_obj(meta, ('thread', 'post', 'author', 'displayName'))
         description = traverse_obj(meta, ('thread', 'post', 'record', 'text'))
         extractor = self.extract_comments(meta)
