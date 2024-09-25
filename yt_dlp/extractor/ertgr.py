@@ -96,7 +96,7 @@ class ERTFlixCodenameIE(ERTFlixBaseIE):
             formats.extend(fmts)
             self._merge_subtitles(subs, target=subtitles)
 
-        return formats, subs
+        return formats, subtitles
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
