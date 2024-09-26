@@ -22,7 +22,6 @@ class MediaKlikkIE(InfoExtractor):
             'title': 'Az ajtó',
             'display_id': 'az-ajto',
             'ext': 'mp4',
-            'upload_date': None,
             'thumbnail': 'https://cdn.cms.mtv.hu/wp-content/uploads/sites/4/2016/01/vlcsnap-2023-07-31-14h18m52s111.jpg',
         },
     }, {
