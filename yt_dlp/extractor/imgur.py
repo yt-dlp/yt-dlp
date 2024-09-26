@@ -259,7 +259,7 @@ class ImgurGalleryBaseIE(ImgurBaseIE):
 
 class ImgurGalleryIE(ImgurGalleryBaseIE):
     IE_NAME = 'imgur:gallery'
-    _VALID_URL = r'https?://(?:i\.)?imgur\.com/(?:gallery|(?:t(?:opic)?|r)/(?:[^/?#]+-)?[^/?#]+)/(?P<id>[a-zA-Z0-9]+)'
+    _VALID_URL = r'https?://(?:i\.)?imgur\.com/(?:gallery|(?:t(?:opic)?|r)/[^/?#]+)/(?:[^/?#]+-)?(?P<id>[a-zA-Z0-9]+)'
 
     _TESTS = [{
         'url': 'http://imgur.com/gallery/Q95ko',
