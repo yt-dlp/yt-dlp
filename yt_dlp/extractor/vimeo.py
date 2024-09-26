@@ -216,7 +216,7 @@ class VimeoBaseInfoExtractor(InfoExtractor):
             'low': 1,
             'medium': 2,
             'high': 3,
-            }
+        }
         for f in formats:
             if f.get('quality') is None:
                 for key in audio_quality_map:
