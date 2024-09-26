@@ -77,12 +77,13 @@ class GermanupaIE(InfoExtractor):
         param_url = traverse_obj(
             self._search_regex(
                 r'<iframe[^>]+data-src\s*?=\s*?([\'"])(?P<url>https://germanupa\.de/media/oembed\?url=(?:(?!\1).)+)\1',
-                webpage, 'embedded video', None, group='url'),
+                webpage, 'embedded video', default=None, group='url'),
             ({parse_qs}, 'url', 0, {url_or_none}))
 
         if not param_url:
-            if self._search_regex(r'<div[^>]+class\s*?=\s*?([\'"])(?:(?!\1).)*login-wrapper(?:(?!\1).)*\1',
-                                  webpage, 'login wrapper', None):
+            if self._search_regex(
+                    r'<div[^>]+class\s*?=\s*?([\'"])(?:(?!\1).)*login-wrapper(?:(?!\1).)*\1',
+                    webpage, 'login wrapper', default=None):
                 self.raise_login_required('This video is only available for members')
             return self.url_result(url, 'Generic')  # Fall back to generic to extract audio
 
