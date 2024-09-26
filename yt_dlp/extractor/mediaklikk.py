@@ -37,6 +37,7 @@ class MediaKlikkIE(InfoExtractor):
             'upload_date': '20230903',
             'thumbnail': 'https://mediaklikk.hu/wp-content/uploads/sites/4/2014/02/hazajarouj_JO.jpg',
         },
+        'skip': 'Webpage redirects to 404 page',
     }, {
         # (old) m4sport
         'url': 'https://m4sport.hu/video/2021/08/30/gyemant-liga-parizs/',
@@ -59,6 +60,7 @@ class MediaKlikkIE(InfoExtractor):
             'upload_date': '20230908',
             'thumbnail': 'https://m4sport.hu/wp-content/uploads/sites/4/2023/09/vlcsnap-2023-09-08-22h43m18s691.jpg',
         },
+        'skip': 'Webpage redirects to 404 page',
     }, {
         # m4sport with *video/ url and no date
         'url': 'https://m4sport.hu/bl-video/real-madrid-chelsea-1-1/',
@@ -69,6 +71,7 @@ class MediaKlikkIE(InfoExtractor):
             'ext': 'mp4',
             'thumbnail': 'https://m4sport.hu/wp-content/uploads/sites/4/2021/04/Sequence-01.Still001-1024x576.png',
         },
+        'skip': 'Webpage redirects to 404 page',
     }, {
         # (old) hirado
         'url': 'https://hirado.hu/videok/felteteleket-szabott-a-fovaros/',
@@ -90,6 +93,7 @@ class MediaKlikkIE(InfoExtractor):
             'upload_date': '20230911',
             'thumbnail': 'https://hirado.hu/wp-content/uploads/sites/4/2023/09/vlcsnap-2023-09-11-09h16m09s882.jpg',
         },
+        'skip': 'Webpage redirects to video list page',
     }, {
         # (old) petofilive
         'url': 'https://petofilive.hu/video/2021/06/07/tha-shudras-az-akusztikban/',
@@ -112,6 +116,7 @@ class MediaKlikkIE(InfoExtractor):
             'upload_date': '20230909',
             'thumbnail': 'https://petofilive.hu/wp-content/uploads/sites/4/2023/09/Clipboard11-2.jpg',
         },
+        'skip': 'Webpage redirects to video list page',
     }]
 
     def _real_extract(self, url):
