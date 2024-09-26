@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..utils import js_to_json, remove_end
+from ..utils import js_to_json, remove_end, update_url_query
 
 
 class MojevideoIE(InfoExtractor):
@@ -89,7 +89,7 @@ class MojevideoIE(InfoExtractor):
         video_exp = self._search_regex(r'\bvEx\s*=\s*["\'](\d+)', webpage, 'video expiry')
         video_hashes = self._search_json(
             r'\bvHash\s*=', webpage, 'video hashes', video_id,
-            contains_pattern=r'\[.+\]', transform_source=js_to_json)
+            contains_pattern=r'\[(?s:.+)\]', transform_source=js_to_json)
 
         formats = []
         for video_hash, (suffix, quality, format_note) in zip(video_hashes, [
@@ -103,7 +103,11 @@ class MojevideoIE(InfoExtractor):
                 'format_id': f'mp4-{quality}',
                 'quality': quality,
                 'format_note': format_note,
-                'url': f'https://cache01.mojevideo.sk/securevideos69/{video_id_dec}{suffix}.mp4?md5={video_hash}&expires={video_exp}',
+                'url': update_url_query(
+                    f'https://cache01.mojevideo.sk/securevideos69/{video_id_dec}{suffix}.mp4', {
+                        'md5': video_hash,
+                        'expires': video_exp,
+                    }),
             })
 
         return {
