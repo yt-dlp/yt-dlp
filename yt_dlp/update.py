@@ -147,7 +147,8 @@ def _get_system_deprecation():
         return f'Python version {major}.{minor} is no longer supported! {PYTHON_MSG}'
 
     # Only used in temporary code paths below
-    EXE_MSG_TMPL = ('{}. See  https://github.com/yt-dlp/yt-dlp/{}  for details.'
+    EXE_MSG_TMPL = ('Support for {} has been deprecated. '
+                    'See  https://github.com/yt-dlp/yt-dlp/{}  for details.'
                     '\nYou may stop receiving updates on this version at any time!')
     variant = detect_variant()
 
@@ -155,11 +156,9 @@ def _get_system_deprecation():
     if variant in ('win_exe', 'win_x86_exe', 'py2exe'):
         platform_name = platform.platform()
         if any(platform_name.startswith(f'Windows-{name}') for name in ('7', '2008ServerR2')):
-            return EXE_MSG_TMPL.format(
-                'Support for Windows 7/Server 2008 R2 has been deprecated', 'issues/10086')
+            return EXE_MSG_TMPL.format('Windows 7/Server 2008 R2', 'issues/10086')
         elif variant == 'py2exe':
-            return EXE_MSG_TMPL.format(
-                'Support for py2exe builds (yt-dlp_min.exe) has been deprecated', 'issues/10087')
+            return EXE_MSG_TMPL.format('py2exe builds (yt-dlp_min.exe)', 'issues/10087')
         return None
 
     # Temporary until aarch64/armv7l build flow is bumped to Ubuntu 20.04 and Python 3.9
@@ -168,8 +167,7 @@ def _get_system_deprecation():
         with contextlib.suppress(IndexError, OSError, TypeError):
             libc_ver = version_tuple(platform.libc_ver()[1])
         if libc_ver < (2, 31):
-            return EXE_MSG_TMPL.format(
-                'Support for system glibc version < 2.31 has been deprecated', 'pull/8638')
+            return EXE_MSG_TMPL.format('system glibc version < 2.31', 'pull/8638')
         return None
 
     return f'Support for Python version {major}.{minor} has been deprecated. {PYTHON_MSG}'
