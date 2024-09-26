@@ -4,7 +4,7 @@ from ..utils.traversal import traverse_obj
 
 
 class SnapchatSpotlightIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?snapchat\.com/spotlight/(?P<id>[\w]+)'
+    _VALID_URL = r'https?://(?:www\.)?snapchat\.com/spotlight/(?P<id>\w+)'
 
     _TESTS = [{
         'url': 'https://www.snapchat.com/spotlight/W7_EDlXWTBiXAEEniNoMPwAAYYWtidGhudGZpAX1TKn0JAX1TKnXJAAAAAA',
@@ -45,11 +45,10 @@ class SnapchatSpotlightIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
-        video_data = traverse_obj(
-            self._search_nextjs_data(webpage, video_id), (
-                'props', 'pageProps', (
-                    ('spotlightFeed', 'spotlightStories', lambda _, v: v['story']['storyId']['value'] == video_id, 'metadata', any),
-                    None), any))
+        page_props = self._search_nextjs_data(webpage, video_id)['props']['pageProps']
+        video_data = traverse_obj(page_props, (
+            'spotlightFeed', 'spotlightStories',
+            lambda _, v: v['story']['storyId']['value'] == video_id, 'metadata', any), None)
 
         return {
             'id': video_id,
