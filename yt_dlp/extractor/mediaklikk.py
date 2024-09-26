@@ -16,6 +16,16 @@ class MediaKlikkIE(InfoExtractor):
                         (?P<id>[^/#?_]+)'''
 
     _TESTS = [{
+        'url': 'https://mediaklikk.hu/filmajanlo/cikk/az-ajto/',
+        'info_dict': {
+            'id': '668177',
+            'title': 'Az ajtó',
+            'display_id': 'az-ajto',
+            'ext': 'mp4',
+            'upload_date': None,
+            'thumbnail': 'https://cdn.cms.mtv.hu/wp-content/uploads/sites/4/2016/01/vlcsnap-2023-07-31-14h18m52s111.jpg',
+        },
+    }, {
         # (old) mediaklikk. date in html.
         'url': 'https://mediaklikk.hu/video/hazajaro-delnyugat-bacska-a-duna-menten-palankatol-doroszloig/',
         'info_dict': {
