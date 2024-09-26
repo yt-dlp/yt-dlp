@@ -1,7 +1,6 @@
 from .common import InfoExtractor
 from .vimeo import VimeoIE
 from ..utils import (
-    ExtractorError,
     parse_qs,
     traverse_obj,
     url_or_none,
@@ -70,22 +69,22 @@ class GermanupaIE(InfoExtractor):
         'expected_warnings': ['Failed to parse XML: not well-formed'],
         'skip': 'login required',
     }]
-    _IFRAME_RE = r'<iframe[^>]+data-src\s*?=\s*?([\'"])(?P<url>https://germanupa\.de/media/oembed\?url=(?:(?!\1).)+)\1'
-    _LOGIN_REQUIRED_RE = r'<div[^>]+class\s*?=\s*?([\'"])(?:(?!\1).)*login-wrapper(?:(?!\1).)*\1'
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        embed_url = self._search_regex(self._IFRAME_RE, webpage, 'embed video', None, group='url')
-        if not embed_url:
-            return self.url_result(url, 'Generic')  # Fall back to generic to extract audio
+        param_url = traverse_obj(
+            self._search_regex(
+                r'<iframe[^>]+data-src\s*?=\s*?([\'"])(?P<url>https://germanupa\.de/media/oembed\?url=(?:(?!\1).)+)\1',
+                webpage, 'embedded video', None, group='url'),
+            ({parse_qs}, 'url', 0, {url_or_none}))
 
-        param_url = traverse_obj(parse_qs(embed_url), ('url', 0, {url_or_none}))
         if not param_url:
-            if self._search_regex(self._LOGIN_REQUIRED_RE, webpage, 'login wrapper', default=None):
+            if self._search_regex(r'<div[^>]+class\s*?=\s*?([\'"])(?:(?!\1).)*login-wrapper(?:(?!\1).)*\1',
+                                  webpage, 'login wrapper', None):
                 self.raise_login_required('This video is only available for members')
-            raise ExtractorError('Failed to extract URL from the query parameters')
+            return self.url_result(url, 'Generic')  # Fall back to generic to extract audio
 
         real_url = param_url.replace('https://vimeo.com/', 'https://player.vimeo.com/video/')
         return self.url_result(VimeoIE._smuggle_referrer(real_url, url), VimeoIE, video_id)
