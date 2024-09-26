@@ -84,7 +84,7 @@ class FacebookIE(InfoExtractor):
             'timestamp': 1692346159,
             'thumbnail': r're:^https?://.*',
             'uploader_id': '100063551323670',
-            'duration': 3132.184,
+            'duration': 3133.583,
             'view_count': int,
             'concurrent_view_count': 0,
         },
@@ -112,9 +112,10 @@ class FacebookIE(InfoExtractor):
             'upload_date': '20140506',
             'timestamp': 1399398998,
             'thumbnail': r're:^https?://.*',
-            'uploader_id': 'pfbid028wxorhX2ErLFJ578N6P3crHD3PHmXTCqCvfBpsnbSLmbokwSY75p5hWBjHGkG4zxl',
+            'uploader_id': 'pfbid05AzrFTXgY37tqwaSgbFTTEpCLBjjEJHkigogwGiRPtKEpAsJYJpzE94H1RxYXWEtl',
             'duration': 131.03,
             'concurrent_view_count': int,
+            'view_count': int,
         },
     }, {
         'note': 'Video with DASH manifest',
@@ -167,7 +168,7 @@ class FacebookIE(InfoExtractor):
         # have 1080P, but only up to 720p in swf params
         # data.video.story.attachments[].media
         'url': 'https://www.facebook.com/cnn/videos/10155529876156509/',
-        'md5': 'ca63897a90c9452efee5f8c40d080e25',
+        'md5': '1659aa21fb3dd1585874f668e81a72c8',
         'info_dict': {
             'id': '10155529876156509',
             'ext': 'mp4',
@@ -180,9 +181,10 @@ class FacebookIE(InfoExtractor):
             'view_count': int,
             'uploader_id': '100059479812265',
             'concurrent_view_count': int,
-            'duration': 44.478,
+            'duration': 44.181,
         },
     }, {
+        # FIXME: unable to extract uploader, no formats found
         # bigPipe.onPageletArrive ... onPageletArrive pagelet_group_mall
         # data.node.comet_sections.content.story.attachments[].style_type_renderer.attachment.media
         'url': 'https://www.facebook.com/yaroslav.korpan/videos/1417995061575415/',
@@ -241,9 +243,9 @@ class FacebookIE(InfoExtractor):
             'timestamp': 1511548260,
             'upload_date': '20171124',
             'uploader': 'Vickie Gentry',
-            'uploader_id': 'pfbid0FuZhHCeWDAxWxEbr3yKPFaRstXvRxgsp9uCPG6GjD4J2AitB35NUAuJ4Q75KcjiDl',
+            'uploader_id': 'pfbid0FkkycT95ySNNyfCw4Cho6u5G7WbbZEcxT496Hq8rtx1K3LcTCATpR3wnyYhmyGC5l',
             'thumbnail': r're:^https?://.*',
-            'duration': 148.435,
+            'duration': 148.224,
         },
     }, {
         # data.node.comet_sections.content.story.attachments[].styles.attachment.media
@@ -271,7 +273,7 @@ class FacebookIE(InfoExtractor):
             'description': 'Today Makkovik\'s own Pilot Mandy Smith made her inaugural landing on the airstrip in her hometown. What a proud moment as we all cheered and...',
             'thumbnail': r're:^https?://.*',
             'uploader': 'Lela Evans',
-            'uploader_id': 'pfbid0shZJipuigyy5mqrUJn9ub5LJFWNHvan5prtyi3LrDuuuJ4NwrURgnQHYR9fywBepl',
+            'uploader_id': 'pfbid0swT2y7t6TAsZVBvcyeYPdhTMefGaS26mzUwML3vd1ma6ndGZKxsyS4Ssu3jitZLXl',
             'upload_date': '20231228',
             'timestamp': 1703804085,
             'duration': 394.347,
@@ -322,7 +324,7 @@ class FacebookIE(InfoExtractor):
             'upload_date': '20180523',
             'uploader': 'ESL One Dota 2',
             'uploader_id': '100066514874195',
-            'duration': 4524.212,
+            'duration': 4524.001,
             'view_count': int,
             'thumbnail': r're:^https?://.*',
             'concurrent_view_count': int,
@@ -339,9 +341,9 @@ class FacebookIE(InfoExtractor):
             'title': 'Josef',
             'thumbnail': r're:^https?://.*',
             'concurrent_view_count': int,
-            'uploader_id': 'pfbid0cibUN6tV7DYgdbJdsUFN46wc4jKpVSPAvJQhFofGqBGmVn3V3JtAs2tfUwziw2hUl',
+            'uploader_id': 'pfbid02gpfwRM2XvdEJfsERupwQiNmBiDArc38RMRYZnap372q6Vs7MtFTVy72mmFWpJBTKl',
             'timestamp': 1549275572,
-            'duration': 3.413,
+            'duration': 3.283,
             'uploader': 'Josef Novak',
             'description': '',
             'upload_date': '20190204',
@@ -396,6 +398,7 @@ class FacebookIE(InfoExtractor):
         'playlist_count': 1,
         'skip': 'Requires logging in',
     }, {
+        # FIXME: Cannot parse data error
         # data.event.cover_media_renderer.cover_video
         'url': 'https://m.facebook.com/events/1509582499515440',
         'info_dict': {
@@ -498,7 +501,8 @@ class FacebookIE(InfoExtractor):
                 or get_first(post, ('video', 'creation_story', 'attachments', ..., 'media', lambda k, v: k == 'owner' and v['name']))
                 or get_first(post, (..., 'video', lambda k, v: k == 'owner' and v['name']))
                 or get_first(post, ('node', 'actors', ..., {dict}))
-                or get_first(post, ('event', 'event_creator', {dict})) or {})
+                or get_first(post, ('event', 'event_creator', {dict}))
+                or get_first(post, ('video', 'creation_story', 'short_form_video_context', 'video_owner', {dict})) or {})
             uploader = uploader_data.get('name') or (
                 clean_html(get_element_by_id('fbPhotoPageAuthorName', webpage))
                 or self._search_regex(
@@ -524,6 +528,11 @@ class FacebookIE(InfoExtractor):
                     webpage, 'view count', default=None)),
                 'concurrent_view_count': get_first(post, (
                     ('video', (..., ..., 'attachments', ..., 'media')), 'liveViewerCount', {int_or_none})),
+                **traverse_obj(post, (lambda _, v: video_id in v['url'], 'feedback', {
+                    'like_count': ('likers', 'count', {int}),
+                    'comment_count': ('total_comment_count', {int}),
+                    'repost_count': ('share_count_reduced', {parse_count}),
+                }), get_all=False),
             }
 
             info_json_ld = self._search_json_ld(webpage, video_id, default={})
@@ -571,16 +580,21 @@ class FacebookIE(InfoExtractor):
                 # Formats larger than ~500MB will return error 403 unless chunk size is regulated
                 f.setdefault('downloader_options', {})['http_chunk_size'] = 250 << 20
 
-        def extract_relay_data(_filter):
-            return self._parse_json(self._search_regex(
-                rf'data-sjs>({{.*?{_filter}.*?}})</script>',
-                webpage, 'replay data', default='{}'), video_id, fatal=False) or {}
+        def yield_all_relay_data(_filter):
+            for relay_data in re.findall(rf'data-sjs>({{.*?{_filter}.*?}})</script>', webpage):
+                yield self._parse_json(relay_data, video_id, fatal=False) or {}
 
-        def extract_relay_prefetched_data(_filter):
-            return traverse_obj(extract_relay_data(_filter), (
-                'require', (None, (..., ..., ..., '__bbox', 'require')),
+        def extract_relay_data(_filter):
+            return next(filter(None, yield_all_relay_data(_filter)), {})
+
+        def extract_relay_prefetched_data(_filter, target_keys=None):
+            path = 'data'
+            if target_keys is not None:
+                path = lambda k, v: k == 'data' and any(target in v for target in variadic(target_keys))
+            return traverse_obj(yield_all_relay_data(_filter), (
+                ..., 'require', (None, (..., ..., ..., '__bbox', 'require')),
                 lambda _, v: any(key.startswith('RelayPrefetchedStreamCache') for key in v),
-                ..., ..., '__bbox', 'result', 'data', {dict}), get_all=False) or {}
+                ..., ..., '__bbox', 'result', path, {dict}), get_all=False) or {}
 
         if not video_data:
             server_js_data = self._parse_json(self._search_regex([
@@ -591,7 +605,8 @@ class FacebookIE(InfoExtractor):
 
         if not video_data:
             data = extract_relay_prefetched_data(
-                r'"(?:dash_manifest|playable_url(?:_quality_hd)?)')
+                r'"(?:dash_manifest|playable_url(?:_quality_hd)?)',
+                target_keys=('video', 'event', 'nodes', 'node', 'mediaset'))
             if data:
                 entries = []
 
@@ -926,18 +941,21 @@ class FacebookReelIE(InfoExtractor):
 
     _TESTS = [{
         'url': 'https://www.facebook.com/reel/1195289147628387',
-        'md5': 'f13dd37f2633595982db5ed8765474d3',
+        'md5': 'a53256d10fc2105441fe0c4212ed8cea',
         'info_dict': {
             'id': '1195289147628387',
             'ext': 'mp4',
-            'title': 'md5:b05800b5b1ad56c0ca78bd3807b6a61e',
-            'description': 'md5:22f03309b216ac84720183961441d8db',
-            'uploader': 'md5:723e6cb3091241160f20b3c5dc282af1',
+            'title': r're:9\.6K views · 355 reactions .+ Let the “Slapathon” commence!! .+ LL COOL J · Mama Said Knock You Out$',
+            'description': r're:When your trying to help your partner .+ LL COOL J · Mama Said Knock You Out$',
+            'uploader': 'Beast Camp Training',
             'uploader_id': '100040874179269',
             'duration': 9.579,
             'timestamp': 1637502609,
             'upload_date': '20211121',
             'thumbnail': r're:^https?://.*',
+            'like_count': int,
+            'comment_count': int,
+            'repost_count': int,
         },
     }]
 
@@ -957,12 +975,29 @@ class FacebookAdsIE(InfoExtractor):
             'id': '899206155126718',
             'ext': 'mp4',
             'title': 'video by Kandao',
+            'description': 'md5:0822724069e3aca97cbed5dabbab282e',
             'uploader': 'Kandao',
             'uploader_id': '774114102743284',
             'uploader_url': r're:^https?://.*',
             'timestamp': 1702548330,
             'thumbnail': r're:^https?://.*',
             'upload_date': '20231214',
+            'like_count': int,
+        },
+    }, {
+        # key 'watermarked_video_sd_url' missing
+        'url': 'https://www.facebook.com/ads/library/?id=501152689226254',
+        'info_dict': {
+            'id': '501152689226254',
+            'ext': 'mp4',
+            'title': 'video by mat.nawrocki',
+            'description': 'md5:02a446ace7ff8c3c37a2892922492490',
+            'uploader': 'mat.nawrocki',
+            'uploader_id': '148586968341456',
+            'uploader_url': r're:^https?://.*',
+            'timestamp': 1723452305,
+            'thumbnail': r're:^https?://.*',
+            'upload_date': '20240812',
             'like_count': int,
         },
     }, {
@@ -1011,34 +1046,42 @@ class FacebookAdsIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        post_data = [self._parse_json(j, video_id, fatal=False)
-                     for j in re.findall(r's\.handle\(({.*})\);requireLazy\(', webpage)]
-        data = traverse_obj(post_data, (
-            ..., 'require', ..., ..., ..., 'props', 'deeplinkAdCard', 'snapshot', {dict}), get_all=False)
+        post_data = traverse_obj(
+            re.findall(r'data-sjs>({.*?ScheduledServerJS.*?})</script>', webpage), (..., {json.loads}))
+        data = get_first(post_data, (
+            'require', ..., ..., ..., '__bbox', 'require', ..., ..., ...,
+            'entryPointRoot', 'otherProps', 'deeplinkAdCard', 'snapshot', {dict}))
         if not data:
             raise ExtractorError('Unable to extract ad data')
 
         title = data.get('title')
         if not title or title == '{{product.name}}':
             title = join_nonempty('display_format', 'page_name', delim=' by ', from_dict=data)
+        markup_id = traverse_obj(data, ('body', '__m', {str}))
+        markup = traverse_obj(post_data, (
+            ..., 'require', ..., ..., ..., '__bbox', 'markup', lambda _, v: v[0].startswith(markup_id),
+            ..., '__html', {clean_html}, {lambda x: not x.startswith('{{product.') and x}, any))
 
-        info_dict = traverse_obj(data, {
-            'description': ('link_description', {str}, {lambda x: x if x != '{{product.description}}' else None}),
+        info_dict = merge_dicts({
+            'title': title,
+            'description': markup or None,
+        }, traverse_obj(data, {
+            'description': ('link_description', {lambda x: x if not x.startswith('{{product.') else None}),
             'uploader': ('page_name', {str}),
             'uploader_id': ('page_id', {str_or_none}),
             'uploader_url': ('page_profile_uri', {url_or_none}),
             'timestamp': ('creation_time', {int_or_none}),
             'like_count': ('page_like_count', {int_or_none}),
-        })
+        }))
 
         entries = []
         for idx, entry in enumerate(traverse_obj(
-            data, (('videos', 'cards'), lambda _, v: any(url_or_none(v[f]) for f in self._FORMATS_MAP))), 1,
+            data, (('videos', 'cards'), lambda _, v: any(url_or_none(v.get(f)) for f in self._FORMATS_MAP))), 1,
         ):
             entries.append({
                 'id': f'{video_id}_{idx}',
                 'title': entry.get('title') or title,
-                'description': entry.get('link_description') or info_dict.get('description'),
+                'description': traverse_obj(entry, 'body', 'link_description') or info_dict.get('description'),
                 'thumbnail': url_or_none(entry.get('video_preview_image_url')),
                 'formats': self._extract_formats(entry),
             })

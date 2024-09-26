@@ -420,7 +420,7 @@ class PatreonIE(PatreonBaseIE):
 
 class PatreonCampaignIE(PatreonBaseIE):
 
-    _VALID_URL = r'https?://(?:www\.)?patreon\.com/(?!rss)(?:(?:m/(?P<campaign_id>\d+))|(?P<vanity>[-\w]+))'
+    _VALID_URL = r'https?://(?:www\.)?patreon\.com/(?!rss)(?:(?:m|api/campaigns)/(?P<campaign_id>\d+)|(?P<vanity>[-\w]+))'
     _TESTS = [{
         'url': 'https://www.patreon.com/dissonancepod/',
         'info_dict': {
@@ -442,24 +442,43 @@ class PatreonCampaignIE(PatreonBaseIE):
         'url': 'https://www.patreon.com/m/4767637/posts',
         'info_dict': {
             'title': 'Not Just Bikes',
-            'channel_follower_count': int,
             'id': '4767637',
             'channel_id': '4767637',
             'channel_url': 'https://www.patreon.com/notjustbikes',
-            'description': 'md5:595c6e7dca76ae615b1d38c298a287a1',
+            'description': 'md5:9f4b70051216c4d5c58afe580ffc8d0f',
             'age_limit': 0,
             'channel': 'Not Just Bikes',
             'uploader_url': 'https://www.patreon.com/notjustbikes',
-            'uploader': 'Not Just Bikes',
+            'uploader': 'Jason',
             'uploader_id': '37306634',
             'thumbnail': r're:^https?://.*$',
         },
         'playlist_mincount': 71,
     }, {
+        'url': 'https://www.patreon.com/api/campaigns/4243769/posts',
+        'info_dict': {
+            'title': 'Second Thought',
+            'channel_follower_count': int,
+            'id': '4243769',
+            'channel_id': '4243769',
+            'channel_url': 'https://www.patreon.com/secondthought',
+            'description': 'md5:69c89a3aba43efdb76e85eb023e8de8b',
+            'age_limit': 0,
+            'channel': 'Second Thought',
+            'uploader_url': 'https://www.patreon.com/secondthought',
+            'uploader': 'JT Chapman',
+            'uploader_id': '32718287',
+            'thumbnail': r're:^https?://.*$',
+        },
+        'playlist_mincount': 201,
+    }, {
         'url': 'https://www.patreon.com/dissonancepod/posts',
         'only_matching': True,
     }, {
         'url': 'https://www.patreon.com/m/5932659',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.patreon.com/api/campaigns/4243769',
         'only_matching': True,
     }]
 
