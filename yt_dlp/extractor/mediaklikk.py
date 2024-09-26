@@ -143,13 +143,14 @@ class MediaKlikkIE(InfoExtractor):
         if not playlist_url:
             raise ExtractorError('Unable to extract playlist url')
 
-        formats = self._extract_m3u8_formats(playlist_url, video_id)
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(playlist_url, video_id)
 
         return {
             'id': video_id,
             'title': title,
             'display_id': display_id,
             'formats': formats,
+            'subtitles': subtitles,
             'upload_date': upload_date,
             'thumbnail': player_data.get('bgImage') or self._og_search_thumbnail(webpage),
         }
