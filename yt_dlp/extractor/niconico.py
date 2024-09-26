@@ -420,7 +420,7 @@ class NiconicoIE(InfoExtractor):
                 'x-request-with': 'https://www.nicovideo.jp',
             })['data']['contentUrl']
         # Getting all audio formats results in duplicate video formats which we filter out later
-        dms_fmts = self._extract_m3u8_formats(dms_m3u8_url, video_id)
+        dms_fmts = self._extract_m3u8_formats(dms_m3u8_url, video_id, 'mp4')
 
         # m3u8 extraction does not provide audio bitrates, so extract from the API data and fix
         for audio_fmt in traverse_obj(dms_fmts, lambda _, v: v['vcodec'] == 'none'):
@@ -432,7 +432,6 @@ class NiconicoIE(InfoExtractor):
                     'asr': ('samplingRate', {int_or_none}),
                 }), get_all=False),
                 'acodec': 'aac',
-                'ext': 'm4a',
             }
 
         # Sort before removing dupes to keep the format dicts with the lowest tbr
