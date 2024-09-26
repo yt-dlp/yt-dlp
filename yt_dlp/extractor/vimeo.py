@@ -212,12 +212,16 @@ class VimeoBaseInfoExtractor(InfoExtractor):
         owner = video_data.get('owner') or {}
         video_uploader_url = owner.get('url')
 
-        audio_quality_map = ('low', 'medium', 'high')
+        audio_quality_map = {
+            'low': 1,
+            'medium': 2,
+            'high': 3
+            }
         for f in formats:
             if f.get('quality') is None:
                 for key in audio_quality_map:
                     if f'audio-{key}' in f['format_id']:
-                        f['quality'] = audio_quality_map.index(key) + 1
+                        f['quality'] = audio_quality_map[key]
                         break
 
         return {
