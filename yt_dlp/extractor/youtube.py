@@ -7655,6 +7655,8 @@ class YoutubeClipIE(YoutubeTabBaseInfoExtractor):
             'id': clip_id,
             'section_start': int(clip_data['startTimeMs']) / 1000,
             'section_end': int(clip_data['endTimeMs']) / 1000,
+            '_format_sort_fields': (  # https protocol is prioritized for ffmpeg compatibility
+                'proto:https', 'quality', 'res', 'fps', 'hdr:12', 'source', 'vcodec:vp9.2', 'channels', 'acodec', 'lang'),
         }
 
 
