@@ -1827,6 +1827,7 @@ from .scte import (
 from .sejmpl import SejmIE
 from .sen import SenIE
 from .senalcolombia import SenalColombiaLiveIE
+from .pandavideo import PandaVideoIE
 from .senategov import (
     SenateGovIE,
     SenateISVPIE,
