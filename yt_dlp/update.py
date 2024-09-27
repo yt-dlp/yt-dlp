@@ -166,9 +166,7 @@ def _get_system_deprecation():
 
     # Temporary until aarch64/armv7l build flow is bumped to Ubuntu 20.04 and Python 3.9
     elif variant in ('linux_aarch64_exe', 'linux_armv7l_exe'):
-        libc_ver = (float('inf'),)
-        with contextlib.suppress(IndexError, OSError, TypeError):
-            libc_ver = version_tuple(platform.libc_ver()[1])
+        libc_ver = version_tuple(os.confstr('CS_GNU_LIBC_VERSION').partition(' ')[2])
         if libc_ver < (2, 31):
             return EXE_MSG_TMPL.format('system glibc version < 2.31', 'pull/8638', STOP_MSG)
         return None
