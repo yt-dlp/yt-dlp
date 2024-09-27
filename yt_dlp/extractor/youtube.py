@@ -4110,7 +4110,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 self.report_warning(
                     f'{video_id}: Some formats are possibly damaged. They will be deprioritized', only_once=True)
 
-            client_name = fmt.get(STREAMING_DATA_CLIENT_NAME)
+            client_name = fmt[STREAMING_DATA_CLIENT_NAME]
             po_token = fmt.get(STREAMING_DATA_PO_TOKEN)
 
             if po_token:
@@ -4135,7 +4135,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     try_get(fmt, lambda x: x['projectionType'].replace('RECTANGULAR', '').lower()),
                     try_get(fmt, lambda x: x['spatialAudioType'].replace('SPATIAL_AUDIO_TYPE_', '').lower()),
                     is_damaged and 'DAMAGED', is_broken and 'BROKEN',
-                    (self.get_param('verbose') or all_formats) and client_name,
+                    (self.get_param('verbose') or all_formats) and short_client_name(client_name),
                     delim=', '),
                 # Format 22 is likely to be damaged. See https://github.com/yt-dlp/yt-dlp/issues/3372
                 'source_preference': (-5 if itag == '22' else -1) + (100 if 'Premium' in name else 0),
@@ -4234,7 +4234,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if f['quality'] == -1 and f.get('height'):
                 f['quality'] = q(res_qualities[min(res_qualities, key=lambda x: abs(x - f['height']))])
             if self.get_param('verbose') or all_formats:
-                f['format_note'] = join_nonempty(f.get('format_note'), client_name, delim=', ')
+                f['format_note'] = join_nonempty(
+                    f.get('format_note'), short_client_name(client_name), delim=', ')
             if f.get('fps') and f['fps'] <= 1:
                 del f['fps']
 
@@ -4245,7 +4246,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         subtitles = {}
         for sd in streaming_data:
-            client_name = sd.get(STREAMING_DATA_CLIENT_NAME)
+            client_name = sd[STREAMING_DATA_CLIENT_NAME]
             po_token = sd.get(STREAMING_DATA_PO_TOKEN)
             hls_manifest_url = 'hls' not in skip_manifests and sd.get('hlsManifestUrl')
             if hls_manifest_url:
@@ -7654,6 +7655,8 @@ class YoutubeClipIE(YoutubeTabBaseInfoExtractor):
             'id': clip_id,
             'section_start': int(clip_data['startTimeMs']) / 1000,
             'section_end': int(clip_data['endTimeMs']) / 1000,
+            '_format_sort_fields': (  # https protocol is prioritized for ffmpeg compatibility
+                'proto:https', 'quality', 'res', 'fps', 'hdr:12', 'source', 'vcodec:vp9.2', 'channels', 'acodec', 'lang'),
         }
 
 
