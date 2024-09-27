@@ -235,6 +235,11 @@ def validate_options(opts):
         validate_regex('format sorting', f, FormatSorter.regex)
 
     # Postprocessor formats
+    if opts.convertsubtitles == 'none':
+        opts.convertsubtitles = None
+    if opts.convertthumbnails == 'none':
+        opts.convertthumbnails = None
+
     validate_regex('merge output format', opts.merge_output_format,
                    r'({0})(/({0}))*'.format('|'.join(map(re.escape, FFmpegMergerPP.SUPPORTED_EXTS))))
     validate_regex('audio format', opts.audioformat, FFmpegExtractAudioPP.FORMAT_RE)
