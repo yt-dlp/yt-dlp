@@ -143,6 +143,7 @@
  - **BBVTV**: [*bbvtv*](## "netrc machine")
  - **BBVTVLive**: [*bbvtv*](## "netrc machine")
  - **BBVTVRecordings**: [*bbvtv*](## "netrc machine")
+ - **BeaconTv**
  - **BeatBumpPlaylist**
  - **BeatBumpVideo**
  - **Beatport**
@@ -505,6 +506,7 @@
  - **gem.cbc.ca:playlist**
  - **Genius**
  - **GeniusLyrics**
+ - **Germanupa**: germanupa.de
  - **GetCourseRu**: [*getcourseru*](## "netrc machine")
  - **GetCourseRuPlayer**
  - **Gettr**
@@ -580,6 +582,7 @@
  - **HungamaAlbumPlaylist**
  - **HungamaSong**
  - **huya:live**: huya.com
+ - **huya:video**: 虎牙视频
  - **Hypem**
  - **Hytale**
  - **Icareus**
@@ -660,6 +663,7 @@
  - **kick:vod**
  - **Kicker**
  - **KickStarter**
+ - **Kika**: KiKA.de
  - **kinja:embed**
  - **KinoPoisk**
  - **Kommunetv**
@@ -722,7 +726,6 @@
  - **livestream:original**
  - **Livestreamfails**
  - **Lnk**
- - **LnkGo**
  - **loc**: Library of Congress
  - **loom**
  - **loom:folder**
@@ -756,7 +759,7 @@
  - **Masters**
  - **MatchTV**
  - **MBN**: mbn.co.kr (매일방송)
- - **MDR**: MDR.DE and KiKA
+ - **MDR**: MDR.DE
  - **MedalTV**
  - **media.ccc.de**
  - **media.ccc.de:lists**
@@ -811,6 +814,7 @@
  - **MNetTVLive**: [*mnettv*](## "netrc machine")
  - **MNetTVRecordings**: [*mnettv*](## "netrc machine")
  - **MochaVideo**
+ - **Mojevideo**: mojevideo.sk
  - **Mojvideo**
  - **Monstercat**
  - **MonsterSirenHypergryphMusic**
@@ -1285,12 +1289,14 @@
  - **Screencast**
  - **Screencastify**
  - **ScreencastOMatic**
+ - **ScreenRec**
  - **ScrippsNetworks**
  - **scrippsnetworks:watch**
  - **Scrolller**
  - **SCTE**: [*scte*](## "netrc machine") (**Currently broken**)
  - **SCTECourse**: [*scte*](## "netrc machine") (**Currently broken**)
  - **sejm**
+ - **Sen**
  - **SenalColombiaLive**: (**Currently broken**)
  - **SenateGov**
  - **SenateISVP**
@@ -1327,6 +1333,7 @@
  - **SlidesLive**
  - **Slutload**
  - **Smotrim**
+ - **SnapchatSpotlight**
  - **Snotr**
  - **Sohu**
  - **SohuV**
@@ -1608,6 +1615,7 @@
  - **videomore:season**
  - **videomore:video**
  - **VideoPress**
+ - **Vidflex**
  - **Vidio**: [*vidio*](## "netrc machine")
  - **VidioLive**: [*vidio*](## "netrc machine")
  - **VidioPremier**: [*vidio*](## "netrc machine")
@@ -1736,7 +1744,7 @@
  - **XiaoHongShu**: 小红书
  - **ximalaya**: 喜马拉雅FM
  - **ximalaya:album**: 喜马拉雅FM 专辑
- - **xinpianchang**: xinpianchang.com (**Currently broken**)
+ - **Xinpianchang**: 新片场
  - **XMinus**: (**Currently broken**)
  - **XNXX**
  - **Xstream**
