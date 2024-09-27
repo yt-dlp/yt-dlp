@@ -1954,7 +1954,7 @@ def urljoin(base, path):
         path = path.decode()
     if not isinstance(path, str) or not path:
         return None
-    if re.match(r'^(?:[a-zA-Z][a-zA-Z0-9+-.]*:)?//', path):
+    if re.match(r'(?:[a-zA-Z][a-zA-Z0-9+-.]*:)?//', path):
         return path
     if isinstance(base, bytes):
         base = base.decode()
@@ -2007,7 +2007,7 @@ def url_or_none(url):
     if not url or not isinstance(url, str):
         return None
     url = url.strip()
-    return url if re.match(r'^(?:(?:https?|rt(?:m(?:pt?[es]?|fp)|sp[su]?)|mms|ftps?):)?//', url) else None
+    return url if re.match(r'(?:(?:https?|rt(?:m(?:pt?[es]?|fp)|sp[su]?)|mms|ftps?):)?//', url) else None
 
 
 def strftime_or_none(timestamp, date_format='%Y%m%d', default=None):
@@ -3113,7 +3113,7 @@ def is_html(first_bytes):
         while first_bytes.startswith(bom):
             encoding, first_bytes = enc, first_bytes[len(bom):]
 
-    return re.match(r'^\s*<', first_bytes.decode(encoding, 'replace'))
+    return re.match(r'\s*<', first_bytes.decode(encoding, 'replace'))
 
 
 def determine_protocol(info_dict):
