@@ -146,7 +146,6 @@ def _get_system_deprecation():
     if sys.version_info < MIN_SUPPORTED:
         return f'Python version {major}.{minor} is no longer supported! {PYTHON_MSG}'
 
-    # Only used in temporary code paths below
     EXE_MSG_TMPL = ('Support for {} has been deprecated. '
                     'See  https://github.com/yt-dlp/yt-dlp/{}  for details.\n{}')
     STOP_MSG = 'You may stop receiving updates on this version at any time!'
