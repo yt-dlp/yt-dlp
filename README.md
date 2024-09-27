@@ -999,12 +999,16 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
                                     be used multiple times
     --no-exec                       Remove any previously defined --exec
     --convert-subs FORMAT           Convert the subtitles to another format
-                                    (currently supported: ass, lrc, srt, vtt)
-                                    (Alias: --convert-subtitles)
+                                    (currently supported: ass, lrc, srt, vtt).
+                                    Use "--convert-subs none" to disable
+                                    conversion (default) (Alias: --convert-
+                                    subtitles)
     --convert-thumbnails FORMAT     Convert the thumbnails to another format
                                     (currently supported: jpg, png, webp). You
                                     can specify multiple rules using similar
-                                    syntax as --remux-video
+                                    syntax as "--remux-video". Use "--convert-
+                                    thumbnails none" to disable conversion
+                                    (default)
     --split-chapters                Split video into multiple files based on
                                     internal chapters. The "chapter:" prefix can
                                     be used with "--paths" and "--output" to set
@@ -1777,6 +1781,9 @@ The following extractors use this feature:
 * `innertube_host`: Innertube API host to use for all API requests; e.g. `studio.youtube.com`, `youtubei.googleapis.com`. Note that cookies exported from one subdomain will not work on others
 * `innertube_key`: Innertube API key to use for all API requests. By default, no API key is used
 * `raise_incomplete_data`: `Incomplete Data Received` raises an error instead of reporting a warning
+* `data_sync_id`: Overrides the account Data Sync ID used in Innertube API requests. This may be needed if you are using an account with `youtube:player_skip=webpage,configs` or `youtubetab:skip=webpage`
+* `visitor_data`: Overrides the Visitor Data used in Innertube API requests. This should be used with `player_skip=webpage,configs` and without cookies. Note: this may have adverse effects if used improperly. If a session from a browser is wanted, you should pass cookies instead (which contain the Visitor ID)
+* `po_token`:  Proof of Origin (PO) Token(s) to use for requesting video playback. Comma seperated list of PO Tokens in the format `CLIENT+PO_TOKEN`, e.g. `youtube:po_token=web+XXX,android+YYY`
 
 #### youtubetab (YouTube playlists, channels, feeds, etc.)
 * `skip`: One or more of `webpage` (skip initial webpage download), `authcheck` (allow the download of playlists requiring authentication when no initial webpage is downloaded. This may cause unwanted behavior, see [#1122](https://github.com/yt-dlp/yt-dlp/pull/1122) for more details)

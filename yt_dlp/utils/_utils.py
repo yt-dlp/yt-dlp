@@ -2919,6 +2919,7 @@ def mimetype2ext(mt, default=NO_DEFAULT):
         'audio/webm': 'webm',
         'audio/x-matroska': 'mka',
         'audio/x-mpegurl': 'm3u',
+        'aacp': 'aac',
         'midi': 'mid',
         'ogg': 'ogg',
         'wav': 'wav',
@@ -5280,7 +5281,7 @@ class FormatSorter:
 
     settings = {
         'vcodec': {'type': 'ordered', 'regex': True,
-                   'order': ['av0?1', 'vp0?9.2', 'vp0?9', '[hx]265|he?vc?', '[hx]264|avc', 'vp0?8', 'mp4v|h263', 'theora', '', None, 'none']},
+                   'order': ['av0?1', 'vp0?9.0?2', 'vp0?9', '[hx]265|he?vc?', '[hx]264|avc', 'vp0?8', 'mp4v|h263', 'theora', '', None, 'none']},
         'acodec': {'type': 'ordered', 'regex': True,
                    'order': ['[af]lac', 'wav|aiff', 'opus', 'vorbis|ogg', 'aac', 'mp?4a?', 'mp3', 'ac-?4', 'e-?a?c-?3', 'ac-?3', 'dts', '', None, 'none']},
         'hdr': {'type': 'ordered', 'regex': True, 'field': 'dynamic_range',
