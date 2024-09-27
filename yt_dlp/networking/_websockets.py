@@ -33,8 +33,8 @@ if not websockets:
 import websockets.version
 
 websockets_version = tuple(map(int_or_none, websockets.version.version.split('.')))
-if websockets_version < (12, 0):
-    raise ImportError('Only websockets>=12.0 is supported')
+if websockets_version < (13, 0):
+    raise ImportError('Only websockets>=13.0 is supported')
 
 import websockets.sync.client
 from websockets.uri import parse_uri

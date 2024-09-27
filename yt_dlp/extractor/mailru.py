@@ -126,7 +126,7 @@ class MailRuIE(InfoExtractor):
         video_data = None
 
         # fix meta_url if missing the host address
-        if re.match(r'^\/\+\/', meta_url):
+        if re.match(r'\/\+\/', meta_url):
             meta_url = urljoin('https://my.mail.ru', meta_url)
 
         if meta_url:

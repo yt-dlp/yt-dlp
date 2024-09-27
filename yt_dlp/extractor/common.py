@@ -2077,7 +2077,7 @@ class InfoExtractor:
         has_drm = HlsFD._has_drm(m3u8_doc)
 
         def format_url(url):
-            return url if re.match(r'^https?://', url) else urllib.parse.urljoin(m3u8_url, url)
+            return url if re.match(r'https?://', url) else urllib.parse.urljoin(m3u8_url, url)
 
         if self.get_param('hls_split_discontinuity', False):
             def _extract_m3u8_playlist_indices(manifest_url=None, m3u8_doc=None):
@@ -2812,11 +2812,11 @@ class InfoExtractor:
                         base_url_e = element.find(_add_ns('BaseURL'))
                         if try_call(lambda: base_url_e.text) is not None:
                             base_url = base_url_e.text + base_url
-                            if re.match(r'^https?://', base_url):
+                            if re.match(r'https?://', base_url):
                                 break
                     if mpd_base_url and base_url.startswith('/'):
                         base_url = urllib.parse.urljoin(mpd_base_url, base_url)
-                    elif mpd_base_url and not re.match(r'^https?://', base_url):
+                    elif mpd_base_url and not re.match(r'https?://', base_url):
                         if not mpd_base_url.endswith('/'):
                             mpd_base_url += '/'
                         base_url = mpd_base_url + base_url
@@ -2906,7 +2906,7 @@ class InfoExtractor:
                         }
 
                     def location_key(location):
-                        return 'url' if re.match(r'^https?://', location) else 'path'
+                        return 'url' if re.match(r'https?://', location) else 'path'
 
                     if 'segment_urls' not in representation_ms_info and 'media' in representation_ms_info:
 

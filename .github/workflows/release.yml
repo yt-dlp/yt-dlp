@@ -204,7 +204,7 @@ jobs:
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -u
           git commit -m "Release ${{ env.version }}" \
-            -m "Created by: ${{ github.event.sender.login }}" -m ":ci skip all :ci run dl"
+            -m "Created by: ${{ github.event.sender.login }}" -m ":ci skip all"
           git push origin --force ${{ github.event.ref }}:release
 
       - name: Get target commitish
@@ -325,7 +325,7 @@ jobs:
               "(https://github.com/yt-dlp/yt-dlp-master-builds/releases/latest \"Master builds\")"' || '' }} > ./RELEASE_NOTES
           printf '\n\n' >> ./RELEASE_NOTES
           cat >> ./RELEASE_NOTES << EOF
-          #### A description of the various files are in the [README](https://github.com/${{ github.repository }}#release-files)
+          #### A description of the various files is in the [README](https://github.com/${{ github.repository }}#release-files)
           ---
           $(python ./devscripts/make_changelog.py -vv --collapsible)
           EOF
