@@ -21,6 +21,7 @@ from ..utils import (
     parse_filesize,
     parse_iso8601,
     parse_qs,
+    qualities,
     smuggle_url,
     str_or_none,
     traverse_obj,
@@ -146,6 +147,8 @@ class VimeoBaseInfoExtractor(InfoExtractor):
             })
 
         # TODO: fix handling of 308 status code returned for live archive manifest requests
+        QUALITIES = ('low', 'medium', 'high')
+        quality = qualities(QUALITIES)
         sep_pattern = r'/sep/video/'
         for files_type in ('hls', 'dash'):
             for cdn_name, cdn_data in (try_get(config_files, lambda x: x[files_type]['cdns']) or {}).items():
@@ -166,6 +169,11 @@ class VimeoBaseInfoExtractor(InfoExtractor):
                             m_url, video_id, 'mp4', live=is_live, m3u8_id=f_id,
                             note=f'Downloading {cdn_name} m3u8 information',
                             fatal=False)
+                        # m3u8 doesn't give audio bitrates; need to prioritize based on GROUP-ID
+                        # See: https://github.com/yt-dlp/yt-dlp/issues/10854
+                        for f in fmts:
+                            if mobj := re.search(rf'audio-({"|".join(QUALITIES)})', f['format_id']):
+                                f['quality'] = quality(mobj.group(1))
                         formats.extend(fmts)
                         self._merge_subtitles(subs, target=subtitles)
                     elif files_type == 'dash':
