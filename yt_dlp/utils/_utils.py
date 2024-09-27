@@ -214,7 +214,7 @@ def write_json_file(obj, fn):
 
 def find_xpath_attr(node, xpath, key, val=None):
     """ Find the xpath xpath[@key=val] """
-    assert re.match(r'^[a-zA-Z_-]+$', key)
+    assert re.fullmatch(r'[a-zA-Z_-]+', key)
     expr = xpath + (f'[@{key}]' if val is None else f"[@{key}='{val}']")
     return node.find(expr)
 
@@ -1231,7 +1231,7 @@ def unified_timestamp(date_str, day_first=True):
         date_str = date_str[:-len(m.group('tz'))]
 
     # Python only supports microseconds, so remove nanoseconds
-    m = re.search(r'^([0-9]{4,}-[0-9]{1,2}-[0-9]{1,2}T[0-9]{1,2}:[0-9]{1,2}:[0-9]{1,2}\.[0-9]{6})[0-9]+$', date_str)
+    m = re.fullmatch(r'([0-9]{4,}-[0-9]{1,2}-[0-9]{1,2}T[0-9]{1,2}:[0-9]{1,2}:[0-9]{1,2}\.[0-9]{6})[0-9]+', date_str)
     if m:
         date_str = m.group(1)
 
@@ -1249,7 +1249,7 @@ def determine_ext(url, default_ext='unknown_video'):
     if url is None or '.' not in url:
         return default_ext
     guess = url.partition('?')[0].rpartition('.')[2]
-    if re.match(r'^[A-Za-z0-9]+$', guess):
+    if re.fullmatch(r'[A-Za-z0-9]+', guess):
         return guess
     # Try extract ext from URLs like http://example.com/foo/bar.mp4/?download
     elif guess.rstrip('/') in KNOWN_EXTENSIONS:
@@ -1346,7 +1346,7 @@ def datetime_round(dt_, precision='day'):
 def hyphenate_date(date_str):
     """
     Convert a date in 'YYYYMMDD' format to 'YYYY-MM-DD' format"""
-    match = re.match(r'^(\d\d\d\d)(\d\d)(\d\d)$', date_str)
+    match = re.fullmatch(r'(\d\d\d\d)(\d\d)(\d\d)', date_str)
     if match is not None:
         return '-'.join(match.groups())
     else:
@@ -1802,7 +1802,7 @@ def parse_count(s):
 
     s = re.sub(r'^[^\d]+\s', '', s).strip()
 
-    if re.match(r'^[\d,.]+$', s):
+    if re.fullmatch(r'[\d,.]+', s):
         return str_to_int(s)
 
     _UNIT_TABLE = {
@@ -2073,7 +2073,7 @@ def parse_duration(s):
         if m:
             days, hours, mins, secs, ms = m.groups()
         else:
-            m = re.match(r'(?i)(?:(?P<hours>[0-9.]+)\s*(?:hours?)|(?P<mins>[0-9.]+)\s*(?:mins?\.?|minutes?)\s*)Z?$', s)
+            m = re.fullmatch(r'(?i)(?:(?P<hours>[0-9.]+)\s*(?:hours?)|(?P<mins>[0-9.]+)\s*(?:mins?\.?|minutes?)\s*)Z?', s)
             if m:
                 hours, mins = m.groups()
             else:
@@ -2683,7 +2683,7 @@ def parse_age_limit(s):
         return s if 0 <= s <= 21 else None
     elif not isinstance(s, str):
         return None
-    m = re.match(r'^(?P<age>\d{1,2})\+?$', s)
+    m = re.fullmatch(r'(?P<age>\d{1,2})\+?', s)
     if m:
         return int(m.group('age'))
     s = s.upper()
@@ -3333,11 +3333,11 @@ def parse_dfxp_time_expr(time_expr):
     if not time_expr:
         return
 
-    mobj = re.match(rf'^(?P<time_offset>{NUMBER_RE})s?$', time_expr)
+    mobj = re.fullmatch(rf'(?P<time_offset>{NUMBER_RE})s?', time_expr)
     if mobj:
         return float(mobj.group('time_offset'))
 
-    mobj = re.match(r'^(\d+):(\d\d):(\d\d(?:(?:\.|:)\d+)?)$', time_expr)
+    mobj = re.fullmatch(r'(\d+):(\d\d):(\d\d(?:(?:\.|:)\d+)?)', time_expr)
     if mobj:
         return 3600 * int(mobj.group(1)) + 60 * int(mobj.group(2)) + float(mobj.group(3).replace(':', '.'))
 
@@ -4839,7 +4839,7 @@ def determine_file_encoding(data):
     # Strip off all null bytes to match even when UTF-16 or UTF-32 is used.
     # We ignore the endianness to get a good enough match
     data = data.replace(b'\0', b'')
-    mobj = re.match(rb'(?m)^#\s*coding\s*:\s*(\S+)\s*$', data)
+    mobj = re.fullmatch(rb'(?m)#\s*coding\s*:\s*(\S+)\s*', data)
     return mobj.group(1).decode() if mobj else None, 0
 
 

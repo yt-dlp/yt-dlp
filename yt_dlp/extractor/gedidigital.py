@@ -169,7 +169,7 @@ class GediDigitalIE(InfoExtractor):
                             'vcodec': 'none',
                         })
                     else:
-                        mobj = re.match(r'^video-rrtv-(\d+)(?:-(\d+))?$', n)
+                        mobj = re.fullmatch(r'video-rrtv-(\d+)(?:-(\d+))?', n)
                         if mobj:
                             f.update({
                                 'height': int(mobj.group(1)),

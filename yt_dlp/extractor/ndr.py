@@ -123,7 +123,7 @@ class NDRIE(NDRBaseIE):
                 r'\bvar\s*sophoraID\s*=\s*(["\'])(?P<url>(?:(?!\1).)+)\1', webpage,
                 'embed URL', group='url', default=''))
         # some more work needed if we only found sophoraID
-        if re.match(r'^[a-z]+\d+$', embed_url):
+        if re.fullmatch(r'[a-z]+\d+', embed_url):
             # get the initial part of the url path,. eg /panorama/archiv/2022/
             parsed_url = urllib.parse.urlparse(url)
             path = self._search_regex(rf'(.+/){display_id}', parsed_url.path or '', 'embed URL', default='')

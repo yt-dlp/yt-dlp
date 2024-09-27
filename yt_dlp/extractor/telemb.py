@@ -48,7 +48,7 @@ class TeleMBIE(InfoExtractor):
                 'url': video_url,
                 'format_id': video_url.split(':')[0],
             }
-            rtmp = re.search(r'^(?P<url>rtmp://[^/]+/(?P<app>.+))/(?P<playpath>mp4:.+)$', video_url)
+            rtmp = re.fullmatch(r'(?P<url>rtmp://[^/]+/(?P<app>.+))/(?P<playpath>mp4:.+)', video_url)
             if rtmp:
                 fmt.update({
                     'play_path': rtmp.group('playpath'),

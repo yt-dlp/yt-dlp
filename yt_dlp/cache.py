@@ -22,7 +22,7 @@ class Cache:
         return expand_path(res)
 
     def _get_cache_fn(self, section, key, dtype):
-        assert re.match(r'^[\w.-]+$', section), f'invalid section {section!r}'
+        assert re.fullmatch(r'[\w.-]+', section), f'invalid section {section!r}'
         key = urllib.parse.quote(key, safe='').replace('%', ',')  # encode non-ascii characters
         return os.path.join(self._get_root_dir(), section, f'{key}.{dtype}')
 

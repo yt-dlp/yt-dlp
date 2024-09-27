@@ -53,7 +53,7 @@ class AluraIE(InfoExtractor):
                     video_url_m3u8, None, 'mp4', entry_protocol='m3u8_native',
                     m3u8_id='hls', fatal=False)
                 for f in video_format:
-                    m = re.search(r'^[\w \W]*-(?P<res>\w*).mp4[\W \w]*', f['url'])
+                    m = re.match(r'[\w \W]*-(?P<res>\w*).mp4[\W \w]*', f['url'])
                     if m:
                         if not f.get('height'):
                             f['height'] = int('720' if m.group('res') == 'hd' else '480')

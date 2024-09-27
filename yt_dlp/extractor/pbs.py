@@ -628,7 +628,7 @@ class PBSIE(InfoExtractor):
                     'url': format_url,
                     'format_id': redirect_id,
                 })
-                if re.search(r'^https?://.*(?:\d+k|baseline)', format_url):
+                if re.match(r'https?://.*(?:\d+k|baseline)', format_url):
                     http_url = format_url
         self._remove_duplicate_formats(formats)
         m3u8_formats = list(filter(

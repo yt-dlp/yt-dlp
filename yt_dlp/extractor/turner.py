@@ -163,7 +163,7 @@ class TurnerBaseIE(AdobePassIE):
                     if format_id.isdigit():
                         f['tbr'] = int(format_id)
                     else:
-                        mobj = re.match(r'ios_(audio|[0-9]+)$', format_id)
+                        mobj = re.fullmatch(r'ios_(audio|[0-9]+)', format_id)
                         if mobj:
                             if mobj.group(1) == 'audio':
                                 f.update({

@@ -110,7 +110,7 @@ class PhoenixIE(ZDFBaseIE):
             thumbnail = {
                 'url': thumbnail_url,
             }
-            m = re.match('^([0-9]+)x([0-9]+)$', thumbnail_key)
+            m = re.fullmatch('([0-9]+)x([0-9]+)', thumbnail_key)
             if m:
                 thumbnail['width'] = int(m.group(1))
                 thumbnail['height'] = int(m.group(2))

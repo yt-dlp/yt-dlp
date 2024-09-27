@@ -83,7 +83,7 @@ class WPPilotIE(WPPilotBaseIE):
 
     def _get_channel(self, id_or_slug):
         video_list, is_cached = self._get_channel_list(cache=True)
-        key = 'id' if re.match(r'^\d+$', id_or_slug) else 'slug'
+        key = 'id' if re.fullmatch(r'\d+', id_or_slug) else 'slug'
         for video in video_list:
             if video.get(key) == id_or_slug:
                 return self._parse_channel(video)

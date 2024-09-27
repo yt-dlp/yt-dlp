@@ -105,7 +105,7 @@ class CuriosityStreamIE(CuriosityStreamBaseIE):
                     if not f_url:
                         continue
                     fmt = f.copy()
-                    rtmp = re.search(r'^(?P<url>rtmpe?://(?P<host>[^/]+)/(?P<app>.+))/(?P<playpath>mp[34]:.+)$', f_url)
+                    rtmp = re.fullmatch(r'(?P<url>rtmpe?://(?P<host>[^/]+)/(?P<app>.+))/(?P<playpath>mp[34]:.+)', f_url)
                     if rtmp:
                         fmt.update({
                             'url': rtmp.group('url'),

@@ -25,7 +25,7 @@ class MetadataParserPP(PostProcessor):
 
     @staticmethod
     def field_to_template(tmpl):
-        if re.match(r'[a-zA-Z_]+$', tmpl):
+        if re.fullmatch(r'[a-zA-Z_]+', tmpl):
             return f'%({tmpl})s'
 
         from ..YoutubeDL import YoutubeDL
@@ -103,7 +103,7 @@ class MetadataParserPP(PostProcessor):
 class MetadataFromFieldPP(MetadataParserPP):
     @classmethod
     def to_action(cls, f):
-        match = re.match(r'(?s)(?P<in>.*?)(?<!\\):(?P<out>.+)$', f)
+        match = re.fullmatch(r'(?s)(?P<in>.*?)(?<!\\):(?P<out>.+)', f)
         if match is None:
             raise ValueError(f'it should be FROM:TO, not {f!r}')
         return (

@@ -65,7 +65,7 @@ class WallaIE(InfoExtractor):
                 'ext': 'flv',
                 'format_id': xpath_text(quality, './title'),
             }
-            m = re.search(r'^(?P<height>\d+)[Pp]', format_id)
+            m = re.match(r'(?P<height>\d+)[Pp]', format_id)
             if m:
                 fmt['height'] = int(m.group('height'))
             formats.append(fmt)

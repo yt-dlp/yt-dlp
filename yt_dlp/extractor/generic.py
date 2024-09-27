@@ -2345,7 +2345,7 @@ class GenericIE(InfoExtractor):
                     return self.url_result('http://' + url)
                 elif default_search != 'fixup_error':
                     if default_search == 'auto_warning':
-                        if re.match(r'^(?:url|URL)$', url):
+                        if re.fullmatch(r'(?:url|URL)', url):
                             raise ExtractorError(
                                 f'Invalid URL:  {url!r} . Call yt-dlp like this:  yt-dlp -v "https://www.youtube.com/watch?v=BaW_jenozKc"  ',
                                 expected=True)
@@ -2478,7 +2478,7 @@ class GenericIE(InfoExtractor):
                 info_dict['formats'], info_dict['subtitles'] = self._parse_ism_formats_and_subtitles(doc, url)
                 self.report_detected('ISM manifest')
                 return info_dict
-            elif re.match(r'^(?:{[^}]+})?smil$', doc.tag):
+            elif re.fullmatch(r'(?:{[^}]+})?smil', doc.tag):
                 smil = self._parse_smil(doc, url, video_id)
                 self.report_detected('SMIL file')
                 return smil
@@ -2489,7 +2489,7 @@ class GenericIE(InfoExtractor):
                         doc, video_id, xspf_url=url,
                         xspf_base_url=full_response.url),
                     video_id)
-            elif re.match(r'(?i)^(?:{[^}]+})?MPD$', doc.tag):
+            elif re.fullmatch(r'(?i)(?:{[^}]+})?MPD', doc.tag):
                 info_dict['formats'], info_dict['subtitles'] = self._parse_mpd_formats_and_subtitles(
                     doc,
                     mpd_base_url=full_response.url.rpartition('/')[0],
@@ -2497,7 +2497,7 @@ class GenericIE(InfoExtractor):
                 self._extra_manifest_info(info_dict, url)
                 self.report_detected('DASH manifest')
                 return info_dict
-            elif re.match(r'^{http://ns\.adobe\.com/f4m/[12]\.0}manifest$', doc.tag):
+            elif re.fullmatch(r'{http://ns\.adobe\.com/f4m/[12]\.0}manifest', doc.tag):
                 info_dict['formats'] = self._parse_f4m_formats(doc, url, video_id)
                 self.report_detected('F4M manifest')
                 return info_dict

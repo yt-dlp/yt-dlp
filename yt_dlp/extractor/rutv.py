@@ -154,7 +154,7 @@ class RUTVIE(InfoExtractor):
             for quality, url in links.items():
                 preference = -1 if priority_transport == transport else -2
                 if transport == 'rtmp':
-                    mobj = re.search(r'^(?P<url>rtmp://[^/]+/(?P<app>.+))/(?P<playpath>.+)$', url)
+                    mobj = re.fullmatch(r'(?P<url>rtmp://[^/]+/(?P<app>.+))/(?P<playpath>.+)', url)
                     if not mobj:
                         continue
                     fmt = {

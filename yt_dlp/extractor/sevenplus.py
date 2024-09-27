@@ -120,7 +120,7 @@ class SevenPlusIE(BrightcoveNewBaseIE):
                         info[dst_key] = value
                 info['series'] = try_get(
                     item, lambda x: x['seriesLogo']['name'], str)
-                mobj = re.search(r'^S(\d+)\s+E(\d+)\s+-\s+(.+)$', info['title'])
+                mobj = re.fullmatch(r'S(\d+)\s+E(\d+)\s+-\s+(.+)', info['title'])
                 if mobj:
                     info.update({
                         'season_number': int(mobj.group(1)),

@@ -66,7 +66,7 @@ class XstreamIE(InfoExtractor):
             if not media_url:
                 continue
             tbr = int_or_none(media_content.get('bitrate'))
-            mobj = re.search(r'^(?P<url>rtmp://[^/]+/(?P<app>[^/]+))/(?P<playpath>.+)$', media_url)
+            mobj = re.fullmatch(r'(?P<url>rtmp://[^/]+/(?P<app>[^/]+))/(?P<playpath>.+)', media_url)
             if mobj:
                 formats.append({
                     'url': mobj.group('url'),
