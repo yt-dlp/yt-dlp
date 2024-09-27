@@ -3463,7 +3463,7 @@ class InfoExtractor:
                 'age_limit': int_or_none(video_data.get('age_restriction')),
             }
             # https://github.com/jwplayer/jwplayer/blob/master/src/js/utils/validator.js#L32
-            if len(formats) == 1 and re.match(r'(?:http|//).*(?:youtube\.com|youtu\.be)/.+', formats[0]['url']):
+            if len(formats) == 1 and re.search(r'^(?:http|//).*(?:youtube\.com|youtu\.be)/.+', formats[0]['url']):
                 entry.update({
                     '_type': 'url_transparent',
                     'url': formats[0]['url'],

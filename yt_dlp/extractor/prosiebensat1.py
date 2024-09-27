@@ -133,7 +133,7 @@ class ProSiebenSat1BaseIE(InfoExtractor):
                     else:
                         tbr = fix_bitrate(source['bitrate'])
                         if protocol in ('rtmp', 'rtmpe'):
-                            mobj = re.fullmatch(r'(?P<url>rtmpe?://[^/]+)/(?P<path>.+)', source_url)
+                            mobj = re.search(r'^(?P<url>rtmpe?://[^/]+)/(?P<path>.+)$', source_url)
                             if not mobj:
                                 continue
                             path = mobj.group('path')

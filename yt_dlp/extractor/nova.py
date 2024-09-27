@@ -279,7 +279,7 @@ class NovaIE(InfoExtractor):
         mediafile = config['mediafile']
         video_url = mediafile['src']
 
-        m = re.fullmatch(r'(?P<url>rtmpe?://[^/]+/(?P<app>[^/]+?))/&*(?P<playpath>.+)', video_url)
+        m = re.search(r'^(?P<url>rtmpe?://[^/]+/(?P<app>[^/]+?))/&*(?P<playpath>.+)$', video_url)
         if m:
             formats = [{
                 'url': m.group('url'),

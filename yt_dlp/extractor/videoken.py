@@ -178,7 +178,7 @@ class VideoKenIE(VideoKenBaseIE):
         elif video_id.startswith('slideslive-'):
             return self.url_result(
                 self._create_slideslive_url(None, video_id, url), SlidesLiveIE, video_id)
-        elif re.fullmatch(r'[\w-]{11}', video_id):
+        elif re.match(r'^[\w-]{11}$', video_id):
             return self.url_result(video_id, 'Youtube', video_id)
         else:
             raise ExtractorError('Unable to extract without VideoKen API response')

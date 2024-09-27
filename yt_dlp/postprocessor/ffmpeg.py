@@ -155,7 +155,7 @@ class FFmpegPostProcessor(PostProcessor):
         if prog != 'ffmpeg' or not out:
             return ver, {}
 
-        mobj = re.match(r'(?m)\s+libavformat\s+(?:[0-9. ]+)\s+/\s+(?P<runtime>[0-9. ]+)', out)
+        mobj = re.search(r'(?m)^\s+libavformat\s+(?:[0-9. ]+)\s+/\s+(?P<runtime>[0-9. ]+)', out)
         lavf_runtime_version = mobj.group('runtime').replace(' ', '') if mobj else None
         self._features_cache[path] = features = {
             'fdk': '--enable-libfdk-aac' in out,

@@ -74,7 +74,7 @@ class HBOBaseIE(InfoExtractor):
                     'width': format_info.get('width'),
                     'height': height,
                 }
-                rtmp = re.fullmatch(r'(?P<url>rtmpe?://[^/]+/(?P<app>.+))/(?P<playpath>mp4:.+)', path)
+                rtmp = re.search(r'^(?P<url>rtmpe?://[^/]+/(?P<app>.+))/(?P<playpath>mp4:.+)$', path)
                 if rtmp:
                     fmt.update({
                         'url': rtmp.group('url'),

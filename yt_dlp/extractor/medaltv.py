@@ -115,7 +115,7 @@ class MedalTVIE(InfoExtractor):
         for k, v in clip.items():
             if not (v and isinstance(v, str)):
                 continue
-            mobj = re.fullmatch(r'(contentUrl|thumbnail)(?:(\d+)p)?', k)
+            mobj = re.match(r'(contentUrl|thumbnail)(?:(\d+)p)?$', k)
             if not mobj:
                 continue
             prefix = mobj.group(1)

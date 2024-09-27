@@ -120,7 +120,7 @@ class LimelightBaseIE(InfoExtractor):
                     })
                 else:
                     fmt['vcodec'] = 'none'
-                rtmp = re.fullmatch(r'(?P<url>rtmpe?://(?P<host>[^/]+)/(?P<app>.+))/(?P<playpath>mp[34]:.+)', stream_url)
+                rtmp = re.search(r'^(?P<url>rtmpe?://(?P<host>[^/]+)/(?P<app>.+))/(?P<playpath>mp[34]:.+)$', stream_url)
                 if rtmp:
                     format_id = 'rtmp'
                     if stream.get('videoBitRate'):

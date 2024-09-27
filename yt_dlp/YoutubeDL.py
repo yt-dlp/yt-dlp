@@ -833,7 +833,7 @@ class YoutubeDL:
         # short YouTube ID starting with dash?
         idxs = [
             i for i, a in enumerate(argv)
-            if re.fullmatch(r'-[0-9A-Za-z_-]{10}', a)]
+            if re.match(r'^-[0-9A-Za-z_-]{10}$', a)]
         if idxs:
             correct_argv = (
                 ['yt-dlp']

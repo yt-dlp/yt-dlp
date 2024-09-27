@@ -88,7 +88,7 @@ class ZapiksIE(InfoExtractor):
                 'url': source.attrib['file'],
                 'format_id': format_id,
             }
-            m = re.match(r'(?P<height>\d+)[pP]', format_id)
+            m = re.search(r'^(?P<height>\d+)[pP]', format_id)
             if m:
                 f['height'] = int(m.group('height'))
             formats.append(f)

@@ -278,7 +278,7 @@ class CeskaTelevizeIE(InfoExtractor):
 
         def _fix_subtitle(subtitle):
             for line in subtitle.splitlines():
-                m = re.fullmatch(r'\s*([0-9]+);\s*([0-9]+)\s+([0-9]+)\s*', line)
+                m = re.match(r'^\s*([0-9]+);\s*([0-9]+)\s+([0-9]+)\s*$', line)
                 if m:
                     yield m.group(1)
                     start, stop = (_msectotimecode(int(t)) for t in m.groups()[1:])
