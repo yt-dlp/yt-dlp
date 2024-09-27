@@ -236,6 +236,35 @@ class TestFormatSelection(unittest.TestCase):
         downloaded = ydl.downloaded_info_dicts[0]
         self.assertEqual(downloaded['format_id'], 'vid-vcodec-dot')
 
+    def test_format_selection_by_vcodec_sort(self):
+        formats = [
+            {'format_id': 'av1-format', 'ext': 'mp4', 'vcodec': 'av1', 'acodec': 'none', 'url': TEST_URL},
+            {'format_id': 'vp9-hdr-format', 'ext': 'mp4', 'vcodec': 'vp09.02.50.10.01.09.18.09.00', 'acodec': 'none', 'url': TEST_URL},
+            {'format_id': 'vp9-sdr-format', 'ext': 'mp4', 'vcodec': 'vp09.00.50.08', 'acodec': 'none', 'url': TEST_URL},
+            {'format_id': 'h265-format', 'ext': 'mp4', 'vcodec': 'h265', 'acodec': 'none', 'url': TEST_URL},
+        ]
+        info_dict = _make_result(formats)
+
+        ydl = YDL({'format': 'bestvideo', 'format_sort': ['vcodec:vp9.2']})
+        ydl.process_ie_result(info_dict.copy())
+        downloaded = ydl.downloaded_info_dicts[0]
+        self.assertEqual(downloaded['format_id'], 'vp9-hdr-format')
+
+        ydl = YDL({'format': 'bestvideo', 'format_sort': ['vcodec:vp9']})
+        ydl.process_ie_result(info_dict.copy())
+        downloaded = ydl.downloaded_info_dicts[0]
+        self.assertEqual(downloaded['format_id'], 'vp9-sdr-format')
+
+        ydl = YDL({'format': 'bestvideo', 'format_sort': ['+vcodec:vp9.2']})
+        ydl.process_ie_result(info_dict.copy())
+        downloaded = ydl.downloaded_info_dicts[0]
+        self.assertEqual(downloaded['format_id'], 'vp9-hdr-format')
+
+        ydl = YDL({'format': 'bestvideo', 'format_sort': ['+vcodec:vp9']})
+        ydl.process_ie_result(info_dict.copy())
+        downloaded = ydl.downloaded_info_dicts[0]
+        self.assertEqual(downloaded['format_id'], 'vp9-sdr-format')
+
     def test_format_selection_string_ops(self):
         formats = [
             {'format_id': 'abc-cba', 'ext': 'mp4', 'url': TEST_URL},
