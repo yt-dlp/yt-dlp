@@ -10,7 +10,7 @@ from ..utils import (
 
 
 class YleAreenaIE(InfoExtractor):
-    _VALID_URL = r'https?://areena\.yle\.fi/(?P<id>[\d-]+)'
+    _VALID_URL = r'https?://areena\.yle\.fi/(?P<podcast>podcastit/)?(?P<id>[\d-]+)'
     _GEO_COUNTRIES = ['FI']
     _TESTS = [
         {
@@ -77,7 +77,7 @@ class YleAreenaIE(InfoExtractor):
     ]
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
+        video_id, is_podcast = self._match_valid_url(url).group('id', 'podcast')
         info = self._search_json_ld(self._download_webpage(url, video_id), video_id, default={})
         video_data = self._download_json(
             f'https://player.api.yle.fi/v1/preview/{video_id}.json?app_id=player_static_prod&app_key=8930d72170e48303cf5f3867780d549b',
@@ -103,8 +103,11 @@ class YleAreenaIE(InfoExtractor):
                     'name': sub.get('kind'),
                 })
 
-        kaltura_id = traverse_obj(video_data, ('data', 'ongoing_ondemand', 'kaltura', 'id'), expected_type=str)
-        if kaltura_id:
+        if is_podcast:
+            info_dict = {
+                'url': video_data['data']['ongoing_ondemand']['media_url'],
+            }
+        elif kaltura_id := traverse_obj(video_data, ('data', 'ongoing_ondemand', 'kaltura', 'id', {str})):
             info_dict = {
                 '_type': 'url_transparent',
                 'url': smuggle_url(f'kaltura:1955031:{kaltura_id}', {'source_url': url}),
@@ -114,13 +117,11 @@ class YleAreenaIE(InfoExtractor):
             formats, subs = self._extract_m3u8_formats_and_subtitles(
                 video_data['data']['ongoing_ondemand']['manifest_url'], video_id, 'mp4', m3u8_id='hls')
             self._merge_subtitles(subs, target=subtitles)
-            info_dict = {
-                'id': video_id,
-                'formats': formats,
-            }
+            info_dict = {'formats': formats}
 
         return {
             **info_dict,
+            'id': video_id,
             'title': (traverse_obj(video_data, ('data', 'ongoing_ondemand', 'title', 'fin'), expected_type=str)
                       or episode or info.get('title')),
             'description': description,
