@@ -6,8 +6,10 @@ import urllib.parse
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
+    update_url,
     update_url_query,
     url_basename,
+    urlencode_postdata,
 )
 
 
@@ -36,43 +38,58 @@ class DropboxIE(InfoExtractor):
         },
     ]
 
+    def _yield_decoded_parts(self, webpage):
+        for encoded in reversed(re.findall(r'registerStreamedPrefetch\s*\(\s*"[\w/+=]+"\s*,\s*"([\w/+=]+)"', webpage)):
+            yield base64.b64decode(encoded).decode('utf-8', 'ignore')
+
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
         video_id = mobj.group('id')
         webpage = self._download_webpage(url, video_id)
         fn = urllib.parse.unquote(url_basename(url))
         title = os.path.splitext(fn)[0]
-
         password = self.get_param('videopassword')
-        if (self._og_search_title(webpage) == 'Dropbox - Password Required'
-                or 'Enter the password for this link' in webpage):
 
+        for part in self._yield_decoded_parts(webpage):
+            if '/sm/password' in part:
+                webpage = self._download_webpage(
+                    update_url('https://www.dropbox.com/sm/password', query=part.partition('?')[2]), video_id)
+                break
+
+        if (self._og_search_title(webpage, default=None) == 'Dropbox - Password Required'
+                or 'Enter the password for this link' in webpage):
             if password:
-                content_id = self._search_regex(r'content_id=(.*?)["\']', webpage, 'content_id')
-                payload = f'is_xhr=true&t={self._get_cookies("https://www.dropbox.com").get("t").value}&content_id={content_id}&password={password}&url={url}'
                 response = self._download_json(
-                    'https://www.dropbox.com/sm/auth', video_id, 'POSTing video password', data=payload.encode(),
-                    headers={'content-type': 'application/x-www-form-urlencoded; charset=UTF-8'})
+                    'https://www.dropbox.com/sm/auth', video_id, 'POSTing video password',
+                    headers={'content-type': 'application/x-www-form-urlencoded; charset=UTF-8'},
+                    data=urlencode_postdata({
+                        'is_xhr': 'true',
+                        't': self._get_cookies('https://www.dropbox.com')['t'].value,
+                        'content_id': self._search_regex(r'content_id=([\w.+=/-]+)["\']', webpage, 'content id'),
+                        'password': password,
+                        'url': url,
+                    }))
 
                 if response.get('status') != 'authed':
-                    raise ExtractorError('Authentication failed!', expected=True)
-                webpage = self._download_webpage(url, video_id)
-            elif self._get_cookies('https://dropbox.com').get('sm_auth'):
-                webpage = self._download_webpage(url, video_id)
-            else:
+                    raise ExtractorError('Invalid password', expected=True)
+            elif not self._get_cookies('https://dropbox.com').get('sm_auth'):
                 raise ExtractorError('Password protected video, use --video-password <password>', expected=True)
+            webpage = self._download_webpage(url, video_id)
 
-        formats, subtitles, has_anonymous_download = [], {}, False
-        for encoded in reversed(re.findall(r'registerStreamedPrefetch\s*\(\s*"[\w/+=]+"\s*,\s*"([\w/+=]+)"', webpage)):
-            decoded = base64.b64decode(encoded).decode('utf-8', 'ignore')
+        formats, subtitles = [], {}
+        has_anonymous_download = False
+        thumbnail = None
+        for part in self._yield_decoded_parts(webpage):
             if not has_anonymous_download:
                 has_anonymous_download = self._search_regex(
-                    r'(anonymous:\tanonymous)', decoded, 'anonymous', default=False)
+                    r'(anonymous:\tanonymous)', part, 'anonymous', default=False)
             transcode_url = self._search_regex(
-                r'\n.(https://[^\x03\x08\x12\n]+\.m3u8)', decoded, 'transcode url', default=None)
+                r'\n.(https://[^\x03\x08\x12\n]+\.m3u8)', part, 'transcode url', default=None)
             if not transcode_url:
                 continue
             formats, subtitles = self._extract_m3u8_formats_and_subtitles(transcode_url, video_id, 'mp4')
+            thumbnail = self._search_regex(
+                r'(https://www\.dropbox\.com/temp_thumb_from_token/[\w/?&=]+)', part, 'thumbnail', default=None)
             break
 
         # downloads enabled we can get the original file
@@ -89,4 +106,5 @@ class DropboxIE(InfoExtractor):
             'title': title,
             'formats': formats,
             'subtitles': subtitles,
+            'thumbnail': thumbnail,
         }
