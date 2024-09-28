@@ -55,7 +55,7 @@ class SeleniumPageRenderingIE(InfoExtractor):
                             )
                         ).find_element(By.CSS_SELECTOR, 'source').get_attribute('src')
                         if display_id not in src:
-                            raise UnsupportedError(url)
+                            raise UnsupportedError(url_or_request)
                         break
                     except Exception:
                         pass
@@ -63,7 +63,7 @@ class SeleniumPageRenderingIE(InfoExtractor):
                     raise UnsupportedError(url_or_request)
                 return driver.page_source
             except SessionNotCreatedException:
-                time.sleep()
+                time.sleep(1)
             finally:
                 try:
                     if driver:
@@ -72,9 +72,8 @@ class SeleniumPageRenderingIE(InfoExtractor):
                     pass
         raise UnsupportedError(url_or_request)
 
-
     def _og_search_thumbnail(self, html, **kargs):
-        if not 'data-poster="' in html:
+        if 'data-poster="' not in html:
             return kargs.get('default')
         return html.split('data-poster="')[1].split('"')[0]
 
