@@ -142,6 +142,7 @@ class BlueskyIE(InfoExtractor):
     def traverse_replies(self, thread_node, root_uri):
         post = thread_node.get('post')
         parent_uri = traverse_obj(post, ('record', 'reply', 'parent', 'uri'))
+        author_handle = traverse_obj(post, ('author', 'handle'))
         author_did = traverse_obj(post, ('author', 'did'), default='')
         yield {
             'id': post.get('uri'),
@@ -152,7 +153,7 @@ class BlueskyIE(InfoExtractor):
             'author': traverse_obj(post, ('author', 'displayName')),
             'author_id': author_did,
             'author_thumbnail': traverse_obj(post, ('author', 'avatar'), expected_type=url_or_none),
-            'author_url': f'https://bsky.app/profile/{traverse_obj(post, ('author', 'handle'))}',
+            'author_url': f'https://bsky.app/profile/{author_handle}',
             'author_is_uploader': 'Yes' if author_did in root_uri else 'No',
         }
         if replies := thread_node.get('replies'):
