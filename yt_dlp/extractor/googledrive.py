@@ -369,7 +369,7 @@ class GoogleDriveFolderIE(InfoExtractor):
                     self.raise_login_required('Access Denied!')
             raise
         if urllib.parse.urlparse(urlh.url).netloc == 'accounts.google.com':
-            self.raise_login_required('This video is only available for registered users')
+            self.raise_login_required('Access Denied!')
 
         json_folder_info = (
             self._extract_json_meta(webpage, folder_id, dsval=0, name='folder info', default=None)
