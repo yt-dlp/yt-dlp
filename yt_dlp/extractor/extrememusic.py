@@ -89,7 +89,7 @@ class ExtremeMusicBaseIE(InfoExtractor):
                                                                                       'preview_url_hls'))):
                                 if determine_ext(audio_url) == 'm3u8':
                                     m3u8_url = re.sub(r'\.m3u8\?.*', '/HLS/128_v4.m3u8', audio_url)
-                                    for f in self._extract_m3u8_formats(m3u8_url, sound_id, 'mpeg', fatal=False):
+                                    for f in self._extract_m3u8_formats(m3u8_url, sound_id, 'm4a', fatal=False):
                                         formats.append({
                                             **f,
                                             'vcodec': 'none',
@@ -208,8 +208,8 @@ class ExtremeMusicIE(ExtremeMusicBaseIE):
 
     def _real_extract(self, url):
         album_id, track_id, version_id = self._match_valid_url(url).group('album', 'id', 'ver')
-        self._initialize(url, track_id or version_id, self.get_param('geo_bypass_country') or 'DE')
-        album_data = self._get_album_data(album_id, track_id or version_id)
+        self._initialize(url, version_id or track_id, self.get_param('geo_bypass_country') or 'DE')
+        album_data = self._get_album_data(album_id, version_id or track_id)
         if result := self._extract_track(album_data, track_id, version_id):
             return result
         else:
