@@ -33,7 +33,7 @@ class SponsorBlockPP(FFmpegPostProcessor):
     def __init__(self, downloader, categories=None, api='https://sponsor.ajay.app'):
         FFmpegPostProcessor.__init__(self, downloader)
         self._categories = tuple(categories or self.CATEGORIES.keys())
-        self._API_URL = api if re.match('^https?://', api) else 'https://' + api
+        self._API_URL = api if re.match('https?://', api) else 'https://' + api
 
     def run(self, info):
         extractor = info['extractor_key']

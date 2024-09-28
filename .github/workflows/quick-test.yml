@@ -15,8 +15,9 @@ jobs:
       with:
         python-version: '3.8'
     - name: Install test requirements
-      run: python3 ./devscripts/install_deps.py --include test
+      run: python3 ./devscripts/install_deps.py -o --include test
     - name: Run tests
+      timeout-minutes: 15
       run: |
         python3 -m yt_dlp -v || true
         python3 ./devscripts/run_tests.py core
