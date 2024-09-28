@@ -54,6 +54,17 @@ class GoogleDriveIE(InfoExtractor):
             'thumbnail': 'https://drive.google.com/thumbnail?id=1IP0o8dHcQrIHGgVyp0Ofvx2cGfLzyO1x',
         },
     }, {
+        # shortcut url
+        'url': 'https://drive.google.com/file/d/1_n3-8ZwEUV4OniMsLAJ_C1JEjuT2u5Pk/view?usp=drivesdk',
+        'md5': '43d34f7be1acc0262f337a039d1ad12d',
+        'info_dict': {
+            'id': '1J1RCw2jcgUngrZRdpza-IHXYkardZ-4l',
+            'ext': 'webm',
+            'title': 'Forrest walk with Best Mind Refresh Music Mithran [tEvJKrE4cS0].webm',
+            'duration': 512,
+            'thumbnail': 'https://drive.google.com/thumbnail?id=1J1RCw2jcgUngrZRdpza-IHXYkardZ-4l',
+        },
+    }, {
         # video can't be watched anonymously due to view count limit reached,
         # but can be downloaded (see https://github.com/ytdl-org/youtube-dl/issues/14046)
         'url': 'https://drive.google.com/file/d/0B-vUyvmDLdWDcEt4WjBqcmI2XzQ/view',
@@ -306,7 +317,7 @@ class GoogleDriveFolderIE(InfoExtractor):
     }, {
         'note': 'Contains various formats and a subfolder, folder name was formerly mismatched.'
                 'also contains loop shortcut, shortcut to non-downloadable files, etc.',
-        'url': 'https://drive.google.com/drive/folders/1jjrhqi94d8TSHSVMSdBjD49MOiHYpHfF',
+        'url': 'https://docs.google.com/drive/folders/1jjrhqi94d8TSHSVMSdBjD49MOiHYpHfF',
         'info_dict': {
             'id': '1jjrhqi94d8TSHSVMSdBjD49MOiHYpHfF',
             'title': '], sideChannel: {}});',
