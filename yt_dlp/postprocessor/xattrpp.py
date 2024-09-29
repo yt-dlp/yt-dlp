@@ -33,8 +33,8 @@ class XAttrMetadataPP(PostProcessor):
         'user.dublincore.format': 'format',
         # We do this last because it may get us close to the xattr limits
         # (e.g., 4kB on ext4), and we don't want to have the other ones fail
-        # because of that.
         'user.dublincore.description': 'description',
+        # 'user.xdg.comment': 'description',
     }
 
     def run(self, info):
