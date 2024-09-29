@@ -306,7 +306,7 @@ class GoogleDriveIE(InfoExtractor):
 
 class GoogleDriveFolderIE(InfoExtractor):
     IE_NAME = 'GoogleDrive:Folder'
-    _VALID_URL = r'https?://(?:docs|drive)\.google\.com/drive/(?:folders/(?P<id>[\w-]{28,})|my-drive)'
+    _VALID_URL = r'https?://(?:docs|drive)\.google\.com/drive/(?:folders/(?P<id>[\w-]{19,})|my-drive)'
     _TESTS = [{
         'url': 'https://drive.google.com/drive/folders/1dQ4sx0-__Nvg65rxTSgQrl7VyW_FZ9QI',
         'info_dict': {
@@ -329,32 +329,36 @@ class GoogleDriveFolderIE(InfoExtractor):
         """
         Uses regex to search for json metadata with 'ds' value(0-5) or 'hash' value(1-6)
         from the webpage.
-        Folder info: ds=0, hash=1; Folder items: ds=4(public folder)/5(private folder), hash=6.
+        Folder info: ds=0(public folder), hash=1/5;
+        Folder items: ds=4(logged out)/5(logged in), hash=6.
+            public, logged in     info:ds0hash1;      items:ds5hash6
+            public, logged out    info:ds0hash1;      items:ds4hash6
+            my-drive, logged in   info:ds0hash1/4;    items:ds5hash6
+            private, logged in    info:ds0hash1;      items:ds5hash6
         For example, if the webpage contains the line below, the empty data array
         can be got by passing dsval=3 or hashval=2 to this method.
             AF_initDataCallback({key: 'ds:3', hash: '2', data:[], sideChannel: {}});
         """
         _ARRAY_RE = r'\[(?s:.+)\]'
         _META_END_RE = r', sideChannel: \{\}\}\);'  # greedy match to deal with the 2nd test case
-        if dsval:
+        if dsval is not None:
             if not name:
                 name = f'webpage JSON metadata ds:{dsval}'
             return self._search_json(
                 rf'''key\s*?:\s*?(['"])ds:\s*?{dsval}\1,[^\[]*?data:''', webpage, name, video_id,
                 end_pattern=_META_END_RE, contains_pattern=_ARRAY_RE, **kwargs)
-        elif hashval:
+        elif hashval is not None:
             if not name:
                 name = f'webpage JSON metadata hash:{hashval}'
             return self._search_json(
                 rf'''hash\s*?:\s*?(['"]){hashval}\1,[^\[]*?data:''', webpage, name, video_id,
                 end_pattern=_META_END_RE, contains_pattern=_ARRAY_RE, **kwargs)
-        return None
 
     def _real_extract(self, url):
         def item_url_getter(item, video_id):
             if not isinstance(item, list):
                 return None
-            available_IEs = [GoogleDriveFolderIE, GoogleDriveIE]  # subfolder or item
+            available_IEs = (GoogleDriveFolderIE, GoogleDriveIE)  # subfolder or item
             if 'application/vnd.google-apps.shortcut' in item:  # extract real link
                 entry_url = traverse_obj(
                     item,
@@ -377,20 +381,17 @@ class GoogleDriveFolderIE(InfoExtractor):
                 if e.cause.status == 404:
                     self.raise_no_formats(e.cause.msg)
                 elif e.cause.status == 403:
-                    self.raise_login_required('Access Denied!')
+                    # logged in with an account without access
+                    self.raise_login_required('Access Denied')
             raise
         if urllib.parse.urlparse(urlh.url).netloc == 'accounts.google.com':
-            self.raise_login_required('Access Denied!')
+            # not logged in when visiting a private folder
+            self.raise_login_required('Access Denied')
 
-        json_folder_info = (
-            self._extract_json_meta(webpage, folder_id, dsval=0, name='folder info', default=None)
-            or self._extract_json_meta(webpage, folder_id, hashval=1, name='folder info - fallback')
-        )
-        json_items = self._extract_json_meta(webpage, folder_id, hashval=6, name='folder items')
+        title = self._extract_json_meta(webpage, folder_id, dsval=0, name='folder info')[1][2]
+        items = self._extract_json_meta(webpage, folder_id, hashval=6, name='folder items')[-1]
 
-        title = json_folder_info[1][2]
-        items = json_items[-1]
-        if not isinstance(items, list):  # empty folder
+        if items is False:  # empty folder
             return self.playlist_result([], folder_id, title)
 
         return self.playlist_result(
