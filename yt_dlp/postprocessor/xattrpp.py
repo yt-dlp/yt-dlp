@@ -26,7 +26,6 @@ class XAttrMetadataPP(PostProcessor):
 
     XATTR_MAPPING = {
         'user.xdg.referrer.url': 'webpage_url',
-        # 'user.xdg.comment': 'description',
         'user.dublincore.title': 'title',
         'user.dublincore.date': 'upload_date',
         'user.dublincore.contributor': 'uploader',
