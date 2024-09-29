@@ -54,7 +54,7 @@ class XAttrMetadataPP(PostProcessor):
                 if e.reason == 'NO_SPACE':
                     self.report_warning(
                         'There\'s no disk space left, disk quota exceeded or filesystem xattr limit exceeded. '
-                        f'Extended attribute {xattrname} was not written.')
+                        f'Extended attribute "{xattrname}" was not written.')
                 elif e.reason == 'VALUE_TOO_LONG':
                     self.report_warning(f'Unable to write extended attribute {xattrname} due to too long values.')
                 else:
