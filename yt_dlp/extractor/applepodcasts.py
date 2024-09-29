@@ -1,10 +1,10 @@
 from .common import InfoExtractor
 from ..utils import (
     clean_podcast_url,
-    get_element_by_id,
+    int_or_none,
     parse_iso8601,
-    traverse_obj,
 )
+from ..utils.traversal import traverse_obj
 
 
 class ApplePodcastsIE(InfoExtractor):
@@ -54,9 +54,9 @@ class ApplePodcastsIE(InfoExtractor):
     def _real_extract(self, url):
         episode_id = self._match_id(url)
         webpage = self._download_webpage(url, episode_id)
-        server_data = self._parse_json(
-            get_element_by_id('serialized-server-data', webpage),
-            episode_id)[0]['data']
+        server_data = self._search_json(
+            r'<script [^>]*\bid=["\']serialized-server-data["\'][^>]*>', webpage,
+            'server data', episode_id, contains_pattern=r'\[{(?s:.+)}\]')[0]['data']
         model_data = traverse_obj(server_data, (
             'headerButtonItems', lambda _, v: v['$kind'] == 'bookmark' and v['modelType'] == 'EpisodeOffer',
             'model', {dict}, any))
@@ -66,9 +66,12 @@ class ApplePodcastsIE(InfoExtractor):
             **self._json_ld(
                 traverse_obj(server_data, ('seoData', 'schemaContent', {dict}))
                 or self._yield_json_ld(webpage, episode_id, fatal=False), episode_id, fatal=False),
-            'url': clean_podcast_url(model_data['streamUrl']),
-            'timestamp': parse_iso8601(model_data.get('releaseDate')),
-            'duration': model_data.get('duration'),
+            **traverse_obj(model_data, {
+                'title': ('title', {str}),
+                'url': ('streamUrl', {clean_podcast_url}),
+                'timestamp': ('releaseDate', {parse_iso8601}),
+                'duration': ('duration', {int_or_none}),
+            }),
             'thumbnail': self._og_search_thumbnail(webpage),
             'vcodec': 'none',
         }
