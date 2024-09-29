@@ -56,7 +56,7 @@ class XAttrMetadataPP(PostProcessor):
                         'There\'s no disk space left, disk quota exceeded or filesystem xattr limit exceeded. '
                         f'Extended attribute "{xattrname}" was not written.')
                 elif e.reason == 'VALUE_TOO_LONG':
-                    self.report_warning(f'Unable to write extended attribute {xattrname} due to too long values.')
+                    self.report_warning(f'Unable to write extended attribute "{xattrname}" due to too long values.')
                 else:
                     tip = ('You need to use NTFS' if compat_os_name == 'nt'
                            else 'You may have to enable them in your "/etc/fstab"')
