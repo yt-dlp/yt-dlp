@@ -80,6 +80,7 @@ static-analysis = [
 ]
 test = [
     "pytest~=8.1",
+    "pytest-rerunfailures~=14.0",
 ]
 pyinstaller = [
     "pyinstaller>=6.10.0",  # Windows temp cleanup fixed in 6.10.0
@@ -162,7 +163,6 @@ lint-fix = "ruff check --fix {args:.}"
 features = ["test"]
 dependencies = [
     "pytest-randomly~=3.15",
-    "pytest-rerunfailures~=14.0",
     "pytest-xdist[psutil]~=3.5",
 ]
 
