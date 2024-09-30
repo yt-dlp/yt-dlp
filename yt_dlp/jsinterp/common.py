@@ -67,6 +67,7 @@ class JSIDirector(JSIExec):
     ):
         self._downloader = downloader
         self._verbose = verbose
+        self._features = features
 
         jsi_keys = set(get_jsi_keys(only_include or _JSI_HANDLERS)) - set(get_jsi_keys(exclude))
         handler_classes = [_JSI_HANDLERS[key] for key in jsi_keys
@@ -124,8 +125,15 @@ class JSIDirector(JSIExec):
     #                 raise
     #     raise EvaluationError
 
-    def _get_handler_method(method_name: str):
+    def _get_handler_method(method_name: str, feature_params: dict):
+        assert all(feature in _ALL_FEATURES for feature in feature_params.values())
+
         def handler(self: JSIDirector, *args, **kwargs):
+            for name, feature in feature_params.items():
+                if name in kwargs and feature not in self._features:
+                    raise Exception(f'feature {feature} is required for using {name} params '
+                                    f'but not provided when instantiating {self.__class__.__name__}')
+
             unavailable: list[JSI] = []
             exceptions: list[tuple[JSI, Exception]] = []
             is_test = self._downloader.params.get('test', False)
@@ -172,8 +180,8 @@ class JSIDirector(JSIExec):
 
         return handler
 
-    execute = _get_handler_method('execute')
-    evaluate = _get_handler_method('evaluate')
+    execute = _get_handler_method('execute', {'html': 'dom'})
+    evaluate = _get_handler_method('evaluate', {'html': 'dom'})
 
 
 class JSI(abc.ABC):
