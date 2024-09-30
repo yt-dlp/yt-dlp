@@ -1,3 +1,4 @@
+import functools
 import itertools
 import urllib.parse
 
@@ -22,13 +23,19 @@ from ..utils import (
 
 
 class PatreonBaseIE(InfoExtractor):
-    USER_AGENT = 'Patreon/7.6.28 (Android; Android 11; Scale/2.10)'
+    @functools.cached_property
+    def patreon_user_agent(self):
+        # Patreon mobile UA is needed to avoid triggering Cloudflare anti-bot protection.
+        # Newer UA yields higher res m3u8 formats for locked posts, but gives 401 if not logged-in
+        if self._get_cookies('https://www.patreon.com/').get('session_id'):
+            return 'Patreon/72.2.28 (Android; Android 14; Scale/2.10)'
+        return 'Patreon/7.6.28 (Android; Android 11; Scale/2.10)'
 
     def _call_api(self, ep, item_id, query=None, headers=None, fatal=True, note=None):
         if headers is None:
             headers = {}
         if 'User-Agent' not in headers:
-            headers['User-Agent'] = self.USER_AGENT
+            headers['User-Agent'] = self.patreon_user_agent
         if query:
             query.update({'json-api-version': 1.0})
 
@@ -111,6 +118,7 @@ class PatreonIE(PatreonBaseIE):
             'comment_count': int,
             'channel_is_verified': True,
             'chapters': 'count:4',
+            'timestamp': 1423689666,
         },
         'params': {
             'noplaylist': True,
@@ -221,6 +229,7 @@ class PatreonIE(PatreonBaseIE):
             'thumbnail': r're:^https?://.+',
         },
         'params': {'skip_download': 'm3u8'},
+        'expected_warnings': ['Failed to parse XML: not well-formed'],
     }, {
         # multiple attachments/embeds
         'url': 'https://www.patreon.com/posts/holy-wars-solos-100601977',
@@ -326,8 +335,13 @@ class PatreonIE(PatreonBaseIE):
         if embed_url and (urlh := self._request_webpage(
                 embed_url, video_id, 'Checking embed URL', headers=headers,
                 fatal=False, errnote=False, expected_status=403)):
+            # Vimeo's Cloudflare anti-bot protection will return HTTP status 200 for 404, so we need
+            # to check for "Sorry, we couldn&amp;rsquo;t find that page" in the meta description tag
+            meta_description = clean_html(self._html_search_meta(
+                'description', self._webpage_read_content(urlh, embed_url, video_id, fatal=False), default=None))
             # Password-protected vids.io embeds return 403 errors w/o --video-password or session cookie
-            if urlh.status != 403 or VidsIoIE.suitable(embed_url):
+            if ((urlh.status != 403 and meta_description != 'Sorry, we couldn’t find that page')
+                    or VidsIoIE.suitable(embed_url)):
                 entries.append(self.url_result(smuggle_url(embed_url, headers)))
 
         post_file = traverse_obj(attributes, ('post_file', {dict}))
@@ -427,7 +441,7 @@ class PatreonCampaignIE(PatreonBaseIE):
             'title': 'Cognitive Dissonance Podcast',
             'channel_url': 'https://www.patreon.com/dissonancepod',
             'id': '80642',
-            'description': 'md5:eb2fa8b83da7ab887adeac34da6b7af7',
+            'description': r're:(?s).*We produce a weekly news podcast focusing on stories that deal with skepticism and religion.*',
             'channel_id': '80642',
             'channel': 'Cognitive Dissonance Podcast',
             'age_limit': 0,
@@ -445,7 +459,7 @@ class PatreonCampaignIE(PatreonBaseIE):
             'id': '4767637',
             'channel_id': '4767637',
             'channel_url': 'https://www.patreon.com/notjustbikes',
-            'description': 'md5:9f4b70051216c4d5c58afe580ffc8d0f',
+            'description': r're:(?s).*Not Just Bikes started as a way to explain why we chose to live in the Netherlands.*',
             'age_limit': 0,
             'channel': 'Not Just Bikes',
             'uploader_url': 'https://www.patreon.com/notjustbikes',
@@ -462,7 +476,7 @@ class PatreonCampaignIE(PatreonBaseIE):
             'id': '4243769',
             'channel_id': '4243769',
             'channel_url': 'https://www.patreon.com/secondthought',
-            'description': 'md5:69c89a3aba43efdb76e85eb023e8de8b',
+            'description': r're:(?s).*Second Thought is an educational YouTube channel.*',
             'age_limit': 0,
             'channel': 'Second Thought',
             'uploader_url': 'https://www.patreon.com/secondthought',
@@ -512,7 +526,7 @@ class PatreonCampaignIE(PatreonBaseIE):
 
         campaign_id, vanity = self._match_valid_url(url).group('campaign_id', 'vanity')
         if campaign_id is None:
-            webpage = self._download_webpage(url, vanity, headers={'User-Agent': self.USER_AGENT})
+            webpage = self._download_webpage(url, vanity, headers={'User-Agent': self.patreon_user_agent})
             campaign_id = self._search_nextjs_data(
                 webpage, vanity)['props']['pageProps']['bootstrapEnvelope']['pageBootstrap']['campaign']['data']['id']
 
