@@ -337,9 +337,11 @@ class PatreonIE(PatreonBaseIE):
                 fatal=False, errnote=False, expected_status=403)):
             # Vimeo's Cloudflare anti-bot protection will return HTTP status 200 for 404, so we need
             # to check for "Sorry, we couldn&amp;rsquo;t find that page" in the meta description tag
-            embed_page = self._webpage_read_content(urlh, embed_url, video_id, fatal=False)
+            meta_description = clean_html(self._html_search_meta(
+                'description', self._webpage_read_content(urlh, embed_url, video_id, fatal=False), default=None))
             # Password-protected vids.io embeds return 403 errors w/o --video-password or session cookie
-            if (urlh.status != 403 and 'find that page' not in embed_page) or VidsIoIE.suitable(embed_url):
+            if ((urlh.status != 403 and meta_description != 'Sorry, we couldn’t find that page')
+                    or VidsIoIE.suitable(embed_url)):
                 entries.append(self.url_result(smuggle_url(embed_url, headers)))
 
         post_file = traverse_obj(attributes, ('post_file', {dict}))
