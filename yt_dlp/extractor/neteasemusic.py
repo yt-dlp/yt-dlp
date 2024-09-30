@@ -34,7 +34,6 @@ class NetEaseMusicBaseIE(InfoExtractor):
         'sky',       # SVIP tier; 沉浸环绕声 (Surround Audio); flac
     )
     _API_BASE = 'http://music.163.com/api/'
-    _GEO_BYPASS = False
 
     @staticmethod
     def _kilo_or_none(value):
@@ -68,6 +67,8 @@ class NetEaseMusicBaseIE(InfoExtractor):
                 'MUSIC_U': ('MUSIC_U', {lambda i: i.value}),
             }),
         }
+        if self._x_forwarded_for_ip:
+            headers.setdefault('X-Real-IP', self._x_forwarded_for_ip)
         return self._download_json(
             urljoin('https://interface3.music.163.com/', f'/eapi{path}'), video_id,
             data=self._create_eapi_cipher(f'/api{path}', query_body, cookies), headers={
@@ -76,23 +77,20 @@ class NetEaseMusicBaseIE(InfoExtractor):
                 **headers,
             }, **kwargs)
 
-    def _call_player_api(self, song_id, level, headers={}):
+    def _call_player_api(self, song_id, level):
         return self._download_eapi_json(
             '/song/enhance/player/url/v1', song_id,
             {'ids': f'[{song_id}]', 'level': level, 'encodeType': 'flac'},
-            headers=headers, note=f'Downloading song URL info: level {level}')
+            note=f'Downloading song URL info: level {level}')
 
-    def _extract_formats(self, info, try_geo_bypass=False):
+    def _extract_formats(self, info):
         formats = []
         song_id = info['id']
-        headers = {'X-Real-IP': '118.88.88.88'} if try_geo_bypass else {}
         for level in self._LEVELS:
             song = traverse_obj(
-                self._call_player_api(song_id, level, headers=headers), ('data', lambda _, v: url_or_none(v['url']), any))
-            if not song:  # Media is not available due to removal or geo-restriction
-                if not try_geo_bypass:
-                    return self._extract_formats(info, try_geo_bypass=True)
-                break
+                self._call_player_api(song_id, level), ('data', lambda _, v: url_or_none(v['url']), any))
+            if not song:
+                break  # Media is not available due to removal or geo-restriction
             actual_level = song.get('level')
             if actual_level and actual_level != level:
                 if level in ('lossless', 'jymaster'):
