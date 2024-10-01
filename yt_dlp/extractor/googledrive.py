@@ -179,9 +179,16 @@ class GoogleDriveIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        _, webpage_urlh = self._download_webpage_handle(url, video_id)
+        try:
+            _, webpage_urlh = self._download_webpage_handle(url, video_id)
+        except ExtractorError as e:
+            if isinstance(e.cause, HTTPError):
+                if e.cause.status in (401, 403):
+                    self.raise_login_required('Access Denied')
+                raise
         if webpage_urlh.url != url:
-            return self.url_result(webpage_urlh.url)
+            url = webpage_urlh.url
+            video_id = self._match_id(url)
 
         video_info = urllib.parse.parse_qs(self._download_webpage(
             'https://drive.google.com/get_video_info',
@@ -378,7 +385,7 @@ class GoogleDriveFolderIE(InfoExtractor):
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError):
                 if e.cause.status == 404:
-                    self.raise_no_formats(e.cause.msg)
+                    self.raise_no_formats(e.cause.msg, expected=True)
                 elif e.cause.status == 403:
                     # logged in with an account without access
                     self.raise_login_required('Access Denied')
