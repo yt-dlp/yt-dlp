@@ -15,7 +15,7 @@ import re
 import traceback
 
 from .compat import compat_os_name
-from .cookies import SUPPORTED_BROWSERS, SUPPORTED_KEYRINGS
+from .cookies import SUPPORTED_BROWSERS, SUPPORTED_KEYRINGS, CookieLoadError
 from .downloader.external import get_external_downloader
 from .extractor import list_extractor_classes
 from .extractor.adobepass import MSO_INFO
@@ -1084,7 +1084,7 @@ def main(argv=None):
     _IN_CLI = True
     try:
         _exit(*variadic(_real_main(argv)))
-    except DownloadError:
+    except (CookieLoadError, DownloadError):
         _exit(1)
     except SameFileError as e:
         _exit(f'ERROR: {e}')
