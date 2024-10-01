@@ -97,13 +97,12 @@ class PiaLiveIE(InfoExtractor):
         player_tag_list = self._download_json(
             f'{self.PIA_LIVE_API_URL}/perf/player-tag-list/{program_code}', **api_kwargs,
             note='Fetching player tag list', errnote='Unable to fetch player tag list')
+        chat_room_url = None
         if self.get_param('getcomments'):
             chat_room_url = traverse_obj(self._download_json(
                 f'{self.PIA_LIVE_API_URL}/perf/chat-tag-list/{program_code}/{article_code}', **api_kwargs,
                 note='Fetching chat info', errnote='Unable to fetch chat info', fatal=False),
                 ('data', 'chat_one_tag', {extract_attributes}, 'src', {url_or_none}))
-        else:
-            chat_room_url = None
 
         return self.url_result(
             extract_attributes(player_tag_list['data']['movie_one_tag'])['src'], url_transparent=True,
@@ -114,7 +113,7 @@ class PiaLiveIE(InfoExtractor):
         if not chat_room_url:
             return
         if comment_page := self._download_webpage(
-                chat_room_url, video_id, headers={'Referer': f'{self.PLAYER_ROOT_URL}'},
+                chat_room_url, video_id, headers={'Referer': self.PLAYER_ROOT_URL},
                 note='Fetching comment page', errnote='Unable to fetch comment page', fatal=False):
             yield from traverse_obj(self._search_json(
                 r'var\s+_history\s*=', comment_page, 'comment list',
