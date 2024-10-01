@@ -439,7 +439,7 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
     --max-filesize SIZE             Abort download if filesize is larger than
                                     SIZE, e.g. 50k or 44.6M
     --date DATE                     Download only videos uploaded on this date.
-                                    The date can be "YYYYMMDD" or in the format 
+                                    The date can be "YYYYMMDD" or in the format
                                     [now|today|yesterday][-N[day|week|month|year]].
                                     E.g. "--date today-2weeks" downloads only
                                     videos uploaded on the same day two weeks ago
@@ -2278,8 +2278,8 @@ While these options are redundant, they are still expected to be used due to the
     --min-views COUNT                --match-filters "view_count >=? COUNT"
     --max-views COUNT                --match-filters "view_count <=? COUNT"
     --break-on-reject                Use --break-match-filters
-    --user-agent UA                  --add-header "User-Agent:UA"
-    --referer URL                    --add-header "Referer:URL"
+    --user-agent UA                  --add-headers "User-Agent:UA"
+    --referer URL                    --add-headers "Referer:URL"
     --playlist-start NUMBER          -I NUMBER:
     --playlist-end NUMBER            -I :NUMBER
     --playlist-reverse               -I ::-1
