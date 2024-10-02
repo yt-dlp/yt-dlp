@@ -44,7 +44,7 @@ class NoodleMagazineIE(InfoExtractor):
             return urljoin('https://adult.noodlemagazine.com', url_or_path)
 
         playlist_info = self._search_json(
-            r'window\.playlist\s*=\s*', webpage, video_id, 'playlist info')
+            r'window\.playlist\s*=', webpage, video_id, 'playlist info')
 
         formats = []
         for source in traverse_obj(playlist_info, ('sources', lambda _, v: v['file'])):
