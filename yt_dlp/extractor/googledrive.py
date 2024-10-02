@@ -336,11 +336,9 @@ class GoogleDriveFolderIE(InfoExtractor):
         """
         Uses regex to search for json metadata with 'ds' value(0-5) or 'hash' value(1-6)
         from the webpage.
-        Folder info: ds=0(public folder), hash=1/5;
-        Folder items: ds=4(logged out)/5(logged in), hash=6.
-            logged out  info:ds0hash1;          items:ds4hash6
-            logged in   info:ds0hash1;          items:ds5hash6
-            my-drive    info:ds0hash1/ds0hash4; items:ds5hash6
+            logged out  folder info:ds0hash1;          items:ds4hash6
+            logged in   folder info:ds0hash1;          items:ds5hash6
+            my-drive    folder info:ds0hash1/ds0hash4; items:ds5hash6
         For example, if the webpage contains the line below, the empty data array
         can be got by passing dsval=3 or hashval=2 to this method.
             AF_initDataCallback({key: 'ds:3', hash: '2', data:[], sideChannel: {}});
