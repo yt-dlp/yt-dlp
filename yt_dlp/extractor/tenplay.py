@@ -1,33 +1,31 @@
-import base64
-import datetime as dt
 import functools
 import itertools
 
 from .common import InfoExtractor
 from ..networking import HEADRequest
-from ..utils import int_or_none, traverse_obj, urlencode_postdata, urljoin
+from ..utils import int_or_none, traverse_obj, url_or_none, urljoin
 
 
 class TenPlayIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?10play\.com\.au/(?:[^/]+/)+(?P<id>tpv\d{6}[a-z]{5})'
     _NETRC_MACHINE = '10play'
     _TESTS = [{
-        'url': 'https://10play.com.au/neighbours/web-extras/season-39/nathan-borg-is-the-first-aussie-actor-with-a-cochlear-implant-to-join-neighbours/tpv210128qupwd',
+        'url': 'https://10play.com.au/neighbours/web-extras/season-41/heres-a-first-look-at-mischa-bartons-neighbours-debut/tpv230911hyxnz',
         'info_dict': {
-            'id': '6226844312001',
+            'id': '6336940246112',
             'ext': 'mp4',
-            'title': 'Nathan Borg Is The First Aussie Actor With A Cochlear Implant To Join Neighbours',
-            'alt_title': 'Nathan Borg Is The First Aussie Actor With A Cochlear Implant To Join Neighbours',
-            'description': 'md5:a02d0199c901c2dd4c796f1e7dd0de43',
-            'duration': 186,
-            'season': 'Season 39',
-            'season_number': 39,
+            'title': 'Here\'s A First Look At Mischa Barton\'s Neighbours Debut',
+            'alt_title': 'Here\'s A First Look At Mischa Barton\'s Neighbours Debut',
+            'description': 'Neighbours Premieres Monday, September 18 At 4:30pm On 10 And 10 Play And 6:30pm On 10 Peach',
+            'duration': 74,
+            'season': 'Season 41',
+            'season_number': 41,
             'series': 'Neighbours',
             'thumbnail': r're:https://.*\.jpg',
             'uploader': 'Channel 10',
             'age_limit': 15,
-            'timestamp': 1611810000,
-            'upload_date': '20210128',
+            'timestamp': 1694386800,
+            'upload_date': '20230910',
             'uploader_id': '2199827728001',
         },
         'params': {
@@ -35,21 +33,30 @@ class TenPlayIE(InfoExtractor):
         },
         'skip': 'Only available in Australia',
     }, {
-        'url': 'https://10play.com.au/todd-sampsons-body-hack/episodes/season-4/episode-7/tpv200921kvngh',
+        'url': 'https://10play.com.au/neighbours/episodes/season-42/episode-9107/tpv240902nzqyp',
         'info_dict': {
-            'id': '6192880312001',
+            'id': '9000000000091177',
             'ext': 'mp4',
-            'title': "Todd Sampson's Body Hack - S4 Ep. 2",
-            'description': 'md5:fa278820ad90f08ea187f9458316ac74',
+            'title': 'Neighbours - S42 Ep. 9107',
+            'alt_title': 'Thu 05 Sep',
+            'description': 'md5:37a1f4271be34b9ee2b533426a5fbaef',
+            'duration': 1388,
+            'episode': 'Episode 9107',
+            'episode_number': 9107,
+            'season': 'Season 42',
+            'season_number': 42,
+            'series': 'Neighbours',
+            'thumbnail': r're:https://.*\.jpg',
             'age_limit': 15,
-            'timestamp': 1600770600,
-            'upload_date': '20200922',
+            'timestamp': 1725517860,
+            'upload_date': '20240905',
             'uploader': 'Channel 10',
             'uploader_id': '2199827728001',
         },
         'params': {
             'skip_download': True,
         },
+        'skip': 'Only available in Australia',
     }, {
         'url': 'https://10play.com.au/how-to-stay-married/web-extras/season-1/terrys-talks-ep-1-embracing-change/tpv190915ylupc',
         'only_matching': True,
@@ -66,55 +73,42 @@ class TenPlayIE(InfoExtractor):
         'X': 18,
     }
 
-    def _get_bearer_token(self, video_id):
-        username, password = self._get_login_info()
-        if username is None or password is None:
-            self.raise_login_required('Your 10play account\'s details must be provided with --username and --password.')
-        _timestamp = dt.datetime.now().strftime('%Y%m%d000000')
-        _auth_header = base64.b64encode(_timestamp.encode('ascii')).decode('ascii')
-        data = self._download_json('https://10play.com.au/api/user/auth', video_id, 'Getting bearer token', headers={
-            'X-Network-Ten-Auth': _auth_header,
-        }, data=urlencode_postdata({
-            'email': username,
-            'password': password,
-        }))
-        return 'Bearer ' + data['jwt']['accessToken']
-
     def _real_extract(self, url):
         content_id = self._match_id(url)
         data = self._download_json(
             'https://10play.com.au/api/v1/videos/' + content_id, content_id)
-        headers = {}
 
-        if data.get('memberGated') is True:
-            _token = self._get_bearer_token(content_id)
-            headers = {'Authorization': _token}
-
-        _video_url = self._download_json(
-            data.get('playbackApiEndpoint'), content_id, 'Downloading video JSON',
-            headers=headers).get('source')
-        m3u8_url = self._request_webpage(HEADRequest(
-            _video_url), content_id).url
+        video_data = self._download_json(
+            f'https://vod.ten.com.au/api/videos/bcquery?command=find_videos_by_id&video_id={data["altId"]}',
+            content_id, 'Downloading video JSON')
+        m3u8_url = self._request_webpage(
+            HEADRequest(video_data['items'][0]['HLSURL']),
+            content_id, 'Checking stream URL').url
         if '10play-not-in-oz' in m3u8_url:
             self.raise_geo_restricted(countries=['AU'])
+        # Attempt to get a higher quality stream
+        m3u8_url = m3u8_url.replace(',150,75,55,0000', ',300,150,75,55,0000')
         formats = self._extract_m3u8_formats(m3u8_url, content_id, 'mp4')
 
         return {
+            'id': content_id,
             'formats': formats,
-            'subtitles': {'en': [{'url': data.get('captionUrl')}]} if data.get('captionUrl') else None,
-            'id': data.get('altId') or content_id,
-            'duration': data.get('duration'),
-            'title': data.get('subtitle'),
-            'alt_title': data.get('title'),
-            'description': data.get('description'),
-            'age_limit': self._AUS_AGES.get(data.get('classification')),
-            'series': data.get('tvShow'),
-            'season_number': int_or_none(data.get('season')),
-            'episode_number': int_or_none(data.get('episode')),
-            'timestamp': data.get('published'),
-            'thumbnail': data.get('imageUrl'),
+            'subtitles': {'en': [{'url': data['captionUrl']}]} if url_or_none(data.get('captionUrl')) else None,
             'uploader': 'Channel 10',
             'uploader_id': '2199827728001',
+            **traverse_obj(data, {
+                'id': ('altId', {str}),
+                'duration': ('duration', {int_or_none}),
+                'title': ('subtitle', {str}),
+                'alt_title': ('title', {str}),
+                'description': ('description', {str}),
+                'age_limit': ('classification', {self._AUS_AGES.get}),
+                'series': ('tvShow', {str}),
+                'season_number': ('season', {int_or_none}),
+                'episode_number': ('episode', {int_or_none}),
+                'timestamp': ('published', {int_or_none}),
+                'thumbnail': ('imageUrl', {url_or_none}),
+            }),
         }
 
 

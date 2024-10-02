@@ -217,6 +217,7 @@ from .bbc import (
     BBCCoUkIPlayerGroupIE,
     BBCCoUkPlaylistIE,
 )
+from .beacon import BeaconTvIE
 from .beatbump import (
     BeatBumpPlaylistIE,
     BeatBumpVideoIE,
@@ -731,6 +732,7 @@ from .genius import (
     GeniusIE,
     GeniusLyricsIE,
 )
+from .germanupa import GermanupaIE
 from .getcourseru import (
     GetCourseRuIE,
     GetCourseRuPlayerIE,
@@ -824,7 +826,10 @@ from .hungama import (
     HungamaIE,
     HungamaSongIE,
 )
-from .huya import HuyaLiveIE
+from .huya import (
+    HuyaLiveIE,
+    HuyaVideoIE,
+)
 from .hypem import HypemIE
 from .hypergryph import MonsterSirenHypergryphMusicIE
 from .hytale import HytaleIE
@@ -947,6 +952,7 @@ from .kick import (
 )
 from .kicker import KickerIE
 from .kickstarter import KickStarterIE
+from .kika import KikaIE
 from .kinja import KinjaEmbedIE
 from .kinopoisk import KinoPoiskIE
 from .kommunetv import KommunetvIE
@@ -1038,10 +1044,7 @@ from .livestream import (
     LivestreamShortenerIE,
 )
 from .livestreamfails import LivestreamfailsIE
-from .lnkgo import (
-    LnkGoIE,
-    LnkIE,
-)
+from .lnk import LnkIE
 from .loom import (
     LoomFolderIE,
     LoomIE,
@@ -1166,6 +1169,7 @@ from .mlb import (
 )
 from .mlssoccer import MLSSoccerIE
 from .mocha import MochaVideoIE
+from .mojevideo import MojevideoIE
 from .mojvideo import MojvideoIE
 from .monstercat import MonstercatIE
 from .motherless import (
@@ -1812,6 +1816,7 @@ from .screen9 import Screen9IE
 from .screencast import ScreencastIE
 from .screencastify import ScreencastifyIE
 from .screencastomatic import ScreencastOMaticIE
+from .screenrec import ScreenRecIE
 from .scrippsnetworks import (
     ScrippsNetworksIE,
     ScrippsNetworksWatchIE,
@@ -1822,6 +1827,7 @@ from .scte import (
     SCTECourseIE,
 )
 from .sejmpl import SejmIE
+from .sen import SenIE
 from .senalcolombia import SenalColombiaLiveIE
 from .senategov import (
     SenateGovIE,
@@ -1877,6 +1883,7 @@ from .slideshare import SlideshareIE
 from .slideslive import SlidesLiveIE
 from .slutload import SlutloadIE
 from .smotrim import SmotrimIE
+from .snapchat import SnapchatSpotlightIE
 from .snotr import SnotrIE
 from .sohu import (
     SohuIE,
@@ -2313,6 +2320,7 @@ from .videomore import (
     VideomoreVideoIE,
 )
 from .videopress import VideoPressIE
+from .vidflex import VidflexIE
 from .vidio import (
     VidioIE,
     VidioLiveIE,
