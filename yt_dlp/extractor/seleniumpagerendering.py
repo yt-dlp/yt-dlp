@@ -78,7 +78,7 @@ class SeleniumPageRenderingIE(InfoExtractor):
         return html.split('data-poster="')[1].split('"')[0]
 
     def _get_headers(self, url):
-        headers = DEFAULT_CONFIGURATION.get('headers')
+        headers = self.get_param('http_headers').copy() or DEFAULT_CONFIGURATION.get('headers')
         if headers:
             return headers
         url, smuggled_data = unsmuggle_url(url, {})
