@@ -8,7 +8,7 @@ from ..utils import (
     qualities,
     traverse_obj,
     unified_strdate,
-    xpath_text
+    xpath_text,
 )
 
 
@@ -28,7 +28,7 @@ class EuropaIE(InfoExtractor):
             'duration': 34,
             'view_count': int,
             'formats': 'mincount:3',
-        }
+        },
     }, {
         'url': 'http://ec.europa.eu/avservices/video/player.cfm?sitelang=en&ref=I107786',
         'only_matching': True,
@@ -41,11 +41,11 @@ class EuropaIE(InfoExtractor):
         video_id = self._match_id(url)
 
         playlist = self._download_xml(
-            'http://ec.europa.eu/avservices/video/player/playlist.cfm?ID=%s' % video_id, video_id)
+            f'http://ec.europa.eu/avservices/video/player/playlist.cfm?ID={video_id}', video_id)
 
         def get_item(type_, preference):
             items = {}
-            for item in playlist.findall('./info/%s/item' % type_):
+            for item in playlist.findall(f'./info/{type_}/item'):
                 lang, label = xpath_text(item, 'lg', default=None), xpath_text(item, 'label', default=None)
                 if lang and label:
                     items[lang] = label.strip()
@@ -77,7 +77,7 @@ class EuropaIE(InfoExtractor):
                 'url': video_url,
                 'format_id': lang,
                 'format_note': xpath_text(file_, './lglabel'),
-                'language_preference': language_preference(lang)
+                'language_preference': language_preference(lang),
             })
 
         return {
@@ -88,19 +88,20 @@ class EuropaIE(InfoExtractor):
             'upload_date': upload_date,
             'duration': duration,
             'view_count': view_count,
-            'formats': formats
+            'formats': formats,
         }
 
 
 class EuroParlWebstreamIE(InfoExtractor):
     _VALID_URL = r'''(?x)
-        https?://multimedia\.europarl\.europa\.eu/[^/#?]+/
-        (?:(?!video)[^/#?]+/[\w-]+_)(?P<id>[\w-]+)
+        https?://multimedia\.europarl\.europa\.eu/
+        (?:\w+/)?webstreaming/(?:[\w-]+_)?(?P<id>[\w-]+)
     '''
     _TESTS = [{
         'url': 'https://multimedia.europarl.europa.eu/pl/webstreaming/plenary-session_20220914-0900-PLENARY',
         'info_dict': {
             'id': '62388b15-d85b-4add-99aa-ba12ccf64f0d',
+            'display_id': '20220914-0900-PLENARY',
             'ext': 'mp4',
             'title': 'Plenary session',
             'release_timestamp': 1663139069,
@@ -108,7 +109,7 @@ class EuroParlWebstreamIE(InfoExtractor):
         },
         'params': {
             'skip_download': True,
-        }
+        },
     }, {
         # live webstream
         'url': 'https://multimedia.europarl.europa.eu/en/webstreaming/euroscola_20221115-1000-SPECIAL-EUROSCOLA',
@@ -120,16 +121,17 @@ class EuroParlWebstreamIE(InfoExtractor):
             'release_date': '20221115',
             'live_status': 'is_live',
         },
-        'skip': 'not live anymore'
+        'skip': 'not live anymore',
     }, {
         'url': 'https://multimedia.europarl.europa.eu/en/webstreaming/committee-on-culture-and-education_20230301-1130-COMMITTEE-CULT',
         'info_dict': {
             'id': '7355662c-8eac-445e-4bb9-08db14b0ddd7',
+            'display_id': '20230301-1130-COMMITTEE-CULT',
             'ext': 'mp4',
             'release_date': '20230301',
             'title': 'Committee on Culture and Education',
             'release_timestamp': 1677666641,
-        }
+        },
     }, {
         # live stream
         'url': 'https://multimedia.europarl.europa.eu/en/webstreaming/committee-on-environment-public-health-and-food-safety_20230524-0900-COMMITTEE-ENVI',
@@ -141,7 +143,20 @@ class EuroParlWebstreamIE(InfoExtractor):
             'release_timestamp': 1684911541,
             'live_status': 'is_live',
         },
-        'skip': 'Not live anymore'
+        'skip': 'Not live anymore',
+    }, {
+        'url': 'https://multimedia.europarl.europa.eu/en/webstreaming/20240320-1345-SPECIAL-PRESSER',
+        'info_dict': {
+            'id': 'c1f11567-5b52-470a-f3e1-08dc3c216ace',
+            'display_id': '20240320-1345-SPECIAL-PRESSER',
+            'ext': 'mp4',
+            'release_date': '20240320',
+            'title': 'md5:7c6c814cac55dea5e2d87bf8d3db2234',
+            'release_timestamp': 1710939767,
+        },
+    }, {
+        'url': 'https://multimedia.europarl.europa.eu/webstreaming/briefing-for-media-on-2024-european-elections_20240429-1000-SPECIAL-OTHER',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
@@ -155,7 +170,7 @@ class EuroParlWebstreamIE(InfoExtractor):
             query={
                 'api-version': 1.0,
                 'tenantId': 'bae646ca-1fc8-4363-80ba-2c04f06b4968',
-                'externalReference': display_id
+                'externalReference': display_id,
             })
 
         formats, subtitles = [], {}
@@ -166,9 +181,10 @@ class EuroParlWebstreamIE(InfoExtractor):
 
         return {
             'id': json_info['id'],
+            'display_id': display_id,
             'title': traverse_obj(webpage_nextjs, (('mediaItem', 'title'), ('title', )), get_all=False),
             'formats': formats,
             'subtitles': subtitles,
             'release_timestamp': parse_iso8601(json_info.get('startDateTime')),
-            'is_live': traverse_obj(webpage_nextjs, ('mediaItem', 'mediaSubType')) == 'Live'
+            'is_live': traverse_obj(webpage_nextjs, ('mediaItem', 'mediaSubType')) == 'Live',
         }

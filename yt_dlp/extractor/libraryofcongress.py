@@ -1,7 +1,6 @@
 import re
 
 from .common import InfoExtractor
-
 from ..utils import (
     determine_ext,
     float_or_none,
@@ -74,7 +73,7 @@ class LibraryOfCongressIE(InfoExtractor):
             webpage, 'media id', group='id')
 
         data = self._download_json(
-            'https://media.loc.gov/services/v1/media?id=%s&context=json' % media_id,
+            f'https://media.loc.gov/services/v1/media?id={media_id}&context=json',
             media_id)['mediaObject']
 
         derivative = data['derivatives'][0]

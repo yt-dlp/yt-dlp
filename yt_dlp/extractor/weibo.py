@@ -1,6 +1,6 @@
+import itertools
 import json
 import random
-import itertools
 import urllib.parse
 
 from .common import InfoExtractor
@@ -34,7 +34,7 @@ class WeiboBaseIE(InfoExtractor):
                     'browser': f'Chrome{chrome_ver},0,0,0',
                     'fonts': 'undefined',
                     'screenInfo': '1920*1080*24',
-                    'plugins': ''
+                    'plugins': '',
                 }, separators=(',', ':'))}))['data']
 
         self._download_webpage(
@@ -52,6 +52,7 @@ class WeiboBaseIE(InfoExtractor):
             })
 
     def _weibo_download_json(self, url, video_id, *args, fatal=True, note='Downloading JSON metadata', **kwargs):
+        # XXX: Always fatal; _download_webpage_handle only returns False (not a tuple) on error
         webpage, urlh = self._download_webpage_handle(url, video_id, *args, fatal=fatal, note=note, **kwargs)
         if urllib.parse.urlparse(urlh.url).netloc == 'passport.weibo.com':
             self._update_visitor_cookies(urlh.url, video_id)
@@ -90,7 +91,7 @@ class WeiboBaseIE(InfoExtractor):
                             'video_details', lambda _, v: v['label'].startswith(format_id), {
                                 'size': ('size', {int_or_none}),
                                 'tbr': ('bitrate', {int_or_none}),
-                            }
+                            },
                         ), get_all=False),
                     })
         return formats
@@ -162,7 +163,7 @@ class WeiboIE(WeiboBaseIE):
             'view_count': int,
             'like_count': int,
             'repost_count': int,
-        }
+        },
     }, {
         'url': 'https://weibo.com/0/4224132150961381',
         'note': 'no playback_list example',
@@ -185,7 +186,7 @@ class WeiboVideoIE(WeiboBaseIE):
             'ext': 'mp4',
             'display_id': 'LEZDodaiW',
             'title': '呃，稍微了解了一下靡烟miya，感觉这东西也太二了',
-            'description': '呃，稍微了解了一下靡烟miya，感觉这东西也太二了 http://t.cn/A6aerGsM ​​​',
+            'description': '呃，稍微了解了一下靡烟miya，感觉这东西也太二了 http://t.cn/A6aerGsM \u200b\u200b\u200b',
             'duration': 76,
             'timestamp': 1659344278,
             'upload_date': '20220801',
@@ -196,7 +197,7 @@ class WeiboVideoIE(WeiboBaseIE):
             'view_count': int,
             'like_count': int,
             'repost_count': int,
-        }
+        },
     }]
 
     def _real_extract(self, url):

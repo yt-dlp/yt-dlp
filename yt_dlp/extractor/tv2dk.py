@@ -82,7 +82,7 @@ class TV2DKIE(InfoExtractor):
 
         def add_entry(partner_id, kaltura_id):
             entries.append(self.url_result(
-                'kaltura:%s:%s' % (partner_id, kaltura_id), 'Kaltura',
+                f'kaltura:{partner_id}:{kaltura_id}', 'Kaltura',
                 video_id=kaltura_id))
 
         for video_el in re.findall(r'(?s)<[^>]+\bdata-entryid\s*=[^>]*>', webpage):
