@@ -7591,9 +7591,9 @@ class YoutubeTruncatedURLIE(InfoExtractor):
         raise ExtractorError(
             'Did you forget to quote the URL? Remember that & is a meta '
             'character in most shells, so you want to put the URL in quotes, '
-            'like  youtube-dl '
+            'like  yt-dlp '
             '"https://www.youtube.com/watch?feature=foo&v=BaW_jenozKc" '
-            ' or simply  youtube-dl BaW_jenozKc  .',
+            ' or simply  yt-dlp BaW_jenozKc  .',
             expected=True)
 
 
