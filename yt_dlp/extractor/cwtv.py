@@ -93,13 +93,12 @@ class CWTVIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         data = self._download_json(
-            'http://images.cwtv.com/feed/mobileapp/video-meta/apiversion_12/guid_' + video_id,
-            video_id)
+            f'https://images.cwtv.com/feed/mobileapp/video-meta/apiversion_12/guid_{video_id}', video_id)
         if data.get('result') != 'ok':
             raise ExtractorError(data['msg'], expected=True)
         video_data = data['video']
         title = video_data['title']
-        mpx_url = video_data.get('mpx_url') or f'http://link.theplatform.com/s/cwtv/media/guid/2703454149/{video_id}?formats=M3U'
+        mpx_url = video_data.get('mpx_url') or f'https://link.theplatform.com/s/cwtv/media/guid/2703454149/{video_id}?formats=M3U'
 
         season = str_or_none(video_data.get('season'))
         episode = str_or_none(video_data.get('episode'))
