@@ -1,6 +1,5 @@
 from .common import InfoExtractor
 from ..utils import (
-    determine_ext,
     float_or_none,
     int_or_none,
     strip_or_none,
@@ -15,7 +14,7 @@ class NZOnScreenIE(InfoExtractor):
         'url': 'https://www.nzonscreen.com/title/shoop-shoop-diddy-wop-cumma-cumma-wang-dang-1982',
         'info_dict': {
             'id': '726ed6585c6bfb30',
-            'ext': 'm3u8',
+            'ext': 'mp4',
             'format_id': 'hd',
             'display_id': 'shoop-shoop-diddy-wop-cumma-cumma-wang-dang-1982',
             'title': 'Monte Video - "Shoop Shoop, Diddy Wop"',
@@ -29,7 +28,7 @@ class NZOnScreenIE(InfoExtractor):
         'url': 'https://www.nzonscreen.com/title/shes-a-mod-1964?collection=best-of-the-60s',
         'info_dict': {
             'id': '3dbe709ff03c36f1',
-            'ext': 'm3u8',
+            'ext': 'mp4',
             'format_id': 'hd',
             'display_id': 'shes-a-mod-1964',
             'title': 'Ray Columbus - \'She\'s A Mod\'',
@@ -43,7 +42,7 @@ class NZOnScreenIE(InfoExtractor):
         'url': 'https://www.nzonscreen.com/title/puha-and-pakeha-1968/overview',
         'info_dict': {
             'id': 'f86342544385ad8a',
-            'ext': 'm3u8',
+            'ext': 'mp4',
             'format_id': 'hd',
             'display_id': 'puha-and-pakeha-1968',
             'title': 'Looking At New Zealand - Puha and Pakeha',
@@ -68,7 +67,7 @@ class NZOnScreenIE(InfoExtractor):
             yield {
                 'url': url,
                 'format_id': id_,
-                'ext': determine_ext(url),
+                'ext': 'mp4',
                 'quality': quality,
                 'height': int_or_none(playlist.get('height')) if id_ == 'hd' else None,
                 'width': int_or_none(playlist.get('width')) if id_ == 'hd' else None,
