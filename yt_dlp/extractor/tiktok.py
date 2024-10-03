@@ -542,15 +542,11 @@ class TikTokBaseIE(InfoExtractor):
                 **COMMON_FORMAT_INFO,
                 'format_id': 'download',
                 'url': self._proto_relative_url(download_url),
+                'format_note': 'watermarked',
+                'preference': -2,
             })
 
         self._remove_duplicate_formats(formats)
-
-        for f in traverse_obj(formats, lambda _, v: 'unwatermarked' not in v['url']):
-            f.update({
-                'format_note': join_nonempty(f.get('format_note'), 'watermarked', delim=', '),
-                'preference': f.get('preference') or -2,
-            })
 
         # Is it a slideshow with only audio for download?
         if not formats and traverse_obj(aweme_detail, ('music', 'playUrl', {url_or_none})):
@@ -565,7 +561,8 @@ class TikTokBaseIE(InfoExtractor):
                 'vcodec': 'none',
             })
 
-        return formats
+        # Filter out broken formats, see https://github.com/yt-dlp/yt-dlp/issues/11034
+        return [f for f in formats if urllib.parse.urlparse(f['url']).hostname != 'www.tiktok.com']
 
     def _parse_aweme_video_web(self, aweme_detail, webpage_url, video_id, extract_flat=False):
         author_info = traverse_obj(aweme_detail, (('authorInfo', 'author', None), {
