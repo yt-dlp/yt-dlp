@@ -1413,6 +1413,110 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                         },
                     ],
                 },
+            ), (
+                # Clear Key with CENC default_KID
+                'clearkey_cenc',
+                'https://media.axprod.net/TestVectors/v7-MultiDRM-SingleKey/Manifest_1080p_ClearKey.mpd',  # mpd_url
+                'https://media.axprod.net/TestVectors/v7-MultiDRM-SingleKey/',  # mpd_base_url
+                [{
+                    'manifest_url': 'https://media.axprod.net/TestVectors/v7-MultiDRM-SingleKey/Manifest_1080p_ClearKey.mpd',
+                    'ext': 'mp4',
+                    'format_id': '1',
+                    'format_note': 'DASH video',
+                    'protocol': 'http_dash_segments',
+                    'acodec': 'none',
+                    'vcodec': 'avc1.64001f',
+                    'tbr': 389.802,
+                    'width': 512,
+                    'height': 288,
+                    'dash_cenc': {
+                        'laurl': 'https://drm-clearkey-testvectors.axtest.net/AcquireLicense',
+                        'key_ids': ['9eb4050de44b4802932e27d75083e266'],
+                    },
+                }, {
+                    'manifest_url': 'https://media.axprod.net/TestVectors/v7-MultiDRM-SingleKey/Manifest_1080p_ClearKey.mpd',
+                    'ext': 'mp4',
+                    'format_id': '2',
+                    'format_note': 'DASH video',
+                    'protocol': 'http_dash_segments',
+                    'acodec': 'none',
+                    'vcodec': 'avc1.64001f',
+                    'tbr': 764.935,
+                    'width': 640,
+                    'height': 360,
+                    'dash_cenc': {
+                        'laurl': 'https://drm-clearkey-testvectors.axtest.net/AcquireLicense',
+                        'key_ids': ['9eb4050de44b4802932e27d75083e266'],
+                    },
+                }, {
+                    'manifest_url': 'https://media.axprod.net/TestVectors/v7-MultiDRM-SingleKey/Manifest_1080p_ClearKey.mpd',
+                    'ext': 'mp4',
+                    'format_id': '3',
+                    'format_note': 'DASH video',
+                    'protocol': 'http_dash_segments',
+                    'acodec': 'none',
+                    'vcodec': 'avc1.640028',
+                    'tbr': 1120.439,
+                    'width': 852,
+                    'height': 480,
+                    'dash_cenc': {
+                        'laurl': 'https://drm-clearkey-testvectors.axtest.net/AcquireLicense',
+                        'key_ids': ['9eb4050de44b4802932e27d75083e266'],
+                    },
+                }, {
+                    'manifest_url': 'https://media.axprod.net/TestVectors/v7-MultiDRM-SingleKey/Manifest_1080p_ClearKey.mpd',
+                    'ext': 'mp4',
+                    'format_id': '4',
+                    'format_note': 'DASH video',
+                    'protocol': 'http_dash_segments',
+                    'acodec': 'none',
+                    'vcodec': 'avc1.640032',
+                    'tbr': 1945.258,
+                    'width': 1280,
+                    'height': 720,
+                    'dash_cenc': {
+                        'laurl': 'https://drm-clearkey-testvectors.axtest.net/AcquireLicense',
+                        'key_ids': ['9eb4050de44b4802932e27d75083e266'],
+                    },
+                }, {
+                    'manifest_url': 'https://media.axprod.net/TestVectors/v7-MultiDRM-SingleKey/Manifest_1080p_ClearKey.mpd',
+                    'ext': 'mp4',
+                    'format_id': '5',
+                    'format_note': 'DASH video',
+                    'protocol': 'http_dash_segments',
+                    'acodec': 'none',
+                    'vcodec': 'avc1.640033',
+                    'tbr': 2726.377,
+                    'width': 1920,
+                    'height': 1080,
+                    'dash_cenc': {
+                        'laurl': 'https://drm-clearkey-testvectors.axtest.net/AcquireLicense',
+                        'key_ids': ['9eb4050de44b4802932e27d75083e266'],
+                    },
+                }],
+                {},
+            ), (
+                # default CENC KID overridden via W3C PSSH box, no license server in manifest
+                'w3c_pssh',
+                'https://unknown/manifest.mpd',  # mpd_url
+                'https://unknown/',  # mpd_base_url
+                [{
+                    'manifest_url': 'https://unknown/manifest.mpd',
+                    'ext': 'mp4',
+                    'format_id': '1',
+                    'format_note': 'DASH video',
+                    'protocol': 'http_dash_segments',
+                    'acodec': 'none',
+                    'vcodec': 'avc1.64001f',
+                    'tbr': 389.802,
+                    'width': 512,
+                    'height': 288,
+                    'dash_cenc': {
+                        'key_ids': ['43215678123412341234123412341234'],
+                    },
+                    'has_drm': True,
+                }],
+                {},
             ),
         ]
 
