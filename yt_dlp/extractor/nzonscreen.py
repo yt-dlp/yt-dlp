@@ -59,20 +59,35 @@ class NZOnScreenIE(InfoExtractor):
             'title': 'Flatmates - 1, First Episode',
         },
         'playlist_count': 5,
+    }, {
+        # hd format not present
+        'url': 'https://www.nzonscreen.com/title/reluctant-hero-2008',
+        'info_dict': {
+            'id': '847f5c91af65d44b',
+            'ext': 'mp4',
+            'format_id': 'hi',
+            'title': 'Reluctant Hero (clip 1)',
+            'description': 'Part one of four from this full length documentary.',
+            'display_id': 'reluctant-hero-2008',
+            'duration': 1108.0,
+            'thumbnail': r're:https://www\.nzonscreen\.com/content/images/.+\.jpg',
+        },
+        'params': {'skip_download': 'm3u8'},
     }]
 
     def _extract_formats(self, playlist):
         for quality, (id_, url) in enumerate(traverse_obj(
                 playlist, ('h264', {'lo': 'lo_res', 'hi': 'hi_res', 'hd': 'hd_res'}), expected_type=url_or_none).items()):
-            yield {
-                'url': url,
-                'format_id': id_,
-                'ext': 'mp4',
-                'quality': quality,
-                'height': int_or_none(playlist.get('height')) if id_ == 'hd' else None,
-                'width': int_or_none(playlist.get('width')) if id_ == 'hd' else None,
-                'filesize_approx': float_or_none(traverse_obj(playlist, ('h264', f'{id_}_res_mb')), invscale=1024**2),
-            }
+            if traverse_obj(playlist, ('h264', f'{id_}_res_mb', {float_or_none})):
+                yield {
+                    'url': url,
+                    'format_id': id_,
+                    'ext': 'mp4',
+                    'quality': quality,
+                    'height': int_or_none(playlist.get('height')) if id_ == 'hd' else None,
+                    'width': int_or_none(playlist.get('width')) if id_ == 'hd' else None,
+                    'filesize_approx': float_or_none(traverse_obj(playlist, ('h264', f'{id_}_res_mb')), invscale=1024**2),
+                }
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -83,6 +98,7 @@ class NZOnScreenIE(InfoExtractor):
         playlist = self._download_json(
             f'https://www.nzonscreen.com/html5/video_data/{video_id}', video_id, 'media data')
 
+        # TODO: extract subtitles
         if len(playlist) == 1:
             playinfo = playlist[0]
             return {
