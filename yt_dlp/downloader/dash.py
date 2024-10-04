@@ -1,8 +1,13 @@
+import base64
+import binascii
+import json
 import time
 import urllib.parse
 
 from . import get_suitable_downloader
 from .fragment import FragmentFD
+from ..networking import Request
+from ..networking.exceptions import RequestError
 from ..utils import ReExtractInfo, update_url_query, urljoin
 
 
@@ -65,6 +70,9 @@ class DashSegmentsFD(FragmentFD):
 
             args.append([ctx, fragments_to_download, fmt])
 
+        if 'dash_cenc' in info_dict and not info_dict['dash_cenc'].get('key'):
+            self._get_clearkey_cenc(info_dict)
+
         return self.download_and_append_fragments_multiple(*args, is_fatal=lambda idx: idx == 0)
 
     def _resolve_fragments(self, fragments, ctx):
@@ -93,3 +101,41 @@ class DashSegmentsFD(FragmentFD):
                 'index': i,
                 'url': fragment_url,
             }
+
+    def _get_clearkey_cenc(self, info_dict):
+        dash_cenc = info_dict.get('dash_cenc', {})
+        laurl = dash_cenc.get('laurl')
+        if not laurl:
+            self.report_error('No Clear Key license server URL for encrypted DASH stream')
+            return
+        key_ids = dash_cenc.get('key_ids')
+        if not key_ids:
+            self.report_error('No requested CENC KIDs for encrypted DASH stream')
+            return
+        payload = json.dumps({
+            'kids': [
+                base64.urlsafe_b64encode(bytes.fromhex(k)).decode().rstrip('=')
+                for k in key_ids
+            ],
+            'type': 'temporary',
+        }).encode()
+        try:
+            response = self.ydl.urlopen(Request(
+                laurl, data=payload, headers={'Content-Type': 'application/json'}))
+            data = json.loads(response.read())
+        except (RequestError, json.JSONDecodeError) as err:
+            self.report_error(f'Failed to retrieve key from Clear Key license server: {err}')
+            return
+        keys = data.get('keys', [])
+        if len(keys) > 1:
+            self.report_warning('Clear Key license server returned multiple keys but only single key CENC is supported')
+        for key in keys:
+            k = key.get('k')
+            if k:
+                try:
+                    dash_cenc['key'] = base64.urlsafe_b64decode(f'{k}==').hex()
+                    info_dict['dash_cenc'] = dash_cenc
+                    return
+                except (ValueError, binascii.Error):
+                    pass
+        self.report_error('Clear key license server did not return any valid CENC keys')
