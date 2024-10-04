@@ -9,7 +9,7 @@ from ..utils import (
 
 
 class NZOnScreenIE(InfoExtractor):
-    _VALID_URL = r'https?://www\.nzonscreen\.com/title/(?P<id>[^/?#]+)'
+    _VALID_URL = r'https?://www\.nzonscreen\.com/title/(?P<id>[^/?#]+)/?(?!series)'
     _TESTS = [{
         'url': 'https://www.nzonscreen.com/title/shoop-shoop-diddy-wop-cumma-cumma-wang-dang-1982',
         'info_dict': {
@@ -121,7 +121,7 @@ class NZOnScreenIE(InfoExtractor):
             self._html_extract_title(webpage, default=None)
             or self._og_search_title(webpage)).rsplit('|', 2)[0])
         playlist = self._download_json(
-            f'https://www.nzonscreen.com/html5/video_data/{video_id}', video_id, 'media data')
+            f'https://www.nzonscreen.com/html5/video_data/{video_id}', video_id, 'downloading media data')
 
         # TODO: extract subtitles
         if len(playlist) == 1:
