@@ -15,7 +15,9 @@ class NZOnScreenIE(InfoExtractor):
         'info_dict': {
             'id': '726ed6585c6bfb30',
             'ext': 'mp4',
-            'format_id': 'hd',
+            'format_id': 'hi',
+            'height': 480,
+            'width': 640,
             'display_id': 'shoop-shoop-diddy-wop-cumma-cumma-wang-dang-1982',
             'title': 'Monte Video - "Shoop Shoop, Diddy Wop"',
             'description': 'Monte Video - "Shoop Shoop, Diddy Wop"',
@@ -29,7 +31,9 @@ class NZOnScreenIE(InfoExtractor):
         'info_dict': {
             'id': '3dbe709ff03c36f1',
             'ext': 'mp4',
-            'format_id': 'hd',
+            'format_id': 'hi',
+            'height': 480,
+            'width': 640,
             'display_id': 'shes-a-mod-1964',
             'title': 'Ray Columbus - \'She\'s A Mod\'',
             'description': 'Ray Columbus - \'She\'s A Mod\'',
@@ -43,7 +47,9 @@ class NZOnScreenIE(InfoExtractor):
         'info_dict': {
             'id': 'f86342544385ad8a',
             'ext': 'mp4',
-            'format_id': 'hd',
+            'format_id': 'hi',
+            'height': 540,
+            'width': 718,
             'display_id': 'puha-and-pakeha-1968',
             'title': 'Looking At New Zealand - Puha and Pakeha',
             'alt_title': 'Looking at New Zealand - \'Pūhā and Pākehā\'',
@@ -54,40 +60,59 @@ class NZOnScreenIE(InfoExtractor):
         'params': {'skip_download': 'm3u8'},
     }, {
         'url': 'https://www.nzonscreen.com/title/flatmates-episode-one-1997',
+        'playlist': [{
+            'info_dict': {
+                'id': '8f4941d243e42210',
+                'ext': 'mp4',
+                'format_id': 'hd',
+                'height': 574,
+                'width': 740,
+                'title': 'Flatmates ep 1',
+                'display_id': 'flatmates-episode-one-1997',
+                'thumbnail': 'https://www.nzonscreen.com/content/images/0018/7894/Flatmates-key-image.jpg?v=1353474747',
+                'duration': 1355.0,
+                'description': 'Episode 1',
+            },
+        }],
         'info_dict': {
             'id': 'flatmates-episode-one-1997',
             'title': 'Flatmates - 1, First Episode',
         },
         'playlist_count': 5,
     }, {
-        # hd format not present
         'url': 'https://www.nzonscreen.com/title/reluctant-hero-2008',
         'info_dict': {
             'id': '847f5c91af65d44b',
             'ext': 'mp4',
             'format_id': 'hi',
+            'height': 360,
+            'width': 640,
             'title': 'Reluctant Hero (clip 1)',
             'description': 'Part one of four from this full length documentary.',
             'display_id': 'reluctant-hero-2008',
             'duration': 1108.0,
             'thumbnail': r're:https://www\.nzonscreen\.com/content/images/.+\.jpg',
         },
-        'params': {'skip_download': 'm3u8'},
     }]
 
     def _extract_formats(self, playlist):
+        formats = []
         for quality, (id_, url) in enumerate(traverse_obj(
                 playlist, ('h264', {'lo': 'lo_res', 'hi': 'hi_res', 'hd': 'hd_res'}), expected_type=url_or_none).items()):
             if traverse_obj(playlist, ('h264', f'{id_}_res_mb', {float_or_none})):
-                yield {
+                formats.append({
                     'url': url,
                     'format_id': id_,
                     'ext': 'mp4',
                     'quality': quality,
-                    'height': int_or_none(playlist.get('height')) if id_ == 'hd' else None,
-                    'width': int_or_none(playlist.get('width')) if id_ == 'hd' else None,
                     'filesize_approx': float_or_none(traverse_obj(playlist, ('h264', f'{id_}_res_mb')), invscale=1024**2),
-                }
+                })
+        if formats:
+            formats[-1].update({
+                'height': int_or_none(playlist.get('height')),
+                'width': int_or_none(playlist.get('width')),
+            })
+        return formats
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
