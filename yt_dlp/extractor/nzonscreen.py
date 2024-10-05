@@ -135,39 +135,20 @@ class NZOnScreenIE(InfoExtractor):
         playlist = self._download_json(
             f'https://www.nzonscreen.com/html5/video_data/{video_id}', video_id, 'Downloading media data')
 
-        if len(playlist) == 1:
-            playinfo = playlist[0]
-            return {
-                'alt_title': title,
-                'display_id': video_id,
-                'http_headers': {
-                    'Referer': 'https://www.nzonscreen.com/',
-                    'Origin': 'https://www.nzonscreen.com/',
-                },
-                'subtitles': self.extract_subtitles(playinfo, video_id),
-                **traverse_obj(playinfo, {
-                    'formats': {self._extract_formats},
-                    'id': 'uuid',
-                    'title': ('label', {strip_or_none}),
-                    'description': ('description', {strip_or_none}),
-                    'thumbnail': ('thumbnail', 'path'),
-                    'duration': ('duration', {float_or_none}),
-                }),
-            }
-        else:
-            return self.playlist_result([{
-                'display_id': video_id,
-                'http_headers': {
-                    'Referer': 'https://www.nzonscreen.com/',
-                    'Origin': 'https://www.nzonscreen.com/',
-                },
-                'subtitles': self.extract_subtitles(playinfo, video_id),
-                **traverse_obj(playinfo, {
-                    'formats': {self._extract_formats},
-                    'id': 'uuid',
-                    'title': ('label', {strip_or_none}),
-                    'description': ('description', {strip_or_none}),
-                    'thumbnail': ('thumbnail', 'path'),
-                    'duration': ('duration', {float_or_none}),
-                }),
-            } for playinfo in playlist], video_id, title)
+        return self.playlist_result([{
+            'alt_title': title if len(playlist) == 1 else None,
+            'display_id': video_id,
+            'http_headers': {
+                'Referer': 'https://www.nzonscreen.com/',
+                'Origin': 'https://www.nzonscreen.com/',
+            },
+            'subtitles': self.extract_subtitles(playinfo, video_id),
+            **traverse_obj(playinfo, {
+                'formats': {self._extract_formats},
+                'id': 'uuid',
+                'title': ('label', {strip_or_none}),
+                'description': ('description', {strip_or_none}),
+                'thumbnail': ('thumbnail', 'path'),
+                'duration': ('duration', {float_or_none}),
+            }),
+        } for playinfo in playlist], video_id, title)
