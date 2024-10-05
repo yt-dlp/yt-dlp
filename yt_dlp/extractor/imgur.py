@@ -277,7 +277,7 @@ class ImgurGalleryIE(ImgurGalleryBaseIE):
             'uploader': 'wittyusernamehere',
             'release_timestamp': 1358554297,
             'release_date': '20130119',
-            'uploader_url': 'https://i.imgur.com/u3R4I2S_d.png?maxwidth=290&fidelity=grand',
+            'uploader_url': 'https://i.imgur.com/N5Flb2v_d.png?maxwidth=290&fidelity=grand',
             'comment_count': int,
             'dislike_count': int,
             'like_count': int,
