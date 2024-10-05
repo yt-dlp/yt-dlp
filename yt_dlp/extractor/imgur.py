@@ -324,6 +324,13 @@ class ImgurGalleryIE(ImgurGalleryBaseIE):
         },
         'playlist_count': 3,
     }, {
+        'url': 'https://imgur.com/t/unmuted/penguins-penguins-6lAn9VQ',
+        'info_dict': {
+            'id': '6lAn9VQ',
+            'title': 'Penguins !',
+        },
+        'playlist_count': 3,
+    }, {
         'url': 'https://imgur.com/t/unmuted/kx2uD3C',
         'add_ies': ['Imgur'],
         'info_dict': {
