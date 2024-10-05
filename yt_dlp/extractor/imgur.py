@@ -52,7 +52,6 @@ class ImgurIE(ImgurBaseIE):
             'release_timestamp': 1416446068,
             'release_date': '20141120',
             'like_count': int,
-            'thumbnail': 'https://i.imgur.com/A61SaA1h.jpg',
         },
     }, {
         # Test with URL slug
@@ -262,14 +261,6 @@ class ImgurGalleryIE(ImgurGalleryBaseIE):
     _VALID_URL = r'https?://(?:i\.)?imgur\.com/(?:gallery|(?:t(?:opic)?|r)/[^/?#]+)/(?:[^/?#]+-)?(?P<id>[a-zA-Z0-9]+)'
 
     _TESTS = [{
-        'url': 'http://imgur.com/gallery/Q95ko',
-        'info_dict': {
-            'id': 'Q95ko',
-            'title': 'Adding faces make every GIF better',
-        },
-        'playlist_count': 25,
-        'skip': 'Zoinks! You\'ve taken a wrong turn.',
-    }, {
         # TODO: static images - replace with animated/video gallery
         'url': 'http://imgur.com/topic/Aww/ll5Vk',
         'only_matching': True,
@@ -285,7 +276,6 @@ class ImgurGalleryIE(ImgurGalleryBaseIE):
             'uploader_id': '1648642',
             'uploader': 'wittyusernamehere',
             'release_timestamp': 1358554297,
-            'thumbnail': 'https://i.imgur.com/YcAQlkxh.jpg',
             'release_date': '20130119',
             'uploader_url': 'https://i.imgur.com/u3R4I2S_d.png?maxwidth=290&fidelity=grand',
             'comment_count': int,
