@@ -73,7 +73,7 @@ class PiaLiveIE(InfoExtractor):
             date, time = self._search_regex(
                 r'(?P<date>\d{4}/\d{1,2}/\d{1,2})\([月火水木金土日]\)(?P<time>\d{2}:\d{2})',
                 start_info, 'start_info', fatal=False, group=('date', 'time'))
-            if all((date, time)):
+            if date and time:
                 release_timestamp_str = f'{date} {time} +09:00'
                 release_timestamp = unified_timestamp(release_timestamp_str)
                 self.raise_no_formats(f'The video will be available after {release_timestamp_str}', expected=True)
