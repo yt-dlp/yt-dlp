@@ -70,7 +70,7 @@ class NZOnScreenIE(InfoExtractor):
                 'width': 740,
                 'title': 'Flatmates ep 1',
                 'display_id': 'flatmates-episode-one-1997',
-                'thumbnail': 'https://www.nzonscreen.com/content/images/0018/7894/Flatmates-key-image.jpg?v=1353474747',
+                'thumbnail': r're:https://www\.nzonscreen\.com/content/images/.+\.jpg',
                 'duration': 1355.0,
                 'description': 'Episode 1',
             },
@@ -103,14 +103,16 @@ class NZOnScreenIE(InfoExtractor):
     def _extract_formats(self, playlist):
         formats = []
         for quality, (id_, url) in enumerate(traverse_obj(
-                playlist, ('h264', {'lo': 'lo_res', 'hi': 'hi_res', 'hd': 'hd_res'}), expected_type=url_or_none).items()):
+                playlist, ('h264', {'lo': 'lo_res', 'hi': 'hi_res', 'hd': 'hd_res'}),
+                expected_type=url_or_none).items()):
             if traverse_obj(playlist, ('h264', f'{id_}_res_mb', {float_or_none})):
                 formats.append({
                     'url': url,
                     'format_id': id_,
                     'ext': 'mp4',
                     'quality': quality,
-                    'filesize_approx': float_or_none(traverse_obj(playlist, ('h264', f'{id_}_res_mb')), invscale=1024**2),
+                    'filesize_approx': float_or_none(traverse_obj(
+                        playlist, ('h264', f'{id_}_res_mb')), invscale=1024**2),
                 })
         if formats:
             formats[-1].update(traverse_obj(playlist, {
@@ -133,7 +135,8 @@ class NZOnScreenIE(InfoExtractor):
             self._html_extract_title(webpage, default=None)
             or self._og_search_title(webpage)).rsplit('|', 2)[0])
         playlist = self._download_json(
-            f'https://www.nzonscreen.com/html5/video_data/{video_id}', video_id, 'Downloading media data')
+            f'https://www.nzonscreen.com/html5/video_data/{video_id}', video_id,
+            'Downloading media data')
 
         return self.playlist_result([{
             'alt_title': title if len(playlist) == 1 else None,
