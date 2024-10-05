@@ -5,6 +5,7 @@ from ..utils import (
     strip_or_none,
     traverse_obj,
     url_or_none,
+    urlhandle_detect_ext,
 )
 
 
@@ -87,12 +88,16 @@ class NZOnScreenIE(InfoExtractor):
             'format_id': 'hi',
             'height': 360,
             'width': 640,
+            'subtitles': {
+                'en': [{'ext': 'SRT', 'data': 'md5:c2469f71020a32e55e228b532ded908f'}],
+            },
             'title': 'Reluctant Hero (clip 1)',
             'description': 'Part one of four from this full length documentary.',
             'display_id': 'reluctant-hero-2008',
             'duration': 1108.0,
             'thumbnail': r're:https://www\.nzonscreen\.com/content/images/.+\.jpg',
         },
+        'params': {'writesubtitles': True},
     }]
 
     def _extract_formats(self, playlist):
@@ -108,11 +113,18 @@ class NZOnScreenIE(InfoExtractor):
                     'filesize_approx': float_or_none(traverse_obj(playlist, ('h264', f'{id_}_res_mb')), invscale=1024**2),
                 })
         if formats:
-            formats[-1].update({
-                'height': int_or_none(playlist.get('height')),
-                'width': int_or_none(playlist.get('width')),
-            })
+            formats[-1].update(traverse_obj(playlist, {
+                'height': ('height', {int_or_none}),
+                'width': ('width', {int_or_none}),
+            }))
         return formats
+
+    def _get_subtitles(self, playinfo, video_id):
+        if caption := traverse_obj(playinfo, ('h264', 'caption_url')):
+            subtitle, urlh = self._download_webpage_handle(
+                'https://www.nzonscreen.com' + caption, video_id, 'Downloading subtitles')
+            if subtitle:
+                return {'en': [{'ext': urlhandle_detect_ext(urlh), 'data': subtitle}]}
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -121,21 +133,21 @@ class NZOnScreenIE(InfoExtractor):
             self._html_extract_title(webpage, default=None)
             or self._og_search_title(webpage)).rsplit('|', 2)[0])
         playlist = self._download_json(
-            f'https://www.nzonscreen.com/html5/video_data/{video_id}', video_id, 'downloading media data')
+            f'https://www.nzonscreen.com/html5/video_data/{video_id}', video_id, 'Downloading media data')
 
-        # TODO: extract subtitles
         if len(playlist) == 1:
             playinfo = playlist[0]
             return {
                 'alt_title': title,
                 'display_id': video_id,
-                'formats': list(self._extract_formats(playinfo)),
                 'http_headers': {
                     'Referer': 'https://www.nzonscreen.com/',
                     'Origin': 'https://www.nzonscreen.com/',
                 },
+                'subtitles': self.extract_subtitles(playinfo, video_id),
                 **traverse_obj(playinfo, {
-                    'id': ('uuid'),
+                    'formats': {self._extract_formats},
+                    'id': 'uuid',
                     'title': ('label', {strip_or_none}),
                     'description': ('description', {strip_or_none}),
                     'thumbnail': ('thumbnail', 'path'),
@@ -145,13 +157,14 @@ class NZOnScreenIE(InfoExtractor):
         else:
             return self.playlist_result([{
                 'display_id': video_id,
-                'formats': list(self._extract_formats(playinfo)),
                 'http_headers': {
                     'Referer': 'https://www.nzonscreen.com/',
                     'Origin': 'https://www.nzonscreen.com/',
                 },
+                'subtitles': self.extract_subtitles(playinfo, video_id),
                 **traverse_obj(playinfo, {
-                    'id': ('uuid'),
+                    'formats': {self._extract_formats},
+                    'id': 'uuid',
                     'title': ('label', {strip_or_none}),
                     'description': ('description', {strip_or_none}),
                     'thumbnail': ('thumbnail', 'path'),
