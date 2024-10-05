@@ -1517,6 +1517,71 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'has_drm': True,
                 }],
                 {},
+            ), (
+                # DASH SEA with AES-128-CBC
+                'dash_sea',
+                'https://unknown/manifest.mpd',  # mpd_url
+                'https://unknown/',  # mpd_base_url
+                [{
+                    'manifest_url': 'https://unknown/manifest.mpd',
+                    'ext': 'm4a',
+                    'format_id': '5_A_aac_eng_2_127999_2_1_1',
+                    'format_note': 'DASH audio',
+                    'protocol': 'http_dash_segments',
+                    'acodec': 'mp4a.40.2',
+                    'vcodec': 'none',
+                    'tbr': 127.999,
+                    'hls_aes': {
+                        'uri': 'https://zavideoplatform.keydelivery.eastus.media.azure.net/?kid=9280864f-064e-48c0-97e0-f2bcb1d8d012',
+                        'iv': '0x7BD31E102B0CE9CCD39691782533656C',
+                    },
+                }, {
+                    'manifest_url': 'https://unknown/manifest.mpd',
+                    'ext': 'mp4',
+                    'format_id': '1_V_video_3',
+                    'format_note': 'DASH video',
+                    'protocol': 'http_dash_segments',
+                    'acodec': 'none',
+                    'vcodec': 'avc1.64001F',
+                    'tbr': 258.591,
+                    'width': 960,
+                    'height': 540,
+                    'hls_aes': {
+                        'uri': 'https://zavideoplatform.keydelivery.eastus.media.azure.net/?kid=9280864f-064e-48c0-97e0-f2bcb1d8d012',
+                        'iv': '0x7BD31E102B0CE9CCD39691782533656C',
+                    },
+                }, {
+                    'manifest_url': 'https://unknown/manifest.mpd',
+                    'ext': 'mp4',
+                    'format_id': '1_V_video_2',
+                    'format_note': 'DASH video',
+                    'protocol': 'http_dash_segments',
+                    'acodec': 'none',
+                    'vcodec': 'avc1.64001F',
+                    'tbr': 422.519,
+                    'width': 1280,
+                    'height': 720,
+                    'hls_aes': {
+                        'uri': 'https://zavideoplatform.keydelivery.eastus.media.azure.net/?kid=9280864f-064e-48c0-97e0-f2bcb1d8d012',
+                        'iv': '0x7BD31E102B0CE9CCD39691782533656C',
+                    },
+                }, {
+                    'manifest_url': 'https://unknown/manifest.mpd',
+                    'ext': 'mp4',
+                    'format_id': '1_V_video_1',
+                    'format_note': 'DASH video',
+                    'protocol': 'http_dash_segments',
+                    'acodec': 'none',
+                    'vcodec': 'avc1.640028',
+                    'tbr': 628.102,
+                    'width': 1920,
+                    'height': 1080,
+                    'hls_aes': {
+                        'uri': 'https://zavideoplatform.keydelivery.eastus.media.azure.net/?kid=9280864f-064e-48c0-97e0-f2bcb1d8d012',
+                        'iv': '0x7BD31E102B0CE9CCD39691782533656C',
+                    },
+                }],
+                {},
             ),
         ]
 

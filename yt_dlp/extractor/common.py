@@ -255,7 +255,9 @@ class InfoExtractor:
                     * hls_aes    A dictionary of HLS AES-128 decryption information
                                  used by the native HLS downloader to override the
                                  values in the media playlist when an '#EXT-X-KEY' tag
-                                 is present in the playlist:
+                                 is present in the playlist. Used by the native DASH downloader
+                                 when DASH-SEA with AES-128-CBC content protection is present
+                                 in the manifest.:
                                  * uri  The URI from which the key will be downloaded
                                  * key  The key (as hex) used to decrypt fragments.
                                         If `key` is given, any key URI will be ignored
@@ -277,7 +279,8 @@ class InfoExtractor:
                     * is_dash_periods  Whether the format is a result of merging
                                  multiple DASH periods.
                     * dash_cenc  A dictionary of DASH CENC decryption information
-                                 used by the native DASH downloader when set.
+                                 used by the native DASH downloader when MPEG CENC content protection
+                                 is present in the manifest.
                                  * laurl    The Clear Key license server URL from which
                                             CENC keys will be downloaded.
                                  * key_ids  List of key IDs (as hex) to request from the ClearKey
@@ -2856,10 +2859,11 @@ class InfoExtractor:
                 assert 'is_dash_periods' not in f, 'format already processed'
                 f['is_dash_periods'] = True
                 format_key = tuple(v for k, v in f.items() if k not in (
-                    ('format_id', 'fragments', 'manifest_stream_number', 'dash_cenc')))
-                if 'dash_cenc' in f:
-                    format_key = format_key + tuple(
-                        tuple(v) if isinstance(v, list) else v for v in f['dash_cenc'].values())
+                    ('format_id', 'fragments', 'manifest_stream_number', 'dash_cenc', 'hls_aes')))
+                for k in ('dash_cenc', 'hls_aes'):
+                    if k in f:
+                        format_key = format_key + tuple(
+                            tuple(v) if isinstance(v, list) else v for v in f[k].values())
                 if format_key not in formats:
                     formats[format_key] = f
                 elif 'fragments' in f:
@@ -2894,15 +2898,13 @@ class InfoExtractor:
             return self._xpath_ns(path, namespace)
 
         def extract_drm_info(element):
+            info = {}
             has_drm = False
-            cenc_info = {}
             for cp_e in element.findall(_add_ns('ContentProtection')):
                 has_drm = True
-                self._extract_mpd_content_protection_info(cp_e, cenc_info)
-            info = {'dash_cenc': cenc_info} if cenc_info else {}
-            if has_drm and not (
-                cenc_info.get('key') or cenc_info.get('laurl') and cenc_info.get('key_ids')
-            ):
+                self._extract_mpd_content_protection_info(cp_e, info)
+            cenc_info = info.get('dash_cenc', {})
+            if has_drm and not ('hls_aes' in info or cenc_info.get('key') or (cenc_info.get('laurl') and cenc_info.get('key_ids'))):
                 info['has_drm'] = True
             return info
 
@@ -3225,7 +3227,7 @@ class InfoExtractor:
                         period_entry['subtitles'][lang or 'und'].append(f)
             yield period_entry
 
-    def _extract_mpd_content_protection_info(self, cp_e, cenc_info):
+    def _extract_mpd_content_protection_info(self, cp_e, info):
         """
         Extract supported DASH-CENC parameters for an MPD ContentProtection element.
 
@@ -3235,13 +3237,16 @@ class InfoExtractor:
         from the manifest or when an extractor needs to process the optional data section in W3C
         PSSH boxes).
 
-        Note that the `has_drm` flag will be set for any format that does not meet one or more
-        of these conditions:
+        Note that after all ContentProtection elements have been handled, the `has_drm` flag
+        will be set for any format that does not meet one or more of these conditions:
 
-            * Both `laurl` and `key_ids` are set (indicating the native DASH downloader should
-               use the specified Clear Key server URL to retreive the CENC key for this format.
-            * `key_id` is set (indicating the native DASH downloader should use the specified
+            * `dash_cenc` is set and both `laurl` and `key_ids` are set (indicating the native
+               DASH downloader should use the specified Clear Key server URL to retreive the
                CENC key for this format).
+            * `dash_cenc` is set and `key` is set (indicating the native DASH downloader should
+               use the specified CENC key for this format).
+            * `hls_aes` is set (indicating the native DASH downloader should use DASH SEA
+              AES-128-CBC decryption for this format).
 
         References:
          1. DASH-IF Content Protection Identifiers
@@ -3252,6 +3257,7 @@ class InfoExtractor:
             https://w3c.github.io/encrypted-media/format-registry/initdata/cenc.html
         """
         scheme_id = cp_e.get('schemeIdUri')
+        cenc_info = info.get('dash_cenc', {})
         if scheme_id == 'urn:mpeg:dash:mp4protection:2011':
             if cp_e.get('value') == 'cenc':
                 # ISO/IEC 23009-1 MPEG Common Encryption (CENC)
@@ -3287,6 +3293,19 @@ class InfoExtractor:
                     cenc_info['key_ids'] = kids
                 except (ValueError, TypeError, struct.error):
                     pass
+        elif scheme_id == 'urn:mpeg:dash:sea:2012':
+            # ISO/IEC 23009-4 DASH Segment Encryption and Authentication (AES-128-CBC)
+            sea_ns = 'urn:mpeg:dash:schema:sea:2012'
+            se_e = cp_e.find(self._xpath_ns('SegmentEncryption', sea_ns))
+            ks_e = cp_e.find(self._xpath_ns('KeySystem', sea_ns))
+            crypto_e = cp_e.find(self._xpath_ns('CryptoPeriod', sea_ns))
+            if (se_e is not None and se_e.get('schemeIdUri') == 'urn:mpeg:dash:sea:aes128-cbc:2013'
+                    and ks_e is not None and ks_e.get('keySystemUri') == 'urn:mpeg:dash:sea:keysys:http:2013'
+                    and crypto_e is not None and crypto_e.get('keyUriTemplate') and crypto_e.get('IV')
+                    ):
+                info['hls_aes'] = {'uri': crypto_e.get('keyUriTemplate'), 'iv': crypto_e.get('IV')}
+        if cenc_info:
+            info['dash_cenc'] = cenc_info
 
     def _extract_ism_formats(self, *args, **kwargs):
         fmts, subs = self._extract_ism_formats_and_subtitles(*args, **kwargs)
