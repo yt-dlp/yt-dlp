@@ -720,7 +720,7 @@ class NRKTVSeasonIE(NRKTVSerieBaseIE):
         domain, serie_kind, serie = mobj.group('domain'), mobj.group('serie_kind'), mobj.group('serie')
         season_id = 'extramaterial' if 'ekstramateriale' in (mobj.group('id'), mobj.group('id_2')) else mobj.group('id') or mobj.group('id_2')
 
-        api_url = f'{domain}/catalog/{self._catalog_name(serie_kind)}/{serie}{'/seasons/' + season_id if season_id != 'extramaterial' else '/extramaterial'}'
+        api_url = f'{domain}/catalog/{self._catalog_name(serie_kind)}/{serie}{"/seasons/" if not season_id == "extramaterial" else "/extramaterial"}{season_id if not season_id == "extramaterial" else ""}'
 
         data = self._call_api(api_url, f'{serie}/{season_id}', 'season', query={'pageSize': 50})
         title = try_get(data, lambda x: x['titles']['title'], str) or f'{serie}/{season_id}'
