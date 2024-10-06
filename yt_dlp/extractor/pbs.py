@@ -188,7 +188,7 @@ class PBSIE(InfoExtractor):
            # Direct video URL
            (?:{})/(?:(?:vir|port)alplayer|video)/(?P<id>[0-9]+)(?:[?/]|$) |
            # Article with embedded player (or direct video)
-           (?:www\.)?pbs\.org/(?:[^/]+/){{1,5}}(?P<presumptive_id>[^/]+?)(?:\.html)?/?(?:$|[?\#]) |
+           (?:www\.)?(thirteen|pbs)\.org/(?:[^/]+/){{1,5}}(?P<presumptive_id>[^/]+?)(?:\.html)?/?(?:$|[?\#]) |
            # Player
            (?:video|player)\.pbs\.org/(?:widget/)?partnerplayer/(?P<player_id>[^/]+)
         )
@@ -197,6 +197,19 @@ class PBSIE(InfoExtractor):
     _GEO_COUNTRIES = ['US']
 
     _TESTS = [
+        {
+            'url': 'https://www.thirteen.org/programs/the-woodwrights-shop/carving-away-with-mary-may-tioglz/',
+            'info_dict': {
+                'id': '3004803331',
+                'ext': 'mp4',
+                'title': "The Woodwright's Shop - Carving Away with Mary May",
+                'description': 'md5:7cbaaaa8b9bcc78bd8f0e31911644e28',
+                'duration': 1606,
+                'display_id': 'carving-away-with-mary-may-tioglz',
+                'chapters': [],
+                'thumbnail': 'https://image.pbs.org/video-assets/NcnTxNl-asset-mezzanine-16x9-K0Keoyv.jpg',
+            },
+        },
         {
             'url': 'http://www.pbs.org/wgbh/pages/frontline/losing-iraq/',
             'md5': '372b12b670070de39438b946474df92f',
@@ -462,6 +475,7 @@ class PBSIE(InfoExtractor):
                 r"div\s*:\s*'videoembed'\s*,\s*mediaid\s*:\s*'(\d+)'",  # frontline video embed
                 r'class="coveplayerid">([^<]+)<',                       # coveplayer
                 r'<section[^>]+data-coveid="(\d+)"',                    # coveplayer from http://www.pbs.org/wgbh/frontline/film/real-csi/
+                r'.*class="passportcoveplayer"[^>]+data-media="(\d+)',  # https://www.thirteen.org/programs/the-woodwrights-shop/who-wrote-the-book-of-sloyd-fggvvq/
                 r'<input type="hidden" id="pbs_video_id_[0-9]+" value="([0-9]+)"/>',  # jwplayer
                 r"(?s)window\.PBS\.playerConfig\s*=\s*{.*?id\s*:\s*'([0-9]+)',",
                 r'<div[^>]+\bdata-cove-id=["\'](\d+)"',  # http://www.pbs.org/wgbh/roadshow/watch/episode/2105-indianapolis-hour-2/
