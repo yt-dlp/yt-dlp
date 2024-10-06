@@ -198,25 +198,24 @@ class PBSIE(InfoExtractor):
 
     _TESTS = [
         {
-            'url': 'http://www.pbs.org/tpt/constitution-usa-peter-sagal/watch/a-more-perfect-union/',
-            'md5': '173dc391afd361fa72eab5d3d918968d',
-            'info_dict': {
-                'id': '2365006249',
-                'ext': 'mp4',
-                'title': 'Constitution USA with Peter Sagal - A More Perfect Union',
-                'description': 'md5:31b664af3c65fd07fa460d306b837d00',
-                'duration': 3190,
-            },
-        },
-        {
             'url': 'http://www.pbs.org/wgbh/pages/frontline/losing-iraq/',
-            'md5': '6f722cb3c3982186d34b0f13374499c7',
+            'md5': '372b12b670070de39438b946474df92f',
             'info_dict': {
                 'id': '2365297690',
                 'ext': 'mp4',
                 'title': 'FRONTLINE - Losing Iraq',
                 'description': 'md5:5979a4d069b157f622d02bff62fbe654',
                 'duration': 5050,
+                'chapters': [
+                    {'start_time': 0.0, 'end_time': 1234.0, 'title': 'After Saddam, Chaos'},
+                    {'start_time': 1233.0, 'end_time': 1719.0, 'title': 'The Insurgency Takes Root'},
+                    {'start_time': 1718.0, 'end_time': 2461.0, 'title': 'A Light Footprint'},
+                    {'start_time': 2460.0, 'end_time': 3589.0, 'title': 'The Surge '},
+                    {'start_time': 3588.0, 'end_time': 4355.0, 'title': 'The Withdrawal '},
+                    {'start_time': 4354.0, 'end_time': 5051.0, 'title': 'ISIS on the March '},
+                ],
+                'display_id': 'losing-iraq',
+                'thumbnail': 'https://image.pbs.org/video-assets/pbs/frontline/138098/images/mezzanine_401.jpg',
             },
         },
         {
