@@ -1,17 +1,17 @@
 import itertools
+import json
 import random
 import re
-import json
 
 from .common import InfoExtractor
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     determine_ext,
+    float_or_none,
     int_or_none,
     parse_duration,
     parse_iso8601,
-    float_or_none,
     str_or_none,
     traverse_obj,
     try_get,
@@ -163,7 +163,7 @@ class NRKIE(NRKBaseIE):
         # known values for preferredCdn: akamai, iponly, minicdn and telenor
         manifest = self._call_api(f'playback/manifest/{video_id}', video_id, 'manifest', query={'preferredCdn': 'akamai'})
 
-        manifest_type = try_get(manifest, lambda x: x['_links']['self']['href'], str).split('/')[3]
+        #manifest_type = try_get(manifest, lambda x: x['_links']['self']['href'], str).split('/')[3]
 
         video_id = try_get(manifest, lambda x: x['id'], str) or video_id
 
@@ -243,7 +243,7 @@ class NRKIE(NRKBaseIE):
                     'start_time': float_or_none(traverse_obj(data, ('skipDialogInfo', 'startCreditsInSeconds'))),
                     'end_time': duration,
                     'title': 'Outro',
-                }] if not item['start_time'] == item['end_time']]
+                }] if item['start_time'] != item['end_time']]
         if try_get(data, lambda x: x['preplay']['indexPoints']):
             seconds_or_none = lambda x: float_or_none(parse_duration(x))
             chapters += traverse_obj(data['preplay'], ('indexPoints', ..., {
@@ -330,9 +330,9 @@ class NRKIE(NRKBaseIE):
                       'hash': password,
                       'recipe': {
                           'algorithm': 'cleartext',
-                          'salt': ''
-                          }
-                      }
+                          'salt': '',
+                          },
+                      },
                    },
                    'password': password,
                    'username': username,
@@ -720,7 +720,7 @@ class NRKTVSeasonIE(NRKTVSerieBaseIE):
         domain, serie_kind, serie = mobj.group('domain'), mobj.group('serie_kind'), mobj.group('serie')
         season_id = 'extramaterial' if 'ekstramateriale' in (mobj.group('id'), mobj.group('id_2')) else mobj.group('id') or mobj.group('id_2')
 
-        api_url = f'{domain}/catalog/{self._catalog_name(serie_kind)}/{serie}{"/seasons/" if not season_id == "extramaterial" else "/extramaterial"}{season_id if not season_id == "extramaterial" else ""}'
+        api_url = f'{domain}/catalog/{self._catalog_name(serie_kind)}/{serie}{"/seasons/" if season_id != "extramaterial" else "/extramaterial"}{season_id if season_id != "extramaterial" else ""}'
 
         data = self._call_api(api_url, f'{serie}/{season_id}', 'season', query={'pageSize': 50})
         title = try_get(data, lambda x: x['titles']['title'], str) or f'{serie}/{season_id}'
@@ -998,5 +998,5 @@ class NRKSkoleIE(InfoExtractor):
             'id': nrk_id,
             'url': f'nrk:{nrk_id}',
             'title': response.get('title'),
-            'description': response.get('summary').replace('\r', '\n')
+            'description': response.get('summary').replace('\r', '\n'),
         }
