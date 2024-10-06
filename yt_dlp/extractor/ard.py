@@ -231,7 +231,7 @@ class ARDIE(InfoExtractor):
 
 class ARDBetaMediathekIE(InfoExtractor):
     IE_NAME = 'ARDMediathek'
-    _VALID_URL = r'''(?x)https://
+    _VALID_URL = r'''(?x)https?://
         (?:(?:beta|www)\.)?ardmediathek\.de/
         (?:[^/]+/)?
         (?:player|live|video)/
@@ -470,7 +470,7 @@ class ARDBetaMediathekIE(InfoExtractor):
 
 
 class ARDMediathekCollectionIE(InfoExtractor):
-    _VALID_URL = r'''(?x)https://
+    _VALID_URL = r'''(?x)https?://
         (?:(?:beta|www)\.)?ardmediathek\.de/
         (?:[^/?#]+/)?
         (?P<playlist>sendung|serie|sammlung)/
