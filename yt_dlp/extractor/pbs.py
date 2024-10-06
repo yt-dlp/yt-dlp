@@ -178,6 +178,7 @@ class PBSIE(InfoExtractor):
         (r'video\.wtjx\.org', 'WTJX Channel 12 (WTJX)'),  # http://www.wtjx.org/
         (r'video\.ideastations\.org', 'WCVE PBS (WCVE)'),  # http://ideastations.org/
         (r'video\.kbtc\.org', 'KBTC Public Television (KBTC)'),  # http://kbtc.org
+        (r'(?:www\.)?thirteen\.org', 'Thirteen (WNET'),  # https://www.thirteen.org
     )
 
     IE_NAME = 'pbs'
@@ -209,6 +210,19 @@ class PBSIE(InfoExtractor):
                 'duration': 3190,
             },
             'skip': 'dead URL',
+        },
+        {
+            'url': 'https://www.thirteen.org/programs/the-woodwrights-shop/carving-away-with-mary-may-tioglz/',
+            'info_dict': {
+                'id': '3004803331',
+                'ext': 'mp4',
+                'title': "The Woodwright's Shop - Carving Away with Mary May",
+                'description': 'md5:7cbaaaa8b9bcc78bd8f0e31911644e28',
+                'duration': 1606,
+                'display_id': 'carving-away-with-mary-may-tioglz',
+                'chapters': [],
+                'thumbnail': 'https://image.pbs.org/video-assets/NcnTxNl-asset-mezzanine-16x9-K0Keoyv.jpg',
+            },
         },
         {
             'url': 'http://www.pbs.org/wgbh/pages/frontline/losing-iraq/',
@@ -488,6 +502,7 @@ class PBSIE(InfoExtractor):
                 r"div\s*:\s*'videoembed'\s*,\s*mediaid\s*:\s*'(\d+)'",  # frontline video embed
                 r'class="coveplayerid">([^<]+)<',                       # coveplayer
                 r'<section[^>]+data-coveid="(\d+)"',                    # coveplayer from http://www.pbs.org/wgbh/frontline/film/real-csi/
+                r'\bclass="passportcoveplayer"[^>]+\bdata-media="(\d+)',  # https://www.thirteen.org/programs/the-woodwrights-shop/who-wrote-the-book-of-sloyd-fggvvq/
                 r'<input type="hidden" id="pbs_video_id_[0-9]+" value="([0-9]+)"/>',  # jwplayer
                 r"(?s)window\.PBS\.playerConfig\s*=\s*{.*?id\s*:\s*'([0-9]+)',",
                 r'<div[^>]+\bdata-cove-id=["\'](\d+)"',  # http://www.pbs.org/wgbh/roadshow/watch/episode/2105-indianapolis-hour-2/
