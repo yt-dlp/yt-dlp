@@ -163,8 +163,6 @@ class NRKIE(NRKBaseIE):
         # known values for preferredCdn: akamai, iponly, minicdn and telenor
         manifest = self._call_api(f'playback/manifest/{video_id}', video_id, 'manifest', query={'preferredCdn': 'akamai'})
 
-        #manifest_type = try_get(manifest, lambda x: x['_links']['self']['href'], str).split('/')[3]
-
         video_id = try_get(manifest, lambda x: x['id'], str) or video_id
 
         if manifest.get('playability') == 'nonPlayable':
