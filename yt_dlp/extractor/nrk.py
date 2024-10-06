@@ -902,7 +902,7 @@ class NRKPlaylistBaseIE(InfoExtractor):
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
 
-        webpage = self._download_webpage(f'https://www.nrk.no/serum/api/render/{playlist_id.split('-')[-1]}', playlist_id)
+        webpage = self._download_webpage(f'https://www.nrk.no/serum/api/render/{playlist_id.split("-")[-1]}', playlist_id)
         entries = [
             self.url_result(f'nrk:{video_id}', NRKIE.ie_key())
             for video_id in re.findall(self._ITEM_RE, webpage)
