@@ -308,12 +308,14 @@ class RPlayLiveIE(RPlayBaseIE):
         elif stream_state == 'live':
             if not self.user_id and not live_info.get('allowAnonymous'):
                 self.raise_login_required(method='password')
-            key2 = self._download_webpage(
+            key2 = traverse_obj(self._download_json(
                 'https://api.rplay.live/live/key2', user_id, 'getting live key',
-                headers=self.jwt_header, query=self.requestor_query) if self.user_id else ''
+                headers=self.jwt_header, query=self.requestor_query), ('authKey', {str})) if self.user_id else ''
+            if key2 is None:
+                raise ExtractorError('Failed to get playlist key')
             formats = self._extract_m3u8_formats(
                 'https://api.rplay.live/live/stream/playlist.m3u8', user_id,
-                query={'creatorOid': user_id, 'key2': key2})
+                query={'creatorOid': user_id, 'key2': key2}, headers={'Referer': 'https://rplay.live'})
 
             return {
                 'id': user_id,
