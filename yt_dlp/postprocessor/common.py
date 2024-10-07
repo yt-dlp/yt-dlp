@@ -204,7 +204,7 @@ class PostProcessor(metaclass=PostProcessorMetaClass):
                 self._multiline = MultilineLogger(self._downloader.params['logger'], lines)
             elif self._downloader.params.get('progress_with_newline'):
                 self._multiline = BreaklineStatusPrinter(self._downloader._out_files.out, lines)
-            elif hasattr(self._downloader, "_out_files"):
+            elif hasattr(self._downloader, '_out_files'):
                 self._multiline = MultilinePrinter(self._downloader._out_files.out, lines, not self._downloader.params.get('quiet'))
             else:
                 self._multiline = MultilinePrinter(sys.stdout, lines, not self._downloader.params.get('quiet'))

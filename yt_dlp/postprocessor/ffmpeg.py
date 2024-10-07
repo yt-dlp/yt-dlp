@@ -1254,11 +1254,11 @@ class FFmpegProgressTracker:
         self._duration_to_track, self._total_duration = self._compute_duration_to_track()
         self._total_filesize = self._compute_total_filesize(self._duration_to_track, self._total_duration)
         self._status = {
-            'filename': self._ffmpeg_args[-3].split(":")[-1],
+            'filename': self._ffmpeg_args[-3].split(':')[-1],
             'status': 'ffmpeg_running',
             'total_bytes': self._total_filesize,
             'elapsed': 0,
-            'outputted': 0
+            'outputted': 0,
         }
 
         out_listener = Thread(
@@ -1278,7 +1278,7 @@ class FFmpegProgressTracker:
 
         self._status.update({
             'status': 'finished',
-            'outputted': self._total_filesize
+            'outputted': self._total_filesize,
         })
         time.sleep(.5)  # Needed if ffmpeg didn't release the file in time for yt-dlp to change its name
         return self._streams[0], self._streams[1], retcode
@@ -1315,7 +1315,7 @@ class FFmpegProgressTracker:
             time.sleep(.01)
             self._handle_lines()
             self._status.update({
-                'elapsed': time.time() - self._start_time
+                'elapsed': time.time() - self._start_time,
             })
             self._hook_progress(self._status, self._info_dict)
             retcode = self.ffmpeg_proc.poll()
@@ -1351,8 +1351,7 @@ class FFmpegProgressTracker:
         filesize = self._info_dict.get('filesize')
         if not filesize:
             filesize = self._info_dict.get('filesize_approx', 0)
-        total_filesize = filesize * duration_to_track // total_duration
-        return total_filesize
+        return filesize * duration_to_track // total_duration
 
     def _compute_duration_to_track(self):
         duration = self._info_dict.get('duration')
@@ -1394,8 +1393,8 @@ class FFmpegProgressTracker:
     @staticmethod
     def ffmpeg_time_string_to_seconds(time_string):
         ffmpeg_time_seconds = 0
-        hms_parsed = re.match(r"((?P<Hour>\d+):)?((?P<Minute>\d+):)?(?P<Second>\d+)(\.(?P<float>\d+))?", time_string)
-        smu_parse = re.match(r"(?P<Time>\d+)(?P<Unit>[mu]?s)", time_string)
+        hms_parsed = re.match(r'((?P<Hour>\d+):)?((?P<Minute>\d+):)?(?P<Second>\d+)(\.(?P<float>\d+))?', time_string)
+        smu_parse = re.match(r'(?P<Time>\d+)(?P<Unit>[mu]?s)', time_string)
         if hms_parsed:
             if hms_parsed.group('Hour'):
                 ffmpeg_time_seconds += 3600 * int_or_none(hms_parsed.group('Hour'))
@@ -1416,7 +1415,7 @@ class FFmpegProgressTracker:
 
     @staticmethod
     def _compute_bitrate(bitrate):
-        bitrate_str = re.match(r"(?P<Integer>\d+)(\.(?P<float>\d+))?(?P<Prefix>[gmk])?bits/s", bitrate)
+        bitrate_str = re.match(r'(?P<Integer>\d+)(\.(?P<float>\d+))?(?P<Prefix>[gmk])?bits/s', bitrate)
         try:
             no_prefix_bitrate = int_or_none(bitrate_str.group('Integer'))
             if bitrate_str.group('float'):
