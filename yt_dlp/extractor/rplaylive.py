@@ -60,8 +60,17 @@ class RPlayBaseIE(InfoExtractor):
     @property
     def jwt_header(self):
         return {
+            'Origin': 'https://rplay.live',
             'Referer': 'https://rplay.live/',
             'Authorization': self.jwt_token or 'null',
+        }
+
+    @property
+    def butter_header(self):
+        return {
+            'Origin': 'https://rplay.live',
+            'Referer': 'https://rplay.live/',
+            'Butter': self.get_butter_token(),
         }
 
     def _login_hint(self, **kwargs):
@@ -201,15 +210,14 @@ class RPlayVideoIE(RPlayBaseIE):
                 msg += f'. {self._login_hint()}'
             raise ExtractorError(msg, expected=True)
 
-        formats = self._extract_m3u8_formats(m3u8_url, video_id, headers={
-            'Referer': 'https://rplay.live/', 'Butter': self.get_butter_token()})
+        formats = self._extract_m3u8_formats(m3u8_url, video_id, headers=self.butter_header)
         for fmt in formats:
-            m3u8_doc = self._download_webpage(fmt['url'], video_id, 'getting m3u8 contents', headers={
-                'Referer': 'https://rplay.live/', 'Butter': self.get_butter_token()})
+            m3u8_doc = self._download_webpage(fmt['url'], video_id, 'getting m3u8 contents', headers=self.butter_header)
             fmt['url'] = encode_data_uri(m3u8_doc.encode(), 'application/x-mpegurl')
             match = re.search(r'^#EXT-X-KEY.*?URI="([^"]+)"', m3u8_doc, flags=re.M)
             if match:
                 urlh = self._request_webpage(match[1], video_id, 'getting hls key', headers={
+                    'Origin': 'https://rplay.live',
                     'Referer': 'https://rplay.live/',
                     'rplay-private-content-requestor': self.user_id or 'not-logged-in',
                     'age': random.randint(1, 4999),
