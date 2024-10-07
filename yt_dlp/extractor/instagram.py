@@ -48,11 +48,7 @@ class InstagramBaseIE(InfoExtractor):
         'X-IG-WWW-Claim': '0',
         'Origin': 'https://www.instagram.com',
         'Accept': '*/*',
-        'User-Agent': None,
     }
-
-    def _real_initialize(self):
-        self._API_HEADERS['User-Agent'] = self.get_param('http_headers')['User-Agent']
 
     def _perform_login(self, username, password):
         if self._IS_LOGGED_IN:
