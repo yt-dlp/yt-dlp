@@ -256,6 +256,10 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(sanitize_path('./abc'), 'abc')
         self.assertEqual(sanitize_path('./../abc'), '..\\abc')
 
+        self.assertEqual(sanitize_path('\\abc'), '\\abc')
+        self.assertEqual(sanitize_path('C:abc'), 'C:abc')
+        self.assertEqual(sanitize_path('C:abc\\..\\'), 'C:..\\')
+
     def test_sanitize_url(self):
         self.assertEqual(sanitize_url('//foo.bar'), 'http://foo.bar')
         self.assertEqual(sanitize_url('httpss://foo.bar'), 'https://foo.bar')
