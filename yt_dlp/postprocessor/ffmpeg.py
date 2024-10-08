@@ -948,6 +948,8 @@ class FFmpegFixupDuplicateMoovPP(FFmpegCopyStreamPP):
 
 class FFmpegSubtitlesConvertorPP(FFmpegPostProcessor):
     SUPPORTED_EXTS = MEDIA_EXTENSIONS.subtitles
+    _DFXP_EXTS = ('dfxp', 'ttml', 'tt')
+    _SUPPORTED_INPUT_EXTS = (*SUPPORTED_EXTS, *_DFXP_EXTS)
 
     def __init__(self, downloader=None, format=None):
         super().__init__(downloader)
@@ -966,22 +968,22 @@ class FFmpegSubtitlesConvertorPP(FFmpegPostProcessor):
         sub_filenames = []
         for lang, sub in subs.items():
             if not os.path.exists(sub.get('filepath', '')):
-                self.report_warning(f'Skipping embedding {lang} subtitle because the file is missing')
+                self.report_warning(f'Skipping converting {lang} subtitle because the file is missing')
                 continue
             ext = sub['ext']
             if ext == new_ext:
                 self.to_screen(f'Subtitle file for {new_ext} is already in the requested format')
                 continue
-            elif ext == 'json':
+            elif ext not in self._SUPPORTED_INPUT_EXTS:
                 self.to_screen(
-                    'You have requested to convert json subtitles into another format, '
+                    f'You have requested to convert {ext} subtitles into another format, '
                     'which is currently not possible')
                 continue
             old_file = sub['filepath']
             sub_filenames.append(old_file)
             new_file = replace_extension(old_file, new_ext)
 
-            if ext in ('dfxp', 'ttml', 'tt'):
+            if ext in self._DFXP_EXTS:
                 self.report_warning(
                     'You have requested to convert dfxp (TTML) subtitles into another format, '
                     'which results in style information loss')
