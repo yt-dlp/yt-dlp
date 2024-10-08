@@ -331,7 +331,7 @@ class FFmpegPostProcessor(PostProcessor):
             [(path, []) for path in input_paths],
             [(out_path, opts)], **kwargs)
 
-    def real_run_ffmpeg(self, input_path_opts, output_path_opts, *, expected_retcodes=(0,)):
+    def real_run_ffmpeg(self, input_path_opts, output_path_opts, *, prepend_opts=None, expected_retcodes=(0,)):
         self.check_version()
 
         oldest_mtime = min(
@@ -341,6 +341,9 @@ class FFmpegPostProcessor(PostProcessor):
         # avconv does not have repeat option
         if self.basename == 'ffmpeg':
             cmd += [encodeArgument('-loglevel'), encodeArgument('repeat+info')]
+
+        if prepend_opts:
+            cmd += prepend_opts
 
         def make_args(file, args, name, number):
             keys = [f'_{name}{number}', f'_{name}']
@@ -857,12 +860,23 @@ class FFmpegMergerPP(FFmpegPostProcessor):
         return True
 
 
+class FFmpegCENCDecryptPP(FFmpegPostProcessor):
+    @PostProcessor._restrict_to(images=False)
+    def run(self, info):
+        for filename, key in info.get('__files_to_cenc_decrypt', []):
+            temp_filename = prepend_extension(filename, 'temp')
+            self.to_screen(f'Decrypting "{filename}"')
+            self.run_ffmpeg(filename, temp_filename, self.stream_copy_opts(), prepend_opts=['-decryption_key', key])
+            os.replace(temp_filename, filename)
+        return [], info
+
+
 class FFmpegFixupPostProcessor(FFmpegPostProcessor):
-    def _fixup(self, msg, filename, options):
+    def _fixup(self, msg, filename, options, prepend_opts=None):
         temp_filename = prepend_extension(filename, 'temp')
 
         self.to_screen(f'{msg} of "{filename}"')
-        self.run_ffmpeg(filename, temp_filename, options)
+        self.run_ffmpeg(filename, temp_filename, options, prepend_opts=prepend_opts)
 
         os.replace(temp_filename, filename)
 
@@ -934,7 +948,11 @@ class FFmpegCopyStreamPP(FFmpegFixupPostProcessor):
 
     @PostProcessor._restrict_to(images=False)
     def run(self, info):
-        self._fixup(self.MESSAGE, info['filepath'], self.stream_copy_opts())
+        self._fixup(
+            self.MESSAGE,
+            info['filepath'],
+            self.stream_copy_opts(),
+        )
         return [], info
 
 
