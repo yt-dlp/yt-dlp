@@ -446,10 +446,15 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(unified_timestamp('2018-03-14T08:32:43.1493874+00:00'), 1521016363)
         self.assertEqual(unified_timestamp('Sunday, 26 Nov 2006, 19:00'), 1164567600)
         self.assertEqual(unified_timestamp('wed, aug 16, 2008, 12:00pm'), 1218931200)
+        self.assertEqual(unified_timestamp('2022-10-13T02:37:47.831Z'), 1665628667)
 
         self.assertEqual(unified_timestamp('December 31 1969 20:00:01 EDT'), 1)
         self.assertEqual(unified_timestamp('Wednesday 31 December 1969 18:01:26 MDT'), 86)
         self.assertEqual(unified_timestamp('12/31/1969 20:01:18 EDT', False), 78)
+        self.assertEqual(unified_timestamp('2023-03-09T18:01:33.646Z', with_milliseconds=True), 1678384893.646)
+        # ISO8601 spec says that if no timezone is specified, we should use local timezone;
+        # but yt-dlp uses UTC to keep things consistent
+        self.assertEqual(unified_timestamp('2023-03-11T06:48:34.008'), 1678517314)
 
     def test_determine_ext(self):
         self.assertEqual(determine_ext('http://example.com/foo/bar.mp4/?download'), 'mp4')
