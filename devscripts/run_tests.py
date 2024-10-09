@@ -39,10 +39,10 @@ def run_tests(*tests, pattern=None, ci=False):
     elif run_download:
         arguments.extend(['-m', 'download'])
     else:
-        for test in tests:
-            if '/' not in test and '::' not in test:
-                test = f'test/test_download.py::TestDownload::test_{fix_test_name(test)}'
-            arguments.append(test)
+        arguments.extend(
+            test if '/' in test
+            else f'test/test_download.py::TestDownload::test_{fix_test_name(test)}'
+            for test in tests)
 
     print(f'Running {arguments}', flush=True)
     try:
