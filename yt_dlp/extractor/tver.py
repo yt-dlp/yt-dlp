@@ -99,7 +99,7 @@ class TVerIE(InfoExtractor):
         for season_id in traverse_obj(
                 seasons_info, ('result', 'contents', lambda _, v: v['type'] == 'season', 'content', 'id', {str})):
             episodes_info = self._call_platform_api(
-                f'v1/callSeasonEpisodes/{season_id}', season_id, 'Downloading episodes info')
+                f'v1/callSeasonEpisodes/{season_id}', season_id, f'Downloading season {season_id} episodes info')
             yield from traverse_obj(episodes_info, (
                 'result', 'contents', lambda _, v: v['type'] == 'episode', 'content', 'id', {str}))
 
