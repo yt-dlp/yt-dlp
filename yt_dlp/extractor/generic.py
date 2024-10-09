@@ -134,10 +134,13 @@ class GenericIE(InfoExtractor):
             'playlist': [{
                 'info_dict': {
                     'ext': 'mov',
-                    'id': 'pdv_maddow_netcast_mov-12-03-2020-223726',
-                    'title': 'MSNBC Rachel Maddow (video) - 12-03-2020-223726',
+                    'id': 'https://nbcnewsencoding.akamaized.net/nbcnews/video/podcast/pdv_maddow_netcast_mov-11-18-2022-224832.mov',
+                    'title': 'MSNBC Rachel Maddow (video) - 11-18-2022-224832',
                     'description': 're:.*her unique approach to storytelling.*',
-                    'upload_date': '20201204',
+                    'upload_date': '20221119',
+                    'direct': True,
+                    'duration': 1152.0,
+                    'timestamp': 1668826112.0,
                 },
             }],
             'skip': 'Dead link',
@@ -180,7 +183,27 @@ class GenericIE(InfoExtractor):
                 'description': 'CGP Grey and Brady Haran talk about YouTube, life, work, whatever.',
                 'title': 'Hello Internet',
             },
+            'playlist': [{
+                'info_dict': {
+                    'ext': 'mp3',
+                    'id': '52d66949e4b0a8cec3bcdd46:52d67282e4b0cca8969714fa:5e58de8a37459e0d069efda0',
+                    'title': 'H.I. #136: Dog Bingo',
+                    'description': 'md5:8e5d0bc18204a1451d5e32937ecf7d6d',
+                    'thumbnail': 'https://images.squarespace-cdn.com/content/v1/52d66949e4b0a8cec3bcdd46/1582882549057-1XW68A67UR858INW8IW5/HI+slides.002.png?format=1500w',
+                    'timestamp': 1582884807.0,
+                    'episode': 'H.I. #136: Dog Bingo',
+                    'episode_number': 136,
+                    'age_limit': 0,
+                    'duration': 4914.0,
+                    'upload_date': '20200228',
+                    'direct': True,
+                    'uploader': 'Hello Internet',
+                },
+            }],
             'playlist_mincount': 100,
+            'params': {
+                'skip_download': True,
+            },
         },
         # RSS feed with guid
         {
@@ -2208,6 +2231,7 @@ class GenericIE(InfoExtractor):
     def _extract_rss(self, url, video_id, doc):
         NS_MAP = {
             'itunes': 'http://www.itunes.com/dtds/podcast-1.0.dtd',
+            'dc': 'http://dublincore.org/specifications/dublin-core/dcmes-xml/2001-04-11/dcmes-xml-dtd.dtd',
         }
 
         entries = []
@@ -2219,17 +2243,20 @@ class GenericIE(InfoExtractor):
                 continue
 
             guid = try_call(lambda: it.find('guid').text)
-            if guid:
-                next_url = smuggle_url(next_url, {'force_videoid': guid})
+            next_url_new = smuggle_url(next_url, {'force_videoid': guid}) if guid else next_url
 
             def itunes(key):
                 return xpath_text(it, xpath_with_ns(f'./itunes:{key}', NS_MAP), default=None)
 
+            def dc(key):
+                return xpath_text(it, xpath_with_ns(f'./dc:{key}', NS_MAP), default=None)
+
             entries.append({
                 '_type': 'url_transparent',
-                'url': next_url,
+                'url': next_url_new,
                 'title': try_call(lambda: it.find('title').text),
                 'description': xpath_text(it, 'description', default=None),
+                'uploader': xpath_text(it, 'author', default=None) or itunes('author') or dc('creator'),
                 'timestamp': unified_timestamp(xpath_text(it, 'pubDate', default=None)),
                 'duration': parse_duration(itunes('duration')),
                 'thumbnail': url_or_none(xpath_attr(it, xpath_with_ns('./itunes:image', NS_MAP), 'href')),
@@ -2237,6 +2264,7 @@ class GenericIE(InfoExtractor):
                 'episode_number': int_or_none(itunes('episode')),
                 'season_number': int_or_none(itunes('season')),
                 'age_limit': {'true': 18, 'yes': 18, 'false': 0, 'no': 0}.get((itunes('explicit') or '').lower()),
+                'webpage_url': next_url,
             })
 
         return {
