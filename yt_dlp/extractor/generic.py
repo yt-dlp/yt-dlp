@@ -2340,7 +2340,7 @@ class GenericIE(InfoExtractor):
                 default_search = 'fixup_error'
 
             if default_search in ('auto', 'auto_warning', 'fixup_error'):
-                if re.match(r'^[^\s/]+\.[^\s/]+/', url):
+                if re.match(r'[^\s/]+\.[^\s/]+/', url):
                     self.report_warning('The url doesn\'t specify the protocol, trying with http')
                     return self.url_result('http://' + url)
                 elif default_search != 'fixup_error':
@@ -2400,7 +2400,7 @@ class GenericIE(InfoExtractor):
 
         # Check for direct link to a video
         content_type = full_response.headers.get('Content-Type', '').lower()
-        m = re.match(r'^(?P<type>audio|video|application(?=/(?:ogg$|(?:vnd\.apple\.|x-)?mpegurl)))/(?P<format_id>[^;\s]+)', content_type)
+        m = re.match(r'(?P<type>audio|video|application(?=/(?:ogg$|(?:vnd\.apple\.|x-)?mpegurl)))/(?P<format_id>[^;\s]+)', content_type)
         if m:
             self.report_detected('direct video link')
             headers = filter_dict({'Referer': smuggled_data.get('referer')})

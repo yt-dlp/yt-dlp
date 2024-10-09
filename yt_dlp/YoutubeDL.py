@@ -27,7 +27,7 @@ import unicodedata
 from .cache import Cache
 from .compat import urllib  # isort: split
 from .compat import compat_os_name, urllib_req_to_req
-from .cookies import LenientSimpleCookie, load_cookies
+from .cookies import CookieLoadError, LenientSimpleCookie, load_cookies
 from .downloader import (
     DashSegmentsFD,
     FFmpegFD,
@@ -1629,7 +1629,7 @@ class YoutubeDL:
             while True:
                 try:
                     return func(self, *args, **kwargs)
-                except (DownloadCancelled, LazyList.IndexError, PagedList.IndexError):
+                except (CookieLoadError, DownloadCancelled, LazyList.IndexError, PagedList.IndexError):
                     raise
                 except ReExtractInfo as e:
                     if e.expected:
@@ -3585,6 +3585,8 @@ class YoutubeDL:
         def wrapper(*args, **kwargs):
             try:
                 res = func(*args, **kwargs)
+            except CookieLoadError:
+                raise
             except UnavailableVideoError as e:
                 self.report_error(e)
             except DownloadCancelled as e:
@@ -4118,8 +4120,13 @@ class YoutubeDL:
     @functools.cached_property
     def cookiejar(self):
         """Global cookiejar instance"""
-        return load_cookies(
-            self.params.get('cookiefile'), self.params.get('cookiesfrombrowser'), self)
+        try:
+            return load_cookies(
+                self.params.get('cookiefile'), self.params.get('cookiesfrombrowser'), self)
+        except CookieLoadError as error:
+            cause = error.__context__
+            self.report_error(str(cause), tb=''.join(traceback.format_exception(cause)))
+            raise
 
     @property
     def _opener(self):

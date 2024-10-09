@@ -8,6 +8,7 @@ from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     determine_ext,
+    filter_dict,
     float_or_none,
     int_or_none,
     parse_qs,
@@ -25,15 +26,24 @@ class WistiaBaseIE(InfoExtractor):
 
     def _download_embed_config(self, config_type, config_id, referer):
         base_url = self._EMBED_BASE_URL + f'{config_type}/{config_id}'
+        video_password = self.get_param('videopassword')
         embed_config = self._download_json(
             base_url + '.json', config_id, headers={
                 'Referer': referer if referer.startswith('http') else base_url,  # Some videos require this.
-            })
+            }, query=filter_dict({'password': video_password}))
 
         error = traverse_obj(embed_config, 'error')
         if error:
             raise ExtractorError(
                 f'Error while getting the playlist: {error}', expected=True)
+
+        if traverse_obj(embed_config, (
+                'media', ('embed_options', 'embedOptions'), 'plugin',
+                'passwordProtectedVideo', 'on', any)) == 'true':
+            if video_password:
+                raise ExtractorError('Invalid video password', expected=True)
+            raise ExtractorError(
+                'This content is password-protected. Use the --video-password option', expected=True)
 
         return embed_config
 
