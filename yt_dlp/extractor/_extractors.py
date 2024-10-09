@@ -399,7 +399,6 @@ from .cnbc import CNBCVideoIE
 from .cnn import (
     CNNIE,
     CNNArticleIE,
-    CNNBlogsIE,
     CNNIndonesiaIE,
 )
 from .comedycentral import (
