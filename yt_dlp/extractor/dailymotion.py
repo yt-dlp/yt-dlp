@@ -10,11 +10,14 @@ from ..utils import (
     OnDemandPagedList,
     age_restricted,
     clean_html,
+    extract_attributes,
     int_or_none,
     traverse_obj,
     try_get,
     unescapeHTML,
     unsmuggle_url,
+    update_url,
+    url_or_none,
     urlencode_postdata,
 )
 
@@ -96,14 +99,26 @@ class DailymotionBaseInfoExtractor(InfoExtractor):
 
 
 class DailymotionIE(DailymotionBaseInfoExtractor):
-    _VALID_URL = r'''(?ix)
+    _VALID_URL_PREFIX = r'''(?ix)
                     https?://
                         (?:
-                            (?:(?:www|touch|geo)\.)?dailymotion\.[a-z]{2,3}/(?:(?:(?:(?:embed|swf|\#)/)|player(?:/\w+)?\.html\?)?video|swf)|
-                            (?:www\.)?lequipe\.fr/video
-                        )
-                        [/=](?P<id>[^/?_&]+)(?:.+?\bplaylist=(?P<playlist_id>x[0-9a-z]+))?
+                            (?:(?:www|touch|geo)\.)?dailymotion\.[a-z]{2,3}|
+                            (?:www\.)?lequipe\.fr
+                        )/
                     '''
+    _VALID_URL = [
+        rf'''{_VALID_URL_PREFIX}
+                        (?:
+                            video/|
+                            swf(?:/(?!video)|/video/)
+                        )(?P<id>[^/?_&#]+)(?:.+?\bplaylist=(?P<playlist_id>x[0-9a-z]+))?
+                    ''',
+        rf'''{_VALID_URL_PREFIX}
+                        (?:
+                            player(?:/\w+)?\.html\?
+                        )(?:video[=/](?P<id>[^/?_&#]+))?(?:.*?\bplaylist=(?P<playlist_id>x[0-9a-z]+))?
+                    ''',
+    ]
     IE_NAME = 'dailymotion'
     _EMBED_REGEX = [r'<(?:(?:embed|iframe)[^>]+?src=|input[^>]+id=[\'"]dmcloudUrlEmissionSelect[\'"][^>]+value=)(["\'])(?P<url>(?:https?:)?//(?:www\.)?dailymotion\.com/(?:embed|swf)/video/.+?)\1']
     _TESTS = [{
@@ -217,6 +232,35 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
     }, {
         'url': 'https://geo.dailymotion.com/player/xakln.html?video=x8mjju4&customConfig%5BcustomParams%5D=%2Ffr-fr%2Ftennis%2Fwimbledon-mens-singles%2Farticles-video',
         'only_matching': True,
+    }, {
+        'url': 'https://geo.dailymotion.com/player/xf7zn.html?playlist=x7wdsj',
+        'only_matching': True,
+    }]
+    _WEBPAGE_TESTS = [{
+        # https://geo.dailymotion.com/player/xmyye.html?video=x93blhi
+        'url': 'https://www.financialounge.com/video/2024/08/01/borse-europee-in-rosso-dopo-la-fed-a-milano-volano-mediobanca-e-tim-edizione-del-1-agosto/',
+        'info_dict': {
+            'id': 'x93blhi',
+            'ext': 'mp4',
+            'title': 'OnAir - 01/08/24',
+            'description': '',
+            'duration': 217,
+            'timestamp': 1722505658,
+            'upload_date': '20240801',
+            'uploader': 'Financialounge',
+            'uploader_id': 'x2vtgmm',
+            'age_limit': 0,
+            'tags': [],
+            'view_count': int,
+            'like_count': int,
+        },
+    }, {
+        # https://geo.dailymotion.com/player/xf7zn.html?playlist=x7wdsj
+        'url': 'https://www.cycleworld.com/blogs/ask-kevin/ducati-continues-to-evolve-with-v4/',
+        'info_dict': {
+            'id': 'x7wdsj',
+        },
+        'playlist_mincount': 50,
     }]
     _GEO_BYPASS = False
     _COMMON_MEDIA_FIELDS = '''description
@@ -232,6 +276,22 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
         for mobj in re.finditer(
                 r'(?s)DM\.player\([^,]+,\s*{.*?video[\'"]?\s*:\s*["\']?(?P<id>[0-9a-zA-Z]+).+?}\s*\);', webpage):
             yield from 'https://www.dailymotion.com/embed/video/' + mobj.group('id')
+        for mobj in re.finditer(
+                r'(?s)<script [^>]*\bsrc=(["\'])(?:https?:)?//[\w-]+\.dailymotion\.com/player/(?:(?!\1).)+\1[^>]*>', webpage):
+            attrs = extract_attributes(mobj.group(0))
+            player_url = url_or_none(attrs.get('src'))
+            if not player_url:
+                continue
+            player_url = player_url.replace('.js', '.html')
+            if player_url.startswith('//'):
+                player_url = f'https:{player_url}'
+            if video_id := attrs.get('data-video'):
+                query_string = f'video={video_id}'
+            elif playlist_id := attrs.get('data-playlist'):
+                query_string = f'playlist={playlist_id}'
+            else:
+                continue
+            yield update_url(player_url, query=query_string)
 
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url)
@@ -282,6 +342,8 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
         title = metadata['title']
         is_live = media.get('isOnAir')
         formats = []
+        subtitles = {}
+
         for quality, media_list in metadata['qualities'].items():
             for m in media_list:
                 media_url = m.get('url')
@@ -289,8 +351,10 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
                 if not media_url or media_type == 'application/vnd.lumberjack.manifest':
                     continue
                 if media_type == 'application/x-mpegURL':
-                    formats.extend(self._extract_m3u8_formats(
-                        media_url, video_id, 'mp4', live=is_live, m3u8_id='hls', fatal=False))
+                    fmt, subs = self._extract_m3u8_formats_and_subtitles(
+                        media_url, video_id, 'mp4', live=is_live, m3u8_id='hls', fatal=False)
+                    formats.extend(fmt)
+                    subtitles.update(subs)
                 else:
                     f = {
                         'url': media_url,
@@ -310,7 +374,6 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
             if not f.get('fps') and f['format_id'].endswith('@60'):
                 f['fps'] = 60
 
-        subtitles = {}
         subtitles_data = try_get(metadata, lambda x: x['subtitles']['data'], dict) or {}
         for subtitle_lang, subtitle in subtitles_data.items():
             subtitles[subtitle_lang] = [{
