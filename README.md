@@ -1897,6 +1897,7 @@ In other words, the file structure on the disk looks something like:
                 myplugin.py
 
 yt-dlp looks for these `yt_dlp_plugins` namespace folders in many locations (see below) and loads in plugins from **all** of them.
+Set the environment variable `YTDLP_NO_PLUGINS` to something nonempty to disable loadig plugins entirely.
 
 See the [wiki for some known plugins](https://github.com/yt-dlp/yt-dlp/wiki/Plugins)
 

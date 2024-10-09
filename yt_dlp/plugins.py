@@ -138,7 +138,7 @@ def load_module(module, module_name, suffix):
 
 def load_plugins(name, suffix):
     classes = {}
-    if os.getenv('YTDLP_NO_PLUGINS'):
+    if os.environ.get('YTDLP_NO_PLUGINS'):
         return classes
 
     for finder, module_name, _ in iter_modules(name):
