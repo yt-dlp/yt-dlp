@@ -2250,6 +2250,7 @@ from .ufctv import (
 from .ukcolumn import UkColumnIE
 from .uktvplay import UKTVPlayIE
 from .umg import UMGDeIE
+from .underline import UnderlineIE
 from .unistra import UnistraIE
 from .unity import UnityIE
 from .unsupported import (
