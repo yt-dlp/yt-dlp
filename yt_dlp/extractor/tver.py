@@ -108,7 +108,7 @@ class TVerIE(InfoExtractor):
 
         if video_type == 'series':
             series_info = self._call_platform_api(
-                f'v2/callSeries/{series_id}', series_id, 'Downloading series info')
+                f'v2/callSeries/{video_id}', video_id, 'Downloading series info')
             return self.playlist_from_matches(
                 self._yield_episode_ids_for_series(video_id), video_id,
                 traverse_obj(series_info, ('result', 'content', 'content', 'title', {str})),
