@@ -1,8 +1,6 @@
 from .common import InfoExtractor
-from ..utils import (
-    strftime_or_none,
-    traverse_obj,
-)
+from ..utils import url_or_none
+from ..utils.traversal import traverse_obj
 
 
 class RadioRadicaleIE(InfoExtractor):
@@ -38,10 +36,12 @@ class RadioRadicaleIE(InfoExtractor):
             formats.extend(
                 self._extract_m3u8_formats(source.get('src'), video_id))
 
-        subtitles = {sub.get('srclang') or 'und': [{
-            'url': sub.get('src'),
-            'name': sub.get('label')
-        }] for sub in traverse_obj(video_info, ('playlist', 0, 'subtitles', ...))}
+        subtitles = {}
+        for sub in traverse_obj(video_info, ('playlist', 0, 'subtitles')):
+            self._merge_subtitles({sub.get('srclang') or 'und': [{
+                'url': sub.get('src'),
+                'name': sub.get('label'),
+            }]}, target=subtitles)
 
         return {
             'id': video_id,
@@ -50,7 +50,6 @@ class RadioRadicaleIE(InfoExtractor):
             'title': json_ld.get('title') or self._og_search_title(webpage),
             'location': video_info.get('luogo'),
             'timestamp': json_ld.get('timestamp'),
-            'upload_date': strftime_or_none(json_ld.get('timestamp'), '%Y%m%d'),
-            'thumbnail': traverse_obj(json_ld, ('thumbnails', 0, 'url')),
+            'thumbnail': traverse_obj(json_ld, ('thumbnails', 0, 'url', {url_or_none})),
             'description': json_ld.get('description') or self._og_search_description(webpage),
         }
