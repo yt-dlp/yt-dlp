@@ -675,8 +675,8 @@ def _sanitize_path_parts(parts):
             sanitized_parts.append('..')
             continue
         # Replace invalid segments with `#`
-        # - trailing dots (`asdf...` => `asdf..#`)
-        # - invalid chars (`<>` => `#`)
+        # - trailing dots and spaces (`asdf...` => `asdf..#`)
+        # - invalid chars (`<>` => `##`)
         sanitized_part = re.sub(r'[/<>:"\|\\?\*]|[\s.]$', '#', part)
         sanitized_parts.append(sanitized_part)
 
