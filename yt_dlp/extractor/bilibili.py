@@ -605,6 +605,27 @@ class BiliBiliIE(BilibiliBaseIE):
             },
         }],
     }, {
+        'note': 'storyboard',
+        'url': 'https://www.bilibili.com/video/av170001/',
+        'info_dict': {
+            'id': 'BV17x411w7KC_p1',
+            'title': '【MV】保加利亚妖王AZIS视频合辑 p01 Хоп',
+            'ext': 'mhtml',
+            'upload_date': '20111109',
+            'uploader_id': '122541',
+            'view_count': int,
+            '_old_archive_ids': ['bilibili 170001_part1'],
+            'thumbnail': r're:https?://.*\.(?:jpg|jpeg|png)$',
+            'uploader': '冰封.虾子',
+            'timestamp': 1320850533,
+            'comment_count': int,
+            'tags': ['Hop', '保加利亚妖王', '保加利亚', 'Азис', 'azis', 'mv'],
+            'description': 'md5:acfd7360b96547f031f7ebead9e66d9e',
+            'like_count': int,
+            'duration': 199.4,
+        },
+        'params': {'format': 'sb', 'playlist_items': '1'},
+    }, {
         'note': '301 redirect to bangumi link',
         'url': 'https://www.bilibili.com/video/BV1TE411f7f1',
         'info_dict': {
