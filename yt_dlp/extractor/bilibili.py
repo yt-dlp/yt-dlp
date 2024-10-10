@@ -33,6 +33,7 @@ from ..utils import (
     parse_qs,
     parse_resolution,
     qualities,
+    sanitize_url,
     smuggle_url,
     srt_subtitles_timecode,
     str_or_none,
@@ -66,7 +67,61 @@ class BilibiliBaseIE(InfoExtractor):
                 f'Format(s) {missing_formats} are missing; you have to login or '
                 f'become a premium member to download them. {self._login_hint()}')
 
-    def extract_formats(self, play_info):
+    def _extract_storyboard(self, duration, aid=None, bvid=None, cid=None):
+        video_id = aid or bvid
+        query = filter_dict({
+            'aid': aid,
+            'bvid': bvid,
+            'cid': cid,
+        })
+        if not aid and not bvid:
+            return {}
+        idx = 1
+        while storyboard_info := traverse_obj(self._download_json(
+                'https://api.bilibili.com/x/player/videoshot', video_id,
+                'Downloading storyboard info', query={
+                    'index': idx,
+                    **query,
+                }), 'data'):
+            if storyboard_info.get('image') and storyboard_info.get('index'):
+                rows, cols = storyboard_info.get('img_x_len'), storyboard_info.get('img_y_len')
+                fragments = []
+                last_duration = 0.0
+                for i, url in enumerate(storyboard_info['image'], start=1):
+                    duration_index = i * rows * cols - 1
+                    if duration_index < len(storyboard_info['index']) - 1:
+                        current_duration = traverse_obj(storyboard_info, ('index', duration_index))
+                    else:
+                        current_duration = duration
+                    if current_duration > last_duration and current_duration <= duration:
+                        fragments.append({
+                            'url': sanitize_url(url),
+                            'duration': current_duration - last_duration,
+                        })
+                        last_duration = current_duration
+                    else:
+                        break
+                if fragments:
+                    yield {
+                        'format_id': f'sb{idx}',
+                        'format_note': 'storyboard',
+                        'ext': 'mhtml',
+                        'protocol': 'mhtml',
+                        'acodec': 'none',
+                        'vcodec': 'none',
+                        'url': 'about:invalid',
+                        'width': storyboard_info.get('img_x_size'),
+                        'height': storyboard_info.get('img_y_size'),
+                        'fps': len(storyboard_info['image']) * rows * cols / duration,
+                        'rows': rows,
+                        'columns': cols,
+                        'fragments': fragments,
+                    }
+            else:
+                return
+            idx += 1
+
+    def extract_formats(self, play_info, aid=None, bvid=None, cid=None):
         format_names = {
             r['quality']: traverse_obj(r, 'new_description', 'display_desc')
             for r in traverse_obj(play_info, ('support_formats', lambda _, v: v['quality']))
@@ -128,6 +183,8 @@ class BilibiliBaseIE(InfoExtractor):
                 }),
                 **parse_resolution(format_names.get(play_info.get('quality'))),
             })
+        formats.extend(self._extract_storyboard(
+            float_or_none(play_info.get('timelength'), scale=1000), aid=aid, bvid=bvid, cid=cid))
         return formats
 
     def _get_wbi_key(self, video_id):
@@ -291,7 +348,7 @@ class BilibiliBaseIE(InfoExtractor):
                 **metainfo,
                 'id': f'{video_id}_{cid}',
                 'title': f'{metainfo.get("title")} - {next(iter(edges.values())).get("title")}',
-                'formats': self.extract_formats(play_info),
+                'formats': self.extract_formats(play_info, bvid=video_id, cid=cid),
                 'description': f'{json.dumps(edges, ensure_ascii=False)}\n{metainfo.get("description", "")}',
                 'duration': float_or_none(play_info.get('timelength'), scale=1000),
                 'subtitles': self.extract_subtitles(video_id, cid),
@@ -728,14 +785,14 @@ class BiliBiliIE(BilibiliBaseIE):
                 duration=traverse_obj(initial_state, ('videoData', 'duration', {int_or_none})),
                 __post_extractor=self.extract_comments(aid))
         else:
-            formats = self.extract_formats(play_info)
+            formats = self.extract_formats(play_info, bvid=video_id, cid=cid)
 
             if not traverse_obj(play_info, ('dash')):
                 # we only have legacy formats and need additional work
                 has_qn = lambda x: x in traverse_obj(formats, (..., 'quality'))
                 for qn in traverse_obj(play_info, ('accept_quality', lambda _, v: not has_qn(v), {int})):
                     formats.extend(traverse_obj(
-                        self.extract_formats(self._download_playinfo(video_id, cid, headers=headers, qn=qn)),
+                        self.extract_formats(self._download_playinfo(video_id, cid, headers=headers, qn=qn), bvid=video_id, cid=cid),
                         lambda _, v: not has_qn(v['quality'])))
                 self._check_missing_formats(play_info, formats)
                 flv_formats = traverse_obj(formats, lambda _, v: v['fragments'])
@@ -865,9 +922,10 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
             'Extracting episode', query={'fnval': '4048', 'ep_id': episode_id},
             headers=headers)
         premium_only = play_info.get('code') == -10403
+        bvid, cid = traverse_obj(play_info, ('result', 'play_view_business_info', 'episode_info', ('bvid', 'cid')))
         play_info = traverse_obj(play_info, ('result', 'video_info', {dict})) or {}
 
-        formats = self.extract_formats(play_info)
+        formats = self.extract_formats(play_info, bvid=bvid, cid=cid)
         if not formats and (premium_only or '成为大会员抢先看' in webpage or '开通大会员观看' in webpage):
             self.raise_login_required('This video is for premium members only')
 
@@ -1040,7 +1098,7 @@ class BilibiliCheeseBaseIE(BilibiliBaseIE):
         return {
             'id': str_or_none(ep_id),
             'episode_id': str_or_none(ep_id),
-            'formats': self.extract_formats(play_info),
+            'formats': self.extract_formats(play_info, aid=aid, cid=cid),
             'extractor_key': BilibiliCheeseIE.ie_key(),
             'extractor': BilibiliCheeseIE.IE_NAME,
             'webpage_url': f'https://www.bilibili.com/cheese/play/ep{ep_id}',
