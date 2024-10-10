@@ -3010,11 +3010,18 @@ class YoutubeDL:
                         'section_title': chapter.get('title'),
                         'section_number': chapter.get('index'),
                     })
+                if new_info.get('formats'):
+                    new_info['formats'] = [f for f in formats if f.get('protocol') != 'blob']
+                if new_info.get('url') and new_info.get('url').startswith('blob:'):
+                    new_info['url'] = new_info['url'][5:]
                 downloaded_formats.append(new_info)
                 try:
                     self.process_info(new_info)
                 except MaxDownloadsReached:
                     max_downloads_reached = True
+                except Exception as e:
+                    print(f"erro in process_info {e}")
+                    break
                 self._raise_pending_errors(new_info)
                 # Remove copied info
                 for key, val in tuple(new_info.items()):

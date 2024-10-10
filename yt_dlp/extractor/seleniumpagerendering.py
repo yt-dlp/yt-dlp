@@ -1,9 +1,12 @@
+import re
 import time
 
 from yt_dlp.utils import filter_dict, unsmuggle_url, unified_timestamp, UnsupportedError
+from yt_dlp import variadic
 
 from .common import InfoExtractor
 from ..utils import merge_dicts
+
 
 DEFAULT_CONFIGURATION = {
     'chrome_options': [
@@ -21,6 +24,17 @@ DEFAULT_CONFIGURATION = {
 
 
 class SeleniumPageRenderingIE(InfoExtractor):
+    _VALID_URL = (
+        r'https?://.*\.pandavideo\.com.*/embed/.*v=(?P<id>[a-f0-9\-]+)',
+        r'https?://player\.scaleup\.com.*/embed/(?P<id>[a-f0-9\-]+)',
+        # r'https?://.*\.amplifyapp\.com.*/embed/(?P<id>[a-f0-9\-]+)?.*',
+    )
+    _TESTS = [{
+        'url': 'https://player-vz-ee438fcb-865.tv.pandavideo.com.br/embed/'
+               '?color=f6c5c5&v=6035f7c1-83fe-4847-93c3-e2f4827e60f3',
+        'info_dict': {},
+    }]
+
     def _download_webpage(self, url_or_request, display_id, headers=None, *_args, **_kwargs):
         from selenium import webdriver
         from selenium.webdriver.chrome.options import Options
@@ -30,46 +44,46 @@ class SeleniumPageRenderingIE(InfoExtractor):
         from selenium.common.exceptions import SessionNotCreatedException
 
         for _r in range(3):
-            driver = None
             try:
                 chrome_options = Options()
                 for arq in DEFAULT_CONFIGURATION.get('chrome_options'):
                     chrome_options.add_argument(arq)
                 driver = webdriver.Chrome(options=chrome_options)
-                driver.execute_cdp_cmd('Network.enable', {})
-                if headers:
-                    driver.execute_cdp_cmd(
-                        'Network.setExtraHTTPHeaders', {'headers': headers}
-                    )
-                driver.get(url_or_request)
+                try:
+                    driver.execute_cdp_cmd('Network.enable', {})
+                    if headers:
+                        driver.execute_cdp_cmd(
+                            'Network.setExtraHTTPHeaders', {'headers': headers}
+                        )
+                    driver.get(url_or_request)
 
-                driver.implicitly_wait(DEFAULT_CONFIGURATION.get('implicitly_wait') or 10)
-                # Wait for the page to render and the video to appear
-                src = 'UnsupportedError'
-                for _ in range(3):
+                    driver.implicitly_wait(DEFAULT_CONFIGURATION.get('implicitly_wait') or 10)
+                    # Wait for the page to render and the video to appear
+                    src = 'UnsupportedError'
+                    for _ in range(3):
+                        try:
+                            wait = WebDriverWait(driver, 5)
+                            src = wait.until(
+                                expected_conditions.visibility_of_element_located(
+                                    (By.CSS_SELECTOR, 'video')
+                                )
+                            ).find_element(By.CSS_SELECTOR, 'source').get_attribute('src')
+                            if display_id not in src:
+                                raise UnsupportedError(url_or_request)
+                            break
+                        except Exception:
+                            pass
+                    if display_id not in src:
+                        raise UnsupportedError(url_or_request)
+                    return driver.page_source
+                finally:
                     try:
-                        wait = WebDriverWait(driver, 5)
-                        src = wait.until(
-                            expected_conditions.visibility_of_element_located(
-                                (By.CSS_SELECTOR, 'video')
-                            )
-                        ).find_element(By.CSS_SELECTOR, 'source').get_attribute('src')
-                        if display_id not in src:
-                            raise UnsupportedError(url_or_request)
-                        break
+                        if driver:
+                            driver.quit()
                     except Exception:
                         pass
-                if display_id not in src:
-                    raise UnsupportedError(url_or_request)
-                return driver.page_source
             except SessionNotCreatedException:
                 time.sleep(1)
-            finally:
-                try:
-                    if driver:
-                        driver.quit()
-                except Exception:
-                    pass
         raise UnsupportedError(url_or_request)
 
     def _og_search_thumbnail(self, html, **kargs):
@@ -106,3 +120,16 @@ class SeleniumPageRenderingIE(InfoExtractor):
         elif embeds:
             return self.playlist_result(embeds, **info_dict)
         raise UnsupportedError(url)
+
+    @classmethod
+    def _match_valid_url(cls, url):
+        # DEBUG
+        # re.compile(r'https?://.*\.amplifyapp\.com.*/embed/(?P<id>[a-f0-9\-]+)?.*', re.UNICODE).match(url), url
+        if cls._VALID_URL is False:
+            return None
+        # This does not use has/getattr intentionally - we want to know whether
+        # we have cached the regexp for *this* class, whereas getattr would also
+        # match the superclass
+        if '_VALID_URL_RE' not in cls.__dict__:
+            cls._VALID_URL_RE = tuple(map(re.compile, variadic(cls._VALID_URL)))
+        return next(filter(None, (regex.match(url) for regex in cls._VALID_URL_RE)), None)
