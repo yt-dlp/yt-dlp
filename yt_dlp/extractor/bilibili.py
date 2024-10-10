@@ -68,58 +68,49 @@ class BilibiliBaseIE(InfoExtractor):
                 f'become a premium member to download them. {self._login_hint()}')
 
     def _extract_storyboard(self, duration, aid=None, bvid=None, cid=None):
-        video_id = aid or bvid
-        query = filter_dict({
-            'aid': aid,
-            'bvid': bvid,
-            'cid': cid,
-        })
-        if not aid and not bvid:
+        if not (video_id := aid or bvid):
             return {}
-        idx = 1
-        while storyboard_info := traverse_obj(self._download_json(
+        if storyboard_info := traverse_obj(self._download_json(
                 'https://api.bilibili.com/x/player/videoshot', video_id,
-                'Downloading storyboard info', query={
-                    'index': idx,
-                    **query,
-                }), 'data'):
-            if storyboard_info.get('image') and storyboard_info.get('index'):
-                rows, cols = storyboard_info.get('img_x_len'), storyboard_info.get('img_y_len')
-                fragments = []
-                last_duration = 0.0
-                for i, url in enumerate(storyboard_info['image'], start=1):
-                    duration_index = i * rows * cols - 1
-                    if duration_index < len(storyboard_info['index']) - 1:
-                        current_duration = traverse_obj(storyboard_info, ('index', duration_index))
-                    else:
-                        current_duration = duration
-                    if current_duration > last_duration and current_duration <= duration:
-                        fragments.append({
-                            'url': sanitize_url(url),
-                            'duration': current_duration - last_duration,
-                        })
-                        last_duration = current_duration
-                    else:
-                        break
-                if fragments:
-                    yield {
-                        'format_id': f'sb{idx}',
-                        'format_note': 'storyboard',
-                        'ext': 'mhtml',
-                        'protocol': 'mhtml',
-                        'acodec': 'none',
-                        'vcodec': 'none',
-                        'url': 'about:invalid',
-                        'width': storyboard_info.get('img_x_size'),
-                        'height': storyboard_info.get('img_y_size'),
-                        'fps': len(storyboard_info['image']) * rows * cols / duration,
-                        'rows': rows,
-                        'columns': cols,
-                        'fragments': fragments,
-                    }
-            else:
-                return
-            idx += 1
+                note='Downloading storyboard info', errnote='Failed to download storyboard info',
+                query=filter_dict({
+                    'index': 1,
+                    'aid': aid,
+                    'bvid': bvid,
+                    'cid': cid,
+                })), ('data', {lambda v: v if v['image'] and v['index'] else None})):
+            rows, cols = traverse_obj(storyboard_info, (('img_x_len', 'img_y_len'),))
+            fragments = []
+            last_duration = 0.0
+            for i, url in enumerate(storyboard_info['image'], start=1):
+                duration_index = i * rows * cols - 1
+                if duration_index < len(storyboard_info['index']) - 1:
+                    current_duration = traverse_obj(storyboard_info, ('index', duration_index))
+                else:
+                    current_duration = duration
+                if not current_duration or current_duration <= last_duration or current_duration > duration:
+                    break
+                fragments.append({
+                    'url': sanitize_url(url),
+                    'duration': current_duration - last_duration,
+                })
+            if fragments:
+                return {
+                    'format_id': 'sb',
+                    'format_note': 'storyboard',
+                    'ext': 'mhtml',
+                    'protocol': 'mhtml',
+                    'acodec': 'none',
+                    'vcodec': 'none',
+                    'url': 'about:invalid',
+                    'width': storyboard_info.get('img_x_size'),
+                    'height': storyboard_info.get('img_y_size'),
+                    'fps': len(storyboard_info['image']) * rows * cols / duration if rows and cols else None,
+                    'rows': rows,
+                    'columns': cols,
+                    'fragments': fragments,
+                }
+        return {}
 
     def extract_formats(self, play_info, aid=None, bvid=None, cid=None):
         format_names = {
@@ -183,7 +174,7 @@ class BilibiliBaseIE(InfoExtractor):
                 }),
                 **parse_resolution(format_names.get(play_info.get('quality'))),
             })
-        formats.extend(self._extract_storyboard(
+        formats.append(self._extract_storyboard(
             float_or_none(play_info.get('timelength'), scale=1000), aid=aid, bvid=bvid, cid=cid))
         return formats
 
