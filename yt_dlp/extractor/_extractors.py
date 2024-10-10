@@ -2248,7 +2248,6 @@ from .ufctv import (
     UFCArabiaIE,
 )
 from .ukcolumn import UkColumnIE
-from .uktvplay import UKTVPlayIE
 from .umg import UMGDeIE
 from .unistra import UnistraIE
 from .unity import UnityIE
