@@ -27,7 +27,7 @@ class SeleniumPageRenderingIE(InfoExtractor):
     _VALID_URL = (
         r'https?://.*\.pandavideo\.com.*/embed/.*v=(?P<id>[a-f0-9\-]+)',
         r'https?://player\.scaleup\.com.*/embed/(?P<id>[a-f0-9\-]+)',
-        # r'https?://.*\.amplifyapp\.com.*/embed/(?P<id>[a-f0-9\-]+)?.*',
+        r'https?://.*\.amplifyapp\.com.*/embed/(?P<id>[a-f0-9\-]+)?.*',
     )
     _TESTS = [{
         'url': 'https://player-vz-ee438fcb-865.tv.pandavideo.com.br/embed/'
@@ -48,6 +48,7 @@ class SeleniumPageRenderingIE(InfoExtractor):
                 chrome_options = Options()
                 for arq in DEFAULT_CONFIGURATION.get('chrome_options'):
                     chrome_options.add_argument(arq)
+                chrome_options.add_argument("--auto-open-devtools-for-tabs")
                 driver = webdriver.Chrome(options=chrome_options)
                 try:
                     driver.execute_cdp_cmd('Network.enable', {})
@@ -55,27 +56,53 @@ class SeleniumPageRenderingIE(InfoExtractor):
                         driver.execute_cdp_cmd(
                             'Network.setExtraHTTPHeaders', {'headers': headers}
                         )
+                    driver.execute_cdp_cmd('Network.enable', {})
+                    driver.execute_script("window.performance.getEntries();")
                     driver.get(url_or_request)
-
                     driver.implicitly_wait(DEFAULT_CONFIGURATION.get('implicitly_wait') or 10)
                     # Wait for the page to render and the video to appear
                     src = 'UnsupportedError'
                     for _ in range(3):
                         try:
                             wait = WebDriverWait(driver, 5)
-                            src = wait.until(
+                            video = wait.until(
                                 expected_conditions.visibility_of_element_located(
                                     (By.CSS_SELECTOR, 'video')
                                 )
-                            ).find_element(By.CSS_SELECTOR, 'source').get_attribute('src')
-                            if display_id not in src:
+                            )
+                            try:
+                                src = video.find_element(By.CSS_SELECTOR, 'source').get_attribute('src')
+                            except Exception:
+                                # '.amplifyapp.com' in src
+                                src = video.get_attribute('src')
+                            if 'pandavideo' in url_or_request and display_id not in src:
                                 raise UnsupportedError(url_or_request)
                             break
                         except Exception:
                             pass
-                    if display_id not in src:
+                    if not src or src == 'UnsupportedError':
                         raise UnsupportedError(url_or_request)
-                    return driver.page_source
+                    page_source = driver.page_source
+                    if '.amplifyapp.com/embed' in url_or_request and '.amplifyapp.com' in src:
+                        endswith_m3u8 = '.m3u8'
+                        swith_m3u8 = 'playlist.m3u8'
+                        # it_found = False
+                        for retr in range(10):
+                            time.sleep(1)
+                            total_entries = driver.execute_script("return window.performance.getEntries().length")
+                            for i in range(total_entries):
+                                try:
+                                    entrie = driver.execute_script(f"return window.performance.getEntries()[{i}]")
+                                    if (
+                                        (endswith_m3u8 and entrie['name'].endswith(endswith_m3u8)) or
+                                        (swith_m3u8 and swith_m3u8 in entrie['name'])
+                                    ):
+                                        it_found = True
+                                        return page_source.replace(src, entrie['name'])
+                                except Exception:
+                                    pass
+                        # 'blob:https://main.d3va5qt152jv36.amplifyapp.com/e457b561-f699-4842-8c7f-8f0dab7629b4'
+                    return page_source
                 finally:
                     try:
                         if driver:
@@ -105,13 +132,17 @@ class SeleniumPageRenderingIE(InfoExtractor):
         original_url = url
         display_id = self._match_id(url)
         headers = self._get_headers(url)
-        full_response = self._request_webpage(url, display_id, headers=headers)
+        try:
+            full_response = self._request_webpage(url, display_id, headers=headers)
+            timestamp = unified_timestamp(full_response.headers.get('Last-Modified')),
+        except Exception:
+            full_response = None
         webpage = self._download_webpage(url, display_id, headers)
         info_dict = {
             'id': display_id,
             'title': self._generic_title('', webpage, default='video'),
             'thumbnail': self._og_search_thumbnail(webpage, default=None),
-            'timestamp': unified_timestamp(full_response.headers.get('Last-Modified')),
+            # 'timestamp': timestamp,
         }
         embeds = list(
             self._extract_generic_embeds(original_url, webpage, urlh=full_response, info_dict=info_dict))
