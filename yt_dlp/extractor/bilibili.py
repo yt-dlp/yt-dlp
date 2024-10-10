@@ -68,7 +68,7 @@ class BilibiliBaseIE(InfoExtractor):
                 f'become a premium member to download them. {self._login_hint()}')
 
     def _extract_storyboard(self, duration, aid=None, bvid=None, cid=None):
-        if not (video_id := aid or bvid):
+        if not (video_id := aid or bvid) or not duration:
             return {}
         if storyboard_info := traverse_obj(self._download_json(
                 'https://api.bilibili.com/x/player/videoshot', video_id,
@@ -913,10 +913,11 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
             'Extracting episode', query={'fnval': '4048', 'ep_id': episode_id},
             headers=headers)
         premium_only = play_info.get('code') == -10403
-        bvid, cid = traverse_obj(play_info, ('result', 'play_view_business_info', 'episode_info', ('bvid', 'cid')))
+        episode_info = traverse_obj(play_info, ('result', 'play_view_business_info', 'episode_info'))
+        aid, cid = episode_info.get('aid'), episode_info.get('cid')
         play_info = traverse_obj(play_info, ('result', 'video_info', {dict})) or {}
 
-        formats = self.extract_formats(play_info, bvid=bvid, cid=cid)
+        formats = self.extract_formats(play_info, aid=aid, cid=cid)
         if not formats and (premium_only or '成为大会员抢先看' in webpage or '开通大会员观看' in webpage):
             self.raise_login_required('This video is for premium members only')
 
@@ -927,7 +928,7 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
         episode_number, episode_info = next((
             (idx, ep) for idx, ep in enumerate(traverse_obj(
                 bangumi_info, (('episodes', ('section', ..., 'episodes')), ..., {dict})), 1)
-            if str_or_none(ep.get('id')) == episode_id), (1, {}))
+            if str_or_none(ep.get('id')) == episode_id), (1, episode_info))
 
         season_id = bangumi_info.get('season_id')
         season_number, season_title = season_id and next((
@@ -936,7 +937,7 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
             if e.get('season_id') == season_id
         ), (None, None))
 
-        aid = episode_info.get('aid')
+        aid, cid = episode_info.get('aid', aid), episode_info.get('cid', cid)
 
         return {
             'id': episode_id,
@@ -957,7 +958,7 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
             'season_id': str_or_none(season_id),
             'season_number': season_number,
             'duration': float_or_none(play_info.get('timelength'), scale=1000),
-            'subtitles': self.extract_subtitles(episode_id, episode_info.get('cid'), aid=aid),
+            'subtitles': self.extract_subtitles(episode_id, cid, aid=aid),
             '__post_extractor': self.extract_comments(aid),
             'http_headers': {'Referer': url},
         }
