@@ -4,6 +4,28 @@
 # To create a release, dispatch the https://github.com/yt-dlp/yt-dlp/actions/workflows/release.yml workflow on master
 -->
 
+### 2024.10.07
+
+#### Core changes
+- **cookies**: [Fix cookie load error handling](https://github.com/yt-dlp/yt-dlp/commit/e59c82a74cda5139eb3928c75b0bd45484dbe7f0) ([#11140](https://github.com/yt-dlp/yt-dlp/issues/11140)) by [Grub4K](https://github.com/Grub4K)
+
+#### Extractor changes
+- **applepodcasts**: [Fix extractor](https://github.com/yt-dlp/yt-dlp/commit/6328e2e67a4e126e08af382e6a387073082d5c5f) ([#10903](https://github.com/yt-dlp/yt-dlp/issues/10903)) by [coreywright](https://github.com/coreywright)
+- **cwtv**: [Fix extractor](https://github.com/yt-dlp/yt-dlp/commit/4b7bec66d8100978b82bb24110ed44e2a7749931) ([#11135](https://github.com/yt-dlp/yt-dlp/issues/11135)) by [kclauhk](https://github.com/kclauhk)
+- **instagram**
+    - [Do not hardcode user-agent](https://github.com/yt-dlp/yt-dlp/commit/079a7bc334281d3c13d347770ae5f9f2b7da471a) ([#11155](https://github.com/yt-dlp/yt-dlp/issues/11155)) by [poyhen](https://github.com/poyhen)
+    - [Fix extractor](https://github.com/yt-dlp/yt-dlp/commit/cf85cba5d9496bd2689e1070005b4d1b4cd3dc6d) ([#11156](https://github.com/yt-dlp/yt-dlp/issues/11156)) by [tetra-fox](https://github.com/tetra-fox)
+- **noodlemagazine**: [Fix extractor](https://github.com/yt-dlp/yt-dlp/commit/ccb23e1bac9768d1c70535beb744e668ed4a2720) ([#11144](https://github.com/yt-dlp/yt-dlp/issues/11144)) by [BallzCrasher](https://github.com/BallzCrasher)
+- **patreon**: [Extract all m3u8 formats for locked posts](https://github.com/yt-dlp/yt-dlp/commit/f91645aceaf13926cf35be2c1dfef61b3aab97fb) ([#11138](https://github.com/yt-dlp/yt-dlp/issues/11138)) by [bashonly](https://github.com/bashonly)
+- **youtube**: [Change default player clients to `ios,mweb`](https://github.com/yt-dlp/yt-dlp/commit/de2062753a188060d76f587e45becce61fe399f9) ([#11190](https://github.com/yt-dlp/yt-dlp/issues/11190)) by [seproDev](https://github.com/seproDev)
+
+#### Postprocessor changes
+- **xattrmetadata**: [Try to write each attribute](https://github.com/yt-dlp/yt-dlp/commit/3a193346eeb27ac2959ff30c370adb899ec94732) ([#11115](https://github.com/yt-dlp/yt-dlp/issues/11115)) by [eric321](https://github.com/eric321)
+
+#### Misc. changes
+- **ci**: [Rerun failed tests](https://github.com/yt-dlp/yt-dlp/commit/b31b81d85f00601710d4fac590c3e4efb4133283) ([#11143](https://github.com/yt-dlp/yt-dlp/issues/11143)) by [Grub4K](https://github.com/Grub4K)
+- **cleanup**: Miscellaneous: [1a176d8](https://github.com/yt-dlp/yt-dlp/commit/1a176d874e6772cd898ce507379ea388e96ee3f7) by [bashonly](https://github.com/bashonly)
+
 ### 2024.09.27
 
 #### Important changes
