@@ -154,7 +154,6 @@ from .utils import (
     try_get,
     url_basename,
     variadic,
-    version_tuple,
     windows_enable_vt_mode,
     write_json_file,
     write_string,
@@ -4084,17 +4083,6 @@ class YoutubeDL:
         plugin_dirs = plugin_directories()
         if plugin_dirs:
             write_debug(f'Plugin directories: {plugin_dirs}')
-
-        # Not implemented
-        if False and self.params.get('call_home'):
-            ipaddr = self.urlopen('https://yt-dl.org/ip').read().decode()
-            write_debug(f'Public IP address: {ipaddr}')
-            latest_version = self.urlopen(
-                'https://yt-dl.org/latest/version').read().decode()
-            if version_tuple(latest_version) > version_tuple(__version__):
-                self.report_warning(
-                    f'You are using an outdated version (newest version: {latest_version})! '
-                    'See https://yt-dl.org/update if you need help updating.')
 
     @functools.cached_property
     def proxies(self):
