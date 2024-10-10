@@ -69,7 +69,7 @@ class BilibiliBaseIE(InfoExtractor):
 
     def _extract_storyboard(self, duration, aid=None, bvid=None, cid=None):
         if not (video_id := aid or bvid) or not duration:
-            return {}
+            return
         if storyboard_info := traverse_obj(self._download_json(
                 'https://api.bilibili.com/x/player/videoshot', video_id,
                 note='Downloading storyboard info', errnote='Failed to download storyboard info',
@@ -110,7 +110,6 @@ class BilibiliBaseIE(InfoExtractor):
                     'columns': cols,
                     'fragments': fragments,
                 }
-        return {}
 
     def extract_formats(self, play_info, aid=None, bvid=None, cid=None):
         format_names = {
@@ -174,8 +173,9 @@ class BilibiliBaseIE(InfoExtractor):
                 }),
                 **parse_resolution(format_names.get(play_info.get('quality'))),
             })
-        formats.append(self._extract_storyboard(
-            float_or_none(play_info.get('timelength'), scale=1000), aid=aid, bvid=bvid, cid=cid))
+        if storyboard_format := self._extract_storyboard(
+                float_or_none(play_info.get('timelength'), scale=1000), aid=aid, bvid=bvid, cid=cid):
+            formats.append(storyboard_format)
         return formats
 
     def _get_wbi_key(self, video_id):
@@ -1784,7 +1784,7 @@ class BilibiliAudioIE(BilibiliAudioBaseIE):
             'id': '1003142',
             'ext': 'm4a',
             'title': '【tsukimi】YELLOW / 神山羊',
-            'artist': 'tsukimi',
+            'artists': ['tsukimi'],
             'comment_count': int,
             'description': 'YELLOW的mp3版！',
             'duration': 183,
@@ -1796,7 +1796,7 @@ class BilibiliAudioIE(BilibiliAudioBaseIE):
             'thumbnail': r're:^https?://.+\.jpg',
             'timestamp': 1564836614,
             'upload_date': '20190803',
-            'uploader': 'tsukimi-つきみぐー',
+            'uploader': '十六夜tsukimiつきみぐ',
             'view_count': int,
         },
     }
@@ -1851,10 +1851,10 @@ class BilibiliAudioAlbumIE(BilibiliAudioBaseIE):
         'url': 'https://www.bilibili.com/audio/am10624',
         'info_dict': {
             'id': '10624',
-            'title': '每日新曲推荐（每日11:00更新）',
+            'title': '新曲推荐',
             'description': '每天11:00更新，为你推送最新音乐',
         },
-        'playlist_count': 19,
+        'playlist_mincount': 10,
     }
 
     def _real_extract(self, url):
