@@ -1382,9 +1382,9 @@ from .npo import (
     WNLIE,
     AndereTijdenIE,
     HetKlokhuisIE,
-    NPOLiveIE,
     NPORadioFragmentIE,
     NPORadioIE,
+    NPOStartIE,
     SchoolTVIE,
 )
 from .npr import NprIE

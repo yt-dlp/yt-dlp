@@ -1,6 +1,9 @@
+import json
 import random
 import re
 import urllib.parse
+
+from yt_dlp.utils.traversal import traverse_obj
 
 from .common import InfoExtractor
 from ..utils import (
@@ -12,20 +15,18 @@ from ..utils import (
     try_call,
     unified_timestamp,
     url_or_none,
-    urlencode_postdata,
 )
 
 
 class NPOIE(InfoExtractor):
     IE_NAME = 'npo'
-    IE_DESC = 'npo.nl, ntr.nl, omroepwnl.nl, zapp.nl and npo3.nl'
+    IE_DESC = 'npo.nl and ntr.nl'
     _VALID_URL = r'''(?x)
                     (?:
                         npo:|
                         https?://
                             (?:www\.)?
                             (?:
-                                npo\.nl/(?:[^/]+/)*|
                                 (?:ntr|npostart)\.nl/(?:[^/]+/){2,}|
                                 omroepwnl\.nl/video/fragment/[^/]+__|
                                 (?:zapp|npo3)\.nl/(?:[^/]+/){2,}
@@ -35,76 +36,7 @@ class NPOIE(InfoExtractor):
                 '''
 
     _TESTS = [{
-        'url': 'http://www.npo.nl/nieuwsuur/22-06-2014/VPWON_1220719',
-        'md5': '4b3f9c429157ec4775f2c9cb7b911016',
-        'info_dict': {
-            'id': 'VPWON_1220719',
-            'ext': 'm4v',
-            'title': 'Nieuwsuur',
-            'description': 'Dagelijks tussen tien en elf: nieuws, sport en achtergronden.',
-            'upload_date': '20140622',
-        },
-        'skip': 'Video was removed',
-    }, {
-        'url': 'http://www.npo.nl/de-mega-mike-mega-thomas-show/27-02-2009/VARA_101191800',
-        'md5': 'da50a5787dbfc1603c4ad80f31c5120b',
-        'info_dict': {
-            'id': 'VARA_101191800',
-            'ext': 'm4v',
-            'title': 'De Mega Mike & Mega Thomas show: The best of.',
-            'description': 'md5:3b74c97fc9d6901d5a665aac0e5400f4',
-            'upload_date': '20090227',
-            'duration': 2400,
-        },
-        'skip': 'Video was removed',
-    }, {
-        'url': 'http://www.npo.nl/tegenlicht/25-02-2013/VPWON_1169289',
-        'md5': '1b279c0547f6b270e014c576415268c5',
-        'info_dict': {
-            'id': 'VPWON_1169289',
-            'ext': 'mp4',
-            'title': 'Zwart geld: de toekomst komt uit Afrika',
-            'description': 'md5:dffaf3d628a9c36f78ca48d834246261',
-            'upload_date': '20130225',
-            'duration': 3000,
-            'creator': 'NED2',
-            'series': 'Tegenlicht',
-            'timestamp': 1361822340,
-            'thumbnail': 'https://images.npo.nl/tile/1280x720/142854.jpg',
-            'episode': 'Zwart geld: de toekomst komt uit Afrika',
-            'episode_number': 18,
-        },
-    }, {
-        'url': 'http://www.npo.nl/de-nieuwe-mens-deel-1/21-07-2010/WO_VPRO_043706',
-        'info_dict': {
-            'id': 'WO_VPRO_043706',
-            'ext': 'mp4',
-            'title': 'De nieuwe mens - Deel 1',
-            'description': 'md5:518ae51ba1293ffb80d8d8ce90b74e4b',
-            'duration': 4680,
-            'episode': 'De nieuwe mens - Deel 1',
-            'thumbnail': 'https://images.npo.nl/tile/1280x720/6289.jpg',
-            'timestamp': 1279716057,
-            'series': 'De nieuwe mens - Deel 1',
-            'upload_date': '20100721',
-        },
-        'params': {
-            'skip_download': True,
-        },
-    }, {
-        # non asf in streams
-        'url': 'http://www.npo.nl/hoe-gaat-europa-verder-na-parijs/10-01-2015/WO_NOS_762771',
-        'info_dict': {
-            'id': 'WO_NOS_762771',
-            'ext': 'mp4',
-            'title': 'Hoe gaat Europa verder na Parijs?',
-        },
-        'params': {
-            'skip_download': True,
-        },
-        'skip': 'Video was removed',
-    }, {
-        'url': 'http://www.ntr.nl/Aap-Poot-Pies/27/detail/Aap-poot-pies/VPWON_1233944#content',
+        'url': 'http://www.ntr.nl/Aap-Poot-Pies/27/detail/Aap-poot-pies/VPWON_1233944',
         'info_dict': {
             'id': 'VPWON_1233944',
             'ext': 'mp4',
@@ -121,62 +53,10 @@ class NPOIE(InfoExtractor):
             'skip_download': True,
         },
     }, {
-        'url': 'http://www.omroepwnl.nl/video/fragment/vandaag-de-dag-verkiezingen__POMS_WNL_853698',
-        'info_dict': {
-            'id': 'POW_00996502',
-            'ext': 'm4v',
-            'title': '''"Dit is wel een 'landslide'..."''',
-            'description': 'md5:f8d66d537dfb641380226e31ca57b8e8',
-            'upload_date': '20150508',
-            'duration': 462,
-        },
-        'params': {
-            'skip_download': True,
-        },
-        'skip': 'Video was removed',
-    }, {
-        # audio
-        'url': 'http://www.npo.nl/jouw-stad-rotterdam/29-01-2017/RBX_FUNX_6683215/RBX_FUNX_7601437',
-        'info_dict': {
-            'id': 'RBX_FUNX_6683215',
-            'ext': 'mp3',
-            'title': 'Jouw Stad Rotterdam',
-            'description': 'md5:db251505244f097717ec59fabc372d9f',
-        },
-        'params': {
-            'skip_download': True,
-        },
-        'skip': 'Video was removed',
-    }, {
-        'url': 'http://www.zapp.nl/de-bzt-show/gemist/KN_1687547',
+        'url': 'https://npo.nl/npo3/3onderzoekt/16-09-2015/VPWON_1239870',
         'only_matching': True,
     }, {
-        'url': 'http://www.zapp.nl/de-bzt-show/filmpjes/POMS_KN_7315118',
-        'only_matching': True,
-    }, {
-        'url': 'http://www.zapp.nl/beste-vrienden-quiz/extra-video-s/WO_NTR_1067990',
-        'only_matching': True,
-    }, {
-        'url': 'https://www.npo3.nl/3onderzoekt/16-09-2015/VPWON_1239870',
-        'only_matching': True,
-    }, {
-        # live stream
-        'url': 'npo:LI_NL1_4188102',
-        'only_matching': True,
-    }, {
-        'url': 'http://www.npo.nl/radio-gaga/13-06-2017/BNN_101383373',
-        'only_matching': True,
-    }, {
-        'url': 'https://www.zapp.nl/1803-skelterlab/instructie-video-s/740-instructievideo-s/POMS_AT_11736927',
-        'only_matching': True,
-    }, {
-        'url': 'https://www.npostart.nl/broodje-gezond-ei/28-05-2018/KN_1698996',
-        'only_matching': True,
-    }, {
-        'url': 'https://npo.nl/KN_1698996',
-        'only_matching': True,
-    }, {
-        'url': 'https://www.npo3.nl/the-genius/21-11-2022/VPWON_1341105',
+        'url': 'https://npo.nl/npo3/the-genius/21-11-2022/VPWON_1341105',
         'info_dict': {
             'id': 'VPWON_1341105',
             'ext': 'mp4',
@@ -199,7 +79,7 @@ class NPOIE(InfoExtractor):
     @classmethod
     def suitable(cls, url):
         return (False if any(ie.suitable(url)
-                for ie in (NPOLiveIE, NPORadioIE, NPORadioFragmentIE))
+                for ie in (NPOStartIE, NPORadioIE, NPORadioFragmentIE))
                 else super().suitable(url))
 
     def _real_extract(self, url):
@@ -213,19 +93,24 @@ class NPOIE(InfoExtractor):
                     'parameters[autoplay]': 0,
                 })
         else:
-            self._request_webpage(
-                'https://www.npostart.nl/api/token', video_id,
-                'Downloading token', headers={
-                    'Referer': url,
-                    'X-Requested-With': 'XMLHttpRequest',
-                })
+            # token = self._download_json(
+            #     'https://rs.vpro.nl/v3/api/npoplayer/token', video_id,
+            #     'Downloading token', headers={
+            #        'Content-Type': 'application/json',
+            #     }, data=json.dumps({
+            #         'mid': video_id,
+            #     }).encode())['token']
             player = self._download_json(
-                f'https://www.npostart.nl/player/{video_id}', video_id,
-                'Downloading player JSON', data=urlencode_postdata({
-                    'autoplay': 0,
-                    'share': 1,
-                    'pageUrl': url,
-                    'hasAdConsent': 0,
+                'https://prod.npoplayer.nl/stream-link', video_id,
+                'Downloading player JSON', data=json.dumps({
+                    'profileName': 'dash',
+                    'drmType': 'fairplay',
+                    'referrerUrl': 'https://www.vpro.nl/programmas/droomdorp.html',
+                    'ster': {
+                        'identifier': 'npo-app-desktop',
+                        'deviceType': 1,
+                        'player': 'web',
+                    },
                 }), headers={
                     'x-xsrf-token': try_call(lambda: urllib.parse.unquote(
                         self._get_cookies('https://www.npostart.nl')['XSRF-TOKEN'].value)),
@@ -324,45 +209,111 @@ class NPOIE(InfoExtractor):
         return info
 
 
-class NPOLiveIE(InfoExtractor):
-    IE_NAME = 'npo.nl:live'
-    _VALID_URL = r'https?://(?:www\.)?npo(?:start)?\.nl/live(?:/(?P<id>[^/?#&]+))?'
+class NPOStartIE(InfoExtractor):
+    IE_NAME = 'npo.nl:start'
+    _VALID_URL = r'https?://(?:www\.)?npo\.nl/start/serie/(?:(?:[a-z]|-|\d)+/){2}(?P<id>[^/?#&]+)'
 
     _TESTS = [{
-        'url': 'http://www.npo.nl/live/npo-1',
+        'url': 'https://npo.nl/start/serie/vpro-tegenlicht/seizoen-11/zwart-geld-de-toekomst-komt-uit-afrika/afspelen',
+        'md5': '8c30593a81ac80d65b531eaf2a92ac02',
         'info_dict': {
-            'id': 'LI_NL1_4188102',
-            'display_id': 'npo-1',
+            'id': 'VPWON_1169289',
             'ext': 'mp4',
-            'title': 're:^NPO 1 [0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}$',
-            'is_live': True,
+            'title': 'Zwart geld: de toekomst komt uit Afrika',
+            'description': 'md5:d6476bceb17a8c103c76c3b708f05dd1',
+            'duration': 3000,
+            'uploader_id': 'NED2',
+            'series': 'VPRO Tegenlicht',
+            'timestamp': 1361822340,
+            'thumbnail': 'https://assets-start.npo.nl/resources/2023/06/30/d9879593-1944-4249-990c-1561dac14d8e.jpg',
+            'episode': 'Zwart geld: de toekomst komt uit Afrika',
+            'episode_number': 18,
+            'channel_id': 'NED2',
+            'genres': [],
+            'release_date': '20130225',
+            'release_timestamp': 1361822340,
+            'season': 'Season 11',
+            'season_id': 'df5e2334-e07a-4301-b3d3-8e224d8c1f07',
+            'season_number': 11,
+            'series_id': '6727dcdf-4bd2-477c-bf96-1ead69fad6c9',
+            'upload_date': '20130225',
         },
-        'params': {
-            'skip_download': True,
-        },
-    }, {
-        'url': 'http://www.npo.nl/live',
-        'only_matching': True,
-    }, {
-        'url': 'https://www.npostart.nl/live/npo-1',
-        'only_matching': True,
     }]
 
     def _real_extract(self, url):
-        display_id = self._match_id(url) or 'npo-1'
-
-        webpage = self._download_webpage(url, display_id)
-
-        live_id = self._search_regex(
-            [r'media-id="([^"]+)"', r'data-prid="([^"]+)"'], webpage, 'live id')
-
-        return {
-            '_type': 'url_transparent',
-            'url': f'npo:{live_id}',
-            'ie_key': NPOIE.ie_key(),
-            'id': live_id,
-            'display_id': display_id,
+        slug = self._match_id(url)
+        metadata = self._download_json(f'https://npo.nl/start/api/domain/program-detail?slug={slug}', video_id=slug, note='Downloading program details JSON')
+        video_id = metadata['productId']
+        thumbnails = []
+        for image in metadata.get('images'):
+            thumbnails.append({
+                'id': image.get('guid'),
+                'url': image.get('url'),
+            })
+            break
+        data = {
+            'id': video_id,
+            'title': metadata.get('title') or slug,
+            'episode': metadata.get('title') or slug,
+            'episode_number': int_or_none(metadata.get('programKey')),
+            'duration': int_or_none(metadata.get('durationInSeconds')),
+            'description': traverse_obj(metadata, ('synopsis', 'long')) or traverse_obj(metadata, ('synopsis', 'short')) or traverse_obj(metadata, ('synopsis', 'brief')),
+            'thumbnails': thumbnails,
+            'genres': metadata.get('genres'),
+            'series': traverse_obj(metadata, ('series', 'title')),
+            'series_id': traverse_obj(metadata, ('series', 'guid')),
+            'season_number': int_or_none(traverse_obj(metadata, ('season', 'seasonKey'))),
+            'season_id': traverse_obj(metadata, ('season', 'guid')),
+            'release_timestamp': metadata.get('firstBroadcastDate'),
+            'timestamp': metadata.get('publishedDateTime'),
         }
+        token = self._download_json(
+            f'https://npo.nl/start/api/domain/player-token?productId={video_id}', video_id,
+            'Downloading token')['token']
+        formats = []
+        subtitles = {}
+        for profile_name in ('dash', 'hls', 'smooth'):
+            profile = self._download_json(
+                'https://prod.npoplayer.nl/stream-link',
+                video_id,
+                f'Downloading profile {profile_name} JSON',
+                data=json.dumps({'profileName': profile_name}).encode(),
+                headers={'Authorization': token},
+                fatal=False,
+            )
+            metadata = profile.get('metadata')
+            if metadata is not None:
+                data['channel_id'] = metadata.get('channel')
+                data['uploader_id'] = metadata.get('channel')
+            raw_subtitles = traverse_obj(profile, ('assets', 'subtitles'))
+            stream_url = traverse_obj(profile, ('stream', 'streamURL'))
+            stream_ext = determine_ext(stream_url)
+            if stream_ext == 'mpd':
+                formats.extend(self._extract_mpd_formats(
+                    stream_url, video_id=video_id, mpd_id='dash', fatal=False))
+            elif stream_ext == 'm3u8':
+                formats.extend(self._extract_m3u8_formats(
+                    stream_url, video_id=video_id, ext='mp4',
+                    entry_protocol='m3u8_native', m3u8_id='hls', fatal=False))
+            elif re.search(r'\.isml?/Manifest', stream_url):
+                formats.extend(self._extract_ism_formats(
+                    stream_url, video_id=video_id, ism_id='mss', fatal=False))
+            else:
+                formats.append({
+                    'url': stream_url,
+                })
+            for subtitle in raw_subtitles:
+                tag = subtitle.get('iso')
+                if tag not in subtitles:
+                    subtitles[tag] = []
+                if not any(sub['url'] == subtitle['location'] for sub in subtitles[tag]):
+                    subtitles[tag].append({
+                        'url': subtitle.get('location'),
+                        'name': subtitle.get('name'),
+                    })
+        data['formats'] = formats
+        data['subtitles'] = subtitles
+        return data
 
 
 class NPORadioIE(InfoExtractor):
