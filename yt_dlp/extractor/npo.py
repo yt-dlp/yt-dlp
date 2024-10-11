@@ -1,7 +1,5 @@
 import json
-import random
 import re
-import urllib.parse
 
 from yt_dlp.utils._utils import ExtractorError
 from yt_dlp.utils.traversal import traverse_obj
@@ -10,207 +8,82 @@ from .common import InfoExtractor
 from ..utils import (
     determine_ext,
     int_or_none,
-    merge_dicts,
     orderedSet,
-    str_or_none,
-    try_call,
-    unified_timestamp,
-    url_or_none,
 )
 
 
 class NPOIE(InfoExtractor):
-    IE_NAME = 'npo'
-    IE_DESC = 'npo.nl and ntr.nl'
-    _VALID_URL = r'''(?x)
-                    (?:
-                        npo:|
-                        https?://
-                            (?:www\.)?
-                            (?:
-                                (?:ntr|npostart)\.nl/(?:[^/]+/){2,}|
-                                omroepwnl\.nl/video/fragment/[^/]+__|
-                                (?:zapp|npo3)\.nl/(?:[^/]+/){2,}
-                            )
-                        )
-                        (?P<id>[^/?#]+)
-                '''
+    def _extract_product_id_information(self, product_id):
+        token = self._download_json(
+            f'https://npo.nl/start/api/domain/player-token?productId={product_id}', product_id,
+            'Downloading token')['token']
+        return self._extract_info_from_token(product_id, token)
 
-    _TESTS = [{
-        'url': 'http://www.ntr.nl/Aap-Poot-Pies/27/detail/Aap-poot-pies/VPWON_1233944',
-        'info_dict': {
-            'id': 'VPWON_1233944',
-            'ext': 'mp4',
-            'title': 'Aap, poot, pies',
-            'description': 'md5:4b46b1b9553b4c036a04d2a532a137e6',
-            'upload_date': '20150508',
-            'duration': 599,
-            'episode': 'Aap, poot, pies',
-            'thumbnail': 'https://images.poms.omroep.nl/image/s1280/c1280x720/608118.jpg',
-            'timestamp': 1431064200,
-            'series': 'Aap, poot, pies',
-        },
-        'params': {
-            'skip_download': True,
-        },
-    }, {
-        'url': 'https://npo.nl/npo3/3onderzoekt/16-09-2015/VPWON_1239870',
-        'only_matching': True,
-    }, {
-        'url': 'https://npo.nl/npo3/the-genius/21-11-2022/VPWON_1341105',
-        'info_dict': {
-            'id': 'VPWON_1341105',
-            'ext': 'mp4',
-            'duration': 2658,
-            'series': 'The Genius',
-            'description': 'md5:db02f1456939ca63f7c408f858044e94',
-            'title': 'The Genius',
-            'timestamp': 1669062000,
-            'creator': 'NED3',
-            'episode': 'The Genius',
-            'thumbnail': 'https://images.npo.nl/tile/1280x720/1827650.jpg',
-            'episode_number': 8,
-            'upload_date': '20221121',
-        },
-        'params': {
-            'skip_download': True,
-        },
-    }]
-
-    @classmethod
-    def suitable(cls, url):
-        return (False if any(ie.suitable(url)
-                for ie in (NPOStartIE, NPORadioIE, NPORadioFragmentIE))
-                else super().suitable(url))
-
-    def _real_extract(self, url):
-        video_id = self._match_id(url)
-        if urllib.parse.urlparse(url).netloc in ['www.ntr.nl', 'ntr.nl']:
-            player = self._download_json(
-                f'https://www.ntr.nl/ajax/player/embed/{video_id}', video_id,
-                'Downloading player JSON', query={
-                    'parameters[elementId]': f'npo{random.randint(0, 999)}',
-                    'parameters[sterReferralUrl]': url,
-                    'parameters[autoplay]': 0,
-                })
-        else:
-            # token = self._download_json(
-            #     'https://rs.vpro.nl/v3/api/npoplayer/token', video_id,
-            #     'Downloading token', headers={
-            #        'Content-Type': 'application/json',
-            #     }, data=json.dumps({
-            #         'mid': video_id,
-            #     }).encode())['token']
-            player = self._download_json(
-                'https://prod.npoplayer.nl/stream-link', video_id,
-                'Downloading player JSON', data=json.dumps({
-                    'profileName': 'dash',
-                    'drmType': 'fairplay',
-                    'referrerUrl': 'https://www.vpro.nl/programmas/droomdorp.html',
-                    'ster': {
-                        'identifier': 'npo-app-desktop',
-                        'deviceType': 1,
-                        'player': 'web',
-                    },
-                }), headers={
-                    'x-xsrf-token': try_call(lambda: urllib.parse.unquote(
-                        self._get_cookies('https://www.npostart.nl')['XSRF-TOKEN'].value)),
-                })
-
-        player_token = player['token']
-
-        drm = False
-        format_urls = set()
+    def _extract_info_from_token(self, video_id, token):
+        data = {
+            'id': video_id,
+        }
         formats = []
-        for profile in ('hls', 'dash-widevine', 'dash-playready', 'smooth'):
-            streams = self._download_json(
-                f'https://start-player.npo.nl/video/{video_id}/streams',
-                video_id, f'Downloading {profile} profile JSON', fatal=False,
-                query={
-                    'profile': profile,
-                    'quality': 'npoplus',
-                    'tokenId': player_token,
-                    'streamType': 'broadcast',
-                }, data=b'')  # endpoint requires POST
-            if not streams:
-                continue
-            stream = streams.get('stream')
-            if not isinstance(stream, dict):
-                continue
-            stream_url = url_or_none(stream.get('src'))
-            if not stream_url or stream_url in format_urls:
-                continue
-            format_urls.add(stream_url)
-            if stream.get('protection') is not None or stream.get('keySystemOptions') is not None:
-                drm = True
-                continue
-            stream_type = stream.get('type')
+        thumbnails = []
+        subtitles = {}
+        for profile_name in ('dash', 'hls', 'smooth'):
+            profile = self._download_json(
+                'https://prod.npoplayer.nl/stream-link',
+                video_id,
+                f'Downloading profile {profile_name} JSON',
+                data=json.dumps({'profileName': profile_name}).encode(),
+                headers={'Authorization': token},
+                fatal=False,
+            )
+            metadata = profile.get('metadata')
+            if metadata is not None:
+                duration = metadata.get('duration')
+                thumbnail = metadata.get('poster')
+                data['title'] = metadata.get('title')
+                data['description'] = metadata.get('description')
+                data['channel_id'] = metadata.get('channel')
+                data['uploader_id'] = metadata.get('channel')
+                data['genres'] = metadata.get('genres')
+                if duration:
+                    data['duration'] = duration / 1000
+                if thumbnail and not any(thumb['url'] == thumbnail for thumb in thumbnails):
+                    thumbnails.append({
+                        'url': thumbnail,
+                    })
+            raw_subtitles = traverse_obj(profile, ('assets', 'subtitles'))
+            stream_url = traverse_obj(profile, ('stream', 'streamURL'))
             stream_ext = determine_ext(stream_url)
-            if stream_type == 'application/dash+xml' or stream_ext == 'mpd':
+            if stream_ext == 'mpd':
                 formats.extend(self._extract_mpd_formats(
-                    stream_url, video_id, mpd_id='dash', fatal=False))
-            elif stream_type == 'application/vnd.apple.mpegurl' or stream_ext == 'm3u8':
+                    stream_url, video_id=video_id, mpd_id='dash', fatal=False))
+            elif stream_ext == 'm3u8':
                 formats.extend(self._extract_m3u8_formats(
-                    stream_url, video_id, ext='mp4',
+                    stream_url, video_id=video_id, ext='mp4',
                     entry_protocol='m3u8_native', m3u8_id='hls', fatal=False))
             elif re.search(r'\.isml?/Manifest', stream_url):
                 formats.extend(self._extract_ism_formats(
-                    stream_url, video_id, ism_id='mss', fatal=False))
+                    stream_url, video_id=video_id, ism_id='mss', fatal=False))
             else:
                 formats.append({
                     'url': stream_url,
                 })
-
-        if not formats:
-            if not self.get_param('allow_unplayable_formats') and drm:
-                self.report_drm(video_id)
-
-        info = {
-            'id': video_id,
-            'title': video_id,
-            'formats': formats,
-        }
-
-        embed_url = url_or_none(player.get('embedUrl'))
-        if embed_url:
-            webpage = self._download_webpage(
-                embed_url, video_id, 'Downloading embed page', fatal=False)
-            if webpage:
-                video = self._parse_json(
-                    self._search_regex(
-                        r'\bvideo\s*=\s*({.+?})\s*;', webpage, 'video',
-                        default='{}'), video_id)
-                if video:
-                    title = video.get('episodeTitle')
-                    subtitles = {}
-                    subtitles_list = video.get('subtitles')
-                    if isinstance(subtitles_list, list):
-                        for cc in subtitles_list:
-                            cc_url = url_or_none(cc.get('src'))
-                            if not cc_url:
-                                continue
-                            lang = str_or_none(cc.get('language')) or 'nl'
-                            subtitles.setdefault(lang, []).append({
-                                'url': cc_url,
-                            })
-                    return merge_dicts({
-                        'title': title,
-                        'description': video.get('description'),
-                        'thumbnail': url_or_none(
-                            video.get('still_image_url') or video.get('orig_image_url')),
-                        'duration': int_or_none(video.get('duration')),
-                        'timestamp': unified_timestamp(video.get('broadcastDate')),
-                        'creator': video.get('channel'),
-                        'series': video.get('title'),
-                        'episode': title,
-                        'episode_number': int_or_none(video.get('episodeNumber')),
-                        'subtitles': subtitles,
-                    }, info)
-
-        return info
+            if (raw_subtitles):
+                for subtitle in raw_subtitles:
+                    tag = subtitle.get('iso')
+                    if tag not in subtitles:
+                        subtitles[tag] = []
+                    if not any(sub['url'] == subtitle['location'] for sub in subtitles[tag]):
+                        subtitles[tag].append({
+                            'url': subtitle.get('location'),
+                            'name': subtitle.get('name'),
+                        })
+        data['formats'] = formats
+        data['subtitles'] = subtitles
+        data['thumbnails'] = thumbnails
+        return data
 
 
-class NPOStartIE(InfoExtractor):
+class NPOStartIE(NPOIE):
     IE_NAME = 'npo.nl:start'
     _VALID_URL = r'https?://(?:www\.)?npo\.nl/start/serie/(?:[^/]+/){2}(?P<id>[^/?#&]+)'
 
@@ -245,6 +118,7 @@ class NPOStartIE(InfoExtractor):
         slug = self._match_id(url)
         metadata = self._download_json(f'https://npo.nl/start/api/domain/program-detail?slug={slug}', video_id=slug, note='Downloading program details JSON')
         video_id = metadata['productId']
+        data = self._extract_product_id_information(video_id)
         thumbnails = []
         for image in metadata.get('images'):
             thumbnails.append({
@@ -252,72 +126,24 @@ class NPOStartIE(InfoExtractor):
                 'url': image.get('url'),
             })
             break
-        data = {
-            'id': video_id,
-            'title': metadata.get('title') or slug,
-            'episode': metadata.get('title') or slug,
-            'episode_number': int_or_none(metadata.get('programKey')),
-            'duration': int_or_none(metadata.get('durationInSeconds')),
-            'description': traverse_obj(metadata, ('synopsis', 'long')) or traverse_obj(metadata, ('synopsis', 'short')) or traverse_obj(metadata, ('synopsis', 'brief')),
-            'thumbnails': thumbnails,
-            'genres': metadata.get('genres'),
-            'series': traverse_obj(metadata, ('series', 'title')),
-            'series_id': traverse_obj(metadata, ('series', 'guid')),
-            'season_number': int_or_none(traverse_obj(metadata, ('season', 'seasonKey'))),
-            'season_id': traverse_obj(metadata, ('season', 'guid')),
-            'release_timestamp': metadata.get('firstBroadcastDate'),
-            'timestamp': metadata.get('publishedDateTime'),
-        }
-        token = self._download_json(
-            f'https://npo.nl/start/api/domain/player-token?productId={video_id}', video_id,
-            'Downloading token')['token']
-        formats = []
-        subtitles = {}
-        for profile_name in ('dash', 'hls', 'smooth'):
-            profile = self._download_json(
-                'https://prod.npoplayer.nl/stream-link',
-                video_id,
-                f'Downloading profile {profile_name} JSON',
-                data=json.dumps({'profileName': profile_name}).encode(),
-                headers={'Authorization': token},
-                fatal=False,
-            )
-            metadata = profile.get('metadata')
-            if metadata is not None:
-                data['channel_id'] = metadata.get('channel')
-                data['uploader_id'] = metadata.get('channel')
-            raw_subtitles = traverse_obj(profile, ('assets', 'subtitles'))
-            stream_url = traverse_obj(profile, ('stream', 'streamURL'))
-            stream_ext = determine_ext(stream_url)
-            if stream_ext == 'mpd':
-                formats.extend(self._extract_mpd_formats(
-                    stream_url, video_id=video_id, mpd_id='dash', fatal=False))
-            elif stream_ext == 'm3u8':
-                formats.extend(self._extract_m3u8_formats(
-                    stream_url, video_id=video_id, ext='mp4',
-                    entry_protocol='m3u8_native', m3u8_id='hls', fatal=False))
-            elif re.search(r'\.isml?/Manifest', stream_url):
-                formats.extend(self._extract_ism_formats(
-                    stream_url, video_id=video_id, ism_id='mss', fatal=False))
-            else:
-                formats.append({
-                    'url': stream_url,
-                })
-            for subtitle in raw_subtitles:
-                tag = subtitle.get('iso')
-                if tag not in subtitles:
-                    subtitles[tag] = []
-                if not any(sub['url'] == subtitle['location'] for sub in subtitles[tag]):
-                    subtitles[tag].append({
-                        'url': subtitle.get('location'),
-                        'name': subtitle.get('name'),
-                    })
-        data['formats'] = formats
-        data['subtitles'] = subtitles
+
+        data['title'] = metadata.get('title') or data.get('title')
+        data['episode'] = metadata.get('title') or data.get('title')
+        data['episode_number'] = int_or_none(metadata.get('programKey'))
+        data['duration'] = int_or_none(metadata.get('durationInSeconds'), default=data.get('duration'))
+        data['description'] = traverse_obj(metadata, ('synopsis', 'long')) or traverse_obj(metadata, ('synopsis', 'short')) or traverse_obj(metadata, ('synopsis', 'brief')) or data.get('description')
+        data['thumbnails'] = thumbnails
+        data['genres'] = metadata.get('genres') or data.get('genres')
+        data['series'] = traverse_obj(metadata, ('series', 'title'))
+        data['series_id'] = traverse_obj(metadata, ('series', 'guid'))
+        data['season_number'] = int_or_none(traverse_obj(metadata, ('season', 'seasonKey')))
+        data['season_id'] = traverse_obj(metadata, ('season', 'guid'))
+        data['release_timestamp'] = int_or_none(metadata.get('firstBroadcastDate'))
+        data['timestamp'] = int_or_none(metadata.get('publishedDateTime'))
         return data
 
 
-class NPORadioIE(InfoExtractor):
+class NPORadioIE(NPOIE):
     IE_NAME = 'npo.nl:radio'
     _VALID_URL = r'https?://(?:www\.)?nporadio(?P<n>\d)\.nl(?:/[^/]+)*/(?P<id>[^/]+)?'
 
@@ -385,105 +211,40 @@ class NPORadioIE(InfoExtractor):
     def _real_extract(self, url):
         parsed = self._match_valid_url(url)
         video_id = parsed.group('id') or 'live'
-        radio_number = parsed.group('n')
 
         if video_id == 'live':
+            radio_number = parsed.group('n')
             token_url = self._download_json(f'https://www.nporadio{radio_number}.nl/api/player/npo-radio-{radio_number}', video_id)['tokenUrl']
         else:
             props = self._search_nextjs_data(self._download_webpage(url, video_id), video_id)['props']['pageProps']
             token_url = traverse_obj(props, ('article', 'content', 0, 'value', 'player', 'tokenUrl')) or traverse_obj(props, ('fragmentDetail', 'bodyContent', 0, 'payload', 'player', 'tokenUrl')) or traverse_obj(props, ('radioBroadcast', 'showAssets', 0, 'player', 'tokenUrl'))
         if token_url is None:
             raise ExtractorError('Token url not found')
-        token = self._download_json(token_url, video_id, 'Downloading token JSON')['playerToken']
-        data = {
-            'id': video_id,
-            'is_live': video_id == 'live',
-        }
-        formats = []
-        subtitles = {}
-        for profile_name in ('dash', 'hls', 'smooth'):
-            profile = self._download_json(
-                'https://prod.npoplayer.nl/stream-link',
-                video_id,
-                f'Downloading profile {profile_name} JSON',
-                data=json.dumps({'profileName': profile_name}).encode(),
-                headers={'Authorization': token},
-                fatal=False,
-            )
-            metadata = profile.get('metadata')
-            if metadata is not None:
-                duration = metadata.get('duration')
-                data['title'] = metadata.get('title')
-                data['description'] = metadata.get('description')
-                data['thumbnail'] = metadata.get('poster')
-                data['channel_id'] = metadata.get('channel')
-                data['uploader_id'] = metadata.get('channel')
-                data['genres'] = metadata.get('genres')
-                if duration:
-                    data['duration'] = duration / 1000
-            raw_subtitles = traverse_obj(profile, ('assets', 'subtitles'))
-            stream_url = traverse_obj(profile, ('stream', 'streamURL'))
-            stream_ext = determine_ext(stream_url)
-            if stream_ext == 'mpd':
-                formats.extend(self._extract_mpd_formats(
-                    stream_url, video_id=video_id, mpd_id='dash', fatal=False))
-            elif stream_ext == 'm3u8':
-                formats.extend(self._extract_m3u8_formats(
-                    stream_url, video_id=video_id, ext='mp4',
-                    entry_protocol='m3u8_native', m3u8_id='hls', fatal=False))
-            elif re.search(r'\.isml?/Manifest', stream_url):
-                formats.extend(self._extract_ism_formats(
-                    stream_url, video_id=video_id, ism_id='mss', fatal=False))
-            else:
-                formats.append({
-                    'url': stream_url,
-                })
-            if subtitles:
-                for subtitle in raw_subtitles:
-                    tag = subtitle.get('iso')
-                    if tag not in subtitles:
-                        subtitles[tag] = []
-                    if not any(sub['url'] == subtitle['location'] for sub in subtitles[tag]):
-                        subtitles[tag].append({
-                            'url': subtitle.get('location'),
-                            'name': subtitle.get('name'),
-                        })
-        data['formats'] = formats
-        data['subtitles'] = subtitles
+        data = self._extract_info_from_token(video_id, self._download_json(token_url, video_id, 'Downloading token JSON')['playerToken'])
+        data['is_live'] = video_id == 'live'
         return data
 
 
-class NPORadioFragmentIE(InfoExtractor):
-    IE_NAME = 'npo.nl:radio:fragment'
-    _VALID_URL = r'https?://(?:www\.)?npo\.nl/radio/[^/]+/fragment/(?P<id>\d+)'
+class NPO3IE(NPOIE):
+    IE_NAME = 'npo.nl:npo3'
+    _VALID_URL = r'https?://(?:www\.)?npo\.nl/npo3/(?:[^/]+/){2}(?P<id>[^/?#&]+)'
 
     _TEST = {
-        'url': 'http://www.npo.nl/radio/radio-5/fragment/174356',
-        'md5': 'dd8cc470dad764d0fdc70a9a1e2d18c2',
+        'url': 'https://npo.nl/npo3/vlees-smakelijk/11-10-2024/WO_KN_20222563',
+        'md5': 'e0cd5b96c712edea2e7f0700d348bc98',
         'info_dict': {
-            'id': '174356',
-            'ext': 'mp3',
-            'title': 'Jubileumconcert Willeke Alberti',
+            'id': 'WO_KN_20222563',
+            'ext': 'mp4',
+            'description': 'md5:31f5ffff8c70af1635cbb93a8205e0c4',
+            'duration': 1021.994,
+            'title': 'Vlees smakelijk',
+            'thumbnail': 'https://images.poms.omroep.nl/image/s1080/2215940',
+            'genres': ['Human Interest', 'Reality TV'],
         },
     }
 
     def _real_extract(self, url):
-        audio_id = self._match_id(url)
-
-        webpage = self._download_webpage(url, audio_id)
-
-        title = self._html_search_regex(
-            rf'href="/radio/[^/]+/fragment/{audio_id}" title="([^"]+)"',
-            webpage, 'title')
-
-        audio_url = self._search_regex(
-            r"data-streams='([^']+)'", webpage, 'audio url')
-
-        return {
-            'id': audio_id,
-            'url': audio_url,
-            'title': title,
-        }
+        return self._extract_product_id_information(self._match_id(url))
 
 
 class NPODataMidEmbedIE(InfoExtractor):  # XXX: Conventionally, base classes should end with BaseIE/InfoExtractor
