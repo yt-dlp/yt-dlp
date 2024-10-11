@@ -12,9 +12,9 @@ from ..utils import (
 
 
 class CCMAIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?ccma\.cat/(?:[^/]+/)*?(?P<type>video|audio)/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?3cat\.cat/(?:[^/]+/)*?(?P<type>video|audio)/(?P<id>\d+)'
     _TESTS = [{
-        'url': 'http://www.ccma.cat/tv3/alacarta/lespot-de-la-marato-de-tv3/lespot-de-la-marato-de-tv3/video/5630208/',
+        'url': 'https://www.3cat.cat/3cat/lespot-de-la-marato-de-tv3/video/5630208/',
         'md5': '7296ca43977c8ea4469e719c609b0871',
         'info_dict': {
             'id': '5630208',
@@ -26,7 +26,7 @@ class CCMAIE(InfoExtractor):
             'age_limit': 0,
         },
     }, {
-        'url': 'http://www.ccma.cat/catradio/alacarta/programa/el-consell-de-savis-analitza-el-derbi/audio/943685/',
+        'url': 'https://www.3cat.cat/3cat/el-consell-de-savis-analitza-el-derbi/audio/943685/',
         'md5': 'fa3e38f269329a278271276330261425',
         'info_dict': {
             'id': '943685',
@@ -39,7 +39,7 @@ class CCMAIE(InfoExtractor):
             'categories': ['Esports'],
         },
     }, {
-        'url': 'http://www.ccma.cat/tv3/alacarta/crims/crims-josep-tallada-lespereu-me-capitol-1/video/6031387/',
+        'url': 'https://www.3cat.cat/3cat/crims-josep-tallada-lespereu-me-part-1/video/6031387/',
         'md5': 'b43c3d3486f430f3032b5b160d80cbc3',
         'info_dict': {
             'id': '6031387',
@@ -58,7 +58,7 @@ class CCMAIE(InfoExtractor):
         media_type, media_id = self._match_valid_url(url).groups()
 
         media = self._download_json(
-            'http://dinamics.ccma.cat/pvideo/media.jsp', media_id, query={
+            'http://api-media.3cat.cat/pvideo/media.jsp', media_id, query={
                 'media': media_type,
                 'idint': media_id,
                 'format': 'dm',
