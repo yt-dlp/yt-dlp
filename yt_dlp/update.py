@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from zipimport import zipimporter
 
 from .compat import functools  # isort: split
-from .compat import compat_realpath, compat_shlex_quote
+from .compat import compat_realpath
 from .networking import Request
 from .networking.exceptions import HTTPError, network_exceptions
 from .utils import (
@@ -135,20 +135,42 @@ def _get_binary_name():
 
 
 def _get_system_deprecation():
-    MIN_SUPPORTED, MIN_RECOMMENDED = (3, 8), (3, 8)
+    MIN_SUPPORTED, MIN_RECOMMENDED = (3, 8), (3, 9)
 
     if sys.version_info > MIN_RECOMMENDED:
         return None
 
     major, minor = sys.version_info[:2]
-    if sys.version_info < MIN_SUPPORTED:
-        msg = f'Python version {major}.{minor} is no longer supported'
-    else:
-        msg = (f'Support for Python version {major}.{minor} has been deprecated. '
-               '\nYou may stop receiving updates on this version at any time')
+    PYTHON_MSG = f'Please update to Python {".".join(map(str, MIN_RECOMMENDED))} or above'
 
-    major, minor = MIN_RECOMMENDED
-    return f'{msg}! Please update to Python {major}.{minor} or above'
+    if sys.version_info < MIN_SUPPORTED:
+        return f'Python version {major}.{minor} is no longer supported! {PYTHON_MSG}'
+
+    EXE_MSG_TMPL = ('Support for {} has been deprecated. '
+                    'See  https://github.com/yt-dlp/yt-dlp/{}  for details.\n{}')
+    STOP_MSG = 'You may stop receiving updates on this version at any time!'
+    variant = detect_variant()
+
+    # Temporary until Windows builds use 3.9, which will drop support for Win7 and 2008ServerR2
+    if variant in ('win_exe', 'win_x86_exe', 'py2exe'):
+        platform_name = platform.platform()
+        if any(platform_name.startswith(f'Windows-{name}') for name in ('7', '2008ServerR2')):
+            return EXE_MSG_TMPL.format('Windows 7/Server 2008 R2', 'issues/10086', STOP_MSG)
+        elif variant == 'py2exe':
+            return EXE_MSG_TMPL.format(
+                'py2exe builds (yt-dlp_min.exe)', 'issues/10087',
+                'In a future update you will be migrated to the PyInstaller-bundled executable. '
+                'This will be done automatically; no action is required on your part')
+        return None
+
+    # Temporary until aarch64/armv7l build flow is bumped to Ubuntu 20.04 and Python 3.9
+    elif variant in ('linux_aarch64_exe', 'linux_armv7l_exe'):
+        libc_ver = version_tuple(os.confstr('CS_GNU_LIBC_VERSION').partition(' ')[2])
+        if libc_ver < (2, 31):
+            return EXE_MSG_TMPL.format('system glibc version < 2.31', 'pull/8638', STOP_MSG)
+        return None
+
+    return f'Support for Python version {major}.{minor} has been deprecated. {PYTHON_MSG}'
 
 
 def _sha256_file(path):
@@ -200,7 +222,7 @@ class UpdateInfo:
     requested_version: str | None = None
     commit: str | None = None
 
-    binary_name: str | None = _get_binary_name()
+    binary_name: str | None = _get_binary_name()  # noqa: RUF009: Always returns the same value
     checksum: str | None = None
 
     _has_update = True
@@ -310,6 +332,7 @@ class Updater:
                 if isinstance(error, HTTPError) and error.status == 404:
                     continue
                 self._report_network_error(f'fetch update spec: {error}')
+                return None
 
         self._report_error(
             f'The requested tag {self.requested_tag} does not exist for {self.requested_repo}', True)
@@ -381,7 +404,7 @@ class Updater:
             has_update = False
 
         resolved_tag = requested_version if self.requested_tag == 'latest' else self.requested_tag
-        current_label = _make_label(self._origin, self._channel.partition("@")[2] or self.current_version, self.current_version)
+        current_label = _make_label(self._origin, self._channel.partition('@')[2] or self.current_version, self.current_version)
         requested_label = _make_label(self.requested_repo, resolved_tag, requested_version)
         latest_or_requested = f'{"Latest" if self.requested_tag == "latest" else "Requested"} version: {requested_label}'
         if not has_update:
@@ -515,7 +538,7 @@ class Updater:
                 os.chmod(self.filename, mask)
             except OSError:
                 return self._report_error(
-                    f'Unable to set permissions. Run: sudo chmod a+rx {compat_shlex_quote(self.filename)}')
+                    f'Unable to set permissions. Run: sudo chmod a+rx {shell_quote(self.filename)}')
 
         self.ydl.to_screen(f'Updated yt-dlp to {update_label}')
         return True
@@ -557,9 +580,10 @@ class Updater:
     def _report_network_error(self, action, delim=';', tag=None):
         if not tag:
             tag = self.requested_tag
+        path = tag if tag == 'latest' else f'tag/{tag}'
         self._report_error(
-            f'Unable to {action}{delim} visit  https://github.com/{self.requested_repo}/releases/'
-            + tag if tag == "latest" else f"tag/{tag}", True)
+            f'Unable to {action}{delim} visit  '
+            f'https://github.com/{self.requested_repo}/releases/{path}', True)
 
     # XXX: Everything below this line in this class is deprecated / for compat only
     @property

@@ -51,7 +51,6 @@ cookies
 *.srt
 *.ssa
 *.swf
-*.swp
 *.tt
 *.ttml
 *.url
@@ -67,7 +66,7 @@ cookies
 # Python
 *.pyc
 *.pyo
-.pytest_cache
+.*_cache
 wine-py2exe/
 py2exe.log
 build/
@@ -119,6 +118,7 @@ yt-dlp.zip
 .vscode
 *.sublime-*
 *.code-workspace
+*.swp
 
 # Lazy extractors
 */extractor/lazy_extractors.py

@@ -15,8 +15,8 @@ from yt_dlp.compat import urllib  # isort: split
 from yt_dlp.compat import (
     compat_etree_fromstring,
     compat_expanduser,
-    compat_urllib_parse_unquote,
-    compat_urllib_parse_urlencode,
+    compat_urllib_parse_unquote,  # noqa: TID251
+    compat_urllib_parse_urlencode,  # noqa: TID251
 )
 from yt_dlp.compat.urllib.request import getproxies
 
@@ -24,15 +24,15 @@ from yt_dlp.compat.urllib.request import getproxies
 class TestCompat(unittest.TestCase):
     def test_compat_passthrough(self):
         with self.assertWarns(DeprecationWarning):
-            compat.compat_basestring
+            _ = compat.compat_basestring
 
         with self.assertWarns(DeprecationWarning):
-            compat.WINDOWS_VT_MODE
+            _ = compat.WINDOWS_VT_MODE
 
         self.assertEqual(urllib.request.getproxies, getproxies)
 
         with self.assertWarns(DeprecationWarning):
-            compat.compat_pycrypto_AES  # Must not raise error
+            _ = compat.compat_pycrypto_AES  # Must not raise error
 
     def test_compat_expanduser(self):
         old_home = os.environ.get('HOME')
