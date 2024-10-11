@@ -247,20 +247,6 @@ class NPO3IE(NPOBaseIE):
         return self._extract_product_id_information(self._match_id(url))
 
 
-class NPODataMidEmbedIE(InfoExtractor):  # XXX: Conventionally, base classes should end with BaseIE/InfoExtractor
-    def _real_extract(self, url):
-        display_id = self._match_id(url)
-        webpage = self._download_webpage(url, display_id)
-        video_id = self._search_regex(
-            r'data-mid=(["\'])(?P<id>(?:(?!\1).)+)\1', webpage, 'video_id', group='id')
-        return {
-            '_type': 'url_transparent',
-            'ie_key': 'NPO',
-            'url': f'npo:{video_id}',
-            'display_id': display_id,
-        }
-
-
 class SchoolTVIE(NPOBaseIE):
     IE_NAME = 'schooltv'
     _VALID_URL = r'https?://(?:www\.)?schooltv\.nl/video-item/(?P<id>[^/?#&]+)'
@@ -279,28 +265,39 @@ class SchoolTVIE(NPOBaseIE):
     }
 
     def _real_extract(self, url):
-        video_id = re.search(r'id=([a-zA-Z0-9_]+)', self._html_search_meta(('og:video', 'og:video:secure_url'), self._download_webpage(url, self._match_id(url)))).group(1)
+        video_id = self._search_regex(r'id=([a-zA-Z0-9_]+)', self._html_search_meta(('og:video', 'og:video:secure_url'), self._download_webpage(url, self._match_id(url))), 'video id')
         return self._extract_info_from_token(video_id, self._download_json(f'https://api3.schooltv.nl/player/{video_id}', video_id, 'Downloading token JSON')['data']['token'])
 
 
-class HetKlokhuisIE(NPODataMidEmbedIE):
+class HetKlokhuisIE(NPOBaseIE):
     IE_NAME = 'hetklokhuis'
-    _VALID_URL = r'https?://(?:www\.)?hetklokhuis\.nl/[^/]+/\d+/(?P<id>[^/?#&]+)'
+    _VALID_URL = r'https?://(?:www\.)?hetklokhuis\.nl/(?:[^/]+/)*(?P<id>[^/?#&]+)'
 
     _TEST = {
-        'url': 'http://hetklokhuis.nl/tv-uitzending/3471/Zwaartekrachtsgolven',
+        'url': 'https://hetklokhuis.nl/dossier/142/zoek-het-uit/tv-uitzending/2987/aliens',
+        'md5': '679d610017689ecc798b316b8daa34e7',
         'info_dict': {
-            'id': 'VPWON_1260528',
-            'display_id': 'Zwaartekrachtsgolven',
-            'ext': 'm4v',
-            'title': 'Het Klokhuis: Zwaartekrachtsgolven',
-            'description': 'md5:c94f31fb930d76c2efa4a4a71651dd48',
-            'upload_date': '20170223',
-        },
-        'params': {
-            'skip_download': True,
+            'id': 'VPWON_1225126',
+            'ext': 'mp4',
+            'duration': 852.27,
+            'channel_id': 'NED3',
+            'description': 'md5:17681c9644521344a0573e04c78912d7',
+            'title': 'Aliens',
+            'genres': ['Jeugd', 'Informatief'],
+            'thumbnail': 'https://images.poms.omroep.nl/image/s1080/624824',
+            'uploader_id': 'NED3',
+            'series': 'Zoek Het Uit!',
         },
     }
+
+    def _real_extract(self, url):
+        webpage = self._download_webpage(url, self._match_id(url))
+        series, title = self._html_search_meta('og:title', webpage, 'title').split(' - ')
+        video_id = self._html_search_regex(r'data-mid="([a-zA-Z0-9_]+)"', webpage, 'video id')
+        data = self._extract_info_from_token(video_id, self._download_json(f'https://api3.schooltv.nl/player/{video_id}', video_id, 'Downloading token JSON')['data']['token'])
+        data['series'] = series
+        data['title'] = title
+        return data
 
 
 class NPOPlaylistBaseIE(NPOBaseIE):  # XXX: Do not subclass from concrete IE
