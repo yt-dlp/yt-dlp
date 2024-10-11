@@ -3,6 +3,7 @@ import random
 import re
 import urllib.parse
 
+from yt_dlp.utils._utils import ExtractorError
 from yt_dlp.utils.traversal import traverse_obj
 
 from .common import InfoExtractor
@@ -211,7 +212,7 @@ class NPOIE(InfoExtractor):
 
 class NPOStartIE(InfoExtractor):
     IE_NAME = 'npo.nl:start'
-    _VALID_URL = r'https?://(?:www\.)?npo\.nl/start/serie/(?:(?:[a-z]|-|\d)+/){2}(?P<id>[^/?#&]+)'
+    _VALID_URL = r'https?://(?:www\.)?npo\.nl/start/serie/(?:[^/]+/){2}(?P<id>[^/?#&]+)'
 
     _TESTS = [{
         'url': 'https://npo.nl/start/serie/vpro-tegenlicht/seizoen-11/zwart-geld-de-toekomst-komt-uit-afrika/afspelen',
@@ -318,51 +319,138 @@ class NPOStartIE(InfoExtractor):
 
 class NPORadioIE(InfoExtractor):
     IE_NAME = 'npo.nl:radio'
-    _VALID_URL = r'https?://(?:www\.)?npo\.nl/radio/(?P<id>[^/]+)'
+    _VALID_URL = r'https?://(?:www\.)?nporadio(?P<n>\d)\.nl(?:/[^/]+)*/(?P<id>[^/]+)?'
 
-    _TEST = {
-        'url': 'http://www.npo.nl/radio/radio-1',
+    _TESTS = [{
+        'url': 'https://www.nporadio1.nl/',
         'info_dict': {
-            'id': 'radio-1',
-            'ext': 'mp3',
-            'title': 're:^NPO Radio 1 [0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}$',
+            'id': 'live',
+            'ext': 'mp4',
+            'title': r're:^NPO Radio 1 [0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}$',
+            'live_status': 'is_live',
+            'thumbnail': r're:^https?://.*\.jpg',
+            'description': 'Live programmering',
             'is_live': True,
         },
         'params': {
             'skip_download': True,
         },
-    }
-
-    @classmethod
-    def suitable(cls, url):
-        return False if NPORadioFragmentIE.suitable(url) else super().suitable(url)
-
-    @staticmethod
-    def _html_get_attribute_regex(attribute):
-        return rf'{attribute}\s*=\s*\'([^\']+)\''
+    },
+        {
+        'url': 'https://www.nporadio1.nl/nieuws/binnenland/15bcad75-22c5-4226-a3fe-d54a76175da3/utrecht-zet-rolmodellen-in-voor-bewustwording-mentale-gezondheid',
+        'md5': '8ad04123febc07716f45e324d7fb792d',
+        'info_dict': {
+            'id': 'utrecht-zet-rolmodellen-in-voor-bewustwording-mentale-gezondheid',
+            'ext': 'mp4',
+            'duration': 262,
+            'channel_id': 'RAD1',
+            'description': 'md5:7d36b72407e757e6c748a6cdf27c7628',
+            'title': 'Utrecht zet rolmodellen in voor bewustzijn mentale gezondheid ',
+            'genres': ['Informatief'],
+            'uploader_id': 'RAD1',
+            'thumbnail': 'https://images.poms.omroep.nl/image/s1080/2217026',
+        },
+    },
+        {
+        'url': 'https://www.nporadio2.nl/fragmenten/janwillemstartop/9d35b8fb-a07b-41f9-9cc5-a9c89dd60dbb/2024-10-10-nancy-zet-zich-in-voor-daklozen-voor-mij-was-het-op-het-randje',
+        'md5': '432b0e106082ffaa0e31c4549db09b0c',
+        'info_dict': {
+            'id': '2024-10-10-nancy-zet-zich-in-voor-daklozen-voor-mij-was-het-op-het-randje',
+            'ext': 'mp4',
+            'genres': ['Muziek'],
+            'title': 'Nancy zet zich in voor daklozen: "Voor mij was het op het randje" ',
+            'duration': 235,
+            'thumbnail': 'https://images.poms.omroep.nl/image/s1080/2216783',
+            'description': 'md5:26925e8bd2c715b160cc864efa731583',
+            'uploader_id': 'RAD2',
+            'channel_id': 'RAD2',
+        },
+    },
+        {
+        'url': 'https://www.nporadio2.nl/uitzendingen/dit-is-tannaz/9bc1ab7e-77f6-4444-986b-1cd7c25ff4bf/2024-10-11-dit-is-tannaz',
+        'md5': 'a1212f4d2fe361aafcced5bcd3cf939b',
+        'info_dict': {
+            'id': '2024-10-11-dit-is-tannaz',
+            'ext': 'mp3',
+            'uploader_id': 'RAD2',
+            'genres': ['Muziek'],
+            'title': 'Dit is Tannaz',
+            'channel_id': 'RAD2',
+            'description': 'md5:3f2b5dad3e965ae7915a5f9a5a2decc5',
+            'thumbnail': 'https://images.poms.omroep.nl/image/s1080/2190854',
+            'duration': 7200.026,
+        },
+    }]
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
+        parsed = self._match_valid_url(url)
+        video_id = parsed.group('id') or 'live'
+        radio_number = parsed.group('n')
 
-        webpage = self._download_webpage(url, video_id)
-
-        title = self._html_search_regex(
-            self._html_get_attribute_regex('data-channel'), webpage, 'title')
-
-        stream = self._parse_json(
-            self._html_search_regex(self._html_get_attribute_regex('data-streams'), webpage, 'data-streams'),
-            video_id)
-
-        codec = stream.get('codec')
-
-        return {
+        if video_id == 'live':
+            token_url = self._download_json(f'https://www.nporadio{radio_number}.nl/api/player/npo-radio-{radio_number}', video_id)['tokenUrl']
+        else:
+            props = self._search_nextjs_data(self._download_webpage(url, video_id), video_id)['props']['pageProps']
+            token_url = traverse_obj(props, ('article', 'content', 0, 'value', 'player', 'tokenUrl')) or traverse_obj(props, ('fragmentDetail', 'bodyContent', 0, 'payload', 'player', 'tokenUrl')) or traverse_obj(props, ('radioBroadcast', 'showAssets', 0, 'player', 'tokenUrl'))
+        if token_url is None:
+            raise ExtractorError('Token url not found')
+        token = self._download_json(token_url, video_id, 'Downloading token JSON')['playerToken']
+        data = {
             'id': video_id,
-            'url': stream['url'],
-            'title': title,
-            'acodec': codec,
-            'ext': codec,
-            'is_live': True,
+            'is_live': video_id == 'live',
         }
+        formats = []
+        subtitles = {}
+        for profile_name in ('dash', 'hls', 'smooth'):
+            profile = self._download_json(
+                'https://prod.npoplayer.nl/stream-link',
+                video_id,
+                f'Downloading profile {profile_name} JSON',
+                data=json.dumps({'profileName': profile_name}).encode(),
+                headers={'Authorization': token},
+                fatal=False,
+            )
+            metadata = profile.get('metadata')
+            if metadata is not None:
+                duration = metadata.get('duration')
+                data['title'] = metadata.get('title')
+                data['description'] = metadata.get('description')
+                data['thumbnail'] = metadata.get('poster')
+                data['channel_id'] = metadata.get('channel')
+                data['uploader_id'] = metadata.get('channel')
+                data['genres'] = metadata.get('genres')
+                if duration:
+                    data['duration'] = duration / 1000
+            raw_subtitles = traverse_obj(profile, ('assets', 'subtitles'))
+            stream_url = traverse_obj(profile, ('stream', 'streamURL'))
+            stream_ext = determine_ext(stream_url)
+            if stream_ext == 'mpd':
+                formats.extend(self._extract_mpd_formats(
+                    stream_url, video_id=video_id, mpd_id='dash', fatal=False))
+            elif stream_ext == 'm3u8':
+                formats.extend(self._extract_m3u8_formats(
+                    stream_url, video_id=video_id, ext='mp4',
+                    entry_protocol='m3u8_native', m3u8_id='hls', fatal=False))
+            elif re.search(r'\.isml?/Manifest', stream_url):
+                formats.extend(self._extract_ism_formats(
+                    stream_url, video_id=video_id, ism_id='mss', fatal=False))
+            else:
+                formats.append({
+                    'url': stream_url,
+                })
+            if subtitles:
+                for subtitle in raw_subtitles:
+                    tag = subtitle.get('iso')
+                    if tag not in subtitles:
+                        subtitles[tag] = []
+                    if not any(sub['url'] == subtitle['location'] for sub in subtitles[tag]):
+                        subtitles[tag].append({
+                            'url': subtitle.get('location'),
+                            'name': subtitle.get('name'),
+                        })
+        data['formats'] = formats
+        data['subtitles'] = subtitles
+        return data
 
 
 class NPORadioFragmentIE(InfoExtractor):
