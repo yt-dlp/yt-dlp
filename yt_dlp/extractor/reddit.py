@@ -1,3 +1,4 @@
+import json
 import urllib.parse
 
 from .common import InfoExtractor
@@ -258,10 +259,13 @@ class RedditIE(InfoExtractor):
         if not data:
             fallback_host = 'old.reddit.com' if host != 'old.reddit.com' else 'www.reddit.com'
             self.to_screen(f'{host} request failed, retrying with {fallback_host}')
-            data = self._download_json(
-                f'https://{fallback_host}/{slug}/.json', video_id, fatal=False, expected_status=403)
-            if not data:
-                self.raise_login_required('Account authentication is required')
+            try:
+                data = self._download_json(
+                    f'https://{fallback_host}/{slug}/.json', video_id, expected_status=403)
+            except ExtractorError as e:
+                if isinstance(e.cause, json.JSONDecodeError):
+                    self.raise_login_required('Account authentication is required')
+                raise
 
         if traverse_obj(data, 'error') == 403:
             reason = data.get('reason')
