@@ -12,7 +12,7 @@ from ..utils import (
 )
 
 
-class NPOIE(InfoExtractor):
+class NPOBaseIE(InfoExtractor):
     def _extract_product_id_information(self, product_id):
         token = self._download_json(
             f'https://npo.nl/start/api/domain/player-token?productId={product_id}', product_id,
@@ -83,7 +83,7 @@ class NPOIE(InfoExtractor):
         return data
 
 
-class NPOStartIE(NPOIE):
+class NPOStartIE(NPOBaseIE):
     IE_NAME = 'npo.nl:start'
     _VALID_URL = r'https?://(?:www\.)?npo\.nl/start/serie/(?:[^/]+/){2}(?P<id>[^/?#&]+)'
 
@@ -143,7 +143,7 @@ class NPOStartIE(NPOIE):
         return data
 
 
-class NPORadioIE(NPOIE):
+class NPORadioIE(NPOBaseIE):
     IE_NAME = 'npo.nl:radio'
     _VALID_URL = r'https?://(?:www\.)?nporadio(?P<n>\d)\.nl(?:/[^/]+)*/(?P<id>[^/]+)?'
 
@@ -225,7 +225,7 @@ class NPORadioIE(NPOIE):
         return data
 
 
-class NPO3IE(NPOIE):
+class NPO3IE(NPOBaseIE):
     IE_NAME = 'npo.nl:npo3'
     _VALID_URL = r'https?://(?:www\.)?npo\.nl/npo3/(?:[^/]+/){2}(?P<id>[^/?#&]+)'
 
@@ -261,24 +261,26 @@ class NPODataMidEmbedIE(InfoExtractor):  # XXX: Conventionally, base classes sho
         }
 
 
-class SchoolTVIE(NPODataMidEmbedIE):
+class SchoolTVIE(NPOBaseIE):
     IE_NAME = 'schooltv'
-    _VALID_URL = r'https?://(?:www\.)?schooltv\.nl/video/(?P<id>[^/?#&]+)'
+    _VALID_URL = r'https?://(?:www\.)?schooltv\.nl/video-item/(?P<id>[^/?#&]+)'
 
     _TEST = {
-        'url': 'http://www.schooltv.nl/video/ademhaling-de-hele-dag-haal-je-adem-maar-wat-gebeurt-er-dan-eigenlijk-in-je-lichaam/',
+        'url': 'https://schooltv.nl/video-item/ademhaling-de-hele-dag-haal-je-adem-maar-wat-gebeurt-er-dan-eigenlijk-in-je-lichaam',
         'info_dict': {
             'id': 'WO_NTR_429477',
-            'display_id': 'ademhaling-de-hele-dag-haal-je-adem-maar-wat-gebeurt-er-dan-eigenlijk-in-je-lichaam',
-            'title': 'Ademhaling: De hele dag haal je adem. Maar wat gebeurt er dan eigenlijk in je lichaam?',
             'ext': 'mp4',
-            'description': 'md5:abfa0ff690adb73fd0297fd033aaa631',
-        },
-        'params': {
-            # Skip because of m3u8 download
-            'skip_download': True,
+            'duration': 51.0,
+            'genres': ['Jeugd'],
+            'thumbnail': 'https://images.poms.omroep.nl/image/s1080/242560',
+            'title': 'Ademhaling',
+            'description': 'md5:db41d874d9ebe597686dda69e892ba49',
         },
     }
+
+    def _real_extract(self, url):
+        video_id = re.search(r'id=([a-zA-Z0-9_]+)', self._html_search_meta(('og:video', 'og:video:secure_url'), self._download_webpage(url, self._match_id(url)))).group(1)
+        return self._extract_info_from_token(video_id, self._download_json(f'https://api3.schooltv.nl/player/{video_id}', video_id, 'Downloading token JSON')['data']['token'])
 
 
 class HetKlokhuisIE(NPODataMidEmbedIE):
@@ -301,7 +303,7 @@ class HetKlokhuisIE(NPODataMidEmbedIE):
     }
 
 
-class NPOPlaylistBaseIE(NPOIE):  # XXX: Do not subclass from concrete IE
+class NPOPlaylistBaseIE(NPOBaseIE):  # XXX: Do not subclass from concrete IE
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
 
