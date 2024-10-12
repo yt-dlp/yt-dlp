@@ -1378,8 +1378,8 @@ from .nowness import (
 from .noz import NozIE
 from .npo import (
     NPO3IE,
+    NTRIE,
     VPROIE,
-    WNLIE,
     AndereTijdenIE,
     HetKlokhuisIE,
     NPORadioIE,

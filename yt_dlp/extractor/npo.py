@@ -300,106 +300,115 @@ class HetKlokhuisIE(NPOBaseIE):
         return data
 
 
-class NPOPlaylistBaseIE(NPOBaseIE):  # XXX: Do not subclass from concrete IE
+class NPOPlaylistBaseIE(NPOBaseIE):
+    def _mid_result(self, mid, title, url):
+        token = self._download_token(mid, url)
+        data = self._extract_info_from_token(mid, token)
+        # The API returns the same title for every video so overwrite it with the video title
+        data['title'] = title
+        return data
+
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
 
         webpage = self._download_webpage(url, playlist_id)
 
-        entries = [
-            self.url_result(f'npo:{video_id}' if not video_id.startswith('http') else video_id)
-            for video_id in orderedSet(re.findall(self._PLAYLIST_ENTRY_RE, webpage))
-        ]
-
         playlist_title = self._html_search_regex(
             self._PLAYLIST_TITLE_RE, webpage, 'playlist title',
             default=None) or self._og_search_title(webpage)
+
+        entries = [
+            self._mid_result(video_id, playlist_title, url)
+            for video_id in orderedSet(re.findall(self._PLAYLIST_ENTRY_RE, webpage))
+        ]
 
         return self.playlist_result(entries, playlist_id, playlist_title)
 
 
 class VPROIE(NPOPlaylistBaseIE):
     IE_NAME = 'vpro'
-    _VALID_URL = r'https?://(?:www\.)?(?:(?:tegenlicht\.)?vpro|2doc)\.nl/(?:[^/]+/)*(?P<id>[^/]+)\.html'
-    _PLAYLIST_TITLE_RE = (r'<h1[^>]+class=["\'].*?\bmedia-platform-title\b.*?["\'][^>]*>([^<]+)',
-                          r'<h5[^>]+class=["\'].*?\bmedia-platform-subtitle\b.*?["\'][^>]*>([^<]+)')
+    _VALID_URL = r'https?://(?:www\.)?(?:vpro|2doc)\.nl/(?:[^/]+/)*(?P<id>[^/.]+)'
+    _PLAYLIST_TITLE_RE = (r'<h1[^>]+class=["\'].*?\bmedia-platform-title\b.*?["\'][^>]*>([^<]+)')
     _PLAYLIST_ENTRY_RE = r'data-media-id="([^"]+)"'
 
     _TESTS = [
         {
-            'url': 'http://tegenlicht.vpro.nl/afleveringen/2012-2013/de-toekomst-komt-uit-afrika.html',
-            'md5': 'f8065e4e5a7824068ed3c7e783178f2c',
-            'info_dict': {
-                'id': 'VPWON_1169289',
-                'ext': 'm4v',
-                'title': 'De toekomst komt uit Afrika',
-                'description': 'md5:52cf4eefbc96fffcbdc06d024147abea',
-                'upload_date': '20130225',
-            },
-            'skip': 'Video gone',
-        },
-        {
-            'url': 'http://www.vpro.nl/programmas/2doc/2015/sergio-herman.html',
+            'url': 'https://www.vpro.nl/programmas/3doc/2015/sergio-herman.html',
             'info_dict': {
                 'id': 'sergio-herman',
-                'title': 'sergio herman: fucking perfect',
-            },
-            'playlist_count': 2,
-        },
-        {
-            # playlist with youtube embed
-            'url': 'http://www.vpro.nl/programmas/2doc/2015/education-education.html',
-            'info_dict': {
-                'id': 'education-education',
-                'title': 'education education',
+                'title': 'Sergio Herman: Fucking Perfect',
             },
             'playlist_count': 2,
         },
         {
             'url': 'http://www.2doc.nl/documentaires/series/2doc/2015/oktober/de-tegenprestatie.html',
+            'md5': '87a4cc5a62da942ca9270e4da1d2b8b5',
             'info_dict': {
-                'id': 'de-tegenprestatie',
+                'id': 'VPWON_1223413',
+                'ext': 'mp4',
                 'title': 'De Tegenprestatie',
+                'duration': 2992.45,
+                'genres': ['Documentaire'],
+                'channel_id': 'NED2',
+                'description': 'Er wordt van burgers steeds meer eigen verantwoordelijkheid en zelfredzaamheid gevraagd.',
+                'uploader_id': 'NED2',
+                'thumbnail': 'https://images.poms.omroep.nl/image/s1080/663342',
             },
-            'playlist_count': 2,
         }, {
-            'url': 'http://www.2doc.nl/speel~VARA_101375237~mh17-het-verdriet-van-nederland~.html',
+            'url': 'https://www.2doc.nl/documentaires/2018/07/het-verdriet-van-nederland.html',
+            'md5': '9ae67f6bdcb16a62f99e01198674fe10',
             'info_dict': {
                 'id': 'VARA_101375237',
-                'ext': 'm4v',
-                'title': 'MH17: Het verdriet van Nederland',
-                'description': 'md5:09e1a37c1fdb144621e22479691a9f18',
-                'upload_date': '20150716',
-            },
-            'params': {
-                # Skip because of m3u8 download
-                'skip_download': True,
+                'ext': 'mp4',
+                'uploader_id': 'NED1',
+                'channel_id': 'NED1',
+                'thumbnail': 'https://images.poms.omroep.nl/image/s1080/1608566',
+                'duration': 4259.63,
+                'genres': ['Documentaire'],
+                'title': 'Het verdriet van Nederland',
+                'description': 'md5:d19b745af196f6cb98daf50ac7cb01fc',
             },
         },
     ]
 
+    def _download_token(self, mid, url):
+        return self._download_json('https://rs.vpro.nl/v3/api/npoplayer/token', mid, 'Downloading token JSON', data=json.dumps({'mid': mid}).encode(), headers={
+            'Content-Type': 'application/json',
+            'Referer': url,
+        })['token']
 
-class WNLIE(NPOPlaylistBaseIE):
-    IE_NAME = 'wnl'
-    _VALID_URL = r'https?://(?:www\.)?omroepwnl\.nl/video/detail/(?P<id>[^/]+)__\d+'
-    _PLAYLIST_TITLE_RE = r'(?s)<h1[^>]+class="subject"[^>]*>(.+?)</h1>'
-    _PLAYLIST_ENTRY_RE = r'<a[^>]+href="([^"]+)"[^>]+class="js-mid"[^>]*>Deel \d+'
+
+class NTRIE(NPOPlaylistBaseIE):
+    IE_NAME = 'ntr'
+    _VALID_URL = r'https?://(?:www\.)?ntr\.nl/(?:[^/]+/)+(?P<id>[^/?#&]+)'
+    _PLAYLIST_TITLE_RE = r'<h2[^>]*>\s*(.+)\s*</h2>'
+    _PLAYLIST_ENTRY_RE = r'<div[^>]+class=["\']npo_wrapper["\'][^>]+data-mid=["\'](.+?)["\']'
 
     _TESTS = [{
-        'url': 'http://www.omroepwnl.nl/video/detail/vandaag-de-dag-6-mei__060515',
+        'url': 'https://ntr.nl/Aap-Poot-Pies/27/detail/Aap-poot-pies/VPWON_1233944',
+        'md5': '5b7b45c15750c9a74f8b70ea69f0b55a',
         'info_dict': {
-            'id': 'vandaag-de-dag-6-mei',
-            'title': 'Vandaag de Dag 6 mei',
+            'id': 'VPWON_1233944',
+            'ext': 'mp4',
+            'duration': 599.98,
+            'channel_id': 'NED3',
+            'genres': ['Jeugd', 'Serie'],
+            'description': 'Appie en Aisia mogen beurtelings mee met hun vader Luc, die in de dierentuin werkt.',
+            'uploader_id': 'NED3',
+            'title': 'Aap, poot, pies',
+            'thumbnail': 'https://images.poms.omroep.nl/image/s1080/608116',
         },
-        'playlist_count': 4,
     }]
 
+    def _download_token(self, mid, url):
+        return self._download_json(f'https://ntr.nl/ajax/player/embed/{mid}', mid, 'Downloading token JSON')['jwt']
 
-class AndereTijdenIE(NPOPlaylistBaseIE):
+
+class AndereTijdenIE(NTRIE):
     IE_NAME = 'anderetijden'
     _VALID_URL = r'https?://(?:www\.)?anderetijden\.nl/programma/(?:[^/]+/)+(?P<id>[^/?#&]+)'
     _PLAYLIST_TITLE_RE = r'(?s)<h1[^>]+class=["\'].*?\bpage-title\b.*?["\'][^>]*>(.+?)</h1>'
-    _PLAYLIST_ENTRY_RE = r'<figure[^>]+class=["\']episode-container episode-page["\'][^>]+data-prid=["\'](.+?)["\']'
+    _PLAYLIST_ENTRY_RE = r'<figure[^>]+class=["\']episode-container\s+episode-page["\'][^>]+data-mid=["\'](.+?)["\']'
 
     _TESTS = [{
         'url': 'http://anderetijden.nl/programma/1/Andere-Tijden/aflevering/676/Duitse-soldaten-over-de-Slag-bij-Arnhem',
