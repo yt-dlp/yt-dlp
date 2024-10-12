@@ -55,6 +55,7 @@ class PatreonBaseIE(InfoExtractor):
 
 
 class PatreonIE(PatreonBaseIE):
+    IE_NAME = 'patreon'
     _VALID_URL = r'https?://(?:www\.)?patreon\.com/(?:creation\?hid=|posts/(?:[\w-]+-)?)(?P<id>\d+)'
     _TESTS = [{
         'url': 'http://www.patreon.com/creation?hid=743933',
@@ -433,8 +434,12 @@ class PatreonIE(PatreonBaseIE):
 
 
 class PatreonCampaignIE(PatreonBaseIE):
-
-    _VALID_URL = r'https?://(?:www\.)?patreon\.com/(?!rss)(?:(?:m|api/campaigns)/(?P<campaign_id>\d+)|(?P<vanity>[-\w]+))'
+    IE_NAME = 'patreon:campaign'
+    _VALID_URL = r'''(?x)
+        https?://(?:www\.)?patreon\.com/(?:
+            (?:m|api/campaigns)/(?P<campaign_id>\d+)|
+            (?P<vanity>(?!creation[?/]|posts/|rss[?/])[\w-]+)
+        )(?:/posts)?/?(?:$|[?#])'''
     _TESTS = [{
         'url': 'https://www.patreon.com/dissonancepod/',
         'info_dict': {
@@ -495,10 +500,6 @@ class PatreonCampaignIE(PatreonBaseIE):
         'url': 'https://www.patreon.com/api/campaigns/4243769',
         'only_matching': True,
     }]
-
-    @classmethod
-    def suitable(cls, url):
-        return False if PatreonIE.suitable(url) else super().suitable(url)
 
     def _entries(self, campaign_id):
         cursor = None
