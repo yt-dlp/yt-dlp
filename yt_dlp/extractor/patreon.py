@@ -438,8 +438,8 @@ class PatreonCampaignIE(PatreonBaseIE):
     _VALID_URL = r'''(?x)
         https?://(?:www\.)?patreon\.com/(?:
             (?:m|api/campaigns)/(?P<campaign_id>\d+)|
-            (?P<vanity>(?!creation[?/]|posts/|rss[?/])[-\w]+)
-        )(?:/(?:posts)?)?(?:$|[?#])'''
+            (?P<vanity>(?!creation[?/]|posts/|rss[?/])[\w-]+)
+        )(?:/(?:posts/?)?)?(?:$|[?#])'''
     _TESTS = [{
         'url': 'https://www.patreon.com/dissonancepod/',
         'info_dict': {
