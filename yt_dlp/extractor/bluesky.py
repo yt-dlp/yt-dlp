@@ -13,7 +13,7 @@ class BlueskyIE(InfoExtractor):
             'title': 'Blu3Blu3Lilith: "OMG WE HAVE VIDEOS NOW"',
             'upload_date': '20240921',
             'description': 'OMG WE HAVE VIDEOS NOW',
-            'thumbnail': r're:^https://video.bsky.app/watch/.*\.jpg$',
+            'thumbnail': r're:https://video.bsky.app/watch/.*\.jpg$',
             'alt_title': None,
             'uploader': 'Blu3Blu3Lilith',
             'channel': 'blu3blue.bsky.social',
@@ -28,7 +28,7 @@ class BlueskyIE(InfoExtractor):
             'webpage_url': 'https://bsky.app/profile/blu3blue.bsky.social/post/3l4omssdl632g',
             'tags': 'count:1',
             'subtitles': dict,
-            'comments': list,
+            'comments': None,  # 'count:29' if getcomments
         },
     }, {
         'url': 'https://bsky.app/profile/bsky.app/post/3l3vgf77uco2g',
@@ -36,10 +36,10 @@ class BlueskyIE(InfoExtractor):
         'info_dict': {
             'id': '3l3vgf77uco2g',
             'ext': 'mp4',
-            'title': r're:^Bluesky: "Bluesky now has video!',
+            'title': r're:Bluesky: "Bluesky now has video!',
             'upload_date': '20240911',
-            'description': r're:^Bluesky now has video!',
-            'thumbnail': r're:^https://video.bsky.app/watch/.*\.jpg$',
+            'description': r're:Bluesky now has video!',
+            'thumbnail': r're:https://video.bsky.app/watch/.*\.jpg$',
             'alt_title': 'Bluesky video feature announcement',
             'uploader': 'Bluesky',
             'channel': 'bsky.app',
@@ -54,7 +54,7 @@ class BlueskyIE(InfoExtractor):
             'webpage_url': 'https://bsky.app/profile/bsky.app/post/3l3vgf77uco2g',
             'tags': 'count:2',
             'subtitles': dict,
-            'comments': list,
+            'comments': None,
         },
     }, {
         'url': 'https://bsky.app/profile/did:plc:3tndo2mqg2vgpxnpyrxiol6p/post/3l45kdlktfe2o',
@@ -62,12 +62,12 @@ class BlueskyIE(InfoExtractor):
         'info_dict': {
             'id': '3l45kdlktfe2o',
             'ext': 'mp4',
-            'title': r're:^clockwork banana: "alright.',
+            'title': r're:clockwork boo-nana 👻: "alright.',
             'upload_date': '20240914',
-            'description': r're:^alright.\nthis was .. a tiny bit of a pain.',
-            'thumbnail': r're:^https://video.bsky.app/watch/.*\.jpg$',
-            'alt_title': r're:^me making a goofy little test video',
-            'uploader': 'clockwork banana',
+            'description': r're:alright.\nthis was .. a tiny bit of a pain.',
+            'thumbnail': r're:https://video.bsky.app/watch/.*\.jpg$',
+            'alt_title': r're:me making a goofy little test video',
+            'uploader': 'clockwork boo-nana 👻',
             'channel': 'clockworkbanana.fun',
             'uploader_id': 'did:plc:3tndo2mqg2vgpxnpyrxiol6p',
             'channel_id': 'did:plc:3tndo2mqg2vgpxnpyrxiol6p',
@@ -80,7 +80,7 @@ class BlueskyIE(InfoExtractor):
             'webpage_url': 'https://bsky.app/profile/did:plc:3tndo2mqg2vgpxnpyrxiol6p/post/3l45kdlktfe2o',
             'tags': 'count:1',
             'subtitles': dict,
-            'comments': list,
+            'comments': None,
         },
     }, {
         'url': 'https://bsky.app/profile/souris.moe/post/3l4qhp7bcs52c',
@@ -91,7 +91,7 @@ class BlueskyIE(InfoExtractor):
             'title': 'maeve: ""',
             'upload_date': '20240922',
             'description': '',
-            'thumbnail': r're:^https://video.bsky.app/watch/.*\.jpg$',
+            'thumbnail': r're:https://video.bsky.app/watch/.*\.jpg$',
             'alt_title': None,
             'uploader': 'maeve',
             'channel': 'souris.moe',
@@ -106,7 +106,7 @@ class BlueskyIE(InfoExtractor):
             'webpage_url': 'https://bsky.app/profile/souris.moe/post/3l4qhp7bcs52c',
             'tags': 'count:1',
             'subtitles': 'count:0',
-            'comments': list,
+            'comments': None,
         },
     }, {
         'url': 'https://bsky.app/profile/de1.pds.tentacle.expert/post/3l3w4tnezek2e',
@@ -117,7 +117,7 @@ class BlueskyIE(InfoExtractor):
             'title': 'clean: ""',
             'upload_date': '20240911',
             'description': '',
-            'thumbnail': r're:^https://video.bsky.app/watch/.*\.jpg$',
+            'thumbnail': r're:https://video.bsky.app/watch/.*\.jpg$',
             'alt_title': None,
             'uploader': 'clean',
             'channel': 'de1.pds.tentacle.expert',
@@ -132,30 +132,32 @@ class BlueskyIE(InfoExtractor):
             'webpage_url': 'https://bsky.app/profile/de1.pds.tentacle.expert/post/3l3w4tnezek2e',
             'tags': 'count:1',
             'subtitles': 'count:0',
-            'comments': list,
+            'comments': None,
         },
     }]
 
     def _get_comments(self, meta):
-        yield self.traverse_replies(meta, traverse_obj(meta, ('post', 'uri'), default=''))
+        yield from self.traverse_replies(meta, traverse_obj(meta, ('post', 'uri'), default=''))
 
     def traverse_replies(self, thread_node, root_uri):
-        post = thread_node.get('post')
-        parent_uri = traverse_obj(post, ('record', 'reply', 'parent', 'uri'))
-        author_handle = traverse_obj(post, ('author', 'handle'))
-        author_did = traverse_obj(post, ('author', 'did'), default='')
-        yield {
-            'id': post.get('uri'),
-            'text': traverse_obj(post, ('record', 'text')),
-            'timestamp': parse_iso8601(traverse_obj(post, ('record', 'createdAt'))),
-            'parent': 'root' if parent_uri == root_uri else parent_uri,
-            'like_count': post.get('likeCount'),
-            'author': traverse_obj(post, ('author', 'displayName')),
-            'author_id': author_did,
-            'author_thumbnail': traverse_obj(post, ('author', 'avatar'), expected_type=url_or_none),
-            'author_url': f'https://bsky.app/profile/{author_handle}',
-            'author_is_uploader': 'Yes' if author_did in root_uri else 'No',
-        }
+        post_uri = traverse_obj(thread_node, ('post', 'uri'))
+        if post_uri != root_uri:
+            post = thread_node.get('post')
+            parent_uri = traverse_obj(post, ('record', 'reply', 'parent', 'uri'))
+            author_handle = traverse_obj(post, ('author', 'handle'))
+            author_did = traverse_obj(post, ('author', 'did'), default='')
+            yield {
+                'id': post_uri,
+                'text': traverse_obj(post, ('record', 'text')),
+                'timestamp': parse_iso8601(traverse_obj(post, ('record', 'createdAt'))),
+                'parent': 'root' if parent_uri == root_uri else parent_uri,
+                'like_count': post.get('likeCount'),
+                'author': traverse_obj(post, ('author', 'displayName')),
+                'author_id': author_did,
+                'author_thumbnail': traverse_obj(post, ('author', 'avatar'), expected_type=url_or_none),
+                'author_url': f'https://bsky.app/profile/{author_handle}',
+                'author_is_uploader': author_did in root_uri,
+            }
         if replies := thread_node.get('replies'):
             for reply in replies:
                 yield from self.traverse_replies(reply, root_uri)
@@ -165,17 +167,17 @@ class BlueskyIE(InfoExtractor):
     def _real_extract(self, url):
         handle, video_id = self._match_valid_url(url).groups()
         did = handle if handle.startswith('did:') else self._download_json(
-            (f'https://public.api.bsky.app/xrpc/com.atproto.identity.resolveHandle?handle={handle}'),
-            video_id, expected_status=200).get('did')
+            'https://public.api.bsky.app/xrpc/com.atproto.identity.resolveHandle',
+            video_id, query={'handle': handle}).get('did')
 
         getcomments = self.get_param('getcomments', False)
         meta = self._download_json(
             'https://public.api.bsky.app/xrpc/app.bsky.feed.getPostThread',
-            video_id, headers={'Content-Type': 'application/json'},
-            query={'uri': f'at://{did}/app.bsky.feed.post/{video_id}',
-                   'depth': 1000 if getcomments else 0,
-                   'parentHeight': 1000 if getcomments else 0},
-            expected_status=200).get('thread')
+            video_id, headers={'Content-Type': 'application/json'}, query={
+                'uri': f'at://{did}/app.bsky.feed.post/{video_id}',
+                'depth': 1000 if getcomments else 0,
+                'parentHeight': 1000 if getcomments else 0,
+            }).get('thread')
         post, record_embed = meta.get('post'), traverse_obj(meta, ('post', 'record', 'embed'))
 
         formats, subs = self._extract_m3u8_formats_and_subtitles(
@@ -195,7 +197,6 @@ class BlueskyIE(InfoExtractor):
         handle = traverse_obj(post, ('author', 'handle'))
         uploader = traverse_obj(post, ('author', 'displayName'))
         description = traverse_obj(post, ('record', 'text'))
-        extractor = self.extract_comments(meta)
 
         return {
             'id': video_id,
@@ -214,8 +215,7 @@ class BlueskyIE(InfoExtractor):
             'like_count': post.get('likeCount'),
             'repost_count': post.get('repostCount'),
             'comment_count': post.get('replyCount'),
-            'webpage_url': url,
             'tags': post.get('labels', []) + traverse_obj(post, ('record', 'langs'), default=[]),
-            'comments': [] if not extractor else [*(extractor().get('comments'))[0]][1:],
-            'subtitles': self._merge_subtitles(subs),
+            '__post_extractor': self.extract_comments(meta),
+            'subtitles': subs,
         }
