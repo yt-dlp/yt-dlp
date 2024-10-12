@@ -6,6 +6,7 @@ from ..utils import (
     parse_iso8601,
     smuggle_url,
     str_or_none,
+    update_url_query,
 )
 
 
@@ -98,7 +99,9 @@ class CWTVIE(InfoExtractor):
             raise ExtractorError(data['msg'], expected=True)
         video_data = data['video']
         title = video_data['title']
-        mpx_url = video_data.get('mpx_url') or f'https://link.theplatform.com/s/cwtv/media/guid/2703454149/{video_id}?formats=M3U'
+        mpx_url = update_url_query(
+            video_data.get('mpx_url') or f'https://link.theplatform.com/s/cwtv/media/guid/2703454149/{video_id}',
+            {'formats': 'M3U+none'})
 
         season = str_or_none(video_data.get('season'))
         episode = str_or_none(video_data.get('episode'))
