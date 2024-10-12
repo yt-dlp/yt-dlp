@@ -1385,6 +1385,7 @@ from .npo import (
     NPORadioIE,
     NPOStartIE,
     SchoolTVIE,
+    ZappIE,
 )
 from .npr import NprIE
 from .nrk import (

@@ -292,12 +292,36 @@ class HetKlokhuisIE(NPOBaseIE):
 
     def _real_extract(self, url):
         webpage = self._download_webpage(url, self._match_id(url))
-        series, title = self._html_search_meta('og:title', webpage, 'title').split(' - ')
+        series, title = self._og_search_title(webpage).split(' - ')
         video_id = self._html_search_regex(r'data-mid="([a-zA-Z0-9_]+)"', webpage, 'video id')
         data = self._extract_info_from_token(video_id, self._download_json(f'https://api3.schooltv.nl/player/{video_id}', video_id, 'Downloading token JSON')['data']['token'])
         data['series'] = series
         data['title'] = title
         return data
+
+
+class ZappIE(NPOBaseIE):
+    IE_NAME = 'zapp.nl'
+    _VALID_URL = r'https?://(?:www\.)?zapp\.nl/programmas/(?:[^/]+/){2}(?P<id>[^/?#&]+)'
+
+    _TEST = {
+        'url': 'https://www.zapp.nl/programmas/zappsport/gemist/POMS_AT_811523',
+        'md5': 'faf6811abea03ba8a52298c97bd0146b',
+        'info_dict': {
+            'id': 'POMS_AT_811523',
+            'ext': 'mp4',
+            'genres': [],
+            'uploader_id': 'NED3',
+            'description': 'Kindersportprogramma waarin alle takken van sport voorbijkomen.',
+            'channel_id': 'NED3',
+            'thumbnail': 'https://images.poms.omroep.nl/image/s1080/586056',
+            'duration': 900.0,
+            'title': 'Running Team 2015 - aflevering 1',
+        },
+    }
+
+    def _real_extract(self, url):
+        return self._extract_product_id_information(self._match_id(url))
 
 
 class NPOPlaylistBaseIE(NPOBaseIE):
