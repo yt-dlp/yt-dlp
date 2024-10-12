@@ -439,7 +439,7 @@ class PatreonCampaignIE(PatreonBaseIE):
         https?://(?:www\.)?patreon\.com/(?:
             (?:m|api/campaigns)/(?P<campaign_id>\d+)|
             (?P<vanity>(?!creation[?/]|posts/|rss[?/])[\w-]+)
-        )(?:/(?:posts/?)?)?(?:$|[?#])'''
+        )(?:/posts)?/?(?:$|[?#])'''
     _TESTS = [{
         'url': 'https://www.patreon.com/dissonancepod/',
         'info_dict': {
