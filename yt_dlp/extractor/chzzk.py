@@ -2,6 +2,7 @@ import functools
 
 from .common import InfoExtractor
 from ..utils import (
+    UnsupportedError,
     UserNotLive,
     float_or_none,
     int_or_none,
@@ -146,15 +147,22 @@ class CHZZKVideoIE(InfoExtractor):
         video_meta = self._download_json(
             f'https://api.chzzk.naver.com/service/v3/videos/{video_id}', video_id,
             note='Downloading video info', errnote='Unable to download video info')['content']
-        formats, subtitles = self._extract_mpd_formats_and_subtitles(
-            f'https://apis.naver.com/neonplayer/vodplay/v1/playback/{video_meta["videoId"]}', video_id,
-            query={
-                'key': video_meta['inKey'],
-                'env': 'real',
-                'lc': 'en_US',
-                'cpl': 'en_US',
-            }, note='Downloading video playback', errnote='Unable to download video playback')
-
+        video_status = video_meta.get('vodStatus')
+        if video_status == 'UPLOAD':
+            playback = self._parse_json(video_meta.get('liveRewindPlaybackJson'), video_id)
+            formats, subtitles = self._extract_mpd_formats_and_subtitles(
+                traverse_obj(playback, ('media', 0, 'path')), video_id, note='Downloading video playback', errnote='Unable to download video playback')
+        elif video_status == 'ABR_HLS':
+            formats, subtitles = self._extract_mpd_formats_and_subtitles(
+                f'https://apis.naver.com/neonplayer/vodplay/v1/playback/{video_meta.get("videoId")}', video_id,
+                query={
+                    'key': video_meta['inKey'],
+                    'env': 'real',
+                    'lc': 'en_US',
+                    'cpl': 'en_US',
+                }, note='Downloading video playback', errnote='Unable to download video playback')
+        else:
+            raise UnsupportedError(url=url)
         return {
             'id': video_id,
             'formats': formats,
