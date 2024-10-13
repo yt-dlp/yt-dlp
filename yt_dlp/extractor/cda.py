@@ -389,16 +389,13 @@ class CDAFolderIE(InfoExtractor):
 
         webpage = self._download_webpage(url, folder_id)
 
-        def extract_page_entries(channel_name, folder_id, page):
+        def extract_page_entries(page):
             webpage = self._download_webpage(
-                f'https://www.cda.pl/{channel_name}/folder/{folder_id}/vfilm/{page + 1}', folder_id,
+                f'https://www.cda.pl/{channel}/folder/{folder_id}/vfilm/{page + 1}', folder_id,
                 f'Downloading page {page + 1}', expected_status=404)
             items = re.findall(r'<a[^>]+href="/video/([0-9a-z]+)" class=', webpage)
             for video_id in items:
                 yield self.url_result(f'https://www.cda.pl/video/{video_id}', CDAIE, video_id)
 
-        entries = OnDemandPagedList(
-            functools.partial(extract_page_entries, channel, folder_id),
-            self._MAX_PAGE_SIZE)
-
+        entries = OnDemandPagedList(extract_page_entries, self._MAX_PAGE_SIZE)
         return self.playlist_result(entries, folder_id, playlist_title=self._og_search_title(webpage))
