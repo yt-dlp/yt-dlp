@@ -312,6 +312,10 @@ def traverse_obj(
     return None if default is NO_DEFAULT else default
 
 
+def value(value, /):
+    return lambda _: value
+
+
 def require(name, /, *, expected=False):
     def func(value):
         if value is None:
