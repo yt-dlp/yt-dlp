@@ -1,3 +1,4 @@
+import json
 import urllib.parse
 
 from .common import InfoExtractor
@@ -17,7 +18,7 @@ from ..utils import (
 
 class RedditIE(InfoExtractor):
     _NETRC_MACHINE = 'reddit'
-    _VALID_URL = r'https?://(?P<host>(?:\w+\.)?reddit(?:media)?\.com)/(?P<slug>(?:(?:r|user)/[^/]+/)?comments/(?P<id>[^/?#&]+))'
+    _VALID_URL = r'https?://(?:\w+\.)?reddit(?:media)?\.com/(?P<slug>(?:(?:r|user)/[^/]+/)?comments/(?P<id>[^/?#&]+))'
     _TESTS = [{
         'url': 'https://www.reddit.com/r/videos/comments/6rrwyj/that_small_heart_attack/',
         'info_dict': {
@@ -251,15 +252,15 @@ class RedditIE(InfoExtractor):
             return {'en': [{'url': caption_url}]}
 
     def _real_extract(self, url):
-        host, slug, video_id = self._match_valid_url(url).group('host', 'slug', 'id')
+        slug, video_id = self._match_valid_url(url).group('slug', 'id')
 
-        data = self._download_json(
-            f'https://{host}/{slug}/.json', video_id, fatal=False, expected_status=403)
-        if not data:
-            fallback_host = 'old.reddit.com' if host != 'old.reddit.com' else 'www.reddit.com'
-            self.to_screen(f'{host} request failed, retrying with {fallback_host}')
+        try:
             data = self._download_json(
-                f'https://{fallback_host}/{slug}/.json', video_id, expected_status=403)
+                f'https://www.reddit.com/{slug}/.json', video_id, expected_status=403)
+        except ExtractorError as e:
+            if isinstance(e.cause, json.JSONDecodeError):
+                self.raise_login_required('Account authentication is required')
+            raise
 
         if traverse_obj(data, 'error') == 403:
             reason = data.get('reason')
