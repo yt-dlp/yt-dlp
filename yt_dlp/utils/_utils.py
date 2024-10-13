@@ -1984,11 +1984,30 @@ def urljoin(base, path):
     return urllib.parse.urljoin(base, path)
 
 
-def int_or_none(v, scale=1, default=None, get_attr=None, invscale=1):
+def partial_application(func):
+    sig = inspect.signature(func)
+
+    @functools.wraps(func)
+    def wrapped(*args, **kwargs):
+        try:
+            sig.bind(*args, **kwargs)
+        except TypeError:
+            return functools.partial(func, *args, **kwargs)
+        else:
+            return func(*args, **kwargs)
+
+    return wrapped
+
+
+@partial_application
+def int_or_none(v, scale=1, default=None, get_attr=None, invscale=1, base=None):
     if get_attr and v is not None:
         v = getattr(v, get_attr, None)
+    if invscale == 1 and scale < 1:
+        invscale = int(1 / scale)
+        scale = 1
     try:
-        return int(v) * invscale // scale
+        return (int(v) if base is None else int(v, base=base)) * invscale // scale
     except (ValueError, TypeError, OverflowError):
         return default
 
@@ -2006,9 +2025,13 @@ def str_to_int(int_str):
         return int_or_none(int_str)
 
 
+@partial_application
 def float_or_none(v, scale=1, invscale=1, default=None):
     if v is None:
         return default
+    if invscale == 1 and scale < 1:
+        invscale = int(1 / scale)
+        scale = 1
     try:
         return float(v) * invscale / scale
     except (ValueError, TypeError):
