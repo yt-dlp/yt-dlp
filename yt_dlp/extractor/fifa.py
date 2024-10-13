@@ -317,9 +317,9 @@ class FifaArticleIE(FifaBaseIE):
             'data', 'target', 'sys', 'id')))
 
         return self.playlist_from_matches(
-            [f'https://www.fifa.com/fifaplus/{locale}/watch/{video_id}' for video_id in video_ids],
-            article_id, page_info.get('articleTitle'), ie=FifaIE, multi_video=True,
-            timestamp=parse_iso8601(page_info.get('articlePublishedDate')))
+            video_ids, article_id, page_info.get('articleTitle'),
+            getter=lambda x: f'https://www.fifa.com/fifaplus/{locale}/watch/{x}',
+            ie=FifaIE, multi_video=True, timestamp=parse_iso8601(page_info.get('articlePublishedDate')))
 
 
 class FifaMovieIE(FifaBaseIE):
@@ -364,9 +364,9 @@ class FifaMovieIE(FifaBaseIE):
             video_ids.append(video_entry_id)
 
         return self.playlist_from_matches(
-            [f'https://www.fifa.com/fifaplus/{locale}/watch/{video_id}' for video_id in video_ids],
-            movie_id, traverse_obj(movie_details, ('video', 'title')), ie=FifaIE, multi_video=True,
-            playlist_description=traverse_obj(movie_details, ('video', 'description')))
+            video_ids, movie_id, traverse_obj(movie_details, ('video', 'title')),
+            getter=lambda x: f'https://www.fifa.com/fifaplus/{locale}/watch/{x}',
+            ie=FifaIE, multi_video=True, playlist_description=traverse_obj(movie_details, ('video', 'description')))
 
 
 class FifaSeriesIE(FifaBaseIE):
@@ -406,6 +406,6 @@ class FifaSeriesIE(FifaBaseIE):
         video_ids.extend(traverse_obj(serie_details, ('trailers', ..., 'entryId')))
 
         return self.playlist_from_matches(
-            [f'https://www.fifa.com/fifaplus/{locale}/watch/{video_id}' for video_id in video_ids],
-            series_id, strip_or_none(serie_details.get('title')), ie=FifaIE, multi_video=True,
-            playlist_description=strip_or_none(serie_details.get('description')))
+            video_ids, series_id, strip_or_none(serie_details.get('title')),
+            getter=lambda x: f'https://www.fifa.com/fifaplus/{locale}/watch/{x}',
+            ie=FifaIE, multi_video=True, playlist_description=strip_or_none(serie_details.get('description')))
