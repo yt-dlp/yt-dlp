@@ -2375,12 +2375,10 @@ class GenericIE(InfoExtractor):
             video_id = self._generic_id(url)
 
         # Try to impersonate a web-browser by default if possible
-        # We test if impersonation is available at all to omit the warning if it isn't
-        impersonate = None
-        if self._downloader._impersonate_target_available(ImpersonateTarget()):
-            targets = self._configuration_arg('impersonate', [''])
-            if targets != ['false']:
-                impersonate = list(map(ImpersonateTarget.from_str, targets))
+        # Skip impersonation if not available to omit the warning
+        impersonate = self._configuration_arg('impersonate', [''])
+        if 'false' in impersonate or not self._downloader._impersonate_target_available(ImpersonateTarget()):
+            impersonate = None
 
         # Some webservers may serve compressed content of rather big size (e.g. gzipped flac)
         # making it impossible to download only chunk of the file (yet we need only 512kB to
