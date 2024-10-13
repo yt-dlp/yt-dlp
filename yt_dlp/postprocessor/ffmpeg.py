@@ -1213,7 +1213,7 @@ class FFmpegProgressTracker:
             (?:
                 frame=\s(?P<frame>\S+)\n
                 fps=\s(?P<fps>\S+)\n
-                stream\d+_\d+_q=\s(?P<stream_d_d_q>\S+)\n
+                stream_\d+_\d+_q=\s(?P<stream_d_d_q>\S+)\n
             )?
             bitrate=\s(?P<bitrate>\S+)\n
             total_size=\s(?P<total_size>\S+)\n
