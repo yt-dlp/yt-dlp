@@ -2280,8 +2280,8 @@ While these options are redundant, they are still expected to be used due to the
     --min-views COUNT                --match-filters "view_count >=? COUNT"
     --max-views COUNT                --match-filters "view_count <=? COUNT"
     --break-on-reject                Use --break-match-filters
-    --user-agent UA                  --add-header "User-Agent:UA"
-    --referer URL                    --add-header "Referer:URL"
+    --user-agent UA                  --add-headers "User-Agent:UA"
+    --referer URL                    --add-headers "Referer:URL"
     --playlist-start NUMBER          -I NUMBER:
     --playlist-end NUMBER            -I :NUMBER
     --playlist-reverse               -I ::-1
