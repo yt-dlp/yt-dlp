@@ -8,6 +8,7 @@ from .common import InfoExtractor
 from .commonprotocols import RtmpIE
 from .youtube import YoutubeIE
 from ..compat import compat_etree_fromstring
+from ..networking.impersonate import ImpersonateTarget
 from ..utils import (
     KNOWN_EXTENSIONS,
     MEDIA_EXTENSIONS,
@@ -2340,7 +2341,7 @@ class GenericIE(InfoExtractor):
                 default_search = 'fixup_error'
 
             if default_search in ('auto', 'auto_warning', 'fixup_error'):
-                if re.match(r'^[^\s/]+\.[^\s/]+/', url):
+                if re.match(r'[^\s/]+\.[^\s/]+/', url):
                     self.report_warning('The url doesn\'t specify the protocol, trying with http')
                     return self.url_result('http://' + url)
                 elif default_search != 'fixup_error':
@@ -2373,6 +2374,12 @@ class GenericIE(InfoExtractor):
         else:
             video_id = self._generic_id(url)
 
+        # Try to impersonate a web-browser by default if possible
+        # Skip impersonation if not available to omit the warning
+        impersonate = self._configuration_arg('impersonate', [''])
+        if 'false' in impersonate or not self._downloader._impersonate_target_available(ImpersonateTarget()):
+            impersonate = None
+
         # Some webservers may serve compressed content of rather big size (e.g. gzipped flac)
         # making it impossible to download only chunk of the file (yet we need only 512kB to
         # test whether it's HTML or not). According to yt-dlp default Accept-Encoding
@@ -2384,7 +2391,7 @@ class GenericIE(InfoExtractor):
         full_response = self._request_webpage(url, video_id, headers=filter_dict({
             'Accept-Encoding': 'identity',
             'Referer': smuggled_data.get('referer'),
-        }))
+        }), impersonate=impersonate)
         new_url = full_response.url
         if new_url != extract_basic_auth(url)[0]:
             self.report_following_redirect(new_url)
@@ -2400,7 +2407,7 @@ class GenericIE(InfoExtractor):
 
         # Check for direct link to a video
         content_type = full_response.headers.get('Content-Type', '').lower()
-        m = re.match(r'^(?P<type>audio|video|application(?=/(?:ogg$|(?:vnd\.apple\.|x-)?mpegurl)))/(?P<format_id>[^;\s]+)', content_type)
+        m = re.match(r'(?P<type>audio|video|application(?=/(?:ogg$|(?:vnd\.apple\.|x-)?mpegurl)))/(?P<format_id>[^;\s]+)', content_type)
         if m:
             self.report_detected('direct video link')
             headers = filter_dict({'Referer': smuggled_data.get('referer')})
