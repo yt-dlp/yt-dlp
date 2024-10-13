@@ -4120,7 +4120,8 @@ class YoutubeDL:
                 self.params.get('cookiefile'), self.params.get('cookiesfrombrowser'), self)
         except CookieLoadError as error:
             cause = error.__context__
-            self.report_error(str(cause), tb=''.join(traceback.format_exception(cause)))
+            # compat: <=py3.9: `traceback.format_exception` has a different signature
+            self.report_error(str(cause), tb=''.join(traceback.format_exception(None, cause, cause.__traceback__)))
             raise
 
     @property
