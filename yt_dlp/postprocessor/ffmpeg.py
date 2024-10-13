@@ -1211,19 +1211,19 @@ class FFmpegProgressTracker:
         self._streams, self._stderr_buffer, self._stdout_buffer = ['', ''], '', ''
         self._progress_pattern = re.compile(r'''(?x)
             (?:
-                frame=\s(?P<frame>\S+)\n
-                fps=\s(?P<fps>\S+)\n
-                stream_\d+_\d+_q=\s(?P<stream_d_d_q>\S+)\n
+                frame=\s*(?P<frame>\S+)\n
+                fps=\s*(?P<fps>\S+)\n
+                stream_\d+_\d+_q=\s*(?P<stream_d_d_q>\S+)\n
             )?
-            bitrate=\s(?P<bitrate>\S+)\n
-            total_size=\s(?P<total_size>\S+)\n
-            out_time_us=\s(?P<out_time_us>\S+)\n
-            out_time_ms=\s(?P<out_time_ms>\S+)\n
-            out_time=\s(?P<out_time>\S+)\n
-            dup_frames=\s(?P<dup_frames>\S+)\n
-            drop_frames=\s(?P<drop_frames>\S+)\n
-            speed=\s(?P<speed>\S+)\n
-            progress=\s(?P<progress>\S+)
+            bitrate=\s*(?P<bitrate>\S+)\n
+            total_size=\s*(?P<total_size>\S+)\n
+            out_time_us=\s*(?P<out_time_us>\S+)\n
+            out_time_ms=\s*(?P<out_time_ms>\S+)\n
+            out_time=\s*(?P<out_time>\S+)\n
+            dup_frames=\s*(?P<dup_frames>\S+)\n
+            drop_frames=\s*(?P<drop_frames>\S+)\n
+            speed=\s*(?P<speed>\S+)\n
+            progress=\s*(?P<progress>\S+)
         ''')
 
         if self.ydl:
