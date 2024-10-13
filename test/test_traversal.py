@@ -4,8 +4,18 @@ import xml.etree.ElementTree
 
 import pytest
 
-from yt_dlp.utils import dict_get, int_or_none, str_or_none
-from yt_dlp.utils.traversal import traverse_obj
+from yt_dlp.utils import (
+    ExtractorError,
+    determine_ext,
+    dict_get,
+    int_or_none,
+    str_or_none,
+)
+from yt_dlp.utils.traversal import (
+    traverse_obj,
+    require,
+    subs_list_to_dict,
+)
 
 _TEST_DATA = {
     100: 100,
@@ -419,6 +429,71 @@ class TestTraversal:
             'function key should yield all values'
         assert traverse_obj(morsel, [(None,), any]) == morsel, \
             'Morsel should not be implicitly changed to dict on usage'
+
+    def test_traversal_filter(self):
+        data = [None, False, True, 0, 1, 0.0, 1.1, '', 'str', {}, {0: 0}, [], [1]]
+
+        assert traverse_obj(data, [..., filter]) == [True, 1, 1.1, 'str', {0: 0}, [1]], \
+            '`filter` should filter falsy values'
+
+
+class TestTraversalHelpers:
+    def test_traversal_require(self):
+        with pytest.raises(ExtractorError):
+            traverse_obj(_TEST_DATA, ['None', {require('value')}])
+        assert traverse_obj(_TEST_DATA, ['str', {require('value')}]) == 'str', \
+            '`require` should pass through non `None` values'
+
+    def test_subs_list_to_dict(self):
+        assert traverse_obj([
+            {'name': 'de', 'url': 'https://example.com/subs/de.vtt'},
+            {'name': 'en', 'url': 'https://example.com/subs/en1.ass'},
+            {'name': 'en', 'url': 'https://example.com/subs/en2.ass'},
+        ], [..., {
+            'id': 'name',
+            'url': 'url',
+        }, all, {subs_list_to_dict}]) == {
+            'de': [{'url': 'https://example.com/subs/de.vtt'}],
+            'en': [
+                {'url': 'https://example.com/subs/en1.ass'},
+                {'url': 'https://example.com/subs/en2.ass'},
+            ],
+        }, 'function should build subtitle dict from list of subtitles'
+        assert traverse_obj([
+            {'name': 'de', 'url': 'https://example.com/subs/de.ass'},
+            {'name': 'de'},
+            {'name': 'en', 'content': 'content'},
+            {'url': 'https://example.com/subs/en'},
+        ], [..., {
+            'id': 'name',
+            'data': 'content',
+            'url': 'url',
+        }, all, {subs_list_to_dict}]) == {
+            'de': [{'url': 'https://example.com/subs/de.ass'}],
+            'en': [{'data': 'content'}],
+        }, 'subs with mandatory items missing should be filtered'
+        assert traverse_obj([
+            {'url': 'https://example.com/subs/de.ass', 'name': 'de'},
+            {'url': 'https://example.com/subs/en', 'name': 'en'},
+        ], [..., {
+            'id': 'name',
+            'ext': ['url', {lambda x: determine_ext(x, default_ext=None)}],
+            'url': 'url',
+        }, all, {subs_list_to_dict(ext='ext')}]) == {
+            'de': [{'url': 'https://example.com/subs/de.ass', 'ext': 'ass'}],
+            'en': [{'url': 'https://example.com/subs/en', 'ext': 'ext'}],
+        }, '`ext` should set default ext but leave existing value untouched'
+        assert traverse_obj([
+            {'name': 'en', 'url': 'https://example.com/subs/en2', 'prio': True},
+            {'name': 'en', 'url': 'https://example.com/subs/en1', 'prio': False},
+        ], [..., {
+            'id': 'name',
+            'quality': ['prio', {int}],
+            'url': 'url',
+        }, all, {subs_list_to_dict(ext='ext')}]) == {'en': [
+            {'url': 'https://example.com/subs/en1', 'ext': 'ext'},
+            {'url': 'https://example.com/subs/en2', 'ext': 'ext'},
+        ]}, '`quality` key should sort subtitle list accordingly'
 
 
 class TestDictGet:
