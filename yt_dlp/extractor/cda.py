@@ -1,7 +1,6 @@
 import base64
 import codecs
 import datetime as dt
-import functools
 import hashlib
 import hmac
 import json
@@ -393,9 +392,10 @@ class CDAFolderIE(InfoExtractor):
             webpage = self._download_webpage(
                 f'https://www.cda.pl/{channel}/folder/{folder_id}/vfilm/{page + 1}', folder_id,
                 f'Downloading page {page + 1}', expected_status=404)
-            items = re.findall(r'<a[^>]+href="/video/([0-9a-z]+)" class=', webpage)
+            items = re.findall(r'<a[^>]+href="/video/([0-9a-z]+)"', webpage)
             for video_id in items:
                 yield self.url_result(f'https://www.cda.pl/video/{video_id}', CDAIE, video_id)
 
-        entries = OnDemandPagedList(extract_page_entries, self._MAX_PAGE_SIZE)
-        return self.playlist_result(entries, folder_id, playlist_title=self._og_search_title(webpage))
+        return self.playlist_result(
+            OnDemandPagedList(extract_page_entries, self._MAX_PAGE_SIZE),
+            folder_id, self._og_search_title(webpage))
