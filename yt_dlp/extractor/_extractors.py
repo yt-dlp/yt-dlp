@@ -282,9 +282,11 @@ from .bokecc import BokeCCIE
 from .bongacams import BongaCamsIE
 from .boomplay import (
     BoomPlayEpisodeIE,
+    BoomPlayGenericPlaylistIE,
     BoomPlayMusicIE,
     BoomPlayPlaylistIE,
     BoomPlayPodcastIE,
+    BoomPlaySearchIE,
     BoomPlayVideoIE,
 )
 from .boosty import BoostyIE
