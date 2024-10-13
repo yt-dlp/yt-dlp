@@ -143,6 +143,7 @@
  - **BBVTV**: [*bbvtv*](## "netrc machine")
  - **BBVTVLive**: [*bbvtv*](## "netrc machine")
  - **BBVTVRecordings**: [*bbvtv*](## "netrc machine")
+ - **BeaconTv**
  - **BeatBumpPlaylist**
  - **BeatBumpVideo**
  - **Beatport**
@@ -354,7 +355,6 @@
  - **DigitallySpeaking**
  - **Digiteka**
  - **DiscogsReleasePlaylist**
- - **Discovery**
  - **DiscoveryLife**
  - **DiscoveryNetworksDe**
  - **DiscoveryPlus**
@@ -363,7 +363,6 @@
  - **DiscoveryPlusItaly**
  - **DiscoveryPlusItalyShow**
  - **Disney**
- - **DIYNetwork**
  - **dlf**
  - **dlf:corpus**: DLF Multi-feed Archives
  - **dlive:stream**
@@ -507,6 +506,7 @@
  - **gem.cbc.ca:playlist**
  - **Genius**
  - **GeniusLyrics**
+ - **Germanupa**: germanupa.de
  - **GetCourseRu**: [*getcourseru*](## "netrc machine")
  - **GetCourseRuPlayer**
  - **Gettr**
@@ -516,7 +516,6 @@
  - **GlattvisionTVLive**: [*glattvisiontv*](## "netrc machine")
  - **GlattvisionTVRecordings**: [*glattvisiontv*](## "netrc machine")
  - **Glide**: Glide mobile video messages (glide.me)
- - **GlobalCyclingNetworkPlus**
  - **GlobalPlayerAudio**
  - **GlobalPlayerAudioEpisode**
  - **GlobalPlayerLive**
@@ -583,6 +582,7 @@
  - **HungamaAlbumPlaylist**
  - **HungamaSong**
  - **huya:live**: huya.com
+ - **huya:video**: 虎牙视频
  - **Hypem**
  - **Hytale**
  - **Icareus**
@@ -658,10 +658,12 @@
  - **Ketnet**
  - **khanacademy**
  - **khanacademy:unit**
- - **Kick**
+ - **kick:clips**
+ - **kick:live**
+ - **kick:vod**
  - **Kicker**
  - **KickStarter**
- - **KickVOD**
+ - **Kika**: KiKA.de
  - **kinja:embed**
  - **KinoPoisk**
  - **Kommunetv**
@@ -693,6 +695,7 @@
  - **Lcp**
  - **LcpPlay**
  - **Le**: 乐视网
+ - **LearningOnScreen**
  - **Lecture2Go**: (**Currently broken**)
  - **Lecturio**: [*lecturio*](## "netrc machine")
  - **LecturioCourse**: [*lecturio*](## "netrc machine")
@@ -723,7 +726,6 @@
  - **livestream:original**
  - **Livestreamfails**
  - **Lnk**
- - **LnkGo**
  - **loc**: Library of Congress
  - **loom**
  - **loom:folder**
@@ -757,7 +759,7 @@
  - **Masters**
  - **MatchTV**
  - **MBN**: mbn.co.kr (매일방송)
- - **MDR**: MDR.DE and KiKA
+ - **MDR**: MDR.DE
  - **MedalTV**
  - **media.ccc.de**
  - **media.ccc.de:lists**
@@ -812,6 +814,7 @@
  - **MNetTVLive**: [*mnettv*](## "netrc machine")
  - **MNetTVRecordings**: [*mnettv*](## "netrc machine")
  - **MochaVideo**
+ - **Mojevideo**: mojevideo.sk
  - **Mojvideo**
  - **Monstercat**
  - **MonsterSirenHypergryphMusic**
@@ -820,8 +823,6 @@
  - **MotherlessGroup**
  - **MotherlessUploader**
  - **Motorsport**: motorsport.com (**Currently broken**)
- - **MotorTrend**
- - **MotorTrendOnDemand**
  - **MovieFap**
  - **Moviepilot**
  - **MoviewPlay**
@@ -1145,7 +1146,6 @@
  - **QuantumTV**: [*quantumtv*](## "netrc machine")
  - **QuantumTVLive**: [*quantumtv*](## "netrc machine")
  - **QuantumTVRecordings**: [*quantumtv*](## "netrc machine")
- - **Qub**
  - **R7**: (**Currently broken**)
  - **R7Article**: (**Currently broken**)
  - **Radiko**
@@ -1289,12 +1289,14 @@
  - **Screencast**
  - **Screencastify**
  - **ScreencastOMatic**
+ - **ScreenRec**
  - **ScrippsNetworks**
  - **scrippsnetworks:watch**
  - **Scrolller**
  - **SCTE**: [*scte*](## "netrc machine") (**Currently broken**)
  - **SCTECourse**: [*scte*](## "netrc machine") (**Currently broken**)
  - **sejm**
+ - **Sen**
  - **SenalColombiaLive**: (**Currently broken**)
  - **SenateGov**
  - **SenateISVP**
@@ -1331,6 +1333,7 @@
  - **SlidesLive**
  - **Slutload**
  - **Smotrim**
+ - **SnapchatSpotlight**
  - **Snotr**
  - **Sohu**
  - **SohuV**
@@ -1522,9 +1525,9 @@
  - **tv5unis**
  - **tv5unis:video**
  - **tv8.it**
- - **TVA**
  - **TVANouvelles**
  - **TVANouvellesArticle**
+ - **tvaplus**: TVA+
  - **TVC**
  - **TVCArticle**
  - **TVer**
@@ -1612,12 +1615,14 @@
  - **videomore:season**
  - **videomore:video**
  - **VideoPress**
+ - **Vidflex**
  - **Vidio**: [*vidio*](## "netrc machine")
  - **VidioLive**: [*vidio*](## "netrc machine")
  - **VidioPremier**: [*vidio*](## "netrc machine")
  - **VidLii**
  - **Vidly**
  - **vids.io**
+ - **Vidyard**
  - **viewlift**
  - **viewlift:embed**
  - **Viidea**
@@ -1665,6 +1670,8 @@
  - **VRT**: VRT NWS, Flanders News, Flandern Info and Sporza
  - **VrtNU**: [*vrtnu*](## "netrc machine") VRT MAX
  - **VTM**: (**Currently broken**)
+ - **VTV**
+ - **VTVGo**
  - **VTXTV**: [*vtxtv*](## "netrc machine")
  - **VTXTVLive**: [*vtxtv*](## "netrc machine")
  - **VTXTVRecordings**: [*vtxtv*](## "netrc machine")
@@ -1737,7 +1744,7 @@
  - **XiaoHongShu**: 小红书
  - **ximalaya**: 喜马拉雅FM
  - **ximalaya:album**: 喜马拉雅FM 专辑
- - **xinpianchang**: xinpianchang.com (**Currently broken**)
+ - **Xinpianchang**: 新片场
  - **XMinus**: (**Currently broken**)
  - **XNXX**
  - **Xstream**
