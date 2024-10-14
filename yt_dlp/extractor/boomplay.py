@@ -8,11 +8,10 @@ from .common import InfoExtractor, SearchInfoExtractor
 from ..aes import aes_cbc_decrypt_bytes, aes_cbc_encrypt_bytes, unpad_pkcs7
 from ..utils import (
     ExtractorError,
+    classproperty,
     clean_html,
     extract_attributes,
-    get_element_by_attribute,
-    get_element_by_class,
-    get_elements_by_attribute,
+    get_elements_text_and_html_by_attribute,
     int_or_none,
     join_nonempty,
     merge_dicts,
@@ -30,12 +29,40 @@ from ..utils.traversal import traverse_obj
 
 
 class BoomPlayBaseIE(InfoExtractor):
-    # Calculated from const values, see lhx.AESUtils.encrypt, see public.js
+    # Calculated from const values, see lhx.AESUtils.encrypt in public.js
     # Note that the real key/iv differs from `lhx.AESUtils.key`/`lhx.AESUtils.iv`
     _KEY = b'boomplayVr3xopAM'
     _IV = b'boomplay8xIsKTn9'
     _BASE = 'https://www.boomplay.com'
     _MEDIA_TYPES = ('songs', 'video', 'episode', 'podcasts', 'playlists', 'artists', 'albums')
+    _GEO_COUNTRIES = ['NG']
+
+    @staticmethod
+    def __yield_elements_text_and_html_by_class_and_tag(class_, tag, html):
+        """
+        Yields content of all element matching `tag .class_` in html
+        class_ must be re escaped
+        """
+        # get_elements_text_and_html_by_attribute returns a generator
+        return get_elements_text_and_html_by_attribute(
+            'class', rf'''[^'"]*(?<=['"\s]){class_}(?=['"\s])[^'"]*''', html,
+            tag=tag, escape_value=False)
+
+    @classmethod
+    def __yield_elements_by_class_and_tag(cls, *args, **kwargs):
+        return (content for content, _ in cls.__yield_elements_text_and_html_by_class_and_tag(*args, **kwargs))
+
+    @classmethod
+    def __yield_elements_html_by_class_and_tag(cls, *args, **kwargs):
+        return (whole for _, whole in cls.__yield_elements_text_and_html_by_class_and_tag(*args, **kwargs))
+
+    @classmethod
+    def _get_elements_by_class_and_tag(cls, class_, tag, html):
+        return list(cls.__yield_elements_by_class_and_tag(class_, tag, html))
+
+    @classmethod
+    def _get_element_by_class_and_tag(cls, class_, tag, html):
+        return next(cls.__yield_elements_by_class_and_tag(class_, tag, html), None)
 
     @classmethod
     def _urljoin(cls, path):
@@ -55,10 +82,15 @@ class BoomPlayBaseIE(InfoExtractor):
             }), headers={
                 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
             })
-        if not (source := resp.get('source')) and resp.get('code'):
-            raise ExtractorError(resp.get('desc') or 'Please solve the captcha')
-        return unpad_pkcs7(
-            aes_cbc_decrypt_bytes(base64.b64decode(source), self._KEY, self._IV)).decode()
+        if not (source := resp.get('source')) and (code := resp.get('code')):
+            if 'unavailable in your country' in (desc := resp.get('desc')) or '':
+                # since NG must have failed ...
+                self.raise_geo_restricted(countries=['GH', 'KE', 'TZ', 'CM', 'CI'])
+            else:
+                raise ExtractorError(desc or f'Failed to get play url, code: {code}')
+        return unpad_pkcs7(aes_cbc_decrypt_bytes(
+            base64.b64decode(source),
+            self._KEY, self._IV)).decode()
 
     def _extract_formats(self, _id, item_type='MUSIC', **kwargs):
         if url := url_or_none(self._get_playurl(_id, item_type)):
@@ -75,38 +107,35 @@ class BoomPlayBaseIE(InfoExtractor):
         else:
             self.raise_no_formats('No formats found')
 
-    def _extract_page_metadata(self, webpage, _id):
-        metadata_div = get_element_by_attribute(
-            'class', r'[^\'"]*(?<=[\'"\s])summary(?=[\'"\s])[^\'"]*', webpage,
-            tag='div', escape_value=False) or ''
-        metadata_entries = re.findall(r'(?s)<strong>(?P<entry>.*?)</strong>', metadata_div) or []
-        description = get_element_by_attribute(
-            'class', r'[^\'"]*(?<=[\'"\s])description_content(?=[\'"\s])[^\'"]*', webpage,
-            tag='span', escape_value=False) or 'Listen and download music for free on Boomplay!'
+    def _extract_page_metadata(self, webpage, _id, playlist=False):
+        metadata_div = self._get_element_by_class_and_tag('summary', 'div', webpage) or ''
+        metadata_entries = re.findall(r'(?si)<strong>(?P<entry>.*?)</strong>', metadata_div) or []
+        description = (
+            self._get_element_by_class_and_tag('description_content', 'span', webpage)
+            or 'Listen and download music for free on Boomplay!')
         description = clean_html(description.strip())
         if description == 'Listen and download music for free on Boomplay!':
             description = None
 
-        details_section = get_element_by_attribute(
-            'class', r'[^\'"]*(?<=[\'"\s])songDetailInfo(?=[\'"\s])[^\'"]*', webpage,
-            tag='section', escape_value=False) or ''
-        metadata_entries.extend(re.findall(r'(?s)<li>(?P<entry>.*?)</li>', details_section) or [])
+        details_section = self._get_element_by_class_and_tag('songDetailInfo', 'section', webpage) or ''
+        metadata_entries.extend(re.findall(r'(?si)<li>(?P<entry>.*?)</li>', details_section) or [])
         page_metadata = {
             'id': _id,
-            'title': self._html_search_regex(r'<h1>([^<]+)</h1>', metadata_div, 'title', default=None),
+            'title': self._html_search_regex(r'<h1[^>]*>([^<]+)</h1>', webpage, 'title', default=None),
             'thumbnail': self._html_search_meta(['og:image', 'twitter:image'],
                                                 webpage, 'thumbnail', default=''),
-            'like_count': parse_count(get_element_by_class('btn_favorite', metadata_div)),
-            'repost_count': parse_count(get_element_by_class('btn_share', metadata_div)),
-            'comment_count': parse_count(get_element_by_class('btn_comment', metadata_div)),
-            'duration': parse_duration(get_element_by_class('btn_duration', metadata_div)),
-            'upload_date': unified_strdate(strip_or_none(get_element_by_class('btn_pubDate', metadata_div))),
+            'like_count': parse_count(self._get_element_by_class_and_tag('btn_favorite', 'button', metadata_div)),
+            'repost_count': parse_count(self._get_element_by_class_and_tag('btn_share', 'button', metadata_div)),
+            'comment_count': parse_count(self._get_element_by_class_and_tag('btn_comment', 'button', metadata_div)),
+            'duration': parse_duration(self._get_element_by_class_and_tag('btn_duration', 'button', metadata_div)),
+            'upload_date': unified_strdate(strip_or_none(
+                self._get_element_by_class_and_tag('btn_pubDate', 'button', metadata_div))),
             'description': description,
         }
         for metadata_entry in metadata_entries:
             if ':' not in metadata_entry:
                 continue
-            k, v = clean_html(metadata_entry).split(':', 2)
+            k, v = clean_html(metadata_entry).split(':', 1)
             v = v.strip()
             if 'artist' in k.lower():
                 page_metadata['artists'] = [v]
@@ -118,8 +147,8 @@ class BoomPlayBaseIE(InfoExtractor):
                 page_metadata['release_year'] = int_or_none(v)
         return page_metadata
 
-    def _extract_suitable_links(self, webpage, media_types):
-        if not media_types:
+    def _extract_suitable_links(self, webpage, media_types=None):
+        if media_types is None:
             media_types = self._MEDIA_TYPES
         media_types = list(variadic(media_types))
 
@@ -132,35 +161,21 @@ class BoomPlayBaseIE(InfoExtractor):
                 (?:\s(?:[^>"']|"[^"]*"|'[^']*')*)?
                     (?<=\s)href\s*=\s*(?P<_q>['"])
                         (?:
-                            (?!javascript:)(?P<link>/(?:{media_types})/\d+?)
+                            (?!javascript:)(?P<link>/(?:{media_types})/\d+/?[\-a-zA-Z=?&#:;@]*)
                         )
                     (?P=_q)
                 (?:\s(?:[^>"']|"[^"]*"|'[^']*')*)?
-            ''', webpage), (..., 'link', {self._urljoin}, {self.url_result})))
+            >''', webpage), (..., 'link', {self._urljoin}, {self.url_result})))
 
     def _extract_playlist_entries(self, webpage, media_types, warn=True):
         song_list = strip_or_none(
-            get_element_by_attribute(
-                'class', r'[^\'"]*(?<=[\'"\s])morePart_musics(?=[\'"\s])[^\'"]*', webpage,
-                tag='ol', escape_value=False)
-            or get_element_by_attribute(
-                'class', r'[^\'"]*(?<=[\'"\s])morePart(?=[\'"\s])[^\'"]*', webpage,
-                tag='ol', escape_value=False)
+            self._get_element_by_class_and_tag('morePart_musics', 'ol', webpage)
+            or self._get_element_by_class_and_tag('morePart', 'ol', webpage)
             or '')
 
-        entries = traverse_obj(re.finditer(
-            r'''(?x)
-            <a
-                (?:\s(?:[^>"']|"[^"]*"|'[^']*')*)?
-                    (?<=\s)class\s*=\s*(?P<_q>['"])
-                        (?:
-                            [^\'"]*(?<=[\'"\s])songName(?=[\'"\s])[^\'"]*
-                        )
-                    (?P=_q)
-                (?:\s(?:[^>"']|"[^"]*"|'[^']*')*)?
-            >
-            ''', song_list),
-            (..., 0, {extract_attributes}, 'href', {self._urljoin}, {self.url_result}))
+        entries = traverse_obj(self.__yield_elements_html_by_class_and_tag(
+            'songName', 'a', song_list),
+            (..., {extract_attributes}, 'href', {self._urljoin}, {self.url_result}))
         if not entries:
             if warn:
                 self.report_warning('Failed to extract playlist entries, finding suitable links instead!')
@@ -195,7 +210,8 @@ class BoomPlayMusicIE(BoomPlayBaseIE):
         song_id = self._match_id(url)
         webpage = self._download_webpage(url, song_id)
         ld_json_meta = next(self._yield_json_ld(webpage, song_id))
-
+        # TODO: extract comments(and lyrics? they don't have timestamps)
+        # example: https://www.boomplay.com/songs/96352673?from=home
         return merge_dicts(
             self._extract_page_metadata(webpage, song_id),
             traverse_obj(ld_json_meta, {
@@ -286,14 +302,17 @@ class BoomPlayPodcastIE(BoomPlayBaseIE):
     def _real_extract(self, url):
         _id = self._match_id(url)
         webpage = self._download_webpage(url, _id)
-        song_list = get_elements_by_attribute(
-            'class', r'[^\'"]*(?<=[\'"\s])morePart_musics(?=[\'"\s])[^\'"]*', webpage,
-            tag='ol', escape_value=False)[0]
+        song_list = self._get_element_by_class_and_tag('morePart_musics', 'ol', webpage)
         song_list = traverse_obj(re.finditer(
             r'''(?x)
-            <(?P<tag>li)
-            (?:\s(?:[^>"']|"[^"]*"|'[^']*')*)?
-            \sdata-id\s*=\s*(?P<_q>['"]?)(?:(?P<id>\d+))(?P=_q)''',
+            <li
+                (?:\s(?:[^>"']|"[^"]*"|'[^']*')*)?
+                    \sdata-id\s*=\s*
+                        (?P<_q>['"]?)
+                            (?P<id>\d+)
+                        (?P=_q)
+                (?:\s(?:[^>"']|"[^"]*"|'[^']*')*)?
+            >''',
             song_list),
             (..., 'id', {
                 lambda x: self.url_result(
@@ -350,7 +369,47 @@ class BoomPlayPlaylistIE(BoomPlayBaseIE):
 class BoomPlayGenericPlaylistIE(BoomPlayBaseIE):
     _VALID_URL = r'https?://(?:www\.)?boomplay\.com/.+'
     _TESTS = [{
-        'url': 'https://www.boomplay.com/search/default/Rise%20of%20the%20Fallen%20Heroes',
+        'url': 'https://www.boomplay.com/new-songs',
+        'playlist_mincount': 20,
+        'info_dict': {
+            'id': 'new-songs',
+            'title': 'New Songs',
+            'thumbnail': 'http://www.boomplay.com/pc/img/og_default_v3.jpg',
+        },
+    }, {
+        'url': 'https://www.boomplay.com/trending-songs',
+        'playlist_mincount': 20,
+        'info_dict': {
+            'id': 'trending-songs',
+            'title': 'Trending Songs',
+            'thumbnail': 'http://www.boomplay.com/pc/img/og_default_v3.jpg',
+        },
+    }]
+
+    @classmethod
+    def suitable(cls, url):
+        if super().suitable(url):
+            return not any(ie.suitable(url) for ie in (
+                BoomPlayEpisodeIE,
+                BoomPlayMusicIE,
+                BoomPlayPlaylistIE,
+                BoomPlayPodcastIE,
+                BoomPlaySearchPageIE,
+                BoomPlayVideoIE,
+            ))
+        return False
+
+    def _real_extract(self, url):
+        _id = self._generic_id(url)
+        webpage = self._download_webpage(url, _id)
+        return self.playlist_result(
+            self._extract_playlist_entries(webpage, self._MEDIA_TYPES),
+            **self._extract_page_metadata(webpage, _id))
+
+
+class BoomPlaySearchPageIE(BoomPlayBaseIE):
+    _TESTS = [{
+        'url': 'https://www.boomplay.com/search/default/%20Rise%20of%20the%20Falletesn%20Heroes%20fatbunny',
         'md5': 'c5fb4f23e6aae98064230ef3c39c2178',
         'info_dict': {
             'id': '165481965',
@@ -381,29 +440,21 @@ class BoomPlayGenericPlaylistIE(BoomPlayBaseIE):
             'upload_date': '20241010',
             'duration': 177.0,
         },
-        'expected_warnings': ['Failed to extract playlist entries, finding suitable links instead!'],
         'params': {'playlist_items': '1'},
     }]
 
-    @classmethod
-    def suitable(cls, url):
-        if not any(ie.suitable(url) for ie in (
-            BoomPlayEpisodeIE,
-            BoomPlayMusicIE,
-            BoomPlayPlaylistIE,
-            BoomPlayPodcastIE,
-            BoomPlayVideoIE,
-        )):
-            return super().suitable(url)
-        return False
+    @classproperty
+    def _VALID_URL(cls):
+        return rf'https?://(?:www\.)?boomplay\.com/search/(?P<media_type>{"|".join(cls._MEDIA_TYPES)})/(?P<query>[^?&#/]+)'
 
     def _real_extract(self, url):
-        _id = self._generic_id(url)
-        webpage = self._download_webpage(url, _id)
-        # TODO: pass media types based on search types
+        media_type, query = self._match_valid_url(url).group('media_type', 'query')
+        if media_type == 'default':
+            media_type = 'songs'
+        webpage = self._download_webpage(url, query)
         return self.playlist_result(
-            self._extract_playlist_entries(webpage, self._MEDIA_TYPES),
-            **self._extract_page_metadata(webpage, _id))
+            self._extract_playlist_entries(webpage, media_type, warn=media_type == 'songs'),
+            **self._extract_page_metadata(webpage, query))
 
 
 class BoomPlaySearchIE(SearchInfoExtractor):
@@ -416,4 +467,5 @@ class BoomPlaySearchIE(SearchInfoExtractor):
 
     def _search_results(self, query):
         yield self.url_result(
-            f'https://www.boomplay.com/search/default/{urllib.parse.quote(query)}')
+            f'https://www.boomplay.com/search/default/{urllib.parse.quote(query)}',
+            BoomPlaySearchPageIE)
