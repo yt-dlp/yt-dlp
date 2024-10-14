@@ -5,6 +5,7 @@ import importlib.machinery
 import importlib.util
 import inspect
 import itertools
+import os
 import pkgutil
 import sys
 import traceback
@@ -137,6 +138,8 @@ def load_module(module, module_name, suffix):
 
 def load_plugins(name, suffix):
     classes = {}
+    if os.environ.get('YTDLP_NO_PLUGINS'):
+        return classes
 
     for finder, module_name, _ in iter_modules(name):
         if any(x.startswith('_') for x in module_name.split('.')):
