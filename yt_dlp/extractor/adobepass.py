@@ -10,7 +10,6 @@ from ..networking.exceptions import HTTPError
 from ..utils import (
     NO_DEFAULT,
     ExtractorError,
-    filter_dict,
     unescapeHTML,
     unified_timestamp,
     urlencode_postdata,
@@ -1456,11 +1455,11 @@ class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should en
                             'no_iframe': 'false',
                             'domain_name': 'adobe.com',
                             'redirect_url': url,
-                        }, headers=filter_dict({
+                        }, headers={
                             # yt-dlp's default user-agent is usually too old for Comcast_SSO
                             # See: https://github.com/yt-dlp/yt-dlp/issues/10848
-                            'User-Agent': self._MODERN_USER_AGENT if mso_id == 'Comcast_SSO' else None,
-                        }))
+                            'User-Agent': self._MODERN_USER_AGENT,
+                        } if mso_id == 'Comcast_SSO' else None)
                 elif not self._cookies_passed:
                     raise_mvpd_required()
 
