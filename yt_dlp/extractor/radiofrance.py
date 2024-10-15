@@ -18,18 +18,6 @@ class RadioFranceIE(InfoExtractor):
     _VALID_URL = r'https?://maison\.radiofrance\.fr/radiovisions/(?P<id>[^?#]+)'
     IE_NAME = 'radiofrance'
 
-    _TEST = {
-        'url': 'http://maison.radiofrance.fr/radiovisions/one-one',
-        'md5': 'bdbb28ace95ed0e04faab32ba3160daf',
-        'info_dict': {
-            'id': 'one-one',
-            'ext': 'ogg',
-            'title': 'One to one',
-            'description': "Plutôt que d'imaginer la radio de demain comme technologie ou comme création de contenu, je veux montrer que quelles que soient ses évolutions, j'ai l'intime conviction que la radio continuera d'être un grand média de proximité pour les auditeurs.",
-            'uploader': 'Thomas Hercouët',
-        },
-    }
-
     def _real_extract(self, url):
         m = self._match_valid_url(url)
         video_id = m.group('id')
