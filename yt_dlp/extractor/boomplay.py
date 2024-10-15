@@ -388,14 +388,16 @@ class BoomPlayGenericPlaylistIE(BoomPlayBaseIE):
 
     @classmethod
     def suitable(cls, url):
-        return False if any(ie.suitable(url) for ie in (
-            BoomPlayEpisodeIE,
-            BoomPlayMusicIE,
-            BoomPlayPlaylistIE,
-            BoomPlayPodcastIE,
-            BoomPlaySearchPageIE,
-            BoomPlayVideoIE,
-        )) else super().suitable(url)
+        if super().suitable(url):
+            return not any(ie.suitable(url) for ie in (
+                BoomPlayEpisodeIE,
+                BoomPlayMusicIE,
+                BoomPlayPlaylistIE,
+                BoomPlayPodcastIE,
+                BoomPlaySearchPageIE,
+                BoomPlayVideoIE,
+            ))
+        return False
 
     def _real_extract(self, url):
         _id = self._generic_id(url)
