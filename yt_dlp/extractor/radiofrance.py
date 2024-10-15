@@ -392,7 +392,7 @@ class RadioFranceProfileIE(RadioFrancePlaylistBaseIE):
     _VALID_URL = rf'{RadioFranceBaseIE._VALID_URL_BASE}/personnes/(?P<id>[\w-]+)'
 
     _TESTS = [{
-        'url': 'https://www.radiofrance.fr/personnes/thomas-pesquet?p=3',
+        'url': 'https://www.radiofrance.fr/personnes/thomas-pesquet',
         'info_dict': {
             'id': '86c62790-e481-11e2-9f7b-782bcb6744eb',
             'display_id': 'thomas-pesquet',
@@ -422,29 +422,23 @@ class RadioFranceProfileIE(RadioFrancePlaylistBaseIE):
         webpage = self._download_webpage(url, profile_id, note=f'Downloading {profile_id} page {cursor}')
 
         resp = dict()
-
-        # On profile pages, the data is stored in a javascript array in the final <script>
-        # Each episode is stored as
-        # a[0] = { id: ... }; a[1] = [ id: ... ]; on page 2->
-        # If a page had a thumbnail, the a variable contains image data,
-        # and episode data is stored in b[0]...
         resp['items'] = []
-        podcastindex = 0
-        nextmatch = True
-        while nextmatch:
-            nextmatch = self._search_json(r'\w+\[' + str(podcastindex) + r'\]\s*=\s*', webpage, profile_id,
-                                          profile_id, transform_source=js_to_json, fatal=False, default=None)
-            podcastindex += 1
-            if nextmatch is not None:
-                resp['items'].append(nextmatch)
 
-        # There is more than one pagination key in the final <script>
-        # We should use pick the pagination object which is within a documents object
+        # get episode data from page
         pagedata = self._search_json(r'documents\s*:\s*', webpage, profile_id, profile_id,
                                      transform_source=js_to_json)
-        lastPage = traverse_obj(pagedata, ('pagination', 'lastPage'))
+
+        # get thepage data
+        pagekey = pagedata['pagination']
+        hasMorePages = False
+        lastPage = int(self._search_regex(pagekey+'\.lastPage=(\d+);', webpage, profile_id, '0'))
         hasMorePages = cursor < lastPage
         resp['next'] = cursor + 1 if hasMorePages else None
+
+        # get episode data, note, not all will be A/V, so filter for 'expression'
+        for item in pagedata['items']:
+            if item['model']=='Expression':
+                resp['items'].append(item)
 
         resp['metadata'] = self._search_json(r'content:\s*', webpage, profile_id, profile_id,
                                              transform_source=js_to_json)
