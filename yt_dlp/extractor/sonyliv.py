@@ -73,7 +73,7 @@ class SonyLIVIE(InfoExtractor):
             if c == 'x':
                 t[i] = str(n)
             elif c == 'y':
-                t[i] = '{:x}'.format(3 & n | 8)
+                t[i] = f'{3 & n | 8:x}'
         return ''.join(t) + '-' + str(int(time.time() * 1000))
 
     def _perform_login(self, username, password):
@@ -121,7 +121,7 @@ class SonyLIVIE(InfoExtractor):
     def _call_api(self, version, path, video_id):
         try:
             return self._download_json(
-                'https://apiv2.sonyliv.com/AGL/%s/A/ENG/WEB/%s' % (version, path),
+                f'https://apiv2.sonyliv.com/AGL/{version}/A/ENG/WEB/{path}',
                 video_id, headers=self._HEADERS)['resultObj']
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError) and e.cause.status == 406 and self._parse_json(
@@ -146,7 +146,7 @@ class SonyLIVIE(InfoExtractor):
             self.report_drm(video_id)
         dash_url = content['videoURL']
         headers = {
-            'x-playback-session-id': '%s-%d' % (uuid.uuid4().hex, time.time() * 1000)
+            'x-playback-session-id': '%s-%d' % (uuid.uuid4().hex, time.time() * 1000),
         }
         formats = self._extract_mpd_formats(
             dash_url, video_id, mpd_id='dash', headers=headers, fatal=False)

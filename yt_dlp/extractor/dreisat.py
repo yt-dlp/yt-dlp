@@ -25,11 +25,11 @@ class DreiSatIE(ZDFIE):  # XXX: Do not subclass from concrete IE
             'title': 'Waidmannsheil',
             'description': 'md5:cce00ca1d70e21425e72c86a98a56817',
             'timestamp': 1410623100,
-            'upload_date': '20140913'
+            'upload_date': '20140913',
         },
         'params': {
             'skip_download': True,
-        }
+        },
     }, {
         # Same as https://www.zdf.de/filme/filme-sonstige/der-hauptmann-112.html
         'url': 'https://www.3sat.de/film/spielfilm/der-hauptmann-100.html',

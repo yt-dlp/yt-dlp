@@ -20,8 +20,8 @@ class KickerIE(InfoExtractor):
             'age_limit': 0,
             'thumbnail': r're:https://s\d+\.dmcdn\.net/v/T-x741YeYAx8aSZ0Z/x1080',
             'tags': ['published', 'category.InternationalSoccer'],
-            'upload_date': '20220608'
-        }
+            'upload_date': '20220608',
+        },
     }, {
         'url': 'https://www.kicker.de/ex-unioner-in-der-bezirksliga-felix-kroos-vereinschallenge-in-pankow-902825/video',
         'info_dict': {
@@ -39,7 +39,7 @@ class KickerIE(InfoExtractor):
             'uploader': 'kicker.de',
             'description': 'md5:0c2060c899a91c8bf40f578f78c5846f',
             'like_count': int,
-        }
+        },
     }]
 
     def _real_extract(self, url):

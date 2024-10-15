@@ -13,7 +13,7 @@ from ..utils import (
 
 
 class CineverseBaseIE(InfoExtractor):
-    _VALID_URL_BASE = r'https?://www\.(?P<host>%s)' % '|'.join(map(re.escape, (
+    _VALID_URL_BASE = r'https?://www\.(?P<host>{})'.format('|'.join(map(re.escape, (
         'cineverse.com',
         'asiancrush.com',
         'dovechannel.com',
@@ -21,7 +21,7 @@ class CineverseBaseIE(InfoExtractor):
         'midnightpulp.com',
         'fandor.com',
         'retrocrush.tv',
-    )))
+    ))))
 
 
 class CineverseIE(CineverseBaseIE):
@@ -38,7 +38,7 @@ class CineverseIE(CineverseBaseIE):
             'duration': 5811.597,
             'description': 'md5:892fd62a05611d394141e8394ace0bc6',
             'age_limit': 13,
-        }
+        },
     }, {
         'url': 'https://www.retrocrush.tv/watch/1000000023016/Archenemy! Crystal Bowie',
         'skip': 'geo-blocked',
@@ -55,7 +55,7 @@ class CineverseIE(CineverseBaseIE):
             'duration': 1485.067,
             'description': 'Cobra meets a beautiful bounty hunter by the name of Jane Royal.',
             'series': 'Space Adventure COBRA (Original Japanese)',
-        }
+        },
     }]
 
     def _real_extract(self, url):
@@ -104,7 +104,7 @@ class CineverseDetailsIE(CineverseBaseIE):
         'info_dict': {
             'title': 'Space Adventure COBRA (Original Japanese)',
             'id': '1000000023012',
-        }
+        },
     }, {
         'url': 'https://www.asiancrush.com/details/NNVG4938/Hansel-and-Gretel',
         'info_dict': {

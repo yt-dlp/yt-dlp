@@ -251,7 +251,7 @@ class IsmFD(FragmentFD):
         skip_unavailable_fragments = self.params.get('skip_unavailable_fragments', True)
 
         frag_index = 0
-        for i, segment in enumerate(segments):
+        for segment in segments:
             frag_index += 1
             if frag_index <= ctx['fragment_index']:
                 continue
