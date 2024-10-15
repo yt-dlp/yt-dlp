@@ -259,7 +259,7 @@ class RadioFrancePlaylistBaseIE(RadioFranceBaseIE):
         raise NotImplementedError('This method must be implemented by subclasses')
 
     def _generate_playlist_entries(self, station, content_id, content_response):
-        for page_num in itertools.count(2):
+        while True:
             for entry in content_response['items']:
                 yield self.url_result(
                     f'https://www.radiofrance.fr{entry["link"]}', url_transparent=True, **traverse_obj(entry, {
@@ -269,10 +269,10 @@ class RadioFrancePlaylistBaseIE(RadioFranceBaseIE):
                         'thumbnail': ('visual', 'src'),
                     }))
 
-            if not content_response['next']:
+            if content_response['next']:
+                content_response = self._call_api(station, content_id, content_response['next'])
+            else:
                 break
-
-            content_response = self._call_api(station, content_id, content_response['next'])
 
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
@@ -358,7 +358,7 @@ class RadioFrancePodcastIE(RadioFrancePlaylistBaseIE):
         url = 'https://www.radiofrance.fr/' + station + '/podcasts/' + podcast_id + '?p=' + str(cursor)
         webpage = self._download_webpage(url, podcast_id, note=f'Downloading {podcast_id} page {cursor}')
 
-        resp = dict()
+        resp = {}
 
         # _search_json cannot parse the data as it contains javascript
         # Therefore, parse the episodes objects array separately
@@ -409,7 +409,7 @@ class RadioFranceProfileIE(RadioFrancePlaylistBaseIE):
         url = 'https://www.radiofrance.fr/personnes/' + profile_id + '?p=' + str(cursor)
         webpage = self._download_webpage(url, profile_id, note=f'Downloading {profile_id} page {cursor}')
 
-        resp = dict()
+        resp = {}
         resp['items'] = []
 
         # get episode data from page
@@ -432,7 +432,7 @@ class RadioFranceProfileIE(RadioFrancePlaylistBaseIE):
                                              transform_source=js_to_json)
         # If the image data is stored separately rather than in the main content area
         if resp['metadata']['visual'] and isinstance(resp['metadata']['visual'], str):
-            imagedata = dict()
+            imagedata = {}
             imagedata['src'] = self._og_search_thumbnail(webpage)
             resp['metadata']['visual'] = imagedata
 
