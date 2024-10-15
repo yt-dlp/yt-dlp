@@ -1,4 +1,3 @@
-import itertools
 import re
 
 from .common import InfoExtractor
@@ -261,18 +260,40 @@ class RadioFrancePlaylistBaseIE(RadioFranceBaseIE):
     def _generate_playlist_entries(self, station, content_id, content_response):
         while True:
             for entry in content_response['items']:
-                yield self.url_result(
-                    f'https://www.radiofrance.fr{entry["link"]}', url_transparent=True, **traverse_obj(entry, {
-                        'title': 'title',
-                        'description': 'standFirst',
-                        'timestamp': ('publishedDate', {int_or_none}),
-                        'thumbnail': ('visual', 'src'),
-                    }))
+                if entry['link'] == '':
+                    yield entry
+                else:
+                    yield self.url_result(
+                        f'https://www.radiofrance.fr{entry["link"]}', url_transparent=True, **traverse_obj(entry, {
+                            'title': 'title',
+                            'description': 'standFirst',
+                            'timestamp': ('publishedDate', {int_or_none}),
+                            'thumbnail': ('visual', 'src'),
+                        }))
 
             if content_response['next']:
                 content_response = self._call_api(station, content_id, content_response['next'])
             else:
                 break
+
+    def _extract_embedded_episodes(self, item, webpage, content_id):
+        """Certain episdoes data are embedded directly in the page, use these if the link is missing"""
+        links = item['playerInfo']['media']['sources']
+        item['formats'] = []
+        for linkkey in links:
+            url = self._search_regex(linkkey+r'\.url="([^"]+)";', webpage, content_id)
+            dur = int(self._search_regex(linkkey+r'\.duration=(\d+);', webpage, content_id))
+            preset = self._search_json(linkkey+r'\.preset=', webpage, content_id, content_id, contains_pattern=r'\{.+\}', transform_source=js_to_json)
+            item['formats'].append({
+                'format_id': preset['id'],
+                'url': url,
+                'vcodec': 'none',
+                'acodec': preset['encoding'],
+                'quality': preset['bitrate'],
+                'duration': dur
+            })
+            item['duration'] = dur
+        return item
 
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
@@ -344,6 +365,16 @@ class RadioFrancePodcastIE(RadioFrancePlaylistBaseIE):
         },
         'playlist_mincount': 321,
     }, {
+        'url': 'http://www.radiofrance.fr/franceculture/podcasts/serie-les-aventures-de-tintin-les-cigares-du-pharaon',
+        'info_dict': {
+            'id': '01b096c6-e7f8-49c4-8319-dd399221885b',
+            'display_id': 'serie-les-aventures-de-tintin-les-cigares-du-pharaon',
+            'title': 'Les Cigares du Pharaon\xa0: les Aventures de Tintin',
+            'description': 'md5:1c5b6d010b2aaeb0d90b2c233b5f7b15',
+            'thumbnail': r're:^https?://.*\.(?:jpg|png)',
+        },
+        'playlist_count': 5
+    }, {
         'url': 'https://www.radiofrance.fr/franceinter/podcasts/le-7-9',
         'only_matching': True,
     }, {
@@ -359,11 +390,18 @@ class RadioFrancePodcastIE(RadioFrancePlaylistBaseIE):
         webpage = self._download_webpage(url, podcast_id, note=f'Downloading {podcast_id} page {cursor}')
 
         resp = {}
+        resp['items'] = []
 
         # _search_json cannot parse the data as it contains javascript
         # Therefore, parse the episodes objects array separately
-        resp['items'] = self._search_json(r'a.items\s*=\s*', webpage, podcast_id, podcast_id,
+        itemlist = self._search_json(r'a.items\s*=\s*', webpage, podcast_id, podcast_id,
                                           contains_pattern=r'\[.+\]', transform_source=js_to_json)
+
+        for item in itemlist:
+            if item['model'] == 'Expression':
+                if item['link'] == '':
+                    item = self._extract_embedded_episodes(item, webpage, podcast_id)
+                resp['items'].append(item)
 
         # the pagination data is stored in a javascript object 'a'
         lastPage = int(re.search(r'a\.lastPage\s*=\s*(\d+);', webpage).group(1))
@@ -416,7 +454,7 @@ class RadioFranceProfileIE(RadioFrancePlaylistBaseIE):
         pagedata = self._search_json(r'documents\s*:\s*', webpage, profile_id, profile_id,
                                      transform_source=js_to_json)
 
-        # get thepage data
+        # get the page data
         pagekey = pagedata['pagination']
         hasMorePages = False
         lastPage = int(self._search_regex(pagekey+r'\.lastPage=(\d+);', webpage, profile_id, '0'))
@@ -425,7 +463,9 @@ class RadioFranceProfileIE(RadioFrancePlaylistBaseIE):
 
         # get episode data, note, not all will be A/V, so filter for 'expression'
         for item in pagedata['items']:
-            if item['model']=='Expression':
+            if item['model'] == 'Expression':
+                if item.link == '':
+                    item = self._extract_embedded_episodes(item, webpage, profile_id)
                 resp['items'].append(item)
 
         resp['metadata'] = self._search_json(r'content:\s*', webpage, profile_id, profile_id,
