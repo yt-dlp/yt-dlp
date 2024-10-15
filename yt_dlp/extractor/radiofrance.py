@@ -274,7 +274,7 @@ class RadioFrancePlaylistBaseIE(RadioFranceBaseIE):
         for page_num in itertools.count(2):
             for entry in content_response['items']:
                 yield self.url_result(
-                    f'https://www.radiofrance.fr/{entry["path"]}', url_transparent=True, **traverse_obj(entry, {
+                    f'https://www.radiofrance.fr{entry["link"]}', url_transparent=True, **traverse_obj(entry, {
                         'title': 'title',
                         'description': 'standFirst',
                         'timestamp': ('publishedDate', {int_or_none}),
@@ -323,7 +323,7 @@ class RadioFrancePodcastIE(RadioFrancePlaylistBaseIE):
             'id': 'eaf6ef81-a980-4f1c-a7d1-8a75ecd54b17',
             'display_id': 'le-billet-vert',
             'title': 'Le billet sciences',
-            'description': 'md5:eb1007b34b0c0a680daaa71525bbd4c1',
+            'description': 'md5:85d5ce8c488192e71904c551d595f4da',
             'thumbnail': r're:^https?://.*\.(?:jpg|png)',
         },
         'playlist_mincount': 11,
