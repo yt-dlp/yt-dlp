@@ -41,7 +41,10 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dynamic = ["version"]
-dependencies = [
+dependencies = []
+
+[project.optional-dependencies]
+default = [
     "brotli; implementation_name=='cpython'",
     "brotlicffi; implementation_name!='cpython'",
     "certifi",
@@ -51,9 +54,6 @@ dependencies = [
     "urllib3>=1.26.17,<3",
     "websockets>=13.0",
 ]
-
-[project.optional-dependencies]
-default = []
 curl-cffi = [
     "curl-cffi==0.5.10; os_name=='nt' and implementation_name=='cpython'",
     "curl-cffi>=0.5.10,!=0.6.*,<0.7.2; os_name!='nt' and implementation_name=='cpython'",
