@@ -34,6 +34,7 @@ from .dependencies import (
 from .minicurses import MultilinePrinter, QuietMultilinePrinter
 from .utils import (
     DownloadError,
+    YoutubeDLError,
     Popen,
     error_to_str,
     expand_path,
@@ -86,24 +87,31 @@ def _create_progress_bar(logger):
     return printer
 
 
+class CookieLoadError(YoutubeDLError):
+    pass
+
+
 def load_cookies(cookie_file, browser_specification, ydl):
-    cookie_jars = []
-    if browser_specification is not None:
-        browser_name, profile, keyring, container = _parse_browser_specification(*browser_specification)
-        cookie_jars.append(
-            extract_cookies_from_browser(browser_name, profile, YDLLogger(ydl), keyring=keyring, container=container))
+    try:
+        cookie_jars = []
+        if browser_specification is not None:
+            browser_name, profile, keyring, container = _parse_browser_specification(*browser_specification)
+            cookie_jars.append(
+                extract_cookies_from_browser(browser_name, profile, YDLLogger(ydl), keyring=keyring, container=container))
 
-    if cookie_file is not None:
-        is_filename = is_path_like(cookie_file)
-        if is_filename:
-            cookie_file = expand_path(cookie_file)
+        if cookie_file is not None:
+            is_filename = is_path_like(cookie_file)
+            if is_filename:
+                cookie_file = expand_path(cookie_file)
 
-        jar = YoutubeDLCookieJar(cookie_file)
-        if not is_filename or os.access(cookie_file, os.R_OK):
-            jar.load()
-        cookie_jars.append(jar)
+            jar = YoutubeDLCookieJar(cookie_file)
+            if not is_filename or os.access(cookie_file, os.R_OK):
+                jar.load()
+            cookie_jars.append(jar)
 
-    return _merge_cookie_jars(cookie_jars)
+        return _merge_cookie_jars(cookie_jars)
+    except Exception:
+        raise CookieLoadError('failed to load cookies')
 
 
 def extract_cookies_from_browser(browser_name, profile=None, logger=YDLLogger(), *, keyring=None, container=None):

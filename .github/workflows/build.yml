@@ -240,7 +240,7 @@ jobs:
     permissions:
       contents: read
       actions: write  # For cleaning up cache
-    runs-on: macos-12
+    runs-on: macos-13
 
     steps:
       - uses: actions/checkout@v4
@@ -346,7 +346,7 @@ jobs:
   macos_legacy:
     needs: process
     if: inputs.macos_legacy
-    runs-on: macos-12
+    runs-on: macos-13
 
     steps:
       - uses: actions/checkout@v4
