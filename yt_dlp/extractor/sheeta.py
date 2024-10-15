@@ -16,13 +16,13 @@ from ..utils import (
     get_domain,
     int_or_none,
     parse_qs,
-    traverse_obj,
     unified_timestamp,
+    update_url_query,
     url_or_none,
     urlencode_postdata,
     urljoin,
-    update_url_query,
 )
+from ..utils.traversal import traverse_obj
 
 
 class SheetaEmbedIE(InfoExtractor):
@@ -75,7 +75,7 @@ class SheetaEmbedIE(InfoExtractor):
             'release_timestamp': 1709959800,
             'release_date': '20240309',
         },
-        'params': {'skip_download': True}
+        'params': {'skip_download': True},
     }, {
         'url': 'https://canan8181.com/video/smxar9atjfNBn27bHhcTFLyg',
         'info_dict': {
@@ -98,7 +98,7 @@ class SheetaEmbedIE(InfoExtractor):
             'release_timestamp': 1659175200,
             'release_date': '20220730',
         },
-        'params': {'skip_download': True}
+        'params': {'skip_download': True},
     }, {
         'url': 'https://11audee.jp/audio/smx3ebEZFRnHeaGzUzgi5A98',
         'info_dict': {
@@ -119,7 +119,7 @@ class SheetaEmbedIE(InfoExtractor):
             'tags': ['RADIO'],
             'upload_date': '20240319',
         },
-        'params': {'skip_download': True}
+        'params': {'skip_download': True},
     }, {
         'url': 'https://hololive-fc.com/videos',
         'info_dict': {
@@ -198,7 +198,7 @@ class SheetaEmbedIE(InfoExtractor):
     def _extract_from_webpage(self, url, webpage):
         if 'GTM-KXT7G5G' in webpage or 'NicoGoogleTagManagerDataLayer' in webpage:
             yield self._extract_from_url(url)
-            raise self.StopExtraction()
+            raise self.StopExtraction
 
     def _call_api(self, path, item_id, *args, **kwargs):
         return self._download_json(f'{self._API_BASE_URL}/{path}', item_id, *args, **kwargs)
@@ -274,7 +274,7 @@ class SheetaEmbedIE(InfoExtractor):
 
     def _extract_player_page(self, url):
         self._DOMAIN, channel_id, content_code = re.match(
-            r'https?://(?P<domain>[\w.-]+)(/(?P<channel>[\w.-]+))?/(?:live|video|audio)/(?P<code>sm\w+)', url
+            r'https?://(?P<domain>[\w.-]+)(/(?P<channel>[\w.-]+))?/(?:live|video|audio)/(?P<code>sm\w+)', url,
         ).group('domain', 'channel', 'code')
         self._extract_base_info(channel_id)
 
@@ -390,7 +390,7 @@ class SheetaEmbedIE(InfoExtractor):
             res = self._call_api(query_path, item_id, **query_kwargs)
             return traverse_obj(res, dict_path)
         except ExtractorError as e:
-            if not isinstance(e.cause, HTTPError) or e.cause.status not in expected_code_msg.keys():
+            if not isinstance(e.cause, HTTPError) or e.cause.status not in expected_code_msg:
                 raise e
             self.raise_login_required(
                 expected_code_msg[e.cause.status], metadata_available=True,
@@ -621,7 +621,7 @@ class SheetaEmbedIE(InfoExtractor):
                 urljoin('https://account.nicovideo.jp/', post_url), None,
                 note='Performing MFA', errnote='Unable to complete MFA',
                 data=urlencode_postdata({
-                    'otp': self._get_tfa_info('6 digits code')
+                    'otp': self._get_tfa_info('6 digits code'),
                 }), headers={
                     'Content-Type': 'application/x-www-form-urlencoded',
                 })
@@ -785,7 +785,7 @@ class SheetaEmbedIE(InfoExtractor):
         """
 
         self._DOMAIN, channel_id = re.match(
-            r'https?://(?P<domain>[\w.-]+)(/(?P<channel>[\w.-]+))?/videos', url
+            r'https?://(?P<domain>[\w.-]+)(/(?P<channel>[\w.-]+))?/videos', url,
         ).group('domain', 'channel')
         self._extract_base_info(channel_id)
 
@@ -819,7 +819,7 @@ class SheetaEmbedIE(InfoExtractor):
         """
 
         self._DOMAIN, channel_id = re.match(
-            r'https?://(?P<domain>[\w.-]+)(/(?P<channel>[\w.-]+))?/lives', url
+            r'https?://(?P<domain>[\w.-]+)(/(?P<channel>[\w.-]+))?/lives', url,
         ).group('domain', 'channel')
         self._extract_base_info(channel_id)
 
