@@ -290,7 +290,7 @@ class RadioFrancePlaylistBaseIE(RadioFranceBaseIE):
                 'vcodec': 'none',
                 'acodec': preset['encoding'],
                 'quality': preset['bitrate'],
-                'duration': dur
+                'duration': dur,
             })
             item['duration'] = dur
         return item
@@ -373,7 +373,7 @@ class RadioFrancePodcastIE(RadioFrancePlaylistBaseIE):
             'description': 'md5:1c5b6d010b2aaeb0d90b2c233b5f7b15',
             'thumbnail': r're:^https?://.*\.(?:jpg|png)',
         },
-        'playlist_count': 5
+        'playlist_count': 5,
     }, {
         'url': 'https://www.radiofrance.fr/franceinter/podcasts/le-7-9',
         'only_matching': True,
