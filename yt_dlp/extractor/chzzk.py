@@ -174,8 +174,6 @@ class CHZZKVideoIE(InfoExtractor):
             subtitles = {}
             if live_status == 'was_live':
                 live_status = 'post_live'
-            else:
-                live_status = 'not_live'
         return {
             'id': video_id,
             'formats': formats,
