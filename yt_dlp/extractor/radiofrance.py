@@ -431,7 +431,7 @@ class RadioFranceProfileIE(RadioFrancePlaylistBaseIE):
         # get thepage data
         pagekey = pagedata['pagination']
         hasMorePages = False
-        lastPage = int(self._search_regex(pagekey+'\.lastPage=(\d+);', webpage, profile_id, '0'))
+        lastPage = int(self._search_regex(pagekey+r'\.lastPage=(\d+);', webpage, profile_id, '0'))
         hasMorePages = cursor < lastPage
         resp['next'] = cursor + 1 if hasMorePages else None
 
@@ -464,14 +464,14 @@ class RadioFranceProgramScheduleIE(RadioFranceBaseIE):
             'id': 'franceinter-program-20230217',
             'upload_date': '20230217',
         },
-        'playlist_count': 25,
+        'playlist_count': 27,
     }, {
         'url': 'https://www.radiofrance.fr/franceculture/grille-programmes?date=01-02-2023',
         'info_dict': {
             'id': 'franceculture-program-20230201',
             'upload_date': '20230201',
         },
-        'playlist_count': 25,
+        'playlist_count': 29,
     }, {
         'url': 'https://www.radiofrance.fr/mouv/grille-programmes?date=19-03-2023',
         'info_dict': {
@@ -485,7 +485,7 @@ class RadioFranceProgramScheduleIE(RadioFranceBaseIE):
             'id': 'francemusique-program-20230318',
             'upload_date': '20230318',
         },
-        'playlist_count': 15,
+        'playlist_count': 16,
     }, {
         'url': 'https://www.radiofrance.fr/franceculture/grille-programmes',
         'only_matching': True,
