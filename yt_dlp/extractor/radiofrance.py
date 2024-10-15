@@ -281,9 +281,9 @@ class RadioFrancePlaylistBaseIE(RadioFranceBaseIE):
         links = item['playerInfo']['media']['sources']
         item['formats'] = []
         for linkkey in links:
-            url = self._search_regex(linkkey+r'\.url="([^"]+)";', webpage, content_id)
-            dur = int(self._search_regex(linkkey+r'\.duration=(\d+);', webpage, content_id))
-            preset = self._search_json(linkkey+r'\.preset=', webpage, content_id, content_id, contains_pattern=r'\{.+\}', transform_source=js_to_json)
+            url = self._search_regex(linkkey + r'\.url="([^"]+)";', webpage, content_id)
+            dur = int(self._search_regex(linkkey + r'\.duration=(\d+);', webpage, content_id))
+            preset = self._search_json(linkkey + r'\.preset=', webpage, content_id, content_id, contains_pattern=r'\{.+\}', transform_source=js_to_json)
             item['formats'].append({
                 'format_id': preset['id'],
                 'url': url,
@@ -395,7 +395,7 @@ class RadioFrancePodcastIE(RadioFrancePlaylistBaseIE):
         # _search_json cannot parse the data as it contains javascript
         # Therefore, parse the episodes objects array separately
         itemlist = self._search_json(r'a.items\s*=\s*', webpage, podcast_id, podcast_id,
-                                          contains_pattern=r'\[.+\]', transform_source=js_to_json)
+                                     contains_pattern=r'\[.+\]', transform_source=js_to_json)
 
         for item in itemlist:
             if item['model'] == 'Expression':
@@ -457,7 +457,7 @@ class RadioFranceProfileIE(RadioFrancePlaylistBaseIE):
         # get the page data
         pagekey = pagedata['pagination']
         hasMorePages = False
-        lastPage = int(self._search_regex(pagekey+r'\.lastPage=(\d+);', webpage, profile_id, '0'))
+        lastPage = int(self._search_regex(pagekey + r'\.lastPage=(\d+);', webpage, profile_id, '0'))
         hasMorePages = cursor < lastPage
         resp['next'] = cursor + 1 if hasMorePages else None
 
