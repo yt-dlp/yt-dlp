@@ -20,6 +20,7 @@ from ..utils import (
     parse_resolution,
     str_or_none,
     str_to_int,
+    traverse_obj,
     try_call,
     unescapeHTML,
     unified_timestamp,
@@ -27,7 +28,6 @@ from ..utils import (
     url_or_none,
     urlencode_postdata,
     urljoin,
-    traverse_obj,
 )
 
 
@@ -140,7 +140,7 @@ class VKIE(VKBaseIE):
                 'comment_count': int,
                 'like_count': int,
                 'thumbnail': r're:https?://.+(?:\.jpg|getVideoPreview.*)$',
-            }
+            },
         },
         {
             'note': 'Embedded video',
@@ -220,7 +220,7 @@ class VKIE(VKBaseIE):
                 'like_count': int,
                 'view_count': int,
                 'thumbnail': r're:https?://.+x1080$',
-                'tags': list
+                'tags': list,
             },
         },
         {
@@ -335,7 +335,7 @@ class VKIE(VKBaseIE):
             mv_data = opts.get('mvData') or {}
             player = opts.get('player') or {}
         else:
-            video_id = '%s_%s' % (mobj.group('oid'), mobj.group('id'))
+            video_id = '{}_{}'.format(mobj.group('oid'), mobj.group('id'))
 
             info_page = self._download_webpage(
                 'http://vk.com/video_ext.php?' + mobj.group('embed_query'), video_id)
@@ -467,13 +467,13 @@ class VKIE(VKBaseIE):
                     'source_preference': 1,
                     'height': height,
                 })
-            elif format_id == 'hls':
+            elif format_id.startswith('hls') and format_id != 'hls_live_playback':
                 fmts, subs = self._extract_m3u8_formats_and_subtitles(
                     format_url, video_id, 'mp4', 'm3u8_native',
                     m3u8_id=format_id, fatal=False, live=is_live)
                 formats.extend(fmts)
                 self._merge_subtitles(subs, target=subtitles)
-            elif format_id.startswith('dash_'):
+            elif format_id.startswith('dash') and format_id not in ('dash_live_playback', 'dash_uni'):
                 fmts, subs = self._extract_mpd_formats_and_subtitles(
                     format_url, video_id, mpd_id=format_id, fatal=False)
                 formats.extend(fmts)
@@ -530,7 +530,7 @@ class VKUserVideosIE(VKBaseIE):
         'url': 'https://vk.com/video/playlist/-174476437_2',
         'info_dict': {
             'id': '-174476437_playlist_2',
-            'title': 'Анонсы'
+            'title': 'Анонсы',
         },
         'playlist_mincount': 108,
     }]
@@ -580,7 +580,7 @@ class VKUserVideosIE(VKBaseIE):
             section = 'all'
 
         playlist_title = clean_html(get_element_by_class('VideoInfoPanel__title', webpage))
-        return self.playlist_result(self._entries(page_id, section), '%s_%s' % (page_id, section), playlist_title)
+        return self.playlist_result(self._entries(page_id, section), f'{page_id}_{section}', playlist_title)
 
 
 class VKWallPostIE(VKBaseIE):

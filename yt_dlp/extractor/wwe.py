@@ -1,7 +1,6 @@
 import re
 
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     try_get,
     unescapeHTML,
@@ -17,7 +16,7 @@ class WWEBaseIE(InfoExtractor):
     }
 
     def _extract_entry(self, data, url, video_id=None):
-        video_id = compat_str(video_id or data['nid'])
+        video_id = str(video_id or data['nid'])
         title = data['title']
 
         formats = self._extract_m3u8_formats(
@@ -69,7 +68,7 @@ class WWEIE(WWEBaseIE):
             'title': 'Daniel Bryan vs. Andrade "Cien" Almas: SmackDown LIVE, Sept. 4, 2018',
             'description': 'md5:2d7424dbc6755c61a0e649d2a8677f67',
             'thumbnail': r're:^https?://.*\.jpg$',
-        }
+        },
     }, {
         'url': 'https://de.wwe.com/videos/gran-metalik-vs-tony-nese-wwe-205-live-sept-4-2018',
         'only_matching': True,
@@ -111,7 +110,7 @@ class WWEPlaylistIE(WWEBaseIE):
 
     @classmethod
     def suitable(cls, url):
-        return False if WWEIE.suitable(url) else super(WWEPlaylistIE, cls).suitable(url)
+        return False if WWEIE.suitable(url) else super().suitable(url)
 
     def _real_extract(self, url):
         display_id = self._match_id(url)

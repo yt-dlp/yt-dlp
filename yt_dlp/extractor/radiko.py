@@ -7,6 +7,7 @@ from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     clean_html,
+    join_nonempty,
     time_seconds,
     try_call,
     unified_timestamp,
@@ -100,8 +101,8 @@ class RadikoBaseIE(InfoExtractor):
 
     def _find_program(self, video_id, station, cursor):
         station_program = self._download_xml(
-            'https://radiko.jp/v3/program/station/weekly/%s.xml' % station, video_id,
-            note='Downloading radio program for %s station' % station)
+            f'https://radiko.jp/v3/program/station/weekly/{station}.xml', video_id,
+            note=f'Downloading radio program for {station} station')
 
         prog = None
         for p in station_program.findall('.//prog'):
@@ -167,7 +168,7 @@ class RadikoBaseIE(InfoExtractor):
 
 
 class RadikoIE(RadikoBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?radiko\.jp/#!/ts/(?P<station>[A-Z0-9-]+)/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?radiko\.jp/#!/ts/(?P<station>[A-Z0-9-]+)/(?P<timestring>\d+)'
 
     _TESTS = [{
         # QRR (文化放送) station provides <desc>
@@ -183,8 +184,9 @@ class RadikoIE(RadikoBaseIE):
     }]
 
     def _real_extract(self, url):
-        station, video_id = self._match_valid_url(url).groups()
-        vid_int = unified_timestamp(video_id, False)
+        station, timestring = self._match_valid_url(url).group('station', 'timestring')
+        video_id = join_nonempty(station, timestring)
+        vid_int = unified_timestamp(timestring, False)
         prog, station_program, ft, radio_begin, radio_end = self._find_program(video_id, station, vid_int)
 
         auth_token, area_id = self._auth_client()
@@ -207,8 +209,8 @@ class RadikoIE(RadikoBaseIE):
                     'ft': radio_begin,
                     'end_at': radio_end,
                     'to': radio_end,
-                    'seek': video_id
-                }
+                    'seek': timestring,
+                },
             ),
         }
 

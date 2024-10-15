@@ -1,10 +1,7 @@
 import re
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_parse_qs,
-    compat_urlparse,
-)
 from ..utils import (
     ExtractorError,
     parse_qs,
@@ -68,7 +65,7 @@ class SenateISVPIE(InfoExtractor):
         'info_dict': {
             'id': 'commerce011514',
             'ext': 'mp4',
-            'title': 'Integrated Senate Video Player'
+            'title': 'Integrated Senate Video Player',
         },
         'params': {
             # m3u8 download
@@ -80,8 +77,8 @@ class SenateISVPIE(InfoExtractor):
         'info_dict': {
             'id': 'intel090613',
             'ext': 'mp4',
-            'title': 'Integrated Senate Video Player'
-        }
+            'title': 'Integrated Senate Video Player',
+        },
     }, {
         # From http://www.c-span.org/video/?96791-1
         'url': 'http://www.senate.gov/isvp?type=live&comm=banking&filename=banking012715',
@@ -91,7 +88,7 @@ class SenateISVPIE(InfoExtractor):
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url, {})
 
-        qs = compat_parse_qs(self._match_valid_url(url).group('qs'))
+        qs = urllib.parse.parse_qs(self._match_valid_url(url).group('qs'))
         if not qs.get('filename') or not qs.get('type') or not qs.get('comm'):
             raise ExtractorError('Invalid URL', expected=True)
 
@@ -114,13 +111,13 @@ class SenateISVPIE(InfoExtractor):
         formats = []
         if video_type == 'arch':
             filename = video_id if '.' in video_id else video_id + '.mp4'
-            m3u8_url = compat_urlparse.urljoin(domain, 'i/' + filename + '/master.m3u8')
+            m3u8_url = urllib.parse.urljoin(domain, 'i/' + filename + '/master.m3u8')
             formats = self._extract_m3u8_formats(m3u8_url, video_id, ext='mp4', m3u8_id='m3u8')
         else:
             hdcore_sign = 'hdcore=3.1.0'
             url_params = (domain, video_id, stream_num)
             f4m_url = f'%s/z/%s_1@%s/manifest.f4m?{hdcore_sign}' % url_params
-            m3u8_url = '%s/i/%s_1@%s/master.m3u8' % url_params
+            m3u8_url = '{}/i/{}_1@{}/master.m3u8'.format(*url_params)
             for entry in self._extract_f4m_formats(f4m_url, video_id, f4m_id='f4m'):
                 # URLs without the extra param induce an 404 error
                 entry.update({'extra_param_to_segment_url': hdcore_sign})
@@ -196,5 +193,5 @@ class SenateGovIE(InfoExtractor):
             'description': self._og_search_description(webpage, default=None),
             'thumbnail': self._og_search_thumbnail(webpage, default=None),
             'age_limit': self._rta_search(webpage),
-            'formats': formats
+            'formats': formats,
         }
