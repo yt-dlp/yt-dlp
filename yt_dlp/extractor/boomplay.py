@@ -445,7 +445,7 @@ class BoomPlaySearchPageIE(BoomPlayBaseIE):
 
     @classproperty
     def _VALID_URL(cls):
-        return rf'https?://(?:www\.)?boomplay\.com/search/(?P<media_type>{"|".join(cls._MEDIA_TYPES)})/(?P<query>[^?&#/]+)'
+        return r'https?://(?:www\.)?boomplay\.com/search/(?P<media_type>default|video|episode|podcasts|playlists|artists|albums)/(?P<query>[^?&#/]+)'
 
     def _real_extract(self, url):
         media_type, query = self._match_valid_url(url).group('media_type', 'query')
