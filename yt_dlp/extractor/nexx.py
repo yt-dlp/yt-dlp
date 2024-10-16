@@ -371,7 +371,7 @@ class NexxIE(InfoExtractor):
         # not all videos work via arc, e.g. nexx:741:1269984
         if not video:
             # Reverse engineered from JS code (see getDeviceID function)
-            device_id = f'{random.randint(1, 4)}:{int(time.time())}:{random.randint(1e4, 99999)}{random.randint(1, 9)}'
+            device_id = f'{random.randint(1, 4)}:{int(time.time())}:{random.randint(10000, 99999)}{random.randint(1, 9)}'
 
             result = self._call_api(domain_id, 'session/init', video_id, data={
                 'nxp_devh': device_id,

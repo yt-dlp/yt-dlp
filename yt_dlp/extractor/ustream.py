@@ -73,7 +73,7 @@ class UstreamIE(InfoExtractor):
         def num_to_hex(n):
             return hex(n)[2:]
 
-        rnd = random.randrange
+        rnd = lambda x: random.randrange(int(x))
 
         if not extra_note:
             extra_note = ''
