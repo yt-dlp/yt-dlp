@@ -33,6 +33,7 @@ from ..utils import (
     parse_qs,
     parse_resolution,
     qualities,
+    sanitize_url,
     smuggle_url,
     srt_subtitles_timecode,
     str_or_none,
@@ -66,7 +67,51 @@ class BilibiliBaseIE(InfoExtractor):
                 f'Format(s) {missing_formats} are missing; you have to login or '
                 f'become a premium member to download them. {self._login_hint()}')
 
-    def extract_formats(self, play_info):
+    def _extract_storyboard(self, duration, aid=None, bvid=None, cid=None):
+        if not (video_id := aid or bvid) or not duration:
+            return
+        if storyboard_info := traverse_obj(self._download_json(
+                'https://api.bilibili.com/x/player/videoshot', video_id,
+                note='Downloading storyboard info', errnote='Failed to download storyboard info',
+                query=filter_dict({
+                    'index': 1,
+                    'aid': aid,
+                    'bvid': bvid,
+                    'cid': cid,
+                })), ('data', {lambda v: v if v['image'] and v['index'] else None})):
+            rows, cols = traverse_obj(storyboard_info, (('img_x_len', 'img_y_len'),))
+            fragments = []
+            last_duration = 0.0
+            for i, url in enumerate(storyboard_info['image'], start=1):
+                duration_index = i * rows * cols - 1
+                if duration_index < len(storyboard_info['index']) - 1:
+                    current_duration = traverse_obj(storyboard_info, ('index', duration_index))
+                else:
+                    current_duration = duration
+                if not current_duration or current_duration <= last_duration or current_duration > duration:
+                    break
+                fragments.append({
+                    'url': sanitize_url(url),
+                    'duration': current_duration - last_duration,
+                })
+            if fragments:
+                return {
+                    'format_id': 'sb',
+                    'format_note': 'storyboard',
+                    'ext': 'mhtml',
+                    'protocol': 'mhtml',
+                    'acodec': 'none',
+                    'vcodec': 'none',
+                    'url': 'about:invalid',
+                    'width': storyboard_info.get('img_x_size'),
+                    'height': storyboard_info.get('img_y_size'),
+                    'fps': len(storyboard_info['image']) * rows * cols / duration if rows and cols else None,
+                    'rows': rows,
+                    'columns': cols,
+                    'fragments': fragments,
+                }
+
+    def extract_formats(self, play_info, aid=None, bvid=None, cid=None):
         format_names = {
             r['quality']: traverse_obj(r, 'new_description', 'display_desc')
             for r in traverse_obj(play_info, ('support_formats', lambda _, v: v['quality']))
@@ -128,6 +173,9 @@ class BilibiliBaseIE(InfoExtractor):
                 }),
                 **parse_resolution(format_names.get(play_info.get('quality'))),
             })
+        if storyboard_format := self._extract_storyboard(
+                float_or_none(play_info.get('timelength'), scale=1000), aid=aid, bvid=bvid, cid=cid):
+            formats.append(storyboard_format)
         return formats
 
     def _get_wbi_key(self, video_id):
@@ -291,7 +339,7 @@ class BilibiliBaseIE(InfoExtractor):
                 **metainfo,
                 'id': f'{video_id}_{cid}',
                 'title': f'{metainfo.get("title")} - {next(iter(edges.values())).get("title")}',
-                'formats': self.extract_formats(play_info),
+                'formats': self.extract_formats(play_info, bvid=video_id, cid=cid),
                 'description': f'{json.dumps(edges, ensure_ascii=False)}\n{metainfo.get("description", "")}',
                 'duration': float_or_none(play_info.get('timelength'), scale=1000),
                 'subtitles': self.extract_subtitles(video_id, cid),
@@ -557,6 +605,27 @@ class BiliBiliIE(BilibiliBaseIE):
             },
         }],
     }, {
+        'note': 'storyboard',
+        'url': 'https://www.bilibili.com/video/av170001/',
+        'info_dict': {
+            'id': 'BV17x411w7KC_p1',
+            'title': '【MV】保加利亚妖王AZIS视频合辑 p01 Хоп',
+            'ext': 'mhtml',
+            'upload_date': '20111109',
+            'uploader_id': '122541',
+            'view_count': int,
+            '_old_archive_ids': ['bilibili 170001_part1'],
+            'thumbnail': r're:https?://.*\.(?:jpg|jpeg|png)$',
+            'uploader': '冰封.虾子',
+            'timestamp': 1320850533,
+            'comment_count': int,
+            'tags': ['Hop', '保加利亚妖王', '保加利亚', 'Азис', 'azis', 'mv'],
+            'description': 'md5:acfd7360b96547f031f7ebead9e66d9e',
+            'like_count': int,
+            'duration': 199.4,
+        },
+        'params': {'format': 'sb', 'playlist_items': '1'},
+    }, {
         'note': '301 redirect to bangumi link',
         'url': 'https://www.bilibili.com/video/BV1TE411f7f1',
         'info_dict': {
@@ -728,14 +797,14 @@ class BiliBiliIE(BilibiliBaseIE):
                 duration=traverse_obj(initial_state, ('videoData', 'duration', {int_or_none})),
                 __post_extractor=self.extract_comments(aid))
         else:
-            formats = self.extract_formats(play_info)
+            formats = self.extract_formats(play_info, bvid=video_id, cid=cid)
 
             if not traverse_obj(play_info, ('dash')):
                 # we only have legacy formats and need additional work
                 has_qn = lambda x: x in traverse_obj(formats, (..., 'quality'))
                 for qn in traverse_obj(play_info, ('accept_quality', lambda _, v: not has_qn(v), {int})):
                     formats.extend(traverse_obj(
-                        self.extract_formats(self._download_playinfo(video_id, cid, headers=headers, qn=qn)),
+                        self.extract_formats(self._download_playinfo(video_id, cid, headers=headers, qn=qn), bvid=video_id, cid=cid),
                         lambda _, v: not has_qn(v['quality'])))
                 self._check_missing_formats(play_info, formats)
                 flv_formats = traverse_obj(formats, lambda _, v: v['fragments'])
@@ -865,9 +934,11 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
             'Extracting episode', query={'fnval': '4048', 'ep_id': episode_id},
             headers=headers)
         premium_only = play_info.get('code') == -10403
+        episode_info = traverse_obj(play_info, ('result', 'play_view_business_info', 'episode_info'))
+        aid, cid = episode_info.get('aid'), episode_info.get('cid')
         play_info = traverse_obj(play_info, ('result', 'video_info', {dict})) or {}
 
-        formats = self.extract_formats(play_info)
+        formats = self.extract_formats(play_info, aid=aid, cid=cid)
         if not formats and (premium_only or '成为大会员抢先看' in webpage or '开通大会员观看' in webpage):
             self.raise_login_required('This video is for premium members only')
 
@@ -878,7 +949,7 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
         episode_number, episode_info = next((
             (idx, ep) for idx, ep in enumerate(traverse_obj(
                 bangumi_info, (('episodes', ('section', ..., 'episodes')), ..., {dict})), 1)
-            if str_or_none(ep.get('id')) == episode_id), (1, {}))
+            if str_or_none(ep.get('id')) == episode_id), (1, episode_info))
 
         season_id = bangumi_info.get('season_id')
         season_number, season_title = season_id and next((
@@ -887,7 +958,7 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
             if e.get('season_id') == season_id
         ), (None, None))
 
-        aid = episode_info.get('aid')
+        aid, cid = episode_info.get('aid', aid), episode_info.get('cid', cid)
 
         return {
             'id': episode_id,
@@ -908,7 +979,7 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
             'season_id': str_or_none(season_id),
             'season_number': season_number,
             'duration': float_or_none(play_info.get('timelength'), scale=1000),
-            'subtitles': self.extract_subtitles(episode_id, episode_info.get('cid'), aid=aid),
+            'subtitles': self.extract_subtitles(episode_id, cid, aid=aid),
             '__post_extractor': self.extract_comments(aid),
             'http_headers': {'Referer': url},
         }
@@ -1040,7 +1111,7 @@ class BilibiliCheeseBaseIE(BilibiliBaseIE):
         return {
             'id': str_or_none(ep_id),
             'episode_id': str_or_none(ep_id),
-            'formats': self.extract_formats(play_info),
+            'formats': self.extract_formats(play_info, aid=aid, cid=cid),
             'extractor_key': BilibiliCheeseIE.ie_key(),
             'extractor': BilibiliCheeseIE.IE_NAME,
             'webpage_url': f'https://www.bilibili.com/cheese/play/ep{ep_id}',
@@ -1734,7 +1805,7 @@ class BilibiliAudioIE(BilibiliAudioBaseIE):
             'id': '1003142',
             'ext': 'm4a',
             'title': '【tsukimi】YELLOW / 神山羊',
-            'artist': 'tsukimi',
+            'artists': ['tsukimi'],
             'comment_count': int,
             'description': 'YELLOW的mp3版！',
             'duration': 183,
@@ -1746,7 +1817,7 @@ class BilibiliAudioIE(BilibiliAudioBaseIE):
             'thumbnail': r're:^https?://.+\.jpg',
             'timestamp': 1564836614,
             'upload_date': '20190803',
-            'uploader': 'tsukimi-つきみぐー',
+            'uploader': '十六夜tsukimiつきみぐ',
             'view_count': int,
         },
     }
@@ -1801,10 +1872,10 @@ class BilibiliAudioAlbumIE(BilibiliAudioBaseIE):
         'url': 'https://www.bilibili.com/audio/am10624',
         'info_dict': {
             'id': '10624',
-            'title': '每日新曲推荐（每日11:00更新）',
+            'title': '新曲推荐',
             'description': '每天11:00更新，为你推送最新音乐',
         },
-        'playlist_count': 19,
+        'playlist_mincount': 10,
     }
 
     def _real_extract(self, url):
