@@ -72,7 +72,7 @@ on:
         default: true
         type: boolean
       windows:
-        description: yt-dlp.exe, yt-dlp_min.exe, yt-dlp_win.zip
+        description: yt-dlp.exe, yt-dlp_win.zip
         default: true
         type: boolean
       windows32:
@@ -421,10 +421,6 @@ jobs:
           python -m bundle.pyinstaller --onedir
           Compress-Archive -Path ./dist/yt-dlp/* -DestinationPath ./dist/yt-dlp_win.zip
 
-      - name: Add migration executable for py2exe
-        run: |
-          Copy-Item ./dist/yt-dlp.exe ./dist/yt-dlp_min.exe
-
       - name: Verify --update-to
         if: vars.UPDATE_TO_VERIFICATION
         run: |
@@ -444,7 +440,6 @@ jobs:
           name: build-bin-${{ github.job }}
           path: |
             dist/yt-dlp.exe
-            dist/yt-dlp_min.exe
             dist/yt-dlp_win.zip
           compression-level: 0
 
