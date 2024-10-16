@@ -14,6 +14,7 @@ import netrc
 import os
 import random
 import re
+import string
 import subprocess
 import sys
 import time
@@ -609,6 +610,23 @@ class InfoExtractor:
         # This function must import everything it needs (except other extractors),
         # so that lazy_extractors works correctly
         return cls._match_valid_url(url) is not None
+
+
+    @classmethod
+    def list_regex_url(cls):
+        return cls._VALID_URL if type(cls._VALID_URL) in [list, tuple] \
+            else (cls._VALID_URL.translate({ord(c): None for c in string.whitespace}),) if type(cls._VALID_URL) is str \
+            else []
+
+    @classmethod
+    def return_type(cls):
+        if '_RETURN_TYPE' not in cls.__dict__:
+            return ''
+        return cls._RETURN_TYPE
+
+    @classmethod
+    def is_enabled(cls):
+        return cls._ENABLED
 
     @classmethod
     def _match_id(cls, url):
