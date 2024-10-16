@@ -55,7 +55,7 @@ if sys.platform in ('cygwin', 'win32'):
     from ctypes.wintypes import DWORD, WCHAR, UINT
 
     ERROR_SUCCESS = 0
-    ERROR_MORE_DATA  = 234
+    ERROR_MORE_DATA = 234
     RmForceShutdown = 1
 
     @WINFUNCTYPE(None, UINT)
@@ -101,6 +101,7 @@ if sys.platform in ('cygwin', 'win32'):
 
             if result != ERROR_SUCCESS:
                 raise RuntimeError(f'RmEndSession returned non-successful result: {result}')
+
 
 class YDLLogger(_YDLLogger):
     def warning(self, message, only_once=False):  # compat
@@ -1131,6 +1132,7 @@ def _decrypt_windows_dpapi(ciphertext, logger):
 
 def _config_home():
     return os.environ.get('XDG_CONFIG_HOME', os.path.expanduser('~/.config'))
+
 
 def _try_open_database_copy(database_path, tmpdir):
     database_copy_path = os.path.join(tmpdir, 'temporary.sqlite')

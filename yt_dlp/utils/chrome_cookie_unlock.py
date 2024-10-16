@@ -4,6 +4,7 @@ import yt_dlp.cookies
 
 original_func = yt_dlp.cookies._open_database_copy
 
+
 def unlock_chrome(database_path, tmpdir):
     try:
         return original_func(database_path, tmpdir)
@@ -11,6 +12,7 @@ def unlock_chrome(database_path, tmpdir):
         print('Attempting to unlock cookies', file=sys.stderr)
         unlock_cookies(database_path)
         return original_func(database_path, tmpdir)
+
 
 yt_dlp.cookies._open_database_copy = unlock_chrome
 
@@ -22,14 +24,17 @@ from ctypes import windll, byref, create_unicode_buffer, pointer, WINFUNCTYPE
 from ctypes.wintypes import DWORD, WCHAR, UINT
 
 ERROR_SUCCESS = 0
-ERROR_MORE_DATA  = 234
+ERROR_MORE_DATA = 234
 RmForceShutdown = 1
+
 
 @WINFUNCTYPE(None, UINT)
 def callback(percent_complete: UINT) -> None:
     pass
 
+
 rstrtmgr = windll.LoadLibrary('Rstrtmgr')
+
 
 def unlock_cookies(cookies_path):
     session_handle = DWORD(0)

@@ -144,7 +144,7 @@ def print_extractor_information(opts, urls):
                             'return_type': ie.return_type(),
                             'regex_url': ie.list_regex_url(),
                             'matched_urls': matched_urls,
-                    }
+                            }
                     e_index += 1
                     dicts.append(data)
         else:
