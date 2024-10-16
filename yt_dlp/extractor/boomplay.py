@@ -28,7 +28,7 @@ from ..utils import (
 from ..utils.traversal import traverse_obj
 
 
-class BoomPlayBaseIE(InfoExtractor):
+class BoomplayBaseIE(InfoExtractor):
     # Calculated from const values, see lhx.AESUtils.encrypt in public.js
     # Note that the real key/iv differs from `lhx.AESUtils.key`/`lhx.AESUtils.iv`
     _KEY = b'boomplayVr3xopAM'
@@ -184,7 +184,7 @@ class BoomPlayBaseIE(InfoExtractor):
         return entries
 
 
-class BoomPlayMusicIE(BoomPlayBaseIE):
+class BoomplayMusicIE(BoomplayBaseIE):
     _VALID_URL = r'https?://(?:www\.)?boomplay\.com/songs/(?P<id>\d+)'
     _TEST = {
         'url': 'https://www.boomplay.com/songs/165481965',
@@ -225,7 +225,7 @@ class BoomPlayMusicIE(BoomPlayBaseIE):
             })
 
 
-class BoomPlayVideoIE(BoomPlayBaseIE):
+class BoomplayVideoIE(BoomplayBaseIE):
     _VALID_URL = r'https?://(?:www\.)?boomplay\.com/video/(?P<id>\d+)'
     _TEST = {
         'url': 'https://www.boomplay.com/video/1154892',
@@ -253,7 +253,7 @@ class BoomPlayVideoIE(BoomPlayBaseIE):
             })
 
 
-class BoomPlayEpisodeIE(BoomPlayBaseIE):
+class BoomplayEpisodeIE(BoomplayBaseIE):
     _VALID_URL = r'https?://(?:www\.)?boomplay\.com/episode/(?P<id>\d+)'
     _TEST = {
         'url': 'https://www.boomplay.com/episode/7132706',
@@ -283,7 +283,7 @@ class BoomPlayEpisodeIE(BoomPlayBaseIE):
             })
 
 
-class BoomPlayPodcastIE(BoomPlayBaseIE):
+class BoomplayPodcastIE(BoomplayBaseIE):
     _VALID_URL = r'https?://(?:www\.)?boomplay\.com/podcasts/(?P<id>\d+)'
     _TEST = {
         'url': 'https://www.boomplay.com/podcasts/5372',
@@ -316,7 +316,7 @@ class BoomPlayPodcastIE(BoomPlayBaseIE):
             song_list),
             (..., 'id', {
                 lambda x: self.url_result(
-                    f'https://www.boomplay.com/episode/{x}', BoomPlayEpisodeIE, x),
+                    f'https://www.boomplay.com/episode/{x}', BoomplayEpisodeIE, x),
             }))
         return self.playlist_result(
             song_list, _id,
@@ -325,7 +325,7 @@ class BoomPlayPodcastIE(BoomPlayBaseIE):
             **self._extract_page_metadata(webpage, _id))
 
 
-class BoomPlayPlaylistIE(BoomPlayBaseIE):
+class BoomplayPlaylistIE(BoomplayBaseIE):
     _VALID_URL = r'https?://(?:www\.)?boomplay\.com/(?:playlists|artists|albums)/(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://www.boomplay.com/playlists/33792494',
@@ -357,7 +357,7 @@ class BoomPlayPlaylistIE(BoomPlayBaseIE):
             self._extract_page_metadata(webpage, playlist_id),
             traverse_obj(json_ld_metadata, {
                 'entries': ('track', ..., 'url', {
-                    functools.partial(self.url_result, ie=BoomPlayMusicIE),
+                    functools.partial(self.url_result, ie=BoomplayMusicIE),
                 }),
                 'playlist_title': 'name',
                 'thumbnail': 'image',
@@ -366,7 +366,7 @@ class BoomPlayPlaylistIE(BoomPlayBaseIE):
             })))
 
 
-class BoomPlayGenericPlaylistIE(BoomPlayBaseIE):
+class BoomplayGenericPlaylistIE(BoomplayBaseIE):
     _VALID_URL = r'https?://(?:www\.)?boomplay\.com/.+'
     _TESTS = [{
         'url': 'https://www.boomplay.com/new-songs',
@@ -390,12 +390,12 @@ class BoomPlayGenericPlaylistIE(BoomPlayBaseIE):
     def suitable(cls, url):
         if super().suitable(url):
             return not any(ie.suitable(url) for ie in (
-                BoomPlayEpisodeIE,
-                BoomPlayMusicIE,
-                BoomPlayPlaylistIE,
-                BoomPlayPodcastIE,
-                BoomPlaySearchPageIE,
-                BoomPlayVideoIE,
+                BoomplayEpisodeIE,
+                BoomplayMusicIE,
+                BoomplayPlaylistIE,
+                BoomplayPodcastIE,
+                BoomplaySearchPageIE,
+                BoomplayVideoIE,
             ))
         return False
 
@@ -407,7 +407,7 @@ class BoomPlayGenericPlaylistIE(BoomPlayBaseIE):
             **self._extract_page_metadata(webpage, _id))
 
 
-class BoomPlaySearchPageIE(BoomPlayBaseIE):
+class BoomplaySearchPageIE(BoomplayBaseIE):
     _TESTS = [{
         'url': 'https://www.boomplay.com/search/default/%20Rise%20of%20the%20Falletesn%20Heroes%20fatbunny',
         'md5': 'c5fb4f23e6aae98064230ef3c39c2178',
@@ -457,7 +457,7 @@ class BoomPlaySearchPageIE(BoomPlayBaseIE):
             **self._extract_page_metadata(webpage, query))
 
 
-class BoomPlaySearchIE(SearchInfoExtractor):
+class BoomplaySearchIE(SearchInfoExtractor):
     _SEARCH_KEY = 'boomplaysearch'
     _RETURN_TYPE = 'url'
     _TEST = {
@@ -468,4 +468,4 @@ class BoomPlaySearchIE(SearchInfoExtractor):
     def _search_results(self, query):
         yield self.url_result(
             f'https://www.boomplay.com/search/default/{urllib.parse.quote(query)}',
-            BoomPlaySearchPageIE)
+            BoomplaySearchPageIE)

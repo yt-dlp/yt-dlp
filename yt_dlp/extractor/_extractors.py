@@ -281,14 +281,14 @@ from .bloomberg import BloombergIE
 from .bokecc import BokeCCIE
 from .bongacams import BongaCamsIE
 from .boomplay import (
-    BoomPlayEpisodeIE,
-    BoomPlayGenericPlaylistIE,
-    BoomPlayMusicIE,
-    BoomPlayPlaylistIE,
-    BoomPlayPodcastIE,
-    BoomPlaySearchIE,
-    BoomPlaySearchPageIE,
-    BoomPlayVideoIE,
+    BoomplayEpisodeIE,
+    BoomplayGenericPlaylistIE,
+    BoomplayMusicIE,
+    BoomplayPlaylistIE,
+    BoomplayPodcastIE,
+    BoomplaySearchIE,
+    BoomplaySearchPageIE,
+    BoomplayVideoIE,
 )
 from .boosty import BoostyIE
 from .bostonglobe import BostonGlobeIE
