@@ -712,13 +712,13 @@ class TestYoutubeDL(unittest.TestCase):
     }
 
     def test_prepare_outtmpl_and_filename(self):
-        def test(tmpl, expected, *, info=None, **params):
+        def test(tmpl, expected, *, info=None, sanitize=False, **params):
             params['outtmpl'] = tmpl
             ydl = FakeYDL(params)
             ydl._num_downloads = 1
             self.assertEqual(ydl.validate_outtmpl(tmpl), None)
 
-            out = ydl.evaluate_outtmpl(tmpl, info or self.outtmpl_info)
+            out = ydl.evaluate_outtmpl(tmpl, info or self.outtmpl_info, sanitize=sanitize)
             fname = ydl.prepare_filename(info or self.outtmpl_info)
 
             if not isinstance(expected, (list, tuple)):
@@ -917,6 +917,7 @@ class TestYoutubeDL(unittest.TestCase):
         test('Hello %(title2)s', 'Hello %PATH%')
         test('%(title3)s', ('foo/bar\\test', 'foo⧸bar⧹test'))
         test('folder/%(title3)s', ('folder/foo/bar\\test', f'folder{os.path.sep}foo⧸bar⧹test'))
+        test('%(title3).7B', 'foo⧸b', sanitize=True)
 
     def test_format_note(self):
         ydl = YoutubeDL()
