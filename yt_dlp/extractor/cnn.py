@@ -99,48 +99,47 @@ class CNNIE(TurnerBaseIE):
             })
 
 
-class CNNBlogsIE(InfoExtractor):
-    _VALID_URL = r'https?://[^\.]+\.blogs\.cnn\.com/.+'
-    _TEST = {
-        'url': 'http://reliablesources.blogs.cnn.com/2014/02/09/criminalizing-journalism/',
-        'md5': '3e56f97b0b6ffb4b79f4ea0749551084',
-        'info_dict': {
-            'id': 'bestoftv/2014/02/09/criminalizing-journalism.cnn',
-            'ext': 'mp4',
-            'title': 'Criminalizing journalism?',
-            'description': 'Glenn Greenwald responds to comments made this week on Capitol Hill that journalists could be criminal accessories.',
-            'upload_date': '20140209',
-        },
-        'expected_warnings': ['Failed to download m3u8 information'],
-        'add_ie': ['CNN'],
-    }
-
-    def _real_extract(self, url):
-        webpage = self._download_webpage(url, url_basename(url))
-        cnn_url = self._html_search_regex(r'data-url="(.+?)"', webpage, 'cnn url')
-        return self.url_result(cnn_url, CNNIE.ie_key())
-
-
 class CNNArticleIE(InfoExtractor):
     _VALID_URL = r'https?://(?:(?:edition|www)\.)?cnn\.com/(?!videos?/)'
-    _TEST = {
-        'url': 'http://www.cnn.com/2014/12/21/politics/obama-north-koreas-hack-not-war-but-cyber-vandalism/',
-        'md5': '689034c2a3d9c6dc4aa72d65a81efd01',
+
+    _TESTS = [{
+        'url': 'https://www.cnn.com/2024/05/31/sport/video/jadon-sancho-borussia-dortmund-champions-league-exclusive-spt-intl',
         'info_dict': {
-            'id': 'bestoftv/2014/12/21/ip-north-korea-obama.cnn',
+            'id': 'jadon-sancho-borussia-dortmund-champions-league-exclusive-spt-intl-1553374-1920x1080_8000k',
             'ext': 'mp4',
-            'title': 'Obama: Cyberattack not an act of war',
-            'description': 'md5:0a802a40d2376f60e6b04c8d5bcebc4b',
-            'upload_date': '20141221',
+            'direct': True,
+            'title': 'jadon-sancho-borussia-dortmund-champions-league-exclusive-spt-intl-1553374-1920x1080_8000k',
+            'timestamp': 1717148749.0,
+            'upload_date': '20240531',
         },
-        'expected_warnings': ['Failed to download m3u8 information'],
-        'add_ie': ['CNN'],
-    }
+    }, {
+        'url': 'https://edition.cnn.com/2024/06/11/politics/video/inmates-vote-jail-nevada-murray-dnt-ac360-digvid',
+        'info_dict': {
+            'id': 'inmates-vote-jail-nevada-murray-dnt-ac360-digvid-1563291-1920x1080_8000k',
+            'ext': 'mp4',
+            'direct': True,
+            'title': 'inmates-vote-jail-nevada-murray-dnt-ac360-digvid-1563291-1920x1080_8000k',
+            'timestamp': 1718158370.0,
+            'upload_date': '20240612',
+        },
+    }, {
+        'url': 'https://www.cnn.com/2024/06/11/style/video/king-charles-portrait-vandalized-activists-foster-intl-digvid',
+        'info_dict': {
+            'id': 'king-charles-portrait-vandalized-activists-foster-intl-digvid-1562674-1920x1080_8000k',
+            'ext': 'mp4',
+            'direct': True,
+            'title': 'king-charles-portrait-vandalized-activists-foster-intl-digvid-1562674-1920x1080_8000k',
+            'timestamp': 1718116155.0,
+            'upload_date': '20240611',
+        },
+    }]
 
     def _real_extract(self, url):
         webpage = self._download_webpage(url, url_basename(url))
-        cnn_url = self._html_search_regex(r"video:\s*'([^']+)'", webpage, 'cnn url')
-        return self.url_result('http://cnn.com/video/?/video/' + cnn_url, CNNIE.ie_key())
+        cnn_url = self._search_json_ld(webpage, url_basename(url)).get('url')
+        if (cnn_url):
+            return self.url_result(cnn_url, 'Generic')
+        return self.url_result(url, CNNIE)
 
 
 class CNNIndonesiaIE(InfoExtractor):
