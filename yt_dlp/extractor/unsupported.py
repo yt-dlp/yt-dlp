@@ -50,6 +50,7 @@ class KnownDRMIE(UnsupportedInfoExtractor):
         r'music\.amazon\.(?:\w{2}\.)?\w+',
         r'(?:watch|front)\.njpwworld\.com',
         r'qub\.ca/vrai',
+        r'https?://(?:uktvplay(?:\.uktv)?|u)\.co\.uk',
     )
 
     _TESTS = [{
