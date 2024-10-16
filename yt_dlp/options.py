@@ -363,6 +363,10 @@ def create_parser():
         action='store_true', dest='list_extractors', default=False,
         help='List all supported extractors and exit')
     general.add_option(
+        '--list-extractors-json',
+        action='store_true', dest='list_extractors_json', default=False,
+        help='List all supported extractors parameters in JSON format and exit')
+    general.add_option(
         '--extractor-descriptions',
         action='store_true', dest='list_extractor_descriptions', default=False,
         help='Output descriptions of all supported extractors and exit')
