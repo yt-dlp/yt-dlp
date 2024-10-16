@@ -3,7 +3,7 @@ from .nexx import NexxIE
 
 
 class FunkIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.|origin\.)?funk\.net/(?:channel|playlist)/[^/]+/(?P<display_id>[0-9a-z-]+)-(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:(?:www|origin|play)\.)?funk\.net/(?:channel|playlist)/[^/?#]+/(?P<display_id>[0-9a-z-]+)-(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://www.funk.net/channel/ba-793/die-lustigsten-instrumente-aus-dem-internet-teil-2-1155821',
         'md5': '8610449476156f338761a75391b0017d',
@@ -26,6 +26,9 @@ class FunkIE(InfoExtractor):
         },
     }, {
         'url': 'https://www.funk.net/playlist/neuesteVideos/kameras-auf-dem-fusion-festival-1618699',
+        'only_matching': True,
+    }, {
+        'url': 'https://play.funk.net/playlist/neuesteVideos/george-floyd-wenn-die-polizei-toetet-der-fall-2004391',
         'only_matching': True,
     }]
 
