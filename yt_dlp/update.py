@@ -135,20 +135,42 @@ def _get_binary_name():
 
 
 def _get_system_deprecation():
-    MIN_SUPPORTED, MIN_RECOMMENDED = (3, 8), (3, 8)
+    MIN_SUPPORTED, MIN_RECOMMENDED = (3, 8), (3, 9)
 
     if sys.version_info > MIN_RECOMMENDED:
         return None
 
     major, minor = sys.version_info[:2]
-    if sys.version_info < MIN_SUPPORTED:
-        msg = f'Python version {major}.{minor} is no longer supported'
-    else:
-        msg = (f'Support for Python version {major}.{minor} has been deprecated. '
-               '\nYou may stop receiving updates on this version at any time')
+    PYTHON_MSG = f'Please update to Python {".".join(map(str, MIN_RECOMMENDED))} or above'
 
-    major, minor = MIN_RECOMMENDED
-    return f'{msg}! Please update to Python {major}.{minor} or above'
+    if sys.version_info < MIN_SUPPORTED:
+        return f'Python version {major}.{minor} is no longer supported! {PYTHON_MSG}'
+
+    EXE_MSG_TMPL = ('Support for {} has been deprecated. '
+                    'See  https://github.com/yt-dlp/yt-dlp/{}  for details.\n{}')
+    STOP_MSG = 'You may stop receiving updates on this version at any time!'
+    variant = detect_variant()
+
+    # Temporary until Windows builds use 3.9, which will drop support for Win7 and 2008ServerR2
+    if variant in ('win_exe', 'win_x86_exe', 'py2exe'):
+        platform_name = platform.platform()
+        if any(platform_name.startswith(f'Windows-{name}') for name in ('7', '2008ServerR2')):
+            return EXE_MSG_TMPL.format('Windows 7/Server 2008 R2', 'issues/10086', STOP_MSG)
+        elif variant == 'py2exe':
+            return EXE_MSG_TMPL.format(
+                'py2exe builds (yt-dlp_min.exe)', 'issues/10087',
+                'In a future update you will be migrated to the PyInstaller-bundled executable. '
+                'This will be done automatically; no action is required on your part')
+        return None
+
+    # Temporary until aarch64/armv7l build flow is bumped to Ubuntu 20.04 and Python 3.9
+    elif variant in ('linux_aarch64_exe', 'linux_armv7l_exe'):
+        libc_ver = version_tuple(os.confstr('CS_GNU_LIBC_VERSION').partition(' ')[2])
+        if libc_ver < (2, 31):
+            return EXE_MSG_TMPL.format('system glibc version < 2.31', 'pull/8638', STOP_MSG)
+        return None
+
+    return f'Support for Python version {major}.{minor} has been deprecated. {PYTHON_MSG}'
 
 
 def _sha256_file(path):

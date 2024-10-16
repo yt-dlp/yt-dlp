@@ -1357,7 +1357,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         '401': {'ext': 'mp4', 'height': 2160, 'format_note': 'DASH video', 'vcodec': 'av01.0.12M.08'},
     }
     _SUBTITLE_FORMATS = ('json3', 'srv1', 'srv2', 'srv3', 'ttml', 'vtt')
-    _DEFAULT_CLIENTS = ('ios', 'web_creator')
+    _DEFAULT_CLIENTS = ('ios', 'mweb')
 
     _GEO_BYPASS = False
 
@@ -7655,6 +7655,8 @@ class YoutubeClipIE(YoutubeTabBaseInfoExtractor):
             'id': clip_id,
             'section_start': int(clip_data['startTimeMs']) / 1000,
             'section_end': int(clip_data['endTimeMs']) / 1000,
+            '_format_sort_fields': (  # https protocol is prioritized for ffmpeg compatibility
+                'proto:https', 'quality', 'res', 'fps', 'hdr:12', 'source', 'vcodec:vp9.2', 'channels', 'acodec', 'lang'),
         }
 
 

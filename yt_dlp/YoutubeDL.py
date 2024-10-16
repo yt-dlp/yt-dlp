@@ -27,7 +27,7 @@ import unicodedata
 from .cache import Cache
 from .compat import urllib  # isort: split
 from .compat import compat_os_name, urllib_req_to_req
-from .cookies import LenientSimpleCookie, load_cookies
+from .cookies import CookieLoadError, LenientSimpleCookie, load_cookies
 from .downloader import FFmpegFD, get_suitable_downloader, shorten_protocol_name
 from .downloader.rtmp import rtmpdump_version
 from .extractor import gen_extractor_classes, get_info_extractor
@@ -1624,7 +1624,7 @@ class YoutubeDL:
             while True:
                 try:
                     return func(self, *args, **kwargs)
-                except (DownloadCancelled, LazyList.IndexError, PagedList.IndexError):
+                except (CookieLoadError, DownloadCancelled, LazyList.IndexError, PagedList.IndexError):
                     raise
                 except ReExtractInfo as e:
                     if e.expected:
@@ -3580,6 +3580,8 @@ class YoutubeDL:
         def wrapper(*args, **kwargs):
             try:
                 res = func(*args, **kwargs)
+            except CookieLoadError:
+                raise
             except UnavailableVideoError as e:
                 self.report_error(e)
             except DownloadCancelled as e:
@@ -4068,6 +4070,10 @@ class YoutubeDL:
 
         write_debug(f'Proxy map: {self.proxies}')
         write_debug(f'Request Handlers: {", ".join(rh.RH_NAME for rh in self._request_director.handlers.values())}')
+        if os.environ.get('YTDLP_NO_PLUGINS'):
+            write_debug('Plugins are forcibly disabled')
+            return
+
         for plugin_type, plugins in {'Extractor': plugin_ies, 'Post-Processor': plugin_pps}.items():
             display_list = ['{}{}'.format(
                 klass.__name__, '' if klass.__name__ == name else f' as {name}')
@@ -4113,8 +4119,14 @@ class YoutubeDL:
     @functools.cached_property
     def cookiejar(self):
         """Global cookiejar instance"""
-        return load_cookies(
-            self.params.get('cookiefile'), self.params.get('cookiesfrombrowser'), self)
+        try:
+            return load_cookies(
+                self.params.get('cookiefile'), self.params.get('cookiesfrombrowser'), self)
+        except CookieLoadError as error:
+            cause = error.__context__
+            # compat: <=py3.9: `traceback.format_exception` has a different signature
+            self.report_error(str(cause), tb=''.join(traceback.format_exception(None, cause, cause.__traceback__)))
+            raise
 
     @property
     def _opener(self):

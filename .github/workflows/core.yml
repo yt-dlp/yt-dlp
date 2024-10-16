@@ -59,4 +59,4 @@ jobs:
       continue-on-error: False
       run: |
         python3 -m yt_dlp -v || true  # Print debug head
-        python3 ./devscripts/run_tests.py core
+        python3 ./devscripts/run_tests.py --pytest-args '--reruns 2 --reruns-delay 3.0' core

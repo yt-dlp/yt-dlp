@@ -573,13 +573,13 @@ class InfoExtractor:
 
     def _login_hint(self, method=NO_DEFAULT, netrc=None):
         password_hint = f'--username and --password, --netrc-cmd, or --netrc ({netrc or self._NETRC_MACHINE}) to provide account credentials'
+        cookies_hint = 'See  https://github.com/yt-dlp/yt-dlp/wiki/FAQ#how-do-i-pass-cookies-to-yt-dlp  for how to manually pass cookies'
         return {
             None: '',
-            'any': f'Use --cookies, --cookies-from-browser, {password_hint}',
+            'any': f'Use --cookies, --cookies-from-browser, {password_hint}. {cookies_hint}',
             'password': f'Use {password_hint}',
-            'cookies': (
-                'Use --cookies-from-browser or --cookies for the authentication. '
-                'See  https://github.com/yt-dlp/yt-dlp/wiki/FAQ#how-do-i-pass-cookies-to-yt-dlp  for how to manually pass cookies'),
+            'cookies': f'Use --cookies-from-browser or --cookies for the authentication. {cookies_hint}',
+            'session_cookies': f'Use --cookies for the authentication (--cookies-from-browser might not work). {cookies_hint}',
         }[method if method is not NO_DEFAULT else 'any' if self.supports_login() else 'cookies']
 
     def __init__(self, downloader=None):
@@ -1710,7 +1710,7 @@ class InfoExtractor:
                 rating = traverse_obj(e, ('aggregateRating', 'ratingValue'), expected_type=float_or_none)
                 if rating is not None:
                     info['average_rating'] = rating
-                if is_type(e, 'TVEpisode', 'Episode'):
+                if is_type(e, 'TVEpisode', 'Episode', 'PodcastEpisode'):
                     episode_name = unescapeHTML(e.get('name'))
                     info.update({
                         'episode': episode_name,
@@ -2077,7 +2077,7 @@ class InfoExtractor:
         has_drm = HlsFD._has_drm(m3u8_doc)
 
         def format_url(url):
-            return url if re.match(r'^https?://', url) else urllib.parse.urljoin(m3u8_url, url)
+            return url if re.match(r'https?://', url) else urllib.parse.urljoin(m3u8_url, url)
 
         if self.get_param('hls_split_discontinuity', False):
             def _extract_m3u8_playlist_indices(manifest_url=None, m3u8_doc=None):
@@ -2812,11 +2812,11 @@ class InfoExtractor:
                         base_url_e = element.find(_add_ns('BaseURL'))
                         if try_call(lambda: base_url_e.text) is not None:
                             base_url = base_url_e.text + base_url
-                            if re.match(r'^https?://', base_url):
+                            if re.match(r'https?://', base_url):
                                 break
                     if mpd_base_url and base_url.startswith('/'):
                         base_url = urllib.parse.urljoin(mpd_base_url, base_url)
-                    elif mpd_base_url and not re.match(r'^https?://', base_url):
+                    elif mpd_base_url and not re.match(r'https?://', base_url):
                         if not mpd_base_url.endswith('/'):
                             mpd_base_url += '/'
                         base_url = mpd_base_url + base_url
@@ -2906,7 +2906,7 @@ class InfoExtractor:
                         }
 
                     def location_key(location):
-                        return 'url' if re.match(r'^https?://', location) else 'path'
+                        return 'url' if re.match(r'https?://', location) else 'path'
 
                     if 'segment_urls' not in representation_ms_info and 'media' in representation_ms_info:
 
