@@ -57,7 +57,7 @@ class SRGSSRIE(InfoExtractor):
     def _get_media_data(self, bu, media_type, media_id):
         query = {'onlyChapters': True} if media_type == 'video' else {}
         full_media_data = self._download_json(
-            f'https://il.srgssr.ch/integrationlayer/2.0/{bu}/mediaComposition/{media_type}/{media_id}.json',
+            f'https://il.srgssr.ch/integrationlayer/2.0/mediaComposition/byUrn/urn:{bu}:{media_type}:{media_id}.json',
             media_id, query=query)['chapterList']
         try:
             media_data = next(
@@ -165,7 +165,7 @@ class SRGSSRPlayIE(InfoExtractor):
 
     _TESTS = [{
         'url': 'http://www.srf.ch/play/tv/10vor10/video/snowden-beantragt-asyl-in-russland?id=28e1a57d-5b76-4399-8ab3-9097f071e6c5',
-        'md5': '6db2226ba97f62ad42ce09783680046c',
+        'md5': '81c6ad90d774c46e3c54ea2f01a94db3',
         'info_dict': {
             'id': '28e1a57d-5b76-4399-8ab3-9097f071e6c5',
             'ext': 'mp4',
@@ -173,7 +173,7 @@ class SRGSSRPlayIE(InfoExtractor):
             'title': 'Snowden beantragt Asyl in Russland',
             'timestamp': 1372708215,
             'duration': 113.827,
-            'thumbnail': r're:^https?://.*1383719781\.png$',
+            'thumbnail': r're:^https?://download-media\.srf\.ch/.*\.(?:png|jpg)$',
         },
         'expected_warnings': ['Unable to download f4m manifest'],
     }, {
@@ -185,6 +185,7 @@ class SRGSSRPlayIE(InfoExtractor):
             'title': 'Saira: Tujetsch - tuttina cuntinuar cun Sedrun Mustér Turissem',
             'timestamp': 1444709160,
             'duration': 336.816,
+            'thumbnail': r're:^https?://download-media\.srf\.ch/.*\.(?:png|jpg)$',
         },
         'params': {
             # rtmp download
@@ -217,7 +218,7 @@ class SRGSSRPlayIE(InfoExtractor):
             'duration': 94.0,
             'upload_date': '20170215',
             'timestamp': 1487173560,
-            'thumbnail': r're:https?://www\.swissinfo\.ch/srgscalableimage/42961964',
+            'thumbnail': r're:https?://cdn\.prod\.swi-services\.ch/.+',
             'subtitles': 'count:9',
         },
         'params': {
