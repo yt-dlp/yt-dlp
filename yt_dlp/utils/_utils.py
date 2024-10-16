@@ -830,10 +830,11 @@ class Popen(subprocess.Popen):
 
         # Force spawning independent subprocesses for exes bundled with PyInstaller>=6.10
         # Ref: https://pyinstaller.org/en/v6.10.0/CHANGES.html#incompatible-changes
+        #      https://github.com/yt-dlp/yt-dlp/issues/11259
         env['PYINSTALLER_RESET_ENVIRONMENT'] = '1'
 
         # Restore LD_LIBRARY_PATH when using PyInstaller
-        # Ref: https://github.com/pyinstaller/pyinstaller/blob/develop/doc/runtime-information.rst#ld_library_path--libpath-considerations
+        # Ref: https://pyinstaller.org/en/v6.10.0/runtime-information.html#ld-library-path-libpath-considerations
         #      https://github.com/yt-dlp/yt-dlp/issues/4573
         def _fix(key):
             orig = env.get(f'{key}_ORIG')
