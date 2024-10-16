@@ -40,7 +40,7 @@ class BoomplayBaseIE(InfoExtractor):
     @staticmethod
     def __yield_elements_text_and_html_by_class_and_tag(class_, tag, html):
         """
-        Yields content of all element matching `tag .class_` in html
+        Yields content of all element matching `tag.class_` in html
         class_ must be re escaped
         """
         # get_elements_text_and_html_by_attribute returns a generator
