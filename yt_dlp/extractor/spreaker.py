@@ -83,7 +83,9 @@ class SpreakerIE(InfoExtractor):
             'view_count': int,
             'like_count': int,
             'comment_count': int,
-            'series': 'Success With Music (SWM)',
+            'series': 'Success With Music | SWM',
+            'thumbnail': r're:https?://.*\.jpg',
+            'creators': ['SWM'],
         },
     }, {
         'url': 'https://api.spreaker.com/download/episode/12534508/swm_ep15_how_to_market_your_music_part_2.mp3',
@@ -102,6 +104,7 @@ class SpreakerIE(InfoExtractor):
 
 
 class SpreakerPageIE(InfoExtractor):
+    # NOTE:the sample test doesnt work, need to futher investigate
     _VALID_URL = r'https?://(?:www\.)?spreaker\.com/user/[^/]+/(?P<id>[^/?#&]+)'
     _TESTS = [{
         'url': 'https://www.spreaker.com/user/9780658/swm-ep15-how-to-market-your-music-part-2',
@@ -156,17 +159,53 @@ class SpreakerShowIE(InfoExtractor):
 
 
 class SpreakerShowPageIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?spreaker\.com/show/(?P<id>[^/?#&]+)'
+    _VALID_URL = r'https?://(?:www\.)?spreaker\.com/show/(?P<id>[^/?#&]+)(?:[?#]|$)(?!/episodes/feed)'
     _TESTS = [{
         'url': 'https://www.spreaker.com/show/success-with-music',
-        'only_matching': True,
+        'info_dict': {
+            'id': '2317431',
+        },
+        'playlist_mincount': 30,
     }]
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
-        show_id = self._search_regex(
-            r'show_id\s*:\s*(?P<id>\d+)', webpage, 'show id')
+        redirect_url = self._og_search_property('url', webpage, 'redirect url')
+        return self.url_result(
+            redirect_url,
+            SpreakerPodcastPageIE)
+
+
+class SpreakerPodcastPageIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:www\.)?spreaker\.com/podcast/[\w-]+--(?P<id>[\d]+)'
+    _TESTS = [{
+        'url': 'https://www.spreaker.com/podcast/health-wealth--5918323',
+        'info_dict': {
+            'id': '5918323',
+        },
+        'playlist_mincount': 60,
+    }]
+
+    def _real_extract(self, url):
+        show_id = self._match_id(url)
+        return self.url_result(
+            f'https://api.spreaker.com/show/{show_id}',
+            ie=SpreakerShowIE.ie_key(), video_id=show_id)
+
+
+class SpreakerFeedPageIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:www\.)?spreaker\.com/show/(?P<id>\d+)/episodes/feed'
+    _TESTS = [{
+        'url': 'https://www.spreaker.com/show/5887186/episodes/feed',
+        'info_dict': {
+            'id': '5887186',
+        },
+        'playlist_mincount': 290,
+    }]
+
+    def _real_extract(self, url):
+        show_id = self._match_id(url)
         return self.url_result(
             f'https://api.spreaker.com/show/{show_id}',
             ie=SpreakerShowIE.ie_key(), video_id=show_id)
