@@ -86,7 +86,6 @@ class ZoomIE(InfoExtractor):
 
     def _real_extract(self, url):
         base_url, url_type, video_id = self._match_valid_url(url).group('base_url', 'type', 'id')
-        query = {}
 
         if url_type == 'share':
             webpage = self._get_real_webpage(url, base_url, video_id, 'share')
@@ -95,7 +94,6 @@ class ZoomIE(InfoExtractor):
                 f'{base_url}nws/recording/1.0/play/share-info/{meeting_id}',
                 video_id, note='Downloading share info JSON')['result']['redirectUrl']
             url = urljoin(base_url, redirect_path)
-            query['continueMode'] = 'true'
 
         webpage = self._get_real_webpage(url, base_url, video_id, 'play')
         file_id = self._get_page_data(webpage, video_id)['fileId']
@@ -104,10 +102,13 @@ class ZoomIE(InfoExtractor):
             raise ExtractorError('Unable to extract file ID')
 
         data = self._download_json(
-            f'{base_url}nws/recording/1.0/play/info/{file_id}', video_id, query=query,
+            f'{base_url}nws/recording/1.0/play/info/{file_id}', video_id, query={
+                'continueMode': 'true',  # Makes this return value include interpreter audio information
+            },
             note='Downloading play info JSON')['result']
 
         subtitles = {}
+        # XXX: Would be more appropriate to parse chapters separate from subtitles
         for _type in ('transcript', 'cc', 'chapter'):
             if data.get(f'{_type}Url'):
                 subtitles[_type] = [{
@@ -116,6 +117,19 @@ class ZoomIE(InfoExtractor):
                 }]
 
         formats = []
+
+        if data.get('interpreterAudioList'):
+            for audio in data.get('interpreterAudioList'):
+                formats.append({
+                    'format_note': f'Intepreter: {audio["languageText"]}',
+                    'url': audio['audioUrl'],
+                    'format_id': f'interpreter-{ audio["icon"].lower()}',
+                    'ext': 'm4a',
+                    # There doesn't seem to be an explicit field for a standardized language code,
+                    # sometimes the `language` field may be more accurate than `icon`
+                    'language': audio['icon'].lower(),
+                    'vcodec': 'none',
+                })
 
         if data.get('viewMp4Url'):
             formats.append({
