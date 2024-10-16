@@ -3546,7 +3546,8 @@ class YoutubeDL:
                                      'writing DASH m4a. Only some players support this container',
                                      FFmpegFixupM4aPP)
                         ffmpeg_fixup(downloader == 'hlsnative' and not self.params.get('hls_use_mpegts')
-                                     or info_dict.get('is_live') and self.params.get('hls_use_mpegts') is None,
+                                     or info_dict.get('is_live') and self.params.get('hls_use_mpegts') is None
+                                     or downloader == 'niconico_live',
                                      'Possible MPEG-TS in MP4 container or malformed AAC timestamps',
                                      FFmpegFixupM3u8PP)
                         ffmpeg_fixup(downloader == 'dashsegments'
