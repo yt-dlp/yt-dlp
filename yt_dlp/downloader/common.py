@@ -16,6 +16,7 @@ from ..minicurses import (
 from ..utils import (
     IDENTITY,
     NO_DEFAULT,
+    FormatProgressInfos,
     LockingUnsupportedError,
     Namespace,
     RetryManager,
@@ -26,11 +27,9 @@ from ..utils import (
     format_bytes,
     join_nonempty,
     parse_bytes,
-    remove_start,
     sanitize_open,
     shell_quote,
     timeconvert,
-    timetuple_from_msec,
     try_call,
 )
 
@@ -119,56 +118,6 @@ class FileDownloader:
     @classproperty
     def FD_NAME(cls):
         return re.sub(r'(?<=[a-z])(?=[A-Z])', '_', cls.__name__[:-2]).lower()
-
-    @staticmethod
-    def format_seconds(seconds):
-        if seconds is None:
-            return ' Unknown'
-        time = timetuple_from_msec(seconds * 1000)
-        if time.hours > 99:
-            return '--:--:--'
-        return '%02d:%02d:%02d' % time[:-1]
-
-    @classmethod
-    def format_eta(cls, seconds):
-        return f'{remove_start(cls.format_seconds(seconds), "00:"):>8s}'
-
-    @staticmethod
-    def calc_percent(byte_counter, data_len):
-        if data_len is None:
-            return None
-        return float(byte_counter) / float(data_len) * 100.0
-
-    @staticmethod
-    def format_percent(percent):
-        return '  N/A%' if percent is None else f'{percent:>5.1f}%'
-
-    @classmethod
-    def calc_eta(cls, start_or_rate, now_or_remaining, total=NO_DEFAULT, current=NO_DEFAULT):
-        if total is NO_DEFAULT:
-            rate, remaining = start_or_rate, now_or_remaining
-            if None in (rate, remaining):
-                return None
-            return int(float(remaining) / rate)
-
-        start, now = start_or_rate, now_or_remaining
-        if total is None:
-            return None
-        if now is None:
-            now = time.time()
-        rate = cls.calc_speed(start, now, current)
-        return rate and int((float(total) - float(current)) / rate)
-
-    @staticmethod
-    def calc_speed(start, now, bytes):
-        dif = now - start
-        if bytes == 0 or dif < 0.001:  # One millisecond
-            return None
-        return float(bytes) / dif
-
-    @staticmethod
-    def format_speed(speed):
-        return ' Unknown B/s' if speed is None else f'{format_bytes(speed):>10s}/s'
 
     @staticmethod
     def format_retries(retries):
@@ -348,18 +297,16 @@ class FileDownloader:
                     return tmpl
             return default
 
-        _format_bytes = lambda k: f'{format_bytes(s.get(k)):>10s}'
-
         if s['status'] == 'finished':
             if self.params.get('noprogress'):
                 self.to_screen('[download] Download completed')
             speed = try_call(lambda: s['total_bytes'] / s['elapsed'])
             s.update({
                 'speed': speed,
-                '_speed_str': self.format_speed(speed).strip(),
-                '_total_bytes_str': _format_bytes('total_bytes'),
-                '_elapsed_str': self.format_seconds(s.get('elapsed')),
-                '_percent_str': self.format_percent(100),
+                '_speed_str': FormatProgressInfos.format_speed(speed).strip(),
+                '_total_bytes_str': format_bytes(s.get('total_bytes')),
+                '_elapsed_str': FormatProgressInfos.format_seconds(s.get('elapsed')),
+                '_percent_str': FormatProgressInfos.format_percent(100),
             })
             self._report_progress_status(s, join_nonempty(
                 '100%%',
@@ -378,16 +325,16 @@ class FileDownloader:
                 self._progress_delta_time += update_delta
 
         s.update({
-            '_eta_str': self.format_eta(s.get('eta')).strip(),
-            '_speed_str': self.format_speed(s.get('speed')),
-            '_percent_str': self.format_percent(try_call(
+            '_eta_str': FormatProgressInfos.format_eta(s.get('eta')),
+            '_speed_str': FormatProgressInfos.format_speed(s.get('speed')),
+            '_percent_str': FormatProgressInfos.format_percent(try_call(
                 lambda: 100 * s['downloaded_bytes'] / s['total_bytes'],
                 lambda: 100 * s['downloaded_bytes'] / s['total_bytes_estimate'],
                 lambda: s['downloaded_bytes'] == 0 and 0)),
-            '_total_bytes_str': _format_bytes('total_bytes'),
-            '_total_bytes_estimate_str': _format_bytes('total_bytes_estimate'),
-            '_downloaded_bytes_str': _format_bytes('downloaded_bytes'),
-            '_elapsed_str': self.format_seconds(s.get('elapsed')),
+            '_total_bytes_str': format_bytes(s.get('total_bytes')),
+            '_total_bytes_estimate_str': format_bytes(s.get('total_bytes_estimate')),
+            '_downloaded_bytes_str': format_bytes(s.get('downloaded_bytes')),
+            '_elapsed_str': FormatProgressInfos.format_seconds(s.get('elapsed')),
         })
 
         msg_template = with_fields(

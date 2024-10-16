@@ -120,19 +120,22 @@ class TestFFmpegFD(unittest.TestCase):
             downloader._call_downloader('test', {**TEST_INFO, 'ext': 'mp4'})
             self.assertEqual(self._args, [
                 'ffmpeg', '-y', '-hide_banner', '-i', 'http://www.example.com/',
-                '-c', 'copy', '-f', 'mp4', 'file:test'])
+                '-c', 'copy', '-f', 'mp4', 'file:test', '-progress', 'pipe:1'])
 
             # Test cookies arg is added
             ydl.cookiejar.set_cookie(http.cookiejar.Cookie(**TEST_COOKIE))
             downloader._call_downloader('test', {**TEST_INFO, 'ext': 'mp4'})
             self.assertEqual(self._args, [
-                'ffmpeg', '-y', '-hide_banner', '-cookies', 'test=ytdlp; path=/; domain=.example.com;\r\n',
-                '-i', 'http://www.example.com/', '-c', 'copy', '-f', 'mp4', 'file:test'])
+                'ffmpeg', '-y', '-hide_banner', '-cookies',
+                'test=ytdlp; path=/; domain=.example.com;\r\n', '-i',
+                'http://www.example.com/', '-c', 'copy', '-f', 'mp4',
+                'file:test', '-progress', 'pipe:1'])
 
             # Test with non-url input (ffmpeg reads from stdin '-' for websockets)
             downloader._call_downloader('test', {'url': 'x', 'ext': 'mp4'})
             self.assertEqual(self._args, [
-                'ffmpeg', '-y', '-hide_banner', '-i', 'x', '-c', 'copy', '-f', 'mp4', 'file:test'])
+                'ffmpeg', '-y', '-hide_banner', '-i', 'x', '-c', 'copy', '-f',
+                'mp4', 'file:test', '-progress', 'pipe:1'])
 
 
 if __name__ == '__main__':
