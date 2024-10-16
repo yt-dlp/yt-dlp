@@ -29,7 +29,7 @@ RmForceShutdown = 1
 def callback(percent_complete: UINT) -> None:
     pass
 
-rstrtmgr = windll.LoadLibrary("Rstrtmgr")
+rstrtmgr = windll.LoadLibrary('Rstrtmgr')
 
 def unlock_cookies(cookies_path):
     session_handle = DWORD(0)
@@ -39,13 +39,13 @@ def unlock_cookies(cookies_path):
     result = DWORD(rstrtmgr.RmStartSession(byref(session_handle), session_flags, session_key)).value
 
     if result != ERROR_SUCCESS:
-        raise RuntimeError(f"RmStartSession returned non-zero result: {result}")
+        raise RuntimeError(f'RmStartSession returned non-zero result: {result}')
 
     try:
         result = DWORD(rstrtmgr.RmRegisterResources(session_handle, 1, byref(pointer(create_unicode_buffer(cookies_path))), 0, None, 0, None)).value
 
         if result != ERROR_SUCCESS:
-            raise RuntimeError(f"RmRegisterResources returned non-zero result: {result}")
+            raise RuntimeError(f'RmRegisterResources returned non-zero result: {result}')
 
         proc_info_needed = DWORD(0)
         proc_info = DWORD(0)
@@ -54,17 +54,17 @@ def unlock_cookies(cookies_path):
         result = DWORD(rstrtmgr.RmGetList(session_handle, byref(proc_info_needed), byref(proc_info), None, byref(reboot_reasons))).value
 
         if result not in (ERROR_SUCCESS, ERROR_MORE_DATA):
-            raise RuntimeError(f"RmGetList returned non-successful result: {result}")
+            raise RuntimeError(f'RmGetList returned non-successful result: {result}')
 
         if proc_info_needed.value:
             result = DWORD(rstrtmgr.RmShutdown(session_handle, RmForceShutdown, callback)).value
 
             if result != ERROR_SUCCESS:
-                raise RuntimeError(f"RmShutdown returned non-successful result: {result}")
+                raise RuntimeError(f'RmShutdown returned non-successful result: {result}')
         else:
-            print("File is not locked")
+            print('File is not locked')
     finally:
         result = DWORD(rstrtmgr.RmEndSession(session_handle)).value
 
         if result != ERROR_SUCCESS:
-            raise RuntimeError(f"RmEndSession returned non-successful result: {result}")
+            raise RuntimeError(f'RmEndSession returned non-successful result: {result}')
