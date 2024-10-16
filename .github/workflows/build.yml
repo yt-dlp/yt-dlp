@@ -419,22 +419,16 @@ jobs:
         run: |
           python -m bundle.pyinstaller
           python -m bundle.pyinstaller --onedir
-          Move-Item ./dist/yt-dlp.exe ./dist/yt-dlp_real.exe
           Compress-Archive -Path ./dist/yt-dlp/* -DestinationPath ./dist/yt-dlp_win.zip
 
-      - name: Install Requirements (py2exe)
+      - name: Add migration executable for py2exe
         run: |
-          python devscripts/install_deps.py --include py2exe
-      - name: Build (py2exe)
-        run: |
-          python -m bundle.py2exe
-          Move-Item ./dist/yt-dlp.exe ./dist/yt-dlp_min.exe
-          Move-Item ./dist/yt-dlp_real.exe ./dist/yt-dlp.exe
+          Copy-Item ./dist/yt-dlp.exe ./dist/yt-dlp_min.exe
 
       - name: Verify --update-to
         if: vars.UPDATE_TO_VERIFICATION
         run: |
-          foreach ($name in @("yt-dlp","yt-dlp_min")) {
+          foreach ($name in @("yt-dlp")) {
             Copy-Item "./dist/${name}.exe" "./dist/${name}_downgraded.exe"
             $version = & "./dist/${name}.exe" --version
             & "./dist/${name}_downgraded.exe" -v --update-to yt-dlp/yt-dlp@2023.03.04
