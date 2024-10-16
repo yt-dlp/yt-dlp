@@ -1,4 +1,5 @@
 import functools
+import json
 import re
 
 from .common import InfoExtractor
@@ -577,3 +578,120 @@ class ARDMediathekCollectionIE(InfoExtractor):
         return self.playlist_result(
             OnDemandPagedList(fetch_page, self._PAGE_SIZE), full_id, display_id=display_id,
             title=page_data.get('title'), description=page_data.get('synopsis'))
+
+
+class ARDAudiothekIE(InfoExtractor):
+    IE_NAME = 'ARD:audiothek'
+    _VALID_URL = r'''(?x)https://
+        (?:www\.)?ardaudiothek\.de/
+        (?:player|live|episode|(?P<playlist>sendung|serie|sammlung))/
+        (?P<display_id>(?(playlist)[^?#]+?|[^?#]+))/
+        (?P<id>[a-zA-Z0-9]+)
+        (?(playlist)/(?P<season>\d+)?/?(?:[?#]|$))'''
+
+    _TESTS = [{
+        'url': 'https://www.ardaudiothek.de/sendung/1live-caiman-club/53375276/',
+        'info_dict': {
+            'id': '53375276',
+            'title': '1LIVE Caiman Club',
+            'description': 'md5:003cff043a41b14cf045b960b89aaa86',
+        },
+        'playlist_mincount': 22,
+    }, {
+        'url': 'https://www.ardaudiothek.de/episode/1live-caiman-club/caiman-club-s04e04-cash-out/1live/13556081/',
+        'info_dict': {
+            'id': '13556081',
+            'ext': 'mp3',
+            'upload_date': '20240717',
+            'duration': 3339,
+            'title': 'CAIMAN CLUB (S04E04): Cash Out',
+            'thumbnail': 'https://api.ardmediathek.de/image-service/images/urn:ard:image:d5014b612429c396',
+            'description': 'md5:8decf7974ed1cbf5a9d2c537940e1c4b',
+            'display_id': '1live-caiman-club/caiman-club-s04e04-cash-out/1live',
+            'timestamp': 1721181641,
+            'series': '1LIVE Caiman Club',
+
+        },
+    }]
+
+    _QUERY_PLAYLIST = '''\
+    show(id: "%s") {
+        title
+        description
+        items {
+            nodes {
+                url
+                episodeNumber
+                grouping
+                isPublished
+            }
+        }
+    }'''
+
+    _QUERY_ITEM = '''\
+    item(id: "%s") {
+        audioList {
+            href
+            distributionType
+        }
+        show {
+          title
+        }
+        image {
+          url
+        }
+        synopsis
+        title
+        duration
+        startDate
+    }'''
+
+    _GRAPHQL_ENDPOINT = 'https://api.ardaudiothek.de/graphql'
+
+    def _graphql_query(self, display_id, query):
+        return self._download_json(
+            self._GRAPHQL_ENDPOINT,
+            display_id,
+            data=json.dumps({'query': '{' + query + '}'}).encode(),
+            headers={
+                'Content-Type': 'application/json',
+            },
+        )['data']
+
+    def _real_extract(self, url):
+        video_id, display_id, playlist_type, season_number = self._match_valid_url(url).group(
+            'id', 'display_id', 'playlist', 'season')
+        if re.match('^[/-]*$', display_id):
+            display_id = video_id
+
+        if playlist_type:
+            playlist_info = self.graphql_query(display_id, self._QUERY_PLAYLIST % video_id)['show']
+            episodes = playlist_info['items']['nodes']
+            entries = []
+            for episode in episodes:
+                if episode['isPublished']:
+                    entries.append(self.url_result(
+                        episode['url'],
+                        ie=ARDAudiothekIE.ie_key()))
+            return self.playlist_result(entries, video_id, playlist_title=display_id, **traverse_obj(playlist_info, {
+                'title': ('title', {str}),
+                'description': ('description', {str}),
+            }))
+
+        return {
+            'display_id': display_id,
+            'formats': traverse_obj(self.graphql_query(display_id, self._QUERY_ITEM % video_id), (
+                'item', 'audioList', lambda _, v: url_or_none(v['href']), {
+                    'url': 'href',
+                    'format_id': ('distributionType', {str}),
+            })),
+            'id': video_id,
+            **traverse_obj(item, {
+                'description': ('synopsis', {str}),
+                'duration': ('duration', {int_or_none}),
+                'series': ('show', 'title'),
+                'thumbnail': ('image', 'url', {url_or_none}),
+                'timestamp': ('startDate', {parse_iso8601}),
+                'title': ('title', {str}),
+            }),
+        }
