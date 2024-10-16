@@ -6,6 +6,7 @@ from ..utils import (
     int_or_none,
     parse_age_limit,
     smuggle_url,
+    str_to_int,
     traverse_obj,
     unsmuggle_url,
     url_or_none,
@@ -37,7 +38,11 @@ class CineverseIE(CineverseBaseIE):
             'cast': ['Xun Zhou', 'Xiaoming Huang', 'Yi-Lin Sie', 'Sonia Sui', 'Quniciren'],
             'duration': 5811.597,
             'description': 'md5:892fd62a05611d394141e8394ace0bc6',
-            'age_limit': 13,
+            'age_limit': 14,
+            'release_year': 2014,
+            'creators': ['Ho-Cheung Pang'],
+            'categories': ['Comedy', 'Romance'],
+            'tags': ['Romantic Comedy', 'Comedy', 'Cute', 'Romance', 'Chinese'],
         },
     }, {
         'url': 'https://www.retrocrush.tv/watch/1000000023016/Archenemy! Crystal Bowie',
@@ -50,11 +55,34 @@ class CineverseIE(CineverseBaseIE):
             'season_number': 1,
             'cast': ['Nachi Nozawa', 'Yoshiko Sakakibara', 'Toshiko Fujita'],
             'age_limit': 0,
-            'episode': 'Episode 3',
+            'episode': 'Archenemy! Crystal Bowie',
             'season': 'Season 1',
             'duration': 1485.067,
             'description': 'Cobra meets a beautiful bounty hunter by the name of Jane Royal.',
             'series': 'Space Adventure COBRA (Original Japanese)',
+            'creators': ['Osamu Dezaki', 'Yoshio Takeuch'],
+            'categories': ['Action & Adventure', 'Sci-Fi & Fantasy', 'Anime'],
+            'tags': ['Psyco-gun', 'Cobra', 'Lady'],
+        },
+    }, {
+        'url': 'https://www.retrocrush.tv/watch/DMR00009822/Wads-of-Bills-Blossom-in-the-Rio-Sunset',
+        'skip': 'geo-blocked',
+        'info_dict': {
+            'title': 'Wads of Bills Blossom in the Rio Sunset',
+            'ext': 'mp4',
+            'id': 'DMR00009822',
+            'episode_number': 2,
+            'season_number': 1,
+            'cast': ['Yasuo Yamada', 'Kiyoshi Kobayashi', 'Gorô Naya', 'Makio Inoue', 'Eiko Masuyama'],
+            'age_limit': 14,
+            'episode': 'Wads of Bills Blossom in the Rio Sunset',
+            'season': 'Season 1',
+            'duration': 1481.451,
+            'description': 'md5:6bdb2e470de0effea481f9a526e44bb3',
+            'series': 'Lupin the 3rd Part II (Original Japanese)',
+            'creators': ['Kyôsuke Mikuriya', 'Hayao Miyazaki', 'Noboru Ishiguro', 'Yasumi Mikamoto'],
+            'categories': ['Anime', 'Action & Adventure', 'Crime'],
+            'tags': ['Anime', 'monkey punch', 'lupin the third', 'lupin', 'lupin the 3rd', 'lupin iii', 'retro anime', 'hayao miyazaki'],
         },
     }]
 
@@ -76,11 +104,27 @@ class CineverseIE(CineverseBaseIE):
                 'You may be able to bypass it by using the /details/ page instead of the /watch/ page',
                 countries=smuggled_data.get('geo_countries'))
 
+        # there can be multiple age limits (e.g. PG-13 AND TV-14), so take highest
+        age_limit = traverse_obj(idetails, ('details', 'rating_code', {lambda x: x.split(', ')}, ..., {parse_age_limit}, all, {max}))
+
+        # get type-dependent metadata
+        if traverse_obj(idetails, ('details', 'type')) == 'episode':
+            # episode of a series - use title as episode name and get tags from series metadata
+            episode = traverse_obj(idetails, ('details', 'title'))
+            tags = traverse_obj(idetails, ('details', 'series_details', 'keyword', {lambda x: x.split(', ')}))
+        else:
+            # other - get tags directly
+            episode = None
+            tags = traverse_obj(idetails, ('details', 'keyword', {lambda x: x.split(', ')}))
+
         return {
             'subtitles': filter_dict({
                 'en': traverse_obj(idetails, (('cc_url_vtt', 'subtitle_url'), {'url': {url_or_none}})) or None,
             }),
             'formats': self._extract_m3u8_formats(idetails['url'], video_id),
+            'age_limit': age_limit,
+            'episode': episode,
+            'tags': tags,
             **traverse_obj(idetails, {
                 'title': 'title',
                 'id': ('details', 'item_id'),
@@ -90,8 +134,11 @@ class CineverseIE(CineverseBaseIE):
                 'modified_timestamp': ('details', 'updated_by', 0, 'update_time', 'time', {int_or_none}),
                 'season_number': ('details', 'season', {int_or_none}),
                 'episode_number': ('details', 'episode', {int_or_none}),
-                'age_limit': ('details', 'rating_code', {parse_age_limit}),
                 'series': ('details', 'series_details', 'title'),
+                'creators': ('details', 'directors', {lambda x: x.split(', ')}),
+                'release_year': ('details', 'pub_year', {str_to_int}),
+                'categories': ('details', 'genres', {lambda x: x.split(', ')}),
+                'tags': ('details', 'keyword', {lambda x: x.split(', ')}),
             }),
         }
 
@@ -114,6 +161,13 @@ class CineverseDetailsIE(CineverseBaseIE):
             'description': 'md5:e3e4c35309c2e82aee044f972c2fb05d',
             'cast': ['Jeong-myeong Cheon', 'Eun Won-jae', 'Shim Eun-gyeong', 'Ji-hee Jin', 'Hee-soon Park', 'Lydia Park', 'Kyeong-ik Kim'],
             'duration': 7030.732,
+        },
+    }, {
+        'url': 'https://www.retrocrush.tv/details/DMR00009819/Lupin-the-3rd-Part-II-(Original-Japanese)',
+        'playlist_mincount': 155,
+        'info_dict': {
+            'title': 'Lupin the 3rd Part II (Original Japanese)',
+            'id': 'DMR00009819',
         },
     }]
 
