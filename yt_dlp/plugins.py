@@ -20,6 +20,7 @@ from .utils import (
     get_user_config_dirs,
     orderedSet,
     write_string,
+    Config,
 )
 
 PACKAGE_NAME = 'yt_dlp_plugins'
@@ -83,6 +84,11 @@ class PluginFinder(importlib.abc.MetaPathFinder):
         candidate_locations.extend(map(Path, sys.path))  # PYTHONPATH
         with contextlib.suppress(ValueError):  # Added when running __main__.py directly
             candidate_locations.remove(Path(__file__).parent)
+
+        if Config._plugins_location:
+            candidate_locations.extend(_get_package_paths(
+                *Config._plugins_location,
+                containing_folder=''))
 
         parts = Path(*fullname.split('.'))
         for path in orderedSet(candidate_locations, lazy=True):
