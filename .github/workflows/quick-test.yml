@@ -15,12 +15,12 @@ jobs:
       with:
         python-version: '3.8'
     - name: Install test requirements
-      run: python3 ./devscripts/install_deps.py --include test
+      run: python3 ./devscripts/install_deps.py -o --include test
     - name: Run tests
       timeout-minutes: 15
       run: |
         python3 -m yt_dlp -v || true
-        python3 ./devscripts/run_tests.py core
+        python3 ./devscripts/run_tests.py --pytest-args '--reruns 2 --reruns-delay 3.0' core
   check:
     name: Code check
     if: "!contains(github.event.head_commit.message, 'ci skip all')"

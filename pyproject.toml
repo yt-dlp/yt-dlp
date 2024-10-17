@@ -56,7 +56,7 @@ dependencies = [
 default = []
 curl-cffi = [
     "curl-cffi==0.5.10; os_name=='nt' and implementation_name=='cpython'",
-    "curl-cffi>=0.5.10,!=0.6.*,<0.8; os_name!='nt' and implementation_name=='cpython'",
+    "curl-cffi>=0.5.10,!=0.6.*,<0.7.2; os_name!='nt' and implementation_name=='cpython'",
 ]
 secretstorage = [
     "cffi",
@@ -76,13 +76,14 @@ dev = [
 ]
 static-analysis = [
     "autopep8~=2.0",
-    "ruff~=0.5.0",
+    "ruff~=0.6.0",
 ]
 test = [
     "pytest~=8.1",
+    "pytest-rerunfailures~=14.0",
 ]
 pyinstaller = [
-    "pyinstaller>=6.7.0",  # for compat with setuptools>=70
+    "pyinstaller>=6.10.0",  # Windows temp cleanup fixed in 6.10.0
 ]
 py2exe = [
     "py2exe>=0.12",
@@ -162,7 +163,6 @@ lint-fix = "ruff check --fix {args:.}"
 features = ["test"]
 dependencies = [
     "pytest-randomly~=3.15",
-    "pytest-rerunfailures~=14.0",
     "pytest-xdist[psutil]~=3.5",
 ]
 
