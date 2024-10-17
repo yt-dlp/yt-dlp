@@ -4897,6 +4897,8 @@ class Config:
     filename = None
     __initialized = False
 
+    _plugins_location = None
+
     def __init__(self, parser, label=None):
         self.parser, self.label = parser, label
         self._loaded_paths, self.configs = set(), []
