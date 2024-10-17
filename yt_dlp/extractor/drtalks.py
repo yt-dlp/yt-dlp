@@ -1,4 +1,3 @@
-
 from .brightcove import BrightcoveNewIE
 from .common import InfoExtractor
 from ..utils import extract_attributes, smuggle_url
