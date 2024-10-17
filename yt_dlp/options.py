@@ -419,7 +419,14 @@ def create_parser():
     general.add_option(
         '--live-from-start',
         action='store_true', dest='live_from_start',
-        help='Download livestreams from the start. Currently only supported for YouTube (Experimental)')
+        help=('Download livestreams from the start. Currently only supported for YouTube (Experimental). '
+              'Time ranges can be specified using --download-sections to download only a part of the stream. '
+              'Negative values are allowed for specifying a relative previous time, using the # syntax '
+              'e.g. --download-sections "#-24hours - 0" (download last 24 hours), '
+              'e.g. --download-sections "#-1h - 30m" (download from 1 hour ago until the next 30 minutes), '
+              'e.g. --download-sections "#-3days - -2days" (download from 3 days ago until 2 days ago). '
+              'It is also possible to specify an exact unix timestamp range, using the * syntax, '
+              'e.g. --download-sections "*1672531200 - 1672549200" (download between those two timestamps)'))
     general.add_option(
         '--no-live-from-start',
         action='store_false', dest='live_from_start',
