@@ -52,17 +52,19 @@ class FifaContentIE(InfoExtractor):
             }).encode())
         self._HEADERS['x-chili-device-id'] = device_info['id']
 
-    def _call_api(self, path, video_id, note=None, **kwargs):
+    def _call_api(self, path, video_id, note=None, headers=None, query=None, data=None):
         return self._download_json(
-            f'https://www.plus.fifa.com/flux-capacitor/api/v1//{path}', video_id, note, **kwargs)
+            f'https://www.plus.fifa.com/flux-capacitor/api/v1//{path}', video_id, note, headers={
+                **self._HEADERS,
+                **(headers or {}),
+            }, query=query, data=data)
 
     def _real_extract(self, url):
         urlh = self._request_webpage(url, self._match_id(url))
         video_id, display_id, locale = self._match_valid_url(urlh.url).group('id', 'display_id', 'locale')
 
         video_info = self._call_api(
-            'videoasset', video_id, 'Downloading video asset',
-            headers=self._HEADERS, query={'catalog': video_id})[0]
+            'videoasset', video_id, 'Downloading video asset', query={'catalog': video_id})[0]
 
         formats = []
         subtitles = {}
@@ -73,12 +75,12 @@ class FifaContentIE(InfoExtractor):
         ]:
             session_info = self._call_api(
                 'streaming/session', video_id, 'Getting streaming session',
-                headers={**self._HEADERS, 'x-chili-accept-stream': stream_type},
+                headers={'x-chili-accept-stream': stream_type},
                 data=json.dumps({'videoAssetId': video_info['id'], 'autoPlay': False}).encode())
 
             streams_info = self._call_api(
                 'streaming/urls', video_id, 'Getting streaming urls',
-                headers={**self._HEADERS, 'x-chili-streaming-session': session_info['id']})
+                headers={'x-chili-streaming-session': session_info['id']})
 
             for playlist_url in traverse_obj(streams_info, (..., 'url')):
                 ext = determine_ext(playlist_url)
@@ -115,8 +117,9 @@ class FifaBaseIE(InfoExtractor):
             r'<link\b[^>]+\brel\s*=\s*"preconnect"[^>]+href\s*=\s*"([^"]+)"',
             self._download_webpage('https://fifa.com/', None), 'Preconnect Link')
 
-    def _call_api(self, path, video_id, note=None, **kwargs):
-        return self._download_json(f'{self._preconnect_link}/{path}', video_id, note, **kwargs)
+    def _call_api(self, path, video_id, note=None, query=None):
+        return self._download_json(
+            f'{self._preconnect_link}/{path}', video_id, note, query=query)
 
 
 class FifaIE(FifaBaseIE):
