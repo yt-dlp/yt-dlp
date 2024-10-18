@@ -18,12 +18,11 @@ import threading
 import time
 import traceback
 import urllib.parse
-import uuid
 
 from .common import InfoExtractor, SearchInfoExtractor
 from .openload import PhantomJSwrapper
 from ..jsinterp import JSInterpreter
-from ..networking.exceptions import HTTPError, network_exceptions
+from ..networking.exceptions import HTTPError, TransportError, network_exceptions
 from ..utils import (
     NO_DEFAULT,
     ExtractorError,
@@ -602,13 +601,30 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
         self._initialize_oauth(user, password)
 
+    # OAuth 2.0 Device Authorization Grant flow, used by the YouTube TV client (youtube.com/tv).
+    #
+    # For more information regarding OAuth 2.0 and the Device Authorization Grant flow in general, see:
+    # - https://developers.google.com/identity/protocols/oauth2/limited-input-device
+    # - https://accounts.google.com/.well-known/openid-configuration
+    # - https://www.rfc-editor.org/rfc/rfc8628
+    # - https://www.rfc-editor.org/rfc/rfc6749
+    #
+    # Note: The official client appears to use a proxied version of the oauth2 endpoints on youtube.com/o/oauth2,
+    # which applies some modifications to the response (such as returning errors as 200 OK...). Since it works
+
     _OAUTH_USER = None
     _OAUTH_ACCESS_TOKEN_CACHE = {}
 
-    # YouTube TV (TVHTML5) client
+    # YouTube TV (TVHTML5) client OAuth 2.0 credentials. You can find these at youtube.com/tv.
     _OAUTH_CLIENT_ID = '861556708454-d6dlm3lh05idd8npek18k6be8ba3oc68.apps.googleusercontent.com'
     _OAUTH_CLIENT_SECRET = 'SboVhoG9s0rNafixCSGGKXAT'
-    _OAUTH_SCOPE = 'http://gdata.youtube.com https://www.googleapis.com/auth/youtube'
+    _OAUTH_SCOPE = 'http://gdata.youtube.com https://www.googleapis.com/auth/youtube-paid-content'
+
+    # From https://accounts.google.com/.well-known/openid-configuration
+    # XXX: Technically, these should be fetched dynamically and not hard-coded.
+    # However, as these endpoints rarely change, we can risk saving an extra request for every invocation.
+    _OAUTH_DEVICE_AUTHORIZATION_ENDPOINT = 'https://oauth2.googleapis.com/device/code'  # device_authorization_endpoint
+    _OAUTH_TOKEN_ENDPOINT = 'https://oauth2.googleapis.com/token'                      # token_endpoint
 
     def _set_oauth_info(self, token_response, user):
 
@@ -645,77 +661,104 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 token_response = self._refresh_token(refresh_token)
             except ExtractorError as e:
                 self.report_warning(f'Failed to refresh access token: {e}. Reinitializing oauth authorization flow.')
-                token_response = self._oauth_authorize()
+                token_response = self._oauth_authorize
         else:
-            token_response = self._oauth_authorize()
+            token_response = self._oauth_authorize
 
         self._set_oauth_info(token_response, self._OAUTH_USER)
         self.write_debug(f'Logged in as "{self._OAUTH_USER}" using oauth')
 
     def _refresh_token(self, refresh_token):
-        token_response = self._download_json(
-            'https://www.youtube.com/o/oauth2/token',
-            video_id='oauth',
-            note='Refreshing oauth token',
-            data=json.dumps({
-                'client_id': self._OAUTH_CLIENT_ID,
-                'client_secret': self._OAUTH_CLIENT_SECRET,
-                'refresh_token': refresh_token,
-                'grant_type': 'refresh_token',
-            }).encode(),
-            headers={'Content-Type': 'application/json'})
-        error = traverse_obj(token_response, 'error')
-        if error:
-            raise ExtractorError(f'Failed to refresh access token: {error}', expected=True)
+        try:
+            token_response = self._download_json(
+                self._OAUTH_TOKEN_ENDPOINT,
+                video_id='oauth',
+                note='Refreshing access token',
+                data=json.dumps({
+                    'client_id': self._OAUTH_CLIENT_ID,
+                    'client_secret': self._OAUTH_CLIENT_SECRET,
+                    'refresh_token': refresh_token,
+                    'grant_type': 'refresh_token',
+                }).encode(),
+                headers={'Content-Type': 'application/json'})
+        except ExtractorError as e:
+            if isinstance(e.cause, HTTPError):
+                token_response = self._parse_json(self._webpage_read_content(e.cause.response, None, 'oauth') or '{}', video_id='oauth')
+                error = traverse_obj(token_response, 'error', {str})
+                if error == 'invalid_grant':
+                    # RFC6749 §5.2. In this case the refresh token is either invalid, revoked, or expired.
+                    raise ExtractorError(f'Failed to refresh access token: Invalid refresh token - it may be invalid, revoked, or expired (error: {error})', expected=True)
+                raise ExtractorError(f'Failed to refresh access token: {error}')
+            raise e
 
         return token_response
 
+    @property
     def _oauth_authorize(self):
         code_response = self._download_json(
-            'https://www.youtube.com/o/oauth2/device/code',
+            self._OAUTH_DEVICE_AUTHORIZATION_ENDPOINT,
             video_id='oauth',
-            note='Initializing oauth authorization flow',
+            note='Initializing OAuth 2.0 Authorization Flow',
             data=json.dumps({
                 'client_id': self._OAUTH_CLIENT_ID,
                 'scope': self._OAUTH_SCOPE,
-                'device_id': uuid.uuid4().hex,
-                'device_model': 'ytlr::',
             }).encode(),
             headers={'Content-Type': 'application/json'})
 
         verification_url = traverse_obj(code_response, 'verification_url', {str})
         user_code = traverse_obj(code_response, 'user_code', {str})
         if not verification_url or not user_code:
-            raise ExtractorError('Failed to initialize oauth authorization flow')
+            raise ExtractorError('Failed to initialize authorization flow: response missing verification_url or user_code')
 
         self.to_screen(f'To give yt-dlp access to your account, go to  {verification_url}  and enter code  {user_code}')
 
-        while True:
-            # TODO: add a retry manager to retry 3 times if there is some sort of network/http error, and then give up.
-            token_response = self._download_json(
-                'https://www.youtube.com/o/oauth2/token',
-                video_id='oauth',
-                note=False,
-                errnote='Failed to authorize oauth',
-                data=json.dumps({
-                    'client_id': self._OAUTH_CLIENT_ID,
-                    'client_secret': self._OAUTH_CLIENT_SECRET,
-                    'code': code_response['device_code'],
-                    'grant_type': 'http://oauth.net/grant_type/device/1.0',
-                }).encode(),
-                headers={'Content-Type': 'application/json'})
+        # RFC8628 §3.5 default poll interval is 5 seconds if not provided
+        poll_interval = traverse_obj(code_response, 'interval', {int}, default=5)
 
-            error = traverse_obj(token_response, 'error', {str})
-            if error:
-                if error == 'authorization_pending':
-                    time.sleep(code_response['interval'])
-                    continue
-                elif error == 'expired_token':
-                    raise ExtractorError('oauth authorization flow timed out', expected=True)
-                else:
-                    raise ExtractorError(f'Unknown error occurred during oauth authorization flow: {error}')
+        for retry in self.RetryManager():
+            while True:
+                try:
+                    token_response = self._download_json(
+                        self._OAUTH_TOKEN_ENDPOINT,
+                        video_id='oauth',
+                        note=False,
+                        errnote='Failed to request access token',
+                        data=json.dumps({
+                            'client_id': self._OAUTH_CLIENT_ID,
+                            'client_secret': self._OAUTH_CLIENT_SECRET,
+                            'device_code': code_response['device_code'],
+                            'grant_type': 'urn:ietf:params:oauth:grant-type:device_code',
+                        }).encode(),
+                        headers={'Content-Type': 'application/json'})
+                except ExtractorError as e:
+                    if isinstance(e.cause, TransportError):
+                        retry.error = e
+                        break
+                    elif isinstance(e.cause, HTTPError):
+                        token_response = self._parse_json(self._webpage_read_content(e.cause.response, None, 'oauth') or '{}', video_id='oauth')
+                        if not (error := traverse_obj(token_response, 'error', {str})):
+                            retry.error = e
+                            break
 
-            return token_response
+                        if error == 'authorization_pending':
+                            time.sleep(poll_interval)
+                            continue
+                        elif error == 'expired_token':
+                            raise ExtractorError('Authorization timed out', expected=True)
+                        elif error == 'access_denied':
+                            raise ExtractorError('User denied access to the account', expected=True)
+                        elif error == 'slow_down':
+                            # RFC8628 §3.5 states add 5 seconds to the poll interval
+                            poll_interval += 5
+                            time.sleep(poll_interval)
+                            continue
+                        else:
+                            raise ExtractorError(f'Other error occurred when fetching access token: {error}')
+
+                    else:
+                        raise
+
+                return token_response
 
     def _update_oauth(self):
         token = YoutubeBaseInfoExtractor._OAUTH_ACCESS_TOKEN_CACHE.get(self._OAUTH_USER)
