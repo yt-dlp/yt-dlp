@@ -1555,7 +1555,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         '401': {'ext': 'mp4', 'height': 2160, 'format_note': 'DASH video', 'vcodec': 'av01.0.12M.08'},
     }
     _SUBTITLE_FORMATS = ('json3', 'srv1', 'srv2', 'srv3', 'ttml', 'vtt')
-    _DEFAULT_CLIENTS = _DEFAULT_CLIENTS_OAUTH = ('ios', 'mweb')
+    _DEFAULT_CLIENTS = ('ios', 'mweb')
 
     _GEO_BYPASS = False
 
@@ -4022,10 +4022,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         allowed_clients = sorted(
             (client for client in INNERTUBE_CLIENTS if client[:1] != '_'),
             key=lambda client: INNERTUBE_CLIENTS[client]['priority'], reverse=True)
-        default_clients = self._DEFAULT_CLIENTS if not self._OAUTH_PROFILE else self._DEFAULT_CLIENTS_OAUTH
         for client in self._configuration_arg('player_client'):
             if client == 'default':
-                requested_clients.extend(default_clients)
+                requested_clients.extend(self._DEFAULT_CLIENTS)
             elif client == 'all':
                 requested_clients.extend(allowed_clients)
             elif client.startswith('-'):
@@ -4035,7 +4034,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             else:
                 requested_clients.append(client)
         if not requested_clients:
-            requested_clients.extend(default_clients)
+            requested_clients.extend(self._DEFAULT_CLIENTS)
         for excluded_client in excluded_clients:
             if excluded_client in requested_clients:
                 requested_clients.remove(excluded_client)
