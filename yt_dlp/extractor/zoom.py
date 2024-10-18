@@ -34,6 +34,7 @@ class ZoomIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Prépa AF2023 - Séance 5 du 11 avril - R20/VM/GO',
         },
+        'skip': 'This recording has expired',
     }, {
         # share URL
         'url': 'https://us02web.zoom.us/rec/share/hkUk5Zxcga0nkyNGhVCRfzkA2gX_mzgS3LpTxEEWJz9Y_QpIQ4mZFOUx7KZRZDQA.9LGQBdqmDAYgiZ_8',
