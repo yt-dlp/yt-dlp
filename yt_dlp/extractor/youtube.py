@@ -649,6 +649,10 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         if refresh_token == "''":
             refresh_token = None
 
+        # Allow refresh token passed to initialize cache
+        if refresh_token:
+            self.cache.store(self._NETRC_MACHINE, f'oauth_refresh_token_{self._OAUTH_PROFILE}', refresh_token)
+
         refresh_token = refresh_token or self.cache.load(self._NETRC_MACHINE, f'oauth_refresh_token_{self._OAUTH_PROFILE}')
         if refresh_token:
             YoutubeBaseInfoExtractor._OAUTH_ACCESS_TOKEN_CACHE[self._OAUTH_PROFILE]['refresh_token'] = refresh_token
