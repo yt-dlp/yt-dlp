@@ -1430,6 +1430,12 @@ class YoutubeDL:
             if not filename:
                 return None
 
+            trim_file_name = self.params.get('trim_file_name')
+            if trim_file_name:
+                # https://github.com/yt-dlp/yt-dlp/issues/5526#issuecomment-1312783517
+                no_ext, *ext = filename.rsplit('.', info_dict.get('ext', '').count('.') + 1)
+                filename = join_nonempty(no_ext[:trim_file_name], *ext, delim='.')
+
             if tmpl_type in ('', 'temp'):
                 final_ext, ext = self.params.get('final_ext'), info_dict.get('ext')
                 if final_ext and ext and final_ext != ext and filename.endswith(f'.{final_ext}'):
@@ -1438,12 +1444,6 @@ class YoutubeDL:
                 force_ext = OUTTMPL_TYPES[tmpl_type]
                 if force_ext:
                     filename = replace_extension(filename, force_ext, info_dict.get('ext'))
-
-            # https://github.com/blackjack4494/youtube-dlc/issues/85
-            trim_file_name = self.params.get('trim_file_name', False)
-            if trim_file_name:
-                no_ext, *ext = filename.rsplit('.', 2)
-                filename = join_nonempty(no_ext[:trim_file_name], *ext, delim='.')
 
             return filename
         except ValueError as err:
