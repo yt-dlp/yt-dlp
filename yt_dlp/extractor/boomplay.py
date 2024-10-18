@@ -394,7 +394,7 @@ class BoomplayGenericPlaylistIE(BoomplayBaseIE):
                 BoomplayMusicIE,
                 BoomplayPlaylistIE,
                 BoomplayPodcastIE,
-                BoomplaySearchPageIE,
+                BoomplaySearchURLIE,
                 BoomplayVideoIE,
             ))
         return False
@@ -407,7 +407,7 @@ class BoomplayGenericPlaylistIE(BoomplayBaseIE):
             **self._extract_page_metadata(webpage, _id))
 
 
-class BoomplaySearchPageIE(BoomplayBaseIE):
+class BoomplaySearchURLIE(BoomplayBaseIE):
     _TESTS = [{
         'url': 'https://www.boomplay.com/search/default/%20Rise%20of%20the%20Falletesn%20Heroes%20fatbunny',
         'md5': 'c5fb4f23e6aae98064230ef3c39c2178',
@@ -468,4 +468,4 @@ class BoomplaySearchIE(SearchInfoExtractor):
     def _search_results(self, query):
         yield self.url_result(
             f'https://www.boomplay.com/search/default/{urllib.parse.quote(query)}',
-            BoomplaySearchPageIE)
+            BoomplaySearchURLIE)

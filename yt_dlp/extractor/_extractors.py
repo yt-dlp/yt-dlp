@@ -287,7 +287,7 @@ from .boomplay import (
     BoomplayPlaylistIE,
     BoomplayPodcastIE,
     BoomplaySearchIE,
-    BoomplaySearchPageIE,
+    BoomplaySearchURLIE,
     BoomplayVideoIE,
 )
 from .boosty import BoostyIE
