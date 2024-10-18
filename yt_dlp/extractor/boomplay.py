@@ -92,8 +92,8 @@ class BoomplayBaseIE(InfoExtractor):
             base64.b64decode(source),
             self._KEY, self._IV)).decode()
 
-    def _extract_formats(self, _id, item_type='MUSIC', **kwargs):
-        if url := url_or_none(self._get_playurl(_id, item_type)):
+    def _extract_formats(self, item_id, item_type='MUSIC', **kwargs):
+        if url := url_or_none(self._get_playurl(item_id, item_type)):
             return [{
                 'format_id': '0',
                 'url': url,
@@ -107,7 +107,7 @@ class BoomplayBaseIE(InfoExtractor):
         else:
             self.raise_no_formats('No formats found')
 
-    def _extract_page_metadata(self, webpage, _id, playlist=False):
+    def _extract_page_metadata(self, webpage, item_id, playlist=False):
         metadata_div = self._get_element_by_class_and_tag('summary', 'div', webpage) or ''
         metadata_entries = re.findall(r'(?si)<strong>(?P<entry>.*?)</strong>', metadata_div) or []
         description = (
@@ -120,7 +120,7 @@ class BoomplayBaseIE(InfoExtractor):
         details_section = self._get_element_by_class_and_tag('songDetailInfo', 'section', webpage) or ''
         metadata_entries.extend(re.findall(r'(?si)<li>(?P<entry>.*?)</li>', details_section) or [])
         page_metadata = {
-            'id': _id,
+            'id': item_id,
             'title': self._html_search_regex(r'<h1[^>]*>([^<]+)</h1>', webpage, 'title', default=None),
             'thumbnail': self._html_search_meta(['og:image', 'twitter:image'],
                                                 webpage, 'thumbnail', default=''),
@@ -300,8 +300,8 @@ class BoomplayPodcastIE(BoomplayBaseIE):
     }
 
     def _real_extract(self, url):
-        _id = self._match_id(url)
-        webpage = self._download_webpage(url, _id)
+        playlist_id = self._match_id(url)
+        webpage = self._download_webpage(url, playlist_id)
         song_list = self._get_element_by_class_and_tag('morePart_musics', 'ol', webpage)
         song_list = traverse_obj(re.finditer(
             r'''(?x)
@@ -319,10 +319,10 @@ class BoomplayPodcastIE(BoomplayBaseIE):
                     f'https://www.boomplay.com/episode/{x}', BoomplayEpisodeIE, x),
             }))
         return self.playlist_result(
-            song_list, _id,
+            song_list, playlist_id,
             playlist_title=self._og_search_title(webpage, fatal=True).rsplit('|', 2)[0].strip(),
             playlist_description=self._og_search_description(webpage, default=''),
-            **self._extract_page_metadata(webpage, _id))
+            **self._extract_page_metadata(webpage, playlist_id))
 
 
 class BoomplayPlaylistIE(BoomplayBaseIE):
@@ -400,11 +400,11 @@ class BoomplayGenericPlaylistIE(BoomplayBaseIE):
         return False
 
     def _real_extract(self, url):
-        _id = self._generic_id(url)
-        webpage = self._download_webpage(url, _id)
+        playlist_id = self._generic_id(url)
+        webpage = self._download_webpage(url, playlist_id)
         return self.playlist_result(
             self._extract_playlist_entries(webpage, self._MEDIA_TYPES),
-            **self._extract_page_metadata(webpage, _id))
+            **self._extract_page_metadata(webpage, playlist_id))
 
 
 class BoomplaySearchURLIE(BoomplayBaseIE):
