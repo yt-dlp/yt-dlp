@@ -122,12 +122,21 @@ class FragmentFD(FileDownloader):
             frag_resume_len = self.filesize_or_none(self.temp_name(fragment_filename))
         fragment_info_dict['frag_resume_len'] = ctx['frag_resume_len'] = frag_resume_len
 
+        execute_before_frag_dl = info_dict.get('_fragment_hook_before_dl')
+        if execute_before_frag_dl is not None and callable(execute_before_frag_dl):
+            execute_before_frag_dl(fragment_filename, fragment_info_dict, ctx)
+
         success, _ = ctx['dl'].download(fragment_filename, fragment_info_dict)
         if not success:
             return False
         if fragment_info_dict.get('filetime'):
             ctx['fragment_filetime'] = fragment_info_dict.get('filetime')
         ctx['fragment_filename_sanitized'] = fragment_filename
+
+        execute_after_frag_dl = info_dict.get('_fragment_hook_after_dl')
+        if execute_after_frag_dl is not None and callable(execute_after_frag_dl):
+            execute_after_frag_dl(fragment_filename, fragment_info_dict, ctx)
+
         return True
 
     def _read_fragment(self, ctx):
