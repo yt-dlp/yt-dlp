@@ -110,12 +110,10 @@ class BoomplayBaseIE(InfoExtractor):
     def _extract_page_metadata(self, webpage, _id, playlist=False):
         metadata_div = self._get_element_by_class_and_tag('summary', 'div', webpage) or ''
         metadata_entries = re.findall(r'(?si)<strong>(?P<entry>.*?)</strong>', metadata_div) or []
-        description = (
-            self._get_element_by_class_and_tag('description_content', 'span', webpage)
-            or 'Listen and download music for free on Boomplay!')
-        description = clean_html(description.strip())
-        if description == 'Listen and download music for free on Boomplay!':
-            description = None
+        description = re.sub(
+            '(?i)Listen and download music for free on Boomplay!', '',
+            clean_html(self._get_element_by_class_and_tag(
+                'description_content', 'span', webpage)) or '') or None
 
         details_section = self._get_element_by_class_and_tag('songDetailInfo', 'section', webpage) or ''
         metadata_entries.extend(re.findall(r'(?si)<li>(?P<entry>.*?)</li>', details_section) or [])
