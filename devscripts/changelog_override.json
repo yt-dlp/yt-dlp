@@ -190,5 +190,11 @@
         "action": "add",
         "when": "fb8b7f226d251e521a89b23c415e249e5b788e5c",
         "short": "[priority] **The minimum *recommended* Python version has been raised to 3.9**\nSince Python 3.8 will reach end-of-life in October 2024, support for it will be dropped soon. [Read more](https://github.com/yt-dlp/yt-dlp/issues/10086)"
+    },
+    {
+        "action": "change",
+        "when": "b31b81d85f00601710d4fac590c3e4efb4133283",
+        "short": "[ci] Rerun failed tests (#11143)",
+        "authors": ["Grub4K"]
     }
 ]
