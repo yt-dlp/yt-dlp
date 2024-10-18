@@ -1520,6 +1520,7 @@ from .picarto import (
     PicartoIE,
     PicartoVodIE,
 )
+from .pietsmiet import PietsmietIE
 from .piksel import PikselIE
 from .pinkbike import PinkbikeIE
 from .pinterest import (
