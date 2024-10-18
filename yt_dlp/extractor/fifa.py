@@ -117,9 +117,9 @@ class FifaBaseIE(InfoExtractor):
             r'<link\b[^>]+\brel\s*=\s*"preconnect"[^>]+href\s*=\s*"([^"]+)"',
             self._download_webpage('https://fifa.com/', None), 'Preconnect Link')
 
-    def _call_api(self, path, video_id, note=None, query=None):
+    def _call_api(self, path, video_id, note=None, query=None, fatal=True):
         return self._download_json(
-            f'{self._preconnect_link}/{path}', video_id, note, query=query)
+            f'{self._preconnect_link}/{path}', video_id, note, query=query, fatal=fatal)
 
 
 class FifaIE(FifaBaseIE):
