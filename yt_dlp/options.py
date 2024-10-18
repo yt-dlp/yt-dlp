@@ -267,6 +267,10 @@ def create_parser():
             out_dict[key] = [*out_dict.get(key, []), val] if append else val
         setattr(parser.values, option.dest, out_dict)
 
+    def _store_multiple_callback(option, opt_str, value, parser, values):
+        for key, value in values.items():
+            setattr(parser.values, key, value)
+
     def when_prefix(default):
         return {
             'default': {},
@@ -1362,7 +1366,13 @@ def create_parser():
         help='Force filenames to be Windows-compatible')
     filesystem.add_option(
         '--no-windows-filenames',
-        action='store_false', dest='windowsfilenames',
+        action='callback', dest='keep_bad_win_chars', default=False, callback=_store_multiple_callback,
+        callback_kwargs={
+            'values': {
+                'windowsfilenames': False,
+                'keep_bad_win_chars': True
+            }
+        },
         help='Make filenames Windows-compatible only if using Windows (default)')
     filesystem.add_option(
         '--trim-filenames', '--trim-file-names', metavar='LENGTH',

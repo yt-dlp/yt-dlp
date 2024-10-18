@@ -609,11 +609,12 @@ def timeconvert(timestr):
     return timestamp
 
 
-def sanitize_filename(s, restricted=False, is_id=NO_DEFAULT):
+def sanitize_filename(s, keep_bad_win_chars=False, restricted=False, is_id=NO_DEFAULT):
     """Sanitizes a string so it could be used as part of a filename.
-    @param restricted   Use a stricter subset of allowed characters
-    @param is_id        Whether this is an ID that should be kept unchanged if possible.
-                        If unset, yt-dlp's new sanitization rules are in effect
+    @param keep_bad_win_chars    Whether to keep characters invalid on Windows
+    @param restricted            Use a stricter subset of allowed characters
+    @param is_id                 Whether this is an ID that should be kept unchanged if possible.
+                                 If unset, yt-dlp's new sanitization rules are in effect
     """
     if s == '':
         return ''
@@ -623,16 +624,16 @@ def sanitize_filename(s, restricted=False, is_id=NO_DEFAULT):
             return ACCENT_CHARS[char]
         elif not restricted and char == '\n':
             return '\0 '
-        elif is_id is NO_DEFAULT and not restricted and char in '"*:<>?|/\\':
+        elif is_id is NO_DEFAULT and not restricted and char in '"*:<>?|/\\' and not keep_bad_win_chars:
             # Replace with their full-width unicode counterparts
             return {'/': '\u29F8', '\\': '\u29f9'}.get(char, chr(ord(char) + 0xfee0))
-        elif char == '?' or ord(char) < 32 or ord(char) == 127:
+        elif (not keep_bad_win_chars and char == '?') or ord(char) < 32 or ord(char) == 127:
             return ''
-        elif char == '"':
+        elif not keep_bad_win_chars and char == '"':
             return '' if restricted else '\''
-        elif char == ':':
+        elif not keep_bad_win_chars and char == ':':
             return '\0_\0-' if restricted else '\0 \0-'
-        elif char in '\\/|*<>':
+        elif (not keep_bad_win_chars and char in '\\|*<>') or char == '/':
             return '\0_'
         if restricted and (char in '!&\'()[]{}$;`^,#' or char.isspace() or ord(char) > 127):
             return '' if unicodedata.category(char)[0] in 'CM' else '\0_'
@@ -641,7 +642,8 @@ def sanitize_filename(s, restricted=False, is_id=NO_DEFAULT):
     # Replace look-alike Unicode glyphs
     if restricted and (is_id is NO_DEFAULT or not is_id):
         s = unicodedata.normalize('NFKC', s)
-    s = re.sub(r'[0-9]+(?::[0-9]+)+', lambda m: m.group(0).replace(':', '_'), s)  # Handle timestamps
+    s = re.sub(r'[0-9]+(?::[0-9]+)+', lambda m: m.group(0) if keep_bad_win_chars
+               else m.group(0).replace(':', '_'), s)  # Handle timestamps
     result = ''.join(map(replace_insane, s))
     if is_id is NO_DEFAULT:
         result = re.sub(r'(\0.)(?:(?=\1)..)+', r'\1', result)  # Remove repeated substitute chars
