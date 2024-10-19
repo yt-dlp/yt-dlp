@@ -289,7 +289,7 @@ def load_plugins(plugin_type: PluginType):
     # Add the classes into the global plugin lookup for that type
     plugin_config.plugin_destination.set(regular_classes)
     # We want to prepend to the main lookup for that type
-    plugin_config.destination.set(merge_dicts(plugin_config.destination.get(), regular_classes))
+    plugin_config.destination.set(merge_dicts(regular_classes, plugin_config.destination.get()))
 
     return regular_classes
 
