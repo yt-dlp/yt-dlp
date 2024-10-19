@@ -1,6 +1,5 @@
 import contextlib
 import dataclasses
-import enum
 import importlib
 import importlib.abc
 import importlib.machinery
@@ -17,12 +16,9 @@ from pathlib import Path
 from zipfile import ZipFile
 
 from ._globals import (
-    extractors,
     plugin_dirs,
-    plugin_ies,
-    plugin_pps,
-    postprocessors,
-    ALL_PLUGINS_LOADED,
+    all_plugins_loaded,
+    plugin_specs,
 )
 
 from .compat import functools  # isort: split
@@ -40,9 +36,12 @@ COMPAT_PACKAGE_NAME = 'ytdlp_plugins'
 _BASE_PACKAGE_PATH = Path(__file__).parent
 
 
-class PluginType(enum.Enum):
-    POSTPROCESSORS = ('postprocessor', 'PP')
-    EXTRACTORS = ('extractor', 'IE')
+@dataclasses.dataclass
+class PluginSpec:
+    module_name: str
+    suffix: str
+    destination: ContextVar
+    plugin_destination: ContextVar
 
 
 class PluginLoader(importlib.abc.Loader):
@@ -68,7 +67,7 @@ def dirs_in_zip(archive):
     return ()
 
 
-def default_plugin_paths():
+def external_plugin_paths():
     def _get_package_paths(*root_paths, containing_folder):
         for config_dir in orderedSet(map(Path, root_paths), lazy=True):
             # We need to filter the base path added when running __main__.py directly
@@ -115,7 +114,7 @@ class PluginFinder(importlib.abc.MetaPathFinder):
 
     def search_locations(self, fullname):
         candidate_locations = itertools.chain.from_iterable(
-            default_plugin_paths() if candidate is ... else Path(candidate).iterdir()
+            external_plugin_paths() if candidate is ... else Path(candidate).iterdir()
             for candidate in plugin_dirs.get()
         )
 
@@ -174,27 +173,8 @@ def get_regular_classes(module, module_name, suffix):
     ))
 
 
-@dataclasses.dataclass
-class _PluginTypeConfig:
-    destination: ContextVar
-    plugin_destination: ContextVar
-
-
-_plugin_type_lookup = {
-    PluginType.POSTPROCESSORS: _PluginTypeConfig(
-        destination=postprocessors,
-        plugin_destination=plugin_pps,
-    ),
-    PluginType.EXTRACTORS: _PluginTypeConfig(
-        destination=extractors,
-        plugin_destination=plugin_ies,
-    ),
-}
-
-
-def load_plugins(plugin_type: PluginType):
-    plugin_config = _plugin_type_lookup[plugin_type]
-    name, suffix = plugin_type.value
+def load_plugins(plugin_spec: PluginSpec):
+    name, suffix = plugin_spec.module_name, plugin_spec.suffix
     regular_classes = {}
     if os.environ.get('YTDLP_NO_PLUGINS'):
         return regular_classes
@@ -235,25 +215,36 @@ def load_plugins(plugin_type: PluginType):
             regular_classes.update(get_regular_classes(plugins, spec.name, suffix))
 
     # Add the classes into the global plugin lookup for that type
-    plugin_config.plugin_destination.set(regular_classes)
+    plugin_spec.plugin_destination.set(regular_classes)
     # We want to prepend to the main lookup for that type
-    plugin_config.destination.set(merge_dicts(regular_classes, plugin_config.destination.get()))
+    plugin_spec.destination.set(merge_dicts(regular_classes, plugin_spec.destination.get()))
 
     return regular_classes
 
 
-def load_all_plugin_types():
-    for plugin_type in PluginType:
-        load_plugins(plugin_type)
-    ALL_PLUGINS_LOADED.set(True)
+def load_all_plugins():
+    for plugin_spec in plugin_specs.get().values():
+        load_plugins(plugin_spec)
+    all_plugins_loaded.set(True)
 
 
-sys.meta_path.insert(0, PluginFinder(f'{PACKAGE_NAME}.extractor', f'{PACKAGE_NAME}.postprocessor'))
+def register_plugin_spec(plugin_spec: PluginSpec):
+    # If the plugin spec for a module is already registered, it will not be added again
+    if plugin_spec.module_name not in plugin_specs.get():
+        plugin_specs.get()[plugin_spec.module_name] = plugin_spec
+        sys.meta_path.insert(0, PluginFinder(f'{PACKAGE_NAME}.{plugin_spec.module_name}'))
+
+
+def get_plugin_spec(module_name):
+    return plugin_specs.get().get(module_name)
+
 
 __all__ = [
     'directories',
     'load_plugins',
-    'load_all_plugin_types',
+    'load_all_plugins',
+    'register_plugin_spec',
+    'get_plugin_spec',
     'PACKAGE_NAME',
     'COMPAT_PACKAGE_NAME',
 ]

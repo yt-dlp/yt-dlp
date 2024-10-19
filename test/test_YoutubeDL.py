@@ -6,7 +6,7 @@ import sys
 import unittest
 from unittest.mock import patch
 
-from yt_dlp._globals import ALL_PLUGINS_LOADED
+from yt_dlp._globals import all_plugins_loaded
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -1400,9 +1400,9 @@ class TestYoutubeDL(unittest.TestCase):
 
     def test_load_plugins_compat(self):
         # Should try to reload plugins if they haven't already been loaded
-        ALL_PLUGINS_LOADED.set(False)
+        all_plugins_loaded.set(False)
         FakeYDL().close()
-        assert ALL_PLUGINS_LOADED.get()
+        assert all_plugins_loaded.get()
 
 
 if __name__ == '__main__':

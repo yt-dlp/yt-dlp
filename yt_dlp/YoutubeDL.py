@@ -38,7 +38,8 @@ from ._globals import (
     LAZY_EXTRACTORS,
     plugin_ies,
     plugin_overrides,
-    plugin_pps, ALL_PLUGINS_LOADED,
+    plugin_pps,
+    all_plugins_loaded,
 )
 from .minicurses import format_text
 from .networking import HEADRequest, Request, RequestDirector
@@ -51,7 +52,7 @@ from .networking.exceptions import (
     network_exceptions,
 )
 from .networking.impersonate import ImpersonateRequestHandler
-from .plugins import directories as plugin_directories, load_all_plugin_types
+from .plugins import directories as plugin_directories, load_all_plugins
 from .postprocessor import (
     EmbedThumbnailPP,
     FFmpegFixupDuplicateMoovPP,
@@ -646,8 +647,8 @@ class YoutubeDL:
         self.__header_cookies = []
 
         # compat for API: load plugins if they have not already
-        if not ALL_PLUGINS_LOADED.get():
-            load_all_plugin_types()
+        if not all_plugins_loaded.get():
+            load_all_plugins()
 
         stdout = sys.stderr if self.params.get('logtostderr') else sys.stdout
         self._out_files = Namespace(

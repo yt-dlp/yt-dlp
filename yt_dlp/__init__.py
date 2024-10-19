@@ -22,7 +22,7 @@ from .extractor.adobepass import MSO_INFO
 from .networking.impersonate import ImpersonateTarget
 from ._globals import IN_CLI, plugin_dirs
 from .options import parseOpts
-from .plugins import load_all_plugin_types
+from .plugins import load_all_plugins
 from .postprocessor import (
     FFmpegExtractAudioPP,
     FFmpegMergerPP,
@@ -987,7 +987,7 @@ def _real_main(argv=None):
 
     # load all plugins into the global lookup
     plugin_dirs.set(opts.plugin_dirs)
-    load_all_plugin_types()
+    load_all_plugins()
 
     with YoutubeDL(ydl_opts) as ydl:
         pre_process = opts.update_self or opts.rm_cachedir

@@ -34,7 +34,7 @@ from .sponskrub import SponSkrubPP
 from .sponsorblock import SponsorBlockPP
 from .xattrpp import XAttrMetadataPP
 from .._globals import plugin_pps, postprocessors
-from ..plugins import PACKAGE_NAME
+from ..plugins import PACKAGE_NAME, register_plugin_spec, PluginSpec
 from ..utils import deprecation_warning
 
 
@@ -52,6 +52,13 @@ def __getattr__(name):
 def get_postprocessor(key):
     return postprocessors.get()[key + 'PP']
 
+
+register_plugin_spec(PluginSpec(
+    module_name='postprocessor',
+    suffix='PP',
+    destination=postprocessors,
+    plugin_destination=plugin_pps,
+))
 
 _default_pps = {
     name: value

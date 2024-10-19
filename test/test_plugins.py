@@ -11,8 +11,23 @@ TEST_DATA_DIR = Path(os.path.dirname(os.path.abspath(__file__)), 'testdata')
 sys.path.append(str(TEST_DATA_DIR))
 importlib.invalidate_caches()
 
-from yt_dlp.plugins import PACKAGE_NAME, PluginType, directories, load_plugins, load_all_plugin_types
-from yt_dlp._globals import extractors, postprocessors, plugin_dirs, plugin_ies, plugin_pps, ALL_PLUGINS_LOADED
+from yt_dlp.plugins import PACKAGE_NAME, PluginSpec, directories, load_plugins, load_all_plugins, register_plugin_spec
+from yt_dlp._globals import extractors, postprocessors, plugin_dirs, plugin_ies, plugin_pps, all_plugins_loaded, plugin_specs
+
+
+EXTRACTOR_PLUGIN_SPEC = PluginSpec(
+    module_name='extractor',
+    suffix='IE',
+    destination=extractors,
+    plugin_destination=plugin_ies,
+)
+
+POSTPROCESSOR_PLUGIN_SPEC = PluginSpec(
+    module_name='postprocessor',
+    suffix='PP',
+    destination=postprocessors,
+    plugin_destination=plugin_pps,
+)
 
 
 class TestPlugins(unittest.TestCase):
@@ -23,7 +38,8 @@ class TestPlugins(unittest.TestCase):
         plugin_ies.set({})
         plugin_pps.set({})
         plugin_dirs.set((...,))
-        ALL_PLUGINS_LOADED.set(False)
+        plugin_specs.set({})
+        all_plugins_loaded.set(False)
         importlib.invalidate_caches()
         # Clearing override plugins is probably difficult
         for module_name in tuple(sys.modules):
@@ -35,7 +51,7 @@ class TestPlugins(unittest.TestCase):
         self.assertIn(self.TEST_PLUGIN_DIR, map(Path, directories()))
 
     def test_extractor_classes(self):
-        plugins_ie = load_plugins(PluginType.EXTRACTORS)
+        plugins_ie = load_plugins(EXTRACTOR_PLUGIN_SPEC)
 
         self.assertIn(f'{PACKAGE_NAME}.extractor.normal', sys.modules.keys())
         self.assertIn('NormalPluginIE', plugins_ie.keys())
@@ -64,7 +80,7 @@ class TestPlugins(unittest.TestCase):
         self.assertNotIn('_UnderscoreOverrideGenericIE', plugin_ies.get())
 
     def test_postprocessor_classes(self):
-        plugins_pp = load_plugins(PluginType.POSTPROCESSORS)
+        plugins_pp = load_plugins(POSTPROCESSOR_PLUGIN_SPEC)
         self.assertIn('NormalPluginPP', plugins_pp.keys())
         self.assertIn(f'{PACKAGE_NAME}.postprocessor.normal', sys.modules.keys())
         self.assertIn('NormalPluginPP', plugin_pps.get())
@@ -80,10 +96,10 @@ class TestPlugins(unittest.TestCase):
                 package = importlib.import_module(f'{PACKAGE_NAME}.{plugin_type}')
                 self.assertIn(zip_path / PACKAGE_NAME / plugin_type, map(Path, package.__path__))
 
-            plugins_ie = load_plugins(PluginType.EXTRACTORS)
+            plugins_ie = load_plugins(EXTRACTOR_PLUGIN_SPEC)
             self.assertIn('ZippedPluginIE', plugins_ie.keys())
 
-            plugins_pp = load_plugins(PluginType.POSTPROCESSORS)
+            plugins_pp = load_plugins(POSTPROCESSOR_PLUGIN_SPEC)
             self.assertIn('ZippedPluginPP', plugins_pp.keys())
 
         finally:
@@ -93,11 +109,8 @@ class TestPlugins(unittest.TestCase):
 
     def test_reloading_plugins(self):
         reload_plugins_path = TEST_DATA_DIR / 'reload_plugins'
-
-        for plugin_type in ('extractor', 'postprocessor'):
-            importlib.import_module(f'{PACKAGE_NAME}.{plugin_type}')
-        load_plugins(PluginType.EXTRACTORS)
-        load_plugins(PluginType.POSTPROCESSORS)
+        load_plugins(EXTRACTOR_PLUGIN_SPEC)
+        load_plugins(POSTPROCESSOR_PLUGIN_SPEC)
 
         # Remove default folder and add reload_plugin path
         sys.path.remove(str(TEST_DATA_DIR))
@@ -108,7 +121,7 @@ class TestPlugins(unittest.TestCase):
                 package = importlib.import_module(f'{PACKAGE_NAME}.{plugin_type}')
                 self.assertIn(reload_plugins_path / PACKAGE_NAME / plugin_type, map(Path, package.__path__))
 
-            plugins_ie = load_plugins(PluginType.EXTRACTORS)
+            plugins_ie = load_plugins(EXTRACTOR_PLUGIN_SPEC)
             self.assertIn('NormalPluginIE', plugins_ie.keys())
             self.assertTrue(
                 plugins_ie['NormalPluginIE'].REPLACED,
@@ -117,7 +130,7 @@ class TestPlugins(unittest.TestCase):
                 extractors.get()['NormalPluginIE'].REPLACED,
                 msg='Reloading has not replaced original extractor plugin globally')
 
-            plugins_pp = load_plugins(PluginType.POSTPROCESSORS)
+            plugins_pp = load_plugins(POSTPROCESSOR_PLUGIN_SPEC)
             self.assertIn('NormalPluginPP', plugins_pp.keys())
             self.assertTrue(plugins_pp['NormalPluginPP'].REPLACED,
                             msg='Reloading has not replaced original postprocessor plugin')
@@ -131,7 +144,7 @@ class TestPlugins(unittest.TestCase):
             importlib.invalidate_caches()
 
     def test_extractor_override_plugin(self):
-        load_plugins(PluginType.EXTRACTORS)
+        load_plugins(EXTRACTOR_PLUGIN_SPEC)
 
         from yt_dlp.extractor.generic import GenericIE
 
@@ -141,25 +154,29 @@ class TestPlugins(unittest.TestCase):
         self.assertEqual(GenericIE.IE_NAME, 'generic+override+underscore-override')
         importlib.invalidate_caches()
         #  test that loading a second time doesn't wrap a second time
-        load_plugins(PluginType.EXTRACTORS)
+        load_plugins(EXTRACTOR_PLUGIN_SPEC)
         from yt_dlp.extractor.generic import GenericIE
         self.assertEqual(GenericIE.IE_NAME, 'generic+override+underscore-override')
 
     def test_load_all_plugin_types(self):
 
+        # no plugin specs registered
+        load_all_plugins()
+
         self.assertNotIn(f'{PACKAGE_NAME}.extractor.normal', sys.modules.keys())
         self.assertNotIn(f'{PACKAGE_NAME}.postprocessor.normal', sys.modules.keys())
 
-        load_all_plugin_types()
-        self.assertTrue(yt_dlp._globals.ALL_PLUGINS_LOADED.get())
+        register_plugin_spec(EXTRACTOR_PLUGIN_SPEC)
+        register_plugin_spec(POSTPROCESSOR_PLUGIN_SPEC)
+        load_all_plugins()
+        self.assertTrue(yt_dlp._globals.all_plugins_loaded.get())
 
         self.assertIn(f'{PACKAGE_NAME}.extractor.normal', sys.modules.keys())
         self.assertIn(f'{PACKAGE_NAME}.postprocessor.normal', sys.modules.keys())
 
     def test_plugin_dirs(self):
         plugin_dirs.set((..., str(TEST_DATA_DIR / 'plugin_packages')))
-        load_all_plugin_types()
-        self.assertTrue(yt_dlp._globals.ALL_PLUGINS_LOADED.get())
+        load_plugins(EXTRACTOR_PLUGIN_SPEC)
 
         self.assertIn(f'{PACKAGE_NAME}.extractor.package', sys.modules.keys())
         self.assertIn('PackagePluginIE', plugin_ies.get())
