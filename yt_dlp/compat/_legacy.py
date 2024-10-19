@@ -16,12 +16,12 @@ import shlex
 import shutil
 import socket
 import struct
+import subprocess
 import tokenize
 import urllib.error
 import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as etree
-from subprocess import DEVNULL
 
 # isort: split
 import asyncio  # noqa: F401
@@ -35,6 +35,7 @@ from .compat_utils import passthrough_module
 from ..dependencies import brotli as compat_brotli  # noqa: F401
 from ..dependencies import websockets as compat_websockets  # noqa: F401
 from ..dependencies.Cryptodome import AES as compat_pycrypto_AES  # noqa: F401
+from ..networking.exceptions import HTTPError as compat_HTTPError
 
 passthrough_module(__name__, '...utils', ('WINDOWS_VT_MODE', 'windows_enable_vt_mode'))
 
@@ -84,10 +85,10 @@ compat_socket_create_connection = socket.create_connection
 compat_Struct = struct.Struct
 compat_struct_pack = struct.pack
 compat_struct_unpack = struct.unpack
-compat_subprocess_get_DEVNULL = lambda: DEVNULL
+compat_subprocess_get_DEVNULL = lambda: subprocess.DEVNULL
 compat_tokenize_tokenize = tokenize.tokenize
 compat_urllib_error = urllib.error
-compat_urllib_HTTPError = urllib.error.HTTPError
+compat_urllib_HTTPError = compat_HTTPError
 compat_urllib_parse = urllib.parse
 compat_urllib_parse_parse_qs = urllib.parse.parse_qs
 compat_urllib_parse_quote = urllib.parse.quote

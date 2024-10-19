@@ -2,9 +2,9 @@ import binascii
 import io
 import struct
 import time
-import urllib.error
 
 from .fragment import FragmentFD
+from ..networking.exceptions import HTTPError
 from ..utils import RetryManager
 
 u8 = struct.Struct('>B')
@@ -251,7 +251,7 @@ class IsmFD(FragmentFD):
         skip_unavailable_fragments = self.params.get('skip_unavailable_fragments', True)
 
         frag_index = 0
-        for i, segment in enumerate(segments):
+        for segment in segments:
             frag_index += 1
             if frag_index <= ctx['fragment_index']:
                 continue
@@ -271,7 +271,7 @@ class IsmFD(FragmentFD):
                         write_piff_header(ctx['dest_stream'], info_dict['_download_params'])
                         extra_state['ism_track_written'] = True
                     self._append_fragment(ctx, frag_content)
-                except urllib.error.HTTPError as err:
+                except HTTPError as err:
                     retry.error = err
                     continue
 

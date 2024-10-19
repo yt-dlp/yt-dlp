@@ -23,7 +23,7 @@ class IHeartRadioBaseIE(InfoExtractor):
 
 
 class IHeartRadioIE(IHeartRadioBaseIE):
-    IENAME = 'iheartradio'
+    IE_NAME = 'iheartradio'
     _VALID_URL = r'(?:https?://(?:www\.)?iheart\.com/podcast/[^/]+/episode/(?P<display_id>[^/?&#]+)-|iheartradio:)(?P<id>\d+)'
     _TEST = {
         'url': 'https://www.iheart.com/podcast/105-behind-the-bastards-29236323/episode/part-one-alexander-lukashenko-the-dictator-70346499/?embed=true',
@@ -35,7 +35,7 @@ class IHeartRadioIE(IHeartRadioBaseIE):
             'description': 'md5:96cc7297b3a5a9ebae28643801c96fae',
             'timestamp': 1597741200,
             'upload_date': '20200818',
-        }
+        },
     }
 
     def _real_extract(self, url):

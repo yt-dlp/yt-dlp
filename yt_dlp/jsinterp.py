@@ -20,7 +20,12 @@ from .utils import (
 
 def _js_bit_op(op):
     def zeroise(x):
-        return 0 if x in (None, JS_Undefined) else x
+        if x in (None, JS_Undefined):
+            return 0
+        with contextlib.suppress(TypeError):
+            if math.isnan(x):  # NB: NaN cannot be checked by membership
+                return 0
+        return x
 
     def wrapped(a, b):
         return op(zeroise(a), zeroise(b)) & 0xffffffff
@@ -39,7 +44,7 @@ def _js_arith_op(op):
 
 
 def _js_div(a, b):
-    if JS_Undefined in (a, b) or not (a and b):
+    if JS_Undefined in (a, b) or not (a or b):
         return float('nan')
     return (a or 0) / b if b else float('inf')
 
@@ -185,7 +190,7 @@ class Debugger:
                     cls.write('=> Raises:', e, '<-|', stmt, level=allow_recursion)
                 raise
             if cls.ENABLED and stmt.strip():
-                if should_ret or not repr(ret) == stmt:
+                if should_ret or repr(ret) != stmt:
                     cls.write(['->', '=>'][should_ret], repr(ret), '<-|', stmt, level=allow_recursion)
             return ret, should_ret
         return interpret_statement
@@ -211,7 +216,7 @@ class JSInterpreter:
         self.code, self._functions = code, {}
         self._objects = {} if objects is None else objects
 
-    class Exception(ExtractorError):
+    class Exception(ExtractorError):  # noqa: A001
         def __init__(self, msg, expr=None, *args, **kwargs):
             if expr is not None:
                 msg = f'{msg.rstrip()} in: {truncate_string(expr, 50, 50)}'
@@ -230,7 +235,7 @@ class JSInterpreter:
         flags = 0
         if not expr:
             return flags, expr
-        for idx, ch in enumerate(expr):
+        for idx, ch in enumerate(expr):  # noqa: B007
             if ch not in cls._RE_FLAGS:
                 break
             flags |= cls._RE_FLAGS[ch]
@@ -258,9 +263,11 @@ class JSInterpreter:
                 elif in_quote == '/' and char in '[]':
                     in_regex_char_group = char == '['
             escaping = not escaping and in_quote and char == '\\'
-            after_op = not in_quote and char in OP_CHARS or (char.isspace() and after_op)
+            in_unary_op = (not in_quote and not in_regex_char_group
+                           and after_op not in (True, False) and char in '-+')
+            after_op = char if (not in_quote and char in OP_CHARS) else (char.isspace() and after_op)
 
-            if char != delim[pos] or any(counters.values()) or in_quote:
+            if char != delim[pos] or any(counters.values()) or in_quote or in_unary_op:
                 pos = 0
                 continue
             elif pos != delim_len:
@@ -345,8 +352,10 @@ class JSInterpreter:
             inner, outer = self._separate(expr, expr[0], 1)
             if expr[0] == '/':
                 flags, outer = self._regex_flags(outer)
+                # We don't support regex methods yet, so no point compiling it
+                inner = f'{inner}/{flags}'
                 # Avoid https://github.com/python/cpython/issues/74534
-                inner = re.compile(inner[1:].replace('[[', r'[\['), flags=flags)
+                # inner = re.compile(inner[1:].replace('[[', r'[\['), flags=flags)
             else:
                 inner = json.loads(js_to_json(f'{inner}{expr[0]}', strict=True))
             if not outer:
@@ -436,7 +445,7 @@ class JSInterpreter:
                 err = e
 
             pending = (None, False)
-            m = re.match(r'catch\s*(?P<err>\(\s*{_NAME_RE}\s*\))?\{{'.format(**globals()), expr)
+            m = re.match(fr'catch\s*(?P<err>\(\s*{_NAME_RE}\s*\))?\{{', expr)
             if m:
                 sub_expr, expr = self._separate_at_paren(expr[m.end() - 1:])
                 if err:
@@ -465,7 +474,7 @@ class JSInterpreter:
             if remaining.startswith('{'):
                 body, expr = self._separate_at_paren(remaining)
             else:
-                switch_m = re.match(r'switch\s*\(', remaining)  # FIXME
+                switch_m = re.match(r'switch\s*\(', remaining)  # FIXME: ?
                 if switch_m:
                     switch_val, remaining = self._separate_at_paren(remaining[switch_m.end() - 1:])
                     body, expr = self._separate_at_paren(remaining, '}')
@@ -576,9 +585,9 @@ class JSInterpreter:
             return int(expr), should_return
 
         elif expr == 'break':
-            raise JS_Break()
+            raise JS_Break
         elif expr == 'continue':
-            raise JS_Continue()
+            raise JS_Continue
         elif expr == 'undefined':
             return JS_Undefined, should_return
         elif expr == 'NaN':
@@ -627,6 +636,8 @@ class JSInterpreter:
                     raise self.Exception(f'{member} {msg}', expr)
 
             def eval_method():
+                nonlocal member
+
                 if (variable, member) == ('console', 'debug'):
                     if Debugger.ENABLED:
                         Debugger.write(self.interpret_expression(f'[{arg_str}]', local_vars, allow_recursion))
@@ -635,6 +646,7 @@ class JSInterpreter:
                 types = {
                     'String': str,
                     'Math': float,
+                    'Array': list,
                 }
                 obj = local_vars.get(variable, types.get(variable, NO_DEFAULT))
                 if obj is NO_DEFAULT:
@@ -658,12 +670,27 @@ class JSInterpreter:
                     self.interpret_expression(v, local_vars, allow_recursion)
                     for v in self._separate(arg_str)]
 
-                if obj == str:
+                # Fixup prototype call
+                if isinstance(obj, type) and member.startswith('prototype.'):
+                    new_member, _, func_prototype = member.partition('.')[2].partition('.')
+                    assertion(argvals, 'takes one or more arguments')
+                    assertion(isinstance(argvals[0], obj), f'needs binding to type {obj}')
+                    if func_prototype == 'call':
+                        obj, *argvals = argvals
+                    elif func_prototype == 'apply':
+                        assertion(len(argvals) == 2, 'takes two arguments')
+                        obj, argvals = argvals
+                        assertion(isinstance(argvals, list), 'second argument needs to be a list')
+                    else:
+                        raise self.Exception(f'Unsupported Function method {func_prototype}', expr)
+                    member = new_member
+
+                if obj is str:
                     if member == 'fromCharCode':
                         assertion(argvals, 'takes one or more arguments')
                         return ''.join(map(chr, argvals))
                     raise self.Exception(f'Unsupported String method {member}', expr)
-                elif obj == float:
+                elif obj is float:
                     if member == 'pow':
                         assertion(len(argvals) == 2, 'takes two arguments')
                         return argvals[0] ** argvals[1]
@@ -682,18 +709,18 @@ class JSInterpreter:
                     obj.reverse()
                     return obj
                 elif member == 'slice':
-                    assertion(isinstance(obj, list), 'must be applied on a list')
-                    assertion(len(argvals) == 1, 'takes exactly one argument')
-                    return obj[argvals[0]:]
+                    assertion(isinstance(obj, (list, str)), 'must be applied on a list or string')
+                    assertion(len(argvals) <= 2, 'takes between 0 and 2 arguments')
+                    return obj[slice(*argvals, None)]
                 elif member == 'splice':
                     assertion(isinstance(obj, list), 'must be applied on a list')
                     assertion(argvals, 'takes one or more arguments')
-                    index, howMany = map(int, (argvals + [len(obj)])[:2])
+                    index, how_many = map(int, ([*argvals, len(obj)])[:2])
                     if index < 0:
                         index += len(obj)
                     add_items = argvals[2:]
                     res = []
-                    for i in range(index, min(index + howMany, len(obj))):
+                    for _ in range(index, min(index + how_many, len(obj))):
                         res.append(obj.pop(index))
                     for i, item in enumerate(add_items):
                         obj.insert(index + i, item)
@@ -717,12 +744,12 @@ class JSInterpreter:
                 elif member == 'forEach':
                     assertion(argvals, 'takes one or more arguments')
                     assertion(len(argvals) <= 2, 'takes at-most 2 arguments')
-                    f, this = (argvals + [''])[:2]
+                    f, this = ([*argvals, ''])[:2]
                     return [f((item, idx, obj), {'this': this}, allow_recursion) for idx, item in enumerate(obj)]
                 elif member == 'indexOf':
                     assertion(argvals, 'takes one or more arguments')
                     assertion(len(argvals) <= 2, 'takes at-most 2 arguments')
-                    idx, start = (argvals + [0])[:2]
+                    idx, start = ([*argvals, 0])[:2]
                     try:
                         return obj.index(idx, start)
                     except ValueError:
@@ -770,7 +797,7 @@ class JSInterpreter:
         obj = {}
         obj_m = re.search(
             r'''(?x)
-                (?<!this\.)%s\s*=\s*{\s*
+                (?<!\.)%s\s*=\s*{\s*
                     (?P<fields>(%s\s*:\s*function\s*\(.*?\)\s*{.*?}(?:,\s*)?)*)
                 }\s*;
             ''' % (re.escape(objname), _FUNC_NAME_RE),
@@ -803,9 +830,9 @@ class JSInterpreter:
                 \((?P<args>[^)]*)\)\s*
                 (?P<code>{.+})''' % {'name': re.escape(funcname)},
             self.code)
-        code, _ = self._separate_at_paren(func_m.group('code'))
         if func_m is None:
             raise self.Exception(f'Could not find JS function "{funcname}"')
+        code, _ = self._separate_at_paren(func_m.group('code'))
         return [x.strip() for x in func_m.group('args').split(',')], code
 
     def extract_function(self, funcname):

@@ -1,7 +1,8 @@
 import inspect
 import os
 
-from ..globals import LAZY_EXTRACTORS, extractors as _extractors_context
+from ..globals import LAZY_EXTRACTORS
+from ..globals import extractors as _extractors_context
 
 _CLASS_LOOKUP = None
 if not os.environ.get('YTDLP_NO_LAZY_EXTRACTORS'):

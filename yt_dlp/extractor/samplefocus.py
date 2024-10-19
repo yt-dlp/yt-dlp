@@ -28,15 +28,15 @@ class SampleFocusIE(InfoExtractor):
         },
     }, {
         'url': 'https://samplefocus.com/samples/dababy-style-bass-808',
-        'only_matching': True
+        'only_matching': True,
     }, {
         'url': 'https://samplefocus.com/samples/young-chop-kick',
-        'only_matching': True
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
-        webpage = self._download_webpage(url, display_id)
+        webpage = self._download_webpage(url, display_id, impersonate=True)
 
         sample_id = self._search_regex(
             r'<input[^>]+id=(["\'])sample_id\1[^>]+value=(?:["\'])(?P<id>\d+)',
@@ -76,13 +76,21 @@ class SampleFocusIE(InfoExtractor):
 
         def extract_count(klass):
             return int_or_none(self._html_search_regex(
-                r'<span[^>]+class=(?:["\'])?%s-count[^>]*>(\d+)' % klass,
+                rf'<span[^>]+class=(?:["\'])?{klass}-count[^>]*>(\d+)',
                 webpage, klass, fatal=False))
 
         return {
             'id': sample_id,
             'title': title,
-            'url': mp3_url,
+            'formats': [{
+                'url': mp3_url,
+                'ext': 'mp3',
+                'vcodec': 'none',
+                'acodec': 'mp3',
+                'http_headers': {
+                    'Referer': url,
+                },
+            }],
             'display_id': display_id,
             'thumbnail': thumbnail,
             'uploader': uploader,
@@ -90,7 +98,7 @@ class SampleFocusIE(InfoExtractor):
                 r'<a[^>]+href=(["\'])/license\1[^>]*>(?P<license>[^<]+)<',
                 webpage, 'license', fatal=False, group='license'),
             'uploader_id': uploader_id,
-            'like_count': extract_count('sample-%s-favorites' % sample_id),
+            'like_count': extract_count(f'sample-{sample_id}-favorites'),
             'comment_count': extract_count('comments'),
             'comments': comments,
             'categories': categories,

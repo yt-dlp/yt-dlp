@@ -1,14 +1,13 @@
 import re
 
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     ExtractorError,
-    format_field,
     float_or_none,
+    format_field,
     int_or_none,
     str_or_none,
-    traverse_obj
+    traverse_obj,
 )
 
 
@@ -16,7 +15,7 @@ class MedalTVIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?medal\.tv/games/[^/?#&]+/clips/(?P<id>[^/?#&]+)'
     _TESTS = [{
         'url': 'https://medal.tv/games/valorant/clips/jTBFnLKdLy15K',
-        'md5': '6930f8972914b6b9fdc2bb3918098ba0',
+        'md5': '03e4911fdcf7fce563090705c2e79267',
         'info_dict': {
             'id': 'jTBFnLKdLy15K',
             'ext': 'mp4',
@@ -31,10 +30,10 @@ class MedalTVIE(InfoExtractor):
             'view_count': int,
             'like_count': int,
             'duration': 13,
-        }
+        },
     }, {
-        'url': 'https://medal.tv/games/cod%20cold%20war/clips/2mA60jWAGQCBH',
-        'md5': '3d19d426fe0b2d91c26e412684e66a06',
+        'url': 'https://medal.tv/games/cod-cold-war/clips/2mA60jWAGQCBH',
+        'md5': 'fc7a3e4552ae8993c1c4006db46be447',
         'info_dict': {
             'id': '2mA60jWAGQCBH',
             'ext': 'mp4',
@@ -50,9 +49,9 @@ class MedalTVIE(InfoExtractor):
             'view_count': int,
             'like_count': int,
             'duration': 23,
-        }
+        },
     }, {
-        'url': 'https://medal.tv/games/cod%20cold%20war/clips/2um24TWdty0NA',
+        'url': 'https://medal.tv/games/cod-cold-war/clips/2um24TWdty0NA',
         'md5': 'b6dc76b78195fff0b4f8bf4a33ec2148',
         'info_dict': {
             'id': '2um24TWdty0NA',
@@ -69,7 +68,7 @@ class MedalTVIE(InfoExtractor):
             'view_count': int,
             'like_count': int,
             'duration': 9,
-        }
+        },
     }, {
         'url': 'https://medal.tv/games/valorant/clips/37rMeFpryCC-9',
         'only_matching': True,
@@ -81,7 +80,7 @@ class MedalTVIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        webpage = self._download_webpage(url, video_id)
+        webpage = self._download_webpage(url, video_id, query={'mobilebypass': 'true'})
 
         hydration_data = self._search_json(
             r'<script[^>]*>[^<]*\bhydrationData\s*=', webpage,
@@ -108,13 +107,13 @@ class MedalTVIE(InfoExtractor):
                 'url': item_url,
                 id_key: item_id,
                 'width': width,
-                'height': height
+                'height': height,
             })
 
         formats = []
         thumbnails = []
         for k, v in clip.items():
-            if not (v and isinstance(v, compat_str)):
+            if not (v and isinstance(v, str)):
                 continue
             mobj = re.match(r'(contentUrl|thumbnail)(?:(\d+)p)?$', k)
             if not mobj:
@@ -136,7 +135,7 @@ class MedalTVIE(InfoExtractor):
                     expected=True, video_id=video_id)
             else:
                 self.raise_no_formats(
-                    'An unknown error occurred ({0}).'.format(error),
+                    f'An unknown error occurred ({error}).',
                     video_id=video_id)
 
         # Necessary because the id of the author is not known in advance.

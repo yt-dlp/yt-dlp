@@ -1,10 +1,10 @@
 import re
 
 from .common import InfoExtractor
+from ..networking import HEADRequest
 from ..utils import (
-    HEADRequest,
-    format_field,
     float_or_none,
+    format_field,
     get_element_by_id,
     int_or_none,
     str_to_int,
@@ -34,7 +34,7 @@ class VidLiiIE(InfoExtractor):
             'average_rating': float,
             'categories': ['News & Politics'],
             'tags': ['Vidlii', 'Jan', 'Videogames'],
-        }
+        },
     }, {
         'url': 'https://www.vidlii.com/watch?v=zTAtaAgOLKt',
         'md5': '5778f7366aa4c569b77002f8bf6b614f',
@@ -63,13 +63,14 @@ class VidLiiIE(InfoExtractor):
         video_id = self._match_id(url)
 
         webpage = self._download_webpage(
-            'https://www.vidlii.com/watch?v=%s' % video_id, video_id)
+            f'https://www.vidlii.com/watch?v={video_id}', video_id)
         formats = []
 
         sources = [source[1] for source in re.findall(
             r'src\s*:\s*(["\'])(?P<url>(?:https?://)?(?:(?!\1).)+)\1',
             webpage) or []]
         for source in sources:
+            source = urljoin(url, source)
             height = int(self._search_regex(r'(\d+).mp4', source, 'height', default=360))
             if self._request_webpage(HEADRequest(source), video_id, f'Checking {height}p url', errnote=False):
                 formats.append({

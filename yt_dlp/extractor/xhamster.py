@@ -2,13 +2,12 @@ import itertools
 import re
 
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
+    ExtractorError,
     clean_html,
     determine_ext,
     dict_get,
     extract_attributes,
-    ExtractorError,
     float_or_none,
     int_or_none,
     parse_duration,
@@ -22,14 +21,14 @@ from ..utils import (
 
 class XHamsterIE(InfoExtractor):
     _DOMAINS = r'(?:xhamster\.(?:com|one|desi)|xhms\.pro|xhamster\d+\.com|xhday\.com|xhvid\.com)'
-    _VALID_URL = r'''(?x)
+    _VALID_URL = rf'''(?x)
                     https?://
-                        (?:.+?\.)?%s/
+                        (?:[^/?#]+\.)?{_DOMAINS}/
                         (?:
                             movies/(?P<id>[\dA-Za-z]+)/(?P<display_id>[^/]*)\.html|
                             videos/(?P<display_id_2>[^/]*)-(?P<id_2>[\dA-Za-z]+)
                         )
-                    ''' % _DOMAINS
+                    '''
     _TESTS = [{
         'url': 'https://xhamster.com/videos/femaleagent-shy-beauty-takes-the-bait-1509445',
         'md5': '34e1ab926db5dc2750fed9e1f34304bb',
@@ -177,13 +176,13 @@ class XHamsterIE(InfoExtractor):
                         continue
                     format_urls.add(format_url)
                     formats.append({
-                        'format_id': '%s-%s' % (format_id, quality),
+                        'format_id': f'{format_id}-{quality}',
                         'url': format_url,
                         'ext': determine_ext(format_url, 'mp4'),
                         'height': get_height(quality),
                         'filesize': format_sizes.get(quality),
                         'http_headers': {
-                            'Referer': urlh.geturl(),
+                            'Referer': urlh.url,
                         },
                     })
             xplayer_sources = try_get(
@@ -228,7 +227,7 @@ class XHamsterIE(InfoExtractor):
                                            or str_or_none(standard_format.get('label'))
                                            or '')
                                 formats.append({
-                                    'format_id': '%s-%s' % (format_id, quality),
+                                    'format_id': f'{format_id}-{quality}',
                                     'url': standard_url,
                                     'ext': ext,
                                     'height': get_height(quality),
@@ -245,7 +244,7 @@ class XHamsterIE(InfoExtractor):
                     if not isinstance(c, dict):
                         continue
                     c_name = c.get('name')
-                    if isinstance(c_name, compat_str):
+                    if isinstance(c_name, str):
                         categories.append(c_name)
             else:
                 categories = None
@@ -258,7 +257,7 @@ class XHamsterIE(InfoExtractor):
                 'description': video.get('description'),
                 'timestamp': int_or_none(video.get('created')),
                 'uploader': try_get(
-                    video, lambda x: x['author']['name'], compat_str),
+                    video, lambda x: x['author']['name'], str),
                 'uploader_url': uploader_url,
                 'uploader_id': uploader_url.split('/')[-1] if uploader_url else None,
                 'thumbnail': video.get('thumbURL'),
@@ -372,7 +371,7 @@ class XHamsterIE(InfoExtractor):
 
 
 class XHamsterEmbedIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:.+?\.)?%s/xembed\.php\?video=(?P<id>\d+)' % XHamsterIE._DOMAINS
+    _VALID_URL = rf'https?://(?:[^/?#]+\.)?{XHamsterIE._DOMAINS}/xembed\.php\?video=(?P<id>\d+)'
     _EMBED_REGEX = [r'<iframe[^>]+?src=(["\'])(?P<url>(?:https?:)?//(?:www\.)?xhamster\.com/xembed\.php\?video=\d+)\1']
     _TEST = {
         'url': 'http://xhamster.com/xembed.php?video=3328539',
@@ -385,7 +384,7 @@ class XHamsterEmbedIE(InfoExtractor):
             'uploader': 'ManyakisArt',
             'duration': 5,
             'age_limit': 18,
-        }
+        },
     }
 
     def _real_extract(self, url):
@@ -394,20 +393,20 @@ class XHamsterEmbedIE(InfoExtractor):
         webpage = self._download_webpage(url, video_id)
 
         video_url = self._search_regex(
-            r'href="(https?://xhamster\.com/(?:movies/{0}/[^"]*\.html|videos/[^/]*-{0})[^"]*)"'.format(video_id),
+            rf'href="(https?://xhamster\.com/(?:movies/{video_id}/[^"]*\.html|videos/[^/]*-{video_id})[^"]*)"',
             webpage, 'xhamster url', default=None)
 
         if not video_url:
-            vars = self._parse_json(
+            player_vars = self._parse_json(
                 self._search_regex(r'vars\s*:\s*({.+?})\s*,\s*\n', webpage, 'vars'),
                 video_id)
-            video_url = dict_get(vars, ('downloadLink', 'homepageLink', 'commentsLink', 'shareUrl'))
+            video_url = dict_get(player_vars, ('downloadLink', 'homepageLink', 'commentsLink', 'shareUrl'))
 
         return self.url_result(video_url, 'XHamster')
 
 
 class XHamsterUserIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:.+?\.)?%s/users/(?P<id>[^/?#&]+)' % XHamsterIE._DOMAINS
+    _VALID_URL = rf'https?://(?:[^/?#]+\.)?{XHamsterIE._DOMAINS}/(?:(?P<user>users)|creators)/(?P<id>[^/?#&]+)'
     _TESTS = [{
         # Paginated user profile
         'url': 'https://xhamster.com/users/netvideogirls/videos',
@@ -423,6 +422,12 @@ class XHamsterUserIE(InfoExtractor):
         },
         'playlist_mincount': 1,
     }, {
+        'url': 'https://xhamster.com/creators/squirt-orgasm-69',
+        'info_dict': {
+            'id': 'squirt-orgasm-69',
+        },
+        'playlist_mincount': 150,
+    }, {
         'url': 'https://xhday.com/users/mobhunter',
         'only_matching': True,
     }, {
@@ -430,11 +435,12 @@ class XHamsterUserIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    def _entries(self, user_id):
-        next_page_url = 'https://xhamster.com/users/%s/videos/1' % user_id
+    def _entries(self, user_id, is_user):
+        prefix, suffix = ('users', 'videos') if is_user else ('creators', 'exclusive')
+        next_page_url = f'https://xhamster.com/{prefix}/{user_id}/{suffix}/1'
         for pagenum in itertools.count(1):
             page = self._download_webpage(
-                next_page_url, user_id, 'Downloading page %s' % pagenum)
+                next_page_url, user_id, f'Downloading page {pagenum}')
             for video_tag in re.findall(
                     r'(<a[^>]+class=["\'].*?\bvideo-thumb__image-container[^>]+>)',
                     page):
@@ -454,5 +460,5 @@ class XHamsterUserIE(InfoExtractor):
                 break
 
     def _real_extract(self, url):
-        user_id = self._match_id(url)
-        return self.playlist_result(self._entries(user_id), user_id)
+        user, user_id = self._match_valid_url(url).group('user', 'id')
+        return self.playlist_result(self._entries(user_id, bool(user)), user_id)

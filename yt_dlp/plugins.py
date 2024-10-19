@@ -6,6 +6,7 @@ import importlib.machinery
 import importlib.util
 import inspect
 import itertools
+import os
 import pkgutil
 import sys
 import traceback
@@ -32,14 +33,14 @@ from .utils import (
     write_string,
 )
 
-PACKAGE_NAME = "yt_dlp_plugins"
-COMPAT_PACKAGE_NAME = "ytdlp_plugins"
+PACKAGE_NAME = 'yt_dlp_plugins'
+COMPAT_PACKAGE_NAME = 'ytdlp_plugins'
 _BASE_PACKAGE_PATH = Path(__file__).parent
 
 
 class PluginType(enum.Enum):
-    POSTPROCESSORS = ("postprocessor", "PP")
-    EXTRACTORS = ("extractor", "IE")
+    POSTPROCESSORS = ('postprocessor', 'PP')
+    EXTRACTORS = ('extractor', 'IE')
 
 
 _plugin_type_lookup = {
@@ -62,12 +63,12 @@ def dirs_in_zip(archive):
             return set(
                 itertools.chain.from_iterable(
                     Path(file).parents for file in zip_.namelist()
-                )
+                ),
             )
     except FileNotFoundError:
         pass
     except Exception as e:
-        write_string(f"WARNING: Could not read zip file {archive}: {e}\n")
+        write_string(f'WARNING: Could not read zip file {archive}: {e}\n')
     return ()
 
 
@@ -82,17 +83,17 @@ def default_plugin_paths():
 
     # Load from yt-dlp config folders
     yield from _get_package_paths(
-        *get_user_config_dirs("yt-dlp"),
-        *get_system_config_dirs("yt-dlp"),
-        containing_folder="plugins",
+        *get_user_config_dirs('yt-dlp'),
+        *get_system_config_dirs('yt-dlp'),
+        containing_folder='plugins',
     )
 
     # Load from yt-dlp-plugins folders
     yield from _get_package_paths(
         get_executable_path(),
-        *get_user_config_dirs(""),
-        *get_system_config_dirs(""),
-        containing_folder="yt-dlp-plugins",
+        *get_user_config_dirs(''),
+        *get_system_config_dirs(''),
+        containing_folder='yt-dlp-plugins',
     )
 
     # Load from PYTHONPATH folders
@@ -111,9 +112,9 @@ class PluginFinder(importlib.abc.MetaPathFinder):
         self._zip_content_cache = {}
         self.packages = set(
             itertools.chain.from_iterable(
-                itertools.accumulate(name.split("."), lambda a, b: ".".join((a, b)))
+                itertools.accumulate(name.split('.'), lambda a, b: '.'.join((a, b)))
                 for name in packages
-            )
+            ),
         )
 
     def search_locations(self, fullname):
@@ -122,14 +123,17 @@ class PluginFinder(importlib.abc.MetaPathFinder):
             for candidate in plugin_dirs.get()
         )
 
-        parts = Path(*fullname.split("."))
+        parts = Path(*fullname.split('.'))
         for path in orderedSet(candidate_locations, lazy=True):
             candidate = path / parts
-            if candidate.is_dir():
-                yield candidate
-            elif path.suffix in (".zip", ".egg", ".whl") and path.is_file():
-                if parts in dirs_in_zip(path):
+            try:
+                if candidate.is_dir():
                     yield candidate
+                elif path.suffix in ('.zip', '.egg', '.whl') and path.is_file():
+                    if parts in dirs_in_zip(path):
+                        yield candidate
+            except PermissionError as e:
+                write_string(f'Permission error while accessing modules in "{e.filename}"\n')
 
     def find_spec(self, fullname, path=None, target=None):
         if fullname not in self.packages:
@@ -156,10 +160,10 @@ def directories():
 
 
 def iter_modules(subpackage):
-    fullname = f"{PACKAGE_NAME}.{subpackage}"
+    fullname = f'{PACKAGE_NAME}.{subpackage}'
     with contextlib.suppress(ModuleNotFoundError):
         pkg = importlib.import_module(fullname)
-        yield from pkgutil.iter_modules(path=pkg.__path__, prefix=f"{fullname}.")
+        yield from pkgutil.iter_modules(path=pkg.__path__, prefix=f'{fullname}.')
 
 
 def load_module(module, module_name, suffix):
@@ -169,8 +173,8 @@ def load_module(module, module_name, suffix):
             inspect.isclass(obj)
             and obj.__name__.endswith(suffix)
             and obj.__module__.startswith(module_name)
-            and not obj.__name__.startswith("_")
-            and obj.__name__ in getattr(module, "__all__", [obj.__name__])
+            and not obj.__name__.startswith('_')
+            and obj.__name__ in getattr(module, '__all__', [obj.__name__])
         ),
     )
 
@@ -179,9 +183,11 @@ def load_plugins(plugin_type: PluginType):
     destination, plugin_destination = _plugin_type_lookup[plugin_type]
     name, suffix = plugin_type.value
     classes = {}
+    if os.environ.get('YTDLP_NO_PLUGINS'):
+        return classes
 
     for finder, module_name, _ in iter_modules(name):
-        if any(x.startswith("_") for x in module_name.split(".")):
+        if any(x.startswith('_') for x in module_name.split('.')):
             continue
         try:
             if sys.version_info < (3, 10) and isinstance(finder, zipimport.zipimporter):
@@ -196,7 +202,7 @@ def load_plugins(plugin_type: PluginType):
                 spec.loader.exec_module(module)
         except Exception:
             write_string(
-                f"Error while importing module {module_name!r}\n{traceback.format_exc(limit=-1)}"
+                f'Error while importing module {module_name!r}\n{traceback.format_exc(limit=-1)}',
             )
             continue
         classes.update(load_module(module, module_name, suffix))
@@ -208,7 +214,7 @@ def load_plugins(plugin_type: PluginType):
         with contextlib.suppress(FileNotFoundError):
             spec = importlib.util.spec_from_file_location(
                 name,
-                Path(get_executable_path(), COMPAT_PACKAGE_NAME, name, "__init__.py"),
+                Path(get_executable_path(), COMPAT_PACKAGE_NAME, name, '__init__.py'),
             )
             plugins = importlib.util.module_from_spec(spec)
             sys.modules[spec.name] = plugins
@@ -218,7 +224,7 @@ def load_plugins(plugin_type: PluginType):
     regular_plugins = {}
     # __init_subclass__ was removed so we manually add overrides
     for name, klass in classes.items():
-        plugin_name = getattr(klass, "_plugin_name", None)
+        plugin_name = getattr(klass, '_plugin_name', None)
         if not plugin_name:
             regular_plugins[name] = klass
             continue
@@ -227,8 +233,8 @@ def load_plugins(plugin_type: PluginType):
         mro = inspect.getmro(klass)
         super_class = klass.__wrapped__ = mro[mro.index(klass) + 1]
         klass.PLUGIN_NAME, klass.ie_key = plugin_name, super_class.ie_key
-        klass.IE_NAME = f"{super_class.IE_NAME}+{plugin_name}"
-        while getattr(super_class, "__wrapped__", None):
+        klass.IE_NAME = f'{super_class.IE_NAME}+{plugin_name}'
+        while getattr(super_class, '__wrapped__', None):
             super_class = super_class.__wrapped__
         setattr(sys.modules[super_class.__module__], super_class.__name__, klass)
         plugin_overrides.get()[super_class].append(klass)
@@ -249,13 +255,13 @@ def load_all_plugin_types():
 
 
 sys.meta_path.insert(
-    0, PluginFinder(f"{PACKAGE_NAME}.extractor", f"{PACKAGE_NAME}.postprocessor")
+    0, PluginFinder(f'{PACKAGE_NAME}.extractor', f'{PACKAGE_NAME}.postprocessor'),
 )
 
 __all__ = [
-    "directories",
-    "load_plugins",
-    "load_all_plugin_types",
-    "PACKAGE_NAME",
-    "COMPAT_PACKAGE_NAME",
+    'directories',
+    'load_plugins',
+    'load_all_plugin_types',
+    'PACKAGE_NAME',
+    'COMPAT_PACKAGE_NAME',
 ]

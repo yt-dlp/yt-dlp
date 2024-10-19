@@ -1,16 +1,15 @@
 import functools
 import json
 import os
-import urllib.error
 
+from ..networking import Request
+from ..networking.exceptions import HTTPError, network_exceptions
 from ..utils import (
     PostProcessingError,
     RetryManager,
     _configuration_args,
     deprecation_warning,
     encodeFilename,
-    network_exceptions,
-    sanitized_Request,
 )
 
 
@@ -66,7 +65,7 @@ class PostProcessor(metaclass=PostProcessorMetaClass):
 
     def to_screen(self, text, prefix=True, *args, **kwargs):
         if self._downloader:
-            tag = '[%s] ' % self.PP_NAME if prefix else ''
+            tag = f'[{self.PP_NAME}] ' if prefix else ''
             return self._downloader.to_screen(f'{tag}{text}', *args, **kwargs)
 
     def report_warning(self, text, *args, **kwargs):
@@ -128,7 +127,7 @@ class PostProcessor(metaclass=PostProcessorMetaClass):
                 if allowed[format_type]:
                     return func(self, info)
                 else:
-                    self.to_screen('Skipping %s' % format_type)
+                    self.to_screen(f'Skipping {format_type}')
                     return [], info
             return wrapper
         return decorator
@@ -175,7 +174,7 @@ class PostProcessor(metaclass=PostProcessorMetaClass):
         self._progress_hooks.append(ph)
 
     def report_progress(self, s):
-        s['_default_template'] = '%(postprocessor)s %(status)s' % s
+        s['_default_template'] = '%(postprocessor)s %(status)s' % s  # noqa: UP031
         if not self._downloader:
             return
 
@@ -187,7 +186,7 @@ class PostProcessor(metaclass=PostProcessorMetaClass):
         tmpl = progress_template.get('postprocess')
         if tmpl:
             self._downloader.to_screen(
-                self._downloader.evaluate_outtmpl(tmpl, progress_dict), skip_eol=True, quiet=False)
+                self._downloader.evaluate_outtmpl(tmpl, progress_dict), quiet=False)
 
         self._downloader.to_console_title(self._downloader.evaluate_outtmpl(
             progress_template.get('postprocess-title') or 'yt-dlp %(progress._default_template)s',
@@ -203,13 +202,13 @@ class PostProcessor(metaclass=PostProcessorMetaClass):
         self.write_debug(f'{self.PP_NAME} query: {url}')
         for retry in RetryManager(self.get_param('extractor_retries', 3), self._retry_download):
             try:
-                rsp = self._downloader.urlopen(sanitized_Request(url))
+                rsp = self._downloader.urlopen(Request(url))
             except network_exceptions as e:
-                if isinstance(e, urllib.error.HTTPError) and e.code in expected_http_errors:
+                if isinstance(e, HTTPError) and e.status in expected_http_errors:
                     return None
                 retry.error = PostProcessingError(f'Unable to communicate with {self.PP_NAME} API: {e}')
                 continue
-        return json.loads(rsp.read().decode(rsp.info().get_param('charset') or 'utf-8'))
+        return json.loads(rsp.read().decode(rsp.headers.get_param('charset') or 'utf-8'))
 
 
 class AudioConversionError(PostProcessingError):  # Deprecated

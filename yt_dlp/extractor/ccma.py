@@ -1,6 +1,7 @@
 from .common import InfoExtractor
 from ..utils import (
     clean_html,
+    determine_ext,
     int_or_none,
     parse_duration,
     parse_resolution,
@@ -23,7 +24,7 @@ class CCMAIE(InfoExtractor):
             'timestamp': 1478608140,
             'upload_date': '20161108',
             'age_limit': 0,
-        }
+        },
     }, {
         'url': 'http://www.ccma.cat/catradio/alacarta/programa/el-consell-de-savis-analitza-el-derbi/audio/943685/',
         'md5': 'fa3e38f269329a278271276330261425',
@@ -36,7 +37,7 @@ class CCMAIE(InfoExtractor):
             'timestamp': 1494622500,
             'vcodec': 'none',
             'categories': ['Esports'],
-        }
+        },
     }, {
         'url': 'http://www.ccma.cat/tv3/alacarta/crims/crims-josep-tallada-lespereu-me-capitol-1/video/6031387/',
         'md5': 'b43c3d3486f430f3032b5b160d80cbc3',
@@ -50,7 +51,7 @@ class CCMAIE(InfoExtractor):
             'subtitles': 'mincount:4',
             'age_limit': 16,
             'series': 'Crims',
-        }
+        },
     }]
 
     def _real_extract(self, url):
@@ -60,6 +61,7 @@ class CCMAIE(InfoExtractor):
             'http://dinamics.ccma.cat/pvideo/media.jsp', media_id, query={
                 'media': media_type,
                 'idint': media_id,
+                'format': 'dm',
             })
 
         formats = []
@@ -68,6 +70,10 @@ class CCMAIE(InfoExtractor):
             for format_ in media_url:
                 format_url = url_or_none(format_.get('file'))
                 if not format_url:
+                    continue
+                if determine_ext(format_url) == 'mpd':
+                    formats.extend(self._extract_mpd_formats(
+                        format_url, media_id, mpd_id='dash', fatal=False))
                     continue
                 label = format_.get('label')
                 f = parse_resolution(label)

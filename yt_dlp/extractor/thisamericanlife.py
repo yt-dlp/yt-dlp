@@ -22,11 +22,11 @@ class ThisAmericanLifeIE(InfoExtractor):
         video_id = self._match_id(url)
 
         webpage = self._download_webpage(
-            'http://www.thisamericanlife.org/radio-archives/episode/%s' % video_id, video_id)
+            f'http://www.thisamericanlife.org/radio-archives/episode/{video_id}', video_id)
 
         return {
             'id': video_id,
-            'url': 'http://stream.thisamericanlife.org/{0}/stream/{0}_64k.m3u8'.format(video_id),
+            'url': f'http://stream.thisamericanlife.org/{video_id}/stream/{video_id}_64k.m3u8',
             'protocol': 'm3u8_native',
             'ext': 'm4a',
             'acodec': 'aac',

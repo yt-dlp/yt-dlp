@@ -1,13 +1,13 @@
 from .common import InfoExtractor
-from ..compat import compat_HTTPError
+from ..networking.exceptions import HTTPError
 from ..utils import (
-    determine_ext,
     ExtractorError,
+    determine_ext,
     int_or_none,
     parse_age_limit,
     traverse_obj,
     unified_timestamp,
-    url_or_none
+    url_or_none,
 )
 
 
@@ -31,7 +31,7 @@ class TrueIDIE(InfoExtractor):
             'upload_date': '20200916',
             'release_date': '20200630',
         },
-        'expected_warnings': ['Video is geo restricted.']
+        'expected_warnings': ['Video is geo restricted.'],
     }, {
         'url': 'https://trueid.id/series/zZOBVPb62EwR/qXY73rwyl7oj/one-piece-ep-1/',
         'md5': '1c6d976049bc3c89a8a25aed2c3fb081',
@@ -51,7 +51,7 @@ class TrueIDIE(InfoExtractor):
             'upload_date': '20210112',
             'release_date': '20210131',
         },
-        'expected_warnings': ['Video is geo restricted.']
+        'expected_warnings': ['Video is geo restricted.'],
     }, {
         'url': 'https://vn.trueid.net/series/7DNPM7Bpa9wv/pwLgEQ4Xbda2/haikyu-vua-bong-chuyen-phan-1/',
         'info_dict': {
@@ -69,7 +69,7 @@ class TrueIDIE(InfoExtractor):
             'upload_date': '20210818',
             'release_date': '20210818',
         },
-        'expected_warnings': ['Video is geo restricted.']
+        'expected_warnings': ['Video is geo restricted.'],
     }, {
         'url': 'https://trueid.ph/series/l8rvvAw7Jwv8/l8rvvAw7Jwv8/naruto-trailer/',
         'only_matching': True,
@@ -88,9 +88,9 @@ class TrueIDIE(InfoExtractor):
             stream_data = self._download_json(
                 f'https://{domain}/cmsPostProxy/contents/video/{video_id}/streamer?os=android', video_id, data=b'')['data']
         except ExtractorError as e:
-            if not isinstance(e.cause, compat_HTTPError):
+            if not isinstance(e.cause, HTTPError):
                 raise e
-            errmsg = self._parse_json(e.cause.read().decode(), video_id)['meta']['message']
+            errmsg = self._parse_json(e.cause.response.read().decode(), video_id)['meta']['message']
             if 'country' in errmsg:
                 self.raise_geo_restricted(
                     errmsg, [initial_data['display_country']] if initial_data.get('display_country') else None, True)
