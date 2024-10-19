@@ -162,7 +162,7 @@ def iter_modules(subpackage):
         yield from pkgutil.iter_modules(path=pkg.__path__, prefix=f'{fullname}.')
 
 
-def get_regular_modules(module, module_name, suffix):
+def get_regular_classes(module, module_name, suffix):
     # Find standard public plugin classes (not overrides)
     return inspect.getmembers(module, lambda obj: (
         inspect.isclass(obj)
@@ -174,10 +174,7 @@ def get_regular_modules(module, module_name, suffix):
     ))
 
 
-load_module = get_regular_modules
-
-
-def get_override_modules(module, module_name, suffix):
+def get_override_classes(module, module_name, suffix):
     # Find override plugin classes
     def predicate(obj):
         if not inspect.isclass(obj):
@@ -250,8 +247,8 @@ def load_plugins(plugin_type: PluginType):
                 f'Error while importing module {module_name!r}\n{traceback.format_exc(limit=-1)}',
             )
             continue
-        regular_classes.update(get_regular_modules(module, module_name, suffix))
-        override_classes.update(get_override_modules(module, module_name, suffix))
+        regular_classes.update(get_regular_classes(module, module_name, suffix))
+        override_classes.update(get_override_classes(module, module_name, suffix))
 
     # Compat: old plugin system using __init__.py
     # Note: plugins imported this way do not show up in directories()
@@ -265,7 +262,7 @@ def load_plugins(plugin_type: PluginType):
             plugins = importlib.util.module_from_spec(spec)
             sys.modules[spec.name] = plugins
             spec.loader.exec_module(plugins)
-            regular_classes.update(get_regular_modules(plugins, spec.name, suffix))
+            regular_classes.update(get_regular_classes(plugins, spec.name, suffix))
 
     # Configure override classes
     for _, klass in override_classes.items():
