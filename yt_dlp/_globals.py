@@ -9,6 +9,9 @@ IN_CLI = ContextVar('IN_CLI', default=False)
 # `False`=force, `None`=disabled, `True`=enabled
 LAZY_EXTRACTORS = ContextVar('LAZY_EXTRACTORS', default=False)
 
+# Whether plugins have been loaded once
+ALL_PLUGINS_LOADED = ContextVar('PLUGINS_LOADED', default=False)
+
 # `...`=search default plugin dirs
 plugin_dirs = ContextVar('plugin_dirs', default=(..., ))
 plugin_ies = ContextVar('plugin_ies', default={})

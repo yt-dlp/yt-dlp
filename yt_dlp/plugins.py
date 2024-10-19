@@ -22,7 +22,7 @@ from ._globals import (
     plugin_dirs,
     plugin_ies,
     plugin_pps,
-    postprocessors, plugin_overrides,
+    postprocessors, plugin_overrides, ALL_PLUGINS_LOADED,
 )
 
 from .compat import functools  # isort: split
@@ -297,6 +297,7 @@ def load_plugins(plugin_type: PluginType):
 def load_all_plugin_types():
     for plugin_type in PluginType:
         load_plugins(plugin_type)
+    ALL_PLUGINS_LOADED.set(True)
 
 
 sys.meta_path.insert(0, PluginFinder(f'{PACKAGE_NAME}.extractor', f'{PACKAGE_NAME}.postprocessor'))
