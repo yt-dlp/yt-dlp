@@ -33,7 +33,7 @@ from .downloader.rtmp import rtmpdump_version
 from .extractor import gen_extractor_classes, get_info_extractor, import_extractors
 from .extractor.common import UnsupportedURLIE
 from .extractor.openload import PhantomJSwrapper
-from .globals import (
+from ._globals import (
     IN_CLI,
     LAZY_EXTRACTORS,
     plugin_ies,

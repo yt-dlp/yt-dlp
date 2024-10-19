@@ -33,7 +33,7 @@ from .movefilesafterdownload import MoveFilesAfterDownloadPP
 from .sponskrub import SponSkrubPP
 from .sponsorblock import SponsorBlockPP
 from .xattrpp import XAttrMetadataPP
-from ..globals import plugin_pps, postprocessors
+from .._globals import plugin_pps, postprocessors
 from ..plugins import PACKAGE_NAME
 from ..utils import deprecation_warning
 

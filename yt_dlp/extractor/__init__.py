@@ -1,5 +1,5 @@
+from .._globals import extractors as _extractors_context
 from ..compat.compat_utils import passthrough_module
-from ..globals import extractors as _extractors_context
 
 passthrough_module(__name__, '.extractors')
 del passthrough_module

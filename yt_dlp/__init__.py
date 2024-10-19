@@ -20,7 +20,7 @@ from .downloader.external import get_external_downloader
 from .extractor import list_extractor_classes
 from .extractor.adobepass import MSO_INFO
 from .networking.impersonate import ImpersonateTarget
-from .globals import IN_CLI, plugin_dirs
+from ._globals import IN_CLI, plugin_dirs
 from .options import parseOpts
 from .plugins import load_all_plugin_types
 from .postprocessor import (

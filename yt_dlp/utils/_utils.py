@@ -52,7 +52,7 @@ from ..compat import (
     compat_os_name,
 )
 from ..dependencies import xattr
-from ..globals import IN_CLI
+from .._globals import IN_CLI
 
 __name__ = __name__.rsplit('.', 1)[0]  # noqa: A001: Pretend to be the parent module
 

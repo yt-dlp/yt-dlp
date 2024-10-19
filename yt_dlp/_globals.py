@@ -1,7 +1,7 @@
 from collections import defaultdict
 from contextvars import ContextVar
 
-# NAME = 'yt-dlp'
+# Internal only - no backwards compatibility guaranteed
 
 postprocessors = ContextVar('postprocessors', default={})
 extractors = ContextVar('extractors', default={})

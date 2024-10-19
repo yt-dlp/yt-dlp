@@ -17,7 +17,7 @@ from contextvars import ContextVar
 from pathlib import Path
 from zipfile import ZipFile
 
-from .globals import (
+from ._globals import (
     extractors,
     plugin_dirs,
     plugin_ies,
@@ -171,7 +171,7 @@ def get_regular_modules(module, module_name, suffix):
         and not obj.__name__.startswith('_')
         and obj.__name__ in getattr(module, '__all__', [obj.__name__])
         and getattr(obj, '_plugin_name', None) is None
-        ))
+    ))
 
 
 load_module = get_regular_modules
@@ -184,7 +184,7 @@ def get_override_modules(module, module_name, suffix):
             return False
         mro = inspect.getmro(obj)
         return (
-           obj.__module__.startswith(module_name)
+            obj.__module__.startswith(module_name)
             and getattr(obj, '_plugin_name', None) is not None
             and mro[mro.index(obj) + 1].__name__.endswith(suffix)
         )
@@ -268,7 +268,7 @@ def load_plugins(plugin_type: PluginType):
             regular_classes.update(get_regular_modules(plugins, spec.name, suffix))
 
     # Configure override classes
-    for name, klass in override_classes.items():
+    for _, klass in override_classes.items():
         plugin_name = getattr(klass, '_plugin_name', None)
         if not plugin_name:
             # these should always have plugin_name
@@ -297,6 +297,7 @@ def load_plugins(plugin_type: PluginType):
 def load_all_plugin_types():
     for plugin_type in PluginType:
         load_plugins(plugin_type)
+
 
 sys.meta_path.insert(0, PluginFinder(f'{PACKAGE_NAME}.extractor', f'{PACKAGE_NAME}.postprocessor'))
 

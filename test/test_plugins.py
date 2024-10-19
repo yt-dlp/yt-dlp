@@ -11,7 +11,7 @@ sys.path.append(str(TEST_DATA_DIR))
 importlib.invalidate_caches()
 
 from yt_dlp.plugins import PACKAGE_NAME, PluginType, directories, load_plugins
-from yt_dlp.globals import extractors, postprocessors
+from yt_dlp._globals import extractors, postprocessors
 
 
 class TestPlugins(unittest.TestCase):
