@@ -110,6 +110,8 @@ class SubstackIE(InfoExtractor):
         if post_type == 'podcast':
             fmt = {'url': webpage_info['post']['podcast_url']}
             if not determine_ext(fmt['url'], default_ext=None):
+                # The redirected format URL expires but the original URL doesn't,
+                # so we only want to extract the extension from this request
                 fmt['ext'] = determine_ext(self._request_webpage(
                     HEADRequest(fmt['url']), display_id,
                     'Resolving podcast file extension',
