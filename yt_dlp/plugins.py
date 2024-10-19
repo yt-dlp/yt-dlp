@@ -85,9 +85,10 @@ class PluginFinder(importlib.abc.MetaPathFinder):
         with contextlib.suppress(ValueError):  # Added when running __main__.py directly
             candidate_locations.remove(Path(__file__).parent)
 
-        if Config._plugins_location:
+        # TODO(coletdjnz): remove when plugin globals system is implemented
+        if Config._plugin_locations:
             candidate_locations.extend(_get_package_paths(
-                *Config._plugins_location,
+                *Config._plugin_locations,
                 containing_folder=''))
 
         parts = Path(*fullname.split('.'))

@@ -4,6 +4,7 @@ import shutil
 import sys
 import unittest
 from pathlib import Path
+from yt_dlp import Config
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 TEST_DATA_DIR = Path(os.path.dirname(os.path.abspath(__file__)), 'testdata')
@@ -66,6 +67,24 @@ class TestPlugins(unittest.TestCase):
         finally:
             sys.path.remove(str(zip_path))
             os.remove(zip_path)
+            importlib.invalidate_caches()  # reset the import caches
+
+    def test_plugin_locations(self):
+        # Internal plugin locations hack for CLI --plugin-locations
+        # To be replaced with proper system later
+        custom_plugin_locations_path = TEST_DATA_DIR / 'plugin_packages'
+        Config._plugin_locations = [str(custom_plugin_locations_path)]
+        importlib.invalidate_caches()  # reset the import caches
+
+        try:
+            package = importlib.import_module(f'{PACKAGE_NAME}.extractor')
+            self.assertIn(custom_plugin_locations_path / 'testpackage' / PACKAGE_NAME / 'extractor', map(Path, package.__path__))
+
+            plugins_ie = load_plugins('extractor', 'IE')
+            self.assertIn('PackagePluginIE', plugins_ie.keys())
+
+        finally:
+            Config._plugin_locations = []
             importlib.invalidate_caches()  # reset the import caches
 
 

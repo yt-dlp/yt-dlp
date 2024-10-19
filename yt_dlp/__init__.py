@@ -946,7 +946,7 @@ def parse_options(argv=None):
         'xattr_set_filesize': opts.xattr_set_filesize,
         'match_filter': opts.match_filter,
         'color': opts.color,
-        'plugins_location': opts.plugins_location,
+        'plugin_locations': opts.plugin_locations,
         'ffmpeg_location': opts.ffmpeg_location,
         'hls_prefer_native': opts.hls_prefer_native,
         'hls_use_mpegts': opts.hls_use_mpegts,
@@ -969,8 +969,9 @@ def _real_main(argv=None):
 
     parser, opts, all_urls, ydl_opts = parse_options(argv)
 
-    # Set the plugins location early on
-    Config._plugins_location = opts.plugins_location
+    # HACK: Set the plugins location early on
+    # TODO(coletdjnz): remove when plugin globals system is implemented
+    Config._plugin_locations = opts.plugin_locations
 
     # Dump user agent
     if opts.dump_user_agent:

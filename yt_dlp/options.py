@@ -409,9 +409,9 @@ def create_parser():
             'Location of the main configuration file; either the path to the config or its containing directory '
             '("-" for stdin). Can be used multiple times and inside other configuration files'))
     general.add_option(
-        '--plugins-location',
-        dest='plugins_location', metavar='PATH', action='append',
-        help=('Location of a folder containing plugins'))
+        '--plugin-locations',
+        dest='plugin_locations', metavar='PATH', action='append',
+        help='Location to search for plugin packages. Can be used multiple times to add multiple directories.')
     general.add_option(
         '--flat-playlist',
         action='store_const', dest='extract_flat', const='in_playlist', default=False,

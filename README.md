@@ -348,6 +348,9 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
                                     containing directory ("-" for stdin). Can be
                                     used multiple times and inside other
                                     configuration files
+    --plugin-locations PATH         Location to search for plugin packages. Can
+                                    be used multiple times to add multiple
+                                    directories.
     --flat-playlist                 Do not extract the videos of a playlist,
                                     only list them
     --no-flat-playlist              Fully extract the videos of a playlist
