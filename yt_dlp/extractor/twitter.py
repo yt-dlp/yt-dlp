@@ -934,14 +934,13 @@ class TwitterIE(TwitterBaseIE):
             'uploader_id': 'MoniqueCamarra',
             'live_status': 'was_live',
             'release_timestamp': 1658417414,
-            'description': 'md5:acce559345fd49f129c20dbcda3f1201',
+            'description': r're:Twitter Space participated by Sergej Sumlenny.+',
             'timestamp': 1658407771,
             'release_date': '20220721',
             'upload_date': '20220721',
         },
         'add_ie': ['TwitterSpaces'],
         'params': {'skip_download': 'm3u8'},
-        'skip': 'Requires authentication',
     }, {
         # URL specifies video number but --yes-playlist
         'url': 'https://twitter.com/CTVJLaidlaw/status/1600649710662213632/video/1',
