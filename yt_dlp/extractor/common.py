@@ -6,6 +6,7 @@ import hashlib
 import http.client
 import http.cookiejar
 import http.cookies
+import inspect
 import itertools
 import json
 import math
@@ -30,6 +31,7 @@ from ..compat import (
 from ..cookies import LenientSimpleCookie
 from ..downloader.f4m import get_base_url, remove_encrypted_media
 from ..downloader.hls import HlsFD
+from ..globals import plugin_overrides
 from ..networking import HEADRequest, Request
 from ..networking.exceptions import (
     HTTPError,
@@ -3932,8 +3934,17 @@ class InfoExtractor:
 
     @classmethod
     def __init_subclass__(cls, *, plugin_name=None, **kwargs):
-        if plugin_name is not None:
-            cls._plugin_name = plugin_name
+        if plugin_name:
+            mro = inspect.getmro(cls)
+            super_class = cls.__wrapped__ = mro[mro.index(cls) + 1]
+            cls.PLUGIN_NAME, cls.ie_key = plugin_name, super_class.ie_key
+            cls.IE_NAME = f'{super_class.IE_NAME}+{plugin_name}'
+            while getattr(super_class, '__wrapped__', None):
+                super_class = super_class.__wrapped__
+            setattr(sys.modules[super_class.__module__], super_class.__name__, cls)
+            plugin_overrides.get()[super_class].append(cls)
+        # if plugin_name is not None:
+        #     cls._plugin_name = plugin_name
         return super().__init_subclass__(**kwargs)
 
 

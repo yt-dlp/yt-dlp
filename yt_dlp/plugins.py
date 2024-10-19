@@ -18,7 +18,6 @@ from .globals import (
     extractors,
     plugin_dirs,
     plugin_ies,
-    plugin_overrides,
     plugin_pps,
     postprocessors,
 )
@@ -167,16 +166,13 @@ def iter_modules(subpackage):
 
 
 def load_module(module, module_name, suffix):
-    return inspect.getmembers(
-        module,
-        lambda obj: (
-            inspect.isclass(obj)
-            and obj.__name__.endswith(suffix)
-            and obj.__module__.startswith(module_name)
-            and not obj.__name__.startswith('_')
-            and obj.__name__ in getattr(module, '__all__', [obj.__name__])
-        ),
-    )
+    result =  inspect.getmembers(module, lambda obj: (
+        inspect.isclass(obj)
+        and obj.__name__.endswith(suffix)
+        and obj.__module__.startswith(module_name)
+        and not obj.__name__.startswith('_')
+        and obj.__name__ in getattr(module, '__all__', [obj.__name__])))
+    return result
 
 
 def load_plugins(plugin_type: PluginType):
@@ -221,42 +217,41 @@ def load_plugins(plugin_type: PluginType):
             spec.loader.exec_module(plugins)
             classes.update(load_module(plugins, spec.name, suffix))
 
-    regular_plugins = {}
+   # regular_plugins = {}
     # __init_subclass__ was removed so we manually add overrides
-    for name, klass in classes.items():
-        plugin_name = getattr(klass, '_plugin_name', None)
-        if not plugin_name:
-            regular_plugins[name] = klass
-            continue
+    # for name, klass in classes.items():
+    #     plugin_name = getattr(klass, '_plugin_name', None)
+    #     if not plugin_name:
+    #         regular_plugins[name] = klass
+    #         continue
 
         # FIXME: Most likely something wrong here
-        mro = inspect.getmro(klass)
-        super_class = klass.__wrapped__ = mro[mro.index(klass) + 1]
-        klass.PLUGIN_NAME, klass.ie_key = plugin_name, super_class.ie_key
-        klass.IE_NAME = f'{super_class.IE_NAME}+{plugin_name}'
-        while getattr(super_class, '__wrapped__', None):
-            super_class = super_class.__wrapped__
-        setattr(sys.modules[super_class.__module__], super_class.__name__, klass)
-        plugin_overrides.get()[super_class].append(klass)
+        # This does not work as plugin overrides are not available here. They are not imported in plugin_ies.
+
+        # mro = inspect.getmro(klass)
+        # super_class = klass.__wrapped__ = mro[mro.index(klass) + 1]
+        # klass.PLUGIN_NAME, klass.ie_key = plugin_name, super_class.ie_key
+        # klass.IE_NAME = f'{super_class.IE_NAME}+{plugin_name}'
+        # while getattr(super_class, '__wrapped__', None):
+        #     super_class = super_class.__wrapped__
+        # setattr(sys.modules[super_class.__module__], super_class.__name__, klass)
+        # plugin_overrides.get()[super_class].append(klass)
 
     # Add the classes into the global plugin lookup
-    plugin_destination.set(regular_plugins)
-    # We want to prepend to the main lookup
-    current = destination.get()
-    result = merge_dicts(regular_plugins, current)
-    destination.set(result)
+    plugin_destination.set(classes)
+    # # We want to prepend to the main lookup
+    destination.set(merge_dicts(destination.get(), classes))
 
-    return result
+    return classes
 
 
 def load_all_plugin_types():
-    for plugin_type in PluginType:
-        load_plugins(plugin_type)
+    # for plugin_type in PluginType:
+    #     load_plugins(plugin_type)
+    load_plugins(PluginType.EXTRACTORS)
 
 
-sys.meta_path.insert(
-    0, PluginFinder(f'{PACKAGE_NAME}.extractor', f'{PACKAGE_NAME}.postprocessor'),
-)
+sys.meta_path.insert(0, PluginFinder(f'{PACKAGE_NAME}.extractor', f'{PACKAGE_NAME}.postprocessor'))
 
 __all__ = [
     'directories',
