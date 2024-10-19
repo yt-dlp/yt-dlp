@@ -43,6 +43,10 @@ class TestPlugins(unittest.TestCase):
         self.assertNotIn('IgnoreNotInAllPluginIE', plugins_ie.keys())
         self.assertIn('InAllPluginIE', plugins_ie.keys())
 
+        # Don't load override extractors into plugins_ie
+        self.assertNotIn('OverrideGenericIE', plugins_ie.keys())
+        self.assertNotIn('_UnderscoreOverrideGenericIE', plugins_ie.keys())
+
     def test_postprocessor_classes(self):
         plugins_pp = load_plugins(PluginType.POSTPROCESSORS)
         self.assertIn('NormalPluginPP', plugins_pp.keys())
@@ -107,6 +111,19 @@ class TestPlugins(unittest.TestCase):
             sys.path.remove(str(reload_plugins_path))
             sys.path.append(str(TEST_DATA_DIR))
             importlib.invalidate_caches()
+
+    def test_extractor_override_plugin(self):
+        for module_name in tuple(sys.modules):
+            if module_name.startswith(f'{PACKAGE_NAME}.extractor'):
+                del sys.modules[module_name]
+        plugins_ie = load_plugins(PluginType.EXTRACTORS)
+
+        from yt_dlp.extractor.generic import GenericIE
+
+        self.assertEqual(GenericIE.TEST_FIELD, 'override')
+        self.assertEqual(GenericIE.SECONDARY_TEST_FIELD, 'underscore-override')
+
+        self.assertEqual(GenericIE.IE_NAME, 'generic+override+underscore-override')
 
 
 if __name__ == '__main__':
