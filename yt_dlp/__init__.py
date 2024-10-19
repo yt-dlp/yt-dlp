@@ -20,9 +20,11 @@ from .downloader.external import get_external_downloader
 from .extractor import list_extractor_classes
 from .extractor.adobepass import MSO_INFO
 from .networking.impersonate import ImpersonateTarget
-from ._globals import IN_CLI, plugin_dirs
+from ._globals import IN_CLI as _IN_CLI
 from .options import parseOpts
-from .plugins import load_all_plugins
+from .plugins import load_all_plugins as _load_all_plugins
+from .plugins import PluginDirs as _PluginDirs
+from .plugins import set_plugin_dirs as _set_plugin_dirs
 from .postprocessor import (
     FFmpegExtractAudioPP,
     FFmpegMergerPP,
@@ -428,8 +430,8 @@ def validate_options(opts):
 
     # Other options
     opts.plugin_dirs = opts.plugin_dirs or []
-    if 'no-default' not in opts.plugin_dirs:
-        opts.plugin_dirs.append(...)
+    if 'no-external' not in opts.plugin_dirs:
+        opts.plugin_dirs.append(_PluginDirs.DEFAULT_EXTERNAL)
 
     if opts.playlist_items is not None:
         try:
@@ -986,8 +988,8 @@ def _real_main(argv=None):
         FFmpegPostProcessor._ffmpeg_location.set(opts.ffmpeg_location)
 
     # load all plugins into the global lookup
-    plugin_dirs.set(opts.plugin_dirs)
-    load_all_plugins()
+    _set_plugin_dirs(*opts.plugin_dirs)
+    _load_all_plugins()
 
     with YoutubeDL(ydl_opts) as ydl:
         pre_process = opts.update_self or opts.rm_cachedir
@@ -1088,7 +1090,7 @@ def _real_main(argv=None):
 
 
 def main(argv=None):
-    IN_CLI.set(True)
+    _IN_CLI.set(True)
     try:
         _exit(*variadic(_real_main(argv)))
     except (CookieLoadError, DownloadError):

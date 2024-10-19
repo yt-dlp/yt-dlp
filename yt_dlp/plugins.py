@@ -1,5 +1,6 @@
 import contextlib
 import dataclasses
+import enum
 import importlib
 import importlib.abc
 import importlib.machinery
@@ -34,6 +35,26 @@ from .utils import (
 PACKAGE_NAME = 'yt_dlp_plugins'
 COMPAT_PACKAGE_NAME = 'ytdlp_plugins'
 _BASE_PACKAGE_PATH = Path(__file__).parent
+
+
+# Public APIs
+# Anything else is NOT public and no backwards compatibility is guaranteed
+__all__ = [
+    'directories',
+    'load_plugins',
+    'load_all_plugins',
+    'register_plugin_spec',
+    'add_plugin_dirs',
+    'set_plugin_dirs',
+    'PluginDirs',
+    'get_plugin_spec',
+    'PACKAGE_NAME',
+    'COMPAT_PACKAGE_NAME',
+]
+
+
+class PluginDirs(enum.Enum):
+    DEFAULT_EXTERNAL = 'external'  # The default external plugin directories
 
 
 @dataclasses.dataclass
@@ -114,7 +135,7 @@ class PluginFinder(importlib.abc.MetaPathFinder):
 
     def search_locations(self, fullname):
         candidate_locations = itertools.chain.from_iterable(
-            external_plugin_paths() if candidate is ... else Path(candidate).iterdir()
+            external_plugin_paths() if candidate == PluginDirs.DEFAULT_EXTERNAL else Path(candidate).iterdir()
             for candidate in plugin_dirs.get()
         )
 
@@ -203,7 +224,7 @@ def load_plugins(plugin_spec: PluginSpec):
     # Compat: old plugin system using __init__.py
     # Note: plugins imported this way do not show up in directories()
     # nor are considered part of the yt_dlp_plugins namespace package
-    if ... in plugin_dirs.get((...,)):
+    if PluginDirs.DEFAULT_EXTERNAL in plugin_dirs.get():
         with contextlib.suppress(FileNotFoundError):
             spec = importlib.util.spec_from_file_location(
                 name,
@@ -235,16 +256,15 @@ def register_plugin_spec(plugin_spec: PluginSpec):
         sys.meta_path.insert(0, PluginFinder(f'{PACKAGE_NAME}.{plugin_spec.module_name}'))
 
 
+def add_plugin_dirs(*paths):
+    """Add external plugin dirs to the existing ones"""
+    plugin_dirs.set((*plugin_dirs.get(), *paths))
+
+
+def set_plugin_dirs(*paths):
+    """Set external plugin dirs, overriding the default ones"""
+    plugin_dirs.set(tuple(paths))
+
+
 def get_plugin_spec(module_name):
     return plugin_specs.get().get(module_name)
-
-
-__all__ = [
-    'directories',
-    'load_plugins',
-    'load_all_plugins',
-    'register_plugin_spec',
-    'get_plugin_spec',
-    'PACKAGE_NAME',
-    'COMPAT_PACKAGE_NAME',
-]

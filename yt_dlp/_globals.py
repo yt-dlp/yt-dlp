@@ -17,8 +17,7 @@ plugin_specs = ContextVar('plugin_specs', default={})
 # Whether plugins have been loaded once
 all_plugins_loaded = ContextVar('all_plugins_loaded', default=False)
 
-# `...`=search default plugin dirs
-plugin_dirs = ContextVar('plugin_dirs', default=(..., ))
+plugin_dirs = ContextVar('plugin_dirs', default=('external', ))
 plugin_ies = ContextVar('plugin_ies', default={})
 plugin_overrides = ContextVar('plugin_overrides', default=defaultdict(list))
 plugin_pps = ContextVar('plugin_pps', default={})

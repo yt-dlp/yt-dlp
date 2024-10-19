@@ -472,7 +472,7 @@ def create_parser():
         action='append',
         help=(
             'Directory to search for plugins. Can be used multiple times to add multiple directories. '
-            'Add "no-default" to disable the default plugin directories'
+            'Add "no-external" to disable searching default external plugin directories (outside of python environment)'
         ),
     )
     general.add_option(

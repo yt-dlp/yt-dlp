@@ -5,6 +5,7 @@ import sys
 import unittest
 from pathlib import Path
 import yt_dlp._globals
+from yt_dlp.plugins import set_plugin_dirs, add_plugin_dirs, PluginDirs
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 TEST_DATA_DIR = Path(os.path.dirname(os.path.abspath(__file__)), 'testdata')
@@ -37,7 +38,7 @@ class TestPlugins(unittest.TestCase):
     def setUp(self):
         plugin_ies.set({})
         plugin_pps.set({})
-        plugin_dirs.set((...,))
+        plugin_dirs.set((PluginDirs.DEFAULT_EXTERNAL,))
         plugin_specs.set({})
         all_plugins_loaded.set(False)
         importlib.invalidate_caches()
@@ -174,8 +175,25 @@ class TestPlugins(unittest.TestCase):
         self.assertIn(f'{PACKAGE_NAME}.extractor.normal', sys.modules.keys())
         self.assertIn(f'{PACKAGE_NAME}.postprocessor.normal', sys.modules.keys())
 
-    def test_plugin_dirs(self):
-        plugin_dirs.set((..., str(TEST_DATA_DIR / 'plugin_packages')))
+    def test_set_plugin_dirs(self):
+
+        custom_plugin_dir = str(TEST_DATA_DIR / 'plugin_packages')
+        set_plugin_dirs(custom_plugin_dir)
+
+        self.assertEqual(plugin_dirs.get(), (custom_plugin_dir, ))
+        self.assertNotIn('external', plugin_dirs.get())
+        load_plugins(EXTRACTOR_PLUGIN_SPEC)
+
+        self.assertIn(f'{PACKAGE_NAME}.extractor.package', sys.modules.keys())
+        self.assertIn('PackagePluginIE', plugin_ies.get())
+
+    def test_add_plugin_dirs(self):
+        custom_plugin_dir = str(TEST_DATA_DIR / 'plugin_packages')
+
+        self.assertEqual(plugin_dirs.get(), (PluginDirs.DEFAULT_EXTERNAL,))
+        add_plugin_dirs(custom_plugin_dir)
+        self.assertEqual(plugin_dirs.get(), (PluginDirs.DEFAULT_EXTERNAL, custom_plugin_dir))
+
         load_plugins(EXTRACTOR_PLUGIN_SPEC)
 
         self.assertIn(f'{PACKAGE_NAME}.extractor.package', sys.modules.keys())
