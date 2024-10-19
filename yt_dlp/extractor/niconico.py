@@ -7,7 +7,6 @@ import time
 import urllib.parse
 
 from .common import InfoExtractor, SearchInfoExtractor
-from ..networking import Request
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
@@ -957,7 +956,7 @@ class NiconicoLiveIE(NiconicoBaseIE):
 
     def _yield_formats(self, ws_url, headers, latency, video_id, is_live):
         ws = self._request_webpage(
-            Request(ws_url, headers=headers), video_id, note='Connecting to WebSocket server')
+            ws_url, video_id, note='Connecting to WebSocket server', headers=headers)
 
         self.write_debug('Sending HLS server request')
         ws.send(json.dumps({
@@ -973,37 +972,36 @@ class NiconicoLiveIE(NiconicoBaseIE):
                     'protocol': 'webSocket',
                     'commentable': True,
                 },
-                'reconnect': False,
             },
         }))
 
-        while True:
-            recv = ws.recv()
-            if not recv:
-                continue
-            data = json.loads(recv)
-            if not isinstance(data, dict):
-                continue
-            if data.get('type') == 'stream':
-                m3u8_url = data['data']['uri']
-                qualities = data['data']['availableQualities']
-                break
-            elif data.get('type') == 'disconnect':
-                self.write_debug(recv)
-                raise ExtractorError('Disconnected at middle of extraction')
-            elif data.get('type') == 'error':
-                self.write_debug(recv)
-                message = traverse_obj(data, ('body', 'code')) or recv
-                raise ExtractorError(message)
-            elif self.get_param('verbose', False):
-                if len(recv) > 100:
-                    recv = recv[:100] + '...'
-                self.write_debug(f'Server said: {recv}')
+        with ws:
+            while True:
+                recv = ws.recv()
+                if not recv:
+                    continue
+                data = json.loads(recv)
+                if not isinstance(data, dict):
+                    continue
+                if data.get('type') == 'stream':
+                    m3u8_url = data['data']['uri']
+                    qualities = data['data']['availableQualities']
+                    break
+                elif data.get('type') == 'disconnect':
+                    self.write_debug(data)
+                    raise ExtractorError('Disconnected at middle of extraction')
+                elif data.get('type') == 'error':
+                    self.write_debug(data)
+                    message = traverse_obj(data, ('data', 'code')) or recv
+                    raise ExtractorError(message)
+                elif self.get_param('verbose', False):
+                    if len(recv) > 100:
+                        recv = recv[:100] + '...'
+                    self.write_debug(f'Server said: {recv}')
 
-        ws.close()
-
-        formats = self._extract_m3u8_formats(m3u8_url, video_id, ext='mp4', live=is_live)
-        for fmt, q in zip(formats, reversed(qualities[1:])):
+        formats = sorted(self._extract_m3u8_formats(
+            m3u8_url, video_id, ext='mp4', live=is_live), key=lambda f: f['tbr'], reverse=True)
+        for fmt, q in zip(formats, qualities[1:]):
             fmt.update({
                 'format_id': q,
                 'protocol': 'niconico_live',

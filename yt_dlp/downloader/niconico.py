@@ -15,7 +15,6 @@ from ..utils import (
     RetryManager,
     str_or_none,
     traverse_obj,
-    try_get,
     urljoin,
 )
 
@@ -78,6 +77,7 @@ class NiconicoLiveFD(FragmentFD):
         """ Hold a WebSocket object and release it when leaving """
 
         video_id = info_dict['id']
+        format_id = info_dict['format_id']
         live_latency = info_dict['downloader_options']['live_latency']
         ws_url = info_dict['downloader_options']['ws_url']
 
@@ -89,12 +89,12 @@ class NiconicoLiveFD(FragmentFD):
         def communicate_ws():
             self.ws = self.ydl.urlopen(Request(ws_url, headers=info_dict.get('http_headers')))
             if self.ydl.params.get('verbose', False):
-                self.to_screen('[debug] Sending startWatching request')
+                self.write_debug('Sending HLS server request')
             self.ws.send(json.dumps({
                 'type': 'startWatching',
                 'data': {
                     'stream': {
-                        'quality': 'abr',
+                        'quality': format_id,
                         'protocol': 'hls',
                         'latency': live_latency,
                         'chasePlay': False,
@@ -103,7 +103,6 @@ class NiconicoLiveFD(FragmentFD):
                         'protocol': 'webSocket',
                         'commentable': True,
                     },
-                    'reconnect': True,
                 },
             }))
             with self.ws:
@@ -112,7 +111,7 @@ class NiconicoLiveFD(FragmentFD):
                     if not recv:
                         continue
                     data = json.loads(recv)
-                    if not data or not isinstance(data, dict):
+                    if not isinstance(data, dict):
                         continue
                     if data.get('type') == 'ping':
                         # pong back
@@ -126,12 +125,12 @@ class NiconicoLiveFD(FragmentFD):
                         return
                     elif data.get('type') == 'error':
                         self.write_debug(data)
-                        message = try_get(data, lambda x: x['body']['code'], str) or recv
+                        message = traverse_obj(data, ('data', 'code')) or recv
                         raise DownloadError(message)
                     elif self.ydl.params.get('verbose', False):
                         if len(recv) > 100:
                             recv = recv[:100] + '...'
-                        self.to_screen(f'[debug] Server said: {recv}')
+                        self.write_debug(f'Server said: {recv}')
 
         stopped = threading.Event()
 
@@ -146,7 +145,8 @@ class NiconicoLiveFD(FragmentFD):
 
                     self.m3u8_lock.clear()  # m3u8 url may be changed
 
-                    self.to_screen('[{}] {}: Connection error occured, reconnecting after {} seconds: {}'.format('niconico:live', video_id, self._WEBSOCKET_RECONNECT_DELAY, str_or_none(e)))
+                    self.to_screen('[{}] {}: Connection error occured, reconnecting after {} seconds: {}'.format(
+                        'niconico:live', video_id, self._WEBSOCKET_RECONNECT_DELAY, str_or_none(e)))
                     time.sleep(self._WEBSOCKET_RECONNECT_DELAY)
 
             self.m3u8_lock.set()  # Release possible locks
@@ -181,7 +181,6 @@ class NiconicoLiveFD(FragmentFD):
             ie = NiconicoIE(self.ydl)
 
             video_id = info_dict['id']
-            format_index = next((i for i, fmt in enumerate(info_dict['formats']) if fmt['format_id'] == info_dict['format_id']))
 
             # Get video info
             total_duration = 0
@@ -209,13 +208,10 @@ class NiconicoLiveFD(FragmentFD):
                 retry_manager = RetryManager(self.params.get('fragment_retries'), self.report_retry)
                 for retry in retry_manager:
                     try:
-                        # Refresh master m3u8 (if possible) and get the url of the previously-chose format
-                        master_m3u8_url = ws_context._master_m3u8_url()
-                        formats = ie._extract_m3u8_formats(
-                            master_m3u8_url, video_id, query={'start': downloaded_duration}, live=False, note=False, fatal=False)
-                        media_m3u8_url = traverse_obj(formats, (format_index, {dict}, 'url'), get_all=False)
-                        if not media_m3u8_url:
-                            raise DownloadError('Unable to get playlist')
+                        # Refresh master m3u8 (if possible) to get the new URL of the previously-chose format
+                        media_m3u8_url = ie._extract_m3u8_formats(
+                            ws_context._master_m3u8_url(), video_id, note=False,
+                            query={'start': downloaded_duration}, live=False)[0]['url']
 
                         # Get all fragments
                         media_m3u8 = ie._download_webpage(
