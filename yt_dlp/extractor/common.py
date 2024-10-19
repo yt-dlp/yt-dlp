@@ -6,6 +6,7 @@ import hashlib
 import http.client
 import http.cookiejar
 import http.cookies
+import inspect
 import itertools
 import json
 import math
@@ -21,6 +22,7 @@ import urllib.parse
 import urllib.request
 import xml.etree.ElementTree
 
+from .._globals import plugin_overrides
 from ..compat import (
     compat_etree_fromstring,
     compat_expanduser,
@@ -3933,7 +3935,19 @@ class InfoExtractor:
     @classmethod
     def __init_subclass__(cls, *, plugin_name=None, **kwargs):
         if plugin_name is not None:
-            cls._plugin_name = plugin_name
+            mro = inspect.getmro(cls)
+            next_mro_class = super_class = mro[mro.index(cls) + 1]
+
+            while getattr(super_class, '__wrapped__', None):
+                super_class = super_class.__wrapped__
+
+            if not any(override.PLUGIN_NAME == plugin_name for override in plugin_overrides.get()[super_class]):
+                cls.__wrapped__ = next_mro_class
+                cls.PLUGIN_NAME, cls.ie_key = plugin_name, next_mro_class.ie_key
+                cls.IE_NAME = f'{next_mro_class.IE_NAME}+{plugin_name}'
+
+                setattr(sys.modules[super_class.__module__], super_class.__name__, cls)
+                plugin_overrides.get()[super_class].append(cls)
         return super().__init_subclass__(**kwargs)
 
 

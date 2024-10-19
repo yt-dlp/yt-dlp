@@ -116,13 +116,18 @@ class TestPlugins(unittest.TestCase):
         for module_name in tuple(sys.modules):
             if module_name.startswith(f'{PACKAGE_NAME}.extractor'):
                 del sys.modules[module_name]
-        plugins_ie = load_plugins(PluginType.EXTRACTORS)
+        load_plugins(PluginType.EXTRACTORS)
 
         from yt_dlp.extractor.generic import GenericIE
 
         self.assertEqual(GenericIE.TEST_FIELD, 'override')
         self.assertEqual(GenericIE.SECONDARY_TEST_FIELD, 'underscore-override')
 
+        self.assertEqual(GenericIE.IE_NAME, 'generic+override+underscore-override')
+        importlib.invalidate_caches()
+        #  test that loading a second time doesn't wrap a second time
+        load_plugins(PluginType.EXTRACTORS)
+        from yt_dlp.extractor.generic import GenericIE
         self.assertEqual(GenericIE.IE_NAME, 'generic+override+underscore-override')
 
 
