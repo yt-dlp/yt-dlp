@@ -4,27 +4,37 @@ import shutil
 import sys
 import unittest
 from pathlib import Path
+import yt_dlp._globals
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 TEST_DATA_DIR = Path(os.path.dirname(os.path.abspath(__file__)), 'testdata')
 sys.path.append(str(TEST_DATA_DIR))
 importlib.invalidate_caches()
 
-from yt_dlp.plugins import PACKAGE_NAME, PluginType, directories, load_plugins
-from yt_dlp._globals import extractors, postprocessors
+from yt_dlp.plugins import PACKAGE_NAME, PluginType, directories, load_plugins, load_all_plugin_types
+from yt_dlp._globals import extractors, postprocessors, plugin_dirs, plugin_ies, plugin_pps, ALL_PLUGINS_LOADED
 
 
 class TestPlugins(unittest.TestCase):
 
     TEST_PLUGIN_DIR = TEST_DATA_DIR / PACKAGE_NAME
 
+    def setUp(self):
+        plugin_ies.set({})
+        plugin_pps.set({})
+        plugin_dirs.set((...,))
+        ALL_PLUGINS_LOADED.set(False)
+        importlib.invalidate_caches()
+        # Clearing override plugins is probably difficult
+        for module_name in tuple(sys.modules):
+            for plugin_type in ('extractor', 'postprocessor'):
+                if module_name.startswith(f'{PACKAGE_NAME}.{plugin_type}.'):
+                    del sys.modules[module_name]
+
     def test_directories_containing_plugins(self):
         self.assertIn(self.TEST_PLUGIN_DIR, map(Path, directories()))
 
     def test_extractor_classes(self):
-        for module_name in tuple(sys.modules):
-            if module_name.startswith(f'{PACKAGE_NAME}.extractor'):
-                del sys.modules[module_name]
         plugins_ie = load_plugins(PluginType.EXTRACTORS)
 
         self.assertIn(f'{PACKAGE_NAME}.extractor.normal', sys.modules.keys())
@@ -35,21 +45,29 @@ class TestPlugins(unittest.TestCase):
             f'{PACKAGE_NAME}.extractor._ignore' in sys.modules,
             'loaded module beginning with underscore')
         self.assertNotIn('IgnorePluginIE', plugins_ie.keys())
+        self.assertNotIn('IgnorePluginIE', plugin_ies.get())
 
         # Don't load extractors with underscore prefix
         self.assertNotIn('_IgnoreUnderscorePluginIE', plugins_ie.keys())
+        self.assertNotIn('_IgnoreUnderscorePluginIE', plugin_ies.get())
 
         # Don't load extractors not specified in __all__ (if supplied)
         self.assertNotIn('IgnoreNotInAllPluginIE', plugins_ie.keys())
+        self.assertNotIn('IgnoreNotInAllPluginIE', plugin_ies.get())
         self.assertIn('InAllPluginIE', plugins_ie.keys())
+        self.assertIn('InAllPluginIE', plugin_ies.get())
 
-        # Don't load override extractors into plugins_ie
+        # Don't load override extractors
         self.assertNotIn('OverrideGenericIE', plugins_ie.keys())
+        self.assertNotIn('OverrideGenericIE', plugin_ies.get())
         self.assertNotIn('_UnderscoreOverrideGenericIE', plugins_ie.keys())
+        self.assertNotIn('_UnderscoreOverrideGenericIE', plugin_ies.get())
 
     def test_postprocessor_classes(self):
         plugins_pp = load_plugins(PluginType.POSTPROCESSORS)
         self.assertIn('NormalPluginPP', plugins_pp.keys())
+        self.assertIn(f'{PACKAGE_NAME}.postprocessor.normal', sys.modules.keys())
+        self.assertIn('NormalPluginPP', plugin_pps.get())
 
     def test_importing_zipped_module(self):
         zip_path = TEST_DATA_DIR / 'zipped_plugins.zip'
@@ -77,7 +95,7 @@ class TestPlugins(unittest.TestCase):
         reload_plugins_path = TEST_DATA_DIR / 'reload_plugins'
 
         for plugin_type in ('extractor', 'postprocessor'):
-            package = importlib.import_module(f'{PACKAGE_NAME}.{plugin_type}')
+            importlib.import_module(f'{PACKAGE_NAME}.{plugin_type}')
         load_plugins(PluginType.EXTRACTORS)
         load_plugins(PluginType.POSTPROCESSORS)
 
@@ -113,9 +131,6 @@ class TestPlugins(unittest.TestCase):
             importlib.invalidate_caches()
 
     def test_extractor_override_plugin(self):
-        for module_name in tuple(sys.modules):
-            if module_name.startswith(f'{PACKAGE_NAME}.extractor'):
-                del sys.modules[module_name]
         load_plugins(PluginType.EXTRACTORS)
 
         from yt_dlp.extractor.generic import GenericIE
@@ -129,6 +144,25 @@ class TestPlugins(unittest.TestCase):
         load_plugins(PluginType.EXTRACTORS)
         from yt_dlp.extractor.generic import GenericIE
         self.assertEqual(GenericIE.IE_NAME, 'generic+override+underscore-override')
+
+    def test_load_all_plugin_types(self):
+
+        self.assertNotIn(f'{PACKAGE_NAME}.extractor.normal', sys.modules.keys())
+        self.assertNotIn(f'{PACKAGE_NAME}.postprocessor.normal', sys.modules.keys())
+
+        load_all_plugin_types()
+        self.assertTrue(yt_dlp._globals.ALL_PLUGINS_LOADED.get())
+
+        self.assertIn(f'{PACKAGE_NAME}.extractor.normal', sys.modules.keys())
+        self.assertIn(f'{PACKAGE_NAME}.postprocessor.normal', sys.modules.keys())
+
+    def test_plugin_dirs(self):
+        plugin_dirs.set((..., str(TEST_DATA_DIR / 'plugin_packages')))
+        load_all_plugin_types()
+        self.assertTrue(yt_dlp._globals.ALL_PLUGINS_LOADED.get())
+
+        self.assertIn(f'{PACKAGE_NAME}.extractor.package', sys.modules.keys())
+        self.assertIn('PackagePluginIE', plugin_ies.get())
 
 
 if __name__ == '__main__':
