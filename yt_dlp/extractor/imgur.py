@@ -52,6 +52,7 @@ class ImgurIE(ImgurBaseIE):
             'release_timestamp': 1416446068,
             'release_date': '20141120',
             'like_count': int,
+            'thumbnail': 'https://i.imgur.com/A61SaA1h.jpg',
         },
     }, {
         # Test with URL slug
@@ -67,6 +68,7 @@ class ImgurIE(ImgurBaseIE):
             'release_timestamp': 1416446068,
             'release_date': '20141120',
             'like_count': int,
+            'thumbnail': 'https://i.imgur.com/A61SaA1h.jpg',
         },
     }, {
         'url': 'https://i.imgur.com/A61SaA1.gifv',
@@ -87,6 +89,7 @@ class ImgurIE(ImgurBaseIE):
             'duration': 30.0,
             'comment_count': int,
             'release_timestamp': 1533835503,
+            'thumbnail': 'https://i.imgur.com/jxBXAMCh.jpg',
             'dislike_count': int,
         },
     }, {
@@ -105,6 +108,7 @@ class ImgurIE(ImgurBaseIE):
             'comment_count': int,
             'release_timestamp': 1710491255,
             'release_date': '20240315',
+            'thumbnail': 'https://i.imgur.com/zV03bd5h.jpg',
         },
     }]
 
@@ -283,6 +287,7 @@ class ImgurGalleryIE(ImgurGalleryBaseIE):
             'uploader_id': '1648642',
             'uploader': 'wittyusernamehere',
             'release_timestamp': 1358554297,
+            'thumbnail': 'https://i.imgur.com/YcAQlkxh.jpg',
             'release_date': '20130119',
             'uploader_url': 'https://i.imgur.com/N5Flb2v_d.png?maxwidth=290&fidelity=grand',
             'comment_count': int,
@@ -303,6 +308,7 @@ class ImgurGalleryIE(ImgurGalleryBaseIE):
             'uploader': 'wittyusernamehere',
             'release_timestamp': 1358554297,
             'release_date': '20130119',
+            'thumbnail': 'https://i.imgur.com/YcAQlkxh.jpg',
             'uploader_url': 'https://i.imgur.com/N5Flb2v_d.png?maxwidth=290&fidelity=grand',
             'comment_count': int,
             'dislike_count': int,
@@ -329,6 +335,7 @@ class ImgurGalleryIE(ImgurGalleryBaseIE):
             'release_timestamp': 1476494751,
             'like_count': int,
             'release_date': '20161015',
+            'thumbnail': 'https://i.imgur.com/VQcQPhMh.jpg',
         },
     },
         # from https://github.com/ytdl-org/youtube-dl/pull/16674
@@ -361,6 +368,7 @@ class ImgurGalleryIE(ImgurGalleryBaseIE):
             'dislike_count': int,
             'comment_count': int,
             'duration': 30.03,
+            'thumbnail': 'https://i.imgur.com/ZVMv45ih.jpg',
         },
     }, {
         'url': 'https://imgur.com/t/unmuted/wXSK0YH',
@@ -377,6 +385,7 @@ class ImgurGalleryIE(ImgurGalleryBaseIE):
             'duration': 30.03,
             'comment_count': int,
             'release_timestamp': 1527809525,
+            'thumbnail': 'https://i.imgur.com/JCAP4ioh.jpg',
             'release_date': '20180531',
         },
     }]
