@@ -114,6 +114,7 @@ INNERTUBE_CLIENTS = {
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 67,
     },
+    # This client now requires sign-in for every video
     'web_creator': {
         'INNERTUBE_CONTEXT': {
             'client': {
@@ -153,6 +154,7 @@ INNERTUBE_CLIENTS = {
         'REQUIRE_JS_PLAYER': False,
         'REQUIRE_PO_TOKEN': True,
     },
+    # This client now requires sign-in for every video
     'android_creator': {
         'INNERTUBE_CONTEXT': {
             'client': {
@@ -201,6 +203,7 @@ INNERTUBE_CLIENTS = {
         'PLAYER_PARAMS': '2AMB',
     },
     # This client only has legacy formats and storyboards
+    # BROKEN: Unable to download API page: HTTP Error 403: Forbidden "The caller does not have permission"
     'android_producer': {
         'INNERTUBE_CONTEXT': {
             'client': {
@@ -247,6 +250,7 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT_CLIENT_NAME': 26,
         'REQUIRE_JS_PLAYER': False,
     },
+    # This client now requires sign-in for every video
     'ios_creator': {
         'INNERTUBE_CONTEXT': {
             'client': {
@@ -282,8 +286,9 @@ INNERTUBE_CLIENTS = {
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 7,
     },
-    # This client can access age restricted videos (unless the uploader has disabled the 'allow embedding' option)
-    # See: https://github.com/zerodytrash/YouTube-Internal-Clients
+    # This client now requires sign-in for every video
+    # It was previously an age-gate workaround for videos that were `playable_in_embed`
+    # It may still be useful if signed into an EU account that is not age-verified
     'tv_embedded': {
         'INNERTUBE_CONTEXT': {
             'client': {
@@ -1525,6 +1530,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'heatmap': 'count:100',
                 'timestamp': 1401991663,
             },
+            'skip': 'Age-restricted; requires authentication',
         },
         {
             'note': 'Age-gate video with embed allowed in public site',
@@ -1555,6 +1561,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'comment_count': int,
                 'channel_is_verified': True,
             },
+            'skip': 'Age-restricted; requires authentication',
         },
         {
             'note': 'Age-gate video embedable only with clientScreen=EMBED',
@@ -1585,6 +1592,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader_id': '@ProjektMelody',
                 'timestamp': 1577508724,
             },
+            'skip': 'Age-restricted; requires authentication',
         },
         {
             'note': 'Non-Agegated non-embeddable video',
@@ -2356,6 +2364,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'channel_is_verified': True,
                 'timestamp': 1405513526,
             },
+            'skip': 'Age-restricted; requires authentication',
         },
         {
             # restricted location, https://github.com/ytdl-org/youtube-dl/issues/28685
@@ -2726,6 +2735,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'timestamp': 1577508724,
             },
             'params': {'extractor_args': {'youtube': {'player_client': ['tv_embedded']}}, 'format': '251-drc'},
+            'skip': 'Age-restricted; requires authentication',
         },
         {
             'url': 'https://www.youtube.com/live/qVv6vCqciTM',
@@ -3953,26 +3963,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 else:
                     prs.append(pr)
 
-            # tv_embedded can work around age-gate and age-verification IF the video is embeddable
-            if self._is_agegated(pr) and variant != 'tv_embedded':
-                append_client(f'tv_embedded.{base_client}')
-
-            # Unauthenticated users will only get tv_embedded client formats if age-gated
-            if self._is_agegated(pr) and not self.is_authenticated:
-                self.to_screen(
-                    f'{video_id}: This video is age-restricted; some formats may be missing '
-                    f'without authentication. {self._login_hint()}', only_once=True)
-
             # EU countries require age-verification for accounts to access age-restricted videos
             # If account is not age-verified, _is_agegated() will be truthy for non-embedded clients
-            # If embedding is disabled for the video, _is_unplayable() will be truthy for tv_embedded
-            embedding_is_disabled = variant == 'tv_embedded' and self._is_unplayable(pr)
-            if self.is_authenticated and (self._is_agegated(pr) or embedding_is_disabled):
+            if self.is_authenticated and self._is_agegated(pr):
                 self.to_screen(
                     f'{video_id}: This video is age-restricted and YouTube is requiring '
                     'account age-verification; some formats may be missing', only_once=True)
                 # web_creator and mediaconnect can work around the age-verification requirement
-                # _producer, _testsuite, & _vr variants can also work around age-verification
+                # _testsuite & _vr variants can also work around age-verification
+                # tv_embedded may(?) still work around age-verification if the video is embeddable
                 append_client('web_creator', 'mediaconnect')
 
         prs.extend(deprioritized_prs)
