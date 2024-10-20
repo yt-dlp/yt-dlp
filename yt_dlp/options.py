@@ -412,8 +412,8 @@ def create_parser():
         '--plugin-dirs',
         dest='plugin_dirs', metavar='PATH', action='append',
         help=(
-            'Path to a directory for yt-dlp to search for plugins (in addition to the default '
-            'plugin directories). Note that this currently only works for extractor plugins; '
+            'Path to append to the default list of directories yt-dlp uses to search for plugins. '
+            'Note that this currently only works for extractor plugins; '
             'postprocessor plugins can only be loaded from the default plugin directories. This '
             'option can be used multiple times to add multiple directories'))
     general.add_option(
