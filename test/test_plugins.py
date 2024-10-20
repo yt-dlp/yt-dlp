@@ -69,10 +69,10 @@ class TestPlugins(unittest.TestCase):
             importlib.invalidate_caches()  # reset the import caches
 
     def test_plugin_locations(self):
-        # Internal plugin locations hack for CLI --plugin-locations
+        # Internal plugin locations hack for CLI --plugin-dirs
         # To be replaced with proper system later
         custom_plugin_locations_path = TEST_DATA_DIR / 'plugin_packages'
-        Config._plugin_locations = [str(custom_plugin_locations_path)]
+        Config._plugin_dirs = [str(custom_plugin_locations_path)]
         importlib.invalidate_caches()  # reset the import caches
 
         try:
@@ -83,7 +83,7 @@ class TestPlugins(unittest.TestCase):
             self.assertIn('PackagePluginIE', plugins_ie.keys())
 
         finally:
-            Config._plugin_locations = []
+            Config._plugin_dirs = []
             importlib.invalidate_caches()  # reset the import caches
 
 

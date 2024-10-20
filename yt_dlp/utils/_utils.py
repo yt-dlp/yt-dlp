@@ -4897,9 +4897,9 @@ class Config:
     filename = None
     __initialized = False
 
-    # Internal only, do not use! Hack to enable --plugins-location
+    # Internal only, do not use! Hack to enable --plugin-dir
     # TODO(coletdjnz): remove when plugin globals system is implemented
-    _plugin_locations = None
+    _plugin_dirs = None
 
     def __init__(self, parser, label=None):
         self.parser, self.label = parser, label
