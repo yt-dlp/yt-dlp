@@ -10,7 +10,7 @@ TEST_DATA_DIR = Path(os.path.dirname(os.path.abspath(__file__)), 'testdata')
 sys.path.append(str(TEST_DATA_DIR))
 importlib.invalidate_caches()
 
-from yt_dlp import Config
+from yt_dlp.utils import Config
 from yt_dlp.plugins import PACKAGE_NAME, directories, load_plugins
 
 
