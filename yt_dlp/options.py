@@ -413,9 +413,9 @@ def create_parser():
         dest='plugin_dirs', metavar='PATH', action='append',
         help=(
             'Path to an additional directory to search for plugins. '
+            'This option can be used multiple times to add multiple directories. '
             'Note that this currently only works for extractor plugins; '
-            'postprocessor plugins can only be loaded from the default plugin directories. '
-            'This option can be used multiple times to add multiple directories'))
+            'postprocessor plugins can only be loaded from the default plugin directories'))
     general.add_option(
         '--flat-playlist',
         action='store_const', dest='extract_flat', const='in_playlist', default=False,
