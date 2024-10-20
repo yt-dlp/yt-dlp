@@ -7,6 +7,8 @@ from ..utils import (
     int_or_none,
     str_or_none,
     traverse_obj,
+    update_url,
+    url_or_none,
 )
 
 
@@ -94,24 +96,25 @@ class TelecincoIE(InfoExtractor):
             'Origin': re.match(r'https?://[^/]+', url).group(0),
         }
         geo_headers = {**headers, **self.geo_verification_headers()}
-        cdn = traverse_obj(self._download_json(
+        cdn = self._download_json(
             caronte['cerbero'], video_id, data=json.dumps({
                 'bbx': caronte['bbx'],
                 'gbx': self._download_json(services['gbx'], video_id)['gbx'],
             }).encode(), headers={
                 'Content-Type': 'application/json',
                 **geo_headers,
-            }), ('tokens', '1', 'cdn'))
+            })['tokens']['1']['cdn']
         formats = self._extract_m3u8_formats(
-            stream + '?' + cdn, video_id, 'mp4', 'm3u8_native', m3u8_id='hls', headers=geo_headers)
+            update_url(stream, query=cdn), video_id, 'mp4', m3u8_id='hls', headers=geo_headers)
 
         return {
-            'http_headers': headers,
             'id': video_id,
             'title': title,
             'formats': formats,
-            'thumbnail': content.get('dataPoster') or traverse_obj(config, 'poster', 'imageUrl'),
+            'thumbnail': (traverse_obj(content, ('dataPoster', {url_or_none}))
+                          or traverse_obj(config, 'poster', 'imageUrl', expected_type=url_or_none)),
             'duration': traverse_obj(content, ('dataDuration', {int_or_none})),
+            'http_headers': headers,
         }
 
     def _real_extract(self, url):
@@ -124,11 +127,7 @@ class TelecincoIE(InfoExtractor):
         description = clean_html(article.get('leadParagraph')) or ''
         if article.get('editorialType') != 'VID':
             entries = []
-            body = [article.get('opening')]
-            body.extend(traverse_obj(article, ('body', {list})))
-            for p in body:
-                if not isinstance(p, dict):
-                    continue
+            for p in traverse_obj(article, ((('opening', all), 'body'), lambda _, v: v['content'])):
                 content = p.get('content')
                 if not content:
                     continue
