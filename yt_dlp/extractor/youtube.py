@@ -202,22 +202,6 @@ INNERTUBE_CLIENTS = {
         'REQUIRE_JS_PLAYER': False,
         'PLAYER_PARAMS': '2AMB',
     },
-    # This client only has legacy formats and storyboards
-    # BROKEN: Unable to download API page: HTTP Error 403: Forbidden "The caller does not have permission"
-    'android_producer': {
-        'INNERTUBE_CONTEXT': {
-            'client': {
-                'clientName': 'ANDROID_PRODUCER',
-                'clientVersion': '0.111.1',
-                'androidSdkVersion': 30,
-                'userAgent': 'com.google.android.apps.youtube.producer/0.111.1 (Linux; U; Android 11) gzip',
-                'osName': 'Android',
-                'osVersion': '11',
-            },
-        },
-        'INNERTUBE_CONTEXT_CLIENT_NAME': 91,
-        'REQUIRE_JS_PLAYER': False,
-    },
     # iOS clients have HLS live streams. Setting device model to get 60fps formats.
     # See: https://github.com/TeamNewPipe/NewPipeExtractor/issues/680#issuecomment-1002724558
     'ios': {
