@@ -409,6 +409,14 @@ def create_parser():
             'Location of the main configuration file; either the path to the config or its containing directory '
             '("-" for stdin). Can be used multiple times and inside other configuration files'))
     general.add_option(
+        '--plugin-dirs',
+        dest='plugin_dirs', metavar='PATH', action='append',
+        help=(
+            'Path to an additional directory to search for plugins. '
+            'This option can be used multiple times to add multiple directories. '
+            'Note that this currently only works for extractor plugins; '
+            'postprocessor plugins can only be loaded from the default plugin directories'))
+    general.add_option(
         '--flat-playlist',
         action='store_const', dest='extract_flat', const='in_playlist', default=False,
         help='Do not extract the videos of a playlist, only list them')

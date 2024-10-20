@@ -4897,6 +4897,10 @@ class Config:
     filename = None
     __initialized = False
 
+    # Internal only, do not use! Hack to enable --plugin-dirs
+    # TODO(coletdjnz): remove when plugin globals system is implemented
+    _plugin_dirs = None
+
     def __init__(self, parser, label=None):
         self.parser, self.label = parser, label
         self._loaded_paths, self.configs = set(), []
