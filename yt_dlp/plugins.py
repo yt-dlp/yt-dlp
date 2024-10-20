@@ -15,12 +15,12 @@ from zipfile import ZipFile
 
 from .compat import functools  # isort: split
 from .utils import (
+    Config,
     get_executable_path,
     get_system_config_dirs,
     get_user_config_dirs,
     orderedSet,
     write_string,
-    Config,
 )
 
 PACKAGE_NAME = 'yt_dlp_plugins'

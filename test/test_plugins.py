@@ -4,14 +4,13 @@ import shutil
 import sys
 import unittest
 from pathlib import Path
-from yt_dlp import Config
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 TEST_DATA_DIR = Path(os.path.dirname(os.path.abspath(__file__)), 'testdata')
 sys.path.append(str(TEST_DATA_DIR))
 importlib.invalidate_caches()
 
-from yt_dlp.plugins import PACKAGE_NAME, directories, load_plugins
+from yt_dlp.plugins import Config, PACKAGE_NAME, directories, load_plugins
 
 
 class TestPlugins(unittest.TestCase):

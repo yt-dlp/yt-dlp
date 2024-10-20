@@ -34,6 +34,7 @@ from .postprocessor import (
 )
 from .update import Updater
 from .utils import (
+    Config,
     NO_DEFAULT,
     POSTPROCESS_WHEN,
     DateRange,
@@ -62,7 +63,6 @@ from .utils import (
     traverse_obj,
     variadic,
     write_string,
-    Config,
 )
 from .utils.networking import std_headers
 from .utils._utils import _UnsafeExtensionError
@@ -946,7 +946,6 @@ def parse_options(argv=None):
         'xattr_set_filesize': opts.xattr_set_filesize,
         'match_filter': opts.match_filter,
         'color': opts.color,
-        'plugin_dirs': opts.plugin_dirs,
         'ffmpeg_location': opts.ffmpeg_location,
         'hls_prefer_native': opts.hls_prefer_native,
         'hls_use_mpegts': opts.hls_use_mpegts,
