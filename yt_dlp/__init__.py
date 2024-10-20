@@ -968,7 +968,7 @@ def _real_main(argv=None):
 
     parser, opts, all_urls, ydl_opts = parse_options(argv)
 
-    # HACK: Set the plugins location early on
+    # HACK: Set the plugin dirs early on
     # TODO(coletdjnz): remove when plugin globals system is implemented
     Config._plugin_dirs = opts.plugin_dirs
 

@@ -10,7 +10,8 @@ TEST_DATA_DIR = Path(os.path.dirname(os.path.abspath(__file__)), 'testdata')
 sys.path.append(str(TEST_DATA_DIR))
 importlib.invalidate_caches()
 
-from yt_dlp.plugins import Config, PACKAGE_NAME, directories, load_plugins
+from yt_dlp import Config
+from yt_dlp.plugins import PACKAGE_NAME, directories, load_plugins
 
 
 class TestPlugins(unittest.TestCase):
@@ -68,16 +69,16 @@ class TestPlugins(unittest.TestCase):
             os.remove(zip_path)
             importlib.invalidate_caches()  # reset the import caches
 
-    def test_plugin_locations(self):
-        # Internal plugin locations hack for CLI --plugin-dirs
+    def test_plugin_dirs(self):
+        # Internal plugin dirs hack for CLI --plugin-dirs
         # To be replaced with proper system later
-        custom_plugin_locations_path = TEST_DATA_DIR / 'plugin_packages'
-        Config._plugin_dirs = [str(custom_plugin_locations_path)]
+        custom_plugin_dir = TEST_DATA_DIR / 'plugin_packages'
+        Config._plugin_dirs = [str(custom_plugin_dir)]
         importlib.invalidate_caches()  # reset the import caches
 
         try:
             package = importlib.import_module(f'{PACKAGE_NAME}.extractor')
-            self.assertIn(custom_plugin_locations_path / 'testpackage' / PACKAGE_NAME / 'extractor', map(Path, package.__path__))
+            self.assertIn(custom_plugin_dir / 'testpackage' / PACKAGE_NAME / 'extractor', map(Path, package.__path__))
 
             plugins_ie = load_plugins('extractor', 'IE')
             self.assertIn('PackagePluginIE', plugins_ie.keys())
