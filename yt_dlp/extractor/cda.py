@@ -364,7 +364,7 @@ class CDAFolderIE(InfoExtractor):
                 'id': '31188385',
                 'title': 'SERIA DRUGA',
             },
-            'playlist_count': 13,
+            'playlist_mincount': 13,
         },
         {
             'url': 'https://www.cda.pl/smiechawaTV/folder/2664592/vfilm',
@@ -372,7 +372,7 @@ class CDAFolderIE(InfoExtractor):
                 'id': '2664592',
                 'title': 'VideoDowcipy - wszystkie odcinki',
             },
-            'playlist_count': 71,
+            'playlist_mincount': 71,
         },
         {
             'url': 'https://www.cda.pl/DeliciousBeauty/folder/19129979/vfilm',
@@ -380,7 +380,7 @@ class CDAFolderIE(InfoExtractor):
                 'id': '19129979',
                 'title': 'TESTY KOSMETYKÓW',
             },
-            'playlist_count': 139,
+            'playlist_mincount': 139,
         }]
 
     def _real_extract(self, url):
