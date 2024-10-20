@@ -159,6 +159,9 @@ def set_compat_opts(opts):
             opts.embed_infojson = False
     if 'format-sort' in opts.compat_opts:
         opts.format_sort.extend(FormatSorter.ytdl_default)
+    elif 'prefer-vp9-sort' in opts.compat_opts:
+        opts.format_sort.extend(FormatSorter._prefer_vp9_sort)
+
     _video_multistreams_set = set_default_compat('multistreams', 'allow_multiple_video_streams', False, remove_compat=False)
     _audio_multistreams_set = set_default_compat('multistreams', 'allow_multiple_audio_streams', False, remove_compat=False)
     if _video_multistreams_set is False and _audio_multistreams_set is False:
