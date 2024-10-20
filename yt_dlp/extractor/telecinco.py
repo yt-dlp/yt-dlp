@@ -128,6 +128,7 @@ class TelecincoIE(InfoExtractor):
         if article.get('editorialType') != 'VID':
             entries = []
             for p in traverse_obj(article, ((('opening', all), 'body'), lambda _, v: v['content'])):
+                content = p['content']
                 type_ = p.get('type')
                 if type_ == 'paragraph':
                     content_str = str_or_none(content)
