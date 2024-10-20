@@ -5,7 +5,8 @@ import sys
 import unittest
 from pathlib import Path
 import yt_dlp._globals
-from yt_dlp.plugins import set_plugin_dirs, add_plugin_dirs, PluginDirs
+from yt_dlp.plugins import set_plugin_dirs, add_plugin_dirs, PluginDirs, disable_plugins
+from yt_dlp.utils import YoutubeDLError
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 TEST_DATA_DIR = Path(os.path.dirname(os.path.abspath(__file__)), 'testdata')
@@ -13,7 +14,7 @@ sys.path.append(str(TEST_DATA_DIR))
 importlib.invalidate_caches()
 
 from yt_dlp.plugins import PACKAGE_NAME, PluginSpec, directories, load_plugins, load_all_plugins, register_plugin_spec
-from yt_dlp._globals import extractors, postprocessors, plugin_dirs, plugin_ies, plugin_pps, all_plugins_loaded, plugin_specs
+from yt_dlp._globals import extractors, postprocessors, plugin_dirs, plugin_ies, plugin_pps, all_plugins_loaded, plugin_specs, plugins_enabled
 
 
 EXTRACTOR_PLUGIN_SPEC = PluginSpec(
@@ -41,6 +42,7 @@ class TestPlugins(unittest.TestCase):
         plugin_dirs.set((PluginDirs.DEFAULT_EXTERNAL,))
         plugin_specs.set({})
         all_plugins_loaded.set(False)
+        plugins_enabled.set(True)
         importlib.invalidate_caches()
         # Clearing override plugins is probably difficult
         for module_name in tuple(sys.modules):
@@ -198,6 +200,31 @@ class TestPlugins(unittest.TestCase):
 
         self.assertIn(f'{PACKAGE_NAME}.extractor.package', sys.modules.keys())
         self.assertIn('PackagePluginIE', plugin_ies.get())
+
+    def test_disable_plugins(self):
+        disable_plugins()
+        ies = load_plugins(EXTRACTOR_PLUGIN_SPEC)
+        self.assertEqual(ies, {})
+        self.assertNotIn(f'{PACKAGE_NAME}.extractor.normal', sys.modules.keys())
+        self.assertNotIn('NormalPluginIE', plugin_ies.get())
+
+        pps = load_plugins(POSTPROCESSOR_PLUGIN_SPEC)
+        self.assertEqual(pps, {})
+        self.assertNotIn(f'{PACKAGE_NAME}.postprocessor.normal', sys.modules.keys())
+        self.assertNotIn('NormalPluginPP', plugin_pps.get())
+
+    def test_disable_plugins_already_loaded(self):
+        register_plugin_spec(EXTRACTOR_PLUGIN_SPEC)
+        register_plugin_spec(POSTPROCESSOR_PLUGIN_SPEC)
+        load_all_plugins()
+
+        with self.assertRaises(YoutubeDLError):
+            disable_plugins()
+
+        self.assertTrue(plugins_enabled.get())
+
+        ies = load_plugins(EXTRACTOR_PLUGIN_SPEC)
+        self.assertIn('NormalPluginIE', ies)
 
 
 if __name__ == '__main__':

@@ -476,6 +476,13 @@ def create_parser():
         ),
     )
     general.add_option(
+        '--no-plugins',
+        dest='plugins_enabled',
+        action='store_false',
+        default=True,
+        help='Do not load plugins',
+    )
+    general.add_option(
         '--compat-options',
         metavar='OPTS', dest='compat_opts', default=set(), type='str',
         action='callback', callback=_set_from_options_callback,

@@ -40,6 +40,7 @@ from ._globals import (
     plugin_overrides,
     plugin_pps,
     all_plugins_loaded,
+    plugins_enabled,
 )
 from .minicurses import format_text
 from .networking import HEADRequest, Request, RequestDirector
@@ -4088,8 +4089,11 @@ class YoutubeDL:
                 continue
             write_debug(f'{plugin_type} Plugins: {", ".join(sorted(display_list))}')
 
+        if not plugins_enabled.get():
+            write_debug('Plugins are disabled')
+
         plugin_dirs = plugin_directories()
-        if plugin_dirs:
+        if plugin_dirs and plugins_enabled.get():
             write_debug(f'Plugin directories: {plugin_dirs}')
 
         # Not implemented

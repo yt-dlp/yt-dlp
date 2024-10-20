@@ -23,6 +23,7 @@ from .networking.impersonate import ImpersonateTarget
 from ._globals import IN_CLI as _IN_CLI
 from .options import parseOpts
 from .plugins import load_all_plugins as _load_all_plugins
+from .plugins import disable_plugins as _disable_plugins
 from .plugins import PluginDirs as _PluginDirs
 from .plugins import set_plugin_dirs as _set_plugin_dirs
 from .postprocessor import (
@@ -989,7 +990,11 @@ def _real_main(argv=None):
 
     # load all plugins into the global lookup
     _set_plugin_dirs(*opts.plugin_dirs)
-    _load_all_plugins()
+
+    if not opts.plugins_enabled:
+        _disable_plugins()
+    else:
+        _load_all_plugins()
 
     with YoutubeDL(ydl_opts) as ydl:
         pre_process = opts.update_self or opts.rm_cachedir

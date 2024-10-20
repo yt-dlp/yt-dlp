@@ -20,6 +20,7 @@ from ._globals import (
     plugin_dirs,
     all_plugins_loaded,
     plugin_specs,
+    plugins_enabled,
 )
 
 from .compat import functools  # isort: split
@@ -29,7 +30,7 @@ from .utils import (
     get_user_config_dirs,
     merge_dicts,
     orderedSet,
-    write_string,
+    write_string, YoutubeDLError,
 )
 
 PACKAGE_NAME = 'yt_dlp_plugins'
@@ -46,6 +47,7 @@ __all__ = [
     'register_plugin_spec',
     'add_plugin_dirs',
     'set_plugin_dirs',
+    'disable_plugins',
     'PluginDirs',
     'get_plugin_spec',
     'PACKAGE_NAME',
@@ -197,7 +199,7 @@ def get_regular_classes(module, module_name, suffix):
 def load_plugins(plugin_spec: PluginSpec):
     name, suffix = plugin_spec.module_name, plugin_spec.suffix
     regular_classes = {}
-    if os.environ.get('YTDLP_NO_PLUGINS'):
+    if os.environ.get('YTDLP_NO_PLUGINS') or plugins_enabled.get() is False:
         return regular_classes
 
     for finder, module_name, _ in iter_modules(name):
@@ -268,3 +270,14 @@ def set_plugin_dirs(*paths):
 
 def get_plugin_spec(module_name):
     return plugin_specs.get().get(module_name)
+
+
+def disable_plugins():
+    if (
+        all_plugins_loaded.get()
+        or any(len(plugin_spec.plugin_destination.get()) != 0 for plugin_spec in plugin_specs.get().values())
+    ):
+        # note: we can't detect all cases when plugins are loaded (e.g. if spec isn't registered)
+        raise YoutubeDLError('Plugins have already been loaded. Cannot disable plugins after loading plugins.')
+
+    plugins_enabled.set(False)
