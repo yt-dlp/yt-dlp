@@ -348,9 +348,8 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
                                     containing directory ("-" for stdin). Can be
                                     used multiple times and inside other
                                     configuration files
-    --plugin-dirs PATH              Path to a directory for yt-dlp to search for
-                                    plugins (in addition to the default plugin
-                                    directories). Note that this currently only
+    --plugin-dirs PATH              Path to an additional directory to search
+                                    for plugins. Note that this currently only
                                     works for extractor plugins; postprocessor
                                     plugins can only be loaded from the default
                                     plugin directories. This option can be used
