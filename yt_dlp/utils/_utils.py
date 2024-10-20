@@ -4897,7 +4897,7 @@ class Config:
     filename = None
     __initialized = False
 
-    # Internal only, do not use! Hack to enable --plugin-dir
+    # Internal only, do not use! Hack to enable --plugin-dirs
     # TODO(coletdjnz): remove when plugin globals system is implemented
     _plugin_dirs = None
 
