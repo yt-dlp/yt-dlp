@@ -6,7 +6,9 @@ from ..utils import (
     clean_html,
     int_or_none,
     str_or_none,
-    try_get,
+    traverse_obj,
+    update_url,
+    url_or_none,
 )
 
 
@@ -89,25 +91,30 @@ class TelecincoIE(InfoExtractor):
         services = config['services']
         caronte = self._download_json(services['caronte'], video_id)
         stream = caronte['dls'][0]['stream']
-        headers = self.geo_verification_headers()
-        headers.update({
-            'Content-Type': 'application/json;charset=UTF-8',
+        headers = {
+            'Referer': url,
             'Origin': re.match(r'https?://[^/]+', url).group(0),
-        })
+        }
+        geo_headers = {**headers, **self.geo_verification_headers()}
         cdn = self._download_json(
             caronte['cerbero'], video_id, data=json.dumps({
                 'bbx': caronte['bbx'],
                 'gbx': self._download_json(services['gbx'], video_id)['gbx'],
-            }).encode(), headers=headers)['tokens']['1']['cdn']
+            }).encode(), headers={
+                'Content-Type': 'application/json',
+                **geo_headers,
+            })['tokens']['1']['cdn']
         formats = self._extract_m3u8_formats(
-            stream + '?' + cdn, video_id, 'mp4', 'm3u8_native', m3u8_id='hls')
+            update_url(stream, query=cdn), video_id, 'mp4', m3u8_id='hls', headers=geo_headers)
 
         return {
             'id': video_id,
             'title': title,
             'formats': formats,
-            'thumbnail': content.get('dataPoster') or config.get('poster', {}).get('imageUrl'),
-            'duration': int_or_none(content.get('dataDuration')),
+            'thumbnail': (traverse_obj(content, ('dataPoster', {url_or_none}))
+                          or traverse_obj(config, 'poster', 'imageUrl', expected_type=url_or_none)),
+            'duration': traverse_obj(content, ('dataDuration', {int_or_none})),
+            'http_headers': headers,
         }
 
     def _real_extract(self, url):
@@ -120,14 +127,8 @@ class TelecincoIE(InfoExtractor):
         description = clean_html(article.get('leadParagraph')) or ''
         if article.get('editorialType') != 'VID':
             entries = []
-            body = [article.get('opening')]
-            body.extend(try_get(article, lambda x: x['body'], list) or [])
-            for p in body:
-                if not isinstance(p, dict):
-                    continue
-                content = p.get('content')
-                if not content:
-                    continue
+            for p in traverse_obj(article, ((('opening', all), 'body'), lambda _, v: v['content'])):
+                content = p['content']
                 type_ = p.get('type')
                 if type_ == 'paragraph':
                     content_str = str_or_none(content)
@@ -140,7 +141,5 @@ class TelecincoIE(InfoExtractor):
                 entries, str_or_none(article.get('id')), title, description)
         content = article['opening']['content']
         info = self._parse_content(content, url)
-        info.update({
-            'description': description,
-        })
+        info['description'] = description
         return info
