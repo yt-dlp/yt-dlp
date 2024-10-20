@@ -225,7 +225,10 @@ class ImgurIE(ImgurBaseIE):
             }), get_all=False),
             'id': video_id,
             'formats': formats,
-            'thumbnail': url_or_none(search('thumbnailUrl')),
+            'thumbnails': [{
+                'url': thumbnail_url,
+                'http_headers': {'Accept': '*/*'},
+            }] if (thumbnail_url := search(['thumbnailUrl', 'twitter:image', 'og:image'])) else None,
             'http_headers': {'Accept': '*/*'},
         }
 
