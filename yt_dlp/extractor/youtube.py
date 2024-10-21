@@ -699,7 +699,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                         expected=True, video_id=self._OAUTH_DISPLAY_ID)
                 raise ExtractorError(
                     f'Failed to refresh access token: Authorization server returned error {error}', video_id=self._OAUTH_DISPLAY_ID)
-            raise e
+            raise
         return token_response
 
     @property
@@ -759,7 +759,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                         elif error == 'expired_token':
                             raise ExtractorError('Authorization timed out', expected=True, video_id=self._OAUTH_DISPLAY_ID)
                         elif error == 'access_denied':
-                            raise ExtractorError('User denied access to account', expected=True, video_id=self._OAUTH_DISPLAY_ID)
+                            raise ExtractorError('You have been denied access to an account', expected=True, video_id=self._OAUTH_DISPLAY_ID)
                         elif error == 'slow_down':
                             # RFC8628 § 3.5: add 5 seconds to the poll interval
                             poll_interval += 5
@@ -769,8 +769,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                             raise ExtractorError(
                                 f'Authorization server returned an error when fetching access token: {error}',
                                 video_id=self._OAUTH_DISPLAY_ID)
-                    else:
-                        raise
+                    raise
 
                 return token_response
 
