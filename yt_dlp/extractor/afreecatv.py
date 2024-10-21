@@ -19,7 +19,7 @@ from ..utils.traversal import traverse_obj
 
 
 class AfreecaTVBaseIE(InfoExtractor):
-    _NETRC_MACHINE = 'soop'
+    _NETRC_MACHINE = 'afreecatv'
 
     def _perform_login(self, username, password):
         login_form = {
