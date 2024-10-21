@@ -73,7 +73,7 @@ class AfreecaTVIE(AfreecaTVBaseIE):
     _VALID_URL = r'''(?x)
                     https?://
                         (?:
-                            (?:(?:live|afbbs|www)\.)?afreecatv.\com(?::\d+)?
+                            (?:(?:live|afbbs|www)\.)?afreecatv\.com(?::\d+)?
                             (?:
                                 /app/(?:index|read_ucc_bbs)\.cgi|
                                 /player/[Pp]layer\.(?:swf|html)
