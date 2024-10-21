@@ -652,8 +652,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
         YoutubeBaseInfoExtractor._OAUTH_ACCESS_TOKEN_CACHE[self._OAUTH_PROFILE] = {}
 
-        if refresh_token == "''":
-            refresh_token = None
+        if refresh_token:
+            refresh_token = refresh_token.strip('\'') or None
 
         # Allow refresh token passed to initialize cache
         if refresh_token:
