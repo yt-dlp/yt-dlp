@@ -188,9 +188,7 @@ class FragmentFD(FileDownloader):
         })
 
         if self.__do_ytdl_file(ctx):
-            ytdl_file_exists = os.path.isfile(encodeFilename(self.ytdl_filename(ctx['filename'])))
-            continuedl = self.params.get('continuedl', True)
-            if continuedl and ytdl_file_exists:
+            if os.path.isfile(encodeFilename(self.ytdl_filename(ctx['filename']))):
                 self._read_ytdl_file(ctx)
                 is_corrupt = ctx.get('ytdl_corrupt') is True
                 is_inconsistent = ctx['fragment_index'] > 0 and resume_len == 0
@@ -204,12 +202,7 @@ class FragmentFD(FileDownloader):
                     if 'ytdl_corrupt' in ctx:
                         del ctx['ytdl_corrupt']
                     self._write_ytdl_file(ctx)
-
             else:
-                if not continuedl:
-                    if ytdl_file_exists:
-                        self._read_ytdl_file(ctx)
-                    ctx['fragment_index'] = resume_len = 0
                 self._write_ytdl_file(ctx)
                 assert ctx['fragment_index'] == 0
 
