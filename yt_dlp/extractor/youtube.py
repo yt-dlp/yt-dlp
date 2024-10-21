@@ -591,10 +591,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         auth_type, _, user = (username or '').partition('+')
 
         if auth_type != 'oauth':
-            raise ExtractorError(
-                'Login using username and password is not supported. '
-                'Use  --username=oauth[+PROFILE] --password=""  to log in using oauth, '
-                f'or else u{self._login_hint(method="cookies")[1:]}', expected=True)
+            raise ExtractorError(self._youtube_login_hint, expected=True)
 
         self._initialize_oauth(user, password)
 
@@ -781,9 +778,16 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
         self._set_oauth_info(self._refresh_token(token['refresh_token']))
 
+    @property
+    def _youtube_login_hint(self):
+        return ('Use  --username=oauth[+PROFILE] --password=""  to log in using oauth, '
+                f'or else u{self._login_hint(method="cookies")[1:]}'
+                f' or  https://github.com/yt-dlp/yt-dlp/wiki/Extractors#logging-in-with-oauth  on how to use oauth')
+
     def _check_login_required(self):
         if self._LOGIN_REQUIRED and not self.is_authenticated:
-            self.raise_login_required('Login details are needed to download this content', method='cookies')
+            self.raise_login_required(
+                f'Login details are needed to download this content. {self._youtube_login_hint}', method=None)
 
     _YT_INITIAL_DATA_RE = r'(?:window\s*\[\s*["\']ytInitialData["\']\s*\]|ytInitialData)\s*='
     _YT_INITIAL_PLAYER_RESPONSE_RE = r'ytInitialPlayerResponse\s*='
