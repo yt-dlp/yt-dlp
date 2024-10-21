@@ -221,9 +221,10 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(sanitize_filename('N0Y__7-UOdI', is_id=True), 'N0Y__7-UOdI')
 
     def test_sanitize_path(self):
-        if sys.platform != 'win32':
-            return
+        with unittest.mock.patch('sys.platform', 'win32'):
+            self._test_sanitize_path()
 
+    def _test_sanitize_path(self):
         self.assertEqual(sanitize_path('abc'), 'abc')
         self.assertEqual(sanitize_path('abc/def'), 'abc\\def')
         self.assertEqual(sanitize_path('abc\\def'), 'abc\\def')
@@ -255,6 +256,11 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(sanitize_path('../../abc'), '..\\..\\abc')
         self.assertEqual(sanitize_path('./abc'), 'abc')
         self.assertEqual(sanitize_path('./../abc'), '..\\abc')
+
+        self.assertEqual(sanitize_path('\\abc'), '\\abc')
+        self.assertEqual(sanitize_path('C:abc'), 'C:abc')
+        self.assertEqual(sanitize_path('C:abc\\..\\'), 'C:..')
+        self.assertEqual(sanitize_path('C:\\abc:%(title)s.%(ext)s'), 'C:\\abc#%(title)s.%(ext)s')
 
     def test_sanitize_url(self):
         self.assertEqual(sanitize_url('//foo.bar'), 'http://foo.bar')
