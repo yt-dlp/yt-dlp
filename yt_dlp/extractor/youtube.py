@@ -624,8 +624,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     # From https://accounts.google.com/.well-known/openid-configuration
     # Technically, these should be fetched dynamically and not hard-coded.
     # However, as these endpoints rarely change, we can risk saving an extra request for every invocation.
-    _OAUTH_DEVICE_AUTHORIZATION_ENDPOINT = 'https://oauth2.googleapis.com/device/code'  # device_authorization_endpoint
-    _OAUTH_TOKEN_ENDPOINT = 'https://oauth2.googleapis.com/token'                       # token_endpoint
+    _OAUTH_DEVICE_AUTHORIZATION_ENDPOINT = 'https://oauth2.googleapis.com/device/code'
+    _OAUTH_TOKEN_ENDPOINT = 'https://oauth2.googleapis.com/token'
 
     @staticmethod
     def _get_oauth_cache_key(profile):
