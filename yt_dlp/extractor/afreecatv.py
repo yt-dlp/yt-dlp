@@ -73,34 +73,34 @@ class AfreecaTVIE(AfreecaTVBaseIE):
     _VALID_URL = r'''(?x)
                     https?://
                         (?:
-                            (?:(?:live|afbbs|www)\.)?sooplive\.co\.kr(?::\d+)?
+                            (?:(?:live|afbbs|www)\.)?afreecatv.\com(?::\d+)?
                             (?:
                                 /app/(?:index|read_ucc_bbs)\.cgi|
                                 /player/[Pp]layer\.(?:swf|html)
                             )\?.*?\bnTitleNo=|
-                            vod\.sooplive\.co\.kr/(PLAYER/STATION|player)/
+                            vod\.(?:sooplive\.co\.kr|afreecatv\.com)/(?:PLAYER/STATION|player)/
                         )
                         (?P<id>\d+)/?(?:$|[?#&])
                     '''
     _TESTS = [{
-        'url': 'http://live.sooplive.co.kr:8079/app/index.cgi?szType=read_ucc_bbs&szBjId=dailyapril&nStationNo=16711924&nBbsNo=18605867&nTitleNo=36164052&szSkin=',
+        'url': 'http://live.afreecatv.com:8079/app/index.cgi?szType=read_ucc_bbs&szBjId=dailyapril&nStationNo=16711924&nBbsNo=18605867&nTitleNo=36164052&szSkin=',
         'md5': 'f72c89fe7ecc14c1b5ce506c4996046e',
         'info_dict': {
             'id': '36164052',
             'ext': 'mp4',
             'title': '데일리 에이프릴 요정들의 시상식!',
-            'thumbnail': 're:^https?://(?:video|st)img.sooplive.co.kr/.*$',
+            'thumbnail': 're:^https?://(?:video|st)img.afreecatv.com/.*$',
             'uploader': 'dailyapril',
             'uploader_id': 'dailyapril',
             'upload_date': '20160503',
         },
         'skip': 'Video is gone',
     }, {
-        'url': 'http://afbbs.sooplive.co.kr:8080/app/read_ucc_bbs.cgi?nStationNo=16711924&nTitleNo=36153164&szBjId=dailyapril&nBbsNo=18605867',
+        'url': 'http://afbbs.afreecatv.com:8080/app/read_ucc_bbs.cgi?nStationNo=16711924&nTitleNo=36153164&szBjId=dailyapril&nBbsNo=18605867',
         'info_dict': {
             'id': '36153164',
             'title': "BJ유트루와 함께하는 '팅커벨 메이크업!'",
-            'thumbnail': 're:^https?://(?:video|st)img.sooplive.co.kr/.*$',
+            'thumbnail': 're:^https?://(?:video|st)img.afreecatv.com/.*$',
             'uploader': 'dailyapril',
             'uploader_id': 'dailyapril',
         },
@@ -158,7 +158,7 @@ class AfreecaTVIE(AfreecaTVBaseIE):
         },
         'skip': 'The VOD does not exist',
     }, {
-        'url': 'http://www.sooplive.co.kr/player/Player.swf?szType=szBjId=djleegoon&nStationNo=11273158&nBbsNo=13161095&nTitleNo=36327652',
+        'url': 'http://www.afreecatv.com/player/Player.swf?szType=szBjId=djleegoon&nStationNo=11273158&nBbsNo=13161095&nTitleNo=36327652',
         'only_matching': True,
     }, {
         'url': 'https://vod.sooplive.co.kr/player/96753363',
@@ -264,7 +264,7 @@ class AfreecaTVIE(AfreecaTVBaseIE):
 class AfreecaTVCatchStoryIE(AfreecaTVBaseIE):
     IE_NAME = 'soop:catchstory'
     IE_DESC = 'sooplive.co.kr catch story'
-    _VALID_URL = r'https?://vod\.sooplive\.co\.kr/player/(?P<id>\d+)/catchstory'
+    _VALID_URL = r'https?://vod\.(?:sooplive\.co\.kr|afreecatv\.com)/player/(?P<id>\d+)/catchstory'
     _TESTS = [{
         'url': 'https://vod.sooplive.co.kr/player/103247/catchstory',
         'info_dict': {
@@ -301,7 +301,7 @@ class AfreecaTVCatchStoryIE(AfreecaTVBaseIE):
 class AfreecaTVLiveIE(AfreecaTVBaseIE):
     IE_NAME = 'soop:live'
     IE_DESC = 'sooplive.co.kr livestreams'
-    _VALID_URL = r'https?://play\.sooplive\.co\.kr/(?P<id>[^/]+)(?:/(?P<bno>\d+))?'
+    _VALID_URL = r'https?://play\.(?:sooplive\.co\.kr|afreecatv\.com)/(?P<id>[^/?#]+)(?:/(?P<bno>\d+))?'
     _TESTS = [{
         'url': 'https://play.sooplive.co.kr/pyh3646/237852185',
         'info_dict': {
@@ -421,7 +421,7 @@ class AfreecaTVLiveIE(AfreecaTVBaseIE):
 
 class AfreecaTVUserIE(InfoExtractor):
     IE_NAME = 'soop:user'
-    _VALID_URL = r'https?://ch\.sooplive\.co\.kr/(?P<id>[^/]+)/vods/?(?P<slug_type>[^/]+)?'
+    _VALID_URL = r'https?://ch\.(?:sooplive\.co\.kr|afreecatv\.com)/(?P<id>[^/?#]+)/vods/?(?P<slug_type>[^/?#]+)?'
     _TESTS = [{
         'url': 'https://ch.sooplive.co.kr/ryuryu24/vods/review',
         'info_dict': {
