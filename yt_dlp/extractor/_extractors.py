@@ -1848,6 +1848,7 @@ from .shahid import (
 )
 from .sharepoint import SharePointIE
 from .sharevideos import ShareVideosEmbedIE
+from .sheeta import SheetaEmbedIE
 from .shemaroome import ShemarooMeIE
 from .showroomlive import ShowRoomLiveIE
 from .sibnet import SibnetEmbedIE
