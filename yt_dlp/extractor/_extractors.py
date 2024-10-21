@@ -75,6 +75,12 @@ from .aenetworks import (
     HistoryTopicIE,
 )
 from .aeonco import AeonCoIE
+from .afreecatv import (
+    AfreecaTVCatchStoryIE,
+    AfreecaTVIE,
+    AfreecaTVLiveIE,
+    AfreecaTVUserIE,
+)
 from .agora import (
     TokFMAuditionIE,
     TokFMPodcastIE,
@@ -1884,12 +1890,6 @@ from .sohu import (
 from .sonyliv import (
     SonyLIVIE,
     SonyLIVSeriesIE,
-)
-from .soop import (
-    SoopCatchStoryIE,
-    SoopIE,
-    SoopLiveIE,
-    SoopUserIE,
 )
 from .soundcloud import (
     SoundcloudEmbedIE,
