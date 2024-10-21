@@ -588,7 +588,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         self._check_login_required()
 
     def _perform_login(self, username, password):
-        auth_type, sep, user = (username or '').partition('+')
+        auth_type, _, user = (username or '').partition('+')
 
         if auth_type != 'oauth':
             raise ExtractorError(
