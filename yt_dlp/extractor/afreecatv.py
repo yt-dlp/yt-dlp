@@ -370,7 +370,7 @@ class AfreecaTVLiveIE(AfreecaTVBaseIE):
         }
 
 
-class AfreecaTVUserIE(InfoExtractor):
+class AfreecaTVUserIE(AfreecaTVBaseIE):
     IE_NAME = 'soop:user'
     _VALID_URL = r'https?://ch\.(?:sooplive\.co\.kr|afreecatv\.com)/(?P<id>[^/?#]+)/vods/?(?P<slug_type>[^/?#]+)?'
     _TESTS = [{
