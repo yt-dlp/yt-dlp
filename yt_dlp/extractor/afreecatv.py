@@ -319,7 +319,13 @@ class AfreecaTVLiveIE(AfreecaTVBaseIE):
         broadcaster_id = channel_info.get('BJID') or broadcaster_id
         broadcast_no = channel_info.get('BNO') or broadcast_no
         if not broadcast_no:
-            raise UserNotLive(video_id=broadcaster_id)
+            result = channel_info.get('RESULT')
+            if result == 0:
+                raise UserNotLive(video_id=broadcaster_id)
+            elif result == -6:
+                self.raise_login_required(
+                    'This channel is streaming for subscribers only', method='password')
+            raise ExtractorError('Unable to extract broadcast number')
 
         password = self.get_param('videopassword')
         if channel_info.get('BPWD') == 'Y' and password is None:
