@@ -20,7 +20,6 @@ class TelecincoBaseIE(InfoExtractor):
         video_id = content['dataMediaId']
         config = self._download_json(
             content['dataConfig'], video_id, 'Downloading config JSON')
-        title = config['info']['title']
         services = config['services']
         caronte = self._download_json(services['caronte'], video_id)
         if traverse_obj(caronte, ('dls', 0, 'drm', {bool})):
@@ -56,7 +55,7 @@ class TelecincoBaseIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'title': title,
+            'title': traverse_obj(config, ('info', 'title', {str})),
             'formats': formats,
             'thumbnail': (traverse_obj(content, ('dataPoster', {url_or_none}))
                           or traverse_obj(config, 'poster', 'imageUrl', expected_type=url_or_none)),
