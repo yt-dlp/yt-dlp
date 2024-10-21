@@ -594,7 +594,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             raise ExtractorError(
                 'Login using username and password is not supported. '
                 'Use  --username=oauth[+PROFILE] --password=""  to log in using oauth, '
-                f'or else {self._login_hint(method="cookies")}', expected=True)
+                f'or else u{self._login_hint(method="cookies")[1:]}', expected=True)
 
         self._initialize_oauth(user, password)
 
