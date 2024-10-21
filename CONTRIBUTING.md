@@ -127,7 +127,7 @@ While these steps won't necessarily ensure that no misuse of the account takes p
 
 ### Is the website primarily used for piracy?
 
-We follow [youtube-dl's policy](https://github.com/ytdl-org/youtube-dl#can-you-add-support-for-this-anime-video-site-or-site-which-shows-current-movies-for-free) to not support services that is primarily used for infringing copyright. Additionally, it has been decided to not to support porn sites that specialize in fakes. We also cannot support any service that serves only [DRM protected content](https://en.wikipedia.org/wiki/Digital_rights_management). 
+We follow [youtube-dl's policy](https://github.com/ytdl-org/youtube-dl#can-you-add-support-for-this-anime-video-site-or-site-which-shows-current-movies-for-free) to not support services that is primarily used for infringing copyright. Additionally, it has been decided to not to support porn sites that specialize in fakes. We also cannot support any service that serves only [DRM protected content](https://en.wikipedia.org/wiki/Digital_rights_management).
 
 
 
@@ -215,8 +215,8 @@ After you have ensured this site is distributing its content legally, you can fo
 
     ```python
     from .common import InfoExtractor
-    
-    
+
+
     class YourExtractorIE(InfoExtractor):
         _VALID_URL = r'https?://(?:www\.)?yourextractor\.com/watch/(?P<id>[0-9]+)'
         _TESTS = [{
@@ -244,7 +244,7 @@ After you have ensured this site is distributing its content legally, you can fo
         def _real_extract(self, url):
             video_id = self._match_id(url)
             webpage = self._download_webpage(url, video_id)
-    
+
             # TODO more code goes here, for example ...
             title = self._html_search_regex(r'<h1>(.+?)</h1>', webpage, 'title')
 
@@ -320,7 +320,7 @@ Say you have some source dictionary `meta` that you've fetched as JSON with HTTP
 ```python
 meta = self._download_json(url, video_id)
 ```
-    
+
 Assume at this point `meta`'s layout is:
 
 ```python
@@ -750,7 +750,7 @@ Use `url_or_none` for safe URL processing.
 
 Use `traverse_obj` and `try_call` (superseeds `dict_get` and `try_get`) for safe metadata extraction from parsed JSON.
 
-Use `unified_strdate` for uniform `upload_date` or any `YYYYMMDD` meta field extraction, `unified_timestamp` for uniform `timestamp` extraction, `parse_filesize` for `filesize` extraction, `parse_count` for count meta fields extraction, `parse_resolution`, `parse_duration` for `duration` extraction, `parse_age_limit` for `age_limit` extraction. 
+Use `unified_strdate` for uniform `upload_date` or any `YYYYMMDD` meta field extraction, `unified_timestamp` for uniform `timestamp` extraction, `parse_filesize` for `filesize` extraction, `parse_count` for count meta fields extraction, `parse_resolution`, `parse_duration` for `duration` extraction, `parse_age_limit` for `age_limit` extraction.
 
 Explore [`yt_dlp/utils/`](yt_dlp/utils/) for more useful convenience functions.
 

@@ -2,7 +2,9 @@ import base64
 import collections
 import contextlib
 import datetime as dt
+import functools
 import glob
+import hashlib
 import http.cookiejar
 import http.cookies
 import io
@@ -17,14 +19,12 @@ import tempfile
 import time
 import urllib.request
 from enum import Enum, auto
-from hashlib import pbkdf2_hmac
 
 from .aes import (
     aes_cbc_decrypt_bytes,
     aes_gcm_decrypt_and_verify_bytes,
     unpad_pkcs7,
 )
-from .compat import functools  # isort: split
 from .compat import compat_os_name
 from .dependencies import (
     _SECRETSTORAGE_UNAVAILABLE_REASON,
@@ -34,6 +34,7 @@ from .dependencies import (
 from .minicurses import MultilinePrinter, QuietMultilinePrinter
 from .utils import (
     DownloadError,
+    YoutubeDLError,
     Popen,
     error_to_str,
     expand_path,
@@ -86,24 +87,31 @@ def _create_progress_bar(logger):
     return printer
 
 
+class CookieLoadError(YoutubeDLError):
+    pass
+
+
 def load_cookies(cookie_file, browser_specification, ydl):
-    cookie_jars = []
-    if browser_specification is not None:
-        browser_name, profile, keyring, container = _parse_browser_specification(*browser_specification)
-        cookie_jars.append(
-            extract_cookies_from_browser(browser_name, profile, YDLLogger(ydl), keyring=keyring, container=container))
+    try:
+        cookie_jars = []
+        if browser_specification is not None:
+            browser_name, profile, keyring, container = _parse_browser_specification(*browser_specification)
+            cookie_jars.append(
+                extract_cookies_from_browser(browser_name, profile, YDLLogger(ydl), keyring=keyring, container=container))
 
-    if cookie_file is not None:
-        is_filename = is_path_like(cookie_file)
-        if is_filename:
-            cookie_file = expand_path(cookie_file)
+        if cookie_file is not None:
+            is_filename = is_path_like(cookie_file)
+            if is_filename:
+                cookie_file = expand_path(cookie_file)
 
-        jar = YoutubeDLCookieJar(cookie_file)
-        if not is_filename or os.access(cookie_file, os.R_OK):
-            jar.load()
-        cookie_jars.append(jar)
+            jar = YoutubeDLCookieJar(cookie_file)
+            if not is_filename or os.access(cookie_file, os.R_OK):
+                jar.load()
+            cookie_jars.append(jar)
 
-    return _merge_cookie_jars(cookie_jars)
+        return _merge_cookie_jars(cookie_jars)
+    except Exception:
+        raise CookieLoadError('failed to load cookies')
 
 
 def extract_cookies_from_browser(browser_name, profile=None, logger=YDLLogger(), *, keyring=None, container=None):
@@ -740,40 +748,38 @@ def _get_linux_desktop_environment(env, logger):
     xdg_current_desktop = env.get('XDG_CURRENT_DESKTOP', None)
     desktop_session = env.get('DESKTOP_SESSION', None)
     if xdg_current_desktop is not None:
-        xdg_current_desktop = xdg_current_desktop.split(':')[0].strip()
-
-        if xdg_current_desktop == 'Unity':
-            if desktop_session is not None and 'gnome-fallback' in desktop_session:
+        for part in map(str.strip, xdg_current_desktop.split(':')):
+            if part == 'Unity':
+                if desktop_session is not None and 'gnome-fallback' in desktop_session:
+                    return _LinuxDesktopEnvironment.GNOME
+                else:
+                    return _LinuxDesktopEnvironment.UNITY
+            elif part == 'Deepin':
+                return _LinuxDesktopEnvironment.DEEPIN
+            elif part == 'GNOME':
                 return _LinuxDesktopEnvironment.GNOME
-            else:
-                return _LinuxDesktopEnvironment.UNITY
-        elif xdg_current_desktop == 'Deepin':
-            return _LinuxDesktopEnvironment.DEEPIN
-        elif xdg_current_desktop == 'GNOME':
-            return _LinuxDesktopEnvironment.GNOME
-        elif xdg_current_desktop == 'X-Cinnamon':
-            return _LinuxDesktopEnvironment.CINNAMON
-        elif xdg_current_desktop == 'KDE':
-            kde_version = env.get('KDE_SESSION_VERSION', None)
-            if kde_version == '5':
-                return _LinuxDesktopEnvironment.KDE5
-            elif kde_version == '6':
-                return _LinuxDesktopEnvironment.KDE6
-            elif kde_version == '4':
-                return _LinuxDesktopEnvironment.KDE4
-            else:
-                logger.info(f'unknown KDE version: "{kde_version}". Assuming KDE4')
-                return _LinuxDesktopEnvironment.KDE4
-        elif xdg_current_desktop == 'Pantheon':
-            return _LinuxDesktopEnvironment.PANTHEON
-        elif xdg_current_desktop == 'XFCE':
-            return _LinuxDesktopEnvironment.XFCE
-        elif xdg_current_desktop == 'UKUI':
-            return _LinuxDesktopEnvironment.UKUI
-        elif xdg_current_desktop == 'LXQt':
-            return _LinuxDesktopEnvironment.LXQT
-        else:
-            logger.info(f'XDG_CURRENT_DESKTOP is set to an unknown value: "{xdg_current_desktop}"')
+            elif part == 'X-Cinnamon':
+                return _LinuxDesktopEnvironment.CINNAMON
+            elif part == 'KDE':
+                kde_version = env.get('KDE_SESSION_VERSION', None)
+                if kde_version == '5':
+                    return _LinuxDesktopEnvironment.KDE5
+                elif kde_version == '6':
+                    return _LinuxDesktopEnvironment.KDE6
+                elif kde_version == '4':
+                    return _LinuxDesktopEnvironment.KDE4
+                else:
+                    logger.info(f'unknown KDE version: "{kde_version}". Assuming KDE4')
+                    return _LinuxDesktopEnvironment.KDE4
+            elif part == 'Pantheon':
+                return _LinuxDesktopEnvironment.PANTHEON
+            elif part == 'XFCE':
+                return _LinuxDesktopEnvironment.XFCE
+            elif part == 'UKUI':
+                return _LinuxDesktopEnvironment.UKUI
+            elif part == 'LXQt':
+                return _LinuxDesktopEnvironment.LXQT
+        logger.info(f'XDG_CURRENT_DESKTOP is set to an unknown value: "{xdg_current_desktop}"')
 
     elif desktop_session is not None:
         if desktop_session == 'deepin':
@@ -1001,7 +1007,7 @@ def _get_windows_v10_key(browser_root, logger):
 
 
 def pbkdf2_sha1(password, salt, iterations, key_length):
-    return pbkdf2_hmac('sha1', password, salt, iterations, key_length)
+    return hashlib.pbkdf2_hmac('sha1', password, salt, iterations, key_length)
 
 
 def _decrypt_aes_cbc_multi(ciphertext, keys, logger, initialization_vector=b' ' * 16):
@@ -1055,8 +1061,9 @@ def _decrypt_windows_dpapi(ciphertext, logger):
         ctypes.byref(blob_out),  # pDataOut
     )
     if not ret:
-        logger.warning('failed to decrypt with DPAPI', only_once=True)
-        return None
+        message = 'Failed to decrypt with DPAPI. See  https://github.com/yt-dlp/yt-dlp/issues/10927  for more info'
+        logger.error(message)
+        raise DownloadError(message)  # force exit
 
     result = ctypes.string_at(blob_out.pbData, blob_out.cbData)
     ctypes.windll.kernel32.LocalFree(blob_out.pbData)

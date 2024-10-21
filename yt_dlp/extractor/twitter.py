@@ -14,6 +14,7 @@ from ..utils import (
     float_or_none,
     format_field,
     int_or_none,
+    join_nonempty,
     make_archive_id,
     remove_end,
     str_or_none,
@@ -107,7 +108,7 @@ class TwitterBaseIE(InfoExtractor):
             tbr = int_or_none(dict_get(variant, ('bitrate', 'bit_rate')), 1000) or None
             f = {
                 'url': variant_url,
-                'format_id': 'http' + (f'-{tbr}' if tbr else ''),
+                'format_id': join_nonempty('http', tbr),
                 'tbr': tbr,
             }
             self._search_dimensions_in_video_url(f, variant_url)
@@ -933,14 +934,13 @@ class TwitterIE(TwitterBaseIE):
             'uploader_id': 'MoniqueCamarra',
             'live_status': 'was_live',
             'release_timestamp': 1658417414,
-            'description': 'md5:acce559345fd49f129c20dbcda3f1201',
+            'description': r're:Twitter Space participated by Sergej Sumlenny.+',
             'timestamp': 1658407771,
             'release_date': '20220721',
             'upload_date': '20220721',
         },
         'add_ie': ['TwitterSpaces'],
         'params': {'skip_download': 'm3u8'},
-        'skip': 'Requires authentication',
     }, {
         # URL specifies video number but --yes-playlist
         'url': 'https://twitter.com/CTVJLaidlaw/status/1600649710662213632/video/1',
@@ -1763,7 +1763,7 @@ class TwitterSpacesIE(TwitterBaseIE):
             'release_timestamp': 1659904215,
             'release_date': '20220807',
         },
-        'params': {'skip_download': 'm3u8'},
+        'skip': 'No longer available',
     }, {
         # post_live/TimedOut but downloadable
         'url': 'https://twitter.com/i/spaces/1vAxRAVQWONJl',
@@ -1779,6 +1779,8 @@ class TwitterSpacesIE(TwitterBaseIE):
             'upload_date': '20230413',
             'release_timestamp': 1681839000,
             'release_date': '20230418',
+            'protocol': 'm3u8',  # ffmpeg is forced
+            'container': 'm4a_dash',  # audio-only format fixup is applied
         },
         'params': {'skip_download': 'm3u8'},
     }, {
@@ -1789,11 +1791,31 @@ class TwitterSpacesIE(TwitterBaseIE):
             'ext': 'm4a',
             'title': 'あ',
             'description': 'Twitter Space participated by nobody yet',
-            'uploader': '息根とめる🔪Twitchで復活',
+            'uploader': '息根とめる',
             'uploader_id': 'tomeru_ikinone',
             'live_status': 'was_live',
             'timestamp': 1685617198,
             'upload_date': '20230601',
+            'protocol': 'm3u8',  # ffmpeg is forced
+            'container': 'm4a_dash',  # audio-only format fixup is applied
+        },
+        'params': {'skip_download': 'm3u8'},
+    }, {
+        # Video Space
+        'url': 'https://x.com/i/spaces/1DXGydznBYWKM',
+        'info_dict': {
+            'id': '1DXGydznBYWKM',
+            'ext': 'mp4',
+            'title': 'America and Israel’s “special relationship”',
+            'description': 'Twitter Space participated by nobody yet',
+            'uploader': 'Candace Owens',
+            'uploader_id': 'RealCandaceO',
+            'live_status': 'was_live',
+            'timestamp': 1723931351,
+            'upload_date': '20240817',
+            'release_timestamp': 1723932000,
+            'release_date': '20240817',
+            'protocol': 'm3u8_native',  # not ffmpeg, detected as video space
         },
         'params': {'skip_download': 'm3u8'},
     }]
@@ -1833,8 +1855,6 @@ class TwitterSpacesIE(TwitterBaseIE):
 
     def _real_extract(self, url):
         space_id = self._match_id(url)
-        if not self.is_logged_in:
-            self.raise_login_required('Twitter Spaces require authentication')
         space_data = self._call_graphql_api('HPEisOmj1epUNLCWTYhUWw/AudioSpaceById', space_id)['audioSpace']
         if not space_data:
             raise ExtractorError('Twitter Space not found', expected=True)
@@ -1853,13 +1873,17 @@ class TwitterSpacesIE(TwitterBaseIE):
             source = traverse_obj(
                 self._call_api(f'live_video_stream/status/{metadata["media_key"]}', metadata['media_key']),
                 ('source', ('noRedirectPlaybackUrl', 'location'), {url_or_none}), get_all=False)
-            formats = self._extract_m3u8_formats(  # XXX: Some Spaces need ffmpeg as downloader
-                source, metadata['media_key'], 'm4a', entry_protocol='m3u8', live=is_live,
-                headers=headers, fatal=False) if source else []
-            for fmt in formats:
-                fmt.update({'vcodec': 'none', 'acodec': 'aac'})
-                if not is_live:
-                    fmt['container'] = 'm4a_dash'
+            is_audio_space = source and 'audio-space' in source
+            formats = self._extract_m3u8_formats(
+                source, metadata['media_key'], 'm4a' if is_audio_space else 'mp4',
+                # XXX: Some audio-only Spaces need ffmpeg as downloader
+                entry_protocol='m3u8' if is_audio_space else 'm3u8_native',
+                live=is_live, headers=headers, fatal=False) if source else []
+            if is_audio_space:
+                for fmt in formats:
+                    fmt.update({'vcodec': 'none', 'acodec': 'aac'})
+                    if not is_live:
+                        fmt['container'] = 'm4a_dash'
 
         participants = ', '.join(traverse_obj(
             space_data, ('participants', 'speakers', ..., 'display_name'))) or 'nobody yet'

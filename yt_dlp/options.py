@@ -409,6 +409,14 @@ def create_parser():
             'Location of the main configuration file; either the path to the config or its containing directory '
             '("-" for stdin). Can be used multiple times and inside other configuration files'))
     general.add_option(
+        '--plugin-dirs',
+        dest='plugin_dirs', metavar='PATH', action='append',
+        help=(
+            'Path to an additional directory to search for plugins. '
+            'This option can be used multiple times to add multiple directories. '
+            'Note that this currently only works for extractor plugins; '
+            'postprocessor plugins can only be loaded from the default plugin directories'))
+    general.add_option(
         '--flat-playlist',
         action='store_const', dest='extract_flat', const='in_playlist', default=False,
         help='Do not extract the videos of a playlist, only list them')
@@ -462,6 +470,7 @@ def create_parser():
             'the STREAM (stdout or stderr) to apply the setting to. '
             'Can be one of "always", "auto" (default), "never", or '
             '"no_color" (use non color terminal sequences). '
+            'Use "auto-tty" or "no_color-tty" to decide based on terminal support only. '
             'Can be used multiple times'))
     general.add_option(
         '--compat-options',
@@ -474,10 +483,10 @@ def create_parser():
                 'no-attach-info-json', 'embed-thumbnail-atomicparsley', 'no-external-downloader-progress',
                 'embed-metadata', 'seperate-video-versions', 'no-clean-infojson', 'no-keep-subs', 'no-certifi',
                 'no-youtube-channel-redirect', 'no-youtube-unavailable-videos', 'no-youtube-prefer-utc-upload-date',
-                'prefer-legacy-http-handler', 'manifest-filesize-approx',
+                'prefer-legacy-http-handler', 'manifest-filesize-approx', 'allow-unsafe-ext',
             }, 'aliases': {
-                'youtube-dl': ['all', '-multistreams', '-playlist-match-filter', '-manifest-filesize-approx'],
-                'youtube-dlc': ['all', '-no-youtube-channel-redirect', '-no-live-chat', '-playlist-match-filter', '-manifest-filesize-approx'],
+                'youtube-dl': ['all', '-multistreams', '-playlist-match-filter', '-manifest-filesize-approx', '-allow-unsafe-ext'],
+                'youtube-dlc': ['all', '-no-youtube-channel-redirect', '-no-live-chat', '-playlist-match-filter', '-manifest-filesize-approx', '-allow-unsafe-ext'],
                 '2021': ['2022', 'no-certifi', 'filename-sanitization'],
                 '2022': ['2023', 'no-external-downloader-progress', 'playlist-match-filter', 'prefer-legacy-http-handler', 'manifest-filesize-approx'],
                 '2023': [],
@@ -646,16 +655,16 @@ def create_parser():
             'You can also simply specify a field to match if the field is present, '
             'use "!field" to check if the field is not present, and "&" to check multiple conditions. '
             'Use a "\\" to escape "&" or quotes if needed. If used multiple times, '
-            'the filter matches if atleast one of the conditions are met. E.g. --match-filter '
-            '!is_live --match-filter "like_count>?100 & description~=\'(?i)\\bcats \\& dogs\\b\'" '
+            'the filter matches if at least one of the conditions is met. E.g. --match-filters '
+            '!is_live --match-filters "like_count>?100 & description~=\'(?i)\\bcats \\& dogs\\b\'" '
             'matches only videos that are not live OR those that have a like count more than 100 '
             '(or the like field is not available) and also has a description '
             'that contains the phrase "cats & dogs" (caseless). '
-            'Use "--match-filter -" to interactively ask whether to download each video'))
+            'Use "--match-filters -" to interactively ask whether to download each video'))
     selection.add_option(
         '--no-match-filters',
         dest='match_filter', action='store_const', const=None,
-        help='Do not use any --match-filter (default)')
+        help='Do not use any --match-filters (default)')
     selection.add_option(
         '--break-match-filters',
         metavar='FILTER', dest='breaking_match_filter', action='append',
@@ -703,7 +712,7 @@ def create_parser():
     selection.add_option(
         '--break-per-input',
         action='store_true', dest='break_per_url', default=False,
-        help='Alters --max-downloads, --break-on-existing, --break-match-filter, and autonumber to reset per input URL')
+        help='Alters --max-downloads, --break-on-existing, --break-match-filters, and autonumber to reset per input URL')
     selection.add_option(
         '--no-break-per-input',
         action='store_false', dest='break_per_url',
@@ -1479,7 +1488,7 @@ def create_parser():
             'Optionally, the KEYRING used for decrypting Chromium cookies on Linux, '
             'the name/path of the PROFILE to load cookies from, '
             'and the CONTAINER name (if Firefox) ("none" for no container) '
-            'can be given with their respective seperators. '
+            'can be given with their respective separators. '
             'By default, all containers of the most recently accessed profile are used. '
             f'Currently supported keyrings are: {", ".join(map(str.lower, sorted(SUPPORTED_KEYRINGS)))}'))
     filesystem.add_option(
@@ -1724,15 +1733,17 @@ def create_parser():
         '--convert-subs', '--convert-sub', '--convert-subtitles',
         metavar='FORMAT', dest='convertsubtitles', default=None,
         help=(
-            'Convert the subtitles to another format (currently supported: {}) '
-            '(Alias: --convert-subtitles)'.format(', '.join(sorted(FFmpegSubtitlesConvertorPP.SUPPORTED_EXTS)))))
+            'Convert the subtitles to another format '
+            f'(currently supported: {", ".join(sorted(FFmpegSubtitlesConvertorPP.SUPPORTED_EXTS))}). '
+            'Use "--convert-subs none" to disable conversion (default) (Alias: --convert-subtitles)'))
     postproc.add_option(
         '--convert-thumbnails',
         metavar='FORMAT', dest='convertthumbnails', default=None,
         help=(
             'Convert the thumbnails to another format '
             f'(currently supported: {", ".join(sorted(FFmpegThumbnailsConvertorPP.SUPPORTED_EXTS))}). '
-            'You can specify multiple rules using similar syntax as --remux-video'))
+            'You can specify multiple rules using similar syntax as "--remux-video". '
+            'Use "--convert-thumbnails none" to disable conversion (default)'))
     postproc.add_option(
         '--split-chapters', '--split-tracks',
         dest='split_chapters', action='store_true', default=False,
@@ -1781,7 +1792,7 @@ def create_parser():
             'It can be one of "pre_process" (after video extraction), "after_filter" (after video passes filter), '
             '"video" (after --format; before --print/--output), "before_dl" (before each video download), '
             '"post_process" (after each video download; default), '
-            '"after_move" (after moving video file to it\'s final locations), '
+            '"after_move" (after moving video file to its final locations), '
             '"after_video" (after downloading and processing all formats of a video), '
             'or "playlist" (at end of playlist). '
             'This option can be used multiple times to add different postprocessors'))
