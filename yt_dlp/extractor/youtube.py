@@ -598,17 +598,19 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
         self._initialize_oauth(user, password)
 
-    # OAuth 2.0 Device Authorization Grant flow, used by the YouTube TV client (youtube.com/tv).
-    #
-    # For more information regarding OAuth 2.0 and the Device Authorization Grant flow in general, see:
-    # - https://developers.google.com/identity/protocols/oauth2/limited-input-device
-    # - https://accounts.google.com/.well-known/openid-configuration
-    # - https://www.rfc-editor.org/rfc/rfc8628
-    # - https://www.rfc-editor.org/rfc/rfc6749
-    #
-    # Note: The official client appears to use a proxied version of the oauth2 endpoints on youtube.com/o/oauth2,
-    # which applies some modifications to the response (such as returning errors as 200 OK).
-    # Since the client works with the standard API, we will use that as it is well-documented.
+    '''
+    OAuth 2.0 Device Authorization Grant flow, used by the YouTube TV client (youtube.com/tv).
+
+    For more information regarding OAuth 2.0 and the Device Authorization Grant flow in general, see:
+    - https://developers.google.com/identity/protocols/oauth2/limited-input-device
+    - https://accounts.google.com/.well-known/openid-configuration
+    - https://www.rfc-editor.org/rfc/rfc8628
+    - https://www.rfc-editor.org/rfc/rfc6749
+
+    Note: The official client appears to use a proxied version of the oauth2 endpoints on youtube.com/o/oauth2,
+    which applies some modifications to the response (such as returning errors as 200 OK).
+    Since the client works with the standard API, we will use that as it is well-documented.
+    '''
 
     _OAUTH_PROFILE = None
     _OAUTH_ACCESS_TOKEN_CACHE = {}
