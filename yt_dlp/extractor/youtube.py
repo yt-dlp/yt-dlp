@@ -627,12 +627,12 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     _OAUTH_DEVICE_AUTHORIZATION_ENDPOINT = 'https://oauth2.googleapis.com/device/code'
     _OAUTH_TOKEN_ENDPOINT = 'https://oauth2.googleapis.com/token'
 
-    @staticmethod
-    def _get_oauth_cache_key(profile):
-        return f'oauth_refresh_token_{profile}'
+    @property
+    def _oauth_cache_key(self):
+        return f'oauth_refresh_token_{self._OAUTH_PROFILE}'
 
-    def _set_oauth_info(self, token_response, profile):
-        YoutubeBaseInfoExtractor._OAUTH_ACCESS_TOKEN_CACHE.setdefault(profile, {}).update({
+    def _set_oauth_info(self, token_response):
+        YoutubeBaseInfoExtractor._OAUTH_ACCESS_TOKEN_CACHE.setdefault(self._OAUTH_PROFILE, {}).update({
             'access_token': token_response['access_token'],
             'token_type': token_response['token_type'],
             'expiry': time_seconds(
@@ -640,8 +640,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         })
         refresh_token = traverse_obj(token_response, 'refresh_token', {str})
         if refresh_token:
-            self.cache.store(self._NETRC_MACHINE, self._get_oauth_cache_key(profile), refresh_token)
-            YoutubeBaseInfoExtractor._OAUTH_ACCESS_TOKEN_CACHE[profile]['refresh_token'] = refresh_token
+            self.cache.store(self._NETRC_MACHINE, self._oauth_cache_key, refresh_token)
+            YoutubeBaseInfoExtractor._OAUTH_ACCESS_TOKEN_CACHE[self._OAUTH_PROFILE]['refresh_token'] = refresh_token
 
     def _initialize_oauth(self, user, refresh_token):
         self._OAUTH_PROFILE = user or 'default'
@@ -657,9 +657,9 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
         # Allow refresh token passed to initialize cache
         if refresh_token:
-            self.cache.store(self._NETRC_MACHINE, self._get_oauth_cache_key(self._OAUTH_PROFILE), refresh_token)
+            self.cache.store(self._NETRC_MACHINE, self._oauth_cache_key, refresh_token)
 
-        refresh_token = refresh_token or self.cache.load(self._NETRC_MACHINE, self._get_oauth_cache_key(self._OAUTH_PROFILE))
+        refresh_token = refresh_token or self.cache.load(self._NETRC_MACHINE, self._oauth_cache_key)
         if refresh_token:
             YoutubeBaseInfoExtractor._OAUTH_ACCESS_TOKEN_CACHE[self._OAUTH_PROFILE]['refresh_token'] = refresh_token
             try:
@@ -670,7 +670,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         else:
             token_response = self._oauth_authorize
 
-        self._set_oauth_info(token_response, self._OAUTH_PROFILE)
+        self._set_oauth_info(token_response)
         self.write_debug(f'{self._OAUTH_DISPLAY_ID}: Logged in using profile "{self._OAUTH_PROFILE}"')
 
     def _refresh_token(self, refresh_token):
@@ -779,7 +779,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         if token is None or token['expiry'] > time.time():
             return
 
-        self._set_oauth_info(self._refresh_token(token['refresh_token']), self._OAUTH_PROFILE)
+        self._set_oauth_info(self._refresh_token(token['refresh_token']))
 
     def _check_login_required(self):
         if self._LOGIN_REQUIRED and not self.is_authenticated:
