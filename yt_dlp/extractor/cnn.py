@@ -4,7 +4,7 @@ from ..utils.traversal import find_element, traverse_obj
 
 
 class CNNIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:(?:edition|www|money)\.)?cnn\.com/(?!audio)(?P<display_id>[^?#]+?)(?:[?#]|$|/index\.html)'
+    _VALID_URL = r'https?://(?:(?:edition|www|money|cnnespanol)\.)?cnn\.com/(?!audio/)(?P<display_id>[^?#]+?)(?:[?#]|$|/index\.html)'
 
     _TESTS = [{
         'url': 'https://www.cnn.com/2024/05/31/sport/video/jadon-sancho-borussia-dortmund-champions-league-exclusive-spt-intl',
@@ -57,6 +57,19 @@ class CNNIE(InfoExtractor):
             'description': 'md5:9f28e46df86b7eb1efe36a7d1cd46f2c',
             'upload_date': '20221205',
             'timestamp': 1670284296,
+        },
+    }, {
+        'url': 'https://cnnespanol.cnn.com/video/ataque-misil-israel-beirut-libano-octubre-trax',
+        'info_dict': {
+            'id': 'me484a43722642aa00627b812fe928f2e99c6e2997',
+            'ext': 'mp4',
+            'display_id': 'video/ataque-misil-israel-beirut-libano-octubre-trax',
+            'timestamp': 1729501452,
+            'thumbnail': 'https://media.cnn.com/api/v1/images/stellar/prod/ataqeubeirut-1.jpg?c=original',
+            'description': 'md5:7f4038bdc8674b17eef45cc2ebba64d0',
+            'upload_date': '20241021',
+            'duration': 31.0,
+            'title': 'VIDEO | Israel lanza un nuevo ataque sobre Beirut',
         },
     }]
 
