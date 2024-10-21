@@ -631,6 +631,11 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     def _oauth_cache_key(self):
         return f'oauth_refresh_token_{self._OAUTH_PROFILE}'
 
+    def _read_oauth_error_response(self, response):
+        return traverse_obj(
+            self._webpage_read_content(response, self._OAUTH_TOKEN_ENDPOINT, self._OAUTH_DISPLAY_ID, fatal=False),
+            ({json.loads}, 'error', {str}))
+
     def _set_oauth_info(self, token_response):
         YoutubeBaseInfoExtractor._OAUTH_ACCESS_TOKEN_CACHE.setdefault(self._OAUTH_PROFILE, {}).update({
             'access_token': token_response['access_token'],
@@ -665,7 +670,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             try:
                 token_response = self._refresh_token(refresh_token)
             except ExtractorError as e:
-                self.report_warning(f'{self._OAUTH_DISPLAY_ID}: Failed to refresh access token: {e}')
+                error_msg = str(e.orig_msg).replace('Failed to refresh access token: ', '')
+                self.report_warning(f'{self._OAUTH_DISPLAY_ID}: Failed to refresh access token: {error_msg}')
                 token_response = self._oauth_authorize
         else:
             token_response = self._oauth_authorize
@@ -688,10 +694,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 headers={'Content-Type': 'application/json'})
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError):
-                token_response = self._parse_json(
-                    self._webpage_read_content(e.cause.response, None, self._OAUTH_DISPLAY_ID) or '{}',
-                    video_id=self._OAUTH_DISPLAY_ID)
-                error = traverse_obj(token_response, 'error', {str})
+                error = self._read_oauth_error_response(e.cause.response)
                 if error == 'invalid_grant':
                     # RFC6749 § 5.2
                     raise ExtractorError(
@@ -746,10 +749,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                         retry.error = e
                         break
                     elif isinstance(e.cause, HTTPError):
-                        token_response = self._parse_json(
-                            self._webpage_read_content(e.cause.response, None, self._OAUTH_DISPLAY_ID, fatal=False) or '{}',
-                            video_id=self._OAUTH_DISPLAY_ID, fatal=False)
-                        if not (error := traverse_obj(token_response, 'error', {str})):
+                        error = self._read_oauth_error_response(e.cause.response)
+                        if not error:
                             retry.error = e
                             break
 
@@ -759,7 +760,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                         elif error == 'expired_token':
                             raise ExtractorError('Authorization timed out', expected=True, video_id=self._OAUTH_DISPLAY_ID)
                         elif error == 'access_denied':
-                            raise ExtractorError('You have been denied access to an account', expected=True, video_id=self._OAUTH_DISPLAY_ID)
+                            raise ExtractorError('You denied access to an account', expected=True, video_id=self._OAUTH_DISPLAY_ID)
                         elif error == 'slow_down':
                             # RFC8628 § 3.5: add 5 seconds to the poll interval
                             poll_interval += 5
