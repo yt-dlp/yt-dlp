@@ -7376,7 +7376,6 @@ class YoutubeLivestreamEmbedIE(YoutubeBaseInfoExtractor):
 class YoutubeYtUserIE(YoutubeBaseInfoExtractor):
     IE_DESC = 'YouTube user videos; "ytuser:" prefix'
     IE_NAME = 'youtube:user'
-    _NETRC_MACHINE = YoutubeBaseInfoExtractor._NETRC_MACHINE
     _VALID_URL = r'ytuser:(?P<id>.+)'
     _TESTS = [{
         'url': 'ytuser:phihag',
