@@ -70,59 +70,23 @@ class AfreecaTVBaseIE(InfoExtractor):
 class AfreecaTVIE(AfreecaTVBaseIE):
     IE_NAME = 'soop'
     IE_DESC = 'sooplive.co.kr'
-    _VALID_URL = r'''(?x)
-                    https?://
-                        (?:
-                            (?:(?:live|afbbs|www)\.)?afreecatv\.com(?::\d+)?
-                            (?:
-                                /app/(?:index|read_ucc_bbs)\.cgi|
-                                /player/[Pp]layer\.(?:swf|html)
-                            )\?.*?\bnTitleNo=|
-                            vod\.(?:sooplive\.co\.kr|afreecatv\.com)/(?:PLAYER/STATION|player)/
-                        )
-                        (?P<id>\d+)/?(?:$|[?#&])
-                    '''
+    _VALID_URL = r'https?://vod\.(?:sooplive\.co\.kr|afreecatv\.com)/(?:PLAYER/STATION|player)/(?P<id>\d+)/?(?:$|[?#&])'
     _TESTS = [{
-        'url': 'http://live.afreecatv.com:8079/app/index.cgi?szType=read_ucc_bbs&szBjId=dailyapril&nStationNo=16711924&nBbsNo=18605867&nTitleNo=36164052&szSkin=',
-        'md5': 'f72c89fe7ecc14c1b5ce506c4996046e',
+        'url': 'https://vod.sooplive.co.kr/player/96753363',
         'info_dict': {
-            'id': '36164052',
+            'id': '20230108_9FF5BEE1_244432674_1',
             'ext': 'mp4',
-            'title': '데일리 에이프릴 요정들의 시상식!',
-            'thumbnail': 're:^https?://(?:video|st)img.afreecatv.com/.*$',
-            'uploader': 'dailyapril',
-            'uploader_id': 'dailyapril',
-            'upload_date': '20160503',
+            'uploader_id': 'rlantnghks',
+            'uploader': '페이즈으',
+            'duration': 10840,
+            'thumbnail': r're:https?://videoimg\.sooplive\.co/.kr/.+',
+            'upload_date': '20230108',
+            'timestamp': 1673218805,
+            'title': '젠지 페이즈',
         },
-        'skip': 'Video is gone',
-    }, {
-        'url': 'http://afbbs.afreecatv.com:8080/app/read_ucc_bbs.cgi?nStationNo=16711924&nTitleNo=36153164&szBjId=dailyapril&nBbsNo=18605867',
-        'info_dict': {
-            'id': '36153164',
-            'title': "BJ유트루와 함께하는 '팅커벨 메이크업!'",
-            'thumbnail': 're:^https?://(?:video|st)img.afreecatv.com/.*$',
-            'uploader': 'dailyapril',
-            'uploader_id': 'dailyapril',
+        'params': {
+            'skip_download': True,
         },
-        'playlist_count': 2,
-        'playlist': [{
-            'md5': 'd8b7c174568da61d774ef0203159bf97',
-            'info_dict': {
-                'id': '36153164_1',
-                'ext': 'mp4',
-                'title': "BJ유트루와 함께하는 '팅커벨 메이크업!'",
-                'upload_date': '20160502',
-            },
-        }, {
-            'md5': '58f2ce7f6044e34439ab2d50612ab02b',
-            'info_dict': {
-                'id': '36153164_2',
-                'ext': 'mp4',
-                'title': "BJ유트루와 함께하는 '팅커벨 메이크업!'",
-                'upload_date': '20160502',
-            },
-        }],
-        'skip': 'Video is gone',
     }, {
         # non standard key
         'url': 'http://vod.sooplive.co.kr/PLAYER/STATION/20515605',
@@ -130,7 +94,7 @@ class AfreecaTVIE(AfreecaTVBaseIE):
             'id': '20170411_BE689A0E_190960999_1_2_h',
             'ext': 'mp4',
             'title': '혼자사는여자집',
-            'thumbnail': 're:^https?://(?:video|st)img.sooplive.co.kr/.*$',
+            'thumbnail': 're:https?://(?:video|st)img\.sooplive\.co\.kr/.+',
             'uploader': '♥이슬이',
             'uploader_id': 'dasl8121',
             'upload_date': '20170411',
@@ -147,7 +111,7 @@ class AfreecaTVIE(AfreecaTVBaseIE):
             'id': '20180327_27901457_202289533_1',
             'ext': 'mp4',
             'title': '[생]빨개요♥ (part 1)',
-            'thumbnail': 're:^https?://(?:video|st)img.sooplive.co.kr/.*$',
+            'thumbnail': 're:https?://(?:video|st)img\.sooplive\.co\.kr/.+',
             'uploader': '[SA]서아',
             'uploader_id': 'bjdyrksu',
             'upload_date': '20180327',
@@ -157,25 +121,6 @@ class AfreecaTVIE(AfreecaTVBaseIE):
             'skip_download': True,
         },
         'skip': 'The VOD does not exist',
-    }, {
-        'url': 'http://www.afreecatv.com/player/Player.swf?szType=szBjId=djleegoon&nStationNo=11273158&nBbsNo=13161095&nTitleNo=36327652',
-        'only_matching': True,
-    }, {
-        'url': 'https://vod.sooplive.co.kr/player/96753363',
-        'info_dict': {
-            'id': '20230108_9FF5BEE1_244432674_1',
-            'ext': 'mp4',
-            'uploader_id': 'rlantnghks',
-            'uploader': '페이즈으',
-            'duration': 10840,
-            'thumbnail': r're:https?://videoimg\.sooplive\.co/.kr/.+',
-            'upload_date': '20230108',
-            'timestamp': 1673218805,
-            'title': '젠지 페이즈',
-        },
-        'params': {
-            'skip_download': True,
-        },
     }, {
         # adult content
         'url': 'https://vod.sooplive.co.kr/player/70395877',
