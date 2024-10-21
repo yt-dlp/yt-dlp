@@ -616,7 +616,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     _OAUTH_ACCESS_TOKEN_CACHE = {}
     _OAUTH_DISPLAY_ID = 'oauth'
 
-    # YouTube TV (TVHTML5) client. You can find these at youtube.com/tv.
+    # YouTube TV (TVHTML5) client. You can find these at youtube.com/tv
     _OAUTH_CLIENT_ID = '861556708454-d6dlm3lh05idd8npek18k6be8ba3oc68.apps.googleusercontent.com'
     _OAUTH_CLIENT_SECRET = 'SboVhoG9s0rNafixCSGGKXAT'
     _OAUTH_SCOPE = 'http://gdata.youtube.com https://www.googleapis.com/auth/youtube-paid-content'
