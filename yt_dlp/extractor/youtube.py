@@ -640,7 +640,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             'expiry': time_seconds(
                 seconds=traverse_obj(token_response, ('expires_in', {float_or_none}), default=300) - 10),
         })
-        refresh_token = traverse_obj(token_response, 'refresh_token', {str})
+        refresh_token = traverse_obj(token_response, ('refresh_token', {str}))
         if refresh_token:
             self.cache.store(self._NETRC_MACHINE, self._oauth_cache_key, refresh_token)
             YoutubeBaseInfoExtractor._OAUTH_ACCESS_TOKEN_CACHE[self._OAUTH_PROFILE]['refresh_token'] = refresh_token
@@ -698,7 +698,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                         'Failed to refresh access token: Refresh token is invalid, revoked, or expired (invalid_grant)',
                         expected=True, video_id=self._OAUTH_DISPLAY_ID)
                 raise ExtractorError(
-                    f'Failed to refresh access token: Authorization server returned error {error}', video_id=self._OAUTH_DISPLAY_ID)
+                    f'Failed to refresh access token: Authorization server returned error {error}',
+                    video_id=self._OAUTH_DISPLAY_ID)
             raise
         return token_response
 
@@ -714,17 +715,19 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             }).encode(),
             headers={'Content-Type': 'application/json'})
 
-        verification_url = traverse_obj(code_response, 'verification_url', {str})
-        user_code = traverse_obj(code_response, 'user_code', {str})
+        verification_url = traverse_obj(code_response, ('verification_url', {str}))
+        user_code = traverse_obj(code_response, ('user_code', {str}))
         if not verification_url or not user_code:
             raise ExtractorError(
                 'Authorization server did not provide verification_url or user_code', video_id=self._OAUTH_DISPLAY_ID)
 
         # note: The whitespace is intentional
-        self.to_screen(f'{self._OAUTH_DISPLAY_ID}: To give yt-dlp access to your account, go to  {verification_url}  and enter code  {user_code}')
+        self.to_screen(
+            f'{self._OAUTH_DISPLAY_ID}: To give yt-dlp access to your account, '
+            f'go to  {verification_url}  and enter code  {user_code}')
 
         # RFC8628 § 3.5: default poll interval is 5 seconds if not provided
-        poll_interval = traverse_obj(code_response, 'interval', {int}, default=5)
+        poll_interval = traverse_obj(code_response, ('interval', {int}), default=5)
 
         for retry in self.RetryManager():
             while True:
@@ -755,9 +758,11 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                             time.sleep(poll_interval)
                             continue
                         elif error == 'expired_token':
-                            raise ExtractorError('Authorization timed out', expected=True, video_id=self._OAUTH_DISPLAY_ID)
+                            raise ExtractorError(
+                                'Authorization timed out', expected=True, video_id=self._OAUTH_DISPLAY_ID)
                         elif error == 'access_denied':
-                            raise ExtractorError('You denied access to an account', expected=True, video_id=self._OAUTH_DISPLAY_ID)
+                            raise ExtractorError(
+                                'You denied access to an account', expected=True, video_id=self._OAUTH_DISPLAY_ID)
                         elif error == 'slow_down':
                             # RFC8628 § 3.5: add 5 seconds to the poll interval
                             poll_interval += 5
@@ -781,8 +786,9 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     @property
     def _youtube_login_hint(self):
         return ('Use  --username=oauth[+PROFILE] --password=""  to log in using oauth, '
-                f'or else u{self._login_hint(method="cookies")[1:]}'
-                f' or  https://github.com/yt-dlp/yt-dlp/wiki/Extractors#logging-in-with-oauth  on how to use oauth')
+                f'or else u{self._login_hint(method="cookies")[1:]}. '
+                'See  https://github.com/yt-dlp/yt-dlp/wiki/Extractors#logging-in-with-oauth  for more on how to use oauth. '
+                'See  https://github.com/yt-dlp/yt-dlp/wiki/Extractors#exporting-youtube-cookies  for help with cookies')
 
     def _check_login_required(self):
         if self._LOGIN_REQUIRED and not self.is_authenticated:
