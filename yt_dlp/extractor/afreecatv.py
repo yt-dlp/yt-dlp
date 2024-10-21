@@ -464,7 +464,7 @@ class AfreecaTVUserIE(InfoExtractor):
                                    note=f'Downloading {user_type} video page {page}')
         for item in info['data']:
             yield self.url_result(
-                f'https://vod.sooplive.co.kr/player/{item["title_no"]}/', SoopIE, item['title_no'])
+                f'https://vod.sooplive.co.kr/player/{item["title_no"]}/', AfreecaTVIE, item['title_no'])
 
     def _real_extract(self, url):
         user_id, user_type = self._match_valid_url(url).group('id', 'slug_type')
