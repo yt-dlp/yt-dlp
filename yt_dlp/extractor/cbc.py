@@ -522,14 +522,13 @@ class CBCGemIE(InfoExtractor):
     _TESTS = [{
         # This is a normal, public, TV show video
         'url': 'https://gem.cbc.ca/media/schitts-creek/s06e01',
-        'md5': '93dbb31c74a8e45b378cf13bd3f6f11e',
         'info_dict': {
             'id': 'schitts-creek/s06e01',
             'ext': 'mp4',
             'title': 'Smoke Signals',
             'description': 'md5:929868d20021c924020641769eb3e7f1',
-            'thumbnail': 'https://images.radio-canada.ca/v1/synps-cbc/episode/perso/cbc_schitts_creek_season_06e01_thumbnail_v01.jpg?im=Resize=(Size)',
-            'duration': 1314,
+            'thumbnail': r're:https://images\.radio-canada\.ca/[^#?]+/cbc_schitts_creek_season_06e01_thumbnail_v01\.jpg',
+            'duration': 1324,
             'categories': ['comedy'],
             'series': 'Schitt\'s Creek',
             'season': 'Season 6',
@@ -537,19 +536,21 @@ class CBCGemIE(InfoExtractor):
             'episode': 'Smoke Signals',
             'episode_number': 1,
             'episode_id': 'schitts-creek/s06e01',
+            'upload_date': '20210618',
+            'timestamp': 1623988800,
+            'release_date': '20200107',
+            'release_timestamp': 1578427200,
         },
         'params': {'format': 'bv'},
-        'skip': 'Geo-restricted to Canada',
     }, {
         # This video requires an account in the browser, but works fine in yt-dlp
         'url': 'https://gem.cbc.ca/media/schitts-creek/s01e01',
-        'md5': '297a9600f554f2258aed01514226a697',
         'info_dict': {
             'id': 'schitts-creek/s01e01',
             'ext': 'mp4',
             'title': 'The Cup Runneth Over',
             'description': 'md5:9bca14ea49ab808097530eb05a29e797',
-            'thumbnail': 'https://images.radio-canada.ca/v1/synps-cbc/episode/perso/cbc_schitts_creek_season_01e01_thumbnail_v01.jpg?im=Resize=(Size)',
+            'thumbnail': r're:https://images\.radio-canada\.ca/[^#?]+/cbc_schitts_creek_season_01e01_thumbnail_v01\.jpg',
             'series': 'Schitt\'s Creek',
             'season_number': 1,
             'season': 'Season 1',
@@ -558,9 +559,12 @@ class CBCGemIE(InfoExtractor):
             'episode_id': 'schitts-creek/s01e01',
             'duration': 1309,
             'categories': ['comedy'],
+            'upload_date': '20210617',
+            'timestamp': 1623902400,
+            'release_date': '20151124',
+            'release_timestamp': 1448323200,
         },
         'params': {'format': 'bv'},
-        'skip': 'Geo-restricted to Canada',
     }, {
         'url': 'https://gem.cbc.ca/nadiyas-family-favourites/s01e01',
         'only_matching': True,
@@ -642,7 +646,6 @@ class CBCGemIE(InfoExtractor):
         else:
             headers = {}
         m3u8_info = self._download_json(video_info['playSession']['url'], video_id, headers=headers)
-        m3u8_url = re.sub(r'(manifestType=)[\w_-]+(&)', r'\1\2', m3u8_info.get('url'))
 
         if m3u8_info.get('errorCode') == 1:
             self.raise_geo_restricted(countries=['CA'])
@@ -651,7 +654,8 @@ class CBCGemIE(InfoExtractor):
         elif m3u8_info.get('errorCode') != 0:
             raise ExtractorError(f'{self.IE_NAME} said: {m3u8_info.get("errorCode")} - {m3u8_info.get("message")}')
 
-        formats = self._extract_m3u8_formats(m3u8_url, video_id, m3u8_id='hls')
+        formats = self._extract_m3u8_formats(
+            m3u8_info['url'], video_id, 'mp4', m3u8_id='hls', query={'manifestType': ''})
         self._remove_duplicate_formats(formats)
 
         for fmt in formats:
@@ -668,20 +672,21 @@ class CBCGemIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'title': video_info['title'],
-            'description': video_info.get('description'),
-            'thumbnail': video_info.get('image'),
-            'series': video_info.get('series'),
-            'season_number': video_info.get('season'),
-            'season': f'Season {video_info.get("season")}',
-            'episode_number': video_info.get('episode'),
-            'episode': video_info.get('title'),
             'episode_id': video_id,
-            'duration': video_info.get('duration'),
-            'categories': [video_info.get('category')],
             'formats': formats,
-            'release_timestamp': video_info.get('airDate'),
-            'timestamp': video_info.get('availableDate'),
+            **traverse_obj(video_info, {
+                'title': ('title', {str}),
+                'episode': ('title', {str}),
+                'description': ('description', {str}),
+                'thumbnail': ('image', {url_or_none}),
+                'series': ('series', {str}),
+                'season_number': ('season', {int_or_none}),
+                'episode_number': ('episode', {int_or_none}),
+                'duration': ('duration', {int_or_none}),
+                'categories': ('category', {str}, all),
+                'release_timestamp': ('airDate', {int_or_none(scale=1000)}),
+                'timestamp': ('availableDate', {int_or_none(scale=1000)}),
+            }),
         }
 
 
