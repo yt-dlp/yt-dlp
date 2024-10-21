@@ -1,14 +1,13 @@
-from .telecinco import TelecincoIE
+from .telecinco import TelecincoBaseIE
 from ..utils import (
     int_or_none,
     parse_iso8601,
 )
 
 
-class MiTeleIE(TelecincoIE):  # XXX: Do not subclass from concrete IE
+class MiTeleIE(TelecincoBaseIE):
     IE_DESC = 'mitele.es'
     _VALID_URL = r'https?://(?:www\.)?mitele\.es/(?:[^/]+/)+(?P<id>[^/]+)/player'
-
     _TESTS = [{
         'url': 'http://www.mitele.es/programas-tv/diario-de/57b0dfb9c715da65618b4afa/player',
         'info_dict': {
@@ -27,6 +26,7 @@ class MiTeleIE(TelecincoIE):  # XXX: Do not subclass from concrete IE
             'timestamp': 1471209401,
             'upload_date': '20160814',
         },
+        'skip': 'HTTP Error 404 Not Found',
     }, {
         # no explicit title
         'url': 'http://www.mitele.es/programas-tv/cuarto-milenio/57b0de3dc915da14058b4876/player',
@@ -49,6 +49,26 @@ class MiTeleIE(TelecincoIE):  # XXX: Do not subclass from concrete IE
         'params': {
             'skip_download': True,
         },
+        'skip': 'HTTP Error 404 Not Found',
+    }, {
+        'url': 'https://www.mitele.es/programas-tv/horizonte/temporada-5/programa-171-40_013480051/player/',
+        'info_dict': {
+            'id': '7adbe22e-cd41-4787-afa4-36f3da7c2c6f',
+            'ext': 'mp4',
+            'title': 'Horizonte Temporada 5 Programa 171',
+            'description': 'md5:97f1fb712c5ac27e5693a8b3c5c0c6e3',
+            'episode': 'Las Zonas de Bajas Emisiones, a debate',
+            'episode_number': 171,
+            'season': 'Season 5',
+            'season_number': 5,
+            'series': 'Horizonte',
+            'duration': 7012,
+            'upload_date': '20240927',
+            'timestamp': 1727416450,
+            'thumbnail': 'https://album.mediaset.es/eimg/2024/09/27/horizonte-171_9f02.jpg',
+            'age_limit': 12,
+        },
+        'params': {'geo_bypass_country': 'ES'},
     }, {
         'url': 'http://www.mitele.es/series-online/la-que-se-avecina/57aac5c1c915da951a8b45ed/player',
         'only_matching': True,
