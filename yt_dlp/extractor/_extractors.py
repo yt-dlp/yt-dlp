@@ -401,7 +401,6 @@ from .cmt import CMTIE
 from .cnbc import CNBCVideoIE
 from .cnn import (
     CNNIE,
-    CNNArticleIE,
     CNNIndonesiaIE,
 )
 from .comedycentral import (
