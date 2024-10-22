@@ -158,56 +158,59 @@ class RedGifsIE(RedGifsBaseInfoExtractor):
 
 class RedGifsSearchIE(RedGifsBaseInfoExtractor):
     IE_DESC = 'Redgifs search'
-    _VALID_URL = r'https?://(?:www\.)?redgifs\.com/browse\?(?P<query>[^#]+)'
+    _VALID_URL = r'https?://(?:www\.)?redgifs\.com/gifs/(?P<tags>[^?/]+)(\?(?P<query>[^#]+))?'
     _PAGE_SIZE = 80
     _TESTS = [
         {
-            'url': 'https://www.redgifs.com/browse?tags=Lesbian',
+            'url': 'https://www.redgifs.com/gifs/lesbian?tab=gifs',
             'info_dict': {
-                'id': 'tags=Lesbian',
-                'title': 'Lesbian',
-                'description': 'RedGifs search for Lesbian, ordered by trending',
+                'id': 'search_text=lesbian&order=trending&type=g',
+                'title': 'lesbian',
+                'description': 'RedGifs search for lesbian, ordered by trending',
             },
             'playlist_mincount': 100,
         },
         {
-            'url': 'https://www.redgifs.com/browse?type=g&order=latest&tags=Lesbian',
+            'url': 'https://www.redgifs.com/gifs/lesbian?order=new&tab=gifs',
             'info_dict': {
-                'id': 'type=g&order=latest&tags=Lesbian',
-                'title': 'Lesbian',
-                'description': 'RedGifs search for Lesbian, ordered by latest',
+                'id': 'search_text=lesbian&order=new&type=g',
+                'title': 'lesbian',
+                'description': 'RedGifs search for lesbian, ordered by latest',
             },
             'playlist_mincount': 100,
-        },
-        {
-            'url': 'https://www.redgifs.com/browse?type=g&order=latest&tags=Lesbian&page=2',
-            'info_dict': {
-                'id': 'type=g&order=latest&tags=Lesbian&page=2',
-                'title': 'Lesbian',
-                'description': 'RedGifs search for Lesbian, ordered by latest',
-            },
-            'playlist_count': 80,
         },
     ]
 
     def _real_extract(self, url):
-        query_str = self._match_valid_url(url).group('query')
+        match = self._match_valid_url(url)
+        tags = match.group('tags')
+        query_str = match.group('query')
         query = urllib.parse.parse_qs(query_str)
-        if not query.get('tags'):
-            raise ExtractorError('Invalid query tags', expected=True)
-
-        tags = query.get('tags')[0]
         order = query.get('order', ('trending',))[0]
 
-        query['search_text'] = [tags]
-        entries = self._paged_entries('gifs/search', query_str, query, {
+        tab = query.get('tab', (None,))[0]
+        # TODO: Can we support creators / niches tabs?
+        tab_to_type = {
+            'gifs': 'g',
+            'images': 'i',
+        }
+        if tab not in tab_to_type:
+            raise ExtractorError('Only "See all" search pages for gifs/images are supported.', expected=True)
+
+        search_query = {
+            'search_text': [tags],
+            'order': [order],
+            'type': [tab_to_type[tab]],
+        }
+        playlist_id = urllib.parse.urlencode(search_query, doseq=True)
+        entries = self._paged_entries('gifs/search', playlist_id, search_query, {
             'search_text': None,
             'order': 'trending',
             'type': None,
         })
 
         return self.playlist_result(
-            entries, query_str, tags, f'RedGifs search for {tags}, ordered by {order}')
+            entries, playlist_id, tags, f'RedGifs search for {tags}, ordered by {order}')
 
 
 class RedGifsUserIE(RedGifsBaseInfoExtractor):
