@@ -364,6 +364,7 @@ class LBRYIE(LBRYBaseIE):
 
 class LBRYChannelIE(LBRYBaseIE):
     IE_NAME = 'lbry:channel'
+    IE_DESC = 'odysee.com channels'
     _VALID_URL = LBRYBaseIE._BASE_URL_REGEX + rf'(?P<id>@{LBRYBaseIE._OPT_CLAIM_ID})/?(?:[?&]|$)'
     _TESTS = [{
         'url': 'https://lbry.tv/@LBRYFoundation:0',
