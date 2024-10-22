@@ -333,7 +333,7 @@ class InfoExtractor:
     like_count:     Number of positive ratings of the video
     dislike_count:  Number of negative ratings of the video
     repost_count:   Number of reposts of the video
-    average_rating: Average rating give by users, the scale used depends on the webpage
+    average_rating: Average rating given by users, the scale used depends on the webpage
     comment_count:  Number of comments on the video
     comments:       A list of comments, each with one or more of the following
                     properties (all but one of text or html optional):
@@ -520,7 +520,7 @@ class InfoExtractor:
     or _extract_from_webpage as necessary. While these are normally classmethods,
     _extract_from_webpage is allowed to be an instance method.
 
-    _extract_from_webpage may raise self.StopExtraction() to stop further
+    _extract_from_webpage may raise self.StopExtraction to stop further
     processing of the webpage and obtain exclusive rights to it. This is useful
     when the extractor cannot reliably be matched using just the URL,
     e.g. invidious/peertube instances
