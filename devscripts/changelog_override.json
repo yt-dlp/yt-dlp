@@ -206,5 +206,11 @@
         "action": "add",
         "when": "a886cf3e900f4a2ec00af705f883539269545609",
         "short": "[priority] **Following this release, yt-dlp's Python dependencies *must* be installed using the `default` group**\nIf you're installing yt-dlp with pip/pipx or requiring yt-dlp in your own Python project, you'll need to specify `yt-dlp[default]` if you want to also install yt-dlp's optional dependencies (which were previously included by default). [Read more](https://github.com/yt-dlp/yt-dlp/pull/11255)"
+    },
+    {
+        "action": "change",
+        "when": "b8635c1d4779da195e71aa281f73aaad702c935e",
+        "short": "[ie/youtube] Support [logging in with OAuth](https://github.com/yt-dlp/yt-dlp/wiki/Extractors#logging-in-with-oauth) (#11001)",
+        "authors": ["coletdjnz"]
     }
 ]
