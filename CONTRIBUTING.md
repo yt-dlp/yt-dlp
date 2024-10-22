@@ -304,7 +304,7 @@ For extraction to work yt-dlp relies on metadata your extractor extracts and pro
  - `id` (media identifier)
  - `url` (media download URL) or `formats`
 
-The aforementioned metafields are the critical data that the extraction does not make any sense without and if any of them fail to be extracted then the extractor is considered completely broken. All extractors must make all other metadata extraction non-fatal.
+The aforementioned metadata fields are the critical data without which extraction does not make any sense. If any of them fail to be extracted, then the extractor is considered broken. All other metadata extraction should be completely non-fatal.
 
 For pornographic sites, appropriate `age_limit` must also be returned.
 
