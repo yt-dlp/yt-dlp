@@ -233,7 +233,7 @@ After you have ensured this site is distributing its content legally, you can fo
                 # * MD5 checksum; start the string with 'md5:', e.g.
                 #     'description': 'md5:098f6bcd4621d373cade4e832627b4f6',
                 # * A regular expression; start the string with 're:', e.g.
-                #     'thumbnail': r're:^https?://.*\.jpg$',
+                #     'thumbnail': r're:https?://.*\.jpg$',
                 # * A count of elements in a list; start the string with 'count:', e.g.
                 #     'tags': 'count:10',
                 # * Any Python type, e.g.
@@ -268,7 +268,7 @@ After you have ensured this site is distributing its content legally, you can fo
 
     You can use `hatch fmt` to automatically fix problems. Rules that the linter/formatter enforces should not be disabled with `# noqa` unless a maintainer requests it. The only exception allowed is for old/printf-style string formatting in GraphQL query templates (use `# noqa: UP031`).
 
-1. Make sure your code works under all [Python](https://www.python.org/) versions supported by yt-dlp, namely CPython and PyPy for Python 3.8 and above. Backward compatibility is not required for even older versions of Python.
+1. Make sure your code works under all [Python](https://www.python.org/) versions supported by yt-dlp, namely CPython >=3.8 and PyPy >=3.10. Backward compatibility is not required for even older versions of Python.
 1. When the tests pass, [add](https://git-scm.com/docs/git-add) the new files, [commit](https://git-scm.com/docs/git-commit) them and [push](https://git-scm.com/docs/git-push) the result, like this:
 
     ```shell
@@ -302,10 +302,9 @@ Extractors are very fragile by nature since they depend on the layout of the sou
 For extraction to work yt-dlp relies on metadata your extractor extracts and provides to yt-dlp expressed by an [information dictionary](yt_dlp/extractor/common.py#L119-L440) or simply *info dict*. Only the following meta fields in the *info dict* are considered mandatory for a successful extraction process by yt-dlp:
 
  - `id` (media identifier)
- - `title` (media title)
  - `url` (media download URL) or `formats`
 
-The aforementioned metafields are the critical data that the extraction does not make any sense without and if any of them fail to be extracted then the extractor is considered completely broken. While all extractors must return a `title`, they must also allow it's extraction to be non-fatal.
+The aforementioned metadata fields are the critical data without which extraction does not make any sense. If any of them fail to be extracted, then the extractor is considered broken. All other metadata extraction should be completely non-fatal.
 
 For pornographic sites, appropriate `age_limit` must also be returned.
 

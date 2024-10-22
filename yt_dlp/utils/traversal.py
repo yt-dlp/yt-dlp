@@ -55,7 +55,7 @@ def traverse_obj(
     The keys in the path can be one of:
         - `None`:           Return the current object.
         - `set`:            Requires the only item in the set to be a type or function,
-                            like `{type}`/`{type, type, ...}/`{func}`. If a `type`, return only
+                            like `{type}`/`{type, type, ...}`/`{func}`. If a `type`, return only
                             values of this type. If a function, returns `func(obj)`.
         - `str`/`int`:      Return `obj[key]`. For `re.Match`, return `obj.group(key)`.
         - `slice`:          Branch out and return all values in `obj[key]`.
@@ -75,7 +75,7 @@ def traverse_obj(
 
         `tuple`, `list`, and `dict` all support nested paths and branches.
 
-    @params paths           Paths which to traverse by.
+    @params paths           Paths by which to traverse.
     @param default          Value to return if the paths do not match.
                             If the last key in the path is a `dict`, it will apply to each value inside
                             the dict instead, depth first. Try to avoid if using nested `dict` keys.

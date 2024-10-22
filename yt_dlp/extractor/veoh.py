@@ -8,7 +8,8 @@ from ..utils import (
     int_or_none,
     parse_duration,
     qualities,
-    try_get,
+    remove_start,
+    strip_or_none,
 )
 
 
@@ -108,7 +109,7 @@ class VeohIE(InfoExtractor):
 
         categories = metadata.get('categoryPath')
         if not categories:
-            category = try_get(video, lambda x: x['category'].strip().removeprefix('category_'))
+            category = remove_start(strip_or_none(video.get('category')), 'category_')
             categories = [category] if category else None
         tags = video.get('tags')
 
