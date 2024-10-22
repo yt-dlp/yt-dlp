@@ -34,6 +34,7 @@ from .postprocessor import (
 )
 from .update import Updater
 from .utils import (
+    Config,
     NO_DEFAULT,
     POSTPROCESS_WHEN,
     DateRange,
@@ -966,6 +967,10 @@ def _real_main(argv=None):
     setproctitle('yt-dlp')
 
     parser, opts, all_urls, ydl_opts = parse_options(argv)
+
+    # HACK: Set the plugin dirs early on
+    # TODO(coletdjnz): remove when plugin globals system is implemented
+    Config._plugin_dirs = opts.plugin_dirs
 
     # Dump user agent
     if opts.dump_user_agent:

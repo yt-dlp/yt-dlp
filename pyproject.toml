@@ -86,9 +86,6 @@ test = [
 pyinstaller = [
     "pyinstaller>=6.10.0",  # Windows temp cleanup fixed in 6.10.0
 ]
-py2exe = [
-    "py2exe>=0.12",
-]
 
 [project.urls]
 Documentation = "https://github.com/yt-dlp/yt-dlp#readme"
