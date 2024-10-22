@@ -992,7 +992,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         }
         return filter_dict(headers)
 
-    def _generate_webpage_headers(self, url):
+    @property
+    def _webpage_headers(self):
         return self._generate_oauth_headers()
 
     def _download_ytcfg(self, client, video_id):
@@ -1005,7 +1006,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             return {}
         webpage = self._download_webpage(
             url, video_id, fatal=False, note=f'Downloading {client.replace("_", " ").strip()} client config',
-            headers=self._generate_webpage_headers(url))
+            headers=self._webpage_headers)
         return self.extract_ytcfg(video_id, webpage) or {}
 
     @staticmethod
@@ -3266,7 +3267,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 player_url, video_id, fatal=fatal,
                 note='Downloading player ' + player_id,
                 errnote=f'Download of {player_url} failed',
-                headers=self._generate_webpage_headers(player_url))
+                headers=self._webpage_headers)
             if code:
                 self._code_cache[player_id] = code
         return self._code_cache.get(player_id)
@@ -3550,7 +3551,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             self._download_webpage(
                 url, video_id, f'Marking {label}watched',
                 'Unable to mark watched', fatal=False,
-                headers=self._generate_webpage_headers(url))
+                headers=self._webpage_headers)
 
     @classmethod
     def _extract_from_webpage(cls, url, webpage):
@@ -4542,7 +4543,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if pp:
                 query['pp'] = pp
             webpage = self._download_webpage(
-                webpage_url, video_id, fatal=False, query=query, headers=self._generate_webpage_headers(webpage_url))
+                webpage_url, video_id, fatal=False, query=query, headers=self._webpage_headers)
 
         master_ytcfg = self.extract_ytcfg(video_id, webpage) or self._get_default_ytcfg()
 
@@ -5829,7 +5830,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         webpage, data = None, None
         for retry in self.RetryManager(fatal=fatal):
             try:
-                webpage = self._download_webpage(url, item_id, note='Downloading webpage', headers=self._generate_webpage_headers(url))
+                webpage = self._download_webpage(url, item_id, note='Downloading webpage', headers=self._webpage_headers)
                 data = self.extract_yt_initial_data(item_id, webpage or '', fatal=fatal) or {}
             except ExtractorError as e:
                 if isinstance(e.cause, network_exceptions):
