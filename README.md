@@ -106,7 +106,6 @@ File|Description
 File|Description
 :---|:---
 [yt-dlp_x86.exe](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_x86.exe)|Windows (Win7 SP1+) standalone x86 (32-bit) binary
-[yt-dlp_min.exe](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_min.exe)|Windows (Win7 SP1+) standalone x64 binary built with `py2exe`<br/> ([Not recommended](#standalone-py2exe-builds-windows))
 [yt-dlp_linux](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux)|Linux standalone x64 binary
 [yt-dlp_linux_armv7l](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux_armv7l)|Linux standalone armv7l (32-bit) binary
 [yt-dlp_linux_aarch64](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux_aarch64)|Linux standalone aarch64 (64-bit) binary
@@ -259,18 +258,6 @@ You will need the build tools `python` (3.8+), `zip`, `make` (GNU), `pandoc`\* a
 After installing these, simply run `make`.
 
 You can also run `make yt-dlp` instead to compile only the binary without updating any of the additional files. (The build tools marked with **\*** are not needed for this)
-
-### Standalone Py2Exe Builds (Windows)
-
-While we provide the option to build with [py2exe](https://www.py2exe.org), it is recommended to build [using PyInstaller](#standalone-pyinstaller-builds) instead since the py2exe builds **cannot contain `pycryptodomex`/`certifi`/`requests` and need VC++14** on the target computer to run.
-
-If you wish to build it anyway, install Python (if it is not already installed) and you can run the following commands:
-
-```
-py devscripts/install_deps.py --include py2exe
-py devscripts/make_lazy_extractors.py
-py -m bundle.py2exe
-```
 
 ### Related scripts
 
@@ -1933,7 +1920,7 @@ Plugins can be installed using various methods and locations.
     * Plugin packages can be installed and managed using `pip`. See [yt-dlp-sample-plugins](https://github.com/yt-dlp/yt-dlp-sample-plugins) for an example.
       * Note: plugin files between plugin packages installed with pip must have unique filenames.
     * Any path in `PYTHONPATH` is searched in for the `yt_dlp_plugins` namespace folder.
-      * Note: This does not apply for Pyinstaller/py2exe builds.
+      * Note: This does not apply for Pyinstaller builds.
 
 
 `.zip`, `.egg` and `.whl` archives containing a `yt_dlp_plugins` namespace folder in their root are also supported as plugin packages.
