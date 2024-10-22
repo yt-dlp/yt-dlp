@@ -1,6 +1,21 @@
+import functools
+import json
+import re
+
 from .common import InfoExtractor
-from ..utils import extract_attributes, merge_dicts, try_call, url_or_none
-from ..utils.traversal import find_element, traverse_obj
+from ..utils import (
+    clean_html,
+    extract_attributes,
+    int_or_none,
+    merge_dicts,
+    parse_duration,
+    parse_iso8601,
+    parse_resolution,
+    try_call,
+    update_url,
+    url_or_none,
+)
+from ..utils.traversal import find_elements, traverse_obj
 
 
 class CNNIE(InfoExtractor):
@@ -39,7 +54,7 @@ class CNNIE(InfoExtractor):
             'display_id': '2024/06/11/style/king-charles-portrait-vandalized',
             'ext': 'mp4',
             'thumbnail': 'https://media.cnn.com/api/v1/images/stellar/prod/still-20701257-8846-816-still.jpg?c=original',
-            'description': 'md5:21c596d7f067feb781f276d5a0bd3803',
+            'description': 'md5:19f78338ccec533db0fa8a4511012dae',
             'title': 'Video shows King Charles\' portrait being vandalized by activists',
             'timestamp': 1718113852,
             'upload_date': '20240611',
@@ -54,10 +69,11 @@ class CNNIE(InfoExtractor):
             'thumbnail': 'https://media.cnn.com/api/v1/images/stellar/prod/221205163510-robin-meade-sign-off.jpg?c=original',
             'duration': 158.0,
             'title': 'Robin Meade signs off after HLN\'s last broadcast',
-            'description': 'md5:9f28e46df86b7eb1efe36a7d1cd46f2c',
+            'description': 'md5:cff3c62d18d2fbc6c5c75cb029b7353b',
             'upload_date': '20221205',
             'timestamp': 1670284296,
         },
+        'params': {'format': 'direct'},
     }, {
         'url': 'https://cnnespanol.cnn.com/video/ataque-misil-israel-beirut-libano-octubre-trax',
         'info_dict': {
@@ -66,46 +82,119 @@ class CNNIE(InfoExtractor):
             'display_id': 'video/ataque-misil-israel-beirut-libano-octubre-trax',
             'timestamp': 1729501452,
             'thumbnail': 'https://media.cnn.com/api/v1/images/stellar/prod/ataqeubeirut-1.jpg?c=original',
-            'description': 'md5:7f4038bdc8674b17eef45cc2ebba64d0',
+            'description': 'md5:256ee7137d161f776cda429654135e52',
             'upload_date': '20241021',
             'duration': 31.0,
             'title': 'VIDEO | Israel lanza un nuevo ataque sobre Beirut',
         },
+    }, {
+        'url': 'https://edition.cnn.com/2024/10/16/politics/kamala-harris-fox-news-interview/index.html',
+        'info_dict': {
+            'id': '2024/10/16/politics/kamala-harris-fox-news-interview',
+        },
+        'playlist_count': 2,
+        'playlist': [{
+            'md5': '073ffab87b8bef97c9913e71cc18ef9e',
+            'info_dict': {
+                'id': 'me19d548fdd54df0924087039283128ef473ab397d',
+                'ext': 'mp4',
+                'title': '\'I\'m not finished\': Harris interview with Fox News gets heated',
+                'display_id': 'kamala-harris-fox-news-interview-ebof-digvid',
+                'description': 'md5:e7dd3d1a04df916062230b60ca419a0a',
+                'thumbnail': 'https://media.cnn.com/api/v1/images/stellar/prod/harris-20241016234916617.jpg?c=original',
+                'duration': 173.0,
+                'timestamp': 1729122182,
+                'upload_date': '20241016',
+            },
+            'params': {'format': 'direct'},
+        }, {
+            'md5': '11604ab4af83b650826753f1ccb8ecff',
+            'info_dict': {
+                'id': 'med04507d8ca3da827001f63d22af321ec29c7d97b',
+                'ext': 'mp4',
+                'title': '\'Wise\': Buttigieg on Harris\' handling of interview question about gender transition surgery',
+                'display_id': 'pete-buttigieg-harris-fox-newssrc-digvid',
+                'description': 'md5:602a8a7e853ed5e574acd3159428c98e',
+                'thumbnail': 'https://media.cnn.com/api/v1/images/stellar/prod/buttigieg-20241017040412074.jpg?c=original',
+                'duration': 145.0,
+                'timestamp': 1729137765,
+                'upload_date': '20241017',
+            },
+            'params': {'format': 'direct'},
+        }],
     }]
 
     def _real_extract(self, url):
         display_id = self._match_valid_url(url).group('display_id')
         webpage = self._download_webpage(url, display_id)
-        json_ld = self._search_json_ld(webpage, display_id, fatal=False) or {}
-        media_id = traverse_obj(webpage, (
-            {find_element(tag='div', attr='data-component-name', value='video-player', html=True)},
-            {extract_attributes}, 'data-media-id'))
-        window_env = self._search_json(r'window\.env\s*=', webpage, 'window env', display_id, default={})
-        formats = []
-        subtitles = {}
-        if media_id and (app_id := window_env.get('TOP_AUTH_SERVICE_APP_ID')):
-            media_data = self._download_json(
-                f'https://medium.ngtv.io/v2/media/{media_id}/desktop', media_id, fatal=False,
-                query={'appId': app_id})
-            if m3u8_url := traverse_obj(media_data, (
-                    'media', 'desktop', 'unprotected', 'unencrypted', 'url', {url_or_none})):
-                fmts, subs = self._extract_m3u8_formats_and_subtitles(
-                    m3u8_url, media_id, 'mp4', m3u8_id='hls', fatal=False)
-                formats.extend(fmts)
-                self._merge_subtitles(subs, target=subtitles)
-        if direct_url := traverse_obj(json_ld, ('url', {url_or_none})):
-            formats.append({
-                'url': direct_url,
-                'format_id': 'direct',
-                'preference': 1,
+        app_id = traverse_obj(
+            self._search_json(r'window\.env\s*=', webpage, 'window env', display_id, default={}),
+            ('TOP_AUTH_SERVICE_APP_ID', {str}))
+
+        json_lds = (traverse_obj(self._yield_json_ld(webpage, display_id, default={}), (
+            lambda _, v: v['@type'] == 'NewsArticle', 'video',
+            lambda _, v: v['@type'] == 'VideoObject' and url_or_none(v['contentUrl']),
+            {lambda x: self._json_ld(x, display_id, fatal=False, expected_type='VideoObject')}))
+            or traverse_obj(self._search_json_ld(webpage, display_id, fatal=False), all))
+
+        entries = []
+        for player_data in traverse_obj(webpage, (
+                {find_elements(tag='div', attr='data-component-name', value='video-player', html=True)},
+                ..., {extract_attributes}, all, lambda _, v: v['data-media-id'] and v['data-video-slug'])):
+            media_id = player_data['data-media-id']
+            video_slug = player_data['data-video-slug']
+            formats, subtitles = [], {}
+
+            if app_id:
+                media_data = self._download_json(
+                    f'https://medium.ngtv.io/v2/media/{media_id}/desktop', media_id, fatal=False,
+                    query={'appId': app_id})
+                m3u8_url = traverse_obj(media_data, (
+                    'media', 'desktop', 'unprotected', 'unencrypted', 'url', {url_or_none}))
+                if m3u8_url:
+                    fmts, subs = self._extract_m3u8_formats_and_subtitles(
+                        m3u8_url, media_id, 'mp4', m3u8_id='hls', fatal=False)
+                    formats.extend(fmts)
+                    self._merge_subtitles(subs, target=subtitles)
+
+            json_ld = traverse_obj(json_lds, (lambda _, v: video_slug in v['url'], any)) or {}
+            if json_ld:
+                direct_url = json_ld['url']
+                resolution, bitrate = None, None
+                if mobj := re.search(r'-(?P<res>\d+x\d+)_(?P<tbr>\d+)k\.mp4', direct_url):
+                    resolution, bitrate = mobj.group('res', 'tbr')
+                formats.append({
+                    'url': direct_url,
+                    'format_id': 'direct',
+                    'quality': 1,
+                    'tbr': int_or_none(bitrate),
+                    **parse_resolution(resolution),
+                })
+
+            entries.append({
+                **json_ld,
+                **traverse_obj(player_data, {
+                    'title': ('data-headline', {clean_html}),
+                    'description': ('data-description', {clean_html}),
+                    'duration': ('data-duration', {parse_duration}),
+                    'timestamp': ('data-publish-date', {parse_iso8601}),
+                    'thumbnail': (
+                        'data-poster-image-override', {json.loads}, 'big', 'uri', {url_or_none},
+                        {functools.partial(update_url, query='c=original')}),
+                }),
+                'id': media_id,
+                'display_id': video_slug,
+                'formats': formats,
+                'subtitles': subtitles,
             })
-        return {
-            'id': media_id or display_id,
-            'display_id': display_id,
-            'formats': formats,
-            'subtitles': subtitles,
-            **json_ld,
-        }
+
+        if len(entries) == 1:
+            return {
+                **entries[0],
+                'display_id': display_id,
+            }
+
+        return self.playlist_result(entries, display_id)
 
 
 class CNNIndonesiaIE(InfoExtractor):
