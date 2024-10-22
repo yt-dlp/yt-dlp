@@ -391,6 +391,7 @@ class LBRYChannelIE(LBRYBaseIE):
 
 class LBRYPlaylistIE(LBRYBaseIE):
     IE_NAME = 'lbry:playlist'
+    IE_DESC = 'odysee.com playlists'
     _VALID_URL = LBRYBaseIE._BASE_URL_REGEX + r'\$/(?:play)?list/(?P<id>[0-9a-f-]+)'
     _TESTS = [{
         'url': 'https://odysee.com/$/playlist/ffef782f27486f0ac138bde8777f72ebdd0548c2',
