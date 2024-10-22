@@ -136,6 +136,7 @@ class LBRYBaseIE(InfoExtractor):
 
 class LBRYIE(LBRYBaseIE):
     IE_NAME = 'lbry'
+    IE_DESC = 'odysee.com'
     _VALID_URL = LBRYBaseIE._BASE_URL_REGEX + rf'''
         (?:\$/(?:download|embed)/)?
         (?P<id>
