@@ -45,10 +45,6 @@
  - **aenetworks:collection**
  - **aenetworks:show**
  - **AeonCo**
- - **afreecatv**: [*afreecatv*](## "netrc machine") afreecatv.com
- - **afreecatv:catchstory**: [*afreecatv*](## "netrc machine") afreecatv.com catch story
- - **afreecatv:live**: [*afreecatv*](## "netrc machine") afreecatv.com livestreams
- - **afreecatv:user**
  - **AirTV**
  - **AitubeKZVideo**
  - **AliExpressLive**
@@ -254,6 +250,7 @@
  - **CCMA**
  - **CCTV**: 央视网
  - **CDA**: [*cdapl*](## "netrc machine")
+ - **CDAFolder**
  - **Cellebrite**
  - **CeskaTelevize**
  - **CGTN**
@@ -1046,8 +1043,8 @@
  - **Parler**: Posts on parler.com
  - **parliamentlive.tv**: UK parliament videos
  - **Parlview**: (**Currently broken**)
- - **Patreon**
- - **PatreonCampaign**
+ - **patreon**
+ - **patreon:campaign**
  - **pbs**: Public Broadcasting Service (PBS) and member stations: PBS: Public Broadcasting Service, APT - Alabama Public Television (WBIQ), GPB/Georgia Public Broadcasting (WGTV), Mississippi Public Broadcasting (WMPN), Nashville Public Television (WNPT), WFSU-TV (WFSU), WSRE (WSRE), WTCI (WTCI), WPBA/Channel 30 (WPBA), Alaska Public Media (KAKM), Arizona PBS (KAET), KNME-TV/Channel 5 (KNME), Vegas PBS (KLVX), AETN/ARKANSAS ETV NETWORK (KETS), KET (WKLE), WKNO/Channel 10 (WKNO), LPB/LOUISIANA PUBLIC BROADCASTING (WLPB), OETA (KETA), Ozarks Public Television (KOZK), WSIU Public Broadcasting (WSIU), KEET TV (KEET), KIXE/Channel 9 (KIXE), KPBS San Diego (KPBS), KQED (KQED), KVIE Public Television (KVIE), PBS SoCal/KOCE (KOCE), ValleyPBS (KVPT), CONNECTICUT PUBLIC TELEVISION (WEDH), KNPB Channel 5 (KNPB), SOPTV (KSYS), Rocky Mountain PBS (KRMA), KENW-TV3 (KENW), KUED Channel 7 (KUED), Wyoming PBS (KCWC), Colorado Public Television / KBDI 12 (KBDI), KBYU-TV (KBYU), Thirteen/WNET New York (WNET), WGBH/Channel 2 (WGBH), WGBY (WGBY), NJTV Public Media NJ (WNJT), WLIW21 (WLIW), mpt/Maryland Public Television (WMPB), WETA Television and Radio (WETA), WHYY (WHYY), PBS 39 (WLVT), WVPT - Your Source for PBS and More! (WVPT), Howard University Television (WHUT), WEDU PBS (WEDU), WGCU Public Media (WGCU), WPBT2 (WPBT), WUCF TV (WUCF), WUFT/Channel 5 (WUFT), WXEL/Channel 42 (WXEL), WLRN/Channel 17 (WLRN), WUSF Public Broadcasting (WUSF), ETV (WRLK), UNC-TV (WUNC), PBS Hawaii - Oceanic Cable Channel 10 (KHET), Idaho Public Television (KAID), KSPS (KSPS), OPB (KOPB), KWSU/Channel 10 & KTNW/Channel 31 (KWSU), WILL-TV (WILL), Network Knowledge - WSEC/Springfield (WSEC), WTTW11 (WTTW), Iowa Public Television/IPTV (KDIN), Nine Network (KETC), PBS39 Fort Wayne (WFWA), WFYI Indianapolis (WFYI), Milwaukee Public Television (WMVS), WNIN (WNIN), WNIT Public Television (WNIT), WPT (WPNE), WVUT/Channel 22 (WVUT), WEIU/Channel 51 (WEIU), WQPT-TV (WQPT), WYCC PBS Chicago (WYCC), WIPB-TV (WIPB), WTIU (WTIU), CET  (WCET), ThinkTVNetwork (WPTD), WBGU-TV (WBGU), WGVU TV (WGVU), NET1 (KUON), Pioneer Public Television (KWCM), SDPB Television (KUSD), TPT (KTCA), KSMQ (KSMQ), KPTS/Channel 8 (KPTS), KTWU/Channel 11 (KTWU), East Tennessee PBS (WSJK), WCTE-TV (WCTE), WLJT, Channel 11 (WLJT), WOSU TV (WOSU), WOUB/WOUC (WOUB), WVPB (WVPB), WKYU-PBS (WKYU), KERA 13 (KERA), MPBN (WCBB), Mountain Lake PBS (WCFE), NHPTV (WENH), Vermont PBS (WETK), witf (WITF), WQED Multimedia (WQED), WMHT Educational Telecommunications (WMHT), Q-TV (WDCQ), WTVS Detroit Public TV (WTVS), CMU Public Television (WCMU), WKAR-TV (WKAR), WNMU-TV Public TV 13 (WNMU), WDSE - WRPT (WDSE), WGTE TV (WGTE), Lakeland Public Television (KAWE), KMOS-TV - Channels 6.1, 6.2 and 6.3 (KMOS), MontanaPBS (KUSM), KRWG/Channel 22 (KRWG), KACV (KACV), KCOS/Channel 13 (KCOS), WCNY/Channel 24 (WCNY), WNED (WNED), WPBS (WPBS), WSKG Public TV (WSKG), WXXI (WXXI), WPSU (WPSU), WVIA Public Media Studios (WVIA), WTVI (WTVI), Western Reserve PBS (WNEO), WVIZ/PBS ideastream (WVIZ), KCTS 9 (KCTS), Basin PBS (KPBT), KUHT / Channel 8 (KUHT), KLRN (KLRN), KLRU (KLRU), WTJX Channel 12 (WTJX), WCVE PBS (WCVE), KBTC Public Television (KBTC)
  - **PBSKids**
  - **PearVideo**
@@ -1339,6 +1336,10 @@
  - **SohuV**
  - **SonyLIV**: [*sonyliv*](## "netrc machine")
  - **SonyLIVSeries**
+ - **soop**: [*afreecatv*](## "netrc machine") sooplive.co.kr
+ - **soop:catchstory**: [*afreecatv*](## "netrc machine") sooplive.co.kr catch story
+ - **soop:live**: [*afreecatv*](## "netrc machine") sooplive.co.kr livestreams
+ - **soop:user**: [*afreecatv*](## "netrc machine")
  - **soundcloud**: [*soundcloud*](## "netrc machine")
  - **soundcloud:playlist**: [*soundcloud*](## "netrc machine")
  - **soundcloud:related**: [*soundcloud*](## "netrc machine")
@@ -1778,24 +1779,24 @@
  - **YouPornStar**: YouPorn Pornstar, with description, sorting and pagination
  - **YouPornTag**: YouPorn tag (porntags), with sorting, filtering and pagination
  - **YouPornVideos**: YouPorn video (browse) playlists, with sorting, filtering and pagination
- - **youtube**: YouTube
- - **youtube:clip**
- - **youtube:favorites**: YouTube liked videos; ":ytfav" keyword (requires cookies)
- - **youtube:history**: Youtube watch history; ":ythis" keyword (requires cookies)
- - **youtube:​music:search_url**: YouTube music search URLs with selectable sections, e.g. #songs
- - **youtube:notif**: YouTube notifications; ":ytnotif" keyword (requires cookies)
- - **youtube:playlist**: YouTube playlists
- - **youtube:recommended**: YouTube recommended videos; ":ytrec" keyword
- - **youtube:search**: YouTube search; "ytsearch:" prefix
- - **youtube:​search:date**: YouTube search, newest videos first; "ytsearchdate:" prefix
- - **youtube:search_url**: YouTube search URLs with sorting and filter support
- - **youtube:​shorts:pivot:audio**: YouTube Shorts audio pivot (Shorts using audio of a given video)
- - **youtube:subscriptions**: YouTube subscriptions feed; ":ytsubs" keyword (requires cookies)
- - **youtube:tab**: YouTube Tabs
- - **youtube:user**: YouTube user videos; "ytuser:" prefix
- - **youtube:watchlater**: Youtube watch later list; ":ytwatchlater" keyword (requires cookies)
- - **YoutubeLivestreamEmbed**: YouTube livestream embeds
- - **YoutubeYtBe**: youtu.be
+ - **youtube**: [*youtube*](## "netrc machine") YouTube
+ - **youtube:clip**: [*youtube*](## "netrc machine")
+ - **youtube:favorites**: [*youtube*](## "netrc machine") YouTube liked videos; ":ytfav" keyword (requires cookies)
+ - **youtube:history**: [*youtube*](## "netrc machine") Youtube watch history; ":ythis" keyword (requires cookies)
+ - **youtube:​music:search_url**: [*youtube*](## "netrc machine") YouTube music search URLs with selectable sections, e.g. #songs
+ - **youtube:notif**: [*youtube*](## "netrc machine") YouTube notifications; ":ytnotif" keyword (requires cookies)
+ - **youtube:playlist**: [*youtube*](## "netrc machine") YouTube playlists
+ - **youtube:recommended**: [*youtube*](## "netrc machine") YouTube recommended videos; ":ytrec" keyword
+ - **youtube:search**: [*youtube*](## "netrc machine") YouTube search; "ytsearch:" prefix
+ - **youtube:​search:date**: [*youtube*](## "netrc machine") YouTube search, newest videos first; "ytsearchdate:" prefix
+ - **youtube:search_url**: [*youtube*](## "netrc machine") YouTube search URLs with sorting and filter support
+ - **youtube:​shorts:pivot:audio**: [*youtube*](## "netrc machine") YouTube Shorts audio pivot (Shorts using audio of a given video)
+ - **youtube:subscriptions**: [*youtube*](## "netrc machine") YouTube subscriptions feed; ":ytsubs" keyword (requires cookies)
+ - **youtube:tab**: [*youtube*](## "netrc machine") YouTube Tabs
+ - **youtube:user**: [*youtube*](## "netrc machine") YouTube user videos; "ytuser:" prefix
+ - **youtube:watchlater**: [*youtube*](## "netrc machine") Youtube watch later list; ":ytwatchlater" keyword (requires cookies)
+ - **YoutubeLivestreamEmbed**: [*youtube*](## "netrc machine") YouTube livestream embeds
+ - **YoutubeYtBe**: [*youtube*](## "netrc machine") youtu.be
  - **Zaiko**
  - **ZaikoETicket**
  - **Zapiks**
