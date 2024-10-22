@@ -158,13 +158,6 @@ def _get_system_deprecation():
             return EXE_MSG_TMPL.format('Windows 7/Server 2008 R2', 'issues/10086', STOP_MSG)
         return None
 
-    # Temporary until aarch64/armv7l build flow is bumped to Ubuntu 20.04 and Python 3.9
-    elif variant in ('linux_aarch64_exe', 'linux_armv7l_exe'):
-        libc_ver = version_tuple(os.confstr('CS_GNU_LIBC_VERSION').partition(' ')[2])
-        if libc_ver < (2, 31):
-            return EXE_MSG_TMPL.format('system glibc version < 2.31', 'pull/8638', STOP_MSG)
-        return None
-
     return f'Support for Python version {major}.{minor} has been deprecated. {PYTHON_MSG}'
 
 
