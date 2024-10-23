@@ -8,6 +8,7 @@ from .common import InfoExtractor
 from .commonprotocols import RtmpIE
 from .youtube import YoutubeIE
 from ..compat import compat_etree_fromstring
+from ..networking.exceptions import HTTPError
 from ..networking.impersonate import ImpersonateTarget
 from ..utils import (
     KNOWN_EXTENSIONS,
@@ -2374,10 +2375,8 @@ class GenericIE(InfoExtractor):
         else:
             video_id = self._generic_id(url)
 
-        # Try to impersonate a web-browser by default if possible
-        # Skip impersonation if not available to omit the warning
-        impersonate = self._configuration_arg('impersonate', [''])
-        if 'false' in impersonate or not self._downloader._impersonate_target_available(ImpersonateTarget()):
+        impersonate = self._configuration_arg('impersonate', ['false'])
+        if 'false' in impersonate:
             impersonate = None
 
         # Some webservers may serve compressed content of rather big size (e.g. gzipped flac)
@@ -2388,10 +2387,21 @@ class GenericIE(InfoExtractor):
         # to accept raw bytes and being able to download only a chunk.
         # It may probably better to solve this by checking Content-Type for application/octet-stream
         # after a HEAD request, but not sure if we can rely on this.
-        full_response = self._request_webpage(url, video_id, headers=filter_dict({
-            'Accept-Encoding': 'identity',
-            'Referer': smuggled_data.get('referer'),
-        }), impersonate=impersonate)
+        try:
+            full_response = self._request_webpage(url, video_id, headers=filter_dict({
+                'Accept-Encoding': 'identity',
+                'Referer': smuggled_data.get('referer'),
+            }), impersonate=impersonate)
+        except ExtractorError as error:
+            e = error.cause
+            if not isinstance(e, HTTPError) or e.status != 403 or e.response.extensions.get('impersonate'):
+                raise
+            msg = 'Got HTTP Error 403, potentially due to anti-bot measures; '
+            if not self._downloader._impersonate_target_available(ImpersonateTarget()):
+                msg += 'if possible, install the required impersonation dependency and '
+            raise ExtractorError(
+                f'{msg}try again with  --extractor-args "generic:impersonate"', expected=True)
+
         new_url = full_response.url
         if new_url != extract_basic_auth(url)[0]:
             self.report_following_redirect(new_url)
