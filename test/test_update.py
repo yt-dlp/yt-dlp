@@ -162,6 +162,9 @@ class TestUpdate(unittest.TestCase):
             # Normal operation
             test(lockfile, 'zip Python 3.12.0', '2023.12.31', '2023.12.31')
             test(lockfile, 'zip Python 3.12.0', '2023.12.31', '2023.12.31', exact=True)
+            # py2exe should never update beyond 2024.10.22
+            test(lockfile, 'py2exe Python 3.8', '2025.01.01', '2024.10.22')
+            test(lockfile, 'py2exe Python 3.8', '2025.01.01', None, exact=True)
             # Python 3.6 --update should update only to the py3.6 lock
             test(lockfile, 'zip Python 3.6.0', '2023.11.16', '2022.08.18.36')
             # Python 3.6 --update-to an exact version later than the py3.6 lock should return None
@@ -172,6 +175,9 @@ class TestUpdate(unittest.TestCase):
             # Non-win_x86_exe builds on py3.7 must be locked at py3.7 lock
             test(lockfile, 'zip Python 3.7.1', '2023.12.31', '2023.11.16')
             test(lockfile, 'zip Python 3.7.1', '2023.12.31', None, exact=True)
+            # Python 3.8 should only update to the py3.8 lock
+            test(lockfile, 'zip Python 3.8.10', '2025.01.01', '2024.10.22')
+            test(lockfile, 'zip Python 3.8.110', '2025.01.01', None, exact=True)
             test(  # Windows Vista w/ win_x86_exe must be locked at Vista lock
                 lockfile, 'win_x86_exe Python 3.7.9 (CPython x86 32bit) - Windows-Vista-6.0.6003-SP2',
                 '2023.12.31', '2023.11.16')
@@ -181,9 +187,37 @@ class TestUpdate(unittest.TestCase):
             test(  # Windows 7 w/ win_x86_exe py3.7 build should be able to update beyond py3.7 lock
                 lockfile, 'win_x86_exe Python 3.7.9 (CPython x86 32bit) - Windows-7-6.1.7601-SP1',
                 '2023.12.31', '2023.12.31', exact=True)
+            test(  # Windows 7 win_x86_exe should only update to Win7 lock
+                lockfile, 'win_x86_exe Python 3.7.9 (CPython x86 32bit) - Windows-7-6.1.7601-SP1',
+                '2025.01.01', '2024.10.22')
+            test(  # Windows 2008ServerR2 win_exe should only update to Win7 lock
+                lockfile, 'win_exe Python 3.8.10 (CPython x86 32bit) - Windows-2008ServerR2',
+                '2025.12.31', '2024.10.22')
             test(  # Windows 8.1 w/ '2008Server' in platform string should be able to update beyond py3.7 lock
                 lockfile, 'win_x86_exe Python 3.7.9 (CPython x86 32bit) - Windows-post2008Server-6.2.9200',
                 '2023.12.31', '2023.12.31', exact=True)
+            test(  # win_exe built w/Python 3.8 should be able to update beyond py3.8 lock
+                lockfile, 'win_exe Python 3.8.10 (CPython AMD64 64bit) - Windows-10-10.0.20348-SP0',
+                '2025.01.01', '2025.01.01', exact=True)
+            test(  # linux_armv7l_exe w/glibc2.7 should only update to glibc<2.31 lock
+                lockfile, 'linux_armv7l_exe Python 3.8.0 (CPython armv7l 32bit) - Linux-6.5.0-1025-azure-armv7l-with-glibc2.7',
+                '2025.01.01', '2024.10.22')
+            test(  # linux_armv7l_exe w/Python 3.8 and glibc>=2.31 should be able to update beyond py3.8 and glibc<2.31 locks
+                lockfile, 'linux_armv7l_exe Python 3.8.0 (CPython armv7l 32bit) - Linux-6.5.0-1025-azure-armv7l-with-glibc2.31',
+                '2025.01.01', '2025.01.01')
+            test(  # linux_armv7l_exe w/glibc2.30 should only update to glibc<2.31 lock
+                lockfile, 'linux_armv7l_exe Python 3.8.0 (CPython armv7l 64bit) - Linux-6.5.0-1025-azure-aarch64-with-glibc2.30 (OpenSSL',
+                '2025.01.01', '2024.10.22')
+            test(  # linux_aarch64_exe w/glibc2.17 should only update to glibc<2.31 lock
+                lockfile, 'linux_aarch64_exe Python 3.8.0 (CPython aarch64 64bit) - Linux-6.5.0-1025-azure-aarch64-with-glibc2.17',
+                '2025.01.01', '2024.10.22')
+            test(  # linux_aarch64_exe w/glibc2.40 and glibc>=2.31 should be able to update beyond py3.8 and glibc<2.31 locks
+                lockfile, 'linux_aarch64_exe Python 3.8.0 (CPython aarch64 64bit) - Linux-6.5.0-1025-azure-aarch64-with-glibc2.40',
+                '2025.01.01', '2025.01.01')
+            test(  # linux_aarch64_exe w/glibc2.3 should only update to glibc<2.31 lock
+                lockfile, 'linux_aarch64_exe Python 3.8.0 (CPython aarch64 64bit) - Linux-6.5.0-1025-azure-aarch64-with-glibc2.3 (OpenSSL',
+                '2025.01.01', '2024.10.22')
+
 
         # Forks can block updates to non-numeric tags rather than lock
         test(TEST_LOCKFILE_FORK, 'zip Python 3.6.3', 'pr0000', None, repo='fork/yt-dlp')
