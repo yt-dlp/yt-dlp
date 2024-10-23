@@ -1,5 +1,11 @@
 from .common import InfoExtractor
-from ..utils import float_or_none, smuggle_url, unified_timestamp, unsmuggle_url
+from ..utils import (
+    ExtractorError,
+    float_or_none,
+    smuggle_url,
+    unified_timestamp,
+    unsmuggle_url,
+)
 from ..utils.traversal import traverse_obj
 
 
@@ -18,10 +24,13 @@ class AniGamerIE(InfoExtractor):
     def _real_extract(self, url):
         url, unsmuggled_data = unsmuggle_url(url, {})
         video_id = self._match_id(url)
-        device_id = self._download_json(
-            'https://ani.gamer.com.tw/ajax/getdeviceid.php', video_id,
-            'Downloading device ID', 'Failed to download device ID',
-            headers=self.geo_verification_headers())['deviceid']
+        device_id = (
+            self._configuration_arg('device_id', [None], casesense=True)[0]
+            or unsmuggled_data.get('device_id')
+            or self._download_json(
+                'https://ani.gamer.com.tw/ajax/getdeviceid.php', video_id,
+                'Downloading device ID', 'Failed to download device ID',
+                headers=self.geo_verification_headers())['deviceid'])
         metadata = {}
         format_id = '0'
         if api_result := self._download_json(
@@ -42,9 +51,9 @@ class AniGamerIE(InfoExtractor):
                     (self.url_result(
                         smuggle_url(f'https://ani.gamer.com.tw/animeVideo.php?sn={ep["videoSn"]}', {
                             'extract_playlist': False,
-                        }),
-                        AniGamerIE,
-                        video_id=ep['videoSn'], thumbnail=ep['cover']) for ep in traverse_obj(
+                            'device_id': device_id,
+                        }), ie=AniGamerIE,
+                        video_id=ep['videoSn'], thumbnail=ep.get('cover')) for ep in traverse_obj(
                             api_result,
                             # This (the first ellipsis) extracts episodes of all languages,
                             # maybe just extract episodes of the current language?
@@ -69,6 +78,12 @@ class AniGamerIE(InfoExtractor):
         error_code = traverse_obj(m3u8_info, ('error', 'code'))
         if error_code == 1011:
             self.raise_geo_restricted()
+        elif error_code == 1007:
+            if unsmuggled_data.pop('device_id', None):
+                return self.url_result(
+                    smuggle_url(f'https://ani.gamer.com.tw/animeVideo.php?sn={video_id}',
+                                unsmuggled_data), ie=AniGamerIE, video_id=video_id)
+            raise ExtractorError('Invalid device id!')
         # TODO: handle more error codes
         src = m3u8_info['src']
         return {
