@@ -218,7 +218,6 @@ class TestUpdate(unittest.TestCase):
                 lockfile, 'linux_aarch64_exe Python 3.8.0 (CPython aarch64 64bit) - Linux-6.5.0-1025-azure-aarch64-with-glibc2.3 (OpenSSL',
                 '2025.01.01', '2024.10.22')
 
-
         # Forks can block updates to non-numeric tags rather than lock
         test(TEST_LOCKFILE_FORK, 'zip Python 3.6.3', 'pr0000', None, repo='fork/yt-dlp')
         test(TEST_LOCKFILE_FORK, 'zip Python 3.7.4', 'pr0000', 'pr0000', repo='fork/yt-dlp')
