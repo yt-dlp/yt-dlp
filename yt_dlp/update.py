@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import atexit
 import contextlib
+import functools
 import hashlib
 import json
 import os
@@ -12,7 +13,6 @@ import sys
 from dataclasses import dataclass
 from zipimport import zipimporter
 
-from .compat import functools  # isort: split
 from .compat import compat_realpath
 from .networking import Request
 from .networking.exceptions import HTTPError, network_exceptions
@@ -135,7 +135,7 @@ def _get_binary_name():
 
 
 def _get_system_deprecation():
-    MIN_SUPPORTED, MIN_RECOMMENDED = (3, 8), (3, 9)
+    MIN_SUPPORTED, MIN_RECOMMENDED = (3, 9), (3, 9)
 
     if sys.version_info > MIN_RECOMMENDED:
         return None
@@ -145,18 +145,6 @@ def _get_system_deprecation():
 
     if sys.version_info < MIN_SUPPORTED:
         return f'Python version {major}.{minor} is no longer supported! {PYTHON_MSG}'
-
-    EXE_MSG_TMPL = ('Support for {} has been deprecated. '
-                    'See  https://github.com/yt-dlp/yt-dlp/{}  for details.\n{}')
-    STOP_MSG = 'You may stop receiving updates on this version at any time!'
-    variant = detect_variant()
-
-    # Temporary until Windows builds use 3.9, which will drop support for Win7 and 2008ServerR2
-    if variant in ('win_exe', 'win_x86_exe'):
-        platform_name = platform.platform()
-        if any(platform_name.startswith(f'Windows-{name}') for name in ('7', '2008ServerR2')):
-            return EXE_MSG_TMPL.format('Windows 7/Server 2008 R2', 'issues/10086', STOP_MSG)
-        return None
 
     return f'Support for Python version {major}.{minor} has been deprecated. {PYTHON_MSG}'
 
