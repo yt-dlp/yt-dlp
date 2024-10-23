@@ -75,7 +75,7 @@ class BilibiliBaseIE(InfoExtractor):
             query={'cid': cid})
         if not isinstance(heatmap_json, dict):
             return
-        duration = self._parse_json(heatmap_json['debug']).get('max_time')
+        duration = self._parse_json(heatmap_json['debug'], cid).get('max_time')
         step_sec = traverse_obj(heatmap_json, ('step_sec', {int}))
         heatmap_data = traverse_obj(heatmap_json, ('events', 'default', {list}))
         if not step_sec or not heatmap_data:
@@ -455,7 +455,7 @@ class BiliBiliIE(BilibiliBaseIE):
                 'description': 'md5:e3c401cf7bc363118d1783dd74068a68',
                 'duration': 90.314,
                 '_old_archive_ids': ['bilibili 498159642_part1'],
-                'heatmap': 'count:90',
+                'heatmap': list,
             },
         }],
     }, {
@@ -477,7 +477,7 @@ class BiliBiliIE(BilibiliBaseIE):
             'description': 'md5:e3c401cf7bc363118d1783dd74068a68',
             'duration': 90.314,
             '_old_archive_ids': ['bilibili 498159642_part1'],
-            'heatmap': 'count:90',
+            'heatmap': list,
         },
     }, {
         'url': 'https://www.bilibili.com/video/av8903802/',
@@ -522,7 +522,7 @@ class BiliBiliIE(BilibiliBaseIE):
             'like_count': int,
             'thumbnail': r're:https?://.*\.(?:jpg|jpeg|png)$',
             '_old_archive_ids': ['bilibili 463665680_part1'],
-            'heatmap': 'count:96',
+            'heatmap': list,
         },
         'params': {'skip_download': True},
     }, {
@@ -561,7 +561,7 @@ class BiliBiliIE(BilibiliBaseIE):
             'like_count': int,
             'thumbnail': r're:https?://.*\.(?:jpg|jpeg|png)$',
             '_old_archive_ids': ['bilibili 778246196_part1'],
-            'heatmap': 'count:93',
+            'heatmap': list,
         },
     }, {
         'note': 'legacy flv/mp4 video',
@@ -673,7 +673,7 @@ class BiliBiliIE(BilibiliBaseIE):
             'description': 'md5:acfd7360b96547f031f7ebead9e66d9e',
             'like_count': int,
             'duration': 199.4,
-            'heatmap': 'count:68',
+            'heatmap': list,
         },
         'params': {'format': 'sb', 'playlist_items': '1'},
     }, {
@@ -932,7 +932,7 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
             'timestamp': 1320412200,
             'upload_date': '20111104',
             'thumbnail': r're:https?://.*\.(?:jpg|jpeg|png)$',
-            'heatmap': 'count:96',
+            'heatmap': list,
         },
     }, {
         'url': 'https://www.bilibili.com/bangumi/play/ep267851',
@@ -973,7 +973,7 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
             'timestamp': 1602853860,
             'upload_date': '20201016',
             'thumbnail': r're:https?://.*\.(?:jpg|jpeg|png)$',
-            'heatmap': 'count:97',
+            'heatmap': list,
         },
     }]
 
@@ -1082,7 +1082,7 @@ class BiliBiliBangumiMediaIE(BilibiliBaseIE):
                 'timestamp': 1425074413,
                 'upload_date': '20150227',
                 'thumbnail': r're:https?://.*\.(?:jpg|jpeg|png)$',
-                'heatmap': 'count:96',
+                'heatmap': list,
             },
         }],
     }]
@@ -1138,7 +1138,7 @@ class BiliBiliBangumiSeasonIE(BilibiliBaseIE):
                 'timestamp': 1343185080,
                 'upload_date': '20120725',
                 'thumbnail': r're:https?://.*\.(?:jpg|jpeg|png)$',
-                'heatmap': 'count:96',
+                'heatmap': list,
             },
         }],
     }]
@@ -1228,7 +1228,7 @@ class BilibiliCheeseIE(BilibiliCheeseBaseIE):
             'upload_date': '20230924',
             'thumbnail': r're:https?://.*\.(?:jpg|jpeg|png)$',
             'view_count': int,
-            'heatmap': 'count:74',
+            'heatmap': list,
         },
     }]
 
@@ -1262,7 +1262,7 @@ class BilibiliCheeseSeasonIE(BilibiliCheeseBaseIE):
                 'upload_date': '20230924',
                 'thumbnail': r're:https?://.*\.(?:jpg|jpeg|png)$',
                 'view_count': int,
-                'heatmap': 'count:74',
+                'heatmap': list,
             },
         }],
         'params': {'playlist_items': '1'},
