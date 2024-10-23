@@ -13,7 +13,7 @@ from ..utils import (
 
 
 class RTPIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:(?:(?:www\.)?rtp\.pt/play/(?P<subarea>.*/)?p(?P<program_id>[0-9]+)/)|(?:arquivos\.rtp\.pt/conteudos/))(?P<id>[^/?#]+)/?'
+    _VALID_URL = r'https?://(?:(?:www\.)?rtp\.pt/play/(?P<subarea>.*/)?p(?P<program_id>\d+)/|arquivos\.rtp\.pt/conteudos/)(?P<id>[^/?#]+)'
     _TESTS = [{
         'url': 'https://www.rtp.pt/play/p9165/e562949/por-do-sol',
         'info_dict': {
@@ -21,7 +21,7 @@ class RTPIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Pôr do Sol Episódio 1',
             'description': 'Madalena Bourbon de Linhaça vive atormentada pelo segredo que esconde desde 1990. Matilde Bourbon de Linhaça sonha fugir com o seu amor proibido. O',
-            'thumbnail': r're:^https?://.*\.(jpg|png)',
+            'thumbnail': r're:https?://.*\.(?:jpg|png)',
         },
     }, {
         'url': 'https://www.rtp.pt/play/p12646/e738493/telejornal',
@@ -30,7 +30,7 @@ class RTPIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Telejornal de 01 jan 2024 PARTE 1',
             'description': 'A mais rigorosa seleção de notícias, todos os dias às 20h00. De segunda a domingo, João Adelino Faria, José Rodrigues dos Santos e Ana Lourenço',
-            'thumbnail': r're:^https?://.*\.(jpg|png)',
+            'thumbnail': r're:https?://.*\.(?:jpg|png)',
         },
     }, {
         'url': 'https://www.rtp.pt/play/p6646/e457262/grande-entrevista',
@@ -39,7 +39,7 @@ class RTPIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Grande Entrevista Episódio 7 - de 19 fev 2020',
             'description': 'Bruno Nogueira - É um dos mais originais humoristas portugueses e de maior êxito! Bruno Nogueira na Grande Entrevista com Vítor Gonçalves.',
-            'thumbnail': r're:^https?://.*\.(jpg|png)',
+            'thumbnail': r're:https?://.*\.(?:jpg|png)',
         },
     }, {
         'url': 'https://www.rtp.pt/play/p1525/e738522/a-mosca',
@@ -48,7 +48,7 @@ class RTPIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'A Mosca de 02 jan 2024',
             'description': 'Ano novo, vida nova - Ano novo, vida nova',
-            'thumbnail': r're:^https?://.*\.(jpg|png)',
+            'thumbnail': r're:https?://.*\.(?:jpg|png)',
         },
     }, {
         'url': 'https://www.rtp.pt/play/estudoemcasa/p7776/e539826/portugues-1-ano',
@@ -57,7 +57,7 @@ class RTPIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Português - 1.º ano , aula 45 - 27 abr 2021',
             'description': 'A História do Pedrito Coelho, de Beatrix Potter. O dígrafo \'lh\' - A História do Pedrito Coelho, de Beatrix Potter. O dígrafo \'lh\'.',
-            'thumbnail': r're:^https?://.*\.(jpg|png)',
+            'thumbnail': r're:https?://.*\.(?:jpg|png)',
         },
     }, {
         'url': 'https://www.rtp.pt/play/zigzag/p13857/e794575/zig-zag-zzz-e-amigos',
@@ -66,7 +66,7 @@ class RTPIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Zig, Zag, Zzz e Amigos Episódio 1 - de 16 set 2024',
             'description': 'O Brinquedo Perdido - Zig, Zag e Zzz são três amigos inseparáveis que partilham aventuras emocionantes e cheias de imaginação. Exploram o mundo �',
-            'thumbnail': r're:^https?://.*\.(jpg|png)',
+            'thumbnail': r're:https?://.*\.(?:jpg|png)',
         },
     }, {
         'url': 'https://www.rtp.pt/play/palco/p13151/premio-miguel-rovisco-2023-requiem-por-isabel',
@@ -75,7 +75,7 @@ class RTPIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Prémio Miguel Rovisco 23: Requiem Por Isabel de 30 mar 2024',
             'description': 'Lucrécia foi a atriz mais famosa e requisitada do seu tempo. Este já não é o seu tempo. A debater-se com a decrepitude física e financeira, foi o',
-            'thumbnail': r're:^https?://.*\.(jpg|png)',
+            'thumbnail': r're:https?://.*\.(?:jpg|png)',
         },
     }, {
         'url': 'https://arquivos.rtp.pt/conteudos/liga-dos-ultimos-152/',
@@ -84,7 +84,7 @@ class RTPIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Liga dos Últimos – RTP Arquivos',
             'description': 'Magazine desportivo, com apresentação de Álvaro Costa e comentários em estúdio do professor Hernâni Gonçalves e do sociólogo João Nuno Coelho. Destaque para os jogos de futebol das equipas dos escalões secundários de Portugal, com momentos dos jogos: Agrário de Lamas vs Pampilhoense e Apúlia vs Fragoso.',
-            'thumbnail': r're:^https?://.*\.(jpg|png)',
+            'thumbnail': r're:https?://.*\.(?:jpg|png)',
         },
     }, {
         'url': 'https://www.rtp.pt/play/p510/e786608/aleixo-fm',
@@ -93,7 +93,7 @@ class RTPIE(InfoExtractor):
             'ext': 'mp3',
             'title': 'Aleixo FM de 31 jul 2024',
             'description': 'Melhor dia pra casar - Já o diz Joaquim de Magalhães Fernandes Barreiros, comummente conhecido como Quim Barreiros. Mas será mesmo este o melhor di',
-            'thumbnail': r're:^https?://.*\.(jpg|png)',
+            'thumbnail': r're:https?://.*\.(?:jpg|png)',
         },
     }]
 
