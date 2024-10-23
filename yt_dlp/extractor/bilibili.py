@@ -42,6 +42,7 @@ from ..utils import (
     unsmuggle_url,
     url_or_none,
     urlencode_postdata,
+    value,
     variadic,
 )
 
@@ -145,7 +146,7 @@ class BilibiliBaseIE(InfoExtractor):
                     'fragments': fragments,
                 }
 
-    def extract_formats(self, play_info, aid=None, bvid=None, cid=None):
+    def extract_formats(self, play_info):
         format_names = {
             r['quality']: traverse_obj(r, 'new_description', 'display_desc')
             for r in traverse_obj(play_info, ('support_formats', lambda _, v: v['quality']))
@@ -207,9 +208,6 @@ class BilibiliBaseIE(InfoExtractor):
                 }),
                 **parse_resolution(format_names.get(play_info.get('quality'))),
             })
-        if storyboard_format := self._extract_storyboard(
-                float_or_none(play_info.get('timelength'), scale=1000), aid=aid, bvid=bvid, cid=cid):
-            formats.append(storyboard_format)
         return formats
 
     def _get_wbi_key(self, video_id):
@@ -369,13 +367,19 @@ class BilibiliBaseIE(InfoExtractor):
         cid_edges = self._get_divisions(video_id, graph_version, {1: {'cid': cid}}, 1)
         for cid, edges in cid_edges.items():
             play_info = self._download_playinfo(video_id, cid, headers=headers)
+            formats = self.extract_formats(play_info)
+            duration = float_or_none(play_info.get('timelength'), scale=1000)
+            if storyboard_format := self._extract_storyboard(
+                    duration=duration,
+                    bvid=video_id, cid=cid):
+                formats.append(storyboard_format)
             yield {
                 **metainfo,
                 'id': f'{video_id}_{cid}',
                 'title': f'{metainfo.get("title")} - {next(iter(edges.values())).get("title")}',
-                'formats': self.extract_formats(play_info, bvid=video_id, cid=cid),
+                'formats': formats,
                 'description': f'{json.dumps(edges, ensure_ascii=False)}\n{metainfo.get("description", "")}',
-                'duration': float_or_none(play_info.get('timelength'), scale=1000),
+                'duration': duration,
                 'subtitles': self.extract_subtitles(video_id, cid),
                 'heatmap': list(self._extract_heatmap(cid)),
             }
@@ -845,14 +849,17 @@ class BiliBiliIE(BilibiliBaseIE):
                 duration=traverse_obj(initial_state, ('videoData', 'duration', {int_or_none})),
                 __post_extractor=self.extract_comments(aid))
         else:
-            formats = self.extract_formats(play_info, bvid=video_id, cid=cid)
+            formats = self.extract_formats(play_info)
+            formats.append(self._extract_storyboard(
+                duration=float_or_none(play_info.get('timelength'), scale=1000),
+                bvid=video_id, cid=cid))
 
             if not traverse_obj(play_info, ('dash')):
                 # we only have legacy formats and need additional work
                 has_qn = lambda x: x in traverse_obj(formats, (..., 'quality'))
                 for qn in traverse_obj(play_info, ('accept_quality', lambda _, v: not has_qn(v), {int})):
                     formats.extend(traverse_obj(
-                        self.extract_formats(self._download_playinfo(video_id, cid, headers=headers, qn=qn), bvid=video_id, cid=cid),
+                        self.extract_formats(self._download_playinfo(video_id, cid, headers=headers, qn=qn)),
                         lambda _, v: not has_qn(v['quality'])))
                 self._check_missing_formats(play_info, formats)
                 flv_formats = traverse_obj(formats, lambda _, v: v['fragments'])
@@ -990,7 +997,7 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
         aid, cid = episode_info.get('aid'), episode_info.get('cid')
         play_info = traverse_obj(play_info, ('result', 'video_info', {dict})) or {}
 
-        formats = self.extract_formats(play_info, aid=aid, cid=cid)
+        formats = self.extract_formats(play_info)
         if not formats and (premium_only or '成为大会员抢先看' in webpage or '开通大会员观看' in webpage):
             self.raise_login_required('This video is for premium members only')
 
@@ -1011,7 +1018,9 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
         ), (None, None))
 
         aid, cid = episode_info.get('aid', aid), episode_info.get('cid', cid)
-
+        duration = float_or_none(play_info.get('timelength'), scale=1000)
+        if storyboard_format := self._extract_storyboard(duration=duration, aid=aid, cid=cid):
+            formats.append(storyboard_format)
         return {
             'id': episode_id,
             'formats': formats,
@@ -1030,7 +1039,7 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
             'season': str_or_none(season_title),
             'season_id': str_or_none(season_id),
             'season_number': season_number,
-            'duration': float_or_none(play_info.get('timelength'), scale=1000),
+            'duration': duration,
             'subtitles': self.extract_subtitles(episode_id, cid, aid=aid),
             '__post_extractor': self.extract_comments(aid),
             'http_headers': {'Referer': url},
@@ -1163,10 +1172,14 @@ class BilibiliCheeseBaseIE(BilibiliBaseIE):
             query={'avid': aid, 'cid': cid, 'ep_id': ep_id, 'fnval': 16, 'fourk': 1},
             headers=self._HEADERS, note='Downloading playinfo')['data']
 
+        formats = self.extract_formats(play_info)
+        duration = traverse_obj(episode_info, ('duration', {int_or_none}))
+        if storyboard_format := self._extract_storyboard(duration=duration, aid=aid, cid=cid):
+            formats.append(storyboard_format)
         return {
             'id': str_or_none(ep_id),
             'episode_id': str_or_none(ep_id),
-            'formats': self.extract_formats(play_info, aid=aid, cid=cid),
+            'formats': formats,
             'extractor_key': BilibiliCheeseIE.ie_key(),
             'extractor': BilibiliCheeseIE.IE_NAME,
             'webpage_url': f'https://www.bilibili.com/cheese/play/ep{ep_id}',
@@ -1174,7 +1187,7 @@ class BilibiliCheeseBaseIE(BilibiliBaseIE):
                 'episode': ('title', {str}),
                 'title': {lambda v: v and join_nonempty('index', 'title', delim=' - ', from_dict=v)},
                 'alt_title': ('subtitle', {str}),
-                'duration': ('duration', {int_or_none}),
+                'duration': {value(duration)},
                 'episode_number': ('index', {int_or_none}),
                 'thumbnail': ('cover', {url_or_none}),
                 'timestamp': ('release_date', {int_or_none}),
