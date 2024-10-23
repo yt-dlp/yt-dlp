@@ -970,7 +970,8 @@ def _real_main(argv=None):
 
     # HACK: Set the plugin dirs early on
     # TODO(coletdjnz): remove when plugin globals system is implemented
-    Config._plugin_dirs = opts.plugin_dirs
+    if opts.plugin_dirs is not None:
+        Config._plugin_dirs = list(map(expand_path, opts.plugin_dirs))
 
     # Dump user agent
     if opts.dump_user_agent:
