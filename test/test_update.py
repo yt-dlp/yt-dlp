@@ -196,7 +196,7 @@ class TestUpdate(unittest.TestCase):
             test(  # Windows 8.1 w/ '2008Server' in platform string should be able to update beyond py3.7 lock
                 lockfile, 'win_x86_exe Python 3.7.9 (CPython x86 32bit) - Windows-post2008Server-6.2.9200',
                 '2023.12.31', '2023.12.31', exact=True)
-            test(  # win_exe built w/Python 3.8 should be able to update beyond py3.8 lock
+            test(  # win_exe built w/Python 3.8 on Windows>=8 should be able to update beyond py3.8 lock
                 lockfile, 'win_exe Python 3.8.10 (CPython AMD64 64bit) - Windows-10-10.0.20348-SP0',
                 '2025.01.01', '2025.01.01', exact=True)
             test(  # linux_armv7l_exe w/glibc2.7 should only update to glibc<2.31 lock
