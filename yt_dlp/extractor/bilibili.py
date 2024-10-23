@@ -74,11 +74,8 @@ class BilibiliBaseIE(InfoExtractor):
             query={'cid': cid})
         if not isinstance(heatmap_json, dict):
             return
-        try:
-            duration = self._parse_json(heatmap_json['debug'])['max_time']
-        except Exception:
-            duration = None
-        step_sec = heatmap_json.get('step_sec', {int})
+        duration = self._parse_json(heatmap_json['debug']).get('max_time')
+        step_sec = traverse_obj(heatmap_json, ('step_sec', {int}))
         heatmap_data = traverse_obj(heatmap_json, ('events', 'default', {list}))
         if not step_sec or not heatmap_data:
             return
