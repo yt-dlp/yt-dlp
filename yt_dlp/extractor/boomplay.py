@@ -107,7 +107,7 @@ class BoomplayBaseIE(InfoExtractor):
         else:
             self.raise_no_formats('No formats found')
 
-    def _extract_page_metadata(self, webpage, item_id, playlist=False):
+    def _extract_page_metadata(self, webpage, item_id):
         metadata_div = self._get_element_by_class_and_tag('summary', 'div', webpage) or ''
         metadata_entries = re.findall(r'(?si)<strong>(?P<entry>.*?)</strong>', metadata_div) or []
         description = re.sub(
