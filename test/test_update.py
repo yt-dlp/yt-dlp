@@ -162,26 +162,26 @@ class TestUpdate(unittest.TestCase):
             # Normal operation
             test(lockfile, 'zip Python 3.12.0', '2023.12.31', '2023.12.31')
             test(lockfile, 'zip Python 3.12.0', '2023.12.31', '2023.12.31', exact=True)
-            # Python 3.6 --update should update only to its lock
+            # Python 3.6 --update should update only to the py3.6 lock
             test(lockfile, 'zip Python 3.6.0', '2023.11.16', '2022.08.18.36')
-            # --update-to an exact version later than the lock should return None
+            # Python 3.6 --update-to an exact version later than the py3.6 lock should return None
             test(lockfile, 'zip Python 3.6.0', '2023.11.16', None, exact=True)
-            # Python 3.7 should be able to update to its lock
+            # Python 3.7 should be able to update to the py3.7 lock
             test(lockfile, 'zip Python 3.7.0', '2023.11.16', '2023.11.16')
             test(lockfile, 'zip Python 3.7.1', '2023.11.16', '2023.11.16', exact=True)
-            # Non-win_x86_exe builds on py3.7 must be locked
+            # Non-win_x86_exe builds on py3.7 must be locked at py3.7 lock
             test(lockfile, 'zip Python 3.7.1', '2023.12.31', '2023.11.16')
             test(lockfile, 'zip Python 3.7.1', '2023.12.31', None, exact=True)
-            test(  # Windows Vista w/ win_x86_exe must be locked
+            test(  # Windows Vista w/ win_x86_exe must be locked at Vista lock
                 lockfile, 'win_x86_exe Python 3.7.9 (CPython x86 32bit) - Windows-Vista-6.0.6003-SP2',
                 '2023.12.31', '2023.11.16')
-            test(  # Windows 2008Server w/ win_x86_exe must be locked
+            test(  # Windows 2008Server w/ win_x86_exe must be locked at Vista lock
                 lockfile, 'win_x86_exe Python 3.7.9 (CPython x86 32bit) - Windows-2008Server',
                 '2023.12.31', None, exact=True)
-            test(  # Windows 7 w/ win_x86_exe py3.7 build should be able to update beyond lock
+            test(  # Windows 7 w/ win_x86_exe py3.7 build should be able to update beyond py3.7 lock
                 lockfile, 'win_x86_exe Python 3.7.9 (CPython x86 32bit) - Windows-7-6.1.7601-SP1',
                 '2023.12.31', '2023.12.31', exact=True)
-            test(  # Windows 8.1 w/ '2008Server' in platform string should be able to update beyond lock
+            test(  # Windows 8.1 w/ '2008Server' in platform string should be able to update beyond py3.7 lock
                 lockfile, 'win_x86_exe Python 3.7.9 (CPython x86 32bit) - Windows-post2008Server-6.2.9200',
                 '2023.12.31', '2023.12.31', exact=True)
 
