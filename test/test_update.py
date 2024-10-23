@@ -161,43 +161,43 @@ class TestUpdate(unittest.TestCase):
         for lockfile in (TEST_LOCKFILE_V1, TEST_LOCKFILE_V2, TEST_LOCKFILE_ACTUAL, TEST_LOCKFILE_FORK):
             # Normal operation
             test(lockfile, 'zip Python 3.12.0', '2023.12.31', '2023.12.31')
-            test(lockfile, 'zip stable Python 3.12.0', '2023.12.31', '2023.12.31', exact=True)
+            test(lockfile, 'zip Python 3.12.0', '2023.12.31', '2023.12.31', exact=True)
             # Python 3.6 --update should update only to its lock
             test(lockfile, 'zip Python 3.6.0', '2023.11.16', '2022.08.18.36')
             # --update-to an exact version later than the lock should return None
-            test(lockfile, 'zip stable Python 3.6.0', '2023.11.16', None, exact=True)
+            test(lockfile, 'zip Python 3.6.0', '2023.11.16', None, exact=True)
             # Python 3.7 should be able to update to its lock
             test(lockfile, 'zip Python 3.7.0', '2023.11.16', '2023.11.16')
-            test(lockfile, 'zip stable Python 3.7.1', '2023.11.16', '2023.11.16', exact=True)
+            test(lockfile, 'zip Python 3.7.1', '2023.11.16', '2023.11.16', exact=True)
             # Non-win_x86_exe builds on py3.7 must be locked
             test(lockfile, 'zip Python 3.7.1', '2023.12.31', '2023.11.16')
-            test(lockfile, 'zip stable Python 3.7.1', '2023.12.31', None, exact=True)
+            test(lockfile, 'zip Python 3.7.1', '2023.12.31', None, exact=True)
             test(  # Windows Vista w/ win_x86_exe must be locked
-                lockfile, 'win_x86_exe stable Python 3.7.9 (CPython x86 32bit) - Windows-Vista-6.0.6003-SP2',
+                lockfile, 'win_x86_exe Python 3.7.9 (CPython x86 32bit) - Windows-Vista-6.0.6003-SP2',
                 '2023.12.31', '2023.11.16')
             test(  # Windows 2008Server w/ win_x86_exe must be locked
                 lockfile, 'win_x86_exe Python 3.7.9 (CPython x86 32bit) - Windows-2008Server',
                 '2023.12.31', None, exact=True)
             test(  # Windows 7 w/ win_x86_exe py3.7 build should be able to update beyond lock
-                lockfile, 'win_x86_exe stable Python 3.7.9 (CPython x86 32bit) - Windows-7-6.1.7601-SP1',
-                '2023.12.31', '2023.12.31')
+                lockfile, 'win_x86_exe Python 3.7.9 (CPython x86 32bit) - Windows-7-6.1.7601-SP1',
+                '2023.12.31', '2023.12.31', exact=True)
             test(  # Windows 8.1 w/ '2008Server' in platform string should be able to update beyond lock
                 lockfile, 'win_x86_exe Python 3.7.9 (CPython x86 32bit) - Windows-post2008Server-6.2.9200',
                 '2023.12.31', '2023.12.31', exact=True)
 
         # Forks can block updates to non-numeric tags rather than lock
         test(TEST_LOCKFILE_FORK, 'zip Python 3.6.3', 'pr0000', None, repo='fork/yt-dlp')
-        test(TEST_LOCKFILE_FORK, 'zip stable Python 3.7.4', 'pr0000', 'pr0000', repo='fork/yt-dlp')
-        test(TEST_LOCKFILE_FORK, 'zip stable Python 3.7.4', 'pr1234', None, repo='fork/yt-dlp')
+        test(TEST_LOCKFILE_FORK, 'zip Python 3.7.4', 'pr0000', 'pr0000', repo='fork/yt-dlp')
+        test(TEST_LOCKFILE_FORK, 'zip Python 3.7.4', 'pr1234', None, repo='fork/yt-dlp')
         test(TEST_LOCKFILE_FORK, 'zip Python 3.8.1', 'pr1234', 'pr1234', repo='fork/yt-dlp', exact=True)
         test(
-            TEST_LOCKFILE_FORK, 'win_x86_exe stable Python 3.7.9 (CPython x86 32bit) - Windows-Vista-6.0.6003-SP2',
+            TEST_LOCKFILE_FORK, 'win_x86_exe Python 3.7.9 (CPython x86 32bit) - Windows-Vista-6.0.6003-SP2',
             'pr1234', None, repo='fork/yt-dlp')
         test(
-            TEST_LOCKFILE_FORK, 'win_x86_exe stable Python 3.7.9 (CPython x86 32bit) - Windows-7-6.1.7601-SP1',
+            TEST_LOCKFILE_FORK, 'win_x86_exe Python 3.7.9 (CPython x86 32bit) - Windows-7-6.1.7601-SP1',
             '2023.12.31', '2023.12.31', repo='fork/yt-dlp')
         test(TEST_LOCKFILE_FORK, 'zip Python 3.11.2', 'pr9999', None, repo='fork/yt-dlp', exact=True)
-        test(TEST_LOCKFILE_FORK, 'zip stable Python 3.12.0', 'pr9999', 'pr9999', repo='fork/yt-dlp')
+        test(TEST_LOCKFILE_FORK, 'zip Python 3.12.0', 'pr9999', 'pr9999', repo='fork/yt-dlp')
 
     def test_query_update(self):
         ydl = FakeYDL()
