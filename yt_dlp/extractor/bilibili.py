@@ -113,13 +113,15 @@ class BilibiliBaseIE(InfoExtractor):
                     'aid': aid,
                     'bvid': bvid,
                     'cid': cid,
-                })), ('data', {lambda v: v if v['image'] and v['index'] else None})):
-            rows, cols = traverse_obj(storyboard_info, (('img_x_len', 'img_y_len'),))
+                })), ('data', {lambda v: v if v.get('image') and v.get('index') else None})):
+            rows, cols = storyboard_info.get('img_x_len'), storyboard_info.get('img_y_len')
             fragments = []
             last_duration = 0.0
             for i, url in enumerate(storyboard_info['image'], start=1):
-                duration_index = i * rows * cols - 1
-                if duration_index < len(storyboard_info['index']) - 1:
+                if not rows or not cols:
+                    fragments.append({'url': sanitize_url(url)})
+                    continue
+                elif (duration_index := i * rows * cols - 1) < len(storyboard_info['index']) - 1:
                     current_duration = traverse_obj(storyboard_info, ('index', duration_index))
                 else:
                     current_duration = duration
@@ -127,7 +129,7 @@ class BilibiliBaseIE(InfoExtractor):
                     break
                 fragments.append({
                     'url': sanitize_url(url),
-                    'duration': current_duration - last_duration,
+                    'duration': current_duration - last_duration if current_duration is not None else None,
                 })
             if fragments:
                 return {
