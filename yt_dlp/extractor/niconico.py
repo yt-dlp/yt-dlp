@@ -869,7 +869,7 @@ class NicovideoTagURLIE(NicovideoSearchBaseIE):
 
 
 class NiconicoUserIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?nicovideo\.jp/user/(?P<id>\d+)(?:(/video)|/?)/?(?:$|[#?])'
+    _VALID_URL = r'https?://(?:www\.)?nicovideo\.jp/user/(?P<id>\d+)(?:/video)?/?(?:$|[#?])'
     _TEST = {
         'url': 'https://www.nicovideo.jp/user/419948',
         'info_dict': {
