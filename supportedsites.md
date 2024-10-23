@@ -685,9 +685,9 @@
  - **LastFMPlaylist**
  - **LastFMUser**
  - **LaXarxaMes**: [*laxarxames*](## "netrc machine")
- - **lbry**: odysee.com
- - **lbry:channel**: odysee.com channels
- - **lbry:playlist**: odysee.com playlists
+ - **lbry**
+ - **lbry:channel**
+ - **lbry:playlist**
  - **LCI**
  - **Lcp**
  - **LcpPlay**
