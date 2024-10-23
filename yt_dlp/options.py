@@ -409,6 +409,14 @@ def create_parser():
             'Location of the main configuration file; either the path to the config or its containing directory '
             '("-" for stdin). Can be used multiple times and inside other configuration files'))
     general.add_option(
+        '--plugin-dirs',
+        dest='plugin_dirs', metavar='PATH', action='append',
+        help=(
+            'Path to an additional directory to search for plugins. '
+            'This option can be used multiple times to add multiple directories. '
+            'Note that this currently only works for extractor plugins; '
+            'postprocessor plugins can only be loaded from the default plugin directories'))
+    general.add_option(
         '--flat-playlist',
         action='store_const', dest='extract_flat', const='in_playlist', default=False,
         help='Do not extract the videos of a playlist, only list them')
@@ -623,13 +631,13 @@ def create_parser():
         metavar='DATE', dest='datebefore', default=None,
         help=(
             'Download only videos uploaded on or before this date. '
-            'The date formats accepted is the same as --date'))
+            'The date formats accepted are the same as --date'))
     selection.add_option(
         '--dateafter',
         metavar='DATE', dest='dateafter', default=None,
         help=(
             'Download only videos uploaded on or after this date. '
-            'The date formats accepted is the same as --date'))
+            'The date formats accepted are the same as --date'))
     selection.add_option(
         '--min-views',
         metavar='COUNT', dest='min_views', default=None, type=int,
@@ -825,7 +833,7 @@ def create_parser():
         '--prefer-free-formats',
         action='store_true', dest='prefer_free_formats', default=False,
         help=(
-            'Prefer video formats with free containers over non-free ones of same quality. '
+            'Prefer video formats with free containers over non-free ones of the same quality. '
             'Use with "-S ext" to strictly prefer free containers irrespective of quality'))
     video_format.add_option(
         '--no-prefer-free-formats',
@@ -899,13 +907,14 @@ def create_parser():
     subtitles.add_option(
         '--sub-format',
         action='store', dest='subtitlesformat', metavar='FORMAT', default='best',
-        help='Subtitle format; accepts formats preference, e.g. "srt" or "ass/srt/best"')
+        help='Subtitle format; accepts formats preference separated by "/", e.g. "srt" or "ass/srt/best"')
     subtitles.add_option(
         '--sub-langs', '--srt-langs',
         action='callback', dest='subtitleslangs', metavar='LANGS', type='str',
         default=[], callback=_list_from_options_callback,
         help=(
-            'Languages of the subtitles to download (can be regex) or "all" separated by commas, e.g. --sub-langs "en.*,ja". '
+            'Languages of the subtitles to download (can be regex) or "all" separated by commas, e.g. --sub-langs "en.*,ja" '
+            '(where "en.*" is a regex pattern that matches "en" followed by 0 or more of any character). '
             'You can prefix the language code with a "-" to exclude it from the requested languages, e.g. --sub-langs all,-live_chat. '
             'Use --list-subs for a list of available language tags'))
 
@@ -1174,7 +1183,7 @@ def create_parser():
         '--print-to-file',
         metavar='[WHEN:]TEMPLATE FILE', dest='print_to_file', nargs=2, **when_prefix('video'),
         help=(
-            'Append given template to the file. The values of WHEN and TEMPLATE are same as that of --print. '
+            'Append given template to the file. The values of WHEN and TEMPLATE are the same as that of --print. '
             'FILE uses the same syntax as the output template. This option can be used multiple times'))
     verbosity.add_option(
         '-g', '--get-url',
@@ -1218,7 +1227,7 @@ def create_parser():
         '-J', '--dump-single-json',
         action='store_true', dest='dump_single_json', default=False,
         help=(
-            'Quiet, but print JSON information for each url or infojson passed. Simulate unless --no-simulate is used. '
+            'Quiet, but print JSON information for each URL or infojson passed. Simulate unless --no-simulate is used. '
             'If the URL refers to a playlist, the whole playlist information is dumped in a single line'))
     verbosity.add_option(
         '--print-json',
@@ -1562,7 +1571,7 @@ def create_parser():
         help=(
             'Remux the video into another container if necessary '
             f'(currently supported: {", ".join(FFmpegVideoRemuxerPP.SUPPORTED_EXTS)}). '
-            'If target container does not support the video/audio codec, remuxing will fail. You can specify multiple rules; '
+            'If the target container does not support the video/audio codec, remuxing will fail. You can specify multiple rules; '
             'e.g. "aac>m4a/mov>mp4/mkv" will remux aac to m4a, mov to mp4 and anything else to mkv'))
     postproc.add_option(
         '--recode-video',
@@ -1668,7 +1677,7 @@ def create_parser():
     postproc.add_option(
         '--xattrs', '--xattr',
         action='store_true', dest='xattrs', default=False,
-        help='Write metadata to the video file\'s xattrs (using dublin core and xdg standards)')
+        help='Write metadata to the video file\'s xattrs (using Dublin Core and XDG standards)')
     postproc.add_option(
         '--concat-playlist',
         metavar='POLICY', dest='concat_playlist', default='multi_video',
@@ -1676,7 +1685,7 @@ def create_parser():
         help=(
             'Concatenate videos in a playlist. One of "never", "always", or '
             '"multi_video" (default; only when the videos form a single show). '
-            'All the video files must have same codecs and number of streams to be concatable. '
+            'All the video files must have the same codecs and number of streams to be concatenable. '
             'The "pl_video:" prefix can be used with "--paths" and "--output" to '
             'set the output filename for the concatenated files. See "OUTPUT TEMPLATE" for details'))
     postproc.add_option(
@@ -1686,8 +1695,8 @@ def create_parser():
         help=(
             'Automatically correct known faults of the file. '
             'One of never (do nothing), warn (only emit a warning), '
-            'detect_or_warn (the default; fix file if we can, warn otherwise), '
-            'force (try fixing even if file already exists)'))
+            'detect_or_warn (the default; fix the file if we can, warn otherwise), '
+            'force (try fixing even if the file already exists)'))
     postproc.add_option(
         '--prefer-avconv', '--no-prefer-ffmpeg',
         action='store_false', dest='prefer_ffmpeg',
@@ -1706,7 +1715,7 @@ def create_parser():
         help=(
             'Execute a command, optionally prefixed with when to execute it, separated by a ":". '
             'Supported values of "WHEN" are the same as that of --use-postprocessor (default: after_move). '
-            'Same syntax as the output template can be used to pass any field as arguments to the command. '
+            'The same syntax as the output template can be used to pass any field as arguments to the command. '
             'If no fields are passed, %(filepath,_filename|)q is appended to the end of the command. '
             'This option can be used multiple times'))
     postproc.add_option(
@@ -1777,14 +1786,14 @@ def create_parser():
             'delim': None,
             'process': lambda val: dict(_postprocessor_opts_parser(*val.split(':', 1))),
         }, help=(
-            'The (case sensitive) name of plugin postprocessors to be enabled, '
+            'The (case-sensitive) name of plugin postprocessors to be enabled, '
             'and (optionally) arguments to be passed to it, separated by a colon ":". '
             'ARGS are a semicolon ";" delimited list of NAME=VALUE. '
             'The "when" argument determines when the postprocessor is invoked. '
             'It can be one of "pre_process" (after video extraction), "after_filter" (after video passes filter), '
             '"video" (after --format; before --print/--output), "before_dl" (before each video download), '
             '"post_process" (after each video download; default), '
-            '"after_move" (after moving video file to its final locations), '
+            '"after_move" (after moving the video file to its final location), '
             '"after_video" (after downloading and processing all formats of a video), '
             'or "playlist" (at end of playlist). '
             'This option can be used multiple times to add different postprocessors'))
@@ -1801,7 +1810,7 @@ def create_parser():
         }, help=(
             'SponsorBlock categories to create chapters for, separated by commas. '
             f'Available categories are {", ".join(SponsorBlockPP.CATEGORIES.keys())}, all and default (=all). '
-            'You can prefix the category with a "-" to exclude it. See [1] for description of the categories. '
+            'You can prefix the category with a "-" to exclude it. See [1] for descriptions of the categories. '
             'E.g. --sponsorblock-mark all,-preview [1] https://wiki.sponsor.ajay.app/w/Segment_Categories'))
     sponsorblock.add_option(
         '--sponsorblock-remove', metavar='CATS',
@@ -1887,7 +1896,7 @@ def create_parser():
     extractor.add_option(
         '--no-hls-split-discontinuity',
         dest='hls_split_discontinuity', action='store_false',
-        help='Do not split HLS playlists to different formats at discontinuities such as ad breaks (default)')
+        help='Do not split HLS playlists into different formats at discontinuities such as ad breaks (default)')
     _extractor_arg_parser = lambda key, vals='': (key.strip().lower().replace('-', '_'), [
         val.replace(r'\,', ',').strip() for val in re.split(r'(?<!\\),', vals)])
     extractor.add_option(

@@ -139,12 +139,11 @@ class DRTVIE(InfoExtractor):
             return
 
         token_response = self._download_json(
-            'https://production.dr-massive.com/api/authorization/anonymous-sso', None,
+            'https://isl.dr-massive.com/api/authorization/anonymous-sso', None,
             note='Downloading anonymous token', headers={
                 'content-type': 'application/json',
             }, query={
-                'device': 'web_browser',
-                'ff': 'idp,ldp,rpt',
+                'device': 'phone_android',
                 'lang': 'da',
                 'supportFallbackToken': 'true',
             }, data=json.dumps({

@@ -196,5 +196,20 @@
         "when": "b31b81d85f00601710d4fac590c3e4efb4133283",
         "short": "[ci] Rerun failed tests (#11143)",
         "authors": ["Grub4K"]
+    },
+    {
+        "action": "add",
+        "when": "a886cf3e900f4a2ec00af705f883539269545609",
+        "short": "[priority] **py2exe is no longer supported**\nThis release's `yt-dlp_min.exe` will be the last, and it's actually a PyInstaller-bundled executable so that yt-dlp users updating their py2exe build with `-U` will be automatically migrated. [Read more](https://github.com/yt-dlp/yt-dlp/issues/10087)"
+    },
+    {
+        "action": "add",
+        "when": "a886cf3e900f4a2ec00af705f883539269545609",
+        "short": "[priority] **Following this release, yt-dlp's Python dependencies *must* be installed using the `default` group**\nIf you're installing yt-dlp with pip/pipx or requiring yt-dlp in your own Python project, you'll need to specify `yt-dlp[default]` if you want to also install yt-dlp's optional dependencies (which were previously included by default). [Read more](https://github.com/yt-dlp/yt-dlp/pull/11255)"
+    },
+    {
+        "action": "add",
+        "when": "87884f15580910e4e0fe0e1db73508debc657471",
+        "short": "[priority] **Beginning with this release, yt-dlp's Python dependencies *must* be installed using the `default` group**\nIf you're installing yt-dlp with pip/pipx or requiring yt-dlp in your own Python project, you'll need to specify `yt-dlp[default]` if you want to also install yt-dlp's optional dependencies (which were previously included by default). [Read more](https://github.com/yt-dlp/yt-dlp/pull/11255)"
     }
 ]
