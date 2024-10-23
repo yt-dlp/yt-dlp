@@ -67,6 +67,41 @@ class BilibiliBaseIE(InfoExtractor):
                 f'Format(s) {missing_formats} are missing; you have to login or '
                 f'become a premium member to download them. {self._login_hint()}')
 
+    def _extract_heatmap(self, cid):
+        heatmap_json = self._download_json(
+            'https://bvc.bilivideo.com/pbp/data', cid,
+            note='Downloading heatmap', errnote='Failed to download heatmap', fatal=False,
+            query={'cid': cid})
+        if not isinstance(heatmap_json, dict):
+            return
+        try:
+            duration = self._parse_json(heatmap_json['debug'])['max_time']
+        except Exception:
+            duration = None
+        step_sec = heatmap_json.get('step_sec', {int})
+        heatmap_data = traverse_obj(heatmap_json, ('events', 'default', {list}))
+        if not step_sec or not heatmap_data:
+            return
+        peak = max(heatmap_data)
+        if not peak:
+            return
+
+        for idx, heatmap_entry in enumerate(heatmap_data):
+            start_time = idx * step_sec
+            end_time = start_time + step_sec
+            if duration and end_time >= duration:
+                yield {
+                    'start_time': start_time,
+                    'end_time': duration,
+                    'value': heatmap_entry / peak,
+                }
+                break
+            yield {
+                'start_time': start_time,
+                'end_time': end_time,
+                'value': heatmap_entry / peak,
+            }
+
     def _extract_storyboard(self, duration, aid=None, bvid=None, cid=None):
         if not (video_id := aid or bvid) or not duration:
             return
@@ -343,6 +378,7 @@ class BilibiliBaseIE(InfoExtractor):
                 'description': f'{json.dumps(edges, ensure_ascii=False)}\n{metainfo.get("description", "")}',
                 'duration': float_or_none(play_info.get('timelength'), scale=1000),
                 'subtitles': self.extract_subtitles(video_id, cid),
+                'heatmap': list(self._extract_heatmap(cid)),
             }
 
 
@@ -358,7 +394,7 @@ class BiliBiliIE(BilibiliBaseIE):
             'description': '滴妹今天唱Closer給你聽! 有史以来，被推最多次也是最久的歌曲，其实歌词跟我原本想像差蛮多的，不过还是好听！ 微博@阿滴英文',
             'uploader_id': '65880958',
             'uploader': '阿滴英文',
-            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+            'thumbnail': r're:https?://.*\.(?:jpg|jpeg|png)$',
             'duration': 554.117,
             'tags': list,
             'comment_count': int,
@@ -367,6 +403,7 @@ class BiliBiliIE(BilibiliBaseIE):
             'like_count': int,
             'view_count': int,
             '_old_archive_ids': ['bilibili 8903802_part1'],
+            'heatmap': [],
         },
     }, {
         'note': 'old av URL version',
@@ -385,8 +422,9 @@ class BiliBiliIE(BilibiliBaseIE):
             'comment_count': int,
             'view_count': int,
             'tags': list,
-            'thumbnail': r're:^https?://.*\.(jpg|jpeg)$',
+            'thumbnail': r're:https?://.*\.(?:jpg|jpeg|png)$',
             '_old_archive_ids': ['bilibili 1074402_part1'],
+            'heatmap': [],
         },
         'params': {'skip_download': True},
     }, {
@@ -404,7 +442,7 @@ class BiliBiliIE(BilibiliBaseIE):
                 'title': '物语中的人物是如何吐槽自己的OP的 p01 Staple Stable/战场原+羽川',
                 'tags': 'count:10',
                 'timestamp': 1589601697,
-                'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+                'thumbnail': r're:https?://.*\.(?:jpg|jpeg|png)$',
                 'uploader': '打牌还是打桩',
                 'uploader_id': '150259984',
                 'like_count': int,
@@ -414,6 +452,7 @@ class BiliBiliIE(BilibiliBaseIE):
                 'description': 'md5:e3c401cf7bc363118d1783dd74068a68',
                 'duration': 90.314,
                 '_old_archive_ids': ['bilibili 498159642_part1'],
+                'heatmap': 'count:90',
             },
         }],
     }, {
@@ -425,7 +464,7 @@ class BiliBiliIE(BilibiliBaseIE):
             'title': '物语中的人物是如何吐槽自己的OP的 p01 Staple Stable/战场原+羽川',
             'tags': 'count:10',
             'timestamp': 1589601697,
-            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+            'thumbnail': r're:https?://.*\.(?:jpg|jpeg|png)$',
             'uploader': '打牌还是打桩',
             'uploader_id': '150259984',
             'like_count': int,
@@ -435,6 +474,7 @@ class BiliBiliIE(BilibiliBaseIE):
             'description': 'md5:e3c401cf7bc363118d1783dd74068a68',
             'duration': 90.314,
             '_old_archive_ids': ['bilibili 498159642_part1'],
+            'heatmap': 'count:90',
         },
     }, {
         'url': 'https://www.bilibili.com/video/av8903802/',
@@ -447,13 +487,14 @@ class BiliBiliIE(BilibiliBaseIE):
             'timestamp': 1488353834,
             'uploader_id': '65880958',
             'uploader': '阿滴英文',
-            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+            'thumbnail': r're:https?://.*\.(?:jpg|jpeg|png)$',
             'duration': 554.117,
             'tags': list,
             'comment_count': int,
             'view_count': int,
             'like_count': int,
             '_old_archive_ids': ['bilibili 8903802_part1'],
+            'heatmap': [],
         },
         'params': {
             'skip_download': True,
@@ -476,8 +517,9 @@ class BiliBiliIE(BilibiliBaseIE):
             'comment_count': int,
             'view_count': int,
             'like_count': int,
-            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+            'thumbnail': r're:https?://.*\.(?:jpg|jpeg|png)$',
             '_old_archive_ids': ['bilibili 463665680_part1'],
+            'heatmap': 'count:96',
         },
         'params': {'skip_download': True},
     }, {
@@ -495,8 +537,9 @@ class BiliBiliIE(BilibiliBaseIE):
             'uploader_id': '528182630',
             'view_count': int,
             'like_count': int,
-            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+            'thumbnail': r're:https?://.*\.(?:jpg|jpeg|png)$',
             '_old_archive_ids': ['bilibili 893839363_part1'],
+            'heatmap': [],
         },
     }, {
         'note': 'newer festival video',
@@ -513,8 +556,9 @@ class BiliBiliIE(BilibiliBaseIE):
             'uploader_id': '8469526',
             'view_count': int,
             'like_count': int,
-            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+            'thumbnail': r're:https?://.*\.(?:jpg|jpeg|png)$',
             '_old_archive_ids': ['bilibili 778246196_part1'],
+            'heatmap': 'count:93',
         },
     }, {
         'note': 'legacy flv/mp4 video',
@@ -532,8 +576,9 @@ class BiliBiliIE(BilibiliBaseIE):
             'comment_count': int,
             'like_count': int,
             'tags': list,
-            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+            'thumbnail': r're:https?://.*\.(?:jpg|jpeg|png)$',
             '_old_archive_ids': ['bilibili 4120229_part4'],
+            'heatmap': [],
         },
         'params': {'extractor_args': {'bilibili': {'prefer_multi_flv': ['32']}}},
         'playlist_count': 19,
@@ -562,8 +607,9 @@ class BiliBiliIE(BilibiliBaseIE):
             'view_count': int,
             'like_count': int,
             'tags': list,
-            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+            'thumbnail': r're:https?://.*\.(?:jpg|jpeg|png)$',
             '_old_archive_ids': ['bilibili 15700301_part1'],
+            'heatmap': [],
         },
     }, {
         'note': 'interactive/split-path video',
@@ -581,7 +627,7 @@ class BiliBiliIE(BilibiliBaseIE):
             'comment_count': int,
             'view_count': int,
             'like_count': int,
-            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+            'thumbnail': r're:https?://.*\.(?:jpg|jpeg|png)$',
             '_old_archive_ids': ['bilibili 292734508_part1'],
         },
         'playlist_count': 33,
@@ -600,8 +646,9 @@ class BiliBiliIE(BilibiliBaseIE):
                 'comment_count': int,
                 'view_count': int,
                 'like_count': int,
-                'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+                'thumbnail': r're:https?://.*\.(?:jpg|jpeg|png)$',
                 '_old_archive_ids': ['bilibili 292734508_part1'],
+                'heatmap': [],
             },
         }],
     }, {
@@ -623,6 +670,7 @@ class BiliBiliIE(BilibiliBaseIE):
             'description': 'md5:acfd7360b96547f031f7ebead9e66d9e',
             'like_count': int,
             'duration': 199.4,
+            'heatmap': 'count:68',
         },
         'params': {'format': 'sb', 'playlist_items': '1'},
     }, {
@@ -643,7 +691,8 @@ class BiliBiliIE(BilibiliBaseIE):
             'duration': 1183.957,
             'timestamp': 1571648124,
             'upload_date': '20191021',
-            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+            'thumbnail': r're:https?://.*\.(?:jpg|jpeg|png)$',
+            'heatmap': [],
         },
     }, {
         'note': 'video has subtitles, which requires login',
@@ -662,7 +711,7 @@ class BiliBiliIE(BilibiliBaseIE):
             'comment_count': int,
             'view_count': int,
             'like_count': int,
-            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+            'thumbnail': r're:https?://.*\.(?:jpg|jpeg|png)$',
             'subtitles': 'count:2',  # login required for CC subtitle
             '_old_archive_ids': ['bilibili 898179753_part1'],
         },
@@ -842,6 +891,7 @@ class BiliBiliIE(BilibiliBaseIE):
                         '__post_extractor': self.extract_comments(aid) if idx == 0 else None,
                     } for idx, fragment in enumerate(formats[0]['fragments'])],
                     'duration': float_or_none(play_info.get('timelength'), scale=1000),
+                    'heatmap': list(self._extract_heatmap(cid)),
                 }
             else:
                 return {
@@ -851,6 +901,7 @@ class BiliBiliIE(BilibiliBaseIE):
                     'chapters': self._get_chapters(aid, cid),
                     'subtitles': self.extract_subtitles(video_id, cid),
                     '__post_extractor': self.extract_comments(aid),
+                    'heatmap': list(self._extract_heatmap(cid)),
                 }
 
 
@@ -874,7 +925,8 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
             'duration': 1420.791,
             'timestamp': 1320412200,
             'upload_date': '20111104',
-            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+            'thumbnail': r're:https?://.*\.(?:jpg|jpeg|png)$',
+            'heatmap': 'count:96',
         },
     }, {
         'url': 'https://www.bilibili.com/bangumi/play/ep267851',
@@ -893,7 +945,7 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
             'duration': 1425.256,
             'timestamp': 1554566400,
             'upload_date': '20190406',
-            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+            'thumbnail': r're:https?://.*\.(?:jpg|jpeg|png)$',
         },
         'skip': 'Geo-restricted',
     }, {
@@ -914,7 +966,8 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
             'duration': 1922.129,
             'timestamp': 1602853860,
             'upload_date': '20201016',
-            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+            'thumbnail': r're:https?://.*\.(?:jpg|jpeg|png)$',
+            'heatmap': 'count:97',
         },
     }]
 
@@ -982,6 +1035,7 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
             'subtitles': self.extract_subtitles(episode_id, cid, aid=aid),
             '__post_extractor': self.extract_comments(aid),
             'http_headers': {'Referer': url},
+            'heatmap': list(self._extract_heatmap(cid)),
         }
 
 
@@ -1019,7 +1073,8 @@ class BiliBiliBangumiMediaIE(BilibiliBaseIE):
                 'duration': 1525.777,
                 'timestamp': 1425074413,
                 'upload_date': '20150227',
-                'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+                'thumbnail': r're:https?://.*\.(?:jpg|jpeg|png)$',
+                'heatmap': 'count:96',
             },
         }],
     }]
@@ -1074,7 +1129,8 @@ class BiliBiliBangumiSeasonIE(BilibiliBaseIE):
                 'duration': 1436.992,
                 'timestamp': 1343185080,
                 'upload_date': '20120725',
-                'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+                'thumbnail': r're:https?://.*\.(?:jpg|jpeg|png)$',
+                'heatmap': 'count:96',
             },
         }],
     }]
@@ -1132,6 +1188,7 @@ class BilibiliCheeseBaseIE(BilibiliBaseIE):
             'subtitles': self.extract_subtitles(ep_id, cid, aid=aid),
             '__post_extractor': self.extract_comments(aid),
             'http_headers': self._HEADERS,
+            'heatmap': list(self._extract_heatmap(cid)),
         }
 
     def _download_season_info(self, query_key, video_id):
@@ -1157,8 +1214,9 @@ class BilibiliCheeseIE(BilibiliCheeseBaseIE):
             'duration': 221,
             'timestamp': 1695549606,
             'upload_date': '20230924',
-            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+            'thumbnail': r're:https?://.*\.(?:jpg|jpeg|png)$',
             'view_count': int,
+            'heatmap': 'count:74',
         },
     }]
 
@@ -1190,8 +1248,9 @@ class BilibiliCheeseSeasonIE(BilibiliCheeseBaseIE):
                 'duration': 221,
                 'timestamp': 1695549606,
                 'upload_date': '20230924',
-                'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+                'thumbnail': r're:https?://.*\.(?:jpg|jpeg|png)$',
                 'view_count': int,
+                'heatmap': 'count:74',
             },
         }],
         'params': {'playlist_items': '1'},
@@ -1563,6 +1622,7 @@ class BilibiliPlaylistIE(BilibiliSpaceListBaseIE):
             'view_count': int,
             'like_count': int,
             '_old_archive_ids': ['bilibili 687146339_part1'],
+            'heatmap': [],
         },
         'params': {'noplaylist': True},
     }, {
@@ -1757,8 +1817,9 @@ class BiliBiliSearchIE(SearchInfoExtractor):
                 'comment_count': int,
                 'view_count': int,
                 'like_count': int,
-                'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+                'thumbnail': r're:https?://.*\.(?:jpg|jpeg|png)$',
                 '_old_archive_ids': ['bilibili 988222410_part1'],
+                'heatmap': [],
             },
         }],
     }]
