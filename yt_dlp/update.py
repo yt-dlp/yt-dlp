@@ -103,7 +103,6 @@ def current_git_head():
 
 _FILE_SUFFIXES = {
     'zip': '',
-    'py2exe': '_min.exe',
     'win_exe': '.exe',
     'win_x86_exe': '_x86.exe',
     'darwin_exe': '_macos',
@@ -117,6 +116,7 @@ _NON_UPDATEABLE_REASONS = {
     **{variant: None for variant in _FILE_SUFFIXES},  # Updatable
     **{variant: f'Auto-update is not supported for unpackaged {name} executable; Re-download the latest release'
        for variant, name in {'win32_dir': 'Windows', 'darwin_dir': 'MacOS', 'linux_dir': 'Linux'}.items()},
+    'py2exe': 'py2exe is no longer supported by yt-dlp; This executable cannot be updated',
     'source': 'You cannot update when running from source code; Use git to pull the latest changes',
     'unknown': 'You installed yt-dlp from a manual build or with a package manager; Use that to update',
     'other': 'You are using an unofficial build of yt-dlp; Build the executable again',
@@ -152,22 +152,10 @@ def _get_system_deprecation():
     variant = detect_variant()
 
     # Temporary until Windows builds use 3.9, which will drop support for Win7 and 2008ServerR2
-    if variant in ('win_exe', 'win_x86_exe', 'py2exe'):
+    if variant in ('win_exe', 'win_x86_exe'):
         platform_name = platform.platform()
         if any(platform_name.startswith(f'Windows-{name}') for name in ('7', '2008ServerR2')):
             return EXE_MSG_TMPL.format('Windows 7/Server 2008 R2', 'issues/10086', STOP_MSG)
-        elif variant == 'py2exe':
-            return EXE_MSG_TMPL.format(
-                'py2exe builds (yt-dlp_min.exe)', 'issues/10087',
-                'In a future update you will be migrated to the PyInstaller-bundled executable. '
-                'This will be done automatically; no action is required on your part')
-        return None
-
-    # Temporary until aarch64/armv7l build flow is bumped to Ubuntu 20.04 and Python 3.9
-    elif variant in ('linux_aarch64_exe', 'linux_armv7l_exe'):
-        libc_ver = version_tuple(os.confstr('CS_GNU_LIBC_VERSION').partition(' ')[2])
-        if libc_ver < (2, 31):
-            return EXE_MSG_TMPL.format('system glibc version < 2.31', 'pull/8638', STOP_MSG)
         return None
 
     return f'Support for Python version {major}.{minor} has been deprecated. {PYTHON_MSG}'
@@ -362,7 +350,8 @@ class Updater:
                     continue
 
                 self._report_error(
-                    f'yt-dlp cannot be updated to {resolved_tag} since you are on an older Python version', True)
+                    f'yt-dlp cannot be updated to {resolved_tag} since you are on an older Python version '
+                    'or your operating system is not compatible with the requested build', True)
                 return None
 
         return resolved_tag
@@ -525,7 +514,7 @@ class Updater:
                 return os.rename(old_filename, self.filename)
 
         variant = detect_variant()
-        if variant.startswith('win') or variant == 'py2exe':
+        if variant.startswith('win'):
             atexit.register(Popen, f'ping 127.0.0.1 -n 5 -w 1000 & del /F "{old_filename}"',
                             shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         elif old_filename:

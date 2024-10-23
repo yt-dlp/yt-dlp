@@ -373,7 +373,10 @@ from .ccc import (
 )
 from .ccma import CCMAIE
 from .cctv import CCTVIE
-from .cda import CDAIE
+from .cda import (
+    CDAIE,
+    CDAFolderIE,
+)
 from .cellebrite import CellebriteIE
 from .ceskatelevize import CeskaTelevizeIE
 from .cgtn import CGTNIE
