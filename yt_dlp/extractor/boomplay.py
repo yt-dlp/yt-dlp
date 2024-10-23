@@ -274,7 +274,7 @@ class BoomplayEpisodeIE(BoomplayBaseIE):
         webpage = self._download_webpage(url, ep_id)
         return merge_dicts(
             self._extract_page_metadata(webpage, ep_id), {
-                'title': self._og_search_title(webpage, fatal=True).rsplit('|', 2)[0].strip(),
+                'title': self._og_search_title(webpage, default='').rsplit('|', 2)[0].strip() or None,
                 'description': self._html_search_meta(
                     ['description', 'og:description', 'twitter:description'], webpage),
                 'formats': self._extract_formats(ep_id, 'EPISODE', vcodec='none'),
