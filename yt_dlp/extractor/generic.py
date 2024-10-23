@@ -2375,6 +2375,7 @@ class GenericIE(InfoExtractor):
         else:
             video_id = self._generic_id(url)
 
+        # Do not impersonate by default; see https://github.com/yt-dlp/yt-dlp/issues/11335
         impersonate = self._configuration_arg('impersonate', ['false'])
         if 'false' in impersonate:
             impersonate = None
