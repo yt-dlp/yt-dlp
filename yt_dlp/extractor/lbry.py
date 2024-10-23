@@ -136,6 +136,7 @@ class LBRYBaseIE(InfoExtractor):
 
 class LBRYIE(LBRYBaseIE):
     IE_NAME = 'lbry'
+    IE_DESC = 'odysee.com'
     _VALID_URL = LBRYBaseIE._BASE_URL_REGEX + rf'''
         (?:\$/(?:download|embed)/)?
         (?P<id>
@@ -364,6 +365,7 @@ class LBRYIE(LBRYBaseIE):
 
 class LBRYChannelIE(LBRYBaseIE):
     IE_NAME = 'lbry:channel'
+    IE_DESC = 'odysee.com channels'
     _VALID_URL = LBRYBaseIE._BASE_URL_REGEX + rf'(?P<id>@{LBRYBaseIE._OPT_CLAIM_ID})/?(?:[?&]|$)'
     _TESTS = [{
         'url': 'https://lbry.tv/@LBRYFoundation:0',
@@ -391,6 +393,7 @@ class LBRYChannelIE(LBRYBaseIE):
 
 class LBRYPlaylistIE(LBRYBaseIE):
     IE_NAME = 'lbry:playlist'
+    IE_DESC = 'odysee.com playlists'
     _VALID_URL = LBRYBaseIE._BASE_URL_REGEX + r'\$/(?:play)?list/(?P<id>[0-9a-f-]+)'
     _TESTS = [{
         'url': 'https://odysee.com/$/playlist/ffef782f27486f0ac138bde8777f72ebdd0548c2',

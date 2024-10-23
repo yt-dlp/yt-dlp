@@ -76,7 +76,7 @@ dev = [
 ]
 static-analysis = [
     "autopep8~=2.0",
-    "ruff~=0.6.0",
+    "ruff~=0.7.0",
 ]
 test = [
     "pytest~=8.1",
