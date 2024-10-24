@@ -19,7 +19,7 @@ from ..utils import (
 )
 
 
-class NRKIE(InfoExtractor):
+class NRKBaseIE(InfoExtractor):
     _GEO_COUNTRIES = ['NO']
     _CDN_REPL_REGEX = r'''(?x)://
         (?:
@@ -31,6 +31,44 @@ class NRKIE(InfoExtractor):
     _LOGIN_URL = 'https://innlogging.nrk.no/logginn'
     _AUTH_TOKEN = ''
     _API_CALL_HEADERS = {'Accept': 'application/json;device=player-core'}
+
+    def _extract_nrk_formats_and_subtitles(self, asset_url, video_id):
+
+        if re.match(r'https?://[^/]+\.akamaihd\.net/i/', asset_url):
+            return self._extract_akamai_formats(asset_url, video_id)
+        asset_url = re.sub(r'(?:bw_(?:low|high)=\d+|no_audio_only|adap=.+?\b)&?', '', asset_url)
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(
+            asset_url, video_id, 'mp4', 'm3u8_native', fatal=False)
+        if not formats and re.search(self._CDN_REPL_REGEX, asset_url):
+            formats, subtitles = self._extract_m3u8_formats_and_subtitles(
+                re.sub(self._CDN_REPL_REGEX, '://nrk-od-%02d.akamaized.net/no/' % random.randint(0, 99), asset_url),
+                video_id, 'mp4', 'm3u8_native', fatal=False)
+        return formats, subtitles
+
+    def _raise_error(self, data):
+        MESSAGES = {
+            'ProgramRightsAreNotReady': 'Du kan dessverre ikke se eller høre programmet',
+            'ProgramRightsHasExpired': 'Programmet har gått ut',
+            'NoProgramRights': 'Ikke tilgjengelig',
+            'ProgramIsGeoBlocked': 'NRK har ikke rettigheter til å vise dette programmet utenfor Norge',
+        }
+        message_type = data.get('messageType', '')
+        # Can be ProgramIsGeoBlocked or ChannelIsGeoBlocked*
+        if 'IsGeoBlocked' in message_type or traverse_obj(data, ('usageRights', 'isGeoBlocked')) is True:
+            self.raise_geo_restricted(
+                msg=MESSAGES.get('ProgramIsGeoBlocked'),
+                countries=self._GEO_COUNTRIES)
+        message = data.get('endUserMessage') or MESSAGES.get(message_type, message_type)
+        raise ExtractorError(f'{self.IE_NAME} said: {message}', expected=True)
+
+    def _call_api(self, path, video_id, item=None, note=None, fatal=True, query=None):
+        return self._download_json(
+            urljoin('https://psapi.nrk.no/', path),
+            video_id, note or f'Downloading {item} JSON',
+            fatal=fatal, query=query, headers=self._API_CALL_HEADERS)
+
+
+class NRKIE(NRKBaseIE):
     _VALID_URL = r'''(?x)
                         (?:
                             nrk:|
@@ -116,71 +154,6 @@ class NRKIE(InfoExtractor):
         'url': 'nrk:channel/nrk1',
         'only_matching': True,
     }]
-
-    def _extract_nrk_formats_and_subtitles(self, asset_url, video_id):
-
-        if re.match(r'https?://[^/]+\.akamaihd\.net/i/', asset_url):
-            return self._extract_akamai_formats(asset_url, video_id)
-        asset_url = re.sub(r'(?:bw_(?:low|high)=\d+|no_audio_only|adap=.+?\b)&?', '', asset_url)
-        formats, subtitles = self._extract_m3u8_formats_and_subtitles(
-            asset_url, video_id, 'mp4', 'm3u8_native', fatal=False)
-        if not formats and re.search(self._CDN_REPL_REGEX, asset_url):
-            formats, subtitles = self._extract_m3u8_formats_and_subtitles(
-                re.sub(self._CDN_REPL_REGEX, '://nrk-od-%02d.akamaized.net/no/' % random.randint(0, 99), asset_url),
-                video_id, 'mp4', 'm3u8_native', fatal=False)
-        return formats, subtitles
-
-    def _raise_error(self, data):
-        MESSAGES = {
-            'ProgramRightsAreNotReady': 'Du kan dessverre ikke se eller høre programmet',
-            'ProgramRightsHasExpired': 'Programmet har gått ut',
-            'NoProgramRights': 'Ikke tilgjengelig',
-            'ProgramIsGeoBlocked': 'NRK har ikke rettigheter til å vise dette programmet utenfor Norge',
-        }
-        message_type = data.get('messageType', '')
-        # Can be ProgramIsGeoBlocked or ChannelIsGeoBlocked*
-        if 'IsGeoBlocked' in message_type or traverse_obj(data, ('usageRights', 'isGeoBlocked')) is True:
-            self.raise_geo_restricted(
-                msg=MESSAGES.get('ProgramIsGeoBlocked'),
-                countries=self._GEO_COUNTRIES)
-        message = data.get('endUserMessage') or MESSAGES.get(message_type, message_type)
-        raise ExtractorError(f'{self.IE_NAME} said: {message}', expected=True)
-
-    def _call_api(self, path, video_id, item=None, note=None, fatal=True, query=None):
-        return self._download_json(
-            urljoin('https://psapi.nrk.no/', path),
-            video_id, note or f'Downloading {item} JSON',
-            fatal=fatal, query=query, headers=self._API_CALL_HEADERS)
-
-    def _perform_login(self, username, password):
-        try:
-            self._download_json(
-                self._LOGIN_URL, None, headers={'Content-Type': 'application/json; charset=UTF-8', 'accept': 'application/json; charset=utf-8'},
-                data=json.dumps({
-                    'clientId': '',
-                    'hashedPassword': {'current': {
-                        'hash': password,
-                        'recipe': {
-                            'algorithm': 'cleartext',
-                            'salt': '',
-                        },
-                    },
-                    },
-                    'password': password,
-                    'username': username,
-                }).encode())
-
-            self._download_webpage('https://tv.nrk.no/auth/web/login/opsession', None)
-            response = self._download_json('https://tv.nrk.no/auth/session/tokenforsub/_', None)
-            self._AUTH_TOKEN = traverse_obj(response, ('session', 'accessToken'))
-            self._API_CALL_HEADERS['authorization'] = f'Bearer {self._AUTH_TOKEN}'
-        except ExtractorError as e:
-            message = None
-            if isinstance(e.cause, HTTPError) and e.cause.status in (401, 400):
-                resp = self._parse_json(
-                    e.cause.response.read().decode(), None, fatal=False) or {}
-                message = next((error['message'] for error in resp['errors'] if error['field'] == 'Password'), None)
-            self.report_warning(message or 'Unable to log in')
 
     def _real_extract(self, url):
         video_id = self._match_id(url).split('/')[-1]
@@ -354,7 +327,7 @@ class NRKIE(InfoExtractor):
         return info
 
 
-class NRKTVIE(NRKIE):
+class NRKTVIE(NRKBaseIE):
     IE_DESC = 'NRK TV and NRK Radio'
     _EPISODE_RE = r'(?P<id>[a-zA-Z]{4}\d{8})'
     _VALID_URL = rf'https?://(?:tv|radio)\.nrk(?:super)?\.no/(?:[^/]+/)*{_EPISODE_RE}'
@@ -553,7 +526,7 @@ class NRKTVIE(NRKIE):
             f'nrk:{video_id}', ie=NRKIE.ie_key(), video_id=video_id)
 
 
-class NRKTVEpisodeIE(NRKIE):
+class NRKTVEpisodeIE(NRKBaseIE):
     _VALID_URL = r'https?://tv\.nrk\.no/serie/(?P<id>[^/]+/sesong/(?P<season_number>\d+)/episode/(?P<episode_number>\d+))'
     _TESTS = [{
         'url': 'https://tv.nrk.no/serie/hellums-kro/sesong/1/episode/2',
@@ -614,7 +587,7 @@ class NRKTVEpisodeIE(NRKIE):
         )
 
 
-class NRKTVSerieBaseIE(NRKIE):
+class NRKTVSerieBaseIE(NRKBaseIE):
     def _extract_entries(self, entry_list):
         if not isinstance(entry_list, list):
             return []
@@ -898,7 +871,7 @@ class NRKTVSeriesIE(NRKTVSerieBaseIE):
             entries, series_id, titles.get('title'), titles.get('subtitle'))
 
 
-class NRKTVDirekteIE(NRKTVIE):  # XXX: Do not subclass from concrete IE
+class NRKTVDirekteIE(NRKBaseIE):
     IE_DESC = 'NRK TV Direkte and NRK Radio Direkte'
     _VALID_URL = r'https?://(?:tv|radio)\.nrk\.no/direkte/(?P<id>[^/?#&]+)'
 
@@ -910,8 +883,13 @@ class NRKTVDirekteIE(NRKTVIE):  # XXX: Do not subclass from concrete IE
         'only_matching': True,
     }]
 
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+        return self.url_result(
+            f'nrk:{video_id}', ie=NRKIE.ie_key(), video_id=video_id)
 
-class NRKRadioPodkastIE(NRKIE):
+
+class NRKRadioPodkastIE(NRKBaseIE):
     _VALID_URL = r'https?://radio\.nrk\.no/pod[ck]ast/(?:[^/]+/)+(?P<id>l_[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12})'
 
     _TESTS = [{
@@ -946,7 +924,7 @@ class NRKRadioPodkastIE(NRKIE):
             f'nrk:{video_id}', ie=NRKIE.ie_key(), video_id=video_id)
 
 
-class NRKPlaylistBaseIE(NRKIE):
+class NRKPlaylistBaseIE(NRKBaseIE):
     def _extract_description(self, webpage):
         pass
 
@@ -998,7 +976,7 @@ class NRKPlaylistIE(NRKPlaylistBaseIE):
         return re.search(self._DESCRIPTION_RE, webpage).group(1)
 
 
-class NRKSkoleIE(NRKIE):
+class NRKSkoleIE(NRKBaseIE):
     IE_DESC = 'NRK Skole'
     _VALID_URL = r'https?://(?:www\.)?nrk\.no/skole/?\?.*\bmediaId=(?P<id>\d+)'
 
