@@ -14,7 +14,6 @@ from ..utils import (
     parse_iso8601,
     str_or_none,
     traverse_obj,
-    try_get,
     url_or_none,
     urljoin,
 )
