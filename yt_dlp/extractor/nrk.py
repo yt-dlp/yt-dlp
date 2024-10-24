@@ -1,8 +1,10 @@
 import itertools
+import json
 import random
 import re
 
 from .common import InfoExtractor
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     determine_ext,
@@ -12,6 +14,7 @@ from ..utils import (
     parse_iso8601,
     str_or_none,
     traverse_obj,
+    try_get,
     url_or_none,
     urljoin,
 )
@@ -323,6 +326,36 @@ class NRKIE(NRKBaseIE):
             })
 
         return info
+    
+    def _perform_login(self, username, password):
+        try:
+            self._download_json(
+                self._LOGIN_URL, None, headers={'Content-Type': 'application/json; charset=UTF-8', 'accept': 'application/json; charset=utf-8'},
+                data=json.dumps({
+                    'clientId': '',
+                    'hashedPassword': {'current': {
+                        'hash': password,
+                        'recipe': {
+                            'algorithm': 'cleartext',
+                            'salt': '',
+                        },
+                    },
+                    },
+                    'password': password,
+                    'username': username,
+                }).encode())
+
+            self._download_webpage('https://tv.nrk.no/auth/web/login/opsession', None)
+            response = self._download_json('https://tv.nrk.no/auth/session/tokenforsub/_', None)
+            self._AUTH_TOKEN = traverse_obj(response, ('session', 'accessToken'))
+            self._API_CALL_HEADERS['authorization'] = f'Bearer {self._AUTH_TOKEN}'
+        except ExtractorError as e:
+            message = None
+            if isinstance(e.cause, HTTPError) and e.cause.status in (401, 400):
+                resp = self._parse_json(
+                    e.cause.response.read().decode(), None, fatal=False) or {}
+                message = next((error['message'] for error in resp['errors'] if error['field'] == 'Password'), None)
+            self.report_warning(message or 'Unable to log in')
 
 
 class NRKTVIE(NRKBaseIE):
