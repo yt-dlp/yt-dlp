@@ -2393,13 +2393,18 @@ class GenericIE(InfoExtractor):
                 'Accept-Encoding': 'identity',
                 'Referer': smuggled_data.get('referer'),
             }), impersonate=impersonate)
-        except ExtractorError as error:
-            e = error.cause
-            if not isinstance(e, HTTPError) or e.status != 403 or e.response.extensions.get('impersonate'):
+        except ExtractorError as e:
+            if not (isinstance(e.cause, HTTPError) and e.cause.status == 403
+                    and e.cause.response.headers.get('cf-mitigated') == 'challenge'
+                    and e.cause.response.extensions.get('impersonate') is None):
                 raise
-            msg = 'Got HTTP Error 403, potentially due to anti-bot measures; '
+            self.cookiejar.clear(
+                domain=f'.{urllib.parse.urlparse(e.cause.response.url).hostname}',
+                path='/', name='__cf_bm')
+            msg = 'Got HTTP Error 403 caused by Cloudflare anti-bot challenge; '
             if not self._downloader._impersonate_target_available(ImpersonateTarget()):
-                msg += 'if possible, install the required impersonation dependency and '
+                msg += ('see  https://github.com/yt-dlp/yt-dlp#impersonation  for '
+                        'how to install the required impersonation dependency, and ')
             raise ExtractorError(
                 f'{msg}try again with  --extractor-args "generic:impersonate"', expected=True)
 
