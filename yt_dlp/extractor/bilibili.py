@@ -1727,7 +1727,7 @@ class BilibiliAudioBaseIE(InfoExtractor):
 
 class BilibiliAudioIE(BilibiliAudioBaseIE):
     _VALID_URL = r'https?://(?:www\.)?bilibili\.com/audio/au(?P<id>\d+)'
-    _TESTS = [{
+    _TEST = {
         'url': 'https://www.bilibili.com/audio/au1003142',
         'md5': 'fec4987014ec94ef9e666d4d158ad03b',
         'info_dict': {
@@ -1749,7 +1749,7 @@ class BilibiliAudioIE(BilibiliAudioBaseIE):
             'uploader': 'tsukimi-つきみぐー',
             'view_count': int,
         },
-    }]
+    }
 
     def _real_extract(self, url):
         au_id = self._match_id(url)
@@ -1797,7 +1797,7 @@ class BilibiliAudioIE(BilibiliAudioBaseIE):
 
 class BilibiliAudioAlbumIE(BilibiliAudioBaseIE):
     _VALID_URL = r'https?://(?:www\.)?bilibili\.com/audio/am(?P<id>\d+)'
-    _TESTS = [{
+    _TEST = {
         'url': 'https://www.bilibili.com/audio/am10624',
         'info_dict': {
             'id': '10624',
@@ -1805,7 +1805,7 @@ class BilibiliAudioAlbumIE(BilibiliAudioBaseIE):
             'description': '每天11:00更新，为你推送最新音乐',
         },
         'playlist_count': 19,
-    }]
+    }
 
     def _real_extract(self, url):
         am_id = self._match_id(url)
