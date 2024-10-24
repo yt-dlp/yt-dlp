@@ -8,6 +8,7 @@ from .common import InfoExtractor
 from .commonprotocols import RtmpIE
 from .youtube import YoutubeIE
 from ..compat import compat_etree_fromstring
+from ..cookies import LenientSimpleCookie
 from ..networking.exceptions import HTTPError
 from ..networking.impersonate import ImpersonateTarget
 from ..utils import (
@@ -2398,9 +2399,12 @@ class GenericIE(InfoExtractor):
                     and e.cause.response.headers.get('cf-mitigated') == 'challenge'
                     and e.cause.response.extensions.get('impersonate') is None):
                 raise
-            self.cookiejar.clear(
-                domain=f'.{urllib.parse.urlparse(e.cause.response.url).hostname}',
-                path='/', name='__cf_bm')
+            cf_cookie_domain = traverse_obj(
+                LenientSimpleCookie(e.cause.response.headers.get('set-cookie')),
+                ('__cf_bm', 'domain'))
+            if cf_cookie_domain:
+                self.write_debug(f'Clearing __cf_bm cookie for {cf_cookie_domain}')
+                self.cookiejar.clear(domain=cf_cookie_domain, path='/', name='__cf_bm')
             msg = 'Got HTTP Error 403 caused by Cloudflare anti-bot challenge; '
             if not self._downloader._impersonate_target_available(ImpersonateTarget()):
                 msg += ('see  https://github.com/yt-dlp/yt-dlp#impersonation  for '
