@@ -1,4 +1,5 @@
 import itertools
+import json
 import random
 import re
 
@@ -7,11 +8,12 @@ from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     determine_ext,
+    float_or_none,
     int_or_none,
     parse_duration,
     parse_iso8601,
     str_or_none,
-    try_get,
+    traverse_obj,
     url_or_none,
     urljoin,
 )
@@ -25,18 +27,23 @@ class NRKBaseIE(InfoExtractor):
             nrk-od-no\.telenorcdn\.net|
             minicdn-od\.nrk\.no/od/nrkhd-osl-rr\.netwerk\.no/no
         )/'''
+    _NETRC_MACHINE = 'nrk'
+    _LOGIN_URL = 'https://innlogging.nrk.no/logginn'
+    _AUTH_TOKEN = ''
+    _API_CALL_HEADERS = {'Accept': 'application/json;device=player-core'}
 
-    def _extract_nrk_formats(self, asset_url, video_id):
+    def _extract_nrk_formats_and_subtitles(self, asset_url, video_id):
+
         if re.match(r'https?://[^/]+\.akamaihd\.net/i/', asset_url):
             return self._extract_akamai_formats(asset_url, video_id)
-        asset_url = re.sub(r'(?:bw_(?:low|high)=\d+|no_audio_only)&?', '', asset_url)
-        formats = self._extract_m3u8_formats(
+        asset_url = re.sub(r'(?:bw_(?:low|high)=\d+|no_audio_only|adap=.+?\b)&?', '', asset_url)
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(
             asset_url, video_id, 'mp4', 'm3u8_native', fatal=False)
         if not formats and re.search(self._CDN_REPL_REGEX, asset_url):
-            formats = self._extract_m3u8_formats(
+            formats, subtitles = self._extract_m3u8_formats_and_subtitles(
                 re.sub(self._CDN_REPL_REGEX, '://nrk-od-%02d.akamaized.net/no/' % random.randint(0, 99), asset_url),
                 video_id, 'mp4', 'm3u8_native', fatal=False)
-        return formats
+        return formats, subtitles
 
     def _raise_error(self, data):
         MESSAGES = {
@@ -47,7 +54,7 @@ class NRKBaseIE(InfoExtractor):
         }
         message_type = data.get('messageType', '')
         # Can be ProgramIsGeoBlocked or ChannelIsGeoBlocked*
-        if 'IsGeoBlocked' in message_type or try_get(data, lambda x: x['usageRights']['isGeoBlocked']) is True:
+        if 'IsGeoBlocked' in message_type or traverse_obj(data, ('usageRights', 'isGeoBlocked')) is True:
             self.raise_geo_restricted(
                 msg=MESSAGES.get('ProgramIsGeoBlocked'),
                 countries=self._GEO_COUNTRIES)
@@ -58,7 +65,7 @@ class NRKBaseIE(InfoExtractor):
         return self._download_json(
             urljoin('https://psapi.nrk.no/', path),
             video_id, note or f'Downloading {item} JSON',
-            fatal=fatal, query=query)
+            fatal=fatal, query=query, headers=self._API_CALL_HEADERS)
 
 
 class NRKIE(NRKBaseIE):
@@ -73,17 +80,20 @@ class NRKIE(NRKBaseIE):
                             )
                             (?P<id>[^?\#&]+)
                         '''
-
     _TESTS = [{
         # video
         'url': 'http://www.nrk.no/video/PS*150533',
-        'md5': 'f46be075326e23ad0e524edfcb06aeb6',
+        'md5': '2b88a652ad2e275591e61cf550887eec',
         'info_dict': {
             'id': '150533',
             'ext': 'mp4',
             'title': 'Dompap og andre fugler i Piip-Show',
             'description': 'md5:d9261ba34c43b61c812cb6b0269a5c8f',
             'duration': 262,
+            'timestamp': 1395751833,
+            'upload_date': '20140325',
+            'thumbnail': 'https://gfx.nrk.no/0mZgeckEzRU6qTWrbQHD2QcyralHrYB08wBvh-K-AtAQ',
+            'alt_title': 'md5:d9261ba34c43b61c812cb6b0269a5c8f',
         },
     }, {
         # audio
@@ -95,6 +105,10 @@ class NRKIE(NRKBaseIE):
             'title': 'Slik høres internett ut når du er blind',
             'description': 'md5:a621f5cc1bd75c8d5104cb048c6b8568',
             'duration': 20,
+            'alt_title': 'Cathrine Lie Wathne er blind, og bruker hurtigtaster for å navigere seg rundt på ulike nettsider.',
+            'upload_date': '20140425',
+            'timestamp': 1398429565,
+            'thumbnail': 'https://gfx.nrk.no/urxQMSXF-WnbfjBH5ke2igLGyN27EdJVWZ6FOsEAclhA',
         },
     }, {
         'url': 'nrk:ecc1b952-96dc-4a98-81b9-5296dc7a98d9',
@@ -144,18 +158,10 @@ class NRKIE(NRKBaseIE):
     def _real_extract(self, url):
         video_id = self._match_id(url).split('/')[-1]
 
-        def call_playback_api(item, query=None):
-            try:
-                return self._call_api(f'playback/{item}/program/{video_id}', video_id, item, query=query)
-            except ExtractorError as e:
-                if isinstance(e.cause, HTTPError) and e.cause.status == 400:
-                    return self._call_api(f'playback/{item}/{video_id}', video_id, item, query=query)
-                raise
-
         # known values for preferredCdn: akamai, iponly, minicdn and telenor
-        manifest = call_playback_api('manifest', {'preferredCdn': 'akamai'})
+        manifest = self._call_api(f'playback/manifest/{video_id}', video_id, 'manifest', query={'preferredCdn': 'akamai'})
 
-        video_id = try_get(manifest, lambda x: x['id'], str) or video_id
+        video_id = manifest.get('id') or video_id
 
         if manifest.get('playability') == 'nonPlayable':
             self._raise_error(manifest['nonPlayable'])
@@ -163,17 +169,22 @@ class NRKIE(NRKBaseIE):
         playable = manifest['playable']
 
         formats = []
-        for asset in playable['assets']:
-            if not isinstance(asset, dict):
-                continue
-            if asset.get('encrypted'):
+        subtitles = {}
+        has_drm = False
+        for asset in traverse_obj(playable, ('assets', ..., {dict})):
+            encryption_scheme = asset.get('encryptionScheme')
+            if encryption_scheme not in (None, 'none', 'statickey'):
+                self.report_warning(f'Skipping asset with unsupported encryption scheme "{encryption_scheme}"')
+                has_drm = True
                 continue
             format_url = url_or_none(asset.get('url'))
             if not format_url:
                 continue
             asset_format = (asset.get('format') or '').lower()
             if asset_format == 'hls' or determine_ext(format_url) == 'm3u8':
-                formats.extend(self._extract_nrk_formats(format_url, video_id))
+                fmts, subs = self._extract_nrk_formats_and_subtitles(format_url, video_id)
+                formats.extend(fmts)
+                self._merge_subtitles(subs, target=subtitles)
             elif asset_format == 'mp3':
                 formats.append({
                     'url': format_url,
@@ -181,19 +192,22 @@ class NRKIE(NRKBaseIE):
                     'vcodec': 'none',
                 })
 
-        data = call_playback_api('metadata')
+        if not formats and has_drm:
+            self.report_drm(video_id)
 
-        preplay = data['preplay']
-        titles = preplay['titles']
-        title = titles['title']
+        data = self._call_api(traverse_obj(manifest, ('_links', 'metadata', 'href', {str})), video_id, 'metadata')
+
+        preplay = data.get('preplay')
+        titles = preplay.get('titles')
+        title = titles.get('title')
         alt_title = titles.get('subtitle')
 
-        description = try_get(preplay, lambda x: x['description'].replace('\r', '\n'))
-        duration = parse_duration(playable.get('duration')) or parse_duration(data.get('duration'))
+        description = preplay.get('description')
+        # Use m3u8 vod dueration for NRKSkoleIE because of incorrect duration in metadata
+        duration = parse_duration(playable.get('duration')) or parse_duration(data.get('duration')) or self._extract_m3u8_vod_duration(formats[0]['url'], video_id)
 
         thumbnails = []
-        for image in try_get(
-                preplay, lambda x: x['poster']['images'], list) or []:
+        for image in traverse_obj(preplay, ('poster', 'images', {list})) or []:
             if not isinstance(image, dict):
                 continue
             image_url = url_or_none(image.get('url'))
@@ -205,13 +219,13 @@ class NRKIE(NRKBaseIE):
                 'height': int_or_none(image.get('pixelHeight')),
             })
 
-        subtitles = {}
-        for sub in try_get(playable, lambda x: x['subtitles'], list) or []:
+        for sub in traverse_obj(playable, ('subtitles', {list})) or []:
             if not isinstance(sub, dict):
                 continue
             sub_url = url_or_none(sub.get('webVtt'))
             if not sub_url:
                 continue
+
             sub_key = str_or_none(sub.get('language')) or 'nb'
             sub_type = str_or_none(sub.get('type'))
             if sub_type:
@@ -220,8 +234,26 @@ class NRKIE(NRKBaseIE):
                 'url': sub_url,
             })
 
-        legal_age = try_get(
-            data, lambda x: x['legalAge']['body']['rating']['code'], str)
+        chapters = []
+        if data.get('skipDialogInfo'):
+            chapters = [item for item in [{
+                'start_time': float_or_none(traverse_obj(data, ('skipDialogInfo', 'startIntroInSeconds'))),
+                'end_time': float_or_none(traverse_obj(data, ('skipDialogInfo', 'endIntroInSeconds'))),
+                'title': 'Intro',
+            }, {
+                'start_time': float_or_none(traverse_obj(data, ('skipDialogInfo', 'startCreditsInSeconds'))),
+                'end_time': duration,
+                'title': 'Outro',
+            }] if item['start_time'] != item['end_time']]
+        if preplay.get('indexPoints'):
+            seconds_or_none = lambda x: float_or_none(parse_duration(x))
+            chapters += traverse_obj(preplay, ('indexPoints', ..., {
+                'start_time': ('startPoint', {seconds_or_none}),
+                'end_time': ('endPoint', {seconds_or_none}),
+                'title': ('title', {lambda x: x}),
+            }))
+        chapters = sorted(chapters, key=lambda x: x['start_time']) if chapters else None
+        legal_age = traverse_obj(data, ('legalAge', 'body', 'rating', 'code'))
         # https://en.wikipedia.org/wiki/Norwegian_Media_Authority
         age_limit = None
         if legal_age:
@@ -230,7 +262,7 @@ class NRKIE(NRKBaseIE):
             elif legal_age.isdigit():
                 age_limit = int_or_none(legal_age)
 
-        is_series = try_get(data, lambda x: x['_links']['series']['name']) == 'series'
+        is_series = traverse_obj(data, ('_links', 'series', 'name')) == 'series'
 
         info = {
             'id': video_id,
@@ -242,13 +274,23 @@ class NRKIE(NRKBaseIE):
             'age_limit': age_limit,
             'formats': formats,
             'subtitles': subtitles,
-            'timestamp': parse_iso8601(try_get(manifest, lambda x: x['availability']['onDemand']['from'], str)),
+            'chapters': chapters,
+            'timestamp': parse_iso8601(traverse_obj(data, ('availability', 'onDemand', 'from'))),
         }
-
         if is_series:
             series = season_id = season_number = episode = episode_number = None
+
             programs = self._call_api(
                 f'programs/{video_id}', video_id, 'programs', fatal=False)
+            matched_dates = [
+                int(match.group()) // 1000
+                for date in [
+                    traverse_obj(programs, ('firstTimeTransmitted', 'publicationDate')),
+                    traverse_obj(programs, ('usageRights', 'availableFrom')),
+                ] if date for match in [re.search(r'\d+', date)] if match
+            ]
+            if matched_dates:
+                info.update({'timestamp': min(info['timestamp'], *matched_dates)})
             if programs and isinstance(programs, dict):
                 series = str_or_none(programs.get('seriesTitle'))
                 season_id = str_or_none(programs.get('seasonId'))
@@ -284,8 +326,38 @@ class NRKIE(NRKBaseIE):
 
         return info
 
+    def _perform_login(self, username, password):
+        try:
+            self._download_json(
+                self._LOGIN_URL, None, headers={'Content-Type': 'application/json; charset=UTF-8', 'accept': 'application/json; charset=utf-8'},
+                data=json.dumps({
+                    'clientId': '',
+                    'hashedPassword': {'current': {
+                        'hash': password,
+                        'recipe': {
+                            'algorithm': 'cleartext',
+                            'salt': '',
+                        },
+                    },
+                    },
+                    'password': password,
+                    'username': username,
+                }).encode())
 
-class NRKTVIE(InfoExtractor):
+            self._download_webpage('https://tv.nrk.no/auth/web/login/opsession', None)
+            response = self._download_json('https://tv.nrk.no/auth/session/tokenforsub/_', None)
+            self._AUTH_TOKEN = traverse_obj(response, ('session', 'accessToken'))
+            self._API_CALL_HEADERS['authorization'] = f'Bearer {self._AUTH_TOKEN}'
+        except ExtractorError as e:
+            message = None
+            if isinstance(e.cause, HTTPError) and e.cause.status in (401, 400):
+                resp = self._parse_json(
+                    e.cause.response.read().decode(), None, fatal=False) or {}
+                message = next((error['message'] for error in resp['errors'] if error['field'] == 'Password'), None)
+            self.report_warning(message or 'Unable to log in')
+
+
+class NRKTVIE(NRKBaseIE):
     IE_DESC = 'NRK TV and NRK Radio'
     _EPISODE_RE = r'(?P<id>[a-zA-Z]{4}\d{8})'
     _VALID_URL = rf'https?://(?:tv|radio)\.nrk(?:super)?\.no/(?:[^/]+/)*{_EPISODE_RE}'
@@ -307,6 +379,14 @@ class NRKTVIE(InfoExtractor):
                     'ext': 'vtt',
                 }],
             },
+            'upload_date': '20170627',
+            'chapters': [{'start_time': 0, 'end_time': 2213.0, 'title': '<Untitled Chapter 1>'}, {'start_time': 2213.0, 'end_time': 2223.44, 'title': 'Outro'}],
+            'timestamp': 1498591822,
+            'thumbnail': 'https://gfx.nrk.no/myRSc4vuFlahB60P3n6swwRTQUZI1LqJZl9B7icZFgzA',
+            'alt_title': 'md5:46923a6e6510eefcce23d5ef2a58f2ce',
+        },
+        'params': {
+            'skip_download': True,
         },
     }, {
         'url': 'https://tv.nrk.no/serie/20-spoersmaal-tv/MUHH48000314/23-05-2014',
@@ -318,9 +398,31 @@ class NRKTVIE(InfoExtractor):
             'alt_title': '23. mai 2014',
             'description': 'md5:bdea103bc35494c143c6a9acdd84887a',
             'duration': 1741,
+            'age_limit': 0,
             'series': '20 spørsmål',
             'episode': '23. mai 2014',
-            'age_limit': 0,
+            'upload_date': '20140523',
+            'thumbnail': 'https://gfx.nrk.no/u7uCe79SEfPVGRAGVp2_uAZnNc4mfz_kjXg6Bgek8lMQ',
+            'season_id': '126936',
+            'season_number': 2014,
+            'season': 'Season 2014',
+            'chapters': [
+                {'start_time': 0.0, 'end_time': 39.0, 'title': 'Intro'},
+                {'start_time': 0.0, 'title': 'Velkommen', 'end_time': 152.32},
+                {'start_time': 152.32, 'title': 'Tannpirker', 'end_time': 304.76},
+                {'start_time': 304.76, 'title': 'Orgelbrus', 'end_time': 513.48},
+                {'start_time': 513.48, 'title': 'G-streng', 'end_time': 712.96},
+                {'start_time': 712.96, 'title': 'Medalje', 'end_time': 837.76},
+                {'start_time': 837.76, 'title': 'Globus', 'end_time': 1124.48},
+                {'start_time': 1124.48, 'title': 'Primstav', 'end_time': 1417.4},
+                {'start_time': 1417.4, 'title': 'Fyr', 'end_time': 1721.0},
+                {'start_time': 1721.0, 'end_time': 1741.0, 'title': 'Outro'},
+            ],
+            'episode_number': 3,
+            'timestamp': 1400871900,
+        },
+        'params': {
+            'skip_download': True,
         },
     }, {
         'url': 'https://tv.nrk.no/program/mdfp15000514',
@@ -333,6 +435,18 @@ class NRKTVIE(InfoExtractor):
             'series': 'Kunnskapskanalen',
             'episode': 'Grunnlovsjubiléet - Stor ståhei for ingenting',
             'age_limit': 0,
+            'upload_date': '20140524',
+            'episode_number': 17,
+            'chapters': [
+                {'start_time': 0, 'end_time': 4595.0, 'title': '<Untitled Chapter 1>'},
+                {'start_time': 4595.0, 'end_time': 4605.08, 'title': 'Outro'},
+            ],
+            'season': 'Season 2014',
+            'timestamp': 1400937600,
+            'thumbnail': 'https://gfx.nrk.no/D2u6-EyVUZpVCq0PdSNHRgdBZCV40ekpk6s9fZWiMtyg',
+            'season_number': 2014,
+            'season_id': '39240',
+            'alt_title': 'Grunnlovsjubiléet - Stor ståhei for ingenting',
         },
         'params': {
             'skip_download': True,
@@ -343,23 +457,51 @@ class NRKTVIE(InfoExtractor):
         'info_dict': {
             'id': 'MSPO40010515',
             'ext': 'mp4',
-            'title': 'Sprint fri teknikk, kvinner og menn 06.01.2015',
-            'description': 'md5:c03aba1e917561eface5214020551b7a',
+            'title': 'Tour de Ski - Sprint fri teknikk, kvinner og menn',
+            'description': 'md5:1f97a41f05a9486ee00c56f35f82993d',
             'age_limit': 0,
+            'episode': 'Sprint fri teknikk, kvinner og menn',
+            'series': 'Tour de Ski',
+            'thumbnail': 'https://gfx.nrk.no/s9vNwGPGN-Un-UCvitD09we9HRLDxisnipA9K__d5c3Q',
+            'season_id': '53512',
+            'chapters': [
+                {'start_time': 0, 'end_time': 6938.0, 'title': '<Untitled Chapter 1>'},
+                {'start_time': 6938.0, 'end_time': 6947.52, 'title': 'Outro'},
+            ],
+            'season_number': 2015,
+            'episode_number': 5,
+            'upload_date': '20150106',
+            'duration': 6947.52,
+            'timestamp': 1420545563,
+            'alt_title': 'Sprint fri teknikk, kvinner og menn',
+            'season': 'Season 2015',
         },
         'params': {
             'skip_download': True,
         },
-        'expected_warnings': ['Failed to download m3u8 information'],
-        'skip': 'particular part is not supported currently',
     }, {
         'url': 'https://tv.nrk.no/serie/tour-de-ski/MSPO40010515/06-01-2015',
         'info_dict': {
             'id': 'MSPO40010515',
             'ext': 'mp4',
-            'title': 'Sprint fri teknikk, kvinner og menn 06.01.2015',
-            'description': 'md5:c03aba1e917561eface5214020551b7a',
+            'title': 'Tour de Ski - Sprint fri teknikk, kvinner og menn',
+            'description': 'md5:1f97a41f05a9486ee00c56f35f82993d',
             'age_limit': 0,
+            'episode': 'Sprint fri teknikk, kvinner og menn',
+            'series': 'Tour de Ski',
+            'thumbnail': 'https://gfx.nrk.no/s9vNwGPGN-Un-UCvitD09we9HRLDxisnipA9K__d5c3Q',
+            'season_id': '53512',
+            'chapters': [
+                {'start_time': 0, 'end_time': 6938.0, 'title': '<Untitled Chapter 1>'},
+                {'start_time': 6938.0, 'end_time': 6947.52, 'title': 'Outro'},
+            ],
+            'season_number': 2015,
+            'episode_number': 5,
+            'upload_date': '20150106',
+            'duration': 6947.52,
+            'timestamp': 1420545563,
+            'alt_title': 'Sprint fri teknikk, kvinner og menn',
+            'season': 'Season 2015',
         },
         'expected_warnings': ['Failed to download m3u8 information'],
         'skip': 'Ikke tilgjengelig utenfor Norge',
@@ -380,6 +522,7 @@ class NRKTVIE(InfoExtractor):
         'params': {
             'skip_download': True,
         },
+        'skip': 'ProgramRightsHasExpired',
     }, {
         'url': 'https://tv.nrk.no/serie/nytt-paa-nytt/MUHH46000317/27-01-2017',
         'info_dict': {
@@ -413,7 +556,7 @@ class NRKTVIE(InfoExtractor):
             f'nrk:{video_id}', ie=NRKIE.ie_key(), video_id=video_id)
 
 
-class NRKTVEpisodeIE(InfoExtractor):
+class NRKTVEpisodeIE(NRKBaseIE):
     _VALID_URL = r'https?://tv\.nrk\.no/serie/(?P<id>[^/]+/sesong/(?P<season_number>\d+)/episode/(?P<episode_number>\d+))'
     _TESTS = [{
         'url': 'https://tv.nrk.no/serie/hellums-kro/sesong/1/episode/2',
@@ -421,13 +564,24 @@ class NRKTVEpisodeIE(InfoExtractor):
             'id': 'MUHH36005220',
             'ext': 'mp4',
             'title': 'Hellums kro - 2. Kro, krig og kjærlighet',
-            'description': 'md5:ad92ddffc04cea8ce14b415deef81787',
+            'description': 'md5:b32a7dc0b1ed27c8064f58b97bda4350',
             'duration': 1563.92,
             'series': 'Hellums kro',
             'season_number': 1,
             'episode_number': 2,
             'episode': '2. Kro, krig og kjærlighet',
             'age_limit': 6,
+            'timestamp': 1572584520,
+            'upload_date': '20191101',
+            'thumbnail': 'https://gfx.nrk.no/2_4mhU2JhR-8IYRC_OMmAQDbbOHgwcHqgi2sBrNrsjkg',
+            'alt_title': '2. Kro, krig og kjærlighet',
+            'season': 'Season 1',
+            'season_id': '124163',
+            'chapters': [
+                {'start_time': 0, 'end_time': 29.0, 'title': '<Untitled Chapter 1>'},
+                {'start_time': 29.0, 'end_time': 50.0, 'title': 'Intro'},
+                {'start_time': 1530.0, 'end_time': 1563.92, 'title': 'Outro'},
+            ],
         },
         'params': {
             'skip_download': True,
@@ -453,26 +607,14 @@ class NRKTVEpisodeIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        display_id, season_number, episode_number = self._match_valid_url(url).groups()
+        # HEADRequest(url) only works if a regular GET request was recently made by anyone for the specific URL being requested.
+        response = self._request_webpage(url, None, expected_status=True)
 
-        webpage = self._download_webpage(url, display_id)
+        nrk_id = self._match_id(url)
 
-        info = self._search_json_ld(webpage, display_id, default={})
-        nrk_id = info.get('@id') or self._html_search_meta(
-            'nrk:program-id', webpage, default=None) or self._search_regex(
-            rf'data-program-id=["\']({NRKTVIE._EPISODE_RE})', webpage,
-            'nrk id')
-        assert re.match(NRKTVIE._EPISODE_RE, nrk_id)
-
-        info.update({
-            '_type': 'url',
-            'id': nrk_id,
-            'url': f'nrk:{nrk_id}',
-            'ie_key': NRKIE.ie_key(),
-            'season_number': int(season_number),
-            'episode_number': int(episode_number),
-        })
-        return info
+        return self.url_result(
+            response.url, NRKTVIE.ie_key(), nrk_id, url_transparent=True,
+        )
 
 
 class NRKTVSerieBaseIE(NRKBaseIE):
@@ -482,6 +624,9 @@ class NRKTVSerieBaseIE(NRKBaseIE):
         entries = []
         for episode in entry_list:
             nrk_id = episode.get('prfId') or episode.get('episodeId')
+            if traverse_obj(episode, ('availability', 'status')) == 'expired':
+                self.report_warning(episode['availability'].get('label'), nrk_id)
+                continue
             if not nrk_id or not isinstance(nrk_id, str):
                 continue
             entries.append(self.url_result(
@@ -508,18 +653,18 @@ class NRKTVSerieBaseIE(NRKBaseIE):
             if not assets_key:
                 break
             # Extract entries
-            entries = try_get(
+            entries = traverse_obj(
                 embedded,
-                (lambda x: x[assets_key]['_embedded'][assets_key],
-                 lambda x: x[assets_key]),
-                list)
+                (assets_key, '_embedded', assets_key, {list}),
+                (assets_key, {list}),
+            )
             yield from self._extract_entries(entries)
             # Find next URL
-            next_url_path = try_get(
+            next_url_path = traverse_obj(
                 data,
-                (lambda x: x['_links']['next']['href'],
-                 lambda x: x['_embedded'][assets_key]['_links']['next']['href']),
-                str)
+                ('_links', 'next', 'href'),
+                ('_embedded', assets_key, '_links', 'next', 'href'),
+            )
             if not next_url_path:
                 break
             data = self._call_api(
@@ -549,6 +694,27 @@ class NRKTVSeasonIE(NRKTVSerieBaseIE):
         },
         'playlist_mincount': 30,
     }, {
+        'url': 'https://tv.nrk.no/serie/presten/sesong/ekstramateriale',
+        'info_dict': {
+            'id': 'MUHH47005117',
+            'ext': 'mp4',
+            'description': '',
+            'thumbnail': 'https://gfx.nrk.no/sJZroQqD2P8wGMMl5ADznwqiIlAXaCpNofA2pIhe3udA',
+            'alt_title': 'Bloopers: Episode 1',
+            'chapters': [
+                {'start_time': 0, 'end_time': 356.0, 'title': '<Untitled Chapter 1>'},
+                {'start_time': 356.0, 'end_time': 365.8, 'title': 'Outro'},
+            ],
+            'upload_date': '20180302',
+            'timestamp': 1519966800,
+            'title': 'Presten',
+            'age_limit': 0,
+            'duration': 365.8,
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }, {
         # no /sesong/ in path
         'url': 'https://tv.nrk.no/serie/lindmo/2016',
         'info_dict': {
@@ -572,6 +738,7 @@ class NRKTVSeasonIE(NRKTVSerieBaseIE):
             'title': 'September 2015',
         },
         'playlist_mincount': 841,
+        'skip': 'ProgramRightsHasExpired',
     }, {
         # 180 entries, single page
         'url': 'https://tv.nrk.no/serie/spangas/sesong/1',
@@ -594,21 +761,20 @@ class NRKTVSeasonIE(NRKTVSerieBaseIE):
                 else super().suitable(url))
 
     def _real_extract(self, url):
-        mobj = self._match_valid_url(url)
-        domain = mobj.group('domain')
-        serie_kind = mobj.group('serie_kind')
-        serie = mobj.group('serie')
-        season_id = mobj.group('id') or mobj.group('id_2')
+        domain, serie_kind, serie, season_id, season_id_2 = self._match_valid_url(url).group(
+            'domain', 'serie_kind', 'serie', 'id', 'id_2')
+        season_id = season_id or season_id_2
         display_id = f'{serie}/{season_id}'
 
+        api_suffix = f'/seasons/{season_id}' if season_id != 'ekstramateriale' else '/extramaterial'
+
         data = self._call_api(
-            f'{domain}/catalog/{self._catalog_name(serie_kind)}/{serie}/seasons/{season_id}',
+            f'{domain}/catalog/{self._catalog_name(serie_kind)}/{serie}{api_suffix}',
             display_id, 'season', query={'pageSize': 50})
 
-        title = try_get(data, lambda x: x['titles']['title'], str) or display_id
         return self.playlist_result(
-            self._entries(data, display_id),
-            display_id, title)
+            self._entries(data, display_id), display_id,
+            title=traverse_obj(data, ('titles', 'title', {str})))
 
 
 class NRKTVSeriesIE(NRKTVSerieBaseIE):
@@ -666,7 +832,7 @@ class NRKTVSeriesIE(NRKTVSerieBaseIE):
         'info_dict': {
             'id': 'dickie-dick-dickens',
             'title': 'Dickie Dick Dickens',
-            'description': 'md5:19e67411ffe57f7dce08a943d7a0b91f',
+            'description': 'md5:605464fab26d06b1ce6a11c3ea37d36d',
         },
         'playlist_mincount': 8,
     }, {
@@ -676,6 +842,8 @@ class NRKTVSeriesIE(NRKTVSerieBaseIE):
         'url': 'https://radio.nrk.no/podkast/ulrikkes_univers',
         'info_dict': {
             'id': 'ulrikkes_univers',
+            'title': 'Ulrikkes univers',
+            'description': 'md5:8af9fc2ee4aecd7f91777383fde50dcc',
         },
         'playlist_mincount': 10,
     }, {
@@ -699,16 +867,18 @@ class NRKTVSeriesIE(NRKTVSerieBaseIE):
         series = self._call_api(
             f'{domain}/catalog/{self._catalog_name(serie_kind)}/{series_id}',
             series_id, 'serie', query={size_prefix + 'ageSize': 50})
-        titles = try_get(series, [
-            lambda x: x['titles'],
-            lambda x: x[x['type']]['titles'],
-            lambda x: x[x['seriesType']]['titles'],
-        ]) or {}
+        titles = traverse_obj(
+            series,
+            (..., 'titles'),
+            (..., 'type', 'titles'),
+            (..., 'seriesType', 'titles'),
+            get_all=False,
 
+        )
         entries = []
         entries.extend(self._entries(series, series_id))
         embedded = series.get('_embedded') or {}
-        linked_seasons = try_get(series, lambda x: x['_links']['seasons']) or []
+        linked_seasons = traverse_obj(series, ('_links', 'seasons')) or []
         embedded_seasons = embedded.get('seasons') or []
         if len(linked_seasons) > len(embedded_seasons):
             for season in linked_seasons:
@@ -731,7 +901,7 @@ class NRKTVSeriesIE(NRKTVSerieBaseIE):
             entries, series_id, titles.get('title'), titles.get('subtitle'))
 
 
-class NRKTVDirekteIE(NRKTVIE):  # XXX: Do not subclass from concrete IE
+class NRKTVDirekteIE(NRKBaseIE):
     IE_DESC = 'NRK TV Direkte and NRK Radio Direkte'
     _VALID_URL = r'https?://(?:tv|radio)\.nrk\.no/direkte/(?P<id>[^/?#&]+)'
 
@@ -743,21 +913,29 @@ class NRKTVDirekteIE(NRKTVIE):  # XXX: Do not subclass from concrete IE
         'only_matching': True,
     }]
 
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+        return self.url_result(
+            f'nrk:{video_id}', ie=NRKIE.ie_key(), video_id=video_id)
 
-class NRKRadioPodkastIE(InfoExtractor):
+
+class NRKRadioPodkastIE(NRKBaseIE):
     _VALID_URL = r'https?://radio\.nrk\.no/pod[ck]ast/(?:[^/]+/)+(?P<id>l_[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12})'
 
     _TESTS = [{
         'url': 'https://radio.nrk.no/podkast/ulrikkes_univers/l_96f4f1b0-de54-4e6a-b4f1-b0de54fe6af8',
-        'md5': '8d40dab61cea8ab0114e090b029a0565',
+        'md5': 'a68c3564be2f4426254f026c95a06348',
         'info_dict': {
-            'id': 'MUHH48000314AA',
-            'ext': 'mp4',
-            'title': '20 spørsmål 23.05.2014',
-            'description': 'md5:bdea103bc35494c143c6a9acdd84887a',
-            'duration': 1741,
-            'series': '20 spørsmål',
-            'episode': '23.05.2014',
+            'id': 'l_96f4f1b0-de54-4e6a-b4f1-b0de54fe6af8',
+            'ext': 'mp3',
+            'timestamp': 1522897200,
+            'alt_title': 'md5:06eae9f8c8ccf0718b54c83654e65550',
+            'upload_date': '20180405',
+            'thumbnail': 'https://gfx.nrk.no/CEDlVkEKxLYiBZ-CXjxSxgduDdaL-a4XTZlar9AoJFOA',
+            'description': '',
+            'title': 'Jeg er sinna og det må du tåle!',
+            'age_limit': 0,
+            'duration': 1682.0,
         },
     }, {
         'url': 'https://radio.nrk.no/podcast/ulrikkes_univers/l_96f4f1b0-de54-4e6a-b4f1-b0de54fe6af8',
@@ -776,15 +954,16 @@ class NRKRadioPodkastIE(InfoExtractor):
             f'nrk:{video_id}', ie=NRKIE.ie_key(), video_id=video_id)
 
 
-class NRKPlaylistBaseIE(InfoExtractor):
+class NRKPlaylistBaseIE(NRKBaseIE):
     def _extract_description(self, webpage):
         pass
 
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
 
-        webpage = self._download_webpage(url, playlist_id)
-
+        # Uses the render HTML endpoint instead of the regular article URL to prevent unrelated videos from being downloaded
+        # if .rich[data-video-id] elements appear in the "related articles" section too instead of just the main article.
+        webpage = self._download_webpage(f'https://www.nrk.no/serum/api/render/{playlist_id.split("-")[-1]}', playlist_id)
         entries = [
             self.url_result(f'nrk:{video_id}', NRKIE.ie_key())
             for video_id in re.findall(self._ITEM_RE, webpage)
@@ -800,6 +979,8 @@ class NRKPlaylistBaseIE(InfoExtractor):
 class NRKPlaylistIE(NRKPlaylistBaseIE):
     _VALID_URL = r'https?://(?:www\.)?nrk\.no/(?!video|skole)(?:[^/]+/)+(?P<id>[^/]+)'
     _ITEM_RE = r'class="[^"]*\brich\b[^"]*"[^>]+data-video-id="([^"]+)"'
+    _TITLE_RE = r'class="[^"]*\barticle-title\b[^"]*"[^>]*>([^<]+)<'
+    _DESCRIPTION_RE = r'class="[^"]*[\s"]article-lead[\s"][^>]*>[^<]*<p>([^<]*)<'
     _TESTS = [{
         'url': 'http://www.nrk.no/troms/gjenopplev-den-historiske-solformorkelsen-1.12270763',
         'info_dict': {
@@ -819,42 +1000,29 @@ class NRKPlaylistIE(NRKPlaylistBaseIE):
     }]
 
     def _extract_title(self, webpage):
-        return self._og_search_title(webpage, fatal=False)
+        return re.search(self._TITLE_RE, webpage).group(1)
 
     def _extract_description(self, webpage):
-        return self._og_search_description(webpage)
+        return re.search(self._DESCRIPTION_RE, webpage).group(1)
 
 
-class NRKTVEpisodesIE(NRKPlaylistBaseIE):
-    _VALID_URL = r'https?://tv\.nrk\.no/program/[Ee]pisodes/[^/]+/(?P<id>\d+)'
-    _ITEM_RE = rf'data-episode=["\']{NRKTVIE._EPISODE_RE}'
-    _TESTS = [{
-        'url': 'https://tv.nrk.no/program/episodes/nytt-paa-nytt/69031',
-        'info_dict': {
-            'id': '69031',
-            'title': 'Nytt på nytt, sesong: 201210',
-        },
-        'playlist_count': 4,
-    }]
-
-    def _extract_title(self, webpage):
-        return self._html_search_regex(
-            r'<h1>([^<]+)</h1>', webpage, 'title', fatal=False)
-
-
-class NRKSkoleIE(InfoExtractor):
+class NRKSkoleIE(NRKBaseIE):
     IE_DESC = 'NRK Skole'
     _VALID_URL = r'https?://(?:www\.)?nrk\.no/skole/?\?.*\bmediaId=(?P<id>\d+)'
 
     _TESTS = [{
         'url': 'https://www.nrk.no/skole/?page=search&q=&mediaId=14099',
-        'md5': '18c12c3d071953c3bf8d54ef6b2587b7',
+        'md5': '1d54ec4cff70d8f2c7909d1922514af2',
         'info_dict': {
             'id': '6021',
             'ext': 'mp4',
             'title': 'Genetikk og eneggede tvillinger',
-            'description': 'md5:3aca25dcf38ec30f0363428d2b265f8d',
+            'description': 'md5:7c0cc42d35d99bbc58f45639cdbcc163',
             'duration': 399,
+            'thumbnail': 'https://gfx.nrk.no/5SN-Uq11iR3ADwrCwTv0bAKbbBXXNpVJsaCLGiU8lFoQ',
+            'timestamp': 1205622000,
+            'upload_date': '20080315',
+            'alt_title': '',
         },
     }, {
         'url': 'https://www.nrk.no/skole/?page=objectives&subject=naturfag&objective=K15114&mediaId=19355',
@@ -863,9 +1031,14 @@ class NRKSkoleIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-
-        nrk_id = self._download_json(
+        response = self._download_json(
             f'https://nrkno-skole-prod.kube.nrk.no/skole/api/media/{video_id}',
-            video_id)['psId']
-
-        return self.url_result(f'nrk:{nrk_id}')
+            video_id)
+        nrk_id = response['psId']
+        return self.url_result(
+            f'nrk:{nrk_id}', NRKIE, nrk_id, url_transparent=True,
+            **traverse_obj(response, {
+                'title': ('title', {str}),
+                'timestamp': ('airedDate', {parse_iso8601}),
+                'description': ('summary', {str}),
+            }))
