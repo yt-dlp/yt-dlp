@@ -564,11 +564,12 @@ class FacebookIE(InfoExtractor):
                     js_data, lambda x: x['jsmods']['instances'], list) or [])
 
         def extract_dash_manifest(video, formats):
-            dash_manifest = traverse_obj(video, 'dash_manifest', 'playlist', expected_type=str)
+            dash_manifest = traverse_obj(
+                video, 'dash_manifest', 'playlist', 'dash_manifest_xml_string', expected_type=str)
             if dash_manifest:
                 formats.extend(self._parse_mpd_formats(
                     compat_etree_fromstring(urllib.parse.unquote_plus(dash_manifest)),
-                    mpd_url=video.get('dash_manifest_url')))
+                    mpd_url=url_or_none(video.get('dash_manifest_url'))))
 
         def process_formats(info):
             # Downloads with browser's User-Agent are rate limited. Working around
@@ -618,12 +619,13 @@ class FacebookIE(InfoExtractor):
                         video = video['creation_story']
                         video['owner'] = traverse_obj(video, ('short_form_video_context', 'video_owner'))
                         video.update(reel_info)
+                    fmt_data = traverse_obj(video, ('videoDeliveryLegacyFields', {dict})) or video
                     formats = []
                     q = qualities(['sd', 'hd'])
                     for key, format_id in (('playable_url', 'sd'), ('playable_url_quality_hd', 'hd'),
                                            ('playable_url_dash', ''), ('browser_native_hd_url', 'hd'),
                                            ('browser_native_sd_url', 'sd')):
-                        playable_url = video.get(key)
+                        playable_url = fmt_data.get(key)
                         if not playable_url:
                             continue
                         if determine_ext(playable_url) == 'mpd':
@@ -635,7 +637,7 @@ class FacebookIE(InfoExtractor):
                                 'quality': q(format_id) - 3,
                                 'url': playable_url,
                             })
-                    extract_dash_manifest(video, formats)
+                    extract_dash_manifest(fmt_data, formats)
                     if not formats:
                         # Do not append false positive entry w/o any formats
                         return
