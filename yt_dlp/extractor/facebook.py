@@ -564,11 +564,12 @@ class FacebookIE(InfoExtractor):
                     js_data, lambda x: x['jsmods']['instances'], list) or [])
 
         def extract_dash_manifest(video, formats):
-            dash_manifest = traverse_obj(video, 'dash_manifest', 'playlist', expected_type=str)
-            if dash_manifest:
+            dash_manifest = traverse_obj(video, ('videoDeliveryLegacyFields', 'dash_manifest_xml_string', {str}))
+            mpd_url = traverse_obj(video, ('videoDeliveryLegacyFields', 'dash_manifest_url', {url_or_none}))
+            if dash_manifest and mpd_url:
                 formats.extend(self._parse_mpd_formats(
                     compat_etree_fromstring(urllib.parse.unquote_plus(dash_manifest)),
-                    mpd_url=video.get('dash_manifest_url')))
+                    mpd_url=mpd_url))
 
         def process_formats(info):
             # Downloads with browser's User-Agent are rate limited. Working around
@@ -623,7 +624,7 @@ class FacebookIE(InfoExtractor):
                     for key, format_id in (('playable_url', 'sd'), ('playable_url_quality_hd', 'hd'),
                                            ('playable_url_dash', ''), ('browser_native_hd_url', 'hd'),
                                            ('browser_native_sd_url', 'sd')):
-                        playable_url = video.get(key)
+                        playable_url = traverse_obj(video, ('videoDeliveryLegacyFields', key, {url_or_none}))
                         if not playable_url:
                             continue
                         if determine_ext(playable_url) == 'mpd':
