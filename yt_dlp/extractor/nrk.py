@@ -1,10 +1,8 @@
 import itertools
-import json
 import random
 import re
 
 from .common import InfoExtractor
-from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     determine_ext,
