@@ -184,7 +184,7 @@ class BoomplayBaseIE(InfoExtractor):
 
 class BoomplayMusicIE(BoomplayBaseIE):
     _VALID_URL = r'https?://(?:www\.)?boomplay\.com/songs/(?P<id>\d+)'
-    _TEST = {
+    _TESTS = [{
         'url': 'https://www.boomplay.com/songs/165481965',
         'md5': 'c5fb4f23e6aae98064230ef3c39c2178',
         'info_dict': {
@@ -202,7 +202,7 @@ class BoomplayMusicIE(BoomplayBaseIE):
             'album': 'Legendary Battle',
             'genres': ['Metal'],
         },
-    }
+    }]
 
     def _real_extract(self, url):
         song_id = self._match_id(url)
@@ -225,7 +225,7 @@ class BoomplayMusicIE(BoomplayBaseIE):
 
 class BoomplayVideoIE(BoomplayBaseIE):
     _VALID_URL = r'https?://(?:www\.)?boomplay\.com/video/(?P<id>\d+)'
-    _TEST = {
+    _TESTS = [{
         'url': 'https://www.boomplay.com/video/1154892',
         'md5': 'd9b67ad333d2292a82922062d065352d',
         'info_dict': {
@@ -239,7 +239,7 @@ class BoomplayVideoIE(BoomplayBaseIE):
             'duration': 177.0,
             'description': 'Autumn blues by Lugo',
         },
-    }
+    }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -253,7 +253,7 @@ class BoomplayVideoIE(BoomplayBaseIE):
 
 class BoomplayEpisodeIE(BoomplayBaseIE):
     _VALID_URL = r'https?://(?:www\.)?boomplay\.com/episode/(?P<id>\d+)'
-    _TEST = {
+    _TESTS = [{
         'url': 'https://www.boomplay.com/episode/7132706',
         'md5': 'f26e236b764baa53d7a2cbb7e9ce6dc4',
         'info_dict': {
@@ -267,7 +267,7 @@ class BoomplayEpisodeIE(BoomplayBaseIE):
             'upload_date': '20240506',
             'description': 'md5:5ec684b281fa0f9e4c31b3ee20c5e57a',
         },
-    }
+    }]
 
     def _real_extract(self, url):
         ep_id = self._match_id(url)
@@ -283,7 +283,7 @@ class BoomplayEpisodeIE(BoomplayBaseIE):
 
 class BoomplayPodcastIE(BoomplayBaseIE):
     _VALID_URL = r'https?://(?:www\.)?boomplay\.com/podcasts/(?P<id>\d+)'
-    _TEST = {
+    _TESTS = [{
         'url': 'https://www.boomplay.com/podcasts/5372',
         'playlist_count': 200,
         'info_dict': {
@@ -295,7 +295,7 @@ class BoomplayPodcastIE(BoomplayBaseIE):
             'comment_count': int,
             'like_count': int,
         },
-    }
+    }]
 
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
@@ -458,10 +458,10 @@ class BoomplaySearchURLIE(BoomplayBaseIE):
 class BoomplaySearchIE(SearchInfoExtractor):
     _SEARCH_KEY = 'boomplaysearch'
     _RETURN_TYPE = 'url'
-    _TEST = {
+    _TESTS = [{
         'url': 'boomplaysearch:rise of the fallen heroes',
         'only_matching': True,
-    }
+    }]
 
     def _search_results(self, query):
         yield self.url_result(
