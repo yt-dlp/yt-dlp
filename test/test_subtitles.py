@@ -299,7 +299,7 @@ class TestMTVSubtitles(BaseTestSubtitles):
 
 @is_download_test
 class TestNRKSubtitles(BaseTestSubtitles):
-    url = 'nrk:DMPV73000411' # http://tv.nrk.no/serie/ikke-gjoer-dette-hjemme/DMPV73000411/sesong-2/episode-1
+    url = 'nrk:DMPV73000411'  # http://tv.nrk.no/serie/ikke-gjoer-dette-hjemme/DMPV73000411/sesong-2/episode-1
     IE = NRKIE
 
     def test_allsubtitles(self):
