@@ -8,6 +8,7 @@ from ..utils import (
 
 
 class TassIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:tass\.ru|itar-tass\.com)/[^/]+/(?P<id>\d+)'
     _TESTS = [
         {
@@ -48,7 +49,6 @@ class TassIE(InfoExtractor):
                 'format_id': label,
                 'quality': quality(label),
             })
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

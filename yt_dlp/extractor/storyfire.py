@@ -2,9 +2,9 @@ import functools
 
 from .common import InfoExtractor
 from ..utils import (
+    OnDemandPagedList,
     format_field,
     int_or_none,
-    OnDemandPagedList,
     smuggle_url,
 )
 
@@ -14,8 +14,8 @@ class StoryFireBaseIE(InfoExtractor):
 
     def _call_api(self, path, video_id, resource, query=None):
         return self._download_json(
-            'https://storyfire.com/app/%s/%s' % (path, video_id), video_id,
-            'Downloading %s JSON metadata' % resource, query=query)
+            f'https://storyfire.com/app/{path}/{video_id}', video_id,
+            f'Downloading {resource} JSON metadata', query=query)
 
     def _parse_video(self, video):
         title = video['title']
@@ -32,9 +32,7 @@ class StoryFireBaseIE(InfoExtractor):
             'description': video.get('description'),
             'url': smuggle_url(
                 'https://player.vimeo.com/video/' + vimeo_id, {
-                    'http_headers': {
-                        'Referer': 'https://storyfire.com/',
-                    }
+                    'referer': 'https://storyfire.com/',
                 }),
             'thumbnail': video.get('storyImage'),
             'view_count': int_or_none(video.get('views')),
@@ -44,7 +42,7 @@ class StoryFireBaseIE(InfoExtractor):
             'timestamp': int_or_none(video.get('publishDate')),
             'uploader': video.get('username'),
             'uploader_id': uploader_id,
-            'uploader_url': format_field(uploader_id, template='https://storyfire.com/user/%s/video'),
+            'uploader_url': format_field(uploader_id, None, 'https://storyfire.com/user/%s/video'),
             'episode_number': int_or_none(video.get('episodeNumber') or video.get('episode_number')),
         }
 
@@ -71,7 +69,7 @@ class StoryFireIE(StoryFireBaseIE):
         'params': {
             'skip_download': True,
         },
-        'expected_warnings': ['Unable to download JSON metadata']
+        'expected_warnings': ['Unable to download JSON metadata'],
     }
 
     def _real_extract(self, url):
@@ -94,7 +92,7 @@ class StoryFireUserIE(StoryFireBaseIE):
 
     def _fetch_page(self, user_id, page):
         videos = self._call_api(
-            'publicVideos', user_id, 'page %d' % (page + 1), {
+            'publicVideos', user_id, f'page {page + 1}', {
                 'skip': page * self._PAGE_SIZE,
             })['videos']
         for video in videos:

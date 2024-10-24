@@ -2,13 +2,14 @@ import re
 
 from .common import InfoExtractor
 from ..utils import (
-    js_to_json,
     int_or_none,
+    js_to_json,
     unescapeHTML,
 )
 
 
 class ReutersIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?reuters\.com/.*?\?.*?videoId=(?P<id>[0-9]+)'
     _TEST = {
         'url': 'http://www.reuters.com/video/2016/05/20/san-francisco-police-chief-resigns?videoId=368575562',
@@ -17,25 +18,25 @@ class ReutersIE(InfoExtractor):
             'id': '368575562',
             'ext': 'mp4',
             'title': 'San Francisco police chief resigns',
-        }
+        },
     }
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(
-            'http://www.reuters.com/assets/iframe/yovideo?videoId=%s' % video_id, video_id)
+            f'http://www.reuters.com/assets/iframe/yovideo?videoId={video_id}', video_id)
         video_data = js_to_json(self._search_regex(
             r'(?s)Reuters\.yovideo\.drawPlayer\(({.*?})\);',
             webpage, 'video data'))
 
         def get_json_value(key, fatal=False):
-            return self._search_regex(r'"%s"\s*:\s*"([^"]+)"' % key, video_data, key, fatal=fatal)
+            return self._search_regex(rf'"{key}"\s*:\s*"([^"]+)"', video_data, key, fatal=fatal)
 
         title = unescapeHTML(get_json_value('title', fatal=True))
         mmid, fid = re.search(r',/(\d+)\?f=(\d+)', get_json_value('flv', fatal=True)).groups()
 
         mas_data = self._download_json(
-            'http://mas-e.cds1.yospace.com/mas/%s/%s?trans=json' % (mmid, fid),
+            f'http://mas-e.cds1.yospace.com/mas/{mmid}/{fid}?trans=json',
             video_id, transform_source=js_to_json)
         formats = []
         for f in mas_data:
@@ -55,7 +56,6 @@ class ReutersIE(InfoExtractor):
                     'ext': ext,
                     'container': container if method != 'mobile' else None,
                 })
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

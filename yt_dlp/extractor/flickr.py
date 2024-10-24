@@ -1,8 +1,6 @@
+import urllib.parse
+
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-    compat_urllib_parse_urlencode,
-)
 from ..utils import (
     ExtractorError,
     format_field,
@@ -31,7 +29,7 @@ class FlickrIE(InfoExtractor):
             'view_count': int,
             'tags': list,
             'license': 'Attribution-ShareAlike',
-        }
+        },
     }
     _API_BASE_URL = 'https://api.flickr.com/services/rest?'
     # https://help.yahoo.com/kb/flickr/SLN25525.html
@@ -52,14 +50,14 @@ class FlickrIE(InfoExtractor):
     def _call_api(self, method, video_id, api_key, note, secret=None):
         query = {
             'photo_id': video_id,
-            'method': 'flickr.%s' % method,
+            'method': f'flickr.{method}',
             'api_key': api_key,
             'format': 'json',
             'nojsoncallback': 1,
         }
         if secret:
             query['secret'] = secret
-        data = self._download_json(self._API_BASE_URL + compat_urllib_parse_urlencode(query), video_id, note)
+        data = self._download_json(self._API_BASE_URL + urllib.parse.urlencode(query), video_id, note)
         if data['stat'] != 'ok':
             raise ExtractorError(data['message'])
         return data
@@ -83,18 +81,17 @@ class FlickrIE(InfoExtractor):
 
             formats = []
             for stream in streams['stream']:
-                stream_type = compat_str(stream.get('type'))
+                stream_type = str(stream.get('type'))
                 formats.append({
                     'format_id': stream_type,
                     'url': stream['_content'],
                     'quality': preference(stream_type),
                 })
-            self._sort_formats(formats)
 
             owner = video_info.get('owner', {})
             uploader_id = owner.get('nsid')
             uploader_path = owner.get('path_alias') or uploader_id
-            uploader_url = format_field(uploader_path, template='https://www.flickr.com/photos/%s/')
+            uploader_url = format_field(uploader_path, None, 'https://www.flickr.com/photos/%s/')
 
             return {
                 'id': video_id,

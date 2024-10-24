@@ -59,7 +59,6 @@ class FptplayIE(InfoExtractor):
         info = self._download_json(
             self.get_api_with_st_token(video_id, int(slug_episode) - 1 if slug_episode else 0), video_id)
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(info['data']['url'], video_id, 'mp4')
-        self._sort_formats(formats)
         return {
             'id': video_id,
             'title': join_nonempty(title, real_episode, delim=' - '),
@@ -85,7 +84,7 @@ class FptplayIE(InfoExtractor):
             a = [0, 0, 0, 0]
             s = len(e)
             c = 0
-            for z in range(s, 0, -1):
+            for _ in range(s, 0, -1):
                 if n <= 3:
                     i[n] = e[c]
                 n += 1

@@ -2,23 +2,24 @@ import re
 
 from .common import InfoExtractor
 from ..utils import (
-    float_or_none,
-    parse_iso8601,
-    update_url_query,
-    int_or_none,
     determine_protocol,
+    float_or_none,
+    int_or_none,
+    parse_iso8601,
     unescapeHTML,
+    update_url_query,
 )
 
 
 class SendtoNewsIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://embed\.sendtonews\.com/player2/embedplayer\.php\?.*\bSC=(?P<id>[0-9A-Za-z-]+)'
 
     _TEST = {
         # From http://cleveland.cbslocal.com/2016/05/16/indians-score-season-high-15-runs-in-blowout-win-over-reds-rapid-reaction/
         'url': 'http://embed.sendtonews.com/player2/embedplayer.php?SC=GxfCe0Zo7D-175909-5588&type=single&autoplay=on&sound=YES',
         'info_dict': {
-            'id': 'GxfCe0Zo7D-175909-5588'
+            'id': 'GxfCe0Zo7D-175909-5588',
         },
         'playlist_count': 8,
         # test the first video only to prevent lengthy tests
@@ -43,14 +44,14 @@ class SendtoNewsIE(InfoExtractor):
     _URL_TEMPLATE = '//embed.sendtonews.com/player2/embedplayer.php?SC=%s'
 
     @classmethod
-    def _extract_url(cls, webpage):
+    def _extract_embed_urls(cls, url, webpage):
         mobj = re.search(r'''(?x)<script[^>]+src=([\'"])
             (?:https?:)?//embed\.sendtonews\.com/player/responsiveembed\.php\?
                 .*\bSC=(?P<SC>[0-9a-zA-Z-]+).*
             \1>''', webpage)
         if mobj:
             sc = mobj.group('SC')
-            return cls._URL_TEMPLATE % sc
+            yield cls._URL_TEMPLATE % sc
 
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
@@ -74,12 +75,9 @@ class SendtoNewsIE(InfoExtractor):
                 if not tbr:
                     continue
                 f.update({
-                    'format_id': '%s-%d' % (determine_protocol(f), tbr),
+                    'format_id': f'{determine_protocol(f)}-{tbr}',
                     'tbr': tbr,
                 })
-            # 'tbr' was explicitly set to be preferred over 'height' originally,
-            # So this is being kept unless someone can confirm this is unnecessary
-            self._sort_formats(info_dict['formats'], ('tbr', 'res'))
 
             thumbnails = []
             if video.get('thumbnailUrl'):
@@ -98,6 +96,9 @@ class SendtoNewsIE(InfoExtractor):
                 'thumbnails': thumbnails,
                 'duration': float_or_none(video.get('SM_length')),
                 'timestamp': parse_iso8601(video.get('S_sysDate'), delimiter=' '),
+                # 'tbr' was explicitly set to be preferred over 'height' originally,
+                # So this is being kept unless someone can confirm this is unnecessary
+                '_format_sort_fields': ('tbr', 'res'),
             })
             entries.append(info_dict)
 

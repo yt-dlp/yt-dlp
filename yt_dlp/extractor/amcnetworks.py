@@ -9,7 +9,7 @@ from ..utils import (
 )
 
 
-class AMCNetworksIE(ThePlatformIE):
+class AMCNetworksIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
     _VALID_URL = r'https?://(?:www\.)?(?P<site>amc|bbcamerica|ifc|(?:we|sundance)tv)\.com/(?P<id>(?:movies|shows(?:/[^/]+)+)/[^/?#&]+)'
     _TESTS = [{
         'url': 'https://www.bbcamerica.com/shows/the-graham-norton-show/videos/tina-feys-adorable-airline-themed-family-dinner--51631',
@@ -26,6 +26,7 @@ class AMCNetworksIE(ThePlatformIE):
             # m3u8 download
             'skip_download': True,
         },
+        'skip': '404 Not Found',
     }, {
         'url': 'http://www.bbcamerica.com/shows/the-hunt/full-episodes/season-1/episode-01-the-hardest-challenge',
         'only_matching': True,
@@ -63,8 +64,8 @@ class AMCNetworksIE(ThePlatformIE):
         site, display_id = self._match_valid_url(url).groups()
         requestor_id = self._REQUESTOR_ID_MAP[site]
         page_data = self._download_json(
-            'https://content-delivery-gw.svc.ds.amcn.com/api/v2/content/amcn/%s/url/%s'
-            % (requestor_id.lower(), display_id), display_id)['data']
+            f'https://content-delivery-gw.svc.ds.amcn.com/api/v2/content/amcn/{requestor_id.lower()}/url/{display_id}',
+            display_id)['data']
         properties = page_data.get('properties') or {}
         query = {
             'mbr': 'true',
@@ -75,15 +76,15 @@ class AMCNetworksIE(ThePlatformIE):
         try:
             for v in page_data['children']:
                 if v.get('type') == 'video-player':
-                    releasePid = v['properties']['currentVideo']['meta']['releasePid']
-                    tp_path = 'M_UwQC/' + releasePid
+                    release_pid = v['properties']['currentVideo']['meta']['releasePid']
+                    tp_path = 'M_UwQC/' + release_pid
                     media_url = 'https://link.theplatform.com/s/' + tp_path
                     video_player_count += 1
         except KeyError:
             pass
         if video_player_count > 1:
             self.report_warning(
-                'The JSON data has %d video players. Only one will be extracted' % video_player_count)
+                f'The JSON data has {video_player_count} video players. Only one will be extracted')
 
         # Fall back to videoPid if releasePid not found.
         # TODO: Fall back to videoPid if releasePid manifest uses DRM.
@@ -106,7 +107,6 @@ class AMCNetworksIE(ThePlatformIE):
         media_url = update_url_query(media_url, query)
         formats, subtitles = self._extract_theplatform_smil(
             media_url, video_id)
-        self._sort_formats(formats)
 
         thumbnails = []
         thumbnail_urls = [properties.get('imageDesktop')]
@@ -131,7 +131,7 @@ class AMCNetworksIE(ThePlatformIE):
         })
         ns_keys = theplatform_metadata.get('$xmlns', {}).keys()
         if ns_keys:
-            ns = list(ns_keys)[0]
+            ns = next(iter(ns_keys))
             episode = theplatform_metadata.get(ns + '$episodeTitle') or None
             episode_number = int_or_none(
                 theplatform_metadata.get(ns + '$episode'))

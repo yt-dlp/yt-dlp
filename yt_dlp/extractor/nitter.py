@@ -1,13 +1,14 @@
-from .common import InfoExtractor
-from ..compat import compat_urlparse
-from ..utils import (
-    parse_count,
-    unified_timestamp,
-    remove_end,
-    determine_ext,
-)
-import re
 import random
+import re
+import urllib.parse
+
+from .common import InfoExtractor
+from ..utils import (
+    determine_ext,
+    parse_count,
+    remove_end,
+    unified_timestamp,
+)
 
 
 class NitterIE(InfoExtractor):
@@ -39,59 +40,99 @@ class NitterIE(InfoExtractor):
     )
 
     HTTP_INSTANCES = (
-        'nitter.42l.fr',
-        'nitter.pussthecat.org',
-        'nitter.nixnet.services',
+        'nitter.lacontrevoie.fr',
         'nitter.fdn.fr',
         'nitter.1d4.us',
         'nitter.kavin.rocks',
         'nitter.unixfox.eu',
         'nitter.domain.glass',
-        'nitter.eu',
         'nitter.namazso.eu',
-        'nitter.actionsack.com',
         'birdsite.xanny.family',
-        'nitter.hu',
-        'twitr.gq',
         'nitter.moomoo.me',
-        'nittereu.moomoo.me',
-        'bird.from.tf',
+        'bird.trom.tf',
         'nitter.it',
         'twitter.censors.us',
-        'twitter.grimneko.de',
-        'nitter.alefvanoon.xyz',
-        'n.hyperborea.cloud',
-        'nitter.ca',
+        'nitter.grimneko.de',
         'twitter.076.ne.jp',
-        'twitter.mstdn.social',
         'nitter.fly.dev',
         'notabird.site',
         'nitter.weiler.rocks',
-        'nitter.silkky.cloud',
         'nitter.sethforprivacy.com',
-        'nttr.stream',
         'nitter.cutelab.space',
         'nitter.nl',
         'nitter.mint.lgbt',
         'nitter.bus-hit.me',
-        'fuckthesacklers.network',
-        'nitter.govt.land',
-        'nitter.datatunnel.xyz',
         'nitter.esmailelbob.xyz',
         'tw.artemislena.eu',
-        'de.nttr.stream',
         'nitter.winscloud.net',
         'nitter.tiekoetter.com',
         'nitter.spaceint.fr',
-        'twtr.bch.bar',
-        'nitter.exonip.de',
-        'nitter.mastodon.pro',
-        'nitter.notraxx.ch',
-
-
-        # not in the list anymore
-        'nitter.skrep.in',
-        'nitter.snopyta.org',
+        'nitter.privacy.com.de',
+        'nitter.poast.org',
+        'nitter.bird.froth.zone',
+        'nitter.dcs0.hu',
+        'twitter.dr460nf1r3.org',
+        'nitter.garudalinux.org',
+        'twitter.femboy.hu',
+        'nitter.cz',
+        'nitter.privacydev.net',
+        'nitter.evil.site',
+        'tweet.lambda.dance',
+        'nitter.kylrth.com',
+        'nitter.foss.wtf',
+        'nitter.priv.pw',
+        'nitter.tokhmi.xyz',
+        'nitter.catalyst.sx',
+        'unofficialbird.com',
+        'nitter.projectsegfau.lt',
+        'nitter.eu.projectsegfau.lt',
+        'singapore.unofficialbird.com',
+        'canada.unofficialbird.com',
+        'india.unofficialbird.com',
+        'nederland.unofficialbird.com',
+        'uk.unofficialbird.com',
+        'n.l5.ca',
+        'nitter.slipfox.xyz',
+        'nitter.soopy.moe',
+        'nitter.qwik.space',
+        'read.whatever.social',
+        'nitter.rawbit.ninja',
+        'nt.vern.cc',
+        'ntr.odyssey346.dev',
+        'nitter.ir',
+        'nitter.privacytools.io',
+        'nitter.sneed.network',
+        'n.sneed.network',
+        'nitter.manasiwibi.com',
+        'nitter.smnz.de',
+        'nitter.twei.space',
+        'nitter.inpt.fr',
+        'nitter.d420.de',
+        'nitter.caioalonso.com',
+        'nitter.at',
+        'nitter.drivet.xyz',
+        'nitter.pw',
+        'nitter.nicfab.eu',
+        'bird.habedieeh.re',
+        'nitter.hostux.net',
+        'nitter.adminforge.de',
+        'nitter.platypush.tech',
+        'nitter.mask.sh',
+        'nitter.pufe.org',
+        'nitter.us.projectsegfau.lt',
+        'nitter.arcticfoxes.net',
+        't.com.sb',
+        'nitter.kling.gg',
+        'nitter.ktachibana.party',
+        'nitter.riverside.rocks',
+        'nitter.girlboss.ceo',
+        'nitter.lunar.icu',
+        'twitter.moe.ngo',
+        'nitter.freedit.eu',
+        'ntr.frail.duckdns.org',
+        'nitter.librenode.org',
+        'n.opnxng.com',
+        'nitter.plus.st',
     )
 
     DEAD_INSTANCES = (
@@ -117,6 +158,32 @@ class NitterIE(InfoExtractor):
         'nitter.weaponizedhumiliation.com',
         'nitter.vxempire.xyz',
         'tweet.lambda.dance',
+        'nitter.ca',
+        'nitter.42l.fr',
+        'nitter.pussthecat.org',
+        'nitter.nixnet.services',
+        'nitter.eu',
+        'nitter.actionsack.com',
+        'nitter.hu',
+        'twitr.gq',
+        'nittereu.moomoo.me',
+        'bird.from.tf',
+        'twitter.grimneko.de',
+        'nitter.alefvanoon.xyz',
+        'n.hyperborea.cloud',
+        'twitter.mstdn.social',
+        'nitter.silkky.cloud',
+        'nttr.stream',
+        'fuckthesacklers.network',
+        'nitter.govt.land',
+        'nitter.datatunnel.xyz',
+        'de.nttr.stream',
+        'twtr.bch.bar',
+        'nitter.exonip.de',
+        'nitter.mastodon.pro',
+        'nitter.notraxx.ch',
+        'nitter.skrep.in',
+        'nitter.snopyta.org',
     )
 
     INSTANCES = NON_HTTP_INSTANCES + HTTP_INSTANCES + DEAD_INSTANCES
@@ -198,13 +265,33 @@ class NitterIE(InfoExtractor):
                 'like_count': int,
                 'repost_count': int,
                 'comment_count': int,
-            }
-        }
+            },
+        }, {  # no OpenGraph title
+            'url': f'https://{current_instance}/LocalBateman/status/1678455464038735895#m',
+            'info_dict': {
+                'id': '1678455464038735895',
+                'ext': 'mp4',
+                'title': 'Your Typical Local Man - Local man, what did Romanians ever do to you?',
+                'description': 'Local man, what did Romanians ever do to you?',
+                'thumbnail': r're:^https?://.*\.jpg$',
+                'uploader': 'Your Typical Local Man',
+                'uploader_id': 'LocalBateman',
+                'uploader_url': f'https://{current_instance}/LocalBateman',
+                'upload_date': '20230710',
+                'timestamp': 1689009900,
+                'view_count': int,
+                'like_count': int,
+                'repost_count': int,
+                'comment_count': int,
+            },
+            'expected_warnings': ['Ignoring subtitle tracks found in the HLS manifest'],
+            'params': {'skip_download': 'm3u8'},
+        },
     ]
 
     def _real_extract(self, url):
         video_id, uploader_id = self._match_valid_url(url).group('id', 'uploader_id')
-        parsed_url = compat_urlparse.urlparse(url)
+        parsed_url = urllib.parse.urlparse(url)
         base_url = f'{parsed_url.scheme}://{parsed_url.netloc}'
 
         self._set_cookie(parsed_url.netloc, 'hlsPlayback', 'on')
@@ -214,7 +301,7 @@ class NitterIE(InfoExtractor):
         if main_tweet_start > 0:
             webpage = full_webpage[main_tweet_start:]
 
-        video_url = '%s%s' % (base_url, self._html_search_regex(
+        video_url = '{}{}'.format(base_url, self._html_search_regex(
             r'(?:<video[^>]+data-url|<source[^>]+src)="([^"]+)"', webpage, 'video url'))
         ext = determine_ext(video_url)
 
@@ -223,10 +310,10 @@ class NitterIE(InfoExtractor):
         else:
             formats = [{
                 'url': video_url,
-                'ext': ext
+                'ext': ext,
             }]
 
-        title = description = self._og_search_description(full_webpage) or self._html_search_regex(
+        title = description = self._og_search_description(full_webpage, default=None) or self._html_search_regex(
             r'<div class="tweet-content[^>]+>([^<]+)</div>', webpage, 'title', fatal=False)
 
         uploader_id = self._html_search_regex(
@@ -247,12 +334,12 @@ class NitterIE(InfoExtractor):
 
         thumbnail = (
             self._html_search_meta('og:image', full_webpage, 'thumbnail url')
-            or remove_end('%s%s' % (base_url, self._html_search_regex(
+            or remove_end('{}{}'.format(base_url, self._html_search_regex(
                 r'<video[^>]+poster="([^"]+)"', webpage, 'thumbnail url', fatal=False)), '%3Asmall'))
 
         thumbnails = [
-            {'id': id, 'url': f'{thumbnail}%3A{id}'}
-            for id in ('thumb', 'small', 'large', 'medium', 'orig')
+            {'id': id_, 'url': f'{thumbnail}%3A{id_}'}
+            for id_ in ('thumb', 'small', 'large', 'medium', 'orig')
         ]
 
         date = self._html_search_regex(

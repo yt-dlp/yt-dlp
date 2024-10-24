@@ -2,9 +2,9 @@ import re
 
 from .common import InfoExtractor
 from ..utils import (
+    NO_DEFAULT,
     determine_ext,
     int_or_none,
-    NO_DEFAULT,
     str_to_int,
 )
 
@@ -41,7 +41,7 @@ class XNXXIE(InfoExtractor):
 
         def get(meta, default=NO_DEFAULT, fatal=True):
             return self._search_regex(
-                r'set%s\s*\(\s*(["\'])(?P<value>(?:(?!\1).)+)\1' % meta,
+                rf'set{meta}\s*\(\s*(["\'])(?P<value>(?:(?!\1).)+)\1',
                 webpage, meta, default=default, fatal=fatal, group='value')
 
         title = self._og_search_title(
@@ -64,7 +64,6 @@ class XNXXIE(InfoExtractor):
                     'format_id': format_id,
                     'quality': -1 if format_id == 'low' else 0,
                 })
-        self._sort_formats(formats)
 
         thumbnail = self._og_search_thumbnail(webpage, default=None) or get(
             'ThumbUrl', fatal=False) or get('ThumbUrl169', fatal=False)

@@ -1,8 +1,8 @@
 from .common import InfoExtractor
-from ..compat import compat_HTTPError
+from ..networking.exceptions import HTTPError
 from ..utils import (
-    determine_ext,
     ExtractorError,
+    determine_ext,
     int_or_none,
     unified_strdate,
 )
@@ -24,7 +24,7 @@ class RadioCanadaIE(InfoExtractor):
             'params': {
                 # m3u8 download
                 'skip_download': True,
-            }
+            },
         },
         {
             # empty Title
@@ -50,7 +50,7 @@ class RadioCanadaIE(InfoExtractor):
                 'series': 'District 31',
             },
             'only_matching': True,
-        }
+        },
     ]
     _GEO_COUNTRIES = ['CA']
     _access_token = None
@@ -74,8 +74,8 @@ class RadioCanadaIE(InfoExtractor):
             return self._download_json(
                 'https://services.radio-canada.ca/media/' + path, video_id, query=query)
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code in (401, 422):
-                data = self._parse_json(e.cause.read().decode(), None)
+            if isinstance(e.cause, HTTPError) and e.cause.status in (401, 422):
+                data = self._parse_json(e.cause.response.read().decode(), None)
                 error = data.get('error_description') or data['errorMessage']['text']
                 raise ExtractorError(error, expected=True)
             raise
@@ -111,9 +111,8 @@ class RadioCanadaIE(InfoExtractor):
             if error == 'Le contenu sélectionné est disponible seulement en premium':
                 self.raise_login_required(error)
             raise ExtractorError(
-                '%s said: %s' % (self.IE_NAME, error), expected=True)
+                f'{self.IE_NAME} said: {error}', expected=True)
         formats = self._extract_m3u8_formats(v_url, video_id, 'mp4')
-        self._sort_formats(formats)
 
         subtitles = {}
         closed_caption_url = get_meta('closedCaption') or get_meta('closedCaptionHTML5')
@@ -163,4 +162,4 @@ class RadioCanadaAudioVideoIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        return self.url_result('radiocanada:medianet:%s' % self._match_id(url))
+        return self.url_result(f'radiocanada:medianet:{self._match_id(url)}')

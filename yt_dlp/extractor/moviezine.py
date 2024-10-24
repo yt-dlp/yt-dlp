@@ -20,7 +20,7 @@ class MoviezineIE(InfoExtractor):
         video_id = mobj.group('id')
 
         webpage = self._download_webpage(url, video_id)
-        jsplayer = self._download_webpage('http://www.moviezine.se/api/player.js?video=%s' % video_id, video_id, 'Downloading js api player')
+        jsplayer = self._download_webpage(f'http://www.moviezine.se/api/player.js?video={video_id}', video_id, 'Downloading js api player')
 
         formats = [{
             'format_id': 'sd',
@@ -28,8 +28,6 @@ class MoviezineIE(InfoExtractor):
             'quality': 0,
             'ext': 'mp4',
         }]
-
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

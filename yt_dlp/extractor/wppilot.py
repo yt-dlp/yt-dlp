@@ -1,12 +1,12 @@
-from .common import InfoExtractor
-from ..utils import (
-    try_get,
-    ExtractorError,
-)
-
 import json
 import random
 import re
+
+from .common import InfoExtractor
+from ..utils import (
+    ExtractorError,
+    try_get,
+)
 
 
 class WPPilotBaseIE(InfoExtractor):
@@ -20,7 +20,7 @@ class WPPilotBaseIE(InfoExtractor):
 
     def _get_channel_list(self, cache=True):
         if cache is True:
-            cache_res = self._downloader.cache.load('wppilot', 'channel-list')
+            cache_res = self.cache.load('wppilot', 'channel-list')
             if cache_res:
                 return cache_res, True
         webpage = self._download_webpage('https://pilot.wp.pl/tv/', None, 'Downloading webpage')
@@ -35,7 +35,7 @@ class WPPilotBaseIE(InfoExtractor):
             channel_list = try_get(qhash_content, lambda x: x['data']['allChannels']['nodes'])
             if channel_list is None:
                 continue
-            self._downloader.cache.store('wppilot', 'channel-list', channel_list)
+            self.cache.store('wppilot', 'channel-list', channel_list)
             return channel_list, False
         raise ExtractorError('Unable to find the channel list')
 
@@ -101,9 +101,9 @@ class WPPilotIE(WPPilotBaseIE):
         channel = self._get_channel(video_id)
         video_id = str(channel['id'])
 
-        is_authorized = next((c for c in self._downloader.cookiejar if c.name == 'netviapisessid'), None)
+        is_authorized = next((c for c in self.cookiejar if c.name == 'netviapisessid'), None)
         # cookies starting with "g:" are assigned to guests
-        is_authorized = True if is_authorized is not None and not is_authorized.value.startswith('g:') else False
+        is_authorized = is_authorized is not None and not is_authorized.value.startswith('g:')
 
         video = self._download_json(
             (self._VIDEO_URL if is_authorized else self._VIDEO_GUEST_URL) % video_id,
@@ -120,7 +120,7 @@ class WPPilotIE(WPPilotBaseIE):
                 data=json.dumps({
                     'channelId': video_id,
                     't': stream_token,
-                }).encode('utf-8'))
+                }).encode())
             if try_get(close, lambda x: x['data']['status']) == 'ok':
                 return self.url_result(url, ie=WPPilotIE.ie_key())
 
@@ -137,8 +137,6 @@ class WPPilotIE(WPPilotBaseIE):
                     self._extract_m3u8_formats(
                         random.choice(fmt['url']),
                         video_id, live=True))
-
-        self._sort_formats(formats)
 
         channel['formats'] = formats
         return channel

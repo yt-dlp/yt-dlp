@@ -1,5 +1,6 @@
+import urllib.parse
+
 from .common import InfoExtractor
-from ..compat import compat_urlparse
 
 
 class RtmpIE(InfoExtractor):
@@ -23,7 +24,7 @@ class RtmpIE(InfoExtractor):
             'formats': [{
                 'url': url,
                 'ext': 'flv',
-                'format_id': compat_urlparse.urlparse(url).scheme,
+                'format_id': urllib.parse.urlparse(url).scheme,
             }],
         }
 
@@ -62,7 +63,7 @@ class ViewSourceIE(InfoExtractor):
 
     _TEST = {
         'url': 'view-source:https://www.youtube.com/watch?v=BaW_jenozKc',
-        'only_matching': True
+        'only_matching': True,
     }
 
     def _real_extract(self, url):

@@ -1,11 +1,9 @@
 import json
 import re
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_HTTPError,
-    compat_urllib_parse,
-)
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     float_or_none,
@@ -38,12 +36,12 @@ class PelotonIE(InfoExtractor):
             'chapters': 'count:1',
             'subtitles': {'en': [{
                 'url': r're:^https?://.+',
-                'ext': 'vtt'
+                'ext': 'vtt',
             }]},
         }, 'params': {
             'skip_download': 'm3u8',
         },
-        '_skip': 'Account needed'
+        'skip': 'Account needed',
     }, {
         'url': 'https://members.onepeloton.com/classes/player/26603d53d6bb4de1b340514864a6a6a8',
         'info_dict': {
@@ -59,11 +57,11 @@ class PelotonIE(InfoExtractor):
             'duration': 1802,
             'categories': ['Running'],
             'is_live': False,
-            'chapters': 'count:3'
+            'chapters': 'count:3',
         }, 'params': {
             'skip_download': 'm3u8',
         },
-        '_skip': 'Account needed'
+        'skip': 'Account needed',
     }]
 
     _MANIFEST_URL_TEMPLATE = '%s?hdnea=%s'
@@ -81,12 +79,12 @@ class PelotonIE(InfoExtractor):
                 data=json.dumps({
                     'username_or_email': username,
                     'password': password,
-                    'with_pubsub': False
+                    'with_pubsub': False,
                 }).encode(),
                 headers={'Content-Type': 'application/json', 'User-Agent': 'web'})
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 401:
-                json_string = self._webpage_read_content(e.cause, None, video_id)
+            if isinstance(e.cause, HTTPError) and e.cause.status == 401:
+                json_string = self._webpage_read_content(e.cause.response, None, video_id)
                 res = self._parse_json(json_string, video_id)
                 raise ExtractorError(res['message'], expected=res['message'] == 'Login failed')
             else:
@@ -98,8 +96,8 @@ class PelotonIE(InfoExtractor):
                 'https://api.onepeloton.com/api/subscription/stream', video_id, note='Downloading token',
                 data=json.dumps({}).encode(), headers={'Content-Type': 'application/json'})
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 403:
-                json_string = self._webpage_read_content(e.cause, None, video_id)
+            if isinstance(e.cause, HTTPError) and e.cause.status == 403:
+                json_string = self._webpage_read_content(e.cause.response, None, video_id)
                 res = self._parse_json(json_string, video_id)
                 raise ExtractorError(res['message'], expected=res['message'] == 'Stream limit reached')
             else:
@@ -111,13 +109,13 @@ class PelotonIE(InfoExtractor):
         try:
             self._start_session(video_id)
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 401:
+            if isinstance(e.cause, HTTPError) and e.cause.status == 401:
                 self._login(video_id)
                 self._start_session(video_id)
             else:
                 raise
 
-        metadata = self._download_json('https://api.onepeloton.com/api/ride/%s/details?stream_source=multichannel' % video_id, video_id)
+        metadata = self._download_json(f'https://api.onepeloton.com/api/ride/{video_id}/details?stream_source=multichannel', video_id)
         ride_data = metadata.get('ride')
         if not ride_data:
             raise ExtractorError('Missing stream metadata')
@@ -125,7 +123,7 @@ class PelotonIE(InfoExtractor):
 
         is_live = False
         if ride_data.get('content_format') == 'audio':
-            url = self._MANIFEST_URL_TEMPLATE % (ride_data.get('vod_stream_url'), compat_urllib_parse.quote(token))
+            url = self._MANIFEST_URL_TEMPLATE % (ride_data.get('vod_stream_url'), urllib.parse.quote(token))
             formats = [{
                 'url': url,
                 'ext': 'm4a',
@@ -135,12 +133,12 @@ class PelotonIE(InfoExtractor):
             subtitles = {}
         else:
             if ride_data.get('vod_stream_url'):
-                url = 'https://members.onepeloton.com/.netlify/functions/m3u8-proxy?displayLanguage=en&acceptedSubtitles=%s&url=%s?hdnea=%s' % (
+                url = 'https://members.onepeloton.com/.netlify/functions/m3u8-proxy?displayLanguage=en&acceptedSubtitles={}&url={}?hdnea={}'.format(
                     ','.join([re.sub('^([a-z]+)-([A-Z]+)$', r'\1', caption) for caption in ride_data['captions']]),
                     ride_data['vod_stream_url'],
-                    compat_urllib_parse.quote(compat_urllib_parse.quote(token)))
+                    urllib.parse.quote(urllib.parse.quote(token)))
             elif ride_data.get('live_stream_url'):
-                url = self._MANIFEST_URL_TEMPLATE % (ride_data.get('live_stream_url'), compat_urllib_parse.quote(token))
+                url = self._MANIFEST_URL_TEMPLATE % (ride_data.get('live_stream_url'), urllib.parse.quote(token))
                 is_live = True
             else:
                 raise ExtractorError('Missing video URL')
@@ -149,17 +147,16 @@ class PelotonIE(InfoExtractor):
         if metadata.get('instructor_cues'):
             subtitles['cues'] = [{
                 'data': json.dumps(metadata.get('instructor_cues')),
-                'ext': 'json'
+                'ext': 'json',
             }]
 
         category = ride_data.get('fitness_discipline_display_name')
         chapters = [{
             'start_time': segment.get('start_time_offset'),
             'end_time': segment.get('start_time_offset') + segment.get('length'),
-            'title': segment.get('name')
+            'title': segment.get('name'),
         } for segment in traverse_obj(metadata, ('segments', 'segment_list'))]
 
-        self._sort_formats(formats)
         return {
             'id': video_id,
             'title': ride_data.get('title'),
@@ -174,7 +171,7 @@ class PelotonIE(InfoExtractor):
             'categories': [category] if category else None,
             'tags': traverse_obj(ride_data, ('equipment_tags', ..., 'name')),
             'is_live': is_live,
-            'chapters': chapters
+            'chapters': chapters,
         }
 
 
@@ -197,12 +194,12 @@ class PelotonLiveIE(InfoExtractor):
             'duration': 2014,
             'categories': ['Cycling'],
             'is_live': False,
-            'chapters': 'count:3'
+            'chapters': 'count:3',
         },
         'params': {
             'skip_download': 'm3u8',
         },
-        '_skip': 'Account needed'
+        'skip': 'Account needed',
     }
 
     def _real_extract(self, url):
@@ -211,7 +208,7 @@ class PelotonLiveIE(InfoExtractor):
 
         if peloton.get('ride_id'):
             if not peloton.get('is_live') or peloton.get('is_encore') or peloton.get('status') != 'PRE_START':
-                return self.url_result('https://members.onepeloton.com/classes/player/%s' % peloton['ride_id'])
+                return self.url_result('https://members.onepeloton.com/classes/player/{}'.format(peloton['ride_id']))
             else:
                 raise ExtractorError('Ride has not started', expected=True)
         else:

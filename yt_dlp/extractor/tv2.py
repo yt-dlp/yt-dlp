@@ -1,12 +1,12 @@
 import re
 
 from .common import InfoExtractor
-from ..compat import compat_HTTPError
+from ..networking.exceptions import HTTPError
 from ..utils import (
-    determine_ext,
     ExtractorError,
-    int_or_none,
+    determine_ext,
     float_or_none,
+    int_or_none,
     js_to_json,
     parse_iso8601,
     remove_end,
@@ -16,22 +16,26 @@ from ..utils import (
 
 
 class TV2IE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?tv2\.no/v\d*/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?tv2\.no/v(?:ideo)?\d*/(?:[^?#]+/)*(?P<id>\d+)'
     _TESTS = [{
-        'url': 'http://www.tv2.no/v/916509/',
+        'url': 'http://www.tv2.no/v/1791207/',
         'info_dict': {
-            'id': '916509',
+            'id': '1791207',
             'ext': 'mp4',
-            'title': 'Se Frode Gryttens hyllest av Steven Gerrard',
-            'description': 'TV 2 Sportens huspoet tar avskjed med Liverpools kaptein Steven Gerrard.',
-            'timestamp': 1431715610,
-            'upload_date': '20150515',
-            'duration': 157,
+            'title': 'Her kolliderer romsonden med asteroiden ',
+            'description': 'En romsonde har krasjet inn i en asteroide i verdensrommet. Kollisjonen skjedde klokken 01:14 natt til tirsdag 27. september norsk tid. \n\nNasa kaller det sitt første forsøk på planetforsvar.',
+            'timestamp': 1664238190,
+            'upload_date': '20220927',
+            'duration': 146,
+            'thumbnail': r're:^https://.*$',
             'view_count': int,
             'categories': list,
         },
     }, {
         'url': 'http://www.tv2.no/v2/916509',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.tv2.no/video/nyhetene/her-kolliderer-romsonden-med-asteroiden/1791207/',
         'only_matching': True,
     }]
     _PROTOCOLS = ('HLS', 'DASH')
@@ -48,13 +52,13 @@ class TV2IE(InfoExtractor):
         format_urls = []
         for protocol in self._PROTOCOLS:
             try:
-                data = self._download_json('https://api.sumo.tv2.no/play/%s?stream=%s' % (video_id, protocol),
+                data = self._download_json(f'https://api.sumo.tv2.no/play/{video_id}?stream={protocol}',
                                            video_id, 'Downloading playabck JSON',
                                            headers={'content-type': 'application/json'},
-                                           data='{"device":{"id":"1-1-1","name":"Nettleser (HTML)"}}'.encode())['playback']
+                                           data=b'{"device":{"id":"1-1-1","name":"Nettleser (HTML)"}}')['playback']
             except ExtractorError as e:
-                if isinstance(e.cause, compat_HTTPError) and e.cause.code == 401:
-                    error = self._parse_json(e.cause.read().decode(), video_id)['error']
+                if isinstance(e.cause, HTTPError) and e.cause.status == 401:
+                    error = self._parse_json(e.cause.response.read().decode(), video_id)['error']
                     error_code = error.get('code')
                     if error_code == 'ASSET_PLAYBACK_INVALID_GEO_LOCATION':
                         self.raise_geo_restricted(countries=self._GEO_COUNTRIES)
@@ -67,7 +71,7 @@ class TV2IE(InfoExtractor):
                 video_url = item.get('url')
                 if not video_url or video_url in format_urls:
                     continue
-                format_id = '%s-%s' % (protocol.lower(), item.get('type'))
+                format_id = '{}-{}'.format(protocol.lower(), item.get('type'))
                 if not self._is_valid_url(video_url, video_id, format_id):
                     continue
                 format_urls.append(video_url)
@@ -91,12 +95,11 @@ class TV2IE(InfoExtractor):
                     })
         if not formats and data.get('drmProtected'):
             self.report_drm(video_id)
-        self._sort_formats(formats)
 
         thumbnails = [{
-            'id': type,
+            'id': thumb_type,
             'url': thumb_url,
-        } for type, thumb_url in (asset.get('images') or {}).items()]
+        } for thumb_type, thumb_url in (asset.get('images') or {}).items()]
 
         return {
             'id': video_id,
@@ -114,13 +117,13 @@ class TV2IE(InfoExtractor):
 
 
 class TV2ArticleIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?tv2\.no/(?:a|\d{4}/\d{2}/\d{2}(/[^/]+)+)/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?tv2\.no/(?!v(?:ideo)?\d*/)[^?#]+/(?P<id>\d+)'
     _TESTS = [{
-        'url': 'http://www.tv2.no/2015/05/16/nyheter/alesund/krim/pingvin/6930542',
+        'url': 'https://www.tv2.no/underholdning/forraeder/katarina-flatland-angrer-etter-forraeder-exit/15095188/',
         'info_dict': {
-            'id': '6930542',
-            'title': 'Russen hetses etter pingvintyveri - innrømmer å ha åpnet luken på buret',
-            'description': 'De fire siktede nekter fortsatt for å ha stjålet pingvinbabyene, men innrømmer å ha åpnet luken til de små kyllingene.',
+            'id': '15095188',
+            'title': 'Katarina Flatland angrer etter Forræder-exit',
+            'description': 'SANDEFJORD (TV 2): Katarina Flatland (33) måtte følge i sine fars fotspor, da hun ble forvist fra Forræder.',
         },
         'playlist_count': 2,
     }, {
@@ -138,7 +141,7 @@ class TV2ArticleIE(InfoExtractor):
 
         if not assets:
             # New embed pattern
-            for v in re.findall(r'(?s)TV2ContentboxVideo\(({.+?})\)', webpage):
+            for v in re.findall(r'(?s)(?:TV2ContentboxVideo|TV2\.TV2Video)\(({.+?})\)', webpage):
                 video = self._parse_json(
                     v, playlist_id, transform_source=js_to_json, fatal=False)
                 if not video:
@@ -148,7 +151,7 @@ class TV2ArticleIE(InfoExtractor):
                     assets.append(asset)
 
         entries = [
-            self.url_result('http://www.tv2.no/v/%s' % asset_id, 'TV2')
+            self.url_result(f'http://www.tv2.no/v/{asset_id}', 'TV2')
             for asset_id in assets]
 
         title = remove_end(self._og_search_title(webpage), ' - TV2.no')
@@ -158,6 +161,7 @@ class TV2ArticleIE(InfoExtractor):
 
 
 class KatsomoIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?(?:katsomo|mtv(uutiset)?)\.fi/(?:sarja/[0-9a-z-]+-\d+/[0-9a-z-]+-|(?:#!/)?jakso/(?:\d+/[^/]+/)?|video/prog)(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://www.mtv.fi/sarja/mtv-uutiset-live-33001002003/lahden-pelicans-teki-kovan-ratkaisun-ville-nieminen-pihalle-1181321',
@@ -192,7 +196,7 @@ class KatsomoIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        api_base = 'http://%s/api/web/asset/%s' % (self._API_DOMAIN, video_id)
+        api_base = f'http://{self._API_DOMAIN}/api/web/asset/{video_id}'
 
         asset = self._download_json(
             api_base + '.json', video_id,
@@ -205,11 +209,11 @@ class KatsomoIE(InfoExtractor):
         for protocol in self._PROTOCOLS:
             try:
                 data = self._download_json(
-                    api_base + '/play.json?protocol=%s&videoFormat=SMIL+ISMUSP' % protocol,
+                    api_base + f'/play.json?protocol={protocol}&videoFormat=SMIL+ISMUSP',
                     video_id, 'Downloading play JSON')['playback']
             except ExtractorError as e:
-                if isinstance(e.cause, compat_HTTPError) and e.cause.code == 401:
-                    error = self._parse_json(e.cause.read().decode(), video_id)['error']
+                if isinstance(e.cause, HTTPError) and e.cause.status == 401:
+                    error = self._parse_json(e.cause.response.read().decode(), video_id)['error']
                     error_code = error.get('code')
                     if error_code == 'ASSET_PLAYBACK_INVALID_GEO_LOCATION':
                         self.raise_geo_restricted(countries=self._GEO_COUNTRIES)
@@ -228,7 +232,7 @@ class KatsomoIE(InfoExtractor):
                 video_url = item.get('url')
                 if not video_url or video_url in format_urls:
                     continue
-                format_id = '%s-%s' % (protocol.lower(), item.get('mediaFormat'))
+                format_id = '{}-{}'.format(protocol.lower(), item.get('mediaFormat'))
                 if not self._is_valid_url(video_url, video_id, format_id):
                     continue
                 format_urls.append(video_url)
@@ -254,7 +258,6 @@ class KatsomoIE(InfoExtractor):
                     })
         if not formats and data.get('drmProtected'):
             self.report_drm(video_id)
-        self._sort_formats(formats)
 
         thumbnails = [{
             'id': thumbnail.get('@type'),
@@ -277,6 +280,7 @@ class KatsomoIE(InfoExtractor):
 
 
 class MTVUutisetArticleIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)mtvuutiset\.fi/artikkeli/[^/]+/(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://www.mtvuutiset.fi/artikkeli/tallaisia-vaurioita-viking-amorellassa-on-useamman-osaston-alla-vetta/7931384',

@@ -43,12 +43,10 @@ class PeerTVIE(InfoExtractor):
 
         formats = self._extract_m3u8_formats(m3u8_url, video_id, m3u8_id='hls')
 
-        self._sort_formats(formats)
-
         return {
             'id': video_id,
             'title': self._html_search_regex(r'<h1>(.+?)</h1>', webpage, 'title').replace('\xa0', ' '),
             'formats': formats,
             'description': self._html_search_meta(('og:description', 'description'), webpage),
-            'thumbnail': self._html_search_meta(('og:image', 'image'), webpage)
+            'thumbnail': self._html_search_meta(('og:image', 'image'), webpage),
         }

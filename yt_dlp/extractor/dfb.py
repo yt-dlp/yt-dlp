@@ -22,7 +22,7 @@ class DFBIE(InfoExtractor):
         display_id, video_id = self._match_valid_url(url).groups()
 
         player_info = self._download_xml(
-            'http://tv.dfb.de/server/hd_video.php?play=%s' % video_id,
+            f'http://tv.dfb.de/server/hd_video.php?play={video_id}',
             display_id)
         video_info = player_info.find('video')
         stream_access_url = self._proto_relative_url(video_info.find('url').text.strip())
@@ -41,13 +41,12 @@ class DFBIE(InfoExtractor):
                 formats.extend(self._extract_m3u8_formats(
                     manifest_url, display_id, 'mp4',
                     'm3u8_native', m3u8_id='hls', fatal=False))
-        self._sort_formats(formats)
 
         return {
             'id': video_id,
             'display_id': display_id,
             'title': video_info.find('title').text,
-            'thumbnail': 'http://tv.dfb.de/images/%s_640x360.jpg' % video_id,
+            'thumbnail': f'http://tv.dfb.de/images/{video_id}_640x360.jpg',
             'upload_date': unified_strdate(video_info.find('time_date').text),
             'formats': formats,
         }

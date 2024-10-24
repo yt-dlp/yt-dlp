@@ -1,7 +1,11 @@
+import urllib.parse
+
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
-    js_to_json,
+    str_or_none,
+    traverse_obj,
+    update_url,
 )
 
 
@@ -14,14 +18,14 @@ class PicartoIE(InfoExtractor):
             'ext': 'mp4',
             'title': 're:^Setz [0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}$',
             'timestamp': int,
-            'is_live': True
+            'is_live': True,
         },
         'skip': 'Stream is offline',
     }
 
     @classmethod
     def suitable(cls, url):
-        return False if PicartoVodIE.suitable(url) else super(PicartoIE, cls).suitable(url)
+        return False if PicartoVodIE.suitable(url) else super().suitable(url)
 
     def _real_extract(self, url):
         channel_id = self._match_id(url)
@@ -39,16 +43,17 @@ class PicartoIE(InfoExtractor):
   getLoadBalancerUrl(channel_name: "%s") {
     url
   }
-}''' % (channel_id, channel_id),
-            })['data']
+}''' % (channel_id, channel_id),  # noqa: UP031
+            }, headers={'Accept': '*/*', 'Content-Type': 'application/json'})['data']
         metadata = data['channel']
 
         if metadata.get('online') == 0:
             raise ExtractorError('Stream is offline', expected=True)
         title = metadata['title']
 
-        cdn_data = self._download_json(
-            data['getLoadBalancerUrl']['url'] + '/stream/json_' + metadata['stream_name'] + '.js',
+        cdn_data = self._download_json(''.join((
+            update_url(data['getLoadBalancerUrl']['url'], scheme='https'),
+            '/stream/json_', metadata['stream_name'], '.js')),
             channel_id, 'Downloading load balancing info')
 
         formats = []
@@ -64,7 +69,6 @@ class PicartoIE(InfoExtractor):
                 formats.append({
                     'url': source_url,
                 })
-        self._sort_formats(formats)
 
         mature = metadata.get('adult')
         if mature is None:
@@ -78,14 +82,14 @@ class PicartoIE(InfoExtractor):
             'is_live': True,
             'channel': channel_id,
             'channel_id': metadata.get('id'),
-            'channel_url': 'https://picarto.tv/%s' % channel_id,
+            'channel_url': f'https://picarto.tv/{channel_id}',
             'age_limit': age_limit,
             'formats': formats,
         }
 
 
 class PicartoVodIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www.)?picarto\.tv/videopopout/(?P<id>[^/?#&]+)'
+    _VALID_URL = r'https?://(?:www\.)?picarto\.tv/(?:videopopout|\w+/videos)/(?P<id>[^/?#&]+)'
     _TESTS = [{
         'url': 'https://picarto.tv/videopopout/ArtofZod_2017.12.12.00.13.23.flv',
         'md5': '3ab45ba4352c52ee841a28fb73f2d9ca',
@@ -93,7 +97,19 @@ class PicartoVodIE(InfoExtractor):
             'id': 'ArtofZod_2017.12.12.00.13.23.flv',
             'ext': 'mp4',
             'title': 'ArtofZod_2017.12.12.00.13.23.flv',
-            'thumbnail': r're:^https?://.*\.jpg'
+            'thumbnail': r're:^https?://.*\.jpg',
+        },
+        'skip': 'The VOD does not exist',
+    }, {
+        'url': 'https://picarto.tv/ArtofZod/videos/771008',
+        'md5': 'abef5322f2700d967720c4c6754b2a34',
+        'info_dict': {
+            'id': '771008',
+            'ext': 'mp4',
+            'title': 'Art of Zod - Drawing and Painting',
+            'thumbnail': r're:^https?://.*\.jpg',
+            'channel': 'ArtofZod',
+            'age_limit': 18,
         },
     }, {
         'url': 'https://picarto.tv/videopopout/Plague',
@@ -103,22 +119,36 @@ class PicartoVodIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        webpage = self._download_webpage(url, video_id)
+        data = self._download_json(
+            'https://ptvintern.picarto.tv/ptvapi', video_id, query={
+                'query': f'''{{
+  video(id: "{video_id}") {{
+    id
+    title
+    adult
+    file_name
+    video_recording_image_url
+    channel {{
+      name
+    }}
+  }}
+}}''',
+            }, headers={'Accept': '*/*', 'Content-Type': 'application/json'})['data']['video']
 
-        vod_info = self._parse_json(
-            self._search_regex(
-                r'(?s)#vod-player["\']\s*,\s*(\{.+?\})\s*\)', webpage,
-                'vod player'),
-            video_id, transform_source=js_to_json)
+        file_name = data['file_name']
+        netloc = urllib.parse.urlparse(data['video_recording_image_url']).netloc
 
         formats = self._extract_m3u8_formats(
-            vod_info['vod'], video_id, 'mp4', entry_protocol='m3u8_native',
-            m3u8_id='hls')
-        self._sort_formats(formats)
+            f'https://{netloc}/stream/hls/{file_name}/index.m3u8', video_id, 'mp4', m3u8_id='hls')
 
         return {
             'id': video_id,
-            'title': video_id,
-            'thumbnail': vod_info.get('vodThumb'),
+            **traverse_obj(data, {
+                'id': ('id', {str_or_none}),
+                'title': ('title', {str}),
+                'thumbnail': 'video_recording_image_url',
+                'channel': ('channel', 'name', {str}),
+                'age_limit': ('adult', {lambda x: 18 if x else 0}),
+            }),
             'formats': formats,
         }

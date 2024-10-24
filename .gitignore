@@ -27,10 +27,13 @@ cookies
 *.ass
 *.avi
 *.desktop
+*.f4v
 *.flac
 *.flv
+*.gif
 *.jpeg
 *.jpg
+*.lrc
 *.m4a
 *.m4v
 *.mhtml
@@ -38,13 +41,17 @@ cookies
 *.mov
 *.mp3
 *.mp4
+*.mpg
+*.mpga
+*.oga
 *.ogg
 *.opus
 *.png
 *.sbv
 *.srt
+*.ssa
 *.swf
-*.swp
+*.tt
 *.ttml
 *.url
 *.vtt
@@ -59,7 +66,7 @@ cookies
 # Python
 *.pyc
 *.pyo
-.pytest_cache
+.*_cache
 wine-py2exe/
 py2exe.log
 build/
@@ -67,6 +74,7 @@ dist/
 zip/
 tmp/
 venv/
+.venv/
 completions/
 
 # Misc
@@ -83,6 +91,7 @@ updates_key.pem
 .tox
 *.class
 *.isorted
+*.stackdump
 
 # Generated
 AUTHORS
@@ -109,14 +118,11 @@ yt-dlp.zip
 .vscode
 *.sublime-*
 *.code-workspace
+*.swp
 
 # Lazy extractors
 */extractor/lazy_extractors.py
 
 # Plugins
-ytdlp_plugins/extractor/*
-!ytdlp_plugins/extractor/__init__.py
-!ytdlp_plugins/extractor/sample.py
-ytdlp_plugins/postprocessor/*
-!ytdlp_plugins/postprocessor/__init__.py
-!ytdlp_plugins/postprocessor/sample.py
+ytdlp_plugins/
+yt-dlp-plugins

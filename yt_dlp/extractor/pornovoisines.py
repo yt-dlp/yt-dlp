@@ -1,12 +1,13 @@
 from .common import InfoExtractor
 from ..utils import (
-    int_or_none,
     float_or_none,
+    int_or_none,
     unified_strdate,
 )
 
 
 class PornoVoisinesIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?pornovoisines\.com/videos/show/(?P<id>\d+)/(?P<display_id>[^/.]+)'
 
     _TEST = {
@@ -28,9 +29,9 @@ class PornoVoisinesIE(InfoExtractor):
             'subtitles': {
                 'fr': [{
                     'ext': 'vtt',
-                }]
+                }],
             },
-        }
+        },
     }
 
     def _real_extract(self, url):
@@ -39,7 +40,7 @@ class PornoVoisinesIE(InfoExtractor):
         display_id = mobj.group('display_id')
 
         settings_url = self._download_json(
-            'http://www.pornovoisines.com/api/video/%s/getsettingsurl/' % video_id,
+            f'http://www.pornovoisines.com/api/video/{video_id}/getsettingsurl/',
             video_id, note='Getting settings URL')['video_settings_url']
         settings = self._download_json(settings_url, video_id)['data']
 
@@ -55,7 +56,6 @@ class PornoVoisinesIE(InfoExtractor):
                         'height': item.get('height'),
                         'bitrate': item.get('bitrate'),
                     })
-        self._sort_formats(formats)
 
         webpage = self._download_webpage(url, video_id)
 

@@ -1,13 +1,13 @@
 import json
 
+from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     format_field,
     traverse_obj,
     try_get,
-    unified_timestamp
+    unified_timestamp,
 )
-from .common import InfoExtractor
 
 
 class RadLiveIE(InfoExtractor):
@@ -27,7 +27,7 @@ class RadLiveIE(InfoExtractor):
             'channel': 'Proximity',
             'channel_id': '9ce6dd01-70a4-4d59-afb6-d01f807cd009',
             'channel_url': 'https://rad.live/content/channel/9ce6dd01-70a4-4d59-afb6-d01f807cd009',
-        }
+        },
     }, {
         'url': 'https://rad.live/content/episode/bbcf66ec-0d02-4ca0-8dc0-4213eb2429bf',
         'md5': '40b2175f347592125d93e9a344080125',
@@ -38,10 +38,6 @@ class RadLiveIE(InfoExtractor):
             'language': 'en',
             'thumbnail': 'https://lsp.littlstar.com/channels/WHISTLE/BAD_JOKES/SEASON_1/BAD_JOKES_101/poster.jpg',
             'description': 'Bad Jokes - Champions, Adam Pally, Super Troopers, Team Edge and 2Hype',
-            'release_timestamp': None,
-            'channel': None,
-            'channel_id': None,
-            'channel_url': None,
             'episode': 'E01: Bad Jokes 1',
             'episode_number': 1,
             'episode_id': '336',
@@ -62,7 +58,6 @@ class RadLiveIE(InfoExtractor):
             raise ExtractorError('Unable to extract video info, make sure the URL is valid')
 
         formats = self._extract_m3u8_formats(video_info['assets']['videos'][0]['url'], video_id)
-        self._sort_formats(formats)
 
         data = video_info.get('structured_data', {})
 
@@ -80,7 +75,7 @@ class RadLiveIE(InfoExtractor):
             'release_timestamp': release_date,
             'channel': channel.get('name'),
             'channel_id': channel_id,
-            'channel_url': format_field(channel_id, template='https://rad.live/content/channel/%s'),
+            'channel_url': format_field(channel_id, None, 'https://rad.live/content/channel/%s'),
 
         }
         if content_type == 'episode':
@@ -94,7 +89,7 @@ class RadLiveIE(InfoExtractor):
         return result
 
 
-class RadLiveSeasonIE(RadLiveIE):
+class RadLiveSeasonIE(RadLiveIE):  # XXX: Do not subclass from concrete IE
     IE_NAME = 'radlive:season'
     _VALID_URL = r'https?://(?:www\.)?rad\.live/content/season/(?P<id>[a-f0-9-]+)'
     _TESTS = [{
@@ -109,7 +104,7 @@ class RadLiveSeasonIE(RadLiveIE):
 
     @classmethod
     def suitable(cls, url):
-        return False if RadLiveIE.suitable(url) else super(RadLiveSeasonIE, cls).suitable(url)
+        return False if RadLiveIE.suitable(url) else super().suitable(url)
 
     def _real_extract(self, url):
         season_id = self._match_id(url)
@@ -134,7 +129,7 @@ class RadLiveSeasonIE(RadLiveIE):
         return self.playlist_result(entries, season_id, video_info.get('title'))
 
 
-class RadLiveChannelIE(RadLiveIE):
+class RadLiveChannelIE(RadLiveIE):  # XXX: Do not subclass from concrete IE
     IE_NAME = 'radlive:channel'
     _VALID_URL = r'https?://(?:www\.)?rad\.live/content/channel/(?P<id>[a-f0-9-]+)'
     _TESTS = [{
@@ -159,7 +154,7 @@ query WebChannelListing ($lrn: ID!) {
 
     @classmethod
     def suitable(cls, url):
-        return False if RadLiveIE.suitable(url) else super(RadLiveChannelIE, cls).suitable(url)
+        return False if RadLiveIE.suitable(url) else super().suitable(url)
 
     def _real_extract(self, url):
         channel_id = self._match_id(url)
@@ -169,8 +164,8 @@ query WebChannelListing ($lrn: ID!) {
             headers={'Content-Type': 'application/json'},
             data=json.dumps({
                 'query': self._QUERY,
-                'variables': {'lrn': f'lrn:12core:media:content:channel:{channel_id}'}
-            }).encode('utf-8'))
+                'variables': {'lrn': f'lrn:12core:media:content:channel:{channel_id}'},
+            }).encode())
 
         data = traverse_obj(graphql, ('data', 'channel'))
         if not data:

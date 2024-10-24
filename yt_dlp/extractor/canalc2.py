@@ -26,7 +26,7 @@ class Canalc2IE(InfoExtractor):
         video_id = self._match_id(url)
 
         webpage = self._download_webpage(
-            'http://www.canalc2.tv/video/%s' % video_id, video_id)
+            f'http://www.canalc2.tv/video/{video_id}', video_id)
 
         title = self._html_search_regex(
             r'(?s)class="[^"]*col_description[^"]*">.*?<h3>(.+?)</h3>',
@@ -57,8 +57,6 @@ class Canalc2IE(InfoExtractor):
             }
         else:
             info = self._parse_html5_media_entries(url, webpage, url)[0]
-
-        self._sort_formats(info['formats'])
 
         info.update({
             'id': video_id,

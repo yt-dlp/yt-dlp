@@ -6,7 +6,6 @@ from ..utils import (
     determine_ext,
     int_or_none,
     js_to_json,
-    qualities,
     traverse_obj,
     unified_strdate,
     url_or_none,
@@ -14,7 +13,7 @@ from ..utils import (
 
 
 class NovaEmbedIE(InfoExtractor):
-    _VALID_URL = r'https?://media\.cms\.nova\.cz/embed/(?P<id>[^/?#&]+)'
+    _VALID_URL = r'https?://media(?:tn)?\.cms\.nova\.cz/embed/(?P<id>[^/?#&]+)'
     _TESTS = [{
         'url': 'https://media.cms.nova.cz/embed/8o0n0r?autoplay=1',
         'info_dict': {
@@ -38,6 +37,16 @@ class NovaEmbedIE(InfoExtractor):
             'duration': 114,
         },
         'params': {'skip_download': 'm3u8'},
+    }, {
+        'url': 'https://mediatn.cms.nova.cz/embed/EU5ELEsmOHt?autoplay=1',
+        'info_dict': {
+            'id': 'EU5ELEsmOHt',
+            'ext': 'mp4',
+            'title': 'Haptické křeslo, bionická ruka nebo roboti. Reportérka se podívala na Týden inovací',
+            'thumbnail': r're:^https?://.*\.jpg',
+            'duration': 1780,
+        },
+        'params': {'skip_download': 'm3u8'},
     }]
 
     def _real_extract(self, url):
@@ -49,81 +58,55 @@ class NovaEmbedIE(InfoExtractor):
         duration = None
         formats = []
 
-        player = self._parse_json(
-            self._search_regex(
-                (r'(?:(?:replacePlaceholders|processAdTagModifier).*?:\s*)?(?:replacePlaceholders|processAdTagModifier)\s*\(\s*(?P<json>{.*?})\s*\)(?:\s*\))?\s*,',
-                    r'Player\.init\s*\([^,]+,(?P<cndn>\s*\w+\s*\?)?\s*(?P<json>{(?(cndn).+?|.+)})\s*(?(cndn):|,\s*{.+?}\s*\)\s*;)'),
-                webpage, 'player', default='{}', group='json'), video_id, fatal=False)
-        if player:
-            for format_id, format_list in player['tracks'].items():
-                if not isinstance(format_list, list):
-                    format_list = [format_list]
-                for format_dict in format_list:
-                    if not isinstance(format_dict, dict):
-                        continue
-                    if (not self.get_param('allow_unplayable_formats')
-                            and traverse_obj(format_dict, ('drm', 'keySystem'))):
-                        has_drm = True
-                        continue
-                    format_url = url_or_none(format_dict.get('src'))
-                    format_type = format_dict.get('type')
-                    ext = determine_ext(format_url)
-                    if (format_type == 'application/x-mpegURL'
-                            or format_id == 'HLS' or ext == 'm3u8'):
-                        formats.extend(self._extract_m3u8_formats(
-                            format_url, video_id, 'mp4',
-                            entry_protocol='m3u8_native', m3u8_id='hls',
-                            fatal=False))
-                    elif (format_type == 'application/dash+xml'
-                          or format_id == 'DASH' or ext == 'mpd'):
-                        formats.extend(self._extract_mpd_formats(
-                            format_url, video_id, mpd_id='dash', fatal=False))
-                    else:
-                        formats.append({
-                            'url': format_url,
-                        })
-            duration = int_or_none(player.get('duration'))
-        else:
-            # Old path, not actual as of 08.04.2020
-            bitrates = self._parse_json(
-                self._search_regex(
-                    r'(?s)(?:src|bitrates)\s*=\s*({.+?})\s*;', webpage, 'formats'),
-                video_id, transform_source=js_to_json)
-
-            QUALITIES = ('lq', 'mq', 'hq', 'hd')
-            quality_key = qualities(QUALITIES)
-
-            for format_id, format_list in bitrates.items():
-                if not isinstance(format_list, list):
-                    format_list = [format_list]
-                for format_url in format_list:
-                    format_url = url_or_none(format_url)
-                    if not format_url:
-                        continue
-                    if format_id == 'hls':
-                        formats.extend(self._extract_m3u8_formats(
-                            format_url, video_id, ext='mp4',
-                            entry_protocol='m3u8_native', m3u8_id='hls',
-                            fatal=False))
-                        continue
-                    f = {
+        def process_format_list(format_list, format_id=''):
+            nonlocal formats, has_drm
+            if not isinstance(format_list, list):
+                format_list = [format_list]
+            for format_dict in format_list:
+                if not isinstance(format_dict, dict):
+                    continue
+                if (not self.get_param('allow_unplayable_formats')
+                        and traverse_obj(format_dict, ('drm', 'keySystem'))):
+                    has_drm = True
+                    continue
+                format_url = url_or_none(format_dict.get('src'))
+                format_type = format_dict.get('type')
+                ext = determine_ext(format_url)
+                if (format_type == 'application/x-mpegURL'
+                        or format_id == 'HLS' or ext == 'm3u8'):
+                    formats.extend(self._extract_m3u8_formats(
+                        format_url, video_id, 'mp4',
+                        entry_protocol='m3u8_native', m3u8_id='hls',
+                        fatal=False))
+                elif (format_type == 'application/dash+xml'
+                      or format_id == 'DASH' or ext == 'mpd'):
+                    formats.extend(self._extract_mpd_formats(
+                        format_url, video_id, mpd_id='dash', fatal=False))
+                else:
+                    formats.append({
                         'url': format_url,
-                    }
-                    f_id = format_id
-                    for quality in QUALITIES:
-                        if '%s.mp4' % quality in format_url:
-                            f_id += '-%s' % quality
-                            f.update({
-                                'quality': quality_key(quality),
-                                'format_note': quality.upper(),
-                            })
-                            break
-                    f['format_id'] = f_id
-                    formats.append(f)
+                    })
+
+        player = self._search_json(
+            r'player:', webpage, 'player', video_id, fatal=False, end_pattern=r';\s*</script>')
+        if player:
+            for src in traverse_obj(player, ('lib', 'source', 'sources', ...)):
+                process_format_list(src)
+            duration = traverse_obj(player, ('sourceInfo', 'duration', {int_or_none}))
+        if not formats and not has_drm:
+            # older code path, in use before August 2023
+            player = self._parse_json(
+                self._search_regex(
+                    (r'(?:(?:replacePlaceholders|processAdTagModifier).*?:\s*)?(?:replacePlaceholders|processAdTagModifier)\s*\(\s*(?P<json>{.*?})\s*\)(?:\s*\))?\s*,',
+                     r'Player\.init\s*\([^,]+,(?P<cndn>\s*\w+\s*\?)?\s*(?P<json>{(?(cndn).+?|.+)})\s*(?(cndn):|,\s*{.+?}\s*\)\s*;)'),
+                    webpage, 'player', group='json'), video_id)
+            if player:
+                for format_id, format_list in player['tracks'].items():
+                    process_format_list(format_list, format_id)
+                duration = int_or_none(player.get('duration'))
 
         if not formats and has_drm:
             self.report_drm(video_id)
-        self._sort_formats(formats)
 
         title = self._og_search_title(
             webpage, default=None) or self._search_regex(
@@ -152,15 +135,16 @@ class NovaIE(InfoExtractor):
     _VALID_URL = r'https?://(?:[^.]+\.)?(?P<site>tv(?:noviny)?|tn|novaplus|vymena|fanda|krasna|doma|prask)\.nova\.cz/(?:[^/]+/)+(?P<id>[^/]+?)(?:\.html|/|$)'
     _TESTS = [{
         'url': 'http://tn.nova.cz/clanek/tajemstvi-ukryte-v-podzemi-specialni-nemocnice-v-prazske-krci.html#player_13260',
-        'md5': '249baab7d0104e186e78b0899c7d5f28',
+        'md5': 'da8f3f1fcdaf9fb0f112a32a165760a3',
         'info_dict': {
-            'id': '1757139',
-            'display_id': 'tajemstvi-ukryte-v-podzemi-specialni-nemocnice-v-prazske-krci',
+            'id': '8OvQqEvV3MW',
+            'display_id': '8OvQqEvV3MW',
             'ext': 'mp4',
             'title': 'Podzemní nemocnice v pražské Krči',
             'description': 'md5:f0a42dd239c26f61c28f19e62d20ef53',
             'thumbnail': r're:^https?://.*\.(?:jpg)',
-        }
+            'duration': 151,
+        },
     }, {
         'url': 'http://fanda.nova.cz/clanek/fun-and-games/krvavy-epos-zaklinac-3-divoky-hon-vychazi-vyhrajte-ho-pro-sebe.html',
         'info_dict': {
@@ -227,16 +211,16 @@ class NovaIE(InfoExtractor):
 
         # novaplus
         embed_id = self._search_regex(
-            r'<iframe[^>]+\bsrc=["\'](?:https?:)?//media\.cms\.nova\.cz/embed/([^/?#&]+)',
+            r'<iframe[^>]+\bsrc=["\'](?:https?:)?//media(?:tn)?\.cms\.nova\.cz/embed/([^/?#&"\']+)',
             webpage, 'embed url', default=None)
         if embed_id:
             return {
                 '_type': 'url_transparent',
-                'url': 'https://media.cms.nova.cz/embed/%s' % embed_id,
+                'url': f'https://media.cms.nova.cz/embed/{embed_id}',
                 'ie_key': NovaEmbedIE.ie_key(),
                 'id': embed_id,
                 'description': description,
-                'upload_date': upload_date
+                'upload_date': upload_date,
             }
 
         video_id = self._search_regex(
@@ -308,7 +292,6 @@ class NovaIE(InfoExtractor):
             formats = [{
                 'url': video_url,
             }]
-        self._sort_formats(formats)
 
         title = mediafile.get('meta', {}).get('title') or self._og_search_title(webpage)
         thumbnail = config.get('poster')

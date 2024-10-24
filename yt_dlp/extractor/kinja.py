@@ -1,22 +1,16 @@
-import re
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-    compat_urllib_parse_unquote,
-)
 from ..utils import (
     int_or_none,
     parse_iso8601,
     strip_or_none,
     try_get,
-    unescapeHTML,
-    urljoin,
 )
 
 
 class KinjaEmbedIE(InfoExtractor):
-    IENAME = 'kinja:embed'
+    IE_NAME = 'kinja:embed'
     _DOMAIN_REGEX = r'''(?:[^.]+\.)?
         (?:
             avclub|
@@ -36,7 +30,7 @@ class KinjaEmbedIE(InfoExtractor):
             ajax/inset|
             embed/video
         )/iframe\?.*?\bid='''
-    _VALID_URL = r'''(?x)https?://%s%s
+    _VALID_URL = rf'''(?x)https?://{_DOMAIN_REGEX}{_COMMON_REGEX}
         (?P<type>
             fb|
             imgur|
@@ -45,7 +39,6 @@ class KinjaEmbedIE(InfoExtractor):
             kinjavideo|
             mcp|
             megaphone|
-            ooyala|
             soundcloud(?:-playlist)?|
             tumblr-post|
             twitch-stream|
@@ -54,7 +47,8 @@ class KinjaEmbedIE(InfoExtractor):
             vimeo|
             vine|
             youtube-(?:list|video)
-        )-(?P<id>[^&]+)''' % (_DOMAIN_REGEX, _COMMON_REGEX)
+        )-(?P<id>[^&]+)'''
+    _EMBED_REGEX = [rf'(?x)<iframe[^>]+?src=(?P<q>["\'])(?P<url>(?:(?:https?:)?//{_DOMAIN_REGEX})?{_COMMON_REGEX}(?:(?!\1).)+)\1']
     _TESTS = [{
         'url': 'https://kinja.com/ajax/inset/iframe?id=fb-10103303356633621',
         'only_matching': True,
@@ -63,9 +57,6 @@ class KinjaEmbedIE(InfoExtractor):
         'only_matching': True,
     }, {
         'url': 'https://kinja.com/ajax/inset/iframe?id=megaphone-PPY1300931075',
-        'only_matching': True,
-    }, {
-        'url': 'https://kinja.com/ajax/inset/iframe?id=ooyala-xzMXhleDpopuT0u1ijt_qZj3Va-34pEX%2FZTIxYmJjZDM2NWYzZDViZGRiOWJjYzc5',
         'only_matching': True,
     }, {
         'url': 'https://kinja.com/ajax/inset/iframe?id=soundcloud-128574047',
@@ -106,7 +97,6 @@ class KinjaEmbedIE(InfoExtractor):
         'jwplayer-video': _JWPLATFORM_PROVIDER,
         'jwp-video': _JWPLATFORM_PROVIDER,
         'megaphone': ('player.megaphone.fm/', 'Generic'),
-        'ooyala': ('player.ooyala.com/player.js?embedCode=', 'Ooyala'),
         'soundcloud': ('api.soundcloud.com/tracks/', 'Soundcloud'),
         'soundcloud-playlist': ('api.soundcloud.com/playlists/', 'SoundcloudPlaylist'),
         'tumblr-post': ('%s.tumblr.com/post/%s', 'Tumblr'),
@@ -119,18 +109,12 @@ class KinjaEmbedIE(InfoExtractor):
         'youtube-video': ('youtube.com/embed/', 'Youtube'),
     }
 
-    @staticmethod
-    def _extract_urls(webpage, url):
-        return [urljoin(url, unescapeHTML(mobj.group('url'))) for mobj in re.finditer(
-            r'(?x)<iframe[^>]+?src=(?P<q>["\'])(?P<url>(?:(?:https?:)?//%s)?%s(?:(?!\1).)+)\1' % (KinjaEmbedIE._DOMAIN_REGEX, KinjaEmbedIE._COMMON_REGEX),
-            webpage)]
-
     def _real_extract(self, url):
         video_type, video_id = self._match_valid_url(url).groups()
 
         provider = self._PROVIDER_MAP.get(video_type)
         if provider:
-            video_id = compat_urllib_parse_unquote(video_id)
+            video_id = urllib.parse.unquote(video_id)
             if video_type == 'tumblr-post':
                 video_id, blog = video_id.split('-', 1)
                 result_url = provider[0] % (blog, video_id)
@@ -138,8 +122,6 @@ class KinjaEmbedIE(InfoExtractor):
                 video_id, playlist_id = video_id.split('/')
                 result_url = provider[0] % (video_id, playlist_id)
             else:
-                if video_type == 'ooyala':
-                    video_id = video_id.split('/')[0]
                 result_url = provider[0] + video_id
             return self.url_result('http://' + result_url, provider[1])
 
@@ -156,13 +138,12 @@ class KinjaEmbedIE(InfoExtractor):
                     formats.extend(self._extract_m3u8_formats(
                         m3u8_url, video_id, 'mp4', 'm3u8_native',
                         m3u8_id='hls', fatal=False))
-            self._sort_formats(formats)
 
             thumbnail = None
             poster = data.get('poster') or {}
             poster_id = poster.get('id')
             if poster_id:
-                thumbnail = 'https://i.kinja-img.com/gawker-media/image/upload/%s.%s' % (poster_id, poster.get('format') or 'jpg')
+                thumbnail = 'https://i.kinja-img.com/gawker-media/image/upload/{}.{}'.format(poster_id, poster.get('format') or 'jpg')
 
             return {
                 'id': video_id,
@@ -204,15 +185,13 @@ class KinjaEmbedIE(InfoExtractor):
                     'url': fallback_rendition_url,
                 })
 
-            self._sort_formats(formats)
-
             return {
                 'id': video_id,
                 'title': title,
-                'thumbnail': try_get(iptc, lambda x: x['cloudinaryLink']['link'], compat_str),
+                'thumbnail': try_get(iptc, lambda x: x['cloudinaryLink']['link'], str),
                 'uploader': fmg.get('network'),
                 'duration': int_or_none(iptc.get('fileDuration')),
                 'formats': formats,
-                'description': try_get(iptc, lambda x: x['description']['en'], compat_str),
+                'description': try_get(iptc, lambda x: x['description']['en'], str),
                 'timestamp': parse_iso8601(iptc.get('dateReleased')),
             }

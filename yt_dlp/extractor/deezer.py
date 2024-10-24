@@ -22,7 +22,7 @@ class DeezerBaseInfoExtractor(InfoExtractor):
             default=None)
         if geoblocking_msg is not None:
             raise ExtractorError(
-                'Deezer said: %s' % geoblocking_msg, expected=True)
+                f'Deezer said: {geoblocking_msg}', expected=True)
 
         data_json = self._search_regex(
             (r'__DZR_APP_STATE__\s*=\s*({.+?})\s*</script>',
@@ -62,13 +62,12 @@ class DeezerPlaylistIE(DeezerBaseInfoExtractor):
                 'preference': -100,  # Only the first 30 seconds
                 'ext': 'mp3',
             }]
-            self._sort_formats(formats)
             artists = ', '.join(
                 orderedSet(a.get('ART_NAME') for a in s.get('ARTISTS')))
             entries.append({
                 'id': s.get('SNG_ID'),
                 'duration': int_or_none(s.get('DURATION')),
-                'title': '%s - %s' % (artists, s.get('SNG_TITLE')),
+                'title': '{} - {}'.format(artists, s.get('SNG_TITLE')),
                 'uploader': s.get('ART_NAME'),
                 'uploader_id': s.get('ART_ID'),
                 'age_limit': 16 if s.get('EXPLICIT_LYRICS') == '1' else 0,
@@ -115,13 +114,12 @@ class DeezerAlbumIE(DeezerBaseInfoExtractor):
                 'preference': -100,  # Only the first 30 seconds
                 'ext': 'mp3',
             }]
-            self._sort_formats(formats)
             artists = ', '.join(
                 orderedSet(a.get('ART_NAME') for a in s.get('ARTISTS')))
             entries.append({
                 'id': s.get('SNG_ID'),
                 'duration': int_or_none(s.get('DURATION')),
-                'title': '%s - %s' % (artists, s.get('SNG_TITLE')),
+                'title': '{} - {}'.format(artists, s.get('SNG_TITLE')),
                 'uploader': s.get('ART_NAME'),
                 'uploader_id': s.get('ART_ID'),
                 'age_limit': 16 if s.get('EXPLICIT_LYRICS') == '1' else 0,

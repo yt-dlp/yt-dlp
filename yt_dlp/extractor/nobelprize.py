@@ -1,15 +1,16 @@
 from .common import InfoExtractor
 from ..utils import (
-    js_to_json,
-    mimetype2ext,
     determine_ext,
-    update_url_query,
     get_element_by_attribute,
     int_or_none,
+    js_to_json,
+    mimetype2ext,
+    update_url_query,
 )
 
 
 class NobelPrizeIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?nobelprize\.org/mediaplayer.*?\bid=(?P<id>\d+)'
     _TEST = {
         'url': 'http://www.nobelprize.org/mediaplayer/?id=2636',
@@ -19,7 +20,7 @@ class NobelPrizeIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Announcement of the 2016 Nobel Prize in Physics',
             'description': 'md5:05beba57f4f5a4bbd4cf2ef28fcff739',
-        }
+        },
     }
 
     def _real_extract(self, url):
@@ -48,7 +49,6 @@ class NobelPrizeIE(InfoExtractor):
                 formats.append({
                     'url': source_src,
                 })
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

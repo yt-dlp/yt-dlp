@@ -2,21 +2,17 @@ import functools
 import hashlib
 import json
 import random
-import re
 import time
 
 from .adobepass import AdobePassIE
 from .common import InfoExtractor
 from .youtube import YoutubeIE
-from ..compat import (
-    compat_HTTPError,
-    compat_str,
-)
+from ..networking.exceptions import HTTPError
 from ..utils import (
-    clean_html,
     ExtractorError,
-    int_or_none,
     OnDemandPagedList,
+    clean_html,
+    int_or_none,
     parse_age_limit,
     str_or_none,
     try_get,
@@ -31,13 +27,14 @@ class ViceBaseIE(InfoExtractor):
   %s(locale: "%s", %s: "%s"%s) {
     %s
   }
-}''' % (resource, locale, resource_key, resource_id, args, fields),
+}''' % (resource, locale, resource_key, resource_id, args, fields),  # noqa: UP031
             })['data'][resource]
 
 
 class ViceIE(ViceBaseIE, AdobePassIE):
     IE_NAME = 'vice'
     _VALID_URL = r'https?://(?:(?:video|vms)\.vice|(?:www\.)?vice(?:land|tv))\.com/(?P<locale>[^/]+)/(?:video/[^/]+|embed)/(?P<id>[\da-f]{24})'
+    _EMBED_REGEX = [r'<iframe\b[^>]+\bsrc=["\'](?P<url>(?:https?:)?//video\.vice\.com/[^/]+/embed/[\da-f]{24})']
     _TESTS = [{
         'url': 'https://video.vice.com/en_us/video/pet-cremator/58c69e38a55424f1227dc3f7',
         'info_dict': {
@@ -103,17 +100,6 @@ class ViceIE(ViceBaseIE, AdobePassIE):
         'only_matching': True,
     }]
 
-    @staticmethod
-    def _extract_urls(webpage):
-        return re.findall(
-            r'<iframe\b[^>]+\bsrc=["\']((?:https?:)?//video\.vice\.com/[^/]+/embed/[\da-f]{24})',
-            webpage)
-
-    @staticmethod
-    def _extract_url(webpage):
-        urls = ViceIE._extract_urls(webpage)
-        return urls[0] if urls else None
-
     def _real_extract(self, url):
         locale, video_id = self._match_valid_url(url).groups()
 
@@ -140,7 +126,7 @@ class ViceIE(ViceBaseIE, AdobePassIE):
 
         query.update({
             'exp': exp,
-            'sign': hashlib.sha512(('%s:GET:%d' % (video_id, exp)).encode()).hexdigest(),
+            'sign': hashlib.sha512(f'{video_id}:GET:{exp}'.encode()).hexdigest(),
             'skipadstitching': 1,
             'platform': 'desktop',
             'rn': random.randint(10000, 100000),
@@ -148,20 +134,18 @@ class ViceIE(ViceBaseIE, AdobePassIE):
 
         try:
             preplay = self._download_json(
-                'https://vms.vice.com/%s/video/preplay/%s' % (locale, video_id),
+                f'https://vms.vice.com/{locale}/video/preplay/{video_id}',
                 video_id, query=query)
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code in (400, 401):
-                error = json.loads(e.cause.read().decode())
+            if isinstance(e.cause, HTTPError) and e.cause.status in (400, 401):
+                error = json.loads(e.cause.response.read().decode())
                 error_message = error.get('error_description') or error['details']
-                raise ExtractorError('%s said: %s' % (
-                    self.IE_NAME, error_message), expected=True)
+                raise ExtractorError(f'{self.IE_NAME} said: {error_message}', expected=True)
             raise
 
         video_data = preplay['video']
         formats = self._extract_m3u8_formats(
             preplay['playURL'], video_id, 'mp4', 'm3u8_native')
-        self._sort_formats(formats)
         episode = video_data.get('episode') or {}
         channel = video_data.get('channel') or {}
         season = video_data.get('season') or {}
@@ -171,7 +155,7 @@ class ViceIE(ViceBaseIE, AdobePassIE):
             cc_url = subtitle.get('url')
             if not cc_url:
                 continue
-            language_code = try_get(subtitle, lambda x: x['languages'][0]['language_code'], compat_str) or 'en'
+            language_code = try_get(subtitle, lambda x: x['languages'][0]['language_code'], str) or 'en'
             subtitles.setdefault(language_code, []).append({
                 'url': cc_url,
             })
@@ -185,7 +169,7 @@ class ViceIE(ViceBaseIE, AdobePassIE):
             'duration': int_or_none(video_data.get('video_duration')),
             'timestamp': int_or_none(video_data.get('created_at'), 1000),
             'age_limit': parse_age_limit(video_data.get('video_rating') or rating),
-            'series': try_get(video_data, lambda x: x['show']['base']['display_title'], compat_str),
+            'series': try_get(video_data, lambda x: x['show']['base']['display_title'], str),
             'episode_number': int_or_none(episode.get('episode_number')),
             'episode_id': str_or_none(episode.get('id') or video_data.get('episode_id')),
             'season_number': int_or_none(season.get('season_number')),
@@ -216,7 +200,7 @@ class ViceShowIE(ViceBaseIE):
     def _fetch_page(self, locale, show_id, page):
         videos = self._call_api('videos', 'show_id', show_id, locale, '''body
     id
-    url''', ', page: %d, per_page: %d' % (page + 1, self._PAGE_SIZE))
+    url''', f', page: {page + 1}, per_page: {self._PAGE_SIZE}')
         for video in videos:
             yield self.url_result(
                 video['url'], ViceIE.ie_key(), video.get('id'))
@@ -238,7 +222,7 @@ class ViceShowIE(ViceBaseIE):
 
 class ViceArticleIE(ViceBaseIE):
     IE_NAME = 'vice:article'
-    _VALID_URL = r'https://(?:www\.)?vice\.com/(?P<locale>[^/]+)/article/(?:[0-9a-z]{6}/)?(?P<id>[^?#]+)'
+    _VALID_URL = r'https?://(?:www\.)?vice\.com/(?P<locale>[^/]+)/article/(?:[0-9a-z]{6}/)?(?P<id>[^?#]+)'
 
     _TESTS = [{
         'url': 'https://www.vice.com/en_us/article/on-set-with-the-woman-making-mormon-porn-in-utah',
@@ -315,12 +299,6 @@ class ViceArticleIE(ViceBaseIE):
         vice_url = ViceIE._extract_url(body)
         if vice_url:
             return _url_res(vice_url, ViceIE.ie_key())
-
-        embed_code = self._search_regex(
-            r'embedCode=([^&\'"]+)', body,
-            'ooyala embed code', default=None)
-        if embed_code:
-            return _url_res('ooyala:%s' % embed_code, 'Ooyala')
 
         youtube_url = YoutubeIE._extract_url(body)
         if youtube_url:

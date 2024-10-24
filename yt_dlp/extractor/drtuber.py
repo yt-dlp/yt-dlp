@@ -2,8 +2,8 @@ import re
 
 from .common import InfoExtractor
 from ..utils import (
-    int_or_none,
     NO_DEFAULT,
+    int_or_none,
     parse_duration,
     str_to_int,
 )
@@ -11,6 +11,7 @@ from ..utils import (
 
 class DrTuberIE(InfoExtractor):
     _VALID_URL = r'https?://(?:(?:www|m)\.)?drtuber\.com/(?:video|embed)/(?P<id>\d+)(?:/(?P<display_id>[\w-]+))?'
+    _EMBED_REGEX = [r'<iframe[^>]+?src=["\'](?P<url>(?:https?:)?//(?:www\.)?drtuber\.com/embed/\d+)']
     _TESTS = [{
         'url': 'http://www.drtuber.com/video/1740434/hot-perky-blonde-naked-golf',
         'md5': '93e680cf2536ad0dfb7e74d94a89facd',
@@ -24,7 +25,7 @@ class DrTuberIE(InfoExtractor):
             'categories': ['Babe', 'Blonde', 'Erotic', 'Outdoor', 'Softcore', 'Solo'],
             'thumbnail': r're:https?://.*\.jpg$',
             'age_limit': 18,
-        }
+        },
     }, {
         'url': 'http://www.drtuber.com/embed/489939',
         'only_matching': True,
@@ -33,19 +34,13 @@ class DrTuberIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    @staticmethod
-    def _extract_urls(webpage):
-        return re.findall(
-            r'<iframe[^>]+?src=["\'](?P<url>(?:https?:)?//(?:www\.)?drtuber\.com/embed/\d+)',
-            webpage)
-
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
         video_id = mobj.group('id')
         display_id = mobj.group('display_id') or video_id
 
         webpage = self._download_webpage(
-            'http://www.drtuber.com/video/%s' % video_id, display_id)
+            f'http://www.drtuber.com/video/{video_id}', display_id)
 
         video_data = self._download_json(
             'http://www.drtuber.com/player_config_json/', video_id, query={
@@ -61,9 +56,8 @@ class DrTuberIE(InfoExtractor):
                 formats.append({
                     'format_id': format_id,
                     'quality': 2 if format_id == 'hq' else 1,
-                    'url': video_url
+                    'url': video_url,
                 })
-        self._sort_formats(formats)
 
         duration = int_or_none(video_data.get('duration')) or parse_duration(
             video_data.get('duration_format'))
@@ -82,8 +76,8 @@ class DrTuberIE(InfoExtractor):
 
         def extract_count(id_, name, default=NO_DEFAULT):
             return str_to_int(self._html_search_regex(
-                r'<span[^>]+(?:class|id)="%s"[^>]*>([\d,\.]+)</span>' % id_,
-                webpage, '%s count' % name, default=default, fatal=False))
+                rf'<span[^>]+(?:class|id)="{id_}"[^>]*>([\d,\.]+)</span>',
+                webpage, f'{name} count', default=default, fatal=False))
 
         like_count = extract_count('rate_likes', 'like')
         dislike_count = extract_count('rate_dislikes', 'dislike', default=None)

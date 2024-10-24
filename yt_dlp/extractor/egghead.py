@@ -1,5 +1,4 @@
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     determine_ext,
     int_or_none,
@@ -13,13 +12,13 @@ class EggheadBaseIE(InfoExtractor):
     def _call_api(self, path, video_id, resource, fatal=True):
         return self._download_json(
             'https://app.egghead.io/api/v1/' + path,
-            video_id, 'Downloading %s JSON' % resource, fatal=fatal)
+            video_id, f'Downloading {resource} JSON', fatal=fatal)
 
 
 class EggheadCourseIE(EggheadBaseIE):
     IE_DESC = 'egghead.io course'
     IE_NAME = 'egghead:course'
-    _VALID_URL = r'https://(?:app\.)?egghead\.io/(?:course|playlist)s/(?P<id>[^/?#&]+)'
+    _VALID_URL = r'https?://(?:app\.)?egghead\.io/(?:course|playlist)s/(?P<id>[^/?#&]+)'
     _TESTS = [{
         'url': 'https://egghead.io/courses/professor-frisby-introduces-composable-functional-javascript',
         'playlist_count': 29,
@@ -46,7 +45,7 @@ class EggheadCourseIE(EggheadBaseIE):
                 continue
             lesson_id = lesson.get('id')
             if lesson_id:
-                lesson_id = compat_str(lesson_id)
+                lesson_id = str(lesson_id)
             entries.append(self.url_result(
                 lesson_url, ie=EggheadLessonIE.ie_key(), video_id=lesson_id))
 
@@ -55,7 +54,7 @@ class EggheadCourseIE(EggheadBaseIE):
 
         playlist_id = course.get('id')
         if playlist_id:
-            playlist_id = compat_str(playlist_id)
+            playlist_id = str(playlist_id)
 
         return self.playlist_result(
             entries, playlist_id, course.get('title'),
@@ -65,7 +64,7 @@ class EggheadCourseIE(EggheadBaseIE):
 class EggheadLessonIE(EggheadBaseIE):
     IE_DESC = 'egghead.io lesson'
     IE_NAME = 'egghead:lesson'
-    _VALID_URL = r'https://(?:app\.)?egghead\.io/(?:api/v1/)?lessons/(?P<id>[^/?#&]+)'
+    _VALID_URL = r'https?://(?:app\.)?egghead\.io/(?:api/v1/)?lessons/(?P<id>[^/?#&]+)'
     _TESTS = [{
         'url': 'https://egghead.io/lessons/javascript-linear-data-flow-with-container-style-types-box',
         'info_dict': {
@@ -98,7 +97,7 @@ class EggheadLessonIE(EggheadBaseIE):
         lesson = self._call_api(
             'lessons/' + display_id, display_id, 'lesson')
 
-        lesson_id = compat_str(lesson['id'])
+        lesson_id = str(lesson['id'])
         title = lesson['title']
 
         formats = []
@@ -117,7 +116,6 @@ class EggheadLessonIE(EggheadBaseIE):
                 formats.append({
                     'url': format_url,
                 })
-        self._sort_formats(formats)
 
         return {
             'id': lesson_id,
@@ -130,6 +128,6 @@ class EggheadLessonIE(EggheadBaseIE):
             'view_count': int_or_none(lesson.get('plays_count')),
             'tags': try_get(lesson, lambda x: x['tag_list'], list),
             'series': try_get(
-                lesson, lambda x: x['series']['title'], compat_str),
+                lesson, lambda x: x['series']['title'], str),
             'formats': formats,
         }

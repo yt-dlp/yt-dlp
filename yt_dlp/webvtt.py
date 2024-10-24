@@ -9,8 +9,8 @@ in RFC 8216 §3.5 <https://tools.ietf.org/html/rfc8216#section-3.5>.
 """
 
 import io
+import re
 
-from .compat import re
 from .utils import int_or_none, timetuple_from_msec
 
 
@@ -77,9 +77,8 @@ class _MatchChildParser(_MatchParser):
 
 class ParseError(Exception):
     def __init__(self, parser):
-        super().__init__("Parse error at position %u (near %r)" % (
-            parser._pos, parser._data[parser._pos:parser._pos + 20]
-        ))
+        data = parser._data[parser._pos:parser._pos + 100]
+        super().__init__(f'Parse error at position {parser._pos} (near {data!r})')
 
 
 # While the specification <https://www.w3.org/TR/webvtt1/#webvtt-timestamp>
@@ -93,8 +92,9 @@ _REGEX_TS = re.compile(r'''(?x)
     ([0-9]{3})?
 ''')
 _REGEX_EOF = re.compile(r'\Z')
-_REGEX_NL = re.compile(r'(?:\r\n|[\r\n])')
+_REGEX_NL = re.compile(r'(?:\r\n|[\r\n]|$)')
 _REGEX_BLANK = re.compile(r'(?:\r\n|[\r\n])+')
+_REGEX_OPTIONAL_WHITESPACE = re.compile(r'[ \t]*')
 
 
 def _parse_ts(ts):
@@ -140,7 +140,6 @@ class HeaderBlock(Block):
     A WebVTT block that may only appear in the header part of the file,
     i.e. before any cue blocks.
     """
-
     pass
 
 
@@ -149,7 +148,7 @@ class Magic(HeaderBlock):
 
     # XXX: The X-TIMESTAMP-MAP extension is described in RFC 8216 §3.5
     # <https://tools.ietf.org/html/rfc8216#section-3.5>, but the RFC
-    # doesn’t specify the exact grammar nor where in the WebVTT
+    # doesn't specify the exact grammar nor where in the WebVTT
     # syntax it should be placed; the below has been devised based
     # on usage in the wild
     #
@@ -160,6 +159,12 @@ class Magic(HeaderBlock):
     _REGEX_TSMAP_LOCAL = re.compile(r'LOCAL:')
     _REGEX_TSMAP_MPEGTS = re.compile(r'MPEGTS:([0-9]+)')
     _REGEX_TSMAP_SEP = re.compile(r'[ \t]*,[ \t]*')
+
+    # This was removed from the spec in the 2017 revision;
+    # the last spec draft to describe this syntax element is
+    # <https://www.w3.org/TR/2015/WD-webvtt1-20151208/#webvtt-metadata-header>.
+    # Nevertheless, YouTube keeps serving those
+    _REGEX_META = re.compile(r'(?:(?!-->)[^\r\n])+:(?:(?!-->)[^\r\n])+(?:\r\n|[\r\n])')
 
     @classmethod
     def __parse_tsmap(cls, parser):
@@ -200,13 +205,18 @@ class Magic(HeaderBlock):
             raise ParseError(parser)
 
         extra = m.group(1)
-        local, mpegts = None, None
-        if parser.consume(cls._REGEX_TSMAP):
-            local, mpegts = cls.__parse_tsmap(parser)
-        if not parser.consume(_REGEX_NL):
+        local, mpegts, meta = None, None, ''
+        while not parser.consume(_REGEX_NL):
+            if parser.consume(cls._REGEX_TSMAP):
+                local, mpegts = cls.__parse_tsmap(parser)
+                continue
+            m = parser.consume(cls._REGEX_META)
+            if m:
+                meta += m.group(0)
+                continue
             raise ParseError(parser)
         parser.commit()
-        return cls(extra=extra, mpegts=mpegts, local=local)
+        return cls(extra=extra, mpegts=mpegts, local=local, meta=meta)
 
     def write_into(self, stream):
         stream.write('WEBVTT')
@@ -219,6 +229,8 @@ class Magic(HeaderBlock):
             stream.write(',MPEGTS:')
             stream.write(str(self.mpegts if self.mpegts is not None else 0))
             stream.write('\n')
+        if self.meta:
+            stream.write(self.meta)
         stream.write('\n')
 
 
@@ -260,10 +272,10 @@ class CueBlock(Block):
     def parse(cls, parser):
         parser = parser.child()
 
-        id = None
+        id_ = None
         m = parser.consume(cls._REGEX_ID)
         if m:
-            id = m.group(1)
+            id_ = m.group(1)
 
         m0 = parser.consume(_REGEX_TS)
         if not m0:
@@ -274,6 +286,7 @@ class CueBlock(Block):
         if not m1:
             return None
         m2 = parser.consume(cls._REGEX_SETTINGS)
+        parser.consume(_REGEX_OPTIONAL_WHITESPACE)
         if not parser.consume(_REGEX_NL):
             return None
 
@@ -290,9 +303,9 @@ class CueBlock(Block):
 
         parser.commit()
         return cls(
-            id=id,
+            id=id_,
             start=start, end=end, settings=settings,
-            text=text.getvalue()
+            text=text.getvalue(),
         )
 
     def write_into(self, stream):
@@ -329,7 +342,7 @@ class CueBlock(Block):
             start=json['start'],
             end=json['end'],
             text=json['text'],
-            settings=json['settings']
+            settings=json['settings'],
         )
 
     def hinges(self, other):

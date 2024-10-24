@@ -1,7 +1,7 @@
 import json
 
 from .common import InfoExtractor
-from ..compat import compat_HTTPError
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     int_or_none,
@@ -52,9 +52,9 @@ class ImgGamingBaseIE(InfoExtractor):
             return self._call_api(
                 stream_path, media_id)['playerUrlCallback']
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 403:
+            if isinstance(e.cause, HTTPError) and e.cause.status == 403:
                 raise ExtractorError(
-                    self._parse_json(e.cause.read().decode(), media_id)['messages'][0],
+                    self._parse_json(e.cause.response.read().decode(), media_id)['messages'][0],
                     expected=True)
             raise
 
@@ -73,7 +73,7 @@ class ImgGamingBaseIE(InfoExtractor):
                 if not video_id:
                     continue
                 entries.append(self.url_result(
-                    'https://%s/video/%s' % (domain, video_id),
+                    f'https://{domain}/video/{video_id}',
                     self.ie_key(), video_id))
             return self.playlist_result(
                 entries, media_id, playlist.get('title'),
@@ -103,7 +103,6 @@ class ImgGamingBaseIE(InfoExtractor):
                 formats.extend(self._extract_mpd_formats(
                     media_url, media_id, mpd_id='dash', fatal=False,
                     headers=self._MANIFEST_HEADERS))
-        self._sort_formats(formats)
 
         subtitles = {}
         for subtitle in video_data.get('subtitles', []):

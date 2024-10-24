@@ -1,5 +1,3 @@
-import re
-
 from .common import InfoExtractor
 from ..utils import (
     int_or_none,
@@ -9,6 +7,7 @@ from ..utils import (
 
 
 class ViqeoIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'''(?x)
                         (?:
                             viqeo:|
@@ -17,6 +16,7 @@ class ViqeoIE(InfoExtractor):
                         )
                         (?P<id>[\da-f]+)
                     '''
+    _EMBED_REGEX = [r'<iframe[^>]+\bsrc=(["\'])(?P<url>(?:https?:)?//cdn\.viqeo\.tv/embed/*\?.*?\bvid=[\da-f]+.*?)\1']
     _TESTS = [{
         'url': 'https://cdn.viqeo.tv/embed/?vid=cde96f09d25f39bee837',
         'md5': 'a169dd1a6426b350dca4296226f21e76',
@@ -35,19 +35,11 @@ class ViqeoIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    @staticmethod
-    def _extract_urls(webpage):
-        return [
-            mobj.group('url')
-            for mobj in re.finditer(
-                r'<iframe[^>]+\bsrc=(["\'])(?P<url>(?:https?:)?//cdn\.viqeo\.tv/embed/*\?.*?\bvid=[\da-f]+.*?)\1',
-                webpage)]
-
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
         webpage = self._download_webpage(
-            'https://cdn.viqeo.tv/embed/?vid=%s' % video_id, video_id)
+            f'https://cdn.viqeo.tv/embed/?vid={video_id}', video_id)
 
         data = self._parse_json(
             self._search_regex(
@@ -83,7 +75,6 @@ class ViqeoIE(InfoExtractor):
                     'vcodec': 'none' if is_audio else None,
                 })
                 formats.append(f)
-        self._sort_formats(formats)
 
         duration = int_or_none(data.get('duration'))
 

@@ -1,7 +1,7 @@
 from .common import InfoExtractor
 from ..utils import (
-    clean_html,
     ExtractorError,
+    clean_html,
     format_field,
     get_element_by_class,
     int_or_none,
@@ -31,7 +31,7 @@ class VidioBaseIE(InfoExtractor):
         login_page = self._download_webpage(
             self._LOGIN_URL, None, 'Downloading log in page')
 
-        login_form = self._form_hidden_inputs("login-form", login_page)
+        login_form = self._form_hidden_inputs('login-form', login_page)
         login_form.update({
             'user[login]': username,
             'user[password]': password,
@@ -52,7 +52,7 @@ class VidioBaseIE(InfoExtractor):
             elif reason:
                 subreason = get_element_by_class('onboarding-modal__description-text', login_post) or ''
                 raise ExtractorError(
-                    'Unable to log in: %s. %s' % (reason, clean_html(subreason)), expected=True)
+                    f'Unable to log in: {reason}. {clean_html(subreason)}', expected=True)
             raise ExtractorError('Unable to log in')
 
     def _initialize_pre_login(self):
@@ -67,10 +67,10 @@ class VidioBaseIE(InfoExtractor):
 
 
 class VidioIE(VidioBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?vidio\.com/watch/(?P<id>\d+)-(?P<display_id>[^/?#&]+)'
+    _VALID_URL = r'https?://(?:www\.)?vidio\.com/(watch|embed)/(?P<id>\d+)-(?P<display_id>[^/?#&]+)'
     _TESTS = [{
         'url': 'http://www.vidio.com/watch/165683-dj_ambred-booyah-live-2015',
-        'md5': 'cd2801394afc164e9775db6a140b91fe',
+        'md5': 'abac81b1a205a8d94c609a473b5ea62a',
         'info_dict': {
             'id': '165683',
             'display_id': 'dj_ambred-booyah-live-2015',
@@ -89,7 +89,8 @@ class VidioIE(VidioBaseIE):
             'view_count': int,
             'dislike_count': int,
             'comment_count': int,
-            'tags': 'count:4',
+            'tags': 'count:3',
+            'uploader_url': 'https://www.vidio.com/@twelvepictures',
         },
     }, {
         'url': 'https://www.vidio.com/watch/77949-south-korea-test-fires-missile-that-can-strike-all-of-the-north',
@@ -97,7 +98,31 @@ class VidioIE(VidioBaseIE):
     }, {
         # Premier-exclusive video
         'url': 'https://www.vidio.com/watch/1550718-stand-by-me-doraemon',
-        'only_matching': True
+        'only_matching': True,
+    }, {
+        # embed url from https://enamplus.liputan6.com/read/5033648/video-fakta-temuan-suspek-cacar-monyet-di-jawa-tengah
+        'url': 'https://www.vidio.com/embed/7115874-fakta-temuan-suspek-cacar-monyet-di-jawa-tengah',
+        'info_dict': {
+            'id': '7115874',
+            'ext': 'mp4',
+            'channel_id': '40172876',
+            'comment_count': int,
+            'uploader_id': 'liputan6',
+            'view_count': int,
+            'dislike_count': int,
+            'upload_date': '20220804',
+            'uploader': 'Liputan6.com',
+            'display_id': 'fakta-temuan-suspek-cacar-monyet-di-jawa-tengah',
+            'channel': 'ENAM PLUS 165',
+            'timestamp': 1659605520,
+            'title': 'Fakta Temuan Suspek Cacar Monyet di Jawa Tengah',
+            'duration': 59,
+            'like_count': int,
+            'tags': ['monkeypox indonesia', 'cacar monyet menyebar', 'suspek cacar monyet di indonesia', 'fakta', 'hoax atau bukan?', 'jawa tengah'],
+            'thumbnail': 'https://thumbor.prod.vidiocdn.com/83PN-_BKm5sS7emLtRxl506MLqQ=/640x360/filters:quality(70)/vidio-web-prod-video/uploads/video/image/7115874/fakta-suspek-cacar-monyet-di-jawa-tengah-24555a.jpg',
+            'uploader_url': 'https://www.vidio.com/@liputan6',
+            'description': 'md5:6d595a18d3b19ee378e335a6f288d5ac',
+        },
     }]
 
     def _real_extract(self, url):
@@ -110,7 +135,7 @@ class VidioIE(VidioBaseIE):
 
         if is_premium:
             sources = self._download_json(
-                'https://www.vidio.com/interactions_stream.json?video_id=%s&type=videos' % video_id,
+                f'https://www.vidio.com/interactions_stream.json?video_id={video_id}&type=videos',
                 display_id, note='Downloading premier API JSON')
             if not (sources.get('source') or sources.get('source_dash')):
                 self.raise_login_required('This video is only available for registered users with the appropriate subscription')
@@ -131,8 +156,6 @@ class VidioIE(VidioBaseIE):
             formats, subs = self._extract_m3u8_formats_and_subtitles(
                 hls_url, display_id, 'mp4', 'm3u8_native')
 
-        self._sort_formats(formats)
-
         get_first = lambda x: try_get(data, lambda y: y[x + 's'][0], dict) or {}
         channel = get_first('channel')
         user = get_first('user')
@@ -152,7 +175,7 @@ class VidioIE(VidioBaseIE):
             'uploader': user.get('name'),
             'timestamp': parse_iso8601(video.get('created_at')),
             'uploader_id': username,
-            'uploader_url': format_field(username, template='https://www.vidio.com/@%s'),
+            'uploader_url': format_field(username, None, 'https://www.vidio.com/@%s'),
             'channel': channel.get('name'),
             'channel_id': str_or_none(channel.get('id')),
             'view_count': get_count('view_count'),
@@ -176,7 +199,7 @@ class VidioPremierIE(VidioBaseIE):
     def _playlist_entries(self, playlist_url, display_id):
         index = 1
         while playlist_url:
-            playlist_json = self._call_api(playlist_url, display_id, 'Downloading API JSON page %s' % index)
+            playlist_json = self._call_api(playlist_url, display_id, f'Downloading API JSON page {index}')
             for video_json in playlist_json.get('data', []):
                 link = video_json['links']['watchpage']
                 yield self.url_result(link, 'Vidio', video_json['id'])
@@ -194,14 +217,14 @@ class VidioPremierIE(VidioBaseIE):
                 self._playlist_entries(playlist_url, playlist_id),
                 playlist_id=playlist_id, playlist_title=idata.get('title'))
 
-        playlist_data = self._call_api('https://api.vidio.com/content_profiles/%s/playlists' % playlist_id, display_id)
+        playlist_data = self._call_api(f'https://api.vidio.com/content_profiles/{playlist_id}/playlists', display_id)
 
         return self.playlist_from_matches(
             playlist_data.get('data', []), playlist_id=playlist_id, ie=self.ie_key(),
             getter=lambda data: smuggle_url(url, {
                 'url': data['relationships']['videos']['links']['related'],
                 'id': data['id'],
-                'title': try_get(data, lambda x: x['attributes']['name'])
+                'title': try_get(data, lambda x: x['attributes']['name']),
             }))
 
 
@@ -229,7 +252,7 @@ class VidioLiveIE(VidioBaseIE):
     def _real_extract(self, url):
         video_id, display_id = self._match_valid_url(url).groups()
         stream_data = self._call_api(
-            'https://www.vidio.com/api/livestreamings/%s/detail' % video_id, display_id)
+            f'https://www.vidio.com/api/livestreamings/{video_id}/detail', display_id)
         stream_meta = stream_data['livestreamings'][0]
         user = stream_data.get('users', [{}])[0]
 
@@ -242,14 +265,14 @@ class VidioLiveIE(VidioBaseIE):
                 self.report_drm(video_id)
         if stream_meta.get('is_premium'):
             sources = self._download_json(
-                'https://www.vidio.com/interactions_stream.json?video_id=%s&type=livestreamings' % video_id,
+                f'https://www.vidio.com/interactions_stream.json?video_id={video_id}&type=livestreamings',
                 display_id, note='Downloading premier API JSON')
             if not (sources.get('source') or sources.get('source_dash')):
                 self.raise_login_required('This video is only available for registered users with the appropriate subscription')
 
             if str_or_none(sources.get('source')):
                 token_json = self._download_json(
-                    'https://www.vidio.com/live/%s/tokens' % video_id,
+                    f'https://www.vidio.com/live/{video_id}/tokens',
                     display_id, note='Downloading HLS token JSON', data=b'')
                 formats.extend(self._extract_m3u8_formats(
                     sources['source'] + '?' + token_json.get('token', ''), display_id, 'mp4', 'm3u8_native'))
@@ -258,7 +281,7 @@ class VidioLiveIE(VidioBaseIE):
         else:
             if stream_meta.get('stream_token_url'):
                 token_json = self._download_json(
-                    'https://www.vidio.com/live/%s/tokens' % video_id,
+                    f'https://www.vidio.com/live/{video_id}/tokens',
                     display_id, note='Downloading HLS token JSON', data=b'')
                 formats.extend(self._extract_m3u8_formats(
                     stream_meta['stream_token_url'] + '?' + token_json.get('token', ''),
@@ -268,7 +291,6 @@ class VidioLiveIE(VidioBaseIE):
             if stream_meta.get('stream_url'):
                 formats.extend(self._extract_m3u8_formats(
                     stream_meta['stream_url'], display_id, 'mp4', 'm3u8_native'))
-        self._sort_formats(formats)
 
         return {
             'id': video_id,
@@ -283,5 +305,5 @@ class VidioLiveIE(VidioBaseIE):
             'uploader': user.get('name'),
             'timestamp': parse_iso8601(stream_meta.get('start_time')),
             'uploader_id': username,
-            'uploader_url': format_field(username, template='https://www.vidio.com/@%s'),
+            'uploader_url': format_field(username, None, 'https://www.vidio.com/@%s'),
         }

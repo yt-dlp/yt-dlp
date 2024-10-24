@@ -1,24 +1,23 @@
 import json
+import urllib.parse
 import uuid
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_HTTPError,
-    compat_str,
-    compat_urllib_parse_unquote,
-)
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     int_or_none,
     parse_age_limit,
     parse_duration,
+    traverse_obj,
     try_get,
     unified_timestamp,
+    url_or_none,
 )
 
 
 class FOXIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?fox\.com/watch/(?P<id>[\da-fA-F]+)'
+    _VALID_URL = r'https?://(?:www\.)?fox(?:sports)?\.com/(?:watch|replay)/(?P<id>[\da-fA-F]+)'
     _TESTS = [{
         # clip
         'url': 'https://www.fox.com/watch/4b765a60490325103ea69888fb2bd4e8/',
@@ -34,7 +33,8 @@ class FOXIE(InfoExtractor):
             'creator': 'FOX',
             'series': 'Gotham',
             'age_limit': 14,
-            'episode': 'Aftermath: Bruce Wayne Develops Into The Dark Knight'
+            'episode': 'Aftermath: Bruce Wayne Develops Into The Dark Knight',
+            'thumbnail': r're:^https?://.*\.jpg$',
         },
         'params': {
             'skip_download': True,
@@ -47,12 +47,16 @@ class FOXIE(InfoExtractor):
         # sports event, geo-restricted
         'url': 'https://www.fox.com/watch/b057484dade738d1f373b3e46216fa2c/',
         'only_matching': True,
+    }, {
+        # fox sports replay, geo-restricted
+        'url': 'https://www.foxsports.com/replay/561f3e071347a24e5e877abc56b22e89',
+        'only_matching': True,
     }]
     _GEO_BYPASS = False
     _HOME_PAGE_URL = 'https://www.fox.com/'
     _API_KEY = '6E9S4bmcoNnZwVLOHywOv8PJEdu76cM9'
     _access_token = None
-    _device_id = compat_str(uuid.uuid4())
+    _device_id = str(uuid.uuid4())
 
     def _call_api(self, path, video_id, data=None):
         headers = {
@@ -65,9 +69,9 @@ class FOXIE(InfoExtractor):
                 'https://api3.fox.com/v2.0/' + path,
                 video_id, data=data, headers=headers)
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 403:
+            if isinstance(e.cause, HTTPError) and e.cause.status == 403:
                 entitlement_issues = self._parse_json(
-                    e.cause.read().decode(), video_id)['entitlementIssues']
+                    e.cause.response.read().decode(), video_id)['entitlementIssues']
                 for e in entitlement_issues:
                     if e.get('errorCode') == 1005:
                         raise ExtractorError(
@@ -81,7 +85,7 @@ class FOXIE(InfoExtractor):
         if not self._access_token:
             mvpd_auth = self._get_cookies(self._HOME_PAGE_URL).get('mvpd-auth')
             if mvpd_auth:
-                self._access_token = (self._parse_json(compat_urllib_parse_unquote(
+                self._access_token = (self._parse_json(urllib.parse.unquote(
                     mvpd_auth.value), None, fatal=False) or {}).get('accessToken')
             if not self._access_token:
                 self._access_token = self._call_api(
@@ -93,7 +97,7 @@ class FOXIE(InfoExtractor):
         video_id = self._match_id(url)
 
         self._access_token = self._call_api(
-            'previewpassmvpd?device_id=%s&mvpd_id=TempPass_fbcfox_60min' % self._device_id,
+            f'previewpassmvpd?device_id={self._device_id}&mvpd_id=TempPass_fbcfox_60min',
             video_id)['accessToken']
 
         video = self._call_api('watch', video_id, data=json.dumps({
@@ -106,13 +110,13 @@ class FOXIE(InfoExtractor):
             'provider': {
                 'freewheel': {'did': self._device_id},
                 'vdms': {'rays': ''},
-                'dmp': {'kuid': '', 'seg': ''}
+                'dmp': {'kuid': '', 'seg': ''},
             },
             'playlist': '',
             'privacy': {'us': '1---'},
             'siteSection': '',
             'streamType': 'vod',
-            'streamId': video_id}).encode('utf-8'))
+            'streamId': video_id}).encode())
 
         title = video['name']
         release_url = video['url']
@@ -120,8 +124,8 @@ class FOXIE(InfoExtractor):
         try:
             m3u8_url = self._download_json(release_url, video_id)['playURL']
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 403:
-                error = self._parse_json(e.cause.read().decode(), video_id)
+            if isinstance(e.cause, HTTPError) and e.cause.status == 403:
+                error = self._parse_json(e.cause.response.read().decode(), video_id)
                 if error.get('exception') == 'GeoLocationBlocked':
                     self.raise_geo_restricted(countries=['US'])
                 raise ExtractorError(error['description'], expected=True)
@@ -129,7 +133,6 @@ class FOXIE(InfoExtractor):
         formats = self._extract_m3u8_formats(
             m3u8_url, video_id, 'mp4',
             entry_protocol='m3u8_native', m3u8_id='hls')
-        self._sort_formats(formats)
 
         data = try_get(
             video, lambda x: x['trackingData']['properties'], dict) or {}
@@ -165,6 +168,7 @@ class FOXIE(InfoExtractor):
             'season_number': int_or_none(video.get('seasonNumber')),
             'episode': video.get('name'),
             'episode_number': int_or_none(video.get('episodeNumber')),
+            'thumbnail': traverse_obj(video, ('images', 'still', 'raw'), expected_type=url_or_none),
             'release_year': int_or_none(video.get('releaseYear')),
             'subtitles': subtitles,
         }

@@ -1,13 +1,11 @@
+import urllib.parse
+
 from .common import InfoExtractor
-from ..compat import (
-    compat_urllib_parse,
-)
-from ..utils import (
-    unified_strdate,
-)
+from ..utils import unified_strdate
 
 
 class UrortIE(InfoExtractor):
+    _WORKING = False
     IE_DESC = 'NRK P3 Urørt'
     _VALID_URL = r'https?://(?:www\.)?urort\.p3\.no/#!/Band/(?P<id>[^/]+)$'
 
@@ -25,31 +23,30 @@ class UrortIE(InfoExtractor):
         },
         'params': {
             'matchtitle': '^The Bomb$',  # To test, we want just one video
-        }
+        },
     }
 
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
 
-        fstr = compat_urllib_parse.quote("InternalBandUrl eq '%s'" % playlist_id)
-        json_url = 'http://urort.p3.no/breeze/urort/TrackDTOViews?$filter=%s&$orderby=Released%%20desc&$expand=Tags%%2CFiles' % fstr
+        fstr = urllib.parse.quote(f"InternalBandUrl eq '{playlist_id}'")
+        json_url = f'http://urort.p3.no/breeze/urort/TrackDTOViews?$filter={fstr}&$orderby=Released%20desc&$expand=Tags%2CFiles'
         songs = self._download_json(json_url, playlist_id)
         entries = []
         for s in songs:
             formats = [{
                 'tbr': f.get('Quality'),
                 'ext': f['FileType'],
-                'format_id': '%s-%s' % (f['FileType'], f.get('Quality', '')),
-                'url': 'http://p3urort.blob.core.windows.net/tracks/%s' % f['FileRef'],
+                'format_id': '{}-{}'.format(f['FileType'], f.get('Quality', '')),
+                'url': 'http://p3urort.blob.core.windows.net/tracks/{}'.format(f['FileRef']),
                 'quality': 3 if f['FileType'] == 'mp3' else 2,
             } for f in s['Files']]
-            self._sort_formats(formats)
             e = {
                 'id': '%d-%s' % (s['BandId'], s['$id']),
                 'title': s['Title'],
                 'uploader_id': playlist_id,
                 'uploader': s.get('BandName', playlist_id),
-                'thumbnail': 'http://urort.p3.no/cloud/images/%s' % s['Image'],
+                'thumbnail': 'http://urort.p3.no/cloud/images/{}'.format(s['Image']),
                 'upload_date': unified_strdate(s.get('Released')),
                 'formats': formats,
             }

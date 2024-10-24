@@ -1,13 +1,13 @@
 from .theplatform import ThePlatformFeedIE
 from ..utils import (
-    dict_get,
     ExtractorError,
+    dict_get,
     float_or_none,
     int_or_none,
 )
 
 
-class CorusIE(ThePlatformFeedIE):
+class CorusIE(ThePlatformFeedIE):  # XXX: Do not subclass from concrete IE
     _VALID_URL = r'''(?x)
                     https?://
                         (?:www\.)?
@@ -41,7 +41,7 @@ class CorusIE(ThePlatformFeedIE):
                         )
                     '''
     _TESTS = [{
-        'url': 'http://www.hgtv.ca/shows/bryan-inc/videos/movie-night-popcorn-with-bryan-870923331648/',
+        'url': 'https://www.hgtv.ca/video/bryan-inc/movie-night-popcorn-with-bryan/870923331648/',
         'info_dict': {
             'id': '870923331648',
             'ext': 'mp4',
@@ -54,6 +54,7 @@ class CorusIE(ThePlatformFeedIE):
             'skip_download': True,
         },
         'expected_warnings': ['Failed to parse JSON'],
+        # FIXME: yt-dlp wrongly raises for geo restriction
     }, {
         'url': 'http://www.foodnetwork.ca/shows/chopped/video/episode/chocolate-obsession/video.html?v=872683587753',
         'only_matching': True,
@@ -68,16 +69,16 @@ class CorusIE(ThePlatformFeedIE):
         'only_matching': True,
     }, {
         'url': 'http://www.bigbrothercanada.ca/video/1457812035894/',
-        'only_matching': True
+        'only_matching': True,
     }, {
         'url': 'https://www.bigbrothercanada.ca/video/big-brother-canada-704/1457812035894/',
-        'only_matching': True
+        'only_matching': True,
     }, {
         'url': 'https://www.seriesplus.com/emissions/dre-mary-mort-sur-ordonnance/videos/deux-coeurs-battant/SERP0055626330000200/',
-        'only_matching': True
+        'only_matching': True,
     }, {
         'url': 'https://www.disneychannel.ca/shows/gabby-duran-the-unsittables/video/crybaby-duran-clip/2f557eec-0588-11ea-ae2b-e2c6776b770e/',
-        'only_matching': True
+        'only_matching': True,
     }]
     _GEO_BYPASS = False
     _SITE_MAP = {
@@ -96,7 +97,7 @@ class CorusIE(ThePlatformFeedIE):
         if path != 'series':
             path = 'migration/' + path
         video = self._download_json(
-            'https://globalcontent.corusappservices.com/templates/%s/playlist/' % path,
+            f'https://globalcontent.corusappservices.com/templates/{path}/playlist/',
             video_id, query={'byId': video_id},
             headers={'Accept': 'application/json'})[0]
         title = video['title']
@@ -107,7 +108,7 @@ class CorusIE(ThePlatformFeedIE):
             if not smil_url:
                 continue
             source_type = source.get('type')
-            note = 'Downloading%s smil file' % (' ' + source_type if source_type else '')
+            note = 'Downloading{} smil file'.format(' ' + source_type if source_type else '')
             resp = self._download_webpage(
                 smil_url, video_id, note, fatal=False,
                 headers=self.geo_verification_headers())
@@ -126,7 +127,6 @@ class CorusIE(ThePlatformFeedIE):
                 smil, smil_url, video_id, namespace))
         if not formats and video.get('drm'):
             self.report_drm(video_id)
-        self._sort_formats(formats)
 
         subtitles = {}
         for track in video.get('tracks', []):

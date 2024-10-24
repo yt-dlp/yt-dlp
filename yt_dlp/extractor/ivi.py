@@ -2,17 +2,15 @@ import json
 import re
 
 from .common import InfoExtractor
-from ..utils import (
-    ExtractorError,
-    int_or_none,
-    qualities,
-)
+from ..dependencies import Cryptodome
+from ..utils import ExtractorError, int_or_none, qualities
 
 
 class IviIE(InfoExtractor):
     IE_DESC = 'ivi.ru'
     IE_NAME = 'ivi'
     _VALID_URL = r'https?://(?:www\.)?ivi\.(?:ru|tv)/(?:watch/(?:[^/]+/)?|video/player\?.*?videoId=)(?P<id>\d+)'
+    _EMBED_REGEX = [r'<embed[^>]+?src=(["\'])(?P<url>https?://(?:www\.)?ivi\.ru/video/player.+?)\1']
     _GEO_BYPASS = False
     _GEO_COUNTRIES = ['RU']
     _LIGHT_KEY = b'\xf1\x02\x32\xb7\xbc\x5c\x7a\xe8\xf7\x96\xc1\x33\x2b\x27\xa1\x8c'
@@ -84,40 +82,31 @@ class IviIE(InfoExtractor):
             'params': [
                 video_id, {
                     'site': 's%d',
-                    'referrer': 'http://www.ivi.ru/watch/%s' % video_id,
-                    'contentid': video_id
-                }
-            ]
+                    'referrer': f'http://www.ivi.ru/watch/{video_id}',
+                    'contentid': video_id,
+                },
+            ],
         })
 
         for site in (353, 183):
             content_data = (data % site).encode()
             if site == 353:
-                try:
-                    from Cryptodome.Cipher import Blowfish
-                    from Cryptodome.Hash import CMAC
-                    pycryptodome_found = True
-                except ImportError:
-                    try:
-                        from Crypto.Cipher import Blowfish
-                        from Crypto.Hash import CMAC
-                        pycryptodome_found = True
-                    except ImportError:
-                        pycryptodome_found = False
-                        continue
+                if not Cryptodome.CMAC:
+                    continue
 
                 timestamp = (self._download_json(
                     self._LIGHT_URL, video_id,
                     'Downloading timestamp JSON', data=json.dumps({
                         'method': 'da.timestamp.get',
-                        'params': []
+                        'params': [],
                     }).encode(), fatal=False) or {}).get('result')
                 if not timestamp:
                     continue
 
                 query = {
                     'ts': timestamp,
-                    'sign': CMAC.new(self._LIGHT_KEY, timestamp.encode() + content_data, Blowfish).hexdigest(),
+                    'sign': Cryptodome.CMAC.new(self._LIGHT_KEY, timestamp.encode() + content_data,
+                                                Cryptodome.Blowfish).hexdigest(),
                 }
             else:
                 query = {}
@@ -137,7 +126,7 @@ class IviIE(InfoExtractor):
                     extractor_msg = 'Video %s does not exist'
                 elif site == 353:
                     continue
-                elif not pycryptodome_found:
+                elif not Cryptodome.CMAC:
                     raise ExtractorError('pycryptodomex not found. Please install', expected=True)
                 elif message:
                     extractor_msg += ': ' + message
@@ -165,12 +154,11 @@ class IviIE(InfoExtractor):
                 'quality': quality(content_format),
                 'filesize': int_or_none(f.get('size_in_bytes')),
             })
-        self._sort_formats(formats)
 
         compilation = result.get('compilation')
         episode = title if compilation else None
 
-        title = '%s - %s' % (compilation, title) if compilation is not None else title
+        title = f'{compilation} - {title}' if compilation is not None else title
 
         thumbnails = [{
             'url': preview['url'],
@@ -231,9 +219,9 @@ class IviCompilationIE(InfoExtractor):
     def _extract_entries(self, html, compilation_id):
         return [
             self.url_result(
-                'http://www.ivi.ru/watch/%s/%s' % (compilation_id, serie), IviIE.ie_key())
+                f'http://www.ivi.ru/watch/{compilation_id}/{serie}', IviIE.ie_key())
             for serie in re.findall(
-                r'<a\b[^>]+\bhref=["\']/watch/%s/(\d+)["\']' % compilation_id, html)]
+                rf'<a\b[^>]+\bhref=["\']/watch/{compilation_id}/(\d+)["\']', html)]
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
@@ -242,8 +230,8 @@ class IviCompilationIE(InfoExtractor):
 
         if season_id is not None:  # Season link
             season_page = self._download_webpage(
-                url, compilation_id, 'Downloading season %s web page' % season_id)
-            playlist_id = '%s/season%s' % (compilation_id, season_id)
+                url, compilation_id, f'Downloading season {season_id} web page')
+            playlist_id = f'{compilation_id}/season{season_id}'
             playlist_title = self._html_search_meta('title', season_page, 'title')
             entries = self._extract_entries(season_page, compilation_id)
         else:  # Compilation link
@@ -251,15 +239,15 @@ class IviCompilationIE(InfoExtractor):
             playlist_id = compilation_id
             playlist_title = self._html_search_meta('title', compilation_page, 'title')
             seasons = re.findall(
-                r'<a href="/watch/%s/season(\d+)' % compilation_id, compilation_page)
+                rf'<a href="/watch/{compilation_id}/season(\d+)', compilation_page)
             if not seasons:  # No seasons in this compilation
                 entries = self._extract_entries(compilation_page, compilation_id)
             else:
                 entries = []
                 for season_id in seasons:
                     season_page = self._download_webpage(
-                        'http://www.ivi.ru/watch/%s/season%s' % (compilation_id, season_id),
-                        compilation_id, 'Downloading season %s web page' % season_id)
+                        f'http://www.ivi.ru/watch/{compilation_id}/season{season_id}',
+                        compilation_id, f'Downloading season {season_id} web page')
                     entries.extend(self._extract_entries(season_page, compilation_id))
 
         return self.playlist_result(entries, playlist_id, playlist_title)

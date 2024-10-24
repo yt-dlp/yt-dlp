@@ -1,7 +1,6 @@
 import re
 
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import int_or_none
 
 
@@ -33,7 +32,7 @@ class BeatportIE(InfoExtractor):
             'display_id': 'birds-original-mix',
             'ext': 'mp4',
             'title': "Tos, Middle Milk, Mumblin' Johnsson - Birds (Original Mix)",
-        }
+        },
     }]
 
     def _real_extract(self, url):
@@ -51,7 +50,7 @@ class BeatportIE(InfoExtractor):
 
         track = next(t for t in playables['tracks'] if t['id'] == int(track_id))
 
-        title = ', '.join((a['name'] for a in track['artists'])) + ' - ' + track['name']
+        title = ', '.join(a['name'] for a in track['artists']) + ' - ' + track['name']
         if track['mix']:
             title += ' (' + track['mix'] + ')'
 
@@ -74,7 +73,6 @@ class BeatportIE(InfoExtractor):
                 fmt['abr'] = 96
                 fmt['asr'] = 44100
             formats.append(fmt)
-        self._sort_formats(formats)
 
         images = []
         for name, info in track['images'].items():
@@ -90,7 +88,7 @@ class BeatportIE(InfoExtractor):
             images.append(image)
 
         return {
-            'id': compat_str(track.get('id')) or track_id,
+            'id': str(track.get('id')) or track_id,
             'display_id': track.get('slug') or display_id,
             'title': title,
             'formats': formats,

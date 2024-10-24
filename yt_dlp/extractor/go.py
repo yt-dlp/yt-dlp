@@ -1,16 +1,18 @@
 import re
 
 from .adobepass import AdobePassIE
-from ..compat import compat_str
 from ..utils import (
-    int_or_none,
-    determine_ext,
-    parse_age_limit,
-    remove_start,
-    remove_end,
-    try_get,
-    urlencode_postdata,
     ExtractorError,
+    determine_ext,
+    int_or_none,
+    join_nonempty,
+    parse_age_limit,
+    remove_end,
+    remove_start,
+    traverse_obj,
+    try_get,
+    unified_timestamp,
+    urlencode_postdata,
 )
 
 
@@ -48,14 +50,14 @@ class GoIE(AdobePassIE):
     _VALID_URL = r'''(?x)
                     https?://
                         (?P<sub_domain>
-                            (?:%s\.)?go|fxnow\.fxnetworks|
+                            (?:{}\.)?go|fxnow\.fxnetworks|
                             (?:www\.)?(?:abc|freeform|disneynow)
                         )\.com/
                         (?:
                             (?:[^/]+/)*(?P<id>[Vv][Dd][Kk][Aa]\w+)|
                             (?:[^/]+/)*(?P<display_id>[^/?\#]+)
                         )
-                    ''' % r'\.|'.join(list(_SITE_INFO.keys()))
+                    '''.format(r'\.|'.join(list(_SITE_INFO.keys())))
     _TESTS = [{
         'url': 'http://abc.go.com/shows/designated-survivor/video/most-recent/VDKA3807643',
         'info_dict': {
@@ -70,7 +72,7 @@ class GoIE(AdobePassIE):
         },
         'skip': 'This content is no longer available.',
     }, {
-        'url': 'http://watchdisneyxd.go.com/doraemon',
+        'url': 'https://disneynow.com/shows/big-hero-6-the-series',
         'info_dict': {
             'title': 'Doraemon',
             'id': 'SH55574025',
@@ -80,10 +82,19 @@ class GoIE(AdobePassIE):
         'url': 'http://freeform.go.com/shows/shadowhunters/episodes/season-2/1-this-guilty-blood',
         'info_dict': {
             'id': 'VDKA3609139',
-            'ext': 'mp4',
             'title': 'This Guilty Blood',
             'description': 'md5:f18e79ad1c613798d95fdabfe96cd292',
             'age_limit': 14,
+            'episode': 'Episode 1',
+            'upload_date': '20170102',
+            'season': 'Season 2',
+            'thumbnail': 'http://cdn1.edgedatg.com/aws/v2/abcf/Shadowhunters/video/201/ae5f75608d86bf88aa4f9f4aa76ab1b7/579x325-Q100_ae5f75608d86bf88aa4f9f4aa76ab1b7.jpg',
+            'duration': 2544,
+            'season_number': 2,
+            'series': 'Shadowhunters',
+            'episode_number': 1,
+            'timestamp': 1483387200,
+            'ext': 'mp4',
         },
         'params': {
             'geo_bypass_ip_block': '3.244.239.0/24',
@@ -91,13 +102,22 @@ class GoIE(AdobePassIE):
             'skip_download': True,
         },
     }, {
-        'url': 'https://abc.com/shows/the-rookie/episode-guide/season-02/03-the-bet',
+        'url': 'https://abc.com/shows/the-rookie/episode-guide/season-04/12-the-knock',
         'info_dict': {
-            'id': 'VDKA13435179',
-            'ext': 'mp4',
-            'title': 'The Bet',
-            'description': 'md5:c66de8ba2e92c6c5c113c3ade84ab404',
+            'id': 'VDKA26050359',
+            'title': 'The Knock',
+            'description': 'md5:0c2947e3ada4c31f28296db7db14aa64',
             'age_limit': 14,
+            'ext': 'mp4',
+            'thumbnail': 'http://cdn1.edgedatg.com/aws/v2/abc/TheRookie/video/412/daf830d06e83b11eaf5c0a299d993ae3/1556x876-Q75_daf830d06e83b11eaf5c0a299d993ae3.jpg',
+            'episode': 'Episode 12',
+            'season_number': 4,
+            'season': 'Season 4',
+            'timestamp': 1642975200,
+            'episode_number': 12,
+            'upload_date': '20220123',
+            'series': 'The Rookie',
+            'duration': 2572,
         },
         'params': {
             'geo_bypass_ip_block': '3.244.239.0/24',
@@ -108,24 +128,18 @@ class GoIE(AdobePassIE):
         'url': 'https://fxnow.fxnetworks.com/shows/better-things/video/vdka12782841',
         'info_dict': {
             'id': 'VDKA12782841',
-            'ext': 'mp4',
             'title': 'First Look: Better Things - Season 2',
             'description': 'md5:fa73584a95761c605d9d54904e35b407',
+            'ext': 'mp4',
+            'age_limit': 14,
+            'upload_date': '20170825',
+            'duration': 161,
+            'series': 'Better Things',
+            'thumbnail': 'http://cdn1.edgedatg.com/aws/v2/fx/BetterThings/video/12782841/b6b05e58264121cc2c98811318e6d507/1556x876-Q75_b6b05e58264121cc2c98811318e6d507.jpg',
+            'timestamp': 1503661074,
         },
         'params': {
             'geo_bypass_ip_block': '3.244.239.0/24',
-            # m3u8 download
-            'skip_download': True,
-        },
-    }, {
-        'url': 'https://abc.com/shows/modern-family/episode-guide/season-01/101-pilot',
-        'info_dict': {
-            'id': 'VDKA22600213',
-            'ext': 'mp4',
-            'title': 'Pilot',
-            'description': 'md5:74306df917cfc199d76d061d66bebdb4',
-        },
-        'params': {
             # m3u8 download
             'skip_download': True,
         },
@@ -154,7 +168,7 @@ class GoIE(AdobePassIE):
     def _extract_videos(self, brand, video_id='-1', show_id='-1'):
         display_id = video_id if video_id != '-1' else show_id
         return self._download_json(
-            'http://api.contents.watchabc.go.com/vp2/ws/contents/3000/videos/%s/001/-1/%s/-1/%s/-1/-1.json' % (brand, show_id, video_id),
+            f'http://api.contents.watchabc.go.com/vp2/ws/contents/3000/videos/{brand}/001/-1/{show_id}/-1/{video_id}/-1/-1.json',
             display_id)['video']
 
     def _real_extract(self, url):
@@ -177,7 +191,7 @@ class GoIE(AdobePassIE):
                 video_id = try_get(
                     layout,
                     (lambda x: x['videoid'], lambda x: x['video']['id']),
-                    compat_str)
+                    str)
             if not video_id:
                 video_id = self._search_regex(
                     (
@@ -187,7 +201,7 @@ class GoIE(AdobePassIE):
                         # page.analytics.videoIdCode
                         r'\bvideoIdCode["\']\s*:\s*["\']((?:vdka|VDKA)\w+)',
                         # https://abc.com/shows/the-rookie/episode-guide/season-02/03-the-bet
-                        r'\b(?:video)?id["\']\s*:\s*["\'](VDKA\w+)'
+                        r'\b(?:video)?id["\']\s*:\s*["\'](VDKA\w+)',
                     ), webpage, 'video id', default=video_id)
             if not site_info:
                 brand = self._search_regex(
@@ -252,7 +266,7 @@ class GoIE(AdobePassIE):
                             self.raise_geo_restricted(
                                 error['message'], countries=['US'])
                     error_message = ', '.join([error['message'] for error in errors])
-                    raise ExtractorError('%s said: %s' % (self.IE_NAME, error_message), expected=True)
+                    raise ExtractorError(f'{self.IE_NAME} said: {error_message}', expected=True)
                 asset_url += '?' + entitlement['uplynkData']['sessionKey']
                 fmts, subs = self._extract_m3u8_formats_and_subtitles(
                     asset_url, video_id, 'mp4', m3u8_id=format_id or 'hls', fatal=False)
@@ -266,7 +280,7 @@ class GoIE(AdobePassIE):
                 }
                 if re.search(r'(?:/mp4/source/|_source\.mp4)', asset_url):
                     f.update({
-                        'format_id': ('%s-' % format_id if format_id else '') + 'SOURCE',
+                        'format_id': (f'{format_id}-' if format_id else '') + 'SOURCE',
                         'quality': 1,
                     })
                 else:
@@ -274,12 +288,11 @@ class GoIE(AdobePassIE):
                     if mobj:
                         height = int(mobj.group(2))
                         f.update({
-                            'format_id': ('%s-' % format_id if format_id else '') + '%dP' % height,
+                            'format_id': join_nonempty(format_id, f'{height}P'),
                             'width': int(mobj.group(1)),
                             'height': height,
                         })
                 formats.append(f)
-        self._sort_formats(formats)
 
         for cc in video_data.get('closedcaption', {}).get('src', []):
             cc_url = cc.get('value')
@@ -316,4 +329,5 @@ class GoIE(AdobePassIE):
             'thumbnails': thumbnails,
             'formats': formats,
             'subtitles': subtitles,
+            'timestamp': unified_timestamp(traverse_obj(video_data, ('airdates', 'airdate', 0))),
         }

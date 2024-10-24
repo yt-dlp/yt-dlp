@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
+
+# Allow direct execution
 import os
 import sys
 import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from test.helper import get_params, is_download_test, try_rm
 
-import yt_dlp.YoutubeDL
+from test.helper import get_params, is_download_test, try_rm
+import yt_dlp.YoutubeDL  # isort: split
 from yt_dlp.utils import DownloadError
 
 
@@ -57,7 +59,7 @@ class TestPostHooks(unittest.TestCase):
 
     def hook_three(self, filename):
         self.files.append(filename)
-        raise Exception('Test exception for \'%s\'' % filename)
+        raise Exception(f'Test exception for \'{filename}\'')
 
     def tearDown(self):
         for f in self.files:

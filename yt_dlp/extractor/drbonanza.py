@@ -30,7 +30,6 @@ class DRBonanzaIE(InfoExtractor):
         info = self._parse_html5_media_entries(
             url, webpage, display_id, m3u8_id='hls',
             m3u8_entry_protocol='m3u8_native')[0]
-        self._sort_formats(info['formats'])
 
         asset = self._parse_json(
             self._search_regex(
@@ -41,7 +40,7 @@ class DRBonanzaIE(InfoExtractor):
 
         def extract(field):
             return self._search_regex(
-                r'<div[^>]+>\s*<p>%s:<p>\s*</div>\s*<div[^>]+>\s*<p>([^<]+)</p>' % field,
+                rf'<div[^>]+>\s*<p>{field}:<p>\s*</div>\s*<div[^>]+>\s*<p>([^<]+)</p>',
                 webpage, field, default=None)
 
         info.update({

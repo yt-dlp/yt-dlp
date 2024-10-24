@@ -41,7 +41,6 @@ class GoodGameIE(InfoExtractor):
         else:
             self.raise_no_formats('User is offline', expected=True, video_id=channel_name)
 
-        self._sort_formats(formats)
         return {
             'id': player_id,
             'formats': formats,

@@ -1,11 +1,8 @@
 import json
 import re
 
-from .brightcove import BrightcoveNewIE
-from ..compat import (
-    compat_HTTPError,
-    compat_str,
-)
+from .brightcove import BrightcoveNewBaseIE
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     try_get,
@@ -13,7 +10,7 @@ from ..utils import (
 )
 
 
-class SevenPlusIE(BrightcoveNewIE):
+class SevenPlusIE(BrightcoveNewBaseIE):
     IE_NAME = '7plus'
     _VALID_URL = r'https?://(?:www\.)?7plus\.com\.au/(?P<path>[^?]+\?.*?\bepisode-id=(?P<id>[^&#]+))'
     _TESTS = [{
@@ -33,7 +30,7 @@ class SevenPlusIE(BrightcoveNewIE):
         },
         'params': {
             'skip_download': True,
-        }
+        },
     }, {
         'url': 'https://7plus.com.au/UUUU?episode-id=AUMS43-001',
         'only_matching': True,
@@ -73,7 +70,7 @@ class SevenPlusIE(BrightcoveNewIE):
                 'idToken': id_token,
                 'platformId': 'web',
                 'regSource': '7plus',
-            }).encode('utf-8')) or {}
+            }).encode()) or {}
         self.token = token_resp.get('token')
         if not self.token:
             self.report_warning('Unable to log in: Could not extract auth token')
@@ -97,9 +94,9 @@ class SevenPlusIE(BrightcoveNewIE):
                     'videoType': 'vod',
                 }, headers=headers)['media']
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 403:
+            if isinstance(e.cause, HTTPError) and e.cause.status == 403:
                 raise ExtractorError(self._parse_json(
-                    e.cause.read().decode(), episode_id)[0]['error_code'], expected=True)
+                    e.cause.response.read().decode(), episode_id)[0]['error_code'], expected=True)
             raise
 
         for source in media.get('sources', {}):
@@ -122,7 +119,7 @@ class SevenPlusIE(BrightcoveNewIE):
                     if value:
                         info[dst_key] = value
                 info['series'] = try_get(
-                    item, lambda x: x['seriesLogo']['name'], compat_str)
+                    item, lambda x: x['seriesLogo']['name'], str)
                 mobj = re.search(r'^S(\d+)\s+E(\d+)\s+-\s+(.+)$', info['title'])
                 if mobj:
                     info.update({

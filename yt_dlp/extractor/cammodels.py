@@ -1,9 +1,5 @@
 from .common import InfoExtractor
-from ..utils import (
-    ExtractorError,
-    int_or_none,
-    url_or_none,
-)
+from ..utils import int_or_none, url_or_none
 
 
 class CamModelsIE(InfoExtractor):
@@ -11,38 +7,17 @@ class CamModelsIE(InfoExtractor):
     _TESTS = [{
         'url': 'https://www.cammodels.com/cam/AutumnKnight/',
         'only_matching': True,
-        'age_limit': 18
+        'age_limit': 18,
     }]
 
     def _real_extract(self, url):
         user_id = self._match_id(url)
 
-        webpage = self._download_webpage(
-            url, user_id, headers=self.geo_verification_headers())
-
-        manifest_root = self._html_search_regex(
-            r'manifestUrlRoot=([^&\']+)', webpage, 'manifest', default=None)
-
-        if not manifest_root:
-            ERRORS = (
-                ("I'm offline, but let's stay connected", 'This user is currently offline'),
-                ('in a private show', 'This user is in a private show'),
-                ('is currently performing LIVE', 'This model is currently performing live'),
-            )
-            for pattern, message in ERRORS:
-                if pattern in webpage:
-                    error = message
-                    expected = True
-                    break
-            else:
-                error = 'Unable to find manifest URL root'
-                expected = False
-            raise ExtractorError(error, expected=expected)
-
         manifest = self._download_json(
-            '%s%s.json' % (manifest_root, user_id), user_id)
+            f'https://manifest-server.naiadsystems.com/live/s:{user_id}.json', user_id)
 
         formats = []
+        thumbnails = []
         for format_id, format_dict in manifest['formats'].items():
             if not isinstance(format_dict, dict):
                 continue
@@ -61,7 +36,7 @@ class CamModelsIE(InfoExtractor):
                 format_id_list = [format_id]
                 height = int_or_none(media.get('videoHeight'))
                 if height is not None:
-                    format_id_list.append('%dp' % height)
+                    format_id_list.append(f'{height}p')
                 f = {
                     'url': media_url,
                     'format_id': '-'.join(format_id_list),
@@ -82,14 +57,21 @@ class CamModelsIE(InfoExtractor):
                         'quality': -10,
                     })
                 else:
+                    if format_id == 'jpeg':
+                        thumbnails.append({
+                            'url': f['url'],
+                            'width': f['width'],
+                            'height': f['height'],
+                            'format_id': f['format_id'],
+                        })
                     continue
                 formats.append(f)
-        self._sort_formats(formats)
 
         return {
             'id': user_id,
             'title': user_id,
+            'thumbnails': thumbnails,
             'is_live': True,
             'formats': formats,
-            'age_limit': 18
+            'age_limit': 18,
         }

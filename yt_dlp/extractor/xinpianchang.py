@@ -1,16 +1,15 @@
 from .common import InfoExtractor
 from ..utils import (
     int_or_none,
+    str_or_none,
     try_get,
-    update_url_query,
     url_or_none,
 )
 
 
 class XinpianchangIE(InfoExtractor):
-    _VALID_URL = r'https?://www\.xinpianchang\.com/(?P<id>[^/]+?)(?:\D|$)'
-    IE_NAME = 'xinpianchang'
-    IE_DESC = 'xinpianchang.com'
+    _VALID_URL = r'https?://(www\.)?xinpianchang\.com/(?P<id>a\d+)'
+    IE_DESC = '新片场'
     _TESTS = [{
         'url': 'https://www.xinpianchang.com/a11766551',
         'info_dict': {
@@ -21,9 +20,9 @@ class XinpianchangIE(InfoExtractor):
             'duration': 151,
             'thumbnail': r're:^https?://oss-xpc0\.xpccdn\.com.+/assets/',
             'uploader': '正时文创',
-            'uploader_id': 10357277,
+            'uploader_id': '10357277',
             'categories': ['宣传片', '国家城市', '广告', '其他'],
-            'keywords': ['北京冬奥会', '冰墩墩', '再见', '告别', '冰墩墩哭了', '感动', '闭幕式', '熄火']
+            'tags': ['北京冬奥会', '冰墩墩', '再见', '告别', '冰墩墩哭了', '感动', '闭幕式', '熄火'],
         },
     }, {
         'url': 'https://www.xinpianchang.com/a11762904',
@@ -35,9 +34,9 @@ class XinpianchangIE(InfoExtractor):
             'duration': 136,
             'thumbnail': r're:^https?://oss-xpc0\.xpccdn\.com.+/assets/',
             'uploader': '精品动画',
-            'uploader_id': 10858927,
+            'uploader_id': '10858927',
             'categories': ['动画', '三维CG'],
-            'keywords': ['France Télévisions', '法国3台', '蠢萌', '冬奥会']
+            'tags': ['France Télévisions', '法国3台', '蠢萌', '冬奥会'],
         },
     }, {
         'url': 'https://www.xinpianchang.com/a11779743?from=IndexPick&part=%E7%BC%96%E8%BE%91%E7%B2%BE%E9%80%89&index=2',
@@ -47,11 +46,11 @@ class XinpianchangIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id=video_id)
-        domain = self.find_value_with_regex(var='requireNewDomain', webpage=webpage)
-        vid = self.find_value_with_regex(var='vid', webpage=webpage)
-        app_key = self.find_value_with_regex(var='modeServerAppKey', webpage=webpage)
-        api = update_url_query(f'{domain}/mod/api/v2/media/{vid}', {'appKey': app_key})
-        data = self._download_json(api, video_id=video_id)['data']
+        video_data = self._search_nextjs_data(webpage, video_id)['props']['pageProps']['detail']['video']
+
+        data = self._download_json(
+            f'https://mod-api.xinpianchang.com/mod/api/v2/media/{video_data["vid"]}', video_id,
+            query={'appKey': video_data['appKey']})['data']
         formats, subtitles = [], {}
         for k, v in data.get('resource').items():
             if k in ('dash', 'hls'):
@@ -70,9 +69,11 @@ class XinpianchangIE(InfoExtractor):
                     'width': int_or_none(prog.get('width')),
                     'height': int_or_none(prog.get('height')),
                     'ext': 'mp4',
+                    'http_headers': {
+                        # NB: Server returns 403 without the Range header
+                        'Range': 'bytes=0-',
+                    },
                 } for prog in v if prog.get('url') or []])
-
-        self._sort_formats(formats)
 
         return {
             'id': video_id,
@@ -80,13 +81,10 @@ class XinpianchangIE(InfoExtractor):
             'description': data.get('description'),
             'duration': int_or_none(data.get('duration')),
             'categories': data.get('categories'),
-            'keywords': data.get('keywords'),
+            'tags': data.get('keywords'),
             'thumbnail': data.get('cover'),
             'uploader': try_get(data, lambda x: x['owner']['username']),
-            'uploader_id': try_get(data, lambda x: x['owner']['id']),
+            'uploader_id': str_or_none(try_get(data, lambda x: x['owner']['id'])),
             'formats': formats,
             'subtitles': subtitles,
         }
-
-    def find_value_with_regex(self, var, webpage):
-        return self._search_regex(rf'var\s{var}\s=\s\"(?P<vid>[^\"]+)\"', webpage, name=var)

@@ -1,5 +1,3 @@
-import re
-
 from .common import InfoExtractor
 from ..utils import int_or_none
 
@@ -25,6 +23,7 @@ class DigitekaIE(InfoExtractor):
             )
             /id
         )/(?P<id>[\d+a-z]+)'''
+    _EMBED_REGEX = [r'<(?:iframe|script)[^>]+src=["\'](?P<url>(?:https?:)?//(?:www\.)?ultimedia\.com/deliver/(?:generic|musique)(?:/[^/]+)*/(?:src|article)/[\d+a-z]+)']
     _TESTS = [{
         # news
         'url': 'https://www.ultimedia.com/default/index/videogeneric/id/s8uk0r',
@@ -58,14 +57,6 @@ class DigitekaIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    @staticmethod
-    def _extract_url(webpage):
-        mobj = re.search(
-            r'<(?:iframe|script)[^>]+src=["\'](?P<url>(?:https?:)?//(?:www\.)?ultimedia\.com/deliver/(?:generic|musique)(?:/[^/]+)*/(?:src|article)/[\d+a-z]+)',
-            webpage)
-        if mobj:
-            return mobj.group('url')
-
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
         video_id = mobj.group('id')
@@ -74,7 +65,7 @@ class DigitekaIE(InfoExtractor):
             video_type = 'musique'
 
         deliver_info = self._download_json(
-            'http://www.ultimedia.com/deliver/video?video=%s&topic=%s' % (video_id, video_type),
+            f'http://www.ultimedia.com/deliver/video?video={video_id}&topic={video_type}',
             video_id)
 
         yt_id = deliver_info.get('yt_id')
@@ -89,8 +80,6 @@ class DigitekaIE(InfoExtractor):
                 'url': source['file'],
                 'format_id': source.get('label'),
             })
-
-        self._sort_formats(formats)
 
         title = deliver_info['title']
         thumbnail = jwconf.get('image')

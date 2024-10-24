@@ -91,7 +91,7 @@ class AdultSwimIE(TurnerBaseIE):
   getShowBySlug(slug:"%s") {
     %%s
   }
-}''' % show_path
+}''' % show_path  # noqa: UP031
         if episode_path:
             query = query % '''title
     getVideoBySlug(slug:"%s") {
@@ -107,7 +107,6 @@ class AdultSwimIE(TurnerBaseIE):
       title
       tvRating
     }''' % episode_path
-            ['getVideoBySlug']
         else:
             query = query % '''metaDescription
     title
@@ -129,7 +128,7 @@ class AdultSwimIE(TurnerBaseIE):
             episode_title = title = video_data['title']
             series = show_data.get('title')
             if series:
-                title = '%s - %s' % (series, title)
+                title = f'{series} - {title}'
             info = {
                 'id': video_id,
                 'title': title,
@@ -170,8 +169,10 @@ class AdultSwimIE(TurnerBaseIE):
                         continue
                     ext = determine_ext(asset_url, mimetype2ext(asset.get('mime_type')))
                     if ext == 'm3u8':
-                        info['formats'].extend(self._extract_m3u8_formats(
-                            asset_url, video_id, 'mp4', m3u8_id='hls', fatal=False))
+                        fmts, subs = self._extract_m3u8_formats_and_subtitles(
+                            asset_url, video_id, 'mp4', m3u8_id='hls', fatal=False)
+                        info['formats'].extend(fmts)
+                        self._merge_subtitles(subs, target=info['subtitles'])
                     elif ext == 'f4m':
                         continue
                         # info['formats'].extend(self._extract_f4m_formats(
@@ -180,7 +181,6 @@ class AdultSwimIE(TurnerBaseIE):
                         info['subtitles'].setdefault('en', []).append({
                             'url': asset_url,
                         })
-            self._sort_formats(info['formats'])
 
             return info
         else:
@@ -191,7 +191,7 @@ class AdultSwimIE(TurnerBaseIE):
                 if not slug:
                     continue
                 entries.append(self.url_result(
-                    'http://adultswim.com/videos/%s/%s' % (show_path, slug),
+                    f'http://adultswim.com/videos/{show_path}/{slug}',
                     'AdultSwim', video.get('_id')))
             return self.playlist_result(
                 entries, show_path, show_data.get('title'),

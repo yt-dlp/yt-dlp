@@ -3,11 +3,8 @@ from .brightcove import (
     BrightcoveNewIE,
 )
 from .common import InfoExtractor
-from ..compat import compat_str
-from ..utils import (
-    ExtractorError,
-    sanitized_Request,
-)
+from ..networking import Request
+from ..utils import ExtractorError
 
 
 class NownessBaseIE(InfoExtractor):
@@ -19,7 +16,7 @@ class NownessBaseIE(InfoExtractor):
                     source = media['source']
                     if source == 'brightcove':
                         player_code = self._download_webpage(
-                            'http://www.nowness.com/iframe?id=%s' % video_id, video_id,
+                            f'http://www.nowness.com/iframe?id={video_id}', video_id,
                             note='Downloading player JavaScript',
                             errnote='Unable to download player JavaScript')
                         bc_url = BrightcoveLegacyIE._extract_brightcove_url(player_code)
@@ -30,7 +27,7 @@ class NownessBaseIE(InfoExtractor):
                             return self.url_result(bc_url, BrightcoveNewIE.ie_key())
                         raise ExtractorError('Could not find player definition')
                     elif source == 'vimeo':
-                        return self.url_result('http://vimeo.com/%s' % video_id, 'Vimeo')
+                        return self.url_result(f'http://vimeo.com/{video_id}', 'Vimeo')
                     elif source == 'youtube':
                         return self.url_result(video_id, 'Youtube')
                     elif source == 'cinematique':
@@ -40,7 +37,7 @@ class NownessBaseIE(InfoExtractor):
 
     def _api_request(self, url, request_path):
         display_id = self._match_id(url)
-        request = sanitized_Request(
+        request = Request(
             'http://api.nowness.com/api/' + request_path % display_id,
             headers={
                 'X-Nowness-Language': 'zh-cn' if 'cn.nowness.com' in url else 'en-us',
@@ -141,4 +138,4 @@ class NownessSeriesIE(NownessBaseIE):
             series_title = translations[0].get('title') or translations[0]['seoTitle']
             series_description = translations[0].get('seoDescription')
         return self.playlist_result(
-            entries, compat_str(series['id']), series_title, series_description)
+            entries, str(series['id']), series_title, series_description)

@@ -3,20 +3,18 @@ import itertools
 import json
 import random
 import re
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_parse_qs,
-    compat_str,
-    compat_urllib_parse_urlencode,
-    compat_urllib_parse_urlparse,
-)
 from ..utils import (
+    ExtractorError,
+    UserNotLive,
+    base_url,
     clean_html,
     dict_get,
-    ExtractorError,
     float_or_none,
     int_or_none,
+    make_archive_id,
     parse_duration,
     parse_iso8601,
     parse_qs,
@@ -38,32 +36,37 @@ class TwitchBaseIE(InfoExtractor):
     _USHER_BASE = 'https://usher.ttvnw.net'
     _LOGIN_FORM_URL = 'https://www.twitch.tv/login'
     _LOGIN_POST_URL = 'https://passport.twitch.tv/login'
-    _CLIENT_ID = 'kimne78kx3ncx6brgo4mv6wki5h1ko'
     _NETRC_MACHINE = 'twitch'
 
     _OPERATION_HASHES = {
         'CollectionSideBar': '27111f1b382effad0b6def325caef1909c733fe6a4fbabf54f8d491ef2cf2f14',
         'FilterableVideoTower_Videos': 'a937f1d22e269e39a03b509f65a7490f9fc247d7f83d6ac1421523e3b68042cb',
         'ClipsCards__User': 'b73ad2bfaecfd30a9e6c28fada15bd97032c83ec77a0440766a56fe0bd632777',
-        'ChannelCollectionsContent': '07e3691a1bad77a36aba590c351180439a40baefc1c275356f40fc7082419a84',
-        'StreamMetadata': '1c719a40e481453e5c48d9bb585d971b8b372f8ebb105b17076722264dfa5b3e',
+        'ChannelCollectionsContent': '447aec6a0cc1e8d0a8d7732d47eb0762c336a2294fdb009e9c9d854e49d484b9',
+        'StreamMetadata': 'a647c2a13599e5991e175155f798ca7f1ecddde73f7f341f39009c14dbf59962',
         'ComscoreStreamingQuery': 'e1edae8122517d013405f237ffcc124515dc6ded82480a88daef69c83b53ac01',
         'VideoAccessToken_Clip': '36b89d2507fce29e5ca551df756d27c1cfe079e2609642b4390aa4c35796eb11',
         'VideoPreviewOverlay': '3006e77e51b128d838fa4e835723ca4dc9a05c5efd4466c1085215c6e437e65c',
-        'VideoMetadata': '226edb3e692509f727fd56821f5653c05740242c82b0388883e0c0e75dcbf687',
+        'VideoMetadata': '49b5b8f268cdeb259d75b58dcb0c1a748e3b575003448a2333dc5cdafd49adad',
         'VideoPlayer_ChapterSelectButtonVideo': '8d2793384aac3773beab5e59bd5d6f585aedb923d292800119e03d40cd0f9b41',
+        'VideoPlayer_VODSeekbarPreviewVideo': '07e99e4d56c5a7c67117a154777b0baf85a5ffefa393b213f4bc712ccaf85dd6',
     }
+
+    @property
+    def _CLIENT_ID(self):
+        return self._configuration_arg(
+            'client_id', ['ue6666qo983tsx6so1t0vnawi233wa'], ie_key='Twitch', casesense=True)[0]
 
     def _perform_login(self, username, password):
         def fail(message):
             raise ExtractorError(
-                'Unable to login. Twitch said: %s' % message, expected=True)
+                f'Unable to login. Twitch said: {message}', expected=True)
 
         def login_step(page, urlh, note, data):
             form = self._hidden_inputs(page)
             form.update(data)
 
-            page_url = urlh.geturl()
+            page_url = urlh.url
             post_url = self._search_regex(
                 r'<form[^>]+action=(["\'])(?P<url>.+?)\1', page,
                 'post url', default=self._LOGIN_POST_URL, group='url')
@@ -129,7 +132,6 @@ class TwitchBaseIE(InfoExtractor):
                         'quality': 10,
                         'format_note': 'Source',
                     })
-        self._sort_formats(formats)
 
     def _download_base_gql(self, video_id, ops, note, fatal=True):
         headers = {
@@ -150,12 +152,12 @@ class TwitchBaseIE(InfoExtractor):
                 'persistedQuery': {
                     'version': 1,
                     'sha256Hash': self._OPERATION_HASHES[op['operationName']],
-                }
+                },
             }
         return self._download_base_gql(video_id, ops, note)
 
     def _download_access_token(self, video_id, token_kind, param_name):
-        method = '%sPlaybackAccessToken' % token_kind
+        method = f'{token_kind}PlaybackAccessToken'
         ops = {
             'query': '''{
               %s(
@@ -170,11 +172,40 @@ class TwitchBaseIE(InfoExtractor):
                 value
                 signature
               }
-            }''' % (method, param_name, video_id),
+            }''' % (method, param_name, video_id),  # noqa: UP031
         }
         return self._download_base_gql(
             video_id, ops,
-            'Downloading %s access token GraphQL' % token_kind)['data'][method]
+            f'Downloading {token_kind} access token GraphQL')['data'][method]
+
+    def _get_thumbnails(self, thumbnail):
+        return [{
+            'url': re.sub(r'\d+x\d+(\.\w+)($|(?=[?#]))', r'0x0\g<1>', thumbnail),
+            'preference': 1,
+        }, {
+            'url': thumbnail,
+        }] if thumbnail else None
+
+    def _extract_twitch_m3u8_formats(self, path, video_id, token, signature):
+        formats = self._extract_m3u8_formats(
+            f'{self._USHER_BASE}/{path}/{video_id}.m3u8', video_id, 'mp4', query={
+                'allow_source': 'true',
+                'allow_audio_only': 'true',
+                'allow_spectre': 'true',
+                'p': random.randint(1000000, 10000000),
+                'platform': 'web',
+                'player': 'twitchweb',
+                'supported_codecs': 'av1,h265,h264',
+                'playlist_include_framerate': 'true',
+                'sig': signature,
+                'token': token,
+            })
+        for fmt in formats:
+            if fmt.get('vcodec') and fmt['vcodec'].startswith('av01'):
+                # mpegts does not yet have proper support for av1
+                fmt['downloader_options'] = {'ffmpeg_args_out': ['-f', 'mp4']}
+
+        return formats
 
 
 class TwitchVodIE(TwitchBaseIE):
@@ -183,7 +214,8 @@ class TwitchVodIE(TwitchBaseIE):
                     https?://
                         (?:
                             (?:(?:www|go|m)\.)?twitch\.tv/(?:[^/]+/v(?:ideo)?|videos)/|
-                            player\.twitch\.tv/\?.*?\bvideo=v?
+                            player\.twitch\.tv/\?.*?\bvideo=v?|
+                            www\.twitch\.tv/[^/]+/schedule\?vodID=
                         )
                         (?P<id>\d+)
                     '''
@@ -202,6 +234,14 @@ class TwitchVodIE(TwitchBaseIE):
             'uploader_id': 'riotgames',
             'view_count': int,
             'start_time': 310,
+            'chapters': [
+                {
+                    'start_time': 0,
+                    'end_time': 17208,
+                    'title': 'League of Legends',
+                },
+            ],
+            'live_status': 'was_live',
         },
         'params': {
             # m3u8 download
@@ -257,23 +297,96 @@ class TwitchVodIE(TwitchBaseIE):
                 {
                     'start_time': 0,
                     'end_time': 573,
-                    'title': 'League of Legends'
+                    'title': 'League of Legends',
                 },
                 {
                     'start_time': 573,
                     'end_time': 3922,
-                    'title': 'Legends of Runeterra'
+                    'title': 'Legends of Runeterra',
                 },
                 {
                     'start_time': 3922,
                     'end_time': 11643,
-                    'title': 'Art'
-                }
+                    'title': 'Art',
+                },
             ],
+            'live_status': 'was_live',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'view_count': int,
         },
         'params': {
-            'skip_download': True
-        }
+            'skip_download': True,
+        },
+    }, {
+        'note': 'Storyboards',
+        'url': 'https://www.twitch.tv/videos/635475444',
+        'info_dict': {
+            'id': 'v635475444',
+            'format_id': 'sb0',
+            'ext': 'mhtml',
+            'title': 'Riot Games',
+            'duration': 11643,
+            'uploader': 'Riot Games',
+            'uploader_id': 'riotgames',
+            'timestamp': 1590770569,
+            'upload_date': '20200529',
+            'chapters': [
+                {
+                    'start_time': 0,
+                    'end_time': 573,
+                    'title': 'League of Legends',
+                },
+                {
+                    'start_time': 573,
+                    'end_time': 3922,
+                    'title': 'Legends of Runeterra',
+                },
+                {
+                    'start_time': 3922,
+                    'end_time': 11643,
+                    'title': 'Art',
+                },
+            ],
+            'live_status': 'was_live',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'view_count': int,
+            'columns': int,
+            'rows': int,
+        },
+        'params': {
+            'format': 'mhtml',
+            'skip_download': True,
+        },
+    }, {
+        'note': 'VOD with single chapter',
+        'url': 'https://www.twitch.tv/videos/1536751224',
+        'info_dict': {
+            'id': 'v1536751224',
+            'ext': 'mp4',
+            'title': 'Porter Robinson Star Guardian Stream Tour with LilyPichu',
+            'duration': 8353,
+            'uploader': 'Riot Games',
+            'uploader_id': 'riotgames',
+            'timestamp': 1658267731,
+            'upload_date': '20220719',
+            'chapters': [
+                {
+                    'start_time': 0,
+                    'end_time': 8353,
+                    'title': 'League of Legends',
+                },
+            ],
+            'live_status': 'was_live',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'view_count': int,
+        },
+        'params': {
+            'skip_download': True,
+        },
+        'expected_warnings': ['Unable to download JSON metadata: HTTP Error 403: Forbidden'],
+    }, {
+        'url': 'https://www.twitch.tv/tangotek/schedule?vodID=1822395420',
+        'only_matching': True,
     }]
 
     def _download_info(self, item_id):
@@ -290,16 +403,24 @@ class TwitchVodIE(TwitchBaseIE):
                     'includePrivate': False,
                     'videoID': item_id,
                 },
+            }, {
+                'operationName': 'VideoPlayer_VODSeekbarPreviewVideo',
+                'variables': {
+                    'includePrivate': False,
+                    'videoID': item_id,
+                },
             }],
             'Downloading stream metadata GraphQL')
 
-        video = traverse_obj(data, (0, 'data', 'video'))
-        video['moments'] = traverse_obj(data, (1, 'data', 'video', 'moments', 'edges', ..., 'node'))
-
+        video = traverse_obj(data, (..., 'data', 'video'), get_all=False)
         if video is None:
-            raise ExtractorError(
-                'Video %s does not exist' % item_id, expected=True)
-        return self._extract_info_gql(video, item_id)
+            raise ExtractorError(f'Video {item_id} does not exist', expected=True)
+
+        video['moments'] = traverse_obj(data, (..., 'data', 'video', 'moments', 'edges', ..., 'node'))
+        video['storyboard'] = traverse_obj(
+            data, (..., 'data', 'video', 'seekPreviewsURL', {url_or_none}), get_all=False)
+
+        return video
 
     def _extract_info(self, info):
         status = info.get('status')
@@ -338,8 +459,14 @@ class TwitchVodIE(TwitchBaseIE):
             'was_live': True,
         }
 
-    def _extract_moments(self, info, item_id):
-        for moment in info.get('moments') or []:
+    def _extract_chapters(self, info, item_id):
+        if not info.get('moments'):
+            game = traverse_obj(info, ('game', 'displayName'))
+            if game:
+                yield {'title': game}
+            return
+
+        for moment in info['moments']:
             start_time = int_or_none(moment.get('positionMilliseconds'), 1000)
             duration = int_or_none(moment.get('durationMilliseconds'), 1000)
             name = str_or_none(moment.get('description'))
@@ -357,57 +484,79 @@ class TwitchVodIE(TwitchBaseIE):
         vod_id = info.get('id') or item_id
         # id backward compatibility for download archives
         if vod_id[0] != 'v':
-            vod_id = 'v%s' % vod_id
+            vod_id = f'v{vod_id}'
         thumbnail = url_or_none(info.get('previewThumbnailURL'))
         is_live = None
         if thumbnail:
-            if thumbnail.endswith('/404_processing_{width}x{height}.png'):
+            if re.findall(r'/404_processing_[^.?#]+\.png', thumbnail):
                 is_live, thumbnail = True, None
             else:
                 is_live = False
-                for p in ('width', 'height'):
-                    thumbnail = thumbnail.replace('{%s}' % p, '0')
 
         return {
             'id': vod_id,
             'title': info.get('title') or 'Untitled Broadcast',
             'description': info.get('description'),
             'duration': int_or_none(info.get('lengthSeconds')),
-            'thumbnail': thumbnail,
-            'uploader': try_get(info, lambda x: x['owner']['displayName'], compat_str),
-            'uploader_id': try_get(info, lambda x: x['owner']['login'], compat_str),
+            'thumbnails': self._get_thumbnails(thumbnail),
+            'uploader': try_get(info, lambda x: x['owner']['displayName'], str),
+            'uploader_id': try_get(info, lambda x: x['owner']['login'], str),
             'timestamp': unified_timestamp(info.get('publishedAt')),
             'view_count': int_or_none(info.get('viewCount')),
-            'chapters': list(self._extract_moments(info, item_id)),
+            'chapters': list(self._extract_chapters(info, item_id)),
             'is_live': is_live,
             'was_live': True,
         }
 
+    def _extract_storyboard(self, item_id, storyboard_json_url, duration):
+        if not duration or not storyboard_json_url:
+            return
+        spec = self._download_json(storyboard_json_url, item_id, 'Downloading storyboard metadata JSON', fatal=False) or []
+        # sort from highest quality to lowest
+        # This makes sb0 the highest-quality format, sb1 - lower, etc which is consistent with youtube sb ordering
+        spec.sort(key=lambda x: int_or_none(x.get('width')) or 0, reverse=True)
+        base = base_url(storyboard_json_url)
+        for i, s in enumerate(spec):
+            count = int_or_none(s.get('count'))
+            images = s.get('images')
+            if not (images and count):
+                continue
+            fragment_duration = duration / len(images)
+            yield {
+                'format_id': f'sb{i}',
+                'format_note': 'storyboard',
+                'ext': 'mhtml',
+                'protocol': 'mhtml',
+                'acodec': 'none',
+                'vcodec': 'none',
+                'url': urljoin(base, images[0]),
+                'width': int_or_none(s.get('width')),
+                'height': int_or_none(s.get('height')),
+                'fps': count / duration,
+                'rows': int_or_none(s.get('rows')),
+                'columns': int_or_none(s.get('cols')),
+                'fragments': [{
+                    'url': urljoin(base, path),
+                    'duration': fragment_duration,
+                } for path in images],
+            }
+
     def _real_extract(self, url):
         vod_id = self._match_id(url)
 
-        info = self._download_info(vod_id)
+        video = self._download_info(vod_id)
+        info = self._extract_info_gql(video, vod_id)
         access_token = self._download_access_token(vod_id, 'video', 'id')
 
-        formats = self._extract_m3u8_formats(
-            '%s/vod/%s.m3u8?%s' % (
-                self._USHER_BASE, vod_id,
-                compat_urllib_parse_urlencode({
-                    'allow_source': 'true',
-                    'allow_audio_only': 'true',
-                    'allow_spectre': 'true',
-                    'player': 'twitchweb',
-                    'playlist_include_framerate': 'true',
-                    'nauth': access_token['value'],
-                    'nauthsig': access_token['signature'],
-                })),
-            vod_id, 'mp4', entry_protocol='m3u8_native')
+        formats = self._extract_twitch_m3u8_formats(
+            'vod', vod_id, access_token['value'], access_token['signature'])
+        formats.extend(self._extract_storyboard(vod_id, video.get('storyboard'), info.get('duration')))
 
         self._prefer_source(formats)
         info['formats'] = formats
 
-        parsed_url = compat_urllib_parse_urlparse(url)
-        query = compat_parse_qs(parsed_url.query)
+        parsed_url = urllib.parse.urlparse(url)
+        query = urllib.parse.parse_qs(parsed_url.query)
         if 't' in query:
             info['start_time'] = parse_duration(query['t'][0])
 
@@ -415,7 +564,7 @@ class TwitchVodIE(TwitchBaseIE):
             info['subtitles'] = {
                 'rechat': [{
                     'url': update_url_query(
-                        'https://api.twitch.tv/v5/videos/%s/comments' % vod_id, {
+                        f'https://api.twitch.tv/v5/videos/{vod_id}/comments', {
                             'client_id': self._CLIENT_ID,
                         }),
                     'ext': 'json',
@@ -434,7 +583,7 @@ def _make_video_result(node):
         '_type': 'url_transparent',
         'ie_key': TwitchVodIE.ie_key(),
         'id': 'v' + video_id,
-        'url': 'https://www.twitch.tv/videos/%s' % video_id,
+        'url': f'https://www.twitch.tv/videos/{video_id}',
         'title': node.get('title'),
         'thumbnail': node.get('previewThumbnailURL'),
         'duration': float_or_none(node.get('lengthSeconds')),
@@ -485,7 +634,7 @@ class TwitchPlaylistBaseIE(TwitchBaseIE):
     def _entries(self, channel_name, *args):
         cursor = None
         variables_common = self._make_variables(channel_name, *args)
-        entries_key = '%ss' % self._ENTRY_KIND
+        entries_key = f'{self._ENTRY_KIND}s'
         for page_num in itertools.count(1):
             variables = variables_common.copy()
             variables['limit'] = self._PAGE_LIMIT
@@ -496,7 +645,7 @@ class TwitchPlaylistBaseIE(TwitchBaseIE):
                     'operationName': self._OPERATION_NAME,
                     'variables': variables,
                 }],
-                'Downloading %ss GraphQL page %s' % (self._NODE_KIND, page_num),
+                f'Downloading {self._NODE_KIND}s GraphQL page {page_num}',
                 fatal=False)
             if not page:
                 break
@@ -518,7 +667,7 @@ class TwitchPlaylistBaseIE(TwitchBaseIE):
                 if entry:
                     cursor = edge.get('cursor')
                     yield entry
-            if not cursor or not isinstance(cursor, compat_str):
+            if not cursor or not isinstance(cursor, str):
                 break
 
 
@@ -612,7 +761,7 @@ class TwitchVideosIE(TwitchPlaylistBaseIE):
                 if any(ie.suitable(url) for ie in (
                     TwitchVideosClipsIE,
                     TwitchVideosCollectionsIE))
-                else super(TwitchVideosIE, cls).suitable(url))
+                else super().suitable(url))
 
     @staticmethod
     def _make_variables(channel_name, broadcast_type, sort):
@@ -629,15 +778,15 @@ class TwitchVideosIE(TwitchPlaylistBaseIE):
     def _real_extract(self, url):
         channel_name = self._match_id(url)
         qs = parse_qs(url)
-        filter = qs.get('filter', ['all'])[0]
+        video_filter = qs.get('filter', ['all'])[0]
         sort = qs.get('sort', ['time'])[0]
-        broadcast = self._BROADCASTS.get(filter, self._DEFAULT_BROADCAST)
+        broadcast = self._BROADCASTS.get(video_filter, self._DEFAULT_BROADCAST)
         return self.playlist_result(
             self._entries(channel_name, broadcast.type, sort),
             playlist_id=channel_name,
-            playlist_title='%s - %s sorted by %s'
-            % (channel_name, broadcast.label,
-               self._SORTED_BY.get(sort, self._DEFAULT_SORTED_BY)))
+            playlist_title=(
+                f'{channel_name} - {broadcast.label} '
+                f'sorted by {self._SORTED_BY.get(sort, self._DEFAULT_SORTED_BY)}'))
 
 
 class TwitchVideosClipsIE(TwitchPlaylistBaseIE):
@@ -675,11 +824,11 @@ class TwitchVideosClipsIE(TwitchPlaylistBaseIE):
     _NODE_KIND = 'Clip'
 
     @staticmethod
-    def _make_variables(channel_name, filter):
+    def _make_variables(channel_name, channel_filter):
         return {
             'login': channel_name,
             'criteria': {
-                'filter': filter,
+                'filter': channel_filter,
             },
         }
 
@@ -705,12 +854,12 @@ class TwitchVideosClipsIE(TwitchPlaylistBaseIE):
     def _real_extract(self, url):
         channel_name = self._match_id(url)
         qs = parse_qs(url)
-        range = qs.get('range', ['7d'])[0]
-        clip = self._RANGE.get(range, self._DEFAULT_CLIP)
+        date_range = qs.get('range', ['7d'])[0]
+        clip = self._RANGE.get(date_range, self._DEFAULT_CLIP)
         return self.playlist_result(
             self._entries(channel_name, clip.filter),
             playlist_id=channel_name,
-            playlist_title='%s - Clips %s' % (channel_name, clip.label))
+            playlist_title=f'{channel_name} - Clips {clip.label}')
 
 
 class TwitchVideosCollectionsIE(TwitchPlaylistBaseIE):
@@ -724,6 +873,13 @@ class TwitchVideosCollectionsIE(TwitchPlaylistBaseIE):
             'title': 'spamfish - Collections',
         },
         'playlist_mincount': 3,
+    }, {
+        'url': 'https://www.twitch.tv/monstercat/videos?filter=collections',
+        'info_dict': {
+            'id': 'monstercat',
+            'title': 'monstercat - Collections',
+        },
+        'playlist_mincount': 13,
     }]
 
     _OPERATION_NAME = 'ChannelCollectionsContent'
@@ -747,7 +903,7 @@ class TwitchVideosCollectionsIE(TwitchPlaylistBaseIE):
             '_type': 'url_transparent',
             'ie_key': TwitchCollectionIE.ie_key(),
             'id': collection_id,
-            'url': 'https://www.twitch.tv/collections/%s' % collection_id,
+            'url': f'https://www.twitch.tv/collections/{collection_id}',
             'title': node.get('title'),
             'thumbnail': node.get('thumbnailURL'),
             'duration': float_or_none(node.get('lengthSeconds')),
@@ -759,7 +915,7 @@ class TwitchVideosCollectionsIE(TwitchPlaylistBaseIE):
         channel_name = self._match_id(url)
         return self.playlist_result(
             self._entries(channel_name), playlist_id=channel_name,
-            playlist_title='%s - Collections' % channel_name)
+            playlist_title=f'{channel_name} - Collections')
 
 
 class TwitchStreamIE(TwitchBaseIE):
@@ -792,6 +948,7 @@ class TwitchStreamIE(TwitchBaseIE):
             # m3u8 download
             'skip_download': True,
         },
+        'skip': 'User does not exist',
     }, {
         'url': 'http://www.twitch.tv/miracle_doto#profile-0',
         'only_matching': True,
@@ -804,6 +961,25 @@ class TwitchStreamIE(TwitchBaseIE):
     }, {
         'url': 'https://m.twitch.tv/food',
         'only_matching': True,
+    }, {
+        'url': 'https://www.twitch.tv/monstercat',
+        'info_dict': {
+            'id': '40500071752',
+            'display_id': 'monstercat',
+            'title': 're:Monstercat',
+            'description': 'md5:0945ad625e615bc8f0469396537d87d9',
+            'is_live': True,
+            'timestamp': 1677107190,
+            'upload_date': '20230222',
+            'uploader': 'Monstercat',
+            'uploader_id': 'monstercat',
+            'live_status': 'is_live',
+            'thumbnail': 're:https://.*.jpg',
+            'ext': 'mp4',
+        },
+        'params': {
+            'skip_download': 'Livestream',
+        },
     }]
 
     @classmethod
@@ -816,7 +992,7 @@ class TwitchStreamIE(TwitchBaseIE):
                     TwitchVideosClipsIE,
                     TwitchVideosCollectionsIE,
                     TwitchClipsIE))
-                else super(TwitchStreamIE, cls).suitable(url))
+                else super().suitable(url))
 
     def _real_extract(self, url):
         channel_name = self._match_id(url).lower()
@@ -845,32 +1021,19 @@ class TwitchStreamIE(TwitchBaseIE):
 
         if not user:
             raise ExtractorError(
-                '%s does not exist' % channel_name, expected=True)
+                f'{channel_name} does not exist', expected=True)
 
         stream = user['stream']
 
         if not stream:
-            raise ExtractorError('%s is offline' % channel_name, expected=True)
+            raise UserNotLive(video_id=channel_name)
 
         access_token = self._download_access_token(
             channel_name, 'stream', 'channelName')
-        token = access_token['value']
 
         stream_id = stream.get('id') or channel_name
-        query = {
-            'allow_source': 'true',
-            'allow_audio_only': 'true',
-            'allow_spectre': 'true',
-            'p': random.randint(1000000, 10000000),
-            'player': 'twitchweb',
-            'playlist_include_framerate': 'true',
-            'segment_preference': '4',
-            'sig': access_token['signature'].encode('utf-8'),
-            'token': token.encode('utf-8'),
-        }
-        formats = self._extract_m3u8_formats(
-            '%s/api/channel/hls/%s.m3u8' % (self._USHER_BASE, channel_name),
-            stream_id, 'mp4', query=query)
+        formats = self._extract_twitch_m3u8_formats(
+            'api/channel/hls', channel_name, access_token['value'], access_token['signature'])
         self._prefer_source(formats)
 
         view_count = stream.get('viewers')
@@ -879,23 +1042,23 @@ class TwitchStreamIE(TwitchBaseIE):
         sq_user = try_get(gql, lambda x: x[1]['data']['user'], dict) or {}
         uploader = sq_user.get('displayName')
         description = try_get(
-            sq_user, lambda x: x['broadcastSettings']['title'], compat_str)
+            sq_user, lambda x: x['broadcastSettings']['title'], str)
 
         thumbnail = url_or_none(try_get(
             gql, lambda x: x[2]['data']['user']['stream']['previewImageURL'],
-            compat_str))
+            str))
 
         title = uploader or channel_name
         stream_type = stream.get('type')
         if stream_type in ['rerun', 'live']:
-            title += ' (%s)' % stream_type
+            title += f' ({stream_type})'
 
         return {
             'id': stream_id,
             'display_id': channel_name,
             'title': title,
             'description': description,
-            'thumbnail': thumbnail,
+            'thumbnails': self._get_thumbnails(thumbnail),
             'uploader': uploader,
             'uploader_id': channel_name,
             'timestamp': timestamp,
@@ -911,7 +1074,7 @@ class TwitchClipsIE(TwitchBaseIE):
                     https?://
                         (?:
                             clips\.twitch\.tv/(?:embed\?.*?\bclip=|(?:[^/]+/)*)|
-                            (?:(?:www|go|m)\.)?twitch\.tv/[^/]+/clip/
+                            (?:(?:www|go|m)\.)?twitch\.tv/(?:[^/]+/)?clip/
                         )
                         (?P<id>[^/?#&]+)
                     '''
@@ -946,6 +1109,9 @@ class TwitchClipsIE(TwitchBaseIE):
         'only_matching': True,
     }, {
         'url': 'https://go.twitch.tv/rossbroadcast/clip/ConfidentBraveHumanChefFrank',
+        'only_matching': True,
+    }, {
+        'url': 'https://m.twitch.tv/clip/FaintLightGullWholeWheat',
         'only_matching': True,
     }]
 
@@ -995,7 +1161,7 @@ class TwitchClipsIE(TwitchBaseIE):
     }
     viewCount
   }
-}''' % video_id}, 'Downloading clip GraphQL', fatal=False)
+}''' % video_id}, 'Downloading clip GraphQL', fatal=False)  # noqa: UP031
 
         if data:
             clip = try_get(data, lambda x: x['data']['clip'], dict) or clip
@@ -1013,7 +1179,6 @@ class TwitchClipsIE(TwitchBaseIE):
                 'height': int_or_none(option.get('quality')),
                 'fps': int_or_none(option.get('frameRate')),
             })
-        self._sort_formats(formats)
 
         thumbnails = []
         for thumbnail_id in ('tiny', 'small', 'medium'):
@@ -1032,16 +1197,19 @@ class TwitchClipsIE(TwitchBaseIE):
                 })
             thumbnails.append(thumb)
 
+        old_id = self._search_regex(r'%7C(\d+)(?:-\d+)?.mp4', formats[-1]['url'], 'old id', default=None)
+
         return {
             'id': clip.get('id') or video_id,
+            '_old_archive_ids': [make_archive_id(self, old_id)] if old_id else None,
             'display_id': video_id,
-            'title': clip.get('title') or video_id,
+            'title': clip.get('title'),
             'formats': formats,
             'duration': int_or_none(clip.get('durationSeconds')),
             'view_count': int_or_none(clip.get('viewCount')),
             'timestamp': unified_timestamp(clip.get('createdAt')),
             'thumbnails': thumbnails,
-            'creator': try_get(clip, lambda x: x['broadcaster']['displayName'], compat_str),
-            'uploader': try_get(clip, lambda x: x['curator']['displayName'], compat_str),
-            'uploader_id': try_get(clip, lambda x: x['curator']['id'], compat_str),
+            'creator': try_get(clip, lambda x: x['broadcaster']['displayName'], str),
+            'uploader': try_get(clip, lambda x: x['curator']['displayName'], str),
+            'uploader_id': try_get(clip, lambda x: x['curator']['id'], str),
         }

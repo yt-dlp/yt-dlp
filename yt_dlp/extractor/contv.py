@@ -69,13 +69,11 @@ class CONtvIE(InfoExtractor):
                 'url': media_mp4_url,
             })
 
-        self._sort_formats(formats)
-
         subtitles = {}
         captions = m_details.get('captions') or {}
         for caption_url in captions.values():
             subtitles.setdefault('en', []).append({
-                'url': caption_url
+                'url': caption_url,
             })
 
         thumbnails = []

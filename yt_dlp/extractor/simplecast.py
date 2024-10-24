@@ -1,5 +1,3 @@
-import re
-
 from .common import InfoExtractor
 from ..utils import (
     clean_podcast_url,
@@ -21,7 +19,7 @@ class SimplecastBaseIE(InfoExtractor):
 
     def _call_search_api(self, resource, resource_id, resource_url):
         return self._download_json(
-            'https://api.simplecast.com/%ss/search' % resource, resource_id,
+            f'https://api.simplecast.com/{resource}s/search', resource_id,
             data=urlencode_postdata({'url': resource_url}))
 
     def _parse_episode(self, episode):
@@ -35,7 +33,7 @@ class SimplecastBaseIE(InfoExtractor):
         season_id = None
         if season_href:
             season_id = self._search_regex(
-                r'https?://api.simplecast.com/seasons/(%s)' % self._UUID_REGEX,
+                rf'https?://api.simplecast.com/seasons/({self._UUID_REGEX})',
                 season_href, 'season id', default=None)
 
         webpage_url = episode.get('episode_url')
@@ -67,7 +65,12 @@ class SimplecastBaseIE(InfoExtractor):
 
 class SimplecastIE(SimplecastBaseIE):
     IE_NAME = 'simplecast'
-    _VALID_URL = r'https?://(?:api\.simplecast\.com/episodes|player\.simplecast\.com)/(?P<id>%s)' % SimplecastBaseIE._UUID_REGEX
+    _VALID_URL = rf'https?://(?:api\.simplecast\.com/episodes|player\.simplecast\.com)/(?P<id>{SimplecastBaseIE._UUID_REGEX})'
+    _EMBED_REGEX = [rf'''(?x)<iframe[^>]+src=["\']
+        (?P<url>https?://(?:
+            embed\.simplecast\.com/[0-9a-f]{8}|
+            player\.simplecast\.com/{SimplecastBaseIE._UUID_REGEX}
+        ))''']
     _COMMON_TEST_INFO = {
         'display_id': 'errant-signal-chris-franklin-new-wave-video-essays',
         'id': 'b6dc49a2-9404-4853-9aa9-9cfc097be876',
@@ -93,15 +96,6 @@ class SimplecastIE(SimplecastBaseIE):
         'url': 'https://player.simplecast.com/b6dc49a2-9404-4853-9aa9-9cfc097be876',
         'only_matching': True,
     }]
-
-    @staticmethod
-    def _extract_urls(webpage):
-        return re.findall(
-            r'''(?x)<iframe[^>]+src=["\']
-                (
-                    https?://(?:embed\.simplecast\.com/[0-9a-f]{8}|
-                    player\.simplecast\.com/%s
-                ))''' % SimplecastBaseIE._UUID_REGEX, webpage)
 
     def _real_extract(self, url):
         episode_id = self._match_id(url)

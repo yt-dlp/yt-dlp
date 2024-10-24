@@ -1,5 +1,3 @@
-import re
-
 from .common import InfoExtractor
 from ..utils import (
     determine_ext,
@@ -16,7 +14,8 @@ from ..utils import (
 class VideoPressIE(InfoExtractor):
     _ID_REGEX = r'[\da-zA-Z]{8}'
     _PATH_REGEX = r'video(?:\.word)?press\.com/embed/'
-    _VALID_URL = r'https?://%s(?P<id>%s)' % (_PATH_REGEX, _ID_REGEX)
+    _VALID_URL = rf'https?://{_PATH_REGEX}(?P<id>{_ID_REGEX})'
+    _EMBED_REGEX = [rf'<iframe[^>]+src=["\'](?P<url>(?:https?://)?{_PATH_REGEX}{_ID_REGEX})']
     _TESTS = [{
         'url': 'https://videopress.com/embed/kUJmAcSf',
         'md5': '706956a6c875873d51010921310e4bc6',
@@ -39,19 +38,13 @@ class VideoPressIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    @staticmethod
-    def _extract_urls(webpage):
-        return re.findall(
-            r'<iframe[^>]+src=["\']((?:https?://)?%s%s)' % (VideoPressIE._PATH_REGEX, VideoPressIE._ID_REGEX),
-            webpage)
-
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
         query = random_birthday('birth_year', 'birth_month', 'birth_day')
         query['fields'] = 'description,duration,file_url_base,files,height,original,poster,rating,title,upload_date,width'
         video = self._download_json(
-            'https://public-api.wordpress.com/rest/v1.1/videos/%s' % video_id,
+            f'https://public-api.wordpress.com/rest/v1.1/videos/{video_id}',
             video_id, query=query)
 
         title = video['title']
@@ -70,7 +63,7 @@ class VideoPressIE(InfoExtractor):
                 if ext in ('mp4', 'ogg'):
                     formats.append({
                         'url': urljoin(base_url, path),
-                        'format_id': '%s-%s' % (format_id, ext),
+                        'format_id': f'{format_id}-{ext}',
                         'ext': determine_ext(path, ext),
                         'quality': quality(format_id),
                     })
@@ -83,7 +76,6 @@ class VideoPressIE(InfoExtractor):
                 'width': int_or_none(video.get('width')),
                 'height': int_or_none(video.get('height')),
             })
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

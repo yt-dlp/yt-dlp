@@ -1,5 +1,4 @@
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     determine_ext,
     format_field,
@@ -10,6 +9,7 @@ from ..utils import (
 
 class VineIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?vine\.co/(?:v|oembed)/(?P<id>\w+)'
+    _EMBED_REGEX = [r'<iframe[^>]+src=[\'"](?P<url>(?:https?:)?//(?:www\.)?vine\.co/v/[^/]+/embed/(?:simple|postcard))']
     _TESTS = [{
         'url': 'https://vine.co/v/b9KOOWX7HUx',
         'md5': '2f36fed6235b16da96ce9b4dc890940d',
@@ -61,11 +61,11 @@ class VineIE(InfoExtractor):
         video_id = self._match_id(url)
 
         data = self._download_json(
-            'https://archive.vine.co/posts/%s.json' % video_id, video_id)
+            f'https://archive.vine.co/posts/{video_id}.json', video_id)
 
         def video_url(kind):
             for url_suffix in ('Url', 'URL'):
-                format_url = data.get('video%s%s' % (kind, url_suffix))
+                format_url = data.get(f'video{kind}{url_suffix}')
                 if format_url:
                     return format_url
 
@@ -85,11 +85,10 @@ class VineIE(InfoExtractor):
                     'quality': quality,
                 })
         self._check_formats(formats, video_id)
-        self._sort_formats(formats)
 
         username = data.get('username')
 
-        alt_title = format_field(username, template='Vine by %s')
+        alt_title = format_field(username, None, 'Vine by %s')
 
         return {
             'id': video_id,
@@ -126,14 +125,14 @@ class VineUserIE(InfoExtractor):
 
     @classmethod
     def suitable(cls, url):
-        return False if VineIE.suitable(url) else super(VineUserIE, cls).suitable(url)
+        return False if VineIE.suitable(url) else super().suitable(url)
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
         user = mobj.group('user')
         u = mobj.group('u')
 
-        profile_url = '%sapi/users/profiles/%s%s' % (
+        profile_url = '{}api/users/profiles/{}{}'.format(
             self._VINE_BASE_URL, 'vanity/' if not u else '', user)
         profile_data = self._download_json(
             profile_url, user, note='Downloading user profile data')
@@ -141,11 +140,11 @@ class VineUserIE(InfoExtractor):
         data = profile_data['data']
         user_id = data.get('userId') or data['userIdStr']
         profile = self._download_json(
-            'https://archive.vine.co/profiles/%s.json' % user_id, user_id)
+            f'https://archive.vine.co/profiles/{user_id}.json', user_id)
         entries = [
             self.url_result(
-                'https://vine.co/v/%s' % post_id, ie='Vine', video_id=post_id)
+                f'https://vine.co/v/{post_id}', ie='Vine', video_id=post_id)
             for post_id in profile['posts']
-            if post_id and isinstance(post_id, compat_str)]
+            if post_id and isinstance(post_id, str)]
         return self.playlist_result(
             entries, user, profile.get('username'), profile.get('description'))

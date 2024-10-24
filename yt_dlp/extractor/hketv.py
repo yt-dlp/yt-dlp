@@ -1,8 +1,7 @@
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
-    clean_html,
     ExtractorError,
+    clean_html,
     int_or_none,
     merge_dicts,
     parse_count,
@@ -44,9 +43,6 @@ class HKETVIE(InfoExtractor):
             'upload_date': '20070109',
             'duration': 907,
             'subtitles': {},
-        },
-        'params': {
-            'geo_verification_proxy': '<HK proxy here>',
         },
         'skip': 'Geo restricted to HK',
     }]
@@ -126,7 +122,7 @@ class HKETVIE(InfoExtractor):
             # If we ever wanted to provide the final resolved URL that
             # does not require cookies, albeit with a shorter lifespan:
             #     urlh = self._downloader.urlopen(file_url)
-            #     resolved_url = urlh.geturl()
+            #     resolved_url = urlh.url
             label = fmt.get('label')
             h = self._FORMAT_HEIGHTS.get(label)
             w = h * width // height if h and width and height else None
@@ -137,7 +133,6 @@ class HKETVIE(InfoExtractor):
                 'width': w,
                 'height': h,
             })
-        self._sort_formats(formats)
 
         subtitles = {}
         tracks = try_get(playlist0, lambda x: x['tracks'], list) or []
@@ -145,7 +140,7 @@ class HKETVIE(InfoExtractor):
             if not isinstance(track, dict):
                 continue
             track_kind = str_or_none(track.get('kind'))
-            if not track_kind or not isinstance(track_kind, compat_str):
+            if not track_kind or not isinstance(track_kind, str):
                 continue
             if track_kind.lower() not in ('captions', 'subtitles'):
                 continue

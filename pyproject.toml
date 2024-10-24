@@ -1,0 +1,383 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "yt-dlp"
+maintainers = [
+    {name = "pukkandan", email = "pukkandan.ytdlp@gmail.com"},
+    {name = "Grub4K", email = "contact@grub4k.xyz"},
+    {name = "bashonly", email = "bashonly@protonmail.com"},
+    {name = "coletdjnz", email = "coletdjnz@protonmail.com"},
+    {name = "sepro", email = "sepro@sepr0.com"},
+]
+description = "A feature-rich command-line audio/video downloader"
+readme = "README.md"
+requires-python = ">=3.9"
+keywords = [
+    "youtube-dl",
+    "video-downloader",
+    "youtube-downloader",
+    "sponsorblock",
+    "youtube-dlc",
+    "yt-dlp",
+]
+license = {file = "LICENSE"}
+classifiers = [
+    "Topic :: Multimedia :: Video",
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: Implementation",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Python :: Implementation :: PyPy",
+    "License :: OSI Approved :: The Unlicense (Unlicense)",
+    "Operating System :: OS Independent",
+]
+dynamic = ["version"]
+dependencies = []
+
+[project.optional-dependencies]
+default = [
+    "brotli; implementation_name=='cpython'",
+    "brotlicffi; implementation_name!='cpython'",
+    "certifi",
+    "mutagen",
+    "pycryptodomex",
+    "requests>=2.32.2,<3",
+    "urllib3>=1.26.17,<3",
+    "websockets>=13.0",
+]
+curl-cffi = [
+    "curl-cffi==0.5.10; os_name=='nt' and implementation_name=='cpython'",
+    "curl-cffi>=0.5.10,!=0.6.*,<0.7.2; os_name!='nt' and implementation_name=='cpython'",
+]
+secretstorage = [
+    "cffi",
+    "secretstorage",
+]
+build = [
+    "build",
+    "hatchling",
+    "pip",
+    "setuptools>=71.0.2",  # 71.0.0 broke pyinstaller
+    "wheel",
+]
+dev = [
+    "pre-commit",
+    "yt-dlp[static-analysis]",
+    "yt-dlp[test]",
+]
+static-analysis = [
+    "autopep8~=2.0",
+    "ruff~=0.7.0",
+]
+test = [
+    "pytest~=8.1",
+    "pytest-rerunfailures~=14.0",
+]
+pyinstaller = [
+    "pyinstaller>=6.10.0",  # Windows temp cleanup fixed in 6.10.0
+]
+
+[project.urls]
+Documentation = "https://github.com/yt-dlp/yt-dlp#readme"
+Repository = "https://github.com/yt-dlp/yt-dlp"
+Tracker = "https://github.com/yt-dlp/yt-dlp/issues"
+Funding = "https://github.com/yt-dlp/yt-dlp/blob/master/Collaborators.md#collaborators"
+
+[project.scripts]
+yt-dlp = "yt_dlp:main"
+
+[project.entry-points.pyinstaller40]
+hook-dirs = "yt_dlp.__pyinstaller:get_hook_dirs"
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/yt_dlp",
+    "/devscripts",
+    "/test",
+    "/.gitignore",  # included by default, needed for auto-excludes
+    "/Changelog.md",
+    "/LICENSE",  # included as license
+    "/pyproject.toml",  # included by default
+    "/README.md",  # included as readme
+    "/setup.cfg",
+    "/supportedsites.md",
+]
+artifacts = [
+    "/yt_dlp/extractor/lazy_extractors.py",
+    "/completions",
+    "/AUTHORS",  # included by default
+    "/README.txt",
+    "/yt-dlp.1",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["yt_dlp"]
+artifacts = ["/yt_dlp/extractor/lazy_extractors.py"]
+
+[tool.hatch.build.targets.wheel.shared-data]
+"completions/bash/yt-dlp" = "share/bash-completion/completions/yt-dlp"
+"completions/zsh/_yt-dlp" = "share/zsh/site-functions/_yt-dlp"
+"completions/fish/yt-dlp.fish" = "share/fish/vendor_completions.d/yt-dlp.fish"
+"README.txt" = "share/doc/yt_dlp/README.txt"
+"yt-dlp.1" = "share/man/man1/yt-dlp.1"
+
+[tool.hatch.version]
+path = "yt_dlp/version.py"
+pattern = "_pkg_version = '(?P<version>[^']+)'"
+
+[tool.hatch.envs.default]
+features = ["curl-cffi", "default"]
+dependencies = ["pre-commit"]
+path = ".venv"
+installer = "uv"
+
+[tool.hatch.envs.default.scripts]
+setup = "pre-commit install --config .pre-commit-hatch.yaml"
+yt-dlp = "python -Werror -Xdev -m yt_dlp {args}"
+
+[tool.hatch.envs.hatch-static-analysis]
+detached = true
+features = ["static-analysis"]
+dependencies = []  # override hatch ruff version
+config-path = "pyproject.toml"
+
+[tool.hatch.envs.hatch-static-analysis.scripts]
+format-check = "autopep8 --diff {args:.}"
+format-fix = "autopep8 --in-place {args:.}"
+lint-check = "ruff check {args:.}"
+lint-fix = "ruff check --fix {args:.}"
+
+[tool.hatch.envs.hatch-test]
+features = ["test"]
+dependencies = [
+    "pytest-randomly~=3.15",
+    "pytest-xdist[psutil]~=3.5",
+]
+
+[tool.hatch.envs.hatch-test.scripts]
+run = "python -m devscripts.run_tests {args}"
+run-cov = "echo Code coverage not implemented && exit 1"
+
+[[tool.hatch.envs.hatch-test.matrix]]
+python = [
+    "3.9",
+    "3.10",
+    "3.11",
+    "3.12",
+    "3.13",
+    "pypy3.10",
+]
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+ignore = [
+    "E402",    # module-import-not-at-top-of-file
+    "E501",    # line-too-long
+    "E731",    # lambda-assignment
+    "E741",    # ambiguous-variable-name
+    "UP036",   # outdated-version-block
+    "B006",    # mutable-argument-default
+    "B008",    # function-call-in-default-argument
+    "B011",    # assert-false
+    "B017",    # assert-raises-exception
+    "B023",    # function-uses-loop-variable (false positives)
+    "B028",    # no-explicit-stacklevel
+    "B904",    # raise-without-from-inside-except
+    "C401",    # unnecessary-generator-set
+    "C402",    # unnecessary-generator-dict
+    "PIE790",  # unnecessary-placeholder
+    "SIM102",  # collapsible-if
+    "SIM108",  # if-else-block-instead-of-if-exp
+    "SIM112",  # uncapitalized-environment-variables
+    "SIM113",  # enumerate-for-loop
+    "SIM114",  # if-with-same-arms
+    "SIM115",  # open-file-with-context-handler
+    "SIM117",  # multiple-with-statements
+    "SIM223",  # expr-and-false
+    "SIM300",  # yoda-conditions
+    "TD001",   # invalid-todo-tag
+    "TD002",   # missing-todo-author
+    "TD003",   # missing-todo-link
+    "PLE0604", # invalid-all-object (false positives)
+    "PLE0643", # potential-index-error (false positives)
+    "PLW0603", # global-statement
+    "PLW1510", # subprocess-run-without-check
+    "PLW2901", # redefined-loop-name
+    "RUF001",  # ambiguous-unicode-character-string
+    "RUF012",  # mutable-class-default
+    "RUF100",  # unused-noqa (flake8 has slightly different behavior)
+]
+select = [
+    "E",      # pycodestyle Error
+    "W",      # pycodestyle Warning
+    "F",      # Pyflakes
+    "I",      # isort
+    "Q",      # flake8-quotes
+    "N803",   # invalid-argument-name
+    "N804",   # invalid-first-argument-name-for-class-method
+    "UP",     # pyupgrade
+    "B",      # flake8-bugbear
+    "A",      # flake8-builtins
+    "COM",    # flake8-commas
+    "C4",     # flake8-comprehensions
+    "FA",     # flake8-future-annotations
+    "ISC",    # flake8-implicit-str-concat
+    "ICN003", # banned-import-from
+    "PIE",    # flake8-pie
+    "T20",    # flake8-print
+    "RSE",    # flake8-raise
+    "RET504", # unnecessary-assign
+    "SIM",    # flake8-simplify
+    "TID251", # banned-api
+    "TD",     # flake8-todos
+    "PLC",    # Pylint Convention
+    "PLE",    # Pylint Error
+    "PLW",    # Pylint Warning
+    "RUF",    # Ruff-specific rules
+]
+
+[tool.ruff.lint.per-file-ignores]
+"devscripts/lazy_load_template.py" = [
+    "F401",   # unused-import
+]
+"!yt_dlp/extractor/**.py" = [
+    "I",      # isort
+    "ICN003", # banned-import-from
+    "T20",    # flake8-print
+    "A002",   # builtin-argument-shadowing
+    "C408",   # unnecessary-collection-call
+]
+"yt_dlp/jsinterp.py" = [
+    "UP031",  # printf-string-formatting
+]
+
+[tool.ruff.lint.isort]
+known-first-party = [
+    "bundle",
+    "devscripts",
+    "test",
+]
+relative-imports-order = "closest-to-furthest"
+
+[tool.ruff.lint.flake8-quotes]
+docstring-quotes = "double"
+multiline-quotes = "single"
+inline-quotes = "single"
+avoid-escape = false
+
+[tool.ruff.lint.pep8-naming]
+classmethod-decorators = [
+    "yt_dlp.utils.classproperty",
+]
+
+[tool.ruff.lint.flake8-import-conventions]
+banned-from = [
+    "base64",
+    "datetime",
+    "functools",
+    "glob",
+    "hashlib",
+    "itertools",
+    "json",
+    "math",
+    "os",
+    "pathlib",
+    "random",
+    "re",
+    "string",
+    "sys",
+    "time",
+    "urllib.parse",
+    "uuid",
+    "xml",
+]
+
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"yt_dlp.compat.compat_str".msg = "Use `str` instead."
+"yt_dlp.compat.compat_b64decode".msg = "Use `base64.b64decode` instead."
+"yt_dlp.compat.compat_urlparse".msg = "Use `urllib.parse` instead."
+"yt_dlp.compat.compat_parse_qs".msg = "Use `urllib.parse.parse_qs` instead."
+"yt_dlp.compat.compat_urllib_parse_unquote".msg = "Use `urllib.parse.unquote` instead."
+"yt_dlp.compat.compat_urllib_parse_urlencode".msg = "Use `urllib.parse.urlencode` instead."
+"yt_dlp.compat.compat_urllib_parse_urlparse".msg = "Use `urllib.parse.urlparse` instead."
+"yt_dlp.compat.compat_shlex_quote".msg = "Use `yt_dlp.utils.shell_quote` instead."
+"yt_dlp.utils.error_to_compat_str".msg = "Use `str` instead."
+
+[tool.autopep8]
+max_line_length = 120
+recursive = true
+exit-code = true
+jobs = 0
+select = [
+    "E101",
+    "E112",
+    "E113",
+    "E115",
+    "E116",
+    "E117",
+    "E121",
+    "E122",
+    "E123",
+    "E124",
+    "E125",
+    "E126",
+    "E127",
+    "E128",
+    "E129",
+    "E131",
+    "E201",
+    "E202",
+    "E203",
+    "E211",
+    "E221",
+    "E222",
+    "E223",
+    "E224",
+    "E225",
+    "E226",
+    "E227",
+    "E228",
+    "E231",
+    "E241",
+    "E242",
+    "E251",
+    "E252",
+    "E261",
+    "E262",
+    "E265",
+    "E266",
+    "E271",
+    "E272",
+    "E273",
+    "E274",
+    "E275",
+    "E301",
+    "E302",
+    "E303",
+    "E304",
+    "E305",
+    "E306",
+    "E502",
+    "E701",
+    "E702",
+    "E704",
+    "W391",
+    "W504",
+]
+
+[tool.pytest.ini_options]
+addopts = "-ra -v --strict-markers"
+markers = [
+    "download",
+]

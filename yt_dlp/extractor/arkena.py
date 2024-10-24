@@ -1,5 +1,3 @@
-import re
-
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
@@ -19,6 +17,8 @@ class ArkenaIE(InfoExtractor):
                                 play\.arkena\.com/(?:config|embed)/avp/v\d/player/media/(?P<id>[^/]+)/[^/]+/(?P<account_id>\d+)
                             )
                         '''
+    # See https://support.arkena.com/display/PLAY/Ways+to+embed+your+video
+    _EMBED_REGEX = [r'<iframe[^>]+src=(["\'])(?P<url>(?:https?:)?//play\.arkena\.com/embed/avp/.+?)\1']
     _TESTS = [{
         'url': 'https://video.qbrick.com/play2/embed/player?accountId=1034090&mediaId=d8ab4607-00090107-aab86310',
         'md5': '97f117754e5f3c020f5f26da4a44ebaf',
@@ -50,15 +50,6 @@ class ArkenaIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    @staticmethod
-    def _extract_url(webpage):
-        # See https://support.arkena.com/display/PLAY/Ways+to+embed+your+video
-        mobj = re.search(
-            r'<iframe[^>]+src=(["\'])(?P<url>(?:https?:)?//play\.arkena\.com/embed/avp/.+?)\1',
-            webpage)
-        if mobj:
-            return mobj.group('url')
-
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
         video_id = mobj.group('id')
@@ -73,7 +64,7 @@ class ArkenaIE(InfoExtractor):
                 raise ExtractorError('Invalid URL', expected=True)
 
         media = self._download_json(
-            'https://video.qbrick.com/api/v1/public/accounts/%s/medias/%s' % (account_id, video_id),
+            f'https://video.qbrick.com/api/v1/public/accounts/{account_id}/medias/{video_id}',
             video_id, query={
                 # https://video.qbrick.com/docs/api/examples/library-api.html
                 'fields': 'asset/resources/*/renditions/*(height,id,language,links/*(href,mimeType),type,size,videos/*(audios/*(codec,sampleRate),bitrate,codec,duration,height,width),width),created,metadata/*(title,description),tags',
@@ -140,12 +131,11 @@ class ArkenaIE(InfoExtractor):
                             formats.extend(self._extract_f4m_formats(
                                 href, video_id, f4m_id='hds', fatal=False))
                         elif mime_type == 'application/dash+xml':
-                            formats.extend(self._extract_f4m_formats(
-                                href, video_id, f4m_id='hds', fatal=False))
+                            formats.extend(self._extract_mpd_formats(
+                                href, video_id, mpd_id='dash', fatal=False))
                         elif mime_type == 'application/vnd.ms-sstr+xml':
                             formats.extend(self._extract_ism_formats(
                                 href, video_id, ism_id='mss', fatal=False))
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

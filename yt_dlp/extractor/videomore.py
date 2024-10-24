@@ -1,9 +1,4 @@
-import re
-
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-)
 from ..utils import (
     int_or_none,
     parse_qs,
@@ -47,6 +42,12 @@ class VideomoreIE(InfoExtractor):
                         (?P<id>\d+)
                         (?:[/?#&]|\.(?:xml|json)|$)
                     '''
+    _EMBED_REGEX = [r'''(?x)
+        (?:
+            <iframe[^>]+src=([\'"])|
+            <object[^>]+data=(["\'])https?://videomore\.ru/player\.swf\?.*config=
+        )(?P<url>https?://videomore\.ru/[^?#"']+/\d+(?:\.xml)?)
+    ''']
     _TESTS = [{
         'url': 'http://videomore.ru/kino_v_detalayah/5_sezon/367617',
         'md5': '44455a346edc0d509ac5b5a5b531dc35',
@@ -126,19 +127,6 @@ class VideomoreIE(InfoExtractor):
     }]
     _GEO_BYPASS = False
 
-    @staticmethod
-    def _extract_url(webpage):
-        mobj = re.search(
-            r'<object[^>]+data=(["\'])https?://videomore\.ru/player\.swf\?.*config=(?P<url>https?://videomore\.ru/(?:[^/]+/)+\d+\.xml).*\1',
-            webpage)
-        if not mobj:
-            mobj = re.search(
-                r'<iframe[^>]+src=([\'"])(?P<url>https?://videomore\.ru/embed/\d+)',
-                webpage)
-
-        if mobj:
-            return mobj.group('url')
-
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
         video_id = mobj.group('sid') or mobj.group('id')
@@ -190,7 +178,6 @@ class VideomoreIE(InfoExtractor):
                 if error in ('Данное видео недоступно для просмотра на территории этой страны', 'Данное видео доступно для просмотра только на территории России'):
                     self.raise_geo_restricted(countries=['RU'], metadata_available=True)
                 self.raise_no_formats(error, expected=True)
-        self._sort_formats(formats)
 
         return {
             'id': video_id,
@@ -263,7 +250,7 @@ class VideomoreVideoIE(VideomoreBaseIE):
         'params': {
             'skip_download': True,
         },
-        'skip': 'redirects to https://more.tv/'
+        'skip': 'redirects to https://more.tv/',
     }, {
         'url': 'https://videomore.ru/molodezhka/6_sezon/29_seriya?utm_so',
         'only_matching': True,
@@ -274,7 +261,7 @@ class VideomoreVideoIE(VideomoreBaseIE):
 
     @classmethod
     def suitable(cls, url):
-        return False if VideomoreIE.suitable(url) else super(VideomoreVideoIE, cls).suitable(url)
+        return False if VideomoreIE.suitable(url) else super().suitable(url)
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
@@ -302,14 +289,14 @@ class VideomoreSeasonIE(VideomoreBaseIE):
     @classmethod
     def suitable(cls, url):
         return (False if (VideomoreIE.suitable(url) or VideomoreVideoIE.suitable(url))
-                else super(VideomoreSeasonIE, cls).suitable(url))
+                else super().suitable(url))
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
         season = self._download_page_data(display_id)
-        season_id = compat_str(season['id'])
+        season_id = str(season['id'])
         tracks = self._download_json(
-            self._API_BASE_URL + 'seasons/%s/tracks' % season_id,
+            self._API_BASE_URL + f'seasons/{season_id}/tracks',
             season_id)['data']
         entries = []
         for track in tracks:

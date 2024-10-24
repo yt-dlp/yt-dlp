@@ -19,9 +19,9 @@ class NewsyIE(InfoExtractor):
             'timestamp': 1621339200,
             'duration': 339630,
             'thumbnail': 'https://cdn.newsy.com/images/videos/x/1620927824_xyrrP4.jpg',
-            'upload_date': '20210518'
+            'upload_date': '20210518',
         },
-        'params': {'skip_download': True}
+        'params': {'skip_download': True},
     }]
 
     def _real_extract(self, url):
@@ -36,7 +36,6 @@ class NewsyIE(InfoExtractor):
             fmts, subs = self._extract_m3u8_formats_and_subtitles(data_json['stream'], display_id)
             formats.extend(fmts)
             subtitles = self._merge_subtitles(subtitles, subs)
-        self._sort_formats(formats)
         return merge_dicts(ld_json, {
             'id': data_json['id'],
             'display_id': display_id,

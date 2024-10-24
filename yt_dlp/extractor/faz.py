@@ -3,9 +3,9 @@ import re
 from .common import InfoExtractor
 from ..compat import compat_etree_fromstring
 from ..utils import (
+    int_or_none,
     xpath_element,
     xpath_text,
-    int_or_none,
 )
 
 
@@ -78,7 +78,6 @@ class FazIE(InfoExtractor):
                             'tbr': tbr or int(mobj.group(3)),
                         })
                     formats.append(f)
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

@@ -1,25 +1,22 @@
-import re
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-    compat_urllib_parse_urlparse,
-)
 from ..utils import (
-    urljoin,
     int_or_none,
     parse_codecs,
     parse_qs,
     try_get,
+    urljoin,
 )
 
 
 def _raw_id(src_url):
-    return compat_urllib_parse_urlparse(src_url).path.split('/')[-1]
+    return urllib.parse.urlparse(src_url).path.split('/')[-1]
 
 
 class SeznamZpravyIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?seznamzpravy\.cz/iframe/player\?.*\bsrc='
+    _EMBED_REGEX = [r'<iframe\b[^>]+\bsrc=(["\'])(?P<url>(?:https?:)?//(?:www\.)?seznamzpravy\.cz/iframe/player\?.*?)\1']
     _TESTS = [{
         'url': 'https://www.seznamzpravy.cz/iframe/player?duration=241&serviceSlug=zpravy&src=https%3A%2F%2Fv39-a.sdn.szn.cz%2Fv_39%2Fvmd%2F5999c902ea707c67d8e267a9%3Ffl%3Dmdk%2C432f65a0%7C&itemType=video&autoPlay=false&title=Sv%C4%9Bt%20bez%20obalu%3A%20%C4%8Ce%C5%A1t%C3%AD%20voj%C3%A1ci%20na%20mis%C3%ADch%20(kr%C3%A1tk%C3%A1%20verze)&series=Sv%C4%9Bt%20bez%20obalu&serviceName=Seznam%20Zpr%C3%A1vy&poster=%2F%2Fd39-a.sdn.szn.cz%2Fd_39%2Fc_img_F_I%2FR5puJ.jpeg%3Ffl%3Dcro%2C0%2C0%2C1920%2C1080%7Cres%2C1200%2C%2C1%7Cjpg%2C80%2C%2C1&width=1920&height=1080&cutFrom=0&cutTo=0&splVersion=VOD&contentId=170889&contextId=35990&showAdvert=true&collocation=&autoplayPossible=true&embed=&isVideoTooShortForPreroll=false&isVideoTooLongForPostroll=true&videoCommentOpKey=&videoCommentId=&version=4.0.76&dotService=zpravy&gemiusPrismIdentifier=bVc1ZIb_Qax4W2v5xOPGpMeCP31kFfrTzj0SqPTLh_b.Z7&zoneIdPreroll=seznam.pack.videospot&skipOffsetPreroll=5&sectionPrefixPreroll=%2Fzpravy',
         'info_dict': {
@@ -48,13 +45,6 @@ class SeznamZpravyIE(InfoExtractor):
         },
     }]
 
-    @staticmethod
-    def _extract_urls(webpage):
-        return [
-            mobj.group('url') for mobj in re.finditer(
-                r'<iframe\b[^>]+\bsrc=(["\'])(?P<url>(?:https?:)?//(?:www\.)?seznamzpravy\.cz/iframe/player\?.*?)\1',
-                webpage)]
-
     def _extract_sdn_formats(self, sdn_url, video_id):
         sdn_data = self._download_json(sdn_url, video_id)
 
@@ -76,7 +66,7 @@ class SeznamZpravyIE(InfoExtractor):
 
             f = {
                 'url': urljoin(sdn_url, relative_url),
-                'format_id': 'http-%s' % format_id,
+                'format_id': f'http-{format_id}',
                 'tbr': int_or_none(format_data.get('bandwidth'), scale=1000),
                 'width': int_or_none(width),
                 'height': int_or_none(height),
@@ -87,7 +77,7 @@ class SeznamZpravyIE(InfoExtractor):
         pls = sdn_data.get('pls', {})
 
         def get_url(format_id):
-            return try_get(pls, lambda x: x[format_id]['url'], compat_str)
+            return try_get(pls, lambda x: x[format_id]['url'], str)
 
         dash_rel_url = get_url('dash')
         if dash_rel_url:
@@ -101,7 +91,6 @@ class SeznamZpravyIE(InfoExtractor):
                 urljoin(sdn_url, hls_rel_url), video_id, ext='mp4',
                 m3u8_id='hls', fatal=False))
 
-        self._sort_formats(formats)
         return formats
 
     def _real_extract(self, url):
@@ -162,5 +151,5 @@ class SeznamZpravyArticleIE(InfoExtractor):
 
         return self.playlist_result([
             self.url_result(entry_url, ie=SeznamZpravyIE.ie_key())
-            for entry_url in SeznamZpravyIE._extract_urls(webpage)],
+            for entry_url in SeznamZpravyIE._extract_embed_urls(url, webpage)],
             article_id, title, description)

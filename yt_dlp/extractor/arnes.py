@@ -1,11 +1,9 @@
+import urllib.parse
+
 from .common import InfoExtractor
-from ..compat import (
-    compat_parse_qs,
-    compat_urllib_parse_urlparse,
-)
 from ..utils import (
-    format_field,
     float_or_none,
+    format_field,
     int_or_none,
     parse_iso8601,
     remove_start,
@@ -35,7 +33,7 @@ class ArnesIE(InfoExtractor):
             'view_count': int,
             'tags': ['linearna_algebra'],
             'start_time': 10,
-        }
+        },
     }, {
         'url': 'https://video.arnes.si/api/asset/s1YjnV7hadlC/play.mp4',
         'only_matching': True,
@@ -73,7 +71,6 @@ class ArnesIE(InfoExtractor):
                 'width': int_or_none(media.get('width')),
                 'height': int_or_none(media.get('height')),
             })
-        self._sort_formats(formats)
 
         channel = video.get('channel') or {}
         channel_id = channel.get('url')
@@ -90,10 +87,10 @@ class ArnesIE(InfoExtractor):
             'timestamp': parse_iso8601(video.get('creationTime')),
             'channel': channel.get('name'),
             'channel_id': channel_id,
-            'channel_url': format_field(channel_id, template=f'{self._BASE_URL}/?channel=%s'),
+            'channel_url': format_field(channel_id, None, f'{self._BASE_URL}/?channel=%s'),
             'duration': float_or_none(video.get('duration'), 1000),
             'view_count': int_or_none(video.get('views')),
             'tags': video.get('hashtags'),
-            'start_time': int_or_none(compat_parse_qs(
-                compat_urllib_parse_urlparse(url).query).get('t', [None])[0]),
+            'start_time': int_or_none(urllib.parse.parse_qs(
+                urllib.parse.urlparse(url).query).get('t', [None])[0]),
         }

@@ -1,5 +1,6 @@
+import urllib.parse
+
 from .once import OnceIE
-from ..compat import compat_urllib_parse_unquote
 
 
 class GameSpotIE(OnceIE):
@@ -40,7 +41,7 @@ class GameSpotIE(OnceIE):
         data_video = self._parse_json(self._html_search_regex(
             r'data-video=(["\'])({.*?})\1', webpage,
             'video data', group=2), page_id)
-        title = compat_urllib_parse_unquote(data_video['title'])
+        title = urllib.parse.unquote(data_video['title'])
         streams = data_video['videoStreams']
         formats = []
 
@@ -64,8 +65,6 @@ class GameSpotIE(OnceIE):
         if mpd_url:
             formats.extend(self._extract_mpd_formats(
                 mpd_url, page_id, mpd_id='dash', fatal=False))
-
-        self._sort_formats(formats)
 
         return {
             'id': data_video.get('guid') or page_id,

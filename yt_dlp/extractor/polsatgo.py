@@ -1,12 +1,12 @@
-from uuid import uuid4
 import json
+import uuid
 
 from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
     int_or_none,
     try_get,
     url_or_none,
-    ExtractorError,
 )
 
 
@@ -33,7 +33,7 @@ class PolsatGoIE(InfoExtractor):
                 continue
             yield {
                 'url': url,
-                'height': int_or_none(try_get(source, lambda x: x['quality'][:-1]))
+                'height': int_or_none(try_get(source, lambda x: x['quality'][:-1])),
             }
 
     def _real_extract(self, url):
@@ -42,17 +42,16 @@ class PolsatGoIE(InfoExtractor):
 
         formats = list(self._extract_formats(
             try_get(media, lambda x: x['playback']['mediaSources']), video_id))
-        self._sort_formats(formats)
 
         return {
             'id': video_id,
             'title': media['displayInfo']['title'],
             'formats': formats,
-            'age_limit': int_or_none(media['displayInfo']['ageGroup'])
+            'age_limit': int_or_none(media['displayInfo']['ageGroup']),
         }
 
     def _call_api(self, endpoint, media_id, method, params):
-        rand_uuid = str(uuid4())
+        rand_uuid = str(uuid.uuid4())
         res = self._download_json(
             f'https://b2c-mobile.redefine.pl/rpc/{endpoint}/', media_id,
             note=f'Downloading {method} JSON metadata',
@@ -78,7 +77,7 @@ class PolsatGoIE(InfoExtractor):
                     'clientId': rand_uuid,
                     'cpid': 1,
                 },
-            }).encode('utf-8'),
+            }).encode(),
             headers={'Content-type': 'application/json'})
         if not res.get('result'):
             if res['error']['code'] == 13404:

@@ -7,6 +7,7 @@ from ..utils import (
 
 
 class UMGDeIE(InfoExtractor):
+    _WORKING = False
     IE_NAME = 'umg:de'
     IE_DESC = 'Universal Music Deutschland'
     _VALID_URL = r'https?://(?:www\.)?universal-music\.de/[^/]+/videos/[^/?#]+-(?P<id>\d+)'
@@ -19,7 +20,7 @@ class UMGDeIE(InfoExtractor):
             'title': 'Jedes Wort ist Gold wert',
             'timestamp': 1513591800,
             'upload_date': '20171218',
-        }
+        },
     }
 
     def _real_extract(self, url):
@@ -44,7 +45,7 @@ class UMGDeIE(InfoExtractor):
       createdDate
     }
   }
-}''' % video_id})['data']['universalMusic']['video']
+}''' % video_id})['data']['universalMusic']['video']  # noqa: UP031
 
         title = video_data['headline']
         hls_url_template = 'http://mediadelivery.universal-music-services.de/vod/mp4:autofill/storage/' + '/'.join(list(video_id)) + '/content/%s/file/playlist.m3u8'
@@ -86,7 +87,6 @@ class UMGDeIE(InfoExtractor):
         if not formats:
             for format_id in (867, 836, 940):
                 add_m3u8_format(format_id)
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

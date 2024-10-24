@@ -52,15 +52,14 @@ class InternazionaleIE(InfoExtractor):
             'video available aboard', default='1', group='value')
         video_available_abroad = video_available_abroad == '1'
 
-        video_base = 'https://video%s.internazionale.it/%s/%s.' % \
-            ('' if video_available_abroad else '-ita', video_path, video_id)
+        video_base = 'https://video{}.internazionale.it/{}/{}.'.format(
+            '' if video_available_abroad else '-ita', video_path, video_id)
 
         formats = self._extract_m3u8_formats(
             video_base + 'm3u8', display_id, 'mp4',
             entry_protocol='m3u8_native', m3u8_id='hls', fatal=False)
         formats.extend(self._extract_mpd_formats(
             video_base + 'mpd', display_id, mpd_id='dash', fatal=False))
-        self._sort_formats(formats)
 
         timestamp = unified_timestamp(self._html_search_meta(
             'article:published_time', webpage, 'timestamp'))

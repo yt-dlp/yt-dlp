@@ -2,16 +2,17 @@ import re
 
 from .common import InfoExtractor
 from ..utils import (
+    int_or_none,
     parse_duration,
     parse_iso8601,
-    xpath_with_ns,
     xpath_text,
-    int_or_none,
+    xpath_with_ns,
 )
 
 
 class ZapiksIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?zapiks\.(?:fr|com)/(?:(?:[a-z]{2}/)?(?P<display_id>.+?)\.html|index\.php\?.*\bmedia_id=(?P<id>\d+))'
+    _EMBED_REGEX = [r'<iframe[^>]+src="(?P<url>https?://(?:www\.)?zapiks\.fr/index\.php\?.+?)"']
     _TESTS = [
         {
             'url': 'http://www.zapiks.fr/ep2s3-bon-appetit-eh-be-viva.html',
@@ -54,11 +55,11 @@ class ZapiksIE(InfoExtractor):
                 r'data-media-id="(\d+)"', webpage, 'video id')
 
         playlist = self._download_xml(
-            'http://www.zapiks.fr/view/index.php?action=playlist&media_id=%s&lang=en' % video_id,
+            f'http://www.zapiks.fr/view/index.php?action=playlist&media_id={video_id}&lang=en',
             display_id)
 
         NS_MAP = {
-            'jwplayer': 'http://rss.jwpcdn.com/'
+            'jwplayer': 'http://rss.jwpcdn.com/',
         }
 
         def ns(path):
@@ -91,7 +92,6 @@ class ZapiksIE(InfoExtractor):
             if m:
                 f['height'] = int(m.group('height'))
             formats.append(f)
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

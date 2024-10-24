@@ -22,8 +22,8 @@ class LRTStreamIE(LRTBaseIE):
             'id': 'lrt-opus',
             'live_status': 'is_live',
             'title': 're:^LRT Opus.+$',
-            'ext': 'mp4'
-        }
+            'ext': 'mp4',
+        },
     }]
 
     def _real_extract(self, url):
@@ -37,7 +37,6 @@ class LRTStreamIE(LRTBaseIE):
             fmts, subs = self._extract_m3u8_formats_and_subtitles(stream_url, video_id, 'mp4', m3u8_id='hls', live=True)
             formats.extend(fmts)
             subtitles = self._merge_subtitles(subtitles, subs)
-        self._sort_formats(formats)
 
         stream_title = self._extract_js_var(webpage, 'video_title', 'LRT')
         return {
@@ -45,7 +44,7 @@ class LRTStreamIE(LRTBaseIE):
             'formats': formats,
             'subtitles': subtitles,
             'is_live': True,
-            'title': f'{self._og_search_title(webpage)} - {stream_title}'
+            'title': f'{self._og_search_title(webpage)} - {stream_title}',
         }
 
 
@@ -63,7 +62,7 @@ class LRTVODIE(LRTBaseIE):
             'timestamp': 1604079000,
             'upload_date': '20201030',
             'tags': ['LRT TELEVIZIJA', 'Beatos virtuvė', 'Beata Nicholson', 'Makaronai', 'Baklažanai', 'Vakarienė', 'Receptas'],
-            'thumbnail': 'https://www.lrt.lt/img/2020/10/30/764041-126478-1287x836.jpg'
+            'thumbnail': 'https://www.lrt.lt/img/2020/10/30/764041-126478-1287x836.jpg',
         },
     }, {
         # direct mp3 download

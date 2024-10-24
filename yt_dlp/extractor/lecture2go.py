@@ -4,12 +4,13 @@ from .common import InfoExtractor
 from ..utils import (
     determine_ext,
     determine_protocol,
-    parse_duration,
     int_or_none,
+    parse_duration,
 )
 
 
 class Lecture2GoIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://lecture2go\.uni-hamburg\.de/veranstaltungen/-/v/(?P<id>\d+)'
     _TEST = {
         'url': 'https://lecture2go.uni-hamburg.de/veranstaltungen/-/v/17473',
@@ -24,7 +25,7 @@ class Lecture2GoIE(InfoExtractor):
         'params': {
             # m3u8 download
             'skip_download': True,
-        }
+        },
     }
 
     def _real_extract(self, url):
@@ -48,8 +49,6 @@ class Lecture2GoIE(InfoExtractor):
                     'format_id': protocol,
                     'url': url,
                 })
-
-        self._sort_formats(formats)
 
         creator = self._html_search_regex(
             r'<div[^>]+id="description">([^<]+)</div>', webpage, 'creator', fatal=False)

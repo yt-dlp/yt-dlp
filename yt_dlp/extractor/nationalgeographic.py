@@ -24,6 +24,7 @@ class NationalGeographicVideoIE(InfoExtractor):
                 'uploader': 'NAGS',
             },
             'add_ie': ['ThePlatform'],
+            'skip': 'Redirects to main page',
         },
         {
             'url': 'http://video.nationalgeographic.com/wild/when-sharks-attack/the-real-jaws',
@@ -38,6 +39,7 @@ class NationalGeographicVideoIE(InfoExtractor):
                 'uploader': 'NAGS',
             },
             'add_ie': ['ThePlatform'],
+            'skip': 'Redirects to main page',
         },
     ]
 
@@ -53,13 +55,13 @@ class NationalGeographicVideoIE(InfoExtractor):
             '_type': 'url_transparent',
             'ie_key': 'ThePlatform',
             'url': smuggle_url(
-                'http://link.theplatform.com/s/ngs/media/guid/2423130747/%s?mbr=true' % guid,
+                f'http://link.theplatform.com/s/ngs/media/guid/2423130747/{guid}?mbr=true',
                 {'force_smil_url': True}),
             'id': guid,
         }
 
 
-class NationalGeographicTVIE(FOXIE):
+class NationalGeographicTVIE(FOXIE):  # XXX: Do not subclass from concrete IE
     _VALID_URL = r'https?://(?:www\.)?nationalgeographic\.com/tv/watch/(?P<id>[\da-fA-F]+)'
     _TESTS = [{
         'url': 'https://www.nationalgeographic.com/tv/watch/6a875e6e734b479beda26438c9f21138/',
@@ -75,6 +77,7 @@ class NationalGeographicTVIE(FOXIE):
         'params': {
             'skip_download': True,
         },
+        'skip': 'Content not available',
     }]
     _HOME_PAGE_URL = 'https://www.nationalgeographic.com/tv/'
     _API_KEY = '238bb0a0c2aba67922c48709ce0c06fd'

@@ -1,14 +1,16 @@
+import urllib.parse
+
 from .common import InfoExtractor
 from ..utils import (
-    int_or_none,
     find_xpath_attr,
-    xpath_text,
+    int_or_none,
     update_url_query,
+    xpath_text,
 )
-from ..compat import compat_urllib_parse_unquote
 
 
 class NozIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?noz\.de/video/(?P<id>[0-9]+)/'
     _TESTS = [{
         'url': 'http://www.noz.de/video/25151/32-Deutschland-gewinnt-Badminton-Lnderspiel-in-Melle',
@@ -34,9 +36,9 @@ class NozIE(InfoExtractor):
 
         config_url_encoded = self._search_regex(
             r'so\.addVariable\("config_url","[^,]*,(.*?)"',
-            edge_content, 'config URL'
+            edge_content, 'config URL',
         )
-        config_url = compat_urllib_parse_unquote(config_url_encoded)
+        config_url = urllib.parse.unquote(config_url_encoded)
 
         doc = self._download_xml(config_url, 'video configuration')
         title = xpath_text(doc, './/title')
@@ -52,7 +54,7 @@ class NozIE(InfoExtractor):
                 formats.append({
                     'url': http_url,
                     'format_name': xpath_text(qnode, './name'),
-                    'format_id': '%s-%s' % ('http', xpath_text(qnode, './id')),
+                    'format_id': '{}-{}'.format('http', xpath_text(qnode, './id')),
                     'height': int_or_none(xpath_text(qnode, './height')),
                     'width': int_or_none(xpath_text(qnode, './width')),
                     'tbr': int_or_none(xpath_text(qnode, './bitrate'), scale=1000),
@@ -71,7 +73,6 @@ class NozIE(InfoExtractor):
                     formats.extend(self._extract_m3u8_formats(
                         m3u8_url, video_id, 'mp4', 'm3u8_native',
                         m3u8_id='hls', fatal=False))
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

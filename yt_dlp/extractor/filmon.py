@@ -1,13 +1,10 @@
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-    compat_HTTPError,
-)
+from ..networking.exceptions import HTTPError
 from ..utils import (
+    ExtractorError,
+    int_or_none,
     qualities,
     strip_or_none,
-    int_or_none,
-    ExtractorError,
 )
 
 
@@ -37,12 +34,12 @@ class FilmOnIE(InfoExtractor):
 
         try:
             response = self._download_json(
-                'https://www.filmon.com/api/vod/movie?id=%s' % video_id,
+                f'https://www.filmon.com/api/vod/movie?id={video_id}',
                 video_id)['response']
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError):
-                errmsg = self._parse_json(e.cause.read().decode(), video_id)['reason']
-                raise ExtractorError('%s said: %s' % (self.IE_NAME, errmsg), expected=True)
+            if isinstance(e.cause, HTTPError):
+                errmsg = self._parse_json(e.cause.response.read().decode(), video_id)['reason']
+                raise ExtractorError(f'{self.IE_NAME} said: {errmsg}', expected=True)
             raise
 
         title = response['title']
@@ -65,7 +62,6 @@ class FilmOnIE(InfoExtractor):
                 'quality': QUALITY(stream.get('quality')),
                 'protocol': 'm3u8_native',
             })
-        self._sort_formats(formats)
 
         thumbnails = []
         poster = response.get('poster', {})
@@ -125,12 +121,12 @@ class FilmOnChannelIE(InfoExtractor):
             channel_data = self._download_json(
                 'http://www.filmon.com/api-v2/channel/' + channel_id, channel_id)['data']
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError):
-                errmsg = self._parse_json(e.cause.read().decode(), channel_id)['message']
-                raise ExtractorError('%s said: %s' % (self.IE_NAME, errmsg), expected=True)
+            if isinstance(e.cause, HTTPError):
+                errmsg = self._parse_json(e.cause.response.read().decode(), channel_id)['message']
+                raise ExtractorError(f'{self.IE_NAME} said: {errmsg}', expected=True)
             raise
 
-        channel_id = compat_str(channel_data['id'])
+        channel_id = str(channel_data['id'])
         is_live = not channel_data.get('is_vod') and not channel_data.get('is_vox')
         title = channel_data['title']
 
@@ -153,13 +149,12 @@ class FilmOnChannelIE(InfoExtractor):
                 'ext': 'mp4',
                 'quality': QUALITY(quality),
             })
-        self._sort_formats(formats)
 
         thumbnails = []
         for name, width, height in self._THUMBNAIL_RES:
             thumbnails.append({
                 'id': name,
-                'url': 'http://static.filmon.com/assets/channels/%s/%s.png' % (channel_id, name),
+                'url': f'http://static.filmon.com/assets/channels/{channel_id}/{name}.png',
                 'width': width,
                 'height': height,
             })

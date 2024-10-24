@@ -35,7 +35,7 @@ class SponSkrubPP(PostProcessor):
 
         if not ignoreerror and self.path is None:
             if path:
-                raise PostProcessingError('sponskrub not found in "%s"' % path)
+                raise PostProcessingError(f'sponskrub not found in "{path}"')
             else:
                 raise PostProcessingError('sponskrub not found. Please install or provide the path using --sponskrub-path')
 
@@ -83,18 +83,16 @@ class SponSkrubPP(PostProcessor):
         cmd += ['--', information['id'], filename, temp_filename]
         cmd = [encodeArgument(i) for i in cmd]
 
-        self.write_debug('sponskrub command line: %s' % shell_quote(cmd))
-        pipe = None if self.get_param('verbose') else subprocess.PIPE
-        p = Popen(cmd, stdout=pipe)
-        stdout = p.communicate_or_kill()[0]
+        self.write_debug(f'sponskrub command line: {shell_quote(cmd)}')
+        stdout, _, returncode = Popen.run(cmd, text=True, stdout=None if self.get_param('verbose') else subprocess.PIPE)
 
-        if p.returncode == 0:
+        if not returncode:
             os.replace(temp_filename, filename)
             self.to_screen('Sponsor sections have been %s' % ('removed' if self.cutout else 'marked'))
-        elif p.returncode == 3:
+        elif returncode == 3:
             self.to_screen('No segments in the SponsorBlock database')
         else:
-            msg = stdout.decode('utf-8', 'replace').strip() if stdout else ''
-            msg = msg.split('\n')[0 if msg.lower().startswith('unrecognised') else -1]
-            raise PostProcessingError(msg if msg else 'sponskrub failed with error code %s' % p.returncode)
+            raise PostProcessingError(
+                stdout.strip().splitlines()[0 if stdout.strip().lower().startswith('unrecognised') else -1]
+                or f'sponskrub failed with error code {returncode}')
         return [], information

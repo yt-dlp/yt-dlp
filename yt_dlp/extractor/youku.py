@@ -6,6 +6,7 @@ import time
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
+    clean_html,
     get_element_by_class,
     js_to_json,
     str_or_none,
@@ -19,55 +20,15 @@ class YoukuIE(InfoExtractor):
     _VALID_URL = r'''(?x)
         (?:
             https?://(
-                (?:v|player)\.youku\.com/(?:v_show/id_|player\.php/sid/)|
+                (?:v|play(?:er)?)\.(?:youku|tudou)\.com/(?:v_show/id_|player\.php/sid/)|
                 video\.tudou\.com/v/)|
             youku:)
         (?P<id>[A-Za-z0-9]+)(?:\.html|/v\.swf|)
     '''
 
     _TESTS = [{
-        # MD5 is unstable
-        'url': 'http://v.youku.com/v_show/id_XMTc1ODE5Njcy.html',
-        'info_dict': {
-            'id': 'XMTc1ODE5Njcy',
-            'title': '★Smile﹗♡ Git Fresh -Booty Music舞蹈.',
-            'ext': 'mp4',
-            'duration': 74.73,
-            'thumbnail': r're:^https?://.*',
-            'uploader': '。躲猫猫、',
-            'uploader_id': '36017967',
-            'uploader_url': 'http://i.youku.com/u/UMTQ0MDcxODY4',
-            'tags': list,
-        }
-    }, {
         'url': 'http://player.youku.com/player.php/sid/XNDgyMDQ2NTQw/v.swf',
         'only_matching': True,
-    }, {
-        'url': 'http://v.youku.com/v_show/id_XODgxNjg1Mzk2_ev_1.html',
-        'info_dict': {
-            'id': 'XODgxNjg1Mzk2',
-            'ext': 'mp4',
-            'title': '武媚娘传奇 85',
-            'duration': 1999.61,
-            'thumbnail': r're:^https?://.*',
-            'uploader': '疯狂豆花',
-            'uploader_id': '62583473',
-            'uploader_url': 'http://i.youku.com/u/UMjUwMzMzODky',
-            'tags': list,
-        },
-    }, {
-        'url': 'http://v.youku.com/v_show/id_XMTI1OTczNDM5Mg==.html',
-        'info_dict': {
-            'id': 'XMTI1OTczNDM5Mg',
-            'ext': 'mp4',
-            'title': '花千骨 04',
-            'duration': 2363,
-            'thumbnail': r're:^https?://.*',
-            'uploader': '放剧场-花千骨',
-            'uploader_id': '772849359',
-            'uploader_url': 'http://i.youku.com/u/UMzA5MTM5NzQzNg==',
-            'tags': list,
-        },
     }, {
         'url': 'http://v.youku.com/v_show/id_XNjA1NzA2Njgw.html',
         'note': 'Video protected with password',
@@ -85,6 +46,7 @@ class YoukuIE(InfoExtractor):
         'params': {
             'videopassword': '100600',
         },
+        'skip': '404',
     }, {
         # /play/get.json contains streams with "channel_type":"tail"
         'url': 'http://v.youku.com/v_show/id_XOTUxMzg4NDMy.html',
@@ -96,31 +58,54 @@ class YoukuIE(InfoExtractor):
             'thumbnail': r're:^https?://.*',
             'uploader': '明月庄主moon',
             'uploader_id': '38465621',
-            'uploader_url': 'http://i.youku.com/u/UMTUzODYyNDg0',
+            'uploader_url': 'https://www.youku.com/profile/index/?uid=UMTUzODYyNDg0',
             'tags': list,
         },
     }, {
-        'url': 'http://video.tudou.com/v/XMjIyNzAzMTQ4NA==.html?f=46177805',
+        'url': 'https://v.youku.com/v_show/id_XNTA2NTA0MjA1Mg==.html',
         'info_dict': {
-            'id': 'XMjIyNzAzMTQ4NA',
+            'id': 'XNTA2NTA0MjA1Mg',
             'ext': 'mp4',
-            'title': '卡马乔国足开大脚长传冲吊集锦',
-            'duration': 289,
+            'title': 'Minecraft我的世界：建造超大巨型航空飞机，菜鸟vs高手vs黑客',
+            'duration': 542.13,
             'thumbnail': r're:^https?://.*',
-            'uploader': '阿卜杜拉之星',
-            'uploader_id': '2382249',
-            'uploader_url': 'http://i.youku.com/u/UOTUyODk5Ng==',
+            'uploader': '波哥游戏解说',
+            'uploader_id': '156688084',
+            'uploader_url': 'https://www.youku.com/profile/index/?uid=UNjI2NzUyMzM2',
             'tags': list,
         },
     }, {
-        'url': 'http://video.tudou.com/v/XMjE4ODI3OTg2MA==.html',
-        'only_matching': True,
+        'url': 'https://v.youku.com/v_show/id_XNTE1MzczOTg4MA==.html',
+        'info_dict': {
+            'id': 'XNTE1MzczOTg4MA',
+            'ext': 'mp4',
+            'title': '国产超A特工片',
+            'duration': 362.97,
+            'thumbnail': r're:^https?://.*',
+            'uploader': '陈晓娟说历史',
+            'uploader_id': '1640913339',
+            'uploader_url': 'https://www.youku.com/profile/index/?uid=UNjU2MzY1MzM1Ng==',
+            'tags': list,
+        },
+    }, {
+        'url': 'https://play.tudou.com/v_show/id_XNjAxNjI2OTU3Ng==.html?',
+        'info_dict': {
+            'id': 'XNjAxNjI2OTU3Ng',
+            'ext': 'mp4',
+            'title': '阿斯塔意识到哈里杀了人，自己被骗了',
+            'thumbnail': 'https://m.ykimg.com/0541010164F732752794D4D7B70331D1',
+            'uploader_id': '88758207',
+            'tags': [],
+            'uploader_url': 'https://www.youku.com/profile/index/?uid=UMzU1MDMyODI4',
+            'uploader': '英美剧场',
+            'duration': 72.91,
+        },
     }]
 
     @staticmethod
     def get_ysuid():
-        return '%d%s' % (int(time.time()), ''.join([
-            random.choice(string.ascii_letters) for i in range(3)]))
+        return '{}{}'.format(int(time.time()), ''.join(
+            random.choices(string.ascii_letters, k=3)))
 
     def get_format_name(self, fm):
         _dict = {
@@ -151,7 +136,7 @@ class YoukuIE(InfoExtractor):
         # request basic data
         basic_data_params = {
             'vid': video_id,
-            'ccode': '0532',
+            'ccode': '0564',
             'client_ip': '192.168.1.1',
             'utid': cna,
             'client_ts': time.time() / 1000,
@@ -182,7 +167,7 @@ class YoukuIE(InfoExtractor):
             else:
                 msg = 'Youku server reported error %i' % error.get('code')
                 if error_note is not None:
-                    msg += ': ' + error_note
+                    msg += ': ' + clean_html(error_note)
                 raise ExtractorError(msg)
 
         # get video title
@@ -198,7 +183,6 @@ class YoukuIE(InfoExtractor):
             'width': stream.get('width'),
             'height': stream.get('height'),
         } for stream in data['stream'] if stream.get('channel_type') != 'tail']
-        self._sort_formats(formats)
 
         return {
             'id': video_id,
@@ -289,7 +273,7 @@ class YoukuShowIE(InfoExtractor):
                 continue
             _, new_entries = self._extract_entries(
                 'http://list.youku.com/show/episode', show_id,
-                note='Downloading playlist data page %d' % (idx + 1),
+                note=f'Downloading playlist data page {idx + 1}',
                 query={
                     'id': page_config['showid'],
                     'stage': reload_id,

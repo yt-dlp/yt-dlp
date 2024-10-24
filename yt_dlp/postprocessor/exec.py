@@ -1,8 +1,5 @@
-import subprocess
-
 from .common import PostProcessor
-from ..compat import compat_shlex_quote
-from ..utils import PostProcessingError, encodeArgument, variadic
+from ..utils import Popen, PostProcessingError, shell_quote, variadic
 
 
 class ExecPP(PostProcessor):
@@ -21,16 +18,16 @@ class ExecPP(PostProcessor):
         if filepath:
             if '{}' not in cmd:
                 cmd += ' {}'
-            cmd = cmd.replace('{}', compat_shlex_quote(filepath))
+            cmd = cmd.replace('{}', shell_quote(filepath))
         return cmd
 
     def run(self, info):
         for tmpl in self.exec_cmd:
             cmd = self.parse_cmd(tmpl, info)
-            self.to_screen('Executing command: %s' % cmd)
-            retCode = subprocess.call(encodeArgument(cmd), shell=True)
-            if retCode != 0:
-                raise PostProcessingError('Command returned error code %d' % retCode)
+            self.to_screen(f'Executing command: {cmd}')
+            _, _, return_code = Popen.run(cmd, shell=True)
+            if return_code != 0:
+                raise PostProcessingError(f'Command returned error code {return_code}')
         return [], info
 
 

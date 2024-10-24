@@ -4,7 +4,8 @@ import struct
 import time
 
 from .fragment import FragmentFD
-from ..compat import compat_urllib_error
+from ..networking.exceptions import HTTPError
+from ..utils import RetryManager
 
 u8 = struct.Struct('>B')
 u88 = struct.Struct('>Bx')
@@ -137,6 +138,8 @@ def write_piff_header(stream, params):
 
         if fourcc == 'AACL':
             sample_entry_box = box(b'mp4a', sample_entry_payload)
+        if fourcc == 'EC-3':
+            sample_entry_box = box(b'ec-3', sample_entry_payload)
     elif stream_type == 'video':
         sample_entry_payload += u16.pack(0)  # pre defined
         sample_entry_payload += u16.pack(0)  # reserved
@@ -245,16 +248,17 @@ class IsmFD(FragmentFD):
             'ism_track_written': False,
         })
 
-        fragment_retries = self.params.get('fragment_retries', 0)
         skip_unavailable_fragments = self.params.get('skip_unavailable_fragments', True)
 
         frag_index = 0
-        for i, segment in enumerate(segments):
+        for segment in segments:
             frag_index += 1
             if frag_index <= ctx['fragment_index']:
                 continue
-            count = 0
-            while count <= fragment_retries:
+
+            retry_manager = RetryManager(self.params.get('fragment_retries'), self.report_retry,
+                                         frag_index=frag_index, fatal=not skip_unavailable_fragments)
+            for retry in retry_manager:
                 try:
                     success = self._download_fragment(ctx, segment['url'], info_dict)
                     if not success:
@@ -267,18 +271,13 @@ class IsmFD(FragmentFD):
                         write_piff_header(ctx['dest_stream'], info_dict['_download_params'])
                         extra_state['ism_track_written'] = True
                     self._append_fragment(ctx, frag_content)
-                    break
-                except compat_urllib_error.HTTPError as err:
-                    count += 1
-                    if count <= fragment_retries:
-                        self.report_retry_fragment(err, frag_index, count, fragment_retries)
-            if count > fragment_retries:
-                if skip_unavailable_fragments:
-                    self.report_skip_fragment(frag_index)
+                except HTTPError as err:
+                    retry.error = err
                     continue
-                self.report_error('giving up after %s fragment retries' % fragment_retries)
-                return False
 
-        self._finish_frag_download(ctx, info_dict)
+            if retry_manager.error:
+                if not skip_unavailable_fragments:
+                    return False
+                self.report_skip_fragment(frag_index)
 
-        return True
+        return self._finish_frag_download(ctx, info_dict)

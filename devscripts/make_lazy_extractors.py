@@ -1,37 +1,44 @@
 #!/usr/bin/env python3
-import optparse
+
+# Allow direct execution
 import os
 import sys
-from inspect import getsource
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
+from inspect import getsource
+
+from devscripts.utils import get_filename_args, read_file, write_file
+
 NO_ATTR = object()
-STATIC_CLASS_PROPERTIES = ['IE_NAME', 'IE_DESC', 'SEARCH_KEY', '_WORKING', '_NETRC_MACHINE', 'age_limit']
+STATIC_CLASS_PROPERTIES = [
+    'IE_NAME', '_ENABLED', '_VALID_URL',  # Used for URL matching
+    '_WORKING', 'IE_DESC', '_NETRC_MACHINE', 'SEARCH_KEY',  # Used for --extractor-descriptions
+    'age_limit',  # Used for --age-limit (evaluated)
+    '_RETURN_TYPE',  # Accessed in CLI only with instance (evaluated)
+]
 CLASS_METHODS = [
-    'ie_key', 'working', 'description', 'suitable', '_match_valid_url', '_match_id', 'get_temp_id', 'is_suitable'
+    'ie_key', 'suitable', '_match_valid_url',  # Used for URL matching
+    'working', 'get_temp_id', '_match_id',  # Accessed just before instance creation
+    'description',  # Used for --extractor-descriptions
+    'is_suitable',  # Used for --age-limit
+    'supports_login', 'is_single_video',  # Accessed in CLI only with instance
 ]
 IE_TEMPLATE = '''
 class {name}({bases}):
     _module = {module!r}
 '''
-with open('devscripts/lazy_load_template.py', encoding='utf-8') as f:
-    MODULE_TEMPLATE = f.read()
+MODULE_TEMPLATE = read_file('devscripts/lazy_load_template.py')
 
 
 def main():
-    parser = optparse.OptionParser(usage='%prog [OUTFILE.py]')
-    args = parser.parse_args()[1] or ['yt_dlp/extractor/lazy_extractors.py']
-    if len(args) != 1:
-        parser.error('Expected only an output filename')
+    os.environ['YTDLP_NO_PLUGINS'] = 'true'
+    os.environ['YTDLP_NO_LAZY_EXTRACTORS'] = 'true'
 
-    lazy_extractors_filename = args[0]
-    if os.path.exists(lazy_extractors_filename):
-        os.remove(lazy_extractors_filename)
+    lazy_extractors_filename = get_filename_args(default_outfile='yt_dlp/extractor/lazy_extractors.py')
 
-    _ALL_CLASSES = get_all_ies()  # Must be before import
-
+    from yt_dlp.extractor.extractors import _ALL_CLASSES
     from yt_dlp.extractor.common import InfoExtractor, SearchInfoExtractor
 
     DummyInfoExtractor = type('InfoExtractor', (InfoExtractor,), {'IE_NAME': NO_ATTR})
@@ -43,21 +50,7 @@ def main():
         *build_ies(_ALL_CLASSES, (InfoExtractor, SearchInfoExtractor), DummyInfoExtractor),
     ))
 
-    with open(lazy_extractors_filename, 'wt', encoding='utf-8') as f:
-        f.write(f'{module_src}\n')
-
-
-def get_all_ies():
-    PLUGINS_DIRNAME = 'ytdlp_plugins'
-    BLOCKED_DIRNAME = f'{PLUGINS_DIRNAME}_blocked'
-    if os.path.exists(PLUGINS_DIRNAME):
-        os.rename(PLUGINS_DIRNAME, BLOCKED_DIRNAME)
-    try:
-        from yt_dlp.extractor import _ALL_CLASSES
-    finally:
-        if os.path.exists(BLOCKED_DIRNAME):
-            os.rename(BLOCKED_DIRNAME, PLUGINS_DIRNAME)
-    return _ALL_CLASSES
+    write_file(lazy_extractors_filename, f'{module_src}\n')
 
 
 def extra_ie_code(ie, base=None):
@@ -91,7 +84,7 @@ def sort_ies(ies, ignored_bases):
         for c in classes[:]:
             bases = set(c.__bases__) - {object, *ignored_bases}
             restart = False
-            for b in bases:
+            for b in sorted(bases, key=lambda x: x.__name__):
                 if b not in classes and b not in returned_classes:
                     assert b.__name__ != 'GenericIE', 'Cannot inherit from GenericIE'
                     classes.insert(0, b)
@@ -113,11 +106,6 @@ def build_lazy_ie(ie, name, attr_base):
     }.get(base.__name__, base.__name__) for base in ie.__bases__)
 
     s = IE_TEMPLATE.format(name=name, module=ie.__module__, bases=bases)
-    valid_url = getattr(ie, '_VALID_URL', None)
-    if not valid_url and hasattr(ie, '_make_valid_url'):
-        valid_url = ie._make_valid_url()
-    if valid_url:
-        s += f'    _VALID_URL = {valid_url!r}\n'
     return s + '\n'.join(extra_ie_code(ie, attr_base))
 
 

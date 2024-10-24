@@ -4,11 +4,11 @@ from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     int_or_none,
-    xpath_attr,
-    xpath_text,
-    xpath_element,
     unescapeHTML,
     unified_timestamp,
+    xpath_attr,
+    xpath_element,
+    xpath_text,
 )
 
 
@@ -21,6 +21,7 @@ class SpringboardPlatformIE(InfoExtractor):
                             xml_feeds_advanced/index/(?P<index_2>\d+)/rss3/(?P<id_2>\d+)
                         )
                     '''
+    _EMBED_REGEX = [r'<iframe\b[^>]+\bsrc=(["\'])(?P<url>(?:https?:)?//cms\.springboardplatform\.com/embed_iframe/\d+/video/\d+.*?)\1']
     _TESTS = [{
         'url': 'http://cms.springboardplatform.com/previews/159/video/981017/0/0/1',
         'md5': '5c3cb7b5c55740d482561099e920f192',
@@ -45,22 +46,13 @@ class SpringboardPlatformIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    @staticmethod
-    def _extract_urls(webpage):
-        return [
-            mobj.group('url')
-            for mobj in re.finditer(
-                r'<iframe\b[^>]+\bsrc=(["\'])(?P<url>(?:https?:)?//cms\.springboardplatform\.com/embed_iframe/\d+/video/\d+.*?)\1',
-                webpage)]
-
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
         video_id = mobj.group('id') or mobj.group('id_2')
         index = mobj.group('index') or mobj.group('index_2')
 
         video = self._download_xml(
-            'http://cms.springboardplatform.com/xml_feeds_advanced/index/%s/rss3/%s'
-            % (index, video_id), video_id)
+            f'http://cms.springboardplatform.com/xml_feeds_advanced/index/{index}/rss3/{video_id}', video_id)
 
         item = xpath_element(video, './/item', 'item', fatal=True)
 
@@ -73,7 +65,7 @@ class SpringboardPlatformIE(InfoExtractor):
 
         if 'error_video.mp4' in video_url:
             raise ExtractorError(
-                'Video %s no longer exists' % video_id, expected=True)
+                f'Video {video_id} no longer exists', expected=True)
 
         duration = int_or_none(content.get('duration'))
         tbr = int_or_none(content.get('bitrate'))
@@ -108,8 +100,6 @@ class SpringboardPlatformIE(InfoExtractor):
             'protocol': 'm3u8_native',
         })
         formats.append(m3u8_format)
-
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

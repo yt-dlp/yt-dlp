@@ -25,7 +25,7 @@ class CCCIE(InfoExtractor):
             'timestamp': 1388188800,
             'duration': 3710,
             'tags': list,
-        }
+        },
     }, {
         'url': 'https://media.ccc.de/v/32c3-7368-shopshifting#download',
         'only_matching': True,
@@ -35,7 +35,7 @@ class CCCIE(InfoExtractor):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
         event_id = self._search_regex(r"data-id='(\d+)'", webpage, 'event id')
-        event_data = self._download_json('https://media.ccc.de/public/events/%s' % event_id, event_id)
+        event_data = self._download_json(f'https://media.ccc.de/public/events/{event_id}', event_id)
 
         formats = []
         for recording in event_data.get('recordings', []):
@@ -64,7 +64,6 @@ class CCCIE(InfoExtractor):
                 'language': language,
                 'vcodec': vcodec,
             })
-        self._sort_formats(formats)
 
         return {
             'id': event_id,
@@ -75,6 +74,7 @@ class CCCIE(InfoExtractor):
             'thumbnail': event_data.get('thumb_url'),
             'timestamp': parse_iso8601(event_data.get('date')),
             'duration': int_or_none(event_data.get('length')),
+            'view_count': int_or_none(event_data.get('view_count')),
             'tags': event_data.get('tags'),
             'formats': formats,
         }
@@ -90,10 +90,17 @@ class CCCPlaylistIE(InfoExtractor):
             'id': '30c3',
         },
         'playlist_count': 135,
+    }, {
+        'url': 'https://media.ccc.de/c/DS2023',
+        'info_dict': {
+            'title': 'Datenspuren 2023',
+            'id': 'DS2023',
+        },
+        'playlist_count': 37,
     }]
 
     def _real_extract(self, url):
-        playlist_id = self._match_id(url).lower()
+        playlist_id = self._match_id(url)
 
         conf = self._download_json(
             'https://media.ccc.de/public/conferences/' + playlist_id,

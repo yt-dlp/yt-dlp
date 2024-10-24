@@ -3,7 +3,7 @@ import re
 from .common import InfoExtractor
 
 
-class OnceIE(InfoExtractor):
+class OnceIE(InfoExtractor):  # XXX: Conventionally, base classes should end with BaseIE/InfoExtractor
     _VALID_URL = r'https?://.+?\.unicornmedia\.com/now/(?:ads/vmap/)?[^/]+/[^/]+/(?P<domain_id>[^/]+)/(?P<application_id>[^/]+)/(?:[^/]+/)?(?P<media_item_id>[^/]+)/content\.(?:once|m3u8|mp4)'
     ADAPTIVE_URL_TEMPLATE = 'http://once.unicornmedia.com/now/master/playlist/%s/%s/%s/content.m3u8'
     PROGRESSIVE_URL_TEMPLATE = 'http://once.unicornmedia.com/now/media/progressive/%s/%s/%s/%s/content.mp4'

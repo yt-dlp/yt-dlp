@@ -1,52 +1,66 @@
 import base64
 import collections
+import functools
+import getpass
 import hashlib
+import http.client
+import http.cookiejar
+import http.cookies
+import inspect
 import itertools
 import json
 import math
 import netrc
 import os
 import random
+import re
+import subprocess
 import sys
 import time
+import types
+import urllib.parse
+import urllib.request
 import xml.etree.ElementTree
 
-from ..compat import functools, re  # isort: split
 from ..compat import (
-    compat_cookiejar_Cookie,
-    compat_cookies_SimpleCookie,
     compat_etree_fromstring,
     compat_expanduser,
-    compat_getpass,
-    compat_http_client,
     compat_os_name,
-    compat_str,
-    compat_urllib_error,
-    compat_urllib_parse_unquote,
-    compat_urllib_parse_urlencode,
-    compat_urllib_request,
-    compat_urlparse,
+    urllib_req_to_req,
 )
-from ..downloader import FileDownloader
+from ..cookies import LenientSimpleCookie
 from ..downloader.f4m import get_base_url, remove_encrypted_media
+from ..downloader.hls import HlsFD
+from ..networking import HEADRequest, Request
+from ..networking.exceptions import (
+    HTTPError,
+    IncompleteRead,
+    TransportError,
+    network_exceptions,
+)
+from ..networking.impersonate import ImpersonateTarget
 from ..utils import (
+    IDENTITY,
     JSON_LD_RE,
     NO_DEFAULT,
     ExtractorError,
+    FormatSorter,
     GeoRestrictedError,
     GeoUtils,
+    LenientJSONDecoder,
+    Popen,
     RegexNotFoundError,
+    RetryManager,
     UnsupportedError,
     age_restricted,
     base_url,
     bug_reports_message,
     classproperty,
     clean_html,
+    deprecation_warning,
     determine_ext,
-    determine_protocol,
     dict_get,
     encode_data_uri,
-    error_to_compat_str,
     extract_attributes,
     filter_dict,
     fix_xml_ampersands,
@@ -56,7 +70,7 @@ from ..utils import (
     join_nonempty,
     js_to_json,
     mimetype2ext,
-    network_exceptions,
+    netrc_from_content,
     orderedSet,
     parse_bitrate,
     parse_codecs,
@@ -65,19 +79,21 @@ from ..utils import (
     parse_m3u8_attributes,
     parse_resolution,
     sanitize_filename,
-    sanitized_Request,
+    sanitize_url,
+    smuggle_url,
     str_or_none,
     str_to_int,
     strip_or_none,
     traverse_obj,
+    truncate_string,
+    try_call,
     try_get,
     unescapeHTML,
     unified_strdate,
     unified_timestamp,
-    update_Request,
-    update_url_query,
     url_basename,
     url_or_none,
+    urlhandle_detect_ext,
     urljoin,
     variadic,
     xpath_element,
@@ -127,6 +143,7 @@ class InfoExtractor:
                                        is parsed from a string (in case of
                                        fragmented media)
                                    for MSS - URL of the ISM manifest.
+                    * request_data  Data to send in POST request to the URL
                     * manifest_url
                                  The URL of the manifest file in case of
                                  fragmented media:
@@ -148,14 +165,18 @@ class InfoExtractor:
                                  ("3D" or "DASH video")
                     * width      Width of the video, if known
                     * height     Height of the video, if known
+                    * aspect_ratio  Aspect ratio of the video, if known
+                                 Automatically calculated from width and height
                     * resolution Textual description of width and height
+                                 Automatically calculated from width and height
                     * dynamic_range The dynamic range of the video. One of:
                                  "SDR" (None), "HDR10", "HDR10+, "HDR12", "HLG, "DV"
-                    * tbr        Average bitrate of audio and video in KBit/s
-                    * abr        Average audio bitrate in KBit/s
+                    * tbr        Average bitrate of audio and video in kbps (1000 bits/sec)
+                    * abr        Average audio bitrate in kbps (1000 bits/sec)
                     * acodec     Name of the audio codec in use
                     * asr        Audio sampling rate in Hertz
-                    * vbr        Average video bitrate in KBit/s
+                    * audio_channels  Number of audio channels
+                    * vbr        Average video bitrate in kbps (1000 bits/sec)
                     * fps        Frame rate
                     * vcodec     Name of the video codec in use
                     * container  Name of the container format
@@ -210,11 +231,33 @@ class InfoExtractor:
                                  width : height ratio as float.
                     * no_resume  The server does not support resuming the
                                  (HTTP or RTMP) download. Boolean.
-                    * has_drm    The format has DRM and cannot be downloaded. Boolean
+                    * has_drm    True if the format has DRM and cannot be downloaded.
+                                 'maybe' if the format may have DRM and has to be tested before download.
+                    * extra_param_to_segment_url  A query string to append to each
+                                 fragment's URL, or to update each existing query string
+                                 with. If it is an HLS stream with an AES-128 decryption key,
+                                 the query paramaters will be passed to the key URI as well,
+                                 unless there is an `extra_param_to_key_url` given,
+                                 or unless an external key URI is provided via `hls_aes`.
+                                 Only applied by the native HLS/DASH downloaders.
+                    * extra_param_to_key_url  A query string to append to the URL
+                                 of the format's HLS AES-128 decryption key.
+                                 Only applied by the native HLS downloader.
+                    * hls_aes    A dictionary of HLS AES-128 decryption information
+                                 used by the native HLS downloader to override the
+                                 values in the media playlist when an '#EXT-X-KEY' tag
+                                 is present in the playlist:
+                                 * uri  The URI from which the key will be downloaded
+                                 * key  The key (as hex) used to decrypt fragments.
+                                        If `key` is given, any key URI will be ignored
+                                 * iv   The IV (as hex) used to decrypt fragments
                     * downloader_options  A dictionary of downloader options
                                  (For internal use only)
                                  * http_chunk_size Chunk size for HTTP downloads
-                                 * ffmpeg_args     Extra arguments for ffmpeg downloader
+                                 * ffmpeg_args     Extra arguments for ffmpeg downloader (input)
+                                 * ffmpeg_args_out Extra arguments for ffmpeg downloader (output)
+                    * is_dash_periods  Whether the format is a result of merging
+                                 multiple DASH periods.
                     RTMP formats can also have the additional fields: page_url,
                     app, play_path, tc_url, flash_version, rtmp_live, rtmp_conn,
                     rtmp_protocol, rtmp_real_time
@@ -228,7 +271,7 @@ class InfoExtractor:
 
     direct:         True if a direct video file was given (must only be set by GenericIE)
     alt_title:      A secondary title of the video.
-    display_id      An alternative identifier for the video, not necessarily
+    display_id:     An alternative identifier for the video, not necessarily
                     unique, but available before title. Typically, id is
                     something like "4234987", title "Dancing naked mole rats",
                     and display_id "dancing-naked-mole-rats"
@@ -246,7 +289,7 @@ class InfoExtractor:
     description:    Full video description.
     uploader:       Full name of the video uploader.
     license:        License name the video is licensed under.
-    creator:        The creator of the video.
+    creators:       List of creators of the video.
     timestamp:      UNIX timestamp of the moment the video was uploaded
     upload_date:    Video upload date in UTC (YYYYMMDD).
                     If not explicitly set, calculated from timestamp
@@ -254,6 +297,9 @@ class InfoExtractor:
                     If it is not clear whether to use timestamp or this, use the former
     release_date:   The date (YYYYMMDD) when the video was released in UTC.
                     If not explicitly set, calculated from release_timestamp
+    release_year:   Year (YYYY) as integer when the video or album was released.
+                    To be used if no exact release date is known.
+                    If not explicitly set, calculated from release_date.
     modified_timestamp: UNIX timestamp of the moment the video was last modified.
     modified_date:   The date (YYYYMMDD) when the video was last modified in UTC.
                     If not explicitly set, calculated from modified_timestamp
@@ -265,6 +311,7 @@ class InfoExtractor:
     channel_id:     Id of the channel.
     channel_url:    Full URL to a channel webpage.
     channel_follower_count: Number of followers of the channel.
+    channel_is_verified: Whether the channel is verified on the platform.
     location:       Physical location where the video was filmed.
     subtitles:      The available subtitles as a dictionary in the format
                     {tag: subformats}. "tag" is usually a language code, and
@@ -282,16 +329,22 @@ class InfoExtractor:
                     captions instead of normal subtitles
     duration:       Length of the video in seconds, as an integer or float.
     view_count:     How many users have watched the video on the platform.
+    concurrent_view_count: How many users are currently watching the video on the platform.
     like_count:     Number of positive ratings of the video
     dislike_count:  Number of negative ratings of the video
     repost_count:   Number of reposts of the video
-    average_rating: Average rating give by users, the scale used depends on the webpage
+    average_rating: Average rating given by users, the scale used depends on the webpage
     comment_count:  Number of comments on the video
     comments:       A list of comments, each with one or more of the following
                     properties (all but one of text or html optional):
                         * "author" - human-readable name of the comment author
                         * "author_id" - user ID of the comment author
                         * "author_thumbnail" - The thumbnail of the comment author
+                        * "author_url" - The url to the comment author's page
+                        * "author_is_verified" - Whether the author is verified
+                                                 on the platform
+                        * "author_is_uploader" - Whether the comment is made by
+                                                 the video uploader
                         * "id" - Comment ID
                         * "html" - Comment as HTML
                         * "text" - Plain text of the comment
@@ -303,8 +356,8 @@ class InfoExtractor:
                         * "dislike_count" - Number of negative ratings of the comment
                         * "is_favorited" - Whether the comment is marked as
                                            favorite by the video uploader
-                        * "author_is_uploader" - Whether the comment is made by
-                                                 the video uploader
+                        * "is_pinned" - Whether the comment is pinned to
+                                        the top of the comments
     age_limit:      Age restriction for the video, as an integer (years)
     webpage_url:    The URL to the video webpage, if given to yt-dlp it
                     should allow to get the same result again. (It will be set
@@ -317,7 +370,8 @@ class InfoExtractor:
                     live stream that goes on instead of a fixed-length video.
     was_live:       True, False, or None (=unknown). Whether this video was
                     originally a live stream.
-    live_status:    'is_live', 'is_upcoming', 'was_live', 'not_live' or None (=unknown)
+    live_status:    None (=unknown), 'is_live', 'is_upcoming', 'was_live', 'not_live',
+                    or 'post_live' (was live, but VOD is not yet processed)
                     If absent, automatically set from is_live, was_live
     start_time:     Time in seconds where the reproduction should start, as
                     specified in the URL.
@@ -327,14 +381,21 @@ class InfoExtractor:
                         * "start_time" - The start time of the chapter in seconds
                         * "end_time" - The end time of the chapter in seconds
                         * "title" (optional, string)
+    heatmap:        A list of dictionaries, with the following entries:
+                        * "start_time" - The start time of the data point in seconds
+                        * "end_time" - The end time of the data point in seconds
+                        * "value" - The normalized value of the data point (float between 0 and 1)
     playable_in_embed: Whether this video is allowed to play in embedded
                     players on other sites. Can be True (=always allowed),
                     False (=never allowed), None (=unknown), or a string
-                    specifying the criteria for embedability (Eg: 'whitelist')
+                    specifying the criteria for embedability; e.g. 'whitelist'
     availability:   Under what condition the video is available. One of
                     'private', 'premium_only', 'subscriber_only', 'needs_auth',
                     'unlisted' or 'public'. Use 'InfoExtractor._availability'
                     to set it
+    media_type:     The type of media as classified by the site, e.g. "episode", "clip", "trailer"
+    _old_archive_ids: A list of old archive ids needed for backward compatibility
+    _format_sort_fields: A list of fields to use for sorting formats
     __post_extractor: A function to be called just before the metadata is
                     written to either disk, logger or console. The function
                     must return a dict which will be added to the info_dict.
@@ -372,17 +433,37 @@ class InfoExtractor:
     track_number:   Number of the track within an album or a disc, as an integer.
     track_id:       Id of the track (useful in case of custom indexing, e.g. 6.iii),
                     as a unicode string.
-    artist:         Artist(s) of the track.
-    genre:          Genre(s) of the track.
+    artists:        List of artists of the track.
+    composers:      List of composers of the piece.
+    genres:         List of genres of the track.
     album:          Title of the album the track belongs to.
     album_type:     Type of the album (e.g. "Demo", "Full-length", "Split", "Compilation", etc).
-    album_artist:   List of all artists appeared on the album (e.g.
-                    "Ash Borer / Fell Voices" or "Various Artists", useful for splits
-                    and compilations).
+    album_artists:  List of all artists appeared on the album.
+                    E.g. ["Ash Borer", "Fell Voices"] or ["Various Artists"].
+                    Useful for splits and compilations.
     disc_number:    Number of the disc or other physical medium the track belongs to,
                     as an integer.
-    release_year:   Year (YYYY) when the album was released.
-    composer:       Composer of the piece
+
+    The following fields should only be set for clips that should be cut from the original video:
+
+    section_start:  Start time of the section in seconds
+    section_end:    End time of the section in seconds
+
+    The following fields should only be set for storyboards:
+    rows:           Number of rows in each storyboard fragment, as an integer
+    columns:        Number of columns in each storyboard fragment, as an integer
+
+    The following fields are deprecated and should not be set by new code:
+    composer:       Use "composers" instead.
+                    Composer(s) of the piece, comma-separated.
+    artist:         Use "artists" instead.
+                    Artist(s) of the track, comma-separated.
+    genre:          Use "genres" instead.
+                    Genre(s) of the track, comma-separated.
+    album_artist:   Use "album_artists" instead.
+                    All artists appeared on the album, comma-separated.
+    creator:        Use "creators" instead.
+                    The creator of the video.
 
     Unless mentioned otherwise, the fields should be Unicode strings.
 
@@ -393,7 +474,7 @@ class InfoExtractor:
     There must be a key "entries", which is a list, an iterable, or a PagedList
     object, each element of which is a valid dictionary by this specification.
 
-    Additionally, playlists can have "id", "title", and any other relevent
+    Additionally, playlists can have "id", "title", and any other relevant
     attributes with the same semantics as videos (see above).
 
     It can also have the following optional fields:
@@ -426,13 +507,25 @@ class InfoExtractor:
     title, description etc.
 
 
-    Subclasses of this should define a _VALID_URL regexp and, re-define the
-    _real_extract() and (optionally) _real_initialize() methods.
-    Probably, they should also be added to the list of extractors.
+    Subclasses of this should also be added to the list of extractors and
+    should define _VALID_URL as a regexp or a Sequence of regexps, and
+    re-define the _real_extract() and (optionally) _real_initialize() methods.
 
     Subclasses may also override suitable() if necessary, but ensure the function
     signature is preserved and that this function imports everything it needs
     (except other extractors), so that lazy_extractors works correctly.
+
+    Subclasses can define a list of _EMBED_REGEX, which will be searched for in
+    the HTML of Generic webpages. It may also override _extract_embed_urls
+    or _extract_from_webpage as necessary. While these are normally classmethods,
+    _extract_from_webpage is allowed to be an instance method.
+
+    _extract_from_webpage may raise self.StopExtraction to stop further
+    processing of the webpage and obtain exclusive rights to it. This is useful
+    when the extractor cannot reliably be matched using just the URL,
+    e.g. invidious/peertube instances
+
+    Embed-only extractors can be defined by setting _VALID_URL = False.
 
     To support username + password (or netrc) login, the extractor must define a
     _NETRC_MACHINE and re-define _perform_login(username, password) and
@@ -457,6 +550,9 @@ class InfoExtractor:
     will be used by geo restriction bypass mechanism similarly
     to _GEO_COUNTRIES.
 
+    The _ENABLED attribute should be set to False for IEs that
+    are disabled by default and must be explicitly enabled.
+
     The _WORKING attribute should be set to False for broken IEs
     in order to warn the users and skip the tests.
     """
@@ -468,19 +564,22 @@ class InfoExtractor:
     _GEO_COUNTRIES = None
     _GEO_IP_BLOCKS = None
     _WORKING = True
+    _ENABLED = True
     _NETRC_MACHINE = None
     IE_DESC = None
     SEARCH_KEY = None
+    _VALID_URL = None
+    _EMBED_REGEX = []
 
     def _login_hint(self, method=NO_DEFAULT, netrc=None):
-        password_hint = f'--username and --password, or --netrc ({netrc or self._NETRC_MACHINE}) to provide account credentials'
+        password_hint = f'--username and --password, --netrc-cmd, or --netrc ({netrc or self._NETRC_MACHINE}) to provide account credentials'
+        cookies_hint = 'See  https://github.com/yt-dlp/yt-dlp/wiki/FAQ#how-do-i-pass-cookies-to-yt-dlp  for how to manually pass cookies'
         return {
             None: '',
-            'any': f'Use --cookies, --cookies-from-browser, {password_hint}',
+            'any': f'Use --cookies, --cookies-from-browser, {password_hint}. {cookies_hint}',
             'password': f'Use {password_hint}',
-            'cookies': (
-                'Use --cookies-from-browser or --cookies for the authentication. '
-                'See  https://github.com/ytdl-org/youtube-dl#how-do-i-pass-cookies-to-youtube-dl  for how to manually pass cookies'),
+            'cookies': f'Use --cookies-from-browser or --cookies for the authentication. {cookies_hint}',
+            'session_cookies': f'Use --cookies for the authentication (--cookies-from-browser might not work). {cookies_hint}',
         }[method if method is not NO_DEFAULT else 'any' if self.supports_login() else 'cookies']
 
     def __init__(self, downloader=None):
@@ -494,14 +593,14 @@ class InfoExtractor:
 
     @classmethod
     def _match_valid_url(cls, url):
+        if cls._VALID_URL is False:
+            return None
         # This does not use has/getattr intentionally - we want to know whether
         # we have cached the regexp for *this* class, whereas getattr would also
         # match the superclass
         if '_VALID_URL_RE' not in cls.__dict__:
-            if '_VALID_URL' not in cls.__dict__:
-                cls._VALID_URL = cls._make_valid_url()
-            cls._VALID_URL_RE = re.compile(cls._VALID_URL)
-        return cls._VALID_URL_RE.match(url)
+            cls._VALID_URL_RE = tuple(map(re.compile, variadic(cls._VALID_URL)))
+        return next(filter(None, (regex.match(url) for regex in cls._VALID_URL_RE)), None)
 
     @classmethod
     def suitable(cls, url):
@@ -637,16 +736,17 @@ class InfoExtractor:
             for _ in range(2):
                 try:
                     self.initialize()
-                    self.write_debug('Extracting URL: %s' % url)
+                    self.to_screen('Extracting URL: %s' % (
+                        url if self.get_param('verbose') else truncate_string(url, 100, 20)))
                     ie_result = self._real_extract(url)
                     if ie_result is None:
                         return None
                     if self._x_forwarded_for_ip:
                         ie_result['__x_forwarded_for_ip'] = self._x_forwarded_for_ip
-                    subtitles = ie_result.get('subtitles')
-                    if (subtitles and 'live_chat' in subtitles
-                            and 'no-live-chat' in self.get_param('compat_opts', [])):
-                        del subtitles['live_chat']
+                    subtitles = ie_result.get('subtitles') or {}
+                    if 'no-live-chat' in self.get_param('compat_opts'):
+                        for lang in ('live_chat', 'comments', 'danmaku'):
+                            subtitles.pop(lang, None)
                     return ie_result
                 except GeoRestrictedError as e:
                     if self.__maybe_fake_ip_and_retry(e.countries):
@@ -655,17 +755,11 @@ class InfoExtractor:
         except UnsupportedError:
             raise
         except ExtractorError as e:
-            kwargs = {
-                'video_id': e.video_id or self.get_temp_id(url),
-                'ie': self.IE_NAME,
-                'tb': e.traceback or sys.exc_info()[2],
-                'expected': e.expected,
-                'cause': e.cause
-            }
-            if hasattr(e, 'countries'):
-                kwargs['countries'] = e.countries
-            raise type(e)(e.orig_msg, **kwargs)
-        except compat_http_client.IncompleteRead as e:
+            e.video_id = e.video_id or self.get_temp_id(url)
+            e.ie = e.ie or self.IE_NAME
+            e.traceback = e.traceback or sys.exc_info()[2]
+            raise
+        except IncompleteRead as e:
             raise ExtractorError('A network error has occurred.', cause=e, expected=True, video_id=self.get_temp_id(url))
         except (KeyError, StopIteration) as e:
             raise ExtractorError('An extractor error has occurred.', cause=e, video_id=self.get_temp_id(url))
@@ -680,8 +774,8 @@ class InfoExtractor:
             self._x_forwarded_for_ip = GeoUtils.random_ipv4(country_code)
             if self._x_forwarded_for_ip:
                 self.report_warning(
-                    'Video is geo restricted. Retrying extraction with fake IP %s (%s) as X-Forwarded-For.'
-                    % (self._x_forwarded_for_ip, country_code.upper()))
+                    'Video is geo restricted. Retrying extraction with fake IP '
+                    f'{self._x_forwarded_for_ip} ({country_code.upper()}) as X-Forwarded-For.')
                 return True
         return False
 
@@ -689,8 +783,16 @@ class InfoExtractor:
         """Sets a YoutubeDL instance as the downloader for this IE."""
         self._downloader = downloader
 
+    @property
+    def cache(self):
+        return self._downloader.cache
+
+    @property
+    def cookiejar(self):
+        return self._downloader.cookiejar
+
     def _initialize_pre_login(self):
-        """ Intialization before login. Redefine in subclasses."""
+        """ Initialization before login. Redefine in subclasses."""
         pass
 
     def _perform_login(self, username, password):
@@ -716,22 +818,28 @@ class InfoExtractor:
 
     @staticmethod
     def __can_accept_status_code(err, expected_status):
-        assert isinstance(err, compat_urllib_error.HTTPError)
+        assert isinstance(err, HTTPError)
         if expected_status is None:
             return False
         elif callable(expected_status):
-            return expected_status(err.code) is True
+            return expected_status(err.status) is True
         else:
-            return err.code in variadic(expected_status)
+            return err.status in variadic(expected_status)
 
-    def _create_request(self, url_or_request, data=None, headers={}, query={}):
-        if isinstance(url_or_request, compat_urllib_request.Request):
-            return update_Request(url_or_request, data=data, headers=headers, query=query)
-        if query:
-            url_or_request = update_url_query(url_or_request, query)
-        return sanitized_Request(url_or_request, data, headers)
+    def _create_request(self, url_or_request, data=None, headers=None, query=None, extensions=None):
+        if isinstance(url_or_request, urllib.request.Request):
+            self._downloader.deprecation_warning(
+                'Passing a urllib.request.Request to _create_request() is deprecated. '
+                'Use yt_dlp.networking.common.Request instead.')
+            url_or_request = urllib_req_to_req(url_or_request)
+        elif not isinstance(url_or_request, Request):
+            url_or_request = Request(url_or_request)
 
-    def _request_webpage(self, url_or_request, video_id, note=None, errnote=None, fatal=True, data=None, headers={}, query={}, expected_status=None):
+        url_or_request.update(data=data, headers=headers, query=query, extensions=extensions)
+        return url_or_request
+
+    def _request_webpage(self, url_or_request, video_id, note=None, errnote=None, fatal=True, data=None,
+                         headers=None, query=None, expected_status=None, impersonate=None, require_impersonation=False):
         """
         Return the response handle.
 
@@ -740,7 +848,7 @@ class InfoExtractor:
         if not self._downloader._first_webpage_request:
             sleep_interval = self.get_param('sleep_interval_requests') or 0
             if sleep_interval > 0:
-                self.to_screen('Sleeping %s seconds ...' % sleep_interval)
+                self.to_screen(f'Sleeping {sleep_interval} seconds ...')
                 time.sleep(sleep_interval)
         else:
             self._downloader._first_webpage_request = False
@@ -759,27 +867,45 @@ class InfoExtractor:
         # geo unrestricted country. We will do so once we encounter any
         # geo restriction error.
         if self._x_forwarded_for_ip:
-            if 'X-Forwarded-For' not in headers:
-                headers['X-Forwarded-For'] = self._x_forwarded_for_ip
+            headers = (headers or {}).copy()
+            headers.setdefault('X-Forwarded-For', self._x_forwarded_for_ip)
+
+        extensions = {}
+
+        if impersonate in (True, ''):
+            impersonate = ImpersonateTarget()
+        requested_targets = [
+            t if isinstance(t, ImpersonateTarget) else ImpersonateTarget.from_str(t)
+            for t in variadic(impersonate)
+        ] if impersonate else []
+
+        available_target = next(filter(self._downloader._impersonate_target_available, requested_targets), None)
+        if available_target:
+            extensions['impersonate'] = available_target
+        elif requested_targets:
+            message = 'The extractor is attempting impersonation, but '
+            message += (
+                'no impersonate target is available' if not str(impersonate)
+                else f'none of these impersonate targets are available: "{", ".join(map(str, requested_targets))}"')
+            info_msg = ('see  https://github.com/yt-dlp/yt-dlp#impersonation  '
+                        'for information on installing the required dependencies')
+            if require_impersonation:
+                raise ExtractorError(f'{message}; {info_msg}', expected=True)
+            self.report_warning(f'{message}; if you encounter errors, then {info_msg}', only_once=True)
 
         try:
-            return self._downloader.urlopen(self._create_request(url_or_request, data, headers, query))
+            return self._downloader.urlopen(self._create_request(url_or_request, data, headers, query, extensions))
         except network_exceptions as err:
-            if isinstance(err, compat_urllib_error.HTTPError):
+            if isinstance(err, HTTPError):
                 if self.__can_accept_status_code(err, expected_status):
-                    # Retain reference to error to prevent file object from
-                    # being closed before it can be read. Works around the
-                    # effects of <https://bugs.python.org/issue15002>
-                    # introduced in Python 3.4.1.
-                    err.fp._error = err
-                    return err.fp
+                    return err.response
 
             if errnote is False:
                 return False
             if errnote is None:
                 errnote = 'Unable to download webpage'
 
-            errmsg = f'{errnote}: {error_to_compat_str(err)}'
+            errmsg = f'{errnote}: {err}'
             if fatal:
                 raise ExtractorError(errmsg, cause=err)
             else:
@@ -787,13 +913,14 @@ class InfoExtractor:
                 return False
 
     def _download_webpage_handle(self, url_or_request, video_id, note=None, errnote=None, fatal=True,
-                                 encoding=None, data=None, headers={}, query={}, expected_status=None):
+                                 encoding=None, data=None, headers={}, query={}, expected_status=None,
+                                 impersonate=None, require_impersonation=False):
         """
         Return a tuple (page content as string, URL handle).
 
         Arguments:
         url_or_request -- plain text URL as a string or
-            a compat_urllib_request.Requestobject
+            a yt_dlp.networking.Request object
         video_id -- Video/playlist/item identifier (string)
 
         Keyword arguments:
@@ -818,17 +945,30 @@ class InfoExtractor:
                   returning True if it should be accepted
             Note that this argument does not affect success status codes (2xx)
             which are always accepted.
+        impersonate -- the impersonate target. Can be any of the following entities:
+                - an instance of yt_dlp.networking.impersonate.ImpersonateTarget
+                - a string in the format of CLIENT[:OS]
+                - a list or a tuple of CLIENT[:OS] strings or ImpersonateTarget instances
+                - a boolean value; True means any impersonate target is sufficient
+        require_impersonation -- flag to toggle whether the request should raise an error
+            if impersonation is not possible (bool, default: False)
         """
 
         # Strip hashes from the URL (#1038)
-        if isinstance(url_or_request, (compat_str, str)):
+        if isinstance(url_or_request, str):
             url_or_request = url_or_request.partition('#')[0]
 
-        urlh = self._request_webpage(url_or_request, video_id, note, errnote, fatal, data=data, headers=headers, query=query, expected_status=expected_status)
+        urlh = self._request_webpage(url_or_request, video_id, note, errnote, fatal, data=data,
+                                     headers=headers, query=query, expected_status=expected_status,
+                                     impersonate=impersonate, require_impersonation=require_impersonation)
         if urlh is False:
             assert not fatal
             return False
-        content = self._webpage_read_content(urlh, url_or_request, video_id, note, errnote, fatal, encoding=encoding)
+        content = self._webpage_read_content(urlh, url_or_request, video_id, note, errnote, fatal,
+                                             encoding=encoding, data=data)
+        if content is False:
+            assert not fatal
+            return False
         return (content, urlh)
 
     @staticmethod
@@ -857,7 +997,7 @@ class InfoExtractor:
                 r'<iframe src="([^"]+)"', content,
                 'Websense information URL', default=None)
             if blocked_iframe:
-                msg += ' Visit %s for more details' % blocked_iframe
+                msg += f' Visit {blocked_iframe} for more details'
             raise ExtractorError(msg, expected=True)
         if '<title>The URL you requested has been blocked</title>' in first_block:
             msg = (
@@ -867,7 +1007,7 @@ class InfoExtractor:
                 r'</h1><p>(.*?)</p>',
                 content, 'block message', default=None)
             if block_msg:
-                msg += ' (Message: "%s")' % block_msg.replace('\n', ' ')
+                msg += ' (Message: "{}")'.format(block_msg.replace('\n', ' '))
             raise ExtractorError(msg, expected=True)
         if ('<title>TTK :: Доступ к ресурсу ограничен</title>' in content
                 and 'blocklist.rkn.gov.ru' in content):
@@ -876,11 +1016,13 @@ class InfoExtractor:
                 'Visit http://blocklist.rkn.gov.ru/ for a block reason.',
                 expected=True)
 
-    def _request_dump_filename(self, url, video_id):
-        basen = f'{video_id}_{url}'
+    def _request_dump_filename(self, url, video_id, data=None):
+        if data is not None:
+            data = hashlib.md5(data).hexdigest()
+        basen = join_nonempty(video_id, data, url, delim='_')
         trim_length = self.get_param('trim_file_name') or 240
         if len(basen) > trim_length:
-            h = '___' + hashlib.md5(basen.encode('utf-8')).hexdigest()
+            h = '___' + hashlib.md5(basen.encode()).hexdigest()
             basen = basen[:trim_length - len(h)] + h
         filename = sanitize_filename(f'{basen}.dump', restricted=True)
         # Working around MAX_PATH limitation on Windows (see
@@ -899,16 +1041,27 @@ class InfoExtractor:
         except LookupError:
             return webpage_bytes.decode('utf-8', 'replace')
 
-    def _webpage_read_content(self, urlh, url_or_request, video_id, note=None, errnote=None, fatal=True, prefix=None, encoding=None):
-        webpage_bytes = urlh.read()
+    def _webpage_read_content(self, urlh, url_or_request, video_id, note=None, errnote=None, fatal=True,
+                              prefix=None, encoding=None, data=None):
+        try:
+            webpage_bytes = urlh.read()
+        except TransportError as err:
+            errmsg = f'{video_id}: Error reading response: {err.msg}'
+            if fatal:
+                raise ExtractorError(errmsg, cause=err)
+            self.report_warning(errmsg)
+            return False
+
         if prefix is not None:
             webpage_bytes = prefix + webpage_bytes
         if self.get_param('dump_intermediate_pages', False):
-            self.to_screen('Dumping request to ' + urlh.geturl())
+            self.to_screen('Dumping request to ' + urlh.url)
             dump = base64.b64encode(webpage_bytes).decode('ascii')
             self._downloader.to_screen(dump)
         if self.get_param('write_pages'):
-            filename = self._request_dump_filename(video_id, urlh.geturl())
+            if isinstance(url_or_request, Request):
+                data = self._create_request(url_or_request, data).data
+            filename = self._request_dump_filename(urlh.url, video_id, data)
             self.to_screen(f'Saving request to {filename}')
             with open(filename, 'wb') as outf:
                 outf.write(webpage_bytes)
@@ -918,66 +1071,58 @@ class InfoExtractor:
 
         return content
 
-    def _parse_xml(self, xml_string, video_id, transform_source=None, fatal=True):
+    def __print_error(self, errnote, fatal, video_id, err):
+        if fatal:
+            raise ExtractorError(f'{video_id}: {errnote}', cause=err)
+        elif errnote:
+            self.report_warning(f'{video_id}: {errnote}: {err}')
+
+    def _parse_xml(self, xml_string, video_id, transform_source=None, fatal=True, errnote=None):
         if transform_source:
             xml_string = transform_source(xml_string)
         try:
-            return compat_etree_fromstring(xml_string.encode('utf-8'))
+            return compat_etree_fromstring(xml_string.encode())
         except xml.etree.ElementTree.ParseError as ve:
-            errmsg = '%s: Failed to parse XML ' % video_id
-            if fatal:
-                raise ExtractorError(errmsg, cause=ve)
-            else:
-                self.report_warning(errmsg + str(ve))
+            self.__print_error('Failed to parse XML' if errnote is None else errnote, fatal, video_id, ve)
 
-    def _parse_json(self, json_string, video_id, transform_source=None, fatal=True, lenient=False):
-        if transform_source:
-            json_string = transform_source(json_string)
+    def _parse_json(self, json_string, video_id, transform_source=None, fatal=True, errnote=None, **parser_kwargs):
         try:
-            try:
-                return json.loads(json_string, strict=False)
-            except json.JSONDecodeError as e:
-                if not lenient:
-                    raise
-                try:
-                    return json.loads(json_string[:e.pos], strict=False)
-                except ValueError:
-                    raise e
+            return json.loads(
+                json_string, cls=LenientJSONDecoder, strict=False, transform_source=transform_source, **parser_kwargs)
         except ValueError as ve:
-            errmsg = f'{video_id}: Failed to parse JSON'
-            if fatal:
-                raise ExtractorError(errmsg, cause=ve)
-            else:
-                self.report_warning(errmsg + str(ve))
+            self.__print_error('Failed to parse JSON' if errnote is None else errnote, fatal, video_id, ve)
 
-    def _parse_socket_response_as_json(self, data, video_id, transform_source=None, fatal=True):
-        return self._parse_json(
-            data[data.find('{'):data.rfind('}') + 1],
-            video_id, transform_source, fatal)
+    def _parse_socket_response_as_json(self, data, *args, **kwargs):
+        return self._parse_json(data[data.find('{'):data.rfind('}') + 1], *args, **kwargs)
 
     def __create_download_methods(name, parser, note, errnote, return_value):
 
-        def parse(ie, content, *args, **kwargs):
+        def parse(ie, content, *args, errnote=errnote, **kwargs):
             if parser is None:
                 return content
+            if errnote is False:
+                kwargs['errnote'] = errnote
             # parser is fetched by name so subclasses can override it
             return getattr(ie, parser)(content, *args, **kwargs)
 
         def download_handle(self, url_or_request, video_id, note=note, errnote=errnote, transform_source=None,
-                            fatal=True, encoding=None, data=None, headers={}, query={}, expected_status=None):
+                            fatal=True, encoding=None, data=None, headers={}, query={}, expected_status=None,
+                            impersonate=None, require_impersonation=False):
             res = self._download_webpage_handle(
                 url_or_request, video_id, note=note, errnote=errnote, fatal=fatal, encoding=encoding,
-                data=data, headers=headers, query=query, expected_status=expected_status)
+                data=data, headers=headers, query=query, expected_status=expected_status,
+                impersonate=impersonate, require_impersonation=require_impersonation)
             if res is False:
                 return res
             content, urlh = res
-            return parse(self, content, video_id, transform_source=transform_source, fatal=fatal), urlh
+            return parse(self, content, video_id, transform_source=transform_source, fatal=fatal, errnote=errnote), urlh
 
         def download_content(self, url_or_request, video_id, note=note, errnote=errnote, transform_source=None,
-                             fatal=True, encoding=None, data=None, headers={}, query={}, expected_status=None):
+                             fatal=True, encoding=None, data=None, headers={}, query={}, expected_status=None,
+                             impersonate=None, require_impersonation=False):
             if self.get_param('load_pages'):
                 url_or_request = self._create_request(url_or_request, data, headers, query)
-                filename = self._request_dump_filename(url_or_request.full_url, video_id)
+                filename = self._request_dump_filename(url_or_request.url, video_id, url_or_request.data)
                 self.to_screen(f'Loading request from {filename}')
                 try:
                     with open(filename, 'rb') as dumpf:
@@ -986,7 +1131,7 @@ class InfoExtractor:
                     self.report_warning(f'Unable to load request from disk: {e}')
                 else:
                     content = self.__decode_webpage(webpage_bytes, encoding, url_or_request.headers)
-                    return parse(self, content, video_id, transform_source, fatal)
+                    return parse(self, content, video_id, transform_source=transform_source, fatal=fatal, errnote=errnote)
             kwargs = {
                 'note': note,
                 'errnote': errnote,
@@ -997,6 +1142,8 @@ class InfoExtractor:
                 'headers': headers,
                 'query': query,
                 'expected_status': expected_status,
+                'impersonate': impersonate,
+                'require_impersonation': require_impersonation,
             }
             if parser is None:
                 kwargs.pop('transform_source')
@@ -1051,14 +1198,14 @@ class InfoExtractor:
         while True:
             try:
                 return self.__download_webpage(url_or_request, video_id, note, errnote, None, fatal, *args, **kwargs)
-            except compat_http_client.IncompleteRead as e:
+            except IncompleteRead as e:
                 try_count += 1
                 if try_count >= tries:
                     raise e
                 self._sleep(timeout, video_id)
 
     def report_warning(self, msg, video_id=None, *args, only_once=False, **kwargs):
-        idstr = format_field(video_id, template='%s: ')
+        idstr = format_field(video_id, None, '%s: ')
         msg = f'[{self.IE_NAME}] {idstr}{msg}'
         if only_once:
             if f'WARNING: {msg}' in self._printed_messages:
@@ -1078,16 +1225,18 @@ class InfoExtractor:
             return self._downloader.params.get(name, default, *args, **kwargs)
         return default
 
-    def report_drm(self, video_id, partial=False):
+    def report_drm(self, video_id, partial=NO_DEFAULT):
+        if partial is not NO_DEFAULT:
+            self._downloader.deprecation_warning('InfoExtractor.report_drm no longer accepts the argument partial')
         self.raise_no_formats('This video is DRM protected', expected=True, video_id=video_id)
 
     def report_extraction(self, id_or_name):
         """Report information extraction."""
-        self.to_screen('%s: Extracting information' % id_or_name)
+        self.to_screen(f'{id_or_name}: Extracting information')
 
     def report_download_webpage(self, video_id):
         """Report webpage download."""
-        self.to_screen('%s: Downloading webpage' % video_id)
+        self.to_screen(f'{video_id}: Downloading webpage')
 
     def report_age_confirmation(self):
         """Report attempt to confirm age."""
@@ -1104,7 +1253,7 @@ class InfoExtractor:
                 self.get_param('ignore_no_formats_error') or self.get_param('wait_for_video')):
             self.report_warning(msg)
             return
-        msg += format_field(self._login_hint(method), template='. %s')
+        msg += format_field(self._login_hint(method), None, '. %s')
         raise ExtractorError(msg, expected=True)
 
     def raise_geo_restricted(
@@ -1141,10 +1290,12 @@ class InfoExtractor:
             'url': url,
         }
 
-    def playlist_from_matches(self, matches, playlist_id=None, playlist_title=None, getter=None, ie=None, video_kwargs=None, **kwargs):
-        urls = (self.url_result(self._proto_relative_url(m), ie, **(video_kwargs or {}))
-                for m in orderedSet(map(getter, matches) if getter else matches))
-        return self.playlist_result(urls, playlist_id, playlist_title, **kwargs)
+    @classmethod
+    def playlist_from_matches(cls, matches, playlist_id=None, playlist_title=None,
+                              getter=IDENTITY, ie=None, video_kwargs=None, **kwargs):
+        return cls.playlist_result(
+            (cls.url_result(m, ie, **(video_kwargs or {})) for m in orderedSet(map(getter, matches), lazy=True)),
+            playlist_id, playlist_title, **kwargs)
 
     @staticmethod
     def playlist_result(entries, playlist_id=None, playlist_title=None, playlist_description=None, *, multi_video=False, **kwargs):
@@ -1191,61 +1342,93 @@ class InfoExtractor:
         elif default is not NO_DEFAULT:
             return default
         elif fatal:
-            raise RegexNotFoundError('Unable to extract %s' % _name)
+            raise RegexNotFoundError(f'Unable to extract {_name}')
         else:
-            self.report_warning('unable to extract %s' % _name + bug_reports_message())
+            self.report_warning(f'unable to extract {_name}' + bug_reports_message())
             return None
+
+    def _search_json(self, start_pattern, string, name, video_id, *, end_pattern='',
+                     contains_pattern=r'{(?s:.+)}', fatal=True, default=NO_DEFAULT, **kwargs):
+        """Searches string for the JSON object specified by start_pattern"""
+        # NB: end_pattern is only used to reduce the size of the initial match
+        if default is NO_DEFAULT:
+            default, has_default = {}, False
+        else:
+            fatal, has_default = False, True
+
+        json_string = self._search_regex(
+            rf'(?:{start_pattern})\s*(?P<json>{contains_pattern})\s*(?:{end_pattern})',
+            string, name, group='json', fatal=fatal, default=None if has_default else NO_DEFAULT)
+        if not json_string:
+            return default
+
+        _name = self._downloader._format_err(name, self._downloader.Styles.EMPHASIS)
+        try:
+            return self._parse_json(json_string, video_id, ignore_extra=True, **kwargs)
+        except ExtractorError as e:
+            if fatal:
+                raise ExtractorError(
+                    f'Unable to extract {_name} - Failed to parse JSON', cause=e.cause, video_id=video_id)
+            elif not has_default:
+                self.report_warning(
+                    f'Unable to extract {_name} - Failed to parse JSON: {e}', video_id=video_id)
+        return default
 
     def _html_search_regex(self, pattern, string, name, default=NO_DEFAULT, fatal=True, flags=0, group=None):
         """
         Like _search_regex, but strips HTML tags and unescapes entities.
         """
         res = self._search_regex(pattern, string, name, default, fatal, flags, group)
-        if res:
-            return clean_html(res).strip()
-        else:
-            return res
+        if isinstance(res, tuple):
+            return tuple(map(clean_html, res))
+        return clean_html(res)
 
     def _get_netrc_login_info(self, netrc_machine=None):
-        username = None
-        password = None
         netrc_machine = netrc_machine or self._NETRC_MACHINE
 
-        if self.get_param('usenetrc', False):
-            try:
-                netrc_file = compat_expanduser(self.get_param('netrc_location') or '~')
-                if os.path.isdir(netrc_file):
-                    netrc_file = os.path.join(netrc_file, '.netrc')
-                info = netrc.netrc(file=netrc_file).authenticators(netrc_machine)
-                if info is not None:
-                    username = info[0]
-                    password = info[2]
-                else:
-                    raise netrc.NetrcParseError(
-                        'No authenticators for %s' % netrc_machine)
-            except (OSError, netrc.NetrcParseError) as err:
-                self.report_warning(
-                    'parsing .netrc: %s' % error_to_compat_str(err))
+        cmd = self.get_param('netrc_cmd')
+        if cmd:
+            cmd = cmd.replace('{}', netrc_machine)
+            self.to_screen(f'Executing command: {cmd}')
+            stdout, _, ret = Popen.run(cmd, text=True, shell=True, stdout=subprocess.PIPE)
+            if ret != 0:
+                raise OSError(f'Command returned error code {ret}')
+            info = netrc_from_content(stdout).authenticators(netrc_machine)
 
-        return username, password
+        elif self.get_param('usenetrc', False):
+            netrc_file = compat_expanduser(self.get_param('netrc_location') or '~')
+            if os.path.isdir(netrc_file):
+                netrc_file = os.path.join(netrc_file, '.netrc')
+            info = netrc.netrc(netrc_file).authenticators(netrc_machine)
+
+        else:
+            return None, None
+        if not info:
+            self.to_screen(f'No authenticators for {netrc_machine}')
+            return None, None
+
+        self.write_debug(f'Using netrc for {netrc_machine} authentication')
+        return info[0], info[2]
 
     def _get_login_info(self, username_option='username', password_option='password', netrc_machine=None):
         """
         Get the login info as (username, password)
         First look for the manually specified credentials using username_option
         and password_option as keys in params dictionary. If no such credentials
-        available look in the netrc file using the netrc_machine or _NETRC_MACHINE
-        value.
+        are available try the netrc_cmd if it is defined or look in the
+        netrc file using the netrc_machine or _NETRC_MACHINE value.
         If there's no info available, return (None, None)
         """
 
-        # Attempt to use provided username and password or .netrc data
         username = self.get_param(username_option)
         if username is not None:
             password = self.get_param(password_option)
         else:
-            username, password = self._get_netrc_login_info(netrc_machine)
-
+            try:
+                username, password = self._get_netrc_login_info(netrc_machine)
+            except (OSError, netrc.NetrcParseError) as err:
+                self.report_warning(f'Failed to parse .netrc: {err}')
+                return None, None
         return username, password
 
     def _get_tfa_info(self, note='two-factor verification code'):
@@ -1260,14 +1443,14 @@ class InfoExtractor:
         if tfa is not None:
             return tfa
 
-        return compat_getpass('Type %s and press [Return]: ' % note)
+        return getpass.getpass(f'Type {note} and press [Return]: ')
 
     # Helper functions for extracting OpenGraph info
     @staticmethod
     def _og_regexes(prop):
-        content_re = r'content=(?:"([^"]+?)"|\'([^\']+?)\'|\s*([^\s"\'=<>`]+?))'
-        property_re = (r'(?:name|property)=(?:\'og%(sep)s%(prop)s\'|"og%(sep)s%(prop)s"|\s*og%(sep)s%(prop)s\b)'
-                       % {'prop': re.escape(prop), 'sep': '(?:&#x3A;|[:-])'})
+        content_re = r'content=(?:"([^"]+?)"|\'([^\']+?)\'|\s*([^\s"\'=<>`]+?)(?=\s|/?>))'
+        property_re = r'(?:name|property)=(?:\'og{sep}{prop}\'|"og{sep}{prop}"|\s*og{sep}{prop}\b)'.format(
+            prop=re.escape(prop), sep='(?:&#x3A;|[:-])')
         template = r'<meta[^>]+?%s[^>]+?%s'
         return [
             template % (property_re, content_re),
@@ -1276,14 +1459,14 @@ class InfoExtractor:
 
     @staticmethod
     def _meta_regex(prop):
-        return r'''(?isx)<meta
-                    (?=[^>]+(?:itemprop|name|property|id|http-equiv)=(["\']?)%s\1)
-                    [^>]+?content=(["\'])(?P<content>.*?)\2''' % re.escape(prop)
+        return rf'''(?isx)<meta
+                    (?=[^>]+(?:itemprop|name|property|id|http-equiv)=(["\']?){re.escape(prop)}\1)
+                    [^>]+?content=(["\'])(?P<content>.*?)\2'''
 
     def _og_search_property(self, prop, html, name=None, **kargs):
         prop = variadic(prop)
         if name is None:
-            name = 'OpenGraph %s' % prop[0]
+            name = f'OpenGraph {prop[0]}'
         og_regexes = []
         for p in prop:
             og_regexes.extend(self._og_regexes(p))
@@ -1324,13 +1507,27 @@ class InfoExtractor:
     def _dc_search_uploader(self, html):
         return self._html_search_meta('dc.creator', html, 'uploader')
 
-    def _rta_search(self, html):
+    @staticmethod
+    def _rta_search(html):
         # See http://www.rtalabel.org/index.php?content=howtofaq#single
         if re.search(r'(?ix)<meta\s+name="rating"\s+'
                      r'     content="RTA-5042-1996-1400-1577-RTA"',
                      html):
             return 18
-        return 0
+
+        # And then there are the jokers who advertise that they use RTA, but actually don't.
+        AGE_LIMIT_MARKERS = [
+            r'Proudly Labeled <a href="http://www\.rtalabel\.org/" title="Restricted to Adults">RTA</a>',
+            r'>[^<]*you acknowledge you are at least (\d+) years old',
+            r'>\s*(?:18\s+U(?:\.S\.C\.|SC)\s+)?(?:§+\s*)?2257\b',
+        ]
+
+        age_limit = 0
+        for marker in AGE_LIMIT_MARKERS:
+            mobj = re.search(marker, html)
+            if mobj:
+                age_limit = max(age_limit, int(traverse_obj(mobj, 1, default=18)))
+        return age_limit
 
     def _media_rating_search(self, html):
         # See http://www.tjg-designs.com/WP/metadata-code-examples-adding-metadata-to-your-web-pages/
@@ -1368,45 +1565,39 @@ class InfoExtractor:
         return self._html_search_meta('twitter:player', html,
                                       'twitter card player')
 
-    def _search_json_ld(self, html, video_id, expected_type=None, **kwargs):
-        json_ld_list = list(re.finditer(JSON_LD_RE, html))
-        default = kwargs.get('default', NO_DEFAULT)
-        # JSON-LD may be malformed and thus `fatal` should be respected.
-        # At the same time `default` may be passed that assumes `fatal=False`
-        # for _search_regex. Let's simulate the same behavior here as well.
-        fatal = kwargs.get('fatal', True) if default is NO_DEFAULT else False
-        json_ld = []
-        for mobj in json_ld_list:
-            json_ld_item = self._parse_json(
-                mobj.group('json_ld'), video_id, fatal=fatal)
-            if not json_ld_item:
-                continue
-            if isinstance(json_ld_item, dict):
-                json_ld.append(json_ld_item)
-            elif isinstance(json_ld_item, (list, tuple)):
-                json_ld.extend(json_ld_item)
-        if json_ld:
-            json_ld = self._json_ld(json_ld, video_id, fatal=fatal, expected_type=expected_type)
-        if json_ld:
-            return json_ld
+    def _yield_json_ld(self, html, video_id, *, fatal=True, default=NO_DEFAULT):
+        """Yield all json ld objects in the html"""
+        if default is not NO_DEFAULT:
+            fatal = False
+        for mobj in re.finditer(JSON_LD_RE, html):
+            json_ld_item = self._parse_json(mobj.group('json_ld'), video_id, fatal=fatal)
+            for json_ld in variadic(json_ld_item):
+                if isinstance(json_ld, dict):
+                    yield json_ld
+
+    def _search_json_ld(self, html, video_id, expected_type=None, *, fatal=True, default=NO_DEFAULT):
+        """Search for a video in any json ld in the html"""
+        if default is not NO_DEFAULT:
+            fatal = False
+        info = self._json_ld(
+            list(self._yield_json_ld(html, video_id, fatal=fatal, default=default)),
+            video_id, fatal=fatal, expected_type=expected_type)
+        if info:
+            return info
         if default is not NO_DEFAULT:
             return default
         elif fatal:
             raise RegexNotFoundError('Unable to extract JSON-LD')
         else:
-            self.report_warning('unable to extract JSON-LD %s' % bug_reports_message())
+            self.report_warning(f'unable to extract JSON-LD {bug_reports_message()}')
             return {}
 
     def _json_ld(self, json_ld, video_id, fatal=True, expected_type=None):
-        if isinstance(json_ld, compat_str):
+        if isinstance(json_ld, str):
             json_ld = self._parse_json(json_ld, video_id, fatal=fatal)
         if not json_ld:
             return {}
         info = {}
-        if not isinstance(json_ld, (list, tuple, dict)):
-            return info
-        if isinstance(json_ld, dict):
-            json_ld = [json_ld]
 
         INTERACTION_TYPE_MAP = {
             'CommentAction': 'comment',
@@ -1418,6 +1609,10 @@ class InfoExtractor:
             'WatchAction': 'view',
             'ViewAction': 'view',
         }
+
+        def is_type(e, *expected_types):
+            type_ = variadic(traverse_obj(e, '@type'))
+            return any(x in type_ for x in expected_types)
 
         def extract_interaction_type(e):
             interaction_type = e.get('interactionType')
@@ -1432,9 +1627,7 @@ class InfoExtractor:
             if not isinstance(interaction_statistic, list):
                 return
             for is_e in interaction_statistic:
-                if not isinstance(is_e, dict):
-                    continue
-                if is_e.get('@type') != 'InteractionCounter':
+                if not is_type(is_e, 'InteractionCounter'):
                     continue
                 interaction_type = extract_interaction_type(is_e)
                 if not interaction_type:
@@ -1448,7 +1641,7 @@ class InfoExtractor:
                 count_kind = INTERACTION_TYPE_MAP.get(interaction_type.split('/')[-1])
                 if not count_kind:
                     continue
-                count_key = '%s_count' % count_kind
+                count_key = f'{count_kind}_count'
                 if info.get(count_key) is not None:
                     continue
                 info[count_key] = interaction_count
@@ -1460,7 +1653,7 @@ class InfoExtractor:
                 'end_time': part.get('endOffset'),
             } for part in variadic(e.get('hasPart') or []) if part.get('@type') == 'Clip']
             for idx, (last_c, current_c, next_c) in enumerate(zip(
-                    [{'end_time': 0}] + chapters, chapters, chapters[1:])):
+                    [{'end_time': 0}, *chapters], chapters, chapters[1:])):
                 current_c['end_time'] = current_c['end_time'] or next_c['start_time']
                 current_c['start_time'] = current_c['start_time'] or last_c['end_time']
                 if None in current_c.values():
@@ -1471,13 +1664,13 @@ class InfoExtractor:
                 info['chapters'] = chapters
 
         def extract_video_object(e):
-            assert e['@type'] == 'VideoObject'
             author = e.get('author')
             info.update({
-                'url': traverse_obj(e, 'contentUrl', 'embedUrl', expected_type=url_or_none),
+                'url': url_or_none(e.get('contentUrl')),
+                'ext': mimetype2ext(e.get('encodingFormat')),
                 'title': unescapeHTML(e.get('name')),
                 'description': unescapeHTML(e.get('description')),
-                'thumbnails': [{'url': url}
+                'thumbnails': [{'url': unescapeHTML(url)}
                                for url in variadic(traverse_obj(e, 'thumbnailUrl', 'thumbnailURL'))
                                if url_or_none(url)],
                 'duration': parse_duration(e.get('duration')),
@@ -1486,30 +1679,38 @@ class InfoExtractor:
                 # both types can have 'name' property(inherited from 'Thing' type). [1]
                 # however some websites are using 'Text' type instead.
                 # 1. https://schema.org/VideoObject
-                'uploader': author.get('name') if isinstance(author, dict) else author if isinstance(author, compat_str) else None,
-                'filesize': float_or_none(e.get('contentSize')),
+                'uploader': author.get('name') if isinstance(author, dict) else author if isinstance(author, str) else None,
+                'artist': traverse_obj(e, ('byArtist', 'name'), expected_type=str),
+                'filesize': int_or_none(float_or_none(e.get('contentSize'))),
                 'tbr': int_or_none(e.get('bitrate')),
                 'width': int_or_none(e.get('width')),
                 'height': int_or_none(e.get('height')),
                 'view_count': int_or_none(e.get('interactionCount')),
+                'tags': try_call(lambda: e.get('keywords').split(',')),
             })
+            if is_type(e, 'AudioObject'):
+                info.update({
+                    'vcodec': 'none',
+                    'abr': int_or_none(e.get('bitrate')),
+                })
             extract_interaction_statistic(e)
             extract_chapter_information(e)
 
         def traverse_json_ld(json_ld, at_top_level=True):
-            for e in json_ld:
+            for e in variadic(json_ld):
+                if not isinstance(e, dict):
+                    continue
                 if at_top_level and '@context' not in e:
                     continue
                 if at_top_level and set(e.keys()) == {'@context', '@graph'}:
-                    traverse_json_ld(variadic(e['@graph'], allowed_types=(dict,)), at_top_level=False)
-                    break
-                item_type = e.get('@type')
-                if expected_type is not None and expected_type != item_type:
+                    traverse_json_ld(e['@graph'], at_top_level=False)
+                    continue
+                if expected_type is not None and not is_type(e, expected_type):
                     continue
                 rating = traverse_obj(e, ('aggregateRating', 'ratingValue'), expected_type=float_or_none)
                 if rating is not None:
                     info['average_rating'] = rating
-                if item_type in ('TVEpisode', 'Episode'):
+                if is_type(e, 'TVEpisode', 'Episode', 'PodcastEpisode'):
                     episode_name = unescapeHTML(e.get('name'))
                     info.update({
                         'episode': episode_name,
@@ -1519,83 +1720,83 @@ class InfoExtractor:
                     if not info.get('title') and episode_name:
                         info['title'] = episode_name
                     part_of_season = e.get('partOfSeason')
-                    if isinstance(part_of_season, dict) and part_of_season.get('@type') in ('TVSeason', 'Season', 'CreativeWorkSeason'):
+                    if is_type(part_of_season, 'TVSeason', 'Season', 'CreativeWorkSeason'):
                         info.update({
                             'season': unescapeHTML(part_of_season.get('name')),
                             'season_number': int_or_none(part_of_season.get('seasonNumber')),
                         })
                     part_of_series = e.get('partOfSeries') or e.get('partOfTVSeries')
-                    if isinstance(part_of_series, dict) and part_of_series.get('@type') in ('TVSeries', 'Series', 'CreativeWorkSeries'):
+                    if is_type(part_of_series, 'TVSeries', 'Series', 'CreativeWorkSeries'):
                         info['series'] = unescapeHTML(part_of_series.get('name'))
-                elif item_type == 'Movie':
+                elif is_type(e, 'Movie'):
                     info.update({
                         'title': unescapeHTML(e.get('name')),
                         'description': unescapeHTML(e.get('description')),
                         'duration': parse_duration(e.get('duration')),
                         'timestamp': unified_timestamp(e.get('dateCreated')),
                     })
-                elif item_type in ('Article', 'NewsArticle'):
+                elif is_type(e, 'Article', 'NewsArticle'):
                     info.update({
                         'timestamp': parse_iso8601(e.get('datePublished')),
                         'title': unescapeHTML(e.get('headline')),
                         'description': unescapeHTML(e.get('articleBody') or e.get('description')),
                     })
-                    if traverse_obj(e, ('video', 0, '@type')) == 'VideoObject':
+                    if is_type(traverse_obj(e, ('video', 0)), 'VideoObject'):
                         extract_video_object(e['video'][0])
-                    elif traverse_obj(e, ('subjectOf', 0, '@type')) == 'VideoObject':
+                    elif is_type(traverse_obj(e, ('subjectOf', 0)), 'VideoObject'):
                         extract_video_object(e['subjectOf'][0])
-                elif item_type == 'VideoObject':
+                elif is_type(e, 'VideoObject', 'AudioObject'):
                     extract_video_object(e)
                     if expected_type is None:
                         continue
                     else:
                         break
                 video = e.get('video')
-                if isinstance(video, dict) and video.get('@type') == 'VideoObject':
+                if is_type(video, 'VideoObject'):
                     extract_video_object(video)
                 if expected_type is None:
                     continue
                 else:
                     break
-        traverse_json_ld(json_ld)
 
+        traverse_json_ld(json_ld)
         return filter_dict(info)
 
-    def _search_nextjs_data(self, webpage, video_id, *, transform_source=None, fatal=True, **kw):
-        return self._parse_json(
-            self._search_regex(
-                r'(?s)<script[^>]+id=[\'"]__NEXT_DATA__[\'"][^>]*>([^<]+)</script>',
-                webpage, 'next.js data', fatal=fatal, **kw),
-            video_id, transform_source=transform_source, fatal=fatal)
+    def _search_nextjs_data(self, webpage, video_id, *, fatal=True, default=NO_DEFAULT, **kw):
+        if default == '{}':
+            self._downloader.deprecation_warning('using `default=\'{}\'` is deprecated, use `default={}` instead')
+            default = {}
+        if default is not NO_DEFAULT:
+            fatal = False
 
-    def _search_nuxt_data(self, webpage, video_id, context_name='__NUXT__', return_full_data=False):
-        ''' Parses Nuxt.js metadata. This works as long as the function __NUXT__ invokes is a pure function. '''
-        # not all website do this, but it can be changed
-        # https://stackoverflow.com/questions/67463109/how-to-change-or-hide-nuxt-and-nuxt-keyword-in-page-source
+        return self._search_json(
+            r'<script[^>]+id=[\'"]__NEXT_DATA__[\'"][^>]*>', webpage, 'next.js data',
+            video_id, end_pattern='</script>', fatal=fatal, default=default, **kw)
+
+    def _search_nuxt_data(self, webpage, video_id, context_name='__NUXT__', *, fatal=True, traverse=('data', 0)):
+        """Parses Nuxt.js metadata. This works as long as the function __NUXT__ invokes is a pure function"""
         rectx = re.escape(context_name)
+        FUNCTION_RE = r'\(function\((?P<arg_keys>.*?)\){.*?\breturn\s+(?P<js>{.*?})\s*;?\s*}\((?P<arg_vals>.*?)\)'
         js, arg_keys, arg_vals = self._search_regex(
-            (r'<script>window\.%s=\(function\((?P<arg_keys>.*?)\)\{return\s(?P<js>\{.*?\})\}\((?P<arg_vals>.+?)\)\);?</script>' % rectx,
-             r'%s\(.*?\(function\((?P<arg_keys>.*?)\)\{return\s(?P<js>\{.*?\})\}\((?P<arg_vals>.*?)\)' % rectx),
-            webpage, context_name, group=['js', 'arg_keys', 'arg_vals'])
+            (rf'<script>\s*window\.{rectx}={FUNCTION_RE}\s*\)\s*;?\s*</script>', rf'{rectx}\(.*?{FUNCTION_RE}'),
+            webpage, context_name, group=('js', 'arg_keys', 'arg_vals'),
+            default=NO_DEFAULT if fatal else (None, None, None))
+        if js is None:
+            return {}
 
-        args = dict(zip(arg_keys.split(','), arg_vals.split(',')))
+        args = dict(zip(arg_keys.split(','), map(json.dumps, self._parse_json(
+            f'[{arg_vals}]', video_id, transform_source=js_to_json, fatal=fatal) or ())))
 
-        for key, val in args.items():
-            if val in ('undefined', 'void 0'):
-                args[key] = 'null'
-
-        ret = self._parse_json(js_to_json(js, args), video_id)
-        if return_full_data:
-            return ret
-        return ret['data'][0]
+        ret = self._parse_json(js, video_id, transform_source=functools.partial(js_to_json, vars=args), fatal=fatal)
+        return traverse_obj(ret, traverse) or {}
 
     @staticmethod
     def _hidden_inputs(html):
         html = re.sub(r'<!--(?:(?!<!--).)*-->', '', html)
         hidden_inputs = {}
-        for input in re.findall(r'(?i)(<input[^>]+>)', html):
-            attrs = extract_attributes(input)
-            if not input:
+        for input_el in re.findall(r'(?i)(<input[^>]+>)', html):
+            attrs = extract_attributes(input_el)
+            if not input_el:
                 continue
             if attrs.get('type') not in ('hidden', 'submit'):
                 continue
@@ -1607,306 +1808,38 @@ class InfoExtractor:
 
     def _form_hidden_inputs(self, form_id, html):
         form = self._search_regex(
-            r'(?is)<form[^>]+?id=(["\'])%s\1[^>]*>(?P<form>.+?)</form>' % form_id,
-            html, '%s form' % form_id, group='form')
+            rf'(?is)<form[^>]+?id=(["\']){form_id}\1[^>]*>(?P<form>.+?)</form>',
+            html, f'{form_id} form', group='form')
         return self._hidden_inputs(form)
 
-    class FormatSort:
-        regex = r' *((?P<reverse>\+)?(?P<field>[a-zA-Z0-9_]+)((?P<separator>[~:])(?P<limit>.*?))?)? *$'
+    @classproperty(cache=True)
+    def FormatSort(cls):
+        class FormatSort(FormatSorter):
+            def __init__(ie, *args, **kwargs):
+                super().__init__(ie._downloader, *args, **kwargs)
 
-        default = ('hidden', 'aud_or_vid', 'hasvid', 'ie_pref', 'lang', 'quality',
-                   'res', 'fps', 'hdr:12', 'codec:vp9.2', 'size', 'br', 'asr',
-                   'proto', 'ext', 'hasaud', 'source', 'id')  # These must not be aliases
-        ytdl_default = ('hasaud', 'lang', 'quality', 'tbr', 'filesize', 'vbr',
-                        'height', 'width', 'proto', 'vext', 'abr', 'aext',
-                        'fps', 'fs_approx', 'source', 'id')
-
-        settings = {
-            'vcodec': {'type': 'ordered', 'regex': True,
-                       'order': ['av0?1', 'vp0?9.2', 'vp0?9', '[hx]265|he?vc?', '[hx]264|avc', 'vp0?8', 'mp4v|h263', 'theora', '', None, 'none']},
-            'acodec': {'type': 'ordered', 'regex': True,
-                       'order': ['[af]lac', 'wav|aiff', 'opus', 'vorbis|ogg', 'aac', 'mp?4a?', 'mp3', 'e-?a?c-?3', 'ac-?3', 'dts', '', None, 'none']},
-            'hdr': {'type': 'ordered', 'regex': True, 'field': 'dynamic_range',
-                    'order': ['dv', '(hdr)?12', r'(hdr)?10\+', '(hdr)?10', 'hlg', '', 'sdr', None]},
-            'proto': {'type': 'ordered', 'regex': True, 'field': 'protocol',
-                      'order': ['(ht|f)tps', '(ht|f)tp$', 'm3u8.*', '.*dash', 'websocket_frag', 'rtmpe?', '', 'mms|rtsp', 'ws|websocket', 'f4']},
-            'vext': {'type': 'ordered', 'field': 'video_ext',
-                     'order': ('mp4', 'webm', 'flv', '', 'none'),
-                     'order_free': ('webm', 'mp4', 'flv', '', 'none')},
-            'aext': {'type': 'ordered', 'field': 'audio_ext',
-                     'order': ('m4a', 'aac', 'mp3', 'ogg', 'opus', 'webm', '', 'none'),
-                     'order_free': ('opus', 'ogg', 'webm', 'm4a', 'mp3', 'aac', '', 'none')},
-            'hidden': {'visible': False, 'forced': True, 'type': 'extractor', 'max': -1000},
-            'aud_or_vid': {'visible': False, 'forced': True, 'type': 'multiple',
-                           'field': ('vcodec', 'acodec'),
-                           'function': lambda it: int(any(v != 'none' for v in it))},
-            'ie_pref': {'priority': True, 'type': 'extractor'},
-            'hasvid': {'priority': True, 'field': 'vcodec', 'type': 'boolean', 'not_in_list': ('none',)},
-            'hasaud': {'field': 'acodec', 'type': 'boolean', 'not_in_list': ('none',)},
-            'lang': {'convert': 'float', 'field': 'language_preference', 'default': -1},
-            'quality': {'convert': 'float', 'default': -1},
-            'filesize': {'convert': 'bytes'},
-            'fs_approx': {'convert': 'bytes', 'field': 'filesize_approx'},
-            'id': {'convert': 'string', 'field': 'format_id'},
-            'height': {'convert': 'float_none'},
-            'width': {'convert': 'float_none'},
-            'fps': {'convert': 'float_none'},
-            'tbr': {'convert': 'float_none'},
-            'vbr': {'convert': 'float_none'},
-            'abr': {'convert': 'float_none'},
-            'asr': {'convert': 'float_none'},
-            'source': {'convert': 'float', 'field': 'source_preference', 'default': -1},
-
-            'codec': {'type': 'combined', 'field': ('vcodec', 'acodec')},
-            'br': {'type': 'combined', 'field': ('tbr', 'vbr', 'abr'), 'same_limit': True},
-            'size': {'type': 'combined', 'same_limit': True, 'field': ('filesize', 'fs_approx')},
-            'ext': {'type': 'combined', 'field': ('vext', 'aext')},
-            'res': {'type': 'multiple', 'field': ('height', 'width'),
-                    'function': lambda it: (lambda l: min(l) if l else 0)(tuple(filter(None, it)))},
-
-            # For compatibility with youtube-dl
-            'format_id': {'type': 'alias', 'field': 'id'},
-            'preference': {'type': 'alias', 'field': 'ie_pref'},
-            'language_preference': {'type': 'alias', 'field': 'lang'},
-            'source_preference': {'type': 'alias', 'field': 'source'},
-            'protocol': {'type': 'alias', 'field': 'proto'},
-            'filesize_approx': {'type': 'alias', 'field': 'fs_approx'},
-
-            # Deprecated
-            'dimension': {'type': 'alias', 'field': 'res', 'deprecated': True},
-            'resolution': {'type': 'alias', 'field': 'res', 'deprecated': True},
-            'extension': {'type': 'alias', 'field': 'ext', 'deprecated': True},
-            'bitrate': {'type': 'alias', 'field': 'br', 'deprecated': True},
-            'total_bitrate': {'type': 'alias', 'field': 'tbr', 'deprecated': True},
-            'video_bitrate': {'type': 'alias', 'field': 'vbr', 'deprecated': True},
-            'audio_bitrate': {'type': 'alias', 'field': 'abr', 'deprecated': True},
-            'framerate': {'type': 'alias', 'field': 'fps', 'deprecated': True},
-            'filesize_estimate': {'type': 'alias', 'field': 'size', 'deprecated': True},
-            'samplerate': {'type': 'alias', 'field': 'asr', 'deprecated': True},
-            'video_ext': {'type': 'alias', 'field': 'vext', 'deprecated': True},
-            'audio_ext': {'type': 'alias', 'field': 'aext', 'deprecated': True},
-            'video_codec': {'type': 'alias', 'field': 'vcodec', 'deprecated': True},
-            'audio_codec': {'type': 'alias', 'field': 'acodec', 'deprecated': True},
-            'video': {'type': 'alias', 'field': 'hasvid', 'deprecated': True},
-            'has_video': {'type': 'alias', 'field': 'hasvid', 'deprecated': True},
-            'audio': {'type': 'alias', 'field': 'hasaud', 'deprecated': True},
-            'has_audio': {'type': 'alias', 'field': 'hasaud', 'deprecated': True},
-            'extractor': {'type': 'alias', 'field': 'ie_pref', 'deprecated': True},
-            'extractor_preference': {'type': 'alias', 'field': 'ie_pref', 'deprecated': True},
-        }
-
-        def __init__(self, ie, field_preference):
-            self._order = []
-            self.ydl = ie._downloader
-            self.evaluate_params(self.ydl.params, field_preference)
-            if ie.get_param('verbose'):
-                self.print_verbose_info(self.ydl.write_debug)
-
-        def _get_field_setting(self, field, key):
-            if field not in self.settings:
-                if key in ('forced', 'priority'):
-                    return False
-                self.ydl.deprecation_warning(
-                    f'Using arbitrary fields ({field}) for format sorting is deprecated '
-                    'and may be removed in a future version')
-                self.settings[field] = {}
-            propObj = self.settings[field]
-            if key not in propObj:
-                type = propObj.get('type')
-                if key == 'field':
-                    default = 'preference' if type == 'extractor' else (field,) if type in ('combined', 'multiple') else field
-                elif key == 'convert':
-                    default = 'order' if type == 'ordered' else 'float_string' if field else 'ignore'
-                else:
-                    default = {'type': 'field', 'visible': True, 'order': [], 'not_in_list': (None,)}.get(key, None)
-                propObj[key] = default
-            return propObj[key]
-
-        def _resolve_field_value(self, field, value, convertNone=False):
-            if value is None:
-                if not convertNone:
-                    return None
-            else:
-                value = value.lower()
-            conversion = self._get_field_setting(field, 'convert')
-            if conversion == 'ignore':
-                return None
-            if conversion == 'string':
-                return value
-            elif conversion == 'float_none':
-                return float_or_none(value)
-            elif conversion == 'bytes':
-                return FileDownloader.parse_bytes(value)
-            elif conversion == 'order':
-                order_list = (self._use_free_order and self._get_field_setting(field, 'order_free')) or self._get_field_setting(field, 'order')
-                use_regex = self._get_field_setting(field, 'regex')
-                list_length = len(order_list)
-                empty_pos = order_list.index('') if '' in order_list else list_length + 1
-                if use_regex and value is not None:
-                    for i, regex in enumerate(order_list):
-                        if regex and re.match(regex, value):
-                            return list_length - i
-                    return list_length - empty_pos  # not in list
-                else:  # not regex or  value = None
-                    return list_length - (order_list.index(value) if value in order_list else empty_pos)
-            else:
-                if value.isnumeric():
-                    return float(value)
-                else:
-                    self.settings[field]['convert'] = 'string'
-                    return value
-
-        def evaluate_params(self, params, sort_extractor):
-            self._use_free_order = params.get('prefer_free_formats', False)
-            self._sort_user = params.get('format_sort', [])
-            self._sort_extractor = sort_extractor
-
-            def add_item(field, reverse, closest, limit_text):
-                field = field.lower()
-                if field in self._order:
-                    return
-                self._order.append(field)
-                limit = self._resolve_field_value(field, limit_text)
-                data = {
-                    'reverse': reverse,
-                    'closest': False if limit is None else closest,
-                    'limit_text': limit_text,
-                    'limit': limit}
-                if field in self.settings:
-                    self.settings[field].update(data)
-                else:
-                    self.settings[field] = data
-
-            sort_list = (
-                tuple(field for field in self.default if self._get_field_setting(field, 'forced'))
-                + (tuple() if params.get('format_sort_force', False)
-                   else tuple(field for field in self.default if self._get_field_setting(field, 'priority')))
-                + tuple(self._sort_user) + tuple(sort_extractor) + self.default)
-
-            for item in sort_list:
-                match = re.match(self.regex, item)
-                if match is None:
-                    raise ExtractorError('Invalid format sort string "%s" given by extractor' % item)
-                field = match.group('field')
-                if field is None:
-                    continue
-                if self._get_field_setting(field, 'type') == 'alias':
-                    alias, field = field, self._get_field_setting(field, 'field')
-                    if self._get_field_setting(alias, 'deprecated'):
-                        self.ydl.deprecation_warning(
-                            f'Format sorting alias {alias} is deprecated '
-                            f'and may be removed in a future version. Please use {field} instead')
-                reverse = match.group('reverse') is not None
-                closest = match.group('separator') == '~'
-                limit_text = match.group('limit')
-
-                has_limit = limit_text is not None
-                has_multiple_fields = self._get_field_setting(field, 'type') == 'combined'
-                has_multiple_limits = has_limit and has_multiple_fields and not self._get_field_setting(field, 'same_limit')
-
-                fields = self._get_field_setting(field, 'field') if has_multiple_fields else (field,)
-                limits = limit_text.split(':') if has_multiple_limits else (limit_text,) if has_limit else tuple()
-                limit_count = len(limits)
-                for (i, f) in enumerate(fields):
-                    add_item(f, reverse, closest,
-                             limits[i] if i < limit_count
-                             else limits[0] if has_limit and not has_multiple_limits
-                             else None)
-
-        def print_verbose_info(self, write_debug):
-            if self._sort_user:
-                write_debug('Sort order given by user: %s' % ', '.join(self._sort_user))
-            if self._sort_extractor:
-                write_debug('Sort order given by extractor: %s' % ', '.join(self._sort_extractor))
-            write_debug('Formats sorted by: %s' % ', '.join(['%s%s%s' % (
-                '+' if self._get_field_setting(field, 'reverse') else '', field,
-                '%s%s(%s)' % ('~' if self._get_field_setting(field, 'closest') else ':',
-                              self._get_field_setting(field, 'limit_text'),
-                              self._get_field_setting(field, 'limit'))
-                if self._get_field_setting(field, 'limit_text') is not None else '')
-                for field in self._order if self._get_field_setting(field, 'visible')]))
-
-        def _calculate_field_preference_from_value(self, format, field, type, value):
-            reverse = self._get_field_setting(field, 'reverse')
-            closest = self._get_field_setting(field, 'closest')
-            limit = self._get_field_setting(field, 'limit')
-
-            if type == 'extractor':
-                maximum = self._get_field_setting(field, 'max')
-                if value is None or (maximum is not None and value >= maximum):
-                    value = -1
-            elif type == 'boolean':
-                in_list = self._get_field_setting(field, 'in_list')
-                not_in_list = self._get_field_setting(field, 'not_in_list')
-                value = 0 if ((in_list is None or value in in_list) and (not_in_list is None or value not in not_in_list)) else -1
-            elif type == 'ordered':
-                value = self._resolve_field_value(field, value, True)
-
-            # try to convert to number
-            val_num = float_or_none(value, default=self._get_field_setting(field, 'default'))
-            is_num = self._get_field_setting(field, 'convert') != 'string' and val_num is not None
-            if is_num:
-                value = val_num
-
-            return ((-10, 0) if value is None
-                    else (1, value, 0) if not is_num  # if a field has mixed strings and numbers, strings are sorted higher
-                    else (0, -abs(value - limit), value - limit if reverse else limit - value) if closest
-                    else (0, value, 0) if not reverse and (limit is None or value <= limit)
-                    else (0, -value, 0) if limit is None or (reverse and value == limit) or value > limit
-                    else (-1, value, 0))
-
-        def _calculate_field_preference(self, format, field):
-            type = self._get_field_setting(field, 'type')  # extractor, boolean, ordered, field, multiple
-            get_value = lambda f: format.get(self._get_field_setting(f, 'field'))
-            if type == 'multiple':
-                type = 'field'  # Only 'field' is allowed in multiple for now
-                actual_fields = self._get_field_setting(field, 'field')
-
-                value = self._get_field_setting(field, 'function')(get_value(f) for f in actual_fields)
-            else:
-                value = get_value(field)
-            return self._calculate_field_preference_from_value(format, field, type, value)
-
-        def calculate_preference(self, format):
-            # Determine missing protocol
-            if not format.get('protocol'):
-                format['protocol'] = determine_protocol(format)
-
-            # Determine missing ext
-            if not format.get('ext') and 'url' in format:
-                format['ext'] = determine_ext(format['url'])
-            if format.get('vcodec') == 'none':
-                format['audio_ext'] = format['ext'] if format.get('acodec') != 'none' else 'none'
-                format['video_ext'] = 'none'
-            else:
-                format['video_ext'] = format['ext']
-                format['audio_ext'] = 'none'
-            # if format.get('preference') is None and format.get('ext') in ('f4f', 'f4m'):  # Not supported?
-            #    format['preference'] = -1000
-
-            # Determine missing bitrates
-            if format.get('tbr') is None:
-                if format.get('vbr') is not None and format.get('abr') is not None:
-                    format['tbr'] = format.get('vbr', 0) + format.get('abr', 0)
-            else:
-                if format.get('vcodec') != 'none' and format.get('vbr') is None:
-                    format['vbr'] = format.get('tbr') - format.get('abr', 0)
-                if format.get('acodec') != 'none' and format.get('abr') is None:
-                    format['abr'] = format.get('tbr') - format.get('vbr', 0)
-
-            return tuple(self._calculate_field_preference(format, field) for field in self._order)
+        deprecation_warning(
+            'yt_dlp.InfoExtractor.FormatSort is deprecated and may be removed in the future. '
+            'Use yt_dlp.utils.FormatSorter instead')
+        return FormatSort
 
     def _sort_formats(self, formats, field_preference=[]):
-        if not formats:
+        if not field_preference:
+            self._downloader.deprecation_warning(
+                'yt_dlp.InfoExtractor._sort_formats is deprecated and is no longer required')
             return
-        formats.sort(key=self.FormatSort(self, field_preference).calculate_preference)
+        self._downloader.deprecation_warning(
+            'yt_dlp.InfoExtractor._sort_formats is deprecated and no longer works as expected. '
+            'Return _format_sort_fields in the info_dict instead')
+        if formats:
+            formats[0]['__sort_fields'] = field_preference
 
     def _check_formats(self, formats, video_id):
         if formats:
             formats[:] = filter(
                 lambda f: self._is_valid_url(
                     f['url'], video_id,
-                    item='%s video format' % f.get('format_id') if f.get('format_id') else 'video'),
+                    item='{} video format'.format(f.get('format_id')) if f.get('format_id') else 'video'),
                 formats)
 
     @staticmethod
@@ -1922,15 +1855,14 @@ class InfoExtractor:
     def _is_valid_url(self, url, video_id, item='video', headers={}):
         url = self._proto_relative_url(url, scheme='http:')
         # For now assume non HTTP(S) URLs always valid
-        if not (url.startswith('http://') or url.startswith('https://')):
+        if not url.startswith(('http://', 'https://')):
             return True
         try:
-            self._request_webpage(url, video_id, 'Checking %s URL' % item, headers=headers)
+            self._request_webpage(url, video_id, f'Checking {item} URL', headers=headers)
             return True
         except ExtractorError as e:
             self.to_screen(
-                '%s: %s URL is invalid, skipping: %s'
-                % (video_id, item, error_to_compat_str(e.cause)))
+                f'{video_id}: {item} URL is invalid, skipping: {e.cause!s}')
             return False
 
     def http_scheme(self):
@@ -1941,14 +1873,9 @@ class InfoExtractor:
             else 'https:')
 
     def _proto_relative_url(self, url, scheme=None):
-        if url is None:
-            return url
-        if url.startswith('//'):
-            if scheme is None:
-                scheme = self.http_scheme()
-            return scheme + url
-        else:
-            return url
+        scheme = scheme or self.http_scheme()
+        assert scheme.endswith(':')
+        return sanitize_url(url, scheme=scheme[:-1])
 
     def _sleep(self, timeout, video_id, msg_template=None):
         if msg_template is None:
@@ -1960,6 +1887,9 @@ class InfoExtractor:
     def _extract_f4m_formats(self, manifest_url, video_id, preference=None, quality=None, f4m_id=None,
                              transform_source=lambda s: fix_xml_ampersands(s).strip(),
                              fatal=True, m3u8_id=None, data=None, headers={}, query={}):
+        if self.get_param('ignore_no_formats_error'):
+            fatal = False
+
         res = self._download_xml_handle(
             manifest_url, video_id, 'Downloading f4m manifest',
             'Unable to download f4m manifest',
@@ -1971,7 +1901,7 @@ class InfoExtractor:
             return []
 
         manifest, urlh = res
-        manifest_url = urlh.geturl()
+        manifest_url = urlh.url
 
         return self._parse_f4m_formats(
             manifest, manifest_url, video_id, preference=preference, quality=quality, f4m_id=f4m_id,
@@ -1986,8 +1916,8 @@ class InfoExtractor:
         # currently yt-dlp cannot decode the playerVerificationChallenge as Akamai uses Adobe Alchemy
         akamai_pv = manifest.find('{http://ns.adobe.com/f4m/1.0}pv-2.0')
         if akamai_pv is not None and ';' in akamai_pv.text:
-            playerVerificationChallenge = akamai_pv.text.split(';')[0]
-            if playerVerificationChallenge.strip() != '':
+            player_verification_challenge = akamai_pv.text.split(';')[0]
+            if player_verification_challenge.strip() != '':
                 return []
 
         formats = []
@@ -2033,7 +1963,7 @@ class InfoExtractor:
                 if not media_url:
                     continue
                 manifest_url = (
-                    media_url if media_url.startswith('http://') or media_url.startswith('https://')
+                    media_url if media_url.startswith(('http://', 'https://'))
                     else ((manifest_base_url or '/'.join(manifest_url.split('/')[:-1])) + '/' + media_url))
                 # If media_url is itself a f4m manifest do the recursive extraction
                 # since bitrates in parent manifest (this one) and media_url manifest
@@ -2094,7 +2024,7 @@ class InfoExtractor:
     def _report_ignoring_subs(self, name):
         self.report_warning(bug_reports_message(
             f'Ignoring subtitle tracks found in the {name} manifest; '
-            'if any subtitle tracks are missing,'
+            'if any subtitle tracks are missing,',
         ), only_once=True)
 
     def _extract_m3u8_formats(self, *args, **kwargs):
@@ -2109,6 +2039,17 @@ class InfoExtractor:
             errnote=None, fatal=True, live=False, data=None, headers={},
             query={}):
 
+        if self.get_param('ignore_no_formats_error'):
+            fatal = False
+
+        if not m3u8_url:
+            if errnote is not False:
+                errnote = errnote or 'Failed to obtain m3u8 URL'
+                if fatal:
+                    raise ExtractorError(errnote, video_id=video_id)
+                self.report_warning(f'{errnote}{bug_reports_message()}')
+            return [], {}
+
         res = self._download_webpage_handle(
             m3u8_url, video_id,
             note='Downloading m3u8 information' if note is None else note,
@@ -2119,7 +2060,7 @@ class InfoExtractor:
             return [], {}
 
         m3u8_doc, urlh = res
-        m3u8_url = urlh.geturl()
+        m3u8_url = urlh.url
 
         return self._parse_m3u8_formats_and_subtitles(
             m3u8_doc, m3u8_url, ext=ext, entry_protocol=entry_protocol,
@@ -2133,14 +2074,10 @@ class InfoExtractor:
             errnote=None, fatal=True, data=None, headers={}, query={},
             video_id=None):
         formats, subtitles = [], {}
-
-        has_drm = re.search('|'.join([
-            r'#EXT-X-FAXS-CM:',  # Adobe Flash Access
-            r'#EXT-X-(?:SESSION-)?KEY:.*?URI="skd://',  # Apple FairPlay
-        ]), m3u8_doc)
+        has_drm = HlsFD._has_drm(m3u8_doc)
 
         def format_url(url):
-            return url if re.match(r'^https?://', url) else compat_urlparse.urljoin(m3u8_url, url)
+            return url if re.match(r'https?://', url) else urllib.parse.urljoin(m3u8_url, url)
 
         if self.get_param('hls_split_discontinuity', False):
             def _extract_m3u8_playlist_indices(manifest_url=None, m3u8_doc=None):
@@ -2178,7 +2115,7 @@ class InfoExtractor:
             formats = [{
                 'format_id': join_nonempty(m3u8_id, idx),
                 'format_index': idx,
-                'url': m3u8_url or encode_data_uri(m3u8_doc.encode('utf-8'), 'application/x-mpegurl'),
+                'url': m3u8_url or encode_data_uri(m3u8_doc.encode(), 'application/x-mpegurl'),
                 'ext': ext,
                 'protocol': entry_protocol,
                 'preference': preference,
@@ -2235,6 +2172,7 @@ class InfoExtractor:
                     'protocol': entry_protocol,
                     'preference': preference,
                     'quality': quality,
+                    'has_drm': has_drm,
                     'vcodec': 'none' if media_type == 'AUDIO' else None,
                 } for idx in _extract_m3u8_playlist_indices(manifest_url))
 
@@ -2294,7 +2232,13 @@ class InfoExtractor:
                         'protocol': entry_protocol,
                         'preference': preference,
                         'quality': quality,
+                        'has_drm': has_drm,
                     }
+
+                    # YouTube-specific
+                    if yt_audio_content_id := last_stream_inf.get('YT-EXT-AUDIO-CONTENT-ID'):
+                        f['language'] = yt_audio_content_id.split('.')[0]
+
                     resolution = last_stream_inf.get('RESOLUTION')
                     if resolution:
                         mobj = re.search(r'(?P<width>\d+)[xX](?P<height>\d+)', resolution)
@@ -2316,7 +2260,7 @@ class InfoExtractor:
                     audio_group_id = last_stream_inf.get('AUDIO')
                     # As per [1, 4.3.4.1.1] any EXT-X-STREAM-INF tag which
                     # references a rendition group MUST have a CODECS attribute.
-                    # However, this is not always respected, for example, [2]
+                    # However, this is not always respected. E.g. [2]
                     # contains EXT-X-STREAM-INF tag which references AUDIO
                     # rendition group but does not have CODECS and despite
                     # referencing an audio group it represents a complete
@@ -2360,12 +2304,24 @@ class InfoExtractor:
         return self._parse_m3u8_vod_duration(m3u8_vod or '', video_id)
 
     def _parse_m3u8_vod_duration(self, m3u8_vod, video_id):
-        if '#EXT-X-PLAYLIST-TYPE:VOD' not in m3u8_vod:
+        if '#EXT-X-ENDLIST' not in m3u8_vod:
             return None
 
         return int(sum(
             float(line[len('#EXTINF:'):].split(',')[0])
             for line in m3u8_vod.splitlines() if line.startswith('#EXTINF:'))) or None
+
+    def _extract_mpd_vod_duration(
+            self, mpd_url, video_id, note=None, errnote=None, data=None, headers={}, query={}):
+
+        mpd_doc = self._download_xml(
+            mpd_url, video_id,
+            note='Downloading MPD VOD manifest' if note is None else note,
+            errnote='Failed to download VOD manifest' if errnote is None else errnote,
+            fatal=False, data=data, headers=headers, query=query)
+        if not isinstance(mpd_doc, xml.etree.ElementTree.Element):
+            return None
+        return int_or_none(parse_duration(mpd_doc.get('mediaPresentationDuration')))
 
     @staticmethod
     def _xpath_ns(path, namespace=None):
@@ -2376,26 +2332,21 @@ class InfoExtractor:
             if not c or c == '.':
                 out.append(c)
             else:
-                out.append('{%s}%s' % (namespace, c))
+                out.append(f'{{{namespace}}}{c}')
         return '/'.join(out)
 
     def _extract_smil_formats_and_subtitles(self, smil_url, video_id, fatal=True, f4m_params=None, transform_source=None):
+        if self.get_param('ignore_no_formats_error'):
+            fatal = False
+
         res = self._download_smil(smil_url, video_id, fatal=fatal, transform_source=transform_source)
         if res is False:
             assert not fatal
             return [], {}
-
         smil, urlh = res
-        smil_url = urlh.geturl()
 
-        namespace = self._parse_smil_namespace(smil)
-
-        fmts = self._parse_smil_formats(
-            smil, smil_url, video_id, namespace=namespace, f4m_params=f4m_params)
-        subs = self._parse_smil_subtitles(
-            smil, namespace=namespace)
-
-        return fmts, subs
+        return self._parse_smil_formats_and_subtitles(smil, urlh.url, video_id, f4m_params=f4m_params,
+                                                      namespace=self._parse_smil_namespace(smil))
 
     def _extract_smil_formats(self, *args, **kwargs):
         fmts, subs = self._extract_smil_formats_and_subtitles(*args, **kwargs)
@@ -2409,7 +2360,7 @@ class InfoExtractor:
             return {}
 
         smil, urlh = res
-        smil_url = urlh.geturl()
+        smil_url = urlh.url
 
         return self._parse_smil(smil, smil_url, video_id, f4m_params=f4m_params)
 
@@ -2421,9 +2372,8 @@ class InfoExtractor:
     def _parse_smil(self, smil, smil_url, video_id, f4m_params=None):
         namespace = self._parse_smil_namespace(smil)
 
-        formats = self._parse_smil_formats(
+        formats, subtitles = self._parse_smil_formats_and_subtitles(
             smil, smil_url, video_id, namespace=namespace, f4m_params=f4m_params)
-        subtitles = self._parse_smil_subtitles(smil, namespace=namespace)
 
         video_id = os.path.splitext(url_basename(smil_url))[0]
         title = None
@@ -2462,7 +2412,14 @@ class InfoExtractor:
         return self._search_regex(
             r'(?i)^{([^}]+)?}smil$', smil.tag, 'namespace', default=None)
 
-    def _parse_smil_formats(self, smil, smil_url, video_id, namespace=None, f4m_params=None, transform_rtmp_url=None):
+    def _parse_smil_formats(self, *args, **kwargs):
+        fmts, subs = self._parse_smil_formats_and_subtitles(*args, **kwargs)
+        if subs:
+            self._report_ignoring_subs('SMIL')
+        return fmts
+
+    def _parse_smil_formats_and_subtitles(
+            self, smil, smil_url, video_id, namespace=None, f4m_params=None, transform_rtmp_url=None):
         base = smil_url
         for meta in smil.findall(self._xpath_ns('./head/meta', namespace)):
             b = meta.get('base') or meta.get('httpBase')
@@ -2470,14 +2427,16 @@ class InfoExtractor:
                 base = b
                 break
 
-        formats = []
+        formats, subtitles = [], {}
         rtmp_count = 0
         http_count = 0
         m3u8_count = 0
         imgs_count = 0
 
         srcs = set()
-        media = smil.findall(self._xpath_ns('.//video', namespace)) + smil.findall(self._xpath_ns('.//audio', namespace))
+        media = itertools.chain.from_iterable(
+            smil.findall(self._xpath_ns(arg, namespace))
+            for arg in ['.//video', './/audio', './/media'])
         for medium in media:
             src = medium.get('src')
             if not src or src in srcs:
@@ -2490,7 +2449,8 @@ class InfoExtractor:
             height = int_or_none(medium.get('height'))
             proto = medium.get('proto')
             ext = medium.get('ext')
-            src_ext = determine_ext(src)
+            src_ext = determine_ext(src, default_ext=None) or ext or urlhandle_detect_ext(
+                self._request_webpage(HEADRequest(src), video_id, note='Requesting extension info', fatal=False))
             streamer = medium.get('streamer') or base
 
             if proto == 'rtmp' or streamer.startswith('rtmp'):
@@ -2513,12 +2473,13 @@ class InfoExtractor:
                     })
                 continue
 
-            src_url = src if src.startswith('http') else compat_urlparse.urljoin(base, src)
+            src_url = src if src.startswith('http') else urllib.parse.urljoin(f'{base}/', src)
             src_url = src_url.strip()
 
             if proto == 'm3u8' or src_ext == 'm3u8':
-                m3u8_formats = self._extract_m3u8_formats(
+                m3u8_formats, m3u8_subs = self._extract_m3u8_formats_and_subtitles(
                     src_url, video_id, ext or 'mp4', m3u8_id='hls', fatal=False)
+                self._merge_subtitles(m3u8_subs, target=subtitles)
                 if len(m3u8_formats) == 1:
                     m3u8_count += 1
                     m3u8_formats[0].update({
@@ -2536,14 +2497,18 @@ class InfoExtractor:
                         'plugin': 'flowplayer-3.2.0.1',
                     }
                 f4m_url += '&' if '?' in f4m_url else '?'
-                f4m_url += compat_urllib_parse_urlencode(f4m_params)
+                f4m_url += urllib.parse.urlencode(f4m_params)
                 formats.extend(self._extract_f4m_formats(f4m_url, video_id, f4m_id='hds', fatal=False))
             elif src_ext == 'mpd':
-                formats.extend(self._extract_mpd_formats(
-                    src_url, video_id, mpd_id='dash', fatal=False))
+                mpd_formats, mpd_subs = self._extract_mpd_formats_and_subtitles(
+                    src_url, video_id, mpd_id='dash', fatal=False)
+                formats.extend(mpd_formats)
+                self._merge_subtitles(mpd_subs, target=subtitles)
             elif re.search(r'\.ism/[Mm]anifest', src_url):
-                formats.extend(self._extract_ism_formats(
-                    src_url, video_id, ism_id='mss', fatal=False))
+                ism_formats, ism_subs = self._extract_ism_formats_and_subtitles(
+                    src_url, video_id, ism_id='mss', fatal=False)
+                formats.extend(ism_formats)
+                self._merge_subtitles(ism_subs, target=subtitles)
             elif src_url.startswith('http') and self._is_valid_url(src, video_id):
                 http_count += 1
                 formats.append({
@@ -2564,7 +2529,7 @@ class InfoExtractor:
 
             imgs_count += 1
             formats.append({
-                'format_id': 'imagestream-%d' % (imgs_count),
+                'format_id': f'imagestream-{imgs_count}',
                 'url': src,
                 'ext': mimetype2ext(medium.get('type')),
                 'acodec': 'none',
@@ -2574,12 +2539,15 @@ class InfoExtractor:
                 'format_note': 'SMIL storyboards',
             })
 
-        return formats
+        smil_subs = self._parse_smil_subtitles(smil, namespace=namespace)
+        self._merge_subtitles(smil_subs, target=subtitles)
+
+        return formats, subtitles
 
     def _parse_smil_subtitles(self, smil, namespace=None, subtitles_lang='en'):
         urls = []
         subtitles = {}
-        for num, textstream in enumerate(smil.findall(self._xpath_ns('.//textstream', namespace))):
+        for textstream in smil.findall(self._xpath_ns('.//textstream', namespace)):
             src = textstream.get('src')
             if not src or src in urls:
                 continue
@@ -2600,7 +2568,7 @@ class InfoExtractor:
             return []
 
         xspf, urlh = res
-        xspf_url = urlh.geturl()
+        xspf_url = urlh.url
 
         return self._parse_xspf(
             xspf, playlist_id, xspf_url=xspf_url,
@@ -2635,7 +2603,6 @@ class InfoExtractor:
                     'width': int_or_none(location.get(xpath_with_ns('s1:width', NS_MAP))),
                     'height': int_or_none(location.get(xpath_with_ns('s1:height', NS_MAP))),
                 })
-            self._sort_formats(formats)
 
             entries.append({
                 'id': playlist_id,
@@ -2653,26 +2620,33 @@ class InfoExtractor:
             self._report_ignoring_subs('DASH')
         return fmts
 
-    def _extract_mpd_formats_and_subtitles(
+    def _extract_mpd_formats_and_subtitles(self, *args, **kwargs):
+        periods = self._extract_mpd_periods(*args, **kwargs)
+        return self._merge_mpd_periods(periods)
+
+    def _extract_mpd_periods(
             self, mpd_url, video_id, mpd_id=None, note=None, errnote=None,
             fatal=True, data=None, headers={}, query={}):
+
+        if self.get_param('ignore_no_formats_error'):
+            fatal = False
+
         res = self._download_xml_handle(
             mpd_url, video_id,
             note='Downloading MPD manifest' if note is None else note,
             errnote='Failed to download MPD manifest' if errnote is None else errnote,
             fatal=fatal, data=data, headers=headers, query=query)
         if res is False:
-            return [], {}
+            return []
         mpd_doc, urlh = res
         if mpd_doc is None:
-            return [], {}
+            return []
 
         # We could have been redirected to a new url when we retrieved our mpd file.
-        mpd_url = urlh.geturl()
+        mpd_url = urlh.url
         mpd_base_url = base_url(mpd_url)
 
-        return self._parse_mpd_formats_and_subtitles(
-            mpd_doc, mpd_id, mpd_base_url, mpd_url)
+        return self._parse_mpd_periods(mpd_doc, mpd_id, mpd_base_url, mpd_url)
 
     def _parse_mpd_formats(self, *args, **kwargs):
         fmts, subs = self._parse_mpd_formats_and_subtitles(*args, **kwargs)
@@ -2680,8 +2654,39 @@ class InfoExtractor:
             self._report_ignoring_subs('DASH')
         return fmts
 
-    def _parse_mpd_formats_and_subtitles(
-            self, mpd_doc, mpd_id=None, mpd_base_url='', mpd_url=None):
+    def _parse_mpd_formats_and_subtitles(self, *args, **kwargs):
+        periods = self._parse_mpd_periods(*args, **kwargs)
+        return self._merge_mpd_periods(periods)
+
+    def _merge_mpd_periods(self, periods):
+        """
+        Combine all formats and subtitles from an MPD manifest into a single list,
+        by concatenate streams with similar formats.
+        """
+        formats, subtitles = {}, {}
+        for period in periods:
+            for f in period['formats']:
+                assert 'is_dash_periods' not in f, 'format already processed'
+                f['is_dash_periods'] = True
+                format_key = tuple(v for k, v in f.items() if k not in (
+                    ('format_id', 'fragments', 'manifest_stream_number')))
+                if format_key not in formats:
+                    formats[format_key] = f
+                elif 'fragments' in f:
+                    formats[format_key].setdefault('fragments', []).extend(f['fragments'])
+
+            if subtitles and period['subtitles']:
+                self.report_warning(bug_reports_message(
+                    'Found subtitles in multiple periods in the DASH manifest; '
+                    'if part of the subtitles are missing,',
+                ), only_once=True)
+
+            for sub_lang, sub_info in period['subtitles'].items():
+                subtitles.setdefault(sub_lang, []).extend(sub_info)
+
+        return list(formats.values()), subtitles
+
+    def _parse_mpd_periods(self, mpd_doc, mpd_id=None, mpd_base_url='', mpd_url=None):
         """
         Parse formats from MPD manifest.
         References:
@@ -2760,9 +2765,13 @@ class InfoExtractor:
             return ms_info
 
         mpd_duration = parse_duration(mpd_doc.get('mediaPresentationDuration'))
-        formats, subtitles = [], {}
         stream_numbers = collections.defaultdict(int)
-        for period in mpd_doc.findall(_add_ns('Period')):
+        for period_idx, period in enumerate(mpd_doc.findall(_add_ns('Period'))):
+            period_entry = {
+                'id': period.get('id', f'period-{period_idx}'),
+                'formats': [],
+                'subtitles': collections.defaultdict(list),
+            }
             period_duration = parse_duration(period.get('duration')) or mpd_duration
             period_ms_info = extract_multisegment_info(period, {
                 'start_number': 1,
@@ -2795,19 +2804,19 @@ class InfoExtractor:
                         elif mimetype2ext(mime_type) in ('tt', 'dfxp', 'ttml', 'xml', 'json'):
                             content_type = 'text'
                         else:
-                            self.report_warning('Unknown MIME type %s in DASH manifest' % mime_type)
+                            self.report_warning(f'Unknown MIME type {mime_type} in DASH manifest')
                             continue
 
                     base_url = ''
                     for element in (representation, adaptation_set, period, mpd_doc):
                         base_url_e = element.find(_add_ns('BaseURL'))
-                        if base_url_e is not None:
+                        if try_call(lambda: base_url_e.text) is not None:
                             base_url = base_url_e.text + base_url
-                            if re.match(r'^https?://', base_url):
+                            if re.match(r'https?://', base_url):
                                 break
                     if mpd_base_url and base_url.startswith('/'):
-                        base_url = compat_urlparse.urljoin(mpd_base_url, base_url)
-                    elif mpd_base_url and not re.match(r'^https?://', base_url):
+                        base_url = urllib.parse.urljoin(mpd_base_url, base_url)
+                    elif mpd_base_url and not re.match(r'https?://', base_url):
                         if not mpd_base_url.endswith('/'):
                             mpd_base_url += '/'
                         base_url = mpd_base_url + base_url
@@ -2833,10 +2842,10 @@ class InfoExtractor:
                             'asr': int_or_none(representation_attrib.get('audioSamplingRate')),
                             'fps': int_or_none(representation_attrib.get('frameRate')),
                             'language': lang if lang not in ('mul', 'und', 'zxx', 'mis') else None,
-                            'format_note': 'DASH %s' % content_type,
+                            'format_note': f'DASH {content_type}',
                             'filesize': filesize,
                             'container': mimetype2ext(mime_type) + '_dash',
-                            **codecs
+                            **codecs,
                         }
                     elif content_type == 'text':
                         f = {
@@ -2861,6 +2870,8 @@ class InfoExtractor:
 
                     def prepare_template(template_name, identifiers):
                         tmpl = representation_ms_info[template_name]
+                        if representation_id is not None:
+                            tmpl = tmpl.replace('$RepresentationID$', representation_id)
                         # First of, % characters outside $...$ templates
                         # must be escaped by doubling for proper processing
                         # by % operator string formatting used further (see
@@ -2875,10 +2886,8 @@ class InfoExtractor:
                                 t += c
                         # Next, $...$ templates are translated to their
                         # %(...) counterparts to be used with % operator
-                        if representation_id is not None:
-                            t = t.replace('$RepresentationID$', representation_id)
-                        t = re.sub(r'\$(%s)\$' % '|'.join(identifiers), r'%(\1)d', t)
-                        t = re.sub(r'\$(%s)%%([^$]+)\$' % '|'.join(identifiers), r'%(\1)\2', t)
+                        t = re.sub(r'\$({})\$'.format('|'.join(identifiers)), r'%(\1)d', t)
+                        t = re.sub(r'\$({})%([^$]+)\$'.format('|'.join(identifiers)), r'%(\1)\2', t)
                         t.replace('$$', '$')
                         return t
 
@@ -2897,7 +2906,7 @@ class InfoExtractor:
                         }
 
                     def location_key(location):
-                        return 'url' if re.match(r'^https?://', location) else 'path'
+                        return 'url' if re.match(r'https?://', location) else 'path'
 
                     if 'segment_urls' not in representation_ms_info and 'media' in representation_ms_info:
 
@@ -2941,26 +2950,26 @@ class InfoExtractor:
                                     'duration': float_or_none(segment_d, representation_ms_info['timescale']),
                                 })
 
-                            for num, s in enumerate(representation_ms_info['s']):
+                            for s in representation_ms_info['s']:
                                 segment_time = s.get('t') or segment_time
                                 segment_d = s['d']
                                 add_segment_url()
                                 segment_number += 1
-                                for r in range(s.get('r', 0)):
+                                for _ in range(s.get('r', 0)):
                                     segment_time += segment_d
                                     add_segment_url()
                                     segment_number += 1
                                 segment_time += segment_d
                     elif 'segment_urls' in representation_ms_info and 's' in representation_ms_info:
-                        # No media template
-                        # Example: https://www.youtube.com/watch?v=iXZV5uAYMJI
+                        # No media template,
+                        # e.g. https://www.youtube.com/watch?v=iXZV5uAYMJI
                         # or any YouTube dashsegments video
                         fragments = []
                         segment_index = 0
                         timescale = representation_ms_info['timescale']
                         for s in representation_ms_info['s']:
                             duration = float_or_none(s['d'], timescale)
-                            for r in range(s.get('r', 0) + 1):
+                            for _ in range(s.get('r', 0) + 1):
                                 segment_uri = representation_ms_info['segment_urls'][segment_index]
                                 fragments.append({
                                     location_key(segment_uri): segment_uri,
@@ -2970,7 +2979,7 @@ class InfoExtractor:
                         representation_ms_info['fragments'] = fragments
                     elif 'segment_urls' in representation_ms_info:
                         # Segment URLs with no SegmentTimeline
-                        # Example: https://www.seznam.cz/zpravy/clanek/cesko-zasahne-vitr-o-sile-vichrice-muze-byt-i-zivotu-nebezpecny-39091
+                        # E.g. https://www.seznam.cz/zpravy/clanek/cesko-zasahne-vitr-o-sile-vichrice-muze-byt-i-zivotu-nebezpecny-39091
                         # https://github.com/ytdl-org/youtube-dl/pull/14844
                         fragments = []
                         segment_duration = float_or_none(
@@ -3012,11 +3021,10 @@ class InfoExtractor:
                     if content_type in ('video', 'audio', 'image/jpeg'):
                         f['manifest_stream_number'] = stream_numbers[f['url']]
                         stream_numbers[f['url']] += 1
-                        formats.append(f)
+                        period_entry['formats'].append(f)
                     elif content_type == 'text':
-                        subtitles.setdefault(lang or 'und', []).append(f)
-
-        return formats, subtitles
+                        period_entry['subtitles'][lang or 'und'].append(f)
+            yield period_entry
 
     def _extract_ism_formats(self, *args, **kwargs):
         fmts, subs = self._extract_ism_formats_and_subtitles(*args, **kwargs)
@@ -3025,6 +3033,9 @@ class InfoExtractor:
         return fmts
 
     def _extract_ism_formats_and_subtitles(self, ism_url, video_id, ism_id=None, note=None, errnote=None, fatal=True, data=None, headers={}, query={}):
+        if self.get_param('ignore_no_formats_error'):
+            fatal = False
+
         res = self._download_xml_handle(
             ism_url, video_id,
             note='Downloading ISM manifest' if note is None else note,
@@ -3036,7 +3047,7 @@ class InfoExtractor:
         if ism_doc is None:
             return [], {}
 
-        return self._parse_ism_formats_and_subtitles(ism_doc, urlh.geturl(), ism_id)
+        return self._parse_ism_formats_and_subtitles(ism_doc, urlh.url, ism_id)
 
     def _parse_ism_formats_and_subtitles(self, ism_doc, ism_url, ism_id=None):
         """
@@ -3062,10 +3073,11 @@ class InfoExtractor:
             stream_name = stream.get('Name')
             stream_language = stream.get('Language', 'und')
             for track in stream.findall('QualityLevel'):
-                fourcc = track.get('FourCC') or ('AACL' if track.get('AudioTag') == '255' else None)
+                KNOWN_TAGS = {'255': 'AACL', '65534': 'EC-3'}
+                fourcc = track.get('FourCC') or KNOWN_TAGS.get(track.get('AudioTag'))
                 # TODO: add support for WVC1 and WMAP
-                if fourcc not in ('H264', 'AVC1', 'AACL', 'TTML'):
-                    self.report_warning('%s is not a supported codec' % fourcc)
+                if fourcc not in ('H264', 'AVC1', 'AACL', 'TTML', 'EC-3'):
+                    self.report_warning(f'{fourcc} is not a supported codec')
                     continue
                 tbr = int(track.attrib['Bitrate']) // 1000
                 # [1] does not mention Width and Height attributes. However,
@@ -3076,7 +3088,7 @@ class InfoExtractor:
                 sampling_rate = int_or_none(track.get('SamplingRate'))
 
                 track_url_pattern = re.sub(r'{[Bb]itrate}', track.attrib['Bitrate'], url_pattern)
-                track_url_pattern = compat_urlparse.urljoin(ism_url, track_url_pattern)
+                track_url_pattern = urllib.parse.urljoin(ism_url, track_url_pattern)
 
                 fragments = []
                 fragment_ctx = {
@@ -3095,7 +3107,7 @@ class InfoExtractor:
                         fragment_ctx['duration'] = (next_fragment_time - fragment_ctx['time']) / fragment_repeat
                     for _ in range(fragment_repeat):
                         fragments.append({
-                            'url': re.sub(r'{start[ _]time}', compat_str(fragment_ctx['time']), track_url_pattern),
+                            'url': re.sub(r'{start[ _]time}', str(fragment_ctx['time']), track_url_pattern),
                             'duration': fragment_ctx['duration'] / stream_timescale,
                         })
                         fragment_ctx['time'] += fragment_ctx['duration']
@@ -3114,7 +3126,7 @@ class InfoExtractor:
                             'fourcc': fourcc,
                             'language': stream_language,
                             'codec_private_data': track.get('CodecPrivateData'),
-                        }
+                        },
                     })
                 elif stream_type in ('video', 'audio'):
                     formats.append({
@@ -3131,6 +3143,8 @@ class InfoExtractor:
                         'protocol': 'ism',
                         'fragments': fragments,
                         'has_drm': ism_doc.find('Protection') is not None,
+                        'language': stream_language,
+                        'audio_channels': int_or_none(track.get('Channels')),
                         '_download_params': {
                             'stream_type': stream_type,
                             'duration': duration,
@@ -3148,7 +3162,7 @@ class InfoExtractor:
                     })
         return formats, subtitles
 
-    def _parse_html5_media_entries(self, base_url, webpage, video_id, m3u8_id=None, m3u8_entry_protocol='m3u8_native', mpd_id=None, preference=None, quality=None):
+    def _parse_html5_media_entries(self, base_url, webpage, video_id, m3u8_id=None, m3u8_entry_protocol='m3u8_native', mpd_id=None, preference=None, quality=None, _headers=None):
         def absolute_url(item_url):
             return urljoin(base_url, item_url)
 
@@ -3172,11 +3186,11 @@ class InfoExtractor:
                 formats = self._extract_m3u8_formats(
                     full_url, video_id, ext='mp4',
                     entry_protocol=m3u8_entry_protocol, m3u8_id=m3u8_id,
-                    preference=preference, quality=quality, fatal=False)
+                    preference=preference, quality=quality, fatal=False, headers=_headers)
             elif ext == 'mpd':
                 is_plain_url = False
                 formats = self._extract_mpd_formats(
-                    full_url, video_id, mpd_id=mpd_id, fatal=False)
+                    full_url, video_id, mpd_id=mpd_id, fatal=False, headers=_headers)
             else:
                 is_plain_url = True
                 formats = [{
@@ -3188,26 +3202,26 @@ class InfoExtractor:
 
         entries = []
         # amp-video and amp-audio are very similar to their HTML5 counterparts
-        # so we wll include them right here (see
+        # so we will include them right here (see
         # https://www.ampproject.org/docs/reference/components/amp-video)
         # For dl8-* tags see https://delight-vr.com/documentation/dl8-video/
         _MEDIA_TAG_NAME_RE = r'(?:(?:amp|dl8(?:-live)?)-)?(video|audio)'
         media_tags = [(media_tag, media_tag_name, media_type, '')
                       for media_tag, media_tag_name, media_type
-                      in re.findall(r'(?s)(<(%s)[^>]*/>)' % _MEDIA_TAG_NAME_RE, webpage)]
+                      in re.findall(rf'(?s)(<({_MEDIA_TAG_NAME_RE})[^>]*/>)', webpage)]
         media_tags.extend(re.findall(
             # We only allow video|audio followed by a whitespace or '>'.
             # Allowing more characters may end up in significant slow down (see
-            # https://github.com/ytdl-org/youtube-dl/issues/11979, example URL:
-            # http://www.porntrex.com/maps/videositemap.xml).
-            r'(?s)(<(?P<tag>%s)(?:\s+[^>]*)?>)(.*?)</(?P=tag)>' % _MEDIA_TAG_NAME_RE, webpage))
+            # https://github.com/ytdl-org/youtube-dl/issues/11979,
+            # e.g. http://www.porntrex.com/maps/videositemap.xml).
+            rf'(?s)(<(?P<tag>{_MEDIA_TAG_NAME_RE})(?:\s+[^>]*)?>)(.*?)</(?P=tag)>', webpage))
         for media_tag, _, media_type, media_content in media_tags:
             media_info = {
                 'formats': [],
                 'subtitles': {},
             }
             media_attributes = extract_attributes(media_tag)
-            src = strip_or_none(media_attributes.get('src'))
+            src = strip_or_none(dict_get(media_attributes, ('src', 'data-video-src', 'data-src', 'data-source')))
             if src:
                 f = parse_content_type(media_attributes.get('type'))
                 _, formats = _media_formats(src, media_type, f)
@@ -3218,7 +3232,7 @@ class InfoExtractor:
                     s_attr = extract_attributes(source_tag)
                     # data-video-src and data-src are non standard but seen
                     # several times in the wild
-                    src = strip_or_none(dict_get(s_attr, ('src', 'data-video-src', 'data-src')))
+                    src = strip_or_none(dict_get(s_attr, ('src', 'data-video-src', 'data-src', 'data-source')))
                     if not src:
                         continue
                     f = parse_content_type(s_attr.get('type'))
@@ -3270,6 +3284,8 @@ class InfoExtractor:
                         })
             for f in media_info['formats']:
                 f.setdefault('http_headers', {})['Referer'] = base_url
+                if _headers:
+                    f['http_headers'].update(_headers)
             if media_info['formats'] or media_info['subtitles']:
                 entries.append(media_info)
         return entries
@@ -3339,18 +3355,18 @@ class InfoExtractor:
         return formats, subtitles
 
     def _extract_wowza_formats(self, url, video_id, m3u8_entry_protocol='m3u8_native', skip_protocols=[]):
-        query = compat_urlparse.urlparse(url).query
+        query = urllib.parse.urlparse(url).query
         url = re.sub(r'/(?:manifest|playlist|jwplayer)\.(?:m3u8|f4m|mpd|smil)', '', url)
         mobj = re.search(
             r'(?:(?:http|rtmp|rtsp)(?P<s>s)?:)?(?P<url>//[^?]+)', url)
         url_base = mobj.group('url')
-        http_base_url = '%s%s:%s' % ('http', mobj.group('s') or '', url_base)
+        http_base_url = '{}{}:{}'.format('http', mobj.group('s') or '', url_base)
         formats = []
 
         def manifest_url(manifest):
             m_url = f'{http_base_url}/{manifest}'
             if query:
-                m_url += '?%s' % query
+                m_url += f'?{query}'
             return m_url
 
         if 'm3u8' not in skip_protocols:
@@ -3372,7 +3388,7 @@ class InfoExtractor:
                     video_id, fatal=False)
                 for rtmp_format in rtmp_formats:
                     rtsp_format = rtmp_format.copy()
-                    rtsp_format['url'] = '%s/%s' % (rtmp_format['url'], rtmp_format['play_path'])
+                    rtsp_format['url'] = '{}/{}'.format(rtmp_format['url'], rtmp_format['play_path'])
                     del rtsp_format['play_path']
                     del rtsp_format['ext']
                     rtsp_format.update({
@@ -3392,41 +3408,35 @@ class InfoExtractor:
         return formats
 
     def _find_jwplayer_data(self, webpage, video_id=None, transform_source=js_to_json):
-        mobj = re.search(
-            r'(?s)jwplayer\((?P<quote>[\'"])[^\'" ]+(?P=quote)\)(?!</script>).*?\.setup\s*\((?P<options>[^)]+)\)',
-            webpage)
-        if mobj:
-            try:
-                jwplayer_data = self._parse_json(mobj.group('options'),
-                                                 video_id=video_id,
-                                                 transform_source=transform_source)
-            except ExtractorError:
-                pass
-            else:
-                if isinstance(jwplayer_data, dict):
-                    return jwplayer_data
+        return self._search_json(
+            r'''(?<!-)\bjwplayer\s*\(\s*(?P<q>'|")(?!(?P=q)).+(?P=q)\s*\)(?:(?!</script>).)*?\.\s*(?:setup\s*\(|(?P<load>load)\s*\(\s*\[)''',
+            webpage, 'JWPlayer data', video_id,
+            # must be a {...} or sequence, ending
+            contains_pattern=r'\{(?s:.*)}(?(load)(?:\s*,\s*\{(?s:.*)})*)', end_pattern=r'(?(load)\]|\))',
+            transform_source=transform_source, default=None)
 
-    def _extract_jwplayer_data(self, webpage, video_id, *args, **kwargs):
+    def _extract_jwplayer_data(self, webpage, video_id, *args, transform_source=js_to_json, **kwargs):
         jwplayer_data = self._find_jwplayer_data(
-            webpage, video_id, transform_source=js_to_json)
+            webpage, video_id, transform_source=transform_source)
         return self._parse_jwplayer_data(
             jwplayer_data, video_id, *args, **kwargs)
 
     def _parse_jwplayer_data(self, jwplayer_data, video_id=None, require_title=True,
                              m3u8_id=None, mpd_id=None, rtmp_params=None, base_url=None):
-        # JWPlayer backward compatibility: flattened playlists
-        # https://github.com/jwplayer/jwplayer/blob/v7.4.3/src/js/api/config.js#L81-L96
-        if 'playlist' not in jwplayer_data:
-            jwplayer_data = {'playlist': [jwplayer_data]}
-
         entries = []
+        if not isinstance(jwplayer_data, dict):
+            return entries
 
-        # JWPlayer backward compatibility: single playlist item
+        playlist_items = jwplayer_data.get('playlist')
+        # JWPlayer backward compatibility: single playlist item/flattened playlists
         # https://github.com/jwplayer/jwplayer/blob/v7.7.0/src/js/playlist/playlist.js#L10
-        if not isinstance(jwplayer_data['playlist'], list):
-            jwplayer_data['playlist'] = [jwplayer_data['playlist']]
+        # https://github.com/jwplayer/jwplayer/blob/v7.4.3/src/js/api/config.js#L81-L96
+        if not isinstance(playlist_items, list):
+            playlist_items = (playlist_items or jwplayer_data, )
 
-        for video_data in jwplayer_data['playlist']:
+        for video_data in playlist_items:
+            if not isinstance(video_data, dict):
+                continue
             # JWPlayer backward compatibility: flattened sources
             # https://github.com/jwplayer/jwplayer/blob/v7.4.3/src/js/playlist/item.js#L29-L35
             if 'sources' not in video_data:
@@ -3439,22 +3449,14 @@ class InfoExtractor:
                 mpd_id=mpd_id, rtmp_params=rtmp_params, base_url=base_url)
 
             subtitles = {}
-            tracks = video_data.get('tracks')
-            if tracks and isinstance(tracks, list):
-                for track in tracks:
-                    if not isinstance(track, dict):
-                        continue
-                    track_kind = track.get('kind')
-                    if not track_kind or not isinstance(track_kind, compat_str):
-                        continue
-                    if track_kind.lower() not in ('captions', 'subtitles'):
-                        continue
-                    track_url = urljoin(base_url, track.get('file'))
-                    if not track_url:
-                        continue
-                    subtitles.setdefault(track.get('label') or 'en', []).append({
-                        'url': self._proto_relative_url(track_url)
-                    })
+            for track in traverse_obj(video_data, (
+                    'tracks', lambda _, v: v['kind'].lower() in ('captions', 'subtitles'))):
+                track_url = urljoin(base_url, track.get('file'))
+                if not track_url:
+                    continue
+                subtitles.setdefault(track.get('label') or 'en', []).append({
+                    'url': self._proto_relative_url(track_url),
+                })
 
             entry = {
                 'id': this_video_id,
@@ -3464,6 +3466,13 @@ class InfoExtractor:
                 'timestamp': int_or_none(video_data.get('pubdate')),
                 'duration': float_or_none(jwplayer_data.get('duration') or video_data.get('duration')),
                 'subtitles': subtitles,
+                'alt_title': clean_html(video_data.get('subtitle')),  # attributes used e.g. by Tele5 ...
+                'genre': clean_html(video_data.get('genre')),
+                'channel': clean_html(dict_get(video_data, ('category', 'channel'))),
+                'season_number': int_or_none(video_data.get('season')),
+                'episode_number': int_or_none(video_data.get('episode')),
+                'release_year': int_or_none(video_data.get('releasedate')),
+                'age_limit': int_or_none(video_data.get('age_restriction')),
             }
             # https://github.com/jwplayer/jwplayer/blob/master/src/js/utils/validator.js#L32
             if len(formats) == 1 and re.search(r'^(?:http|//).*(?:youtube\.com|youtu\.be)/.+', formats[0]['url']):
@@ -3472,7 +3481,6 @@ class InfoExtractor:
                     'url': formats[0]['url'],
                 })
             else:
-                self._sort_formats(formats)
                 entry['formats'] = formats
             entries.append(entry)
         if len(entries) == 1:
@@ -3482,7 +3490,7 @@ class InfoExtractor:
 
     def _parse_jwplayer_formats(self, jwplayer_sources_data, video_id=None,
                                 m3u8_id=None, mpd_id=None, rtmp_params=None, base_url=None):
-        urls = []
+        urls = set()
         formats = []
         for source in jwplayer_sources_data:
             if not isinstance(source, dict):
@@ -3491,14 +3499,14 @@ class InfoExtractor:
                 base_url, self._proto_relative_url(source.get('file')))
             if not source_url or source_url in urls:
                 continue
-            urls.append(source_url)
+            urls.add(source_url)
             source_type = source.get('type') or ''
-            ext = mimetype2ext(source_type) or determine_ext(source_url)
-            if source_type == 'hls' or ext == 'm3u8':
+            ext = determine_ext(source_url, default_ext=mimetype2ext(source_type))
+            if source_type == 'hls' or ext == 'm3u8' or 'format=m3u8-aapl' in source_url:
                 formats.extend(self._extract_m3u8_formats(
                     source_url, video_id, 'mp4', entry_protocol='m3u8_native',
                     m3u8_id=m3u8_id, fatal=False))
-            elif source_type == 'dash' or ext == 'mpd':
+            elif source_type == 'dash' or ext == 'mpd' or 'format=mpd-time-csf' in source_url:
                 formats.extend(self._extract_mpd_formats(
                     source_url, video_id, mpd_id=mpd_id, fatal=False))
             elif ext == 'smil':
@@ -3513,26 +3521,27 @@ class InfoExtractor:
                     'ext': ext,
                 })
             else:
+                format_id = str_or_none(source.get('label'))
                 height = int_or_none(source.get('height'))
-                if height is None:
+                if height is None and format_id:
                     # Often no height is provided but there is a label in
                     # format like "1080p", "720p SD", or 1080.
-                    height = int_or_none(self._search_regex(
-                        r'^(\d{3,4})[pP]?(?:\b|$)', compat_str(source.get('label') or ''),
-                        'height', default=None))
+                    height = parse_resolution(format_id).get('height')
                 a_format = {
                     'url': source_url,
                     'width': int_or_none(source.get('width')),
                     'height': height,
-                    'tbr': int_or_none(source.get('bitrate')),
+                    'tbr': int_or_none(source.get('bitrate'), scale=1000),
+                    'filesize': int_or_none(source.get('filesize')),
                     'ext': ext,
+                    'format_id': format_id,
                 }
                 if source_url.startswith('rtmp'):
                     a_format['ext'] = 'flv'
                     # See com/longtailvideo/jwplayer/media/RTMPMediaProvider.as
                     # of jwplayer.flash.swf
                     rtmp_url_parts = re.split(
-                        r'((?:mp4|mp3|flv):)', source_url, 1)
+                        r'((?:mp4|mp3|flv):)', source_url, maxsplit=1)
                     if len(rtmp_url_parts) == 3:
                         rtmp_url, prefix, play_path = rtmp_url_parts
                         a_format.update({
@@ -3570,15 +3579,15 @@ class InfoExtractor:
 
     def _set_cookie(self, domain, name, value, expire_time=None, port=None,
                     path='/', secure=False, discard=False, rest={}, **kwargs):
-        cookie = compat_cookiejar_Cookie(
+        cookie = http.cookiejar.Cookie(
             0, name, value, port, port is not None, domain, True,
             domain.startswith('.'), path, True, secure, expire_time,
             discard, None, None, rest)
-        self._downloader.cookiejar.set_cookie(cookie)
+        self.cookiejar.set_cookie(cookie)
 
     def _get_cookies(self, url):
-        """ Return a compat_cookies_SimpleCookie with the cookies for the url """
-        return compat_cookies_SimpleCookie(self._downloader._calc_cookies(url))
+        """ Return a http.cookies.SimpleCookie with the cookies for the url """
+        return LenientSimpleCookie(self._downloader.cookiejar.get_cookie_header(url))
 
     def _apply_first_set_cookie_header(self, url_handle, cookie):
         """
@@ -3599,7 +3608,7 @@ class InfoExtractor:
                 continue
             cookies = cookies.encode('iso-8859-1').decode('utf-8')
             cookie_value = re.search(
-                r'%s=(.+?);.*?\b[Dd]omain=(.+?)(?:[,;]|$)' % cookie, cookies)
+                rf'{cookie}=(.+?);.*?\b[Dd]omain=(.+?)(?:[,;]|$)', cookies)
             if cookie_value:
                 value, domain = cookie_value.groups()
                 self._set_cookie(domain, cookie, value)
@@ -3607,24 +3616,54 @@ class InfoExtractor:
 
     @classmethod
     def get_testcases(cls, include_onlymatching=False):
-        t = getattr(cls, '_TEST', None)
+        # Do not look in super classes
+        t = vars(cls).get('_TEST')
         if t:
             assert not hasattr(cls, '_TESTS'), f'{cls.ie_key()}IE has _TEST and _TESTS'
             tests = [t]
         else:
-            tests = getattr(cls, '_TESTS', [])
+            tests = vars(cls).get('_TESTS', [])
         for t in tests:
             if not include_onlymatching and t.get('only_matching', False):
                 continue
             t['name'] = cls.ie_key()
             yield t
+        if getattr(cls, '__wrapped__', None):
+            yield from cls.__wrapped__.get_testcases(include_onlymatching)
 
-    @classproperty
+    @classmethod
+    def get_webpage_testcases(cls):
+        tests = vars(cls).get('_WEBPAGE_TESTS', [])
+        for t in tests:
+            t['name'] = cls.ie_key()
+            yield t
+        if getattr(cls, '__wrapped__', None):
+            yield from cls.__wrapped__.get_webpage_testcases()
+
+    @classproperty(cache=True)
     def age_limit(cls):
         """Get age limit from the testcases"""
         return max(traverse_obj(
-            tuple(cls.get_testcases(include_onlymatching=False)),
+            (*cls.get_testcases(include_onlymatching=False), *cls.get_webpage_testcases()),
             (..., (('playlist', 0), None), 'info_dict', 'age_limit')) or [0])
+
+    @classproperty(cache=True)
+    def _RETURN_TYPE(cls):
+        """What the extractor returns: "video", "playlist", "any", or None (Unknown)"""
+        tests = tuple(cls.get_testcases(include_onlymatching=False))
+        if not tests:
+            return None
+        elif not any(k.startswith('playlist') for test in tests for k in test):
+            return 'video'
+        elif all(any(k.startswith('playlist') for k in test) for test in tests):
+            return 'playlist'
+        return 'any'
+
+    @classmethod
+    def is_single_video(cls, url):
+        """Returns whether the URL is of a single video, None if unknown"""
+        if cls.suitable(url):
+            return {'video': True, 'playlist': False}.get(cls._RETURN_TYPE)
 
     @classmethod
     def is_suitable(cls, age_limit):
@@ -3637,7 +3676,7 @@ class InfoExtractor:
         desc = ''
         if cls._NETRC_MACHINE:
             if markdown:
-                desc += f' [<abbr title="netrc machine"><em>{cls._NETRC_MACHINE}</em></abbr>]'
+                desc += f' [*{cls._NETRC_MACHINE}*](## "netrc machine")'
             else:
                 desc += f' [{cls._NETRC_MACHINE}]'
         if cls.IE_DESC is False:
@@ -3645,14 +3684,15 @@ class InfoExtractor:
         elif cls.IE_DESC:
             desc += f' {cls.IE_DESC}'
         if cls.SEARCH_KEY:
-            desc += f'; "{cls.SEARCH_KEY}:" prefix'
+            desc += f'{";" if cls.IE_DESC else ""} "{cls.SEARCH_KEY}:" prefix'
             if search_examples:
                 _COUNTS = ('', '5', '10', 'all')
-                desc += f' (Example: "{cls.SEARCH_KEY}{random.choice(_COUNTS)}:{random.choice(search_examples)}")'
+                desc += f' (e.g. "{cls.SEARCH_KEY}{random.choice(_COUNTS)}:{random.choice(search_examples)}")'
         if not cls.working():
             desc += ' (**Currently broken**)' if markdown else ' (Currently broken)'
 
-        name = f' - **{cls.IE_NAME}**' if markdown else cls.IE_NAME
+        # Escape emojis. Ref: https://github.com/github/markup/issues/1153
+        name = (' - **{}**'.format(re.sub(r':(\w+:)', ':\u200B\\g<1>', cls.IE_NAME))) if markdown else cls.IE_NAME
         return f'{name}:{desc}' if desc else name
 
     def extract_subtitles(self, *args, **kwargs):
@@ -3663,6 +3703,9 @@ class InfoExtractor:
 
     def _get_subtitles(self, *args, **kwargs):
         raise NotImplementedError('This method must be implemented by subclasses')
+
+    class CommentsDisabled(Exception):
+        """Raise in _get_comments if comments are disabled for the video"""
 
     def extract_comments(self, *args, **kwargs):
         if not self.get_param('getcomments'):
@@ -3679,6 +3722,8 @@ class InfoExtractor:
                 interrupted = False
             except KeyboardInterrupt:
                 self.to_screen('Interrupted by user')
+            except self.CommentsDisabled:
+                return {'comments': None, 'comment_count': None}
             except Exception as e:
                 if self.get_param('ignoreerrors') is not True:
                     raise
@@ -3687,7 +3732,7 @@ class InfoExtractor:
             self.to_screen(f'Extracted {comment_count} comments')
             return {
                 'comments': comments,
-                'comment_count': None if interrupted else comment_count
+                'comment_count': None if interrupted else comment_count,
             }
         return extractor
 
@@ -3743,17 +3788,57 @@ class InfoExtractor:
             headers['Ytdl-request-proxy'] = geo_verification_proxy
         return headers
 
-    def _generic_id(self, url):
-        return compat_urllib_parse_unquote(os.path.splitext(url.rstrip('/').split('/')[-1])[0])
+    @staticmethod
+    def _generic_id(url):
+        return urllib.parse.unquote(os.path.splitext(url.rstrip('/').split('/')[-1])[0])
 
-    def _generic_title(self, url):
-        return compat_urllib_parse_unquote(os.path.splitext(url_basename(url))[0])
+    def _generic_title(self, url='', webpage='', *, default=None):
+        return (self._og_search_title(webpage, default=None)
+                or self._html_extract_title(webpage, default=None)
+                or urllib.parse.unquote(os.path.splitext(url_basename(url))[0])
+                or default)
+
+    def _extract_chapters_helper(self, chapter_list, start_function, title_function, duration, strict=True):
+        if not duration:
+            return
+        chapter_list = [{
+            'start_time': start_function(chapter),
+            'title': title_function(chapter),
+        } for chapter in chapter_list or []]
+        if strict:
+            warn = self.report_warning
+        else:
+            warn = self.write_debug
+            chapter_list.sort(key=lambda c: c['start_time'] or 0)
+
+        chapters = [{'start_time': 0}]
+        for idx, chapter in enumerate(chapter_list):
+            if chapter['start_time'] is None:
+                warn(f'Incomplete chapter {idx}')
+            elif chapters[-1]['start_time'] <= chapter['start_time'] <= duration:
+                chapters.append(chapter)
+            elif chapter not in chapters:
+                issue = (f'{chapter["start_time"]} > {duration}' if chapter['start_time'] > duration
+                         else f'{chapter["start_time"]} < {chapters[-1]["start_time"]}')
+                warn(f'Invalid start time ({issue}) for chapter "{chapter["title"]}"')
+        return chapters[1:]
+
+    def _extract_chapters_from_description(self, description, duration):
+        duration_re = r'(?:\d+:)?\d{1,2}:\d{2}'
+        sep_re = r'(?m)^\s*(%s)\b\W*\s(%s)\s*$'
+        return self._extract_chapters_helper(
+            re.findall(sep_re % (duration_re, r'.+?'), description or ''),
+            start_function=lambda x: parse_duration(x[0]), title_function=lambda x: x[1],
+            duration=duration, strict=False) or self._extract_chapters_helper(
+            re.findall(sep_re % (r'.+?', duration_re), description or ''),
+            start_function=lambda x: parse_duration(x[1]), title_function=lambda x: x[0],
+            duration=duration, strict=False)
 
     @staticmethod
     def _availability(is_private=None, needs_premium=None, needs_subscription=None, needs_auth=None, is_unlisted=None):
-        all_known = all(map(
-            lambda x: x is not None,
-            (is_private, needs_premium, needs_subscription, needs_auth, is_unlisted)))
+        all_known = all(
+            x is not None for x in
+            (is_private, needs_premium, needs_subscription, needs_auth, is_unlisted))
         return (
             'private' if is_private
             else 'premium_only' if needs_premium
@@ -3770,8 +3855,8 @@ class InfoExtractor:
         @param default      The default value to return when the key is not present (default: [])
         @param casesense    When false, the values are converted to lower case
         '''
-        val = traverse_obj(
-            self._downloader.params, ('extractor_args', (ie_key or self.ie_key()).lower(), key))
+        ie_key = ie_key if isinstance(ie_key, str) else (ie_key or self).ie_key()
+        val = traverse_obj(self._downloader.params, ('extractor_args', ie_key.lower(), key))
         if val is None:
             return [] if default is NO_DEFAULT else default
         return list(val) if casesense else [x.lower() for x in val]
@@ -3792,6 +3877,74 @@ class InfoExtractor:
         self.to_screen(f'Downloading {playlist_label}{playlist_id} - add --no-playlist to download just the {video_label}{video_id}')
         return True
 
+    def _error_or_warning(self, err, _count=None, _retries=0, *, fatal=True):
+        RetryManager.report_retry(
+            err, _count or int(fatal), _retries,
+            info=self.to_screen, warn=self.report_warning, error=None if fatal else self.report_warning,
+            sleep_func=self.get_param('retry_sleep_functions', {}).get('extractor'))
+
+    def RetryManager(self, **kwargs):
+        return RetryManager(self.get_param('extractor_retries', 3), self._error_or_warning, **kwargs)
+
+    def _extract_generic_embeds(self, url, *args, info_dict={}, note='Extracting generic embeds', **kwargs):
+        display_id = traverse_obj(info_dict, 'display_id', 'id')
+        self.to_screen(f'{format_field(display_id, None, "%s: ")}{note}')
+        return self._downloader.get_info_extractor('Generic')._extract_embeds(
+            smuggle_url(url, {'block_ies': [self.ie_key()]}), *args, **kwargs)
+
+    @classmethod
+    def extract_from_webpage(cls, ydl, url, webpage):
+        ie = (cls if isinstance(cls._extract_from_webpage, types.MethodType)
+              else ydl.get_info_extractor(cls.ie_key()))
+        for info in ie._extract_from_webpage(url, webpage) or []:
+            # url = None since we do not want to set (webpage/original)_url
+            ydl.add_default_extra_info(info, ie, None)
+            yield info
+
+    @classmethod
+    def _extract_from_webpage(cls, url, webpage):
+        for embed_url in orderedSet(
+                cls._extract_embed_urls(url, webpage) or [], lazy=True):
+            yield cls.url_result(embed_url, None if cls._VALID_URL is False else cls)
+
+    @classmethod
+    def _extract_embed_urls(cls, url, webpage):
+        """@returns all the embed urls on the webpage"""
+        if '_EMBED_URL_RE' not in cls.__dict__:
+            assert isinstance(cls._EMBED_REGEX, (list, tuple))
+            for idx, regex in enumerate(cls._EMBED_REGEX):
+                assert regex.count('(?P<url>') == 1, \
+                    f'{cls.__name__}._EMBED_REGEX[{idx}] must have exactly 1 url group\n\t{regex}'
+            cls._EMBED_URL_RE = tuple(map(re.compile, cls._EMBED_REGEX))
+
+        for regex in cls._EMBED_URL_RE:
+            for mobj in regex.finditer(webpage):
+                embed_url = urllib.parse.urljoin(url, unescapeHTML(mobj.group('url')))
+                if cls._VALID_URL is False or cls.suitable(embed_url):
+                    yield embed_url
+
+    class StopExtraction(Exception):
+        pass
+
+    @classmethod
+    def _extract_url(cls, webpage):  # TODO: Remove
+        """Only for compatibility with some older extractors"""
+        return next(iter(cls._extract_embed_urls(None, webpage) or []), None)
+
+    @classmethod
+    def __init_subclass__(cls, *, plugin_name=None, **kwargs):
+        if plugin_name:
+            mro = inspect.getmro(cls)
+            super_class = cls.__wrapped__ = mro[mro.index(cls) + 1]
+            cls.PLUGIN_NAME, cls.ie_key = plugin_name, super_class.ie_key
+            cls.IE_NAME = f'{super_class.IE_NAME}+{plugin_name}'
+            while getattr(super_class, '__wrapped__', None):
+                super_class = super_class.__wrapped__
+            setattr(sys.modules[super_class.__module__], super_class.__name__, cls)
+            _PLUGIN_OVERRIDES[super_class].append(cls)
+
+        return super().__init_subclass__(**kwargs)
+
 
 class SearchInfoExtractor(InfoExtractor):
     """
@@ -3801,10 +3954,11 @@ class SearchInfoExtractor(InfoExtractor):
     """
 
     _MAX_RESULTS = float('inf')
+    _RETURN_TYPE = 'playlist'
 
-    @classmethod
-    def _make_valid_url(cls):
-        return r'%s(?P<prefix>|[1-9][0-9]*|all):(?P<query>[\s\S]+)' % cls._SEARCH_KEY
+    @classproperty
+    def _VALID_URL(cls):
+        return rf'{cls._SEARCH_KEY}(?P<prefix>|[1-9][0-9]*|all):(?P<query>[\s\S]+)'
 
     def _real_extract(self, query):
         prefix, query = self._match_valid_url(query).group('prefix', 'query')
@@ -3835,3 +3989,15 @@ class SearchInfoExtractor(InfoExtractor):
     @classproperty
     def SEARCH_KEY(cls):
         return cls._SEARCH_KEY
+
+
+class UnsupportedURLIE(InfoExtractor):
+    _VALID_URL = '.*'
+    _ENABLED = False
+    IE_DESC = False
+
+    def _real_extract(self, url):
+        raise UnsupportedError(url)
+
+
+_PLUGIN_OVERRIDES = collections.defaultdict(list)

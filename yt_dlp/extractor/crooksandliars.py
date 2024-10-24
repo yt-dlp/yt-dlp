@@ -7,6 +7,8 @@ from ..utils import (
 
 class CrooksAndLiarsIE(InfoExtractor):
     _VALID_URL = r'https?://embed\.crooksandliars\.com/(?:embed|v)/(?P<id>[A-Za-z0-9]+)'
+    _EMBED_REGEX = [r'<(?:iframe[^>]+src|param[^>]+value)=(["\'])(?P<url>(?:https?:)?//embed\.crooksandliars\.com/(?:embed|v)/.+?)\1']
+
     _TESTS = [{
         'url': 'https://embed.crooksandliars.com/embed/8RUoRhRi',
         'info_dict': {
@@ -19,7 +21,7 @@ class CrooksAndLiarsIE(InfoExtractor):
             'upload_date': '20150405',
             'uploader': 'Heather',
             'duration': 236,
-        }
+        },
     }, {
         'url': 'http://embed.crooksandliars.com/v/MTE3MjUtMzQ2MzA',
         'only_matching': True,
@@ -29,12 +31,9 @@ class CrooksAndLiarsIE(InfoExtractor):
         video_id = self._match_id(url)
 
         webpage = self._download_webpage(
-            'http://embed.crooksandliars.com/embed/%s' % video_id, video_id)
+            f'http://embed.crooksandliars.com/embed/{video_id}', video_id)
 
-        manifest = self._parse_json(
-            self._search_regex(
-                r'var\s+manifest\s*=\s*({.+?})\n', webpage, 'manifest JSON'),
-            video_id)
+        manifest = self._search_json(r'var\s+manifest\s*=', webpage, 'manifest JSON', video_id)
 
         quality = qualities(('webm_low', 'mp4_low', 'webm_high', 'mp4_high'))
 
@@ -43,7 +42,6 @@ class CrooksAndLiarsIE(InfoExtractor):
             'format_id': item['type'],
             'quality': quality(item['type']),
         } for item in manifest['flavors'] if item['mime'].startswith('video/')]
-        self._sort_formats(formats)
 
         return {
             'url': url,

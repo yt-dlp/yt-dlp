@@ -16,6 +16,7 @@ from ..utils import (
 
 
 class SpotifyBaseIE(InfoExtractor):
+    _WORKING = False
     _ACCESS_TOKEN = None
     _OPERATION_HASHES = {
         'Episode': '8276d4423d709ae9b68ec1b74cc047ba0f7479059a37820be730f125189ac2bf',
@@ -23,6 +24,7 @@ class SpotifyBaseIE(InfoExtractor):
         'ShowEpisodes': 'e0e5ce27bd7748d2c59b4d44ba245a8992a05be75d6fabc3b20753fc8857444d',
     }
     _VALID_URL_TEMPL = r'https?://open\.spotify\.com/(?:embed-podcast/|embed/|)%s/(?P<id>[^/?&#]+)'
+    _EMBED_REGEX = [r'<iframe[^>]+src="(?P<url>https?://open\.spotify.com/embed/[^"]+)"']
 
     def _real_initialize(self):
         self._ACCESS_TOKEN = self._download_json(
@@ -37,7 +39,7 @@ class SpotifyBaseIE(InfoExtractor):
                     'persistedQuery': {
                         'sha256Hash': self._OPERATION_HASHES[operation],
                     },
-                })
+                }),
             }, headers={'authorization': 'Bearer ' + self._ACCESS_TOKEN},
             **kwargs)['data']
 
@@ -97,12 +99,6 @@ class SpotifyBaseIE(InfoExtractor):
             'series': series,
         }
 
-    @classmethod
-    def _extract_embed_urls(cls, webpage):
-        return re.findall(
-            r'<iframe[^>]+src="(https?://open\.spotify.com/embed/[^"]+)"',
-            webpage)
-
 
 class SpotifyIE(SpotifyBaseIE):
     IE_NAME = 'spotify'
@@ -119,7 +115,7 @@ class SpotifyIE(SpotifyBaseIE):
             'duration': 2083.605,
             'release_date': '20201217',
             'series': "The Guardian's Audio Long Reads",
-        }
+        },
     }, {
         'url': 'https://open.spotify.com/embed/episode/4TvCsKKs2thXmarHigWvXE?si=7eatS8AbQb6RxqO2raIuWA',
         'only_matching': True,
@@ -128,7 +124,7 @@ class SpotifyIE(SpotifyBaseIE):
     def _real_extract(self, url):
         episode_id = self._match_id(url)
         episode = self._call_api('Episode', episode_id, {
-            'uri': 'spotify:episode:' + episode_id
+            'uri': 'spotify:episode:' + episode_id,
         })['episode']
         return self._extract_episode(
             episode, try_get(episode, lambda x: x['podcast']['name']))

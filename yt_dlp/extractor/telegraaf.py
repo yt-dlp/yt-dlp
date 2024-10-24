@@ -31,18 +31,20 @@ class TelegraafIE(InfoExtractor):
         article_id = self._match_id(url)
 
         video_id = self._download_json(
-            'https://www.telegraaf.nl/graphql', article_id, query={
+            'https://app.telegraaf.nl/graphql', article_id,
+            headers={'User-Agent': 'De Telegraaf/6.8.11 (Android 11; en_US)'},
+            query={
                 'query': '''{
   article(uid: %s) {
     videos {
       videoId
     }
   }
-}''' % article_id,
+}''' % article_id,  # noqa: UP031
             })['data']['article']['videos'][0]['videoId']
 
         item = self._download_json(
-            'https://content.tmgvideo.nl/playlist/item=%s/playlist.json' % video_id,
+            f'https://content.tmgvideo.nl/playlist/item={video_id}/playlist.json',
             video_id)['items'][0]
         title = item['title']
 
@@ -60,7 +62,7 @@ class TelegraafIE(InfoExtractor):
                 formats.extend(self._extract_mpd_formats(
                     manifest_url, video_id, mpd_id='dash', fatal=False))
             else:
-                self.report_warning('Unknown adaptive format %s' % ext)
+                self.report_warning(f'Unknown adaptive format {ext}')
         for location in locations.get('progressive', []):
             src = try_get(location, lambda x: x['sources'][0]['src'])
             if not src:
@@ -70,10 +72,8 @@ class TelegraafIE(InfoExtractor):
                 'url': src,
                 'width': int_or_none(location.get('width')),
                 'height': int_or_none(location.get('height')),
-                'format_id': 'http' + ('-%s' % label if label else ''),
+                'format_id': 'http' + (f'-{label}' if label else ''),
             })
-
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

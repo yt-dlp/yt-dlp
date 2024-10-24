@@ -3,49 +3,69 @@ import functools
 from .common import InfoExtractor
 from ..utils import (
     OnDemandPagedList,
+    float_or_none,
     traverse_obj,
     unified_strdate,
 )
 
 
 class GronkhIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?gronkh\.tv/(?:watch/)?stream/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?gronkh\.tv/(?:watch/)?streams?/(?P<id>\d+)'
 
     _TESTS = [{
+        'url': 'https://gronkh.tv/streams/657',
+        'info_dict': {
+            'id': '657',
+            'ext': 'mp4',
+            'title': 'H.O.R.D.E. - DAS ZWEiTE ZEiTALTER 🎲 Session 1',
+            'view_count': int,
+            'thumbnail': 'https://01.cdn.vod.farm/preview/9e2555d3a23bf4e5c5b7c6b3b70a9d84.jpg',
+            'upload_date': '20221111',
+            'chapters': 'count:3',
+            'duration': 31463,
+        },
+        'params': {'skip_download': True},
+    }, {
         'url': 'https://gronkh.tv/stream/536',
         'info_dict': {
             'id': '536',
             'ext': 'mp4',
             'title': 'GTV0536, 2021-10-01 - MARTHA IS DEAD  #FREiAB1830  !FF7 !horde !archiv',
-            'view_count': 19491,
+            'view_count': int,
             'thumbnail': 'https://01.cdn.vod.farm/preview/6436746cce14e25f751260a692872b9b.jpg',
-            'upload_date': '20211001'
+            'upload_date': '20211001',
+            'duration': 32058,
         },
-        'params': {'skip_download': True}
+        'params': {'skip_download': True},
     }, {
         'url': 'https://gronkh.tv/watch/stream/546',
         'only_matching': True,
     }]
 
     def _real_extract(self, url):
-        id = self._match_id(url)
-        data_json = self._download_json(f'https://api.gronkh.tv/v1/video/info?episode={id}', id)
-        m3u8_url = self._download_json(f'https://api.gronkh.tv/v1/video/playlist?episode={id}', id)['playlist_url']
-        formats, subtitles = self._extract_m3u8_formats_and_subtitles(m3u8_url, id)
+        video_id = self._match_id(url)
+        data_json = self._download_json(f'https://api.gronkh.tv/v1/video/info?episode={video_id}', video_id)
+        m3u8_url = self._download_json(f'https://api.gronkh.tv/v1/video/playlist?episode={video_id}', video_id)['playlist_url']
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(m3u8_url, video_id)
         if data_json.get('vtt_url'):
             subtitles.setdefault('en', []).append({
                 'url': data_json['vtt_url'],
                 'ext': 'vtt',
             })
-        self._sort_formats(formats)
         return {
-            'id': id,
+            'id': video_id,
             'title': data_json.get('title'),
             'view_count': data_json.get('views'),
             'thumbnail': data_json.get('preview_url'),
             'upload_date': unified_strdate(data_json.get('created_at')),
             'formats': formats,
             'subtitles': subtitles,
+            'duration': float_or_none(data_json.get('source_length')),
+            'chapters': traverse_obj(data_json, (
+                'chapters', lambda _, v: float_or_none(v['offset']) is not None, {
+                    'title': 'title',
+                    'start_time': ('offset', {float_or_none}),
+                })) or None,
         }
 
 

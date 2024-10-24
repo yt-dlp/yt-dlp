@@ -1,13 +1,13 @@
 import contextlib
-import errno
 import json
 import os
 import re
 import shutil
 import traceback
+import urllib.parse
 
-from .compat import compat_getenv
-from .utils import expand_path, write_json_file
+from .utils import expand_path, traverse_obj, version_tuple, write_json_file
+from .version import __version__
 
 
 class Cache:
@@ -17,16 +17,14 @@ class Cache:
     def _get_root_dir(self):
         res = self._ydl.params.get('cachedir')
         if res is None:
-            cache_root = compat_getenv('XDG_CACHE_HOME', '~/.cache')
+            cache_root = os.getenv('XDG_CACHE_HOME', '~/.cache')
             res = os.path.join(cache_root, 'yt-dlp')
         return expand_path(res)
 
     def _get_cache_fn(self, section, key, dtype):
-        assert re.match(r'^[a-zA-Z0-9_.-]+$', section), \
-            'invalid section %r' % section
-        assert re.match(r'^[a-zA-Z0-9_.-]+$', key), 'invalid key %r' % key
-        return os.path.join(
-            self._get_root_dir(), section, f'{key}.{dtype}')
+        assert re.match(r'^[\w.-]+$', section), f'invalid section {section!r}'
+        key = urllib.parse.quote(key, safe='').replace('%', ',')  # encode non-ascii characters
+        return os.path.join(self._get_root_dir(), section, f'{key}.{dtype}')
 
     @property
     def enabled(self):
@@ -40,18 +38,22 @@ class Cache:
 
         fn = self._get_cache_fn(section, key, dtype)
         try:
-            try:
-                os.makedirs(os.path.dirname(fn))
-            except OSError as ose:
-                if ose.errno != errno.EEXIST:
-                    raise
+            os.makedirs(os.path.dirname(fn), exist_ok=True)
             self._ydl.write_debug(f'Saving {section}.{key} to cache')
-            write_json_file(data, fn)
+            write_json_file({'yt-dlp_version': __version__, 'data': data}, fn)
         except Exception:
             tb = traceback.format_exc()
             self._ydl.report_warning(f'Writing cache to {fn!r} failed: {tb}')
 
-    def load(self, section, key, dtype='json', default=None):
+    def _validate(self, data, min_ver):
+        version = traverse_obj(data, 'yt-dlp_version')
+        if not version:  # Backward compatibility
+            data, version = {'data': data}, '2022.08.19'
+        if not min_ver or version_tuple(version) >= version_tuple(min_ver):
+            return data['data']
+        self._ydl.write_debug(f'Discarding old cache from version {version} (needs {min_ver})')
+
+    def load(self, section, key, dtype='json', default=None, *, min_ver=None):
         assert dtype in ('json',)
 
         if not self.enabled:
@@ -62,8 +64,8 @@ class Cache:
             try:
                 with open(cache_fn, encoding='utf-8') as cachef:
                     self._ydl.write_debug(f'Loading {section}.{key} from cache')
-                    return json.load(cachef)
-            except ValueError:
+                    return self._validate(json.load(cachef), min_ver)
+            except (ValueError, KeyError):
                 try:
                     file_size = os.path.getsize(cache_fn)
                 except OSError as oe:
@@ -79,10 +81,10 @@ class Cache:
 
         cachedir = self._get_root_dir()
         if not any((term in cachedir) for term in ('cache', 'tmp')):
-            raise Exception('Not removing directory %s - this does not look like a cache dir' % cachedir)
+            raise Exception(f'Not removing directory {cachedir} - this does not look like a cache dir')
 
         self._ydl.to_screen(
-            'Removing cache dir %s .' % cachedir, skip_eol=True)
+            f'Removing cache dir {cachedir} .', skip_eol=True)
         if os.path.exists(cachedir):
             self._ydl.to_screen('.', skip_eol=True)
             shutil.rmtree(cachedir)

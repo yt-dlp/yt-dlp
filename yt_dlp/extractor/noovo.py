@@ -1,6 +1,5 @@
 from .brightcove import BrightcoveNewIE
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     int_or_none,
     js_to_json,
@@ -65,7 +64,7 @@ class NoovoIE(InfoExtractor):
 
         title = try_get(
             data, lambda x: x['video']['nom'],
-            compat_str) or self._html_search_meta(
+            str) or self._html_search_meta(
             'dcterms.Title', webpage, 'title', fatal=True)
 
         description = self._html_search_meta(
@@ -77,11 +76,11 @@ class NoovoIE(InfoExtractor):
             webpage, 'series', default=None)
 
         season_el = try_get(data, lambda x: x['emission']['saison'], dict) or {}
-        season = try_get(season_el, lambda x: x['nom'], compat_str)
+        season = try_get(season_el, lambda x: x['nom'], str)
         season_number = int_or_none(try_get(season_el, lambda x: x['numero']))
 
         episode_el = try_get(season_el, lambda x: x['episode'], dict) or {}
-        episode = try_get(episode_el, lambda x: x['nom'], compat_str)
+        episode = try_get(episode_el, lambda x: x['nom'], str)
         episode_number = int_or_none(try_get(episode_el, lambda x: x['numero']))
 
         return {

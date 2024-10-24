@@ -1,18 +1,17 @@
-import re
-
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     int_or_none,
     qualities,
-    unescapeHTML,
     url_or_none,
 )
 
 
 class YapFilesIE(InfoExtractor):
+    _WORKING = False
     _YAPFILES_URL = r'//(?:(?:www|api)\.)?yapfiles\.ru/get_player/*\?.*?\bv=(?P<id>\w+)'
-    _VALID_URL = r'https?:%s' % _YAPFILES_URL
+    _VALID_URL = rf'https?:{_YAPFILES_URL}'
+    _EMBED_REGEX = [rf'<iframe\b[^>]+\bsrc=(["\'])(?P<url>(?:https?:)?{_YAPFILES_URL}.*?)\1']
     _TESTS = [{
         # with hd
         'url': 'http://www.yapfiles.ru/get_player/?v=vMDE1NjcyNDUt0413',
@@ -30,12 +29,6 @@ class YapFilesIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    @staticmethod
-    def _extract_urls(webpage):
-        return [unescapeHTML(mobj.group('url')) for mobj in re.finditer(
-            r'<iframe\b[^>]+\bsrc=(["\'])(?P<url>(?:https?:)?%s.*?)\1'
-            % YapFilesIE._YAPFILES_URL, webpage)]
-
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
@@ -49,7 +42,7 @@ class YapFilesIE(InfoExtractor):
                 'player url', default=None, group='url')
 
         if not player_url:
-            player_url = 'http://api.yapfiles.ru/load/%s/' % video_id
+            player_url = f'http://api.yapfiles.ru/load/{video_id}/'
             query = {
                 'md5': 'ded5f369be61b8ae5f88e2eeb2f3caff',
                 'type': 'json',
@@ -65,7 +58,7 @@ class YapFilesIE(InfoExtractor):
 
         if title == 'Ролик удален' or 'deleted.jpg' in (thumbnail or ''):
             raise ExtractorError(
-                'Video %s has been removed' % video_id, expected=True)
+                f'Video {video_id} has been removed', expected=True)
 
         playlist = self._download_json(
             playlist_url, video_id)['player']['main']
@@ -87,7 +80,6 @@ class YapFilesIE(InfoExtractor):
                 'quality': quality_key(format_id),
                 'height': hd_height if is_hd else None,
             })
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

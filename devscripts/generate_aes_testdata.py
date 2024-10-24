@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
-import codecs
+
+# Allow direct execution
 import os
-import subprocess
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+
+import codecs
+import subprocess
 
 from yt_dlp.aes import aes_encrypt, key_expansion
 from yt_dlp.utils import intlist_to_bytes

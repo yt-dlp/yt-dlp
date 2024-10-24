@@ -1,17 +1,19 @@
+import collections
 import contextlib
 import json
 import os
 import subprocess
 import tempfile
+import urllib.parse
 
-from ..compat import compat_urlparse
 from ..utils import (
     ExtractorError,
     Popen,
     check_executable,
-    encodeArgument,
+    format_field,
     get_exe_version,
     is_outdated_version,
+    shell_quote,
 )
 
 
@@ -50,7 +52,9 @@ class PhantomJSwrapper:
     This class is experimental.
     """
 
-    _TEMPLATE = r'''
+    INSTALL_HINT = 'Please download it from https://phantomjs.org/download.html'
+
+    _BASE_JS = R'''
         phantom.onError = function(msg, trace) {{
           var msgStack = ['PHANTOM ERROR: ' + msg];
           if(trace && trace.length) {{
@@ -63,6 +67,9 @@ class PhantomJSwrapper:
           console.error(msgStack.join('\n'));
           phantom.exit(1);
         }};
+    '''
+
+    _TEMPLATE = R'''
         var page = require('webpage').create();
         var fs = require('fs');
         var read = {{ mode: 'r', charset: 'utf-8' }};
@@ -105,9 +112,7 @@ class PhantomJSwrapper:
 
         self.exe = check_executable('phantomjs', ['-v'])
         if not self.exe:
-            raise ExtractorError('PhantomJS executable not found in PATH, '
-                                 'download it from http://phantomjs.org',
-                                 expected=True)
+            raise ExtractorError(f'PhantomJS not found, {self.INSTALL_HINT}', expected=True)
 
         self.extractor = extractor
 
@@ -116,15 +121,19 @@ class PhantomJSwrapper:
             if is_outdated_version(version, required_version):
                 self.extractor._downloader.report_warning(
                     'Your copy of PhantomJS is outdated, update it to version '
-                    '%s or newer if you encounter any errors.' % required_version)
+                    f'{required_version} or newer if you encounter any errors.')
 
-        self.options = {
-            'timeout': timeout,
-        }
         for name in self._TMP_FILE_NAMES:
             tmp = tempfile.NamedTemporaryFile(delete=False)
             tmp.close()
             self._TMP_FILES[name] = tmp
+
+        self.options = collections.ChainMap({
+            'timeout': timeout,
+        }, {
+            x: self._TMP_FILES[x].name.replace('\\', '\\\\').replace('"', '\\"')
+            for x in self._TMP_FILE_NAMES
+        })
 
     def __del__(self):
         for name in self._TMP_FILE_NAMES:
@@ -132,14 +141,14 @@ class PhantomJSwrapper:
                 os.remove(self._TMP_FILES[name].name)
 
     def _save_cookies(self, url):
-        cookies = cookie_jar_to_list(self.extractor._downloader.cookiejar)
+        cookies = cookie_jar_to_list(self.extractor.cookiejar)
         for cookie in cookies:
             if 'path' not in cookie:
                 cookie['path'] = '/'
             if 'domain' not in cookie:
-                cookie['domain'] = compat_urlparse.urlparse(url).netloc
+                cookie['domain'] = urllib.parse.urlparse(url).netloc
         with open(self._TMP_FILES['cookies'].name, 'wb') as f:
-            f.write(json.dumps(cookies).encode('utf-8'))
+            f.write(json.dumps(cookies).encode())
 
     def _load_cookies(self):
         with open(self._TMP_FILES['cookies'].name, 'rb') as f:
@@ -171,7 +180,7 @@ class PhantomJSwrapper:
         In most cases you don't need to add any `jscode`.
         It is executed in `page.onLoadFinished`.
         `saveAndExit();` is mandatory, use it instead of `phantom.exit()`
-        It is possible to wait for some element on the webpage, for example:
+        It is possible to wait for some element on the webpage, e.g.
             var check = function() {
               var elementFound = page.evaluate(function() {
                 return document.querySelector('#b.done') !== null;
@@ -192,37 +201,43 @@ class PhantomJSwrapper:
         if not html:
             html = self.extractor._download_webpage(url, video_id, note=note, headers=headers)
         with open(self._TMP_FILES['html'].name, 'wb') as f:
-            f.write(html.encode('utf-8'))
+            f.write(html.encode())
 
         self._save_cookies(url)
 
-        replaces = self.options
-        replaces['url'] = url
         user_agent = headers.get('User-Agent') or self.extractor.get_param('http_headers')['User-Agent']
-        replaces['ua'] = user_agent.replace('"', '\\"')
-        replaces['jscode'] = jscode
+        jscode = self._TEMPLATE.format_map(self.options.new_child({
+            'url': url,
+            'ua': user_agent.replace('"', '\\"'),
+            'jscode': jscode,
+        }))
 
-        for x in self._TMP_FILE_NAMES:
-            replaces[x] = self._TMP_FILES[x].name.replace('\\', '\\\\').replace('"', '\\"')
+        stdout = self.execute(jscode, video_id, note=note2)
 
-        with open(self._TMP_FILES['script'].name, 'wb') as f:
-            f.write(self._TEMPLATE.format(**replaces).encode('utf-8'))
-
-        if video_id is None:
-            self.extractor.to_screen(f'{note2}')
-        else:
-            self.extractor.to_screen(f'{video_id}: {note2}')
-
-        p = Popen(
-            [self.exe, '--ssl-protocol=any', self._TMP_FILES['script'].name],
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        out, err = p.communicate_or_kill()
-        if p.returncode != 0:
-            raise ExtractorError(
-                'Executing JS failed\n:' + encodeArgument(err))
         with open(self._TMP_FILES['html'].name, 'rb') as f:
             html = f.read().decode('utf-8')
-
         self._load_cookies()
 
-        return (html, encodeArgument(out))
+        return html, stdout
+
+    def execute(self, jscode, video_id=None, *, note='Executing JS'):
+        """Execute JS and return stdout"""
+        if 'phantom.exit();' not in jscode:
+            jscode += ';\nphantom.exit();'
+        jscode = self._BASE_JS + jscode
+
+        with open(self._TMP_FILES['script'].name, 'w', encoding='utf-8') as f:
+            f.write(jscode)
+        self.extractor.to_screen(f'{format_field(video_id, None, "%s: ")}{note}')
+
+        cmd = [self.exe, '--ssl-protocol=any', self._TMP_FILES['script'].name]
+        self.extractor.write_debug(f'PhantomJS command line: {shell_quote(cmd)}')
+        try:
+            stdout, stderr, returncode = Popen.run(cmd, timeout=self.options['timeout'] / 1000,
+                                                   text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        except Exception as e:
+            raise ExtractorError(f'{note} failed: Unable to run PhantomJS binary', cause=e)
+        if returncode:
+            raise ExtractorError(f'{note} failed with returncode {returncode}:\n{stderr.strip()}')
+
+        return stdout

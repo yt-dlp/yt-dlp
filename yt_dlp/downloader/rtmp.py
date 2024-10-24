@@ -4,7 +4,6 @@ import subprocess
 import time
 
 from .common import FileDownloader
-from ..compat import compat_str
 from ..utils import (
     Popen,
     check_executable,
@@ -92,8 +91,7 @@ class RtmpFD(FileDownloader):
                     self.to_screen('')
                 return proc.wait()
             except BaseException:  # Including KeyboardInterrupt
-                proc.kill()
-                proc.wait()
+                proc.kill(timeout=None)
                 raise
 
         url = info_dict['url']
@@ -144,7 +142,7 @@ class RtmpFD(FileDownloader):
         if isinstance(conn, list):
             for entry in conn:
                 basic_args += ['--conn', entry]
-        elif isinstance(conn, compat_str):
+        elif isinstance(conn, str):
             basic_args += ['--conn', conn]
         if protocol is not None:
             basic_args += ['--protocol', protocol]
@@ -182,9 +180,9 @@ class RtmpFD(FileDownloader):
 
         while retval in (RD_INCOMPLETE, RD_FAILED) and not test and not live:
             prevsize = os.path.getsize(encodeFilename(tmpfilename))
-            self.to_screen('[rtmpdump] Downloaded %s bytes' % prevsize)
+            self.to_screen(f'[rtmpdump] Downloaded {prevsize} bytes')
             time.sleep(5.0)  # This seems to be needed
-            args = basic_args + ['--resume']
+            args = [*basic_args, '--resume']
             if retval == RD_FAILED:
                 args += ['--skip', '1']
             args = [encodeArgument(a) for a in args]
@@ -199,7 +197,7 @@ class RtmpFD(FileDownloader):
                 break
         if retval == RD_SUCCESS or (test and retval == RD_INCOMPLETE):
             fsize = os.path.getsize(encodeFilename(tmpfilename))
-            self.to_screen('[rtmpdump] Downloaded %s bytes' % fsize)
+            self.to_screen(f'[rtmpdump] Downloaded {fsize} bytes')
             self.try_rename(tmpfilename, filename)
             self._hook_progress({
                 'downloaded_bytes': fsize,

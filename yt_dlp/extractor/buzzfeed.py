@@ -23,8 +23,8 @@ class BuzzFeedIE(InfoExtractor):
                 'upload_date': '20141024',
                 'uploader_id': 'Buddhanz1',
                 'uploader': 'Angry Ram',
-            }
-        }]
+            },
+        }],
     }, {
         'url': 'http://www.buzzfeed.com/sheridanwatson/look-at-this-cute-dog-omg?utm_term=4ldqpia',
         'params': {
@@ -45,7 +45,7 @@ class BuzzFeedIE(InfoExtractor):
                 'uploader_id': 'CindysMunchkin',
                 'uploader': 're:^Munchkin the',
             },
-        }]
+        }],
     }, {
         'url': 'http://www.buzzfeed.com/craigsilverman/the-most-adorable-crash-landing-ever#.eq7pX0BAmK',
         'info_dict': {
@@ -81,7 +81,7 @@ class BuzzFeedIE(InfoExtractor):
                 continue
             entries.append(self.url_result(video['url']))
 
-        facebook_urls = FacebookIE._extract_urls(webpage)
+        facebook_urls = FacebookIE._extract_embed_urls(url, webpage)
         entries.extend([
             self.url_result(facebook_url)
             for facebook_url in facebook_urls])

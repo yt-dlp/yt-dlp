@@ -25,7 +25,6 @@ class HSEShowBaseInfoExtractor(InfoExtractor):
             fmts, subs = self._extract_m3u8_formats_and_subtitles(src['url'], video_id, ext='mp4')
             formats.extend(fmts)
             subtitles = self._merge_subtitles(subtitles, subs)
-        self._sort_formats(formats)
         return formats, subtitles
 
 
@@ -40,7 +39,7 @@ class HSEShowIE(HSEShowBaseInfoExtractor):
             'timestamp': 1638810000,
             'upload_date': '20211206',
             'channel': 'HSE24',
-            'uploader': 'Arina Pirayesh'
+            'uploader': 'Arina Pirayesh',
         },
         'params': {'skip_download': 'm3u8'},
     }]
@@ -73,7 +72,7 @@ class HSEProductIE(HSEShowBaseInfoExtractor):
             'id': '408630',
             'ext': 'mp4',
             'title': 'Hose im Ponte-Mix',
-            'uploader': 'Judith Williams'
+            'uploader': 'Judith Williams',
         },
         'params': {'skip_download': 'm3u8'},
     }]

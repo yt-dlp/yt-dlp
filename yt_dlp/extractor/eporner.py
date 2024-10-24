@@ -1,8 +1,10 @@
 from .common import InfoExtractor
 from ..utils import (
-    encode_base_n,
     ExtractorError,
+    encode_base_n,
+    get_elements_by_class,
     int_or_none,
+    join_nonempty,
     merge_dicts,
     parse_duration,
     str_to_int,
@@ -27,9 +29,6 @@ class EpornerIE(InfoExtractor):
             'view_count': int,
             'age_limit': 18,
         },
-        'params': {
-            'proxy': '127.0.0.1:8118'
-        }
     }, {
         # New (May 2016) URL layout
         'url': 'http://www.eporner.com/hd-porn/3YRUtzMcWn0/Star-Wars-XXX-Parody/',
@@ -52,9 +51,9 @@ class EpornerIE(InfoExtractor):
 
         webpage, urlh = self._download_webpage_handle(url, display_id)
 
-        video_id = self._match_id(urlh.geturl())
+        video_id = self._match_id(urlh.url)
 
-        hash = self._search_regex(
+        vid_hash = self._search_regex(
             r'hash\s*[:=]\s*["\']([\da-f]{32})', webpage, 'hash')
 
         title = self._og_search_title(webpage, default=None) or self._html_search_regex(
@@ -62,13 +61,13 @@ class EpornerIE(InfoExtractor):
 
         # Reverse engineered from vjs.js
         def calc_hash(s):
-            return ''.join((encode_base_n(int(s[lb:lb + 8], 16), 36) for lb in range(0, 32, 8)))
+            return ''.join(encode_base_n(int(s[lb:lb + 8], 16), 36) for lb in range(0, 32, 8))
 
         video = self._download_json(
-            'http://www.eporner.com/xhr/video/%s' % video_id,
+            f'http://www.eporner.com/xhr/video/{video_id}',
             display_id, note='Downloading video JSON',
             query={
-                'hash': calc_hash(hash),
+                'hash': calc_hash(vid_hash),
                 'device': 'generic',
                 'domain': 'www.eporner.com',
                 'fallback': 'false',
@@ -76,11 +75,12 @@ class EpornerIE(InfoExtractor):
 
         if video.get('available') is False:
             raise ExtractorError(
-                '%s said: %s' % (self.IE_NAME, video['message']), expected=True)
+                '{} said: {}'.format(self.IE_NAME, video['message']), expected=True)
 
         sources = video['sources']
 
         formats = []
+        has_av1 = bool(get_elements_by_class('download-av1', webpage))
         for kind, formats_dict in sources.items():
             if not isinstance(formats_dict, dict):
                 continue
@@ -106,7 +106,14 @@ class EpornerIE(InfoExtractor):
                         'height': height,
                         'fps': fps,
                     })
-        self._sort_formats(formats)
+                    if has_av1:
+                        formats.append({
+                            'url': src.replace('.mp4', '-av1.mp4'),
+                            'format_id': join_nonempty('av1', format_id),
+                            'height': height,
+                            'fps': fps,
+                            'vcodec': 'av1',
+                        })
 
         json_ld = self._search_json_ld(webpage, display_id, default={})
 

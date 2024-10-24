@@ -1,3 +1,6 @@
+#!/usr/bin/env python3
+
+# Allow direct execution
 import os
 import sys
 import unittest
@@ -18,7 +21,7 @@ class TestNetRc(unittest.TestCase):
                 continue
             self.assertTrue(
                 ie._NETRC_MACHINE,
-                'Extractor %s supports login, but is missing a _NETRC_MACHINE property' % ie.IE_NAME)
+                f'Extractor {ie.IE_NAME} supports login, but is missing a _NETRC_MACHINE property')
 
 
 if __name__ == '__main__':

@@ -1,18 +1,19 @@
 #!/usr/bin/env python3
+
 # Allow direct execution
-import contextlib
 import os
 import sys
 import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+
+import contextlib
 import re
 import string
 import urllib.request
-from test.helper import FakeYDL, is_download_test
 
-from yt_dlp.compat import compat_str
+from test.helper import FakeYDL, is_download_test
 from yt_dlp.extractor import YoutubeIE
 from yt_dlp.jsinterp import JSInterpreter
 
@@ -45,26 +46,35 @@ _SIG_TESTS = [
     (
         'https://s.ytimg.com/yts/jsbin/html5player-en_US-vflBb0OQx.js',
         84,
-        '123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQ0STUVWXYZ!"#$%&\'()*+,@./:;<=>'
+        '123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQ0STUVWXYZ!"#$%&\'()*+,@./:;<=>',
     ),
     (
         'https://s.ytimg.com/yts/jsbin/html5player-en_US-vfl9FYC6l.js',
         83,
-        '123456789abcdefghijklmnopqr0tuvwxyzABCDETGHIJKLMNOPQRS>UVWXYZ!"#$%&\'()*+,-./:;<=F'
+        '123456789abcdefghijklmnopqr0tuvwxyzABCDETGHIJKLMNOPQRS>UVWXYZ!"#$%&\'()*+,-./:;<=F',
     ),
     (
         'https://s.ytimg.com/yts/jsbin/html5player-en_US-vflCGk6yw/html5player.js',
         '4646B5181C6C3020DF1D9C7FCFEA.AD80ABF70C39BD369CCCAE780AFBB98FA6B6CB42766249D9488C288',
-        '82C8849D94266724DC6B6AF89BBFA087EACCD963.B93C07FBA084ACAEFCF7C9D1FD0203C6C1815B6B'
+        '82C8849D94266724DC6B6AF89BBFA087EACCD963.B93C07FBA084ACAEFCF7C9D1FD0203C6C1815B6B',
     ),
     (
         'https://s.ytimg.com/yts/jsbin/html5player-en_US-vflKjOTVq/html5player.js',
         '312AA52209E3623129A412D56A40F11CB0AF14AE.3EE09501CB14E3BCDC3B2AE808BF3F1D14E7FBF12',
         '112AA5220913623229A412D56A40F11CB0AF14AE.3EE0950FCB14EEBCDC3B2AE808BF331D14E7FBF3',
-    )
+    ),
+    (
+        'https://www.youtube.com/s/player/6ed0d907/player_ias.vflset/en_US/base.js',
+        '2aq0aqSyOoJXtK73m-uME_jv7-pT15gOFC02RFkGMqWpzEICs69VdbwQ0LDp1v7j8xx92efCJlYFYb1sUkkBSPOlPmXgIARw8JQ0qOAOAA',
+        'AOq0QJ8wRAIgXmPlOPSBkkUs1bYFYlJCfe29xx8j7v1pDL2QwbdV96sCIEzpWqMGkFR20CFOg51Tp-7vj_EMu-m37KtXJoOySqa0',
+    ),
 ]
 
 _NSIG_TESTS = [
+    (
+        'https://www.youtube.com/s/player/7862ca1f/player_ias.vflset/en_US/base.js',
+        'X_LCxVDjAavgE5t', 'yxJ1dM6iz5ogUg',
+    ),
     (
         'https://www.youtube.com/s/player/9216d1f7/player_ias.vflset/en_US/base.js',
         'SLp9F5bwjAdhE9F-', 'gWnb9IK2DJ8Q1w',
@@ -93,6 +103,86 @@ _NSIG_TESTS = [
         'https://www.youtube.com/s/player/5dd88d1d/player-plasma-ias-phone-en_US.vflset/base.js',
         'kSxKFLeqzv_ZyHSAt', 'n8gS8oRlHOxPFA',
     ),
+    (
+        'https://www.youtube.com/s/player/324f67b9/player_ias.vflset/en_US/base.js',
+        'xdftNy7dh9QGnhW', '22qLGxrmX8F1rA',
+    ),
+    (
+        'https://www.youtube.com/s/player/4c3f79c5/player_ias.vflset/en_US/base.js',
+        'TDCstCG66tEAO5pR9o', 'dbxNtZ14c-yWyw',
+    ),
+    (
+        'https://www.youtube.com/s/player/c81bbb4a/player_ias.vflset/en_US/base.js',
+        'gre3EcLurNY2vqp94', 'Z9DfGxWP115WTg',
+    ),
+    (
+        'https://www.youtube.com/s/player/1f7d5369/player_ias.vflset/en_US/base.js',
+        'batNX7sYqIJdkJ', 'IhOkL_zxbkOZBw',
+    ),
+    (
+        'https://www.youtube.com/s/player/009f1d77/player_ias.vflset/en_US/base.js',
+        '5dwFHw8aFWQUQtffRq', 'audescmLUzI3jw',
+    ),
+    (
+        'https://www.youtube.com/s/player/dc0c6770/player_ias.vflset/en_US/base.js',
+        '5EHDMgYLV6HPGk_Mu-kk', 'n9lUJLHbxUI0GQ',
+    ),
+    (
+        'https://www.youtube.com/s/player/113ca41c/player_ias.vflset/en_US/base.js',
+        'cgYl-tlYkhjT7A', 'hI7BBr2zUgcmMg',
+    ),
+    (
+        'https://www.youtube.com/s/player/c57c113c/player_ias.vflset/en_US/base.js',
+        'M92UUMHa8PdvPd3wyM', '3hPqLJsiNZx7yA',
+    ),
+    (
+        'https://www.youtube.com/s/player/5a3b6271/player_ias.vflset/en_US/base.js',
+        'B2j7f_UPT4rfje85Lu_e', 'm5DmNymaGQ5RdQ',
+    ),
+    (
+        'https://www.youtube.com/s/player/7a062b77/player_ias.vflset/en_US/base.js',
+        'NRcE3y3mVtm_cV-W', 'VbsCYUATvqlt5w',
+    ),
+    (
+        'https://www.youtube.com/s/player/dac945fd/player_ias.vflset/en_US/base.js',
+        'o8BkRxXhuYsBCWi6RplPdP', '3Lx32v_hmzTm6A',
+    ),
+    (
+        'https://www.youtube.com/s/player/6f20102c/player_ias.vflset/en_US/base.js',
+        'lE8DhoDmKqnmJJ', 'pJTTX6XyJP2BYw',
+    ),
+    (
+        'https://www.youtube.com/s/player/cfa9e7cb/player_ias.vflset/en_US/base.js',
+        'aCi3iElgd2kq0bxVbQ', 'QX1y8jGb2IbZ0w',
+    ),
+    (
+        'https://www.youtube.com/s/player/8c7583ff/player_ias.vflset/en_US/base.js',
+        '1wWCVpRR96eAmMI87L', 'KSkWAVv1ZQxC3A',
+    ),
+    (
+        'https://www.youtube.com/s/player/b7910ca8/player_ias.vflset/en_US/base.js',
+        '_hXMCwMt9qE310D', 'LoZMgkkofRMCZQ',
+    ),
+    (
+        'https://www.youtube.com/s/player/590f65a6/player_ias.vflset/en_US/base.js',
+        '1tm7-g_A9zsI8_Lay_', 'xI4Vem4Put_rOg',
+    ),
+    (
+        'https://www.youtube.com/s/player/b22ef6e7/player_ias.vflset/en_US/base.js',
+        'b6HcntHGkvBLk_FRf', 'kNPW6A7FyP2l8A',
+    ),
+    (
+        'https://www.youtube.com/s/player/3400486c/player_ias.vflset/en_US/base.js',
+        'lL46g3XifCKUZn1Xfw', 'z767lhet6V2Skl',
+    ),
+    (
+        'https://www.youtube.com/s/player/20dfca59/player_ias.vflset/en_US/base.js',
+        '-fLCxedkAk4LUTK2', 'O8kfRq1y1eyHGw',
+    ),
+    (
+        'https://www.youtube.com/s/player/b12cc44b/player_ias.vflset/en_US/base.js',
+        'keLa5R2U00sR9SQK', 'N1OGyujjEwMnLw',
+    ),
 ]
 
 
@@ -100,6 +190,7 @@ _NSIG_TESTS = [
 class TestPlayerInfo(unittest.TestCase):
     def test_youtube_extract_player_info(self):
         PLAYER_URLS = (
+            ('https://www.youtube.com/s/player/4c3f79c5/player_ias.vflset/en_US/base.js', '4c3f79c5'),
             ('https://www.youtube.com/s/player/64dddad9/player_ias.vflset/en_US/base.js', '64dddad9'),
             ('https://www.youtube.com/s/player/64dddad9/player_ias.vflset/fr_FR/base.js', '64dddad9'),
             ('https://www.youtube.com/s/player/64dddad9/player-plasma-ias-phone-en_US.vflset/base.js', '64dddad9'),
@@ -136,7 +227,7 @@ class TestSignature(unittest.TestCase):
 def t_factory(name, sig_func, url_pattern):
     def make_tfunc(url, sig_input, expected_sig):
         m = url_pattern.match(url)
-        assert m, '%r should follow URL format' % url
+        assert m, f'{url!r} should follow URL format'
         test_id = m.group('id')
 
         def test_func(self):
@@ -157,7 +248,7 @@ def t_factory(name, sig_func, url_pattern):
 def signature(jscode, sig_input):
     func = YoutubeIE(FakeYDL())._parse_sig_js(jscode)
     src_sig = (
-        compat_str(string.printable[:sig_input])
+        str(string.printable[:sig_input])
         if isinstance(sig_input, int) else sig_input)
     return func(src_sig)
 
@@ -168,7 +259,7 @@ def n_sig(jscode, sig_input):
 
 
 make_sig_test = t_factory(
-    'signature', signature, re.compile(r'.*-(?P<id>[a-zA-Z0-9_-]+)(?:/watch_as3|/html5player)?\.[a-z]+$'))
+    'signature', signature, re.compile(r'.*(?:-|/player/)(?P<id>[a-zA-Z0-9_-]+)(?:/.+\.js|(?:/watch_as3|/html5player)?\.[a-z]+)$'))
 for test_spec in _SIG_TESTS:
     make_sig_test(*test_spec)
 

@@ -5,6 +5,7 @@ from ..utils import remove_start
 
 
 class TeleMBIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?telemb\.be/(?P<display_id>.+?)_d_(?P<id>\d+)\.html'
     _TESTS = [
         {
@@ -17,7 +18,7 @@ class TeleMBIE(InfoExtractor):
                 'title': 'Mons - Cook with Danielle : des cours de cuisine en anglais ! - Les reportages',
                 'description': 'md5:bc5225f47b17c309761c856ad4776265',
                 'thumbnail': r're:^http://.*\.(?:jpg|png)$',
-            }
+            },
         },
         {
             # non-ASCII characters in download URL
@@ -30,7 +31,7 @@ class TeleMBIE(InfoExtractor):
                 'title': 'Havré - Incendie mortel - Les reportages',
                 'description': 'md5:5e54cb449acb029c2b7734e2d946bd4a',
                 'thumbnail': r're:^http://.*\.(?:jpg|png)$',
-            }
+            },
         },
     ]
 
@@ -45,7 +46,7 @@ class TeleMBIE(InfoExtractor):
         for video_url in re.findall(r'file\s*:\s*"([^"]+)"', webpage):
             fmt = {
                 'url': video_url,
-                'format_id': video_url.split(':')[0]
+                'format_id': video_url.split(':')[0],
             }
             rtmp = re.search(r'^(?P<url>rtmp://[^/]+/(?P<app>.+))/(?P<playpath>mp4:.+)$', video_url)
             if rtmp:
@@ -57,7 +58,6 @@ class TeleMBIE(InfoExtractor):
                     'preference': -10,
                 })
             formats.append(fmt)
-        self._sort_formats(formats)
 
         title = remove_start(self._og_search_title(webpage), 'TéléMB : ')
         description = self._html_search_regex(

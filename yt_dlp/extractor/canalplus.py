@@ -53,7 +53,7 @@ class CanalplusIE(InfoExtractor):
         video_data = self._download_json(info_url, video_id, 'Downloading video JSON')
 
         if isinstance(video_data, list):
-            video_data = [video for video in video_data if video.get('ID') == video_id][0]
+            video_data = next(video for video in video_data if video.get('ID') == video_id)
         media = video_data['MEDIA']
         infos = video_data['INFOS']
 
@@ -64,7 +64,7 @@ class CanalplusIE(InfoExtractor):
         #     response = self._request_webpage(
         #         HEADRequest(fmt_url), video_id,
         #         'Checking if the video is georestricted')
-        #     if '/blocage' in response.geturl():
+        #     if '/blocage' in response.url:
         #         raise ExtractorError(
         #             'The video is not available in your country',
         #             expected=True)
@@ -86,7 +86,6 @@ class CanalplusIE(InfoExtractor):
                     'format_id': format_id,
                     'quality': preference(format_id),
                 })
-        self._sort_formats(formats)
 
         thumbnails = [{
             'id': image_id,
@@ -98,8 +97,7 @@ class CanalplusIE(InfoExtractor):
         return {
             'id': video_id,
             'display_id': display_id,
-            'title': '%s - %s' % (titrage['TITRE'],
-                                  titrage['SOUS_TITRE']),
+            'title': '{} - {}'.format(titrage['TITRE'], titrage['SOUS_TITRE']),
             'upload_date': unified_strdate(infos.get('PUBLICATION', {}).get('DATE')),
             'thumbnails': thumbnails,
             'description': infos.get('DESCRIPTION'),

@@ -1,22 +1,20 @@
 import re
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_HTTPError,
-    compat_str,
-    compat_urllib_request,
-    compat_urlparse,
-)
+from ..networking import Request
+from ..networking.exceptions import HTTPError
 from ..utils import (
+    ExtractorError,
     determine_ext,
     extract_attributes,
-    ExtractorError,
     float_or_none,
     int_or_none,
     js_to_json,
-    sanitized_Request,
+    smuggle_url,
     try_get,
     unescapeHTML,
+    unsmuggle_url,
     url_or_none,
     urlencode_postdata,
 )
@@ -75,22 +73,21 @@ class UdemyIE(InfoExtractor):
         course_id = course.get('id') or self._search_regex(
             [
                 r'data-course-id=["\'](\d+)',
-                r'&quot;courseId&quot;\s*:\s*(\d+)'
+                r'&quot;courseId&quot;\s*:\s*(\d+)',
             ], webpage, 'course id')
         return course_id, course.get('title')
 
     def _enroll_course(self, base_url, webpage, course_id):
         def combine_url(base_url, url):
-            return compat_urlparse.urljoin(base_url, url) if not url.startswith('http') else url
+            return urllib.parse.urljoin(base_url, url) if not url.startswith('http') else url
 
         checkout_url = unescapeHTML(self._search_regex(
             r'href=(["\'])(?P<url>(?:https?://(?:www\.)?udemy\.com)?/(?:payment|cart)/checkout/.+?)\1',
             webpage, 'checkout url', group='url', default=None))
         if checkout_url:
             raise ExtractorError(
-                'Course %s is not free. You have to pay for it before you can download. '
-                'Use this URL to confirm purchase: %s'
-                % (course_id, combine_url(base_url, checkout_url)),
+                f'Course {course_id} is not free. You have to pay for it before you can download. '
+                f'Use this URL to confirm purchase: {combine_url(base_url, checkout_url)}',
                 expected=True)
 
         enroll_url = unescapeHTML(self._search_regex(
@@ -102,15 +99,14 @@ class UdemyIE(InfoExtractor):
                 course_id, 'Enrolling in the course',
                 headers={'Referer': base_url})
             if '>You have enrolled in' in webpage:
-                self.to_screen('%s: Successfully enrolled in the course' % course_id)
+                self.to_screen(f'{course_id}: Successfully enrolled in the course')
 
     def _download_lecture(self, course_id, lecture_id):
         return self._download_json(
-            'https://www.udemy.com/api-2.0/users/me/subscribed-courses/%s/lectures/%s?'
-            % (course_id, lecture_id),
+            f'https://www.udemy.com/api-2.0/users/me/subscribed-courses/{course_id}/lectures/{lecture_id}?',
             lecture_id, 'Downloading lecture JSON', query={
                 'fields[lecture]': 'title,description,view_html,asset',
-                'fields[asset]': 'asset_type,stream_url,thumbnail_url,download_urls,stream_urls,captions,data',
+                'fields[asset]': 'asset_type,stream_url,thumbnail_url,download_urls,stream_urls,captions,data,course_is_drmed',
             })
 
     def _handle_error(self, response):
@@ -118,17 +114,17 @@ class UdemyIE(InfoExtractor):
             return
         error = response.get('error')
         if error:
-            error_str = 'Udemy returned error #%s: %s' % (error.get('code'), error.get('message'))
+            error_str = 'Udemy returned error #{}: {}'.format(error.get('code'), error.get('message'))
             error_data = error.get('data')
             if error_data:
-                error_str += ' - %s' % error_data.get('formErrors')
+                error_str += ' - {}'.format(error_data.get('formErrors'))
             raise ExtractorError(error_str, expected=True)
 
     def _download_webpage_handle(self, *args, **kwargs):
         headers = kwargs.get('headers', {}).copy()
         headers['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.109 Safari/537.36'
         kwargs['headers'] = headers
-        ret = super(UdemyIE, self)._download_webpage_handle(
+        ret = super()._download_webpage_handle(
             *args, **kwargs)
         if not ret:
             return ret
@@ -148,20 +144,19 @@ class UdemyIE(InfoExtractor):
             'X-Udemy-Snail-Case': 'true',
             'X-Requested-With': 'XMLHttpRequest',
         }
-        for cookie in self._downloader.cookiejar:
+        for cookie in self.cookiejar:
             if cookie.name == 'client_id':
                 headers['X-Udemy-Client-Id'] = cookie.value
             elif cookie.name == 'access_token':
                 headers['X-Udemy-Bearer-Token'] = cookie.value
-                headers['X-Udemy-Authorization'] = 'Bearer %s' % cookie.value
+                headers['X-Udemy-Authorization'] = f'Bearer {cookie.value}'
 
-        if isinstance(url_or_request, compat_urllib_request.Request):
-            for header, value in headers.items():
-                url_or_request.add_header(header, value)
+        if isinstance(url_or_request, Request):
+            url_or_request.headers.update(headers)
         else:
-            url_or_request = sanitized_Request(url_or_request, headers=headers)
+            url_or_request = Request(url_or_request, headers=headers)
 
-        response = super(UdemyIE, self)._download_json(url_or_request, *args, **kwargs)
+        response = super()._download_json(url_or_request, *args, **kwargs)
         self._handle_error(response)
         return response
 
@@ -198,21 +193,24 @@ class UdemyIE(InfoExtractor):
                 r'(?s)<div[^>]+class="form-errors[^"]*">(.+?)</div>',
                 response, 'error message', default=None)
             if error:
-                raise ExtractorError('Unable to login: %s' % error, expected=True)
+                raise ExtractorError(f'Unable to login: {error}', expected=True)
             raise ExtractorError('Unable to log in')
 
     def _real_extract(self, url):
         lecture_id = self._match_id(url)
+        course_id = unsmuggle_url(url, {})[1].get('course_id')
 
-        webpage = self._download_webpage(url, lecture_id)
-
-        course_id, _ = self._extract_course_info(webpage, lecture_id)
+        webpage = None
+        if not course_id:
+            webpage = self._download_webpage(url, lecture_id)
+            course_id, _ = self._extract_course_info(webpage, lecture_id)
 
         try:
             lecture = self._download_lecture(course_id, lecture_id)
         except ExtractorError as e:
             # Error could possibly mean we are not enrolled in the course
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 403:
+            if isinstance(e.cause, HTTPError) and e.cause.status == 403:
+                webpage = webpage or self._download_webpage(url, lecture_id)
                 self._enroll_course(url, webpage, course_id)
                 lecture = self._download_lecture(course_id, lecture_id)
             else:
@@ -226,7 +224,7 @@ class UdemyIE(InfoExtractor):
         asset_type = asset.get('asset_type') or asset.get('assetType')
         if asset_type != 'Video':
             raise ExtractorError(
-                'Lecture %s is not a video' % lecture_id, expected=True)
+                f'Lecture {lecture_id} is not a video', expected=True)
 
         stream_url = asset.get('stream_url') or asset.get('streamUrl')
         if stream_url:
@@ -235,7 +233,7 @@ class UdemyIE(InfoExtractor):
             if youtube_url:
                 return self.url_result(youtube_url, 'Youtube')
 
-        video_id = compat_str(asset['id'])
+        video_id = str(asset['id'])
         thumbnail = asset.get('thumbnail_url') or asset.get('thumbnailUrl')
         duration = float_or_none(asset.get('data', {}).get('duration'))
 
@@ -287,7 +285,7 @@ class UdemyIE(InfoExtractor):
                 format_id = source.get('label')
                 f = {
                     'url': video_url,
-                    'format_id': '%sp' % format_id,
+                    'format_id': f'{format_id}p',
                     'height': int_or_none(format_id),
                 }
                 if format_id:
@@ -316,7 +314,7 @@ class UdemyIE(InfoExtractor):
                 })
 
         for url_kind in ('download', 'stream'):
-            urls = asset.get('%s_urls' % url_kind)
+            urls = asset.get(f'{url_kind}_urls')
             if isinstance(urls, dict):
                 extract_formats(urls.get('Video'))
 
@@ -328,7 +326,7 @@ class UdemyIE(InfoExtractor):
                 cc_url = url_or_none(cc.get('url'))
                 if not cc_url:
                     continue
-                lang = try_get(cc, lambda x: x['locale']['locale'], compat_str)
+                lang = try_get(cc, lambda x: x['locale']['locale'], str)
                 sub_dict = (automatic_captions if cc.get('source') == 'auto'
                             else subtitles)
                 sub_dict.setdefault(lang or 'en', []).append({
@@ -363,7 +361,7 @@ class UdemyIE(InfoExtractor):
                 else:
                     formats.append(add_output_format_meta({
                         'url': src,
-                        'format_id': '%dp' % height if height else None,
+                        'format_id': f'{height}p' if height else None,
                         'height': height,
                     }, res))
 
@@ -395,7 +393,8 @@ class UdemyIE(InfoExtractor):
                 if f.get('url'):
                     formats.append(f)
 
-        self._sort_formats(formats)
+        if not formats and asset.get('course_is_drmed'):
+            self.report_drm(video_id)
 
         return {
             'id': video_id,
@@ -409,7 +408,7 @@ class UdemyIE(InfoExtractor):
         }
 
 
-class UdemyCourseIE(UdemyIE):
+class UdemyCourseIE(UdemyIE):  # XXX: Do not subclass from concrete IE
     IE_NAME = 'udemy:course'
     _VALID_URL = r'https?://(?:[^/]+\.)?udemy\.com/(?P<id>[^/?#&]+)'
     _TESTS = [{
@@ -422,7 +421,7 @@ class UdemyCourseIE(UdemyIE):
 
     @classmethod
     def suitable(cls, url):
-        return False if UdemyIE.suitable(url) else super(UdemyCourseIE, cls).suitable(url)
+        return False if UdemyIE.suitable(url) else super().suitable(url)
 
     def _real_extract(self, url):
         course_path = self._match_id(url)
@@ -434,7 +433,7 @@ class UdemyCourseIE(UdemyIE):
         self._enroll_course(url, webpage, course_id)
 
         response = self._download_json(
-            'https://www.udemy.com/api-2.0/courses/%s/cached-subscriber-curriculum-items' % course_id,
+            f'https://www.udemy.com/api-2.0/courses/{course_id}/cached-subscriber-curriculum-items',
             course_id, 'Downloading course curriculum', query={
                 'fields[chapter]': 'title,object_index',
                 'fields[lecture]': 'title,asset',
@@ -455,7 +454,9 @@ class UdemyCourseIE(UdemyIE):
                 if lecture_id:
                     entry = {
                         '_type': 'url_transparent',
-                        'url': 'https://www.udemy.com/%s/learn/v4/t/lecture/%s' % (course_path, entry['id']),
+                        'url': smuggle_url(
+                            f'https://www.udemy.com/{course_path}/learn/v4/t/lecture/{entry["id"]}',
+                            {'course_id': course_id}),
                         'title': entry.get('title'),
                         'ie_key': UdemyIE.ie_key(),
                     }

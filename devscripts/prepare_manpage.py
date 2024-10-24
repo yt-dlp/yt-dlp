@@ -1,7 +1,21 @@
 #!/usr/bin/env python3
-import optparse
+
+# Allow direct execution
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+
 import os.path
 import re
+
+from devscripts.utils import (
+    compose_functions,
+    get_filename_args,
+    read_file,
+    write_file,
+)
 
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 README_FILE = os.path.join(ROOT_DIR, 'README.md')
@@ -10,7 +24,7 @@ PREFIX = r'''%yt-dlp(1)
 
 # NAME
 
-yt\-dlp \- A youtube-dl fork with additional features and patches
+yt\-dlp \- A feature\-rich command\-line audio/video downloader
 
 # SYNOPSIS
 
@@ -21,31 +35,33 @@ yt\-dlp \- A youtube-dl fork with additional features and patches
 '''
 
 
-def main():
-    parser = optparse.OptionParser(usage='%prog OUTFILE.md')
-    options, args = parser.parse_args()
-    if len(args) != 1:
-        parser.error('Expected an output filename')
-
-    outfile, = args
-
-    with open(README_FILE, encoding='utf-8') as f:
-        readme = f.read()
-
-    readme = filter_excluded_sections(readme)
-    readme = move_sections(readme)
-    readme = filter_options(readme)
-
-    with open(outfile, 'w', encoding='utf-8') as outf:
-        outf.write(PREFIX + readme)
-
-
 def filter_excluded_sections(readme):
     EXCLUDED_SECTION_BEGIN_STRING = re.escape('<!-- MANPAGE: BEGIN EXCLUDED SECTION -->')
     EXCLUDED_SECTION_END_STRING = re.escape('<!-- MANPAGE: END EXCLUDED SECTION -->')
     return re.sub(
         rf'(?s){EXCLUDED_SECTION_BEGIN_STRING}.+?{EXCLUDED_SECTION_END_STRING}\n',
         '', readme)
+
+
+def _convert_code_blocks(readme):
+    current_code_block = None
+
+    for line in readme.splitlines(True):
+        if current_code_block:
+            if line == current_code_block:
+                current_code_block = None
+                yield '\n'
+            else:
+                yield f'    {line}'
+        elif line.startswith('```'):
+            current_code_block = line.count('`') * '`' + '\n'
+            yield '\n'
+        else:
+            yield line
+
+
+def convert_code_blocks(readme):
+    return ''.join(_convert_code_blocks(readme))
 
 
 def move_sections(readme):
@@ -70,8 +86,10 @@ def move_sections(readme):
 
 def filter_options(readme):
     section = re.search(r'(?sm)^# USAGE AND OPTIONS\n.+?(?=^# )', readme).group(0)
+    section_new = section.replace('*', R'\*')
+
     options = '# OPTIONS\n'
-    for line in section.split('\n')[1:]:
+    for line in section_new.split('\n')[1:]:
         mobj = re.fullmatch(r'''(?x)
                 \s{4}(?P<opt>-(?:,\s|[^\s])+)
                 (?:\s(?P<meta>(?:[^\s]|\s(?!\s))+))?
@@ -89,6 +107,13 @@ def filter_options(readme):
         continue
 
     return readme.replace(section, options, 1)
+
+
+TRANSFORM = compose_functions(filter_excluded_sections, convert_code_blocks, move_sections, filter_options)
+
+
+def main():
+    write_file(get_filename_args(), PREFIX + TRANSFORM(read_file(README_FILE)))
 
 
 if __name__ == '__main__':

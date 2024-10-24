@@ -3,6 +3,13 @@ description: Request support for a new site
 labels: [triage, site-request]
 body:
   - type: checkboxes
+    attributes:
+      label: DO NOT REMOVE OR SKIP THE ISSUE TEMPLATE
+      description: Fill all fields even if you think it is irrelevant for the issue
+      options:
+        - label: I understand that I will be **blocked** if I *intentionally* remove or skip any mandatory\* field
+          required: true
+  - type: checkboxes
     id: checklist
     attributes:
       label: Checklist
@@ -11,13 +18,13 @@ body:
       options:
         - label: I'm reporting a new site support request
           required: true
-        - label: I've verified that I'm running yt-dlp version **2022.05.18** ([update instructions](https://github.com/yt-dlp/yt-dlp#update)) or later (specify commit)
+        - label: I've verified that I have **updated yt-dlp to nightly or master** ([update instructions](https://github.com/yt-dlp/yt-dlp#update-channels))
           required: true
         - label: I've checked that all provided URLs are playable in a browser with the same IP and same login details
           required: true
-        - label: I've checked that none of provided URLs [violate any copyrights](https://github.com/ytdl-org/youtube-dl#can-you-add-support-for-this-anime-video-site-or-site-which-shows-current-movies-for-free) or contain any [DRM](https://en.wikipedia.org/wiki/Digital_rights_management) to the best of my knowledge
+        - label: I've checked that none of provided URLs [violate any copyrights](https://github.com/yt-dlp/yt-dlp/blob/master/CONTRIBUTING.md#is-the-website-primarily-used-for-piracy) or contain any [DRM](https://en.wikipedia.org/wiki/Digital_rights_management) to the best of my knowledge
           required: true
-        - label: I've searched the [bugtracker](https://github.com/yt-dlp/yt-dlp/issues?q=) for similar issues including closed ones. DO NOT post duplicates
+        - label: I've searched [known issues](https://github.com/yt-dlp/yt-dlp/issues/3766) and the [bugtracker](https://github.com/yt-dlp/yt-dlp/issues?q=) for similar issues **including closed ones**. DO NOT post duplicates
           required: true
         - label: I've read the [guidelines for opening an issue](https://github.com/yt-dlp/yt-dlp/blob/master/CONTRIBUTING.md#opening-an-issue)
           required: true
@@ -26,8 +33,8 @@ body:
     id: region
     attributes:
       label: Region
-      description: "Enter the region the site is accessible from"
-      placeholder: "India"
+      description: Enter the country/region that the site is accessible from
+      placeholder: India
   - type: textarea
     id: example-urls
     attributes:
@@ -43,32 +50,50 @@ body:
   - type: textarea
     id: description
     attributes:
-      label: Description
-      description: |
-        Provide any additional information
-      placeholder: WRITE DESCRIPTION HERE
+      label: Provide a description that is worded well enough to be understood
+      description: See [is-the-description-of-the-issue-itself-sufficient](https://github.com/yt-dlp/yt-dlp/blob/master/CONTRIBUTING.md#is-the-description-of-the-issue-itself-sufficient)
+      placeholder: Provide any additional information, any suggested solutions, and as much context and examples as possible
     validations:
       required: true
+  - type: checkboxes
+    id: verbose
+    attributes:
+      label: Provide verbose output that clearly demonstrates the problem
+      options:
+        - label: Run **your** yt-dlp command with **-vU** flag added (`yt-dlp -vU <your command line>`)
+          required: true
+        - label: "If using API, add `'verbose': True` to `YoutubeDL` params instead"
+          required: false
+        - label: Copy the WHOLE output (starting with `[debug] Command-line config`) and insert it below
+          required: true
   - type: textarea
     id: log
     attributes:
-      label: Verbose log
+      label: Complete Verbose Output
       description: |
-        Provide the complete verbose output **using one of the example URLs provided above**.
-        Add the `-vU` flag to your command line you run yt-dlp with (`yt-dlp -vU <your command line>`), copy the WHOLE output and insert it below.
-        It should look similar to this:
+        It should start like this:
       placeholder: |
-        [debug] Command-line config: ['-vU', 'http://www.youtube.com/watch?v=BaW_jenozKc']
-        [debug] Portable config file: yt-dlp.conf
-        [debug] Portable config: ['-i']
-        [debug] Encodings: locale cp1252, fs utf-8, stdout utf-8, stderr utf-8, pref cp1252
-        [debug] yt-dlp version 2022.05.18 (exe)
-        [debug] Python version 3.8.8 (CPython 64bit) - Windows-10-10.0.19041-SP0
-        [debug] exe versions: ffmpeg 3.0.1, ffprobe 3.0.1
-        [debug] Optional libraries: Cryptodome, keyring, mutagen, sqlite, websockets
+        [debug] Command-line config: ['-vU', 'https://www.youtube.com/watch?v=BaW_jenozKc']
+        [debug] Encodings: locale cp65001, fs utf-8, pref cp65001, out utf-8, error utf-8, screen utf-8
+        [debug] yt-dlp version nightly@... from yt-dlp/yt-dlp [b634ba742] (win_exe)
+        [debug] Python 3.8.10 (CPython 64bit) - Windows-10-10.0.22000-SP0
+        [debug] exe versions: ffmpeg N-106550-g072101bd52-20220410 (fdk,setts), ffprobe N-106624-g391ce570c8-20220415, phantomjs 2.1.1
+        [debug] Optional libraries: Cryptodome-3.15.0, brotli-1.0.9, certifi-2022.06.15, mutagen-1.45.1, sqlite3-2.6.0, websockets-10.3
         [debug] Proxy map: {}
-        yt-dlp is up to date (2022.05.18)
+        [debug] Request Handlers: urllib, requests
+        [debug] Loaded 1893 extractors
+        [debug] Fetching release info: https://api.github.com/repos/yt-dlp/yt-dlp-nightly-builds/releases/latest
+        yt-dlp is up to date (nightly@... from yt-dlp/yt-dlp-nightly-builds)
+        [youtube] Extracting URL: https://www.youtube.com/watch?v=BaW_jenozKc
         <more lines>
       render: shell
     validations:
       required: true
+  - type: markdown
+    attributes:
+      value: |
+        > [!CAUTION]
+        > ### GitHub is experiencing a high volume of malicious spam comments.
+        > ### If you receive any replies asking you download a file, do NOT follow the download links!
+        >
+        > Note that this issue may be temporarily locked as an anti-spam measure after it is opened.

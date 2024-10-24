@@ -1,10 +1,5 @@
 from .common import InfoExtractor
-from ..utils import (
-    clean_html,
-    int_or_none,
-    traverse_obj
-)
-
+from ..utils import clean_html, int_or_none, traverse_obj
 
 _API_URL = 'https://dak1vd5vmi7x6.cloudfront.net/api/v1/publicrole/{}/{}?id={}'
 
@@ -25,11 +20,11 @@ class ManotoTVIE(InfoExtractor):
             'title': 'کارول و جان',
             'description': 'md5:d0fff1f8ba5c6775d312a00165d1a97e',
             'thumbnail': r're:^https?://.*\.(jpeg|png|jpg)$',
-            'ext': 'mp4'
+            'ext': 'mp4',
         },
         'params': {
             'skip_download': 'm3u8',
-        }
+        },
     }, {
         'url': 'https://www.manototv.com/episode/12576',
         'info_dict': {
@@ -42,11 +37,11 @@ class ManotoTVIE(InfoExtractor):
             'title': 'سه ماه تعطیلی',
             'description': 'سه ماه تعطیلی فیلمی به کارگردانی و نویسندگی شاپور قریب ساختهٔ سال ۱۳۵۶ است.',
             'thumbnail': r're:^https?://.*\.(jpeg|png|jpg)$',
-            'ext': 'mp4'
+            'ext': 'mp4',
         },
         'params': {
             'skip_download': 'm3u8',
-        }
+        },
     }]
 
     def _real_extract(self, url):
@@ -54,7 +49,6 @@ class ManotoTVIE(InfoExtractor):
         episode_json = self._download_json(_API_URL.format('showmodule', 'episodedetails', video_id), video_id)
         details = episode_json.get('details', {})
         formats = self._extract_m3u8_formats(details.get('videoM3u8Url'), video_id, 'mp4')
-        self._sort_formats(formats)
         return {
             'id': video_id,
             'series': details.get('showTitle'),
@@ -99,7 +93,7 @@ class ManotoTVShowIE(InfoExtractor):
 
         entries = [
             self.url_result(
-                'https://www.manototv.com/episode/%s' % item['slideID'], ie=ManotoTVIE.ie_key(), video_id=item['slideID'])
+                'https://www.manototv.com/episode/{}'.format(item['slideID']), ie=ManotoTVIE.ie_key(), video_id=item['slideID'])
             for item in playlist]
         return self.playlist_result(entries, show_id, title, description)
 
@@ -117,7 +111,7 @@ class ManotoTVLiveIE(InfoExtractor):
         },
         'params': {
             'skip_download': 'm3u8',
-        }
+        },
     }
 
     def _real_extract(self, url):
@@ -126,7 +120,6 @@ class ManotoTVLiveIE(InfoExtractor):
         details = json.get('details', {})
         video_url = details.get('liveUrl')
         formats = self._extract_m3u8_formats(video_url, video_id, 'mp4', live=True)
-        self._sort_formats(formats)
         return {
             'id': video_id,
             'title': 'Manoto TV Live',

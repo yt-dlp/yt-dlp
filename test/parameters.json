@@ -44,5 +44,6 @@
     "writesubtitles": false,
     "allsubtitles": false,
     "listsubtitles": false,
-    "fixup": "never"
+    "fixup": "never",
+    "allow_playlist_files": false
 }

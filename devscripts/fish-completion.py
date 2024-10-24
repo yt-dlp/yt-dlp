@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
-import optparse
+
+# Allow direct execution
 import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+
+import optparse
 
 import yt_dlp
 from yt_dlp.utils import shell_quote

@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from .common import InfoExtractor
 from ..utils import (
     traverse_obj,
@@ -16,7 +15,7 @@ class MastersIE(InfoExtractor):
             'title': 'Sungjae Im: Thursday Interview 2022',
             'upload_date': '20220407',
             'thumbnail': r're:^https?://.*\.jpg$',
-        }
+        },
     }]
 
     def _real_extract(self, url):
@@ -25,7 +24,6 @@ class MastersIE(InfoExtractor):
             f'https://www.masters.com/relatedcontent/rest/v2/masters_v1/en/content/masters_v1_{video_id}_en',
             video_id)
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(traverse_obj(content_resp, ('media', 'm3u8')), video_id, 'mp4')
-        self._sort_formats(formats)
 
         thumbnails = [{'id': name, 'url': url} for name, url in traverse_obj(content_resp, ('images', 0), default={}).items()]
 

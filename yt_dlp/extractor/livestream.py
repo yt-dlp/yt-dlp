@@ -1,31 +1,36 @@
-import re
 import itertools
+import re
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-    compat_urlparse,
-)
 from ..utils import (
-    find_xpath_attr,
-    xpath_attr,
-    xpath_with_ns,
-    xpath_text,
-    orderedSet,
-    update_url_query,
-    int_or_none,
-    float_or_none,
-    parse_iso8601,
     determine_ext,
+    find_xpath_attr,
+    float_or_none,
+    int_or_none,
+    orderedSet,
+    parse_iso8601,
+    traverse_obj,
+    update_url_query,
+    xpath_attr,
+    xpath_text,
+    xpath_with_ns,
 )
 
 
 class LivestreamIE(InfoExtractor):
     IE_NAME = 'livestream'
-    _VALID_URL = r'https?://(?:new\.)?livestream\.com/(?:accounts/(?P<account_id>\d+)|(?P<account_name>[^/]+))/(?:events/(?P<event_id>\d+)|(?P<event_name>[^/]+))(?:/videos/(?P<id>\d+))?'
+    _VALID_URL = r'''(?x)
+        https?://(?:new\.)?livestream\.com/
+        (?:accounts/(?P<account_id>\d+)|(?P<account_name>[^/]+))
+        (?:/events/(?P<event_id>\d+)|/(?P<event_name>[^/]+))?
+        (?:/videos/(?P<id>\d+))?
+    '''
+    _EMBED_REGEX = [r'<iframe[^>]+src="(?P<url>https?://(?:new\.)?livestream\.com/[^"]+/player[^"]+)"']
+
     _TESTS = [{
         'url': 'http://new.livestream.com/CoheedandCambria/WebsterHall/videos/4719370',
-        'md5': '53274c76ba7754fb0e8d072716f2292b',
+        'md5': '7876c5f5dc3e711b6b73acce4aac1527',
         'info_dict': {
             'id': '4719370',
             'ext': 'mp4',
@@ -35,22 +40,37 @@ class LivestreamIE(InfoExtractor):
             'duration': 5968.0,
             'like_count': int,
             'view_count': int,
-            'thumbnail': r're:^http://.*\.jpg$'
-        }
+            'comment_count': int,
+            'thumbnail': r're:^http://.*\.jpg$',
+        },
     }, {
-        'url': 'http://new.livestream.com/tedx/cityenglish',
+        'url': 'https://livestream.com/coheedandcambria/websterhall',
         'info_dict': {
-            'title': 'TEDCity2.0 (English)',
-            'id': '2245590',
+            'id': '1585861',
+            'title': 'Live From Webster Hall',
+        },
+        'playlist_mincount': 1,
+    }, {
+        'url': 'https://livestream.com/dayananda/events/7954027',
+        'info_dict': {
+            'title': 'Live from Mevo',
+            'id': '7954027',
         },
         'playlist_mincount': 4,
     }, {
-        'url': 'http://new.livestream.com/chess24/tatasteelchess',
+        'url': 'https://livestream.com/accounts/82',
         'info_dict': {
-            'title': 'Tata Steel Chess',
-            'id': '3705884',
+            'id': '253978',
+            'view_count': int,
+            'title': 'trsr',
+            'comment_count': int,
+            'like_count': int,
+            'upload_date': '20120306',
+            'timestamp': 1331042383,
+            'thumbnail': 'http://img.new.livestream.com/videos/0000000000000372/cacbeed6-fb68-4b5e-ad9c-e148124e68a9_640x427.jpg',
+            'duration': 15.332,
+            'ext': 'mp4',
         },
-        'playlist_mincount': 60,
     }, {
         'url': 'https://new.livestream.com/accounts/362/events/3557232/videos/67864563/player?autoPlay=false&height=360&mute=false&width=640',
         'only_matching': True,
@@ -60,7 +80,8 @@ class LivestreamIE(InfoExtractor):
     }]
     _API_URL_TEMPLATE = 'http://livestream.com/api/accounts/%s/events/%s'
 
-    def _parse_smil_formats(self, smil, smil_url, video_id, namespace=None, f4m_params=None, transform_rtmp_url=None):
+    def _parse_smil_formats_and_subtitles(
+            self, smil, smil_url, video_id, namespace=None, f4m_params=None, transform_rtmp_url=None):
         base_ele = find_xpath_attr(
             smil, self._xpath_ns('.//meta', namespace), 'name', 'httpBase')
         base = base_ele.get('content') if base_ele is not None else 'http://livestreamvod-f.akamaihd.net/'
@@ -71,7 +92,7 @@ class LivestreamIE(InfoExtractor):
         for vn in video_nodes:
             tbr = int_or_none(vn.attrib.get('system-bitrate'), 1000)
             furl = (
-                update_url_query(compat_urlparse.urljoin(base, vn.attrib['src']), {
+                update_url_query(urllib.parse.urljoin(base, vn.attrib['src']), {
                     'v': '3.0.3',
                     'fp': 'WIN% 14,0,0,145',
                 }))
@@ -84,10 +105,10 @@ class LivestreamIE(InfoExtractor):
                 'tbr': tbr,
                 'preference': -1000,  # Strictly inferior than all other formats?
             })
-        return formats
+        return formats, {}
 
     def _extract_video_info(self, video_data):
-        video_id = compat_str(video_data['id'])
+        video_id = str(video_data['id'])
 
         FORMAT_KEYS = (
             ('sd', 'progressive_url'),
@@ -102,7 +123,7 @@ class LivestreamIE(InfoExtractor):
                 if ext == 'm3u8':
                     continue
                 bitrate = int_or_none(self._search_regex(
-                    r'(\d+)\.%s' % ext, video_url, 'bitrate', default=None))
+                    rf'(\d+)\.{ext}', video_url, 'bitrate', default=None))
                 formats.append({
                     'url': video_url,
                     'format_id': format_id,
@@ -124,7 +145,6 @@ class LivestreamIE(InfoExtractor):
         if f4m_url:
             formats.extend(self._extract_f4m_formats(
                 f4m_url, video_id, f4m_id='hds', fatal=False))
-        self._sort_formats(formats)
 
         comments = [{
             'author_id': comment.get('author_id'),
@@ -149,7 +169,7 @@ class LivestreamIE(InfoExtractor):
         }
 
     def _extract_stream_info(self, stream_info):
-        broadcast_id = compat_str(stream_info['broadcast_id'])
+        broadcast_id = str(stream_info['broadcast_id'])
         is_live = stream_info.get('is_live')
 
         formats = []
@@ -169,7 +189,6 @@ class LivestreamIE(InfoExtractor):
                 'url': rtsp_url,
                 'format_id': 'rtsp',
             })
-        self._sort_formats(formats)
 
         return {
             'id': broadcast_id,
@@ -179,9 +198,9 @@ class LivestreamIE(InfoExtractor):
             'is_live': is_live,
         }
 
-    def _extract_event(self, event_data):
-        event_id = compat_str(event_data['id'])
-        account_id = compat_str(event_data['owner_account_id'])
+    def _generate_event_playlist(self, event_data):
+        event_id = str(event_data['id'])
+        account_id = str(event_data['owner_account_id'])
         feed_root_url = self._API_URL_TEMPLATE % (account_id, event_id) + '/feed.json'
 
         stream_info = event_data.get('stream_info')
@@ -189,39 +208,44 @@ class LivestreamIE(InfoExtractor):
             return self._extract_stream_info(stream_info)
 
         last_video = None
-        entries = []
         for i in itertools.count(1):
             if last_video is None:
                 info_url = feed_root_url
             else:
-                info_url = '{root}?&id={id}&newer=-1&type=video'.format(
-                    root=feed_root_url, id=last_video)
+                info_url = f'{feed_root_url}?&id={last_video}&newer=-1&type=video'
             videos_info = self._download_json(
-                info_url, event_id, 'Downloading page {0}'.format(i))['data']
+                info_url, event_id, f'Downloading page {i}')['data']
             videos_info = [v['data'] for v in videos_info if v['type'] == 'video']
             if not videos_info:
                 break
             for v in videos_info:
-                v_id = compat_str(v['id'])
-                entries.append(self.url_result(
-                    'http://livestream.com/accounts/%s/events/%s/videos/%s' % (account_id, event_id, v_id),
-                    'Livestream', v_id, v.get('caption')))
+                v_id = str(v['id'])
+                yield self.url_result(
+                    f'http://livestream.com/accounts/{account_id}/events/{event_id}/videos/{v_id}',
+                    LivestreamIE, v_id, v.get('caption'))
             last_video = videos_info[-1]['id']
-        return self.playlist_result(entries, event_id, event_data['full_name'])
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
         video_id = mobj.group('id')
         event = mobj.group('event_id') or mobj.group('event_name')
         account = mobj.group('account_id') or mobj.group('account_name')
-        api_url = self._API_URL_TEMPLATE % (account, event)
+        api_url = f'http://livestream.com/api/accounts/{account}'
+
         if video_id:
             video_data = self._download_json(
-                api_url + '/videos/%s' % video_id, video_id)
+                f'{api_url}/events/{event}/videos/{video_id}', video_id)
             return self._extract_video_info(video_data)
-        else:
-            event_data = self._download_json(api_url, video_id)
-            return self._extract_event(event_data)
+        elif event:
+            event_data = self._download_json(f'{api_url}/events/{event}', None)
+            return self.playlist_result(
+                self._generate_event_playlist(event_data), str(event_data['id']), event_data['full_name'])
+
+        account_data = self._download_json(api_url, None)
+        items = traverse_obj(account_data, (('upcoming_events', 'past_events'), 'data', ...))
+        return self.playlist_result(
+            itertools.chain.from_iterable(map(self._generate_event_playlist, items)),
+            account_data.get('id'), account_data.get('full_name'))
 
 
 # The original version of Livestream uses a different system
@@ -253,7 +277,7 @@ class LivestreamOriginalIE(InfoExtractor):
     }]
 
     def _extract_video_info(self, user, video_id):
-        api_url = 'http://x%sx.api.channel.livestream.com/2.0/clipdetails?extendedInfo=true&id=%s' % (user, video_id)
+        api_url = f'http://x{user}x.api.channel.livestream.com/2.0/clipdetails?extendedInfo=true&id={video_id}'
         info = self._download_xml(api_url, video_id)
 
         item = info.find('channel').find('item')
@@ -298,7 +322,6 @@ class LivestreamOriginalIE(InfoExtractor):
                 'format_id': 'rtsp',
             })
 
-        self._sort_formats(formats)
         return formats
 
     def _extract_folder(self, url, folder_id):
@@ -311,7 +334,7 @@ class LivestreamOriginalIE(InfoExtractor):
 
         entries = [{
             '_type': 'url',
-            'url': compat_urlparse.urljoin(url, p),
+            'url': urllib.parse.urljoin(url, p),
         } for p in paths]
 
         return self.playlist_result(entries, folder_id)
@@ -325,10 +348,10 @@ class LivestreamOriginalIE(InfoExtractor):
             return self._extract_folder(url, content_id)
         else:
             # this url is used on mobile devices
-            stream_url = 'http://x%sx.api.channel.livestream.com/3.0/getstream.json' % user
+            stream_url = f'http://x{user}x.api.channel.livestream.com/3.0/getstream.json'
             info = {}
             if content_id:
-                stream_url += '?id=%s' % content_id
+                stream_url += f'?id={content_id}'
                 info = self._extract_video_info(user, content_id)
             else:
                 content_id = user
@@ -357,8 +380,7 @@ class LivestreamShortenerIE(InfoExtractor):
     _VALID_URL = r'https?://livestre\.am/(?P<id>.+)'
 
     def _real_extract(self, url):
-        mobj = self._match_valid_url(url)
-        id = mobj.group('id')
-        webpage = self._download_webpage(url, id)
+        video_id = self._match_id(url)
+        webpage = self._download_webpage(url, video_id)
 
         return self.url_result(self._og_search_url(webpage))

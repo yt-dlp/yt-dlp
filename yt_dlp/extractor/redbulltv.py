@@ -1,8 +1,8 @@
 from .common import InfoExtractor
-from ..compat import compat_HTTPError
+from ..networking.exceptions import HTTPError
 from ..utils import (
-    float_or_none,
     ExtractorError,
+    float_or_none,
 )
 
 
@@ -57,7 +57,7 @@ class RedBullTVIE(InfoExtractor):
                 'os_family': 'http',
             })
         if session.get('code') == 'error':
-            raise ExtractorError('%s said: %s' % (
+            raise ExtractorError('{} said: {}'.format(
                 self.IE_NAME, session['message']))
         token = session['token']
 
@@ -65,35 +65,33 @@ class RedBullTVIE(InfoExtractor):
             video = self._download_json(
                 'https://api.redbull.tv/v3/products/' + video_id,
                 video_id, note='Downloading video information',
-                headers={'Authorization': token}
+                headers={'Authorization': token},
             )
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 404:
+            if isinstance(e.cause, HTTPError) and e.cause.status == 404:
                 error_message = self._parse_json(
-                    e.cause.read().decode(), video_id)['error']
-                raise ExtractorError('%s said: %s' % (
-                    self.IE_NAME, error_message), expected=True)
+                    e.cause.response.read().decode(), video_id)['error']
+                raise ExtractorError(f'{self.IE_NAME} said: {error_message}', expected=True)
             raise
 
         title = video['title'].strip()
 
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
-            'https://dms.redbull.tv/v3/%s/%s/playlist.m3u8' % (video_id, token),
+            f'https://dms.redbull.tv/v3/{video_id}/{token}/playlist.m3u8',
             video_id, 'mp4', entry_protocol='m3u8_native', m3u8_id='hls')
-        self._sort_formats(formats)
 
         for resource in video.get('resources', []):
             if resource.startswith('closed_caption_'):
                 splitted_resource = resource.split('_')
                 if splitted_resource[2]:
                     subtitles.setdefault('en', []).append({
-                        'url': 'https://resources.redbull.tv/%s/%s' % (video_id, resource),
+                        'url': f'https://resources.redbull.tv/{video_id}/{resource}',
                         'ext': splitted_resource[2],
                     })
 
         subheading = video.get('subheading')
         if subheading:
-            title += ' - %s' % subheading
+            title += f' - {subheading}'
 
         return {
             'id': video_id,
@@ -110,7 +108,7 @@ class RedBullTVIE(InfoExtractor):
         return self.extract_info(video_id)
 
 
-class RedBullEmbedIE(RedBullTVIE):
+class RedBullEmbedIE(RedBullTVIE):  # XXX: Do not subclass from concrete IE
     _VALID_URL = r'https?://(?:www\.)?redbull\.com/embed/(?P<id>rrn:content:[^:]+:[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}:[a-z]{2}-[A-Z]{2,3})'
     _TESTS = [{
         # HLS manifest accessible only using assetId
@@ -136,7 +134,7 @@ class RedBullEmbedIE(RedBullTVIE):
     %s
     %s
   }
-}''' % (rrn_id, self._VIDEO_ESSENSE_TMPL % 'LiveVideo', self._VIDEO_ESSENSE_TMPL % 'VideoResource'),
+}''' % (rrn_id, self._VIDEO_ESSENSE_TMPL % 'LiveVideo', self._VIDEO_ESSENSE_TMPL % 'VideoResource'),  # noqa: UP031
             })['data']['resource']['videoEssence']['attributes']['assetId']
         return self.extract_info(asset_id)
 
@@ -156,7 +154,7 @@ class RedBullTVRrnContentIE(InfoExtractor):
 
     def _real_extract(self, url):
         region, lang, rrn_id = self._match_valid_url(url).groups()
-        rrn_id += ':%s-%s' % (lang, region.upper())
+        rrn_id += f':{lang}-{region.upper()}'
         return self.url_result(
             'https://www.redbull.com/embed/' + rrn_id,
             RedBullEmbedIE.ie_key(), rrn_id)
@@ -210,7 +208,7 @@ class RedBullIE(InfoExtractor):
                 regions.append('LAT')
             if lang in self._INT_FALLBACK_LIST:
                 regions.append('INT')
-        locale = '>'.join(['%s-%s' % (lang, reg) for reg in regions])
+        locale = '>'.join([f'{lang}-{reg}' for reg in regions])
 
         rrn_id = self._download_json(
             'https://www.redbull.com/v3/api/graphql/v1/v3/query/' + locale,

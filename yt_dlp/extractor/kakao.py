@@ -1,10 +1,10 @@
 from .common import InfoExtractor
-from ..compat import compat_HTTPError
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     int_or_none,
-    strip_or_none,
     str_or_none,
+    strip_or_none,
     traverse_obj,
     unified_timestamp,
 )
@@ -33,7 +33,7 @@ class KakaoIE(InfoExtractor):
             'view_count': int,
             'duration': 1503,
             'comment_count': int,
-        }
+        },
     }, {
         'url': 'http://tv.kakao.com/channel/2653210/cliplink/300103180',
         'md5': 'a8917742069a4dd442516b86e7d66529',
@@ -52,7 +52,7 @@ class KakaoIE(InfoExtractor):
             'view_count': int,
             'duration': 184,
             'comment_count': int,
-        }
+        },
     }, {
         # geo restricted
         'url': 'https://tv.kakao.com/channel/3643855/cliplink/412069491',
@@ -76,7 +76,7 @@ class KakaoIE(InfoExtractor):
                 'description', 'channelId', 'createTime', 'duration', 'playCount',
                 'likeCount', 'commentCount', 'tagList', 'channel', 'name',
                 'clipChapterThumbnailList', 'thumbnailUrl', 'timeInSec', 'isDefault',
-                'videoOutputList', 'width', 'height', 'kbps', 'profile', 'label'])
+                'videoOutputList', 'width', 'height', 'kbps', 'profile', 'label']),
         }
 
         api_json = self._download_json(
@@ -99,10 +99,10 @@ class KakaoIE(InfoExtractor):
             try:
                 fmt_url_json = self._download_json(
                     cdn_api_base, video_id, query=query,
-                    note='Downloading video URL for profile %s' % profile_name)
+                    note=f'Downloading video URL for profile {profile_name}')
             except ExtractorError as e:
-                if isinstance(e.cause, compat_HTTPError) and e.cause.code == 403:
-                    resp = self._parse_json(e.cause.read().decode(), video_id)
+                if isinstance(e.cause, HTTPError) and e.cause.status == 403:
+                    resp = self._parse_json(e.cause.response.read().decode(), video_id)
                     if resp.get('code') == 'GeoBlocked':
                         self.raise_geo_restricted()
                 raise
@@ -120,14 +120,13 @@ class KakaoIE(InfoExtractor):
                 'filesize': int_or_none(fmt.get('filesize')),
                 'tbr': int_or_none(fmt.get('kbps')),
             })
-        self._sort_formats(formats)
 
         thumbs = []
         for thumb in clip.get('clipChapterThumbnailList') or []:
             thumbs.append({
                 'url': thumb.get('thumbnailUrl'),
                 'id': str(thumb.get('timeInSec')),
-                'preference': -1 if thumb.get('isDefault') else 0
+                'preference': -1 if thumb.get('isDefault') else 0,
             })
         top_thumbnail = clip.get('thumbnailUrl')
         if top_thumbnail:

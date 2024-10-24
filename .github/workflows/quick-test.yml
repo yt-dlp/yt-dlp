@@ -1,33 +1,40 @@
 name: Quick Test
 on: [push, pull_request]
+permissions:
+  contents: read
+
 jobs:
   tests:
     name: Core Test
     if: "!contains(github.event.head_commit.message, 'ci skip all')"
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - name: Set up Python
-      uses: actions/setup-python@v2
+    - uses: actions/checkout@v4
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v5
       with:
-        python-version: 3.9
+        python-version: '3.9'
     - name: Install test requirements
-      run: pip install pytest pycryptodomex
+      run: python3 ./devscripts/install_deps.py -o --include test
     - name: Run tests
-      run: ./devscripts/run_tests.sh core
-  flake8:
-    name: Linter
+      timeout-minutes: 15
+      run: |
+        python3 -m yt_dlp -v || true
+        python3 ./devscripts/run_tests.py --pytest-args '--reruns 2 --reruns-delay 3.0' core
+  check:
+    name: Code check
     if: "!contains(github.event.head_commit.message, 'ci skip all')"
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - name: Set up Python
-      uses: actions/setup-python@v2
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
       with:
-        python-version: 3.9
-    - name: Install flake8
-      run: pip install flake8
+        python-version: '3.9'
+    - name: Install dev dependencies
+      run: python3 ./devscripts/install_deps.py -o --include static-analysis
     - name: Make lazy extractors
-      run: python devscripts/make_lazy_extractors.py
-    - name: Run flake8
-      run: flake8 .
+      run: python3 ./devscripts/make_lazy_extractors.py
+    - name: Run ruff
+      run: ruff check --output-format github .
+    - name: Run autopep8
+      run: autopep8 --diff .

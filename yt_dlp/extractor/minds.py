@@ -1,5 +1,4 @@
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     clean_html,
     format_field,
@@ -16,7 +15,7 @@ class MindsBaseIE(InfoExtractor):
         api_url = 'https://www.minds.com/api/' + path
         token = self._get_cookies(api_url).get('XSRF-TOKEN')
         return self._download_json(
-            api_url, video_id, 'Downloading %s JSON metadata' % resource, headers={
+            api_url, video_id, f'Downloading {resource} JSON metadata', headers={
                 'Referer': 'https://www.minds.com/',
                 'X-XSRF-TOKEN': token.value if token else '',
             }, query=query)
@@ -76,7 +75,7 @@ class MindsIE(MindsBaseIE):
             else:
                 return self.url_result(entity['perma_url'])
         else:
-            assert(entity['subtype'] == 'video')
+            assert entity['subtype'] == 'video'
             video_id = entity_id
         # 1080p and webm formats available only on the sources array
         video = self._call_api(
@@ -92,14 +91,13 @@ class MindsIE(MindsBaseIE):
                 'height': int_or_none(source.get('size')),
                 'url': src,
             })
-        self._sort_formats(formats)
 
         entity = video.get('entity') or entity
         owner = entity.get('ownerObj') or {}
         uploader_id = owner.get('username')
 
         tags = entity.get('tags')
-        if tags and isinstance(tags, compat_str):
+        if tags and isinstance(tags, str):
             tags = [tags]
 
         thumbnail = None
@@ -107,7 +105,7 @@ class MindsIE(MindsBaseIE):
         if poster:
             urlh = self._request_webpage(poster, video_id, fatal=False)
             if urlh:
-                thumbnail = urlh.geturl()
+                thumbnail = urlh.url
 
         return {
             'id': video_id,
@@ -118,7 +116,7 @@ class MindsIE(MindsBaseIE):
             'timestamp': int_or_none(entity.get('time_created')),
             'uploader': strip_or_none(owner.get('name')),
             'uploader_id': uploader_id,
-            'uploader_url': format_field(uploader_id, template='https://www.minds.com/%s'),
+            'uploader_url': format_field(uploader_id, None, 'https://www.minds.com/%s'),
             'view_count': int_or_none(entity.get('play:count')),
             'like_count': int_or_none(entity.get('thumbs:up:count')),
             'dislike_count': int_or_none(entity.get('thumbs:down:count')),
@@ -136,8 +134,8 @@ class MindsFeedBaseIE(MindsBaseIE):
         i = 1
         while True:
             data = self._call_api(
-                'v2/feeds/container/%s/videos' % feed_id,
-                feed_id, 'page %s' % i, query)
+                f'v2/feeds/container/{feed_id}/videos',
+                feed_id, f'page {i}', query)
             entities = data.get('entities') or []
             for entity in entities:
                 guid = entity.get('guid')
@@ -154,7 +152,7 @@ class MindsFeedBaseIE(MindsBaseIE):
     def _real_extract(self, url):
         feed_id = self._match_id(url)
         feed = self._call_api(
-            'v1/%s/%s' % (self._FEED_PATH, feed_id),
+            f'v1/{self._FEED_PATH}/{feed_id}',
             feed_id, self._FEED_TYPE)[self._FEED_TYPE]
 
         return self.playlist_result(

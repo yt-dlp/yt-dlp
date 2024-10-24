@@ -1,10 +1,8 @@
+import base64
 import re
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_b64decode,
-    compat_urllib_parse_unquote,
-)
 
 
 class BigflixIE(InfoExtractor):
@@ -21,7 +19,7 @@ class BigflixIE(InfoExtractor):
         },
         'params': {
             'skip_download': True,
-        }
+        },
     }, {
         # multiple formats
         'url': 'http://www.bigflix.com/Malayalam-movies/Drama-movies/Indian-Rupee/15967',
@@ -38,7 +36,7 @@ class BigflixIE(InfoExtractor):
             webpage, 'title')
 
         def decode_url(quoted_b64_url):
-            return compat_b64decode(compat_urllib_parse_unquote(
+            return base64.b64decode(urllib.parse.unquote(
                 quoted_b64_url)).decode('utf-8')
 
         formats = []
@@ -47,7 +45,7 @@ class BigflixIE(InfoExtractor):
             video_url = decode_url(encoded_url)
             f = {
                 'url': video_url,
-                'format_id': '%sp' % height,
+                'format_id': f'{height}p',
                 'height': int(height),
             }
             if video_url.startswith('rtmp'):
@@ -63,13 +61,11 @@ class BigflixIE(InfoExtractor):
                     'url': decode_url(file_url),
                 })
 
-        self._sort_formats(formats)
-
         description = self._html_search_meta('description', webpage)
 
         return {
             'id': video_id,
             'title': title,
             'description': description,
-            'formats': formats
+            'formats': formats,
         }

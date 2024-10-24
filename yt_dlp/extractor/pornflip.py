@@ -1,9 +1,5 @@
 from .common import InfoExtractor
-from ..utils import (
-    int_or_none,
-    parse_duration,
-    parse_iso8601
-)
+from ..utils import int_or_none, parse_duration, parse_iso8601
 
 
 class PornFlipIE(InfoExtractor):
@@ -47,7 +43,7 @@ class PornFlipIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(
-            'https://{}/sv/{}'.format(self._HOST, video_id), video_id, headers={'host': self._HOST})
+            f'https://{self._HOST}/sv/{video_id}', video_id, headers={'host': self._HOST})
         description = self._html_search_regex(r'&p\[summary\]=(.*?)\s*&p', webpage, 'description', fatal=False)
         duration = self._search_regex(r'"duration":\s+"([^"]+)",', webpage, 'duration', fatal=False)
         view_count = self._search_regex(r'"interactionCount":\s+"([^"]+)"', webpage, 'view_count', fatal=False)
@@ -60,7 +56,6 @@ class PornFlipIE(InfoExtractor):
             r'class="btn btn-down-rating[^>]*>[^<]*<i[^>]*>[^<]*</i>[^>]*<span[^>]*>[^0-9]*([0-9]+)[^<0-9]*<', webpage, 'dislike_count', fatal=False)
         mpd_url = self._search_regex(r'"([^"]+userscontent.net/dash/[0-9]+/manifest.mpd[^"]*)"', webpage, 'mpd_url').replace('&amp;', '&')
         formats = self._extract_mpd_formats(mpd_url, video_id, mpd_id='dash')
-        self._sort_formats(formats)
 
         return {
             'age_limit': 18,

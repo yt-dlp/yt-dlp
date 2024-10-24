@@ -1,9 +1,5 @@
 from .common import InfoExtractor
-from ..utils import (
-    int_or_none,
-    qualities,
-    url_or_none,
-)
+from ..utils import int_or_none, qualities, traverse_obj, url_or_none
 
 
 class NprIE(InfoExtractor):
@@ -12,14 +8,14 @@ class NprIE(InfoExtractor):
         'url': 'https://www.npr.org/sections/allsongs/2015/10/21/449974205/new-music-from-beach-house-chairlift-cmj-discoveries-and-more',
         'info_dict': {
             'id': '449974205',
-            'title': 'New Music From Beach House, Chairlift, CMJ Discoveries And More'
+            'title': 'New Music From Beach House, Chairlift, CMJ Discoveries And More',
         },
         'playlist_count': 7,
     }, {
         'url': 'https://www.npr.org/sections/deceptivecadence/2015/10/09/446928052/music-from-the-shadows-ancient-armenian-hymns-and-piano-jazz',
         'info_dict': {
             'id': '446928052',
-            'title': "Songs We Love: Tigran Hamasyan, 'Your Mercy is Boundless'"
+            'title': "Songs We Love: Tigran Hamasyan, 'Your Mercy is Boundless'",
         },
         'playlist': [{
             'md5': '12fa60cb2d3ed932f53609d4aeceabf1',
@@ -74,10 +70,6 @@ class NprIE(InfoExtractor):
             })['list']['story'][0]
         playlist_title = story.get('title', {}).get('$text')
 
-        # Fetch the JSON-LD from the npr page.
-        json_ld = self._search_json_ld(
-            self._download_webpage(url, playlist_id), playlist_id, 'NewsArticle', fatal=False)
-
         KNOWN_FORMATS = ('threegp', 'm3u8', 'smil', 'mp4', 'mp3')
         quality = qualities(KNOWN_FORMATS)
 
@@ -124,10 +116,10 @@ class NprIE(InfoExtractor):
                     stream_url, stream_id, 'mp4', 'm3u8_native',
                     m3u8_id='hls', fatal=False))
 
-            if not formats and json_ld.get('url'):
-                formats.extend(self._extract_m3u8_formats(json_ld['url'], media_id, 'mp4', m3u8_id='hls', fatal=False))
-
-            self._sort_formats(formats)
+            if not formats:
+                raw_json_ld = self._yield_json_ld(self._download_webpage(url, playlist_id), playlist_id, fatal=False)
+                m3u8_url = traverse_obj(list(raw_json_ld), (..., 'subjectOf', ..., 'embedUrl'), get_all=False)
+                formats = self._extract_m3u8_formats(m3u8_url, media_id, 'mp4', m3u8_id='hls', fatal=False)
 
             entries.append({
                 'id': media_id,

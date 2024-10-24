@@ -3,6 +3,8 @@ from ..utils import int_or_none
 
 
 class R7IE(InfoExtractor):
+    _WORKING = False
+    _ENABLED = None  # XXX: pass through to GenericIE
     _VALID_URL = r'''(?x)
                         https?://
                         (?:
@@ -40,7 +42,7 @@ class R7IE(InfoExtractor):
         video_id = self._match_id(url)
 
         video = self._download_json(
-            'http://player-api.r7.com/video/i/%s' % video_id, video_id)
+            f'http://player-api.r7.com/video/i/{video_id}', video_id)
 
         title = video['title']
 
@@ -66,7 +68,6 @@ class R7IE(InfoExtractor):
                 f_copy['protocol'] = 'http'
                 f = f_copy
             formats.append(f)
-        self._sort_formats(formats)
 
         description = video.get('description')
         thumbnail = video.get('thumb')
@@ -87,6 +88,8 @@ class R7IE(InfoExtractor):
 
 
 class R7ArticleIE(InfoExtractor):
+    _WORKING = False
+    _ENABLED = None  # XXX: pass through to GenericIE
     _VALID_URL = r'https?://(?:[a-zA-Z]+)\.r7\.com/(?:[^/]+/)+[^/?#&]+-(?P<id>\d+)'
     _TEST = {
         'url': 'http://tv.r7.com/record-play/balanco-geral/videos/policiais-humilham-suspeito-a-beira-da-morte-morre-com-dignidade-16102015',
@@ -95,7 +98,7 @@ class R7ArticleIE(InfoExtractor):
 
     @classmethod
     def suitable(cls, url):
-        return False if R7IE.suitable(url) else super(R7ArticleIE, cls).suitable(url)
+        return False if R7IE.suitable(url) else super().suitable(url)
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
@@ -106,4 +109,4 @@ class R7ArticleIE(InfoExtractor):
             r'<div[^>]+(?:id=["\']player-|class=["\']embed["\'][^>]+id=["\'])([\da-f]{24})',
             webpage, 'video id')
 
-        return self.url_result('http://player.r7.com/video/i/%s' % video_id, R7IE.ie_key())
+        return self.url_result(f'http://player.r7.com/video/i/{video_id}', R7IE.ie_key())
