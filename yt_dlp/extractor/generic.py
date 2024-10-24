@@ -2396,11 +2396,11 @@ class GenericIE(InfoExtractor):
             }), impersonate=impersonate)
         except ExtractorError as e:
             if not (isinstance(e.cause, HTTPError) and e.cause.status == 403
-                    and e.cause.response.headers.get('cf-mitigated') == 'challenge'
+                    and e.cause.response.get_header('cf-mitigated') == 'challenge'
                     and e.cause.response.extensions.get('impersonate') is None):
                 raise
             cf_cookie_domain = traverse_obj(
-                LenientSimpleCookie(e.cause.response.headers.get('set-cookie')),
+                LenientSimpleCookie(e.cause.response.get_header('set-cookie')),
                 ('__cf_bm', 'domain'))
             if cf_cookie_domain:
                 self.write_debug(f'Clearing __cf_bm cookie for {cf_cookie_domain}')
