@@ -11,8 +11,8 @@ class ExpressenIE(InfoExtractor):
     _VALID_URL = r'''(?x)
                     https?://
                         (?:www\.)?(?:expressen|di)\.se/
-                        (?:(?:tvspelare/video|videoplayer/embed)/)?
-                        tv/(?:[^/]+/)*
+                        (?:(?:tvspelare/video|video-?player/embed)/)?
+                        (?:tv|nyheter)/(?:[^/?#]+/)*
                         (?P<id>[^/?#&]+)
                     '''
     _EMBED_REGEX = [r'<iframe[^>]+\bsrc=(["\'])(?P<url>(?:https?:)?//(?:www\.)?(?:expressen|di)\.se/(?:tvspelare/video|videoplayer/embed)/tv/.+?)\1']
@@ -42,6 +42,12 @@ class ExpressenIE(InfoExtractor):
     }, {
         'url': 'https://www.di.se/videoplayer/embed/tv/ditv/borsmorgon/implantica-rusar-70--under-borspremiaren-hor-styrelsemedlemmen/?embed=true&external=true&autoplay=true&startVolume=0&partnerId=di',
         'only_matching': True,
+    }, {
+        'url': 'https://www.expressen.se/video-player/embed/tv/nyheter/ekero-fodda-olof-gustafsson-forvaltar-knarkbaronen-pablo-escobars-namn',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.expressen.se/nyheter/efter-egna-telefonbluffen-escobar-stammer-klarna/',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
@@ -52,7 +58,7 @@ class ExpressenIE(InfoExtractor):
         def extract_data(name):
             return self._parse_json(
                 self._search_regex(
-                    r'data-%s=(["\'])(?P<value>(?:(?!\1).)+)\1' % name,
+                    rf'data-{name}=(["\'])(?P<value>(?:(?!\1).)+)\1',
                     webpage, 'info', group='value'),
                 display_id, transform_source=unescapeHTML)
 

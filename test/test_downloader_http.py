@@ -16,6 +16,7 @@ from test.helper import http_server_port, try_rm
 from yt_dlp import YoutubeDL
 from yt_dlp.downloader.http import HttpFD
 from yt_dlp.utils import encodeFilename
+from yt_dlp.utils._utils import _YDLLogger as FakeLogger
 
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -37,9 +38,9 @@ class HTTPTestRequestHandler(http.server.BaseHTTPRequestHandler):
                 end = int(mobj.group(2))
         valid_range = start is not None and end is not None
         if valid_range:
-            content_range = 'bytes %d-%d' % (start, end)
+            content_range = f'bytes {start}-{end}'
             if total:
-                content_range += '/%d' % total
+                content_range += f'/{total}'
             self.send_header('Content-Range', content_range)
         return (end - start + 1) if valid_range else total
 
@@ -67,17 +68,6 @@ class HTTPTestRequestHandler(http.server.BaseHTTPRequestHandler):
             assert False
 
 
-class FakeLogger:
-    def debug(self, msg):
-        pass
-
-    def warning(self, msg):
-        pass
-
-    def error(self, msg):
-        pass
-
-
 class TestHttpFD(unittest.TestCase):
     def setUp(self):
         self.httpd = http.server.HTTPServer(
@@ -94,7 +84,7 @@ class TestHttpFD(unittest.TestCase):
         filename = 'testfile.mp4'
         try_rm(encodeFilename(filename))
         self.assertTrue(downloader.real_download(filename, {
-            'url': 'http://127.0.0.1:%d/%s' % (self.port, ep),
+            'url': f'http://127.0.0.1:{self.port}/{ep}',
         }), ep)
         self.assertEqual(os.path.getsize(encodeFilename(filename)), TEST_SIZE, ep)
         try_rm(encodeFilename(filename))

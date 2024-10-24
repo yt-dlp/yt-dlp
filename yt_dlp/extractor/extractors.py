@@ -1,10 +1,10 @@
 import contextlib
 import os
 
-from ..utils import load_plugins
+from ..plugins import load_plugins
 
 # NB: Must be before other imports so that plugins can be correctly injected
-_PLUGIN_CLASSES = load_plugins('extractor', 'IE', {})
+_PLUGIN_CLASSES = load_plugins('extractor', 'IE')
 
 _LAZY_LOADER = False
 if not os.environ.get('YTDLP_NO_LAZY_EXTRACTORS'):
@@ -24,3 +24,5 @@ if not _LAZY_LOADER:
 
 globals().update(_PLUGIN_CLASSES)
 _ALL_CLASSES[:0] = _PLUGIN_CLASSES.values()
+
+from .common import _PLUGIN_OVERRIDES  # noqa: F401

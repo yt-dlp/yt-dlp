@@ -81,7 +81,7 @@ class PixivSketchIE(PixivSketchBaseIE):
             'channel_id': str(traverse_obj(data, ('user', 'pixiv_user_id'), ('owner', 'user', 'pixiv_user_id'))),
             'age_limit': 18 if data.get('is_r18') else 15 if data.get('is_r15') else 0,
             'timestamp': unified_timestamp(data.get('created_at')),
-            'is_live': True
+            'is_live': True,
         }
 
 
@@ -101,7 +101,7 @@ class PixivSketchUserIE(PixivSketchBaseIE):
 
     @classmethod
     def suitable(cls, url):
-        return super(PixivSketchUserIE, cls).suitable(url) and not PixivSketchIE.suitable(url)
+        return super().suitable(url) and not PixivSketchIE.suitable(url)
 
     def _real_extract(self, url):
         user_id = self._match_id(url)

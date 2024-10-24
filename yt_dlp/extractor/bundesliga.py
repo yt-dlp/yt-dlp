@@ -16,17 +16,17 @@ class BundesligaIE(InfoExtractor):
                 'upload_date': '20220928',
                 'duration': 146,
                 'timestamp': 1664366511,
-                'description': 'md5:803d4411bd134140c774021dd4b7598b'
-            }
+                'description': 'md5:803d4411bd134140c774021dd4b7598b',
+            },
         },
         {
             'url': 'https://www.bundesliga.com/en/bundesliga/videos/latest-features/T8IKc8TX?vid=ROHjs06G',
-            'only_matching': True
+            'only_matching': True,
         },
         {
             'url': 'https://www.bundesliga.com/en/bundesliga/videos/goals?vid=mOG56vWA',
-            'only_matching': True
-        }
+            'only_matching': True,
+        },
     ]
 
     def _real_extract(self, url):

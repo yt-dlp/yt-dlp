@@ -3,6 +3,7 @@ from .youtube import YoutubeIE
 
 
 class UnityIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?unity3d\.com/learn/tutorials/(?:[^/]+/)*(?P<id>[^/?#&]+)'
     _TESTS = [{
         'url': 'https://unity3d.com/learn/tutorials/topics/animation/animate-anything-mecanim',
@@ -15,7 +16,7 @@ class UnityIE(InfoExtractor):
             'uploader': 'Unity',
             'uploader_id': 'Unity3D',
             'upload_date': '20140926',
-        }
+        },
     }, {
         'url': 'https://unity3d.com/learn/tutorials/projects/2d-ufo-tutorial/following-player-camera?playlist=25844',
         'only_matching': True,

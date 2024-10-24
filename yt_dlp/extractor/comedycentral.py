@@ -2,7 +2,7 @@ from .mtv import MTVServicesInfoExtractor
 
 
 class ComedyCentralIE(MTVServicesInfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?cc\.com/(?:episodes|video(?:-clips)?|collection-playlist)/(?P<id>[0-9a-z]{6})'
+    _VALID_URL = r'https?://(?:www\.)?cc\.com/(?:episodes|video(?:-clips)?|collection-playlist|movies)/(?P<id>[0-9a-z]{6})'
     _FEED_URL = 'http://comedycentral.com/feeds/mrss/'
 
     _TESTS = [{
@@ -24,6 +24,9 @@ class ComedyCentralIE(MTVServicesInfoExtractor):
         'only_matching': True,
     }, {
         'url': 'https://www.cc.com/collection-playlist/cosnej/stand-up-specials/t6vtjb',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.cc.com/movies/tkp406/a-cluesterfuenke-christmas',
         'only_matching': True,
     }]
 
