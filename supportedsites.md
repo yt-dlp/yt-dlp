@@ -1570,7 +1570,6 @@
  - **UFCArabia**: [*ufcarabia*](## "netrc machine")
  - **UFCTV**: [*ufctv*](## "netrc machine")
  - **ukcolumn**: (**Currently broken**)
- - **UKTVPlay**
  - **umg:de**: Universal Music Deutschland (**Currently broken**)
  - **Unistra**
  - **Unity**: (**Currently broken**)
