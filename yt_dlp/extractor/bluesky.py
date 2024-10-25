@@ -186,14 +186,15 @@ class BlueskyIE(InfoExtractor):
             note='Downloading HD m3u8 information', errnote='Unable to download HD m3u8 information')
         blob_cid = traverse_obj(record_embed, ('video', 'ref', '$link'), ('video', 'cid'),
                                 ('media', 'video', 'ref', '$link'), ('media', 'video', 'cid'))
-        formats.append({
-            'format_id': 'blob',
-            'url': f'https://bsky.social/xrpc/com.atproto.sync.getBlob?did={did}&cid={blob_cid}',
-            'ext': mimetype2ext(traverse_obj(record_embed, ('video', 'mimeType')), 'mp4'),
-            'width': traverse_obj(record_embed, ('aspectRatio', 'width'), expected_type=int_or_none),
-            'height': traverse_obj(record_embed, ('aspectRatio', 'height'), expected_type=int_or_none),
-            'filesize': traverse_obj(record_embed, ('video', 'size'), expected_type=int_or_none),
-        })
+        if blob_cid:
+            formats.append({
+                'format_id': 'blob',
+                'url': f'https://bsky.social/xrpc/com.atproto.sync.getBlob?did={did}&cid={blob_cid}',
+                'ext': mimetype2ext(traverse_obj(record_embed, ('video', 'mimeType')), 'mp4'),
+                'width': traverse_obj(record_embed, ('aspectRatio', 'width'), expected_type=int_or_none),
+                'height': traverse_obj(record_embed, ('aspectRatio', 'height'), expected_type=int_or_none),
+                'filesize': traverse_obj(record_embed, ('video', 'size'), expected_type=int_or_none),
+            })
 
         handle = traverse_obj(post, ('author', 'handle'))
         uploader = traverse_obj(post, ('author', 'displayName'))
