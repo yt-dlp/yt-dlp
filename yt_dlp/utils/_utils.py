@@ -9,6 +9,7 @@ import datetime as dt
 import email.header
 import email.utils
 import errno
+import functools
 import hashlib
 import hmac
 import html.entities
@@ -44,7 +45,6 @@ import xml.etree.ElementTree
 
 from . import traversal
 
-from ..compat import functools  # isort: split
 from ..compat import (
     compat_etree_fromstring,
     compat_expanduser,
