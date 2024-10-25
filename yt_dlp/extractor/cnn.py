@@ -6,6 +6,7 @@ from .common import InfoExtractor
 from ..utils import (
     clean_html,
     extract_attributes,
+    float_or_none,
     int_or_none,
     merge_dicts,
     parse_duration,
@@ -28,11 +29,13 @@ class CNNIE(InfoExtractor):
             'display_id': '2024/05/31/sport/video/jadon-sancho-borussia-dortmund-champions-league-exclusive-spt-intl',
             'ext': 'mp4',
             'upload_date': '20240531',
-            'description': 'md5:bea833dc9ab0711351d82fd014a9466c',
+            'description': 'md5:844bcdb0629e1877a7a466c913f4c19c',
             'thumbnail': 'https://media.cnn.com/api/v1/images/stellar/prod/gettyimages-2151936122.jpg?c=original',
             'duration': 373.0,
-            'timestamp': 1717148586,
+            'timestamp': 1717148586.643,
             'title': 'Borussia Dortmund star Jadon Sancho seeks Wembley redemption after 2020 Euros hurt',
+            'modified_date': '20240531',
+            'modified_timestamp': 1717150140.015,
         },
     }, {
         'url': 'https://edition.cnn.com/2024/06/11/politics/video/inmates-vote-jail-nevada-murray-dnt-ac360-digvid',
@@ -42,10 +45,12 @@ class CNNIE(InfoExtractor):
             'ext': 'mp4',
             'description': 'md5:e0120fe5da9ad8259fd707c1cbb64a60',
             'title': 'Here’s how some inmates in closely divided state are now able to vote from jail',
-            'timestamp': 1718158269,
+            'timestamp': 1718158269.106,
             'upload_date': '20240612',
             'thumbnail': 'https://media.cnn.com/api/v1/images/stellar/prod/still-20701554-13565-571-still.jpg?c=original',
             'duration': 202.0,
+            'modified_date': '20240612',
+            'modified_timestamp': 1718158509.529,
         },
     }, {
         'url': 'https://edition.cnn.com/2024/06/11/style/king-charles-portrait-vandalized/index.html',
@@ -56,9 +61,11 @@ class CNNIE(InfoExtractor):
             'thumbnail': 'https://media.cnn.com/api/v1/images/stellar/prod/still-20701257-8846-816-still.jpg?c=original',
             'description': 'md5:19f78338ccec533db0fa8a4511012dae',
             'title': 'Video shows King Charles\' portrait being vandalized by activists',
-            'timestamp': 1718113852,
+            'timestamp': 1718113852.186,
             'upload_date': '20240611',
             'duration': 51.0,
+            'modified_timestamp': 1718116193.365,
+            'modified_date': '20240611',
         },
     }, {
         'url': 'https://edition.cnn.com/videos/media/2022/12/05/robin-meade-final-sign-off-broadcast-hln-mxp-contd-vpx.hln',
@@ -72,6 +79,8 @@ class CNNIE(InfoExtractor):
             'description': 'md5:cff3c62d18d2fbc6c5c75cb029b7353b',
             'upload_date': '20221205',
             'timestamp': 1670284296,
+            'modified_timestamp': 1670332404.0,
+            'modified_date': '20221206',
         },
         'params': {'format': 'direct'},
     }, {
@@ -80,12 +89,14 @@ class CNNIE(InfoExtractor):
             'id': 'me484a43722642aa00627b812fe928f2e99c6e2997',
             'ext': 'mp4',
             'display_id': 'video/ataque-misil-israel-beirut-libano-octubre-trax',
-            'timestamp': 1729501452,
+            'timestamp': 1729501452.796,
             'thumbnail': 'https://media.cnn.com/api/v1/images/stellar/prod/ataqeubeirut-1.jpg?c=original',
             'description': 'md5:256ee7137d161f776cda429654135e52',
             'upload_date': '20241021',
             'duration': 31.0,
             'title': 'VIDEO | Israel lanza un nuevo ataque sobre Beirut',
+            'modified_date': '20241021',
+            'modified_timestamp': 1729501530.036,
         },
     }, {
         'url': 'https://edition.cnn.com/2024/10/16/politics/kamala-harris-fox-news-interview/index.html',
@@ -103,8 +114,10 @@ class CNNIE(InfoExtractor):
                 'description': 'md5:e7dd3d1a04df916062230b60ca419a0a',
                 'thumbnail': 'https://media.cnn.com/api/v1/images/stellar/prod/harris-20241016234916617.jpg?c=original',
                 'duration': 173.0,
-                'timestamp': 1729122182,
+                'timestamp': 1729122182.079,
                 'upload_date': '20241016',
+                'modified_timestamp': 1729194706.355,
+                'modified_date': '20241017',
             },
             'params': {'format': 'direct'},
         }, {
@@ -117,8 +130,10 @@ class CNNIE(InfoExtractor):
                 'description': 'md5:602a8a7e853ed5e574acd3159428c98e',
                 'thumbnail': 'https://media.cnn.com/api/v1/images/stellar/prod/buttigieg-20241017040412074.jpg?c=original',
                 'duration': 145.0,
-                'timestamp': 1729137765,
+                'timestamp': 1729137765.846,
                 'upload_date': '20241017',
+                'modified_timestamp': 1729138184.891,
+                'modified_date': '20241017',
             },
             'params': {'format': 'direct'},
         }],
@@ -131,19 +146,37 @@ class CNNIE(InfoExtractor):
             self._search_json(r'window\.env\s*=', webpage, 'window env', display_id, default={}),
             ('TOP_AUTH_SERVICE_APP_ID', {str}))
 
-        json_lds = (traverse_obj(self._yield_json_ld(webpage, display_id, default={}), (
-            lambda _, v: v['@type'] == 'NewsArticle', 'video',
-            lambda _, v: v['@type'] == 'VideoObject' and url_or_none(v['contentUrl']),
-            {lambda x: self._json_ld(x, display_id, fatal=False, expected_type='VideoObject')}))
-            or traverse_obj(self._search_json_ld(webpage, display_id, fatal=False), all))
-
         entries = []
         for player_data in traverse_obj(webpage, (
                 {find_elements(tag='div', attr='data-component-name', value='video-player', html=True)},
-                ..., {extract_attributes}, all, lambda _, v: v['data-media-id'] and v['data-video-slug'])):
+                ..., {extract_attributes}, all, lambda _, v: v['data-media-id'] and v['data-video-resource-parent-uri'])):
             media_id = player_data['data-media-id']
-            video_slug = player_data['data-video-slug']
+            parent_uri = player_data['data-video-resource-parent-uri']
             formats, subtitles = [], {}
+
+            video_data = self._download_json(
+                'https://fave.api.cnn.io/v1/video', media_id,
+                query={
+                    'id': media_id,
+                    'stellarUri': parent_uri,
+                })
+            for direct_url in traverse_obj(video_data, ('files', ..., 'fileUri', {url_or_none})):
+                resolution, bitrate = None, None
+                if mobj := re.search(r'-(?P<res>\d+x\d+)_(?P<tbr>\d+)k\.mp4', direct_url):
+                    resolution, bitrate = mobj.group('res', 'tbr')
+                formats.append({
+                    'url': direct_url,
+                    'format_id': 'direct',
+                    'quality': 1,
+                    'tbr': int_or_none(bitrate),
+                    **parse_resolution(resolution),
+                })
+            for sub_data in traverse_obj(video_data, (
+                    'closedCaptions', 'types', lambda _, v: url_or_none(v['track']['url']), 'track')):
+                subtitles.setdefault(sub_data.get('lang') or 'en', []).append({
+                    'url': sub_data['url'],
+                    'name': sub_data.get('label'),
+                })
 
             if app_id:
                 media_data = self._download_json(
@@ -157,22 +190,7 @@ class CNNIE(InfoExtractor):
                     formats.extend(fmts)
                     self._merge_subtitles(subs, target=subtitles)
 
-            json_ld = traverse_obj(json_lds, (lambda _, v: video_slug in v['url'], any)) or {}
-            if json_ld:
-                direct_url = json_ld['url']
-                resolution, bitrate = None, None
-                if mobj := re.search(r'-(?P<res>\d+x\d+)_(?P<tbr>\d+)k\.mp4', direct_url):
-                    resolution, bitrate = mobj.group('res', 'tbr')
-                formats.append({
-                    'url': direct_url,
-                    'format_id': 'direct',
-                    'quality': 1,
-                    'tbr': int_or_none(bitrate),
-                    **parse_resolution(resolution),
-                })
-
             entries.append({
-                **json_ld,
                 **traverse_obj(player_data, {
                     'title': ('data-headline', {clean_html}),
                     'description': ('data-description', {clean_html}),
@@ -181,9 +199,16 @@ class CNNIE(InfoExtractor):
                     'thumbnail': (
                         'data-poster-image-override', {json.loads}, 'big', 'uri', {url_or_none},
                         {functools.partial(update_url, query='c=original')}),
+                    'display_id': 'data-video-slug',
+                }),
+                **traverse_obj(video_data, {
+                    'timestamp': ('dateCreated', 'uts', {float_or_none(scale=1000)}),
+                    'description': ('description', {clean_html}),
+                    'title': ('headline', {str}),
+                    'modified_timestamp': ('lastModified', 'uts', {float_or_none(scale=1000)}),
+                    'duration': ('trt', {int_or_none}),
                 }),
                 'id': media_id,
-                'display_id': video_slug,
                 'formats': formats,
                 'subtitles': subtitles,
             })
