@@ -6,6 +6,7 @@ from ..utils import (
     determine_ext,
     int_or_none,
     js_to_json,
+    strip_or_none,
     traverse_obj,
     unified_strdate,
     url_or_none,
@@ -13,7 +14,12 @@ from ..utils import (
 
 
 class NovaEmbedIE(InfoExtractor):
-    _VALID_URL = r'https?://media(?:tn)?\.cms\.nova\.cz/embed/(?P<id>[^/?#&]+)'
+    _DOMAINS = [
+        r'media(?:tn)?\.cms\.nova\.cz',
+        r'media\.cms\.(?:markiza|tvnoviny)\.sk',
+    ]
+    _VALID_URL = [rf'https?://{domain}/embed/(?P<id>[^/?#&"\']+)' for domain in _DOMAINS]
+    _EMBED_REGEX = [rf'(?x)<iframe[^>]+\b(?:data-)?src=["\'](?P<url>{url})' for url in _VALID_URL]
     _TESTS = [{
         'url': 'https://media.cms.nova.cz/embed/8o0n0r?autoplay=1',
         'info_dict': {
@@ -43,19 +49,179 @@ class NovaEmbedIE(InfoExtractor):
             'id': 'EU5ELEsmOHt',
             'ext': 'mp4',
             'title': 'Haptické křeslo, bionická ruka nebo roboti. Reportérka se podívala na Týden inovací',
-            'thumbnail': r're:^https?://.*\.jpg',
+            'thumbnail': r're:^https?://cloudia\.cms\.nova\.cz/.+',
             'duration': 1780,
         },
         'params': {'skip_download': 'm3u8'},
+    }]
+    _WEBPAGE_TESTS = [{
+        'url': 'http://www.markiza.sk/soubiz/zahranicny/1923705_oteckovia-maju-svoj-den-ti-slavni-nie-su-o-nic-menej-rozkosni',
+        'md5': 'a478390ea7f36aeb36004a107db8b031',
+        'info_dict': {
+            'id': '4q3zP2DsORO',
+            'ext': 'mp4',
+            'title': 'Oteckovia 110',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'duration': 2603,
+        },
+    }, {
+        'url': 'https://tvnoviny.sk/domace/clanok/141815-byvaly-sportovec-udajne-vyrabal-mast-z-marihuany-sud-mu-vymeral-20-rocny-trest-a-vzal-aj-rodinny-dom',
+        'md5': '51de0754352a36b4d623f98c9636a5e1',
+        'info_dict': {
+            'id': '2LcfYRqGuYP',
+            'ext': 'mp4',
+            'title': 'Marihuanový mastičkár si vypočul vysoký trest a prepad majetku',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'duration': 119,
+        },
+    }, {
+        'url': 'https://tvnoviny.sk/domace/clanok/144055-robert-z-kosic-dostal-najnizsi-mozny-trest-za-to-co-spravil-je-to-aj-tak-vela-tvrdia-blizki',
+        'md5': 'c9a8467b37951877336a9ae6309558b0',
+        'info_dict': {
+            'id': '82N7FrJK7cR',
+            'ext': 'mp4',
+            'title': 'Robovi z Košíc znížili trest za marihuanu, odsúdili ho na päť rokov',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'duration': 152,
+        },
+    }, {
+        'url': 'https://tvnoviny.sk/domace/clanok/338907-preco-sa-mnozia-utoky-tinedzerov-podla-psychologiciek-je-za-tym-rastuca-frustracia',
+        'md5': '869b589e99d7c19dd66f024a7d088502',
+        'info_dict': {
+            'id': 'DeiezcjCJmg',
+            'ext': 'mp4',
+            'title': '2022-11-03-TN-2-Nasilie-medzi-mladymi',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'duration': 142,
+        },
+    }, {
+        'url': 'http://tvnoviny.sk/domace/clanok/890183-vlada-chysta-postavit-novu-nemocnicu-v-presove-informoval-premier-robert-fico',
+        'md5': 'b9ef0b4917deee2c930f2248b568a90c',
+        'info_dict': {
+            'id': '7VCyuyfGsNZ',
+            'ext': 'mp4',
+            'title': '2024-04-15-PTN-1-Co-caka-zdravotnictvo',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'duration': 137,
+        },
+    }, {
+        'url': 'https://www.markiza.sk/live/1-markiza',
+        'info_dict': {
+            'id': 'markiza-live',
+            'ext': 'mp4',
+            'title': r're:^CRA Markiza SD \d{4}-\d{2}-\d{2} \d{2}:\d{2}$',
+            'thumbnail': r're:^https?://cloudia\.cms\.markiza\.sk/.+',
+            'live_status': 'is_live',
+        },
+    }, {
+        'url': 'http://www.tvnoviny.sk/domace/1923887_po-smrti-manzela-ju-cakalo-poriadne-prekvapenie',
+        'md5': 'e3e0f1e98172ea64147cada308276df8',
+        'info_dict': {
+            'id': 'JxqRvQkFwHK',
+            'ext': 'mp4',
+            'title': 'Po smrti manžela ju čakalo prekvapenie',
+            'thumbnail': r're:^https?://.*\.(?:jpg)',
+            'duration': 108,
+        },
+    }, {
+        'url': 'http://videoarchiv.markiza.sk/video/reflex/zo-zakulisia/84651_pribeh-alzbetky',
+        'md5': 'b40d04d5cb4cf529e2ff14d6726a3548',
+        'info_dict': {
+            'id': '9ZnlOQp2MRa',
+            'ext': 'mp4',
+            'title': 'Príbeh Alžbetky',
+            'thumbnail': r're:^https?://.*\.(?:jpg)',
+            'duration': 361,
+        },
+    }, {
+        'url': 'https://www.markiza.sk/relacie/superstar/clanok/549972-v-zakulisi-superstar-to-bolo-obcas-drsne-moderator-priznal-ze-musel-pouzit-aj-hrubu-silu',
+        'info_dict': {
+            'id': '549972-v-zakulisi-superstar-to-bolo-obcas-drsne-moderator-priznal-ze-musel-pouzit-aj-hrubu-silu',
+            'title': 'V zákulisí SuperStar to bolo občas drsné. Moderátor priznal, že musel použiť aj hrubú silu | TV Markíza',
+            'description': 'md5:02e240e302bddfd0cd352bc886d95161',
+            'thumbnail': r're:^https?://cmesk-ott-images-avod\.ssl\.cdn\.cra\.cz/.+',
+            'age_limit': 0,
+        },
+        'playlist_count': 2,
+    }, {
+        'url': 'https://voyo.markiza.sk/filmy/6702-vysnivana-svadba',
+        'info_dict': {
+            'id': '20kSOHBD8DQ',
+            'title': 'Vysnívaná svadba - 0000',
+            'thumbnail': r're:^https?://.*\.(?:jpg)',
+            'duration': 4924,
+        },
+        'params': {
+            'skip_download': True,
+            'ignore_no_formats_error': True,
+        },
+        'expected_warnings': [
+            'Requested format is not available',
+            'This video is DRM protected',
+        ],
+        'skip': 'premium member only',
+    }, {
+        # Another URLs:
+        #   http://videoarchiv.markiza.sk/video/84723
+        'url': 'http://videoarchiv.markiza.sk/video/oteckovia/84723_oteckovia-109',
+        'info_dict': {
+            'id': '2a5fQmhjvYm',
+            'title': 'Oteckovia 109',
+            'thumbnail': r're:^https?://.*\.(?:jpg)',
+            'duration': 2759,
+        },
+        'params': {
+            'skip_download': True,
+            'ignore_no_formats_error': True,
+        },
+        'expected_warnings': [
+            'Requested format is not available',
+            'This video is DRM protected',
+        ],
+        'skip': 'premium member only',
+    }, {
+        'url': 'https://voyo.markiza.sk/filmy/1377-frajeri-vo-vegas#player-fullscreen',
+        'info_dict': {
+            'id': '1377-frajeri-vo-vegas#player-fullscreen',
+            'title': 'Frajeri vo Vegas | Voyo',
+            'description': 'md5:7f16168f669f144986d862312949627c',
+            'thumbnail': r're:^https?://cmesk-ott-images-svod\.ssl\.cdn\.cra\.cz/.+',
+            'age_limit': 0,
+        },
+        'playlist': [{
+            'info_dict': {
+                'id': 'K8H4IvKNBbw',
+                'ext': 'mp4',
+                'title': 'frajeri-vo-vegas-hd-15_frajeri-trailer',
+                'duration': 90,
+                'thumbnail': r're:^https?://.*\.(?:jpg)',
+            },
+        },
+            # BUG: The 2nd item (CDjGcqcCYKy) is the movie itself and it's DRM-protected.
+            #      The "ext" field can neither be here nor omitted.
+        ],
+        'playlist_count': 2,
+        'params': {
+            'skip_download': True,
+            'ignore_no_formats_error': True,
+        },
+        'expected_warnings': [
+            'Requested format is not available',
+            'This video is DRM protected',
+        ],
+        'skip': 'premium member only',
     }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
         webpage = self._download_webpage(url, video_id)
+        if 'player_not_logged_in' in webpage:
+            self.raise_login_required()
 
         has_drm = False
         duration = None
+        is_live = False
         formats = []
 
         def process_format_list(format_list, format_id=''):
@@ -77,11 +243,11 @@ class NovaEmbedIE(InfoExtractor):
                     formats.extend(self._extract_m3u8_formats(
                         format_url, video_id, 'mp4',
                         entry_protocol='m3u8_native', m3u8_id='hls',
-                        fatal=False))
+                        fatal=False, headers={'Referer': url}))
                 elif (format_type == 'application/dash+xml'
                       or format_id == 'DASH' or ext == 'mpd'):
                     formats.extend(self._extract_mpd_formats(
-                        format_url, video_id, mpd_id='dash', fatal=False))
+                        format_url, video_id, mpd_id='dash', fatal=False, headers={'Referer': url}))
                 else:
                     formats.append({
                         'url': format_url,
@@ -93,6 +259,7 @@ class NovaEmbedIE(InfoExtractor):
             for src in traverse_obj(player, ('lib', 'source', 'sources', ...)):
                 process_format_list(src)
             duration = traverse_obj(player, ('sourceInfo', 'duration', {int_or_none}))
+            is_live = player.get('isLive', False)
         if not formats and not has_drm:
             # older code path, in use before August 2023
             player = self._parse_json(
@@ -108,11 +275,11 @@ class NovaEmbedIE(InfoExtractor):
         if not formats and has_drm:
             self.report_drm(video_id)
 
-        title = self._og_search_title(
+        title = strip_or_none(self._og_search_title(
             webpage, default=None) or self._search_regex(
             (r'<value>(?P<title>[^<]+)',
              r'videoTitle\s*:\s*(["\'])(?P<value>(?:(?!\1).)+)\1'), webpage,
-            'title', group='value')
+            'title', group='value'))
         thumbnail = self._og_search_thumbnail(
             webpage, default=None) or self._search_regex(
             r'poster\s*:\s*(["\'])(?P<value>(?:(?!\1).)+)\1', webpage,
@@ -127,6 +294,8 @@ class NovaEmbedIE(InfoExtractor):
             'thumbnail': thumbnail,
             'duration': duration,
             'formats': formats,
+            'http_headers': {'Referer': url},
+            'is_live': is_live,
         }
 
 
