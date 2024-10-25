@@ -181,7 +181,7 @@ class BlueskyIE(InfoExtractor):
         post, record_embed = meta.get('post'), traverse_obj(meta, ('post', 'record', 'embed'))
 
         formats, subs = self._extract_m3u8_formats_and_subtitles(
-            traverse_obj(post, ('embed', 'playlist')),
+            traverse_obj(post, ('embed', 'playlist'), ('embed', 'media', 'playlist')),
             video_id, 'mp4', 'm3u8_native', m3u8_id='hls', fatal=False,
             note='Downloading HD m3u8 information', errnote='Unable to download HD m3u8 information')
         blob_cid = traverse_obj(record_embed, ('video', 'ref', '$link'), ('video', 'cid'),
