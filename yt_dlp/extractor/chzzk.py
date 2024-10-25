@@ -162,7 +162,7 @@ class CHZZKVideoIE(InfoExtractor):
             **traverse_obj(video_meta, {
                 'title': ('videoTitle', {str}),
                 'thumbnail': ('thumbnailImageUrl', {url_or_none}),
-                'timestamp': ('publishDateAt', {functools.partial(float_or_none, scale=1000)}),
+                'timestamp': ('publishDateAt', {float_or_none(scale=1000)}),
                 'view_count': ('readCount', {int_or_none}),
                 'duration': ('duration', {int_or_none}),
                 'channel': ('channel', 'channelName', {str}),

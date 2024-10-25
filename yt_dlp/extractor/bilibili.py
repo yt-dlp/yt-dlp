@@ -109,7 +109,7 @@ class BilibiliBaseIE(InfoExtractor):
 
         fragments = traverse_obj(play_info, ('durl', lambda _, v: url_or_none(v['url']), {
             'url': ('url', {url_or_none}),
-            'duration': ('length', {functools.partial(float_or_none, scale=1000)}),
+            'duration': ('length', {float_or_none(scale=1000)}),
             'filesize': ('size', {int_or_none}),
         }))
         if fragments:
@@ -124,7 +124,7 @@ class BilibiliBaseIE(InfoExtractor):
                     'quality': ('quality', {int_or_none}),
                     'format_id': ('quality', {str_or_none}),
                     'format_note': ('quality', {lambda x: format_names.get(x)}),
-                    'duration': ('timelength', {functools.partial(float_or_none, scale=1000)}),
+                    'duration': ('timelength', {float_or_none(scale=1000)}),
                 }),
                 **parse_resolution(format_names.get(play_info.get('quality'))),
             })

@@ -469,7 +469,7 @@ class TikTokBaseIE(InfoExtractor):
                 aweme_detail, aweme_id, traverse_obj(author_info, 'uploader', 'uploader_id', 'channel_id')),
             'thumbnails': thumbnails,
             'duration': (traverse_obj(video_info, (
-                (None, 'download_addr'), 'duration', {functools.partial(int_or_none, scale=1000)}, any))
+                (None, 'download_addr'), 'duration', {int_or_none(scale=1000)}, any))
                 or traverse_obj(music_info, ('duration', {int_or_none}))),
             'availability': self._availability(
                 is_private='Private' in labels,
@@ -1493,7 +1493,7 @@ class TikTokLiveIE(TikTokBaseIE):
 
             sdk_params = traverse_obj(stream, ('main', 'sdk_params', {parse_inner}, {
                 'vcodec': ('VCodec', {str}),
-                'tbr': ('vbitrate', {lambda x: int_or_none(x, 1000)}),
+                'tbr': ('vbitrate', {int_or_none(scale=1000)}),
                 'resolution': ('resolution', {lambda x: re.match(r'(?i)\d+x\d+|\d+p', x).group().lower()}),
             }))
 
