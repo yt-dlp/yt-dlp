@@ -1,5 +1,5 @@
-import re
 import json
+import re
 import urllib.parse
 
 from .common import InfoExtractor
@@ -178,7 +178,7 @@ class CeskaTelevizeIE(InfoExtractor):
                         'requestSource': current_item.get('requestSource'),
                         'drm': current_item.get('drm'),
                         'quality': current_item.get('quality'),
-                    }]
+                    }],
                 }
                 data = {'data': json.dumps(data).encode('utf-8')}
             else:
@@ -231,7 +231,7 @@ class CeskaTelevizeIE(InfoExtractor):
             if playlist_url:
                 if playlist_url == 'error_region':
                     raise ExtractorError(NOT_AVAILABLE_STRING, expected=True)
-                req = Request(compat_urllib_parse_unquote(playlist_url))
+                req = Request(urllib.parse.unquote(playlist_url))
                 req.headers['Referer'] = url
                 playlist = self._download_json(req, playlist_id, fatal=False)
                 if not playlist:
