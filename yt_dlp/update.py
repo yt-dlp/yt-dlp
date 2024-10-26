@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import atexit
 import contextlib
+import functools
 import hashlib
 import json
 import os
@@ -12,8 +13,7 @@ import sys
 from dataclasses import dataclass
 from zipimport import zipimporter
 
-from .compat import functools  # isort: split
-from .compat import compat_realpath, compat_shlex_quote
+from .compat import compat_realpath
 from .networking import Request
 from .networking.exceptions import HTTPError, network_exceptions
 from .utils import (
@@ -69,6 +69,10 @@ def _get_variant_and_executable_path():
             # Ref: https://en.wikipedia.org/wiki/Uname#Examples
             if machine[1:] in ('x86', 'x86_64', 'amd64', 'i386', 'i686'):
                 machine = '_x86' if platform.architecture()[0][:2] == '32' else ''
+            # sys.executable returns a /tmp/ path for staticx builds (linux_static)
+            # Ref: https://staticx.readthedocs.io/en/latest/usage.html#run-time-information
+            if static_exe_path := os.getenv('STATICX_PROG_PATH'):
+                path = static_exe_path
         return f'{remove_end(sys.platform, "32")}{machine}_exe', path
 
     path = os.path.dirname(__file__)
@@ -99,7 +103,6 @@ def current_git_head():
 
 _FILE_SUFFIXES = {
     'zip': '',
-    'py2exe': '_min.exe',
     'win_exe': '.exe',
     'win_x86_exe': '_x86.exe',
     'darwin_exe': '_macos',
@@ -113,8 +116,9 @@ _NON_UPDATEABLE_REASONS = {
     **{variant: None for variant in _FILE_SUFFIXES},  # Updatable
     **{variant: f'Auto-update is not supported for unpackaged {name} executable; Re-download the latest release'
        for variant, name in {'win32_dir': 'Windows', 'darwin_dir': 'MacOS', 'linux_dir': 'Linux'}.items()},
+    'py2exe': 'py2exe is no longer supported by yt-dlp; This executable cannot be updated',
     'source': 'You cannot update when running from source code; Use git to pull the latest changes',
-    'unknown': 'You installed yt-dlp with a package manager or setup.py; Use that to update',
+    'unknown': 'You installed yt-dlp from a manual build or with a package manager; Use that to update',
     'other': 'You are using an unofficial build of yt-dlp; Build the executable again',
 }
 
@@ -131,20 +135,18 @@ def _get_binary_name():
 
 
 def _get_system_deprecation():
-    MIN_SUPPORTED, MIN_RECOMMENDED = (3, 8), (3, 8)
+    MIN_SUPPORTED, MIN_RECOMMENDED = (3, 9), (3, 9)
 
     if sys.version_info > MIN_RECOMMENDED:
         return None
 
     major, minor = sys.version_info[:2]
-    if sys.version_info < MIN_SUPPORTED:
-        msg = f'Python version {major}.{minor} is no longer supported'
-    else:
-        msg = (f'Support for Python version {major}.{minor} has been deprecated. '
-               '\nYou may stop receiving updates on this version at any time')
+    PYTHON_MSG = f'Please update to Python {".".join(map(str, MIN_RECOMMENDED))} or above'
 
-    major, minor = MIN_RECOMMENDED
-    return f'{msg}! Please update to Python {major}.{minor} or above'
+    if sys.version_info < MIN_SUPPORTED:
+        return f'Python version {major}.{minor} is no longer supported! {PYTHON_MSG}'
+
+    return f'Support for Python version {major}.{minor} has been deprecated. {PYTHON_MSG}'
 
 
 def _sha256_file(path):
@@ -196,7 +198,7 @@ class UpdateInfo:
     requested_version: str | None = None
     commit: str | None = None
 
-    binary_name: str | None = _get_binary_name()
+    binary_name: str | None = _get_binary_name()  # noqa: RUF009: Always returns the same value
     checksum: str | None = None
 
     _has_update = True
@@ -306,6 +308,7 @@ class Updater:
                 if isinstance(error, HTTPError) and error.status == 404:
                     continue
                 self._report_network_error(f'fetch update spec: {error}')
+                return None
 
         self._report_error(
             f'The requested tag {self.requested_tag} does not exist for {self.requested_repo}', True)
@@ -335,7 +338,8 @@ class Updater:
                     continue
 
                 self._report_error(
-                    f'yt-dlp cannot be updated to {resolved_tag} since you are on an older Python version', True)
+                    f'yt-dlp cannot be updated to {resolved_tag} since you are on an older Python version '
+                    'or your operating system is not compatible with the requested build', True)
                 return None
 
         return resolved_tag
@@ -377,7 +381,7 @@ class Updater:
             has_update = False
 
         resolved_tag = requested_version if self.requested_tag == 'latest' else self.requested_tag
-        current_label = _make_label(self._origin, self._channel.partition("@")[2] or self.current_version, self.current_version)
+        current_label = _make_label(self._origin, self._channel.partition('@')[2] or self.current_version, self.current_version)
         requested_label = _make_label(self.requested_repo, resolved_tag, requested_version)
         latest_or_requested = f'{"Latest" if self.requested_tag == "latest" else "Requested"} version: {requested_label}'
         if not has_update:
@@ -498,7 +502,7 @@ class Updater:
                 return os.rename(old_filename, self.filename)
 
         variant = detect_variant()
-        if variant.startswith('win') or variant == 'py2exe':
+        if variant.startswith('win'):
             atexit.register(Popen, f'ping 127.0.0.1 -n 5 -w 1000 & del /F "{old_filename}"',
                             shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         elif old_filename:
@@ -511,7 +515,7 @@ class Updater:
                 os.chmod(self.filename, mask)
             except OSError:
                 return self._report_error(
-                    f'Unable to set permissions. Run: sudo chmod a+rx {compat_shlex_quote(self.filename)}')
+                    f'Unable to set permissions. Run: sudo chmod a+rx {shell_quote(self.filename)}')
 
         self.ydl.to_screen(f'Updated yt-dlp to {update_label}')
         return True
@@ -553,9 +557,10 @@ class Updater:
     def _report_network_error(self, action, delim=';', tag=None):
         if not tag:
             tag = self.requested_tag
+        path = tag if tag == 'latest' else f'tag/{tag}'
         self._report_error(
-            f'Unable to {action}{delim} visit  https://github.com/{self.requested_repo}/releases/'
-            + tag if tag == "latest" else f"tag/{tag}", True)
+            f'Unable to {action}{delim} visit  '
+            f'https://github.com/{self.requested_repo}/releases/{path}', True)
 
     # XXX: Everything below this line in this class is deprecated / for compat only
     @property

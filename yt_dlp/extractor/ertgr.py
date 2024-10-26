@@ -2,22 +2,22 @@ import json
 import re
 
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
+    ExtractorError,
     clean_html,
     determine_ext,
-    ExtractorError,
     dict_get,
     int_or_none,
     merge_dicts,
-    parse_qs,
     parse_age_limit,
     parse_iso8601,
+    parse_qs,
     str_or_none,
     try_get,
     url_or_none,
     variadic,
 )
+from ..utils.traversal import traverse_obj
 
 
 class ERTFlixBaseIE(InfoExtractor):
@@ -30,19 +30,19 @@ class ERTFlixBaseIE(InfoExtractor):
         headers = headers or {}
         if data:
             headers['Content-Type'] = headers_as_param['Content-Type'] = 'application/json;charset=utf-8'
-            data = json.dumps(merge_dicts(platform_codename, data)).encode('utf-8')
+            data = json.dumps(merge_dicts(platform_codename, data)).encode()
         query = merge_dicts(
             {} if data else platform_codename,
             {'$headers': json.dumps(headers_as_param)},
             params)
         response = self._download_json(
-            'https://api.app.ertflix.gr/v%s/%s' % (str(api_version), method),
+            f'https://api.app.ertflix.gr/v{api_version!s}/{method}',
             video_id, fatal=False, query=query, data=data, headers=headers)
         if try_get(response, lambda x: x['Result']['Success']) is True:
             return response
 
     def _call_api_get_tiles(self, video_id, *tile_ids):
-        requested_tile_ids = [video_id] + list(tile_ids)
+        requested_tile_ids = [video_id, *tile_ids]
         requested_tiles = [{'Id': tile_id} for tile_id in requested_tile_ids]
         tiles_response = self._call_api(
             video_id, method='Tile/GetTiles', api_version=2,
@@ -75,29 +75,28 @@ class ERTFlixCodenameIE(ERTFlixBaseIE):
 
     def _extract_formats_and_subs(self, video_id):
         media_info = self._call_api(video_id, codename=video_id)
-        formats, subs = [], {}
-        for media_file in try_get(media_info, lambda x: x['MediaFiles'], list) or []:
-            for media in try_get(media_file, lambda x: x['Formats'], list) or []:
-                fmt_url = url_or_none(try_get(media, lambda x: x['Url']))
-                if not fmt_url:
-                    continue
-                ext = determine_ext(fmt_url)
-                if ext == 'm3u8':
-                    formats_, subs_ = self._extract_m3u8_formats_and_subtitles(
-                        fmt_url, video_id, m3u8_id='hls', ext='mp4', fatal=False)
-                elif ext == 'mpd':
-                    formats_, subs_ = self._extract_mpd_formats_and_subtitles(
-                        fmt_url, video_id, mpd_id='dash', fatal=False)
-                else:
-                    formats.append({
-                        'url': fmt_url,
-                        'format_id': str_or_none(media.get('Id')),
-                    })
-                    continue
-                formats.extend(formats_)
-                self._merge_subtitles(subs_, target=subs)
+        formats, subtitles = [], {}
+        for media in traverse_obj(media_info, (
+                'MediaFiles', lambda _, v: v['RoleCodename'] == 'main',
+                'Formats', lambda _, v: url_or_none(v['Url']))):
+            fmt_url = media['Url']
+            ext = determine_ext(fmt_url)
+            if ext == 'm3u8':
+                fmts, subs = self._extract_m3u8_formats_and_subtitles(
+                    fmt_url, video_id, m3u8_id='hls', ext='mp4', fatal=False)
+            elif ext == 'mpd':
+                fmts, subs = self._extract_mpd_formats_and_subtitles(
+                    fmt_url, video_id, mpd_id='dash', fatal=False)
+            else:
+                formats.append({
+                    'url': fmt_url,
+                    'format_id': str_or_none(media.get('Id')),
+                })
+                continue
+            formats.extend(fmts)
+            self._merge_subtitles(subs, target=subtitles)
 
-        return formats, subs
+        return formats, subtitles
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -174,9 +173,9 @@ class ERTFlixIE(ERTFlixBaseIE):
     }]
 
     def _extract_episode(self, episode):
-        codename = try_get(episode, lambda x: x['Codename'], compat_str)
+        codename = try_get(episode, lambda x: x['Codename'], str)
         title = episode.get('Title')
-        description = clean_html(dict_get(episode, ('ShortDescription', 'TinyDescription', )))
+        description = clean_html(dict_get(episode, ('ShortDescription', 'TinyDescription')))
         if not codename or not title or not episode.get('HasPlayableStream', True):
             return
         thumbnail = next((
@@ -195,7 +194,7 @@ class ERTFlixIE(ERTFlixBaseIE):
             'timestamp': parse_iso8601(episode.get('PublishDate')),
             'duration': episode.get('DurationSeconds'),
             'age_limit': self._parse_age_rating(episode),
-            'url': 'ertflix:%s' % (codename, ),
+            'url': f'ertflix:{codename}',
         }
 
     @staticmethod
@@ -212,7 +211,7 @@ class ERTFlixIE(ERTFlixBaseIE):
         series_info = {
             'age_limit': self._parse_age_rating(series),
             'title': series.get('Title'),
-            'description': dict_get(series, ('ShortDescription', 'TinyDescription', )),
+            'description': dict_get(series, ('ShortDescription', 'TinyDescription')),
         }
         if season_numbers:
             season_titles = season_titles or []
@@ -281,7 +280,7 @@ class ERTWebtvEmbedIE(InfoExtractor):
             'id': 'trailers/E2251_TO_DIKTYO_E09_16-01_1900.mp4',
             'title': 'md5:914f06a73cd8b62fbcd6fb90c636e497',
             'ext': 'mp4',
-            'thumbnail': 'https://program.ert.gr/photos/2022/1/to_diktio_ep09_i_istoria_tou_diadiktiou_stin_Ellada_1021x576.jpg'
+            'thumbnail': 'https://program.ert.gr/photos/2022/1/to_diktio_ep09_i_istoria_tou_diadiktiou_stin_Ellada_1021x576.jpg',
         },
     }]
 

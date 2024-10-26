@@ -86,6 +86,6 @@ class BellMediaIE(InfoExtractor):
         return {
             '_type': 'url_transparent',
             'id': video_id,
-            'url': '9c9media:%s_web:%s' % (self._DOMAINS.get(domain, domain), video_id),
+            'url': f'9c9media:{self._DOMAINS.get(domain, domain)}_web:{video_id}',
             'ie_key': 'NineCNineMedia',
         }

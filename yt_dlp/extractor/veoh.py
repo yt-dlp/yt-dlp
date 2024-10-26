@@ -8,7 +8,8 @@ from ..utils import (
     int_or_none,
     parse_duration,
     qualities,
-    try_get,
+    remove_start,
+    strip_or_none,
 )
 
 
@@ -80,7 +81,7 @@ class VeohIE(InfoExtractor):
             'age_limit': 18,
             'categories': ['technology_and_gaming', 'gaming'],
             'tags': ['puzzle', 'of', 'flesh'],
-        }
+        },
     }]
 
     def _real_extract(self, url):
@@ -108,7 +109,7 @@ class VeohIE(InfoExtractor):
 
         categories = metadata.get('categoryPath')
         if not categories:
-            category = try_get(video, lambda x: x['category'].strip().removeprefix('category_'))
+            category = remove_start(strip_or_none(video.get('category')), 'category_')
             categories = [category] if category else None
         tags = video.get('tags')
 
@@ -138,17 +139,17 @@ class VeohUserIE(VeohIE):  # XXX: Do not subclass from concrete IE
             'url': 'https://www.veoh.com/users/valentinazoe',
             'info_dict': {
                 'id': 'valentinazoe',
-                'title': 'valentinazoe (Uploads)'
+                'title': 'valentinazoe (Uploads)',
             },
-            'playlist_mincount': 75
+            'playlist_mincount': 75,
         },
         {
             'url': 'https://www.veoh.com/users/PiensaLibre',
             'info_dict': {
                 'id': 'PiensaLibre',
-                'title': 'PiensaLibre (Uploads)'
+                'title': 'PiensaLibre (Uploads)',
             },
-            'playlist_mincount': 2
+            'playlist_mincount': 2,
         }]
 
     _PAGE_SIZE = 16
@@ -159,14 +160,14 @@ class VeohUserIE(VeohIE):  # XXX: Do not subclass from concrete IE
             note=f'Downloading videos page {page + 1}',
             headers={
                 'x-csrf-token': self._TOKEN,
-                'content-type': 'application/json;charset=UTF-8'
+                'content-type': 'application/json;charset=UTF-8',
             },
             data=json.dumps({
                 'username': uploader,
                 'maxResults': self._PAGE_SIZE,
                 'page': page + 1,
-                'requestName': 'userPage'
-            }).encode('utf-8'))
+                'requestName': 'userPage',
+            }).encode())
         if not response.get('success'):
             raise ExtractorError(response['message'])
 

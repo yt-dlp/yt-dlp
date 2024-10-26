@@ -12,6 +12,9 @@ on:
       unix:
         default: true
         type: boolean
+      linux_static:
+        default: true
+        type: boolean
       linux_arm:
         default: true
         type: boolean
@@ -25,9 +28,6 @@ on:
         default: true
         type: boolean
       windows32:
-        default: true
-        type: boolean
-      meta_files:
         default: true
         type: boolean
       origin:
@@ -52,7 +52,11 @@ on:
         default: stable
         type: string
       unix:
-        description: yt-dlp, yt-dlp.tar.gz, yt-dlp_linux, yt-dlp_linux.zip
+        description: yt-dlp, yt-dlp.tar.gz
+        default: true
+        type: boolean
+      linux_static:
+        description: yt-dlp_linux
         default: true
         type: boolean
       linux_arm:
@@ -68,15 +72,11 @@ on:
         default: true
         type: boolean
       windows:
-        description: yt-dlp.exe, yt-dlp_min.exe, yt-dlp_win.zip
+        description: yt-dlp.exe, yt-dlp_win.zip
         default: true
         type: boolean
       windows32:
         description: yt-dlp_x86.exe
-        default: true
-        type: boolean
-      meta_files:
-        description: SHA2-256SUMS, SHA2-512SUMS, _update_spec
         default: true
         type: boolean
       origin:
@@ -112,26 +112,9 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.10"
-      - uses: conda-incubator/setup-miniconda@v3
-        with:
-          miniforge-variant: Mambaforge
-          use-mamba: true
-          channels: conda-forge
-          auto-update-conda: true
-          activate-environment: ""
-          auto-activate-base: false
       - name: Install Requirements
         run: |
           sudo apt -y install zip pandoc man sed
-          cat > ./requirements.txt << EOF
-          python=3.10.*
-          brotli-python
-          EOF
-          python devscripts/install_deps.py --print \
-            --exclude brotli --exclude brotlicffi \
-            --include secretstorage --include pyinstaller >> ./requirements.txt
-          mamba create -n build --file ./requirements.txt
-
       - name: Prepare
         run: |
           python devscripts/update-version.py -c "${{ inputs.channel }}" -r "${{ needs.process.outputs.origin }}" "${{ inputs.version }}"
@@ -140,30 +123,15 @@ jobs:
       - name: Build Unix platform-independent binary
         run: |
           make all tar
-      - name: Build Unix standalone binary
-        shell: bash -l {0}
-        run: |
-          unset LD_LIBRARY_PATH  # Harmful; set by setup-python
-          conda activate build
-          python -m bundle.pyinstaller --onedir
-          (cd ./dist/yt-dlp_linux && zip -r ../yt-dlp_linux.zip .)
-          python -m bundle.pyinstaller
-          mv ./dist/yt-dlp_linux ./yt-dlp_linux
-          mv ./dist/yt-dlp_linux.zip ./yt-dlp_linux.zip
-
       - name: Verify --update-to
         if: vars.UPDATE_TO_VERIFICATION
         run: |
-          binaries=("yt-dlp" "yt-dlp_linux")
-          for binary in "${binaries[@]}"; do
-            chmod +x ./${binary}
-            cp ./${binary} ./${binary}_downgraded
-            version="$(./${binary} --version)"
-            ./${binary}_downgraded -v --update-to yt-dlp/yt-dlp@2023.03.04
-            downgraded_version="$(./${binary}_downgraded --version)"
-            [[ "$version" != "$downgraded_version" ]]
-          done
-
+          chmod +x ./yt-dlp
+          cp ./yt-dlp ./yt-dlp_downgraded
+          version="$(./yt-dlp --version)"
+          ./yt-dlp_downgraded -v --update-to yt-dlp/yt-dlp@2023.03.04
+          downgraded_version="$(./yt-dlp_downgraded --version)"
+          [[ "$version" != "$downgraded_version" ]]
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -171,8 +139,39 @@ jobs:
           path: |
             yt-dlp
             yt-dlp.tar.gz
-            yt-dlp_linux
-            yt-dlp_linux.zip
+          compression-level: 0
+
+  linux_static:
+    needs: process
+    if: inputs.linux_static
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build static executable
+        env:
+          channel: ${{ inputs.channel }}
+          origin: ${{ needs.process.outputs.origin }}
+          version: ${{ inputs.version }}
+        run: |
+          mkdir ~/build
+          cd bundle/docker
+          docker compose up --build static
+          sudo chown "${USER}:docker" ~/build/yt-dlp_linux
+      - name: Verify --update-to
+        if: vars.UPDATE_TO_VERIFICATION
+        run: |
+          chmod +x ~/build/yt-dlp_linux
+          cp ~/build/yt-dlp_linux ~/build/yt-dlp_linux_downgraded
+          version="$(~/build/yt-dlp_linux --version)"
+          ~/build/yt-dlp_linux_downgraded -v --update-to yt-dlp/yt-dlp@2023.03.04
+          downgraded_version="$(~/build/yt-dlp_linux_downgraded --version)"
+          [[ "$version" != "$downgraded_version" ]]
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-bin-${{ github.job }}
+          path: |
+            ~/build/yt-dlp_linux
           compression-level: 0
 
   linux_arm:
@@ -200,22 +199,24 @@ jobs:
             GITHUB_WORKFLOW: build
           githubToken: ${{ github.token }} # To cache image
           arch: ${{ matrix.architecture }}
-          distro: ubuntu18.04 # Standalone executable should be built on minimum supported OS
+          distro: ubuntu20.04 # Standalone executable should be built on minimum supported OS
           dockerRunArgs: --volume "${PWD}/repo:/repo"
           install: | # Installing Python 3.10 from the Deadsnakes repo raises errors
             apt update
-            apt -y install zlib1g-dev libffi-dev python3.8 python3.8-dev python3.8-distutils python3-pip
-            python3.8 -m pip install -U pip setuptools wheel
-            # Cannot access any files from the repo directory at this stage
-            python3.8 -m pip install -U Pyinstaller mutagen pycryptodomex websockets brotli certifi secretstorage cffi
+            apt -y install zlib1g-dev libffi-dev python3.9 python3.9-dev python3.9-distutils python3-pip \
+              python3-secretstorage  # Cannot build cryptography wheel in virtual armv7 environment
+            python3.9 -m pip install -U pip wheel 'setuptools>=71.0.2'
+            # XXX: Keep this in sync with pyproject.toml (it can't be accessed at this stage) and exclude secretstorage
+            python3.9 -m pip install -U Pyinstaller mutagen pycryptodomex brotli certifi cffi \
+              'requests>=2.32.2,<3' 'urllib3>=1.26.17,<3' 'websockets>=13.0'
 
           run: |
             cd repo
-            python3.8 devscripts/install_deps.py -o --include build
-            python3.8 devscripts/install_deps.py --include pyinstaller --include secretstorage  # Cached version may be out of date
-            python3.8 devscripts/update-version.py -c "${{ inputs.channel }}" -r "${{ needs.process.outputs.origin }}" "${{ inputs.version }}"
-            python3.8 devscripts/make_lazy_extractors.py
-            python3.8 -m bundle.pyinstaller
+            python3.9 devscripts/install_deps.py -o --include build
+            python3.9 devscripts/install_deps.py --include pyinstaller  # Cached versions may be out of date
+            python3.9 devscripts/update-version.py -c "${{ inputs.channel }}" -r "${{ needs.process.outputs.origin }}" "${{ inputs.version }}"
+            python3.9 devscripts/make_lazy_extractors.py
+            python3.9 -m bundle.pyinstaller
 
             if ${{ vars.UPDATE_TO_VERIFICATION && 'true' || 'false' }}; then
               arch="${{ (matrix.architecture == 'armv7' && 'armv7l') || matrix.architecture }}"
@@ -238,34 +239,63 @@ jobs:
   macos:
     needs: process
     if: inputs.macos
-    runs-on: macos-11
+    permissions:
+      contents: read
+      actions: write  # For cleaning up cache
+    runs-on: macos-13
 
     steps:
       - uses: actions/checkout@v4
       # NB: Building universal2 does not work with python from actions/setup-python
+
+      - name: Restore cached requirements
+        id: restore-cache
+        uses: actions/cache/restore@v4
+        env:
+          SEGMENT_DOWNLOAD_TIMEOUT_MINS: 1
+        with:
+          path: |
+            ~/yt-dlp-build-venv
+          key: cache-reqs-${{ github.job }}
+
       - name: Install Requirements
         run: |
           brew install coreutils
-          python3 devscripts/install_deps.py --user -o --include build
-          python3 devscripts/install_deps.py --print --include pyinstaller_macos > requirements.txt
+          python3 -m venv ~/yt-dlp-build-venv
+          source ~/yt-dlp-build-venv/bin/activate
+          python3 devscripts/install_deps.py -o --include build
+          python3 devscripts/install_deps.py --print --include pyinstaller > requirements.txt
           # We need to ignore wheels otherwise we break universal2 builds
-          python3 -m pip install -U --user --no-binary :all: -r requirements.txt
+          python3 -m pip install -U --no-binary :all: -r requirements.txt
           # We need to fuse our own universal2 wheels for curl_cffi
-          python3 -m pip install -U --user delocate
+          python3 -m pip install -U 'delocate==0.11.0'
           mkdir curl_cffi_whls curl_cffi_universal2
-          python3 devscripts/install_deps.py --print -o --include curl_cffi > requirements.txt
+          python3 devscripts/install_deps.py --print -o --include curl-cffi > requirements.txt
           for platform in "macosx_11_0_arm64" "macosx_11_0_x86_64"; do
             python3 -m pip download \
               --only-binary=:all: \
               --platform "${platform}" \
-              --pre -d curl_cffi_whls \
+              -d curl_cffi_whls \
               -r requirements.txt
           done
+          ( # Overwrite x86_64-only libs with fat/universal2 libs or else Pyinstaller will do the opposite
+            # See https://github.com/yt-dlp/yt-dlp/pull/10069
+            cd curl_cffi_whls
+            mkdir -p curl_cffi/.dylibs
+            python_libdir=$(python3 -c 'import sys; from pathlib import Path; print(Path(sys.path[1]).parent)')
+            for dylib in lib{ssl,crypto}.3.dylib; do
+              cp "${python_libdir}/${dylib}" "curl_cffi/.dylibs/${dylib}"
+              for wheel in curl_cffi*macos*x86_64.whl; do
+                zip "${wheel}" "curl_cffi/.dylibs/${dylib}"
+              done
+            done
+          )
           python3 -m delocate.cmd.delocate_fuse curl_cffi_whls/curl_cffi*.whl -w curl_cffi_universal2
           python3 -m delocate.cmd.delocate_fuse curl_cffi_whls/cffi*.whl -w curl_cffi_universal2
-          cd curl_cffi_universal2
-          for wheel in *cffi*.whl; do mv -n -- "${wheel}" "${wheel/x86_64/universal2}"; done
-          python3 -m pip install -U --user *cffi*.whl
+          for wheel in curl_cffi_universal2/*cffi*.whl; do
+            mv -n -- "${wheel}" "${wheel/x86_64/universal2}"
+          done
+          python3 -m pip install --force-reinstall -U curl_cffi_universal2/*cffi*.whl
 
       - name: Prepare
         run: |
@@ -273,6 +303,7 @@ jobs:
           python3 devscripts/make_lazy_extractors.py
       - name: Build
         run: |
+          source ~/yt-dlp-build-venv/bin/activate
           python3 -m bundle.pyinstaller --target-architecture universal2 --onedir
           (cd ./dist/yt-dlp_macos && zip -r ../yt-dlp_macos.zip .)
           python3 -m bundle.pyinstaller --target-architecture universal2
@@ -296,10 +327,28 @@ jobs:
             dist/yt-dlp_macos.zip
           compression-level: 0
 
+      - name: Cleanup cache
+        if: steps.restore-cache.outputs.cache-hit == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          cache_key: cache-reqs-${{ github.job }}
+          repository: ${{ github.repository }}
+          branch: ${{ github.ref }}
+        run: |
+          gh extension install actions/gh-actions-cache
+          gh actions-cache delete "${cache_key}" -R "${repository}" -B "${branch}" --confirm
+
+      - name: Cache requirements
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ~/yt-dlp-build-venv
+          key: cache-reqs-${{ github.job }}
+
   macos_legacy:
     needs: process
     if: inputs.macos_legacy
-    runs-on: macos-latest
+    runs-on: macos-13
 
     steps:
       - uses: actions/checkout@v4
@@ -312,14 +361,14 @@ jobs:
           # Hack to get the latest patch version. Uncomment if needed
           #brew install python@3.10
           #export PYTHON_VERSION=$( $(brew --prefix)/opt/python@3.10/bin/python3 --version | cut -d ' ' -f 2 )
-          curl https://www.python.org/ftp/python/${PYTHON_VERSION}/python-${PYTHON_VERSION}-macos11.pkg -o "python.pkg"
+          curl "https://www.python.org/ftp/python/${PYTHON_VERSION}/python-${PYTHON_VERSION}-macos11.pkg" -o "python.pkg"
           sudo installer -pkg python.pkg -target /
           python3 --version
       - name: Install Requirements
         run: |
           brew install coreutils
           python3 devscripts/install_deps.py --user -o --include build
-          python3 devscripts/install_deps.py --user --include pyinstaller_macos --include curl_cffi
+          python3 devscripts/install_deps.py --user --include pyinstaller
 
       - name: Prepare
         run: |
@@ -356,13 +405,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
-        with: # 3.8 is used for Win7 support
-          python-version: "3.8"
+        with:
+          python-version: "3.10"
       - name: Install Requirements
         run: | # Custom pyinstaller built with https://github.com/yt-dlp/pyinstaller-builds
           python devscripts/install_deps.py -o --include build
-          python devscripts/install_deps.py --include py2exe --include curl_cffi
-          python -m pip install -U "https://yt-dlp.github.io/Pyinstaller-Builds/x86_64/pyinstaller-5.8.0-py3-none-any.whl"
+          python devscripts/install_deps.py --include curl-cffi
+          python -m pip install -U "https://yt-dlp.github.io/Pyinstaller-Builds/x86_64/pyinstaller-6.10.0-py3-none-any.whl"
 
       - name: Prepare
         run: |
@@ -370,8 +419,6 @@ jobs:
           python devscripts/make_lazy_extractors.py
       - name: Build
         run: |
-          python -m bundle.py2exe
-          Move-Item ./dist/yt-dlp.exe ./dist/yt-dlp_min.exe
           python -m bundle.pyinstaller
           python -m bundle.pyinstaller --onedir
           Compress-Archive -Path ./dist/yt-dlp/* -DestinationPath ./dist/yt-dlp_win.zip
@@ -379,7 +426,7 @@ jobs:
       - name: Verify --update-to
         if: vars.UPDATE_TO_VERIFICATION
         run: |
-          foreach ($name in @("yt-dlp","yt-dlp_min")) {
+          foreach ($name in @("yt-dlp")) {
             Copy-Item "./dist/${name}.exe" "./dist/${name}_downgraded.exe"
             $version = & "./dist/${name}.exe" --version
             & "./dist/${name}_downgraded.exe" -v --update-to yt-dlp/yt-dlp@2023.03.04
@@ -395,7 +442,6 @@ jobs:
           name: build-bin-${{ github.job }}
           path: |
             dist/yt-dlp.exe
-            dist/yt-dlp_min.exe
             dist/yt-dlp_win.zip
           compression-level: 0
 
@@ -408,13 +454,13 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.8"
+          python-version: "3.10"
           architecture: "x86"
       - name: Install Requirements
         run: |
           python devscripts/install_deps.py -o --include build
           python devscripts/install_deps.py
-          python -m pip install -U "https://yt-dlp.github.io/Pyinstaller-Builds/i686/pyinstaller-5.8.0-py3-none-any.whl"
+          python -m pip install -U "https://yt-dlp.github.io/Pyinstaller-Builds/i686/pyinstaller-6.10.0-py3-none-any.whl"
 
       - name: Prepare
         run: |
@@ -446,10 +492,11 @@ jobs:
           compression-level: 0
 
   meta_files:
-    if: inputs.meta_files && always() && !cancelled()
+    if: always() && !cancelled()
     needs:
       - process
       - unix
+      - linux_static
       - linux_arm
       - macos
       - macos_legacy
@@ -466,8 +513,13 @@ jobs:
       - name: Make SHA2-SUMS files
         run: |
           cd ./artifact/
-          sha256sum * > ../SHA2-256SUMS
-          sha512sum * > ../SHA2-512SUMS
+          # make sure SHA sums are also printed to stdout
+          sha256sum -- * | tee ../SHA2-256SUMS
+          sha512sum -- * | tee ../SHA2-512SUMS
+          # also print as permanent annotations to the summary page
+          while read -r shasum; do
+            echo "::notice title=${shasum##* }::sha256: ${shasum% *}"
+          done < ../SHA2-256SUMS
 
       - name: Make Update spec
         run: |
@@ -476,13 +528,29 @@ jobs:
           lock 2022.08.18.36 .+ Python 3\.6
           lock 2023.11.16 (?!win_x86_exe).+ Python 3\.7
           lock 2023.11.16 win_x86_exe .+ Windows-(?:Vista|2008Server)
+          lock 2024.10.22 py2exe .+
+          lock 2024.10.22 linux_(?:armv7l|aarch64)_exe .+-glibc2\.(?:[12]?\d|30)\b
+          lock 2024.10.22 (?!\w+_exe).+ Python 3\.8
+          lock 2024.10.22 win(?:_x86)?_exe Python 3\.[78].+ Windows-(?:7-|2008ServerR2)
           lockV2 yt-dlp/yt-dlp 2022.08.18.36 .+ Python 3\.6
           lockV2 yt-dlp/yt-dlp 2023.11.16 (?!win_x86_exe).+ Python 3\.7
           lockV2 yt-dlp/yt-dlp 2023.11.16 win_x86_exe .+ Windows-(?:Vista|2008Server)
+          lockV2 yt-dlp/yt-dlp 2024.10.22 py2exe .+
+          lockV2 yt-dlp/yt-dlp 2024.10.22 linux_(?:armv7l|aarch64)_exe .+-glibc2\.(?:[12]?\d|30)\b
+          lockV2 yt-dlp/yt-dlp 2024.10.22 (?!\w+_exe).+ Python 3\.8
+          lockV2 yt-dlp/yt-dlp 2024.10.22 win(?:_x86)?_exe Python 3\.[78].+ Windows-(?:7-|2008ServerR2)
           lockV2 yt-dlp/yt-dlp-nightly-builds 2023.11.15.232826 (?!win_x86_exe).+ Python 3\.7
           lockV2 yt-dlp/yt-dlp-nightly-builds 2023.11.15.232826 win_x86_exe .+ Windows-(?:Vista|2008Server)
+          lockV2 yt-dlp/yt-dlp-nightly-builds 2024.10.22.051025 py2exe .+
+          lockV2 yt-dlp/yt-dlp-nightly-builds 2024.10.22.051025 linux_(?:armv7l|aarch64)_exe .+-glibc2\.(?:[12]?\d|30)\b
+          lockV2 yt-dlp/yt-dlp-nightly-builds 2024.10.22.051025 (?!\w+_exe).+ Python 3\.8
+          lockV2 yt-dlp/yt-dlp-nightly-builds 2024.10.22.051025 win(?:_x86)?_exe Python 3\.[78].+ Windows-(?:7-|2008ServerR2)
           lockV2 yt-dlp/yt-dlp-master-builds 2023.11.15.232812 (?!win_x86_exe).+ Python 3\.7
           lockV2 yt-dlp/yt-dlp-master-builds 2023.11.15.232812 win_x86_exe .+ Windows-(?:Vista|2008Server)
+          lockV2 yt-dlp/yt-dlp-master-builds 2024.10.22.045052 py2exe .+
+          lockV2 yt-dlp/yt-dlp-master-builds 2024.10.22.060347 linux_(?:armv7l|aarch64)_exe .+-glibc2\.(?:[12]?\d|30)\b
+          lockV2 yt-dlp/yt-dlp-master-builds 2024.10.22.060347 (?!\w+_exe).+ Python 3\.8
+          lockV2 yt-dlp/yt-dlp-master-builds 2024.10.22.060347 win(?:_x86)?_exe Python 3\.[78].+ Windows-(?:7-|2008ServerR2)
           EOF
 
       - name: Sign checksum files

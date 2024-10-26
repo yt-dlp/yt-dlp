@@ -1,6 +1,6 @@
+import base64
 import re
 import urllib.parse
-from base64 import b64decode
 
 from .common import InfoExtractor
 from ..networking import HEADRequest
@@ -8,6 +8,7 @@ from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     determine_ext,
+    filter_dict,
     float_or_none,
     int_or_none,
     parse_qs,
@@ -24,16 +25,25 @@ class WistiaBaseIE(InfoExtractor):
     _EMBED_BASE_URL = 'http://fast.wistia.net/embed/'
 
     def _download_embed_config(self, config_type, config_id, referer):
-        base_url = self._EMBED_BASE_URL + '%s/%s' % (config_type, config_id)
+        base_url = self._EMBED_BASE_URL + f'{config_type}/{config_id}'
+        video_password = self.get_param('videopassword')
         embed_config = self._download_json(
             base_url + '.json', config_id, headers={
                 'Referer': referer if referer.startswith('http') else base_url,  # Some videos require this.
-            })
+            }, query=filter_dict({'password': video_password}))
 
         error = traverse_obj(embed_config, 'error')
         if error:
             raise ExtractorError(
                 f'Error while getting the playlist: {error}', expected=True)
+
+        if traverse_obj(embed_config, (
+                'media', ('embed_options', 'embedOptions'), 'plugin',
+                'passwordProtectedVideo', 'on', any)) == 'true':
+            if video_password:
+                raise ExtractorError('Invalid video password', expected=True)
+            raise ExtractorError(
+                'This content is password-protected. Use the --video-password option', expected=True)
 
         return embed_config
 
@@ -74,7 +84,7 @@ class WistiaBaseIE(InfoExtractor):
                 display_name = a.get('display_name')
                 format_id = atype
                 if atype and atype.endswith('_video') and display_name:
-                    format_id = '%s-%s' % (atype[:-6], display_name)
+                    format_id = f'{atype[:-6]}-{display_name}'
                 f = {
                     'format_id': format_id,
                     'url': aurl,
@@ -157,7 +167,7 @@ class WistiaBaseIE(InfoExtractor):
 
 
 class WistiaIE(WistiaBaseIE):
-    _VALID_URL = r'(?:wistia:|%s(?:iframe|medias)/)%s' % (WistiaBaseIE._VALID_URL_BASE, WistiaBaseIE._VALID_ID_REGEX)
+    _VALID_URL = rf'(?:wistia:|{WistiaBaseIE._VALID_URL_BASE}(?:iframe|medias)/){WistiaBaseIE._VALID_ID_REGEX}'
     _EMBED_REGEX = [
         r'''(?x)
             <(?:meta[^>]+?content|(?:iframe|script)[^>]+?src)=["\']
@@ -189,7 +199,7 @@ class WistiaIE(WistiaBaseIE):
             'duration': 966.0,
             'timestamp': 1616614369,
             'thumbnail': 'https://embed-ssl.wistia.com/deliveries/53dc60239348dc9b9fba3755173ea4c2.png',
-        }
+        },
     }, {
         'url': 'wistia:5vd7p4bct5',
         'md5': 'b9676d24bf30945d97060638fbfe77f0',
@@ -228,7 +238,7 @@ class WistiaIE(WistiaBaseIE):
             'description': 'md5:27abc99a758573560be72600ef95cece',
             'upload_date': '20210421',
             'thumbnail': 'https://embed-ssl.wistia.com/deliveries/6c551820ae950cdee2306d6cbe9ef742.jpg',
-        }
+        },
     }, {
         'url': 'https://study.com/academy/lesson/north-american-exploration-failed-colonies-of-spain-france-england.html#lesson',
         'md5': 'b9676d24bf30945d97060638fbfe77f0',
@@ -254,19 +264,19 @@ class WistiaIE(WistiaBaseIE):
         urls = list(super()._extract_embed_urls(url, webpage))
         for match in cls._extract_wistia_async_embed(webpage):
             if match.group('type') != 'wistia_channel':
-                urls.append('wistia:%s' % match.group('id'))
+                urls.append('wistia:{}'.format(match.group('id')))
         for match in re.finditer(r'(?:data-wistia-?id=["\']|Wistia\.embed\(["\']|id=["\']wistia_)(?P<id>[a-z0-9]{10})',
                                  webpage):
-            urls.append('wistia:%s' % match.group('id'))
+            urls.append('wistia:{}'.format(match.group('id')))
         if not WistiaChannelIE._extract_embed_urls(url, webpage):  # Fallback
             media_id = cls._extract_url_media_id(url)
             if media_id:
-                urls.append('wistia:%s' % match.group('id'))
+                urls.append('wistia:{}'.format(match.group('id')))
         return urls
 
 
 class WistiaPlaylistIE(WistiaBaseIE):
-    _VALID_URL = r'%splaylists/%s' % (WistiaBaseIE._VALID_URL_BASE, WistiaBaseIE._VALID_ID_REGEX)
+    _VALID_URL = rf'{WistiaBaseIE._VALID_URL_BASE}playlists/{WistiaBaseIE._VALID_ID_REGEX}'
 
     _TEST = {
         'url': 'https://fast.wistia.net/embed/playlists/aodt9etokc',
@@ -291,7 +301,7 @@ class WistiaPlaylistIE(WistiaBaseIE):
 
 
 class WistiaChannelIE(WistiaBaseIE):
-    _VALID_URL = r'(?:wistiachannel:|%schannel/)%s' % (WistiaBaseIE._VALID_URL_BASE, WistiaBaseIE._VALID_ID_REGEX)
+    _VALID_URL = rf'(?:wistiachannel:|{WistiaBaseIE._VALID_URL_BASE}channel/){WistiaBaseIE._VALID_ID_REGEX}'
 
     _TESTS = [{
         # JSON Embed API returns 403, should fall back to webpage
@@ -299,7 +309,7 @@ class WistiaChannelIE(WistiaBaseIE):
         'info_dict': {
             'id': 'yvyvu7wjbg',
             'title': 'Copysmith Tutorials and Education!',
-            'description': 'Learn all things Copysmith via short and informative videos!'
+            'description': 'Learn all things Copysmith via short and informative videos!',
         },
         'playlist_mincount': 7,
         'expected_warnings': ['falling back to webpage'],
@@ -370,8 +380,8 @@ class WistiaChannelIE(WistiaBaseIE):
             self.report_warning('Failed to download channel data from API, falling back to webpage.')
             webpage = self._download_webpage(f'https://fast.wistia.net/embed/channel/{channel_id}', channel_id)
             data = self._parse_json(
-                self._search_regex(r'wchanneljsonp-%s\'\]\s*=[^\"]*\"([A-Za-z0-9=/]*)' % channel_id, webpage, 'jsonp', channel_id),
-                channel_id, transform_source=lambda x: urllib.parse.unquote_plus(b64decode(x).decode('utf-8')))
+                self._search_regex(rf'wchanneljsonp-{channel_id}\'\]\s*=[^\"]*\"([A-Za-z0-9=/]*)', webpage, 'jsonp', channel_id),
+                channel_id, transform_source=lambda x: urllib.parse.unquote_plus(base64.b64decode(x).decode('utf-8')))
 
         # XXX: can there be more than one series?
         series = traverse_obj(data, ('series', 0), default={})

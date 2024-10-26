@@ -92,8 +92,8 @@ class TBSJPProgramIE(InfoExtractor):
             'categories': ['エンタメ', 'ミライカプセル', '会社', '働く', 'バラエティ', '動画'],
             'description': '幼少期の夢は大人になって、どう成長したのだろうか？\nそしてその夢は今後、どのように広がっていくのか？\nいま話題の会社で働く人の「夢の成長」を描く',
             'series': 'ミライカプセル　-I have a dream-',
-            'title': 'ミライカプセル　-I have a dream-'
-        }
+            'title': 'ミライカプセル　-I have a dream-',
+        },
     }]
 
     def _real_extract(self, url):
@@ -126,7 +126,7 @@ class TBSJPPlaylistIE(InfoExtractor):
         'info_dict': {
             'title': 'まもなく配信終了',
             'id': '184f9970e7ba48e4915f1b252c55015e',
-        }
+        },
     }]
 
     def _real_extract(self, url):

@@ -51,8 +51,8 @@ class NubilesPornIE(InfoExtractor):
             'season': 'Season 3',
             'season_number': 3,
             'episode': 'Episode 1',
-            'episode_number': 1
-        }
+            'episode_number': 1,
+        },
     }]
 
     def _perform_login(self, username, password):
@@ -95,5 +95,5 @@ class NubilesPornIE(InfoExtractor):
             'series': channel_name,
             'series_id': channel_id,
             'season_number': int_or_none(url_match.group('season')),
-            'episode_number': int_or_none(url_match.group('episode'))
+            'episode_number': int_or_none(url_match.group('episode')),
         }
