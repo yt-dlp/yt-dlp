@@ -3071,7 +3071,7 @@ class InfoExtractor:
             url_pattern = stream.attrib['Url']
             stream_timescale = int_or_none(stream.get('TimeScale')) or timescale
             stream_name = stream.get('Name')
-            stream_language = stream.get('Language', 'und')
+            stream_language = stream.get('Language') or 'und'
             for track in stream.findall('QualityLevel'):
                 KNOWN_TAGS = {'255': 'AACL', '65534': 'EC-3'}
                 fourcc = track.get('FourCC') or KNOWN_TAGS.get(track.get('AudioTag'))
