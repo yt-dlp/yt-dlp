@@ -1,6 +1,7 @@
 from .common import InfoExtractor
 from .kaltura import KalturaIE
 from ..utils import (
+    ExtractorError,
     int_or_none,
     smuggle_url,
     traverse_obj,
@@ -74,6 +75,16 @@ class YleAreenaIE(InfoExtractor):
                 'skip_download': 'm3u8',
             },
         },
+        {
+            'url': 'https://areena.yle.fi/1-72251830',
+            'info_dict': {
+                'id': '1-72251830',
+                'ext': 'mp4',
+                'title': 'Pentulive 2024 | Pentulive',
+                'series': 'Pentulive 2024 | Pentulive',
+                'thumbnail': 'https://images.cdn.yle.fi/image/upload/f_jpg,c_limit,w_1920,h_1920,q_auto/v1730014701/39-136117167077c7c6e444.jpg',
+            },
+        },
     ]
 
     def _real_extract(self, url):
@@ -103,6 +114,7 @@ class YleAreenaIE(InfoExtractor):
                     'name': sub.get('kind'),
                 })
 
+        is_live = False
         if is_podcast:
             info_dict = {
                 'url': video_data['data']['ongoing_ondemand']['media_url'],
@@ -114,8 +126,15 @@ class YleAreenaIE(InfoExtractor):
                 'ie_key': KalturaIE.ie_key(),
             }
         else:
+            if traverse_obj(video_data, ('data', 'ongoing_ondemand', 'manifest_url', {url_or_none})):
+                manifest_url = video_data['data']['ongoing_ondemand']['manifest_url']
+            elif traverse_obj(video_data, ('data', 'ongoing_event', 'manifest_url', {url_or_none})):
+                manifest_url = video_data['data']['ongoing_event']['manifest_url']
+                is_live = True
+            else:
+                raise ExtractorError('Unable to extract manifest URL')
             formats, subs = self._extract_m3u8_formats_and_subtitles(
-                video_data['data']['ongoing_ondemand']['manifest_url'], video_id, 'mp4', m3u8_id='hls')
+                manifest_url, video_id, 'mp4', m3u8_id='hls', live=is_live)
             self._merge_subtitles(subs, target=subtitles)
             info_dict = {'formats': formats}
 
