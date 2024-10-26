@@ -2367,7 +2367,8 @@ from .vk import (
 )
 from .vmware import (
     VMwareExploreIE,
-    VMwareExploreSearchIE,
+    VMwareIE,
+    VMwareSearchIE,
 )
 from .vocaroo import VocarooIE
 from .vodpl import VODPlIE
