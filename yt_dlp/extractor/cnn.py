@@ -148,34 +148,36 @@ class CNNIE(InfoExtractor):
         entries = []
         for player_data in traverse_obj(webpage, (
                 {find_elements(tag='div', attr='data-component-name', value='video-player', html=True)},
-                ..., {extract_attributes}, all, lambda _, v: v['data-media-id'] and v['data-video-resource-parent-uri'])):
+                ..., {extract_attributes}, all, lambda _, v: v['data-media-id'])):
             media_id = player_data['data-media-id']
-            parent_uri = player_data['data-video-resource-parent-uri']
+            parent_uri = player_data.get('data-video-resource-parent-uri')
             formats, subtitles = [], {}
 
-            video_data = self._download_json(
-                'https://fave.api.cnn.io/v1/video', media_id,
-                query={
-                    'id': media_id,
-                    'stellarUri': parent_uri,
-                })
-            for direct_url in traverse_obj(video_data, ('files', ..., 'fileUri', {url_or_none})):
-                resolution, bitrate = None, None
-                if mobj := re.search(r'-(?P<res>\d+x\d+)_(?P<tbr>\d+)k\.mp4', direct_url):
-                    resolution, bitrate = mobj.group('res', 'tbr')
-                formats.append({
-                    'url': direct_url,
-                    'format_id': 'direct',
-                    'quality': 1,
-                    'tbr': int_or_none(bitrate),
-                    **parse_resolution(resolution),
-                })
-            for sub_data in traverse_obj(video_data, (
-                    'closedCaptions', 'types', lambda _, v: url_or_none(v['track']['url']), 'track')):
-                subtitles.setdefault(sub_data.get('lang') or 'en', []).append({
-                    'url': sub_data['url'],
-                    'name': sub_data.get('label'),
-                })
+            video_data = {}
+            if parent_uri:
+                video_data = self._download_json(
+                    'https://fave.api.cnn.io/v1/video', media_id, fatal=False,
+                    query={
+                        'id': media_id,
+                        'stellarUri': parent_uri,
+                    })
+                for direct_url in traverse_obj(video_data, ('files', ..., 'fileUri', {url_or_none})):
+                    resolution, bitrate = None, None
+                    if mobj := re.search(r'-(?P<res>\d+x\d+)_(?P<tbr>\d+)k\.mp4', direct_url):
+                        resolution, bitrate = mobj.group('res', 'tbr')
+                    formats.append({
+                        'url': direct_url,
+                        'format_id': 'direct',
+                        'quality': 1,
+                        'tbr': int_or_none(bitrate),
+                        **parse_resolution(resolution),
+                    })
+                for sub_data in traverse_obj(video_data, (
+                        'closedCaptions', 'types', lambda _, v: url_or_none(v['track']['url']), 'track')):
+                    subtitles.setdefault(sub_data.get('lang') or 'en', []).append({
+                        'url': sub_data['url'],
+                        'name': sub_data.get('label'),
+                    })
 
             if app_id:
                 media_data = self._download_json(
