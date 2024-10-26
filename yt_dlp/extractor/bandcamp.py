@@ -273,7 +273,6 @@ class BandcampAlbumIE(BandcampIE):  # XXX: Do not subclass from concrete IE
                     'timestamp': 1311756226,
                     'upload_date': '20110727',
                     'uploader': 'Blazo',
-
                     'thumbnail': 'https://f4.bcbits.com/img/a1721150828_5.jpg',
                     'album_artists': ['Blazo'],
                     'uploader_url': 'https://blazo.bandcamp.com',
@@ -297,7 +296,6 @@ class BandcampAlbumIE(BandcampIE):  # XXX: Do not subclass from concrete IE
                     'timestamp': 1311757238,
                     'upload_date': '20110727',
                     'uploader': 'Blazo',
-
                     'track': 'Kero One - Keep It Alive (Blazo remix)',
                     'release_date': '20110727',
                     'track_id': '38097443',
@@ -317,7 +315,6 @@ class BandcampAlbumIE(BandcampIE):  # XXX: Do not subclass from concrete IE
             'title': 'Jazz Format Mixtape vol.1',
             'id': 'jazz-format-mixtape-vol-1',
             'uploader_id': 'blazo',
-
             'description': 'md5:38052a93217f3ffdc033cd5dbbce2989',
         },
         'params': {
