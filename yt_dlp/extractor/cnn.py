@@ -1,146 +1,226 @@
+import functools
+import json
+import re
+
 from .common import InfoExtractor
-from .turner import TurnerBaseIE
-from ..utils import merge_dicts, try_call, url_basename
+from ..utils import (
+    clean_html,
+    extract_attributes,
+    int_or_none,
+    merge_dicts,
+    parse_duration,
+    parse_iso8601,
+    parse_resolution,
+    try_call,
+    update_url,
+    url_or_none,
+)
+from ..utils.traversal import find_elements, traverse_obj
 
 
-class CNNIE(TurnerBaseIE):
-    _VALID_URL = r'''(?x)https?://(?:(?P<sub_domain>edition|www|money)\.)?cnn\.com/(?:video/(?:data/.+?|\?)/)?videos?/
-        (?P<path>.+?/(?P<title>[^/]+?)(?:\.(?:[a-z\-]+)|(?=&)))'''
+class CNNIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:(?:edition|www|money|cnnespanol)\.)?cnn\.com/(?!audio/)(?P<display_id>[^?#]+?)(?:[?#]|$|/index\.html)'
 
     _TESTS = [{
-        'url': 'http://edition.cnn.com/video/?/video/sports/2013/06/09/nadal-1-on-1.cnn',
-        'md5': '3e6121ea48df7e2259fe73a0628605c4',
+        'url': 'https://www.cnn.com/2024/05/31/sport/video/jadon-sancho-borussia-dortmund-champions-league-exclusive-spt-intl',
         'info_dict': {
-            'id': 'sports/2013/06/09/nadal-1-on-1.cnn',
+            'id': 'med0e97ad0d154f56e29aa96e57192a14226734b6b',
+            'display_id': '2024/05/31/sport/video/jadon-sancho-borussia-dortmund-champions-league-exclusive-spt-intl',
             'ext': 'mp4',
-            'title': 'Nadal wins 8th French Open title',
-            'description': 'World Sport\'s Amanda Davies chats with 2013 French Open champion Rafael Nadal.',
-            'duration': 135,
-            'upload_date': '20130609',
+            'upload_date': '20240531',
+            'description': 'md5:844bcdb0629e1877a7a466c913f4c19c',
+            'thumbnail': 'https://media.cnn.com/api/v1/images/stellar/prod/gettyimages-2151936122.jpg?c=original',
+            'duration': 373.0,
+            'timestamp': 1717148586,
+            'title': 'Borussia Dortmund star Jadon Sancho seeks Wembley redemption after 2020 Euros hurt',
+            'modified_date': '20240531',
+            'modified_timestamp': 1717150140,
         },
-        'expected_warnings': ['Failed to download m3u8 information'],
     }, {
-        'url': 'http://edition.cnn.com/video/?/video/us/2013/08/21/sot-student-gives-epic-speech.georgia-institute-of-technology&utm_source=feedburner&utm_medium=feed&utm_campaign=Feed%3A+rss%2Fcnn_topstories+%28RSS%3A+Top+Stories%29',
-        'md5': 'b5cc60c60a3477d185af8f19a2a26f4e',
+        'url': 'https://edition.cnn.com/2024/06/11/politics/video/inmates-vote-jail-nevada-murray-dnt-ac360-digvid',
         'info_dict': {
-            'id': 'us/2013/08/21/sot-student-gives-epic-speech.georgia-institute-of-technology',
+            'id': 'me522945c4709b299e5cb8657900a7a21ad3b559f9',
+            'display_id': '2024/06/11/politics/video/inmates-vote-jail-nevada-murray-dnt-ac360-digvid',
             'ext': 'mp4',
-            'title': "Student's epic speech stuns new freshmen",
-            'description': 'A Georgia Tech student welcomes the incoming freshmen with an epic speech backed by music from "2001: A Space Odyssey."',
-            'upload_date': '20130821',
+            'description': 'md5:e0120fe5da9ad8259fd707c1cbb64a60',
+            'title': 'Here’s how some inmates in closely divided state are now able to vote from jail',
+            'timestamp': 1718158269,
+            'upload_date': '20240612',
+            'thumbnail': 'https://media.cnn.com/api/v1/images/stellar/prod/still-20701554-13565-571-still.jpg?c=original',
+            'duration': 202.0,
+            'modified_date': '20240612',
+            'modified_timestamp': 1718158509,
         },
-        'expected_warnings': ['Failed to download m3u8 information'],
     }, {
-        'url': 'http://www.cnn.com/video/data/2.0/video/living/2014/12/22/growing-america-nashville-salemtown-board-episode-1.hln.html',
-        'md5': 'f14d02ebd264df951feb2400e2c25a1b',
+        'url': 'https://edition.cnn.com/2024/06/11/style/king-charles-portrait-vandalized/index.html',
         'info_dict': {
-            'id': 'living/2014/12/22/growing-america-nashville-salemtown-board-episode-1.hln',
+            'id': 'mef5f52b9e1fe28b1ad192afcbc9206ae984894b68',
+            'display_id': '2024/06/11/style/king-charles-portrait-vandalized',
             'ext': 'mp4',
-            'title': 'Nashville Ep. 1: Hand crafted skateboards',
-            'description': 'md5:e7223a503315c9f150acac52e76de086',
-            'upload_date': '20141222',
+            'thumbnail': 'https://media.cnn.com/api/v1/images/stellar/prod/still-20701257-8846-816-still.jpg?c=original',
+            'description': 'md5:19f78338ccec533db0fa8a4511012dae',
+            'title': 'Video shows King Charles\' portrait being vandalized by activists',
+            'timestamp': 1718113852,
+            'upload_date': '20240611',
+            'duration': 51.0,
+            'modified_timestamp': 1718116193,
+            'modified_date': '20240611',
         },
-        'expected_warnings': ['Failed to download m3u8 information'],
     }, {
-        'url': 'http://money.cnn.com/video/news/2016/08/19/netflix-stunning-stats.cnnmoney/index.html',
-        'md5': '52a515dc1b0f001cd82e4ceda32be9d1',
+        'url': 'https://edition.cnn.com/videos/media/2022/12/05/robin-meade-final-sign-off-broadcast-hln-mxp-contd-vpx.hln',
         'info_dict': {
-            'id': '/video/news/2016/08/19/netflix-stunning-stats.cnnmoney',
+            'id': 'mefba13799201b084ea3b1d0f7ca820ae94d4bb5b2',
+            'display_id': 'videos/media/2022/12/05/robin-meade-final-sign-off-broadcast-hln-mxp-contd-vpx.hln',
             'ext': 'mp4',
-            'title': '5 stunning stats about Netflix',
-            'description': 'Did you know that Netflix has more than 80 million members? Here are five facts about the online video distributor that you probably didn\'t know.',
-            'upload_date': '20160819',
+            'thumbnail': 'https://media.cnn.com/api/v1/images/stellar/prod/221205163510-robin-meade-sign-off.jpg?c=original',
+            'duration': 158.0,
+            'title': 'Robin Meade signs off after HLN\'s last broadcast',
+            'description': 'md5:cff3c62d18d2fbc6c5c75cb029b7353b',
+            'upload_date': '20221205',
+            'timestamp': 1670284296,
+            'modified_timestamp': 1670332404,
+            'modified_date': '20221206',
         },
-        'params': {
-            # m3u8 download
-            'skip_download': True,
+        'params': {'format': 'direct'},
+    }, {
+        'url': 'https://cnnespanol.cnn.com/video/ataque-misil-israel-beirut-libano-octubre-trax',
+        'info_dict': {
+            'id': 'me484a43722642aa00627b812fe928f2e99c6e2997',
+            'ext': 'mp4',
+            'display_id': 'video/ataque-misil-israel-beirut-libano-octubre-trax',
+            'timestamp': 1729501452,
+            'thumbnail': 'https://media.cnn.com/api/v1/images/stellar/prod/ataqeubeirut-1.jpg?c=original',
+            'description': 'md5:256ee7137d161f776cda429654135e52',
+            'upload_date': '20241021',
+            'duration': 31.0,
+            'title': 'VIDEO | Israel lanza un nuevo ataque sobre Beirut',
+            'modified_date': '20241021',
+            'modified_timestamp': 1729501530,
         },
     }, {
-        'url': 'http://cnn.com/video/?/video/politics/2015/03/27/pkg-arizona-senator-church-attendance-mandatory.ktvk',
-        'only_matching': True,
-    }, {
-        'url': 'http://cnn.com/video/?/video/us/2015/04/06/dnt-baker-refuses-anti-gay-order.wkmg',
-        'only_matching': True,
-    }, {
-        'url': 'http://edition.cnn.com/videos/arts/2016/04/21/olympic-games-cultural-a-z-brazil.cnn',
-        'only_matching': True,
+        'url': 'https://edition.cnn.com/2024/10/16/politics/kamala-harris-fox-news-interview/index.html',
+        'info_dict': {
+            'id': '2024/10/16/politics/kamala-harris-fox-news-interview',
+        },
+        'playlist_count': 2,
+        'playlist': [{
+            'md5': '073ffab87b8bef97c9913e71cc18ef9e',
+            'info_dict': {
+                'id': 'me19d548fdd54df0924087039283128ef473ab397d',
+                'ext': 'mp4',
+                'title': '\'I\'m not finished\': Harris interview with Fox News gets heated',
+                'display_id': 'kamala-harris-fox-news-interview-ebof-digvid',
+                'description': 'md5:e7dd3d1a04df916062230b60ca419a0a',
+                'thumbnail': 'https://media.cnn.com/api/v1/images/stellar/prod/harris-20241016234916617.jpg?c=original',
+                'duration': 173.0,
+                'timestamp': 1729122182,
+                'upload_date': '20241016',
+                'modified_timestamp': 1729194706,
+                'modified_date': '20241017',
+            },
+            'params': {'format': 'direct'},
+        }, {
+            'md5': '11604ab4af83b650826753f1ccb8ecff',
+            'info_dict': {
+                'id': 'med04507d8ca3da827001f63d22af321ec29c7d97b',
+                'ext': 'mp4',
+                'title': '\'Wise\': Buttigieg on Harris\' handling of interview question about gender transition surgery',
+                'display_id': 'pete-buttigieg-harris-fox-newssrc-digvid',
+                'description': 'md5:602a8a7e853ed5e574acd3159428c98e',
+                'thumbnail': 'https://media.cnn.com/api/v1/images/stellar/prod/buttigieg-20241017040412074.jpg?c=original',
+                'duration': 145.0,
+                'timestamp': 1729137765,
+                'upload_date': '20241017',
+                'modified_timestamp': 1729138184,
+                'modified_date': '20241017',
+            },
+            'params': {'format': 'direct'},
+        }],
     }]
 
-    _CONFIG = {
-        # http://edition.cnn.com/.element/apps/cvp/3.0/cfg/spider/cnn/expansion/config.xml
-        'edition': {
-            'data_src': 'http://edition.cnn.com/video/data/3.0/video/%s/index.xml',
-            'media_src': 'http://pmd.cdn.turner.com/cnn/big',
-        },
-        # http://money.cnn.com/.element/apps/cvp2/cfg/config.xml
-        'money': {
-            'data_src': 'http://money.cnn.com/video/data/4.0/video/%s.xml',
-            'media_src': 'http://ht3.cdn.turner.com/money/big',
-        },
-    }
-
-    def _extract_timestamp(self, video_data):
-        # TODO: fix timestamp extraction
-        return None
-
     def _real_extract(self, url):
-        sub_domain, path, page_title = self._match_valid_url(url).groups()
-        if sub_domain not in ('money', 'edition'):
-            sub_domain = 'edition'
-        config = self._CONFIG[sub_domain]
-        return self._extract_cvp_info(
-            config['data_src'] % path, page_title, {
-                'default': {
-                    'media_src': config['media_src'],
-                },
-                'f4m': {
-                    'host': 'cnn-vh.akamaihd.net',
-                },
+        display_id = self._match_valid_url(url).group('display_id')
+        webpage = self._download_webpage(url, display_id)
+        app_id = traverse_obj(
+            self._search_json(r'window\.env\s*=', webpage, 'window env', display_id, default={}),
+            ('TOP_AUTH_SERVICE_APP_ID', {str}))
+
+        entries = []
+        for player_data in traverse_obj(webpage, (
+                {find_elements(tag='div', attr='data-component-name', value='video-player', html=True)},
+                ..., {extract_attributes}, all, lambda _, v: v['data-media-id'])):
+            media_id = player_data['data-media-id']
+            parent_uri = player_data.get('data-video-resource-parent-uri')
+            formats, subtitles = [], {}
+
+            video_data = {}
+            if parent_uri:
+                video_data = self._download_json(
+                    'https://fave.api.cnn.io/v1/video', media_id, fatal=False,
+                    query={
+                        'id': media_id,
+                        'stellarUri': parent_uri,
+                    })
+                for direct_url in traverse_obj(video_data, ('files', ..., 'fileUri', {url_or_none})):
+                    resolution, bitrate = None, None
+                    if mobj := re.search(r'-(?P<res>\d+x\d+)_(?P<tbr>\d+)k\.mp4', direct_url):
+                        resolution, bitrate = mobj.group('res', 'tbr')
+                    formats.append({
+                        'url': direct_url,
+                        'format_id': 'direct',
+                        'quality': 1,
+                        'tbr': int_or_none(bitrate),
+                        **parse_resolution(resolution),
+                    })
+                for sub_data in traverse_obj(video_data, (
+                        'closedCaptions', 'types', lambda _, v: url_or_none(v['track']['url']), 'track')):
+                    subtitles.setdefault(sub_data.get('lang') or 'en', []).append({
+                        'url': sub_data['url'],
+                        'name': sub_data.get('label'),
+                    })
+
+            if app_id:
+                media_data = self._download_json(
+                    f'https://medium.ngtv.io/v2/media/{media_id}/desktop', media_id, fatal=False,
+                    query={'appId': app_id})
+                m3u8_url = traverse_obj(media_data, (
+                    'media', 'desktop', 'unprotected', 'unencrypted', 'url', {url_or_none}))
+                if m3u8_url:
+                    fmts, subs = self._extract_m3u8_formats_and_subtitles(
+                        m3u8_url, media_id, 'mp4', m3u8_id='hls', fatal=False)
+                    formats.extend(fmts)
+                    self._merge_subtitles(subs, target=subtitles)
+
+            entries.append({
+                **traverse_obj(player_data, {
+                    'title': ('data-headline', {clean_html}),
+                    'description': ('data-description', {clean_html}),
+                    'duration': ('data-duration', {parse_duration}),
+                    'timestamp': ('data-publish-date', {parse_iso8601}),
+                    'thumbnail': (
+                        'data-poster-image-override', {json.loads}, 'big', 'uri', {url_or_none},
+                        {functools.partial(update_url, query='c=original')}),
+                    'display_id': 'data-video-slug',
+                }),
+                **traverse_obj(video_data, {
+                    'timestamp': ('dateCreated', 'uts', {int_or_none(scale=1000)}),
+                    'description': ('description', {clean_html}),
+                    'title': ('headline', {str}),
+                    'modified_timestamp': ('lastModified', 'uts', {int_or_none(scale=1000)}),
+                    'duration': ('trt', {int_or_none}),
+                }),
+                'id': media_id,
+                'formats': formats,
+                'subtitles': subtitles,
             })
 
+        if len(entries) == 1:
+            return {
+                **entries[0],
+                'display_id': display_id,
+            }
 
-class CNNBlogsIE(InfoExtractor):
-    _VALID_URL = r'https?://[^\.]+\.blogs\.cnn\.com/.+'
-    _TEST = {
-        'url': 'http://reliablesources.blogs.cnn.com/2014/02/09/criminalizing-journalism/',
-        'md5': '3e56f97b0b6ffb4b79f4ea0749551084',
-        'info_dict': {
-            'id': 'bestoftv/2014/02/09/criminalizing-journalism.cnn',
-            'ext': 'mp4',
-            'title': 'Criminalizing journalism?',
-            'description': 'Glenn Greenwald responds to comments made this week on Capitol Hill that journalists could be criminal accessories.',
-            'upload_date': '20140209',
-        },
-        'expected_warnings': ['Failed to download m3u8 information'],
-        'add_ie': ['CNN'],
-    }
-
-    def _real_extract(self, url):
-        webpage = self._download_webpage(url, url_basename(url))
-        cnn_url = self._html_search_regex(r'data-url="(.+?)"', webpage, 'cnn url')
-        return self.url_result(cnn_url, CNNIE.ie_key())
-
-
-class CNNArticleIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:(?:edition|www)\.)?cnn\.com/(?!videos?/)'
-    _TEST = {
-        'url': 'http://www.cnn.com/2014/12/21/politics/obama-north-koreas-hack-not-war-but-cyber-vandalism/',
-        'md5': '689034c2a3d9c6dc4aa72d65a81efd01',
-        'info_dict': {
-            'id': 'bestoftv/2014/12/21/ip-north-korea-obama.cnn',
-            'ext': 'mp4',
-            'title': 'Obama: Cyberattack not an act of war',
-            'description': 'md5:0a802a40d2376f60e6b04c8d5bcebc4b',
-            'upload_date': '20141221',
-        },
-        'expected_warnings': ['Failed to download m3u8 information'],
-        'add_ie': ['CNN'],
-    }
-
-    def _real_extract(self, url):
-        webpage = self._download_webpage(url, url_basename(url))
-        cnn_url = self._html_search_regex(r"video:\s*'([^']+)'", webpage, 'cnn url')
-        return self.url_result('http://cnn.com/video/?/video/' + cnn_url, CNNIE.ie_key())
+        return self.playlist_result(entries, display_id)
 
 
 class CNNIndonesiaIE(InfoExtractor):
