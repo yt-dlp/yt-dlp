@@ -393,10 +393,10 @@ class BandcampWeeklyIE(BandcampIE):  # XXX: Do not subclass from concrete IE
     _VALID_URL = r'https?://(?:www\.)?bandcamp\.com/?\?(?:.*?&)?show=(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://bandcamp.com/?show=224',
-        'md5': 'b00df799c733cf7e0c567ed187dea0fd',
+        'md5': '61acc9a002bed93986b91168aa3ab433',
         'info_dict': {
             'id': '224',
-            'ext': 'opus',
+            'ext': 'mp3',
             'title': 'BC Weekly April 4th 2017 - Magic Moments',
             'description': 'md5:5d48150916e8e02d030623a48512c874',
             'duration': 5829.77,
@@ -406,7 +406,7 @@ class BandcampWeeklyIE(BandcampIE):  # XXX: Do not subclass from concrete IE
             'episode_id': '224',
         },
         'params': {
-            'format': 'opus-lo',
+            'format': 'mp3-128',
         },
     }, {
         'url': 'https://bandcamp.com/?blah/blah@&show=228',
