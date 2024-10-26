@@ -45,6 +45,8 @@ class BandcampIE(InfoExtractor):
             'uploader_url': 'https://youtube-dl.bandcamp.com',
             'uploader_id': 'youtube-dl',
             'thumbnail': 'https://f4.bcbits.com/img/a3216802731_5.jpg',
+            'artists': ['youtube-dl "\'/\\ä↭'],
+            'album_artists': ['youtube-dl "\'/\\ä↭'],
         },
         'skip': 'There is a limit of 200 free downloads / month for the test song',
     }, {
