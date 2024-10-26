@@ -897,12 +897,13 @@ class NiconicoUserIE(InfoExtractor):
                 total_count = int_or_none(json_parsed['data'].get('totalCount'))
             for entry in json_parsed['data']['items']:
                 count += 1
-                yield self.url_result('https://www.nicovideo.jp/watch/{}'.format(entry['essential']['id']))
+                yield self.url_result(
+                    f'https://www.nicovideo.jp/watch/{entry["essential"]["id"]}', ie=NiconicoIE)
             page_num += 1
 
     def _real_extract(self, url):
         list_id = self._match_id(url)
-        return self.playlist_result(self._entries(list_id), list_id, ie=NiconicoIE.ie_key())
+        return self.playlist_result(self._entries(list_id), list_id)
 
 
 class NiconicoLiveIE(InfoExtractor):
