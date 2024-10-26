@@ -13,7 +13,7 @@ maintainers = [
 ]
 description = "A feature-rich command-line audio/video downloader"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 keywords = [
     "youtube-dl",
     "video-downloader",
@@ -29,11 +29,11 @@ classifiers = [
     "Environment :: Console",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: Implementation",
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
@@ -41,7 +41,10 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dynamic = ["version"]
-dependencies = [
+dependencies = []
+
+[project.optional-dependencies]
+default = [
     "brotli; implementation_name=='cpython'",
     "brotlicffi; implementation_name!='cpython'",
     "certifi",
@@ -51,9 +54,6 @@ dependencies = [
     "urllib3>=1.26.17,<3",
     "websockets>=13.0",
 ]
-
-[project.optional-dependencies]
-default = []
 curl-cffi = [
     "curl-cffi==0.5.10; os_name=='nt' and implementation_name=='cpython'",
     "curl-cffi>=0.5.10,!=0.6.*,<0.7.2; os_name!='nt' and implementation_name=='cpython'",
@@ -76,7 +76,7 @@ dev = [
 ]
 static-analysis = [
     "autopep8~=2.0",
-    "ruff~=0.6.0",
+    "ruff~=0.7.0",
 ]
 test = [
     "pytest~=8.1",
@@ -84,9 +84,6 @@ test = [
 ]
 pyinstaller = [
     "pyinstaller>=6.10.0",  # Windows temp cleanup fixed in 6.10.0
-]
-py2exe = [
-    "py2exe>=0.12",
 ]
 
 [project.urls]
@@ -172,13 +169,11 @@ run-cov = "echo Code coverage not implemented && exit 1"
 
 [[tool.hatch.envs.hatch-test.matrix]]
 python = [
-    "3.8",
     "3.9",
     "3.10",
     "3.11",
     "3.12",
-    "pypy3.8",
-    "pypy3.9",
+    "3.13",
     "pypy3.10",
 ]
 
