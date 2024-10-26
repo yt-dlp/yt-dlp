@@ -2849,13 +2849,10 @@ class YoutubeDL:
             sanitize_string_field(fmt, 'format_id')
             sanitize_numeric_fields(fmt)
             fmt['url'] = sanitize_url(fmt['url'])
-            if fmt.get('ext') is None:
-                fmt['ext'] = determine_ext(fmt['url']).lower()
+            FormatSorter._fill_sorting_fields(fmt)
             if fmt['ext'] in ('aac', 'opus', 'mp3', 'flac', 'vorbis'):
                 if fmt.get('acodec') is None:
                     fmt['acodec'] = fmt['ext']
-            if fmt.get('protocol') is None:
-                fmt['protocol'] = determine_protocol(fmt)
             if fmt.get('resolution') is None:
                 fmt['resolution'] = self.format_resolution(fmt, default=None)
             if fmt.get('dynamic_range') is None and fmt.get('vcodec') != 'none':

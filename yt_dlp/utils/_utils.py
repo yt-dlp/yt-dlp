@@ -5578,14 +5578,15 @@ class FormatSorter:
             value = get_value(field)
         return self._calculate_field_preference_from_value(format_, field, type_, value)
 
-    def calculate_preference(self, format):
+    @staticmethod
+    def _fill_sorting_fields(format):
         # Determine missing protocol
         if not format.get('protocol'):
             format['protocol'] = determine_protocol(format)
 
         # Determine missing ext
         if not format.get('ext') and 'url' in format:
-            format['ext'] = determine_ext(format['url'])
+            format['ext'] = determine_ext(format['url']).lower()
         if format.get('vcodec') == 'none':
             format['audio_ext'] = format['ext'] if format.get('acodec') != 'none' else 'none'
             format['video_ext'] = 'none'
@@ -5613,6 +5614,8 @@ class FormatSorter:
         if not format.get('tbr'):
             format['tbr'] = try_call(lambda: format['vbr'] + format['abr']) or None
 
+    def calculate_preference(self, format):
+        self._fill_sorting_fields(format)
         return tuple(self._calculate_field_preference(format, field) for field in self._order)
 
 
