@@ -419,7 +419,7 @@ class TumblrIE(InfoExtractor):
             response = _call_login()
         if traverse_obj(response, 'error'):
             raise ExtractorError(
-                f'API returned error {': '.join(traverse_obj(response, (("error", "error_description"), {str})))}')
+                f'API returned error {": ".join(traverse_obj(response, (("error", "error_description"), {str})))}')
 
     def _real_extract(self, url):
         blog_1, blog_2, video_id = self._match_valid_url(url).groups()
