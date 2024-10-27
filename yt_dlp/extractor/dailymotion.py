@@ -15,6 +15,7 @@ from ..utils import (
     try_get,
     unescapeHTML,
     unsmuggle_url,
+    url_or_none,
     urlencode_postdata,
 )
 
@@ -100,7 +101,7 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
                     https?://
                         (?:
                             (?:(?:www|touch|geo)\.)?dailymotion\.[a-z]{2,3}/(?:(?:(?:(?:embed|swf|\#)/)|player(?:/\w+)?\.html\?)?video|swf)|
-                            (?:www\.)?lequipe\.fr/video
+                            (?:www\.)?lequipe\.fr/video|dai\.ly
                         )
                         [/=](?P<id>[^/?_&]+)(?:.+?\bplaylist=(?P<playlist_id>x[0-9a-z]+))?
                     '''
@@ -123,7 +124,7 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
             'view_count': int,
             'like_count': int,
             'tags': ['hollywood', 'celeb', 'celebrity', 'movies', 'red carpet'],
-            'thumbnail': r're:https://(?:s[12]\.)dmcdn\.net/v/K456B1aXqIx58LKWQ/x1080',
+            'thumbnail': r're:https://(?:s[12]\.)dmcdn\.net/v/K456B1cmt4ZcZ9KiM/x1080',
         },
     }, {
         'url': 'https://geo.dailymotion.com/player.html?video=x89eyek&mute=true',
@@ -142,7 +143,7 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
             'view_count': int,
             'like_count': int,
             'tags': ['en_quete_d_esprit'],
-            'thumbnail': r're:https://(?:s[12]\.)dmcdn\.net/v/Tncwi1YNg_RUl7ueu/x1080',
+            'thumbnail': r're:https://(?:s[12]\.)dmcdn\.net/v/Tncwi1clTH6StrxMP/x1080',
         },
     }, {
         'url': 'https://www.dailymotion.com/video/x2iuewm_steam-machine-models-pricing-listed-on-steam-store-ign-news_videogames',
@@ -217,6 +218,9 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
     }, {
         'url': 'https://geo.dailymotion.com/player/xakln.html?video=x8mjju4&customConfig%5BcustomParams%5D=%2Ffr-fr%2Ftennis%2Fwimbledon-mens-singles%2Farticles-video',
         'only_matching': True,
+    }, {
+        'url': 'https://dai.ly/x94cnnk',
+        'only_matching': True,
     }]
     _GEO_BYPASS = False
     _COMMON_MEDIA_FIELDS = '''description
@@ -282,6 +286,7 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
         title = metadata['title']
         is_live = media.get('isOnAir')
         formats = []
+        subtitles = {}
         for quality, media_list in metadata['qualities'].items():
             for m in media_list:
                 media_url = m.get('url')
@@ -289,8 +294,10 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
                 if not media_url or media_type == 'application/vnd.lumberjack.manifest':
                     continue
                 if media_type == 'application/x-mpegURL':
-                    formats.extend(self._extract_m3u8_formats(
-                        media_url, video_id, 'mp4', live=is_live, m3u8_id='hls', fatal=False))
+                    fmts, subs = self._extract_m3u8_formats_and_subtitles(
+                        media_url, video_id, 'mp4', live=is_live, m3u8_id='hls', fatal=False)
+                    formats.extend(fmts)
+                    self._merge_subtitles(subs, target=subtitles)
                 else:
                     f = {
                         'url': media_url,
@@ -310,20 +317,18 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
             if not f.get('fps') and f['format_id'].endswith('@60'):
                 f['fps'] = 60
 
-        subtitles = {}
         subtitles_data = try_get(metadata, lambda x: x['subtitles']['data'], dict) or {}
         for subtitle_lang, subtitle in subtitles_data.items():
             subtitles[subtitle_lang] = [{
                 'url': subtitle_url,
             } for subtitle_url in subtitle.get('urls', [])]
 
-        thumbnails = []
-        for height, poster_url in metadata.get('posters', {}).items():
-            thumbnails.append({
-                'height': int_or_none(height),
-                'id': height,
-                'url': poster_url,
-            })
+        thumbnails = traverse_obj(metadata, (
+            ('posters', 'thumbnails'), {dict.items}, lambda _, v: url_or_none(v[1]), {
+                'height': (0, {int_or_none}),
+                'id': (0, {str}),
+                'url': 1,
+            }))
 
         owner = metadata.get('owner') or {}
         stats = media.get('stats') or {}
