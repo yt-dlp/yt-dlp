@@ -293,7 +293,7 @@ class CommitRange:
             for line in iter(lambda: next(lines), self.COMMIT_SEPARATOR):
                 if match := self.AUTHOR_INDICATOR_RE.match(line):
                     authors = sorted(map(str.strip, line[match.end():].split(',')), key=str.casefold)
-                if match := self.FIXES_RE.fullmatch(line):
+                if not fix_commitish and (match := self.FIXES_RE.fullmatch(line)):
                     fix_commitish = match.group(1)
 
             commit = Commit(commit_hash, short, authors)
