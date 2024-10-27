@@ -707,6 +707,7 @@ from .gab import (
     GabTVIE,
 )
 from .gaia import GaiaIE
+from .gamedevtv import GameDevTVIE
 from .gamejolt import (
     GameJoltCommunityIE,
     GameJoltGameIE,
