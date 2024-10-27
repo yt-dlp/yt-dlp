@@ -57,7 +57,7 @@ class GameDevTVIE(InfoExtractor):
             ).encode(),
         )
         self._API_HEADERS['Authorization'] = (
-            f'{response['token_type']} {response['access_token']}'
+            f"{response['token_type']} {response['access_token']}"
         )
 
     def _get_lecture_info(self, data: dict, course_id: str) -> Generator:
