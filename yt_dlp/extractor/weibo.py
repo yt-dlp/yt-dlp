@@ -67,7 +67,7 @@ class WeiboBaseIE(InfoExtractor):
                 'format': ('quality_desc', {str}),
                 'format_id': ('label', {str}),
                 'ext': ('mime', {mimetype2ext}),
-                'tbr': ('bitrate', {int_or_none}, {lambda x: x or None}),
+                'tbr': ('bitrate', {int_or_none}, filter),
                 'vcodec': ('video_codecs', {str}),
                 'fps': ('fps', {int_or_none}),
                 'width': ('width', {int_or_none}),
@@ -107,7 +107,7 @@ class WeiboBaseIE(InfoExtractor):
             **traverse_obj(video_info, {
                 'id': (('id', 'id_str', 'mid'), {str_or_none}),
                 'display_id': ('mblogid', {str_or_none}),
-                'title': ('page_info', 'media_info', ('video_title', 'kol_title', 'name'), {str}, {lambda x: x or None}),
+                'title': ('page_info', 'media_info', ('video_title', 'kol_title', 'name'), {str}, filter),
                 'description': ('text_raw', {str}),
                 'duration': ('page_info', 'media_info', 'duration', {int_or_none}),
                 'timestamp': ('page_info', 'media_info', 'video_publish_time', {int_or_none}),

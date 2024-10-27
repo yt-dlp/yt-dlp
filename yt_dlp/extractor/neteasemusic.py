@@ -517,7 +517,7 @@ class NetEaseMusicMvIE(NetEaseMusicBaseIE):
             'creators': traverse_obj(info, ('artists', ..., 'name')) or [info.get('artistName')],
             **traverse_obj(info, {
                 'title': ('name', {str}),
-                'description': (('desc', 'briefDesc'), {str}, {lambda x: x or None}),
+                'description': (('desc', 'briefDesc'), {str}, filter),
                 'upload_date': ('publishTime', {unified_strdate}),
                 'thumbnail': ('cover', {url_or_none}),
                 'duration': ('duration', {self._kilo_or_none}),

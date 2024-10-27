@@ -66,7 +66,7 @@ class MixchIE(InfoExtractor):
             note='Downloading comments', errnote='Failed to download comments'), (..., {
                 'author': ('name', {str}),
                 'author_id': ('user_id', {str_or_none}),
-                'id': ('message_id', {str}, {lambda x: x or None}),
+                'id': ('message_id', {str}, filter),
                 'text': ('body', {str}),
                 'timestamp': ('created', {int}),
             }))

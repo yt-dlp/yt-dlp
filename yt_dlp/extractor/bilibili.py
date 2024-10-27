@@ -1585,7 +1585,7 @@ class BilibiliPlaylistIE(BilibiliSpaceListBaseIE):
                 'title': ('title', {str}),
                 'uploader': ('upper', 'name', {str}),
                 'uploader_id': ('upper', 'mid', {str_or_none}),
-                'timestamp': ('ctime', {int_or_none}, {lambda x: x or None}),
+                'timestamp': ('ctime', {int_or_none}, filter),
                 'thumbnail': ('cover', {url_or_none}),
             })),
         }

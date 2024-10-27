@@ -583,7 +583,7 @@ class TikTokBaseIE(InfoExtractor):
                 author_info, ['uploader', 'uploader_id'], self._UPLOADER_URL_FORMAT, default=None),
             **traverse_obj(aweme_detail, ('music', {
                 'track': ('title', {str}),
-                'album': ('album', {str}, {lambda x: x or None}),
+                'album': ('album', {str}, filter),
                 'artists': ('authorName', {str}, {lambda x: re.split(r'(?:, | & )', x) if x else None}),
                 'duration': ('duration', {int_or_none}),
             })),
@@ -591,7 +591,7 @@ class TikTokBaseIE(InfoExtractor):
                 'title': ('desc', {str}),
                 'description': ('desc', {str}),
                 # audio-only slideshows have a video duration of 0 and an actual audio duration
-                'duration': ('video', 'duration', {int_or_none}, {lambda x: x or None}),
+                'duration': ('video', 'duration', {int_or_none}, filter),
                 'timestamp': ('createTime', {int_or_none}),
             }),
             **traverse_obj(aweme_detail, ('stats', {

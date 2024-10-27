@@ -53,7 +53,7 @@ class CaffeineTVIE(InfoExtractor):
                 'like_count': ('like_count', {int_or_none}),
                 'view_count': ('view_count', {int_or_none}),
                 'comment_count': ('comment_count', {int_or_none}),
-                'tags': ('tags', ..., {str}, {lambda x: x or None}),
+                'tags': ('tags', ..., {str}, filter),
                 'uploader': ('user', 'name', {str}),
                 'uploader_id': (((None, 'user'), 'username'), {str}, any),
                 'is_live': ('is_live', {bool}),
