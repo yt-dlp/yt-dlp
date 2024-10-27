@@ -80,7 +80,7 @@ class CommitGroup(enum.Enum):
         return cls.subgroup_lookup().get(group), group or None
 
 
-@dataclass(slots=True)
+@dataclass
 class Commit:
     hash: str | None
     short: str
@@ -99,7 +99,7 @@ class Commit:
         return result
 
 
-@dataclass(slots=True)
+@dataclass
 class CommitInfo:
     details: str | None
     sub_details: tuple[str, ...]
