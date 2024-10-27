@@ -208,7 +208,6 @@ class SoundcloudBaseIE(InfoExtractor):
 
     def _extract_info_dict(self, info, full_title=None, secret_token=None, extract_flat=False):
         track_id = str(info['id'])
-        title = info['title']
 
         format_urls = set()
         formats = []
@@ -367,7 +366,7 @@ class SoundcloudBaseIE(InfoExtractor):
             'uploader_id': str_or_none(user.get('id')) or user.get('permalink'),
             'uploader_url': user.get('permalink_url'),
             'timestamp': unified_timestamp(info.get('created_at')),
-            'title': title,
+            'title': info.get('title'),
             'description': info.get('description'),
             'thumbnails': thumbnails,
             'duration': float_or_none(info.get('duration'), 1000),
@@ -377,8 +376,8 @@ class SoundcloudBaseIE(InfoExtractor):
             'like_count': extract_count('favoritings') or extract_count('likes'),
             'comment_count': extract_count('comment'),
             'repost_count': extract_count('reposts'),
-            'genres': traverse_obj(info, ('genre', {str}, {lambda x: x or None}, all)),
-            'artists': traverse_obj(info, ('publisher_metadata', 'artist', {str}, all)),
+            'genres': traverse_obj(info, ('genre', {str}, filter, all)),
+            'artists': traverse_obj(info, ('publisher_metadata', 'artist', {str}, filter, all, filter)),
             'formats': formats if not extract_flat else None,
         }
 
@@ -431,7 +430,6 @@ class SoundcloudIE(SoundcloudBaseIE):
                 'thumbnail': 'https://i1.sndcdn.com/artworks-000031955188-rwb18x-original.jpg',
                 'uploader_url': 'https://soundcloud.com/ethmusic',
                 'genres': [],
-                'artists': [],
             },
         },
         # geo-restricted
@@ -480,7 +478,6 @@ class SoundcloudIE(SoundcloudBaseIE):
                 'uploader_url': 'https://soundcloud.com/jaimemf',
                 'thumbnail': 'https://a1.sndcdn.com/images/default_avatar_large.png',
                 'genres': ['youtubedl'],
-                'artists': [],
             },
         },
         # private link (alt format)
@@ -505,7 +502,6 @@ class SoundcloudIE(SoundcloudBaseIE):
                 'uploader_url': 'https://soundcloud.com/jaimemf',
                 'thumbnail': 'https://a1.sndcdn.com/images/default_avatar_large.png',
                 'genres': ['youtubedl'],
-                'artists': [],
             },
         },
         # downloadable song
@@ -607,7 +603,6 @@ class SoundcloudIE(SoundcloudBaseIE):
                 'repost_count': int,
                 'genres': ['Piano'],
                 'uploader_url': 'https://soundcloud.com/giovannisarani',
-                'artists': [],
             },
         },
         {
