@@ -104,7 +104,7 @@ class LaracastsPlaylistIE(LaracastsBaseIE):
                 'description': ('body', {clean_html}),
                 'thumbnail': (('large_thumbnail', 'thumbnail'), {url_or_none}, any),
                 'duration': ('runTime', {parse_duration}),
-                'categories': ('taxonomy', 'name', {str}, {lambda x: x and [x]}),
+                'categories': ('taxonomy', 'name', {str}, all),
                 'tags': ('topics', ..., 'name', {str}),
                 'modified_date': ('lastUpdated', {unified_strdate}),
             }),
