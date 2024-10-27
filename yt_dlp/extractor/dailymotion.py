@@ -115,7 +115,7 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
                     ''',
         rf'''{_VALID_URL_PREFIX}
                         (?:
-                            player(?:/\w+)?\.html\?
+                            player(?:/\w+)?\.(?:html|js)\?
                         )(?:video[=/](?P<id>[^/?_&#]+))?(?:.*?\bplaylist=(?P<playlist_id>x[0-9a-z]+))?
                     ''',
     ]
@@ -235,6 +235,9 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
     }, {
         'url': 'https://geo.dailymotion.com/player/xf7zn.html?playlist=x7wdsj',
         'only_matching': True,
+    }, {
+        'url': 'https://geo.dailymotion.com/player/xf7zn.js?playlist=x7wdsj',
+        'only_matching': True,
     }]
     _WEBPAGE_TESTS = [{
         # https://geo.dailymotion.com/player/xmyye.html?video=x93blhi
@@ -282,7 +285,6 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
             player_url = url_or_none(attrs.get('src'))
             if not player_url:
                 continue
-            player_url = player_url.replace('.js', '.html')
             if player_url.startswith('//'):
                 player_url = f'https:{player_url}'
             if video_id := attrs.get('data-video'):
@@ -354,7 +356,7 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
                     fmt, subs = self._extract_m3u8_formats_and_subtitles(
                         media_url, video_id, 'mp4', live=is_live, m3u8_id='hls', fatal=False)
                     formats.extend(fmt)
-                    subtitles.update(subs)
+                    self._merge_subtitles(subs, target=subtitles)
                 else:
                     f = {
                         'url': media_url,
