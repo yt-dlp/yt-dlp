@@ -12,7 +12,7 @@ from ..utils import (
 
 
 class CCMAIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?3cat\.cat/(?:[^/]+/)*?(?P<type>video|audio)/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?3cat\.cat/(?:3cat|tv3/sx3)/[^/?#]+/(?P<type>video|audio)/(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://www.3cat.cat/3cat/lespot-de-la-marato-de-tv3/video/5630208/',
         'md5': '7296ca43977c8ea4469e719c609b0871',
