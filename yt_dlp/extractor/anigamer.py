@@ -32,7 +32,7 @@ class AniGamerIE(InfoExtractor):
                 'Downloading device ID', 'Failed to download device ID',
                 headers=self.geo_verification_headers())['deviceid'])
         metadata = {}
-        format_id = '0'
+        # format_id = '0'
         if api_result := self._download_json(
                 'https://api.gamer.com.tw/anime/v1/video.php', video_id,
                 'Downloading video info', 'Failed to download video info',
@@ -68,7 +68,7 @@ class AniGamerIE(InfoExtractor):
                 'duration': ('duration', {float_or_none}, {lambda x: x * 60}),
                 'age_limit': ('rating', {lambda x: self.RATING_TO_AGE_LIMIT.get(x)}),
             })))
-            format_id = traverse_obj(api_result, ('video', 'quality'), default=format_id)
+            # format_id = traverse_obj(api_result, ('video', 'quality'), default=format_id)
 
         m3u8_info = self._download_json('https://ani.gamer.com.tw/ajax/m3u8.php', video_id, query={
             'sn': video_id,
@@ -79,19 +79,20 @@ class AniGamerIE(InfoExtractor):
         if error_code == 1011:
             self.raise_geo_restricted()
         elif error_code == 1007:
-            if unsmuggled_data.pop('device_id', None):
+            if unsmuggled_data.pop('device_id', None) is not None:
                 return self.url_result(
                     smuggle_url(f'https://ani.gamer.com.tw/animeVideo.php?sn={video_id}',
                                 unsmuggled_data), ie=AniGamerIE, video_id=video_id)
             raise ExtractorError('Invalid device id!')
         # TODO: handle more error codes
         src = m3u8_info['src']
+        formats, subs = self._extract_m3u8_formats_and_subtitles(src, video_id, 'mp4', headers={
+            'Origin': 'https://ani.gamer.com.tw',
+            **self.geo_verification_headers(),
+        })
         return {
             **metadata,
             'id': video_id,
-            'formats': [{
-                'format_id': format_id,
-                'url': src,
-                'ext': 'mp4',
-            }],
+            'formats': formats,
+            'subtitles': subs,
         }
