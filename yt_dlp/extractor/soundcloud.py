@@ -376,7 +376,7 @@ class SoundcloudBaseIE(InfoExtractor):
             'like_count': extract_count('favoritings') or extract_count('likes'),
             'comment_count': extract_count('comment'),
             'repost_count': extract_count('reposts'),
-            'genres': traverse_obj(info, ('genre', {str}, filter, all)),
+            'genres': traverse_obj(info, ('genre', {str}, filter, all, filter)),
             'artists': traverse_obj(info, ('publisher_metadata', 'artist', {str}, filter, all, filter)),
             'formats': formats if not extract_flat else None,
         }
@@ -429,7 +429,6 @@ class SoundcloudIE(SoundcloudBaseIE):
                 'repost_count': int,
                 'thumbnail': 'https://i1.sndcdn.com/artworks-000031955188-rwb18x-original.jpg',
                 'uploader_url': 'https://soundcloud.com/ethmusic',
-                'genres': [],
             },
         },
         # geo-restricted
@@ -575,7 +574,6 @@ class SoundcloudIE(SoundcloudBaseIE):
                 'comment_count': int,
                 'repost_count': int,
                 'uploader_url': 'https://soundcloud.com/garyvee',
-                'genres': [],
                 'artists': ['MadReal'],
             },
             'params': {
