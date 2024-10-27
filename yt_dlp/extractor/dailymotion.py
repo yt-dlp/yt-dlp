@@ -115,7 +115,7 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
                     ''',
         rf'''{_VALID_URL_PREFIX}
                         (?:
-                            player(?:/\w+)?\.(?:html|js)\?
+                            player(?:/\w+)?\.html\?
                         )(?:video[=/](?P<id>[^/?_&#]+))?(?:.*?\bplaylist=(?P<playlist_id>x[0-9a-z]+))?
                     ''',
     ]
@@ -235,9 +235,6 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
     }, {
         'url': 'https://geo.dailymotion.com/player/xf7zn.html?playlist=x7wdsj',
         'only_matching': True,
-    }, {
-        'url': 'https://geo.dailymotion.com/player/xf7zn.js?playlist=x7wdsj',
-        'only_matching': True,
     }]
     _WEBPAGE_TESTS = [{
         # https://geo.dailymotion.com/player/xmyye.html?video=x93blhi
@@ -285,6 +282,7 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
             player_url = url_or_none(attrs.get('src'))
             if not player_url:
                 continue
+            player_url = player_url.replace('.js', '.html')
             if player_url.startswith('//'):
                 player_url = f'https:{player_url}'
             if video_id := attrs.get('data-video'):
