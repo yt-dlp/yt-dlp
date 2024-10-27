@@ -109,7 +109,7 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
     _VALID_URL = [
         rf'''{_VALID_URL_PREFIX}
                         (?:
-                            video/|
+                            (?:crawler/)?video/|
                             swf(?:/(?!video)|/video/)
                         )(?P<id>[^/?_&#]+)(?:.+?\bplaylist=(?P<playlist_id>x[0-9a-z]+))?
                     ''',
@@ -261,6 +261,24 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
             'id': 'x7wdsj',
         },
         'playlist_mincount': 50,
+    }, {
+        'url': 'https://www.leparisien.fr/environnement/video-le-veloto-la-voiture-a-pedales-qui-aimerait-se-faire-une-place-sur-les-routes-09-03-2024-KCYMCPM4WFHJXMSKBUI66UNFPU.php',
+        'info_dict': {
+            'id': 'x8u4owg',
+            'ext': 'mp4',
+            'like_count': int,
+            'uploader': 'Le Parisien',
+            'thumbnail': 'https://www.leparisien.fr/resizer/ho_GwveeYftNkLwg_cEta--5Bv4=/1200x675/cloudfront-eu-central-1.images.arcpublishing.com/leparisien/BFXJNEBN75EUNHGYJLORUC3TX4.jpg',
+            'upload_date': '20240309',
+            'view_count': int,
+            'timestamp': 1709997866,
+            'age_limit': 0,
+            'uploader_id': 'x32f7b',
+            'title': 'VIDÉO. Le « véloto », la voiture à pédales qui aimerait se faire une place sur les routes',
+            'duration': 428.0,
+            'description': 'À bord du « véloto », l’alternative à la voiture pour la campagne',
+            'tags': ['biclou', 'vélo', 'véloto', 'campagne', 'voiture', 'environnement', 'véhicules intermédiaires'],
+        },
     }]
     _GEO_BYPASS = False
     _COMMON_MEDIA_FIELDS = '''description
@@ -510,7 +528,7 @@ class DailymotionSearchIE(DailymotionPlaylistBaseIE):
 
 class DailymotionUserIE(DailymotionPlaylistBaseIE):
     IE_NAME = 'dailymotion:user'
-    _VALID_URL = r'https?://(?:www\.)?dailymotion\.[a-z]{2,3}/(?!(?:embed|swf|#|video|playlist|search)/)(?:(?:old/)?user/)?(?P<id>[^/?#]+)'
+    _VALID_URL = r'https?://(?:www\.)?dailymotion\.[a-z]{2,3}/(?!(?:embed|swf|#|video|playlist|search|crawler)/)(?:(?:old/)?user/)?(?P<id>[^/?#]+)'
     _TESTS = [{
         'url': 'https://www.dailymotion.com/user/nqtv',
         'info_dict': {
