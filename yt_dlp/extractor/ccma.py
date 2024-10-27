@@ -12,7 +12,7 @@ from ..utils import (
 
 
 class CCMAIE(InfoExtractor):
-    IE_DESC = '3cat, TV3 and Catalunya Ràdio'
+    IE_DESC = '3Cat, TV3 and Catalunya Ràdio'
     _VALID_URL = r'https?://(?:www\.)?3cat\.cat/(?:3cat|tv3/sx3)/[^/?#]+/(?P<type>video|audio)/(?P<id>\d+)'
     _TESTS = [{
         # ccma.cat/tv3/alacarta/ URLs redirect to 3cat.cat/3cat/
