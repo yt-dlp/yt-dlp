@@ -378,6 +378,7 @@ class SoundcloudBaseIE(InfoExtractor):
             'comment_count': extract_count('comment'),
             'repost_count': extract_count('reposts'),
             'genres': traverse_obj(info, ('genre', {str}, {lambda x: x or None}, all)),
+            'artists': traverse_obj(info, ('publisher_metadata', 'artist', {str}, all)),
             'formats': formats if not extract_flat else None,
         }
 
@@ -430,6 +431,7 @@ class SoundcloudIE(SoundcloudBaseIE):
                 'thumbnail': 'https://i1.sndcdn.com/artworks-000031955188-rwb18x-original.jpg',
                 'uploader_url': 'https://soundcloud.com/ethmusic',
                 'genres': [],
+                'artists': [],
             },
         },
         # geo-restricted
@@ -453,6 +455,7 @@ class SoundcloudIE(SoundcloudBaseIE):
                 'uploader_url': 'https://soundcloud.com/the-concept-band',
                 'thumbnail': 'https://i1.sndcdn.com/artworks-v8bFHhXm7Au6-0-original.jpg',
                 'genres': ['Alternative'],
+                'artists': ['The Royal Concept'],
             },
         },
         # private link
@@ -477,6 +480,7 @@ class SoundcloudIE(SoundcloudBaseIE):
                 'uploader_url': 'https://soundcloud.com/jaimemf',
                 'thumbnail': 'https://a1.sndcdn.com/images/default_avatar_large.png',
                 'genres': ['youtubedl'],
+                'artists': [],
             },
         },
         # private link (alt format)
@@ -501,6 +505,7 @@ class SoundcloudIE(SoundcloudBaseIE):
                 'uploader_url': 'https://soundcloud.com/jaimemf',
                 'thumbnail': 'https://a1.sndcdn.com/images/default_avatar_large.png',
                 'genres': ['youtubedl'],
+                'artists': [],
             },
         },
         # downloadable song
@@ -525,6 +530,7 @@ class SoundcloudIE(SoundcloudBaseIE):
                 'repost_count': int,
                 'view_count': int,
                 'genres': ['Dance & EDM'],
+                'artists': ['80M'],
             },
         },
         # private link, downloadable format
@@ -549,6 +555,7 @@ class SoundcloudIE(SoundcloudBaseIE):
                 'thumbnail': 'https://i1.sndcdn.com/artworks-000240712245-kedn4p-original.jpg',
                 'uploader_url': 'https://soundcloud.com/oriuplift',
                 'genres': ['Trance'],
+                'artists': ['Ori Uplift'],
             },
         },
         # no album art, use avatar pic for thumbnail
@@ -573,6 +580,7 @@ class SoundcloudIE(SoundcloudBaseIE):
                 'repost_count': int,
                 'uploader_url': 'https://soundcloud.com/garyvee',
                 'genres': [],
+                'artists': ['MadReal'],
             },
             'params': {
                 'skip_download': True,
@@ -599,6 +607,7 @@ class SoundcloudIE(SoundcloudBaseIE):
                 'repost_count': int,
                 'genres': ['Piano'],
                 'uploader_url': 'https://soundcloud.com/giovannisarani',
+                'artists': [],
             },
         },
         {
