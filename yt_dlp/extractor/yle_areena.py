@@ -154,4 +154,5 @@ class YleAreenaIE(InfoExtractor):
             'age_limit': traverse_obj(video_data, ('data', 'ongoing_ondemand', 'content_rating', 'age_restriction'), expected_type=int_or_none),
             'subtitles': subtitles or None,
             'release_date': unified_strdate(traverse_obj(video_data, ('data', 'ongoing_ondemand', 'start_time'), expected_type=str)),
+            'is_live': is_live,
         }
