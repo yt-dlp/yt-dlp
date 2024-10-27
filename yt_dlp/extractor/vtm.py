@@ -7,6 +7,7 @@ from ..utils import (
 
 
 class VTMIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?vtm\.be/([^/?&#]+)~v(?P<id>[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12})'
     _TEST = {
         'url': 'https://vtm.be/gast-vernielt-genkse-hotelkamer~ve7534523-279f-4b4d-a5c9-a33ffdbe23e1',
@@ -20,7 +21,7 @@ class VTMIE(InfoExtractor):
             'duration': 74,
             # TODO: fix url _type result processing
             # 'series': 'Op Interventie',
-        }
+        },
     }
 
     def _real_extract(self, url):
@@ -41,7 +42,7 @@ class VTMIE(InfoExtractor):
       title
     }
   }
-}''' % uuid,
+}''' % uuid,  # noqa: UP031
             }, headers={
                 'x-api-key': 'da2-lz2cab4tfnah3mve6wiye4n77e',
             })['data']['getComponent']

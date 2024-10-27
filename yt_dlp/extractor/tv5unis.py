@@ -32,7 +32,7 @@ class TV5UnisBaseIE(InfoExtractor):
       }
     }
   }
-}''' % (self._GQL_QUERY_NAME, self._gql_args(groups)),
+}''' % (self._GQL_QUERY_NAME, self._gql_args(groups)),  # noqa: UP031
             })['data'][self._GQL_QUERY_NAME]
         media_id = product['videoElement']['mediaId']
 
@@ -61,13 +61,13 @@ class TV5UnisVideoIE(TV5UnisBaseIE):
             'ext': 'mp4',
             'title': 'Watatatow',
             'duration': 10.01,
-        }
+        },
     }
     _GQL_QUERY_NAME = 'productById'
 
     @staticmethod
     def _gql_args(groups):
-        return 'id: %s' % groups
+        return f'id: {groups}'
 
 
 class TV5UnisIE(TV5UnisBaseIE):
@@ -80,7 +80,7 @@ class TV5UnisIE(TV5UnisBaseIE):
             'id': 'e5ee23a586c44612a56aad61accf16ef',
             'ext': 'mp4',
             'title': 'Je ne peux pas lui résister',
-            'description': "Atys, le nouveau concierge de l'école, a réussi à ébranler la confiance de Mado en affirmant qu\'une médaille, ce n'est que du métal. Comme Mado essaie de lui prouver que ses valeurs sont solides, il veut la mettre à l'épreuve...",
+            'description': "Atys, le nouveau concierge de l'école, a réussi à ébranler la confiance de Mado en affirmant qu'une médaille, ce n'est que du métal. Comme Mado essaie de lui prouver que ses valeurs sont solides, il veut la mettre à l'épreuve...",
             'subtitles': {
                 'fr': 'count:1',
             },
@@ -110,7 +110,7 @@ class TV5UnisIE(TV5UnisBaseIE):
 
     @staticmethod
     def _gql_args(groups):
-        args = 'rootProductSlug: "%s"' % groups[0]
+        args = f'rootProductSlug: "{groups[0]}"'
         if groups[1]:
-            args += ', seasonNumber: %s, episodeNumber: %s' % groups[1:]
+            args += ', seasonNumber: {}, episodeNumber: {}'.format(*groups[1:])
         return args

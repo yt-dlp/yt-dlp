@@ -1,7 +1,6 @@
 import re
 
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     fix_xml_ampersands,
     float_or_none,
@@ -64,7 +63,7 @@ class TNAFlixNetworkBaseIE(InfoExtractor):
         height = int_or_none(xpath_text(timeline, './imageHeight', 'thumbnail height'))
 
         return [{
-            'url': self._proto_relative_url(pattern_el.text.replace('#', compat_str(i)), 'http:'),
+            'url': self._proto_relative_url(pattern_el.text.replace('#', str(i)), 'http:'),
             'width': width,
             'height': height,
         } for i in range(first, last + 1)]
@@ -81,26 +80,27 @@ class TNAFlixNetworkBaseIE(InfoExtractor):
             display_id = video_id
 
         webpage = self._download_webpage(url, display_id)
+        inputs = self._hidden_inputs(webpage)
+        query = {}
 
         # check for MovieFap-style config
         cfg_url = self._proto_relative_url(self._html_search_regex(
             self._CONFIG_REGEX, webpage, 'flashvars.config', default=None,
             group='url'), 'http:')
-        query = {}
+
+        if not cfg_url:
+            cfg_url = inputs.get('config')
 
         # check for TNAFlix-style config
-        if not cfg_url:
-            inputs = self._hidden_inputs(webpage)
-            if inputs.get('vkey') and inputs.get('nkey'):
-                cfg_url = f'https://www.{host}.com/cdn/cdn.php'
-                query.update({
-                    'file': inputs['vkey'],
-                    'key': inputs['nkey'],
-                    'VID': video_id,
-                    'premium': '1',
-                    'vip': '1',
-                    'alpha': '',
-                })
+        if not cfg_url and inputs.get('vkey') and inputs.get('nkey'):
+            cfg_url = f'http://cdn-fck.{host}.com/{host}/{inputs["vkey"]}.fid'
+            query.update({
+                'key': inputs['nkey'],
+                'VID': video_id,
+                'premium': '1',
+                'vip': '1',
+                'alpha': '',
+            })
 
         formats, json_ld = [], {}
 
@@ -137,7 +137,7 @@ class TNAFlixNetworkBaseIE(InfoExtractor):
 
             thumbnails = self._extract_thumbnails(cfg_xml) or []
             thumbnails.append({
-                'url': self._proto_relative_url(xpath_text(cfg_xml, './startThumb', 'thumbnail'), 'http:')
+                'url': self._proto_relative_url(xpath_text(cfg_xml, './startThumb', 'thumbnail'), 'http:'),
             })
 
         # check for EMPFlix-style JSON and extract
@@ -238,7 +238,7 @@ class TNAFlixIE(TNAEMPFlixBaseIE):
             'duration': 91,
             'age_limit': 18,
             'categories': list,
-        }
+        },
     }, {
         # non-anonymous uploader, categories
         'url': 'https://www.tnaflix.com/teen-porn/Educational-xxx-video/video6538',
@@ -254,7 +254,7 @@ class TNAFlixIE(TNAEMPFlixBaseIE):
             'age_limit': 18,
             'uploader': 'bobwhite39',
             'categories': list,
-        }
+        },
     }, {
         'url': 'https://www.tnaflix.com/amateur-porn/bunzHD-Ms.Donk/video358632',
         'only_matching': True,
@@ -276,9 +276,8 @@ class EMPFlixIE(TNAEMPFlixBaseIE):
             'thumbnail': r're:https?://.*\.jpg$',
             'duration': 83,
             'age_limit': 18,
-            'uploader': None,
             'categories': list,
-        }
+        },
     }, {
         'url': 'http://www.empflix.com/videos/[AROMA][ARMD-718]-Aoi-Yoshino-Sawa-25826.html',
         'only_matching': True,
@@ -313,7 +312,7 @@ class MovieFapIE(TNAFlixNetworkBaseIE):
             'comment_count': int,
             'average_rating': float,
             'categories': ['Amateur', 'Masturbation', 'Mature', 'Flashing'],
-        }
+        },
     }, {
         # quirky single-format case where the extension is given as fid, but the video is really an flv
         'url': 'http://www.moviefap.com/videos/e5da0d3edce5404418f5/jeune-couple-russe.html',

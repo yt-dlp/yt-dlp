@@ -1,5 +1,4 @@
 import contextlib
-import errno
 import json
 import os
 import re
@@ -39,11 +38,7 @@ class Cache:
 
         fn = self._get_cache_fn(section, key, dtype)
         try:
-            try:
-                os.makedirs(os.path.dirname(fn))
-            except OSError as ose:
-                if ose.errno != errno.EEXIST:
-                    raise
+            os.makedirs(os.path.dirname(fn), exist_ok=True)
             self._ydl.write_debug(f'Saving {section}.{key} to cache')
             write_json_file({'yt-dlp_version': __version__, 'data': data}, fn)
         except Exception:
@@ -86,10 +81,10 @@ class Cache:
 
         cachedir = self._get_root_dir()
         if not any((term in cachedir) for term in ('cache', 'tmp')):
-            raise Exception('Not removing directory %s - this does not look like a cache dir' % cachedir)
+            raise Exception(f'Not removing directory {cachedir} - this does not look like a cache dir')
 
         self._ydl.to_screen(
-            'Removing cache dir %s .' % cachedir, skip_eol=True)
+            f'Removing cache dir {cachedir} .', skip_eol=True)
         if os.path.exists(cachedir):
             self._ydl.to_screen('.', skip_eol=True)
             shutil.rmtree(cachedir)

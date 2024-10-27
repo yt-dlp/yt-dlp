@@ -1,10 +1,11 @@
 from .common import InfoExtractor
 from ..utils import (
-    determine_ext,
     ExtractorError,
+    determine_ext,
     int_or_none,
     mimetype2ext,
     parse_iso8601,
+    strip_jsonp,
     unified_timestamp,
     url_or_none,
 )
@@ -15,15 +16,15 @@ class AMPIE(InfoExtractor):  # XXX: Conventionally, base classes should end with
     def _extract_feed_info(self, url):
         feed = self._download_json(
             url, None, 'Downloading Akamai AMP feed',
-            'Unable to download Akamai AMP feed')
+            'Unable to download Akamai AMP feed', transform_source=strip_jsonp)
         item = feed.get('channel', {}).get('item')
         if not item:
-            raise ExtractorError('%s said: %s' % (self.IE_NAME, feed['error']))
+            raise ExtractorError('{} said: {}'.format(self.IE_NAME, feed['error']))
 
         video_id = item['guid']
 
         def get_media_node(name, default=None):
-            media_name = 'media-%s' % name
+            media_name = f'media-{name}'
             media_group = item.get('media-group') or item
             return media_group.get(media_name) or item.get(media_name) or item.get(name, default)
 
@@ -73,8 +74,10 @@ class AMPIE(InfoExtractor):  # XXX: Conventionally, base classes should end with
                     media_url + '?hdcore=3.4.0&plugin=aasp-3.4.0.132.124',
                     video_id, f4m_id='hds', fatal=False))
             elif ext == 'm3u8':
-                formats.extend(self._extract_m3u8_formats(
-                    media_url, video_id, 'mp4', m3u8_id='hls', fatal=False))
+                fmts, subs = self._extract_m3u8_formats_and_subtitles(
+                    media_url, video_id, 'mp4', m3u8_id='hls', fatal=False)
+                formats.extend(fmts)
+                self._merge_subtitles(subs, target=subtitles)
             else:
                 formats.append({
                     'format_id': media_data.get('media-category', {}).get('@attributes', {}).get('label'),

@@ -1,11 +1,12 @@
 from .adobepass import AdobePassIE
 from ..utils import (
-    update_url_query,
     smuggle_url,
+    update_url_query,
 )
 
 
 class SyfyIE(AdobePassIE):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?syfy\.com/(?:[^/]+/)?videos/(?P<id>[^/?#]+)'
     _TESTS = [{
         'url': 'http://www.syfy.com/theinternetruinedmylife/videos/the-internet-ruined-my-life-season-1-trailer',
@@ -23,14 +24,15 @@ class SyfyIE(AdobePassIE):
             'skip_download': True,
         },
         'add_ie': ['ThePlatform'],
+        'skip': 'Redirects to main page',
     }]
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
-        syfy_mpx = list(self._parse_json(self._search_regex(
+        syfy_mpx = next(iter(self._parse_json(self._search_regex(
             r'jQuery\.extend\(Drupal\.settings\s*,\s*({.+?})\);', webpage, 'drupal settings'),
-            display_id)['syfy']['syfy_mpx'].values())[0]
+            display_id)['syfy']['syfy_mpx'].values()))
         video_id = syfy_mpx['mpxGUID']
         title = syfy_mpx['episodeTitle']
         query = {

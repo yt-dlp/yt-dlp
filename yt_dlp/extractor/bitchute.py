@@ -2,13 +2,15 @@ import functools
 import re
 
 from .common import InfoExtractor
+from ..networking import HEADRequest
 from ..utils import (
     ExtractorError,
-    HEADRequest,
     OnDemandPagedList,
     clean_html,
+    extract_attributes,
     get_element_by_class,
     get_element_by_id,
+    get_element_html_by_class,
     get_elements_html_by_class,
     int_or_none,
     orderedSet,
@@ -17,11 +19,12 @@ from ..utils import (
     traverse_obj,
     unified_strdate,
     urlencode_postdata,
+    urljoin,
 )
 
 
 class BitChuteIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?bitchute\.com/(?:video|embed|torrent/[^/]+)/(?P<id>[^/?#&]+)'
+    _VALID_URL = r'https?://(?:(?:www|old)\.)?bitchute\.com/(?:video|embed|torrent/[^/]+)/(?P<id>[^/?#&]+)'
     _EMBED_REGEX = [rf'<(?:script|iframe)[^>]+\bsrc=(["\'])(?P<url>{_VALID_URL})']
     _TESTS = [{
         'url': 'https://www.bitchute.com/video/UGlrF9o9b-Q/',
@@ -34,6 +37,25 @@ class BitChuteIE(InfoExtractor):
             'thumbnail': r're:^https?://.*\.jpg$',
             'uploader': 'BitChute',
             'upload_date': '20170103',
+            'uploader_url': 'https://www.bitchute.com/profile/I5NgtHZn9vPj/',
+            'channel': 'BitChute',
+            'channel_url': 'https://www.bitchute.com/channel/bitchute/',
+        },
+    }, {
+        # test case: video with different channel and uploader
+        'url': 'https://www.bitchute.com/video/Yti_j9A-UZ4/',
+        'md5': 'f10e6a8e787766235946d0868703f1d0',
+        'info_dict': {
+            'id': 'Yti_j9A-UZ4',
+            'ext': 'mp4',
+            'title': 'Israel at War | Full Measure',
+            'description': 'md5:38cf7bc6f42da1a877835539111c69ef',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'uploader': 'sharylattkisson',
+            'upload_date': '20231106',
+            'uploader_url': 'https://www.bitchute.com/profile/9K0kUWA9zmd9/',
+            'channel': 'Full Measure with Sharyl Attkisson',
+            'channel_url': 'https://www.bitchute.com/channel/sharylattkisson/',
         },
     }, {
         # video not downloadable in browser, but we can recover it
@@ -48,6 +70,9 @@ class BitChuteIE(InfoExtractor):
             'thumbnail': r're:^https?://.*\.jpg$',
             'uploader': 'BitChute',
             'upload_date': '20181113',
+            'uploader_url': 'https://www.bitchute.com/profile/I5NgtHZn9vPj/',
+            'channel': 'BitChute',
+            'channel_url': 'https://www.bitchute.com/channel/bitchute/',
         },
         'params': {'check_formats': None},
     }, {
@@ -66,6 +91,9 @@ class BitChuteIE(InfoExtractor):
     }, {
         'url': 'https://www.bitchute.com/torrent/Zee5BE49045h/szoMrox2JEI.webtorrent',
         'only_matching': True,
+    }, {
+        'url': 'https://old.bitchute.com/video/UGlrF9o9b-Q/',
+        'only_matching': True,
     }]
     _GEO_BYPASS = False
 
@@ -77,7 +105,10 @@ class BitChuteIE(InfoExtractor):
     def _check_format(self, video_url, video_id):
         urls = orderedSet(
             re.sub(r'(^https?://)(seed\d+)(?=\.bitchute\.com)', fr'\g<1>{host}', video_url)
-            for host in (r'\g<2>', 'seed150', 'seed151', 'seed152', 'seed153'))
+            for host in (r'\g<2>', 'seed122', 'seed125', 'seed126', 'seed128',
+                         'seed132', 'seed150', 'seed151', 'seed152', 'seed153',
+                         'seed167', 'seed171', 'seed177', 'seed305', 'seed307',
+                         'seedp29xb', 'zb10-7gsop1v78'))
         for url in urls:
             try:
                 response = self._request_webpage(
@@ -87,7 +118,7 @@ class BitChuteIE(InfoExtractor):
                 continue
             return {
                 'url': url,
-                'filesize': int_or_none(response.headers.get('Content-Length'))
+                'filesize': int_or_none(response.headers.get('Content-Length')),
             }
 
     def _raise_if_restricted(self, webpage):
@@ -96,10 +127,15 @@ class BitChuteIE(InfoExtractor):
             reason = clean_html(get_element_by_id('page-detail', webpage)) or page_title
             self.raise_geo_restricted(reason)
 
+    @staticmethod
+    def _make_url(html):
+        path = extract_attributes(get_element_html_by_class('spa', html) or '').get('href')
+        return urljoin('https://www.bitchute.com', path)
+
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(
-            f'https://www.bitchute.com/video/{video_id}', video_id, headers=self._HEADERS)
+            f'https://old.bitchute.com/video/{video_id}', video_id, headers=self._HEADERS)
 
         self._raise_if_restricted(webpage)
         publish_date = clean_html(get_element_by_class('video-publish-date', webpage))
@@ -118,12 +154,19 @@ class BitChuteIE(InfoExtractor):
                 'Video is unavailable. Please make sure this video is playable in the browser '
                 'before reporting this issue.', expected=True, video_id=video_id)
 
+        details = get_element_by_class('details', webpage) or ''
+        uploader_html = get_element_html_by_class('creator', details) or ''
+        channel_html = get_element_html_by_class('name', details) or ''
+
         return {
             'id': video_id,
             'title': self._html_extract_title(webpage) or self._og_search_title(webpage),
             'description': self._og_search_description(webpage, default=None),
             'thumbnail': self._og_search_thumbnail(webpage),
-            'uploader': clean_html(get_element_by_class('owner', webpage)),
+            'uploader': clean_html(uploader_html),
+            'uploader_url': self._make_url(uploader_html),
+            'channel': clean_html(channel_html),
+            'channel_url': self._make_url(channel_html),
             'upload_date': unified_strdate(self._search_regex(
                 r'at \d+:\d+ UTC on (.+?)\.', publish_date, 'upload date', fatal=False)),
             'formats': formats,
@@ -131,13 +174,13 @@ class BitChuteIE(InfoExtractor):
 
 
 class BitChuteChannelIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?bitchute\.com/(?P<type>channel|playlist)/(?P<id>[^/?#&]+)'
+    _VALID_URL = r'https?://(?:(?:www|old)\.)?bitchute\.com/(?P<type>channel|playlist)/(?P<id>[^/?#&]+)'
     _TESTS = [{
         'url': 'https://www.bitchute.com/channel/bitchute/',
         'info_dict': {
             'id': 'bitchute',
             'title': 'BitChute',
-            'description': 'md5:5329fb3866125afa9446835594a9b138',
+            'description': 'md5:2134c37d64fc3a4846787c402956adac',
         },
         'playlist': [
             {
@@ -145,16 +188,18 @@ class BitChuteChannelIE(InfoExtractor):
                 'info_dict': {
                     'id': 'UGlrF9o9b-Q',
                     'ext': 'mp4',
-                    'filesize': None,
                     'title': 'This is the first video on #BitChute !',
                     'description': 'md5:a0337e7b1fe39e32336974af8173a034',
                     'thumbnail': r're:^https?://.*\.jpg$',
                     'uploader': 'BitChute',
                     'upload_date': '20170103',
+                    'uploader_url': 'https://www.bitchute.com/profile/I5NgtHZn9vPj/',
+                    'channel': 'BitChute',
+                    'channel_url': 'https://www.bitchute.com/channel/bitchute/',
                     'duration': 16,
                     'view_count': int,
                 },
-            }
+            },
         ],
         'params': {
             'skip_download': True,
@@ -166,8 +211,11 @@ class BitChuteChannelIE(InfoExtractor):
         'info_dict': {
             'id': 'wV9Imujxasw9',
             'title': 'Bruce MacDonald and "The Light of Darkness"',
-            'description': 'md5:04913227d2714af1d36d804aa2ab6b1e',
-        }
+            'description': 'md5:747724ef404eebdfc04277714f81863e',
+        },
+    }, {
+        'url': 'https://old.bitchute.com/playlist/wV9Imujxasw9/',
+        'only_matching': True,
     }]
 
     _TOKEN = 'zyG6tQcGPE5swyAEFLqKUwMuMMuF6IO2DZ6ZDQjGfsL0e4dcTLwqkTTul05Jdve7'
@@ -182,13 +230,13 @@ class BitChuteChannelIE(InfoExtractor):
             'container': 'playlist-video',
             'title': 'title',
             'description': 'description',
-        }
+        },
 
     }
 
     @staticmethod
     def _make_url(playlist_id, playlist_type):
-        return f'https://www.bitchute.com/{playlist_type}/{playlist_id}/'
+        return f'https://old.bitchute.com/{playlist_type}/{playlist_id}/'
 
     def _fetch_page(self, playlist_id, playlist_type, page_num):
         playlist_url = self._make_url(playlist_id, playlist_type)

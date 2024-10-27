@@ -8,7 +8,7 @@ class TestURLIE(InfoExtractor):
     """ Allows addressing of the test cases as test:yout.*be_1 """
 
     IE_DESC = False  # Do not list
-    _VALID_URL = r'test(?:url)?:(?P<extractor>.*?)(?:_(?P<num>[0-9]+))?$'
+    _VALID_URL = r'test(?:url)?:(?P<extractor>.*?)(?:_(?P<num>\d+|all))?$'
 
     def _real_extract(self, url):
         from . import gen_extractor_classes
@@ -30,12 +30,16 @@ class TestURLIE(InfoExtractor):
             ), None)
             if not extractor:
                 raise ExtractorError(
-                    'Found multiple matching extractors: %s' % ' '.join(ie.IE_NAME for ie in matching_extractors),
+                    'Found multiple matching extractors: {}'.format(' '.join(ie.IE_NAME for ie in matching_extractors)),
                     expected=True)
         else:
             extractor = matching_extractors[0]
 
         testcases = tuple(extractor.get_testcases(True))
+        if num == 'all':
+            return self.playlist_result(
+                [self.url_result(tc['url'], extractor) for tc in testcases],
+                url, f'{extractor.IE_NAME} tests')
         try:
             tc = testcases[int(num or 0)]
         except IndexError:
@@ -43,4 +47,4 @@ class TestURLIE(InfoExtractor):
                 f'Test case {num or 0} not found, got only {len(testcases)} tests', expected=True)
 
         self.to_screen(f'Test URL: {tc["url"]}')
-        return self.url_result(tc['url'])
+        return self.url_result(tc['url'], extractor)

@@ -10,7 +10,7 @@ from ..utils import (
 
 
 class GeniusIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?genius\.com/videos/(?P<id>[^?/#]+)'
+    _VALID_URL = r'https?://(?:www\.)?genius\.com/(?:videos|(?P<article>a))/(?P<id>[^?/#]+)'
     _TESTS = [{
         'url': 'https://genius.com/videos/Vince-staples-breaks-down-the-meaning-of-when-sparks-fly',
         'md5': '64c2ad98cfafcfda23bfa0ad0c512f4c',
@@ -41,19 +41,37 @@ class GeniusIE(InfoExtractor):
             'timestamp': 1631209167,
             'thumbnail': r're:^https?://.*\.jpg$',
         },
+    }, {
+        'url': 'https://genius.com/a/cordae-anderson-paak-break-down-the-meaning-of-two-tens',
+        'md5': 'f98a4e03b16b0a2821bd6e52fb3cc9d7',
+        'info_dict': {
+            'id': '6321509903112',
+            'ext': 'mp4',
+            'title': 'Cordae & Anderson .Paak Breaks Down The Meaning Of “Two Tens”',
+            'description': 'md5:1255f0e1161d07342ce56a8464ac339d',
+            'tags': ['song id: 5457554'],
+            'uploader_id': '4863540648001',
+            'duration': 361.813,
+            'upload_date': '20230301',
+            'timestamp': 1677703908,
+            'thumbnail': r're:^https?://.*\.jpg$',
+        },
     }]
 
     def _real_extract(self, url):
-        display_id = self._match_id(url)
+        display_id, is_article = self._match_valid_url(url).group('id', 'article')
         webpage = self._download_webpage(url, display_id)
 
         metadata = self._search_json(
-            r'<meta content="', webpage, 'metadata', display_id, transform_source=unescapeHTML)
-        video_id = traverse_obj(
-            metadata, ('video', 'provider_id'),
-            ('dfp_kv', lambda _, x: x['name'] == 'brightcove_video_id', 'values', 0), get_all=False)
+            r'<meta content="', webpage, 'metadata', display_id,
+            end_pattern=r'"\s+itemprop="page_data"', transform_source=unescapeHTML)
+        video_id = traverse_obj(metadata, (
+            (('article', 'media', ...), ('video', None)),
+            ('provider_id', ('dfp_kv', lambda _, v: v['name'] == 'brightcove_video_id', 'values', ...))),
+            get_all=False)
         if not video_id:
-            raise ExtractorError('Brightcove video id not found in webpage')
+            # Not all article pages have videos, expect the error
+            raise ExtractorError('Brightcove video ID not found in webpage', expected=bool(is_article))
 
         config = self._search_json(r'var\s*APP_CONFIG\s*=', webpage, 'config', video_id, default={})
         account_id = config.get('brightcove_account_id', '4863540648001')
@@ -68,7 +86,7 @@ class GeniusIE(InfoExtractor):
 
 
 class GeniusLyricsIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?genius\.com/(?P<id>[^?/#]+)-lyrics[?/#]?'
+    _VALID_URL = r'https?://(?:www\.)?genius\.com/(?P<id>[^?/#]+)-lyrics(?:[?/#]|$)'
     _TESTS = [{
         'url': 'https://genius.com/Lil-baby-heyy-lyrics',
         'playlist_mincount': 2,

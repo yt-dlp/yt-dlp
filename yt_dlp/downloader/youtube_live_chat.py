@@ -1,8 +1,8 @@
 import json
 import time
-import urllib.error
 
 from .fragment import FragmentFD
+from ..networking.exceptions import HTTPError
 from ..utils import (
     RegexNotFoundError,
     RetryManager,
@@ -10,6 +10,7 @@ from ..utils import (
     int_or_none,
     try_get,
 )
+from ..utils.networking import HTTPHeaderDict
 
 
 class YoutubeLiveChatFD(FragmentFD):
@@ -17,7 +18,7 @@ class YoutubeLiveChatFD(FragmentFD):
 
     def real_download(self, filename, info_dict):
         video_id = info_dict['video_id']
-        self.to_screen('[%s] Downloading live chat' % self.FD_NAME)
+        self.to_screen(f'[{self.FD_NAME}] Downloading live chat')
         if not self.params.get('skip_download') and info_dict['protocol'] == 'youtube_live_chat':
             self.report_warning('Live chat download runs until the livestream ends. '
                                 'If you wish to download the video simultaneously, run a separate yt-dlp instance')
@@ -37,10 +38,7 @@ class YoutubeLiveChatFD(FragmentFD):
         start_time = int(time.time() * 1000)
 
         def dl_fragment(url, data=None, headers=None):
-            http_headers = info_dict.get('http_headers', {})
-            if headers:
-                http_headers = http_headers.copy()
-                http_headers.update(headers)
+            http_headers = HTTPHeaderDict(info_dict.get('http_headers'), headers)
             return self._download_fragment(ctx, url, info_dict, http_headers, data)
 
         def parse_actions_replay(live_chat_continuation):
@@ -129,7 +127,7 @@ class YoutubeLiveChatFD(FragmentFD):
                             or frag_index == 1 and try_refresh_replay_beginning
                             or parse_actions_replay)
                     return (True, *func(live_chat_continuation))
-                except urllib.error.HTTPError as err:
+                except HTTPError as err:
                     retry.error = err
                     continue
             return False, None, None, None

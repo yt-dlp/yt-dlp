@@ -6,7 +6,7 @@ import time
 import uuid
 
 from .common import InfoExtractor
-from ..compat import compat_HTTPError, compat_str
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     determine_ext,
@@ -31,7 +31,7 @@ class HotStarBaseIE(InfoExtractor):
     def _call_api_impl(self, path, video_id, query, st=None, cookies=None):
         st = int_or_none(st) or int(time.time())
         exp = st + 6000
-        auth = 'st=%d~exp=%d~acl=/*' % (st, exp)
+        auth = f'st={st}~exp={exp}~acl=/*'
         auth += '~hmac=' + hmac.new(self._AKAMAI_ENCRYPTION_KEY, auth.encode(), hashlib.sha256).hexdigest()
 
         if cookies and cookies.get('userUP'):
@@ -40,7 +40,7 @@ class HotStarBaseIE(InfoExtractor):
             token = self._download_json(
                 f'{self._API_URL}/um/v3/users',
                 video_id, note='Downloading token',
-                data=json.dumps({"device_ids": [{"id": compat_str(uuid.uuid4()), "type": "device_id"}]}).encode('utf-8'),
+                data=json.dumps({'device_ids': [{'id': str(uuid.uuid4()), 'type': 'device_id'}]}).encode(),
                 headers={
                     'hotstarauth': auth,
                     'x-hs-platform': 'PCTV',  # or 'web'
@@ -65,7 +65,7 @@ class HotStarBaseIE(InfoExtractor):
         return self._call_api_impl(
             f'{path}/content/{video_id}', video_id, st=st, cookies=cookies, query={
                 'desired-config': 'audio_channel:stereo|container:fmp4|dynamic_range:hdr|encryption:plain|ladder:tv|package:dash|resolution:fhd|subs-tag:HotstarVIP|video_codec:h265',
-                'device-id': cookies.get('device_id').value if cookies.get('device_id') else compat_str(uuid.uuid4()),
+                'device-id': cookies.get('device_id').value if cookies.get('device_id') else str(uuid.uuid4()),
                 'os-name': 'Windows',
                 'os-version': '10',
             })
@@ -83,7 +83,7 @@ class HotStarIE(HotStarBaseIE):
     _VALID_URL = r'''(?x)
         https?://(?:www\.)?hotstar\.com(?:/in)?/(?!in/)
         (?:
-            (?P<type>movies|sports|episode|(?P<tv>tv))/
+            (?P<type>movies|sports|clips|episode|(?P<tv>tv|shows))/
             (?(tv)(?:[^/?#]+/){2}|[^?#]*)
         )?
         [^/?#]+/
@@ -114,14 +114,78 @@ class HotStarIE(HotStarBaseIE):
             'upload_date': '20190501',
             'duration': 1219,
             'channel': 'StarPlus',
-            'channel_id': 3,
+            'channel_id': '3',
             'series': 'Ek Bhram - Sarvagun Sampanna',
             'season': 'Chapter 1',
             'season_number': 1,
-            'season_id': 6771,
+            'season_id': '6771',
             'episode': 'Janhvi Targets Suman',
             'episode_number': 8,
-        }
+        },
+    }, {
+        'url': 'https://www.hotstar.com/in/shows/anupama/1260022017/anupama-anuj-share-a-moment/1000282843',
+        'info_dict': {
+            'id': '1000282843',
+            'ext': 'mp4',
+            'title': 'Anupama, Anuj Share a Moment',
+            'season': 'Chapter 1',
+            'description': 'md5:8d74ed2248423b8b06d5c8add4d7a0c0',
+            'timestamp': 1678149000,
+            'channel': 'StarPlus',
+            'series': 'Anupama',
+            'season_number': 1,
+            'season_id': '7399',
+            'upload_date': '20230307',
+            'episode': 'Anupama, Anuj Share a Moment',
+            'episode_number': 853,
+            'duration': 1272,
+            'channel_id': '3',
+        },
+        'skip': 'HTTP Error 504: Gateway Time-out',  # XXX: Investigate 504 errors on some episodes
+    }, {
+        'url': 'https://www.hotstar.com/in/shows/kana-kaanum-kaalangal/1260097087/back-to-school/1260097320',
+        'info_dict': {
+            'id': '1260097320',
+            'ext': 'mp4',
+            'title': 'Back To School',
+            'season': 'Chapter 1',
+            'description': 'md5:b0d6a4c8a650681491e7405496fc7e13',
+            'timestamp': 1650564000,
+            'channel': 'Hotstar Specials',
+            'series': 'Kana Kaanum Kaalangal',
+            'season_number': 1,
+            'season_id': '9441',
+            'upload_date': '20220421',
+            'episode': 'Back To School',
+            'episode_number': 1,
+            'duration': 1810,
+            'channel_id': '54',
+        },
+    }, {
+        'url': 'https://www.hotstar.com/in/clips/e3-sairat-kahani-pyaar-ki/1000262286',
+        'info_dict': {
+            'id': '1000262286',
+            'ext': 'mp4',
+            'title': 'E3 - SaiRat, Kahani Pyaar Ki',
+            'description': 'md5:e3b4b3203bc0c5396fe7d0e4948a6385',
+            'episode': 'E3 - SaiRat, Kahani Pyaar Ki',
+            'upload_date': '20210606',
+            'timestamp': 1622943900,
+            'duration': 5395,
+        },
+    }, {
+        'url': 'https://www.hotstar.com/in/movies/premam/1000091195',
+        'info_dict': {
+            'id': '1000091195',
+            'ext': 'mp4',
+            'title': 'Premam',
+            'release_year': 2015,
+            'description': 'md5:d833c654e4187b5e34757eafb5b72d7f',
+            'timestamp': 1462149000,
+            'upload_date': '20160502',
+            'episode': 'Premam',
+            'duration': 8994,
+        },
     }, {
         'url': 'https://www.hotstar.com/movies/radha-gopalam/1000057157',
         'only_matching': True,
@@ -139,6 +203,8 @@ class HotStarIE(HotStarBaseIE):
         'sports': 'match',
         'episode': 'episode',
         'tv': 'episode',
+        'shows': 'episode',
+        'clips': 'content',
         None: 'content',
     }
 
@@ -166,8 +232,10 @@ class HotStarIE(HotStarBaseIE):
         video_type = self._TYPE.get(video_type, video_type)
         cookies = self._get_cookies(url)  # Cookies before any request
 
-        video_data = self._call_api_v1(f'{video_type}/detail', video_id,
-                                       query={'tas': 10000, 'contentId': video_id})['body']['results']['item']
+        video_data = traverse_obj(
+            self._call_api_v1(
+                f'{video_type}/detail', video_id, fatal=False, query={'tas': 10000, 'contentId': video_id}),
+            ('body', 'results', 'item', {dict})) or {}
         if not self.get_param('allow_unplayable_formats') and video_data.get('drmProtected'):
             self.report_drm(video_id)
 
@@ -188,7 +256,6 @@ class HotStarIE(HotStarBaseIE):
                    for key, prefix in self._IGNORE_MAP.items()
                    for ignore in self._configuration_arg(key)):
                 continue
-            tag_dict = dict((t.split(':', 1) + [None])[:2] for t in tags.split(';'))
 
             format_url = url_or_none(playback_set.get('playbackUrl'))
             if not format_url:
@@ -213,10 +280,11 @@ class HotStarIE(HotStarBaseIE):
                         'height': int_or_none(playback_set.get('height')),
                     }]
             except ExtractorError as e:
-                if isinstance(e.cause, compat_HTTPError) and e.cause.code == 403:
+                if isinstance(e.cause, HTTPError) and e.cause.status == 403:
                     geo_restricted = True
                 continue
 
+            tag_dict = dict((*t.split(':', 1), None)[:2] for t in tags.split(';'))
             if tag_dict.get('encryption') not in ('plain', None):
                 for f in current_formats:
                     f['has_drm'] = True
@@ -252,14 +320,15 @@ class HotStarIE(HotStarBaseIE):
             'description': video_data.get('description'),
             'duration': int_or_none(video_data.get('duration')),
             'timestamp': int_or_none(traverse_obj(video_data, 'broadcastDate', 'startDate')),
+            'release_year': int_or_none(video_data.get('year')),
             'formats': formats,
             'subtitles': subs,
             'channel': video_data.get('channelName'),
-            'channel_id': video_data.get('channelId'),
+            'channel_id': str_or_none(video_data.get('channelId')),
             'series': video_data.get('showName'),
             'season': video_data.get('seasonName'),
             'season_number': int_or_none(video_data.get('seasonNo')),
-            'season_id': video_data.get('seasonId'),
+            'season_id': str_or_none(video_data.get('seasonId')),
             'episode': video_data.get('title'),
             'episode_number': int_or_none(video_data.get('episodeNo')),
         }
@@ -304,13 +373,16 @@ class HotStarPrefixIE(InfoExtractor):
 
 class HotStarPlaylistIE(HotStarBaseIE):
     IE_NAME = 'hotstar:playlist'
-    _VALID_URL = r'https?://(?:www\.)?hotstar\.com(?:/in)?/tv(?:/[^/]+){2}/list/[^/]+/t-(?P<id>\w+)'
+    _VALID_URL = r'https?://(?:www\.)?hotstar\.com(?:/in)?/(?:tv|shows)(?:/[^/]+){2}/list/[^/]+/t-(?P<id>\w+)'
     _TESTS = [{
         'url': 'https://www.hotstar.com/tv/savdhaan-india/s-26/list/popular-clips/t-3_2_26',
         'info_dict': {
             'id': '3_2_26',
         },
         'playlist_mincount': 20,
+    }, {
+        'url': 'https://www.hotstar.com/shows/savdhaan-india/s-26/list/popular-clips/t-3_2_26',
+        'only_matching': True,
     }, {
         'url': 'https://www.hotstar.com/tv/savdhaan-india/s-26/list/extras/t-2480',
         'only_matching': True,
@@ -327,7 +399,7 @@ class HotStarPlaylistIE(HotStarBaseIE):
 
 class HotStarSeasonIE(HotStarBaseIE):
     IE_NAME = 'hotstar:season'
-    _VALID_URL = r'(?P<url>https?://(?:www\.)?hotstar\.com(?:/in)?/tv/[^/]+/\w+)/seasons/[^/]+/ss-(?P<id>\w+)'
+    _VALID_URL = r'(?P<url>https?://(?:www\.)?hotstar\.com(?:/in)?/(?:tv|shows)/[^/]+/\w+)/seasons/[^/]+/ss-(?P<id>\w+)'
     _TESTS = [{
         'url': 'https://www.hotstar.com/tv/radhakrishn/1260000646/seasons/season-2/ss-8028',
         'info_dict': {
@@ -346,6 +418,9 @@ class HotStarSeasonIE(HotStarBaseIE):
             'id': '8208',
         },
         'playlist_mincount': 19,
+    }, {
+        'url': 'https://www.hotstar.com/in/shows/bigg-boss/14714/seasons/season-4/ss-8208/',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
@@ -356,7 +431,7 @@ class HotStarSeasonIE(HotStarBaseIE):
 
 class HotStarSeriesIE(HotStarBaseIE):
     IE_NAME = 'hotstar:series'
-    _VALID_URL = r'(?P<url>https?://(?:www\.)?hotstar\.com(?:/in)?/tv/[^/]+/(?P<id>\d+))/?(?:[#?]|$)'
+    _VALID_URL = r'(?P<url>https?://(?:www\.)?hotstar\.com(?:/in)?/(?:tv|shows)/[^/]+/(?P<id>\d+))/?(?:[#?]|$)'
     _TESTS = [{
         'url': 'https://www.hotstar.com/in/tv/radhakrishn/1260000646',
         'info_dict': {
@@ -375,6 +450,12 @@ class HotStarSeriesIE(HotStarBaseIE):
             'id': '435',
         },
         'playlist_mincount': 267,
+    }, {
+        'url': 'https://www.hotstar.com/in/shows/anupama/1260022017/',
+        'info_dict': {
+            'id': '1260022017',
+        },
+        'playlist_mincount': 940,
     }]
 
     def _real_extract(self, url):

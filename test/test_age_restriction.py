@@ -10,6 +10,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from test.helper import is_download_test, try_rm
 from yt_dlp import YoutubeDL
+from yt_dlp.utils import DownloadError
 
 
 def _download_restricted(url, filename, age):
@@ -25,10 +26,14 @@ def _download_restricted(url, filename, age):
     ydl.add_default_info_extractors()
     json_filename = os.path.splitext(filename)[0] + '.info.json'
     try_rm(json_filename)
-    ydl.download([url])
-    res = os.path.exists(json_filename)
-    try_rm(json_filename)
-    return res
+    try:
+        ydl.download([url])
+    except DownloadError:
+        pass
+    else:
+        return os.path.exists(json_filename)
+    finally:
+        try_rm(json_filename)
 
 
 @is_download_test
@@ -38,12 +43,12 @@ class TestAgeRestriction(unittest.TestCase):
         self.assertFalse(_download_restricted(url, filename, age))
 
     def test_youtube(self):
-        self._assert_restricted('07FYdnEawAQ', '07FYdnEawAQ.mp4', 10)
+        self._assert_restricted('HtVdAasjOgU', 'HtVdAasjOgU.mp4', 10)
 
     def test_youporn(self):
         self._assert_restricted(
-            'http://www.youporn.com/watch/505835/sex-ed-is-it-safe-to-masturbate-daily/',
-            '505835.mp4', 2, old_age=25)
+            'https://www.youporn.com/watch/16715086/sex-ed-in-detention-18-asmr/',
+            '16715086.mp4', 2, old_age=25)
 
 
 if __name__ == '__main__':
