@@ -359,12 +359,8 @@ class TumblrIE(InfoExtractor):
         'dailymotion': 'Dailymotion',
         'tiktok': 'TikTok',
         'twitch_live': 'TwitchStream',
-    }
-    # these are known providers, but we don't know which entity type
-    # we are supposed to extract, so we use matching by url
-    _ambiguous_providers = {
-        'bandcamp',
-        'soundcloud',
+        'bandcamp': None,
+        'soundcloud': None,
     }
     # known not to be supported
     _unsupported_providers = {
@@ -404,24 +400,23 @@ class TumblrIE(InfoExtractor):
                     'Authorization': f'Bearer {self._ACCESS_TOKEN}',
                 },
                 errnote='Login failed', fatal=False,
-                expected_status=lambda s: s == 200 or 400 <= s < 500)
+                expected_status=lambda s: 400 <= s < 500)
 
         response = _call_login()
-        if response.get('error') == 'tfa_required':
+        if traverse_obj(response, 'error') == 'tfa_required':
             data['tfa_token'] = self._get_tfa_info()
             response = _call_login()
-        if response.get('error'):
-            self.report_warning('API returned error {}: {}'.format(
-                response.get('error'), response.get('error_description')))
+        if traverse_obj(response, 'error'):
+            raise ExtractorError(
+                f'API returned error {': '.join(traverse_obj(response, (("error", "error_description"), {str})))}')
 
     def _real_extract(self, url):
         blog_1, blog_2, video_id = self._match_valid_url(url).groups()
         blog = blog_2 or blog_1
 
         url = f'http://{blog}.tumblr.com/post/{video_id}'
-        # whatsapp ua makes iab tcf shut the fuck up
-        webpage, urlh = self._download_webpage_handle(url, video_id, headers={
-            'User-Agent': 'WhatsApp/2.0'})
+        webpage, urlh = self._download_webpage_handle(
+            url, video_id, headers={'User-Agent': 'WhatsApp/2.0'})  # whatsapp ua bypasses problems
 
         redirect_url = urlh.url
 
@@ -438,8 +433,9 @@ class TumblrIE(InfoExtractor):
                 self._download_json(
                     f'https://www.tumblr.com/api/v2/blog/{blog}/posts/{video_id}/permalink',
                     video_id, headers={'Authorization': f'Bearer {self._ACCESS_TOKEN}'}, fatal=False),
-                ('response', 'timeline', 'elements', 0)) or {}
-        content_json = traverse_obj(post_json, ('trail', 0, 'content'), ('content')) or []
+                ('response', 'timeline', 'elements', 0, {dict})) or {}
+        content_json = traverse_obj(
+            post_json, ('trail', 0, 'content', ...), ('content', ...), expected_type=dict)
 
         # the url we're extracting from might be an original post or it might be a reblog.
         # if it's a reblog, og:description will be the reblogger's comment, not the uploader's.
@@ -473,35 +469,30 @@ class TumblrIE(InfoExtractor):
         ignored_providers = set()
         unknown_providers = set()
 
-        video_jsons = (item for item in content_json if item.get('type') in ('video', 'audio'))
-        if video_jsons:
-            for video_json in video_jsons:
-                media_json = video_json.get('media') or {}
-                if api_only and not media_json.get('url') and not video_json.get('url'):
-                    raise ExtractorError('Failed to find video data for dashboard-only post')
-                provider = video_json.get('provider')
-                is_provider_ambiguous = provider in self._ambiguous_providers
+        for video_json in traverse_obj(content_json, lambda _, v: v['type'] in ('video', 'audio')):
+            media_json = video_json.get('media') or {}
+            if api_only and not media_json.get('url') and not video_json.get('url'):
+                raise ExtractorError('Failed to find video data for dashboard-only post')
+            provider = video_json.get('provider')
 
-                if provider in ('tumblr', None):
-                    fallback_format = {
-                        'url': media_json.get('url') or video_url,
-                        'width': int_or_none(
-                            media_json.get('width') or self._og_search_property('video:width', webpage, default=None)),
-                        'height': int_or_none(
-                            media_json.get('height') or self._og_search_property('video:height', webpage, default=None)),
-                    }
-                    continue
-                elif provider in self._unsupported_providers:
-                    ignored_providers.add(provider)
-                    continue
-                elif provider and not is_provider_ambiguous and provider not in self._providers:
-                    unknown_providers.add(provider)
-
-                if video_json.get('url'):
-                    # external video host
-                    entries.append(self.url_result(
-                        video_json['url'],
-                        self._providers.get(provider, 'Generic') if not is_provider_ambiguous else None))
+            if provider in ('tumblr', None):
+                fallback_format = {
+                    'url': media_json.get('url') or video_url,
+                    'width': int_or_none(
+                        media_json.get('width') or self._og_search_property('video:width', webpage, default=None)),
+                    'height': int_or_none(
+                        media_json.get('height') or self._og_search_property('video:height', webpage, default=None)),
+                }
+                continue
+            elif provider in self._unsupported_providers:
+                ignored_providers.add(provider)
+                continue
+            elif provider and provider not in self._providers:
+                unknown_providers.add(provider)
+            if video_json.get('url'):
+                # external video host
+                entries.append(self.url_result(
+                    video_json['url'], self._providers.get(provider)))
 
         duration = None
 
@@ -560,7 +551,7 @@ class TumblrIE(InfoExtractor):
             if not entries:
                 raise ExtractorError(f'None of embed providers are supported: {", ".join(ignored_providers)!s}', video_id=video_id, expected=True)
             else:
-                self.report_warning(f'Embeds from these providers are ignored as unsupported: {", ".join(ignored_providers)!s}', video_id)
+                self.report_warning(f'Skipped embeds from unsupported providers: {", ".join(ignored_providers)!s}', video_id)
         if unknown_providers:
             self.report_warning(f'Unrecognized providers, please report: {", ".join(unknown_providers)!s}', video_id)
 
