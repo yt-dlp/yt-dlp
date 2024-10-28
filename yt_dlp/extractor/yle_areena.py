@@ -1,6 +1,7 @@
 from .common import InfoExtractor
 from .kaltura import KalturaIE
 from ..utils import (
+    ExtractorError,
     int_or_none,
     parse_iso8601,
     smuggle_url,
@@ -30,6 +31,7 @@ class YleAreenaIE(InfoExtractor):
                 'age_limit': 7,
                 'release_date': '20190105',
                 'release_timestamp': 1546725660,
+                'duration': 1435,
             },
         },
         {
@@ -45,6 +47,7 @@ class YleAreenaIE(InfoExtractor):
                 'age_limit': 0,
                 'release_date': '20211215',
                 'release_timestamp': 1639555200,
+                'duration': 319,
             },
         },
         {
@@ -58,6 +61,7 @@ class YleAreenaIE(InfoExtractor):
                 'thumbnail': r're:https://images\.cdn\.yle\.fi/image/upload/.+\.jpg',
                 'release_date': '20230120',
                 'release_timestamp': 1674242079,
+                'duration': 8004,
             },
             'params': {
                 'skip_download': 'm3u8',
@@ -78,6 +82,21 @@ class YleAreenaIE(InfoExtractor):
             },
             'params': {
                 'skip_download': 'livestream',
+            },
+        },
+        {
+            'url': 'https://areena.yle.fi/podcastit/1-71022852',
+            'info_dict': {
+                'id': '1-71022852',
+                'ext': 'mp3',
+                'title': 'Värityspäivä',
+                'description': 'md5:c3a02b0455ec71d32cbe09d32ec161e2',
+                'series': 'Murun ja Paukun ikioma kaupunki',
+                'episode': 'Episode 1',
+                'episode_number': 1,
+                'release_date': '20240607',
+                'release_timestamp': 1717736400,
+                'duration': 442,
             },
         },
     ]
@@ -108,30 +127,34 @@ class YleAreenaIE(InfoExtractor):
                 'name': sub.get('kind'),
             })
 
-        is_live = False
-        if is_podcast:
-            info_dict = {
-                'url': video_data['ongoing_ondemand']['media_url'],
-            }
+        info_dict, metadata = {}, {}
+        if is_podcast and traverse_obj(video_data, ('ongoing_ondemand', 'media_url', {url_or_none})):
+            metadata = video_data['ongoing_ondemand']
+            info_dict['url'] = metadata['media_url']
+        elif traverse_obj(video_data, ('ongoing_event', 'manifest_url', {url_or_none})):
+            metadata = video_data['ongoing_event']
+            metadata.pop('duration', None)  # Duration is not accurate for livestreams
+            info_dict['live_status'] = 'is_live'
+        elif traverse_obj(video_data, ('ongoing_ondemand', 'manifest_url', {url_or_none})):
+            metadata = video_data['ongoing_ondemand']
+        # XXX: Has all externally-hosted Kaltura content been moved to native hosting?
         elif kaltura_id := traverse_obj(video_data, ('ongoing_ondemand', 'kaltura', 'id', {str})):
-            info_dict = {
+            metadata = video_data['ongoing_ondemand']
+            info_dict.update({
                 '_type': 'url_transparent',
                 'url': smuggle_url(f'kaltura:1955031:{kaltura_id}', {'source_url': url}),
                 'ie_key': KalturaIE.ie_key(),
-            }
+            })
+        elif traverse_obj(video_data, ('gone', {dict})):
+            self.raise_no_formats('The content is no longer available', expected=True, video_id=video_id)
+            metadata = video_data['gone']
         else:
-            manifest_url = traverse_obj(video_data, ('ongoing_event', 'manifest_url', {url_or_none}))
-            if manifest_url:
-                is_live = True
-            else:
-                manifest_url = video_data['ongoing_ondemand']['manifest_url']
-            formats, subs = self._extract_m3u8_formats_and_subtitles(
-                manifest_url, video_id, 'mp4', m3u8_id='hls', live=is_live)
+            raise ExtractorError('Unable to extract content')
+
+        if not info_dict.get('url') and metadata.get('manifest_url'):
+            info_dict['formats'], subs = self._extract_m3u8_formats_and_subtitles(
+                metadata['manifest_url'], video_id, 'mp4', m3u8_id='hls')
             self._merge_subtitles(subs, target=subtitles)
-            info_dict = {
-                'formats': formats,
-                'is_live': is_live,
-            }
 
         return {
             **traverse_obj(json_ld, {
@@ -146,13 +169,14 @@ class YleAreenaIE(InfoExtractor):
                               or int_or_none(season_number)),
             'episode_number': int_or_none(episode_number),
             'subtitles': subtitles or None,
-            **traverse_obj(video_data, ('ongoing_event' if is_live else 'ongoing_ondemand', {
+            **traverse_obj(metadata, {
                 'title': ('title', 'fin', {str}),
                 'description': ('description', 'fin', {str}),
                 'series': ('series', 'title', 'fin', {str}),
                 'episode_number': ('episode_number', {int_or_none}),
                 'age_limit': ('content_rating', 'age_restriction', {int_or_none}),
                 'release_timestamp': ('start_time', {parse_iso8601}),
-            })),
+                'duration': ('duration', 'duration_in_seconds', {int_or_none}),
+            }),
             **info_dict,
         }
