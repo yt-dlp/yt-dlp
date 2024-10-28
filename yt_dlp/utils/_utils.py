@@ -212,6 +212,21 @@ def write_json_file(obj, fn):
         raise
 
 
+def partial_application(func):
+    sig = inspect.signature(func)
+
+    @functools.wraps(func)
+    def wrapped(*args, **kwargs):
+        try:
+            sig.bind(*args, **kwargs)
+        except TypeError:
+            return functools.partial(func, *args, **kwargs)
+        else:
+            return func(*args, **kwargs)
+
+    return wrapped
+
+
 def find_xpath_attr(node, xpath, key, val=None):
     """ Find the xpath xpath[@key=val] """
     assert re.match(r'^[a-zA-Z_-]+$', key)
@@ -1192,6 +1207,7 @@ def extract_timezone(date_str, default=None):
     return timezone, date_str
 
 
+@partial_application
 def parse_iso8601(date_str, delimiter='T', timezone=None):
     """ Return a UNIX timestamp from the given date """
 
@@ -1269,6 +1285,7 @@ def unified_timestamp(date_str, day_first=True):
         return calendar.timegm(timetuple) + pm_delta * 3600 - timezone.total_seconds()
 
 
+@partial_application
 def determine_ext(url, default_ext='unknown_video'):
     if url is None or '.' not in url:
         return default_ext
@@ -1939,10 +1956,12 @@ def setproctitle(title):
         return  # Strange libc, just skip this
 
 
+@partial_application
 def remove_start(s, start):
     return s[len(start):] if s is not None and s.startswith(start) else s
 
 
+@partial_application
 def remove_end(s, end):
     return s[:-len(end)] if s is not None and s.endswith(end) else s
 
@@ -1973,6 +1992,7 @@ def base_url(url):
     return re.match(r'https?://[^?#]+/', url).group()
 
 
+@partial_application
 def urljoin(base, path):
     if isinstance(path, bytes):
         path = path.decode()
@@ -1986,21 +2006,6 @@ def urljoin(base, path):
             r'^(?:https?:)?//', base):
         return None
     return urllib.parse.urljoin(base, path)
-
-
-def partial_application(func):
-    sig = inspect.signature(func)
-
-    @functools.wraps(func)
-    def wrapped(*args, **kwargs):
-        try:
-            sig.bind(*args, **kwargs)
-        except TypeError:
-            return functools.partial(func, *args, **kwargs)
-        else:
-            return func(*args, **kwargs)
-
-    return wrapped
 
 
 @partial_application
@@ -2583,6 +2588,7 @@ def urlencode_postdata(*args, **kargs):
     return urllib.parse.urlencode(*args, **kargs).encode('ascii')
 
 
+@partial_application
 def update_url(url, *, query_update=None, **kwargs):
     """Replace URL components specified by kwargs
        @param url           str or parse url tuple
@@ -2603,6 +2609,7 @@ def update_url(url, *, query_update=None, **kwargs):
     return urllib.parse.urlunparse(url._replace(**kwargs))
 
 
+@partial_application
 def update_url_query(url, query):
     return update_url(url, query_update=query)
 
@@ -2924,6 +2931,7 @@ def error_to_str(err):
     return f'{type(err).__name__}: {err}'
 
 
+@partial_application
 def mimetype2ext(mt, default=NO_DEFAULT):
     if not isinstance(mt, str):
         if default is not NO_DEFAULT:
@@ -4664,6 +4672,7 @@ def to_high_limit_path(path):
     return path
 
 
+@partial_application
 def format_field(obj, field=None, template='%s', ignore=NO_DEFAULT, default='', func=IDENTITY):
     val = traversal.traverse_obj(obj, *variadic(field))
     if not val if ignore is NO_DEFAULT else val in variadic(ignore):
@@ -4828,6 +4837,7 @@ def number_of_digits(number):
     return len('%d' % number)
 
 
+@partial_application
 def join_nonempty(*values, delim='-', from_dict=None):
     if from_dict is not None:
         values = (traversal.traverse_obj(from_dict, variadic(v)) for v in values)
@@ -5277,6 +5287,7 @@ class RetryManager:
             time.sleep(delay)
 
 
+@partial_application
 def make_archive_id(ie, video_id):
     ie_key = ie if isinstance(ie, str) else ie.ie_key()
     return f'{ie_key.lower()} {video_id}'
