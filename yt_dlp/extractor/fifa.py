@@ -87,11 +87,11 @@ class FifaContentIE(InfoExtractor):
                 if ext == 'mpd':
                     fmts, subs = self._extract_mpd_formats_and_subtitles(playlist_url, video_id)
                     formats.extend(fmts)
-                    self._merge_subtitles(subs, subtitles)
+                    self._merge_subtitles(subs, target=subtitles)
                 elif ext == 'm3u8':
                     fmts, subs = self._extract_m3u8_formats_and_subtitles(playlist_url, video_id, m3u8_id='hls')
                     formats.extend(fmts)
-                    self._merge_subtitles(subs, subtitles)
+                    self._merge_subtitles(subs, target=subtitles)
                 else:
                     raise ExtractorError(f'Unknown playlist URL {playlist_url}', video_id=video_id)
 
