@@ -9,19 +9,16 @@ class GameDevTVIE(InfoExtractor):
     _NETRC_MACHINE = 'gamedevtv'
     _API_HEADERS = {}
     _TEST = {
-        'url': 'https://www.gamedev.tv/courses/complete-blender-creator',
-        'md5': '94202bb82884a4e6b2e3dab06f70110c',
+        'url': 'https://www.gamedev.tv/dashboard/courses/25',
+        'md5': 'ece542a1071018d5a09e0dc91a843763',
         'info_dict': {
-            'id': '565801ef-ee86-4c80-8cda-a50e970c6388-1',
+            'playlist': 'Complete Blender Creator 3: Learn 3D Modelling for Beginners',
+            'playlist_id': 25,
+            'chapter_id': '01',
+            'chapter': 'Introduction & Setup',
+            'id': '01',
             'ext': 'mp4',
-            'title': 'promo vid.mp4',
-            'thumbnail': r're:https?://.*\.jpg',
-            'timestamp': 1713171606,
-            'upload_date': '20240415',
-            'age_limit': 0,
-            '_old_archive_ids': ['generic 565801ef-ee86-4c80-8cda-a50e970c6388'],
-            'duration': 94.0,
-            'description': 'Learn How To Use Blender to Create Beautiful 3D models for Video Games, 3D Printing & More',
+            'title': 'Section Intro - Introduction To Blender',
         },
     }
 
@@ -75,32 +72,26 @@ class GameDevTVIE(InfoExtractor):
         course_list = []
         for section in data['data']['sections']:
             for lecture in section['lectures']:
-                video_order = str(lecture['order']).zfill(2)
-                title = (
-                    (
-                        data['data']['title']
-                        + '-'
-                        + 'Chapter_'
-                        + str(section['order'])
-                        + '-'
-                        + section['title']
-                        + '-'
-                        + video_order
-                        + '_'
-                        + lecture['title']
-                    )
-                    .replace(' ', '_')
-                    .replace(':', '')
-                )
+                video_id = str(lecture['order']).zfill(2)
+                title = lecture['title']
                 formats, subtitles = self._extract_m3u8_formats_and_subtitles(
                     lecture['video']['playListUrl'], course_id, 'mp4', m3u8_id='hls',
                 )
+                playlist_title = data['data']['title']
+                playlist_id = data['data']['id']
+                chapter_id = str(section['order']).zfill(2)
+                chapter = section['title']
                 course_list.append(
                     {
-                        'id': course_id,
+                        'id': video_id,
                         'title': title,
                         'formats': formats,
                         'subtitles': subtitles,
+                        'playlist': playlist_title,
+                        'playlist_id': playlist_id,
+                        'chapter_id': chapter_id,
+                        'chapter': chapter,
+
                     },
                 )
         yield from course_list
