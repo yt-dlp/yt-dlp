@@ -48,7 +48,6 @@ class InstagramBaseIE(InfoExtractor):
         'X-IG-WWW-Claim': '0',
         'Origin': 'https://www.instagram.com',
         'Accept': '*/*',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.0.0 Safari/537.36',
     }
 
     def _perform_login(self, username, password):
@@ -435,10 +434,10 @@ class InstagramIE(InstagramBaseIE):
                 'X-Requested-With': 'XMLHttpRequest',
                 'Referer': url,
             }, query={
-                'query_hash': '9f8827793ef34641b2fb195d4d41151c',
+                'doc_id': '8845758582119845',
                 'variables': json.dumps(variables, separators=(',', ':')),
             })
-        media.update(traverse_obj(general_info, ('data', 'shortcode_media')) or {})
+        media.update(traverse_obj(general_info, ('data', 'xdt_shortcode_media')) or {})
 
         if not general_info:
             self.report_warning('General metadata extraction failed (some metadata might be missing).', video_id)

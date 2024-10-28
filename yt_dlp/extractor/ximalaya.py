@@ -21,7 +21,7 @@ class XimalayaBaseIE(InfoExtractor):
 class XimalayaIE(XimalayaBaseIE):
     IE_NAME = 'ximalaya'
     IE_DESC = '喜马拉雅FM'
-    _VALID_URL = r'https?://(?:www\.|m\.)?ximalaya\.com/(:?(?P<uid>\d+)/)?sound/(?P<id>[0-9]+)'
+    _VALID_URL = r'https?://(?:www\.|m\.)?ximalaya\.com/(?:(?P<uid>\d+)/)?sound/(?P<id>[0-9]+)'
     _TESTS = [
         {
             'url': 'http://www.ximalaya.com/sound/47740352/',

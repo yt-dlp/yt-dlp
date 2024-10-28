@@ -1,8 +1,8 @@
 import sys
 
-if sys.version_info < (3, 8):
+if sys.version_info < (3, 9):
     raise ImportError(
-        f'You are using an unsupported version of Python. Only Python versions 3.8 and above are supported by yt-dlp')  # noqa: F541
+        f'You are using an unsupported version of Python. Only Python versions 3.9 and above are supported by yt-dlp')  # noqa: F541
 
 __license__ = 'The Unlicense'
 
@@ -15,7 +15,7 @@ import re
 import traceback
 
 from .compat import compat_os_name
-from .cookies import SUPPORTED_BROWSERS, SUPPORTED_KEYRINGS
+from .cookies import SUPPORTED_BROWSERS, SUPPORTED_KEYRINGS, CookieLoadError
 from .downloader.external import get_external_downloader
 from .extractor import list_extractor_classes
 from .extractor.adobepass import MSO_INFO
@@ -34,6 +34,7 @@ from .postprocessor import (
 )
 from .update import Updater
 from .utils import (
+    Config,
     NO_DEFAULT,
     POSTPROCESS_WHEN,
     DateRange,
@@ -235,6 +236,11 @@ def validate_options(opts):
         validate_regex('format sorting', f, FormatSorter.regex)
 
     # Postprocessor formats
+    if opts.convertsubtitles == 'none':
+        opts.convertsubtitles = None
+    if opts.convertthumbnails == 'none':
+        opts.convertthumbnails = None
+
     validate_regex('merge output format', opts.merge_output_format,
                    r'({0})(/({0}))*'.format('|'.join(map(re.escape, FFmpegMergerPP.SUPPORTED_EXTS))))
     validate_regex('audio format', opts.audioformat, FFmpegExtractAudioPP.FORMAT_RE)
@@ -962,6 +968,11 @@ def _real_main(argv=None):
 
     parser, opts, all_urls, ydl_opts = parse_options(argv)
 
+    # HACK: Set the plugin dirs early on
+    # TODO(coletdjnz): remove when plugin globals system is implemented
+    if opts.plugin_dirs is not None:
+        Config._plugin_dirs = list(map(expand_path, opts.plugin_dirs))
+
     # Dump user agent
     if opts.dump_user_agent:
         ua = traverse_obj(opts.headers, 'User-Agent', casesense=False, default=std_headers['User-Agent'])
@@ -1079,7 +1090,7 @@ def main(argv=None):
     _IN_CLI = True
     try:
         _exit(*variadic(_real_main(argv)))
-    except DownloadError:
+    except (CookieLoadError, DownloadError):
         _exit(1)
     except SameFileError as e:
         _exit(f'ERROR: {e}')
