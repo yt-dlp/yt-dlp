@@ -324,7 +324,7 @@ class VidioIE(VidioBaseIE):
                 attrs.get('data-vjs-clip-hls-url')], (..., {url_or_none})):
             fmt, subs = self._extract_m3u8_formats_and_subtitles(m3u8_url, video_id, ext='mp4', m3u8_id='hls')
             formats.extend(fmt)
-            self._merge_subtitles(subs, subtitles)
+            self._merge_subtitles(subs, target=subtitles)
             if fmt:
                 break
 
@@ -333,7 +333,7 @@ class VidioIE(VidioBaseIE):
                 attrs.get('data-vjs-clip-dash-url')], (..., {url_or_none})):
             fmt, subs = self._extract_mpd_formats_and_subtitles(mpd_url, video_id, mpd_id='dash')
             formats.extend(fmt)
-            self._merge_subtitles(subs, subtitles)
+            self._merge_subtitles(subs, target=subtitles)
             if fmt:
                 break
 
