@@ -39,8 +39,7 @@ class PIAULIZAPortalAPIIE(InfoExtractor):
         display_id = self._match_id(url)
         player_data = self._download_webpage(
             url, display_id, headers={'Referer': 'https://player-api.p.uliza.jp/'},
-            note='Fetching player data', errnote='Unable to fetch player data',
-        )
+            note='Fetching player data', errnote='Unable to fetch player data')
 
         m3u8_url = self._search_regex(
             r'["\'](https://vms-api\.p\.uliza\.jp/v1/prog-index\.m3u8[^"\']+)', player_data, 'm3u8 url')
