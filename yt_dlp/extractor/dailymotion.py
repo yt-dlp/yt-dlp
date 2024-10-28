@@ -262,6 +262,7 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
         },
         'playlist_mincount': 50,
     }, {
+        # https://www.dailymotion.com/crawler/video/x8u4owg
         'url': 'https://www.leparisien.fr/environnement/video-le-veloto-la-voiture-a-pedales-qui-aimerait-se-faire-une-place-sur-les-routes-09-03-2024-KCYMCPM4WFHJXMSKBUI66UNFPU.php',
         'info_dict': {
             'id': 'x8u4owg',
