@@ -1,13 +1,12 @@
 from .common import InfoExtractor
 from .kaltura import KalturaIE
 from ..utils import (
-    ExtractorError,
     int_or_none,
+    parse_iso8601,
     smuggle_url,
-    traverse_obj,
-    unified_strdate,
     url_or_none,
 )
+from ..utils.traversal import traverse_obj
 
 
 class YleAreenaIE(InfoExtractor):
@@ -29,7 +28,8 @@ class YleAreenaIE(InfoExtractor):
                 'episode_number': 2,
                 'thumbnail': r're:https://images\.cdn\.yle\.fi/image/upload/.+\.jpg',
                 'age_limit': 7,
-                'release_date': '20190106',
+                'release_date': '20190105',
+                'release_timestamp': 1546725660,
             },
         },
         {
@@ -44,6 +44,7 @@ class YleAreenaIE(InfoExtractor):
                 'thumbnail': r're:https://images\.cdn\.yle\.fi/image/upload/.+\.jpg',
                 'age_limit': 0,
                 'release_date': '20211215',
+                'release_timestamp': 1639555200,
             },
         },
         {
@@ -56,6 +57,7 @@ class YleAreenaIE(InfoExtractor):
                 'series': 'Helsingin kaupunginorkesterin konsertteja',
                 'thumbnail': r're:https://images\.cdn\.yle\.fi/image/upload/.+\.jpg',
                 'release_date': '20230120',
+                'release_timestamp': 1674242079,
             },
             'params': {
                 'skip_download': 'm3u8',
@@ -67,9 +69,12 @@ class YleAreenaIE(InfoExtractor):
                 'id': '1-72251830',
                 'ext': 'mp4',
                 'title': r're:Pentulive 2024 | Pentulive \d{4}-\d{2}-\d{2} \d{2}:\d{2}',
-                'series': 'Pentulive 2024 | Pentulive',
+                'description': 'md5:1f118707d9093bf894a34fbbc865397b',
+                'series': 'Pentulive',
                 'thumbnail': r're:https://images\.cdn\.yle\.fi/image/upload/.+\.jpg',
                 'live_status': 'is_live',
+                'release_date': '20241025',
+                'release_timestamp': 1729875600,
             },
             'params': {
                 'skip_download': 'livestream',
@@ -79,70 +84,75 @@ class YleAreenaIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id, is_podcast = self._match_valid_url(url).group('id', 'podcast')
-        info = self._search_json_ld(self._download_webpage(url, video_id), video_id, default={})
+        json_ld = self._search_json_ld(self._download_webpage(url, video_id), video_id, default={})
         video_data = self._download_json(
             f'https://player.api.yle.fi/v1/preview/{video_id}.json?app_id=player_static_prod&app_key=8930d72170e48303cf5f3867780d549b',
             video_id, headers={
                 'origin': 'https://areena.yle.fi',
                 'referer': 'https://areena.yle.fi/',
                 'content-type': 'application/json',
-            })
+            })['data']
 
         # Example title: 'K1, J2: Pouchit | Modernit miehet'
         season_number, episode_number, episode, series = self._search_regex(
             r'K(?P<season_no>\d+),\s*J(?P<episode_no>\d+):?\s*\b(?P<episode>[^|]+)\s*|\s*(?P<series>.+)',
-            info.get('title') or '', 'episode metadata', group=('season_no', 'episode_no', 'episode', 'series'),
+            json_ld.get('title') or '', 'episode metadata', group=('season_no', 'episode_no', 'episode', 'series'),
             default=(None, None, None, None))
-        description = traverse_obj(video_data, ('data', 'ongoing_ondemand', 'description', 'fin'), expected_type=str)
+        description = traverse_obj(video_data, ('ongoing_ondemand', 'description', 'fin', {str}))
 
         subtitles = {}
-        for sub in traverse_obj(video_data, ('data', 'ongoing_ondemand', 'subtitles', ...)):
-            if url_or_none(sub.get('uri')):
-                subtitles.setdefault(sub.get('language') or 'und', []).append({
-                    'url': sub['uri'],
-                    'ext': 'srt',
-                    'name': sub.get('kind'),
-                })
+        for sub in traverse_obj(video_data, ('ongoing_ondemand', 'subtitles', lambda _, v: url_or_none(v['uri']))):
+            subtitles.setdefault(sub.get('language') or 'und', []).append({
+                'url': sub['uri'],
+                'ext': 'srt',
+                'name': sub.get('kind'),
+            })
 
         is_live = False
         if is_podcast:
             info_dict = {
-                'url': video_data['data']['ongoing_ondemand']['media_url'],
+                'url': video_data['ongoing_ondemand']['media_url'],
             }
-        elif kaltura_id := traverse_obj(video_data, ('data', 'ongoing_ondemand', 'kaltura', 'id', {str})):
+        elif kaltura_id := traverse_obj(video_data, ('ongoing_ondemand', 'kaltura', 'id', {str})):
             info_dict = {
                 '_type': 'url_transparent',
                 'url': smuggle_url(f'kaltura:1955031:{kaltura_id}', {'source_url': url}),
                 'ie_key': KalturaIE.ie_key(),
             }
         else:
-            if traverse_obj(video_data, ('data', 'ongoing_ondemand', 'manifest_url', {url_or_none})):
-                manifest_url = video_data['data']['ongoing_ondemand']['manifest_url']
-            elif traverse_obj(video_data, ('data', 'ongoing_event', 'manifest_url', {url_or_none})):
-                manifest_url = video_data['data']['ongoing_event']['manifest_url']
+            manifest_url = traverse_obj(video_data, ('ongoing_event', 'manifest_url', {url_or_none}))
+            if manifest_url:
                 is_live = True
             else:
-                raise ExtractorError('Unable to extract manifest URL')
+                manifest_url = video_data['ongoing_ondemand']['manifest_url']
             formats, subs = self._extract_m3u8_formats_and_subtitles(
                 manifest_url, video_id, 'mp4', m3u8_id='hls', live=is_live)
             self._merge_subtitles(subs, target=subtitles)
-            info_dict = {'formats': formats}
+            info_dict = {
+                'formats': formats,
+                'is_live': is_live,
+            }
 
         return {
-            **info_dict,
+            **traverse_obj(json_ld, {
+                'title': 'title',
+                'thumbnails': ('thumbnails', ..., {'url': 'url'}),
+            }),
             'id': video_id,
-            'title': (traverse_obj(video_data, ('data', 'ongoing_ondemand', 'title', 'fin'), expected_type=str)
-                      or episode or info.get('title')),
+            'title': episode,
             'description': description,
-            'series': (traverse_obj(video_data, ('data', 'ongoing_ondemand', 'series', 'title', 'fin'), expected_type=str)
-                       or series),
+            'series': series,
             'season_number': (int_or_none(self._search_regex(r'Kausi (\d+)', description, 'season number', default=None))
                               or int_or_none(season_number)),
-            'episode_number': (traverse_obj(video_data, ('data', 'ongoing_ondemand', 'episode_number'), expected_type=int_or_none)
-                               or int_or_none(episode_number)),
-            'thumbnails': traverse_obj(info, ('thumbnails', ..., {'url': 'url'})),
-            'age_limit': traverse_obj(video_data, ('data', 'ongoing_ondemand', 'content_rating', 'age_restriction'), expected_type=int_or_none),
+            'episode_number': int_or_none(episode_number),
             'subtitles': subtitles or None,
-            'release_date': unified_strdate(traverse_obj(video_data, ('data', 'ongoing_ondemand', 'start_time'), expected_type=str)),
-            'is_live': is_live,
+            **traverse_obj(video_data, ('ongoing_event' if is_live else 'ongoing_ondemand', {
+                'title': ('title', 'fin', {str}),
+                'description': ('description', 'fin', {str}),
+                'series': ('series', 'title', 'fin', {str}),
+                'episode_number': ('episode_number', {int_or_none}),
+                'age_limit': ('content_rating', 'age_restriction', {int_or_none}),
+                'release_timestamp': ('start_time', {parse_iso8601}),
+            })),
+            **info_dict,
         }
