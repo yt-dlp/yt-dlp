@@ -9,6 +9,7 @@ import datetime as dt
 import email.header
 import email.utils
 import errno
+import functools
 import hashlib
 import hmac
 import html.entities
@@ -44,7 +45,6 @@ import xml.etree.ElementTree
 
 from . import traversal
 
-from ..compat import functools  # isort: split
 from ..compat import (
     compat_etree_fromstring,
     compat_expanduser,
@@ -4896,6 +4896,10 @@ class Config:
     parsed_args = None
     filename = None
     __initialized = False
+
+    # Internal only, do not use! Hack to enable --plugin-dirs
+    # TODO(coletdjnz): remove when plugin globals system is implemented
+    _plugin_dirs = None
 
     def __init__(self, parser, label=None):
         self.parser, self.label = parser, label
