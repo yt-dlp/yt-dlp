@@ -266,6 +266,7 @@ def validate_options(opts):
 
     opts.retries = parse_retries('download', opts.retries)
     opts.fragment_retries = parse_retries('fragment', opts.fragment_retries)
+    opts.wait_retries = parse_retries('waiting', opts.wait_retries)
     opts.extractor_retries = parse_retries('extractor', opts.extractor_retries)
     opts.file_access_retries = parse_retries('file access', opts.file_access_retries)
 
@@ -926,6 +927,7 @@ def parse_options(argv=None):
         'extract_flat': opts.extract_flat,
         'live_from_start': opts.live_from_start,
         'wait_for_video': opts.wait_for_video,
+        'wait_retries': opts.wait_retries,
         'mark_watched': opts.mark_watched,
         'merge_output_format': opts.merge_output_format,
         'final_ext': final_ext,

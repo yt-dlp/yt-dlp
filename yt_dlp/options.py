@@ -443,6 +443,10 @@ def create_parser():
         dest='wait_for_video', action='store_const', const=None,
         help='Do not wait for scheduled streams (default)')
     general.add_option(
+        '--wait-retries',
+        dest='wait_retries', metavar='RETRIES', default="infinite",
+        help='Number of retries while waiting for scheduled streams to become available (default is %default). --wait-for-video must also be set')
+    general.add_option(
         '--mark-watched',
         action='store_true', dest='mark_watched', default=False,
         help='Mark videos watched (even with --simulate)')

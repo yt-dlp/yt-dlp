@@ -1620,17 +1620,26 @@ class YoutubeDL:
     def _handle_extraction_exceptions(func):
         @functools.wraps(func)
         def wrapper(self, *args, **kwargs):
+            wait_retries = 1
+            max_wait_retries = self.params.get('wait_retries')
             while True:
                 try:
                     return func(self, *args, **kwargs)
                 except (CookieLoadError, DownloadCancelled, LazyList.IndexError, PagedList.IndexError):
                     raise
                 except ReExtractInfo as e:
+                    if wait_retries > max_wait_retries:
+                        if max_wait_retries > 0:
+                            self.report_error(f'Giving up after {wait_retries - 1} {"retries" if wait_retries > 2 else "retry"} while waiting.')
+                        else:
+                            self.report_error(f'Video is still unavailable after waiting.')
+                        raise UserNotLive('Maximum number of retries exceeded while waiting for stream')
                     if e.expected:
                         self.to_screen(f'{e}; Re-extracting data')
                     else:
                         self.to_stderr('\r')
                         self.report_warning(f'{e}; Re-extracting data')
+                    wait_retries += 1
                     continue
                 except GeoRestrictedError as e:
                     msg = e.msg
