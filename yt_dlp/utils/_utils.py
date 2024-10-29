@@ -4837,7 +4837,6 @@ def number_of_digits(number):
     return len('%d' % number)
 
 
-@partial_application
 def join_nonempty(*values, delim='-', from_dict=None):
     if from_dict is not None:
         values = (traversal.traverse_obj(from_dict, variadic(v)) for v in values)
