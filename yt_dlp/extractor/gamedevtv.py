@@ -32,6 +32,11 @@ class GameDevTVDashboardIE(InfoExtractor):
             }).encode())
         self._API_HEADERS['Authorization'] = f'{response["token_type"]} {response["access_token"]}'
 
+    def _real_initialize(self):
+        if not self._API_HEADERS.get('Authorization'):
+            self.raise_login_required(
+                'This content is only available with purchase', method='password')
+
     def _entries(self, data, course_id):
         course_list = []
         for section in data['data']['sections']:
