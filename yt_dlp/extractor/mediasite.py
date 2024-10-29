@@ -100,6 +100,7 @@ class MediasiteIE(InfoExtractor):
                 'upload_date': '20160830',
             },
             'params': {
+                # frag 1 too small (only 768B)
                 'skip_download': True,
             },
         },
