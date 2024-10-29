@@ -5,6 +5,7 @@ import urllib.parse
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
+    determine_ext,
     float_or_none,
     mimetype2ext,
     smuggle_url,
@@ -268,7 +269,29 @@ class MediasiteIE(InfoExtractor):
             formats.extend(stream_formats)
 
         # XXX: Presentation['Presenters']
-        # XXX: Presentation['Transcript']
+        transcripts = presentation.get('Transcripts', {})
+        captions, subtitles = {}, {}
+        for transcript in transcripts:
+            lang_code = traverse_obj(
+                transcript, (('DetailedLanguageCode', 'LanguageCode'), {str}), get_all=False)
+            lang_name = transcript.get('Language')
+            t = {
+                'url': transcript.get('CaptionsUrl'),
+                'name': lang_name,
+            }
+            if 'Auto-Generated' in lang_name:
+                captions.setdefault(lang_code, []).append(t)
+            else:
+                subtitles.setdefault(lang_code, []).append(t)
+        if transcript_url := presentation.get('TranscriptUrl'):
+            if determine_ext(transcript_url) != 'txt':
+                if len(transcripts) == 1 and captions:
+                    captions.setdefault(lang_code, []).append({
+                        'url': transcript_url,
+                        'name': lang_name,
+                    })
+                else:
+                    subtitles.setdefault('und', []).append({'url': transcript_url})
 
         return {
             'id': resource_id,
@@ -277,6 +300,8 @@ class MediasiteIE(InfoExtractor):
             'duration': float_or_none(presentation.get('Duration'), 1000),
             'timestamp': float_or_none(presentation.get('UnixTime'), 1000),
             'formats': formats,
+            'automatic_captions': captions,
+            'subtitles': subtitles,
             'thumbnails': thumbnails,
         }
 
