@@ -86,13 +86,16 @@ class AniGamerIE(InfoExtractor):
             raise ExtractorError('Invalid device id!')
         # TODO: handle more error codes
         src = m3u8_info['src']
-        formats, subs = self._extract_m3u8_formats_and_subtitles(src, video_id, 'mp4', headers={
+        formats = self._extract_m3u8_formats(src, video_id, 'mp4', headers={
             'Origin': 'https://ani.gamer.com.tw',
             **self.geo_verification_headers(),
         })
+        for fmt in formats:
+            http_headers = fmt.get('http_headers')
+            http_headers['Origin'] = 'https://ani.gamer.com.tw'
+            fmt['http_headers'] = http_headers
         return {
             **metadata,
             'id': video_id,
             'formats': formats,
-            'subtitles': subs,
         }
