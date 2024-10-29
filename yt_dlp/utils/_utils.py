@@ -214,15 +214,17 @@ def write_json_file(obj, fn):
 
 def partial_application(func):
     sig = inspect.signature(func)
+    required_args = [
+        param.name for param in sig.parameters.values()
+        if param.kind in (inspect.Parameter.POSITIONAL_ONLY, inspect.Parameter.POSITIONAL_OR_KEYWORD, inspect.Parameter.VAR_POSITIONAL)
+        if param.default is inspect.Parameter.empty
+    ]
 
     @functools.wraps(func)
     def wrapped(*args, **kwargs):
-        try:
-            sig.bind(*args, **kwargs)
-        except TypeError:
+        if set(required_args[len(args):]).difference(kwargs):
             return functools.partial(func, *args, **kwargs)
-        else:
-            return func(*args, **kwargs)
+        return func(*args, **kwargs)
 
     return wrapped
 
@@ -4837,6 +4839,7 @@ def number_of_digits(number):
     return len('%d' % number)
 
 
+@partial_application
 def join_nonempty(*values, delim='-', from_dict=None):
     if from_dict is not None:
         values = (traversal.traverse_obj(from_dict, variadic(v)) for v in values)
