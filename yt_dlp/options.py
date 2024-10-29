@@ -444,7 +444,7 @@ def create_parser():
         help='Do not wait for scheduled streams (default)')
     general.add_option(
         '--wait-retries',
-        dest='wait_retries', metavar='RETRIES', default="infinite",
+        dest='wait_retries', metavar='RETRIES', default='infinite',
         help='Number of retries while waiting for scheduled streams to become available (default is %default). --wait-for-video must also be set')
     general.add_option(
         '--mark-watched',
