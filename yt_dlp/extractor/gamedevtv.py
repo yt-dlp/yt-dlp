@@ -1,7 +1,9 @@
 import json
 
 from .common import InfoExtractor
+from ..networking.exceptions import HTTPError
 from ..utils import (
+    ExtractorError,
     clean_html,
     int_or_none,
     join_nonempty,
@@ -15,7 +17,6 @@ from ..utils.traversal import traverse_obj
 class GameDevTVDashboardIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?gamedev\.tv/dashboard/courses/(?P<id>\d+)'
     _NETRC_MACHINE = 'gamedevtv'
-    _API_HEADERS = {}
     _TESTS = [{
         'url': 'https://www.gamedev.tv/dashboard/courses/25',
         'info_dict': {
@@ -31,16 +32,23 @@ class GameDevTVDashboardIE(InfoExtractor):
         },
         'playlist_count': 100,
     }]
+    _API_HEADERS = {}
 
     def _perform_login(self, username, password):
-        response = self._download_json(
-            'https://api.gamedev.tv/api/students/login', None, 'Logging in',
-            headers={'Content-Type': 'application/json'},
-            data=json.dumps({
-                'email': username,
-                'password': password,
-                'cart_items': [],
-            }).encode())
+        try:
+            response = self._download_json(
+                'https://api.gamedev.tv/api/students/login', None, 'Logging in',
+                headers={'Content-Type': 'application/json'},
+                data=json.dumps({
+                    'email': username,
+                    'password': password,
+                    'cart_items': [],
+                }).encode())
+        except ExtractorError as e:
+            if isinstance(e.cause, HTTPError) and e.cause.status == 401:
+                raise ExtractorError('Invalid username/password', expected=True)
+            raise
+
         self._API_HEADERS['Authorization'] = f'{response["token_type"]} {response["access_token"]}'
 
     def _real_initialize(self):
