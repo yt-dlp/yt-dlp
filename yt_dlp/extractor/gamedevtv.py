@@ -18,16 +18,18 @@ class GameDevTVDashboardIE(InfoExtractor):
     _API_HEADERS = {}
     _TESTS = [{
         'url': 'https://www.gamedev.tv/dashboard/courses/25',
-        'md5': 'ece542a1071018d5a09e0dc91a843763',
         'info_dict': {
-            'playlist': 'Complete Blender Creator 3: Learn 3D Modelling for Beginners',
-            'playlist_id': 25,
-            'chapter_id': '01',
-            'chapter': 'Introduction & Setup',
-            'id': '01',
-            'ext': 'mp4',
-            'title': 'Section Intro - Introduction To Blender',
+            'id': '25',
+            'title': 'Complete Blender Creator 3: Learn 3D Modelling for Beginners',
+            'tags': ['blender', 'course', 'all', 'box modelling', 'sculpting'],
+            'categories': ['Blender', '3D Art'],
+            'thumbnail': 'https://gamedev-files.b-cdn.net/courses/qisc9pmu1jdc.jpg',
+            'upload_date': '20220516',
+            'timestamp': 1652694420,
+            'modified_date': '20241027',
+            'modified_timestamp': 1730049658,
         },
+        'playlist_count': 100,
     }]
 
     def _perform_login(self, username, password):
