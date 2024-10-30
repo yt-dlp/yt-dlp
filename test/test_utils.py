@@ -345,11 +345,13 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(remove_start(None, 'A - '), None)
         self.assertEqual(remove_start('A - B', 'A - '), 'B')
         self.assertEqual(remove_start('B - A', 'A - '), 'B - A')
+        self.assertEqual(remove_start('non-empty', ''), 'non-empty')
 
     def test_remove_end(self):
         self.assertEqual(remove_end(None, ' - B'), None)
         self.assertEqual(remove_end('A - B', ' - B'), 'A')
         self.assertEqual(remove_end('B - A', ' - B'), 'B - A')
+        self.assertEqual(remove_end('non-empty', ''), 'non-empty')
 
     def test_remove_quotes(self):
         self.assertEqual(remove_quotes(None), None)

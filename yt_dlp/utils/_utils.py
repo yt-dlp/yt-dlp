@@ -1963,7 +1963,7 @@ def remove_start(s, start):
 
 
 def remove_end(s, end):
-    return s[:-len(end)] if s is not None and s.endswith(end) else s
+    return s[:-len(end)] if s is not None and end and s.endswith(end) else s
 
 
 def remove_quotes(s):
