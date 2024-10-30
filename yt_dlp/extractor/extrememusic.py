@@ -20,7 +20,8 @@ class ExtremeMusicBaseIE(InfoExtractor):
     _REQUIRE_VERSION = []
 
     def _initialize(self, url, video_id, country=None):
-        self._REQUIRE_VERSION = self._configuration_arg('ver') or self._configuration_arg('version')
+        self._REQUIRE_VERSION = (self._configuration_arg('ver', ie_key='extrememusic')
+                                 or self._configuration_arg('version', ie_key='extrememusic'))
         # This site serves different versions of the same playlist id due to geo-restriction
         # use user's own country code if no code (geo_bypass_country or pre-defined country code) is provided
         if not country:
