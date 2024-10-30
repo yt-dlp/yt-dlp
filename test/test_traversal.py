@@ -508,6 +508,7 @@ class TestTraversalHelpers:
         assert trim_str(start='a', end='bc')('abc') == ''
         assert trim_str(start='ab', end='bc')('abc') == ''
         assert trim_str(start='abc', end='abc')('abc') == ''
+        assert trim_str(start='', end='')('abc') == 'abc'
 
 
 class TestDictGet:
