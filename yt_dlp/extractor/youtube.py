@@ -644,13 +644,14 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         YoutubeBaseInfoExtractor._OAUTH_ACCESS_TOKEN_CACHE[self._OAUTH_PROFILE] = {}
 
         if refresh_token:
-            refresh_token = refresh_token.strip('\'') or None
-
-        # Allow refresh token passed to initialize cache
-        if refresh_token:
+            msg = f'{self._OAUTH_DISPLAY_ID}: Using password input as refresh token'
+            if self.get_param('cachedir') is not False:
+                msg += ' and caching token to disk; you should supply an empty password next time'
+            self.to_screen(msg)
             self.cache.store(self._NETRC_MACHINE, self._oauth_cache_key, refresh_token)
+        else:
+            refresh_token = self.cache.load(self._NETRC_MACHINE, self._oauth_cache_key)
 
-        refresh_token = refresh_token or self.cache.load(self._NETRC_MACHINE, self._oauth_cache_key)
         if refresh_token:
             YoutubeBaseInfoExtractor._OAUTH_ACCESS_TOKEN_CACHE[self._OAUTH_PROFILE]['refresh_token'] = refresh_token
             try:
