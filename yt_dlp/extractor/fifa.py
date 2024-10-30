@@ -224,8 +224,7 @@ class FifaContentIE(FifaBaseIE):
             yield self._extract_video(video_info, video_id)
 
     def _real_extract(self, url):
-        urlh = self._request_webpage(url, self._match_id(url))
-        video_id, display_id = self._match_valid_url(urlh.url).group('id', 'display_id')
+        video_id, display_id = self._match_valid_url(url).group('id', 'display_id')
 
         video_content = self._call_api(
             f'entertainment/api/v1/contents/{video_id}', video_id, 'Downloading video content')
