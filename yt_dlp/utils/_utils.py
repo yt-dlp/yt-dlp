@@ -1958,12 +1958,10 @@ def setproctitle(title):
         return  # Strange libc, just skip this
 
 
-@partial_application
 def remove_start(s, start):
     return s[len(start):] if s is not None and s.startswith(start) else s
 
 
-@partial_application
 def remove_end(s, end):
     return s[:-len(end)] if s is not None and s.endswith(end) else s
 
