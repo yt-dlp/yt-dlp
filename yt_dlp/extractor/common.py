@@ -1409,6 +1409,13 @@ class InfoExtractor:
             return None, None
 
         self.write_debug(f'Using netrc for {netrc_machine} authentication')
+
+        # compat: <=py3.10: netrc cannot parse tokens as empty strings, will return `""` instead
+        # Ref: https://github.com/yt-dlp/yt-dlp/issues/11413
+        #      https://github.com/python/cpython/commit/15409c720be0503131713e3d3abc1acd0da07378
+        if sys.version_info < (3, 11):
+            return tuple(x if x != '""' else '' for x in info[::2])
+
         return info[0], info[2]
 
     def _get_login_info(self, username_option='username', password_option='password', netrc_machine=None):
