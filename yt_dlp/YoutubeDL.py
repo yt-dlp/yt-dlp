@@ -1633,7 +1633,7 @@ class YoutubeDL:
                             self.report_error(f'Giving up after {wait_retries - 1} {"retries" if wait_retries > 2 else "retry"} while waiting.')
                         else:
                             self.report_error('Video is still unavailable after waiting.')
-                        raise UserNotLive('Maximum number of retries exceeded while waiting for stream')
+                        return
                     if e.expected:
                         self.to_screen(f'{e}; Re-extracting data')
                     else:
