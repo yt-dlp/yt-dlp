@@ -435,6 +435,20 @@ def find_elements(*, tag=None, cls=None, attr=None, value=None, html=False):
     return functools.partial(func, cls)
 
 
+def trim_str(*, start=None, end=None):
+    def trim(s):
+        if s is None:
+            return None
+        start_idx = 0
+        if start and s.startswith(start):
+            start_idx = len(start)
+        if end and s.endswith(end):
+            return s[start_idx:-len(end)]
+        return s[start_idx:]
+
+    return trim
+
+
 def get_first(obj, *paths, **kwargs):
     return traverse_obj(obj, *((..., *variadic(keys)) for keys in paths), **kwargs, get_all=False)
 
