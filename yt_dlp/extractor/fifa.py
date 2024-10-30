@@ -5,6 +5,7 @@ from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     determine_ext,
+    float_or_none,
     int_or_none,
     parse_iso8601,
     strip_or_none,
@@ -14,9 +15,7 @@ from ..utils import (
 from ..utils.traversal import traverse_obj
 
 
-class FifaContentIE(InfoExtractor):
-    _VALID_URL = r'https?://(www\.)?plus\.fifa\.com/(?P<locale>\w{2})/content/(?P<display_id>[\w-]+)/(?P<id>[\w-]+)/?(?:[#?]|$)'
-
+class FifaBaseIE(InfoExtractor):
     def _real_initialize(self):
         self._HEADERS = {
             'content-type': 'application/json; charset=UTF-8',
@@ -54,18 +53,12 @@ class FifaContentIE(InfoExtractor):
 
     def _call_api(self, path, video_id, note=None, headers=None, query=None, data=None):
         return self._download_json(
-            f'https://www.plus.fifa.com/flux-capacitor/api/v1//{path}', video_id, note, headers={
+            f'https://www.plus.fifa.com/{path}', video_id, note, headers={
                 **self._HEADERS,
                 **(headers or {}),
             }, query=query, data=data)
 
-    def _real_extract(self, url):
-        urlh = self._request_webpage(url, self._match_id(url))
-        video_id, display_id, locale = self._match_valid_url(urlh.url).group('id', 'display_id', 'locale')
-
-        video_info = self._call_api(
-            'videoasset', video_id, 'Downloading video asset', query={'catalog': video_id})[0]
-
+    def _extract_video(self, video_info, video_id):
         formats = []
         subtitles = {}
 
@@ -74,12 +67,11 @@ class FifaContentIE(InfoExtractor):
             'mpd/cenc+h264;q=0.9, mpd/clear+h264;q=0.7, mp4/;q=0.1',
         ]:
             session_info = self._call_api(
-                'streaming/session', video_id, 'Getting streaming session',
+                'flux-capacitor/api/v1/streaming/session', video_id, 'Getting streaming session',
                 headers={'x-chili-accept-stream': stream_type},
                 data=json.dumps({'videoAssetId': video_info['id'], 'autoPlay': False}).encode())
-
             streams_info = self._call_api(
-                'streaming/urls', video_id, 'Getting streaming urls',
+                'flux-capacitor/api/v1/streaming/urls', video_id, 'Getting streaming urls',
                 headers={'x-chili-streaming-session': session_info['id']})
 
             for playlist_url in traverse_obj(streams_info, (..., 'url')):
@@ -99,10 +91,11 @@ class FifaContentIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'title': video_info['title'],
-            'display_id': display_id,
+            'title': strip_or_none(video_info['title']),
+            'duration': float_or_none(video_info.get('duration'), scale=1000),
             'formats': formats,
             'subtitles': subtitles,
+            'age_limit': traverse_obj(video_info, ('parental', 'age', {int_or_none})),
             'thumbnails': [{
                 'url': update_url_query(x, {'width': 1408}),
                 'width': 1408,
@@ -110,161 +103,155 @@ class FifaContentIE(InfoExtractor):
         }
 
 
-class FifaBaseIE(InfoExtractor):
-    @functools.cached_property
-    def _preconnect_link(self):
-        return self._search_regex(
-            r'<link\b[^>]+\brel\s*=\s*"preconnect"[^>]+href\s*=\s*"([^"]+)"',
-            self._download_webpage('https://fifa.com/', None), 'Preconnect Link')
-
-    def _call_api(self, path, video_id, note=None, query=None, fatal=True):
-        return self._download_json(
-            f'{self._preconnect_link}/{path}', video_id, note, query=query, fatal=fatal)
-
-
-class FifaIE(FifaBaseIE):
-    _VALID_URL = r'https?://(www\.)?fifa\.com/(fifaplus/)?(?P<locale>\w{2})/watch/(?P<id>[-\w]+)/?(?:[#?]|$)'
+class FifaPlayerIE(FifaBaseIE):
+    _VALID_URL = r'https?://(www\.)?plus\.fifa\.com/(?:\w{2})/player/(?P<id>[\w-]+)/?\?(?:[^#]+&)?catalogId=(?P<display_id>[\w-]+)'
     _TESTS = [{
-        'url': 'https://www.fifa.com/fifaplus/en/watch/7on10qPcnyLajDDU3ntg6y',
+        'url': 'https://www.plus.fifa.com/en/player/f67b9d46-38c3-4e38-bbf3-89cf14cbcc1a?catalogId=b9c32230-1426-46d0-8448-ca824ae48603&entryPoint=Slider',
         'info_dict': {
-            'id': 'fee2f7e8-92fa-42c5-805c-a2c949015eae',
-            'title': 'Italy v France | Final | 2006 FIFA World Cup Germany™ | Full Match Replay',
-            'display_id': 'italy-v-france-final-2006-fifa-world-cup-germany-full-match-replay',
-            'thumbnail': r're:https://cdn\.plus\.fifa\.com//images/public/cms/[/\w-]+\.jpg\?width=1408',
-        },
-        'params': {
-            'skip_download': 'm3u8',
-            'ignore_no_formats_error': True,
-        },
-        'expected_warnings': [
-            'Requested format is not available',
-            'This video is DRM protected',
-        ],
-    }, {
-        'url': 'https://www.fifa.com/fifaplus/pt/watch/1cg5r5Qt6Qt12ilkDgb1sV',
-        'info_dict': {
-            'id': 'd4f4a2cb-5966-4af7-8a05-98ef4732af2b',
-            'title': 'Brazil v Germany | Semi-finals | 2014 FIFA World Cup Brazil™ | Extended Highlights',
-            'display_id': 'brasil-x-alemanha-semifinais-copa-do-mundo-fifa-brasil-2014-compacto',
-            'thumbnail': r're:https://cdn\.plus\.fifa\.com//images/public/cms/[/\w-]+\.jpg\?width=1408',
-        },
-        'params': {
-            'skip_download': 'm3u8',
-            'ignore_no_formats_error': True,
-        },
-        'expected_warnings': [
-            'Requested format is not available',
-            'This video is DRM protected',
-        ],
-    }, {
-        'url': 'https://www.fifa.com/fifaplus/fr/watch/3C6gQH9C2DLwzNx7BMRQdp',
-        'info_dict': {
-            'id': '3C6gQH9C2DLwzNx7BMRQdp',
+            'id': 'f67b9d46-38c3-4e38-bbf3-89cf14cbcc1a',
             'ext': 'mp4',
-            'title': 'Josimar goal against Northern Ireland | Classic Goals',
+            'title': 'Trailer | HD Cutz',
+            'age_limit': 0,
+            'duration': 195.84,
+            'thumbnail': r're:https://cdn\.plus\.fifa\.com//images/public/cms/[/\w-]+\.jpg\?width=1408',
         },
         'params': {'skip_download': 'm3u8'},
-        'skip': 'HTTP Error 403: Forbidden',
     }, {
-        'url': 'https://www.fifa.com/fifaplus/en/watch/2KhLLn6aiGW3nr8sNm8Hkv',
+        'url': 'https://www.plus.fifa.com/en/player/af65939f-bbce-4b8f-8462-5140af533c5f?catalogId=fac6685c-a900-4e78-b5cd-192af5131ffe&entryPoint=Slider',
+        'md5': '2c4f5c591448d372f6ba85b8f3be37df',
         'info_dict': {
-            'id': '2KhLLn6aiGW3nr8sNm8Hkv',
+            'id': 'af65939f-bbce-4b8f-8462-5140af533c5f',
             'ext': 'mp4',
-            'title': "Le Sommer: Lyon-Barcelona a beautiful final for women's football",
-        },
-        'params': {'skip_download': 'm3u8'},
-        'skip': 'HTTP Error 403: Forbidden',
-    }, {
-        'url': 'https://www.fifa.com/fifaplus/en/watch/4V8H8qv7QM1LNVk5gUwYFa',
-        'info_dict': {
-            'id': '709abaec-5eef-4ad8-a02d-19a8932f42a2',
-            'title': "Christine Sinclair at 19 | FIFA U-19 Women's World Championship Canada 2002™",
-            'display_id': 'christine-sinclair-at-19-fifa-u-19-womens-world-championship-canada-2002',
+            'title': 'Trailer | Bravas de Juárez',
+            'age_limit': 0,
+            'duration': 73.984,
             'thumbnail': r're:https://cdn\.plus\.fifa\.com//images/public/cms/[/\w-]+\.jpg\?width=1408',
         },
-        'params': {
-            'skip_download': 'm3u8',
-            'ignore_no_formats_error': True,
-        },
-        'expected_warnings': [
-            'Requested format is not available',
-            'This video is DRM protected',
-        ],
     }, {
-        'url': 'https://www.fifa.com/fifaplus/en/watch/d85632f9-7009-4ea0-aaf1-8d6847e4a148',
-        'info_dict': {
-            'id': 'bbe5d2a3-3dfd-4283-a1af-3a66022e8254',
-            'title': 'Croatia v Australia | Group F | 2006 FIFA World Cup Germany™ | Full Match Replay',
-            'display_id': 'croatia-v-australia-or-group-f-or-2006-fifa-world-cup',
-            'thumbnail': r're:https://cdn\.plus\.fifa\.com//images/public/cms/[/\w-]+\.jpg\?width=1408',
-        },
-        'params': {
-            'skip_download': 'm3u8',
-            'ignore_no_formats_error': True,
-        },
-        'expected_warnings': [
-            'Requested format is not available',
-            'This video is DRM protected',
-        ],
-    }, {
-        'url': 'https://www.fifa.com/fifaplus/pt/watch/Ny88zzqsVnxCBUJ6fZzPy',
-        'info_dict': {
-            'id': '3d2612ff-c06f-4a7e-a2d7-ec73504515b5',
-            'title': 'The Happiest Man in the World',
-            'display_id': 'o-homem-mais-feliz-do-mundo',
-            'thumbnail': r're:https://cdn\.plus\.fifa\.com//images/public/cms/[/\w-]+\.jpg\?width=1408',
-        },
-        'params': {
-            'skip_download': 'm3u8',
-            'ignore_no_formats_error': True,
-        },
-        'expected_warnings': [
-            'Requested format is not available',
-            'This video is DRM protected',
-        ],
+        'url': 'https://plus.fifa.com/en/player/eeebdd38-5d51-4891-8307-ab5dd62c2c32?catalogId=ed3b2dcb-6886-4b34-8ba7-c8800027f7dd',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
-        video_id, locale = self._match_valid_url(url).group('id', 'locale')
+        video_id, catelog_id = self._match_valid_url(url).group('id', 'display_id')
+        video_asset = self._call_api(
+            'flux-capacitor/api/v1/videoasset', video_id,
+            'Downloading video asset', query={'catalog': catelog_id})
+        video_info = traverse_obj(video_asset, (lambda _, v: v['id'] == video_id), get_all=False)
+        if not video_info:
+            raise ExtractorError('Unable to extract video info')
+        return self._extract_video(video_info, video_id)
 
-        if redirect_url := traverse_obj(self._call_api(
-                f'pages/{locale}/watch/{video_id}', video_id, 'Downloading redirection info'), 'redirectUrl'):
-            return self.url_result(redirect_url)
+
+class FifaContentIE(FifaBaseIE):
+    _VALID_URL = r'https?://(www\.)?plus\.fifa\.com/(?:\w{2})/content/(?P<display_id>[\w-]+)/(?P<id>[\w-]+)/?(?:[#?]|$)'
+    _TESTS = [{
+        # from https://www.fifa.com/fifaplus/en/watch/series/48PQFX2J4TiDJcxWOxUPho/2ka5yomq8MBvfxe205zdQ9/6H72309PLWXafBIavvPzPQ#ReadMore
+        'url': 'https://www.plus.fifa.com/en/content/kariobangi/6f3be63f-76d9-4290-9e60-fd62afa95ed7',
+        'info_dict': {
+            'id': '6f3be63f-76d9-4290-9e60-fd62afa95ed7',
+            'title': 'Kariobangi',
+            'description': 'md5:b57eb012db2b84d482adedda82faf1c8',
+            'display_id': 'kariobangi',
+            'thumbnails': 'count:2',
+        },
+        'playlist_count': 0,
+    }, {
+        # from https://www.fifa.com/fifaplus/en/watch/series/5Ja1dDLuudkFF95OVHcYBG/5epcWav73zMbjTJh2RxIOt/1NIHdDxPlYodbNobjS1iX5
+        'url': 'https://www.plus.fifa.com/en/content/hd-cutz/b9c32230-1426-46d0-8448-ca824ae48603',
+        'info_dict': {
+            'id': 'b9c32230-1426-46d0-8448-ca824ae48603',
+            'title': 'HD Cutz',
+            'description': 'md5:86dd1e6d9b4463b3ccc2063ab3180c44',
+            'display_id': 'hd-cutz',
+            'thumbnails': 'count:2',
+        },
+        'playlist': [{
+            'info_dict': {
+                'id': 'b9c32230-1426-46d0-8448-ca824ae48603',
+                'ext': 'mp4',
+                'title': 'Trailer | HD Cutz',
+                'age_limit': 0,
+                'duration': 195.840,
+                'thumbnail': r're:https://cdn\.plus\.fifa\.com//images/public/cms/[/\w-]+\.jpg\?width=1408',
+            },
+        }],
+        'params': {'skip_download': 'm3u8'},
+    }, {
+        # from https://www.fifa.com/fifaplus/en/watch/movie/2OFuZ9TGyPH6x7nZsgnVBN
+        'url': 'https://www.plus.fifa.com/en/content/bravas-de-juarez/fac6685c-a900-4e78-b5cd-192af5131ffe',
+        'info_dict': {
+            'id': 'fac6685c-a900-4e78-b5cd-192af5131ffe',
+            'title': 'Bravas de Juárez',
+            'description': 'md5:e48e0f56fb27ac334e616976e0e62362',
+            'display_id': 'bravas-de-juarez',
+        },
+        'playlist': [{
+            'info_dict': {
+                'id': 'fac6685c-a900-4e78-b5cd-192af5131ffe',
+                'ext': 'mp4',
+                'title': 'Trailer | Bravas de Juárez',
+                'age_limit': 0,
+                'duration': 73.984,
+                'thumbnail': r're:https://cdn\.plus\.fifa\.com//images/public/cms/[/\w-]+\.jpg\?width=1408',
+            },
+        }],
+    }]
+    _WEBPAGE_TESTS = [{
+        # https://www.plus.fifa.com/en/content/le-moment-the-official-film-of-the-2019-fifa-womens-world-cup/68a89002-0182-4cc7-b858-e548de0fb9cc
+        'url': 'https://www.fifa.com/fifaplus/en/watch/movie/01ioUo8QHiajSisrvP3ES2',
+        'info_dict': {
+            'id': '68a89002-0182-4cc7-b858-e548de0fb9cc',
+            'title': 'Le Moment',
+            'description': 'md5:155f0c28ea9de733668d7eb1f7dbcb52',
+            'display_id': 'le-moment-the-official-film-of-the-2019-fifa-womens-world-cup',
+        },
+        'playlist_count': 0,
+    }, {
+        # https://www.plus.fifa.com/en/content/dreams-2018-fifa-world-cup-official-film/ebdce1da-ab82-4c0b-a7d3-b4fc71030339
+        'url': 'https://www.fifa.com/fifaplus/en/watch/movie/69GbI9lVcwhOeBvea5eKUB',
+        'info_dict': {
+            'id': 'ebdce1da-ab82-4c0b-a7d3-b4fc71030339',
+            'title': 'Dreams',
+            'description': 'md5:b795d218d5c2b88bff3c1569cb617acb',
+            'display_id': 'dreams-2018-fifa-world-cup-official-film',
+        },
+        'playlist_count': 0,
+    }]
+
+    def _entries(self, video_asset, video_id):
+        for video_info in traverse_obj(video_asset, (lambda _, v: v['type'] == 'TRAILER', {dict})):
+            yield self._extract_video(video_info, video_id)
+
+    def _real_extract(self, url):
         urlh = self._request_webpage(url, self._match_id(url))
-        if urlh.url != url:
-            return self.url_result(urlh.url)
+        video_id, display_id = self._match_valid_url(urlh.url).group('id', 'display_id')
 
-        video_details = self._call_api(
-            f'sections/videoDetails/{video_id}', video_id, 'Downloading Video Details', fatal=False)
+        video_content = self._call_api(
+            f'entertainment/api/v1/contents/{video_id}', video_id, 'Downloading video content')
+        video_asset = self._call_api(
+            'flux-capacitor/api/v1/videoasset', video_id,
+            'Downloading video asset', query={'catalog': video_id})
 
-        preplay_parameters = self._call_api(
-            f'videoPlayerData/{video_id}', video_id, 'Downloading Preplay Parameters')['preplayParameters']
+        thumbnails = []
+        for key, width in [('coverUrl', 330), ('wideCoverUrl', 1408)]:
+            if thumbnail_url := video_content.get(key):
+                thumbnails.append({
+                    'url': update_url_query(thumbnail_url, {'width': width}),
+                    'width': width,
+                })
 
-        content_data = self._download_json(
-            'https://content.uplynk.com/preplay/{contentId}/multiple.json?{queryStr}&sig={signature}'.format(**preplay_parameters),
-            video_id, 'Downloading Content Data')
-
-        formats, subtitles = self._extract_m3u8_formats_and_subtitles(content_data['playURL'], video_id)
-
-        return {
-            'id': video_id,
-            'title': video_details.get('title'),
-            'description': video_details.get('description'),
-            'duration': int_or_none(video_details.get('duration')),
-            'release_timestamp': unified_timestamp(video_details.get('dateOfRelease')),
-            'categories': traverse_obj(video_details, (('videoCategory', 'videoSubcategory'),)),
-            'thumbnail': traverse_obj(video_details, ('backgroundImage', 'src')),
-            'formats': formats,
-            'subtitles': subtitles,
-        }
+        return self.playlist_result(
+            self._entries(video_asset, video_id), video_id,
+            strip_or_none(video_content['title']), strip_or_none(video_content.get('storyLine')),
+            display_id=display_id, thumbnails=thumbnails)
 
 
-class FifaArticleIE(FifaBaseIE):
+class FifaArticleIE(InfoExtractor):
     _VALID_URL = r'https?://(www\.)?fifa\.com/(fifaplus/)?(?P<locale>\w{2})/articles/(?P<id>[\w-]+)'
     _TESTS = [{
         'url': 'https://www.fifa.com/en/articles/foord-talks-2023-and-battling-kerr-for-the-wsl-title',
         'info_dict': {
-            '_type': 'multi_video',
             'id': 'foord-talks-2023-and-battling-kerr-for-the-wsl-title',
             'title': 'Foord talks 2023 and battling Kerr for the WSL title',
             'timestamp': 1651136400,
@@ -293,17 +280,46 @@ class FifaArticleIE(FifaBaseIE):
         }],
         'params': {'skip_download': 'm3u8'},
     }, {
+        # https://www.fifa.com/en/articles/stars-set-to-collide-in-uwcl-final
         'url': 'https://www.fifa.com/fifaplus/en/articles/stars-set-to-collide-in-uwcl-final',
-        'info_dict': {
-            '_type': 'multi_video',
-            'id': 'stars-set-to-collide-in-uwcl-final',
-            'title': 'Stars set to collide in Women’s Champions League final ',
-            'timestamp': 1652950800,
-            'upload_date': '20220519',
-        },
-        'playlist_count': 3,
-        'params': {'skip_download': 'm3u8'},
+        'only_matching': True,
     }]
+
+    @functools.cached_property
+    def _preconnect_link(self):
+        return self._search_regex(
+            r'<link\b[^>]+\brel\s*=\s*"preconnect"[^>]+href\s*=\s*"([^"]+)"',
+            self._download_webpage('https://fifa.com/', None), 'Preconnect Link')
+
+    def _call_api(self, path, video_id, note=None, query=None, fatal=True):
+        return self._download_json(
+            f'{self._preconnect_link}/{path}', video_id, note, query=query, fatal=fatal)
+
+    def _entries(self, video_ids, article_id):
+        for video_id in video_ids:
+            video_details = self._call_api(
+                f'sections/videoDetails/{video_id}', article_id,
+                'Downloading Video Details', fatal=False)
+
+            preplay_parameters = self._call_api(
+                f'videoPlayerData/{video_id}', article_id,
+                'Downloading Preplay Parameters')['preplayParameters']
+            content_data = self._download_json(
+                'https://content.uplynk.com/preplay/{contentId}/multiple.json?{queryStr}&sig={signature}'.format(
+                    **preplay_parameters), article_id, 'Downloading Content Data')
+            formats, subtitles = self._extract_m3u8_formats_and_subtitles(content_data['playURL'], article_id)
+
+            yield {
+                'id': video_id,
+                'title': video_details.get('title'),
+                'description': video_details.get('description'),
+                'duration': int_or_none(video_details.get('duration')),
+                'release_timestamp': unified_timestamp(video_details.get('dateOfRelease')),
+                'categories': traverse_obj(video_details, (('videoCategory', 'videoSubcategory'),)),
+                'thumbnail': traverse_obj(video_details, ('backgroundImage', 'src')),
+                'formats': formats,
+                'subtitles': subtitles,
+            }
 
     def _real_extract(self, url):
         article_id, locale = self._match_valid_url(url).group('id', 'locale')
@@ -319,96 +335,6 @@ class FifaArticleIE(FifaBaseIE):
             'richtext', 'content', lambda _, v: v['data']['target']['contentTypesCheckboxValue'] == 'Video',
             'data', 'target', 'sys', 'id')))
 
-        return self.playlist_from_matches(
-            video_ids, article_id, page_info.get('articleTitle'),
-            getter=lambda x: f'https://www.fifa.com/fifaplus/{locale}/watch/{x}',
-            ie=FifaIE, multi_video=True, timestamp=parse_iso8601(page_info.get('articlePublishedDate')))
-
-
-class FifaMovieIE(FifaBaseIE):
-    _VALID_URL = r'https?://(www\.)?fifa\.com/fifaplus/(?P<locale>\w{2})/watch/movie/(?P<id>\w+)[/?\?\#]?'
-    _TESTS = [{
-        'url': 'https://www.fifa.com/fifaplus/en/watch/movie/2OFuZ9TGyPH6x7nZsgnVBN',
-        'info_dict': {
-            '_type': 'multi_video',
-            'id': '2OFuZ9TGyPH6x7nZsgnVBN',
-            'title': 'Bravas de Juárez',
-            'description': 'md5:1c36885f34d1c142f66ddd5acd5226b2',
-        },
-        'playlist_count': 2,
-    }, {
-        'url': 'https://www.fifa.com/fifaplus/en/watch/movie/01ioUo8QHiajSisrvP3ES2',
-        'info_dict': {
-            '_type': 'multi_video',
-            'id': '01ioUo8QHiajSisrvP3ES2',
-            'title': 'Le Moment | The Official Film of the 2019 FIFA Women’s World Cup™',
-            'description': 'md5:fbc803feb6fcbc82d2a73e914244484c',
-        },
-        'playlist_count': 1,
-    }, {
-        'url': 'https://www.fifa.com/fifaplus/en/watch/movie/69GbI9lVcwhOeBvea5eKUB',
-        'info_dict': {
-            '_type': 'multi_video',
-            'id': '69GbI9lVcwhOeBvea5eKUB',
-            'title': 'Dreams | The Official Film of the 2018 FIFA World Cup™',
-            'description': 'md5:e79dd17af4dcab1dd446ef6e22a79330',
-        },
-        'playlist_count': 1,
-    }]
-
-    def _real_extract(self, url):
-        movie_id, locale = self._match_valid_url(url).group('id', 'locale')
-
-        movie_details = self._call_api(
-            f'sections/movieDetails/{movie_id}', movie_id, 'Downloading Movie Details', query={'locale': locale})
-
-        video_ids = traverse_obj(movie_details, ('trailers', ..., 'entryId'))
-        if video_entry_id := traverse_obj(movie_details, ('video', 'videoEntryId')):
-            video_ids.append(video_entry_id)
-
-        return self.playlist_from_matches(
-            video_ids, movie_id, traverse_obj(movie_details, ('video', 'title')),
-            getter=lambda x: f'https://www.fifa.com/fifaplus/{locale}/watch/{x}',
-            ie=FifaIE, multi_video=True, playlist_description=traverse_obj(movie_details, ('video', 'description')))
-
-
-class FifaSeriesIE(FifaBaseIE):
-    _VALID_URL = r'https?://(www\.)?fifa\.com/fifaplus/(?P<locale>\w{2})/watch/series/(?P<serie_id>\w+)/(?P<season_id>\w+)/(?P<episode_id>\w+)[/?\?\#]?'
-    _TESTS = [{
-        'url': 'https://www.fifa.com/fifaplus/en/watch/series/48PQFX2J4TiDJcxWOxUPho/2ka5yomq8MBvfxe205zdQ9/6H72309PLWXafBIavvPzPQ#ReadMore',
-        'info_dict': {
-            '_type': 'multi_video',
-            'id': '48PQFX2J4TiDJcxWOxUPho',
-            'title': 'Episode 1 | Kariobangi',
-            'description': 'md5:ecbc8668f828d3cc2c0d00edcc0af04f',
-        },
-        'playlist_count': 4,
-    }, {
-        'url': 'https://www.fifa.com/fifaplus/en/watch/series/5Ja1dDLuudkFF95OVHcYBG/5epcWav73zMbjTJh2RxIOt/1NIHdDxPlYodbNobjS1iX5',
-        'info_dict': {
-            '_type': 'multi_video',
-            'id': '5Ja1dDLuudkFF95OVHcYBG',
-            'title': 'Paul Pogba and Aaron Wan Bissaka | HD Cutz',
-            'description': 'md5:16dc373774f503ef91f4489ca17c3f49',
-        },
-        'playlist_count': 10,
-    }]
-
-    def _real_extract(self, url):
-        series_id, locale, season_id, episode_id = self._match_valid_url(url).group('serie_id', 'locale', 'season_id', 'episode_id')
-
-        serie_details = self._call_api(
-            'sections/videoEpisodeDetails', series_id, 'Downloading Serie Details', query={
-                'locale': locale,
-                'seriesId': series_id,
-                'seasonId': season_id,
-                'episodeId': episode_id,
-            })
-
-        video_ids = traverse_obj(serie_details, ('seasons', ..., 'episodes', ..., 'entryId'))
-        video_ids.extend(traverse_obj(serie_details, ('trailers', ..., 'entryId')))
-
-        return self.playlist_from_matches(
-            video_ids, series_id, strip_or_none(serie_details.get('title')),
-            getter=lambda x: f'https://www.fifa.com/fifaplus/{locale}/watch/{x}',
-            ie=FifaIE, multi_video=True, playlist_description=strip_or_none(serie_details.get('description')))
+        return self.playlist_result(
+            self._entries(video_ids, article_id), article_id, page_info.get('articleTitle'),
+            timestamp=parse_iso8601(page_info.get('articlePublishedDate')))

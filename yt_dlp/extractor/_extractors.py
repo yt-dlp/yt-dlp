@@ -646,9 +646,7 @@ from .fczenit import FczenitIE
 from .fifa import (
     FifaArticleIE,
     FifaContentIE,
-    FifaIE,
-    FifaMovieIE,
-    FifaSeriesIE,
+    FifaPlayerIE,
 )
 from .filmon import (
     FilmOnChannelIE,
