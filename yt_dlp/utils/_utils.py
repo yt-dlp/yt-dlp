@@ -5165,6 +5165,7 @@ class _UnsafeExtensionError(Exception):
         'ico',
         'image',
         'jng',
+        'jpe',
         'jpeg',
         'jxl',
         'svg',
