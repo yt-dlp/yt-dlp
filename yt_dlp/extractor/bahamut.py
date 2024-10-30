@@ -9,16 +9,17 @@ from ..utils import (
 from ..utils.traversal import traverse_obj
 
 
-class AniGamerIE(InfoExtractor):
+class BahamutIE(InfoExtractor):
     _VALID_URL = r'https?://ani\.gamer\.com\.tw/animeVideo\.php\?sn=(?P<id>\d+)'
 
+    # see anime_player.js
     RATING_TO_AGE_LIMIT = {
         1: 0,
         2: 6,
         3: 12,
         4: 15,
-        # Seems like there's no age limit for '5'
-        6: 18,
+        5: 18,
+        6: 18,  # age-gated, needs login
     }
 
     def _real_extract(self, url):
@@ -31,8 +32,9 @@ class AniGamerIE(InfoExtractor):
                 'https://ani.gamer.com.tw/ajax/getdeviceid.php', video_id,
                 'Downloading device ID', 'Failed to download device ID',
                 headers=self.geo_verification_headers())['deviceid'])
+
+        # TODO: extract metadata from webpage
         metadata = {}
-        # format_id = '0'
         if api_result := self._download_json(
                 'https://api.gamer.com.tw/anime/v1/video.php', video_id,
                 'Downloading video info', 'Failed to download video info',
@@ -52,7 +54,7 @@ class AniGamerIE(InfoExtractor):
                         smuggle_url(f'https://ani.gamer.com.tw/animeVideo.php?sn={ep["videoSn"]}', {
                             'extract_playlist': False,
                             'device_id': device_id,
-                        }), ie=AniGamerIE,
+                        }), ie=BahamutIE,
                         video_id=ep['videoSn'], thumbnail=ep.get('cover')) for ep in traverse_obj(
                             api_result,
                             # This (the first ellipsis) extracts episodes of all languages,
@@ -68,23 +70,30 @@ class AniGamerIE(InfoExtractor):
                 'duration': ('duration', {float_or_none}, {lambda x: x * 60}),
                 'age_limit': ('rating', {lambda x: self.RATING_TO_AGE_LIMIT.get(x)}),
             })))
-            # format_id = traverse_obj(api_result, ('video', 'quality'), default=format_id)
 
-        m3u8_info = self._download_json('https://ani.gamer.com.tw/ajax/m3u8.php', video_id, query={
-            'sn': video_id,
-            'device': device_id,
-        }, headers=self.geo_verification_headers(), expected_status=400)
+        m3u8_info, urlh = self._download_json_handle(
+            'https://ani.gamer.com.tw/ajax/m3u8.php', video_id,
+            note='Downloading m3u8 URL', errnote='Failed to download m3u8 URL', query={
+                'sn': video_id,
+                'device': device_id,
+            }, headers=self.geo_verification_headers(), expected_status=400)
 
-        error_code = traverse_obj(m3u8_info, ('error', 'code'))
-        if error_code == 1011:
-            self.raise_geo_restricted()
-        elif error_code == 1007:
-            if unsmuggled_data.pop('device_id', None) is not None:
-                return self.url_result(
-                    smuggle_url(f'https://ani.gamer.com.tw/animeVideo.php?sn={video_id}',
-                                unsmuggled_data), ie=AniGamerIE, video_id=video_id)
-            raise ExtractorError('Invalid device id!')
-        # TODO: handle more error codes
+        if urlh.status == 400:
+            # TODO: handle more error codes, search for /case \d+{4}:/g in anime_player.js
+            error_code = traverse_obj(m3u8_info, ('error', 'code'))
+            if error_code == 1011:
+                self.raise_geo_restricted()
+            elif error_code == 1007:
+                if unsmuggled_data.pop('device_id', None) is not None:
+                    return self.url_result(
+                        smuggle_url(f'https://ani.gamer.com.tw/animeVideo.php?sn={video_id}',
+                                    unsmuggled_data), ie=BahamutIE, video_id=video_id)
+                raise ExtractorError('Invalid device id!')
+            elif error_code == 1017:
+                self.raise_login_required()
+            raise ExtractorError(traverse_obj(m3u8_info, ('error', 'message'))
+                                 or 'Failed to download m3u8 URL')
+
         src = m3u8_info['src']
         return {
             **metadata,

@@ -1868,8 +1868,8 @@ The following extractors use this feature:
 #### digitalconcerthall
 * `prefer_combined_hls`: Prefer extracting combined/pre-merged video and audio HLS formats. This will exclude 4K/HEVC video and lossless/FLAC audio formats, which are only available as split video/audio HLS formats
 
-#### anigamer
-* `device_id`: (optional) Device ID got from `https://ani.gamer.com.tw/ajax/getdeviceid.php` (bound to cookies and `User-Agent` HTTP header). The extractor will automatically fetch one if it is not present. E.g. `"anigamer:device_id=1234567890abcdef1234567890abcdef1234567890abcdef1234567890ab"`
+#### bahamut
+* `device_id`: (optional) Device ID got from `https://ani.gamer.com.tw/ajax/getdeviceid.php` (bound to cookies and `User-Agent` HTTP header). The extractor will automatically fetch one if it is not present. E.g. `"bahamut:device_id=1234567890abcdef1234567890abcdef1234567890abcdef1234567890ab"`
 
 **Note**: These options may be changed/removed in the future without concern for backward compatibility
 

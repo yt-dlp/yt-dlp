@@ -127,7 +127,6 @@ from .americastestkitchen import (
 )
 from .anchorfm import AnchorFMEpisodeIE
 from .angel import AngelIE
-from .anigamer import AniGamerIE
 from .antenna import (
     Ant1NewsGrArticleIE,
     Ant1NewsGrEmbedIE,
@@ -197,6 +196,7 @@ from .awaan import (
 )
 from .axs import AxsIE
 from .azmedien import AZMedienIE
+from .bahamut import BahamutIE
 from .baidu import BaiduVideoIE
 from .banbye import (
     BanByeChannelIE,
