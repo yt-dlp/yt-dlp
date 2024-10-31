@@ -36,7 +36,7 @@ class SubsplashVideoIE(InfoExtractor):
             'description': None,
             'upload_date': '20240903',
             'duration': 1709,
-            'thumbnail': r're:^https?://.*\.(?:jpg|png)$',
+            'thumbnail': r're:https?://.*\.(?:jpg|png)$',
         },
     }]
 
