@@ -79,11 +79,13 @@ class BahamutIE(InfoExtractor):
                 'device': device_id,
             }, headers=self.geo_verification_headers(), expected_status=400)
 
+        formats_fatal = True
         if urlh.status == 400:
             # TODO: handle more error codes, search for /case \d+{4}:/g in anime_player.js
             error_code = traverse_obj(m3u8_info, ('error', 'code'))
             if error_code == 1011:
-                self.raise_geo_restricted()
+                self.raise_geo_restricted(metadata_available=True)
+                formats_fatal = False
             elif error_code == 1007:
                 if unsmuggled_data.pop('device_id', None) is not None:
                     return self.url_result(
@@ -91,18 +93,19 @@ class BahamutIE(InfoExtractor):
                                     unsmuggled_data), ie=BahamutIE, video_id=video_id)
                 raise ExtractorError('Invalid device id!')
             elif error_code == 1017:
-                self.raise_login_required()
+                self.raise_login_required(metadata_available=True)
+                formats_fatal = False
+            else:
+                raise ExtractorError(
+                    traverse_obj(m3u8_info, ('error', 'message')) or 'Failed to download m3u8 URL')
 
-            raise ExtractorError(traverse_obj(m3u8_info, ('error', 'message'))
-                                 or 'Failed to download m3u8 URL')
-
-        src = m3u8_info['src']
         return {
             **metadata,
             'id': video_id,
-            'formats': self._extract_m3u8_formats(src, video_id, 'mp4', headers={
-                'Origin': 'https://ani.gamer.com.tw',
-                **self.geo_verification_headers(),
-            }),
+            'formats': self._extract_m3u8_formats(
+                m3u8_info.get('src'), video_id, ext='mp4', fatal=formats_fatal, headers={
+                    'Origin': 'https://ani.gamer.com.tw',
+                    **self.geo_verification_headers(),
+                }),
             'http_headers': {'Origin': 'https://ani.gamer.com.tw'},
         }
