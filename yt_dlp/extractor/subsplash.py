@@ -24,7 +24,7 @@ class SubsplashVideoIE(InfoExtractor):
             'description': 'md5:220a630865c3697b0ec9dcb3a70cbc33',
             'upload_date': '20240901',
             'duration': 1710,
-            'thumbnail': r're:^https?://.*\.(?:jpg|png)$',
+            'thumbnail': r're:https?://.*\.(?:jpg|png)$',
         },
     }, {
         'url': 'https://subsplash.com/u/prophecywatchers/media/d/n4dr8b2-the-transhumanist-plan-for-humanity-billy-crone',
