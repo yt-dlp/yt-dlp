@@ -220,6 +220,7 @@ class FifaContentIE(FifaBaseIE):
     }]
 
     def _entries(self, video_asset, video_id):
+        # trailers are non-DRM'd
         for video_info in traverse_obj(video_asset, (lambda _, v: v['type'] == 'TRAILER', {dict})):
             yield self._extract_video(video_info, video_id)
 
