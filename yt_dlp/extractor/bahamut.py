@@ -51,6 +51,7 @@ class BahamutIE(InfoExtractor):
             if self._yes_playlist(playlist_id, video_id) and unsmuggled_data.get('extract_playlist') is not False:
                 return self.playlist_result(
                     (self.url_result(
+                        # it may be better to use self.cache for storing device_id
                         smuggle_url(f'https://ani.gamer.com.tw/animeVideo.php?sn={ep["videoSn"]}', {
                             'extract_playlist': False,
                             'device_id': device_id,
@@ -67,7 +68,7 @@ class BahamutIE(InfoExtractor):
                 'thumbnail': 'cover',
                 'title': 'title',
                 'timestamp': ('upTime', {unified_timestamp}),
-                'duration': ('duration', {float_or_none}, {lambda x: x * 60}),
+                'duration': ('duration', {float_or_none(scale=60)}),
                 'age_limit': ('rating', {lambda x: self.RATING_TO_AGE_LIMIT.get(x)}),
             })))
 
@@ -91,6 +92,7 @@ class BahamutIE(InfoExtractor):
                 raise ExtractorError('Invalid device id!')
             elif error_code == 1017:
                 self.raise_login_required()
+
             raise ExtractorError(traverse_obj(m3u8_info, ('error', 'message'))
                                  or 'Failed to download m3u8 URL')
 
@@ -102,7 +104,5 @@ class BahamutIE(InfoExtractor):
                 'Origin': 'https://ani.gamer.com.tw',
                 **self.geo_verification_headers(),
             }),
-            'http_headers': {
-                'Origin': 'https://ani.gamer.com.tw',
-            },
+            'http_headers': {'Origin': 'https://ani.gamer.com.tw'},
         }
