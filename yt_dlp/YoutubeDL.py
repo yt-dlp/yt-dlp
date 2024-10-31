@@ -1620,7 +1620,7 @@ class YoutubeDL:
     def _handle_extraction_exceptions(func):
         @functools.wraps(func)
         def wrapper(self, *args, **kwargs):
-            wait_retries = 1
+            wait_retries = 0
             max_wait_retries = self.params.get('wait_retries')
             while True:
                 try:
@@ -1628,9 +1628,9 @@ class YoutubeDL:
                 except (CookieLoadError, DownloadCancelled, LazyList.IndexError, PagedList.IndexError):
                     raise
                 except ReExtractInfo as e:
-                    if wait_retries > max_wait_retries:
+                    if wait_retries >= max_wait_retries:
                         if max_wait_retries > 0:
-                            self.report_error(f'Giving up after {wait_retries - 1} {"retries" if wait_retries > 2 else "retry"} while waiting.')
+                            self.report_error(f'Giving up after {wait_retries} {"retries" if wait_retries > 2 else "retry"} while waiting.')
                         else:
                             self.report_error('Video is still unavailable after waiting.')
                         return
