@@ -36,7 +36,8 @@ jobs:
     permissions:
       id-token: write  # mandatory for trusted publishing
     steps:
-      - uses: actions/download-artifact@v4
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
         with:
           path: dist
           name: build-pypi

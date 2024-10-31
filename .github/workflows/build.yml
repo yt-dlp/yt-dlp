@@ -504,7 +504,8 @@ jobs:
       - windows32
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v4
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
         with:
           path: artifact
           pattern: build-bin-*
