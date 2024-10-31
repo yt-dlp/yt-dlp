@@ -16,24 +16,31 @@ from ..utils.traversal import traverse_obj
 
 
 class FifaBaseIE(InfoExtractor):
+    _HEADERS = {
+        'content-type': 'application/json; charset=UTF-8',
+        'x-chili-accept-language': 'en',
+        'x-chili-api-version': '1.1',
+        'x-chili-authenticated': 'false',
+        'x-chili-device-id': 'undefined',
+        'x-chili-device-profile': 'WEB',
+        'x-chili-device-store': 'CHILI',
+        'x-chili-user-country': 'US',
+        'x-chili-accept-stream-mode': 'multi/codec-compatibility;q=0.8, mono/strict;q=0.7',
+        'x-chili-avod-compatibility': 'free,free-ads',
+        'x-chili-manifest-properties': 'subtitles',
+        'x-chili-streaming-proto': 'https',
+    }
+
+    def _call_api(self, path, video_id, note=None, headers=None, query=None, data=None):
+        return self._download_json(
+            f'https://www.plus.fifa.com/{path}', video_id, note, headers={
+                **self._HEADERS,
+                **(headers or {}),
+            }, query=query, data=data)
+
     def _real_initialize(self):
-        self._HEADERS = {
-            'content-type': 'application/json; charset=UTF-8',
-            'x-chili-accept-language': 'en',
-            'x-chili-api-version': '1.1',
-            'x-chili-authenticated': 'false',
-            'x-chili-device-id': 'undefined',
-            'x-chili-device-profile': 'WEB',
-            'x-chili-device-store': 'CHILI',
-            'x-chili-user-country': 'US',
-            'x-chili-accept-stream-mode': 'multi/codec-compatibility;q=0.8, mono/strict;q=0.7',
-            'x-chili-avod-compatibility': 'free,free-ads',
-            'x-chili-manifest-properties': 'subtitles',
-            'x-chili-streaming-proto': 'https',
-        }
-        device_info = self._download_json(
-            'https://www.plus.fifa.com/gatekeeper/api/v1/devices/', None, 'Getting device info',
-            headers=self._HEADERS,
+        device_info = self._call_api(
+            'gatekeeper/api/v1/devices/', None, 'Getting device info',
             data=json.dumps({
                 'appVersion': '2.6.93',
                 'displayName': None,
@@ -50,13 +57,6 @@ class FifaBaseIE(InfoExtractor):
                 'screenHeight': '1080',
             }).encode())
         self._HEADERS['x-chili-device-id'] = device_info['id']
-
-    def _call_api(self, path, video_id, note=None, headers=None, query=None, data=None):
-        return self._download_json(
-            f'https://www.plus.fifa.com/{path}', video_id, note, headers={
-                **self._HEADERS,
-                **(headers or {}),
-            }, query=query, data=data)
 
     def _extract_video(self, video_info, video_id):
         formats = []
@@ -104,7 +104,7 @@ class FifaBaseIE(InfoExtractor):
 
 
 class FifaPlayerIE(FifaBaseIE):
-    _VALID_URL = r'https?://(www\.)?plus\.fifa\.com/(?:\w{2})/player/(?P<id>[\w-]+)/?\?(?:[^#]+&)?catalogId=(?P<display_id>[\w-]+)'
+    _VALID_URL = r'https?://(www\.)?plus\.fifa\.com/(?:\w{2})/player/(?P<id>[\w-]+)/?\?(?:[^#]+&)?catalogId=(?P<catalog_id>[\w-]+)'
     _TESTS = [{
         'url': 'https://www.plus.fifa.com/en/player/f67b9d46-38c3-4e38-bbf3-89cf14cbcc1a?catalogId=b9c32230-1426-46d0-8448-ca824ae48603&entryPoint=Slider',
         'info_dict': {
@@ -133,10 +133,10 @@ class FifaPlayerIE(FifaBaseIE):
     }]
 
     def _real_extract(self, url):
-        video_id, catelog_id = self._match_valid_url(url).group('id', 'display_id')
+        video_id, catalog_id = self._match_valid_url(url).group('id', 'catalog_id')
         video_asset = self._call_api(
             'flux-capacitor/api/v1/videoasset', video_id,
-            'Downloading video asset', query={'catalog': catelog_id})
+            'Downloading video asset', query={'catalog': catalog_id})
         video_info = traverse_obj(video_asset, (lambda _, v: v['id'] == video_id), get_all=False)
         if not video_info:
             raise ExtractorError('Unable to extract video info')
@@ -329,7 +329,6 @@ class FifaArticleIE(InfoExtractor):
         video_ids = []
         if hero_video_entry_id := page_info.get('heroVideoEntryId'):
             video_ids.append(hero_video_entry_id)
-
         video_ids.extend(traverse_obj(page_info, (
             'richtext', 'content', lambda _, v: v['data']['target']['contentTypesCheckboxValue'] == 'Video',
             'data', 'target', 'sys', 'id')))
