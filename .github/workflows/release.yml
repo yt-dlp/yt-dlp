@@ -282,6 +282,7 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           verbose: true
+          attestations: false  # Currently doesn't work w/ reusable workflows (breaks nightly)
 
   publish:
     needs: [prepare, build]
