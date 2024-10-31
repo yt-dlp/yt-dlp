@@ -164,12 +164,10 @@ class CHZZKVideoIE(InfoExtractor):
                     'cpl': 'en_US',
                 }, note='Downloading video playback', errnote='Unable to download video playback')
         else:
-            self.raise_no_formats(f'Unknown video status detected: "{video_status}"',
-                                  expected=True, video_id=video_id)
-            formats = []
-            subtitles = {}
-            if live_status == 'was_live':
-                live_status = 'post_live'
+            self.raise_no_formats(
+                f'Unknown video status detected: "{video_status}"', expected=True, video_id=video_id)
+            formats, subtitles = [], {}
+            live_status = 'post_live' if live_status == 'was_live' else None
         return {
             'id': video_id,
             'formats': formats,
