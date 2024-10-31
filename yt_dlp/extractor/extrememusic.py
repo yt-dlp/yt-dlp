@@ -86,7 +86,7 @@ class ExtremeMusicBaseIE(InfoExtractor):
                                              (lambda _, v: v['id'] == int(sound_id) and v['track_id'] == int(track_id),
                                               {dict}), get_all=False):
                         if (version_id
-                                or 'all' in self._REQUIRE_VERSION 
+                                or 'all' in self._REQUIRE_VERSION
                                 or any(x in sound['version_type'].lower() for x in self._REQUIRE_VERSION)):
                             formats = []
                             for audio_url in traverse_obj(sound, ('assets', 'audio', ('preview_url',
