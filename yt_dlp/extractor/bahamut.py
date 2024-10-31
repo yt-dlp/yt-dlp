@@ -31,14 +31,14 @@ class BahamutIE(InfoExtractor):
             or self._download_json(
                 'https://ani.gamer.com.tw/ajax/getdeviceid.php', video_id,
                 'Downloading device ID', 'Failed to download device ID',
-                headers=self.geo_verification_headers())['deviceid'])
+                impersonate=True, headers=self.geo_verification_headers())['deviceid'])
 
         # TODO: extract metadata from webpage
         metadata = {}
         if api_result := self._download_json(
                 'https://api.gamer.com.tw/anime/v1/video.php', video_id,
                 'Downloading video info', 'Failed to download video info',
-                query={'videoSn': video_id}).get('data'):
+                impersonate=True, query={'videoSn': video_id}).get('data'):
 
             metadata.update(traverse_obj(api_result, ('anime', {
                 'description': 'content',
@@ -77,7 +77,7 @@ class BahamutIE(InfoExtractor):
             note='Downloading m3u8 URL', errnote='Failed to download m3u8 URL', query={
                 'sn': video_id,
                 'device': device_id,
-            }, headers=self.geo_verification_headers(), expected_status=400)
+            }, impersonate=True, headers=self.geo_verification_headers(), expected_status=400)
 
         formats_fatal = True
         if urlh.status == 400:
