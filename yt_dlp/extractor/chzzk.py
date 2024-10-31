@@ -147,7 +147,7 @@ class CHZZKVideoIE(InfoExtractor):
             f'https://api.chzzk.naver.com/service/v3/videos/{video_id}', video_id,
             note='Downloading video info', errnote='Unable to download video info')['content']
 
-        live_status = 'was_live' is video_meta.get('liveOpenDate') else 'not_live'
+        live_status = 'was_live' if video_meta.get('liveOpenDate') else 'not_live'
         video_status = video_meta.get('vodStatus')
         if video_status == 'UPLOAD':
             playback = self._parse_json(video_meta['liveRewindPlaybackJson'], video_id)
