@@ -150,19 +150,18 @@ class CHZZKVideoIE(InfoExtractor):
         live_status = 'was_live' is video_meta.get('liveOpenDate') else 'not_live'
         video_status = video_meta.get('vodStatus')
         if video_status == 'UPLOAD':
-            playback = self._parse_json(video_meta.get('liveRewindPlaybackJson'), video_id)
+            playback = self._parse_json(video_meta['liveRewindPlaybackJson'], video_id)
             formats, subtitles = self._extract_m3u8_formats_and_subtitles(
-                traverse_obj(playback, ('media', 0, 'path')), video_id,
-                note='Downloading video playback', errnote='Unable to download video playback')
+                playback['media'][0]['path']), video_id, 'mp4', m3u8_id='hls')
         elif video_status == 'ABR_HLS':
             formats, subtitles = self._extract_mpd_formats_and_subtitles(
-                f'https://apis.naver.com/neonplayer/vodplay/v1/playback/{video_meta.get("videoId")}', video_id,
-                query={
+                f'https://apis.naver.com/neonplayer/vodplay/v1/playback/{video_meta["videoId"]}',
+                video_id, query={
                     'key': video_meta['inKey'],
                     'env': 'real',
                     'lc': 'en_US',
                     'cpl': 'en_US',
-                }, note='Downloading video playback', errnote='Unable to download video playback')
+                })
         else:
             self.raise_no_formats(
                 f'Unknown video status detected: "{video_status}"', expected=True, video_id=video_id)
