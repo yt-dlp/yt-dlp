@@ -152,7 +152,7 @@ class CHZZKVideoIE(InfoExtractor):
         if video_status == 'UPLOAD':
             playback = self._parse_json(video_meta['liveRewindPlaybackJson'], video_id)
             formats, subtitles = self._extract_m3u8_formats_and_subtitles(
-                playback['media'][0]['path']), video_id, 'mp4', m3u8_id='hls')
+                playback['media'][0]['path'], video_id, 'mp4', m3u8_id='hls')
         elif video_status == 'ABR_HLS':
             formats, subtitles = self._extract_mpd_formats_and_subtitles(
                 f'https://apis.naver.com/neonplayer/vodplay/v1/playback/{video_meta["videoId"]}',
