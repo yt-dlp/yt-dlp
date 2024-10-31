@@ -67,8 +67,8 @@ class FifaBaseIE(InfoExtractor):
             'mpd/cenc+h264;q=0.9, mpd/clear+h264;q=0.7, mp4/;q=0.1',
         ]:
             session_info = self._call_api(
-                'flux-capacitor/api/v1/streaming/session', video_id, 'Getting streaming session',
-                headers={'x-chili-accept-stream': stream_type},
+                'flux-capacitor/api/v1/streaming/session', video_id,
+                'Getting streaming session', headers={'x-chili-accept-stream': stream_type},
                 data=json.dumps({'videoAssetId': video_info['id'], 'autoPlay': False}).encode())
             streams_info = self._call_api(
                 'flux-capacitor/api/v1/streaming/urls', video_id, 'Getting streaming urls',
