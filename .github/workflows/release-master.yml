@@ -28,3 +28,24 @@ jobs:
       actions: write  # For cleaning up cache
       id-token: write  # mandatory for trusted publishing
     secrets: inherit
+
+  publish_pypi:
+    needs: [release]
+    if: vars.MASTER_PYPI_PROJECT != ''
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write  # mandatory for trusted publishing
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          name: build-pypi
+      - name: Verify SHA2-256SUMS
+        run: |
+          cd ./dist/
+          sha256sum -c SHA2-256SUMS
+          rm SHA2-256SUMS
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          verbose: true

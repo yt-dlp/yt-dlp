@@ -2,10 +2,6 @@ name: Release
 on:
   workflow_call:
     inputs:
-      prerelease:
-        required: false
-        default: true
-        type: boolean
       source:
         required: false
         default: ''
@@ -18,6 +14,14 @@ on:
         required: false
         default: ''
         type: string
+      prerelease:
+        required: false
+        default: true
+        type: boolean
+      manual_dispatch:
+        required: false
+        default: false
+        type: boolean
   workflow_dispatch:
     inputs:
       source:
@@ -46,6 +50,10 @@ on:
       prerelease:
         description: Pre-release
         default: false
+        type: boolean
+      manual_dispatch:
+        description: Manual dispatch (do not toggle)
+        default: true
         type: boolean
 
 permissions:
@@ -278,7 +286,28 @@ jobs:
           make clean-cache
           python -m build --no-isolation .
 
+      - name: Make SHA2-SUMS files
+        if: ${{ !inputs.manual_dispatch }}
+        run: |
+          cd ./dist/
+          # make sure SHA sums are also printed to stdout
+          sha256sum -- * | tee SHA2-256SUMS
+          # also print as permanent annotations to the summary page
+          while read -r shasum; do
+            echo "::notice title=${shasum##* }::sha256: ${shasum% *}"
+          done < SHA2-256SUMS
+
+      - name: Upload PyPI artifacts
+        if: ${{ !inputs.manual_dispatch }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-pypi
+          path: |
+            dist/*
+          compression-level: 0
+
       - name: Publish to PyPI
+        if: inputs.manual_dispatch
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           verbose: true
