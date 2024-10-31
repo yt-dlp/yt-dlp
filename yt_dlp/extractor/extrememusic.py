@@ -26,6 +26,7 @@ class ExtremeMusicBaseIE(InfoExtractor):
         # use user's own country code if no code (geo_bypass_country or pre-defined country code) is provided
         if not country:
             country = self._download_webpage('https://ipapi.co/country_code', video_id)
+            self.to_screen(f'Set country code to {country}')
         env = self._download_json('https://www.extrememusic.com/env', video_id)
         self._REQUEST_HEADERS = {
             'Accept': 'application/json',
@@ -84,7 +85,9 @@ class ExtremeMusicBaseIE(InfoExtractor):
                     if sound := traverse_obj(album_data['track_sounds'],
                                              (lambda _, v: v['id'] == int(sound_id) and v['track_id'] == int(track_id),
                                               {dict}), get_all=False):
-                        if version_id or any(x in self._REQUIRE_VERSION for x in ['all', sound['version_type'].lower()]):
+                        if (version_id
+                                or 'all' in self._REQUIRE_VERSION 
+                                or any(x in sound['version_type'].lower() for x in self._REQUIRE_VERSION)):
                             formats = []
                             for audio_url in traverse_obj(sound, ('assets', 'audio', ('preview_url',
                                                                                       'preview_url_hls'))):
@@ -283,7 +286,7 @@ class ExtremeMusicPIE(ExtremeMusicBaseIE):
             'thumbnail': 'https://d2oet5a29f64lj.cloudfront.net/img-data/w/2480/featureditem/square/thumbnail_PLAYLIST_Nice-square-(formerly ChristmasTraditional).jpg',
         },
         'playlist_mincount': 29,
-        'expected_warnings': ['This playlist has geo-restricted items. Try using --xff to specify a different country code.'],
+        'expected_warnings': ['This playlist has geo-restricted items. Try using --xff to specify a different country code, e.g. DE'],
     }, {
         'url': 'https://www.extrememusic.com/playlists/fUKKU5KAfK61pAAKp4U4KpKUxsRk2ki_fU117KpUUAAUKAUfpA6UAfAKK8Ul5ji',
         'info_dict': {
@@ -333,7 +336,7 @@ class ExtremeMusicPIE(ExtremeMusicBaseIE):
 
         if entries:
             if len(track_done) < playlist['playlist']['playlist_items_count']:
-                self.report_warning('This playlist has geo-restricted items. Try using --xff to specify a different country code.')
+                self.report_warning('This playlist has geo-restricted items. Try using --xff to specify a different country code, e.g. DE')
 
             for image in traverse_obj(playlist['playlist'], ('images', 'square')):
                 thumbnails.append(traverse_obj(image, {
