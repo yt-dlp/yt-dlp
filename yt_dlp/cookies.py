@@ -459,7 +459,9 @@ class LinuxChromeCookieDecryptor(ChromeCookieDecryptor):
             if self._v11_key is None:
                 self._logger.warning('cannot decrypt v11 cookies: no key found', only_once=True)
                 return None
-            return _decrypt_aes_cbc_multi(ciphertext, (self._v11_key, self._empty_key), self._logger, prepended_sig=self._meta_version>=24)
+            return _decrypt_aes_cbc_multi(
+                ciphertext, (self._v11_key, self._empty_key), self._logger,
+                prepended_sig=self._meta_version >= 24)
 
         else:
             self._logger.warning(f'unknown cookie version: "{version}"', only_once=True)
@@ -491,7 +493,8 @@ class MacChromeCookieDecryptor(ChromeCookieDecryptor):
                 self._logger.warning('cannot decrypt v10 cookies: no key found', only_once=True)
                 return None
 
-            return _decrypt_aes_cbc_multi(ciphertext, (self._v10_key,), self._logger, prepended_sig=self._meta_version>=24)
+            return _decrypt_aes_cbc_multi(
+                ciphertext, (self._v10_key,), self._logger, prepended_sig=self._meta_version >= 24)
 
         else:
             self._cookie_counts['other'] += 1
@@ -529,7 +532,9 @@ class WindowsChromeCookieDecryptor(ChromeCookieDecryptor):
             ciphertext = raw_ciphertext[nonce_length:-authentication_tag_length]
             authentication_tag = raw_ciphertext[-authentication_tag_length:]
 
-            return _decrypt_aes_gcm(ciphertext, self._v10_key, nonce, authentication_tag, self._logger, prepended_sig=self._meta_version>=24)
+            return _decrypt_aes_gcm(
+                ciphertext, self._v10_key, nonce, authentication_tag, self._logger,
+                prepended_sig=self._meta_version >= 24)
 
         else:
             self._cookie_counts['other'] += 1
