@@ -34,31 +34,24 @@ class AtresPlayerIE(InfoExtractor):
     _API_BASE = 'https://api.atresplayer.com/'
 
     def _perform_login(self, username, password):
-        self._request_webpage(
-            self._API_BASE + 'login', None, 'Downloading login page')
-
         try:
-            target_url = self._download_json(
-                'https://account.atresmedia.com/api/login', None,
-                'Logging in', headers={
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                }, data=urlencode_postdata({
+            self._download_webpage(
+                'https://account.atresplayer.com/auth/v1/login', None,
+                'Logging in', data=urlencode_postdata({
                     'username': username,
                     'password': password,
-                }))['targetUrl']
+                }))
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError) and e.cause.status == 400:
                 raise ExtractorError('Invalid username and/or password', expected=True)
             raise
-
-        self._request_webpage(target_url, None, 'Following Target URL')
 
     def _real_extract(self, url):
         display_id, video_id = self._match_valid_url(url).groups()
 
         try:
             episode = self._download_json(
-                self._API_BASE + 'client/v1/player/episode/' + video_id, video_id)
+                self._API_BASE + 'player/v1/episode/' + video_id, video_id)
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError) and e.cause.status == 403:
                 error = self._parse_json(e.cause.response.read(), None)
@@ -77,11 +70,11 @@ class AtresPlayerIE(InfoExtractor):
                 continue
             src_type = source.get('type')
             if src_type == 'application/vnd.apple.mpegurl':
-                formats, subtitles = self._extract_m3u8_formats(
+                formats = self._extract_m3u8_formats(
                     src, video_id, 'mp4', 'm3u8_native',
                     m3u8_id='hls', fatal=False)
             elif src_type == 'application/dash+xml':
-                formats, subtitles = self._extract_mpd_formats(
+                formats = self._extract_mpd_formats(
                     src, video_id, mpd_id='dash', fatal=False)
 
         heartbeat = episode.get('heartbeat') or {}
