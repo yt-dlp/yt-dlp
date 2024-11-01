@@ -3,7 +3,7 @@ from ..utils import int_or_none, mimetype2ext, parse_iso8601, traverse_obj, url_
 
 
 class BlueskyIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?bsky\.app/profile/(?P<handle>[^/]+)/post/(?P<id>[0-9a-zA-Z]+)'
+    _VALID_URL = r'https?://(?:www\.)?(?:bsky\.app|main\.bsky\.dev)/profile/(?P<handle>[^/]+)/post/(?P<id>[0-9a-zA-Z]+)'
     _TESTS = [{
         'url': 'https://bsky.app/profile/blu3blue.bsky.social/post/3l4omssdl632g',
         'md5': '375539c1930ab05d15585ed772ab54fd',
@@ -27,6 +27,7 @@ class BlueskyIE(InfoExtractor):
             'webpage_url': 'https://bsky.app/profile/blu3blue.bsky.social/post/3l4omssdl632g',
             'tags': 'count:1',
             'comments': 'mincount:29',
+            'age_limit': 0,
         },
         'params': {'getcomments': True},
     }, {
@@ -51,13 +52,14 @@ class BlueskyIE(InfoExtractor):
             'repost_count': int,
             'comment_count': int,
             'webpage_url': 'https://bsky.app/profile/bsky.app/post/3l3vgf77uco2g',
-            'tags': 'count:2',
+            'tags': ['en', 'pt'],
             'subtitles': {
                 'en': 'mincount:1',
             },
+            'age_limit': 0,
         },
     }, {
-        'url': 'https://bsky.app/profile/souris.moe/post/3l4qhp7bcs52c',
+        'url': 'https://main.bsky.dev/profile/souris.moe/post/3l4qhp7bcs52c',
         'md5': '5f2df8c200b5633eb7fb2c984d29772f',
         'info_dict': {
             'id': '3l4qhp7bcs52c',
@@ -76,9 +78,10 @@ class BlueskyIE(InfoExtractor):
             'like_count': int,
             'repost_count': int,
             'comment_count': int,
-            'webpage_url': 'https://bsky.app/profile/souris.moe/post/3l4qhp7bcs52c',
+            'webpage_url': 'https://main.bsky.dev/profile/souris.moe/post/3l4qhp7bcs52c',
             'tags': 'count:1',
             'subtitles': 'count:0',
+            'age_limit': 0,
         },
     }, {
         'url': 'https://bsky.app/profile/de1.pds.tentacle.expert/post/3l3w4tnezek2e',
@@ -103,6 +106,7 @@ class BlueskyIE(InfoExtractor):
             'webpage_url': 'https://bsky.app/profile/de1.pds.tentacle.expert/post/3l3w4tnezek2e',
             'tags': 'count:1',
             'subtitles': 'count:0',
+            'age_limit': 0,
         },
     }, {
         'url': 'https://bsky.app/profile/yunayuispink.bsky.social/post/3l7gqcfes742o',
@@ -134,6 +138,7 @@ class BlueskyIE(InfoExtractor):
             'comment_count': int,
         },
         'add_ie': ['Youtube'],
+        'params': {'getcomments': True},
     }, {
         'url': 'https://bsky.app/profile/endshark.bsky.social/post/3jzxjkcemae2m',
         'md5': 'd5c8fbc8f72b9f6ef160c150c420bb55',
@@ -183,6 +188,30 @@ class BlueskyIE(InfoExtractor):
             'subtitles': {
                 'en': 'mincount:1',
             },
+            'age_limit': 0,
+        },
+    }, {
+        'url': 'https://bsky.app/profile/alt.bun.how/post/3l7rdfxhyds2f',
+        'md5': '8775118b235cf9fa6b5ad30f95cda75c',
+        'info_dict': {
+            'id': '3l7rdfxhyds2f',
+            'ext': 'mp4',
+            'channel_url': 'https://bsky.app/profile/did:plc:7x6rtuenkuvxq3zsvffp2ide',
+            'timestamp': 1730332128,
+            'channel_id': 'did:plc:7x6rtuenkuvxq3zsvffp2ide',
+            'upload_date': '20241030',
+            'channel': 'alt.bun.how',
+            'uploader_id': 'did:plc:7x6rtuenkuvxq3zsvffp2ide',
+            'description': 'crazy that i look like this tbh',
+            'comment_count': int,
+            'thumbnail': r're:https://video.bsky.app/watch/.*\.jpg$',
+            'uploader_url': 'https://bsky.app/profile/alt.bun.how',
+            'tags': ['en', 'sexual', 'sexual'],
+            'like_count': int,
+            'title': 'cinnamon on Bluesky',
+            'uploader': 'cinnamon',
+            'repost_count': int,
+            'age_limit': 18,
         },
     }]
 
@@ -216,6 +245,15 @@ class BlueskyIE(InfoExtractor):
         if parent := thread_node.get('parent'):
             yield from self.traverse_replies(parent, root_uri)
 
+    def get_service_endpoint(self, did, video_id):
+        services = self._download_json(
+            f'https://resolver.identity.foundation/1.0/identifiers/{did}',
+            video_id, fatal=False).get('service') or []
+        for service in services:
+            if service.get('type') == 'AtprotoPersonalDataServer':
+                return service.get('serviceEndpoint')
+        return 'https://bsky.social'
+
     def _real_extract(self, url):
         handle, video_id = self._match_valid_url(url).groups()
 
@@ -246,9 +284,10 @@ class BlueskyIE(InfoExtractor):
                 video_id, 'mp4', 'm3u8_native', m3u8_id='hls', fatal=False,
                 note='Downloading m3u8 information', errnote='Unable to download m3u8 information')
             if blob_cid := traverse_obj(record_embed, ('video', 'ref', '$link'), ('video', 'cid')):
+                endpoint = self.get_service_endpoint(did, video_id)
                 formats.append({
                     'format_id': 'blob',
-                    'url': f'https://bsky.social/xrpc/com.atproto.sync.getBlob?did={did}&cid={blob_cid}',
+                    'url': f'{endpoint}/xrpc/com.atproto.sync.getBlob?did={did}&cid={blob_cid}',
                     **traverse_obj(record_embed, {
                         'ext': ('video', 'mimeType', {mimetype2ext}),
                         'width': ('aspectRatio', 'width', {int_or_none}),
@@ -273,9 +312,10 @@ class BlueskyIE(InfoExtractor):
             if blob_cid := quoted_media.get('cid'):
                 quoted_did = traverse_obj(quoted_post, ('author', 'did'))
                 quoted_embed = traverse_obj(quoted_post, ('value', 'embed', ('media', None)), get_all=False)
+                endpoint = self.get_service_endpoint(quoted_did, video_id)
                 formats.append({
                     'format_id': 'blob',
-                    'url': f'https://bsky.social/xrpc/com.atproto.sync.getBlob?did={quoted_did}&cid={blob_cid}',
+                    'url': f'{endpoint}/xrpc/com.atproto.sync.getBlob?did={quoted_did}&cid={blob_cid}',
                     **traverse_obj(quoted_embed, {
                         'ext': ('video', 'mimeType', {mimetype2ext}),
                         'width': ('aspectRatio', 'width', {int_or_none}),
@@ -295,6 +335,10 @@ class BlueskyIE(InfoExtractor):
         handle = traverse_obj(post, ('author', 'handle'))
         uploader = traverse_obj(post, ('author', 'displayName')) or handle
 
+        tags = traverse_obj(post, ('record', 'langs'), default=[])
+        if label_list := post.get('labels'):
+            tags.extend(label.get('val') for label in label_list)
+
         return {
             'id': video_id,
             'title': f'{uploader} on Bluesky',
@@ -308,7 +352,8 @@ class BlueskyIE(InfoExtractor):
             'like_count': post.get('likeCount'),
             'repost_count': post.get('repostCount'),
             'comment_count': post.get('replyCount'),
-            'tags': post.get('labels', []) + traverse_obj(post, ('record', 'langs'), default=[]),
+            'tags': tags,
+            'age_limit': 18 if {'sexual', 'porn', 'graphic-media'}.intersection(tags) else 0,
             '__post_extractor': self.extract_comments(meta),
             **traverse_obj(post, {
                 'timestamp': ('record', 'createdAt', {parse_iso8601}),
