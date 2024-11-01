@@ -1013,10 +1013,11 @@ def pbkdf2_sha1(password, salt, iterations, key_length):
 def _decrypt_aes_cbc_multi(ciphertext, keys, logger, initialization_vector=b' ' * 16):
     for key in keys:
         plaintext = unpad_pkcs7(aes_cbc_decrypt_bytes(ciphertext, key, initialization_vector))
-        try:
-            return plaintext.decode()
-        except UnicodeDecodeError:
-            pass
+        for cookie in (plaintext, plaintext[32:]):
+            try:
+                return cookie.decode()
+            except UnicodeDecodeError:
+                pass
     logger.warning('failed to decrypt cookie (AES-CBC) because UTF-8 decoding failed. Possibly the key is wrong?', only_once=True)
     return None
 
