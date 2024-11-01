@@ -520,4 +520,4 @@ class BandcampUserIE(InfoExtractor):
 
         return self.playlist_from_matches(
             self._yield_items(webpage), uploader, f'Discography of {uploader}',
-            getter=functools.partial(urljoin, url))
+            getter=urljoin(url))

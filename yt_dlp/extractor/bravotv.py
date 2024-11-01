@@ -145,7 +145,7 @@ class BravoTVIE(AdobePassIE):
         tp_metadata = self._download_json(
             update_url_query(tp_url, {'format': 'preview'}), video_id, fatal=False)
 
-        seconds_or_none = lambda x: float_or_none(x, 1000)
+        seconds_or_none = float_or_none(scale=1000)
         chapters = traverse_obj(tp_metadata, ('chapters', ..., {
             'start_time': ('startTime', {seconds_or_none}),
             'end_time': ('endTime', {seconds_or_none}),

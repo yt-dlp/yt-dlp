@@ -32,7 +32,7 @@ class LaracastsBaseIE(InfoExtractor):
             VimeoIE, url_transparent=True,
             **traverse_obj(episode, {
                 'id': ('id', {int}, {str_or_none}),
-                'webpage_url': ('path', {lambda x: urljoin('https://laracasts.com', x)}),
+                'webpage_url': ('path', {urljoin('https://laracasts.com')}),
                 'title': ('title', {clean_html}),
                 'season_number': ('chapter', {int_or_none}),
                 'episode_number': ('position', {int_or_none}),

@@ -165,6 +165,6 @@ class BpbIE(InfoExtractor):
             'tags': traverse_obj(json_lds, (..., 'keywords', {lambda x: x.split(',')}, ...)),
             **traverse_obj(self._parse_vue_attributes('bpb-player', webpage, video_id), {
                 'formats': (':sources', ..., {self._process_source}),
-                'thumbnail': ('poster', {lambda x: urljoin(url, x)}),
+                'thumbnail': ('poster', {urljoin(url)}),
             }),
         }

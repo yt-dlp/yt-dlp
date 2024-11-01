@@ -114,7 +114,7 @@ class WeiboBaseIE(InfoExtractor):
                 'thumbnail': ('page_info', 'page_pic', {url_or_none}),
                 'uploader': ('user', 'screen_name', {str}),
                 'uploader_id': ('user', ('id', 'id_str'), {str_or_none}),
-                'uploader_url': ('user', 'profile_url', {lambda x: urljoin('https://weibo.com/', x)}),
+                'uploader_url': ('user', 'profile_url', {urljoin('https://weibo.com/')}),
                 'view_count': ('page_info', 'media_info', 'online_users_number', {int_or_none}),
                 'like_count': ('attitudes_count', {int_or_none}),
                 'repost_count': ('reposts_count', {int_or_none}),

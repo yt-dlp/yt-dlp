@@ -3637,7 +3637,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'author_is_verified': ('author', 'isVerified', {bool}),
                 'author_url': ('author', 'channelCommand', 'innertubeCommand', (
                     ('browseEndpoint', 'canonicalBaseUrl'), ('commandMetadata', 'webCommandMetadata', 'url'),
-                ), {lambda x: urljoin('https://www.youtube.com', x)}),
+                ), {urljoin('https://www.youtube.com')}),
             }, get_all=False),
             'is_favorited': (None if toolbar_entity_payload is None else
                              toolbar_entity_payload.get('heartState') == 'TOOLBAR_HEART_STATE_HEARTED'),

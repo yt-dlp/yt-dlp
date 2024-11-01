@@ -77,7 +77,7 @@ class CHZZKLiveIE(InfoExtractor):
             'thumbnails': thumbnails,
             **traverse_obj(live_detail, {
                 'title': ('liveTitle', {str}),
-                'timestamp': ('openDate', {functools.partial(parse_iso8601, delimiter=' ')}),
+                'timestamp': ('openDate', {parse_iso8601(delimiter=' ')}),
                 'concurrent_view_count': ('concurrentUserCount', {int_or_none}),
                 'view_count': ('accumulateCount', {int_or_none}),
                 'channel': ('channel', 'channelName', {str}),

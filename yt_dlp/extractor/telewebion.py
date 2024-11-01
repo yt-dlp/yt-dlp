@@ -10,7 +10,7 @@ from ..utils.traversal import traverse_obj
 
 
 def _fmt_url(url):
-    return functools.partial(format_field, template=url, default=None)
+    return format_field(template=url, default=None)
 
 
 class TelewebionIE(InfoExtractor):

@@ -465,7 +465,7 @@ class CBCPlayerIE(InfoExtractor):
             **traverse_obj(data, {
                 'title': ('title', {str}),
                 'description': ('description', {str.strip}),
-                'thumbnail': ('image', 'url', {url_or_none}, {functools.partial(update_url, query=None)}),
+                'thumbnail': ('image', 'url', {url_or_none}, {update_url(query=None)}),
                 'timestamp': ('publishedAt', {float_or_none(scale=1000)}),
                 'media_type': ('media', 'clipType', {str}),
                 'series': ('showName', {str}),

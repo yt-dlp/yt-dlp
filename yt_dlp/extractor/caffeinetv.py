@@ -62,7 +62,7 @@ class CaffeineTVIE(InfoExtractor):
                 'title': ('broadcast_title', {str}),
                 'duration': ('content_duration', {int_or_none}),
                 'timestamp': ('broadcast_start_time', {parse_iso8601}),
-                'thumbnail': ('preview_image_path', {lambda x: urljoin(url, x)}),
+                'thumbnail': ('preview_image_path', {urljoin(url)}),
             }),
             'age_limit': {
                 # assume Apple Store ratings: https://en.wikipedia.org/wiki/Mobile_software_content_rating_system
