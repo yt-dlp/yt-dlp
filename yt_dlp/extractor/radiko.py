@@ -1,4 +1,5 @@
 import base64
+import datetime
 import random
 import re
 import urllib.parse
@@ -99,17 +100,25 @@ class RadikoBaseIE(InfoExtractor):
         self._FULL_KEY = full_key
         return full_key
 
+    def _get_broadcast_day(self, timestring):
+        dt = datetime.datetime.strptime(timestring, '%Y%m%d%H%M%S')
+        if dt.hour < 5:
+            dt -= datetime.timedelta(days=1)
+        return dt.strftime('%Y%m%d')
+
     def _find_program(self, video_id, station, cursor):
+        broadcast_day = self._get_broadcast_day(cursor)
+
         station_program = self._download_xml(
-            f'https://radiko.jp/v3/program/station/weekly/{station}.xml', video_id,
-            note=f'Downloading radio program for {station} station')
+            f'https://api.radiko.jp/program/v3/date/{broadcast_day}/station/{station}.xml', station,
+            note=f'Downloading programme data for {broadcast_day}')
 
         prog = None
         for p in station_program.findall('.//prog'):
             ft_str, to_str = p.attrib['ft'], p.attrib['to']
             ft = unified_timestamp(ft_str, False)
             to = unified_timestamp(to_str, False)
-            if ft <= cursor and cursor < to:
+            if ft_str <= cursor and cursor < to_str:
                 prog = p
                 break
         if not prog:
@@ -187,7 +196,7 @@ class RadikoIE(RadikoBaseIE):
         station, timestring = self._match_valid_url(url).group('station', 'timestring')
         video_id = join_nonempty(station, timestring)
         vid_int = unified_timestamp(timestring, False)
-        prog, station_program, ft, radio_begin, radio_end = self._find_program(video_id, station, vid_int)
+        prog, station_program, ft, radio_begin, radio_end = self._find_program(video_id, station, timestring)
 
         auth_token, area_id = self._auth_client()
 
