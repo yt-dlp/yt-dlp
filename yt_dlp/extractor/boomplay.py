@@ -119,7 +119,7 @@ class BoomplayBaseIE(InfoExtractor):
         metadata_entries.extend(re.findall(r'(?si)<li>(?P<entry>.*?)</li>', details_section) or [])
         page_metadata = {
             'id': item_id,
-            'title': self._html_search_regex(r'<h1[^>]*>([^<]+)</h1>', webpage, 'title', default=None),
+            'title': self._html_search_regex(r'(?i)<h1[^>]*>([^<]+)</h1>', webpage, 'title', default=None),
             'thumbnail': self._html_search_meta(['og:image', 'twitter:image'],
                                                 webpage, 'thumbnail', default=''),
             'like_count': parse_count(self._get_element_by_class_and_tag('btn_favorite', 'button', metadata_div)),
