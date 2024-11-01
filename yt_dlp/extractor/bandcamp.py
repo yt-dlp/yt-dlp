@@ -1,4 +1,3 @@
-import functools
 import json
 import random
 import re
@@ -10,7 +9,6 @@ from ..utils import (
     ExtractorError,
     extract_attributes,
     float_or_none,
-    get_element_html_by_id,
     int_or_none,
     parse_filesize,
     str_or_none,
@@ -21,7 +19,7 @@ from ..utils import (
     url_or_none,
     urljoin,
 )
-from ..utils.traversal import traverse_obj
+from ..utils.traversal import find_element, traverse_obj
 
 
 class BandcampIE(InfoExtractor):
@@ -511,7 +509,7 @@ class BandcampUserIE(InfoExtractor):
             or re.findall(r'<div[^>]+trackTitle["\'][^"\']+["\']([^"\']+)', webpage))
 
         yield from traverse_obj(webpage, (
-            {functools.partial(get_element_html_by_id, 'music-grid')}, {extract_attributes},
+            {find_element(id='music-grid', html=True)}, {extract_attributes},
             'data-client-items', {json.loads}, ..., 'page_url', {str}))
 
     def _real_extract(self, url):

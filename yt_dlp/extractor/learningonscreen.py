@@ -6,13 +6,11 @@ from ..utils import (
     ExtractorError,
     clean_html,
     extract_attributes,
-    get_element_by_class,
-    get_element_html_by_id,
     join_nonempty,
     parse_duration,
     unified_timestamp,
 )
-from ..utils.traversal import traverse_obj
+from ..utils.traversal import find_element, traverse_obj
 
 
 class LearningOnScreenIE(InfoExtractor):
@@ -42,18 +40,17 @@ class LearningOnScreenIE(InfoExtractor):
         webpage = self._download_webpage(url, video_id)
 
         details = traverse_obj(webpage, (
-            {functools.partial(get_element_html_by_id, 'programme-details')}, {
+            {find_element(id='programme-details', html=True)}, {
                 'title': ({functools.partial(re.search, r'<h2>([^<]+)</h2>')}, 1, {clean_html}),
                 'timestamp': (
-                    {functools.partial(get_element_by_class, 'broadcast-date')},
+                    {find_element(cls='broadcast-date')},
                     {functools.partial(re.match, r'([^<]+)')}, 1, {unified_timestamp}),
                 'duration': (
-                    {functools.partial(get_element_by_class, 'prog-running-time')},
-                    {clean_html}, {parse_duration}),
+                    {find_element(cls='prog-running-time')}, {clean_html}, {parse_duration}),
             }))
 
         title = details.pop('title', None) or traverse_obj(webpage, (
-            {functools.partial(get_element_html_by_id, 'add-to-existing-playlist')},
+            {find_element(id='add-to-existing-playlist', html=True)},
             {extract_attributes}, 'data-record-title', {clean_html}))
 
         entries = self._parse_html5_media_entries(
