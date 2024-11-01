@@ -289,7 +289,7 @@ class BoomplayPodcastIE(BoomplayBaseIE):
         'info_dict': {
             'id': '5372',
             'title': 'TED Talks Daily',
-            'description': 'md5:541182e787ce8fd578c835534c907077',
+            'description': r're:(?s)Every weekday, TED Talks Daily brings you the latest talks .{328} learn something new\.$',
             'thumbnail': 'https://source.boomplaymusic.com/group10/M00/12/22/6f9cf97ad6f846a0a7882c98dfcf4f8c_320_320.jpg',
             'repost_count': int,
             'comment_count': int,
@@ -319,7 +319,6 @@ class BoomplayPodcastIE(BoomplayBaseIE):
         return self.playlist_result(
             song_list, playlist_id,
             playlist_title=self._og_search_title(webpage, fatal=True).rsplit('|', 2)[0].strip(),
-            playlist_description=self._og_search_description(webpage, default=''),
             **self._extract_page_metadata(webpage, playlist_id))
 
 
