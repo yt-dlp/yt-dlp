@@ -1,4 +1,3 @@
-import functools
 import itertools
 
 from .common import InfoExtractor

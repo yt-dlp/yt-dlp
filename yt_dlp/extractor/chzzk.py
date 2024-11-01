@@ -1,5 +1,3 @@
-import functools
-
 from .common import InfoExtractor
 from ..utils import (
     UserNotLive,

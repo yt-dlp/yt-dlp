@@ -1,4 +1,3 @@
-import functools
 import json
 import re
 
