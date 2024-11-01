@@ -95,14 +95,14 @@ class TestCookies(unittest.TestCase):
         with MonkeyPatch(cookies, {'_get_linux_keyring_password': lambda *args, **kwargs: b''}):
             encrypted_value = b'v10\xccW%\xcd\xe6\xe6\x9fM" \xa7\xb0\xca\xe4\x07\xd6'
             value = 'USD'
-            decryptor = LinuxChromeCookieDecryptor('Chrome', Logger(), 23)
+            decryptor = LinuxChromeCookieDecryptor('Chrome', Logger())
             self.assertEqual(decryptor.decrypt(encrypted_value), value)
 
     def test_chrome_cookie_decryptor_linux_v11(self):
         with MonkeyPatch(cookies, {'_get_linux_keyring_password': lambda *args, **kwargs: b''}):
             encrypted_value = b'v11#\x81\x10>`w\x8f)\xc0\xb2\xc1\r\xf4\x1al\xdd\x93\xfd\xf8\xf8N\xf2\xa9\x83\xf1\xe9o\x0elVQd'
             value = 'tz=Europe.London'
-            decryptor = LinuxChromeCookieDecryptor('Chrome', Logger(), 23)
+            decryptor = LinuxChromeCookieDecryptor('Chrome', Logger())
             self.assertEqual(decryptor.decrypt(encrypted_value), value)
 
     def test_chrome_cookie_decryptor_windows_v10(self):
@@ -111,7 +111,7 @@ class TestCookies(unittest.TestCase):
         }):
             encrypted_value = b'v10T\xb8\xf3\xb8\x01\xa7TtcV\xfc\x88\xb8\xb8\xef\x05\xb5\xfd\x18\xc90\x009\xab\xb1\x893\x85)\x87\xe1\xa9-\xa3\xad='
             value = '32101439'
-            decryptor = WindowsChromeCookieDecryptor('', Logger(), 23)
+            decryptor = WindowsChromeCookieDecryptor('', Logger())
             self.assertEqual(decryptor.decrypt(encrypted_value), value)
 
     def test_chrome_cookie_decryptor_windows_v10_meta24(self):
@@ -120,14 +120,14 @@ class TestCookies(unittest.TestCase):
         }):
             encrypted_value = b'v10dN\xe1\xacy\x84^\xe1I\xact\x03r\xfb\xe2\xce{^\x0e<(\xb0y\xeb\x01\xfb@"\x9e\x8c\xa53~\xdb*\x8f\xac\x8b\xe3\xfd3\x06\xe5\x93\x19OyOG\xb2\xfb\x1d$\xc0\xda\x13j\x9e\xfe\xc5\xa3\xa8\xfe\xd9'
             value = '1234'
-            decryptor = WindowsChromeCookieDecryptor('', Logger(), 24)
+            decryptor = WindowsChromeCookieDecryptor('', Logger(), meta_version=24)
             self.assertEqual(decryptor.decrypt(encrypted_value), value)
 
     def test_chrome_cookie_decryptor_mac_v10(self):
         with MonkeyPatch(cookies, {'_get_mac_keyring_password': lambda *args, **kwargs: b'6eIDUdtKAacvlHwBVwvg/Q=='}):
             encrypted_value = b'v10\xb3\xbe\xad\xa1[\x9fC\xa1\x98\xe0\x9a\x01\xd9\xcf\xbfc'
             value = '2021-06-01-22'
-            decryptor = MacChromeCookieDecryptor('', Logger(), 23)
+            decryptor = MacChromeCookieDecryptor('', Logger())
             self.assertEqual(decryptor.decrypt(encrypted_value), value)
 
     def test_safari_cookie_parsing(self):
