@@ -449,6 +449,14 @@ def trim_str(*, start=None, end=None):
     return trim
 
 
+def unpack(func):
+    @functools.wraps(func)
+    def inner(items, **kwargs):
+        return func(*items, **kwargs)
+
+    return inner
+
+
 def get_first(obj, *paths, **kwargs):
     return traverse_obj(obj, *((..., *variadic(keys)) for keys in paths), **kwargs, get_all=False)
 
