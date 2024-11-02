@@ -50,6 +50,28 @@ query GetVideoAndComments($id: String!) {
     }
 }'''
 
+    _GRAPHQL_GETMETADATA_FALLBACK_QUERY = '''
+query GetVideo($id: String!) {
+    getVideo(id: $id) {
+        ...DisplayVideoFields streamUrl directUrl liked disliked audio unlisted live tags {
+            _id name __typename
+        }
+        sale {
+            _id text textSale description url videoUpload {
+                cloudflareVideoUID __typename
+            }
+            __typename
+        }
+        __typename
+    }
+}
+fragment DisplayVideoFields on Video {
+    _id title summary playCount likeCount angerCount largeImage embedUrl published videoDuration channel {
+        _id title avatar __typename
+    }
+    createdAt __typename
+}'''
+
     _GRAPHQL_GETCOMMENTSREPLIES_QUERY = '''
 query GetCommentReplies($id: String!) {
     getCommentReplies(id: $id, limit: 999999, offset: 0) {
@@ -114,6 +136,7 @@ fragment DisplayVideoFields on Video {
 
     _GRAPHQL_QUERIES = {
         'GetVideoAndComments': _GRAPHQL_GETMETADATA_QUERY,
+        'GetVideo': _GRAPHQL_GETMETADATA_FALLBACK_QUERY,
         'GetCommentReplies': _GRAPHQL_GETCOMMENTSREPLIES_QUERY,
         'GetChannel': _GRAPHQL_GETCHANNEL_QUERY,
         'GetChannelVideos': _GRAPHQL_GETCHANNELVIDEOS_QUERY,
@@ -195,9 +218,11 @@ class BannedVideoIE(BannedVideoBaseIE):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         video_json = self._call_api(video_id, 'GetVideoAndComments', 'Downloading video metadata')
+        if not video_json:
+            video_json = self._call_api(video_id, 'GetVideo', 'Downloading video metadata (fallback)')
         video_info = video_json['getVideo']
         is_live = video_info.get('live')
-        comments = [self._parse_comment(comment, 'root') for comment in video_json.get('getVideoComments')]
+        comments = [self._parse_comment(comment, 'root') for comment in video_json.get('getVideoComments', [])]
 
         formats = [{
             'format_id': 'direct',
@@ -257,8 +282,8 @@ class BannedVideoChannelIE(BannedVideoBaseIE):
         channel_id = channel_info['_id']
 
         return self.playlist_result(
-            [self.url_result(f'https://banned.video/watch?id={id}', url_transparent=True)
-             for id in self._paginate(channel_id, 'GetChannelVideos')],
+            [self.url_result(f'https://banned.video/watch?id={vid}', url_transparent=True)
+             for vid in self._paginate(channel_id, 'GetChannelVideos')],
             channel_id, channel_info['title'], channel_info.get('summary'),
             thumbnail=channel_info.get('coverImage'))
 
@@ -288,6 +313,6 @@ class BannedVideoPlaylistIE(BannedVideoBaseIE):
         playlist_info = self._call_api(playlist_id, 'GetPlaylist', 'Downloading playlist metadata')['getPlaylist']
 
         return self.playlist_result(
-            [self.url_result(f'https://banned.video/watch?id={id}', url_transparent=True)
-             for id in self._paginate(playlist_id, 'GetPlaylistVideos')], playlist_id,
+            [self.url_result(f'https://banned.video/watch?id={vid}', url_transparent=True)
+             for vid in self._paginate(playlist_id, 'GetPlaylistVideos')], playlist_id,
             playlist_info['title'], playlist_info.get('summary'))
