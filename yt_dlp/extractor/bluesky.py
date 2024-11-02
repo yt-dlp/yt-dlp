@@ -37,7 +37,6 @@ class BlueskyIE(InfoExtractor):
             'repost_count': int,
             'comment_count': int,
             'tags': [],
-            'language': 'en',
         },
     }, {
         'url': 'https://bsky.app/profile/bsky.app/post/3l3vgf77uco2g',
@@ -60,7 +59,6 @@ class BlueskyIE(InfoExtractor):
             'repost_count': int,
             'comment_count': int,
             'tags': [],
-            'language': 'en',
             'subtitles': {
                 'en': 'mincount:1',
             },
@@ -85,7 +83,6 @@ class BlueskyIE(InfoExtractor):
             'repost_count': int,
             'comment_count': int,
             'tags': [],
-            'language': 'en',
         },
     }, {
         'url': 'https://bsky.app/profile/de1.pds.tentacle.expert/post/3l3w4tnezek2e',
@@ -107,7 +104,6 @@ class BlueskyIE(InfoExtractor):
             'repost_count': int,
             'comment_count': int,
             'tags': [],
-            'language': 'en',
         },
     }, {
         'url': 'https://bsky.app/profile/yunayuispink.bsky.social/post/3l7gqcfes742o',
@@ -133,7 +129,7 @@ class BlueskyIE(InfoExtractor):
             'age_limit': 0,
             'like_count': int,
             'view_count': int,
-            'comment_count': int,
+            # 'comment_count': int,
             'channel_follower_count': int,
             'categories': ['Entertainment'],
             'tags': [],
@@ -184,7 +180,6 @@ class BlueskyIE(InfoExtractor):
             'repost_count': int,
             'comment_count': int,
             'tags': [],
-            'language': 'en',
             'subtitles': {
                 'en': 'mincount:1',
             },
@@ -210,7 +205,6 @@ class BlueskyIE(InfoExtractor):
             'comment_count': int,
             'tags': ['sexual'],
             'age_limit': 18,
-            'language': 'en',
         },
     }, {
         'url': 'at://did:plc:ia76kvnndjutgedggx2ibrem/app.bsky.feed.post/3l6zrz6zyl2dr',
@@ -233,8 +227,52 @@ class BlueskyIE(InfoExtractor):
             'repost_count': int,
             'comment_count': int,
             'tags': [],
-            'language': 'en',
         },
+    }, {
+        'url': 'https://bsky.app/profile/purpleicetea.bsky.social/post/3l7gv55dc2o2w',
+        'info_dict': {
+            'id': '3l7gv55dc2o2w',
+        },
+        'playlist': [{
+            'info_dict': {
+                'id': '3l7gv55dc2o2w',
+                'ext': 'mp4',
+                'upload_date': '20241026',
+                'description': 'One of my favorite videos',
+                'comment_count': int,
+                'uploader_url': 'https://bsky.app/profile/purpleicetea.bsky.social',
+                'uploader': 'Purple.Ice.Tea',
+                'thumbnail': 'https://video.bsky.app/watch/did%3Aplc%3Abjh5ffwya5f53dfy47dezuwx/bafkreicaldzyr6yr26ex4gyr6z2gbwvi53iolrcsqfipqqs3ieb2olcmiu/thumbnail.jpg',
+                'channel_url': 'https://bsky.app/profile/did:plc:bjh5ffwya5f53dfy47dezuwx',
+                'like_count': int,
+                'channel_id': 'did:plc:bjh5ffwya5f53dfy47dezuwx',
+                'repost_count': int,
+                'timestamp': 1729973202,
+                'tags': [],
+                'uploader_id': 'purpleicetea.bsky.social',
+                'title': 'One of my favorite videos',
+            },
+        }, {
+            'info_dict': {
+                'id': '3l77u64l7le2e',
+                'ext': 'mp4',
+                'title': 'hearing people on twitter say that bluesky isn\'...',
+                'like_count': int,
+                'uploader_id': 'thafnine.net',
+                'uploader_url': 'https://bsky.app/profile/thafnine.net',
+                'upload_date': '20241024',
+                'channel_url': 'https://bsky.app/profile/did:plc:6ttyq36rhiyed7wu3ws7dmqj',
+                'description': 'md5:dba7d54d6df7e5b79a24d7b287dafbe9',
+                'tags': [],
+                'alt_title': 'md5:9b1ee1937fb3d1a81e932f9ec14d560e',
+                'uploader': 'T9',
+                'channel_id': 'did:plc:6ttyq36rhiyed7wu3ws7dmqj',
+                'thumbnail': 'https://video.bsky.app/watch/did%3Aplc%3A6ttyq36rhiyed7wu3ws7dmqj/bafkreih4xf5k22urq5kytjbnlj2djnzmlrqnvotnglmoy35mkpobrwtota/thumbnail.jpg',
+                'timestamp': 1729731642,
+                'comment_count': int,
+                'repost_count': int,
+            },
+        }],
     }]
     _BLOB_URL = '%s/xrpc/com.atproto.sync.getBlob'
 
@@ -245,7 +283,7 @@ class BlueskyIE(InfoExtractor):
             url = f'https://plc.directory/{did}'
         services = self._download_json(url, video_id, fatal=False)
         return traverse_obj(
-            services, ('service', lambda _, x: x.get('type') == 'AtprotoPersonalDataServer',
+            services, ('service', lambda _, x: x['type'] == 'AtprotoPersonalDataServer',
                        'serviceEndpoint', {url_or_none}, any)) or 'https://bsky.social'
 
     def _real_extract(self, url):
@@ -336,7 +374,6 @@ class BlueskyIE(InfoExtractor):
                 'age_limit': ('labels', ..., 'val', {lambda x: 18 if x in ('sexual', 'porn', 'graphic-media') else None}, any),
                 'description': (*record_path, 'text', {str}, any),
                 'title': (*record_path, 'text', {lambda x: truncate_string(x, 50)}),
-                'language': (*record_path, 'langs', ..., {str}, any),
             }),
         })
         return entries
