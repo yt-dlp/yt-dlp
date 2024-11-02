@@ -307,6 +307,8 @@ def _extract_chrome_cookies(browser_name, profile, keyring, logger):
         try:
             cursor = _open_database_copy(cookie_database_path, tmpdir)
 
+            # meta_version is necessary to determine if we need to trim the hash prefix from the cookies
+            # Ref: https://github.com/yt-dlp/yt-dlp/issues/6564#issuecomment-2428437307
             meta_version = int(cursor.execute('SELECT value FROM meta WHERE key = "version"').fetchone()[0])
             decryptor = get_cookie_decryptor(
                 config['browser_dir'], config['keyring_name'], logger,
