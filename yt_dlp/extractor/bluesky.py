@@ -388,7 +388,7 @@ class BlueskyIE(InfoExtractor):
                 'age_limit': (
                     'labels', ..., 'val', {lambda x: 18 if x in ('sexual', 'porn', 'graphic-media') else None}, any),
                 'description': (*record_path, 'text', {str}, any),
-                'title': (*record_path, 'text', {lambda x: truncate_string(x, 50)}),
+                'title': (*record_path, 'text', {truncate_string(left=50)}),
             }),
         })
         return entries
