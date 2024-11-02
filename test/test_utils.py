@@ -4,6 +4,7 @@
 import os
 import sys
 import unittest
+import unittest.mock
 import warnings
 import datetime as dt
 
@@ -71,6 +72,7 @@ from yt_dlp.utils import (
     intlist_to_bytes,
     iri_to_uri,
     is_html,
+    join_nonempty,
     js_to_json,
     limit_length,
     locked_file,
@@ -221,9 +223,10 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(sanitize_filename('N0Y__7-UOdI', is_id=True), 'N0Y__7-UOdI')
 
     def test_sanitize_path(self):
-        if sys.platform != 'win32':
-            return
+        with unittest.mock.patch('sys.platform', 'win32'):
+            self._test_sanitize_path()
 
+    def _test_sanitize_path(self):
         self.assertEqual(sanitize_path('abc'), 'abc')
         self.assertEqual(sanitize_path('abc/def'), 'abc\\def')
         self.assertEqual(sanitize_path('abc\\def'), 'abc\\def')
@@ -255,6 +258,11 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(sanitize_path('../../abc'), '..\\..\\abc')
         self.assertEqual(sanitize_path('./abc'), 'abc')
         self.assertEqual(sanitize_path('./../abc'), '..\\abc')
+
+        self.assertEqual(sanitize_path('\\abc'), '\\abc')
+        self.assertEqual(sanitize_path('C:abc'), 'C:abc')
+        self.assertEqual(sanitize_path('C:abc\\..\\'), 'C:..')
+        self.assertEqual(sanitize_path('C:\\abc:%(title)s.%(ext)s'), 'C:\\abc#%(title)s.%(ext)s')
 
     def test_sanitize_url(self):
         self.assertEqual(sanitize_url('//foo.bar'), 'http://foo.bar')
@@ -337,11 +345,13 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(remove_start(None, 'A - '), None)
         self.assertEqual(remove_start('A - B', 'A - '), 'B')
         self.assertEqual(remove_start('B - A', 'A - '), 'B - A')
+        self.assertEqual(remove_start('non-empty', ''), 'non-empty')
 
     def test_remove_end(self):
         self.assertEqual(remove_end(None, ' - B'), None)
         self.assertEqual(remove_end('A - B', ' - B'), 'A')
         self.assertEqual(remove_end('B - A', ' - B'), 'B - A')
+        self.assertEqual(remove_end('non-empty', ''), 'non-empty')
 
     def test_remove_quotes(self):
         self.assertEqual(remove_quotes(None), None)
@@ -918,6 +928,11 @@ class TestUtil(unittest.TestCase):
         })
         self.assertEqual(parse_codecs('vp9.2'), {
             'vcodec': 'vp9.2',
+            'acodec': 'none',
+            'dynamic_range': 'HDR10',
+        })
+        self.assertEqual(parse_codecs('vp09.02.50.10.01.09.18.09.00'), {
+            'vcodec': 'vp09.02.50.10.01.09.18.09.00',
             'acodec': 'none',
             'dynamic_range': 'HDR10',
         })
@@ -2136,6 +2151,16 @@ Line 1
             args = [sys.executable, '-c', 'import sys; print(end=sys.argv[1])', argument, 'end']
             assert run_shell(args) == expected
             assert run_shell(shell_quote(args, shell=True)) == expected
+
+    def test_partial_application(self):
+        assert callable(int_or_none(scale=10)), 'missing positional parameter should apply partially'
+        assert int_or_none(10, scale=0.1) == 100, 'positionally passed argument should call function'
+        assert int_or_none(v=10) == 10, 'keyword passed positional should call function'
+        assert int_or_none(scale=0.1)(10) == 100, 'call after partial applicatino should call the function'
+
+        assert callable(join_nonempty(delim=', ')), 'varargs positional should apply partially'
+        assert callable(join_nonempty()), 'varargs positional should apply partially'
+        assert join_nonempty(None, delim=', ') == '', 'passed varargs should call the function'
 
 
 if __name__ == '__main__':
