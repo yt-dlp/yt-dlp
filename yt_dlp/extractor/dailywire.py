@@ -142,7 +142,7 @@ class DailyWireIE(DailyWireBaseIE):
             raise ExtractorError('video not found')
 
         urls = traverse_obj(episode_data,
-                            (('segments', 'clips'), ..., ('video', 'audio'))
+                            (('segments', 'clips'), ..., ('video', 'audio')),
                             ) or [episode_data.get('videoURL')]
 
         if 'Access Denied' in urls:
@@ -211,7 +211,6 @@ class DailyWirePodcastIE(DailyWireBaseIE):
         podcaster, slug = self._match_valid_url(url).group('podcaster', 'id')
 
         def _extract_pod_ep_info(episode_data):
-            print(episode_data)
             return {
                 'id': episode_data.get('id'),
                 'url': episode_data.get('audio'),
@@ -272,7 +271,6 @@ class DailyWireShowIE(DailyWireBaseIE):
                 'season_id': 'what-we-saw-season-3-an-empire-of-terror-season',
                 'ext': 'mp4',
                 'display_id': 'season-3-an-empire-of-terror',
-                'display_id': 'season-3-an-empire-of-terror',
                 'series_id': 'ckixsvamonvl40862ysxve50i',
                 'title': 'Season 3: An Empire of Terror',
                 'description': 'What We Saw: An Empire of Terror premieres on March 6, 2024.',
@@ -281,7 +279,7 @@ class DailyWireShowIE(DailyWireBaseIE):
                 'timestamp': 1709704832,
                 'thumbnail': 'https://daily-wire-production.imgix.net/episodes/cltf80tk79fxi0942c7h394b5/cltf80tk79fxi0942c7h394b5-1709694601671.png',
                 'series': 'What We Saw',
-            }}]
+            }}],
     }]
 
     def _real_extract(self, url):
