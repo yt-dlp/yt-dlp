@@ -1,11 +1,8 @@
 from .common import InfoExtractor
-from ..networking.exceptions import HTTPError
 from ..utils import (
-    ExtractorError,
     parse_codecs,
     try_get,
     url_or_none,
-    urlencode_postdata,
 )
 from ..utils.traversal import traverse_obj
 
@@ -70,47 +67,10 @@ class DigitalConcertHallIE(InfoExtractor):
         'playlist_count': 1,
     }]
 
-    def _perform_login(self, username, password):
-        login_token = self._download_json(
-            self._OAUTH_URL,
-            None, 'Obtaining token', errnote='Unable to obtain token', data=urlencode_postdata({
-                'affiliate': 'none',
-                'grant_type': 'device',
-                'device_vendor': 'unknown',
-                # device_model 'Safari' gets split streams of 4K/HEVC video and lossless/FLAC audio
-                'device_model': 'unknown' if self._configuration_arg('prefer_combined_hls') else 'Safari',
-                'app_id': 'dch.webapp',
-                'app_distributor': 'berlinphil',
-                'app_version': '1.84.0',
-                'client_secret': '2ySLN+2Fwb',
-            }), headers={
-                'Accept': 'application/json',
-                'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
-                'User-Agent': self._USER_AGENT,
-            })['access_token']
-        try:
-            login_response = self._download_json(
-                self._OAUTH_URL,
-                None, note='Logging in', errnote='Unable to login', data=urlencode_postdata({
-                    'grant_type': 'password',
-                    'username': username,
-                    'password': password,
-                }), headers={
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
-                    'Referer': 'https://www.digitalconcerthall.com',
-                    'Authorization': f'Bearer {login_token}',
-                    'User-Agent': self._USER_AGENT,
-                })
-        except ExtractorError as error:
-            if isinstance(error.cause, HTTPError) and error.cause.status == 401:
-                raise ExtractorError('Invalid username or password', expected=True)
-            raise
-        self._ACCESS_TOKEN = login_response['access_token']
-
     def _real_initialize(self):
+        _, self._ACCESS_TOKEN = self._get_login_info()
         if not self._ACCESS_TOKEN:
-            self.raise_login_required(method='password')
+            self.raise_login_required('Token from browser storage is needed to download from this website', method='password')
 
     def _entries(self, items, language, type_, **kwargs):
         for item in items:
