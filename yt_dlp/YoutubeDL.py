@@ -109,7 +109,6 @@ from .utils import (
     determine_ext,
     determine_protocol,
     encode_compat_str,
-    encodeFilename,
     escapeHTML,
     expand_path,
     extract_basic_auth,
@@ -3255,9 +3254,9 @@ class YoutubeDL:
 
         if full_filename is None:
             return
-        if not self._ensure_dir_exists(encodeFilename(full_filename)):
+        if not self._ensure_dir_exists(full_filename):
             return
-        if not self._ensure_dir_exists(encodeFilename(temp_filename)):
+        if not self._ensure_dir_exists(temp_filename):
             return
 
         if self._write_description('video', info_dict,
@@ -3289,16 +3288,16 @@ class YoutubeDL:
         if self.params.get('writeannotations', False):
             annofn = self.prepare_filename(info_dict, 'annotation')
         if annofn:
-            if not self._ensure_dir_exists(encodeFilename(annofn)):
+            if not self._ensure_dir_exists(annofn):
                 return
-            if not self.params.get('overwrites', True) and os.path.exists(encodeFilename(annofn)):
+            if not self.params.get('overwrites', True) and os.path.exists(annofn):
                 self.to_screen('[info] Video annotations are already present')
             elif not info_dict.get('annotations'):
                 self.report_warning('There are no annotations to write.')
             else:
                 try:
                     self.to_screen('[info] Writing video annotations to: ' + annofn)
-                    with open(encodeFilename(annofn), 'w', encoding='utf-8') as annofile:
+                    with open(annofn, 'w', encoding='utf-8') as annofile:
                         annofile.write(info_dict['annotations'])
                 except (KeyError, TypeError):
                     self.report_warning('There are no annotations to write.')
@@ -3314,14 +3313,14 @@ class YoutubeDL:
                     f'Cannot write internet shortcut file because the actual URL of "{info_dict["webpage_url"]}" is unknown')
                 return True
             linkfn = replace_extension(self.prepare_filename(info_dict, 'link'), link_type, info_dict.get('ext'))
-            if not self._ensure_dir_exists(encodeFilename(linkfn)):
+            if not self._ensure_dir_exists(linkfn):
                 return False
-            if self.params.get('overwrites', True) and os.path.exists(encodeFilename(linkfn)):
+            if self.params.get('overwrites', True) and os.path.exists(linkfn):
                 self.to_screen(f'[info] Internet shortcut (.{link_type}) is already present')
                 return True
             try:
                 self.to_screen(f'[info] Writing internet shortcut (.{link_type}) to: {linkfn}')
-                with open(encodeFilename(to_high_limit_path(linkfn)), 'w', encoding='utf-8',
+                with open(to_high_limit_path(linkfn), 'w', encoding='utf-8',
                           newline='\r\n' if link_type == 'url' else '\n') as linkfile:
                     template_vars = {'url': url}
                     if link_type == 'desktop':
@@ -3352,7 +3351,7 @@ class YoutubeDL:
 
         if self.params.get('skip_download'):
             info_dict['filepath'] = temp_filename
-            info_dict['__finaldir'] = os.path.dirname(os.path.abspath(encodeFilename(full_filename)))
+            info_dict['__finaldir'] = os.path.dirname(os.path.abspath(full_filename))
             info_dict['__files_to_move'] = files_to_move
             replace_info_dict(self.run_pp(MoveFilesAfterDownloadPP(self, False), info_dict))
             info_dict['__write_download_archive'] = self.params.get('force_write_download_archive')
@@ -3482,7 +3481,7 @@ class YoutubeDL:
                         self.report_file_already_downloaded(dl_filename)
 
                 dl_filename = dl_filename or temp_filename
-                info_dict['__finaldir'] = os.path.dirname(os.path.abspath(encodeFilename(full_filename)))
+                info_dict['__finaldir'] = os.path.dirname(os.path.abspath(full_filename))
 
             except network_exceptions as err:
                 self.report_error(f'unable to download video data: {err}')
@@ -4297,7 +4296,7 @@ class YoutubeDL:
         else:
             try:
                 self.to_screen(f'[info] Writing {label} description to: {descfn}')
-                with open(encodeFilename(descfn), 'w', encoding='utf-8') as descfile:
+                with open(descfn, 'w', encoding='utf-8') as descfile:
                     descfile.write(ie_result['description'])
             except OSError:
                 self.report_error(f'Cannot write {label} description file {descfn}')
@@ -4397,7 +4396,7 @@ class YoutubeDL:
                 try:
                     uf = self.urlopen(Request(t['url'], headers=t.get('http_headers', {})))
                     self.to_screen(f'[info] Writing {thumb_display_id} to: {thumb_filename}')
-                    with open(encodeFilename(thumb_filename), 'wb') as thumbf:
+                    with open(thumb_filename, 'wb') as thumbf:
                         shutil.copyfileobj(uf, thumbf)
                     ret.append((thumb_filename, thumb_filename_final))
                     t['filepath'] = thumb_filename

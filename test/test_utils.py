@@ -49,7 +49,6 @@ from yt_dlp.utils import (
     dfxp2srt,
     encode_base_n,
     encode_compat_str,
-    encodeFilename,
     expand_path,
     extract_attributes,
     extract_basic_auth,
@@ -566,7 +565,7 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(res_data, {'a': 'b', 'c': 'd'})
 
     def test_shell_quote(self):
-        args = ['ffmpeg', '-i', encodeFilename('ñ€ß\'.mp4')]
+        args = ['ffmpeg', '-i', 'ñ€ß\'.mp4']
         self.assertEqual(
             shell_quote(args),
             """ffmpeg -i 'ñ€ß'"'"'.mp4'""" if compat_os_name != 'nt' else '''ffmpeg -i "ñ€ß'.mp4"''')
