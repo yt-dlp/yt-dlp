@@ -24,3 +24,8 @@ compat_urllib_parse_urlencode = urllib.parse.urlencode
 compat_urllib_parse_urlparse = urllib.parse.urlparse
 
 compat_os_name = os._name if os.name == 'java' else os.name
+
+
+def compat_shlex_quote(s):
+    from ..utils import shell_quote
+    return shell_quote(s)

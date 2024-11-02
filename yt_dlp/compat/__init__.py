@@ -24,11 +24,6 @@ def compat_etree_fromstring(text):
     return etree.XML(text, parser=etree.XMLParser(target=_TreeBuilder()))
 
 
-def compat_shlex_quote(s):
-    from ..utils import shell_quote
-    return shell_quote(s)
-
-
 def compat_ord(c):
     return c if isinstance(c, int) else ord(c)
 
