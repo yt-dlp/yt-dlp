@@ -88,11 +88,11 @@ class TestAES(unittest.TestCase):
         authentication_tag = b'\x08\xb1\x9d!&\x98\xd0\xeaRq\x90\xe6;\xb5]\xd8'
 
         decrypted = intlist_to_bytes(aes_gcm_decrypt_and_verify(
-            bytes_to_intlist(data), self.key, bytes_to_intlist(authentication_tag), self.iv[:12]))
+            list(data), self.key, list(authentication_tag), self.iv[:12]))
         self.assertEqual(decrypted.rstrip(b'\x08'), self.secret_msg[:16])
         if Cryptodome.AES:
             decrypted = aes_gcm_decrypt_and_verify_bytes(
-                data, intlist_to_bytes(self.key), authentication_tag, intlist_to_bytes(self.iv[:12]))
+                data, bytes(self.key), authentication_tag, bytes(self.iv[:12]))
             self.assertEqual(decrypted.rstrip(b'\x08'), self.secret_msg[:16])
 
     def test_decrypt_text(self):
