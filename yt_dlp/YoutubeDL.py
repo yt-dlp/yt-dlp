@@ -26,7 +26,7 @@ import unicodedata
 
 from .cache import Cache
 from .compat import urllib  # isort: split
-from .compat import compat_os_name, urllib_req_to_req
+from .compat import urllib_req_to_req
 from .cookies import CookieLoadError, LenientSimpleCookie, load_cookies
 from .downloader import FFmpegFD, get_suitable_downloader, shorten_protocol_name
 from .downloader.rtmp import rtmpdump_version
@@ -166,7 +166,7 @@ from .utils.networking import (
 )
 from .version import CHANNEL, ORIGIN, RELEASE_GIT_HEAD, VARIANT, __version__
 
-if compat_os_name == 'nt':
+if os.name == 'nt':
     import ctypes
 
 
@@ -642,7 +642,7 @@ class YoutubeDL:
             out=stdout,
             error=sys.stderr,
             screen=sys.stderr if self.params.get('quiet') else stdout,
-            console=None if compat_os_name == 'nt' else next(
+            console=None if os.name == 'nt' else next(
                 filter(supports_terminal_sequences, (sys.stderr, sys.stdout)), None),
         )
 
@@ -951,7 +951,7 @@ class YoutubeDL:
             self._write_string(f'{self._bidi_workaround(message)}\n', self._out_files.error, only_once=only_once)
 
     def _send_console_code(self, code):
-        if compat_os_name == 'nt' or not self._out_files.console:
+        if os.name == 'nt' or not self._out_files.console:
             return
         self._write_string(code, self._out_files.console)
 
@@ -959,7 +959,7 @@ class YoutubeDL:
         if not self.params.get('consoletitle', False):
             return
         message = remove_terminal_sequences(message)
-        if compat_os_name == 'nt':
+        if os.name == 'nt':
             if ctypes.windll.kernel32.GetConsoleWindow():
                 # c_wchar_p() might not be necessary if `message` is
                 # already of type unicode()

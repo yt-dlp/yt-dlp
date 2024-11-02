@@ -14,7 +14,6 @@ import os
 import re
 import traceback
 
-from .compat import compat_os_name
 from .cookies import SUPPORTED_BROWSERS, SUPPORTED_KEYRINGS, CookieLoadError
 from .downloader.external import get_external_downloader
 from .extractor import list_extractor_classes
@@ -1050,7 +1049,7 @@ def _real_main(argv=None):
             ydl.warn_if_short_id(args)
 
             # Show a useful error message and wait for keypress if not launched from shell on Windows
-            if not args and compat_os_name == 'nt' and getattr(sys, 'frozen', False):
+            if not args and os.name == 'nt' and getattr(sys, 'frozen', False):
                 import ctypes.wintypes
                 import msvcrt
 

@@ -9,7 +9,6 @@ import time
 from .common import FileDownloader
 from .http import HttpFD
 from ..aes import aes_cbc_decrypt_bytes, unpad_pkcs7
-from ..compat import compat_os_name
 from ..networking import Request
 from ..networking.exceptions import HTTPError, IncompleteRead
 from ..utils import DownloadError, RetryManager, traverse_obj
@@ -390,7 +389,7 @@ class FragmentFD(FileDownloader):
             def __exit__(self, exc_type, exc_val, exc_tb):
                 pass
 
-        if compat_os_name == 'nt':
+        if os.name == 'nt':
             def future_result(future):
                 while True:
                     try:

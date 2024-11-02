@@ -318,6 +318,7 @@ banned-from = [
 "yt_dlp.utils.decodeArgument".msg = "Do not use"
 "yt_dlp.utils.decodeFilename".msg = "Do not use"
 "yt_dlp.utils.encodeFilename".msg = "Do not use"
+"yt_dlp.compat.compat_os_name".msg = "Use `os.name` instead."
 
 [tool.autopep8]
 max_line_length = 120

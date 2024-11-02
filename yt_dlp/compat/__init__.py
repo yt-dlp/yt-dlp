@@ -24,9 +24,6 @@ def compat_etree_fromstring(text):
     return etree.XML(text, parser=etree.XMLParser(target=_TreeBuilder()))
 
 
-compat_os_name = os._name if os.name == 'java' else os.name
-
-
 def compat_shlex_quote(s):
     from ..utils import shell_quote
     return shell_quote(s)
@@ -36,7 +33,7 @@ def compat_ord(c):
     return c if isinstance(c, int) else ord(c)
 
 
-if compat_os_name == 'nt' and sys.version_info < (3, 8):
+if os.name == 'nt' and sys.version_info < (3, 8):
     # os.path.realpath on Windows does not follow symbolic links
     # prior to Python 3.8 (see https://bugs.python.org/issue9949)
     def compat_realpath(path):
@@ -50,7 +47,7 @@ else:
 # Python 3.8+ does not honor %HOME% on windows, but this breaks compatibility with youtube-dl
 # See https://github.com/yt-dlp/yt-dlp/issues/792
 # https://docs.python.org/3/library/os.path.html#os.path.expanduser
-if compat_os_name in ('nt', 'ce'):
+if os.name in ('nt', 'ce'):
     def compat_expanduser(path):
         HOME = os.environ.get('HOME')
         if not HOME:

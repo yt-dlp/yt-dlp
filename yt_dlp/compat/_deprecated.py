@@ -9,6 +9,7 @@ passthrough_module(__name__, '.._legacy', callback=lambda attr: warnings.warn(
 del passthrough_module
 
 import base64
+import os
 import urllib.error
 import urllib.parse
 
@@ -21,3 +22,5 @@ compat_parse_qs = urllib.parse.parse_qs
 compat_urllib_parse_unquote = urllib.parse.unquote
 compat_urllib_parse_urlencode = urllib.parse.urlencode
 compat_urllib_parse_urlparse = urllib.parse.urlparse
+
+compat_os_name = os._name if os.name == 'java' else os.name
