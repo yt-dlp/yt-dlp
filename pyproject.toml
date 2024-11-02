@@ -313,6 +313,8 @@ banned-from = [
 "yt_dlp.compat.compat_urllib_parse_urlparse".msg = "Use `urllib.parse.urlparse` instead."
 "yt_dlp.compat.compat_shlex_quote".msg = "Use `yt_dlp.utils.shell_quote` instead."
 "yt_dlp.utils.error_to_compat_str".msg = "Use `str` instead."
+"yt_dlp.utils.bytes_to_intlist".msg = "Use `list` instead."
+"yt_dlp.utils.intlist_to_bytes".msg = "Use `bytes` instead."
 
 [tool.autopep8]
 max_line_length = 120

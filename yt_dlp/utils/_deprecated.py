@@ -9,6 +9,7 @@ passthrough_module(__name__, '.._legacy', callback=lambda attr: warnings.warn(
 del passthrough_module
 
 
+import struct
 from ._utils import preferredencoding
 
 
@@ -37,3 +38,18 @@ def decodeOption(optval):
 
 def error_to_compat_str(err):
     return str(err)
+
+
+def bytes_to_intlist(bs):
+    if not bs:
+        return []
+    if isinstance(bs[0], int):  # Python 3
+        return list(bs)
+    else:
+        return [ord(c) for c in bs]
+
+
+def intlist_to_bytes(xs):
+    if not xs:
+        return b''
+    return struct.pack('%dB' % len(xs), *xs)

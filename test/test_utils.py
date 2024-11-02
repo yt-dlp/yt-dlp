@@ -69,7 +69,6 @@ from yt_dlp.utils import (
     get_elements_html_by_class,
     get_elements_text_and_html_by_attribute,
     int_or_none,
-    intlist_to_bytes,
     iri_to_uri,
     is_html,
     join_nonempty,
@@ -1309,11 +1308,6 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(clean_html('a:\nb'), 'a: b')
         self.assertEqual(clean_html('a:\n   "b"'), 'a: "b"')
         self.assertEqual(clean_html('a<br>\xa0b'), 'a\nb')
-
-    def test_intlist_to_bytes(self):
-        self.assertEqual(
-            intlist_to_bytes([0, 1, 127, 128, 255]),
-            b'\x00\x01\x7f\x80\xff')
 
     def test_args_to_str(self):
         self.assertEqual(
