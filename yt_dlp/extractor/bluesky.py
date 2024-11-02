@@ -1,11 +1,14 @@
 from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
     format_field,
     int_or_none,
     mimetype2ext,
+    orderedSet,
     parse_iso8601,
     truncate_string,
     update_url_query,
+    url_basename,
     url_or_none,
     variadic,
 )
@@ -14,8 +17,8 @@ from ..utils.traversal import traverse_obj
 
 class BlueskyIE(InfoExtractor):
     _VALID_URL = [
-        r'https?://(?:www\.)?(?:bsky\.app|main\.bsky\.dev)/profile/(?P<handle>[^/]+)/post/(?P<id>\w+)',
-        r'at://(?P<handle>[^/]+)/app.bsky.feed.post/(?P<id>\w+)',
+        r'https?://(?:www\.)?(?:bsky\.app|main\.bsky\.dev)/profile/(?P<handle>[\w.:%-]+)/post/(?P<id>\w+)',
+        r'at://(?P<handle>[\w.:%-]+)/app\.bsky\.feed\.post/(?P<id>\w+)',
     ]
     _TESTS = [{
         'url': 'https://bsky.app/profile/blu3blue.bsky.social/post/3l4omssdl632g',
@@ -129,7 +132,7 @@ class BlueskyIE(InfoExtractor):
             'age_limit': 0,
             'like_count': int,
             'view_count': int,
-            # 'comment_count': int,
+            'comment_count': int,
             'channel_follower_count': int,
             'categories': ['Entertainment'],
             'tags': [],
@@ -274,24 +277,25 @@ class BlueskyIE(InfoExtractor):
             },
         }],
     }]
-    _BLOB_URL = '%s/xrpc/com.atproto.sync.getBlob'
+    _BLOB_URL_TMPL = '%s/xrpc/com.atproto.sync.getBlob'
 
-    def get_service_endpoint(self, did, video_id):
+    def _get_service_endpoint(self, did, video_id):
         if did.startswith('did:web:'):
-            url = f'https://{did.split(":")[-1]}/.well-known/did.json'
+            url = f'https://{did[8:]}/.well-known/did.json'
         else:
             url = f'https://plc.directory/{did}'
-        services = self._download_json(url, video_id, fatal=False)
+        services = self._download_json(
+            url, video_id, 'Fetching service endpoint', 'Falling back to bsky.social', fatal=False)
         return traverse_obj(
             services, ('service', lambda _, x: x['type'] == 'AtprotoPersonalDataServer',
                        'serviceEndpoint', {url_or_none}, any)) or 'https://bsky.social'
 
     def _real_extract(self, url):
-        handle, video_id = self._match_valid_url(url).groups()
+        handle, video_id = self._match_valid_url(url).group('handle', 'id')
 
         post = self._download_json(
             'https://public.api.bsky.app/xrpc/app.bsky.feed.getPostThread',
-            video_id, headers={'Content-Type': 'application/json'}, query={
+            video_id, query={
                 'uri': f'at://{handle}/app.bsky.feed.post/{video_id}',
                 'depth': 0,
                 'parentHeight': 0,
@@ -307,8 +311,9 @@ class BlueskyIE(InfoExtractor):
         if nested_post := traverse_obj(post, ('embed', 'record', ('record', None), {dict}, any)):
             entries.extend(self._extract_videos(
                 nested_post, video_id, embed_path=('embeds', 0), record_path='value'))
-        if len(entries) == 0:
-            self.raise_no_formats('No video could be found in this post', expected=True)
+
+        if not entries:
+            raise ExtractorError('No video could be found in this post', expected=True)
         if len(entries) == 1:
             return entries[0]
         return self.playlist_result(entries, video_id)
@@ -321,23 +326,29 @@ class BlueskyIE(InfoExtractor):
         embed_path = variadic(embed_path, (str, bytes, dict, set))
         record_path = variadic(record_path, (str, bytes, dict, set))
         record_subpath = variadic(record_subpath, (str, bytes, dict, set))
+
         entries = []
-        if external_uri := traverse_obj(root, (((*record_path, *record_subpath), embed_path), 'external', 'uri', {url_or_none}, any)):
+        if external_uri := traverse_obj(root, (
+                ((*record_path, *record_subpath), embed_path), 'external', 'uri', {url_or_none}, any)):
             entries.append(self.url_result(external_uri))
         if playlist := traverse_obj(root, (*embed_path, 'playlist', {url_or_none})):
             formats, subtitles = self._extract_m3u8_formats_and_subtitles(
                 playlist, video_id, 'mp4', m3u8_id='hls', fatal=False)
         else:
             return entries
+
         video_cid = traverse_obj(
             root, (*embed_path, 'cid', {str}),
             (*record_path, *record_subpath, 'video', 'ref', '$link', {str}))
         did = traverse_obj(root, ('author', 'did', {str}))
+
         if did and video_cid:
-            endpoint = self.get_service_endpoint(did, video_id)
+            endpoint = self._get_service_endpoint(did, video_id)
+
             formats.append({
                 'format_id': 'blob',
-                'url': update_url_query(self._BLOB_URL % endpoint, {'did': did, 'cid': video_cid}),
+                'url': update_url_query(
+                    self._BLOB_URL_TMPL % endpoint, {'did': did, 'cid': video_cid}),
                 **traverse_obj(root, (*embed_path, 'aspectRatio', {
                     'width': ('width', {int_or_none}),
                     'height': ('height', {int_or_none}),
@@ -347,18 +358,21 @@ class BlueskyIE(InfoExtractor):
                     'ext': ('mimeType', {mimetype2ext}),
                 })),
             })
+
             for sub_data in traverse_obj(root, (
                     *record_path, *record_subpath, 'captions', lambda _, v: v['file']['ref']['$link'])):
                 subtitles.setdefault(sub_data.get('lang') or 'und', []).append({
-                    'url': update_url_query(self._BLOB_URL % endpoint, {'did': did, 'cid': sub_data['file']['ref']['$link']}),
+                    'url': update_url_query(
+                        self._BLOB_URL_TMPL % endpoint, {'did': did, 'cid': sub_data['file']['ref']['$link']}),
                     'ext': traverse_obj(sub_data, ('file', 'mimeType', {mimetype2ext})),
                 })
+
         entries.append({
             'id': video_id,
             'formats': formats,
             'subtitles': subtitles,
             **traverse_obj(root, {
-                'id': ('uri', {lambda x: x.split('/')[-1] or None}, {str}),
+                'id': ('uri', {url_basename}),
                 'thumbnail': (*embed_path, 'thumbnail', {url_or_none}),
                 'alt_title': (*embed_path, 'alt', {str}),
                 'uploader': ('author', 'displayName', {str}),
@@ -370,8 +384,9 @@ class BlueskyIE(InfoExtractor):
                 'repost_count': ('repostCount', {int_or_none}),
                 'comment_count': ('replyCount', {int_or_none}),
                 'timestamp': ('indexedAt', {parse_iso8601}),
-                'tags': ('labels', ..., 'val', {str}, all, {lambda x: list(set(x))}),
-                'age_limit': ('labels', ..., 'val', {lambda x: 18 if x in ('sexual', 'porn', 'graphic-media') else None}, any),
+                'tags': ('labels', ..., 'val', {str}, all, {orderedSet}),
+                'age_limit': (
+                    'labels', ..., 'val', {lambda x: 18 if x in ('sexual', 'porn', 'graphic-media') else None}, any),
                 'description': (*record_path, 'text', {str}, any),
                 'title': (*record_path, 'text', {lambda x: truncate_string(x, 50)}),
             }),
