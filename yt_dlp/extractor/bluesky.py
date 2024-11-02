@@ -1,62 +1,69 @@
 from .common import InfoExtractor
-from ..utils import int_or_none, mimetype2ext, parse_iso8601, traverse_obj, url_or_none
+from ..utils import (
+    format_field,
+    int_or_none,
+    mimetype2ext,
+    parse_iso8601,
+    truncate_string,
+    update_url_query,
+    url_or_none,
+    variadic,
+)
+from ..utils.traversal import traverse_obj
 
 
 class BlueskyIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?(?:bsky\.app|main\.bsky\.dev)/profile/(?P<handle>[^/]+)/post/(?P<id>[0-9a-zA-Z]+)'
+    _VALID_URL = [
+        r'https?://(?:www\.)?(?:bsky\.app|main\.bsky\.dev)/profile/(?P<handle>[^/]+)/post/(?P<id>\w+)',
+        r'at://(?P<handle>[^/]+)/app.bsky.feed.post/(?P<id>\w+)',
+    ]
     _TESTS = [{
         'url': 'https://bsky.app/profile/blu3blue.bsky.social/post/3l4omssdl632g',
         'md5': '375539c1930ab05d15585ed772ab54fd',
         'info_dict': {
             'id': '3l4omssdl632g',
             'ext': 'mp4',
-            'title': str,
-            'upload_date': '20240921',
-            'description': 'OMG WE HAVE VIDEOS NOW',
-            'thumbnail': r're:https://video.bsky.app/watch/.*\.jpg$',
-            'uploader': str,
-            'channel': 'blu3blue.bsky.social',
-            'uploader_id': 'did:plc:pzdr5ylumf7vmvwasrpr5bf2',
-            'channel_id': 'did:plc:pzdr5ylumf7vmvwasrpr5bf2',
+            'uploader': 'Blu3Blu3Lilith',
+            'uploader_id': 'blu3blue.bsky.social',
             'uploader_url': 'https://bsky.app/profile/blu3blue.bsky.social',
+            'channel_id': 'did:plc:pzdr5ylumf7vmvwasrpr5bf2',
             'channel_url': 'https://bsky.app/profile/did:plc:pzdr5ylumf7vmvwasrpr5bf2',
+            'thumbnail': r're:https://video.bsky.app/watch/.*\.jpg$',
+            'title': 'OMG WE HAVE VIDEOS NOW',
+            'description': 'OMG WE HAVE VIDEOS NOW',
+            'upload_date': '20240921',
             'timestamp': 1726940605,
             'like_count': int,
             'repost_count': int,
             'comment_count': int,
-            'webpage_url': 'https://bsky.app/profile/blu3blue.bsky.social/post/3l4omssdl632g',
-            'tags': 'count:1',
-            'comments': 'mincount:29',
-            'age_limit': 0,
+            'tags': [],
+            'language': 'en',
         },
-        'params': {'getcomments': True},
     }, {
         'url': 'https://bsky.app/profile/bsky.app/post/3l3vgf77uco2g',
         'md5': 'b9e344fdbce9f2852c668a97efefb105',
         'info_dict': {
             'id': '3l3vgf77uco2g',
             'ext': 'mp4',
-            'title': str,
-            'upload_date': '20240911',
-            'description': r're:Bluesky now has video!',
-            'thumbnail': r're:https://video.bsky.app/watch/.*\.jpg$',
-            'alt_title': 'Bluesky video feature announcement',
             'uploader': 'Bluesky',
-            'channel': 'bsky.app',
-            'uploader_id': 'did:plc:z72i7hdynmk6r22z27h6tvur',
-            'channel_id': 'did:plc:z72i7hdynmk6r22z27h6tvur',
+            'uploader_id': 'bsky.app',
             'uploader_url': 'https://bsky.app/profile/bsky.app',
+            'channel_id': 'did:plc:z72i7hdynmk6r22z27h6tvur',
             'channel_url': 'https://bsky.app/profile/did:plc:z72i7hdynmk6r22z27h6tvur',
+            'thumbnail': r're:https://video.bsky.app/watch/.*\.jpg$',
+            'title': 'Bluesky now has video! Update your app to versi...',
+            'alt_title': 'Bluesky video feature announcement',
+            'description': r're:Bluesky now has video!',
+            'upload_date': '20240911',
             'timestamp': 1726074716,
             'like_count': int,
             'repost_count': int,
             'comment_count': int,
-            'webpage_url': 'https://bsky.app/profile/bsky.app/post/3l3vgf77uco2g',
-            'tags': ['en', 'pt'],
+            'tags': [],
+            'language': 'en',
             'subtitles': {
                 'en': 'mincount:1',
             },
-            'age_limit': 0,
         },
     }, {
         'url': 'https://main.bsky.dev/profile/souris.moe/post/3l4qhp7bcs52c',
@@ -64,24 +71,21 @@ class BlueskyIE(InfoExtractor):
         'info_dict': {
             'id': '3l4qhp7bcs52c',
             'ext': 'mp4',
-            'title': str,
-            'upload_date': '20240922',
-            'description': '',
-            'thumbnail': r're:https://video.bsky.app/watch/.*\.jpg$',
-            'uploader': str,
-            'channel': 'souris.moe',
-            'uploader_id': 'did:plc:tj7g244gl5v6ai6cm4f4wlqp',
-            'channel_id': 'did:plc:tj7g244gl5v6ai6cm4f4wlqp',
+            'uploader': 'souris',
+            'uploader_id': 'souris.moe',
             'uploader_url': 'https://bsky.app/profile/souris.moe',
+            'channel_id': 'did:plc:tj7g244gl5v6ai6cm4f4wlqp',
             'channel_url': 'https://bsky.app/profile/did:plc:tj7g244gl5v6ai6cm4f4wlqp',
+            'thumbnail': r're:https://video.bsky.app/watch/.*\.jpg$',
+            'title': 'Bluesky video #3l4qhp7bcs52c',
+            'description': '',
+            'upload_date': '20240922',
             'timestamp': 1727003838,
             'like_count': int,
             'repost_count': int,
             'comment_count': int,
-            'webpage_url': 'https://main.bsky.dev/profile/souris.moe/post/3l4qhp7bcs52c',
-            'tags': 'count:1',
-            'subtitles': 'count:0',
-            'age_limit': 0,
+            'tags': [],
+            'language': 'en',
         },
     }, {
         'url': 'https://bsky.app/profile/de1.pds.tentacle.expert/post/3l3w4tnezek2e',
@@ -89,24 +93,21 @@ class BlueskyIE(InfoExtractor):
         'info_dict': {
             'id': '3l3w4tnezek2e',
             'ext': 'mp4',
-            'title': str,
-            'upload_date': '20240911',
-            'description': '',
-            'thumbnail': r're:https://video.bsky.app/watch/.*\.jpg$',
-            'uploader': str,
-            'channel': 'de1.pds.tentacle.expert',
-            'uploader_id': 'did:web:de1.tentacle.expert',
-            'channel_id': 'did:web:de1.tentacle.expert',
+            'uploader': 'clean',
+            'uploader_id': 'de1.pds.tentacle.expert',
             'uploader_url': 'https://bsky.app/profile/de1.pds.tentacle.expert',
+            'channel_id': 'did:web:de1.tentacle.expert',
             'channel_url': 'https://bsky.app/profile/did:web:de1.tentacle.expert',
+            'thumbnail': r're:https://video.bsky.app/watch/.*\.jpg$',
+            'title': 'Bluesky video #3l3w4tnezek2e',
+            'description': '',
+            'upload_date': '20240911',
             'timestamp': 1726098823,
             'like_count': int,
             'repost_count': int,
             'comment_count': int,
-            'webpage_url': 'https://bsky.app/profile/de1.pds.tentacle.expert/post/3l3w4tnezek2e',
-            'tags': 'count:1',
-            'subtitles': 'count:0',
-            'age_limit': 0,
+            'tags': [],
+            'language': 'en',
         },
     }, {
         'url': 'https://bsky.app/profile/yunayuispink.bsky.social/post/3l7gqcfes742o',
@@ -114,81 +115,79 @@ class BlueskyIE(InfoExtractor):
         'info_dict': {
             'id': 'XxK3t_5V3ao',
             'ext': 'webm',
+            'uploader': 'yunayu',
             'uploader_id': '@yunayuispink',
-            'live_status': 'not_live',
-            'view_count': int,
+            'uploader_url': 'https://www.youtube.com/@yunayuispink',
+            'channel': 'yunayu',
+            'channel_id': 'UCPLvXnHa7lTyNoR_dGsU14w',
             'channel_url': 'https://www.youtube.com/channel/UCPLvXnHa7lTyNoR_dGsU14w',
             'thumbnail': 'https://i.ytimg.com/vi_webp/XxK3t_5V3ao/maxresdefault.webp',
+            'description': r're:Have a good goodx10000day',
+            'title': '5min vs 5hours drawing',
+            'availability': 'public',
+            'live_status': 'not_live',
+            'playable_in_embed': True,
             'upload_date': '20241026',
-            'uploader_url': 'https://www.youtube.com/@yunayuispink',
-            'description': 'md5:7d474e6ab76a88c84eb0f294e18ed828',
+            'timestamp': 1729967784,
+            'duration': 321,
+            'age_limit': 0,
+            'like_count': int,
+            'view_count': int,
+            'comment_count': int,
+            'channel_follower_count': int,
             'categories': ['Entertainment'],
             'tags': [],
-            'title': '5min vs 5hours drawing',
-            'duration': 321,
-            'uploader': 'yunayu',
-            'channel_follower_count': int,
-            'channel': 'yunayu',
-            'playable_in_embed': True,
-            'timestamp': 1729967784,
-            'like_count': int,
-            'channel_id': 'UCPLvXnHa7lTyNoR_dGsU14w',
-            'availability': 'public',
-            'age_limit': 0,
-            'comment_count': int,
         },
         'add_ie': ['Youtube'],
-        'params': {'getcomments': True},
     }, {
         'url': 'https://bsky.app/profile/endshark.bsky.social/post/3jzxjkcemae2m',
         'md5': 'd5c8fbc8f72b9f6ef160c150c420bb55',
         'info_dict': {
             'id': '222792849',
             'ext': 'mp3',
-            'track': 'Forward to the End',
-            'thumbnail': 'https://f4.bcbits.com/img/a2507705510_5.jpg',
-            'album': 'Hari Nezumi [EP]',
-            'uploader_id': 'laserbatx',
             'uploader': 'LASERBAT',
-            'duration': 228.571,
-            'album_artists': ['LASERBAT'],
-            'timestamp': 1682276040.0,
+            'uploader_id': 'laserbatx',
             'uploader_url': 'https://laserbatx.bandcamp.com',
+            'artists': ['LASERBAT'],
+            'album_artists': ['LASERBAT'],
+            'album': 'Hari Nezumi [EP]',
+            'track': 'Forward to the End',
+            'title': 'LASERBAT - Forward to the End',
+            'thumbnail': 'https://f4.bcbits.com/img/a2507705510_5.jpg',
+            'duration': 228.571,
             'track_id': '222792849',
             'release_date': '20230423',
             'upload_date': '20230423',
+            'timestamp': 1682276040.0,
             'release_timestamp': 1682276040.0,
             'track_number': 1,
-            'artists': ['LASERBAT'],
-            'title': 'LASERBAT - Forward to the End',
         },
         'add_ie': ['Bandcamp'],
     }, {
         'url': 'https://bsky.app/profile/dannybhoix.bsky.social/post/3l6oe5mtr2c2j',
         'md5': 'b9e344fdbce9f2852c668a97efefb105',
         'info_dict': {
-            'id': '3l6oe5mtr2c2j',
+            'id': '3l3vgf77uco2g',
             'ext': 'mp4',
-            'description': 'this looks like a 2012 announcement video. i love it.',
-            'uploader_url': 'https://bsky.app/profile/dannybhoix.bsky.social',
-            'uploader': 'Danny',
-            'title': str,
+            'uploader': 'Bluesky',
+            'uploader_id': 'bsky.app',
+            'uploader_url': 'https://bsky.app/profile/bsky.app',
+            'channel_id': 'did:plc:z72i7hdynmk6r22z27h6tvur',
+            'channel_url': 'https://bsky.app/profile/did:plc:z72i7hdynmk6r22z27h6tvur',
+            'thumbnail': r're:https://video.bsky.app/watch/.*\.jpg$',
+            'title': 'Bluesky now has video! Update your app to versi...',
+            'alt_title': 'Bluesky video feature announcement',
+            'description': r're:Bluesky now has video!',
+            'upload_date': '20240911',
+            'timestamp': 1726074716,
+            'like_count': int,
             'repost_count': int,
             'comment_count': int,
-            'channel': 'dannybhoix.bsky.social',
-            'timestamp': 1729130330,
-            'uploader_id': 'did:plc:ng7fhshaed7assvhkq7cxxnw',
-            'upload_date': '20241017',
-            'channel_url': 'https://bsky.app/profile/did:plc:ng7fhshaed7assvhkq7cxxnw',
-            'tags': ['en'],
-            'like_count': int,
-            'channel_id': 'did:plc:ng7fhshaed7assvhkq7cxxnw',
-            'thumbnail': r're:https://video.bsky.app/watch/.*\.jpg$',
-            'alt_title': 'Bluesky video feature announcement',
+            'tags': [],
+            'language': 'en',
             'subtitles': {
                 'en': 'mincount:1',
             },
-            'age_limit': 0,
         },
     }, {
         'url': 'https://bsky.app/profile/alt.bun.how/post/3l7rdfxhyds2f',
@@ -196,167 +195,148 @@ class BlueskyIE(InfoExtractor):
         'info_dict': {
             'id': '3l7rdfxhyds2f',
             'ext': 'mp4',
-            'channel_url': 'https://bsky.app/profile/did:plc:7x6rtuenkuvxq3zsvffp2ide',
-            'timestamp': 1730332128,
-            'channel_id': 'did:plc:7x6rtuenkuvxq3zsvffp2ide',
-            'upload_date': '20241030',
-            'channel': 'alt.bun.how',
-            'uploader_id': 'did:plc:7x6rtuenkuvxq3zsvffp2ide',
-            'description': 'crazy that i look like this tbh',
-            'comment_count': int,
-            'thumbnail': r're:https://video.bsky.app/watch/.*\.jpg$',
-            'uploader_url': 'https://bsky.app/profile/alt.bun.how',
-            'tags': ['en', 'sexual', 'sexual'],
-            'like_count': int,
-            'title': 'cinnamon on Bluesky',
             'uploader': 'cinnamon',
+            'uploader_id': 'alt.bun.how',
+            'uploader_url': 'https://bsky.app/profile/alt.bun.how',
+            'channel_id': 'did:plc:7x6rtuenkuvxq3zsvffp2ide',
+            'channel_url': 'https://bsky.app/profile/did:plc:7x6rtuenkuvxq3zsvffp2ide',
+            'thumbnail': r're:https://video.bsky.app/watch/.*\.jpg$',
+            'title': 'crazy that i look like this tbh',
+            'description': 'crazy that i look like this tbh',
+            'upload_date': '20241030',
+            'timestamp': 1730332128,
+            'like_count': int,
             'repost_count': int,
+            'comment_count': int,
+            'tags': ['sexual'],
             'age_limit': 18,
+            'language': 'en',
+        },
+    }, {
+        'url': 'at://did:plc:ia76kvnndjutgedggx2ibrem/app.bsky.feed.post/3l6zrz6zyl2dr',
+        'md5': '71b0eb6d85d03145e6af6642c7fc6d78',
+        'info_dict': {
+            'id': '3l6zrz6zyl2dr',
+            'ext': 'mp4',
+            'uploader': 'mary🐇',
+            'uploader_id': 'mary.my.id',
+            'uploader_url': 'https://bsky.app/profile/mary.my.id',
+            'channel_id': 'did:plc:ia76kvnndjutgedggx2ibrem',
+            'channel_url': 'https://bsky.app/profile/did:plc:ia76kvnndjutgedggx2ibrem',
+            'thumbnail': 'https://video.bsky.app/watch/did%3Aplc%3Aia76kvnndjutgedggx2ibrem/bafkreiasced5yaaodnspwgmuwvbxhoghbkq7iibhl3ftjgupq3brmgfwkm/thumbnail.jpg',
+            'title': 'Bluesky video #3l6zrz6zyl2dr',
+            'alt_title': '',
+            'description': '',
+            'upload_date': '20241021',
+            'timestamp': 1729523172,
+            'like_count': int,
+            'repost_count': int,
+            'comment_count': int,
+            'tags': [],
+            'language': 'en',
         },
     }]
-
-    def _get_comments(self, meta):
-        yield from self.traverse_replies(meta, traverse_obj(meta, ('post', 'uri'), default=''))
-
-    def traverse_replies(self, thread_node, root_uri):
-        post_uri = traverse_obj(thread_node, ('post', 'uri'))
-        if post_uri != root_uri:
-            post = thread_node.get('post')
-            parent_uri = traverse_obj(post, ('record', 'reply', 'parent', 'uri'))
-            author_handle = traverse_obj(post, ('author', 'handle'))
-            author_did = traverse_obj(post, ('author', 'did'), default='')
-            yield {
-                'id': post_uri,
-                **traverse_obj(post, {
-                    'text': ('record', 'text'),
-                    'timestamp': ('record', 'createdAt', {parse_iso8601}),
-                    'author': ('author', 'displayName'),
-                    'author_thumbnail': ('author', 'avatar', {url_or_none}),
-                }),
-                'parent': 'root' if parent_uri == root_uri else parent_uri,
-                'like_count': post.get('likeCount'),
-                'author_id': author_did,
-                'author_url': f'https://bsky.app/profile/{author_handle}',
-                'author_is_uploader': author_did in root_uri,
-            }
-        if replies := thread_node.get('replies'):
-            for reply in replies:
-                yield from self.traverse_replies(reply, root_uri)
-        if parent := thread_node.get('parent'):
-            yield from self.traverse_replies(parent, root_uri)
+    _BLOB_URL = '%s/xrpc/com.atproto.sync.getBlob'
 
     def get_service_endpoint(self, did, video_id):
-        services = self._download_json(
-            f'https://resolver.identity.foundation/1.0/identifiers/{did}',
-            video_id, fatal=False).get('service') or []
-        for service in services:
-            if service.get('type') == 'AtprotoPersonalDataServer':
-                return service.get('serviceEndpoint')
-        return 'https://bsky.social'
+        if did.startswith('did:web:'):
+            url = f'https://{did.split(":")[-1]}/.well-known/did.json'
+        else:
+            url = f'https://plc.directory/{did}'
+        services = self._download_json(url, video_id, fatal=False)
+        return traverse_obj(
+            services, ('service', lambda _, x: x.get('type') == 'AtprotoPersonalDataServer',
+                       'serviceEndpoint', {url_or_none}, any)) or 'https://bsky.social'
 
     def _real_extract(self, url):
         handle, video_id = self._match_valid_url(url).groups()
 
-        getcomments = self.get_param('getcomments', False)
-        meta = self._download_json(
+        post = self._download_json(
             'https://public.api.bsky.app/xrpc/app.bsky.feed.getPostThread',
             video_id, headers={'Content-Type': 'application/json'}, query={
                 'uri': f'at://{handle}/app.bsky.feed.post/{video_id}',
-                'depth': 1000 if getcomments else 0,
-                'parentHeight': 1000 if getcomments else 0,
-            })['thread']
-        post = meta.get('post')
+                'depth': 0,
+                'parentHeight': 0,
+            })['thread']['post']
 
-        did = traverse_obj(post, ('author', 'did'))
-        record_embed = traverse_obj(post, ('record', 'embed', ('media', None)), get_all=False)
-        post_type = record_embed.get('$type') if record_embed else None
-        quoted_post = traverse_obj(post, ('embed', 'record', ('record', None)), get_all=False)
-        quoted_type = traverse_obj(quoted_post, ('value', 'embed', ('media', None), '$type'), get_all=False)
-        quoted_media = traverse_obj(quoted_post, ('embeds', 0, ('media', None)), get_all=False)
-
-        if post_type == 'app.bsky.embed.external':
-            return self.url_result(traverse_obj(
-                post, ('embed', ('media', None), 'external', 'uri'), get_all=False)
-                or traverse_obj(record_embed, ('external', 'uri')))
-        elif post_type == 'app.bsky.embed.video':
-            formats, subs = self._extract_m3u8_formats_and_subtitles(
-                traverse_obj(post, ('embed', ('media', None), 'playlist'), get_all=False),
-                video_id, 'mp4', 'm3u8_native', m3u8_id='hls', fatal=False,
-                note='Downloading m3u8 information', errnote='Unable to download m3u8 information')
-            if blob_cid := traverse_obj(record_embed, ('video', 'ref', '$link'), ('video', 'cid')):
-                endpoint = self.get_service_endpoint(did, video_id)
-                formats.append({
-                    'format_id': 'blob',
-                    'url': f'{endpoint}/xrpc/com.atproto.sync.getBlob?did={did}&cid={blob_cid}',
-                    **traverse_obj(record_embed, {
-                        'ext': ('video', 'mimeType', {mimetype2ext}),
-                        'width': ('aspectRatio', 'width', {int_or_none}),
-                        'height': ('aspectRatio', 'height', {int_or_none}),
-                        'filesize': ('video', 'size', {int_or_none}),
-                    }),
-                })
-            video_info = {
-                'formats': formats,
-                'subtitles': subs,
-                **traverse_obj(post, {
-                    'thumbnail': ('embed', 'thumbnail', {url_or_none}),
-                    'alt_title': ('embed', 'alt'),
-                }),
-            }
-        elif quoted_type == 'app.bsky.embed.external':
-            return self.url_result(traverse_obj(quoted_media, ('external', 'uri')))
-        elif quoted_type == 'app.bsky.embed.video':
-            formats, subs = self._extract_m3u8_formats_and_subtitles(
-                quoted_media.get('playlist'), video_id, 'mp4', 'm3u8_native', m3u8_id='hls', fatal=False,
-                note='Downloading m3u8 information', errnote='Unable to download m3u8 information')
-            if blob_cid := quoted_media.get('cid'):
-                quoted_did = traverse_obj(quoted_post, ('author', 'did'))
-                quoted_embed = traverse_obj(quoted_post, ('value', 'embed', ('media', None)), get_all=False)
-                endpoint = self.get_service_endpoint(quoted_did, video_id)
-                formats.append({
-                    'format_id': 'blob',
-                    'url': f'{endpoint}/xrpc/com.atproto.sync.getBlob?did={quoted_did}&cid={blob_cid}',
-                    **traverse_obj(quoted_embed, {
-                        'ext': ('video', 'mimeType', {mimetype2ext}),
-                        'width': ('aspectRatio', 'width', {int_or_none}),
-                        'height': ('aspectRatio', 'height', {int_or_none}),
-                        'filesize': ('video', 'size', {int_or_none}),
-                    }),
-                })
-            video_info = {
-                'formats': formats,
-                'subtitles': subs,
-                'thumbnail': url_or_none(quoted_media.get('thumbnail')),
-                'alt_title': quoted_embed.get('alt') or quoted_media.get('alt'),
-            }
-        else:
+        entries = []
+        # app.bsky.embed.video.view/app.bsky.embed.external.view
+        entries.extend(self._extract_videos(post, video_id))
+        # app.bsky.embed.recordWithMedia.view
+        entries.extend(self._extract_videos(
+            post, video_id, embed_path=('embed', 'media'), record_subpath=('embed', 'media')))
+        # app.bsky.embed.record.view
+        if nested_post := traverse_obj(post, ('embed', 'record', ('record', None), {dict}, any)):
+            entries.extend(self._extract_videos(
+                nested_post, video_id, embed_path=('embeds', 0), record_path='value'))
+        if len(entries) == 0:
             self.raise_no_formats('No video could be found in this post', expected=True)
+        if len(entries) == 1:
+            return entries[0]
+        return self.playlist_result(entries, video_id)
 
-        handle = traverse_obj(post, ('author', 'handle'))
-        uploader = traverse_obj(post, ('author', 'displayName')) or handle
+    @staticmethod
+    def _build_profile_url(path):
+        return format_field(path, None, 'https://bsky.app/profile/%s', default=None)
 
-        tags = traverse_obj(post, ('record', 'langs'), default=[])
-        if label_list := post.get('labels'):
-            tags.extend(label.get('val') for label in label_list)
-
-        return {
+    def _extract_videos(self, root, video_id, embed_path='embed', record_path='record', record_subpath='embed'):
+        embed_path = variadic(embed_path, (str, bytes, dict, set))
+        record_path = variadic(record_path, (str, bytes, dict, set))
+        record_subpath = variadic(record_subpath, (str, bytes, dict, set))
+        entries = []
+        if external_uri := traverse_obj(root, (((*record_path, *record_subpath), embed_path), 'external', 'uri', {url_or_none}, any)):
+            entries.append(self.url_result(external_uri))
+        if playlist := traverse_obj(root, (*embed_path, 'playlist', {url_or_none})):
+            formats, subtitles = self._extract_m3u8_formats_and_subtitles(
+                playlist, video_id, 'mp4', m3u8_id='hls', fatal=False)
+        else:
+            return entries
+        video_cid = traverse_obj(
+            root, (*embed_path, 'cid', {str}),
+            (*record_path, *record_subpath, 'video', 'ref', '$link', {str}))
+        did = traverse_obj(root, ('author', 'did', {str}))
+        if did and video_cid:
+            endpoint = self.get_service_endpoint(did, video_id)
+            formats.append({
+                'format_id': 'blob',
+                'url': update_url_query(self._BLOB_URL % endpoint, {'did': did, 'cid': video_cid}),
+                **traverse_obj(root, (*embed_path, 'aspectRatio', {
+                    'width': ('width', {int_or_none}),
+                    'height': ('height', {int_or_none}),
+                })),
+                **traverse_obj(root, (*record_path, *record_subpath, 'video', {
+                    'filesize': ('size', {int_or_none}),
+                    'ext': ('mimeType', {mimetype2ext}),
+                })),
+            })
+            for sub_data in traverse_obj(root, (
+                    *record_path, *record_subpath, 'captions', lambda _, v: v['file']['ref']['$link'])):
+                subtitles.setdefault(sub_data.get('lang') or 'und', []).append({
+                    'url': update_url_query(self._BLOB_URL % endpoint, {'did': did, 'cid': sub_data['file']['ref']['$link']}),
+                    'ext': traverse_obj(sub_data, ('file', 'mimeType', {mimetype2ext})),
+                })
+        entries.append({
             'id': video_id,
-            'title': f'{uploader} on Bluesky',
-            **video_info,
-            'uploader': uploader,
-            'channel': handle,
-            'uploader_id': did,
-            'channel_id': did,
-            'uploader_url': f'https://bsky.app/profile/{handle}',
-            'channel_url': f'https://bsky.app/profile/{did}',
-            'like_count': post.get('likeCount'),
-            'repost_count': post.get('repostCount'),
-            'comment_count': post.get('replyCount'),
-            'tags': tags,
-            'age_limit': 18 if {'sexual', 'porn', 'graphic-media'}.intersection(tags) else 0,
-            '__post_extractor': self.extract_comments(meta),
-            **traverse_obj(post, {
-                'timestamp': ('record', 'createdAt', {parse_iso8601}),
-                'description': ('record', 'text'),
+            'formats': formats,
+            'subtitles': subtitles,
+            **traverse_obj(root, {
+                'id': ('uri', {lambda x: x.split('/')[-1] or None}, {str}),
+                'thumbnail': (*embed_path, 'thumbnail', {url_or_none}),
+                'alt_title': (*embed_path, 'alt', {str}),
+                'uploader': ('author', 'displayName', {str}),
+                'uploader_id': ('author', 'handle', {str}),
+                'uploader_url': ('author', 'handle', {self._build_profile_url}),
+                'channel_id': ('author', 'did', {str}),
+                'channel_url': ('author', 'did', {self._build_profile_url}),
+                'like_count': ('likeCount', {int_or_none}),
+                'repost_count': ('repostCount', {int_or_none}),
+                'comment_count': ('replyCount', {int_or_none}),
+                'timestamp': ('indexedAt', {parse_iso8601}),
+                'tags': ('labels', ..., 'val', {str}, all, {lambda x: list(set(x))}),
+                'age_limit': ('labels', ..., 'val', {lambda x: 18 if x in ('sexual', 'porn', 'graphic-media') else None}, any),
+                'description': (*record_path, 'text', {str}, any),
+                'title': (*record_path, 'text', {lambda x: truncate_string(x, 50)}),
+                'language': (*record_path, 'langs', ..., {str}, any),
             }),
-        }
+        })
+        return entries
