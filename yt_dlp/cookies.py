@@ -456,7 +456,9 @@ class LinuxChromeCookieDecryptor(ChromeCookieDecryptor):
 
         if version == b'v10':
             self._cookie_counts['v10'] += 1
-            return _decrypt_aes_cbc_multi(ciphertext, (self._v10_key, self._empty_key), self._logger)
+            return _decrypt_aes_cbc_multi(
+                ciphertext, (self._v10_key, self._empty_key), self._logger,
+                hash_prefix=self._meta_version >= 24)
 
         elif version == b'v11':
             self._cookie_counts['v11'] += 1
