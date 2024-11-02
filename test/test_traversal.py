@@ -9,6 +9,7 @@ from yt_dlp.utils import (
     determine_ext,
     dict_get,
     int_or_none,
+    join_nonempty,
     str_or_none,
 )
 from yt_dlp.utils.traversal import (
@@ -16,6 +17,7 @@ from yt_dlp.utils.traversal import (
     subs_list_to_dict,
     traverse_obj,
     trim_str,
+    unpack,
 )
 
 _TEST_DATA = {
@@ -509,6 +511,15 @@ class TestTraversalHelpers:
         assert trim_str(start='ab', end='bc')('abc') == ''
         assert trim_str(start='abc', end='abc')('abc') == ''
         assert trim_str(start='', end='')('abc') == 'abc'
+
+    def test_unpack(self):
+        assert unpack(lambda *x: ''.join(map(str, x)))([1, 2, 3]) == '123'
+        assert unpack(join_nonempty)([1, 2, 3]) == '1-2-3'
+        assert unpack(join_nonempty(delim=' '))([1, 2, 3]) == '1 2 3'
+        with pytest.raises(TypeError):
+            unpack(join_nonempty)()
+        with pytest.raises(TypeError):
+            unpack()
 
 
 class TestDictGet:
