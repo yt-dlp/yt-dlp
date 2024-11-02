@@ -418,14 +418,14 @@ def get_cookie_decryptor(browser_root, browser_keyring_name, logger, *, keyring=
 
 
 class LinuxChromeCookieDecryptor(ChromeCookieDecryptor):
-    def __init__(self, browser_keyring_name, logger, *, keyring=None, meta_version=0):
+    def __init__(self, browser_keyring_name, logger, *, keyring=None, meta_version=None):
         self._logger = logger
         self._v10_key = self.derive_key(b'peanuts')
         self._empty_key = self.derive_key(b'')
         self._cookie_counts = {'v10': 0, 'v11': 0, 'other': 0}
         self._browser_keyring_name = browser_keyring_name
         self._keyring = keyring
-        self._meta_version = meta_version
+        self._meta_version = meta_version or 0
 
     @functools.cached_property
     def _v11_key(self):
@@ -472,12 +472,12 @@ class LinuxChromeCookieDecryptor(ChromeCookieDecryptor):
 
 
 class MacChromeCookieDecryptor(ChromeCookieDecryptor):
-    def __init__(self, browser_keyring_name, logger, meta_version=0):
+    def __init__(self, browser_keyring_name, logger, meta_version=None):
         self._logger = logger
         password = _get_mac_keyring_password(browser_keyring_name, logger)
         self._v10_key = None if password is None else self.derive_key(password)
         self._cookie_counts = {'v10': 0, 'other': 0}
-        self._meta_version = meta_version
+        self._meta_version = meta_version or 0
 
     @staticmethod
     def derive_key(password):
@@ -506,11 +506,11 @@ class MacChromeCookieDecryptor(ChromeCookieDecryptor):
 
 
 class WindowsChromeCookieDecryptor(ChromeCookieDecryptor):
-    def __init__(self, browser_root, logger, meta_version=0):
+    def __init__(self, browser_root, logger, meta_version=None):
         self._logger = logger
         self._v10_key = _get_windows_v10_key(browser_root, logger)
         self._cookie_counts = {'v10': 0, 'other': 0}
-        self._meta_version = meta_version
+        self._meta_version = meta_version or 0
 
     def decrypt(self, encrypted_value):
         version = encrypted_value[:3]
