@@ -30,7 +30,7 @@ from asyncio import run as compat_asyncio_run  # noqa: F401
 from re import Pattern as compat_Pattern  # noqa: F401
 from re import match as compat_Match  # noqa: F401
 
-from . import compat_expanduser, compat_HTMLParseError, compat_realpath
+from . import compat_expanduser, compat_HTMLParseError
 from .compat_utils import passthrough_module
 from ..dependencies import brotli as compat_brotli  # noqa: F401
 from ..dependencies import websockets as compat_websockets  # noqa: F401
@@ -78,7 +78,7 @@ compat_kwargs = lambda kwargs: kwargs
 compat_map = map
 compat_numeric_types = (int, float, complex)
 compat_os_path_expanduser = compat_expanduser
-compat_os_path_realpath = compat_realpath
+compat_os_path_realpath = os.path.realpath
 compat_print = print
 compat_shlex_split = shlex.split
 compat_socket_create_connection = socket.create_connection

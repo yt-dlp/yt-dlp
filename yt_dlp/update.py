@@ -13,7 +13,6 @@ import sys
 from dataclasses import dataclass
 from zipimport import zipimporter
 
-from .compat import compat_realpath
 from .networking import Request
 from .networking.exceptions import HTTPError, network_exceptions
 from .utils import (
@@ -523,7 +522,7 @@ class Updater:
     @functools.cached_property
     def filename(self):
         """Filename of the executable"""
-        return compat_realpath(_get_variant_and_executable_path()[1])
+        return os.path.realpath(_get_variant_and_executable_path()[1])
 
     @functools.cached_property
     def cmd(self):
