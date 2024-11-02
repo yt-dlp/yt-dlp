@@ -24,8 +24,9 @@ from ..utils import (
 class DouyuBaseIE(InfoExtractor):
     def _download_cryptojs_md5(self, video_id):
         for url in [
+            # XXX: Do NOT use cdn.bootcdn.net; ref: https://sansec.io/research/polyfill-supply-chain-attack
             'https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.2/rollups/md5.js',
-            'https://cdn.bootcdn.net/ajax/libs/crypto-js/3.1.2/rollups/md5.js',
+            'https://unpkg.com/cryptojslib@3.1.2/rollups/md5.js',
         ]:
             js_code = self._download_webpage(
                 url, video_id, note='Downloading signing dependency', fatal=False)
@@ -35,7 +36,8 @@ class DouyuBaseIE(InfoExtractor):
         raise ExtractorError('Unable to download JS dependency (crypto-js/md5)')
 
     def _get_cryptojs_md5(self, video_id):
-        return self.cache.load('douyu', 'crypto-js-md5') or self._download_cryptojs_md5(video_id)
+        return self.cache.load(
+            'douyu', 'crypto-js-md5', min_ver='2024.07.04') or self._download_cryptojs_md5(video_id)
 
     def _calc_sign(self, sign_func, video_id, a):
         b = uuid.uuid4().hex
