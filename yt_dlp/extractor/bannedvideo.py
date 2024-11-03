@@ -53,23 +53,24 @@ query GetVideoAndComments($id: String!) {
     _GRAPHQL_GETMETADATA_FALLBACK_QUERY = '''
 query GetVideo($id: String!) {
     getVideo(id: $id) {
-        ...DisplayVideoFields streamUrl directUrl liked disliked audio unlisted live tags {
-            _id name __typename
+        streamUrl
+        directUrl
+        unlisted
+        live
+        tags {
+            name
         }
-        sale {
-            _id text textSale description url videoUpload {
-                cloudflareVideoUID __typename
-            }
-            __typename
+        title
+        summary
+        playCount
+        largeImage
+        videoDuration
+        channel {
+            _id
+            title
         }
-        __typename
+        createdAt
     }
-}
-fragment DisplayVideoFields on Video {
-    _id title summary playCount likeCount angerCount largeImage embedUrl published videoDuration channel {
-        _id title avatar __typename
-    }
-    createdAt __typename
 }'''
 
     _GRAPHQL_GETCOMMENTSREPLIES_QUERY = '''
@@ -185,10 +186,33 @@ class BannedVideoIE(BannedVideoBaseIE):
             'id': '5e7a859644e02200c6ef5f11',
             'ext': 'mp4',
             'title': 'China Discovers Origin of Corona Virus: Issues Emergency Statement',
-            'thumbnail': r're:^https?://(?:www\.)?assets\.infowarsmedia.com/images/',
             'description': 'md5:560d96f02abbebe6c6b78b47465f6b28',
-            'upload_date': '20200324',
+            'thumbnail': 'https://download.assets.video/images/78bacefe-2bd7-434f-b584-ac2a20d1fac4-large.jpg',
             'timestamp': 1585087895,
+            'upload_date': '20200324',
+            'channel_id': '5b885d33e6646a0015a6fa2d',
+            'duration': 322.6223,
+            'channel': 'The Alex Jones Show',
+            'view_count': int,
+            'tags': ['fentynol', 'alex jones', 'china', 'dragon', 'communist', 'chicom'],
+        },
+    },
+        # requires fallback video metadata call (graphql api returns error about comments)
+        {
+        'url': 'https://banned.video/watch?id=60461f187d2e5c334e31177c',
+        'info_dict': {
+            'id': '60461f187d2e5c334e31177c',
+            'ext': 'mp4',
+            'title': 'Roger Stone: Who Controls Joe Biden',
+            'view_count': int,
+            'duration': 1946.561283,
+            'channel': 'The Alex Jones Show',
+            'thumbnail': 'https://download.assets.video/images/77981308-99e8-401a-bd96-12c7ceda5c75-large.jpg',
+            'upload_date': '20210308',
+            'timestamp': 1615208216,
+            'description': 'Alex Jones interviews Roger Stone in South Florida',
+            'channel_id': '5b885d33e6646a0015a6fa2d',
+            'tags': ['alex jones', 'roger stone'],
         },
     }]
 
