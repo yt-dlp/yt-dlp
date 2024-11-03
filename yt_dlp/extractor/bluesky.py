@@ -372,7 +372,7 @@ class BlueskyIE(InfoExtractor):
             **traverse_obj(root, {
                 'id': ('uri', {url_basename}),
                 'thumbnail': (*embed_path, 'thumbnail', {url_or_none}),
-                'alt_title': (*embed_path, 'alt', {str}),
+                'alt_title': (*embed_path, 'alt', {str}, filter),
                 'uploader': ('author', 'displayName', {str}),
                 'uploader_id': ('author', 'handle', {str}),
                 'uploader_url': ('author', 'handle', {self._build_profile_url}),
@@ -385,8 +385,8 @@ class BlueskyIE(InfoExtractor):
                 'tags': ('labels', ..., 'val', {str}, all, {orderedSet}),
                 'age_limit': (
                     'labels', ..., 'val', {lambda x: 18 if x in ('sexual', 'porn', 'graphic-media') else None}, any),
-                'description': (*record_path, 'text', {str}, any),
-                'title': (*record_path, 'text', {truncate_string(left=50)}),
+                'description': (*record_path, 'text', {str}, filter),
+                'title': (*record_path, 'text', {lambda x: x.replace('\n', '')}, {truncate_string(left=50)}),
             }),
         })
         return entries
