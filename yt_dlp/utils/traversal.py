@@ -20,6 +20,7 @@ from ._utils import (
     get_elements_html_by_class,
     get_elements_html_by_attribute,
     get_elements_by_attribute,
+    get_element_by_class,
     get_element_html_by_attribute,
     get_element_by_attribute,
     get_element_html_by_id,
@@ -402,7 +403,7 @@ def find_element(*, tag=None, id=None, cls=None, attr=None, value=None, html=Fal
     elif cls:
         assert not id, 'Cannot match both cls and id'
         assert tag is None, 'Cannot match both cls and tag'
-        func = get_element_html_by_class if html else get_elements_by_class
+        func = get_element_html_by_class if html else get_element_by_class
         return functools.partial(func, cls)
 
     elif id:
