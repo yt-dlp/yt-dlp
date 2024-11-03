@@ -271,7 +271,7 @@ class BlueskyIE(InfoExtractor):
             },
         }],
     }]
-    _BLOB_URL_TMPL = '%s/xrpc/com.atproto.sync.getBlob'
+    _BLOB_URL_TMPL = '{}/xrpc/com.atproto.sync.getBlob'
 
     def _get_service_endpoint(self, did, video_id):
         if did.startswith('did:web:'):
@@ -342,7 +342,7 @@ class BlueskyIE(InfoExtractor):
             formats.append({
                 'format_id': 'blob',
                 'url': update_url_query(
-                    self._BLOB_URL_TMPL % endpoint, {'did': did, 'cid': video_cid}),
+                    self._BLOB_URL_TMPL.format(endpoint), {'did': did, 'cid': video_cid}),
                 **traverse_obj(root, (*embed_path, 'aspectRatio', {
                     'width': ('width', {int_or_none}),
                     'height': ('height', {int_or_none}),
@@ -357,7 +357,7 @@ class BlueskyIE(InfoExtractor):
                     *record_path, *record_subpath, 'captions', lambda _, v: v['file']['ref']['$link'])):
                 subtitles.setdefault(sub_data.get('lang') or 'und', []).append({
                     'url': update_url_query(
-                        self._BLOB_URL_TMPL % endpoint, {'did': did, 'cid': sub_data['file']['ref']['$link']}),
+                        self._BLOB_URL_TMPL.format(endpoint), {'did': did, 'cid': sub_data['file']['ref']['$link']}),
                     'ext': traverse_obj(sub_data, ('file', 'mimeType', {mimetype2ext})),
                 })
 
