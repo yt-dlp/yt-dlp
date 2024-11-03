@@ -312,6 +312,12 @@ class ARDBetaMediathekIE(InfoExtractor):
             '_old_archive_ids': ['ardbetamediathek N2I2YmM5MzgtNWFlOS00ZGFlLTg2NzMtYzNjM2JlNjk4MDg3'],
         },
     }, {
+        'url': 'https://www.ardmediathek.de/video/lokalzeit-aus-duesseldorf/lokalzeit-aus-duesseldorf-oder-31-10-2024/wdr-duesseldorf/Y3JpZDovL3dkci5kZS9CZWl0cmFnLXNvcGhvcmEtOWFkMTc0ZWMtMDA5ZS00ZDEwLWFjYjctMGNmNTdhNzVmNzUz',
+        'info_dict': {
+            'id': '13847165',
+            'chapters': 'count:7',
+        },
+    }, {
         'url': 'https://beta.ardmediathek.de/ard/video/Y3JpZDovL2Rhc2Vyc3RlLmRlL3RhdG9ydC9mYmM4NGM1NC0xNzU4LTRmZGYtYWFhZS0wYzcyZTIxNGEyMDE',
         'only_matching': True,
     }, {
@@ -446,6 +452,8 @@ class ARDBetaMediathekIE(InfoExtractor):
                     'url': sources['url'],
                     'ext': {'webvtt': 'vtt', 'ebutt': 'ttml'}.get(sources.get('kind')),
                 })
+        chapters = [{'start_time': int_or_none(chap.get('chapterTime')), 'title': chap.get('chapterTitle')}
+                    for chap in traverse_obj(media_data, ('pluginData', 'jumpmarks@all', 'chapterArray')) or []] or None
 
         age_limit = traverse_obj(page_data, ('fskRating', {lambda x: remove_start(x, 'FSK')}, {int_or_none}))
         return {
@@ -455,6 +463,7 @@ class ARDBetaMediathekIE(InfoExtractor):
             'subtitles': subtitles,
             'is_live': is_live,
             'age_limit': age_limit,
+            'chapters': chapters,
             **traverse_obj(media_data, ('meta', {
                 'title': 'title',
                 'description': 'synopsis',
