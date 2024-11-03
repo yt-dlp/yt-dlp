@@ -299,7 +299,7 @@ class ARDBetaMediathekIE(InfoExtractor):
         'info_dict': {
             'id': '94834686',
             'ext': 'mp4',
-            'duration': 2700,
+            'duration': 2670,
             'episode': '7 Tage ... unter harten Jungs',
             'description': 'md5:0f215470dcd2b02f59f4bd10c963f072',
             'upload_date': '20231005',
@@ -307,7 +307,7 @@ class ARDBetaMediathekIE(InfoExtractor):
             'display_id': 'N2I2YmM5MzgtNWFlOS00ZGFlLTg2NzMtYzNjM2JlNjk4MDg3',
             'series': '7 Tage ...',
             'channel': 'HR',
-            'thumbnail': 'https://api.ardmediathek.de/image-service/images/urn:ard:image:f6e6d5ffac41925c?w=960&ch=fa32ba69bc87989a',
+            'thumbnail': 'https://api.ardmediathek.de/image-service/images/urn:ard:image:430c86d233afa42d?w=960&ch=fa32ba69bc87989a',
             'title': '7 Tage ... unter harten Jungs',
             '_old_archive_ids': ['ardbetamediathek N2I2YmM5MzgtNWFlOS00ZGFlLTg2NzMtYzNjM2JlNjk4MDg3'],
         },
