@@ -146,7 +146,7 @@ class BpbIE(InfoExtractor):
                 {find_element(cls='opening-intro')},
                 [{find_element(tag='bpb-accordion-item')}, {find_element(cls='text-content')}],
             ), {clean_html}]), delim='\n\n') or None,
-            'creators': [self._html_search_meta('author', webpage)],
+            'creators': traverse_obj(self._html_search_meta('author', webpage), all),
             'uploader': self._html_search_meta('publisher', webpage),
             'release_date': unified_strdate(self._html_search_meta('date', webpage)),
             'tags': traverse_obj(json_lds, (..., 'keywords', {lambda x: x.split(',')}, ...)),
