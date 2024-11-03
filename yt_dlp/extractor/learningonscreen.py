@@ -30,10 +30,7 @@ class LearningOnScreenIE(InfoExtractor):
 
     def _real_initialize(self):
         if not self._get_cookies('https://learningonscreen.ac.uk/').get('PHPSESSID-BOB-LIVE'):
-            self.raise_login_required(
-                'Use --cookies for authentication. See '
-                ' https://github.com/yt-dlp/yt-dlp/wiki/FAQ#how-do-i-pass-cookies-to-yt-dlp  '
-                'for how to manually pass cookies', method=None)
+            self.raise_login_required(method='session_cookies')
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
