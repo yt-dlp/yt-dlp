@@ -105,6 +105,13 @@ class TestCookies(unittest.TestCase):
             decryptor = LinuxChromeCookieDecryptor('Chrome', Logger())
             self.assertEqual(decryptor.decrypt(encrypted_value), value)
 
+    def test_chrome_cookie_decryptor_linux_v10_meta24(self):
+        with MonkeyPatch(cookies, {'_get_linux_keyring_password': lambda *args, **kwargs: b''}):
+            encrypted_value = b'v10\x1f\xe4\x0e[\x83\x0c\xcc*kPi \xce\x8d\x1d\xbb\x80\r\x11\t\xbb\x9e^Hy\x94\xf4\x963\x9f\x82\xba\xfe\xa1\xed\xb9\xf1)\x00710\x92\xc8/<\x96B'
+            value = 'DE'
+            decryptor = LinuxChromeCookieDecryptor('Chrome', Logger(), meta_version=24)
+            self.assertEqual(decryptor.decrypt(encrypted_value), value)
+
     def test_chrome_cookie_decryptor_windows_v10(self):
         with MonkeyPatch(cookies, {
             '_get_windows_v10_key': lambda *args, **kwargs: b'Y\xef\xad\xad\xeerp\xf0Y\xe6\x9b\x12\xc2<z\x16]\n\xbb\xb8\xcb\xd7\x9bA\xc3\x14e\x99{\xd6\xf4&',
