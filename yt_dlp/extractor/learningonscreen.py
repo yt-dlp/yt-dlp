@@ -41,7 +41,7 @@ class LearningOnScreenIE(InfoExtractor):
 
         details = traverse_obj(webpage, (
             {find_element(id='programme-details', html=True)}, {
-                'title': ({functools.partial(re.search, r'<h2>([^<]+)</h2>')}, 1, {clean_html}),
+                'title': ({find_element(tag='h2')}, {clean_html}),
                 'timestamp': (
                     {find_element(cls='broadcast-date')},
                     {functools.partial(re.match, r'([^<]+)')}, 1, {unified_timestamp}),
