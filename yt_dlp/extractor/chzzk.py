@@ -167,6 +167,7 @@ class CHZZKVideoIE(InfoExtractor):
                 f'Unknown video status detected: "{video_status}"', expected=True, video_id=video_id)
             formats, subtitles = [], {}
             live_status = 'post_live' if live_status == 'was_live' else None
+
         return {
             'id': video_id,
             'formats': formats,
