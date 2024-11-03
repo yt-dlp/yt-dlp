@@ -4777,7 +4777,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'live_status': live_status,
             'release_timestamp': live_start_time,
             '_format_sort_fields': (  # source_preference is lower for potentially damaged formats
-                'quality', 'res', 'fps', 'hdr:12', 'source', 'vcodec:vp9.2', 'channels', 'acodec', 'lang', 'proto'),
+                'quality', 'res', 'fps', 'hdr:12', 'source', 'vcodec', 'channels', 'acodec', 'lang', 'proto'),
         }
 
         subtitles = {}
@@ -7858,7 +7858,7 @@ class YoutubeClipIE(YoutubeTabBaseInfoExtractor):
             'section_start': int(clip_data['startTimeMs']) / 1000,
             'section_end': int(clip_data['endTimeMs']) / 1000,
             '_format_sort_fields': (  # https protocol is prioritized for ffmpeg compatibility
-                'proto:https', 'quality', 'res', 'fps', 'hdr:12', 'source', 'vcodec:vp9.2', 'channels', 'acodec', 'lang'),
+                'proto:https', 'quality', 'res', 'fps', 'hdr:12', 'source', 'vcodec', 'channels', 'acodec', 'lang'),
         }
 
 
