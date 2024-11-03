@@ -10,11 +10,14 @@ from ..utils import (
     OnDemandPagedList,
     age_restricted,
     clean_html,
+    extract_attributes,
     int_or_none,
     traverse_obj,
     try_get,
     unescapeHTML,
     unsmuggle_url,
+    update_url,
+    url_or_none,
     urlencode_postdata,
 )
 
@@ -99,11 +102,16 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
     _VALID_URL = r'''(?ix)
                     https?://
                         (?:
-                            (?:(?:www|touch|geo)\.)?dailymotion\.[a-z]{2,3}/(?:(?:(?:(?:embed|swf|\#)/)|player(?:/\w+)?\.html\?)?video|swf)|
-                            (?:www\.)?lequipe\.fr/video
+                            (?:(?:www|touch|geo)\.)?dailymotion\.[a-z]{2,3}|
+                            (?:www\.)?lequipe\.fr
+                        )/
+                        (?:
+                            swf/(?!video)|
+                            (?:(?:crawler|embed|swf)/)?video/|
+                            player(?:/[\da-z]+)?\.html\?(?:video|(?P<is_playlist>playlist))=
                         )
-                        [/=](?P<id>[^/?_&]+)(?:.+?\bplaylist=(?P<playlist_id>x[0-9a-z]+))?
-                    '''
+                    (?P<id>[^/?_&#]+)(?:[\w-]*\?playlist=(?P<playlist_id>x[0-9a-z]+))?
+    '''
     IE_NAME = 'dailymotion'
     _EMBED_REGEX = [r'<(?:(?:embed|iframe)[^>]+?src=|input[^>]+id=[\'"]dmcloudUrlEmissionSelect[\'"][^>]+value=)(["\'])(?P<url>(?:https?:)?//(?:www\.)?dailymotion\.com/(?:embed|swf)/video/.+?)\1']
     _TESTS = [{
@@ -217,6 +225,63 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
     }, {
         'url': 'https://geo.dailymotion.com/player/xakln.html?video=x8mjju4&customConfig%5BcustomParams%5D=%2Ffr-fr%2Ftennis%2Fwimbledon-mens-singles%2Farticles-video',
         'only_matching': True,
+    }, {  # playlist-only
+        'url': 'https://geo.dailymotion.com/player/xf7zn.html?playlist=x7wdsj',
+        'only_matching': True,
+    }, {
+        'url': 'https://geo.dailymotion.com/player/xmyye.html?video=x93blhi',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.dailymotion.com/crawler/video/x8u4owg',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.dailymotion.com/embed/video/x8u4owg',
+        'only_matching': True,
+    }]
+    _WEBPAGE_TESTS = [{
+        # https://geo.dailymotion.com/player/xmyye.html?video=x93blhi
+        'url': 'https://www.financialounge.com/video/2024/08/01/borse-europee-in-rosso-dopo-la-fed-a-milano-volano-mediobanca-e-tim-edizione-del-1-agosto/',
+        'info_dict': {
+            'id': 'x93blhi',
+            'ext': 'mp4',
+            'title': 'OnAir - 01/08/24',
+            'description': '',
+            'duration': 217,
+            'timestamp': 1722505658,
+            'upload_date': '20240801',
+            'uploader': 'Financialounge',
+            'uploader_id': 'x2vtgmm',
+            'age_limit': 0,
+            'tags': [],
+            'view_count': int,
+            'like_count': int,
+        },
+    }, {
+        # https://geo.dailymotion.com/player/xf7zn.html?playlist=x7wdsj
+        'url': 'https://www.cycleworld.com/blogs/ask-kevin/ducati-continues-to-evolve-with-v4/',
+        'info_dict': {
+            'id': 'x7wdsj',
+        },
+        'playlist_mincount': 50,
+    }, {
+        # https://www.dailymotion.com/crawler/video/x8u4owg
+        'url': 'https://www.leparisien.fr/environnement/video-le-veloto-la-voiture-a-pedales-qui-aimerait-se-faire-une-place-sur-les-routes-09-03-2024-KCYMCPM4WFHJXMSKBUI66UNFPU.php',
+        'info_dict': {
+            'id': 'x8u4owg',
+            'ext': 'mp4',
+            'like_count': int,
+            'uploader': 'Le Parisien',
+            'thumbnail': 'https://www.leparisien.fr/resizer/ho_GwveeYftNkLwg_cEta--5Bv4=/1200x675/cloudfront-eu-central-1.images.arcpublishing.com/leparisien/BFXJNEBN75EUNHGYJLORUC3TX4.jpg',
+            'upload_date': '20240309',
+            'view_count': int,
+            'timestamp': 1709997866,
+            'age_limit': 0,
+            'uploader_id': 'x32f7b',
+            'title': 'VIDÉO. Le «\xa0véloto\xa0», la voiture à pédales qui aimerait se faire une place sur les routes',
+            'duration': 428.0,
+            'description': 'À bord du « véloto », l’alternative à la voiture pour la campagne',
+            'tags': ['biclou', 'vélo', 'véloto', 'campagne', 'voiture', 'environnement', 'véhicules intermédiaires'],
+        },
     }]
     _GEO_BYPASS = False
     _COMMON_MEDIA_FIELDS = '''description
@@ -232,16 +297,35 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
         for mobj in re.finditer(
                 r'(?s)DM\.player\([^,]+,\s*{.*?video[\'"]?\s*:\s*["\']?(?P<id>[0-9a-zA-Z]+).+?}\s*\);', webpage):
             yield from 'https://www.dailymotion.com/embed/video/' + mobj.group('id')
+        for mobj in re.finditer(
+                r'(?s)<script [^>]*\bsrc=(["\'])(?:https?:)?//[\w-]+\.dailymotion\.com/player/(?:(?!\1).)+\1[^>]*>', webpage):
+            attrs = extract_attributes(mobj.group(0))
+            player_url = url_or_none(attrs.get('src'))
+            if not player_url:
+                continue
+            player_url = player_url.replace('.js', '.html')
+            if player_url.startswith('//'):
+                player_url = f'https:{player_url}'
+            if video_id := attrs.get('data-video'):
+                query_string = f'video={video_id}'
+            elif playlist_id := attrs.get('data-playlist'):
+                query_string = f'playlist={playlist_id}'
+            else:
+                continue
+            yield update_url(player_url, query=query_string)
 
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url)
-        video_id, playlist_id = self._match_valid_url(url).groups()
+        video_id, is_playlist, playlist_id = self._match_valid_url(url).group('id', 'is_playlist', 'playlist_id')
 
-        if playlist_id:
-            if self._yes_playlist(playlist_id, video_id):
-                return self.url_result(
-                    'http://www.dailymotion.com/playlist/' + playlist_id,
-                    'DailymotionPlaylist', playlist_id)
+        if is_playlist:  # We matched the playlist query param as video_id
+            playlist_id = video_id
+            video_id = None
+
+        if self._yes_playlist(playlist_id, video_id):
+            return self.url_result(
+                f'http://www.dailymotion.com/playlist/{playlist_id}',
+                'DailymotionPlaylist', playlist_id)
 
         password = self.get_param('videopassword')
         media = self._call_api(
@@ -282,6 +366,8 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
         title = metadata['title']
         is_live = media.get('isOnAir')
         formats = []
+        subtitles = {}
+
         for quality, media_list in metadata['qualities'].items():
             for m in media_list:
                 media_url = m.get('url')
@@ -289,8 +375,10 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
                 if not media_url or media_type == 'application/vnd.lumberjack.manifest':
                     continue
                 if media_type == 'application/x-mpegURL':
-                    formats.extend(self._extract_m3u8_formats(
-                        media_url, video_id, 'mp4', live=is_live, m3u8_id='hls', fatal=False))
+                    fmt, subs = self._extract_m3u8_formats_and_subtitles(
+                        media_url, video_id, 'mp4', live=is_live, m3u8_id='hls', fatal=False)
+                    formats.extend(fmt)
+                    self._merge_subtitles(subs, target=subtitles)
                 else:
                     f = {
                         'url': media_url,
@@ -310,7 +398,6 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
             if not f.get('fps') and f['format_id'].endswith('@60'):
                 f['fps'] = 60
 
-        subtitles = {}
         subtitles_data = try_get(metadata, lambda x: x['subtitles']['data'], dict) or {}
         for subtitle_lang, subtitle in subtitles_data.items():
             subtitles[subtitle_lang] = [{
@@ -447,7 +534,7 @@ class DailymotionSearchIE(DailymotionPlaylistBaseIE):
 
 class DailymotionUserIE(DailymotionPlaylistBaseIE):
     IE_NAME = 'dailymotion:user'
-    _VALID_URL = r'https?://(?:www\.)?dailymotion\.[a-z]{2,3}/(?!(?:embed|swf|#|video|playlist|search)/)(?:(?:old/)?user/)?(?P<id>[^/?#]+)'
+    _VALID_URL = r'https?://(?:www\.)?dailymotion\.[a-z]{2,3}/(?!(?:embed|swf|#|video|playlist|search|crawler)/)(?:(?:old/)?user/)?(?P<id>[^/?#]+)'
     _TESTS = [{
         'url': 'https://www.dailymotion.com/user/nqtv',
         'info_dict': {
