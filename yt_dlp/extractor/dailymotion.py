@@ -99,26 +99,19 @@ class DailymotionBaseInfoExtractor(InfoExtractor):
 
 
 class DailymotionIE(DailymotionBaseInfoExtractor):
-    _VALID_URL_PREFIX = r'''(?ix)
+    _VALID_URL = r'''(?ix)
                     https?://
                         (?:
                             (?:(?:www|touch|geo)\.)?dailymotion\.[a-z]{2,3}|
                             (?:www\.)?lequipe\.fr
                         )/
-                    '''
-    _VALID_URL = [
-        rf'''{_VALID_URL_PREFIX}
                         (?:
-                            (?:crawler/)?video/|
-                            swf(?:/(?!video)|/video/)
-                        )(?P<id>[^/?_&#]+)(?:.+?\bplaylist=(?P<playlist_id>x[0-9a-z]+))?
-                    ''',
-        rf'''{_VALID_URL_PREFIX}
-                        (?:
-                            player(?:/\w+)?\.html\?
-                        )(?:video[=/](?P<id>[^/?_&#]+))?(?:.*?\bplaylist=(?P<playlist_id>x[0-9a-z]+))?
-                    ''',
-    ]
+                            swf/(?!video)|
+                            (?:(?:crawler|embed|swf)/)?video/|
+                            player(?:/[\da-z]+)?\.html\?(?:video|(?P<is_playlist>playlist))=
+                        )
+                    (?P<id>[^/?_&#]+)(?:[\w-]*\?playlist=(?P<playlist_id>x[0-9a-z]+))?
+    '''
     IE_NAME = 'dailymotion'
     _EMBED_REGEX = [r'<(?:(?:embed|iframe)[^>]+?src=|input[^>]+id=[\'"]dmcloudUrlEmissionSelect[\'"][^>]+value=)(["\'])(?P<url>(?:https?:)?//(?:www\.)?dailymotion\.com/(?:embed|swf)/video/.+?)\1']
     _TESTS = [{
@@ -232,8 +225,17 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
     }, {
         'url': 'https://geo.dailymotion.com/player/xakln.html?video=x8mjju4&customConfig%5BcustomParams%5D=%2Ffr-fr%2Ftennis%2Fwimbledon-mens-singles%2Farticles-video',
         'only_matching': True,
-    }, {
+    }, {  # playlist-only
         'url': 'https://geo.dailymotion.com/player/xf7zn.html?playlist=x7wdsj',
+        'only_matching': True,
+    }, {
+        'url': 'https://geo.dailymotion.com/player/xmyye.html?video=x93blhi',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.dailymotion.com/crawler/video/x8u4owg',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.dailymotion.com/embed/video/x8u4owg',
         'only_matching': True,
     }]
     _WEBPAGE_TESTS = [{
@@ -314,13 +316,16 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
 
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url)
-        video_id, playlist_id = self._match_valid_url(url).groups()
+        video_id, is_playlist, playlist_id = self._match_valid_url(url).group('id', 'is_playlist', 'playlist_id')
 
-        if playlist_id:
-            if self._yes_playlist(playlist_id, video_id):
-                return self.url_result(
-                    'http://www.dailymotion.com/playlist/' + playlist_id,
-                    'DailymotionPlaylist', playlist_id)
+        if is_playlist:  # We matched the playlist query param as video_id
+            playlist_id = video_id
+            video_id = None
+
+        if self._yes_playlist(playlist_id, video_id):
+            return self.url_result(
+                f'http://www.dailymotion.com/playlist/{playlist_id}',
+                'DailymotionPlaylist', playlist_id)
 
         password = self.get_param('videopassword')
         media = self._call_api(
