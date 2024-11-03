@@ -83,6 +83,18 @@ class TestAES(unittest.TestCase):
                 data, intlist_to_bytes(self.key), authentication_tag, intlist_to_bytes(self.iv[:12]))
             self.assertEqual(decrypted.rstrip(b'\x08'), self.secret_msg)
 
+    def test_gcm_aligned_decrypt(self):
+        data = b'\x159Y\xcf5eud\x90\x9c\x85&]\x14\x1d\x0f'
+        authentication_tag = b'\x08\xb1\x9d!&\x98\xd0\xeaRq\x90\xe6;\xb5]\xd8'
+
+        decrypted = intlist_to_bytes(aes_gcm_decrypt_and_verify(
+            list(data), self.key, list(authentication_tag), self.iv[:12]))
+        self.assertEqual(decrypted.rstrip(b'\x08'), self.secret_msg[:16])
+        if Cryptodome.AES:
+            decrypted = aes_gcm_decrypt_and_verify_bytes(
+                data, bytes(self.key), authentication_tag, bytes(self.iv[:12]))
+            self.assertEqual(decrypted.rstrip(b'\x08'), self.secret_msg[:16])
+
     def test_decrypt_text(self):
         password = intlist_to_bytes(self.key).decode()
         encrypted = base64.b64encode(
