@@ -2,6 +2,7 @@ import re
 
 from .common import InfoExtractor
 from ..utils import ExtractorError, extract_attributes
+from ..utils.traversal import traverse_obj
 
 
 class BFMTVBaseIE(InfoExtractor):
@@ -129,10 +130,8 @@ class BFMTVArticleIE(BFMTVBaseIE):
     }]
 
     def _entries(self, webpage):
-        for video_block_el in re.findall(self._VIDEO_BLOCK_REGEX, webpage):
-            video = self._extract_video(video_block_el)
-            if video:
-                yield video
+        yield from traverse_obj(
+            re.findall(self._VIDEO_BLOCK_REGEX, webpage), (..., {self._extract_video}, filter, all))
 
     def _real_extract(self, url):
         bfmtv_id = self._match_id(url)
