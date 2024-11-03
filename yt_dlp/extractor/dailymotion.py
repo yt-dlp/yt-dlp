@@ -101,9 +101,13 @@ class DailymotionBaseInfoExtractor(InfoExtractor):
 class DailymotionIE(DailymotionBaseInfoExtractor):
     _VALID_URL = r'''(?ix)
                     https?://
+                            (?:(?:www|touch|geo)\.)?dailymotion\.[a-z]{2,3}|
+                            (?:www\.)?lequipe\.fr|dai.ly
+                        )/
                         (?:
-                            (?:(?:www|touch|geo)\.)?dailymotion\.[a-z]{2,3}/(?:(?:(?:(?:embed|swf|\#)/)|player(?:/\w+)?\.html\?)?video|swf)|
-                            (?:www\.)?lequipe\.fr/video
+                            swf/(?!video)|
+                            (?:(?:crawler|embed|swf)/)?video/|
+                            player(?:/[\da-z]+)?\.html\?(?:video|(?P<is_playlist>playlist))=
                         )
                     (?P<id>[^/?_&#]+)(?:[\w-]*\?playlist=(?P<playlist_id>x[0-9a-z]+))?
     '''
@@ -365,6 +369,7 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
         is_live = media.get('isOnAir')
         formats = []
         subtitles = {}
+
         for quality, media_list in metadata['qualities'].items():
             for m in media_list:
                 media_url = m.get('url')
