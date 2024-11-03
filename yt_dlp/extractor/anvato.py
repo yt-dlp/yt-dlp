@@ -33,24 +33,6 @@ class AnvatoIE(InfoExtractor):
     _AUTH_KEY = b'\x31\xc2\x42\x84\x9e\x73\xa0\xce'  # from anvplayer.min.js
 
     _TESTS = [{
-        # from https://www.nfl.com/videos/baker-mayfield-s-game-changing-plays-from-3-td-game-week-14
-        'url': 'anvato:GXvEgwyJeWem8KCYXfeoHWknwP48Mboj:899441',
-        'md5': '921919dab3cd0b849ff3d624831ae3e2',
-        'info_dict': {
-            'id': '899441',
-            'ext': 'mp4',
-            'title': 'Baker Mayfield\'s game-changing plays from 3-TD game Week 14',
-            'description': 'md5:85e05a3cc163f8c344340f220521136d',
-            'upload_date': '20201215',
-            'timestamp': 1608009755,
-            'thumbnail': r're:^https?://.*\.jpg',
-            'uploader': 'NFL',
-            'tags': ['Baltimore Ravens at Cleveland Browns (2020-REG-14)', 'Baker Mayfield', 'Game Highlights',
-                     'Player Highlights', 'Cleveland Browns', 'league'],
-            'duration': 157,
-            'categories': ['Entertainment', 'Game', 'Highlights'],
-        },
-    }, {
         # from https://ktla.com/news/99-year-old-woman-learns-to-fly-in-torrance-checks-off-bucket-list-dream/
         'url': 'anvato:X8POa4zpGZMmeiq0wqiO8IP5rMqQM9VN:8032455',
         'md5': '837718bcfb3a7778d022f857f7a9b19e',
@@ -241,31 +223,6 @@ class AnvatoIE(InfoExtractor):
         'telemundo': 'anvato_mcp_telemundo_web_prod_c5278d51ad46fda4b6ca3d0ea44a7846a054f582',
     }
 
-    def _generate_nfl_token(self, anvack, mcp_id):
-        reroute = self._download_json(
-            'https://api.nfl.com/v1/reroute', mcp_id, data=b'grant_type=client_credentials',
-            headers={'X-Domain-Id': 100}, note='Fetching token info')
-        token_type = reroute.get('token_type') or 'Bearer'
-        auth_token = f'{token_type} {reroute["access_token"]}'
-        response = self._download_json(
-            'https://api.nfl.com/v3/shield/', mcp_id, data=json.dumps({
-                'query': '''{
-  viewer {
-    mediaToken(anvack: "%s", id: %s) {
-      token
-    }
-  }
-}''' % (anvack, mcp_id),  # noqa: UP031
-            }).encode(), headers={
-                'Authorization': auth_token,
-                'Content-Type': 'application/json',
-            }, note='Fetching NFL API token')
-        return traverse_obj(response, ('data', 'viewer', 'mediaToken', 'token'))
-
-    _TOKEN_GENERATORS = {
-        'GXvEgwyJeWem8KCYXfeoHWknwP48Mboj': _generate_nfl_token,
-    }
-
     def _server_time(self, access_key, video_id):
         return int_or_none(traverse_obj(self._download_json(
             f'{self._API_BASE_URL}/server_time', video_id, query={'anvack': access_key},
@@ -290,8 +247,6 @@ class AnvatoIE(InfoExtractor):
         }
         if extracted_token is not None:
             api['anvstk2'] = extracted_token
-        elif self._TOKEN_GENERATORS.get(access_key) is not None:
-            api['anvstk2'] = self._TOKEN_GENERATORS[access_key](self, access_key, video_id)
         elif self._ANVACK_TABLE.get(access_key) is not None:
             api['anvstk'] = md5_text(f'{access_key}|{anvrid}|{server_time}|{self._ANVACK_TABLE[access_key]}')
         else:
