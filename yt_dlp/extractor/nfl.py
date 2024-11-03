@@ -136,14 +136,14 @@ class NFLBaseIE(InfoExtractor):
         self._TOKEN_EXPIRY = token['expiresIn']
         self._ACCOUNT_INFO['refreshToken'] = token['refreshToken']
 
-    def _extract_video(self, mcp_id):
+    def _extract_video(self, mcp_id, is_live=False):
         self._get_auth_token()
         data = self._download_json(
             f'https://api.nfl.com/play/v1/asset/{mcp_id}', mcp_id, headers={
                 'Authorization': f'Bearer {self._TOKEN}',
                 'Accept': 'application/json',
                 'Content-Type': 'application/json',
-            }, data=json.dumps({'init': True}, separators=(',', ':')).encode())
+            }, data=json.dumps({'init': True, 'live': is_live}, separators=(',', ':')).encode())
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
             data['accessUrl'], mcp_id, 'mp4', m3u8_id='hls')
 
@@ -151,6 +151,7 @@ class NFLBaseIE(InfoExtractor):
             'id': mcp_id,
             'formats': formats,
             'subtitles': subtitles,
+            'is_live': is_live,
             '_old_archive_ids': [make_archive_id(AnvatoIE, mcp_id)],
             **traverse_obj(data, ('metadata', {
                 'title': ('event', ('def_title', 'friendlyName'), {str}, any),
@@ -162,33 +163,35 @@ class NFLBaseIE(InfoExtractor):
 
     def _parse_video_config(self, video_config, display_id):
         video_config = self._parse_json(video_config, display_id)
+        is_live = traverse_obj(video_config, ('live', {bool})) or False
         item = video_config['playlist'][0]
         if mcp_id := item.get('mcpID'):
-            return self._extract_video(mcp_id)
+            return self._extract_video(mcp_id, is_live=is_live)
 
-        media_id = item.get('id') or item['entityId']
-        title = item.get('title')
+        info = {'id': item.get('id') or item['entityId']}
+
         item_url = item['url']
-        info = {'id': media_id}
         ext = determine_ext(item_url)
         if ext == 'm3u8':
-            info['formats'] = self._extract_m3u8_formats(item_url, media_id, 'mp4')
+            info['formats'] = self._extract_m3u8_formats(item_url, info['id'], 'mp4')
         else:
             info['url'] = item_url
             if item.get('audio') is True:
                 info['vcodec'] = 'none'
-        is_live = video_config.get('live') is True
+
         thumbnails = None
-        image_url = item.get(item.get('imageSrc')) or item.get(item.get('posterImage'))
-        if image_url:
+        if image_url := traverse_obj(item, 'imageSrc', 'posterImage', expected_type=url_or_none):
             thumbnails = [{
                 'url': image_url,
                 'ext': determine_ext(image_url, 'jpg'),
             }]
+
         info.update({
-            'title': title,
+            **traverse_obj(item, {
+                'title': ('title', {str}),
+                'description': ('description', {clean_html}),
+            }),
             'is_live': is_live,
-            'description': clean_html(item.get('description')),
             'thumbnails': thumbnails,
         })
         return info
@@ -216,6 +219,7 @@ class NFLIE(NFLBaseIE):
             'ext': 'mp3',
             'title': 'Patrick Mahomes, Travis Kelce React to Win Over Dolphins | The Breakdown',
             'description': 'md5:12ada8ee70e6762658c30e223e095075',
+            'thumbnail': 'https://static.clubs.nfl.com/image/private/t_editorial_landscape_12_desktop/v1571153441/chiefs/rfljejccnyhhkpkfq855',
         },
     }, {
         'url': 'https://www.buffalobills.com/video/buffalo-bills-military-recognition-week-14',
