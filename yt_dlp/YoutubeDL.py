@@ -470,7 +470,7 @@ class YoutubeDL:
                        The following options do not work when used through the API:
                        filename, abort-on-error, multistreams, no-live-chat,
                        format-sort, no-clean-infojson, no-playlist-metafiles,
-                       no-keep-subs, no-attach-info-json, allow-unsafe-ext.
+                       no-keep-subs, no-attach-info-json, allow-unsafe-ext, prefer-vp9-sort.
                        Refer __init__.py for their implementation
     progress_template: Dictionary of templates for progress outputs.
                        Allowed keys are 'download', 'postprocess',
