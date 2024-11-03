@@ -104,5 +104,12 @@ compat_xml_parse_error = compat_xml_etree_ElementTree_ParseError = etree.ParseEr
 compat_xpath = lambda xpath: xpath
 compat_zip = zip
 workaround_optparse_bug9161 = lambda: None
+compat_str = str
+compat_b64decode = base64.b64decode
+compat_urlparse = urllib.parse
+compat_parse_qs = urllib.parse.parse_qs
+compat_urllib_parse_unquote = urllib.parse.unquote
+compat_urllib_parse_urlencode = urllib.parse.urlencode
+compat_urllib_parse_urlparse = urllib.parse.urlparse
 
 legacy = []
