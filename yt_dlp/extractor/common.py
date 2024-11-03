@@ -1578,7 +1578,9 @@ class InfoExtractor:
         if default is not NO_DEFAULT:
             fatal = False
         for mobj in re.finditer(JSON_LD_RE, html):
-            json_ld_item = self._parse_json(mobj.group('json_ld'), video_id, fatal=fatal)
+            json_ld_item = self._parse_json(
+                mobj.group('json_ld'), video_id, fatal=fatal,
+                errnote=False if default is not NO_DEFAULT else None)
             for json_ld in variadic(json_ld_item):
                 if isinstance(json_ld, dict):
                     yield json_ld
