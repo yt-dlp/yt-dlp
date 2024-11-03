@@ -474,7 +474,7 @@ class ARDBetaMediathekIE(InfoExtractor):
             'is_live': is_live,
             'age_limit': age_limit,
             **traverse_obj(media_data, {
-                'chapters': ('pluginData', 'jumpmarks@all', 'chapterArray', ..., {
+                'chapters': ('pluginData', 'jumpmarks@all', 'chapterArray', lambda _, v: int_or_none(v['chapterTime']), {
                     'start_time': ('chapterTime', {int_or_none}),
                     'title': ('chapterTitle', {str}),
                 }),
