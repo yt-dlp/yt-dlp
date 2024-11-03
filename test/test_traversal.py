@@ -534,22 +534,23 @@ class TestTraversalHelpers:
         with pytest.raises(AssertionError):
             find_element(cls='a', tag='p')(_TEST_HTML)
 
-        assert(find_element(cls='a')(_TEST_HTML) == '1')
-        assert(find_element(cls='a', html=True)(_TEST_HTML) == '<div class="a">1</div>')
-        assert(find_element(id='x')(_TEST_HTML) == '2')
-        assert(find_element(id='x', html=True)(_TEST_HTML) == '<div class="a" id="x" custom="z">2</div>')
-        assert(find_element(attr='data-id', value='y')(_TEST_HTML) == '3')
-        assert(find_element(
-            attr='data-id', value='y', html=True)(_TEST_HTML) == '<div class="b" data-id="y" custom="z">3</div>')
+        assert find_element(cls='a')(_TEST_HTML) == '1'
+        assert find_element(cls='a', html=True)(_TEST_HTML) == '<div class="a">1</div>'
+        assert find_element(id='x')(_TEST_HTML) == '2'
+        assert find_element(id='x', html=True)(_TEST_HTML) == '<div class="a" id="x" custom="z">2</div>'
+        assert find_element(attr='data-id', value='y')(_TEST_HTML) == '3'
+        assert find_element(
+            attr='data-id', value='y', html=True)(_TEST_HTML) == '<div class="b" data-id="y" custom="z">3</div>'
 
     def test_find_elements(self):
         with pytest.raises(AssertionError):
             find_elements(cls='a', tag='div')(_TEST_HTML)
 
-        assert(find_elements(cls='a')(_TEST_HTML) == ['1', '2', '4'])
-        assert(find_elements(cls='a', html=True)(_TEST_HTML) == [
-            '<div class="a">1</div>', '<div class="a" id="x" custom="z">2</div>', '<p class="a">4</p>'])
-        assert(find_elements(attr='custom', value='z')(_TEST_HTML) == ['2', '3'])
+        assert find_elements(cls='a')(_TEST_HTML) == ['1', '2', '4']
+        assert find_elements(cls='a', html=True)(_TEST_HTML) == [
+            '<div class="a">1</div>', '<div class="a" id="x" custom="z">2</div>', '<p class="a">4</p>']
+        assert find_elements(attr='custom', value='z')(_TEST_HTML) == ['2', '3']
+
 
 class TestDictGet:
     def test_dict_get(self):
