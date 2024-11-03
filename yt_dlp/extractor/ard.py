@@ -464,8 +464,6 @@ class ARDBetaMediathekIE(InfoExtractor):
                     'url': sources['url'],
                     'ext': {'webvtt': 'vtt', 'ebutt': 'ttml'}.get(sources.get('kind')),
                 })
-        chapters = [{'start_time': int_or_none(chap.get('chapterTime')), 'title': chap.get('chapterTitle')}
-                    for chap in traverse_obj(media_data, ('pluginData', 'jumpmarks@all', 'chapterArray')) or []] or None
 
         age_limit = traverse_obj(page_data, ('fskRating', {lambda x: remove_start(x, 'FSK')}, {int_or_none}))
         return {
@@ -475,7 +473,12 @@ class ARDBetaMediathekIE(InfoExtractor):
             'subtitles': subtitles,
             'is_live': is_live,
             'age_limit': age_limit,
-            'chapters': chapters,
+            **traverse_obj(media_data, {
+                'chapters': ('pluginData', 'jumpmarks@all', 'chapterArray', ..., {
+                    'start_time': ('chapterTime', {int_or_none}),
+                    'title': ('chapterTitle', {str}),
+                }),
+            }),
             **traverse_obj(media_data, ('meta', {
                 'title': 'title',
                 'description': 'synopsis',
