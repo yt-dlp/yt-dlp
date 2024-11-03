@@ -101,15 +101,18 @@ class DailymotionBaseInfoExtractor(InfoExtractor):
 class DailymotionIE(DailymotionBaseInfoExtractor):
     _VALID_URL = r'''(?ix)
                     https?://
+                    (?:
+                        dai\.ly/|
                         (?:
                             (?:(?:www|touch|geo)\.)?dailymotion\.[a-z]{2,3}|
-                            (?:www\.)?lequipe\.fr|dai.ly
+                            (?:www\.)?lequipe\.fr
                         )/
                         (?:
                             swf/(?!video)|
                             (?:(?:crawler|embed|swf)/)?video/|
                             player(?:/[\da-z]+)?\.html\?(?:video|(?P<is_playlist>playlist))=
                         )
+                    )
                     (?P<id>[^/?_&#]+)(?:[\w-]*\?playlist=(?P<playlist_id>x[0-9a-z]+))?
     '''
     IE_NAME = 'dailymotion'
@@ -237,6 +240,9 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
     }, {
         'url': 'https://www.dailymotion.com/embed/video/x8u4owg',
         'only_matching': True,
+    }, {
+        'url': 'https://dai.ly/x94cnnk',
+        'only_matching': True,
     }]
     _WEBPAGE_TESTS = [{
         # https://geo.dailymotion.com/player/xmyye.html?video=x93blhi
@@ -282,9 +288,6 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
             'description': 'À bord du « véloto », l’alternative à la voiture pour la campagne',
             'tags': ['biclou', 'vélo', 'véloto', 'campagne', 'voiture', 'environnement', 'véhicules intermédiaires'],
         },
-    }, {
-        'url': 'https://dai.ly/x94cnnk',
-        'only_matching': True,
     }]
     _GEO_BYPASS = False
     _COMMON_MEDIA_FIELDS = '''description
