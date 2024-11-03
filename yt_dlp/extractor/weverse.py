@@ -27,8 +27,9 @@ from ..utils import (
 
 class WeverseBaseIE(InfoExtractor):
     _NETRC_MACHINE = 'weverse'
-    _ACCOUNT_API_BASE = 'https://accountapi.weverse.io/web/api/v2'
+    _ACCOUNT_API_BASE = 'https://accountapi.weverse.io/web/api'
     _API_HEADERS = {
+        'Accept': 'application/json',
         'Referer': 'https://weverse.io/',
         'WEV-device-Id': str(uuid.uuid4()),
     }
@@ -39,14 +40,14 @@ class WeverseBaseIE(InfoExtractor):
 
         headers = {
             'x-acc-app-secret': '5419526f1c624b38b10787e5c10b2a7a',
-            'x-acc-app-version': '2.2.6',
+            'x-acc-app-version': '3.3.6',
             'x-acc-language': 'en',
             'x-acc-service-id': 'weverse',
             'x-acc-trace-id': str(uuid.uuid4()),
             'x-clog-user-device-id': str(uuid.uuid4()),
         }
         valid_username = traverse_obj(self._download_json(
-            f'{self._ACCOUNT_API_BASE}/signup/email/status', None, note='Checking username',
+            f'{self._ACCOUNT_API_BASE}/v2/signup/email/status', None, note='Checking username',
             query={'email': username}, headers=headers, expected_status=(400, 404)), 'hasPassword')
         if not valid_username:
             raise ExtractorError('Invalid username provided', expected=True)
@@ -54,8 +55,9 @@ class WeverseBaseIE(InfoExtractor):
         headers['content-type'] = 'application/json'
         try:
             auth = self._download_json(
-                f'{self._ACCOUNT_API_BASE}/auth/token/by-credentials', None, data=json.dumps({
+                f'{self._ACCOUNT_API_BASE}/v3/auth/token/by-credentials', None, data=json.dumps({
                     'email': username,
+                    'otpSessionId': 'BY_PASS',
                     'password': password,
                 }, separators=(',', ':')).encode(), headers=headers, note='Logging in')
         except ExtractorError as e:
@@ -78,8 +80,10 @@ class WeverseBaseIE(InfoExtractor):
         # From https://ssl.pstatic.net/static/wevweb/2_3_2_11101725/public/static/js/main.e206f7c1.js:
         key = b'1b9cb6378d959b45714bec49971ade22e6e24e42'
         api_path = update_url_query(ep, {
+            # 'gcc': 'US',
             'appId': 'be4d79eb8fc7bd008ee82c8ec4ff6fd4',
             'language': 'en',
+            'os': 'WEB',
             'platform': 'WEB',
             'wpf': 'pc',
         })
@@ -152,7 +156,7 @@ class WeverseBaseIE(InfoExtractor):
             'description': ((('extension', 'mediaInfo', 'body'), 'body'), {str}),
             'uploader': ('author', 'profileName', {str}),
             'uploader_id': ('author', 'memberId', {str}),
-            'creator': ('community', 'communityName', {str}),
+            'creators': ('community', 'communityName', {str}, all),
             'channel_id': (('community', 'author'), 'communityId', {str_or_none}),
             'duration': ('extension', 'video', 'playTime', {float_or_none}),
             'timestamp': ('publishedAt', {lambda x: int_or_none(x, 1000)}),
@@ -196,7 +200,7 @@ class WeverseIE(WeverseBaseIE):
             'channel': 'billlie',
             'channel_id': '72',
             'channel_url': 'https://weverse.io/billlie',
-            'creator': 'Billlie',
+            'creators': ['Billlie'],
             'timestamp': 1666262062,
             'upload_date': '20221020',
             'release_timestamp': 1666262058,
@@ -222,7 +226,7 @@ class WeverseIE(WeverseBaseIE):
             'channel': 'lesserafim',
             'channel_id': '47',
             'channel_url': 'https://weverse.io/lesserafim',
-            'creator': 'LE SSERAFIM',
+            'creators': ['LE SSERAFIM'],
             'timestamp': 1659353400,
             'upload_date': '20220801',
             'release_timestamp': 1659353400,
@@ -286,7 +290,7 @@ class WeverseIE(WeverseBaseIE):
 
         elif live_status == 'is_live':
             video_info = self._call_api(
-                f'/video/v1.0/lives/{api_video_id}/playInfo?preview.format=json&preview.version=v2',
+                f'/video/v1.2/lives/{api_video_id}/playInfo?preview.format=json&preview.version=v2',
                 video_id, note='Downloading live JSON')
             playback = self._parse_json(video_info['lipPlayback'], video_id)
             m3u8_url = traverse_obj(playback, (
@@ -302,7 +306,7 @@ class WeverseIE(WeverseBaseIE):
         else:
             infra_video_id = post['extension']['video']['infraVideoId']
             in_key = self._call_api(
-                f'/video/v1.0/vod/{api_video_id}/inKey?preview=false', video_id,
+                f'/video/v1.1/vod/{api_video_id}/inKey?preview=false', video_id,
                 data=b'{}', note='Downloading VOD API key')['inKey']
 
             video_info = self._download_json(
@@ -347,7 +351,6 @@ class WeverseMediaIE(WeverseBaseIE):
     _VALID_URL = r'https?://(?:www\.|m\.)?weverse\.io/(?P<artist>[^/?#]+)/media/(?P<id>[\d-]+)'
     _TESTS = [{
         'url': 'https://weverse.io/billlie/media/4-116372884',
-        'md5': '8efc9cfd61b2f25209eb1a5326314d28',
         'info_dict': {
             'id': 'e-C9wLSQs6o',
             'ext': 'mp4',
@@ -358,8 +361,9 @@ class WeverseMediaIE(WeverseBaseIE):
             'channel_url': 'https://www.youtube.com/channel/UCyc9sUCxELTDK9vELO5Fzeg',
             'uploader': 'Billlie',
             'uploader_id': '@Billlie',
-            'uploader_url': 'http://www.youtube.com/@Billlie',
+            'uploader_url': 'https://www.youtube.com/@Billlie',
             'upload_date': '20230403',
+            'timestamp': 1680533992,
             'duration': 211,
             'age_limit': 0,
             'playable_in_embed': True,
@@ -372,6 +376,8 @@ class WeverseMediaIE(WeverseBaseIE):
             'thumbnail': 'https://i.ytimg.com/vi/e-C9wLSQs6o/maxresdefault.jpg',
             'categories': ['Entertainment'],
             'tags': 'count:7',
+            'channel_is_verified': True,
+            'heatmap': 'count:100',
         },
     }, {
         'url': 'https://weverse.io/billlie/media/3-102914520',
@@ -386,7 +392,7 @@ class WeverseMediaIE(WeverseBaseIE):
             'channel': 'billlie',
             'channel_id': '72',
             'channel_url': 'https://weverse.io/billlie',
-            'creator': 'Billlie',
+            'creators': ['Billlie'],
             'timestamp': 1662174000,
             'upload_date': '20220903',
             'release_timestamp': 1662174000,
@@ -432,7 +438,7 @@ class WeverseMomentIE(WeverseBaseIE):
             'uploader_id': '66a07e164b56a696ee71c99315ffe27b',
             'channel': 'secretnumber',
             'channel_id': '56',
-            'creator': 'SECRET NUMBER',
+            'creators': ['SECRET NUMBER'],
             'duration': 10,
             'upload_date': '20230405',
             'timestamp': 1680653968,
@@ -441,7 +447,6 @@ class WeverseMomentIE(WeverseBaseIE):
             'comment_count': int,
             'availability': 'needs_auth',
         },
-        'skip': 'Moment has expired',
     }]
 
     def _real_extract(self, url):
@@ -571,12 +576,37 @@ class WeverseLiveIE(WeverseBaseIE):
             'channel': 'purplekiss',
             'channel_id': '35',
             'channel_url': 'https://weverse.io/purplekiss',
-            'creator': 'PURPLE KISS',
+            'creators': ['PURPLE KISS'],
             'timestamp': 1680780892,
             'upload_date': '20230406',
             'release_timestamp': 1680780883,
             'release_date': '20230406',
             'thumbnail': 'https://weverse-live.pstatic.net/v1.0/live/62044/thumb',
+            'view_count': int,
+            'like_count': int,
+            'comment_count': int,
+            'availability': 'needs_auth',
+            'live_status': 'is_live',
+        },
+        'skip': 'Livestream has ended',
+    }, {
+        'url': 'https://weverse.io/lesserafim',
+        'info_dict': {
+            'id': '4-181521628',
+            'ext': 'mp4',
+            'title': r're:심심해서요',
+            'description': '',
+            'uploader': '채채🤎',
+            'uploader_id': 'd49b8b06f3cc1d92d655b25ab27ac2e7',
+            'channel': 'lesserafim',
+            'channel_id': '47',
+            'creators': ['LE SSERAFIM'],
+            'channel_url': 'https://weverse.io/lesserafim',
+            'timestamp': 1728570273,
+            'upload_date': '20241010',
+            'release_timestamp': 1728570264,
+            'release_date': '20241010',
+            'thumbnail': r're:https://phinf\.wevpstatic\.net/.+\.png',
             'view_count': int,
             'like_count': int,
             'comment_count': int,
