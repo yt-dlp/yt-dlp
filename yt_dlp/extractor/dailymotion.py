@@ -277,7 +277,7 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
             'timestamp': 1709997866,
             'age_limit': 0,
             'uploader_id': 'x32f7b',
-            'title': 'VIDÉO. Le « véloto », la voiture à pédales qui aimerait se faire une place sur les routes',
+            'title': 'VIDÉO. Le «\xa0véloto\xa0», la voiture à pédales qui aimerait se faire une place sur les routes',
             'duration': 428.0,
             'description': 'À bord du « véloto », l’alternative à la voiture pour la campagne',
             'tags': ['biclou', 'vélo', 'véloto', 'campagne', 'voiture', 'environnement', 'véhicules intermédiaires'],
