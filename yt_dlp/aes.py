@@ -229,12 +229,12 @@ def aes_gcm_decrypt_and_verify(data, key, tag, nonce):
     iv_ctr = inc(j0)
 
     decrypted_data = aes_ctr_decrypt(data, key, iv_ctr + [0] * (BLOCK_SIZE_BYTES - len(iv_ctr)))
-    pad_len = len(data) // 16 * 16
+    pad_len = (BLOCK_SIZE_BYTES - (len(data) % BLOCK_SIZE_BYTES)) % BLOCK_SIZE_BYTES
     s_tag = ghash(
         hash_subkey,
         data
-        + [0] * (BLOCK_SIZE_BYTES - len(data) + pad_len)        # pad
-        + list((0 * 8).to_bytes(8, 'big')           # length of associated data
+        + [0] * pad_len                                  # pad
+        + list((0 * 8).to_bytes(8, 'big')                # length of associated data
                + ((len(data) * 8).to_bytes(8, 'big'))),  # length of data
     )
 

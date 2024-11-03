@@ -9,13 +9,17 @@ from yt_dlp.utils import (
     determine_ext,
     dict_get,
     int_or_none,
+    join_nonempty,
     str_or_none,
 )
 from yt_dlp.utils.traversal import (
+    find_element,
+    find_elements,
     require,
     subs_list_to_dict,
     traverse_obj,
     trim_str,
+    unpack,
 )
 
 _TEST_DATA = {
@@ -34,6 +38,14 @@ _TEST_DATA = {
     ),
     'dict': {},
 }
+
+_TEST_HTML = '''<html><body>
+    <div class="a">1</div>
+    <div class="a" id="x" custom="z">2</div>
+    <div class="b" data-id="y" custom="z">3</div>
+    <p class="a">4</p>
+    <p id="d" custom="e">5</p>
+</body></html>'''
 
 
 class TestTraversal:
@@ -509,6 +521,59 @@ class TestTraversalHelpers:
         assert trim_str(start='ab', end='bc')('abc') == ''
         assert trim_str(start='abc', end='abc')('abc') == ''
         assert trim_str(start='', end='')('abc') == 'abc'
+
+    def test_unpack(self):
+        assert unpack(lambda *x: ''.join(map(str, x)))([1, 2, 3]) == '123'
+        assert unpack(join_nonempty)([1, 2, 3]) == '1-2-3'
+        assert unpack(join_nonempty(delim=' '))([1, 2, 3]) == '1 2 3'
+        with pytest.raises(TypeError):
+            unpack(join_nonempty)()
+        with pytest.raises(TypeError):
+            unpack()
+
+    def test_find_element(self):
+        for improper_kwargs in [
+            dict(attr='data-id'),
+            dict(value='y'),
+            dict(attr='data-id', value='y', cls='a'),
+            dict(attr='data-id', value='y', id='x'),
+            dict(cls='a', id='x'),
+            dict(cls='a', tag='p'),
+            dict(cls='[ab]', regex=True),
+        ]:
+            with pytest.raises(AssertionError):
+                find_element(**improper_kwargs)(_TEST_HTML)
+
+        assert find_element(cls='a')(_TEST_HTML) == '1'
+        assert find_element(cls='a', html=True)(_TEST_HTML) == '<div class="a">1</div>'
+        assert find_element(id='x')(_TEST_HTML) == '2'
+        assert find_element(id='[ex]')(_TEST_HTML) is None
+        assert find_element(id='[ex]', regex=True)(_TEST_HTML) == '2'
+        assert find_element(id='x', html=True)(_TEST_HTML) == '<div class="a" id="x" custom="z">2</div>'
+        assert find_element(attr='data-id', value='y')(_TEST_HTML) == '3'
+        assert find_element(attr='data-id', value='y(?:es)?')(_TEST_HTML) is None
+        assert find_element(attr='data-id', value='y(?:es)?', regex=True)(_TEST_HTML) == '3'
+        assert find_element(
+            attr='data-id', value='y', html=True)(_TEST_HTML) == '<div class="b" data-id="y" custom="z">3</div>'
+
+    def test_find_elements(self):
+        for improper_kwargs in [
+            dict(tag='p'),
+            dict(attr='data-id'),
+            dict(value='y'),
+            dict(attr='data-id', value='y', cls='a'),
+            dict(cls='a', tag='div'),
+            dict(cls='[ab]', regex=True),
+        ]:
+            with pytest.raises(AssertionError):
+                find_elements(**improper_kwargs)(_TEST_HTML)
+
+        assert find_elements(cls='a')(_TEST_HTML) == ['1', '2', '4']
+        assert find_elements(cls='a', html=True)(_TEST_HTML) == [
+            '<div class="a">1</div>', '<div class="a" id="x" custom="z">2</div>', '<p class="a">4</p>']
+        assert find_elements(attr='custom', value='z')(_TEST_HTML) == ['2', '3']
+        assert find_elements(attr='custom', value='[ez]')(_TEST_HTML) == []
+        assert find_elements(attr='custom', value='[ez]', regex=True)(_TEST_HTML) == ['2', '3', '5']
 
 
 class TestDictGet:
