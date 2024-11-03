@@ -101,6 +101,7 @@ class DailymotionBaseInfoExtractor(InfoExtractor):
 class DailymotionIE(DailymotionBaseInfoExtractor):
     _VALID_URL = r'''(?ix)
                     https?://
+                        (?:
                             (?:(?:www|touch|geo)\.)?dailymotion\.[a-z]{2,3}|
                             (?:www\.)?lequipe\.fr|dai.ly
                         )/
