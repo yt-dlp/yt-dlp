@@ -101,6 +101,8 @@ class DailymotionBaseInfoExtractor(InfoExtractor):
 class DailymotionIE(DailymotionBaseInfoExtractor):
     _VALID_URL = r'''(?ix)
                     https?://
+                    (?:
+                        dai\.ly/|
                         (?:
                             (?:(?:www|touch|geo)\.)?dailymotion\.[a-z]{2,3}|
                             (?:www\.)?lequipe\.fr
@@ -110,6 +112,7 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
                             (?:(?:crawler|embed|swf)/)?video/|
                             player(?:/[\da-z]+)?\.html\?(?:video|(?P<is_playlist>playlist))=
                         )
+                    )
                     (?P<id>[^/?_&#]+)(?:[\w-]*\?playlist=(?P<playlist_id>x[0-9a-z]+))?
     '''
     IE_NAME = 'dailymotion'
@@ -131,7 +134,7 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
             'view_count': int,
             'like_count': int,
             'tags': ['hollywood', 'celeb', 'celebrity', 'movies', 'red carpet'],
-            'thumbnail': r're:https://(?:s[12]\.)dmcdn\.net/v/K456B1aXqIx58LKWQ/x1080',
+            'thumbnail': r're:https://(?:s[12]\.)dmcdn\.net/v/K456B1cmt4ZcZ9KiM/x1080',
         },
     }, {
         'url': 'https://geo.dailymotion.com/player.html?video=x89eyek&mute=true',
@@ -150,7 +153,7 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
             'view_count': int,
             'like_count': int,
             'tags': ['en_quete_d_esprit'],
-            'thumbnail': r're:https://(?:s[12]\.)dmcdn\.net/v/Tncwi1YNg_RUl7ueu/x1080',
+            'thumbnail': r're:https://(?:s[12]\.)dmcdn\.net/v/Tncwi1clTH6StrxMP/x1080',
         },
     }, {
         'url': 'https://www.dailymotion.com/video/x2iuewm_steam-machine-models-pricing-listed-on-steam-store-ign-news_videogames',
@@ -236,6 +239,9 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
         'only_matching': True,
     }, {
         'url': 'https://www.dailymotion.com/embed/video/x8u4owg',
+        'only_matching': True,
+    }, {
+        'url': 'https://dai.ly/x94cnnk',
         'only_matching': True,
     }]
     _WEBPAGE_TESTS = [{
@@ -404,13 +410,12 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
                 'url': subtitle_url,
             } for subtitle_url in subtitle.get('urls', [])]
 
-        thumbnails = []
-        for height, poster_url in metadata.get('posters', {}).items():
-            thumbnails.append({
-                'height': int_or_none(height),
-                'id': height,
-                'url': poster_url,
-            })
+        thumbnails = traverse_obj(metadata, (
+            ('posters', 'thumbnails'), {dict.items}, lambda _, v: url_or_none(v[1]), {
+                'height': (0, {int_or_none}),
+                'id': (0, {str}),
+                'url': 1,
+            }))
 
         owner = metadata.get('owner') or {}
         stats = media.get('stats') or {}
