@@ -532,8 +532,17 @@ class TestTraversalHelpers:
             unpack()
 
     def test_find_element(self):
-        with pytest.raises(AssertionError):
-            find_element(cls='a', tag='p')(_TEST_HTML)
+        for improper_kwargs in [
+            dict(attr='data-id'),
+            dict(value='y'),
+            dict(attr='data-id', value='y', cls='a'),
+            dict(attr='data-id', value='y', id='x'),
+            dict(cls='a', id='x'),
+            dict(cls='a', tag='p'),
+            dict(cls='[ab]', regex=True),
+        ]:
+            with pytest.raises(AssertionError):
+                find_element(**improper_kwargs)(_TEST_HTML)
 
         assert find_element(cls='a')(_TEST_HTML) == '1'
         assert find_element(cls='a', html=True)(_TEST_HTML) == '<div class="a">1</div>'
@@ -548,8 +557,16 @@ class TestTraversalHelpers:
             attr='data-id', value='y', html=True)(_TEST_HTML) == '<div class="b" data-id="y" custom="z">3</div>'
 
     def test_find_elements(self):
-        with pytest.raises(AssertionError):
-            find_elements(cls='a', tag='div')(_TEST_HTML)
+        for improper_kwargs in [
+            dict(tag='p'),
+            dict(attr='data-id'),
+            dict(value='y'),
+            dict(attr='data-id', value='y', cls='a'),
+            dict(cls='a', tag='div'),
+            dict(cls='[ab]', regex=True),
+        ]:
+            with pytest.raises(AssertionError):
+                find_elements(**improper_kwargs)(_TEST_HTML)
 
         assert find_elements(cls='a')(_TEST_HTML) == ['1', '2', '4']
         assert find_elements(cls='a', html=True)(_TEST_HTML) == [
