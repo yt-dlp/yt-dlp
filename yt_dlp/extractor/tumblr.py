@@ -568,7 +568,7 @@ class TumblrIE(InfoExtractor):
             self.report_warning(f'Unrecognized providers, please report: {", ".join(unknown_providers)!s}', video_id)
 
         if not entries:
-            raise ExtractorError('No video could be found in this post', expected=True)
+            self.raise_no_formats('No video could be found in this post', expected=True, video_id=video_id)
         if len(entries) == 1:
             return {
                 **info_dict,
