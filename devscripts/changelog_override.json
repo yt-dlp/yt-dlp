@@ -216,5 +216,23 @@
         "action": "add",
         "when": "d784464399b600ba9516bbcec6286f11d68974dd",
         "short": "[priority] **The minimum *required* Python version has been raised to 3.9**\nPython 3.8 reached its end-of-life on 2024.10.07, and yt-dlp has now removed support for it. As an unfortunate side effect, the official `yt-dlp.exe` and `yt-dlp_x86.exe` binaries are no longer supported on Windows 7. [Read more](https://github.com/yt-dlp/yt-dlp/issues/10086)"
+    },
+    {
+        "action": "change",
+        "when": "914af9a0cf51c9a3f74aa88d952bee8334c67511",
+        "short": "Expand paths in `--plugin-dirs` (#11334)",
+        "authors": ["bashonly"]
+    },
+    {
+        "action": "change",
+        "when": "c29f5a7fae93a08f3cfbb6127b2faa75145b06a0",
+        "short": "[ie/generic] Do not impersonate by default (#11336)",
+        "authors": ["bashonly"]
+    },
+    {
+        "action": "change",
+        "when": "57212a5f97ce367590aaa5c3e9a135eead8f81f7",
+        "short": "[ie/vimeo] Fix API retries (#11351)",
+        "authors": ["bashonly"]
     }
 ]
