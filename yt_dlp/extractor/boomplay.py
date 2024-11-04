@@ -123,7 +123,7 @@ class BoomplayBaseIE(InfoExtractor):
             'id': item_id,
             'title': cls._html_search_regex(r'(?i)<h1[^>]*>([^<]+)</h1>', webpage, 'title', default=None),
             'thumbnail': cls._html_search_meta(['og:image', 'twitter:image'],
-                                                webpage, 'thumbnail', default=''),
+                                               webpage, 'thumbnail', default=''),
             'like_count': parse_count(cls._get_element_by_class_and_tag('btn_favorite', 'button', metadata_div)),
             'repost_count': parse_count(cls._get_element_by_class_and_tag('btn_share', 'button', metadata_div)),
             'comment_count': parse_count(cls._get_element_by_class_and_tag('btn_comment', 'button', metadata_div)),
