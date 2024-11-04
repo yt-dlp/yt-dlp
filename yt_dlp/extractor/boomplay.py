@@ -67,34 +67,34 @@ class BoomplayBaseIE(InfoExtractor):
 
     @classmethod
     def _urljoin(cls, path):
-        if not hasattr(path, 'startswith') or path.startswith('javascript:'):
-            return None
         return url_or_none(urljoin(base=cls._BASE, path=path))
 
-    def _get_playurl(self, item_id, item_type):
-        resp = self._download_json(
+    @classmethod
+    def _get_playurl(cls, item_id, item_type):
+        resp = cls._download_json(
             'https://www.boomplay.com/getResourceAddr', item_id,
             note='Downloading play URL', errnote='Failed to download play URL',
             data=urlencode_postdata({
                 'param': base64.b64encode(aes_cbc_encrypt_bytes(json.dumps({
                     'itemID': item_id,
                     'itemType': item_type,
-                }).encode(), self._KEY, self._IV)).decode(),
+                }).encode(), cls._KEY, cls._IV)).decode(),
             }), headers={
                 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
             })
         if not (source := resp.get('source')) and (code := resp.get('code')):
             if 'unavailable in your country' in (desc := resp.get('desc')) or '':
                 # since NG must have failed ...
-                self.raise_geo_restricted(countries=['GH', 'KE', 'TZ', 'CM', 'CI'])
+                cls.raise_geo_restricted(countries=['GH', 'KE', 'TZ', 'CM', 'CI'])
             else:
                 raise ExtractorError(desc or f'Failed to get play url, code: {code}')
         return unpad_pkcs7(aes_cbc_decrypt_bytes(
             base64.b64decode(source),
-            self._KEY, self._IV)).decode()
+            cls._KEY, cls._IV)).decode()
 
-    def _extract_formats(self, item_id, item_type='MUSIC', **kwargs):
-        if url := url_or_none(self._get_playurl(item_id, item_type)):
+    @classmethod
+    def _extract_formats(cls, item_id, item_type='MUSIC', **kwargs):
+        if url := url_or_none(cls._get_playurl(item_id, item_type)):
             return [{
                 'format_id': '0',
                 'url': url,
@@ -106,29 +106,30 @@ class BoomplayBaseIE(InfoExtractor):
                 **kwargs,
             }]
         else:
-            self.raise_no_formats('No formats found')
+            cls.raise_no_formats('No formats found')
 
-    def _extract_page_metadata(self, webpage, item_id):
-        metadata_div = self._get_element_by_class_and_tag('summary', 'div', webpage) or ''
+    @classmethod
+    def _extract_page_metadata(cls, webpage, item_id):
+        metadata_div = cls._get_element_by_class_and_tag('summary', 'div', webpage) or ''
         metadata_entries = re.findall(r'(?si)<strong>(?P<entry>.*?)</strong>', metadata_div) or []
         description = re.sub(
             r'(?i)Listen and download music for free on Boomplay!', '',
-            clean_html(self._get_element_by_class_and_tag(
+            clean_html(cls._get_element_by_class_and_tag(
                 'description_content', 'span', webpage)) or '') or None
 
-        details_section = self._get_element_by_class_and_tag('songDetailInfo', 'section', webpage) or ''
+        details_section = cls._get_element_by_class_and_tag('songDetailInfo', 'section', webpage) or ''
         metadata_entries.extend(re.findall(r'(?si)<li>(?P<entry>.*?)</li>', details_section) or [])
         page_metadata = {
             'id': item_id,
-            'title': self._html_search_regex(r'(?i)<h1[^>]*>([^<]+)</h1>', webpage, 'title', default=None),
-            'thumbnail': self._html_search_meta(['og:image', 'twitter:image'],
+            'title': cls._html_search_regex(r'(?i)<h1[^>]*>([^<]+)</h1>', webpage, 'title', default=None),
+            'thumbnail': cls._html_search_meta(['og:image', 'twitter:image'],
                                                 webpage, 'thumbnail', default=''),
-            'like_count': parse_count(self._get_element_by_class_and_tag('btn_favorite', 'button', metadata_div)),
-            'repost_count': parse_count(self._get_element_by_class_and_tag('btn_share', 'button', metadata_div)),
-            'comment_count': parse_count(self._get_element_by_class_and_tag('btn_comment', 'button', metadata_div)),
-            'duration': parse_duration(self._get_element_by_class_and_tag('btn_duration', 'button', metadata_div)),
+            'like_count': parse_count(cls._get_element_by_class_and_tag('btn_favorite', 'button', metadata_div)),
+            'repost_count': parse_count(cls._get_element_by_class_and_tag('btn_share', 'button', metadata_div)),
+            'comment_count': parse_count(cls._get_element_by_class_and_tag('btn_comment', 'button', metadata_div)),
+            'duration': parse_duration(cls._get_element_by_class_and_tag('btn_duration', 'button', metadata_div)),
             'upload_date': unified_strdate(strip_or_none(
-                self._get_element_by_class_and_tag('btn_pubDate', 'button', metadata_div))),
+                cls._get_element_by_class_and_tag('btn_pubDate', 'button', metadata_div))),
             'description': description,
         }
         for metadata_entry in metadata_entries:
