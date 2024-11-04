@@ -700,7 +700,8 @@ def create_parser():
     selection.add_option(
         '--break-on-existing',
         action='store_true', dest='break_on_existing', default=False,
-        help='Stop the download process when encountering a file that is in the archive')
+        help='Stop the download process when encountering a file that is in the archive '
+             'supplied with the --download-archive option')
     selection.add_option(
         '--no-break-on-existing',
         action='store_false', dest='break_on_existing',

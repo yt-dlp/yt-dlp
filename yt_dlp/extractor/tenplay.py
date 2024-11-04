@@ -1,4 +1,3 @@
-import functools
 import itertools
 
 from .common import InfoExtractor
@@ -161,4 +160,4 @@ class TenPlaySeasonIE(InfoExtractor):
         return self.playlist_from_matches(
             self._entries(urljoin(url, episodes_carousel['loadMoreUrl']), playlist_id),
             playlist_id, traverse_obj(season_info, ('content', 0, 'title', {str})),
-            getter=functools.partial(urljoin, url))
+            getter=urljoin(url))

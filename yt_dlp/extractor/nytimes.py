@@ -235,7 +235,7 @@ class NYTimesArticleIE(NYTimesBaseIE):
         details = traverse_obj(block, {
             'id': ('sourceId', {str}),
             'uploader': ('bylines', ..., 'renderedRepresentation', {str}),
-            'duration': (None, (('duration', {lambda x: float_or_none(x, scale=1000)}), ('length', {int_or_none}))),
+            'duration': (None, (('duration', {float_or_none(scale=1000)}), ('length', {int_or_none}))),
             'timestamp': ('firstPublished', {parse_iso8601}),
             'series': ('podcastSeries', {str}),
         }, get_all=False)

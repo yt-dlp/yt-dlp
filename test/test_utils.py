@@ -2156,7 +2156,7 @@ Line 1
         assert callable(int_or_none(scale=10)), 'missing positional parameter should apply partially'
         assert int_or_none(10, scale=0.1) == 100, 'positionally passed argument should call function'
         assert int_or_none(v=10) == 10, 'keyword passed positional should call function'
-        assert int_or_none(scale=0.1)(10) == 100, 'call after partial applicatino should call the function'
+        assert int_or_none(scale=0.1)(10) == 100, 'call after partial application should call the function'
 
         assert callable(join_nonempty(delim=', ')), 'varargs positional should apply partially'
         assert callable(join_nonempty()), 'varargs positional should apply partially'

@@ -114,7 +114,7 @@ class LSMLREmbedIE(InfoExtractor):
     def _real_extract(self, url):
         query = parse_qs(url)
         video_id = traverse_obj(query, (
-            ('show', 'id'), 0, {int_or_none}, {lambda x: x or None}, {str_or_none}), get_all=False)
+            ('show', 'id'), 0, {int_or_none}, filter, {str_or_none}), get_all=False)
         webpage = self._download_webpage(url, video_id)
 
         player_data, media_data = self._search_regex(

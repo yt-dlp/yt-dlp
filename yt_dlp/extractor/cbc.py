@@ -453,8 +453,8 @@ class CBCPlayerIE(InfoExtractor):
 
         chapters = traverse_obj(data, (
             'media', 'chapters', lambda _, v: float(v['startTime']) is not None, {
-                'start_time': ('startTime', {functools.partial(float_or_none, scale=1000)}),
-                'end_time': ('endTime', {functools.partial(float_or_none, scale=1000)}),
+                'start_time': ('startTime', {float_or_none(scale=1000)}),
+                'end_time': ('endTime', {float_or_none(scale=1000)}),
                 'title': ('name', {str}),
             }))
         # Filter out pointless single chapters with start_time==0 and no end_time
@@ -465,8 +465,8 @@ class CBCPlayerIE(InfoExtractor):
             **traverse_obj(data, {
                 'title': ('title', {str}),
                 'description': ('description', {str.strip}),
-                'thumbnail': ('image', 'url', {url_or_none}, {functools.partial(update_url, query=None)}),
-                'timestamp': ('publishedAt', {functools.partial(float_or_none, scale=1000)}),
+                'thumbnail': ('image', 'url', {url_or_none}, {update_url(query=None)}),
+                'timestamp': ('publishedAt', {float_or_none(scale=1000)}),
                 'media_type': ('media', 'clipType', {str}),
                 'series': ('showName', {str}),
                 'season_number': ('media', 'season', {int_or_none}),

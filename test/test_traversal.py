@@ -490,7 +490,7 @@ class TestTraversalHelpers:
             {'url': 'https://example.com/subs/en', 'name': 'en'},
         ], [..., {
             'id': 'name',
-            'ext': ['url', {lambda x: determine_ext(x, default_ext=None)}],
+            'ext': ['url', {determine_ext(default_ext=None)}],
             'url': 'url',
         }, all, {subs_list_to_dict(ext='ext')}]) == {
             'de': [{'url': 'https://example.com/subs/de.ass', 'ext': 'ass'}],

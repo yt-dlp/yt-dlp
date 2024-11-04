@@ -1,5 +1,3 @@
-import functools
-
 from .common import InfoExtractor
 from ..utils import (
     UserNotLive,
@@ -77,7 +75,7 @@ class CHZZKLiveIE(InfoExtractor):
             'thumbnails': thumbnails,
             **traverse_obj(live_detail, {
                 'title': ('liveTitle', {str}),
-                'timestamp': ('openDate', {functools.partial(parse_iso8601, delimiter=' ')}),
+                'timestamp': ('openDate', {parse_iso8601(delimiter=' ')}),
                 'concurrent_view_count': ('concurrentUserCount', {int_or_none}),
                 'view_count': ('accumulateCount', {int_or_none}),
                 'channel': ('channel', 'channelName', {str}),
@@ -176,7 +174,7 @@ class CHZZKVideoIE(InfoExtractor):
             **traverse_obj(video_meta, {
                 'title': ('videoTitle', {str}),
                 'thumbnail': ('thumbnailImageUrl', {url_or_none}),
-                'timestamp': ('publishDateAt', {functools.partial(float_or_none, scale=1000)}),
+                'timestamp': ('publishDateAt', {float_or_none(scale=1000)}),
                 'view_count': ('readCount', {int_or_none}),
                 'duration': ('duration', {int_or_none}),
                 'channel': ('channel', 'channelName', {str}),

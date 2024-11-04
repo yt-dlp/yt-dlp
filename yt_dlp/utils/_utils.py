@@ -5142,6 +5142,7 @@ class _UnsafeExtensionError(Exception):
         'rm',
         'swf',
         'ts',
+        'vid',
         'vob',
         'vp9',
 
@@ -5174,6 +5175,7 @@ class _UnsafeExtensionError(Exception):
         'heic',
         'ico',
         'image',
+        'jfif',
         'jng',
         'jpe',
         'jpeg',

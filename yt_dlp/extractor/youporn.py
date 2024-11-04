@@ -247,7 +247,7 @@ class YouPornListBase(InfoExtractor):
             if not html:
                 return
             for element in get_elements_html_by_class('video-title', html):
-                if video_url := traverse_obj(element, ({extract_attributes}, 'href', {lambda x: urljoin(url, x)})):
+                if video_url := traverse_obj(element, ({extract_attributes}, 'href', {urljoin(url)})):
                     yield self.url_result(video_url)
 
             if page_num is not None:

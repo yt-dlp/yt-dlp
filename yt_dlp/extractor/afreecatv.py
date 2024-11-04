@@ -154,7 +154,7 @@ class AfreecaTVIE(AfreecaTVBaseIE):
             'title': ('title', {str}),
             'uploader': ('writer_nick', {str}),
             'uploader_id': ('bj_id', {str}),
-            'duration': ('total_file_duration', {functools.partial(int_or_none, scale=1000)}),
+            'duration': ('total_file_duration', {int_or_none(scale=1000)}),
             'thumbnail': ('thumb', {url_or_none}),
         })
 
@@ -178,7 +178,7 @@ class AfreecaTVIE(AfreecaTVBaseIE):
                 'title': f'{common_info.get("title") or "Untitled"} (part {file_num})',
                 'formats': formats,
                 **traverse_obj(file_element, {
-                    'duration': ('duration', {functools.partial(int_or_none, scale=1000)}),
+                    'duration': ('duration', {int_or_none(scale=1000)}),
                     'timestamp': ('file_start', {unified_timestamp}),
                 }),
             })
@@ -234,7 +234,7 @@ class AfreecaTVCatchStoryIE(AfreecaTVBaseIE):
             'catch_list', lambda _, v: v['files'][0]['file'], {
                 'id': ('files', 0, 'file_info_key', {str}),
                 'url': ('files', 0, 'file', {url_or_none}),
-                'duration': ('files', 0, 'duration', {functools.partial(int_or_none, scale=1000)}),
+                'duration': ('files', 0, 'duration', {int_or_none(scale=1000)}),
                 'title': ('title', {str}),
                 'uploader': ('writer_nick', {str}),
                 'uploader_id': ('writer_id', {str}),
