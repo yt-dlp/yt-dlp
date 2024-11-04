@@ -99,7 +99,6 @@ class TumblrIE(InfoExtractor):
             'like_count': int,
             'repost_count': int,
             'age_limit': 0,
-            'tags': [],
         },
     }, {
         'note': 'dashboard only (external)',
@@ -315,6 +314,7 @@ class TumblrIE(InfoExtractor):
             'age_limit': 0,
             'uploader_id': 'x32m6ye',
             'duration': 20,
+            'thumbnail': r're:https://(?:s[12]\.)dmcdn\.net/v/Wtqh01cnxKNXLG1N8/x1080',
         },
     }, {
         'note': 'tiktok video embed',
@@ -325,7 +325,7 @@ class TumblrIE(InfoExtractor):
             'artists': ['Alicia Dreaming'],
             'like_count': int,
             'repost_count': int,
-            'thumbnail': 'https://p16-sign-va.tiktokcdn.com/obj/tos-maliva-p-0068/d9a4add712dd4082b3878022b101b1d6?lk3s=81f88b70&x-expires=1730228400&x-signature=O9lxD6AzDc2OcllC3%2BADfFVzsjw%3D&shp=81f88b70&shcp=-',
+            'thumbnail': r're:^https?://[\w\/\.\-]+(~[\w\-]+\.image)?',
             'channel_id': 'MS4wLjABAAAAsJohwz_dU4KfAOc61cbGDAZ46-5hg2ANTXVQlRe1ipDhpX08PywR3PPiple1NTAo',
             'uploader': 'aliciadreaming',
             'description': 'huge casting news Greyworm will be  #louisdulac #racebending #interviewwiththevampire',
