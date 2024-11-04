@@ -1983,6 +1983,7 @@ from .stretchinternet import StretchInternetIE
 from .stripchat import StripchatIE
 from .stv import STVPlayerIE
 from .substack import SubstackIE
+from .suno import SunoIE
 from .sunporno import SunPornoIE
 from .sverigesradio import (
     SverigesRadioEpisodeIE,
