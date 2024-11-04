@@ -230,9 +230,7 @@ class Urllib3LoggingFilter(logging.Filter):
 
     def filter(self, record):
         # Ignore HTTP request messages since HTTPConnection prints those
-        if record.msg == '%s://%s:%s "%s %s %s" %s %s':
-            return False
-        return True
+        return record.msg != '%s://%s:%s "%s %s %s" %s %s'
 
 
 class Urllib3LoggingHandler(logging.Handler):
@@ -297,11 +295,12 @@ class RequestsRH(RequestHandler, InstanceStoreMixin):
         super()._check_extensions(extensions)
         extensions.pop('cookiejar', None)
         extensions.pop('timeout', None)
+        extensions.pop('legacy_ssl', None)
 
-    def _create_instance(self, cookiejar):
+    def _create_instance(self, cookiejar, legacy_ssl_support=None):
         session = RequestsSession()
         http_adapter = RequestsHTTPAdapter(
-            ssl_context=self._make_sslcontext(),
+            ssl_context=self._make_sslcontext(legacy_ssl_support=legacy_ssl_support),
             source_address=self.source_address,
             max_retries=urllib3.util.retry.Retry(False),
         )
@@ -320,7 +319,10 @@ class RequestsRH(RequestHandler, InstanceStoreMixin):
 
         max_redirects_exceeded = False
 
-        session = self._get_instance(cookiejar=self._get_cookiejar(request))
+        session = self._get_instance(
+            cookiejar=self._get_cookiejar(request),
+            legacy_ssl_support=request.extensions.get('legacy_ssl'),
+        )
 
         try:
             requests_res = session.request(

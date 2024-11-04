@@ -636,6 +636,8 @@ class JSInterpreter:
                     raise self.Exception(f'{member} {msg}', expr)
 
             def eval_method():
+                nonlocal member
+
                 if (variable, member) == ('console', 'debug'):
                     if Debugger.ENABLED:
                         Debugger.write(self.interpret_expression(f'[{arg_str}]', local_vars, allow_recursion))
@@ -644,6 +646,7 @@ class JSInterpreter:
                 types = {
                     'String': str,
                     'Math': float,
+                    'Array': list,
                 }
                 obj = local_vars.get(variable, types.get(variable, NO_DEFAULT))
                 if obj is NO_DEFAULT:
@@ -667,12 +670,27 @@ class JSInterpreter:
                     self.interpret_expression(v, local_vars, allow_recursion)
                     for v in self._separate(arg_str)]
 
-                if obj == str:
+                # Fixup prototype call
+                if isinstance(obj, type) and member.startswith('prototype.'):
+                    new_member, _, func_prototype = member.partition('.')[2].partition('.')
+                    assertion(argvals, 'takes one or more arguments')
+                    assertion(isinstance(argvals[0], obj), f'needs binding to type {obj}')
+                    if func_prototype == 'call':
+                        obj, *argvals = argvals
+                    elif func_prototype == 'apply':
+                        assertion(len(argvals) == 2, 'takes two arguments')
+                        obj, argvals = argvals
+                        assertion(isinstance(argvals, list), 'second argument needs to be a list')
+                    else:
+                        raise self.Exception(f'Unsupported Function method {func_prototype}', expr)
+                    member = new_member
+
+                if obj is str:
                     if member == 'fromCharCode':
                         assertion(argvals, 'takes one or more arguments')
                         return ''.join(map(chr, argvals))
                     raise self.Exception(f'Unsupported String method {member}', expr)
-                elif obj == float:
+                elif obj is float:
                     if member == 'pow':
                         assertion(len(argvals) == 2, 'takes two arguments')
                         return argvals[0] ** argvals[1]
@@ -691,9 +709,9 @@ class JSInterpreter:
                     obj.reverse()
                     return obj
                 elif member == 'slice':
-                    assertion(isinstance(obj, list), 'must be applied on a list')
-                    assertion(len(argvals) == 1, 'takes exactly one argument')
-                    return obj[argvals[0]:]
+                    assertion(isinstance(obj, (list, str)), 'must be applied on a list or string')
+                    assertion(len(argvals) <= 2, 'takes between 0 and 2 arguments')
+                    return obj[slice(*argvals, None)]
                 elif member == 'splice':
                     assertion(isinstance(obj, list), 'must be applied on a list')
                     assertion(argvals, 'takes one or more arguments')
