@@ -15,11 +15,12 @@ from ..utils import (
     int_or_none,
     join_nonempty,
     merge_dicts,
-    orderedSet,
     parse_count,
     parse_duration,
+    smuggle_url,
     strip_or_none,
     unified_strdate,
+    unsmuggle_url,
     url_or_none,
     urlencode_postdata,
     urljoin,
@@ -45,7 +46,7 @@ class BoomplayBaseIE(InfoExtractor):
         """
         # get_elements_text_and_html_by_attribute returns a generator
         return get_elements_text_and_html_by_attribute(
-            'class', rf'''[^'"]*(?<=['"\s]){class_}(?=['"\s])[^'"]*''', html,
+            attribute='class', value=rf'''[^'"]*(?<=['"\s]){class_}(?=['"\s])[^'"]*''', html=html,
             tag=tag, escape_value=False)
 
     @classmethod
@@ -111,7 +112,7 @@ class BoomplayBaseIE(InfoExtractor):
         metadata_div = self._get_element_by_class_and_tag('summary', 'div', webpage) or ''
         metadata_entries = re.findall(r'(?si)<strong>(?P<entry>.*?)</strong>', metadata_div) or []
         description = re.sub(
-            '(?i)Listen and download music for free on Boomplay!', '',
+            r'(?i)Listen and download music for free on Boomplay!', '',
             clean_html(self._get_element_by_class_and_tag(
                 'description_content', 'span', webpage)) or '') or None
 
@@ -145,39 +146,55 @@ class BoomplayBaseIE(InfoExtractor):
                 page_metadata['release_year'] = int_or_none(v)
         return page_metadata
 
-    def _extract_suitable_links(self, webpage, media_types=None):
-        if media_types is None:
-            media_types = self._MEDIA_TYPES
-        media_types = list(variadic(media_types))
+    @classmethod
+    def _extract_from_webpage(cls, url, webpage, **kwargs):
+        if kwargs:
+            url = smuggle_url(url, kwargs)
+        return super()._extract_from_webpage(url, webpage)
 
-        for idx, v in enumerate(media_types):
-            media_types[idx] = re.escape(v) if v in self._MEDIA_TYPES else ''
-        media_types = join_nonempty(*media_types, delim='|')
-        return orderedSet(traverse_obj(re.finditer(
-            rf'''(?x)
-            <a
-                (?:\s(?:[^>"']|"[^"]*"|'[^']*')*)?
-                    (?<=\s)href\s*=\s*(?P<_q>['"])
-                        (?:
-                            (?!javascript:)(?P<link>/(?:{media_types})/\d+/?[\-a-zA-Z=?&#:;@]*)
-                        )
-                    (?P=_q)
-                (?:\s(?:[^>"']|"[^"]*"|'[^']*')*)?
-            >''', webpage), (..., 'link', {self._urljoin}, {self.url_result})))
+    @classmethod
+    def _extract_embed_urls(cls, url, webpage):
+        url, smuggled_data = unsmuggle_url(url)
+        media_types = variadic(smuggled_data.get('media_types', cls._MEDIA_TYPES))
+        media_types = join_nonempty(*(
+            re.escape(v)for v in media_types if v in cls._MEDIA_TYPES),
+            delim='|')
 
-    def _extract_playlist_entries(self, webpage, media_types, warn=True):
+        for mobj in re.finditer(
+                rf'''(?ix)
+                <a
+                    (?:\s(?:[^>"']|"[^"]*"|'[^']*')*)?
+                        (?<=\s)href\s*=\s*(?P<_q>['"])
+                            (?:
+                                (?!javascript:)(?P<href>/(?:{media_types})/\d+/?[\-a-zA-Z=?&#:;@]*)
+                            )
+                        (?P=_q)
+                    (?:\s(?:[^>"']|"[^"]*"|'[^']*')*)?
+                >''', webpage):
+            if url := cls._urljoin(mobj.group('href')):
+                yield url
+
+    @classmethod
+    def _extract_playlist_entries(cls, webpage, media_types, warn=True):
         song_list = strip_or_none(
-            self._get_element_by_class_and_tag('morePart_musics', 'ol', webpage)
-            or self._get_element_by_class_and_tag('morePart', 'ol', webpage)
+            cls._get_element_by_class_and_tag('morePart_musics', 'ol', webpage)
+            or cls._get_element_by_class_and_tag('morePart', 'ol', webpage)
             or '')
 
-        entries = traverse_obj(self.__yield_elements_html_by_class_and_tag(
+        entries = traverse_obj(cls.__yield_elements_html_by_class_and_tag(
             'songName', 'a', song_list),
-            (..., {extract_attributes}, 'href', {self._urljoin}, {self.url_result}))
+            (..., {extract_attributes}, 'href', {cls._urljoin}, {cls.url_result}))
         if not entries:
             if warn:
-                self.report_warning('Failed to extract playlist entries, finding suitable links instead!')
-            return self._extract_suitable_links(webpage, media_types)
+                cls.report_warning('Failed to extract playlist entries, finding suitable links instead!')
+
+            def strip_ie(entry):
+                # All our IEs have a _VALID_URL and set a key: don't use it
+                entry.pop('ie_key', None)
+                return entry
+
+            return (strip_ie(result) for result in
+                    cls._extract_from_webpage(cls._BASE, webpage, media_types=media_types))
 
         return entries
 
@@ -302,7 +319,7 @@ class BoomplayPodcastIE(BoomplayBaseIE):
         webpage = self._download_webpage(url, playlist_id)
         song_list = self._get_element_by_class_and_tag('morePart_musics', 'ol', webpage)
         song_list = traverse_obj(re.finditer(
-            r'''(?x)
+            r'''(?ix)
             <li
                 (?:\s(?:[^>"']|"[^"]*"|'[^']*')*)?
                     \sdata-id\s*=\s*
