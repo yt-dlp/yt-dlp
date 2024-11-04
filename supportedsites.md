@@ -190,6 +190,7 @@
  - **blerp**
  - **blogger.com**
  - **Bloomberg**
+ - **Bluesky**
  - **BokeCC**
  - **BongaCams**
  - **Boosty**
@@ -247,7 +248,7 @@
  - **cbsnews:livevideo**: CBS News Live Videos
  - **cbssports**: (**Currently broken**)
  - **cbssports:embed**: (**Currently broken**)
- - **CCMA**
+ - **CCMA**: 3Cat, TV3 and Catalunya Ràdio
  - **CCTV**: 央视网
  - **CDA**: [*cdapl*](## "netrc machine")
  - **CDAFolder**
@@ -280,8 +281,6 @@
  - **cmt.com**: (**Currently broken**)
  - **CNBCVideo**
  - **CNN**
- - **CNNArticle**
- - **CNNBlogs**
  - **CNNIndonesia**
  - **ComedyCentral**
  - **ComedyCentralTV**
@@ -685,9 +684,9 @@
  - **LastFMPlaylist**
  - **LastFMUser**
  - **LaXarxaMes**: [*laxarxames*](## "netrc machine")
- - **lbry**
- - **lbry:channel**
- - **lbry:playlist**
+ - **lbry**: odysee.com
+ - **lbry:channel**: odysee.com channels
+ - **lbry:playlist**: odysee.com playlists
  - **LCI**
  - **Lcp**
  - **LcpPlay**
@@ -1446,7 +1445,7 @@
  - **TeleQuebecSquat**
  - **TeleQuebecVideo**
  - **TeleTask**: (**Currently broken**)
- - **Telewebion**
+ - **Telewebion**: (**Currently broken**)
  - **Tempo**
  - **TennisTV**: [*tennistv*](## "netrc machine")
  - **TenPlay**: [*10play*](## "netrc machine")
