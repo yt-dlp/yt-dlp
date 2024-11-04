@@ -165,9 +165,7 @@ class BoomplayBaseIE(InfoExtractor):
                 <a
                     (?:\s(?:[^>"']|"[^"]*"|'[^']*')*)?
                         (?<=\s)href\s*=\s*(?P<_q>['"])
-                            (?:
-                                (?!javascript:)(?P<href>/(?:{media_types})/\d+/?[\-a-zA-Z=?&#:;@]*)
-                            )
+                            (?!javascript:)(?P<href>/(?:{media_types})/\d+/?[\-\w=?&#:;@]*)
                         (?P=_q)
                     (?:\s(?:[^>"']|"[^"]*"|'[^']*')*)?
                 >''', webpage):
