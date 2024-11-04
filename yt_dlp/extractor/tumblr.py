@@ -550,14 +550,13 @@ class TumblrIE(InfoExtractor):
 
         if formats:
             # tumblr's own video is always above embeds
-            entries = [{
+            entries.insert(0, {
                 **info_dict,
                 'formats': formats,
                 'duration': duration,
-                'thumbnail': traverse_obj(
-                    video_json, ('poster', 0, 'url')) or self._og_search_thumbnail(
-                        webpage, default=None)},
-                *entries]
+                'thumbnail': (traverse_obj(video_json, ('poster', 0, 'url', {url_or_none}))
+                              or self._og_search_thumbnail(webpage, default=None)),
+            })
 
         if ignored_providers:
             if not entries:
