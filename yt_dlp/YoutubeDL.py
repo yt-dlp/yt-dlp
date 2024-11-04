@@ -470,7 +470,7 @@ class YoutubeDL:
                        The following options do not work when used through the API:
                        filename, abort-on-error, multistreams, no-live-chat,
                        format-sort, no-clean-infojson, no-playlist-metafiles,
-                       no-keep-subs, no-attach-info-json, allow-unsafe-ext.
+                       no-keep-subs, no-attach-info-json, allow-unsafe-ext, prefer-vp9-sort.
                        Refer __init__.py for their implementation
     progress_template: Dictionary of templates for progress outputs.
                        Allowed keys are 'download', 'postprocess',
@@ -2849,13 +2849,10 @@ class YoutubeDL:
             sanitize_string_field(fmt, 'format_id')
             sanitize_numeric_fields(fmt)
             fmt['url'] = sanitize_url(fmt['url'])
-            if fmt.get('ext') is None:
-                fmt['ext'] = determine_ext(fmt['url']).lower()
+            FormatSorter._fill_sorting_fields(fmt)
             if fmt['ext'] in ('aac', 'opus', 'mp3', 'flac', 'vorbis'):
                 if fmt.get('acodec') is None:
                     fmt['acodec'] = fmt['ext']
-            if fmt.get('protocol') is None:
-                fmt['protocol'] = determine_protocol(fmt)
             if fmt.get('resolution') is None:
                 fmt['resolution'] = self.format_resolution(fmt, default=None)
             if fmt.get('dynamic_range') is None and fmt.get('vcodec') != 'none':

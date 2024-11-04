@@ -483,13 +483,13 @@ def create_parser():
                 'no-attach-info-json', 'embed-thumbnail-atomicparsley', 'no-external-downloader-progress',
                 'embed-metadata', 'seperate-video-versions', 'no-clean-infojson', 'no-keep-subs', 'no-certifi',
                 'no-youtube-channel-redirect', 'no-youtube-unavailable-videos', 'no-youtube-prefer-utc-upload-date',
-                'prefer-legacy-http-handler', 'manifest-filesize-approx', 'allow-unsafe-ext',
+                'prefer-legacy-http-handler', 'manifest-filesize-approx', 'allow-unsafe-ext', 'prefer-vp9-sort',
             }, 'aliases': {
-                'youtube-dl': ['all', '-multistreams', '-playlist-match-filter', '-manifest-filesize-approx', '-allow-unsafe-ext'],
-                'youtube-dlc': ['all', '-no-youtube-channel-redirect', '-no-live-chat', '-playlist-match-filter', '-manifest-filesize-approx', '-allow-unsafe-ext'],
+                'youtube-dl': ['all', '-multistreams', '-playlist-match-filter', '-manifest-filesize-approx', '-allow-unsafe-ext', '-prefer-vp9-sort'],
+                'youtube-dlc': ['all', '-no-youtube-channel-redirect', '-no-live-chat', '-playlist-match-filter', '-manifest-filesize-approx', '-allow-unsafe-ext', '-prefer-vp9-sort'],
                 '2021': ['2022', 'no-certifi', 'filename-sanitization'],
                 '2022': ['2023', 'no-external-downloader-progress', 'playlist-match-filter', 'prefer-legacy-http-handler', 'manifest-filesize-approx'],
-                '2023': [],
+                '2023': ['prefer-vp9-sort'],
             },
         }, help=(
             'Options that can help keep compatibility with youtube-dl or youtube-dlc '
@@ -700,7 +700,8 @@ def create_parser():
     selection.add_option(
         '--break-on-existing',
         action='store_true', dest='break_on_existing', default=False,
-        help='Stop the download process when encountering a file that is in the archive')
+        help='Stop the download process when encountering a file that is in the archive '
+             'supplied with the --download-archive option')
     selection.add_option(
         '--no-break-on-existing',
         action='store_false', dest='break_on_existing',
