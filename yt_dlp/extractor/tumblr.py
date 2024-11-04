@@ -445,8 +445,7 @@ class TumblrIE(InfoExtractor):
                     f'https://www.tumblr.com/api/v2/blog/{blog}/posts/{video_id}/permalink',
                     video_id, headers={'Authorization': f'Bearer {self._ACCESS_TOKEN}'}, fatal=False),
                 ('response', 'timeline', 'elements', 0, {dict})) or {}
-        content_json = traverse_obj(
-            post_json, ('trail', 0, 'content', ...), ('content', ...), expected_type=dict)
+        content_json = traverse_obj(post_json, ((('trail', 0), None), 'content', ..., {dict}))
 
         # the url we're extracting from might be an original post or it might be a reblog.
         # if it's a reblog, og:description will be the reblogger's comment, not the uploader's.
@@ -465,10 +464,12 @@ class TumblrIE(InfoExtractor):
             'description': description,
             'uploader_id': uploader_id,
             'uploader_url': f'https://{uploader_id}.tumblr.com/' if uploader_id else None,
-            'like_count': post_json.get('like_count'),
-            'repost_count': post_json.get('reblog_count'),
+            **traverse_obj(post_json, {
+                'like_count': ('like_count', {int_or_none}),
+                'repost_count': ('reblog_count', {int_or_none}),
+                'tags': ('tags', ..., {str}),
+            }),
             'age_limit': {True: 18, False: 0}.get(post_json.get('is_nsfw')),
-            'tags': post_json.get('tags'),
         }
 
         # for tumblr's own video hosting
@@ -566,14 +567,13 @@ class TumblrIE(InfoExtractor):
         if unknown_providers:
             self.report_warning(f'Unrecognized providers, please report: {", ".join(unknown_providers)!s}', video_id)
 
-        if len(entries) > 1:
-            return {
-                **info_dict,
-                '_type': 'playlist',
-                'entries': entries,
-            }
-        else:
+        if len(entries) == 1:
             return {
                 **info_dict,
                 **entries[0],
             }
+        return {
+            **info_dict,
+            '_type': 'playlist',
+            'entries': entries,
+        }
