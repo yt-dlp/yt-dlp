@@ -72,7 +72,7 @@ on:
         default: true
         type: boolean
       windows:
-        description: yt-dlp.exe, yt-dlp_min.exe, yt-dlp_win.zip
+        description: yt-dlp.exe, yt-dlp_win.zip
         default: true
         type: boolean
       windows32:
@@ -199,22 +199,24 @@ jobs:
             GITHUB_WORKFLOW: build
           githubToken: ${{ github.token }} # To cache image
           arch: ${{ matrix.architecture }}
-          distro: ubuntu18.04 # Standalone executable should be built on minimum supported OS
+          distro: ubuntu20.04 # Standalone executable should be built on minimum supported OS
           dockerRunArgs: --volume "${PWD}/repo:/repo"
           install: | # Installing Python 3.10 from the Deadsnakes repo raises errors
             apt update
-            apt -y install zlib1g-dev libffi-dev python3.8 python3.8-dev python3.8-distutils python3-pip
-            python3.8 -m pip install -U pip setuptools wheel
-            # Cannot access any files from the repo directory at this stage
-            python3.8 -m pip install -U Pyinstaller mutagen pycryptodomex websockets brotli certifi secretstorage cffi
+            apt -y install zlib1g-dev libffi-dev python3.9 python3.9-dev python3.9-distutils python3-pip \
+              python3-secretstorage  # Cannot build cryptography wheel in virtual armv7 environment
+            python3.9 -m pip install -U pip wheel 'setuptools>=71.0.2'
+            # XXX: Keep this in sync with pyproject.toml (it can't be accessed at this stage) and exclude secretstorage
+            python3.9 -m pip install -U Pyinstaller mutagen pycryptodomex brotli certifi cffi \
+              'requests>=2.32.2,<3' 'urllib3>=1.26.17,<3' 'websockets>=13.0'
 
           run: |
             cd repo
-            python3.8 devscripts/install_deps.py -o --include build
-            python3.8 devscripts/install_deps.py --include pyinstaller --include secretstorage  # Cached version may be out of date
-            python3.8 devscripts/update-version.py -c "${{ inputs.channel }}" -r "${{ needs.process.outputs.origin }}" "${{ inputs.version }}"
-            python3.8 devscripts/make_lazy_extractors.py
-            python3.8 -m bundle.pyinstaller
+            python3.9 devscripts/install_deps.py -o --include build
+            python3.9 devscripts/install_deps.py --include pyinstaller  # Cached versions may be out of date
+            python3.9 devscripts/update-version.py -c "${{ inputs.channel }}" -r "${{ needs.process.outputs.origin }}" "${{ inputs.version }}"
+            python3.9 devscripts/make_lazy_extractors.py
+            python3.9 -m bundle.pyinstaller
 
             if ${{ vars.UPDATE_TO_VERIFICATION && 'true' || 'false' }}; then
               arch="${{ (matrix.architecture == 'armv7' && 'armv7l') || matrix.architecture }}"
@@ -403,8 +405,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
-        with: # 3.8 is used for Win7 support
-          python-version: "3.8"
+        with:
+          python-version: "3.10"
       - name: Install Requirements
         run: | # Custom pyinstaller built with https://github.com/yt-dlp/pyinstaller-builds
           python devscripts/install_deps.py -o --include build
@@ -419,22 +421,12 @@ jobs:
         run: |
           python -m bundle.pyinstaller
           python -m bundle.pyinstaller --onedir
-          Move-Item ./dist/yt-dlp.exe ./dist/yt-dlp_real.exe
           Compress-Archive -Path ./dist/yt-dlp/* -DestinationPath ./dist/yt-dlp_win.zip
-
-      - name: Install Requirements (py2exe)
-        run: |
-          python devscripts/install_deps.py --include py2exe
-      - name: Build (py2exe)
-        run: |
-          python -m bundle.py2exe
-          Move-Item ./dist/yt-dlp.exe ./dist/yt-dlp_min.exe
-          Move-Item ./dist/yt-dlp_real.exe ./dist/yt-dlp.exe
 
       - name: Verify --update-to
         if: vars.UPDATE_TO_VERIFICATION
         run: |
-          foreach ($name in @("yt-dlp","yt-dlp_min")) {
+          foreach ($name in @("yt-dlp")) {
             Copy-Item "./dist/${name}.exe" "./dist/${name}_downgraded.exe"
             $version = & "./dist/${name}.exe" --version
             & "./dist/${name}_downgraded.exe" -v --update-to yt-dlp/yt-dlp@2023.03.04
@@ -450,7 +442,6 @@ jobs:
           name: build-bin-${{ github.job }}
           path: |
             dist/yt-dlp.exe
-            dist/yt-dlp_min.exe
             dist/yt-dlp_win.zip
           compression-level: 0
 
@@ -463,7 +454,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.8"
+          python-version: "3.10"
           architecture: "x86"
       - name: Install Requirements
         run: |
@@ -537,13 +528,29 @@ jobs:
           lock 2022.08.18.36 .+ Python 3\.6
           lock 2023.11.16 (?!win_x86_exe).+ Python 3\.7
           lock 2023.11.16 win_x86_exe .+ Windows-(?:Vista|2008Server)
+          lock 2024.10.22 py2exe .+
+          lock 2024.10.22 linux_(?:armv7l|aarch64)_exe .+-glibc2\.(?:[12]?\d|30)\b
+          lock 2024.10.22 (?!\w+_exe).+ Python 3\.8
+          lock 2024.10.22 win(?:_x86)?_exe Python 3\.[78].+ Windows-(?:7-|2008ServerR2)
           lockV2 yt-dlp/yt-dlp 2022.08.18.36 .+ Python 3\.6
           lockV2 yt-dlp/yt-dlp 2023.11.16 (?!win_x86_exe).+ Python 3\.7
           lockV2 yt-dlp/yt-dlp 2023.11.16 win_x86_exe .+ Windows-(?:Vista|2008Server)
+          lockV2 yt-dlp/yt-dlp 2024.10.22 py2exe .+
+          lockV2 yt-dlp/yt-dlp 2024.10.22 linux_(?:armv7l|aarch64)_exe .+-glibc2\.(?:[12]?\d|30)\b
+          lockV2 yt-dlp/yt-dlp 2024.10.22 (?!\w+_exe).+ Python 3\.8
+          lockV2 yt-dlp/yt-dlp 2024.10.22 win(?:_x86)?_exe Python 3\.[78].+ Windows-(?:7-|2008ServerR2)
           lockV2 yt-dlp/yt-dlp-nightly-builds 2023.11.15.232826 (?!win_x86_exe).+ Python 3\.7
           lockV2 yt-dlp/yt-dlp-nightly-builds 2023.11.15.232826 win_x86_exe .+ Windows-(?:Vista|2008Server)
+          lockV2 yt-dlp/yt-dlp-nightly-builds 2024.10.22.051025 py2exe .+
+          lockV2 yt-dlp/yt-dlp-nightly-builds 2024.10.22.051025 linux_(?:armv7l|aarch64)_exe .+-glibc2\.(?:[12]?\d|30)\b
+          lockV2 yt-dlp/yt-dlp-nightly-builds 2024.10.22.051025 (?!\w+_exe).+ Python 3\.8
+          lockV2 yt-dlp/yt-dlp-nightly-builds 2024.10.22.051025 win(?:_x86)?_exe Python 3\.[78].+ Windows-(?:7-|2008ServerR2)
           lockV2 yt-dlp/yt-dlp-master-builds 2023.11.15.232812 (?!win_x86_exe).+ Python 3\.7
           lockV2 yt-dlp/yt-dlp-master-builds 2023.11.15.232812 win_x86_exe .+ Windows-(?:Vista|2008Server)
+          lockV2 yt-dlp/yt-dlp-master-builds 2024.10.22.045052 py2exe .+
+          lockV2 yt-dlp/yt-dlp-master-builds 2024.10.22.060347 linux_(?:armv7l|aarch64)_exe .+-glibc2\.(?:[12]?\d|30)\b
+          lockV2 yt-dlp/yt-dlp-master-builds 2024.10.22.060347 (?!\w+_exe).+ Python 3\.8
+          lockV2 yt-dlp/yt-dlp-master-builds 2024.10.22.060347 win(?:_x86)?_exe Python 3\.[78].+ Windows-(?:7-|2008ServerR2)
           EOF
 
       - name: Sign checksum files

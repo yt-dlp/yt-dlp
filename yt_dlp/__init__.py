@@ -1,8 +1,8 @@
 import sys
 
-if sys.version_info < (3, 8):
+if sys.version_info < (3, 9):
     raise ImportError(
-        f'You are using an unsupported version of Python. Only Python versions 3.8 and above are supported by yt-dlp')  # noqa: F541
+        f'You are using an unsupported version of Python. Only Python versions 3.9 and above are supported by yt-dlp')  # noqa: F541
 
 __license__ = 'The Unlicense'
 
@@ -35,6 +35,7 @@ from .postprocessor import (
 )
 from .update import Updater
 from .utils import (
+    Config,
     NO_DEFAULT,
     POSTPROCESS_WHEN,
     DateRange,
@@ -199,6 +200,9 @@ def set_compat_opts(opts):
             opts.embed_infojson = False
     if 'format-sort' in opts.compat_opts:
         opts.format_sort.extend(FormatSorter.ytdl_default)
+    elif 'prefer-vp9-sort' in opts.compat_opts:
+        opts.format_sort.extend(FormatSorter._prefer_vp9_sort)
+
     _video_multistreams_set = set_default_compat('multistreams', 'allow_multiple_video_streams', False, remove_compat=False)
     _audio_multistreams_set = set_default_compat('multistreams', 'allow_multiple_audio_streams', False, remove_compat=False)
     if _video_multistreams_set is False and _audio_multistreams_set is False:
@@ -1007,6 +1011,11 @@ def _real_main(argv=None):
     setproctitle('yt-dlp')
 
     parser, opts, all_urls, ydl_opts = parse_options(argv)
+
+    # HACK: Set the plugin dirs early on
+    # TODO(coletdjnz): remove when plugin globals system is implemented
+    if opts.plugin_dirs is not None:
+        Config._plugin_dirs = list(map(expand_path, opts.plugin_dirs))
 
     # Dump user agent
     if opts.dump_user_agent:

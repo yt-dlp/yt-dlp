@@ -20,6 +20,7 @@ from ._utils import (
     get_elements_html_by_class,
     get_elements_html_by_attribute,
     get_elements_by_attribute,
+    get_element_by_class,
     get_element_html_by_attribute,
     get_element_by_attribute,
     get_element_html_by_id,
@@ -55,7 +56,7 @@ def traverse_obj(
     The keys in the path can be one of:
         - `None`:           Return the current object.
         - `set`:            Requires the only item in the set to be a type or function,
-                            like `{type}`/`{type, type, ...}/`{func}`. If a `type`, return only
+                            like `{type}`/`{type, type, ...}`/`{func}`. If a `type`, return only
                             values of this type. If a function, returns `func(obj)`.
         - `str`/`int`:      Return `obj[key]`. For `re.Match`, return `obj.group(key)`.
         - `slice`:          Branch out and return all values in `obj[key]`.
@@ -75,7 +76,7 @@ def traverse_obj(
 
         `tuple`, `list`, and `dict` all support nested paths and branches.
 
-    @params paths           Paths which to traverse by.
+    @params paths           Paths by which to traverse.
     @param default          Value to return if the paths do not match.
                             If the last key in the path is a `dict`, it will apply to each value inside
                             the dict instead, depth first. Try to avoid if using nested `dict` keys.
@@ -373,7 +374,7 @@ def subs_list_to_dict(subs: list[dict] | None = None, /, *, ext=None):
 
 
 @typing.overload
-def find_element(*, attr: str, value: str, tag: str | None = None, html=False): ...
+def find_element(*, attr: str, value: str, tag: str | None = None, html=False, regex=False): ...
 
 
 @typing.overload
@@ -381,34 +382,34 @@ def find_element(*, cls: str, html=False): ...
 
 
 @typing.overload
-def find_element(*, id: str, tag: str | None = None, html=False): ...
+def find_element(*, id: str, tag: str | None = None, html=False, regex=False): ...
 
 
 @typing.overload
-def find_element(*, tag: str, html=False): ...
+def find_element(*, tag: str, html=False, regex=False): ...
 
 
-def find_element(*, tag=None, id=None, cls=None, attr=None, value=None, html=False):
+def find_element(*, tag=None, id=None, cls=None, attr=None, value=None, html=False, regex=False):
     # deliberately using `id=` and `cls=` for ease of readability
     assert tag or id or cls or (attr and value), 'One of tag, id, cls or (attr AND value) is required'
-    if not tag:
-        tag = r'[\w:.-]+'
+    ANY_TAG = r'[\w:.-]+'
 
     if attr and value:
         assert not cls, 'Cannot match both attr and cls'
         assert not id, 'Cannot match both attr and id'
         func = get_element_html_by_attribute if html else get_element_by_attribute
-        return functools.partial(func, attr, value, tag=tag)
+        return functools.partial(func, attr, value, tag=tag or ANY_TAG, escape_value=not regex)
 
     elif cls:
         assert not id, 'Cannot match both cls and id'
         assert tag is None, 'Cannot match both cls and tag'
-        func = get_element_html_by_class if html else get_elements_by_class
+        assert not regex, 'Cannot use regex with cls'
+        func = get_element_html_by_class if html else get_element_by_class
         return functools.partial(func, cls)
 
     elif id:
         func = get_element_html_by_id if html else get_element_by_id
-        return functools.partial(func, id, tag=tag)
+        return functools.partial(func, id, tag=tag or ANY_TAG, escape_value=not regex)
 
     index = int(bool(html))
     return lambda html: get_element_text_and_html_by_tag(tag, html)[index]
@@ -419,21 +420,44 @@ def find_elements(*, cls: str, html=False): ...
 
 
 @typing.overload
-def find_elements(*, attr: str, value: str, tag: str | None = None, html=False): ...
+def find_elements(*, attr: str, value: str, tag: str | None = None, html=False, regex=False): ...
 
 
-def find_elements(*, tag=None, cls=None, attr=None, value=None, html=False):
+def find_elements(*, tag=None, cls=None, attr=None, value=None, html=False, regex=False):
     # deliberately using `cls=` for ease of readability
     assert cls or (attr and value), 'One of cls or (attr AND value) is required'
 
     if attr and value:
         assert not cls, 'Cannot match both attr and cls'
         func = get_elements_html_by_attribute if html else get_elements_by_attribute
-        return functools.partial(func, attr, value, tag=tag or r'[\w:.-]+')
+        return functools.partial(func, attr, value, tag=tag or r'[\w:.-]+', escape_value=not regex)
 
     assert not tag, 'Cannot match both cls and tag'
+    assert not regex, 'Cannot use regex with cls'
     func = get_elements_html_by_class if html else get_elements_by_class
     return functools.partial(func, cls)
+
+
+def trim_str(*, start=None, end=None):
+    def trim(s):
+        if s is None:
+            return None
+        start_idx = 0
+        if start and s.startswith(start):
+            start_idx = len(start)
+        if end and s.endswith(end):
+            return s[start_idx:-len(end)]
+        return s[start_idx:]
+
+    return trim
+
+
+def unpack(func):
+    @functools.wraps(func)
+    def inner(items, **kwargs):
+        return func(*items, **kwargs)
+
+    return inner
 
 
 def get_first(obj, *paths, **kwargs):
