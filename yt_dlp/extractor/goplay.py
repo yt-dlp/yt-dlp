@@ -112,7 +112,6 @@ class GoPlayIE(InfoExtractor):
             'formats': formats,
             'subtitles': subtitles,
         })
-
         return info_dict
 
 
