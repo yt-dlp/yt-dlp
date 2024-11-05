@@ -155,7 +155,7 @@ class BoomplayBaseIE(InfoExtractor):
     @staticmethod
     def _fix_title(title):
         """
-        fix various types of titles(og:title, twitter:title, title tag in html head):
+        fix various types of titles(og:title, twitter:title, title tag in html head)
         """
         if not title:
             return {}
@@ -364,7 +364,6 @@ class BoomplayPodcastIE(BoomplayBaseIE):
             }))
         return self.playlist_result(
             song_list, playlist_id,
-            playlist_title=self._og_search_title(webpage, fatal=True).rsplit('|', 2)[0].strip(),
             **self._extract_page_metadata(webpage, playlist_id))
 
 
