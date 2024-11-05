@@ -4,7 +4,23 @@ from .common import InfoExtractor
 from ..utils import ExtractorError, unescapeHTML
 
 
-class SunoIE(InfoExtractor):
+class SunoBaseIE(InfoExtractor):
+    def _get_title(self, webpage):
+        return self._html_search_meta(
+            ['og:title', 'twitter:title'], webpage, 'title',
+            default=None) or self._html_extract_title(webpage)
+
+    def _get_description(self, webpage):
+        return self._html_search_meta(
+            ['og:description', 'description', 'twitter:description'],
+            webpage, 'description', default=None)
+
+    def _get_thumbnail(self, webpage):
+        return self._html_search_meta(
+            ['og:image', 'twitter:image'], webpage, 'thumbnail', default=None)
+
+
+class SunoIE(SunoBaseIE):
     _VALID_URL = r'https?://(?:www\.)?suno\.com/song/(?P<id>[-a-f0-9]+)'
     _TESTS = [
         {
@@ -35,16 +51,19 @@ class SunoIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
+        url = self._html_search_meta(
+            ['og:audio', 'twitter:player:stream'], webpage, 'url', default=None)
+
         return {
             'id': video_id,
-            'title': self._og_search_title(webpage),
-            'description': self._og_search_description(webpage),
-            'thumbnail': self._og_search_thumbnail(webpage),
-            'url': self._og_search_property('audio', webpage),
+            'title': self._get_title(webpage),
+            'description': self._get_description(webpage),
+            'thumbnail': self._get_thumbnail(webpage),
+            'url': url,
         }
 
 
-class SunoPlaylistIE(InfoExtractor):
+class SunoPlaylistIE(SunoBaseIE):
     _VALID_URL = r'https?://(?:www\.)?suno\.com/playlist/(?P<id>[-a-f0-9]+)'
     _TESTS = [
         {
@@ -69,7 +88,7 @@ class SunoPlaylistIE(InfoExtractor):
             'info_dict': {
                 'id': '568eeaab-dfbf-4da6-aa0a-0fb1a32330de',
                 'title': 'Piano by @kunal | Suno',
-                'description': 'Here are some good piano ',
+                'description': 'Here are some good piano',
                 'thumbnail': r're:https?://.*0ecc0956-3b17-4d4b-8504-55849dd75e22.*\.jpeg$',
             },
             'playlist': [
@@ -120,9 +139,9 @@ class SunoPlaylistIE(InfoExtractor):
         return {
             '_type': 'playlist',
             'id': playlist_id,
-            'title': self._og_search_title(webpage),
-            'description': self._og_search_description(webpage),
-            'thumbnail': self._og_search_thumbnail(webpage),
+            'title': self._get_title(webpage),
+            'description': self._get_description(webpage),
+            'thumbnail': self._get_thumbnail(webpage),
 
             'entries': [{
                 'id': song_tuple[0],
