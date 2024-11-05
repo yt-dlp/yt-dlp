@@ -1,4 +1,7 @@
+import re
+
 from .common import InfoExtractor
+from ..utils import ExtractorError, unescapeHTML
 
 
 class SunoIE(InfoExtractor):
@@ -38,4 +41,93 @@ class SunoIE(InfoExtractor):
             'description': self._og_search_description(webpage),
             'thumbnail': self._og_search_thumbnail(webpage),
             'url': self._og_search_property('audio', webpage),
+        }
+
+
+class SunoPlaylistIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:www\.)?suno\.com/playlist/(?P<id>[-a-f0-9]+)'
+    _TESTS = [
+        {
+            'url': 'https://suno.com/playlist/01f2ac32-c32e-4d26-b10c-221107c02946',
+            'info_dict': {
+                'id': '01f2ac32-c32e-4d26-b10c-221107c02946',
+                'title': 'Main 0 by @contemplativetranspositions367 | Suno',
+                'description': 'Hopefully the test case passed',
+                'thumbnail': 'https://cdn2.suno.ai/image_19d6d518-1b87-43b3-90b9-2a476ca5824a.jpeg',
+            },
+            'playlist': [{
+                'info_dict': {
+                    'id': '19d6d518-1b87-43b3-90b9-2a476ca5824a',
+                    'title': 'Ceaseless <Echoes>',
+                    'ext': 'mp3',
+                },
+            }],
+            'playlist_count': 1,
+        },
+        {
+            'url': 'https://www.suno.com/playlist/568eeaab-dfbf-4da6-aa0a-0fb1a32330de',
+            'info_dict': {
+                'id': '568eeaab-dfbf-4da6-aa0a-0fb1a32330de',
+                'title': 'Piano by @kunal | Suno',
+                'description': 'Here are some good piano ',
+                'thumbnail': 'https://cdn2.suno.ai/image_0ecc0956-3b17-4d4b-8504-55849dd75e22.jpeg',
+            },
+            'playlist': [
+                {
+                    'info_dict': {
+                        'id': '0ecc0956-3b17-4d4b-8504-55849dd75e22',
+                        'title': 'ST',
+                        'ext': 'mp3',
+                    },
+                },
+                {
+                    'info_dict': {
+                        'id': '3fef7d44-c5a3-4181-9de3-d81542af23ef',
+                        'title': 'ST',
+                        'ext': 'mp3',
+                    },
+                },
+                {
+                    'info_dict': {
+                        'id': '15e797fa-06c0-4e11-8cc0-3b2580476039',
+                        'title': 'ST - 2',
+                        'ext': 'mp3',
+                    },
+                },
+            ],
+            'playlist_count': 3,
+        },
+    ]
+
+    def _real_extract(self, url):
+        playlist_id = self._match_id(url)
+        webpage = self._download_webpage(url, playlist_id)
+
+        # There are <a>s whose href is a song/ID path. The <span>s directly
+        # within them have the respective song title as their innerHTML.
+        # Alternatively, this info can be extracted through parsing an escaped
+        # JSON object inside a <script> array, though that seems even less stable
+        # than this HTML.
+        songs_regex = r'/song/(?P<id>[-a-f0-9]+)["\'][^>]*>\s*<span[^>]*>\s*(?P<title>[^<]+)</span>'
+        songs = re.findall(songs_regex, webpage)
+
+        og_audio_regex = self._og_regexes('audio')[0]
+        audio_urls = [matches[0] for matches in re.findall(og_audio_regex, webpage)]
+
+        if len(songs) != len(audio_urls):
+            raise ExtractorError('Unexpected mismatch between song HTML list and og audio URLs')
+
+        return {
+            '_type': 'playlist',
+            'id': playlist_id,
+            'title': self._og_search_title(webpage),
+            'description': self._og_search_description(webpage),
+            'thumbnail': self._og_search_thumbnail(webpage),
+
+            'entries': [{
+                'id': song_tuple[0],
+                'title': unescapeHTML(song_tuple[1]),
+                'url': audio_urls[i],
+
+            } for i, song_tuple in enumerate(songs)],
         }
