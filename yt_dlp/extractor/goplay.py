@@ -20,37 +20,24 @@ class GoPlayIE(InfoExtractor):
     _NETRC_MACHINE = 'goplay'
 
     _TESTS = [{
-        'url': 'https://www.goplay.be/video/de-container-cup/de-container-cup-s3/de-container-cup-s3-aflevering-2#autoplay',
+        'url': 'https://www.goplay.be/video/de-slimste-mens-ter-wereld/de-slimste-mens-ter-wereld-s22/de-slimste-mens-ter-wereld-s22-aflevering-1',
         'info_dict': {
-            'id': '9c4214b8-e55d-4e4b-a446-f015f6c6f811',
-            'ext': 'mp4',
-            'title': 'S3 - Aflevering 2',
-            'series': 'De Container Cup',
-            'season': 'Season 3',
-            'season_number': 3,
-            'episode': 'Episode 2',
-            'episode_number': 2,
+            'id': '2baa4560-87a0-421b-bffc-359914e3c387',
+            'title': 'De Slimste Mens ter Wereld - S22 - Aflevering 1',
         },
         'skip': 'This video is only available for registered users',
     }, {
-        'url': 'https://www.goplay.be/video/a-family-for-thr-holidays-s1-aflevering-1#autoplay',
+        'url': 'https://www.goplay.be/video/fantastic-beasts-the-secrets-of-dumbledore',
         'info_dict': {
-            'id': '74e3ed07-748c-49e4-85a0-393a93337dbf',
-            'ext': 'mp4',
-            'title': 'A Family for the Holidays',
+            'id': '046a91f1-db9c-41ff-8652-d35881ea72c4',
+            'title': 'Fantastic Beasts: The Secrets of Dumbledore',
         },
         'skip': 'This video is only available for registered users',
     }, {
-        'url': 'https://www.goplay.be/video/de-mol/de-mol-s11/de-mol-s11-aflevering-1#autoplay',
+        'url': 'https://www.goplay.be/video/de-mol/de-mol-s11/de-mol-s11-aflevering-1',
         'info_dict': {
-            'id': '03eb8f2f-153e-41cb-9805-0d3a29dab656',
-            'ext': 'mp4',
-            'title': 'S11 - Aflevering 1',
-            'episode': 'Episode 1',
-            'series': 'De Mol',
-            'season_number': 11,
-            'episode_number': 1,
-            'season': 'Season 11',
+            'id': 'ecb79672-92b9-4cd9-a0d7-e2f0250681ee',
+            'title': 'De Mol - S11 - Aflevering 1',
         },
         'params': {
             'skip_download': True,
@@ -72,24 +59,23 @@ class GoPlayIE(InfoExtractor):
     def _real_extract(self, url):
         url, display_id = self._match_valid_url(url).group(0, 'display_id')
         webpage = self._download_webpage(url, display_id)
-        video_data_json = self._html_search_regex(r'<div\s+data-hero="([^"]+)"', webpage, 'video_data')
-        video_data = self._parse_json(unescapeHTML(video_data_json), display_id).get('data')
 
-        movie = video_data.get('movie')
-        if movie:
-            video_id = movie['videoUuid']
-            info_dict = {
-                'title': movie.get('title'),
-            }
-        else:
-            episode = traverse_obj(video_data, ('playlists', ..., 'episodes', lambda _, v: v['pageInfo']['url'] == url), get_all=False)
-            video_id = episode['videoUuid']
-            info_dict = {
-                'title': episode.get('episodeTitle'),
-                'series': traverse_obj(episode, ('program', 'title')),
-                'season_number': episode.get('seasonNumber'),
-                'episode_number': episode.get('episodeNumber'),
-            }
+        # regex pattern to capture JSON-like data starting with {"meta" and ending with }}\n])
+        pattern = r'(\{\\"meta.*\\"\}\})\]\]\\n\"]\)'
+
+        # Use _html_search_regex to search for the JSON-like data
+        video_data_json = self._html_search_regex(pattern, webpage, '{"meta"...}}')
+
+        # Replace \" with " to make it a valid JSON string
+        video_data_json = video_data_json.replace('\\"', '"')
+
+        video_data = self._parse_json(unescapeHTML(video_data_json), display_id)
+
+        info_dict = {
+            'title': video_data.get('meta').get('title'),
+        }
+
+        video_id = video_data.get('meta').get('uuid')
 
         api = self._download_json(
             f'https://api.goplay.be/web/v1/videos/long-form/{video_id}',
@@ -126,6 +112,7 @@ class GoPlayIE(InfoExtractor):
             'formats': formats,
             'subtitles': subtitles,
         })
+
         return info_dict
 
 
