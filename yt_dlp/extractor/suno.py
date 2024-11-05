@@ -14,7 +14,7 @@ class SunoIE(InfoExtractor):
                 'id': 'ab39a04d-b2e6-463b-9b8e-ddea725422f5',
                 'title': 'Life\'s a Soundtrack · AI Funk Factory @ YT by @funk | Suno',
                 'description': 'groovy funk, melodic song. Listen and make your own with Suno.',
-                'thumbnail': 'https://cdn2.suno.ai/image_903f2bd7-ccc0-4029-a76a-887f07ebc2df.jpeg',
+                'thumbnail': r're:https?://.*903f2bd7-ccc0-4029-a76a-887f07ebc2df.*\.jpeg$',
                 'ext': 'mp3',
             },
         },
@@ -25,7 +25,7 @@ class SunoIE(InfoExtractor):
                 'id': '9cbcb5f4-f367-4f1c-8a32-23ec62bdc47e',
                 'title': 'Pequenos Prazeres da Vida by @groovebot | Suno',
                 'description': 'pop bossa nova song. Listen and make your own with Suno.',
-                'thumbnail': 'https://cdn2.suno.ai/image_9cbcb5f4-f367-4f1c-8a32-23ec62bdc47e.jpeg',
+                'thumbnail': r're:https?://.*9cbcb5f4-f367-4f1c-8a32-23ec62bdc47e.*\.jpeg$',
                 'ext': 'mp3',
             },
         },
@@ -53,7 +53,7 @@ class SunoPlaylistIE(InfoExtractor):
                 'id': '01f2ac32-c32e-4d26-b10c-221107c02946',
                 'title': 'Main 0 by @contemplativetranspositions367 | Suno',
                 'description': 'Hopefully the test case passed',
-                'thumbnail': 'https://cdn2.suno.ai/image_19d6d518-1b87-43b3-90b9-2a476ca5824a.jpeg',
+                'thumbnail': r're:https?://.*19d6d518-1b87-43b3-90b9-2a476ca5824a.*\.jpeg$',
             },
             'playlist': [{
                 'info_dict': {
@@ -70,7 +70,7 @@ class SunoPlaylistIE(InfoExtractor):
                 'id': '568eeaab-dfbf-4da6-aa0a-0fb1a32330de',
                 'title': 'Piano by @kunal | Suno',
                 'description': 'Here are some good piano ',
-                'thumbnail': 'https://cdn2.suno.ai/image_0ecc0956-3b17-4d4b-8504-55849dd75e22.jpeg',
+                'thumbnail': r're:https?://.*0ecc0956-3b17-4d4b-8504-55849dd75e22.*\.jpeg$',
             },
             'playlist': [
                 {
