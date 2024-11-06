@@ -254,10 +254,14 @@ class BannedVideoIE(BannedVideoBaseIE):
             'url': video_info.get('directUrl'),
             'ext': 'mp4',
         }] if url_or_none(video_info.get('directUrl')) else []
+        
+        print(formats)
+        
         if video_info.get('streamUrl') and not re.search(r'\.mp4$', video_info.get('streamUrl') or ''):
             formats.extend(self._extract_m3u8_formats(
                 video_info.get('streamUrl'), video_id, 'mp4',
-                entry_protocol='m3u8_native', m3u8_id='hls', live=True))
+                entry_protocol='m3u8_native', m3u8_id='hls',
+                live=True, fatal=False))
 
         return {
             'id': video_id,
