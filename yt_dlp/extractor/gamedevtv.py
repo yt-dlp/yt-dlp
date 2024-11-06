@@ -81,7 +81,7 @@ class GameDevTVDashboardIE(InfoExtractor):
             self.raise_login_required(
                 'This content is only available with purchase', method='password')
 
-    def _entries(self, data, course_id, course_info, lecture_id):
+    def _entries(self, data, course_id, course_info, selected_lecture):
         for section in traverse_obj(data, ('sections', ..., {dict})):
             section_info = traverse_obj(section, {
                 'season_id': ('id', {str_or_none}),
@@ -89,7 +89,7 @@ class GameDevTVDashboardIE(InfoExtractor):
                 'season_number': ('order', {int_or_none}),
             })
             for lecture in traverse_obj(section, ('lectures', lambda _, v: url_or_none(v['video']['playListUrl']))):
-                if lecture_id and str(lecture.get('id')) != lecture_id:
+                if selected_lecture and str(lecture.get('id')) != selected_lecture:
                     continue
                 display_id = join_nonempty(course_id, section_info.get('season_id'), lecture.get('id'))
                 formats, subtitles = self._extract_m3u8_formats_and_subtitles(
