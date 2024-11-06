@@ -304,24 +304,12 @@ banned-from = [
 ]
 
 [tool.ruff.lint.flake8-tidy-imports.banned-api]
-"yt_dlp.compat.compat_str".msg = "Use `str` instead."
-"yt_dlp.compat.compat_b64decode".msg = "Use `base64.b64decode` instead."
-"yt_dlp.compat.compat_urlparse".msg = "Use `urllib.parse` instead."
-"yt_dlp.compat.compat_parse_qs".msg = "Use `urllib.parse.parse_qs` instead."
-"yt_dlp.compat.compat_urllib_parse_unquote".msg = "Use `urllib.parse.unquote` instead."
-"yt_dlp.compat.compat_urllib_parse_urlencode".msg = "Use `urllib.parse.urlencode` instead."
-"yt_dlp.compat.compat_urllib_parse_urlparse".msg = "Use `urllib.parse.urlparse` instead."
-"yt_dlp.compat.compat_shlex_quote".msg = "Use `yt_dlp.utils.shell_quote` instead."
-"yt_dlp.utils.error_to_compat_str".msg = "Use `str` instead."
-"yt_dlp.utils.bytes_to_intlist".msg = "Use `list` instead."
-"yt_dlp.utils.intlist_to_bytes".msg = "Use `bytes` instead."
-"yt_dlp.utils.decodeArgument".msg = "Do not use"
-"yt_dlp.utils.decodeFilename".msg = "Do not use"
-"yt_dlp.utils.encodeFilename".msg = "Do not use"
 "yt_dlp.compat.compat_os_name".msg = "Use `os.name` instead."
 "yt_dlp.compat.compat_realpath".msg = "Use `os.path.realpath` instead."
-"yt_dlp.utils.decodeOption".msg = "Do not use"
+"yt_dlp.compat.compat_shlex_quote".msg = "Use `yt_dlp.utils.shell_quote` instead."
+"yt_dlp.utils.bytes_to_intlist".msg = "Use `list` instead."
 "yt_dlp.utils.compiled_regex_type".msg = "Use `re.Pattern` instead."
+"yt_dlp.utils.intlist_to_bytes".msg = "Use `bytes` instead."
 
 [tool.autopep8]
 max_line_length = 120
