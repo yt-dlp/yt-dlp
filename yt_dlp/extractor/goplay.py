@@ -5,16 +5,21 @@ import hashlib
 import hmac
 import json
 import os
+import re
+import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
-    unescapeHTML,
+    int_or_none,
+    js_to_json,
+    remove_end,
+    traverse_obj,
 )
 
 
 class GoPlayIE(InfoExtractor):
-    _VALID_URL = r'https?://(www\.)?goplay\.be/video/([^/]+/[^/]+/|)(?P<display_id>[^/#]+)'
+    _VALID_URL = r'https?://(www\.)?goplay\.be/video/([^/?#]+/[^/?#]+/|)(?P<id>[^/#]+)'
 
     _NETRC_MACHINE = 'goplay'
 
@@ -22,25 +27,41 @@ class GoPlayIE(InfoExtractor):
         'url': 'https://www.goplay.be/video/de-slimste-mens-ter-wereld/de-slimste-mens-ter-wereld-s22/de-slimste-mens-ter-wereld-s22-aflevering-1',
         'info_dict': {
             'id': '2baa4560-87a0-421b-bffc-359914e3c387',
-            'title': 'De Slimste Mens ter Wereld - S22 - Aflevering 1',
+            'ext': 'mp4',
+            'title': 'S22 - Aflevering 1',
+            'description': r're:In aflevering 1 nemen Daan Alferink, Tess Elst en Xander De Rycke .{66}',
+            'series': 'De Slimste Mens ter Wereld',
+            'episode': 'Episode 1',
+            'season_number': 22,
+            'episode_number': 1,
+            'season': 'Season 22',
         },
+        'params': {'skip_download': True},
         'skip': 'This video is only available for registered users',
     }, {
         'url': 'https://www.goplay.be/video/fantastic-beasts-the-secrets-of-dumbledore',
         'info_dict': {
             'id': '046a91f1-db9c-41ff-8652-d35881ea72c4',
+            'ext': 'mp4',
             'title': 'Fantastic Beasts: The Secrets of Dumbledore',
+            'description': r're:Professor Albus Dumbledore ontdekt dat de duistere tovenaar .{132}',
         },
+        'params': {'skip_download': True},
         'skip': 'This video is only available for registered users',
     }, {
-        'url': 'https://www.goplay.be/video/de-mol/de-mol-s11/de-mol-s11-aflevering-1',
+        'url': 'https://www.goplay.be/video/de-mol/de-mol-s11/de-mol-s11-aflevering-1#autoplay',
         'info_dict': {
             'id': 'ecb79672-92b9-4cd9-a0d7-e2f0250681ee',
-            'title': 'De Mol - S11 - Aflevering 1',
+            'ext': 'mp4',
+            'title': 'S11 - Aflevering 1',
+            'description': r're:Tien kandidaten beginnen aan hun verovering van Amerika en ontmoeten .{102}',
+            'episode': 'Episode 1',
+            'series': 'De Mol',
+            'season_number': 11,
+            'episode_number': 1,
+            'season': 'Season 11',
         },
-        'params': {
-            'skip_download': True,
-        },
+        'params': {'skip_download': True},
         'skip': 'This video is only available for registered users',
     }]
 
@@ -55,26 +76,42 @@ class GoPlayIE(InfoExtractor):
         if not self._id_token:
             raise self.raise_login_required(method='password')
 
+    def _find_json(self, s):
+        return self._search_json(
+            r'\w+\s*:\s*', s, 'next js data', None, contains_pattern=r'\[(?s:.+)\]', default=[])
+
     def _real_extract(self, url):
-        url, display_id = self._match_valid_url(url).group(0, 'display_id')
+        display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
 
-        # regex pattern to capture JSON-like data starting with {"meta" and ending with }}\n])
-        pattern = r'(\{\\"meta.*\\"\}\})\]\]\\n\"]\)'
+        nextjs_data = traverse_obj(
+            re.findall(r'<script>\s*self\.__next_f\.push\(\s*(\[.+?\])\s*\)\s*</script>', webpage),
+            (..., {js_to_json}, {json.loads}, ..., {self._find_json}, ...))
+        meta = traverse_obj(nextjs_data, (
+            ..., lambda _, v: v['meta']['path'] == urllib.parse.urlparse(url).path, 'meta', any))
 
-        # Use _html_search_regex to search for the JSON-like data
-        video_data_json = self._html_search_regex(pattern, webpage, '{"meta"...}}')
+        video_id = meta['uuid']
+        info_dict = traverse_obj(meta, {
+            'title': ('title', {str}),
+            'description': ('description', {str.strip}),
+        })
 
-        # Replace \" with " to make it a valid JSON string
-        video_data_json = video_data_json.replace('\\"', '"')
+        if traverse_obj(meta, ('program', 'subtype')) != 'movie':
+            for season_data in traverse_obj(nextjs_data, (..., 'children', ..., 'playlists', ...)):
+                episode_data = traverse_obj(
+                    season_data, ('videos', lambda _, v: v['videoId'] == video_id, any))
+                if not episode_data:
+                    continue
 
-        video_data = self._parse_json(unescapeHTML(video_data_json), display_id)
-
-        info_dict = {
-            'title': video_data.get('meta').get('title'),
-        }
-
-        video_id = video_data.get('meta').get('uuid')
+                episode_title = traverse_obj(
+                    episode_data, 'contextualTitle', 'episodeTitle', expected_type=str)
+                info_dict.update({
+                    'title': episode_title or info_dict.get('title'),
+                    'series': remove_end(info_dict.get('title'), f' - {episode_title}'),
+                    'season_number': traverse_obj(season_data, ('season', {int_or_none})),
+                    'episode_number': traverse_obj(episode_data, ('episodeNumber', {int_or_none})),
+                })
+                break
 
         api = self._download_json(
             f'https://api.goplay.be/web/v1/videos/long-form/{video_id}',
