@@ -9,6 +9,7 @@ passthrough_module(__name__, '.._legacy', callback=lambda attr: warnings.warn(
 del passthrough_module
 
 
+import re
 import struct
 
 
@@ -25,3 +26,6 @@ def intlist_to_bytes(xs):
     if not xs:
         return b''
     return struct.pack('%dB' % len(xs), *xs)
+
+
+compiled_regex_type = type(re.compile(''))

@@ -54,9 +54,6 @@ from ..dependencies import xattr
 
 __name__ = __name__.rsplit('.', 1)[0]  # noqa: A001: Pretend to be the parent module
 
-# This is not clearly defined otherwise
-compiled_regex_type = type(re.compile(''))
-
 
 class NO_DEFAULT:
     pass

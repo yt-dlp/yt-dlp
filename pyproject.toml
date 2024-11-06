@@ -321,6 +321,7 @@ banned-from = [
 "yt_dlp.compat.compat_os_name".msg = "Use `os.name` instead."
 "yt_dlp.compat.compat_realpath".msg = "Use `os.path.realpath` instead."
 "yt_dlp.utils.decodeOption".msg = "Do not use"
+"yt_dlp.utils.compiled_regex_type".msg = "Use `re.Pattern` instead."
 
 [tool.autopep8]
 max_line_length = 120
