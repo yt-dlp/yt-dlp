@@ -708,6 +708,7 @@ from .gab import (
     GabTVIE,
 )
 from .gaia import GaiaIE
+from .gamedevtv import GameDevTVDashboardIE
 from .gamejolt import (
     GameJoltCommunityIE,
     GameJoltGameIE,
