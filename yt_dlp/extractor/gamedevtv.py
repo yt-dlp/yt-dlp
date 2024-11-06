@@ -31,6 +31,31 @@ class GameDevTVDashboardIE(InfoExtractor):
             'modified_timestamp': 1730049658,
         },
         'playlist_count': 100,
+    }, {
+        'url': 'https://www.gamedev.tv/dashboard/courses/63/2279',
+        'info_dict': {
+            'id': 'df04f4d8-68a4-4756-a71b-9ca9446c3a01',
+            'ext': 'mp4',
+            'modified_timestamp': 1701695752,
+            'upload_date': '20230504',
+            'episode': 'MagicaVoxel Community Course Introduction',
+            'series_id': '63',
+            'title': 'MagicaVoxel Community Course Introduction',
+            'timestamp': 1683195397,
+            'modified_date': '20231204',
+            'categories': ['3D Art', 'MagicaVoxel'],
+            'season': 'MagicaVoxel Community Course',
+            'tags': ['MagicaVoxel', 'all', 'course'],
+            'series': 'MagicaVoxel 3D Art Mini Course',
+            'duration': 1405,
+            'episode_number': 1,
+            'season_number': 1,
+            'season_id': '219',
+            'description': 'md5:a378738c5bbec1c785d76c067652d650',
+            'display_id': '63-219-2279',
+            'alt_title': '1_CC_MVX MagicaVoxel Community Course Introduction.mp4',
+            'thumbnail': 'https://vz-23691c65-6fa.b-cdn.net/df04f4d8-68a4-4756-a71b-9ca9446c3a01/thumbnail.jpg',
+        },
     }]
     _API_HEADERS = {}
 
