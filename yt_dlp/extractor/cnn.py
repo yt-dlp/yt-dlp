@@ -1,4 +1,3 @@
-import functools
 import json
 import re
 
@@ -199,7 +198,7 @@ class CNNIE(InfoExtractor):
                     'timestamp': ('data-publish-date', {parse_iso8601}),
                     'thumbnail': (
                         'data-poster-image-override', {json.loads}, 'big', 'uri', {url_or_none},
-                        {functools.partial(update_url, query='c=original')}),
+                        {update_url(query='c=original')}),
                     'display_id': 'data-video-slug',
                 }),
                 **traverse_obj(video_data, {

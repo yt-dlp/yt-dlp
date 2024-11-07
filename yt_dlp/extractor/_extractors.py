@@ -278,6 +278,7 @@ from .bleacherreport import (
 from .blerp import BlerpIE
 from .blogger import BloggerIE
 from .bloomberg import BloombergIE
+from .bluesky import BlueskyIE
 from .bokecc import BokeCCIE
 from .bongacams import BongaCamsIE
 from .boosty import BoostyIE
@@ -707,6 +708,7 @@ from .gab import (
     GabTVIE,
 )
 from .gaia import GaiaIE
+from .gamedevtv import GameDevTVDashboardIE
 from .gamejolt import (
     GameJoltCommunityIE,
     GameJoltGameIE,
