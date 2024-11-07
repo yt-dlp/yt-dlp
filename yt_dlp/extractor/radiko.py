@@ -38,6 +38,19 @@ class RadikoBaseIE(InfoExtractor):
         'https://c-radiko.smartstream.ne.jp',
     )
 
+    _JST = datetime.timezone(datetime.timedelta(hours=9))
+    _has_tf30 = None
+
+    def _check_account(self):
+        if self._has_tf30 is not None:
+            return self._has_tf30
+        if self._get_cookies('https://radiko.jp').get('radiko_session') is None:
+            return
+        account_info = self._download_json('https://radiko.jp/ap/member/webapi/v2/member/login/check',
+                                           None, note='Checking account status', expected_status=400)
+        self._has_tf30 = account_info.get('timefreeplus') == '1'
+        return self._has_tf30
+
     def _negotiate_token(self):
         _, auth1_handle = self._download_webpage_handle(
             'https://radiko.jp/v2/api/auth1', None, 'Downloading authentication page',
@@ -104,14 +117,28 @@ class RadikoBaseIE(InfoExtractor):
         dt = datetime.datetime.strptime(timestring, '%Y%m%d%H%M%S')
         if dt.hour < 5:
             dt -= datetime.timedelta(days=1)
-        return dt.strftime('%Y%m%d')
+        return dt
+
+    def _get_broadcast_day_end(self, dt):
+        dt += datetime.timedelta(days=1)
+        return datetime.datetime(dt.year, dt.month, dt.day, 5, 0, 0, tzinfo=self._JST)
 
     def _find_program(self, video_id, station, cursor):
         broadcast_day = self._get_broadcast_day(cursor)
+        broadcast_day_str = broadcast_day.strftime('%Y%m%d')
+
+        broadcast_day_end = self._get_broadcast_day_end(broadcast_day)
+        now = datetime.datetime.now(tz=self._JST)
+
+        if broadcast_day_end + datetime.timedelta(days=30) < now:
+            self.raise_no_formats('Programme is no longer available.', video_id=video_id, expected=True)
+        elif broadcast_day_end + datetime.timedelta(days=7) < now and not self._check_account():
+            self.raise_login_required('Programme is only available with a Timefree 30 subscription',
+                                      metadata_available=True)
 
         station_program = self._download_xml(
-            f'https://api.radiko.jp/program/v3/date/{broadcast_day}/station/{station}.xml', station,
-            note=f'Downloading programme data for {broadcast_day}')
+            f'https://api.radiko.jp/program/v3/date/{broadcast_day_str}/station/{station}.xml', station,
+            note=f'Downloading programme data for {broadcast_day_str}')
 
         prog = None
         for p in station_program.findall('.//prog'):
