@@ -5,6 +5,7 @@ import re
 import urllib.parse
 
 from .common import InfoExtractor
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     clean_html,
@@ -13,12 +14,14 @@ from ..utils import (
     try_call,
     unified_timestamp,
     update_url_query,
+    urlencode_postdata,
 )
 from ..utils.traversal import traverse_obj
 
 
 class RadikoBaseIE(InfoExtractor):
     _GEO_BYPASS = False
+    _NETRC_MACHINE = 'radiko'
     _FULL_KEY = None
     _HOSTS_FOR_TIME_FREE_FFMPEG_UNSUPPORTED = (
         'https://c-rpaa.smartstream.ne.jp',
@@ -41,13 +44,23 @@ class RadikoBaseIE(InfoExtractor):
     _JST = datetime.timezone(datetime.timedelta(hours=9))
     _has_tf30 = None
 
+    def _perform_login(self, username, password):
+        try:
+            login_info = self._download_json('https://radiko.jp/ap/member/webapi/member/login', None, note='Logging in',
+                                             data=urlencode_postdata({'mail': username, 'pass': password}))
+            self._has_tf30 = '2' in login_info.get('privileges')
+        except ExtractorError as error:
+            if isinstance(error.cause, HTTPError) and error.cause.status == 401:
+                raise ExtractorError('Invalid username and/or password', expected=True)
+            raise
+
     def _check_account(self):
         if self._has_tf30 is not None:
             return self._has_tf30
         if self._get_cookies('https://radiko.jp').get('radiko_session') is None:
             return
         account_info = self._download_json('https://radiko.jp/ap/member/webapi/v2/member/login/check',
-                                           None, note='Checking account status', expected_status=400)
+                                           None, note='Checking account status from cookies', expected_status=400)
         self._has_tf30 = account_info.get('timefreeplus') == '1'
         return self._has_tf30
 
