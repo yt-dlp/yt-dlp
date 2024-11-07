@@ -54,7 +54,7 @@ class RadikoBaseIE(InfoExtractor):
                 raise ExtractorError('Invalid username and/or password', expected=True)
             raise
 
-    def _check_account(self):
+    def _check_tf30(self):
         if self._has_tf30 is not None:
             return self._has_tf30
         if self._get_cookies('https://radiko.jp').get('radiko_session') is None:
@@ -145,13 +145,13 @@ class RadikoBaseIE(InfoExtractor):
 
         if broadcast_day_end + datetime.timedelta(days=30) < now:
             self.raise_no_formats('Programme is no longer available.', video_id=video_id, expected=True)
-        elif broadcast_day_end + datetime.timedelta(days=7) < now and not self._check_account():
+        elif broadcast_day_end + datetime.timedelta(days=7) < now and not self._check_tf30():
             self.raise_login_required('Programme is only available with a Timefree 30 subscription',
                                       metadata_available=True)
 
         station_program = self._download_xml(
             f'https://api.radiko.jp/program/v3/date/{broadcast_day_str}/station/{station}.xml', station,
-            note=f'Downloading programme data for {broadcast_day_str}')
+            note=f'Downloading programme information for {broadcast_day_str}')
 
         prog = None
         for p in station_program.findall('.//prog'):
