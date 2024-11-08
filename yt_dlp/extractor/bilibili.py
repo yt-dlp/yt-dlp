@@ -46,6 +46,7 @@ from ..utils import (
 
 
 class BilibiliBaseIE(InfoExtractor):
+    _HEADERS = {'Referer': 'https://www.bilibili.com/'}
     _FORMAT_ID_RE = re.compile(r'-(\d+)\.m4s\?')
     _WBI_KEY_CACHE_TIMEOUT = 30  # exact expire timeout is unclear, use 30s for one session
     _wbi_key_cache = {}
@@ -108,7 +109,7 @@ class BilibiliBaseIE(InfoExtractor):
 
         fragments = traverse_obj(play_info, ('durl', lambda _, v: url_or_none(v['url']), {
             'url': ('url', {url_or_none}),
-            'duration': ('length', {functools.partial(float_or_none, scale=1000)}),
+            'duration': ('length', {float_or_none(scale=1000)}),
             'filesize': ('size', {int_or_none}),
         }))
         if fragments:
@@ -123,7 +124,7 @@ class BilibiliBaseIE(InfoExtractor):
                     'quality': ('quality', {int_or_none}),
                     'format_id': ('quality', {str_or_none}),
                     'format_note': ('quality', {lambda x: format_names.get(x)}),
-                    'duration': ('timelength', {functools.partial(float_or_none, scale=1000)}),
+                    'duration': ('timelength', {float_or_none(scale=1000)}),
                 }),
                 **parse_resolution(format_names.get(play_info.get('quality'))),
             })
@@ -192,7 +193,7 @@ class BilibiliBaseIE(InfoExtractor):
         video_info = self._download_json(
             'https://api.bilibili.com/x/player/v2', video_id,
             query={'aid': aid, 'cid': cid} if aid else {'bvid': video_id, 'cid': cid},
-            note=f'Extracting subtitle info {cid}')
+            note=f'Extracting subtitle info {cid}', headers=self._HEADERS)
         if traverse_obj(video_info, ('data', 'need_login_subtitle')):
             self.report_warning(
                 f'Subtitles are only available when logged in. {self._login_hint()}', only_once=True)
@@ -207,7 +208,7 @@ class BilibiliBaseIE(InfoExtractor):
     def _get_chapters(self, aid, cid):
         chapters = aid and cid and self._download_json(
             'https://api.bilibili.com/x/player/v2', aid, query={'aid': aid, 'cid': cid},
-            note='Extracting chapters', fatal=False)
+            note='Extracting chapters', fatal=False, headers=self._HEADERS)
         return traverse_obj(chapters, ('data', 'view_points', ..., {
             'title': 'content',
             'start_time': 'from',
@@ -298,7 +299,7 @@ class BilibiliBaseIE(InfoExtractor):
 
 
 class BiliBiliIE(BilibiliBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?bilibili\.com/(?:video/|festival/\w+\?(?:[^#]*&)?bvid=)[aAbB][vV](?P<id>[^/?#&]+)'
+    _VALID_URL = r'https?://(?:www\.)?bilibili\.com/(?:video/|festival/[^/?#]+\?(?:[^#]*&)?bvid=)[aAbB][vV](?P<id>[^/?#&]+)'
 
     _TESTS = [{
         'url': 'https://www.bilibili.com/video/BV13x41117TL',
@@ -622,6 +623,10 @@ class BiliBiliIE(BilibiliBaseIE):
             'ext': 'mp4',
         },
         'skip': 'geo-restricted',
+    }, {
+        'note': 'has - in the last path segment of the url',
+        'url': 'https://www.bilibili.com/festival/bh3-7th?bvid=BV1tr4y1f7p2&',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
@@ -1017,8 +1022,6 @@ class BiliBiliBangumiSeasonIE(BilibiliBaseIE):
 
 
 class BilibiliCheeseBaseIE(BilibiliBaseIE):
-    _HEADERS = {'Referer': 'https://www.bilibili.com/'}
-
     def _extract_episode(self, season_info, ep_id):
         episode_info = traverse_obj(season_info, (
             'episodes', lambda _, v: v['id'] == int(ep_id)), get_all=False)
@@ -1582,7 +1585,7 @@ class BilibiliPlaylistIE(BilibiliSpaceListBaseIE):
                 'title': ('title', {str}),
                 'uploader': ('upper', 'name', {str}),
                 'uploader_id': ('upper', 'mid', {str_or_none}),
-                'timestamp': ('ctime', {int_or_none}, {lambda x: x or None}),
+                'timestamp': ('ctime', {int_or_none}, filter),
                 'thumbnail': ('cover', {url_or_none}),
             })),
         }
@@ -1848,7 +1851,7 @@ class BiliBiliPlayerIE(InfoExtractor):
 class BiliIntlBaseIE(InfoExtractor):
     _API_URL = 'https://api.bilibili.tv/intl/gateway'
     _NETRC_MACHINE = 'biliintl'
-    _HEADERS = {'Referer': 'https://www.bilibili.com/'}
+    _HEADERS = {'Referer': 'https://www.bilibili.tv/'}
 
     def _call_api(self, endpoint, *args, **kwargs):
         json = self._download_json(self._API_URL + endpoint, *args, **kwargs)
