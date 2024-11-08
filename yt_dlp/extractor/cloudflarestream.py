@@ -63,7 +63,8 @@ class CloudflareStreamIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        domain = 'bytehighway.net' if 'bytehighway.net/' in url else 'cloudflarestream.com'
+        if domain != 'bytehighway.net':
+            domain = 'cloudflarestream.com'
         base_url = f'https://{domain}/{video_id}/'
         if '.' in video_id:
             video_id = self._parse_json(base64.urlsafe_b64decode(
