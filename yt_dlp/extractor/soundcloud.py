@@ -208,7 +208,6 @@ class SoundcloudBaseIE(InfoExtractor):
 
     def _extract_info_dict(self, info, full_title=None, secret_token=None, extract_flat=False):
         track_id = str(info['id'])
-        title = info['title']
 
         format_urls = set()
         formats = []
@@ -314,23 +313,11 @@ class SoundcloudBaseIE(InfoExtractor):
                 self.write_debug(f'"{identifier}" is not a requested format, skipping')
                 continue
 
-            stream = None
-            for retry in self.RetryManager(fatal=False):
-                try:
-                    stream = self._call_api(
-                        format_url, track_id, f'Downloading {identifier} format info JSON',
-                        query=query, headers=self._HEADERS)
-                except ExtractorError as e:
-                    if isinstance(e.cause, HTTPError) and e.cause.status == 429:
-                        self.report_warning(
-                            'You have reached the API rate limit, which is ~600 requests per '
-                            '10 minutes. Use the --extractor-retries and --retry-sleep options '
-                            'to configure an appropriate retry count and wait time', only_once=True)
-                        retry.error = e.cause
-                    else:
-                        self.report_warning(e.msg)
+            # XXX: if not extract_flat, 429 error must be caught where _extract_info_dict is called
+            stream_url = traverse_obj(self._call_api(
+                format_url, track_id, f'Downloading {identifier} format info JSON',
+                query=query, headers=self._HEADERS), ('url', {url_or_none}))
 
-            stream_url = traverse_obj(stream, ('url', {url_or_none}))
             if invalid_url(stream_url):
                 continue
             format_urls.add(stream_url)
@@ -379,7 +366,7 @@ class SoundcloudBaseIE(InfoExtractor):
             'uploader_id': str_or_none(user.get('id')) or user.get('permalink'),
             'uploader_url': user.get('permalink_url'),
             'timestamp': unified_timestamp(info.get('created_at')),
-            'title': title,
+            'title': info.get('title'),
             'description': info.get('description'),
             'thumbnails': thumbnails,
             'duration': float_or_none(info.get('duration'), 1000),
@@ -389,7 +376,8 @@ class SoundcloudBaseIE(InfoExtractor):
             'like_count': extract_count('favoritings') or extract_count('likes'),
             'comment_count': extract_count('comment'),
             'repost_count': extract_count('reposts'),
-            'genres': traverse_obj(info, ('genre', {str}, {lambda x: x or None}, all)),
+            'genres': traverse_obj(info, ('genre', {str}, filter, all, filter)),
+            'artists': traverse_obj(info, ('publisher_metadata', 'artist', {str}, filter, all, filter)),
             'formats': formats if not extract_flat else None,
         }
 
@@ -441,7 +429,6 @@ class SoundcloudIE(SoundcloudBaseIE):
                 'repost_count': int,
                 'thumbnail': 'https://i1.sndcdn.com/artworks-000031955188-rwb18x-original.jpg',
                 'uploader_url': 'https://soundcloud.com/ethmusic',
-                'genres': [],
             },
         },
         # geo-restricted
@@ -465,6 +452,7 @@ class SoundcloudIE(SoundcloudBaseIE):
                 'uploader_url': 'https://soundcloud.com/the-concept-band',
                 'thumbnail': 'https://i1.sndcdn.com/artworks-v8bFHhXm7Au6-0-original.jpg',
                 'genres': ['Alternative'],
+                'artists': ['The Royal Concept'],
             },
         },
         # private link
@@ -537,6 +525,7 @@ class SoundcloudIE(SoundcloudBaseIE):
                 'repost_count': int,
                 'view_count': int,
                 'genres': ['Dance & EDM'],
+                'artists': ['80M'],
             },
         },
         # private link, downloadable format
@@ -561,6 +550,7 @@ class SoundcloudIE(SoundcloudBaseIE):
                 'thumbnail': 'https://i1.sndcdn.com/artworks-000240712245-kedn4p-original.jpg',
                 'uploader_url': 'https://soundcloud.com/oriuplift',
                 'genres': ['Trance'],
+                'artists': ['Ori Uplift'],
             },
         },
         # no album art, use avatar pic for thumbnail
@@ -584,7 +574,7 @@ class SoundcloudIE(SoundcloudBaseIE):
                 'comment_count': int,
                 'repost_count': int,
                 'uploader_url': 'https://soundcloud.com/garyvee',
-                'genres': [],
+                'artists': ['MadReal'],
             },
             'params': {
                 'skip_download': True,
@@ -647,7 +637,17 @@ class SoundcloudIE(SoundcloudBaseIE):
         info = self._call_api(
             info_json_url, full_title, 'Downloading info JSON', query=query, headers=self._HEADERS)
 
-        return self._extract_info_dict(info, full_title, token)
+        for retry in self.RetryManager():
+            try:
+                return self._extract_info_dict(info, full_title, token)
+            except ExtractorError as e:
+                if not isinstance(e.cause, HTTPError) or not e.cause.status == 429:
+                    raise
+                self.report_warning(
+                    'You have reached the API rate limit, which is ~600 requests per '
+                    '10 minutes. Use the --extractor-retries and --retry-sleep options '
+                    'to configure an appropriate retry count and wait time', only_once=True)
+                retry.error = e.cause
 
 
 class SoundcloudPlaylistBaseIE(SoundcloudBaseIE):
@@ -873,7 +873,7 @@ class SoundcloudUserPermalinkIE(SoundcloudPagedPlaylistBaseIE):
             'id': '30909869',
             'title': 'neilcic',
         },
-        'playlist_mincount': 23,
+        'playlist_mincount': 22,
     }]
 
     def _real_extract(self, url):
@@ -882,7 +882,7 @@ class SoundcloudUserPermalinkIE(SoundcloudPagedPlaylistBaseIE):
             self._resolv_url(url), user_id, 'Downloading user info', headers=self._HEADERS)
 
         return self._extract_playlist(
-            f'{self._API_V2_BASE}stream/users/{user["id"]}', str(user['id']), user.get('username'))
+            f'{self._API_V2_BASE}users/{user["id"]}/tracks', str(user['id']), user.get('username'))
 
 
 class SoundcloudTrackStationIE(SoundcloudPagedPlaylistBaseIE):

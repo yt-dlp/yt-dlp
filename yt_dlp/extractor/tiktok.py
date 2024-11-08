@@ -23,7 +23,6 @@ from ..utils import (
     mimetype2ext,
     parse_qs,
     qualities,
-    remove_start,
     srt_subtitles_timecode,
     str_or_none,
     traverse_obj,
@@ -254,7 +253,16 @@ class TikTokBaseIE(InfoExtractor):
 
     def _get_subtitles(self, aweme_detail, aweme_id, user_name):
         # TODO: Extract text positioning info
+
+        EXT_MAP = {  # From lowest to highest preference
+            'creator_caption': 'json',
+            'srt': 'srt',
+            'webvtt': 'vtt',
+        }
+        preference = qualities(tuple(EXT_MAP.values()))
+
         subtitles = {}
+
         # aweme/detail endpoint subs
         captions_info = traverse_obj(
             aweme_detail, ('interaction_stickers', ..., 'auto_video_caption_info', 'auto_captions', ...), expected_type=dict)
@@ -278,8 +286,8 @@ class TikTokBaseIE(InfoExtractor):
                 if not caption.get('url'):
                     continue
                 subtitles.setdefault(caption.get('lang') or 'en', []).append({
-                    'ext': remove_start(caption.get('caption_format'), 'web'),
                     'url': caption['url'],
+                    'ext': EXT_MAP.get(caption.get('Format')),
                 })
         # webpage subs
         if not subtitles:
@@ -288,9 +296,14 @@ class TikTokBaseIE(InfoExtractor):
                     self._create_url(user_name, aweme_id), aweme_id, fatal=False)
             for caption in traverse_obj(aweme_detail, ('video', 'subtitleInfos', lambda _, v: v['Url'])):
                 subtitles.setdefault(caption.get('LanguageCodeName') or 'en', []).append({
-                    'ext': remove_start(caption.get('Format'), 'web'),
                     'url': caption['Url'],
+                    'ext': EXT_MAP.get(caption.get('Format')),
                 })
+
+        # Deprioritize creator_caption json since it can't be embedded or used by media players
+        for lang, subs_list in subtitles.items():
+            subtitles[lang] = sorted(subs_list, key=lambda x: preference(x['ext']))
+
         return subtitles
 
     def _parse_url_key(self, url_key):
@@ -456,7 +469,7 @@ class TikTokBaseIE(InfoExtractor):
                 aweme_detail, aweme_id, traverse_obj(author_info, 'uploader', 'uploader_id', 'channel_id')),
             'thumbnails': thumbnails,
             'duration': (traverse_obj(video_info, (
-                (None, 'download_addr'), 'duration', {functools.partial(int_or_none, scale=1000)}, any))
+                (None, 'download_addr'), 'duration', {int_or_none(scale=1000)}, any))
                 or traverse_obj(music_info, ('duration', {int_or_none}))),
             'availability': self._availability(
                 is_private='Private' in labels,
@@ -529,15 +542,11 @@ class TikTokBaseIE(InfoExtractor):
                 **COMMON_FORMAT_INFO,
                 'format_id': 'download',
                 'url': self._proto_relative_url(download_url),
+                'format_note': 'watermarked',
+                'preference': -2,
             })
 
         self._remove_duplicate_formats(formats)
-
-        for f in traverse_obj(formats, lambda _, v: 'unwatermarked' not in v['url']):
-            f.update({
-                'format_note': join_nonempty(f.get('format_note'), 'watermarked', delim=', '),
-                'preference': f.get('preference') or -2,
-            })
 
         # Is it a slideshow with only audio for download?
         if not formats and traverse_obj(aweme_detail, ('music', 'playUrl', {url_or_none})):
@@ -552,7 +561,8 @@ class TikTokBaseIE(InfoExtractor):
                 'vcodec': 'none',
             })
 
-        return formats
+        # Filter out broken formats, see https://github.com/yt-dlp/yt-dlp/issues/11034
+        return [f for f in formats if urllib.parse.urlparse(f['url']).hostname != 'www.tiktok.com']
 
     def _parse_aweme_video_web(self, aweme_detail, webpage_url, video_id, extract_flat=False):
         author_info = traverse_obj(aweme_detail, (('authorInfo', 'author', None), {
@@ -573,7 +583,7 @@ class TikTokBaseIE(InfoExtractor):
                 author_info, ['uploader', 'uploader_id'], self._UPLOADER_URL_FORMAT, default=None),
             **traverse_obj(aweme_detail, ('music', {
                 'track': ('title', {str}),
-                'album': ('album', {str}, {lambda x: x or None}),
+                'album': ('album', {str}, filter),
                 'artists': ('authorName', {str}, {lambda x: re.split(r'(?:, | & )', x) if x else None}),
                 'duration': ('duration', {int_or_none}),
             })),
@@ -581,7 +591,7 @@ class TikTokBaseIE(InfoExtractor):
                 'title': ('desc', {str}),
                 'description': ('desc', {str}),
                 # audio-only slideshows have a video duration of 0 and an actual audio duration
-                'duration': ('video', 'duration', {int_or_none}, {lambda x: x or None}),
+                'duration': ('video', 'duration', {int_or_none}, filter),
                 'timestamp': ('createTime', {int_or_none}),
             }),
             **traverse_obj(aweme_detail, ('stats', {
@@ -1458,9 +1468,11 @@ class TikTokLiveIE(TikTokBaseIE):
 
         if webpage:
             data = self._get_sigi_state(webpage, uploader or room_id)
-            room_id = (traverse_obj(data, ('UserModule', 'users', ..., 'roomId', {str_or_none}), get_all=False)
-                       or self._search_regex(r'snssdk\d*://live\?room_id=(\d+)', webpage, 'room ID', default=None)
-                       or room_id)
+            room_id = (
+                traverse_obj(data, ((
+                    ('LiveRoom', 'liveRoomUserInfo', 'user'),
+                    ('UserModule', 'users', ...)), 'roomId', {str}, any))
+                or self._search_regex(r'snssdk\d*://live\?room_id=(\d+)', webpage, 'room ID', default=room_id))
             uploader = uploader or traverse_obj(
                 data, ('LiveRoom', 'liveRoomUserInfo', 'user', 'uniqueId'),
                 ('UserModule', 'users', ..., 'uniqueId'), get_all=False, expected_type=str)
@@ -1481,7 +1493,7 @@ class TikTokLiveIE(TikTokBaseIE):
 
             sdk_params = traverse_obj(stream, ('main', 'sdk_params', {parse_inner}, {
                 'vcodec': ('VCodec', {str}),
-                'tbr': ('vbitrate', {lambda x: int_or_none(x, 1000)}),
+                'tbr': ('vbitrate', {int_or_none(scale=1000)}),
                 'resolution': ('resolution', {lambda x: re.match(r'(?i)\d+x\d+|\d+p', x).group().lower()}),
             }))
 
