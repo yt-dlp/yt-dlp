@@ -696,7 +696,7 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
         self.run_ffmpeg_multiple_files(input_files, temp_filename, opts)
         os.replace(temp_filename, filename)
 
-        files_to_delete = [] if self._already_have_subtitle else sub_filenames + list(json_subs.values())
+        files_to_delete = [] if self._already_have_subtitle else [*sub_filenames, *json_subs.values()]
         return files_to_delete, info
 
 
