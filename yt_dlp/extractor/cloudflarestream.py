@@ -19,7 +19,7 @@ class CloudflareStreamIE(InfoExtractor):
             'id': '31c9291ab41fac05471db4e73aa11717',
             'ext': 'mp4',
             'title': '31c9291ab41fac05471db4e73aa11717',
-            'thumbnail': 'https://videodelivery.net/31c9291ab41fac05471db4e73aa11717/thumbnails/thumbnail.jpg',
+            'thumbnail': 'https://cloudflarestream.com/31c9291ab41fac05471db4e73aa11717/thumbnails/thumbnail.jpg',
         },
         'params': {
             'skip_download': 'm3u8',
@@ -30,7 +30,7 @@ class CloudflareStreamIE(InfoExtractor):
             'id': '0e8e040aec776862e1d632a699edf59e',
             'ext': 'mp4',
             'title': '0e8e040aec776862e1d632a699edf59e',
-            'thumbnail': 'https://videodelivery.net/0e8e040aec776862e1d632a699edf59e/thumbnails/thumbnail.jpg',
+            'thumbnail': 'https://cloudflarestream.com/0e8e040aec776862e1d632a699edf59e/thumbnails/thumbnail.jpg',
         },
     }, {
         'url': 'https://watch.cloudflarestream.com/9df17203414fd1db3e3ed74abbe936c1',
@@ -54,7 +54,7 @@ class CloudflareStreamIE(InfoExtractor):
             'id': 'eaef9dea5159cf968be84241b5cedfe7',
             'ext': 'mp4',
             'title': 'eaef9dea5159cf968be84241b5cedfe7',
-            'thumbnail': 'https://videodelivery.net/eaef9dea5159cf968be84241b5cedfe7/thumbnails/thumbnail.jpg',
+            'thumbnail': 'https://cloudflarestream.com/eaef9dea5159cf968be84241b5cedfe7/thumbnails/thumbnail.jpg',
         },
         'params': {
             'skip_download': 'm3u8',
