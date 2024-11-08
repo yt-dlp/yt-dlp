@@ -192,6 +192,24 @@ class RutubeIE(RutubeBaseIE):
             'uploader': 'Первый канал',
         },
     }, {
+        'url': 'https://rutube.ru/play/embed/03a9cb54bac3376af4c5cb0f18444e01/',
+        'info_dict': {
+            'id': '03a9cb54bac3376af4c5cb0f18444e01',
+            'ext': 'mp4',
+            'age_limit': 0,
+            'description': '',
+            'title': 'Церемония начала торгов акциями ПАО «ЕвроТранс»',
+            'chapters': [],
+            'upload_date': '20240829',
+            'duration': 293,
+            'uploader': 'MOEX - Московская биржа',
+            'timestamp': 1724946628,
+            'thumbnail': 'https://pic.rutubelist.ru/video/2e/24/2e241fddb459baf0fa54acfca44874f4.jpg',
+            'view_count': int,
+            'uploader_id': '38420507',
+            'categories': ['Интервью'],
+        },
+    }, {
         'url': 'https://rutube.ru/video/5ab908fccfac5bb43ef2b1e4182256b0/',
         'only_matching': True,
     }, {
@@ -218,7 +236,7 @@ class RutubeIE(RutubeBaseIE):
 class RutubeEmbedIE(RutubeBaseIE):
     IE_NAME = 'rutube:embed'
     IE_DESC = 'Rutube embedded videos'
-    _VALID_URL = r'https?://rutube\.ru/(?:video|play)/embed/(?P<id>[0-9a-f]+)'
+    _VALID_URL = r'https?://rutube\.ru/(?:video|play)/embed/(?P<id>[0-9]+)(?:[?#/]|$)'
 
     _TESTS = [{
         'url': 'https://rutube.ru/video/embed/6722881?vk_puid37=&vk_puid38=',
@@ -248,24 +266,6 @@ class RutubeEmbedIE(RutubeBaseIE):
         # private video
         'url': 'https://rutube.ru/play/embed/10631925?p=IbAigKqWd1do4mjaM5XLIQ',
         'only_matching': True,
-    }, {
-        'url': 'https://rutube.ru/play/embed/03a9cb54bac3376af4c5cb0f18444e01/',
-        'info_dict': {
-            'id': '03a9cb54bac3376af4c5cb0f18444e01',
-            'ext': 'mp4',
-            'age_limit': 0,
-            'description': '',
-            'title': 'Церемония начала торгов акциями ПАО «ЕвроТранс»',
-            'chapters': [],
-            'upload_date': '20240829',
-            'duration': 293,
-            'uploader': 'MOEX - Московская биржа',
-            'timestamp': 1724946628,
-            'thumbnail': 'https://pic.rutubelist.ru/video/2e/24/2e241fddb459baf0fa54acfca44874f4.jpg',
-            'view_count': int,
-            'uploader_id': '38420507',
-            'categories': ['Интервью'],
-        },
     }]
 
     def _real_extract(self, url):
