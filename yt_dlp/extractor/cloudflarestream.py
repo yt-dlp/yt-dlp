@@ -8,7 +8,7 @@ class CloudflareStreamIE(InfoExtractor):
     _DOMAIN_RE = r'(?:cloudflarestream\.com|(?:videodelivery|bytehighway)\.net)'
     _EMBED_RE = rf'(?:embed\.|{_SUBDOMAIN_RE}){_DOMAIN_RE}/embed/[^/?#]+\.js\?(?:[^#]+&)?video='
     _ID_RE = r'[\da-f]{32}|eyJ[\w-]+\.[\w-]+\.[\w-]+'
-    _VALID_URL = rf'https?://(?:{_SUBDOMAIN_RE}{_DOMAIN_RE}/|{_EMBED_RE})(?P<id>{_ID_RE})'
+    _VALID_URL = rf'https?://(?:{_SUBDOMAIN_RE}(?P<domain>{_DOMAIN_RE})/|{_EMBED_RE})(?P<id>{_ID_RE})'
     _EMBED_REGEX = [
         rf'<script[^>]+\bsrc=(["\'])(?P<url>(?:https?:)?//{_EMBED_RE}(?:{_ID_RE})(?:(?!\1).)*)\1',
         rf'<iframe[^>]+\bsrc=["\'](?P<url>https?://{_SUBDOMAIN_RE}{_DOMAIN_RE}/[\da-f]{{32}})',
@@ -62,7 +62,8 @@ class CloudflareStreamIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
+        video_id, domain = self._match_valid_url(url).group('id', 'domain')
+
         if domain != 'bytehighway.net':
             domain = 'cloudflarestream.com'
         base_url = f'https://{domain}/{video_id}/'
