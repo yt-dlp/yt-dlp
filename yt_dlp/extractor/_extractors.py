@@ -1782,6 +1782,7 @@ from .rumble import (
 )
 from .rutube import (
     RutubeChannelIE,
+    RutubeCustomPlaylistIE,
     RutubeEmbedIE,
     RutubeIE,
     RutubeMovieIE,
