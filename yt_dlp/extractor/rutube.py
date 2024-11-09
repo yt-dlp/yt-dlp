@@ -386,7 +386,7 @@ class RutubePlaylistIE(RutubePlaylistBaseIE):
 class RutubeChannelIE(RutubePlaylistBaseIE):
     IE_NAME = 'rutube:channel'
     IE_DESC = 'Rutube channel'
-    _VALID_URL = r'https?://rutube\.ru/channel/(?P<id>\d+)/(?P<section>videos|shorts)'
+    _VALID_URL = r'https?://rutube\.ru/channel/(?P<id>\d+)(?:/(?P<section>videos|shorts))?'
     _TESTS = [{
         'url': 'https://rutube.ru/channel/639184/videos/',
         'info_dict': {
@@ -399,6 +399,12 @@ class RutubeChannelIE(RutubePlaylistBaseIE):
             'id': '25902603_shorts',
         },
         'playlist_mincount': 277,
+    }, {
+        'url': 'https://rutube.ru/channel/25902603/',
+        'info_dict': {
+            'id': '25902603',
+        },
+        'playlist_mincount': 406,
     }]
 
     _PAGE_TEMPLATE = 'https://rutube.ru/api/video/person/%s/?page=%s&format=json&origin__type=%s'
@@ -407,11 +413,13 @@ class RutubeChannelIE(RutubePlaylistBaseIE):
         origin_type = {
             'videos': 'rtb,rst,ifrm,rspa',
             'shorts': 'rshorts',
+            None: '',
         }.get(section)
         return self._PAGE_TEMPLATE % (playlist_id, page_num, origin_type)
 
     def _real_extract(self, url):
         playlist_id, section = self._match_valid_url(url).group('id', 'section')
         playlist = self._extract_playlist(playlist_id, section=section)
-        playlist['id'] = f'{playlist_id}_{section}'
+        if section:
+            playlist['id'] = f'{playlist_id}_{section}'
         return playlist
