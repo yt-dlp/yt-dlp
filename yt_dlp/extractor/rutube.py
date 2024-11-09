@@ -5,7 +5,9 @@ from ..utils import (
     bool_or_none,
     determine_ext,
     int_or_none,
+    js_to_json,
     parse_qs,
+    str_or_none,
     try_get,
     unified_timestamp,
     url_or_none,
@@ -386,7 +388,7 @@ class RutubePlaylistIE(RutubePlaylistBaseIE):
 class RutubeChannelIE(RutubePlaylistBaseIE):
     IE_NAME = 'rutube:channel'
     IE_DESC = 'Rutube channel'
-    _VALID_URL = r'https?://rutube\.ru/channel/(?P<id>\d+)(?:/(?P<section>videos|shorts))?'
+    _VALID_URL = r'https?://rutube\.ru/(?:channel/(?P<id>\d+)|u/(?P<slug>\w+))(?:/(?P<section>videos|shorts))?'
     _TESTS = [{
         'url': 'https://rutube.ru/channel/639184/videos/',
         'info_dict': {
@@ -405,6 +407,12 @@ class RutubeChannelIE(RutubePlaylistBaseIE):
             'id': '25902603',
         },
         'playlist_mincount': 406,
+    }, {
+        'url': 'https://rutube.ru/u/rutube/videos/',
+        'info_dict': {
+            'id': '23704195_videos',
+        },
+        'playlist_mincount': 113,
     }]
 
     _PAGE_TEMPLATE = 'https://rutube.ru/api/video/person/%s/?page=%s&format=json&origin__type=%s'
@@ -418,7 +426,14 @@ class RutubeChannelIE(RutubePlaylistBaseIE):
         return self._PAGE_TEMPLATE % (playlist_id, page_num, origin_type)
 
     def _real_extract(self, url):
-        playlist_id, section = self._match_valid_url(url).group('id', 'section')
+        playlist_id, slug, section = self._match_valid_url(url).group('id', 'slug', 'section')
+        if slug:
+            webpage = self._download_webpage(url, slug)
+            redux_state = self._search_json(
+                r'window\.reduxState\s*=', webpage, 'redux state', slug, transform_source=js_to_json)
+            playlist_id = traverse_obj(redux_state, (
+                'api', 'queries', lambda k, _: k.startswith('channelIdBySlug'),
+                'data', 'channel_id', {int}, {str_or_none}, any))
         playlist = self._extract_playlist(playlist_id, section=section)
         if section:
             playlist['id'] = f'{playlist_id}_{section}'
